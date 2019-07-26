@@ -37,6 +37,7 @@
 #include "mozilla/dom/HTMLSharedObjectElement.h"
 #include "mozilla/dom/HTMLEmbedElementBinding.h"
 #include "mozilla/dom/HTMLAppletElementBinding.h"
+#include "mozilla/dom/Promise.h"
 #include "WorkerPrivate.h"
 
 namespace mozilla {
@@ -2255,6 +2256,78 @@ GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp)
   MOZ_ASSERT(info->type() == JSJitInfo::Method);
   JSJitMethodOp method = info->method;
   return method(cx, obj, self, JSJitMethodCallArgs(args));
+}
+
+bool
+GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp)
+{
+  
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  JS::Rooted<JSObject*> callee(cx, &args.callee());
+
+  
+  
+  const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
+  prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);
+  if (!args.thisv().isObject()) {
+    ThrowInvalidThis(cx, args,
+                     MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE,
+                     protoID);
+    return ConvertExceptionToPromise(cx, xpc::XrayAwareCalleeGlobal(callee),
+                                     args.rval());
+  }
+  JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
+
+  void* self;
+  {
+    nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
+    if (NS_FAILED(rv)) {
+      ThrowInvalidThis(cx, args,
+                       GetInvalidThisErrorForMethod(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO),
+                       protoID);
+      return ConvertExceptionToPromise(cx, xpc::XrayAwareCalleeGlobal(callee),
+                                       args.rval());
+    }
+  }
+  MOZ_ASSERT(info->type() == JSJitInfo::Method);
+  JSJitMethodOp method = info->method;
+  bool ok = method(cx, obj, self, JSJitMethodCallArgs(args));
+  if (ok) {
+    return true;
+  }
+
+  return ConvertExceptionToPromise(cx, xpc::XrayAwareCalleeGlobal(callee),
+                                   args.rval());
+}
+
+bool
+ConvertExceptionToPromise(JSContext* cx,
+                          JSObject* promiseScope,
+                          JS::MutableHandle<JS::Value> rval)
+{
+  GlobalObject global(cx, promiseScope);
+  if (global.Failed()) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> exn(cx);
+  if (!JS_GetPendingException(cx, &exn)) {
+    return false;
+  }
+
+  JS_ClearPendingException(cx);
+  ErrorResult rv;
+  nsRefPtr<Promise> promise = Promise::Reject(global, cx, exn, rv);
+  if (rv.Failed()) {
+    
+    
+    ThrowMethodFailedWithDetails(cx, rv, "", "");
+    JS_SetPendingException(cx, exn);
+    return false;
+  }
+
+  JS::Rooted<JSObject*> wrapScope(cx, JS::CurrentGlobalOrNull(cx));
+  return WrapNewBindingObject(cx, wrapScope, promise, rval);
 }
 
 } 

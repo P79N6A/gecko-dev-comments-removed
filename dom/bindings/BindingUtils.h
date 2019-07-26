@@ -2457,6 +2457,22 @@ GenericBindingSetter(JSContext* cx, unsigned argc, JS::Value* vp);
 bool
 GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp);
 
+bool
+GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+
+
+
+
+
+
+
+
+
+bool
+ConvertExceptionToPromise(JSContext* cx,
+                          JSObject* promiseScope,
+                          JS::MutableHandle<JS::Value> rval);
+
 } 
 } 
 
