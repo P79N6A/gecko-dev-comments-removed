@@ -45,7 +45,9 @@ nsScreenAndroid::GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWid
 NS_IMETHODIMP
 nsScreenAndroid::GetPixelDepth(int32_t *aPixelDepth)
 {
-    *aPixelDepth = AndroidBridge::Bridge()->GetScreenDepth();
+    
+    
+    *aPixelDepth = 16;
     return NS_OK;
 }
 
