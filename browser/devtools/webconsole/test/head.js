@@ -905,6 +905,7 @@ function getMessageElementText(aElement)
 
 
 
+
 function waitForMessages(aOptions)
 {
   gPendingOutputTest++;
@@ -1032,7 +1033,15 @@ function waitForMessages(aOptions)
       return false;
     }
 
-    return checkText(aRule.source.url, location.getAttribute("title"));
+    if (!checkText(aRule.source.url, location.getAttribute("title"))) {
+      return false;
+    }
+
+    if ("line" in aRule.source && location.sourceLine != aRule.source.line) {
+      return false;
+    }
+
+    return true;
   }
 
   function checkMessage(aRule, aElement)
