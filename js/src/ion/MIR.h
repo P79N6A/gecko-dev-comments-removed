@@ -3045,6 +3045,44 @@ class MElements
 };
 
 
+class MConstantElements : public MNullaryInstruction
+{
+    void *value_;
+
+  protected:
+    MConstantElements(void *v)
+      : value_(v)
+    {
+        setResultType(MIRType_Elements);
+        setMovable();
+    }
+
+  public:
+    INSTRUCTION_HEADER(ConstantElements);
+    static MConstantElements *New(void *v) {
+        return new MConstantElements(v);
+    }
+
+    void *value() const {
+        return value_;
+    }
+
+    void printOpcode(FILE *fp);
+
+    HashNumber valueHash() const {
+        return (HashNumber) value_;
+    }
+
+    bool congruentTo(MDefinition * const &ins) const {
+        return ins->isConstantElements() && ins->toConstantElements()->value() == value();
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MInitializedLength
   : public MUnaryInstruction
 {
