@@ -728,6 +728,7 @@ BaselineCompiler::emitBody()
 
     bool lastOpUnreachable = false;
     uint32_t emittedOps = 0;
+    mozilla::DebugOnly<jsbytecode *> prevpc = pc;
 
     while (true) {
         JSOp op = JSOp(*pc);
@@ -738,10 +739,13 @@ BaselineCompiler::emitBody()
 
         
         if (!info) {
-            if (op == JSOP_STOP)
-                break;
+            
             pc += GetBytecodeLength(pc);
+            if (pc >= script->code + script->length)
+                break;
+
             lastOpUnreachable = true;
+            prevpc = pc;
             continue;
         }
 
@@ -791,15 +795,19 @@ OPCODE_LIST(EMIT_OP)
 #undef EMIT_OP
         }
 
-        if (op == JSOP_STOP)
+        
+        pc += GetBytecodeLength(pc);
+        if (pc >= script->code + script->length)
             break;
 
-        pc += GetBytecodeLength(pc);
         emittedOps++;
         lastOpUnreachable = false;
+#ifdef DEBUG
+        prevpc = pc;
+#endif
     }
 
-    JS_ASSERT(JSOp(*pc) == JSOP_STOP);
+    JS_ASSERT(JSOp(*prevpc) == JSOP_RETRVAL);
     return Method_Compiled;
 }
 
@@ -2692,11 +2700,11 @@ BaselineCompiler::emitReturn()
         masm.loadValue(frame.addressOfReturnValue(), JSReturnOperand);
     }
 
-    if (JSOp(*pc) != JSOP_STOP) {
-        
-        
+    
+    
+    
+    if (pc + GetBytecodeLength(pc) < script->code + script->length)
         masm.jump(&return_);
-    }
 
     return true;
 }
@@ -2711,7 +2719,7 @@ BaselineCompiler::emit_JSOP_RETURN()
 }
 
 bool
-BaselineCompiler::emit_JSOP_STOP()
+BaselineCompiler::emit_JSOP_RETRVAL()
 {
     JS_ASSERT(frame.stackDepth() == 0);
 
@@ -2727,12 +2735,6 @@ BaselineCompiler::emit_JSOP_STOP()
     }
 
     return emitReturn();
-}
-
-bool
-BaselineCompiler::emit_JSOP_RETRVAL()
-{
-    return emit_JSOP_STOP();
 }
 
 typedef bool (*ToIdFn)(JSContext *, HandleScript, jsbytecode *, HandleValue, HandleValue,
@@ -2847,12 +2849,6 @@ BaselineCompiler::emit_JSOP_CALLEE()
     masm.tagValue(JSVAL_TYPE_OBJECT, R0.scratchReg(), R0);
     frame.push(R0);
     return true;
-}
-
-bool
-BaselineCompiler::emit_JSOP_POPV()
-{
-    return emit_JSOP_SETRVAL();
 }
 
 typedef bool (*NewArgumentsObjectFn)(JSContext *, BaselineFrame *, MutableHandleValue);

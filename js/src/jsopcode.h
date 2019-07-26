@@ -257,7 +257,6 @@ BytecodeFallsThrough(JSOp op)
       case JSOP_GOTO:
       case JSOP_DEFAULT:
       case JSOP_RETURN:
-      case JSOP_STOP:
       case JSOP_RETRVAL:
       case JSOP_THROW:
       case JSOP_TABLESWITCH:
@@ -557,7 +556,7 @@ inline bool
 FlowsIntoNext(JSOp op)
 {
     
-    return op != JSOP_STOP && op != JSOP_RETURN && op != JSOP_RETRVAL && op != JSOP_THROW &&
+    return op != JSOP_RETRVAL && op != JSOP_RETURN && op != JSOP_THROW &&
            op != JSOP_GOTO && op != JSOP_RETSUB;
 }
 

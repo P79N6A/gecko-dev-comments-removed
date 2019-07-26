@@ -1222,7 +1222,6 @@ IonBuilder::traverseBytecode()
               case JSOP_SETARG:
               case JSOP_SETLOCAL:
               case JSOP_SETRVAL:
-              case JSOP_POPV:
               case JSOP_VOID:
                 
                 break;
@@ -1271,7 +1270,6 @@ IonBuilder::snoopControlFlow(JSOp op)
         return maybeLoop(op, info().getNote(gsn, pc));
 
       case JSOP_RETURN:
-      case JSOP_STOP:
       case JSOP_RETRVAL:
         return processReturn(op);
 
@@ -1678,7 +1676,6 @@ IonBuilder::inspectOpcode(JSOp op)
         return jsop_in();
 
       case JSOP_SETRVAL:
-      case JSOP_POPV:
         JS_ASSERT(!script()->noScriptRval);
         current->setSlot(info().returnValueSlot(), current->pop());
         return true;
@@ -3478,7 +3475,7 @@ IonBuilder::processReturn(JSOp op)
         def = current->pop();
         break;
 
-      case JSOP_STOP:
+      case JSOP_RETRVAL:
         
         if (script()->noScriptRval) {
             MInstruction *ins = MConstant::New(UndefinedValue());
@@ -3487,9 +3484,6 @@ IonBuilder::processReturn(JSOp op)
             break;
         }
 
-        
-      case JSOP_RETRVAL:
-        
         def = current->getSlot(info().returnValueSlot());
         break;
 
