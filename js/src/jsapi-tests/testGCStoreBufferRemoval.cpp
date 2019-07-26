@@ -26,9 +26,9 @@ BEGIN_TEST(testGCStoreBufferRemoval)
     
     JS_GC(cx->runtime());
     JS::RootedObject obj(cx, NurseryObject());
-    CHECK(js::gc::IsInsideNursery(obj.get()));
+    CHECK(js::gc::IsInsideNursery(rt, obj.get()));
     JS_GC(cx->runtime());
-    CHECK(!js::gc::IsInsideNursery(obj.get()));
+    CHECK(!js::gc::IsInsideNursery(rt, obj.get()));
     JS::RootedObject tenuredObject(cx, obj);
 
     
