@@ -29,13 +29,6 @@ const kMaxVelocity = 6;
 
 
 
-
-
-
-
-const kDebugMouseInputPref = "metro.debug.treatmouseastouch";
-
-
 const kDebugSelectionDisplayPref = "metro.debug.selection.displayRanges";
 
 
@@ -104,17 +97,7 @@ var TouchModule = {
 
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
     Services.obs.addObserver(this, "Gesture:DoubleTap", false);
-
-    try {
-      this._treatMouseAsTouch = Services.prefs.getBoolPref(kDebugMouseInputPref);
-    } catch (e) {}
   },
-
-  
-
-
-
-  _treatMouseAsTouch: false,
 
   
 
@@ -228,15 +211,6 @@ var TouchModule = {
   },
 
   _onContextMenu: function _onContextMenu(aEvent) {
-    
-    
-    if (this._treatMouseAsTouch) {
-      let event = document.createEvent("Events");
-      event.initEvent("MozEdgeUICompleted", true, false);
-      window.dispatchEvent(event);
-      return;
-    }
-
     
     
     if (ContextMenuUI.popupState) {
