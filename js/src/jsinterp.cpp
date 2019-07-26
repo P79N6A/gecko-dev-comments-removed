@@ -553,11 +553,13 @@ js::Execute(JSContext *cx, HandleScript script, JSObject &scopeChainArg, Value *
         return false;
 
     
-    if (!scopeChain->isNative()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NON_NATIVE_SCOPE);
-        return false;
-    }
-    JS_ASSERT(!scopeChain->getOps()->defineProperty);
+#ifdef DEBUG
+    RawObject s = scopeChain;
+    do {
+        assertSameCompartment(cx, s);
+        JS_ASSERT_IF(!s->enclosingScope(), s->isGlobal());
+    } while ((s = s->enclosingScope()));
+#endif
 
     
     if (!cx->hasRunOption(JSOPTION_VAROBJFIX)) {
