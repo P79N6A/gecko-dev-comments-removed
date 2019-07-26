@@ -229,7 +229,6 @@ public:
 
   void UnregisterAudioBufferSourceNode(AudioBufferSourceNode* aNode);
   void UnregisterPannerNode(PannerNode* aNode);
-  void UnregisterOscillatorNode(OscillatorNode* aNode);
   void UnregisterScriptProcessorNode(ScriptProcessorNode* aNode);
   void UpdatePannerSource();
 
@@ -262,7 +261,6 @@ private:
   
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
   nsTHashtable<nsPtrHashKey<AudioBufferSourceNode> > mAudioBufferSourceNodes;
-  nsTHashtable<nsPtrHashKey<OscillatorNode> > mOscillatorNodes;
   
   
   nsTHashtable<nsPtrHashKey<ScriptProcessorNode> > mScriptProcessorNodes;
