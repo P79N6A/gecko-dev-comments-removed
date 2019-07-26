@@ -48,51 +48,14 @@ public:
   void AttachMediaSource(dom::MediaSource* aMediaSource);
   void DetachMediaSource();
 
-  SubBufferDecoder* CreateSubDecoder(const nsACString& aType);
-
-  const nsTArray<MediaDecoderReader*>& GetReaders()
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    while (mReaders.Length() == 0) {
-      mon.Wait();
-    }
-    return mReaders;
-  }
-
-  void SetVideoReader(MediaDecoderReader* aReader)
-  {
-    MOZ_ASSERT(aReader && !mVideoReader);
-    mVideoReader = aReader;
-  }
-
-  void SetAudioReader(MediaDecoderReader* aReader)
-  {
-    MOZ_ASSERT(aReader && !mAudioReader);
-    mAudioReader = aReader;
-  }
-
-  MediaDecoderReader* GetVideoReader()
-  {
-    return mVideoReader;
-  }
-
-  MediaDecoderReader* GetAudioReader()
-  {
-    return mAudioReader;
-  }
-
-  
-  
-  double GetMediaSourceDuration();
+  already_AddRefed<SubBufferDecoder> CreateSubDecoder(const nsACString& aType);
 
 private:
+  
+  
+  
   dom::MediaSource* mMediaSource;
-
-  nsTArray<nsRefPtr<SubBufferDecoder> > mDecoders;
-  nsTArray<MediaDecoderReader*> mReaders; 
-
-  MediaDecoderReader* mVideoReader;
-  MediaDecoderReader* mAudioReader;
+  nsRefPtr<MediaSourceReader> mReader;
 };
 
 } 

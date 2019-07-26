@@ -30,6 +30,11 @@ public:
     mReader = aReader;
   }
 
+  MediaDecoderReader* GetReader()
+  {
+    return mReader;
+  }
+
   virtual ReentrantMonitor& GetReentrantMonitor() MOZ_OVERRIDE;
   virtual bool OnStateMachineThread() const MOZ_OVERRIDE;
   virtual bool OnDecodeThread() const MOZ_OVERRIDE;
@@ -45,7 +50,10 @@ public:
     mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
 
     
-    mParentDecoder->NotifyDataArrived(aBuffer, aLength, aOffset);
+    
+    
+    
+    mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
   }
 
   nsresult GetBuffered(dom::TimeRanges* aBuffered)
@@ -58,9 +66,15 @@ public:
   
   int64_t ConvertToByteOffset(double aTime);
 
+  int64_t GetMediaDuration() MOZ_OVERRIDE
+  {
+    return mMediaDuration;
+  }
+
 private:
   MediaSourceDecoder* mParentDecoder;
   nsAutoPtr<MediaDecoderReader> mReader;
+  int64_t mMediaDuration;
 };
 
 } 
