@@ -17,6 +17,7 @@ namespace jit {
 
 
 
+
 class BitSet : private TempObject
 {
   public:
@@ -25,11 +26,11 @@ class BitSet : private TempObject
     }
 
   private:
-    BitSet(unsigned int max) :
-        max_(max),
+    BitSet(unsigned int numBits) :
+        numBits_(numBits),
         bits_(nullptr) {}
 
-    unsigned int max_;
+    unsigned int numBits_;
     uint32_t *bits_;
 
     static inline uint32_t bitForValue(unsigned int value) {
@@ -41,7 +42,7 @@ class BitSet : private TempObject
     }
 
     inline unsigned int numWords() const {
-        return RawLengthForBits(max_);
+        return RawLengthForBits(numBits_);
     }
 
     bool init(TempAllocator &alloc);
@@ -49,16 +50,16 @@ class BitSet : private TempObject
   public:
     class Iterator;
 
-    static BitSet *New(TempAllocator &alloc, unsigned int max);
+    static BitSet *New(TempAllocator &alloc, unsigned int numBits);
 
-    unsigned int getMax() const {
-        return max_;
+    unsigned int getNumBits() const {
+        return numBits_;
     }
 
     
     bool contains(unsigned int value) const {
         JS_ASSERT(bits_);
-        JS_ASSERT(value < max_);
+        JS_ASSERT(value < numBits_);
 
         return !!(bits_[wordForValue(value)] & bitForValue(value));
     }
@@ -69,7 +70,7 @@ class BitSet : private TempObject
     
     void insert(unsigned int value) {
         JS_ASSERT(bits_);
-        JS_ASSERT(value < max_);
+        JS_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] |= bitForValue(value);
     }
@@ -80,7 +81,7 @@ class BitSet : private TempObject
     
     void remove(unsigned int value) {
         JS_ASSERT(bits_);
-        JS_ASSERT(value < max_);
+        JS_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] &= ~bitForValue(value);
     }
@@ -137,7 +138,7 @@ class BitSet::Iterator
 
     inline Iterator& operator++(int dummy) {
         JS_ASSERT(more());
-        JS_ASSERT(index_ < set_.max_);
+        JS_ASSERT(index_ < set_.numBits_);
 
         index_++;
         value_ >>= 1;
@@ -158,12 +159,12 @@ class BitSet::Iterator
         index_ += numZeros;
         value_ >>= numZeros;
 
-        JS_ASSERT_IF(index_ < set_.max_, set_.contains(index_));
+        JS_ASSERT_IF(index_ < set_.numBits_, set_.contains(index_));
         return *this;
     }
 
     unsigned int operator *() {
-        JS_ASSERT(index_ < set_.max_);
+        JS_ASSERT(index_ < set_.numBits_);
         return index_;
     }
 };
