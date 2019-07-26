@@ -186,6 +186,15 @@ function BrowserTabList(aConnection)
 
 BrowserTabList.prototype.constructor = BrowserTabList;
 
+
+BrowserTabList.prototype._getSelectedBrowser = function(aWindow) {
+  return aWindow.gBrowser.selectedBrowser;
+};
+
+BrowserTabList.prototype._getChildren = function(aWindow) {
+  return aWindow.gBrowser.browsers;
+};
+
 BrowserTabList.prototype.getList = function() {
   let topXULWindow = windowMediator.getMostRecentWindow("navigator:browser");
 
@@ -201,13 +210,13 @@ BrowserTabList.prototype.getList = function() {
 
   
   for (let win of allAppShellDOMWindows("navigator:browser")) {
-    let selectedTab = win.gBrowser.selectedBrowser;
+    let selectedBrowser = this._getSelectedBrowser(win);
 
     
     
     
     
-    for (let browser of win.gBrowser.browsers) {
+    for (let browser of this._getChildren(win)) {
       
       let actor = this._actorByBrowser.get(browser);
       if (actor) {
@@ -218,7 +227,7 @@ BrowserTabList.prototype.getList = function() {
       }
 
       
-      actor.selected = (win === topXULWindow && browser === selectedTab);
+      actor.selected = (win === topXULWindow && browser === selectedBrowser);
     }
   }
 
