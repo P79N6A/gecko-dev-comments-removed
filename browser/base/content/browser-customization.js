@@ -94,11 +94,6 @@ let CustomizationHandler = {
     let cmd = document.getElementById("cmd_CustomizeToolbars");
     cmd.removeAttribute("disabled");
 
-    
-    if (!getBoolPref("ui.click_hold_context_menus", false)) {
-      SetClickAndHoldHandlers();
-    }
-
     gBrowser.selectedBrowser.focus();
   }
 }
