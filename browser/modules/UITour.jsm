@@ -418,6 +418,14 @@ this.UITour = {
         this.getConfiguration(contentDocument, data.configuration, data.callbackID);
         break;
       }
+
+      case "showFirefoxAccounts": {
+        
+        
+        
+        contentDocument.location.href = "about:accounts?action=signup";
+        break;
+      }
     }
 
     if (!this.originTabs.has(window))

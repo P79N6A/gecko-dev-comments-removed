@@ -35,4 +35,33 @@ let tests = [
     Services.prefs.setCharPref("services.sync.username", "uitour@tests.mozilla.org");
     gContentAPI.getConfiguration("sync", callback);
   },
+
+  
+  function test_firefoxAccounts(done) {
+    
+    
+    Services.prefs.setCharPref("identity.fxaccounts.remote.signup.uri",
+                               "https://example.com/");
+
+    loadUITourTestPage(function(contentWindow) {
+      let tabBrowser = gBrowser.selectedTab.linkedBrowser;
+      
+      
+      tabBrowser.addEventListener("load", function onload(evt) {
+        tabBrowser.removeEventListener("load", onload, true);
+
+        ise(tabBrowser.contentDocument.location.href,
+            "about:accounts?action=signup",
+            "about:accounts should have replaced the tab");
+
+        
+        
+        tabBrowser.contentDocument.location.href = "about:blank";
+        Services.prefs.clearUserPref("identity.fxaccounts.remote.signup.uri");
+        done();
+      }, true);
+
+      gContentAPI.showFirefoxAccounts();
+    });
+  },
 ];
