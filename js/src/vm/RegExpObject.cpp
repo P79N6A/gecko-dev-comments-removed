@@ -469,7 +469,9 @@ RegExpRunStatus
 RegExpShared::execute(JSContext *cx, StableCharPtr chars, size_t length, size_t *lastIndex,
                       MatchPairs **output)
 {
-    JS_ASSERT(isCompiled());
+    
+    if (!compileIfNecessary(cx))
+        return RegExpRunStatus_Error;
 
     const size_t origLength = length;
     size_t backingPairCount = pairCount() * 2;
@@ -574,15 +576,13 @@ RegExpCompartment::get(JSContext *cx, JSAtom *source, RegExpFlag flags, RegExpGu
     if (!shared)
         return false;
 
-    if (!shared->compile(cx))
-        return false;
-
     
-    if (!map_.relookupOrAdd(p, key, shared)) {
+    if (!map_.add(p, key, shared)) {
         js_ReportOutOfMemory(cx);
         return false;
     }
 
+    
     if (!inUse_.put(shared)) {
         map_.remove(key);
         js_ReportOutOfMemory(cx);
@@ -590,10 +590,6 @@ RegExpCompartment::get(JSContext *cx, JSAtom *source, RegExpFlag flags, RegExpGu
     }
 
     
-
-
-
-
     g->init(*shared.forget());
     return true;
 }
