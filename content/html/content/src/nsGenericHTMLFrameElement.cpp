@@ -326,7 +326,19 @@ nsGenericHTMLFrameElement::GetAppManifestURL(nsAString& aOut)
   }
 
   
-  
+  nsIPrincipal *principal = NodePrincipal();
+  nsCOMPtr<nsIPermissionManager> permMgr =
+    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+  NS_ENSURE_STATE(permMgr);
+
+  uint32_t permission = nsIPermissionManager::DENY_ACTION;
+  nsresult rv = permMgr->TestPermissionFromPrincipal(principal,
+                                                     "embed-apps",
+                                                     &permission);
+  NS_ENSURE_SUCCESS(rv, NS_OK);
+  if (permission != nsIPermissionManager::ALLOW_ACTION) {
+    return NS_OK;
+  }
 
   nsAutoString manifestURL;
   GetAttr(kNameSpaceID_None, nsGkAtoms::mozapp, manifestURL);
