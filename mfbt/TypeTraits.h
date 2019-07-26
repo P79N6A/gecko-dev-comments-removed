@@ -151,20 +151,6 @@ struct IsBaseOf
   : Conditional<detail::BaseOfTester<Base, Derived>::value, TrueType, FalseType>::Type
 {};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 namespace detail {
 
 template<typename From, typename To>
@@ -211,6 +197,20 @@ template<typename From, typename To>
 struct IsConvertible
   : Conditional<detail::ConvertibleTester<From, To>::value, TrueType, FalseType>::Type
 {};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
