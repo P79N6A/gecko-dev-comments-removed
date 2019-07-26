@@ -44,12 +44,6 @@ let PrefsFlyoutPanel = {
       Services.prefs.addObserver("privacy.donottrackheader.enabled",
                                  this._prefObserver,
                                  false);
-      Services.prefs.addObserver("app.crashreporter.autosubmit",
-                                 this._prefObserver,
-                                 false);
-      Services.prefs.addObserver("app.crashreporter.submitURLs",
-                                 this._prefObserver,
-                                 false);
     }
 
     this._topmostElement.show();
@@ -87,29 +81,6 @@ let PrefsFlyoutPanel = {
           Services.prefs.setIntPref('privacy.donottrackheader.value', -1);
         }
         break;
-
-      case "app.crashreporter.autosubmit":
-        let autosubmit = Services.prefs.getBoolPref("app.crashreporter.autosubmit");
-        if (!autosubmit) {
-          
-          
-          
-          
-          
-          
-          
-          Services.prefs.setBoolPref('app.crashreporter.submitURLs', false);
-        }
-        break;
-
-      case "app.crashreporter.submitURLs":
-        let submitURLs = Services.prefs.getBoolPref("app.crashreporter.submitURLs");
-        if (submitURLs) {
-          
-          
-          Services.prefs.setBoolPref('app.crashreporter.autosubmit', true);
-        }
-      break;
     }
   },
 };
