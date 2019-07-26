@@ -33,31 +33,11 @@ static const char *serialize_formats[] = {
   NULL
 };
 
-
-
-
-
-
-
-
-
-
 const char **
 hb_buffer_serialize_list_formats (void)
 {
   return serialize_formats;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 hb_buffer_serialize_format_t
 hb_buffer_serialize_format_from_string (const char *str, int len)
@@ -65,16 +45,6 @@ hb_buffer_serialize_format_from_string (const char *str, int len)
   
   return (hb_buffer_serialize_format_t) (hb_tag_from_string (str, len) & ~0x20202020);
 }
-
-
-
-
-
-
-
-
-
-
 
 const char *
 hb_buffer_serialize_format_to_string (hb_buffer_serialize_format_t format)
@@ -130,10 +100,10 @@ _hb_buffer_serialize_glyphs_json (hb_buffer_t *buffer,
       *p++ = '"';
     }
     else
-      p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), "%u", info[i].codepoint));
+      p += snprintf (p, ARRAY_LENGTH (b) - (p - b), "%u", info[i].codepoint);
 
     if (!(flags & HB_BUFFER_SERIALIZE_FLAG_NO_CLUSTERS)) {
-      p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), ",\"cl\":%u", info[i].cluster));
+      p += snprintf (p, ARRAY_LENGTH (b) - (p - b), ",\"cl\":%u", info[i].cluster);
     }
 
     if (!(flags & HB_BUFFER_SERIALIZE_FLAG_NO_POSITIONS))
@@ -191,21 +161,21 @@ _hb_buffer_serialize_glyphs_text (hb_buffer_t *buffer,
       p += strlen (p);
     }
     else
-      p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), "%u", info[i].codepoint));
+      p += snprintf (p, ARRAY_LENGTH (b) - (p - b), "%u", info[i].codepoint);
 
     if (!(flags & HB_BUFFER_SERIALIZE_FLAG_NO_CLUSTERS)) {
-      p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), "=%u", info[i].cluster));
+      p += snprintf (p, ARRAY_LENGTH (b) - (p - b), "=%u", info[i].cluster);
     }
 
     if (!(flags & HB_BUFFER_SERIALIZE_FLAG_NO_POSITIONS))
     {
       if (pos[i].x_offset || pos[i].y_offset)
-	p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), "@%d,%d", pos[i].x_offset, pos[i].y_offset));
+	p += snprintf (p, ARRAY_LENGTH (b) - (p - b), "@%d,%d", pos[i].x_offset, pos[i].y_offset);
 
       *p++ = '+';
-      p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), "%d", pos[i].x_advance));
+      p += snprintf (p, ARRAY_LENGTH (b) - (p - b), "%d", pos[i].x_advance);
       if (pos->y_advance)
-	p += MAX (0, snprintf (p, ARRAY_LENGTH (b) - (p - b), ",%d", pos[i].y_advance));
+	p += snprintf (p, ARRAY_LENGTH (b) - (p - b), ",%d", pos[i].y_advance);
     }
 
     if (buf_size > (p - b))
@@ -222,24 +192,6 @@ _hb_buffer_serialize_glyphs_text (hb_buffer_t *buffer,
 
   return end - start;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 unsigned int
@@ -333,21 +285,6 @@ parse_int (const char *pp, const char *end, int32_t *pv)
 
 #include "hb-buffer-deserialize-json.hh"
 #include "hb-buffer-deserialize-text.hh"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 hb_bool_t
 hb_buffer_deserialize_glyphs (hb_buffer_t *buffer,

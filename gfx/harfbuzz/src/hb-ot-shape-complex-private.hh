@@ -161,8 +161,6 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
 
     
     case HB_SCRIPT_ARABIC:
-
-    
     case HB_SCRIPT_MONGOLIAN:
     case HB_SCRIPT_SYRIAC:
 

@@ -176,7 +176,7 @@ hb_buffer_t::clear (void)
 
   hb_segment_properties_t default_props = HB_SEGMENT_PROPERTIES_DEFAULT;
   props = default_props;
-  flags = HB_BUFFER_FLAG_DEFAULT;
+  flags = HB_BUFFER_FLAGS_DEFAULT;
 
   content_type = HB_BUFFER_CONTENT_TYPE_INVALID;
   in_error = false;
@@ -549,7 +549,7 @@ void hb_buffer_t::allocate_var (unsigned int byte_i, unsigned int count, const c
 {
   assert (byte_i < 8 && byte_i + count <= 8);
 
-  if (DEBUG_ENABLED (BUFFER))
+  if (DEBUG (BUFFER))
     dump_var_allocation (this);
   DEBUG_MSG (BUFFER, this,
 	     "Allocating var bytes %d..%d for %s",
@@ -564,7 +564,7 @@ void hb_buffer_t::allocate_var (unsigned int byte_i, unsigned int count, const c
 
 void hb_buffer_t::deallocate_var (unsigned int byte_i, unsigned int count, const char *owner)
 {
-  if (DEBUG_ENABLED (BUFFER))
+  if (DEBUG (BUFFER))
     dump_var_allocation (this);
 
   DEBUG_MSG (BUFFER, this,
@@ -581,7 +581,7 @@ void hb_buffer_t::deallocate_var (unsigned int byte_i, unsigned int count, const
 
 void hb_buffer_t::assert_var (unsigned int byte_i, unsigned int count, const char *owner)
 {
-  if (DEBUG_ENABLED (BUFFER))
+  if (DEBUG (BUFFER))
     dump_var_allocation (this);
 
   DEBUG_MSG (BUFFER, this,
@@ -603,15 +603,6 @@ void hb_buffer_t::deallocate_var_all (void)
 
 
 
-
-
-
-
-
-
-
-
-
 hb_buffer_t *
 hb_buffer_create (void)
 {
@@ -625,15 +616,6 @@ hb_buffer_create (void)
   return buffer;
 }
 
-
-
-
-
-
-
-
-
-
 hb_buffer_t *
 hb_buffer_get_empty (void)
 {
@@ -642,7 +624,7 @@ hb_buffer_get_empty (void)
 
     const_cast<hb_unicode_funcs_t *> (&_hb_unicode_funcs_nil),
     HB_SEGMENT_PROPERTIES_DEFAULT,
-    HB_BUFFER_FLAG_DEFAULT,
+    HB_BUFFER_FLAGS_DEFAULT,
 
     HB_BUFFER_CONTENT_TYPE_INVALID,
     true, 
@@ -655,29 +637,11 @@ hb_buffer_get_empty (void)
   return const_cast<hb_buffer_t *> (&_hb_buffer_nil);
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_buffer_t *
 hb_buffer_reference (hb_buffer_t *buffer)
 {
   return hb_object_reference (buffer);
 }
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_destroy (hb_buffer_t *buffer)
@@ -692,20 +656,6 @@ hb_buffer_destroy (hb_buffer_t *buffer)
   free (buffer);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 hb_bool_t
 hb_buffer_set_user_data (hb_buffer_t        *buffer,
 			 hb_user_data_key_t *key,
@@ -716,32 +666,12 @@ hb_buffer_set_user_data (hb_buffer_t        *buffer,
   return hb_object_set_user_data (buffer, key, data, destroy, replace);
 }
 
-
-
-
-
-
-
-
-
-
-
-
 void *
 hb_buffer_get_user_data (hb_buffer_t        *buffer,
 			 hb_user_data_key_t *key)
 {
   return hb_object_get_user_data (buffer, key);
 }
-
-
-
-
-
-
-
-
-
 
 
 void
@@ -751,16 +681,6 @@ hb_buffer_set_content_type (hb_buffer_t              *buffer,
   buffer->content_type = content_type;
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_buffer_content_type_t
 hb_buffer_get_content_type (hb_buffer_t *buffer)
 {
@@ -768,55 +688,27 @@ hb_buffer_get_content_type (hb_buffer_t *buffer)
 }
 
 
-
-
-
-
-
-
-
-
-
 void
 hb_buffer_set_unicode_funcs (hb_buffer_t        *buffer,
-			     hb_unicode_funcs_t *unicode_funcs)
+			     hb_unicode_funcs_t *unicode)
 {
   if (unlikely (hb_object_is_inert (buffer)))
     return;
 
-  if (!unicode_funcs)
-    unicode_funcs = hb_unicode_funcs_get_default ();
+  if (!unicode)
+    unicode = hb_unicode_funcs_get_default ();
 
 
-  hb_unicode_funcs_reference (unicode_funcs);
+  hb_unicode_funcs_reference (unicode);
   hb_unicode_funcs_destroy (buffer->unicode);
-  buffer->unicode = unicode_funcs;
+  buffer->unicode = unicode;
 }
-
-
-
-
-
-
-
-
-
-
 
 hb_unicode_funcs_t *
 hb_buffer_get_unicode_funcs (hb_buffer_t        *buffer)
 {
   return buffer->unicode;
 }
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_set_direction (hb_buffer_t    *buffer,
@@ -829,30 +721,11 @@ hb_buffer_set_direction (hb_buffer_t    *buffer,
   buffer->props.direction = direction;
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_direction_t
 hb_buffer_get_direction (hb_buffer_t    *buffer)
 {
   return buffer->props.direction;
 }
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_set_script (hb_buffer_t *buffer,
@@ -864,30 +737,11 @@ hb_buffer_set_script (hb_buffer_t *buffer,
   buffer->props.script = script;
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_script_t
 hb_buffer_get_script (hb_buffer_t *buffer)
 {
   return buffer->props.script;
 }
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_set_language (hb_buffer_t   *buffer,
@@ -899,30 +753,11 @@ hb_buffer_set_language (hb_buffer_t   *buffer,
   buffer->props.language = language;
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_language_t
 hb_buffer_get_language (hb_buffer_t *buffer)
 {
   return buffer->props.language;
 }
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_set_segment_properties (hb_buffer_t *buffer,
@@ -934,30 +769,12 @@ hb_buffer_set_segment_properties (hb_buffer_t *buffer,
   buffer->props = *props;
 }
 
-
-
-
-
-
-
-
-
-
 void
 hb_buffer_get_segment_properties (hb_buffer_t *buffer,
 				  hb_segment_properties_t *props)
 {
   *props = buffer->props;
 }
-
-
-
-
-
-
-
-
-
 
 
 void
@@ -970,29 +787,11 @@ hb_buffer_set_flags (hb_buffer_t       *buffer,
   buffer->flags = flags;
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_buffer_flags_t
 hb_buffer_get_flags (hb_buffer_t *buffer)
 {
   return buffer->flags;
 }
-
-
-
-
-
-
-
-
 
 
 void
@@ -1001,30 +800,11 @@ hb_buffer_reset (hb_buffer_t *buffer)
   buffer->reset ();
 }
 
-
-
-
-
-
-
-
-
 void
 hb_buffer_clear_contents (hb_buffer_t *buffer)
 {
   buffer->clear ();
 }
-
-
-
-
-
-
-
-
-
-
-
 
 hb_bool_t
 hb_buffer_pre_allocate (hb_buffer_t *buffer, unsigned int size)
@@ -1032,31 +812,11 @@ hb_buffer_pre_allocate (hb_buffer_t *buffer, unsigned int size)
   return buffer->ensure (size);
 }
 
-
-
-
-
-
-
-
-
-
-
 hb_bool_t
 hb_buffer_allocation_successful (hb_buffer_t  *buffer)
 {
   return !buffer->in_error;
 }
-
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_add (hb_buffer_t    *buffer,
@@ -1066,17 +826,6 @@ hb_buffer_add (hb_buffer_t    *buffer,
   buffer->add (codepoint, cluster);
   buffer->clear_context (1);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 hb_bool_t
 hb_buffer_set_length (hb_buffer_t  *buffer,
@@ -1104,32 +853,11 @@ hb_buffer_set_length (hb_buffer_t  *buffer,
   return true;
 }
 
-
-
-
-
-
-
-
-
-
-
 unsigned int
 hb_buffer_get_length (hb_buffer_t *buffer)
 {
   return buffer->len;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 hb_glyph_info_t *
@@ -1141,17 +869,6 @@ hb_buffer_get_glyph_infos (hb_buffer_t  *buffer,
 
   return (hb_glyph_info_t *) buffer->info;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 hb_glyph_position_t *
@@ -1167,59 +884,17 @@ hb_buffer_get_glyph_positions (hb_buffer_t  *buffer,
   return (hb_glyph_position_t *) buffer->pos;
 }
 
-
-
-
-
-
-
-
-
 void
 hb_buffer_reverse (hb_buffer_t *buffer)
 {
   buffer->reverse ();
 }
 
-
-
-
-
-
-
-
-
-
-
 void
 hb_buffer_reverse_clusters (hb_buffer_t *buffer)
 {
   buffer->reverse_clusters ();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_guess_segment_properties (hb_buffer_t *buffer)
@@ -1293,18 +968,6 @@ hb_buffer_add_utf (hb_buffer_t  *buffer,
   buffer->content_type = HB_BUFFER_CONTENT_TYPE_UNICODE;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 void
 hb_buffer_add_utf8 (hb_buffer_t  *buffer,
 		    const char   *text,
@@ -1315,39 +978,15 @@ hb_buffer_add_utf8 (hb_buffer_t  *buffer,
   hb_buffer_add_utf (buffer, (const uint8_t *) text, text_length, item_offset, item_length);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 void
 hb_buffer_add_utf16 (hb_buffer_t    *buffer,
 		     const uint16_t *text,
 		     int             text_length,
 		     unsigned int    item_offset,
-		     int             item_length)
+		     int            item_length)
 {
   hb_buffer_add_utf (buffer, text, text_length, item_offset, item_length);
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_add_utf32 (hb_buffer_t    *buffer,
@@ -1414,14 +1053,6 @@ normalize_glyphs_cluster (hb_buffer_t *buffer,
     hb_bubble_sort (buffer->info + start + 1, end - start - 1, compare_info_codepoint, buffer->pos + start + 1);
   }
 }
-
-
-
-
-
-
-
-
 
 void
 hb_buffer_normalize_glyphs (hb_buffer_t *buffer)

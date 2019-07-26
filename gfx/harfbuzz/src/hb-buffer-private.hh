@@ -80,8 +80,6 @@ struct hb_buffer_t {
   inline hb_glyph_info_t &prev (void) { return out_info[out_len - 1]; }
   inline hb_glyph_info_t prev (void) const { return info[out_len - 1]; }
 
-  inline bool has_separate_output (void) const { return info != out_info; }
-
   unsigned int serial;
 
   
