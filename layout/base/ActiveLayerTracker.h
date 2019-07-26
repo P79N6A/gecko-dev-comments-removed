@@ -63,7 +63,7 @@ public:
 
 
 
-  static bool IsOffsetStyleAnimated(nsIFrame* aFrame);
+  static bool IsOffsetOrMarginStyleAnimated(nsIFrame* aFrame);
 
   
 
