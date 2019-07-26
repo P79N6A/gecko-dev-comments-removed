@@ -270,22 +270,7 @@ bool
 AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
 {
     MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
-    if (callerIsChrome())
-        return true;
-
-    
-    
-    JSScript *script;
-    if (!JS_DescribeScriptedCaller(cx, &script, nullptr) || !script)
-        return false;
-    static const char prefix[] = "chrome://global/";
-    const char *filename;
-    if ((filename = JS_GetScriptFilename(cx, script)) &&
-        !strncmp(filename, prefix, ArrayLength(prefix) - 1)) {
-        return true;
-    }
-
-    return false;
+    return nsContentUtils::CanAccessNativeAnon();
 }
 
 bool

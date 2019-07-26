@@ -3826,7 +3826,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
   }
 
   if (aNode->IsNodeOfType(nsINode::eCONTENT) &&
-      static_cast<nsIContent*>(aNode)->ChromeOnlyAccess()) {
+      static_cast<nsIContent*>(aNode)->IsInNativeAnonymousSubtree()) {
     return false;
   }
 
@@ -6053,47 +6053,26 @@ nsContentTypeParser::GetParameter(const char* aParameterName, nsAString& aResult
 bool
 nsContentUtils::CanAccessNativeAnon()
 {
-  JSContext* cx = nullptr;
-  sThreadJSContextStack->Peek(&cx);
+  JSContext* cx = GetCurrentJSContext();
   if (!cx) {
     return true;
   }
-  JSStackFrame* fp;
-  nsIPrincipal* principal =
-    sSecurityManager->GetCxSubjectPrincipalAndFrame(cx, &fp);
-  NS_ENSURE_TRUE(principal, false);
 
-  JSScript *script = nullptr;
-  if (fp) {
-    script = JS_GetFrameScript(cx, fp);
-  } else {
-    if (!JS_DescribeScriptedCaller(cx, &script, nullptr)) {
-      
-      
-      return true;
-    }
-  }
-
-  bool privileged;
-  if (NS_SUCCEEDED(sSecurityManager->IsSystemPrincipal(principal, &privileged)) &&
-      privileged) {
-    
+  if (IsCallerChrome()) {
     return true;
   }
 
   
   
+  JSScript *script;
+  if (!JS_DescribeScriptedCaller(cx, &script, nullptr) || !script) {
+    return false;
+  }
   static const char prefix[] = "chrome://global/";
   const char *filename;
-  if (script &&
-      (filename = JS_GetScriptFilename(cx, script)) &&
-      !strncmp(filename, prefix, ArrayLength(prefix) - 1)) {
-    return true;
-  }
-
-  
-  nsresult rv = sSecurityManager->IsCapabilityEnabled("UniversalXPConnect", &privileged);
-  if (NS_SUCCEEDED(rv) && privileged) {
+  if ((filename = JS_GetScriptFilename(cx, script)) &&
+      !strncmp(filename, prefix, ArrayLength(prefix) - 1))
+  {
     return true;
   }
 
