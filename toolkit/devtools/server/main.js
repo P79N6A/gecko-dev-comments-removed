@@ -335,6 +335,10 @@ var DebuggerServer = {
 
 
 
+
+
+
+
   addTabActor: function DS_addTabActor(aFunction, aName) {
     let name = aName ? aName : aFunction.prototype.actorPrefix;
     if (["title", "url", "actor"].indexOf(name) != -1) {
@@ -363,6 +367,10 @@ var DebuggerServer = {
   },
 
   
+
+
+
+
 
 
 

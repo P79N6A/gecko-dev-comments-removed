@@ -9,6 +9,77 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CommonCreateExtraActors(aFactories, aPool) {
+  
+  for (let name in aFactories) {
+    let actor = this._extraActors[name];
+    if (!actor) {
+      actor = aFactories[name].bind(null, this.conn, this);
+      actor.prototype = aFactories[name].prototype;
+      actor.parentID = this.actorID;
+      this._extraActors[name] = actor;
+    }
+    aPool.addActor(actor);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CommonAppendExtraActors(aObject) {
+  for (let name in this._extraActors) {
+    let actor = this._extraActors[name];
+    aObject[name] = actor.actorID;
+  }
+}
+
 var windowMediator = Cc["@mozilla.org/appshell/window-mediator;1"]
   .getService(Ci.nsIWindowMediator);
 
@@ -144,31 +215,8 @@ BrowserRootActor.prototype = {
   },
 
   
-
-
-  _createExtraActors: function BRA_createExtraActors(aFactories, aPool) {
-    
-    for (let name in aFactories) {
-      let actor = this._extraActors[name];
-      if (!actor) {
-        actor = aFactories[name].bind(null, this.conn, this);
-        actor.prototype = aFactories[name].prototype;
-        actor.parentID = this.actorID;
-        this._extraActors[name] = actor;
-      }
-      aPool.addActor(actor);
-    }
-  },
-
-  
-
-
-  _appendExtraActors: function BRA_appendExtraActors(aObject) {
-    for (let name in this._extraActors) {
-      let actor = this._extraActors[name];
-      aObject[name] = actor.actorID;
-    }
-  },
+  _createExtraActors: CommonCreateExtraActors,
+  _appendExtraActors: CommonAppendExtraActors,
 
   
 
@@ -312,8 +360,6 @@ function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
   
   this._extraActors = {};
 
-  this._createExtraActors = BrowserRootActor.prototype._createExtraActors.bind(this);
-  this._appendExtraActors = BrowserRootActor.prototype._appendExtraActors.bind(this);
   this._onWindowCreated = this.onWindowCreated.bind(this);
 }
 
@@ -443,6 +489,10 @@ BrowserTabActor.prototype = {
     this._browser = null;
     this._tabbrowser = null;
   },
+
+  
+  _createExtraActors: CommonCreateExtraActors,
+  _appendExtraActors: CommonAppendExtraActors,
 
   
 
