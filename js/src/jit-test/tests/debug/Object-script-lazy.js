@@ -8,6 +8,8 @@
 
 
 
+
+
 var g1 = newGlobal();
 g1.eval('function f() { return "from f"; }');
 g1.eval('function g() { return "from g"; }');
@@ -22,13 +24,20 @@ g2.g = g1.g;
 
 
 
+
 var fDO = g2w.getOwnPropertyDescriptor('f').value;
 assertEq(fDO.global, g2w);
 assertEq(fDO.unwrap().global === g2w, false);
-assertEq(fDO.unwrap().script instanceof Debugger.Script, true);
+assertEq(fDO.unwrap().script, null);
 
 
 var gDO = g2w.getOwnPropertyDescriptor('g').value;
 assertEq(gDO.global, g2w);
 assertEq(gDO.unwrap().global === g2w, false);
+assertEq(gDO.unwrap().parameterNames, undefined);
+
+
+dbg.addDebuggee(g1);
+assertEq(fDO.unwrap().script instanceof Debugger.Script, true);
 assertEq(gDO.unwrap().parameterNames instanceof Array, true);
+
