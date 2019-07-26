@@ -287,14 +287,6 @@ OnlyIfSubjectIsSystem::isSafeToUnwrap()
 
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
 
-static bool
-IsInSandbox(JSContext *cx, JSObject *obj)
-{
-    JSAutoCompartment ac(cx, obj);
-    JSObject *global = JS_GetGlobalForObject(cx, obj);
-    return !strcmp(js::GetObjectJSClass(global)->name, "Sandbox");
-}
-
 static void
 EnterAndThrow(JSContext *cx, JSObject *wrapper, const char *msg)
 {
@@ -332,26 +324,6 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     
     if (!found) {
-        
-        JSAutoCompartment wrapperAC(cx, wrapper);
-        
-        
-        if (!JS_ObjectIsFunction(cx, wrappedObject) &&
-            IsInSandbox(cx, wrappedObject))
-        {
-            
-            nsCOMPtr<nsPIDOMWindow> win =
-                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(wrapper));
-            if (win) {
-                nsCOMPtr<nsIDocument> doc = win->GetExtantDoc();
-                if (doc) {
-                    doc->WarnOnceAbout(nsIDocument::eNoExposedProps,
-                                        true);
-                }
-            }
-
-            return true;
-        }
         return false;
     }
 
