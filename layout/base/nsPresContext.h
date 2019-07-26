@@ -656,10 +656,8 @@ public:
   
 
 
-  bool ThrottledTransitionStyleIsUpToDate() const;
-  void TickLastUpdateThrottledTransitionStyle();
-  bool ThrottledAnimationStyleIsUpToDate() const;
-  void TickLastUpdateThrottledAnimationStyle();
+  bool ThrottledStyleIsUpToDate() const;
+  void TickLastUpdateThrottledStyle();
   bool StyleUpdateForAllAnimationsIsUpToDate();
   void TickLastStyleUpdateForAllAnimations();
 
@@ -1229,9 +1227,7 @@ protected:
   mozilla::TimeStamp    mReflowStartTime;
 
   
-  mozilla::TimeStamp    mLastUpdateThrottledAnimationStyle;
-  
-  mozilla::TimeStamp    mLastUpdateThrottledTransitionStyle;
+  mozilla::TimeStamp    mLastUpdateThrottledStyle;
   
   mozilla::TimeStamp    mLastStyleUpdateForAllAnimations;
 
