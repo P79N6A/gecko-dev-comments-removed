@@ -47,6 +47,8 @@ GonkDisplayJB::GonkDisplayJB()
         mWidth = mFBDevice->width;
         mHeight = mFBDevice->height;
         xdpi = mFBDevice->xdpi;
+        
+
         surfaceformat = HAL_PIXEL_FORMAT_RGBX_8888;
     }
 
