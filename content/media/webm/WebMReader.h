@@ -197,6 +197,7 @@ private:
   nsAutoPtr<OpusParser> mOpusParser;
   OpusMSDecoder *mOpusDecoder;
   int mSkip;        
+  uint64_t mSeekPreroll; 
 #endif
 
   
