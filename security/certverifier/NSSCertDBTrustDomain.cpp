@@ -189,10 +189,20 @@ NSSCertDBTrustDomain::CheckRevocation(
   
   
   
+  uint16_t maxOCSPLifetimeInDays = 10;
+  if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
+    maxOCSPLifetimeInDays = 365;
+  }
+
+  
+  
+  
+  
   if (stapledOCSPResponse) {
     PR_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
     SECStatus rv = VerifyAndMaybeCacheEncodedOCSPResponse(cert, issuerCert,
                                                           time,
+                                                          maxOCSPLifetimeInDays,
                                                           stapledOCSPResponse,
                                                           ResponseWasStapled);
     if (rv == SECSuccess) {
@@ -376,6 +386,7 @@ NSSCertDBTrustDomain::CheckRevocation(
   }
 
   SECStatus rv = VerifyAndMaybeCacheEncodedOCSPResponse(cert, issuerCert, time,
+                                                        maxOCSPLifetimeInDays,
                                                         response,
                                                         ResponseIsFromNetwork);
   if (rv == SECSuccess || mOCSPFetching != FetchOCSPForDVSoftFail) {
@@ -399,13 +410,14 @@ NSSCertDBTrustDomain::CheckRevocation(
 SECStatus
 NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
   const CERTCertificate* cert, CERTCertificate* issuerCert, PRTime time,
-  const SECItem* encodedResponse, EncodedResponseSource responseSource)
+  uint16_t maxLifetimeInDays, const SECItem* encodedResponse,
+  EncodedResponseSource responseSource)
 {
   PRTime thisUpdate = 0;
   PRTime validThrough = 0;
   SECStatus rv = VerifyEncodedOCSPResponse(*this, cert, issuerCert, time,
-                                           encodedResponse, &thisUpdate,
-                                           &validThrough);
+                                           maxLifetimeInDays, encodedResponse,
+                                           &thisUpdate, &validThrough);
   PRErrorCode error = (rv == SECSuccess ? 0 : PR_GetError());
   
   
