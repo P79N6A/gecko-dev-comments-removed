@@ -476,13 +476,15 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
 static JSObject *
 FindObjectForHasInstance(JSContext *cx, HandleObject objArg)
 {
-    RootedObject obj(cx, objArg);
-    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj))
-    {
-        if (js::IsWrapper(obj))
+    RootedObject obj(cx, objArg), proto(cx);
+    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj)) {
+        if (js::IsWrapper(obj)) {
             obj = js::CheckedUnwrap(obj,  false);
-        else if (!js::GetObjectProto(cx, obj, obj.address()))
+            continue;
+        }
+        if (!js::GetObjectProto(cx, obj, &proto))
             return nullptr;
+        obj = proto;
     }
     return obj;
 }
