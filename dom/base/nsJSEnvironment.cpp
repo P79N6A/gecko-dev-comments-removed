@@ -2006,10 +2006,17 @@ struct CycleCollectorStats
     mRanSyncForgetSkippable = false;
     mSuspected = 0;
     mMaxSkippableDuration = 0;
+    mMaxSliceTime = 0;
     mAnyLockedOut = false;
   }
 
   void PrepareForCycleCollectionSlice(int32_t aExtraForgetSkippableCalls = 0);
+
+  void FinishCycleCollectionSlice()
+  {
+    uint32_t sliceTime = TimeUntilNow(mBeginSliceTime);
+    mMaxSliceTime = std::max(mMaxSliceTime, sliceTime);
+  }
 
   
   TimeStamp mBeginSliceTime;
@@ -2029,6 +2036,9 @@ struct CycleCollectorStats
   
   
   uint32_t mMaxSkippableDuration;
+
+  
+  uint32_t mMaxSliceTime;
 
   
   bool mAnyLockedOut;
@@ -2104,6 +2114,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
   PROFILER_LABEL("CC", "CycleCollectNow");
   gCCStats.PrepareForCycleCollectionSlice(aExtraForgetSkippableCalls);
   nsCycleCollector_collect(aListener);
+  gCCStats.FinishCycleCollectionSlice();
 }
 
 
@@ -2120,6 +2131,7 @@ nsJSContext::ScheduledCycleCollectNow(int64_t aSliceTime)
   
   gCCStats.PrepareForCycleCollectionSlice();
   nsCycleCollector_scheduledCollect(aSliceTime);
+  gCCStats.FinishCycleCollectionSlice();
 }
 
 static void
@@ -2180,6 +2192,9 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
 
   nsJSContext::KillICCTimer();
 
+  
+  gCCStats.FinishCycleCollectionSlice();
+
   sCCollectedWaitingForGC += aResults.mFreedRefCounted + aResults.mFreedGCed;
 
   
@@ -2197,6 +2212,7 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
   Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FINISH_IGC, gCCStats.mAnyLockedOut);
   Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_SYNC_SKIPPABLE, gCCStats.mRanSyncForgetSkippable);
   Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_FULL, ccNowDuration);
+  Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_MAX_PAUSE, gCCStats.mMaxSliceTime);
 
   if (!sLastCCEndTime.IsNull()) {
     uint32_t timeBetween = TimeBetween(sLastCCEndTime, gCCStats.mBeginTime);
@@ -2225,11 +2241,11 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
     }
 
     NS_NAMED_MULTILINE_LITERAL_STRING(kFmt,
-      MOZ_UTF16("CC(T+%.1f) duration: %lums, suspected: %lu, visited: %lu RCed and %lu%s GCed, collected: %lu RCed and %lu GCed (%lu|%lu waiting for GC)%s\n")
+      MOZ_UTF16("CC(T+%.1f) max pause: %lums, total time: %lums, suspected: %lu, visited: %lu RCed and %lu%s GCed, collected: %lu RCed and %lu GCed (%lu|%lu waiting for GC)%s\n")
       MOZ_UTF16("ForgetSkippable %lu times before CC, min: %lu ms, max: %lu ms, avg: %lu ms, total: %lu ms, max sync: %lu ms, removed: %lu"));
     nsString msg;
     msg.Adopt(nsTextFormatter::smprintf(kFmt.get(), double(delta) / PR_USEC_PER_SEC,
-                                        ccNowDuration, gCCStats.mSuspected,
+                                        gCCStats.mMaxSliceTime, ccNowDuration, gCCStats.mSuspected,
                                         aResults.mVisitedRefCounted, aResults.mVisitedGCed, mergeMsg.get(),
                                         aResults.mFreedRefCounted, aResults.mFreedGCed,
                                         sCCollectedWaitingForGC, sLikelyShortLivingObjectsNeedingGC,
@@ -2252,6 +2268,7 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
     NS_NAMED_MULTILINE_LITERAL_STRING(kJSONFmt,
        MOZ_UTF16("{ \"timestamp\": %llu, ")
          MOZ_UTF16("\"duration\": %llu, ")
+         MOZ_UTF16("\"max_slice_pause\": %llu, ")
          MOZ_UTF16("\"max_finish_gc_duration\": %llu, ")
          MOZ_UTF16("\"max_sync_skippable_duration\": %llu, ")
          MOZ_UTF16("\"suspected\": %lu, ")
@@ -2273,8 +2290,8 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
              MOZ_UTF16("\"removed\": %lu } ")
        MOZ_UTF16("}"));
     nsString json;
-    json.Adopt(nsTextFormatter::smprintf(kJSONFmt.get(), endCCTime,
-                                         ccNowDuration, gCCStats.mMaxGCDuration,
+    json.Adopt(nsTextFormatter::smprintf(kJSONFmt.get(), endCCTime, ccNowDuration,
+                                         gCCStats.mMaxSliceTime, gCCStats.mMaxGCDuration,
                                          gCCStats.mMaxSkippableDuration,
                                          gCCStats.mSuspected,
                                          aResults.mVisitedRefCounted, aResults.mVisitedGCed,
