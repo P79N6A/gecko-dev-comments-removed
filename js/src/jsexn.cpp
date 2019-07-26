@@ -707,7 +707,7 @@ IsDuckTypedErrorObject(JSContext *cx, HandleObject exnObject, const char **filen
     const char *filename_str = *filename_strp;
     if (!JS_HasProperty(cx, exnObject, filename_str, &found) || !found) {
         
-        filename_str = "filename";
+        filename_str = js_fileName_str;
         if (!JS_HasProperty(cx, exnObject, filename_str, &found) || !found)
             return false;
     }
@@ -779,7 +779,12 @@ js_ReportUncaughtException(JSContext *cx)
     
     
     
-    const char *filename_str = js_fileName_str;
+    
+    
+    
+    
+    
+    const char *filename_str = "filename";
     JSAutoByteString filename;
     if (!reportp && exnObject && IsDuckTypedErrorObject(cx, exnObject, &filename_str))
     {
