@@ -75,6 +75,8 @@ protected:
   virtual void ElementDataRemoved() = 0;
   void RemoveAllElementData();
 
+  
+  
   static CommonElementAnimationData*
   GetAnimationsForCompositor(nsIContent* aContent,
                              nsIAtom* aElementProperty,
@@ -456,10 +458,6 @@ struct CommonElementAnimationData : public PRCList
 
   static bool IsCompositorAnimationDisabledForFrame(nsIFrame* aFrame);
 
-  
-  
-  
-  
   
   
   
