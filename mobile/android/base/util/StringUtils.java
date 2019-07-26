@@ -19,18 +19,29 @@ public class StringUtils {
 
 
 
-    public static boolean isSearchQuery(String text) {
-        text = text.trim();
+
+
+
+
+
+
+    public static boolean isSearchQuery(String text, boolean wasSearchQuery) {
         if (text.length() == 0)
-            return false;
+            return wasSearchQuery;
 
         int colon = text.indexOf(':');
         int dot = text.indexOf('.');
         int space = text.indexOf(' ');
 
         
-        boolean spacedOut = space > -1 && (space < colon || space < dot);
-
-        return spacedOut || (dot == -1 && colon == -1);
+        if (space > -1 && (colon == -1 || space < colon) && (dot == -1 || space < dot)) {
+            return true;
+        }
+        
+        if (dot > -1 || colon > -1) {
+            return false;
+        }
+        
+        return wasSearchQuery;
     }
 }

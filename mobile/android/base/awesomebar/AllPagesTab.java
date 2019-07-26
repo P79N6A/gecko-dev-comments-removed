@@ -460,7 +460,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                         
                         
                         
-                        if (v != viewHolder.userEnteredView && !StringUtils.isSearchQuery(suggestion)) {
+                        if (v != viewHolder.userEnteredView && !StringUtils.isSearchQuery(suggestion, false)) {
                             listener.onUrlOpen(suggestion, null);
                         } else {
                             listener.onSearch(engine.name, suggestion);
