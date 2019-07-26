@@ -108,8 +108,6 @@
   ERROR(NS_ERROR_GFX_PRINTER_STARTPAGE,                   FAILURE(6)),
   
   ERROR(NS_ERROR_GFX_PRINTER_DOC_IS_BUSY,                 FAILURE(7)),
-  
-  ERROR(NS_ERROR_GFX_PRINTER_NO_XUL,                      FAILURE(8)),
 
   
   ERROR(NS_ERROR_GFX_CMAP_MALFORMED,                      FAILURE(51)),
