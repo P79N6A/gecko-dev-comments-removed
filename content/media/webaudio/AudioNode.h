@@ -155,8 +155,8 @@ public:
   
   
   
-  virtual uint32_t NumberOfInputs() const { return 1; }
-  virtual uint32_t NumberOfOutputs() const { return 1; }
+  virtual uint16_t NumberOfInputs() const { return 1; }
+  virtual uint16_t NumberOfOutputs() const { return 1; }
 
   uint32_t ChannelCount() const { return mChannelCount; }
   void SetChannelCount(uint32_t aChannelCount)

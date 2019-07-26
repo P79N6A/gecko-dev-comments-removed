@@ -145,9 +145,14 @@ AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
 
 class AudioNodeEngine {
 public:
+  
+  typedef nsAutoTArray<AudioChunk, 1> OutputChunks;
+
   explicit AudioNodeEngine(dom::AudioNode* aNode)
     : mNode(aNode)
     , mNodeMutex("AudioNodeEngine::mNodeMutex")
+    , mInputCount(aNode ? aNode->NumberOfInputs() : 1)
+    , mOutputCount(aNode ? aNode->NumberOfOutputs() : 0)
   {
     MOZ_COUNT_CTOR(AudioNodeEngine);
   }
@@ -193,13 +198,38 @@ public:
 
 
 
-
   virtual void ProduceAudioBlock(AudioNodeStream* aStream,
                                  const AudioChunk& aInput,
                                  AudioChunk* aOutput,
                                  bool* aFinished)
   {
+    MOZ_ASSERT(mInputCount <= 1 && mOutputCount <= 1);
     *aOutput = aInput;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void ProduceAudioBlocksOnPorts(AudioNodeStream* aStream,
+                                         const OutputChunks& aInput,
+                                         OutputChunks& aOutput,
+                                         bool* aFinished)
+  {
+    MOZ_ASSERT(mInputCount > 1 || mOutputCount > 1);
+    
+    aOutput[0] = aInput[0];
   }
 
   Mutex& NodeMutex() { return mNodeMutex;}
@@ -229,9 +259,14 @@ public:
     mNode = nullptr;
   }
 
+  uint16_t InputCount() const { return mInputCount; }
+  uint16_t OutputCount() const { return mOutputCount; }
+
 private:
   dom::AudioNode* mNode;
   Mutex mNodeMutex;
+  const uint16_t mInputCount;
+  const uint16_t mOutputCount;
 };
 
 }

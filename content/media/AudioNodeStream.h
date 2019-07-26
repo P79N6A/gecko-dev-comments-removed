@@ -41,6 +41,8 @@ class AudioNodeStream : public ProcessedMediaStream {
 public:
   enum { AUDIO_TRACK = 1 };
 
+  typedef nsAutoTArray<AudioChunk, 1> OutputChunks;
+
   
 
 
@@ -97,9 +99,9 @@ public:
   {
     return mAudioParamStream;
   }
-  const AudioChunk& LastChunk() const
+  const OutputChunks& LastChunks() const
   {
-    return mLastChunk;
+    return mLastChunks;
   }
 
   
@@ -109,12 +111,12 @@ protected:
   void FinishOutput();
 
   StreamBuffer::Track* EnsureTrack();
-  AudioChunk* ObtainInputBlock(AudioChunk* aTmpChunk);
+  void ObtainInputBlock(AudioChunk& aTmpChunk, uint32_t aPortIndex);
 
   
   nsAutoPtr<AudioNodeEngine> mEngine;
   
-  AudioChunk mLastChunk;
+  OutputChunks mLastChunks;
   
   MediaStreamGraph::AudioNodeStreamKind mKind;
   
