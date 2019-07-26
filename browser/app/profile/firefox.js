@@ -729,18 +729,15 @@ pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-erro
 pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
 pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
 
-#ifdef MOZILLA_OFFICIAL
-
-
-pref("browser.safebrowsing.id", "navclient-auto-ffox");
-#endif
-
 
 
 pref("urlclassifier.alternate_error_page", "blocked");
 
 
 pref("urlclassifier.gethashnoise", 4);
+
+
+pref("urlclassifier.randomizeclient", false);
 
 
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
@@ -859,6 +856,10 @@ pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 pref("toolkit.crashreporter.pluginHangSubmitURL",
      "https://hang-reports.mozilla.org/submit");
+
+
+pref("toolkit.crashreporter.infoURL",
+     "http://www.mozilla.com/legal/privacy/firefox.html#crash-reporter");
 
 
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
