@@ -5,9 +5,26 @@
 
 var testGenerator = testSteps();
 
+
+
+
+
+if (typeof Components === 'undefined')
+  Components = SpecialPowers.Components;
+
 function executeSoon(aFun)
 {
-  SimpleTest.executeSoon(aFun);
+  let comp = SpecialPowers.wrap(Components);
+
+  let thread = comp.classes["@mozilla.org/thread-manager;1"]
+                   .getService(comp.interfaces.nsIThreadManager)
+                   .mainThread;
+
+  thread.dispatch({
+    run: function() {
+      aFun();
+    }
+  }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
 }
 
 function clearAllDatabases(callback) {
@@ -31,8 +48,9 @@ function clearAllDatabases(callback) {
   idbManager.clearDatabasesForURI(uri);
   idbManager.getUsageForURI(uri, function(uri, usage, fileUsage) {
     if (usage) {
-      throw new Error("getUsageForURI returned non-zero usage after " +
-                      "clearing all databases!");
+      ok(false,
+         "getUsageForURI returned non-zero usage after clearing all " +
+         "databases!");
     }
     runCallback();
   });
@@ -43,7 +61,6 @@ if (!window.runTest) {
   {
     SimpleTest.waitForExplicitFinish();
 
-    allowIndexedDB();
     if (limitedQuota) {
       denyUnlimitedQuota();
     }
@@ -58,7 +75,6 @@ if (!window.runTest) {
 function finishTest()
 {
   resetUnlimitedQuota();
-  resetIndexedDB();
 
   SimpleTest.executeSoon(function() {
     testGenerator.close();
@@ -180,16 +196,6 @@ function setQuota(quota)
   SpecialPowers.setIntPref("dom.indexedDB.warningQuota", quota);
 }
 
-function allowIndexedDB(url)
-{
-  addPermission("indexedDB", true, url);
-}
-
-function resetIndexedDB(url)
-{
-  removePermission("indexedDB", url);
-}
-
 function allowUnlimitedQuota(url)
 {
   addPermission("indexedDB-unlimited", true, url);
@@ -203,4 +209,10 @@ function denyUnlimitedQuota(url)
 function resetUnlimitedQuota(url)
 {
   removePermission("indexedDB-unlimited", url);
+}
+
+function gc()
+{
+  SpecialPowers.forceGC();
+  SpecialPowers.forceCC();
 }
