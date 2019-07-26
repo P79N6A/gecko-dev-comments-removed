@@ -2583,6 +2583,7 @@ static PRFuncPtr FindFunction(const char* aName)
 
 static void MOZ_gdk_display_close(GdkDisplay *display)
 {
+#if CLEANUP_MEMORY
   
   
   bool theme_is_qt = false;
@@ -2597,12 +2598,10 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     g_free(theme_name);
   }
 
-#if CLEANUP_MEMORY
   
   
   
   PangoContext *pangoContext = gdk_pango_context_get();
-#endif
 
   bool buggyCairoShutdown = cairo_version() < CAIRO_VERSION_ENCODE(1, 4, 0);
 
@@ -2615,7 +2614,6 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
       gdk_display_close(display);
   }
 
-#if CLEANUP_MEMORY
   
   
   
@@ -2647,12 +2645,16 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   cairo_debug_reset_static_data();
   
   FcFini();
-#endif 
 
   if (buggyCairoShutdown) {
     if (!theme_is_qt)
       gdk_display_close(display);
   }
+#else 
+  
+  
+  (void) display;
+#endif
 }
 #endif 
 
