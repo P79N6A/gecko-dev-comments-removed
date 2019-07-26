@@ -3,6 +3,7 @@
 
 
 
+
 #include "DirectShowReader.h"
 #include "MediaDecoderReader.h"
 #include "mozilla/RefPtr.h"
@@ -247,6 +248,48 @@ DirectShowReader::Finish(HRESULT aStatus)
   return false;
 }
 
+class DirectShowCopy
+{
+public:
+  DirectShowCopy(uint8_t *aSource, uint32_t aBytesPerSample,
+                 uint32_t aSamples, uint32_t aChannels)
+    : mSource(aSource)
+    , mBytesPerSample(aBytesPerSample)
+    , mSamples(aSamples)
+    , mChannels(aChannels)
+    , mNextSample(0)
+  { }
+
+  uint32_t operator()(AudioDataValue *aBuffer, uint32_t aSamples)
+  {
+    uint32_t maxSamples = std::min(aSamples, mSamples - mNextSample);
+    uint32_t frames = maxSamples / mChannels;
+    size_t byteOffset = mNextSample * mBytesPerSample;
+    if (mBytesPerSample == 1) {
+      for (uint32_t i = 0; i < maxSamples; ++i) {
+        uint8_t *sample = mSource + byteOffset;
+        aBuffer[i] = UnsignedByteToAudioSample(*sample);
+        byteOffset += mBytesPerSample;
+      }
+    } else if (mBytesPerSample == 2) {
+      for (uint32_t i = 0; i < maxSamples; ++i) {
+        int16_t *sample = reinterpret_cast<int16_t *>(mSource + byteOffset);
+        aBuffer[i] = AudioSampleToFloat(*sample);
+        byteOffset += mBytesPerSample;
+      }
+    }
+    mNextSample = maxSamples;
+    return frames;
+  }
+
+private:
+  uint8_t * const mSource;
+  const uint32_t mBytesPerSample;
+  const uint32_t mSamples;
+  const uint32_t mChannels;
+  uint32_t mNextSample;
+};
+
 bool
 DirectShowReader::DecodeAudioData()
 {
@@ -281,26 +324,15 @@ DirectShowReader::DecodeAudioData()
   hr = sample->GetPointer(&data);
   NS_ENSURE_TRUE(SUCCEEDED(hr), Finish(hr));
 
-  nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[numSamples]);
-  AudioDataValue* dst = buffer.get();
-  if (mBytesPerSample == 1) {
-    uint8_t* src = reinterpret_cast<uint8_t*>(data);
-    for (int32_t i = 0; i < numSamples; ++i) {
-      dst[i] = UnsignedByteToAudioSample(src[i]);
-    }
-  } else if (mBytesPerSample == 2) {
-    int16_t* src = reinterpret_cast<int16_t*>(data);
-    for (int32_t i = 0; i < numSamples; ++i) {
-      dst[i] = AudioSampleToFloat(src[i]);
-    }
-  }
-
-  mAudioQueue.Push(new AudioData(mDecoder->GetResource()->Tell(),
-                                 RefTimeToUsecs(start),
-                                 RefTimeToUsecs(end - start),
-                                 numFrames,
-                                 buffer.forget(),
-                                 mNumChannels));
+  mAudioCompactor.Push(mDecoder->GetResource()->Tell(),
+                       RefTimeToUsecs(start),
+                       mInfo.mAudio.mRate,
+                       numFrames,
+                       mNumChannels,
+                       DirectShowCopy(reinterpret_cast<uint8_t *>(data),
+                                      mBytesPerSample,
+                                      numSamples,
+                                      mNumChannels));
   return true;
 }
 
