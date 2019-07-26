@@ -1220,7 +1220,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
       text = do_QueryInterface(content);
       
       
-      if (text && !IsEditable(text)) {
+      if (text && (!IsEditable(text) || IsEmptyTextNode(this, content))) {
         continue;
       }
       if (text) {
