@@ -8,6 +8,7 @@
 #include <math.h>                       
 #include <stddef.h>                     
 #include "AsyncPanZoomController.h"     
+#include "mozilla/layers/APZCTreeManager.h"  
 #include "base/task.h"                  
 #include "mozilla/Preferences.h"        
 #include "mozilla/gfx/BasePoint.h"      

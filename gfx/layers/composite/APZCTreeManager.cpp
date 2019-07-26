@@ -243,11 +243,20 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
           mApzcForInputBlock = RootAPZCForLayersId(mApzcForInputBlock);
           APZC_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
         }
+
+        
+        if (mApzcForInputBlock) {
+          GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
+          mCachedTransformToApzcForInputBlock = transformToApzc;
+        }
       } else if (mApzcForInputBlock) {
         APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
       }
       if (mApzcForInputBlock) {
-        GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
+        
+        
+        
+        transformToApzc = mCachedTransformToApzcForInputBlock;
         MultiTouchInput inputForApzc(multiTouchInput);
         for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
@@ -314,16 +323,28 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
           mApzcForInputBlock = RootAPZCForLayersId(mApzcForInputBlock);
           APZC_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
         }
+        if (mApzcForInputBlock) {
+          
+          GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
+          mCachedTransformToApzcForInputBlock = transformToApzc;
+        }
       } else if (mApzcForInputBlock) {
         APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
       }
       if (mApzcForInputBlock) {
-        GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
+        
+        
+        
+        transformToApzc = mCachedTransformToApzcForInputBlock;
         MultiTouchInput inputForApzc(touchEvent);
         for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
         }
 
+        
+        
+        
+        GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
         gfx3DMatrix outTransform = transformToApzc * transformToScreen;
         nsTouchEvent* outEvent = static_cast<nsTouchEvent*>(aOutEvent);
         for (size_t i = 0; i < outEvent->touches.Length(); i++) {
@@ -457,6 +478,29 @@ APZCTreeManager::ClearTree()
     apzcsToDestroy[i]->Destroy();
   }
   mRootApzc = nullptr;
+}
+
+void
+APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aChild, ScreenPoint aStartPoint, ScreenPoint aEndPoint)
+{
+  AsyncPanZoomController* parent = aChild->GetParent();
+  if (parent == nullptr)
+    return;
+
+  gfx3DMatrix transformToApzc;
+  gfx3DMatrix transformToScreen;  
+
+  
+  GetInputTransforms(aChild, transformToApzc, transformToScreen);
+  ApplyTransform(&aStartPoint, transformToApzc.Inverse());
+  ApplyTransform(&aEndPoint, transformToApzc.Inverse());
+
+  
+  GetInputTransforms(parent, transformToApzc, transformToScreen);
+  ApplyTransform(&aStartPoint, transformToApzc);
+  ApplyTransform(&aEndPoint, transformToApzc);
+
+  parent->AttemptScroll(aStartPoint, aEndPoint);
 }
 
 already_AddRefed<AsyncPanZoomController>

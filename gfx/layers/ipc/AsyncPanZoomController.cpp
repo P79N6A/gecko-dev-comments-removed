@@ -730,7 +730,49 @@ void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput&
   mY.UpdateWithTouchAtDevicePoint(point.y, timeDelta);
 }
 
+void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
+                                           const ScreenPoint& aEndPoint) {
+  
+  
+  
+  ScreenPoint displacement = aStartPoint - aEndPoint;
+
+  ScreenPoint overscroll;  
+  {
+    ReentrantMonitorAutoEnter lock(mMonitor);
+
+    CSSToScreenScale zoom = mFrameMetrics.mZoom;
+
+    
+    
+    CSSPoint cssDisplacement = displacement / zoom;
+
+    CSSPoint cssOverscroll;
+    gfx::Point scrollOffset(mX.AdjustDisplacement(cssDisplacement.x, cssOverscroll.x),
+                            mY.AdjustDisplacement(cssDisplacement.y, cssOverscroll.y));
+    overscroll = cssOverscroll * zoom;
+
+    if (fabs(scrollOffset.x) > EPSILON || fabs(scrollOffset.y) > EPSILON) {
+      ScrollBy(CSSPoint::FromUnknownPoint(scrollOffset));
+      ScheduleComposite();
+
+      TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
+      if (timePaintDelta.ToMilliseconds() > gPanRepaintInterval) {
+        RequestContentRepaint();
+      }
+    }
+  }
+
+  if (fabs(overscroll.x) > EPSILON || fabs(overscroll.y) > EPSILON) {
+    
+    mTreeManager->HandleOverscroll(this, aEndPoint + overscroll, aEndPoint);
+  }
+}
+
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
+  SingleTouchData& touch = GetFirstSingleTouch(aEvent);
+  ScreenIntPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
+  ScreenIntPoint touchPoint = touch.mScreenPoint;
   TimeDuration timeDelta = TimeDuration().FromMilliseconds(aEvent.mTime - mLastEventTime);
 
   
@@ -740,29 +782,7 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
 
   UpdateWithTouchAtDevicePoint(aEvent);
 
-  {
-    ReentrantMonitorAutoEnter lock(mMonitor);
-
-    
-    
-    ScreenToCSSScale inverseResolution = mFrameMetrics.mZoom.Inverse();
-
-    gfx::Point displacement(mX.GetDisplacementForDuration(inverseResolution.scale,
-                                                          timeDelta),
-                            mY.GetDisplacementForDuration(inverseResolution.scale,
-                                                          timeDelta));
-    if (fabs(displacement.x) <= EPSILON && fabs(displacement.y) <= EPSILON) {
-      return;
-    }
-
-    ScrollBy(CSSPoint::FromUnknownPoint(displacement));
-    ScheduleComposite();
-
-    TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
-    if (timePaintDelta.ToMilliseconds() > gPanRepaintInterval) {
-      RequestContentRepaint();
-    }
-  }
+  AttemptScroll(prevTouchPoint, touchPoint);
 }
 
 SingleTouchData& AsyncPanZoomController::GetFirstSingleTouch(const MultiTouchInput& aEvent) {
@@ -787,13 +807,16 @@ bool AsyncPanZoomController::DoFling(const TimeDuration& aDelta) {
     return false;
   }
 
-  
-  
-  ScreenToCSSScale inverseResolution = mFrameMetrics.mZoom.Inverse();
+  CSSPoint overscroll; 
+  ScreenPoint offset(aDelta.ToMilliseconds() * mX.GetVelocity(),
+                     aDelta.ToMilliseconds() * mY.GetVelocity());
 
+  
+  
+  CSSPoint cssOffset = offset / mFrameMetrics.mZoom;
   ScrollBy(CSSPoint::FromUnknownPoint(gfx::Point(
-    mX.GetDisplacementForDuration(inverseResolution.scale, aDelta),
-    mY.GetDisplacementForDuration(inverseResolution.scale, aDelta)
+    mX.AdjustDisplacement(cssOffset.x, overscroll.x),
+    mY.AdjustDisplacement(cssOffset.y, overscroll.y)
   )));
   TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
   if (timePaintDelta.ToMilliseconds() > gFlingRepaintInterval) {

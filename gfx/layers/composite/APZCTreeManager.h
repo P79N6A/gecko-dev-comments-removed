@@ -10,6 +10,7 @@
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfxPoint.h"                   
+#include "gfx3DMatrix.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/Monitor.h"            
 #include "nsAutoPtr.h"                  
@@ -246,6 +247,18 @@ public:
 
   static float GetDPI() { return sDPI; }
 
+  
+
+
+
+
+
+
+
+
+
+  void HandleOverscroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint);
+
 protected:
   
 
@@ -303,6 +316,14 @@ private:
 
 
   nsRefPtr<AsyncPanZoomController> mApzcForInputBlock;
+  
+
+
+
+
+
+
+  gfx3DMatrix mCachedTransformToApzcForInputBlock;
 
   static float sDPI;
 };

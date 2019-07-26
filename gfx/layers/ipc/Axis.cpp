@@ -135,13 +135,13 @@ void Axis::StartTouch(int32_t aPos) {
   mPos = aPos;
 }
 
-float Axis::GetDisplacementForDuration(float aScale, const TimeDuration& aDelta) {
+float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut) {
   if (fabsf(mVelocity) < gVelocityThreshold) {
     mAcceleration = 0;
   }
 
   float accelerationFactor = GetAccelerationFactor();
-  float displacement = mVelocity * aScale * aDelta.ToMilliseconds() * accelerationFactor;
+  float displacement = aDisplacement * accelerationFactor;
   
   
   if (DisplacementWillOverscroll(displacement) != OVERSCROLL_NONE) {
@@ -149,7 +149,8 @@ float Axis::GetDisplacementForDuration(float aScale, const TimeDuration& aDelta)
     
     mVelocity = 0.0f;
     mAcceleration = 0;
-    displacement -= DisplacementWillOverscrollAmount(displacement);
+    aOverscrollAmountOut = DisplacementWillOverscrollAmount(displacement);
+    displacement -= aOverscrollAmountOut;
   }
   return displacement;
 }

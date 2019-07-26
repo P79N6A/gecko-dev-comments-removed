@@ -16,6 +16,7 @@
 #include "Axis.h"
 #include "TaskThrottler.h"
 #include "gfx3DMatrix.h"
+#include "nsEvent.h"
 
 #include "base/message_loop.h"
 
@@ -259,6 +260,17 @@ public:
 
 
   void CancelAnimation();
+
+  
+
+
+
+
+
+
+
+
+  void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint);
 
 protected:
   

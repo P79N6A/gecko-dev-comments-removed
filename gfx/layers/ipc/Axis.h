@@ -75,9 +75,7 @@ public:
 
 
 
-
-
-  float GetDisplacementForDuration(float aScale, const TimeDuration& aDelta);
+  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
 
   
 
@@ -169,6 +167,8 @@ public:
   float GetPageLength();
   float GetCompositionEnd();
   float GetPageEnd();
+
+  int32_t GetPos() const { return mPos; }
 
   virtual float GetPointOffset(const CSSPoint& aPoint) = 0;
   virtual float GetRectLength(const CSSRect& aRect) = 0;
