@@ -1388,6 +1388,11 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
 
     
     
+    if (!nsContentUtils::IsInitialized())
+        return true;
+
+    
+    
     
     TimeDuration duration = TimeStamp::NowLoRes() - self->mSlowScriptCheckpoint;
     bool chrome = nsContentUtils::IsCallerChrome();
