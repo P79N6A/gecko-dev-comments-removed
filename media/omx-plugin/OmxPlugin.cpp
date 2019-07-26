@@ -506,7 +506,7 @@ bool OmxDecoder::SetVideoFormat() {
   
   
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(MOZ_ANDROID_FROYO)
   int32_t unexpected;
   if (format->findInt32(kKeyStride, &unexpected))
     LOG("Expected kKeyWidth, but found kKeyStride %d", unexpected);
