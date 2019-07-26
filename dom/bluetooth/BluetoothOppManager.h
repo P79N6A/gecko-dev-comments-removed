@@ -77,10 +77,6 @@ public:
   void CheckPutFinal(uint32_t aNumRead);
 
   
-  
-  bool IsTransferring();
-
-  
   void ReceiveSocketData(
     BluetoothSocket* aSocket,
     nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
@@ -93,6 +89,7 @@ public:
                                    int aChannel) MOZ_OVERRIDE;
   virtual void OnUpdateSdpRecords(const nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual void GetAddress(nsAString& aDeviceAddress) MOZ_OVERRIDE;
+  virtual bool IsConnected() MOZ_OVERRIDE;
 
 private:
   BluetoothOppManager();
