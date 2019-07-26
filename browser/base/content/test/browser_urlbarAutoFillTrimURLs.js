@@ -72,12 +72,6 @@ function waitForClearHistory(aCallback) {
 
 function waitForSearchComplete(aCallback) {
   info("Waiting for onSearchComplete");
-  
-  
-  
-  
-  Object.defineProperty(gURLBar, 'onSearchComplete', { value: gURLBar.onSearchComplete,
-                                                       writable: true, configurable: true });
   let onSearchComplete = gURLBar.onSearchComplete;
   registerCleanupFunction(function () {
     gURLBar.onSearchComplete = onSearchComplete;

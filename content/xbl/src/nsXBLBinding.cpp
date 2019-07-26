@@ -1206,14 +1206,6 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
 
     
     
-    JSBool found = false;
-    if (!JS_SetPropertyAttributes(cx, global, c->name,
-                                  JSPROP_READONLY | JSPROP_PERMANENT, &found))
-      return NS_ERROR_FAILURE;
-    MOZ_ASSERT(found);
-
-    
-    
     
     
     
