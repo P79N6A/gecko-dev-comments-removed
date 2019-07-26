@@ -48,7 +48,7 @@ DumpHasInstructionPointerMemory(const char* dump_file)
 
   MinidumpMemoryRegion* region =
     memory_list->GetMemoryRegionForAddress(instruction_pointer);
-  return region != NULL;
+  return region != nullptr;
 }
 
 

@@ -86,7 +86,7 @@ void OOPInit();
 
 bool TakeMinidumpForChild(uint32_t childPid,
                           nsIFile** dump,
-                          uint32_t* aSequence = NULL);
+                          uint32_t* aSequence = nullptr);
 
 #if defined(XP_WIN)
 typedef HANDLE ProcessHandle;

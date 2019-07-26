@@ -26,14 +26,14 @@ __declspec(dllexport) DWORD Start(void* context)
 {
   
   
-  _CRT_INIT(NULL, DLL_PROCESS_ATTACH, NULL);
+  _CRT_INIT(nullptr, DLL_PROCESS_ATTACH, nullptr);
 
   HANDLE hCrashPipe = reinterpret_cast<HANDLE>(context);
 
   ExceptionHandler* e = new (std::nothrow)
-    ExceptionHandler(wstring(), NULL, NULL, NULL,
+    ExceptionHandler(wstring(), nullptr, nullptr, nullptr,
                      ExceptionHandler::HANDLER_ALL,
-                     MiniDumpNormal, hCrashPipe, NULL);
+                     MiniDumpNormal, hCrashPipe, nullptr);
   if (e)
     e->set_handle_debug_exceptions(true);
   return 1;
