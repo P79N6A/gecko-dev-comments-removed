@@ -29,7 +29,7 @@ CreateTransport(ProcessHandle , ProcessHandle ,
   wstring id = ChildProcessInfo::GenerateRandomChannelID(aOne);
   
   Transport t(id, Transport::MODE_SERVER, nullptr);
-  int fd1 = t.GetServerFileDescriptor();
+  int fd1 = t.GetFileDescriptor();
   int fd2, dontcare;
   t.GetClientFileDescriptorMapping(&fd2, &dontcare);
   if (fd1 < 0 || fd2 < 0) {

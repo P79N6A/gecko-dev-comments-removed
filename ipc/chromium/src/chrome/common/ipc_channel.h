@@ -118,7 +118,10 @@ class Channel : public Message::Sender {
   void GetClientFileDescriptorMapping(int *src_fd, int *dest_fd) const;
 
   
-  int GetServerFileDescriptor() const;
+  int GetFileDescriptor() const;
+
+  
+  void ResetFileDescriptor(int fd);
 
   
   void CloseClientFileDescriptor();

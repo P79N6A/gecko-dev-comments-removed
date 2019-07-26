@@ -15,6 +15,12 @@
 #include "chrome/common/child_process_info.h"
 #include "chrome/common/ipc_channel.h"
 
+namespace mozilla {
+namespace ipc {
+class FileDescriptor;
+}
+}
+
 class NotificationType;
 
 
@@ -58,6 +64,8 @@ class ChildProcessHost :
 
   
   bool CreateChannel();
+
+  bool CreateChannel(mozilla::ipc::FileDescriptor& aFileDescriptor);
 
   
   

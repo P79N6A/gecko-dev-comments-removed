@@ -248,6 +248,9 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
   int status;
   const int result = HANDLE_EINTR(waitpid(handle, &status, WNOHANG));
   if (result == -1) {
+    
+    
+    
     LOG(ERROR) << "waitpid failed pid:" << handle << " errno:" << errno;
     if (child_exited)
       *child_exited = false;
