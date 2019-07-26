@@ -4,6 +4,8 @@
 
 
 #include "WinIMEHandler.h"
+
+#include "mozilla/Preferences.h"
 #include "nsIMM32Handler.h"
 #include "nsWindowDefs.h"
 
@@ -23,6 +25,7 @@ namespace widget {
 
 #ifdef NS_ENABLE_TSF
 bool IMEHandler::sIsInTSFMode = false;
+bool IMEHandler::sIsIMMEnabled = true;
 bool IMEHandler::sPluginHasFocus = false;
 IMEHandler::SetInputScopesFunc IMEHandler::sSetInputScopes = nullptr;
 #endif 
@@ -34,6 +37,8 @@ IMEHandler::Initialize()
 #ifdef NS_ENABLE_TSF
   nsTextStore::Initialize();
   sIsInTSFMode = nsTextStore::IsInTSFMode();
+  sIsIMMEnabled =
+    !sIsInTSFMode || Preferences::GetBool("intl.tsf.support_imm", true);
   if (!sIsInTSFMode) {
     
     

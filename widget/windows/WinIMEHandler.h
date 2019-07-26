@@ -125,6 +125,9 @@ private:
   static void SetInputScopeForIMM32(nsWindow* aWindow,
                                     const nsAString& aHTMLInputType);
   static bool sIsInTSFMode;
+  
+  
+  static bool sIsIMMEnabled;
   static bool sPluginHasFocus;
 
   static bool IsTSFAvailable() { return (sIsInTSFMode && !sPluginHasFocus); }

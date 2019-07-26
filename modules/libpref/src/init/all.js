@@ -2552,7 +2552,10 @@ pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
 
-pref("intl.enable_tsf_support", false);
+pref("intl.tsf.enable", false);
+
+
+pref("intl.tsf.support_imm", true);
 
 
 
