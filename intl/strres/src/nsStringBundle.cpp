@@ -719,20 +719,8 @@ nsStringBundleService::FormatWithBundle(nsIStringBundle* bundle, nsresult aStatu
   nsXPIDLCString key;
 
   
-  rv = mErrorService->GetErrorStringBundleKey(aStatus, getter_Copies(key));
-
-  
-  if (NS_SUCCEEDED(rv)) {
-    rv = bundle->FormatStringFromName(NS_ConvertASCIItoUTF16(key).get(),
-                                      (const char16_t**)argArray, 
-                                      argCount, result);
-  }
-
-  
-  if (NS_FAILED(rv)) {
-    uint16_t code = NS_ERROR_GET_CODE(aStatus);
-    rv = bundle->FormatStringFromID(code, (const char16_t**)argArray, argCount, result);
-  }
+  uint16_t code = NS_ERROR_GET_CODE(aStatus);
+  rv = bundle->FormatStringFromID(code, (const char16_t**)argArray, argCount, result);
 
   
   
