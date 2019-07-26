@@ -37,17 +37,11 @@ function run_test() {
   checkThrows("DataView.prototype.getInt8.call(dv, 0);", sb);
 
   
-  
-
-
-
-
-
-
-
-
-
-
+  checkThrows("Date.prototype.getYear.call(d)", sb);
+  checkThrows("Date.prototype.valueOf.call(d)", sb);
+  checkThrows("d.valueOf()", sb);
+  checkThrows("Date.prototype.toString.call(d)", sb);
+  checkThrows("d.toString()", sb);
 
   
   function testForTypedArray(t) {
