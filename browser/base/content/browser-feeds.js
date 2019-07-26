@@ -14,22 +14,6 @@ var FeedHandler = {
 
 
 
-  onFeedButtonClick: function(event) {
-    event.stopPropagation();
-
-    let feeds = gBrowser.selectedBrowser.feeds || [];
-    
-    
-    if (feeds.length != 1)
-      return;
-
-    if (event.eventPhase == Event.AT_TARGET &&
-        (event.button == 0 || event.button == 1)) {
-      this.subscribeToFeed(feeds[0].href, event);
-    }
-  },
-
- 
 
 
 
@@ -37,37 +21,37 @@ var FeedHandler = {
 
 
 
-
-  buildFeedList: function(menuPopup) {
+  buildFeedList: function(container, isSubview) {
     var feeds = gBrowser.selectedBrowser.feeds;
-    if (feeds == null) {
+    if (!isSubview && feeds == null) {
       
       
       
       
       
       
-      menuPopup.parentNode.removeAttribute("open");
+      container.parentNode.removeAttribute("open");
       return false;
     }
 
-    while (menuPopup.firstChild)
-      menuPopup.removeChild(menuPopup.firstChild);
+    while (container.firstChild)
+      container.removeChild(container.firstChild);
 
-    if (feeds.length <= 1)
+    if (!feeds || feeds.length <= 1)
       return false;
 
     
+    var itemNodeType = isSubview ? "toolbarbutton" : "menuitem";
     for (let feedInfo of feeds) {
-      var menuItem = document.createElement("menuitem");
+      var item = document.createElement(itemNodeType);
       var baseTitle = feedInfo.title || feedInfo.href;
       var labelStr = gNavigatorBundle.getFormattedString("feedShowFeedNew", [baseTitle]);
-      menuItem.setAttribute("class", "feed-menuitem");
-      menuItem.setAttribute("label", labelStr);
-      menuItem.setAttribute("feed", feedInfo.href);
-      menuItem.setAttribute("tooltiptext", feedInfo.href);
-      menuItem.setAttribute("crop", "center");
-      menuPopup.appendChild(menuItem);
+      item.setAttribute("class", "feed-" + itemNodeType);
+      item.setAttribute("label", labelStr);
+      item.setAttribute("feed", feedInfo.href);
+      item.setAttribute("tooltiptext", feedInfo.href);
+      item.setAttribute("crop", "center");
+      container.appendChild(item);
     }
     return true;
   },

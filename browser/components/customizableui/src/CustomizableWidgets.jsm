@@ -450,4 +450,45 @@ const CustomizableWidgets = [{
 
       return node;
     }
+  },
+  {
+    id: "feed-button",
+    type: "view",
+    viewId: "PanelUI-feeds",
+    removable: true,
+    defaultArea: CustomizableUI.AREA_PANEL,
+    allowedAreas: [CustomizableUI.AREA_PANEL, CustomizableUI.AREA_NAVBAR],
+    onClick: function(aEvent) {
+      let win = aEvent.target.ownerDocument.defaultView;
+      let feeds = win.gBrowser.selectedBrowser.feeds;
+
+      
+      
+      let isClick = (aEvent.button == 0 || aEvent.button == 1);
+      if (feeds && feeds.length == 1 && isClick) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        win.FeedHandler.subscribeToFeed(feeds[0].href, aEvent);
+      }
+    },
+    onViewShowing: function(aEvent) {
+      let doc = aEvent.detail.ownerDocument;
+      let container = doc.getElementById("PanelUI-feeds");
+      let gotView = doc.defaultView.FeedHandler.buildFeedList(container, true);
+
+      
+      if (!gotView) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        return;
+      }
+    },
+    onCreated: function(node) {
+      let win = node.ownerDocument.defaultView;
+      let selectedBrowser = win.gBrowser.selectedBrowser;
+      let feeds = selectedBrowser && selectedBrowser.feeds;
+      if (!feeds || !feeds.length) {
+        node.setAttribute("disabled", "true");
+      }
+    }
   }];
