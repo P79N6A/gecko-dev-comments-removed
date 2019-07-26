@@ -1642,6 +1642,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 
 #share-button {
   -moz-image-region: rect(0, 16px, 16px, 0);
+  -moz-margin-end: 3px;
 }
 
 #socialUserPortrait {
@@ -3431,7 +3432,7 @@ html|*#gcli-output-frame {
 
 .chat-title {
   font-weight: bold;
-  color: -moz-dialogtext;
+  color: black;
   text-shadow: none;
   cursor: inherit;
 }
