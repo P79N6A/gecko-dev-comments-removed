@@ -471,6 +471,13 @@ Toolbox.prototype = {
   
 
 
+  raise: function TBOX_raise() {
+    this._host.raise();
+  },
+
+  
+
+
 
 
 

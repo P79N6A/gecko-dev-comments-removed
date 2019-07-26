@@ -153,6 +153,7 @@ DevTools.prototype = {
       }
 
       return promise.then(function() {
+        toolbox.raise();
         return toolbox;
       });
     }
@@ -247,13 +248,40 @@ let gDevToolsBrowser = {
 
 
 
-  toggleToolboxCommand: function(gBrowser, toolId=null) {
+  toggleToolboxCommand: function(gBrowser) {
     let target = TargetFactory.forTab(gBrowser.selectedTab);
     let toolbox = gDevTools.getToolbox(target);
 
-    return toolbox && (toolId == null || toolId == toolbox.currentToolId) ?
-        toolbox.destroy() :
-        gDevTools.showToolbox(target, toolId);
+    toolbox ? toolbox.destroy() : gDevTools.showToolbox(target);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  selectToolCommand: function(gBrowser, toolId) {
+    let target = TargetFactory.forTab(gBrowser.selectedTab);
+    let toolbox = gDevTools.getToolbox(target);
+
+    if (toolbox && toolbox.currentToolId == toolId) {
+      if (toolbox.hostType == Toolbox.HostType.WINDOW) {
+        toolbox.raise();
+      } else {
+        toolbox.destroy();
+      }
+    } else {
+      gDevTools.showToolbox(target, toolId);
+    }
   },
 
   
@@ -363,7 +391,7 @@ let gDevToolsBrowser = {
     let cmd = doc.createElement("command");
     cmd.id = "Tools:" + id;
     cmd.setAttribute("oncommand",
-        'gDevToolsBrowser.toggleToolboxCommand(gBrowser, "' + id + '");');
+        'gDevToolsBrowser.selectToolCommand(gBrowser, "' + id + '");');
 
     let key = null;
     if (toolDefinition.key) {
@@ -376,15 +404,14 @@ let gDevToolsBrowser = {
         key.setAttribute("key", toolDefinition.key);
       }
 
-      key.setAttribute("oncommand",
-          'gDevToolsBrowser.toggleToolboxCommand(gBrowser, "' + id + '");');
+      key.setAttribute("command", cmd.id);
       key.setAttribute("modifiers", toolDefinition.modifiers);
     }
 
     let bc = doc.createElement("broadcaster");
     bc.id = "devtoolsMenuBroadcaster_" + id;
     bc.setAttribute("label", toolDefinition.label);
-    bc.setAttribute("command", "Tools:" + id);
+    bc.setAttribute("command", cmd.id);
 
     if (key) {
       bc.setAttribute("key", "key_" + id);
