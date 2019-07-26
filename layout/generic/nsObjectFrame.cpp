@@ -308,18 +308,13 @@ nsObjectFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(mContent));
   NS_ASSERTION(objContent, "Why not an object loading content?");
-
-  
-  
-  
-  if (mInstanceOwner) {
-    mInstanceOwner->SetFrame(nullptr);
-  }
   objContent->HasNewFrame(nullptr);
 
   if (mBackgroundSink) {
     mBackgroundSink->Destroy();
   }
+
+  SetInstanceOwner(nullptr);
 
   nsObjectFrameSuper::DestroyFrom(aDestructRoot);
 }
@@ -780,10 +775,6 @@ nsObjectFrame::UnregisterPluginForGeometryUpdates()
 void
 nsObjectFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner)
 {
-  
-  
-  
-  
   mInstanceOwner = aOwner;
   if (mInstanceOwner) {
     return;
@@ -883,7 +874,7 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
 
   
   
-  if (aStatus != nsDidReflowStatus::FINISHED)
+  if (aStatus != nsDidReflowStatus::FINISHED) 
     return rv;
 
   if (HasView()) {
