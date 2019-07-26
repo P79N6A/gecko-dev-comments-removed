@@ -2796,12 +2796,17 @@ nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
 
     
     
-    
-    
-    
-    gFocusWindow = this;
+    gFocusWindow = nullptr;
 
     DispatchActivateEvent();
+
+    if (!gFocusWindow) {
+        
+        
+        
+        
+        gFocusWindow = this;
+    }
 
     LOGFOCUS(("Events sent from focus in event [%p]\n", (void *)this));
 }
