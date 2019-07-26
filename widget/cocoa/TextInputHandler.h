@@ -348,6 +348,16 @@ public:
 
 
 
+  bool SetSelection(NSRange& aRange);
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -962,7 +972,10 @@ protected:
 
 
 
-  void InsertTextAsCommittingComposition(NSAttributedString* aAttrString);
+
+
+  void InsertTextAsCommittingComposition(NSAttributedString* aAttrString,
+                                         NSRange* aReplacementRange);
 
 private:
   
@@ -1121,7 +1134,10 @@ public:
 
 
 
-  void InsertText(NSAttributedString *aAttrString);
+
+
+  void InsertText(NSAttributedString *aAttrString,
+                  NSRange* aReplacementRange = nullptr);
 
   
 
