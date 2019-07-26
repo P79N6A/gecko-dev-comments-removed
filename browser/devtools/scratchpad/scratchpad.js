@@ -419,8 +419,7 @@ var Scratchpad = {
         this.writeAsErrorComment(aError.exception).then(resolve, reject);
       }
       else if (VariablesView.isPrimitive({ value: aResult })) {
-        this.writeAsComment(aResult.type || aResult);
-        resolve();
+        this._writePrimitiveAsComment(aResult).then(resolve, reject);
       }
       else {
         this.deselect();
@@ -488,13 +487,13 @@ var Scratchpad = {
         this.writeAsErrorComment(aError.exception).then(resolve, reject);
       }
       else if (VariablesView.isPrimitive({ value: aResult })) {
-        this.writeAsComment(aResult.type || aResult);
-        resolve();
+        this._writePrimitiveAsComment(aResult).then(resolve, reject);
       }
       else {
         let gripClient = new GripClient(this.debuggerClient, aResult);
         gripClient.getDisplayString(aResponse => {
           if (aResponse.error) {
+            reportError("display", aResponse);
             reject(aResponse);
           }
           else {
@@ -511,6 +510,41 @@ var Scratchpad = {
     }, reject);
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _writePrimitiveAsComment: function SP__writePrimitiveAsComment(aValue)
+  {
+    let deferred = promise.defer();
+
+    if (aValue.type == "longString") {
+      let client = this.webConsoleClient;
+      client.longString(aValue).substring(0, aValue.length, aResponse => {
+        if (aResponse.error) {
+          reportError("display", aResponse);
+          deferred.reject(aResponse);
+        }
+        else {
+          deferred.resolve(aResponse.substring);
+        }
+      });
+    }
+    else {
+      deferred.resolve(aValue.type || aValue);
+    }
+
+    return deferred.promise.then(aComment => {
+      this.writeAsComment(aComment);
+    });
   },
 
   
