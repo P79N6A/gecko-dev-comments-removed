@@ -45,7 +45,6 @@
 #include <string>
 #include <vector>
 
-#include "testing/gtest/include/gtest/gtest_prod.h"
 #include "base/time.h"
 #include "base/lock.h"
 
@@ -380,9 +379,6 @@ class Histogram {
     void Accumulate(Sample value, Count count, size_t index);
 
     
-    FRIEND_TEST(HistogramTest, CorruptSampleCounts);
-
-    
     
     
     
@@ -533,12 +529,6 @@ class Histogram {
   SampleSet sample_;
 
  private:
-  
-  FRIEND_TEST(HistogramTest, CorruptBucketBounds);
-  FRIEND_TEST(HistogramTest, CorruptSampleCounts);
-  FRIEND_TEST(HistogramTest, Crc32SampleHash);
-  FRIEND_TEST(HistogramTest, Crc32TableTest);
-
   friend class StatisticsRecorder;  
 
   
