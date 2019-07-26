@@ -6959,6 +6959,13 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               NS_STYLE_BOX_SIZING_CONTENT, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForAlignContent(),
+              pos->mAlignContent, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentPos->mAlignContent,
+              NS_STYLE_ALIGN_CONTENT_STRETCH, 0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForAlignItems(),
               pos->mAlignItems, canStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,

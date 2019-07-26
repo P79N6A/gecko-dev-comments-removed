@@ -1272,6 +1272,7 @@ nsStylePosition::nsStylePosition(void)
   mMaxHeight.SetNoneValue();
   mFlexBasis.SetAutoValue();
   mBoxSizing = NS_STYLE_BOX_SIZING_CONTENT;
+  mAlignContent = NS_STYLE_ALIGN_CONTENT_STRETCH;
   mAlignItems = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
   mAlignSelf = NS_STYLE_ALIGN_SELF_AUTO;
   mFlexDirection = NS_STYLE_FLEX_DIRECTION_ROW;
@@ -1340,9 +1341,23 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
+
   
   
   if (mJustifyContent != aOther.mJustifyContent) {
+    NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mFlexWrap != NS_STYLE_FLEX_WRAP_NOWRAP &&
+      mAlignContent != aOther.mAlignContent) {
     NS_UpdateHint(hint, nsChangeHint_NeedReflow);
   }
 

@@ -39,6 +39,7 @@
 
 
 
+COMPUTED_STYLE_PROP(align_content,                   AlignContent)
 COMPUTED_STYLE_PROP(align_items,                   AlignItems)
 COMPUTED_STYLE_PROP(align_self,                    AlignSelf)
 

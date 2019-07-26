@@ -1129,6 +1129,7 @@ struct nsStylePosition {
   nsStyleCoord  mMaxHeight;             
   nsStyleCoord  mFlexBasis;             
   uint8_t       mBoxSizing;             
+  uint8_t       mAlignContent;          
   uint8_t       mAlignItems;            
   uint8_t       mAlignSelf;             
   uint8_t       mFlexDirection;         
