@@ -36,9 +36,8 @@ namespace dom {
 
 class MediaRecorder : public nsDOMEventTargetHelper
 {
-  class ExtractEncodedDataTask;
-  class PushBlobTask;
-  class PushErrorMessageTask;
+  class Session;
+
 public:
   MediaRecorder(DOMMediaStream&);
   virtual ~MediaRecorder();
@@ -71,7 +70,7 @@ public:
   
   RecordingState State() const { return mState; }
   
-  void GetMimeType(nsString &aMimeType) { aMimeType = mMimeType; }
+  void GetMimeType(nsString &aMimeType);
 
   static already_AddRefed<MediaRecorder>
   Constructor(const GlobalObject& aGlobal,
@@ -83,45 +82,33 @@ public:
   IMPL_EVENT_HANDLER(stop)
   IMPL_EVENT_HANDLER(warning)
 
-  friend class ExtractEncodedData;
-
 protected:
   void Init(nsPIDOMWindow* aOwnerWindow);
-  
-  void ExtractEncodedData();
 
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
-  nsresult CreateAndDispatchBlobEvent();
+  nsresult CreateAndDispatchBlobEvent(Session *session);
   
   void DispatchSimpleEvent(const nsAString & aStr);
   
   void NotifyError(nsresult aRv);
   
   bool CheckPrincipal();
+  
+  void SetMimeType(const nsString &aMimeType);
 
   MediaRecorder(const MediaRecorder& x) MOZ_DELETE; 
 
-
-  
-  nsCOMPtr<nsIThread> mReadThread;
-  
-  nsRefPtr<MediaEncoder> mEncoder;
   
   nsRefPtr<DOMMediaStream> mStream;
   
-  nsRefPtr<ProcessedMediaStream> mTrackUnionStream;
+  RecordingState mState;
   
-  nsRefPtr<MediaInputPort> mStreamPort;
+  Session *mSession;
   
-  nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
+  Mutex mMutex;
   
   nsString mMimeType;
-  
-  
-  int32_t mTimeSlice;
-  
-  RecordingState mState;
 };
 
 }
