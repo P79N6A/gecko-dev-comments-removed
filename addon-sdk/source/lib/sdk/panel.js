@@ -32,7 +32,16 @@ const systemEvents = require("./system/events");
 const { filter, pipe } = require("./event/utils");
 const { getNodeView, getActiveView } = require("./view/core");
 const { isNil, isObject } = require("./lang/type");
-const { getAttachEventType } = require("./content/utils");
+
+function getAttachEventType(model) {
+  let when = model.contentScriptWhen;
+  return requiresAddonGlobal(model) ? "sdk-panel-content-changed" :
+         when === "start" ? "sdk-panel-content-changed" :
+         when === "end" ? "sdk-panel-document-loaded" :
+         when === "ready" ? "sdk-panel-content-loaded" :
+         null;
+}
+
 
 let number = { is: ['number', 'undefined', 'null'] };
 let boolean = { is: ['boolean', 'undefined', 'null'] };
@@ -85,14 +94,14 @@ let setupAutoHide = new function() {
       
       
       let view = viewFor(panel);
-      if (!view) systemEvents.off("popupshowing", listener);
+      if (!view) systemEvents.off("sdk-panel-show", listener);
       else if (subject !== view) panel.hide();
     }
 
     
     
     
-    systemEvents.on("popupshowing", listener);
+    systemEvents.on("sdk-panel-show", listener);
     
     
     
@@ -225,10 +234,10 @@ exports.Panel = Panel;
 let panelEvents = filter(events, function({target}) panelFor(target));
 
 
-let shows = filter(panelEvents, function({type}) type === "popupshown");
+let shows = filter(panelEvents, function({type}) type === "sdk-panel-shown");
 
 
-let hides = filter(panelEvents, function({type}) type === "popuphidden");
+let hides = filter(panelEvents, function({type}) type === "sdk-panel-hidden");
 
 
 
@@ -239,7 +248,7 @@ let ready = filter(panelEvents, function({type, target})
 
 
 let change = filter(panelEvents, function({type})
-  type === "document-element-inserted");
+  type === "sdk-panel-content-changed");
 
 
 on(shows, "data", function({target}) emit(panelFor(target), "show"));

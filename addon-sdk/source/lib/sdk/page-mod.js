@@ -12,9 +12,10 @@ module.metadata = {
 const observers = require('./deprecated/observer-service');
 const { Loader, validationAttributes } = require('./content/loader');
 const { Worker } = require('./content/worker');
-const { Registry } = require('./util/registry');
 const { EventEmitter } = require('./deprecated/events');
-const { on, emit } = require('./event/core');
+const { List } = require('./deprecated/list');
+const { Registry } = require('./util/registry');
+const { MatchPattern } = require('./page-mod/match-pattern');
 const { validateOptions : validate } = require('./deprecated/api-utils');
 const { Cc, Ci } = require('chrome');
 const { merge } = require('./util/object');
@@ -23,16 +24,13 @@ const { windowIterator } = require('./deprecated/window-utils');
 const { isBrowser, getFrames } = require('./window/utils');
 const { getTabs, getTabContentWindow, getTabForContentWindow,
         getURI: getTabURI } = require('./tabs/utils');
+const { has, hasAny } = require('./util/array');
 const { ignoreWindow } = require('sdk/private-browsing/utils');
 const { Style } = require("./stylesheet/style");
 const { attach, detach } = require("./content/mod");
-const { has, hasAny } = require("./util/array");
-const { Rules } = require("./util/rules");
 
 
 const VALID_ATTACHTO_OPTIONS = ['existing', 'top', 'frame'];
-
-const mods = new WeakMap();
 
 
 
@@ -44,6 +42,27 @@ const validStyleOptions = {
     msg: 'The `contentStyleFile` option must be a local URL or an array of URLs'
   })
 };
+
+
+const RULES = {};
+
+const Rules = EventEmitter.resolve({ toString: null }).compose(List, {
+  add: function() Array.slice(arguments).forEach(function onAdd(rule) {
+    if (this._has(rule))
+      return;
+    
+    if (!(rule in RULES))
+      RULES[rule] = new MatchPattern(rule);
+    this._add(rule);
+    this._emit('add', rule);
+  }.bind(this)),
+  remove: function() Array.slice(arguments).forEach(function onRemove(rule) {
+    if (!this._has(rule))
+      return;
+    this._remove(rule);
+    this._emit('remove', rule);
+  }.bind(this)),
+});
 
 
 
@@ -102,11 +121,13 @@ const PageMod = Loader.compose(EventEmitter, {
 
     let include = options.include;
     let rules = this.include = Rules();
-    
-    if (!include)
-      throw new Error('The `include` option must always contain atleast one rule');
+    rules.on('add', this._onRuleAdd = this._onRuleAdd.bind(this));
+    rules.on('remove', this._onRuleRemove = this._onRuleRemove.bind(this));
 
-    rules.add.apply(rules, [].concat(include));
+    if (Array.isArray(include))
+      rules.add.apply(null, include);
+    else
+      rules.add(include);
 
     if (contentStyle || contentStyleFile) {
       this._style = Style({
@@ -117,7 +138,6 @@ const PageMod = Loader.compose(EventEmitter, {
 
     this.on('error', this._onUncaughtError = this._onUncaughtError.bind(this));
     pageModManager.add(this._public);
-    mods.set(this._public, this);
 
     
     
@@ -126,21 +146,26 @@ const PageMod = Loader.compose(EventEmitter, {
   },
 
   destroy: function destroy() {
+
     if (this._style)
       detach(this._style);
 
-    for (let i in this.include)
-      this.include.remove(this.include[i]);
-
-    mods.delete(this._public);
+    for each (let rule in this.include)
+      this.include.remove(rule);
     pageModManager.remove(this._public);
   },
 
   _applyOnExistingDocuments: function _applyOnExistingDocuments() {
     let mod = this;
     
+    function isMatchingURI(uri) {
+      
+      return Array.some(mod.include, function (rule) {
+        return RULES[rule].test(uri);
+      });
+    }
     let tabs = getAllTabs().filter(function (tab) {
-      return mod.include.matchesAny(getTabURI(tab));
+      return isMatchingURI(getTabURI(tab));
     });
 
     tabs.forEach(function (tab) {
@@ -205,6 +230,12 @@ const PageMod = Loader.compose(EventEmitter, {
       worker.destroy();
     });
   },
+  _onRuleAdd: function _onRuleAdd(url) {
+    pageModManager.on(url, this._onContent);
+  },
+  _onRuleRemove: function _onRuleRemove(url) {
+    pageModManager.off(url, this._onContent);
+  },
   _onUncaughtError: function _onUncaughtError(e) {
     if (this._listeners('error').length == 1)
       console.exception(e);
@@ -227,6 +258,9 @@ const PageModManager = Registry.resolve({
   _destructor: function _destructor() {
     observers.remove('document-element-inserted', this._onContentWindow);
     this._removeAllListeners();
+    for (let rule in RULES) {
+      delete RULES[rule];
+    }
 
     
     
@@ -251,13 +285,14 @@ const PageModManager = Registry.resolve({
       return;
     }
 
-    this._registry.forEach(function(mod) {
-      if (mod.include.matchesAny(document.URL))
-        mods.get(mod)._onContent(window);
-    });
+    for (let rule in RULES)
+      if (RULES[rule].test(document.URL))
+        this._emit(rule, window);
   },
   off: function off(topic, listener) {
     this.removeListener(topic, listener);
+    if (!this._listeners(topic).length)
+      delete RULES[topic];
   }
 });
 const pageModManager = PageModManager();

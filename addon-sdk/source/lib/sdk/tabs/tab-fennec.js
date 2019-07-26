@@ -63,15 +63,7 @@ const Tab = Class({
 
   get favicon() {
     
-
-
-
-
-
-    console.error(
-      'tab.favicon is deprecated, and currently ' +
-      'favicon helpers are not yet supported by Fennec'
-    );
+    console.error(ERR_FENNEC_MSG);
 
     
     return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAEklEQVQ4jWNgGAWjYBSMAggAAAQQAAF/TXiOAAAAAElFTkSuQmCC';

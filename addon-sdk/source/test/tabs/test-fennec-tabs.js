@@ -113,9 +113,7 @@ exports.testTabProperties = function(test) {
       
       
       test.assertEqual(JSON.stringify(messages),
-                       JSON.stringify(['tab.favicon is deprecated, and ' +
-                          'currently favicon helpers are not yet supported ' +
-                          'by Fennec']),
+                       JSON.stringify([ERR_FENNEC_MSG]),
                        "favicon logs an error for now");
       test.assertEqual(tab.style, null, "style of the new tab matches");
       test.assertEqual(tab.index, tabsLen, "index of the new tab matches");
@@ -573,6 +571,29 @@ exports.testPerTabEvents = function(test) {
 
         
         tab.close(function() test.done());
+      });
+    }
+  });
+};
+
+
+exports.testActiveTab_getter_alt = function(test) {
+  test.waitUntilDone();
+
+  let url = URL.replace("#title#", "foo");
+  tabs.open({
+    url: url,
+    onActivate: function(tab) {
+      test.assertEqual(tabs.activeTab.url, tab.url, 'the active tab is correct');
+
+      tab.once('ready', function() {
+        test.assertEqual(tab.url, url);
+        test.assertEqual(tab.title, "foo");
+
+        tab.close(function() {
+          
+          test.done();
+        });
       });
     }
   });
