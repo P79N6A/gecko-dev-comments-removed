@@ -859,13 +859,14 @@ let CustomizableUIInternal = {
         parent = parent.parentNode;
       }
 
-      if ((parent && parent.customizationTarget == node.parentNode &&
-           gBuildWindows.get(aWindow).has(parent.toolbox)) ||
-          (parent && parent.localName == "toolbarpaletteitem")) {
+      if (parent && ((parent.customizationTarget == node.parentNode &&
+                      gBuildWindows.get(aWindow).has(parent.toolbox)) ||
+                     parent.localName == "toolbarpaletteitem")) {
         
         
         
         if (!node.hasAttribute("removable")) {
+          parent = parent.localName == "toolbarpaletteitem" ? parent.parentNode : parent;
           
           
           node.setAttribute("removable", !parent.customizationTarget);
