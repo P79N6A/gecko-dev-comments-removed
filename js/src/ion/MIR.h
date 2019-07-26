@@ -2608,6 +2608,13 @@ class MSub : public MBinaryArithInstruction
 
 class MMul : public MBinaryArithInstruction
 {
+  public:
+    enum Mode {
+        Normal,
+        Integer
+    };
+
+  private:
     
     
     bool canBeNegativeZero_;
@@ -2621,12 +2628,23 @@ class MMul : public MBinaryArithInstruction
     
     bool implicitTruncate_;
 
-    MMul(MDefinition *left, MDefinition *right, MIRType type)
+    Mode mode_;
+
+    MMul(MDefinition *left, MDefinition *right, MIRType type, Mode mode)
       : MBinaryArithInstruction(left, right),
         canBeNegativeZero_(true),
         possibleTruncate_(false),
-        implicitTruncate_(false)
+        implicitTruncate_(false),
+        mode_(mode)
     {
+        if (mode == Integer) {
+            
+            
+            canBeNegativeZero_ = false;
+            possibleTruncate_ = implicitTruncate_ = true;
+        }
+        JS_ASSERT_IF(mode != Integer, mode == Normal);
+
         if (type != MIRType_Value)
             specialization_ = type;
         setResultType(type);
@@ -2635,10 +2653,10 @@ class MMul : public MBinaryArithInstruction
   public:
     INSTRUCTION_HEADER(Mul)
     static MMul *New(MDefinition *left, MDefinition *right) {
-        return new MMul(left, right, MIRType_Value);
+        return new MMul(left, right, MIRType_Value, MMul::Normal);
     }
-    static MMul *New(MDefinition *left, MDefinition *right, MIRType type) {
-        return new MMul(left, right, type);
+    static MMul *New(MDefinition *left, MDefinition *right, MIRType type, Mode mode = Normal) {
+        return new MMul(left, right, type, mode);
     }
 
     MDefinition *foldsTo(bool useValueNumbers);
@@ -2681,6 +2699,8 @@ class MMul : public MBinaryArithInstruction
         
         canBeNegativeZero_ = !truncate;
     }
+
+    Mode mode() { return mode_; }
 };
 
 class MDiv : public MBinaryArithInstruction
