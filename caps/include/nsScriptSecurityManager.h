@@ -442,7 +442,7 @@ private:
     
     
     static nsIPrincipal*
-    GetFunctionObjectPrincipal(JSContext* cx, JSObject* obj, nsresult* rv);
+    GetFunctionObjectPrincipal(JSContext* cx, JS::Handle<JSObject*> obj, nsresult* rv);
 
     
 

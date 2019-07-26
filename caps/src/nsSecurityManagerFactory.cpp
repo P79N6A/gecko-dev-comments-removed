@@ -62,39 +62,39 @@ static const JSFunctionSpec PrivilegeManager_static_methods[] = {
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
 {
     AutoPushJSContext cx(aScriptContext->GetNativeContext());
-    JSObject *global = JS_ObjectToInnerObject(cx, JS_GetGlobalObject(cx));
+    JS::Rooted<JSObject*> global(cx, JS_ObjectToInnerObject(cx, JS_GetGlobalObject(cx)));
 
     
 
 
 
-    JSObject *obj = global;
-    JSObject *proto;
+    JS::Rooted<JSObject*> obj(cx, global);
+    JS::Rooted<JSObject*> proto(cx);
     JSAutoRequest ar(cx);
     for (;;) {
-        MOZ_ALWAYS_TRUE(JS_GetPrototype(cx, obj, &proto));
+        MOZ_ALWAYS_TRUE(JS_GetPrototype(cx, obj, proto.address()));
         if (!proto)
             break;
         obj = proto;
     }
     JSClass *objectClass = JS_GetClass(obj);
 
-    JS::Value v;
-    if (!JS_GetProperty(cx, global, "netscape", &v))
+    JS::Rooted<JS::Value> v(cx);
+    if (!JS_GetProperty(cx, global, "netscape", v.address()))
         return NS_ERROR_FAILURE;
 
-    JSObject *securityObj;
+    JS::Rooted<JSObject*> securityObj(cx);
     if (v.isObject()) {
         
 
 
 
         obj = &v.toObject();
-        if (!JS_GetProperty(cx, obj, "security", &v) || !v.isObject())
+        if (!JS_GetProperty(cx, obj, "security", v.address()) || !v.isObject())
             return NS_ERROR_FAILURE;
         securityObj = &v.toObject();
     } else {
