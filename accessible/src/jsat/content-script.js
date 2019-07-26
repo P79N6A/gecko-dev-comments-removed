@@ -163,8 +163,13 @@ function forwardToChild(aMessage, aListener, aVCPosition) {
 function activateCurrent(aMessage) {
   Logger.debug('activateCurrent');
   function activateAccessible(aAccessible) {
-    if (aMessage.json.activateIfKey &&
-        aAccessible.role != Roles.KEY) {
+    try {
+      if (aMessage.json.activateIfKey &&
+          aAccessible.role != Roles.KEY) {
+        
+        return;
+      }
+    } catch (e) {
       
       return;
     }
