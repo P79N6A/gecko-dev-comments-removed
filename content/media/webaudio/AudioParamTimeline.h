@@ -50,15 +50,7 @@ public:
   
   
   template<class TimeType>
-  float GetValueAtTime(TimeType aTime, size_t aCounter = 0)
-  {
-    MOZ_ASSERT(aCounter < WEBAUDIO_BLOCK_SIZE);
-    MOZ_ASSERT(!aCounter || !HasSimpleValue());
-
-    
-    return BaseClass::GetValueAtTime(static_cast<TimeType>(aTime + aCounter)) +
-           (mStream ? AudioNodeInputValue(aCounter) : 0.0f);
-  }
+  float GetValueAtTime(TimeType aTime, size_t aCounter = 0);
 
 private:
   float AudioNodeInputValue(size_t aCounter) const;
@@ -67,6 +59,28 @@ protected:
   
   nsRefPtr<MediaStream> mStream;
 };
+
+template<> inline float
+AudioParamTimeline::GetValueAtTime(double aTime, size_t aCounter)
+{
+  MOZ_ASSERT(!aCounter);
+
+  
+  
+  return BaseClass::GetValueAtTime(aTime);
+}
+
+
+template<> inline float
+AudioParamTimeline::GetValueAtTime(int64_t aTime, size_t aCounter)
+{
+  MOZ_ASSERT(aCounter < WEBAUDIO_BLOCK_SIZE);
+  MOZ_ASSERT(!aCounter || !HasSimpleValue());
+
+  
+  return BaseClass::GetValueAtTime(static_cast<int64_t>(aTime + aCounter)) +
+    (mStream ? AudioNodeInputValue(aCounter) : 0.0f);
+}
 
 }
 }
