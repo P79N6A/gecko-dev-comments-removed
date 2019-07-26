@@ -23,47 +23,47 @@ const UINT32_SIZE = 4;
 let Buf = {
   PARCEL_SIZE_SIZE: UINT32_SIZE,
 
-  mIncomingBufferLength: 1024,
-  mIncomingBuffer: null,
-  mIncomingBytes: null,
-  mIncomingWriteIndex: 0,
-  mIncomingReadIndex: 0,
-  mReadIncoming: 0,
-  mReadAvailable: 0,
-  mCurrentParcelSize: 0,
+  incomingBufferLength: 1024,
+  incomingBuffer: null,
+  incomingBytes: null,
+  incomingWriteIndex: 0,
+  incomingReadIndex: 0,
+  readIncoming: 0,
+  readAvailable: 0,
+  currentParcelSize: 0,
 
-  mOutgoingBufferLength: 1024,
-  mOutgoingBuffer: null,
-  mOutgoingBytes: null,
-  mOutgoingIndex: 0,
-  mOutgoingBufferCalSizeQueue: null,
+  outgoingBufferLength: 1024,
+  outgoingBuffer: null,
+  outgoingBytes: null,
+  outgoingIndex: 0,
+  outgoingBufferCalSizeQueue: null,
 
   _init: function _init() {
-    this.mIncomingBuffer = new ArrayBuffer(this.mIncomingBufferLength);
-    this.mOutgoingBuffer = new ArrayBuffer(this.mOutgoingBufferLength);
+    this.incomingBuffer = new ArrayBuffer(this.incomingBufferLength);
+    this.outgoingBuffer = new ArrayBuffer(this.outgoingBufferLength);
 
-    this.mIncomingBytes = new Uint8Array(this.mIncomingBuffer);
-    this.mOutgoingBytes = new Uint8Array(this.mOutgoingBuffer);
-
-    
-    this.mIncomingWriteIndex = 0;
-    this.mIncomingReadIndex = 0;
+    this.incomingBytes = new Uint8Array(this.incomingBuffer);
+    this.outgoingBytes = new Uint8Array(this.outgoingBuffer);
 
     
-    this.mOutgoingIndex = this.PARCEL_SIZE_SIZE;
+    this.incomingWriteIndex = 0;
+    this.incomingReadIndex = 0;
 
     
-    this.mReadIncoming = 0;
+    this.outgoingIndex = this.PARCEL_SIZE_SIZE;
 
     
-    this.mReadAvailable = 0;
+    this.readIncoming = 0;
+
+    
+    this.readAvailable = 0;
 
     
     
-    this.mCurrentParcelSize = 0;
+    this.currentParcelSize = 0;
 
     
-    this.mOutgoingBufferCalSizeQueue = [];
+    this.outgoingBufferCalSizeQueue = [];
   },
 
   
@@ -79,37 +79,37 @@ let Buf = {
 
 
   startCalOutgoingSize: function startCalOutgoingSize(writeFunction) {
-    let sizeInfo = {index: this.mOutgoingIndex,
+    let sizeInfo = {index: this.outgoingIndex,
                     write: writeFunction};
 
     
     writeFunction.call(0);
 
     
-    sizeInfo.size = this.mOutgoingIndex - sizeInfo.index;
+    sizeInfo.size = this.outgoingIndex - sizeInfo.index;
 
     
-    this.mOutgoingBufferCalSizeQueue.push(sizeInfo);
+    this.outgoingBufferCalSizeQueue.push(sizeInfo);
   },
 
   
 
 
   stopCalOutgoingSize: function stopCalOutgoingSize() {
-    let sizeInfo = this.mOutgoingBufferCalSizeQueue.pop();
+    let sizeInfo = this.outgoingBufferCalSizeQueue.pop();
 
     
-    let currentOutgoingIndex = this.mOutgoingIndex;
+    let currentOutgoingIndex = this.outgoingIndex;
     
-    let writeSize = this.mOutgoingIndex - sizeInfo.index - sizeInfo.size;
+    let writeSize = this.outgoingIndex - sizeInfo.index - sizeInfo.size;
 
     
     
-    this.mOutgoingIndex = sizeInfo.index;
+    this.outgoingIndex = sizeInfo.index;
     sizeInfo.write(writeSize);
 
     
-    this.mOutgoingIndex = currentOutgoingIndex;
+    this.outgoingIndex = currentOutgoingIndex;
   },
 
   
@@ -121,34 +121,34 @@ let Buf = {
 
   growIncomingBuffer: function growIncomingBuffer(min_size) {
     if (DEBUG) {
-      debug("Current buffer of " + this.mIncomingBufferLength +
+      debug("Current buffer of " + this.incomingBufferLength +
             " can't handle incoming " + min_size + " bytes.");
     }
-    let oldBytes = this.mIncomingBytes;
-    this.mIncomingBufferLength =
+    let oldBytes = this.incomingBytes;
+    this.incomingBufferLength =
       2 << Math.floor(Math.log(min_size)/Math.log(2));
-    if (DEBUG) debug("New incoming buffer size: " + this.mIncomingBufferLength);
-    this.mIncomingBuffer = new ArrayBuffer(this.mIncomingBufferLength);
-    this.mIncomingBytes = new Uint8Array(this.mIncomingBuffer);
-    if (this.mIncomingReadIndex <= this.mIncomingWriteIndex) {
+    if (DEBUG) debug("New incoming buffer size: " + this.incomingBufferLength);
+    this.incomingBuffer = new ArrayBuffer(this.incomingBufferLength);
+    this.incomingBytes = new Uint8Array(this.incomingBuffer);
+    if (this.incomingReadIndex <= this.incomingWriteIndex) {
       
       
       
-      this.mIncomingBytes.set(oldBytes, 0);
+      this.incomingBytes.set(oldBytes, 0);
     } else {
       
       
       
       
-      let head = oldBytes.subarray(this.mIncomingReadIndex);
-      let tail = oldBytes.subarray(0, this.mIncomingReadIndex);
-      this.mIncomingBytes.set(head, 0);
-      this.mIncomingBytes.set(tail, head.length);
-      this.mIncomingReadIndex = 0;
-      this.mIncomingWriteIndex += head.length;
+      let head = oldBytes.subarray(this.incomingReadIndex);
+      let tail = oldBytes.subarray(0, this.incomingReadIndex);
+      this.incomingBytes.set(head, 0);
+      this.incomingBytes.set(tail, head.length);
+      this.incomingReadIndex = 0;
+      this.incomingWriteIndex += head.length;
     }
     if (DEBUG) {
-      debug("New incoming buffer size is " + this.mIncomingBufferLength);
+      debug("New incoming buffer size is " + this.incomingBufferLength);
     }
   },
 
@@ -161,17 +161,17 @@ let Buf = {
 
   growOutgoingBuffer: function growOutgoingBuffer(min_size) {
     if (DEBUG) {
-      debug("Current buffer of " + this.mOutgoingBufferLength +
+      debug("Current buffer of " + this.outgoingBufferLength +
             " is too small.");
     }
-    let oldBytes = this.mOutgoingBytes;
-    this.mOutgoingBufferLength =
+    let oldBytes = this.outgoingBytes;
+    this.outgoingBufferLength =
       2 << Math.floor(Math.log(min_size)/Math.log(2));
-    this.mOutgoingBuffer = new ArrayBuffer(this.mOutgoingBufferLength);
-    this.mOutgoingBytes = new Uint8Array(this.mOutgoingBuffer);
-    this.mOutgoingBytes.set(oldBytes, 0);
+    this.outgoingBuffer = new ArrayBuffer(this.outgoingBufferLength);
+    this.outgoingBytes = new Uint8Array(this.outgoingBuffer);
+    this.outgoingBytes.set(oldBytes, 0);
     if (DEBUG) {
-      debug("New outgoing buffer size is " + this.mOutgoingBufferLength);
+      debug("New outgoing buffer size is " + this.outgoingBufferLength);
     }
   },
 
@@ -189,7 +189,7 @@ let Buf = {
 
 
   ensureIncomingAvailable: function ensureIncomingAvailable(index) {
-    if (index >= this.mCurrentParcelSize) {
+    if (index >= this.currentParcelSize) {
       throw new Error("Trying to read data beyond the parcel end!");
     } else if (index < 0) {
       throw new Error("Trying to read data before the parcel begin!");
@@ -204,7 +204,7 @@ let Buf = {
 
   seekIncoming: function seekIncoming(offset) {
     
-    let cur = this.mCurrentParcelSize - this.mReadAvailable;
+    let cur = this.currentParcelSize - this.readAvailable;
 
     let newIndex = cur + offset;
     this.ensureIncomingAvailable(newIndex);
@@ -214,37 +214,37 @@ let Buf = {
     
     
     
-    this.mReadAvailable = this.mCurrentParcelSize - newIndex;
+    this.readAvailable = this.currentParcelSize - newIndex;
 
     
-    if (this.mIncomingReadIndex < cur) {
+    if (this.incomingReadIndex < cur) {
       
-      newIndex += this.mIncomingBufferLength;
+      newIndex += this.incomingBufferLength;
     }
-    newIndex += (this.mIncomingReadIndex - cur);
-    newIndex %= this.mIncomingBufferLength;
-    this.mIncomingReadIndex = newIndex;
+    newIndex += (this.incomingReadIndex - cur);
+    newIndex %= this.incomingBufferLength;
+    this.incomingReadIndex = newIndex;
   },
 
   readUint8Unchecked: function readUint8Unchecked() {
-    let value = this.mIncomingBytes[this.mIncomingReadIndex];
-    this.mIncomingReadIndex = (this.mIncomingReadIndex + 1) %
-                             this.mIncomingBufferLength;
+    let value = this.incomingBytes[this.incomingReadIndex];
+    this.incomingReadIndex = (this.incomingReadIndex + 1) %
+                             this.incomingBufferLength;
     return value;
   },
 
   readUint8: function readUint8() {
     
-    let cur = this.mCurrentParcelSize - this.mReadAvailable;
+    let cur = this.currentParcelSize - this.readAvailable;
     this.ensureIncomingAvailable(cur);
 
-    this.mReadAvailable--;
+    this.readAvailable--;
     return this.readUint8Unchecked();
   },
 
   readUint8Array: function readUint8Array(length) {
     
-    let last = this.mCurrentParcelSize - this.mReadAvailable;
+    let last = this.currentParcelSize - this.readAvailable;
     last += (length - 1);
     this.ensureIncomingAvailable(last);
 
@@ -253,7 +253,7 @@ let Buf = {
       array[i] = this.readUint8Unchecked();
     }
 
-    this.mReadAvailable -= length;
+    this.readAvailable -= length;
     return array;
   },
 
@@ -331,16 +331,16 @@ let Buf = {
 
 
   ensureOutgoingAvailable: function ensureOutgoingAvailable(index) {
-    if (index >= this.mOutgoingBufferLength) {
+    if (index >= this.outgoingBufferLength) {
       this.growOutgoingBuffer(index + 1);
     }
   },
 
   writeUint8: function writeUint8(value) {
-    this.ensureOutgoingAvailable(this.mOutgoingIndex);
+    this.ensureOutgoingAvailable(this.outgoingIndex);
 
-    this.mOutgoingBytes[this.mOutgoingIndex] = value;
-    this.mOutgoingIndex++;
+    this.outgoingBytes[this.outgoingIndex] = value;
+    this.outgoingIndex++;
   },
 
   writeUint16: function writeUint16(value) {
@@ -390,13 +390,13 @@ let Buf = {
 
 
 
-    let currentIndex = this.mOutgoingIndex;
-    this.mOutgoingIndex = 0;
+    let currentIndex = this.outgoingIndex;
+    this.outgoingIndex = 0;
     this.writeUint8((value >> 24) & 0xff);
     this.writeUint8((value >> 16) & 0xff);
     this.writeUint8((value >> 8) & 0xff);
     this.writeUint8(value & 0xff);
-    this.mOutgoingIndex = currentIndex;
+    this.outgoingIndex = currentIndex;
   },
 
   copyIncomingToOutgoing: function copyIncomingToOutgoing(length) {
@@ -405,36 +405,36 @@ let Buf = {
     }
 
     let translatedReadIndexEnd =
-      this.mCurrentParcelSize - this.mReadAvailable + length - 1;
+      this.currentParcelSize - this.readAvailable + length - 1;
     this.ensureIncomingAvailable(translatedReadIndexEnd);
 
-    let translatedWriteIndexEnd = this.mOutgoingIndex + length - 1;
+    let translatedWriteIndexEnd = this.outgoingIndex + length - 1;
     this.ensureOutgoingAvailable(translatedWriteIndexEnd);
 
-    let newIncomingReadIndex = this.mIncomingReadIndex + length;
-    if (newIncomingReadIndex < this.mIncomingBufferLength) {
+    let newIncomingReadIndex = this.incomingReadIndex + length;
+    if (newIncomingReadIndex < this.incomingBufferLength) {
       
-      this.mOutgoingBytes
-          .set(this.mIncomingBytes.subarray(this.mIncomingReadIndex,
-                                            newIncomingReadIndex),
-               this.mOutgoingIndex);
+      this.outgoingBytes
+          .set(this.incomingBytes.subarray(this.incomingReadIndex,
+                                           newIncomingReadIndex),
+               this.outgoingIndex);
     } else {
       
-      newIncomingReadIndex %= this.mIncomingBufferLength;
-      this.mOutgoingBytes
-          .set(this.mIncomingBytes.subarray(this.mIncomingReadIndex,
-                                            this.mIncomingBufferLength),
-               this.mOutgoingIndex);
+      newIncomingReadIndex %= this.incomingBufferLength;
+      this.outgoingBytes
+          .set(this.incomingBytes.subarray(this.incomingReadIndex,
+                                           this.incomingBufferLength),
+               this.outgoingIndex);
       if (newIncomingReadIndex) {
-        let firstPartLength = this.mIncomingBufferLength - this.mIncomingReadIndex;
-        this.mOutgoingBytes.set(this.mIncomingBytes.subarray(0, newIncomingReadIndex),
-                               this.mOutgoingIndex + firstPartLength);
+        let firstPartLength = this.incomingBufferLength - this.incomingReadIndex;
+        this.outgoingBytes.set(this.incomingBytes.subarray(0, newIncomingReadIndex),
+                               this.outgoingIndex + firstPartLength);
       }
     }
 
-    this.mIncomingReadIndex = newIncomingReadIndex;
-    this.mReadAvailable -= length;
-    this.mOutgoingIndex += length;
+    this.incomingReadIndex = newIncomingReadIndex;
+    this.readAvailable -= length;
+    this.outgoingIndex += length;
   },
 
   
@@ -452,25 +452,25 @@ let Buf = {
     
     
     
-    let minMustAvailableSize = incoming.length + this.mReadIncoming;
-    if (minMustAvailableSize > this.mIncomingBufferLength) {
+    let minMustAvailableSize = incoming.length + this.readIncoming;
+    if (minMustAvailableSize > this.incomingBufferLength) {
       this.growIncomingBuffer(minMustAvailableSize);
     }
 
     
     
-    let remaining = this.mIncomingBufferLength - this.mIncomingWriteIndex;
+    let remaining = this.incomingBufferLength - this.incomingWriteIndex;
     if (remaining >= incoming.length) {
-      this.mIncomingBytes.set(incoming, this.mIncomingWriteIndex);
+      this.incomingBytes.set(incoming, this.incomingWriteIndex);
     } else {
       
       let head = incoming.subarray(0, remaining);
       let tail = incoming.subarray(remaining);
-      this.mIncomingBytes.set(head, this.mIncomingWriteIndex);
-      this.mIncomingBytes.set(tail, 0);
+      this.incomingBytes.set(head, this.incomingWriteIndex);
+      this.incomingBytes.set(tail, 0);
     }
-    this.mIncomingWriteIndex = (this.mIncomingWriteIndex + incoming.length) %
-                               this.mIncomingBufferLength;
+    this.incomingWriteIndex = (this.incomingWriteIndex + incoming.length) %
+                               this.incomingBufferLength;
   },
 
   
@@ -482,73 +482,73 @@ let Buf = {
   processIncoming: function processIncoming(incoming) {
     if (DEBUG) {
       debug("Received " + incoming.length + " bytes.");
-      debug("Already read " + this.mReadIncoming);
+      debug("Already read " + this.readIncoming);
     }
 
     this.writeToIncoming(incoming);
-    this.mReadIncoming += incoming.length;
+    this.readIncoming += incoming.length;
     while (true) {
-      if (!this.mCurrentParcelSize) {
+      if (!this.currentParcelSize) {
         
-        if (this.mReadIncoming < this.PARCEL_SIZE_SIZE) {
+        if (this.readIncoming < this.PARCEL_SIZE_SIZE) {
           
           
           if (DEBUG) debug("Next parcel size unknown, going to sleep.");
           return;
         }
-        this.mCurrentParcelSize = this.readParcelSize();
+        this.currentParcelSize = this.readParcelSize();
         if (DEBUG) {
-          debug("New incoming parcel of size " + this.mCurrentParcelSize);
+          debug("New incoming parcel of size " + this.currentParcelSize);
         }
         
-        this.mReadIncoming -= this.PARCEL_SIZE_SIZE;
+        this.readIncoming -= this.PARCEL_SIZE_SIZE;
       }
 
-      if (this.mReadIncoming < this.mCurrentParcelSize) {
+      if (this.readIncoming < this.currentParcelSize) {
         
-        if (DEBUG) debug("Read " + this.mReadIncoming + ", but parcel size is "
-                         + this.mCurrentParcelSize + ". Going to sleep.");
+        if (DEBUG) debug("Read " + this.readIncoming + ", but parcel size is "
+                         + this.currentParcelSize + ". Going to sleep.");
         return;
       }
 
       
       
-      let expectedAfterIndex = (this.mIncomingReadIndex + this.mCurrentParcelSize)
-                               % this.mIncomingBufferLength;
+      let expectedAfterIndex = (this.incomingReadIndex + this.currentParcelSize)
+                               % this.incomingBufferLength;
 
       if (DEBUG) {
         let parcel;
-        if (expectedAfterIndex < this.mIncomingReadIndex) {
-          let head = this.mIncomingBytes.subarray(this.mIncomingReadIndex);
-          let tail = this.mIncomingBytes.subarray(0, expectedAfterIndex);
+        if (expectedAfterIndex < this.incomingReadIndex) {
+          let head = this.incomingBytes.subarray(this.incomingReadIndex);
+          let tail = this.incomingBytes.subarray(0, expectedAfterIndex);
           parcel = Array.slice(head).concat(Array.slice(tail));
         } else {
-          parcel = Array.slice(this.mIncomingBytes.subarray(
-            this.mIncomingReadIndex, expectedAfterIndex));
+          parcel = Array.slice(this.incomingBytes.subarray(
+            this.incomingReadIndex, expectedAfterIndex));
         }
-        debug("Parcel (size " + this.mCurrentParcelSize + "): " + parcel);
+        debug("Parcel (size " + this.currentParcelSize + "): " + parcel);
       }
 
       if (DEBUG) debug("We have at least one complete parcel.");
       try {
-        this.mReadAvailable = this.mCurrentParcelSize;
+        this.readAvailable = this.currentParcelSize;
         this.processParcel();
       } catch (ex) {
         if (DEBUG) debug("Parcel handling threw " + ex + "\n" + ex.stack);
       }
 
       
-      if (this.mIncomingReadIndex != expectedAfterIndex) {
+      if (this.incomingReadIndex != expectedAfterIndex) {
         if (DEBUG) {
           debug("Parcel handler didn't consume whole parcel, " +
-                Math.abs(expectedAfterIndex - this.mIncomingReadIndex) +
+                Math.abs(expectedAfterIndex - this.incomingReadIndex) +
                 " bytes left over");
         }
-        this.mIncomingReadIndex = expectedAfterIndex;
+        this.incomingReadIndex = expectedAfterIndex;
       }
-      this.mReadIncoming -= this.mCurrentParcelSize;
-      this.mReadAvailable = 0;
-      this.mCurrentParcelSize = 0;
+      this.readIncoming -= this.currentParcelSize;
+      this.readAvailable = 0;
+      this.currentParcelSize = 0;
     }
   },
 
@@ -559,23 +559,23 @@ let Buf = {
     
     
     
-    let parcelSize = this.mOutgoingIndex - this.PARCEL_SIZE_SIZE;
+    let parcelSize = this.outgoingIndex - this.PARCEL_SIZE_SIZE;
     this.writeParcelSize(parcelSize);
 
     
     
-    let parcel = this.mOutgoingBytes.subarray(0, this.mOutgoingIndex);
+    let parcel = this.outgoingBytes.subarray(0, this.outgoingIndex);
     if (DEBUG) debug("Outgoing parcel: " + Array.slice(parcel));
     this.onSendParcel(parcel);
-    this.mOutgoingIndex = this.PARCEL_SIZE_SIZE;
+    this.outgoingIndex = this.PARCEL_SIZE_SIZE;
   },
 
   getCurrentParcelSize: function getCurrentParcelSize() {
-    return this.mCurrentParcelSize;
+    return this.currentParcelSize;
   },
 
   getReadAvailable: function getReadAvailable() {
-    return this.mReadAvailable;
+    return this.readAvailable;
   }
 
   
