@@ -642,10 +642,6 @@ public:
 
   
   
-  bool IsSameOriginMedia();
-
-  
-  
   bool CanPlayThrough();
 
   
@@ -739,9 +735,6 @@ public:
 
   
   virtual void DecodeError();
-
-  
-  void UpdateSameOriginStatus(bool aSameOrigin);
 
   MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
 
@@ -964,10 +957,6 @@ public:
 
   
   bool mMediaSeekable;
-
-  
-  
-  bool mSameOriginMedia;
 
   
 
