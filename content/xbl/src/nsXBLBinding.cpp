@@ -921,127 +921,127 @@ nsXBLBinding::UnhookEventHandlers()
 void
 nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocument)
 {
-  if (aOldDocument != aNewDocument) {
+  if (aOldDocument == aNewDocument)
+    return;
+
+  
+  if (mIsStyleBinding) {
     
-    if (mIsStyleBinding) {
-      
-      if (mPrototypeBinding->HasImplementation()) {
-        nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
-          aOldDocument->GetScopeObject());
-        if (global) {
-          JSObject *scope = global->GetGlobalJSObject();
+    if (mPrototypeBinding->HasImplementation()) {
+      nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(
+        aOldDocument->GetScopeObject());
+      if (global) {
+        nsCOMPtr<nsIScriptContext> context = global->GetContext();
+        if (context) {
+          JSContext *cx = context->GetNativeContext();
+
+          nsCxPusher pusher;
+          pusher.Push(cx);
+
           
           
           
           
           
+          JS::Rooted<JSObject*> scope(cx, global->GetGlobalJSObject());
+          JS::Rooted<JSObject*> scriptObject(cx, mBoundElement->GetWrapper());
+          if (scope && scriptObject) {
+            
+            
+            
+            
+            
 
-          nsCOMPtr<nsIScriptContext> context = global->GetContext();
-          if (context && scope) {
-            JSContext *cx = context->GetNativeContext();
- 
-            nsCxPusher pusher;
-            pusher.Push(cx);
+            
+            JSAutoRequest ar(cx);
+            JSAutoCompartment ac(cx, scriptObject);
 
-            JSObject* scriptObject = mBoundElement->GetWrapper();
-            if (scriptObject) {
-              
-              
-              
-              
-              
-
-              
-              JSObject* base = scriptObject;
-              JSObject* proto;
-              JSAutoRequest ar(cx);
-              JSAutoCompartment ac(cx, scriptObject);
-
-              for ( ; true; base = proto) { 
-                if (!JS_GetPrototype(cx, base, &proto)) {
-                  return;
-                }
-                if (!proto) {
-                  break;
-                }
-
-                JSClass* clazz = ::JS_GetClass(proto);
-                if (!clazz ||
-                    (~clazz->flags &
-                     (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
-                    JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
-                    clazz->finalize != XBLFinalize) {
-                  
-                  continue;
-                }
-
-                nsRefPtr<nsXBLDocumentInfo> docInfo =
-                  static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
-                if (!docInfo) {
-                  
-                  continue;
-                }
-
-                JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
-
-                if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
-                  
-                  continue;
-                }
-
-                
-                
-                JSObject* grandProto;
-                if (!JS_GetPrototype(cx, proto, &grandProto)) {
-                  return;
-                }
-                ::JS_SetPrototype(cx, base, grandProto);
+            JS::Rooted<JSObject*> base(cx, scriptObject);
+            JS::Rooted<JSObject*> proto(cx);
+            for ( ; true; base = proto) { 
+              if (!JS_GetPrototype(cx, base, proto.address())) {
+                return;
+              }
+              if (!proto) {
                 break;
               }
 
-              mPrototypeBinding->UndefineFields(cx, scriptObject);
+              JSClass* clazz = ::JS_GetClass(proto);
+              if (!clazz ||
+                  (~clazz->flags &
+                   (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
+                  JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
+                  clazz->finalize != XBLFinalize) {
+                
+                continue;
+              }
+
+              nsRefPtr<nsXBLDocumentInfo> docInfo =
+                static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(proto));
+              if (!docInfo) {
+                
+                continue;
+              }
+
+              JS::Value protoBinding = ::JS_GetReservedSlot(proto, 0);
+
+              if (JSVAL_TO_PRIVATE(protoBinding) != mPrototypeBinding) {
+                
+                continue;
+              }
 
               
               
-              
+              JS::Rooted<JSObject*> grandProto(cx);
+              if (!JS_GetPrototype(cx, proto, grandProto.address())) {
+                return;
+              }
+              ::JS_SetPrototype(cx, base, grandProto);
+              break;
             }
+
+            mPrototypeBinding->UndefineFields(cx, scriptObject);
+
+            
+            
+            
           }
         }
       }
-
-      
-      UnhookEventHandlers();
     }
 
-    {
-      nsAutoScriptBlocker scriptBlocker;
+    
+    UnhookEventHandlers();
+  }
 
-      
-      
-      if (mNextBinding) {
-        mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
-      }
+  {
+    nsAutoScriptBlocker scriptBlocker;
 
-      
-      
-      nsIContent *anonymous = mContent;
-      if (anonymous) {
-        
-        if (mInsertionPointTable)
-          mInsertionPointTable->Enumerate(ChangeDocumentForDefaultContent,
-                                          nullptr);
+    
+    
+    if (mNextBinding) {
+      mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
+    }
 
-        nsXBLBinding::UninstallAnonymousContent(aOldDocument, anonymous);
-      }
+    
+    
+    nsIContent *anonymous = mContent;
+    if (anonymous) {
+      
+      if (mInsertionPointTable)
+        mInsertionPointTable->Enumerate(ChangeDocumentForDefaultContent,
+                                        nullptr);
 
-      
-      
-      nsBindingManager* bindingManager = aOldDocument->BindingManager();
-      for (nsIContent* child = mBoundElement->GetLastChild();
-           child;
-           child = child->GetPreviousSibling()) {
-        bindingManager->SetInsertionParent(child, nullptr);
-      }
+      nsXBLBinding::UninstallAnonymousContent(aOldDocument, anonymous);
+    }
+
+    
+    
+    nsBindingManager* bindingManager = aOldDocument->BindingManager();
+    for (nsIContent* child = mBoundElement->GetLastChild();
+         child;
+         child = child->GetPreviousSibling()) {
+      bindingManager->SetInsertionParent(child, nullptr);
     }
   }
 }
