@@ -168,6 +168,9 @@ public:
   void OnDiscard();
   void FrameChanged(const nsIntRect* aDirtyRect);
   void OnUnlockedDraw();
+  
+  
+  void OnStopFrame();
 
   
   

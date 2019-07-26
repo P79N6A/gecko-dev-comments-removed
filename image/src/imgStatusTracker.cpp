@@ -956,6 +956,18 @@ imgStatusTracker::FrameChanged(const nsIntRect* aDirtyRect)
 }
 
 void
+imgStatusTracker::OnStopFrame()
+{
+  RecordStopFrame();
+
+  
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mConsumers);
+  while (iter.HasMore()) {
+    SendStopFrame(iter.GetNext());
+  }
+}
+
+void
 imgStatusTracker::OnDataAvailable()
 {
   
