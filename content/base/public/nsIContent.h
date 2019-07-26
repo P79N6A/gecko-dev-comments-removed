@@ -384,7 +384,9 @@ public:
 
 
 
-  virtual bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const = 0;
+
+
+  bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
 
   
 
