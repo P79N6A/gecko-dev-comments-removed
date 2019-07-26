@@ -9,7 +9,7 @@
 #include <stdio.h> 
 #include "nsDebug.h"
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
 
 
 #define DEBUG_FRAME_DUMP 1
