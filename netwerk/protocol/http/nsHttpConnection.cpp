@@ -132,7 +132,8 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
     nsresult rv = mSocketTransport->SetEventSink(this, nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mCallbacks = callbacks;
+    
+    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(callbacks, false);
     rv = mSocketTransport->SetSecurityCallbacks(this);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1031,7 +1032,11 @@ void
 nsHttpConnection::SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks)
 {
     MutexAutoLock lock(mCallbacksLock);
-    mCallbacks = aCallbacks;
+    
+    
+    
+    
+    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(aCallbacks, false);
 }
 
 nsresult
