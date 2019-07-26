@@ -423,14 +423,14 @@ IsBidiLeaf(nsIFrame* aFrame)
 
 
 static nsresult
-SplitInlineAncestors(nsIFrame* aParent,
+SplitInlineAncestors(nsContainerFrame* aParent,
                      nsIFrame* aFrame)
 {
-  nsPresContext *presContext = aParent->PresContext();
-  nsIPresShell *presShell = presContext->PresShell();
+  nsPresContext* presContext = aParent->PresContext();
+  nsIPresShell* presShell = presContext->PresShell();
   nsIFrame* frame = aFrame;
-  nsIFrame* parent = aParent;
-  nsIFrame* newParent;
+  nsContainerFrame* parent = aParent;
+  nsContainerFrame* newParent;
 
   while (IsBidiSplittable(parent)) {
     nsContainerFrame* grandparent = parent->GetParent();
@@ -439,8 +439,8 @@ SplitInlineAncestors(nsIFrame* aParent,
     
     if (!frame || frame->GetNextSibling()) {
     
-      newParent = presShell->FrameConstructor()->
-        CreateContinuingFrame(presContext, parent, grandparent, false);
+      newParent = static_cast<nsContainerFrame*>(presShell->FrameConstructor()->
+        CreateContinuingFrame(presContext, parent, grandparent, false));
 
       nsContainerFrame* container = do_QueryFrame(parent);
       nsFrameList tail = container->StealFramesAfter(frame);
@@ -882,7 +882,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
       if (runLength <= 0 && !frame->GetNextInFlow()) {
         if (numRun + 1 < runCount) {
           nsIFrame* child = frame;
-          nsIFrame* parent = frame->GetParent();
+          nsContainerFrame* parent = frame->GetParent();
           
           
           
@@ -915,12 +915,10 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
   } 
 
   if (aBpd->mParagraphDepth > 0) {
-    nsIFrame* child;
-    nsIFrame* parent;
     if (firstFrame) {
-      child = firstFrame->GetParent();
+      nsContainerFrame* child = firstFrame->GetParent();
       if (child) {
-        parent = child->GetParent();
+        nsContainerFrame* parent = child->GetParent();
         if (parent && IsBidiSplittable(parent)) {
           nsIFrame* prev = child->GetPrevSibling();
           if (prev) {
@@ -930,9 +928,9 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
       }
     }
     if (lastFrame) {
-      child = lastFrame->GetParent();
+      nsContainerFrame* child = lastFrame->GetParent();
       if (child) {
-        parent = child->GetParent();
+        nsContainerFrame* parent = child->GetParent();
         if (parent && IsBidiSplittable(parent)) {
           SplitInlineAncestors(parent, child);
         }

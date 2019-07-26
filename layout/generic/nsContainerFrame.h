@@ -52,15 +52,6 @@ public:
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
                     nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
-  virtual nsresult SetInitialChildList(ChildListID  aListID,
-                                       nsFrameList& aChildList) MOZ_OVERRIDE;
-  virtual nsresult AppendFrames(ChildListID  aListID,
-                                nsFrameList& aFrameList) MOZ_OVERRIDE;
-  virtual nsresult InsertFrames(ChildListID aListID,
-                                nsIFrame* aPrevFrame,
-                                nsFrameList& aFrameList) MOZ_OVERRIDE;
-  virtual nsresult RemoveFrame(ChildListID aListID,
-                               nsIFrame* aOldFrame) MOZ_OVERRIDE;
   virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE
   {
     return this;
@@ -81,6 +72,84 @@ public:
 #endif  
 
   
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult SetInitialChildList(ChildListID aListID,
+                                       nsFrameList& aChildList);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult AppendFrames(ChildListID aListID, nsFrameList& aFrameList);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult InsertFrames(ChildListID  aListID,
+                                nsIFrame*    aPrevFrame,
+                                nsFrameList& aFrameList);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
 
   
 

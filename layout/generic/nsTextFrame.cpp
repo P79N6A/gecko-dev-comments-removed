@@ -7407,7 +7407,7 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   aFrame->SetPrevInFlow(nullptr);
   lastRemoved->SetNextInFlow(nullptr);
 
-  nsIFrame* parent = aFrame->GetParent();
+  nsContainerFrame* parent = aFrame->GetParent();
   nsBlockFrame* parentBlock = nsLayoutUtils::GetAsBlock(parent);
   if (parentBlock) {
     
