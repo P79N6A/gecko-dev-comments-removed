@@ -101,14 +101,6 @@ public:
     
     
     
-    virtual int ExternalPlayoutData(
-        int16_t speechData10ms[], int samplingFreqHz, int num_channels,
-        int current_delay_ms, int& lengthSamples) = 0;
-
-    
-    
-    
-    
     
     virtual int ExternalPlayoutGetData(
         int16_t speechData10ms[], int samplingFreqHz,
