@@ -399,7 +399,7 @@ InspectorPanel.prototype = {
           }
 
           self._updateProgress = null;
-          self.emit("inspector-updated");
+          self.emit("inspector-updated", name);
         },
       };
     }
@@ -432,6 +432,8 @@ InspectorPanel.prototype = {
   },
 
   
+
+
 
 
   onDetached: function InspectorPanel_onDetached(event, parentNode) {
