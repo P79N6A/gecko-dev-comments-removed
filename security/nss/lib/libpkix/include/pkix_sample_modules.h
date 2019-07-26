@@ -117,6 +117,7 @@ PKIX_PL_Pk11CertStore_Create(
         PKIX_CertStore **pPk11CertStore,
         void *plContext);
 
+#ifndef NSS_PKIX_NO_LDAP
 
 
 
@@ -249,6 +250,7 @@ PKIX_PL_LdapCertStore_Create(
         PKIX_PL_LdapClient *client,
         PKIX_CertStore **pCertStore,
         void *plContext);
+#endif 
 
 
 

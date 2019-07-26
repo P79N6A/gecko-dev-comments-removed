@@ -1278,10 +1278,14 @@ PKIX_PL_Cert_AreCertPoliciesCritical(
 
 
 
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_CheckNameConstraints(
         PKIX_PL_Cert *cert,
         PKIX_PL_CertNameConstraints *nameConstraints,
+        PKIX_Boolean treatCommonNameAsDNSName,
         void *plContext);
 
 
@@ -1827,7 +1831,9 @@ PKIX_PL_Cert_GetCrlDp(PKIX_PL_Cert *cert,
 
 #define PKIX_INFOACCESS_LOCATION_UNKNOWN 0
 #define PKIX_INFOACCESS_LOCATION_HTTP    1
+#ifndef NSS_PKIX_NO_LDAP
 #define PKIX_INFOACCESS_LOCATION_LDAP    2
+#endif
 
 
 

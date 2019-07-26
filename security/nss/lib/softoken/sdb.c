@@ -2012,7 +2012,17 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 
     
 
-    accessOps = sdb_measureAccess(directory);
+    accessOps = 1;
+    {
+        char *env;
+        env = PR_GetEnv("NSS_SDB_USE_CACHE");
+        
+
+        if (!env || ((PORT_Strcasecmp(env, "no") != 0) &&
+                     (PORT_Strcasecmp(env, "yes") != 0))){
+           accessOps = sdb_measureAccess(directory);
+        }
+    }
 
     
 

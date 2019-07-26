@@ -506,7 +506,18 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    PORT_SetError (SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID);
 	    LOG_ERROR_OR_EXIT(log, issuerCert, count+1, pathLengthLimit);
 	}
-	
+
+        
+
+
+        rv = CERT_CompareNameSpace(issuerCert, namesList, certsList,
+                                   arena, &badCert);
+        if (rv != SECSuccess || badCert != NULL) {
+            PORT_SetError(SEC_ERROR_CERT_NOT_IN_NAME_SPACE);
+            LOG_ERROR_OR_EXIT(log, badCert, count + 1, 0);
+            goto loser;
+        }
+
 	
 
 
@@ -628,16 +639,6 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    }
 	}
 
-	
-
-
-	rv = CERT_CompareNameSpace(issuerCert, namesList, certsList, 
-	                           arena, &badCert);
-	if (rv != SECSuccess || badCert != NULL) {
-	    PORT_SetError(SEC_ERROR_CERT_NOT_IN_NAME_SPACE);
-            LOG_ERROR_OR_EXIT(log, badCert, count + 1, 0);
-	    goto loser;
-	}
 	
 
 
