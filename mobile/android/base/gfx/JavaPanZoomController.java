@@ -1353,18 +1353,13 @@ class JavaPanZoomController
     }
 
     @Override
-    public boolean onSingleTapUp(final MotionEvent motionEvent) {
+    public boolean onSingleTapUp(MotionEvent motionEvent) {
         
         
         
         
         if (mMediumPress || !mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
-            mTarget.post(new Runnable() {
-                @Override
-                public void run() {
-                    sendPointToGecko("Gesture:SingleTap", motionEvent);
-                }
-            });
+            sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
         return false;
