@@ -36,6 +36,7 @@
 #include "jsscript.h"
 #include "jsstr.h"
 #include "jstypes.h"
+#include "jswatchpoint.h"
 #include "jsworkers.h"
 
 #include "gc/Marking.h"
@@ -270,9 +271,11 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
         FinishCommonNames(rt);
 
         
-        for (CompartmentsIter c(rt); !c.done(); c.next())
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
             c->clearTraps(rt->defaultFreeOp());
-        JS_ClearAllWatchPoints(cx);
+            if (WatchpointMap *wpmap = c->watchpointMap)
+                wpmap->clear();
+        }
 
         
         rt->staticStrings.finish();
