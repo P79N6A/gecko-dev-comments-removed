@@ -317,14 +317,12 @@ struct Token {
 
 enum TokenStreamFlags
 {
-    TSF_EOF = 0x02,             
-    TSF_EOL = 0x04,             
-    TSF_OPERAND = 0x08,         
-    TSF_UNEXPECTED_EOF = 0x10,  
-    TSF_KEYWORD_IS_NAME = 0x20, 
-    TSF_DIRTYLINE = 0x40,       
-    TSF_OCTAL_CHAR = 0x80,      
-    TSF_HAD_ERROR = 0x100       
+    TSF_EOF = 0x01,             
+    TSF_EOL = 0x02,             
+    TSF_UNEXPECTED_EOF = 0x04,  
+    TSF_DIRTYLINE = 0x08,       
+    TSF_OCTAL_CHAR = 0x10,      
+    TSF_HAD_ERROR = 0x20        
 };
 
 struct CompileError {
@@ -352,7 +350,6 @@ class StrictModeGetter {
   public:
     virtual bool strictMode() = 0;
 };
-
 
 
 
@@ -467,22 +464,6 @@ class MOZ_STACK_CLASS TokenStream
     static JSAtom *atomize(ExclusiveContext *cx, CharBuffer &cb);
     bool putIdentInTokenbuf(const jschar *identStart);
 
-    
-
-
-
-    class Flagger {
-        TokenStream * const parent;
-        unsigned       flags;
-      public:
-        Flagger(TokenStream *parent, unsigned withFlags) : parent(parent), flags(withFlags) {
-            parent->flags |= flags;
-        }
-
-        ~Flagger() { parent->flags &= ~flags; }
-    };
-    friend class Flagger;
-
     void setFlag(bool enabled, TokenStreamFlags flag) {
         if (enabled)
             flags |= flag;
@@ -492,10 +473,21 @@ class MOZ_STACK_CLASS TokenStream
 
   public:
     
+    enum Modifier
+    {
+        None,           
+        Operand,        
+                        
+                        
+                        
+        KeywordIsName,  
+    };
+
+    
 
 
 
-    TokenKind getToken() {
+    TokenKind getToken(Modifier modifier = None) {
         
         if (lookahead != 0) {
             lookahead--;
@@ -505,13 +497,7 @@ class MOZ_STACK_CLASS TokenStream
             return tt;
         }
 
-        return getTokenInternal();
-    }
-
-    
-    TokenKind getToken(unsigned withFlags) {
-        Flagger flagger(this, withFlags);
-        return getToken();
+        return getTokenInternal(modifier);
     }
 
     
@@ -523,20 +509,15 @@ class MOZ_STACK_CLASS TokenStream
         cursor = (cursor - 1) & ntokensMask;
     }
 
-    TokenKind peekToken() {
+    TokenKind peekToken(Modifier modifier = None) {
         if (lookahead != 0)
             return tokens[(cursor + 1) & ntokensMask].type;
-        TokenKind tt = getTokenInternal();
+        TokenKind tt = getTokenInternal(modifier);
         ungetToken();
         return tt;
     }
 
-    TokenKind peekToken(unsigned withFlags) {
-        Flagger flagger(this, withFlags);
-        return peekToken();
-    }
-
-    TokenKind peekTokenSameLine(unsigned withFlags = 0) {
+    TokenKind peekTokenSameLine(Modifier modifier = None) {
         if (!onCurrentLine(currentToken().pos))
             return TOK_EOL;
 
@@ -548,7 +529,7 @@ class MOZ_STACK_CLASS TokenStream
 
 
         flags &= ~TSF_EOL;
-        TokenKind tt = getToken(withFlags);
+        TokenKind tt = getToken(modifier);
         if (flags & TSF_EOL) {
             tt = TOK_EOL;
             flags &= ~TSF_EOL;
@@ -560,16 +541,11 @@ class MOZ_STACK_CLASS TokenStream
     
 
 
-    bool matchToken(TokenKind tt) {
-        if (getToken() == tt)
+    bool matchToken(TokenKind tt, Modifier modifier = None) {
+        if (getToken(modifier) == tt)
             return true;
         ungetToken();
         return false;
-    }
-
-    bool matchToken(TokenKind tt, unsigned withFlags) {
-        Flagger flagger(this, withFlags);
-        return matchToken(tt);
     }
 
     void consumeKnownToken(TokenKind tt) {
@@ -827,7 +803,7 @@ class MOZ_STACK_CLASS TokenStream
         SkipRoot skipBase, skipLimit, skipPtr;
     };
 
-    TokenKind getTokenInternal();     
+    TokenKind getTokenInternal(Modifier modifier);
 
     int32_t getChar();
     int32_t getCharIgnoreEOL();
