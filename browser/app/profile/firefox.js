@@ -821,8 +821,6 @@ pref("browser.sessionstore.resume_session_once", false);
 
 pref("browser.sessionstore.interval", 15000);
 
-pref("browser.sessionstore.interval_battery", 60000);
-
 
 pref("browser.sessionstore.postdata", 0);
 
