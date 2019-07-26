@@ -8218,8 +8218,11 @@ public:
 bool
 nsGlobalWindow::CanClose()
 {
-  if (!mDocShell)
+  MOZ_ASSERT(IsOuterWindow());
+
+  if (!mDocShell) {
     return true;
+  }
 
   
   
@@ -8313,7 +8316,7 @@ nsGlobalWindow::Close(ErrorResult& aError)
     return;
   }
 
-  aError = FinalClose();
+  FinalClose();
 }
 
 NS_IMETHODIMP
@@ -8325,32 +8328,35 @@ nsGlobalWindow::Close()
   return rv.ErrorCode();
 }
 
-nsresult
+void
 nsGlobalWindow::ForceClose()
 {
+  MOZ_ASSERT(IsOuterWindow());
+
   if (IsFrame() || !mDocShell) {
     
     
-
-    return NS_OK;
+    return;
   }
 
   if (mHavePendingClose) {
     
     
-    return NS_OK;
+    return;
   }
 
   mInClose = true;
 
   DispatchCustomEvent("DOMWindowClose");
 
-  return FinalClose();
+  FinalClose();
 }
 
-nsresult
+void
 nsGlobalWindow::FinalClose()
 {
+  MOZ_ASSERT(IsOuterWindow());
+
   
   mIsClosed = true;
 
@@ -8374,8 +8380,6 @@ nsGlobalWindow::FinalClose()
   } else {
     mHavePendingClose = true;
   }
-
-  return NS_OK;
 }
 
 
