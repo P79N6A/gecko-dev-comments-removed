@@ -857,7 +857,7 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
     *infoPtr = NULL;
 
     
-    if (!jit::IsEnabled(cx))
+    if (!jit::IsIonEnabled(cx))
         return true;
 
     RootedScript script(cx, frame->script());
