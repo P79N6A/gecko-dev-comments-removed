@@ -828,12 +828,12 @@ pref("urlclassifier.gethashnoise", 4);
 
 pref("urlclassifier.max-complete-age", 2700);
 
-pref("urlclassifier.downloadBlockTable", "goog-badbinurl-shavar");
+pref("urlclassifier.download_block_table", "goog-badbinurl-shavar");
 #ifdef XP_WIN
 
 
 
-pref("urlclassifier.downloadAllowTable", "goog-downloadwhite-digest256");
+pref("urlclassifier.download_allow_table", "goog-downloadwhite-digest256");
 #endif
 #endif
 
