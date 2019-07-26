@@ -633,81 +633,14 @@ StackSpace::containingSegment(const StackFrame *target) const
 }
 
 void
-StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc)
+StackSpace::markFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd)
 {
-    AutoAssertNoGC nogc;
     Value *slotsBegin = fp->slots();
-
-    
-    JS_ASSERT(pc);
-
-    RawScript script = fp->script();
-    if (!script->hasAnalysis() || !script->analysis()->ranLifetimes()) {
-        if (trc)
-            gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
-        return;
-    }
-
-    
-
-
-
-
-
-
-
-    JSRuntime *rt = script->compartment()->rt;
-    analyze::AutoEnterAnalysis aea(script->compartment());
-    analyze::ScriptAnalysis *analysis = script->analysis();
-    uint32_t offset = pc - script->code;
-    Value *fixedEnd = slotsBegin + script->nfixed;
-    for (Value *vp = slotsBegin; vp < fixedEnd; vp++) {
-        uint32_t slot = analyze::LocalSlot(script, vp - slotsBegin);
-
-        
-        if (!analysis->trackSlot(slot) || analysis->liveness(slot).live(offset)) {
-            if (trc)
-                gc::MarkValueRoot(trc, vp, "vm_stack");
-        } else if (!trc || script->compartment()->isDiscardingJitCode(trc)) {
-            
-
-
-
-
-            if (vp->isDouble()) {
-                *vp = DoubleValue(0.0);
-            } else {
-                
-
-
-
-
-
-
-
-                JSValueType type = vp->extractNonDoubleType();
-                if (type == JSVAL_TYPE_INT32)
-                    *vp = Int32Value(0);
-                else if (type == JSVAL_TYPE_UNDEFINED)
-                    *vp = UndefinedValue();
-                else if (type == JSVAL_TYPE_BOOLEAN)
-                    *vp = BooleanValue(false);
-                else if (type == JSVAL_TYPE_STRING)
-                    *vp = StringValue(rt->atomState.null);
-                else if (type == JSVAL_TYPE_NULL)
-                    *vp = NullValue();
-                else if (type == JSVAL_TYPE_OBJECT)
-                    *vp = ObjectValue(fp->scopeChain()->global());
-            }
-        }
-    }
-
-    if (trc)
-        gc::MarkValueRootRange(trc, fixedEnd, slotsEnd, "vm_stack");
+    gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
 }
 
 void
-StackSpace::markAndClobber(JSTracer *trc)
+StackSpace::mark(JSTracer *trc)
 {
     
     Value *nextSegEnd = firstUnused();
@@ -726,18 +659,16 @@ StackSpace::markAndClobber(JSTracer *trc)
         jsbytecode *pc = seg->maybepc();
         for (StackFrame *fp = seg->maybefp(); (Value *)fp > (Value *)seg; fp = fp->prev()) {
             
-            markAndClobberFrame(trc, fp, slotsEnd, pc);
+            markFrame(trc, fp, slotsEnd);
 
-            if (trc)
-                fp->mark(trc);
+            fp->mark(trc);
             slotsEnd = (Value *)fp;
 
             InlinedSite *site;
             pc = fp->prevpc(&site);
             JS_ASSERT_IF(fp->prev(), !site);
         }
-        if (trc)
-            gc::MarkValueRootRange(trc, seg->slotsBegin(), slotsEnd, "vm_stack");
+        gc::MarkValueRootRange(trc, seg->slotsBegin(), slotsEnd, "vm_stack");
         nextSegEnd = (Value *)seg;
     }
 }
