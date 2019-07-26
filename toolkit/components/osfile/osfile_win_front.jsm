@@ -322,7 +322,7 @@
 
      File.exists = function Win_exists(path) {
        try {
-         let file = File.open(path);
+         let file = File.open(path, FILE_STAT_MODE, FILE_STAT_OPTIONS);
          file.close();
          return true;
        } catch (x) {
