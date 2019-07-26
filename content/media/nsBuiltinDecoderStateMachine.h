@@ -275,7 +275,7 @@ protected:
       {
         
         
-        mozilla::MutexAutoLock lock(mMutex);
+        MutexAutoLock lock(mMutex);
         if (!mStateMachine)
           return NS_OK;
         stateMachine = mStateMachine;
@@ -285,11 +285,11 @@ protected:
     }
     void Revoke()
     {
-      mozilla::MutexAutoLock lock(mMutex);
+      MutexAutoLock lock(mMutex);
       mStateMachine = nullptr;
     }
 
-    mozilla::Mutex mMutex;
+    Mutex mMutex;
     
     
     

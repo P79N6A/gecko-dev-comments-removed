@@ -12,6 +12,7 @@
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 
+using namespace mozilla;
 
 class nsAudioAvailableEventManager
 {
@@ -78,7 +79,7 @@ private:
 
   
   
-  mozilla::ReentrantMonitor mReentrantMonitor;
+  ReentrantMonitor mReentrantMonitor;
 
   
   
