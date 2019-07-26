@@ -1326,8 +1326,7 @@ void
 ArenaLists::finalizeNow(FreeOp *fop, AllocKind thingKind)
 {
     JS_ASSERT(!IsBackgroundFinalized(thingKind));
-    JS_ASSERT(backgroundFinalizeState[thingKind] == BFS_DONE ||
-              backgroundFinalizeState[thingKind] == BFS_JUST_FINISHED);
+    JS_ASSERT(backgroundFinalizeState[thingKind] == BFS_DONE);
 
     ArenaHeader *arenas = arenaLists[thingKind].head;
     arenaLists[thingKind].clear();
@@ -2784,10 +2783,6 @@ BeginMarkPhase(JSRuntime *rt)
     }
 
     
-    if (!any)
-        return false;
-
-    
 
 
 
@@ -2811,7 +2806,12 @@ BeginMarkPhase(JSRuntime *rt)
     if (atomsZone->isGCScheduled() && rt->gcIsFull && !keepAtoms) {
         JS_ASSERT(!atomsZone->isCollecting());
         atomsZone->setGCState(Zone::Mark);
+        any = true;
     }
+
+    
+    if (!any)
+        return false;
 
     
 
