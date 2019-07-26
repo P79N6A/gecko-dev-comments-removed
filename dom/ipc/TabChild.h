@@ -309,17 +309,6 @@ public:
     
 
 
-    bool DispatchMouseEvent(const nsString& aType,
-                            const float&    aX,
-                            const float&    aY,
-                            const int32_t&  aButton,
-                            const int32_t&  aClickCount,
-                            const int32_t&  aModifiers,
-                            const bool&     aIgnoreRootScrollFrame);
-
-    
-
-
 
 
     void MakeVisible();
@@ -377,6 +366,7 @@ private:
     bool InitRenderingState();
     void DestroyWindow();
     void SetProcessNameToAppName();
+    bool ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
     
     void DoFakeShow();

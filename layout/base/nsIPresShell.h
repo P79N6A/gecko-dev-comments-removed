@@ -1229,6 +1229,8 @@ public:
 
   bool GetIsFirstPaint() const { return mIsFirstPaint; }
 
+  uint32_t GetPresShellId() { return mPresShellId; }
+
   
 
 
@@ -1526,6 +1528,8 @@ protected:
 
   bool                      mSuppressInterruptibleReflows : 1;
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
+
+  uint32_t                  mPresShellId;
 
   
   

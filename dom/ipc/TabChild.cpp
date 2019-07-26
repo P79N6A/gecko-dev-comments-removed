@@ -633,7 +633,7 @@ TabChild::HandlePossibleViewportChange()
 
   
   
-  RecvUpdateFrame(metrics);
+  ProcessUpdateFrame(metrics);
 }
 
 nsresult
@@ -1454,6 +1454,20 @@ ScrollWindowTo(nsIDOMWindow* aWindow, const mozilla::gfx::Point& aPoint)
 bool
 TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
 {
+    nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
+
+    uint32_t presShellId;
+    nsresult rv = utils->GetPresShellId(&presShellId);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    if (NS_SUCCEEDED(rv) && aFrameMetrics.mPresShellId != presShellId) {
+        return true;
+    }
+    return ProcessUpdateFrame(aFrameMetrics);
+}
+
+bool
+TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
+  {
     if (!mCx || !mTabChildGlobal) {
         return true;
     }
@@ -1594,8 +1608,11 @@ TabChild::RecvMouseEvent(const nsString& aType,
                          const int32_t&  aModifiers,
                          const bool&     aIgnoreRootScrollFrame)
 {
-  DispatchMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
-                     aIgnoreRootScrollFrame);
+  nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
+  NS_ENSURE_TRUE(utils, true);
+  bool ignored = false;
+  utils->SendMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
+                        aIgnoreRootScrollFrame, 0, 0, &ignored);
   return true;
 }
 
@@ -1732,21 +1749,8 @@ void
 TabChild::FireContextMenuEvent()
 {
   MOZ_ASSERT(mTapHoldTimer && mActivePointerId >= 0);
-  bool defaultPrevented = DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"),
-                                             mGestureDownPoint.x, mGestureDownPoint.y,
-                                             2 ,
-                                             1 ,
-                                             0 ,
-                                             false );
-
-  
-  
-  if (defaultPrevented) {
-    CancelTapTracking();
-  } else if (mTapHoldTimer) {
-    mTapHoldTimer->Cancel();
-    mTapHoldTimer = nullptr;
-  }
+  RecvHandleLongTap(mGestureDownPoint);
+  CancelTapTracking();
 }
 
 void
@@ -2216,24 +2220,6 @@ bool
 TabChild::IsAsyncPanZoomEnabled()
 {
     return mScrolling == ASYNC_PAN_ZOOM;
-}
-
-bool
-TabChild::DispatchMouseEvent(const nsString& aType,
-                             const float&    aX,
-                             const float&    aY,
-                             const int32_t&  aButton,
-                             const int32_t&  aClickCount,
-                             const int32_t&  aModifiers,
-                             const bool&     aIgnoreRootScrollFrame)
-{
-  nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
-  NS_ENSURE_TRUE(utils, true);
-  
-  bool defaultPrevented = false;
-  utils->SendMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
-                        aIgnoreRootScrollFrame, 0, 0, &defaultPrevented);
-  return defaultPrevented;
 }
 
 void
