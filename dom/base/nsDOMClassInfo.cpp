@@ -5156,8 +5156,10 @@ static nsresult
 LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
 {
   
-  XPCWrappedNative *wrapper =
-    XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+  obj = js::UnwrapObjectChecked(obj,  false);
+  if (!IS_WN_WRAPPER(obj))
+      return NS_ERROR_XPC_BAD_CONVERT_JS;
+  XPCWrappedNative *wrapper = XPCWrappedNative::Get(obj);
 
   
   NS_ENSURE_TRUE(!wrapper || wrapper->IsValid(), NS_ERROR_XPC_HAS_BEEN_SHUTDOWN);
