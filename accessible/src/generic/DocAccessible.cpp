@@ -1917,8 +1917,10 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
 
   
   
-  if (focusedAcc)
+  if (focusedAcc) {
     FocusMgr()->DispatchFocusEvent(this, focusedAcc);
+    SelectionMgr()->SetControlSelectionListener(focusedAcc->GetNode()->AsElement());
+  }
 
   return updateFlags;
 }
