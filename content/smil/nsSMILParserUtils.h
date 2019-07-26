@@ -6,11 +6,11 @@
 #ifndef NS_SMILPARSERUTILS_H_
 #define NS_SMILPARSERUTILS_H_
 
-#include "nscore.h"
 #include "nsTArray.h"
-#include "nsString.h"
+#include "nsStringFwd.h"
 
 class nsISMILAttr;
+class nsSMILKeySpline;
 class nsSMILTimeValue;
 class nsSMILValue;
 class nsSMILRepeatCount;
@@ -31,41 +31,37 @@ class nsSMILParserUtils
 {
 public:
   
-  class GenericValueParser {
+  class MOZ_STACK_CLASS GenericValueParser {
   public:
-    virtual nsresult Parse(const nsAString& aValueStr) = 0;
+    virtual bool Parse(const nsAString& aValueStr) = 0;
   };
 
-  static nsresult ParseKeySplines(const nsAString& aSpec,
-                                  nsTArray<double>& aSplineArray);
+  static const nsDependentSubstring TrimWhitespace(const nsAString& aString);
+
+  static bool ParseKeySplines(const nsAString& aSpec,
+                              FallibleTArray<nsSMILKeySpline>& aKeySplines);
 
   
-  static nsresult ParseSemicolonDelimitedProgressList(const nsAString& aSpec,
-                                                      bool aNonDecreasing,
-                                                      nsTArray<double>& aArray);
+  static bool ParseSemicolonDelimitedProgressList(const nsAString& aSpec,
+                                                  bool aNonDecreasing,
+                                                  FallibleTArray<double>& aArray);
 
-  static nsresult ParseValues(const nsAString& aSpec,
-                              const mozilla::dom::SVGAnimationElement* aSrcElement,
-                              const nsISMILAttr& aAttribute,
-                              nsTArray<nsSMILValue>& aValuesArray,
-                              bool& aPreventCachingOfSandwich);
-
-  
-  
-  static nsresult ParseValuesGeneric(const nsAString& aSpec,
-                                     GenericValueParser& aParser);
-
-  static nsresult ParseRepeatCount(const nsAString& aSpec,
-                                   nsSMILRepeatCount& aResult);
-
-  static nsresult ParseTimeValueSpecParams(const nsAString& aSpec,
-                                           nsSMILTimeValueSpecParams& aResult);
-
+  static bool ParseValues(const nsAString& aSpec,
+                          const mozilla::dom::SVGAnimationElement* aSrcElement,
+                          const nsISMILAttr& aAttribute,
+                          FallibleTArray<nsSMILValue>& aValuesArray,
+                          bool& aPreventCachingOfSandwich);
 
   
-  static const int8_t kClockValueAllowSign       = 1;
   
-  static const int8_t kClockValueAllowIndefinite = 2;
+  static bool ParseValuesGeneric(const nsAString& aSpec,
+                                 GenericValueParser& aParser);
+
+  static bool ParseRepeatCount(const nsAString& aSpec,
+                               nsSMILRepeatCount& aResult);
+
+  static bool ParseTimeValueSpecParams(const nsAString& aSpec,
+                                       nsSMILTimeValueSpecParams& aResult);
 
   
 
@@ -76,27 +72,8 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult ParseClockValue(const nsAString& aSpec,
-                                  nsSMILTimeValue* aResult,
-                                  uint32_t aFlags = 0,
-                                  bool* aIsMedia = nullptr);
+  static bool ParseClockValue(const nsAString& aSpec,
+                              nsSMILTimeValue* aResult);
 
   
 

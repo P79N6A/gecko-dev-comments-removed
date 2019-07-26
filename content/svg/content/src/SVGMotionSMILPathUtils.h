@@ -76,11 +76,12 @@ public:
 
   
   
-  class MotionValueParser : public nsSMILParserUtils::GenericValueParser
+  class MOZ_STACK_CLASS MotionValueParser :
+    public nsSMILParserUtils::GenericValueParser
   {
   public:
     MotionValueParser(PathGenerator* aPathGenerator,
-                      nsTArray<double>* aPointDistances)
+                      FallibleTArray<double>* aPointDistances)
       : mPathGenerator(aPathGenerator),
         mPointDistances(aPointDistances),
         mDistanceSoFar(0.0)
@@ -90,12 +91,12 @@ public:
     }
 
     
-    virtual nsresult Parse(const nsAString& aValueStr) MOZ_OVERRIDE;
+    virtual bool Parse(const nsAString& aValueStr) MOZ_OVERRIDE;
 
   protected:
-    PathGenerator*    mPathGenerator;
-    nsTArray<double>* mPointDistances;
-    double            mDistanceSoFar;
+    PathGenerator*          mPathGenerator;
+    FallibleTArray<double>* mPointDistances;
+    double                  mDistanceSoFar;
   };
 
 };

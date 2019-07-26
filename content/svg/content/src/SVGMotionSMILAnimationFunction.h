@@ -83,19 +83,19 @@ protected:
   void     RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
   bool     GenerateValuesForPathAndPoints(Path* aPath,
                                           bool aIsKeyPoints,
-                                          nsTArray<double>& aPointDistances,
-                                          nsTArray<nsSMILValue>& aResult);
+                                          FallibleTArray<double>& aPointDistances,
+                                          nsSMILValueArray& aResult);
 
   
   
-  nsTArray<double>           mKeyPoints; 
+  FallibleTArray<double>     mKeyPoints; 
 
   RotateType                 mRotateType;  
   float                      mRotateAngle; 
 
   PathSourceType             mPathSourceType; 
   RefPtr<Path>               mPath;           
-  nsTArray<double>           mPathVertices; 
+  FallibleTArray<double>     mPathVertices; 
 
   bool                       mIsPathStale;
 };

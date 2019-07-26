@@ -251,7 +251,7 @@ public:
 
 protected:
   
-  typedef nsTArray<nsSMILValue> nsSMILValueArray;
+  typedef FallibleTArray<nsSMILValue> nsSMILValueArray;
 
   
   enum nsSMILCalcMode
@@ -398,8 +398,8 @@ protected:
   static nsAttrValue::EnumTable sCalcModeTable[];
   static nsAttrValue::EnumTable sAccumulateTable[];
 
-  nsTArray<double>              mKeyTimes;
-  nsTArray<nsSMILKeySpline>     mKeySplines;
+  FallibleTArray<double>          mKeyTimes;
+  FallibleTArray<nsSMILKeySpline> mKeySplines;
 
   
   

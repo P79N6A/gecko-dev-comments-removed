@@ -144,6 +144,52 @@ public:
   
 
 
+  static inline bool IsDigit(PRUnichar aCh)
+  {
+    return aCh >= '0' && aCh <= '9';
+  }
+
+ 
+
+
+  static inline uint32_t DecimalDigitValue(PRUnichar aCh)
+  {
+    MOZ_ASSERT(IsDigit(aCh), "Digit expected");
+    return aCh - '0';
+  }
+
+  
+
+
+
+
+
+
+  static inline bool
+  ParseOptionalSign(mozilla::RangedPtr<const PRUnichar>& aIter,
+                    const mozilla::RangedPtr<const PRUnichar>& aEnd,
+                    int32_t& aSignMultiplier)
+  {
+    if (aIter == aEnd) {
+      return false;
+    }
+    aSignMultiplier = *aIter == '-' ? -1 : 1;
+
+    mozilla::RangedPtr<const PRUnichar> iter(aIter);
+
+    if (*iter == '-' || *iter == '+') {
+      ++iter;
+      if (iter == aEnd) {
+        return false;
+      }
+    }
+    aIter = iter;
+    return true;
+  }
+
+  
+
+
 
 
 
@@ -169,8 +215,19 @@ public:
 
 
 
-  static bool
-  ParseInteger(const nsAString& aString, int32_t& aValue);
+
+
+  static bool ParseInteger(mozilla::RangedPtr<const PRUnichar>& aIter,
+                           const mozilla::RangedPtr<const PRUnichar>& aEnd,
+                           int32_t& aValue);
+
+  
+
+
+
+
+
+  static bool ParseInteger(const nsAString& aString, int32_t& aValue);
 
   
 

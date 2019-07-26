@@ -156,7 +156,7 @@ public:
   
 
 
-  bool GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aArray) const;
+  bool GetDistancesFromOriginToEndsOfVisibleSegments(FallibleTArray<double> *aArray) const;
 
   
 
