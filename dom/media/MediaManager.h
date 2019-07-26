@@ -89,6 +89,7 @@ public:
     , mStream(aStream)
     {}
 
+  
   MediaOperationRunnable(MediaOperation aType,
     SourceMediaStream* aStream,
     MediaEngineSource* aAudioSource,
@@ -161,6 +162,7 @@ public:
           }
           
           mSourceStream->Finish();
+          
 
           nsRefPtr<GetUserMediaNotificationEvent> event =
             new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STOPPING);
@@ -190,12 +192,14 @@ class GetUserMediaCallbackMediaStreamListener : public MediaStreamListener
 public:
   GetUserMediaCallbackMediaStreamListener(nsIThread *aThread,
     nsDOMMediaStream* aStream,
+    already_AddRefed<MediaInputPort> aPort,
     MediaEngineSource* aAudioSource,
     MediaEngineSource* aVideoSource)
     : mMediaThread(aThread)
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
-    , mStream(aStream) {}
+    , mStream(aStream)
+    , mPort(aPort) {}
 
   void
   Invalidate()
@@ -206,7 +210,7 @@ public:
     
     
     
-    runnable = new MediaOperationRunnable(MEDIA_STOP, 
+    runnable = new MediaOperationRunnable(MEDIA_STOP,
                                           mStream->GetStream()->AsSourceStream(),
                                           mAudioSource, mVideoSource);
     mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
@@ -239,6 +243,7 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   nsRefPtr<nsDOMMediaStream> mStream;
+  nsRefPtr<MediaInputPort> mPort;
 };
 
 typedef nsTArray<nsRefPtr<GetUserMediaCallbackMediaStreamListener> > StreamListeners;
