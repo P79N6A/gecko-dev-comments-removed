@@ -105,7 +105,9 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     
     
     
-    did_work |= GeckoAppShell::PumpMessageLoop();
+    if (MOZ_LIKELY(AndroidBridge::HasEnv())) {
+        did_work |= GeckoAppShell::PumpMessageLoop();
+    }
 #endif
 
     did_work |= aDelegate->DoDelayedWork(&delayed_work_time_);

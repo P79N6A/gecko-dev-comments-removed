@@ -155,6 +155,10 @@ public:
         return sBridge->mJNIEnv;
     }
 
+    static bool HasEnv() {
+        return sBridge && sBridge->mJNIEnv;
+    }
+
     
     
     
