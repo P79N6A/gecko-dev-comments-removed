@@ -1068,7 +1068,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         mDialingRequestProcessed = true;
       }
       break;
-
     case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
       
       if (mCurrentCallArray.Length() - 1 ==
@@ -1084,7 +1083,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         ResetCallArray();
       }
       break;
-
     default:
       break;
   }
