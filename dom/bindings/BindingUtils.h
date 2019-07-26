@@ -471,6 +471,29 @@ public:
                             sizeof(Check<T>(nullptr)) == sizeof(yes);
 };
 
+#ifdef DEBUG
+template <class T, bool isISupports=IsISupports<T>::Value>
+struct
+CheckWrapperCacheCast
+{
+  static bool Check()
+  {
+    return reinterpret_cast<uintptr_t>(
+      static_cast<nsWrapperCache*>(
+        reinterpret_cast<T*>(1))) == 1;
+  }
+};
+template <class T>
+struct
+CheckWrapperCacheCast<T, true>
+{
+  static bool Check()
+  {
+    return true;
+  }
+};
+#endif
+
 
 
 
@@ -500,21 +523,21 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
   }
 
 #ifdef DEBUG
-  
-  
-  
-  
-  
-  
   const DOMClass* clasp = nullptr;
   DOMObjectSlot slot = GetDOMClass(obj, clasp);
-  MOZ_ASSERT(slot != eNonDOMObject, "Totally unexpected object here");
-  MOZ_ASSERT(clasp, "What happened here?");
-  MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports, IsISupports<T>::Value);
-
-
-
-
+  
+  
+  if (slot != eNonDOMObject) {
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(clasp, "What happened here?");
+    MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports, IsISupports<T>::Value);
+    MOZ_ASSERT(CheckWrapperCacheCast<T>::Check());
+  }
 #endif
 
   
