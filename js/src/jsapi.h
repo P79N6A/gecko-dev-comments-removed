@@ -2914,9 +2914,6 @@ typedef enum JSGCParamKey {
 
     
     JSGC_ALLOCATION_THRESHOLD = 20,
-
-    
-    JSGC_ENABLE_GENERATIONAL = 21
 } JSGCParamKey;
 
 typedef enum JSGCMode {
