@@ -494,25 +494,6 @@ var gMetadataTests = [
   },
 ];
 
-
-
-var gTooManyElementAudioTests = [
-  { name:"small-shot.ogg", type:"audio/ogg" },
-  { name:"r11025_s16_c1.wav", type:"audio/x-wav" },
-  { name:"detodos.opus", type:"audio/ogg; codecs=opus" },
-  { name:"bogus.duh", type:"bogus/duh" }
-];
-
-
-
-if (navigator.userAgent.indexOf("Windows") == -1 ||
-    IsWindows8OrLater()) {
-  gTooManyElementAudioTests = gTooManyElementAudioTests.concat([
-    { name:"small-shot.m4a", type:"audio/mp4" },
-    { name:"small-shot.mp3", type:"audio/mpeg" }
-  ]);
-}
-
 function checkMetadata(msg, e, test) {
   if (test.width) {
     is(e.videoWidth, test.width, msg + " video width");
