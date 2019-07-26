@@ -83,6 +83,13 @@
 #define OOM_SCORE_ADJ_MAX  1000
 #endif
 
+#ifndef BATTERY_CHARGING_ARGB
+#define BATTERY_CHARGING_ARGB 0x00FF0000
+#endif
+#ifndef BATTERY_FULL_ARGB
+#define BATTERY_FULL_ARGB 0x0000FF00
+#endif
+
 using namespace mozilla;
 using namespace mozilla::hal;
 
@@ -250,6 +257,26 @@ public:
   {
     hal::BatteryInformation info;
     hal_impl::GetCurrentBatteryInformation(&info);
+
+    
+    
+    uint32_t color = 0; 
+    if (info.charging() && (info.level() == 1)) {
+      
+      color = BATTERY_FULL_ARGB;
+    } else if (info.charging() && (info.level() < 1)) {
+      
+      color = BATTERY_CHARGING_ARGB;
+    } 
+
+    hal::LightConfiguration aConfig(hal::eHalLightID_Battery,
+                                    hal::eHalLightMode_User,
+                                    hal::eHalLightFlash_None,
+                                    0,
+                                    0,
+                                    color);
+    hal_impl::SetLight(hal::eHalLightID_Battery, aConfig);
+
     hal::NotifyBatteryChange(info);
     return NS_OK;
   }
