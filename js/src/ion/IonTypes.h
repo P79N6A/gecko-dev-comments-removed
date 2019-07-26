@@ -38,9 +38,6 @@ enum BailoutKind
     Bailout_Monitor,
 
     
-    Bailout_RecompileCheck,
-
-    
     Bailout_BoundsCheck,
 
     
@@ -50,9 +47,11 @@ enum BailoutKind
     Bailout_CachedShapeGuard
 };
 
+#ifdef DEBUG
 inline const char *
-BailoutKindString(BailoutKind kind) {
-    switch(kind) {
+BailoutKindString(BailoutKind kind)
+{
+    switch (kind) {
       case Bailout_Normal:
         return "Bailout_Normal";
       case Bailout_ArgumentCheck:
@@ -61,8 +60,6 @@ BailoutKindString(BailoutKind kind) {
         return "Bailout_TypeBarrier";
       case Bailout_Monitor:
         return "Bailout_Monitor";
-      case Bailout_RecompileCheck:
-        return "Bailout_RecompileCheck";
       case Bailout_BoundsCheck:
         return "Bailout_BoundsCheck";
       case Bailout_ShapeGuard:
@@ -74,6 +71,7 @@ BailoutKindString(BailoutKind kind) {
     }
     return "INVALID_BAILOUT_KIND";
 }
+#endif
 
 
 

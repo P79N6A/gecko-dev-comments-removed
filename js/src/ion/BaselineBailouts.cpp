@@ -629,13 +629,13 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
                                                       resumeAfter ? GetNextPc(pc) : pc);
     JS_ASSERT_IF(op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter,
                  exprStackSlots == expectedDepth);
-#endif
 
     IonSpew(IonSpew_BaselineBailouts, "      Resuming %s pc offset %d (op %s) (line %d) of %s:%d",
                 resumeAfter ? "after" : "at", (int) pcOff, js_CodeName[op],
                 PCToLineNumber(script, pc), script->filename(), (int) script->lineno);
     IonSpew(IonSpew_BaselineBailouts, "      Bailout kind: %s",
             BailoutKindString(iter.bailoutKind()));
+#endif
 
     
     if (!iter.moreFrames()) {
@@ -1185,12 +1185,6 @@ ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
         
         
         
-        break;
-      case Bailout_RecompileCheck:
-        
-        
-        
-        JS_NOT_REACHED("Unexpected recompile check!");
         break;
       case Bailout_BoundsCheck:
         if (!HandleBoundsCheckFailure(cx, outerScript, innerScript))

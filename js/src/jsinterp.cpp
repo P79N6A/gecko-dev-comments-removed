@@ -51,6 +51,7 @@
 #endif
 #include "ion/Ion.h"
 #include "ion/BaselineJIT.h"
+#include "ion/IonFrames-inl.h"
 
 #include "jsatominlines.h"
 #include "jsboolinlines.h"
@@ -1604,8 +1605,7 @@ BEGIN_CASE(JSOP_STOP)
         cx->stack.popInlineFrame(regs);
         SET_SCRIPT(regs.fp()->script());
 
-        JS_ASSERT(*regs.pc == JSOP_NEW || *regs.pc == JSOP_CALL ||
-                  *regs.pc == JSOP_FUNCALL || *regs.pc == JSOP_FUNAPPLY);
+        JS_ASSERT(js_CodeSpec[*regs.pc].format & JOF_INVOKE);
 
         
         if (JS_LIKELY(interpReturnOK)) {
@@ -2824,10 +2824,9 @@ BEGIN_CASE(JSOP_LAMBDA)
     RootedFunction &fun = rootFunction0;
     fun = script->getFunction(GET_UINT32_INDEX(regs.pc));
 
-    JSFunction *obj = CloneFunctionObjectIfNotSingleton(cx, fun, regs.fp()->scopeChain());
+    JSObject *obj = Lambda(cx, fun, regs.fp()->scopeChain());
     if (!obj)
         goto error;
-
     JS_ASSERT(obj->getProto());
     PUSH_OBJECT(*obj);
 }
@@ -3509,6 +3508,24 @@ js::Lambda(JSContext *cx, HandleFunction fun, HandleObject parent)
     RootedObject clone(cx, CloneFunctionObjectIfNotSingleton(cx, fun, parent));
     if (!clone)
         return NULL;
+
+    if (fun->isArrow()) {
+        
+        
+        AbstractFramePtr frame = NullFramePtr();
+        if (cx->fp()->runningInIon())
+            frame = ion::GetTopBaselineFrame(cx);
+        else
+            frame = cx->fp();
+
+        if (!ComputeThis(cx, frame))
+            return NULL;
+
+        RootedValue thisval(cx, frame.thisValue());
+        clone = js_fun_bind(cx, clone, thisval, NULL, 0);
+        if (!clone)
+            return NULL;
+    }
 
     JS_ASSERT(clone->global() == clone->global());
     return clone;

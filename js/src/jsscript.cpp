@@ -1484,7 +1484,7 @@ js::SaveSharedScriptData(JSContext *cx, Handle<JSScript *> script, SharedScriptD
 
 
 
-    if (IsIncrementalGCInProgress(rt) && rt->gcIsFull)
+    if (JS::IsIncrementalGCInProgress(rt) && rt->gcIsFull)
         ssd->marked = true;
 #endif
 

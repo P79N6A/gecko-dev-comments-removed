@@ -464,8 +464,6 @@ class PerThreadData : public js::PerThreadDataFriendFields
         SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
     };
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
-
-    bool                gcRelaxRootChecks;
 #endif
 
 
@@ -896,7 +894,7 @@ struct JSRuntime : js::RuntimeFriendFields,
     bool                gcIsFull;
 
     
-    js::gcreason::Reason gcTriggerReason;
+    JS::gcreason::Reason gcTriggerReason;
 
     
 
@@ -1062,7 +1060,7 @@ struct JSRuntime : js::RuntimeFriendFields,
     bool                gcFullCompartmentChecks;
 
     JSGCCallback        gcCallback;
-    js::GCSliceCallback gcSliceCallback;
+    JS::GCSliceCallback gcSliceCallback;
     JSFinalizeCallback  gcFinalizeCallback;
 
     js::AnalysisPurgeCallback analysisPurgeCallback;

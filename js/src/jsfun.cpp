@@ -571,12 +571,15 @@ FindBody(JSContext *cx, HandleFunction fun, StableCharPtr chars, size_t length,
     options.setFileAndLine("internal-findBody", 0)
            .setVersion(fun->nonLazyScript()->getVersion());
     TokenStream ts(cx, options, chars.get(), length, NULL);
-    JS_ASSERT(chars[0] == '(');
     int nest = 0;
     bool onward = true;
     
     do {
         switch (ts.getToken()) {
+          case TOK_NAME:
+            if (nest == 0)
+                onward = false;
+            break;
           case TOK_LP:
             nest++;
             break;
@@ -592,10 +595,12 @@ FindBody(JSContext *cx, HandleFunction fun, StableCharPtr chars, size_t length,
         }
     } while (onward);
     TokenKind tt = ts.getToken();
+    if (tt == TOK_ARROW)
+        tt = ts.getToken();
     if (tt == TOK_ERROR)
         return false;
     bool braced = tt == TOK_LC;
-    JS_ASSERT(fun->isExprClosure() == !braced);
+    JS_ASSERT_IF(fun->isExprClosure(), !braced);
     *bodyStart = ts.offsetOfToken(ts.currentToken());
     if (braced)
         *bodyStart += 1;
@@ -618,6 +623,16 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
     StringBuffer out(cx);
     RootedScript script(cx);
 
+    
+    
+    if (fun->isBoundFunction()) {
+        JSObject *target = fun->getBoundFunctionTarget();
+        if (target->isFunction() && target->toFunction()->isArrow()) {
+            RootedFunction targetfun(cx, target->toFunction());
+            return FunctionToString(cx, targetfun, bodyOnly, lambdaParen);
+        }
+    }
+
     if (fun->hasScript()) {
         script = fun->nonLazyScript();
         if (script->isGeneratorExp) {
@@ -632,12 +647,14 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
     }
     if (!bodyOnly) {
         
-        if (fun->isInterpreted() && !lambdaParen && fun->isLambda()) {
+        if (fun->isInterpreted() && !lambdaParen && fun->isLambda() && !fun->isArrow()) {
             if (!out.append("("))
                 return NULL;
         }
-        if (!out.append("function "))
-            return NULL;
+        if (!fun->isArrow()) {
+            if (!out.append("function "))
+                return NULL;
+        }
         if (fun->atom()) {
             if (!out.append(fun->atom()))
                 return NULL;
@@ -666,13 +683,13 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
         
         
         JS_ASSERT_IF(funCon, !exprBody);
-        JS_ASSERT_IF(!funCon, src->length() > 0 && chars[0] == '(');
+        JS_ASSERT_IF(!funCon && !fun->isArrow(), src->length() > 0 && chars[0] == '(');
 
         
         
         
         
-        bool addUseStrict = script->strict && !script->explicitUseStrict;
+        bool addUseStrict = script->strict && !script->explicitUseStrict && !fun->isArrow();
 
         bool buildBody = funCon && !bodyOnly;
         if (buildBody) {
@@ -746,7 +763,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
             
             if (exprBody && !out.append(";"))
                 return NULL;
-        } else if (!lambdaParen && fun->isLambda()) {
+        } else if (!lambdaParen && fun->isLambda() && !fun->isArrow()) {
             if (!out.append(")"))
                 return NULL;
         }
@@ -755,7 +772,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
             !out.append("[sourceless code]") ||
             (!bodyOnly && !out.append("\n}")))
             return NULL;
-        if (!lambdaParen && fun->isLambda() && !out.append(")"))
+        if (!lambdaParen && fun->isLambda() && !fun->isArrow() && !out.append(")"))
             return NULL;
     } else {
         JS_ASSERT(!fun->isExprClosure());

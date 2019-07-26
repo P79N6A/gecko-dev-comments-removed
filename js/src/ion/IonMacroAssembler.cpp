@@ -658,7 +658,6 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
     Label interpret;
     Label exception;
     Label osr;
-    Label recompile;
     Label boundscheck;
     Label overrecursed;
     Label invalidate;
@@ -675,13 +674,11 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
     
     
     
-    
 
     branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &interpret);
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_FATAL_ERROR), &exception);
 
-    branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK), &reflow);
-    branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_RECOMPILE_CHECK), &recompile);
+    branch32(LessThan, ReturnReg, Imm32(BAILOUT_RETURN_BOUNDS_CHECK), &reflow);
 
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_BOUNDS_CHECK), &boundscheck);
     branch32(Equal, ReturnReg, Imm32(BAILOUT_RETURN_OVERRECURSED), &overrecursed);
@@ -712,16 +709,6 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
     {
         setupUnalignedABICall(0, scratch);
         callWithABI(JS_FUNC_TO_DATA_PTR(void *, BoundsCheckFailure));
-
-        branchTest32(Zero, ReturnReg, ReturnReg, &exception);
-        jump(&interpret);
-    }
-
-    
-    bind(&recompile);
-    {
-        setupUnalignedABICall(0, scratch);
-        callWithABI(JS_FUNC_TO_DATA_PTR(void *, RecompileForInlining));
 
         branchTest32(Zero, ReturnReg, ReturnReg, &exception);
         jump(&interpret);
