@@ -2528,14 +2528,6 @@ JS_SetParent(JSContext *cx, JS::HandleObject obj, JS::HandleObject parent);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetConstructor(JSContext *cx, JS::Handle<JSObject*> proto);
 
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_GetObjectId(JSContext *cx, JS::HandleObject obj, JS::MutableHandleId idp);
-
 namespace JS {
 
 enum ZoneSpecifier {
