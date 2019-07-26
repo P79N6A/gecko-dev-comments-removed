@@ -205,6 +205,13 @@ public:
 
 
 
+  gfx3DMatrix GetNontransientAsyncTransform();
+
+  
+
+
+
+
 
   static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
