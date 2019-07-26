@@ -47,6 +47,62 @@ struct nsMyTrustedEVInfo
   CERTCertificate *cert;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   
 
