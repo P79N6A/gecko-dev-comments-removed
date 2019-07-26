@@ -23,21 +23,12 @@ bool
 ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 {
     
-    Assembler::Condition cond;
-    switch(op) {
-      case JSOP_LT: cond = Assembler::LessThan; break;
-      case JSOP_GT: cond = Assembler::GreaterThan; break;
-      default:
-        JS_ASSERT(!"Unhandled op for ICCompare_Int32!");
-        return false;
-    }
-
-    
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
     
+    Assembler::Condition cond = JSOpToCondition(op);
     masm.cmpl(R0.valueReg(), R1.valueReg());
     masm.setCC(cond, ScratchReg);
     masm.movzxbl(ScratchReg, ScratchReg);
