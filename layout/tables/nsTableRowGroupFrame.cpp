@@ -1325,6 +1325,15 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   return rv;
 }
 
+bool
+nsTableRowGroupFrame::UpdateOverflow()
+{
+  
+  
+  ClearRowCursor();
+  return nsContainerFrame::UpdateOverflow();
+}
+
  void
 nsTableRowGroupFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {

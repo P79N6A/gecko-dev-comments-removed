@@ -1502,6 +1502,10 @@ nsBlockFrame::UpdateOverflow()
     line->SetOverflowAreas(lineAreas);
   }
 
+  
+  
+  ClearLineCursor();
+
   return nsBlockFrameSuper::UpdateOverflow();
 }
 
