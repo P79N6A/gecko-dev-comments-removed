@@ -198,6 +198,10 @@ struct ForkJoinSlice
     JSRuntime *runtime();
 
     
+    JSContext *acquireContext();
+    void releaseContext();
+
+    
     static inline ForkJoinSlice *Current();
 
     
@@ -233,6 +237,32 @@ struct ForkJoinOp
     
     
     virtual bool parallel(ForkJoinSlice &slice) = 0;
+};
+
+
+class LockedJSContext
+{
+    ForkJoinSlice *slice_;
+    JSContext *cx_;
+
+  public:
+    LockedJSContext(ForkJoinSlice *slice)
+      : slice_(slice),
+#if defined(JS_THREADSAFE) && defined(JS_ION)
+        cx_(slice->acquireContext())
+#else
+        cx_(NULL)
+#endif
+    { }
+
+    ~LockedJSContext() {
+#if defined(JS_THREADSAFE) && defined(JS_ION)
+        slice_->releaseContext();
+#endif
+    }
+
+    operator JSContext *() { return cx_; }
+    JSContext *operator->() { return cx_; }
 };
 
 static inline bool

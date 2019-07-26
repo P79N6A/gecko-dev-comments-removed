@@ -12,6 +12,8 @@
 #include "TypeOracle.h"
 #include "Registers.h"
 
+#include "vm/ForkJoin.h"
+
 class JSFunction;
 class JSScript;
 
@@ -24,7 +26,8 @@ namespace ion {
     _(GetElement)                                               \
     _(BindName)                                                 \
     _(Name)                                                     \
-    _(CallsiteClone)
+    _(CallsiteClone)                                            \
+    _(ParallelGetProperty)
 
 
 #define FORWARD_DECLARE(kind) class kind##IC;
@@ -43,6 +46,15 @@ class IonCacheVisitor
     IONCACHE_KIND_LIST(VISIT_INS)
 #undef VISIT_INS
 };
+
+
+
+struct AddCacheState
+{
+    RepatchLabel repatchEntry;
+    Register dispatchScratch;
+};
+
 
 
 
@@ -145,33 +157,11 @@ class IonCache
     bool disabled_ : 1;
     size_t stubCount_ : 5;
 
-    CodeLocationJump initialJump_;
-    CodeLocationJump lastJump_;
     CodeLocationLabel fallbackLabel_;
-
-    
-#ifdef JS_CPU_ARM
-    static const size_t REJOIN_LABEL_OFFSET = 4;
-#else
-    static const size_t REJOIN_LABEL_OFFSET = 0;
-#endif
 
     
     JSScript *script;
     jsbytecode *pc;
-
-    CodeLocationLabel fallbackLabel() const {
-        return fallbackLabel_;
-    }
-    CodeLocationLabel rejoinLabel() const {
-        uint8_t *ptr = initialJump_.raw();
-#ifdef JS_CPU_ARM
-        uint32_t i = 0;
-        while (i < REJOIN_LABEL_OFFSET)
-            ptr = Assembler::nextInstruction(ptr, &i);
-#endif
-        return CodeLocationLabel(ptr);
-    }
 
   private:
     static const size_t MAX_STUBS;
@@ -188,28 +178,15 @@ class IonCache
         idempotent_(false),
         disabled_(false),
         stubCount_(0),
-        initialJump_(),
-        lastJump_(),
         fallbackLabel_(),
         script(NULL),
         pc(NULL)
     {
     }
 
-    void disable();
+    virtual void disable();
     inline bool isDisabled() const {
         return disabled_;
-    }
-
-    
-    
-    
-    
-    void setInlineJump(CodeOffsetJump initialJump, CodeOffsetLabel rejoinLabel) {
-        initialJump_ = initialJump;
-        lastJump_ = initialJump;
-
-        JS_ASSERT(rejoinLabel.offset() == initialJump.offset() + REJOIN_LABEL_OFFSET);
     }
 
     
@@ -219,14 +196,25 @@ class IonCache
         fallbackLabel_ = fallbackLabel;
     }
 
+    virtual void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
+    virtual void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
+    virtual void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+
     
-    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+    
+    virtual void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
 
     
     virtual void reset();
 
+    
+    virtual void destroy();
+
     bool canAttachStub() const {
         return stubCount_ < MAX_STUBS;
+    }
+    bool empty() const {
+        return stubCount_ == 0;
     }
 
     enum LinkStatus {
@@ -242,13 +230,16 @@ class IonCache
     LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, IonCode **code);
     
     
-    void attachStub(MacroAssembler &masm, StubAttacher &patcher, IonCode *code);
+    void attachStub(MacroAssembler &masm, StubAttacher &attacher, IonCode *code);
 
     
     
-    bool linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &patcher,
+    bool linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &attacher,
                            IonScript *ion, const char *attachKind);
 
+    bool isAllocated() {
+        return fallbackLabel_.isSet();
+    }
     bool pure() {
         return pure_;
     }
@@ -276,6 +267,210 @@ class IonCache
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class RepatchIonCache : public IonCache
+{
+  protected:
+    class RepatchStubAppender;
+
+    CodeLocationJump initialJump_;
+    CodeLocationJump lastJump_;
+
+    
+#ifdef JS_CPU_ARM
+    static const size_t REJOIN_LABEL_OFFSET = 4;
+#else
+    static const size_t REJOIN_LABEL_OFFSET = 0;
+#endif
+
+    CodeLocationLabel rejoinLabel() const {
+        uint8_t *ptr = initialJump_.raw();
+#ifdef JS_CPU_ARM
+        uint32_t i = 0;
+        while (i < REJOIN_LABEL_OFFSET)
+            ptr = Assembler::nextInstruction(ptr, &i);
+#endif
+        return CodeLocationLabel(ptr);
+    }
+
+  public:
+    RepatchIonCache()
+      : initialJump_(),
+        lastJump_()
+    {
+    }
+
+    virtual void reset();
+
+    
+    
+    
+    
+    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
+
+    
+    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DispatchIonCache : public IonCache
+{
+  protected:
+    class DispatchStubPrepender;
+
+    uint8_t *firstStub_;
+    CodeLocationLabel rejoinLabel_;
+    CodeOffsetLabel dispatchLabel_;
+
+  public:
+    DispatchIonCache()
+      : firstStub_(NULL),
+        rejoinLabel_(),
+        dispatchLabel_()
+    {
+    }
+
+    virtual void reset();
+
+    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
+
+    
+    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+};
+
+
+
 #define CACHE_HEADER(ickind)                                        \
     Kind kind() const {                                             \
         return IonCache::Cache_##ickind;                            \
@@ -290,7 +485,7 @@ class IonCache
 
 
 
-class GetPropertyIC : public IonCache
+class GetPropertyIC : public RepatchIonCache
 {
   protected:
     
@@ -353,7 +548,7 @@ class GetPropertyIC : public IonCache
     static bool update(JSContext *cx, size_t cacheIndex, HandleObject obj, MutableHandleValue vp);
 };
 
-class SetPropertyIC : public IonCache
+class SetPropertyIC : public RepatchIonCache
 {
   protected:
     
@@ -406,7 +601,7 @@ class SetPropertyIC : public IonCache
     update(JSContext *cx, size_t cacheIndex, HandleObject obj, HandleValue value);
 };
 
-class GetElementIC : public IonCache
+class GetElementIC : public RepatchIonCache
 {
   protected:
     Register object_;
@@ -476,7 +671,7 @@ class GetElementIC : public IonCache
     }
 };
 
-class BindNameIC : public IonCache
+class BindNameIC : public RepatchIonCache
 {
   protected:
     Register scopeChain_;
@@ -510,7 +705,7 @@ class BindNameIC : public IonCache
     update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain);
 };
 
-class NameIC : public IonCache
+class NameIC : public RepatchIonCache
 {
   protected:
     
@@ -559,7 +754,7 @@ class NameIC : public IonCache
     update(JSContext *cx, size_t cacheIndex, HandleObject scopeChain, MutableHandleValue vp);
 };
 
-class CallsiteCloneIC : public IonCache
+class CallsiteCloneIC : public RepatchIonCache
 {
   protected:
     Register callee_;
@@ -594,6 +789,56 @@ class CallsiteCloneIC : public IonCache
     bool attach(JSContext *cx, IonScript *ion, HandleFunction original, HandleFunction clone);
 
     static JSObject *update(JSContext *cx, size_t cacheIndex, HandleObject callee);
+};
+
+class ParallelGetPropertyIC : public DispatchIonCache
+{
+  protected:
+    Register object_;
+    PropertyName *name_;
+    TypedOrValueRegister output_;
+
+    
+    
+    ObjectSet *stubbedObjects_;
+
+   public:
+    ParallelGetPropertyIC(Register object, PropertyName *name, TypedOrValueRegister output)
+      : object_(object),
+        name_(name),
+        output_(output),
+        stubbedObjects_(NULL)
+    {
+    }
+
+    CACHE_HEADER(ParallelGetProperty)
+
+    void reset();
+    void destroy();
+    void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
+
+    Register object() const {
+        return object_;
+    }
+    PropertyName *name() const {
+        return name_;
+    }
+    TypedOrValueRegister output() const {
+        return output_;
+    }
+
+    bool initStubbedObjects(JSContext *cx);
+    ObjectSet *stubbedObjects() const {
+        JS_ASSERT_IF(stubbedObjects_, stubbedObjects_->initialized());
+        return stubbedObjects_;
+    }
+
+    bool canAttachReadSlot(LockedJSContext &cx, JSObject *obj, MutableHandleObject holder,
+                           MutableHandleShape shape);
+    bool attachReadSlot(LockedJSContext &cx, IonScript *ion, JSObject *obj, bool *attachedStub);
+
+    static ParallelResult update(ForkJoinSlice *slice, size_t cacheIndex, HandleObject obj,
+                                 MutableHandleValue vp);
 };
 
 #undef CACHE_HEADER

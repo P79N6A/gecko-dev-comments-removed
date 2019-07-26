@@ -193,7 +193,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(FunctionEnvironment) 
     SAFE_OP(TypeBarrier) 
     SAFE_OP(MonitorTypes) 
-    UNSAFE_OP(GetPropertyCache)
+    SAFE_OP(GetPropertyCache)
     UNSAFE_OP(GetElementCache)
     UNSAFE_OP(BindNameCache)
     SAFE_OP(GuardShape)

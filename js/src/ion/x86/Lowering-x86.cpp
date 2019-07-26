@@ -286,3 +286,17 @@ LIRGeneratorX86::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
 {
     return define(new LAsmJSLoadFuncPtr(useRegisterAtStart(ins->index())), ins);
 }
+
+LGetPropertyCacheT *
+LIRGeneratorX86::newLGetPropertyCacheT(MGetPropertyCache *ins)
+{
+    
+    
+    
+    LDefinition scratch;
+    if (ins->type() == MIRType_Double)
+        scratch = temp();
+    else
+        scratch = LDefinition::BogusTemp();
+    return new LGetPropertyCacheT(useRegister(ins->object()), scratch);
+}

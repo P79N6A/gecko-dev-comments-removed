@@ -546,4 +546,3 @@ GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
 } 
 
 #endif 
-
