@@ -286,6 +286,26 @@ let StackRenderer = {
       this.renderStack(div, stack)
     }
   },
+
+  
+
+
+
+
+
+  renderHeader: function StackRenderer_renderHeader(aPrefix, aFormatArgs) {
+    let div = document.getElementById(aPrefix + "-data");
+
+    let titleElement = document.createElement("span");
+    titleElement.className = "stack-title";
+
+    let titleText = bundle.formatStringFromName(
+      aPrefix + "-title", aFormatArgs, aFormatArgs.length);
+    titleElement.appendChild(document.createTextNode(titleText));
+
+    div.appendChild(titleElement);
+    div.appendChild(document.createElement("br"));
+  }
 };
 
 function SymbolicationRequest(aPrefix, aRenderHeader, aMemoryMap, aStacks) {
@@ -372,26 +392,9 @@ let ChromeHangs = {
 			       this.renderHangHeader);
   },
 
-  
-
-
-
-
-
-
   renderHangHeader: function ChromeHangs_renderHangHeader(aIndex) {
-    let div = document.getElementById("chrome-hangs-data");
-
-    let titleElement = document.createElement("span");
-    titleElement.className = "hang-title";
-
     let durations = Telemetry.chromeHangs.durations;
-    let titleText = bundle.formatStringFromName(
-      "hangTitle", [aIndex + 1, durations[aIndex]], 2);
-    titleElement.appendChild(document.createTextNode(titleText));
-
-    div.appendChild(titleElement);
-    div.appendChild(document.createElement("br"));
+    StackRenderer.renderHeader("chrome-hangs", [aIndex + 1, durations[aIndex]]);
   }
 };
 
@@ -676,7 +679,8 @@ function setupListeners() {
   document.getElementById("late-writes-fetch-symbols").addEventListener("click",
     function () {
       let lateWrites = TelemetryPing.getPayload().lateWrites;
-      let req = new SymbolicationRequest("late-writes", function() {},
+      let req = new SymbolicationRequest("late-writes",
+                                         LateWritesSingleton.renderHeader,
                                          lateWrites.memoryMap,
                                          lateWrites.stacks);
       req.fetchSymbols();
@@ -748,11 +752,15 @@ function onLoad() {
 };
 
 let LateWritesSingleton = {
+  renderHeader: function LateWritesSingleton_renderHeader(aIndex) {
+    StackRenderer.renderHeader("late-writes", [aIndex + 1]);
+  },
+
   renderLateWrites: function LateWritesSingleton_renderLateWrites(lateWrites) {
     let stacks = lateWrites.stacks;
     let memoryMap = lateWrites.memoryMap;
-    function f() {}
-    StackRenderer.renderStacks('late-writes', stacks, memoryMap, f);
+    StackRenderer.renderStacks('late-writes', stacks, memoryMap,
+                               LateWritesSingleton.renderHeader);
   }
 };
 
