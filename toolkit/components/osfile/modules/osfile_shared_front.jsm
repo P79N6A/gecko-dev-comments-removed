@@ -16,7 +16,8 @@ if (typeof Components != "undefined") {
 
 let SharedAll =
   require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
-
+let Lz4 =
+  require("resource://gre/modules/workers/lz4.js");
 let LOG = SharedAll.LOG.bind(SharedAll, "Shared front-end");
 let clone = SharedAll.clone;
 
@@ -316,14 +317,31 @@ AbstractFile.normalizeOpenMode = function normalizeOpenMode(mode) {
 
 
 
+
+
+
+
 AbstractFile.read = function read(path, bytes, options = {}) {
+  if (bytes && typeof bytes == "object") {
+    options = bytes;
+    bytes = options.bytes || null;
+  }
   let file = exports.OS.File.open(path);
   try {
-    return file.read(bytes, options);
+    let buffer = file.read(bytes, options);
+    if (options.compression == "lz4") {
+      return Lz4.decompressFileContent(buffer, options);
+    } else {
+      return buffer;
+    }
   } finally {
     file.close();
   }
 };
+
+
+
+
 
 
 
@@ -379,6 +397,12 @@ AbstractFile.writeAtomic =
     
     let encoding = options.encoding || "utf-8";
     buffer = new TextEncoder(encoding).encode(buffer);
+  }
+
+  if (options.compression == "lz4") {
+    buffer = Lz4.compressFileContent(buffer, options);
+    options = Object.create(options);
+    options.bytes = buffer.byteLength;
   }
 
   let bytesWritten = 0;
