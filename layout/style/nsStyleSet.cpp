@@ -738,7 +738,7 @@ nsStyleSet::AssertNoCSSRules(nsRuleNode* aCurrLevelNode,
 
 void
 nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc, 
-                      void* aData, nsIContent* aContent,
+                      RuleProcessorData* aData, nsIContent* aContent,
                       nsRuleWalker* aRuleWalker)
 {
   SAMPLE_LABEL("nsStyleSet", "FileRules");
@@ -786,7 +786,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   if (mBindingManager && aContent) {
     
     mBindingManager->WalkRules(aCollectorFunc,
-                               static_cast<RuleProcessorData*>(aData),
+                               static_cast<ElementDependentRuleProcessorData*>(aData),
                                &cutOffInheritance);
   }
   if (!skipUserStyles && !cutOffInheritance &&
@@ -872,7 +872,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
 void
 nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
-                               RuleProcessorData* aData,
+                               ElementDependentRuleProcessorData* aData,
                                bool aWalkAllXBLStylesheets)
 {
   if (mRuleProcessors[eAgentSheet])

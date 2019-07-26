@@ -30,7 +30,7 @@ class nsIURI;
 class nsCSSFontFaceRule;
 class nsCSSKeyframesRule;
 class nsRuleWalker;
-struct RuleProcessorData;
+struct ElementDependentRuleProcessorData;
 struct TreeMatchContext;
 
 class nsEmptyStyleRule MOZ_FINAL : public nsIStyleRule
@@ -325,12 +325,13 @@ class nsStyleSet
   
   
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 void* aData, nsIContent* aContent, nsRuleWalker* aRuleWalker);
+                 RuleProcessorData* aData, nsIContent* aContent,
+                 nsRuleWalker* aRuleWalker);
 
   
   
   void WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
-                          RuleProcessorData* aData,
+                          ElementDependentRuleProcessorData* aData,
                           bool aWalkAllXBLStylesheets);
 
   already_AddRefed<nsStyleContext>

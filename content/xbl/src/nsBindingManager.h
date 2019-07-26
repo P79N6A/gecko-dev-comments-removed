@@ -16,6 +16,7 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 
+class ElementDependentRuleProcessorData;
 class nsIContent;
 class nsIXPConnectWrappedJS;
 class nsIAtom;
@@ -181,11 +182,11 @@ public:
 
   
   nsresult WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
-                     RuleProcessorData* aData,
+                     ElementDependentRuleProcessorData* aData,
                      bool* aCutOffInheritance);
 
   void WalkAllRules(nsIStyleRuleProcessor::EnumFunc aFunc,
-                    RuleProcessorData* aData);
+                    ElementDependentRuleProcessorData* aData);
   
 
 
