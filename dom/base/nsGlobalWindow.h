@@ -392,6 +392,7 @@ public:
 
   
   uint32_t GetLength();
+  already_AddRefed<nsIDOMWindow> IndexedGetter(uint32_t aIndex, bool& aFound);
 
   
   nsGlobalWindow(nsGlobalWindow *aOuterWindow);

@@ -5606,22 +5606,6 @@ nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
   return NS_OK;
 }
 
-static
-already_AddRefed<nsIDOMWindow>
-GetChildFrame(nsGlobalWindow *win, uint32_t index)
-{
-  nsCOMPtr<nsIDOMWindowCollection> frames;
-  win->GetFrames(getter_AddRefs(frames));
-
-  nsIDOMWindow *frame = nullptr;
-
-  if (frames) {
-    frames->Item(index, &frame);
-  }
-
-  return frame;
-}
-
 NS_IMETHODIMP
 nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                         JSObject *obj, jsid id, jsval *vp, bool *_retval)
@@ -5659,14 +5643,14 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     uint32_t index = uint32_t(JSID_TO_INT(id));
-    nsresult rv = NS_OK;
-    if (nsCOMPtr<nsIDOMWindow> frame = GetChildFrame(win, index)) {
+    bool found = false;
+    if (nsCOMPtr<nsIDOMWindow> frame = win->IndexedGetter(index, found)) {
       
       
       
 
       nsGlobalWindow *frameWin = (nsGlobalWindow *)frame.get();
-      NS_ASSERTION(frameWin->IsOuterWindow(), "GetChildFrame gave us an inner?");
+      NS_ASSERTION(frameWin->IsOuterWindow(), "IndexedGetter gave us an inner?");
 
       frameWin->EnsureInnerWindow();
       JSObject *global = frameWin->GetGlobalJSObject();
@@ -5674,14 +5658,15 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       
-      if (MOZ_UNLIKELY(!global))
-          return NS_ERROR_FAILURE;
+      if (MOZ_UNLIKELY(!global)) {
+        return NS_ERROR_FAILURE;
+      }
 
       nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
       jsval v;
-      rv = WrapNative(cx, xpc_UnmarkGrayObject(global),
-                      frame, &NS_GET_IID(nsIDOMWindow), true, &v,
-                      getter_AddRefs(holder));
+      nsresult rv = WrapNative(cx, xpc_UnmarkGrayObject(global), frame,
+                               &NS_GET_IID(nsIDOMWindow), true, &v,
+                               getter_AddRefs(holder));
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!JS_WrapValue(cx, &v)) {
@@ -5691,7 +5676,7 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       *vp = v;
     }
 
-    return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
+    return NS_SUCCESS_I_DID_SOMETHING;
   }
 
   if (JSID_IS_STRING(id) && !JSVAL_IS_PRIMITIVE(*vp) &&
@@ -7140,7 +7125,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       uint32_t index = uint32_t(JSID_TO_INT(id));
-      if (nsCOMPtr<nsIDOMWindow> frame = GetChildFrame(win, index)) {
+      bool found;
+      nsCOMPtr<nsIDOMWindow> frame = win->IndexedGetter(index, found);
+      if (found) {
         
         
 
