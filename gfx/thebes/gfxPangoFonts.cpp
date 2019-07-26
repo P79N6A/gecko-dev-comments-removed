@@ -1983,6 +1983,15 @@ nsString
 gfxPangoFontGroup::GetFamilyNameAt(int32_t i)
 {
     gfxFcFont* font = static_cast<gfxFcFont*>(GetFontAt(i));
+
+    if (font->GetFontEntry()->IsUserFont()) {
+        gfxFontFamily* family =
+            GetUserFontSet()->FindFamilyFor(font->GetFontEntry());
+        if (family) { 
+            return family->Name();
+        }
+    }
+
     return font->GetFamilyName();
 }
 

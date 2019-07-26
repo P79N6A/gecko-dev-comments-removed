@@ -194,6 +194,12 @@ public:
                                 bool& aWaitForUserFont);
 
     
+    
+    
+    
+    gfxFontFamily *FindFamilyFor(gfxFontEntry *aFontEntry) const;
+
+    
     virtual nsresult CheckFontLoad(const gfxFontFaceSrc *aFontFaceSrc,
                                    nsIPrincipal **aPrincipal) = 0;
 
