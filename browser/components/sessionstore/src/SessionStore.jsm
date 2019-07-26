@@ -693,8 +693,7 @@ let SessionStoreInternal = {
       return;
 
     
-    if (aWindow.document.documentElement.getAttribute("windowtype") != "navigator:browser" ||
-        this._loadState == STATE_QUITTING)
+    if (this._loadState == STATE_QUITTING)
       return;
 
     
@@ -858,6 +857,13 @@ let SessionStoreInternal = {
   onOpen: function ssi_onOpen(aWindow) {
     let onload = () => {
       aWindow.removeEventListener("load", onload);
+
+      let windowType = aWindow.document.documentElement.getAttribute("windowtype");
+
+      
+      if (windowType != "navigator:browser") {
+        return;
+      }
 
       if (this._sessionInitialized) {
         this.onLoad(aWindow);
