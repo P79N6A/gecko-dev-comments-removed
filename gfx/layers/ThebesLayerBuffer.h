@@ -316,8 +316,10 @@ protected:
 
 
 
+
+
   already_AddRefed<gfxContext>
-  GetContextForQuadrantUpdate(const nsIntRect& aBounds, ContextSource aSource);
+  GetContextForQuadrantUpdate(const nsIntRect& aBounds, ContextSource aSource, nsIntPoint* aTopLeft = nullptr);
 
   static bool IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion);
 
