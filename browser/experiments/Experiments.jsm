@@ -27,6 +27,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryPing",
                                   "resource://gre/modules/TelemetryPing.jsm");
 
 
+XPCOMUtils.defineLazyGetter(this, "CertUtils",
+  function() {
+    var mod = {};
+    Cu.import("resource://gre/modules/CertUtils.jsm", mod);
+    return mod;
+  });
+
+
 const FILE_CACHE                = "experiments.json";
 const OBSERVER_TOPIC            = "experiments-changed";
 const MANIFEST_VERSION          = 1;
@@ -41,6 +49,8 @@ const PREF_LOGGING              = "logging";
 const PREF_LOGGING_LEVEL        = PREF_LOGGING + ".level"; 
 const PREF_LOGGING_DUMP         = PREF_LOGGING + ".dump"; 
 const PREF_MANIFEST_URI         = "manifest.uri"; 
+const PREF_MANIFEST_CHECKCERT   = "manifest.cert.checkAttributes"; 
+const PREF_MANIFEST_REQUIREBUILTIN = "manifest.cert.requireBuiltin"; 
 
 const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 
@@ -447,7 +457,7 @@ Experiments.Experiments.prototype = {
     xhr.onerror = function (e) {
       gLogger.error("Experiments::httpGetRequest::onError() - Error making request to " + url + ": " + e.error);
       deferred.reject(new Error("Experiments - XHR error for " + url + " - " + e.error));
-    }
+    };
 
     xhr.onload = function (event) {
       if (xhr.status !== 200 && xhr.state !== 0) {
@@ -456,8 +466,22 @@ Experiments.Experiments.prototype = {
         return;
       }
 
+      let certs = null;
+      if (gPrefs.get(PREF_MANIFEST_CHECKCERT, true)) {
+        certs = CertUtils.readCertPrefs(PREF_BRANCH + "manifest.certs.");
+      }
+      try {
+        let allowNonBuiltin = !gPrefs.get(PREF_MANIFEST_REQUIREBUILTIN, true);
+        CertUtils.checkCert(xhr.channel, allowNonBuiltin, certs);
+      }
+      catch (e) {
+        gLogger.error("Experiments: manifest fetch failed certificate checks", [e]);
+        deferred.reject(new Error("Experiments - manifest fetch failed certificate checks: " + e));
+        return;
+      }
+
       deferred.resolve(xhr.responseText);
-    }
+    };
 
     if (xhr.channel instanceof Ci.nsISupportsPriority) {
       xhr.channel.priority = Ci.nsISupportsPriority.PRIORITY_LOWEST;
