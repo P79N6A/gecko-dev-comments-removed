@@ -1,3 +1,6 @@
+
+quit(0);
+
 function testSlice() {
     function test(subBuf, starts, size) {
         var byteLength = size;
