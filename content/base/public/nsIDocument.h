@@ -91,7 +91,6 @@ class DocumentFragment;
 class DocumentType;
 class DOMImplementation;
 class Element;
-class HTMLBodyElement;
 class Link;
 class ProcessingInstruction;
 class UndoManager;
@@ -581,7 +580,9 @@ public:
   Element* GetHtmlChildElement(nsIAtom* aTag);
   
   
-  mozilla::dom::HTMLBodyElement* GetBodyElement();
+  Element* GetBodyElement() {
+    return GetHtmlChildElement(nsGkAtoms::body);
+  }
   
   
   Element* GetHeadElement() {
