@@ -788,3 +788,5 @@ pref("general.useragent.override.youtube.com", "Android; Tablet;#Android; Mobile
 
 pref("browser.ui.linkify.phone", false);
 
+
+pref("snav.enabled", true);
