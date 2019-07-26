@@ -3331,8 +3331,7 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
         
 
         
-        
-        memset(data, 0, dataByteLen);
+        memset(data, 0, checked_neededByteLength.value());
 
         if (   x >= framebufferWidth
             || x+width <= 0
