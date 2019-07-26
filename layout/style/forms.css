@@ -807,6 +807,10 @@ input[type=range]::-moz-range-progress {
 
 input[type=range]::-moz-range-thumb {
   
+
+
+  -moz-appearance: range-thumb !important;
+  
   display: inline-block !important;
   float: none !important;
   position: static !important;

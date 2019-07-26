@@ -198,10 +198,6 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
                                      nsHTMLReflowMetrics&     aDesiredSize,
                                      const nsHTMLReflowState& aReflowState)
 {
-  if (ShouldUseNativeStyle()) {
-    return NS_OK; 
-  }
-
   
   
   nscoord rangeFrameContentBoxWidth = aReflowState.ComputedWidth();

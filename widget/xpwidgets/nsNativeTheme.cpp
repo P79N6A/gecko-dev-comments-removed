@@ -308,8 +308,13 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
   
 
 
-  if (aWidgetType == NS_THEME_RANGE) {
-    nsRangeFrame* rangeFrame = do_QueryFrame(aFrame);
+
+
+  if (aWidgetType == NS_THEME_RANGE ||
+      aWidgetType == NS_THEME_RANGE_THUMB) {
+    nsRangeFrame* rangeFrame =
+      do_QueryFrame(aWidgetType == NS_THEME_RANGE_THUMB
+                      ? aFrame->GetParent() : aFrame);
     if (rangeFrame) {
       return !rangeFrame->ShouldUseNativeStyle();
     }
@@ -664,7 +669,11 @@ nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
 bool
 nsNativeTheme::IsRangeHorizontal(nsIFrame* aFrame)
 {
-  MOZ_ASSERT(aFrame->GetType() == nsGkAtoms::rangeFrame);
+  nsIFrame* rangeFrame = aFrame;
+  if (rangeFrame->GetType() != nsGkAtoms::rangeFrame) {
+    rangeFrame = aFrame->GetParent();
+  }
+  MOZ_ASSERT(rangeFrame->GetType() == nsGkAtoms::rangeFrame);
 
-  return static_cast<nsRangeFrame*>(aFrame)->IsHorizontal();
+  return static_cast<nsRangeFrame*>(rangeFrame)->IsHorizontal();
 }
