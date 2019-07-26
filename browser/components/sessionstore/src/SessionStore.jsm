@@ -2598,6 +2598,13 @@ let SessionStoreInternal = {
 
     
     
+    let initialTabs = [];
+    if (!overwriteTabs && firstWindow) {
+      initialTabs = Array.slice(tabbrowser.tabs);
+    }
+
+    
+    
     if (overwriteTabs && tabbrowser.selectedTab._tPos >= newTabCount)
       tabbrowser.moveTabTo(tabbrowser.selectedTab, newTabCount - 1);
 
@@ -2607,10 +2614,6 @@ let SessionStoreInternal = {
       tabs.push(t < openTabCount ?
                 tabbrowser.tabs[t] :
                 tabbrowser.addTab("about:blank", {skipAnimation: true}));
-      
-      if (!overwriteTabs && firstWindow) {
-        tabbrowser.moveTabTo(tabs[t], t);
-      }
 
       if (winData.tabs[t].pinned)
         tabbrowser.pinTab(tabs[t]);
@@ -2621,6 +2624,14 @@ let SessionStoreInternal = {
       else {
         tabbrowser.showTab(tabs[t]);
         numVisibleTabs++;
+      }
+    }
+
+    if (!overwriteTabs && firstWindow) {
+      
+      let endPosition = tabbrowser.tabs.length - 1;
+      for (let i = 0; i < initialTabs.length; i++) {
+        tabbrowser.moveTabTo(initialTabs[i], endPosition);
       }
     }
 
