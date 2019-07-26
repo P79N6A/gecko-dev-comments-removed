@@ -128,6 +128,38 @@ PRUnichar* ToNewUnicode( const nsACString& aSource );
 
 
 
+uint32_t CalcUTF8ToUnicodeLength( const nsACString& aSource );
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRUnichar* UTF8ToUnicodeBuffer( const nsACString& aSource,
+                                PRUnichar *aBuffer,
+                                uint32_t *aUTF16Count = nullptr );
+
+  
+
+
+
+
+
+
+
 
 
 
