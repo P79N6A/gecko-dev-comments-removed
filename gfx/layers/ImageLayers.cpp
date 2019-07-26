@@ -24,25 +24,18 @@ void ImageLayer::SetContainer(ImageContainer* aContainer)
 
 void ImageLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
 {
-  gfx3DMatrix local = GetLocalTransform();
-
   
-  gfxRect sourceRect(0, 0, 0, 0);
+  gfxRect snap(0, 0, 0, 0);
   if (mContainer) {
-    sourceRect.SizeTo(mContainer->GetCurrentSize());
-    if (mScaleMode != SCALE_NONE) {
-      NS_ASSERTION(mScaleMode == SCALE_STRETCH,
-                   "No other scalemodes than stretch and none supported yet.");
-      local.Scale(mScaleToSize.width / sourceRect.width,
-                  mScaleToSize.height / sourceRect.height, 0.0);
-    }
+    gfxIntSize size = mContainer->GetCurrentSize();
+    snap.SizeTo(gfxSize(size.width, size.height));
   }
   
   
   
   
   mEffectiveTransform =
-      SnapTransform(local, sourceRect, nullptr)*
+      SnapTransform(GetLocalTransform(), snap, nullptr)*
       SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
 }

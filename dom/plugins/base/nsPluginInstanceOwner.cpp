@@ -646,6 +646,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   
   nsRefPtr<ImageContainer> container;
   mInstance->GetImageContainer(getter_AddRefs(container));
+  gfxIntSize oldSize(0, 0);
 
 #ifndef XP_MACOSX
   
@@ -663,7 +664,16 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
               presContext->DevPixelsToAppUnits(invalidRect->top),
               presContext->DevPixelsToAppUnits(invalidRect->right - invalidRect->left),
               presContext->DevPixelsToAppUnits(invalidRect->bottom - invalidRect->top));
-
+  if (container) {
+    gfxIntSize newSize = container->GetCurrentSize();
+    if (newSize != oldSize) {
+      
+      nsRect oldRect = nsRect(0, 0,
+                              presContext->DevPixelsToAppUnits(oldSize.width),
+                              presContext->DevPixelsToAppUnits(oldSize.height));
+      rect.UnionRect(rect, oldRect);
+    }
+  }
   rect.MoveBy(mObjectFrame->GetContentRectRelativeToSelf().TopLeft());
   mObjectFrame->InvalidateLayer(rect, nsDisplayItem::TYPE_PLUGIN);
   return NS_OK;
