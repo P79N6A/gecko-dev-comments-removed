@@ -193,14 +193,11 @@ AndroidBridge::Init(JNIEnv *jEnv)
     jSurfaceClass = getClassGlobalRef("android/view/Surface");
     if (mAPIVersion <= 8 ) {
         jSurfacePointerField = getField("mSurface", "I");
-    } else {
+    } else if (mAPIVersion > 8 && mAPIVersion < 19 ) {
         jSurfacePointerField = getField("mNativeSurface", "I");
-
+    } else {
         
-        
-        if (jEnv->ExceptionCheck()) {
-            jEnv->ExceptionClear();
-        }
+        jSurfacePointerField = 0;
     }
 
     jclass eglClass = getClassGlobalRef("com/google/android/gles_jni/EGLSurfaceImpl");
