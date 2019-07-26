@@ -291,7 +291,7 @@ js::RunScript(JSContext *cx, HandleScript script, StackFrame *fp)
 #endif
 
     SPSEntryMarker marker(cx->runtime);
-	
+
 #ifdef JS_ION
     if (ion::IsEnabled(cx)) {
         ion::MethodStatus status = ion::CanEnter(cx, script, fp, false);
@@ -299,7 +299,7 @@ js::RunScript(JSContext *cx, HandleScript script, StackFrame *fp)
             return false;
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus status = ion::Cannon(cx, fp);
-            
+
             
             
             if (status == ion::IonExec_Bailout)
@@ -375,7 +375,8 @@ js::InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct)
         return false;
 
     
-    JSBool ok = RunScript(cx, fun->script(), ifg.fp());
+    RootedScript script(cx, fun->script());
+    JSBool ok = RunScript(cx, script, ifg.fp());
 
     
     args.rval().set(ifg.fp()->returnValue());
@@ -791,7 +792,6 @@ js::UnwindScope(JSContext *cx, uint32_t stackDepth)
 void
 js::UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs)
 {
-
     
     for (TryNoteIter tni(regs); !tni.done(); ++tni) {
         JSTryNote *tn = *tni;
@@ -804,7 +804,7 @@ js::UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs)
 
 TryNoteIter::TryNoteIter(const FrameRegs &regs)
   : regs(regs),
-    script(regs.fp()->script()),
+    script(regs.fp()->script().unsafeGet()),
     pcOffset(regs.pc - script->main())
 {
     if (script->hasTrynotes()) {
@@ -1133,11 +1133,13 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 #define SET_SCRIPT(s)                                                         \
     JS_BEGIN_MACRO                                                            \
+        EnterAssertNoGCScope();                                               \
         script = (s);                                                         \
         if (script->hasAnyBreakpointsOrStepMode() || script->hasScriptCounts) \
             interrupts.enable();                                              \
         JS_ASSERT_IF(interpMode == JSINTERP_SKIP_TRAP,                        \
                      script->hasAnyBreakpointsOrStepMode());                  \
+        LeaveAssertNoGCScope();                                               \
     JS_END_MACRO
 
     
@@ -1152,7 +1154,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
     
     JSRuntime *const rt = cx->runtime;
-    Rooted<JSScript*> script(cx);
+    RootedScript script(cx);
     SET_SCRIPT(regs.fp()->script());
 
     
@@ -2382,9 +2384,8 @@ BEGIN_CASE(JSOP_FUNCALL)
 
     InitialFrameFlags initial = construct ? INITIAL_CONSTRUCT : INITIAL_NONE;
     bool newType = cx->typeInferenceEnabled() && UseNewType(cx, script, regs.pc);
-    JSScript *newScript = fun->script();
-
-    if (!cx->stack.pushInlineFrame(cx, regs, args, *fun, newScript, initial))
+    RawScript funScript = fun->script().unsafeGet();
+    if (!cx->stack.pushInlineFrame(cx, regs, args, *fun, funScript, initial))
         goto error;
 
     SET_SCRIPT(regs.fp()->script());

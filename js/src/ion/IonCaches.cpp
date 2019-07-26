@@ -1313,14 +1313,15 @@ static inline void
 GenerateScopeChainGuard(MacroAssembler &masm, JSObject *scopeObj,
                         Register scopeObjReg, Shape *shape, Label *failures)
 {
+    AutoAssertNoGC nogc;
     if (scopeObj->isCall()) {
         
         
         
         CallObject *callObj = &scopeObj->asCall();
         if (!callObj->isForEval()) {
-            JSFunction *fun = &callObj->callee();
-            JSScript *script = fun->script();
+            RawFunction fun = &callObj->callee();
+            RawScript script = fun->script();
             if (!script->funHasExtensibleScope)
                 return;
         }

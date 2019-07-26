@@ -561,6 +561,8 @@ static void
 ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
             JSErrorCallback callback, void *userRef)
 {
+    AssertCanGC();
+
     
 
 
@@ -605,6 +607,8 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
 static void
 PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 {
+    AutoAssertNoGC nogc;
+
     
 
 
@@ -628,6 +632,8 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 void
 js_ReportOutOfMemory(JSContext *cx)
 {
+    AutoAssertNoGC nogc;
+
     cx->runtime->hadOutOfMemory = true;
 
     JSErrorReport report;

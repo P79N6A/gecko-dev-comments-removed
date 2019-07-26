@@ -4494,14 +4494,13 @@ BudgetIncrementalGC(JSRuntime *rt, int64_t *budget)
 static JS_NEVER_INLINE void
 GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
+    
+    AutoAssertNoGC nogc;
+
 #ifdef DEBUG
     for (CompartmentsIter c(rt); !c.done(); c.next())
         JS_ASSERT_IF(rt->gcMode == JSGC_MODE_GLOBAL, c->isGCScheduled());
 #endif
-
-    
-    if (rt->isHeapBusy())
-        return;
 
     
     if (rt->inOOMReport)

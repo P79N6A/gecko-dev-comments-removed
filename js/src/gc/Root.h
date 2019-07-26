@@ -79,6 +79,10 @@ namespace JS {
 
 template <typename T> class MutableHandle;
 
+JS_FRIEND_API(void) EnterAssertNoGCScope();
+JS_FRIEND_API(void) LeaveAssertNoGCScope();
+JS_FRIEND_API(bool) InNoGCScope();
+
 
 
 
@@ -316,6 +320,168 @@ class InternalHandle<T*>
     }
 };
 
+#ifdef DEBUG
+template <typename T>
+class IntermediateNoGC
+{
+    T t_;
+
+  public:
+    IntermediateNoGC(const T &t) : t_(t) {
+        EnterAssertNoGCScope();
+    }
+    IntermediateNoGC(const IntermediateNoGC &) {
+        EnterAssertNoGCScope();
+    }
+    ~IntermediateNoGC() {
+        LeaveAssertNoGCScope();
+    }
+
+    const T &operator->() { return t_; }
+    operator const T &() { return t_; }
+};
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class Return
+{
+    friend class Rooted<T>;
+
+    const T ptr_;
+
+  public:
+    template <typename S>
+    Return(const S &ptr,
+           typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
+      : ptr_(ptr)
+    {}
+
+    Return(NullPtr) : ptr_(NULL) {}
+
+    
+
+
+
+
+
+
+
+
+    operator const T &() const {
+        JS_ASSERT(InNoGCScope());
+        return ptr_;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef DEBUG
+    IntermediateNoGC<T> operator->() const {
+        return IntermediateNoGC<T>(ptr_);
+    }
+#else
+    const T &operator->() const {
+        return ptr_;
+    }
+#endif
+
+    
+
+
+
+
+
+#ifdef DEBUG
+    IntermediateNoGC<T> unsafeGet() const {
+        return IntermediateNoGC<T>(ptr_);
+    }
+#else
+    const T &unsafeGet() const {
+        return ptr_;
+    }
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+    bool operator==(const T &other) { return ptr_ == other; }
+    bool operator==(const Return<T> &other) { return ptr_ == other.ptr_; }
+    bool operator==(const JS::Handle<T> &other) { return ptr_ == other.get(); }
+    inline bool operator==(const Rooted<T> &other);
+};
+
 
 
 
@@ -407,6 +573,15 @@ class Rooted : public RootedBase<T>
         init(cx);
     }
 
+    template <typename S>
+    Rooted(JSContext *cx, const Return<S> &initial
+           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : ptr(initial.ptr_)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        init(cx);
+    }
+
     ~Rooted()
     {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
@@ -439,6 +614,13 @@ class Rooted : public RootedBase<T>
         return ptr;
     }
 
+    template <typename S>
+    T & operator =(const Return<S> &value)
+    {
+        ptr = value.ptr_;
+        return ptr;
+    }
+
   private:
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
     Rooted<T> **stack, *prev;
@@ -448,6 +630,13 @@ class Rooted : public RootedBase<T>
 
     Rooted(const Rooted &) MOZ_DELETE;
 };
+
+template <typename T>
+bool
+Return<T>::operator==(const Rooted<T> &other)
+{
+    return ptr_ == other.get();
+}
 
 typedef Rooted<JSObject*>    RootedObject;
 typedef Rooted<JSFunction*>  RootedFunction;
@@ -543,10 +732,6 @@ MutableHandle<T>::MutableHandle(js::Rooted<S> *root,
 {
     ptr = root->address();
 }
-
-JS_FRIEND_API(void) EnterAssertNoGCScope();
-JS_FRIEND_API(void) LeaveAssertNoGCScope();
-JS_FRIEND_API(bool) InNoGCScope();
 
 
 
