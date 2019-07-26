@@ -368,7 +368,7 @@ class JSScript : public js::gc::Cell
     const char      *filename;  
     js::HeapPtrAtom *atoms;     
 
-    JSPrincipals    *principals;
+    void            *principalsPad;
     JSPrincipals    *originPrincipals; 
 
     
@@ -528,6 +528,8 @@ class JSScript : public js::gc::Cell
     static bool fullyInitTrivial(JSContext *cx, JS::Handle<JSScript*> script);  
     static bool fullyInitFromEmitter(JSContext *cx, JS::Handle<JSScript*> script,
                                      js::frontend::BytecodeEmitter *bce);
+
+    inline JSPrincipals *principals();
 
     void setVersion(JSVersion v) { version = v; }
 
