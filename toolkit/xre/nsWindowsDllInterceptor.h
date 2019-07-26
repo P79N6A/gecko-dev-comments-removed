@@ -361,6 +361,9 @@ protected:
           
           return;
         }
+      } else if (origBytes[nBytes] == 0xB8) {
+        
+        nBytes += 5;
       } else if (origBytes[nBytes] == 0x83) {
         
         unsigned char b = origBytes[nBytes+1];
