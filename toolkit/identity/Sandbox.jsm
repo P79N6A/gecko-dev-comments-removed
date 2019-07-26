@@ -13,10 +13,9 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "logger", function() {
-  Cu.import('resource://gre/modules/identity/LogUtils.jsm');
-  return getLogger("Identity", "toolkit.identity.debug");
-});
+XPCOMUtils.defineLazyModuleGetter(this,
+                                  "Logger",
+                                  "resource://gre/modules/identity/LogUtils.jsm");
 
 
 
@@ -35,7 +34,7 @@ XPCOMUtils.defineLazyGetter(this, "logger", function() {
 this.Sandbox = function Sandbox(aURL, aCallback) {
   
   this._url = Services.io.newURI(aURL, null, null).spec;
-  logger.log("Creating sandbox for:", this._url);
+  this._log("Creating sandbox for:", this._url);
   this._createFrame();
   this._createSandbox(aCallback);
 };
@@ -55,9 +54,9 @@ this.Sandbox.prototype = {
 
 
   reload: function Sandbox_reload(aCallback) {
-    logger.log("reload:", this.id, ":", this._url);
+    this._log("reload:", this.id, ":", this._url);
     this._createSandbox(function createdSandbox(aSandbox) {
-      logger.log("reloaded sandbox id:", aSandbox.id);
+      this._log("reloaded sandbox id:", aSandbox.id);
       aCallback(aSandbox);
     }.bind(this));
   },
@@ -66,7 +65,7 @@ this.Sandbox.prototype = {
 
 
   free: function Sandbox_free() {
-    logger.log("free:", this.id);
+    this._log("free:", this.id);
     this._container.removeChild(this._frame);
     this._frame = null;
     this._container = null;
@@ -116,7 +115,7 @@ this.Sandbox.prototype = {
   _createSandbox: function Sandbox__createSandbox(aCallback) {
     let self = this;
     function _makeSandboxContentLoaded(event) {
-      logger.log("_makeSandboxContentLoaded:", self.id,
+      self._log("_makeSandboxContentLoaded:", self.id,
                 event.target.location.toString());
       if (event.target != self._frame.contentDocument) {
         return;
@@ -145,5 +144,10 @@ this.Sandbox.prototype = {
       null  
     );
 
-  }
+  },
+
+  _log: function Sandbox__log(...aMessageArgs) {
+    Logger.log.apply(Logger, ["sandbox"].concat(aMessageArgs));
+  },
+
 };
