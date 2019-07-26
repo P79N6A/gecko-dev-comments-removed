@@ -128,22 +128,11 @@ function wrapPrivileged(obj) {
 
       
       
-      
-      
-      
-      
-      
-      var FakeConstructor = function() {
-        try {
-          return doApply(obj, this, unwrappedArgs);
-        } catch (e) {
-          
-          throw wrapIfUnwrapped(e);
-        }
-      };
-      FakeConstructor.prototype = obj.prototype;
-
-      return wrapPrivileged(new FakeConstructor());
+      try {
+        return wrapPrivileged(new obj(...unwrappedArgs));
+      } catch (e) {
+        throw wrapIfUnwrapped(e);
+      }
     };
 
     return Proxy.createFunction(handler, callTrap, constructTrap);

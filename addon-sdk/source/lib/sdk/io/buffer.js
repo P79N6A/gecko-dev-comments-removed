@@ -58,7 +58,7 @@ function Buffer(subject, encoding ) {
       
       
       encoding = encoding || 'utf8';
-      return Uint8Array(TextEncoder(encoding).encode(subject).buffer);
+      return Uint8Array(new TextEncoder(encoding).encode(subject).buffer);
     case 'object':
       
       
@@ -84,7 +84,7 @@ Buffer.isBuffer = value => value instanceof Buffer
 Buffer.isEncoding = function (encoding) {
   if (!encoding) return false;
   try {
-    TextDecoder(encoding);
+    new TextDecoder(encoding);
   } catch(e) {
     return false;
   }
@@ -95,7 +95,7 @@ Buffer.isEncoding = function (encoding) {
 
 
 Buffer.byteLength = (value, encoding = 'utf8') =>
-  TextEncoder(encoding).encode(value).byteLength
+  new TextEncoder(encoding).encode(value).byteLength
 
 
 
@@ -156,7 +156,7 @@ Object.defineProperties(Buffer.prototype, {
       encoding = !!encoding ? (encoding + '').toLowerCase() : 'utf8';
       start = Math.max(0, ~~start);
       end = Math.min(this.length, end === void(0) ? this.length : ~~end);
-      return TextDecoder(encoding).decode(this.subarray(start, end));
+      return new TextDecoder(encoding).decode(this.subarray(start, end));
     }
   },
   toJSON: {
@@ -262,7 +262,7 @@ Object.defineProperties(Buffer.prototype, {
       if (length == null || length + offset > this.length)
         length = this.length - offset;
 
-      let buffer = TextEncoder(encoding).encode(string);
+      let buffer = new TextEncoder(encoding).encode(string);
       let result = Math.min(buffer.length, length);
       if (buffer.length !== length)
         buffer = buffer.subarray(0, length);

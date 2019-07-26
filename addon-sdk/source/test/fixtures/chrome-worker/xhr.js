@@ -3,7 +3,7 @@
 
 'use strict';
 
-let xhr = XMLHttpRequest();
+let xhr = new XMLHttpRequest();
 xhr.open("GET", "data:text/plain,ok", true);
 xhr.onload = function () {
   postMessage(xhr.responseText);
