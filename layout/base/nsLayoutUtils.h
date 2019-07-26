@@ -396,14 +396,6 @@ public:
   
 
 
-
-
-  static bool IsScrolledByRootContentDocumentDisplayportScrolling(const nsIFrame* aAnimatedGeometryRoot,
-                                                                  nsDisplayListBuilder* aBuilder);
-
-  
-
-
   static nsIScrollableFrame* GetScrollableFrameFor(const nsIFrame *aScrolledFrame);
 
   

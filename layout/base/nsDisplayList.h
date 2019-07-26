@@ -291,12 +291,6 @@ public:
   bool AllowMergingAndFlattening() { return mAllowMergingAndFlattening; }
   void SetAllowMergingAndFlattening(bool aAllow) { mAllowMergingAndFlattening = aAllow; }
 
-  
-
-
-
-  bool IsInFixedPosition() const { return mIsInFixedPosition; }
-
   bool SetIsCompositingCheap(bool aCompositingCheap) { 
     bool temp = mIsCompositingCheap; 
     mIsCompositingCheap = aCompositingCheap;
@@ -353,20 +347,6 @@ public:
 
 
   void SetInTransform(bool aInTransform) { mInTransform = aInTransform; }
-
-  
-
-
-  void SetDisplayPort(const nsRect& aDisplayPort);
-  const nsRect* GetDisplayPort() { return mHasDisplayPort ? &mDisplayPort : nullptr; }
-
-  
-
-
-
-
-  void SetHasFixedItems() { mHasFixedItems = true; }
-  bool GetHasFixedItems() { return mHasFixedItems; }
 
   
 
@@ -508,14 +488,13 @@ public:
       aBuilder->mIsAtRootOfPseudoStackingContext = aIsRoot;
     }
     AutoBuildingDisplayList(nsDisplayListBuilder* aBuilder,
-                            nsIFrame* aForChild, bool aIsRoot,
-                            bool aIsInFixedPosition)
+                            nsIFrame* aForChild, bool aIsRoot)
       : mBuilder(aBuilder),
         mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
         mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
         mPrevCachedOffset(aBuilder->mCachedOffset),
-        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext),
-        mPrevIsInFixedPosition(aBuilder->mIsInFixedPosition) {
+        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext)
+    {
       if (aForChild->IsTransformed()) {
         aBuilder->mCachedOffset = nsPoint();
         aBuilder->mCachedReferenceFrame = aForChild;
@@ -526,16 +505,12 @@ public:
       }
       aBuilder->mCachedOffsetFrame = aForChild;
       aBuilder->mIsAtRootOfPseudoStackingContext = aIsRoot;
-      if (aIsInFixedPosition) {
-        aBuilder->mIsInFixedPosition = aIsInFixedPosition;
-      }
     }
     ~AutoBuildingDisplayList() {
       mBuilder->mCachedOffsetFrame = mPrevCachedOffsetFrame;
       mBuilder->mCachedReferenceFrame = mPrevCachedReferenceFrame;
       mBuilder->mCachedOffset = mPrevCachedOffset;
       mBuilder->mIsAtRootOfPseudoStackingContext = mPrevIsAtRootOfPseudoStackingContext;
-      mBuilder->mIsInFixedPosition = mPrevIsInFixedPosition;
     }
   private:
     nsDisplayListBuilder* mBuilder;
@@ -543,7 +518,6 @@ public:
     const nsIFrame*       mPrevCachedReferenceFrame;
     nsPoint               mPrevCachedOffset;
     bool                  mPrevIsAtRootOfPseudoStackingContext;
-    bool                  mPrevIsInFixedPosition;
   };
 
   
@@ -663,7 +637,6 @@ private:
   const nsIFrame*                mCachedOffsetFrame;
   const nsIFrame*                mCachedReferenceFrame;
   nsPoint                        mCachedOffset;
-  nsRect                         mDisplayPort;
   nsRegion                       mExcludedGlassRegion;
   
   nsDisplayItem*                 mGlassDisplayItem;
@@ -683,9 +656,6 @@ private:
   bool                           mInTransform;
   bool                           mSyncDecodeImages;
   bool                           mIsPaintingToWindow;
-  bool                           mHasDisplayPort;
-  bool                           mHasFixedItems;
-  bool                           mIsInFixedPosition;
   bool                           mIsCompositingCheap;
   bool                           mContainsPluginItem;
   bool                           mContainsBlendMode;
@@ -2079,9 +2049,6 @@ protected:
   
   nsRect mBounds;
   uint32_t mLayer;
-
-  
-  bool mIsBottommostLayer;
 };
 
 
