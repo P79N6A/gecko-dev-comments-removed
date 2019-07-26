@@ -164,7 +164,7 @@ js::DateTimeInfo::DateTimeInfo()
 {
     
     
-    localTZA_ = UnspecifiedNaN();
+    localTZA_ = UnspecifiedNaN<double>();
     updateTimeZoneAdjustment();
 }
 

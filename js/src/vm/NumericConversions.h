@@ -39,12 +39,13 @@ ToUintWidth(double d)
                   "ResultType must be an unsigned type");
 
     uint64_t bits = mozilla::BitwiseCast<uint64_t>(d);
+    unsigned DoubleExponentShift = mozilla::FloatingPoint<double>::ExponentShift;
 
     
     
     int_fast16_t exp =
-        int_fast16_t((bits & mozilla::DoubleExponentBits) >> mozilla::DoubleExponentShift) -
-        int_fast16_t(mozilla::DoubleExponentBias);
+        int_fast16_t((bits & mozilla::FloatingPoint<double>::ExponentBits) >> DoubleExponentShift) -
+        int_fast16_t(mozilla::FloatingPoint<double>::ExponentBias);
 
     
     
@@ -60,7 +61,7 @@ ToUintWidth(double d)
     
     
     const size_t ResultWidth = CHAR_BIT * sizeof(ResultType);
-    if (exponent >= mozilla::DoubleExponentShift + ResultWidth)
+    if (exponent >= DoubleExponentShift + ResultWidth)
         return 0;
 
     
@@ -68,9 +69,9 @@ ToUintWidth(double d)
     
     static_assert(sizeof(ResultType) <= sizeof(uint64_t),
                   "Left-shifting below would lose upper bits");
-    ResultType result = (exponent > mozilla::DoubleExponentShift)
-                        ? ResultType(bits << (exponent - mozilla::DoubleExponentShift))
-                        : ResultType(bits >> (mozilla::DoubleExponentShift - exponent));
+    ResultType result = (exponent > DoubleExponentShift)
+                        ? ResultType(bits << (exponent - DoubleExponentShift))
+                        : ResultType(bits >> (DoubleExponentShift - exponent));
 
     
     
@@ -103,7 +104,7 @@ ToUintWidth(double d)
     }
 
     
-    return (bits & mozilla::DoubleSignBit) ? ~result + 1 : result;
+    return (bits & mozilla::FloatingPoint<double>::SignBit) ? ~result + 1 : result;
 }
 
 template<typename ResultType>

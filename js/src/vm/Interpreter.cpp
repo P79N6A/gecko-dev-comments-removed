@@ -57,7 +57,7 @@ using namespace js::gc;
 using namespace js::types;
 
 using mozilla::DebugOnly;
-using mozilla::DoubleEqualsInt32;
+using mozilla::NumberEqualsInt32;
 using mozilla::PodCopy;
 using JS::ForOfIterator;
 
@@ -2841,7 +2841,7 @@ CASE(JSOP_TABLESWITCH)
         i = rref.toInt32();
     } else {
         
-        if (!rref.isDouble() || !DoubleEqualsInt32(rref.toDouble(), &i))
+        if (!rref.isDouble() || !NumberEqualsInt32(rref.toDouble(), &i))
             ADVANCE_AND_DISPATCH(len);
     }
 
