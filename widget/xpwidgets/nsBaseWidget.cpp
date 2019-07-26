@@ -849,11 +849,7 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
 #endif
 
   
-  
-  bool isSmallPopup = ((mWindowType == eWindowType_popup) &&
-                      (mPopupType != ePopupTypePanel));
-  
-  bool disableAcceleration = isSmallPopup || gfxPlatform::GetPrefLayersAccelerationDisabled() || (mWindowType == eWindowType_invisible);
+  bool disableAcceleration = IsSmallPopup() || gfxPlatform::GetPrefLayersAccelerationDisabled();
   mForceLayersAcceleration = gfxPlatform::GetPrefLayersAccelerationForceEnabled();
 
   const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
@@ -976,11 +972,15 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   
 }
 
+bool nsBaseWidget::IsSmallPopup()
+{
+  return mWindowType == eWindowType_popup &&
+         mPopupType != ePopupTypePanel;
+}
+
 bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
 {
-  bool isSmallPopup = ((mWindowType == eWindowType_popup) &&
-                      (mPopupType != ePopupTypePanel)) || (mWindowType == eWindowType_invisible);
-  return CompositorParent::CompositorLoop() && !isSmallPopup;
+  return CompositorParent::CompositorLoop() && !IsSmallPopup();
 }
 
 LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
