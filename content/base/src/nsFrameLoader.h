@@ -33,6 +33,7 @@ class nsITabParent;
 class nsIDocShellTreeItem;
 class nsIDocShellTreeOwner;
 class nsIDocShellTreeNode;
+class mozIApplication;
 
 namespace mozilla {
 namespace dom {
@@ -315,7 +316,7 @@ private:
 
 
 
-  bool OwnerIsBrowserFrame();
+  bool OwnerIsBrowserOrAppFrame();
 
   
 
@@ -326,8 +327,27 @@ private:
   
 
 
+  bool OwnerIsBrowserFrame();
+
+  
+
+
 
   void GetOwnerAppManifestURL(nsAString& aOut);
+
+  
+
+
+
+  already_AddRefed<mozIApplication> GetOwnApp();
+
+  
+
+
+
+
+
+  already_AddRefed<mozIApplication> GetOwnOrContainingApp();
 
   
 

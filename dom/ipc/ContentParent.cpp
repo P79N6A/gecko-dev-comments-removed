@@ -54,7 +54,6 @@
 #include "nsFrameMessageManager.h"
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
-#include "nsIAppsService.h"
 #include "nsIClipboard.h"
 #include "nsIConsoleService.h"
 #include "nsIDOMApplicationRegistry.h"
@@ -318,26 +317,34 @@ AppNeedsInheritedOSPrivileges(mozIApplication* aApp)
 }
 
  TabParent*
-ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
+ContentParent::CreateBrowserOrApp(mozIApplication* aOwnOrContainingApp,
+                                  bool aIsBrowserElement)
 {
-    
-    
-    
-    
-    MOZ_ASSERT(!aApp || !aIsBrowserElement);
+    uint32_t ownOrContainingAppId = nsIScriptSecurityManager::NO_APP_ID;
+    if (aOwnOrContainingApp) {
+        NS_ENSURE_SUCCESS(aOwnOrContainingApp->GetLocalId(&ownOrContainingAppId),
+                          nullptr);
+    }
 
-    if (!aApp) {
+    if (aIsBrowserElement || !aOwnOrContainingApp) {
         if (ContentParent* cp = GetNewOrUsed(aIsBrowserElement)) {
-            nsRefPtr<TabParent> tp(new TabParent(aApp, aIsBrowserElement));
+            nsRefPtr<TabParent> tp(new TabParent(aOwnOrContainingApp, aIsBrowserElement));
             return static_cast<TabParent*>(
                 cp->SendPBrowserConstructor(
                     
                     tp.forget().get(),
                     0,
-                    aIsBrowserElement, nsIScriptSecurityManager::NO_APP_ID));
+                    ownOrContainingAppId, aIsBrowserElement));
         }
         return nullptr;
     }
+
+    
+    
+    
+    
+    nsCOMPtr<mozIApplication> ownApp = aOwnOrContainingApp;
+    uint32_t ownAppId = ownOrContainingAppId;
 
     if (!gAppContentParents) {
         gAppContentParents =
@@ -347,29 +354,15 @@ ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
 
     
     nsAutoString manifestURL;
-    if (NS_FAILED(aApp->GetManifestURL(manifestURL))) {
+    if (NS_FAILED(ownApp->GetManifestURL(manifestURL))) {
         NS_ERROR("Failed to get manifest URL");
-        return nullptr;
-    }
-
-    nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
-    if (!appsService) {
-        NS_ERROR("Failed to get apps service");
-        return nullptr;
-    }
-
-    
-    
-    uint32_t appId;
-    if (NS_FAILED(appsService->GetAppLocalIdByManifestURL(manifestURL, &appId))) {
-        NS_ERROR("Failed to get local app ID");
         return nullptr;
     }
 
     nsRefPtr<ContentParent> p = gAppContentParents->Get(manifestURL);
     if (!p) {
-        if (AppNeedsInheritedOSPrivileges(aApp)) {
-            p = new ContentParent(manifestURL, aIsBrowserElement,
+        if (AppNeedsInheritedOSPrivileges(ownApp)) {
+            p = new ContentParent(manifestURL,  false,
                                   base::PRIVILEGES_INHERIT);
             p->Init();
         } else {
@@ -378,7 +371,7 @@ ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
                 p->SetManifestFromPreallocated(manifestURL);
             } else {
                 NS_WARNING("Unable to use pre-allocated app process");
-                p = new ContentParent(manifestURL, aIsBrowserElement,
+                p = new ContentParent(manifestURL,  false,
                                       base::PRIVILEGES_DEFAULT);
                 p->Init();
             }
@@ -386,12 +379,13 @@ ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
         gAppContentParents->Put(manifestURL, p);
     }
 
-    nsRefPtr<TabParent> tp(new TabParent(aApp, aIsBrowserElement));
+    nsRefPtr<TabParent> tp(new TabParent(ownApp,  false));
     return static_cast<TabParent*>(
         
         p->SendPBrowserConstructor(tp.forget().get(),
-                                   0,
-                                   aIsBrowserElement, appId));
+                                    0,
+                                   ownAppId,
+                                    false));
 }
 
 static PLDHashOperator
@@ -1150,18 +1144,20 @@ ContentParent::RecvGetProcessAttributes(uint64_t* aId, bool* aStartBackground,
 
 PBrowserParent*
 ContentParent::AllocPBrowser(const uint32_t& aChromeFlags,
-                             const bool& aIsBrowserElement, const AppId& aApp)
+                             const AppToken& aOwnOrContainingAppToken,
+                             const bool& aIsBrowserElement)
 {
     
     
     
     
     
-    if (AppId::TPBrowserParent != aApp.type()) {
+    if (AppToken::TPBrowserParent != aOwnOrContainingAppToken.type()) {
         NS_ERROR("Content process attempting to forge app ID");
         return nullptr;
     }
-    TabParent* opener = static_cast<TabParent*>(aApp.get_PBrowserParent());
+    TabParent* opener = static_cast<TabParent*>(
+      aOwnOrContainingAppToken.get_PBrowserParent());
 
     
     
@@ -1171,8 +1167,9 @@ ContentParent::AllocPBrowser(const uint32_t& aChromeFlags,
         return nullptr;
     }
 
-    TabParent* parent = new TabParent(opener ? opener->GetApp() : nullptr,
-                                      aIsBrowserElement);
+    nsCOMPtr<mozIApplication> app = opener ? opener->GetOwnOrContainingApp() : nullptr;
+    TabParent* parent = new TabParent(app, aIsBrowserElement);
+
     
     NS_ADDREF(parent);
     return parent;
