@@ -40,6 +40,7 @@ public class WebViewActivity extends SyncActivity {
     
     final Activity activity = this;
     wv.setWebChromeClient(new WebChromeClient() {
+      @Override
       public void onProgressChanged(WebView view, int progress) {
         
         

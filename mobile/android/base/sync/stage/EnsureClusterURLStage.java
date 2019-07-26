@@ -212,12 +212,7 @@ public class EnsureClusterURLStage extends AbstractNonRepositorySyncStage {
         callback.informNodeAssigned(session, oldClusterURL, url); 
         session.config.setClusterURL(url);
 
-        ThreadPool.run(new Runnable() {
-          @Override
-          public void run() {
-            session.advance();
-          }
-        });
+        session.advance();
       }
 
       @Override
