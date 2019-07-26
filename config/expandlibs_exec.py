@@ -109,7 +109,7 @@ class ExpandArgsMore(ExpandArgs):
                                 
                                 
                                 
-                                maybe_obj = lookup(os.path.join(basedir, os.path.relpath(root, tmp), f)
+                                maybe_obj = lookup(os.path.join(basedir, os.path.relpath(root, tmp)), f)
                                 if maybe_obj:
                                     objs.append(relativize(maybe_obj))
                                 else:
