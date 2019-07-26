@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "Accessible.h"
 #include "Accessible2.h"
+#include "ia2Accessible.h"
 #include "ia2AccessibleComponent.h"
 #include "ia2AccessibleHyperlink.h"
 #include "ia2AccessibleValue.h"
@@ -25,10 +26,10 @@ namespace mozilla {
 namespace a11y {
 
 class AccessibleWrap : public Accessible,
+                       public ia2Accessible,
                        public ia2AccessibleComponent,
                        public ia2AccessibleHyperlink,
-                       public ia2AccessibleValue,
-                       public IAccessible2
+                       public ia2AccessibleValue
 {
 public: 
   AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
@@ -130,72 +131,6 @@ public:
          VARIANT varChild,
          BSTR szValue);
 
-  public: 
-    virtual  HRESULT STDMETHODCALLTYPE get_nRelations(
-         long *nRelations);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_relation(
-         long relationIndex,
-         IAccessibleRelation **relation);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_relations(
-         long maxRelations,
-         IAccessibleRelation **relation,
-         long *nRelations);
-
-    virtual HRESULT STDMETHODCALLTYPE role(
-             long *role);
-
-    virtual HRESULT STDMETHODCALLTYPE scrollTo(
-         enum IA2ScrollType scrollType);
-
-    virtual HRESULT STDMETHODCALLTYPE scrollToPoint(
-         enum IA2CoordinateType coordinateType,
-	       long x,
-	       long y);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_groupPosition(
-         long *groupLevel,
-         long *similarItemsInGroup,
-         long *positionInGroup);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_states(
-         AccessibleStates *states);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_extendedRole(
-         BSTR *extendedRole);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_localizedExtendedRole(
-         BSTR *localizedExtendedRole);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_nExtendedStates(
-         long *nExtendedStates);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_extendedStates(
-         long maxExtendedStates,
-         BSTR **extendedStates,
-         long *nExtendedStates);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_localizedExtendedStates(
-         long maxLocalizedExtendedStates,
-         BSTR **localizedExtendedStates,
-         long *nLocalizedExtendedStates);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_uniqueID(
-         long *uniqueID);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_windowHandle(
-         HWND *windowHandle);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_indexInParent(
-         long *indexInParent);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_locale(
-         IA2Locale *locale);
-
-    virtual  HRESULT STDMETHODCALLTYPE get_attributes(
-         BSTR *attributes);
-
   
   virtual HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT *pctinfo);
 
@@ -221,8 +156,6 @@ public:
   
   static int32_t GetChildIDFor(Accessible* aAccessible);
   static HWND GetHWNDFor(Accessible* aAccessible);
-  static HRESULT ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
-                                        BSTR *aIA2Attributes);
 
   
 
