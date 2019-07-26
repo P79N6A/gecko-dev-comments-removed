@@ -145,7 +145,13 @@ function expectOnlyOneProcessCreated() {
 
 
 
-function expectPriorityChange(childID, expectedPriority) {
+
+
+
+
+
+function expectPriorityChange(childID, expectedPriority,
+                               expectedCPUPriority) {
   var deferred = Promise.defer();
 
   var observed = false;
@@ -156,7 +162,7 @@ function expectPriorityChange(childID, expectedPriority) {
         return;
       }
 
-      [id, priority] = data.split(":");
+      [id, priority, cpuPriority] = data.split(":");
       if (id != childID) {
         return;
       }
@@ -169,10 +175,17 @@ function expectPriorityChange(childID, expectedPriority) {
          'Expected priority of childID ' + childID +
          ' to change to ' + expectedPriority);
 
-      if (priority == expectedPriority) {
-        deferred.resolve(priority);
+      if (expectedCPUPriority) {
+        is(cpuPriority, expectedCPUPriority,
+           'Expected CPU priority of childID ' + childID +
+           ' to change to ' + expectedCPUPriority);
+      }
+
+      if (priority == expectedPriority &&
+          (!expectedCPUPriority || expectedCPUPriority == cpuPriority)) {
+        deferred.resolve();
       } else {
-        deferred.reject(priority);
+        deferred.reject();
       }
     }
   );
