@@ -3094,13 +3094,13 @@ nsXPCComponents_Utils::EvalInWindow(const nsAString &source, const Value &window
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::ExportFunction(const Value &vfunction, const Value &vscope,
-                                      const Value &vname, JSContext *cx, Value *rval)
+                                      const Value &voptions, JSContext *cx, Value *rval)
 {
     RootedValue rfunction(cx, vfunction);
     RootedValue rscope(cx, vscope);
-    RootedValue rname(cx, vname);
+    RootedValue roptions(cx, voptions);
     RootedValue res(cx);
-    if (!xpc::ExportFunction(cx, rfunction, rscope, rname, &res))
+    if (!xpc::ExportFunction(cx, rfunction, rscope, roptions, &res))
         return NS_ERROR_FAILURE;
     *rval = res;
     return NS_OK;
