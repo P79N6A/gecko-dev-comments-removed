@@ -1561,12 +1561,10 @@ GetAnimatedGeometryRootForFrame(nsIFrame* aFrame,
     if (!parent)
       break;
     nsIAtom* parentType = parent->GetType();
-#ifdef ANDROID
     
     
     if (parentType == nsGkAtoms::sliderFrame)
       break;
-#endif
     
     
     
