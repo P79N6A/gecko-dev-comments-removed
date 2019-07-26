@@ -562,7 +562,11 @@ TabWebProgressListener.prototype = {
 
   destroy: function TWPL_destroy() {
     if (this.target.tab) {
-      this.target.tab.linkedBrowser.removeProgressListener(this);
+      try {
+        this.target.tab.linkedBrowser.removeProgressListener(this);
+      } catch (ex) {
+        
+      }
     }
     this.target._webProgressListener = null;
     this.target._navRequest = null;
