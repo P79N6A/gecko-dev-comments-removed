@@ -55,11 +55,11 @@ class RangedPtr
     }
 
     
-    RangedPtr<T> create(T *ptr) const {
+    RangedPtr<T> create(T *p) const {
 #ifdef DEBUG
-      return RangedPtr<T>(ptr, rangeStart, rangeEnd);
+      return RangedPtr<T>(p, rangeStart, rangeEnd);
 #else
-      return RangedPtr<T>(ptr, NULL, size_t(0));
+      return RangedPtr<T>(p, NULL, size_t(0));
 #endif
     }
 
