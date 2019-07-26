@@ -113,6 +113,8 @@ private:
   
   
   nsTArray<nsCString> mAllowlistSpecs;
+  
+  nsTArray<nsCString> mAnylistSpecs;
 
   
   TimeStamp mStartTime;
@@ -199,7 +201,7 @@ public:
   
   
   
-  nsresult LookupSpec(const nsACString& aSpec, bool aAllowListOnly);
+  nsresult LookupSpec(const nsACString& aSpec, bool aAllowlistOnly);
 private:
   
   
@@ -210,7 +212,7 @@ private:
   };
 
   nsCString mSpec;
-  bool mAllowListOnly;
+  bool mAllowlistOnly;
   nsRefPtr<PendingLookup> mPendingLookup;
   nsresult LookupSpecInternal(const nsACString& aSpec);
 };
@@ -219,7 +221,7 @@ NS_IMPL_ISUPPORTS1(PendingDBLookup,
                    nsIUrlClassifierCallback)
 
 PendingDBLookup::PendingDBLookup(PendingLookup* aPendingLookup) :
-  mAllowListOnly(false),
+  mAllowlistOnly(false),
   mPendingLookup(aPendingLookup)
 {
   LOG(("Created pending DB lookup [this = %p]", this));
@@ -233,11 +235,11 @@ PendingDBLookup::~PendingDBLookup()
 
 nsresult
 PendingDBLookup::LookupSpec(const nsACString& aSpec,
-                            bool aAllowListOnly)
+                            bool aAllowlistOnly)
 {
   LOG(("Checking principal %s", aSpec.Data()));
   mSpec = aSpec;
-  mAllowListOnly = aAllowListOnly;
+  mAllowlistOnly = aAllowlistOnly;
   nsresult rv = LookupSpecInternal(aSpec);
   if (NS_FAILED(rv)) {
     LOG(("Error in LookupSpecInternal"));
@@ -281,20 +283,20 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
   
   
   
+  nsAutoCString blockList;
+  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
+  if (!mAllowlistOnly && FindInReadable(tables, blockList)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
+    LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
+    return mPendingLookup->OnComplete(true, NS_OK);
+  }
+
   nsAutoCString allowList;
   Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowList);
   if (FindInReadable(tables, allowList)) {
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
     LOG(("Found principal %s on allowlist [this = %p]", mSpec.get(), this));
     return mPendingLookup->OnComplete(false, NS_OK);
-  }
-
-  nsAutoCString blockList;
-  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
-  if (!mAllowListOnly && FindInReadable(tables, blockList)) {
-    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
-    LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
-    return mPendingLookup->OnComplete(true, NS_OK);
   }
 
   LOG(("Didn't find principal %s on any list [this = %p]", mSpec.get(), this));
@@ -324,18 +326,26 @@ PendingLookup::LookupNext()
 {
   
   
-  int index = mAllowlistSpecs.Length() - 1;
+  
+  int index = mAnylistSpecs.Length() - 1;
+  nsCString spec;
+  bool allowlistOnly = false;
   if (index >= 0) {
-    nsCString spec = mAllowlistSpecs[index];
-    mAllowlistSpecs.RemoveElementAt(index);
-    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
-    bool allowListOnly = true;
-    if (index == 0) {
-      
-      
-      allowListOnly = false;
+    
+    spec = mAnylistSpecs[index];
+    mAnylistSpecs.RemoveElementAt(index);
+  } else {
+    
+    index = mAllowlistSpecs.Length() - 1;
+    if (index >= 0) {
+      allowlistOnly = true;
+      spec = mAllowlistSpecs[index];
+      mAllowlistSpecs.RemoveElementAt(index);
     }
-    return lookup->LookupSpec(spec, allowListOnly);
+  }
+  if (index >= 0) {
+    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
+    return lookup->LookupSpec(spec, allowlistOnly);
   }
   
   
@@ -506,7 +516,16 @@ PendingLookup::DoLookupInternal()
   nsCString spec;
   rv = uri->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
-  mAllowlistSpecs.AppendElement(spec);
+  mAnylistSpecs.AppendElement(spec);
+
+  nsCOMPtr<nsIURI> referrer = nullptr;
+  rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
+  if (referrer) {
+    nsCString spec;
+    rv = referrer->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mAnylistSpecs.AppendElement(spec);
+  }
 
   
   
