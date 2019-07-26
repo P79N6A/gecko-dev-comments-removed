@@ -94,11 +94,15 @@ MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register
     ma_vcmp(src, ScratchFloatReg);
     as_vmrs(pc);
     ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
-    
+
     if (negativeZeroCheck) {
         ma_cmp(dest, Imm32(0));
-        ma_b(fail, Assembler::Equal);
         
+        
+        
+        as_vxfer(dest, InvalidReg, src, FloatToCore, Assembler::Equal, 1);
+        ma_cmp(dest, Imm32(0x80000000), Assembler::Equal);
+        ma_b(fail, Assembler::Equal);
     }
 }
 
