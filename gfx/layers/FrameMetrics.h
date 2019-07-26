@@ -10,6 +10,7 @@
 #include "gfxTypes.h"
 #include "nsRect.h"
 #include "mozilla/gfx/Rect.h"
+#include "Units.h"
 
 namespace mozilla {
 namespace layers {
@@ -190,7 +191,7 @@ public:
   
   
   
-  gfx::Point mScrollOffset;
+  mozilla::CSSPoint mScrollOffset;
 
   
   

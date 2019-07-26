@@ -36,6 +36,17 @@ struct PointTyped :
   PointTyped() : Super() {}
   PointTyped(Float aX, Float aY) : Super(aX, aY) {}
   PointTyped(const IntPointTyped<units>& point) : Super(float(point.x), float(point.y)) {}
+
+  
+  
+
+  static PointTyped<units> FromUnknownPoint(const PointTyped<UnknownUnits>& pt) {
+    return PointTyped<units>(pt.x, pt.y);
+  }
+
+  PointTyped<UnknownUnits> ToUnknownPoint() const {
+    return PointTyped<UnknownUnits>(this->x, this->y);
+  }
 };
 typedef PointTyped<UnknownUnits> Point;
 

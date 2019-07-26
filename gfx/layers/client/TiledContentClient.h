@@ -73,8 +73,8 @@ struct BasicTiledLayerTile {
 
 
 struct BasicTiledLayerPaintData {
-  gfx::Point mScrollOffset;
-  gfx::Point mLastScrollOffset;
+  CSSPoint mScrollOffset;
+  CSSPoint mLastScrollOffset;
   gfx3DMatrix mTransformScreenToLayer;
   nsIntRect mLayerCriticalDisplayPort;
   gfxSize mResolution;
