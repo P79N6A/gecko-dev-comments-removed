@@ -312,21 +312,6 @@ public:
 
 
 
-
-
-
-
-  int32_t GetFilterFromAccept();
-
-  
-
-
-
-
-
-
-
-
   void UpdateValidityUIBits(bool aIsFocused);
 
   
