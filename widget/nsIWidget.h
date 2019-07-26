@@ -35,6 +35,7 @@ class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
 class   ViewWrapper;
+class   nsIWidgetListener;
 
 namespace mozilla {
 namespace dom {
@@ -87,8 +88,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x91aafae4, 0xd814, 0x4803, \
-    { 0x9a, 0xf5, 0xb0, 0x2f, 0x1b, 0x2c, 0xaf, 0x57 } }
+  { 0xb8f43b25, 0x9036, 0x44e7, \
+    { 0xaa, 0xe2, 0x33, 0x76, 0x6c, 0x35, 0x91, 0xfc } }
 
 
 
@@ -431,11 +432,9 @@ class nsIWidget : public nsISupports {
 
 
 
-
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
-                      EVENT_CALLBACK   aHandleEventFunction,
                       nsDeviceContext *aContext,
                       nsWidgetInitData *aInitData = nullptr) = 0;
 
@@ -457,7 +456,6 @@ class nsIWidget : public nsISupports {
 
     virtual already_AddRefed<nsIWidget>
     CreateChild(const nsIntRect  &aRect,
-                EVENT_CALLBACK   aHandleEventFunction,
                 nsDeviceContext  *aContext,
                 nsWidgetInitData *aInitData = nullptr,
                 bool             aForceUseIWidgetParent = false) = 0;
@@ -467,10 +465,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetEventCallback(EVENT_CALLBACK aEventFunction,
-                                nsDeviceContext *aContext) = 0;
-
-    
 
 
 
@@ -481,24 +475,23 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD AttachViewToTopLevel(EVENT_CALLBACK aViewEventFunction,
+    NS_IMETHOD AttachViewToTopLevel(bool aUseAttachedEvents,
                                     nsDeviceContext *aContext) = 0;
 
     
 
 
 
-    NS_IMETHOD SetAttachedViewPtr(ViewWrapper* aViewWrapper) = 0;
-    virtual ViewWrapper* GetAttachedViewPtr() = 0;
+    virtual void SetAttachedWidgetListener(nsIWidgetListener* aListener) = 0;
+    virtual nsIWidgetListener* GetAttachedWidgetListener() = 0;
 
     
 
 
 
     
-    NS_IMETHOD  GetClientData(void*& aClientData) = 0;
-    NS_IMETHOD  SetClientData(void* aClientData) = 0;
+    virtual nsIWidgetListener* GetWidgetListener() = 0;
+    virtual void SetWidgetListener(nsIWidgetListener* alistener) = 0;
     
 
     
@@ -786,8 +779,6 @@ class nsIWidget : public nsISupports {
     virtual bool IsEnabled() const = 0;
 
     
-
-
 
 
 

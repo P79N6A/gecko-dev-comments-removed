@@ -419,8 +419,7 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
 
     nsRefPtr<nsDeviceContext> dx;
     viewMan->GetDeviceContext(*getter_AddRefs(dx));
-    EVENT_CALLBACK eventHandler = mInnerView->AttachWidgetEventHandler(mWidget);
-    mWidget->SetEventCallback(eventHandler, dx);
+    mInnerView->AttachWidgetEventHandler(mWidget);
 
 #ifdef XP_MACOSX
     
@@ -2113,12 +2112,15 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
   }
 #endif
 
-  if (anEvent->message == NS_DESTROY) {
-#ifdef MAC_CARBON_PLUGINS
-    mInstanceOwner->CancelTimer();
-#endif
-    return rv;
-  }
+
+
+
+
+
+
+
+
+
 
   return nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
 }

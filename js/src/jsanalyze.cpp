@@ -111,11 +111,9 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     JS_ASSERT(!ranBytecode());
     LifoAlloc &tla = cx->typeLifoAlloc();
 
-    unsigned length = script->length;
-    unsigned nargs = script->function() ? script->function()->nargs : 0;
-
     numSlots = TotalSlots(script);
 
+    unsigned length = script->length;
     codeArray = tla.newArray<Bytecode*>(length);
     escapedSlots = tla.newArray<bool>(numSlots);
 
@@ -135,30 +133,19 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
 
 
+
+
+
     PodZero(escapedSlots, numSlots);
 
-    if (script->bindingsAccessedDynamically || script->compartment()->debugMode() ||
-        script->argumentsHasVarBinding())
-    {
-        for (unsigned i = 0; i < nargs; i++)
-            escapedSlots[ArgSlot(i)] = true;
-    } else {
-        for (uint32_t i = 0; i < script->numClosedArgs(); i++) {
-            unsigned arg = script->getClosedArg(i);
-            JS_ASSERT(arg < nargs);
-            escapedSlots[ArgSlot(arg)] = true;
-        }
-    }
+    bool allVarsAliased = script->compartment()->debugMode();
+    bool allArgsAliased = allVarsAliased || script->argumentsHasVarBinding();
 
-    if (script->bindingsAccessedDynamically || script->compartment()->debugMode()) {
-        for (unsigned i = 0; i < script->nfixed; i++)
-            escapedSlots[LocalSlot(script, i)] = true;
-    } else {
-        for (uint32_t i = 0; i < script->numClosedVars(); i++) {
-            unsigned local = script->getClosedVar(i);
-            JS_ASSERT(local < script->nfixed);
-            escapedSlots[LocalSlot(script, local)] = true;
-        }
+    for (BindingIter bi(script->bindings); bi; bi++) {
+        if (bi->kind() == ARGUMENT)
+            escapedSlots[ArgSlot(bi.frameIndex())] = allArgsAliased || bi->aliased();
+        else
+            escapedSlots[LocalSlot(script, bi.frameIndex())] = allVarsAliased || bi->aliased();
     }
 
     
@@ -173,15 +160,11 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     isJaegerCompileable = true;
 
     isInlineable = true;
-    if (script->numClosedArgs() || script->numClosedVars() || heavyweight ||
-        script->bindingsAccessedDynamically || script->argumentsHasVarBinding() ||
-        cx->compartment->debugMode())
-    {
+    if (heavyweight || script->argumentsHasVarBinding() || cx->compartment->debugMode())
         isInlineable = false;
-    }
 
     modifiesArguments_ = false;
-    if (script->numClosedArgs() || heavyweight)
+    if (heavyweight)
         modifiesArguments_ = true;
 
     canTrackVars = true;
@@ -1968,8 +1951,7 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-
-    if (script->bindingsAccessedDynamically || script->numClosedArgs() > 0 ||
+    if (script->bindingsAccessedDynamically || script->funHasAnyAliasedFormal ||
         localsAliasStack() || cx->compartment->debugMode() || script->isGenerator)
     {
         return true;

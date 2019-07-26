@@ -1175,7 +1175,7 @@ nsPermissionManager::Import()
       
       nsresult error;
       PRUint32 permission = lineArray[2].ToInteger(&error);
-      if (error)
+      if (NS_FAILED(error))
         continue;
 
       

@@ -116,7 +116,7 @@ SetProperty(OperatorData* aOperatorData,
     
     nsresult error = NS_OK;
     float space = aValue.ToFloat(&error) / 18.0;
-    if (error) return;
+    if (NS_FAILED(error)) return;
 
     if (isLeadingSpace)
       aOperatorData->mLeadingSpace = space;

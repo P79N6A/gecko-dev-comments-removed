@@ -689,7 +689,12 @@ protected:
   
   static void sReflowContinueCallback(nsITimer* aTimer, void* aPresShell);
   bool ScheduleReflowOffTimer();
+
   
+  virtual void WindowSizeMoveDone();
+  virtual void SysColorChanged() { mPresContext->SysColorChanged(); }
+  virtual void ThemeChanged() { mPresContext->ThemeChanged(); }
+
 #ifdef DEBUG
   
   

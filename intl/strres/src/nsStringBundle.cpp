@@ -760,7 +760,8 @@ nsStringBundleService::FormatWithBundle(nsIStringBundle* bundle, nsresult aStatu
   
   
   if (NS_FAILED(rv)) {
-    nsAutoString statusStr; statusStr.AppendInt(aStatus, 16);
+    nsAutoString statusStr;
+    statusStr.AppendInt(static_cast<PRUint32>(aStatus), 16);
     const PRUnichar* otherArgArray[1];
     otherArgArray[0] = statusStr.get();
     PRUint16 code = NS_ERROR_GET_CODE(NS_ERROR_FAILURE);

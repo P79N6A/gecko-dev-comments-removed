@@ -1004,6 +1004,7 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
     
     *aNewBack = aNewFront;
     *aNewBackValidRegion = aNewFront.rect();
+    *aReadOnlyFront = null_t();
     return;
   }
 

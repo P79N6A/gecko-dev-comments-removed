@@ -30,6 +30,8 @@ namespace ion {
 
 struct Shape;
 
+class BindingIter;
+
 namespace mjit {
     struct JITScript;
     class CallCompiler;
@@ -80,11 +82,6 @@ struct TryNoteArray {
     uint32_t        length;     
 };
 
-struct ClosedSlotArray {
-    uint32_t        *vector;    
-    uint32_t        length;     
-};
-
 
 
 
@@ -92,61 +89,42 @@ struct ClosedSlotArray {
 
 enum BindingKind { ARGUMENT, VARIABLE, CONSTANT };
 
-struct Binding
+class Binding
 {
-    PropertyName *maybeName;  
-    BindingKind kind;
-};
+    
 
 
 
+    size_t bits_;
 
-
-
-class BindingIter
-{
-    friend class Bindings;
-    BindingIter(JSContext *cx, const Bindings &bindings, Shape *shape);
-    void settle();
-
-    struct Init
-    {
-        Init(const Bindings *b, Shape::Range s) : bindings(b), shape(s) {}
-        const Bindings *bindings;
-        Shape::Range shape;
-    };
+    static const size_t KIND_MASK = 0x3;
+    static const size_t ALIASED_BIT = 0x4;
+    static const size_t NAME_MASK = ~(KIND_MASK | ALIASED_BIT);
 
   public:
-    BindingIter(JSContext *cx, Bindings &bindings);
-    BindingIter(JSContext *cx, Init init);
+    explicit Binding() : bits_(0) {}
 
-    void operator=(Init init);
+    Binding(PropertyName *name, BindingKind kind, bool aliased) {
+        JS_STATIC_ASSERT(CONSTANT <= KIND_MASK);
+        JS_ASSERT((size_t(name) & ~NAME_MASK) == 0);
+        JS_ASSERT((size_t(kind) & ~KIND_MASK) == 0);
+        bits_ = size_t(name) | size_t(kind) | (aliased ? ALIASED_BIT : 0);
+    }
 
-    bool done() const { return shape_.empty(); }
-    operator bool() const { return !done(); }
-    void operator++(int) { shape_.popFront(); settle(); }
+    PropertyName *name() const {
+        return (PropertyName *)(bits_ & NAME_MASK);
+    }
 
-    const Binding &operator*() const { JS_ASSERT(!done()); return binding_; }
-    const Binding *operator->() const { JS_ASSERT(!done()); return &binding_; }
-    unsigned frameIndex() const { JS_ASSERT(!done()); return shape_.front().shortid(); }
+    BindingKind kind() const {
+        return BindingKind(bits_ & KIND_MASK);
+    }
 
-  private:
-    const Bindings *bindings_;
-    Binding binding_;
-    Shape::Range shape_;
-    Shape::Range::AutoRooter rooter_;
+    bool aliased() const {
+        return bool(bits_ & ALIASED_BIT);
+    }
 };
 
-
-
-
-
-
-
-typedef Vector<Binding, 32> BindingVector;
-
-extern bool
-GetOrderedBindings(JSContext *cx, Bindings &bindings, BindingVector *vec);
+JS_STATIC_ASSERT(sizeof(Binding) == sizeof(size_t));
 
 
 
@@ -157,14 +135,13 @@ GetOrderedBindings(JSContext *cx, Bindings &bindings, BindingVector *vec);
 class Bindings
 {
     friend class BindingIter;
-    friend class StaticScopeIter;
+    friend class AliasedFormalIter;
 
-    HeapPtr<Shape> lastBinding;
-    uint16_t nargs;
-    uint16_t nvars;
-    bool     hasDup_:1;     
+    HeapPtr<Shape> callObjShape_;
+    Binding *bindingArray_;
+    uint16_t numArgs_;
+    uint16_t numVars_;
 
-    inline Shape *initialShape(JSContext *cx) const;
   public:
     inline Bindings();
 
@@ -173,114 +150,56 @@ class Bindings
 
 
 
-    inline void transfer(Bindings *bindings);
-
-    uint16_t numArgs() const { return nargs; }
-    uint16_t numVars() const { return nvars; }
-    unsigned count() const { return nargs + nvars; }
+    bool init(JSContext *cx, unsigned numArgs, unsigned numVars, Binding *bindingArray);
+    uint8_t *switchStorageTo(Binding *newStorage);
 
     
 
 
 
+    bool clone(JSContext *cx, uint8_t *dstScriptData, HandleScript srcScript);
 
-
-    inline uint16_t formalIndexToSlot(uint16_t i);
-    inline uint16_t varIndexToSlot(uint16_t i);
-
-    
-    inline bool ensureShape(JSContext *cx);
+    unsigned numArgs() const { return numArgs_; }
+    unsigned numVars() const { return numVars_; }
+    unsigned count() const { return numArgs() + numVars(); }
 
     
-
-
-
-    Shape *callObjectShape(JSContext *cx) const;
+    Shape *callObjShape() const { return callObjShape_; }
 
     
     inline bool extensibleParents();
     bool setExtensibleParents(JSContext *cx);
 
-    enum {
-        
-        BINDING_COUNT_LIMIT = 0xFFFF
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool add(JSContext *cx, HandleAtom name, BindingKind kind);
-
-    
-    bool addVariable(JSContext *cx, HandleAtom name) {
-        return add(cx, name, VARIABLE);
-    }
-    bool addConstant(JSContext *cx, HandleAtom name) {
-        return add(cx, name, CONSTANT);
-    }
-    bool addArgument(JSContext *cx, HandleAtom name, uint16_t *slotp) {
-        JS_ASSERT(name != NULL); 
-        *slotp = nargs;
-        return add(cx, name, ARGUMENT);
-    }
-    bool addDestructuring(JSContext *cx, uint16_t *slotp) {
-        *slotp = nargs;
-        Rooted<JSAtom*> atom(cx, NULL);
-        return add(cx, atom, ARGUMENT);
-    }
-
-    void noteDup() { hasDup_ = true; }
-    bool hasDup() const { return hasDup_; }
-
-    
-
-
-
-
-
-    BindingIter::Init lookup(JSContext *cx, PropertyName *name) const;
-
-    
-    bool hasBinding(JSContext *cx, PropertyName *name) const {
-        Shape **_;
-        return lastBinding && Shape::search(cx, lastBinding, NameToId(name), &_) != NULL;
-    }
-
     
     unsigned argumentsVarIndex(JSContext *cx) const;
 
+    
+    bool bindingIsAliased(unsigned bindingIndex);
+
+    
+    bool hasAnyAliasedBindings() const { return !callObjShape_->isEmptyShape(); }
+
+    void trace(JSTracer *trc);
+    class AutoRooter;
+};
+
+class Bindings::AutoRooter : private AutoGCRooter
+{
+  public:
+    explicit AutoRooter(JSContext *cx, Bindings *bindings_
+                        JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, BINDINGS), bindings(bindings_), skip(cx, bindings_)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
     void trace(JSTracer *trc);
 
-    class AutoRooter : private AutoGCRooter
-    {
-      public:
-        explicit AutoRooter(JSContext *cx, Bindings *bindings_
-                            JS_GUARD_OBJECT_NOTIFIER_PARAM)
-          : AutoGCRooter(cx, BINDINGS), bindings(bindings_), skip(cx, bindings_)
-        {
-            JS_GUARD_OBJECT_NOTIFIER_INIT;
-        }
-
-        friend void AutoGCRooter::trace(JSTracer *trc);
-        void trace(JSTracer *trc);
-
-      private:
-        Bindings *bindings;
-        SkipRoot skip;
-        JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-    };
+  private:
+    Bindings *bindings;
+    SkipRoot skip;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class ScriptCounts
@@ -502,8 +421,6 @@ struct JSScript : public js::gc::Cell
         OBJECTS,
         REGEXPS,
         TRYNOTES,
-        CLOSED_ARGS,
-        CLOSED_VARS,
         LIMIT
     };
 
@@ -525,6 +442,7 @@ struct JSScript : public js::gc::Cell
     bool            compileAndGo:1;   
     bool            bindingsAccessedDynamically:1; 
     bool            funHasExtensibleScope:1;       
+    bool            funHasAnyAliasedFormal:1;      
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -546,7 +464,6 @@ struct JSScript : public js::gc::Cell
     bool            hasScriptCounts:1;
 
     bool            hasDebugScript:1; 
-
 
   private:
     
@@ -570,7 +487,7 @@ struct JSScript : public js::gc::Cell
     static bool partiallyInit(JSContext *cx, JS::Handle<JSScript*> script,
                               uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
                               uint32_t nobjects, uint32_t nregexps, uint32_t ntrynotes, uint32_t nconsts,
-                              uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets);
+                              uint32_t nTypeSets);
     static bool fullyInitTrivial(JSContext *cx, JS::Handle<JSScript*> script);  
     static bool fullyInitFromEmitter(JSContext *cx, JS::Handle<JSScript*> script,
                                      js::frontend::BytecodeEmitter *bce);
@@ -778,8 +695,6 @@ struct JSScript : public js::gc::Cell
     bool hasObjects()       { return hasArray(OBJECTS);     }
     bool hasRegexps()       { return hasArray(REGEXPS);     }
     bool hasTrynotes()      { return hasArray(TRYNOTES);    }
-    bool hasClosedArgs()    { return hasArray(CLOSED_ARGS); }
-    bool hasClosedVars()    { return hasArray(CLOSED_VARS); }
 
     #define OFF(fooOff, hasFoo, t)   (fooOff() + (hasFoo() ? sizeof(t) : 0))
 
@@ -787,8 +702,6 @@ struct JSScript : public js::gc::Cell
     size_t objectsOffset()    { return OFF(constsOffset,     hasConsts,     js::ConstArray);      }
     size_t regexpsOffset()    { return OFF(objectsOffset,    hasObjects,    js::ObjectArray);     }
     size_t trynotesOffset()   { return OFF(regexpsOffset,    hasRegexps,    js::ObjectArray);     }
-    size_t closedArgsOffset() { return OFF(trynotesOffset,   hasTrynotes,   js::TryNoteArray);    }
-    size_t closedVarsOffset() { return OFF(closedArgsOffset, hasClosedArgs, js::ClosedSlotArray); }
 
     js::ConstArray *consts() {
         JS_ASSERT(hasConsts());
@@ -808,24 +721,6 @@ struct JSScript : public js::gc::Cell
     js::TryNoteArray *trynotes() {
         JS_ASSERT(hasTrynotes());
         return reinterpret_cast<js::TryNoteArray *>(data + trynotesOffset());
-    }
-
-    js::ClosedSlotArray *closedArgs() {
-        JS_ASSERT(hasClosedArgs());
-        return reinterpret_cast<js::ClosedSlotArray *>(data + closedArgsOffset());
-    }
-
-    js::ClosedSlotArray *closedVars() {
-        JS_ASSERT(hasClosedVars());
-        return reinterpret_cast<js::ClosedSlotArray *>(data + closedVarsOffset());
-    }
-
-    uint32_t numClosedArgs() {
-        return hasClosedArgs() ? closedArgs()->length : 0;
-    }
-
-    uint32_t numClosedVars() {
-        return hasClosedVars() ? closedVars()->length : 0;
     }
 
     js::HeapPtrAtom &getAtom(size_t index) const {
@@ -880,23 +775,9 @@ struct JSScript : public js::gc::Cell
 
     inline bool isEmpty() const;
 
-    uint32_t getClosedArg(uint32_t index) {
-        js::ClosedSlotArray *arr = closedArgs();
-        JS_ASSERT(index < arr->length);
-        return arr->vector[index];
-    }
-
-    uint32_t getClosedVar(uint32_t index) {
-        js::ClosedSlotArray *arr = closedVars();
-        JS_ASSERT(index < arr->length);
-        return arr->vector[index];
-    }
-
-
     bool varIsAliased(unsigned varSlot);
     bool formalIsAliased(unsigned argSlot);
     bool formalLivesInArgumentsObject(unsigned argSlot);
-    bool formalLivesInCallObject(unsigned argSlot);
 
   private:
     
@@ -973,6 +854,79 @@ JS_STATIC_ASSERT(sizeof(JSScript::ArrayBitsT) * 8 >= JSScript::LIMIT);
 
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
+
+namespace js {
+
+
+
+
+
+
+
+class BindingIter
+{
+    const Bindings *bindings_;
+    unsigned i_;
+
+    friend class Bindings;
+    BindingIter(const Bindings &bindings, unsigned i) : bindings_(&bindings), i_(i) {}
+
+  public:
+    explicit BindingIter(const Bindings &bindings) : bindings_(&bindings), i_(0) {}
+
+    bool done() const { return i_ == bindings_->count(); }
+    operator bool() const { return !done(); }
+    void operator++(int) { JS_ASSERT(!done()); i_++; }
+    BindingIter &operator++() { (*this)++; return *this; }
+
+    unsigned frameIndex() const {
+        JS_ASSERT(!done());
+        return i_ < bindings_->numArgs() ? i_ : i_ - bindings_->numArgs();
+    }
+
+    const Binding &operator*() const { JS_ASSERT(!done()); return bindings_->bindingArray_[i_]; }
+    const Binding *operator->() const { JS_ASSERT(!done()); return &bindings_->bindingArray_[i_]; }
+};
+
+
+
+
+
+
+typedef Vector<Binding, 32> BindingVector;
+
+extern bool
+FillBindingVector(Bindings &bindings, BindingVector *vec);
+
+
+
+
+
+
+class AliasedFormalIter
+{
+    const Binding *begin_, *p_, *end_;
+    unsigned slot_;
+
+    void settle() {
+        while (p_ != end_ && !p_->aliased())
+            p_++;
+    }
+
+  public:
+    explicit inline AliasedFormalIter(JSScript *script);
+
+    bool done() const { return p_ == end_; }
+    operator bool() const { return !done(); }
+    void operator++(int) { JS_ASSERT(!done()); p_++; slot_++; settle(); }
+
+    const Binding &operator*() const { JS_ASSERT(!done()); return *p_; }
+    const Binding *operator->() const { JS_ASSERT(!done()); return p_; }
+    unsigned frameIndex() const { JS_ASSERT(!done()); return p_ - begin_; }
+    unsigned scopeSlot() const { JS_ASSERT(!done()); return slot_; }
+};
+
+}  
 
 
 

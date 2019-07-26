@@ -204,15 +204,8 @@ class CallObject : public ScopeObject
     inline JSFunction &callee() const;
 
     
-    inline const Value &formal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
-    inline void setFormal(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
-
-    
-    inline const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
-    inline void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
-
-    
-    void copyUnaliasedValues(StackFrame *fp);
+    inline const Value &aliasedVar(AliasedFormalIter fi);
+    inline void setAliasedVar(AliasedFormalIter fi, const Value &v);
 
     
     static inline size_t offsetOfCallee();
@@ -513,13 +506,27 @@ GetDebugScopeForFrame(JSContext *cx, StackFrame *fp);
 
 class DebugScopeObject : public JSObject
 {
+    
+
+
+
     static const unsigned ENCLOSING_EXTRA = 0;
+
+    
+
+
+
+    static const unsigned SNAPSHOT_EXTRA = 1;
 
   public:
     static DebugScopeObject *create(JSContext *cx, ScopeObject &scope, HandleObject enclosing);
 
     ScopeObject &scope() const;
     JSObject &enclosingScope() const;
+
+    
+    JSObject *maybeSnapshot() const;
+    void initSnapshot(JSObject &snapshot);
 
     
     bool isForDeclarative() const;

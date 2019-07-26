@@ -190,7 +190,7 @@ StackFrame::prevpcSlow(InlinedSite **pinlined)
     JS_ASSERT(!(flags_ & HAS_PREVPC));
 #if defined(JS_METHODJIT) && defined(JS_MONOIC)
     StackFrame *p = prev();
-    mjit::JITScript *jit = p->script()->getJIT(p->isConstructing(), p->compartment()->needsBarrier());
+    mjit::JITScript *jit = p->script()->getJIT(p->isConstructing(), p->compartment()->compileBarriers());
     prevpc_ = jit->nativeToPC(ncode_, &prevInline_);
     flags_ |= HAS_PREVPC;
     if (pinlined)
@@ -225,6 +225,16 @@ StackFrame::pcQuadratic(const ContextStack &stack, size_t maxDepth)
 
     
     return regs.fp()->script()->code;
+}
+
+bool
+StackFrame::copyRawFrameSlots(CopyVector *vec)
+{
+    if (!vec->resize(numFormalArgs() + script()->nfixed))
+        return false;
+    PodCopy(vec->begin(), formals(), numFormalArgs());
+    PodCopy(vec->begin() + numFormalArgs(), slots(), script()->nfixed);
+    return true;
 }
 
 static inline void
@@ -660,34 +670,39 @@ StackSpace::markFrameValues(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsby
         uint32_t slot = analyze::LocalSlot(script, vp - slotsBegin);
 
         
-
-
-
         if (!analysis->trackSlot(slot) || analysis->liveness(slot).live(offset)) {
             gc::MarkValueRoot(trc, vp, "vm_stack");
-        } else if (vp->isDouble()) {
-            *vp = DoubleValue(0.0);
-        } else {
+        } else if (script->compartment()->isDiscardingJitCode(trc)) {
             
 
 
 
 
+            if (vp->isDouble()) {
+                *vp = DoubleValue(0.0);
+            } else {
+                
 
 
-            JSValueType type = vp->extractNonDoubleType();
-            if (type == JSVAL_TYPE_INT32)
-                *vp = Int32Value(0);
-            else if (type == JSVAL_TYPE_UNDEFINED)
-                *vp = UndefinedValue();
-            else if (type == JSVAL_TYPE_BOOLEAN)
-                *vp = BooleanValue(false);
-            else if (type == JSVAL_TYPE_STRING)
-                *vp = StringValue(trc->runtime->atomState.nullAtom);
-            else if (type == JSVAL_TYPE_NULL)
-                *vp = NullValue();
-            else if (type == JSVAL_TYPE_OBJECT)
-                *vp = ObjectValue(fp->scopeChain()->global());
+
+
+
+
+
+                JSValueType type = vp->extractNonDoubleType();
+                if (type == JSVAL_TYPE_INT32)
+                    *vp = Int32Value(0);
+                else if (type == JSVAL_TYPE_UNDEFINED)
+                    *vp = UndefinedValue();
+                else if (type == JSVAL_TYPE_BOOLEAN)
+                    *vp = BooleanValue(false);
+                else if (type == JSVAL_TYPE_STRING)
+                    *vp = StringValue(trc->runtime->atomState.nullAtom);
+                else if (type == JSVAL_TYPE_NULL)
+                    *vp = NullValue();
+                else if (type == JSVAL_TYPE_OBJECT)
+                    *vp = ObjectValue(fp->scopeChain()->global());
+            }
         }
     }
 

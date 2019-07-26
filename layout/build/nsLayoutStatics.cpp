@@ -2,6 +2,8 @@
 
 
 
+#include "base/basictypes.h"
+
 #include "nsLayoutStatics.h"
 #include "nscore.h"
 
@@ -94,6 +96,7 @@
 #include "nsHyphenationManager.h"
 #include "nsEditorSpellCheck.h"
 #include "nsWindowMemoryReporter.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ipc/ProcessPriorityManager.h"
 
 extern void NS_ShutdownChainItemPool();
@@ -115,6 +118,8 @@ nsLayoutStatics::Initialize()
                 "nsLayoutStatics", 1);
 
   nsresult rv;
+
+  ContentParent::StartUp();
 
   
   nsCSSAnonBoxes::AddRefAtoms();
@@ -344,4 +349,6 @@ nsLayoutStatics::Shutdown()
   nsHyphenationManager::Shutdown();
   nsEditorSpellCheck::ShutDown();
   nsDOMMutationObserver::Shutdown();
+
+  ContentParent::ShutDown();
 }

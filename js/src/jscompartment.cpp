@@ -121,7 +121,9 @@ void
 JSCompartment::setNeedsBarrier(bool needs)
 {
 #ifdef JS_METHODJIT
-    if (needsBarrier_ != needs)
+    
+    bool old = compileBarriers();
+    if (compileBarriers(needs) != old)
         mjit::ClearAllFrames(this);
 #endif
 
@@ -528,6 +530,15 @@ JSCompartment::discardJitCode(FreeOp *fop)
     }
 
 #endif 
+}
+
+bool
+JSCompartment::isDiscardingJitCode(JSTracer *trc)
+{
+    if (!IS_GC_MARKING_TRACER(trc))
+        return false;
+
+    return !gcPreserveCode;
 }
 
 void

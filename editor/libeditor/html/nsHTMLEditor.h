@@ -534,10 +534,6 @@ protected:
   NS_IMETHOD InsertAsPlaintextQuotation(const nsAString & aQuotedText,
                                         bool aAddCites,
                                         nsIDOMNode **aNodeInserted);
-  
-  
-  
-  bool IsSafeToInsertData(nsIDOMDocument* aSourceDoc);
 
   nsresult InsertObject(const char* aType, nsISupports* aObject, bool aIsSafe,
                         nsIDOMDocument *aSourceDoc,

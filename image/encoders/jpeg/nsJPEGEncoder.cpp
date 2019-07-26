@@ -417,8 +417,10 @@ nsJPEGEncoder::emptyOutputBuffer(jpeg_compress_struct* cinfo)
     that->mImageBufferUsed = 0;
 
     
+    
+    
     longjmp(((encoder_error_mgr*)(cinfo->err))->setjmp_buffer,
-            NS_ERROR_OUT_OF_MEMORY);
+            static_cast<int>(NS_ERROR_OUT_OF_MEMORY));
   }
   that->mImageBuffer = newBuf;
 
@@ -469,7 +471,8 @@ nsJPEGEncoder::errorExit(jpeg_common_struct* cinfo)
   }
 
   
-  longjmp(err->setjmp_buffer, error_code);
+  
+  longjmp(err->setjmp_buffer, static_cast<int>(error_code));
 }
 
 void

@@ -5662,16 +5662,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
 
   RecordMouseLocation(aEvent);
 
-#ifdef ACCESSIBILITY
-  if (aEvent->eventStructType == NS_ACCESSIBLE_EVENT) {
-    NS_TIME_FUNCTION_MIN(1.0);
-
-    
-    
-    return HandleEventInternal(aEvent, aEventStatus);
-  }
-#endif
-
   if (!nsContentUtils::IsSafeToRunScript())
     return NS_OK;
 
@@ -5743,30 +5733,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
         return shell->HandleEvent(frame, aEvent, true, aEventStatus);
       }
     }
-  }
-
-  
-  if (aEvent->message == NS_THEMECHANGED && mPresContext) {
-    mPresContext->ThemeChanged();
-    return NS_OK;
-  }
-
-  if (aEvent->message == NS_UISTATECHANGED && mDocument) {
-    nsPIDOMWindow* win = mDocument->GetWindow();
-    if (win) {
-      nsUIStateChangeEvent* event = (nsUIStateChangeEvent*)aEvent;
-      win->SetKeyboardIndicators(event->showAccelerators, event->showFocusRings);
-    }
-    return NS_OK;
-  }
-
-  
-  
-  if ((aEvent->message == NS_SYSCOLORCHANGED) && mPresContext &&
-      aFrame == mFrameConstructor->GetRootFrame()) {
-    *aEventStatus = nsEventStatus_eConsumeDoDefault;
-    mPresContext->SysColorChanged();
-    return NS_OK;
   }
 
   if (aEvent->eventStructType == NS_KEY_EVENT &&
@@ -6305,32 +6271,6 @@ nsresult
 PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
 {
   NS_TIME_FUNCTION_MIN(1.0);
-
-#ifdef ACCESSIBILITY
-  if (aEvent->eventStructType == NS_ACCESSIBLE_EVENT)
-  {
-    nsAccessibleEvent *accEvent = static_cast<nsAccessibleEvent*>(aEvent);
-    accEvent->mAccessible = nullptr;
-
-    nsCOMPtr<nsIAccessibilityService> accService =
-      do_GetService("@mozilla.org/accessibilityService;1");
-    if (accService) {
-      nsCOMPtr<nsISupports> container = mPresContext->GetContainer();
-      if (!container) {
-        
-        
-        return NS_OK;
-      }
-
-      
-      
-      accEvent->mAccessible =
-        accService->GetRootDocumentAccessible(this, nsContentUtils::IsSafeToRunScript());
-
-      return NS_OK;
-    }
-  }
-#endif
 
   nsRefPtr<nsEventStateManager> manager = mPresContext->EventStateManager();
   nsresult rv = NS_OK;
@@ -7708,6 +7648,15 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
   }
 
   return !interrupted;
+}
+
+void
+PresShell::WindowSizeMoveDone()
+{
+  if (mPresContext) {
+    nsEventStateManager::ClearGlobalActiveContent(nullptr);
+    ClearMouseCapture(nullptr);
+  }
 }
 
 #ifdef MOZ_XUL

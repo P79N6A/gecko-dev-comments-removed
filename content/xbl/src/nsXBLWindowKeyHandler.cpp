@@ -459,7 +459,7 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
     bool stopped = aKeyEvent->IsDispatchStopped();
     if (stopped) {
       
-      return NS_OK;
+      return false;
     }
 
     if (!EventMatched(currHandler, aEventType, aKeyEvent,

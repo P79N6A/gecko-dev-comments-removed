@@ -106,11 +106,6 @@ struct BytecodeEmitter
     CGObjectList    regexpList;     
 
 
-    
-    typedef Vector<uint32_t, 8> SlotVector;
-    SlotVector      closedArgs;
-    SlotVector      closedVars;
-
     uint16_t        typesetCount;   
 
     bool            hasSingletons:1;    
@@ -134,9 +129,6 @@ struct BytecodeEmitter
     ~BytecodeEmitter();
 
     bool isAliasedName(ParseNode *pn);
-    bool shouldNoteClosedName(ParseNode *pn);
-    bool noteClosedVar(ParseNode *pn);
-    bool noteClosedArg(ParseNode *pn);
 
     JS_ALWAYS_INLINE
     bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {

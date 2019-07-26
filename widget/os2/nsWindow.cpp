@@ -1925,9 +1925,7 @@ void nsWindow::OnDestroy()
   
   if (!(nsWindowState_eDoingDelete & mWindowState)) {
     AddRef();
-    nsGUIEvent event(true, NS_DESTROY, this);
-    InitEvent(event);
-    DispatchWindowEvent(&event);
+    NotifyWindowDestroyed();
     Release();
   }
 
@@ -2949,9 +2947,7 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus)
   }
 
   
-  
-  if ((mWindowState & nsWindowState_eLive) ||
-      (mWindowState == nsWindowState_eInCreate && event->message == NS_CREATE)) {
+  if (mWindowState & nsWindowState_eLive) {
     aStatus = (*mEventCallback)(event);
   }
   return NS_OK;

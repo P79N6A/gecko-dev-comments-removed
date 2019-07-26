@@ -14,10 +14,11 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/TokenStream.h"
-#include "frontend/TreeContext.h"
 
 namespace js {
 namespace frontend {
+
+struct TreeContext;
 
 
 
@@ -161,7 +162,6 @@ enum ParseNodeKind {
     PNK_FORIN,
     PNK_FORHEAD,
     PNK_ARGSBODY,
-    PNK_UPVARS,
     PNK_SPREAD,
 
     
@@ -474,11 +474,6 @@ enum ParseNodeKind {
 
 
 
-
-
-
-
-
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -486,8 +481,7 @@ enum ParseNodeArity {
     PN_TERNARY,                         
     PN_FUNC,                            
     PN_LIST,                            
-    PN_NAME,                            
-    PN_NAMESET                          
+    PN_NAME                             
 };
 
 struct Definition;
@@ -626,10 +620,6 @@ struct ParseNode {
                         blockid:20;     
 
         } name;
-        struct {                        
-            AtomDefnMapPtr   defnMap;
-            ParseNode        *tree;     
-        } nameset;
         double        dval;             
         class {
             friend class LoopControlStatement;
@@ -666,8 +656,6 @@ struct ParseNode {
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
 #define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.defnMap
-#define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 
   protected:
@@ -678,7 +666,6 @@ struct ParseNode {
         pn_parens = false;
         JS_ASSERT(!pn_used);
         JS_ASSERT(!pn_defn);
-        pn_names.init();
         pn_next = pn_link = NULL;
     }
 
@@ -701,7 +688,7 @@ struct ParseNode {
     newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
                       Parser *parser);
 
-    inline PropertyName *atom() const;
+    inline PropertyName *name() const;
 
     
 
@@ -827,13 +814,8 @@ struct ParseNode {
     bool isGeneratorExpr() const {
         if (getKind() == PNK_LP) {
             ParseNode *callee = this->pn_head;
-            if (callee->getKind() == PNK_FUNCTION) {
-                ParseNode *body = (callee->pn_body->getKind() == PNK_UPVARS)
-                                  ? callee->pn_body->pn_tree
-                                  : callee->pn_body;
-                if (body->getKind() == PNK_LEXICALSCOPE)
-                    return true;
-            }
+            if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
+                return true;
         }
         return false;
     }
@@ -841,9 +823,7 @@ struct ParseNode {
     ParseNode *generatorExpr() const {
         JS_ASSERT(isGeneratorExpr());
         ParseNode *callee = this->pn_head;
-        ParseNode *body = callee->pn_body->getKind() == PNK_UPVARS
-                          ? callee->pn_body->pn_tree
-                          : callee->pn_body;
+        ParseNode *body = callee->pn_body;
         JS_ASSERT(body->getKind() == PNK_LEXICALSCOPE);
         return body->pn_expr;
     }
@@ -1005,12 +985,6 @@ struct NameNode : public ParseNode {
 #ifdef DEBUG
     inline void dump(int indent);
 #endif
-};
-
-struct NameSetNode : public ParseNode {
-    static inline NameSetNode *create(ParseNodeKind kind, Parser *parser) {
-        return (NameSetNode *)ParseNode::create(kind, PN_NAMESET, parser);
-    }
 };
 
 struct LexicalScopeNode : public ParseNode {
@@ -1454,45 +1428,6 @@ struct ObjectBox {
     bool                isFunctionBox;
 
     ObjectBox(ObjectBox *traceLink, JSObject *obj);
-};
-
-struct FunctionBox : public ObjectBox
-{
-    ParseNode       *node;
-    FunctionBox     *siblings;
-    FunctionBox     *kids;
-    FunctionBox     *parent;
-    Bindings        bindings;               
-    size_t          bufStart;
-    size_t          bufEnd;
-    uint16_t        level;
-    uint16_t        ndefaults;
-    StrictMode::StrictModeState strictModeState;
-    bool            inLoop:1;               
-    bool            inWith:1;               
-
-    bool            inGenexpLambda:1;       
-
-    ContextFlags    cxFlags;
-
-    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc,
-                StrictMode::StrictModeState sms);
-
-    bool funIsHeavyweight()      const { return cxFlags.funIsHeavyweight; }
-    bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
-    bool funHasExtensibleScope() const { return cxFlags.funHasExtensibleScope; }
-
-    void setFunIsHeavyweight()         { cxFlags.funIsHeavyweight = true; }
-
-    JSFunction *function() const { return (JSFunction *) object; }
-
-    
-
-
-
-    bool inAnyDynamicScope() const;
-
-    void recursivelySetStrictMode(StrictMode::StrictModeState strictness);
 };
 
 } 

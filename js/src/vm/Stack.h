@@ -512,6 +512,9 @@ class StackFrame
     inline Value &unaliasedActual(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
     template <class Op> inline void forEachUnaliasedActual(Op op);
 
+    typedef Vector<Value, 16, SystemAllocPolicy> CopyVector;
+    bool copyRawFrameSlots(CopyVector *v);
+
     inline unsigned numFormalArgs() const;
     inline unsigned numActualArgs() const;
 
@@ -1661,19 +1664,6 @@ class ContextStack
 
 
     inline void repointRegs(FrameRegs *regs) { JS_ASSERT(hasfp()); seg_->repointRegs(regs); }
-
-    
-
-    
-
-
-
-
-    void threadReset();
-
-    
-
-    static size_t offsetOfSeg() { return offsetof(ContextStack, seg_); }
 };
 
 

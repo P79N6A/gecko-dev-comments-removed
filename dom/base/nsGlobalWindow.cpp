@@ -70,6 +70,7 @@
 #include "nsIFrame.h"
 #include "nsCanvasFrame.h"
 #include "nsIWidget.h"
+#include "nsIWidgetListener.h"
 #include "nsIBaseWindow.h"
 #include "nsDeviceSensors.h"
 #include "nsIContent.h"
@@ -7708,10 +7709,11 @@ nsGlobalWindow::ActivateOrDeactivate(bool aActivate)
     
     
     
-    void* clientData;
-    topLevelWidget->GetClientData(clientData); 
-    nsISupports* data = static_cast<nsISupports*>(clientData);
-    nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
+
+    
+    nsIWidgetListener* listener = topLevelWidget->GetWidgetListener();
+    nsCOMPtr<nsIXULWindow> window = listener->GetXULWindow();
+    nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(window));
     topLevelWindow = do_GetInterface(req);
   }
   if (topLevelWindow) {

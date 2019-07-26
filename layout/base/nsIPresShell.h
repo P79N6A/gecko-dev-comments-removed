@@ -116,8 +116,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0xfcada634, 0xfdea, 0x45f5, \
-    { 0xb8, 0x41, 0x0a, 0x36, 0x1d, 0x5f, 0x6a, 0x68 } }
+  { 0x7e29e8a8, 0x9c77, 0x4445, \
+    { 0xa5, 0x23, 0x41, 0xb3, 0x63, 0xe0, 0xc9, 0x8a } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1315,6 +1315,10 @@ public:
     NS_ASSERTION(mScrollPositionClampingScrollPortSizeSet, "asking for scroll port when its not set?");
     return mScrollPositionClampingScrollPortSize;
   }
+
+  virtual void WindowSizeMoveDone() = 0;
+  virtual void SysColorChanged() = 0;
+  virtual void ThemeChanged() = 0;
 
 protected:
   friend class nsRefreshDriver;

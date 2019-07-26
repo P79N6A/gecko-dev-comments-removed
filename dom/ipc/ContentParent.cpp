@@ -21,10 +21,7 @@
 #include "IndexedDBParent.h"
 #include "IndexedDatabaseManager.h"
 #include "mozIApplication.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/Services.h"
-#include "mozilla/Util.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/ExternalHelperAppParent.h"
 #include "mozilla/dom/PMemoryReportRequestParent.h"
 #include "mozilla/dom/StorageParent.h"
@@ -34,6 +31,10 @@
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/net/NeckoParent.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/Util.h"
 #include "mozilla/unused.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -158,6 +159,93 @@ nsTArray<ContentParent*>* ContentParent::gPrivateContent;
 
 static PRUint64 gContentChildID = 1;
 
+
+
+static bool sKeepAppProcessPreallocated;
+static StaticRefPtr<ContentParent> sPreallocatedAppProcess;
+static CancelableTask* sPreallocateAppProcessTask;
+
+
+
+static int sPreallocateDelayMs;
+
+
+
+#define MAGIC_PREALLOCATED_APP_MANIFEST_URL NS_LITERAL_STRING("{{template}}")
+
+ void
+ContentParent::PreallocateAppProcess()
+{
+    MOZ_ASSERT(!sPreallocatedAppProcess);
+
+    if (sPreallocateAppProcessTask) {
+        
+        sPreallocateAppProcessTask->Cancel();
+        sPreallocateAppProcessTask = nullptr;
+    }
+
+    sPreallocatedAppProcess =
+        new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL);
+    sPreallocatedAppProcess->Init();
+}
+
+ void
+ContentParent::DelayedPreallocateAppProcess()
+{
+    sPreallocateAppProcessTask = nullptr;
+    if (!sPreallocatedAppProcess) {
+        PreallocateAppProcess();
+    }
+}
+
+ void
+ContentParent::ScheduleDelayedPreallocateAppProcess()
+{
+    if (!sKeepAppProcessPreallocated || sPreallocateAppProcessTask) {
+        return;
+    }
+    sPreallocateAppProcessTask =
+        NewRunnableFunction(DelayedPreallocateAppProcess);
+    MessageLoop::current()->PostDelayedTask(
+        FROM_HERE, sPreallocateAppProcessTask, sPreallocateDelayMs);
+}
+
+ already_AddRefed<ContentParent>
+ContentParent::MaybeTakePreallocatedAppProcess()
+{
+    nsRefPtr<ContentParent> process = sPreallocatedAppProcess.get();
+    sPreallocatedAppProcess = nullptr;
+    ScheduleDelayedPreallocateAppProcess();
+    return process.forget();
+}
+
+ void
+ContentParent::StartUp()
+{
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+        return;
+    }
+
+    sKeepAppProcessPreallocated =
+        Preferences::GetBool("dom.ipc.processPrelauch.enabled", false);
+    if (sKeepAppProcessPreallocated) {
+        ClearOnShutdown(&sPreallocatedAppProcess);
+
+        sPreallocateDelayMs = Preferences::GetUint(
+            "dom.ipc.processPrelauch.delayMs", 1000);
+
+        MOZ_ASSERT(!sPreallocateAppProcessTask);
+        ScheduleDelayedPreallocateAppProcess();
+    }
+}
+
+ void
+ContentParent::ShutDown()
+{
+    
+    
+}
+
  ContentParent*
 ContentParent::GetNewOrUsed()
 {
@@ -225,10 +313,16 @@ ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
         return nullptr;
     }
 
-    ContentParent* p = gAppContentParents->Get(manifestURL);
+    nsRefPtr<ContentParent> p = gAppContentParents->Get(manifestURL);
     if (!p) {
-        p = new ContentParent(manifestURL);
-        p->Init();
+        p = MaybeTakePreallocatedAppProcess();
+        if (p) {
+            p->SetManifestFromPreallocated(manifestURL);
+        } else {
+            NS_WARNING("Unable to use pre-allocated app process");
+            p = new ContentParent(manifestURL);
+            p->Init();
+        }
         gAppContentParents->Put(manifestURL, p);
     }
 
@@ -302,7 +396,16 @@ ContentParent::Init()
 }
 
 void
-ContentParent::ShutDown()
+ContentParent::SetManifestFromPreallocated(const nsAString& aAppManifestURL)
+{
+    MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
+    
+    
+    const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+}
+
+void
+ContentParent::ShutDownProcess()
 {
     if (mIsAlive) {
         
@@ -447,6 +550,10 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 #endif
     }
 
+    if (sPreallocatedAppProcess == this) {
+        sPreallocatedAppProcess = nullptr;
+    }
+
     mMessageManager->Disconnect();
 
     
@@ -513,7 +620,7 @@ ContentParent::NotifyTabDestroyed(PBrowserParent* aTab)
     if (IsForApp() && ManagedPBrowserParent().Length() == 1) {
         MessageLoop::current()->PostTask(
             FROM_HERE,
-            NewRunnableMethod(this, &ContentParent::ShutDown));
+            NewRunnableMethod(this, &ContentParent::ShutDownProcess));
     }
 }
 
@@ -686,7 +793,9 @@ ContentParent::RecvReadPermissions(InfallibleTArray<IPC::Permission>* aPermissio
 }
 
 bool
-ContentParent::RecvSetClipboardText(const nsString& text, const PRInt32& whichClipboard)
+ContentParent::RecvSetClipboardText(const nsString& text,
+                                       const bool& isPrivateData,
+                                       const PRInt32& whichClipboard)
 {
     nsresult rv;
     nsCOMPtr<nsIClipboard> clipboard(do_GetService(kCClipboardCID, &rv));
@@ -705,6 +814,7 @@ ContentParent::RecvSetClipboardText(const nsString& text, const PRInt32& whichCl
     
     
     trans->AddDataFlavor(kUnicodeMime);
+    trans->SetIsPrivateData(isPrivateData);
     
     nsCOMPtr<nsISupports> nsisupportsDataWrapper =
         do_QueryInterface(dataWrapper);
