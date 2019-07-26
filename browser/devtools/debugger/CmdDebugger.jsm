@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 this.EXPORTED_SYMBOLS = [ ];
@@ -15,59 +15,120 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
                                   "resource://gre/modules/devtools/Console.jsm");
 
 
-/**
- * 'break' command
- */
+
+
+
 gcli.addCommand({
   name: "break",
   description: gcli.lookup("breakDesc"),
   manual: gcli.lookup("breakManual")
 });
 
-/**
- * 'break list' command
- */
+
+
+
 gcli.addCommand({
   name: "break list",
   description: gcli.lookup("breaklistDesc"),
-  returnType: "html",
+  returnType: "breakpoints",
   exec: function(args, context) {
-    let dbg = getPanel(context, "jsdebugger");
-    if (!dbg) {
-      return gcli.lookup("debuggerStopped");
-    }
-
-    let breakpoints = dbg.getAllBreakpoints();
-
-    if (Object.keys(breakpoints).length === 0) {
-      return gcli.lookup("breaklistNone");
-    }
-
-    let reply = gcli.lookup("breaklistIntro");
-    reply += "<ol>";
-    for each (let breakpoint in breakpoints) {
-      let text = gcli.lookupFormat("breaklistLineEntry",
-                                  [breakpoint.location.url,
-                                    breakpoint.location.line]);
-      reply += "<li>" + text + "</li>";
-    };
-    reply += "</ol>";
-    return reply;
+    let panel = getPanel(context, "jsdebugger", {ensure_opened: true});
+    return panel.then(function(dbg) {
+      let breakpoints = [];
+      for (let source in dbg.panelWin.DebuggerView.Sources) {
+        for (let { attachment: breakpoint } in source) {
+          breakpoints.push({
+            url: source.value,
+            label: source.label,
+            lineNumber: breakpoint.lineNumber,
+            lineText: breakpoint.lineText
+          });
+        }
+      }
+      return breakpoints;
+    });
   }
 });
 
-/**
- * 'break add' command
- */
+gcli.addConverter({
+  from: "breakpoints",
+  to: "view",
+  exec: function(breakpoints, context) {
+    let dbg = getPanel(context, "jsdebugger");
+    if (dbg && breakpoints.length) {
+      let SourceUtils = dbg.panelWin.SourceUtils;
+      let index = 0;
+      return context.createView({
+        html: breakListHtml,
+        data: {
+          breakpoints: breakpoints.map(function(breakpoint) {
+            return {
+              index: index++,
+              url: breakpoint.url,
+              label: SourceUtils.trimUrlLength(
+                breakpoint.label + ":" + breakpoint.lineNumber,
+                MAX_LABEL_LENGTH,
+                "start"),
+              lineText: breakpoint.lineText,
+              truncatedLineText: SourceUtils.trimUrlLength(
+                breakpoint.lineText,
+                MAX_LINE_TEXT_LENGTH,
+                "end")
+            };
+          }),
+          onclick: createUpdateHandler(context),
+          ondblclick: createExecuteHandler(context)
+        }
+      });
+    } else {
+      return context.createView({
+        html: "<p>${message}</p>",
+        data: { message: gcli.lookup("breaklistNone") }
+      });
+    }
+  }
+});
+
+var breakListHtml = "" +
+      "<table>" +
+      " <thead>" +
+      "  <th>Source</th>" +
+      "  <th>Line</th>" +
+      "  <th>Actions</th>" +
+      " </thead>" +
+      " <tbody>" +
+      "  <tr foreach='breakpoint in ${breakpoints}'>" +
+      "    <td class='gcli-breakpoint-label'>${breakpoint.label}</td>" +
+      "    <td class='gcli-breakpoint-lineText'>" +
+      "      ${breakpoint.truncatedLineText}" +
+      "    </td>" +
+      "    <td>" +
+      "      <span class='gcli-out-shortcut'" +
+      "            data-command='break del ${breakpoint.index}'" +
+      "            onclick='${onclick}'" +
+      "            ondblclick='${ondblclick}'" +
+      "          >" + gcli.lookup("breaklistOutRemove") + "</span>" +
+      "    </td>" +
+      "  </tr>" +
+      " </tbody>" +
+      "</table>" +
+      "";
+
+var MAX_LINE_TEXT_LENGTH = 30;
+var MAX_LABEL_LENGTH = 20;
+
+
+
+
 gcli.addCommand({
   name: "break add",
   description: gcli.lookup("breakaddDesc"),
   manual: gcli.lookup("breakaddManual")
 });
 
-/**
- * 'break add line' command
- */
+
+
+
 gcli.addCommand({
   name: "break add line",
   description: gcli.lookup("breakaddlineDesc"),
@@ -118,9 +179,9 @@ gcli.addCommand({
 });
 
 
-/**
- * 'break del' command
- */
+
+
+
 gcli.addCommand({
   name: "break del",
   description: gcli.lookup("breakdelDesc"),
@@ -159,25 +220,25 @@ gcli.addCommand({
         deferred.resolve(gcli.lookup("breakdelRemoved"));
       });
     } catch (ex) {
-      // If the debugger has been closed already, don't scare the user.
+      
       deferred.resolve(gcli.lookup("breakdelRemoved"));
     }
     return deferred.promise;
   }
 });
 
-/**
- * 'dbg' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg",
   description: gcli.lookup("dbgDesc"),
   manual: gcli.lookup("dbgManual")
 });
 
-/**
- * 'dbg open' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg open",
   description: gcli.lookup("dbgOpen"),
@@ -187,9 +248,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg close' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg close",
   description: gcli.lookup("dbgClose"),
@@ -199,9 +260,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg interrupt' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg interrupt",
   description: gcli.lookup("dbgInterrupt"),
@@ -220,9 +281,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg continue' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg continue",
   description: gcli.lookup("dbgContinue"),
@@ -241,18 +302,18 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg step' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg step",
   description: gcli.lookup("dbgStepDesc"),
   manual: gcli.lookup("dbgStepManual")
 });
 
-/**
- * 'dbg step over' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg step over",
   description: gcli.lookup("dbgStepOverDesc"),
@@ -271,9 +332,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg step in' command
- */
+
+
+
 gcli.addCommand({
   name: 'dbg step in',
   description: gcli.lookup("dbgStepInDesc"),
@@ -292,9 +353,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg step over' command
- */
+
+
+
 gcli.addCommand({
   name: 'dbg step out',
   description: gcli.lookup("dbgStepOutDesc"),
@@ -313,9 +374,9 @@ gcli.addCommand({
   }
 });
 
-/**
- * 'dbg list' command
- */
+
+
+
 gcli.addCommand({
   name: "dbg list",
   description: gcli.lookup("dbgListSourcesDesc"),
@@ -341,21 +402,78 @@ gcli.addCommand({
   }
 });
 
-/**
- * A helper to create xhtml namespaced elements
- */
+
+
+
 function createXHTMLElement(document, tagname) {
   return document.createElementNS("http://www.w3.org/1999/xhtml", tagname);
 }
 
-/**
- * A helper to go from a command context to a debugger panel
- */
-function getPanel(context, id) {
+
+
+
+
+function withCommand(element, action) {
+  var command = element.getAttribute("data-command");
+  if (!command) {
+    command = element.querySelector("*[data-command]")
+      .getAttribute("data-command");
+  }
+
+  if (command) {
+    action(command);
+  }
+  else {
+    console.warn("Missing data-command for " + util.findCssSelector(element));
+  }
+}
+
+
+
+
+
+
+
+function createUpdateHandler(context) {
+  return function(ev) {
+    withCommand(ev.currentTarget, function(command) {
+      context.update(command);
+    });
+  }
+}
+
+
+
+
+
+
+
+function createExecuteHandler(context) {
+  return function(ev) {
+    withCommand(ev.currentTarget, function(command) {
+      context.exec({
+        visible: true,
+        typed: command
+      });
+    });
+  }
+}
+
+
+
+
+function getPanel(context, id, opts) {
   if (context == null) {
     return undefined;
   }
 
-  let toolbox = gDevTools.getToolbox(context.environment.target);
-  return toolbox == null ? undefined : toolbox.getPanel(id);
+  let target = context.environment.target;
+  if (opts && opts.ensure_opened) {
+    return gDevTools.showToolbox(target, id).then(function(toolbox) {
+      return toolbox.getPanel(id);
+    });
+  } else {
+    let toolbox = gDevTools.getToolbox(target);
+    return toolbox && toolbox.getPanel(id);
+  }
 }
