@@ -112,6 +112,7 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   VideoFrame mVideoFrame;
   AudioFrame mAudioFrame;
   MP3FrameParser mMP3FrameParser;
+  bool mIsMp3;
 
   
   
