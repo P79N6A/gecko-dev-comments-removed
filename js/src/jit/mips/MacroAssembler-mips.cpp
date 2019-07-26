@@ -3245,3 +3245,21 @@ MacroAssemblerMIPSCompat::toggledCall(JitCode *target, bool enabled)
     MOZ_ASSERT(nextOffset().getOffset() - offset.offset() == ToggledCallSize());
     return offset;
 }
+
+void
+MacroAssemblerMIPSCompat::branchPtrInNurseryRange(Register ptr, Register temp, Label *label)
+{
+    JS_ASSERT(temp != InvalidReg);
+    const Nursery &nursery = GetIonContext()->runtime->gcNursery();
+
+    
+    
+    if (ptr == temp) {
+        addPtr(ImmWord(-ptrdiff_t(nursery.start())), ptr);
+        branchPtr(Assembler::Below, ptr, Imm32(Nursery::NurserySize), label);
+    } else {
+        movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
+        addPtr(ptr, temp);
+        branchPtr(Assembler::Below, temp, Imm32(Nursery::NurserySize), label);
+    }
+}
