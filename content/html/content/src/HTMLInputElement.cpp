@@ -3835,10 +3835,11 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       
       
       
-      if (!aVisitor.mEvent->mFlags.mDefaultPreventedByContent) {
-        StepNumberControlForUserEvent(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
-        aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-      }
+      
+      
+      
+      StepNumberControlForUserEvent(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
+      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
     } else if (nsEventStatus_eIgnore == aVisitor.mEventStatus) {
       switch (aVisitor.mEvent->message) {
 
