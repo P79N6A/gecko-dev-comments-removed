@@ -2791,7 +2791,11 @@ let SessionStoreInternal = {
 
     
     if (aWidth && aHeight && (aWidth != win_("width") || aHeight != win_("height"))) {
-      aWindow.resizeTo(aWidth, aHeight);
+      
+      
+      if (aSizeMode != "maximized" || win_("sizemode") != "maximized") {
+        aWindow.resizeTo(aWidth, aHeight);
+      }
     }
     if (!isNaN(aLeft) && !isNaN(aTop) && (aLeft != win_("screenX") || aTop != win_("screenY"))) {
       aWindow.moveTo(aLeft, aTop);
