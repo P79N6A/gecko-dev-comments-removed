@@ -142,8 +142,8 @@ public:
   void RemoveAllTemporaryOverrides();
 
   typedef void 
-  (*PR_CALLBACK CertOverrideEnumerator)(const nsCertOverride &aSettings,
-                                        void *aUserData);
+  (*CertOverrideEnumerator)(const nsCertOverride &aSettings,
+                            void *aUserData);
 
   
   

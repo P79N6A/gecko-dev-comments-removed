@@ -213,7 +213,7 @@ nsSMILAnimationController::Traverse(
   }
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::CompositorTableEntryTraverse(
                                       nsSMILCompositor* aCompositor,
                                       void* aArg)
@@ -303,7 +303,7 @@ nsSMILAnimationController::MaybeStartSampling(nsRefreshDriver* aRefreshDriver)
 
 
 
-PR_CALLBACK PLDHashOperator
+PLDHashOperator
 TransferCachedBaseValue(nsSMILCompositor* aCompositor,
                         void* aData)
 {
@@ -319,7 +319,7 @@ TransferCachedBaseValue(nsSMILCompositor* aCompositor,
   return PL_DHASH_NEXT;  
 }
 
-PR_CALLBACK PLDHashOperator
+PLDHashOperator
 RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
                           void* aData)
 {
@@ -329,7 +329,7 @@ RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
   return PL_DHASH_NEXT;
 }
 
-PR_CALLBACK PLDHashOperator
+PLDHashOperator
 DoClearAnimationEffects(nsSMILCompositor* aCompositor,
                         void* )
 {
@@ -337,7 +337,7 @@ DoClearAnimationEffects(nsSMILCompositor* aCompositor,
   return PL_DHASH_NEXT;
 }
 
-PR_CALLBACK PLDHashOperator
+PLDHashOperator
 DoComposeAttribute(nsSMILCompositor* aCompositor,
                    void* )
 {
@@ -467,7 +467,7 @@ nsSMILAnimationController::RewindElements()
   mChildContainerTable.EnumerateEntries(ClearRewindNeeded, nullptr);
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
                                         void* aData)
 {
@@ -484,7 +484,7 @@ nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
   return PL_DHASH_NEXT;
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::RewindAnimation(AnimationElementPtrKey* aKey,
                                            void* aData)
 {
@@ -497,7 +497,7 @@ nsSMILAnimationController::RewindAnimation(AnimationElementPtrKey* aKey,
   return PL_DHASH_NEXT;
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::ClearRewindNeeded(TimeContainerPtrKey* aKey,
                                              void* aData)
 {
@@ -582,7 +582,7 @@ nsSMILAnimationController::DoMilestoneSamples()
   }
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::GetNextMilestone(TimeContainerPtrKey* aKey,
                                             void* aData)
 {
@@ -607,7 +607,7 @@ nsSMILAnimationController::GetNextMilestone(TimeContainerPtrKey* aKey,
   return PL_DHASH_NEXT;
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::GetMilestoneElements(TimeContainerPtrKey* aKey,
                                                 void* aData)
 {
@@ -629,7 +629,7 @@ nsSMILAnimationController::GetMilestoneElements(TimeContainerPtrKey* aKey,
   return PL_DHASH_NEXT;
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::SampleTimeContainer(TimeContainerPtrKey* aKey,
                                                void* aData)
 {
@@ -652,7 +652,7 @@ nsSMILAnimationController::SampleTimeContainer(TimeContainerPtrKey* aKey,
   return PL_DHASH_NEXT;
 }
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILAnimationController::SampleAnimation(AnimationElementPtrKey* aKey,
                                            void* aData)
 {

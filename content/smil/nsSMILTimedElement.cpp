@@ -2318,7 +2318,7 @@ nsSMILTimedElement::AreEndTimesDependentOn(
 
 
 
- PR_CALLBACK PLDHashOperator
+ PLDHashOperator
 nsSMILTimedElement::NotifyNewIntervalCallback(TimeValueSpecPtrKey* aKey,
                                               void* aData)
 {
