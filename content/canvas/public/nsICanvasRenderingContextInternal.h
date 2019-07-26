@@ -19,7 +19,6 @@
 
 class gfxContext;
 class gfxASurface;
-class nsIPropertyBag;
 class nsDisplayListBuilder;
 
 namespace mozilla {
@@ -110,9 +109,7 @@ public:
   
   NS_IMETHOD Redraw(const gfxRect &dirty) = 0;
 
-  
-  
-  NS_IMETHOD SetContextOptions(nsIPropertyBag *aNewOptions) { return NS_OK; }
+  NS_IMETHOD SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions) { return NS_OK; }
 
   
   
