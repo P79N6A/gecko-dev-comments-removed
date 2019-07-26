@@ -749,7 +749,7 @@ pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 pref("general.useragent.enable_overrides", true);
 
 pref("general.useragent.updates.enabled", true);
-pref("general.useragent.updates.url", "https://dynamicua.cdn.mozilla.net/0/%APP_ID%");
+pref("general.useragent.updates.url", "");
 pref("general.useragent.updates.interval", 604800); 
 pref("general.useragent.updates.retry", 86400); 
 
@@ -813,6 +813,9 @@ pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
 
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
+
+
+pref("gfx.canvas.skiagl.dynamic-cache", true);
 
 
 pref("dom.telephony.enabled", true);

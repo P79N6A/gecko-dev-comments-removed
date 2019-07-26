@@ -597,6 +597,13 @@ void StartDiskSpaceWatcher();
 
 void StopDiskSpaceWatcher();
 
+
+
+
+
+
+uint32_t GetTotalSystemMemory();
+
 } 
 } 
 
