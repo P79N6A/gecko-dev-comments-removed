@@ -118,9 +118,6 @@ CustomizeMode.prototype = {
 
       
       
-      
-      let deck = document.getElementById("tab-view-deck");
-      deck.addEventListener("mousedown", this);
       document.addEventListener("keypress", this);
 
       
@@ -195,8 +192,6 @@ CustomizeMode.prototype = {
     CustomizableUI.removeListener(this);
 
     this.document.removeEventListener("keypress", this);
-    let deck = this.document.getElementById("tab-view-deck");
-    deck.removeEventListener("mousedown", this);
     this.window.PanelUI.menuButton.removeEventListener("mousedown", this);
     this.window.PanelUI.menuButton.open = false;
 
@@ -297,7 +292,7 @@ CustomizeMode.prototype = {
 
     let deck = this.document.getElementById("tab-view-deck");
     let customizeTransitionEnd = function(aEvent) {
-      if (aEvent.originalTarget != deck || aEvent.propertyName != "padding-top") {
+      if (aEvent.originalTarget != deck || aEvent.propertyName != "padding-bottom") {
         return;
       }
       deck.removeEventListener("transitionend", customizeTransitionEnd);
@@ -738,8 +733,7 @@ CustomizeMode.prototype = {
         break;
       case "mousedown":
         if (aEvent.button == 0 &&
-            (aEvent.originalTarget == this.window.PanelUI.menuButton) ||
-            (aEvent.originalTarget == this.document.getElementById("tab-view-deck"))) {
+            (aEvent.originalTarget == this.window.PanelUI.menuButton)) {
           this.exit();
           aEvent.preventDefault();
           return;
