@@ -3646,7 +3646,18 @@ DebuggerServer.ObjectActorPreviewers = {
 
     let raw = obj.unsafeDereference();
     let items = aGrip.preview.items = [];
-    for (let item of Set.prototype.values.call(raw)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (let item of Cu.waiveXrays(Set.prototype.values.call(raw))) {
+      item = Cu.unwaiveXrays(item);
       item = makeDebuggeeValueIfNeeded(obj, item);
       items.push(threadActor.createValueGrip(item));
       if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
