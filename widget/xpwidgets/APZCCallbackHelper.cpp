@@ -68,7 +68,7 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
   
   
   CSSRect& displayPort = aFrameMetrics.mDisplayPort;
-  displayPort += aActualScrollOffset - aFrameMetrics.mScrollOffset;
+  displayPort += aFrameMetrics.mScrollOffset - aActualScrollOffset;
 
   
   
