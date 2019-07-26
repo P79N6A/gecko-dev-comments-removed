@@ -1141,8 +1141,8 @@ nsDOMDeviceStorageCursor::Continue()
   if (mRooted) {
     
     
-    NS_DROP_JS_OBJECTS(this, nsDOMDeviceStorageCursor);
     mResult = JSVAL_VOID;
+    NS_DROP_JS_OBJECTS(this, nsDOMDeviceStorageCursor);
     mDone = false;
     mRooted = false;
   }

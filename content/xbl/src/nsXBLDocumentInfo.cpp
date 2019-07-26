@@ -522,8 +522,9 @@ nsXBLDocumentInfo::~nsXBLDocumentInfo()
     mGlobalObject->ClearGlobalObjectOwner(); 
   }
   if (mBindingTable) {
-    NS_DROP_JS_OBJECTS(this, nsXBLDocumentInfo);
     delete mBindingTable;
+    mBindingTable = nullptr;
+    NS_DROP_JS_OBJECTS(this, nsXBLDocumentInfo);
   }
 }
 
