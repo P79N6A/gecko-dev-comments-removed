@@ -2603,7 +2603,12 @@ TypeCompartment::fixObjectType(ExclusiveContext *cx, JSObject *obj)
 
     JS_ASSERT(obj->is<JSObject>());
 
-    if (obj->slotSpan() == 0 || obj->inDictionaryMode() || !obj->hasEmptyElements())
+    
+
+
+
+
+    if (obj->slotSpan() == 0 || obj->inDictionaryMode() || !obj->hasEmptyElements() || obj->getMetadata())
         return;
 
     Vector<IdValuePair> properties(cx);
