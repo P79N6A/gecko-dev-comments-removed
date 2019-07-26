@@ -4,8 +4,9 @@
 
 
 #include "nsMixedContentBlocker.h"
-#include "nsContentPolicyUtils.h"
 
+#include "nsContentPolicyUtils.h"
+#include "nsThreadUtils.h"
 #include "nsINode.h"
 #include "nsCOMPtr.h"
 #include "nsIDocShell.h"
