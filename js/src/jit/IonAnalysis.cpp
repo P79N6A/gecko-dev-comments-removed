@@ -1407,7 +1407,7 @@ jit::AssertBasicGraphCoherency(MIRGraph &graph)
 
 #ifdef DEBUG
 static void
-AssertReversePostOrder(MIRGraph &graph)
+AssertReversePostorder(MIRGraph &graph)
 {
     
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
@@ -1415,7 +1415,10 @@ AssertReversePostOrder(MIRGraph &graph)
 
         for (size_t i = 0; i < block->numPredecessors(); i++) {
             MBasicBlock *pred = block->getPredecessor(i);
-            JS_ASSERT_IF(!pred->isLoopBackedge(), pred->isMarked());
+            if (!pred->isMarked()) {
+                JS_ASSERT(pred->isLoopBackedge());
+                JS_ASSERT(block->backedge() == pred);
+            }
         }
 
         block->mark();
@@ -1478,7 +1481,7 @@ jit::AssertGraphCoherency(MIRGraph &graph)
     if (!js_JitOptions.checkGraphConsistency)
         return;
     AssertBasicGraphCoherency(graph);
-    AssertReversePostOrder(graph);
+    AssertReversePostorder(graph);
 #endif
 }
 
@@ -2484,9 +2487,110 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
 }
 
 
-static void
-MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge, size_t numMarked)
+
+
+size_t
+jit::MarkLoopBlocks(MIRGraph &graph, MBasicBlock *header, bool *canOsr)
 {
+#ifdef DEBUG
+    for (ReversePostorderIterator i = graph.rpoBegin(), e = graph.rpoEnd(); i != e; ++i)
+        MOZ_ASSERT(!i->isMarked(), "Some blocks already marked");
+#endif
+
+    MBasicBlock *osrBlock = graph.osrBlock();
+    *canOsr = false;
+
+    
+    
+    
+    
+    
+    
+    MBasicBlock *backedge = header->backedge();
+    backedge->mark();
+    size_t numMarked = 1;
+    for (PostorderIterator i = graph.poBegin(backedge); ; ++i) {
+        MOZ_ASSERT(i != graph.poEnd(),
+                   "Reached the end of the graph while searching for the loop header");
+        MBasicBlock *block = *i;
+        
+        if (!block->isMarked())
+            continue;
+        
+        if (block == header)
+            break;
+        
+        for (size_t p = 0, e = block->numPredecessors(); p != e; ++p) {
+            MBasicBlock *pred = block->getPredecessor(p);
+            if (pred->isMarked())
+                continue;
+
+            
+            
+            if (osrBlock && pred != header && osrBlock->dominates(pred)) {
+                *canOsr = true;
+                continue;
+            }
+
+            MOZ_ASSERT(pred->id() >= header->id() && pred->id() <= backedge->id(),
+                       "Loop block not between loop header and loop backedge");
+
+            pred->mark();
+            ++numMarked;
+
+            
+            
+            
+            if (pred->isLoopHeader()) {
+                MBasicBlock *innerBackedge = pred->backedge();
+                if (!innerBackedge->isMarked()) {
+                    
+                    
+                    innerBackedge->mark();
+                    ++numMarked;
+
+                    
+                    
+                    if (backedge->id() > block->id()) {
+                        i = graph.poBegin(innerBackedge);
+                        --i;
+                    }
+                }
+            }
+        }
+    }
+    MOZ_ASSERT(header->isMarked(), "Loop header should be part of the loop");
+    return numMarked;
+}
+
+
+void
+jit::UnmarkLoopBlocks(MIRGraph &graph, MBasicBlock *header)
+{
+    MBasicBlock *backedge = header->backedge();
+    for (ReversePostorderIterator i = graph.rpoBegin(header); ; ++i) {
+        MOZ_ASSERT(i != graph.rpoEnd(),
+                   "Reached the end of the graph while searching for the backedge");
+        MBasicBlock *block = *i;
+        if (block->isMarked()) {
+            block->unmark();
+            if (block == backedge)
+                break;
+        }
+    }
+
+#ifdef DEBUG
+    for (ReversePostorderIterator i = graph.rpoBegin(), e = graph.rpoEnd(); i != e; ++i)
+        MOZ_ASSERT(!i->isMarked(), "Not all blocks got unmarked");
+#endif
+}
+
+
+static void
+MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, size_t numMarked)
+{
+    MBasicBlock *backedge = header->backedge();
+
     MOZ_ASSERT(header->isMarked(), "Loop header is not part of loop");
     MOZ_ASSERT(backedge->isMarked(), "Loop backedge is not part of loop");
 
@@ -2500,7 +2604,7 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge, 
     
     size_t headerId = header->id();
     size_t inLoopId = headerId;
-    size_t afterLoopId = inLoopId + numMarked;
+    size_t notInLoopId = inLoopId + numMarked;
     ReversePostorderIterator i = graph.rpoBegin(header);
     for (;;) {
         MBasicBlock *block = *i++;
@@ -2517,12 +2621,12 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge, 
         } else {
             
             graph.moveBlockBefore(insertPt, block);
-            block->setId(afterLoopId++);
+            block->setId(notInLoopId++);
         }
     }
     MOZ_ASSERT(header->id() == headerId, "Loop header id changed");
     MOZ_ASSERT(inLoopId == headerId + numMarked, "Wrong number of blocks kept in loop");
-    MOZ_ASSERT(afterLoopId == (insertIter != graph.rpoEnd() ? insertPt->id() : graph.numBlocks()),
+    MOZ_ASSERT(notInLoopId == (insertIter != graph.rpoEnd() ? insertPt->id() : graph.numBlocks()),
                "Wrong number of blocks moved out of loop");
 }
 
@@ -2530,9 +2634,6 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge, 
 bool
 jit::MakeLoopsContiguous(MIRGraph &graph)
 {
-    MBasicBlock *osrBlock = graph.osrBlock();
-    Vector<MBasicBlock *, 1, IonAllocPolicy> inlooplist(graph.alloc());
-
     
     for (MBasicBlockIterator i(graph.begin()); i != graph.end(); i++) {
         MBasicBlock *header = *i;
@@ -2540,37 +2641,12 @@ jit::MakeLoopsContiguous(MIRGraph &graph)
             continue;
 
         
-        
-        MBasicBlock *backedge = header->backedge();
-        size_t numMarked = 1;
-        backedge->mark();
-        if (!inlooplist.append(backedge))
-            return false;
-        do {
-            MBasicBlock *block = inlooplist.popCopy();
-            MOZ_ASSERT(block->id() >= header->id() && block->id() <= backedge->id(),
-                       "Non-OSR predecessor of loop block not between header and backedge");
-            if (block == header)
-                continue;
-            for (size_t p = 0; p < block->numPredecessors(); p++) {
-                MBasicBlock *pred = block->getPredecessor(p);
-                if (pred->isMarked())
-                    continue;
-                
-                
-                
-                if (osrBlock && osrBlock->dominates(pred) && !osrBlock->dominates(header))
-                    continue;
-                ++numMarked;
-                pred->mark();
-                if (!inlooplist.append(pred))
-                    return false;
-            }
-        } while (!inlooplist.empty());
+        bool canOsr;
+        size_t numMarked = MarkLoopBlocks(graph, header, &canOsr);
 
         
         
-        MakeLoopContiguous(graph, header, backedge, numMarked);
+        MakeLoopContiguous(graph, header, numMarked);
     }
 
     return true;

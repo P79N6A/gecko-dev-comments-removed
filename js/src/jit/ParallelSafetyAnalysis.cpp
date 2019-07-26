@@ -375,7 +375,7 @@ ParallelSafetyAnalysis::analyze()
             if (!visitor.unsafe()) {
                 
                 for (uint32_t i = 0; i < block->numSuccessors(); i++)
-                    block->getSuccessor(i)->mark();
+                    block->getSuccessor(i)->markUnchecked();
             } else {
                 
                 
