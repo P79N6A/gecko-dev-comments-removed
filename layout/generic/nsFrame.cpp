@@ -4957,7 +4957,7 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
 
 static nsRect
 ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
-                   const nsSize& aNewSize, bool aStoreRectProperties)
+                   const nsSize& aNewSize)
 {
   nsRect r = aOverflowRect;
 
@@ -4966,10 +4966,8 @@ ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
     
     
     if (aFrame->StyleSVGReset()->HasFilters()) {
-      if (aStoreRectProperties) {
-        aFrame->Properties().
-          Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
-      }
+      aFrame->Properties().
+        Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
       r = nsSVGUtils::GetPostFilterVisualOverflowRect(aFrame, aOverflowRect);
     }
     return r;
@@ -4985,10 +4983,8 @@ ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
     DebugOnly<bool> result = outline->GetOutlineWidth(width);
     NS_ASSERTION(result, "GetOutlineWidth had no cached outline width");
     if (width > 0) {
-      if (aStoreRectProperties) {
-        aFrame->Properties().
-          Set(nsIFrame::OutlineInnerRectProperty(), new nsRect(r));
-      }
+      aFrame->Properties().
+        Set(nsIFrame::OutlineInnerRectProperty(), new nsRect(r));
 
       nscoord offset = outline->mOutlineOffset;
       nscoord inflateBy = std::max(width + offset, 0);
@@ -5030,10 +5026,8 @@ ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
   
 
   if (nsSVGIntegrationUtils::UsingEffectsForFrame(aFrame)) {
-    if (aStoreRectProperties) {
-      aFrame->Properties().
-        Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
-    }
+    aFrame->Properties().
+      Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
     r = nsSVGIntegrationUtils::ComputePostEffectsVisualOverflowRect(aFrame, r);
   }
 
@@ -6935,7 +6929,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
 
   
   aOverflowAreas.VisualOverflow() =
-    ComputeEffectsRect(this, aOverflowAreas.VisualOverflow(), aNewSize, true);
+    ComputeEffectsRect(this, aOverflowAreas.VisualOverflow(), aNewSize);
 
   
   nsRect clipPropClipRect;
