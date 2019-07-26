@@ -451,8 +451,6 @@ static void
 ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
             JSErrorCallback callback, void *userRef)
 {
-    AssertCanGC();
-
     
 
 
