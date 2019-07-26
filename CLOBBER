@@ -17,5 +17,5 @@
 #
 # Modifying this file will now automatically clobber the buildbot machines \o/
 #
-
-touching resources in Android requires a clobber, and I did that in bug 880259
+Bug 895173: Rename context menu id's to "home_" for home context menu.
+Android resource changes
