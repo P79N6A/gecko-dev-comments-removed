@@ -429,7 +429,7 @@ AudioContext::Shutdown()
   GetHashtableElements(mAudioBufferSourceNodes, sourceNodes);
   for (uint32_t i = 0; i < sourceNodes.Length(); ++i) {
     ErrorResult rv;
-    sourceNodes[i]->Stop(0.0, rv);
+    sourceNodes[i]->Stop(0.0, rv, true);
   }
   
   
@@ -437,6 +437,11 @@ AudioContext::Shutdown()
   GetHashtableElements(mScriptProcessorNodes, spNodes);
   for (uint32_t i = 0; i < spNodes.Length(); ++i) {
     spNodes[i]->Stop();
+  }
+
+  
+  if (mIsOffline) {
+    mDestination->DestroyGraph();
   }
 }
 

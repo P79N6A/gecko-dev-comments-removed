@@ -1045,7 +1045,12 @@ MediaStreamGraphImpl::RunThread()
       ticksProcessed += TimeToTicksRoundDown(IdealAudioRate(), mStateComputedTime - prevComputedTime);
       
       if (ticksProcessed >= mNonRealtimeTicksToProcess) {
-        break;
+        
+        
+        MonitorAutoLock lock(mMonitor);
+        PrepareUpdatesToMainThreadState();
+        mWaitState = WAITSTATE_WAITING_INDEFINITELY;
+        mMonitor.Wait(PR_INTERVAL_NO_TIMEOUT);
       }
     }
     if (ensureNextIteration || !allBlockedForever || audioStreamsActive > 0) {
@@ -1383,8 +1388,13 @@ MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
     if (IsEmpty()) {
       if (gGraph == this) {
         gGraph = nullptr;
-        delete this;
       }
+      delete this;
+    } else if (!mRealtime) {
+      
+      
+      
+      mNonRealtimeProcessing = false;
     }
     return;
   }
@@ -2055,7 +2065,6 @@ MediaStreamGraph::DestroyNonRealtimeInstance(MediaStreamGraph* aGraph)
 
   MediaStreamGraphImpl* graph = static_cast<MediaStreamGraphImpl*>(aGraph);
   graph->ForceShutDown();
-  delete graph;
 }
 
 SourceMediaStream*

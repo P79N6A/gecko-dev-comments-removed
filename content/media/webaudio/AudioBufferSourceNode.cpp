@@ -553,14 +553,15 @@ AudioBufferSourceNode::SendOffsetAndDurationParametersToStream(AudioNodeStream* 
 }
 
 void
-AudioBufferSourceNode::Stop(double aWhen, ErrorResult& aRv)
+AudioBufferSourceNode::Stop(double aWhen, ErrorResult& aRv, bool aShuttingDown)
 {
   if (!mStartCalled) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
-  if (!mBuffer) {
+  if (!mBuffer || aShuttingDown) {
+    
     
     
     mPlayingRef.Drop(this);
