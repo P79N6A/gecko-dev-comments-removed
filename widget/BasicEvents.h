@@ -48,23 +48,21 @@ enum nsEventStructType
   NS_TOUCH_EVENT,                    
 
   
+  NS_SCRIPT_ERROR_EVENT,             
   NS_SCROLLPORT_EVENT,               
   NS_SCROLLAREA_EVENT,               
-
-  
-  NS_SCRIPT_ERROR_EVENT,             
-  NS_MUTATION_EVENT,                 
   NS_FORM_EVENT,                     
   NS_FOCUS_EVENT,                    
   NS_CLIPBOARD_EVENT,                
+  NS_TRANSITION_EVENT,               
+  NS_ANIMATION_EVENT,                
+
+  
+  NS_MUTATION_EVENT,                 
 
   
   NS_SVGZOOM_EVENT,                  
   NS_SMIL_TIME_EVENT,                
-
-  
-  NS_TRANSITION_EVENT,               
-  NS_ANIMATION_EVENT,                
 
   
   NS_COMMAND_EVENT,                  
@@ -874,6 +872,14 @@ public:
 
 class InternalUIEvent : public WidgetGUIEvent
 {
+protected:
+  InternalUIEvent(bool aIsTrusted, uint32_t aMessage,
+                  nsEventStructType aStructType, int32_t aDetail) :
+    WidgetGUIEvent(aIsTrusted, aMessage, nullptr, aStructType),
+    detail(aDetail)
+  {
+  }
+
 public:
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage, int32_t aDetail) :
     WidgetGUIEvent(aIsTrusted, aMessage, nullptr, NS_UI_EVENT),
