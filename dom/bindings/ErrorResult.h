@@ -66,16 +66,9 @@ public:
   
   
   
-  
   void ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn);
   void ReportJSException(JSContext* cx);
   bool IsJSException() const { return ErrorCode() == NS_ERROR_DOM_JS_EXCEPTION; }
-
-  
-  
-  
-  void StealJSException(JSContext* cx, JS::MutableHandle<JS::Value> value);
-
   void MOZ_ALWAYS_INLINE MightThrowJSException()
   {
 #ifdef DEBUG

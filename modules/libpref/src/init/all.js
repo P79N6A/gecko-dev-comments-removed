@@ -1823,13 +1823,6 @@ pref("dom.max_script_run_time", 10);
 pref("dom.archivereader.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("dom.future.enabled", false);
-#else
-pref("dom.future.enabled", true);
-#endif
-
-
 
 
 
