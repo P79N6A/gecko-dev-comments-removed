@@ -64,6 +64,23 @@ class SVGFilterElement;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsSVGFilterInstance
 {
   typedef mozilla::gfx::Point3D Point3D;
