@@ -28,6 +28,7 @@
 #include "StickyScrollContainer.h"
 #include "nsIFrameInlines.h"
 #include <algorithm>
+#include "mozilla/dom/HTMLInputElement.h"
 
 #ifdef DEBUG
 #undef NOISY_VERTICAL_ALIGN
@@ -37,6 +38,7 @@
 
 using namespace mozilla;
 using namespace mozilla::css;
+using namespace mozilla::dom;
 using namespace mozilla::layout;
 
 enum eNormalLineHeightControl {
@@ -2485,7 +2487,8 @@ nsHTMLReflowState::CalcLineHeight(nsIContent* aContent,
 
   NS_ASSERTION(lineHeight >= 0, "ComputeLineHeight screwed up");
 
-  if (aContent && aContent->IsHTML(nsGkAtoms::input)) {
+  HTMLInputElement* input = HTMLInputElement::FromContentOrNull(aContent);
+  if (input && input->IsSingleLineTextControl()) {
     
     
     nscoord lineHeightOne =
