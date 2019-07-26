@@ -213,7 +213,9 @@ static char **gQtOnlyArgv;
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
-#if defined(NS_FREE_PERMANENT_DATA)
+#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) \
+  || defined(NS_TRACE_MALLOC)
+#define CLEANUP_MEMORY 1
 #define PANGO_ENABLE_BACKEND
 #include <pango/pangofc-fontmap.h>
 #endif
@@ -2594,7 +2596,7 @@ static PRFuncPtr FindFunction(const char* aName)
 
 static void MOZ_gdk_display_close(GdkDisplay *display)
 {
-#ifdef NS_FREE_PERMANENT_DATA
+#if CLEANUP_MEMORY
   
   
   bool theme_is_qt = false;
