@@ -1,5 +1,0 @@
-
-
-
-
-from profile import *
