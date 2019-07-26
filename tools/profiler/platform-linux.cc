@@ -78,6 +78,47 @@ pid_t gettid()
 static Sampler* sActiveSampler = NULL;
 
 
+#if !defined(ANDROID)
+
+
+
+
+
+
+
+
+
+
+
+
+static bool was_paused = false;
+
+
+
+static void paf_prepare(void) {
+  if (sActiveSampler) {
+    was_paused = sActiveSampler->IsPaused();
+    sActiveSampler->SetPaused(true);
+  } else {
+    was_paused = false;
+  }
+}
+
+
+
+static void paf_parent(void) {
+  if (sActiveSampler)
+    sActiveSampler->SetPaused(was_paused);
+}
+
+
+
+static void* setup_atfork() {
+  pthread_atfork(paf_prepare, paf_parent, NULL);
+  return NULL;
+}
+#endif 
+
 #ifdef ANDROID
 #include "android-signal-defs.h"
 #endif
@@ -202,10 +243,18 @@ class Sampler::PlatformData : public Malloced {
 
 
 static void* SenderEntry(void* arg) {
+# if defined(ANDROID)
+  
+  void* initialize_atfork = NULL;
+# else
+  
+  
+  static void* initialize_atfork = setup_atfork();
+# endif
   Sampler::PlatformData* data =
       reinterpret_cast<Sampler::PlatformData*>(arg);
   data->SignalSender();
-  return 0;
+  return initialize_atfork; 
 }
 
 
