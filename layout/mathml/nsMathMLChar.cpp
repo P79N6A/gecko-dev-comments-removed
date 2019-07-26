@@ -34,6 +34,10 @@ using namespace mozilla;
 
 
 
+
+
+
+static const float kMaxScaleFactor = 20.0;
 static const float kLargeOpFactor = float(M_SQRT2);
 static const float kIntegralFactor = 2.0;
 
@@ -1663,8 +1667,8 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   if (stretchy) {
     if (isVertical) {
       float scale =
-        float(aContainerSize.ascent + aContainerSize.descent) /
-        (aDesiredStretchSize.ascent + aDesiredStretchSize.descent);
+        std::min(kMaxScaleFactor, float(aContainerSize.ascent + aContainerSize.descent) /
+        (aDesiredStretchSize.ascent + aDesiredStretchSize.descent));
       if (!largeop || scale > 1.0) {
         
         if (!maxWidth) {
@@ -1675,8 +1679,8 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
       }
     } else {
       float scale =
-        float(aContainerSize.rightBearing - aContainerSize.leftBearing) /
-        (aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing);
+        std::min(kMaxScaleFactor, float(aContainerSize.rightBearing - aContainerSize.leftBearing) /
+        (aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing));
       if (!largeop || scale > 1.0) {
         
         if (!maxWidth) {
