@@ -261,7 +261,24 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   nsRefPtr<nsDeviceContext> dx;
   mViewManager->GetDeviceContext(*getter_AddRefs(dx));
-  double invScale = dx->UnscaledAppUnitsPerDevPixel() / 60.0;
+  double invScale;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  double scale = mWindow->GetDefaultScale();
+  if (NSToIntRound(60.0 / scale) == dx->UnscaledAppUnitsPerDevPixel()) {
+    invScale = 1.0 / scale;
+  } else {
+    invScale = dx->UnscaledAppUnitsPerDevPixel() / 60.0;
+  }
 
   if (changedPos) {
     if (changedSize && !aMoveOnly) {
