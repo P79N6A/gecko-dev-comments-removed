@@ -176,6 +176,8 @@ class RefTest(object):
     prefs['browser.snippets.syncPromo.enabled'] = False
     
     prefs['general.useragent.updates.enabled'] = False
+    
+    prefs['browser.webapps.checkForUpdates'] = 0
 
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
