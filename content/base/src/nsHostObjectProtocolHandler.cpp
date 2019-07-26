@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "nsHostObjectProtocolHandler.h"
 #include "nsHostObjectURI.h"
 #include "nsError.h"
@@ -11,6 +13,7 @@
 #include "nsIDOMFile.h"
 #include "nsIDOMMediaStream.h"
 #include "mozilla/dom/MediaSource.h"
+#include "nsIMemoryReporter.h"
 
 
 
@@ -22,6 +25,37 @@ struct DataInfo
 };
 
 static nsClassHashtable<nsCStringHashKey, DataInfo>* gDataTable;
+
+
+namespace mozilla {
+
+class HostObjectURLsReporter MOZ_FINAL : public MemoryUniReporter
+{
+ public:
+  HostObjectURLsReporter()
+    : MemoryUniReporter("host-object-urls",
+                        KIND_OTHER, UNITS_COUNT,
+                        "The number of host objects stored for access via URLs "
+                        "(e.g. blobs passed to URL.createObjectURL).")
+    {}
+ private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return gDataTable ? gDataTable->Count() : 0;
+  }
+};
+
+}
+
+nsHostObjectProtocolHandler::nsHostObjectProtocolHandler()
+{
+  static bool initialized = false;
+
+  if (!initialized) {
+    initialized = true;
+    NS_RegisterMemoryReporter(new mozilla::HostObjectURLsReporter());
+  }
+}
 
 nsresult
 nsHostObjectProtocolHandler::AddDataEntry(const nsACString& aScheme,
