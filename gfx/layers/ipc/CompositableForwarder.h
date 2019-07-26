@@ -29,6 +29,8 @@ class ThebesBufferData;
 class DeprecatedTextureClient;
 class TextureClient;
 class BasicTiledLayerBuffer;
+class PTextureChild;
+class TextureClientData;
 
 
 
@@ -97,6 +99,14 @@ public:
 
 
 
+
+
+  virtual PTextureChild* CreateEmptyTextureChild() = 0;
+
+  
+
+
+
   virtual void UpdateTexture(CompositableClient* aCompositable,
                              TextureIdentifier aTextureId,
                              SurfaceDescriptor* aDescriptor) = 0;
@@ -153,22 +163,11 @@ public:
 
 
 
-  virtual bool AddTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual void RemoveTexture(CompositableClient* aCompositable,
-                             uint64_t aTextureID,
-                             TextureFlags aFlags) = 0;
+  virtual void RemoveTexture(TextureClient* aTexture)
+  {
+    
+    
+  }
 
   
 

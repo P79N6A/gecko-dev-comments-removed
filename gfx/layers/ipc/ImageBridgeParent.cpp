@@ -30,6 +30,7 @@
 #include "nsTArray.h"                   
 #include "nsTArrayForwardDeclare.h"     
 #include "nsXULAppAPI.h"                
+#include "mozilla/layers/TextureHost.h"
 
 using namespace base;
 using namespace mozilla::ipc;
@@ -176,6 +177,18 @@ bool ImageBridgeParent::DeallocPCompositableParent(PCompositableParent* aActor)
 {
   delete aActor;
   return true;
+}
+
+PTextureParent*
+ImageBridgeParent::AllocPTextureParent()
+{
+  return TextureHost::CreateIPDLActor(this);
+}
+
+bool
+ImageBridgeParent::DeallocPTextureParent(PTextureParent* actor)
+{
+  return TextureHost::DestroyIPDLActor(actor);
 }
 
 MessageLoop * ImageBridgeParent::GetMessageLoop() {

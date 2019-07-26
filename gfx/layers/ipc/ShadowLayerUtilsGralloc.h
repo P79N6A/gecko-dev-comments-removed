@@ -15,10 +15,6 @@
 #include "mozilla/layers/PGrallocBufferChild.h"
 #include "mozilla/layers/PGrallocBufferParent.h"
 
-
-
-#include "TextureHost.h"
-
 #define MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 #define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
 
@@ -29,6 +25,8 @@ namespace layers {
 
 class MaybeMagicGrallocBufferHandle;
 class SurfaceDescriptorGralloc;
+class TextureHost;
+class DeprecatedTextureHost;
 
 
 

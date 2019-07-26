@@ -36,6 +36,7 @@
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
 #include "mozilla/StaticPtr.h"          
+#include "mozilla/layers/TextureClient.h"
 
 struct nsIntRect;
  
@@ -103,46 +104,12 @@ struct AutoEndTransaction {
   CompositableTransaction* mTxn;
 };
 
-bool
-ImageBridgeChild::AddTexture(CompositableClient* aCompositable,
-                             TextureClient* aTexture)
-{
-  SurfaceDescriptor descriptor;
-  if (!aTexture->ToSurfaceDescriptor(descriptor)) {
-    NS_WARNING("ImageBridge: Failed to serialize a TextureClient");
-    return false;
-  }
-  mTxn->AddEdit(OpAddTexture(nullptr, aCompositable->GetIPDLActor(),
-                             aTexture->GetID(),
-                             descriptor,
-                             aTexture->GetFlags()));
-  return true;
-}
-
-void
-ImageBridgeChild::RemoveTexture(CompositableClient* aCompositable,
-                                uint64_t aTexture,
-                                TextureFlags aFlags)
-{
-  if (aFlags & TEXTURE_DEALLOCATE_CLIENT) {
-    
-    
-    mTxn->AddEdit(OpRemoveTexture(nullptr, aCompositable->GetIPDLActor(),
-                                  aTexture,
-                                  aFlags));
-  } else {
-    mTxn->AddNoSwapEdit(OpRemoveTexture(nullptr, aCompositable->GetIPDLActor(),
-                                        aTexture,
-                                        aFlags));
-  }
-}
-
 void
 ImageBridgeChild::UseTexture(CompositableClient* aCompositable,
                              TextureClient* aTexture)
 {
   mTxn->AddNoSwapEdit(OpUseTexture(nullptr, aCompositable->GetIPDLActor(),
-                                   aTexture->GetID()));
+                                   nullptr, aTexture->GetIPDLActor()));
 }
 
 void
@@ -153,7 +120,7 @@ ImageBridgeChild::UpdatedTexture(CompositableClient* aCompositable,
   MaybeRegion region = aRegion ? MaybeRegion(*aRegion)
                                : MaybeRegion(null_t());
   mTxn->AddNoSwapEdit(OpUpdateTexture(nullptr, aCompositable->GetIPDLActor(),
-                                      aTexture->GetID(),
+                                      nullptr, aTexture->GetIPDLActor(),
                                       region));
 }
 
@@ -465,7 +432,6 @@ void ImageBridgeChild::FlushAllImagesNow(ImageClient* aClient, ImageContainer* a
   aClient->FlushAllImages(aExceptFront);
   aClient->OnTransaction();
   sImageBridgeChildSingleton->EndTransaction();
-  aClient->FlushTexturesToRemoveCallbacks();
 }
 
 void
@@ -525,14 +491,6 @@ ImageBridgeChild::EndTransaction()
     }
     case EditReply::TReplyTextureRemoved: {
       
-      
-      
-      
-      
-      const ReplyTextureRemoved& rep = reply.get_ReplyTextureRemoved();
-      CompositableClient* compositable
-        = static_cast<CompositableChild*>(rep.compositableChild())->GetCompositableClient();
-      compositable->OnReplyTextureRemoved(rep.textureId());
       break;
     }
     default:
@@ -938,6 +896,24 @@ ImageBridgeChild::AllocGrallocBuffer(const gfxIntSize& aSize,
   NS_RUNTIMEABORT("not implemented");
   return nullptr;
 #endif
+}
+
+PTextureChild*
+ImageBridgeChild::AllocPTextureChild()
+{
+  return TextureClient::CreateIPDLActor();
+}
+
+bool
+ImageBridgeChild::DeallocPTextureChild(PTextureChild* actor)
+{
+  return TextureClient::DestroyIPDLActor(actor);
+}
+
+PTextureChild*
+ImageBridgeChild::CreateEmptyTextureChild()
+{
+  return SendPTextureConstructor();
 }
 
 } 

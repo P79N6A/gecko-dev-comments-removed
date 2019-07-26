@@ -151,41 +151,12 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-
-  void OnReplyTextureRemoved(uint64_t aTextureID);
-
-  
-
-
-
-  void FlushTexturesToRemoveCallbacks();
-
-  
-
-
   virtual void OnActorDestroy() = 0;
 
 protected:
   
   uint64_t NextTextureID();
 
-  struct TextureIDAndFlags {
-    TextureIDAndFlags(uint64_t aID, TextureFlags aFlags)
-    : mID(aID), mFlags(aFlags) {}
-    uint64_t mID;
-    TextureFlags mFlags;
-  };
-  
-  nsTArray<TextureIDAndFlags> mTexturesToRemove;
-  std::map<uint64_t, TextureClientData*> mTexturesToRemoveCallbacks;
   uint64_t mNextTextureID;
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
