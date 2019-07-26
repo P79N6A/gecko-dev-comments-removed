@@ -45,7 +45,7 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
     return nullptr;
 
   
-  nsAccessNode::GetApplicationAccessible()->EnsureChildren();
+  ApplicationAcc()->EnsureChildren();
 
   DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (docAcc)
@@ -393,8 +393,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   if (isRootDoc) {
-    Accessible* appAcc = nsAccessNode::GetApplicationAccessible();
-    if (!appAcc->AppendChild(docAcc)) {
+    if (!ApplicationAcc()->AppendChild(docAcc)) {
       docAcc->Shutdown();
       return nullptr;
     }
@@ -404,8 +403,8 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     
     
     nsRefPtr<AccEvent> reorderEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, appAcc, eAutoDetect,
-                   AccEvent::eCoalesceFromSameSubtree);
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, ApplicationAcc(),
+                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
     docAcc->FireDelayedAccessibleEvent(reorderEvent);
 
   } else {

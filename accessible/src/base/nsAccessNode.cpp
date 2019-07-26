@@ -5,7 +5,6 @@
 
 #include "nsAccessNode.h"
 
-#include "ApplicationAccessibleWrap.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
@@ -28,12 +27,10 @@ using namespace mozilla::a11y;
 
 
 
-ApplicationAccessible* nsAccessNode::gApplicationAccessible = nullptr;
 
 
 
 
- 
 
 
 
@@ -80,41 +77,6 @@ nsAccessNode::Shutdown()
 {
   mContent = nullptr;
   mDoc = nullptr;
-}
-
-ApplicationAccessible*
-nsAccessNode::GetApplicationAccessible()
-{
-  NS_ASSERTION(!nsAccessibilityService::IsShutdown(),
-               "Accessibility wasn't initialized!");
-
-  if (!gApplicationAccessible) {
-    ApplicationAccessibleWrap::PreCreate();
-
-    gApplicationAccessible = new ApplicationAccessibleWrap();
-
-    
-    NS_ADDREF(gApplicationAccessible);
-
-    gApplicationAccessible->Init();
-  }
-
-  return gApplicationAccessible;
-}
-
-void nsAccessNode::ShutdownXPAccessibility()
-{
-  
-  
-  
-
-  
-  
-  ApplicationAccessibleWrap::Unload();
-  if (gApplicationAccessible) {
-    gApplicationAccessible->Shutdown();
-    NS_RELEASE(gApplicationAccessible);
-  }
 }
 
 RootAccessible*
