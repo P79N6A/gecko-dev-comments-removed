@@ -259,7 +259,7 @@ gfxAndroidPlatform::FontHintingEnabled()
     
     
     return XRE_GetProcessType() != GeckoProcessType_Content ||
-           ContentChild::GetSingleton()->HasOwnApp();
+           !ContentChild::GetSingleton()->IsForBrowser();
 #endif 
 }
 
