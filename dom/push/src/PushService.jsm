@@ -1504,13 +1504,9 @@ this.PushService = {
   
 
 
+  _getNetworkInformation: function() {
+    debug("getNetworkInformation()");
 
-
-  _getNetworkState: function(callback) {
-    if (typeof callback !== 'function') {
-      throw new Error("No callback method. Aborting push agent !");
-    }
-    debug("getNetworkState()");
     try {
       if (!prefs.get("udp.wakeupEnabled")) {
         debug("UDP support disabled, we do not send any carrier info");
@@ -1534,16 +1530,11 @@ this.PushService = {
           let prefixLengths = {};
           nm.active.getAddresses(ips, prefixLengths);
 
-          this._getMobileNetworkId(function(netid) {
-            debug("Recovered netID = " + netid);
-            callback({
-              mcc: iccInfo.mcc,
-              mnc: iccInfo.mnc,
-              ip:  ips.value[0],
-              netid: netid
-            });
-          });
-          return;
+          return {
+            mcc: iccInfo.mcc,
+            mnc: iccInfo.mnc,
+            ip:  ips.value[0]
+          }
         }
       }
     } catch (e) {
@@ -1551,11 +1542,40 @@ this.PushService = {
     }
 
     debug("Running on wifi");
-    callback({
+    return {
       mcc: 0,
       mnc: 0,
       ip: undefined
-    });
+    };
+  },
+
+  
+
+
+
+
+  _getNetworkState: function(callback) {
+    debug("getNetworkState()");
+
+    if (typeof callback !== 'function') {
+      throw new Error("No callback method. Aborting push agent !");
+    }
+
+    var networkInfo = this._getNetworkInformation();
+
+    if (networkInfo.ip) {
+      this._getMobileNetworkId(function(netid) {
+        debug("Recovered netID = " + netid);
+        callback({
+          mcc: networkInfo.mcc,
+          mnc: networkInfo.mnc,
+          ip:  networkInfo.ip,
+          netid: netid
+        });
+      });
+    } else {
+      callback(networkInfo);
+    }
   },
 
   
