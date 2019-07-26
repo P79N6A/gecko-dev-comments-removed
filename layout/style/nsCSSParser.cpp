@@ -9734,6 +9734,11 @@ CSSParserImpl::ParseTextAlign(nsCSSValue& aValue, const int32_t aTable[])
     return false;
   }
 
+  if (!nsLayoutUtils::IsTextAlignTrueValueEnabled()) {
+    aValue = left;
+    return true;
+  }
+
   nsCSSValue right;
   if (ParseVariant(right, VARIANT_KEYWORD, aTable)) {
     

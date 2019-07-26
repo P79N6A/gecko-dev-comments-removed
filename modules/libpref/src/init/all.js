@@ -1887,6 +1887,9 @@ pref("layout.css.sticky.enabled", true);
 #endif
 
 
+pref("layout.css.text-align-true-value.enabled", false);
+
+
 pref("layout.css.image-orientation.enabled", true);
 
 

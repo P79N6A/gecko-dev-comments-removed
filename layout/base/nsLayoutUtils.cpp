@@ -96,6 +96,7 @@ using mozilla::image::Orientation;
 
 #define FLEXBOX_ENABLED_PREF_NAME "layout.css.flexbox.enabled"
 #define STICKY_ENABLED_PREF_NAME "layout.css.sticky.enabled"
+#define TEXT_ALIGN_TRUE_ENABLED_PREF_NAME "layout.css.text-align-true-value.enabled"
 
 #ifdef DEBUG
 
@@ -205,6 +206,45 @@ StickyEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
   
   nsCSSProps::kPositionKTable[sIndexOfStickyInPositionTable] =
     isStickyEnabled ? eCSSKeyword_sticky : eCSSKeyword_UNKNOWN;
+
+  return 0;
+}
+
+
+
+
+static int
+TextAlignTrueEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
+{
+  NS_ASSERTION(strcmp(aPrefName, TEXT_ALIGN_TRUE_ENABLED_PREF_NAME) == 0,
+               "Did you misspell " TEXT_ALIGN_TRUE_ENABLED_PREF_NAME " ?");
+
+  static bool sIsInitialized;
+  static int32_t sIndexOfTrueInTextAlignTable;
+  static int32_t sIndexOfTrueInTextAlignLastTable;
+  bool isTextAlignTrueEnabled =
+    Preferences::GetBool(TEXT_ALIGN_TRUE_ENABLED_PREF_NAME, false);
+
+  if (!sIsInitialized) {
+    
+    sIndexOfTrueInTextAlignTable =
+      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_true,
+                                     nsCSSProps::kTextAlignKTable);
+    
+    sIndexOfTrueInTextAlignLastTable =
+      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_true,
+                                     nsCSSProps::kTextAlignLastKTable);
+    sIsInitialized = true;
+  }
+
+  
+  
+  MOZ_ASSERT(sIndexOfTrueInTextAlignTable >= 0);
+  nsCSSProps::kTextAlignKTable[sIndexOfTrueInTextAlignTable] =
+    isTextAlignTrueEnabled ? eCSSKeyword_true : eCSSKeyword_UNKNOWN;
+  MOZ_ASSERT(sIndexOfTrueInTextAlignLastTable >= 0);
+  nsCSSProps::kTextAlignLastKTable[sIndexOfTrueInTextAlignLastTable] =
+    isTextAlignTrueEnabled ? eCSSKeyword_true : eCSSKeyword_UNKNOWN;
 
   return 0;
 }
@@ -445,6 +485,22 @@ nsLayoutUtils::UnsetValueEnabled()
   }
 
   return sUnsetValueEnabled;
+}
+
+bool
+nsLayoutUtils::IsTextAlignTrueValueEnabled()
+{
+  static bool sTextAlignTrueValueEnabled;
+  static bool sTextAlignTrueValueEnabledPrefCached = false;
+
+  if (!sTextAlignTrueValueEnabledPrefCached) {
+    sTextAlignTrueValueEnabledPrefCached = true;
+    Preferences::AddBoolVarCache(&sTextAlignTrueValueEnabled,
+                                 TEXT_ALIGN_TRUE_ENABLED_PREF_NAME,
+                                 false);
+  }
+
+  return sTextAlignTrueValueEnabled;
 }
 
 void
@@ -5124,6 +5180,10 @@ nsLayoutUtils::Initialize()
   Preferences::RegisterCallback(StickyEnabledPrefChangeCallback,
                                 STICKY_ENABLED_PREF_NAME);
   StickyEnabledPrefChangeCallback(STICKY_ENABLED_PREF_NAME, nullptr);
+  Preferences::RegisterCallback(TextAlignTrueEnabledPrefChangeCallback,
+                                TEXT_ALIGN_TRUE_ENABLED_PREF_NAME);
+  TextAlignTrueEnabledPrefChangeCallback(TEXT_ALIGN_TRUE_ENABLED_PREF_NAME,
+                                         nullptr);
 
   nsComputedDOMStyle::RegisterPrefChangeCallbacks();
 }

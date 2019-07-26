@@ -537,8 +537,10 @@ public:
   static const int32_t kSpeechRateKTable[];
   static const int32_t kStackSizingKTable[];
   static const int32_t kTableLayoutKTable[];
-  static const int32_t kTextAlignKTable[];
-  static const int32_t kTextAlignLastKTable[];
+  
+  
+  static int32_t kTextAlignKTable[];
+  static int32_t kTextAlignLastKTable[];
   static const int32_t kTextCombineHorizontalKTable[];
   static const int32_t kTextDecorationLineKTable[];
   static const int32_t kTextDecorationStyleKTable[];
