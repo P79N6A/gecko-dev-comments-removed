@@ -96,8 +96,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x1ebdb596, 0x0f90, 0x4f02, \
-  { 0x97, 0x07, 0x4e, 0xc1, 0x16, 0xcd, 0x54, 0xf6 } }
+{ 0x8e2afc1c, 0x7087, 0x4ec2, \
+  { 0xac, 0xc6, 0xd4, 0xf2, 0x3e, 0x13, 0xd2, 0xb7 } }
 
 
 
@@ -1215,7 +1215,14 @@ class nsIWidget : public nsISupports {
 
     virtual void CleanupWindowEffects() = 0;
 
-    virtual void PreRender(LayerManager* aManager) = 0;
+    
+
+
+
+
+
+
+    virtual bool PreRender(LayerManager* aManager) = 0;
 
     
 
