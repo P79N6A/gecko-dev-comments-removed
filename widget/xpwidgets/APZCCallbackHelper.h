@@ -43,8 +43,12 @@ public:
 
     
 
+
+
+
+
     static void UpdateSubFrame(nsIContent* aContent,
-                               const FrameMetrics& aMetrics);
+                               FrameMetrics& aMetrics);
 
     
     static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(const nsIDocument* aDoc);

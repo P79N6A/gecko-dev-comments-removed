@@ -72,17 +72,15 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
   
   
   if (Preferences::GetBool("layers.force-tiles")) {
-    
-    
     displayPort =
       ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
-                                        aFrameMetrics.mZoom * ScreenToLayerScale(1))
+                                        aFrameMetrics.LayersPixelsPerCSSPixel())
       - aActualScrollOffset;
   }
 
   
   CSSRect scrollableRect = aFrameMetrics.mScrollableRect;
-  displayPort = scrollableRect.ClampRect(displayPort + aActualScrollOffset)
+  displayPort = scrollableRect.Intersect(displayPort + aActualScrollOffset)
     - aActualScrollOffset;
 }
 
@@ -153,7 +151,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 
 void
 APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
-                                   const FrameMetrics& aMetrics)
+                                   FrameMetrics& aMetrics)
 {
     
     MOZ_ASSERT(aContent);
@@ -169,19 +167,24 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
     
     
 
+    CSSPoint actualScrollOffset;
     nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.mScrollId);
     if (sf) {
         sf->ScrollToCSSPixelsApproximate(aMetrics.mScrollOffset);
+        actualScrollOffset = CSSPoint::FromAppUnits(sf->GetScrollPosition());
     }
 
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
     if (element) {
+        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
         utils->SetDisplayPortForElement(aMetrics.mDisplayPort.x,
                                         aMetrics.mDisplayPort.y,
                                         aMetrics.mDisplayPort.width,
                                         aMetrics.mDisplayPort.height,
                                         element);
     }
+
+    aMetrics.mScrollOffset = actualScrollOffset;
 }
 
 already_AddRefed<nsIDOMWindowUtils>
