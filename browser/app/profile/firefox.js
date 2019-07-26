@@ -1238,11 +1238,7 @@ pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", true);
 
 
-#ifdef MOZ_DEVTOOLS_WEBIDE
-pref("devtools.webide.enabled", true);
-#else
 pref("devtools.webide.enabled", false);
-#endif
 
 
 pref("devtools.toolbox.footer.height", 250);
