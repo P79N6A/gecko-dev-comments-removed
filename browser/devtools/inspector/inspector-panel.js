@@ -747,6 +747,15 @@ InspectorPanel.prototype = {
 
 
 
+  immediateLayoutChange: function Inspector_immediateLayoutChange()
+  {
+    this.emit("layout-change");
+  },
+
+  
+
+
+
   scheduleLayoutChange: function Inspector_scheduleLayoutChange(event)
   {
     
