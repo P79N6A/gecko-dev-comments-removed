@@ -198,7 +198,7 @@ class ProcessHandlerMixin(object):
                 self.pid = pid
                 self.tid = tid
 
-                if canCreateJob:
+                if not self._ignore_children and canCreateJob:
                     try:
                         
                         
@@ -392,10 +392,11 @@ falling back to not using job objects for managing child processes"""
 
                 
                 threadalive = False
-                if hasattr(self._procmgrthread, 'is_alive'):
-                    threadalive = self._procmgrthread.is_alive()
-                else:
-                    threadalive = self._procmgrthread.isAlive()
+                if hasattr(self, "_procmgrthread"):
+                    if hasattr(self._procmgrthread, 'is_alive'):
+                        threadalive = self._procmgrthread.is_alive()
+                    else:
+                        threadalive = self._procmgrthread.isAlive()
                 if self._job and threadalive: 
                     
                     
@@ -426,7 +427,7 @@ falling back to not using job objects for managing child processes"""
                     
                     
 
-                    if MOZPROCESS_DEBUG:
+                    if MOZPROCESS_DEBUG and not self._ignore_children:
                         print "DBG::MOZPROC NOT USING JOB OBJECTS!!!"
                     
                     if self.returncode != winprocess.STILL_ACTIVE:
