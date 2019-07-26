@@ -3,7 +3,11 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
 
 function do_check_array_eq(a1, a2) {
   do_check_eq(a1.length, a2.length);
@@ -12,15 +16,27 @@ function do_check_array_eq(a1, a2) {
   }
 }
 
-add_test(function test_telemetry_events() {
-  let bridge = Components.classes["@mozilla.org/android/bridge;1"]
-                         .getService(Components.interfaces.nsIAndroidBridge);
+function getObserver() {
+  let bridge = Cc["@mozilla.org/android/bridge;1"]
+                 .getService(Ci.nsIAndroidBridge);
   let obsXPCOM = bridge.browserApp.getUITelemetryObserver();
   do_check_true(!!obsXPCOM);
+  return obsXPCOM.wrappedJSObject;
+}
 
-  let obs = obsXPCOM.wrappedJSObject;
+
+
+
+
+add_test(function test_enabled() {
+  let obs = getObserver();
   do_check_true(!!obs);
+  do_check_true(obs.enabled);
+  run_next_test();
+});
 
+add_test(function test_telemetry_events() {
+  let obs = getObserver();
   let measurements = obs.getUIMeasurements();
 
   let expected = [
