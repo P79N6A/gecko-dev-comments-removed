@@ -595,6 +595,7 @@ inDOMUtils::GetCSSValuesForProperty(const nsAString& aProperty,
   
   InsertNoDuplicates(array, NS_LITERAL_STRING("initial"));
   InsertNoDuplicates(array, NS_LITERAL_STRING("inherit"));
+  InsertNoDuplicates(array, NS_LITERAL_STRING("unset"));
 
   *aLength = array.Length();
   PRUnichar** ret =
