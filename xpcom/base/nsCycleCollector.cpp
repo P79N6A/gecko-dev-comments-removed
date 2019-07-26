@@ -85,6 +85,10 @@
 
 
 
+
+
+
+
 #if !defined(__MINGW32__)
 #ifdef WIN32
 #include <crtdbg.h>
@@ -1061,8 +1065,7 @@ public:
     nsresult Init();
     void ShutdownThreads();
 
-    nsPurpleBufferEntry* Suspect2(void *n, nsCycleCollectionParticipant *cp);
-    bool Forget2(nsPurpleBufferEntry *e);
+    nsPurpleBufferEntry* Suspect(void *n, nsCycleCollectionParticipant *cp);
 
     void CheckThreadSafety();
 
@@ -2593,7 +2596,7 @@ nsCycleCollector_isScanSafe(void *s, nsCycleCollectionParticipant *cp)
 #endif
 
 nsPurpleBufferEntry*
-nsCycleCollector::Suspect2(void *n, nsCycleCollectionParticipant *cp)
+nsCycleCollector::Suspect(void *n, nsCycleCollectionParticipant *cp)
 {
     CheckThreadSafety();
 
@@ -2612,23 +2615,6 @@ nsCycleCollector::Suspect2(void *n, nsCycleCollectionParticipant *cp)
 
     
     return mPurpleBuf.Put(n, cp);
-}
-
-
-bool
-nsCycleCollector::Forget2(nsPurpleBufferEntry *e)
-{
-    CheckThreadSafety();
-
-    
-    
-    
-
-    if (mScanInProgress)
-        return false;
-
-    mPurpleBuf.Remove(e);
-    return true;
 }
 
 void
@@ -2954,24 +2940,13 @@ NS_CycleCollectorSuspect2(void *n, nsCycleCollectionParticipant *cp)
         return nullptr;
     }
 
-    return collector->Suspect2(n, cp);
+    return collector->Suspect(n, cp);
 }
 
 bool
 NS_CycleCollectorForget2(nsPurpleBufferEntry *e)
 {
-    nsCycleCollector *collector = sCollector.get();
-
-    if (!collector)
-        MOZ_CRASH();
-
-    if (collector == (nsCycleCollector*)1) {
-        
-        
-        return true;
-    }
-
-    return collector->Forget2(e);
+    return true;
 }
 
 uint32_t
