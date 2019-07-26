@@ -551,7 +551,7 @@ pref("layers.low-precision-resolution", 250);
 
 
 
-pref("layers.max-active", 20);
+pref("layers.max-active", 1);
 
 pref("notification.feature.enabled", true);
 pref("dom.webnotifications.enabled", true);
