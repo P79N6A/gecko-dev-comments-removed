@@ -11,6 +11,20 @@ Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 this.CryptoUtils = {
+  xor: function xor(a, b) {
+    let bytes = [];
+
+    if (a.length != b.length) {
+      throw new Error("can't xor unequal length strings: "+a.length+" vs "+b.length);
+    }
+
+    for (let i = 0; i < a.length; i++) {
+      bytes[i] = a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+
+    return String.fromCharCode.apply(String, bytes);
+  },
+
   
 
 
@@ -112,6 +126,22 @@ this.CryptoUtils = {
   
 
 
+  hkdf: function hkdf(ikm, xts, info, len) {
+    const BLOCKSIZE = 256 / 8;
+    if (typeof xts === undefined)
+      xts = String.fromCharCode(0, 0, 0, 0,  0, 0, 0, 0,
+                                0, 0, 0, 0,  0, 0, 0, 0,
+                                0, 0, 0, 0,  0, 0, 0, 0,
+                                0, 0, 0, 0,  0, 0, 0, 0);
+    let h = CryptoUtils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256,
+                                       CryptoUtils.makeHMACKey(xts));
+    let prk = CryptoUtils.digestBytes(ikm, h);
+    return CryptoUtils.hkdfExpand(prk, info, len);
+  },
+
+  
+
+
   hkdfExpand: function hkdfExpand(prk, info, len) {
     const BLOCKSIZE = 256 / 8;
     let h = CryptoUtils.makeHMACHasher(Ci.nsICryptoHMAC.SHA256,
@@ -141,15 +171,19 @@ this.CryptoUtils = {
 
 
 
-  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen) {
+
+
+
+
+
+  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen,
+                       hmacAlg=Ci.nsICryptoHMAC.SHA1, hmacLen=20) {
+
     
     
     if (!dkLen) {
       dkLen = SYNC_KEY_DECODED_LENGTH;
     }
-
-    
-    const HLEN = 20;
 
     function F(S, c, i, h) {
 
@@ -186,27 +220,27 @@ this.CryptoUtils = {
       }
 
       ret = U[0];
-      for (j = 1; j < c; j++) {
+      for (let j = 1; j < c; j++) {
         ret = CommonUtils.byteArrayToString(XOR(ret, U[j]));
       }
 
       return ret;
     }
 
-    let l = Math.ceil(dkLen / HLEN);
-    let r = dkLen - ((l - 1) * HLEN);
+    let l = Math.ceil(dkLen / hmacLen);
+    let r = dkLen - ((l - 1) * hmacLen);
 
     
-    let h = CryptoUtils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1,
+    let h = CryptoUtils.makeHMACHasher(hmacAlg,
                                        CryptoUtils.makeHMACKey(P));
 
-    T = [];
+    let T = [];
     for (let i = 0; i < l;) {
       T[i] = F(S, c, ++i, h);
     }
 
     let ret = "";
-    for (i = 0; i < l-1;) {
+    for (let i = 0; i < l-1;) {
       ret += T[i++];
     }
     ret += T[l - 1].substr(0, r);
@@ -458,9 +492,8 @@ this.CryptoUtils = {
 
     let contentType = CryptoUtils.stripHeaderAttributes(options.contentType);
 
-    if (!artifacts.hash &&
-        options.hasOwnProperty("payload") &&
-        options.payload) {
+    if (!artifacts.hash && options.hasOwnProperty("payload")
+        && options.payload) {
       let hasher = Cc["@mozilla.org/security/hash;1"]
                      .createInstance(Ci.nsICryptoHash);
       hasher.init(hash_algo);
@@ -470,7 +503,8 @@ this.CryptoUtils = {
       CryptoUtils.updateUTF8("\n", hasher);
       let hash = hasher.finish(false);
       
-      let hash_b64 = CommonUtils.encodeBase64URL(hash, true);
+      
+      let hash_b64 = btoa(hash);
       artifacts.hash = hash_b64;
     }
 
