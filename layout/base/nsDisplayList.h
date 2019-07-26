@@ -1787,16 +1787,14 @@ private:
 class nsDisplayBackground : public nsDisplayItem {
 public:
   
-  
-  
-  
-  
-  
-  
+
+
+
+
+
   nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                       uint32_t aLayer, bool aIsThemed,
-                      const nsStyleBackground* aBackgroundStyle,
-                      bool aSkipFixedItemBoundsCheck = false);
+                      const nsStyleBackground* aBackgroundStyle);
   virtual ~nsDisplayBackground();
 
   
@@ -1825,7 +1823,6 @@ public:
   virtual bool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
                                                 nsIFrame* aFrame) MOZ_OVERRIDE;
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) MOZ_OVERRIDE;
-  virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
   
 
 
@@ -1883,9 +1880,6 @@ protected:
   nsITheme::Transparency mThemeTransparency;
   
   bool mIsThemed;
-  
-
-  bool mIsFixed;
   
   bool mIsBottommostLayer;
 };
