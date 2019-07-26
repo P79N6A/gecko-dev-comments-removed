@@ -57,20 +57,40 @@ public final class Distribution {
                 }
 
                 
+                
+                String pathKeyName = context.getPackageName() + ".distribution_path";
+                String distPath = null;
+
+                
                 if (state == STATE_SET) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", null));
+                    distPath = settings.getString(pathKeyName, null);
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", distPath));
                     return;
                 }
 
                 boolean distributionSet = false;
                 try {
+                    
                     distributionSet = copyFiles(context, packagePath);
                 } catch (IOException e) {
                     Log.e(LOGTAG, "Error copying distribution files", e);
                 }
 
+                if (!distributionSet) {
+                    
+                    File distDir = new File("/system/" + context.getPackageName() + "/distribution");
+                    if (distDir.exists()) {
+                        distributionSet = true;
+                        distPath = distDir.getPath();
+                        settings.edit().putString(pathKeyName, distPath).commit();
+                    }
+                }
+
+                Log.i("BOOM", "distributionSet: " + distributionSet);
+                Log.i("BOOM", "distPath: " + distPath);
+
                 if (distributionSet) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", null));
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", distPath));
                     settings.edit().putInt(keyName, STATE_SET).commit();
                 } else {
                     settings.edit().putInt(keyName, STATE_NONE).commit();
