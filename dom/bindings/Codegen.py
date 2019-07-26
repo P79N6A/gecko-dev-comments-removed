@@ -2348,12 +2348,10 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             callbackObject = None
 
-        if callbackObject:
+        if callbackObject and callbackMemberTypes[0].isCallbackInterface():
             callbackObject = CGWrapper(CGIndenter(callbackObject),
                                        pre="if (!IsPlatformObject(cx, &argObj)) {\n",
                                        post="\n}")
-        else:
-            callbackObject = None
 
         dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
         if len(dictionaryMemberTypes) > 0:
@@ -4043,6 +4041,7 @@ class CGMethodCall(CGThing):
             
             
             
+            
 
             
             
@@ -4057,6 +4056,10 @@ class CGMethodCall(CGThing):
             
             objectSigs.extend(s for s in possibleSignatures
                               if distinguishingType(s).isDate())
+
+            
+            objectSigs.extend(s for s in possibleSignatures
+                              if distinguishingType(s).isCallback())
 
             
             
@@ -4092,8 +4095,7 @@ class CGMethodCall(CGThing):
             
             pickFirstSignature("%s.isObject() && !IsPlatformObject(cx, &%s.toObject())" %
                                (distinguishingArg, distinguishingArg),
-                               lambda s: (distinguishingType(s).isCallback() or
-                                          distinguishingType(s).isCallbackInterface()))
+                               lambda s: distinguishingType(s).isCallbackInterface())
 
             
             
