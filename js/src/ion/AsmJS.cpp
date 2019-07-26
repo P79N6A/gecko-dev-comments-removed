@@ -2286,7 +2286,7 @@ static Class AsmJSModuleClass = {
     JSCLASS_IS_ANONYMOUS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(ASM_CODE_NUM_RESERVED_SLOTS),
     JS_PropertyStub,         
-    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     JS_EnumerateStub,

@@ -41,7 +41,7 @@ Class js::RegExpStaticsClass = {
     "RegExpStatics",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS,
     JS_PropertyStub,         
-    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     JS_EnumerateStub,

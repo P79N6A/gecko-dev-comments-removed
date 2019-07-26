@@ -824,8 +824,6 @@ typedef js::RawValue    JSRawValue;
 
 
 
-
-
 typedef JSBool
 (* JSPropertyOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
@@ -838,6 +836,24 @@ typedef JSBool
 
 typedef JSBool
 (* JSStrictPropertyOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, JSMutableHandleValue vp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSDeletePropertyOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool *succeeded);
 
 
 
@@ -2810,7 +2826,7 @@ struct JSClass {
 
     
     JSPropertyOp        addProperty;
-    JSPropertyOp        delProperty;
+    JSDeletePropertyOp  delProperty;
     JSPropertyOp        getProperty;
     JSStrictPropertyOp  setProperty;
     JSEnumerateOp       enumerate;
@@ -2998,6 +3014,9 @@ JS_PropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandl
 
 extern JS_PUBLIC_API(JSBool)
 JS_StrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, JSMutableHandleValue vp);
+
+extern JS_PUBLIC_API(JSBool)
+JS_DeletePropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool *succeeded);
 
 extern JS_PUBLIC_API(JSBool)
 JS_EnumerateStub(JSContext *cx, JSHandleObject obj);

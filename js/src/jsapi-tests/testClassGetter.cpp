@@ -27,7 +27,7 @@ static JSClass ptestClass = {
     JSCLASS_HAS_PRIVATE,
 
     JS_PropertyStub,       
-    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
     test_prop_get,         
     JS_StrictPropertyStub, 
     JS_EnumerateStub,
