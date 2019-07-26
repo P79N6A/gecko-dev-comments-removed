@@ -48,6 +48,7 @@ const { isBrowser } = require("./window/utils");
 const { setTimeout } = require("./timers");
 const unload = require("./system/unload");
 const { uuid } = require("./util/uuid");
+const { getNodeView } = require("./view/core");
 
 
 const valid = {
@@ -368,7 +369,6 @@ exports.Widget = Widget;
 
 
 
-
 const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
 
   
@@ -432,7 +432,10 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
     
     
     if ("click" == type && !this._listeners("click").length && this.panel)
-      this.panel.show(domNode);
+      
+      
+      
+      this.panel.show(getNodeView.implement({}, function() domNode));
   },
 
   _isInWindow: function WidgetView__isInWindow(window) {
@@ -472,12 +475,12 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
 
 }));
 
+
 const WidgetView = function WidgetView(baseWidget) {
   let w = WidgetViewTrait.create(WidgetView.prototype);
   w._initWidgetView(baseWidget);
   return w;
 }
-
 
 
 

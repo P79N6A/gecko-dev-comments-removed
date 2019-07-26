@@ -11,6 +11,9 @@ DEFAULT_COMMON_PREFS = {
     'javascript.options.strict': True,
     'javascript.options.showInConsole': True,
 
+    
+    'devtools.debugger.remote-enabled' : True,
+
     'extensions.sdk.console.logLevel': 'info',
 
     'extensions.checkCompatibility.nightly' : False,
@@ -51,6 +54,7 @@ DEFAULT_FIREFOX_PREFS = {
     'browser.startup.homepage' : 'about:blank',
     'startup.homepage_welcome_url' : 'about:blank',
     'devtools.errorconsole.enabled' : True,
+    'devtools.chrome.enabled' : True,
 
     
     'extensions.testpilot.runStudies' : False,

@@ -20,7 +20,8 @@ const systemPrincipal = CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')();
 const scriptLoader = Cc['@mozilla.org/moz/jssubscript-loader;1'].
                      getService(Ci.mozIJSSubScriptLoader);
 const prefService = Cc['@mozilla.org/preferences-service;1'].
-                    getService(Ci.nsIPrefService);
+                    getService(Ci.nsIPrefService).
+                    QueryInterface(Ci.nsIPrefBranch);
 const appInfo = Cc["@mozilla.org/xre/app-info;1"].
                 getService(Ci.nsIXULAppInfo);
 const vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
@@ -127,12 +128,21 @@ function startup(data, reasonCode) {
     if (name == 'addon-sdk')
       paths['tests/'] = prefixURI + name + '/tests/';
 
+    let useBundledSDK = options['force-use-bundled-sdk'];
+    if (!useBundledSDK) {
+      try {
+        useBundledSDK = prefService.getBoolPref("extensions.addon-sdk.useBundledSDK");
+      }
+      catch (e) {
+        
+      }
+    }
+
     
     
     
     if (options['is-sdk-bundled'] &&
-        (vc.compare(appInfo.version, '21.0a1') < 0 ||
-         options['force-use-bundled-sdk'])) {
+        (vc.compare(appInfo.version, '21.0a1') < 0 || useBundledSDK)) {
       
       paths[''] = prefixURI + 'addon-sdk/lib/';
       

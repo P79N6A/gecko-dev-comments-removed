@@ -21,10 +21,11 @@ const { defer } = require("../core/promise");
 const { when: unload } = require("../system/unload");
 const { validateOptions, getTypeOf } = require("../deprecated/api-utils");
 const { window } = require("../addon/window");
+const { fromIterator } = require("../util/array");
 
 
 
-let cache = [];
+let cache = new Set();
 let elements = new WeakMap();
 
 function contentLoaded(target) {
@@ -75,20 +76,13 @@ var HiddenFrame = Class({
 });
 exports.HiddenFrame = HiddenFrame
 
-function isFrameCached(frame) {
-  
-  return cache.some(function(value) {
-    return value === frame
-  })
-}
-
 function addHidenFrame(frame) {
   if (!(frame instanceof HiddenFrame))
     throw Error("The object to be added must be a HiddenFrame.");
 
   
-  if (isFrameCached(frame)) return frame;
-  else cache.push(frame);
+  if (cache.has(frame)) return frame;
+  else cache.add(frame);
 
   let element = makeFrame(window.document, {
     nodeName: "iframe",
@@ -111,14 +105,14 @@ function removeHiddenFrame(frame) {
   if (!(frame instanceof HiddenFrame))
     throw Error("The object to be removed must be a HiddenFrame.");
 
-  if (!isFrameCached(frame)) return;
+  if (!cache.has(frame)) return;
 
   
-  cache.splice(cache.indexOf(frame), 1);
+  cache.delete(frame);
   emit(frame, "unload")
   let element = frame.element
   if (element) element.parentNode.removeChild(element)
 }
 exports.remove = removeHiddenFrame;
 
-unload(function() cache.splice(0).forEach(removeHiddenFrame));
+unload(function() fromIterator(cache).forEach(removeHiddenFrame));

@@ -379,6 +379,13 @@ const Worker = EventEmitter.compose({
   _removeAllListeners: Trait.required,
 
   
+  get _earlyEvents() {
+    delete this._earlyEvents;
+    this._earlyEvents = [];
+    return this._earlyEvents;
+  },
+
+  
 
 
 
@@ -390,13 +397,13 @@ const Worker = EventEmitter.compose({
 
 
 
-  postMessage: function postMessage(data) {
-    if (!this._contentWorker)
-      throw new Error(ERR_DESTROYED);
-    if (this._frozen)
-      throw new Error(ERR_FROZEN);
-
-    this._contentWorker.emit("message", data);
+  postMessage: function (data) {
+    let args = ['message'].concat(Array.slice(arguments));
+    if (!this._inited) {
+      this._earlyEvents.push(args);
+      return;
+    }
+    processMessage.apply(this, args);
   },
 
   
@@ -410,9 +417,8 @@ const Worker = EventEmitter.compose({
     
 
     
-    let self = this;
     this._port = EventEmitterTrait.create({
-      emit: function () self._emitEventToContent(Array.slice(arguments))
+      emit: this._emitEventToContent.bind(this)
     });
 
     
@@ -438,24 +444,13 @@ const Worker = EventEmitter.compose({
 
 
 
-  _emitEventToContent: function _emitEventToContent(args) {
-    
-    
+  _emitEventToContent: function () {
+    let args = ['event'].concat(Array.slice(arguments));
     if (!this._inited) {
       this._earlyEvents.push(args);
       return;
     }
-
-    if (this._frozen)
-      throw new Error(ERR_FROZEN);
-
-    
-    if (!this._contentWorker) {
-      throw new Error(ERR_DESTROYED);
-    }
-
-    
-    this._contentWorker.emit.apply(null, ["event"].concat(args));
+    processMessage.apply(this, args);
   },
 
   
@@ -464,13 +459,6 @@ const Worker = EventEmitter.compose({
   
   
   _frozen: true,
-
-  
-  get _earlyEvents() {
-    delete this._earlyEvents;
-    this._earlyEvents = [];
-    return this._earlyEvents;
-  },
 
   constructor: function Worker(options) {
     options = options || {};
@@ -526,8 +514,10 @@ const Worker = EventEmitter.compose({
     this._frozen = false;
 
     
-    this._earlyEvents.forEach((function (args) this._emitEventToContent(args)).
-                              bind(this));
+    
+    this._earlyEvents.forEach((function (args) {
+      processMessage.apply(this, args);
+    }).bind(this));
   },
 
   _documentUnload: function _documentUnload(subject, topic, data) {
@@ -590,7 +580,7 @@ const Worker = EventEmitter.compose({
     if (this._windowID) {
       this._windowID = null;
       observers.remove("inner-window-destroyed", this._documentUnload);
-      this._earlyEvents.slice(0, this._earlyEvents.length);
+      this._earlyEvents.length = 0;
       this._emit("detach");
     }
   },
@@ -622,4 +612,20 @@ const Worker = EventEmitter.compose({
 
   _injectInDocument: false
 });
+
+
+
+
+
+
+
+function processMessage () {
+  if (!this._contentWorker)
+    throw new Error(ERR_DESTROYED);
+  if (this._frozen)
+    throw new Error(ERR_FROZEN);
+
+  this._contentWorker.emit.apply(null, Array.slice(arguments));
+}
+
 exports.Worker = Worker;

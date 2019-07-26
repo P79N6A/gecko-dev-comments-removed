@@ -8,7 +8,6 @@ var data = require('self').data;
 var panels = require('panel');
 var simpleStorage = require('simple-storage');
 var notifications = require("notifications");
-var privateBrowsing = require('private-browsing');
 
 
 
@@ -30,13 +29,6 @@ function updateMatchers() {
   matchers.forEach(function (matcher) {
     matcher.postMessage(simpleStorage.storage.annotations);
   });
-}
-
-
-
-
-function canEnterAnnotations() {
-  return (annotatorIsOn && !privateBrowsing.isActive);
 }
 
 
@@ -66,21 +58,17 @@ function handleNewAnnotation(annotationText, anchor) {
 function activateSelectors() {
   selectors.forEach(
     function (selector) {
-      selector.postMessage(canEnterAnnotations());
+      selector.postMessage(annotatorIsOn);
   });
 }
 
 
 
 
-
 function toggleActivation() {
-  if (privateBrowsing.isActive) {
-    return false;
-  }
   annotatorIsOn = !annotatorIsOn;
   activateSelectors();
-  return canEnterAnnotations();
+  return annotatorIsOn;
 }
 
 function detachWorker(worker, workerArray) {
@@ -138,7 +126,7 @@ exports.main = function() {
     contentScriptFile: [data.url('jquery-1.4.2.min.js'),
                         data.url('selector.js')],
     onAttach: function(worker) {
-      worker.postMessage(canEnterAnnotations());
+      worker.postMessage(annotatorIsOn);
       selectors.push(worker);
       worker.port.on('show', function(data) {
         annotationEditor.annotationAnchor = data;
@@ -215,22 +203,6 @@ exports.main = function() {
       text: 'Removing recent annotations'});
     while (simpleStorage.quotaUsage > 1)
       simpleStorage.storage.annotations.pop();
-  });
-
-
-
-
-
-  privateBrowsing.on('start', function() {
-    widget.contentURL = data.url('widget/pencil-off.png');
-    activateSelectors();
-  });
-
-  privateBrowsing.on('stop', function() {
-    if (canEnterAnnotations()) {
-      widget.contentURL = data.url('widget/pencil-on.png');
-      activateSelectors();
-    }
   });
 
 

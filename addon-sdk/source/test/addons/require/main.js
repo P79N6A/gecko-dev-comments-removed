@@ -27,27 +27,27 @@ exports["test 3rd party vs sdk module"] = function (assert) {
   assert.ok(require("page-mod").PageMod,
             "page-mod module is really the sdk one");
 
-  assert.equal(require("panel/page-mod").id, "page-mod",
-               "panel/page-mod is the 3rd party");
+  assert.equal(require("tabs/page-mod").id, "page-mod",
+               "tabs/page-mod is the 3rd party");
 
   
   
   
-  assert.equal(require("panel").id, "panel-main",
+  assert.equal(require("tabs").id, "tabs-main",
                "Third party main module overload sdk modules");
-  assert.equal(require("panel"),
-               require("panel/main"),
-               "require(panel) maps to require(panel/main)");
+  assert.equal(require("tabs"),
+               require("tabs/main"),
+               "require(tabs) maps to require(tabs/main)");
   
-  assert.equal(require("./panel").id,
-               "local-panel",
-               "require(./panel) maps to the local module");
+  assert.equal(require("./tabs").id,
+               "local-tabs",
+               "require(./tabs) maps to the local module");
 
   
-  assert.ok(require("sdk/panel").Panel,
+  assert.ok(require("sdk/tabs").open,
             "We can bypass this overloading with absolute path to sdk modules");
-  assert.equal(require("sdk/panel"),
-               require("addon-kit/panel"),
+  assert.equal(require("sdk/tabs"),
+               require("addon-kit/tabs"),
                "Old and new layout both work");
 }
 
@@ -70,8 +70,8 @@ exports.testMultipleRequirePerLine = function (assert) {
 }
 
 exports.testSDKRequire = function (assert) {
-  assert.deepEqual(Object.keys(require('sdk/widget')), ['Widget']);
-  assert.equal(require('widget'), require('sdk/widget'));
+  assert.deepEqual(Object.keys(require('sdk/page-worker')), ['Page']);
+  assert.equal(require('page-worker'), require('sdk/page-worker'));
 }
 
 require("sdk/test/runner").runTestsFromModule(module);

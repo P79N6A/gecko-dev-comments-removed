@@ -1,0 +1,5 @@
+
+
+
+
+exports.id = "tabs-main";
