@@ -363,7 +363,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     masm.loadPtr(Address(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
-    masm.movzwl(Operand(rax, offsetof(JSFunction, nargs)), rcx);
+    masm.movzwl(Operand(rax, JSFunction::offsetOfNargs()), rcx);
     masm.subq(r8, rcx);
 
     

@@ -1780,8 +1780,8 @@ MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch
 {
     
     
-    JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);
-    JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
+    JS_ASSERT(JSFunction::offsetOfNargs() % sizeof(uint32_t) == 0);
+    JS_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
     JS_STATIC_ASSERT(IS_LITTLE_ENDIAN);
 
     
@@ -1792,7 +1792,7 @@ MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch
     
 
     
-    load32(Address(fun, offsetof(JSFunction, nargs)), scratch);
+    load32(Address(fun, JSFunction::offsetOfNargs()), scratch);
     branchTest32(Assembler::Zero, scratch, Imm32(JSFunction::INTERPRETED << 16), label);
 
     

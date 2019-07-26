@@ -37,7 +37,7 @@ CountArgSlots(JSScript *script, JSFunction *fun)
     
 
     
-    return StartArgSlot(script) + (fun ? fun->nargs + 1 : 0);
+    return StartArgSlot(script) + (fun ? fun->nargs() + 1 : 0);
 }
 
 
@@ -60,7 +60,7 @@ class CompileInfo
 
         nimplicit_ = StartArgSlot(script)                   
                    + (fun ? 1 : 0);                         
-        nargs_ = fun ? fun->nargs : 0;
+        nargs_ = fun ? fun->nargs() : 0;
         nlocals_ = script->nfixed();
         nstack_ = script->nslots() - script->nfixed();
         nslots_ = nimplicit_ + nargs_ + nlocals_ + nstack_;

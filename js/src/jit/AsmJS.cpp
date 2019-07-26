@@ -5967,14 +5967,14 @@ TryEnablingIon(JSContext *cx, AsmJSModule &module, HandleFunction fun, uint32_t 
         return true;
 
     
-    if (fun->nargs > argc)
+    if (fun->nargs() > size_t(argc))
         return true;
 
     
     
     if (!types::TypeScript::ThisTypes(script)->hasType(types::Type::UndefinedType()))
         return true;
-    for(uint32_t i = 0; i < fun->nargs; i++) {
+    for(uint32_t i = 0; i < fun->nargs(); i++) {
         types::StackTypeSet *typeset = types::TypeScript::ArgTypes(script, i);
         types::Type type = types::Type::DoubleType();
         if (!argv[i].isDouble())

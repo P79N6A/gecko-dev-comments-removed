@@ -490,20 +490,20 @@ class MacroAssembler : public MacroAssemblerSpecific
     void branchIfFunctionHasNoScript(Register fun, Label *label) {
         
         
-        JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);
-        JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
+        JS_ASSERT(JSFunction::offsetOfNargs() % sizeof(uint32_t) == 0);
+        JS_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
         JS_STATIC_ASSERT(IS_LITTLE_ENDIAN);
-        Address address(fun, offsetof(JSFunction, nargs));
+        Address address(fun, JSFunction::offsetOfNargs());
         uint32_t bit = JSFunction::INTERPRETED << 16;
         branchTest32(Assembler::Zero, address, Imm32(bit), label);
     }
     void branchIfInterpreted(Register fun, Label *label) {
         
         
-        JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);
-        JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
+        JS_ASSERT(JSFunction::offsetOfNargs() % sizeof(uint32_t) == 0);
+        JS_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
         JS_STATIC_ASSERT(IS_LITTLE_ENDIAN);
-        Address address(fun, offsetof(JSFunction, nargs));
+        Address address(fun, JSFunction::offsetOfNargs());
         uint32_t bit = JSFunction::INTERPRETED << 16;
         branchTest32(Assembler::NonZero, address, Imm32(bit), label);
     }

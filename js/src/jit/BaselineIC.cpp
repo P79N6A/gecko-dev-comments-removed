@@ -4125,7 +4125,7 @@ ICGetElemNativeCompiler::emitCallScripted(MacroAssembler &masm, Register objReg)
 
     
     Label noUnderflow;
-    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), scratch);
+    masm.load16ZeroExtend(Address(callee, JSFunction::offsetOfNargs()), scratch);
     masm.branch32(Assembler::Equal, scratch, Imm32(0), &noUnderflow);
     {
         
@@ -6682,7 +6682,7 @@ ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     Label noUnderflow;
-    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), scratch);
+    masm.load16ZeroExtend(Address(callee, JSFunction::offsetOfNargs()), scratch);
     masm.branch32(Assembler::Equal, scratch, Imm32(0), &noUnderflow);
     {
         
@@ -7591,7 +7591,7 @@ ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     Label noUnderflow;
-    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), scratch);
+    masm.load16ZeroExtend(Address(callee, JSFunction::offsetOfNargs()), scratch);
     masm.branch32(Assembler::BelowOrEqual, scratch, Imm32(1), &noUnderflow);
     {
         
@@ -8538,7 +8538,7 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
 
     
     Label noUnderflow;
-    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), callee);
+    masm.load16ZeroExtend(Address(callee, JSFunction::offsetOfNargs()), callee);
     masm.branch32(Assembler::AboveOrEqual, argcReg, callee, &noUnderflow);
     {
         
@@ -8794,7 +8794,7 @@ ICCall_ScriptedApplyArray::Compiler::generateStubCode(MacroAssembler &masm)
     masm.Push(scratch);
 
     
-    masm.load16ZeroExtend(Address(target, offsetof(JSFunction, nargs)), scratch);
+    masm.load16ZeroExtend(Address(target, JSFunction::offsetOfNargs()), scratch);
     masm.loadPtr(Address(target, JSFunction::offsetOfNativeOrScript()), target);
     masm.loadBaselineOrIonRaw(target, target, SequentialExecution, nullptr);
 
@@ -8905,7 +8905,7 @@ ICCall_ScriptedApplyArguments::Compiler::generateStubCode(MacroAssembler &masm)
     masm.Push(scratch);
 
     
-    masm.load16ZeroExtend(Address(target, offsetof(JSFunction, nargs)), scratch);
+    masm.load16ZeroExtend(Address(target, JSFunction::offsetOfNargs()), scratch);
     masm.loadPtr(Address(target, JSFunction::offsetOfNativeOrScript()), target);
     masm.loadBaselineOrIonRaw(target, target, SequentialExecution, nullptr);
 
