@@ -12,6 +12,7 @@
 #include "ccsip_core.h"
 #include "sll_lite.h"
 #include "sessionConstants.h"
+#include "ccsdp.h"
 
 
 
@@ -127,8 +128,13 @@ typedef struct fsmdef_previous_sdp_ {
     uint16_t        dest_port;
     cpr_ip_addr_t   dest_addr;
     int32_t         avt_payload_type;
-    int32_t         payload_type;
-    int32_t         local_payload_type;
+
+    
+
+
+    int32_t num_payloads;
+    vcm_payload_info_t* payloads;
+
     uint16_t        packetization_period;
     uint16_t        max_packetization_period;
     sdp_direction_e direction;
@@ -141,13 +147,6 @@ typedef struct fsmdef_media_t_ {
     media_refid_t   refid;    
     sdp_media_e     type;     
     sdp_addrtype_e  addr_type;
-    
-
-
-
-
-    int32_t         local_dynamic_payload_type_value;  
-    int32_t         remote_dynamic_payload_type_value; 
     int32_t         avt_payload_type;
     vcm_vad_t       vad;
     uint16_t        packetization_period;
@@ -211,12 +210,15 @@ typedef struct fsmdef_media_t_ {
 
 
 
-    uint8_t cap_index;
+    uint8_t         cap_index;
+
+    
     int32_t         tias_bw;
     int32_t         profile_level;
 
     void *video;
 
+    
     char **candidatesp;
     int candidate_ct;
 
@@ -239,27 +241,13 @@ typedef struct fsmdef_media_t_ {
     
 
 
-
     int32_t num_payloads;
 
     
 
 
+    vcm_payload_info_t* payloads;
 
-
-
-
-    vcm_media_payload_type_t* payloads;
-
-    
-
-
-    uint8_t* local_dpt_list;
-
-    
-
-
-    uint8_t* remote_dpt_list;
 } fsmdef_media_t;
 
 struct fsm_fcb_t_;

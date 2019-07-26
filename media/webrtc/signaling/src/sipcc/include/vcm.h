@@ -22,15 +22,8 @@
 
 #include "cpr_types.h"
 #include "cc_constants.h"
+#include "ccsdp.h"
 
-
-
-
-
-
-#define GET_DYNAMIC_PAY_LOAD_TYPE(payload) (payload>>16)
-
-#define GET_MEDIA_PAYLOAD_TYPE_ENUM(payload) (payload & 0xFFFF)
 
 
 #define CC_IS_AUDIO(id) ((id == CC_AUDIO_1) ? TRUE:FALSE)
@@ -157,46 +150,61 @@ typedef enum {
 
 
 
-
-typedef enum
+typedef struct
 {
-    VCM_Media_Payload_NonStandard = 1,
-    VCM_Media_Payload_G711Alaw64k = 2,
-    VCM_Media_Payload_G711Alaw56k = 3, 
-    VCM_Media_Payload_G711Ulaw64k = 4,
-    VCM_Media_Payload_G711Ulaw56k = 5, 
-    VCM_Media_Payload_G722_64k = 6,
-    VCM_Media_Payload_G722_56k = 7,
-    VCM_Media_Payload_G722_48k = 8,
-    VCM_Media_Payload_G7231 = 9,
-    VCM_Media_Payload_G728 = 10,
-    VCM_Media_Payload_G729 = 11,
-    VCM_Media_Payload_G729AnnexA = 12,
-    VCM_Media_Payload_Is11172AudioCap = 13,
-    VCM_Media_Payload_Is13818AudioCap = 14,
-    VCM_Media_Payload_G729AnnexB = 15,
-    VCM_Media_Payload_G729AnnexAwAnnexB = 16,
-    VCM_Media_Payload_GSM_Full_Rate = 18,
-    VCM_Media_Payload_GSM_Half_Rate = 19,
-    VCM_Media_Payload_GSM_Enhanced_Full_Rate = 20,
-    VCM_Media_Payload_Wide_Band_256k = 25,
-    VCM_Media_Payload_H263 = 31,
-    VCM_Media_Payload_H264 = 34,
-    VCM_Media_Payload_Data64 = 32,
-    VCM_Media_Payload_Data56 = 33,
-    VCM_Media_Payload_ILBC20 = 39,
-    VCM_Media_Payload_ILBC30 = 40,
-    VCM_Media_Payload_ISAC = 41,
-    VCM_Media_Payload_GSM = 80,
-    VCM_Media_Payload_ActiveVoice = 81,
-    VCM_Media_Payload_G726_32K = 82,
-    VCM_Media_Payload_G726_24K = 83,
-    VCM_Media_Payload_G726_16K = 84,
-    VCM_Media_Payload_OPUS = 109,
-    VCM_Media_Payload_VP8 = 120,
-    VCM_Media_Payload_I420 = 124,
-    VCM_Media_Payload_Max           
-} vcm_media_payload_type_t;
+  rtp_ptype codec_type;
+
+  
+
+
+
+
+
+
+
+  
+  int remote_rtp_pt;
+
+  
+  int local_rtp_pt;
+
+  
+  union
+  {
+    struct
+    {
+      int frequency;
+      int packet_size; 
+      int channels;
+      int bitrate;     
+    } audio;
+
+    struct
+    {
+      int width;
+      int height;
+    } video;
+  };
+
+  
+  union
+  {
+    struct {
+        uint16_t mode;
+    } ilbc;
+
+    
+
+    struct {
+        uint32_t max_average_bitrate;
+        const char *maxcodedaudiobandwidth;
+        boolean usedtx;
+        boolean stereo;
+        boolean useinbandfec;
+        boolean cbr;
+    } opus;
+  };
+} vcm_payload_info_t;
 
 
 
@@ -488,8 +496,7 @@ short vcmStartIceChecks(const char *peerconnection);
 short vcmCreateRemoteStream(
              cc_mcapid_t mcap_id,
              const char *peerconnection,
-             int *pc_stream_id,
-             vcm_media_payload_type_t payload);
+             int *pc_stream_id);
 
 
 
@@ -535,7 +542,7 @@ int vcmRxStart(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle,
-        vcm_media_payload_type_t payload,
+        const vcm_payload_info_t *payload,
         cpr_ip_addr_t *local_addr,
         cc_uint16_t port,
         vcm_crypto_algorithmID algorithmID,
@@ -574,7 +581,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
         cc_call_handle_t  call_handle,
         const char *peerconnection,
         int num_payloads,
-        const vcm_media_payload_type_t* payloads,
+        const vcm_payload_info_t* payloads,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs);
@@ -610,7 +617,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle,
-        vcm_media_payload_type_t payload,
+        const vcm_payload_info_t *payload,
         short tos,
         cpr_ip_addr_t *local_addr,
         cc_uint16_t local_port,
@@ -651,7 +658,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
         int pc_track_id,
         cc_call_handle_t  call_handle,
         const char *peerconnection,
-        vcm_media_payload_type_t payload,
+        const vcm_payload_info_t *payload,
         short tos,
         const char *fingerprint_alg,
         const char *fingerprint,
