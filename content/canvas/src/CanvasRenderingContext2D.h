@@ -186,9 +186,6 @@ public:
   TextMetrics*
     MeasureText(const nsAString& rawText, mozilla::ErrorResult& error);
 
-  void AddHitRegion(const HitRegionOptions& options, mozilla::ErrorResult& error);
-  void RemoveHitRegion(const nsAString& id);
-
   void DrawImage(const HTMLImageOrCanvasOrVideoElement& image,
                  double dx, double dy, mozilla::ErrorResult& error)
   {
@@ -683,26 +680,6 @@ protected:
 
   uint32_t mInvalidateCount;
   static const uint32_t kCanvasMaxInvalidateCount = 100;
-
-  
-
-
-
-  struct RegionInfo : public nsStringHashKey
-  {
-    RegionInfo(const nsAString& aKey) :
-      nsStringHashKey(&aKey)
-    {
-    }
-    RegionInfo(const nsAString *aKey) :
-      nsStringHashKey(aKey)
-    {
-    }
-
-    nsRefPtr<Element> mElement;
-  };
-
-  nsTHashtable<RegionInfo> mHitRegionsOptions;
 
   
 

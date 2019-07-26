@@ -919,27 +919,7 @@ void
 Accessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
 {
   nsIFrame* frame = GetFrame();
-  if (frame && mContent) {
-    nsRect* hitRegionRect = static_cast<nsRect*>(mContent->GetProperty(nsGkAtoms::hitregion));
-
-    if (hitRegionRect) {
-      
-      
-      nsIFrame* canvasFrame = frame->GetParent();
-      while (canvasFrame && (canvasFrame->GetType() != nsGkAtoms::HTMLCanvasFrame))
-        canvasFrame = canvasFrame->GetParent();
-
-      
-      if (canvasFrame) {
-        *aBoundingFrame = canvasFrame;
-
-        nsPresContext* presContext = mDoc->PresContext();
-        aTotalBounds = *hitRegionRect;
-
-        return;
-      }
-    }
-
+  if (frame) {
     *aBoundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
     aTotalBounds = nsLayoutUtils::
       GetAllInFlowRectsUnion(frame, *aBoundingFrame,

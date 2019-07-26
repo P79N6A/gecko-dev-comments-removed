@@ -432,7 +432,6 @@ pref("accessibility.tabfocus_applies_to_xul", true);
 
 pref("canvas.focusring.enabled", false);
 pref("canvas.customfocusring.enabled", false);
-pref("canvas.hitregions.enabled", false);
 
 
 
