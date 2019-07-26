@@ -21,17 +21,12 @@ function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
     });
 }
 
-function run_test() {
-  do_get_profile();
-
-  let fakeOCSPResponder = new HttpServer();
-  fakeOCSPResponder.registerPrefixHandler("/", function(request, response) {
-    response.setStatusLine(request.httpVersion, 500, "Internal Server Error");
-    do_check_true(gExpectOCSPRequest);
+function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
+  add_test(function () {
+    Services.prefs.setBoolPref("security.use_insanity_verification",
+                               useInsanity);
+    run_next_test();
   });
-  fakeOCSPResponder.start(8080);
-
-  add_tls_server_setup("OCSPStaplingServer");
 
   
   add_ocsp_test("ocsp-stapling-good.example.com", Cr.NS_OK, false);
@@ -58,23 +53,31 @@ function run_test() {
 
   
   
-  add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_BAD_DATABASE), true);
 
   
   
   add_test(function() {
-    let certdb = Cc["@mozilla.org/security/x509certdb;1"]
-                   .getService(Ci.nsIX509CertDB);
-    
-    
-    addCertFromFile(certdb, "tlsserver/other-test-ca.der", "CTu,u,u");
+    certDB.setCertTrust(otherTestCA, Ci.nsIX509Cert.CA_CERT,
+                        Ci.nsIX509CertDB.UNTRUSTED);
     run_next_test();
   });
+  add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
 
+  
+  
+  add_test(function() {
+    certDB.setCertTrust(otherTestCA, Ci.nsIX509Cert.CA_CERT,
+                        Ci.nsIX509CertDB.TRUSTED_SSL);
+    run_next_test();
+  });
   add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE),
                 true);
+
+  
+  
+
   add_ocsp_test("ocsp-stapling-malformed.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_REQUEST), true);
   add_ocsp_test("ocsp-stapling-srverr.example.com",
@@ -106,11 +109,6 @@ function run_test() {
   
   
   
-
-  add_test(function() { fakeOCSPResponder.stop(run_next_test); });
-
-  add_test(check_ocsp_stapling_telemetry);
-  run_next_test();
 }
 
 function check_ocsp_stapling_telemetry() {
@@ -118,10 +116,38 @@ function check_ocsp_stapling_telemetry() {
                     .getService(Ci.nsITelemetry)
                     .getHistogramById("SSL_OCSP_STAPLING")
                     .snapshot();
-  do_check_eq(histogram.counts[0], 0); 
-  do_check_eq(histogram.counts[1], 1); 
-  do_check_eq(histogram.counts[2], 14); 
-  do_check_eq(histogram.counts[3], 0); 
-  do_check_eq(histogram.counts[4], 11); 
+  do_check_eq(histogram.counts[0], 2 * 0); 
+  do_check_eq(histogram.counts[1], 2 * 1); 
+  do_check_eq(histogram.counts[2], 2 * 14); 
+  do_check_eq(histogram.counts[3], 2 * 0); 
+  do_check_eq(histogram.counts[4], 2 * 11); 
+  run_next_test();
+}
+
+function run_test() {
+  do_get_profile();
+
+  let certDB = Cc["@mozilla.org/security/x509certdb;1"]
+                  .getService(Ci.nsIX509CertDB);
+  let otherTestCAFile = do_get_file("tlsserver/other-test-ca.der", false);
+  let otherTestCADER = readFile(otherTestCAFile);
+  let otherTestCA = certDB.constructX509(otherTestCADER, otherTestCADER.length);
+
+  let fakeOCSPResponder = new HttpServer();
+  fakeOCSPResponder.registerPrefixHandler("/", function (request, response) {
+    response.setStatusLine(request.httpVersion, 500, "Internal Server Error");
+    do_check_true(gExpectOCSPRequest);
+  });
+  fakeOCSPResponder.start(8080);
+
+  add_tls_server_setup("OCSPStaplingServer");
+
+  add_tests_in_mode(true, certDB, otherTestCA);
+  add_tests_in_mode(false, certDB, otherTestCA);
+
+  add_test(function () {
+    fakeOCSPResponder.stop(check_ocsp_stapling_telemetry);
+  });
+
   run_next_test();
 }
