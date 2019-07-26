@@ -4,14 +4,14 @@
 
 
 
-#ifndef mozilla_dom_Future_h
-#define mozilla_dom_Future_h
+#ifndef mozilla_dom_Promise_h
+#define mozilla_dom_Promise_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/dom/FutureBinding.h"
+#include "mozilla/dom/PromiseBinding.h"
 #include "nsWrapperCache.h"
 #include "nsAutoPtr.h"
 
@@ -21,24 +21,24 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace dom {
 
-class FutureInit;
-class FutureCallback;
+class PromiseInit;
+class PromiseCallback;
 class AnyCallback;
-class FutureResolver;
+class PromiseResolver;
 
-class Future MOZ_FINAL : public nsISupports,
-                         public nsWrapperCache
+class Promise MOZ_FINAL : public nsISupports,
+                          public nsWrapperCache
 {
-  friend class FutureTask;
-  friend class FutureResolver;
-  friend class FutureResolverTask;
+  friend class PromiseTask;
+  friend class PromiseResolver;
+  friend class PromiseResolverTask;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Future)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Promise)
 
-  Future(nsPIDOMWindow* aWindow);
-  ~Future();
+  Promise(nsPIDOMWindow* aWindow);
+  ~Promise();
 
   static bool PrefEnabled();
 
@@ -52,34 +52,34 @@ public:
   virtual JSObject*
   WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
-  static already_AddRefed<Future>
-  Constructor(const GlobalObject& aGlobal, JSContext* aCx, FutureInit& aInit,
+  static already_AddRefed<Promise>
+  Constructor(const GlobalObject& aGlobal, JSContext* aCx, PromiseInit& aInit,
               ErrorResult& aRv);
 
-  static already_AddRefed<Future>
+  static already_AddRefed<Promise>
   Resolve(const GlobalObject& aGlobal, JSContext* aCx,
           JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
-  static already_AddRefed<Future>
+  static already_AddRefed<Promise>
   Reject(const GlobalObject& aGlobal, JSContext* aCx,
          JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
-  already_AddRefed<Future>
+  already_AddRefed<Promise>
   Then(AnyCallback* aResolveCallback, AnyCallback* aRejectCallback);
 
-  already_AddRefed<Future>
+  already_AddRefed<Promise>
   Catch(AnyCallback* aRejectCallback);
 
   void Done(AnyCallback* aResolveCallback, AnyCallback* aRejectCallback);
 
 private:
-  enum FutureState {
+  enum PromiseState {
     Pending,
     Resolved,
     Rejected
   };
 
-  void SetState(FutureState aState)
+  void SetState(PromiseState aState)
   {
     MOZ_ASSERT(mState == Pending);
     MOZ_ASSERT(aState != Pending);
@@ -97,18 +97,18 @@ private:
   
   void RunTask();
 
-  void AppendCallbacks(FutureCallback* aResolveCallback,
-                       FutureCallback* aRejectCallback);
+  void AppendCallbacks(PromiseCallback* aResolveCallback,
+                       PromiseCallback* aRejectCallback);
 
   nsRefPtr<nsPIDOMWindow> mWindow;
 
-  nsRefPtr<FutureResolver> mResolver;
+  nsRefPtr<PromiseResolver> mResolver;
 
-  nsTArray<nsRefPtr<FutureCallback> > mResolveCallbacks;
-  nsTArray<nsRefPtr<FutureCallback> > mRejectCallbacks;
+  nsTArray<nsRefPtr<PromiseCallback> > mResolveCallbacks;
+  nsTArray<nsRefPtr<PromiseCallback> > mRejectCallbacks;
 
   JS::Heap<JS::Value> mResult;
-  FutureState mState;
+  PromiseState mState;
   bool mTaskPending;
 };
 
