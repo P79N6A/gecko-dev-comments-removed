@@ -9,6 +9,7 @@
 #include "Types.h"
 #include "Point.h"
 #include "Rect.h"
+#include "ZoomScale.h"
 #include "Matrix.h"
 #include "UserData.h"
 
