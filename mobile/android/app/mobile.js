@@ -568,6 +568,8 @@ pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-erro
 pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
 pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
 
+pref("browser.safebrowsing.id", "@MOZ_APP_UA_NAME@");
+
 
 
 pref("urlclassifier.alternate_error_page", "blocked");
