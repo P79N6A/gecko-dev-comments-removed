@@ -33,6 +33,11 @@ import android.util.Xml;
 
 
 
+import android.content.pm.ApplicationInfo;
+
+
+
+
 
 
 import org.xmlpull.v1.XmlPullParser;
@@ -256,6 +261,11 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
     
+
+    
+
+
+    private int mApplicationsCount;
 
     
 
@@ -732,6 +742,15 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
     private boolean loadActivitiesIfNeeded() {
+        
+
+
+        List<ApplicationInfo> applications = mContext.getPackageManager().getInstalledApplications(0);
+        if (applications != null && applications.size() != mApplicationsCount) {
+            mApplicationsCount = applications.size();
+            mReloadActivities = true;
+        }
+
         if (mReloadActivities && mIntent != null) {
             mReloadActivities = false;
             mActivities.clear();
