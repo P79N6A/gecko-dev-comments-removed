@@ -764,8 +764,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   nscoord maxLineBoxWidth = aFrame->PresContext()->PresShell()->MaxLineBoxWidth();
 
-  if (maxLineBoxWidth > 0 && psd->mRightEdge > maxLineBoxWidth) {
-    psd->mRightEdge = maxLineBoxWidth;
+  if (maxLineBoxWidth > 0 && psd->mRightEdge - psd->mLeftEdge > maxLineBoxWidth) {
+    psd->mRightEdge = psd->mLeftEdge + maxLineBoxWidth;
   }
 
   
