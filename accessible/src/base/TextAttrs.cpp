@@ -621,7 +621,7 @@ TextAttrsMgr::FontWeightTextAttr::
   if (font->IsSyntheticBold())
     return 700;
 
-#ifdef MOZ_PANGO
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
   
   
   
