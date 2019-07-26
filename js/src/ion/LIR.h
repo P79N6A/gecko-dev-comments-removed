@@ -367,7 +367,6 @@ class LStackSlot : public LAllocation
 
 
 
-
 class LArgument : public LAllocation
 {
   public:

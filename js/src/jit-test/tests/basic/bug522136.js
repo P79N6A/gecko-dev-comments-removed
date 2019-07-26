@@ -7,4 +7,5 @@ try {
 }
 
 
-assertEq(thrown && Q > 8000, true);
+assertEq(thrown && Q > 10000, true);
+

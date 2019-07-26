@@ -386,7 +386,7 @@ class StackFrame
 
     
     void initFromBailout(JSContext *cx, ion::SnapshotIterator &iter);
-    bool initFunctionScopeObjects(JSContext *cx);
+    bool initCallObject(JSContext *cx);
 
     
     void initVarsToUndefined();

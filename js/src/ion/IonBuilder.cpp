@@ -588,13 +588,10 @@ IonBuilder::initScopeChain()
         scope = MFunctionEnvironment::New(callee);
         current->add(scope);
 
-        
         if (fun->isHeavyweight()) {
-            if (fun->isNamedLambda()) {
-                scope = createDeclEnvObject(scope);
-                if (!scope)
-                    return false;
-            }
+            
+            if (fun->isNamedLambda())
+                return abort("DeclEnv scope objects are not yet supported");
 
             scope = createCallObject(callee, scope);
             if (!scope)
@@ -1041,14 +1038,6 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_THIS:
         return jsop_this();
-
-      case JSOP_CALLEE:
-      {
-        MCallee *callee = MCallee::New();
-        current->add(callee);
-        current->push(callee);
-        return callee;
-      }
 
       case JSOP_GETPROP:
       case JSOP_CALLPROP:
@@ -3750,34 +3739,6 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32_t argc, bool co
 }
 
 MInstruction *
-IonBuilder::createDeclEnvObject(MDefinition *scope)
-{
-    
-    
-
-    RootedScript script(cx, script_);
-    RootedFunction fun(cx, info().fun());
-    RootedObject templateObj(cx, DeclEnvObject::createTemplateObject(cx, fun));
-    if (!templateObj)
-        return NULL;
-
-    
-    
-    JS_ASSERT(!templateObj->hasDynamicSlots());
-
-    
-    
-    
-    MInstruction *declEnvObj = MNewDeclEnvObject::New(templateObj);
-    current->add(declEnvObj);
-
-    
-    current->add(MStoreFixedSlot::New(declEnvObj, DeclEnvObject::enclosingScopeSlot(), scope));
-
-    return declEnvObj;
-}
-
-MInstruction *
 IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
 {
     
@@ -3805,8 +3766,8 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     current->add(callObj);
 
     
-    current->add(MStoreFixedSlot::New(callObj, CallObject::enclosingScopeSlot(), scope));
     current->add(MStoreFixedSlot::New(callObj, CallObject::calleeSlot(), callee));
+    current->add(MStoreFixedSlot::New(callObj, CallObject::enclosingScopeSlot(), scope));
 
     
     for (AliasedFormalIter i(script_); i; i++) {
