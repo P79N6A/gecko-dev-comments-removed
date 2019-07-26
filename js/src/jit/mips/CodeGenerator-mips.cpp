@@ -1862,25 +1862,6 @@ CodeGeneratorMIPS::visitGuardClass(LGuardClass *guard)
 }
 
 bool
-CodeGeneratorMIPS::visitImplicitThis(LImplicitThis *lir)
-{
-    Register callee = ToRegister(lir->callee());
-    const ValueOperand out = ToOutValue(lir);
-
-    
-    
-    masm.loadPtr(Address(callee, JSFunction::offsetOfEnvironment()), out.typeReg());
-    GlobalObject *global = &gen->info().script()->global();
-
-    
-    if (!bailoutCmpPtr(Assembler::NotEqual, out.typeReg(), ImmGCPtr(global), lir->snapshot()))
-        return false;
-
-    masm.moveValue(UndefinedValue(), out);
-    return true;
-}
-
-bool
 CodeGeneratorMIPS::visitInterruptCheck(LInterruptCheck *lir)
 {
     OutOfLineCode *ool = oolCallVM(InterruptCheckInfo, lir, (ArgList()), StoreNothing());

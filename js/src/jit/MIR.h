@@ -5545,36 +5545,6 @@ class MLambdaPar
 };
 
 
-class MImplicitThis
-  : public MUnaryInstruction,
-    public SingleObjectPolicy
-{
-    explicit MImplicitThis(MDefinition *callee)
-      : MUnaryInstruction(callee)
-    {
-        setResultType(MIRType_Value);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(ImplicitThis)
-
-    static MImplicitThis *New(TempAllocator &alloc, MDefinition *callee) {
-        return new(alloc) MImplicitThis(callee);
-    }
-
-    TypePolicy *typePolicy() {
-        return this;
-    }
-    MDefinition *callee() const {
-        return getOperand(0);
-    }
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-};
-
-
 class MSlots
   : public MUnaryInstruction,
     public SingleObjectPolicy
