@@ -110,6 +110,12 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
+            if (ins->isObserved())
+                continue;
+
+            
+            
+            
             
             
             uint32_t maxDefinition = 0;
@@ -139,14 +145,6 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
                     mrp->instruction() == *ins ||
                     mrp->instruction()->id() <= maxDefinition)
                 {
-                    uses++;
-                    continue;
-                }
-
-                
-                
-                
-                if (!block->info().canOptimizeOutSlot(uses->index())) {
                     uses++;
                     continue;
                 }
@@ -232,30 +230,7 @@ IsPhiObservable(MPhi *phi, Observability observe)
         break;
     }
 
-    uint32_t slot = phi->slot();
-    CompileInfo &info = phi->block()->info();
-    JSFunction *fun = info.funMaybeLazy();
-
-    
-    if (fun && slot == info.thisSlot())
-        return true;
-
-    
-    
-    
-    
-    if (fun && info.hasArguments() &&
-        (slot == info.scopeChainSlot() || slot == info.argsObjSlot()))
-    {
-        return true;
-    }
-
-    
-    
-    if (fun && !info.canOptimizeOutSlot(slot))
-        return true;
-
-    return false;
+    return phi->isObserved();
 }
 
 

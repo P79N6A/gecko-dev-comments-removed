@@ -273,15 +273,17 @@ MBasicBlock::NewAsmJS(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred, Kin
             if (!phis)
                 return nullptr;
 
+            
             for (size_t i = 0; i < nphis; i++) {
                 MDefinition *predSlot = pred->getSlot(i);
 
                 JS_ASSERT(predSlot->type() != MIRType_Value);
-                MPhi *phi = new(phis + i) MPhi(alloc, i, predSlot->type());
+                MPhi *phi = new(phis + i) MPhi(alloc, predSlot->type());
 
                 JS_ALWAYS_TRUE(phi->reserveLength(2));
                 phi->addInput(predSlot);
 
+                
                 block->addPhi(phi);
                 block->setSlot(i, phi);
             }
@@ -390,7 +392,7 @@ MBasicBlock::inherit(TempAllocator &alloc, BytecodeAnalysis *analysis, MBasicBlo
         if (kind_ == PENDING_LOOP_HEADER) {
             size_t i = 0;
             for (i = 0; i < info().firstStackSlot(); i++) {
-                MPhi *phi = MPhi::New(alloc, i);
+                MPhi *phi = MPhi::New(alloc);
                 if (!phi->addInputSlow(pred->getSlot(i)))
                     return false;
                 addPhi(phi);
@@ -411,7 +413,7 @@ MBasicBlock::inherit(TempAllocator &alloc, BytecodeAnalysis *analysis, MBasicBlo
             }
 
             for (; i < stackDepth(); i++) {
-                MPhi *phi = MPhi::New(alloc, i);
+                MPhi *phi = MPhi::New(alloc);
                 if (!phi->addInputSlow(pred->getSlot(i)))
                     return false;
                 addPhi(phi);
@@ -910,9 +912,9 @@ MBasicBlock::addPredecessorPopN(TempAllocator &alloc, MBasicBlock *pred, uint32_
                 
                 MPhi *phi;
                 if (mine->type() == other->type())
-                    phi = MPhi::New(alloc, i, mine->type());
+                    phi = MPhi::New(alloc, mine->type());
                 else
-                    phi = MPhi::New(alloc, i);
+                    phi = MPhi::New(alloc);
                 addPhi(phi);
 
                 
@@ -992,34 +994,8 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     bool hadTypeChange = false;
 
     
-    for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++) {
-        MPhi *entryDef = *phi;
-        MDefinition *exitDef = pred->slots_[entryDef->slot()];
-
-        
-        JS_ASSERT(entryDef->block() == this);
-
-        if (entryDef == exitDef) {
-            
-            
-            
-            
-            
-            
-            
-            exitDef = entryDef->getOperand(0);
-        }
-
-        bool typeChange = false;
-
-        if (!entryDef->addInputSlow(exitDef, &typeChange))
-            return AbortReason_Alloc;
-
-        hadTypeChange |= typeChange;
-
-        JS_ASSERT(entryDef->slot() < pred->stackDepth());
-        setSlot(entryDef->slot(), entryDef);
-    }
+    if (!inheritPhisFromBackedge(pred, &hadTypeChange))
+        return AbortReason_Alloc;
 
     if (hadTypeChange) {
         for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++)
@@ -1048,9 +1024,12 @@ MBasicBlock::setBackedgeAsmJS(MBasicBlock *pred)
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
 
     
-    for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++) {
+    
+    
+    size_t slot = 0;
+    for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++, slot++) {
         MPhi *entryDef = *phi;
-        MDefinition *exitDef = pred->getSlot(entryDef->slot());
+        MDefinition *exitDef = pred->getSlot(slot);
 
         
         JS_ASSERT(entryDef->block() == this);
@@ -1073,8 +1052,8 @@ MBasicBlock::setBackedgeAsmJS(MBasicBlock *pred)
         
         entryDef->addInput(exitDef);
 
-        JS_ASSERT(entryDef->slot() < pred->stackDepth());
-        setSlot(entryDef->slot(), entryDef);
+        MOZ_ASSERT(slot < pred->stackDepth());
+        setSlot(slot, entryDef);
     }
 
     
@@ -1187,13 +1166,23 @@ MBasicBlock::removePredecessor(MBasicBlock *pred)
 void
 MBasicBlock::inheritPhis(MBasicBlock *header)
 {
-    for (MPhiIterator iter = header->phisBegin(); iter != header->phisEnd(); iter++) {
-        MPhi *phi = *iter;
-        JS_ASSERT(phi->numOperands() == 2);
+    MResumePoint *headerRp = header->entryResumePoint();
+    size_t stackDepth = headerRp->numOperands();
+    for (size_t slot = 0; slot < stackDepth; slot++) {
+        MDefinition *exitDef = getSlot(slot);
+        MDefinition *loopDef = headerRp->getOperand(slot);
+        if (!loopDef->isPhi()) {
+            MOZ_ASSERT(loopDef->block()->id() < header->id());
+            MOZ_ASSERT(loopDef == exitDef);
+            continue;
+        }
+
+        
+        MPhi *phi = loopDef->toPhi();
+        MOZ_ASSERT(phi->numOperands() == 2);
 
         
         MDefinition *entryDef = phi->getOperand(0);
-        MDefinition *exitDef = getSlot(phi->slot());
 
         if (entryDef != exitDef)
             continue;
@@ -1201,8 +1190,58 @@ MBasicBlock::inheritPhis(MBasicBlock *header)
         
         
         
-        setSlot(phi->slot(), phi);
+        setSlot(slot, phi);
     }
+}
+
+bool
+MBasicBlock::inheritPhisFromBackedge(MBasicBlock *backedge, bool *hadTypeChange)
+{
+    
+    MOZ_ASSERT(kind_ == PENDING_LOOP_HEADER);
+
+    size_t stackDepth = entryResumePoint()->numOperands();
+    for (size_t slot = 0; slot < stackDepth; slot++) {
+        
+        MDefinition *exitDef = backedge->getSlot(slot);
+
+        
+        MDefinition *loopDef = entryResumePoint()->getOperand(slot);
+        if (!loopDef->isPhi()) {
+            
+            
+            
+            
+            MOZ_ASSERT(loopDef->block()->id() < id());
+            MOZ_ASSERT(loopDef == exitDef);
+            continue;
+        }
+
+        
+        MPhi *entryDef = loopDef->toPhi();
+        MOZ_ASSERT(entryDef->block() == this);
+
+        if (entryDef == exitDef) {
+            
+            
+            
+            
+            
+            
+            
+            exitDef = entryDef->getOperand(0);
+        }
+
+        bool typeChange = false;
+
+        if (!entryDef->addInputSlow(exitDef, &typeChange))
+            return false;
+
+        *hadTypeChange |= typeChange;
+        setSlot(slot, entryDef);
+    }
+
+    return true;
 }
 
 bool

@@ -404,13 +404,31 @@ class CompileInfo
         return executionMode_ == ParallelExecution;
     }
 
-    bool canOptimizeOutSlot(uint32_t i) const {
-        if (script()->strict())
+    
+    
+    
+    
+    bool isObservableSlot(uint32_t slot) const {
+        if (!funMaybeLazy())
+            return false;
+
+        
+        if (slot == thisSlot())
             return true;
 
         
         
-        return !(firstArgSlot() <= i && i - firstArgSlot() < nargs());
+        
+        
+        if (hasArguments() && (slot == scopeChainSlot() || slot == argsObjSlot()))
+            return true;
+
+        
+        
+        if (!script()->strict() && firstArgSlot() <= slot && slot - firstArgSlot() < nargs())
+            return true;
+
+        return false;
     }
 
   private:

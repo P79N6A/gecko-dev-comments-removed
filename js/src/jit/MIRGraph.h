@@ -208,6 +208,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void inheritPhis(MBasicBlock *header);
 
     
+    bool inheritPhisFromBackedge(MBasicBlock *backedge, bool *hadTypeChange);
+
+    
     bool specializePhis();
 
     void insertBefore(MInstruction *at, MInstruction *ins);
