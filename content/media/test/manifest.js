@@ -357,6 +357,9 @@ var gFastSeekTests = [
   
   { name:"seek.webm", type:"video/webm", keyframes:[0, 0.8, 1.6, 2.4, 3.2]},
   
+  
+  
+  { name:"bug516323.indexed.ogv", type:"video/ogg", keyframes:[0, 0.46, 3.06] },
 ];
 
 function IsWindows8OrLater() {

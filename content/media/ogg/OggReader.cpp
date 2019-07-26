@@ -1379,6 +1379,28 @@ nsresult OggReader::Seek(int64_t aTarget,
     }
   }
 
+  if (HasVideo()) {
+    
+    
+    
+    
+    
+    
+    bool skip = true;
+    while (DecodeVideoFrame(skip, 0) && skip) {
+      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      if (mDecoder->IsShutdown()) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
+#ifdef DEBUG
+    const VideoData* v = mVideoQueue.PeekFront();
+    if (!v || !v->mKeyframe) {
+      NS_WARNING("Ogg seek didn't end up before a key frame!");
+    }
+#endif
+  }
   return NS_OK;
 }
 
