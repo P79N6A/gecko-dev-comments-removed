@@ -7,6 +7,7 @@
 #ifndef mozilla_ScopedNSSTypes_h
 #define mozilla_ScopedNSSTypes_h
 
+#include "NSSErrorsService.h"
 #include "mozilla/Likely.h"
 #include "mozilla/mozalloc_oom.h"
 #include "mozilla/Scoped.h"
@@ -49,30 +50,15 @@ uint8_t_ptr_cast(const char * p) { return reinterpret_cast<const uint8_t*>(p); }
 
 
 
-inline nsresult
-PRErrorCode_to_nsresult(PRErrorCode error)
-{
-  if (!error) {
-    MOZ_CRASH("Function failed without calling PR_GetError");
-  }
-
-  
-  
-  return (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
-                                             -1 * error);
-}
-
-
-
 
 inline nsresult
 MapSECStatus(SECStatus rv)
 {
-  if (rv == SECSuccess)
+  if (rv == SECSuccess) {
     return NS_OK;
+  }
 
-  PRErrorCode error = PR_GetError();
-  return PRErrorCode_to_nsresult(error);
+  return mozilla::psm::GetXPCOMFromNSSError(PR_GetError());
 }
 
 
