@@ -561,6 +561,17 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     
     
     
+    
+    
+    
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      ClearCachedWidgetCursor(mCurrentTarget);
+    }
+
+    
+    
+    
     if (mouseEvent->exit != WidgetMouseEvent::eTopLevel) {
       
       
@@ -3327,6 +3338,19 @@ EventStateManager::UpdateCursor(nsPresContext* aPresContext,
   if (mLockCursor || NS_STYLE_CURSOR_AUTO != cursor) {
     *aStatus = nsEventStatus_eConsumeDoDefault;
   }
+}
+
+void
+EventStateManager::ClearCachedWidgetCursor(nsIFrame* aTargetFrame)
+{
+  if (!aTargetFrame) {
+    return;
+  }
+  nsIWidget* aWidget = aTargetFrame->GetNearestWidget();
+  if (!aWidget) {
+    return;
+  }
+  aWidget->ClearCachedCursor();
 }
 
 nsresult

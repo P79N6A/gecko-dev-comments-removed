@@ -1507,8 +1507,9 @@ nsWindow::SetCursor(nsCursor aCursor)
     }
 
     
-    if (aCursor != mCursor) {
+    if (aCursor != mCursor || mUpdateCursor) {
         GdkCursor *newCursor = nullptr;
+        mUpdateCursor = false;
 
         newCursor = get_gtk_cursor(aCursor);
 

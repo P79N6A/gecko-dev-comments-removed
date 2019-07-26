@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_tabs_TabParent_h
 #define mozilla_tabs_TabParent_h
@@ -56,7 +56,7 @@ class TabParent : public PBrowserParent
     typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
 
 public:
-    
+    // nsITabParent
     NS_DECL_NSITABPARENT
 
     TabParent(ContentParent* aManager, const TabContext& aContext, uint32_t aChromeFlags);
@@ -64,17 +64,17 @@ public:
     Element* GetOwnerElement() const { return mFrameElement; }
     void SetOwnerElement(Element* aElement);
 
-    
-
-
+    /**
+     * Get the mozapptype attribute from this TabParent's owner DOM element.
+     */
     void GetAppType(nsAString& aOut);
 
-    
-
-
-
-
-
+    /**
+     * Returns true iff this TabParent's nsIFrameLoader is visible.
+     *
+     * The frameloader's visibility can be independent of e.g. its docshell's
+     * visibility.
+     */
     bool IsVisible();
 
     nsIBrowserDOMWindow *GetBrowserDOMWindow() { return mBrowserDOMWindow; }
@@ -86,28 +86,28 @@ public:
 
     nsIXULBrowserWindow* GetXULBrowserWindow();
 
-    
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Return the TabParent that has decided it wants to capture an
+     * event series for fast-path dispatch to its subprocess, if one
+     * has.
+     *
+     * DOM event dispatch and widget are free to ignore capture
+     * requests from TabParents; the end result wrt remote content is
+     * (must be) always the same, albeit usually slower without
+     * subprocess capturing.  This allows frontends/widget backends to
+     * "opt in" to faster cross-process dispatch.
+     */
     static TabParent* GetEventCapturer();
-    
-
-
-
-
-
-
-
-
-
+    /**
+     * If this is the current event capturer, give this a chance to
+     * capture the event.  If it was captured, return true, false
+     * otherwise.  Un-captured events should follow normal DOM
+     * dispatch; captured events should result in no further
+     * processing from the caller of TryCapture().
+     *
+     * It's an error to call TryCapture() if this isn't the event
+     * capturer.
+     */
     bool TryCapture(const WidgetGUIEvent& aEvent);
 
     void Destroy();
@@ -168,7 +168,7 @@ public:
                                      const int32_t& aCause,
                                      const int32_t& aFocusChange) MOZ_OVERRIDE;
     virtual bool RecvRequestFocus(const bool& aCanRaise) MOZ_OVERRIDE;
-    virtual bool RecvSetCursor(const uint32_t& aValue) MOZ_OVERRIDE;
+    virtual bool RecvSetCursor(const uint32_t& aValue, const bool& aForce) MOZ_OVERRIDE;
     virtual bool RecvSetBackgroundColor(const nscolor& aValue) MOZ_OVERRIDE;
     virtual bool RecvSetStatus(const uint32_t& aType, const nsString& aStatus) MOZ_OVERRIDE;
     virtual bool RecvIsParentWindowMainWidgetVisible(bool* aIsVisible);
@@ -192,9 +192,9 @@ public:
     virtual bool DeallocPColorPickerParent(PColorPickerParent* aColorPicker) MOZ_OVERRIDE;
 
     void LoadURL(nsIURI* aURI);
-    
-    
-    
+    // XXX/cjones: it's not clear what we gain by hiding these
+    // message-sending functions under a layer of indirection and
+    // eating the return values
     void Show(const nsIntSize& size);
     void UpdateDimensions(const nsRect& rect, const nsIntSize& size);
     void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);
@@ -291,10 +291,10 @@ public:
 
     ContentParent* Manager() { return mManager; }
 
-    
-
-
-
+    /**
+     * Let managees query if Destroy() is already called so they don't send out
+     * messages when the PBrowser actor is being destroyed.
+     */
     bool IsDestroyed() const { return mIsDestroyed; }
 
 protected:
@@ -312,7 +312,7 @@ protected:
     virtual PIndexedDBParent* AllocPIndexedDBParent(
                                                   const nsCString& aGroup,
                                                   const nsCString& aASCIIOrigin,
-                                                  bool* ) MOZ_OVERRIDE;
+                                                  bool* /* aAllowed */) MOZ_OVERRIDE;
 
     virtual bool DeallocPIndexedDBParent(PIndexedDBParent* aActor) MOZ_OVERRIDE;
 
@@ -334,15 +334,15 @@ protected:
                                                         bool* aSuccess) MOZ_OVERRIDE;
     virtual bool DeallocPRenderFrameParent(PRenderFrameParent* aFrame) MOZ_OVERRIDE;
 
-    
+    // IME
     static TabParent *mIMETabParent;
     nsString mIMECacheText;
     uint32_t mIMESelectionAnchor;
     uint32_t mIMESelectionFocus;
     bool mIMEComposing;
     bool mIMECompositionEnding;
-    
-    
+    // Buffer to store composition text during ResetInputState
+    // Compositions in almost all cases are small enough for nsAutoString
     nsAutoString mIMECompositionText;
     uint32_t mIMECompositionStart;
     uint32_t mIMESeqno;
@@ -351,7 +351,7 @@ protected:
     nsIntRect mIMECompositionRect;
     nsIntRect mIMECaretRect;
 
-    
+    // The number of event series we're currently capturing.
     int32_t mEventCaptureDepth;
 
     nsRect mRect;
@@ -371,30 +371,30 @@ private:
 
     CSSPoint AdjustTapToChildWidget(const CSSPoint& aPoint);
 
-    
-    
+    // When true, we create a pan/zoom controller for our frame and
+    // notify it of input events targeting us.
     bool UseAsyncPanZoom();
-    
-    
-    
-    
-    
-    
-    
+    // If we have a render frame currently, notify it that we're about
+    // to dispatch |aEvent| to our child.  If there's a relevant
+    // transform in place, |aEvent| will be transformed in-place so that
+    // it is ready to be dispatched to content.
+    // |aOutTargetGuid| will contain the identifier
+    // of the APZC instance that handled the event. aOutTargetGuid may be
+    // null.
     nsEventStatus MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
                                                  ScrollableLayerGuid* aOutTargetGuid);
-    
-    
-    
-    
+    // The offset for the child process which is sampled at touch start. This
+    // means that the touch events are relative to where the frame was at the
+    // start of the touch. We need to look for a better solution to this
+    // problem see bug 872911.
     LayoutDeviceIntPoint mChildProcessOffsetAtTouchStart;
-    
-    
+    // When true, we've initiated normal shutdown and notified our
+    // managing PContent.
     bool mMarkedDestroying;
-    
-    
+    // When true, the TabParent is invalid and we should not send IPC messages
+    // anymore.
     bool mIsDestroyed;
-    
+    // Whether we have already sent a FileDescriptor for the app package.
     bool mAppPackageFileDescriptorSent;
 
     uint32_t mChromeFlags;
@@ -402,7 +402,7 @@ private:
     nsCOMPtr<nsILoadContext> mLoadContext;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif
