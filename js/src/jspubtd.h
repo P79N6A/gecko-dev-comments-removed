@@ -183,6 +183,13 @@ typedef bool                    JSCallOnceType;
 #endif
 typedef bool                    (*JSInitCallback)(void);
 
+
+
+
+
+typedef void
+(* JSTraceDataOp)(JSTracer *trc, void *data);
+
 namespace JS {
 
 typedef void (*OffThreadCompileCallback)(JSScript *script, void *callbackData);
