@@ -141,7 +141,7 @@ protected:
   
 
 
-  nsTArray<SVGPoint> mItems;
+  FallibleTArray<SVGPoint> mItems;
 };
 
 

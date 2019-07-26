@@ -133,7 +133,7 @@ protected:
   
 
 
-  nsTArray<float> mNumbers;
+  FallibleTArray<float> mNumbers;
 };
 
 

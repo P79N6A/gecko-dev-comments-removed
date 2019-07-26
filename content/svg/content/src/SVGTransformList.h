@@ -133,7 +133,7 @@ protected:
 
 
 
-  nsTArray<SVGTransform> mItems;
+  FallibleTArray<SVGTransform> mItems;
 };
 
 } 
