@@ -123,15 +123,17 @@ function safeGetState(state) {
     let data = JSON.parse(string);
     
     
-    data.toString = function() {
-      return string;
-    };
+    if (data && typeof data == "object") {
+      data.toString = function() {
+        return string;
+      };
+    }
     return data;
   } catch (ex) {
     try {
-      return "Error getting state: " + ex;
+      return "Error getting state: " + ex + " at " + ex.stack;
     } catch (ex2) {
-      return "Could not display error";
+      return "Error getting state but could not display error";
     }
   }
 }
