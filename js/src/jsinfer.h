@@ -513,6 +513,9 @@ struct TypeResult
 };
 
 
+inline bool isInlinableCall(jsbytecode *pc);
+
+
 
 
 

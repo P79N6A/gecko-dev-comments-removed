@@ -745,7 +745,7 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_MUL:
       case JSOP_DIV:
       case JSOP_MOD:
-      	return jsop_binary(op);
+        return jsop_binary(op);
 
       case JSOP_POS:
         return jsop_pos();
@@ -2120,7 +2120,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
         }
 
         tableswitch->addCase(caseblock);
-        
+
         
         
         if (casepc != pc)
@@ -2759,6 +2759,7 @@ IonBuilder::jsop_call_inline(JSFunction *callee, uint32 argc, IonBuilder &inline
 
     
     
+    
     inlineResumePoint->replaceOperand(inlineResumePoint->numOperands() - (argc + 2), constFun);
     current->pop();
     current->push(constFun);
@@ -2772,7 +2773,7 @@ IonBuilder::jsop_call_inline(JSFunction *callee, uint32 argc, IonBuilder &inline
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
 
     
-    JS_ASSERT(*pc == JSOP_CALL);
+    JS_ASSERT(types::IsInlinableCall(pc));
     jsbytecode *postCall = GetNextPc(pc);
     MBasicBlock *bottom = newBlock(NULL, postCall);
     bottom->setCallerResumePoint(callerResumePoint_);
@@ -3139,11 +3140,11 @@ IonBuilder::jsop_funcall(uint32 argc)
 }
 
 bool
-IonBuilder::jsop_call(uint32 argc, bool constructing)
+IonBuilder::jsop_call_fun_barrier(HandleFunction target, uint32 argc, 
+                                  bool constructing,
+                                  types::TypeSet *types,
+                                  types::TypeSet *barrier)
 {
-    
-    RootedFunction target(cx, getSingleCallTarget(argc, pc));
-
     
     if (inliningEnabled() && target) {
         if (target->isNative()) {
@@ -3161,11 +3162,24 @@ IonBuilder::jsop_call(uint32 argc, bool constructing)
             return inlineScriptedCall(target, argc);
     }
 
-    return makeCall(target, argc, constructing);
+    return makeCallBarrier(target, argc, constructing, types, barrier);
 }
 
 bool
-IonBuilder::makeCall(HandleFunction target, uint32 argc, bool constructing)
+IonBuilder::jsop_call(uint32 argc, bool constructing)
+{
+    
+    RootedFunction target(cx, getSingleCallTarget(argc, pc));
+    types::TypeSet *barrier;
+    types::TypeSet *types = oracle->returnTypeSet(script, pc, &barrier);
+    return jsop_call_fun_barrier(target, argc, constructing, types, barrier);
+}
+
+bool
+IonBuilder::makeCallBarrier(HandleFunction target, uint32 argc,
+                            bool constructing,
+                            types::TypeSet *types,
+                            types::TypeSet *barrier)
 {
     
     
@@ -3229,9 +3243,15 @@ IonBuilder::makeCall(HandleFunction target, uint32 argc, bool constructing)
     if (!resumeAfter(call))
         return false;
 
+    return pushTypeBarrier(call, types, barrier);
+}
+
+bool
+IonBuilder::makeCall(HandleFunction target, uint32 argc, bool constructing)
+{
     types::TypeSet *barrier;
     types::TypeSet *types = oracle->returnTypeSet(script, pc, &barrier);
-    return pushTypeBarrier(call, types, barrier);
+    return makeCallBarrier(target, argc, constructing, types, barrier);
 }
 
 bool
@@ -4603,6 +4623,141 @@ IonBuilder::jsop_not()
     return true;
 }
 
+
+inline bool
+IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id,
+                   JSFunction **funcp, bool isGetter)
+{
+    JSObject *found = NULL;
+    JSObject *foundProto = NULL;
+    Shape *protoShape = NULL;
+
+    *funcp = NULL;
+
+    
+    if (!types || types->unknownObject())
+        return true;
+
+    
+    
+    for (unsigned i = 0; i < types->getObjectCount(); i++) {
+        JSObject *curObj = types->getSingleObject(i);
+
+        
+        if (!curObj) {
+            types::TypeObject *typeObj = types->getTypeObject(i);
+
+            if (!typeObj)
+                continue;
+
+            if (typeObj->unknownProperties())
+                return true;
+
+            
+            
+            jsid typeId = types::MakeTypeId(cx, id);
+            types::TypeSet *propSet = typeObj->getProperty(cx, typeId, false);
+            if (!propSet)
+                return false;
+            if (propSet->isOwnProperty(false))
+                return true;
+
+            
+            curObj = typeObj->proto;
+        }
+
+        
+        
+        JSObject *walker = curObj;
+        while (walker) {
+            if (walker->getClass()->ops.lookupProperty)
+                return true;
+            walker = walker->getProto();
+        }
+
+        JSObject *proto;
+        JSProperty *prop;
+
+        if (!curObj->lookupGeneric(cx, id, &proto, &prop))
+            return false;
+        if (!prop)
+            return true;
+
+        Shape *shape = (Shape *)prop;
+
+        
+        
+        if (isGetter) {
+            if (shape->hasDefaultGetter() || !shape->hasGetterValue())
+                return true;
+        } else {
+            if (shape->hasDefaultSetter() || !shape->hasSetterValue())
+                return true;
+        }
+
+        JSObject * curFound = isGetter ? shape->getterObject():
+                                         shape->setterObject();
+
+        
+        if (!found)
+            found = curFound;
+        else if (found != curFound)
+            return true;
+
+        
+        
+        
+        if (!foundProto) {
+            foundProto = proto;
+            protoShape = shape;
+        } else if (foundProto != proto)
+            return true;
+    }
+
+    
+    if (!found)
+        return true;
+
+    JS_ASSERT(foundProto && protoShape);
+
+    types->addFreeze(cx);
+
+    MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
+    current->add(wrapper);
+    MGuardShape *guard = MGuardShape::New(wrapper, protoShape);
+    current->add(guard);
+
+    
+    
+    types::TypeObject *curType;
+    for (unsigned i = 0; i < types->getObjectCount(); i++) {
+        curType = types->getTypeObject(i);
+
+        if (!curType) {
+            JSObject *obj = types->getSingleObject(i);
+            if (!obj)
+                continue;
+
+            curType = obj->getType(cx);
+        }
+
+        
+        
+        jsid typeId = types::MakeTypeId(cx, id);
+        types::TypeSet *propSet = curType->getProperty(cx, typeId, false);
+        JS_ASSERT(propSet);
+        while (!propSet->isOwnProperty(cx, curType, false)) {
+            curType = curType->proto->getType(cx);
+            propSet = curType->getProperty(cx, id, false);
+            JS_ASSERT(propSet);
+        }
+    }
+
+    *funcp = (JSFunction *)found;
+
+    return true;
+}
+
 bool
 IonBuilder::jsop_getprop(HandlePropertyName name)
 {
@@ -4625,10 +4780,11 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
     TypeOracle::Unary unary = oracle->unaryOp(script, pc);
     TypeOracle::UnaryTypes unaryTypes = oracle->unaryTypes(script, pc);
 
+    RootedId id(cx, NameToId(name));
+
     JSObject *singleton = types ? types->getSingleton(cx) : NULL;
     if (singleton && !barrier) {
         bool isKnownConstant, testObject;
-        RootedId id(cx, NameToId(name));
         RootedObject global(cx, script->global());
         if (!TestSingletonPropertyTypes(cx, unaryTypes.inTypes,
                                         global, id,
@@ -4661,6 +4817,23 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
         current->push(fixed);
 
         return pushTypeBarrier(fixed, types, barrier);
+    }
+
+    
+    JSFunction *commonGetter;
+    if (!TestCommonPropFunc(cx, unaryTypes.inTypes, id, &commonGetter, true))
+        return false;
+    if (commonGetter) {
+        
+        pushConstant(ObjectValue(*commonGetter));
+
+        MPassArg *wrapper = MPassArg::New(obj);
+        current->push(wrapper);
+        current->add(wrapper);
+
+        RootedFunction getter(cx, commonGetter);
+
+        return makeCallBarrier(getter, 0, false, types, barrier);
     }
 
     if (unary.ival == MIRType_Object) {
@@ -4708,6 +4881,28 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
         }
     }
 
+    RootedId id(cx, NameToId(name));
+
+    JSFunction *commonSetter;
+    if (!TestCommonPropFunc(cx, binaryTypes.lhsTypes, id, &commonSetter, false))
+        return false;
+    if (!monitored && commonSetter) {
+        
+        pushConstant(ObjectValue(*commonSetter));
+
+        MPassArg *wrapper = MPassArg::New(obj);
+        current->push(wrapper);
+        current->add(wrapper);
+
+        MPassArg *arg = MPassArg::New(value);
+        current->push(arg);
+        current->add(arg);
+
+        RootedFunction setter(cx, commonSetter);
+
+        return makeCallBarrier(setter, 1, false, NULL, NULL);
+    }
+
     oracle->binaryOp(script, pc);
 
     MSetPropertyInstruction *ins;
@@ -4716,7 +4911,6 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
     } else {
         ins = MSetPropertyCache::New(obj, value, name, script->strictModeCode);
 
-        RootedId id(cx, NameToId(name));
         if (!binaryTypes.lhsTypes || binaryTypes.lhsTypes->propertyNeedsBarrier(cx, id))
             ins->setNeedsBarrier();
     }

@@ -423,7 +423,7 @@ static void
 MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
 {
     IonJSFrameLayout *layout = (IonJSFrameLayout *)frame.fp();
-    
+
     MarkCalleeToken(trc, layout->calleeToken());
 
     IonScript *ionScript;
@@ -888,6 +888,10 @@ InlineFrameIterator::isConstructing() const
         ++parent;
 
         
+        if (IsGetterPC(parent.pc()) || IsSetterPC(parent.pc()))
+            return false;
+
+        
         JS_ASSERT(js_CodeSpec[*parent.pc()].format & JOF_INVOKE);
 
         return (JSOp)*parent.pc() == JSOP_NEW;
@@ -909,6 +913,11 @@ IonFrameIterator::isConstructing() const
     if (parent.isScripted()) {
         
         InlineFrameIterator inlinedParent(&parent);
+
+        
+        if (IsGetterPC(inlinedParent.pc()) || IsSetterPC(inlinedParent.pc()))
+            return false;
+
         JS_ASSERT(js_CodeSpec[*inlinedParent.pc()].format & JOF_INVOKE);
 
         return (JSOp)*inlinedParent.pc() == JSOP_NEW;

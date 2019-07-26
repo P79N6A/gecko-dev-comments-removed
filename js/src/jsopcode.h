@@ -486,6 +486,19 @@ FlowsIntoNext(JSOp op)
            op != JSOP_GOTO && op != JSOP_RETSUB;
 }
 
+inline bool
+IsGetterPC(jsbytecode *pc)
+{
+    JSOp op = JSOp(*pc);
+    return op == JSOP_LENGTH  || op == JSOP_GETPROP || op == JSOP_CALLPROP;
+}
+
+inline bool
+IsSetterPC(jsbytecode *pc)
+{
+    JSOp op = JSOp(*pc);
+    return op == JSOP_SETPROP || op == JSOP_SETNAME || op == JSOP_SETGNAME;
+}
 
 
 
