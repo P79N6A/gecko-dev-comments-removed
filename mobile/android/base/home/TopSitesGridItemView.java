@@ -49,6 +49,9 @@ public class TopSitesGridItemView extends RelativeLayout {
     private boolean mIsPinned = false;
 
     
+    private boolean mIsDirty = false;
+
+    
     private boolean mIsEmpty = true;
     private int mLoadId = Favicons.NOT_LOADING;
 
@@ -146,6 +149,10 @@ public class TopSitesGridItemView extends RelativeLayout {
         displayThumbnail(R.drawable.top_site_add);
     }
 
+    public void markAsDirty() {
+        mIsDirty = true;
+    }
+
     
 
 
@@ -183,6 +190,12 @@ public class TopSitesGridItemView extends RelativeLayout {
             mTitleView.setCompoundDrawablesWithIntrinsicBounds(pinned ? R.drawable.pin : 0, 0, 0, 0);
             changed = true;
         }
+
+        
+        
+        
+        changed = (changed || mIsDirty);
+        mIsDirty = false;
 
         return changed;
     }

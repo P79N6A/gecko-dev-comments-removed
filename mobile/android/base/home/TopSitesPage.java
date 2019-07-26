@@ -558,6 +558,17 @@ public class TopSitesPage extends HomeFragment {
 
         public void updateThumbnails(Map<String, Bitmap> thumbnails) {
             mThumbnails = thumbnails;
+
+            final int count = mGrid.getChildCount();
+            for (int i = 0; i < count; i++) {
+                TopSitesGridItemView gridItem = (TopSitesGridItemView) mGrid.getChildAt(i);
+
+                
+                
+                
+                gridItem.markAsDirty();
+            }
+
             notifyDataSetChanged();
         }
 
@@ -578,7 +589,11 @@ public class TopSitesPage extends HomeFragment {
 
             
             if (TextUtils.isEmpty(url)) {
-                view.blankOut();
+                
+                if (mThumbnails != null) {
+                    view.blankOut();
+                }
+
                 return;
             }
 
@@ -590,7 +605,8 @@ public class TopSitesPage extends HomeFragment {
             final boolean updated = view.updateState(title, url, pinned, thumbnail);
 
             
-            if (thumbnail != null) {
+            
+            if (mThumbnails == null || thumbnail != null) {
                 return;
             }
 
