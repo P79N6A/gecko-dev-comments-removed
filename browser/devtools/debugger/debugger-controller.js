@@ -428,6 +428,7 @@ StackFrames.prototype = {
   currentBreakpointLocation: null,
   currentEvaluation: null,
   currentException: null,
+  currentReturnedValue: null,
 
   
 
@@ -484,6 +485,17 @@ StackFrames.prototype = {
       
       case "exception":
         this.currentException = aPacket.why.exception;
+        break;
+      
+      
+      case "resumeLimit":
+        if (!aPacket.why.frameFinished) {
+          break;
+        } else if (aPacket.why.frameFinished.throw) {
+          this.currentException = aPacket.why.frameFinished.throw;
+        } else if (aPacket.why.frameFinished.return) {
+          this.currentReturnedValue = aPacket.why.frameFinished.return;
+        }
         break;
     }
 
@@ -595,6 +607,7 @@ StackFrames.prototype = {
     this.currentBreakpointLocation = null;
     this.currentEvaluation = null;
     this.currentException = null;
+    this.currentReturnedValue = null;
     
     
     
@@ -831,6 +844,11 @@ StackFrames.prototype = {
     if (this.currentException) {
       let excRef = aScope.addVar("<exception>", { value: this.currentException });
       this._addVarExpander(excRef, this.currentException);
+    }
+    
+    if (this.currentReturnedValue) {
+      let retRef = aScope.addVar("<return>", { value: this.currentReturnedValue });
+      this._addVarExpander(retRef, this.currentReturnedValue);
     }
     
     if (aFrame.this) {
