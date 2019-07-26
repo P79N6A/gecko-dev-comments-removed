@@ -218,13 +218,59 @@ let SlowSQL = {
   }
 };
 
-let ChromeHangs = {
 
-  symbolRequest: null,
+
+
+
+
+function clearDivData(aDiv) {
+  while (aDiv.hasChildNodes()) {
+    aDiv.removeChild(aDiv.lastChild);
+  }
+};
+
+let StackRenderer = {
 
   stackTitle: bundle.GetStringFromName("stackTitle"),
 
   memoryMapTitle: bundle.GetStringFromName("memoryMapTitle"),
+
+  
+
+
+
+
+  renderMemoryMap: function StackRenderer_renderMemoryMap(aDiv, memoryMap) {
+    aDiv.appendChild(document.createTextNode(this.memoryMapTitle));
+    aDiv.appendChild(document.createElement("br"));
+
+    for (let currentModule of memoryMap) {
+      aDiv.appendChild(document.createTextNode(currentModule.join(" ")));
+      aDiv.appendChild(document.createElement("br"));
+    }
+
+    aDiv.appendChild(document.createElement("br"));
+  },
+
+  
+
+
+
+
+
+  renderStack: function StackRenderer_renderStack(aDiv, aStack) {
+    aDiv.appendChild(document.createTextNode(this.stackTitle));
+    let stackText = " " + aStack.join(" ");
+    aDiv.appendChild(document.createTextNode(stackText));
+
+    aDiv.appendChild(document.createElement("br"));
+    aDiv.appendChild(document.createElement("br"));
+  }
+};
+
+let ChromeHangs = {
+
+  symbolRequest: null,
 
   errorMessage: bundle.GetStringFromName("errorFetchingSymbols"),
 
@@ -233,7 +279,7 @@ let ChromeHangs = {
 
   render: function ChromeHangs_render() {
     let hangsDiv = document.getElementById("chrome-hangs-data");
-    this.clearHangData(hangsDiv);
+    clearDivData(hangsDiv);
     document.getElementById("fetch-symbols").classList.remove("hidden");
     document.getElementById("hide-symbols").classList.add("hidden");
 
@@ -244,13 +290,14 @@ let ChromeHangs = {
       return;
     }
 
-    this.renderMemoryMap(hangsDiv);
+    let memoryMap = hangs.memoryMap;
+    StackRenderer.renderMemoryMap(hangsDiv, memoryMap);
 
     let durations = hangs.durations;
     for (let i = 0; i < stacks.length; ++i) {
       let stack = stacks[i];
       this.renderHangHeader(hangsDiv, i + 1, durations[i]);
-      this.renderStack(hangsDiv, stack)
+      StackRenderer.renderStack(hangsDiv, stack)
     }
   },
 
@@ -270,40 +317,6 @@ let ChromeHangs = {
     titleElement.appendChild(document.createTextNode(titleText));
 
     aDiv.appendChild(titleElement);
-    aDiv.appendChild(document.createElement("br"));
-  },
-
-  
-
-
-
-
-
-  renderStack: function ChromeHangs_renderStack(aDiv, aStack) {
-    aDiv.appendChild(document.createTextNode(this.stackTitle));
-    let stackText = " " + aStack.join(" ");
-    aDiv.appendChild(document.createTextNode(stackText));
-
-    aDiv.appendChild(document.createElement("br"));
-    aDiv.appendChild(document.createElement("br"));
-  },
-
-  
-
-
-
-
-  renderMemoryMap: function ChromeHangs_renderMemoryMap(aDiv) {
-    aDiv.appendChild(document.createTextNode(this.memoryMapTitle));
-    aDiv.appendChild(document.createElement("br"));
-
-    let hangs = Telemetry.chromeHangs;
-    let memoryMap = hangs.memoryMap;
-    for (let currentModule of memoryMap) {
-      aDiv.appendChild(document.createTextNode(currentModule.join(" ")));
-      aDiv.appendChild(document.createElement("br"));
-    }
-
     aDiv.appendChild(document.createElement("br"));
   },
 
@@ -343,7 +356,7 @@ let ChromeHangs = {
     document.getElementById("hide-symbols").classList.remove("hidden");
 
     let hangsDiv = document.getElementById("chrome-hangs-data");
-    this.clearHangData(hangsDiv);
+    clearDivData(hangsDiv);
 
     if (this.symbolRequest.status != 200) {
       hangsDiv.appendChild(document.createTextNode(this.errorMessage));
@@ -371,17 +384,6 @@ let ChromeHangs = {
         hangsDiv.appendChild(document.createElement("br"));
       }
       hangsDiv.appendChild(document.createElement("br"));
-    }
-  },
-
-  
-
-
-
-
-  clearHangData: function ChromeHangs_clearHangData(aDiv) {
-    while (aDiv.hasChildNodes()) {
-      aDiv.removeChild(aDiv.lastChild);
     }
   }
 };
