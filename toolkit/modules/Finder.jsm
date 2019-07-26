@@ -74,7 +74,9 @@ Finder.prototype = {
     };
 
     for (let l of this._listeners) {
-      l.onFindResult(data);
+      try {
+        l.onFindResult(data);
+      } catch (ex) {}
     }
   },
 
@@ -194,8 +196,10 @@ Finder.prototype = {
   focusContent: function() {
     
     for (let l of this._listeners) {
-      if (!l.shouldFocusContent())
-        return;
+      try {
+        if (!l.shouldFocusContent())
+          return;
+      } catch (ex) {}
     }
 
     let fastFind = this._fastFind;
@@ -253,6 +257,180 @@ Finder.prototype = {
         controller.scrollLine(true);
         break;
     }
+  },
+
+  requestMatchesCount: function(aWord, aMatchLimit, aLinksOnly) {
+    let window = this._getWindow();
+    let result = this._countMatchesInWindow(aWord, aMatchLimit, aLinksOnly, window);
+
+    
+    for (let frame of result._framesToCount) {
+      
+      if (result.total == -1 || result.total == aMatchLimit)
+        break;
+      this._countMatchesInWindow(aWord, aMatchLimit, aLinksOnly, frame, result);
+    }
+
+    
+    
+    delete result._currentFound;
+    delete result._framesToCount;
+
+    for (let l of this._listeners) {
+      try {
+        l.onMatchesCountResult(result);
+      } catch (ex) {}
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _countMatchesInWindow: function(aWord, aMatchLimit, aLinksOnly, aWindow = null, aStats = null) {
+    aWindow = aWindow || this._getWindow();
+    aStats = aStats || {
+      total: 0,
+      current: 0,
+      _framesToCount: new Set(),
+      _currentFound: false
+    };
+
+    
+    if (aStats.total == -1 || aStats.total == aMatchLimit) {
+      aStats.total = -1;
+      return aStats;
+    }
+
+    this._collectFrames(aWindow, aStats);
+
+    let foundRange = this._fastFind.getFoundRange();
+
+    this._findIterator(aWord, aWindow, aRange => {
+      if (!aLinksOnly || this._rangeStartsInLink(aRange)) {
+        ++aStats.total;
+        if (!aStats._currentFound) {
+          ++aStats.current;
+          aStats._currentFound = (foundRange &&
+            aRange.startContainer == foundRange.startContainer &&
+            aRange.startOffset == foundRange.startOffset &&
+            aRange.endContainer == foundRange.endContainer &&
+            aRange.endOffset == foundRange.endOffset);
+        }
+      }
+      if (aStats.total == aMatchLimit) {
+        aStats.total = -1;
+        return false;
+      }
+    });
+
+    return aStats;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _findIterator: function(aWord, aWindow, aOnFind) {
+    let doc = aWindow.document;
+    let body = (doc instanceof Ci.nsIDOMHTMLDocument && doc.body) ?
+               doc.body : doc.documentElement;
+
+    let searchRange = doc.createRange();
+    searchRange.selectNodeContents(body);
+
+    let startPt = searchRange.cloneRange();
+    startPt.collapse(true);
+
+    let endPt = searchRange.cloneRange();
+    endPt.collapse(false);
+
+    let retRange = null;
+
+    let finder = Cc["@mozilla.org/embedcomp/rangefind;1"]
+                   .createInstance()
+                   .QueryInterface(Ci.nsIFind);
+    finder.caseSensitive = this._fastFind.caseSensitive;
+
+    while ((retRange = finder.Find(aWord, searchRange, startPt, endPt))) {
+      if (aOnFind(retRange) === false)
+        break;
+      startPt = retRange.cloneRange();
+      startPt.collapse(false);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _collectFrames: function(aWindow, aStats) {
+    if (!aWindow.frames || !aWindow.frames.length)
+      return;
+    
+    
+    for (let i = 0, l = aWindow.frames.length; i < l; ++i) {
+      let frame = aWindow.frames[i];
+      
+      let frameEl = frame && frame.frameElement;
+      if (!frameEl)
+        continue;
+      
+      let range = aWindow.document.createRange();
+      range.setStart(frameEl, 0);
+      range.setEnd(frameEl, 0);
+      if (!this._fastFind.isRangeVisible(range, this._getDocShell(range), true))
+        continue;
+      
+      if (!aStats._framesToCount.has(frame))
+        aStats._framesToCount.add(frame);
+      this._collectFrames(frame, aStats);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _getDocShell: function(aWindowOrRange) {
+    let window = aWindowOrRange;
+    
+    if (aWindowOrRange instanceof Ci.nsIDOMRange)
+      window = aWindowOrRange.startContainer.ownerDocument.defaultView;
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
+                 .QueryInterface(Ci.nsIDocShell);
   },
 
   _getWindow: function () {
@@ -354,34 +532,11 @@ Finder.prototype = {
       return found;
     }
 
-    let body = (doc instanceof Ci.nsIDOMHTMLDocument && doc.body) ?
-               doc.body : doc.documentElement;
-
     if (aHighlight) {
-      let searchRange = doc.createRange();
-      searchRange.selectNodeContents(body);
-
-      let startPt = searchRange.cloneRange();
-      startPt.collapse(true);
-
-      let endPt = searchRange.cloneRange();
-      endPt.collapse(false);
-
-      let retRange = null;
-      let finder = Cc["@mozilla.org/embedcomp/rangefind;1"]
-                     .createInstance()
-                     .QueryInterface(Ci.nsIFind);
-
-      finder.caseSensitive = this._fastFind.caseSensitive;
-
-      while ((retRange = finder.Find(aWord, searchRange,
-                                     startPt, endPt))) {
-        this._highlightRange(retRange, controller);
-        startPt = retRange.cloneRange();
-        startPt.collapse(false);
-
+      this._findIterator(aWord, win, aRange => {
+        this._highlightRange(aRange, controller);
         found = true;
-      }
+      });
     } else {
       
       let sel = controller.getSelection(Ci.nsISelectionController.SELECTION_FIND);
@@ -576,6 +731,41 @@ Finder.prototype = {
       return range;
 
     return null;
+  },
+
+  
+
+
+
+
+
+  _rangeStartsInLink: function(aRange) {
+    let isInsideLink = false;
+    let node = aRange.startContainer;
+
+    if (node.nodeType == node.ELEMENT_NODE) {
+      if (node.hasChildNodes) {
+        let childNode = node.item(aRange.startOffset);
+        if (childNode)
+          node = childNode;
+      }
+    }
+
+    const XLink_NS = "http://www.w3.org/1999/xlink";
+    do {
+      if (node instanceof HTMLAnchorElement) {
+        isInsideLink = node.hasAttribute("href");
+        break;
+      } else if (typeof node.hasAttributeNS == "function" &&
+                 node.hasAttributeNS(XLink_NS, "href")) {
+        isInsideLink = (node.getAttributeNS(XLink_NS, "type") == "simple");
+        break;
+      }
+
+      node = node.parentNode;
+    } while (node);
+
+    return isInsideLink;
   },
 
   

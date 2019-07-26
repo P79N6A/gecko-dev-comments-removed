@@ -80,6 +80,7 @@ protected:
   bool mCaretBrowsingOn;
   nsCOMPtr<nsIDOMElement> mFoundLink;     
   nsCOMPtr<nsIDOMElement> mFoundEditable; 
+  nsCOMPtr<nsIDOMRange> mFoundRange;      
   nsCOMPtr<nsIDOMWindow> mCurrentWindow;
   
   
