@@ -481,7 +481,7 @@ MacroAssembler::performOsr()
     
     const Register code = ionScript;
     loadPtr(Address(ionScript, IonScript::offsetOfMethod()), code);
-    loadPtr(Address(code, IonCode::offsetOfCode()), code);
+    loadPtr(Address(code, IonCode::OffsetOfCode()), code);
     addPtr(osrEntry, code);
 
     

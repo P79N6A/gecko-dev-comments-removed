@@ -426,13 +426,11 @@ IonScript::IonScript()
     scriptList_(0),
     scriptEntries_(0),
     refcount_(0),
-    recompileInfo_(),
-    slowCallCount(0)
+    slowCallCount(0),
+    recompileInfo_()
 {
 }
-
 static const int DataAlignment = 4;
-
 IonScript *
 IonScript::New(JSContext *cx, uint32 frameSlots, uint32 frameSize, size_t snapshotsSize,
                size_t bailoutEntries, size_t constants, size_t safepointIndices,
@@ -726,14 +724,6 @@ IonScript::toggleBarriers(bool enabled)
 void
 IonScript::purgeCaches(JSCompartment *c)
 {
-    
-    
-    
-    
-    
-    if (invalidated())
-        return;
-
     
     
     
@@ -1489,34 +1479,28 @@ InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
         if (!invalidateAll && !script->ion->invalidated())
             continue;
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         IonScript *ionScript = script->ion;
-
-        
-        
-        
-        ionScript->purgeCaches(script->compartment());
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         ionScript->incref();
 
         const SafepointIndex *si = ionScript->getSafepointIndex(it.returnAddressToFp());

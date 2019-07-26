@@ -308,21 +308,12 @@ CodeGeneratorShared::markSafepointAt(uint32 offset, LInstruction *ins)
     return safepointIndices_.append(SafepointIndex(offset, ins->safepoint()));
 }
 
-void
-CodeGeneratorShared::ensureOsiSpace()
+bool
+CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32 *callPointOffset)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    if (!encode(ins->snapshot()))
+        return false;
+
     
     
     
@@ -334,15 +325,6 @@ CodeGeneratorShared::ensureOsiSpace()
     }
     JS_ASSERT(masm.currentOffset() - lastOsiPointOffset_ >= Assembler::patchWrite_NearCallSize());
     lastOsiPointOffset_ = masm.currentOffset();
-}
-
-bool
-CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32 *callPointOffset)
-{
-    if (!encode(ins->snapshot()))
-        return false;
-
-    ensureOsiSpace();
 
     *callPointOffset = masm.currentOffset();
     SnapshotOffset so = ins->snapshot()->snapshotOffset();
