@@ -583,7 +583,7 @@ AudioContext::Shutdown()
   }
 
   
-  if (mIsOffline) {
+  if (mIsOffline && mDestination) {
     mDestination->OfflineShutdown();
   }
 }
