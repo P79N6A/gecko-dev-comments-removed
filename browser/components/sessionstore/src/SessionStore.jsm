@@ -2603,12 +2603,32 @@ let SessionStoreInternal = {
       }
     }
 
-    
-    
-    let idMap = { used: {} };
-    let docIdentMap = {};
-    this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap,
-                        aRestoreImmediately);
+    function restoreNextHistory() {
+      if (aWindow.closed) {
+        return;
+      }
+
+      
+      while (aTabs.length > 0 && !this._canRestoreTabHistory(aTabs[0])) {
+        aTabs.shift();
+        aTabData.shift();
+      }
+      if (aTabs.length == 0) {
+        
+        
+        this._setWindowStateReady(aWindow);
+        return; 
+      }
+
+      let tab = aTabs.shift();
+      let tabData = aTabData.shift();
+      this.restoreHistory(aWindow, tab, tabData, aRestoreImmediately);
+
+      
+      aWindow.setTimeout(restoreNextHistory.bind(this), 0);
+    }
+
+    restoreNextHistory.call(this);
   },
 
   
@@ -2623,28 +2643,9 @@ let SessionStoreInternal = {
 
 
 
-
-
-  restoreHistory:
-    function ssi_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
-                                aRestoreImmediately)
-  {
-    
-    while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
-      aTabs.shift();
-      aTabData.shift();
-    }
-    if (aTabs.length == 0) {
-      
-      
-      this._setWindowStateReady(aWindow);
-      return; 
-    }
-
-    var tab = aTabs.shift();
-    var tabData = aTabData.shift();
-    var browser = aWindow.gBrowser.getBrowserForTab(tab);
-    var history = browser.webNavigation.sessionHistory;
+  restoreHistory: function (window, tab, tabData, restoreImmediately) {
+    let browser = tab.linkedBrowser;
+    let history = browser.webNavigation.sessionHistory;
 
     if (history.count > 0) {
       history.PurgeHistory(history.count);
@@ -2661,16 +2662,18 @@ let SessionStoreInternal = {
       tab.__SS_extdata = {};
       for (let key in tabData.extData)
         tab.__SS_extdata[key] = tabData.extData[key];
-    }
-    else
+    } else {
       delete tab.__SS_extdata;
+    }
 
+    let idMap = { used: {} };
+    let docIdentMap = {};
     for (var i = 0; i < tabData.entries.length; i++) {
       
       if (!tabData.entries[i].url)
         continue;
       history.addEntry(this._deserializeHistoryEntry(tabData.entries[i],
-                                                     aIdMap, aDocIdentMap), true);
+                                                     idMap, docIdentMap), true);
     }
 
     
@@ -2684,31 +2687,22 @@ let SessionStoreInternal = {
 
     
     if ("image" in tabData) {
-      aWindow.gBrowser.setIcon(tab, tabData.image);
+      window.gBrowser.setIcon(tab, tabData.image);
     }
 
     if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
       SessionStorage.deserialize(browser.docShell, tabData.storage);
 
     
-    var event = aWindow.document.createEvent("Events");
+    var event = window.document.createEvent("Events");
     event.initEvent("SSTabRestoring", true, false);
     tab.dispatchEvent(event);
 
     
-    aWindow.setTimeout(() => {
-      if (!aWindow.closed) {
-        this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
-                            aRestoreImmediately);
-      }
-    }, 0);
-
     
-    
-    if (aRestoreImmediately || aWindow.gBrowser.selectedBrowser == browser) {
+    if (restoreImmediately || window.gBrowser.selectedBrowser == browser) {
       this.restoreTab(tab);
-    }
-    else {
+    } else {
       TabRestoreQueue.add(tab);
       this.restoreNextTab();
     }
