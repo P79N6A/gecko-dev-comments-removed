@@ -5083,7 +5083,7 @@ static void ProcessViewportToken(nsIDocument *aDocument,
 
 
 ViewportInfo
-nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
+nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, uint32_t aDisplayHeight)
 {
   ViewportInfo ret;
   ret.defaultZoom = 1.0;
@@ -5172,35 +5172,10 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
     autoSize = true;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  nsresult result;
-  int32_t screenLeft, screenTop, screenWidth, screenHeight;
-  nsCOMPtr<nsIScreenManager> screenMgr =
-    do_GetService("@mozilla.org/gfx/screenmanager;1", &result);
-
-  nsCOMPtr<nsIScreen> screen;
-  screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-  screen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
-
   uint32_t width = widthStr.ToInteger(&errorCode);
   if (NS_FAILED(errorCode)) {
     if (autoSize) {
-      width = screenWidth;
+      width = aDisplayWidth;
     } else {
       width = Preferences::GetInt("browser.viewport.desktopWidth", 0);
     }
@@ -5212,19 +5187,19 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
   
   
   if (scaleStr.IsEmpty() && !widthStr.IsEmpty()) {
-    scaleFloat = NS_MAX(scaleFloat, (float)(screenWidth/width));
+    scaleFloat = NS_MAX(scaleFloat, (float)(aDisplayWidth/width));
   }
 
   uint32_t height = heightStr.ToInteger(&errorCode);
 
   if (NS_FAILED(errorCode)) {
-    height = width * ((float)screenHeight / screenWidth);
+    height = width * ((float)aDisplayHeight / aDisplayWidth);
   }
 
   
   
   if (widthStr.IsEmpty() && !heightStr.IsEmpty()) {
-    width = (uint32_t) ((height * screenWidth) / screenHeight);
+    width = (uint32_t) ((height * aDisplayWidth) / aDisplayHeight);
   }
 
   height = NS_MIN(height, kViewportMaxHeight);
@@ -5233,11 +5208,11 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
   
   
   if (!scaleStr.IsEmpty() && NS_SUCCEEDED(scaleErrorCode)) {
-    width = NS_MAX(width, (uint32_t)(screenWidth / scaleFloat));
-    height = NS_MAX(height, (uint32_t)(screenHeight / scaleFloat));
+    width = NS_MAX(width, (uint32_t)(aDisplayWidth / scaleFloat));
+    height = NS_MAX(height, (uint32_t)(aDisplayHeight / scaleFloat));
   } else if (!maxScaleStr.IsEmpty() && NS_SUCCEEDED(scaleMaxErrorCode)) {
-    width = NS_MAX(width, (uint32_t)(screenWidth / scaleMaxFloat));
-    height = NS_MAX(height, (uint32_t)(screenHeight / scaleMaxFloat));
+    width = NS_MAX(width, (uint32_t)(aDisplayWidth / scaleMaxFloat));
+    height = NS_MAX(height, (uint32_t)(aDisplayHeight / scaleMaxFloat));
   }
 
   bool allowZoom = true;
