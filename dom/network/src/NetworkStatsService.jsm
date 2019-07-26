@@ -322,13 +322,16 @@ this.NetworkStatsService = {
 
     
     
-    if (!networkManager.getNetworkInterfaceStats(connectionType, this.networkStatsAvailable.bind(this, callback))) {
+    if (!networkManager.getNetworkInterfaceStats(connectionType,
+                                                 this.networkStatsAvailable
+                                                     .bind(this, callback))) {
       if (DEBUG) {
-        debug("There is no interface registered for network type " + this._connectionTypes[connectionType]);
+        debug("There is no interface registered for network type " +
+              this._connectionTypes[connectionType]);
       }
 
       
-      this.networkStatsAvailable(callback, true, connectionType, 0, 0, new Date());
+      callback(true, "OK");
     }
   },
 
