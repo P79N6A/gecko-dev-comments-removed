@@ -75,6 +75,11 @@ public:
 
   bool LookupMember(JSContext* aCx, JS::HandleId aId, JSPropertyDescriptor* aDesc);
 
+  
+
+
+  bool HasField(nsString& aName);
+
 protected:
 
   

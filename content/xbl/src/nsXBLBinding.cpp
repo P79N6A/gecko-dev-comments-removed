@@ -1494,6 +1494,14 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
                                             aBoundScope);
 }
 
+bool
+nsXBLBinding::HasField(nsString& aName)
+{
+  
+  return mPrototypeBinding->FindField(aName) ||
+    (mNextBinding && mNextBinding->HasField(aName));
+}
+
 void
 nsXBLBinding::MarkForDeath()
 {
