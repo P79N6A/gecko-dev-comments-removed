@@ -11,6 +11,10 @@
 #include "GeckoProfiler.h"
 #include "mozilla/IOInterposer.h"
 
+#ifdef MOZ_TASK_TRACER
+#include "GeckoTaskTracer.h"
+#endif
+
 namespace base {
 
 
@@ -171,6 +175,10 @@ void Thread::ThreadMain() {
 
   mozilla::IOInterposer::UnregisterCurrentThread();
   profiler_unregister_thread();
+
+#ifdef MOZ_TASK_TRACER
+  mozilla::tasktracer::FreeTraceInfo();
+#endif
 
   
   message_loop_ = NULL;

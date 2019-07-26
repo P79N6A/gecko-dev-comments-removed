@@ -504,6 +504,10 @@ void nsTimerImpl::Fire()
 
   PROFILER_LABEL("Timer", "Fire");
 
+#ifdef MOZ_TASK_TRACER
+  mozilla::tasktracer::AutoRunFakeTracedTask runTracedTask(mTracedTask);
+#endif
+
 #ifdef DEBUG_TIMERS
   TimeStamp now = TimeStamp::Now();
   if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
@@ -535,7 +539,7 @@ void nsTimerImpl::Fire()
   if (mCallbackType == CALLBACK_TYPE_INTERFACE)
     mTimerCallbackWhileFiring = mCallback.i;
   mFiring = true;
-  
+
   
   
   CallbackUnion callback = mCallback;

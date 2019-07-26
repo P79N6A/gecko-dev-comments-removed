@@ -59,6 +59,11 @@
 #include "nsCRT.h"
 #endif
 
+#ifdef MOZ_TASK_TRACER
+#include "GeckoTaskTracer.h"
+using namespace mozilla::tasktracer;
+#endif
+
 using namespace mozilla;
 
 #ifdef PR_LOGGING
@@ -343,6 +348,10 @@ nsThread::ThreadFunc(void *arg)
   
   self->SetObserver(nullptr);
 
+#ifdef MOZ_TASK_TRACER
+  FreeTraceInfo();
+#endif
+
   NS_RELEASE(self);
 }
 
@@ -445,6 +454,11 @@ nsThread::DispatchInternal(nsIRunnable *event, uint32_t flags,
     return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
   }
 
+#ifdef MOZ_TASK_TRACER
+  nsRefPtr<nsIRunnable> tracedRunnable = CreateTracedRunnable(event);
+  event = tracedRunnable;
+#endif
+
   if (flags & DISPATCH_SYNC) {
     nsThread *thread = nsThreadManager::get()->GetCurrentThread();
     if (NS_WARN_IF(!thread))
@@ -453,7 +467,7 @@ nsThread::DispatchInternal(nsIRunnable *event, uint32_t flags,
     
     
     
- 
+
     nsRefPtr<nsThreadSyncDispatch> wrapper =
         new nsThreadSyncDispatch(thread, event);
     if (!wrapper)
