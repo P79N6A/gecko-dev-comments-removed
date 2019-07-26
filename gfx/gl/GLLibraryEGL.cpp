@@ -15,6 +15,8 @@
 namespace mozilla {
 namespace gl {
 
+GLLibraryEGL sEGLLibrary;
+
 
 static const char *sExtensionNames[] = {
     "EGL_KHR_image_base",
