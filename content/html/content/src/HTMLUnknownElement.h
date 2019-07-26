@@ -2,17 +2,18 @@
 
 
 
-#ifndef mozilla_dom_HTMLUnknownElement_h
-#define mozilla_dom_HTMLUnknownElement_h
+#ifndef HTMLUnknownElement_h___
+#define HTMLUnknownElement_h___
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
+#include "nsIDOMHTMLUnknownElement.h"
 
 namespace mozilla {
 namespace dom {
 
 class HTMLUnknownElement MOZ_FINAL : public nsGenericHTMLElement
-                                   , public nsIDOMHTMLElement
+                                   , public nsIDOMHTMLUnknownElement
 {
 public:
   HTMLUnknownElement(already_AddRefed<nsINodeInfo> aNodeInfo)
