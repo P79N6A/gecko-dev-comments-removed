@@ -257,9 +257,7 @@ private:
   nsTHashtable<nsRefPtrHashKey<AudioNode> > mActiveNodes;
   
   
-  
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
-  nsTHashtable<nsPtrHashKey<AudioBufferSourceNode> > mAudioBufferSourceNodes;
   
   uint32_t mNumberOfChannels;
   bool mIsOffline;
