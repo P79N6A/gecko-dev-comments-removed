@@ -399,8 +399,7 @@ this.PlacesUIUtils = {
 
 
   markPageAsTyped: function PUIU_markPageAsTyped(aURL) {
-    PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
-               .markPageAsTyped(this.createFixedURI(aURL));
+    PlacesUtils.history.markPageAsTyped(this.createFixedURI(aURL));
   },
 
   
@@ -421,8 +420,7 @@ this.PlacesUIUtils = {
 
 
   markPageAsFollowedLink: function PUIU_markPageAsFollowedLink(aURL) {
-    PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
-               .markPageAsFollowedLink(this.createFixedURI(aURL));
+    PlacesUtils.history.markPageAsFollowedLink(this.createFixedURI(aURL));
   },
 
   
