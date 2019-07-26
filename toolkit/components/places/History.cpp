@@ -248,7 +248,7 @@ GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue,
   
   
   *_arrayLength = 1;
-  _array.set(JS_NewArrayObject(aCtx, 0, nullptr));
+  _array.set(JS_NewArrayObject(aCtx, 0));
   NS_ENSURE_TRUE(_array, NS_ERROR_OUT_OF_MEMORY);
 
   bool rc = JS_DefineElement(aCtx, _array, 0, aValue, nullptr, nullptr, 0);

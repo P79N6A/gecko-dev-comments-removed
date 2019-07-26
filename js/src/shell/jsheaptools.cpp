@@ -511,7 +511,7 @@ ReferenceFinder::addReferrer(jsval referrerArg, Path *path)
         return false;
     if (v.isUndefined()) {
         
-        JSObject *array = JS_NewArrayObject(context, 1, referrer.address());
+        JSObject *array = JS_NewArrayObject(context, referrer);
         if (!array)
             return false;
         v.setObject(*array);
