@@ -24,6 +24,7 @@ namespace js {
 namespace ion {
     struct IonScript;
     struct BaselineScript;
+    struct IonScriptCounts;
 }
 
 # define ION_DISABLED_SCRIPT ((js::ion::IonScript *)0x1)
@@ -217,6 +218,7 @@ class ScriptCounts
 {
     friend struct ::JSScript;
     friend struct ScriptAndCounts;
+
     
 
 
@@ -224,13 +226,17 @@ class ScriptCounts
 
     PCCounts *pcCountsVector;
 
+    
+    ion::IonScriptCounts *ionCounts;
+
  public:
-    ScriptCounts() : pcCountsVector(NULL) { }
+    ScriptCounts() : pcCountsVector(NULL), ionCounts(NULL) { }
 
     inline void destroy(FreeOp *fop);
 
     void set(js::ScriptCounts counts) {
         pcCountsVector = counts.pcCountsVector;
+        ionCounts = counts.ionCounts;
     }
 };
 
@@ -550,24 +556,56 @@ struct JSScript : public js::gc::Cell
         return needsArgsObj() && !strictModeCode;
     }
 
-    js::ion::IonScript *ion;          
-    js::ion::BaselineScript *baseline;
+    bool hasAnyIonScript() const {
+        return hasIonScript() || hasParallelIonScript();
+    }
+
+    
+    js::ion::IonScript *ion;
 
     bool hasIonScript() const {
         return ion && ion != ION_DISABLED_SCRIPT && ion != ION_COMPILING_SCRIPT;
     }
-    bool hasBaselineScript() const {
-        return !!baseline;
-    }
     bool canIonCompile() const {
         return ion != ION_DISABLED_SCRIPT;
     }
+
     bool isIonCompilingOffThread() const {
         return ion == ION_COMPILING_SCRIPT;
     }
+
     js::ion::IonScript *ionScript() const {
         JS_ASSERT(hasIonScript());
         return ion;
+    }
+
+    
+    js::ion::BaselineScript *baseline;
+
+    bool hasBaselineScript() const {
+        return !!baseline;
+    }
+
+    uint32_t padding0;
+
+    
+    js::ion::IonScript *parallelIon;
+
+    bool hasParallelIonScript() const {
+        return parallelIon && parallelIon != ION_DISABLED_SCRIPT && parallelIon != ION_COMPILING_SCRIPT;
+    }
+
+    bool canParallelIonCompile() const {
+        return parallelIon != ION_DISABLED_SCRIPT;
+    }
+
+    bool isParallelIonCompilingOffThread() const {
+        return parallelIon == ION_COMPILING_SCRIPT;
+    }
+
+    js::ion::IonScript *parallelIonScript() const {
+        JS_ASSERT(hasParallelIonScript());
+        return parallelIon;
     }
 
     
@@ -711,6 +749,8 @@ struct JSScript : public js::gc::Cell
   public:
     bool initScriptCounts(JSContext *cx);
     js::PCCounts getPCCounts(jsbytecode *pc);
+    void addIonCounts(js::ion::IonScriptCounts *ionCounts);
+    js::ion::IonScriptCounts *getIonCounts();
     js::ScriptCounts releaseScriptCounts();
     void destroyScriptCounts(js::FreeOp *fop);
 
@@ -1219,6 +1259,10 @@ struct ScriptAndCounts
     PCCounts &getPCCounts(jsbytecode *pc) const {
         JS_ASSERT(unsigned(pc - script->code) < script->length);
         return scriptCounts.pcCountsVector[pc - script->code];
+    }
+
+    ion::IonScriptCounts *getIonCounts() const {
+        return scriptCounts.ionCounts;
     }
 };
 

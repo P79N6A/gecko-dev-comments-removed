@@ -1326,7 +1326,7 @@ IsPropertyAddInlineable(JSContext *cx, HandleObject obj, jsid id, uint32_t oldSl
     if (obj->getClass()->resolve != JS_ResolveStub)
         return false;
 
-    if (!obj->isExtensible())
+    if (!obj->isExtensible() || !shape->writable())
         return false;
 
     
@@ -1468,18 +1468,6 @@ IonCacheGetElement::attachGetProp(JSContext *cx, IonScript *ion, HandleObject ob
     return true;
 }
 
-
-static inline Shape *
-GetDenseArrayShape(JSContext *cx, JSObject *globalObj)
-{
-    JSObject *proto = globalObj->global().getOrCreateArrayPrototype(cx);
-    if (!proto)
-        return NULL;
-
-    return EmptyShape::getInitialShape(cx, &ArrayClass, proto,
-                                       proto->getParent(), gc::FINALIZE_OBJECT0);
-}
-
 bool
 IonCacheGetElement::attachDenseArray(JSContext *cx, IonScript *ion, JSObject *obj, const Value &idval)
 {
@@ -1490,7 +1478,8 @@ IonCacheGetElement::attachDenseArray(JSContext *cx, IonScript *ion, JSObject *ob
     MacroAssembler masm;
 
     
-    RootedShape shape(cx, GetDenseArrayShape(cx, &script->global()));
+    RootedObject globalObj(cx, &script->global());
+    RootedShape shape(cx, GetDenseArrayShape(cx, globalObj));
     if (!shape)
         return false;
     masm.branchTestObjShape(Assembler::NotEqual, object(), shape, &failures);
