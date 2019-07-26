@@ -219,6 +219,13 @@ static int32_t gDocShellCount = 0;
 static uint32_t gNumberOfPrivateDocShells = 0;
 
 
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+static const uint32_t kNumberOfAlwaysOpenPrivateDocShells = 1; 
+#else
+static const uint32_t kNumberOfAlwaysOpenPrivateDocShells = 0;
+#endif
+
+
 nsIURIFixup *nsDocShell::sURIFixup = 0;
 
 
@@ -685,7 +692,7 @@ static void
 IncreasePrivateDocShellCount()
 {
     gNumberOfPrivateDocShells++;
-    if (gNumberOfPrivateDocShells > 1 ||
+    if (gNumberOfPrivateDocShells > kNumberOfAlwaysOpenPrivateDocShells + 1 ||
         XRE_GetProcessType() != GeckoProcessType_Content) {
         return;
     }
@@ -699,7 +706,7 @@ DecreasePrivateDocShellCount()
 {
     MOZ_ASSERT(gNumberOfPrivateDocShells > 0);
     gNumberOfPrivateDocShells--;
-    if (!gNumberOfPrivateDocShells)
+    if (gNumberOfPrivateDocShells == kNumberOfAlwaysOpenPrivateDocShells)
     {
         if (XRE_GetProcessType() == GeckoProcessType_Content) {
             mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
