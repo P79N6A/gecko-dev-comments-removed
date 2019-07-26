@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ion/LIR.h"
 #include "ion/Lowering.h"
@@ -67,14 +67,14 @@ LIRGenerator::visitTableSwitch(MTableSwitch *tableswitch)
 {
     MDefinition *opd = tableswitch->getOperand(0);
 
-    
+    // There should be at least 1 successor. The default case!
     JS_ASSERT(tableswitch->numSuccessors() > 0);
 
-    
+    // If there are no cases, the default case is always taken.
     if (tableswitch->numSuccessors() == 1)
         return add(new LGoto(tableswitch->getDefault()));
 
-    
+    // If we don't know the type.
     if (opd->type() == MIRType_Value) {
         LTableSwitchV *lir = newLTableSwitchV(tableswitch);
         if (!useBox(lir, LTableSwitchV::InputValue, opd))
@@ -82,12 +82,12 @@ LIRGenerator::visitTableSwitch(MTableSwitch *tableswitch)
         return add(lir);
     }
 
-    
+    // Case indices are numeric, so other types will always go to the default case.
     if (opd->type() != MIRType_Int32 && opd->type() != MIRType_Double)
         return add(new LGoto(tableswitch->getDefault()));
 
-    
-    
+    // Return an LTableSwitch, capable of handling either an integer or
+    // floating-point index.
     LAllocation index;
     LDefinition tempInt;
     if (opd->type() == MIRType_Int32) {
@@ -147,7 +147,7 @@ LIRGenerator::visitDefFun(MDefFun *ins)
 bool
 LIRGenerator::visitNewSlots(MNewSlots *ins)
 {
-    
+    // No safepoint needed, since we don't pass a cx.
     LNewSlots *lir = new LNewSlots(tempFixed(CallTempReg0), tempFixed(CallTempReg1),
                                    tempFixed(CallTempReg2));
     if (!assignSnapshot(lir))
@@ -277,20 +277,20 @@ LIRGenerator::visitPassArg(MPassArg *arg)
     MDefinition *opd = arg->getArgument();
     uint32_t argslot = getArgumentSlot(arg->getArgnum());
 
-    
-    
-    
-    
-    
+    // Pass through the virtual register of the operand.
+    // This causes snapshots to correctly copy the operand on the stack.
+    //
+    // This keeps the backing store around longer than strictly required.
+    // We could do better by informing snapshots about the argument vector.
     arg->setVirtualRegister(opd->virtualRegister());
 
-    
+    // Values take a slow path.
     if (opd->type() == MIRType_Value) {
         LStackArgV *stack = new LStackArgV(argslot);
         return useBox(stack, 0, opd) && add(stack);
     }
 
-    
+    // Known types can move constant types and/or payloads.
     LStackArgT *stack = new LStackArgT(argslot, useRegisterOrConstant(opd));
     return add(stack, arg);
 }
@@ -321,7 +321,7 @@ LIRGenerator::visitCreateThis(MCreateThis *ins)
 bool
 LIRGenerator::visitCreateArgumentsObject(MCreateArgumentsObject *ins)
 {
-    
+    // LAllocation callObj = useRegisterAtStart(ins->getCallObject());
     LAllocation callObj = useFixed(ins->getCallObject(), CallTempReg0);
     LCreateArgumentsObject *lir = new LCreateArgumentsObject(callObj, tempFixed(CallTempReg1));
     return defineReturn(lir, ins) && assignSafepoint(lir, ins);
@@ -364,16 +364,16 @@ LIRGenerator::visitCall(MCall *call)
     JS_ASSERT(CallTempReg1 != ArgumentsRectifierReg);
     JS_ASSERT(call->getFunction()->type() == MIRType_Object);
 
-    
+    // Height of the current argument vector.
     uint32_t argslot = getArgumentSlotForCall();
     freeArguments(call->numStackArgs());
 
-    
+    // Check MPrepareCall/MCall nesting.
     JS_ASSERT(prepareCallStack_.popCopy() == call->getPrepareCall());
 
     JSFunction *target = call->getSingleTarget();
 
-    
+    // Call DOM functions.
     if (call->isDOMFunction()) {
         JS_ASSERT(target && target->isNative());
         Register cxReg, objReg, privReg, argsReg;
@@ -388,7 +388,7 @@ LIRGenerator::visitCall(MCall *call)
         return (defineReturn(lir, call) && assignSafepoint(lir, call));
     }
 
-    
+    // Call known functions.
     if (target) {
         if (target->isNative()) {
             Register cxReg, numReg, vpReg, tmpReg;
@@ -396,8 +396,8 @@ LIRGenerator::visitCall(MCall *call)
             GetTempRegForIntArg(1, 0, &numReg);
             GetTempRegForIntArg(2, 0, &vpReg);
 
-            
-            
+            // Even though this is just a temp reg, use the same API to avoid
+            // register collisions.
             mozilla::DebugOnly<bool> ok = GetTempRegForIntArg(3, 0, &tmpReg);
             MOZ_ASSERT(ok, "How can we not have four temp registers?");
 
@@ -413,7 +413,7 @@ LIRGenerator::visitCall(MCall *call)
         return (defineReturn(lir, call) && assignSafepoint(lir, call));
     }
 
-    
+    // Call anything, using the most generic code.
     LCallGeneric *lir = new LCallGeneric(useFixed(call->getFunction(), CallTempReg0),
         argslot, tempFixed(ArgumentsRectifierReg), tempFixed(CallTempReg2));
     return (assignSnapshot(lir) && defineReturn(lir, call) && assignSafepoint(lir, call));
@@ -424,25 +424,25 @@ LIRGenerator::visitApplyArgs(MApplyArgs *apply)
 {
     JS_ASSERT(apply->getFunction()->type() == MIRType_Object);
 
-    
+    // Assert if we cannot build a rectifier frame.
     JS_ASSERT(CallTempReg0 != ArgumentsRectifierReg);
     JS_ASSERT(CallTempReg1 != ArgumentsRectifierReg);
 
-    
+    // Assert if the return value is already erased.
     JS_ASSERT(CallTempReg2 != JSReturnReg_Type);
     JS_ASSERT(CallTempReg2 != JSReturnReg_Data);
 
     LApplyArgsGeneric *lir = new LApplyArgsGeneric(
         useFixed(apply->getFunction(), CallTempReg3),
         useFixed(apply->getArgc(), CallTempReg0),
-        tempFixed(CallTempReg1),  
-        tempFixed(CallTempReg2)); 
+        tempFixed(CallTempReg1),  // object register
+        tempFixed(CallTempReg2)); // copy register
 
     MDefinition *self = apply->getThis();
     if (!useBoxFixed(lir, LApplyArgsGeneric::ThisIndex, self, CallTempReg4, CallTempReg5))
         return false;
 
-    
+    // Bailout is only needed in the case of possible non-JSFunction callee.
     if (!apply->getSingleTarget() && !assignSnapshot(lir))
         return false;
 
@@ -525,8 +525,8 @@ LIRGenerator::visitTest(MTest *test)
     MBasicBlock *ifTrue = test->ifTrue();
     MBasicBlock *ifFalse = test->ifFalse();
 
-    
-    
+    // String is converted to length of string in the type analysis phase (see
+    // TestPolicy).
     JS_ASSERT(opd->type() != MIRType_String);
 
     if (opd->type() == MIRType_Value) {
@@ -545,55 +545,55 @@ LIRGenerator::visitTest(MTest *test)
     }
 
     if (opd->type() == MIRType_Object) {
-        
+        // If the object might emulate undefined, we have to test for that.
         if (test->operandMightEmulateUndefined())
             return add(new LTestOAndBranch(useRegister(opd), ifTrue, ifFalse, temp()), test);
 
-        
+        // Otherwise we know it's truthy.
         return add(new LGoto(ifTrue));
     }
 
-    
-    
+    // These must be explicitly sniffed out since they are constants and have
+    // no payload.
     if (opd->type() == MIRType_Undefined || opd->type() == MIRType_Null)
         return add(new LGoto(ifFalse));
 
-    
+    // Constant Double operand.
     if (opd->type() == MIRType_Double && opd->isConstant()) {
         bool result = ToBoolean(opd->toConstant()->value());
         return add(new LGoto(result ? ifTrue : ifFalse));
     }
 
-    
+    // Constant Int32 operand.
     if (opd->type() == MIRType_Int32 && opd->isConstant()) {
         int32_t num = opd->toConstant()->value().toInt32();
         return add(new LGoto(num ? ifTrue : ifFalse));
     }
 
-    
+    // Constant Boolean operand.
     if (opd->type() == MIRType_Boolean && opd->isConstant()) {
         bool result = opd->toConstant()->value().toBoolean();
         return add(new LGoto(result ? ifTrue : ifFalse));
     }
 
-    
-    
-    
+    // Check if the operand for this test is a compare operation. If it is, we want
+    // to emit an LCompare*AndBranch rather than an LTest*AndBranch, to fuse the
+    // compare and jump instructions.
     if (opd->isCompare() && opd->isEmittedAtUses()) {
         MCompare *comp = opd->toCompare();
         MDefinition *left = comp->lhs();
         MDefinition *right = comp->rhs();
 
-        
+        // Try to fold the comparison so that we don't have to handle all cases.
         bool result;
         if (comp->tryFold(&result))
             return add(new LGoto(result ? ifTrue : ifFalse));
 
-        
+        // Emit LCompare*AndBranch.
 
-        
-        
-        
+        // Compare and branch null/undefined.
+        // The second operand has known null/undefined type,
+        // so just test the first operand.
         if (comp->compareType() == MCompare::Compare_Null ||
             comp->compareType() == MCompare::Compare_Undefined)
         {
@@ -622,7 +622,7 @@ LIRGenerator::visitTest(MTest *test)
             return add(lir, comp);
         }
 
-        
+        // Compare and branch booleans.
         if (comp->compareType() == MCompare::Compare_Boolean) {
             JS_ASSERT(left->type() == MIRType_Value);
             JS_ASSERT(right->type() == MIRType_Boolean);
@@ -634,7 +634,7 @@ LIRGenerator::visitTest(MTest *test)
             return add(lir, comp);
         }
 
-        
+        // Compare and branch Int32 or Object pointers.
         if (comp->compareType() == MCompare::Compare_Int32 ||
             comp->compareType() == MCompare::Compare_UInt32 ||
             comp->compareType() == MCompare::Compare_Object)
@@ -653,7 +653,7 @@ LIRGenerator::visitTest(MTest *test)
             return add(lir, comp);
         }
 
-        
+        // Compare and branch doubles.
         if (comp->isDoubleComparison()) {
             LAllocation lhs = useRegister(left);
             LAllocation rhs = useRegister(right);
@@ -661,7 +661,7 @@ LIRGenerator::visitTest(MTest *test)
             return add(lir, comp);
         }
 
-        
+        // Compare values.
         if (comp->compareType() == MCompare::Compare_Value) {
             LCompareVAndBranch *lir = new LCompareVAndBranch(ifTrue, ifFalse);
             if (!useBoxAtStart(lir, LCompareVAndBranch::LhsInput, left))
@@ -729,14 +729,14 @@ LIRGenerator::visitCompare(MCompare *comp)
     MDefinition *left = comp->lhs();
     MDefinition *right = comp->rhs();
 
-    
+    // Try to fold the comparison so that we don't have to handle all cases.
     bool result;
     if (comp->tryFold(&result))
         return define(new LInteger(result), comp);
 
-    
-    
-    
+    // Move below the emitAtUses call if we ever implement
+    // LCompareSAndBranch. Doing this now wouldn't be wrong, but doesn't
+    // make sense and avoids confusion.
     if (comp->compareType() == MCompare::Compare_String) {
         LCompareS *lir = new LCompareS(useRegister(left), useRegister(right), temp());
         if (!define(lir, comp))
@@ -744,7 +744,7 @@ LIRGenerator::visitCompare(MCompare *comp)
         return assignSafepoint(lir, comp);
     }
 
-    
+    // Strict compare between value and string
     if (comp->compareType() == MCompare::Compare_StrictString) {
         JS_ASSERT(left->type() == MIRType_Value);
         JS_ASSERT(right->type() == MIRType_String);
@@ -757,7 +757,7 @@ LIRGenerator::visitCompare(MCompare *comp)
         return assignSafepoint(lir, comp);
     }
 
-    
+    // Unknown/unspecialized compare use a VM call.
     if (comp->compareType() == MCompare::Compare_Unknown) {
         LCompareVM *lir = new LCompareVM();
         if (!useBoxAtStart(lir, LCompareVM::LhsInput, left))
@@ -767,14 +767,14 @@ LIRGenerator::visitCompare(MCompare *comp)
         return defineReturn(lir, comp) && assignSafepoint(lir, comp);
     }
 
-    
-    
-    
-    
+    // Sniff out if the output of this compare is used only for a branching.
+    // If it is, then we will emit an LCompare*AndBranch instruction in place
+    // of this compare and any test that uses this compare. Thus, we can
+    // ignore this Compare.
     if (CanEmitCompareAtUses(comp))
         return emitAtUses(comp);
 
-    
+    // Compare Null and Undefined.
     if (comp->compareType() == MCompare::Compare_Null ||
         comp->compareType() == MCompare::Compare_Undefined)
     {
@@ -800,7 +800,7 @@ LIRGenerator::visitCompare(MCompare *comp)
         return define(lir, comp);
     }
 
-    
+    // Compare booleans.
     if (comp->compareType() == MCompare::Compare_Boolean) {
         JS_ASSERT(left->type() == MIRType_Value);
         JS_ASSERT(right->type() == MIRType_Boolean);
@@ -811,7 +811,7 @@ LIRGenerator::visitCompare(MCompare *comp)
         return define(lir, comp);
     }
 
-    
+    // Compare Int32 or Object pointers.
     if (comp->compareType() == MCompare::Compare_Int32 ||
         comp->compareType() == MCompare::Compare_UInt32 ||
         comp->compareType() == MCompare::Compare_Object)
@@ -829,11 +829,11 @@ LIRGenerator::visitCompare(MCompare *comp)
         return define(new LCompare(op, lhs, rhs), comp);
     }
 
-    
+    // Compare doubles.
     if (comp->isDoubleComparison())
         return define(new LCompareD(useRegister(left), useRegister(right)), comp);
 
-    
+    // Compare values.
     if (comp->compareType() == MCompare::Compare_Value) {
         LCompareV *lir = new LCompareV();
         if (!useBoxAtStart(lir, LCompareV::LhsInput, left))
@@ -852,9 +852,9 @@ ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
     MDefinition *lhs = *lhsp;
     MDefinition *rhs = *rhsp;
 
-    
-    
-    
+    // Ensure that if there is a constant, then it is in rhs.
+    // In addition, since clobbering binary operations clobber the left
+    // operand, prefer a non-constant lhs operand with no further uses.
 
     if (rhs->isConstant())
         return;
@@ -967,7 +967,7 @@ LIRGenerator::lowerShiftOp(JSOp op, MShiftInstruction *ins)
     JS_ASSERT(ins->specialization() == MIRType_None);
 
     if (op == JSOP_URSH) {
-        
+        // Result is either int32 or double so we have to use BinaryV.
         return lowerBinaryV(JSOP_URSH, ins);
     }
 
@@ -1041,7 +1041,7 @@ LIRGenerator::visitAbs(MAbs *ins)
 
     if (num->type() == MIRType_Int32) {
         LAbsI *lir = new LAbsI(useRegisterAtStart(num));
-        
+        // needed to handle abs(INT32_MIN)
         if (ins->fallible() && !assignSnapshot(lir))
             return false;
         return defineReuseInput(lir, ins, 0);
@@ -1084,8 +1084,8 @@ LIRGenerator::visitPow(MPow *ins)
     JS_ASSERT(power->type() == MIRType_Int32 || power->type() == MIRType_Double);
 
     if (power->type() == MIRType_Int32) {
-        
-        
+        // Note: useRegisterAtStart here is safe, the temp is a GP register so
+        // it will never get the same register.
         LPowI *lir = new LPowI(useRegisterAtStart(input), useFixed(power, CallTempReg1),
                                tempFixed(CallTempReg0));
         return defineReturn(lir, ins);
@@ -1109,14 +1109,14 @@ LIRGenerator::visitMathFunction(MMathFunction *ins)
     JS_ASSERT(ins->type() == MIRType_Double);
     JS_ASSERT(ins->input()->type() == MIRType_Double);
 
-    
+    // Note: useRegisterAtStart is safe here, the temp is not a FP register.
     LMathFunctionD *lir = new LMathFunctionD(useRegisterAtStart(ins->input()),
                                              tempFixed(CallTempReg0));
     return defineReturn(lir, ins);
 }
 
-
-
+// Try to mark an add or sub instruction as able to recover its input when
+// bailing out.
 template <typename S, typename T>
 static void
 MaybeSetRecoversInput(S *mir, T *lir)
@@ -1128,18 +1128,18 @@ MaybeSetRecoversInput(S *mir, T *lir)
     if (lir->output()->policy() != LDefinition::MUST_REUSE_INPUT)
         return;
 
-    
-    
+    // The original operands to an add or sub can't be recovered if they both
+    // use the same register.
     if (lir->lhs()->isUse() && lir->rhs()->isUse() &&
         lir->lhs()->toUse()->virtualRegister() == lir->rhs()->toUse()->virtualRegister())
     {
         return;
     }
 
-    
-    
-    
-    
+    // Add instructions that are on two different values can recover
+    // the input they clobbered via MUST_REUSE_INPUT. Thus, a copy
+    // of that input does not need to be kept alive in the snapshot
+    // for the instruction.
 
     lir->setRecoversInput();
 
@@ -1224,7 +1224,7 @@ LIRGenerator::visitMul(MMul *ins)
         JS_ASSERT(lhs->type() == MIRType_Double);
         ReorderCommutative(&lhs, &rhs);
 
-        
+        // If our RHS is a constant -1.0, we can optimize to an LNegD.
         if (rhs->isConstant() && rhs->toConstant()->value() == DoubleValue(-1.0))
             return defineReuseInput(new LNegD(useRegisterAtStart(lhs)), ins, 0);
 
@@ -1269,7 +1269,7 @@ LIRGenerator::visitMod(MMod *ins)
         JS_ASSERT(ins->lhs()->type() == MIRType_Double);
         JS_ASSERT(ins->rhs()->type() == MIRType_Double);
 
-        
+        // Note: useRegisterAtStart is safe here, the temp is not a FP register.
         LModD *lir = new LModD(useRegisterAtStart(ins->lhs()), useRegisterAtStart(ins->rhs()),
                                tempFixed(CallTempReg0));
         return defineReturn(lir, ins);
@@ -1371,7 +1371,7 @@ LIRGenerator::visitFromCharCode(MFromCharCode *ins)
 bool
 LIRGenerator::visitStart(MStart *start)
 {
-    
+    // Create a snapshot that captures the initial state of the function.
     LStart *lir = new LStart;
     if (!assignSnapshot(lir))
         return false;
@@ -1433,7 +1433,7 @@ LIRGenerator::visitToDouble(MToDouble *convert)
 
       case MIRType_Boolean:
         JS_ASSERT(conversion != MToDouble::NumbersOnly);
-        
+        /* FALLTHROUGH */
 
       case MIRType_Int32:
       {
@@ -1445,8 +1445,8 @@ LIRGenerator::visitToDouble(MToDouble *convert)
         return redefine(convert, opd);
 
       default:
-        
-        
+        // Objects might be effectful.
+        // Strings are complicated - we don't handle them yet.
         MOZ_ASSUME_UNREACHABLE("unexpected type");
     }
 }
@@ -1479,12 +1479,12 @@ LIRGenerator::visitToInt32(MToInt32 *convert)
       }
 
       case MIRType_String:
-        
+        // Strings are complicated - we don't handle them yet.
         IonSpew(IonSpew_Abort, "String to Int32 not supported yet.");
         return false;
 
       case MIRType_Object:
-        
+        // Objects might be effectful.
         IonSpew(IonSpew_Abort, "Object to Int32 not supported yet.");
         return false;
 
@@ -1523,8 +1523,8 @@ LIRGenerator::visitTruncateToInt32(MTruncateToInt32 *truncate)
         return lowerTruncateDToInt32(truncate);
 
       default:
-        
-        
+        // Objects might be effectful.
+        // Strings are complicated - we don't handle them yet.
         MOZ_ASSUME_UNREACHABLE("unexpected type");
     }
 }
@@ -1557,7 +1557,7 @@ LIRGenerator::visitToString(MToString *ins)
       }
 
       default:
-        
+        // Objects might be effectful. (see ToPrimitive)
         MOZ_ASSUME_UNREACHABLE("unexpected type");
     }
 }
@@ -1584,11 +1584,11 @@ bool
 LIRGenerator::visitLambda(MLambda *ins)
 {
     if (ins->fun()->hasSingletonType() || types::UseNewTypeForClone(ins->fun())) {
-        
-        
-        
-        
-        
+        // If the function has a singleton type, this instruction will only be
+        // executed once so we don't bother inlining it.
+        //
+        // If UseNewTypeForClone is true, we will assign a singleton type to
+        // the clone and we have to clone the script, we can't do that inline.
         LLambdaForSingleton *lir = new LLambdaForSingleton(useRegisterAtStart(ins->scopeChain()));
         return defineReturn(lir, ins) && assignSafepoint(lir, ins);
     }
@@ -1707,14 +1707,6 @@ LIRGenerator::visitCheckInterruptPar(MCheckInterruptPar *ins)
 }
 
 bool
-LIRGenerator::visitDumpPar(MDumpPar *ins)
-{
-    LDumpPar *lir = new LDumpPar();
-    useBoxFixed(lir, LDumpPar::Value, ins->value(), CallTempReg0, CallTempReg1);
-    return add(lir);
-}
-
-bool
 LIRGenerator::visitNewPar(MNewPar *ins)
 {
     LNewPar *lir = new LNewPar(useRegister(ins->forkJoinSlice()), temp(), temp());
@@ -1759,8 +1751,8 @@ LIRGenerator::visitStoreSlot(MStoreSlot *ins)
 bool
 LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
 {
-    
-    
+    // Requesting a non-GC pointer is safe here since we never re-enter C++
+    // from inside a type barrier test.
 
     const types::StackTypeSet *types = ins->resultTypeSet();
     bool needTemp = !types->unknownObject() && types->getObjectCount() > 0;
@@ -1777,8 +1769,8 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
 bool
 LIRGenerator::visitMonitorTypes(MMonitorTypes *ins)
 {
-    
-    
+    // Requesting a non-GC pointer is safe here since we never re-enter C++
+    // from inside a type check.
 
     const types::StackTypeSet *types = ins->typeSet();
     bool needTemp = !types->unknownObject() && types->getObjectCount() > 0;
@@ -1808,11 +1800,11 @@ LIRGenerator::visitPostWriteBarrier(MPostWriteBarrier *ins)
         return add(lir, ins) && assignSafepoint(lir, ins);
       }
       default:
-        
-        
+        // Currently, only objects can be in the nursery. Other instruction
+        // types cannot hold nursery pointers.
         return true;
     }
-#endif 
+#endif // JSGC_GENERATIONAL
     return true;
 }
 
@@ -1860,15 +1852,15 @@ LIRGenerator::visitNot(MNot *ins)
 {
     MDefinition *op = ins->operand();
 
-    
-    
+    // String is converted to length of string in the type analysis phase (see
+    // TestPolicy).
     JS_ASSERT(op->type() != MIRType_String);
 
-    
-    
-    
-    
-    
+    // - boolean: x xor 1
+    // - int32: LCompare(x, 0)
+    // - double: LCompare(x, 0)
+    // - null or undefined: true
+    // - object: false if it never emulates undefined, else LNotO(x)
     switch (op->type()) {
       case MIRType_Boolean: {
         MConstant *cons = MConstant::New(Int32Value(1));
@@ -1884,10 +1876,10 @@ LIRGenerator::visitNot(MNot *ins)
       case MIRType_Null:
         return define(new LInteger(1), ins);
       case MIRType_Object: {
-        
+        // Objects that don't emulate undefined can be constant-folded.
         if (!ins->operandMightEmulateUndefined())
             return define(new LInteger(0), ins);
-        
+        // All others require further work.
         return define(new LNotO(useRegister(op)), ins);
       }
       case MIRType_Value: {
@@ -2141,7 +2133,7 @@ LIRGenerator::visitLoadTypedArrayElement(MLoadTypedArrayElement *ins)
 
     JS_ASSERT(IsNumberType(ins->type()));
 
-    
+    // We need a temp register for Uint32Array with known double result.
     LDefinition tempDef = LDefinition::BogusTemp();
     if (ins->arrayType() == TypedArrayObject::TYPE_UINT32 && ins->type() == MIRType_Double)
         tempDef = temp();
@@ -2361,8 +2353,8 @@ LIRGenerator::visitGuardClass(MGuardClass *ins)
 bool
 LIRGenerator::visitGuardObject(MGuardObject *ins)
 {
-    
-    
+    // The type policy does all the work, so at this point the input
+    // is guaranteed to be an object.
     JS_ASSERT(ins->input()->type() == MIRType_Object);
     return redefine(ins, ins->input());
 }
@@ -2370,8 +2362,8 @@ LIRGenerator::visitGuardObject(MGuardObject *ins)
 bool
 LIRGenerator::visitGuardString(MGuardString *ins)
 {
-    
-    
+    // The type policy does all the work, so at this point the input
+    // is guaranteed to be a string.
     JS_ASSERT(ins->input()->type() == MIRType_String);
     return redefine(ins, ins->input());
 }
@@ -2499,7 +2491,7 @@ LIRGenerator::visitCallInitElementArray(MCallInitElementArray *ins)
 bool
 LIRGenerator::visitIteratorStart(MIteratorStart *ins)
 {
-    
+    // Call a stub if this is not a simple for-in loop.
     if (ins->flags() != JSITER_ENUMERATE) {
         LCallIteratorStart *lir = new LCallIteratorStart(useRegisterAtStart(ins->object()));
         return defineReturn(lir, ins) && assignSafepoint(lir, ins);
@@ -2646,8 +2638,8 @@ LIRGenerator::visitFunctionBoundary(MFunctionBoundary *ins)
     LFunctionBoundary *lir = new LFunctionBoundary(temp());
     if (!add(lir, ins))
         return false;
-    
-    
+    // If slow assertions are enabled, then this node will result in a callVM
+    // out to a C++ function for the assertions, so we will need a safepoint.
     return !gen->compartment->rt->spsProfiler.slowAssertionsEnabled() ||
            assignSafepoint(lir, ins);
 }
@@ -2785,8 +2777,8 @@ LIRGenerator::visitSetDOMProperty(MSetDOMProperty *ins)
                                                tempFixed(privReg),
                                                tempFixed(valueReg));
 
-    
-    
+    // Keep using GetTempRegForIntArg, since we want to make sure we
+    // don't clobber registers we're already using.
     Register tempReg1, tempReg2;
     GetTempRegForIntArg(4, 0, &tempReg1);
     mozilla::DebugOnly<bool> ok = GetTempRegForIntArg(5, 0, &tempReg2);
@@ -2858,7 +2850,7 @@ LIRGenerator::visitInstruction(MInstruction *ins)
     ins->setInWorklistUnchecked();
 #endif
 
-    
+    // If no safepoint was created, there's no need for an OSI point.
     if (LOsiPoint *osiPoint = popOsiPoint()) {
         if (!add(osiPoint))
             return false;
@@ -2913,7 +2905,7 @@ LIRGenerator::allocateArguments(uint32_t argc)
 uint32_t
 LIRGenerator::getArgumentSlot(uint32_t argnum)
 {
-    
+    // First slot has index 1.
     JS_ASSERT(argnum < argslots_);
     return argslots_ - argnum ;
 }
@@ -2943,8 +2935,8 @@ LIRGenerator::visitBlock(MBasicBlock *block)
     }
 
     if (block->successorWithPhis()) {
-        
-        
+        // If we have a successor with phis, lower the phi input now that we
+        // are approaching the join point.
         MBasicBlock *successor = block->successorWithPhis();
         uint32_t position = block->positionInPhiSuccessor();
         size_t lirIndex = 0;
@@ -2965,7 +2957,7 @@ LIRGenerator::visitBlock(MBasicBlock *block)
         }
     }
 
-    
+    // Now emit the last instruction, which is some form of branch.
     if (!visitInstruction(block->lastIns()))
         return false;
 
@@ -2986,7 +2978,7 @@ LIRGenerator::precreatePhi(LBlock *block, MPhi *phi)
 bool
 LIRGenerator::generate()
 {
-    
+    // Create all blocks and prep all phis beforehand.
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         if (gen->shouldCancel("Lowering (preparation loop)"))
             return false;
@@ -2998,9 +2990,9 @@ LIRGenerator::generate()
             return false;
         block->assignLir(current);
 
-        
-        
-        
+        // For each MIR phi, add LIR phis as appropriate. We'll fill in their
+        // operands on each incoming edge, and set their definitions at the
+        // start of their defining block.
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
             int numPhis = (phi->type() == MIRType_Value) ? BOX_PIECES : 1;
             for (int i = 0; i < numPhis; i++) {

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef ion_CodeGenerator_h
 #define ion_CodeGenerator_h
@@ -182,7 +182,6 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitFunctionEnvironment(LFunctionEnvironment *lir);
     bool visitForkJoinSlice(LForkJoinSlice *lir);
     bool visitGuardThreadLocalObject(LGuardThreadLocalObject *lir);
-    bool visitDumpPar(LDumpPar *lir);
     bool visitCallGetProperty(LCallGetProperty *lir);
     bool visitCallGetElement(LCallGetElement *lir);
     bool visitCallSetElement(LCallSetElement *lir);
@@ -268,7 +267,7 @@ class CodeGenerator : public CodeGeneratorSpecific
     void loadJSScriptForBlock(MBasicBlock *block, Register reg);
     void loadOutermostJSScript(Register reg);
 
-    
+    // Inline caches visitors.
     bool visitOutOfLineCache(OutOfLineUpdateCache *ool);
 
     bool visitGetPropertyCacheV(LGetPropertyCacheV *ins);
@@ -296,7 +295,7 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     IonScriptCounts *extractUnassociatedScriptCounts() {
         IonScriptCounts *counts = unassociatedScriptCounts_;
-        unassociatedScriptCounts_ = NULL;  
+        unassociatedScriptCounts_ = NULL;  // prevent delete in dtor
         return counts;
     }
 
@@ -320,33 +319,33 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     IonScriptCounts *maybeCreateScriptCounts();
 
-    
-    
-    
-    
-    
+    // Test whether value is truthy or not and jump to the corresponding label.
+    // If the value can be an object that emulates |undefined|, |ool| must be
+    // non-null; otherwise it may be null (and the scratch definitions should
+    // be bogus), in which case an object encountered here will always be
+    // truthy.
     void testValueTruthy(const ValueOperand &value,
                          const LDefinition *scratch1, const LDefinition *scratch2,
                          FloatRegister fr,
                          Label *ifTruthy, Label *ifFalsy,
                          OutOfLineTestObject *ool);
 
-    
-    
-    
+    // Like testValueTruthy but takes an object, and |ool| must be non-null.
+    // (If it's known that an object can never emulate |undefined| it shouldn't
+    // be tested in the first place.)
     void testObjectTruthy(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch,
                           OutOfLineTestObject *ool);
 
-    
+    // Bailout if an element about to be written to is a hole.
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
 
-    
+    // Script counts created when compiling code with no associated JSScript.
     IonScriptCounts *unassociatedScriptCounts_;
 
     PerfSpewer perfSpewer_;
 };
 
-} 
-} 
+} // namespace ion
+} // namespace js
 
-#endif 
+#endif /* ion_CodeGenerator_h */
