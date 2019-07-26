@@ -55,7 +55,9 @@ protected:
     }
     
     PObjectWrapperChild* AllocPObjectWrapper(const bool&) {
-        return AllocPObjectWrapper(JS_GetGlobalObject(mContext));
+        
+        JSAutoRequest ar(mContext);
+        return AllocPObjectWrapper(JS_GetGlobalForScopeChain(mContext));
     }
 
     bool DeallocPObjectWrapper(PObjectWrapperChild* actor) {
