@@ -39,7 +39,7 @@ public:
 
   gfxContentType ContentType();
   gfxImageFormat ImageFormat();
-  gfxIntSize Size();
+  gfx::IntSize Size();
 
   
   gfxASurface* Get();

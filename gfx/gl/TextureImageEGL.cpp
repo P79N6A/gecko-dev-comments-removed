@@ -8,6 +8,7 @@
 #include "GLContext.h"
 #include "GLUploadHelpers.h"
 #include "gfxPlatform.h"
+#include "gfx2DGlue.h"
 #include "mozilla/gfx/Types.h"
 
 namespace mozilla {
@@ -103,7 +104,7 @@ TextureImageEGL::GetUpdateRegion(nsIntRegion& aForRegion)
     if (mTextureState != Valid) {
         
         
-        aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+        aForRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
     }
 
     
@@ -123,7 +124,7 @@ TextureImageEGL::BeginUpdate(nsIntRegion& aRegion)
     mUpdateRect = aRegion.GetBounds();
 
     
-    if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect)) {
+    if (!nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize)).Contains(mUpdateRect)) {
         NS_ERROR("update outside of image");
         return nullptr;
     }
@@ -173,7 +174,7 @@ TextureImageEGL::EndUpdate()
 
     if (mTextureState != Valid) {
         NS_ASSERTION(mUpdateRect.x == 0 && mUpdateRect.y == 0 &&
-                      mUpdateRect.Size() == mSize,
+                      mUpdateRect.Size() == gfx::ThebesIntSize(mSize),
                       "Bad initial update on non-created texture!");
 
         mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
@@ -242,7 +243,7 @@ TextureImageEGL::BindTexture(GLenum aTextureUnit)
 }
 
 void
-TextureImageEGL::Resize(const nsIntSize& aSize)
+TextureImageEGL::Resize(const gfx::IntSize& aSize)
 {
     NS_ASSERTION(!mUpdateSurface, "Resize() while in update?");
 
@@ -313,7 +314,7 @@ TextureImageEGL::DestroyEGLSurface(void)
 
 already_AddRefed<TextureImage>
 CreateTextureImageEGL(GLContext *gl,
-                      const nsIntSize& aSize,
+                      const gfx::IntSize& aSize,
                       TextureImage::ContentType aContentType,
                       GLenum aWrapMode,
                       TextureImage::Flags aFlags,

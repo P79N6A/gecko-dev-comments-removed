@@ -312,13 +312,11 @@ CompositorParent::RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
                                    SurfaceDescriptor* aOutSnapshot)
 {
   AutoOpenSurface opener(OPEN_READ_WRITE, aInSnapshot);
-  gfxIntSize size = opener.Size();
+  gfx::IntSize size = opener.Size();
   
   
   RefPtr<DrawTarget> target =
-    gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(opener.Get(),
-                                                           IntSize(size.width,
-                                                                   size.height));
+    gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(opener.Get(), size);
   ComposeToTarget(target);
   *aOutSnapshot = aInSnapshot;
   return true;
