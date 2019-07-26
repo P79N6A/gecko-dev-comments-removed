@@ -49,13 +49,21 @@ public final class GeckoProfile {
     private final boolean mIsWebAppProfile;
     private final Context mApplicationContext;
 
-    private File mProfileDir;             
+    
+
+
+
+
+
+    private File mProfileDir;
 
     
     
     
-    private LockState mLocked = LockState.UNDEFINED;
-    private boolean mInGuestMode = false;
+    
+    
+    private volatile LockState mLocked = LockState.UNDEFINED;
+    private volatile boolean mInGuestMode = false;
 
     
     private enum LockState {
@@ -291,8 +299,13 @@ public final class GeckoProfile {
             return mLocked == LockState.LOCKED;
         }
 
+        boolean profileExists;
+        synchronized (this) {
+            profileExists = mProfileDir != null && mProfileDir.exists();
+        }
+
         
-        if (mProfileDir != null && mProfileDir.exists()) {
+        if (profileExists) {
             File lockFile = new File(mProfileDir, LOCK_FILE_NAME);
             boolean res = lockFile.exists();
             mLocked = res ? LockState.LOCKED : LockState.UNLOCKED;
@@ -306,8 +319,8 @@ public final class GeckoProfile {
     public boolean lock() {
         try {
             
-            File lockFile = new File(getDir(), LOCK_FILE_NAME);
-            boolean result = lockFile.createNewFile();
+            final File lockFile = new File(getDir(), LOCK_FILE_NAME);
+            final boolean result = lockFile.createNewFile();
             if (result) {
                 mLocked = LockState.LOCKED;
             } else {
@@ -322,14 +335,19 @@ public final class GeckoProfile {
     }
 
     public boolean unlock() {
-        
-        if (mProfileDir == null || !mProfileDir.exists()) {
+        final File profileDir;
+        synchronized (this) {
+            
+            profileDir = mProfileDir;
+        }
+
+        if (profileDir == null || !profileDir.exists()) {
             return true;
         }
 
         try {
-            File lockFile = new File(mProfileDir, LOCK_FILE_NAME);
-            boolean result = delete(lockFile);
+            final File lockFile = new File(profileDir, LOCK_FILE_NAME);
+            final boolean result = delete(lockFile);
             if (result) {
                 mLocked = LockState.UNLOCKED;
             } else {
@@ -349,7 +367,9 @@ public final class GeckoProfile {
 
     private void setDir(File dir) {
         if (dir != null && dir.exists() && dir.isDirectory()) {
-            mProfileDir = dir;
+            synchronized (this) {
+                mProfileDir = dir;
+            }
         }
     }
 
@@ -460,16 +480,18 @@ public final class GeckoProfile {
 
     private boolean remove() {
         try {
-            final File dir = getDir();
-            if (dir.exists()) {
-                delete(dir);
-            }
+            synchronized (this) {
+                final File dir = getDir();
+                if (dir.exists()) {
+                    delete(dir);
+                }
 
-            try {
-                mProfileDir = findProfileDir();
-            } catch (NoSuchProfileException noSuchProfile) {
-                
-                return false;
+                try {
+                    mProfileDir = findProfileDir();
+                } catch (NoSuchProfileException noSuchProfile) {
+                    
+                    return false;
+                }
             }
 
             final INIParser parser = GeckoProfileDirectories.getProfilesINI(mMozillaDir);
