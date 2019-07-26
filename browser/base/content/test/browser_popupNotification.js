@@ -727,30 +727,68 @@ var tests = [
   },
   { 
     run: function () {
-      this.oldSelectedTab = gBrowser.selectedTab;
-      this.newTab = gBrowser.addTab("about:blank");
-      gBrowser.selectedTab = this.newTab;
+      let oldSelectedTab = gBrowser.selectedTab;
+      let newTab = gBrowser.addTab("about:blank");
+      gBrowser.selectedTab = newTab;
 
       loadURI("http://example.com/", function() {
-        gBrowser.selectedTab = this.oldSelectedTab;
-        let browser = gBrowser.getBrowserForTab(this.newTab);
+        gBrowser.selectedTab = oldSelectedTab;
+        let browser = gBrowser.getBrowserForTab(newTab);
 
-        this.notifyObj = new basicNotification();
-        this.notifyObj.browser = browser;
-        this.notifyObj.options.eventCallback = function (eventName) {
+        let notifyObj = new basicNotification();
+        notifyObj.browser = browser;
+        notifyObj.options.eventCallback = function (eventName) {
           if (eventName == "removed") {
             ok(true, "Notification removed in background tab after reloading");
             executeSoon(function () {
-              gBrowser.removeTab(this.newTab);
+              gBrowser.removeTab(newTab);
               goNext();
-            }.bind(this));
+            });
           }
-        }.bind(this);
-        this.notification = showNotification(this.notifyObj);
+        };
+        showNotification(notifyObj);
         executeSoon(function () {
           browser.reload();
         });
-      }.bind(this));
+      });
+    }
+  },
+  { 
+    run: function () {
+      loadURI("http://example.com/", function () {
+        let originalTab = gBrowser.selectedTab;
+        let bgTab = gBrowser.addTab("about:blank");
+        gBrowser.selectedTab = bgTab;
+        loadURI("http://example.com/", function () {
+          let anchor = document.createElement("box");
+          anchor.id = "test26-anchor";
+          anchor.className = "notification-anchor-icon";
+          PopupNotifications.iconBox.appendChild(anchor);
+
+          gBrowser.selectedTab = originalTab;
+
+          let fgNotifyObj = new basicNotification();
+          fgNotifyObj.anchorID = anchor.id;
+          fgNotifyObj.options.dismissed = true;
+          let fgNotification = showNotification(fgNotifyObj);
+
+          let bgNotifyObj = new basicNotification();
+          bgNotifyObj.anchorID = anchor.id;
+          bgNotifyObj.browser = gBrowser.getBrowserForTab(bgTab);
+          
+          let bgNotification = showNotification(bgNotifyObj);
+          
+          bgNotification = showNotification(bgNotifyObj);
+
+          ok(fgNotification.id, "notification has id");
+          is(fgNotification.id, bgNotification.id, "notification ids are the same");
+          is(anchor.getAttribute("showing"), "true", "anchor still showing");
+
+          fgNotification.remove();
+          gBrowser.removeTab(bgTab);
+          goNext();
+        });
+      });
     }
   }
 ];
