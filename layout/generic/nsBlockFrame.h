@@ -797,13 +797,6 @@ protected:
   void DestroyOverflowLines();
 
   
-  
-  
-  
-  
-  nscoord GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState) const;
-
-  
 
 
 
