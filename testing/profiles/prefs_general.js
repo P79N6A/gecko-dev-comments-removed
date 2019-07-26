@@ -94,6 +94,14 @@ user_pref("security.notification_enable_delay", 0);
 user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer", true);
 
 
+
+
+
+
+
+user_pref("dom.use_xbl_scopes_for_remote_xul", true);
+
+
 user_pref("network.activity.blipIntervalMilliseconds", 250);
 
 

@@ -120,16 +120,6 @@ class B2GRemoteAutomation(Automation):
                 self._devicemanager.removeDir(remote_dump_dir)
         return crashed
 
-    def initializeProfile(self,  profileDir, extraPrefs=[],
-                          useServerLocations=False,
-                          initialProfile=None):
-        
-        extraPrefs.extend(["browser.manifestURL='dummy (bug 772307)'"])
-        return Automation.initializeProfile(self, profileDir,
-                                            extraPrefs,
-                                            useServerLocations,
-                                            initialProfile)
-
     def buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs):
         
         if (self._remoteProfile):
