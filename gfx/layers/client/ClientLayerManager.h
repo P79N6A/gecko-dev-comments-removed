@@ -198,6 +198,15 @@ public:
     mApzTestData.LogTestDataForRepaintRequest(aSequenceNumber, aScrollId, aKey, aValue);
   }
 
+  
+  
+  const APZTestData& GetAPZTestData() const {
+    return mApzTestData;
+  }
+
+  
+  void GetCompositorSideAPZTestData(APZTestData* aData) const;
+
 protected:
   enum TransactionPhase {
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
