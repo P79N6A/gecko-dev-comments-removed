@@ -6,14 +6,16 @@
 #define mozilla_dom_textencoder_h_
 
 #include "mozilla/dom/NonRefcountedDOMObject.h"
-#include "mozilla/dom/TextEncoderBase.h"
 #include "mozilla/dom/TextEncoderBinding.h"
+#include "mozilla/dom/TypedArray.h"
+#include "nsIUnicodeEncoder.h"
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
-class TextEncoder MOZ_FINAL
-  : public NonRefcountedDOMObject, public TextEncoderBase
+class TextEncoder MOZ_FINAL : public NonRefcountedDOMObject
 {
 public:
   
@@ -56,13 +58,63 @@ public:
                    const nsAString& aString,
                    const TextEncodeOptions& aOptions,
                    ErrorResult& aRv) {
-    return TextEncoderBase::Encode(aCx, aObj, aString, aOptions.mStream, aRv);
+    return TextEncoder::Encode(aCx, aObj, aString, aOptions.mStream, aRv);
+  }
+
+protected:
+
+  
+
+
+
+
+
+
+
+
+  void Init(const nsAString& aEncoding, ErrorResult& aRv);
+
+public:
+  
+
+
+
+
+  void GetEncoding(nsAString& aEncoding);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  JSObject* Encode(JSContext* aCx,
+                   JS::Handle<JSObject*> aObj,
+                   const nsAString& aString,
+                   const bool aStream,
+                   ErrorResult& aRv);
+
+protected:
+  JSObject*
+  CreateUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObj, 
+                   char* aBuf, uint32_t aLen) const
+  {
+    return Uint8Array::Create(aCx, aObj, aLen,
+                              reinterpret_cast<uint8_t*>(aBuf));
   }
 
 private:
+  nsCString mEncoding;
+  nsCOMPtr<nsIUnicodeEncoder> mEncoder;
 };
 
 } 
 } 
 
-#endif
+#endif 
