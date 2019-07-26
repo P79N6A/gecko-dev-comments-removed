@@ -97,13 +97,11 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
           bool enumerable, unsigned flags, IdSet& ht, AutoIdVector *props)
 {
     
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
     if (MOZ_UNLIKELY(!pobj->getTaggedProto().isObject() && JSID_IS_ATOM(id, cx->names().proto)))
         return true;
 
@@ -114,18 +112,20 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
             return true;
 
         
-
-
-
-
+        
+        
         if ((pobj->is<ProxyObject>() || pobj->getProto() || pobj->getOps()->enumerate) && !ht.add(p, id))
             return false;
     }
 
-    if (enumerable || (flags & JSITER_HIDDEN))
-        return props->append(id);
+    
+    
+    if (JSID_IS_SYMBOL(id) && !(flags & JSITER_SYMBOLS))
+        return true;
+    if (!enumerable && !(flags & JSITER_HIDDEN))
+        return true;
 
-    return true;
+    return props->append(id);
 }
 
 static bool
@@ -156,14 +156,37 @@ EnumerateNativeProperties(JSContext *cx, HandleObject pobj, unsigned flags, IdSe
 
     
     Shape::Range<NoGC> r(pobj->lastProperty());
+    bool symbolsFound = false;
     for (; !r.empty(); r.popFront()) {
         Shape &shape = r.front();
+        jsid id = shape.propid();
 
-        if (!Enumerate(cx, pobj, shape.propid(), shape.enumerable(), flags, ht, props))
+        if (JSID_IS_SYMBOL(id)) {
+            symbolsFound = true;
+            continue;
+        }
+
+        if (!Enumerate(cx, pobj, id, shape.enumerable(), flags, ht, props))
             return false;
     }
-
     ::Reverse(props->begin() + initialLength, props->end());
+
+    if (symbolsFound && (flags & JSITER_SYMBOLS)) {
+        
+        
+        
+        initialLength = props->length();
+        for (Shape::Range<NoGC> r(pobj->lastProperty()); !r.empty(); r.popFront()) {
+            Shape &shape = r.front();
+            jsid id = shape.propid();
+            if (JSID_IS_SYMBOL(id)) {
+                if (!Enumerate(cx, pobj, id, shape.enumerable(), flags, ht, props))
+                    return false;
+            }
+        }
+        ::Reverse(props->begin() + initialLength, props->end());
+    }
+
     return true;
 }
 
@@ -210,7 +233,8 @@ Snapshot(JSContext *cx, JSObject *pobj_, unsigned flags, AutoIdVector *props)
         const Class *clasp = pobj->getClass();
         if (pobj->isNative() &&
             !pobj->getOps()->enumerate &&
-            !(clasp->flags & JSCLASS_NEW_ENUMERATE)) {
+            !(clasp->flags & JSCLASS_NEW_ENUMERATE))
+        {
             if (!clasp->enumerate(cx, pobj))
                 return false;
             if (!EnumerateNativeProperties(cx, pobj, flags, ht, props))
@@ -220,6 +244,9 @@ Snapshot(JSContext *cx, JSObject *pobj_, unsigned flags, AutoIdVector *props)
                 AutoIdVector proxyProps(cx);
                 if (flags & JSITER_OWNONLY) {
                     if (flags & JSITER_HIDDEN) {
+                        
+                        
+                        
                         if (!Proxy::getOwnPropertyNames(cx, pobj, proxyProps))
                             return false;
                     } else {
@@ -230,10 +257,13 @@ Snapshot(JSContext *cx, JSObject *pobj_, unsigned flags, AutoIdVector *props)
                     if (!Proxy::enumerate(cx, pobj, proxyProps))
                         return false;
                 }
+
                 for (size_t n = 0, len = proxyProps.length(); n < len; n++) {
                     if (!Enumerate(cx, pobj, proxyProps[n], true, flags, ht, props))
                         return false;
                 }
+
+                
                 
                 break;
             }
@@ -318,7 +348,7 @@ js::VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap)
 JS_FRIEND_API(bool)
 js::GetPropertyNames(JSContext *cx, JSObject *obj, unsigned flags, AutoIdVector *props)
 {
-    return Snapshot(cx, obj, flags & (JSITER_OWNONLY | JSITER_HIDDEN), props);
+    return Snapshot(cx, obj, flags & (JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS), props);
 }
 
 size_t sCustomIteratorCount = 0;
