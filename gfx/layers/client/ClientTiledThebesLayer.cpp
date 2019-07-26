@@ -114,28 +114,27 @@ ClientTiledThebesLayer::BeginPaint()
 
   
   
-  ContainerLayer* displayPortParent = nullptr;
-  ContainerLayer* scrollParent = nullptr;
-  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-    const FrameMetrics& metrics = parent->GetFrameMetrics();
-    if (!scrollParent && metrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID) {
-      scrollParent = parent;
+  ContainerLayer* scrollAncestor = nullptr;
+  ContainerLayer* displayPortAncestor = nullptr;
+  for (ContainerLayer* ancestor = GetParent(); ancestor; ancestor = ancestor->GetParent()) {
+    const FrameMetrics& metrics = ancestor->GetFrameMetrics();
+    if (!scrollAncestor && metrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID) {
+      scrollAncestor = ancestor;
     }
     if (!metrics.mDisplayPort.IsEmpty()) {
-      displayPortParent = parent;
+      displayPortAncestor = ancestor;
       
       
       break;
     }
   }
 
-  if (!displayPortParent || !scrollParent) {
-    
+  if (!displayPortAncestor || !scrollAncestor) {
     
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_B2G)
     
     
-    NS_WARNING("Tiled Thebes layer with no scrollable container parent");
+    NS_WARNING("Tiled Thebes layer with no scrollable container ancestor");
 #endif
     return;
   }
@@ -143,26 +142,26 @@ ClientTiledThebesLayer::BeginPaint()
   
   
   
-  const FrameMetrics& scrollMetrics = scrollParent->GetFrameMetrics();
-  const FrameMetrics& displayportMetrics = displayPortParent->GetFrameMetrics();
+  const FrameMetrics& scrollMetrics = scrollAncestor->GetFrameMetrics();
+  const FrameMetrics& displayportMetrics = displayPortAncestor->GetFrameMetrics();
 
   
   
-  gfx::Matrix4x4 transform = scrollParent->GetTransform();
-  ContainerLayer* displayPortParentParent = displayPortParent->GetParent() ?
-    displayPortParent->GetParent()->GetParent() : nullptr;
-  for (ContainerLayer* parent = scrollParent->GetParent();
-       parent != displayPortParentParent;
-       parent = parent->GetParent()) {
-    transform = transform * parent->GetTransform();
+  gfx::Matrix4x4 transform = scrollAncestor->GetTransform();
+  ContainerLayer* displayPortAncestorGrandParent = displayPortAncestor->GetParent() ?
+    displayPortAncestor->GetParent()->GetParent() : nullptr;
+  for (ContainerLayer* ancestor = scrollAncestor->GetParent();
+       ancestor != displayPortAncestorGrandParent;
+       ancestor = ancestor->GetParent()) {
+    transform = transform * ancestor->GetTransform();
   }
-  gfx3DMatrix layoutDeviceToScrollParentLayer;
-  gfx::To3DMatrix(transform, layoutDeviceToScrollParentLayer);
-  layoutDeviceToScrollParentLayer.ScalePost(scrollMetrics.mCumulativeResolution.scale,
-                                            scrollMetrics.mCumulativeResolution.scale,
-                                            1.f);
+  gfx3DMatrix layoutDeviceToDisplayPort;
+  gfx::To3DMatrix(transform, layoutDeviceToDisplayPort);
+  layoutDeviceToDisplayPort.ScalePost(scrollMetrics.mCumulativeResolution.scale,
+                                      scrollMetrics.mCumulativeResolution.scale,
+                                      1.f);
 
-  mPaintData.mTransformParentLayerToLayoutDevice = layoutDeviceToScrollParentLayer.Inverse();
+  mPaintData.mTransformDisplayPortToLayoutDevice = layoutDeviceToDisplayPort.Inverse();
 
   
   
@@ -170,7 +169,7 @@ ClientTiledThebesLayer::BeginPaint()
     (displayportMetrics.mCriticalDisplayPort + displayportMetrics.GetScrollOffset()) *
     displayportMetrics.GetZoomToParent();
   mPaintData.mCriticalDisplayPort = LayoutDeviceIntRect::ToUntyped(RoundedOut(
-    ApplyParentLayerToLayoutTransform(mPaintData.mTransformParentLayerToLayoutDevice,
+    ApplyParentLayerToLayoutTransform(mPaintData.mTransformDisplayPortToLayoutDevice,
                                       criticalDisplayPort)));
 
   
@@ -179,7 +178,7 @@ ClientTiledThebesLayer::BeginPaint()
     (displayportMetrics.mViewport + displayportMetrics.GetScrollOffset()) *
     displayportMetrics.GetZoomToParent();
   mPaintData.mViewport = ApplyParentLayerToLayoutTransform(
-    mPaintData.mTransformParentLayerToLayoutDevice, viewport);
+    mPaintData.mTransformDisplayPortToLayoutDevice, viewport);
 
   
   

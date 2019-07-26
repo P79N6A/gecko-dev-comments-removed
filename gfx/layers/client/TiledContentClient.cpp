@@ -888,8 +888,9 @@ TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
                            const CSSToParentLayerScale& aZoom,
                            const ParentLayerPoint& aScrollOffset,
                            const CSSToParentLayerScale& aResolution,
-                           const gfx3DMatrix& aTransformParentLayerToLayoutDevice)
+                           const gfx3DMatrix& aTransformDisplayPortToLayoutDevice)
 {
+  
   
   
   
@@ -897,7 +898,7 @@ TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
   offsetViewportRect.MoveBy(-aScrollOffset);
 
   gfxRect transformedViewport =
-    aTransformParentLayerToLayoutDevice.TransformBounds(
+    aTransformDisplayPortToLayoutDevice.TransformBounds(
       gfxRect(offsetViewportRect.x, offsetViewportRect.y,
               offsetViewportRect.width, offsetViewportRect.height));
 
@@ -967,12 +968,9 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     }
   }
 
-  
-  
-  
   LayoutDeviceRect transformedCompositionBounds =
     TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformParentLayerToLayoutDevice);
+                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayoutDevice);
 
   
   
