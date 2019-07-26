@@ -97,8 +97,9 @@ nsUnknownContentTypeDialogProgressListener.prototype = {
 const PREF_BD_USEDOWNLOADDIR = "browser.download.useDownloadDir";
 const nsITimer = Components.interfaces.nsITimer;
 
+let downloadModule = {};
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/DownloadLastDir.jsm");
+Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
 Components.utils.import("resource://gre/modules/DownloadPaths.jsm");
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 
@@ -243,6 +244,8 @@ nsUnknownContentTypeDialog.prototype = {
     var parent = aContext.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);
     picker.init(parent, windowTitle, nsIFilePicker.modeSave);
     picker.defaultString = aDefaultFile;
+
+    let gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
 
     if (aSuggestedFileExtension) {
       
