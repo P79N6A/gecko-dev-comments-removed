@@ -314,12 +314,17 @@ DevTools.prototype = {
   
 
 
+
+
+
+
+
   closeToolbox: function DT_closeToolbox(target) {
     let toolbox = this._toolboxes.get(target);
     if (toolbox == null) {
-      return promise.reject(null);
+      return promise.resolve(false);
     }
-    return toolbox.destroy();
+    return toolbox.destroy().then(() => true);
   },
 
   
