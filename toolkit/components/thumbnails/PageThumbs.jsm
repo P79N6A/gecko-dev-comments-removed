@@ -79,6 +79,38 @@ const TaskUtils = {
 
 
 
+  captureErrors: function captureErrors(promise) {
+    return promise.then(
+      null,
+      function onError(reason) {
+        Cu.reportError("Uncaught asynchronous error: " + reason + " at\n"
+          + reason.stack + "\n");
+        throw reason;
+      }
+    );
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  spawn: function spawn(gen) {
+    return this.captureErrors(Task.spawn(gen));
+  },
+  
+
+
+
+
+
+
   readBlob: function readBlob(blob) {
     let deferred = Promise.defer();
     let reader = Cc["@mozilla.org/files/filereader;1"].createInstance(Ci.nsIDOMFileReader);
@@ -266,7 +298,7 @@ this.PageThumbs = {
     
     let wasError = this._isChannelErrorResponse(channel);
 
-    Task.spawn((function task() {
+    TaskUtils.spawn((function task() {
       let isSuccess = true;
       try {
         let blob = yield this.captureToBlob(aBrowser.contentWindow);
@@ -321,7 +353,7 @@ this.PageThumbs = {
 
 
   _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData, aNoOverwrite) {
-    return Task.spawn(function () {
+    return TaskUtils.spawn(function () {
       let telemetryStoreTime = new Date();
       yield PageThumbsStorage.writeData(aFinalURL, aData, aNoOverwrite);
       Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
