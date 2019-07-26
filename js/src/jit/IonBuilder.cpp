@@ -4792,9 +4792,11 @@ IonBuilder::jsop_funcall(uint32_t argc)
     
     current->shimmySlots(funcDepth - 1);
 
+    bool zeroArguments = (argc == 0);
+
     
     
-    if (argc == 0) {
+    if (zeroArguments) {
         MConstant *undef = MConstant::New(alloc(), UndefinedValue());
         current->add(undef);
         MPassArg *pass = MPassArg::New(alloc(), undef);
@@ -4810,7 +4812,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
         return false;
 
     
-    if (argc > 0) {
+    if (!zeroArguments) {
         InliningDecision decision = makeInliningDecision(target, callInfo);
         switch (decision) {
           case InliningDecision_Error:
