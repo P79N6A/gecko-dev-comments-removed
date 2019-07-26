@@ -1537,6 +1537,7 @@ NetworkDetailsView.prototype = {
       }));
     this._json = new VariablesView($("#response-content-json"),
       Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
+        onlyEnumVisible: true,
         searchPlaceholder: L10N.getStr("jsonFilterText")
       }));
     VariablesViewController.attach(this._json);
