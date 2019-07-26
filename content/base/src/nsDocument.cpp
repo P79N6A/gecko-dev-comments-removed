@@ -8424,7 +8424,7 @@ nsDocument::NotifyAudioAvailableListener()
 }
 
 nsresult
-nsDocument::RemoveImage(imgIRequest* aImage)
+nsDocument::RemoveImage(imgIRequest* aImage, uint32_t aFlags)
 {
   NS_ENSURE_ARG_POINTER(aImage);
 
@@ -8460,10 +8460,12 @@ nsDocument::RemoveImage(imgIRequest* aImage)
     rv = NS_SUCCEEDED(rv) ? rv2 : rv;
   }
 
-  
-  
-  
-  aImage->RequestDiscard();
+  if (aFlags & REQUEST_DISCARD) {
+    
+    
+    
+    aImage->RequestDiscard();
+  }
 
   return rv;
 }
