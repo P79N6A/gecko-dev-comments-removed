@@ -20,8 +20,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '0.8.629';
-PDFJS.build = 'b16b3be';
+PDFJS.version = '0.8.641';
+PDFJS.build = '19485c3';
 
 (function pdfjsWrapper() {
   
@@ -6575,6 +6575,11 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var bounds = Util.getAxialAlignedBoundingBox(
                     group.bbox,
                     currentCtx.mozCurrentTransform);
+      
+      bounds = Util.intersect(bounds, [0,
+                                       0,
+                                       currentCtx.canvas.width,
+                                       currentCtx.canvas.height]);
       
       
       var drawnWidth = Math.max(Math.ceil(bounds[2] - bounds[0]), 1);
