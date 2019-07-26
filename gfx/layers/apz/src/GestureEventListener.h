@@ -53,6 +53,13 @@ public:
 
   nsEventStatus HandleInputEvent(const MultiTouchInput& aEvent);
 
+  
+
+
+
+
+  int32_t GetLastTouchIdentifier() const;
+
 private:
   
   ~GestureEventListener();

@@ -378,6 +378,11 @@ private:
 
   bool mInOverscrolledApzc;
   
+
+
+
+  int32_t mRetainedTouchIdentifier;
+  
   uint32_t mTouchCount;
   
 

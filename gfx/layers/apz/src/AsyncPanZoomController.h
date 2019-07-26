@@ -318,6 +318,13 @@ public:
 
   bool IsPannable() const;
 
+  
+
+
+
+
+  int32_t GetLastTouchIdentifier() const;
+
 protected:
   enum PanZoomState {
     NOTHING,                  
