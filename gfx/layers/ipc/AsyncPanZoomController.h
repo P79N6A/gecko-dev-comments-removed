@@ -316,6 +316,8 @@ public:
 
 
 
+
+
   void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
 
   

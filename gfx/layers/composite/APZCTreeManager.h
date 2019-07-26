@@ -215,6 +215,7 @@ public:
 
 
 
+
   void SetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
                                const nsTArray<TouchBehaviorFlags>& aValues);
 
