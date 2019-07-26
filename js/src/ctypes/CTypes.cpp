@@ -1286,7 +1286,7 @@ GetCallbacks(JSObject* obj)
   JS_ASSERT(IsCTypesGlobal(obj));
 
   jsval result = JS_GetReservedSlot(obj, SLOT_CALLBACKS);
-  if (JSVAL_IS_VOID(result))
+  if (result.isUndefined())
     return nullptr;
 
   return static_cast<JSCTypesCallbacks*>(JSVAL_TO_PRIVATE(result));
@@ -1384,10 +1384,10 @@ SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf, JSObject *obj)
 
     size_t n = 0;
     jsval slot = JS_GetReservedSlot(obj, ctypes::SLOT_OWNS);
-    if (!JSVAL_IS_VOID(slot)) {
+    if (!slot.isUndefined()) {
         bool owns = JSVAL_TO_BOOLEAN(slot);
         slot = JS_GetReservedSlot(obj, ctypes::SLOT_DATA);
-        if (!JSVAL_IS_VOID(slot)) {
+        if (!slot.isUndefined()) {
             char** buffer = static_cast<char**>(JSVAL_TO_PRIVATE(slot));
             n += mallocSizeOf(buffer);
             if (owns)
@@ -3292,7 +3292,7 @@ CType::Finalize(JSFreeOp *fop, JSObject* obj)
 {
   
   jsval slot = JS_GetReservedSlot(obj, SLOT_TYPECODE);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   
@@ -3300,7 +3300,7 @@ CType::Finalize(JSFreeOp *fop, JSObject* obj)
   case TYPE_function: {
     
     slot = JS_GetReservedSlot(obj, SLOT_FNINFO);
-    if (!JSVAL_IS_VOID(slot))
+    if (!slot.isUndefined())
       FreeOp::get(fop)->delete_(static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot)));
     break;
   }
@@ -3308,7 +3308,7 @@ CType::Finalize(JSFreeOp *fop, JSObject* obj)
   case TYPE_struct: {
     
     slot = JS_GetReservedSlot(obj, SLOT_FIELDINFO);
-    if (!JSVAL_IS_VOID(slot)) {
+    if (!slot.isUndefined()) {
       void* info = JSVAL_TO_PRIVATE(slot);
       FreeOp::get(fop)->delete_(static_cast<FieldInfoHash*>(info));
     }
@@ -3318,7 +3318,7 @@ CType::Finalize(JSFreeOp *fop, JSObject* obj)
   case TYPE_array: {
     
     slot = JS_GetReservedSlot(obj, SLOT_FFITYPE);
-    if (!JSVAL_IS_VOID(slot)) {
+    if (!slot.isUndefined()) {
       ffi_type* ffiType = static_cast<ffi_type*>(JSVAL_TO_PRIVATE(slot));
       FreeOp::get(fop)->free_(ffiType->elements);
       FreeOp::get(fop)->delete_(ffiType);
@@ -3337,14 +3337,14 @@ CType::Trace(JSTracer* trc, JSObject* obj)
 {
   
   jsval slot = obj->getSlot(SLOT_TYPECODE);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   
   switch (TypeCode(JSVAL_TO_INT(slot))) {
   case TYPE_struct: {
     slot = obj->getReservedSlot(SLOT_FIELDINFO);
-    if (JSVAL_IS_VOID(slot))
+    if (slot.isUndefined())
       return;
 
     FieldInfoHash* fields =
@@ -3362,7 +3362,7 @@ CType::Trace(JSTracer* trc, JSObject* obj)
   case TYPE_function: {
     
     slot = obj->getReservedSlot(SLOT_FNINFO);
-    if (JSVAL_IS_VOID(slot))
+    if (slot.isUndefined())
       return;
 
     FunctionInfo* fninfo = static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot));
@@ -3490,7 +3490,7 @@ CType::GetSafeSize(JSObject* obj, size_t* result)
     return true;
   }
 
-  JS_ASSERT(JSVAL_IS_VOID(size));
+  JS_ASSERT(size.isUndefined());
   return false;
 }
 
@@ -3501,7 +3501,7 @@ CType::GetSize(JSObject* obj)
 
   jsval size = JS_GetReservedSlot(obj, SLOT_SIZE);
 
-  JS_ASSERT(!JSVAL_IS_VOID(size));
+  JS_ASSERT(!size.isUndefined());
 
   
   
@@ -3520,8 +3520,8 @@ CType::IsSizeDefined(JSObject* obj)
 
   
   
-  JS_ASSERT(JSVAL_IS_INT(size) || JSVAL_IS_DOUBLE(size) || JSVAL_IS_VOID(size));
-  return !JSVAL_IS_VOID(size);
+  JS_ASSERT(JSVAL_IS_INT(size) || JSVAL_IS_DOUBLE(size) || size.isUndefined());
+  return !size.isUndefined();
 }
 
 size_t
@@ -3540,7 +3540,7 @@ CType::GetFFIType(JSContext* cx, JSObject* obj)
 
   jsval slot = JS_GetReservedSlot(obj, SLOT_FFITYPE);
 
-  if (!JSVAL_IS_VOID(slot)) {
+  if (!slot.isUndefined()) {
     return static_cast<ffi_type*>(JSVAL_TO_PRIVATE(slot));
   }
 
@@ -3570,7 +3570,7 @@ CType::GetName(JSContext* cx, HandleObject obj)
   JS_ASSERT(CType::IsCType(obj));
 
   jsval string = JS_GetReservedSlot(obj, SLOT_NAME);
-  if (!JSVAL_IS_VOID(string))
+  if (!string.isUndefined())
     return JSVAL_TO_STRING(string);
 
   
@@ -5094,7 +5094,7 @@ StructType::GetFieldInfo(JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(obj) == TYPE_struct);
 
   jsval slot = JS_GetReservedSlot(obj, SLOT_FIELDINFO);
-  JS_ASSERT(!JSVAL_IS_VOID(slot) && JSVAL_TO_PRIVATE(slot));
+  JS_ASSERT(!slot.isUndefined() && JSVAL_TO_PRIVATE(slot));
 
   return static_cast<const FieldInfoHash*>(JSVAL_TO_PRIVATE(slot));
 }
@@ -5912,7 +5912,7 @@ FunctionType::GetFunctionInfo(JSObject* obj)
   JS_ASSERT(CType::GetTypeCode(obj) == TYPE_function);
 
   jsval slot = JS_GetReservedSlot(obj, SLOT_FNINFO);
-  JS_ASSERT(!JSVAL_IS_VOID(slot) && JSVAL_TO_PRIVATE(slot));
+  JS_ASSERT(!slot.isUndefined() && JSVAL_TO_PRIVATE(slot));
 
   return static_cast<FunctionInfo*>(JSVAL_TO_PRIVATE(slot));
 }
@@ -6030,7 +6030,7 @@ CClosure::Create(JSContext* cx,
   
   
   
-  if (!JSVAL_IS_VOID(errVal)) {
+  if (!errVal.isUndefined()) {
 
     
     if (CType::GetTypeCode(fninfo->mReturnType) == TYPE_void_t) {
@@ -6092,7 +6092,7 @@ CClosure::Trace(JSTracer* trc, JSObject* obj)
 {
   
   jsval slot = JS_GetReservedSlot(obj, SLOT_CLOSUREINFO);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   ClosureInfo* cinfo = static_cast<ClosureInfo*>(JSVAL_TO_PRIVATE(slot));
@@ -6110,7 +6110,7 @@ CClosure::Finalize(JSFreeOp *fop, JSObject* obj)
 {
   
   jsval slot = JS_GetReservedSlot(obj, SLOT_CLOSUREINFO);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   ClosureInfo* cinfo = static_cast<ClosureInfo*>(JSVAL_TO_PRIVATE(slot));
@@ -6354,13 +6354,13 @@ CData::Finalize(JSFreeOp *fop, JSObject* obj)
 {
   
   jsval slot = JS_GetReservedSlot(obj, SLOT_OWNS);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   bool owns = JSVAL_TO_BOOLEAN(slot);
 
   slot = JS_GetReservedSlot(obj, SLOT_DATA);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
   char** buffer = static_cast<char**>(JSVAL_TO_PRIVATE(slot));
 
@@ -6813,7 +6813,7 @@ CDataFinalizer::GetCType(JSContext *cx, JSObject *obj)
 
   jsval valData = JS_GetReservedSlot(obj,
                                      SLOT_DATAFINALIZER_VALTYPE);
-  if (JSVAL_IS_VOID(valData)) {
+  if (valData.isUndefined()) {
     return nullptr;
   }
 
@@ -7306,7 +7306,7 @@ void
 Int64Base::Finalize(JSFreeOp *fop, JSObject* obj)
 {
   jsval slot = JS_GetReservedSlot(obj, SLOT_INT64);
-  if (JSVAL_IS_VOID(slot))
+  if (slot.isUndefined())
     return;
 
   FreeOp::get(fop)->delete_(static_cast<uint64_t*>(JSVAL_TO_PRIVATE(slot)));

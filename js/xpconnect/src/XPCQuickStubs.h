@@ -239,7 +239,7 @@ protected:
             StringificationBehavior behavior = eStringify;
             if (v.isNull()) {
                 behavior = nullBehavior;
-            } else if (JSVAL_IS_VOID(v)) {
+            } else if (v.isUndefined()) {
                 behavior = undefinedBehavior;
             }
 

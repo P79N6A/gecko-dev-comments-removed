@@ -432,7 +432,7 @@ ReferenceFinder::visit(void *cell, Path *path)
     
     if (path != nullptr) {
         jsval representation = representable(cell, node->kind);
-        if (!JSVAL_IS_VOID(representation))
+        if (!representation.isUndefined())
             return addReferrer(representation, path);
     }
 
