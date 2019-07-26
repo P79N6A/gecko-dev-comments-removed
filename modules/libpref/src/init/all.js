@@ -218,6 +218,9 @@ pref("media.navigator.enabled", true);
 
 pref("media.webvtt.enabled", false);
 
+
+pref("media.mediasource.enabled", false);
+
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
 #endif
