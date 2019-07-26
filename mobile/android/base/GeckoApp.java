@@ -2340,13 +2340,20 @@ abstract public class GeckoApp
                         !profileMigrator.hasMigrationRun()) {
                         
                         
-                        final SetupScreen setupScreen = new SetupScreen(app);
+
+                        
+                        
+                        
+                        
+                        
+                        final SetupScreen[] setupScreenHolder = new SetupScreen[1];
 
                         final Runnable startCallback = new Runnable() {
                             public void run() {
                                 GeckoApp.mAppContext.runOnUiThread(new Runnable() {
                                     public void run() {
-                                       setupScreen.show();
+                                        setupScreenHolder[0] = new SetupScreen(app);
+                                        setupScreenHolder[0].show();
                                     }
                                 });
                             }
@@ -2356,7 +2363,12 @@ abstract public class GeckoApp
                             public void run() {
                                 GeckoApp.mAppContext.runOnUiThread(new Runnable() {
                                     public void run() {
-                                        setupScreen.dismiss();
+                                        SetupScreen screen = setupScreenHolder[0];
+                                        
+                                        
+                                        if (screen != null) {
+                                            screen.dismiss();
+                                        }
                                     }
                                 });
                             }
