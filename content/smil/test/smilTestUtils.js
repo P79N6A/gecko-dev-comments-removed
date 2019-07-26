@@ -176,7 +176,7 @@ var CTMUtil =
   
   isWithinDelta : function(aTestVal, aExpectedVal, aErrMsg, aIsTodo) {
     var testFunc = aIsTodo ? todo : ok;
-    const delta = 0.000001; 
+    const delta = 0.00001; 
     ok(aTestVal >= aExpectedVal - delta &&
        aTestVal <= aExpectedVal + delta,
        aErrMsg + " | got: " + aTestVal + ", expected: " + aExpectedVal);
