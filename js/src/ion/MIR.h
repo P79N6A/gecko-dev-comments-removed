@@ -4312,6 +4312,33 @@ class MIteratorEnd
 };
 
 
+class MInstanceOf
+  : public MBinaryInstruction,
+    public InstanceOfPolicy
+{
+  public:
+    MInstanceOf(MDefinition *obj, MDefinition *proto)
+      : MBinaryInstruction(obj, proto)
+    {
+        setResultType(MIRType_Boolean);
+    }
+
+    INSTRUCTION_HEADER(InstanceOf);
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+
+    MDefinition *lhs() const {
+        return getOperand(0);
+    }
+
+    MDefinition *rhs() const {
+        return getOperand(1);
+    }
+};
+
+
 
 class MTypeBarrier : public MUnaryInstruction
 {

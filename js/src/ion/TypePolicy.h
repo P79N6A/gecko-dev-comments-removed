@@ -234,6 +234,14 @@ class CallSetElementPolicy : public SingleObjectPolicy
     bool adjustInputs(MInstruction *def);
 };
 
+
+
+class InstanceOfPolicy : public TypePolicy
+{
+  public:
+    bool adjustInputs(MInstruction *def);
+};
+
 class StoreTypedArrayPolicy : public BoxInputsPolicy
 {
   public:
