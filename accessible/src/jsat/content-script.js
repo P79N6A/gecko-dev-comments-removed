@@ -306,80 +306,17 @@ function presentCaretChange(aText, aOldOffset, aNewOffset) {
 }
 
 function scroll(aMessage) {
-  let vc = Utils.getVirtualCursor(content.document);
-
-  function tryToScroll() {
-    let horiz = aMessage.json.horizontal;
-    let page = aMessage.json.page;
-
-    
-    let acc = vc.position;
-    while (acc) {
-      let elem = acc.DOMNode;
-
-      
-      
-      
-      let uiactions = elem.getAttribute ? elem.getAttribute('uiactions') : '';
-      if (uiactions && uiactions.split(' ').indexOf('scroll') >= 0) {
-        let evt = elem.ownerDocument.createEvent('CustomEvent');
-        let details = horiz ? { deltaX: page * elem.clientWidth } :
-          { deltaY: page * elem.clientHeight };
-        evt.initCustomEvent(
-          'scrollrequest', true, true,
-          ObjectWrapper.wrap(details, elem.ownerDocument.defaultView));
-        if (!elem.dispatchEvent(evt))
-          return;
-      }
-
-      
-      if (elem == content.document)
-        break;
-
-      if (!horiz && elem.clientHeight < elem.scrollHeight) {
-        let s = content.getComputedStyle(elem);
-        if (s.overflowY == 'scroll' || s.overflowY == 'auto') {
-          elem.scrollTop += page * elem.clientHeight;
-          return true;
-        }
-      }
-
-      if (horiz) {
-        if (elem.clientWidth < elem.scrollWidth) {
-          let s = content.getComputedStyle(elem);
-          if (s.overflowX == 'scroll' || s.overflowX == 'auto') {
-            elem.scrollLeft += page * elem.clientWidth;
-            return true;
-          }
-        }
-      }
-      acc = acc.parent;
-    }
-
-    
-    if (!horiz && content.scrollMaxY &&
-        ((page > 0 && content.scrollY < content.scrollMaxY) ||
-         (page < 0 && content.scrollY > 0))) {
-      content.scroll(0, content.innerHeight * page + content.scrollY);
-      return true;
-    } else if (horiz && content.scrollMaxX &&
-               ((page > 0 && content.scrollX < content.scrollMaxX) ||
-                (page < 0 && content.scrollX > 0))) {
-      content.scroll(content.innerWidth * page + content.scrollX);
-      return true;
-    }
-
-    return false;
+  function sendScrollCoordinates(aAccessible) {
+    let bounds = Utils.getBounds(aAccessible);
+    sendAsyncMessage('AccessFu:DoScroll',
+                     { bounds: bounds,
+                       page: aMessage.json.page,
+                       horizontal: aMessage.json.horizontal });
   }
 
-  if (aMessage.json.origin != 'child' &&
-      forwardToChild(aMessage, scroll, vc.position)) {
-    return;
-  }
-
-  if (!tryToScroll()) {
-    
-    forwardToParent(aMessage);
+  let position = Utils.getVirtualCursor(content.document).position;
+  if (!forwardToChild(aMessage, scroll, position)) {
+    sendScrollCoordinates(position);
   }
 }
 
