@@ -265,6 +265,12 @@ let SessionSaverInternal = {
     
     
     
+    
+    this.updateLastSaveTime();
+
+    
+    
+    
     _SessionFile.write(data).then(() => {
       this.updateLastSaveTime();
       notify(null, "sessionstore-state-write-complete");
