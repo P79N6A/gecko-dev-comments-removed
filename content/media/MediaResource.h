@@ -351,12 +351,6 @@ public:
 
 
 
-  virtual void CancelByteRangeOpen() { }
-
-  
-
-
-
 
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
@@ -461,7 +455,6 @@ public:
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
                                  MediaByteRange const & aByteRange);
-  virtual void     CancelByteRangeOpen();
   virtual nsresult Close();
   virtual void     Suspend(bool aCloseImmediately);
   virtual void     Resume();

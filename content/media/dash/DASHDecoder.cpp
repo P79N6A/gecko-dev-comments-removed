@@ -1055,18 +1055,7 @@ DASHDecoder::Seek(double aTime)
     ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
     
     
-
-    
-    
     mSeeking = true;
-
-    
-    for (uint32_t i = 0; i < mAudioRepDecoders.Length(); i++) {
-      mAudioRepDecoders[i]->CancelByteRangeLoad();
-    }
-    for (uint32_t i = 0; i < mVideoRepDecoders.Length(); i++) {
-      mVideoRepDecoders[i]->CancelByteRangeLoad();
-    }
   }
 
   return MediaDecoder::Seek(aTime);

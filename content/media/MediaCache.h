@@ -194,7 +194,6 @@ public:
   MediaCacheStream(ChannelMediaResource* aClient)
     : mClient(aClient), mInitialized(false),
       mHasHadUpdate(false),
-      mDownloadCancelled(false),
       mClosed(false),
       mDidNotifyDataEnded(false), mResourceID(0),
       mIsTransportSeekable(false), mCacheSuspended(false),
@@ -279,13 +278,6 @@ public:
   void FlushPartialBlock();
   
   void NotifyDataEnded(nsresult aStatus);
-  
-  
-  
-  
-  
-  
-  void NotifyDownloadCancelled();
 
   
   
@@ -448,9 +440,6 @@ private:
   
   
   bool                   mHasHadUpdate;
-  
-  
-  bool mDownloadCancelled;
   
   
   bool                   mClosed;

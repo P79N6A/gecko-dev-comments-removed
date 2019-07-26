@@ -82,9 +82,6 @@ public:
   void LoadNextByteRange();
 
   
-  void CancelByteRangeLoad();
-
-  
   bool IsSubsegmentCached(int32_t aSubsegmentIdx);
 
   
