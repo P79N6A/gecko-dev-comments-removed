@@ -8610,7 +8610,8 @@ CSSParserImpl::ParseFont()
 
   
   nsCSSValue  size;
-  if (! ParseVariant(size, VARIANT_KEYWORD | VARIANT_LP, nsCSSProps::kFontSizeKTable)) {
+  if (! ParseNonNegativeVariant(size, VARIANT_KEYWORD | VARIANT_LP,
+                                nsCSSProps::kFontSizeKTable)) {
     return false;
   }
 
