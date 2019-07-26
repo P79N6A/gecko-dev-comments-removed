@@ -744,6 +744,9 @@ private:
 
 public:
     void BindBuffer(WebGLenum target, WebGLBuffer* buf);
+    void BindBufferBase(WebGLenum target, WebGLuint index, WebGLBuffer* buffer);
+    void BindBufferRange(WebGLenum target, WebGLuint index, WebGLBuffer* buffer,
+                         WebGLintptr offset, WebGLsizeiptr size);
     void BufferData(WebGLenum target, WebGLsizeiptr size, WebGLenum usage);
     void BufferData(WebGLenum target, const dom::ArrayBufferView &data,
                     WebGLenum usage);
@@ -762,7 +765,12 @@ private:
     
     WebGLRefPtr<WebGLBuffer> mBoundArrayBuffer;
 
-    bool ValidateBufferTarget(GLenum target, const char* infos);
+    
+    WebGLRefPtr<WebGLBuffer> mBoundTransformFeedbackBuffer;
+
+    
+    WebGLRefPtr<WebGLBuffer>* GetBufferSlotByTarget(GLenum target, const char* infos);
+    WebGLRefPtr<WebGLBuffer>* GetBufferSlotByTargetIndexed(GLenum target, GLuint index, const char* infos);
     bool ValidateBufferUsageEnum(WebGLenum target, const char* infos);
 
 
@@ -771,6 +779,7 @@ public:
     void Disable(WebGLenum cap);
     void Enable(WebGLenum cap);
     JS::Value GetParameter(JSContext* cx, WebGLenum pname, ErrorResult& rv);
+    JS::Value GetParameterIndexed(JSContext* cx, WebGLenum pname, WebGLuint index);
     bool IsEnabled(WebGLenum cap);
 
 private:
@@ -927,6 +936,7 @@ protected:
     int32_t mGLMaxVertexUniformVectors;
     int32_t mGLMaxColorAttachments;
     int32_t mGLMaxDrawBuffers;
+    uint32_t mGLMaxTransformFeedbackSeparateAttribs;
 
     
     

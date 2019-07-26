@@ -170,6 +170,7 @@ WebGLContext::WebGLContext()
     mGLMaxVertexUniformVectors = 0;
     mGLMaxColorAttachments = 1;
     mGLMaxDrawBuffers = 1;
+    mGLMaxTransformFeedbackSeparateAttribs = 0;
 
     
     mPixelStorePackAlignment = 4;
@@ -235,6 +236,7 @@ WebGLContext::DestroyResourcesAndContext()
     mBound2DTextures.Clear();
     mBoundCubeMapTextures.Clear();
     mBoundArrayBuffer = nullptr;
+    mBoundTransformFeedbackBuffer = nullptr;
     mCurrentProgram = nullptr;
     mBoundFramebuffer = nullptr;
     mActiveOcclusionQuery = nullptr;
