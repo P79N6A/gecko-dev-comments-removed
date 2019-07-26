@@ -286,14 +286,25 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
 static bool
 AppNeedsInheritedOSPrivileges(mozIApplication* aApp)
 {
-    bool needsInherit = false;
-    
-    
-    if (NS_FAILED(aApp->HasPermission("camera", &needsInherit))) {
-        NS_WARNING("Unable to check permissions.  Breakage may follow.");
-        return false;
+    const char* const needInheritPermissions[] = {
+        
+        
+        "camera",
+        
+        
+        "deprecated-hwvideo",
+    };
+    for (size_t i = 0; i < ArrayLength(needInheritPermissions); ++i) {
+        const char* const permission = needInheritPermissions[i];
+        bool needsInherit = false;
+        if (NS_FAILED(aApp->HasPermission(permission, &needsInherit))) {
+            NS_WARNING("Unable to check permissions.  Breakage may follow.");
+            return false;
+        } else if (needsInherit) {
+            return true;
+        }
     }
-    return needsInherit;
+    return false;
 }
 
  TabParent*
