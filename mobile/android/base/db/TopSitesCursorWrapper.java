@@ -72,6 +72,9 @@ public class TopSitesCursorWrapper implements Cursor {
     private int currentPosition = -1;
 
     
+    private int pinnedBefore = 0;
+
+    
     private int count;
 
     
@@ -145,22 +148,19 @@ public class TopSitesCursorWrapper implements Cursor {
         }
     }
 
-    private int getPinnedBefore(int position) {
-        int numFound = 0;
+    private void updatePinnedBefore(int position) {
+        pinnedBefore = 0;
         for (int i = 0; i < position; i++) {
             if (pinnedPositions.get(i)) {
-                numFound++;
+                pinnedBefore++;
             }
         }
-
-        return numFound;
     }
 
     private void updateTopCursorPosition(int position) {
         
         
         
-        final int pinnedBefore = getPinnedBefore(position);
         final int actualPosition = position - pinnedBefore;
 
         if (actualPosition <= -1) {
@@ -274,6 +274,7 @@ public class TopSitesCursorWrapper implements Cursor {
     public boolean moveToPosition(int position) {
         currentPosition = position;
 
+        updatePinnedBefore(position);
         updatePinnedCursorPosition(position);
         updateTopCursorPosition(position);
         updateRowState();
