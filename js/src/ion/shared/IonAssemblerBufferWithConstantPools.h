@@ -854,8 +854,6 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             bool beforePool = true;
             Pool *p = &pools[poolIdx];
             
-            poolOffset = p->align(poolOffset);
-            
             
             int idx = 0;
             for (BufferOffset *iter = p->loadOffsets.begin();
@@ -875,6 +873,10 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                     beforePool = false;
                 } else {
                     JS_ASSERT(beforePool);
+                    
+                    
+                    
+                    poolOffset = p->align(poolOffset);
                     IonSpew(IonSpew_Pools, "[%d] Entry %d in pool %d is before the pool.", id, idx, poolIdx);
                     
                     Inst * inst = this->getInst(*iter);
