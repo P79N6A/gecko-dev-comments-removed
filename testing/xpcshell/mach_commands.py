@@ -226,10 +226,15 @@ class MachCommands(MachCommandBase):
     @CommandArgument('--rerun-failures', action='store_true',
         help='Reruns failures from last time.')
     def run_xpcshell_test(self, **params):
+        from mozbuild.controller.building import BuildDriver
+
         
         
         
         self._ensure_state_subdir_exists('.')
+
+        driver = self._spawn(BuildDriver)
+        driver.install_tests(remove=False)
 
         xpcshell = self._spawn(XPCShellRunner)
 
