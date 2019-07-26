@@ -65,8 +65,6 @@ public:
   }
 
   virtual void Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer);
-
-  virtual void Updated() MOZ_OVERRIDE;
 };
 
 
@@ -83,6 +81,7 @@ public:
   }
 
   virtual void Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer);
+  virtual void Updated() MOZ_OVERRIDE;
 };
 
 }
