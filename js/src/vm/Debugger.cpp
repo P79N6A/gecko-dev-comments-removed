@@ -2312,18 +2312,18 @@ class Debugger::ScriptQuery {
 
 
 
-    bool findScripts(AutoScriptVector *vector) {
-        AutoAssertNoGC nogc;
-
+    bool findScripts(AutoScriptVector *v) {
         if (!prepareQuery())
             return false;
 
         
+        vector = v;
+        oom = false;
         for (CompartmentSet::Range r = compartments.all(); !r.empty(); r.popFront()) {
-            for (gc::CellIter i(r.front(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-                RawScript script = i.get<JSScript>();
-                if (!consider(script, vector))
-                    return false;
+            IterateCells(cx->runtime, r.front(), gc::FINALIZE_SCRIPT, this, considerCell);
+            if (oom) {
+                js_ReportOutOfMemory(cx);
+                return false;
             }
         }
 
@@ -2337,7 +2337,7 @@ class Debugger::ScriptQuery {
             for (CompartmentToScriptMap::Range r = innermostForCompartment.all();
                  !r.empty();
                  r.popFront()) {
-                if (!vector->append(r.front().value)) {
+                if (!v->append(r.front().value)) {
                     js_ReportOutOfMemory(cx);
                     return false;
                 }
@@ -2386,6 +2386,12 @@ class Debugger::ScriptQuery {
     CompartmentToScriptMap innermostForCompartment;
 
     
+    AutoScriptVector *vector;
+
+    
+    bool oom;
+
+    
     bool matchSingleGlobal(GlobalObject *global) {
         JS_ASSERT(compartments.count() == 0);
         if (!compartments.put(global->compartment())) {
@@ -2425,22 +2431,30 @@ class Debugger::ScriptQuery {
         return true;
     }
 
+    static void considerCell(JSRuntime *rt, void *data, void *thing,
+                             JSGCTraceKind traceKind, size_t thingSize) {
+        ScriptQuery *self = static_cast<ScriptQuery *>(data);
+        self->consider(static_cast<JSScript *>(thing));
+    }
+
     
 
 
 
 
-    bool consider(JSScript *script, AutoScriptVector *vector) {
+    void consider(JSScript *script) {
+        if (oom)
+            return;
         JSCompartment *compartment = script->compartment();
         if (!compartments.has(compartment))
-            return true;
+            return;
         if (urlCString.ptr()) {
             if (!script->filename || strcmp(script->filename, urlCString.ptr()) != 0)
-                return true;
+                return;
         }
         if (hasLine) {
             if (line < script->lineno || script->lineno + js_GetScriptLineExtent(script) < line)
-                return true;
+                return;
         }
         if (innermost) {
             
@@ -2467,19 +2481,19 @@ class Debugger::ScriptQuery {
 
 
                 if (!innermostForCompartment.add(p, compartment, script)) {
-                    js_ReportOutOfMemory(cx);
-                    return false;
+                    oom = true;
+                    return;
                 }
             }
         } else {
             
             if (!vector->append(script)) {
-                js_ReportOutOfMemory(cx);
-                return false;
+                oom = true;
+                return;
             }
         }
 
-        return true;
+        return;
     }
 };
 
