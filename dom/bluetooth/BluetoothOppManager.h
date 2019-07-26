@@ -82,17 +82,6 @@ public:
     aName.AssignLiteral("OPP");
   }
 
-  
-
-
-
-
-
-
-
-
-
-
   virtual void Connect(const nsAString& aDeviceAddress,
                        BluetoothProfileController* aController) MOZ_OVERRIDE;
   virtual void Disconnect(BluetoothProfileController* aController) MOZ_OVERRIDE;
@@ -222,7 +211,6 @@ private:
   nsCOMPtr<nsIOutputStream> mOutputStream;
   nsCOMPtr<nsIInputStream> mInputStream;
   nsCOMPtr<nsIVolumeMountLock> mMountLock;
-  nsRefPtr<BluetoothProfileController> mController;
   nsRefPtr<DeviceStorageFile> mDsFile;
 
   

@@ -38,9 +38,6 @@ BEGIN_BLUETOOTH_NAMESPACE
 #define HAS_AUDIO(cod)               (cod & 0x200000)
 
 
-#define HAS_OBJECT_TRANSFER(cod)     (cod & 0x100000)
-
-
 #define HAS_RENDERING(cod)           (cod & 0x40000)
 
 
