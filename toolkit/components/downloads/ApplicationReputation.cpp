@@ -47,8 +47,9 @@ using mozilla::Preferences;
 using mozilla::TimeStamp;
 using mozilla::Telemetry::Accumulate;
 using safe_browsing::ClientDownloadRequest;
-using safe_browsing::ClientDownloadRequest_SignatureInfo;
 using safe_browsing::ClientDownloadRequest_CertificateChain;
+using safe_browsing::ClientDownloadRequest_Resource;
+using safe_browsing::ClientDownloadRequest_SignatureInfo;
 
 
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
@@ -120,7 +121,9 @@ private:
 
   
   
-  ClientDownloadRequest_SignatureInfo mSignatureInfo;
+  
+  
+  ClientDownloadRequest mRequest;
 
   
   
@@ -162,13 +165,14 @@ private:
   
   
   
-  nsresult GenerateWhitelistStrings(
-    const ClientDownloadRequest_SignatureInfo& aSignatureInfo);
+  nsresult GenerateWhitelistStrings();
 
   
   
-  nsresult ParseCertificates(nsIArray* aSigArray,
-                             ClientDownloadRequest_SignatureInfo* aSigInfo);
+  nsresult ParseCertificates(nsIArray* aSigArray);
+
+  
+  nsresult AddRedirects(nsIArray* aRedirects);
 
   
   
@@ -529,12 +533,55 @@ PendingLookup::GenerateWhitelistStringsForChain(
 }
 
 nsresult
-PendingLookup::GenerateWhitelistStrings(
-  const safe_browsing::ClientDownloadRequest_SignatureInfo& aSignatureInfo)
+PendingLookup::GenerateWhitelistStrings()
 {
-  for (int i = 0; i < aSignatureInfo.certificate_chain_size(); ++i) {
+  for (int i = 0; i < mRequest.signature().certificate_chain_size(); ++i) {
     nsresult rv = GenerateWhitelistStringsForChain(
-      aSignatureInfo.certificate_chain(i));
+      mRequest.signature().certificate_chain(i));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult
+PendingLookup::AddRedirects(nsIArray* aRedirects)
+{
+  uint32_t length = 0;
+  aRedirects->GetLength(&length);
+  LOG(("ApplicationReputation: Got %u redirects", length));
+  nsCOMPtr<nsISimpleEnumerator> iter;
+  nsresult rv = aRedirects->Enumerate(getter_AddRefs(iter));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool hasMoreRedirects = false;
+  rv = iter->HasMoreElements(&hasMoreRedirects);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  while (hasMoreRedirects) {
+    nsCOMPtr<nsISupports> supports;
+    rv = iter->GetNext(getter_AddRefs(supports));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIPrincipal> principal = do_QueryInterface(supports, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIURI> uri;
+    rv = principal->GetURI(getter_AddRefs(uri));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsCString spec;
+    rv = uri->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mAnylistSpecs.AppendElement(spec);
+    LOG(("ApplicationReputation: Appending redirect %s\n", spec.get()));
+
+    
+    ClientDownloadRequest_Resource* resource = mRequest.add_resources();
+    resource->set_url(spec.get());
+    resource->set_type(ClientDownloadRequest::DOWNLOAD_REDIRECT);
+
+    rv = iter->HasMoreElements(&hasMoreRedirects);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
@@ -555,6 +602,7 @@ nsresult
 PendingLookup::DoLookupInternal()
 {
   
+  
   nsCOMPtr<nsIURI> uri;
   nsresult rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -563,6 +611,9 @@ PendingLookup::DoLookupInternal()
   rv = uri->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
   mAnylistSpecs.AppendElement(spec);
+  ClientDownloadRequest_Resource* resource = mRequest.add_resources();
+  resource->set_url(spec.get());
+  resource->set_type(ClientDownloadRequest::DOWNLOAD_URL);
 
   nsCOMPtr<nsIURI> referrer = nullptr;
   rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
@@ -571,6 +622,14 @@ PendingLookup::DoLookupInternal()
     rv = referrer->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
     mAnylistSpecs.AppendElement(spec);
+    resource->set_referrer(spec.get());
+  }
+  nsCOMPtr<nsIArray> redirects;
+  rv = mQuery->GetRedirects(getter_AddRefs(redirects));
+  if (redirects) {
+    AddRedirects(redirects);
+  } else {
+    LOG(("ApplicationReputation: Got no redirects"));
   }
 
   
@@ -580,11 +639,11 @@ PendingLookup::DoLookupInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (sigArray) {
-    rv = ParseCertificates(sigArray, &mSignatureInfo);
+    rv = ParseCertificates(sigArray);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = GenerateWhitelistStrings(mSignatureInfo);
+  rv = GenerateWhitelistStrings();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -610,9 +669,7 @@ PendingLookup::OnComplete(bool shouldBlock, nsresult rv)
 }
 
 nsresult
-PendingLookup::ParseCertificates(
-  nsIArray* aSigArray,
-  ClientDownloadRequest_SignatureInfo* aSignatureInfo)
+PendingLookup::ParseCertificates(nsIArray* aSigArray)
 {
   
   NS_ENSURE_ARG_POINTER(aSigArray);
@@ -637,7 +694,7 @@ PendingLookup::ParseCertificates(
     NS_ENSURE_SUCCESS(rv, rv);
 
     safe_browsing::ClientDownloadRequest_CertificateChain* certChain =
-      aSignatureInfo->add_certificate_chain();
+      mRequest.mutable_signature()->add_certificate_chain();
     nsCOMPtr<nsISimpleEnumerator> chainElt;
     rv = certList->GetEnumerator(getter_AddRefs(chainElt));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -668,8 +725,8 @@ PendingLookup::ParseCertificates(
     rv = chains->HasMoreElements(&hasMoreChains);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  if (aSignatureInfo->certificate_chain_size() > 0) {
-    aSignatureInfo->set_trusted(true);
+  if (mRequest.signature().certificate_chain_size() > 0) {
+    mRequest.mutable_signature()->set_trusted(true);
   }
   return NS_OK;
 }
@@ -692,7 +749,6 @@ PendingLookup::SendRemoteQueryInternal()
   LOG(("Sending remote query for application reputation [this = %p]", this));
   
   
-  safe_browsing::ClientDownloadRequest req;
   nsCOMPtr<nsIURI> uri;
   nsresult rv;
   rv = mQuery->GetSourceURI(getter_AddRefs(uri));
@@ -700,30 +756,29 @@ PendingLookup::SendRemoteQueryInternal()
   nsCString spec;
   rv = uri->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_url(spec.get());
+  mRequest.set_url(spec.get());
 
   uint32_t fileSize;
   rv = mQuery->GetFileSize(&fileSize);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_length(fileSize);
+  mRequest.set_length(fileSize);
   
-  req.set_user_initiated(false);
+  mRequest.set_user_initiated(false);
 
   nsCString locale;
   NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_GENERAL_LOCALE, &locale),
                     NS_ERROR_NOT_AVAILABLE);
-  req.set_locale(locale.get());
+  mRequest.set_locale(locale.get());
   nsCString sha256Hash;
   rv = mQuery->GetSha256Hash(sha256Hash);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.mutable_digests()->set_sha256(sha256Hash.Data());
+  mRequest.mutable_digests()->set_sha256(sha256Hash.Data());
   nsString fileName;
   rv = mQuery->GetSuggestedFileName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
-  req.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
-  req.mutable_signature()->CopyFrom(mSignatureInfo);
+  mRequest.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
 
-  if (req.signature().trusted()) {
+  if (mRequest.signature().trusted()) {
     LOG(("Got signed binary for remote application reputation check "
          "[this = %p]", this));
   } else {
@@ -735,7 +790,7 @@ PendingLookup::SendRemoteQueryInternal()
   
   
   std::string serialized;
-  if (!req.SerializeToString(&serialized)) {
+  if (!mRequest.SerializeToString(&serialized)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -920,6 +975,7 @@ NS_IMETHODIMP
 ApplicationReputationService::QueryReputation(
     nsIApplicationReputationQuery* aQuery,
     nsIApplicationReputationCallback* aCallback) {
+  LOG(("Starting application reputation check"));
   NS_ENSURE_ARG_POINTER(aQuery);
   NS_ENSURE_ARG_POINTER(aCallback);
 

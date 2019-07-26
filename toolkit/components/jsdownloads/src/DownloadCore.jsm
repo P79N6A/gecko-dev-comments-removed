@@ -1485,6 +1485,11 @@ this.DownloadCopySaver.prototype = {
   
 
 
+  _redirects: null,
+
+  
+
+
   alreadyAddedToHistory: false,
 
   
@@ -1559,6 +1564,7 @@ this.DownloadCopySaver.prototype = {
                 
                 this._sha256Hash = aSaver.sha256Hash;
                 this._signatureInfo = aSaver.signatureInfo;
+                this._redirects = aSaver.redirects;
                 deferSaveComplete.resolve();
               } else {
                 
@@ -1817,6 +1823,14 @@ this.DownloadCopySaver.prototype = {
   getSignatureInfo: function ()
   {
     return this._signatureInfo;
+  },
+
+  
+
+
+  getRedirects: function ()
+  {
+    return this._redirects;
   }
 };
 
@@ -1871,6 +1885,11 @@ this.DownloadLegacySaver.prototype = {
 
 
   _signatureInfo: null,
+
+  
+
+
+  _redirects: null,
 
   
 
@@ -2166,6 +2185,26 @@ this.DownloadLegacySaver.prototype = {
   setSignatureInfo: function (signatureInfo)
   {
     this._signatureInfo = signatureInfo;
+  },
+
+  
+
+
+  getRedirects: function ()
+  {
+    if (this.copySaver) {
+      return this.copySaver.getRedirects();
+    }
+    return this._redirects;
+  },
+
+  
+
+
+
+  setRedirects: function (redirects)
+  {
+    this._redirects = redirects;
   },
 };
 

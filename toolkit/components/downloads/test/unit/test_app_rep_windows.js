@@ -216,10 +216,10 @@ add_task(function test_setup()
     let blob = "this is not a serialized protocol buffer";
     
     
-    if (buf.length == 45) {
+    if (buf.length == 65) {
       
       blob = createVerdict(true);
-    } else if (buf.length == 48) {
+    } else if (buf.length == 71) {
       
       blob = createVerdict(false);
     }

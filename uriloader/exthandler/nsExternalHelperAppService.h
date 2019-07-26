@@ -331,6 +331,10 @@ protected:
   
 
 
+  nsCOMPtr<nsIArray> mRedirects;
+  
+
+
 
   nsresult SetUpTempFile(nsIChannel * aChannel);
   

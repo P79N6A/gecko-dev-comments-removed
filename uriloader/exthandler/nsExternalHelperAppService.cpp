@@ -25,6 +25,7 @@
 #include "nsIFile.h"
 #include "nsIFileURL.h"
 #include "nsIChannel.h"
+#include "nsIRedirectHistory.h"
 #include "nsIDirectoryService.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsICategoryManager.h"
@@ -1958,10 +1959,22 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
     
     (void)mSaver->GetSha256Hash(mHash);
     (void)mSaver->GetSignatureInfo(getter_AddRefs(mSignatureInfo));
+
     
     
     mSaver = nullptr;
-  
+
+    
+    nsCOMPtr<nsIRedirectHistory> history = do_QueryInterface(mRequest);
+    if (history) {
+      (void)history->GetRedirects(getter_AddRefs(mRedirects));
+      uint32_t length = 0;
+      mRedirects->GetLength(&length);
+      LOG(("nsExternalAppHandler: Got %u redirects\n", length));
+    } else {
+      LOG(("nsExternalAppHandler: No redirects\n"));
+    }
+
     if (NS_FAILED(aStatus)) {
       nsAutoString path;
       mTempFile->GetPath(path);
@@ -2004,6 +2017,7 @@ void nsExternalAppHandler::NotifyTransfer(nsresult aStatus)
   if (NS_SUCCEEDED(aStatus)) {
     (void)mTransfer->SetSha256Hash(mHash);
     (void)mTransfer->SetSignatureInfo(mSignatureInfo);
+    (void)mTransfer->SetRedirects(mRedirects);
     (void)mTransfer->OnProgressChange64(nullptr, nullptr, mProgress,
       mContentLength, mProgress, mContentLength);
   }
