@@ -98,6 +98,56 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA,
 }
 
 
+
+
+
+Result
+CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
+                         bool isTrustAnchor, SECOidTag requiredPolicy)
+{
+  if (requiredPolicy == SEC_OID_X509_ANY_POLICY) {
+    return Success;
+  }
+
+  
+  
+  if (requiredPolicy == SEC_OID_UNKNOWN) {
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+    return FatalError;
+  }
+
+  
+  
+  
+  
+  if (isTrustAnchor && endEntityOrCA == MustBeCA) {
+    return Success;
+  }
+
+  if (!cert.encodedCertificatePolicies) {
+    PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
+    return RecoverableError;
+  }
+
+  ScopedPtr<CERTCertificatePolicies, CERT_DestroyCertificatePoliciesExtension>
+    policies(CERT_DecodeCertificatePoliciesExtension(
+                cert.encodedCertificatePolicies));
+  if (!policies) {
+    return MapSECStatus(SECFailure);
+  }
+
+  for (const CERTPolicyInfo* const* policyInfos = policies->policyInfos;
+       *policyInfos; ++policyInfos) {
+    if ((*policyInfos)->oid == requiredPolicy) {
+      return Success;
+    }
+  }
+
+  PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
+  return RecoverableError;
+}
+
+
 Result
 CheckBasicConstraints(const BackCert& cert,
                       EndEntityOrCA endEntityOrCA,
@@ -329,6 +379,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  EndEntityOrCA endEntityOrCA,
                                  KeyUsages requiredKeyUsagesIfPresent,
                                  SECOidTag requiredEKUIfPresent,
+                                 SECOidTag requiredPolicy,
                                  unsigned int subCACount,
                  TrustDomain::TrustLevel* trustLevelOut)
 {
@@ -336,6 +387,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   TrustDomain::TrustLevel trustLevel;
   rv = MapSECStatus(trustDomain.GetCertTrust(endEntityOrCA,
+                                             requiredPolicy,
                                              cert.GetNSSCert(),
                                              &trustLevel));
   if (rv != Success) {
@@ -358,9 +410,6 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   bool isTrustAnchor = endEntityOrCA == MustBeCA &&
                        trustLevel == TrustDomain::TrustAnchor;
 
-  
-  
-
   PLArenaPool* arena = cert.GetArena();
   if (!arena) {
     return FatalError;
@@ -368,6 +417,9 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   
 
+  
+
+  
   rv = CheckKeyUsage(endEntityOrCA, isTrustAnchor, cert.encodedKeyUsage,
                      requiredKeyUsagesIfPresent, arena);
   if (rv != Success) {
@@ -375,18 +427,30 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   }
 
   
-  
-  
+  rv = CheckCertificatePolicies(cert, endEntityOrCA, isTrustAnchor,
+                                requiredPolicy);
+  if (rv != Success) {
+    return rv;
+  }
+
   
   
 
   
   
+
+  
+
+  
+  
+
   
   rv = CheckBasicConstraints(cert, endEntityOrCA, isTrustAnchor, subCACount);
   if (rv != Success) {
     return rv;
   }
+
+  
 
   
   
@@ -397,6 +461,10 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   if (rv != Success) {
     return rv;
   }
+
+  
+  
+  
 
   
   

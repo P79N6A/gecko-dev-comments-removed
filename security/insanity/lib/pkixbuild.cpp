@@ -55,6 +55,7 @@ BackCert::Init()
         case 17: out = &dummyEncodedSubjectAltName; break; 
         case 19: out = &encodedBasicConstraints; break;
         case 30: out = &encodedNameConstraints; break;
+        case 32: out = &encodedCertificatePolicies; break;
         case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
         case 37: out = &encodedExtendedKeyUsage; break;
       }
@@ -96,6 +97,7 @@ static Result BuildForward(TrustDomain& trustDomain,
                            EndEntityOrCA endEntityOrCA,
                            KeyUsages requiredKeyUsagesIfPresent,
                            SECOidTag requiredEKUIfPresent,
+                           SECOidTag requiredPolicy,
                             const SECItem* stapledOCSPResponse,
                            unsigned int subCACount,
                             ScopedCERTCertList& results);
@@ -107,6 +109,7 @@ BuildForwardInner(TrustDomain& trustDomain,
                   PRTime time,
                   EndEntityOrCA endEntityOrCA,
                   SECOidTag requiredEKUIfPresent,
+                  SECOidTag requiredPolicy,
                   CERTCertificate* potentialIssuerCertToDup,
                    const SECItem* stapledOCSPResponse,
                   unsigned int subCACount,
@@ -150,7 +153,7 @@ BuildForwardInner(TrustDomain& trustDomain,
     PR_ASSERT(newSubCACount == 0);
   }
   rv = BuildForward(trustDomain, potentialIssuer, time, MustBeCA,
-                    KU_KEY_CERT_SIGN, requiredEKUIfPresent,
+                    KU_KEY_CERT_SIGN, requiredEKUIfPresent, requiredPolicy,
                     nullptr, newSubCACount, results);
   if (rv != Success) {
     return rv;
@@ -177,6 +180,7 @@ BuildForward(TrustDomain& trustDomain,
              EndEntityOrCA endEntityOrCA,
              KeyUsages requiredKeyUsagesIfPresent,
              SECOidTag requiredEKUIfPresent,
+             SECOidTag requiredPolicy,
               const SECItem* stapledOCSPResponse,
              unsigned int subCACount,
               ScopedCERTCertList& results)
@@ -195,8 +199,8 @@ BuildForward(TrustDomain& trustDomain,
   rv = CheckIssuerIndependentProperties(trustDomain, subject, time,
                                         endEntityOrCA,
                                         requiredKeyUsagesIfPresent,
-                                        requiredEKUIfPresent, subCACount,
-                                        &trustLevel);
+                                        requiredEKUIfPresent, requiredPolicy,
+                                        subCACount, &trustLevel);
   if (rv != Success) {
     
     
@@ -238,7 +242,7 @@ BuildForward(TrustDomain& trustDomain,
   for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
     rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
-                           requiredEKUIfPresent,
+                           requiredEKUIfPresent, requiredPolicy,
                            n->cert, stapledOCSPResponse, subCACount,
                            results);
     if (rv == Success) {
@@ -298,6 +302,7 @@ BuildCertChain(TrustDomain& trustDomain,
                EndEntityOrCA endEntityOrCA,
                 KeyUsages requiredKeyUsagesIfPresent,
                 SECOidTag requiredEKUIfPresent,
+                SECOidTag requiredPolicy,
                 const SECItem* stapledOCSPResponse,
                 ScopedCERTCertList& results)
 {
@@ -327,7 +332,7 @@ BuildCertChain(TrustDomain& trustDomain,
 
   rv = BuildForward(trustDomain, cert, time, endEntityOrCA,
                     requiredKeyUsagesIfPresent, requiredEKUIfPresent,
-                    stapledOCSPResponse, 0, results);
+                    requiredPolicy, stapledOCSPResponse, 0, results);
   if (rv != Success) {
     results = nullptr;
     return SECFailure;

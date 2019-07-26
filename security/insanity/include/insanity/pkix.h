@@ -65,12 +65,30 @@ namespace insanity { namespace pkix {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SECStatus BuildCertChain(TrustDomain& trustDomain,
                          CERTCertificate* cert,
                          PRTime time,
                          EndEntityOrCA endEntityOrCA,
              KeyUsages requiredKeyUsagesIfPresent,
              SECOidTag requiredEKUIfPresent,
+             SECOidTag requiredPolicy,
              const SECItem* stapledOCSPResponse,
                   ScopedCERTCertList& results);
 

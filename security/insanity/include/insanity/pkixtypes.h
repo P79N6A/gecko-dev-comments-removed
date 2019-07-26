@@ -56,7 +56,17 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
   virtual SECStatus GetCertTrust(EndEntityOrCA endEntityOrCA,
+                                 SECOidTag policy,
                                  const CERTCertificate* candidateCert,
                           TrustLevel* trustLevel) = 0;
 
