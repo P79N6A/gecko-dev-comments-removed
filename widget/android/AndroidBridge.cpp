@@ -189,10 +189,17 @@ AndroidBridge::Init(JNIEnv *jEnv,
     if (!GetStaticIntField("android/os/Build$VERSION", "SDK_INT", &mAPIVersion, jEnv))
         ALOG_BRIDGE("Failed to find API version");
 
-    if (mAPIVersion <= 8 )
+    if (mAPIVersion <= 8 ) {
         jSurfacePointerField = jEnv->GetFieldID(jSurfaceClass, "mSurface", "I");
-    else 
+    } else {
         jSurfacePointerField = jEnv->GetFieldID(jSurfaceClass, "mNativeSurface", "I");
+
+        
+        
+        if (jEnv->ExceptionCheck()) {
+            jEnv->ExceptionClear();
+        }
+    }
 
     jNotifyWakeLockChanged = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "notifyWakeLockChanged", "(Ljava/lang/String;Ljava/lang/String;)V");
 
@@ -1263,7 +1270,7 @@ AndroidBridge::CreateShortcut(const nsAString& aTitle, const nsAString& aURI, co
 
 void*
 AndroidBridge::GetNativeSurface(JNIEnv* env, jobject surface) {
-    if (!env || !mHasNativeWindowFallback)
+    if (!env || !mHasNativeWindowFallback || !jSurfacePointerField)
         return nullptr;
 
     return (void*)env->GetIntField(surface, jSurfacePointerField);
