@@ -508,6 +508,14 @@ RasterImage::Init(const char* aMimeType,
   }
 
   
+  
+  
+  if (mSourceDataMimeType.Length() == 0) {
+    mInitialized = true;
+    return NS_OK;
+  }
+
+  
   nsresult rv = InitDecoder( true);
   CONTAINER_ENSURE_SUCCESS(rv);
 
@@ -678,6 +686,85 @@ RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
     if (mStatusTracker)
       mStatusTracker->FrameChanged(&dirtyRect);
   }
+}
+
+
+
+
+
+NS_IMETHODIMP
+RasterImage::ExtractFrame(uint32_t aWhichFrame,
+                          const nsIntRect &aRegion,
+                          uint32_t aFlags,
+                          imgIContainer **_retval)
+{
+  NS_ENSURE_ARG_POINTER(_retval);
+
+  nsresult rv;
+
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    return NS_ERROR_INVALID_ARG;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
+    return NS_ERROR_FAILURE;
+
+  
+  nsRefPtr<RasterImage> img(new RasterImage());
+
+  
+  
+  
+  img->Init("", INIT_FLAG_NONE);
+  img->SetSize(aRegion.width, aRegion.height);
+  img->mDecoded = true; 
+  img->mHasBeenDecoded = true;
+  img->mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
+
+  if (!ApplyDecodeFlags(aFlags))
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  
+  if (aFlags & FLAG_SYNC_DECODE) {
+    rv = SyncDecode();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  uint32_t frameIndex = (aWhichFrame == FRAME_FIRST) ?
+                        0 : GetCurrentImgFrameIndex();
+  imgFrame *frame = GetDrawableImgFrame(frameIndex);
+  if (!frame) {
+    *_retval = nullptr;
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  nsIntRect framerect = frame->GetRect();
+  framerect.IntersectRect(framerect, aRegion);
+
+  if (framerect.IsEmpty())
+    return NS_ERROR_NOT_AVAILABLE;
+
+  nsAutoPtr<imgFrame> subframe;
+  rv = frame->Extract(framerect, getter_Transfers(subframe));
+  if (NS_FAILED(rv))
+    return rv;
+
+  img->mFrames.AppendElement(subframe.forget());
+
+  img->mStatusTracker->RecordLoaded();
+  img->mStatusTracker->RecordDecoded();
+
+  *_retval = img.forget().get();
+
+  return NS_OK;
 }
 
 
@@ -2659,6 +2746,7 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount)
 
   return NS_OK;
 }
+
 
 
 
