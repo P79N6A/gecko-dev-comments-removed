@@ -242,7 +242,7 @@ DOMStorage::CanUseStorage(DOMStorage* aStorage)
 
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal =
-    nsContentUtils::GetSubjectPrincipal();
+    nsContentUtils::SubjectPrincipal();
   if (nsContentUtils::IsSystemPrincipal(subjectPrincipal)) {
     return true;
   }

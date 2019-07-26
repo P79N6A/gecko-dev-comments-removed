@@ -251,7 +251,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     if (!useSandbox) {
         
         
-        nsIPrincipal* objectPrincipal = nsContentUtils::GetObjectPrincipal(globalJSObject);
+        nsIPrincipal* objectPrincipal = nsContentUtils::ObjectPrincipal(globalJSObject);
 
         bool subsumes;
         rv = principal->Subsumes(objectPrincipal, &subsumes);

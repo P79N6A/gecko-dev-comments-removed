@@ -210,7 +210,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   
   
   if (nsContentUtils::IsInitialized()) { 
-    rv = mDocShell->CreateAboutBlankContentViewer(nsContentUtils::GetSubjectPrincipal());
+    rv = mDocShell->CreateAboutBlankContentViewer(nsContentUtils::SubjectPrincipal());
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> doc = do_GetInterface(mDocShell);
     NS_ENSURE_TRUE(!!doc, NS_ERROR_FAILURE);

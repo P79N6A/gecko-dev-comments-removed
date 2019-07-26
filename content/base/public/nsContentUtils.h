@@ -478,14 +478,11 @@ public:
 
   
   
-  static nsIPrincipal* GetSubjectPrincipal();
+  static nsIPrincipal* SubjectPrincipal();
 
   
   
-  
-  
-  
-  static nsIPrincipal* GetObjectPrincipal(JSObject* aObj);
+  static nsIPrincipal* ObjectPrincipal(JSObject* aObj);
 
   static nsresult GenerateStateKey(nsIContent* aContent,
                                    const nsIDocument* aDocument,

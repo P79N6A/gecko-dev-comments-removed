@@ -2277,7 +2277,7 @@ Navigator::HasWifiManagerSupport(JSContext* ,
   
   
 
-  nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(aGlobal);
+  nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(aGlobal);
 
   nsCOMPtr<nsIPermissionManager> permMgr =
     services::GetPermissionManager();

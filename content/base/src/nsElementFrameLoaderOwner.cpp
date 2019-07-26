@@ -48,7 +48,7 @@ nsElementFrameLoaderOwner::GetContentDocument()
   nsIDocument *doc = win->GetDoc();
 
   
-  if (!nsContentUtils::GetSubjectPrincipal()->
+  if (!nsContentUtils::SubjectPrincipal()->
         SubsumesConsideringDomain(doc->NodePrincipal())) {
     return nullptr;
   }

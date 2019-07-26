@@ -791,7 +791,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal =
-    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::GetSubjectPrincipal()
+    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::SubjectPrincipal()
                                           : nullptr;
 
   if (windowIsNew) {

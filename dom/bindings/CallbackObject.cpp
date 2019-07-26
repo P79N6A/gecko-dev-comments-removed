@@ -66,7 +66,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
   nsIPrincipal* webIDLCallerPrincipal = nullptr;
   if (aIsJSImplementedWebIDL) {
-    webIDLCallerPrincipal = nsContentUtils::GetSubjectPrincipal();
+    webIDLCallerPrincipal = nsContentUtils::SubjectPrincipal();
   }
 
   

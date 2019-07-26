@@ -1713,7 +1713,7 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aU
 nsGenericHTMLElement::IsScrollGrabAllowed(JSContext*, JSObject*)
 {
   
-  nsIPrincipal* prin = nsContentUtils::GetSubjectPrincipal();
+  nsIPrincipal* prin = nsContentUtils::SubjectPrincipal();
   return nsContentUtils::IsSystemPrincipal(prin) ||
     prin->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED;
 }
