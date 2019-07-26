@@ -275,6 +275,14 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
 
   dlclose(libmedia);
 
+  
+
+
+
+  if (rate == 0) {
+    return CUBEB_ERROR;
+  }
+
   return CUBEB_OK;
 }
 
