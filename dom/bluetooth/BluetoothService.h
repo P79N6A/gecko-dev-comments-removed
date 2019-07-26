@@ -317,9 +317,16 @@ public:
   void
   RemoveObserverFromTable(const nsAString& key);
 
+  
+
+
+
+  void TryFiringAdapterAdded();
+  void AdapterAddedReceived();
+
 protected:
-  BluetoothService()
-  : mEnabled(false)
+  BluetoothService() : mEnabled(false)
+                     , mAdapterAddedReceived(false)
   {
   }
 
@@ -408,6 +415,8 @@ private:
 
 
   nsCOMPtr<nsIThread> mBluetoothThread;
+
+  bool mAdapterAddedReceived;
 };
 
 END_BLUETOOTH_NAMESPACE
