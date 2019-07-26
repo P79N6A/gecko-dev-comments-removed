@@ -14,16 +14,31 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 let gClient, gActor;
 
 function connect(onDone) {
-  Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
-  let observer = {
-    observe: function (subject, topic, data) {
-      Services.obs.removeObserver(observer, "debugger-server-started");
-      let transport = debuggerSocketConnect("127.0.0.1", 6000);
-      startClient(transport, onDone);
-    }
-  };
-  Services.obs.addObserver(observer, "debugger-server-started", false);
-  DebuggerServer.controller.start(6000);
+
+  if (Services.appinfo.name == "B2G") {
+    
+    let settingsService = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+    settingsService.createLock().set("devtools.debugger.remote-enabled", true, null);
+    
+    
+    
+    let observer = {
+      observe: function (subject, topic, data) {
+        Services.obs.removeObserver(observer, "debugger-server-started");
+        let transport = debuggerSocketConnect("127.0.0.1", 6000);
+        startClient(transport, onDone);
+      }
+    };
+    Services.obs.addObserver(observer, "debugger-server-started", false);
+  } else {
+    
+    DebuggerServer.init(function () { return true; });
+    
+    
+    DebuggerServer.addBrowserActors();
+    let transport = DebuggerServer.connectPipe();
+    startClient(transport, onDone);
+  }
 }
 
 function startClient(transport, onDone) {

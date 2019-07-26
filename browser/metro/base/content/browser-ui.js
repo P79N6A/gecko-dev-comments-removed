@@ -12,6 +12,10 @@ Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
 
 
+const debugServerStateChanged = "devtools.debugger.remote-enabled";
+const debugServerPortChanged = "devtools.debugger.remote-port";
+
+
 const kForegroundTabAnimationDelay = 1000;
 
 const kBackgroundTabAnimationDelay = 3000;
@@ -77,6 +81,12 @@ var BrowserUI = {
   ready: false, 
 
   init: function() {
+    
+    if (Services.prefs.getBoolPref(debugServerStateChanged)) {
+      this.runDebugServer();
+    }
+    Services.prefs.addObserver(debugServerStateChanged, this, false);
+    Services.prefs.addObserver(debugServerPortChanged, this, false);
     Services.prefs.addObserver("app.crashreporter.autosubmit", this, false);
     Services.prefs.addObserver("metro.private_browsing.enabled", this, false);
     this.updatePrivateBrowsingUI();
@@ -196,6 +206,8 @@ var BrowserUI = {
 
     messageManager.removeMessageListener("Browser:MozApplicationManifest", OfflineApps);
 
+    Services.prefs.removeObserver(debugServerStateChanged, this);
+    Services.prefs.removeObserver(debugServerPortChanged, this);
     Services.prefs.removeObserver("app.crashreporter.autosubmit", this);
     Services.prefs.removeObserver("metro.private_browsing.enabled", this);
 
@@ -208,6 +220,37 @@ var BrowserUI = {
     PageThumbs.uninit();
     if (WindowsPrefSync) {
       WindowsPrefSync.uninit();
+    }
+    this.stopDebugServer();
+  },
+
+  
+
+
+  runDebugServer: function runDebugServer(aPort) {
+    let port = aPort || Services.prefs.getIntPref(debugServerPortChanged);
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+      DebuggerServer.addActors('chrome://browser/content/dbg-metro-actors.js');
+    }
+    DebuggerServer.openListener(port);
+  },
+
+  stopDebugServer: function stopDebugServer() {
+    if (DebuggerServer.initialized) {
+      DebuggerServer.destroy();
+    }
+  },
+
+  
+  
+  
+  
+  changeDebugPort:function changeDebugPort(aPort) {
+    if (DebuggerServer.initialized) {
+      this.stopDebugServer();
+      this.runDebugServer(aPort);
     }
   },
 
@@ -583,6 +626,16 @@ var BrowserUI = {
         switch (aData) {
           case "browser.cache.disk_cache_ssl":
             this._sslDiskCacheEnabled = Services.prefs.getBoolPref(aData);
+            break;
+          case debugServerStateChanged:
+            if (Services.prefs.getBoolPref(aData)) {
+              this.runDebugServer();
+            } else {
+              this.stopDebugServer();
+            }
+            break;
+          case debugServerPortChanged:
+            this.changeDebugPort(Services.prefs.getIntPref(aData));
             break;
           case "app.crashreporter.autosubmit":
 #ifdef MOZ_CRASHREPORTER
