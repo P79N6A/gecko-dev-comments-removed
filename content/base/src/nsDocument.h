@@ -1156,6 +1156,8 @@ protected:
 
   void EnsureOnloadBlocker();
 
+  void NotifyStyleSheetApplicableStateChanged();
+
   nsTArray<nsIObserver*> mCharSetObservers;
 
   PLDHashTable *mSubDocuments;
@@ -1278,6 +1280,10 @@ protected:
   bool mAllowRelocking:1;
 
   bool mAsyncFullscreenPending:1;
+
+  
+  
+  bool mSSApplicableStateNotificationPending:1;
 
   uint32_t mCancelledPointerLockRequests;
 
