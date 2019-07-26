@@ -93,6 +93,11 @@ class nsIntervalSet;
 
 
 
+#define NS_BLOCK_LOOK_FOR_DIRTY_FRAMES      NS_FRAME_STATE_BIT(61)
+
+
+
+
 
 
 

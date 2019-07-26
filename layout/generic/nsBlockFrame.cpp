@@ -989,8 +989,25 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (reflowState->mFlags.mHResize)
+  if (!(GetStateBits() & NS_FRAME_IS_DIRTY) && reflowState->mFlags.mHResize) {
     PrepareResizeReflow(state);
+  }
+
+  if (GetStateBits() & NS_BLOCK_LOOK_FOR_DIRTY_FRAMES) {
+    for (line_iterator line = begin_lines(), line_end = end_lines();
+         line != line_end; ++line) {
+      int32_t n = line->GetChildCount();
+      for (nsIFrame* lineFrame = line->mFirstChild;
+           n > 0; lineFrame = lineFrame->GetNextSibling(), --n) {
+        if (NS_SUBTREE_DIRTY(lineFrame)) {
+          
+          MarkLineDirty(line, &mLines);
+          break;
+        }
+      }
+    }
+    RemoveStateBits(NS_BLOCK_LOOK_FOR_DIRTY_FRAMES);
+  }
 
   mState &= ~NS_FRAME_FIRST_REFLOW;
 
@@ -6381,10 +6398,40 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
     
     
     
-    bool isValid;
-    nsBlockInFlowLineIterator iter(this, aChild, &isValid);
-    if (isValid) {
-      iter.GetContainer()->MarkLineDirty(iter.GetLine(), iter.GetLineList());
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(aChild->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      AddStateBits(NS_BLOCK_LOOK_FOR_DIRTY_FRAMES);
+    } else {
+      NS_ASSERTION(aChild->IsFloating(), "should be a float");
+      nsIFrame *thisFC = GetFirstContinuation();
+      nsIFrame *placeholderPath =
+        PresContext()->FrameManager()->GetPlaceholderFrameFor(aChild);
+      
+      
+      
+      if (placeholderPath) {
+        nsIFrame *placeholderPathFC = placeholderPath->GetFirstContinuation();
+        for (;;) {
+          nsIFrame *parent = placeholderPath->GetParent();
+          if (parent->GetContent() == mContent &&
+              parent->GetFirstContinuation() == thisFC) {
+            parent->AddStateBits(NS_BLOCK_LOOK_FOR_DIRTY_FRAMES);
+            break;
+          }
+          placeholderPath = parent;
+        }
+        placeholderPath->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+      }
     }
   }
 
