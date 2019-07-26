@@ -4158,6 +4158,10 @@ class MPow
     bool possiblyCalls() const {
         return true;
     }
+    bool writeRecoverData(CompactBufferWriter &writer) const;
+    bool canRecoverOnBailout() const {
+        return true;
+    }
 };
 
 
