@@ -2,6 +2,9 @@
 
 
 
+
+
+
 #include "js/MemoryMetrics.h"
 
 #include "mozilla/Assertions.h"
@@ -15,6 +18,8 @@
 #include "jsscript.h"
 
 #include "jsobjinlines.h"
+
+#include "ion/IonCode.h"
 
 #ifdef JS_THREADSAFE
 
@@ -193,7 +198,16 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         break;
     }
     case JSTRACE_IONCODE:
+    {
+#ifdef JS_METHODJIT
+# ifdef JS_ION
+        ion::IonCode *code = static_cast<ion::IonCode *>(thing);
+        cStats->gcHeapScripts += thingSize;
+        cStats->mjitData += code->bufferSize();
+# endif
+#endif
         break;
+    }
     case JSTRACE_TYPE_OBJECT:
     {
         types::TypeObject *obj = static_cast<types::TypeObject *>(thing);
