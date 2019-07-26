@@ -31,6 +31,7 @@ bool stack_key_initialized;
 TimeStamp   sLastTracerEvent; 
 int         sFrameNumber = 0;
 int         sLastFrameNumber = 0;
+int         sInitCount = 0; 
 static bool sIsProfiling = false; 
 
 
@@ -63,6 +64,11 @@ void Sampler::Shutdown() {
 
   delete sRegisteredThreadsMutex;
   delete sRegisteredThreads;
+
+  
+  
+  sRegisteredThreadsMutex = nullptr;
+  sRegisteredThreads = nullptr;
 }
 
 ThreadInfo::~ThreadInfo() {
@@ -243,6 +249,8 @@ void read_profiler_env_vars()
 
 void mozilla_sampler_init()
 {
+  sInitCount++;
+
   if (stack_key_initialized)
     return;
 
@@ -306,6 +314,11 @@ void mozilla_sampler_init()
 
 void mozilla_sampler_shutdown()
 {
+  sInitCount--;
+
+  if (sInitCount > 0)
+    return;
+
   
   TableTicker *t = tlsTicker.get();
   if (t) {
