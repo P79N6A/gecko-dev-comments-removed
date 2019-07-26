@@ -503,7 +503,8 @@ nsSize nsVideoFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   intrinsicSize.width.SetCoordValue(size.width);
   intrinsicSize.height.SetCoordValue(size.height);
 
-  nsSize& intrinsicRatio = size; 
+  
+  nsSize intrinsicRatio = HasVideoElement() ? size : nsSize(0, 0);
 
   return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(aRenderingContext,
                                                            this,
@@ -531,6 +532,11 @@ nscoord nsVideoFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 
 nsSize nsVideoFrame::GetIntrinsicRatio()
 {
+  if (!HasVideoElement()) {
+    
+    return nsSize(0, 0);
+  }
+
   return GetVideoIntrinsicSize(nullptr);
 }
 
@@ -566,12 +572,9 @@ nsVideoFrame::GetVideoIntrinsicSize(nsRenderingContext *aRenderingContext)
 {
   
   nsIntSize size(300, 150);
-  
+
   if (!HasVideoElement()) {
-    if (!aRenderingContext || !mFrames.FirstChild()) {
-      
-      
-      
+    if (!mFrames.FirstChild()) {
       return nsSize(0, 0);
     }
 
