@@ -43,7 +43,8 @@ public class testUITelemetry extends JavascriptTest {
             
             Telemetry.stopUISession(Session._TEST_STOPPED_TWICE, Reason._TEST_IGNORED);
 
-            Telemetry.sendUIEvent(Event._TEST1, Method._TEST1);
+            
+            Telemetry.sendUIEvent(Event._TEST1);
         } catch (Exception e) {
             Log.e("GeckoTest", "Oops.", e);
         }
