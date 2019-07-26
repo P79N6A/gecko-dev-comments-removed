@@ -30,7 +30,6 @@
 #include "nsIDocument.h"                
 #include "nsIDocumentStateListener.h"
 #include "nsIEditor.h"                  
-#include "nsIEditorDocShell.h"          
 #include "nsIHTMLDocument.h"            
 #include "nsIInterfaceRequestorUtils.h"  
 #include "nsIPlaintextEditor.h"         
@@ -113,7 +112,7 @@ nsEditingSession::MakeWindowEditable(nsIDOMWindow *aWindow,
   mEditorFlags = 0;
 
   
-  nsIDocShell *docShell = GetDocShellFromWindow(aWindow);
+  nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
   NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
   mDocShell = do_GetWeakReference(docShell);
@@ -142,12 +141,8 @@ nsEditingSession::MakeWindowEditable(nsIDOMWindow *aWindow,
   rv = PrepareForEditing(aWindow);
   NS_ENSURE_SUCCESS(rv, rv);  
   
-  nsCOMPtr<nsIEditorDocShell> editorDocShell;
-  rv = GetEditorDocShellFromWindow(aWindow, getter_AddRefs(editorDocShell));
-  NS_ENSURE_SUCCESS(rv, rv);  
   
-  
-  rv = editorDocShell->MakeEditable(aDoAfterUriLoad);
+  rv = docShell->MakeEditable(aDoAfterUriLoad);
   NS_ENSURE_SUCCESS(rv, rv);  
 
   
@@ -241,12 +236,10 @@ nsEditingSession::GetJsAndPluginsDisabled(bool *aResult)
 NS_IMETHODIMP
 nsEditingSession::WindowIsEditable(nsIDOMWindow *aWindow, bool *outIsEditable)
 {
-  nsCOMPtr<nsIEditorDocShell> editorDocShell;
-  nsresult rv = GetEditorDocShellFromWindow(aWindow,
-                                            getter_AddRefs(editorDocShell));
-  NS_ENSURE_SUCCESS(rv, rv);  
+  nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
+  NS_ENSURE_STATE(docShell);
 
-  return editorDocShell->GetEditable(outIsEditable);
+  return docShell->GetEditable(outIsEditable);
 }
 
 
@@ -398,7 +391,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
 
   
   
-  nsIDocShell *docShell = GetDocShellFromWindow(aWindow);
+  nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
   NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);  
 
   if (!mInteractive) {
@@ -412,9 +405,6 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   }
 
   
-  nsCOMPtr<nsIEditorDocShell> editorDocShell = do_QueryInterface(docShell, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   nsCOMPtr<nsIEditor> editor = do_QueryReferent(mExistingEditor);
   if (editor) {
@@ -425,7 +415,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
     mExistingEditor = do_GetWeakReference(editor);
   }
   
-  rv = editorDocShell->SetEditor(editor);
+  rv = docShell->SetEditor(editor);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -547,12 +537,11 @@ nsEditingSession::TearDownEditorOnWindow(nsIDOMWindow *aWindow)
   if (stopEditing)
     RemoveWebProgressListener(aWindow);
 
-  nsCOMPtr<nsIEditorDocShell> editorDocShell;
-  rv = GetEditorDocShellFromWindow(aWindow, getter_AddRefs(editorDocShell));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
+  NS_ENSURE_STATE(docShell);
   
   nsCOMPtr<nsIEditor> editor;
-  rv = editorDocShell->GetEditor(getter_AddRefs(editor));
+  rv = docShell->GetEditor(getter_AddRefs(editor));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (stopEditing)
@@ -567,7 +556,7 @@ nsEditingSession::TearDownEditorOnWindow(nsIDOMWindow *aWindow)
 
   
   
-  editorDocShell->SetEditor(nullptr);
+  docShell->SetEditor(nullptr);
 
   RemoveListenersAndControllers(aWindow, editor);
 
@@ -603,12 +592,10 @@ NS_IMETHODIMP
 nsEditingSession::GetEditorForWindow(nsIDOMWindow *aWindow,
                                      nsIEditor **outEditor)
 {
-  nsCOMPtr<nsIEditorDocShell> editorDocShell;
-  nsresult rv = GetEditorDocShellFromWindow(aWindow,
-                                            getter_AddRefs(editorDocShell));
-  NS_ENSURE_SUCCESS(rv, rv);  
+  nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
+  NS_ENSURE_STATE(aWindow);
   
-  return editorDocShell->GetEditor(outEditor);
+  return docShell->GetEditor(outEditor);
 }
 
 
@@ -973,15 +960,13 @@ nsEditingSession::EndDocumentLoad(nsIWebProgress *aWebProgress,
   if (refreshURI)
     refreshURI->CancelRefreshURITimers();
 
-  nsCOMPtr<nsIEditorDocShell> editorDocShell = do_QueryInterface(docShell);
-
   nsresult rv = NS_OK;
 
   
-  if (aIsToBeMadeEditable && mCanCreateEditor && editorDocShell)
+  if (aIsToBeMadeEditable && mCanCreateEditor)
   {
     bool    makeEditable;
-    editorDocShell->GetEditable(&makeEditable);
+    docShell->GetEditable(&makeEditable);
   
     if (makeEditable)
     {
@@ -993,7 +978,7 @@ nsEditingSession::EndDocumentLoad(nsIWebProgress *aWebProgress,
       } else {
         
         nsCOMPtr<nsIEditor> editor;
-        rv = editorDocShell->GetEditor(getter_AddRefs(editor));
+        rv = docShell->GetEditor(getter_AddRefs(editor));
         NS_ENSURE_SUCCESS(rv, rv);
 
         needsSetup = !editor;
@@ -1123,24 +1108,6 @@ nsEditingSession::GetDocShellFromWindow(nsIDOMWindow *aWindow)
   NS_ENSURE_TRUE(window, nullptr);
 
   return window->GetDocShell();
-}
-
-
-
-
-
-
-
-
-nsresult
-nsEditingSession::GetEditorDocShellFromWindow(nsIDOMWindow *aWindow,
-                                              nsIEditorDocShell** outDocShell)
-{
-  nsIDocShell *docShell = GetDocShellFromWindow(aWindow);
-  NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
-  
-  return docShell->QueryInterface(NS_GET_IID(nsIEditorDocShell), 
-                                  (void **)outDocShell);
 }
 
 
