@@ -1860,7 +1860,7 @@ let SessionStoreInternal = {
 
 
   _collectTabData: function ssi_collectTabData(aTab, aFullData) {
-    var tabData = { entries: [] };
+    var tabData = { entries: [], lastAccessed: aTab.lastAccessed };
     var browser = aTab.linkedBrowser;
 
     if (!browser || !browser.currentURI)
