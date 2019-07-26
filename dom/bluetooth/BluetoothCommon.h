@@ -89,6 +89,11 @@ extern bool gBluetoothDebugFlag;
 
 #define PAIRED_STATUS_CHANGED_ID             "pairedstatuschanged"
 
+ 
+
+
+#define DISCOVERY_STATE_CHANGED_ID           "discoverystatechanged"
+
 
 
 
