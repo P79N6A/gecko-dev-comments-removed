@@ -2882,13 +2882,14 @@ static const char *gEventNames[] = {"event"};
 static const char *gSVGEventNames[] = {"evt"};
 
 
-
-static const char *gOnErrorNames[] = {"event", "source", "lineno"};
+static const char *gOnErrorNames[] = {"event", "source", "lineno",
+                                      "colno", "error"};
 
 
 void
 nsContentUtils::GetEventArgNames(int32_t aNameSpaceID,
                                  nsIAtom *aEventName,
+                                 bool aIsForWindow,
                                  uint32_t *aArgCount,
                                  const char*** aArgArray)
 {
@@ -2899,7 +2900,7 @@ nsContentUtils::GetEventArgNames(int32_t aNameSpaceID,
   
   
   
-  if (aEventName == nsGkAtoms::onerror) {
+  if (aEventName == nsGkAtoms::onerror && aIsForWindow) {
     SET_EVENT_ARG_NAMES(gOnErrorNames);
   } else if (aNameSpaceID == kNameSpaceID_SVG) {
     SET_EVENT_ARG_NAMES(gSVGEventNames);

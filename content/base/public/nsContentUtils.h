@@ -717,6 +717,7 @@ public:
 
 
   static void GetEventArgNames(int32_t aNameSpaceID, nsIAtom *aEventName,
+                               bool aIsForWindow,
                                uint32_t *aArgCount, const char*** aArgNames);
 
   
