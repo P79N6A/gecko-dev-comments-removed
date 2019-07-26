@@ -25,8 +25,10 @@ public:
   
   
   
+  
   static CanPlayStatus CanHandleMediaType(const char* aMIMEType,
-                                          char const *const ** aSupportedCodecs);
+                                          bool aHaveRequestedCodecs,
+                                          const nsAString& aRequestedCodecs);
 
   
   
