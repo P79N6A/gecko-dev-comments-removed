@@ -2407,58 +2407,14 @@ Element::GetLinkTarget(nsAString& aTarget)
   aTarget.Truncate();
 }
 
-
-
-
-static nsresult
-ParseSelectorList(nsINode* aNode,
-                  const nsAString& aSelectorString,
-                  nsCSSSelectorList** aSelectorList)
-{
-  NS_ENSURE_ARG(aNode);
-
-  nsIDocument* doc = aNode->OwnerDoc();
-  nsCSSParser parser(doc->CSSLoader());
-
-  nsCSSSelectorList* selectorList;
-  nsresult rv = parser.ParseSelectorString(aSelectorString,
-                                           doc->GetDocumentURI(),
-                                           0, 
-                                           &selectorList);
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    return rv;
-  }
-
-  
-  nsCSSSelectorList** slot = &selectorList;
-  do {
-    nsCSSSelectorList* cur = *slot;
-    if (cur->mSelectors->IsPseudoElement()) {
-      *slot = cur->mNext;
-      cur->mNext = nullptr;
-      delete cur;
-    } else {
-      slot = &cur->mNext;
-    }
-  } while (*slot);
-  *aSelectorList = selectorList;
-
-  return NS_OK;
-}
-
-
 bool
 Element::MozMatchesSelector(const nsAString& aSelector,
                             ErrorResult& aError)
 {
-  nsAutoPtr<nsCSSSelectorList> selectorList;
-
-  aError = ParseSelectorList(this, aSelector, getter_Transfers(selectorList));
-
-  if (aError.Failed()) {
+  nsCSSSelectorList* selectorList = ParseSelectorList(aSelector, aError);
+  if (!selectorList) {
+    
+    
     return false;
   }
 

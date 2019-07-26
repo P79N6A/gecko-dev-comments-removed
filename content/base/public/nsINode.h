@@ -31,6 +31,7 @@
 
 class nsAttrAndChildArray;
 class nsChildContentList;
+class nsCSSSelectorList;
 class nsDOMAttributeMap;
 class nsIContent;
 class nsIDocument;
@@ -1697,6 +1698,17 @@ protected:
 
   nsresult doInsertChildAt(nsIContent* aKid, uint32_t aIndex,
                            bool aNotify, nsAttrAndChildArray& aChildArray);
+
+  
+
+
+
+
+
+
+
+  nsCSSSelectorList* ParseSelectorList(const nsAString& aSelectorString,
+                                       mozilla::ErrorResult& aRv);
 
 public:
   

@@ -2301,15 +2301,11 @@ nsINode::Length() const
   }
 }
 
-
-
-static nsCSSSelectorList*
-ParseSelectorList(nsINode* aNode,
-                  const nsAString& aSelectorString,
-                  ErrorResult& aRv)
+nsCSSSelectorList*
+nsINode::ParseSelectorList(const nsAString& aSelectorString,
+                           ErrorResult& aRv)
 {
-  MOZ_ASSERT(aNode);
-  nsIDocument* doc = aNode->OwnerDoc();
+  nsIDocument* doc = OwnerDoc();
   nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
   nsCSSSelectorList* selectorList = nullptr;
   bool haveCachedList = cache.GetList(aSelectorString, &selectorList);
@@ -2431,16 +2427,9 @@ FindMatchingElementsWithId(const nsAString& aId, nsINode* aRoot,
 
 template<bool onlyFirstMatch, class Collector, class T>
 MOZ_ALWAYS_INLINE static void
-FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList,
+FindMatchingElements(nsINode* aRoot, nsCSSSelectorList* aSelectorList, T &aList,
                      ErrorResult& aRv)
 {
-  nsCSSSelectorList* selectorList = ParseSelectorList(aRoot, aSelector, aRv);
-  if (!selectorList) {
-    
-    
-    return;
-  }
-
   nsIDocument* doc = aRoot->OwnerDoc();
 
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
@@ -2460,10 +2449,10 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList,
                "document if it's in the document.");
   if (aRoot->IsInDoc() &&
       doc->GetCompatibilityMode() != eCompatibility_NavQuirks &&
-      !selectorList->mNext &&
-      selectorList->mSelectors->mIDList) {
-    nsIAtom* id = selectorList->mSelectors->mIDList->mAtom;
-    SelectorMatchInfo info = { selectorList, matchingContext };
+      !aSelectorList->mNext &&
+      aSelectorList->mSelectors->mIDList) {
+    nsIAtom* id = aSelectorList->mSelectors->mIDList->mAtom;
+    SelectorMatchInfo info = { aSelectorList, matchingContext };
     FindMatchingElementsWithId<onlyFirstMatch, T>(nsDependentAtomString(id),
                                                   aRoot, &info, aList);
     return;
@@ -2476,7 +2465,7 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList,
     if (cur->IsElement() &&
         nsCSSRuleProcessor::SelectorListMatches(cur->AsElement(),
                                                 matchingContext,
-                                                selectorList)) {
+                                                aSelectorList)) {
       if (onlyFirstMatch) {
         aList.AppendElement(cur->AsElement());
         return;
@@ -2510,8 +2499,14 @@ struct ElementHolder {
 Element*
 nsINode::QuerySelector(const nsAString& aSelector, ErrorResult& aResult)
 {
+  nsCSSSelectorList* selectorList = ParseSelectorList(aSelector, aResult);
+  if (!selectorList) {
+    
+    
+    return nullptr;
+  }
   ElementHolder holder;
-  FindMatchingElements<true, ElementHolder>(this, aSelector, holder, aResult);
+  FindMatchingElements<true, ElementHolder>(this, selectorList, holder, aResult);
   return holder.mElement;
 }
 
@@ -2520,10 +2515,16 @@ nsINode::QuerySelectorAll(const nsAString& aSelector, ErrorResult& aResult)
 {
   nsRefPtr<nsSimpleContentList> contentList = new nsSimpleContentList(this);
 
-  FindMatchingElements<false, nsAutoTArray<Element*, 128>>(this,
-                                                           aSelector,
-                                                           *contentList,
-                                                           aResult);
+  nsCSSSelectorList* selectorList = ParseSelectorList(aSelector, aResult);
+  if (selectorList) {
+    FindMatchingElements<false, nsAutoTArray<Element*, 128>>(this,
+                                                             selectorList,
+                                                             *contentList,
+                                                             aResult);
+  } else {
+    
+    
+  }
 
   return contentList.forget();
 }
