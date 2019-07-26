@@ -120,7 +120,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #include "mozilla/gfx/QuartzSupport.h"
 #endif
 
-#ifdef MOZ_WIDGET_GTK2
+#if defined(MOZ_WIDGET_GTK)
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
@@ -524,7 +524,7 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
                                 aReflowState.mComputedMaxHeight);
     }
 
-#if defined (MOZ_WIDGET_GTK2)
+#if defined(MOZ_WIDGET_GTK)
     
     
     
