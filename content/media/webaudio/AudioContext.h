@@ -19,6 +19,7 @@
 #include "MediaBufferDecoder.h"
 #include "StreamBuffer.h"
 #include "MediaStreamGraph.h"
+#include "nsTHashtable.h"
 
 
 
@@ -169,9 +170,12 @@ private:
   nsTArray<nsAutoPtr<WebAudioDecodeJob> > mDecodeJobs;
   
   
-  nsTArray<PannerNode*> mPannerNodes;
-  nsTArray<AudioBufferSourceNode*> mAudioBufferSourceNodes;
-  nsTArray<ScriptProcessorNode*> mScriptProcessorNodes;
+  
+  nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
+  nsTHashtable<nsPtrHashKey<AudioBufferSourceNode> > mAudioBufferSourceNodes;
+  
+  
+  nsTHashtable<nsPtrHashKey<ScriptProcessorNode> > mScriptProcessorNodes;
 };
 
 }
