@@ -59,8 +59,11 @@ class JSONSpewer
     
     bool inFunction_;
 
+    int indentLevel_;
     bool first_;
     FILE *fp_;
+
+    void indent();
 
     void property(const char *name);
     void beginObject();
@@ -76,6 +79,7 @@ class JSONSpewer
   public:
     JSONSpewer()
       : inFunction_(false),
+        indentLevel_(0),
         first_(true),
         fp_(NULL)
     { }
