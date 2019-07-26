@@ -3027,10 +3027,13 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
         callerObs = callinfo.getArgType(i - 1);
     }
 
+    bool needsBarrier = false;
+
     while (excluded) {
         if (excluded->target == calleeObs && callerObs->hasType(excluded->type)) {
             if (excluded->type == types::Type::DoubleType() &&
-                calleeObs->hasType(types::Type::Int32Type())) {
+                calleeObs->hasType(types::Type::Int32Type()))
+            {
                 
                 
                 
@@ -3040,7 +3043,6 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
                     MInstruction *bailType = MToInt32::New(ins);
                     current->add(bailType);
                     ins = bailType;
-                    break;
                 } else {
                     
                     
@@ -3054,16 +3056,19 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
                     current->add(toInt);
                     ins = toInt;
                 }
-            } else {
-                JS_ASSERT(!calleeObs->hasType(excluded->type));
 
-                
-                
-                MInstruction *bailType = MExcludeType::New(ins, excluded->type);
-                current->add(bailType);
+                needsBarrier = false;
+                break;
             }
+
+            needsBarrier = true;
         }
         excluded = excluded->next;
+    }
+
+    if (needsBarrier) {
+        MTypeBarrier *barrier = MTypeBarrier::New(ins, cloneTypeSet(calleeObs), Bailout_Normal);
+        current->add(barrier);
     }
 
     if (i == 0)
