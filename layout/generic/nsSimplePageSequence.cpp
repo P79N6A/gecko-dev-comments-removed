@@ -265,12 +265,8 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     } else if (!kidNextInFlow) {
       
       
-      nsIFrame* continuingPage;
-      nsresult rv = aPresContext->PresShell()->FrameConstructor()->
-        CreateContinuingFrame(aPresContext, kidFrame, this, &continuingPage);
-      if (NS_FAILED(rv)) {
-        break;
-      }
+      nsIFrame* continuingPage = aPresContext->PresShell()->FrameConstructor()->
+        CreateContinuingFrame(aPresContext, kidFrame, this);
 
       
       mFrames.InsertFrame(nullptr, kidFrame, continuingPage);

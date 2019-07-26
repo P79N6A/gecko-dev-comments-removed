@@ -853,12 +853,8 @@ nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
   
   if (!aContRowFrame) {NS_ASSERTION(false, "bad call"); return;}
   
-  nsresult rv = aPresContext.PresShell()->FrameConstructor()->
-    CreateContinuingFrame(&aPresContext, &aRowFrame, this, aContRowFrame);
-  if (NS_FAILED(rv)) {
-    *aContRowFrame = nullptr;
-    return;
-  }
+  *aContRowFrame = aPresContext.PresShell()->FrameConstructor()->
+    CreateContinuingFrame(&aPresContext, &aRowFrame, this);
 
   
   mFrames.InsertFrame(nullptr, &aRowFrame, *aContRowFrame);
@@ -944,10 +940,9 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
             if (row != &aLastRow) {
               
               
-              nsTableCellFrame* contCell = nullptr;
-              aPresContext.PresShell()->FrameConstructor()->
-                CreateContinuingFrame(&aPresContext, cell, &aLastRow,
-                                      (nsIFrame**)&contCell);
+              nsTableCellFrame* contCell = static_cast<nsTableCellFrame*>(
+                aPresContext.PresShell()->FrameConstructor()->
+                  CreateContinuingFrame(&aPresContext, cell, &aLastRow));
               int32_t colIndex;
               cell->GetColIndex(colIndex);
               aContRow->InsertCellFrame(contCell, colIndex);

@@ -347,11 +347,10 @@ public:
   void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
   
-  nsresult CreateContinuingFrame(nsPresContext* aPresContext,
-                                 nsIFrame*       aFrame,
-                                 nsIFrame*       aParentFrame,
-                                 nsIFrame**      aContinuingFrame,
-                                 bool            aIsFluid = true);
+  nsIFrame* CreateContinuingFrame(nsPresContext* aPresContext,
+                                  nsIFrame*       aFrame,
+                                  nsIFrame*       aParentFrame,
+                                  bool            aIsFluid = true);
 
   
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
@@ -1542,13 +1541,12 @@ private:
   bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                nsresult* aResult);
 
-  nsresult CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell, 
-                                           nsPresContext*  aPresContext,
-                                           nsIFrame*        aFrame,
-                                           nsIFrame*        aParentFrame,
-                                           nsIContent*      aContent,
-                                           nsStyleContext*  aStyleContext,
-                                           nsIFrame**       aContinuingFrame);
+  nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell, 
+                                            nsPresContext*  aPresContext,
+                                            nsIFrame*        aFrame,
+                                            nsIFrame*        aParentFrame,
+                                            nsIContent*      aContent,
+                                            nsStyleContext*  aStyleContext);
 
   nsIFrame* CreateContinuingTableFrame(nsIPresShell*    aPresShell, 
                                        nsPresContext*  aPresContext,

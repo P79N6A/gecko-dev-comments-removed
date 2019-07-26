@@ -7485,15 +7485,12 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
       
       
       nsPresContext* presContext = PresContext();
-      nsIFrame* newFrame;
-      nsresult rv = presContext->PresShell()->FrameConstructor()->
-        CreateContinuingFrame(presContext, this, GetParent(), &newFrame);
-      if (NS_SUCCEEDED(rv)) {
-        nsTextFrame* next = static_cast<nsTextFrame*>(newFrame);
-        nsFrameList temp(next, next);
-        GetParent()->InsertFrames(kNoReflowPrincipalList, this, temp);
-        f = next;
-      }
+      nsIFrame* newFrame = presContext->PresShell()->FrameConstructor()->
+        CreateContinuingFrame(presContext, this, GetParent());
+      nsTextFrame* next = static_cast<nsTextFrame*>(newFrame);
+      nsFrameList temp(next, next);
+      GetParent()->InsertFrames(kNoReflowPrincipalList, this, temp);
+      f = next;
     }
 
     f->mContentOffset = end;

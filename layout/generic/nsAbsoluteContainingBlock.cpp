@@ -127,9 +127,9 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
       if (!NS_FRAME_IS_FULLY_COMPLETE(kidStatus)) {
         
         if (!nextFrame) {
-          nsresult rv = aPresContext->PresShell()->FrameConstructor()->
-            CreateContinuingFrame(aPresContext, kidFrame, aDelegatingFrame, &nextFrame);
-          NS_ENSURE_SUCCESS(rv, rv);
+          nextFrame =
+            aPresContext->PresShell()->FrameConstructor()->
+              CreateContinuingFrame(aPresContext, kidFrame, aDelegatingFrame);
         }
         
         
