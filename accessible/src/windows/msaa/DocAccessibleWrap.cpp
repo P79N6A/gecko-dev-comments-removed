@@ -64,6 +64,9 @@ STDMETHODIMP_(ULONG) DocAccessibleWrap::Release()
 STDMETHODIMP
 DocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
 {
+  if (!ppv)
+    return E_INVALIDARG;
+
   *ppv = nullptr;
 
   if (IID_ISimpleDOMDocument != iid)
@@ -79,6 +82,9 @@ STDMETHODIMP
 DocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
 {
   A11Y_TRYBLOCK_BEGIN
+
+  if (!aURL)
+    return E_INVALIDARG;
 
   *aURL = nullptr;
 
@@ -101,6 +107,9 @@ DocAccessibleWrap::get_title(  BSTR __RPC_FAR *aTitle)
 {
   A11Y_TRYBLOCK_BEGIN
 
+  if (!aTitle)
+    return E_INVALIDARG;
+
   *aTitle = nullptr;
 
   nsAutoString title;
@@ -118,6 +127,9 @@ STDMETHODIMP
 DocAccessibleWrap::get_mimeType( BSTR __RPC_FAR *aMimeType)
 {
   A11Y_TRYBLOCK_BEGIN
+
+  if (!aMimeType)
+    return E_INVALIDARG;
 
   *aMimeType = nullptr;
 
@@ -140,6 +152,9 @@ DocAccessibleWrap::get_docType( BSTR __RPC_FAR *aDocType)
 {
   A11Y_TRYBLOCK_BEGIN
 
+  if (!aDocType)
+    return E_INVALIDARG;
+
   *aDocType = nullptr;
 
   nsAutoString docType;
@@ -161,6 +176,9 @@ DocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
    BSTR __RPC_FAR *aNameSpaceURI)
 {
   A11Y_TRYBLOCK_BEGIN
+
+  if (!aNameSpaceURI)
+    return E_INVALIDARG;
 
   *aNameSpaceURI = nullptr;
 
@@ -188,6 +206,9 @@ DocAccessibleWrap::put_alternateViewMediaTypes(  BSTR __RPC_FAR *aCommaSeparated
 {
   A11Y_TRYBLOCK_BEGIN
 
+  if (!aCommaSeparatedMediaTypes)
+    return E_INVALIDARG;
+
   *aCommaSeparatedMediaTypes = nullptr;
   return E_NOTIMPL;
 
@@ -199,6 +220,9 @@ DocAccessibleWrap::get_accValue(
        VARIANT varChild,
        BSTR __RPC_FAR *pszValue)
 {
+  if (!pszValue)
+    return E_INVALIDARG;
+
   
   *pszValue = nullptr;
   
