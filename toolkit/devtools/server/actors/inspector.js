@@ -48,6 +48,7 @@ const {Arg, Option, method, RetVal, types} = protocol;
 const {LongStringActor, ShortLongString} = require("devtools/server/actors/string");
 const promise = require("sdk/core/promise");
 const object = require("sdk/util/object");
+const events = require("sdk/event/core");
 
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -208,6 +209,12 @@ let NodeFront = protocol.FrontClass(NodeActor, {
 
   destroy: function() {
     
+    if (this.observer) {
+      this._observer.disconnect();
+      this._observer = null;
+    }
+
+    
     
     this.reparent(null);
     for (let child of this.treeChildren()) {
@@ -221,6 +228,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     
     
     this._form = object.merge(form);
+    this._form.attrs = this._form.attrs ? this._form.attrs.slice() : [];
 
     if (form.parent) {
       
@@ -228,6 +236,46 @@ let NodeFront = protocol.FrontClass(NodeActor, {
       
       let parentNodeFront = ctx.marshallPool().ensureParentFront(form.parent);
       this.reparent(parentNodeFront);
+    }
+  },
+
+  
+
+
+
+
+
+  updateMutation: function(change) {
+    if (change.type === "attributes") {
+      
+      this._attrMap = undefined;
+
+      
+      let found = false;
+      for (let i = 0; i < this.attributes.length; i++) {
+        let attr = this.attributes[i];
+        if (attr.name == change.attributeName &&
+            attr.namespace == change.attributeNamespace) {
+          if (change.newValue !== null) {
+            attr.value = change.newValue;
+          } else {
+            this.attributes.splice(i, 1);
+          }
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found)  {
+        this.attributes.push({
+          name: change.attributeName,
+          namespace: change.attributeNamespace,
+          value: change.newValue
+        });
+      }
+    } else if (change.type === "characterData") {
+      this._form.shortValue = change.newValue;
+      this._form.incompleteValue = change.incompleteValue;
     }
   },
 
@@ -264,7 +312,7 @@ let NodeFront = protocol.FrontClass(NodeActor, {
     return (name in this._attrMap);
   },
 
-  get attributes() this._form.attrs || [],
+  get attributes() this._form.attrs,
 
   getNodeValue: protocol.custom(function() {
     if (!this.incompleteValue) {
@@ -371,6 +419,9 @@ types.addDictType("disconnectedNodeArray", {
   
   newNodes: "array:domnode"
 });
+
+types.addDictType("dommutation", {});
+
 
 
 
@@ -518,6 +569,12 @@ let traversalMethod = {
 var WalkerActor = protocol.ActorClass({
   typeName: "domwalker",
 
+  events: {
+    "new-mutations" : {
+      type: "newMutations"
+    }
+  },
+
   
 
 
@@ -527,11 +584,13 @@ var WalkerActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
     this.rootDoc = document;
     this._refMap = new Map();
+    this._pendingMutations = [];
+
+    this.onMutations = this.onMutations.bind(this);
 
     
     
     this.rootNode = this.document();
-    this.manage(this.rootNode);
   },
 
   
@@ -570,7 +629,27 @@ var WalkerActor = protocol.ActorClass({
     
     this.manage(actor);
     this._refMap.set(node, actor);
+
+    if (node.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE) {
+      this._watchDocument(actor);
+    }
     return actor;
+  },
+
+  
+
+
+
+  _watchDocument: function(actor) {
+    let node = actor.rawNode;
+    
+    
+    actor.observer = actor.rawNode.defaultView.MutationObserver(this.onMutations);
+    actor.observer.observe(node, {
+      attributes: true,
+      characterData: true,
+      subtree: true
+    });
   },
 
   
@@ -926,7 +1005,83 @@ var WalkerActor = protocol.ActorClass({
     response: {
       list: RetVal("domnodelist")
     }
-  })
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getMutations: method(function() {
+    let pending = this._pendingMutations || [];
+    this._pendingMutations = [];
+    return pending;
+  }, {
+    request: {},
+    response: {
+      mutations: RetVal("array:dommutation")
+    }
+  }),
+
+  
+
+
+
+
+
+  onMutations: function(mutations) {
+    
+    
+    let needEvent = this._pendingMutations.length === 0;
+
+    for (let change of mutations) {
+      let targetActor = this._refMap.get(change.target);
+      if (!targetActor) {
+        continue;
+      }
+      let targetNode = change.target;
+      let mutation = {
+        type: change.type,
+        target: targetActor.actorID,
+      }
+
+      if (mutation.type === "attributes") {
+        mutation.attributeName = change.attributeName;
+        mutation.attributeNamespace = change.attributeNamespace || undefined;
+        mutation.newValue = targetNode.getAttribute(mutation.attributeName);
+      } else if (mutation.type === "characterData") {
+        if (targetNode.nodeValue.length > gValueSummaryLength) {
+          mutation.newValue = targetNode.nodeValue.substring(0, gValueSummaryLength);
+          mutation.incompleteValue = true;
+        } else {
+          mutation.newValue = targetNode.nodeValue;
+        }
+      }
+      this._pendingMutations.push(mutation);
+    }
+    if (needEvent) {
+      events.emit(this, "new-mutations");
+    }
+  }
+
 });
 
 
@@ -980,6 +1135,41 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     });
   }, {
     impl: "_querySelector"
+  }),
+
+  
+
+
+  getMutations: protocol.custom(function() {
+    return this._getMutations().then(mutations => {
+      let emitMutations = [];
+      for (let change of mutations) {
+        
+        let targetID = change.target;
+        let targetFront = this.get(targetID);
+        if (!targetFront) {
+          console.error("Got a mutation for an unexpected actor: " + targetID);
+          continue;
+        }
+        targetFront.updateMutation(change);
+
+        
+        
+        emitMutations.push(object.merge(change, { target: targetFront }));
+      }
+      events.emit(this, "mutations", emitMutations);
+    });
+  }, {
+    impl: "_getMutations"
+  }),
+
+  
+
+
+
+  onMutations: protocol.preEvent("new-mutations", function() {
+    
+    this.getMutations().then(null, console.error);
   }),
 
   
