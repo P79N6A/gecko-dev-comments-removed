@@ -72,6 +72,8 @@ class IonFrameIterator
     mutable const SafepointIndex *cachedSafepointIndex_;
     const IonActivation *activation_;
 
+    void dumpBaseline() const;
+
   public:
     IonFrameIterator(uint8 *top)
       : current_(top),
@@ -170,6 +172,9 @@ class IonFrameIterator
     
     
     const SafepointIndex *safepoint() const;
+
+    
+    size_t numBaselineStackValues() const;
 
     
     
