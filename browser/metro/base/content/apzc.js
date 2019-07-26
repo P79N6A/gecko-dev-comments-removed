@@ -46,9 +46,17 @@ var APZCObserver = {
         let windowUtils = Browser.selectedBrowser.contentWindow.
                           QueryInterface(Ci.nsIInterfaceRequestor).
                           getInterface(Ci.nsIDOMWindowUtils);
+        
+        let element;
+        try {
+          element = windowUtils.findElementWithViewId(ROOT_ID);
+        } catch (e) {
+          
+          break;
+        }
         windowUtils.setDisplayPortForElement(0, 0, ContentAreaObserver.width,
                                              ContentAreaObserver.height,
-                                             windowUtils.findElementWithViewId(ROOT_ID));
+                                             element);
         break;
       case 'TabOpen': {
         let browser = aEvent.originalTarget.linkedBrowser;
