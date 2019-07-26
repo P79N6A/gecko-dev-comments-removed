@@ -192,20 +192,24 @@ var WifiManager = (function() {
     });
   }
 
-  function unloadDriver(callback) {
+  function unloadDriver(type, callback) {
     if (!unloadDriverEnabled) {
       
       
       
       
-      notify("supplicantlost", { success: true });
+      if (type === WIFI_FIRMWARE_STATION) {
+        notify("supplicantlost", { success: true });
+      }
       callback(0);
       return;
     }
 
     wifiCommand.unloadDriver(function(status) {
       driverLoaded = (status < 0);
-      notify("supplicantlost", { success: true });
+      if (type === WIFI_FIRMWARE_STATION) {
+        notify("supplicantlost", { success: true });
+      }
       callback(status);
     });
   }
@@ -879,7 +883,7 @@ var WifiManager = (function() {
               cancelWaitForDriverReadyTimer();
               wifiCommand.startSupplicant(function (status) {
                 if (status < 0) {
-                  unloadDriver(function() {
+                  unloadDriver(WIFI_FIRMWARE_STATION, function() {
                     callback(status);
                   });
                   manager.state = "UNINITIALIZED";
@@ -914,7 +918,7 @@ var WifiManager = (function() {
             wifiCommand.closeSupplicantConnection(function () {
               manager.state = "UNINITIALIZED";
               netUtil.disableInterface(manager.ifname, function (ok) {
-                unloadDriver(callback);
+                unloadDriver(WIFI_FIRMWARE_STATION, callback);
               });
             });
           });
@@ -962,7 +966,7 @@ var WifiManager = (function() {
         
         debug("Disable Wifi tethering result: " + (result ? result : "successfully"));
         
-        unloadDriver(function(status) {
+        unloadDriver(WIFI_FIRMWARE_AP, function(status) {
           if (status < 0) {
             debug("Fail to unload wifi driver");
           }
