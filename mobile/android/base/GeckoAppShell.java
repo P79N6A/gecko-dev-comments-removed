@@ -1172,7 +1172,6 @@ public class GeckoAppShell
     
 
 
-    @SuppressWarnings("deprecation")
     private static String getClipboardTextImpl() {
         Context context = GeckoApp.mAppContext;
         if (android.os.Build.VERSION.SDK_INT >= 11) {
@@ -1220,10 +1219,13 @@ public class GeckoAppShell
         }
     }
 
-    static void setClipboardText(final String text) {
+    static void setClipboardText(String copiedText) {
+        
+        
+        final String text = (copiedText != null) ? copiedText : "";
+
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
-            @SuppressWarnings("deprecation")
             public void run() {
                 Context context = GeckoApp.mAppContext;
                 if (android.os.Build.VERSION.SDK_INT >= 11) {
