@@ -231,7 +231,11 @@ class VirtualenvManager(object):
                     
                     
                     
-                    f.write("%s\n" % os.path.relpath(path, python_lib))
+                    try:
+                        f.write("%s\n" % os.path.relpath(path, python_lib))
+                    except ValueError:
+                        
+                        f.write("%s\n" % os.path.join(python_lib, path))
 
                 return True
 
