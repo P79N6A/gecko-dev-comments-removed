@@ -580,7 +580,7 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
             InfallibleTArray<BluetoothNamedValue>& aProperties)
 {
   DBusMessageIter prop_val, array_val_iter;
-  char* property = nullptr;
+  char* property = NULL;
   uint32_t array_type;
   int i, expectedType, receivedType;
 
@@ -942,14 +942,14 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
       goto handle_error;
     }
 
-    dbus_connection_send(conn, reply, nullptr);
+    dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
     v = parameters;
   } else if (dbus_message_is_method_call(msg, DBUS_AGENT_IFACE, "Authorize")) {
     
     
     const char *uuid;
-    if (!dbus_message_get_args(msg, nullptr,
+    if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_STRING, &uuid,
                                DBUS_TYPE_INVALID)) {
@@ -987,7 +987,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
       goto handle_error;
     }
 
-    dbus_connection_send(conn, reply, nullptr);
+    dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(msg, DBUS_AGENT_IFACE,
@@ -995,7 +995,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     
     
     uint32_t passkey;
-    if (!dbus_message_get_args(msg, nullptr,
+    if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_UINT32, &passkey,
                                DBUS_TYPE_INVALID)) {
@@ -1019,7 +1019,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     
     
     
-    if (!dbus_message_get_args(msg, nullptr,
+    if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_INVALID)) {
       errorStr.AssignLiteral("Invalid arguments for RequestPinCode() method");
@@ -1040,7 +1040,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     
     
     
-    if (!dbus_message_get_args(msg, nullptr,
+    if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_INVALID)) {
       errorStr.AssignLiteral("Invalid arguments for RequestPasskey() method");
@@ -1068,7 +1068,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
       goto handle_error;
     }
 
-    dbus_connection_send(conn, reply, nullptr);
+    dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
 
     
@@ -1138,7 +1138,7 @@ public:
     if (!dbus_connection_register_object_path(threadConnection->GetConnection(),
                                               KEY_REMOTE_AGENT,
                                               mAgentVTable,
-                                              nullptr)) {
+                                              NULL)) {
       BT_WARNING("%s: Can't register object path %s for remote device agent!",
                  __FUNCTION__, KEY_REMOTE_AGENT);
       return;
@@ -1157,7 +1157,7 @@ public:
   void Handle(DBusMessage* aReply)
   {
     static const DBusObjectPathVTable sAgentVTable = {
-      nullptr, AgentEventFilter, nullptr, nullptr, nullptr, nullptr
+      NULL, AgentEventFilter, NULL, NULL, NULL, NULL
     };
 
     MOZ_ASSERT(!NS_IsMainThread()); 
@@ -1227,7 +1227,7 @@ private:
     if (!dbus_connection_register_object_path(threadConnection->GetConnection(),
                                               KEY_LOCAL_AGENT,
                                               aAgentVTable,
-                                              nullptr)) {
+                                              NULL)) {
       BT_WARNING("%s: Can't register object path %s for agent!",
                  __FUNCTION__, KEY_LOCAL_AGENT);
       return false;
@@ -1341,7 +1341,7 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
 
-  if (dbus_message_get_path(aMsg) == nullptr) {
+  if (dbus_message_get_path(aMsg) == NULL) {
     BT_WARNING("DBusMessage %s has no bluetooth destination, ignoring\n",
                dbus_message_get_member(aMsg));
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -1664,7 +1664,7 @@ BluetoothDBusService::StartInternal()
 
   
   if (!dbus_connection_add_filter(mConnection->GetConnection(),
-                                  EventFilter, nullptr, nullptr)) {
+                                  EventFilter, NULL, NULL)) {
     BT_WARNING("Cannot create DBus Event Filter for DBus Thread!");
     return NS_ERROR_FAILURE;
   }
@@ -2627,6 +2627,7 @@ BluetoothDBusService::IsConnected(const uint16_t aServiceUuid)
   return profile->IsConnected();
 }
 
+#ifdef MOZ_B2G_RIL
 void
 BluetoothDBusService::AnswerWaitingCall(BluetoothReplyRunnable* aRunnable)
 {
@@ -2659,6 +2660,7 @@ BluetoothDBusService::ToggleCalls(BluetoothReplyRunnable* aRunnable)
 
   DispatchBluetoothReply(aRunnable, BluetoothValue(true), EmptyString());
 }
+#endif 
 
 class OnUpdateSdpRecordsRunnable : public nsRunnable
 {
