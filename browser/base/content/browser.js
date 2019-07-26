@@ -811,11 +811,8 @@ var gBrowserInit = {
     }
 
     
-    if (!gMultiProcessBrowser) {
-      
-      gBrowser.addProgressListener(window.XULBrowserWindow);
-      gBrowser.addTabsProgressListener(window.TabsProgressListener);
-    }
+    gBrowser.addProgressListener(window.XULBrowserWindow);
+    gBrowser.addTabsProgressListener(window.TabsProgressListener);
 
     
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
