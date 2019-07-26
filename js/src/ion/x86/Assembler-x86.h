@@ -199,10 +199,8 @@ PatchCall(CodeLocationCall call, CodeLocationLabel label)
 #ifdef DEBUG
     
     
-    
-    
-    
-    
+    unsigned char *x = (unsigned char *)call.raw() - 5;
+    JS_ASSERT(*x == 0xE8);
 #endif
     JSC::X86Assembler::setRel32(call.raw(), label.raw());
 }
