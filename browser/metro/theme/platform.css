@@ -220,6 +220,11 @@ menulist {
 }
 
 
+#select-commands > .option-command > label {
+  pointer-events: none;
+}
+
+
 .option-command > listcell {
   -moz-box-flex: 1 !important;
 }
