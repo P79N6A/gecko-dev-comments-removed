@@ -300,7 +300,7 @@ IDRefsIterator::GetElem(const nsDependentSubstring& aID)
   
   if (!mContent->IsInAnonymousSubtree()) {
     dom::Element* refElm = mContent->OwnerDoc()->GetElementById(aID);
-    if (refElm || !mContent->OwnerDoc()->BindingManager()->GetBinding(mContent))
+    if (refElm || !mContent->GetXBLBinding())
       return refElm;
   }
 
@@ -318,7 +318,7 @@ IDRefsIterator::GetElem(const nsDependentSubstring& aID)
   }
 
   
-  if (mContent->OwnerDoc()->BindingManager()->GetBinding(mContent)) {
+  if (mContent->GetXBLBinding()) {
     return mContent->OwnerDoc()->
       GetAnonymousElementByAttribute(mContent, nsGkAtoms::anonid, aID);
   }

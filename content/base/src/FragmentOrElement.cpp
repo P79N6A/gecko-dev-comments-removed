@@ -285,8 +285,7 @@ nsIContent::GetBaseURI() const
     if (elem->IsSVG()) {
       nsIContent* bindingParent = elem->GetBindingParent();
       if (bindingParent) {
-        nsXBLBinding* binding =
-          bindingParent->OwnerDoc()->BindingManager()->GetBinding(bindingParent);
+        nsXBLBinding* binding = bindingParent->GetXBLBinding();
         if (binding) {
           
           
@@ -566,6 +565,9 @@ FragmentOrElement::nsDOMSlots::Traverse(nsCycleCollectionTraversalCallback &cb, 
     cb.NoteXPCOMChild(mControllers);
   }
 
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mXBLBinding");
+  cb.NoteNativeChild(mXBLBinding, NS_CYCLE_COLLECTION_PARTICIPANT(nsXBLBinding));
+
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mChildrenList");
   cb.NoteXPCOMChild(NS_ISUPPORTS_CAST(nsIDOMNodeList*, mChildrenList));
 
@@ -584,6 +586,7 @@ FragmentOrElement::nsDOMSlots::Unlink(bool aIsXUL)
   }
   if (aIsXUL)
     NS_IF_RELEASE(mControllers);
+  mXBLBinding = nullptr;
   mChildrenList = nullptr;
   mUndoManager = nullptr;
   if (mClassList) {
@@ -887,6 +890,57 @@ FragmentOrElement::GetBindingParent() const
     return slots->mBindingParent;
   }
   return nullptr;
+}
+
+nsXBLBinding*
+FragmentOrElement::GetXBLBinding() const
+{
+  if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
+    nsDOMSlots *slots = GetExistingDOMSlots();
+    if (slots) {
+      return slots->mXBLBinding;
+    }
+  }
+
+  return nullptr;
+}
+
+void
+FragmentOrElement::SetXBLBinding(nsXBLBinding* aBinding,
+                                 nsBindingManager* aOldBindingManager)
+{
+  nsBindingManager* bindingManager;
+  if (aOldBindingManager) {
+    MOZ_ASSERT(!aBinding, "aOldBindingManager should only be provided "
+                          "when removing a binding.");
+    bindingManager = aOldBindingManager;
+  } else {
+    bindingManager = OwnerDoc()->BindingManager();
+  }
+
+  
+  
+  
+  
+  
+  
+  nsRefPtr<nsXBLBinding> oldBinding = GetXBLBinding();
+  if (oldBinding) {
+    bindingManager->RemoveFromAttachedQueue(oldBinding);
+  }
+
+  nsDOMSlots *slots = DOMSlots();
+  if (aBinding) {
+    SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
+    slots->mXBLBinding = aBinding;
+    bindingManager->AddBoundContent(this);
+  } else {
+    slots->mXBLBinding = nullptr;
+    bindingManager->RemoveBoundContent(this);
+    if (oldBinding) {
+      oldBinding->SetBoundElement(nullptr);
+    }
+  }
 }
 
 nsresult
@@ -1387,8 +1441,7 @@ NodeHasActiveFrame(nsIDocument* aCurrentDoc, nsINode* aNode)
 bool
 OwnedByBindingManager(nsIDocument* aCurrentDoc, nsINode* aNode)
 {
-  return aNode->IsElement() &&
-    aCurrentDoc->BindingManager()->GetBinding(aNode->AsElement());
+  return aNode->IsElement() && aNode->AsElement()->GetXBLBinding();
 }
 
 

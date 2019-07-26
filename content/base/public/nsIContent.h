@@ -18,6 +18,7 @@ class nsAttrValue;
 class nsAttrName;
 class nsTextFragment;
 class nsIFrame;
+class nsXBLBinding;
 
 namespace mozilla {
 namespace widget {
@@ -614,6 +615,29 @@ public:
 
 
   virtual nsIContent *GetBindingParent() const = 0;
+
+  
+
+
+
+
+  virtual nsXBLBinding *GetXBLBinding() const = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void SetXBLBinding(nsXBLBinding* aBinding,
+                             nsBindingManager* aOldBindingManager = nullptr) = 0;
 
   
 

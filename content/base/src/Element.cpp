@@ -363,8 +363,7 @@ Element::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
   
   
 
-  if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) &&
-      doc->BindingManager()->GetBinding(this)) {
+  if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) && GetXBLBinding()) {
     
     
 
@@ -1719,8 +1718,7 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (document || HasFlag(NODE_FORCE_XBL_BINDINGS)) {
-    nsRefPtr<nsXBLBinding> binding =
-      OwnerDoc()->BindingManager()->GetBinding(this);
+    nsRefPtr<nsXBLBinding> binding = GetXBLBinding();
     if (binding) {
       binding->AttributeChanged(aName, aNamespaceID, false, aNotify);
     }
@@ -1903,8 +1901,7 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (document || HasFlag(NODE_FORCE_XBL_BINDINGS)) {
-    nsRefPtr<nsXBLBinding> binding =
-      OwnerDoc()->BindingManager()->GetBinding(this);
+    nsRefPtr<nsXBLBinding> binding = GetXBLBinding();
     if (binding) {
       binding->AttributeChanged(aName, aNameSpaceID, true, aNotify);
     }

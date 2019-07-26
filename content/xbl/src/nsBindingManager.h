@@ -43,9 +43,10 @@ public:
   nsBindingManager(nsIDocument* aDocument);
   ~nsBindingManager();
 
-  nsXBLBinding* GetBinding(nsIContent* aContent);
   nsXBLBinding* GetBindingWithContent(nsIContent* aContent);
-  nsresult SetBinding(nsIContent* aContent, nsXBLBinding* aBinding);
+
+  void AddBoundContent(nsIContent* aContent);
+  void RemoveBoundContent(nsIContent* aContent);
 
   nsIContent* GetInsertionParent(nsIContent* aContent);
   nsresult SetInsertionParent(nsIContent* aContent, nsIContent* aResult);
@@ -85,6 +86,7 @@ public:
                                nsIPrincipal* aOriginPrincipal);
 
   nsresult AddToAttachedQueue(nsXBLBinding* aBinding);
+  void RemoveFromAttachedQueue(nsXBLBinding* aBinding);
   void ProcessAttachedQueue(uint32_t aSkipSize = 0);
 
   void ExecuteDetachedHandlers();
@@ -161,8 +163,7 @@ protected:
 
 protected: 
   
-  
-  nsRefPtrHashtable<nsISupportsHashKey,nsXBLBinding> mBindingTable;
+  nsTHashtable<nsRefPtrHashKey<nsIContent> > mBoundContentSet;
 
   
   

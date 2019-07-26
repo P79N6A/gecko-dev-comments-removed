@@ -1173,6 +1173,15 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
   if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, classObject.address())) {
     return false;
   }
+
+  
+  
+  
+  
+  if (classObject.isUndefined()) {
+    return true;
+  }
+
   MOZ_ASSERT(classObject.isObject());
 
   
