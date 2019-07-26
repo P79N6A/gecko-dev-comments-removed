@@ -635,8 +635,8 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
     if (!this.dirty) {
       return;
     }
-    window.clearTimeout(this._scrollTimeout);
-    this._scrollTimeout = window.setTimeout(this._afterScroll, STACK_FRAMES_SCROLL_DELAY);
+    
+    setNamedTimeout("stack-scroll", STACK_FRAMES_SCROLL_DELAY, this._afterScroll);
   },
 
   
@@ -662,7 +662,6 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
   _commandset: null,
   _menupopup: null,
-  _scrollTimeout: null,
   _prevBlackBoxedUrl: null
 });
 
@@ -1154,7 +1153,7 @@ FilterView.prototype = {
     
     if (isGlobal) {
       if (isReturnKey && (isDifferentToken || DebuggerView.GlobalSearch.hidden)) {
-        DebuggerView.GlobalSearch.performSearch(token);
+        DebuggerView.GlobalSearch.scheduleSearch(token, 0);
       } else {
         DebuggerView.GlobalSearch[["selectNext", "selectPrev"][action]]();
       }
@@ -1165,7 +1164,7 @@ FilterView.prototype = {
     
     if (isFunction) {
       if (isReturnKey && (isDifferentToken || DebuggerView.FilteredFunctions.hidden)) {
-        DebuggerView.FilteredFunctions.performSearch(token);
+        DebuggerView.FilteredFunctions.scheduleSearch(token, 0);
       } else if (!isReturnKey) {
         DebuggerView.FilteredFunctions[["selectNext", "selectPrev"][action]]();
       } else {
@@ -1180,7 +1179,7 @@ FilterView.prototype = {
     
     if (isVariable) {
       if (isReturnKey && isDifferentToken) {
-        DebuggerView.Variables.performSearch(token);
+        DebuggerView.Variables.scheduleSearch(token, 0);
       } else {
         DebuggerView.Variables.expandFirstSearchResults();
       }
@@ -1214,7 +1213,7 @@ FilterView.prototype = {
     DebuggerView.GlobalSearch.clearView();
     DebuggerView.FilteredSources.clearView();
     DebuggerView.FilteredFunctions.clearView();
-    DebuggerView.Variables.performSearch(null);
+    DebuggerView.Variables.scheduleSearch(null, 0);
     this._searchboxHelpPanel.hidePopup();
   },
 
@@ -1274,7 +1273,7 @@ FilterView.prototype = {
 
 
   _doVariableSearch: function() {
-    DebuggerView.Variables.performSearch("");
+    DebuggerView.Variables.scheduleSearch("", 0);
     this._doSearch(SEARCH_VARIABLE_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1412,7 +1411,6 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
 function FilteredFunctionsView() {
   dumpn("FilteredFunctionsView was instantiated");
 
-  this._performFunctionSearch = this._performFunctionSearch.bind(this);
   this._onClick = this._onClick.bind(this);
   this._onSelect = this._onSelect.bind(this);
 }
@@ -1443,24 +1441,22 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
   
 
 
-  delayedSearch: true,
-
-  
 
 
 
 
 
-  scheduleSearch: function(aQuery) {
-    if (!this.delayedSearch) {
-      this.performSearch(aQuery);
-      return;
-    }
-    let delay = Math.max(FUNCTION_SEARCH_ACTION_MAX_DELAY / aQuery.length, 0);
+  scheduleSearch: function(aToken, aWait) {
+    let maxDelay = FUNCTION_SEARCH_ACTION_MAX_DELAY;
+    let delay = aWait === undefined ? maxDelay / aToken.length : aWait;
 
-    window.clearTimeout(this._searchTimeout);
-    this._searchFunction = this._startSearch.bind(this, aQuery);
-    this._searchTimeout = window.setTimeout(this._searchFunction, delay);
+    
+    setNamedTimeout("function-search", delay, () => {
+      
+      let urls = DebuggerView.Sources.values;
+      let sourcesFetched = DebuggerController.SourceScripts.getTextForSources(urls);
+      sourcesFetched.then(aSources => this._doSearch(aToken, aSources));
+    });
   },
 
   
@@ -1469,36 +1465,13 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
 
 
-  performSearch: function(aQuery) {
-    window.clearTimeout(this._searchTimeout);
-    this._searchFunction = null;
-    this._startSearch(aQuery);
-  },
-
-  
 
 
 
-
-
-  _startSearch: function(aQuery) {
-    this._searchedToken = aQuery;
-
-    
-    DebuggerController.SourceScripts
-      .getTextForSources(DebuggerView.Sources.values)
-      .then(this._performFunctionSearch);
-  },
-
-  
-
-
-
-  _performFunctionSearch: function(aSources) {
+  _doSearch: function(aToken, aSources) {
     
     
     
-    let token = this._searchedToken;
 
     
     
@@ -1508,7 +1481,8 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
     aSources.unshift(currentSource);
 
     
-    if (!token) {
+    
+    if (!aToken) {
       aSources.splice(1);
     }
 
@@ -1517,7 +1491,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
     for (let [location, contents] of aSources) {
       let parserMethods = DebuggerController.Parser.get(location, contents);
-      let sourceResults = parserMethods.getNamedFunctionDefinitions(token);
+      let sourceResults = parserMethods.getNamedFunctionDefinitions(aToken);
 
       for (let scriptResult of sourceResults) {
         for (let parseResult of scriptResult.parseResults) {

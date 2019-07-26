@@ -298,10 +298,6 @@ TargetEventsHandler.prototype = {
         NetMonitorView.Sidebar.reset();
         NetMonitorView.NetworkDetails.reset();
 
-        
-        nsIURL.store.clear();
-        drain.store.clear();
-
         window.emit(EVENTS.TARGET_WILL_NAVIGATE);
         break;
       }

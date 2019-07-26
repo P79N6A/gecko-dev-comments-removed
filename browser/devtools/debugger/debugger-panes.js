@@ -1468,8 +1468,6 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 function GlobalSearchView() {
   dumpn("GlobalSearchView was instantiated");
 
-  this._startSearch = this._startSearch.bind(this);
-  this._performGlobalSearch = this._performGlobalSearch.bind(this);
   this._createItemView = this._createItemView.bind(this);
   this._onHeaderClick = this._onHeaderClick.bind(this);
   this._onLineClick = this._onLineClick.bind(this);
@@ -1560,24 +1558,23 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  delayedSearch: true,
-
-  
 
 
 
 
 
-  scheduleSearch: function(aQuery) {
-    if (!this.delayedSearch) {
-      this.performSearch(aQuery);
-      return;
-    }
-    let delay = Math.max(GLOBAL_SEARCH_ACTION_MAX_DELAY / aQuery.length, 0);
+  scheduleSearch: function(aToken, aWait) {
+    
+    let maxDelay = GLOBAL_SEARCH_ACTION_MAX_DELAY;
+    let delay = aWait === undefined ? maxDelay / aToken.length : aWait;
 
-    window.clearTimeout(this._searchTimeout);
-    this._searchFunction = this._startSearch.bind(this, aQuery);
-    this._searchTimeout = window.setTimeout(this._searchFunction, delay);
+    
+    setNamedTimeout("global-search", delay, () => {
+      
+      let urls = DebuggerView.Sources.values;
+      let sourcesFetched = DebuggerController.SourceScripts.getTextForSources(urls);
+      sourcesFetched.then(aSources => this._doSearch(aToken, aSources));
+    });
   },
 
   
@@ -1586,45 +1583,20 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  performSearch: function(aQuery) {
-    window.clearTimeout(this._searchTimeout);
-    this._searchFunction = null;
-    this._startSearch(aQuery);
-  },
-
-  
 
 
 
-
-
-  _startSearch: function(aQuery) {
-    this._searchedToken = aQuery;
-
+  _doSearch: function(aToken, aSources) {
     
-    DebuggerController.SourceScripts
-      .getTextForSources(DebuggerView.Sources.values)
-      .then(this._performGlobalSearch);
-  },
-
-  
-
-
-
-  _performGlobalSearch: function(aSources) {
-    
-    let token = this._searchedToken;
-
-    
-    if (!token) {
+    if (!aToken) {
       this.clearView();
       window.dispatchEvent(document, "Debugger:GlobalSearch:TokenEmpty");
       return;
     }
 
     
-    let lowerCaseToken = token.toLowerCase();
-    let tokenLength = token.length;
+    let lowerCaseToken = aToken.toLowerCase();
+    let tokenLength = aToken.length;
 
     
     let globalResults = new GlobalResults();
@@ -1668,7 +1640,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
           }
 
           
-          return aPrev + token + aCurr;
+          return aPrev + aToken + aCurr;
         }, "");
 
         if (lineResults.matchCount) {
@@ -1824,10 +1796,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
   _splitter: null,
   _currentlyFocusedMatch: -1,
-  _forceExpandResults: false,
-  _searchTimeout: null,
-  _searchFunction: null,
-  _searchedToken: ""
+  _forceExpandResults: false
 });
 
 
