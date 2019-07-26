@@ -2294,6 +2294,16 @@ class LAbsD : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LAbsF : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(AbsF)
+    LAbsF(const LAllocation &num) {
+        setOperand(0, num);
+    }
+};
+
+
 class LSqrtD : public LInstructionHelper<1, 1, 0>
 {
   public:
