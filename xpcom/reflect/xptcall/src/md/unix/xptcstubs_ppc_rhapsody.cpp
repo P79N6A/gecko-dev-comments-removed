@@ -35,7 +35,7 @@
 
 
 
-extern "C" nsresult
+extern "C" nsresult ATTRIBUTE_USED
 PrepareAndDispatch(
   nsXPTCStubBase *self,
   uint32_t        methodIndex,

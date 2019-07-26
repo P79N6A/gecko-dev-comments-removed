@@ -32,7 +32,7 @@
 
 
 #include <stdio.h>
-extern "C" nsresult
+extern "C" nsresult ATTRIBUTE_USED
 PrepareAndDispatch(nsXPTCStubBase* self,
                    uint64_t methodIndex,
                    uint64_t* args,
