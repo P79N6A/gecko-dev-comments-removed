@@ -90,6 +90,13 @@ nsresult runTest(uint32_t aExpectedPolicyCount,
   
   nsCOMPtr<nsIURI> selfURI;
   nsresult rv = NS_NewURI(getter_AddRefs(selfURI), "http://www.selfuri.com");
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsCOMPtr<nsIChannel> dummyChannel;
+  rv = NS_NewChannel(getter_AddRefs(dummyChannel), selfURI);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIContentSecurityPolicy> csp =
@@ -102,7 +109,7 @@ nsresult runTest(uint32_t aExpectedPolicyCount,
   csp->SetRequestContext(selfURI,
                          nullptr,  
                          nullptr,  
-                         nullptr); 
+                         dummyChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
