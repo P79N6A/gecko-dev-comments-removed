@@ -63,6 +63,9 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 
 #define VAR_PREFIX_LENGTH 4
 
+
+#define MASK_END_VALUE  (-1)
+
 MOZ_BEGIN_ENUM_CLASS(nsParsingStatus, int32_t)
   
   Ok,
@@ -6924,56 +6927,33 @@ bool
 CSSParserImpl::ParseGridAutoFlow()
 {
   nsCSSValue value;
-  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
+  if (ParseVariant(value, VARIANT_INHERIT, nullptr)) {
     AppendValue(eCSSProperty_grid_auto_flow, value);
     return true;
   }
 
-  bool gotDense = false;
-  bool gotColumn = false;
-  bool gotRow = false;
-  for (;;) {
-    if (!GetToken(true)) {
-      break;
-    }
-    if (mToken.mType != eCSSToken_Ident) {
-      UngetToken();
-      break;
-    }
-    nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
-    if (keyword == eCSSKeyword_dense && !gotDense) {
-      gotDense = true;
-    } else if (keyword == eCSSKeyword_column && !gotColumn && !gotRow) {
-      gotColumn = true;
-    } else if (keyword == eCSSKeyword_row && !gotColumn && !gotRow) {
-      gotRow = true;
-    } else {
-      UngetToken();
-      break;
-    }
+  static const int32_t mask[] = {
+    NS_STYLE_GRID_AUTO_FLOW_COLUMN | NS_STYLE_GRID_AUTO_FLOW_ROW,
+    MASK_END_VALUE
+  };
+  if (!ParseBitmaskValues(value, nsCSSProps::kGridAutoFlowKTable, mask)) {
+    return false;
   }
+  int32_t bitField = value.GetIntValue();
 
-  if (!(gotColumn || gotRow)) {
+  
+  if (!(bitField & NS_STYLE_GRID_AUTO_FLOW_NONE ||
+        bitField & NS_STYLE_GRID_AUTO_FLOW_COLUMN ||
+        bitField & NS_STYLE_GRID_AUTO_FLOW_ROW)) {
     return false;
   }
 
-  int32_t bitField;
-  if (gotColumn) {
-    MOZ_ASSERT(!gotRow,
-               "code above should've rejected values with both row and column");
-    bitField = NS_STYLE_GRID_AUTO_FLOW_COLUMN;
-  } else if (gotRow) {
-    bitField = NS_STYLE_GRID_AUTO_FLOW_ROW;
-  } else {
-    
+  
+  if (bitField & NS_STYLE_GRID_AUTO_FLOW_NONE &&
+      bitField != NS_STYLE_GRID_AUTO_FLOW_NONE) {
     return false;
   }
 
-  if (gotDense) {
-    bitField |= NS_STYLE_GRID_AUTO_FLOW_DENSE;
-  }
-
-  value.SetIntValue(bitField, eCSSUnit_Enumerated);
   AppendValue(eCSSProperty_grid_auto_flow, value);
   return true;
 }
@@ -7439,6 +7419,7 @@ CSSParserImpl::ParseGrid()
       AppendValue(eCSSProperty_grid_template_columns, value);
 
       
+      value.SetIntValue(NS_STYLE_GRID_AUTO_FLOW_NONE, eCSSUnit_Enumerated);
       AppendValue(eCSSProperty_grid_auto_flow, value);
       value.SetAutoValue();
       AppendValue(eCSSProperty_grid_auto_columns, value);
@@ -7446,6 +7427,7 @@ CSSParserImpl::ParseGrid()
 
       return ParseGridTemplateAfterSlash( false);
     }
+    value.SetIntValue(NS_STYLE_GRID_AUTO_FLOW_NONE, eCSSUnit_Enumerated);
     AppendValue(eCSSProperty_grid_auto_flow, value);
     return ParseGridShorthandAutoProps();
   }
@@ -7470,7 +7452,7 @@ CSSParserImpl::ParseGrid()
 
   
   
-  value.SetNoneValue();
+  value.SetIntValue(NS_STYLE_GRID_AUTO_FLOW_NONE, eCSSUnit_Enumerated);
   AppendValue(eCSSProperty_grid_auto_flow, value);
   value.SetAutoValue();
   AppendValue(eCSSProperty_grid_auto_columns, value);
@@ -11149,8 +11131,6 @@ CSSParserImpl::ParseFontVariantAlternates(nsCSSValue& aValue)
   return true;
 }
 
-#define MASK_END_VALUE  -1
-
 
 
 
@@ -11159,17 +11139,9 @@ CSSParserImpl::ParseBitmaskValues(nsCSSValue& aValue,
                                   const KTableValue aKeywordTable[],
                                   const int32_t aMasks[])
 {
-  if (!ParseVariant(aValue, VARIANT_HMK, aKeywordTable)) {
-    return false;
-  }
-
   
-  if (eCSSUnit_Normal == aValue.GetUnit() ||
-      eCSSUnit_Initial == aValue.GetUnit() ||
-      eCSSUnit_Inherit == aValue.GetUnit() ||
-      eCSSUnit_Unset == aValue.GetUnit())
-  {
-    return true;
+  if (!ParseEnum(aValue, aKeywordTable)) {
+    return false;
   }
 
   
@@ -11217,6 +11189,10 @@ static const int32_t maskEastAsian[] = {
 bool
 CSSParserImpl::ParseFontVariantEastAsian(nsCSSValue& aValue)
 {
+  if (ParseVariant(aValue, VARIANT_INHERIT | VARIANT_NORMAL, nullptr)) {
+    return true;
+  }
+
   NS_ASSERTION(maskEastAsian[ArrayLength(maskEastAsian) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
@@ -11236,6 +11212,10 @@ static const int32_t maskLigatures[] = {
 bool
 CSSParserImpl::ParseFontVariantLigatures(nsCSSValue& aValue)
 {
+  if (ParseVariant(aValue, VARIANT_INHERIT | VARIANT_NORMAL, nullptr)) {
+    return true;
+  }
+
   NS_ASSERTION(maskLigatures[ArrayLength(maskLigatures) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
@@ -11266,6 +11246,10 @@ static const int32_t maskNumeric[] = {
 bool
 CSSParserImpl::ParseFontVariantNumeric(nsCSSValue& aValue)
 {
+  if (ParseVariant(aValue, VARIANT_INHERIT | VARIANT_NORMAL, nullptr)) {
+    return true;
+  }
+
   NS_ASSERTION(maskNumeric[ArrayLength(maskNumeric) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
