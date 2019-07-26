@@ -1460,21 +1460,6 @@ class AutoPropertyDescriptorRooter : private AutoGCRooter, public PropertyDescri
     friend void AutoGCRooter::trace(JSTracer *trc);
 };
 
-static inline bool
-CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
-{
-    JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
-    
-
-
-
-
-
-
-    return (!gc::IsBackgroundFinalized(kind) &&
-            (!clasp->finalize || (clasp->flags & JSCLASS_BACKGROUND_FINALIZE)));
-}
-
 
 
 

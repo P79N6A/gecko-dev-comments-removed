@@ -15,6 +15,7 @@
 #include "mozilla/Util.h"
 
 #include "jsalloc.h"
+#include "jsclass.h"
 #include "jstypes.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
@@ -215,6 +216,21 @@ IsBackgroundFinalized(AllocKind kind)
     };
     JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
+}
+
+static inline bool
+CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
+{
+    JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
+    
+
+
+
+
+
+
+    return (!gc::IsBackgroundFinalized(kind) &&
+            (!clasp->finalize || (clasp->flags & JSCLASS_BACKGROUND_FINALIZE)));
 }
 
 inline JSGCTraceKind
