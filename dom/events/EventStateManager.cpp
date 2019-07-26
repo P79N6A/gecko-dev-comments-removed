@@ -2872,6 +2872,9 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
     if (pointerEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
       mPointersEnterLeaveHelper.Remove(pointerEvent->pointerId);
     }
+    if (pointerEvent->inputSource != nsIDOMMouseEvent::MOZ_SOURCE_MOUSE) {
+      GenerateMouseEnterExit(pointerEvent);
+    }
     break;
   }
   case NS_MOUSE_BUTTON_UP:
@@ -3925,6 +3928,25 @@ EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
       }
       if (targetElement) {
         NotifyMouseOver(aMouseEvent, targetElement);
+      }
+    }
+    break;
+  case NS_POINTER_UP:
+    {
+      
+      nsCOMPtr<nsIContent> targetElement = GetEventTargetContent(aMouseEvent);
+      if (!targetElement) {
+        
+        
+        
+        targetElement = mDocument->GetRootElement();
+      }
+      if (targetElement) {
+        OverOutElementsWrapper* helper = GetWrapperByEventID(aMouseEvent);
+        if (helper) {
+          helper->mLastOverElement = targetElement;
+        }
+        NotifyMouseOut(aMouseEvent, nullptr);
       }
     }
     break;
