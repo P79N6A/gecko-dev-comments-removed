@@ -1,10 +1,10 @@
 
 
 
-Cu.import("resource://services-sync/service.js");
-Cu.import("resource://services-sync/policies.js");
-Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-common/utils.js");
+Cu.import("resource://services-sync/service.js");
+Cu.import("resource://services-sync/util.js");
 
 const logsdir            = FileUtils.getDir("ProfD", ["weave", "logs"], true);
 const LOG_PREFIX_SUCCESS = "success-";
@@ -14,6 +14,8 @@ const DELAY_BUFFER       = 50;
 
 const PROLONGED_ERROR_DURATION =
   (Svc.Prefs.get('errorhandler.networkFailureReportTimeout') * 2) * 1000;
+
+let errorHandler = Service.errorHandler;
 
 function setLastSync(lastSyncValue) {
   Svc.Prefs.set("lastSync", (new Date(Date.now() - lastSyncValue)).toString());
@@ -31,7 +33,7 @@ function run_test() {
 
 add_test(function test_noOutput() {
   
-  ErrorHandler._logAppender.level = Log4Moz.Level.Fatal + 1;
+  errorHandler._logAppender.level = Log4Moz.Level.Fatal + 1;
 
   
   Svc.Prefs.set("log.appender.file.logOnSuccess", false);
@@ -43,7 +45,7 @@ add_test(function test_noOutput() {
   Svc.Obs.add("weave:service:reset-file-log", function onResetFileLog() {
     Svc.Obs.remove("weave:service:reset-file-log", onResetFileLog);
 
-    ErrorHandler._logAppender.level = Log4Moz.Level.Trace;
+    errorHandler._logAppender.level = Log4Moz.Level.Trace;
     Svc.Prefs.resetBranch("");
     run_next_test();
   });
@@ -289,7 +291,7 @@ add_test(function test_logErrorCleanup_age() {
     run_next_test();
   });
 
-  Utils.namedTimer(function () Svc.Obs.notify("weave:service:sync:error"),
-                   CLEANUP_DELAY + DELAY_BUFFER, this, "cleanup-timer");
-
+  CommonUtils.namedTimer(function onTimer() {
+    Svc.Obs.notify("weave:service:sync:error");
+  }, CLEANUP_DELAY + DELAY_BUFFER, this, "cleanup-timer");
 });
