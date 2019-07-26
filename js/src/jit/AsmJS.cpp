@@ -5962,7 +5962,6 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
     
     unsigned arraySize = sizeof(Value);
     unsigned stackDec = StackDecrementForCall(masm, callArgTypes, arraySize);
-    masm.setFramePushed(0);
     masm.reserveStack(stackDec);
 
     
@@ -5996,6 +5995,7 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
     JS_ASSERT(i.done());
 
     
+    AssertStackAlignment(masm);
     switch (retType.which()) {
       case RetType::Signed:
           masm.call(AsmJSImm_CoerceInPlace_ToInt32);
@@ -6138,6 +6138,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     masm.branchTestMagic(Assembler::Equal, JSReturnOperand, throwLabel);
 #endif
 
+    uint32_t oolConvertFramePushed = masm.framePushed();
     switch (exit.sig().retType().which()) {
       case RetType::Void:
         break;
@@ -6160,7 +6161,9 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     
     if (oolConvert.used()) {
         masm.bind(&oolConvert);
+        masm.setFramePushed(oolConvertFramePushed);
         GenerateOOLConvert(m, exit.sig().retType(), throwLabel);
+        masm.setFramePushed(0);
         masm.jump(&done);
     }
 
