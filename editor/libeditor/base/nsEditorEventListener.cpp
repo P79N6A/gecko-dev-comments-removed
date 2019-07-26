@@ -587,7 +587,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
   
   mEditor->ForceCompositionEnd();
 
-  uint16_t button = (uint16_t)-1;
+  int16_t button = -1;
   mouseEvent->GetButton(&button);
   
   if (button == 1)

@@ -91,7 +91,7 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
   
   
   
-  uint16_t buttonNumber;
+  int16_t buttonNumber;
   nsresult res = mouseEvent->GetButton(&buttonNumber);
   NS_ENSURE_SUCCESS(res, res);
 
