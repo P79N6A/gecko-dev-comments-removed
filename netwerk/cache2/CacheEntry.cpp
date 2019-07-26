@@ -514,20 +514,23 @@ bool CacheEntry::InvokeCallback(Callback & aCallback)
     
     
     
-    if (!aCallback.mReadOnly && !aCallback.mRecheckAfterWrite) {
-      if (mState == EMPTY) {
-        
-        
-        
-        mState = WRITING;
-        LOG(("  advancing to WRITING state"));
-      }
+    if (!aCallback.mRecheckAfterWrite) {
 
-      if (!aCallback.mCallback) {
-        
-        
-        
-        return true;
+      if (!aCallback.mReadOnly) {
+        if (mState == EMPTY) {
+          
+          
+          
+          mState = WRITING;
+          LOG(("  advancing to WRITING state"));
+        }
+
+        if (!aCallback.mCallback) {
+          
+          
+          
+          return true;
+        }
       }
 
       if (mState == READY) {
