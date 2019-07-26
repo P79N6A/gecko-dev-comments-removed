@@ -44,13 +44,15 @@ class ARIAGridCellAccessibleWrap : public ARIAGridCellAccessible,
 {
 public:
   ARIAGridCellAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-    ARIAGridCellAccessible(aContent, aDoc) {}
+    ARIAGridCellAccessible(aContent, aDoc), ia2AccessibleTableCell(this) {}
 
   
   DECL_IUNKNOWN_INHERITED
 
   
   NS_DECL_ISUPPORTS_INHERITED
+
+  virtual void Shutdown() MOZ_OVERRIDE;
 };
 
 } 
