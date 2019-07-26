@@ -2,7 +2,7 @@
 
 
 
-from marionette import Marionette, HTMLElement
+from marionette import Marionette, HTMLElement, Actions
 from marionette_test import MarionetteTestCase, CommonTestCase
 from marionette_touch import MarionetteTouchMixin
 from emulator import Emulator
