@@ -157,7 +157,6 @@ struct ParseContext
     ParseNode       *yieldNode;     
 
 
-    FunctionBox     *functionList;
 
     
     
