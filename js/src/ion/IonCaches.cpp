@@ -2655,6 +2655,23 @@ IsElementSetInlineable(HandleObject obj, HandleValue index)
     if (!index.isInt32())
         return false;
 
+    
+    
+    
+    
+    JSObject *curObj = obj;
+    while (curObj) {
+        
+        if (!curObj->isNative())
+            return false;
+
+        
+        if (curObj->isIndexed())
+            return false;
+
+        curObj = curObj->getProto();
+    }
+
     return true;
 }
 
