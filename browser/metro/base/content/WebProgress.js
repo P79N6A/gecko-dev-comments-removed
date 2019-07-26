@@ -84,8 +84,10 @@ const WebProgress = {
     let spec = aJson.location;
     let location = spec.split("#")[0]; 
 
-    if (aTab == Browser.selectedTab)
+    if (aTab == Browser.selectedTab) {
       BrowserUI.updateURI();
+      BrowserUI.update();
+    }
 
     let locationHasChanged = (location != aTab.browser.lastLocation);
     if (locationHasChanged) {
@@ -123,22 +125,15 @@ const WebProgress = {
   _networkStart: function _networkStart(aJson, aTab) {
     aTab.startLoading();
 
-    if (aTab == Browser.selectedTab) {
+    if (aTab == Browser.selectedTab)
       BrowserUI.update(TOOLBARSTATE_LOADING);
-
-      
-      
-      if (aTab.browser.currentURI.spec == "about:blank")
-        BrowserUI.updateURI({ captionOnly: true });
-    }
   },
 
   _networkStop: function _networkStop(aJson, aTab) {
     aTab.endLoading();
 
-    if (aTab == Browser.selectedTab) {
+    if (aTab == Browser.selectedTab)
       BrowserUI.update(TOOLBARSTATE_LOADED);
-    }
   },
 
   _windowStart: function _windowStart(aJson, aTab) {
@@ -162,7 +157,7 @@ const WebProgress = {
 
     
     this._progressCount = kProgressMarginStart;
-    Elements.progress.style.width = this._progressCount + "%"; 
+    Elements.progress.style.width = this._progressCount + "%";
     Elements.progress.removeAttribute("fade");
 
     
@@ -204,7 +199,7 @@ const WebProgress = {
   _progressStop: function _progressStop(aJson, aTab) {
     this._progressActive = false;
     
-    Elements.progress.style.width = "100%"; 
+    Elements.progress.style.width = "100%";
     Elements.progress.setAttribute("fade", true);
   },
 
@@ -213,7 +208,7 @@ const WebProgress = {
       return;
     
     if (data.propertyName == "opacity") {
-      Elements.progress.style.width = "0px"; 
+      Elements.progress.style.width = "0px";
       Elements.progressContainer.setAttribute("collapsed", true);
     }
   },

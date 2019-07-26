@@ -574,6 +574,7 @@ var Browser = {
     } else {
       
       BrowserUI.updateURI();
+      BrowserUI.update();
 
       let event = document.createEvent("Events");
       event.initEvent("TabSelect", true, false);
@@ -1578,7 +1579,7 @@ Tab.prototype = {
 
     
     history.QueryInterface(Ci.nsISHistoryInternal);
-    
+
     for (let i = 0, length = otherHistory.index; i <= length; i++)
       history.addEntry(otherHistory.getEntryAtIndex(i, false), true);
   },
