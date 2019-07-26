@@ -314,6 +314,12 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(50)
 
 
+
+
+
+#define NS_FRAME_ALL_DESCENDANTS_NEED_PAINT         NS_FRAME_STATE_BIT(51)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
