@@ -66,6 +66,7 @@ protected:
     nsCString                   mContentType;
     bool                        mIsDocument; 
     bool                        mOpened;
+    bool                        mIsSrcdocChannel;
 };
 
 #endif 

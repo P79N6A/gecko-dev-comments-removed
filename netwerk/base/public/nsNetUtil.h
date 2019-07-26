@@ -82,6 +82,7 @@
 #include "nsIContentSniffer.h"
 #include "nsCategoryCache.h"
 #include "nsStringStream.h"
+#include "nsIViewSourceChannel.h"
 
 #include <limits>
 
@@ -2332,6 +2333,28 @@ NS_SniffContent(const char* aSnifferType, nsIRequest* aRequest,
   }
 
   aSniffedType.Truncate();
+}
+
+
+
+
+
+
+inline bool
+NS_IsSrcdocChannel(nsIChannel *aChannel)
+{
+  bool isSrcdoc;
+  nsCOMPtr<nsIInputStreamChannel> isr = do_QueryInterface(aChannel);
+  if (isr) {
+    isr->GetIsSrcdocChannel(&isSrcdoc);
+    return isSrcdoc;
+  }
+  nsCOMPtr<nsIViewSourceChannel> vsc = do_QueryInterface(aChannel);
+  if (vsc) {
+    vsc->GetIsSrcdocChannel(&isSrcdoc);
+    return isSrcdoc;
+  }
+  return false;
 }
 
 #endif 
