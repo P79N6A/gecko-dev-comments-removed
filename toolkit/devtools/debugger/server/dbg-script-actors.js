@@ -23,18 +23,15 @@
 
 
 
-function ThreadActor(aHooks)
+
+function ThreadActor(aHooks, aGlobal)
 {
   this._state = "detached";
   this._frameActors = [];
   this._environmentActors = [];
   this._hooks = {};
-  if (aHooks) {
-    this._hooks = aHooks;
-    if (aHooks.browser) {
-      this.global = aHooks.browser.contentWindow.wrappedJSObject;
-    }
-  }
+  this._hooks = aHooks;
+  this.global = aGlobal;
   this._scripts = {};
   this.findGlobals = this.globalManager.findGlobals.bind(this);
   this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
