@@ -319,10 +319,10 @@ private:
 
 
 template<typename T>
-class Sequence : public AutoFallibleTArray<T, 16>
+class Sequence : public FallibleTArray<T>
 {
 public:
-  Sequence() : AutoFallibleTArray<T, 16>()
+  Sequence() : FallibleTArray<T>()
   {}
 };
 

@@ -2098,27 +2098,6 @@ ${codeOnFailure}
 }
 ${target} = tmp.forget();""").substitute(self.substitution)
 
-def dictionaryHasSequenceMember(dictionary):
-    return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                dictionary.members) or
-            (dictionary.parent and
-             dictionaryHasSequenceMember(dictionary.parent)))
-
-def typeIsSequenceOrHasSequenceMember(type):
-    if type.nullable():
-        type = type.inner
-    if type.isSequence():
-        return True
-    if  type.isArray():
-        elementType = type.inner
-        return typeIsSequenceOrHasSequenceMember(elementType)
-    if type.isDictionary():
-        return dictionaryHasSequenceMember(type.inner)
-    if type.isUnion():
-        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                   type.flatMemberTypes)
-    return False
-
 
 
 
@@ -2154,9 +2133,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     if isMember is True, we're being converted from a property of some
     JS object, not from an actual method argument, so we can't rely on
-    our jsval being rooted or outliving us in any way.  Any caller
-    passing true needs to ensure that it is handled correctly in
-    typeIsSequenceOrHasSequenceMember.
+    our jsval being rooted or outliving us in any way.
 
     If isOptional is true, then we are doing conversion of an optional
     argument with no default value.
@@ -2336,11 +2313,15 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         
         
         
-        if typeIsSequenceOrHasSequenceMember(elementType):
-            raise TypeError("Can't handle a sequence containing another "
-                            "sequence as an element or member of an element.  "
-                            "See the big comment explaining why.\n%s" %
-                            str(type.location))
+        
+        
+        
+        
+        
+        if isMember or isOptional or nullable:
+            sequenceClass = "Sequence"
+        else:
+            sequenceClass = "AutoSequence"
 
         (elementTemplate, elementDeclType,
          elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
@@ -2351,15 +2332,18 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if elementHolderType is not None:
             raise TypeError("Shouldn't need holders for sequences")
 
-        typeName = CGWrapper(elementDeclType, pre="Sequence< ", post=" >")
+        typeName = CGWrapper(elementDeclType,
+                             pre=("%s< " % sequenceClass), post=" >")
+        sequenceType = typeName.define()
         if nullable:
             typeName = CGWrapper(typeName, pre="Nullable< ", post=" >")
             arrayRef = "${declName}.Value()"
         else:
             arrayRef = "${declName}"
         
+        
         mutableTypeName = typeName
-        if not isOptional:
+        if not isOptional and not isMember:
             typeName = CGWrapper(typeName, pre="const ")
 
         
@@ -2372,7 +2356,7 @@ uint32_t length;
 if (!JS_GetArrayLength(cx, seq, &length)) {
 %s
 }
-Sequence< %s > &arr = const_cast< Sequence< %s >& >(%s);
+%s &arr = const_cast< %s& >(%s);
 if (!arr.SetCapacity(length)) {
   JS_ReportOutOfMemory(cx);
 %s
@@ -2385,8 +2369,8 @@ for (uint32_t i = 0; i < length; ++i) {
   %s& slot = *arr.AppendElement();
 """ % (CGIndenter(CGGeneric(notSequence)).define(),
        exceptionCodeIndented.define(),
-       elementDeclType.define(),
-       elementDeclType.define(),
+       sequenceType,
+       sequenceType,
        arrayRef,
        exceptionCodeIndented.define(),
        CGIndenter(exceptionCodeIndented).define(),
@@ -3327,7 +3311,7 @@ class CGArgumentConverter(CGThing):
             raise TypeError("Shouldn't need holders for variadics")
 
         replacer = dict(self.argcAndIndex, **self.replacementVariables)
-        replacer["seqType"] = CGWrapper(elementDeclType, pre="Sequence< ", post=" >").define()
+        replacer["seqType"] = CGWrapper(elementDeclType, pre="AutoSequence< ", post=" >").define()
         replacer["elemType"] = elementDeclType.define()
 
         
