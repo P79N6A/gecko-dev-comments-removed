@@ -221,11 +221,13 @@ public:
   
   
   
-  TextRangeArray rangeArray;
+  TextRange* rangeArray;
   
   
   
   bool isChar;
+
+  nsRefPtr<TextRangeArray> mRanges;
 
   void AssignTextEventData(const WidgetTextEvent& aEvent, bool aCopyTargets)
   {
@@ -237,14 +239,35 @@ public:
     
   }
 
+  
+  
+  void EnsureRanges()
+  {
+    if (mRanges || !rangeCount) {
+      return;
+    }
+    mRanges = new TextRangeArray();
+    for (uint32_t i = 0; i < rangeCount; i++) {
+      mRanges->AppendElement(rangeArray[i]);
+    }
+  }
+
   bool IsComposing() const
   {
-    for (uint32_t i = 0; i < rangeCount; i++) {
-      if (rangeArray[i].IsClause()) {
-        return true;
-      }
-    }
-    return false;
+    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
+    return mRanges && mRanges->IsComposing();
+  }
+
+  uint32_t TargetClauseOffset() const
+  {
+    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
+    return mRanges ? mRanges->TargetClauseOffset() : 0;
+  }
+
+  uint32_t RangeCount() const
+  {
+    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
+    return mRanges ? mRanges->Length() : 0;
   }
 };
 
