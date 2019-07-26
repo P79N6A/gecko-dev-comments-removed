@@ -185,6 +185,7 @@ var PluginHelper = {
           
           
           aTab.shouldShowPluginDoorhanger = false;
+          overlay.style.visibility = "visible";
         }
 
         
@@ -199,6 +200,20 @@ var PluginHelper = {
 
           NativeWindow.doorhanger.hide("ask-to-play-plugins", tab.id);
         }, true);
+
+        
+        plugin.addEventListener("overflow", function(event) {
+          overlay.style.visibility = "hidden";
+          PluginHelper.delayAndShowDoorHanger(aTab);
+        });
+        plugin.addEventListener("underflow", function(event) {
+          
+          
+          if (!PluginHelper.isTooSmall(plugin, overlay)) {
+            overlay.style.visibility = "visible";
+          }
+        });
+
         break;
       }
 
@@ -257,6 +272,7 @@ var PluginHelper = {
         let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
         learnMoreUrl += "why-cant-firefox-mobile-play-flash-on-my-device";
         learnMoreLink.href = learnMoreUrl;
+        overlay.style.visibility = "visible";
         break;
       }
     }
