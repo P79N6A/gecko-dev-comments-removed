@@ -39,16 +39,6 @@ enum DeliveryStatus {
 };
 
 
-enum ReadStatus {
-  eReadStatus_NotApplicable = 0,
-  eReadStatus_Success,
-  eReadStatus_Pending,
-  eReadStatus_Error,
-  
-  eReadStatus_EndGuard
-};
-
-
 enum ReadState {
   eReadState_Unknown = -1,
   eReadState_Unread,
@@ -100,16 +90,6 @@ struct ParamTraits<mozilla::dom::mobilemessage::DeliveryStatus>
   : public EnumSerializer<mozilla::dom::mobilemessage::DeliveryStatus,
                           mozilla::dom::mobilemessage::eDeliveryStatus_NotApplicable,
                           mozilla::dom::mobilemessage::eDeliveryStatus_EndGuard>
-{};
-
-
-
-
-template <>
-struct ParamTraits<mozilla::dom::mobilemessage::ReadStatus>
-  : public EnumSerializer<mozilla::dom::mobilemessage::ReadStatus,
-                          mozilla::dom::mobilemessage::eReadStatus_NotApplicable,
-                          mozilla::dom::mobilemessage::eReadStatus_EndGuard>
 {};
 
 
