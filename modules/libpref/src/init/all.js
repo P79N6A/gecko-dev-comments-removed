@@ -269,7 +269,7 @@ pref("media.tabstreaming.height", 240);
 pref("media.tabstreaming.time_per_frame", 40);
 
 
-pref("media.webvtt.enabled", false);
+pref("media.webvtt.enabled", true);
 
 
 pref("media.mediasource.enabled", false);
