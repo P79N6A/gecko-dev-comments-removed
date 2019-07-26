@@ -273,12 +273,6 @@ pref("media.video_stats.enabled", true);
 
 pref("media.audio_data.enabled", true);
 
-
-
-
-
-pref("apzc.axis_lock_mode", 0);
-
 #ifdef XP_MACOSX
 
 
@@ -4439,6 +4433,12 @@ pref("dom.forms.inputmode", true);
 
 
 pref("dom.mozInputMethod.enabled", false);
+
+#ifdef RELEASE_BUILD
+pref("dom.datastore.enabled", false);
+#else
+pref("dom.datastore.enabled", true);
+#endif
 
 
 pref("dom.telephony.enabled", false);
