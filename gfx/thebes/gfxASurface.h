@@ -155,6 +155,19 @@ public:
       return nullptr;
     }
 
+    
+
+
+
+
+    virtual already_AddRefed<gfxImageSurface> GetAsReadableARGB32ImageSurface();
+
+    
+
+
+
+    already_AddRefed<gfxImageSurface> CopyToARGB32ImageSurface();
+
     int CairoStatus();
 
     
