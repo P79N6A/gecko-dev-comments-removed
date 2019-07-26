@@ -9,7 +9,6 @@
 #ifndef nsDOMTokenList_h___
 #define nsDOMTokenList_h___
 
-#include "nsIDOMDOMTokenList.h"
 #include "nsCOMPtr.h"
 #include "nsDOMString.h"
 #include "nsWrapperCache.h"
@@ -27,7 +26,7 @@ class nsIAtom;
 
 
 
-class nsDOMTokenList : public nsIDOMDOMTokenList,
+class nsDOMTokenList : public nsISupports,
                        public nsWrapperCache
 {
 protected:
@@ -36,7 +35,6 @@ protected:
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMTokenList)
-  NS_DECL_NSIDOMDOMTOKENLIST
 
   nsDOMTokenList(Element* aElement, nsIAtom* aAttrAtom);
 
