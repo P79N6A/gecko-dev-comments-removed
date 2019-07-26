@@ -371,8 +371,7 @@ imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
     
     
     
-    nsIntRect r;
-    mImage->GetCurrentFrameRect(r);
+    nsIntRect r(mImage->FrameRect(imgIContainer::FRAME_CURRENT));
 
     
     

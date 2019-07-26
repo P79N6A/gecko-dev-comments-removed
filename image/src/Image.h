@@ -67,8 +67,7 @@ public:
   
 
 
-
-  virtual void GetCurrentFrameRect(nsIntRect& aRect) = 0;
+  virtual nsIntRect FrameRect(uint32_t aWhichFrame) = 0;
 
   
 

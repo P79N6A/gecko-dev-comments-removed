@@ -905,24 +905,29 @@ RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
          framerect.IsEqualInterior(nsIntRect(0, 0, mSize.width, mSize.height));
 }
 
-void
-RasterImage::GetCurrentFrameRect(nsIntRect& aRect)
+nsIntRect
+RasterImage::FrameRect(uint32_t aWhichFrame)
 {
-  
-  imgFrame* curframe = GetCurrentImgFrame();
+  if (aWhichFrame > FRAME_MAX_VALUE) {
+    NS_WARNING("aWhichFrame outside valid range!");
+    return nsIntRect();
+  }
 
   
-  if (curframe) {
-    aRect = curframe->GetRect();
-  } else {
-    
-    
-    
-    
-    
-    aRect.MoveTo(0, 0);
-    aRect.SizeTo(0, 0);
+  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrame(0)
+                                               : GetCurrentImgFrame();
+
+  
+  if (frame) {
+    return frame->GetRect();
   }
+
+  
+  
+  
+  
+  
+  return nsIntRect();
 }
 
 uint32_t
