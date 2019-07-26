@@ -389,7 +389,7 @@ struct ParseTask
 
     
     
-    Vector<frontend::CompileError> errors;
+    Vector<frontend::CompileError *> errors;
 
     ParseTask(ExclusiveContext *cx, const CompileOptions &options,
               const jschar *chars, size_t length, JSObject *scopeChain,
