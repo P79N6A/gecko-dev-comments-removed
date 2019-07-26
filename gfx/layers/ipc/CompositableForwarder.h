@@ -159,6 +159,14 @@ public:
 
 
 
+
+  virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
+                                             TextureClient* aTexture) = 0;
+
+  
+
+
+
   virtual void RemoveTexture(TextureClient* aTexture) = 0;
 
   
