@@ -83,7 +83,7 @@ public:
   void UpdateCachedBaseValue(const nsSMILValue& aBaseValue);
 
   
-  PR_STATIC_CALLBACK(PLDHashOperator) DoComposeAttribute(
+  static PLDHashOperator DoComposeAttribute(
       nsSMILCompositor* aCompositor, void *aData);
 
   

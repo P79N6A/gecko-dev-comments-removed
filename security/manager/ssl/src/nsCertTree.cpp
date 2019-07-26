@@ -63,7 +63,7 @@ CompareCacheHashEntry::CompareCacheHashEntry()
   }
 }
 
-PR_STATIC_CALLBACK(bool)
+static bool
 CompareCacheMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
                          const void *key)
 {
@@ -71,7 +71,7 @@ CompareCacheMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
   return entryPtr->entry->key == key;
 }
 
-PR_STATIC_CALLBACK(bool)
+static bool
 CompareCacheInitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
                      const void *key)
 {
@@ -84,7 +84,7 @@ CompareCacheInitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
   return true;
 }
 
-PR_STATIC_CALLBACK(void)
+static void
 CompareCacheClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
 {
   CompareCacheHashEntryPtr *entryPtr = static_cast<CompareCacheHashEntryPtr*>(hdr);
@@ -359,7 +359,7 @@ struct nsCertAndArrayAndPositionAndCounterAndTracker
 
 
 
-PR_STATIC_CALLBACK(void)
+static void
 MatchingCertOverridesCallback(const nsCertOverride &aSettings,
                               void *aUserData)
 {
@@ -393,7 +393,7 @@ MatchingCertOverridesCallback(const nsCertOverride &aSettings,
 
 
 
-PR_STATIC_CALLBACK(void)
+static void
 CollectAllHostPortOverridesCallback(const nsCertOverride &aSettings,
                                     void *aUserData)
 {
@@ -417,7 +417,7 @@ struct nsArrayAndPositionAndCounterAndTracker
 
 
 
-PR_STATIC_CALLBACK(void)
+static void
 AddRemaningHostPortOverridesCallback(const nsCertOverride &aSettings,
                                      void *aUserData)
 {
