@@ -48,7 +48,7 @@ struct NS_GFX nsFont {
 
   
   
-  uint8_t systemFont;
+  bool systemFont;
 
   
   uint8_t variant;
