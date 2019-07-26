@@ -42,11 +42,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define FOR_EACH_OPCODE(macro) \
     /* legend:  op      val   name          image       len use def  format */ \
+    /*
+     * No operation is performed.
+     *   Category: Other
+     *   Operands:
+     *   Stack: =>
+     */ \
     macro(JSOP_NOP,       0,  "nop",        NULL,         1,  0,  0, JOF_BYTE) \
     \
-    /* Long-standing JavaScript bytecodes. */ \
+     \
     macro(JSOP_UNDEFINED, 1,  js_undefined_str, "",       1,  0,  1, JOF_BYTE) \
     macro(JSOP_UNUSED2,   2,  "unused2",    NULL,         1,  1,  0, JOF_BYTE) \
     macro(JSOP_ENTERWITH, 3,  "enterwith",  NULL,         5,  1,  0, JOF_OBJECT) \
@@ -56,13 +100,13 @@
     macro(JSOP_IFEQ,      7,  "ifeq",       NULL,         5,  1,  0, JOF_JUMP|JOF_DETECTING) \
     macro(JSOP_IFNE,      8,  "ifne",       NULL,         5,  1,  0, JOF_JUMP) \
     \
-    /* Get the arguments object for the current, lightweight function activation. */ \
+     \
     macro(JSOP_ARGUMENTS, 9,  "arguments",  NULL,         1,  0,  1, JOF_BYTE) \
     \
     macro(JSOP_SWAP,      10, "swap",       NULL,         1,  2,  2, JOF_BYTE) \
     macro(JSOP_POPN,      11, "popn",       NULL,         3, -1,  0, JOF_UINT16) \
     \
-    /* More long-standing bytecodes. */ \
+     \
     macro(JSOP_DUP,       12, "dup",        NULL,         1,  1,  2, JOF_BYTE) \
     macro(JSOP_DUP2,      13, "dup2",       NULL,         1,  2,  4, JOF_BYTE) \
     macro(JSOP_SETCONST,  14, "setconst",   NULL,         5,  1,  1, JOF_ATOM|JOF_NAME|JOF_SET) \
@@ -93,14 +137,14 @@
     macro(JSOP_TYPEOF,    39, js_typeof_str,NULL,         1,  1,  1, JOF_BYTE|JOF_DETECTING) \
     macro(JSOP_VOID,      40, js_void_str,  NULL,         1,  1,  1, JOF_BYTE) \
     \
-    /* spreadcall variant of JSOP_CALL */ \
+     \
     macro(JSOP_SPREADCALL,41, "spreadcall", NULL,         1,  3,  1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET) \
-    /* spreadcall variant of JSOP_NEW */ \
+     \
     macro(JSOP_SPREADNEW, 42, "spreadnew",  NULL,         1,  3,  1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET) \
-    /* spreadcall variant of JSOP_EVAL */ \
+     \
     macro(JSOP_SPREADEVAL,43, "spreadeval", NULL,         1,  3,  1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET) \
     \
-    /* Dup the Nth value from the top. */ \
+     \
     macro(JSOP_DUPAT,     44, "dupat",      NULL,         4,  0,  1,  JOF_UINT24) \
     \
     macro(JSOP_UNUSED45,  45, "unused45",   NULL,         1,  0,  0,  JOF_BYTE) \
@@ -130,13 +174,13 @@
     macro(JSOP_OR,        68, "or",         NULL,         5,  1,  1, JOF_JUMP|JOF_DETECTING|JOF_LEFTASSOC) \
     macro(JSOP_AND,       69, "and",        NULL,         5,  1,  1, JOF_JUMP|JOF_DETECTING|JOF_LEFTASSOC) \
     \
-    /* The switch bytecodes have variable length. */ \
+     \
     macro(JSOP_TABLESWITCH, 70, "tableswitch", NULL,     -1,  1,  0,  JOF_TABLESWITCH|JOF_DETECTING) \
     \
-    /*
-     * Prologue emitted in scripts expected to run once, which deoptimizes code if
-     * it executes multiple times.
-     */ \
+    
+
+
+ \
     macro(JSOP_RUNONCE,   71, "runonce",    NULL,         1,  0,  0,  JOF_BYTE) \
     \
      \
