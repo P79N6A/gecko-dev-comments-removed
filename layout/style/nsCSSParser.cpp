@@ -5493,7 +5493,8 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
       }
       return false;
     }
-    if (! ParseProperty(propID)) {
+    
+    if (!ParseProperty(propID)) {
       
       REPORT_UNEXPECTED_P(PEValueParsingError, propertyName);
       REPORT_UNEXPECTED(PEDeclDropped);
@@ -7207,12 +7208,21 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
       nsCSSProps::PropHasFlags(aPropID, CSS_PROPERTY_UNITLESS_LENGTH_QUIRK);
   }
 
+  
+  
+  
+  CSSParserInputState stateBeforeProperty;
+  SaveInputState(stateBeforeProperty);
+  mScanner->ClearSeenVariableReference();
+
   NS_ASSERTION(aPropID < eCSSProperty_COUNT, "index out of range");
+  bool allowVariables = true;
   bool result;
   switch (nsCSSProps::PropertyParseType(aPropID)) {
     case CSS_PROPERTY_PARSE_INACCESSIBLE: {
       
       REPORT_UNEXPECTED(PEInaccessibleProperty2);
+      allowVariables = false;
       result = false;
       break;
     }
@@ -7239,10 +7249,128 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
     }
     default: {
       result = false;
+      allowVariables = false;
       NS_ABORT_IF_FALSE(false,
                         "Property's flags field in nsCSSPropList.h is missing "
                         "one of the CSS_PROPERTY_PARSE_* constants");
       break;
+    }
+  }
+
+  bool seenVariable = mScanner->SeenVariableReference() ||
+    (stateBeforeProperty.mHavePushBack &&
+     stateBeforeProperty.mToken.mType == eCSSToken_Function &&
+     stateBeforeProperty.mToken.mIdent.LowerCaseEqualsLiteral("var"));
+  bool parseAsTokenStream;
+
+  if (!result && allowVariables) {
+    parseAsTokenStream = true;
+    if (!seenVariable) {
+      
+      
+      
+      CSSParserInputState stateAtError;
+      SaveInputState(stateAtError);
+
+      const PRUnichar stopChars[] = { ';', '!', '}', ')', 0 };
+      SkipUntilOneOf(stopChars);
+      UngetToken();
+      parseAsTokenStream = mScanner->SeenVariableReference();
+
+      if (!parseAsTokenStream) {
+        
+        
+        
+        RestoreSavedInputState(stateAtError);
+      }
+    }
+  } else {
+    parseAsTokenStream = false;
+  }
+
+  if (parseAsTokenStream) {
+    
+    
+    
+    RestoreSavedInputState(stateBeforeProperty);
+
+    if (!mInSupportsCondition) {
+      mScanner->StartRecording();
+    }
+
+    CSSVariableDeclarations::Type type;
+    bool dropBackslash;
+    nsString impliedCharacters;
+    nsCSSValue value;
+    if (ParseValueWithVariables(&type, &dropBackslash, impliedCharacters,
+                                nullptr, nullptr)) {
+      MOZ_ASSERT(type == CSSVariableDeclarations::eTokenStream,
+                 "a non-custom property reparsed since it contained variable "
+                 "references should not have been 'initial' or 'inherit'");
+
+      nsString propertyValue;
+
+      if (!mInSupportsCondition) {
+        
+        
+        mScanner->StopRecording(propertyValue);
+        if (dropBackslash) {
+          MOZ_ASSERT(!propertyValue.IsEmpty() &&
+                     propertyValue[propertyValue.Length() - 1] == '\\');
+          propertyValue.Truncate(propertyValue.Length() - 1);
+        }
+        propertyValue.Append(impliedCharacters);
+      }
+
+      if (mHavePushBack) {
+        
+        
+        
+        
+        MOZ_ASSERT(mToken.IsSymbol('!') ||
+                   mToken.IsSymbol(')') ||
+                   mToken.IsSymbol(';') ||
+                   mToken.IsSymbol(']') ||
+                   mToken.IsSymbol('}'));
+        if (!mInSupportsCondition) {
+          MOZ_ASSERT(!propertyValue.IsEmpty());
+          MOZ_ASSERT(propertyValue[propertyValue.Length() - 1] ==
+                     mToken.mSymbol);
+          propertyValue.Truncate(propertyValue.Length() - 1);
+        }
+      }
+
+      if (!mInSupportsCondition) {
+        if (nsCSSProps::IsShorthand(aPropID)) {
+          
+          
+          CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID) {
+            nsCSSValueTokenStream* tokenStream = new nsCSSValueTokenStream;
+            tokenStream->mPropertyID = *p;
+            tokenStream->mShorthandPropertyID = aPropID;
+            tokenStream->mTokenStream = propertyValue;
+            tokenStream->mBaseURI = mBaseURI;
+            tokenStream->mSheetURI = mSheetURI;
+            tokenStream->mSheetPrincipal = mSheetPrincipal;
+            value.SetTokenStreamValue(tokenStream);
+            AppendValue(*p, value);
+          }
+        } else {
+          nsCSSValueTokenStream* tokenStream = new nsCSSValueTokenStream;
+          tokenStream->mPropertyID = aPropID;
+          tokenStream->mTokenStream = propertyValue;
+          tokenStream->mBaseURI = mBaseURI;
+          tokenStream->mSheetURI = mSheetURI;
+          tokenStream->mSheetPrincipal = mSheetPrincipal;
+          value.SetTokenStreamValue(tokenStream);
+          AppendValue(aPropID, value);
+        }
+      }
+      result = true;
+    } else {
+      if (!mInSupportsCondition) {
+        mScanner->StopRecording();
+      }
     }
   }
 
