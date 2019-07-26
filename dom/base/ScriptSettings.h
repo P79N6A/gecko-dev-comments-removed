@@ -179,7 +179,14 @@ public:
 private:
   JSAutoCompartment mAc;
   dom::ScriptSettingsStack& mStack;
-  nsCOMPtr<nsIPrincipal> mWebIDLCallerPrincipal;
+  
+  
+  
+  
+  
+  
+  
+  nsIPrincipal* mWebIDLCallerPrincipal;
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
 };
 
