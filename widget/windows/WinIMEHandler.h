@@ -8,15 +8,13 @@
 
 #include "nscore.h"
 #include "nsEvent.h"
+#include "nsIWidget.h"
 #include <windows.h>
 
 class nsWindow;
-struct nsIMEUpdatePreference;
 
 namespace mozilla {
 namespace widget {
-
-struct InputContext;
 
 
 
@@ -29,6 +27,12 @@ class IMEHandler MOZ_FINAL
 public:
   static void Initialize();
   static void Terminate();
+
+  
+
+
+  static bool IsIMEEnabled(const InputContext& aInputContext);
+  static bool IsIMEEnabled(IMEState::Enabled aIMEState);
 
   
 
