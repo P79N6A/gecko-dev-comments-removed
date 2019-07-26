@@ -59,7 +59,7 @@ function nextTest() {
     
     
     syncWithCacheIOThread(function() {
-        evict_cache_entries();
+        get_cache_service().clear();
         syncWithCacheIOThread(runNextTest);
     });
 }
