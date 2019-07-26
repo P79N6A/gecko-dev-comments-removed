@@ -120,13 +120,6 @@ template <class ErrorResult>
 class AudioEventTimeline
 {
 public:
-  
-  
-  AudioEventTimeline()
-    : mValue(0.f)
-  {
-  }
-
   explicit AudioEventTimeline(float aDefaultValue)
     : mValue(aDefaultValue)
   {

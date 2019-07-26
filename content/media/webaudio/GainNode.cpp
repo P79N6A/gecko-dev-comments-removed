@@ -46,6 +46,8 @@ public:
   explicit GainNodeEngine(AudioDestinationNode* aDestination)
     : mSource(nullptr)
     , mDestination(static_cast<AudioNodeStream*> (aDestination->Stream()))
+    
+    , mGain(1.f)
   {
   }
 
