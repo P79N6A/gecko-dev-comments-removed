@@ -97,6 +97,15 @@ public:
 
 
 
+  bool IsEditorHandlingEvent() const
+  {
+    return mIsEditorHandlingEvent;
+  }
+
+  
+
+
+
   void StartHandlingComposition(nsIEditor* aEditor);
   void EndHandlingComposition(nsIEditor* aEditor);
 
@@ -160,6 +169,10 @@ private:
 
   
   bool mIsComposing;
+
+  
+  
+  bool mIsEditorHandlingEvent;
 
   
   TextComposition() {}
