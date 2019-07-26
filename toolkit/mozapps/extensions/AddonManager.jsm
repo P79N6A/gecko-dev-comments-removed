@@ -2317,7 +2317,25 @@ this.AddonManagerPrivate = {
     return {
       done: () => this.recordSimpleMeasure(aName, Date.now() - startTime)
     };
-  }
+  },
+
+  
+
+
+
+
+
+  callNoUpdateListeners: function (addon, listener, reason, appVersion, platformVersion) {
+    if ("onNoCompatibilityUpdateAvailable" in listener) {
+      safeCall(listener.onNoCompatibilityUpdateAvailable.bind(listener), addon);
+    }
+    if ("onNoUpdateAvailable" in listener) {
+      safeCall(listener.onNoUpdateAvailable.bind(listener), addon);
+    }
+    if ("onUpdateFinished" in listener) {
+      safeCall(listener.onUpdateFinished.bind(listener), addon);
+    }
+  },
 };
 
 
