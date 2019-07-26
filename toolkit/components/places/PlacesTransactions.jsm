@@ -121,6 +121,7 @@ this.EXPORTED_SYMBOLS = ["PlacesTransactions"];
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -131,6 +132,18 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "console",
                                   "resource://gre/modules/devtools/Console.jsm");
+
+
+
+function updateCommandsOnActiveWindow() {
+  
+  try {
+    let win = Services.focus.activeWindow;
+    if (win)
+      win.updateCommands("undo");
+  }
+  catch(ex) { console.error(ex, "Couldn't update undo commands"); }
+}
 
 
 
@@ -173,6 +186,7 @@ TransactionsHistory.__proto__ = {
       }
     }
     this._undoPosition++;
+    updateCommandsOnActiveWindow();
   },
 
   
@@ -201,6 +215,7 @@ TransactionsHistory.__proto__ = {
       }
     }
     this._undoPosition--;
+    updateCommandsOnActiveWindow();
   },
 
   
@@ -222,6 +237,7 @@ TransactionsHistory.__proto__ = {
     else {
       this[this.undoPosition].unshift(aTransaction);
     }
+    updateCommandsOnActiveWindow();
   },
 
   
@@ -411,7 +427,7 @@ let PlacesTransactions = {
 
 
 
-  item: function (aIndex) {
+  entry: function (aIndex) {
     if (!Number.isInteger(aIndex) || aIndex < 0 || aIndex >= this.length)
       throw new Error("Invalid index");
 
@@ -425,6 +441,16 @@ let PlacesTransactions = {
 
 
   get undoPosition() TransactionsHistory.undoPosition,
+
+  
+
+
+  get topUndoEntry() TransactionsHistory.topUndoEntry,
+
+  
+
+
+  get topRedoEntry() TransactionsHistory.topRedoEntry
 };
 
 
