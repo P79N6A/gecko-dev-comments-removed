@@ -55,6 +55,7 @@ private:
   HRESULT ConfigureAudioDecoder();
   HRESULT ConfigureVideoDecoder();
   HRESULT ConfigureVideoFrameGeometry(IMFMediaType* aMediaType);
+  void GetSupportedAudioCodecs(const GUID** aCodecs, uint32_t* aNumCodecs);
 
   RefPtr<IMFSourceReader> mSourceReader;
   RefPtr<WMFByteStream> mByteStream;
@@ -74,6 +75,11 @@ private:
   bool mHasAudio;
   bool mHasVideo;
   bool mCanSeek;
+
+  
+  
+  
+  const bool mIsMP3Enabled;
 };
 
 } 
