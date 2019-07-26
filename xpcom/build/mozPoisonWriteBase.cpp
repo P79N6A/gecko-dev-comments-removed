@@ -106,11 +106,17 @@ static void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
 
 bool ValidWriteAssert(bool ok)
 {
-    
-    MOZ_ASSERT(ok);
+    if (gShutdownChecks == SCM_CRASH && !ok) {
+        MOZ_CRASH();
+    }
 
-    if (ok || !sProfileDirectory || !Telemetry::CanRecord())
+    
+    
+    
+    if (gShutdownChecks == SCM_NOTHING || ok || !sProfileDirectory ||
+        !Telemetry::CanRecord()) {
         return ok;
+    }
 
     
     
