@@ -214,52 +214,38 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
     mFirst = false;
 
   for (in = aSrc; ((in < inend) && (out < outend)); ++in) {
+    uint8_t c = *in;
     if (0 == mState) {
       
       
-      if (0 == (0x80 & (*in))) {
+      if (c < 0x80) {  
         int32_t max_loops = NS_MIN(inend - in, outend - out);
         Convert_ascii_run(in, out, max_loops);
         --in; 
         mBytes = 1;
-      } else if (0xC0 == (0xE0 & (*in))) {
+      } else if (c < 0xC2) {  
         
-        mUcs4 = (uint32_t)(*in);
+        res = NS_ERROR_ILLEGAL_INPUT;
+        break;
+      } else if (c < 0xE0) {  
+        
+        mUcs4 = c;
         mUcs4 = (mUcs4 & 0x1F) << 6;
         mState = 1;
         mBytes = 2;
-      } else if (0xE0 == (0xF0 & (*in))) {
+      } else if (c < 0xF0) {  
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = c;
         mUcs4 = (mUcs4 & 0x0F) << 12;
         mState = 2;
         mBytes = 3;
-      } else if (0xF0 == (0xF8 & (*in))) {
+      } else if (c < 0xF5) {  
         
-        mUcs4 = (uint32_t)(*in);
+        mUcs4 = c;
         mUcs4 = (mUcs4 & 0x07) << 18;
         mState = 3;
         mBytes = 4;
-      } else if (0xF8 == (0xFC & (*in))) {
-        
-
-
-
-
-
-
-
-        mUcs4 = (uint32_t)(*in);
-        mUcs4 = (mUcs4 & 0x03) << 24;
-        mState = 4;
-        mBytes = 5;
-      } else if (0xFC == (0xFE & (*in))) {
-        
-        mUcs4 = (uint32_t)(*in);
-        mUcs4 = (mUcs4 & 1) << 30;
-        mState = 5;
-        mBytes = 6;
-      } else {
+      } else {  
         
 
 
@@ -272,10 +258,26 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
     } else {
       
       
-      if (0x80 == (0xC0 & (*in))) {
+      if (0x80 == (0xC0 & c)) {
+        if (mState > 1) {
+          
+          
+          
+          
+          if (mBytes == 3 && (!mUcs4 && c < 0xA0 ||  
+                              mUcs4 == 0xD000 && c > 0x9F) ||  
+              mState == 3 && (!mUcs4 && c < 0x90 ||  
+                              mUcs4 == 0x100000 && c > 0x8F)) {  
+            
+            in--;
+            res = NS_ERROR_ILLEGAL_INPUT;
+            break;
+          }
+        }
+
         
         uint32_t shift = (mState - 1) * 6;
-        uint32_t tmp = *in;
+        uint32_t tmp = c;
         tmp = (tmp & 0x0000003FL) << shift;
         mUcs4 |= tmp;
 
@@ -284,20 +286,6 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
 
 
-
-
-          
-          if (((2 == mBytes) && (mUcs4 < 0x0080)) ||
-              ((3 == mBytes) && (mUcs4 < 0x0800)) ||
-              ((4 == mBytes) && (mUcs4 < 0x10000)) ||
-              (4 < mBytes) ||
-              
-              ((mUcs4 & 0xFFFFF800) == 0xD800) ||
-              
-              (mUcs4 > 0x10FFFF)) {
-            res = NS_ERROR_ILLEGAL_INPUT;
-            break;
-          }
           if (mUcs4 > 0xFFFF) {
             
             if (out + 2 > outend) {
