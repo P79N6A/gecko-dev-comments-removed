@@ -8,12 +8,17 @@ const Cu = Components.utils;
 
 let tempScope = {};
 Cu.import("resource://gre/modules/Services.jsm", tempScope);
+let Services = tempScope.Services;
+
+
+let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
+Services.prefs.setBoolPref("devtools.debugger.log", false);
+
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm", tempScope);
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm", tempScope);
 Cu.import("resource:///modules/source-editor.jsm", tempScope);
 Cu.import("resource:///modules/devtools/gDevTools.jsm", tempScope);
 Cu.import("resource://gre/modules/devtools/Loader.jsm", tempScope);
-let Services = tempScope.Services;
 let SourceEditor = tempScope.SourceEditor;
 let DebuggerServer = tempScope.DebuggerServer;
 let DebuggerTransport = tempScope.DebuggerTransport;
@@ -33,9 +38,7 @@ const STACK_URL = EXAMPLE_URL + "browser_dbg_stack.html";
 
 
 let gEnableRemote = Services.prefs.getBoolPref("devtools.debugger.remote-enabled");
-let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
-Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 
 function dbg_assert(cond, e) {
