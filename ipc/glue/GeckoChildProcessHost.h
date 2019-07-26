@@ -123,11 +123,17 @@ public:
 
   void Join();
 
+  void SetSandboxEnabled(bool aSandboxEnabled) {
+    mSandboxEnabled = aSandboxEnabled;
+  }
+
 protected:
   GeckoProcessType mProcessType;
+  bool mSandboxEnabled;
   ChildPrivileges mPrivileges;
   Monitor mMonitor;
   FilePath mProcessPath;
+
   
   enum {
     

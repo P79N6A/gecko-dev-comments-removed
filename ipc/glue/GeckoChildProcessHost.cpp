@@ -87,6 +87,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
                                              ChildPrivileges aPrivileges)
   : ChildProcessHost(RENDER_PROCESS), 
     mProcessType(aProcessType),
+    mSandboxEnabled(true),
     mPrivileges(aPrivileges),
     mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
     mProcessState(CREATING_CHANNEL),
@@ -739,6 +740,13 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
     }
   }
 
+#if defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+  if (mSandboxEnabled) {
+    
+    cmdLine.AppendLooseValue(UTF8ToWide("-sandbox"));
+  }
+#endif
+
   
   AddAppDirToCommandLine(cmdLine);
 
@@ -761,14 +769,17 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   cmdLine.AppendLooseValue(UTF8ToWide(childProcessType));
 
 #if defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
-  mozilla::SandboxBroker sandboxBroker;
-  sandboxBroker.LaunchApp(cmdLine.program().c_str(),
-                          cmdLine.command_line_string().c_str(),
-                          &process);
-#else
-  base::LaunchApp(cmdLine, false, false, &process);
-#endif
+  if (mSandboxEnabled) {
 
+    mozilla::SandboxBroker sandboxBroker;
+    sandboxBroker.LaunchApp(cmdLine.program().c_str(),
+                            cmdLine.command_line_string().c_str(),
+                            &process);
+  } else
+#endif
+  {
+    base::LaunchApp(cmdLine, false, false, &process);
+  }
 
 #else
 #  error Sorry
