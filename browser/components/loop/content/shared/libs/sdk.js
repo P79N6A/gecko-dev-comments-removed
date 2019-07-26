@@ -22,7 +22,8 @@
     websiteURL: 'http://www.tokbox.com',
 
     
-    cdnURL: 'http://static.opentok.com',
+    
+    cdnURL: 'loop/otcdn',
     
     loggingURL: 'http://hlg.tokbox.com/prod',
     
@@ -36,7 +37,8 @@
     
     supportSSL: 'true',
     
-    cdnURLSSL: 'https://static.opentok.com',
+    
+    cdnURLSSL: 'loop/otcdn',
     
     loggingURLSSL: 'https://hlg.tokbox.com/prod',
     
