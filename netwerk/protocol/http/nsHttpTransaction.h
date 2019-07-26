@@ -103,6 +103,14 @@ public:
     bool      ProxyConnectFailed() { return mProxyConnectFailed; }
 
     
+    
+    
+    
+    
+    void SetDontRouteViaWildCard(bool var) { mDontRouteViaWildCard = var; }
+    bool DontRouteViaWildCard() { return mDontRouteViaWildCard; }
+
+    
     void    SetPriority(int32_t priority) { mPriority = priority; }
     int32_t    Priority()                 { return mPriority; }
 
@@ -247,6 +255,7 @@ private:
     bool                            mPreserveStream;
     bool                            mDispatchedAsBlocking;
     bool                            mResponseTimeoutEnabled;
+    bool                            mDontRouteViaWildCard;
 
     
     

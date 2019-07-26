@@ -373,7 +373,9 @@ Http2Session::RegisterStreamID(Http2Stream *stream, uint32_t aNewID)
 
 bool
 Http2Session::AddStream(nsAHttpTransaction *aHttpTransaction,
-                        int32_t aPriority)
+                        int32_t aPriority,
+                        bool aUseTunnel,
+                        nsIInterfaceRequestor *aCallbacks)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -2891,6 +2893,7 @@ Http2Session::TransactionHasDataToWrite(nsAHttpTransaction *caller)
         this, stream->StreamID()));
 
   mReadyForWrite.Push(stream);
+  SetWriteCallbacks();
 }
 
 void
@@ -2940,6 +2943,13 @@ Http2Session::Classification()
   return mConnection->Classification();
 }
 
+void
+Http2Session::GetSecurityCallbacks(nsIInterfaceRequestor **aOut)
+{
+  *aOut = nullptr;
+}
+
+
 
 
 
@@ -2951,13 +2961,6 @@ Http2Session::SetConnection(nsAHttpConnection *)
 {
   
   MOZ_ASSERT(false, "Http2Session::SetConnection()");
-}
-
-void
-Http2Session::GetSecurityCallbacks(nsIInterfaceRequestor **)
-{
-  
-  MOZ_ASSERT(false, "Http2Session::GetSecurityCallbacks()");
 }
 
 void

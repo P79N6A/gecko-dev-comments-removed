@@ -50,6 +50,7 @@ public:
 
     
     
+    virtual nsresult ForceSend() = 0;
     virtual nsresult ForceRecv() = 0;
 
     
@@ -179,6 +180,12 @@ public:
         if (!(fwdObject))                  \
             return NS_ERROR_FAILURE;       \
         return (fwdObject)->ResumeRecv();  \
+    }                                      \
+    nsresult ForceSend()                   \
+    {                                      \
+        if (!(fwdObject))                  \
+            return NS_ERROR_FAILURE;       \
+        return (fwdObject)->ForceSend();   \
     }                                      \
     nsresult ForceRecv()                   \
     {                                      \

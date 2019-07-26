@@ -1043,8 +1043,10 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent, bool consid
 {
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
-    LOG(("nsHttpConnectionMgr::ProcessPendingQForEntry [ci=%s]\n",
-         ent->mConnInfo->HashKey().get()));
+    LOG(("nsHttpConnectionMgr::ProcessPendingQForEntry "
+         "[ci=%s ent=%p active=%d idle=%d queued=%d]\n",
+         ent->mConnInfo->HashKey().get(), ent, ent->mActiveConns.Length(),
+         ent->mIdleConns.Length(), ent->mPendingQ.Length()));
 
     ProcessSpdyPendingQ(ent);
 
@@ -1071,7 +1073,9 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent, bool consid
             }
         }
 
-        rv = TryDispatchTransaction(ent, alreadyHalfOpen, trans);
+        rv = TryDispatchTransaction(ent,
+                                    alreadyHalfOpen || trans->DontRouteViaWildCard(),
+                                    trans);
         if (NS_SUCCEEDED(rv) || (rv != NS_ERROR_NOT_AVAILABLE)) {
             if (NS_SUCCEEDED(rv))
                 LOG(("  dispatching pending transaction...\n"));
@@ -1566,8 +1570,10 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
 {
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
     LOG(("nsHttpConnectionMgr::TryDispatchTransaction without conn "
-         "[ci=%s caps=%x]\n",
-         ent->mConnInfo->HashKey().get(), uint32_t(trans->Caps())));
+         "[trans=%p ci=%s caps=%x wildcardok=%d onlyreused=%d]\n",
+         trans, ent->mConnInfo->HashKey().get(),
+         uint32_t(trans->Caps()), !trans->DontRouteViaWildCard(),
+         onlyReusedConnection));
 
     nsHttpTransaction::Classifier classification = trans->Classification();
     uint32_t caps = trans->Caps();
@@ -1756,7 +1762,7 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     nsresult rv;
 
     LOG(("nsHttpConnectionMgr::DispatchTransaction "
-         "[ci=%s trans=%p caps=%x conn=%p priority=%d]\n",
+         "[ent-ci=%s trans=%p caps=%x conn=%p priority=%d]\n",
          ent->mConnInfo->HashKey().get(), trans, caps, conn, priority));
 
     
@@ -1765,7 +1771,7 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     trans->CancelPacing(NS_OK);
 
     if (conn->UsingSpdy()) {
-        LOG(("Spdy Dispatch Transaction via Activate(). Transaction host = %s,"
+        LOG(("Spdy Dispatch Transaction via Activate(). Transaction host = %s, "
              "Connection host = %s\n",
              trans->ConnectionInfo()->Host(),
              conn->ConnectionInfo()->Host()));
@@ -1924,7 +1930,8 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
     nsHttpConnectionInfo *ci = trans->ConnectionInfo();
     MOZ_ASSERT(ci);
 
-    nsConnectionEntry *ent = GetOrCreateConnectionEntry(ci);
+    nsConnectionEntry *ent =
+        GetOrCreateConnectionEntry(ci, trans->DontRouteViaWildCard());
 
     
     
@@ -1956,9 +1963,9 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
              "sticky connection=%p\n", trans, conn.get()));
         trans->SetConnection(nullptr);
         rv = DispatchTransaction(ent, trans, conn);
+    } else {
+        rv = TryDispatchTransaction(ent, trans->DontRouteViaWildCard(), trans);
     }
-    else
-        rv = TryDispatchTransaction(ent, false, trans);
 
     if (NS_SUCCEEDED(rv)) {
         LOG(("  ProcessNewTransaction Dispatch Immediately trans=%p\n", trans));
@@ -2287,6 +2294,44 @@ nsHttpConnectionMgr::OnMsgProcessPendingQ(int32_t, void *param)
     NS_RELEASE(ci);
 }
 
+nsresult
+nsHttpConnectionMgr::CancelTransactions(nsHttpConnectionInfo *aCI, nsresult code)
+{
+    nsRefPtr<nsHttpConnectionInfo> ci(aCI);
+    LOG(("nsHttpConnectionMgr::CancelTransactions %s\n",ci->HashKey().get()));
+
+    int32_t intReason = static_cast<int32_t>(code);
+    nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgCancelTransactions, intReason, ci);
+    if (NS_SUCCEEDED(rv)) {
+        unused << ci.forget();
+    }
+    return rv;
+}
+
+void
+nsHttpConnectionMgr::OnMsgCancelTransactions(int32_t code, void *param)
+{
+    nsresult reason = static_cast<nsresult>(code);
+    nsRefPtr<nsHttpConnectionInfo> ci =
+        dont_AddRef(static_cast<nsHttpConnectionInfo *>(param));
+    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+    LOG(("nsHttpConnectionMgr::OnMsgCancelTransactions %s %p\n",
+         ci->HashKey().get(), ent));
+    if (!ent) {
+        return;
+    }
+
+    nsRefPtr<nsHttpTransaction> trans;
+    for (int32_t i = ent->mPendingQ.Length() - 1; i >= 0; --i) {
+        trans = dont_AddRef(ent->mPendingQ[i]);
+        LOG(("nsHttpConnectionMgr::OnMsgCancelTransactions %s %p %p\n",
+             ci->HashKey().get(), ent, trans.get()));
+        ent->mPendingQ.RemoveElementAt(i);
+        trans->Close(reason);
+        trans = nullptr;
+    }
+}
+
 void
 nsHttpConnectionMgr::OnMsgPruneDeadConnections(int32_t, void *)
 {
@@ -2332,80 +2377,82 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(int32_t, void *param)
 
     nsConnectionEntry *ent = LookupConnectionEntry(conn->ConnectionInfo(),
                                                    conn, nullptr);
-    nsHttpConnectionInfo *ci = nullptr;
-
     if (!ent) {
         
-        LOG(("nsHttpConnectionMgr::OnMsgReclaimConnection ent == null\n"));
-        MOZ_ASSERT(false, "no connection entry");
-        NS_ADDREF(ci = conn->ConnectionInfo());
+        
+        
+        ent = GetOrCreateConnectionEntry(conn->ConnectionInfo(), true);
+        LOG(("nsHttpConnectionMgr::OnMsgReclaimConnection conn %p "
+             "forced new hash entry %s\n",
+             conn, conn->ConnectionInfo()->HashKey().get()));
     }
-    else {
-        NS_ADDREF(ci = ent->mConnInfo);
+
+    MOZ_ASSERT(ent);
+    nsHttpConnectionInfo *ci = nullptr;
+    NS_ADDREF(ci = ent->mConnInfo);
+
+    
+    
+    
+    
+
+    if (conn->EverUsedSpdy()) {
+        
+        
+        
+        
+        
+        
+        conn->DontReuse();
+    }
+
+    
+    
+    
+    if (conn->Transaction()) {
+        conn->DontReuse();
+    }
+
+    if (ent->mActiveConns.RemoveElement(conn)) {
+        if (conn == ent->mYellowConnection) {
+            ent->OnYellowComplete();
+        }
+        nsHttpConnection *temp = conn;
+        NS_RELEASE(temp);
+        DecrementActiveConnCount(conn);
+        ConditionallyStopTimeoutTick();
+    }
+
+    if (conn->CanReuse()) {
+        LOG(("  adding connection to idle list\n"));
+        
+        
+        
 
         
         
-        
-        
 
-        if (ent->mUsingSpdy) {
-            
-            
-            
-            
-            
-            
-            conn->DontReuse();
+        uint32_t idx;
+        for (idx = 0; idx < ent->mIdleConns.Length(); idx++) {
+            nsHttpConnection *idleConn = ent->mIdleConns[idx];
+            if (idleConn->MaxBytesRead() < conn->MaxBytesRead())
+                break;
         }
 
-        if (ent->mActiveConns.RemoveElement(conn)) {
-            if (conn == ent->mYellowConnection)
-                ent->OnYellowComplete();
-            nsHttpConnection *temp = conn;
-            NS_RELEASE(temp);
-            DecrementActiveConnCount(conn);
-            ConditionallyStopTimeoutTick();
-        }
+        NS_ADDREF(conn);
+        ent->mIdleConns.InsertElementAt(idx, conn);
+        mNumIdleConns++;
+        conn->BeginIdleMonitoring();
 
         
         
         
-        if (conn->Transaction()) {
-            conn->DontReuse();
-        }
-
-        if (conn->CanReuse()) {
-            LOG(("  adding connection to idle list\n"));
-            
-            
-            
-
-            
-            
-
-            uint32_t idx;
-            for (idx = 0; idx < ent->mIdleConns.Length(); idx++) {
-                nsHttpConnection *idleConn = ent->mIdleConns[idx];
-                if (idleConn->MaxBytesRead() < conn->MaxBytesRead())
-                    break;
-            }
-
-            NS_ADDREF(conn);
-            ent->mIdleConns.InsertElementAt(idx, conn);
-            mNumIdleConns++;
-            conn->BeginIdleMonitoring();
-
-            
-            
-            
-            uint32_t timeToLive = conn->TimeToLive();
-            if(!mTimer || NowInSeconds() + timeToLive < mTimeOfNextWakeUp)
-                PruneDeadConnectionsAfter(timeToLive);
-        }
-        else {
-            LOG(("  connection cannot be reused; closing connection\n"));
-            conn->Close(NS_ERROR_ABORT);
-        }
+        uint32_t timeToLive = conn->TimeToLive();
+        if(!mTimer || NowInSeconds() + timeToLive < mTimeOfNextWakeUp)
+            PruneDeadConnectionsAfter(timeToLive);
+    } else {
+        LOG(("  connection cannot be reused; closing connection\n"));
+        conn->Close(NS_ERROR_ABORT);
     }
 
     OnMsgProcessPendingQ(0, ci); 
@@ -2608,17 +2655,43 @@ nsHttpConnectionMgr::nsConnectionHandle::~nsConnectionHandle()
 
 NS_IMPL_ISUPPORTS0(nsHttpConnectionMgr::nsConnectionHandle)
 
-nsHttpConnectionMgr::nsConnectionEntry *
-nsHttpConnectionMgr::GetOrCreateConnectionEntry(nsHttpConnectionInfo *ci)
-{
-    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
-    if (ent)
-        return ent;
 
-    nsHttpConnectionInfo *clone = ci->Clone();
-    ent = new nsConnectionEntry(clone);
-    mCT.Put(ci->HashKey(), ent);
-    return ent;
+
+
+
+
+
+nsHttpConnectionMgr::nsConnectionEntry *
+nsHttpConnectionMgr::GetOrCreateConnectionEntry(nsHttpConnectionInfo *specificCI,
+                                                bool prohibitWildCard)
+{
+    
+    nsConnectionEntry *specificEnt = mCT.Get(specificCI->HashKey());
+    if (specificEnt && specificEnt->AvailableForDispatchNow()) {
+        return specificEnt;
+    }
+
+    if (!specificCI->UsingHttpsProxy()) {
+        prohibitWildCard = true;
+    }
+
+    
+    if (!prohibitWildCard) {
+        nsRefPtr<nsHttpConnectionInfo> wildCardProxyCI;
+        specificCI->CreateWildCard(getter_AddRefs(wildCardProxyCI));
+        nsConnectionEntry *wildCardEnt = mCT.Get(wildCardProxyCI->HashKey());
+        if (wildCardEnt && wildCardEnt->AvailableForDispatchNow()) {
+            return wildCardEnt;
+        }
+    }
+
+    
+    if (!specificEnt) {
+        nsRefPtr<nsHttpConnectionInfo> clone(specificCI->Clone());
+        specificEnt = new nsConnectionEntry(clone);
+        mCT.Put(clone->HashKey(), specificEnt);
+    }
+    return specificEnt;
 }
 
 nsresult
@@ -2657,7 +2730,7 @@ nsHttpConnectionMgr::OnMsgSpeculativeConnect(int32_t, void *param)
          args->mTrans->ConnectionInfo()->HashKey().get()));
 
     nsConnectionEntry *ent =
-        GetOrCreateConnectionEntry(args->mTrans->ConnectionInfo());
+        GetOrCreateConnectionEntry(args->mTrans->ConnectionInfo(), false);
 
     
     
@@ -2759,11 +2832,16 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
                                bool isBackup)
 {
     nsresult rv;
-
-    const char* types[1];
-    types[0] = (mEnt->mConnInfo->EndToEndSSL()) ?
-        "ssl" : gHttpHandler->DefaultSocketType();
-    uint32_t typeCount = (types[0] != nullptr);
+    const char *socketTypes[1];
+    uint32_t typeCount = 0;
+    if (mEnt->mConnInfo->FirstHopSSL()) {
+        socketTypes[typeCount++] = "ssl";
+    } else {
+        socketTypes[typeCount] = gHttpHandler->DefaultSocketType();
+        if (socketTypes[typeCount]) {
+            typeCount++;
+        }
+    }
 
     nsCOMPtr<nsISocketTransport> socketTransport;
     nsCOMPtr<nsISocketTransportService> sts;
@@ -2771,7 +2849,7 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     sts = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = sts->CreateTransport(types, typeCount,
+    rv = sts->CreateTransport(socketTypes, typeCount,
                               nsDependentCString(mEnt->mConnInfo->Host()),
                               mEnt->mConnInfo->Port(),
                               mEnt->mConnInfo->ProxyInfo(),
@@ -3278,6 +3356,17 @@ nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
 }
 
 bool
+nsHttpConnectionMgr::nsConnectionEntry::AvailableForDispatchNow()
+{
+    if (mIdleConns.Length() && mIdleConns[0]->CanReuse()) {
+        return true;
+    }
+
+    return gHttpHandler->ConnMgr()->
+        GetSpdyPreferredConn(this) ? true : false;
+}
+
+bool
 nsHttpConnectionMgr::nsConnectionEntry::SupportsPipelining()
 {
     return mPipelineState != nsHttpConnectionMgr::PS_RED;
@@ -3612,6 +3701,63 @@ nsConnectionEntry::ResetIPFamilyPreference()
 {
   mPreferIPv4 = false;
   mPreferIPv6 = false;
+}
+
+void
+nsHttpConnectionMgr::MoveToWildCardConnEntry(nsHttpConnectionInfo *specificCI,
+                                             nsHttpConnectionInfo *wildCardCI,
+                                             nsHttpConnection *proxyConn)
+{
+    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+    MOZ_ASSERT(specificCI->UsingHttpsProxy());
+
+    LOG(("nsHttpConnectionMgr::MakeConnEntryWildCard conn %p has requested to "
+         "change CI from %s to %s\n", proxyConn, specificCI->HashKey().get(),
+         wildCardCI->HashKey().get()));
+
+    nsConnectionEntry *ent = LookupConnectionEntry(specificCI, proxyConn, nullptr);
+    LOG(("nsHttpConnectionMgr::MakeConnEntryWildCard conn %p using ent %p (spdy %d)\n",
+         proxyConn, ent, ent ? ent->mUsingSpdy : 0));
+
+    if (!ent || !ent->mUsingSpdy) {
+        return;
+    }
+
+    nsConnectionEntry *wcEnt = GetOrCreateConnectionEntry(wildCardCI, true);
+    if (wcEnt == ent) {
+        
+        return;
+    }
+    wcEnt->mUsingSpdy = true;
+    wcEnt->mTestedSpdy = true;
+
+    LOG(("nsHttpConnectionMgr::MakeConnEntryWildCard ent %p "
+         "idle=%d active=%d half=%d pending=%d\n", ent,
+         ent->mIdleConns.Length(), ent->mActiveConns.Length(),
+         ent->mHalfOpens.Length(), ent->mPendingQ.Length()));
+
+    LOG(("nsHttpConnectionMgr::MakeConnEntryWildCard wc-ent %p "
+         "idle=%d active=%d half=%d pending=%d\n", wcEnt,
+         wcEnt->mIdleConns.Length(), wcEnt->mActiveConns.Length(),
+         wcEnt->mHalfOpens.Length(), wcEnt->mPendingQ.Length()));
+
+    int32_t count = ent->mActiveConns.Length();
+    for (int32_t i = 0; i < count; ++i) {
+        if (ent->mActiveConns[i] == proxyConn) {
+            ent->mActiveConns.RemoveElementAt(i);
+            wcEnt->mActiveConns.InsertElementAt(0, proxyConn);
+            return;
+        }
+    }
+
+    count = ent->mIdleConns.Length();
+    for (int32_t i = 0; i < count; ++i) {
+        if (ent->mIdleConns[i] == proxyConn) {
+            ent->mIdleConns.RemoveElementAt(i);
+            wcEnt->mIdleConns.InsertElementAt(0, proxyConn);
+            return;
+        }
+    }
 }
 
 } 

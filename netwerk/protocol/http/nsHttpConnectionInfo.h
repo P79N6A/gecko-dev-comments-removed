@@ -18,6 +18,15 @@ extern PRLogModuleInfo *gHttpLog;
 
 
 
+
+
+
+
+
+
+
+
+
 namespace mozilla { namespace net {
 
 class nsHttpConnectionInfo
@@ -44,6 +53,7 @@ public:
 
     
     nsHttpConnectionInfo* Clone() const;
+    nsresult CreateWildCard(nsHttpConnectionInfo **outParam);
 
     const char *ProxyHost() const { return mProxyInfo ? mProxyInfo->Host().get() : nullptr; }
     int32_t     ProxyPort() const { return mProxyInfo ? mProxyInfo->Port() : -1; }

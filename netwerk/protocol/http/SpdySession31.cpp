@@ -338,7 +338,9 @@ SpdySession31::RegisterStreamID(SpdyStream31 *stream, uint32_t aNewID)
 
 bool
 SpdySession31::AddStream(nsAHttpTransaction *aHttpTransaction,
-                           int32_t aPriority)
+                         int32_t aPriority,
+                         bool aUseTunnel,
+                         nsIInterfaceRequestor *aCallbacks)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -2613,6 +2615,7 @@ SpdySession31::TransactionHasDataToWrite(nsAHttpTransaction *caller)
         this, stream->StreamID()));
 
   mReadyForWrite.Push(stream);
+  SetWriteCallbacks();
 }
 
 void
@@ -2663,6 +2666,13 @@ SpdySession31::Classification()
   return mConnection->Classification();
 }
 
+void
+SpdySession31::GetSecurityCallbacks(nsIInterfaceRequestor **aOut)
+{
+  *aOut = nullptr;
+}
+
+
 
 
 
@@ -2674,13 +2684,6 @@ SpdySession31::SetConnection(nsAHttpConnection *)
 {
   
   MOZ_ASSERT(false, "SpdySession31::SetConnection()");
-}
-
-void
-SpdySession31::GetSecurityCallbacks(nsIInterfaceRequestor **)
-{
-  
-  MOZ_ASSERT(false, "SpdySession31::GetSecurityCallbacks()");
 }
 
 void
