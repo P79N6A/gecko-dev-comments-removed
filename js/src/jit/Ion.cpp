@@ -507,7 +507,8 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
     ExecutionMode executionMode = builder->info().executionMode();
 
     
-    if (builder->script()->hasIonScript())
+    
+    if (executionMode == SequentialExecution && builder->script()->hasIonScript())
         builder->script()->ionScript()->clearRecompiling();
 
     
