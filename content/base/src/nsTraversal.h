@@ -14,11 +14,9 @@
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
 #include "mozilla/dom/CallbackObject.h"
-#include "mozilla/ErrorResult.h"
-#include "mozilla/dom/NodeFilterBinding.h"
-#include "nsIDOMNodeFilter.h"
 
 class nsINode;
+class nsIDOMNodeFilter;
 
 class nsTraversal
 {
@@ -41,7 +39,7 @@ protected:
 
 
 
-    int16_t TestNode(nsINode* aNode, mozilla::ErrorResult& aResult);
+    nsresult TestNode(nsINode* aNode, int16_t* _filtered);
 };
 
 #endif

@@ -5179,16 +5179,24 @@ ${doConversionsToJS}
         (templateVars, type) = arg
         assert not type.nullable() 
         val = "mValue.m%(name)s.Value()" % templateVars
-        if type.isObject():
-            
-            
-            val = "%s.get()" % val
-        elif type.isSpiderMonkeyInterface():
+        if type.isString():
             
             
             
-            val = "%s.get()->Obj()" % val
-        wrapCode = wrapForType(
+            prepend = "nsString mutableStr(%s);\n" % val
+            val = "mutableStr"
+        else:
+            prepend = ""
+            if type.isObject():
+                
+                
+                val = "%s.get()" % val
+            elif type.isSpiderMonkeyInterface():
+                
+                
+                
+                val = "%s.get()->Obj()" % val
+        wrapCode = prepend + wrapForType(
             type, self.descriptorProvider,
             {
                 "jsvalRef": "*vp",
