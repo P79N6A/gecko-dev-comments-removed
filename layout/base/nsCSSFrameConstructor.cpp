@@ -8190,6 +8190,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       
       RecreateFramesForContent(content, false);
     } else {
+      NS_ASSERTION(frame, "This shouldn't happen");
+
       if ((frame->GetStateBits() & NS_FRAME_SVG_LAYOUT) &&
           (frame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
         
@@ -8199,7 +8201,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
                                 nsChangeHint_ChildrenOnlyTransform));
       }
 
-      NS_ASSERTION(frame, "This shouldn't happen");
       if (hint & nsChangeHint_UpdateEffects) {
         nsSVGEffects::UpdateEffects(frame);
       }
