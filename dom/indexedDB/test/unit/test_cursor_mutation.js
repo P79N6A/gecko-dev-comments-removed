@@ -35,11 +35,6 @@ function testSteps()
   let objectStore = db.createObjectStore("foo", { keyPath: "ss" });
   objectStore.createIndex("name", "name", { unique: true });
 
-  
-  
-  
-  (function() { objectStore });
-
   for (let i = 0; i < objectStoreData.length - 1; i++) {
     objectStore.add(objectStoreData[i]);
   }
@@ -116,12 +111,5 @@ function testSteps()
   is(sawRemoved, false, "Didn't see item that was removed");
 
   finishTest();
-
-  
-  
-  
-  
-  gc();
-
   yield undefined;
 }
