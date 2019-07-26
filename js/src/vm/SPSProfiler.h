@@ -301,41 +301,6 @@ class SPSInstrumentation
 
 
 
-
-
-    class CallScope
-    {
-        SPSInstrumentation *sps;
-        jsbytecode *pc;
-        Assembler &masm;
-        Register reg;
-        JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-      public:
-
-        
-
-
-
-
-        CallScope(SPSInstrumentation *sps, jsbytecode *pc, Assembler &masm,
-                  Register reg JS_GUARD_OBJECT_NOTIFIER_PARAM)
-          : sps(sps), pc(pc), masm(masm), reg(reg)
-        {
-            JS_GUARD_OBJECT_NOTIFIER_INIT;
-            if (sps)
-                sps->leave(pc, masm, reg);
-        }
-
-        ~CallScope() {
-            if (sps)
-                sps->reenter(masm, reg);
-        }
-    };
-
-    
-
-
-
     SPSInstrumentation(SPSProfiler *profiler)
       : profiler_(profiler), frame(NULL)
     {
@@ -403,7 +368,6 @@ class SPSInstrumentation
     void setPushed(JSScript *script) {
         if (!enabled())
             return;
-        JS_ASSERT(frame->script == NULL);
         JS_ASSERT(frame->left == 0);
         frame->script = script;
     }
@@ -444,8 +408,11 @@ class SPSInstrumentation
 
 
     void leave(jsbytecode *pc, Assembler &masm, Register scratch) {
-        if (enabled() && frame->script && frame->left++ == 0)
+        if (enabled() && frame->script && frame->left++ == 0) {
+            JS_ASSERT(frame->script->code <= pc &&
+                      pc < frame->script->code + frame->script->length);
             masm.spsUpdatePCIdx(profiler_, pc - frame->script->code, scratch);
+        }
     }
 
     

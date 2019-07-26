@@ -289,13 +289,8 @@ IonBuilder::build()
 
     
     current->makeStart(MStart::New(MStart::StartType_Default));
-    if (instrumentedProfiling()) {
-        SPSProfiler *profiler = &cx->runtime->spsProfiler;
-        const char *string = profiler->profileString(cx, script, script->function());
-        if (!string)
-            return false;
-        current->add(MProfilingEnter::New(string));
-    }
+    if (instrumentedProfiling())
+        current->add(MFunctionBoundary::New(script, MFunctionBoundary::Enter));
 
     
     
@@ -408,17 +403,18 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     current->setCallerResumePoint(callerResumePoint);
 
     
-    if (instrumentedProfiling()) {
-        SPSProfiler *profiler = &cx->runtime->spsProfiler;
-        const char *string = profiler->profileString(cx, script, script->function());
-        if (!string)
-            return false;
-        current->add(MProfilingEnter::New(string));
-    }
-
-    
     MBasicBlock *predecessor = callerBuilder->current;
     JS_ASSERT(predecessor == callerResumePoint->block());
+
+    
+    
+    
+    
+    if (instrumentedProfiling())
+        predecessor->add(MFunctionBoundary::New(script,
+                                                MFunctionBoundary::Inline_Enter,
+                                                inliningDepth));
+
     predecessor->end(MGoto::New(current));
     if (!current->addPredecessorWithoutPhis(predecessor))
         return false;
@@ -2561,7 +2557,7 @@ IonBuilder::processReturn(JSOp op)
     }
 
     if (instrumentedProfiling())
-        current->add(MProfilingExit::New());
+        current->add(MFunctionBoundary::New(script, MFunctionBoundary::Exit));
     MReturn *ret = MReturn::New(def);
     current->end(ret);
 
@@ -3229,6 +3225,12 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
         RootedFunction target(cx, func);
         if (!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
             return false;
+
+        
+        
+        if (instrumentedProfiling())
+            bottom->add(MFunctionBoundary::New(NULL, MFunctionBoundary::Inline_Exit));
+
     } else {
         
 
@@ -3254,6 +3256,20 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
         }
         top->end(disp);
 
+        
+        
+        
+        
+        
+        
+        
+        MBasicBlock *inlineBottom = bottom;
+        if (instrumentedProfiling() && disp->inlinePropertyTable()) {
+            inlineBottom = newBlock(NULL, pc);
+            if (inlineBottom == NULL)
+                return false;
+        }
+
         for (size_t i = 0; i < disp->numCallees(); i++) {
             
             MConstant *constFun = disp->getFunctionConstant(i);
@@ -3261,8 +3277,46 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
             MBasicBlock *block = disp->getSuccessor(i);
             graph().moveBlockToEnd(block);
             current = block;
+
+            if (!jsop_call_inline(target, argc, constructing, constFun, inlineBottom, retvalDefns))
+                return false;
+        }
+
+        
+        
+        
+        if (instrumentedProfiling())
+            inlineBottom->add(MFunctionBoundary::New(NULL, MFunctionBoundary::Inline_Exit));
+
+        
+        
+        
+        
+        if (inlineBottom != bottom) {
+            graph().moveBlockToEnd(inlineBottom);
+            inlineBottom->inheritSlots(top);
+            if (!inlineBottom->initEntrySlots())
+                return false;
+
             
-            if (!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
+            if (retvalDefns.length() > 1) {
+                
+                
+                MPhi *phi = MPhi::New(inlineBottom->stackDepth() - argc - 2);
+                inlineBottom->addPhi(phi);
+
+                for (MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end(); it != end; ++it) {
+                    if (!phi->addInput(*it))
+                        return false;
+                }
+                
+                retvalDefns.clear();
+                if (!retvalDefns.append(phi))
+                    return false;
+            }
+
+            inlineBottom->end(MGoto::New(bottom));
+            if (!bottom->addPredecessorWithoutPhis(inlineBottom))
                 return false;
         }
 

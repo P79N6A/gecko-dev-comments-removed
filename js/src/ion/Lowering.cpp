@@ -1808,15 +1808,15 @@ LIRGenerator::visitInstanceOf(MInstanceOf *ins)
 }
 
 bool
-LIRGenerator::visitProfilingEnter(MProfilingEnter *ins)
+LIRGenerator::visitFunctionBoundary(MFunctionBoundary *ins)
 {
-    return add(new LProfilingEnter(temp(), temp()), ins);
-}
-
-bool
-LIRGenerator::visitProfilingExit(MProfilingExit *ins)
-{
-    return add(new LProfilingExit(temp()), ins);
+    LFunctionBoundary *lir = new LFunctionBoundary(temp());
+    if (!add(lir, ins))
+        return false;
+    
+    
+    return !gen->compartment->rt->spsProfiler.slowAssertionsEnabled() ||
+           assignSafepoint(lir, ins);
 }
 
 bool

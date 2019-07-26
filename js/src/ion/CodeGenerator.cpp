@@ -748,9 +748,11 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     masm.bind(&makeCall);
+    masm.leaveBeforeCall();
     masm.callIon(objreg);
     if (!markSafepoint(call))
         return false;
+    masm.reenterAfterCall();
 
     
     
@@ -819,11 +821,13 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     masm.Push(Imm32(call->numActualArgs()));
     masm.Push(calleereg);
     masm.Push(Imm32(descriptor));
+    masm.leaveBeforeCall();
 
     
     masm.callIon(objreg);
     if (!markSafepoint(call))
         return false;
+    masm.reenterAfterCall();
 
     
     
@@ -1075,11 +1079,13 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
         }
 
         masm.bind(&rejoin);
+        masm.leaveBeforeCall();
 
         
         masm.callIon(objreg);
         if (!markSafepoint(apply))
             return false;
+        masm.reenterAfterCall();
 
         
         masm.movePtr(Address(StackPointer, 0), copyreg);
@@ -4041,54 +4047,79 @@ CodeGenerator::visitSetDOMProperty(LSetDOMProperty *ins)
 }
 
 bool
-CodeGenerator::visitProfilingEnter(LProfilingEnter *lir)
+CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
 {
-#if 0
-    SPSProfiler *profiler = &gen->compartment->rt->spsProfiler;
-    JS_ASSERT(profiler->enabled());
+    Register temp = ToRegister(lir->temp()->output());
 
-    const char *string = lir->profileString();
+    switch (lir->type()) {
+        case MFunctionBoundary::Inline_Enter:
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (sps.inliningDepth() == lir->inlineLevel()) {
+                sps.leaveInlineFrame();
+                sps.skipNextReenter();
+                sps.reenter(masm, temp);
+            }
 
-    Register size = ToRegister(lir->temp1()->output());
-    Register base = ToRegister(lir->temp2()->output());
+            sps.leave(lastPC, masm, temp);
+            if (!sps.enterInlineFrame())
+                return false;
+            
 
-    
-    masm.movePtr(ImmWord(profiler->sizePointer()), size);
-    masm.load32(Address(size, 0), size);
-    Label stackFull;
-    masm.branch32(Assembler::GreaterThanOrEqual, size, Imm32(profiler->maxSize()),
-                  &stackFull);
+        case MFunctionBoundary::Enter:
+            if (sps.slowAssertions()) {
+                typedef bool(*pf)(JSContext *, HandleScript);
+                static const VMFunction SPSEnterInfo = FunctionInfo<pf>(SPSEnter);
 
-    
-    masm.movePtr(ImmWord(profiler->stack()), base);
-    JS_STATIC_ASSERT(sizeof(ProfileEntry) == 2 * sizeof(void*));
-    masm.lshiftPtr(Imm32(sizeof(void*) == 4 ? 3 : 4), size);
-    masm.addPtr(size, base);
+                saveLive(lir);
+                pushArg(ImmGCPtr(lir->script()));
+                if (!callVM(SPSEnterInfo, lir))
+                    return false;
+                restoreLive(lir);
+                sps.pushManual(lir->script(), masm, temp);
+                return true;
+            }
 
-    masm.storePtr(ImmWord(string), Address(base, offsetof(ProfileEntry, string)));
-    masm.storePtr(ImmWord((uintptr_t) 0), Address(base, offsetof(ProfileEntry, sp)));
+            return sps.push(GetIonContext()->cx, lir->script(), masm, temp);
 
-    
-    masm.bind(&stackFull);
-    masm.movePtr(ImmWord(profiler->sizePointer()), size);
-    Address addr(size, 0);
-    masm.add32(Imm32(1), addr);
-#endif
-    return true;
-}
+        case MFunctionBoundary::Inline_Exit:
+            
+            
+            
+            sps.leaveInlineFrame();
+            sps.reenter(masm, temp);
+            return true;
 
-bool
-CodeGenerator::visitProfilingExit(LProfilingExit *exit)
-{
-#if 0
-    SPSProfiler *profiler = &gen->compartment->rt->spsProfiler;
-    JS_ASSERT(profiler->enabled());
-    Register temp = ToRegister(exit->temp());
-    masm.movePtr(ImmWord(profiler->sizePointer()), temp);
-    Address addr(temp, 0);
-    masm.add32(Imm32(-1), addr);
-#endif
-    return true;
+        case MFunctionBoundary::Exit:
+            if (sps.slowAssertions()) {
+                typedef bool(*pf)(JSContext *, HandleScript);
+                static const VMFunction SPSExitInfo = FunctionInfo<pf>(SPSExit);
+
+                saveLive(lir);
+                pushArg(ImmGCPtr(lir->script()));
+                
+                
+                
+                sps.skipNextReenter();
+                if (!callVM(SPSExitInfo, lir))
+                    return false;
+                restoreLive(lir);
+                return true;
+            }
+
+            sps.pop(masm, temp);
+            return true;
+
+        default:
+            JS_NOT_REACHED("invalid LFunctionBoundary type");
+    }
 }
 
 } 

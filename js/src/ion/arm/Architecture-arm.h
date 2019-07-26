@@ -132,7 +132,8 @@ class Registers
 
     
     static const uint32 CallMask =
-        (1 << Registers::r0);
+        (1 << Registers::r0) |
+        (1 << Registers::r1);  
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 };

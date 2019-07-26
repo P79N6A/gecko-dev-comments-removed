@@ -239,6 +239,10 @@ class MDefinition : public MNode
         uint32 virtualRegister_;   
     };
 
+    
+    
+    jsbytecode *trackedPc_;
+
   private:
     enum Flag {
         None = 0,
@@ -262,21 +266,6 @@ class MDefinition : public MNode
         flags_ |= flags;
     }
 
-#ifdef TRACK_SNAPSHOTS
-    
-    jsbytecode *trackedPc_;
-
-  public:
-    void setTrackedPc(jsbytecode *pc) {
-        if (!trackedPc_)
-            trackedPc_ = pc;
-    }
-
-    jsbytecode *trackedPc() {
-        return trackedPc_;
-    }
-#endif
-
   public:
     MDefinition()
       : id_(0),
@@ -284,16 +273,22 @@ class MDefinition : public MNode
         range_(),
         resultType_(MIRType_None),
         flags_(0),
-        dependency_(NULL)
-#ifdef TRACK_SNAPSHOTS
-      , trackedPc_(NULL)
-#endif
+        dependency_(NULL),
+        trackedPc_(NULL)
     { }
 
     virtual Opcode op() const = 0;
     void printName(FILE *fp);
     static void PrintOpcodeName(FILE *fp, Opcode op);
     virtual void printOpcode(FILE *fp);
+
+    void setTrackedPc(jsbytecode *pc) {
+        trackedPc_ = pc;
+    }
+
+    jsbytecode *trackedPc() {
+        return trackedPc_;
+    }
 
     Range *range() {
         return &range_;
@@ -5292,44 +5287,50 @@ class MNewCallObject : public MUnaryInstruction
 
 
 
-class MProfilingEnter : public MNullaryInstruction
+class MFunctionBoundary : public MNullaryInstruction
 {
-    const char *string_;
+  public:
+    enum Type {
+        Enter,        
+        Exit,         
+        Inline_Enter, 
 
-    MProfilingEnter(const char *string) : string_(string) {
-        JS_ASSERT(string != NULL);
+        Inline_Exit   
+                      
+                      
+    };
+
+  private:
+    JSScript *script_;
+    Type type_;
+    unsigned inlineLevel_;
+
+    MFunctionBoundary(JSScript *script, Type type, unsigned inlineLevel)
+      : script_(script), type_(type), inlineLevel_(inlineLevel)
+    {
+        JS_ASSERT_IF(type != Inline_Exit, script != NULL);
+        JS_ASSERT_IF(type == Inline_Enter, inlineLevel != 0);
         setGuard();
     }
 
   public:
-    INSTRUCTION_HEADER(ProfilingEnter);
+    INSTRUCTION_HEADER(FunctionBoundary);
 
-    static MProfilingEnter *New(const char *string) {
-        return new MProfilingEnter(string);
+    static MFunctionBoundary *New(JSScript *script, Type type,
+                                  unsigned inlineLevel = 0) {
+        return new MFunctionBoundary(script, type, inlineLevel);
     }
 
-    const char *profileString() {
-        return string_;
+    JSScript *script() {
+        return script_;
     }
 
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-};
-
-
-
-class MProfilingExit : public MNullaryInstruction
-{
-    MProfilingExit() {
-        setGuard();
+    Type type() {
+        return type_;
     }
 
-  public:
-    INSTRUCTION_HEADER(ProfilingExit);
-
-    static MProfilingExit *New() {
-        return new MProfilingExit();
+    unsigned inlineLevel() {
+        return inlineLevel_;
     }
 
     AliasSet getAliasSet() const {

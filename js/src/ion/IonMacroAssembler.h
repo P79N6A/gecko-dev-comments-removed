@@ -24,6 +24,10 @@
 
 namespace js {
 namespace ion {
+
+class MacroAssembler;
+
+typedef SPSInstrumentation<MacroAssembler, Register> IonInstrumentation;
  
 
 
@@ -55,10 +59,16 @@ class MacroAssembler : public MacroAssemblerSpecific
     Maybe<AutoIonContextAlloc> alloc_;
     bool enoughMemory_;
 
+  private:
+    IonInstrumentation *sps;
+    jsbytecode **pc_;
+
   public:
-    MacroAssembler()
+    MacroAssembler(IonInstrumentation *sps = NULL, jsbytecode **pc = NULL)
       : autoRooter_(GetIonContext()->cx, thisFromCtor()),
-        enoughMemory_(true)
+        enoughMemory_(true),
+        sps(sps),
+        pc_(pc)
     {
         if (!GetIonContext()->temp)
             alloc_.construct(GetIonContext()->cx);
@@ -71,7 +81,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     MacroAssembler(JSContext *cx)
       : autoRooter_(cx, thisFromCtor()),
-        enoughMemory_(true)
+        enoughMemory_(true),
+        sps(NULL),
+        pc_(NULL)
     {
         ionContext_.construct(cx, cx->compartment, (js::ion::TempAllocator *)NULL);
         alloc_.construct(cx);
@@ -465,6 +477,110 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     void generateBailoutTail(Register scratch);
+
+    
+    
+    
+    
+
+    void callWithABI(void *fun, Result result = GENERAL) {
+        leaveBeforeCall();
+        MacroAssemblerSpecific::callWithABI(fun, result);
+        reenterAfterCall();
+    }
+
+    void handleException() {
+        
+        
+        if (sps)
+            sps->skipNextReenter();
+        leaveBeforeCall();
+        MacroAssemblerSpecific::handleException();
+        
+        if (sps)
+            sps->reenter(*this, InvalidReg);
+    }
+
+  private:
+    void spsProfileEntryAddress(SPSProfiler *p, int offset, Register temp,
+                                Label *full)
+    {
+        movePtr(ImmWord(p->sizePointer()), temp);
+        load32(Address(temp, 0), temp);
+        if (offset != 0)
+            add32(Imm32(offset), temp);
+        branch32(Assembler::GreaterThanOrEqual, temp, Imm32(p->maxSize()), full);
+
+        
+        JS_STATIC_ASSERT(sizeof(ProfileEntry) == 4 * sizeof(void*));
+        lshiftPtr(Imm32(2 + (sizeof(void*) == 4 ? 2 : 3)), temp);
+        addPtr(ImmWord(p->stack()), temp);
+    }
+
+  public:
+
+    
+    
+    
+
+    void spsUpdatePCIdx(SPSProfiler *p, int32_t idx, Register temp) {
+        Label stackFull;
+        spsProfileEntryAddress(p, -1, temp, &stackFull);
+        store32(Imm32(idx), Address(temp, ProfileEntry::offsetOfPCIdx()));
+        bind(&stackFull);
+    }
+
+    void spsPushFrame(SPSProfiler *p, const char *str, JSScript *s, Register temp) {
+        Label stackFull;
+        spsProfileEntryAddress(p, 0, temp, &stackFull);
+
+        storePtr(ImmWord(str),    Address(temp, ProfileEntry::offsetOfString()));
+        storePtr(ImmGCPtr(s),     Address(temp, ProfileEntry::offsetOfScript()));
+        storePtr(ImmWord((void*) NULL),
+                 Address(temp, ProfileEntry::offsetOfStackAddress()));
+        store32(Imm32(ProfileEntry::NullPCIndex),
+                Address(temp, ProfileEntry::offsetOfPCIdx()));
+
+        
+        bind(&stackFull);
+        movePtr(ImmWord(p->sizePointer()), temp);
+        add32(Imm32(1), Address(temp, 0));
+    }
+
+    void spsPopFrame(SPSProfiler *p, Register temp) {
+        movePtr(ImmWord(p->sizePointer()), temp);
+        add32(Imm32(-1), Address(temp, 0));
+    }
+
+    
+    
+    
+
+    void leaveBeforeCall() {
+        if (!sps || !sps->enabled())
+            return;
+        GeneralRegisterSet regs(Registers::TempMask);
+        Register r = regs.getAny();
+        push(r);
+        sps->leave(*pc_, *this, r);
+        pop(r);
+    }
+
+    void reenterAfterCall() {
+        if (!sps || !sps->enabled())
+            return;
+        GeneralRegisterSet regs(Registers::TempMask & ~Registers::JSCallMask &
+                                                      ~Registers::CallMask);
+        if (regs.empty()) {
+            regs = GeneralRegisterSet(Registers::TempMask);
+            Register r = regs.getAny();
+            push(r);
+            sps->reenter(*this, r);
+            pop(r);
+        } else {
+            sps->reenter(*this, regs.getAny());
+        }
+    }
 };
 
 } 
