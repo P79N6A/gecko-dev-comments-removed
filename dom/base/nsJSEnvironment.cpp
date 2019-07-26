@@ -906,53 +906,14 @@ AtomIsEventHandlerName(nsIAtom *aName)
 nsIScriptGlobalObject *
 nsJSContext::GetGlobalObject()
 {
-  AutoJSContext cx;
-  JS::Rooted<JSObject*> global(mContext, GetWindowProxy());
-  if (!global) {
+  
+  
+  if (!mWindowProxy) {
     return nullptr;
   }
 
-  if (mGlobalObjectRef)
-    return mGlobalObjectRef;
-
-#ifdef DEBUG
-  {
-    JSObject *inner = JS_ObjectToInnerObject(cx, global);
-
-    
-    
-    NS_ASSERTION(inner == global, "Shouldn't be able to innerize here");
-  }
-#endif
-
-  const JSClass *c = JS_GetClass(global);
-
-  nsCOMPtr<nsIScriptGlobalObject> sgo;
-  if (IsDOMClass(c)) {
-    sgo = do_QueryInterface(UnwrapDOMObjectToISupports(global));
-  } else {
-    if ((~c->flags) & (JSCLASS_HAS_PRIVATE |
-                       JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
-      return nullptr;
-    }
-
-    nsISupports *priv = static_cast<nsISupports*>(js::GetObjectPrivate(global));
-
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapped_native =
-      do_QueryInterface(priv);
-    if (wrapped_native) {
-      
-      
-
-      sgo = do_QueryWrappedNative(wrapped_native);
-    } else {
-      sgo = do_QueryInterface(priv);
-    }
-  }
-
-  
-  
-  return sgo;
+  MOZ_ASSERT(mGlobalObjectRef);
+  return mGlobalObjectRef;
 }
 
 JSContext*
