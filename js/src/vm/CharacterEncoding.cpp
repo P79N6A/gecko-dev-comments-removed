@@ -4,10 +4,10 @@
 
 
 
-#include "js/CharacterEncoding.h"
-
 #include "jscntxt.h"
 #include "jsprf.h"
+
+#include "js/CharacterEncoding.h"
 
 using namespace JS;
 
