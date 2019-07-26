@@ -161,7 +161,7 @@ var ContextUI = {
 
 
   dismissTabsWithDelay: function (aDelay) {
-    aDelay = aDelay || kNewTabAnimationDelayMsec;
+    aDelay = aDelay || kForegroundTabAnimationDelay;
     this._clearDelayedTimeout();
     this._hidingId = setTimeout(function () {
         ContextUI.dismissTabs();

@@ -15,11 +15,11 @@ const debugServerStateChanged = "devtools.debugger.remote-enabled";
 const debugServerPortChanged = "devtools.debugger.remote-port";
 
 
-const kNewTabAnimationDelayMsec = 1000;
+const kForegroundTabAnimationDelay = 1000;
 
-const kOpenInNewTabAnimationDelayMsec = 3000;
+const kBackgroundTabAnimationDelay = 3000;
 
-const kSelectTabAnimationDelayMsec = 500;
+const kChangeTabAnimationDelay = 500;
 
 
 
@@ -173,6 +173,14 @@ var BrowserUI = {
   },
 
   uninit: function() {
+    messageManager.removeMessageListener("DOMTitleChanged", this);
+    messageManager.removeMessageListener("DOMWillOpenModalDialog", this);
+    messageManager.removeMessageListener("DOMWindowClose", this);
+
+    messageManager.removeMessageListener("Browser:OpenURI", this);
+    messageManager.removeMessageListener("Browser:SaveAs:Return", this);
+    messageManager.removeMessageListener("Content:StateChange", this);
+
     messageManager.removeMessageListener("Browser:MozApplicationManifest", OfflineApps);
     Services.obs.removeObserver(this, "handle-xul-text-link");
 
@@ -180,7 +188,6 @@ var BrowserUI = {
     FlyoutPanelsUI.uninit();
     MetroDownloadsView.uninit();
     SettingsCharm.uninit();
-    messageManager.removeMessageListener("Content:StateChange", this);
     PageThumbs.uninit();
     this.stopDebugServer();
   },
@@ -436,8 +443,23 @@ var BrowserUI = {
 
 
   addAndShowTab: function (aURI, aOwner) {
-    ContextUI.peekTabs(kNewTabAnimationDelayMsec);
+    ContextUI.peekTabs(kForegroundTabAnimationDelay);
     return Browser.addTab(aURI || kStartURI, true, aOwner);
+  },
+
+  
+
+
+
+  openLinkInNewTab: function (aURI, aBringFront, aOwner) {
+    ContextUI.peekTabs(aBringFront ? kForegroundTabAnimationDelay
+                                   : kBackgroundTabAnimationDelay);
+    let tab = Browser.addTab(aURI, aBringFront, aOwner, {
+      referrerURI: aOwner.browser.documentURI,
+      charset: aOwner.browser.characterSet,
+    });
+    Elements.tabList.strip.ensureElementIsVisible(tab.chromeTab);
+    return tab;
   },
 
   setOnTabAnimationEnd: function setOnTabAnimationEnd(aCallback) {
@@ -464,7 +486,7 @@ var BrowserUI = {
     this.setOnTabAnimationEnd(function() {
       Browser.closeTab(tabToClose, { forceClose: true } );
       if (wasCollapsed)
-        ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
+        ContextUI.dismissTabsWithDelay(kChangeTabAnimationDelay);
     });
   },
 
@@ -506,7 +528,7 @@ var BrowserUI = {
 
   selectTabAndDismiss: function selectTabAndDismiss(aTab) {
     this.selectTab(aTab);
-    ContextUI.dismissTabsWithDelay(kSelectTabAnimationDelayMsec);
+    ContextUI.dismissTabsWithDelay(kChangeTabAnimationDelay);
   },
 
   selectTabAtIndex: function selectTabAtIndex(aIndex) {

@@ -79,6 +79,7 @@ var Browser = {
     
     
     InputSourceHelper.init();
+    ClickEventHandler.init();
 
     TouchModule.init();
     GestureModule.init();
@@ -213,6 +214,7 @@ var Browser = {
   shutdown: function shutdown() {
     APZCObserver.shutdown();
     BrowserUI.uninit();
+    ClickEventHandler.uninit();
     ContentAreaObserver.shutdown();
     Appbar.shutdown();
 
@@ -485,7 +487,7 @@ var Browser = {
     if (aBringFront)
       this.selectedTab = newTab;
 
-    this._announceNewTab(newTab, params, aBringFront);
+    this._announceNewTab(newTab);
     return newTab;
   },
 
@@ -511,7 +513,7 @@ var Browser = {
 
 
 
-  _announceNewTab: function _announceNewTab(aTab, aParams, aBringFront) {
+  _announceNewTab: function (aTab) {
     let event = document.createEvent("UIEvents");
     event.initUIEvent("TabOpen", true, false, window, 0);
     aTab.chromeTab.dispatchEvent(event);
@@ -1074,12 +1076,7 @@ nsBrowserAccess.prototype = {
 
     if (openAction == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
       let owner = isExternal ? null : Browser.selectedTab;
-      let tab = Browser.addTab("about:blank", true, owner);
-      
-      ContextUI.peekTabs(kOpenInNewTabAnimationDelayMsec);
-      if (isExternal) {
-        tab.closeOnExit = true;
-      }
+      let tab = BrowserUI.openLinkInNewTab("about:blank", true, owner);
       browser = tab.browser;
     } else {
       browser = Browser.selectedBrowser;
@@ -1579,4 +1576,69 @@ function rendererFactory(aBrowser, aCanvas) {
   }
 
   return wrapper;
+};
+
+
+let ClickEventHandler = {
+  init: function () {
+    gEventListenerService.addSystemEventListener(Elements.browsers, "click", this, true);
+  },
+
+  uninit: function () {
+    gEventListenerService.removeSystemEventListener(Elements.browsers, "click", this, true);
+  },
+
+  handleEvent: function (aEvent) {
+    if (!aEvent.isTrusted || aEvent.defaultPrevented) {
+      return;
+    }
+    let [href, node] = this._hrefAndLinkNodeForClickEvent(aEvent);
+    if (href && (aEvent.button == 1 || aEvent.ctrlKey)) {
+      
+      BrowserUI.openLinkInNewTab(href, aEvent.shiftKey, Browser.selectedTab);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _hrefAndLinkNodeForClickEvent: function(event) {
+    function isHTMLLink(aNode) {
+      return ((aNode instanceof content.HTMLAnchorElement && aNode.href) ||
+              (aNode instanceof content.HTMLAreaElement && aNode.href) ||
+              aNode instanceof content.HTMLLinkElement);
+    }
+
+    let node = event.target;
+    while (node && !isHTMLLink(node)) {
+      node = node.parentNode;
+    }
+
+    if (node)
+      return [node.href, node];
+
+    
+    let href, baseURI;
+    node = event.target;
+    while (node && !href) {
+      if (node.nodeType == content.Node.ELEMENT_NODE) {
+        href = node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+        if (href)
+          baseURI = node.ownerDocument.baseURIObject;
+      }
+      node = node.parentNode;
+    }
+
+    
+    
+    
+    return [href ? Services.io.newURI(href, null, baseURI).spec : null, null];
+  }
 };
