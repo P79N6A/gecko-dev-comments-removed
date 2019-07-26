@@ -410,9 +410,12 @@ nsWindow::Destroy(void)
     ClearCachedResources();
 
     nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
-    nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-    if (static_cast<nsIWidget *>(this) == rollupWidget)
-        rollupListener->Rollup(0, nullptr);
+    if (rollupListener) {
+        nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+        if (static_cast<nsIWidget *>(this) == rollupWidget) {
+            rollupListener->Rollup(0, nullptr);
+        }
+    }
 
     Show(false);
 
@@ -938,49 +941,52 @@ bool
 nsWindow::CheckForRollup(double aMouseX, double aMouseY,
                          bool aIsWheel)
 {
-    bool retVal = false;
     nsIRollupListener* rollupListener = GetActiveRollupListener();
-    nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-    if (rollupWidget) {
-        MozQWidget *currentPopup =
-            (MozQWidget *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
-
-        if (!is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
-            bool rollup = true;
-            if (aIsWheel) {
-                rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
-                retVal = true;
-            }
-            
-            
-            
-            uint32_t popupsToRollup = UINT32_MAX;
-            if (rollupListener) {
-                nsAutoTArray<nsIWidget*, 5> widgetChain;
-                uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
-                for (uint32_t i=0; i<widgetChain.Length(); ++i) {
-                    nsIWidget* widget =  widgetChain[i];
-                    MozQWidget* currWindow =
-                        (MozQWidget*) widget->GetNativeData(NS_NATIVE_WINDOW);
-                    if (is_mouse_in_window(currWindow, aMouseX, aMouseY)) {
-                      if (i < sameTypeCount) {
-                        rollup = false;
-                      }
-                      else {
-                        popupsToRollup = sameTypeCount;
-                      }
-                      break;
-                    }
-                } 
-            } 
-
-            
-            if (rollup) {
-                retVal = rollupListener->Rollup(popupsToRollup, nullptr);
-            }
-        }
-    } else {
+    nsCOMPtr<nsIWidget> rollupWidget;
+    if (rollupListener) {
+        rollupWidget = rollupListener->GetRollupWidget();
+    }
+    if (!rollupWidget) {
         nsBaseWidget::gRollupListener = nullptr;
+        return false;
+    }
+
+    bool retVal = false;
+    MozQWidget *currentPopup =
+        (MozQWidget *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
+    if (!is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
+        bool rollup = true;
+        if (aIsWheel) {
+            rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
+            retVal = true;
+        }
+        
+        
+        
+        uint32_t popupsToRollup = UINT32_MAX;
+        if (rollupListener) {
+            nsAutoTArray<nsIWidget*, 5> widgetChain;
+            uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
+            for (uint32_t i=0; i<widgetChain.Length(); ++i) {
+                nsIWidget* widget =  widgetChain[i];
+                MozQWidget* currWindow =
+                    (MozQWidget*) widget->GetNativeData(NS_NATIVE_WINDOW);
+                if (is_mouse_in_window(currWindow, aMouseX, aMouseY)) {
+                  if (i < sameTypeCount) {
+                    rollup = false;
+                  }
+                  else {
+                    popupsToRollup = sameTypeCount;
+                  }
+                  break;
+                }
+            } 
+        } 
+
+        
+        if (rollup) {
+            retVal = rollupListener->Rollup(popupsToRollup, nullptr);
+        }
     }
 
     return retVal;
