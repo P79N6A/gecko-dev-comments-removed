@@ -277,28 +277,36 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
         if (needToBlankComposite) {
           
           
-          ClearFrame(mAnim->compositingFrame);
+          ClearFrame(mAnim->compositingFrame.GetFrameData(),
+                     mAnim->compositingFrame.GetFrame()->GetRect());
         } else {
           
-          ClearFrame(mAnim->compositingFrame, prevFrameRect);
+          ClearFrame(mAnim->compositingFrame.GetFrameData(),
+                     mAnim->compositingFrame.GetFrame()->GetRect(),
+                     prevFrameRect);
         }
         break;
 
       case FrameBlender::kDisposeClearAll:
-        ClearFrame(mAnim->compositingFrame);
+        ClearFrame(mAnim->compositingFrame.GetFrameData(),
+                   mAnim->compositingFrame.GetFrame()->GetRect());
         break;
 
       case FrameBlender::kDisposeRestorePrevious:
         
         
         if (mAnim->compositingPrevFrame) {
-          CopyFrameImage(mAnim->compositingPrevFrame, mAnim->compositingFrame);
+          CopyFrameImage(mAnim->compositingPrevFrame.GetFrameData(),
+                         mAnim->compositingPrevFrame.GetFrame()->GetRect(),
+                         mAnim->compositingFrame.GetFrameData(),
+                         mAnim->compositingFrame.GetFrame()->GetRect());
 
           
           if (nextFrameDisposalMethod != FrameBlender::kDisposeRestorePrevious)
             mAnim->compositingPrevFrame.SetFrame(nullptr);
         } else {
-          ClearFrame(mAnim->compositingFrame);
+          ClearFrame(mAnim->compositingFrame.GetFrameData(),
+                     mAnim->compositingFrame.GetFrame()->GetRect());
         }
         break;
 
@@ -312,22 +320,32 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
         if (mAnim->lastCompositedFrameIndex != int32_t(aNextFrameIndex - 1)) {
           if (isFullPrevFrame && !prevFrame->GetIsPaletted()) {
             
-            CopyFrameImage(prevFrame, mAnim->compositingFrame);
+            CopyFrameImage(prevFrame.GetFrameData(),
+                           prevFrame.GetFrame()->GetRect(),
+                           mAnim->compositingFrame.GetFrameData(),
+                           mAnim->compositingFrame.GetFrame()->GetRect());
           } else {
             if (needToBlankComposite) {
               
               if (prevFrame->GetHasAlpha() || !isFullPrevFrame) {
-                ClearFrame(mAnim->compositingFrame);
+                ClearFrame(mAnim->compositingFrame.GetFrameData(),
+                           mAnim->compositingFrame.GetFrame()->GetRect());
               }
             }
-            DrawFrameTo(prevFrame, mAnim->compositingFrame, prevFrameRect);
+            DrawFrameTo(prevFrame.GetFrameData(), prevFrameRect,
+                        prevFrame.GetFrame()->PaletteDataLength(),
+                        prevFrame.GetFrame()->GetHasAlpha(),
+                        mAnim->compositingFrame.GetFrameData(),
+                        mAnim->compositingFrame.GetFrame()->GetRect(),
+                        FrameBlendMethod(prevFrame.GetFrame()->GetBlendMethod()));
           }
         }
     }
   } else if (needToBlankComposite) {
     
     
-    ClearFrame(mAnim->compositingFrame);
+    ClearFrame(mAnim->compositingFrame.GetFrameData(),
+               mAnim->compositingFrame.GetFrame()->GetRect());
   }
 
   
@@ -350,11 +368,19 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
       mAnim->compositingPrevFrame.LockAndGetData();
     }
 
-    CopyFrameImage(mAnim->compositingFrame, mAnim->compositingPrevFrame);
+    CopyFrameImage(mAnim->compositingFrame.GetFrameData(),
+                   mAnim->compositingFrame.GetFrame()->GetRect(),
+                   mAnim->compositingPrevFrame.GetFrameData(),
+                   mAnim->compositingPrevFrame.GetFrame()->GetRect());
   }
 
   
-  DrawFrameTo(nextFrame, mAnim->compositingFrame, nextFrameRect);
+  DrawFrameTo(nextFrame.GetFrameData(), nextFrameRect,
+              nextFrame.GetFrame()->PaletteDataLength(),
+              nextFrame.GetFrame()->GetHasAlpha(),
+              mAnim->compositingFrame.GetFrameData(),
+              mAnim->compositingFrame.GetFrame()->GetRect(),
+              FrameBlendMethod(nextFrame.GetFrame()->GetBlendMethod()));
 
   
   
@@ -379,7 +405,10 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     
     
     
-    if (CopyFrameImage(mAnim->compositingFrame, nextFrame)) {
+    if (CopyFrameImage(mAnim->compositingFrame.GetFrameData(),
+                       mAnim->compositingFrame.GetFrame()->GetRect(),
+                       nextFrame.GetFrameData(),
+                       nextFrame.GetFrame()->GetRect())) {
       prevFrame->SetFrameDisposalMethod(FrameBlender::kDisposeClearAll);
       mAnim->compositingFrame.SetFrame(nullptr);
       mAnim->lastCompositedFrameIndex = -1;
@@ -403,15 +432,6 @@ FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect)
   memset(aFrameData, 0, aFrameRect.width * aFrameRect.height * 4);
 }
 
-void
-FrameBlender::ClearFrame(imgFrame* aFrame)
-{
-  AutoFrameLocker lock(aFrame);
-  if (lock.Succeeded()) {
-    ClearFrame(aFrame->GetImageData(), aFrame->GetRect());
-  }
-}
-
 
 void
 FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const nsIntRect& aRectToClear)
@@ -432,21 +452,12 @@ FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const
   }
 }
 
-void
-FrameBlender::ClearFrame(imgFrame* aFrame, const nsIntRect& aRectToClear)
-{
-  AutoFrameLocker lock(aFrame);
-  if (lock.Succeeded()) {
-    ClearFrame(aFrame->GetImageData(), aFrame->GetRect(), aRectToClear);
-  }
-}
-
 
 
 
 bool
 FrameBlender::CopyFrameImage(uint8_t *aDataSrc, const nsIntRect& aRectSrc,
-                            uint8_t *aDataDest, const nsIntRect& aRectDest)
+                             uint8_t *aDataDest, const nsIntRect& aRectDest)
 {
   uint32_t dataLengthSrc = aRectSrc.width * aRectSrc.height * 4;
   uint32_t dataLengthDest = aRectDest.width * aRectDest.height * 4;
@@ -460,24 +471,11 @@ FrameBlender::CopyFrameImage(uint8_t *aDataSrc, const nsIntRect& aRectSrc,
   return true;
 }
 
-bool
-FrameBlender::CopyFrameImage(imgFrame* aSrc, imgFrame* aDst)
-{
-  AutoFrameLocker srclock(aSrc);
-  AutoFrameLocker dstlock(aDst);
-  if (!srclock.Succeeded() || !dstlock.Succeeded()) {
-    return false;
-  }
-
-  return CopyFrameImage(aSrc->GetImageData(), aSrc->GetRect(),
-                        aDst->GetImageData(), aDst->GetRect());
-}
-
 nsresult
 FrameBlender::DrawFrameTo(uint8_t *aSrcData, const nsIntRect& aSrcRect,
-                         uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
-                         uint8_t *aDstPixels, const nsIntRect& aDstRect,
-                         FrameBlender::FrameBlendMethod aBlendMethod)
+                          uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
+                          uint8_t *aDstPixels, const nsIntRect& aDstRect,
+                          FrameBlender::FrameBlendMethod aBlendMethod)
 {
   NS_ENSURE_ARG_POINTER(aSrcData);
   NS_ENSURE_ARG_POINTER(aDstPixels);
@@ -561,29 +559,6 @@ FrameBlender::DrawFrameTo(uint8_t *aSrcData, const nsIntRect& aSrcRect,
   }
 
   return NS_OK;
-}
-
-nsresult
-FrameBlender::DrawFrameTo(imgFrame* aSrc, imgFrame* aDst, const nsIntRect& aSrcRect)
-{
-  AutoFrameLocker srclock(aSrc);
-  AutoFrameLocker dstlock(aDst);
-  if (!srclock.Succeeded() || !dstlock.Succeeded()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (aSrc->GetIsPaletted()) {
-    return DrawFrameTo(reinterpret_cast<uint8_t*>(aSrc->GetPaletteData()),
-                       aSrcRect, aSrc->PaletteDataLength(),
-                       aSrc->GetHasAlpha(), aDst->GetImageData(),
-                       aDst->GetRect(),
-                       FrameBlendMethod(aSrc->GetBlendMethod()));
-  }
-
-  return DrawFrameTo(aSrc->GetImageData(), aSrcRect,
-                     0, aSrc->GetHasAlpha(),
-                     aDst->GetImageData(), aDst->GetRect(),
-                     FrameBlendMethod(aSrc->GetBlendMethod()));
 }
 
 void

@@ -245,16 +245,13 @@ private:
 
 
   static void ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect);
-  static void ClearFrame(imgFrame* aFrame);
 
   
   static void ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const nsIntRect &aRectToClear);
-  static void ClearFrame(imgFrame* aFrame, const nsIntRect& aRectToClear);
 
   
   static bool CopyFrameImage(uint8_t *aDataSrc, const nsIntRect& aRectSrc,
                              uint8_t *aDataDest, const nsIntRect& aRectDest);
-  static bool CopyFrameImage(imgFrame* aSrc, imgFrame* aDst);
 
   
 
@@ -275,7 +272,6 @@ private:
                               uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
                               uint8_t *aDstPixels, const nsIntRect& aDstRect,
                               FrameBlendMethod aBlendMethod);
-  static nsresult DrawFrameTo(imgFrame* aSrc, imgFrame* aDst, const nsIntRect& aSrcRect);
 
 private: 
   
