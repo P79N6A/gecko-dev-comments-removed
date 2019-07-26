@@ -1075,20 +1075,6 @@ struct JSRuntime : js::RuntimeFriendFields
 #define JS_KEEP_ATOMS(rt)   (rt)->gcKeepAtoms++;
 #define JS_UNKEEP_ATOMS(rt) (rt)->gcKeepAtoms--;
 
-#ifdef JS_ARGUMENT_FORMATTER_DEFINED
-
-
-
-
-
-struct JSArgumentFormatMap {
-    const char          *format;
-    size_t              length;
-    JSArgumentFormatter formatter;
-    JSArgumentFormatMap *next;
-};
-#endif
-
 namespace js {
 
 struct AutoResolving;
@@ -1317,9 +1303,6 @@ struct JSContext : js::ContextFriendFields
   public:
     
     js::ObjectSet       cycleDetectorSet;
-
-    
-    JSArgumentFormatMap *argumentFormatMap;
 
     
     char                *lastMessage;

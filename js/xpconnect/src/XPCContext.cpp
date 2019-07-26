@@ -47,9 +47,6 @@ XPCContext::~XPCContext()
             static_cast<XPCWrappedNativeScope*>(scopeptr);
         scope->ClearContext();
     }
-
-    
-    
 }
 
 void

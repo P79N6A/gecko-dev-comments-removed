@@ -1944,14 +1944,6 @@ typedef const JSErrorFormatString *
 (* JSErrorCallback)(void *userRef, const char *locale,
                     const unsigned errorNumber);
 
-#ifdef va_start
-#define JS_ARGUMENT_FORMATTER_DEFINED 1
-
-typedef JSBool
-(* JSArgumentFormatter)(JSContext *cx, const char *format, JSBool fromJS,
-                        jsval **vpp, va_list *app);
-#endif
-
 typedef JSBool
 (* JSLocaleToUpperCase)(JSContext *cx, JSString *src, jsval *rval);
 
@@ -2605,56 +2597,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_ConvertArgumentsVA(JSContext *cx, unsigned argc, jsval *argv,
                       const char *format, va_list ap);
 #endif
-
-#ifdef JS_ARGUMENT_FORMATTER_DEFINED
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddArgumentFormatter(JSContext *cx, const char *format,
-                        JSArgumentFormatter formatter);
-
-extern JS_PUBLIC_API(void)
-JS_RemoveArgumentFormatter(JSContext *cx, const char *format);
-
-#endif 
 
 extern JS_PUBLIC_API(JSBool)
 JS_ConvertValue(JSContext *cx, jsval v, JSType type, jsval *vp);
