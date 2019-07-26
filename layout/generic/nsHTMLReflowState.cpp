@@ -1604,8 +1604,8 @@ GetVerticalMarginBorderPadding(const nsHTMLReflowState* aReflowState)
 static nscoord
 CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 {
-  nsHTMLReflowState* firstAncestorRS = nullptr; 
-  nsHTMLReflowState* secondAncestorRS = nullptr; 
+  const nsHTMLReflowState* firstAncestorRS = nullptr; 
+  const nsHTMLReflowState* secondAncestorRS = nullptr; 
   
   
   
@@ -1613,7 +1613,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
   nscoord result = NS_AUTOHEIGHT; 
                              
   const nsHTMLReflowState* rs = aCBReflowState;
-  for (; rs; rs = (nsHTMLReflowState *)(rs->parentReflowState)) { 
+  for (; rs; rs = rs->parentReflowState) {
     nsIAtom* frameType = rs->frame->GetType();
     
     
@@ -1624,7 +1624,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
         nsGkAtoms::scrollFrame == frameType) {
 
       secondAncestorRS = firstAncestorRS;
-      firstAncestorRS = (nsHTMLReflowState*)rs;
+      firstAncestorRS = rs;
 
       
       
