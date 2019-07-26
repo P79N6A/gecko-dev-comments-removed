@@ -5,6 +5,12 @@
 
 #include <jni.h>
 
+#ifdef MOZ_MEMORY
+
+#define malloc __wrap_malloc
+#define free __wrap_free
+#endif
+
 #include <stdlib.h>
 #include <fcntl.h>
 #include "APKOpen.h"
