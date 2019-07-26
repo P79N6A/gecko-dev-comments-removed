@@ -354,27 +354,21 @@ nsXPCWrappedJS::GetNewOrUsed(JS::HandleObject jsObj,
             wrapper.forget(wrapperResult);
             return NS_OK;
         }
-    } else {
-        
-        if (rootJSObj == jsObj) {
-            
-            wrapper = new nsXPCWrappedJS(cx, jsObj, clasp, nullptr);
-            wrapper.forget(wrapperResult);
-            return NS_OK;
-        } else {
-            
-            nsRefPtr<nsXPCWrappedJSClass> rootClasp;
-            nsXPCWrappedJSClass::GetNewOrUsed(cx, NS_GET_IID(nsISupports),
-                                              getter_AddRefs(rootClasp));
-            if (!rootClasp)
-                return NS_ERROR_FAILURE;
+    } else if (rootJSObj != jsObj) {
 
-            root = new nsXPCWrappedJS(cx, rootJSObj, rootClasp, nullptr);
-        }
+        
+        
+        
+        nsRefPtr<nsXPCWrappedJSClass> rootClasp;
+        nsXPCWrappedJSClass::GetNewOrUsed(cx, NS_GET_IID(nsISupports),
+                                          getter_AddRefs(rootClasp));
+        if (!rootClasp)
+            return NS_ERROR_FAILURE;
+
+        root = new nsXPCWrappedJS(cx, rootJSObj, rootClasp, nullptr);
     }
 
     
-    MOZ_ASSERT(root, "bad root");
     MOZ_ASSERT(clasp, "bad clasp");
     MOZ_ASSERT(!wrapper, "no wrapper found yet");
 
