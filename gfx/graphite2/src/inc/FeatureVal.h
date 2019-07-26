@@ -56,7 +56,7 @@ public:
 
     CLASS_NEW_DELETE
 private:
-    friend class FeatureRef;		
+    friend class FeatureRef;        
     const FeatureMap* m_pMap;
 };
 

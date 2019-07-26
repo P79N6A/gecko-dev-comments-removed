@@ -125,6 +125,8 @@ enum gr_attrCode {
     gr_slatSegSplit = gr_slatJStretch + 29,
     
     gr_slatUserDefn,
+    
+    gr_slatBidiLevel,
                             
     
     gr_slatMax,             
@@ -397,6 +399,12 @@ GR2_API unsigned int gr_slot_index(const gr_slot* p);
 
 
 GR2_API int gr_slot_attr(const gr_slot* p, const gr_segment* pSeg, enum gr_attrCode index, gr_uint8 subindex); 
+
+
+
+
+
+
 
 
 GR2_API int gr_slot_can_insert_before(const gr_slot* p);

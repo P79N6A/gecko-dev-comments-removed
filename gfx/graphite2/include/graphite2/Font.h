@@ -30,7 +30,7 @@
 
 #define GR2_VERSION_MAJOR   1
 #define GR2_VERSION_MINOR   2
-#define GR2_VERSION_BUGFIX  3
+#define GR2_VERSION_BUGFIX  4
 
 #ifdef __cplusplus
 extern "C"
@@ -301,7 +301,6 @@ typedef struct gr_font_ops  gr_font_ops;
 
 
 GR2_API gr_font* gr_make_font_with_ops(float ppm, const void* appFontHandle, const gr_font_ops * font_ops, const gr_face *face);
-
 
 
 

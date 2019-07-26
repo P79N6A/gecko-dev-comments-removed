@@ -52,11 +52,11 @@ private:
 
 class FeatureRef
 {
-	typedef uint32		chunk_t;
-	static const uint8	SIZEOF_CHUNK = sizeof(chunk_t)*8;
+    typedef uint32      chunk_t;
+    static const uint8  SIZEOF_CHUNK = sizeof(chunk_t)*8;
 
 public:
-	FeatureRef() : m_nameValues(0) {}
+    FeatureRef() : m_nameValues(0) {}
     FeatureRef(const Face & face, unsigned short & bits_offset, uint32 max_val,
                uint32 name, uint16 uiName, uint16 flags,
                FeatureSetting *settings, uint16 num_set) throw();
@@ -64,8 +64,8 @@ public:
 
     bool applyValToFeature(uint32 val, Features& pDest) const; 
     void maskFeature(Features & pDest) const {
-	if (m_index < pDest.size()) 				
-	    pDest[m_index] |= m_mask; 
+    if (m_index < pDest.size())                 
+        pDest[m_index] |= m_mask; 
     }
 
     uint32 getFeatureVal(const Features& feats) const; 
@@ -83,16 +83,16 @@ public:
 private:
     FeatureRef(const FeatureRef & rhs);
 
-    const Face 	   * m_pFace;   
+    const Face     * m_pFace;   
     FeatureSetting * m_nameValues; 
     chunk_t m_mask,             
-    		m_max;              
-    uint32 	m_id;               
-    uint16 	m_nameid,            
-    		m_flags,             
-    		m_numSet;            
-    byte 	m_bits,             
-    	 	m_index;            
+            m_max;              
+    uint32  m_id;               
+    uint16  m_nameid,            
+            m_flags,             
+            m_numSet;            
+    byte    m_bits,             
+            m_index;            
 
 private:        
     FeatureRef& operator=(const FeatureRef&);
@@ -137,7 +137,7 @@ friend class SillMap;
     NameAndFeatureRef* m_pNamedFeats;   
     FeatureVal* m_defaultFeatures;        
     
-private:		
+private:        
     FeatureMap(const FeatureMap&);
     FeatureMap& operator=(const FeatureMap&);
 };

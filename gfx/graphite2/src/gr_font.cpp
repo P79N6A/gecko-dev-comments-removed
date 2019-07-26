@@ -47,9 +47,9 @@ gr_font* gr_make_font(float ppm, const gr_face *face)
 
 gr_font* gr_make_font_with_ops(float ppm, const void* appFontHandle, const gr_font_ops * font_ops, const gr_face * face)
 {                 
-	if (face == 0)	return 0;
+    if (face == 0)  return 0;
 
-	Font * const res = new Font(ppm, *face, appFontHandle, font_ops);
+    Font * const res = new Font(ppm, *face, appFontHandle, font_ops);
     return static_cast<gr_font*>(res);
 }
 
