@@ -364,11 +364,6 @@ let RIL = {
     
 
 
-    this._muted = true;
-
-    
-
-
 
 
 
@@ -389,17 +384,6 @@ let RIL = {
       MMI: cbmmi || null
     };
     this.mergedCellBroadcastConfig = null;
-  },
-
-  get muted() {
-    return this._muted;
-  },
-  set muted(val) {
-    val = Boolean(val);
-    if (this._muted != val) {
-      this.setMute(val);
-      this._muted = val;
-    }
   },
 
   
@@ -1466,10 +1450,10 @@ let RIL = {
 
 
 
-  setMute: function setMute(mute) {
+  setMute: function setMute(options) {
     Buf.newParcel(REQUEST_SET_MUTE);
     Buf.writeInt32(1);
-    Buf.writeInt32(mute ? 1 : 0);
+    Buf.writeInt32(options.muted ? 1 : 0);
     Buf.sendParcel();
   },
 
@@ -3617,10 +3601,6 @@ let RIL = {
     if (conferenceChanged) {
       this._ensureConference();
     }
-
-    
-    
-    this.muted = (Object.getOwnPropertyNames(this.currentCalls).length === 0);
   },
 
   _ensureConference: function _ensureConference() {
