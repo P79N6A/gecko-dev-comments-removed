@@ -484,6 +484,9 @@ pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
 
 
+pref("toolkit.asyncshutdown.timeout.crash", 60000);
+
+
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
@@ -4398,6 +4401,9 @@ pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 
 
 pref("mms.debugging.enabled", false);
+
+
+pref("ril.numRadioInterfaces", 1);
 
 
 

@@ -46,8 +46,26 @@
 const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/Promise.jsm", this);
+
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "gDebug",
+  "@mozilla.org/xpcom/debug;1", "nsIDebug");
+Object.defineProperty(this, "gCrashReporter", {
+  get: function() {
+    delete this.gCrashReporter;
+    try {
+      let reporter = Cc["@mozilla.org/xre/app-info;1"].
+            getService(Ci.nsICrashReporter);
+      return this.gCrashReporter = reporter;
+    } catch (ex) {
+      return this.gCrashReporter = null;
+    }
+  },
+  configurable: true
+});
 
 
 const DELAY_WARNING_MS = 10 * 1000;
@@ -55,18 +73,65 @@ const DELAY_WARNING_MS = 10 * 1000;
 
 
 
+const PREF_DELAY_CRASH_MS = "toolkit.asyncshutdown.crash_timeout";
+let DELAY_CRASH_MS = 60 * 1000; 
+try {
+  DELAY_CRASH_MS = Services.prefs.getIntPref(PREF_DELAY_CRASH_MS);
+} catch (ex) {
+  
+}
+Services.prefs.addObserver(PREF_DELAY_CRASH_MS, function() {
+  DELAY_CRASH_MS = Services.prefs.getIntPref(PREF_DELAY_CRASH_MS);
+}, false);
 
 
 
 
-function warn(msg, error = null) {
-  dump("WARNING: " + msg + "\n");
+
+
+
+
+
+function log(msg, prefix = "", error = null) {
+  dump(prefix + msg + "\n");
   if (error) {
-    dump("WARNING: " + error + "\n");
+    dump(prefix + error + "\n");
     if (typeof error == "object" && "stack" in error) {
-      dump("WARNING: " + error.stack + "\n");
+      dump(prefix + error.stack + "\n");
     }
   }
+}
+function warn(msg, error = null) {
+  return log(msg, "WARNING: ", error);
+}
+function err(msg, error = null) {
+  return log(msg, "ERROR: ", error);
+}
+
+
+
+
+
+
+
+
+
+
+function looseTimer(delay) {
+  let DELAY_BEAT = 1000;
+  let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  let beats = Math.ceil(delay / DELAY_BEAT);
+  let deferred = Promise.defer();
+  timer.initWithCallback(function() {
+    if (beats <= 0) {
+      deferred.resolve();
+    }
+    --beats;
+  }, DELAY_BEAT, Ci.nsITimer.TYPE_REPEATING_PRECISE_CAN_SKIP);
+  
+  
+  deferred.promise.then(() => timer.cancel(), () => timer.cancel());
+  return deferred;
 }
 
 this.EXPORTED_SYMBOLS = ["AsyncShutdown"];
@@ -202,7 +267,12 @@ Spinner.prototype = {
       return;
     }
 
+    
     let allPromises = [];
+
+    
+    
+    let allMonitors = [];
 
     for (let {condition, name} of conditions) {
       
@@ -227,19 +297,24 @@ Spinner.prototype = {
         
         
         
-        
 
         let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
         timer.initWithCallback(function() {
           let msg = "A phase completion condition is" +
             " taking too long to complete." +
-            " Condition: " + name +
+            " Condition: " + monitor.name +
             " Phase: " + topic;
           warn(msg);
         }, DELAY_WARNING_MS, Ci.nsITimer.TYPE_ONE_SHOT);
 
+        let monitor = {
+          isFrozen: true,
+          name: name
+        };
         condition = condition.then(function onSuccess() {
-            timer.cancel();
+            timer.cancel(); 
+                            
+            monitor.isFrozen = false;
           }, function onError(error) {
             timer.cancel();
             let msg = "A completion condition encountered an error" +
@@ -247,8 +322,9 @@ Spinner.prototype = {
                 " Condition: " + name +
                 " Phase: " + topic;
             warn(msg, error);
+            monitor.isFrozen = false;
         });
-
+        allMonitors.push(monitor);
         allPromises.push(condition);
 
       } catch (error) {
@@ -275,8 +351,52 @@ Spinner.prototype = {
 
     let satisfied = false; 
 
+    
+    
+    
+    
+    
+    
+    let timeToCrash = looseTimer(DELAY_CRASH_MS);
+    timeToCrash.promise.then(
+      function onTimeout() {
+        
+        let frozen = [];
+        for (let {name, isFrozen} of allMonitors) {
+          if (isFrozen) {
+            frozen.push(name);
+          }
+        }
+
+        let msg = "At least one completion condition failed to complete" +
+              " within a reasonable amount of time. Causing a crash to" +
+              " ensure that we do not leave the user with an unresponsive" +
+              " process draining resources." +
+              " Conditions: " + frozen.join(", ") +
+              " Phase: " + topic;
+        err(msg);
+        if (gCrashReporter) {
+          let data = {
+            phase: topic,
+            conditions: frozen
+          };
+          gCrashReporter.annotateCrashReport("AsyncShutdownTimeout",
+            JSON.stringify(data));
+        } else {
+          warn("No crash reporter available");
+        }
+
+        let error = new Error();
+        gDebug.abort(error.fileName, error.lineNumber + 1);
+      },
+      function onSatisfied() {
+        
+        
+      });
+
     promise = promise.then(function() {
       satisfied = true;
+      timeToCrash.reject();
     });
 
     
