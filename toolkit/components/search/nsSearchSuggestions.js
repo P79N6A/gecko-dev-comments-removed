@@ -464,7 +464,6 @@ SuggestAutoComplete.prototype = {
     this._suggestURI = submission.uri;
     var method = (submission.postData ? "POST" : "GET");
     this._request.open(method, this._suggestURI.spec, true);
-    this._request.channel.notificationCallbacks = new AuthPromptOverride();
     if (this._request.channel instanceof Ci.nsIPrivateBrowsingChannel) {
       this._request.channel.setPrivate(privacyMode);
     }
@@ -524,31 +523,6 @@ SuggestAutoComplete.prototype = {
                                          Ci.nsIAutoCompleteObserver])
 };
 
-function AuthPromptOverride() {
-}
-AuthPromptOverride.prototype = {
-  
-  getAuthPrompt: function (reason, iid) {
-    
-    return {
-      promptAuth: function () {
-        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-      },
-      asyncPromptAuth: function () {
-        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-      }
-    };
-  },
-
-  
-  getInterface: function SSLL_getInterface(iid) {
-    return this.QueryInterface(iid);
-  },
-
-  
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAuthPromptProvider,
-                                         Ci.nsIInterfaceRequestor])
-};
 
 
 
