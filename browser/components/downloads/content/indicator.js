@@ -179,13 +179,23 @@ const DownloadsButton = {
   
 
 
-  get isVisible()
+
+
+
+
+
+  checkIsVisible: function DB_checkIsVisible(aCallback)
   {
-    if (!this._placeholder) {
-      return false;
+    function DB_CEV_callback() {
+      if (!this._placeholder) {
+        aCallback(false);
+      } else {
+        let element = DownloadsIndicatorView.indicator || this._placeholder;
+        aCallback(isElementVisible(element.parentNode));
+      }
     }
-    let element = DownloadsIndicatorView.indicator || this._placeholder;
-    return isElementVisible(element.parentNode);
+    DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay,
+                                               DB_CEV_callback.bind(this));
   },
 
   
