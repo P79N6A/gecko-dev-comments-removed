@@ -378,26 +378,6 @@ nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
 }
 
 
-nsresult nsPluginStreamListenerPeer::InitializeFullPage(nsIURI* aURL, nsNPAPIPluginInstance *aInstance)
-{
-  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
-             ("nsPluginStreamListenerPeer::InitializeFullPage instance=%p\n",aInstance));
-  
-  NS_ASSERTION(mPluginInstance == nullptr, "nsPluginStreamListenerPeer::InitializeFullPage mPluginInstance != nullptr");
-  mPluginInstance = aInstance;
-  
-  mURL = aURL;
-  
-  mDataForwardToRequest = new nsHashtable(16, false);
-  if (!mDataForwardToRequest)
-    return NS_ERROR_FAILURE;
-
-  mPendingRequests = 1;
-  
-  return NS_OK;
-}
-
-
 
 
 

@@ -22,7 +22,6 @@
 #include "nsIExternalProtocolHandler.h"
 #include "nsEventStates.h"
 #include "nsIObjectFrame.h"
-#include "nsIPluginDocument.h"
 #include "nsIPermissionManager.h"
 #include "nsPluginHost.h"
 #include "nsIPresShell.h"
@@ -741,26 +740,9 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
     appShell->SuspendNative();
   }
 
-  nsCOMPtr<nsIPluginDocument> pDoc(do_QueryInterface(doc));
-  bool fullPageMode = false;
-  if (pDoc) {
-    pDoc->GetWillHandleInstantiation(&fullPageMode);
-  }
-
-  if (fullPageMode) {
-    nsCOMPtr<nsIStreamListener> stream;
-    rv = pluginHost->InstantiateFullPagePluginInstance(mContentType.get(),
-                                                       mURI.get(), this,
-                                                       getter_AddRefs(mInstanceOwner),
-                                                       getter_AddRefs(stream));
-    if (NS_SUCCEEDED(rv)) {
-      pDoc->SetStreamListener(stream);
-    }
-  } else {
-    rv = pluginHost->InstantiateEmbeddedPluginInstance(mContentType.get(),
-                                                       mURI.get(), this,
-                                                       getter_AddRefs(mInstanceOwner));
-  }
+  rv = pluginHost->InstantiateEmbeddedPluginInstance(mContentType.get(),
+                                                     mURI.get(), this,
+                                                     getter_AddRefs(mInstanceOwner));
 
   if (appShell) {
     appShell->ResumeNative();
@@ -1573,6 +1555,34 @@ nsObjectLoadingContent::UpdateObjectParameters()
   }
 
   return retval;
+}
+
+
+
+NS_IMETHODIMP
+nsObjectLoadingContent::InitializeFromChannel(nsIRequest *aChannel)
+{
+  LOG(("OBJLC [%p] InitializeFromChannel: %p", this, aChannel));
+  if (mType != eType_Loading || mChannel) {
+    
+    
+    NS_NOTREACHED("Should not have begun loading at this point");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  
+  
+  UpdateObjectParameters();
+  
+  mType = eType_Loading;
+  mChannel = do_QueryInterface(aChannel);
+  NS_ASSERTION(mChannel, "passed a request that is not a channel");
+
+  
+  
+  
+  return NS_OK;
 }
 
 

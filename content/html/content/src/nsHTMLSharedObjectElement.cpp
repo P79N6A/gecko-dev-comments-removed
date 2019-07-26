@@ -11,6 +11,7 @@
 #include "nsGkAtoms.h"
 #include "nsError.h"
 #include "nsIDocument.h"
+#include "nsIPluginDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLAppletElement.h"
 #include "nsIDOMHTMLEmbedElement.h"
@@ -270,7 +271,12 @@ nsHTMLSharedObjectElement::BindToTree(nsIDocument *aDocument,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (mIsDoneAddingChildren) {
+  
+  
+  nsCOMPtr<nsIPluginDocument> pluginDoc = do_QueryInterface(aDocument);
+
+  
+  if (mIsDoneAddingChildren && !pluginDoc) {
     void (nsHTMLSharedObjectElement::*start)() =
       &nsHTMLSharedObjectElement::StartObjectLoad;
     nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(this, start));
