@@ -551,8 +551,6 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             return;
         }
 
-        AnimatorProxy proxy = null;
-
         
         
         
@@ -566,26 +564,19 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             final int curveTranslation = getAwesomeBarCurveTranslation();
 
             if (mAwesomeBarRightEdge != null) {
-                proxy = AnimatorProxy.create(mAwesomeBarRightEdge);
-                proxy.setTranslationX(entryTranslation);
+                ViewHelper.setTranslationX(mAwesomeBarRightEdge, entryTranslation);
             }
 
-            proxy = AnimatorProxy.create(mTabs);
-            proxy.setTranslationX(curveTranslation);
-            proxy = AnimatorProxy.create(mTabsCounter);
-            proxy.setTranslationX(curveTranslation);
-            proxy = AnimatorProxy.create(mActionItemBar);
-            proxy.setTranslationX(curveTranslation);
+            ViewHelper.setTranslationX(mTabs, curveTranslation);
+            ViewHelper.setTranslationX(mTabsCounter, curveTranslation);
+            ViewHelper.setTranslationX(mActionItemBar, curveTranslation);
 
             if (mHasSoftMenuButton) {
-                proxy = AnimatorProxy.create(mMenu);
-                proxy.setTranslationX(curveTranslation);
+                ViewHelper.setTranslationX(mMenu, curveTranslation);
             }
 
-            proxy = AnimatorProxy.create(mReader);
-            proxy.setAlpha(0);
-            proxy = AnimatorProxy.create(mStop);
-            proxy.setAlpha(0);
+            ViewHelper.setAlpha(mReader, 0);
+            ViewHelper.setAlpha(mStop, 0);
         }
 
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
@@ -675,10 +666,8 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         mLayout.setSelected(true);
 
         
-        AnimatorProxy proxy = AnimatorProxy.create(mReader);
-        proxy.setAlpha(0);
-        proxy = AnimatorProxy.create(mStop);
-        proxy.setAlpha(0);
+        ViewHelper.setAlpha(mReader, 0);
+        ViewHelper.setAlpha(mStop, 0);
 
         
 
@@ -1009,19 +998,15 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                         (ViewGroup.MarginLayoutParams)mAwesomeBarContent.getLayoutParams();
                     layoutParams.leftMargin = mAddressBarViewOffset;
 
-                    AnimatorProxy proxy = AnimatorProxy.create(mTitle);
-                    proxy.setTranslationX(0);
-                    proxy = AnimatorProxy.create(mFavicon);
-                    proxy.setTranslationX(0);
-                    proxy = AnimatorProxy.create(mSiteSecurity);
-                    proxy.setTranslationX(0);
+                    ViewHelper.setTranslationX(mTitle, 0);
+                    ViewHelper.setTranslationX(mFavicon, 0);
+                    ViewHelper.setTranslationX(mSiteSecurity, 0);
                 }
 
                 ViewGroup.MarginLayoutParams layoutParams =
                     (ViewGroup.MarginLayoutParams)mForward.getLayoutParams();
                 layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? mForward.getWidth() / 2 : 0);
-                AnimatorProxy proxy = AnimatorProxy.create(mForward);
-                proxy.setTranslationX(0);
+                ViewHelper.setTranslationX(mForward, 0);
 
                 mAwesomeBarContent.requestLayout();
                 mForwardAnim = null;
@@ -1053,12 +1038,9 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             
             
             
-            AnimatorProxy proxy = AnimatorProxy.create(mTitle);
-            proxy.setTranslationX(mAddressBarViewOffset);
-            proxy = AnimatorProxy.create(mFavicon);
-            proxy.setTranslationX(mAddressBarViewOffset);
-            proxy = AnimatorProxy.create(mSiteSecurity);
-            proxy.setTranslationX(mAddressBarViewOffset);
+            ViewHelper.setTranslationX(mTitle, mAddressBarViewOffset);
+            ViewHelper.setTranslationX(mFavicon, mAddressBarViewOffset);
+            ViewHelper.setTranslationX(mSiteSecurity, mAddressBarViewOffset);
         } else {
             anim.attach(mForward,
                       PropertyAnimator.Property.TRANSLATION_X,
