@@ -278,8 +278,14 @@ PeerConnectionImpl::PeerConnectionImpl()
 
 PeerConnectionImpl::~PeerConnectionImpl()
 {
-  peerconnections.erase(mHandle);
   Close();
+  
+  
+  
+  
+  peerconnections.erase(mHandle);
+  if (peerconnections.empty())
+    Shutdown();
 
   
 
