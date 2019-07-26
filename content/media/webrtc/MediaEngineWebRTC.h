@@ -11,6 +11,7 @@
 #include "nsIRunnable.h"
 
 #include "mozilla/Mutex.h"
+#include "mozilla/Monitor.h"
 #include "nsCOMPtr.h"
 #include "nsDOMFile.h"
 #include "nsThreadUtils.h"
@@ -139,18 +140,16 @@ private:
   
   
   
-  mozilla::ReentrantMonitor mMonitor; 
+  Monitor mMonitor; 
   nsTArray<SourceMediaStream *> mSources; 
 
   bool mInitDone;
+
   bool mInSnapshotMode;
   nsString* mSnapshotPath;
 
   nsRefPtr<layers::Image> mImage;
   nsRefPtr<layers::ImageContainer> mImageContainer;
-
-  PRLock* mSnapshotLock;
-  PRCondVar* mSnapshotCondVar;
 
   
   char mDeviceName[KMaxDeviceNameLength];
@@ -224,7 +223,7 @@ private:
   
   
   
-  mozilla::ReentrantMonitor mMonitor;
+  Monitor mMonitor;
   nsTArray<SourceMediaStream *> mSources; 
 
   int mCapIndex;

@@ -40,12 +40,13 @@ int
 MediaEngineWebRTCVideoSource::DeliverFrame(
    unsigned char* buffer, int size, uint32_t time_stamp, int64_t render_time)
 {
+  
+  
   if (mInSnapshotMode) {
     
-    PR_Lock(mSnapshotLock);
+    MonitorAutoLock lock(mMonitor);
     mInSnapshotMode = false;
-    PR_NotifyCondVar(mSnapshotCondVar);
-    PR_Unlock(mSnapshotLock);
+    lock.Notify();
     return 0;
   }
 
@@ -94,7 +95,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
 
   
   
-  ReentrantMonitorAutoEnter enter(mMonitor);
+  MonitorAutoLock lock(mMonitor);
 
   
   mImage = image.forget();
@@ -114,7 +115,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 {
   VideoSegment segment;
 
-  ReentrantMonitorAutoEnter enter(mMonitor);
+  MonitorAutoLock lock(mMonitor);
   if (mState != kStarted)
     return;
 
@@ -328,7 +329,7 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
   }
 
   {
-    ReentrantMonitorAutoEnter enter(mMonitor);
+    MonitorAutoLock lock(mMonitor);
     mState = kStopped;
     aSource->EndTrack(aID);
     
@@ -367,11 +368,10 @@ MediaEngineWebRTCVideoSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
     return NS_ERROR_FAILURE;
   }
 
-  mSnapshotLock = PR_NewLock();
-  mSnapshotCondVar = PR_NewCondVar(mSnapshotLock);
-
-  PR_Lock(mSnapshotLock);
-  mInSnapshotMode = true;
+  {
+    MonitorAutoLock lock(mMonitor);
+    mInSnapshotMode = true;
+  }
 
   
   int error = 0;
@@ -387,18 +387,23 @@ MediaEngineWebRTCVideoSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
-  while (mInSnapshotMode) {
-    PR_WaitCondVar(mSnapshotCondVar, PR_INTERVAL_NO_TIMEOUT);
+  if (mViECapture->StartCapture(mCaptureIndex, mCapability) < 0) {
+    return NS_ERROR_FAILURE;
   }
 
   
-  PR_Unlock(mSnapshotLock);
-  PR_DestroyCondVar(mSnapshotCondVar);
-  PR_DestroyLock(mSnapshotLock);
+  
+  
+  
+  
+  {
+    MonitorAutoLock lock(mMonitor);
+    while (mInSnapshotMode) {
+      lock.Wait();
+    }
+  }
 
+  
   webrtc::ViEFile* vieFile = webrtc::ViEFile::GetInterface(mVideoEngine);
   if (!vieFile) {
     return NS_ERROR_FAILURE;
