@@ -663,7 +663,7 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
     }
   }
 
-  if (!decoder->mFrameIsHidden && decoder->NeedsNewFrame()) {
+  if (decoder->NeedsNewFrame()) {
     
 
 
@@ -829,10 +829,12 @@ nsPNGDecoder::frame_info_callback(png_structp png_ptr, png_uint_32 frame_num)
 
   decoder->CreateFrame(x_offset, y_offset, width, height, decoder->format);
 
-  
+  if (decoder->NeedsNewFrame()) {
+    
 
 
-  png_process_data_pause(png_ptr,  1);
+    png_process_data_pause(png_ptr,  1);
+  }
 #endif
 }
 
