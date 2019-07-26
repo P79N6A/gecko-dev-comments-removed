@@ -303,6 +303,10 @@ const DownloadsPanel = {
     }
 
     
+    this.panel.popupBoxObject.setConsumeRollupEvent(Ci.nsIPopupBoxObject
+                                                      .ROLLUP_CONSUME);
+
+    
     
     DownloadsButton.getAnchor(function DP_OPIDR_callback(aAnchor) {
       
