@@ -100,9 +100,9 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         return NULL;
     parser.sct = &sct;
 
-    SharedContext sc(cx, scopeChain,  NULL, StrictModeFromContext(cx));
+    GlobalSharedContext globalsc(cx, scopeChain, StrictModeFromContext(cx));
 
-    ParseContext pc(&parser, &sc, staticLevel,  0);
+    ParseContext pc(&parser, &globalsc, staticLevel,  0);
     if (!pc.init())
         return NULL;
 
@@ -123,14 +123,14 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
-    BytecodeEmitter bce( NULL, &parser, &sc, script, callerFrame, !!globalScope,
+    BytecodeEmitter bce( NULL, &parser, &globalsc, script, callerFrame, !!globalScope,
                         options.lineno, options.selfHostingMode);
     if (!bce.init())
         return NULL;
 
     
     if (callerFrame && callerFrame->script()->strictModeCode)
-        sc.strictModeState = StrictMode::STRICT;
+        globalsc.strictModeState = StrictMode::STRICT;
 
     if (options.compileAndGo) {
         if (source) {
@@ -175,7 +175,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         if (!ok)
             return NULL;
     }
-    JS_ASSERT(sc.strictModeState != StrictMode::UNKNOWN);
+    JS_ASSERT(globalsc.strictModeState != StrictMode::UNKNOWN);
     for (;;) {
         TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF) {
@@ -277,12 +277,10 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
 
     StrictMode sms = StrictModeFromContext(cx);
     FunctionBox *funbox = parser.newFunctionBox(fun,  NULL, sms);
-
-    SharedContext funsc(cx,  NULL, funbox, sms);
     fun->setArgCount(formals.length());
 
     unsigned staticLevel = 0;
-    ParseContext funpc(&parser, &funsc, staticLevel,  0);
+    ParseContext funpc(&parser, funbox, staticLevel,  0);
     if (!funpc.init())
         return false;
 
@@ -332,7 +330,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     if (!funpc.generateFunctionBindings(cx, bindings))
         return false;
 
-    BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,
+    BytecodeEmitter funbce( NULL, &parser, funbox, script,  NULL,
                             false, options.lineno);
     if (!funbce.init())
         return false;

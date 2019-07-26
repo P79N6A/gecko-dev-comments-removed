@@ -23,8 +23,8 @@ namespace js {
 namespace frontend {
 
 
-class AnyContextFlags {
-
+class AnyContextFlags
+{
     
     friend struct SharedContext;
 
@@ -61,8 +61,8 @@ class AnyContextFlags {
     { }
 };
 
-class FunctionContextFlags {
-
+class FunctionContextFlags
+{
     
     friend struct FunctionBox;
 
@@ -126,25 +126,21 @@ class FunctionContextFlags {
     { }
 };
 
+class GlobalSharedContext;
 
 
 
 
 
 
-struct SharedContext {
+
+class SharedContext
+{
+  public:
     JSContext       *const context;
 
     const bool isFunction;          
 
-  private:
-    FunctionBox *const funbox_;     
-
-
-    const RootedObject scopeChain_; 
-
-
-  public:
     AnyContextFlags anyCxFlags;
 
     
@@ -169,8 +165,10 @@ struct SharedContext {
 
     
     
-    inline SharedContext(JSContext *cx, JSObject *scopeChain, FunctionBox *funbox,
-                         StrictMode sms);
+    inline SharedContext(JSContext *cx, bool isFun, StrictMode sms);
+
+    inline GlobalSharedContext *asGlobal();
+    inline FunctionBox *asFunbox();
 
     bool hasExplicitUseStrict()        const { return anyCxFlags.hasExplicitUseStrict; }
     bool bindingsAccessedDynamically() const { return anyCxFlags.bindingsAccessedDynamically; }
@@ -178,13 +176,59 @@ struct SharedContext {
     void setExplicitUseStrict()           { anyCxFlags.hasExplicitUseStrict        = true; }
     void setBindingsAccessedDynamically() { anyCxFlags.bindingsAccessedDynamically = true; }
 
-    FunctionBox *funbox()  const { JS_ASSERT(isFunction);  return funbox_; }
-    JSObject *scopeChain() const { JS_ASSERT(!isFunction); return scopeChain_; }
-
     
     inline bool needStrictChecks();
     inline bool inStrictMode();
 };
+
+class GlobalSharedContext : public SharedContext
+{
+  private:
+    const RootedObject scopeChain_; 
+
+  public:
+    inline GlobalSharedContext(JSContext *cx, JSObject *scopeChain, StrictMode sms);
+
+    JSObject *scopeChain() const { return scopeChain_; }
+};
+
+class FunctionBox : public SharedContext
+{
+  public:
+    ObjectBox       objbox;
+    FunctionBox     *siblings;
+    FunctionBox     *kids;
+    Bindings        bindings;               
+    size_t          bufStart;
+    size_t          bufEnd;
+    uint16_t        ndefaults;
+    bool            inWith:1;               
+
+    bool            inGenexpLambda:1;       
+
+    FunctionContextFlags funCxFlags;
+
+    FunctionBox(JSContext *cx, ObjectBox* traceListHead, JSFunction *fun, ParseContext *pc,
+                StrictMode sms);
+
+    JSFunction *fun() const { return objbox.object->toFunction(); }
+
+    void recursivelySetStrictMode(StrictMode strictness);
+
+    bool isGenerator()              const { return funCxFlags.isGenerator; }
+    bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }
+    bool hasExtensibleScope()       const { return funCxFlags.hasExtensibleScope; }
+    bool argumentsHasLocalBinding() const { return funCxFlags.argumentsHasLocalBinding; }
+    bool definitelyNeedsArgsObj()   const { return funCxFlags.definitelyNeedsArgsObj; }
+
+    void setIsGenerator()                  { funCxFlags.isGenerator              = true; }
+    void setMightAliasLocals()             { funCxFlags.mightAliasLocals         = true; }
+    void setHasExtensibleScope()           { funCxFlags.hasExtensibleScope       = true; }
+    void setArgumentsHasLocalBinding()     { funCxFlags.argumentsHasLocalBinding = true; }
+    void setDefinitelyNeedsArgsObj()       { JS_ASSERT(funCxFlags.argumentsHasLocalBinding);
+                                             funCxFlags.definitelyNeedsArgsObj   = true; }
+};
+
 
 
 
@@ -274,43 +318,6 @@ struct StmtInfoBase {
     bool isTrying() const {
         return STMT_TRY <= type && type <= STMT_SUBROUTINE;
     }
-};
-
-struct FunctionBox
-{
-    ObjectBox       objbox;
-    FunctionBox     *siblings;
-    FunctionBox     *kids;
-    Bindings        bindings;               
-    size_t          bufStart;
-    size_t          bufEnd;
-    uint16_t        ndefaults;
-    StrictMode      strictModeState;
-    bool            inWith:1;               
-
-    bool            inGenexpLambda:1;       
-
-    AnyContextFlags anyCxFlags;
-    FunctionContextFlags funCxFlags;
-
-    FunctionBox(ObjectBox *traceListHead, JSFunction *fun, ParseContext *pc, StrictMode sms);
-
-    JSFunction *fun() const { return objbox.object->toFunction(); }
-
-    void recursivelySetStrictMode(StrictMode strictness);
-
-    bool isGenerator()              const { return funCxFlags.isGenerator; }
-    bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }
-    bool hasExtensibleScope()       const { return funCxFlags.hasExtensibleScope; }
-    bool argumentsHasLocalBinding() const { return funCxFlags.argumentsHasLocalBinding; }
-    bool definitelyNeedsArgsObj()   const { return funCxFlags.definitelyNeedsArgsObj; }
-
-    void setIsGenerator()                  { funCxFlags.isGenerator              = true; }
-    void setMightAliasLocals()             { funCxFlags.mightAliasLocals         = true; }
-    void setHasExtensibleScope()           { funCxFlags.hasExtensibleScope       = true; }
-    void setArgumentsHasLocalBinding()     { funCxFlags.argumentsHasLocalBinding = true; }
-    void setDefinitelyNeedsArgsObj()       { JS_ASSERT(funCxFlags.argumentsHasLocalBinding);
-                                             funCxFlags.definitelyNeedsArgsObj   = true; }
 };
 
 
