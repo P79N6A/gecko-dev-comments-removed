@@ -57,6 +57,12 @@ def doc_to_paragraphs(doc):
 
 VARIABLES = {
     
+    'ASFILES': (list, [],
+        """ Assembly file sources.
+
+        This variable contains a list of files to invoke the assembler on.
+        """),
+
     'DIRS': (list, [],
         """Child directories to descend into looking for build frontend files.
 
@@ -199,7 +205,6 @@ VARIABLES = {
         Typically this is a set of -I flags that denote extra include
         directories to search for included .idl files.
         """),
-
 
     'XPCSHELL_TESTS_MANIFESTS': (list, [],
         """XPCSHELL Test Manifest list
