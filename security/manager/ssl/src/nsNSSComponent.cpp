@@ -828,31 +828,70 @@ nsNSSComponent::InitializePIPNSSBundle()
 typedef struct {
   const char* pref;
   long id;
+  bool enabledByDefault;
 } CipherPref;
 
-static CipherPref CipherPrefs[] = {
- 
- {"security.ssl3.rsa_rc4_128_md5", SSL_RSA_WITH_RC4_128_MD5}, 
- {"security.ssl3.rsa_rc4_128_sha", SSL_RSA_WITH_RC4_128_SHA}, 
- {"security.ssl3.rsa_fips_des_ede3_sha", SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA}, 
- {"security.ssl3.rsa_des_ede3_sha", SSL_RSA_WITH_3DES_EDE_CBC_SHA}, 
- 
- {"security.ssl3.dhe_rsa_camellia_256_sha", TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA}, 
- {"security.ssl3.dhe_dss_camellia_256_sha", TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA}, 
- {"security.ssl3.rsa_camellia_256_sha", TLS_RSA_WITH_CAMELLIA_256_CBC_SHA}, 
- {"security.ssl3.dhe_rsa_aes_256_sha", TLS_DHE_RSA_WITH_AES_256_CBC_SHA}, 
- {"security.ssl3.dhe_dss_aes_256_sha", TLS_DHE_DSS_WITH_AES_256_CBC_SHA}, 
- {"security.ssl3.rsa_aes_256_sha", TLS_RSA_WITH_AES_256_CBC_SHA}, 
-   
+static const CipherPref sCipherPrefs[] = {
+ { "security.ssl3.ecdhe_rsa_aes_128_gcm_sha256",
+   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, true },
+ { "security.ssl3.ecdhe_ecdsa_aes_128_gcm_sha256",
+   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, true },
+ { "security.ssl3.ecdhe_rsa_aes_128_sha",
+   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, true },
+ { "security.ssl3.ecdhe_ecdsa_aes_128_sha",
+   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, true },
 
- {"security.ssl3.ecdhe_ecdsa_aes_256_sha", TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA}, 
- {"security.ssl3.ecdhe_ecdsa_aes_128_sha", TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}, 
- {"security.ssl3.ecdhe_ecdsa_des_ede3_sha", TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA}, 
- {"security.ssl3.ecdhe_ecdsa_rc4_128_sha", TLS_ECDHE_ECDSA_WITH_RC4_128_SHA}, 
- {"security.ssl3.ecdhe_rsa_aes_256_sha", TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA}, 
- {"security.ssl3.ecdhe_rsa_aes_128_sha", TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}, 
- {"security.ssl3.ecdhe_rsa_des_ede3_sha", TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA}, 
- {"security.ssl3.ecdhe_rsa_rc4_128_sha", TLS_ECDHE_RSA_WITH_RC4_128_SHA}, 
+ { "security.ssl3.ecdhe_rsa_aes_256_sha",
+   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, true },
+ { "security.ssl3.ecdhe_ecdsa_aes_256_sha",
+   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, true },
+
+ { "security.ssl3.ecdhe_rsa_des_ede3_sha",
+   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, true }, 
+
+ { "security.ssl3.dhe_rsa_aes_128_sha",
+   TLS_DHE_RSA_WITH_AES_128_CBC_SHA, true },
+ { "security.ssl3.dhe_rsa_camellia_128_sha",
+   TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA, true },
+
+ { "security.ssl3.dhe_rsa_aes_256_sha",
+   TLS_DHE_RSA_WITH_AES_256_CBC_SHA, true },
+ { "security.ssl3.dhe_rsa_camellia_256_sha",
+   TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA, true },
+
+ { "security.ssl3.dhe_rsa_des_ede3_sha",
+   SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, true }, 
+
+ { "security.ssl3.dhe_dss_aes_128_sha",
+   TLS_DHE_DSS_WITH_AES_128_CBC_SHA, true }, 
+ { "security.ssl3.dhe_dss_aes_256_sha",
+   TLS_DHE_DSS_WITH_AES_256_CBC_SHA, true }, 
+
+ { "security.ssl3.ecdhe_rsa_rc4_128_sha",
+   TLS_ECDHE_RSA_WITH_RC4_128_SHA, true }, 
+ { "security.ssl3.ecdhe_ecdsa_rc4_128_sha",
+   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, true }, 
+
+ { "security.ssl3.rsa_aes_128_sha",
+   TLS_RSA_WITH_AES_128_CBC_SHA, true }, 
+ { "security.ssl3.rsa_camellia_128_sha",
+   TLS_RSA_WITH_CAMELLIA_128_CBC_SHA, true }, 
+ { "security.ssl3.rsa_aes_256_sha",
+   TLS_RSA_WITH_AES_256_CBC_SHA, true }, 
+ { "security.ssl3.rsa_camellia_256_sha",
+   TLS_RSA_WITH_CAMELLIA_256_CBC_SHA, true }, 
+ { "security.ssl3.rsa_des_ede3_sha",
+   SSL_RSA_WITH_3DES_EDE_CBC_SHA, true }, 
+
+ { "security.ssl3.rsa_rc4_128_sha",
+   SSL_RSA_WITH_RC4_128_SHA, true }, 
+ { "security.ssl3.rsa_rc4_128_md5",
+   SSL_RSA_WITH_RC4_128_MD5, true }, 
+
+ 
+
+ {"security.ssl3.rsa_fips_des_ede3_sha", SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA},
+ {"security.ssl3.dhe_dss_camellia_256_sha", TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA}, 
  {"security.ssl3.ecdh_ecdsa_aes_256_sha", TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA}, 
  {"security.ssl3.ecdh_ecdsa_aes_128_sha", TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA}, 
  {"security.ssl3.ecdh_ecdsa_des_ede3_sha", TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA}, 
@@ -861,17 +900,8 @@ static CipherPref CipherPrefs[] = {
  {"security.ssl3.ecdh_rsa_aes_128_sha", TLS_ECDH_RSA_WITH_AES_128_CBC_SHA}, 
  {"security.ssl3.ecdh_rsa_des_ede3_sha", TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA}, 
  {"security.ssl3.ecdh_rsa_rc4_128_sha", TLS_ECDH_RSA_WITH_RC4_128_SHA}, 
- {"security.ssl3.dhe_rsa_camellia_128_sha", TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA}, 
  {"security.ssl3.dhe_dss_camellia_128_sha", TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA}, 
- {"security.ssl3.rsa_camellia_128_sha", TLS_RSA_WITH_CAMELLIA_128_CBC_SHA}, 
- {"security.ssl3.dhe_rsa_aes_128_sha", TLS_DHE_RSA_WITH_AES_128_CBC_SHA}, 
- {"security.ssl3.dhe_dss_aes_128_sha", TLS_DHE_DSS_WITH_AES_128_CBC_SHA}, 
- {"security.ssl3.rsa_aes_128_sha", TLS_RSA_WITH_AES_128_CBC_SHA}, 
- {"security.ssl3.dhe_rsa_des_ede3_sha", SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA}, 
- {"security.ssl3.dhe_dss_des_ede3_sha", SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA}, 
  {"security.ssl3.rsa_seed_sha", TLS_RSA_WITH_SEED_CBC_SHA}, 
- {"security.ssl3.ecdhe_ecdsa_aes_128_gcm_sha256", TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}, 
- {"security.ssl3.ecdhe_rsa_aes_128_gcm_sha256", TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}, 
  {nullptr, 0} 
 };
 
@@ -968,9 +998,10 @@ CipherSuiteChangeObserver::Observe(nsISupports *aSubject,
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     NS_ConvertUTF16toUTF8  prefName(someData);
     
-    for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
+    for (const CipherPref* cp = sCipherPrefs; cp->pref; ++cp) {
       if (prefName.Equals(cp->pref)) {
-        bool cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
+        bool cipherEnabled = Preferences::GetBool(cp->pref,
+                                                  cp->enabledByDefault);
         SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
         SSL_ClearSessionCache();
         break;
@@ -2040,8 +2071,8 @@ nsresult InitializeCipherSuite()
 
   bool cipherEnabled;
   
-  for (CipherPref* cp = CipherPrefs; cp->pref; ++cp) {
-    cipherEnabled = Preferences::GetBool(cp->pref, CIPHER_ENABLED_DEFAULT);
+  for (const CipherPref* cp = sCipherPrefs; cp->pref; ++cp) {
+    bool cipherEnabled = Preferences::GetBool(cp->pref, cp->enabledByDefault);
     SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
   }
 
