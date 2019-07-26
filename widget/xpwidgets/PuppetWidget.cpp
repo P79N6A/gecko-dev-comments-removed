@@ -16,6 +16,7 @@
 #include "mozilla/Hal.h"
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/TextEvents.h"
 #include "PuppetWidget.h"
 #include "nsIWidgetListener.h"
 
@@ -101,7 +102,7 @@ PuppetWidget::Create(nsIWidget        *aParent,
 
   mSurface = gfxPlatform::GetPlatform()
              ->CreateOffscreenSurface(gfxIntSize(1, 1),
-                                      gfxASurface::ContentFromFormat(gfxASurface::ImageFormatARGB32));
+                                      gfxASurface::ContentFromFormat(gfxImageFormatARGB32));
 
   mIMEComposing = false;
   mNeedIMEStateInit = MightNeedIMEFocus(aInitData);
@@ -121,11 +122,10 @@ PuppetWidget::Create(nsIWidget        *aParent,
 void
 PuppetWidget::InitIMEState()
 {
+  MOZ_ASSERT(mTabChild);
   if (mNeedIMEStateInit) {
     uint32_t chromeSeqno;
-    if (mTabChild) {
-      mTabChild->SendNotifyIMEFocus(false, &mIMEPreference, &chromeSeqno);
-    }
+    mTabChild->SendNotifyIMEFocus(false, &mIMEPreference, &chromeSeqno);
     mIMELastBlurSeqno = mIMELastReceivedSeqno = chromeSeqno;
     mNeedIMEStateInit = false;
   }
@@ -243,7 +243,7 @@ PuppetWidget::Invalidate(const nsIntRect& aRect)
 }
 
 void
-PuppetWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
+PuppetWidget::InitEvent(WidgetGUIEvent& event, nsIntPoint* aPoint)
 {
   if (nullptr == aPoint) {
     event.refPoint.x = 0;
@@ -258,7 +258,7 @@ PuppetWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
 }
 
 NS_IMETHODIMP
-PuppetWidget::DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus)
+PuppetWidget::DispatchEvent(WidgetGUIEvent* event, nsEventStatus& aStatus)
 {
 #ifdef DEBUG
   debug_DumpEvent(stdout, event->widget, event,
@@ -273,24 +273,25 @@ PuppetWidget::DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus)
   if (event->message == NS_COMPOSITION_START) {
     mIMEComposing = true;
   }
+  uint32_t seqno = kLatestSeqno;
   switch (event->eventStructType) {
   case NS_COMPOSITION_EVENT:
-    mIMELastReceivedSeqno = static_cast<nsCompositionEvent*>(event)->seqno;
-    if (mIMELastReceivedSeqno < mIMELastBlurSeqno)
-      return NS_OK;
+    seqno = event->AsCompositionEvent()->mSeqno;
     break;
   case NS_TEXT_EVENT:
-    mIMELastReceivedSeqno = static_cast<nsTextEvent*>(event)->seqno;
-    if (mIMELastReceivedSeqno < mIMELastBlurSeqno)
-      return NS_OK;
+    seqno = event->AsTextEvent()->mSeqno;
     break;
   case NS_SELECTION_EVENT:
-    mIMELastReceivedSeqno = static_cast<nsSelectionEvent*>(event)->seqno;
-    if (mIMELastReceivedSeqno < mIMELastBlurSeqno)
-      return NS_OK;
+    seqno = event->AsSelectionEvent()->mSeqno;
     break;
   default:
     break;
+  }
+  if (seqno != kLatestSeqno) {
+    mIMELastReceivedSeqno = seqno;
+    if (mIMELastReceivedSeqno < mIMELastBlurSeqno) {
+      return NS_OK;
+    }
   }
 
   if (mAttachedWidgetListener) {
@@ -324,8 +325,11 @@ PuppetWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
 #endif
     if (!mLayerManager) {
       mLayerManager = new ClientLayerManager(this);
-      mLayerManager->AsShadowForwarder()->SetShadowManager(aShadowManager);
     }
+  }
+  ShadowLayerForwarder* lf = mLayerManager->AsShadowForwarder();
+  if (!lf->HasShadowManager() && aShadowManager) {
+    lf->SetShadowManager(aShadowManager);
   }
   if (aAllowRetaining) {
     *aAllowRetaining = true;
@@ -347,9 +351,9 @@ PuppetWidget::IMEEndComposition(bool aCancel)
 #endif
 
   nsEventStatus status;
-  nsTextEvent textEvent(true, NS_TEXT_TEXT, this);
+  WidgetTextEvent textEvent(true, NS_TEXT_TEXT, this);
   InitEvent(textEvent, nullptr);
-  textEvent.seqno = mIMELastReceivedSeqno;
+  textEvent.mSeqno = mIMELastReceivedSeqno;
   
   
   if (!mTabChild ||
@@ -362,9 +366,9 @@ PuppetWidget::IMEEndComposition(bool aCancel)
 
   DispatchEvent(&textEvent, status);
 
-  nsCompositionEvent compEvent(true, NS_COMPOSITION_END, this);
+  WidgetCompositionEvent compEvent(true, NS_COMPOSITION_END, this);
   InitEvent(compEvent, nullptr);
-  compEvent.seqno = mIMELastReceivedSeqno;
+  compEvent.mSeqno = mIMELastReceivedSeqno;
   DispatchEvent(&compEvent, status);
   return NS_OK;
 }
@@ -441,7 +445,7 @@ PuppetWidget::NotifyIMEOfFocusChange(bool aFocus)
 
   if (aFocus) {
     nsEventStatus status;
-    nsQueryContentEvent queryEvent(true, NS_QUERY_TEXT_CONTENT, this);
+    WidgetQueryContentEvent queryEvent(true, NS_QUERY_TEXT_CONTENT, this);
     InitEvent(queryEvent, nullptr);
     
     queryEvent.InitForQueryTextContent(0, UINT32_MAX);
@@ -456,13 +460,15 @@ PuppetWidget::NotifyIMEOfFocusChange(bool aFocus)
   }
 
   uint32_t chromeSeqno;
-  mIMEPreference.mWantUpdates = false;
+  mIMEPreference.mWantUpdates = nsIMEUpdatePreference::NOTIFY_NOTHING;
   mIMEPreference.mWantHints = false;
   if (!mTabChild->SendNotifyIMEFocus(aFocus, &mIMEPreference, &chromeSeqno))
     return NS_ERROR_FAILURE;
 
   if (aFocus) {
-    if (mIMEPreference.mWantUpdates && mIMEPreference.mWantHints) {
+    if ((mIMEPreference.mWantUpdates &
+           nsIMEUpdatePreference::NOTIFY_SELECTION_CHANGE) &&
+        mIMEPreference.mWantHints) {
       NotifyIMEOfSelectionChange(); 
     }
   } else {
@@ -491,7 +497,7 @@ PuppetWidget::NotifyIMEOfTextChange(uint32_t aStart,
 
   if (mIMEPreference.mWantHints) {
     nsEventStatus status;
-    nsQueryContentEvent queryEvent(true, NS_QUERY_TEXT_CONTENT, this);
+    WidgetQueryContentEvent queryEvent(true, NS_QUERY_TEXT_CONTENT, this);
     InitEvent(queryEvent, nullptr);
     queryEvent.InitForQueryTextContent(0, UINT32_MAX);
     DispatchEvent(&queryEvent, status);
@@ -500,7 +506,7 @@ PuppetWidget::NotifyIMEOfTextChange(uint32_t aStart,
       mTabChild->SendNotifyIMETextHint(queryEvent.mReply.mString);
     }
   }
-  if (mIMEPreference.mWantUpdates) {
+  if (mIMEPreference.mWantUpdates & nsIMEUpdatePreference::NOTIFY_TEXT_CHANGE) {
     mTabChild->SendNotifyIMETextChange(aStart, aEnd, aNewEnd);
   }
   return NS_OK;
@@ -516,9 +522,10 @@ PuppetWidget::NotifyIMEOfSelectionChange()
   if (!mTabChild)
     return NS_ERROR_FAILURE;
 
-  if (mIMEPreference.mWantUpdates) {
+  if (mIMEPreference.mWantUpdates &
+        nsIMEUpdatePreference::NOTIFY_SELECTION_CHANGE) {
     nsEventStatus status;
-    nsQueryContentEvent queryEvent(true, NS_QUERY_SELECTED_TEXT, this);
+    WidgetQueryContentEvent queryEvent(true, NS_QUERY_SELECTED_TEXT, this);
     InitEvent(queryEvent, nullptr);
     DispatchEvent(&queryEvent, status);
 
