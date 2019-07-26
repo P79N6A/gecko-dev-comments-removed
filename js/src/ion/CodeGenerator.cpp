@@ -1423,9 +1423,9 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     
     
     
-    JS_STATIC_ASSERT(JSJitMethodCallArgs::offsetOfArgv() == 0);
-    JS_STATIC_ASSERT(JSJitMethodCallArgs::offsetOfArgc() ==
-                     IonDOMMethodExitFrameLayout::offsetOfArgcFromArgv());
+    JS_STATIC_ASSERT(JSJitMethodCallArgsTraits::offsetOfArgv == 0);
+    JS_STATIC_ASSERT(JSJitMethodCallArgsTraits::offsetOfArgc ==
+                     IonDOMMethodExitFrameLayoutTraits::offsetOfArgcFromArgv);
     masm.computeEffectiveAddress(Address(StackPointer, 2 * sizeof(Value)), argArgs);
 
     
