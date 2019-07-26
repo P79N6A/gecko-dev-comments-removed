@@ -2204,6 +2204,13 @@ static bool SelectorMatchesTree(Element* aPrevElement,
 
     
     
+    if (aTreeMatchContext.mForScopedStyle &&
+        !aTreeMatchContext.IsWithinStyleScopeForSelectorMatching()) {
+      return false;
+    }
+
+    
+    
     Element* element = nullptr;
     if (PRUnichar('+') == selector->mOperator ||
         PRUnichar('~') == selector->mOperator) {
@@ -2232,6 +2239,13 @@ static bool SelectorMatchesTree(Element* aPrevElement,
       
       if (content && content->IsElement()) {
         element = content->AsElement();
+        if (aTreeMatchContext.mForScopedStyle) {
+          
+          
+          
+          
+          aTreeMatchContext.PopStyleScopeForSelectorMatching(element);
+        }
       }
     }
     if (!element) {
@@ -2300,6 +2314,12 @@ void ContentEnumFunc(const RuleValue& value, nsCSSSelector* aSelector,
   if (ancestorFilter &&
       !ancestorFilter->MightHaveMatchingAncestor<RuleValue::eMaxAncestorHashes>(
           value.mAncestorSelectorHashes)) {
+    
+    return;
+  }
+  if (!data->mTreeMatchContext.SetStyleScopeForSelectorMatching(data->mElement,
+                                                                data->mScope)) {
+    
     
     return;
   }
@@ -2486,6 +2506,13 @@ static void
 AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
 {
   AttributeRuleProcessorData *data = aData->data;
+
+  if (!data->mTreeMatchContext.SetStyleScopeForSelectorMatching(data->mElement,
+                                                                data->mScope)) {
+    
+    
+    return;
+  }
 
   nsRestyleHint possibleChange = RestyleHintForOp(aSelector->mOperator);
 
