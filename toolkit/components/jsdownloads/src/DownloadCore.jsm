@@ -363,11 +363,9 @@ this.Download.prototype = {
 
     
     
-    
-    
     function DS_setProgressBytes(aCurrentBytes, aTotalBytes, aHasPartialData)
     {
-      if (this._currentAttempt == currentAttempt) {
+      if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
         this._setBytes(aCurrentBytes, aTotalBytes, aHasPartialData);
       }
     }
@@ -375,10 +373,9 @@ this.Download.prototype = {
     
     
     
-    
     function DS_setProperties(aOptions)
     {
-      if (this._currentAttempt != currentAttempt) {
+      if (this._currentAttempt && this._currentAttempt != currentAttempt) {
         return;
       }
 
