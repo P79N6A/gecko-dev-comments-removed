@@ -133,7 +133,7 @@ PaymentUI.prototype = {
       } finally {
         tab.browser.removeEventListener("DOMContentLoaded", loadPaymentShim);
       }
-    }, false);
+    }, true);
 
     
     tab.browser.addEventListener("TabClose", function paymentCanceled() {
