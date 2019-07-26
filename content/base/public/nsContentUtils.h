@@ -2040,8 +2040,11 @@ public:
 
 
 
-  static AutocompleteAttrState SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
-                                                          nsAString& aResult);
+  static AutocompleteAttrState
+  SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                 nsAString& aResult,
+                                 AutocompleteAttrState aCachedState =
+                                   eAutocompleteAttrState_Unknown);
 
   
 
