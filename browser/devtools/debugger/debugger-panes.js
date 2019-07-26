@@ -187,9 +187,9 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
     window.addEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
     this._container.addEventListener("click", this._onBreakpointClick, false);
     this._cmPopup.addEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
-    this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false)
-    this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false)
-    this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding, false)
+    this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
+    this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
+    this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding, false);
     this._cbTextbox.addEventListener("keypress", this._onConditionalTextboxKeyPress, false);
 
     this._cache = new Map();
@@ -206,7 +206,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
     this._cmPopup.removeEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown, false);
-    this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding, false)
+    this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding, false);
     this._cbTextbox.removeEventListener("keypress", this._onConditionalTextboxKeyPress, false);
 
     this._cbPanel.hidePopup();
@@ -1287,17 +1287,48 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   
 
 
-  scheduleSearch: function DVGS_scheduleSearch() {
+  delayedSearch: true,
+
+  
+
+
+
+
+
+  scheduleSearch: function DVGS_scheduleSearch(aQuery) {
+    if (!this.delayedSearch) {
+      this.performSearch(aQuery);
+      return;
+    }
+    let delay = Math.max(GLOBAL_SEARCH_ACTION_MAX_DELAY / aQuery.length);
+
     window.clearTimeout(this._searchTimeout);
-    this._searchTimeout = window.setTimeout(this._startSearch, GLOBAL_SEARCH_ACTION_DELAY);
+    this._searchFunction = this._startSearch.bind(this, aQuery);
+    this._searchTimeout = window.setTimeout(this._searchFunction, delay);
   },
 
   
 
 
-  _startSearch: function DVGS__startSearch() {
+
+
+
+  performSearch: function DVGS_performSearch(aQuery) {
+    window.clearTimeout(this._searchTimeout);
+    this._searchFunction = null;
+    this._startSearch(aQuery);
+  },
+
+  
+
+
+
+
+
+  _startSearch: function DVGS__startSearch(aQuery) {
     let locations = DebuggerView.Sources.values;
     this._sourcesCount = locations.length;
+    this._searchedToken = aQuery;
 
     this._fetchSources(
       this._onFetchSourceFinished,
@@ -1363,7 +1394,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   _performGlobalSearch: function DVGS__performGlobalSearch() {
     
-    let token = DebuggerView.Filtering.searchedToken;
+    let token = this._searchedToken;
 
     
     if (!token) {
@@ -1625,6 +1656,8 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   _currentlyFocusedMatch: -1,
   _forceExpandResults: false,
   _searchTimeout: null,
+  _searchFunction: null,
+  _searchedToken: "",
   _sourcesCount: -1,
   _cache: null
 });
