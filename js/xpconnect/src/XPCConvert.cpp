@@ -819,7 +819,6 @@ XPCConvert::NativeInterface2JSObject(jsval* d,
     
     nsWrapperCache *cache = aHelper.GetWrapperCache();
 
-    bool tryConstructSlimWrapper = false;
     RootedObject flat(cx);
     if (cache) {
         flat = cache->GetWrapper();
@@ -840,37 +839,9 @@ XPCConvert::NativeInterface2JSObject(jsval* d,
             }
         }
 
-        if (!dest) {
-            if (!flat) {
-                tryConstructSlimWrapper = true;
-            } else if (IS_SLIM_WRAPPER_OBJECT(flat)) {
-                if (js::IsObjectInContextCompartment(flat, cx)) {
-                    *d = OBJECT_TO_JSVAL(flat);
-                    return true;
-                }
-            }
-        }
+        MOZ_ASSERT_IF(flat, !IS_SLIM_WRAPPER_OBJECT(flat));
     } else {
         flat = nullptr;
-    }
-
-    
-    
-    if (tryConstructSlimWrapper) {
-        RootedValue slim(cx);
-        if (ConstructSlimWrapper(aHelper, xpcscope, &slim)) {
-            *d = slim;
-            return true;
-        }
-
-        if (JS_IsExceptionPending(cx))
-            return false;
-
-        
-        
-        
-        
-        flat = cache->GetWrapper();
     }
 
     
