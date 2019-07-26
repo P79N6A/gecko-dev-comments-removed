@@ -4430,6 +4430,11 @@ pref("ui.touch_activation.delay_ms", 100);
 
 
 
+
+pref("ui.touch_activation.duration_ms", 100);
+
+
+
 pref("memory_info_dumper.watch_fifo", false);
 
 #ifdef MOZ_CAPTIVEDETECT
