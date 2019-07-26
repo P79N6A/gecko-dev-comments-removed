@@ -52,6 +52,9 @@ public:
     for (uint32_t i = 0; i < mInputs.Length(); ++i) {
       MediaStream* stream = mInputs[i]->GetSource();
       if (!stream->IsFinishedOnGraphThread()) {
+        
+        
+        
         allFinished = false;
       }
       if (!stream->HasCurrentData()) {
