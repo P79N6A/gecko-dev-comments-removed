@@ -95,7 +95,9 @@ function log(aMsg) {
 }
 
 function getDOMWindow(aChannel) {
-  var requestor = aChannel.notificationCallbacks;
+  var requestor = aChannel.notificationCallbacks ?
+                  aChannel.notificationCallbacks :
+                  aChannel.loadGroup.notificationCallbacks;
   var win = requestor.getInterface(Components.interfaces.nsIDOMWindow);
   return win;
 }
@@ -542,21 +544,6 @@ PdfStreamConverter.prototype = {
     if (!isEnabled())
       throw Cr.NS_ERROR_NOT_IMPLEMENTED;
 
-    var useFetchByChrome = getBoolPref(PREF_PREFIX + '.fetchByChrome', true);
-    if (!useFetchByChrome) {
-      
-      var skipConversion = false;
-      try {
-        var request = aCtxt;
-        request.QueryInterface(Ci.nsIHttpChannel);
-        skipConversion = (request.requestMethod !== 'GET');
-      } catch (e) {
-        
-      }
-      if (skipConversion)
-        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-    }
-
     
     this.listener = aListener;
   },
@@ -575,22 +562,17 @@ PdfStreamConverter.prototype = {
 
   
   onStartRequest: function(aRequest, aContext) {
-
     
     aRequest.QueryInterface(Ci.nsIChannel);
-    var useFetchByChrome = getBoolPref(PREF_PREFIX + '.fetchByChrome', true);
-    var dataListener;
-    if (useFetchByChrome) {
-      
-      var contentLength = aRequest.contentLength;
-      dataListener = new PdfDataListener(contentLength);
-      this.dataListener = dataListener;
-      this.binaryStream = Cc['@mozilla.org/binaryinputstream;1']
-                          .createInstance(Ci.nsIBinaryInputStream);
-    } else {
-      
-      aRequest.cancel(Cr.NS_BINDING_ABORTED);
-    }
+    
+    var contentLength = aRequest.contentLength;
+    var dataListener = new PdfDataListener(contentLength);
+    this.dataListener = dataListener;
+    this.binaryStream = Cc['@mozilla.org/binaryinputstream;1']
+                        .createInstance(Ci.nsIBinaryInputStream);
+
+    
+    aRequest.contentType = 'text/html';
 
     
     var ioService = Services.io;
@@ -598,17 +580,20 @@ PdfStreamConverter.prototype = {
                     PDF_VIEWER_WEB_PAGE, null, null);
 
     var listener = this.listener;
-    var self = this;
+    
+    
     
     
     var proxy = {
-      onStartRequest: function() {
-        listener.onStartRequest.apply(listener, arguments);
+      onStartRequest: function(request, context) {
+        listener.onStartRequest(aRequest, context);
       },
-      onDataAvailable: function() {
-        listener.onDataAvailable.apply(listener, arguments);
+      onDataAvailable: function(request, context, inputStream, offset, count) {
+        listener.onDataAvailable(aRequest, context, inputStream, offset, count);
       },
-      onStopRequest: function() {
+      onStopRequest: function(request, context, statusCode) {
+        
+        
         var domWindow = getDOMWindow(channel);
         
         if (domWindow.document.documentURIObject.equals(aRequest.URI)) {
@@ -624,27 +609,29 @@ PdfStreamConverter.prototype = {
                                                         chromeWindow);
             findEventManager.bind();
           }
+        } else {
+          log('Dom window url did not match request url.');
         }
-        listener.onStopRequest.apply(listener, arguments);
+        listener.onStopRequest(aRequest, context, statusCode);
       }
     };
 
     
     channel.originalURI = aRequest.URI;
+    channel.loadGroup = aRequest.loadGroup;
+
+    
+    
+    var securityManager = Cc['@mozilla.org/scriptsecuritymanager;1']
+                          .getService(Ci.nsIScriptSecurityManager);
+    var uri = ioService.newURI(PDF_VIEWER_WEB_PAGE, null, null);
+    
+    
+    var resourcePrincipal = 'getNoAppCodebasePrincipal' in securityManager ?
+                            securityManager.getNoAppCodebasePrincipal(uri) :
+                            securityManager.getCodebasePrincipal(uri);
+    aRequest.owner = resourcePrincipal;
     channel.asyncOpen(proxy, aContext);
-    if (useFetchByChrome) {
-      
-      
-      var securityManager = Cc['@mozilla.org/scriptsecuritymanager;1']
-                            .getService(Ci.nsIScriptSecurityManager);
-      var uri = ioService.newURI(PDF_VIEWER_WEB_PAGE, null, null);
-      
-      
-      var resourcePrincipal = 'getNoAppCodebasePrincipal' in securityManager ?
-                              securityManager.getNoAppCodebasePrincipal(uri) :
-                              securityManager.getCodebasePrincipal(uri);
-      channel.owner = resourcePrincipal;
-    }
   },
 
   
