@@ -1224,36 +1224,46 @@ var WifiManager = (function() {
                                      null);
 
         prepareForStartup(function() {
-          loadDriver(function (status) {
-            if (status < 0) {
+          gNetworkManager.setWifiOperationMode(ifname,
+                                               WIFI_FIRMWARE_STATION,
+                                               function (status) {
+            if (status) {
               callback(status);
               manager.state = "UNINITIALIZED";
               return;
             }
 
-            function doStartSupplicant() {
-              cancelWaitForDriverReadyTimer();
-              startSupplicant(function (status) {
-                if (status < 0) {
-                  unloadDriver(function() {
-                    callback(status);
+            loadDriver(function (status) {
+              if (status < 0) {
+                callback(status);
+                manager.state = "UNINITIALIZED";
+                return;
+              }
+
+              function doStartSupplicant() {
+                cancelWaitForDriverReadyTimer();
+                startSupplicant(function (status) {
+                  if (status < 0) {
+                    unloadDriver(function() {
+                      callback(status);
+                    });
+                    manager.state = "UNINITIALIZED";
+                    return;
+                  }
+
+                  manager.supplicantStarted = true;
+                  enableInterface(ifname, function (ok) {
+                    callback(ok ? 0 : -1);
                   });
-                  manager.state = "UNINITIALIZED";
-                  return;
-                }
-
-                manager.supplicantStarted = true;
-                enableInterface(ifname, function (ok) {
-                  callback(ok ? 0 : -1);
                 });
-              });
-            }
+              }
 
-            
-            
-            
-            createWaitForDriverReadyTimer(doStartSupplicant);
-         });
+              
+              
+              
+              createWaitForDriverReadyTimer(doStartSupplicant);
+           });
+          });
         });
       });
     } else {

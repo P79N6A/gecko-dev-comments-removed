@@ -166,6 +166,18 @@ function updateUpStreamFail(params) {
   return true;
 }
 
+function wifiOperationModeFail(params) {
+  
+  postMessage(params);
+  return true;
+}
+
+function wifiOperationModeSuccess(params) {
+  
+  postMessage(params);
+  return true;
+}
+
 
 
 
@@ -798,6 +810,18 @@ function getNetworkInterfaceStats(params) {
   params.date = new Date();
 
   chain(params, gNetworkInterfaceStatsChain, networkInterfaceStatsFail);
+  return true;
+}
+
+let gWifiOperationModeChain = [wifiFirmwareReload,
+                               wifiOperationModeSuccess];
+
+
+
+
+function setWifiOperationMode(params) {
+  debug("setWifiOperationMode: " + params.ifname + " " + params.mode);
+  chain(params, gWifiOperationModeChain, wifiOperationModeFail);
   return true;
 }
 
