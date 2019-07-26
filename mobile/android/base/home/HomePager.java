@@ -319,9 +319,10 @@ public class HomePager extends ViewPager {
 
         
         
-        if (mInitialPanelId != null) {
-            
-            setCurrentItem(adapter.getItemPosition(mInitialPanelId), false);
+        
+        final int itemPosition = (mInitialPanelId == null) ? -1 : adapter.getItemPosition(mInitialPanelId);
+        if (itemPosition > -1) {
+            setCurrentItem(itemPosition, false);
             mInitialPanelId = null;
         } else {
             for (int i = 0; i < count; i++) {
