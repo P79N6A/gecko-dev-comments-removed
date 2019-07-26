@@ -4484,8 +4484,10 @@ nsHttpChannel::BeginConnect()
     
     if (mLoadFlags & LOAD_FRESH_CONNECTION) {
         
-        if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
+        if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
             gHttpHandler->ConnMgr()->ClosePersistentConnections();
+            gHttpHandler->ConnMgr()->ResetIPFamillyPreference(mConnectionInfo);
+        }
         
         mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
     }
