@@ -7946,6 +7946,9 @@ IonBuilder::jsop_rest()
         MStoreElement *store = MStoreElement::New(alloc(), elements, index, arg,
                                                    false);
         current->add(store);
+
+        if (NeedsPostBarrier(info(), arg))
+            current->add(MPostWriteBarrier::New(alloc(), array, arg));
     }
 
     
