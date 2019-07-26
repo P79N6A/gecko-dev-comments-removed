@@ -2605,7 +2605,10 @@ class Debugger::ScriptQuery {
 
 
     void consider(JSScript *script) {
-        if (oom || script->selfHosted())
+        
+        
+        
+        if (oom || script->selfHosted() || !script->code())
             return;
         JSCompartment *compartment = script->compartment();
         if (!compartments.has(compartment))
