@@ -29,9 +29,8 @@ function test() {
 function end_test() {
   
   AddonManager.getAllInstalls(function(aInstalls) {
-    aInstalls.forEach(function(aInstall) {
-      aInstall.cancel();
-    });
+    for (let install of aInstalls)
+      install.cancel();
 
     close_manager(gManagerWindow, finish);
   });
