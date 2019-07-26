@@ -633,8 +633,6 @@ pref("ui.scrolling.min_scrollable_distance", -1);
 
 pref("accessibility.accessfu.activate", 2);
 
-pref("accessibility.accessfu.explorebytouch", 2);
-
 
 pref("network.manage-offline-status", true);
 
