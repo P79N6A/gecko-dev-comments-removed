@@ -110,6 +110,16 @@ public class LayerView extends FrameLayout {
         GeckoAccessibility.setDelegate(this);
     }
 
+    public void show() {
+        
+        mSurfaceView.setVisibility(View.VISIBLE);
+    }
+
+    public void hide() {
+        
+        mSurfaceView.setVisibility(View.INVISIBLE);
+    }
+
     public void destroy() {
         if (mLayerClient != null) {
             mLayerClient.destroy();
