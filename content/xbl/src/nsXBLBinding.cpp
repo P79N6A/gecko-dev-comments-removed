@@ -357,12 +357,35 @@ nsXBLBinding::GenerateAnonymousContent()
       for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
         mDefaultInsertionPoint->AppendInsertedChild(child, bindingManager);
       }
-    } else if (!mInsertionPoints.IsEmpty()) {
+    } else {
+      
+      
+      
       ExplicitChildIterator iter(mBoundElement);
       for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
         XBLChildrenElement* point = FindInsertionPointForInternal(child);
         if (point) {
           point->AppendInsertedChild(child, bindingManager);
+        } else {
+          nsINodeInfo *ni = child->NodeInfo();
+          if (ni->NamespaceID() != kNameSpaceID_XUL ||
+              (!ni->Equals(nsGkAtoms::_template) &&
+               !ni->Equals(nsGkAtoms::observer))) {
+            
+            
+            
+            
+
+            
+            UninstallAnonymousContent(doc, mContent);
+
+            
+            ClearInsertionPoints();
+
+            
+            mContent = nullptr;
+            return;
+          }
         }
       }
     }
