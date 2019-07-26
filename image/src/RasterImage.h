@@ -30,10 +30,11 @@
 #include "Orientation.h"
 #include "nsIObserver.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/Mutex.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
@@ -123,11 +124,13 @@ class nsIRequest;
 class ScaleRequest;
 
 namespace mozilla {
+
 namespace layers {
 class LayerManager;
 class ImageContainer;
 class Image;
 }
+
 namespace image {
 
 class Decoder;
@@ -478,8 +481,8 @@ private:
     
     
     
-    mozilla::Mutex          mThreadPoolMutex;
-    nsCOMPtr<nsIThreadPool> mThreadPool;
+    mozilla::Mutex            mThreadPoolMutex;
+    nsCOMPtr<nsIThreadPool>   mThreadPool;
   };
 
   class DecodeDoneWorker : public nsRunnable
@@ -649,7 +652,7 @@ private:
   
 
   
-  mozilla::Mutex             mDecodingMutex;
+  mozilla::ReentrantMonitor  mDecodingMonitor;
 
   FallibleTArray<char>       mSourceData;
 
