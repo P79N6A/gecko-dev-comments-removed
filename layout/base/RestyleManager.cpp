@@ -298,6 +298,156 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 #endif
 }
 
+bool
+RestyleManager::RecomputePosition(nsIFrame* aFrame)
+{
+  
+  
+  
+  if (aFrame->GetType() == nsGkAtoms::tableFrame) {
+    return true;
+  }
+
+  
+  
+  
+  if (aFrame->HasView() ||
+      (aFrame->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)) {
+    StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+    return false;
+  }
+
+  const nsStyleDisplay* display = aFrame->StyleDisplay();
+  
+  if (display->mPosition == NS_STYLE_POSITION_STATIC) {
+    return true;
+  }
+
+  aFrame->SchedulePaint();
+
+  
+  if (display->mPosition == NS_STYLE_POSITION_RELATIVE) {
+    switch (display->mDisplay) {
+      case NS_STYLE_DISPLAY_TABLE_CAPTION:
+      case NS_STYLE_DISPLAY_TABLE_CELL:
+      case NS_STYLE_DISPLAY_TABLE_ROW:
+      case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
+      case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
+      case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
+      case NS_STYLE_DISPLAY_TABLE_COLUMN:
+      case NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP:
+        
+        
+        
+        return true;
+      default:
+        break;
+    }
+
+    nsIFrame* cb = aFrame->GetContainingBlock();
+    const nsSize size = cb->GetSize();
+    const nsPoint oldOffsets = aFrame->GetRelativeOffset();
+    nsMargin newOffsets;
+
+    
+    nsHTMLReflowState::ComputeRelativeOffsets(
+        cb->StyleVisibility()->mDirection,
+        aFrame, size.width, size.height, newOffsets);
+    NS_ASSERTION(newOffsets.left == -newOffsets.right &&
+                 newOffsets.top == -newOffsets.bottom,
+                 "ComputeRelativeOffsets should return valid results");
+    aFrame->SetPosition(aFrame->GetPosition() - oldOffsets +
+                        nsPoint(newOffsets.left, newOffsets.top));
+
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  const nsStylePosition* position = aFrame->StylePosition();
+  if (position->mWidth.GetUnit() != eStyleUnit_Auto &&
+      position->mHeight.GetUnit() != eStyleUnit_Auto) {
+    
+    
+    nsRefPtr<nsRenderingContext> rc = aFrame->PresContext()->GetPresShell()->
+      GetReferenceRenderingContext();
+
+    
+    
+    nsIFrame* parentFrame = aFrame->GetParent();
+    nsSize parentSize = parentFrame->GetSize();
+
+    nsFrameState savedState = parentFrame->GetStateBits();
+    nsHTMLReflowState parentReflowState(aFrame->PresContext(), parentFrame,
+                                        rc, parentSize);
+    parentFrame->RemoveStateBits(~nsFrameState(0));
+    parentFrame->AddStateBits(savedState);
+
+    NS_WARN_IF_FALSE(parentSize.width != NS_INTRINSICSIZE &&
+                     parentSize.height != NS_INTRINSICSIZE,
+                     "parentSize should be valid");
+    parentReflowState.SetComputedWidth(std::max(parentSize.width, 0));
+    parentReflowState.SetComputedHeight(std::max(parentSize.height, 0));
+    parentReflowState.mComputedMargin.SizeTo(0, 0, 0, 0);
+    parentSize.height = NS_AUTOHEIGHT;
+
+    parentReflowState.mComputedPadding = parentFrame->GetUsedPadding();
+    parentReflowState.mComputedBorderPadding =
+      parentFrame->GetUsedBorderAndPadding();
+
+    nsSize availSize(parentSize.width, NS_INTRINSICSIZE);
+
+    nsSize size = aFrame->GetSize();
+    ViewportFrame* viewport = do_QueryFrame(parentFrame);
+    nsSize cbSize = viewport ?
+      viewport->AdjustReflowStateAsContainingBlock(&parentReflowState).Size()
+      : aFrame->GetContainingBlock()->GetSize();
+    const nsMargin& parentBorder =
+      parentReflowState.mStyleBorder->GetComputedBorder();
+    cbSize -= nsSize(parentBorder.LeftRight(), parentBorder.TopBottom());
+    nsHTMLReflowState reflowState(aFrame->PresContext(), parentReflowState,
+                                  aFrame, availSize, cbSize.width,
+                                  cbSize.height);
+
+    
+    
+    if (NS_AUTOOFFSET == reflowState.mComputedOffsets.left) {
+      reflowState.mComputedOffsets.left = cbSize.width -
+                                          reflowState.mComputedOffsets.right -
+                                          reflowState.mComputedMargin.right -
+                                          size.width -
+                                          reflowState.mComputedMargin.left;
+    }
+
+    if (NS_AUTOOFFSET == reflowState.mComputedOffsets.top) {
+      reflowState.mComputedOffsets.top = cbSize.height -
+                                         reflowState.mComputedOffsets.bottom -
+                                         reflowState.mComputedMargin.bottom -
+                                         size.height -
+                                         reflowState.mComputedMargin.top;
+    }
+
+    
+    nsPoint pos(parentBorder.left + reflowState.mComputedOffsets.left +
+                reflowState.mComputedMargin.left,
+                parentBorder.top + reflowState.mComputedOffsets.top +
+                reflowState.mComputedMargin.top);
+    aFrame->SetPosition(pos);
+
+    return true;
+  }
+
+  
+  StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+  return false;
+}
+
 nsresult
 RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
 {
@@ -1301,156 +1451,6 @@ RestyleManager::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
 
   
   PostRestyleEventInternal(false);
-}
-
-bool
-RestyleManager::RecomputePosition(nsIFrame* aFrame)
-{
-  
-  
-  
-  if (aFrame->GetType() == nsGkAtoms::tableFrame) {
-    return true;
-  }
-
-  
-  
-  
-  if (aFrame->HasView() ||
-      (aFrame->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)) {
-    StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
-    return false;
-  }
-
-  const nsStyleDisplay* display = aFrame->StyleDisplay();
-  
-  if (display->mPosition == NS_STYLE_POSITION_STATIC) {
-    return true;
-  }
-
-  aFrame->SchedulePaint();
-
-  
-  if (display->mPosition == NS_STYLE_POSITION_RELATIVE) {
-    switch (display->mDisplay) {
-      case NS_STYLE_DISPLAY_TABLE_CAPTION:
-      case NS_STYLE_DISPLAY_TABLE_CELL:
-      case NS_STYLE_DISPLAY_TABLE_ROW:
-      case NS_STYLE_DISPLAY_TABLE_ROW_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_HEADER_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP:
-      case NS_STYLE_DISPLAY_TABLE_COLUMN:
-      case NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP:
-        
-        
-        
-        return true;
-      default:
-        break;
-    }
-
-    nsIFrame* cb = aFrame->GetContainingBlock();
-    const nsSize size = cb->GetSize();
-    const nsPoint oldOffsets = aFrame->GetRelativeOffset();
-    nsMargin newOffsets;
-
-    
-    nsHTMLReflowState::ComputeRelativeOffsets(
-        cb->StyleVisibility()->mDirection,
-        aFrame, size.width, size.height, newOffsets);
-    NS_ASSERTION(newOffsets.left == -newOffsets.right &&
-                 newOffsets.top == -newOffsets.bottom,
-                 "ComputeRelativeOffsets should return valid results");
-    aFrame->SetPosition(aFrame->GetPosition() - oldOffsets +
-                        nsPoint(newOffsets.left, newOffsets.top));
-
-    return true;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  const nsStylePosition* position = aFrame->StylePosition();
-  if (position->mWidth.GetUnit() != eStyleUnit_Auto &&
-      position->mHeight.GetUnit() != eStyleUnit_Auto) {
-    
-    
-    nsRefPtr<nsRenderingContext> rc = aFrame->PresContext()->GetPresShell()->
-      GetReferenceRenderingContext();
-
-    
-    
-    nsIFrame* parentFrame = aFrame->GetParent();
-    nsSize parentSize = parentFrame->GetSize();
-
-    nsFrameState savedState = parentFrame->GetStateBits();
-    nsHTMLReflowState parentReflowState(aFrame->PresContext(), parentFrame,
-                                        rc, parentSize);
-    parentFrame->RemoveStateBits(~nsFrameState(0));
-    parentFrame->AddStateBits(savedState);
-
-    NS_WARN_IF_FALSE(parentSize.width != NS_INTRINSICSIZE &&
-                     parentSize.height != NS_INTRINSICSIZE,
-                     "parentSize should be valid");
-    parentReflowState.SetComputedWidth(std::max(parentSize.width, 0));
-    parentReflowState.SetComputedHeight(std::max(parentSize.height, 0));
-    parentReflowState.mComputedMargin.SizeTo(0, 0, 0, 0);
-    parentSize.height = NS_AUTOHEIGHT;
-
-    parentReflowState.mComputedPadding = parentFrame->GetUsedPadding();
-    parentReflowState.mComputedBorderPadding =
-      parentFrame->GetUsedBorderAndPadding();
-
-    nsSize availSize(parentSize.width, NS_INTRINSICSIZE);
-
-    nsSize size = aFrame->GetSize();
-    ViewportFrame* viewport = do_QueryFrame(parentFrame);
-    nsSize cbSize = viewport ?
-      viewport->AdjustReflowStateAsContainingBlock(&parentReflowState).Size()
-      : aFrame->GetContainingBlock()->GetSize();
-    const nsMargin& parentBorder =
-      parentReflowState.mStyleBorder->GetComputedBorder();
-    cbSize -= nsSize(parentBorder.LeftRight(), parentBorder.TopBottom());
-    nsHTMLReflowState reflowState(aFrame->PresContext(), parentReflowState,
-                                  aFrame, availSize, cbSize.width,
-                                  cbSize.height);
-
-    
-    
-    if (NS_AUTOOFFSET == reflowState.mComputedOffsets.left) {
-      reflowState.mComputedOffsets.left = cbSize.width -
-                                          reflowState.mComputedOffsets.right -
-                                          reflowState.mComputedMargin.right -
-                                          size.width -
-                                          reflowState.mComputedMargin.left;
-    }
-
-    if (NS_AUTOOFFSET == reflowState.mComputedOffsets.top) {
-      reflowState.mComputedOffsets.top = cbSize.height -
-                                         reflowState.mComputedOffsets.bottom -
-                                         reflowState.mComputedMargin.bottom -
-                                         size.height -
-                                         reflowState.mComputedMargin.top;
-    }
-
-    
-    nsPoint pos(parentBorder.left + reflowState.mComputedOffsets.left +
-                reflowState.mComputedMargin.left,
-                parentBorder.top + reflowState.mComputedOffsets.top +
-                reflowState.mComputedMargin.top);
-    aFrame->SetPosition(pos);
-
-    return true;
-  }
-
-  
-  StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
-  return false;
 }
 
 #ifdef DEBUG
