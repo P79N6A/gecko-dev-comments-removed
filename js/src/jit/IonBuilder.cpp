@@ -792,10 +792,11 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     
     
     
-    if (instrumentedProfiling())
+    if (instrumentedProfiling()) {
         predecessor->add(MFunctionBoundary::New(alloc(), script(),
                                                 MFunctionBoundary::Inline_Enter,
                                                 inliningDepth_));
+    }
 
     predecessor->end(MGoto::New(alloc(), current));
     if (!current->addPredecessorWithoutPhis(predecessor))
@@ -3638,8 +3639,10 @@ IonBuilder::processReturn(JSOp op)
         MOZ_ASSUME_UNREACHABLE("unknown return op");
     }
 
-    if (instrumentedProfiling())
-        current->add(MFunctionBoundary::New(alloc(), script(), MFunctionBoundary::Exit));
+    if (instrumentedProfiling()) {
+        current->add(MFunctionBoundary::New(alloc(), script(), MFunctionBoundary::Exit,
+                                            inliningDepth_));
+    }
     MReturn *ret = MReturn::New(alloc(), def);
     current->end(ret);
 

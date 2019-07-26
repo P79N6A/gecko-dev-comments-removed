@@ -6047,6 +6047,9 @@ CodeGenerator::generateAsmJS()
     IonSpew(IonSpew_Codegen, "# Emitting asm.js code");
 
     
+    sps_.disable();
+
+    
     
     
     
@@ -7842,6 +7845,7 @@ bool
 CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
 {
     Register temp = ToRegister(lir->temp()->output());
+    bool inlinedFunction = lir->inlineLevel() > 0;
 
     switch (lir->type()) {
         case MFunctionBoundary::Inline_Enter:
@@ -7860,47 +7864,51 @@ CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
                 sps_.reenter(masm, temp);
             }
 
-            sps_.leave(masm, temp);
+            sps_.leave(masm, temp,  true);
             if (!sps_.enterInlineFrame())
                 return false;
             
 
         case MFunctionBoundary::Enter:
             if (gen->options.spsSlowAssertionsEnabled()) {
-                saveLive(lir);
-                pushArg(ImmGCPtr(lir->script()));
-                if (!callVM(SPSEnterInfo, lir))
-                    return false;
-                restoreLive(lir);
-                sps_.pushManual(lir->script(), masm, temp);
+                if (!inlinedFunction || js_JitOptions.profileInlineFrames) {
+                    saveLive(lir);
+                    pushArg(ImmGCPtr(lir->script()));
+                    if (!callVM(SPSEnterInfo, lir))
+                        return false;
+                    restoreLive(lir);
+                }
+                sps_.pushManual(lir->script(), masm, temp,  inlinedFunction);
                 return true;
             }
 
-            return sps_.push(lir->script(), masm, temp);
+            return sps_.push(lir->script(), masm, temp,  inlinedFunction);
 
         case MFunctionBoundary::Inline_Exit:
             
             
             
             sps_.leaveInlineFrame();
-            sps_.reenter(masm, temp);
+            sps_.reenter(masm, temp,  true);
             return true;
 
         case MFunctionBoundary::Exit:
             if (gen->options.spsSlowAssertionsEnabled()) {
-                saveLive(lir);
-                pushArg(ImmGCPtr(lir->script()));
-                
-                
-                
-                sps_.skipNextReenter();
-                if (!callVM(SPSExitInfo, lir))
-                    return false;
-                restoreLive(lir);
+                if (!inlinedFunction || js_JitOptions.profileInlineFrames) {
+                    saveLive(lir);
+                    pushArg(ImmGCPtr(lir->script()));
+                    
+                    
+                    
+                    sps_.skipNextReenter();
+                    if (!callVM(SPSExitInfo, lir))
+                        return false;
+                    restoreLive(lir);
+                }
                 return true;
             }
 
-            sps_.pop(masm, temp);
+            sps_.pop(masm, temp,  inlinedFunction);
             return true;
 
         default:

@@ -281,6 +281,7 @@ class SPSInstrumentation
     
     struct FrameState {
         JSScript *script; 
+        jsbytecode *pc;   
         bool skipNext;    
         int  left;        
     };
@@ -298,12 +299,13 @@ class SPSInstrumentation
     SPSInstrumentation(SPSProfiler *profiler)
       : profiler_(profiler), frame(nullptr)
     {
-        enterInlineFrame();
+        enterInlineFrame(nullptr);
     }
 
     
     bool enabled() { return profiler_ && profiler_->enabled(); }
     SPSProfiler *profiler() { JS_ASSERT(enabled()); return profiler_; }
+    void disable() { profiler_ = nullptr; }
 
     
     void leaveInlineFrame() {
@@ -317,18 +319,54 @@ class SPSInstrumentation
     }
 
     
-    bool enterInlineFrame() {
+    bool enterInlineFrame(jsbytecode *callerPC) {
         if (!enabled())
             return true;
+        JS_ASSERT_IF(frames.empty(), callerPC == nullptr);
+
         JS_ASSERT_IF(frame != nullptr, frame->script != nullptr);
         JS_ASSERT_IF(frame != nullptr, frame->left == 1);
+        if (!frames.empty()) {
+            JS_ASSERT(frame == &frames[frames.length() - 1]);
+            frame->pc = callerPC;
+        }
         if (!frames.growBy(1))
             return false;
         frame = &frames[frames.length() - 1];
         frame->script = nullptr;
+        frame->pc = nullptr;
         frame->skipNext = false;
         frame->left = 0;
         return true;
+    }
+
+    
+
+
+
+
+
+
+    bool prepareForOOL() {
+        if (!enabled())
+            return true;
+        JS_ASSERT(!frames.empty());
+        if (frames.length() >= 2) {
+            frames.shrinkBy(frames.length() - 2);
+
+        } else { 
+            if (!frames.growBy(1))
+                return false;
+        }
+        frames[0].pc = frames[0].script->code();
+        frame = &frames[1];
+        return true;
+    }
+    void finishOOL() {
+        if (!enabled())
+            return;
+        JS_ASSERT(!frames.empty());
+        frames.shrinkBy(frames.length() - 1);
     }
 
     
@@ -369,13 +407,15 @@ class SPSInstrumentation
 
 
 
-    bool push(JSScript *script, Assembler &masm, Register scratch) {
+    bool push(JSScript *script, Assembler &masm, Register scratch, bool inlinedFunction = false) {
         if (!enabled())
             return true;
-        const char *string = profiler_->profileString(script, script->functionNonDelazifying());
-        if (string == nullptr)
-            return false;
-        masm.spsPushFrame(profiler_, string, script, scratch);
+        if (!inlinedFunction || jit::js_JitOptions.profileInlineFrames) {
+            const char *string = profiler_->profileString(script, script->functionNonDelazifying());
+            if (string == nullptr)
+                return false;
+            masm.spsPushFrame(profiler_, string, script, scratch);
+        }
         setPushed(script);
         return true;
     }
@@ -385,10 +425,13 @@ class SPSInstrumentation
 
 
 
-    void pushManual(JSScript *script, Assembler &masm, Register scratch) {
+    void pushManual(JSScript *script, Assembler &masm, Register scratch,
+                    bool inlinedFunction = false)
+    {
         if (!enabled())
             return;
-        masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
+        if (!inlinedFunction || jit::js_JitOptions.profileInlineFrames)
+            masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
         setPushed(script);
     }
 
@@ -399,21 +442,36 @@ class SPSInstrumentation
 
 
 
-    void leave(jsbytecode *pc, Assembler &masm, Register scratch) {
-        if (enabled() && frame->script && frame->left++ == 0)
-            masm.spsUpdatePCIdx(profiler_, frame->script->pcToOffset(pc), scratch);
+    void leave(jsbytecode *pc, Assembler &masm, Register scratch, bool inlinedFunction = false) {
+        if (enabled() && frame->script && frame->left++ == 0) {
+            jsbytecode *updatePC = pc;
+            JSScript *script = frame->script;
+            if (!inlinedFunction) {
+                
+                
+                
+                if (!jit::js_JitOptions.profileInlineFrames && inliningDepth() > 0) {
+                    JS_ASSERT(frames[0].pc);
+                    updatePC = frames[0].pc;
+                    script = frames[0].script;
+                }
+            }
+
+            if (!inlinedFunction || jit::js_JitOptions.profileInlineFrames)
+                masm.spsUpdatePCIdx(profiler_, script->pcToOffset(updatePC), scratch);
+        }
     }
 
     
 
 
 
-    void reenter(Assembler &masm, Register scratch) {
+    void reenter(Assembler &masm, Register scratch, bool inlinedFunction = false) {
         if (!enabled() || !frame->script || frame->left-- != 1)
             return;
         if (frame->skipNext)
             frame->skipNext = false;
-        else
+        else if (!inlinedFunction || jit::js_JitOptions.profileInlineFrames)
             masm.spsUpdatePCIdx(profiler_, ProfileEntry::NullPCIndex, scratch);
     }
 
@@ -422,15 +480,16 @@ class SPSInstrumentation
 
 
 
-    void pop(Assembler &masm, Register scratch) {
+    void pop(Assembler &masm, Register scratch, bool inlinedFunction = false) {
         if (enabled()) {
             JS_ASSERT(frame->left == 0);
             JS_ASSERT(frame->script);
-            masm.spsPopFrame(profiler_, scratch);
+            if (!inlinedFunction || jit::js_JitOptions.profileInlineFrames)
+                masm.spsPopFrame(profiler_, scratch);
         }
     }
 };
 
 } 
 
-#endif
+#endif 

@@ -533,8 +533,13 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     if (ionScript->hasSPSInstrumentation()) {
-        IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on frame!");
-        flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+        if (callerPC == nullptr) {
+            IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on top frame!");
+            flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+        } else if (js_JitOptions.profileInlineFrames) {
+            IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on inline frame!");
+            flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+        }
     }
 
     
@@ -944,29 +949,56 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 blFrame->unsetPushedSPSFrame();
 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 if (cx->runtime()->spsProfiler.enabled()) {
-                    if (caller && bailoutKind == Bailout_ArgumentCheck) {
-                        IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx on innermost "
-                                "inlined frame's parent's SPS entry (%s:%d) (pcIdx=%d)!",
-                                caller->filename(), caller->lineno(), caller->pcToOffset(callerPC));
-                        cx->runtime()->spsProfiler.updatePC(caller, callerPC);
-                    } else if (bailoutKind != Bailout_ArgumentCheck) {
-                        IonSpew(IonSpew_BaselineBailouts,
-                                "      Popping SPS entry for innermost inlined frame's SPS entry");
-                        cx->runtime()->spsProfiler.exit(script, fun);
+                    if (js_JitOptions.profileInlineFrames) {
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        if (caller && bailoutKind == Bailout_ArgumentCheck) {
+                            IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx on innermost "
+                                    "inlined frame's parent's SPS entry (%s:%d) (pcIdx=%d)!",
+                                    caller->filename(), caller->lineno(),
+                                    caller->pcToOffset(callerPC));
+                            cx->runtime()->spsProfiler.updatePC(caller, callerPC);
+
+                        } else if (bailoutKind != Bailout_ArgumentCheck) {
+                            IonSpew(IonSpew_BaselineBailouts,
+                                    "      Popping SPS entry for innermost inlined frame");
+                            cx->runtime()->spsProfiler.exit(script, fun);
+                        }
+
+                    } else {
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        if (!caller && bailoutKind != Bailout_ArgumentCheck) {
+                            IonSpew(IonSpew_BaselineBailouts,
+                                    "      Popping SPS entry for outermost frame");
+                            cx->runtime()->spsProfiler.exit(script, fun);
+                        }
                     }
                 }
             } else {
@@ -1312,6 +1344,9 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     RootedScript scr(cx, iter.script());
     AutoValueVector startFrameFormals(cx);
 
+    RootedScript topCaller(cx);
+    jsbytecode *topCallerPC = nullptr;
+
     while (true) {
 #if JS_TRACE_LOGGING
         if (frameNo > 0) {
@@ -1350,9 +1385,23 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
         scr = fun->existingScript();
         snapIter.nextFrame();
 
+        
+        if (!topCaller) {
+            JS_ASSERT(frameNo == 0);
+            topCaller = caller;
+            topCallerPC = callerPC;
+        }
+
         frameNo++;
     }
     IonSpew(IonSpew_BaselineBailouts, "  Done restoring frames");
+
+    
+    
+    
+    if (frameNo > 0 && !js_JitOptions.profileInlineFrames)
+        cx->runtime()->spsProfiler.updatePC(topCaller, topCallerPC);
+
     BailoutKind bailoutKind = snapIter.bailoutKind();
 
     if (!startFrameFormals.empty()) {

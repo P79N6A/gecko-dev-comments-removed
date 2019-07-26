@@ -110,6 +110,9 @@ JitOptions::JitOptions()
 
     
     usesBeforeCompilePar = 1;
+
+    
+    profileInlineFrames = false;
 }
 
 bool

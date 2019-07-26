@@ -617,6 +617,11 @@ HandleException(ResumeFromException *rfe)
 
                 
                 
+                if (frames.more() && !js_JitOptions.profileInlineFrames)
+                    popSPSFrame = false;
+
+                
+                
                 
                 JSScript *script = frames.script();
                 probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
