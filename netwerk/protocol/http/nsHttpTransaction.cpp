@@ -230,17 +230,20 @@ nsHttpTransaction::Init(uint32_t caps,
         mActivityDistributor = nullptr;
     }
 
-    
-    bool isInBrowser;
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(eventsink);
     if (channel) {
+        bool isInBrowser;
         NS_GetAppInfo(channel, &mAppId, &isInBrowser);
     }
 
-    
+#ifdef MOZ_WIDGET_GONK
     if (mAppId != NECKO_NO_APP_ID) {
-        GetActiveNetwork();
+        nsCOMPtr<nsINetworkInterface> activeNetwork;
+        NS_GetActiveNetworkInterface(activeNetwork);
+        mActiveNetwork =
+            new nsMainThreadPtrHolder<nsINetworkInterface>(activeNetwork);
     }
+#endif
 
     
     
@@ -705,28 +708,6 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
     }
 
     return rv;
-}
-
-void
-nsHttpTransaction::GetActiveNetwork()
-{
-#ifdef MOZ_WIDGET_GONK
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsresult rv;
-    nsCOMPtr<nsINetworkManager> networkManager =
-        do_GetService("@mozilla.org/network/manager;1", &rv);
-
-    if (NS_FAILED(rv) || !networkManager) {
-        mActiveNetwork = nullptr;
-        return;
-    }
-
-    nsCOMPtr<nsINetworkInterface> activeNetwork;
-    networkManager->GetActive(getter_AddRefs(activeNetwork));
-    mActiveNetwork =
-        new nsMainThreadPtrHolder<nsINetworkInterface>(activeNetwork);
-#endif
 }
 
 
