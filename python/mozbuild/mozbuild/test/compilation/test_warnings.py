@@ -5,7 +5,7 @@
 import os
 import unittest
 
-from tempfile import NamedTemporaryFile
+from mozfile.mozfile import NamedTemporaryFile
 
 from mozbuild.compilation.warnings import CompilerWarning
 from mozbuild.compilation.warnings import WarningsCollector
@@ -14,11 +14,7 @@ from mozbuild.compilation.warnings import WarningsDatabase
 
 CLANG_TESTS = [
     ('foobar.cpp:123:10: warning: you messed up [-Wfoo]',
-     'foobar.cpp', 123, 10, 'you messed up', '-Wfoo'),
-    ("c_locale_dummy.c:457:1: warning: (near initialization for "
-     "'full_wmonthname[0]') [-Wpointer-sign]",
-     'c_locale_dummy.c', 457, 1,
-     "(near initialization for 'full_wmonthname[0]')", '-Wpointer-sign')
+     'foobar.cpp', 123, 10, 'you messed up', '-Wfoo')
 ]
 
 MSVC_TESTS = [
@@ -228,9 +224,10 @@ class TestWarningsDatabase(unittest.TestCase):
         
         
         old_filename = source_files[0].name
-        source_files[0].close()
+        del source_files[0]
 
         self.assertFalse(os.path.exists(old_filename))
 
         db.prune()
         self.assertEqual(len(db), 19)
+
