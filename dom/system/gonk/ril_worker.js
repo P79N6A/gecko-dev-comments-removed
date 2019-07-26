@@ -2333,6 +2333,25 @@ let RIL = {
 
 
 
+
+
+  changeCallBarringPassword: function changeCallBarringPassword(options) {
+    Buf.newParcel(REQUEST_CHANGE_BARRING_PASSWORD, options);
+    Buf.writeUint32(3);
+    
+    
+    Buf.writeString(ICC_CB_FACILITY_BA_ALL);
+    Buf.writeString(options.pin);
+    Buf.writeString(options.newPin);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
   stkHandleCallSetup: function stkHandleCallSetup(options) {
      Buf.newParcel(REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM);
      Buf.writeUint32(1);
@@ -5318,7 +5337,13 @@ RIL[REQUEST_SET_FACILITY_LOCK] = function REQUEST_SET_FACILITY_LOCK(length, opti
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CHANGE_BARRING_PASSWORD] = null;
+RIL[REQUEST_CHANGE_BARRING_PASSWORD] =
+  function REQUEST_CHANGE_BARRING_PASSWORD(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RIL[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
