@@ -704,7 +704,7 @@ MakeJITScript(JSContext *cx, JSScript *script)
 
             Bytecode *code = analysis->maybeCode(offset);
             if (!code)
-                continue;
+                op = JSOP_NOP; 
 
             
             bool finishChunk = false;
