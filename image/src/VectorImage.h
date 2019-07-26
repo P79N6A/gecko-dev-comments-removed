@@ -65,11 +65,6 @@ private:
                                           
                                           
 
-  nsIntSize      mLastRenderedSize;       
-                                          
-                                          
-                                          
-
   bool           mIsInitialized:1;        
   bool           mIsFullyLoaded:1;        
   bool           mIsDrawing:1;            

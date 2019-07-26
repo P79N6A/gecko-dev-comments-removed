@@ -122,8 +122,16 @@ SVGDocumentWrapper::UpdateViewportBounds(const nsIntSize& aViewportSize)
 {
   NS_ABORT_IF_FALSE(!mIgnoreInvalidation, "shouldn't be reentrant");
   mIgnoreInvalidation = true;
-  mViewer->SetBounds(nsIntRect(nsIntPoint(0, 0), aViewportSize));
-  FlushLayout();
+
+  nsIntRect currentBounds;
+  mViewer->GetBounds(currentBounds);
+  
+  
+  if (currentBounds.Size() != aViewportSize) {
+    mViewer->SetBounds(nsIntRect(nsIntPoint(0, 0), aViewportSize));
+    FlushLayout();
+  }
+
   mIgnoreInvalidation = false;
 }
 
