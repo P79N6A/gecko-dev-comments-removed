@@ -29,23 +29,17 @@ var tests = {
 
     function triggerIconPanel() {
       let statusIcons = document.getElementById("social-status-iconbox");
-      waitForCondition(function() statusIcons.firstChild && !statusIcons.firstChild.hidden,
-                       function() {
-        
-        let panel = document.getElementById("social-notification-panel");
-        EventUtils.synthesizeMouseAtCenter(statusIcons.firstChild, {});
-      }, "Status icon didn't become non-hidden");
+      ok(!statusIcons.firstChild.hidden, "status icon is visible");
+      
+      let panel = document.getElementById("social-notification-panel");
+      EventUtils.synthesizeMouseAtCenter(statusIcons.firstChild, {});
     }
 
-    let port = Social.provider.getWorkerPort();
+    let port = Social.provider.port;
     ok(port, "provider has a port");
     port.onmessage = function (e) {
       let topic = e.data.topic;
       switch (topic) {
-        case "test-init-done":
-          iconsReady = true;
-          checkNext();
-          break;
         case "got-panel-message":
           ok(true, "got panel message");
           
@@ -58,7 +52,6 @@ var tests = {
             panel.hidePopup();
           } else if (e.data.result == "hidden") {
             ok(true, "panel hidden");
-            port.close();
             next();
           }
           break;
@@ -73,5 +66,24 @@ var tests = {
       }
     }
     port.postMessage({topic: "test-init"});
+
+    
+    
+    
+    
+    if (Social.provider.workerAPI.initialized) {
+      iconsReady = true;
+      checkNext();
+    } else {
+      Services.obs.addObserver(function obs() {
+        Services.obs.removeObserver(obs, "social:ambient-notification-changed");
+        
+        
+        executeSoon(function () {
+          iconsReady = true;
+          checkNext();
+        });
+      }, "social:ambient-notification-changed", false);
+    }
   }
 }
