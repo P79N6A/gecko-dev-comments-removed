@@ -998,7 +998,6 @@ flyoutpanel > settings:first-child {
 
 
 #sync-flyoutpanel {
-  width: 346px;
   font-size: @metro_font_normal@;
   font-weight: 400;
 }
@@ -1089,7 +1088,6 @@ flyoutpanel > settings:first-child {
 
 
 #about-flyoutpanel {
-  width: 350px;
   background-image:url('chrome://browser/skin/images/about-footer.png');
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -1115,10 +1113,6 @@ flyoutpanel > settings:first-child {
 }
 
 
-
-#prefs-flyoutpanel {
-  width: 400px;
-}
 
 
 setting {
