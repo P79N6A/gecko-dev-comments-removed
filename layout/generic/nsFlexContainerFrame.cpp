@@ -698,7 +698,7 @@ public:
                                 const FlexboxAxisTracker& aAxisTracker);
 
   friend class AutoFlexLineListClearer; 
- 
+
 private:
   
   void FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
@@ -1616,12 +1616,6 @@ FlexLine::FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
     }
   }
 }
-
-
-
-
-
-
 
 void
 FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
