@@ -21,7 +21,7 @@ function test() {
     info("Check correct 'Phrase not found' on new tab");
 
     
-    yield promiseAboutHomeLoad();
+    yield promiseTestPageLoad();
 
     
     yield promiseFindFinished("--- THIS SHOULD NEVER MATCH ---", false);
@@ -30,7 +30,7 @@ function test() {
        "Findbar status text should be 'Phrase not found'");
 
     
-    yield promiseAboutHomeLoad();
+    yield promiseTestPageLoad();
 
     
     yield promiseFindFinished("s", true);
@@ -41,10 +41,10 @@ function test() {
   });
 }
 
-function promiseAboutHomeLoad() {
+function promiseTestPageLoad() {
   let deferred = Promise.defer();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab("about:home");
+  let tab = gBrowser.selectedTab = gBrowser.addTab("data:text/html;charset=utf-8,The letter s.");
   gTabs.push(tab);
   let browser = gBrowser.selectedBrowser;
   browser.addEventListener("load", function listener() {
