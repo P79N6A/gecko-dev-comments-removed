@@ -1434,6 +1434,13 @@ str_startsWith(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
+    if (args.get(0).isObject() && IsObjectWithClass(args[0], ESClass_RegExp, cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INVALID_ARG_TYPE,
+                             "first", "", "Regular Expression");
+        return false;
+    }
+
+    
     Rooted<JSLinearString*> searchStr(cx, ArgToRootedString(cx, args, 0));
     if (!searchStr)
         return false;
@@ -1488,12 +1495,22 @@ str_endsWith(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
+    if (args.get(0).isObject() && IsObjectWithClass(args[0], ESClass_RegExp, cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INVALID_ARG_TYPE,
+                             "first", "", "Regular Expression");
+        return false;
+    }
+
+    
     Rooted<JSLinearString *> searchStr(cx, ArgToRootedString(cx, args, 0));
     if (!searchStr)
         return false;
 
     
     uint32_t textLen = str->length();
+    const jschar *textChars = str->getChars(cx);
+    if (!textChars)
+        return false;
 
     
     uint32_t pos = textLen;
@@ -1508,11 +1525,6 @@ str_endsWith(JSContext *cx, unsigned argc, Value *vp)
             pos = uint32_t(Min(Max(d, 0.0), double(UINT32_MAX)));
         }
     }
-
-    
-    const jschar *textChars = str->getChars(cx);
-    if (!textChars)
-        return false;
 
     
     uint32_t end = Min(Max(pos, 0U), textLen);
