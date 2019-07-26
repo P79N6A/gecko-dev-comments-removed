@@ -438,7 +438,14 @@ class StoreBuffer
     }
 
     
-    void mark(JSTracer *trc);
+    void markAll(JSTracer *trc);
+    void markValues(JSTracer *trc)            { bufferVal.mark(this, trc); }
+    void markCells(JSTracer *trc)             { bufferCell.mark(this, trc); }
+    void markSlots(JSTracer *trc)             { bufferSlot.mark(this, trc); }
+    void markWholeCells(JSTracer *trc)        { bufferWholeCell.mark(this, trc); }
+    void markRelocatableValues(JSTracer *trc) { bufferRelocVal.mark(this, trc); }
+    void markRelocatableCells(JSTracer *trc)  { bufferRelocCell.mark(this, trc); }
+    void markGenericEntries(JSTracer *trc)    { bufferGeneric.mark(this, trc); }
 
     
     bool inParallelSection() const;

@@ -769,7 +769,7 @@ js::gc::EndVerifyPostBarriers(JSRuntime *rt)
     if (!edges.init())
         goto oom;
     trc->edges = &edges;
-    rt->gcStoreBuffer.mark(trc);
+    rt->gcStoreBuffer.markAll(trc);
 
     
     JS_TracerInit(trc, rt, PostVerifierVisitEdge);

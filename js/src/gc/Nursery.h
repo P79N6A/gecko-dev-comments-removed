@@ -267,7 +267,9 @@ class Nursery
                                       uint32_t nelems);
 
     
+    void freeHugeSlots(JSRuntime *rt);
 
+    
 
 
 
