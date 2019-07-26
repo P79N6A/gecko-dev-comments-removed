@@ -358,7 +358,7 @@ HTMLTableAccessible::CacheChildren()
   
   
   
-  nsAccTreeWalker walker(mDoc, mContent, CanHaveAnonChildren());
+  nsAccTreeWalker walker(mDoc, this, mContent);
 
   Accessible* child = nullptr;
   while ((child = walker.NextChild())) {
