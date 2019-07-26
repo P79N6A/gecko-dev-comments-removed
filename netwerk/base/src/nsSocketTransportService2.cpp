@@ -59,6 +59,8 @@ nsSocketTransportService::nsSocketTransportService()
     , mIdleListSize(SOCKET_LIMIT_MIN)
     , mActiveCount(0)
     , mIdleCount(0)
+    , mSentBytesCount(0)
+    , mReceivedBytesCount(0)
     , mSendBufferSize(0)
     , mProbedMaxCount(false)
 {
@@ -178,6 +180,8 @@ nsSocketTransportService::DetachSocket(SocketContext *listHead, SocketContext *s
 
     
     sock->mHandler->OnSocketDetached(sock->mFD);
+    mSentBytesCount += sock->mHandler->ByteCountSent();
+    mReceivedBytesCount += sock->mHandler->ByteCountReceived();
 
     
     sock->mFD = nullptr;

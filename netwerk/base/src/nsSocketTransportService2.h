@@ -77,6 +77,8 @@ public:
     
     
     void GetSocketConnections(nsTArray<mozilla::net::SocketInfo> *);
+    uint64_t GetSentBytes() { return mSentBytesCount; }
+    uint64_t GetReceivedBytes() { return mReceivedBytesCount; }
 protected:
 
     virtual ~nsSocketTransportService();
@@ -154,7 +156,10 @@ private:
     bool GrowActiveList();
     bool GrowIdleList();
     void   InitMaxCount();
+
     
+    uint64_t mSentBytesCount;
+    uint64_t mReceivedBytesCount;
     
     
     
