@@ -131,8 +131,7 @@ enum ChildPrivileges {
   PRIVILEGES_UNPRIVILEGED,
   PRIVILEGES_CAMERA,
   PRIVILEGES_VIDEO,
-  PRIVILEGES_INHERIT,
-  PRIVILEGES_LAST
+  PRIVILEGES_INHERIT
 };
 
 #if defined(OS_WIN)
@@ -180,10 +179,6 @@ bool LaunchApp(const std::vector<std::string>& argv,
                const environment_map& env_vars_to_set,
                bool wait, ProcessHandle* process_handle,
                ProcessArchitecture arch=GetCurrentProcessArchitecture());
-
-
-
-void SetCurrentProcessPrivileges(ChildPrivileges privs);
 
 #endif
 
