@@ -953,6 +953,14 @@ public:
     mIsGlyph = aValue;
   }
 
+  bool UsesRootEMUnits() const {
+    return mUsesRootEMUnits;
+  }
+
+  void SetUsesRootEMUnits(bool aValue) {
+    mUsesRootEMUnits = aValue;
+  }
+
   bool UsesViewportUnits() const {
     return mUsesViewportUnits;
   }
@@ -1216,6 +1224,8 @@ protected:
   
   unsigned              mIsGlyph : 1;
 
+  
+  unsigned              mUsesRootEMUnits : 1;
   
   unsigned              mUsesViewportUnits : 1;
 
