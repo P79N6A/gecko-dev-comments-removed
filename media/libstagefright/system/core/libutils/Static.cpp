@@ -17,7 +17,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 
 
 extern void initialize_string8();

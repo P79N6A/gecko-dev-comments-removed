@@ -21,7 +21,7 @@
 #include <utils/Errors.h>
 #include <media/stagefright/MediaExtractor.h>
 
-namespace android {
+namespace stagefright {
 
 struct AMessage;
 class String8;

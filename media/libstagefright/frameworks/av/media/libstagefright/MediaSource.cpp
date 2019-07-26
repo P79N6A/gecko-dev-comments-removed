@@ -16,7 +16,7 @@
 
 #include <media/stagefright/MediaSource.h>
 
-namespace android {
+namespace stagefright {
 
 MediaSource::MediaSource() {}
 

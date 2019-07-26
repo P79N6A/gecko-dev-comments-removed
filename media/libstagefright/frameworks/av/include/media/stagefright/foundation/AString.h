@@ -20,7 +20,7 @@
 
 #include <sys/types.h>
 
-namespace android {
+namespace stagefright {
 
 struct AString {
     AString();

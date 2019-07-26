@@ -14,6 +14,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "SampleTable"
 
 #include <utils/Log.h>
@@ -27,7 +28,7 @@
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/Utils.h>
 
-namespace android {
+namespace stagefright {
 
 
 const uint32_t SampleTable::kChunkOffsetType32 = FOURCC('s', 't', 'c', 'o');
@@ -829,3 +830,4 @@ uint32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
 
 }  
 
+#undef LOG_TAG

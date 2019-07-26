@@ -18,7 +18,7 @@
 
 #include "AAtomizer.h"
 
-namespace android {
+namespace stagefright {
 
 
 AAtomizer AAtomizer::gAtomizer;

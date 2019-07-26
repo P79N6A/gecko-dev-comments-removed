@@ -28,7 +28,7 @@
 #include <utils/Errors.h>
 
 
-namespace android {
+namespace stagefright {
 
 
 class Condition;
@@ -117,6 +117,17 @@ inline void Mutex::unlock() {
 inline status_t Mutex::tryLock() {
     return -pthread_mutex_trylock(&mMutex);
 }
+
+#else
+
+inline Mutex::Mutex() {}
+inline Mutex::Mutex(const char* name) {}
+inline Mutex::Mutex(int type, const char* name) {}
+inline Mutex::~Mutex() {}
+inline status_t Mutex::lock() { return OK; }
+inline void Mutex::unlock() {}
+inline status_t Mutex::tryLock() { return OK; }
+inline void Mutex::_init() {}
 
 #endif 
 

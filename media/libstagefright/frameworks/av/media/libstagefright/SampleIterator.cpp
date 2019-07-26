@@ -14,6 +14,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "SampleIterator"
 
 #include <utils/Log.h>
@@ -28,7 +29,7 @@
 
 #include "include/SampleTable.h"
 
-namespace android {
+namespace stagefright {
 
 SampleIterator::SampleIterator(SampleTable *table)
     : mTable(table),
@@ -314,3 +315,4 @@ status_t SampleIterator::findSampleTime(
 
 }  
 
+#undef LOG_TAG

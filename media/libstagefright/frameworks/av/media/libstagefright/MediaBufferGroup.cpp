@@ -14,6 +14,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "MediaBufferGroup"
 #include <utils/Log.h>
 
@@ -21,7 +22,7 @@
 #include <media/stagefright/MediaBuffer.h>
 #include <media/stagefright/MediaBufferGroup.h>
 
-namespace android {
+namespace stagefright {
 
 MediaBufferGroup::MediaBufferGroup()
     : mFirstBuffer(NULL),
@@ -84,3 +85,5 @@ void MediaBufferGroup::signalBufferReturned(MediaBuffer *) {
 }
 
 }  
+
+#undef LOG_TAG

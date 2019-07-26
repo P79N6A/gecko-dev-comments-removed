@@ -33,7 +33,7 @@
 
 #ifdef __cplusplus
 
-namespace android {
+namespace stagefright {
 
 
 
@@ -62,7 +62,7 @@ private:
 
 
 #define ALOGD_IF_SLOW(timeoutMillis, message) \
-    android::LogIfSlow _logIfSlow(LOG_TAG, ANDROID_LOG_DEBUG, timeoutMillis, message);
+    stagefright::LogIfSlow _logIfSlow(LOG_TAG, ANDROID_LOG_DEBUG, timeoutMillis, message);
 
 } 
 

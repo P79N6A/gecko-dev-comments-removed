@@ -24,7 +24,7 @@
 #include <media/stagefright/foundation/ABase.h>
 #include <utils/RefBase.h>
 
-namespace android {
+namespace stagefright {
 
 struct AMessage;
 

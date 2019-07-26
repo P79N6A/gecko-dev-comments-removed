@@ -30,7 +30,7 @@
 #include <utils/Timers.h>
 
 
-namespace android {
+namespace stagefright {
 
 
 
@@ -137,6 +137,18 @@ inline void Condition::signal() {
 inline void Condition::broadcast() {
     pthread_cond_broadcast(&mCond);
 }
+
+#else
+
+inline Condition::Condition() {}
+inline Condition::Condition(int type) {}
+inline Condition::~Condition() {}
+inline status_t Condition::wait(Mutex& mutex) { return OK; }
+inline status_t Condition::waitRelative(Mutex& mutex, nsecs_t reltime) {
+    return OK;
+}
+inline void Condition::signal() {}
+inline void Condition::broadcast() {}
 
 #endif 
 

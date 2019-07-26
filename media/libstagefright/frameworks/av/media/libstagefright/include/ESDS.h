@@ -22,7 +22,7 @@
 
 #include <media/stagefright/MediaErrors.h>
 
-namespace android {
+namespace stagefright {
 
 class ESDS {
 public:

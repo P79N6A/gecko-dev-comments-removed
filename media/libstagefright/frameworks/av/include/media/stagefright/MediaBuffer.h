@@ -23,7 +23,7 @@
 #include <utils/Errors.h>
 #include <utils/RefBase.h>
 
-namespace android {
+namespace stagefright {
 
 struct ABuffer;
 class GraphicBuffer;

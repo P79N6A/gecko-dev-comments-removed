@@ -27,7 +27,7 @@
 #include <utils/Vector.h>
 #include <utils/String8.h>
 
-namespace android {
+namespace stagefright {
 
 struct AMessage;
 class DataSource;

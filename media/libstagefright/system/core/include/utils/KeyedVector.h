@@ -29,7 +29,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 
 template <typename KEY, typename VALUE>
 class KeyedVector

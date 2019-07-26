@@ -24,7 +24,7 @@
 #include <media/stagefright/foundation/AString.h>
 #include <utils/Log.h>
 
-namespace android {
+namespace stagefright {
 
 #define LITERAL_TO_STRING_INTERNAL(x)    #x
 #define LITERAL_TO_STRING(x) LITERAL_TO_STRING_INTERNAL(x)

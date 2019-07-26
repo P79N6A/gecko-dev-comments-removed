@@ -26,7 +26,7 @@
 #include <utils/KeyedVector.h>
 #include <utils/String8.h>
 
-namespace android {
+namespace stagefright {
 
 
 enum {
@@ -48,6 +48,7 @@ enum {
     kKeyChannelCount      = '#chn',  
     kKeyChannelMask       = 'chnm',  
     kKeySampleRate        = 'srte',  
+    kKeySampleSize        = 'ssiz',  
     kKeyFrameRate         = 'frmR',  
     kKeyBitRate           = 'brte',  
     kKeyESDS              = 'esds',  

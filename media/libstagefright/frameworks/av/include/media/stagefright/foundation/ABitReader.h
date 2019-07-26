@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-namespace android {
+namespace stagefright {
 
 struct ABitReader {
     ABitReader(const uint8_t *data, size_t size);

@@ -25,10 +25,10 @@
 #include <system/audio.h>
 #include <media/MediaPlayerInterface.h>
 
-namespace android {
+namespace stagefright {
 
 #define FOURCC(c1, c2, c3, c4) \
-    (c1 << 24 | c2 << 16 | c3 << 8 | c4)
+    ((uint32_t) c1 << 24 | c2 << 16 | c3 << 8 | c4)
 
 uint16_t U16_AT(const uint8_t *ptr);
 uint32_t U32_AT(const uint8_t *ptr);
@@ -49,15 +49,6 @@ void convertMessageToMetaData(
         const sp<AMessage> &format, sp<MetaData> &meta);
 
 AString MakeUserAgent();
-
-
-status_t mapMimeToAudioFormat(audio_format_t& format, const char* mime);
-
-
-status_t sendMetaDataToHal(sp<MediaPlayerBase::AudioSink>& sink, const sp<MetaData>& meta);
-
-
-bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo, bool isStreaming);
 
 }  
 

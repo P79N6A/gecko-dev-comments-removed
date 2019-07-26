@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "ESDS"
 #include <utils/Log.h>
 
@@ -22,7 +23,7 @@
 
 #include <string.h>
 
-namespace android {
+namespace stagefright {
 
 ESDS::ESDS(const void *data, size_t size)
     : mData(new uint8_t[size]),
@@ -225,3 +226,4 @@ status_t ESDS::parseDecoderConfigDescriptor(size_t offset, size_t size) {
 
 }  
 
+#undef LOG_TAG

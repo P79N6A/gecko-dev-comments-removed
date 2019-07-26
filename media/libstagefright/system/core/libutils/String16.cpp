@@ -27,7 +27,7 @@
 #include <ctype.h>
 
 
-namespace android {
+namespace stagefright {
 
 static SharedBuffer* gEmptyStringBuf = NULL;
 static char16_t* gEmptyString = NULL;

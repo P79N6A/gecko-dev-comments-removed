@@ -18,7 +18,7 @@
 
 #define MEDIA_DEFS_H_
 
-namespace android {
+namespace stagefright {
 
 extern const char *MEDIA_MIMETYPE_IMAGE_JPEG;
 

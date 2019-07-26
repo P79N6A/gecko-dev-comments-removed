@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "hexdump"
 #include <utils/Log.h>
 
@@ -27,7 +28,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-namespace android {
+namespace stagefright {
 
 static void appendIndent(AString *s, int32_t indent) {
     static const char kWhitespace[] =
@@ -92,3 +93,4 @@ void hexdump(const void *_data, size_t size, size_t indent, AString *appendTo) {
 
 }  
 
+#undef LOG_TAG

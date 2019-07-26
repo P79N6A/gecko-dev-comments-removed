@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-namespace android {
+namespace stagefright {
 
 
 #ifdef __cplusplus

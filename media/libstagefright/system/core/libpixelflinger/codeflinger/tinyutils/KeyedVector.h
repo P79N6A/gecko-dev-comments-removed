@@ -27,7 +27,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 namespace tinyutils {
 
 template <typename KEY, typename VALUE>

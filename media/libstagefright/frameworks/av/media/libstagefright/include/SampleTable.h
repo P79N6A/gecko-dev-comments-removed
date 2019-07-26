@@ -25,7 +25,7 @@
 #include <utils/RefBase.h>
 #include <utils/threads.h>
 
-namespace android {
+namespace stagefright {
 
 class DataSource;
 struct SampleIterator;

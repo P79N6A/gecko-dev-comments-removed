@@ -16,9 +16,10 @@
 
 #include "ABitReader.h"
 
+#include <log/log.h>
 #include <media/stagefright/foundation/ADebug.h>
 
-namespace android {
+namespace stagefright {
 
 ABitReader::ABitReader(const uint8_t *data, size_t size)
     : mData(data),

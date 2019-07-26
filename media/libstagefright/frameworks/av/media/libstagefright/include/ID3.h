@@ -20,7 +20,7 @@
 
 #include <utils/RefBase.h>
 
-namespace android {
+namespace stagefright {
 
 struct DataSource;
 struct String8;

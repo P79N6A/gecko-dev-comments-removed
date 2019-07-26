@@ -22,7 +22,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 
 class SharedBuffer
 {

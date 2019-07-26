@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "MetaData"
 #include <utils/Log.h>
 
@@ -26,7 +27,7 @@
 #include <media/stagefright/foundation/hexdump.h>
 #include <media/stagefright/MetaData.h>
 
-namespace android {
+namespace stagefright {
 
 MetaData::MetaData() {
 }
@@ -352,3 +353,4 @@ void MetaData::dumpToLog() const {
 
 }  
 
+#undef LOG_TAG

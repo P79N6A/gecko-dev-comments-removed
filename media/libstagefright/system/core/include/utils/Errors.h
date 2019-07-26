@@ -20,7 +20,7 @@
 #include <sys/types.h>
 #include <errno.h>
 
-namespace android {
+namespace stagefright {
 
 
 #ifdef HAVE_MS_C_RUNTIME

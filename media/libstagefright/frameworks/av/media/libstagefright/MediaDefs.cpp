@@ -16,7 +16,7 @@
 
 #include <media/stagefright/MediaDefs.h>
 
-namespace android {
+namespace stagefright {
 
 const char *MEDIA_MIMETYPE_IMAGE_JPEG = "image/jpeg";
 

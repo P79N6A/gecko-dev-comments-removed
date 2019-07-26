@@ -30,7 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace android {
+namespace stagefright {
 namespace sysutils {
 
 

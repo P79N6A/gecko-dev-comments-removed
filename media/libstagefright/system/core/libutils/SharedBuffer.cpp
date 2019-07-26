@@ -22,7 +22,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 
 SharedBuffer* SharedBuffer::alloc(size_t size)
 {

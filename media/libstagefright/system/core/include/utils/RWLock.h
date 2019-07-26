@@ -28,7 +28,7 @@
 #include <utils/ThreadDefs.h>
 
 
-namespace android {
+namespace stagefright {
 
 
 #if defined(HAVE_PTHREADS)

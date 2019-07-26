@@ -25,7 +25,7 @@
 
 
 
-namespace android {
+namespace stagefright {
 namespace tinyutils {
 
 

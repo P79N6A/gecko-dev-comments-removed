@@ -30,7 +30,7 @@ extern "C" {
 
 
 
-namespace android {
+namespace stagefright {
 
 
 

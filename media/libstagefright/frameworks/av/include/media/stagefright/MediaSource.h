@@ -24,7 +24,7 @@
 #include <utils/RefBase.h>
 #include <utils/Vector.h>
 
-namespace android {
+namespace stagefright {
 
 class MediaBuffer;
 class MetaData;

@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "ID3"
 #include <utils/Log.h>
 
@@ -26,7 +27,7 @@
 #include <utils/String8.h>
 #include <byteswap.h>
 
-namespace android {
+namespace stagefright {
 
 static const size_t kMaxMetadataSize = 3 * 1024 * 1024;
 
@@ -898,3 +899,5 @@ bool ID3::parseV1(const sp<DataSource> &source) {
 }
 
 }  
+
+#undef LOG_TAG

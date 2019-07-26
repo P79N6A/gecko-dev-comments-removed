@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 
-namespace android {
+namespace stagefright {
 
 template<typename T> class wp;
 
