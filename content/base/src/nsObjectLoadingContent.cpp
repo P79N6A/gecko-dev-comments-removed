@@ -167,10 +167,10 @@ CheckPluginStopEvent::Run()
 
   
   
+  
   if (objLC->mPendingCheckPluginStopEvent != this) {
     return NS_OK;
   }
-  objLC->mPendingCheckPluginStopEvent = nullptr;
 
   nsCOMPtr<nsIContent> content =
     do_QueryInterface(static_cast<nsIImageLoadingContent *>(objLC));
@@ -182,12 +182,26 @@ CheckPluginStopEvent::Run()
   }
 
   if (!content->GetPrimaryFrame()) {
+    LOG(("OBJLC [%p]: CheckPluginStopEvent - No frame, flushing layout", this));
+    nsIDocument* currentDoc = content->GetCurrentDoc();
+    if (currentDoc) {
+      currentDoc->FlushPendingNotifications(Flush_Layout);
+      if (objLC->mPendingCheckPluginStopEvent != this ||
+          content->GetPrimaryFrame()) {
+        LOG(("OBJLC [%p]: Event superseded or frame gained during layout flush",
+             this));
+        objLC->mPendingCheckPluginStopEvent = nullptr;
+        return NS_OK;
+      }
+    }
     
     
     LOG(("OBJLC [%p]: Stopping plugin that lost frame", this));
     
     objLC->StopPluginInstance();
   }
+
+  objLC->mPendingCheckPluginStopEvent = nullptr;
   return NS_OK;
 }
 
@@ -890,7 +904,6 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
     return NS_BINDING_ABORTED;
   }
 
-  NS_ASSERTION(!mChannelLoaded, "mChannelLoaded set already?");
   
   
   if (mType == eType_Plugin) {
@@ -912,6 +925,7 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
     NS_NOTREACHED("Should be type loading at this point");
     return NS_BINDING_ABORTED;
   }
+  NS_ASSERTION(!mChannelLoaded, "mChannelLoaded set already?");
   NS_ASSERTION(!mFinalListener, "mFinalListener exists already?");
 
   mChannelLoaded = true;
