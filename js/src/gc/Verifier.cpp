@@ -222,7 +222,7 @@ gc::StartVerifyPreBarriers(JSRuntime *rt)
     rt->gc.incrementalState = MARK_ROOTS;
 
     
-    MarkRuntime(trc);
+    rt->gc.markRuntime(trc);
 
     VerifyNode *node;
     node = trc->curnode;
