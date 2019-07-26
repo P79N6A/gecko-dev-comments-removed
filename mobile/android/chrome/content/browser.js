@@ -32,6 +32,14 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   return NetUtil;
 });
 
+#ifdef MOZ_SAFE_BROWSING
+XPCOMUtils.defineLazyGetter(this, "SafeBrowsing", function() {
+  let tmp = {};
+ Cu.import("resource://gre/modules/SafeBrowsing.jsm", tmp);
+  return tmp.SafeBrowsing;
+});
+#endif
+
 
 [
   ["HelperApps", "chrome://browser/content/HelperApps.js"],
@@ -344,6 +352,11 @@ var BrowserApp = {
         "value": Services.prefs.getBoolPref("gfx.show_checkerboard_pattern")
       }
     });
+
+#ifdef MOZ_SAFE_BROWSING
+    
+    setTimeout(function() { SafeBrowsing.init(); }, 2000);
+#endif
   },
 
   isAppUpdated: function() {
@@ -4212,6 +4225,59 @@ var ErrorPageEventHandler = {
             errorDoc.location.reload();
           } else if (target == errorDoc.getElementById("getMeOutOfHereButton")) {
             errorDoc.location = "about:home";
+          }
+        } else if (/^about:blocked/.test(errorDoc.documentURI)) {
+          let secHistogram = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry).getHistogramById("SECURITY_UI");
+
+          
+          
+          
+          let isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
+          let bucketName = isMalware ? "WARNING_MALWARE_PAGE_" : "WARNING_PHISHING_PAGE_";
+          let nsISecTel = Ci.nsISecurityUITelemetry;
+
+          let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
+
+          if (target == errorDoc.getElementById("getMeOutButton")) {
+            secHistogram.add(nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
+            errorDoc.location = "about:home";
+          } else if (target == errorDoc.getElementById("reportButton")) {
+            
+            
+            secHistogram.add(nsISecTel[bucketName + "WHY_BLOCKED"]);
+
+            
+            
+            
+            if (isMalware) {
+              
+              try {
+                let reportURL = formatter.formatURLPref("browser.safebrowsing.malware.reportURL");
+                reportURL += errorDoc.location.href;
+                BrowserApp.selectedBrowser.loadURI(reportURL);
+              } catch (e) {
+                Cu.reportError("Couldn't get malware report URL: " + e);
+              }
+            } else {
+              
+              try {
+                let reportURL = formatter.formatURLPref("browser.safebrowsing.warning.infoURL");
+                BrowserApp.selectedBrowser.loadURI(reportURL);
+              } catch (e) {
+                Cu.reportError("Couldn't get phishing info URL: " + e);
+              }
+            }
+          } else if (target == errorDoc.getElementById("ignoreWarningButton")) {
+            secHistogram.add(nsISecTel[bucketName + "IGNORE_WARNING"]);
+
+            
+            let webNav = BrowserApp.selectedBrowser.docShell.QueryInterface(Ci.nsIWebNavigation);
+            let location = BrowserApp.selectedBrowser.contentWindow.location;
+            webNav.loadURI(location, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER, null, null, null);
+
+            
+            
+            NativeWindow.doorhanger.show(Strings.browser.GetStringFromName("safeBrowsingDoorhanger"), "safebrowsing-warning", [], BrowserApp.selectedTab.id);
           }
         }
         break;
