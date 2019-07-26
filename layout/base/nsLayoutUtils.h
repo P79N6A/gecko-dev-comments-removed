@@ -1615,6 +1615,14 @@ public:
 
 
 
+  static uint32_t FontSizeInflationMaxRatio() {
+    return sFontSizeInflationMaxRatio;
+  }
+
+  
+
+
+
   static uint32_t FontSizeInflationEmPerLine() {
     return sFontSizeInflationEmPerLine;
   }
@@ -1751,7 +1759,8 @@ private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
   static uint32_t sFontSizeInflationLineThreshold;
-  static int32_t sFontSizeInflationMappingIntercept;
+  static int32_t  sFontSizeInflationMappingIntercept;
+  static uint32_t sFontSizeInflationMaxRatio;
 };
 
 template<typename PointType, typename RectType, typename CoordType>
