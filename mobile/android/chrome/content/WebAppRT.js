@@ -134,7 +134,7 @@ let WebAppRT = {
     let target = event.target;
   
     
-    while(target && !(target instanceof HTMLAnchorElement)) {
+    while (target && !(target instanceof HTMLAnchorElement)) {
       target = target.parentNode;
     }
 
@@ -142,9 +142,7 @@ let WebAppRT = {
       return;
     }
   
-    let uri = Services.io.newURI(target.href,
-                                 target.ownerDocument.characterSet,
-                                 null);
+    let uri = Services.io.newURI(target.href, target.ownerDocument.characterSet, null);
   
     
     Cc["@mozilla.org/uriloader/external-protocol-service;1"].
