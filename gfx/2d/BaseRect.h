@@ -92,7 +92,8 @@ struct BaseRect {
   
   bool Intersects(const Sub& aRect) const
   {
-    return x < aRect.XMost() && aRect.x < XMost() &&
+    return !IsEmpty() && !aRect.IsEmpty() &&
+           x < aRect.XMost() && aRect.x < XMost() &&
            y < aRect.YMost() && aRect.y < YMost();
   }
   
