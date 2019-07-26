@@ -1014,12 +1014,6 @@ typedef JSBool
 typedef JSBool
 (* JSConvertOp)(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp);
 
-
-
-
-typedef JSType
-(* JSTypeOfOp)(JSContext *cx, JSHandleObject obj);
-
 typedef struct JSFreeOp JSFreeOp;
 
 struct JSFreeOp {
@@ -1097,9 +1091,6 @@ typedef void
 
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
-
-typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSHandleObject obj, JSHandleValue v, JSBool *bp);
 
 typedef JSRawObject
 (* JSWeakmapKeyDelegateOp)(JSRawObject obj);
@@ -2509,6 +2500,10 @@ JS_updateMallocCounter(JSContext *cx, size_t nbytes);
 
 extern JS_PUBLIC_API(char *)
 JS_strdup(JSContext *cx, const char *s);
+
+
+extern JS_PUBLIC_API(char *)
+JS_strdup(JSRuntime *rt, const char *s);
 
 
 
@@ -4687,13 +4682,13 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_SetDefaultLocale(JSContext *cx, const char *locale);
+JS_SetDefaultLocale(JSRuntime *rt, const char *locale);
 
 
 
 
 extern JS_PUBLIC_API(void)
-JS_ResetDefaultLocale(JSContext *cx);
+JS_ResetDefaultLocale(JSRuntime *rt);
 
 
 
@@ -4711,14 +4706,14 @@ struct JSLocaleCallbacks {
 
 
 extern JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSContext *cx, JSLocaleCallbacks *callbacks);
+JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks);
 
 
 
 
 
 extern JS_PUBLIC_API(JSLocaleCallbacks *)
-JS_GetLocaleCallbacks(JSContext *cx);
+JS_GetLocaleCallbacks(JSRuntime *rt);
 
 
 
