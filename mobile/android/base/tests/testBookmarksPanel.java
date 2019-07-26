@@ -30,7 +30,7 @@ public class testBookmarksPanel extends AboutHomeTest {
         }
 
         
-        final Element tabCount = mDriver.findElement(getActivity(), "tabs_counter");
+        final Element tabCount = mDriver.findElement(getActivity(), R.id.tabs_counter);
         final int tabCountInt = Integer.parseInt(tabCount.getText());
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         mSolo.clickOnText(StringHelper.BOOKMARK_CONTEXT_MENU_ITEMS[0]);

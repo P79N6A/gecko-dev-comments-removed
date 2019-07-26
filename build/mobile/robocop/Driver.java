@@ -15,7 +15,7 @@ public interface Driver {
 
 
 
-    Element findElement(Activity activity, String name);
+    Element findElement(Activity activity, int id);
 
     
 
