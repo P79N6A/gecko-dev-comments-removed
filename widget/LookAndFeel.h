@@ -375,8 +375,20 @@ public:
 
 
 
-    eIntID_PhysicalHomeButton
-  };
+     eIntID_PhysicalHomeButton,
+ 
+     
+
+
+
+     eIntID_ScrollbarDisplayOnMouseMove,
+ 
+     
+
+
+     eIntID_ScrollbarFadeBeginDelay,
+     eIntID_ScrollbarFadeDuration
+};
 
   
 
