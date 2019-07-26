@@ -47,14 +47,18 @@ class GeckoInputConnection
 
     private static Handler sBackgroundHandler;
 
-    private class InputThreadUtils {
+    private static class InputThreadUtils {
+        
+        
+        public static final InputThreadUtils sInstance = new InputThreadUtils();
+
         private Editable mUiEditable;
         private Object mUiEditableReturn;
         private Exception mUiEditableException;
         private final SynchronousQueue<Runnable> mIcRunnableSync;
         private final Runnable mIcSignalRunnable;
 
-        public InputThreadUtils() {
+        private InputThreadUtils() {
             mIcRunnableSync = new SynchronousQueue<Runnable>();
             mIcSignalRunnable = new Runnable() {
                 @Override public void run() {
@@ -120,13 +124,14 @@ class GeckoInputConnection
         }
 
         public Editable getEditableForUiThread(final Handler uiHandler,
-                                               final Handler icHandler) {
+                                               final GeckoEditableClient client) {
             if (DEBUG) {
                 ThreadUtils.assertOnThread(uiHandler.getLooper().getThread());
             }
+            final Handler icHandler = client.getInputConnectionHandler();
             if (icHandler.getLooper() == uiHandler.getLooper()) {
                 
-                return getEditable();
+                return client.getEditable();
             }
             
             
@@ -152,7 +157,7 @@ class GeckoInputConnection
                                 synchronized (icHandler) {
                                     try {
                                         mUiEditableReturn = method.invoke(
-                                            mEditableClient.getEditable(), args);
+                                            client.getEditable(), args);
                                     } catch (Exception e) {
                                         mUiEditableException = e;
                                     }
@@ -178,8 +183,6 @@ class GeckoInputConnection
             return mUiEditable;
         }
     }
-
-    private final InputThreadUtils mThreadUtils = new InputThreadUtils();
 
     
     private int mIMEState;
@@ -664,10 +667,10 @@ class GeckoInputConnection
             
             mainHandler.post(new Runnable() {
                 @Override public void run() {
-                    mThreadUtils.endWaitForUiThread();
+                    InputThreadUtils.sInstance.endWaitForUiThread();
                 }
             });
-            mThreadUtils.waitForUiThread(icHandler);
+            InputThreadUtils.sInstance.waitForUiThread(icHandler);
         }
         return false; 
     }
@@ -738,8 +741,8 @@ class GeckoInputConnection
         
         KeyListener keyListener = TextKeyListener.getInstance();
         Handler uiHandler = view.getRootView().getHandler();
-        Handler icHandler = mEditableClient.getInputConnectionHandler();
-        Editable uiEditable = mThreadUtils.getEditableForUiThread(uiHandler, icHandler);
+        Editable uiEditable = InputThreadUtils.sInstance.
+            getEditableForUiThread(uiHandler, mEditableClient);
         boolean skip = shouldSkipKeyListener(keyCode, event);
         if (down) {
             mEditableClient.setSuppressKeyUp(true);
