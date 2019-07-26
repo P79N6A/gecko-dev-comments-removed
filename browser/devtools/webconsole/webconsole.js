@@ -570,6 +570,19 @@ WebConsoleFrame.prototype = {
     }
 
     
+
+
+
+
+    this.outputNode.addEventListener("click", (e) => {
+      if ((e.button == 0) &&
+          (e.target.nodeName.toLowerCase() != "a") &&
+          (e.target.parentNode.nodeName.toLowerCase() != "a")) {
+        this.jsterm.inputNode.focus();
+      }
+    });
+
+    
     gDevTools.on("pref-changed", this._onToolboxPrefChanged);
     this._onToolboxPrefChanged("pref-changed", {
       pref: PREF_MESSAGE_TIMESTAMP,
