@@ -4065,18 +4065,12 @@ nsComputedDOMStyle::DoGetTouchAction()
 
   
   
-  if (NS_STYLE_TOUCH_ACTION_AUTO == intValue) {
-    val->SetIdent(eCSSKeyword_auto);
-  } else if (NS_STYLE_TOUCH_ACTION_NONE == intValue) {
-    val->SetIdent(eCSSKeyword_none);
-  } else {
-    nsAutoString valueStr;
-    nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_touch_action,
-      intValue, NS_STYLE_TOUCH_ACTION_PAN_X,
-      NS_STYLE_TOUCH_ACTION_PAN_Y, valueStr);
-    val->SetString(valueStr);
-  }
-
+  
+  nsAutoString valueStr;
+  nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_touch_action, intValue,
+    NS_STYLE_TOUCH_ACTION_NONE, NS_STYLE_TOUCH_ACTION_MANIPULATION,
+    valueStr);
+  val->SetString(valueStr);
   return val;
 }
 
