@@ -53,6 +53,41 @@ var Scratchpad = {
 
 
 
+  _scanModeLine: function SP__scanModeLine(aLine="")
+  {
+    aLine = aLine.trim();
+
+    let obj = {};
+    let ch1 = aLine.charAt(0);
+    let ch2 = aLine.charAt(1);
+
+    if (ch1 !== "/" || (ch2 !== "*" && ch2 !== "/")) {
+      return obj;
+    }
+
+    aLine = aLine
+      .replace(/^\/\//, "")
+      .replace(/^\/\*/, "")
+      .replace(/\*\/$/, "");
+
+    aLine.split(",").forEach(function (pair) {
+      let [key, val] = pair.split(":");
+
+      if (key && val) {
+        obj[key.trim()] = val.trim();
+      }
+    });
+
+    return obj;
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -660,6 +695,15 @@ var Scratchpad = {
         content = NetUtil.readInputStreamToString(aInputStream,
                                                   aInputStream.available());
         content = converter.ConvertToUnicode(content);
+
+        
+        let line = content.split("\n")[0];
+        let modeline = self._scanModeLine(line);
+
+        if (modeline["-sp-context"] === "browser") {
+          self.setBrowserContext();
+        }
+
         self.setText(content);
         self.editor.resetUndo();
       }
