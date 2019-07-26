@@ -675,9 +675,7 @@ NetworkPanel.prototype =
 
   update: function NP_update()
   {
-    
-    
-    if (!this.document || !this.document.getElementById("headUrl")) {
+    if (!this.document || this.document.readyState != "complete") {
       return;
     }
 
