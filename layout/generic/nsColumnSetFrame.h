@@ -46,6 +46,12 @@ public:
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
 
+  
+
+
+
+  virtual nscoord GetAvailableContentHeight(const nsHTMLReflowState& aReflowState);
+
   virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     nsIFrame* frame = GetFirstPrincipalChild();
 
@@ -123,6 +129,14 @@ protected:
     
     
     nscoord mKnownInfeasibleHeight;
+
+    
+    nscoord mComputedHeight;
+
+    
+    
+    
+    nscoord mConsumedHeight;
   };
 
   
