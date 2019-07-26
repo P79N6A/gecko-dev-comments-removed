@@ -19,6 +19,7 @@
 #include "nsCOMPtr.h"
 #include "nsDOMString.h"
 #include "nsStringBuffer.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 namespace dom {
@@ -210,6 +211,119 @@ private:
   nsStringBuffer* mStringBuffer;
   uint32_t mLength;
   bool mIsNull;
+};
+
+
+template<typename T>
+class Optional
+{
+public:
+  Optional()
+  {}
+
+  bool WasPassed() const
+  {
+    return !mImpl.empty();
+  }
+
+  void Construct()
+  {
+    mImpl.construct();
+  }
+
+  template <class T1>
+  void Construct(const T1 &t1)
+  {
+    mImpl.construct(t1);
+  }
+
+  template <class T1, class T2>
+  void Construct(const T1 &t1, const T2 &t2)
+  {
+    mImpl.construct(t1, t2);
+  }
+
+  const T& Value() const
+  {
+    return mImpl.ref();
+  }
+
+  T& Value()
+  {
+    return mImpl.ref();
+  }
+
+  
+  
+  
+
+private:
+  
+  Optional(const Optional& other) MOZ_DELETE;
+  const Optional &operator=(const Optional &other) MOZ_DELETE;
+
+  Maybe<T> mImpl;
+};
+
+
+
+
+
+
+class FakeDependentString;
+
+template<>
+class Optional<nsAString>
+{
+public:
+  Optional() : mPassed(false) {}
+
+  bool WasPassed() const
+  {
+    return mPassed;
+  }
+
+  void operator=(const nsAString* str)
+  {
+    MOZ_ASSERT(str);
+    mStr = str;
+    mPassed = true;
+  }
+
+  
+  
+  void operator=(const FakeDependentString* str)
+  {
+    MOZ_ASSERT(str);
+    mStr = reinterpret_cast<const nsDependentString*>(str);
+    mPassed = true;
+  }
+
+  const nsAString& Value() const
+  {
+    MOZ_ASSERT(WasPassed());
+    return *mStr;
+  }
+
+private:
+  
+  Optional(const Optional& other) MOZ_DELETE;
+  const Optional &operator=(const Optional &other) MOZ_DELETE;
+
+  bool mPassed;
+  const nsAString* mStr;
+};
+
+
+
+
+
+template<typename T>
+class Sequence : public AutoFallibleTArray<T, 16>
+{
+public:
+  Sequence() : AutoFallibleTArray<T, 16>()
+  {}
 };
 
 } 

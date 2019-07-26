@@ -1434,6 +1434,8 @@ struct FakeDependentString {
     mFlags |= nsDependentString::F_VOIDED;
   }
 
+  
+  
   const nsAString* ToAStringPtr() const {
     return reinterpret_cast<const nsDependentString*>(this);
   }
@@ -1525,97 +1527,6 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
   result.SetData(chars, len);
   return true;
 }
-
-
-template<typename T>
-class Optional {
-public:
-  Optional() {}
-
-  bool WasPassed() const {
-    return !mImpl.empty();
-  }
-
-  void Construct() {
-    mImpl.construct();
-  }
-
-  template <class T1>
-  void Construct(const T1 &t1) {
-    mImpl.construct(t1);
-  }
-
-  template <class T1, class T2>
-  void Construct(const T1 &t1, const T2 &t2) {
-    mImpl.construct(t1, t2);
-  }
-
-  const T& Value() const {
-    return mImpl.ref();
-  }
-
-  T& Value() {
-    return mImpl.ref();
-  }
-
-  
-  
-  
-
-private:
-  
-  Optional(const Optional& other) MOZ_DELETE;
-  const Optional &operator=(const Optional &other) MOZ_DELETE;
-  
-  Maybe<T> mImpl;
-};
-
-
-template<>
-class Optional<nsAString> {
-public:
-  Optional() : mPassed(false) {}
-
-  bool WasPassed() const {
-    return mPassed;
-  }
-
-  void operator=(const nsAString* str) {
-    MOZ_ASSERT(str);
-    mStr = str;
-    mPassed = true;
-  }
-
-  void operator=(const FakeDependentString* str) {
-    MOZ_ASSERT(str);
-    mStr = str->ToAStringPtr();
-    mPassed = true;
-  }
-
-  const nsAString& Value() const {
-    MOZ_ASSERT(WasPassed());
-    return *mStr;
-  }
-
-private:
-  
-  Optional(const Optional& other) MOZ_DELETE;
-  const Optional &operator=(const Optional &other) MOZ_DELETE;
-  
-  bool mPassed;
-  const nsAString* mStr;
-};
-
-
-
-
-
-template<typename T>
-class Sequence : public AutoFallibleTArray<T, 16>
-{
-public:
-  Sequence() : AutoFallibleTArray<T, 16>() {}
-};
 
 
 
