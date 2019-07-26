@@ -49,16 +49,6 @@ WorkerAPI.prototype = {
   },
 
   handlers: {
-    "social.manifest-get": function(data) {
-      
-      this._port.postMessage({topic: "social.manifest", data: this._provider.manifest});
-    },
-    "social.manifest-set": function(data) {
-      
-      let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
-      let document = this._port._window.document;
-      SocialService.updateProvider(document, data);
-    },
     "social.reload-worker": function(data) {
       getFrameWorkerHandle(this._provider.workerURL, null)._worker.reload();
       
