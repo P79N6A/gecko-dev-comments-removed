@@ -731,6 +731,15 @@ function MetricsStorageSqliteBackend(connection) {
 }
 
 MetricsStorageSqliteBackend.prototype = Object.freeze({
+  
+  
+  
+  
+  
+  
+  
+  MAX_WAL_SIZE_KB: 512,
+
   FIELD_DAILY_COUNTER: "daily-counter",
   FIELD_DAILY_DISCRETE_NUMERIC: "daily-discrete-numeric",
   FIELD_DAILY_DISCRETE_TEXT: "daily-discrete-text",
@@ -1105,6 +1114,43 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
   _init: function() {
     let self = this;
     return Task.spawn(function initTask() {
+      
+
+      
+      
+      let rows = yield self._connection.execute("PRAGMA page_size");
+      let pageSize = 1024;
+      if (rows.length) {
+        pageSize = rows[0].getResultByIndex(0);
+      }
+
+      self._log.debug("Page size is " + pageSize);
+
+      
+      yield self._connection.execute("PRAGMA temp_store=MEMORY");
+
+      let journalMode;
+      rows = yield self._connection.execute("PRAGMA journal_mode=WAL");
+      if (rows.length) {
+        journalMode = rows[0].getResultByIndex(0);
+      }
+
+      self._log.info("Journal mode is " + journalMode);
+
+      if (journalMode == "wal") {
+        yield self._connection.execute("PRAGMA wal_autocheckpoint=" +
+                                       Math.ceil(self.MAX_WAL_SIZE_KB * 1024 / pageSize));
+      } else {
+        if (journalMode != "truncate") {
+         
+          yield self._connection.execute("PRAGMA journal_mode=TRUNCATE");
+        }
+
+        
+        
+        yield self._connection.execute("PRAGMA synchronous=FULL");
+      }
+
       
       yield self._connection.executeTransaction(function ensureSchema(conn) {
         let schema = conn.schemaVersion;
