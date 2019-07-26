@@ -74,9 +74,6 @@ public:
 
 mozJSSubScriptLoader::mozJSSubScriptLoader() : mSystemPrincipal(nullptr)
 {
-    
-    nsCOMPtr<xpcIJSModuleLoader> componentLoader =
-        do_GetService(MOZJSCOMPONENTLOADER_CONTRACTID);
 }
 
 mozJSSubScriptLoader::~mozJSSubScriptLoader()
