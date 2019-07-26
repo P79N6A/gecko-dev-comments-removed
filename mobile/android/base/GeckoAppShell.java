@@ -1330,12 +1330,6 @@ public class GeckoAppShell
                 return;
             }
         }
-
-        
-        
-        
-        
-        sendEventToGecko(GeckoEvent.createBroadcastEvent("Notification:Clicked", aAlertCookie));
         closeNotification(aAlertName);
     }
 
