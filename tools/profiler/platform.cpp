@@ -404,7 +404,7 @@ void mozilla_sampler_init(void* stackTop)
   PseudoStack *stack = new PseudoStack();
   tlsPseudoStack.set(stack);
 
-  Sampler::RegisterCurrentThread("Gecko", stack, true, stackTop);
+  Sampler::RegisterCurrentThread("GeckoMain", stack, true, stackTop);
 
   
   
