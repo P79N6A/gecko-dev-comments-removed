@@ -1232,16 +1232,9 @@ nsGlobalWindow::~nsGlobalWindow()
 
   mDoc = nullptr;
 
-  
-  
-  
-  
-  
-  if (IsInnerWindow()) {
-    CleanUp(true);
-  } else {
-    MOZ_ASSERT(mCleanedUp);
-  }
+  NS_ASSERTION(!mArguments, "mArguments wasn't cleaned up properly!");
+
+  CleanUp(true);
 
   nsCOMPtr<nsIDeviceSensors> ac = do_GetService(NS_DEVICE_SENSORS_CONTRACTID);
   if (ac)
