@@ -962,12 +962,13 @@ void nsNSSComponent::setValidationOptions()
 
 
 
+
 nsresult
 nsNSSComponent::setEnabledTLSVersions()
 {
   
   static const int32_t PSM_DEFAULT_MIN_TLS_VERSION = 0;
-  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 1;
+  static const int32_t PSM_DEFAULT_MAX_TLS_VERSION = 2;
 
   int32_t minVersion = Preferences::GetInt("security.tls.version.min",
                                            PSM_DEFAULT_MIN_TLS_VERSION);
