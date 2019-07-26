@@ -617,7 +617,7 @@ CssLogic.prototype = {
 
 
       
-      if (element.style.length > 0) {
+      if (element.style && element.style.length > 0) {
         let rule = new CssRule(null, { style: element.style }, element);
         rule._matchId = this._matchId;
         rule._passId = this._passId;

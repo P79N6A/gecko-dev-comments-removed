@@ -79,6 +79,42 @@ function openComputedView(callback)
   });
 }
 
+
+
+
+
+
+
+function getNode(nodeOrSelector)
+{
+  let node = nodeOrSelector;
+
+  if (typeof nodeOrSelector === "string") {
+    node = content.document.querySelector(nodeOrSelector);
+    ok(node, "A node was found for selector " + nodeOrSelector);
+  }
+
+  return node;
+}
+
+
+
+
+
+
+
+
+
+
+function selectNode(nodeOrSelector, inspector, reason="test")
+{
+  info("Selecting the node " + nodeOrSelector);
+  let node = getNode(nodeOrSelector);
+  let updated = inspector.once("inspector-updated");
+  inspector.selection.setNode(node, reason);
+  return updated;
+}
+
 function addStyle(aDocument, aString)
 {
   let node = aDocument.createElement('style');
