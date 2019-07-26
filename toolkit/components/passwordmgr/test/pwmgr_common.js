@@ -109,19 +109,17 @@ function checkUnmodifiedForm(formNum) {
 
 
 function doKey(aKey, modifier) {
-    
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     var keyName = "DOM_VK_" + aKey.toUpperCase();
-    var key = Components.interfaces.nsIDOMKeyEvent[keyName];
+    var key = KeyEvent[keyName];
 
     
     if (!modifier)
         modifier = null;
 
     
-    var wutils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                          getInterface(Components.interfaces.nsIDOMWindowUtils);
+    var wutils = window.QueryInterface(SpecialPowers.Ci.nsIInterfaceRequestor).
+                          getInterface(SpecialPowers.Ci.nsIDOMWindowUtils);
+    wutils = SpecialPowers.wrap(wutils);
 
     if (wutils.sendKeyEvent("keydown",  key, 0, modifier)) {
       wutils.sendKeyEvent("keypress", key, 0, modifier);
@@ -131,10 +129,8 @@ function doKey(aKey, modifier) {
 
 
 function commonInit() {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
-    var pwmgr = Components.classes["@mozilla.org/login-manager;1"].
-                getService(Components.interfaces.nsILoginManager);
+    var pwmgr = SpecialPowers.Cc["@mozilla.org/login-manager;1"].
+                getService(SpecialPowers.Ci.nsILoginManager);
     ok(pwmgr != null, "Access LoginManager");
 
 
@@ -152,8 +148,8 @@ function commonInit() {
     }
 
     
-    var login = Components.classes["@mozilla.org/login-manager/loginInfo;1"].
-                createInstance(Components.interfaces.nsILoginInfo);
+    var login = SpecialPowers.Cc["@mozilla.org/login-manager/loginInfo;1"].
+                createInstance(SpecialPowers.Ci.nsILoginInfo);
     login.init("http://mochi.test:8888", "http://mochi.test:8888", null,
                "testuser", "testpass", "uname", "pword");
     pwmgr.addLogin(login);
