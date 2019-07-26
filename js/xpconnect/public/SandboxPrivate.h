@@ -10,6 +10,8 @@
 #include "nsIPrincipal.h"
 #include "nsWeakReference.h"
 
+#include "js/RootingAPI.h"
+
 
 
 
@@ -43,7 +45,7 @@ public:
     }
 private:
     nsCOMPtr<nsIPrincipal> mPrincipal;
-    JSObject *mGlobalJSObject;
+    JS::TenuredHeap<JSObject*> mGlobalJSObject;
 };
 
 #endif 
