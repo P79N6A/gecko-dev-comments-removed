@@ -251,8 +251,10 @@ function run_test_1() {
     
     
     shutdownManager();
-    gExtensionsJSON.remove(true);
-    gExtensionsJSON.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    var dbfile = gProfD.clone();
+    dbfile.append("extensions.json");
+    dbfile.remove(true);
+    dbfile.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
     startupManager(false);
 
     
