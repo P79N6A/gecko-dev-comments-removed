@@ -153,6 +153,16 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
   nsresult rv = aRequest->GetStatus(&status);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (status == NS_BINDING_ABORTED) {
+    
+    
+    
+    
+    
+    CloseChannel();
+    return status;
+  }
+
   if (element->ShouldCheckAllowOrigin()) {
     
     
