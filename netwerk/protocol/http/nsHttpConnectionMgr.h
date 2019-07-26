@@ -358,6 +358,12 @@ private:
         
         bool mUsingSpdy;
 
+        
+        
+        
+        
+        bool mTestedSpdy;
+
         bool mSpdyPreferred;
 
         
