@@ -3359,6 +3359,9 @@ nsIContent* HTMLMediaElement::GetNextSource()
   if (!mSourcePointer) {
     
     mSourcePointer = new nsRange(this);
+    
+    
+    mSourcePointer->SetEnableGravitationOnElementRemoval(false);
 
     rv = mSourcePointer->SelectNodeContents(thisDomNode);
     if (NS_FAILED(rv)) return nullptr;
