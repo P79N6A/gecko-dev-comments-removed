@@ -32,9 +32,6 @@ public:
   virtual  HRESULT STDMETHODCALLTYPE get_hyperlinkIndex(
        long charIndex,
        long* hyperlinkIndex);
-
-  
-  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
 };
 
 #endif

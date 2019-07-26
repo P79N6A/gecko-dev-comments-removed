@@ -111,9 +111,6 @@ public:
   virtual  HRESULT STDMETHODCALLTYPE get_oldText(
        IA2TextSegment *oldText);
 
-  
-  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
-
 protected:
   virtual nsresult GetModifiedText(bool aGetInsertedText, nsAString& aText,
                                    uint32_t *aStartOffset,
