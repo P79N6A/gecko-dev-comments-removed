@@ -205,7 +205,7 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 nsDataHashtable<nsStringHashKey, ContentParent*>* ContentParent::sAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sPrivateContent;
-LinkedList<ContentParent> ContentParent::sContentParents;
+StaticAutoPtr<LinkedList<ContentParent> > ContentParent::sContentParents;
 
 
 
@@ -515,7 +515,11 @@ ContentParent::GetAll(nsTArray<ContentParent*>& aArray)
 {
     aArray.Clear();
 
-    for (ContentParent* cp = sContentParents.getFirst(); cp;
+    if (!sContentParents) {
+        return;
+    }
+
+    for (ContentParent* cp = sContentParents->getFirst(); cp;
          cp = cp->getNext()) {
         aArray.AppendElement(cp);
     }
@@ -1074,7 +1078,10 @@ ContentParent::ContentParent(mozIApplication* aApp,
     MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated <= 1);
 
     
-    sContentParents.insertBack(this);
+    if (!sContentParents) {
+        sContentParents = new LinkedList<ContentParent>();
+    }
+    sContentParents->insertBack(this);
 
     if (aApp) {
         aApp->GetManifestURL(mAppManifestURL);
