@@ -912,6 +912,24 @@ CustomizeMode.prototype = {
     }
 
     
+    if (draggedItem.getAttribute("skipintoolbarset") == "true") {
+      
+      if (aTargetArea != aOriginArea) {
+        return;
+      }
+      this.unwrapToolbarItem(draggedItem.parentNode);
+      if (aTargetNode == aTargetArea.customizationTarget) {
+        aTargetArea.customizationTarget.appendChild(draggedItem);
+      } else {
+        this.unwrapToolbarItem(aTargetNode.parentNode);
+        aTargetArea.customizationTarget.insertBefore(draggedItem, aTargetNode);
+        this.wrapToolbarItem(aTargetNode);
+      }
+      this.wrapToolbarItem(draggedItem);
+      return;
+    }
+
+    
     
     if (aTargetNode == aTargetArea.customizationTarget) {
       CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id);
@@ -921,14 +939,24 @@ CustomizeMode.prototype = {
     
     
     let placement;
-    if (!aTargetNode.classList.contains(kPlaceholderClass)) {
-      let targetNodeId = (aTargetNode.nodeName == "toolbarpaletteitem") ?
-                            aTargetNode.firstChild && aTargetNode.firstChild.id :
-                            aTargetNode.id;
+    let itemForPlacement = aTargetNode;
+    
+    while (itemForPlacement && itemForPlacement.getAttribute("skipintoolbarset") == "true" &&
+           itemForPlacement.parentNode &&
+           itemForPlacement.parentNode.nodeName == "toolbarpaletteitem") {
+      itemForPlacement = itemForPlacement.parentNode.nextSibling;
+      if (itemForPlacement && itemForPlacement.nodeName == "toolbarpaletteitem") {
+        itemForPlacement = itemForPlacement.firstChild;
+      }
+    }
+    if (itemForPlacement && !itemForPlacement.classList.contains(kPlaceholderClass)) {
+      let targetNodeId = (itemForPlacement.nodeName == "toolbarpaletteitem") ?
+                            itemForPlacement.firstChild && itemForPlacement.firstChild.id :
+                            itemForPlacement.id;
       placement = CustomizableUI.getPlacementOfWidget(targetNodeId);
     }
     if (!placement) {
-      LOG("Could not get a position for " + aTargetNode + "#" + aTargetNode.id + "." + aTargetNode.className);
+      LOG("Could not get a position for " + aTargetNode.nodeName + "#" + aTargetNode.id + "." + aTargetNode.className);
     }
     let position = placement ? placement.position : null;
 
@@ -938,10 +966,15 @@ CustomizeMode.prototype = {
     
     if (aTargetArea == aOriginArea) {
       CustomizableUI.moveWidgetWithinArea(aDraggedItemId, position);
-      return;
+    } else {
+      CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id, position);
     }
-
-    CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id, position);
+    
+    if (aTargetNode != itemForPlacement) {
+      let draggedWrapper = draggedItem.parentNode;
+      let container = draggedWrapper.parentNode;
+      container.insertBefore(draggedWrapper, aTargetNode.parentNode);
+    }
   },
 
   _onDragExit: function(aEvent) {
