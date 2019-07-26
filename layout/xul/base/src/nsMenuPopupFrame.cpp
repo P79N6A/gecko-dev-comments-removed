@@ -1867,6 +1867,23 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   }
 }
 
+void
+nsMenuPopupFrame::MoveToAnchor(nsIContent* aAnchorContent,
+                               const nsAString& aPosition,
+                               int32_t aXPos, int32_t aYPos,
+                               bool aAttributesOverride)
+{
+  NS_ASSERTION(mPopupState == ePopupOpenAndVisible, "popup must be open to move it");
+
+  InitializePopup(aAnchorContent, mTriggerContent, aPosition,
+                  aXPos, aYPos, aAttributesOverride);
+  
+  mPopupState = ePopupOpenAndVisible;
+
+  
+  SetPopupPosition(nullptr, false);
+}
+
 bool
 nsMenuPopupFrame::GetAutoPosition()
 {
