@@ -2,36 +2,36 @@
 
 
 
-#include "gfxReusableSurfaceWrapper.h"
+#include "gfxReusableSharedImageSurfaceWrapper.h"
 #include "gfxSharedImageSurface.h"
 
 using mozilla::ipc::Shmem;
 using mozilla::layers::ISurfaceAllocator;
 
-gfxReusableSurfaceWrapper::gfxReusableSurfaceWrapper(ISurfaceAllocator* aAllocator,
-                                                     gfxSharedImageSurface* aSurface)
+gfxReusableSharedImageSurfaceWrapper::gfxReusableSharedImageSurfaceWrapper(ISurfaceAllocator* aAllocator,
+                                                                           gfxSharedImageSurface* aSurface)
   : mAllocator(aAllocator)
   , mSurface(aSurface)
 {
-  MOZ_COUNT_CTOR(gfxReusableSurfaceWrapper);
+  MOZ_COUNT_CTOR(gfxReusableSharedImageSurfaceWrapper);
   ReadLock();
 }
 
-gfxReusableSurfaceWrapper::~gfxReusableSurfaceWrapper()
+gfxReusableSharedImageSurfaceWrapper::~gfxReusableSharedImageSurfaceWrapper()
 {
-  MOZ_COUNT_DTOR(gfxReusableSurfaceWrapper);
+  MOZ_COUNT_DTOR(gfxReusableSharedImageSurfaceWrapper);
   ReadUnlock();
 }
 
 void
-gfxReusableSurfaceWrapper::ReadLock()
+gfxReusableSharedImageSurfaceWrapper::ReadLock()
 {
   NS_CheckThreadSafe(_mOwningThread.GetThread(), "Only the owner thread can call ReadLock");
   mSurface->ReadLock();
 }
 
 void
-gfxReusableSurfaceWrapper::ReadUnlock()
+gfxReusableSharedImageSurfaceWrapper::ReadUnlock()
 {
   int32_t readCount = mSurface->ReadUnlock();
   NS_ABORT_IF_FALSE(readCount >= 0, "Read count should not be negative");
@@ -42,7 +42,7 @@ gfxReusableSurfaceWrapper::ReadUnlock()
 }
 
 gfxReusableSurfaceWrapper*
-gfxReusableSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
+gfxReusableSharedImageSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
 {
   NS_CheckThreadSafe(_mOwningThread.GetThread(), "Only the owner thread can call GetWritable");
 
@@ -60,7 +60,7 @@ gfxReusableSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
   *aSurface = copySurface;
 
   
-  gfxReusableSurfaceWrapper* wrapper = new gfxReusableSurfaceWrapper(mAllocator, copySurface);
+  gfxReusableSurfaceWrapper* wrapper = new gfxReusableSharedImageSurfaceWrapper(mAllocator, copySurface);
 
   
   
@@ -69,29 +69,29 @@ gfxReusableSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
 }
 
 const unsigned char*
-gfxReusableSurfaceWrapper::GetReadOnlyData() const
+gfxReusableSharedImageSurfaceWrapper::GetReadOnlyData() const
 {
   NS_ABORT_IF_FALSE(mSurface->GetReadCount() > 0, "Should have read lock");
   return mSurface->Data();
 }
 
 gfxASurface::gfxImageFormat
-gfxReusableSurfaceWrapper::Format()
+gfxReusableSharedImageSurfaceWrapper::Format()
 {
   return mSurface->Format();
 }
 
 Shmem&
-gfxReusableSurfaceWrapper::GetShmem()
+gfxReusableSharedImageSurfaceWrapper::GetShmem()
 {
   return mSurface->GetShmem();
 }
 
- already_AddRefed<gfxReusableSurfaceWrapper>
-gfxReusableSurfaceWrapper::Open(ISurfaceAllocator* aAllocator, const Shmem& aShmem)
+ already_AddRefed<gfxReusableSharedImageSurfaceWrapper>
+gfxReusableSharedImageSurfaceWrapper::Open(ISurfaceAllocator* aAllocator, const Shmem& aShmem)
 {
   nsRefPtr<gfxSharedImageSurface> sharedImage = gfxSharedImageSurface::Open(aShmem);
-  nsRefPtr<gfxReusableSurfaceWrapper> wrapper = new gfxReusableSurfaceWrapper(aAllocator, sharedImage);
+  nsRefPtr<gfxReusableSharedImageSurfaceWrapper> wrapper = new gfxReusableSharedImageSurfaceWrapper(aAllocator, sharedImage);
   wrapper->ReadUnlock();
   return wrapper.forget();
 }

@@ -5,13 +5,14 @@
 #ifndef GFXCOWSURFACEWRAPPER
 #define GFXCOWSURFACEWRAPPER
 
-#include "gfxASurface.h"
+#include "gfxImageSurface.h"
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
-#include "mozilla/Atomics.h"
-#include "mozilla/layers/ISurfaceAllocator.h"
 
-class gfxSharedImageSurface;
+
+
+
+
 
 
 
@@ -32,27 +33,17 @@ class gfxSharedImageSurface;
 class gfxReusableSurfaceWrapper {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxReusableSurfaceWrapper)
 public:
-  
-
-
-
-  gfxReusableSurfaceWrapper(mozilla::layers::ISurfaceAllocator* aAllocator, gfxSharedImageSurface* aSurface);
-
-  ~gfxReusableSurfaceWrapper();
-
-  const unsigned char* GetReadOnlyData() const;
-
-  mozilla::ipc::Shmem& GetShmem();
+  virtual ~gfxReusableSurfaceWrapper() {}
 
   
 
 
+  virtual const unsigned char* GetReadOnlyData() const = 0;
+
+  
 
 
-  static already_AddRefed<gfxReusableSurfaceWrapper>
-  Open(mozilla::layers::ISurfaceAllocator* aAllocator, const mozilla::ipc::Shmem& aShmem);
-
-  gfxASurface::gfxImageFormat Format();
+  virtual gfxASurface::gfxImageFormat Format() = 0;
 
   
 
@@ -60,7 +51,7 @@ public:
 
 
 
-  gfxReusableSurfaceWrapper* GetWritable(gfxImageSurface** aSurface);
+  virtual gfxReusableSurfaceWrapper* GetWritable(gfxImageSurface** aSurface) = 0;
 
   
 
@@ -71,13 +62,11 @@ public:
 
 
 
-  void ReadLock();
-  void ReadUnlock();
+  virtual void ReadLock() = 0;
+  virtual void ReadUnlock() = 0;
 
-private:
+protected:
   NS_DECL_OWNINGTHREAD
-  mozilla::layers::ISurfaceAllocator*     mAllocator;
-  nsRefPtr<gfxSharedImageSurface>         mSurface;
 };
 
-#endif 
+#endif
