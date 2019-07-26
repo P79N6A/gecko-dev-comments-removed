@@ -37,12 +37,12 @@ gTests.push({
   desc: "Test sanitizer UI",
   run: function testSanitizeUI() {
     
-    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyout._topmostElement, "PopupChanged", 2000);
-    FlyoutPanelsUI.show('PrefsFlyout');
+    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyoutPanel._topmostElement, "PopupChanged", 2000);
+    FlyoutPanelsUI.show('PrefsFlyoutPanel');
     yield promise;
 
     
-    yield waitForEvent(FlyoutPanelsUI.PrefsFlyout._topmostElement, "transitionend", 1000);
+    yield waitForEvent(FlyoutPanelsUI.PrefsFlyoutPanel._topmostElement, "transitionend", 1000);
 
     SanitizeHelper.setUp();
 
@@ -90,7 +90,7 @@ gTests.push({
     });
 
     
-    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyout._topmostElement, "PopupChanged", 2000);
+    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyoutPanel._topmostElement, "PopupChanged", 2000);
     FlyoutPanelsUI.hide();
     yield promise;
   }
@@ -119,8 +119,8 @@ gTests.push({
     let okTrack = document.getElementById("prefs-dnt-oktrack");
 
     
-    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyout._topmostElement, "PopupChanged", 2000);
-    FlyoutPanelsUI.show('PrefsFlyout');
+    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyoutPanel._topmostElement, "PopupChanged", 2000);
+    FlyoutPanelsUI.show('PrefsFlyoutPanel');
     yield promise;
 
     noPref.click();
@@ -140,7 +140,7 @@ gTests.push({
     checkDNTPrefs(true, 0);
 
     
-    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyout._topmostElement, "PopupChanged", 2000);
+    let promise = waitForEvent(FlyoutPanelsUI.PrefsFlyoutPanel._topmostElement, "PopupChanged", 2000);
     FlyoutPanelsUI.hide();
     yield promise;
   }
