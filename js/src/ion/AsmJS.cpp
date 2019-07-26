@@ -4912,10 +4912,14 @@ CheckFunctionBodiesParallel(ModuleCompiler &m)
 }
 #endif 
 
-static RegisterSet AllRegs = RegisterSet(GeneralRegisterSet(Registers::AllMask),
-                                         FloatRegisterSet(FloatRegisters::AllMask));
-static RegisterSet NonVolatileRegs = RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
-                                                 FloatRegisterSet(FloatRegisters::NonVolatileMask));
+
+static const RegisterSet AllRegsExceptSP =
+    RegisterSet(GeneralRegisterSet(Registers::AllMask &
+                                   ~(uint32_t(1) << Registers::StackPointer)),
+                FloatRegisterSet(FloatRegisters::AllMask));
+static const RegisterSet NonVolatileRegs =
+    RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
+                FloatRegisterSet(FloatRegisters::NonVolatileMask));
 
 static void
 LoadAsmJSActivationIntoRegister(MacroAssembler &masm, Register reg)
@@ -5516,7 +5520,7 @@ GenerateOperationCallbackExit(ModuleCompiler &m, Label *throwLabel)
     masm.push(Imm32(0));            
     masm.pushFlags();               
     masm.setFramePushed(0);         
-    masm.PushRegsInMask(AllRegs);   
+    masm.PushRegsInMask(AllRegsExceptSP); 
 
     Register activation = ABIArgGenerator::NonArgReturnVolatileReg1;
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg2;
@@ -5553,7 +5557,7 @@ GenerateOperationCallbackExit(ModuleCompiler &m, Label *throwLabel)
     masm.mov(ABIArgGenerator::NonVolatileReg, StackPointer);
 
     
-    masm.PopRegsInMask(AllRegs);  
+    masm.PopRegsInMask(AllRegsExceptSP); 
     masm.popFlags();              
     masm.ret();                   
 #else
