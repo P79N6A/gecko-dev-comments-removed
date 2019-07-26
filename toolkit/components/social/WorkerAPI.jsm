@@ -23,8 +23,6 @@ function WorkerAPI(provider, port) {
   this._port = port;
   this._port.onmessage = this._handleMessage.bind(this);
 
-  this.initialized = false;
-
   
   
   
@@ -54,9 +52,6 @@ WorkerAPI.prototype = {
   },
 
   handlers: {
-    "social.initialize-response": function (data) {
-      this.initialized = true;
-    },
     "social.user-profile": function (data) {
       this._provider.updateUserProfile(data);
     },
