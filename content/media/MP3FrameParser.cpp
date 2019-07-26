@@ -302,12 +302,6 @@ FindNumVBRFrames(const nsAutoCString& aFrame)
 
 static const uint32_t MAX_SKIPPED_BYTES = 4096;
 
-
-
-
-
-static const uint32_t SAMPLES_PER_FRAME = 1152;
-
 enum {
   MP3_HEADER_LENGTH   = 4,
 };
