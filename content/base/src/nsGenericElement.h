@@ -81,6 +81,9 @@ public:
   {
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
   }
+
+  NS_IMETHOD GetAttributes(nsIDOMNamedNodeMap** aAttributes);
+
   
 
 
