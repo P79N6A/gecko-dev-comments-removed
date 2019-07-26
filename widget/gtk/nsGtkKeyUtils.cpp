@@ -843,8 +843,7 @@ KeymapWrapper::ComputeDOMKeyNameIndex(const GdkEventKey* aGdkKeyEvent)
             break;
     }
 
-    uint32_t ch = GetCharCodeFor(aGdkKeyEvent);
-    return ch ? KEY_NAME_INDEX_PrintableKey : KEY_NAME_INDEX_Unidentified;
+    return KEY_NAME_INDEX_Unidentified;
 }
 
  void
@@ -855,6 +854,18 @@ KeymapWrapper::InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
 
     aKeyEvent.mKeyNameIndex =
         keymapWrapper->ComputeDOMKeyNameIndex(aGdkKeyEvent);
+    if (aKeyEvent.mKeyNameIndex == KEY_NAME_INDEX_Unidentified) {
+        uint32_t charCode = GetCharCodeFor(aGdkKeyEvent);
+        if (!charCode) {
+            charCode = keymapWrapper->GetUnmodifiedCharCodeFor(aGdkKeyEvent);
+        }
+        if (charCode) {
+            aKeyEvent.mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
+            MOZ_ASSERT(aKeyEvent.mKeyValue.IsEmpty(),
+                       "Uninitialized mKeyValue must be empty");
+            AppendUCS4ToUTF16(charCode, aKeyEvent.mKeyValue);
+        }
+    }
     aKeyEvent.keyCode = ComputeDOMKeyCode(aGdkKeyEvent);
 
     
@@ -1043,6 +1054,29 @@ KeymapWrapper::GetCharCodeFor(const GdkEventKey *aGdkKeyEvent,
     return GetCharCodeFor(&tmpEvent);
 }
 
+uint32_t
+KeymapWrapper::GetUnmodifiedCharCodeFor(const GdkEventKey* aGdkKeyEvent)
+{
+    guint state = aGdkKeyEvent->state &
+        (GetModifierMask(SHIFT) | GetModifierMask(CAPS_LOCK) |
+         GetModifierMask(NUM_LOCK) | GetModifierMask(SCROLL_LOCK) |
+         GetModifierMask(LEVEL3) | GetModifierMask(LEVEL5));
+    uint32_t charCode = GetCharCodeFor(aGdkKeyEvent, GdkModifierType(state),
+                                       aGdkKeyEvent->group);
+    if (charCode) {
+        return charCode;
+    }
+    
+    
+    
+    guint stateWithoutAltGraph =
+        state & ~(GetModifierMask(LEVEL3) | GetModifierMask(LEVEL5));
+    if (state == stateWithoutAltGraph) {
+        return 0;
+    }
+    return GetCharCodeFor(aGdkKeyEvent, GdkModifierType(stateWithoutAltGraph),
+                          aGdkKeyEvent->group);
+}
 
 gint
 KeymapWrapper::GetKeyLevel(GdkEventKey *aGdkKeyEvent)
