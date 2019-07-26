@@ -32,6 +32,7 @@
 #include "mozilla/mozalloc.h"           
 #include "nsCoord.h"                    
 #include "nsDebug.h"                    
+#include "nsDeviceContext.h"            
 #include "nsISupportsImpl.h"            
 #include "nsLayoutUtils.h"              
 #include "nsMathUtils.h"                
@@ -578,12 +579,14 @@ LayerTransactionParent::RecvGetTransform(PLayerParent* aParent,
   
   
   
+
   Layer* layer = cast(aParent)->AsLayer();
   if (!layer) {
     return false;
   }
   gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform(), *aTransform);
   if (ContainerLayer* c = layer->AsContainerLayer()) {
+    
     aTransform->ScalePost(1.0f/c->GetInheritedXScale(),
                           1.0f/c->GetInheritedYScale(),
                           1.0f);
@@ -599,13 +602,32 @@ LayerTransactionParent::RecvGetTransform(PLayerParent* aParent,
         gfxPoint3D(NS_round(NSAppUnitsToFloatPixels(data.origin().x, scale)),
                    NS_round(NSAppUnitsToFloatPixels(data.origin().y, scale)),
                    0.0f);
-      transformOrigin = data.transformOrigin();
+      double cssPerDev =
+        double(nsDeviceContext::AppUnitsPerCSSPixel()) / double(scale);
+      transformOrigin = data.transformOrigin() * cssPerDev;
       break;
     }
   }
 
+  
+  
   aTransform->Translate(-scaledOrigin);
-  *aTransform = nsLayoutUtils::ChangeMatrixBasis(-scaledOrigin - transformOrigin, *aTransform);
+
+  
+  
+  *aTransform =
+    nsLayoutUtils::ChangeMatrixBasis(-scaledOrigin - transformOrigin,
+                                     *aTransform);
+
+  
+  
+  
+  double devPerCss =
+    double(scale) / double(nsDeviceContext::AppUnitsPerCSSPixel());
+  aTransform->_41 *= devPerCss;
+  aTransform->_42 *= devPerCss;
+  aTransform->_43 *= devPerCss;
+
   return true;
 }
 
