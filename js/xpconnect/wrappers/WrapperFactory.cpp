@@ -316,9 +316,6 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, js::Wrapper *handler,
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
         MOZ_ASSERT(handler->isSafeToUnwrap());
-    } else if (WrapperFactory::IsComponentsObject(obj)) {
-        
-        MOZ_ASSERT(!handler->isSafeToUnwrap());
     } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
         
     } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
@@ -415,9 +412,6 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     
     
     
-    } else if (IsComponentsObject(obj) && !AccessCheck::isChrome(target)) {
-        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                    ComponentsObjectPolicy>::singleton;
     } else if (AccessCheck::needsSystemOnlyWrapper(obj) &&
                xpc::AllowXBLScope(target) &&
                !(targetIsChrome || (targetSubsumesOrigin && nsContentUtils::IsCallerXBL())))
@@ -516,8 +510,6 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, HandleObject objArg)
 
     
     RootedObject wrapper(cx, wn->GetSameCompartmentSecurityWrapper(cx));
-    MOZ_ASSERT_IF(wrapper != obj && IsComponentsObject(js::UncheckedUnwrap(obj)),
-                  !Wrapper::wrapperHandler(wrapper)->isSafeToUnwrap());
     return wrapper;
 }
 
@@ -583,23 +575,6 @@ WrapperFactory::WrapSOWObject(JSContext *cx, JSObject *objArg)
         Wrapper::New(cx, obj, JS_GetGlobalForObject(cx, obj),
                      &FilteringWrapper<SameCompartmentSecurityWrapper,
                      Opaque>::singleton);
-    return wrapperObj;
-}
-
-bool
-WrapperFactory::IsComponentsObject(JSObject *obj)
-{
-    const char *name = js::GetObjectClass(obj)->name;
-    return name[0] == 'n' && !strcmp(name, "nsXPCComponents");
-}
-
-JSObject *
-WrapperFactory::WrapComponentsObject(JSContext *cx, HandleObject obj)
-{
-    JSObject *wrapperObj =
-        Wrapper::New(cx, obj, JS_GetGlobalForObject(cx, obj),
-                     &FilteringWrapper<SameCompartmentSecurityWrapper, ComponentsObjectPolicy>::singleton);
-
     return wrapperObj;
 }
 

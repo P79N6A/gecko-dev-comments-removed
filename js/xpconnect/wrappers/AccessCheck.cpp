@@ -401,33 +401,4 @@ ExposedPropertiesOnly::allowNativeCall(JSContext *cx, JS::IsAcceptableThis test,
     return js::IsReadOnlyDateMethod(test, impl) || js::IsTypedArrayThisCheck(test);
 }
 
-bool
-ComponentsObjectPolicy::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wrapper::Action act)
-{
-    RootedObject wrapper(cx, wrapperArg);
-    RootedId id(cx, idArg);
-    JSAutoCompartment ac(cx, wrapper);
-
-    if (JSID_IS_STRING(id) && act == Wrapper::GET) {
-        JSFlatString *flatId = JSID_TO_FLAT_STRING(id);
-        if (JS_FlatStringEqualsAscii(flatId, "isSuccessCode") ||
-            JS_FlatStringEqualsAscii(flatId, "lookupMethod") ||
-            JS_FlatStringEqualsAscii(flatId, "interfaces") ||
-            JS_FlatStringEqualsAscii(flatId, "interfacesByID") ||
-            JS_FlatStringEqualsAscii(flatId, "results"))
-        {
-            return true;
-        }
-    }
-
-    
-    
-    
-    if (xpc::IsUniversalXPConnectEnabled(cx)) {
-        return true;
-    }
-
-    return false;
-}
-
 }

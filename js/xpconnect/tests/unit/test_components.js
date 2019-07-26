@@ -18,15 +18,23 @@ function run_test() {
   checkThrows("C.classes", sb1);
 
   
-  checkThrows("Components.utils", sb1);
-  checkThrows("Components.classes", sb1);
+  do_check_eq(Cu.evalInSandbox("typeof Components.interfaces", sb1), 'object');
+  do_check_eq(Cu.evalInSandbox("typeof Components.utils", sb1), 'undefined');
+  do_check_eq(Cu.evalInSandbox("typeof Components.classes", sb1), 'undefined');
 
   
   var C2 = Cu.evalInSandbox("Components", sb2);
-  do_check_neq(rv, C2.utils);
+  var whitelist = ['interfaces', 'interfacesByID', 'results', 'isSuccessCode', 'QueryInterface'];
+  for (var prop in Components) {
+    do_print("Checking " + prop);
+    do_check_eq((prop in C2), whitelist.indexOf(prop) != -1);
+  }
+
+  
   sb1.C2 = C2;
-  checkThrows("C2.utils", sb1);
-  checkThrows("C2.classes", sb1);
+  do_check_eq(Cu.evalInSandbox("typeof C2.interfaces", sb1), 'object');
+  do_check_eq(Cu.evalInSandbox("typeof C2.utils", sb1), 'undefined');
+  do_check_eq(Cu.evalInSandbox("typeof C2.classes", sb1), 'undefined');
 
   
   sb3.C = Components;
@@ -35,8 +43,9 @@ function run_test() {
 
   
   sb4.C2 = C2;
-  checkThrows("C2.utils", sb1);
-  checkThrows("C2.classes", sb1);
+  checkThrows("C2.interfaces", sb4);
+  checkThrows("C2.utils", sb4);
+  checkThrows("C2.classes", sb4);
 }
 
 function checkThrows(expression, sb) {
