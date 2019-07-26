@@ -159,6 +159,20 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "instanced_non_arrays",
+        330, 
+        300, 
+        {
+            GLContext::ARB_instanced_arrays,
+            GLContext::Extensions_End
+        }
+        
+
+
+
+
+    },
+    {
         "occlusion_query",
         200, 
         0,   
