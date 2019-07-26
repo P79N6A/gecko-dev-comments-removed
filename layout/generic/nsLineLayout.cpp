@@ -1133,12 +1133,11 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
   NS_PRECONDITION(pfd && pfd->mFrame, "bad args, null pointers for frame data");
   
   *aOptionalBreakAfterFits = true;
+
   
-  if (0 != pfd->mBounds.width) {
-    
-    bool ltr = (NS_STYLE_DIRECTION_LTR == aFrameDirection);
+  bool ltr = NS_STYLE_DIRECTION_LTR == aFrameDirection;
 
-    
+  
 
 
 
@@ -1152,19 +1151,15 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
 
-    if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
-         pfd->mFrame->LastInFlow()->GetNextContinuation() ||
-         pfd->mFrame->FrameIsNonLastInIBSplit())
-        && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
-      if (ltr)
-        pfd->mMargin.right = 0;
-      else
-        pfd->mMargin.left = 0;
+  if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
+       pfd->mFrame->LastInFlow()->GetNextContinuation() ||
+       pfd->mFrame->FrameIsNonLastInIBSplit())
+      && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
+    if (ltr) {
+      pfd->mMargin.right = 0;
+    } else {
+      pfd->mMargin.left = 0;
     }
-  }
-  else {
-    
-    pfd->mMargin.left = pfd->mMargin.right = 0;
   }
 
   PerSpanData* psd = mCurrentSpan;
@@ -1173,7 +1168,6 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
     return true;
   }
 
-  bool ltr = NS_STYLE_DIRECTION_LTR == aFrameDirection;
   nscoord endMargin = ltr ? pfd->mMargin.right : pfd->mMargin.left;
 
 #ifdef NOISY_CAN_PLACE_FRAME
@@ -1291,15 +1285,6 @@ void
 nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
 {
   
-  PerSpanData* psd = mCurrentSpan;
-  bool emptyFrame = false;
-  if ((0 == pfd->mBounds.width) && (0 == pfd->mBounds.height)) {
-    pfd->mBounds.x = psd->mX;
-    pfd->mBounds.y = mTopEdge;
-    emptyFrame = true;
-  }
-
-  
   if (aMetrics.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE)
     pfd->mAscent = pfd->mFrame->GetBaseline();
   else
@@ -1307,10 +1292,16 @@ nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
 
   bool ltr = (NS_STYLE_DIRECTION_LTR == pfd->mFrame->StyleVisibility()->mDirection);
   
-  psd->mX = pfd->mBounds.XMost() + (ltr ? pfd->mMargin.right : pfd->mMargin.left);
+  mCurrentSpan->mX = pfd->mBounds.XMost() +
+                     (ltr ? pfd->mMargin.right : pfd->mMargin.left);
 
   
-  if (!emptyFrame) {
+  if (pfd->mFrame->GetType() == nsGkAtoms::placeholderFrame) {
+    NS_ASSERTION(pfd->mBounds.width == 0 && pfd->mBounds.height == 0,
+                 "placeholders should have 0 width/height (checking "
+                 "placeholders were never counted by the old code in "
+                 "this function)");
+  } else {
     mTotalPlacedFrames++;
   }
 }
