@@ -437,6 +437,37 @@ ICTypeUpdate_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
+DoThisFallback(JSContext *cx, ICThis_Fallback *stub, HandleValue thisv, MutableHandleValue ret)
+{
+    ret.set(thisv);
+    bool modified;
+    if (!BoxNonStrictThis(cx, ret, &modified))
+        return false;
+    return true;
+}
+
+typedef bool (*DoThisFallbackFn)(JSContext *, ICThis_Fallback *, HandleValue, MutableHandleValue);
+static const VMFunction DoThisFallbackInfo = FunctionInfo<DoThisFallbackFn>(DoThisFallback);
+
+bool
+ICThis_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    
+    EmitRestoreTailCallReg(masm);
+
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    return tailCallVM(DoThisFallbackInfo, masm);
+}
+
+
+
+
+
+static bool
 DoCompareFallback(JSContext *cx, ICCompare_Fallback *stub, HandleValue lhs, HandleValue rhs,
                   MutableHandleValue ret)
 {

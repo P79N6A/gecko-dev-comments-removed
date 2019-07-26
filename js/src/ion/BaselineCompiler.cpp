@@ -44,7 +44,7 @@ MethodStatus
 BaselineCompiler::compile()
 {
     IonSpew(IonSpew_BaselineScripts, "Baseline compiling script %s:%d (%p)",
-            script->filename, script->lineno, script);
+            script->filename, script->lineno, script.get());
 
     if (script->needsArgsObj()) {
         IonSpew(IonSpew_BaselineAbort, "Script needs arguments object");
@@ -79,8 +79,9 @@ BaselineCompiler::compile()
         return Method_Error;
     script->baseline = baselineScript;
 
-    IonSpew(IonSpew_BaselineScripts, "Created BaselineScript %p (raw %p)",
-            (void *) script->baseline, (void *) code->raw());
+    IonSpew(IonSpew_BaselineScripts, "Created BaselineScript %p (raw %p) for %s:%d",
+            (void *) script->baseline, (void *) code->raw(),
+            script->filename, script->lineno);
 
     script->baseline->setMethod(code);
 
@@ -476,6 +477,44 @@ BaselineCompiler::emit_JSOP_NULL()
 }
 
 bool
+BaselineCompiler::emit_JSOP_THIS()
+{
+    
+    frame.pushThis();
+
+    
+    if (!function() || function()->inStrictMode() || function()->isSelfHostedBuiltin())
+        return true;
+
+    
+    ICThis_Fallback::Compiler stubCompiler(cx);
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
+    if (!entry)
+        return false;
+
+    Label skipIC;
+    
+    frame.popRegsAndSync(1);
+    
+    masm.branchTestObject(Assembler::Equal, R0, &skipIC);
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    masm.storeValue(R0, frame.addressOfThis());
+
+    
+    masm.bind(&skipIC);
+    frame.push(R0);
+
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_TRUE()
 {
     frame.push(BooleanValue(true));
@@ -562,6 +601,10 @@ BaselineCompiler::storeValue(const StackValue *source, const Address &dest,
         break;
       case StackValue::ArgSlot:
         masm.loadValue(frame.addressOfArg(source->argSlot()), scratch);
+        masm.storeValue(scratch, dest);
+        break;
+      case StackValue::ThisSlot:
+        masm.loadValue(frame.addressOfThis(), scratch);
         masm.storeValue(scratch, dest);
         break;
       case StackValue::Stack:
