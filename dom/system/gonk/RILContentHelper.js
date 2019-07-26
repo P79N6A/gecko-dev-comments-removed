@@ -194,7 +194,8 @@ CdmaIccInfo.prototype = {
 
   
 
-  mdn: null
+  mdn: null,
+  prlVersion: 0
 };
 
 function VoicemailInfo() {}
