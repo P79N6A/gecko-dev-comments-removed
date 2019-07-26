@@ -937,9 +937,13 @@ public:
   bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
-    JSObject* target = aWorkerPrivate->IsAcceptingEvents() ?
-                       aWorkerPrivate->GetJSObject() :
-                       nullptr;
+    
+    
+    if (!aWorkerPrivate->IsAcceptingEvents()) {
+      return true;
+    }
+
+    JSObject* target = aWorkerPrivate->GetJSObject();
 
     uint64_t innerWindowId;
 
