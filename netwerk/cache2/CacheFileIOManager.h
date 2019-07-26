@@ -55,7 +55,7 @@ public:
   bool IsPriority() const { return mPriority; }
   bool FileExists() const { return mFileExists; }
   bool IsClosed() const { return mClosed; }
-  bool IsSpecialFile() const { return !mHash; }
+  bool IsSpecialFile() const { return mSpecialFile; }
   nsCString & Key() { return mKey; }
 
   
@@ -73,6 +73,7 @@ private:
   bool                 mIsDoomed;
   bool                 mPriority;
   bool                 mClosed;
+  bool                 mSpecialFile;
   bool                 mInvalid;
   bool                 mFileExists; 
                                     
