@@ -172,63 +172,6 @@ JSObject::removeDenseElementForSparseIndex(js::ExclusiveContext *cx,
 }
 
 inline void
-JSObject::copyDenseElements(uint32_t dstStart, const js::Value *src, uint32_t count)
-{
-    JS_ASSERT(dstStart + count <= getDenseCapacity());
-    JS::Zone *zone = this->zone();
-    for (uint32_t i = 0; i < count; ++i)
-        elements[dstStart + i].set(zone, this, js::HeapSlot::Element, dstStart + i, src[i]);
-}
-
-inline void
-JSObject::moveDenseElements(uint32_t dstStart, uint32_t srcStart, uint32_t count)
-{
-    JS_ASSERT(dstStart + count <= getDenseCapacity());
-    JS_ASSERT(srcStart + count <= getDenseInitializedLength());
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    JS::Zone *zone = this->zone();
-    if (zone->needsBarrier()) {
-        if (dstStart < srcStart) {
-            js::HeapSlot *dst = elements + dstStart;
-            js::HeapSlot *src = elements + srcStart;
-            for (uint32_t i = 0; i < count; i++, dst++, src++)
-                dst->set(zone, this, js::HeapSlot::Element, dst - elements, *src);
-        } else {
-            js::HeapSlot *dst = elements + dstStart + count - 1;
-            js::HeapSlot *src = elements + srcStart + count - 1;
-            for (uint32_t i = 0; i < count; i++, dst--, src--)
-                dst->set(zone, this, js::HeapSlot::Element, dst - elements, *src);
-        }
-    } else {
-        memmove(elements + dstStart, elements + srcStart, count * sizeof(js::HeapSlot));
-        DenseRangeWriteBarrierPost(runtimeFromMainThread(), this, dstStart, count);
-    }
-}
-
-inline void
-JSObject::moveDenseElementsUnbarriered(uint32_t dstStart, uint32_t srcStart, uint32_t count)
-{
-    JS_ASSERT(!zone()->needsBarrier());
-
-    JS_ASSERT(dstStart + count <= getDenseCapacity());
-    JS_ASSERT(srcStart + count <= getDenseCapacity());
-
-    memmove(elements + dstStart, elements + srcStart, count * sizeof(js::Value));
-}
-
-inline void
 JSObject::markDenseElementsNotPacked(js::ExclusiveContext *cx)
 {
     JS_ASSERT(isNative());
