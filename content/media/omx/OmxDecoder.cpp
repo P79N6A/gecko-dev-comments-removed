@@ -1001,7 +1001,9 @@ bool OmxDecoder::ProcessCachedData(int64_t aOffset, bool aWaitForCompletion)
 {
   
   
-  static const int64_t sReadSize = 8 * 1024 * 1024;
+  
+  
+  static const int64_t sReadSize = 32 * 1024;
 
   NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
 
