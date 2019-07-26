@@ -43,6 +43,7 @@ LocalUTCDifferenceSeconds()
 {
     using js::SecondsPerDay;
     using js::SecondsPerHour;
+    using js::SecondsPerMinute;
 
 #if defined(XP_WIN)
     
@@ -57,21 +58,21 @@ LocalUTCDifferenceSeconds()
     if (!ComputeLocalTime(t, &local) || !ComputeUTCTime(t, &utc))
         return 0;
 
-    int utc_secs = utc.tm_hour * SecondsPerHour + utc.tm_min * 60;
-    int local_secs = local.tm_hour * SecondsPerHour + local.tm_min * 60;
+    int utc_secs = utc.tm_hour * SecondsPerHour + utc.tm_min * SecondsPerMinute;
+    int local_secs = local.tm_hour * SecondsPerHour + local.tm_min * SecondsPerMinute;
 
     
     
 
-    if (utc.tm_mday == local.tm_mday) {
-      return utc_secs - local_secs;
-    }
-    if (utc_secs > local_secs) {
-      
-      return utc_secs - SecondsPerDay - local_secs;
-    }
+    if (utc.tm_mday == local.tm_mday)
+        return utc_secs - local_secs;
+
     
-    return SecondsPerDay - local_secs + utc_secs;
+    if (utc_secs > local_secs)
+        return utc_secs - (SecondsPerDay + local_secs);
+
+    
+    return (utc_secs + SecondsPerDay) - local_secs;
 }
 
 void
