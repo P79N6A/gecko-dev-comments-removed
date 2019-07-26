@@ -378,12 +378,12 @@ nsHttpChannel::Connect()
 
     if (!usingSSL) {
         
-        nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
-        NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
+        nsISiteSecurityService* sss = gHttpHandler->GetSSService();
+        NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
 
         bool isStsHost = false;
         uint32_t flags = mPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-        rv = stss->IsStsURI(mURI, flags, &isStsHost);
+        rv = sss->IsStsURI(mURI, flags, &isStsHost);
 
         
         
@@ -1143,8 +1143,8 @@ nsHttpChannel::ProcessSTSHeader()
     if (PR_SUCCESS == PR_StringToNetAddr(asciiHost.get(), &hostAddr))
         return NS_OK;
 
-    nsIStrictTransportSecurityService* stss = gHttpHandler->GetSTSService();
-    NS_ENSURE_TRUE(stss, NS_ERROR_OUT_OF_MEMORY);
+    nsISiteSecurityService* sss = gHttpHandler->GetSSService();
+    NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
 
     
     
@@ -1155,7 +1155,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     
     bool tlsIsBroken = false;
-    rv = stss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
+    rv = sss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
     
@@ -1166,7 +1166,7 @@ nsHttpChannel::ProcessSTSHeader()
     bool wasAlreadySTSHost;
     uint32_t flags =
       NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-    rv = stss->IsStsURI(mURI, flags, &wasAlreadySTSHost);
+    rv = sss->IsStsURI(mURI, flags, &wasAlreadySTSHost);
     
     
     NS_ENSURE_SUCCESS(rv, NS_OK);
@@ -1194,7 +1194,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = stss->ProcessStsHeader(mURI, stsHeader.get(), flags, NULL, NULL);
+    rv = sss->ProcessStsHeader(mURI, stsHeader.get(), flags, NULL, NULL);
     if (NS_FAILED(rv)) {
         AddSecurityMessage(NS_LITERAL_STRING("InvalidSTSHeaders"),
                 NS_LITERAL_STRING("Invalid HSTS Headers"));
