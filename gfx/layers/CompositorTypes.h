@@ -67,6 +67,12 @@ const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
 
 
 
+
+
+const TextureFlags TEXTURE_DEALLOCATE_DEFERRED  = 1 << 26;
+
+
+
 const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
 
 
@@ -76,6 +82,9 @@ const TextureFlags TEXTURE_IMMEDIATE_UPLOAD   = 1 << 28;
 
 
 const TextureFlags TEXTURE_DOUBLE_BUFFERED    = 1 << 29;
+
+
+const TextureFlags TEXTURE_ALLOC_FALLBACK     = 1 << 31;
 
 
 const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_FRONT;
@@ -167,6 +176,8 @@ enum CompositableType
   BUFFER_TILED,           
   
   COMPOSITABLE_IMAGE,     
+  COMPOSITABLE_CONTENT_SINGLE,  
+  COMPOSITABLE_CONTENT_DOUBLE,  
   BUFFER_COUNT
 };
 

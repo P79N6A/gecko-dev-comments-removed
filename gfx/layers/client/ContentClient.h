@@ -178,6 +178,109 @@ public:
 
 
 
+
+class ContentClientRemoteBufferNew : public ContentClientRemote
+                                   , protected RotatedContentBuffer
+{
+  using RotatedContentBuffer::BufferRect;
+  using RotatedContentBuffer::BufferRotation;
+public:
+  ContentClientRemoteBufferNew(CompositableForwarder* aForwarder)
+    : ContentClientRemote(aForwarder)
+    , RotatedContentBuffer(ContainsVisibleBounds)
+    , mIsNewBuffer(false)
+    , mFrontAndBackBufferDiffer(false)
+    , mSurfaceFormat(gfx::FORMAT_B8G8R8A8)
+  {}
+
+  typedef RotatedContentBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
+
+  virtual void Clear() { RotatedContentBuffer::Clear(); }
+  PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+                              uint32_t aFlags)
+  {
+    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
+  }
+
+  
+
+
+
+
+
+
+
+  virtual void BeginPaint() MOZ_OVERRIDE;
+  virtual void EndPaint() MOZ_OVERRIDE;
+
+  virtual void Updated(const nsIntRegion& aRegionToDraw,
+                       const nsIntRegion& aVisibleRegion,
+                       bool aDidSelfCopy);
+
+  virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
+
+  
+  virtual const nsIntRect& BufferRect() const
+  {
+    return RotatedContentBuffer::BufferRect();
+  }
+  virtual const nsIntPoint& BufferRotation() const
+  {
+    return RotatedContentBuffer::BufferRotation();
+  }
+
+  virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+                            RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) MOZ_OVERRIDE;
+
+  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
+  {
+    return mTextureInfo;
+  }
+
+protected:
+  void DestroyBuffers();
+
+  virtual nsIntRegion GetUpdatedRegion(const nsIntRegion& aRegionToDraw,
+                                       const nsIntRegion& aVisibleRegion,
+                                       bool aDidSelfCopy);
+
+  void BuildTextureClients(gfx::SurfaceFormat aFormat,
+                           const nsIntRect& aRect,
+                           uint32_t aFlags);
+
+  
+  
+  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) = 0;
+  virtual void DestroyFrontBuffer() {}
+  
+  
+  virtual void LockFrontBuffer() {}
+
+  bool CreateAndAllocateTextureClient(RefPtr<TextureClient>& aClient,
+                                      TextureFlags aFlags = 0);
+
+  virtual void AbortTextureClientCreation()
+  {
+    mTextureClient = nullptr;
+    mTextureClientOnWhite = nullptr;
+    mIsNewBuffer = false;
+  }
+
+  RefPtr<TextureClient> mTextureClient;
+  RefPtr<TextureClient> mTextureClientOnWhite;
+  
+  
+  
+  nsTArray<RefPtr<TextureClient> > mOldTextures;
+
+  TextureInfo mTextureInfo;
+  bool mIsNewBuffer;
+  bool mFrontAndBackBufferDiffer;
+  gfx::IntSize mSize;
+  gfx::SurfaceFormat mSurfaceFormat;
+};
+
 class ContentClientRemoteBuffer : public ContentClientRemote
                                 , protected RotatedContentBuffer
 {
@@ -233,8 +336,6 @@ public:
   virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
                             RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) MOZ_OVERRIDE;
 
-  void DestroyBuffers();
-
   virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
   {
     return mTextureInfo;
@@ -243,6 +344,8 @@ public:
   virtual void OnActorDestroy() MOZ_OVERRIDE;
 
 protected:
+  void DestroyBuffers();
+
   virtual nsIntRegion GetUpdatedRegion(const nsIntRegion& aRegionToDraw,
                                        const nsIntRegion& aVisibleRegion,
                                        bool aDidSelfCopy);
@@ -286,6 +389,44 @@ protected:
 
 
 
+class ContentClientDoubleBufferedNew : public ContentClientRemoteBufferNew
+{
+public:
+  ContentClientDoubleBufferedNew(CompositableForwarder* aFwd)
+    : ContentClientRemoteBufferNew(aFwd)
+  {
+    mTextureInfo.mCompositableType = COMPOSITABLE_CONTENT_DOUBLE;
+  }
+  virtual ~ContentClientDoubleBufferedNew() {}
+
+  virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
+
+  virtual void SyncFrontBufferToBackBuffer() MOZ_OVERRIDE;
+
+protected:
+  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
+  virtual void DestroyFrontBuffer() MOZ_OVERRIDE;
+  virtual void LockFrontBuffer() MOZ_OVERRIDE;
+
+private:
+  void UpdateDestinationFrom(const RotatedBuffer& aSource,
+                             const nsIntRegion& aUpdateRegion);
+
+  virtual void AbortTextureClientCreation() MOZ_OVERRIDE
+  {
+    mTextureClient = nullptr;
+    mTextureClientOnWhite = nullptr;
+    mFrontClient = nullptr;
+    mFrontClientOnWhite = nullptr;
+  }
+
+  RefPtr<TextureClient> mFrontClient;
+  RefPtr<TextureClient> mFrontClientOnWhite;
+  nsIntRegion mFrontUpdatedRegion;
+  nsIntRect mFrontBufferRect;
+  nsIntPoint mFrontBufferRotation;
+};
+
 class ContentClientDoubleBuffered : public ContentClientRemoteBuffer
 {
 public:
@@ -325,6 +466,22 @@ private:
 
 
 
+
+class ContentClientSingleBufferedNew : public ContentClientRemoteBufferNew
+{
+public:
+  ContentClientSingleBufferedNew(CompositableForwarder* aFwd)
+    : ContentClientRemoteBufferNew(aFwd)
+  {
+    mTextureInfo.mCompositableType = COMPOSITABLE_CONTENT_SINGLE;
+  }
+  virtual ~ContentClientSingleBufferedNew() {}
+
+  virtual void SyncFrontBufferToBackBuffer() MOZ_OVERRIDE;
+
+protected:
+  virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE {}
+};
 
 class ContentClientSingleBuffered : public ContentClientRemoteBuffer
 {
