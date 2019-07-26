@@ -7819,10 +7819,13 @@ GetTemplateObjectForNative(JSContext *cx, HandleScript script, jsbytecode *pc,
     
 
     if (native == js_Array) {
+        
+        
+        
         size_t count = 0;
-        if (args.hasDefined(1))
+        if (args.length() != 1)
             count = args.length();
-        else if (args.hasDefined(0) && args[0].isInt32() && args[0].toInt32() > 0)
+        else if (args.length() == 1 && args[0].isInt32() && args[0].toInt32() >= 0)
             count = args[0].toInt32();
         res.set(NewDenseUnallocatedArray(cx, count, nullptr, TenuredObject));
         if (!res)
