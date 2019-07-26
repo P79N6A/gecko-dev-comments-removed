@@ -5905,7 +5905,8 @@ function WindowIsClosing()
 
 function warnAboutClosingWindow() {
   
-  let isPBWindow = PrivateBrowsingUtils.isWindowPrivate(window);
+  let isPBWindow = PrivateBrowsingUtils.isWindowPrivate(window) &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing;
   if (!isPBWindow && !toolbar.visible)
     return gBrowser.warnAboutClosingTabs(gBrowser.closingTabsEnum.ALL);
 
