@@ -96,8 +96,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x8e2afc1c, 0x7087, 0x4ec2, \
-  { 0xac, 0xc6, 0xd4, 0xf2, 0x3e, 0x13, 0xd2, 0xb7 } }
+{ 0xa1f684e6, 0x2ae1, 0x4513, \
+  { 0xb6, 0x89, 0xf4, 0xd4, 0xfe, 0x9d, 0x2c, 0xdb } }
 
 
 
@@ -1223,6 +1223,15 @@ class nsIWidget : public nsISupports {
 
 
     virtual bool PreRender(LayerManager* aManager) = 0;
+
+    
+
+
+
+
+
+
+    virtual void PostRender(LayerManager* aManager) = 0;
 
     
 
