@@ -9,7 +9,6 @@
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
-#include "pratom.h"
 #include "mozilla/Services.h"
 
 
@@ -62,8 +61,7 @@ nsBaseAppShell::Init()
 void
 nsBaseAppShell::NativeEventCallback()
 {
-  int32_t hasPending = PR_ATOMIC_SET(&mNativeEventPending, 0);
-  if (hasPending == 0)
+  if (!mNativeEventPending.exchange(0))
     return;
 
   
@@ -227,8 +225,7 @@ nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
   if (mBlockNativeEvent)
     return NS_OK;
 
-  int32_t lastVal = PR_ATOMIC_SET(&mNativeEventPending, 1);
-  if (lastVal == 1)
+  if (mNativeEventPending.exchange(1))
     return NS_OK;
 
   
