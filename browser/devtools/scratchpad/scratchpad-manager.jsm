@@ -69,11 +69,29 @@ this.ScratchpadManager = {
   saveOpenWindows: function SPM_saveOpenWindows() {
     this._scratchpads = [];
 
+    function clone(src) {
+      let dest = {};
+
+      for (let key in src) {
+        if (src.hasOwnProperty(key)) {
+          dest[key] = src[key];
+        }
+      }
+
+      return dest;
+    }
+
+    
+    
+    
+    
+    
+
     let enumerator = Services.wm.getEnumerator("devtools:scratchpad");
     while (enumerator.hasMoreElements()) {
       let win = enumerator.getNext();
       if (!win.closed && win.Scratchpad.initialized) {
-        this._scratchpads.push(win.Scratchpad.getState());
+        this._scratchpads.push(clone(win.Scratchpad.getState()));
       }
     }
   },
@@ -106,6 +124,7 @@ this.ScratchpadManager = {
 
     let win = Services.ww.openWindow(null, SCRATCHPAD_WINDOW_URL, "_blank",
                                      SCRATCHPAD_WINDOW_FEATURES, params);
+
     
     ShutdownObserver.init();
 
@@ -128,6 +147,7 @@ var ShutdownObserver = {
     }
 
     Services.obs.addObserver(this, "quit-application-granted", false);
+
     this._initialized = true;
   },
 
