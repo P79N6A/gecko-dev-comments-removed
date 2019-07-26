@@ -191,6 +191,12 @@ public:
 
   void PrepareUpdatesToMainThreadState(bool aFinalUpdate);
   
+
+
+
+
+  bool ShouldUpdateMainThread();
+  
   
 
 
@@ -394,6 +400,10 @@ public:
 
 
   TimeStamp mCurrentTimeStamp;
+  
+
+
+  TimeStamp mLastMainThreadUpdate;
   
 
 
