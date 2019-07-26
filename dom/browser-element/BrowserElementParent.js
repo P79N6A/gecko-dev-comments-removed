@@ -243,7 +243,7 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
   defineMethod('goForward', this._goForward);
   defineMethod('reload', this._reload);
   defineMethod('stop', this._stop);
-  defineDOMRequestMethod('getScreenshot', 'get-screenshot');
+  defineMethod('getScreenshot', this._getScreenshot);
   defineDOMRequestMethod('getCanGoBack', 'get-can-go-back');
   defineDOMRequestMethod('getCanGoForward', 'get-can-go-forward');
 
@@ -475,10 +475,13 @@ BrowserElementParent.prototype = {
 
 
 
-  _sendDOMRequest: function(msgName) {
+
+
+
+  _sendDOMRequest: function(msgName, args) {
     let id = 'req_' + this._domRequestCounter++;
     let req = Services.DOMRequest.createRequest(this._window);
-    if (this._sendAsyncMsg(msgName, {id: id})) {
+    if (this._sendAsyncMsg(msgName, {id: id, args: args})) {
       this._pendingDOMRequests[id] = req;
     } else {
       Services.DOMRequest.fireErrorAsync(req, "fail");
@@ -494,10 +497,23 @@ BrowserElementParent.prototype = {
 
 
 
+
+
+
+
+
   _gotDOMRequestResult: function(data) {
     let req = this._pendingDOMRequests[data.json.id];
     delete this._pendingDOMRequests[data.json.id];
-    Services.DOMRequest.fireSuccess(req, data.json.rv);
+
+    if ('successRv' in data.json) {
+      debug("Successful gotDOMRequestResult.");
+      Services.DOMRequest.fireSuccess(req, data.json.successRv);
+    }
+    else {
+      debug("Got error in gotDOMRequestResult.");
+      Services.DOMRequest.fireErrorAsync(req, data.json.errorMsg);
+    }
   },
 
   _setVisible: function(visible) {
@@ -546,6 +562,18 @@ BrowserElementParent.prototype = {
 
   _stop: function() {
     this._sendAsyncMsg('stop');
+  },
+
+  _getScreenshot: function(_width, _height) {
+    let width = parseInt(_width);
+    let height = parseInt(_height);
+    if (isNaN(width) || isNaN(height) || width < 0 || height < 0) {
+      throw Components.Exception("Invalid argument",
+                                 Cr.NS_ERROR_INVALID_ARG);
+    }
+
+    return this._sendDOMRequest('get-screenshot',
+                                {width: width, height: height});
   },
 
   _fireKeyEvent: function(data) {

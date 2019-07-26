@@ -25,7 +25,7 @@ function runTest() {
       
       e.preventDefault();
 
-      iframe.getScreenshot().onsuccess = function(sshot) {
+      iframe.getScreenshot(1000, 1000).onsuccess = function(sshot) {
         if (initialScreenshot == null)
           initialScreenshot = sshot.target.result;
         e.detail.unblock();
@@ -37,7 +37,7 @@ function runTest() {
     case 'finish':
       
       
-      iframe.getScreenshot().onsuccess = function(sshot) {
+      iframe.getScreenshot(1000, 1000).onsuccess = function(sshot) {
         is(sshot.target.result, initialScreenshot, "Screenshots should be identical");
         SimpleTest.finish();
       };

@@ -452,20 +452,56 @@ BrowserElementChild.prototype = {
 
   _recvGetScreenshot: function(data) {
     debug("Received getScreenshot message: (" + data.json.id + ")");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let maxWidth = data.json.args.width;
+    let maxHeight = data.json.args.height;
+
+    let scaleWidth = Math.min(1, maxWidth / content.innerWidth);
+    let scaleHeight = Math.min(1, maxHeight / content.innerHeight);
+
+    let scale = Math.max(scaleWidth, scaleHeight);
+
+    let canvasWidth = Math.min(maxWidth, Math.round(content.innerWidth * scale));
+    let canvasHeight = Math.min(maxHeight, Math.round(content.innerHeight * scale));
+
     var canvas = content.document
       .createElementNS("http://www.w3.org/1999/xhtml", "canvas");
-    var ctx = canvas.getContext("2d");
     canvas.mozOpaque = true;
-    canvas.height = content.innerHeight;
-    canvas.width = content.innerWidth;
-    ctx.drawWindow(content, 0, 0, content.innerWidth,
-                   content.innerHeight, "rgb(255,255,255)");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    var ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
+    ctx.drawWindow(content, 0, 0, content.innerWidth, content.innerHeight,
+                   "rgb(255,255,255)");
+
     sendAsyncMsg('got-screenshot', {
       id: data.json.id,
       
       
       
-      rv: canvas.toDataURL("image/jpeg")
+      successRv: canvas.toDataURL("image/jpeg")
     });
   },
 
@@ -550,7 +586,7 @@ BrowserElementChild.prototype = {
     var webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
     sendAsyncMsg('got-can-go-back', {
       id: data.json.id,
-      rv: webNav.canGoBack
+      successRv: webNav.canGoBack
     });
   },
 
@@ -558,7 +594,7 @@ BrowserElementChild.prototype = {
     var webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
     sendAsyncMsg('got-can-go-forward', {
       id: data.json.id,
-      rv: webNav.canGoForward
+      successRv: webNav.canGoForward
     });
   },
 

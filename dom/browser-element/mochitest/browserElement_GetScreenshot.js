@@ -50,13 +50,13 @@ function runTest() {
         SimpleTest.finish();
       } else {
         content.document.defaultView.setTimeout(function() {
-          iframe1.getScreenshot().onsuccess = screenshotLoaded;
+          iframe1.getScreenshot(1000, 1000).onsuccess = screenshotLoaded;
         }, 200);
       }
     }
 
     var attempts = 10;
-    iframe1.getScreenshot().onsuccess = screenshotLoaded;
+    iframe1.getScreenshot(1000, 1000).onsuccess = screenshotLoaded;
   }
 
   function iframeLoadedHandler() {
@@ -72,5 +72,3 @@ function runTest() {
 }
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
-
-

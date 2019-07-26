@@ -55,7 +55,7 @@ function runTest() {
     else if (e.detail.message == 'finish') {
       
       
-      iframe.getScreenshot().onsuccess = function(e) {
+      iframe.getScreenshot(1000, 1000).onsuccess = function(e) {
         test2(popup, e.target.result, popup);
       };
     }
@@ -72,7 +72,7 @@ var prevScreenshot;
 function test2(popup, blankScreenshot) {
   
   
-  popup.getScreenshot().onsuccess = function(e) {
+  popup.getScreenshot(1000, 1000).onsuccess = function(e) {
     var screenshot = e.target.result;
     if (screenshot != blankScreenshot) {
       SimpleTest.finish();
