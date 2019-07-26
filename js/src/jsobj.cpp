@@ -4222,7 +4222,7 @@ GetPropertyHelperInline(JSContext *cx,
                 return true;
 
             
-            if (!script || script->warnedAboutUndefinedProp)
+            if (!script || script->warnedAboutUndefinedProp())
                 return true;
 
             
@@ -4237,7 +4237,7 @@ GetPropertyHelperInline(JSContext *cx,
             }
 
             unsigned flags = JSREPORT_WARNING | JSREPORT_STRICT;
-            script->warnedAboutUndefinedProp = true;
+            script->setWarnedAboutUndefinedProp();
 
             
             RootedValue val(cx, IdToValue(id));
@@ -4484,7 +4484,7 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 
         
         
-        if (!script->strict && !cx->options().extraWarnings())
+        if (!script->strict() && !cx->options().extraWarnings())
             return true;
     }
 
@@ -4508,7 +4508,7 @@ js::ReportIfUndeclaredVarAssignment(JSContext *cx, HandleString propname)
 
         
         
-        if (!script->strict && !cx->options().extraWarnings())
+        if (!script->strict() && !cx->options().extraWarnings())
             return true;
 
         

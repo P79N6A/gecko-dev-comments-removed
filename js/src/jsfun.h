@@ -99,8 +99,8 @@ class JSFunction : public JSObject
 
         
         return nonLazyScript()->bindings.hasAnyAliasedBindings() ||
-               nonLazyScript()->funHasExtensibleScope ||
-               nonLazyScript()->funNeedsDeclEnvObject;
+               nonLazyScript()->funHasExtensibleScope() ||
+               nonLazyScript()->funNeedsDeclEnvObject();
     }
 
     
@@ -166,7 +166,7 @@ class JSFunction : public JSObject
 
     
     bool strict() const {
-        return nonLazyScript()->strict;
+        return nonLazyScript()->strict();
     }
 
     

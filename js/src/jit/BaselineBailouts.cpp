@@ -582,7 +582,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 JS_ASSERT(!script->isForEval());
-                JS_ASSERT(script->compileAndGo);
+                JS_ASSERT(script->compileAndGo());
                 scopeChain = &(script->global());
             }
         }
@@ -1363,9 +1363,8 @@ HandleBoundsCheckFailure(JSContext *cx, HandleScript outerScript, HandleScript i
     
     
     
-    if (!outerScript->failedBoundsCheck) {
-        outerScript->failedBoundsCheck = true;
-    }
+    if (!outerScript->failedBoundsCheck())
+        outerScript->setFailedBoundsCheck();
     IonSpew(IonSpew_BaselineBailouts, "Invalidating due to bounds check failure");
     return Invalidate(cx, outerScript);
 }
@@ -1382,7 +1381,7 @@ HandleShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScript in
     
     
     
-    outerScript->failedShapeGuard = true;
+    outerScript->setFailedShapeGuard();
     IonSpew(IonSpew_BaselineBailouts, "Invalidating due to shape guard failure");
     return Invalidate(cx, outerScript);
 }

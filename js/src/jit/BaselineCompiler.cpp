@@ -575,7 +575,7 @@ BaselineCompiler::initScopeChain()
         
         
 
-        if (script->isForEval() && script->strict) {
+        if (script->isForEval() && script->strict()) {
             
             prepareVMCall();
 
@@ -1092,7 +1092,7 @@ BaselineCompiler::emit_JSOP_THIS()
     frame.pushThis();
 
     
-    if (script->strict || (function() && function()->isSelfHostedBuiltin()))
+    if (script->strict() || (function() && function()->isSelfHostedBuiltin()))
         return true;
 
     Label skipIC;
@@ -1753,7 +1753,7 @@ BaselineCompiler::emit_JSOP_DELELEM()
     pushArg(R1);
     pushArg(R0);
 
-    if (!callVM(script->strict ? DeleteElementStrictInfo : DeleteElementNonStrictInfo))
+    if (!callVM(script->strict() ? DeleteElementStrictInfo : DeleteElementNonStrictInfo))
         return false;
 
     masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
@@ -1898,7 +1898,7 @@ BaselineCompiler::emit_JSOP_DELPROP()
     pushArg(ImmGCPtr(script->getName(pc)));
     pushArg(R0);
 
-    if (!callVM(script->strict ? DeletePropertyStrictInfo : DeletePropertyNonStrictInfo))
+    if (!callVM(script->strict() ? DeletePropertyStrictInfo : DeletePropertyNonStrictInfo))
         return false;
 
     masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
@@ -1965,7 +1965,7 @@ bool
 BaselineCompiler::emit_JSOP_SETALIASEDVAR()
 {
     JSScript *outerScript = ScopeCoordinateFunctionScript(script, pc);
-    if (outerScript && outerScript->treatAsRunOnce) {
+    if (outerScript && outerScript->treatAsRunOnce()) {
         
         
 
@@ -2299,7 +2299,7 @@ BaselineCompiler::emitFormalArgAccess(uint32_t arg, bool get)
 {
     
     
-    if (!script->argumentsHasVarBinding() || script->strict) {
+    if (!script->argumentsHasVarBinding() || script->strict()) {
         if (get) {
             frame.pushArg(arg);
         } else {
@@ -2367,7 +2367,7 @@ BaselineCompiler::emit_JSOP_SETARG()
 {
     
     if (!script->argsObjAliasesFormals() && script->argumentsAliasesFormals())
-        script->uninlineable = true;
+        script->setUninlineable();
 
     modifiesArguments_ = true;
 
@@ -2509,7 +2509,7 @@ bool
 BaselineCompiler::emit_JSOP_TRY()
 {
     
-    script->uninlineable = true;
+    script->setUninlineable();
     return true;
 }
 
@@ -2745,7 +2745,7 @@ BaselineCompiler::emit_JSOP_RETRVAL()
 
     masm.moveValue(UndefinedValue(), JSReturnOperand);
 
-    if (!script->noScriptRval) {
+    if (!script->noScriptRval()) {
         
         Label done;
         Address flags = frame.addressOfFlags();

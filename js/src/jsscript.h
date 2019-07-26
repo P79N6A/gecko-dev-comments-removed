@@ -638,73 +638,94 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     uint8_t         generatorKindBits_:2;
 
     
-    uint8_t         padToByte_:1;
+
+    
+    bool noScriptRval_:1;
+
+    
+    bool savedCallerFun_:1;
+
+    
+    bool strict_:1;
+
+    
+    bool explicitUseStrict_:1;
+
+    
+    bool compileAndGo_:1;
+
+    
+    bool selfHosted_:1;
+
+    
+    bool bindingsAccessedDynamically_:1;
+    bool funHasExtensibleScope_:1;
+    bool funNeedsDeclEnvObject_:1;
+
+    
+    bool funHasAnyAliasedFormal_:1;
+
+    
+    bool warnedAboutUndefinedProp_:1;
+
+    
+    bool hasSingletons_:1;
+
+    
+    bool treatAsRunOnce_:1;
+
+    
+    bool hasRunOnce_:1;
+
+    
+    bool hasBeenCloned_:1;
+
+    
+    bool isActiveEval_:1;
+
+    
+    bool isCachedEval_:1;
+
+    
+    bool directlyInsideEval_:1;
+
+    
+    bool usesArgumentsAndApply_:1;
 
     
 
-  public:
-    bool            noScriptRval:1; 
-
-    bool            savedCallerFun:1; 
-    bool            strict:1; 
-    bool            explicitUseStrict:1; 
-    bool            compileAndGo:1;   
-    bool            selfHosted:1;     
-    bool            bindingsAccessedDynamically:1; 
-    bool            funHasExtensibleScope:1;       
-    bool            funNeedsDeclEnvObject:1;       
-    bool            funHasAnyAliasedFormal:1;      
-    bool            warnedAboutUndefinedProp:1; 
 
 
-    bool            hasSingletons:1;  
-    bool            treatAsRunOnce:1; 
-    bool            hasRunOnce:1;     
-    bool            hasBeenCloned:1;  
-    bool            isActiveEval:1;   
-    bool            isCachedEval:1;   
+    bool shouldCloneAtCallsite_:1;
+    bool isCallsiteClone_:1; 
+    bool shouldInline_:1;    
 
     
-    bool directlyInsideEval:1;
+    bool failedBoundsCheck_:1; 
+    bool failedShapeGuard_:1; 
+    bool hadFrequentBailouts_:1;
+    bool uninlineable_:1;    
 
     
-    bool usesArgumentsAndApply:1;
-
-    
-
-
-
-    bool            shouldCloneAtCallsite:1;
-    bool            isCallsiteClone:1; 
-    bool            shouldInline:1;    
-    bool            uninlineable:1;    
-#ifdef JS_ION
-    bool            failedBoundsCheck:1; 
-    bool            failedShapeGuard:1; 
-    bool            hadFrequentBailouts:1;
-#else
-    bool            failedBoundsCheckPad:1;
-    bool            failedShapeGuardPad:1;
-    bool            hadFrequentBailoutsPad:1;
-#endif
-    bool            invalidatedIdempotentCache:1; 
+    bool invalidatedIdempotentCache_:1;
 
     
     
-    bool            isGeneratorExp:1;
+    bool isGeneratorExp_:1;
 
-    bool            hasScriptCounts:1;
-
-    bool            hasDebugScript:1; 
-
-    bool            hasFreezeConstraints:1; 
-
-
-  private:
     
-    bool            argsHasVarBinding_:1;
-    bool            needsArgsAnalysis_:1;
-    bool            needsArgsObj_:1;
+    bool hasScriptCounts_:1;
+
+    
+    bool hasDebugScript_:1;
+
+    
+    bool hasFreezeConstraints_:1;
+
+    
+    bool argsHasVarBinding_:1;
+    bool needsArgsAnalysis_:1;
+    bool needsArgsObj_:1;
 
     
     
@@ -819,12 +840,98 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         return sourceEnd_;
     }
 
+    bool noScriptRval() const {
+        js::AutoThreadSafeAccess ts(this);
+        return noScriptRval_;
+    }
+
+    bool savedCallerFun() const { return savedCallerFun_; }
+
+    bool strict() const {
+        js::AutoThreadSafeAccess ts(this);
+        return strict_;
+    }
+
+    bool explicitUseStrict() const { return explicitUseStrict_; }
+
+    bool compileAndGo() const {
+        js::AutoThreadSafeAccess ts(this);
+        return compileAndGo_;
+    }
+
+    bool selfHosted() const { return selfHosted_; }
+    bool bindingsAccessedDynamically() const { return bindingsAccessedDynamically_; }
+    bool funHasExtensibleScope() const { return funHasExtensibleScope_; }
+    bool funNeedsDeclEnvObject() const { return funNeedsDeclEnvObject_; }
+    bool funHasAnyAliasedFormal() const { return funHasAnyAliasedFormal_; }
+
+    bool hasSingletons() const { return hasSingletons_; }
+    bool treatAsRunOnce() const { return treatAsRunOnce_; }
+    bool hasRunOnce() const { return hasRunOnce_; }
+    bool hasBeenCloned() const { return hasBeenCloned_; }
+
+    void setTreatAsRunOnce() { treatAsRunOnce_ = true; }
+    void setHasRunOnce() { hasRunOnce_ = true; }
+    void setHasBeenCloned() { hasBeenCloned_ = true; }
+
+    bool isActiveEval() const { return isActiveEval_; }
+    bool isCachedEval() const { return isCachedEval_; }
+    bool directlyInsideEval() const { return directlyInsideEval_; }
+
+    void cacheForEval() {
+        JS_ASSERT(isActiveEval() && !isCachedEval());
+        isActiveEval_ = false;
+        isCachedEval_ = true;
+    }
+
+    void uncacheForEval() {
+        JS_ASSERT(isCachedEval() && !isActiveEval());
+        isCachedEval_ = false;
+        isActiveEval_ = true;
+    }
+
+    void setActiveEval() { isActiveEval_ = true; }
+    void setDirectlyInsideEval() { directlyInsideEval_ = true; }
+
+    bool usesArgumentsAndApply() const { return usesArgumentsAndApply_; }
+    void setUsesArgumentsAndApply() { usesArgumentsAndApply_ = true; }
+
+    bool shouldCloneAtCallsite() const { return shouldCloneAtCallsite_; }
+    bool shouldInline() const { return shouldInline_; }
+
+    void setShouldCloneAtCallsite() { shouldCloneAtCallsite_ = true; }
+    void setShouldInline() { shouldInline_ = true; }
+
+    bool isCallsiteClone() const { return isCallsiteClone_; }
+    bool isGeneratorExp() const { return isGeneratorExp_; }
+
+    bool failedBoundsCheck() const { return failedBoundsCheck_; }
+    bool failedShapeGuard() const { return failedShapeGuard_; }
+    bool hadFrequentBailouts() const { return hadFrequentBailouts_; }
+    bool uninlineable() const { return uninlineable_; }
+    bool invalidatedIdempotentCache() const { return invalidatedIdempotentCache_; }
+
+    void setFailedBoundsCheck() { failedBoundsCheck_ = true; }
+    void setFailedShapeGuard() { failedShapeGuard_ = true; }
+    void setHadFrequentBailouts() { hadFrequentBailouts_ = true; }
+    void setUninlineable() { uninlineable_ = true; }
+    void setInvalidatedIdempotentCache() { invalidatedIdempotentCache_ = true; }
+
+    bool hasScriptCounts() const { return hasScriptCounts_; }
+
+    bool hasFreezeConstraints() const { return hasFreezeConstraints_; }
+    void setHasFreezeConstraints() { hasFreezeConstraints_ = true; }
+    void clearHasFreezeConstraints() { hasFreezeConstraints_ = false; }
+
+    bool warnedAboutUndefinedProp() const { return warnedAboutUndefinedProp_; }
+    void setWarnedAboutUndefinedProp() { warnedAboutUndefinedProp_ = true; }
+
     
     bool argumentsHasVarBinding() const { return argsHasVarBinding_; }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code()[0] == JSOP_ARGUMENTS); return code(); }
     void setArgumentsHasVarBinding();
     bool argumentsAliasesFormals() const {
-        return argumentsHasVarBinding() && !strict;
+        return argumentsHasVarBinding() && !strict();
     }
 
     js::GeneratorKind generatorKind() const {
@@ -865,7 +972,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
     bool argsObjAliasesFormals() const {
-        return needsArgsObj() && !strict;
+        return needsArgsObj() && !strict();
     }
 
     bool hasAnyIonScript() const {
@@ -963,7 +1070,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     inline void setFunction(JSFunction *fun);
 
     JSFunction *originalFunction() const;
-    void setOriginalFunctionObject(JSObject *fun);
+    void setIsCallsiteClone(JSObject *fun);
 
     JSFlatString *sourceData(JSContext *cx);
 
@@ -978,7 +1085,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
   public:
 
     
-    bool isForEval() { return isCachedEval || isActiveEval; }
+    bool isForEval() { return isCachedEval() || isActiveEval(); }
 
 #ifdef DEBUG
     unsigned id();
@@ -1007,7 +1114,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     
     JSObject *enclosingStaticScope() const {
-        if (isCallsiteClone)
+        if (isCallsiteClone())
             return nullptr;
         return enclosingScopeOrOriginalFunction_;
     }
@@ -1137,7 +1244,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     size_t innerObjectsStart() {
         
-        return savedCallerFun ? 1 : 0;
+        return savedCallerFun() ? 1 : 0;
     }
 
     JSObject *getObject(jsbytecode *pc) {
@@ -1171,7 +1278,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
             return false;
 
         jsbytecode *pc = code();
-        if (noScriptRval && JSOp(*pc) == JSOP_FALSE)
+        if (noScriptRval() && JSOp(*pc) == JSOP_FALSE)
             ++pc;
         return JSOp(*pc) == JSOP_RETRVAL;
     }
@@ -1197,11 +1304,11 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
   public:
     bool hasBreakpointsAt(jsbytecode *pc);
-    bool hasAnyBreakpointsOrStepMode() { return hasDebugScript; }
+    bool hasAnyBreakpointsOrStepMode() { return hasDebugScript_; }
 
     js::BreakpointSite *getBreakpointSite(jsbytecode *pc)
     {
-        return hasDebugScript ? debugScript()->breakpoints[pcToOffset(pc)] : nullptr;
+        return hasDebugScript_ ? debugScript()->breakpoints[pcToOffset(pc)] : nullptr;
     }
 
     js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc);
@@ -1229,10 +1336,10 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     bool changeStepModeCount(JSContext *cx, int delta);
 
-    bool stepModeEnabled() { return hasDebugScript && !!debugScript()->stepMode; }
+    bool stepModeEnabled() { return hasDebugScript_ && !!debugScript()->stepMode; }
 
 #ifdef DEBUG
-    uint32_t stepModeCount() { return hasDebugScript ? (debugScript()->stepMode & stepCountMask) : 0; }
+    uint32_t stepModeCount() { return hasDebugScript_ ? (debugScript()->stepMode & stepCountMask) : 0; }
 #endif
 
     void finalize(js::FreeOp *fop);

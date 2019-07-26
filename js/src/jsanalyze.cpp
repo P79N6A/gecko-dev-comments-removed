@@ -1633,7 +1633,7 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-    if (script_->bindingsAccessedDynamically)
+    if (script_->bindingsAccessedDynamically())
         return false;
 
     
@@ -1655,7 +1655,7 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-    if (script_->funHasAnyAliasedFormal && argumentsContentsObserved_)
+    if (script_->funHasAnyAliasedFormal() && argumentsContentsObserved_)
         return true;
 
     return false;

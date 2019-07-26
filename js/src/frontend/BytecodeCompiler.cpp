@@ -79,7 +79,7 @@ CheckArgumentsWithinEval(JSContext *cx, Parser<FullParseHandler> &parser, Handle
     }
 
     
-    if (script->isGeneratorExp && script->isLegacyGenerator()) {
+    if (script->isGeneratorExp() && script->isLegacyGenerator()) {
         parser.report(ParseError, false, nullptr, JSMSG_BAD_GENEXP_BODY, js_arguments_str);
         return false;
     }
@@ -238,7 +238,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     bool savedCallerFun =
         options.compileAndGo &&
         evalCaller &&
-        (evalCaller->function() || evalCaller->savedCallerFun);
+        (evalCaller->function() || evalCaller->savedCallerFun());
     Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
                                                   options, staticLevel, sourceObject, 0, length));
     if (!script)
@@ -274,7 +274,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         return nullptr;
 
     
-    if (evalCaller && evalCaller->strict)
+    if (evalCaller && evalCaller->strict())
         globalsc.strict = true;
 
     if (options.compileAndGo) {
@@ -450,11 +450,11 @@ frontend::CompileLazyFunction(JSContext *cx, LazyScript *lazy, const jschar *cha
     script->bindings = pn->pn_funbox->bindings;
 
     if (lazy->directlyInsideEval())
-        script->directlyInsideEval = true;
+        script->setDirectlyInsideEval();
     if (lazy->usesArgumentsAndApply())
-        script->usesArgumentsAndApply = true;
+        script->setUsesArgumentsAndApply();
     if (lazy->hasBeenCloned())
-        script->hasBeenCloned = true;
+        script->setHasBeenCloned();
 
     BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, options.forEval,
                          NullPtr(),  true,

@@ -118,7 +118,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
 
         
         JSObject &maybeClone = iter.calleev().toObject();
-        if (maybeClone.is<JSFunction>() && maybeClone.as<JSFunction>().nonLazyScript()->isCallsiteClone)
+        if (maybeClone.is<JSFunction>() && maybeClone.as<JSFunction>().nonLazyScript()->isCallsiteClone())
             vp.setObject(*maybeClone.as<JSFunction>().nonLazyScript()->originalFunction());
         else
             vp.set(iter.calleev());
@@ -640,7 +640,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
 
     if (fun->hasScript()) {
         script = fun->nonLazyScript();
-        if (script->isGeneratorExp) {
+        if (script->isGeneratorExp()) {
             if ((!bodyOnly && !out.append("function genexp() {")) ||
                 !out.append("\n    [generator expression]\n") ||
                 (!bodyOnly && !out.append("}")))
@@ -701,7 +701,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
         
         
         
-        bool addUseStrict = script->strict && !script->explicitUseStrict && !fun->isArrow();
+        bool addUseStrict = script->strict() && !script->explicitUseStrict() && !fun->isArrow();
 
         bool buildBody = funCon && !bodyOnly;
         if (buildBody) {
