@@ -31,7 +31,7 @@ SpanningCellSorter::~SpanningCellSorter()
     delete [] mSortedHashTable;
 }
 
- PLDHashTableOps
+ const PLDHashTableOps
 SpanningCellSorter::HashTableOps = {
     PL_DHashAllocTable,
     PL_DHashFreeTable,

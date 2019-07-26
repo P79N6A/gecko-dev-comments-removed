@@ -104,7 +104,7 @@ nsRuleNode::ChildrenHashMatchEntry(PLDHashTable *aTable,
   return entry->mRuleNode->GetKey() == *key;
 }
 
- PLDHashTableOps
+ const PLDHashTableOps
 nsRuleNode::ChildrenHashOps = {
   
   
