@@ -1259,26 +1259,15 @@ AppendJARIdentifier(nsACString &_result, int32_t appId, bool isInBrowserElement)
 
 nsresult
 GetJARIdentifier(nsIURI *aURI,
-                 nsILoadContext *aLoadContext,
+                 uint32_t appId, bool isInBrowserElement,
                  nsACString &_result)
 {
     _result.Truncate();
 
-    if (!aLoadContext)
-        return NS_OK;
-
     
     
     
     
-    bool isInBrowserElement;
-    nsresult rv = aLoadContext->GetIsInBrowserElement(&isInBrowserElement);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    uint32_t appId;
-    rv = aLoadContext->GetAppId(&appId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     if (!isInBrowserElement && appId == NECKO_NO_APP_ID)
         return NS_OK;
 
@@ -1291,7 +1280,7 @@ GetJARIdentifier(nsIURI *aURI,
 
 nsresult
 nsOfflineCacheDevice::BuildApplicationCacheGroupID(nsIURI *aManifestURL,
-                                                   nsILoadContext *aLoadContext,
+                                                   uint32_t appId, bool isInBrowserElement,
                                                    nsACString &_result)
 {
   nsCOMPtr<nsIURI> newURI;
@@ -1305,7 +1294,7 @@ nsOfflineCacheDevice::BuildApplicationCacheGroupID(nsIURI *aManifestURL,
   _result.Assign(manifestSpec);
 
   nsAutoCString jarid;
-  rv = GetJARIdentifier(aManifestURL, aLoadContext, jarid);
+  rv = GetJARIdentifier(aManifestURL, appId, isInBrowserElement, jarid);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2443,10 +2432,23 @@ nsOfflineCacheDevice::CanUseCache(nsIURI *keyURI,
     return false;
 
   
+  uint32_t appId = NECKO_NO_APP_ID;
+  bool isInBrowserElement = false;
+
+  if (loadContext) {
+      rv = loadContext->GetAppId(&appId);
+      NS_ENSURE_SUCCESS(rv, false);
+
+      rv = loadContext->GetIsInBrowserElement(&isInBrowserElement);
+      NS_ENSURE_SUCCESS(rv, false);
+  }
+
+  
   
   
   nsAutoCString demandedGroupID;
-  rv = BuildApplicationCacheGroupID(groupURI, loadContext, demandedGroupID);
+  rv = BuildApplicationCacheGroupID(groupURI, appId, isInBrowserElement,
+                                    demandedGroupID);
   NS_ENSURE_SUCCESS(rv, false);
 
   if (groupID != demandedGroupID)

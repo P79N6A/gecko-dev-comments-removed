@@ -2540,6 +2540,11 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
         return NS_OK;
     }
 
+    if (mLoadFlags & INHIBIT_CACHING) {
+        
+        return NS_OK;
+    }
+
     if (mRequestHead.Method() != nsHttp::Get) {
         
         return NS_OK;
