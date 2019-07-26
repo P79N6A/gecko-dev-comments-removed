@@ -780,6 +780,9 @@ IonRuntime::generateDebugTrapHandler(JSContext *cx)
     masm.subPtr(Imm32(BaselineFrame::Size()), scratch1);
 
     
+    
+    
+    masm.movePtr(ImmWord((void *)NULL), BaselineStubReg);
     EmitEnterStubFrame(masm, scratch2);
 
     IonCompartment *ion = cx->compartment->ionCompartment();
