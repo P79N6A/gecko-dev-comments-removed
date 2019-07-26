@@ -87,6 +87,8 @@ public class BrowserDB {
 
         public Bitmap getFaviconForUrl(ContentResolver cr, String uri);
 
+        public byte[] getFaviconBytesForUrl(ContentResolver cr, String uri);
+
         public Cursor getFaviconsForUrls(ContentResolver cr, List<String> urls);
 
         public String getFaviconUrlForHistoryUrl(ContentResolver cr, String url);
@@ -237,6 +239,10 @@ public class BrowserDB {
         return sDb.getFaviconForUrl(cr, uri);
     }
 
+    public static byte[] getFaviconBytesForUrl(ContentResolver cr, String uri) {
+        return sDb.getFaviconBytesForUrl(cr, uri);
+    }
+
     public static Cursor getFaviconsForUrls(ContentResolver cr, List<String> urls) {
         return sDb.getFaviconsForUrls(cr, urls);
     }
@@ -331,15 +337,7 @@ public class BrowserDB {
 
         public void setPinnedSites(Cursor c) {
             mPinnedSites = new SparseArray<PinnedSite>();
-
-            if (c == null) {
-                return;
-            }
-
-            try {
-                if (c.getCount() <= 0) {
-                    return;
-                }
+            if (c != null && c.getCount() > 0) {
                 c.moveToPosition(0);
                 do {
                     int pos = c.getInt(c.getColumnIndex(Bookmarks.POSITION));
@@ -347,7 +345,8 @@ public class BrowserDB {
                     String title = c.getString(c.getColumnIndex(URLColumns.TITLE));
                     mPinnedSites.put(pos, new PinnedSite(title, url));
                 } while (c.moveToNext());
-            } finally {
+            }
+            if (c != null && !c.isClosed()) {
                 c.close();
             }
         }
