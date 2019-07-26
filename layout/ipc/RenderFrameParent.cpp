@@ -850,8 +850,8 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     
     
     MOZ_ASSERT(aContainerParameters.mOffset == nsIntPoint());
-    gfx3DMatrix m =
-      gfx3DMatrix::Translation(offset.x, offset.y, 0.0);
+    gfx::Matrix4x4 m;
+    m.Translate(offset.x, offset.y, 0.0);
     
     
     m.Scale(aContainerParameters.mXScale, aContainerParameters.mYScale, 1.0);
