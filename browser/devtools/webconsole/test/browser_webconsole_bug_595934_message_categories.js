@@ -16,11 +16,6 @@ const TESTS = [
     matchString: "text/css",
   },
   { 
-    file: "test-bug-595934-dom-events.html",
-    category: "DOM Events",
-    matchString: "preventBubble()",
-  },
-  { 
     file: "test-bug-595934-dom-html.html",
     category: "DOM:HTML",
     matchString: "getElementById",
@@ -59,11 +54,6 @@ const TESTS = [
     file: "test-bug-595934-dom-html-external.html",
     category: "DOM:HTML",
     matchString: "document.all",
-  },
-  { 
-    file: "test-bug-595934-dom-events-external2.html",
-    category: "DOM Events",
-    matchString: "preventBubble()",
   },
   { 
     file: "test-bug-595934-canvas.html",
