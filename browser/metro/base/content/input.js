@@ -146,7 +146,7 @@ var TouchModule = {
             
             
             
-            if (!SelectionHelperUI.isActive) {
+            if (!SelectionHelperUI.isActive && !FindHelperUI.isActive) {
               setTimeout(function () {
                 SelectionHelperUI.attachEditSession(Browser.selectedTab.browser,
                                                     aEvent.clientX, aEvent.clientY);

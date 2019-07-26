@@ -14,6 +14,14 @@ var FindHelperUI = {
   _open: false,
   _status: null,
 
+  
+
+
+
+  get isActive() {
+    return this._open;
+  },
+
   get status() {
     return this._status;
   },
@@ -94,8 +102,11 @@ var FindHelperUI = {
   },
 
   show: function findHelperShow() {
-
+    
     ContextUI.dismiss();
+
+    
+    SelectionHelperUI.closeEditSession();
 
     this._container.show(this);
     this.search(this._textbox.value);
