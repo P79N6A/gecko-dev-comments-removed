@@ -861,6 +861,10 @@ XPCWrappedNative::FinishInit()
 
     
     
+    JS_SetReservedSlot(mFlatJSObject, WN_XRAYEXPANDOCHAIN_SLOT, JSVAL_NULL);
+
+    
+    
     
     MOZ_ASSERT(1 == mRefCnt, "unexpected refcount value");
     NS_ADDREF(this);
@@ -1182,6 +1186,7 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
 
             
             
+            SetWNExpandoChain(newobj, nullptr);
             if (!XrayUtils::CloneExpandoChain(cx, newobj, flat))
                 return NS_ERROR_FAILURE;
 
