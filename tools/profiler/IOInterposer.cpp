@@ -87,22 +87,6 @@ void VectorRemove(std::vector<T>& vector, const T& element)
 } 
 
 
-
-const char* IOInterposeObserver::Observation::Filename()
-{
-  return nullptr;
-}
-
-IOInterposeObserver::~IOInterposeObserver()
-{
-}
-
-
-IOInterposeObserver::Observation::~Observation()
-{
-}
-
-
 IOInterposeObserver::Operation IOInterposer::sObservedOperations =
                                                   IOInterposeObserver::OpNone;
 
