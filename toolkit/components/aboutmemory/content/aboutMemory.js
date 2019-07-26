@@ -145,6 +145,38 @@ function onUnload()
 
 
 
+function minimizeMemoryUsage3x(fAfter)
+{
+  let i = 0;
+
+  function runSoon(f)
+  {
+    let tm = Cc["@mozilla.org/thread-manager;1"]
+              .getService(Ci.nsIThreadManager);
+
+    tm.mainThread.dispatch({ run: f }, Ci.nsIThread.DISPATCH_NORMAL);
+  }
+
+  function sendHeapMinNotificationsInner()
+  {
+    let os = Cc["@mozilla.org/observer-service;1"]
+             .getService(Ci.nsIObserverService);
+    os.notifyObservers(null, "memory-pressure", "heap-minimize");
+
+    if (++i < 3) {
+      runSoon(sendHeapMinNotificationsInner);
+    } else {
+      os.notifyObservers(null, "after-minimize-memory-usage", "about:memory");
+      runSoon(fAfter);
+    }
+  }
+
+  sendHeapMinNotificationsInner();
+}
+
+
+
+
 
 
 
@@ -513,7 +545,7 @@ function appendAboutMemoryFooter(aBody)
   appendButton(div1, GCDesc, doGlobalGC,        "GC");
   appendButton(div1, CCDesc, doCC,              "CC");
   appendButton(div1, MPDesc,
-               function() { gMgr.minimizeMemoryUsage(updateAboutMemory); },
+               function() { minimizeMemoryUsage3x(updateAboutMemory); },
                "Minimize memory usage");
 
   
@@ -1467,7 +1499,7 @@ function onLoadAboutCompartments()
   
   
   updateAboutCompartments();
-  gMgr.minimizeMemoryUsage(
+  minimizeMemoryUsage3x(
     function() { addChildObserversAndUpdate(updateAboutCompartments); });
 }
 
