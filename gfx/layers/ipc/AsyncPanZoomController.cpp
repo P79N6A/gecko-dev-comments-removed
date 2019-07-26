@@ -1302,7 +1302,7 @@ EnlargeDisplayPortAlongAxis(float* aOutOffset, float* aOutLength,
   
   
   double paintFactor = (gUsePaintDuration ? aEstimatedPaintDurationMillis : 50.0);
-  *aOutOffset += (aVelocity * aEstimatedPaintDurationMillis * gVelocityBias);
+  *aOutOffset += (aVelocity * paintFactor * gVelocityBias);
 }
 
 
