@@ -1,5 +1,7 @@
 package org.mozilla.gecko.tests;
 
+import org.mozilla.gecko.db.BrowserDB;
+
 import android.content.ContentResolver;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -67,26 +69,15 @@ public class testThumbnails extends BaseTest {
         mAsserter.is(getTopSiteThumbnailColor(site2Title), Color.GREEN, "Top site thumbnail not updated for HTTP 404");
 
         
-        try {
-            ClassLoader cl = getActivity().getApplicationContext().getClassLoader();
-            Class browserDB = cl.loadClass("org.mozilla.gecko.db.BrowserDB");
-            
-            byte[] thumbnailData = (byte[])browserDB
-                .getMethod("getThumbnailForUrl", ContentResolver.class, String.class)
-                .invoke(null, getActivity().getContentResolver(), site1Url);
-            mAsserter.ok(thumbnailData != null && thumbnailData.length > 0, "Checking for thumbnail data", "No thumbnail data found");
-            
-            browserDB.getMethod("removeThumbnails", ContentResolver.class)
-                .invoke(null, getActivity().getContentResolver());
-            
-            thumbnailData = (byte[])browserDB
-                .getMethod("getThumbnailForUrl", ContentResolver.class, String.class)
-                .invoke(null, getActivity().getContentResolver(), site1Url);
-            mAsserter.ok(thumbnailData == null || thumbnailData.length == 0, "Checking for thumbnail data", "Thumbnail data found");
-        } catch (Exception e) {
-            mAsserter.ok(false, "Testing removing thumbnails", e.toString());
-            mAsserter.dumpLog(e.toString(), e);
-        }
+        final ContentResolver resolver = getActivity().getContentResolver();
+        
+        byte[] thumbnailData = BrowserDB.getThumbnailForUrl(resolver, site1Url);
+        mAsserter.ok(thumbnailData != null && thumbnailData.length > 0, "Checking for thumbnail data", "No thumbnail data found");
+        
+        BrowserDB.removeThumbnails(resolver);
+        
+        thumbnailData = BrowserDB.getThumbnailForUrl(resolver, site1Url);
+        mAsserter.ok(thumbnailData == null || thumbnailData.length == 0, "Checking for thumbnail data", "Thumbnail data found");
     }
 
     private class ThumbnailTest implements BooleanTest {

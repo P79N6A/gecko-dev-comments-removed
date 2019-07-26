@@ -1,9 +1,9 @@
 package org.mozilla.gecko.tests;
 
-import java.lang.ClassLoader;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.util.GeckoJarReader;
 
 
 
@@ -16,54 +16,34 @@ public class testJarReader extends BaseTest {
     }
 
     public void testJarReader() {
-        try {
-            ClassLoader classLoader = getActivity().getClassLoader();
+        String appPath = getActivity().getApplication().getPackageResourcePath();
+        mAsserter.isnot(appPath, null, "getPackageResourcePath is non-null");
 
-            Class appConstantsClass = classLoader.loadClass("org.mozilla.gecko.AppConstants");
-            String omniJarName = (String) appConstantsClass.getField("OMNIJAR_NAME").get(null);
+        
+        String url = "jar:file://" + appPath + "!/" + AppConstants.OMNIJAR_NAME;
+        InputStream stream = GeckoJarReader.getStream("jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
+        mAsserter.isnot(stream, null, "JarReader returned non-null for valid file in valid jar");
 
-            Class gjrClass = classLoader.loadClass("org.mozilla.gecko.util.GeckoJarReader");
-            Method getStreamMethod = gjrClass.getMethod("getStream", String.class);
-            String appPath = getActivity().getApplication().getPackageResourcePath();
-            mAsserter.isnot(appPath, null, "getPackageResourcePath is non-null");
+        
+        url = "jar:file://" + appPath + "!/" + AppConstants.OMNIJAR_NAME;
+        stream = GeckoJarReader.getStream("jar:" + url + "!/chrome/chrome/content/branding/nonexistent_file.png");
+        mAsserter.is(stream, null, "JarReader returned null for non-existent file in valid jar");
 
-            
-            String url = "jar:file://" + appPath + "!/" + omniJarName;
-            InputStream stream = (InputStream) getStreamMethod.invoke(null, "jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
-            mAsserter.isnot(stream, null, "JarReader returned non-null for valid file in valid jar");
+        
+        url = "jar:file://" + appPath + "!/" + "BAD" + AppConstants.OMNIJAR_NAME;
+        stream = GeckoJarReader.getStream("jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
+        mAsserter.is(stream, null, "JarReader returned null for valid file in invalid jar file");
 
-            
-            url = "jar:file://" + appPath + "!/" + omniJarName;
-            stream = (InputStream) getStreamMethod.invoke(null, "jar:" + url + "!/chrome/chrome/content/branding/nonexistent_file.png");
-            mAsserter.is(stream, null, "JarReader returned null for non-existent file in valid jar");
+        
+        url = "jar:file://" + appPath + "!" + "!/" + AppConstants.OMNIJAR_NAME;
+        stream = GeckoJarReader.getStream("jar:" + url + "!/chrome/chrome/content/branding/nonexistent_file.png");
+        mAsserter.is(stream, null, "JarReader returned null for bad jar url");
 
-            
-            url = "jar:file://" + appPath + "!/" + "BAD" + omniJarName;
-            stream = (InputStream) getStreamMethod.invoke(null, "jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
-            mAsserter.is(stream, null, "JarReader returned null for valid file in invalid jar file");
+        
+        url = "jar:file://" + appPath + "BAD" + "!/" + AppConstants.OMNIJAR_NAME;
+        stream = GeckoJarReader.getStream("jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
+        mAsserter.is(stream, null, "JarReader returned null for a non-existent APK");
 
-            
-            url = "jar:file://" + appPath + "!" + "!/" + omniJarName;
-            stream = (InputStream) getStreamMethod.invoke(null, "jar:" + url + "!/chrome/chrome/content/branding/nonexistent_file.png");
-            mAsserter.is(stream, null, "JarReader returned null for bad jar url");
-
-            
-            url = "jar:file://" + appPath + "BAD" + "!/" + omniJarName;
-            stream = (InputStream) getStreamMethod.invoke(null, "jar:" + url + "!/chrome/chrome/content/branding/favicon32.png");
-            mAsserter.is(stream, null, "JarReader returned null for a non-existent APK");
-        } catch (java.lang.ClassCastException ex) {
-            mAsserter.is(false, true, "Error getting OMNIJAR_NAME");
-        } catch (java.lang.NoSuchFieldException ex) {
-            mAsserter.is(false, true, "Error getting field");
-        } catch (java.lang.ClassNotFoundException ex) {
-            mAsserter.is(false, true, "Error getting class");
-        } catch (java.lang.NoSuchMethodException ex) {
-            mAsserter.is(false, true, "Error getting method");
-        } catch (java.lang.IllegalAccessException ex) {
-            mAsserter.is(false, true, "Error calling method");
-        } catch (java.lang.reflect.InvocationTargetException ex) {
-            mAsserter.is(false, true, "Invocation target exception " + ex.getTargetException());
-        }
         
         
         

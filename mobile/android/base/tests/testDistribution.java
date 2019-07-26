@@ -1,6 +1,7 @@
 package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.*;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.Context;
@@ -9,8 +10,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.ClassLoader;
-import java.lang.reflect.Method;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -50,25 +49,22 @@ public class testDistribution extends ContentProviderTest {
 
 
     private void waitForBackgroundHappiness() {
-        try {
-            ClassLoader classLoader = mActivity.getClassLoader();
-            Class threadUtilsClass = classLoader.loadClass("org.mozilla.gecko.util.ThreadUtils");
-            Method postToBackgroundThread = threadUtilsClass.getMethod("postToBackgroundThread", Runnable.class);
-            final Object signal = new Object();
-            final Runnable done = new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (signal) {
-                        signal.notify();
-                    }
+        final Object signal = new Object();
+        final Runnable done = new Runnable() {
+            @Override
+            public void run() {
+                synchronized (signal) {
+                    signal.notify();
                 }
-            };
-            synchronized (signal) {
-                postToBackgroundThread.invoke(null, done);
-                signal.wait();
             }
-        } catch (Exception e) {
-            mAsserter.ok(false, "Exception waiting on background thread.", e.toString());
+        };
+        synchronized (signal) {
+            ThreadUtils.postToBackgroundThread(done);
+            try {
+                signal.wait();
+            } catch (InterruptedException e) {
+                mAsserter.ok(false, "InterruptedException waiting on background thread.", e.toString());
+            }
         }
         mAsserter.dumpLog("Background task completed. Proceeding.");
     }
@@ -99,19 +95,11 @@ public class testDistribution extends ContentProviderTest {
 
     
     private void initDistribution(String aPackagePath) {
-        try {
-            
-            ClassLoader classLoader = mActivity.getClassLoader();
-            Class distributionClass = classLoader.loadClass("org.mozilla.gecko.Distribution");
-            Method init = distributionClass.getMethod("init", Context.class, String.class, String.class);
-
-            Actions.EventExpecter distributionSetExpecter = mActions.expectGeckoEvent("Distribution:Set:OK");
-            init.invoke(null, mActivity, aPackagePath, "prefs-" + System.currentTimeMillis());
-            distributionSetExpecter.blockForEvent();
-            distributionSetExpecter.unregisterListener();
-        } catch (Exception e) {
-            mAsserter.ok(false, "exception initializing distribution", e.toString());
-        }
+        
+        Actions.EventExpecter distributionSetExpecter = mActions.expectGeckoEvent("Distribution:Set:OK");
+        Distribution.init(mActivity, aPackagePath, "prefs-" + System.currentTimeMillis());
+        distributionSetExpecter.blockForEvent();
+        distributionSetExpecter.unregisterListener();
     }
 
     

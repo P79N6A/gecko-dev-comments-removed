@@ -2,7 +2,6 @@ package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.*;
 
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
@@ -138,56 +137,34 @@ public class testSettingsMenuItems extends PixelTest {
 
 
     public void addConditionalSettings(Map<String, List<String[]>> settingsMap) {
-        try {
-            ClassLoader classLoader = getActivity().getClassLoader();
-            Class appConstants = classLoader.loadClass("org.mozilla.gecko.AppConstants");
+        
+        if (!AppConstants.RELEASE_BUILD) {
+            
+            String[] textReflowUi = { "Text reflow" };
+            settingsMap.get("Display").add(textReflowUi);
 
             
-            Field releaseBuildField = appConstants.getField("RELEASE_BUILD");
-            boolean releaseBuild = releaseBuildField.getBoolean(appConstants);
-            if (!releaseBuild) {
-                
-                String[] textReflowUi = { "Text reflow" };
-                settingsMap.get("Display").add(textReflowUi);
+            String[] networkReportingUi = { "Mozilla location services", "Help improve geolocation services for the Open Web by letting " + BRAND_NAME + " collect and send anonymous cellular tower data" };
+            settingsMap.get("Mozilla").add(networkReportingUi);
 
-                
-                String[] networkReportingUi = { "Mozilla location services", "Help improve geolocation services for the Open Web by letting " + BRAND_NAME + " collect and send anonymous cellular tower data" };
-                settingsMap.get("Mozilla").add(networkReportingUi);
+        }
 
-            }
+        
+        if (AppConstants.MOZ_UPDATER) {
+            String[] autoUpdateUi = { "Automatic updates", "Only over Wi-Fi", "Enabled", "Only over Wi-Fi", "Disabled" };
+            settingsMap.get("Customize").add(autoUpdateUi);
+        }
 
-            
-            Field autoUpdateField = appConstants.getField("MOZ_UPDATER");
-            boolean autoUpdate = autoUpdateField.getBoolean(appConstants);
-            if (autoUpdate) {
-                String[] autoUpdateUi = { "Automatic updates", "Only over Wi-Fi", "Enabled", "Only over Wi-Fi", "Disabled" };
-                settingsMap.get("Customize").add(autoUpdateUi);
-            }
+        
+        if (AppConstants.MOZ_CRASHREPORTER) {
+            String[] crashReporterUi = { "Crash Reporter", BRAND_NAME + " submits crash reports to help Mozilla make your browser more stable and secure" };
+            settingsMap.get("Mozilla").add(crashReporterUi);
+        }
 
-            
-            Field crashReportingField = appConstants.getField("MOZ_CRASHREPORTER");
-            boolean crashReporter = crashReportingField.getBoolean(appConstants);
-            if (crashReporter) {
-                String[] crashReporterUi = { "Crash Reporter", BRAND_NAME + " submits crash reports to help Mozilla make your browser more stable and secure" };
-                settingsMap.get("Mozilla").add(crashReporterUi);
-            }
-
-            
-            Field telemetryField = appConstants.getField("MOZ_TELEMETRY_REPORTING");
-            boolean telemetry = telemetryField.getBoolean(appConstants);
-            if (telemetry) {
-                String[] telemetryUi = { "Telemetry", "Shares performance, usage, hardware and customization data about your browser with Mozilla to help us make " + BRAND_NAME + " better" };
-                settingsMap.get("Mozilla").add(telemetryUi);
-            }
-        } catch (ClassNotFoundException e) {
-            mAsserter.ok(false, "Class not found in setting conditional settings", e.toString());
-
-        } catch (NoSuchFieldException e) {
-            mAsserter.ok(false, "Field not found in setting conditional settings", e.toString());
-
-        } catch (IllegalAccessException e) {
-            mAsserter.ok(false, "Field cannot be accessed in setting conditional settings", e.toString());
-
+        
+        if (AppConstants.MOZ_TELEMETRY_REPORTING) {
+            String[] telemetryUi = { "Telemetry", "Shares performance, usage, hardware and customization data about your browser with Mozilla to help us make " + BRAND_NAME + " better" };
+            settingsMap.get("Mozilla").add(telemetryUi);
         }
     }
 
