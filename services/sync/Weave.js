@@ -108,8 +108,8 @@ WeaveService.prototype = {
     }
     
     
-    
-    return fxAccountsEnabled;
+    delete this.fxAccountsEnabled;
+    return this.fxAccountsEnabled = fxAccountsEnabled;
   },
 
   observe: function (subject, topic, data) {
