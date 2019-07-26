@@ -1,0 +1,45 @@
+
+
+
+
+
+
+#ifndef OfflineAudioCompletionEvent_h_
+#define OfflineAudioCompletionEvent_h_
+
+#include "nsDOMEvent.h"
+#include "AudioBuffer.h"
+#include "AudioContext.h"
+
+namespace mozilla {
+namespace dom {
+
+class OfflineAudioCompletionEvent : public nsDOMEvent,
+                                    public EnableWebAudioCheck
+{
+public:
+  OfflineAudioCompletionEvent(AudioContext* aOwner,
+                              nsPresContext *aPresContext,
+                              nsEvent *aEvent);
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_FORWARD_TO_NSDOMEVENT
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(OfflineAudioCompletionEvent, nsDOMEvent)
+
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+
+  AudioBuffer* RenderedBuffer()
+  {
+    return mRenderedBuffer;
+  }
+
+private:
+  nsRefPtr<AudioBuffer> mRenderedBuffer;
+};
+
+}
+}
+
+#endif
+

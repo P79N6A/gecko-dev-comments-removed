@@ -50,6 +50,7 @@ class DelayNode;
 class DynamicsCompressorNode;
 class GainNode;
 class GlobalObject;
+class OfflineRenderSuccessCallback;
 class PannerNode;
 class ScriptProcessorNode;
 class WaveShaperNode;
@@ -57,8 +58,8 @@ class WaveShaperNode;
 class AudioContext MOZ_FINAL : public nsDOMEventTargetHelper,
                                public EnableWebAudioCheck
 {
-  explicit AudioContext(nsPIDOMWindow* aParentWindow);
-  ~AudioContext();
+  explicit AudioContext(nsPIDOMWindow* aParentWindow, bool aIsOffline);
+  virtual ~AudioContext();
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -77,8 +78,19 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
+  
   static already_AddRefed<AudioContext>
   Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
+
+  
+  static already_AddRefed<AudioContext>
+  Constructor(const GlobalObject& aGlobal,
+              uint32_t aNumberOfChannels,
+              uint32_t aLength,
+              float aSampleRate,
+              ErrorResult& aRv);
+
+  
 
   AudioDestinationNode* Destination() const
   {
@@ -164,6 +176,10 @@ public:
                        DecodeSuccessCallback& aSuccessCallback,
                        const Optional<OwningNonNull<DecodeErrorCallback> >& aFailureCallback);
 
+  
+  void StartRendering() {}
+  IMPL_EVENT_HANDLER(complete)
+
   uint32_t GetRate() const { return IdealAudioRate(); }
 
   MediaStreamGraph* Graph() const;
@@ -193,6 +209,7 @@ private:
   
   
   nsTHashtable<nsPtrHashKey<ScriptProcessorNode> > mScriptProcessorNodes;
+  bool mIsOffline;
 };
 
 }
