@@ -43,9 +43,7 @@ class WebrtcVideoConduit:public VideoSessionConduit
                          ,public webrtc::Transport
                          ,public webrtc::ExternalRenderer
 {
-
 public:
-
   
   static const unsigned int CODEC_PLNAME_SIZE;
 
@@ -175,6 +173,8 @@ public:
   }
 
   WebrtcVideoConduit():
+                      mOtherDirection(nullptr),
+                      mShutDown(false),
                       mVideoEngine(nullptr),
                       mTransport(nullptr),
                       mRenderer(nullptr),
@@ -195,12 +195,12 @@ public:
   {
   }
 
-
   virtual ~WebrtcVideoConduit() ;
 
+  MediaConduitErrorCode Init(WebrtcVideoConduit *other);
 
-
-  MediaConduitErrorCode Init();
+  int GetChannel() { return mChannel; }
+  webrtc::VideoEngine* GetVideoEngine() { return mVideoEngine; }
 
 private:
 
@@ -228,8 +228,17 @@ private:
 
   
   void DumpCodecDB() const;
-  webrtc::VideoEngine* mVideoEngine;
 
+  
+  
+  
+  WebrtcVideoConduit*  mOtherDirection;
+  
+  bool mShutDown;
+
+  
+  
+  webrtc::VideoEngine* mVideoEngine;          
   mozilla::RefPtr<TransportInterface> mTransport;
   mozilla::RefPtr<VideoRenderer> mRenderer;
 
@@ -238,7 +247,7 @@ private:
   webrtc::ViECodec* mPtrViECodec;
   webrtc::ViENetwork* mPtrViENetwork;
   webrtc::ViERender* mPtrViERender;
-  webrtc::ViEExternalCapture*  mPtrExtCapture;
+  webrtc::ViEExternalCapture*  mPtrExtCapture; 
   webrtc::ViERTP_RTCP* mPtrRTP;
 
   
@@ -254,8 +263,6 @@ private:
 
   mozilla::RefPtr<WebrtcAudioConduit> mSyncedTo;
 };
-
-
 
 } 
 

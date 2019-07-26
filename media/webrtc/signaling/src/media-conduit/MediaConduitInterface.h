@@ -154,7 +154,7 @@ public:
 
 
 
-  static RefPtr<VideoSessionConduit> Create();
+  static RefPtr<VideoSessionConduit> Create(VideoSessionConduit *aOther);
 
   enum FrameRequestType
   {
