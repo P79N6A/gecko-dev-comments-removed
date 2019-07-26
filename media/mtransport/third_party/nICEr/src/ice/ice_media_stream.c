@@ -824,7 +824,8 @@ int nr_ice_media_stream_disable_component(nr_ice_media_stream *stream, int compo
       ABORT(r);
 
     
-    if (comp->state != NR_ICE_COMPONENT_UNPAIRED)
+    if (comp->state != NR_ICE_COMPONENT_UNPAIRED &&
+        comp->state != NR_ICE_COMPONENT_DISABLED)
       ABORT(R_FAILED);
 
     comp->state = NR_ICE_COMPONENT_DISABLED;
