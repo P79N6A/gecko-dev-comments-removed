@@ -27,7 +27,6 @@ public:
   NS_DECL_NSIX509CERTDB2
 
   nsNSSCertificateDB(); 
-  virtual ~nsNSSCertificateDB();
 
   
   
@@ -39,6 +38,9 @@ public:
   static nsresult 
   ImportValidCACerts(int numCACerts, SECItem *CACerts, nsIInterfaceRequestor *ctx,
                      const nsNSSShutDownPreventionLock &proofOfLock);
+
+protected:
+  virtual ~nsNSSCertificateDB();
 
 private:
 

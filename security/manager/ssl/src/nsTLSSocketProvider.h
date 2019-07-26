@@ -26,6 +26,8 @@ public:
 
   
   nsTLSSocketProvider();
+
+protected:
   virtual ~nsTLSSocketProvider();
 };
 
