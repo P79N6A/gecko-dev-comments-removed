@@ -357,6 +357,28 @@ static void GetStatsForLongTermStorage_s(
 
   
   
+  unsigned char rate_limit_bit_pattern = 0;
+  if (!mozilla::nr_socket_short_term_violation_time().IsNull() &&
+      mozilla::nr_socket_short_term_violation_time() >= query->iceStartTime) {
+    rate_limit_bit_pattern |= 1;
+  }
+  if (!mozilla::nr_socket_long_term_violation_time().IsNull() &&
+      mozilla::nr_socket_long_term_violation_time() >= query->iceStartTime) {
+    rate_limit_bit_pattern |= 2;
+  }
+
+  if (query->failed) {
+    Telemetry::Accumulate(
+        Telemetry::WEBRTC_STUN_RATE_LIMIT_EXCEEDED_BY_TYPE_GIVEN_FAILURE,
+        rate_limit_bit_pattern);
+  } else {
+    Telemetry::Accumulate(
+        Telemetry::WEBRTC_STUN_RATE_LIMIT_EXCEEDED_BY_TYPE_GIVEN_SUCCESS,
+        rate_limit_bit_pattern);
+  }
+
+  
+  
   NS_DispatchToMainThread(
       WrapRunnableNM(
           &StoreLongTermICEStatisticsImpl_m,

@@ -174,6 +174,10 @@ class RTCStatsQuery {
 
     mozilla::dom::RTCStatsReportInternal report;
     std::string error;
+    
+    mozilla::TimeStamp iceStartTime;
+    
+    bool failed;
 
   private:
     friend class PeerConnectionImpl;
