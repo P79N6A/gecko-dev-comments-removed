@@ -503,6 +503,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     break;
 
                 case SELECTED:
+                    flags.add(UpdateFlags.PRIVATE_MODE);
+                    setPrivateMode(tab.isPrivate());
+                    
                 case LOAD_ERROR:
                     flags.add(UpdateFlags.TITLE);
                     
@@ -511,12 +514,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     
                     flags.add(UpdateFlags.FAVICON);
                     flags.add(UpdateFlags.SITE_IDENTITY);
-                    flags.add(UpdateFlags.PRIVATE_MODE);
 
                     updateBackButton(tab);
                     updateForwardButton(tab);
-
-                    setPrivateMode(tab.isPrivate());
                     break;
 
                 case TITLE:
