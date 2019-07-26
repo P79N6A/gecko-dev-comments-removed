@@ -26,26 +26,10 @@ const BrowserTouchHandler = {
                         json: aMessage.json,
                         target: aMessage.target };
     
-    if (!InputSourceHelper.isPrecise) {
-      if (SelectionHelperUI.isActive) {
-        
-        if (aMessage.json.types.indexOf("selected-text") != -1) {
-          
-          
-          
-          SelectionHelperUI.closeEditSession();
-        } else {
-          
-          
-          
-          
-          Util.dumpLn("long tap on empty selection with SelectionHelperUI active?"); 
-          SelectionHelperUI.closeEditSession();
-        }
-      } else if (SelectionHelperUI.canHandle(aMessage)) {
-        SelectionHelperUI.openEditSession(aMessage);
-        return;
-      }
+    if (!InputSourceHelper.isPrecise && !SelectionHelperUI.isActive &&
+        SelectionHelperUI.canHandle(aMessage)) {
+      SelectionHelperUI.openEditSession(aMessage);
+      return;
     }
 
     
