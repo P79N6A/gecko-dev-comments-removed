@@ -108,12 +108,26 @@
 
 
 
+
      let stringifyArg = function stringifyArg(arg) {
        if (typeof arg === "string") {
          return arg;
        }
        if (arg && typeof arg === "object") {
-         return JSON.stringify(arg);
+         let argToString = arg.toString();
+
+         
+
+
+
+
+
+
+         if (argToString === "[object Object]") {
+           return JSON.stringify(arg);
+         } else {
+           return argToString;
+         }
        }
        return arg;
      };
