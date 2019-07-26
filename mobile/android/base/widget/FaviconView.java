@@ -63,16 +63,8 @@ public class FaviconView extends ImageView {
 
     private void formatImage() {
         
-        if (mIconBitmap == null) {
-            setImageResource(R.drawable.favicon);
-            hideBackground();
-            return;
-        }
-
-        
-        if (mActualWidth == 0 || mActualHeight == 0) {
-            hideBackground();
-            setImageResource(R.drawable.favicon);
+        if (mIconBitmap == null || mActualWidth == 0 || mActualHeight == 0) {
+            clearImage();
             return;
         }
 
@@ -142,6 +134,11 @@ public class FaviconView extends ImageView {
 
 
     private void updateImageInternal(Bitmap bitmap, String key, boolean allowScaling) {
+        if (bitmap == null) {
+            showDefaultFavicon();
+            return;
+        }
+
         
         if (mUnscaledBitmap == bitmap) {
             return;
@@ -155,12 +152,21 @@ public class FaviconView extends ImageView {
         formatImage();
     }
 
+    private void showDefaultFavicon() {
+        setImageResource(R.drawable.favicon);
+        hideBackground();
+    }
+
     
 
 
     public void clearImage() {
         setImageResource(0);
         hideBackground();
+        mUnscaledBitmap = null;
+        mIconBitmap = null;
+        mIconKey = null;
+        mScalingExpected = false;
     }
 
     
