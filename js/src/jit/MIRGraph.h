@@ -550,7 +550,7 @@ class MIRGraph
       : alloc_(alloc),
         returnAccumulator_(nullptr),
         blockIdGen_(0),
-        idGen_(0),
+        idGen_(1),
         osrBlock_(nullptr),
         osrStart_(nullptr),
         numBlocks_(0),
@@ -595,7 +595,9 @@ class MIRGraph
         numBlocks_ = 0;
     }
     void resetInstructionNumber() {
-        idGen_ = 0;
+        
+        
+        idGen_ = 1;
     }
     MBasicBlockIterator begin() {
         return blocks_.begin();
@@ -635,12 +637,9 @@ class MIRGraph
         return blockIdGen_;
     }
     void allocDefinitionId(MDefinition *ins) {
-        
-        
-        idGen_ += 2;
-        ins->setId(idGen_);
+        ins->setId(idGen_++);
     }
-    uint32_t getMaxInstructionId() {
+    uint32_t getNumInstructionIds() {
         return idGen_;
     }
     MResumePoint *entryResumePoint() {
