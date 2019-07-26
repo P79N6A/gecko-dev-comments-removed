@@ -60,7 +60,7 @@ public:
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
 
-  
+#ifdef DEBUG
   
   
   virtual void AppendFrames(ChildListID     aListID,
@@ -70,6 +70,7 @@ public:
                             nsFrameList&    aFrameList) MOZ_OVERRIDE;
   virtual void RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+#endif
 
   virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
