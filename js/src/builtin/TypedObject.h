@@ -585,7 +585,7 @@ class TypedObject : public ArrayBufferViewObject
                               MutableHandleValue statep, MutableHandleId idp);
 
   public:
-    static size_t ownerOffset();
+    static size_t offsetOfOwnerSlot();
 
     
     
@@ -593,7 +593,10 @@ class TypedObject : public ArrayBufferViewObject
     
     
     
-    static size_t dataOffset();
+    static size_t offsetOfDataSlot();
+
+    
+    static size_t offsetOfByteOffsetSlot();
 
     
     static TypedObject *createUnattachedWithClass(JSContext *cx,
@@ -742,8 +745,8 @@ extern const JSJitInfo AttachTypedObjectJitInfo;
 
 
 
-bool SetTypedObjectOffset(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo SetTypedObjectOffsetJitInfo;
+bool intrinsic_SetTypedObjectOffset(JSContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo intrinsic_SetTypedObjectOffsetJitInfo;
 
 
 
