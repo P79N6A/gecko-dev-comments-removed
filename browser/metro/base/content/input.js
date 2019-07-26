@@ -311,8 +311,15 @@ var TouchModule = {
     if (this._isCancellable) {
       
       this._isCancellable = false;
-      if (aEvent.defaultPrevented)
+      if (aEvent.defaultPrevented) {
         this._isCancelled = true;
+      }
+      
+      
+      
+      if (APZCObserver.enabled && aEvent.target.ownerDocument == document) {
+        aEvent.preventDefault();
+      }
     }
 
     if (this._isCancelled)
@@ -352,8 +359,6 @@ var TouchModule = {
 
         
         if (!oldIsPan && dragData.isPan()) {
-          
-
           let event = document.createEvent("Events");
           event.initEvent("PanBegin", true, false);
           this._targetScrollbox.dispatchEvent(event);
