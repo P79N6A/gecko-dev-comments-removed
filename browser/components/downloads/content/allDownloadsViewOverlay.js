@@ -96,7 +96,7 @@ DownloadElementShell.prototype = {
     }
     else if (this._placesNode) {
       this._wasInProgress = false;
-      this._wasDone = this._state == nsIDM.DOWNLOAD_FINISHED;
+      this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
     }
 
     this._updateStatusUI();
@@ -115,7 +115,7 @@ DownloadElementShell.prototype = {
       this._placesNode = aNode;
       if (!this._dataItem && this._placesNode) {
         this._wasInProgress = false;
-        this._wasDone = this._state == nsIDM.DOWNLOAD_FINISHED;
+        this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
         this._updateStatusUI();
       }
     }
@@ -216,42 +216,53 @@ DownloadElementShell.prototype = {
   
   
   get _fileSize() {
-    if (!this._file || !this._file.exists())
-      return 0;
-    try {
-      return this._file.fileSize;
+    if (!("__fileSize" in this)) {
+      if (!this._file || !this._file.exists())
+        this.__fileSize = 0;
+      try {
+        this.__fileSize = this._file.fileSize;
+      }
+      catch(ex) {
+        Cu.reportError(ex);
+        this.__fileSize = 0;
+      }
     }
-    catch(ex) {
-      Cu.reportError(ex);
-      return 0;
-    }
+    return this.__fileSize;
   },
 
   
-  get _state() {
-    if (this._dataItem)
-      return this._dataItem.state;
 
-    let state = -1;
-    try {
-      return this._getAnnotation(DOWNLOAD_STATE_ANNO);
-    }
-    catch (ex) {
-      
-      if (!this._file) {
-        state = nsIDM.DOWNLOAD_FAILED;
-      }
-      else if (this._file.exists()) {
-        state = this._fileSize > 0 ?
-          nsIDM.DOWNLOAD_FINISHED : nsIDM.DOWNLOAD_FAILED;
+
+
+
+  
+  getDownloadState: function DES_getDownloadState(aForceUpdate = false) {
+    if (aForceUpdate || !("_state" in this)) {
+      if (this._dataItem) {
+        this._state = this._dataItem.state;
       }
       else {
-        
-        
-        state = nsIDM.DOWNLOAD_CANCELED;
+        try {
+          this._state = this._getAnnotation(DOWNLOAD_STATE_ANNO);
+        }
+        catch (ex) {
+          
+          if (!this._file) {
+            this._state = nsIDM.DOWNLOAD_FAILED;
+          }
+          else if (this._file.exists()) {
+            this._state = this._fileSize > 0 ?
+              nsIDM.DOWNLOAD_FINISHED : nsIDM.DOWNLOAD_FAILED;
+          }
+          else {
+            
+            
+            this._state = nsIDM.DOWNLOAD_CANCELED;
+          }
+        }
       }
     }
-    return state;
+    return this._state;
   },
 
   
@@ -292,7 +303,7 @@ DownloadElementShell.prototype = {
       return s.statusSeparator(fullHost, fullDate);
     }
 
-    switch (this._state) {
+    switch (this.getDownloadState()) {
       case nsIDM.DOWNLOAD_FAILED:
         return s.stateFailed;
       case nsIDM.DOWNLOAD_CANCELED:
@@ -331,7 +342,7 @@ DownloadElementShell.prototype = {
   
   
   _updateDownloadStatusUI: function  DES__updateDownloadStatusUI() {
-    this._element.setAttribute("state", this._state);
+    this._element.setAttribute("state", this.getDownloadState(true));
     this._element.setAttribute("status", this._statusText);
 
     
@@ -429,7 +440,7 @@ DownloadElementShell.prototype = {
       case "downloadsCmd_open": {
         return this._file.exists() &&
                ((this._dataItem && this._dataItem.openable) ||
-                (this._state == nsIDM.DOWNLOAD_FINISHED));
+                (this.getDownloadState() == nsIDM.DOWNLOAD_FINISHED));
       }
       case "downloadsCmd_show": {
         return this._getTargetFileOrPartFileIfExists() != null;
@@ -547,7 +558,7 @@ DownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(this._state);
+    let command = getDefaultCommandForState(this.getDownloadState());
     if (this.isCommandEnabled(command))
       this.doCommand(command);
   }
@@ -1079,7 +1090,7 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    contextMenu.setAttribute("state", element._shell._state);
+    contextMenu.setAttribute("state", element._shell.getDownloadState());
     return true;
   },
 
