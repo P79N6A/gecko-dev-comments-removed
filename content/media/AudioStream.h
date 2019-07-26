@@ -52,7 +52,7 @@ public:
   
   
   virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
-                        const mozilla::dom::AudioChannelType aAudioStreamType) = 0;
+                        const dom::AudioChannelType aAudioStreamType) = 0;
 
   
   
