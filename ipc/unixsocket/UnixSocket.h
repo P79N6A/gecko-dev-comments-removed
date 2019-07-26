@@ -212,6 +212,12 @@ public:
 
 
   void NotifyDisconnect();
+
+  
+
+
+  void GetSocketAddr(struct sockaddr& aAddr, socklen_t& aAddrSize);
+  
 private:
   UnixSocketImpl* mImpl;
   SocketConnectionStatus mConnectionStatus;
