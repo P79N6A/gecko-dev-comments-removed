@@ -151,7 +151,7 @@ nsSelectsAreaFrame::BuildDisplayListInternal(nsDisplayListBuilder*   aBuilder,
   }
 }
 
-nsresult 
+void
 nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext, 
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState, 
@@ -177,9 +177,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
   
-  nsresult rv = nsBlockFrame::Reflow(aPresContext, aDesiredSize,
-                                    aReflowState, aStatus);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   
   
@@ -195,6 +193,4 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
       list->SetSuppressScrollbarUpdate(true);
     }
   }
-
-  return rv;
 }

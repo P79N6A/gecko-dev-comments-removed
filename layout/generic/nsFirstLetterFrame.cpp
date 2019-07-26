@@ -154,7 +154,7 @@ nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
       aCBSize, aAvailableWidth, aMargin, aBorder, aPadding, aFlags);
 }
 
-nsresult
+void
 nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
                            nsHTMLReflowMetrics&     aMetrics,
                            const nsHTMLReflowState& aReflowState,
@@ -256,7 +256,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
         nsIFrame* nextInFlow;
         rv = CreateNextInFlow(kid, nextInFlow);
         if (NS_FAILED(rv)) {
-          return rv;
+          return;
         }
     
         
@@ -269,8 +269,8 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
         
         
         nsIFrame* continuation;
-        rv = CreateContinuationForFloatingParent(aPresContext, kid,
-                                                 &continuation, true);
+        CreateContinuationForFloatingParent(aPresContext, kid,
+                                            &continuation, true);
       }
     }
   }
@@ -278,7 +278,6 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   FinishAndStoreOverflow(&aMetrics);
 
   NS_FRAME_SET_TRUNCATION(aReflowStatus, aReflowState, aMetrics);
-  return rv;
 }
 
  bool

@@ -261,10 +261,10 @@ public:
                           nsHTMLReflowMetrics&     aMetrics,
                           nscoord                  aConsumed);
 
-  virtual nsresult Reflow(nsPresContext*           aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
@@ -594,9 +594,9 @@ protected:
 
 
 
-  nsresult ReflowLine(nsBlockReflowState& aState,
-                      line_iterator aLine,
-                      bool* aKeepReflowGoing);
+  void ReflowLine(nsBlockReflowState& aState,
+                  line_iterator aLine,
+                  bool* aKeepReflowGoing);
 
   
   
@@ -639,30 +639,30 @@ protected:
   bool ShouldApplyTopMargin(nsBlockReflowState& aState,
                               nsLineBox* aLine);
 
-  nsresult ReflowBlockFrame(nsBlockReflowState& aState,
+  void ReflowBlockFrame(nsBlockReflowState& aState,
+                        line_iterator aLine,
+                        bool* aKeepGoing);
+
+  void ReflowInlineFrames(nsBlockReflowState& aState,
+                          line_iterator aLine,
+                          bool* aKeepLineGoing);
+
+  void DoReflowInlineFrames(nsBlockReflowState& aState,
+                            nsLineLayout& aLineLayout,
                             line_iterator aLine,
-                            bool* aKeepGoing);
+                            nsFlowAreaRect& aFloatAvailableSpace,
+                            nscoord& aAvailableSpaceHeight,
+                            nsFloatManager::SavedState*
+                            aFloatStateBeforeLine,
+                            bool* aKeepReflowGoing,
+                            LineReflowStatus* aLineReflowStatus,
+                            bool aAllowPullUp);
 
-  nsresult ReflowInlineFrames(nsBlockReflowState& aState,
-                              line_iterator aLine,
-                              bool* aKeepLineGoing);
-
-  nsresult DoReflowInlineFrames(nsBlockReflowState& aState,
-                                nsLineLayout& aLineLayout,
-                                line_iterator aLine,
-                                nsFlowAreaRect& aFloatAvailableSpace,
-                                nscoord& aAvailableSpaceHeight,
-                                nsFloatManager::SavedState*
-                                  aFloatStateBeforeLine,
-                                bool* aKeepReflowGoing,
-                                LineReflowStatus* aLineReflowStatus,
-                                bool aAllowPullUp);
-
-  nsresult ReflowInlineFrame(nsBlockReflowState& aState,
-                             nsLineLayout& aLineLayout,
-                             line_iterator aLine,
-                             nsIFrame* aFrame,
-                             LineReflowStatus* aLineReflowStatus);
+  void ReflowInlineFrame(nsBlockReflowState& aState,
+                         nsLineLayout& aLineLayout,
+                         line_iterator aLine,
+                         nsIFrame* aFrame,
+                         LineReflowStatus* aLineReflowStatus);
 
   
   nsRect AdjustFloatAvailableSpace(nsBlockReflowState& aState,
@@ -676,16 +676,16 @@ protected:
   
   
   
-  nsresult ReflowFloat(nsBlockReflowState& aState,
-                       const nsRect&       aAdjustedAvailableSpace,
-                       nsIFrame*           aFloat,
-                       nsMargin&           aFloatMargin,
-                       nsMargin&           aFloatOffsets,
-                       
-                       
-                       
-                       bool                aFloatPushedDown,
-                       nsReflowStatus&     aReflowStatus);
+  void ReflowFloat(nsBlockReflowState& aState,
+                   const nsRect&       aAdjustedAvailableSpace,
+                   nsIFrame*           aFloat,
+                   nsMargin&           aFloatMargin,
+                   nsMargin&           aFloatOffsets,
+                   
+                   
+                   
+                   bool                aFloatPushedDown,
+                   nsReflowStatus&     aReflowStatus);
 
   
   

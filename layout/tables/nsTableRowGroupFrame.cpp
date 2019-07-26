@@ -1285,7 +1285,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
 
 
 
-nsresult
+void
 nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
                              nsHTMLReflowMetrics&     aDesiredSize,
                              const nsHTMLReflowState& aReflowState,
@@ -1294,7 +1294,6 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsTableRowGroupFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
-  nsresult rv = NS_OK;
   aStatus     = NS_FRAME_COMPLETE;
 
   
@@ -1316,8 +1315,8 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
 
   
   bool splitDueToPageBreak = false;
-  rv = ReflowChildren(aPresContext, aDesiredSize, state, aStatus,
-                      &splitDueToPageBreak);
+  ReflowChildren(aPresContext, aDesiredSize, state, aStatus,
+                 &splitDueToPageBreak);
 
   
   
@@ -1359,7 +1358,6 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   
   FinishAndStoreOverflow(&aDesiredSize);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return rv;
 }
 
 bool

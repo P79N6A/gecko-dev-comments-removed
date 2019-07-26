@@ -114,10 +114,10 @@ public:
   
 
 
-  virtual nsresult Reflow(nsPresContext*          aPresContext,
-                          nsHTMLReflowMetrics&     aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   
 
@@ -257,11 +257,11 @@ protected:
                              void*                    aChildRSSpace,
                              nscoord                  aAvailWidth);
 
-  nsresult OuterDoReflowChild(nsPresContext*           aPresContext,
-                              nsIFrame*                aChildFrame,
-                              const nsHTMLReflowState& aChildRS,
-                              nsHTMLReflowMetrics&     aMetrics,
-                              nsReflowStatus&          aStatus);
+  void OuterDoReflowChild(nsPresContext*           aPresContext,
+                          nsIFrame*                aChildFrame,
+                          const nsHTMLReflowState& aChildRS,
+                          nsHTMLReflowMetrics&     aMetrics,
+                          nsReflowStatus&          aStatus);
 
   
   void UpdateReflowMetrics(uint8_t              aCaptionSide,

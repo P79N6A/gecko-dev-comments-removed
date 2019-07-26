@@ -343,7 +343,7 @@ nsAbsoluteContainingBlock::DoMarkFramesDirty(bool aMarkAllDirty)
 
 
 
-nsresult
+void
 nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegatingFrame,
                                                nsPresContext*           aPresContext,
                                                const nsHTMLReflowState& aReflowState,
@@ -412,7 +412,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   }
 
   
-  nsresult rv = aKidFrame->Reflow(aPresContext, kidDesiredSize, kidReflowState, aStatus);
+  aKidFrame->Reflow(aPresContext, kidDesiredSize, kidReflowState, aStatus);
 
   
   
@@ -497,6 +497,4 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   if (aOverflowAreas) {
     aOverflowAreas->UnionWith(kidDesiredSize.mOverflowAreas + rect.TopLeft());
   }
-
-  return rv;
 }
