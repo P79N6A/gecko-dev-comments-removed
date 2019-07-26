@@ -73,6 +73,7 @@ protected:
 
 
 
+
   nsresult DrawDrag(nsIDOMNode* aDOMNode,
                     nsIScriptableRegion* aRegion,
                     int32_t aScreenX, int32_t aScreenY,

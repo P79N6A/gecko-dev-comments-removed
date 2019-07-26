@@ -451,6 +451,13 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
   *aPresContext = presShell->GetPresContext();
 
   
+  int32_t sx = aScreenX, sy = aScreenY;
+  ConvertToUnscaledDevPixels(*aPresContext, &sx, &sy);
+
+  aScreenDragRect->x = sx - mImageX;
+  aScreenDragRect->y = sy - mImageY;
+
+  
   bool enableDragImages = Preferences::GetBool(DRAGIMAGES_PREF, true);
 
   
@@ -501,15 +508,15 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
   if (mImage) {
     nsCOMPtr<nsICanvasElementExternal> canvas = do_QueryInterface(dragNode);
     if (canvas) {
-      return DrawDragForImage(*aPresContext, nullptr, canvas, aScreenX,
-                              aScreenY, aScreenDragRect, aSurface);
+      return DrawDragForImage(*aPresContext, nullptr, canvas, sx, sy,
+                              aScreenDragRect, aSurface);
     }
 
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(dragNode);
     
     if (imageLoader) {
-      return DrawDragForImage(*aPresContext, imageLoader, nullptr, aScreenX,
-                              aScreenY, aScreenDragRect, aSurface);
+      return DrawDragForImage(*aPresContext, imageLoader, nullptr, sx, sy,
+                              aScreenDragRect, aSurface);
     }
 
     
@@ -540,8 +547,8 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
   
   
   if (mImage) {
-    aScreenDragRect->x = aScreenX - mImageX;
-    aScreenDragRect->y = aScreenY - mImageY;
+    aScreenDragRect->x = sx - mImageX;
+    aScreenDragRect->y = sy - mImageY;
   }
 
   *aSurface = surface;
