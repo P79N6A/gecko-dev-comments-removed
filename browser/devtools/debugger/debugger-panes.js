@@ -980,22 +980,15 @@ let SourceUtils = {
 
 
 
-
-
-
-
-  getSourceLabel: function SU_getSourceLabel(aUrl, aLength, aSection) {
-    aLength = aLength || SOURCE_URL_DEFAULT_MAX_LENGTH;
-    aSection = aSection || "end";
-    let id = [aUrl, aLength, aSection].join();
-    let cachedLabel = this._labelsCache.get(id);
+  getSourceLabel: function SU_getSourceLabel(aUrl) {
+    let cachedLabel = this._labelsCache.get(aUrl);
     if (cachedLabel) {
       return cachedLabel;
     }
 
-    let sourceLabel = this.trimUrlLength(this.trimUrl(aUrl), aLength, aSection);
+    let sourceLabel = this.trimUrl(aUrl);
     let unicodeLabel = this.convertToUnicode(window.unescape(sourceLabel));
-    this._labelsCache.set(id, unicodeLabel);
+    this._labelsCache.set(aUrl, unicodeLabel);
     return unicodeLabel;
   },
 
