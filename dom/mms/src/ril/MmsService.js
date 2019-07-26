@@ -80,6 +80,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageService",
                                    "@mozilla.org/mobilemessage/mobilemessageservice;1",
                                    "nsIMobileMessageService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
+                                   "@mozilla.org/system-message-internal;1",
+                                   "nsISystemMessagesInternal");
+
 XPCOMUtils.defineLazyGetter(this, "MMS", function () {
   let MMS = {};
   Cu.import("resource://gre/modules/MmsPduHelper.jsm", MMS);
@@ -1007,6 +1011,36 @@ MmsService.prototype = {
 
 
 
+
+
+
+  broadcastMmsSystemMessage: function broadcastMmsSystemMessage(aName, aDomMessage) {
+    debug("Broadcasting the MMS system message: " + aName);
+
+    
+    
+    
+    gSystemMessenger.broadcastMessage(aName, {
+      type:           aDomMessage.type,
+      id:             aDomMessage.id,
+      delivery:       aDomMessage.delivery,
+      deliveryStatus: aDomMessage.deliveryStatus,
+      sender:         aDomMessage.sender,
+      receivers:      aDomMessage.receivers,
+      timestamp:      aDomMessage.timestamp.getTime(),
+      read:           aDomMessage.read,
+      subject:        aDomMessage.subject,
+      smil:           aDomMessage.smil,
+      attachments:    aDomMessage.attachments
+    });
+  },
+
+  
+
+
+
+
+
   handleNotificationIndication: function handleNotificationIndication(notification) {
     let url = notification.headers["x-mms-content-location"].uri;
     
@@ -1032,6 +1066,9 @@ MmsService.prototype = {
           
           return;
         }
+
+        
+        this.broadcastMmsSystemMessage("sms-received", domMessage);
 
         
         Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
@@ -1103,6 +1140,9 @@ MmsService.prototype = {
                 transaction.run();
                 return;
               }
+
+              
+              this.broadcastMmsSystemMessage("sms-received", domMessage);
 
               
               Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
@@ -1250,6 +1290,8 @@ MmsService.prototype = {
           Services.obs.notifyObservers(aDomMessage, kMmsFailedObserverTopic, null);
           return;
         }
+
+        self.broadcastMmsSystemMessage("sms-sent", aDomMessage);
         aRequest.notifyMessageSent(aDomMessage);
         Services.obs.notifyObservers(aDomMessage, kMmsSentObserverTopic, null);
       });
