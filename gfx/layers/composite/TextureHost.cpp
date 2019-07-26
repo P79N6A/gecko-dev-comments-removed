@@ -357,14 +357,6 @@ DeprecatedTextureHost::SwapTextures(const SurfaceDescriptor& aImage,
     *aResult = *mBuffer;
   }
   *mBuffer = aImage;
-  
-  
-  
-  
-  
-  
-  
-  
   SetBuffer(mBuffer, mDeAllocator);
 }
 
