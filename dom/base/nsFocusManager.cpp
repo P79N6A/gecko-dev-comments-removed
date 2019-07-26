@@ -1379,7 +1379,13 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
 bool
 nsFocusManager::IsWindowVisible(nsPIDOMWindow* aWindow)
 {
-  if (!aWindow)
+  if (!aWindow || aWindow->IsFrozen())
+    return false;
+
+  
+  
+  nsPIDOMWindow* innerWindow = aWindow->GetCurrentInnerWindow();
+  if (!innerWindow || innerWindow->IsFrozen())
     return false;
 
   nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
