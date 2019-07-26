@@ -38,6 +38,13 @@ pref("general.warnOnAboutConfig", true);
 
 pref("browser.bookmarks.max_backups",       5);
 
+
+
+
+
+
+pref("browser.cache.use_new_backend",       0);
+
 pref("browser.cache.disk.enable",           true);
 
 pref("browser.cache.disk.smart_size.first_run", true);
@@ -59,6 +66,9 @@ pref("browser.cache.memory.max_entry_size",  5120);
 pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);
+
+
+pref("browser.cache.memory_limit", 51200); 
 
 pref("browser.cache.offline.enable",           true);
 
