@@ -14,6 +14,7 @@ Debugger(global).onDebuggerStatement = function (frame) {
 };
 
 global.log = '';
-global.eval("function f(n) { for (var i = 0; i < n; ++i) log += '. '; log += '! '; } debugger;");
+global.eval("function f(n){print(n),print(n),print(n)} debugger;");
 global.f(3);
-assertEq(global.log, "25 32 44 . 39 32 44 . 39 32 44 . 39 32 57 ! 69 ");
+
+assertEq(global.log, "14 23 32 40 ");
