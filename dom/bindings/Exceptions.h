@@ -36,8 +36,10 @@ GetCurrentJSStack();
 
 namespace exceptions {
 
+
+
 already_AddRefed<nsIStackFrame>
-CreateStack(JSContext* cx);
+CreateStack(JSContext* aCx, int32_t aMaxDepth = -1);
 
 already_AddRefed<nsIStackFrame>
 CreateStackFrameLocation(uint32_t aLanguage,
