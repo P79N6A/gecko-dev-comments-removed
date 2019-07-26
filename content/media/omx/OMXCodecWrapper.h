@@ -179,7 +179,9 @@ public:
 
 
 
-  nsresult Encode(const mozilla::AudioSegment& aSegment, int aInputFlags = 0);
+
+
+  nsresult Encode(mozilla::AudioSegment& aSegment, int aInputFlags = 0);
 
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
