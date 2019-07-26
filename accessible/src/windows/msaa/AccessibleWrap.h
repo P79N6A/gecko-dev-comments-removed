@@ -212,4 +212,12 @@ protected:
 } 
 } 
 
+#ifdef XP_WIN
+
+#undef GetMessage
+#undef CreateEvent
+#undef GetClassName
+#undef GetBinaryType
+#endif
+
 #endif
