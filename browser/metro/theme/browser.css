@@ -197,9 +197,6 @@ documenttab[selected] .documenttab-selection {
 
 #start-scrollbox[input="precise"] {
   overflow-x: scroll;
-  
-
-  margin-bottom: calc(@toolbar_height@ - @metro_spacing_normal@);
 }
 
 
@@ -220,11 +217,15 @@ documenttab[selected] .documenttab-selection {
   min-width: calc(3 * @grid_double_column_width@);
 }
 
+#start-scrollbox {
+  -moz-box-orient: horizontal;
+  
 
+  margin-bottom: calc(@toolbar_height@ - @metro_spacing_normal@);
+}
 
-#start[viewstate="snapped"],
-#snapped-start:not([viewstate="snapped"]) {
-  visibility: collapse;
+#start-container[viewstate="snapped"] #start-scrollbox {
+  -moz-box-orient: vertical;
 }
 
 
@@ -239,8 +240,18 @@ documenttab[selected] .documenttab-selection {
 }
 
 #start-container[viewstate="snapped"] .meta-section {
-  margin: 0px;
+  margin: 0;
   min-width: @grid_double_column_width@;
+  -moz-box-flex: 1;
+  -moz-box-align: center;
+}
+
+#start-container[viewstate="snapped"] richgrid {
+  visibility: collapse;
+}
+
+#start-container[viewstate="snapped"] richgrid[expanded] {
+  visibility: visible;
 }
 
 
