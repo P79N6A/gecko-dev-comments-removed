@@ -1422,15 +1422,6 @@ operator!=( const U* lhs, const nsCOMPtr<T>& rhs )
   
   
 
-
-
-
-#if defined(_MSC_VER) && (_MSC_VER < 1310)
-#ifndef NSCAP_DONT_PROVIDE_NONCONST_OPEQ
-#define NSCAP_DONT_PROVIDE_NONCONST_OPEQ
-#endif
-#endif
-
 #ifndef NSCAP_DONT_PROVIDE_NONCONST_OPEQ
 template <class T, class U>
 inline
