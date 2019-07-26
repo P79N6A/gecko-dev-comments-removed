@@ -177,7 +177,7 @@ public:
 private:
   nsCOMPtr<nsIStreamListener> mInner;
   nsAutoTArray<nsXBLBindingRequest*, 8> mBindingRequests;
-  
+
   nsCOMPtr<nsIWeakReference> mBoundDocument;
   nsCOMPtr<nsIXMLContentSink> mSink; 
   nsCOMPtr<nsIDocument> mBindingDocument; 
@@ -247,7 +247,7 @@ nsXBLStreamListener::OnStartRequest(nsIRequest* request, nsISupports* aCtxt)
   return mInner->OnStartRequest(request, aCtxt);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsXBLStreamListener::OnStopRequest(nsIRequest* request, nsISupports* aCtxt, nsresult aStatus)
 {
   nsresult rv = NS_OK;
@@ -347,7 +347,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
         cache->PutXBLDocumentInfo(info);
     }
 #endif
-  
+
     bindingManager->PutXBLDocumentInfo(info);
 
     
@@ -423,7 +423,7 @@ nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
 {
   bool isChrome = false;
   bool isResource = false;
-  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) && 
+  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) &&
       NS_SUCCEEDED(aURI->SchemeIs("resource", &isResource)))
       return (isChrome || isResource);
   return false;
@@ -435,10 +435,10 @@ nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
 nsresult
 nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
                            nsIPrincipal* aOriginPrincipal,
-                           nsXBLBinding** aBinding, bool* aResolveStyle) 
+                           nsXBLBinding** aBinding, bool* aResolveStyle)
 {
   NS_PRECONDITION(aOriginPrincipal, "Must have an origin principal");
-  
+
   *aBinding = nullptr;
   *aResolveStyle = false;
 
@@ -518,11 +518,11 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
 
     
     *aResolveStyle = newBinding->HasStyleSheets();
-  
+
     newBinding.swap(*aBinding);
   }
 
-  return NS_OK; 
+  return NS_OK;
 }
 
 nsresult
@@ -537,7 +537,7 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
 
     aContent->SetXBLBinding(nullptr); 
   }
-   
+
   return NS_OK;
 }
 
@@ -659,7 +659,7 @@ nsXBLService::FlushMemory()
 
 nsresult
 nsXBLService::BindingReady(nsIContent* aBoundElement,
-                           nsIURI* aURI, 
+                           nsIURI* aURI,
                            bool* aIsReady)
 {
   
@@ -667,7 +667,7 @@ nsXBLService::BindingReady(nsIContent* aBoundElement,
 }
 
 nsresult
-nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI, 
+nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                          bool aPeekOnly, nsIPrincipal* aOriginPrincipal,
                          bool* aIsReady, nsXBLBinding** aResult)
 {
@@ -678,7 +678,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
 }
 
 nsresult
-nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI, 
+nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                          bool aPeekOnly, nsIPrincipal* aOriginPrincipal,
                          bool* aIsReady, nsXBLBinding** aResult,
                          nsTArray<nsIURI*>& aDontExtendURIs)
@@ -686,7 +686,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   NS_ASSERTION(aPeekOnly || aResult,
                "Must have non-null out param if not just peeking to see "
                "whether the binding is ready");
-  
+
   if (aResult)
     *aResult = nullptr;
 
@@ -703,7 +703,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
                                         aOriginPrincipal,
                                         false, getter_AddRefs(docInfo));
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   if (!docInfo)
     return NS_ERROR_FAILURE;
 
@@ -821,11 +821,11 @@ IsSystemOrChromeURLPrincipal(nsIPrincipal* aPrincipal)
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
     return true;
   }
-  
+
   nsCOMPtr<nsIURI> uri;
   aPrincipal->GetURI(getter_AddRefs(uri));
   NS_ENSURE_TRUE(uri, false);
-  
+
   bool isChrome = false;
   return NS_SUCCEEDED(uri->SchemeIs("chrome", &isChrome)) && isChrome;
 }
@@ -841,7 +841,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
   NS_PRECONDITION(aBindingURI, "Must have a binding URI");
   NS_PRECONDITION(!aOriginPrincipal || aBoundDocument,
                   "If we're doing a security check, we better have a document!");
-  
+
   nsresult rv;
   if (aOriginPrincipal) {
     
@@ -886,13 +886,13 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 #ifdef MOZ_XUL
   
   nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
-  bool useXULCache = cache && cache->IsEnabled(); 
+  bool useXULCache = cache && cache->IsEnabled();
 
   if (useXULCache) {
     
     
     
-    info = cache->GetXBLDocumentInfo(documentURI); 
+    info = cache->GetXBLDocumentInfo(documentURI);
   }
 #endif
 
@@ -957,7 +957,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
     if (!info) {
       
       
-      
+
       
       bool chrome;
       if (NS_SUCCEEDED(documentURI->SchemeIs("chrome", &chrome)) && chrome)
@@ -985,7 +985,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
           info->WritePrototypeBindings();
         }
 #endif
-        
+
         if (bindingManager) {
           
           bindingManager->PutXBLDocumentInfo(info);
@@ -1001,7 +1001,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
 
 nsresult
 nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
-                                   nsIURI* aDocumentURI, nsIURI* aBindingURI, 
+                                   nsIURI* aDocumentURI, nsIURI* aBindingURI,
                                    bool aForceSyncLoad, nsIDocument** aResult)
 {
   nsresult rv = NS_OK;
@@ -1092,4 +1092,3 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
 
   return NS_OK;
 }
-

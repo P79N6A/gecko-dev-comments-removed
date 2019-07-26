@@ -75,7 +75,7 @@ XBLFinalize(JSFreeOp *fop, JSObject *obj)
   nsXBLDocumentInfo* docInfo =
     static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(obj));
   nsContentUtils::DeferredFinalize(docInfo);
-  
+
   nsXBLJSClass* c = nsXBLJSClass::fromJSClass(::JS_GetClass(obj));
   c->Drop();
 }
@@ -265,7 +265,7 @@ nsXBLBinding::InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElem
       
       child->UnbindFromTree();
       return;
-    }        
+    }
 
     child->SetFlags(NODE_IS_ANONYMOUS_ROOT);
 
@@ -360,7 +360,7 @@ nsXBLBinding::GenerateAnonymousContent()
 
     return;
   }
-     
+
   
   
   uint32_t contentCount = content->GetChildCount();
@@ -478,7 +478,7 @@ nsXBLBinding::FindInsertionPointFor(nsIContent* aChild)
   if (mContent) {
     return FindInsertionPointForInternal(aChild);
   }
-  
+
   return mNextBinding ? mNextBinding->FindInsertionPointFor(aChild)
                       : nullptr;
 }
@@ -492,7 +492,7 @@ nsXBLBinding::FindInsertionPointForInternal(nsIContent* aChild)
       return point;
     }
   }
-  
+
   return mDefaultInsertionPoint;
 }
 
@@ -684,7 +684,7 @@ nsXBLBinding::UnhookEventHandlers()
     if (!manager) {
       return;
     }
-                                      
+
     bool isChromeBinding = mPrototypeBinding->IsChrome();
     nsXBLPrototypeHandler* curr;
     for (curr = handlerChain; curr; curr = curr->GetNextHandler()) {
@@ -692,7 +692,7 @@ nsXBLBinding::UnhookEventHandlers()
       if (!handler) {
         continue;
       }
-      
+
       nsCOMPtr<nsIAtom> eventAtom = curr->GetEventName();
       if (!eventAtom ||
           eventAtom == nsGkAtoms::keyup ||
@@ -905,7 +905,7 @@ nsXBLBinding::InheritsStyle() const
   
   if (mContent)
     return mPrototypeBinding->InheritsStyle();
-  
+
   if (mNextBinding)
     return mNextBinding->InheritsStyle();
 

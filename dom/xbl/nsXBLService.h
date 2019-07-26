@@ -84,10 +84,10 @@ protected:
 
   
   nsresult FlushMemory();
-  
+
   
   nsresult FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
-                                nsIURI* aDocumentURI, nsIURI* aBindingURI, 
+                                nsIURI* aDocumentURI, nsIURI* aBindingURI,
                                 bool aForceSyncLoad, nsIDocument** aResult);
 
   
