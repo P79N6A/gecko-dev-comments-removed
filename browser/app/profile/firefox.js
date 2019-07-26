@@ -130,7 +130,8 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
-#ifdef NIGHTLY_BUILD
+
+#ifndef RELEASE_BUILD
 pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
 pref("app.update.certs.1.commonName", "aus4.mozilla.org");
 
@@ -172,7 +173,7 @@ pref("app.update.silent", false);
 pref("app.update.staging.enabled", true);
 
 
-#ifdef NIGHTLY_BUILD
+#ifndef RELEASE_BUILD
 pref("app.update.url", "https://aus4.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
 #else
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -231,6 +232,12 @@ pref("xpinstall.whitelist.add", "addons.mozilla.org");
 pref("xpinstall.whitelist.add.180", "marketplace.firefox.com");
 
 pref("lightweightThemes.update.enabled", true);
+
+
+pref("browser.uitour.enabled", true);
+pref("browser.uitour.themeOrigin", "https://addons.mozilla.org/%LOCALE%/firefox/themes/");
+pref("browser.uitour.pinnedTabUrl", "https://support.mozilla.org/%LOCALE%/kb/pinned-tabs-keep-favorite-websites-open");
+pref("browser.uitour.whitelist.add.260", "www.mozilla.org,support.mozilla.org");
 
 pref("keyword.enabled", true);
 
@@ -657,6 +664,8 @@ pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/");
 pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
+
+pref("plugins.clickToActivateInfo.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/clicktoplay");
 
 
 pref("plugin.default.state", 1);

@@ -779,27 +779,6 @@ var gBrowserInit = {
       new nsBrowserAccess();
 
     
-    
-    
-    
-    
-    gBrowser.webNavigation.sessionHistory = Cc["@mozilla.org/browser/shistory;1"].
-                                            createInstance(Ci.nsISHistory);
-    Services.obs.addObserver(gBrowser.browsers[0], "browser:purge-session-history", false);
-
-    
-    
-    gBrowser.browsers[0].removeAttribute("disablehistory");
-
-    
-    try {
-      if (!gMultiProcessBrowser)
-      gBrowser.docShell.useGlobalHistory = true;
-    } catch(ex) {
-      Cu.reportError("Places database may be locked: " + ex);
-    }
-
-    
     gBrowser.addProgressListener(window.XULBrowserWindow);
     gBrowser.addTabsProgressListener(window.TabsProgressListener);
 

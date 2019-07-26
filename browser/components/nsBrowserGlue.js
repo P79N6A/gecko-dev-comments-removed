@@ -472,6 +472,7 @@ BrowserGlue.prototype = {
     ShumwayUtils.init();
     webrtcUI.init();
     AboutHome.init();
+    SessionStore.init();
 
     if (Services.prefs.getBoolPref("browser.tabs.remote"))
       ContentClick.init();
@@ -612,7 +613,6 @@ BrowserGlue.prototype = {
     }
 #endif
 
-    SessionStore.init(aWindow);
     this._trackSlowStartup();
 
     
