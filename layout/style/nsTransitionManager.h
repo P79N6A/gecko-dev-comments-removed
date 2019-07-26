@@ -49,19 +49,6 @@ struct ElementPropertyTransition : public mozilla::ElementAnimation
   
   
   double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
-
-  bool IsRemovedSentinel() const
-  {
-    
-    
-    return mStartTime.IsNull();
-  }
-
-  void SetRemovedSentinel()
-  {
-    
-    mStartTime = mozilla::TimeStamp();
-  }
 };
 
 struct ElementTransitions MOZ_FINAL

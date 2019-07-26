@@ -305,6 +305,18 @@ public:
     return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
   }
 
+  
+  
+  
+  bool IsFinishedTransition() const {
+    return mStartTime.IsNull();
+  }
+  void SetFinishedTransition() {
+    MOZ_ASSERT(AsTransition(),
+               "Calling SetFinishedTransition but it's not a transition");
+    mStartTime = mozilla::TimeStamp();
+  }
+
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   bool IsRunningAt(mozilla::TimeStamp aTime) const;
   bool IsCurrentAt(mozilla::TimeStamp aTime) const;
