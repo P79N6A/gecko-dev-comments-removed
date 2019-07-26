@@ -43,7 +43,8 @@ pref("gfx.axis.fling_friction", "0.002");
 pref("gfx.axis.fling_stopped_threshold", "0.2");
 
 
-pref("apzc.axis_lock_mode", 1);
+pref("apzc.axis_lock_mode", 2);
+pref("apzc.cross_slide.enabled", true);
 
 
 pref("intl.enable_tsf_support", true);
