@@ -414,8 +414,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
     
-    svgElem->mHasChildrenOnlyTransform =
-      anonKid->HasChildrenOnlyTransform(nullptr);
+    svgElem->UpdateHasChildrenOnlyTransform();
   }
 
   
@@ -451,10 +450,10 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     changeBits |= FULL_ZOOM_CHANGED;
     mFullZoom = PresContext()->GetFullZoom();
   }
-  mViewportInitialized = true;
   if (changeBits) {
     NotifyViewportOrTransformChanged(changeBits);
   }
+  mViewportInitialized = true;
 
   if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     

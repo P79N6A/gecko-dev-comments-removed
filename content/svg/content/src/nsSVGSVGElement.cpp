@@ -917,6 +917,16 @@ nsSVGSVGElement::GetViewBoxTransform() const
 }
 
 void
+nsSVGSVGElement::UpdateHasChildrenOnlyTransform()
+{
+  bool hasChildrenOnlyTransform =
+    HasViewBoxOrSyntheticViewBox() ||
+    (IsRoot() && (mCurrentTranslate != nsSVGTranslatePoint(0.0f, 0.0f) ||
+                  mCurrentScale != 1.0f));
+  mHasChildrenOnlyTransform = hasChildrenOnlyTransform;
+}
+
+void
 nsSVGSVGElement::ChildrenOnlyTransformChanged(uint32_t aFlags)
 {
   
@@ -926,11 +936,12 @@ nsSVGSVGElement::ChildrenOnlyTransformChanged(uint32_t aFlags)
 
   nsChangeHint changeHint;
 
-  bool hasChildrenOnlyTransform = HasViewBoxOrSyntheticViewBox() ||
-    (IsRoot() && (mCurrentTranslate != nsSVGTranslatePoint(0.0f, 0.0f) ||
-                  mCurrentScale != 1.0f));
+  bool hadChildrenOnlyTransform = mHasChildrenOnlyTransform;
 
-  if (hasChildrenOnlyTransform != mHasChildrenOnlyTransform) {
+  UpdateHasChildrenOnlyTransform();
+
+  if (hadChildrenOnlyTransform != mHasChildrenOnlyTransform) {
+    
     
     changeHint = nsChangeHint_ReconstructFrame;
   } else {
@@ -949,8 +960,6 @@ nsSVGSVGElement::ChildrenOnlyTransformChanged(uint32_t aFlags)
       !(aFlags & eDuringReflow)) {
     nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
   }
-
-  mHasChildrenOnlyTransform = hasChildrenOnlyTransform;
 }
 
 nsresult
