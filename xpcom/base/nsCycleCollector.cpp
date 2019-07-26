@@ -779,9 +779,9 @@ public:
                          bool aAsyncSnowWhiteFreeing,
                          CC_ForgetSkippableCallback aCb);
 
-    nsPurpleBufferEntry* NewEntry()
+    MOZ_ALWAYS_INLINE nsPurpleBufferEntry* NewEntry()
     {
-        if (!mFreeList) {
+        if (MOZ_UNLIKELY(!mFreeList)) {
             Block *b = new Block;
             StartBlock(b);
 
@@ -796,8 +796,8 @@ public:
         return e;
     }
 
-    void Put(void *p, nsCycleCollectionParticipant *cp,
-             nsCycleCollectingAutoRefCnt *aRefCnt)
+    MOZ_ALWAYS_INLINE void Put(void *p, nsCycleCollectionParticipant *cp,
+                               nsCycleCollectingAutoRefCnt *aRefCnt)
     {
         nsPurpleBufferEntry *e = NewEntry();
 
@@ -2541,7 +2541,7 @@ nsCycleCollector_isScanSafe(void *s, nsCycleCollectionParticipant *cp)
 }
 #endif
 
-void
+MOZ_ALWAYS_INLINE void
 nsCycleCollector::Suspect(void *n, nsCycleCollectionParticipant *cp,
                           nsCycleCollectingAutoRefCnt *aRefCnt)
 {
@@ -2551,7 +2551,7 @@ nsCycleCollector::Suspect(void *n, nsCycleCollectionParticipant *cp,
     
     
 
-    if (mScanInProgress)
+    if (MOZ_UNLIKELY(mScanInProgress))
         return;
 
     MOZ_ASSERT(nsCycleCollector_isScanSafe(n, cp),
@@ -3003,6 +3003,25 @@ DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
 } 
 
 
+MOZ_NEVER_INLINE static void
+SuspectAfterShutdown(void* n, nsCycleCollectionParticipant* cp,
+                     nsCycleCollectingAutoRefCnt* aRefCnt,
+                     bool* aShouldDelete)
+{
+    if (aRefCnt->get() == 0) {
+        if (!aShouldDelete) {
+            CanonicalizeParticipant(&n, &cp);
+            aRefCnt->stabilizeForDeletion();
+            cp->DeleteCycleCollectable(n);
+        } else {
+            *aShouldDelete = true;
+        }
+    } else {
+        
+        aRefCnt->RemoveFromPurpleBuffer();
+    }
+}
+
 void
 NS_CycleCollectorSuspect3(void *n, nsCycleCollectionParticipant *cp,
                           nsCycleCollectingAutoRefCnt *aRefCnt,
@@ -3013,23 +3032,11 @@ NS_CycleCollectorSuspect3(void *n, nsCycleCollectionParticipant *cp,
     
     MOZ_ASSERT(data);
 
-    if (!data->mCollector) {
-        if (aRefCnt->get() == 0) {
-            if (!aShouldDelete) {
-                CanonicalizeParticipant(&n, &cp);
-                aRefCnt->stabilizeForDeletion();
-                cp->DeleteCycleCollectable(n);
-            } else {
-                *aShouldDelete = true;
-            }
-        } else {
-          
-          aRefCnt->RemoveFromPurpleBuffer();
-        }
+    if (MOZ_LIKELY(data->mCollector)) {
+        data->mCollector->Suspect(n, cp, aRefCnt);
         return;
     }
-
-    return data->mCollector->Suspect(n, cp, aRefCnt);
+    SuspectAfterShutdown(n, cp, aRefCnt, aShouldDelete);
 }
 
 uint32_t
