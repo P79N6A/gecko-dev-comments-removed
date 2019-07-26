@@ -2217,14 +2217,17 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 {
   nsChangeHint hint = nsChangeHint(0);
 
+  
+  
   if (!EqualURIs(mBinding, aOther.mBinding)
       || mPosition != aOther.mPosition
       || mDisplay != aOther.mDisplay
       || (mFloats == NS_STYLE_FLOAT_NONE) != (aOther.mFloats == NS_STYLE_FLOAT_NONE)
       || mOverflowX != aOther.mOverflowX
       || mOverflowY != aOther.mOverflowY
-      || mResize != aOther.mResize)
+      || mResize != aOther.mResize) {
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
+  }
 
   if (mFloats != aOther.mFloats) {
     
