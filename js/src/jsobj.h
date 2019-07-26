@@ -220,13 +220,11 @@ extern Class WeakMapClass;
 
 class ArrayBufferObject;
 class BooleanObject;
-class DebugScopeObject;
 class GlobalObject;
 class MapObject;
 class NewObjectCache;
 class NormalArgumentsObject;
 class NumberObject;
-class ScopeObject;
 class SetObject;
 class StrictArgumentsObject;
 class StringObject;
@@ -964,7 +962,6 @@ class JSObject : public js::ObjectImpl
     inline bool isObject()           const { return hasClass(&js::ObjectClass); }
     using js::ObjectImpl::isProxy;
     inline bool isRegExpStatics()    const { return hasClass(&js::RegExpStaticsClass); }
-    inline bool isScope()            const;
     inline bool isStopIteration()    const { return hasClass(&js::StopIterationClass); }
     inline bool isTypedArray()       const;
     inline bool isWeakMap()          const { return hasClass(&js::WeakMapClass); }
@@ -975,17 +972,14 @@ class JSObject : public js::ObjectImpl
     inline bool isString()  const { return hasClass(&js::StringClass); }
 
     
-    inline bool isDebugScope()              const;
     inline bool isWrapper()                 const;
     inline bool isFunctionProxy()           const { return hasClass(&js::FunctionProxyClass); }
     inline bool isCrossCompartmentWrapper() const;
 
     inline js::BooleanObject &asBoolean();
-    inline js::DebugScopeObject &asDebugScope();
     inline js::GlobalObject &asGlobal();
     inline js::MapObject &asMap();
     inline js::NumberObject &asNumber();
-    inline js::ScopeObject &asScope();
     inline js::SetObject &asSet();
     inline js::StringObject &asString();
 

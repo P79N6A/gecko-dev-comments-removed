@@ -269,6 +269,7 @@ AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *
 
 
 
+
 #endif
 }
 
@@ -342,7 +343,7 @@ StackFrame::epilogue(JSContext *cx)
                 DebugScopes::onPopStrictEvalScope(this);
         } else if (isDirectEvalFrame()) {
             if (isDebuggerFrame())
-                JS_ASSERT(!scopeChain()->isScope());
+                JS_ASSERT(!scopeChain()->is<ScopeObject>());
         } else {
             
 
@@ -360,7 +361,7 @@ StackFrame::epilogue(JSContext *cx)
     }
 
     if (isGlobalFrame()) {
-        JS_ASSERT(!scopeChain()->isScope());
+        JS_ASSERT(!scopeChain()->is<ScopeObject>());
         return;
     }
 
