@@ -52,6 +52,13 @@ extern bool gBluetoothDebugFlag;
 #define KEY_ADAPTER      "/B2G/bluetooth/adapter"
 
 
+
+
+
+#define BLUETOOTH_SCO_STATUS_CHANGED "bluetooth-sco-status-changed"
+#define BLUETOOTH_A2DP_STATUS_CHANGED "bluetooth-a2dp-status-changed"
+
+
 #define BLUETOOTH_ADDRESS_LENGTH 17
 #define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 
