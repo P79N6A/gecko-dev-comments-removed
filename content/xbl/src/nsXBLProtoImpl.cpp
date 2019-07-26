@@ -21,27 +21,6 @@
 
 using namespace mozilla;
 
-
-class AutoVersionChecker
-{
-  DebugOnly<JSContext *> const cx;
-  DebugOnly<JSVersion> versionBefore;
-
-public:
-  explicit AutoVersionChecker(JSContext *aCx) : cx(aCx) {
-#ifdef DEBUG
-    versionBefore = JS_GetVersion(cx);
-#endif
-  }
-
-  ~AutoVersionChecker() {
-#ifdef DEBUG
-    JSVersion versionAfter = JS_GetVersion(cx);
-    NS_ABORT_IF_FALSE(versionAfter == versionBefore, "version must not change");
-#endif
-  }
-};
-
 nsresult
 nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
                                       nsXBLBinding* aBinding)
@@ -90,7 +69,6 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
 
   AutoPushJSContext cx(context->GetNativeContext());
   JSAutoCompartment ac(cx, targetClassObject);
-  AutoVersionChecker avc(cx);
 
   
   for (nsXBLProtoImplMember* curr = mMembers;
@@ -230,8 +208,6 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   MOZ_ASSERT(classObject);
   mClassObject = classObject;
 
-  AutoVersionChecker avc(cx);
-
   
   
   for (nsXBLProtoImplMember* curr = mMembers;
@@ -300,7 +276,6 @@ nsXBLProtoImpl::FindField(const nsString& aFieldName) const
 bool
 nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const
 {
-  AutoVersionChecker avc(cx);
   for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
     
     
