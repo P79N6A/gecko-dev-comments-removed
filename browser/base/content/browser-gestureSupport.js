@@ -27,10 +27,6 @@ let gGestureSupport = {
 
 
   init: function GS_init(aAddListener) {
-    
-    if (gMultiProcessBrowser)
-      return;
-
     const gestureEvents = ["SwipeGestureStart",
       "SwipeGestureUpdate", "SwipeGestureEnd", "SwipeGesture",
       "MagnifyGestureStart", "MagnifyGestureUpdate", "MagnifyGesture",
