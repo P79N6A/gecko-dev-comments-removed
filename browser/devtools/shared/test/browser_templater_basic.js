@@ -1,20 +1,21 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
+// Tests that the DOM Template engine works properly
 
+/*
+ * These tests run both in Mozilla/Mochitest and plain browsers (as does
+ * domtemplate)
+ * We should endevour to keep the source in sync.
+ */
 
+var Promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
+var template = Cu.import("resource:///modules/devtools/Templater.jsm", {}).template;
 
-
-
-
-
-
-
-
-var imports = {};
-Cu.import("resource:///modules/devtools/Templater.jsm", imports);
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", imports);
+const TEST_URI = "http://example.com/browser/browser/devtools/shared/test/browser_templater_basic.html";
 
 function test() {
-  addTab("http://example.com/browser/browser/devtools/shared/test/browser_templater_basic.html", function() {
+  addTab(TEST_URI, function() {
     info("Starting DOM Templater Tests");
     runTest(0);
   });
@@ -29,13 +30,14 @@ function runTest(index) {
   holder.innerHTML = options.template;
 
   info('Running ' + options.name);
-  imports.template(holder, options.data, options.options);
+  template(holder, options.data, options.options);
 
   if (typeof options.result == 'string') {
     is(holder.innerHTML, options.result, options.name);
   }
   else {
-    ok(holder.innerHTML.match(options.result), options.name);
+    ok(holder.innerHTML.match(options.result) != null,
+       options.name + ' result=\'' + holder.innerHTML + '\'');
   }
 
   if (options.also) {
@@ -76,14 +78,14 @@ function finished() {
   finish();
 }
 
-
-
-
-
-
-
-
-
+/**
+ * Why have an array of functions that return data rather than just an array
+ * of the data itself? Some of these tests contain calls to delayReply() which
+ * sets up async processing using executeSoon(). Since the execution of these
+ * tests is asynchronous, the delayed reply will probably arrive before the
+ * test is executed, making the test be synchronous. So we wrap the data in a
+ * function so we only set it up just before we use it.
+ */
 var tests = [
   function() { return {
     name: 'simpleNesting',
@@ -138,8 +140,8 @@ var tests = [
     result: '123'
   };},
 
-  
-  
+  // Bug 692028: DOMTemplate memory leak with asynchronous arrays
+  // Bug 692031: DOMTemplate async loops do not drop the loop element
   function() { return {
     name: 'asyncLoopElement',
     template: '<loop foreach="i in ${array}">${i}</loop>',
@@ -180,7 +182,7 @@ var tests = [
     later: 'inline'
   };},
 
-  
+  // Bug 692028: DOMTemplate memory leak with asynchronous arrays
   function() { return {
     name: 'asyncArray',
     template: '<p foreach="i in ${delayed}">${i}</p>',
@@ -197,7 +199,7 @@ var tests = [
     later: '<p>4</p><p>5</p><p>6</p>'
   };},
 
-  
+  // Bug 692028: DOMTemplate memory leak with asynchronous arrays
   function() { return {
     name: 'asyncBoth',
     template: '<p foreach="i in ${delayed}">${i}</p>',
@@ -212,7 +214,7 @@ var tests = [
     later: '<p>4</p><p>5</p><p>6</p>'
   };},
 
-  
+  // Bug 701762: DOMTemplate fails when ${foo()} returns undefined
   function() { return {
     name: 'functionReturningUndefiend',
     template: '<p>${foo()}</p>',
@@ -223,7 +225,7 @@ var tests = [
     result: '<p>undefined</p>'
   };},
 
-  
+  // Bug 702642: DOMTemplate is relatively slow when evaluating JS ${}
   function() { return {
     name: 'propertySimple',
     template: '<p>${a.b.c}</p>',
@@ -244,8 +246,8 @@ var tests = [
     result: '<p>${Math.max(1, 2)}</p>'
   };},
 
-  
-  
+  // Bug 723431: DOMTemplate should allow customisation of display of
+  // null/undefined values
   function() { return {
     name: 'propertyUndefAttrFull',
     template: '<p>${nullvar}|${undefinedvar1}|${undefinedvar2}</p>',
@@ -278,7 +280,7 @@ var tests = [
 ];
 
 function delayReply(data) {
-  var d = imports.Promise.defer();
+  var d = Promise.defer();
   executeSoon(function() {
     d.resolve(data);
   });

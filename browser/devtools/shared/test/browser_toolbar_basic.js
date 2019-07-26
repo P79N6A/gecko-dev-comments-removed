@@ -1,13 +1,7 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
-
-let imported = {};
-Components.utils.import("resource:///modules/HUDService.jsm", imported);
-registerCleanupFunction(function() {
-  imported = {};
-});
+// Tests that the developer toolbar works properly
 
 const TEST_URI = "http://example.com/browser/browser/devtools/shared/test/browser_toolbar_basic.html";
 
@@ -77,14 +71,4 @@ function checkReClosed() {
   ok(!DeveloperToolbar.visible, "DeveloperToolbar is not visible in checkReClosed");
 
   finish();
-}
-
-
-
-function oneTimeObserve(name, callback) {
-  var func = function() {
-    Services.obs.removeObserver(func, name);
-    callback();
-  };
-  Services.obs.addObserver(func, name, false);
 }

@@ -1,7 +1,7 @@
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
+// Tests that the developer toolbar errors count works properly.
 
 function test() {
   const TEST_URI = "http://example.com/browser/browser/devtools/shared/test/" +
@@ -14,11 +14,7 @@ function test() {
   Components.utils.import("resource:///modules/devtools/gDevTools.jsm", imported);
   let gDevTools = imported.gDevTools;
 
-  Components.utils.import("resource:///modules/devtools/Target.jsm", imported);
-  let TargetFactory = imported.TargetFactory;
-
   let webconsole = document.getElementById("developer-toolbar-toolbox-button");
-  let toolbar = document.getElementById("Tools:DevToolbar");
   let tab1, tab2;
 
   Services.prefs.setBoolPref("javascript.options.strict", true);
@@ -27,11 +23,14 @@ function test() {
     tab1 = tab;
     ignoreAllUncaughtExceptions(false);
 
-    ok(!DeveloperToolbar.visible, "DeveloperToolbar is not visible");
-
     expectUncaughtException();
-    oneTimeObserve(DeveloperToolbar.NOTIFICATIONS.SHOW, onOpenToolbar);
-    toolbar.doCommand();
+
+    if (!DeveloperToolbar.visible) {
+      DeveloperToolbar.show(true, onOpenToolbar);
+    }
+    else {
+      onOpenToolbar();
+    }
   }
 
   ignoreAllUncaughtExceptions();
@@ -185,7 +184,7 @@ function test() {
     waitForButtonUpdate({
       name: "button shows one more error after another click in page",
       errors: 5,
-      warnings: 1, 
+      warnings: 1, // warnings are not repeated by the js engine
       success: function() {
         waitForValue(waitForNewError);
       },

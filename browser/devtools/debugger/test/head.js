@@ -1,5 +1,5 @@
-
-
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const Cc = Components.classes;
@@ -21,12 +21,16 @@ let DebuggerClient = tempScope.DebuggerClient;
 let gDevTools = tempScope.gDevTools;
 let TargetFactory = tempScope.TargetFactory;
 
+// Import the GCLI test helper
+let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
+
 const EXAMPLE_URL = "http://example.com/browser/browser/devtools/debugger/test/";
 const TAB1_URL = EXAMPLE_URL + "browser_dbg_tab1.html";
 const TAB2_URL = EXAMPLE_URL + "browser_dbg_tab2.html";
 const STACK_URL = EXAMPLE_URL + "browser_dbg_stack.html";
 
-
+// Enable logging and remote debugging for the relevant tests.
 let gEnableRemote = Services.prefs.getBoolPref("devtools.debugger.remote-enabled");
 let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
@@ -36,7 +40,7 @@ registerCleanupFunction(function() {
   Services.prefs.setBoolPref("devtools.debugger.remote-enabled", gEnableRemote);
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
 
-  
+  // Properly shut down the server to avoid memory leaks.
   DebuggerServer.destroy();
 });
 
@@ -138,8 +142,8 @@ function attach_tab_actor_for_url(aClient, aURL, aCallback) {
 function attach_thread_actor_for_url(aClient, aURL, aCallback) {
   attach_tab_actor_for_url(aClient, aURL, function(aTabActor, aResponse) {
     aClient.attachThread(actor.threadActor, function(aResponse, aThreadClient) {
-      
-      
+      // We don't care about the pause right now (use
+      // get_actor_for_url() if you do), so resume it.
       aThreadClient.resume(function(aResponse) {
         aCallback(actor);
       });
@@ -154,7 +158,7 @@ function wait_for_connect_and_resume(aOnDebugging, aTab) {
     let dbg = toolbox.getCurrentPanel();
     dbg.once("connected", function dbgConnected() {
 
-      
+      // Wait for the initial resume...
       dbg.panelWin.gClient.addOneTimeListener("resumed", function() {
         aOnDebugging();
       });
@@ -163,7 +167,7 @@ function wait_for_connect_and_resume(aOnDebugging, aTab) {
 }
 
 function debug_tab_pane(aURL, aOnDebugging, aBeforeTabAdded) {
-  
+  // Make any necessary preparations (start the debugger server etc.)
   if (aBeforeTabAdded) {
     aBeforeTabAdded();
   }
@@ -176,7 +180,7 @@ function debug_tab_pane(aURL, aOnDebugging, aBeforeTabAdded) {
       let dbg = toolbox.getCurrentPanel();
       dbg.once("connected", function() {
 
-        
+        // Wait for the initial resume...
         dbg.panelWin.gClient.addOneTimeListener("resumed", function() {
           dbg._view.Variables.lazyEmpty = false;
           dbg._view.Variables.lazyAppend = false;
@@ -188,7 +192,7 @@ function debug_tab_pane(aURL, aOnDebugging, aBeforeTabAdded) {
 }
 
 function debug_remote(aURL, aOnDebugging, aBeforeTabAdded) {
-  
+  // Make any necessary preparations (start the debugger server etc.)
   if (aBeforeTabAdded) {
     aBeforeTabAdded();
   }
@@ -200,7 +204,7 @@ function debug_remote(aURL, aOnDebugging, aBeforeTabAdded) {
     win._dbgwin.addEventListener("Debugger:Connected", function dbgConnected() {
       win._dbgwin.removeEventListener("Debugger:Connected", dbgConnected, true);
 
-      
+      // Wait for the initial resume...
       win.panelWin.gClient.addOneTimeListener("resumed", function() {
         win._dbgwin.DebuggerView.Variables.lazyEmpty = false;
         win._dbgwin.DebuggerView.Variables.lazyAppend = false;
@@ -218,7 +222,7 @@ function debug_chrome(aURL, aOnClosing, aOnDebugging) {
     DebuggerUI.toggleChromeDebugger(aOnClosing, function dbgRan(process) {
       info("Browser Debugger has started");
 
-      
+      // Wait for the remote debugging process to start...
       aOnDebugging(tab, debuggee, process);
     });
   });

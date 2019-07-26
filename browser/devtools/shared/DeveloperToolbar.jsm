@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -30,6 +30,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageErrorListener",
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "TargetFactory",
+                                  "resource:///modules/devtools/Target.jsm");
+
 XPCOMUtils.defineLazyGetter(this, "prefBranch", function() {
   let prefService = Components.classes["@mozilla.org/preferences-service;1"]
           .getService(Components.interfaces.nsIPrefService);
@@ -41,28 +44,28 @@ XPCOMUtils.defineLazyGetter(this, "toolboxStrings", function () {
   return Services.strings.createBundle("chrome://browser/locale/devtools/toolbox.properties");
 });
 
-
-
-
-this.CommandUtils = {
-  
-
-
-
+/**
+ * A collection of utilities to help working with commands
+ */
+let CommandUtils = {
+  /**
+   * Read a toolbarSpec from preferences
+   * @param aPref The name of the preference to read
+   */
   getCommandbarSpec: function CU_getCommandbarSpec(aPref) {
     let value = prefBranch.getComplexValue(aPref,
                                Components.interfaces.nsISupportsString).data;
     return JSON.parse(value);
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * A toolbarSpec is an array of buttonSpecs. A buttonSpec is an array of
+   * strings each of which is a GCLI command (including args if needed).
+   *
+   * Warning: this method uses the unload event of the window that owns the
+   * buttons that are of type checkbox. this means that we don't properly
+   * unregister event handlers until the window is destroyed.
+   */
   createButtons: function CU_createButtons(toolbarSpec, target, document, requisition) {
     let reply = [];
 
@@ -73,14 +76,14 @@ this.CommandUtils = {
       if (typeof buttonSpec == "string") {
         buttonSpec = { typed: buttonSpec };
       }
-      
+      // Ask GCLI to parse the typed string (doesn't execute it)
       requisition.update(buttonSpec.typed);
 
-      
+      // Ignore invalid commands
       let command = requisition.commandAssignment.value;
       if (command == null) {
-        
-        
+        // TODO: Have a broken icon
+        // button.icon = 'Broken';
         button.setAttribute("label", "X");
         button.setAttribute("tooltip", "Unknown command: " + buttonSpec.typed);
         button.setAttribute("disabled", "true");
@@ -101,17 +104,17 @@ this.CommandUtils = {
 
         button.addEventListener("click", function() {
           requisition.update(buttonSpec.typed);
-          
+          //if (requisition.getStatus() == Status.VALID) {
             requisition.exec();
-          
-
-
-
-
-
+          /*
+          }
+          else {
+            console.error('incomplete commands not yet supported');
+          }
+          */
         }, false);
 
-        
+        // Allow the command button to be toggleable
         if (command.state) {
           button.setAttribute("autocheck", false);
           let onChange = function(event, eventTab) {
@@ -136,28 +139,54 @@ this.CommandUtils = {
     requisition.update('');
 
     return reply;
-  }
+  },
+
+  /**
+   * A helper function to create the environment object that is passed to
+   * GCLI commands.
+   */
+  createEnvironment: function(chromeDocument, contentDocument) {
+    let environment = {
+      chromeDocument: chromeDocument,
+      contentDocument: contentDocument, // Use of contentDocument is deprecated
+
+      document: contentDocument,
+      window: contentDocument.defaultView
+    };
+
+    Object.defineProperty(environment, "target", {
+      get: function() {
+        let tab = chromeDocument.defaultView.getBrowser().selectedTab;
+        return TargetFactory.forTab(tab);
+      },
+      enumerable: true
+    });
+
+    return environment;
+  },
 };
 
+this.CommandUtils = CommandUtils;
 
-
-
-
-
-
-
+/**
+ * Due to a number of panel bugs we need a way to check if we are running on
+ * Linux. See the comments for TooltipPanel and OutputPanel for further details.
+ *
+ * When bug 780102 is fixed all isLinux checks can be removed and we can revert
+ * to using panels.
+ */
 XPCOMUtils.defineLazyGetter(this, "isLinux", function () {
   let os = Components.classes["@mozilla.org/xre/app-info;1"]
            .getService(Components.interfaces.nsIXULRuntime).OS;
   return os == "Linux";
 });
 
-
-
-
-
-
-
+/**
+ * A component to manage the global developer toolbar, which contains a GCLI
+ * and buttons for various developer tools.
+ * @param aChromeWindow The browser window to which this toolbar is attached
+ * @param aToolbarElement See browser.xul:<toolbar id="developer-toolbar">
+ */
 this.DeveloperToolbar = function DeveloperToolbar(aChromeWindow, aToolbarElement)
 {
   this._chromeWindow = aChromeWindow;
@@ -185,29 +214,29 @@ this.DeveloperToolbar = function DeveloperToolbar(aChromeWindow, aToolbarElement
   }
 }
 
-
-
-
+/**
+ * Inspector notifications dispatched through the nsIObserverService
+ */
 const NOTIFICATIONS = {
-  
+  /** DeveloperToolbar.show() has been called, and we're working on it */
   LOAD: "developer-toolbar-load",
 
-  
+  /** DeveloperToolbar.show() has completed */
   SHOW: "developer-toolbar-show",
 
-  
+  /** DeveloperToolbar.hide() has been called */
   HIDE: "developer-toolbar-hide"
 };
 
-
-
-
-
+/**
+ * Attach notification constants to the object prototype so tests etc can
+ * use them without needing to import anything
+ */
 DeveloperToolbar.prototype.NOTIFICATIONS = NOTIFICATIONS;
 
-
-
-
+/**
+ * Is the toolbar open?
+ */
 Object.defineProperty(DeveloperToolbar.prototype, 'visible', {
   get: function DT_visible() {
     return !this._element.hidden;
@@ -217,9 +246,9 @@ Object.defineProperty(DeveloperToolbar.prototype, 'visible', {
 
 let _gSequenceId = 0;
 
-
-
-
+/**
+ * Getter for a unique ID.
+ */
 Object.defineProperty(DeveloperToolbar.prototype, 'sequenceId', {
   get: function DT_visible() {
     return _gSequenceId++;
@@ -227,10 +256,10 @@ Object.defineProperty(DeveloperToolbar.prototype, 'sequenceId', {
   enumerable: true
 });
 
-
-
-
-
+/**
+ * Called from browser.xul in response to menu-click or keyboard shortcut to
+ * toggle the toolbar
+ */
 DeveloperToolbar.prototype.toggle = function DT_toggle()
 {
   if (this.visible) {
@@ -240,10 +269,10 @@ DeveloperToolbar.prototype.toggle = function DT_toggle()
   }
 };
 
-
-
-
-
+/**
+ * Called from browser.xul in response to menu-click or keyboard shortcut to
+ * toggle the toolbar
+ */
 DeveloperToolbar.prototype.focus = function DT_focus()
 {
   if (this.visible) {
@@ -253,15 +282,15 @@ DeveloperToolbar.prototype.focus = function DT_focus()
   }
 };
 
-
-
-
-
+/**
+ * Called from browser.xul in response to menu-click or keyboard shortcut to
+ * toggle the toolbar
+ */
 DeveloperToolbar.prototype.focusToggle = function DT_focusToggle()
 {
   if (this.visible) {
-    
-    
+    // If we have focus then the active element is the HTML input contained
+    // inside the xul input element
     let active = this._chromeWindow.document.activeElement;
     let position = this._input.compareDocumentPosition(active);
     if (position & Node.DOCUMENT_POSITION_CONTAINED_BY) {
@@ -275,19 +304,19 @@ DeveloperToolbar.prototype.focusToggle = function DT_focusToggle()
   }
 };
 
-
-
-
-
-
-
+/**
+ * Even if the user has not clicked on 'Got it' in the intro, we only show it
+ * once per session.
+ * Warning this is slightly messed up because this.DeveloperToolbar is not the
+ * same as this.DeveloperToolbar when in browser.js context.
+ */
 DeveloperToolbar.introShownThisSession = false;
 
-
-
-
-
-
+/**
+ * Show the developer toolbar
+ * @param aCallback show events can be asynchronous. If supplied aCallback will
+ * be called when the DeveloperToolbar is visible
+ */
 DeveloperToolbar.prototype.show = function DT_show(aFocus, aCallback)
 {
   if (this._lastState != NOTIFICATIONS.HIDE) {
@@ -312,10 +341,10 @@ DeveloperToolbar.prototype.show = function DT_show(aFocus, aCallback)
   this.outputPanel = new OutputPanel(this._doc, this._input, checkLoad);
 };
 
-
-
-
-
+/**
+ * Initializing GCLI can only be done when we've got content windows to write
+ * to, so this needs to be done asynchronously.
+ */
 DeveloperToolbar.prototype._onload = function DT_onload(aFocus)
 {
   this._doc.getElementById("Tools:DevToolbar").setAttribute("checked", "true");
@@ -326,18 +355,12 @@ DeveloperToolbar.prototype._onload = function DT_onload(aFocus)
     contentDocument: contentDocument,
     chromeDocument: this._doc,
     chromeWindow: this._chromeWindow,
-
     hintElement: this.tooltipPanel.hintElement,
     inputElement: this._input,
     completeElement: this._doc.querySelector(".gclitoolbar-complete-node"),
     backgroundElement: this._doc.querySelector(".gclitoolbar-stack-node"),
     outputDocument: this.outputPanel.document,
-
-    environment: {
-      chromeDocument: this._doc,
-      contentDocument: contentDocument
-    },
-
+    environment: CommandUtils.createEnvironment(this._doc, contentDocument),
     tooltipClass: 'gcliterm-tooltip',
     eval: null,
     scratchpad: null
@@ -369,9 +392,9 @@ DeveloperToolbar.prototype._onload = function DT_onload(aFocus)
     this._pendingShowCallback = undefined;
   }
 
-  
-  
-  
+  // If a hide event happened while we were loading, then we need to hide.
+  // We could make this check earlier, but then cleanup would be complex so
+  // we're being inefficient for now.
   if (this._pendingHide) {
     this.hide();
     return;
@@ -383,14 +406,14 @@ DeveloperToolbar.prototype._onload = function DT_onload(aFocus)
   }
 };
 
-
-
-
-
-
-
-
-
+/**
+ * Initialize the listeners needed for tracking the number of errors for a given
+ * tab.
+ *
+ * @private
+ * @param nsIDOMNode aTab the xul:tab for which you want to track the number of
+ * errors.
+ */
 DeveloperToolbar.prototype._initErrorsCount = function DT__initErrorsCount(aTab)
 {
   let tabId = aTab.linkedPanel;
@@ -415,14 +438,14 @@ DeveloperToolbar.prototype._initErrorsCount = function DT__initErrorsCount(aTab)
   this._updateErrorsCount();
 };
 
-
-
-
-
-
-
-
-
+/**
+ * Stop the listeners needed for tracking the number of errors for a given
+ * tab.
+ *
+ * @private
+ * @param nsIDOMNode aTab the xul:tab for which you want to stop tracking the
+ * number of errors.
+ */
 DeveloperToolbar.prototype._stopErrorsCount = function DT__stopErrorsCount(aTab)
 {
   let tabId = aTab.linkedPanel;
@@ -439,9 +462,9 @@ DeveloperToolbar.prototype._stopErrorsCount = function DT__stopErrorsCount(aTab)
   this._updateErrorsCount();
 };
 
-
-
-
+/**
+ * Hide the developer toolbar.
+ */
 DeveloperToolbar.prototype.hide = function DT_hide()
 {
   if (this._lastState == NOTIFICATIONS.HIDE) {
@@ -463,9 +486,9 @@ DeveloperToolbar.prototype.hide = function DT_hide()
   this._notify(NOTIFICATIONS.HIDE);
 };
 
-
-
-
+/**
+ * Hide the developer toolbar
+ */
 DeveloperToolbar.prototype.destroy = function DT_destroy()
 {
   if (this._lastState == NOTIFICATIONS.HIDE) {
@@ -491,23 +514,23 @@ DeveloperToolbar.prototype.destroy = function DT_destroy()
   this.tooltipPanel.destroy();
   delete this._input;
 
-  
-  
-  
-  
-  
-
-
-
-
+  // We could "delete this.display" etc if we have hard-to-track-down memory
+  // leaks as a belt-and-braces approach, however this prevents our DOM node
+  // hunter from looking in all the nooks and crannies, so it's better if we
+  // can be leak-free without
+  /*
+  delete this.display;
+  delete this.outputPanel;
+  delete this.tooltipPanel;
+  */
 
   this._lastState = NOTIFICATIONS.HIDE;
 };
 
-
-
-
-
+/**
+ * Utility for sending notifications
+ * @param aTopic a NOTIFICATION constant
+ */
 DeveloperToolbar.prototype._notify = function DT_notify(aTopic)
 {
   this._lastState = aTopic;
@@ -517,10 +540,10 @@ DeveloperToolbar.prototype._notify = function DT_notify(aTopic)
   Services.obs.notifyObservers(data, aTopic, null);
 };
 
-
-
-
-
+/**
+ * Update various parts of the UI when the current tab changes
+ * @param aEvent
+ */
 DeveloperToolbar.prototype.handleEvent = function DT_handleEvent(aEvent)
 {
   if (aEvent.type == "TabSelect" || aEvent.type == "load") {
@@ -530,10 +553,7 @@ DeveloperToolbar.prototype.handleEvent = function DT_handleEvent(aEvent)
       this.display.reattach({
         contentDocument: contentDocument,
         chromeWindow: this._chromeWindow,
-        environment: {
-          chromeDocument: this._doc,
-          contentDocument: contentDocument
-        },
+        environment: CommandUtils.createEnvironment(this._doc, contentDocument),
       });
 
       if (aEvent.type == "TabSelect") {
@@ -549,15 +569,15 @@ DeveloperToolbar.prototype.handleEvent = function DT_handleEvent(aEvent)
   }
 };
 
-
-
-
-
-
-
-
-
-
+/**
+ * Count a page error received for the currently selected tab. This
+ * method counts the JavaScript exceptions received and CSS errors/warnings.
+ *
+ * @private
+ * @param string aTabId the ID of the tab from where the page error comes.
+ * @param object aPageError the page error object received from the
+ * PageErrorListener.
+ */
 DeveloperToolbar.prototype._onPageError =
 function DT__onPageError(aTabId, aPageError)
 {
@@ -574,13 +594,13 @@ function DT__onPageError(aTabId, aPageError)
   this._updateErrorsCount(aTabId);
 };
 
-
-
-
-
-
-
-
+/**
+ * The |beforeunload| event handler. This function resets the errors count when
+ * a different page starts loading.
+ *
+ * @private
+ * @param nsIDOMEvent aEvent the beforeunload DOM event.
+ */
 DeveloperToolbar.prototype._onPageBeforeUnload =
 function DT__onPageBeforeUnload(aEvent)
 {
@@ -604,15 +624,15 @@ function DT__onPageBeforeUnload(aEvent)
   }, this);
 };
 
-
-
-
-
-
-
-
-
-
+/**
+ * Update the page errors count displayed in the Web Console button for the
+ * currently selected tab.
+ *
+ * @private
+ * @param string [aChangedTabId] Optional. The tab ID that had its page errors
+ * count changed. If this is provided and it doesn't match the currently
+ * selected tab, then the button is not updated.
+ */
 DeveloperToolbar.prototype._updateErrorsCount =
 function DT__updateErrorsCount(aChangedTabId)
 {
@@ -645,12 +665,12 @@ function DT__updateErrorsCount(aChangedTabId)
   }
 };
 
-
-
-
-
-
-
+/**
+ * Reset the errors counter for the given tab.
+ *
+ * @param nsIDOMElement aTab The xul:tab for which you want to reset the page
+ * errors counters.
+ */
 DeveloperToolbar.prototype.resetErrorsCount =
 function DT_resetErrorsCount(aTab)
 {
@@ -662,24 +682,24 @@ function DT_resetErrorsCount(aTab)
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Panel to handle command line output.
+ *
+ * There is a tooltip bug on Windows and OSX that prevents tooltips from being
+ * positioned properly (bug 786975). There is a Gnome panel bug on Linux that
+ * causes ugly focus issues (https://bugzilla.gnome.org/show_bug.cgi?id=621848).
+ * We now use a tooltip on Linux and a panel on OSX & Windows.
+ *
+ * If a panel has no content and no height it is not shown when openPopup is
+ * called on Windows and OSX (bug 692348) ... this prevents the panel from
+ * appearing the first time it is shown. Setting the panel's height to 1px
+ * before calling openPopup works around this issue as we resize it ourselves
+ * anyway.
+ *
+ * @param aChromeDoc document from which we can pull the parts we need.
+ * @param aInput the input element that should get focus.
+ * @param aLoadCallback called when the panel is loaded properly.
+ */
 function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 {
   this._input = aInput;
@@ -687,20 +707,20 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 
   this._loadCallback = aLoadCallback;
 
-  
+  /*
+  <tooltip|panel id="gcli-output"
+         noautofocus="true"
+         noautohide="true"
+         class="gcli-panel">
+    <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
+                 id="gcli-output-frame"
+                 src="chrome://browser/content/devtools/commandlineoutput.xhtml"
+                 sandbox="allow-same-origin"/>
+  </tooltip|panel>
+  */
 
-
-
-
-
-
-
-
-
-
-
-  
-  
+  // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
   this._panel = aChromeDoc.createElement(isLinux ? "tooltip" : "panel");
 
   this._panel.id = "gcli-output";
@@ -714,10 +734,10 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
     this._panel.setAttribute("noautofocus", "true");
     this._panel.setAttribute("noautohide", "true");
 
-    
-    
-    
-    
+    // Bug 692348: On Windows and OSX if a panel has no content and no height
+    // openPopup fails to display it. Setting the height to 1px alows the panel
+    // to be displayed before has content or a real height i.e. the first time
+    // it is displayed.
     this._panel.setAttribute("height", "1px");
   }
 
@@ -737,9 +757,9 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
   this.loaded = false;
 }
 
-
-
-
+/**
+ * Wire up the element from the iframe, and inform the _loadCallback.
+ */
 OutputPanel.prototype._onload = function OP_onload()
 {
   this._frame.removeEventListener("load", this._onload, true);
@@ -762,11 +782,11 @@ OutputPanel.prototype._onload = function OP_onload()
   }
 };
 
-
-
-
-
-
+/**
+ * Determine the scrollbar width in the current document.
+ *
+ * @private
+ */
 Object.defineProperty(OutputPanel.prototype, 'scrollbarWidth', {
   get: function() {
     if (this.__scrollbarWidth) {
@@ -789,29 +809,29 @@ Object.defineProperty(OutputPanel.prototype, 'scrollbarWidth', {
   enumerable: true
 });
 
-
-
-
+/**
+ * Prevent the popup from hiding if it is not permitted via this.canHide.
+ */
 OutputPanel.prototype._onpopuphiding = function OP_onpopuphiding(aEvent)
 {
-  
-  
+  // TODO: When we switch back from tooltip to panel we can remove this hack:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
   if (isLinux && !this.canHide) {
     aEvent.preventDefault();
   }
 };
 
-
-
-
+/**
+ * Display the OutputPanel.
+ */
 OutputPanel.prototype.show = function OP_show()
 {
   if (isLinux) {
     this.canHide = false;
   }
 
-  
-  
+  // We need to reset the iframe size in order for future size calculations to
+  // be correct
   this._frame.style.minHeight = this._frame.style.maxHeight = 0;
   this._frame.style.minWidth = 0;
 
@@ -821,53 +841,53 @@ OutputPanel.prototype.show = function OP_show()
   this._input.focus();
 };
 
-
-
-
-
+/**
+ * Internal helper to set the height of the output panel to fit the available
+ * content;
+ */
 OutputPanel.prototype._resize = function CLP_resize()
 {
   if (this._panel == null || this.document == null || !this._panel.state == "closed") {
     return
   }
 
-  
-  
+  // Set max panel width to match any content with a max of the width of the
+  // browser window.
   let maxWidth = this._panel.ownerDocument.documentElement.clientWidth;
   let width = Math.min(maxWidth, this.document.documentElement.scrollWidth);
 
-  
+  // Add scrollbar width to content size in case a scrollbar is needed.
   width += this.scrollbarWidth;
 
-  
+  // Set the width of the iframe.
   this._frame.style.minWidth = width + "px";
 
-  
-  
+  // browserAdjustment is used to correct the panel height according to the
+  // browsers borders etc.
   const browserAdjustment = 15;
 
-  
-  
+  // Set max panel height to match any content with a max of the height of the
+  // browser window.
   let maxHeight =
     this._panel.ownerDocument.documentElement.clientHeight - browserAdjustment;
   let height = Math.min(maxHeight, this.document.documentElement.scrollHeight);
 
-  
+  // Set the height of the iframe. Setting iframe.height does not work.
   this._frame.style.minHeight = this._frame.style.maxHeight = height + "px";
 
-  
+  // Set the height and width of the panel to match the iframe.
   this._panel.sizeTo(width, height);
 
-  
-  
+  // Move the panel to the correct position in the case that it has been
+  // positioned incorrectly.
   let screenX = this._input.boxObject.screenX;
   let screenY = this._toolbar.boxObject.screenY;
   this._panel.moveTo(screenX, screenY - height);
 };
 
-
-
-
+/**
+ * Called by GCLI when a command is executed.
+ */
 OutputPanel.prototype._outputChanged = function OP_outputChanged(aEvent)
 {
   if (aEvent.output.hidden) {
@@ -883,10 +903,10 @@ OutputPanel.prototype._outputChanged = function OP_outputChanged(aEvent)
   this.displayedOutput.onClose.add(this.remove, this);
 };
 
-
-
-
-
+/**
+ * Called when displayed Output says it's changed or from outputChanged, which
+ * happens when there is a new displayed Output.
+ */
 OutputPanel.prototype.update = function OP_update()
 {
   if (this.displayedOutput.data == null) {
@@ -899,9 +919,9 @@ OutputPanel.prototype.update = function OP_update()
   }
 };
 
-
-
-
+/**
+ * Detach listeners from the currently displayed Output.
+ */
 OutputPanel.prototype.remove = function OP_remove()
 {
   if (isLinux) {
@@ -919,9 +939,9 @@ OutputPanel.prototype.remove = function OP_remove()
   }
 };
 
-
-
-
+/**
+ * Detach listeners from the currently displayed Output.
+ */
 OutputPanel.prototype.destroy = function OP_destroy()
 {
   this.remove();
@@ -942,14 +962,14 @@ OutputPanel.prototype.destroy = function OP_destroy()
   delete this.document;
 };
 
-
-
-
-
+/**
+ * Called by GCLI to indicate that we should show or hide one either the
+ * tooltip panel or the output panel.
+ */
 OutputPanel.prototype._visibilityChanged = function OP_visibilityChanged(aEvent)
 {
   if (aEvent.outputVisible === true) {
-    
+    // this.show is called by _outputChanged
   } else {
     if (isLinux) {
       this.canHide = true;
@@ -959,24 +979,24 @@ OutputPanel.prototype._visibilityChanged = function OP_visibilityChanged(aEvent)
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Panel to handle tooltips.
+ *
+ * There is a tooltip bug on Windows and OSX that prevents tooltips from being
+ * positioned properly (bug 786975). There is a Gnome panel bug on Linux that
+ * causes ugly focus issues (https://bugzilla.gnome.org/show_bug.cgi?id=621848).
+ * We now use a tooltip on Linux and a panel on OSX & Windows.
+ *
+ * If a panel has no content and no height it is not shown when openPopup is
+ * called on Windows and OSX (bug 692348) ... this prevents the panel from
+ * appearing the first time it is shown. Setting the panel's height to 1px
+ * before calling openPopup works around this issue as we resize it ourselves
+ * anyway.
+ *
+ * @param aChromeDoc document from which we can pull the parts we need.
+ * @param aInput the input element that should get focus.
+ * @param aLoadCallback called when the panel is loaded properly.
+ */
 function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
 {
   this._input = aInput;
@@ -985,22 +1005,22 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
 
   this._onload = this._onload.bind(this);
   this._loadCallback = aLoadCallback;
-  
+  /*
+  <tooltip|panel id="gcli-tooltip"
+         type="arrow"
+         noautofocus="true"
+         noautohide="true"
+         class="gcli-panel">
+    <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
+                 id="gcli-tooltip-frame"
+                 src="chrome://browser/content/devtools/commandlinetooltip.xhtml"
+                 flex="1"
+                 sandbox="allow-same-origin"/>
+  </tooltip|panel>
+  */
 
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
+  // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
   this._panel = aChromeDoc.createElement(isLinux ? "tooltip" : "panel");
 
   this._panel.id = "gcli-tooltip";
@@ -1014,10 +1034,10 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
     this._panel.setAttribute("noautofocus", "true");
     this._panel.setAttribute("noautohide", "true");
 
-    
-    
-    
-    
+    // Bug 692348: On Windows and OSX if a panel has no content and no height
+    // openPopup fails to display it. Setting the height to 1px alows the panel
+    // to be displayed before has content or a real height i.e. the first time
+    // it is displayed.
     this._panel.setAttribute("height", "1px");
   }
 
@@ -1035,9 +1055,9 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
   this.loaded = false;
 }
 
-
-
-
+/**
+ * Wire up the element from the iframe, and inform the _loadCallback.
+ */
 TooltipPanel.prototype._onload = function TP_onload()
 {
   this._frame.removeEventListener("load", this._onload, true);
@@ -1058,21 +1078,21 @@ TooltipPanel.prototype._onload = function TP_onload()
   }
 };
 
-
-
-
+/**
+ * Prevent the popup from hiding if it is not permitted via this.canHide.
+ */
 TooltipPanel.prototype._onpopuphiding = function TP_onpopuphiding(aEvent)
 {
-  
-  
+  // TODO: When we switch back from tooltip to panel we can remove this hack:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
   if (isLinux && !this.canHide) {
     aEvent.preventDefault();
   }
 };
 
-
-
-
+/**
+ * Display the TooltipPanel.
+ */
 TooltipPanel.prototype.show = function TP_show(aDimensions)
 {
   if (!aDimensions) {
@@ -1080,9 +1100,9 @@ TooltipPanel.prototype.show = function TP_show(aDimensions)
   }
   this._dimensions = aDimensions;
 
-  
-  
-  
+  // This is nasty, but displaying the panel causes it to re-flow, which can
+  // change the size it should be, so we need to resize the iframe after the
+  // panel has displayed
   this._panel.ownerDocument.defaultView.setTimeout(function() {
     this._resize();
   }.bind(this), 0);
@@ -1096,18 +1116,18 @@ TooltipPanel.prototype.show = function TP_show(aDimensions)
   this._input.focus();
 };
 
-
-
-
-
-
-
-
+/**
+ * One option is to spend lots of time taking an average width of characters
+ * in the current font, dynamically, and weighting for the frequency of use of
+ * various characters, or even to render the given string off screen, and then
+ * measure the width.
+ * Or we could do this...
+ */
 const AVE_CHAR_WIDTH = 4.5;
 
-
-
-
+/**
+ * Display the TooltipPanel.
+ */
 TooltipPanel.prototype._resize = function TP_resize()
 {
   if (this._panel == null || this.document == null || !this._panel.state == "closed") {
@@ -1117,21 +1137,21 @@ TooltipPanel.prototype._resize = function TP_resize()
   let offset = 10 + Math.floor(this._dimensions.start * AVE_CHAR_WIDTH);
   this._panel.style.marginLeft = offset + "px";
 
-  
-
-
-
-
-
-
-
+  /*
+  // Bug 744906: UX review - Not sure if we want this code to fatten connector
+  // with param width
+  let width = Math.floor(this._dimensions.end * AVE_CHAR_WIDTH);
+  width = Math.min(width, 100);
+  width = Math.max(width, 10);
+  this._connector.style.width = width + "px";
+  */
 
   this._frame.height = this.document.body.scrollHeight;
 };
 
-
-
-
+/**
+ * Hide the TooltipPanel.
+ */
 TooltipPanel.prototype.remove = function TP_remove()
 {
   if (isLinux) {
@@ -1142,9 +1162,9 @@ TooltipPanel.prototype.remove = function TP_remove()
   }
 };
 
-
-
-
+/**
+ * Hide the TooltipPanel.
+ */
 TooltipPanel.prototype.destroy = function TP_destroy()
 {
   this.remove();
@@ -1167,10 +1187,10 @@ TooltipPanel.prototype.destroy = function TP_destroy()
   delete this.hintElement;
 };
 
-
-
-
-
+/**
+ * Called by GCLI to indicate that we should show or hide one either the
+ * tooltip panel or the output panel.
+ */
 TooltipPanel.prototype._visibilityChanged = function TP_visibilityChanged(aEvent)
 {
   if (aEvent.tooltipVisible === true) {

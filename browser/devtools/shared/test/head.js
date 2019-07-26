@@ -1,26 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+let TargetFactory = (Cu.import("resource:///modules/devtools/Target.jsm", {})).TargetFactory;
 
-
-
-let console = (function() {
-  let tempScope = {};
-  Components.utils.import("resource://gre/modules/devtools/Console.jsm", tempScope);
-  return tempScope.console;
-})();
-
-let TargetFactory = (function() {
-  let tempScope = {};
-  Components.utils.import("resource:///modules/devtools/Target.jsm", tempScope);
-  return tempScope.TargetFactory;
-})();
-
-
-let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
-Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
-
-
-
-
+/**
+ * Open a new tab at a URL and call a callback on load
+ */
 function addTab(aURL, aCallback)
 {
   waitForExplicitFinish();
@@ -61,35 +47,35 @@ function catchFail(func) {
   };
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Polls a given function waiting for the given value.
+ *
+ * @param object aOptions
+ *        Options object with the following properties:
+ *        - validator
+ *        A validator function that should return the expected value. This is
+ *        called every few milliseconds to check if the result is the expected
+ *        one. When the returned result is the expected one, then the |success|
+ *        function is called and polling stops. If |validator| never returns
+ *        the expected value, then polling timeouts after several tries and
+ *        a failure is recorded - the given |failure| function is invoked.
+ *        - success
+ *        A function called when the validator function returns the expected
+ *        value.
+ *        - failure
+ *        A function called if the validator function timeouts - fails to return
+ *        the expected value in the given time.
+ *        - name
+ *        Name of test. This is used to generate the success and failure
+ *        messages.
+ *        - timeout
+ *        Timeout for validator function, in milliseconds. Default is 5000 ms.
+ *        - value
+ *        The expected value. If this option is omitted then the |validator|
+ *        function must return a trueish value.
+ *        Each of the provided callback functions will receive two arguments:
+ *        the |aOptions| object and the last value returned by |validator|.
+ */
 function waitForValue(aOptions)
 {
   let start = Date.now();
@@ -99,7 +85,7 @@ function waitForValue(aOptions)
   function wait(validatorFn, successFn, failureFn)
   {
     if ((Date.now() - start) > timeout) {
-      
+      // Log the failure.
       ok(false, "Timed out while waiting for: " + aOptions.name);
       let expected = "value" in aOptions ?
                      "'" + aOptions.value + "'" :
@@ -123,4 +109,12 @@ function waitForValue(aOptions)
   }
 
   wait(aOptions.validator, aOptions.success, aOptions.failure);
+}
+
+function oneTimeObserve(name, callback) {
+  var func = function() {
+    Services.obs.removeObserver(func, name);
+    callback();
+  };
+  Services.obs.addObserver(func, name, false);
 }
