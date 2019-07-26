@@ -84,7 +84,7 @@ public:
 
 
 
-  uint32_t Length() const {
+  uint32_t LengthNoFlush() const {
     NS_ABORT_IF_FALSE(mItems.Length() == 0 ||
                       mItems.Length() == InternalList().Length(),
                       "DOM wrapper's list length is out of sync");

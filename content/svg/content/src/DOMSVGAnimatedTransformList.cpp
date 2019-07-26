@@ -94,7 +94,7 @@ DOMSVGAnimatedTransformList::InternalBaseValListWillChangeLengthTo(
 
   nsRefPtr<DOMSVGAnimatedTransformList> kungFuDeathGrip;
   if (mBaseVal) {
-    if (aNewLength < mBaseVal->Length()) {
+    if (aNewLength < mBaseVal->LengthNoFlush()) {
       
       
       kungFuDeathGrip = this;
