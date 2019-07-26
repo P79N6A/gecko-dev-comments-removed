@@ -760,7 +760,7 @@ BluetoothHfpManager::NotifyConnectionStateChanged(const nsAString& aType)
         
         
         
-        OnConnect(NS_LITERAL_STRING("SocketConnectionError"));
+        OnConnect(NS_LITERAL_STRING(ERR_CONNECTION_FAILED));
       } else {
         OnDisconnect(EmptyString());
       }

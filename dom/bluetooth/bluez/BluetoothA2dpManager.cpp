@@ -295,6 +295,15 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
   NS_ENSURE_TRUE_VOID((newState != SinkState::SINK_UNKNOWN) &&
                       (newState != mSinkState));
 
+  
+
+
+
+
+
+  NS_ENSURE_FALSE_VOID(newState == SinkState::SINK_CONNECTED &&
+                       mSinkState == SinkState::SINK_DISCONNECTED);
+
   SinkState prevState = mSinkState;
   mSinkState = newState;
 
@@ -325,13 +334,13 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
     case SinkState::SINK_DISCONNECTED:
       
       if (prevState == SinkState::SINK_CONNECTING) {
-        OnConnect(NS_LITERAL_STRING("A2dpConnectionError"));
+        OnConnect(NS_LITERAL_STRING(ERR_CONNECTION_FAILED));
         break;
       }
 
       
       MOZ_ASSERT(prevState == SinkState::SINK_CONNECTED ||
-                 prevState == SinkState::SINK_PLAYING) ;
+                 prevState == SinkState::SINK_PLAYING);
 
       mA2dpConnected = false;
       NotifyConnectionStatusChanged();
