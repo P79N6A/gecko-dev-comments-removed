@@ -68,6 +68,7 @@ ThrowMethodFailedWithDetails(JSContext* cx, const ErrorResult& rv,
   return Throw<mainThread>(cx, rv.ErrorCode());
 }
 
+
 inline bool
 IsDOMClass(const JSClass* clasp)
 {
@@ -78,6 +79,20 @@ inline bool
 IsDOMClass(const js::Class* clasp)
 {
   return IsDOMClass(Jsvalify(clasp));
+}
+
+
+
+inline bool
+IsDOMIfaceAndProtoClass(const JSClass* clasp)
+{
+  return clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS;
+}
+
+inline bool
+IsDOMIfaceAndProtoClass(const js::Class* clasp)
+{
+  return IsDOMIfaceAndProtoClass(Jsvalify(clasp));
 }
 
 
@@ -168,9 +183,7 @@ inline bool
 IsDOMObject(JSObject* obj)
 {
   js::Class* clasp = js::GetObjectClass(obj);
-  return IsDOMClass(clasp) ||
-         ((js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) &&
-          js::GetProxyHandler(obj)->family() == ProxyFamily());
+  return IsDOMClass(clasp) || IsDOMProxy(obj, clasp);
 }
 
 
@@ -275,8 +288,13 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
            PrototypeIDMap<T>::PrototypeID), T>(cx, obj, value);
 }
 
-const size_t kProtoAndIfaceCacheCount =
-  prototypes::id::_ID_Count + constructors::id::_ID_Count;
+
+
+
+MOZ_STATIC_ASSERT((size_t)constructors::id::_ID_Start ==
+                  (size_t)prototypes::id::_ID_Count,
+                  "Overlapping or discontiguous indexes.");
+const size_t kProtoAndIfaceCacheCount = constructors::id::_ID_Count;
 
 inline void
 AllocateProtoAndIfaceCache(JSObject* obj)
@@ -323,6 +341,11 @@ DestroyProtoAndIfaceCache(JSObject* obj)
 bool
 DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs);
 
+struct JSNativeHolder
+{
+  JSNative mNative;
+  const NativePropertyHooks* mPropertyHooks;
+};
 
 
 
@@ -361,13 +384,15 @@ DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs);
 
 
 
-JSObject*
-CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
-                       JSObject* protoProto, JSClass* protoClass,
-                       JSClass* constructorClass, JSNative constructor,
-                       unsigned ctorNargs, const DOMClass* domClass,
-                       const NativeProperties* properties,
-                       const NativeProperties* chromeProperties,
+
+void
+CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* protoProto,
+                       JSClass* protoClass, JSObject** protoCache,
+                       JSClass* constructorClass, JSNativeHolder* constructor,
+                       unsigned ctorNargs, JSObject** constructorCache,
+                       const DOMClass* domClass,
+                       const NativeProperties* regularProperties,
+                       const NativeProperties* chromeOnlyProperties,
                        const char* name);
 
 
@@ -1244,19 +1269,95 @@ public:
     }
 };
 
+inline bool
+IdEquals(jsid id, const char* string)
+{
+  return JSID_IS_STRING(id) &&
+         JS_FlatStringEqualsAscii(JSID_TO_FLAT_STRING(id), string);
+}
+
+inline bool
+AddStringToIDVector(JSContext* cx, JS::AutoIdVector& vector, const char* name)
+{
+  return vector.growBy(1) &&
+         InternJSString(cx, vector[vector.length() - 1], name);
+}
+
+
+
+
+
+
+
+
+
 
 bool
-XrayResolveProperty(JSContext* cx, JSObject* wrapper, jsid id,
-                    JSPropertyDescriptor* desc,
-                    const NativeProperties* nativeProperties,
-                    const NativeProperties* chromeOnlyNativeProperties);
+XrayResolveOwnProperty(JSContext* cx, JSObject* wrapper, JSObject* obj,
+                       jsid id, bool set, JSPropertyDescriptor* desc);
+
+
+
+
+
+
+
 
 bool
-XrayEnumerateProperties(JSObject* wrapper,
-                        JS::AutoIdVector& props,
-                        const NativeProperties* nativeProperties,
-                        const NativeProperties* chromeOnlyNativeProperties);
+XrayResolveNativeProperty(JSContext* cx, JSObject* wrapper, JSObject* obj,
+                          jsid id, JSPropertyDescriptor* desc);
 
+
+
+
+
+
+
+
+
+bool
+XrayEnumerateProperties(JSContext* cx, JSObject* wrapper, JSObject* obj,
+                        bool ownOnly, JS::AutoIdVector& props);
+
+extern NativePropertyHooks sWorkerNativePropertyHooks;
+
+
+
+
+
+
+
+
+
+
+
+enum {
+  CONSTRUCTOR_NATIVE_HOLDER_RESERVED_SLOT = 0,
+  CONSTRUCTOR_XRAY_EXPANDO_SLOT
+};
+
+JSBool
+Constructor(JSContext* cx, unsigned argc, JS::Value* vp);
+
+inline bool
+UseDOMXray(JSObject* obj)
+{
+  const js::Class* clasp = js::GetObjectClass(obj);
+  return IsDOMClass(clasp) ||
+         IsDOMProxy(obj, clasp) ||
+         JS_IsNativeFunction(obj, Constructor) ||
+         IsDOMIfaceAndProtoClass(clasp);
+}
+
+#ifdef DEBUG
+inline bool
+HasConstructor(JSObject* obj)
+{
+  return JS_IsNativeFunction(obj, Constructor) ||
+         js::GetObjectClass(obj)->construct;
+}
+ #endif
+ 
 
 template<class T>
 inline void
@@ -1291,6 +1392,24 @@ protected:
                        mozilla::Maybe<JSAutoCompartment>& aAc,
                        JS::Value& aVal);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+NativeToString(JSContext* cx, JSObject* wrapper, JSObject* obj, const char* pre,
+               const char* post, JS::Value* v);
 
 } 
 } 

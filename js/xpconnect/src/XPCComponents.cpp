@@ -3054,22 +3054,9 @@ WrapForSandbox(JSContext *cx, bool wantXrays, jsval *vp)
 
 xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
-
-
-
-class SandboxCallableProxyHandler : public js::Wrapper {
-public:
-    SandboxCallableProxyHandler() : js::Wrapper(0)
-    {
-    }
-
-    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc,
-                      Value *vp);
-};
-
 bool
-SandboxCallableProxyHandler::call(JSContext *cx, JSObject *proxy, unsigned argc,
-                                  Value *vp)
+xpc::SandboxCallableProxyHandler::call(JSContext *cx, JSObject *proxy,
+                                       unsigned argc, Value *vp)
 {
     
     
@@ -3099,7 +3086,7 @@ SandboxCallableProxyHandler::call(JSContext *cx, JSObject *proxy, unsigned argc,
                     JS_ARGV(cx, vp), vp);
 }
 
-static SandboxCallableProxyHandler sandboxCallableProxyHandler;
+xpc::SandboxCallableProxyHandler xpc::sandboxCallableProxyHandler;
 
 
 
@@ -3116,7 +3103,7 @@ WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
 
     
     
-    return js::NewProxyObject(cx, &sandboxCallableProxyHandler,
+    return js::NewProxyObject(cx, &xpc::sandboxCallableProxyHandler,
                               ObjectValue(*callable), nullptr,
                               sandboxProtoProxy, callable, callable);
 }

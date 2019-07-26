@@ -8,6 +8,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "mozilla/Assertions.h"
 
 #include "mozilla/dom/PrototypeList.h" 
 
@@ -27,21 +28,27 @@ class nsCycleCollectionParticipant;
 
 
 #define JSCLASS_DOM_GLOBAL JSCLASS_USERBIT1
+#define JSCLASS_IS_DOMIFACEANDPROTOJSCLASS JSCLASS_USERBIT2
 
 
 
 
 #define DOM_PROTO_INSTANCE_CLASS_SLOT 0
 
+MOZ_STATIC_ASSERT(DOM_PROTO_INSTANCE_CLASS_SLOT != DOM_XRAY_EXPANDO_SLOT,
+                  "Interface prototype object use both of these, so they must "
+                  "not be the same slot.");
+
 namespace mozilla {
 namespace dom {
 
 typedef bool
-(* ResolveProperty)(JSContext* cx, JSObject* wrapper, jsid id, bool set,
-                    JSPropertyDescriptor* desc);
+(* ResolveOwnProperty)(JSContext* cx, JSObject* wrapper, JSObject* obj, jsid id,
+                       bool set, JSPropertyDescriptor* desc);
+
 typedef bool
-(* EnumerateProperties)(JSContext* cx, JSObject* wrapper,
-                        JS::AutoIdVector& props);
+(* EnumerateOwnProperties)(JSContext* cx, JSObject* wrapper, JSObject* obj,
+                           JS::AutoIdVector& props);
 
 struct ConstantSpec
 {
@@ -78,14 +85,45 @@ struct NativeProperties
   ConstantSpec* constantSpecs;
 };
 
+struct NativePropertiesHolder
+{
+  const NativeProperties* regular;
+  const NativeProperties* chromeOnly;
+};
+
+
+
+
 struct NativePropertyHooks
 {
-  ResolveProperty mResolveOwnProperty;
-  ResolveProperty mResolveProperty;
-  EnumerateProperties mEnumerateOwnProperties;
-  EnumerateProperties mEnumerateProperties;
+  
+  
+  ResolveOwnProperty mResolveOwnProperty;
+  
+  
+  EnumerateOwnProperties mEnumerateOwnProperties;
 
-  const NativePropertyHooks *mProtoHooks;
+  
+  NativePropertiesHolder mNativeProperties;
+
+  
+  
+  
+  prototypes::ID mPrototypeID;
+
+  
+  
+  
+  constructors::ID mConstructorID;
+
+  
+  const NativePropertyHooks* mProtoHooks;
+};
+
+enum DOMObjectType {
+  eInstance,
+  eInterface,
+  eInterfacePrototype
 };
 
 struct DOMClass
@@ -131,6 +169,31 @@ struct DOMJSClass
     return FromJSClass(Jsvalify(base));
   }
   static const DOMJSClass* FromJSClass(const js::Class* base) {
+    return FromJSClass(Jsvalify(base));
+  }
+
+  JSClass* ToJSClass() { return &mBase; }
+};
+
+
+struct DOMIfaceAndProtoJSClass
+{
+  
+  
+  
+  
+  JSClass mBase;
+
+  
+  DOMObjectType mType;
+
+  const NativePropertyHooks* mNativeHooks;
+
+  static const DOMIfaceAndProtoJSClass* FromJSClass(const JSClass* base) {
+    MOZ_ASSERT(base->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS);
+    return reinterpret_cast<const DOMIfaceAndProtoJSClass*>(base);
+  }
+  static const DOMIfaceAndProtoJSClass* FromJSClass(const js::Class* base) {
     return FromJSClass(Jsvalify(base));
   }
 

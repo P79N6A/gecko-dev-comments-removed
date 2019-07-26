@@ -819,7 +819,7 @@ private:
     DedicatedWorkerGlobalScope* scope =
       UnwrapDOMObject<DedicatedWorkerGlobalScope>(aObj, eRegularDOMObject);
     if (scope) {
-      mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj);
+      TraceProtoAndIfaceCache(aTrc, aObj);
       scope->_trace(aTrc);
     }
   }
@@ -852,8 +852,6 @@ private:
 MOZ_STATIC_ASSERT(prototypes::MaxProtoChainLength == 3,
                   "The MaxProtoChainLength must match our manual DOMJSClasses");
 
-
-
 DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   {
     
@@ -869,7 +867,7 @@ DOMJSClass DedicatedWorkerGlobalScope::sClass = {
     { prototypes::id::EventTarget_workers, prototypes::id::_ID_Count,
       prototypes::id::_ID_Count },
     false,
-    &sNativePropertyHooks
+    &sWorkerNativePropertyHooks
   }
 };
 
@@ -940,7 +938,7 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   
 
   JSObject* eventTargetProto =
-    EventTargetBinding_workers::GetProtoObject(aCx, global, global);
+    EventTargetBinding_workers::GetProtoObject(aCx, global);
   if (!eventTargetProto) {
     return NULL;
   }
@@ -988,13 +986,9 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   }
 
   
-  
-  
-  
-  
-  if (!FileReaderSyncBinding_workers::GetProtoObject(aCx, global, global) ||
-      !XMLHttpRequestBinding_workers::GetProtoObject(aCx, global, global) ||
-      !XMLHttpRequestUploadBinding_workers::GetProtoObject(aCx, global, global)) {
+  if (!FileReaderSyncBinding_workers::GetConstructorObject(aCx, global) ||
+      !XMLHttpRequestBinding_workers::GetConstructorObject(aCx, global) ||
+      !XMLHttpRequestUploadBinding_workers::GetConstructorObject(aCx, global)) {
     return NULL;
   }
 

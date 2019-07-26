@@ -122,6 +122,21 @@ public:
 
 extern SandboxProxyHandler sandboxProxyHandler;
 
+
+
+
+class SandboxCallableProxyHandler : public js::Wrapper {
+public:
+    SandboxCallableProxyHandler() : js::Wrapper(0)
+    {
+    }
+
+    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc,
+                      JS::Value *vp);
+};
+
+extern SandboxCallableProxyHandler sandboxCallableProxyHandler;
+
 class AutoSetWrapperNotShadowing;
 class XPCWrappedNativeXrayTraits;
 
