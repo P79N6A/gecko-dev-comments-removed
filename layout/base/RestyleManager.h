@@ -271,7 +271,8 @@ public:
   typedef mozilla::dom::Element Element;
 
   
-  ElementRestyler(nsPresContext* aPresContext);
+  ElementRestyler(nsPresContext* aPresContext,
+                  nsChangeHint aHintsHandledByAncestors);
 
   
   ElementRestyler(const ElementRestyler& aParentRestyler);
@@ -309,11 +310,10 @@ public:
 
 
 
-  nsChangeHint Restyle(nsPresContext     *aPresContext,
+  void Restyle(nsPresContext     *aPresContext,
                nsIFrame          *aFrame,
                nsIContent        *aParentContent,
                nsStyleChangeList *aChangeList,
-               nsChangeHint       aMinChange,
                nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                nsRestyleHint      aRestyleHint,
                RestyleTracker&    aRestyleTracker,
@@ -321,18 +321,32 @@ public:
                nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
                TreeMatchContext &aTreeMatchContext);
 
+  
+
+
+
+
+
+
+  nsChangeHint HintsHandledForFrame() { return mHintsHandled; }
+
 private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
                      nsIFrame* aFrame, nsIContent* aContent,
                      nsStyleChangeList* aChangeList,
-                     nsChangeHint &aMinChange,
                      nsChangeHint aParentHintsNotHandledForDescendants,
                      nsChangeHint &aHintsNotHandledForDescendants,
                      nsChangeHint aChangeToAssume);
 
 private:
   nsPresContext* const mPresContext;
+  
+  
+  
+  
+  
+  nsChangeHint mHintsHandled;
 };
 
 } 
