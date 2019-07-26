@@ -641,6 +641,10 @@ gfxPlatform::ClearSourceSurfaceForSurface(gfxASurface *aSurface)
 RefPtr<SourceSurface>
 gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurface)
 {
+  if (!aSurface->CairoSurface() || aSurface->CairoStatus()) {
+    return nullptr;
+  }
+
   void *userData = aSurface->GetData(&kSourceSurface);
 
   if (userData) {
@@ -737,10 +741,6 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
       
       
       if (imgSurface != aSurface && !isWin32ImageSurf) {
-        
-        
-        NS_RUNTIMEABORT("Attempt to create unsupported SourceSurface from"
-            "non-image surface.");
         return nullptr;
       }
 
