@@ -4360,7 +4360,7 @@ pref("ui.touch_activation.duration_ms", 10);
 
 
 
-pref("memory_info_dumper.watch_fifo", false);
+pref("memory_info_dumper.watch_fifo.enabled", false);
 
 #ifdef MOZ_CAPTIVEDETECT
 pref("captivedetect.maxWaitingTime", 5000);

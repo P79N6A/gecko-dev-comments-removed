@@ -108,6 +108,11 @@ typedef nsTArray<FifoInfo> FifoInfoArray;
 class FifoWatcher : public FdWatcher
 {
 public:
+  
+
+
+  static const char* const kPrefName;
+
   static FifoWatcher* GetSingleton();
 
   static bool MaybeCreate();
