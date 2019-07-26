@@ -34,10 +34,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageListenerManager");
 
-XPCOMUtils.defineLazyServiceGetter(this, "networkManager",
-                                   "@mozilla.org/network/manager;1",
-                                   "nsINetworkManager");
-
+XPCOMUtils.defineLazyServiceGetter(this, "gRil",
+                                   "@mozilla.org/ril;1",
+                                   "nsIRadioInterfaceLayer");
 
 XPCOMUtils.defineLazyServiceGetter(this, "networkService",
                                    "@mozilla.org/network/service;1",
@@ -194,6 +193,20 @@ this.NetworkStatsService = {
   
 
 
+  getRilNetworks: function() {
+    let networks = {};
+    let numRadioInterfaces = gRil.numRadioInterfaces;
+    for (let i = 0; i < numRadioInterfaces; i++) {
+      let radioInterface = gRil.getRadioInterface(i);
+      if (radioInterface.rilContext.iccInfo) {
+        let netId = this.getNetworkId(radioInterface.rilContext.iccInfo.iccid,
+                                      NET_TYPE_MOBILE);
+        networks[netId] = { id : radioInterface.rilContext.iccInfo.iccid,
+                            type: NET_TYPE_MOBILE };
+      }
+    }
+    return networks;
+  },
 
   convertNetworkInterface: function(aNetwork) {
     if (aNetwork.type != NET_TYPE_MOBILE &&
@@ -229,7 +242,25 @@ this.NetworkStatsService = {
   },
 
   getAvailableNetworks: function getAvailableNetworks(mm, msg) {
+    let self = this;
+    let rilNetworks = this.getRilNetworks();
     this._db.getAvailableNetworks(function onGetNetworks(aError, aResult) {
+
+      
+      
+      for (let netId in rilNetworks) {
+        let found = false;
+        for (let i = 0; i < aResult.length; i++) {
+          if (netId == self.getNetworkId(aResult[i].id, aResult[i].type)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          aResult.push(rilNetworks[netId]);
+        }
+      }
+
       mm.sendAsyncMessage("NetworkStats:GetAvailableNetworks:Return",
                           { id: msg.id, error: aError, result: aResult });
     });
@@ -283,7 +314,22 @@ this.NetworkStatsService = {
     
     
     this._db.isNetworkAvailable(network, function(aError, aResult) {
+      let toFind = false;
       if (aResult) {
+        toFind = true;
+      } else if (!aError) {
+        
+        
+        let rilNetworks = self.getRilNetworks();
+        if (rilNetworks[netId]) {
+          
+          
+          
+          toFind = true;
+        }
+      }
+
+      if (toFind) {
         
         self._db.find(function onStatsFound(aError, aResult) {
           mm.sendAsyncMessage("NetworkStats:Get:Return",
@@ -308,8 +354,18 @@ this.NetworkStatsService = {
     debug("clear stats for network " + network.id + " of type " + network.type);
 
     if (!this._networks[netId]) {
+      let error = "Invalid networkType";
+      let result = null;
+
+      
+      let rilNetworks = this.getRilNetworks();
+      if (rilNetworks[netId]) {
+        error = null;
+        result = true;
+      }
+
       mm.sendAsyncMessage("NetworkStats:Clear:Return",
-                          { id: msg.id, error: "Invalid networkType", result: null });
+                          { id: msg.id, error: error, result: result });
       return;
     }
 
