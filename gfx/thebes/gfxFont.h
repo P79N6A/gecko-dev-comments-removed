@@ -48,6 +48,7 @@ class gfxUserFontData;
 class gfxShapedText;
 class gfxShapedWord;
 class gfxSVGGlyphs;
+class gfxMathTable;
 class gfxTextContextPaint;
 class FontInfoData;
 
@@ -311,6 +312,79 @@ public:
     
     void NotifyGlyphsChanged();
 
+    enum MathConstant {
+        
+        
+        ScriptPercentScaleDown,
+        ScriptScriptPercentScaleDown,
+        DelimitedSubFormulaMinHeight,
+        DisplayOperatorMinHeight,
+        MathLeading,
+        AxisHeight,
+        AccentBaseHeight,
+        FlattenedAccentBaseHeight,
+        SubscriptShiftDown,
+        SubscriptTopMax,
+        SubscriptBaselineDropMin,
+        SuperscriptShiftUp,
+        SuperscriptShiftUpCramped,
+        SuperscriptBottomMin,
+        SuperscriptBaselineDropMax,
+        SubSuperscriptGapMin,
+        SuperscriptBottomMaxWithSubscript,
+        SpaceAfterScript,
+        UpperLimitGapMin,
+        UpperLimitBaselineRiseMin,
+        LowerLimitGapMin,
+        LowerLimitBaselineDropMin,
+        StackTopShiftUp,
+        StackTopDisplayStyleShiftUp,
+        StackBottomShiftDown,
+        StackBottomDisplayStyleShiftDown,
+        StackGapMin,
+        StackDisplayStyleGapMin,
+        StretchStackTopShiftUp,
+        StretchStackBottomShiftDown,
+        StretchStackGapAboveMin,
+        StretchStackGapBelowMin,
+        FractionNumeratorShiftUp,
+        FractionNumeratorDisplayStyleShiftUp,
+        FractionDenominatorShiftDown,
+        FractionDenominatorDisplayStyleShiftDown,
+        FractionNumeratorGapMin,
+        FractionNumDisplayStyleGapMin,
+        FractionRuleThickness,
+        FractionDenominatorGapMin,
+        FractionDenomDisplayStyleGapMin,
+        SkewedFractionHorizontalGap,
+        SkewedFractionVerticalGap,
+        OverbarVerticalGap,
+        OverbarRuleThickness,
+        OverbarExtraAscender,
+        UnderbarVerticalGap,
+        UnderbarRuleThickness,
+        UnderbarExtraDescender,
+        RadicalVerticalGap,
+        RadicalDisplayStyleVerticalGap,
+        RadicalRuleThickness,
+        RadicalExtraAscender,
+        RadicalKernBeforeDegree,
+        RadicalKernAfterDegree,
+        RadicalDegreeBottomRaisePercent
+    };
+
+    
+    
+    
+    bool     TryGetMathTable(gfxFont* aFont);
+    gfxFloat GetMathConstant(MathConstant aConstant);
+    bool     GetMathItalicsCorrection(uint32_t aGlyphID,
+                                      gfxFloat* aItalicCorrection);
+    uint32_t GetMathVariantsSize(uint32_t aGlyphID, bool aVertical,
+                                 uint16_t aSize);
+    bool     GetMathVariantsParts(uint32_t aGlyphID, bool aVertical,
+                                  uint32_t aGlyphs[4]);
+
     virtual bool MatchesGenericFamily(const nsACString& aGeneric) const {
         return true;
     }
@@ -433,6 +507,7 @@ public:
     bool             mIgnoreGDEF  : 1;
     bool             mIgnoreGSUB  : 1;
     bool             mSVGInitialized : 1;
+    bool             mMathInitialized : 1;
     bool             mHasSpaceFeaturesInitialized : 1;
     bool             mHasSpaceFeatures : 1;
     bool             mHasSpaceFeaturesKerning : 1;
@@ -458,6 +533,7 @@ public:
     nsAutoPtr<gfxSVGGlyphs> mSVGGlyphs;
     
     nsTArray<gfxFont*> mFontsUsingSVGGlyphs;
+    nsAutoPtr<gfxMathTable> mMathTable;
     nsTArray<gfxFontFeature> mFeatureSettings;
     uint32_t         mLanguageOverride;
 
