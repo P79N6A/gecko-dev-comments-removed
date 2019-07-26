@@ -399,6 +399,12 @@ struct nsCSSRendering {
   
 
 
+  static bool IsBackgroundImageDecodedForStyleContextAndLayer(
+    const nsStyleBackground *aBackground, uint32_t aLayer);
+
+  
+
+
 
   static bool AreAllBackgroundImagesDecodedForFrame(nsIFrame* aFrame);
 
