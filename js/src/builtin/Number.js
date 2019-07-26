@@ -17,7 +17,6 @@ var numberFormatCache = new Record();
 
 function Number_toLocaleString() {
     
-    callFunction(num_CheckThisNumber, this);
     var x = callFunction(std_Number_valueOf, this);
 
     

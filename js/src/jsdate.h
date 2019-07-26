@@ -66,15 +66,6 @@ extern JS_FRIEND_API(int)
 js_DateGetSeconds(JSRawObject obj);
 
 
-
-
-
-
-
-extern JSBool
-date_CheckThisDate(JSContext *cx, unsigned argc, js::Value *vp);
-
-
 JSBool
 js_Date(JSContext *cx, unsigned argc, js::Value *vp);
 

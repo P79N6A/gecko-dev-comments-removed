@@ -17,7 +17,6 @@ var dateTimeFormatCache = new Record();
 
 function Date_toLocaleString() {
     
-    callFunction(date_CheckThisDate, this);
     var x = callFunction(std_Date_valueOf, this);
     if (std_isNaN(x))
         return "Invalid Date";
@@ -55,7 +54,6 @@ function Date_toLocaleString() {
 
 function Date_toLocaleDateString() {
     
-    callFunction(date_CheckThisDate, this);
     var x = callFunction(std_Date_valueOf, this);
     if (std_isNaN(x))
         return "Invalid Date";
@@ -93,7 +91,6 @@ function Date_toLocaleDateString() {
 
 function Date_toLocaleTimeString() {
     
-    callFunction(date_CheckThisDate, this);
     var x = callFunction(std_Date_valueOf, this);
     if (std_isNaN(x))
         return "Invalid Date";

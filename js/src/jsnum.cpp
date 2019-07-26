@@ -445,26 +445,6 @@ IsNumber(const Value &v)
     return v.isNumber() || (v.isObject() && v.toObject().hasClass(&NumberClass));
 }
 
-JS_ALWAYS_INLINE bool
-num_nop(JSContext *cx, CallArgs args)
-{
-    JS_ASSERT(IsNumber(args.thisv()));
-    args.rval().setUndefined();
-    return true;
-}
-
-JSBool
-js::num_CheckThisNumber(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    
-    
-    
-    return CallNonGenericMethod<IsNumber, num_nop>(cx, args);
-}
-
 inline double
 Extract(const Value &v)
 {

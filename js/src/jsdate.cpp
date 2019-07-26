@@ -1392,26 +1392,6 @@ IsDate(const Value &v)
     return v.isObject() && v.toObject().hasClass(&DateClass);
 }
 
-JS_ALWAYS_INLINE bool
-date_nop(JSContext *cx, CallArgs args)
-{
-    JS_ASSERT(IsDate(args.thisv()));
-    args.rval().setUndefined();
-    return true;
-}
-
-JSBool
-date_CheckThisDate(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    
-    
-    
-    return CallNonGenericMethod<IsDate, date_nop>(cx, args);
-}
-
 
 
 
