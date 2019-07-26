@@ -866,6 +866,12 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   buttonRect.width = buttonWidth;
   mButtonFrame->SetRect(buttonRect);
 
+  if (!NS_INLINE_IS_BREAK_BEFORE(aStatus) &&
+      !NS_FRAME_IS_FULLY_COMPLETE(aStatus)) {
+    
+    
+    aStatus = NS_FRAME_COMPLETE;
+  }
   return rv;
 }
 

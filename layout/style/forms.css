@@ -206,6 +206,7 @@ select {
   text-shadow: none;
   
   display: inline-block;
+  page-break-inside: avoid;
 }
 
 
