@@ -130,6 +130,23 @@ FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
 
 
 
+
+nsCSSOffsetState::nsCSSOffsetState(nsIFrame *aFrame,
+                                   nsRenderingContext *aRenderingContext,
+                                   nscoord aContainingBlockWidth)
+  : frame(aFrame)
+  , rendContext(aRenderingContext)
+  , mWritingMode(aFrame->GetWritingMode())
+{
+  MOZ_ASSERT(!aFrame->IsFlexItem(),
+             "We're about to resolve vertical percent margin & padding "
+             "values against CB width, which is incorrect for flex items");
+  InitOffsets(aContainingBlockWidth, aContainingBlockWidth, frame->GetType());
+}
+
+
+
+
 nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
                                      const nsHTMLReflowState& aParentReflowState,
                                      nsIFrame*                aFrame,

@@ -151,21 +151,8 @@ public:
   {
   }
 
-  
-  
-  
-  
   nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext,
-                   nscoord aContainingBlockWidth)
-    : frame(aFrame)
-    , rendContext(aRenderingContext)
-    , mWritingMode(aFrame->GetWritingMode())
-  {
-    MOZ_ASSERT(!aFrame->IsFlexItem(),
-               "We're about to resolve vertical percent margin & padding "
-               "values against CB width, which is incorrect for flex items");
-    InitOffsets(aContainingBlockWidth, aContainingBlockWidth, frame->GetType());
-  }
+                   nscoord aContainingBlockWidth);
 
 #ifdef DEBUG
   
