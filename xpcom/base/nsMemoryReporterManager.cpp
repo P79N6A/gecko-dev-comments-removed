@@ -949,16 +949,21 @@ namespace {
 
 
 
-class MinimizeMemoryUsageRunnable : public nsRunnable
+class MinimizeMemoryUsageRunnable : public nsCancelableRunnable
 {
 public:
   MinimizeMemoryUsageRunnable(nsIRunnable* aCallback)
     : mCallback(aCallback)
     , mRemainingIters(sNumIters)
+    , mCanceled(false)
   {}
 
   NS_IMETHOD Run()
   {
+    if (mCanceled) {
+      return NS_OK;
+    }
+
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (!os) {
       return NS_ERROR_FAILURE;
@@ -981,6 +986,17 @@ public:
     return NS_OK;
   }
 
+  NS_IMETHOD Cancel()
+  {
+    if (mCanceled) {
+      return NS_ERROR_UNEXPECTED;
+    }
+
+    mCanceled = true;
+
+    return NS_OK;
+  }
+
 private:
   
   
@@ -989,15 +1005,21 @@ private:
 
   nsCOMPtr<nsIRunnable> mCallback;
   uint32_t mRemainingIters;
+  bool mCanceled;
 };
 
 } 
 
 NS_IMETHODIMP
-nsMemoryReporterManager::MinimizeMemoryUsage(nsIRunnable* aCallback)
+nsMemoryReporterManager::MinimizeMemoryUsage(nsIRunnable* aCallback,
+                                             nsICancelableRunnable **result)
 {
-  nsRefPtr<MinimizeMemoryUsageRunnable> runnable =
+  NS_ENSURE_ARG_POINTER(result);
+
+  nsRefPtr<nsICancelableRunnable> runnable =
     new MinimizeMemoryUsageRunnable(aCallback);
+  NS_ADDREF(*result = runnable);
+
   return NS_DispatchToMainThread(runnable);
 }
 

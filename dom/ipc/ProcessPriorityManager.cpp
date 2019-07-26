@@ -113,6 +113,7 @@ private:
 
   nsTArray<nsWeakPtr> mWindows;
   nsCOMPtr<nsITimer> mGracePeriodTimer;
+  nsWeakPtr mMemoryMinimizerRunnable;
   TimeStamp mStartupTime;
 };
 
@@ -283,6 +284,13 @@ ProcessPriorityManager::SetPriority(ProcessPriority aPriority)
       mGracePeriodTimer = nullptr;
     }
 
+    
+    nsCOMPtr<nsICancelableRunnable> runnable =
+      do_QueryReferent(mMemoryMinimizerRunnable);
+    if (runnable) {
+      runnable->Cancel();
+    }
+
     LOG("Setting priority to %d.", aPriority);
     mProcessPriority = aPriority;
     hal::SetProcessPriority(getpid(), aPriority);
@@ -310,7 +318,17 @@ ProcessPriorityManager::OnGracePeriodTimerFired()
   nsCOMPtr<nsIMemoryReporterManager> mgr =
     do_GetService("@mozilla.org/memory-reporter-manager;1");
   if (mgr) {
-    mgr->MinimizeMemoryUsage( nullptr);
+    nsCOMPtr<nsICancelableRunnable> runnable =
+      do_QueryReferent(mMemoryMinimizerRunnable);
+
+    
+    if (runnable) {
+      runnable->Cancel();
+    }
+
+    mgr->MinimizeMemoryUsage( nullptr,
+                             getter_AddRefs(runnable));
+    mMemoryMinimizerRunnable = do_GetWeakReference(runnable);
   }
 }
 

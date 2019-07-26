@@ -29,9 +29,25 @@
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsRunnable, nsIRunnable)
-  
+
 NS_IMETHODIMP
 nsRunnable::Run()
+{
+  
+  return NS_OK;
+}
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsCancelableRunnable, nsICancelableRunnable)
+
+NS_IMETHODIMP
+nsCancelableRunnable::Run()
+{
+  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCancelableRunnable::Cancel()
 {
   
   return NS_OK;
