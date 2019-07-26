@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 function test()
 {
   waitForExplicitFinish();
@@ -15,30 +19,30 @@ function test()
   
   
   let keyStates = [
-    ["d", [["div", 2], ["#d1", 1], ["#d2", 1]]],
-    ["i", [["div", 2]]],
-    ["v", []],
-    [".", [["div.c1"]]],
+    ["s", [["span", 1], [".span", 1], ["#span", 1]]],
+    ["p", [["span", 1], [".span", 1], ["#span", 1]]],
+    ["a", [["span", 1], [".span", 1], ["#span", 1]]],
+    ["n", []],
+    [" ", [["span div", 1]]],
+    ["d", [["span div", 1]]], 
+    ["VK_BACK_SPACE", [["span div", 1]]],
     ["VK_BACK_SPACE", []],
-    ["#", [["div#d1"], ["div#d2"]]],
+    ["VK_BACK_SPACE", [["span", 1], [".span", 1], ["#span", 1]]],
+    ["VK_BACK_SPACE", [["span", 1], [".span", 1], ["#span", 1]]],
+    ["VK_BACK_SPACE", [["span", 1], [".span", 1], ["#span", 1]]],
     ["VK_BACK_SPACE", []],
-    ["VK_BACK_SPACE", [["div", 2]]],
-    ["VK_BACK_SPACE", [["div", 2], ["#d1", 1], ["#d2", 1]]],
-    ["VK_BACK_SPACE", []],
-    [".", [[".c1", 3], [".c2"]]],
-    ["c", [[".c1", 3], [".c2"]]],
-    ["2", []],
-    ["VK_BACK_SPACE", [[".c1", 3], [".c2"]]],
-    ["1", []],
-    ["#", [["#d2"], ["#p1"], ["#s2"]]],
-    ["VK_BACK_SPACE", []],
-    ["VK_BACK_SPACE", [[".c1", 3], [".c2"]]],
-    ["VK_BACK_SPACE", [[".c1", 3], [".c2"]]],
-    ["VK_BACK_SPACE", []],
-    ["#", [["#b1"], ["#d1"], ["#d2"], ["#p1"], ["#p2"], ["#p3"], ["#s1"], ["#s2"]]],
-    ["p", [["#p1"], ["#p2"], ["#p3"]]],
-    ["VK_BACK_SPACE", [["#b1"], ["#d1"], ["#d2"], ["#p1"], ["#p2"], ["#p3"], ["#s1"], ["#s2"]]],
-    ["VK_BACK_SPACE", []],
+    
+    
+    ["b", [
+      ["button", 3],
+      ["body", 1],
+      [".bc", 3],
+      [".ba", 1],
+      [".bb", 1],
+      ["#ba", 1],
+      ["#bb", 1],
+      ["#bc", 1]
+    ]],
   ];
 
   gBrowser.selectedTab = gBrowser.addTab();
@@ -47,7 +51,13 @@ function test()
     waitForFocus(setupTest, content);
   }, true);
 
-  content.location = "http://mochi.test:8888/browser/browser/devtools/inspector/test/browser_inspector_bug_650804_search.html";
+  content.location = "data:text/html," +
+                     "<span class='span' id='span'>" +
+                     "  <div class='div' id='div'></div>" +
+                     "</span>" +
+                     "<button class='ba bc' id='bc'></button>" +
+                     "<button class='bb bc' id='bb'></button>" +
+                     "<button class='bc' id='ba'></button>";
 
   function $(id) {
     if (id == null) return null;
@@ -62,6 +72,7 @@ function test()
   function startTest(aInspector)
   {
     inspector = aInspector;
+
     searchBox =
       inspector.panelWin.document.getElementById("inspector-searchbox");
     popup = inspector.searchSuggestions.searchPopup;
@@ -92,7 +103,7 @@ function test()
       let actualSuggestions = popup.getItems();
       is(popup.isOpen ? actualSuggestions.length: 0, suggestions.length,
          "There are expected number of suggestions at " + state + "th step.");
-      actualSuggestions = actualSuggestions.reverse();
+      actualSuggestions.reverse();
       for (let i = 0; i < suggestions.length; i++) {
         is(suggestions[i][0], actualSuggestions[i].label,
            "The suggestion at " + i + "th index for " + state +
