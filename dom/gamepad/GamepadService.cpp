@@ -180,12 +180,19 @@ GamepadService::RemoveGamepad(uint32_t aIndex)
 void
 GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed)
 {
+  
+  NewButtonEvent(aIndex, aButton, aPressed, aPressed ? 1.0L : 0.0L);
+}
+
+void
+GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
+                               double aValue)
+{
   if (mShuttingDown || aIndex >= mGamepads.Length()) {
     return;
   }
 
-  double value = aPressed ? 1.0L : 0.0L;
-  mGamepads[aIndex]->SetButton(aButton, value);
+  mGamepads[aIndex]->SetButton(aButton, aPressed, aValue);
 
   
   
@@ -209,9 +216,9 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed)
 
     nsRefPtr<Gamepad> gamepad = listeners[i]->GetGamepad(aIndex);
     if (gamepad) {
-      gamepad->SetButton(aButton, value);
+      gamepad->SetButton(aButton, aPressed, aValue);
       
-      FireButtonEvent(listeners[i], gamepad, aButton, value);
+      FireButtonEvent(listeners[i], gamepad, aButton, aValue);
     }
   }
 }
