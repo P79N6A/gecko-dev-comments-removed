@@ -494,22 +494,9 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, HandleObject objArg)
     obj = JS_ObjectToOuterObject(cx, obj);
     NS_ENSURE_TRUE(obj, nullptr);
 
-    if (dom::GetSameCompartmentWrapperForDOMBinding(*obj.address())) {
-        return obj;
-    }
-
-    MOZ_ASSERT(!dom::IsDOMObject(obj));
-
-    if (!IS_WN_REFLECTOR(obj))
-        return obj;
-
     
-    XPCWrappedNative *wn = XPCWrappedNative::Get(obj);
-    MOZ_ASSERT(wn, "Trying to wrap a dead WN!");
-
-    
-    RootedObject wrapper(cx, wn->GetSameCompartmentSecurityWrapper(cx));
-    return wrapper;
+    dom::GetSameCompartmentWrapperForDOMBinding(*obj.address());
+    return obj;
 }
 
 
