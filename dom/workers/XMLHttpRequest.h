@@ -12,7 +12,6 @@
 
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 
-#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/TypedArray.h"
 
 #include "js/StructuredClone.h"
