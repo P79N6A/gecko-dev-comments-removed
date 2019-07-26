@@ -1,0 +1,79 @@
+
+
+
+
+
+#ifndef MOZILLA_GFX_DRAWEVENTRECORDER_H_
+#define MOZILLA_GFX_DRAWEVENTRECORDER_H_
+
+#include "2D.h"
+#include "RecordedEvent.h"
+#include <ostream>
+#include <fstream>
+
+#if defined(_MSC_VER)
+#include <hash_set>
+#else
+#include <set>
+#endif
+
+namespace mozilla {
+namespace gfx {
+
+class PathRecording;
+
+class DrawEventRecorderPrivate : public DrawEventRecorder
+{
+public:
+  DrawEventRecorderPrivate(std::ostream *aStream);
+  virtual ~DrawEventRecorderPrivate() { }
+
+  void RecordEvent(const RecordedEvent &aEvent);
+  void WritePath(const PathRecording *aPath);
+
+  void AddStoredPath(const ReferencePtr aPath) {
+    mStoredPaths.insert(aPath);
+  }
+
+  void RemoveStoredPath(const ReferencePtr aPath) {
+    mStoredPaths.erase(aPath);
+  }
+
+  bool HasStoredPath(const ReferencePtr aPath) {
+    if (mStoredPaths.find(aPath) != mStoredPaths.end()) {
+      return true;
+    }
+    return false;
+  }
+
+protected:
+  std::ostream *mOutputStream;
+
+  virtual void Flush() = 0;
+
+#if defined(_MSC_VER)
+  typedef stdext::hash_set<const void*> ObjectSet;
+#else
+  typedef std::set<const void*> ObjectSet;
+#endif
+
+  ObjectSet mStoredPaths;
+  ObjectSet mStoredScaledFonts;
+};
+
+class DrawEventRecorderFile : public DrawEventRecorderPrivate
+{
+public:
+  DrawEventRecorderFile(const char *aFilename);
+  ~DrawEventRecorderFile();
+
+private:
+  virtual void Flush();
+
+  std::ofstream mOutputFile;
+};
+
+}
+}
+
+#endif 
