@@ -25,15 +25,15 @@ function run_test()
 
 var gFrames = [
   
-  { type: "call", calleeName: "depth3" },
-  { type: "call", calleeName: "depth2" },
-  { type: "call", calleeName: "depth1" },
+  { type: "call", callee: { name: "depth3" } },
+  { type: "call", callee: { name: "depth2" } },
+  { type: "call", callee: { name: "depth1" } },
 
   
-  { type: "call", calleeName: undefined },
+  { type: "call", callee: { name: undefined } },
 
   
-  { type: "eval", calleeName: undefined },
+  { type: "eval", callee: { name: undefined } },
 ];
 
 var gSliceTests = [
