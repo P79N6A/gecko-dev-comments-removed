@@ -12,8 +12,7 @@
 #include "nscore.h"
 
 nsTransactionStack::nsTransactionStack(nsTransactionStack::Type aType)
-  : mQue(0)
-  , mType(aType)
+  : mType(aType)
 {
 }
 
@@ -30,70 +29,67 @@ nsTransactionStack::Push(nsTransactionItem *aTransaction)
   }
 
   
-
-
-  NS_ADDREF(aTransaction);
-  mQue.Push(aTransaction);
+  mDeque.push_back(aTransaction);
 }
 
 already_AddRefed<nsTransactionItem>
 nsTransactionStack::Pop()
 {
-  
-
-
-  return static_cast<nsTransactionItem*> (mQue.Pop());
+  if (mDeque.empty()) {
+    return nullptr;
+  }
+  nsRefPtr<nsTransactionItem> ret = mDeque.back().forget();
+  mDeque.pop_back();
+  return ret.forget();
 }
 
 already_AddRefed<nsTransactionItem>
 nsTransactionStack::PopBottom()
 {
-  
-
-
-  return static_cast<nsTransactionItem*> (mQue.PopFront());
+  if (mDeque.empty()) {
+    return nullptr;
+  }
+  nsRefPtr<nsTransactionItem> ret = mDeque.front().forget();
+  mDeque.pop_front();
+  return ret.forget();
 }
 
 already_AddRefed<nsTransactionItem>
 nsTransactionStack::Peek()
 {
-  nsRefPtr<nsTransactionItem> transaction;
-  if (mQue.GetSize()) {
-    transaction = static_cast<nsTransactionItem*>(mQue.Last());
+  if (mDeque.empty()) {
+    return nullptr;
   }
-
-  return transaction.forget();
+  nsRefPtr<nsTransactionItem> ret = mDeque.back();
+  return ret.forget();
 }
 
 already_AddRefed<nsTransactionItem>
 nsTransactionStack::GetItem(int32_t aIndex)
 {
-  nsRefPtr<nsTransactionItem> transaction;
-  if (aIndex >= 0 && aIndex < mQue.GetSize()) {
-    transaction = static_cast<nsTransactionItem*>(mQue.ObjectAt(aIndex));
+  if (aIndex < 0 || aIndex >= static_cast<int32_t>(mDeque.size())) {
+    return nullptr;
   }
-
-  return transaction.forget();
+  nsRefPtr<nsTransactionItem> ret = mDeque[aIndex];
+  return ret.forget();
 }
 
 void
 nsTransactionStack::Clear()
 {
-  nsRefPtr<nsTransactionItem> tx;
-
-  do {
-    tx = mType == FOR_UNDO ? Pop() : PopBottom();
-  } while (tx);
+  while (!mDeque.empty()) {
+    nsRefPtr<nsTransactionItem> tx = mType == FOR_UNDO ? Pop() : PopBottom();
+  };
 }
 
 void
 nsTransactionStack::DoTraverse(nsCycleCollectionTraversalCallback &cb)
 {
-  for (int32_t i = 0, qcount = mQue.GetSize(); i < qcount; ++i) {
-    nsTransactionItem *item =
-      static_cast<nsTransactionItem*>(mQue.ObjectAt(i));
+  int32_t size = mDeque.size();
+  for (int32_t i = 0; i < size; ++i) {
+    nsTransactionItem* item = mDeque[i];
     if (item) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "transaction stack mQue[i]");
+      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "transaction stack mDeque[i]");
       cb.NoteNativeChild(item, NS_CYCLE_COLLECTION_PARTICIPANT(nsTransactionItem));
     }
   }
