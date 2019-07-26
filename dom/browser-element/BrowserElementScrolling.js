@@ -26,7 +26,7 @@ const ContentPanning = {
       case 'click':
         evt.stopPropagation();
         evt.preventDefault();
-        
+
         let target = evt.target;
         let view = target.ownerDocument ? target.ownerDocument.defaultView
                                         : target;
@@ -241,6 +241,9 @@ const ContentPanning = {
     this._viewport = new Rect(metrics.x, metrics.y,
                               metrics.viewport.width,
                               metrics.viewport.height);
+    this._cssCompositedRect = new Rect(metrics.x, metrics.y,
+                                       metrics.cssCompositedRect.width,
+                                       metrics.cssCompositedRect.height);
     this._cssPageRect = new Rect(metrics.cssPageRect.x,
                                  metrics.cssPageRect.y,
                                  metrics.cssPageRect.width,
@@ -283,7 +286,7 @@ const ContentPanning = {
 
       
       
-      if (this._isRectZoomedIn(bRect, viewport)) {
+      if (this._isRectZoomedIn(bRect, this._cssCompositedRect)) {
         this._zoomOut();
         return;
       }
@@ -291,7 +294,7 @@ const ContentPanning = {
       rect.x = Math.round(bRect.x);
       rect.y = Math.round(bRect.y);
       rect.w = Math.round(bRect.width);
-      rect.h = Math.round(Math.min(bRect.width * viewport.height / viewport.height, bRect.height));
+      rect.h = Math.round(bRect.height);
 
       
       
@@ -330,23 +333,15 @@ const ContentPanning = {
     
     
     
-    
-    
-    
-    const minDifference = -20;
-    const maxDifference = 20;
-
     let vRect = new Rect(aViewport.x, aViewport.y, aViewport.width, aViewport.height);
     let overlap = vRect.intersect(aRect);
     let overlapArea = overlap.width * overlap.height;
     let availHeight = Math.min(aRect.width * vRect.height / vRect.width, aRect.height);
     let showing = overlapArea / (aRect.width * availHeight);
-    let dw = (aRect.width - vRect.width);
-    let dx = (aRect.x - vRect.x);
+    let ratioW = (aRect.width / vRect.width);
+    let ratioH = (aRect.height / vRect.height);
 
-    return (showing > 0.9 &&
-            dx > minDifference && dx < maxDifference &&
-            dw > minDifference && dw < maxDifference);
+    return (showing > 0.9 && (ratioW > 0.9 || ratioH > 0.9)); 
   }
 };
 
