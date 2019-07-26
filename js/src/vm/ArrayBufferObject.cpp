@@ -396,8 +396,17 @@ ArrayBufferObject::changeContents(JSContext *cx, ObjectElements *newHeader)
     
     uintptr_t newDataPointer = uintptr_t(newHeader->elements());
     for (ArrayBufferViewObject *view = viewListHead; view; view = view->nextView()) {
-        uintptr_t newDataPtr = uintptr_t(view->getPrivate()) - oldDataPointer + newDataPointer;
-        view->setPrivate(reinterpret_cast<uint8_t*>(newDataPtr));
+        
+        
+        
+        
+        
+        
+        uint8_t *viewDataPointer = static_cast<uint8_t*>(view->getPrivate());
+        if (viewDataPointer) {
+            viewDataPointer += newDataPointer - oldDataPointer;
+            view->setPrivate(viewDataPointer);
+        }
 
         
         MarkObjectStateChange(cx, view);
@@ -1200,8 +1209,13 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
 
     if (bufSlot.isObject()) {
         ArrayBufferObject &buf = bufSlot.toObject().as<ArrayBufferObject>();
-        int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
-        obj->initPrivate(buf.dataPointer() + offset);
+        if (buf.getElementsHeader()->isNeuteredBuffer()) {
+            
+            JS_ASSERT(obj->getPrivate() == nullptr);
+        } else {
+            int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
+            obj->initPrivate(buf.dataPointer() + offset);
+        }
     }
 
     
