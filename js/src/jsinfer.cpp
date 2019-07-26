@@ -2899,9 +2899,6 @@ TypeCompartment::addPendingRecompile(JSContext *cx, RawScript script, jsbytecode
 # ifdef JS_ION
     CancelOffThreadIonCompile(cx->compartment, script);
 
-    
-    script->resetUseCount();
-
     if (script->hasIonScript())
         addPendingRecompile(cx, script->ionScript()->recompileInfo());
 
