@@ -89,7 +89,7 @@ let gBrowserThumbnails = {
 
   filterForThumbnailExpiration:
   function Thumbnails_filterForThumbnailExpiration(aCallback) {
-    aCallback([browser.currentURI.spec for (browser of gBrowser.browsers)]);
+    aCallback(this._topSiteURLs);
   },
 
   
@@ -123,12 +123,11 @@ let gBrowserThumbnails = {
 
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
     
-    if (!NewTabUtils.links.getLinks().some(
-          (link) => link && link.url == aBrowser.currentURI.spec))
+    if (aBrowser != gBrowser.selectedBrowser)
       return false;
 
     
-    if (aBrowser != gBrowser.selectedBrowser)
+    if (this._topSiteURLs.indexOf(aBrowser.currentURI.spec) < 0)
       return false;
 
     
@@ -188,6 +187,14 @@ let gBrowserThumbnails = {
     }
 
     return true;
+  },
+
+  get _topSiteURLs() {
+    return NewTabUtils.links.getLinks().reduce((urls, link) => {
+      if (link)
+        urls.push(link.url);
+      return urls;
+    }, []);
   },
 
   _clearTimeout: function Thumbnails_clearTimeout(aBrowser) {
