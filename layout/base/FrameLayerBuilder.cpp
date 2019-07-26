@@ -379,7 +379,7 @@ protected:
 
 
 
-  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot);
+  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, const nsIFrame *aReferenceFrame);
   
 
 
@@ -635,7 +635,7 @@ FrameLayerBuilder::Shutdown()
 void
 FrameLayerBuilder::Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager)
 {
-  mRootPresContext = aBuilder->ReferenceFrame()->PresContext()->GetRootPresContext();
+  mRootPresContext = aBuilder->RootReferenceFrame()->PresContext()->GetRootPresContext();
   if (mRootPresContext) {
     mInitialDOMGeneration = mRootPresContext->GetDOMGeneration();
   }
@@ -1123,7 +1123,7 @@ RoundToMatchResidual(double aValue, double aOldResidual)
 }
 
 already_AddRefed<ThebesLayer>
-ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
+ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, const nsIFrame* aReferenceFrame)
 {
   
   nsRefPtr<ThebesLayer> layer;
@@ -1178,7 +1178,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 
   
   
-  nsPoint offset = mBuilder->ToReferenceFrame(aActiveScrolledRoot);
+  nsPoint offset = aActiveScrolledRoot->GetOffsetToCrossDoc(aReferenceFrame);
   nscoord appUnitsPerDevPixel = aActiveScrolledRoot->PresContext()->AppUnitsPerDevPixel();
   gfxPoint scaledOffset(
       NSAppUnitsToDoublePixels(offset.x, appUnitsPerDevPixel)*mParameters.mXScale,
@@ -1479,7 +1479,7 @@ SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
   
   
   nsIFrame* f = aItem->GetUnderlyingFrame();
-  nsIFrame* ref = aBuilder->ReferenceFrame();
+  nsIFrame* ref = aBuilder->RootReferenceFrame();
   if (f->PresContext() != ref->PresContext())
     return false;
 
@@ -1670,7 +1670,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
   nsRefPtr<ThebesLayer> layer;
   ThebesLayerData* thebesLayerData = nullptr;
   if (lowestUsableLayerWithScrolledRoot < 0) {
-    layer = CreateOrRecycleThebesLayer(aActiveScrolledRoot);
+    layer = CreateOrRecycleThebesLayer(aActiveScrolledRoot, aItem->ReferenceFrame());
 
     NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
     mNewChildLayers.AppendElement(layer);
@@ -1821,7 +1821,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       
       
       forceInactive = true;
-      activeScrolledRoot = mBuilder->ReferenceFrame();
+      activeScrolledRoot = mBuilder->FindReferenceFrameFor(mContainerFrame);
       isFixed = mBuilder->IsFixedItem(item, nullptr, activeScrolledRoot);
     } else {
       forceInactive = false;
