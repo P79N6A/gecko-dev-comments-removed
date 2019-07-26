@@ -403,6 +403,12 @@ class SPSInstrumentation
         frame->script = script;
     }
 
+    JSScript *getPushed() {
+        if (!enabled())
+            return nullptr;
+        return frame->script;
+    }
+
     
 
 
