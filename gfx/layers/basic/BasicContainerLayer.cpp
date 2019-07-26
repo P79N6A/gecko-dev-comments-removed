@@ -57,25 +57,16 @@ BasicContainerLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToS
   ComputeEffectiveTransformsForChildren(idealTransform);
 
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
-  
-  Layer* child = GetFirstChild();
-  bool hasSingleBlendingChild = false;
-  if (!HasMultipleChildren() && child) {
-    hasSingleBlendingChild = child->GetMixBlendMode() != gfxContext::OPERATOR_OVER;
-  }
 
   
-
 
 
 
 
 
   mUseIntermediateSurface =
-    GetMaskLayer() ||
-    GetForceIsolatedGroup() ||
-    (GetMixBlendMode() != gfxContext::OPERATOR_OVER && HasMultipleChildren()) ||
-    (GetEffectiveOpacity() != 1.0 && (HasMultipleChildren() || hasSingleBlendingChild));
+    GetMaskLayer() || (GetEffectiveOpacity() != 1.0 &&
+                       HasMultipleChildren());
 }
 
 bool
