@@ -82,7 +82,6 @@ public:
   
   
   
-  
   virtual mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot() = 0;
 
   
