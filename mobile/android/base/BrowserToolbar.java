@@ -417,29 +417,8 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         }
 
         if (Build.VERSION.SDK_INT >= 11) {
-            View panel = mActivity.getMenuPanel();
-
             
-            
-            
-            
-
-            if (panel == null) {
-                mActivity.onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
-                panel = mActivity.getMenuPanel();
-
-                if (mHasSoftMenuButton) {
-                    mMenuPopup = new MenuPopup(mActivity);
-                    mMenuPopup.setPanelView(panel);
-
-                    mMenuPopup.setOnDismissListener(new PopupWindow.OnDismissListener() {
-                        @Override
-                        public void onDismiss() {
-                            mActivity.onOptionsMenuClosed(null);
-                        }
-                    });
-                }
-            }
+            mActivity.onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
         }
 
         mFocusOrder = Arrays.asList(mBack, mForward, mLayout, mReader, mSiteSecurity, mStop, mTabs);
@@ -1167,8 +1146,22 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         if (!mHasSoftMenuButton)
             return false;
 
+        
+        if (mMenuPopup == null) {
+            View panel = mActivity.getMenuPanel();
+            mMenuPopup = new MenuPopup(mActivity);
+            mMenuPopup.setPanelView(panel);
+
+            mMenuPopup.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    mActivity.onOptionsMenuClosed(null);
+                }
+            });
+        }
+
         GeckoAppShell.getGeckoInterface().invalidateOptionsMenu();
-        if (mMenuPopup != null && !mMenuPopup.isShowing())
+        if (!mMenuPopup.isShowing())
             mMenuPopup.showAsDropDown(mMenu);
 
         return true;
@@ -1178,7 +1171,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         if (!mHasSoftMenuButton)
             return false;
 
-        if (mMenuPopup != null && mMenuPopup.isShowing())
+        if (mMenuPopup.isShowing())
             mMenuPopup.dismiss();
 
         return true;
