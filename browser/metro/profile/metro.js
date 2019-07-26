@@ -202,8 +202,6 @@ pref("layout.spellcheckDefault", 1);
 
 
 
-pref("extensions.defaultProviders.enabled", false);
-
 pref("extensions.enabledScopes", 1);
 
 pref("extensions.autoDisableScopes", 1);
