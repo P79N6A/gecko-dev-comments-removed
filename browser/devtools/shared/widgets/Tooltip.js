@@ -522,25 +522,28 @@ Tooltip.prototype = {
     let label = this.doc.createElement("label");
     label.classList.add("devtools-tooltip-caption");
     label.classList.add("theme-comment");
-    label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+    if (options.naturalWidth && options.naturalHeight) {
+      label.textContent = this._getImageDimensionLabel(options.naturalWidth,
+        options.naturalHeight);
+      this.setSize(vbox.width, vbox.height);
+    } else {
+      
+      label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+      let imgObj = new this.doc.defaultView.Image();
+      imgObj.src = imageUrl;
+      imgObj.onload = () => {
+        imgObj.onload = null;
+        label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+          imgObj.naturalHeight);
+        this.setSize(vbox.width, vbox.height);
+      }
+    }
     vbox.appendChild(label);
 
     this.content = vbox;
-
-    
-    let imgObj = new this.doc.defaultView.Image();
-    imgObj.src = imageUrl;
-    imgObj.onload = () => {
-      imgObj.onload = null;
-
-      
-      let w = options.naturalWidth || imgObj.naturalWidth;
-      let h = options.naturalHeight || imgObj.naturalHeight;
-      label.textContent = w + " x " + h;
-
-      this.setSize(vbox.width, vbox.height);
-    }
   },
+
+  _getImageDimensionLabel: (w, h) => w + " x " + h,
 
   
 
