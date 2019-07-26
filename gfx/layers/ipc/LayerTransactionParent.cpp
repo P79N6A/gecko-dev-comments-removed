@@ -551,10 +551,12 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     }
   }
 
-  
-  
-  
-  LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
+  if (!IsSameProcess()) {
+    
+    
+    
+    LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
+  }
 
   mShadowLayersManager->ShadowLayersUpdated(this, aTransactionId, targetConfig,
                                             isFirstPaint, scheduleComposite, paintSequenceNumber);

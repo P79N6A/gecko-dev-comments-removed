@@ -101,10 +101,12 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
     aReply->AppendElements(&replyv.front(), replyv.size());
   }
 
-  
-  
-  
-  LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
+  if (!IsSameProcess()) {
+    
+    
+    
+    LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
+  }
 
   return true;
 }
