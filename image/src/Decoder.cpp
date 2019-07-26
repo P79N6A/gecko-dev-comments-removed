@@ -155,7 +155,7 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
       }
     }
 
-    bool usable = true;
+    bool usable = !HasDecoderError();
     if (aShutdownIntent != RasterImage::eShutdownIntent_NotNeeded && !HasDecoderError()) {
       
       if (GetCompleteFrameCount() == 0) {
