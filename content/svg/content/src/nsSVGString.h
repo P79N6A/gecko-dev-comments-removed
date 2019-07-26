@@ -40,6 +40,9 @@ public:
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
                                nsSVGElement *aSVGElement);
+  already_AddRefed<nsIDOMSVGAnimatedString>
+  ToDOMAnimatedString(nsSVGElement* aSVGElement);
+
   
   nsISMILAttr* ToSMILAttr(nsSVGElement *aSVGElement);
 
