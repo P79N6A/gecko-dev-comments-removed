@@ -596,11 +596,18 @@ public:
 
   bool IsInTransaction() const { return mInTransaction; }
 
+  virtual void AddRegionToClear(const nsIntRegion& aRegion)
+  {
+    mRegionToClear.Or(mRegionToClear, aRegion);
+  }
+
 protected:
   nsRefPtr<Layer> mRoot;
   gfx::UserData mUserData;
   bool mDestroyed;
   bool mSnapEffectiveTransforms;
+
+  nsIntRegion mRegionToClear;
 
   
   
@@ -1334,6 +1341,7 @@ public:
 #endif
 
   virtual LayerRenderState GetRenderState() { return LayerRenderState(); }
+
 
   void Mutated()
   {
