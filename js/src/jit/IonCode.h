@@ -28,14 +28,6 @@ class AsmJSModule;
 
 namespace jit {
 
-
-
-
-static const uint32_t MAX_BUFFER_SIZE = (1 << 30) - 1;
-
-
-static const uint32_t SNAPSHOT_MAX_NARGS = 127;
-
 class MacroAssembler;
 class CodeOffsetLabel;
 class PatchableBackedge;

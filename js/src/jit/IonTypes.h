@@ -17,6 +17,14 @@ namespace jit {
 typedef uint32_t SnapshotOffset;
 typedef uint32_t BailoutId;
 
+
+
+
+static const uint32_t MAX_BUFFER_SIZE = (1 << 30) - 1;
+
+
+static const uint32_t SNAPSHOT_MAX_NARGS = 127;
+
 static const SnapshotOffset INVALID_SNAPSHOT_OFFSET = uint32_t(-1);
 
 
@@ -40,6 +48,9 @@ enum BailoutKind
     
     Bailout_BaselineInfo
 };
+
+static const uint32_t BAILOUT_KIND_BITS = 3;
+static const uint32_t BAILOUT_RESUME_BITS = 1;
 
 #ifdef DEBUG
 inline const char *
