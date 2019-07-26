@@ -1303,6 +1303,34 @@ var WalkerActor = protocol.ActorClass({
   
 
 
+  innerHTML: method(function(node) {
+    return LongStringActor(this.conn, node.rawNode.innerHTML);
+  }, {
+    request: {
+      node: Arg(0, "domnode")
+    },
+    response: {
+      value: RetVal("longstring")
+    }
+  }),
+
+  
+
+
+  outerHTML: method(function(node) {
+    return LongStringActor(this.conn, node.rawNode.outerHTML);
+  }, {
+    request: {
+      node: Arg(0, "domnode")
+    },
+    response: {
+      value: RetVal("longstring")
+    }
+  }),
+
+  
+
+
 
 
 
