@@ -330,6 +330,9 @@ pref("browser.download.useToolkitUI", false);
 pref("browser.download.panel.removeFinishedDownloads", false);
 
 
+pref("browser.download.panel.shown", false);
+
+
 
 pref("browser.download.panel.firstSessionCompleted", false);
 
@@ -1035,8 +1038,9 @@ pref("devtools.debugger.ui.height", 250);
 pref("devtools.debugger.ui.remote-win.width", 900);
 pref("devtools.debugger.ui.remote-win.height", 400);
 pref("devtools.debugger.ui.stackframes-width", 200);
+pref("devtools.debugger.ui.stackframes-pane-visible", true);
 pref("devtools.debugger.ui.variables-width", 300);
-pref("devtools.debugger.ui.panes-visible-on-startup", false);
+pref("devtools.debugger.ui.variables-pane-visible", true);
 pref("devtools.debugger.ui.non-enum-visible", true);
 
 

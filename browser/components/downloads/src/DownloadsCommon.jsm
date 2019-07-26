@@ -654,7 +654,17 @@ const DownloadsData = {
 
 
 
-  firstDownloadShown: false,
+  get panelHasShownBefore() {
+    try {
+      return Services.prefs.getBoolPref("browser.download.panel.shown");
+    } catch (ex) { }
+    return false;
+  },
+
+  set panelHasShownBefore(aValue) {
+    Services.prefs.setBoolPref("browser.download.panel.shown", aValue);
+    return aValue;
+  },
 
   
 
@@ -673,14 +683,14 @@ const DownloadsData = {
     }
 
     browserWin.focus();
-    if (this.firstDownloadShown) {
+    if (this.panelHasShownBefore) {
       
       
       
       browserWin.DownloadsIndicatorView.showEventNotification();
       return;
     }
-    this.firstDownloadShown = true;
+    this.panelHasShownBefore = true;
     browserWin.DownloadsPanel.showPanel();
   }
 };
