@@ -129,5 +129,53 @@ let wrapper = {
   },
 };
 
-wrapper.init();
 
+
+function handleOldSync() {
+  
+  window.location = "https://services.mozilla.com/legacysync";
+}
+
+function getStarted() {
+  hide("intro");
+  hide("stage");
+  show("remote");
+}
+
+function openPrefs() {
+  window.openPreferences("paneSync");
+}
+
+function init() {
+  let signinQuery = window.location.href.match(/signin=true$/);
+
+  if (signinQuery) {
+    show("remote");
+    wrapper.init();
+  } else {
+    
+    fxAccounts.getSignedInUser().then(user => {
+      if (user) {
+        show("stage");
+        show("manage");
+      } else {
+        show("stage");
+        show("intro");
+        
+        wrapper.init();
+      }
+    });
+  }
+}
+
+function show(id) {
+  document.getElementById(id).style.display = 'block';
+}
+function hide(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+document.addEventListener("DOMContentLoaded", function onload() {
+  document.removeEventListener("DOMContentLoaded", onload, true);
+  init();
+}, true);
