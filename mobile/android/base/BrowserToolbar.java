@@ -464,10 +464,8 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                     updateTitle();
                 }
                 break;
-            case RESTORED:
-                updateTabCount(Tabs.getInstance().getDisplayCount());
-                break;
             case SELECTED:
+                updateTabCount(Tabs.getInstance().getDisplayCount());
                 mSwitchingTabs = true;
                 
             case LOCATION_CHANGE:
@@ -479,7 +477,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 break;
             case CLOSED:
             case ADDED:
-                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+                updateTabCount(Tabs.getInstance().getDisplayCount());
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     updateBackButton(tab.canDoBack());
                     updateForwardButton(tab.canDoForward());
@@ -647,7 +645,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
 
                 
                 
-                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+                updateTabCount(Tabs.getInstance().getDisplayCount());
             }
         });
 
@@ -748,26 +746,6 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         }
     }
 
-    public void updateTabCountAndAnimate(int count) {
-        
-        if (!isVisible()) {
-            updateTabCount(count);
-            return;
-        }
-
-        
-        
-        
-        
-        if (!mLayout.isSelected()) {
-            mTabsCounter.setCount(count);
-
-            mTabs.setContentDescription((count > 1) ?
-                                        mActivity.getString(R.string.num_tabs, count) :
-                                        mActivity.getString(R.string.one_tab));
-        }
-    }
-
     public void updateTabCount(int count) {
         
         
@@ -777,7 +755,14 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             return;
         }
 
-        mTabsCounter.setCurrentText(String.valueOf(count));
+        
+        if (isVisible() && ViewHelper.getAlpha(mTabsCounter) != 0) {
+            mTabsCounter.setCountWithAnimation(count);
+        } else {
+            mTabsCounter.setCount(count);
+        }
+
+        
         mTabs.setContentDescription((count > 1) ?
                                     mActivity.getString(R.string.num_tabs, count) :
                                     mActivity.getString(R.string.one_tab));
