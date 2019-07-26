@@ -1127,7 +1127,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 8;
+    const UI_VERSION = 9;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1228,12 +1228,17 @@ BrowserGlue.prototype = {
     
     
     
-    
-    
-    
-    
-    if (currentUIVersion < 7 &&
-        !Services.prefs.getBoolPref("browser.download.useToolkitUI")) {
+
+    if (currentUIVersion < 8) {
+      
+      let uri = Services.prefs.getComplexValue("browser.startup.homepage",
+                                               Ci.nsIPrefLocalizedString).data;
+      if (uri && /^https?:\/\/(www\.)?google(\.\w{2,3}){1,2}\/firefox\/?$/.test(uri)) {
+        Services.prefs.clearUserPref("browser.startup.homepage");
+      }
+    }
+
+    if (currentUIVersion < 9) {
       
       let currentsetResource = this._rdf.GetResource("currentset");
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
@@ -1260,15 +1265,9 @@ BrowserGlue.prototype = {
         }
         this._setPersist(toolbarResource, currentsetResource, currentset);
       }
-    }
 
-    if (currentUIVersion < 8) {
-      
-      let uri = Services.prefs.getComplexValue("browser.startup.homepage",
-                                               Ci.nsIPrefLocalizedString).data;
-      if (uri && /^https?:\/\/(www\.)?google(\.\w{2,3}){1,2}\/firefox\/?$/.test(uri)) {
-        Services.prefs.clearUserPref("browser.startup.homepage");
-      }
+      Services.prefs.clearUserPref("browser.download.useToolkitUI");
+      Services.prefs.clearUserPref("browser.library.useNewDownloadsView");
     }
 
     if (this._dirty)
