@@ -208,8 +208,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mActionItemBar = (LinearLayout) findViewById(R.id.menu_items);
         mHasSoftMenuButton = !HardwareUtils.hasMenuButton();
 
-        mProgressBar = (ToolbarProgressView) findViewById(R.id.progress);
-
         
         
         mFocusOrder = new ArrayList<View>();
@@ -367,6 +365,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 }
             });
         }
+    }
+
+    public void setProgressBar(ToolbarProgressView progressBar) {
+        mProgressBar = progressBar;
     }
 
     public void refresh() {
