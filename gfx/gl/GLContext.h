@@ -2673,36 +2673,6 @@ public:
 
     TemporaryRef<gfx::SourceSurface> ReadPixelsToSourceSurface(const gfx::IntSize &aSize);
 
-    void TexImage2D(GLenum target, GLint level, GLint internalformat,
-                    GLsizei width, GLsizei height, GLsizei stride,
-                    GLint pixelsize, GLint border, GLenum format,
-                    GLenum type, const GLvoid *pixels);
-
-    void TexSubImage2D(GLenum target, GLint level,
-                       GLint xoffset, GLint yoffset,
-                       GLsizei width, GLsizei height, GLsizei stride,
-                       GLint pixelsize, GLenum format,
-                       GLenum type, const GLvoid* pixels);
-
-    
-
-
-
-    void TexSubImage2DWithUnpackSubimageGLES(GLenum target, GLint level,
-                                             GLint xoffset, GLint yoffset,
-                                             GLsizei width, GLsizei height,
-                                             GLsizei stride, GLint pixelsize,
-                                             GLenum format, GLenum type,
-                                             const GLvoid* pixels);
-
-    void TexSubImage2DWithoutUnpackSubimage(GLenum target, GLint level,
-                                            GLint xoffset, GLint yoffset,
-                                            GLsizei width, GLsizei height,
-                                            GLsizei stride, GLint pixelsize,
-                                            GLenum format, GLenum type,
-                                            const GLvoid* pixels);
-
-
     
     static bool ListHasExtension(const GLubyte *extensions,
                                  const char *extension);
