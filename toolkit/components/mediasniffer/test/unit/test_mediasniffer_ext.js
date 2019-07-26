@@ -28,6 +28,8 @@ const tests = [
   { path: "data/id3tags.mp3", expected: "audio/mpeg" },
   { path: "data/notags.mp3", expected: "audio/mpeg" },
   
+  { path: "data/detodos.mp3", expected: "audio/mpeg" },
+  
   { path: "data/notags-bad.mp3", expected: "application/octet-stream" },
   
   { path: "data/notags-scan.mp3", expected: "application/octet-stream" },
