@@ -7,13 +7,14 @@
 const kTestBarID = "testBar";
 const kWidgetID = "characterencoding-button";
 
-function createTestBar() {
+function createTestBar(aLegacy) {
   let testBar = document.createElement("toolbar");
   testBar.id = kTestBarID;
   testBar.setAttribute("customizable", "true");
-  CustomizableUI.registerArea(kTestBarID,
-    { type: CustomizableUI.TYPE_TOOLBAR, legacy: false }
-  );
+  CustomizableUI.registerArea(kTestBarID, {
+    type: CustomizableUI.TYPE_TOOLBAR,
+    legacy: aLegacy,
+  });
   gNavToolbox.appendChild(testBar);
   return testBar;
 }
@@ -37,9 +38,10 @@ function createTestBar() {
 
 
 
-function checkRestoredPresence(aWidgetID) {
+
+function checkRestoredPresence(aWidgetID, aLegacy) {
   return Task.spawn(function* () {
-    let testBar = createTestBar();
+    let testBar = createTestBar(aLegacy);
     CustomizableUI.addWidgetToArea(aWidgetID, kTestBarID);
     let placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
     is(placement.area, kTestBarID,
@@ -51,7 +53,7 @@ function checkRestoredPresence(aWidgetID) {
     let placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
     is(placement, null, "Expected " + aWidgetID + " to be in the palette");
 
-    testBar = createTestBar();
+    testBar = createTestBar(aLegacy);
 
     yield startCustomizing();
     let placement = CustomizableUI.getPlacementOfWidget(aWidgetID);
@@ -67,9 +69,11 @@ function checkRestoredPresence(aWidgetID) {
 }
 
 add_task(function* () {
-  yield checkRestoredPresence("downloads-button")
+  yield checkRestoredPresence("downloads-button", false);
+  yield checkRestoredPresence("downloads-button", true);
 });
 
 add_task(function* () {
-  yield checkRestoredPresence("characterencoding-button")
+  yield checkRestoredPresence("characterencoding-button", false);
+  yield checkRestoredPresence("characterencoding-button", true);
 });

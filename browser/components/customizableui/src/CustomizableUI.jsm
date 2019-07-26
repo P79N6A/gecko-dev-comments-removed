@@ -338,7 +338,7 @@ let CustomizableUIInternal = {
     if (!areaIsKnown) {
       gAreas.set(aName, props);
 
-      if (props.get("legacy")) {
+      if (props.get("legacy") && !gPlacements.has(aName)) {
         
         
         gFuturePlacements.set(aName, new Set());
