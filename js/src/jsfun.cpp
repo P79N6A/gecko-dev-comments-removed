@@ -1686,6 +1686,23 @@ js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
     return fun;
 }
 
+bool
+js::IsConstructor(const Value &v)
+{
+    
+    if (!v.isObject())
+        return false;
+
+    
+    
+    JSObject &obj = v.toObject();
+    if (obj.is<JSFunction>()) {
+        JSFunction &fun = obj.as<JSFunction>();
+        return fun.isNativeConstructor() || fun.isInterpretedConstructor();
+    }
+    return obj.getClass()->construct != NULL;
+}
+
 void
 js::ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp)
 {

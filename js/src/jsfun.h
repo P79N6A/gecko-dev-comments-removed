@@ -398,6 +398,9 @@ DefineFunction(JSContext *cx, HandleObject obj, HandleId id, JSNative native,
                NewObjectKind newKind = GenericObject);
 
 
+bool IsConstructor(const Value &v);
+
+
 
 
 
