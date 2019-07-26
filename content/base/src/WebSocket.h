@@ -150,9 +150,9 @@ public:
             ErrorResult& aRv);
   void Send(nsIDOMBlob* aData,
             ErrorResult& aRv);
-  void Send(ArrayBuffer& aData,
+  void Send(const ArrayBuffer& aData,
             ErrorResult& aRv);
-  void Send(ArrayBufferView& aData,
+  void Send(const ArrayBufferView& aData,
             ErrorResult& aRv);
 
 private: 
