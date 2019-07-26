@@ -39,7 +39,7 @@ const kMessages =["SystemMessageManager:GetPendingMessages",
                   "child-process-shutdown"]
 
 function debug(aMsg) {
-  
+  dump("-- SystemMessageInternal " + Date.now() + " : " + aMsg + "\n");
 }
 
 
@@ -48,6 +48,12 @@ function SystemMessageInternal() {
   
   
   this._pages = [];
+
+  
+  
+  
+  
+  
   this._listeners = {};
 
   this._webappsRegistryReady = false;
@@ -61,6 +67,16 @@ function SystemMessageInternal() {
   }, this);
 
   Services.obs.notifyObservers(this, "system-message-internal-ready", null);
+}
+
+function findTarget(aListeners, aTarget) {
+  for (let i = 0; i < aListeners.length; ++i) {
+    let listener = aListeners[i];
+    if (listener.target === aTarget)
+      return listener;
+  }
+
+  return null;
 }
 
 SystemMessageInternal.prototype = {
@@ -189,10 +205,19 @@ SystemMessageInternal.prototype = {
       case "SystemMessageManager:Register":
       {
         debug("Got Register from " + msg.manifest);
-        if (!this._listeners[msg.manifest]) {
-          this._listeners[msg.manifest] = {};
+        let targets, target;
+        if (!(targets = this._listeners[msg.manifest])) {
+          this._listeners[msg.manifest] =
+            [ { target: aMessage.target, winCount: 1 } ];
+        } else if (!(target = findTarget(targets, aMessage.target))) {
+          targets[msg.manifest].push({
+            target: aMessage.target,
+            winCount: 1
+          });
+        } else {
+          target.winCount++;
         }
-        this._listeners[msg.manifest][msg.innerWindowID] = aMessage.target;
+
         debug("listeners for " + msg.manifest + " innerWinID " + msg.innerWindowID);
         break;
       }
@@ -200,11 +225,20 @@ SystemMessageInternal.prototype = {
       {
         debug("Got child-process-shutdown from " + aMessage.target);
         for (let manifest in this._listeners) {
-          for (let winID in this._listeners[manifest]) {
-            if (aMessage.target === this._listeners[manifest][winID]) {
-              debug("remove " + manifest );
-              delete this._listeners[manifest];
-              return;
+          
+          let targets = this._listeners[manifest];
+          for (let target = 0; target < targets.length; ++target) {
+            if (targets[target].target === aMessage.target) {
+              
+              
+              if (targets.length === 1) {
+                debug("remove " + manifest );
+                delete this._listeners[manifest];
+              } else {
+                
+                
+                targets.splice(target, 1);
+              }
             }
           }
         }
@@ -213,7 +247,22 @@ SystemMessageInternal.prototype = {
       case "SystemMessageManager:Unregister":
       {
         debug("Got Unregister from " + aMessage.target + "innerWinID " + msg.innerWindowID);
-        delete this._listeners[msg.manifest][msg.innerWindowID];
+        let targets = this._listeners[msg.manifest];
+        for (let i = 0; i < targets.length; ++i) {
+          if (targets[i].target === aMessage.target) {
+            if (--targets[i].winCount === 0) {
+              if (targets.length === 1) {
+                
+                delete this._listeners[msg.manifest];
+              } else {
+                
+                targets.splice(i, 1);
+              }
+
+            }
+          }
+        }
+
         debug("Removing " + aMessage.target + "innerWinID " + msg.innerWindowID );
 
         break;
@@ -391,13 +440,14 @@ SystemMessageInternal.prototype = {
 
     let winTargets = this._listeners[aManifestURI];
     if (winTargets) {
-      for (let winID in winTargets) {
-        winTargets[winID].sendAsyncMessage("SystemMessageManager:Message",
-                                           { type: aType,
-                                             msg: aMessage,
-                                             manifest: aManifestURI,
-                                             uri: aPageURI,
-                                             msgID: aMessageID });
+      for (let target = 0; target < winTargets.length; ++target) {
+          let manager = winTargets[target].target;
+          manager.sendAsyncMessage("SystemMessageManager:Message",
+                                   { type: aType,
+                                     msg: aMessage,
+                                     manifest: aManifestURI,
+                                     uri: aPageURI,
+                                     msgID: aMessageID });
       }
     }
 
