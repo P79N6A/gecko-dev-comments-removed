@@ -818,14 +818,15 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     break;
 
                 
+                MBasicBlock *osrBlock = graph.mir().osrBlock();
                 while (!loopWorkList.empty()) {
                     loopBlock = loopWorkList.popCopy();
-                    if (loopBlock->lir() != graph.osrBlock())
+                    if (loopBlock != osrBlock)
                         break;
                 }
 
                 
-                if (loopBlock->lir() == graph.osrBlock()) {
+                if (loopBlock == osrBlock) {
                     JS_ASSERT(loopWorkList.empty());
                     break;
                 }
