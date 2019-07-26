@@ -672,8 +672,6 @@ public:
     void SetPendingResult(nsresult rc) {mPendingResult = rc;}
 
     void DebugDump(int16_t depth);
-    void AddScope(PRCList *scope) { PR_INSERT_AFTER(scope, &mScopes); }
-    void RemoveScope(PRCList *scope) { PR_REMOVE_LINK(scope); }
 
     void MarkErrorUnreported() { mErrorUnreported = true; }
     void ClearUnreportedError() { mErrorUnreported = false; }
@@ -695,9 +693,6 @@ private:
     nsCOMPtr<nsIException> mException;
     LangType mCallingLangType;
     bool mErrorUnreported;
-
-    
-    PRCList mScopes;
 };
 
 
@@ -1080,9 +1075,6 @@ public:
     static bool
     IsDyingScope(XPCWrappedNativeScope *scope);
 
-    XPCContext *GetContext() { return mContext; }
-    void ClearContext() { mContext = nullptr; }
-
     typedef js::HashSet<JSObject *,
                         js::PointerHasher<JSObject *, 3>,
                         js::SystemAllocPolicy> DOMExpandoSet;
@@ -1140,8 +1132,6 @@ private:
     
     
     JS::ObjectPtr                    mXBLScope;
-
-    XPCContext*                      mContext;
 
     nsAutoPtr<DOMExpandoSet> mDOMExpandoSet;
 
