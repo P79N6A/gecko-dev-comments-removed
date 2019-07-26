@@ -1125,7 +1125,10 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
     }
     
     PrefillPropertyArray(aRow, currCol);
-    mView->GetCellProperties(aRow, currCol, mScratchArray);
+
+    nsAutoString properties;
+    mView->GetCellProperties(aRow, currCol, properties);
+    nsTreeUtils::TokenizeProperties(properties, mScratchArray);
 
     nsStyleContext* rowContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreerow);
 
@@ -1468,7 +1471,9 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
 
   
   PrefillPropertyArray(aRowIndex, aColumn);
-  mView->GetCellProperties(aRowIndex, aColumn, mScratchArray);
+  nsAutoString properties;
+  mView->GetCellProperties(aRowIndex, aColumn, properties);
+  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
 
   
   nsStyleContext* cellContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecell);
@@ -2876,7 +2881,9 @@ nsTreeBodyFrame::PaintColumn(nsTreeColumn*        aColumn,
 
   
   PrefillPropertyArray(-1, aColumn);
-  mView->GetColumnProperties(aColumn, mScratchArray);
+  nsAutoString properties;
+  mView->GetColumnProperties(aColumn, properties);
+  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
 
   
   
@@ -2912,7 +2919,10 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
   
   
   PrefillPropertyArray(aRowIndex, nullptr);
-  mView->GetRowProperties(aRowIndex, mScratchArray);
+
+  nsAutoString properties;
+  mView->GetRowProperties(aRowIndex, properties);
+  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
 
   
   
@@ -3112,7 +3122,9 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
   
   
   PrefillPropertyArray(aRowIndex, aColumn);
-  mView->GetCellProperties(aRowIndex, aColumn, mScratchArray);
+  nsAutoString properties;
+  mView->GetCellProperties(aRowIndex, aColumn, properties);
+  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
 
   
   

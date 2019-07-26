@@ -176,27 +176,21 @@ nsNSSASN1Tree::SetSelection(nsITreeSelection * aSelection)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP 
-nsNSSASN1Tree::GetRowProperties(int32_t index, nsISupportsArray *properties)
+nsNSSASN1Tree::GetRowProperties(int32_t index, nsAString& aProps)
 {
   return NS_OK;
 }
-
-
 
 NS_IMETHODIMP 
 nsNSSASN1Tree::GetCellProperties(int32_t row, nsITreeColumn* col, 
-                                 nsISupportsArray *properties)
+                                 nsAString& aProps)
 {
   return NS_OK;
 }
 
-
-
 NS_IMETHODIMP 
-nsNSSASN1Tree::GetColumnProperties(nsITreeColumn* col, 
-                                   nsISupportsArray *properties)
+nsNSSASN1Tree::GetColumnProperties(nsITreeColumn* col, nsAString& aProps)
 {
   return NS_OK;
 }

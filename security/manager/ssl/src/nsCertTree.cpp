@@ -928,33 +928,24 @@ nsCertTree::SetSelection(nsITreeSelection * aSelection)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP 
-nsCertTree::GetRowProperties(int32_t index, nsISupportsArray *properties)
+nsCertTree::GetRowProperties(int32_t index, nsAString& aProps)
 {
   return NS_OK;
 }
-
-
-
 
 NS_IMETHODIMP 
 nsCertTree::GetCellProperties(int32_t row, nsITreeColumn* col, 
-                              nsISupportsArray* properties)
+                              nsAString& aProps)
 {
   return NS_OK;
 }
-
-
-
 
 NS_IMETHODIMP 
-nsCertTree::GetColumnProperties(nsITreeColumn* col, 
-                                nsISupportsArray* properties)
+nsCertTree::GetColumnProperties(nsITreeColumn* col, nsAString& aProps)
 {
   return NS_OK;
 }
-
 
 NS_IMETHODIMP 
 nsCertTree::IsContainer(int32_t index, bool *_retval)

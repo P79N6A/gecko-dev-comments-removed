@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -59,7 +27,7 @@ window.onload = function() {
     gStateObject = JSON.parse(sessionData.value);
   }
   catch (exJSON) {
-    var s = new Cu.Sandbox("about:blank");
+    var s = new Cu.Sandbox("about:blank", {sandboxName: 'aboutSessionRestore'});
     gStateObject = Cu.evalInSandbox("(" + sessionData.value + ")", s);
     
     
@@ -72,14 +40,14 @@ window.onload = function() {
   sessionData.dispatchEvent(event);
 
   initTreeView();
-  
+
   document.getElementById("errorTryAgain").focus();
 };
 
 function initTreeView() {
   var tabList = document.getElementById("tabList");
   var winLabel = tabList.getAttribute("_window_label");
-  
+
   gTreeData = [];
   gStateObject.windows.forEach(function(aWinData, aIx) {
     var winState = {
@@ -105,7 +73,7 @@ function initTreeView() {
     for each (var tab in winState.tabs)
       gTreeData.push(tab);
   }, this);
-  
+
   tabList.view = treeView;
   tabList.view.selection.select(0);
 }
@@ -114,7 +82,7 @@ function initTreeView() {
 
 function restoreSession() {
   document.getElementById("errorTryAgain").disabled = true;
-  
+
   
   var ix = gStateObject.windows.length - 1;
   for (var t = gTreeData.length - 1; t >= 0; t--) {
@@ -131,22 +99,22 @@ function restoreSession() {
     }
   }
   var stateString = JSON.stringify(gStateObject);
-  
+
   var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   var top = getBrowserWindow();
-  
+
   
   if (top.gBrowser.tabs.length == 1) {
     ss.setWindowState(top, stateString, true);
     return;
   }
-  
+
   
   var newWindow = top.openDialog(top.location, "_blank", "chrome,dialog=no,all");
   newWindow.addEventListener("load", function() {
     newWindow.removeEventListener("load", arguments.callee, true);
     ss.setWindowState(newWindow, stateString, true);
-    
+
     var tabbrowser = top.gBrowser;
     var tabIndex = tabbrowser.getBrowserIndexForDocument(document);
     tabbrowser.removeTab(tabbrowser.tabs[tabIndex]);
@@ -165,7 +133,7 @@ function onListClick(aEvent) {
   
   if (aEvent.button == 2)
     return;
-  
+
   var row = {}, col = {};
   treeView.treeBox.getCellAt(aEvent.clientX, aEvent.clientY, row, col, {});
   if (col.value) {
@@ -221,9 +189,9 @@ function toggleRowChecked(aIx) {
   var item = gTreeData[aIx];
   item.checked = !item.checked;
   treeView.treeBox.invalidateRow(aIx);
-  
+
   function isChecked(aItem) aItem.checked;
-  
+
   if (treeView.isContainer(aIx)) {
     
     for each (var tab in item.tabs) {
@@ -237,7 +205,7 @@ function toggleRowChecked(aIx) {
                           item.parent.tabs.some(isChecked) ? 0 : false;
     treeView.treeBox.invalidateRow(gTreeData.indexOf(item.parent));
   }
-  
+
   document.getElementById("errorTryAgain").disabled = !gTreeData.some(isChecked);
 }
 
@@ -245,14 +213,14 @@ function restoreSingleTab(aIx, aShifted) {
   var tabbrowser = getBrowserWindow().gBrowser;
   var newTab = tabbrowser.addTab();
   var item = gTreeData[aIx];
-  
+
   var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   var tabState = gStateObject.windows[item.parent.ix]
                              .tabs[aIx - gTreeData.indexOf(item.parent) - 1];
   
   tabState.hidden = false;
   ss.setTabState(newTab, JSON.stringify(tabState));
-  
+
   
   var prefBranch = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
   if (prefBranch.getBoolPref("browser.tabs.loadInBackground") != !aShifted)
@@ -262,16 +230,6 @@ function restoreSingleTab(aIx, aShifted) {
 
 
 var treeView = {
-  _atoms: {},
-  _getAtom: function(aName)
-  {
-    if (!this._atoms[aName]) {
-      var as = Cc["@mozilla.org/atom-service;1"].getService(Ci.nsIAtomService);
-      this._atoms[aName] = as.getAtom(aName);
-    }
-    return this._atoms[aName];
-  },
-
   treeBox: null,
   selection: null,
 
@@ -327,17 +285,21 @@ var treeView = {
     this.treeBox.invalidateRow(idx);
   },
 
-  getCellProperties: function(idx, column, prop) {
+  getCellProperties: function(idx, column) {
     if (column.id == "restore" && this.isContainer(idx) && gTreeData[idx].checked === 0)
-      prop.AppendElement(this._getAtom("partial"));
+      return "partial";
     if (column.id == "title")
-      prop.AppendElement(this._getAtom(this.getImageSrc(idx, column) ? "icon" : "noicon"));
+      return this.getImageSrc(idx, column) ? "icon" : "noicon";
+
+    return "";
   },
 
-  getRowProperties: function(idx, prop) {
+  getRowProperties: function(idx) {
     var winState = gTreeData[idx].parent || gTreeData[idx];
     if (winState.ix % 2 != 0)
-      prop.AppendElement(this._getAtom("alternate"));
+      return "alternate";
+
+    return "";
   },
 
   getImageSrc: function(idx, column) {
@@ -352,5 +314,5 @@ var treeView = {
   selectionChanged: function() { },
   performAction: function(action) { },
   performActionOnCell: function(action, index, column) { },
-  getColumnProperties: function(column, prop) { }
+  getColumnProperties: function(column) { return ""; }
 };
