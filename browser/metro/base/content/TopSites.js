@@ -76,46 +76,79 @@ let TopSites = {
     this._sitesDirty.clear();
   },
 
-  pinSite: function(aSite, aSlotIndex) {
-    if (!(aSite && aSite.url)) {
-      throw Cr.NS_ERROR_INVALID_ARG
-    }
-    
-    NewTabUtils.pinnedLinks.pin(aSite, aSlotIndex);
-    this.dirty(aSite);
-    this.update();
-  },
-  unpinSite: function(aSite) {
-    if (!(aSite && aSite.url)) {
-      throw Cr.NS_ERROR_INVALID_ARG
-    }
-    
-    NewTabUtils.pinnedLinks.unpin(aSite);
-    this.dirty(aSite);
-    this.update();
-  },
-  hideSite: function(aSite) {
-    if (!(aSite && aSite.url)) {
-      throw Cr.NS_ERROR_INVALID_ARG
-    }
+  
 
-    aSite._restorePinIndex = NewTabUtils.pinnedLinks._indexOfLink(aSite);
-    
-    NewTabUtils.blockedLinks.block(aSite);
+
+
+
+  pinSites: function(aSites, aSlotIndices) {
+    if (aSites.length !== aSlotIndices.length)
+        throw new Error("TopSites.pinSites: Mismatched sites/indices arguments");
+
+    for (let i=0; i<aSites.length && i<aSlotIndices.length; i++){
+      let site = aSites[i],
+          idx = aSlotIndices[i];
+      if (!(site && site.url)) {
+        throw Cr.NS_ERROR_INVALID_ARG
+      }
+      
+      NewTabUtils.pinnedLinks.pin(site, idx);
+      this.dirty(site);
+    }
+    this.update();
+  },
+
+  
+
+
+
+  unpinSites: function(aSites) {
+    for (let site of aSites) {
+      if (!(site && site.url)) {
+        throw Cr.NS_ERROR_INVALID_ARG
+      }
+      
+      NewTabUtils.pinnedLinks.unpin(site);
+      this.dirty(site);
+    }
+    this.update();
+  },
+
+  
+
+
+
+  hideSites: function(aSites) {
+    for (let site of aSites) {
+      if (!(site && site.url)) {
+        throw Cr.NS_ERROR_INVALID_ARG
+      }
+
+      site._restorePinIndex = NewTabUtils.pinnedLinks._indexOfLink(site);
+      
+      NewTabUtils.blockedLinks.block(site);
+    }
     
     this._sites = null;
     this._sitesDirty.clear();
     this.update();
   },
-  restoreSite: function(aSite) {
-    if (!(aSite && aSite.url)) {
-      throw Cr.NS_ERROR_INVALID_ARG
-    }
-    NewTabUtils.blockedLinks.unblock(aSite);
-    let pinIndex = aSite._restorePinIndex;
 
-    if (!isNaN(pinIndex) && pinIndex > -1) {
-      NewTabUtils.pinnedLinks.pin(aSite, pinIndex);
+  
+
+
+
+  restoreSites: function(aSites) {
+    for (let site of aSites) {
+      if (!(site && site.url)) {
+        throw Cr.NS_ERROR_INVALID_ARG
+      }
+      NewTabUtils.blockedLinks.unblock(site);
+      let pinIndex = site._restorePinIndex;
+
+      if (!isNaN(pinIndex) && pinIndex > -1) {
+        NewTabUtils.pinnedLinks.pin(site, pinIndex);
+      }
     }
     
     this._sites = null;
@@ -168,47 +201,41 @@ TopSitesView.prototype = {
   doActionOnSelectedTiles: function(aActionName, aEvent) {
     let tileGroup = this._set;
     let selectedTiles = tileGroup.selectedItems;
+    let sites = Array.map(selectedTiles, TopSites._linkFromNode);
     let nextContextActions = new Set();
 
     switch (aActionName){
       case "delete":
-        Array.forEach(selectedTiles, function(aNode) {
-          let site = TopSites._linkFromNode(aNode);
+        for (let aNode of selectedTiles) {
           
           aNode.contextActions.delete('delete');
           
-          nextContextActions.add('restore');
-          TopSites.hideSite(site);
-          if (!this._lastSelectedSites) {
-            this._lastSelectedSites = [];
-          }
-          this._lastSelectedSites.push(site);
-        }, this);
+        }
+        this._lastSelectedSites = (this._lastSelectedSites || []).concat(sites);
+        nextContextActions.add('restore');
+        TopSites.hideSites(sites);
         break;
       case "restore":
         
         if (this._lastSelectedSites) {
-          for (let site of this._lastSelectedSites) {
-            TopSites.restoreSite(site);
-          }
+          TopSites.restoreSites(this._lastSelectedSites);
         }
         break;
       case "pin":
+        let pinIndices = [];
         Array.forEach(selectedTiles, function(aNode) {
-          let site = TopSites._linkFromNode(aNode);
-          let index = Array.indexOf(aNode.control.children, aNode);
+          pinIndices.push( Array.indexOf(aNode.control.children, aNode) );
           aNode.contextActions.delete('pin');
           aNode.contextActions.add('unpin');
-          TopSites.pinSite(site, index);
         });
+        TopSites.pinSites(sites, pinIndices);
         break;
       case "unpin":
         Array.forEach(selectedTiles, function(aNode) {
-          let site = TopSites._linkFromNode(aNode);
           aNode.contextActions.delete('unpin');
           aNode.contextActions.add('pin');
-          TopSites.unpinSite(site);
         });
+        TopSites.unpinSites(sites);
         break;
       
     }
