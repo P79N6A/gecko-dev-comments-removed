@@ -28,7 +28,7 @@ const DISABLE_MMS_GROUPING_FOR_RECEIVING = true;
 
 
 const DB_NAME = "sms";
-const DB_VERSION = 20;
+const DB_VERSION = 19;
 const MESSAGE_STORE_NAME = "sms";
 const THREAD_STORE_NAME = "thread";
 const PARTICIPANT_STORE_NAME = "participant";
@@ -260,10 +260,6 @@ MobileMessageDatabaseService.prototype = {
             self.upgradeSchema18(event.target.transaction, next);
             break;
           case 19:
-            if (DEBUG) debug("Upgrade to version 20. Add readStatus and readTimestamp.");
-            self.upgradeSchema19(event.target.transaction, next);
-            break;
-          case 20:
             
             if (DEBUG) debug("Upgrade finished.");
             break;
@@ -1185,35 +1181,6 @@ MobileMessageDatabaseService.prototype = {
     };
   },
 
-  
-
-
-  upgradeSchema19: function upgradeSchema19(transaction, next) {
-    let messageStore = transaction.objectStore(MESSAGE_STORE_NAME);
-    messageStore.openCursor().onsuccess = function(event) {
-      let cursor = event.target.result;
-      if (!cursor) {
-        next();
-        return;
-      }
-
-      let messageRecord = cursor.value;
-      if (messageRecord.type == "sms") {
-        cursor.continue();
-        return;
-      }
-
-      
-      
-      if (messageRecord.hasOwnProperty("transactionId")) {
-        delete messageRecord.transactionId;
-      }
-
-      cursor.update(messageRecord);
-      cursor.continue();
-    };
-  },
-
   matchParsedPhoneNumbers: function matchParsedPhoneNumbers(addr1, parsedAddr1,
                                                             addr2, parsedAddr2) {
     if ((parsedAddr1.internationalNumber &&
@@ -1976,6 +1943,7 @@ MobileMessageDatabaseService.prototype = {
         (aMessage.type == "sms" && (aMessage.messageClass == undefined ||
                                     aMessage.sender == undefined)) ||
         (aMessage.type == "mms" && (aMessage.delivery == undefined ||
+                                    aMessage.transactionId == undefined ||
                                     !Array.isArray(aMessage.deliveryInfo) ||
                                     !Array.isArray(aMessage.receivers))) ||
         aMessage.timestamp == undefined) {
@@ -2007,7 +1975,7 @@ MobileMessageDatabaseService.prototype = {
     aMessage.read = FILTER_READ_UNREAD;
 
     if (aMessage.type == "mms") {
-      aMessage.transactionIdIndex = aMessage.headers["x-mms-transaction-id"];
+      aMessage.transactionIdIndex = aMessage.transactionId;
       aMessage.isReadReportSent = false;
 
       
