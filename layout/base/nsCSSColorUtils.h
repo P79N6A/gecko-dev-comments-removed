@@ -17,7 +17,7 @@
 
 #define NS_SUFFICIENT_LUMINOSITY_DIFFERENCE 125000
 #define NS_LUMINOSITY_DIFFERENCE(a, b) \
-          mozilla::Abs(NS_GetLuminosity(a) - NS_GetLuminosity(b))
+          mozilla::DeprecatedAbs(NS_GetLuminosity(a) - NS_GetLuminosity(b))
 
 
 void NS_GetSpecial3DColors(nscolor aResult[2],

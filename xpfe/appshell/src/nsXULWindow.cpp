@@ -1349,7 +1349,7 @@ void nsXULWindow::StaggerPosition(int32_t &aRequestedX, int32_t &aRequestedY,
           listY = NSToIntRound(listY / scale);
         }
 
-        if (Abs(listX - aRequestedX) <= kSlop && Abs(listY - aRequestedY) <= kSlop) {
+        if (DeprecatedAbs(listX - aRequestedX) <= kSlop && DeprecatedAbs(listY - aRequestedY) <= kSlop) {
           
           if (bouncedX & 0x1)
             aRequestedX -= kOffset;

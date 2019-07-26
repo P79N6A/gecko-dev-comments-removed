@@ -747,7 +747,7 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, uint32_t aHint)
   
   bool isNormal =
     (aHint & NS_STRETCH_NORMAL)
-    && bool(float(Abs(a - b))
+    && bool(float(DeprecatedAbs(a - b))
               < (1.0f - NS_MATHML_DELIMITER_FACTOR) * float(b));
   
   
@@ -757,7 +757,7 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, uint32_t aHint)
     float c = std::max(float(b) * NS_MATHML_DELIMITER_FACTOR,
                      float(b) - nsPresContext::
                      CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
-    isNearer = bool(float(Abs(b - a)) <= (float(b) - c));
+    isNearer = bool(float(DeprecatedAbs(b - a)) <= (float(b) - c));
   }
   
   
@@ -784,7 +784,7 @@ IsSizeBetter(nscoord a, nscoord olda, nscoord b, uint32_t aHint)
     return (a <= olda) ? (olda > b) : (a <= b);
 
   
-  return Abs(a - b) < Abs(olda - b);
+  return DeprecatedAbs(a - b) < DeprecatedAbs(olda - b);
 }
 
 

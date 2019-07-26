@@ -356,7 +356,7 @@ TimeStampValue::CheckQPC(int64_t aDuration, const TimeStampValue &aOther) const
     return false;
 
   
-  aDuration = Abs(aDuration);
+  aDuration = DeprecatedAbs(aDuration);
 
   
 

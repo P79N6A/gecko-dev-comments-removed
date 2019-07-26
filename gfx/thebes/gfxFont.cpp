@@ -790,7 +790,7 @@ CalcStyleMatch(gfxFontEntry *aFontEntry, const gfxFontStyle *aStyle)
          }
 
         
-        rank += 9 - Abs(aFontEntry->Weight() / 100 - aStyle->ComputeWeight());
+        rank += 9 - DeprecatedAbs(aFontEntry->Weight() / 100 - aStyle->ComputeWeight());
     } else {
         
         if (!aFontEntry->IsItalic()) {
@@ -2967,7 +2967,7 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
             
             SET_SIGNED(xHeight, os2->sxHeight);
             
-            aMetrics.xHeight = Abs(aMetrics.xHeight);
+            aMetrics.xHeight = DeprecatedAbs(aMetrics.xHeight);
         }
         
         if (os2data.Length() >= offsetof(OS2Table, yStrikeoutPosition) +

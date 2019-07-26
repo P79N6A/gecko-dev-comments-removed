@@ -1344,7 +1344,7 @@ public:
         (lineOrPageDeltaX > 0 && lineOrPageDeltaY < 0)) {
       return 0; 
     }
-    return (Abs(lineOrPageDeltaX) > Abs(lineOrPageDeltaY)) ?
+    return (DeprecatedAbs(lineOrPageDeltaX) > DeprecatedAbs(lineOrPageDeltaY)) ?
              lineOrPageDeltaX : lineOrPageDeltaY;
   }
 
