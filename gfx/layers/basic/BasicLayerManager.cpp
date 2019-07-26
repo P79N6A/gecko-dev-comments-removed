@@ -130,16 +130,18 @@ public:
 
   
   
-  
-  bool Apply2DTransform()
+  bool Setup2DTransform()
   {
     const gfx3DMatrix& effectiveTransform = mLayer->GetEffectiveTransform();
-
     
-    bool is2D = effectiveTransform.CanDraw2D(&mTransform);
-    mTarget->SetMatrix(mTransform);
+    return effectiveTransform.CanDraw2D(&mTransform);
+  }
 
-    return is2D;
+  
+  
+  void Apply2DTransform()
+  {
+    mTarget->SetMatrix(mTransform);
   }
 
   
@@ -740,10 +742,12 @@ PixmanTransform(const gfxImageSurface *aDest,
 
 
 
+
+
 static already_AddRefed<gfxASurface> 
 Transform3D(gfxASurface* aSource, gfxContext* aDest, 
             const gfxRect& aBounds, const gfx3DMatrix& aTransform, 
-            gfxPoint& aDrawOffset, bool aDontBlit)
+            gfxRect& aDestRect, bool aDontBlit)
 {
   nsRefPtr<gfxImageSurface> sourceImage = aSource->GetAsImageSurface();
   if (!sourceImage) {
@@ -761,18 +765,19 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
 
   
   
-  gfxRect destRect = aDest->GetClipExtents();
-  destRect.IntersectRect(destRect, offsetRect);
+  aDestRect = aDest->GetClipExtents();
+  aDestRect.IntersectRect(aDestRect, offsetRect);
+  aDestRect.RoundOut();
 
   
   nsRefPtr<gfxASurface> dest = aDest->CurrentSurface();
   nsRefPtr<gfxImageSurface> destImage;
   gfxPoint offset;
   bool blitComplete;
-  if (!destImage || aDontBlit || !aDest->ClipContainsRect(destRect)) {
-    destImage = new gfxImageSurface(gfxIntSize(destRect.width, destRect.height),
+  if (!destImage || aDontBlit || !aDest->ClipContainsRect(aDestRect)) {
+    destImage = new gfxImageSurface(gfxIntSize(aDestRect.width, aDestRect.height),
                                     gfxASurface::ImageFormatARGB32);
-    offset = destRect.TopLeft();
+    offset = aDestRect.TopLeft();
     blitComplete = false;
   } else {
     offset = -dest->GetDeviceOffset();
@@ -791,7 +796,6 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
 
   
   
-  aDrawOffset = destRect.TopLeft();
   return destImage.forget(); 
 }
 
@@ -889,7 +893,13 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
                "ContainerLayer with mask layer should force UseIntermediateSurface");
 
   gfxContextAutoSaveRestore contextSR;
-  bool needsSaveRestore = needsGroup || clipRect || needsClipToVisibleRegion;
+  gfxMatrix transform;
+  
+  bool is2D = paintContext.Setup2DTransform();
+  NS_ABORT_IF_FALSE(is2D || needsGroup || !aLayer->GetFirstChild(), "Must PushGroup for 3d transforms!");
+
+  bool needsSaveRestore =
+    needsGroup || clipRect || needsClipToVisibleRegion || !is2D;
   if (needsSaveRestore) {
     contextSR.SetContext(aTarget);
 
@@ -900,8 +910,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     }
   }
 
-  bool is2D = paintContext.Apply2DTransform();
-  NS_ABORT_IF_FALSE(is2D || needsGroup || !aLayer->GetFirstChild(), "Must PushGroup for 3d transforms!");
+  paintContext.Apply2DTransform();
 
   const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
   
@@ -948,7 +957,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     
     NS_ABORT_IF_FALSE(untransformedSurface,
                       "We should always allocate an untransformed surface with 3d transforms!");
-    gfxPoint offset;
+    gfxRect destRect;
     bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
                       aLayer->GetEffectiveOpacity() != 1.0f;
 #ifdef DEBUG
@@ -966,10 +975,16 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     const gfx3DMatrix& effectiveTransform = aLayer->GetEffectiveTransform();
     nsRefPtr<gfxASurface> result =
       Transform3D(untransformedSurface, aTarget, bounds,
-                  effectiveTransform, offset, dontBlit);
+                  effectiveTransform, destRect, dontBlit);
 
     if (result) {
-      aTarget->SetSource(result, offset);
+      aTarget->SetSource(result, destRect.TopLeft());
+      
+      
+      
+      aTarget->NewPath();
+      aTarget->Rectangle(destRect, true);
+      aTarget->Clip();
       FlushGroup(paintContext, needsClipToVisibleRegion);
     }
   }
