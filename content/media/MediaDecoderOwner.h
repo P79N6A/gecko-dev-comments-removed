@@ -56,6 +56,7 @@ public:
   virtual void MetadataLoaded(int aChannels,
                               int aRate,
                               bool aHasAudio,
+                              bool aHasVideo,
                               const MetadataTags* aTags) = 0;
 
   
