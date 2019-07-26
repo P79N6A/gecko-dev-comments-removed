@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GLLibraryEGL.h"
 
@@ -10,11 +10,12 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
 #include "prenv.h"
+#include "GLContext.h"
 
 namespace mozilla {
 namespace gl {
 
-
+// should match the order of EGLExtensions, and be null-terminated.
 static const char *sExtensionNames[] = {
     "EGL_KHR_image_base",
     "EGL_KHR_image_pixmap",
@@ -42,13 +43,13 @@ static PRLibrary* LoadApitraceLibrary()
         logFile = "firefox.trace";
     }
 
-    
-    
+    // The firefox process can't write to /data/local, but it can write
+    // to $GRE_HOME/
     nsAutoCString logPath;
     logPath.AppendPrintf("%s/%s", getenv("GRE_HOME"), logFile.get());
 
-    
-    
+    // apitrace uses the TRACE_FILE environment variable to determine where
+    // to log trace output to
     printf_stderr("Logging GL tracing output to %s", logPath.get());
     setenv("TRACE_FILE", logPath.get(), false);
 
@@ -59,10 +60,10 @@ static PRLibrary* LoadApitraceLibrary()
     return sApitraceLibrary;
 }
 
-#endif 
+#endif // ANDROID
 
 #ifdef XP_WIN
-
+// see the comment in GLLibraryEGL::EnsureInitialized() for the rationale here.
 static PRLibrary*
 LoadLibraryForEGLOnWindows(const nsAString& filename)
 {
@@ -81,7 +82,7 @@ LoadLibraryForEGLOnWindows(const nsAString& filename)
     }
     return lib;
 }
-#endif 
+#endif // XP_WIN
 
 bool
 GLLibraryEGL::EnsureInitialized()
@@ -95,31 +96,31 @@ GLLibraryEGL::EnsureInitialized()
 #ifdef XP_WIN
 #ifdef MOZ_WEBGL
     if (!mEGLLibrary) {
-        
-        
-        
-        
-        
+        // On Windows, the GLESv2, EGL and DXSDK libraries are shipped with libxul and
+        // we should look for them there. We have to load the libs in this
+        // order, because libEGL.dll depends on libGLESv2.dll which depends on the DXSDK
+        // libraries. This matters especially for WebRT apps which are in a different directory.
+        // See bug 760323 and bug 749459
 
 #ifndef MOZ_D3DCOMPILER_DLL
 #error MOZ_D3DCOMPILER_DLL should have been defined by the Makefile
 #endif
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_DLL)));
-        
+        // intentionally leak the D3DCOMPILER_DLL library
 
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libGLESv2.dll"));
-        
+        // intentionally leak the libGLESv2.dll library
 
         mEGLLibrary = LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libEGL.dll"));
 
         if (!mEGLLibrary)
             return false;
     }
-#endif 
-#else 
+#endif // MOZ_WEBGL
+#else // !Windows
 
-    
-    
+    // On non-Windows (Android) we use system copies of libEGL. We look for
+    // the APITrace lib, libEGL.so, and libEGL.so.1 in that order.
 
 #if defined(ANDROID)
     if (!mEGLLibrary)
@@ -141,7 +142,7 @@ GLLibraryEGL::EnsureInitialized()
         return false;
     }
 
-#endif 
+#endif // !Windows
 
 #define SYMBOL(name) \
 { (PRFuncPtr*) &mSymbols.f##name, { "egl" #name, NULL } }
@@ -256,45 +257,6 @@ GLLibraryEGL::EnsureInitialized()
         }
     }
 
-    mInitialized = true;
-    reporter.SetSuccessful();
-    return true;
-}
-
-void
-GLLibraryEGL::InitExtensions()
-{
-    const char *extensions = (const char*)fQueryString(mEGLDisplay, LOCAL_EGL_EXTENSIONS);
-
-    if (!extensions) {
-        NS_WARNING("Failed to load EGL extension list!");
-        return;
-    }
-
-    bool debugMode = false;
-#ifdef DEBUG
-    if (PR_GetEnv("MOZ_GL_DEBUG"))
-        debugMode = true;
-
-    static bool firstRun = true;
-#else
-    
-    const bool firstRun = false;
-#endif
-
-    mAvailableExtensions.Load(extensions, sExtensionNames, firstRun && debugMode);
-
-#ifdef DEBUG
-    firstRun = false;
-#endif
-}
-
-void
-GLLibraryEGL::LoadConfigSensitiveSymbols()
-{
-    GLLibraryLoader::PlatformLookupFunction lookupFunction =
-            (GLLibraryLoader::PlatformLookupFunction)mSymbols.fGetProcAddress;
-
     if (IsExtensionSupported(KHR_image) || IsExtensionSupported(KHR_image_base)) {
         GLLibraryLoader::SymLoadStruct imageSymbols[] = {
             { (PRFuncPtr*) &mSymbols.fCreateImage,  { "eglCreateImageKHR",  nullptr } },
@@ -318,6 +280,38 @@ GLLibraryEGL::LoadConfigSensitiveSymbols()
     } else {
         MarkExtensionUnsupported(KHR_image_pixmap);
     }
+
+    mInitialized = true;
+    reporter.SetSuccessful();
+    return true;
+}
+
+void
+GLLibraryEGL::InitExtensions()
+{
+    const char *extensions = (const char*)fQueryString(mEGLDisplay, LOCAL_EGL_EXTENSIONS);
+
+    if (!extensions) {
+        NS_WARNING("Failed to load EGL extension list!");
+        return;
+    }
+
+    bool debugMode = false;
+#ifdef DEBUG
+    if (PR_GetEnv("MOZ_GL_DEBUG"))
+        debugMode = true;
+
+    static bool firstRun = true;
+#else
+    // Non-DEBUG, so never spew.
+    const bool firstRun = false;
+#endif
+
+    mAvailableExtensions.Load(extensions, sExtensionNames, firstRun && debugMode);
+
+#ifdef DEBUG
+    firstRun = false;
+#endif
 }
 
 void
@@ -390,6 +384,6 @@ GLLibraryEGL::DumpEGLConfigs()
     delete [] ec;
 }
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */
 

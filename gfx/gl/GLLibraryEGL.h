@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GLLIBRARYEGL_H_
 #define GLLIBRARYEGL_H_
@@ -14,18 +14,6 @@
 
 #include "nsIFile.h"
 
-typedef int EGLint;
-typedef unsigned int EGLBoolean;
-typedef unsigned int EGLenum;
-typedef void *EGLConfig;
-typedef void *EGLContext;
-typedef void *EGLDisplay;
-typedef void *EGLSurface;
-typedef void *EGLClientBuffer;
-typedef void *EGLCastToRelevantPtr;
-typedef void *EGLImage;
-typedef void *EGLSync;
-typedef uint64_t EGLTime;
 
 #if defined(XP_WIN)
 
@@ -47,16 +35,20 @@ typedef void *EGLNativePixmapType;
 typedef void *EGLNativeWindowType;
 
 #ifdef ANDROID
-
-
-
-
-
-
-
-
+// We only need to explicitly dlopen egltrace
+// on android as we can use LD_PRELOAD or other tricks
+// on other platforms. We look for it in /data/local
+// as that's writeable by all users
+//
+// This should really go in GLLibraryEGL.cpp but we currently reference
+// APITRACE_LIB in GLContextProviderEGL.cpp. Further refactoring
+// will come in subsequent patches on Bug 732865
 #define APITRACE_LIB "/data/local/egltrace.so"
-#endif 
+
+#ifdef MOZ_WIDGET_ANDROID
+
+#endif // MOZ_WIDGET_ANDROID
+#endif // ANDROID
 #endif
 
 #if defined(MOZ_X11)
@@ -64,12 +56,6 @@ typedef void *EGLNativeWindowType;
 #else
 #define EGL_DEFAULT_DISPLAY  ((EGLNativeDisplayType)0)
 #endif
-#define EGL_NO_CONTEXT       ((EGLContext)0)
-#define EGL_NO_DISPLAY       ((EGLDisplay)0)
-#define EGL_NO_SURFACE       ((EGLSurface)0)
-#define EGL_NO_SYNC          ((EGLSync)0)
-
-#define EGL_DISPLAY()        sEGLLibrary.Display()
 
 namespace mozilla {
 namespace gl {
@@ -85,8 +71,8 @@ namespace gl {
 #define AFTER_GL_CALL do {           \
     AfterGLCall(MOZ_FUNCTION_NAME);  \
 } while (0)
-
-
+// We rely on the fact that GLLibraryEGL.h #defines BEFORE_GL_CALL and
+// AFTER_GL_CALL to nothing if !defined(DEBUG).
 #endif
 
 static inline void BeforeGLCall(const char* glFunction)
@@ -116,13 +102,13 @@ public:
 
     void InitExtensions();
 
-    
-
-
-
-
-
-
+    /**
+     * Known GL extensions that can be queried by
+     * IsExtensionSupported.  The results of this are cached, and as
+     * such it's safe to use this even in performance critical code.
+     * If you add to this array, remember to add to the string names
+     * in GLContext.cpp.
+     */
     enum EGLExtensions {
         KHR_image_base,
         KHR_image_pixmap,
@@ -356,7 +342,7 @@ public:
         return b;
     }
 
-    
+    // New extension which allow us to lock texture and get raw image pointer
     EGLBoolean fLockSurface(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list)
     {
         BEFORE_GL_CALL;
@@ -455,7 +441,6 @@ public:
     }
 
     bool EnsureInitialized();
-    void LoadConfigSensitiveSymbols();
 
     void DumpEGLConfig(EGLConfig cfg);
     void DumpEGLConfigs();
@@ -516,7 +501,7 @@ public:
         typedef EGLBoolean (GLAPIENTRY * pfnDestroyImage)(EGLDisplay dpy, EGLImage image);
         pfnDestroyImage fDestroyImage;
 
-        
+        // New extension which allow us to lock texture and get raw image pointer
         typedef EGLBoolean (GLAPIENTRY * pfnLockSurface)(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list);
         pfnLockSurface fLockSurface;
         typedef EGLBoolean (GLAPIENTRY * pfnUnlockSurface)(EGLDisplay dpy, EGLSurface surface);
@@ -545,8 +530,8 @@ private:
     bool mIsANGLE;
 };
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */
 
-#endif 
+#endif /* GLLIBRARYEGL_H_ */
 

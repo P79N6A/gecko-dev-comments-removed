@@ -674,3 +674,9 @@ pref("app.orientation.default", "");
 
 
 pref("memory.free_dirty_pages", true);
+
+#ifdef MOZ_PKG_SPECIAL
+
+
+pref("webgl.disabled", true);
+#endif

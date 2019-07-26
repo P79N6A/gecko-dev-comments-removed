@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #if !defined(LOCALGL_H_)
 #define LOCALGL_H_
@@ -35,17 +35,38 @@ typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 #endif
 
-#endif 
+#endif /* #if !defined(__gltypes_h_) && !defined(__gl_h_) */
 
 #include "mozilla/StandardInteger.h"
 
-
+// ARB_sync
 typedef struct __GLsync* GLsync;
 typedef int64_t GLint64;
 typedef uint64_t GLuint64;
 
-
+// OES_EGL_image (GLES)
 typedef void* GLeglImage;
+
+// EGL types
+typedef int EGLint;
+typedef unsigned int EGLBoolean;
+typedef unsigned int EGLenum;
+typedef void *EGLConfig;
+typedef void *EGLContext;
+typedef void *EGLDisplay;
+typedef void *EGLSurface;
+typedef void *EGLClientBuffer;
+typedef void *EGLCastToRelevantPtr;
+typedef void *EGLImage;
+typedef void *EGLSync;
+typedef uint64_t EGLTime;
+
+#define EGL_NO_CONTEXT       ((EGLContext)0)
+#define EGL_NO_DISPLAY       ((EGLDisplay)0)
+#define EGL_NO_SURFACE       ((EGLSurface)0)
+#define EGL_NO_CONFIG        ((EGLConfig)nullptr)
+#define EGL_NO_SYNC          ((EGLSync)0)
+#define EGL_NO_IMAGE         ((EGLImage)0)
 
 #ifndef GLAPIENTRY
 # ifdef WIN32
@@ -3007,7 +3028,7 @@ typedef void* GLeglImage;
 #define LOCAL_GL_FOG_SPECULAR_TEXTURE_WIN 0x80EC
 #define LOCAL_GL_WIN_swap_hint 1
 
-
+// ARB_sync
 #define LOCAL_GL_MAX_SERVER_WAIT_TIMEOUT          0x9111
 #define LOCAL_GL_OBJECT_TYPE                      0x9112
 #define LOCAL_GL_SYNC_CONDITION                   0x9113
@@ -3024,7 +3045,7 @@ typedef void* GLeglImage;
 #define LOCAL_GL_CONDITION_SATISFIED              0x911C
 #define LOCAL_GL_WAIT_FAILED                      0x911D
 
-
+// OES_EGL_image_external
 #define LOCAL_GL_TEXTURE_EXTERNAL                 0x8D65
 
 #define LOCAL_GL_MAX_VERTEX_UNIFORM_VECTORS       0x8DFB
@@ -3093,12 +3114,12 @@ typedef void* GLeglImage;
 #define LOCAL_WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB     0x00000002
 #define LOCAL_WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB             0x00000004
 
-
+// AMD_compressed_ATC_texture
 #define LOCAL_GL_ATC_RGB                                0x8C92
 #define LOCAL_GL_ATC_RGBA_EXPLICIT_ALPHA                0x8C93
 #define LOCAL_GL_ATC_RGBA_INTERPOLATED_ALPHA            0x87EE
 
-
+// IMG_texture_compression_pvrtc
 #define LOCAL_GL_COMPRESSED_RGB_PVRTC_4BPPV1            0x8C00
 #define LOCAL_GL_COMPRESSED_RGB_PVRTC_2BPPV1            0x8C01
 #define LOCAL_GL_COMPRESSED_RGBA_PVRTC_4BPPV1           0x8C02
@@ -3266,19 +3287,22 @@ typedef void* GLeglImage;
 #define LOCAL_EGL_BAD_PARAMETER               0x300C
 #define LOCAL_EGL_CONTEXT_LOST                0x300E
 
-
+// EGL_KHR_image_base (not supplied by EGL_KHR_image!)
 #define LOCAL_EGL_IMAGE_PRESERVED             0x30D2
 
-
+// EGL_KHR_image_pixmap
 #define LOCAL_EGL_NATIVE_PIXMAP               0x30B0
 
-
+// EGL_KHR_gl_texture_2D_image
 #define LOCAL_EGL_GL_TEXTURE_2D               0x30B1
 
+// EGL_KHR_gl_renderbuffer_image
+#define LOCAL_EGL_GL_RENDERBUFFER             0x30B9
 
+// OES_EGL_image_external
 #define LOCAL_GL_TEXTURE_EXTERNAL             0x8D65
 
-
+// EGL_KHR_fence_sync
 #define LOCAL_EGL_SYNC_FENCE                  0x30F9
 #define LOCAL_EGL_SYNC_TYPE                   0x30F7
 #define LOCAL_EGL_SYNC_STATUS                 0x30F1
@@ -3291,5 +3315,11 @@ typedef void* GLeglImage;
 #define LOCAL_EGL_TIMEOUT_EXPIRED             0x30F5
 #define LOCAL_EGL_CONDITION_SATISFIED         0x30F6
 #define LOCAL_EGL_SUCCESS                     0x3000
+
+// EGL_ANGLE_surface_d3d_texture_2d_share_handle
+#define LOCAL_EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE 0x3200
+
+// FAKE_EGL_image_android
+#define LOCAL_EGL_NATIVE_BUFFER_ANDROID       0x3140
 
 #endif

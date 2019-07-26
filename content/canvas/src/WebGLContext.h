@@ -86,10 +86,6 @@ struct VertexAttrib0Status {
     enum { Default, EmulatedUninitializedArray, EmulatedInitializedArray };
 };
 
-struct BackbufferClearingStatus {
-    enum { NotClearedSinceLastPresented, ClearedToDefaultValues, HasBeenDrawnTo };
-};
-
 namespace WebGLTexelConversions {
 
 
@@ -261,7 +257,20 @@ public:
     already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                  CanvasLayer *aOldLayer,
                                                  LayerManager *aManager);
+
+    
+    
     void MarkContextClean() { mInvalidated = false; }
+
+    gl::GLContext* GL() const {
+        return gl;
+    }
+
+    bool IsPremultAlpha() const {
+        return mOptions.premultipliedAlpha;
+    }
+
+    bool PresentScreenBuffer();
 
     
     
@@ -272,12 +281,11 @@ public:
     
     
     
-    void ForceClearFramebufferWithDefaultValues(uint32_t mask, const nsIntRect& viewportRect);
+    
+    void ForceClearFramebufferWithDefaultValues(GLbitfield mask);
 
     
-    
-    
-    void EnsureBackbufferClearedAsNeeded();
+    void ClearScreen();
 
     
     
@@ -844,6 +852,8 @@ protected:
     bool mIsMesa;
     bool mLoseContextOnHeapMinimize;
     bool mCanLoseContextInForeground;
+    bool mShouldPresent;
+    bool mIsScreenCleared;
 
     template<typename WebGLObjectType>
     void DeleteWebGLObjectsArray(nsTArray<WebGLObjectType>& array);
@@ -1105,8 +1115,6 @@ protected:
     WebGLfloat mColorClearValue[4];
     WebGLint mStencilClearValue;
     WebGLfloat mDepthClearValue;
-
-    int mBackbufferClearingStatus;
 
     nsCOMPtr<nsITimer> mContextRestorer;
     bool mAllowRestore;

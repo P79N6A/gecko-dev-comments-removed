@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GLContext.h"
 
@@ -27,6 +27,12 @@ void main(void) {                           \n\
 ";
 
 static const char kTexBlit_FragShaderSource[] = "\
+#ifdef GL_FRAGMENT_PRECISION_HIGH                   \n\
+    precision highp float;                          \n\
+#else                                               \n\
+    precision mediump float;                        \n\
+#endif                                              \n\
+                                                    \n\
 uniform sampler2D uTexUnit;                         \n\
                                                     \n\
 varying vec2 vTexCoord;                             \n\
@@ -36,25 +42,25 @@ void main(void) {                                   \n\
 }                                                   \n\
 ";
 
-
+// Allowed to be destructive of state we restore in functions below.
 bool
 GLContext::UseTexQuadProgram()
 {
     bool success = false;
 
-    
+    // Use do-while(false) to let us break on failure
     do {
         if (mTexBlit_Program) {
-            
+            // Already have it...
             success = true;
             break;
         }
 
-        
-
-
-
-
+        /* CCW tri-strip:
+         * 2---3
+         * | \ |
+         * 0---1
+         */
         GLfloat verts[] = {
             0.0f, 0.0f,
             1.0f, 0.0f,
@@ -67,7 +73,7 @@ GLContext::UseTexQuadProgram()
         fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mTexBlit_Buffer);
 
         const size_t vertsSize = sizeof(verts);
-        MOZ_ASSERT(vertsSize >= 3 * sizeof(GLfloat)); 
+        MOZ_ASSERT(vertsSize >= 3 * sizeof(GLfloat)); // Make sure we have a sane size.
         fBufferData(LOCAL_GL_ARRAY_BUFFER, vertsSize, verts, LOCAL_GL_STATIC_DRAW);
 
         fEnableVertexAttribArray(0);
@@ -161,7 +167,7 @@ GLContext::UseTexQuadProgram()
         MOZ_ASSERT(fGetAttribLocation(mTexBlit_Program, "aPosition") == 0);
         GLuint texUnitLoc = fGetUniformLocation(mTexBlit_Program, "uTexUnit");
 
-        
+        // Set uniforms here:
         fUseProgram(mTexBlit_Program);
         fUniform1i(texUnitLoc, 0);
 
@@ -171,7 +177,7 @@ GLContext::UseTexQuadProgram()
     if (!success) {
         NS_ERROR("Creating program for texture blit failed!");
 
-        
+        // Clean up:
         DeleteTexBlitProgram();
         return false;
     }
@@ -220,16 +226,42 @@ GLContext::BlitFramebufferToFramebuffer(GLuint srcFB, GLuint destFB,
     MOZ_ASSERT(IsExtensionSupported(EXT_framebuffer_blit) ||
                IsExtensionSupported(ANGLE_framebuffer_blit));
 
-    ScopedFramebufferBinding boundFB(this);
+    ScopedBindFramebuffer boundFB(this);
     ScopedGLState scissor(this, LOCAL_GL_SCISSOR_TEST, false);
 
-    BindUserReadFBO(srcFB);
-    BindUserDrawFBO(destFB);
+    BindReadFB(srcFB);
+    BindDrawFB(destFB);
 
     fBlitFramebuffer(0, 0,  srcSize.width,  srcSize.height,
                      0, 0, destSize.width, destSize.height,
                      LOCAL_GL_COLOR_BUFFER_BIT,
                      LOCAL_GL_NEAREST);
+}
+
+void
+GLContext::BlitFramebufferToFramebuffer(GLuint srcFB, GLuint destFB,
+                                        const gfxIntSize& srcSize,
+                                        const gfxIntSize& destSize,
+                                        const GLFormats& srcFormats)
+{
+    MOZ_ASSERT(!srcFB || fIsFramebuffer(srcFB));
+    MOZ_ASSERT(!destFB || fIsFramebuffer(destFB));
+
+    if (IsExtensionSupported(EXT_framebuffer_blit) ||
+        IsExtensionSupported(ANGLE_framebuffer_blit))
+    {
+        BlitFramebufferToFramebuffer(srcFB, destFB,
+                                     srcSize, destSize);
+        return;
+    }
+
+    GLuint tex = CreateTextureForOffscreen(srcFormats, srcSize);
+    MOZ_ASSERT(tex);
+
+    BlitFramebufferToTexture(srcFB, tex, srcSize, srcSize);
+    BlitTextureToFramebuffer(tex, destFB, srcSize, destSize);
+
+    fDeleteTextures(1, &tex);
 }
 
 void
@@ -243,7 +275,7 @@ GLContext::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     if (IsExtensionSupported(EXT_framebuffer_blit) ||
         IsExtensionSupported(ANGLE_framebuffer_blit))
     {
-        ScopedFramebufferTexture srcWrapper(this, srcTex);
+        ScopedFramebufferForTexture srcWrapper(this, srcTex);
         MOZ_ASSERT(srcWrapper.IsComplete());
 
         BlitFramebufferToFramebuffer(srcWrapper.FB(), destFB,
@@ -252,7 +284,7 @@ GLContext::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     }
 
 
-    ScopedFramebufferBinding boundFB(this, destFB);
+    ScopedBindFramebuffer boundFB(this, destFB);
 
     GLuint boundTexUnit = 0;
     GetUIntegerv(LOCAL_GL_ACTIVE_TEXTURE, &boundTexUnit);
@@ -268,21 +300,21 @@ GLContext::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     GLuint boundBuffer = 0;
     GetUIntegerv(LOCAL_GL_ARRAY_BUFFER_BINDING, &boundBuffer);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * fGetVertexAttribiv takes:
+     *  VERTEX_ATTRIB_ARRAY_ENABLED
+     *  VERTEX_ATTRIB_ARRAY_SIZE,
+     *  VERTEX_ATTRIB_ARRAY_STRIDE,
+     *  VERTEX_ATTRIB_ARRAY_TYPE,
+     *  VERTEX_ATTRIB_ARRAY_NORMALIZED,
+     *  VERTEX_ATTRIB_ARRAY_BUFFER_BINDING,
+     *  CURRENT_VERTEX_ATTRIB
+     *
+     * CURRENT_VERTEX_ATTRIB is vertex shader state. \o/
+     * Others appear to be vertex array state,
+     * or alternatively in the internal vertex array state
+     * for a buffer object.
+    */
 
     GLint attrib0_enabled = 0;
     GLint attrib0_size = 0;
@@ -299,7 +331,7 @@ GLContext::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attrib0_normalized);
     fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attrib0_bufferBinding);
     fGetVertexAttribPointerv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_POINTER, &attrib0_pointer);
-    
+    // Note that uniform values are program state, so we don't need to rebind those.
 
     ScopedGLState blend       (this, LOCAL_GL_BLEND,      false);
     ScopedGLState cullFace    (this, LOCAL_GL_CULL_FACE,  false);
@@ -322,11 +354,11 @@ GLContext::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
     fViewport(0, 0, destSize.width, destSize.height);
 
-    
+    // Does destructive things to (only!) what we just saved above.
     bool good = UseTexQuadProgram();
     if (!good) {
-        
-        
+        // We're up against the wall, so bail.
+        // This should really be MOZ_CRASH(why) or MOZ_RUNTIME_ASSERT(good).
         printf_stderr("[%s:%d] Fatal Error: Failed to prepare to blit texture->framebuffer.\n",
                       __FILE__, __LINE__);
         MOZ_CRASH();
@@ -370,27 +402,21 @@ GLContext::BlitFramebufferToTexture(GLuint srcFB, GLuint destTex,
     if (IsExtensionSupported(EXT_framebuffer_blit) ||
         IsExtensionSupported(ANGLE_framebuffer_blit))
     {
-        ScopedFramebufferTexture destWrapper(this, destTex);
-        MOZ_ASSERT(destWrapper.IsComplete());
+        ScopedFramebufferForTexture destWrapper(this, destTex);
 
         BlitFramebufferToFramebuffer(srcFB, destWrapper.FB(),
                                      srcSize, destSize);
         return;
     }
 
-    GLuint boundTex = 0;
-    GetUIntegerv(LOCAL_GL_TEXTURE_BINDING_2D, &boundTex);
-    fBindTexture(LOCAL_GL_TEXTURE_2D, destTex);
-
-    ScopedFramebufferBinding boundFB(this, srcFB);
+    ScopedBindTexture autoTex(this, destTex);
+    ScopedBindFramebuffer boundFB(this, srcFB);
     ScopedGLState scissor(this, LOCAL_GL_SCISSOR_TEST, false);
 
     fCopyTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0,
                        0, 0,
                        0, 0,
                        srcSize.width, srcSize.height);
-
-    fBindTexture(LOCAL_GL_TEXTURE_2D, boundTex);
 }
 
 void
@@ -402,18 +428,16 @@ GLContext::BlitTextureToTexture(GLuint srcTex, GLuint destTex,
     MOZ_ASSERT(fIsTexture(destTex));
 
     if (mTexBlit_UseDrawNotCopy) {
-        
-        ScopedFramebufferTexture destWrapper(this, destTex);
-        MOZ_ASSERT(destWrapper.IsComplete());
+        // Draw is texture->framebuffer
+        ScopedFramebufferForTexture destWrapper(this, destTex);
 
         BlitTextureToFramebuffer(srcTex, destWrapper.FB(),
                                  srcSize, destSize);
         return;
     }
 
-    
-    ScopedFramebufferTexture srcWrapper(this, srcTex);
-    MOZ_ASSERT(srcWrapper.IsComplete());
+    // Generally, just use the CopyTexSubImage path
+    ScopedFramebufferForTexture srcWrapper(this, srcTex);
 
     BlitFramebufferToTexture(srcWrapper.FB(), destTex,
                              srcSize, destSize);
@@ -421,7 +445,7 @@ GLContext::BlitTextureToTexture(GLuint srcTex, GLuint destTex,
 
 uint32_t GetBitsPerTexel(GLenum format, GLenum type)
 {
-    
+    // If there is no defined format or type, we're not taking up any memory
     if (!format || !type) {
         return 0;
     }
@@ -477,5 +501,5 @@ uint32_t GetBitsPerTexel(GLenum format, GLenum type)
 }
 
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */

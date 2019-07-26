@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
 #include "ipc/AutoOpenSurface.h"
@@ -12,8 +12,13 @@
 #include "gfxImageSurface.h"
 #include "gfxWindowsSurface.h"
 #include "gfxWindowsPlatform.h"
+#include "SurfaceStream.h"
+#include "SharedSurfaceGL.h"
 
 #include "CanvasLayerD3D9.h"
+
+using namespace mozilla::gfx;
+using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
@@ -38,13 +43,13 @@ CanvasLayerD3D9::Initialize(const Data& aData)
   } else if (aData.mSurface) {
     mSurface = aData.mSurface;
     NS_ASSERTION(aData.mGLContext == nullptr,
-                 "CanvasLayer can't have both surface and GLContext");
+                 "CanvasLayer can't have both surface and WebGLContext");
     mNeedsYFlip = false;
     mDataIsPremultiplied = true;
   } else if (aData.mGLContext) {
-    NS_ASSERTION(aData.mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
     mGLContext = aData.mGLContext;
-    mDataIsPremultiplied = aData.mGLBufferIsPremultiplied;
+    NS_ASSERTION(mGLContext->IsOffscreen(), "Canvas GLContext must be offscreen.");
+    mDataIsPremultiplied = aData.mIsGLAlphaPremult;
     mNeedsYFlip = true;
   } else {
     NS_ERROR("CanvasLayer created without mSurface, mGLContext or mDrawTarget?");
@@ -72,41 +77,36 @@ CanvasLayerD3D9::UpdateSurface()
   }
 
   if (mGLContext) {
-    
+    SharedSurface* surf = mGLContext->RequestFrame();
+    if (!surf)
+        return;
+
+    SharedSurface_Basic* shareSurf = SharedSurface_Basic::Cast(surf);
+
+    // WebGL reads entire surface.
     LockTextureRectD3D9 textureLock(mTexture);
     if (!textureLock.HasLock()) {
       NS_WARNING("Failed to lock CanvasLayer texture.");
       return;
     }
 
-    D3DLOCKED_RECT r = textureLock.GetLockRect();
+    D3DLOCKED_RECT rect = textureLock.GetLockRect();
 
-    const bool stridesMatch = r.Pitch == mBounds.width * 4;
+    gfxImageSurface* frameData = shareSurf->GetData();
+    // Scope for gfxContext, so it's destroyed early.
+    {
+      nsRefPtr<gfxImageSurface> mapSurf =
+          new gfxImageSurface((uint8_t*)rect.pBits,
+                              shareSurf->Size(),
+                              rect.Pitch,
+                              gfxASurface::ImageFormatARGB32);
 
-    uint8_t *destination;
-    if (!stridesMatch) {
-      destination = GetTempBlob(mBounds.width * mBounds.height * 4);
-    } else {
-      DiscardTempBlob();
-      destination = (uint8_t*)r.pBits;
-    }
+      gfxContext ctx(mapSurf);
+      ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
+      ctx.SetSource(frameData);
+      ctx.Paint();
 
-    mGLContext->MakeCurrent();
-
-    nsRefPtr<gfxImageSurface> tmpSurface =
-      new gfxImageSurface(destination,
-                          gfxIntSize(mBounds.width, mBounds.height),
-                          mBounds.width * 4,
-                          gfxASurface::ImageFormatARGB32);
-    mGLContext->ReadScreenIntoImageSurface(tmpSurface);
-    tmpSurface = nullptr;
-
-    if (!stridesMatch) {
-      for (int y = 0; y < mBounds.height; y++) {
-        memcpy((uint8_t*)r.pBits + r.Pitch * y,
-               destination + mBounds.width * 4 * y,
-               mBounds.width * 4);
-      }
+      mapSurf->Flush();
     }
   } else {
     RECT r;
@@ -170,6 +170,7 @@ CanvasLayerD3D9::GetLayer()
 void
 CanvasLayerD3D9::RenderLayer()
 {
+  FirePreTransactionCallback();
   UpdateSurface();
   if (mD3DManager->CompositingDisabled()) {
     return;
@@ -179,10 +180,10 @@ CanvasLayerD3D9::RenderLayer()
   if (!mTexture)
     return;
 
-  
-
-
-
+  /*
+   * We flip the Y axis here, note we can only do this because we are in 
+   * CULL_NONE mode!
+   */
 
   ShaderConstantRect quad(0, 0, mBounds.width, mBounds.height);
   if (mNeedsYFlip) {
@@ -224,7 +225,7 @@ void
 CanvasLayerD3D9::CleanResources()
 {
   if (mD3DManager->deviceManager()->HasDynamicTextures()) {
-    
+    // In this case we have a texture in POOL_DEFAULT
     mTexture = nullptr;
   }
 }
@@ -245,8 +246,8 @@ CanvasLayerD3D9::CreateTexture()
                                  D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
                                  getter_AddRefs(mTexture), NULL);
   } else {
-    
-    
+    // D3DPOOL_MANAGED is fine here since we require Dynamic Textures for D3D9Ex
+    // devices.
     hr = device()->CreateTexture(mBounds.width, mBounds.height, 1, 0,
                                  D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
                                  getter_AddRefs(mTexture), NULL);
@@ -350,5 +351,5 @@ ShadowCanvasLayerD3D9::RenderLayer()
 }
 
 
-} 
-} 
+} /* namespace layers */
+} /* namespace mozilla */

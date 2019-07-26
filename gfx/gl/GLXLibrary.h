@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GFX_GLXLIBRARY_H
 #define GFX_GLXLIBRARY_H
@@ -87,7 +87,7 @@ public:
                                      Bool direct,
                                      const int* attrib_list);
 
-    bool EnsureInitialized(bool aUseMesaLLVMPipe);
+    bool EnsureInitialized(LibraryType libType);
 
     GLXPixmap CreatePixmap(gfxASurface* aSurface);
     void DestroyPixmap(GLXPixmap aPixmap);
@@ -209,11 +209,11 @@ private:
     PRLibrary *mOGLLibrary;
 };
 
-
+// a global GLXLibrary instance
 extern GLXLibrary sGLXLibrary[GLXLibrary::LIBS_MAX];
 extern GLXLibrary& sDefGLXLib;
 
-} 
-} 
-#endif 
+} /* namespace gl */
+} /* namespace mozilla */
+#endif /* GFX_GLXLIBRARY_H */
 
