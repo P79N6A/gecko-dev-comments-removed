@@ -47,13 +47,18 @@ public:
   }
   
   
-  void PerformInverseFFT(float* aData)
+  void GetInverse(float* aDataOut)
+  {
+    GetInverseWithoutScaling(aDataOut);
+    AudioBufferInPlaceScale(aDataOut, 1.0f / mFFTSize, mFFTSize);
+  }
+  
+  
+  
+  void GetInverseWithoutScaling(float* aDataOut)
   {
     EnsureIFFT();
-    kiss_fftri(mIFFT, mOutputBuffer.Elements(), aData);
-    for (uint32_t i = 0; i < mFFTSize; ++i) {
-      aData[i] /= mFFTSize;
-    }
+    kiss_fftri(mIFFT, mOutputBuffer.Elements(), aDataOut);
   }
   
   
@@ -84,12 +89,17 @@ public:
                           mFFTSize / 2 + 1);
   }
 
-  void PerformPaddedFFT(const float* aData, size_t dataSize)
+  
+  
+  
+  
+  void PadAndMakeScaledDFT(const float* aData, size_t dataSize)
   {
     MOZ_ASSERT(dataSize <= FFTSize());
     nsTArray<float> paddedData;
     paddedData.SetLength(FFTSize());
-    PodCopy(paddedData.Elements(), aData, dataSize);
+    AudioBufferCopyWithScale(aData, 1.0f / FFTSize(),
+                             paddedData.Elements(), dataSize);
     PodZero(paddedData.Elements() + dataSize, mFFTSize - dataSize);
     PerformFFT(paddedData.Elements());
   }
