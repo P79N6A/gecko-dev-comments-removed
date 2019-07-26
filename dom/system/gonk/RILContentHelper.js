@@ -556,7 +556,7 @@ RILContentHelper.prototype = {
     let rilContext = this.rilContexts[clientId];
 
     
-    if (!newInfo || !newInfo.iccType) {
+    if (!newInfo || !newInfo.iccType || !newInfo.iccid) {
       if (rilContext.iccInfo) {
         rilContext.iccInfo = null;
         this._deliverEvent(clientId,
