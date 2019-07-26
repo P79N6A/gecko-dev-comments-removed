@@ -379,9 +379,7 @@ function InitAndStartRefTests()
     }
 
     
-    if (gFocusFilterMode != FOCUS_FILTER_NON_NEEDS_FOCUS_TESTS) {
-        gBrowser.focus();
-    }
+    gBrowser.focus();
 
     StartTests();
 }
@@ -1120,15 +1118,6 @@ function Focus()
     return true;
 }
 
-function Blur()
-{
-    
-    
-    
-    
-    gContainingWindow.blur();
-}
-
 function StartCurrentTest()
 {
     gTestLog = [];
@@ -1161,9 +1150,6 @@ function StartCurrentTest()
     }
     else {
         gDumpLog("REFTEST TEST-START | " + gURLs[0].prettyPath + "\n");
-        if (!gURLs[0].needsFocus) {
-            Blur();
-        }
         var currentTest = gTotalTests - gURLs.length;
         gContainingWindow.document.title = "reftest: " + currentTest + " / " + gTotalTests +
             " (" + Math.floor(100 * (currentTest / gTotalTests)) + "%)";

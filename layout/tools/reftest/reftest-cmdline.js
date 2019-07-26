@@ -110,33 +110,8 @@ RefTestCmdLineHandler.prototype =
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
-
-    function loadReftests() {
-      wwatch.openWindow(null, "chrome://reftest/content/reftest.xul", "_blank",
-                        "chrome,dialog=no,all", args);
-    }
-
-    var remote = false;
-    try {
-      remote = prefs.getBoolPref("reftest.remote");
-    } catch (ex) {
-    }
-
-    
-    
-    if (remote) {
-      loadReftests();
-    }
-    else {
-      
-      var dummy = wwatch.openWindow(null, "about:blank", "dummy",
-                                    "chrome,dialog=no,left=800,height=200,width=200,all", null);
-      dummy.onload = function dummyOnload() {
-        dummy.focus();
-        loadReftests();
-      }
-    }
-
+    wwatch.openWindow(null, "chrome://reftest/content/reftest.xul", "_blank",
+                      "chrome,dialog=no,all", args);
     cmdLine.preventDefault = true;
   },
 
