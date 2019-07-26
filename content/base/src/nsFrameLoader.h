@@ -381,9 +381,16 @@ private:
     return mOwnerContent->IsXUL() ? nsGkAtoms::type : nsGkAtoms::mozframetype;
   }
 
+  
+  
+  void ResetPermissionManagerStatus();
+
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   mozilla::dom::Element* mOwnerContent; 
+
+  
+  uint32_t mAppIdSentToPermissionManager;
 
 public:
   

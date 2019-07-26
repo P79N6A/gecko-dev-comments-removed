@@ -19,6 +19,7 @@
 #include "nsHashKeys.h"
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
+#include "nsDataHashtable.h"
 
 class nsIPermission;
 class nsIIDNService;
@@ -42,6 +43,7 @@ public:
      , mPermission(aPermission)
      , mExpireType(aExpireType)
      , mExpireTime(aExpireTime)
+     , mNonSessionPermission(aPermission)
     {}
 
     int64_t  mID;
@@ -49,6 +51,7 @@ public:
     uint32_t mPermission;
     uint32_t mExpireType;
     int64_t  mExpireTime;
+    uint32_t mNonSessionPermission;
   };
 
   
@@ -246,6 +249,8 @@ private:
                        uint32_t aAppId,
                        bool aIsInBrowserElement);
 
+  nsresult RemoveExpiredPermissionsForApp(uint32_t aAppId);
+
   
 
 
@@ -266,7 +271,15 @@ private:
 
 
 
-  static PLDHashOperator GetPermissionsForApp(nsPermissionManager::PermissionHashKey* entry, void* arg);
+  static PLDHashOperator
+  GetPermissionsForApp(PermissionHashKey* entry, void* arg);
+
+  
+
+
+  static PLDHashOperator
+  RemoveExpiredPermissionsForAppEnumerator(PermissionHashKey* entry,
+                                           void* nonused);
 
   nsCOMPtr<nsIObserverService> mObserverService;
   nsCOMPtr<nsIIDNService>      mIDNService;
@@ -282,6 +295,13 @@ private:
 
   
   nsTArray<nsCString>          mTypeArray;
+
+  
+  struct ApplicationCounter {
+    uint32_t mAppId;
+    uint32_t mCounter;
+  };
+  nsTArray<ApplicationCounter> mAppIdRefcounts;
 
   
   
