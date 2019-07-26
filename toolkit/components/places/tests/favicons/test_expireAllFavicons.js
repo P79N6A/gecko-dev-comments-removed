@@ -32,22 +32,23 @@ add_test(function test_expireAllFavicons() {
   }, PlacesUtils.TOPIC_FAVICONS_EXPIRED, false);
 
   
-  addVisits({ uri: TEST_PAGE_URI, transition: TRANSITION_TYPED }, function () {
-    PlacesUtils.favicons.setAndFetchFaviconForPage(TEST_PAGE_URI,
-                                                   SMALLPNG_DATA_URI, true,
-                                                   PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
+  promiseAddVisits({ uri: TEST_PAGE_URI, transition: TRANSITION_TYPED }).then(
+    function () {
+      PlacesUtils.favicons.setAndFetchFaviconForPage(TEST_PAGE_URI,
+                                                     SMALLPNG_DATA_URI, true,
+                                                     PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
 
-    
-    PlacesUtils.bookmarks.insertBookmark(
-                          PlacesUtils.toolbarFolderId, BOOKMARKED_PAGE_URI,
-                          PlacesUtils.bookmarks.DEFAULT_INDEX,
-                          "Test bookmark");
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
-      BOOKMARKED_PAGE_URI, SMALLPNG_DATA_URI, true,
-        PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-        function () {
-          
-          PlacesUtils.favicons.expireAllFavicons();
-        });
-  });
+      
+      PlacesUtils.bookmarks.insertBookmark(
+                            PlacesUtils.toolbarFolderId, BOOKMARKED_PAGE_URI,
+                            PlacesUtils.bookmarks.DEFAULT_INDEX,
+                            "Test bookmark");
+      PlacesUtils.favicons.setAndFetchFaviconForPage(
+        BOOKMARKED_PAGE_URI, SMALLPNG_DATA_URI, true,
+          PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+          function () {
+            
+            PlacesUtils.favicons.expireAllFavicons();
+          });
+    });
 });

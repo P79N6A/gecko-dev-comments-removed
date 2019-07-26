@@ -918,23 +918,6 @@ function promiseAddVisits(aPlaceInfo)
 
 
 
-function addVisits(aPlaceInfo, aCallback, aStack)
-{
-  let stack = aStack || Components.stack.caller;
-  promiseAddVisits(aPlaceInfo).then(
-    aCallback,
-    function addVisits_onFailure(ex) {
-      do_throw(ex, stack);
-    }
-  );
-}
-
-
-
-
-
-
-
 
 
 
