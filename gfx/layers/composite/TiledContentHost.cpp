@@ -145,7 +145,7 @@ TiledLayerBufferComposite::ValidateTile(TileHost aTile,
   long start = PR_IntervalNow();
 #endif
 
-  MOZ_ASSERT(aTile.mTextureHost->GetFlags() & TEXTURE_IMMEDIATE_UPLOAD);
+  MOZ_ASSERT(aTile.mTextureHost->GetFlags() & TextureFlags::IMMEDIATE_UPLOAD);
   
   
   

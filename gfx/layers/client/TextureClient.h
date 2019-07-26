@@ -129,7 +129,7 @@ class TextureClient
   : public AtomicRefCountedWithFinalize<TextureClient>
 {
 public:
-  TextureClient(TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
+  TextureClient(TextureFlags aFlags = TextureFlags::DEFAULT);
   virtual ~TextureClient();
 
   static TemporaryRef<BufferTextureClient>
@@ -274,9 +274,9 @@ public:
 
 
 
-  bool IsImmutable() const { return mFlags & TEXTURE_IMMUTABLE; }
+  bool IsImmutable() const { return mFlags & TextureFlags::IMMUTABLE; }
 
-  void MarkImmutable() { AddFlags(TEXTURE_IMMUTABLE); }
+  void MarkImmutable() { AddFlags(TextureFlags::IMMUTABLE); }
 
   bool IsSharedWithCompositor() const { return mShared; }
 
