@@ -212,14 +212,6 @@ PannerNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
   return PannerNodeBinding::Wrap(aCx, aScope, this);
 }
 
-void PannerNode::DestroyMediaStream()
-{
-  if (Context()) {
-    Context()->UnregisterPannerNode(this);
-  }
-  AudioNode::DestroyMediaStream();
-}
-
 
 float
 PannerNodeEngine::LinearGainFunction(float aDistance)
