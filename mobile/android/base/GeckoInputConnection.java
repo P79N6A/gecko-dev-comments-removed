@@ -29,8 +29,6 @@ import android.view.inputmethod.InputMethodManager;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Timer;
-import java.util.TimerTask;
 
 class GeckoInputConnection
     extends BaseInputConnection
@@ -40,8 +38,6 @@ class GeckoInputConnection
     protected static final String LOGTAG = "GeckoInputConnection";
 
     private static final int INLINE_IME_MIN_DISPLAY_SIZE = 480;
-
-    private static final Timer mIMETimer = new Timer("GeckoInputConnection Timer");
 
     private static int mIMEState;
     private static String mIMETypeHint = "";
@@ -172,12 +168,6 @@ class GeckoInputConnection
         return extract;
     }
 
-    private static void postToUiThread(Runnable runnable) {
-        
-        
-        GeckoApp.mAppContext.mMainHandler.post(runnable);
-    }
-
     private static View getView() {
         return GeckoApp.mAppContext.getLayerView();
     }
@@ -189,6 +179,35 @@ class GeckoInputConnection
         }
         Context context = view.getContext();
         return InputMethods.getInputMethodManager(context);
+    }
+
+    private static void showSoftInput() {
+        final InputMethodManager imm = getInputMethodManager();
+        if (imm != null) {
+            final View v = getView();
+            imm.showSoftInput(v, 0);
+        }
+    }
+
+    private static void hideSoftInput() {
+        final InputMethodManager imm = getInputMethodManager();
+        if (imm != null) {
+            final View v = getView();
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
+    }
+
+    private void restartInput() {
+        final InputMethodManager imm = getInputMethodManager();
+        if (imm != null) {
+            final View v = getView();
+            final Editable editable = getEditable();
+            
+            
+            notifySelectionChange(Selection.getSelectionStart(editable),
+                                  Selection.getSelectionEnd(editable));
+            imm.restartInput(v);
+        }
     }
 
     public void onTextChange(String text, int start, int oldEnd, int newEnd) {
@@ -249,17 +268,6 @@ class GeckoInputConnection
         final Editable editable = getEditable();
         imm.updateSelection(v, start, end, getComposingSpanStart(editable),
                             getComposingSpanEnd(editable));
-    }
-
-    protected void resetCompositionState() {
-        if (mBatchEditCount > 0) {
-            Log.d(LOGTAG, "resetCompositionState: resetting mBatchEditCount "
-                          + mBatchEditCount + " -> 0");
-            mBatchEditCount = 0;
-        }
-
-        removeComposingSpans(getEditable());
-        mUpdateRequest = null;
     }
 
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
@@ -342,7 +350,9 @@ class GeckoInputConnection
             }
         }
 
-        resetCompositionState();
+        
+        outAttrs.initialSelStart = -1;
+        outAttrs.initialSelEnd = -1;
         return this;
     }
 
@@ -450,41 +460,23 @@ class GeckoInputConnection
     }
 
     public void notifyIME(final int type, final int state) {
-
-        final View v = getView();
-        if (v == null)
-            return;
-
         switch (type) {
-            case NOTIFY_IME_RESETINPUTSTATE:
-                if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: reset");
-
-                resetCompositionState();
-
-                
-                
-                
-                
-                InputMethodManager imm = getInputMethodManager();
-                if (imm == null) {
-                    
-                    IMEStateUpdater.resetIME();
-                } else {
-                    imm.restartInput(v);
-                }
-
-                
-                IMEStateUpdater.enableIME();
-                break;
 
             case NOTIFY_IME_CANCELCOMPOSITION:
-                if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: cancel");
-                removeComposingSpans(getEditable());
+                
+                setComposingText("", 0);
+                
+
+            case NOTIFY_IME_RESETINPUTSTATE:
+                
+                finishComposingText();
+                restartInput();
                 break;
 
             case NOTIFY_IME_FOCUSCHANGE:
-                if (DEBUG) Log.d(LOGTAG, ". . . notifyIME: focus");
-                IMEStateUpdater.resetIME();
+                
+                mBatchEditCount = 0;
+                mUpdateRequest = null;
                 break;
 
             default:
@@ -504,12 +496,9 @@ class GeckoInputConnection
             (Build.VERSION.SDK_INT > 10 &&
             (typeHint.equals("datetime") || typeHint.equals("month") ||
             typeHint.equals("week") || typeHint.equals("datetime-local")))) {
+            mIMEState = IME_STATE_DISABLED;
             return;
         }
-
-        final View v = getView();
-        if (v == null)
-            return;
 
         
 
@@ -517,62 +506,17 @@ class GeckoInputConnection
         mIMETypeHint = (typeHint == null) ? "" : typeHint;
         mIMEModeHint = (modeHint == null) ? "" : modeHint;
         mIMEActionHint = (actionHint == null) ? "" : actionHint;
-        IMEStateUpdater.enableIME();
-    }
 
-    
-    private static final class IMEStateUpdater extends TimerTask {
-        private static IMEStateUpdater instance;
-        private boolean mEnable;
-        private boolean mReset;
-
-        private static IMEStateUpdater getInstance() {
-            if (instance == null) {
-                instance = new IMEStateUpdater();
-                mIMETimer.schedule(instance, 200);
-            }
-            return instance;
-        }
-
-        public static synchronized void enableIME() {
-            getInstance().mEnable = true;
-        }
-
-        public static synchronized void resetIME() {
-            getInstance().mReset = true;
-        }
-
-        public void run() {
-            if (DEBUG) Log.d(LOGTAG, "IME: IMEStateUpdater.run()");
-            synchronized (IMEStateUpdater.class) {
-                instance = null;
-            }
-
-            
-            postToUiThread(new Runnable() {
-                public void run() {
-                    final View v = getView();
-                    if (v == null)
-                        return;
-
-                    final InputMethodManager imm = getInputMethodManager();
-                    if (imm == null)
-                        return;
-
-                    if (mReset)
-                        imm.restartInput(v);
-
-                    if (!mEnable)
-                        return;
-
-                    if (mIMEState != IME_STATE_DISABLED) {
-                        imm.showSoftInput(v, 0);
-                    } else if (imm.isActive(v)) {
-                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                    }
+        restartInput();
+        GeckoApp.mAppContext.mMainHandler.postDelayed(new Runnable() {
+            public void run() {
+                if (mIMEState == IME_STATE_DISABLED) {
+                    hideSoftInput();
+                } else {
+                    showSoftInput();
                 }
-            });
-        }
+            }
+        }, 200); 
     }
 }
 
