@@ -970,7 +970,7 @@ struct StackShape
 {
     
     UnownedBaseShape *base;
-    RawId            propid;
+    jsid             propid;
     uint32_t         slot_;
     uint8_t          attrs;
     uint8_t          flags;

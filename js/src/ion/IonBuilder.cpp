@@ -6766,7 +6766,7 @@ GetDefiniteSlot(JSContext *cx, types::StackTypeSet *types, JSAtom *atom)
     if (!type || type->unknownProperties())
         return NULL;
 
-    RawId id = AtomToId(atom);
+    jsid id = AtomToId(atom);
     if (id != types::IdToTypeId(id))
         return NULL;
 
@@ -6959,7 +6959,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
         if (obj != foundProto) {
             
             
-            RawId typeId = types::IdToTypeId(id);
+            jsid typeId = types::IdToTypeId(id);
             while (true) {
                 types::HeapTypeSet *propSet = curType->getProperty(cx, typeId, false);
                 
