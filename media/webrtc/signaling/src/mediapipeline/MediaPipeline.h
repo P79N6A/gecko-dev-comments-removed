@@ -97,9 +97,7 @@ class MediaPipeline : public sigslot::has_slots<> {
         description_() {
   }
 
-  virtual ~MediaPipeline() {
-    MOZ_ASSERT(!stream_);  
-  }
+  virtual ~MediaPipeline();
 
   
   void ShutdownTransport_s();
