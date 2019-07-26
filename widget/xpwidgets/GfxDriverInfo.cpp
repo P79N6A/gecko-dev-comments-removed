@@ -163,6 +163,9 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id)
       APPEND_DEVICE(0x010a); 
       APPEND_DEVICE(0x0080); 
       break;
+    case IntelMobileHDGraphics:
+      APPEND_DEVICE(0x0046); 
+      break;
     case NvidiaBlockD3D9Layers:
       
       APPEND_DEVICE(0x00f3); 
