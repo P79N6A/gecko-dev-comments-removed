@@ -6,10 +6,13 @@
 #ifndef nsCycleCollector_h__
 #define nsCycleCollector_h__
 
-class nsCycleCollectionJSRuntime;
 class nsICycleCollectorListener;
 class nsISupports;
 class nsScriptObjectTracer;
+
+namespace mozilla {
+class CycleCollectedJSRuntime;
+}
 
 
 class nsCycleCollectorResults
@@ -52,7 +55,7 @@ void nsCycleCollector_shutdownThreads();
 void nsCycleCollector_shutdown();
 
 
-void nsCycleCollector_registerJSRuntime(nsCycleCollectionJSRuntime *aRt);
+void nsCycleCollector_registerJSRuntime(mozilla::CycleCollectedJSRuntime *aRt);
 void nsCycleCollector_forgetJSRuntime();
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \

@@ -97,7 +97,6 @@
 #include "nsXPCOM.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsCycleCollectionJSRuntime.h"
 #include "nsCycleCollectorUtils.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "nsDebug.h"
@@ -434,7 +433,6 @@ AddToCCKind(JSGCTraceKind kind)
 class nsXPConnect : public nsIXPConnect,
                     public nsIThreadObserver,
                     public nsSupportsWeakReference,
-                    public nsCycleCollectionJSRuntime,
                     public nsIJSRuntimeService,
                     public nsIJSEngineTelemetryStats
 {
@@ -463,15 +461,6 @@ public:
     static XPCJSRuntime* GetRuntimeInstance();
     XPCJSRuntime* GetRuntime() {return mRuntime;}
 
-    void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer) MOZ_OVERRIDE;
-    void RemoveJSHolder(void* aHolder) MOZ_OVERRIDE;
-
-#ifdef DEBUG
-    bool TestJSHolder(void* aHolder) MOZ_OVERRIDE;
-    void SetObjectToUnlink(void* aObject);
-    void AssertNoObjectsToTrace(void* aPossibleJSHolder);
-#endif
-
     static JSBool IsISupportsDescendant(nsIInterfaceInfo* info);
 
     nsIXPCSecurityManager* GetDefaultSecurityManager() const
@@ -499,21 +488,6 @@ public:
 
     nsresult GetInfoForIID(const nsIID * aIID, nsIInterfaceInfo** info);
     nsresult GetInfoForName(const char * name, nsIInterfaceInfo** info);
-
-    
-    virtual bool NotifyLeaveMainThread(); 
-    virtual void NotifyEnterCycleCollectionThread(); 
-    virtual void NotifyLeaveCycleCollectionThread(); 
-    virtual void NotifyEnterMainThread(); 
-    virtual nsresult BeginCycleCollection(nsCycleCollectionNoteRootCallback &cb); 
-    virtual nsCycleCollectionParticipant *GetParticipant(); 
-    virtual bool UsefulToMergeZones(); 
-    virtual void FixWeakMappingGrayBits(); 
-    virtual bool NeedCollect(); 
-    virtual void Collect(uint32_t reason); 
-
-    
-    static nsCycleCollectionParticipant *JSContextParticipant();
 
     virtual nsIPrincipal* GetPrincipal(JSObject* obj,
                                        bool allowShortCircuit) const;
