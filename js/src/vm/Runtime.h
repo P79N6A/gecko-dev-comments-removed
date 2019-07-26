@@ -672,7 +672,7 @@ namespace gc {
 class MarkingValidator;
 } 
 
-typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
+typedef Vector<JS::Zone *, 4, SystemAllocPolicy> ZoneVector;
 
 class AutoLockForExclusiveAccess;
 class AutoPauseWorkersForGC;
