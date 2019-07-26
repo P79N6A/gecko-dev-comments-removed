@@ -101,12 +101,6 @@ GLLibraryEGL::EnsureInitialized()
         
         
 
-#ifndef MOZ_D3DX9_DLL
-#error MOZ_D3DX9_DLL should have been defined by the Makefile
-#endif
-        LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DX9_DLL)));
-        
-
 #ifndef MOZ_D3DCOMPILER_DLL
 #error MOZ_D3DCOMPILER_DLL should have been defined by the Makefile
 #endif
