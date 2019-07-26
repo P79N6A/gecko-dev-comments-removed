@@ -1533,11 +1533,18 @@ MarionetteDriverActor.prototype = {
         break;
       case "Marionette:switchToFrame":
         
+        let thisWin = this.getCurrentWindow();
+        let frameWindow = thisWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIDOMWindowUtils)
+                                 .getOuterWindowWithId(message.json.win);
+        let thisFrame = frameWindow.document.getElementsByTagName("iframe")[message.json.frame];
+        let mm = thisFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager
 
+        
+        
         for (let i = 0; i < remoteFrames.length; i++) {
           let frame = remoteFrames[i];
-          if ((frame.windowId == message.json.win) && (frame.frameId == message.json.frame)) {
-            
+          if ((frame.messageManager == mm)) {
             this.currentRemoteFrame = frame;
             this.messageManager = frame.messageManager;
             this.addMessageManagerListeners(this.messageManager);
@@ -1548,12 +1555,6 @@ MarionetteDriverActor.prototype = {
 
         
         
-        let thisWin = this.getCurrentWindow();
-        let frameWindow = thisWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIDOMWindowUtils)
-                                 .getOuterWindowWithId(message.json.win);
-        let thisFrame = frameWindow.document.getElementsByTagName("iframe")[message.json.frame];
-        let mm = thisFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager
         this.addMessageManagerListeners(mm);
         mm.loadFrameScript(FRAME_SCRIPT, true);
         this.messageManager = mm;
@@ -1571,7 +1572,8 @@ MarionetteDriverActor.prototype = {
                                    .getInterface(Ci.nsIDOMWindowUtils)
                                    .getOuterWindowWithId(message.json.value);
 
-        if (listenerWindow.location.href != message.json.href) {
+        if ((listenerWindow.location.href != message.json.href) &&
+            (this.currentRemoteFrame !== null)) {
           
           
           
