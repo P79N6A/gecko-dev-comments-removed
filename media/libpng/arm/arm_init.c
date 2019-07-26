@@ -28,7 +28,7 @@
 
 
 
-#include <cpu-features.h>
+#include "MOZ_PNG_cpu-features.h"
 
 static int
 png_have_neon(png_structp png_ptr)
