@@ -753,7 +753,21 @@ const DownloadsData = {
     dataItem.startTime = Math.round(aDownload.startTime / 1000);
     dataItem.currBytes = aDownload.amountTransferred;
     dataItem.maxBytes = aDownload.size;
-    dataItem.download = aDownload;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let downloadIsGetter = Object.getOwnPropertyDescriptor(dataItem, "download")
+                                 .value === undefined;
+    if (!downloadIsGetter) {
+      dataItem.download = aDownload;
+    }
 
     this._views.forEach(
       function (view) view.getViewItem(dataItem).onStateChange()
