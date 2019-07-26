@@ -285,6 +285,16 @@ this.PromiseWalker = {
   
 
 
+  scheduleWalkerLoop: function()
+  {
+    this.walkerLoopScheduled = true;
+    Services.tm.currentThread.dispatch(this.walkerLoop,
+                                       Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  
+
+
 
 
 
@@ -300,9 +310,7 @@ this.PromiseWalker = {
 
     
     if (!this.walkerLoopScheduled) {
-      this.walkerLoopScheduled = true;
-      Services.tm.currentThread.dispatch(this.walkerLoop,
-                                         Ci.nsIThread.DISPATCH_NORMAL);
+      this.scheduleWalkerLoop();
     }
   },
 
@@ -329,7 +337,13 @@ this.PromiseWalker = {
     
     
     
-    this.walkerLoopScheduled = false;
+    
+    
+    if (this.handlers.length > 1) {
+      this.scheduleWalkerLoop();
+    } else {
+      this.walkerLoopScheduled = false;
+    }
 
     
     while (this.handlers.length > 0) {

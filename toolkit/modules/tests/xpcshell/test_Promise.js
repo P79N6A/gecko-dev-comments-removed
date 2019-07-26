@@ -3,6 +3,7 @@
 "use strict";
 
 Components.utils.import("resource://gre/modules/Promise.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -660,6 +661,59 @@ tests.push(
 
     return Promise.all([p1, p2]);
   }));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tests.push(
+  make_promise_test(function promise_nested_eventloop_deadlock(test) {
+    
+    
+    let shouldExitNestedEventLoop = false;
+
+    function event_loop() {
+      let thr = Services.tm.mainThread;
+      while(!shouldExitNestedEventLoop) {
+        thr.processNextEvent(true);
+      }
+    }
+
+    
+    do_timeout(2000, () => {
+      if (!shouldExitNestedEventLoop) {
+        shouldExitNestedEventLoop = true;
+        do_throw("Test timed out");
+      }
+    });
+
+    let promise1 = Promise.resolve(1);
+    let promise2 = Promise.resolve(2);
+
+    do_print("Setting wait for first promise");
+    promise1.then(value => {
+      do_print("Starting event loop");
+      event_loop();
+    }, null);
+
+    do_print("Setting wait for second promise");
+    return promise2.then(null, error => {return 3;})
+    .then(
+      count => {
+        shouldExitNestedEventLoop = true;
+      });
+  }));
+
 
 function run_test()
 {
