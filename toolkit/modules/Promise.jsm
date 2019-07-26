@@ -177,14 +177,62 @@ let PendingErrors = {
       lineNumber: null
     };
     try { 
-      if (typeof error == "object" && error) {
+      if (error && error instanceof Ci.nsIException) {
+        
+        try {
+          
+          
+          value.message = error.message;
+        } catch (ex) {
+          
+        }
+        try {
+          
+          value.fileName = error.filename;
+        } catch (ex) {
+          
+        }
+        try {
+          value.lineNumber = error.lineNumber;
+        } catch (ex) {
+          
+        }
+      } else if (typeof error == "object" && error) {
         for (let k of ["fileName", "stack", "lineNumber"]) {
           try { 
             let v = error[k];
-            value[k] = v ? ("" + v):null;
+            value[k] = v ? ("" + v) : null;
           } catch (ex) {
             
           }
+        }
+      }
+
+      if (!value.stack) {
+        
+        let stack = null;
+        if (error && error.location &&
+            error.location instanceof Ci.nsIStackFrame) {
+          
+          stack = error.location;
+        } else {
+          
+          stack  = Components.stack;
+          
+          while (stack) {
+            if (!stack.filename.endsWith("/Promise.jsm")) {
+              break;
+            }
+            stack = stack.caller;
+          }
+        }
+        if (stack) {
+          let frames = [];
+          while (stack) {
+            frames.push(stack);
+            stack = stack.caller;
+          }
+          value.stack = frames.join("\n");
         }
       }
     } catch (ex) {
