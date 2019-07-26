@@ -2315,10 +2315,9 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
-        String scheme = Uri.parse(url).getScheme();
-        share.setVisible(!GeckoProfile.get(this).inGuestMode());
-        share.setEnabled(!(scheme.equals("about") || scheme.equals("chrome") ||
-                           scheme.equals("file") || scheme.equals("resource")));
+        final boolean inGuestMode = GeckoProfile.get(this).inGuestMode();
+        share.setVisible(!inGuestMode);
+        share.setEnabled(StringUtils.isShareableUrl(url) && !inGuestMode);
 
         
         

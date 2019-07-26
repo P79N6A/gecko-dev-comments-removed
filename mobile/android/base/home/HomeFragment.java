@@ -21,6 +21,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.home.TopSitesGridView.TopSitesGridContextMenuInfo;
 import org.mozilla.gecko.util.Clipboard;
+import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
 import org.mozilla.gecko.widget.ButtonToast;
@@ -110,7 +111,9 @@ abstract class HomeFragment extends Fragment {
             menu.findItem(R.id.home_remove).setVisible(false);
         }
 
-        menu.findItem(R.id.home_share).setVisible(!GeckoProfile.get(getActivity()).inGuestMode());
+        if (!StringUtils.isShareableUrl(info.url) || GeckoProfile.get(getActivity()).inGuestMode()) {
+            menu.findItem(R.id.home_share).setVisible(false);
+        }
 
         final boolean canOpenInReader = (info.display == Combined.DISPLAY_READER);
         menu.findItem(R.id.home_open_in_reader).setVisible(canOpenInReader);
