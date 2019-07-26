@@ -54,6 +54,9 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 #undef CSS_PROP
 };
 
+
+#define VAR_PREFIX_LENGTH 4
+
 namespace {
 
 
@@ -260,6 +263,10 @@ protected:
   
   bool SkipUntil(PRUnichar aStopSymbol);
   void SkipUntilOneOf(const PRUnichar* aStopSymbolChars);
+  
+  
+  typedef nsAutoTArray<PRUnichar, 16> StopSymbolCharStack;
+  void SkipUntilAllOf(const StopSymbolCharStack& aStopSymbolChars);
 
   void SkipRuleSet(bool aInsideBraces);
   bool SkipAtRule(bool aInsideBlock);
@@ -542,6 +549,32 @@ protected:
   bool ParseMarker();
   bool ParsePaintOrder();
   bool ParseAll();
+
+  
+
+
+
+
+
+
+
+
+
+  bool ParseVariableDeclaration(CSSVariableDeclarations::Type* aType,
+                                nsString& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+  bool ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
+                               nsString& aClosingChars);
 
   
   void AppendValue(nsCSSProperty aPropID, const nsCSSValue& aValue);
@@ -2975,6 +3008,15 @@ CSSParserImpl::SkipUntilOneOf(const PRUnichar* aStopSymbolChars)
   }
 }
 
+void
+CSSParserImpl::SkipUntilAllOf(const StopSymbolCharStack& aStopSymbolChars)
+{
+  uint32_t i = aStopSymbolChars.Length();
+  while (i--) {
+    SkipUntil(aStopSymbolChars[i]);
+  }
+}
+
 bool
 CSSParserImpl::SkipDeclaration(bool aCheckForBraces)
 {
@@ -4746,36 +4788,56 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
   nsAutoSuppressErrors suppressErrors(this, mInFailingSupportsRule);
 
   
-  nsCSSProperty propID = nsCSSProps::LookupProperty(propertyName,
-                                                    nsCSSProps::eEnabled);
-  if (eCSSProperty_UNKNOWN == propID ||
-     (aContext == eCSSContext_Page &&
-      !nsCSSProps::PropHasFlags(propID, CSS_PROPERTY_APPLIES_TO_PAGE_RULE))) { 
-    if (!NonMozillaVendorIdentifier(propertyName)) {
-      REPORT_UNEXPECTED_P(PEUnknownProperty, propertyName);
+  nsCSSProperty propID;
+
+  
+  CSSVariableDeclarations::Type variableType;
+  nsString variableValue;
+
+  
+  bool customProperty = nsLayoutUtils::CSSVariablesEnabled() &&
+                        nsCSSProps::IsCustomPropertyName(propertyName) &&
+                        aContext == eCSSContext_General;
+
+  if (customProperty) {
+    if (!ParseVariableDeclaration(&variableType, variableValue)) {
+      REPORT_UNEXPECTED_P(PEValueParsingError, propertyName);
       REPORT_UNEXPECTED(PEDeclDropped);
       OUTPUT_ERROR();
+      return false;
     }
-
-    return false;
-  }
-  if (! ParseProperty(propID)) {
+  } else {
     
-    REPORT_UNEXPECTED_P(PEValueParsingError, propertyName);
-    REPORT_UNEXPECTED(PEDeclDropped);
-    OUTPUT_ERROR();
-    mTempData.ClearProperty(propID);
-    mTempData.AssertInitialState();
-    return false;
+    propID = nsCSSProps::LookupProperty(propertyName, nsCSSProps::eEnabled);
+    if (eCSSProperty_UNKNOWN == propID ||
+        (aContext == eCSSContext_Page &&
+         !nsCSSProps::PropHasFlags(propID,
+                                   CSS_PROPERTY_APPLIES_TO_PAGE_RULE))) { 
+      if (!NonMozillaVendorIdentifier(propertyName)) {
+        REPORT_UNEXPECTED_P(PEUnknownProperty, propertyName);
+        REPORT_UNEXPECTED(PEDeclDropped);
+        OUTPUT_ERROR();
+      }
+      return false;
+    }
+    if (! ParseProperty(propID)) {
+      
+      REPORT_UNEXPECTED_P(PEValueParsingError, propertyName);
+      REPORT_UNEXPECTED(PEDeclDropped);
+      OUTPUT_ERROR();
+      mTempData.ClearProperty(propID);
+      mTempData.AssertInitialState();
+      return false;
+    }
   }
+
   CLEAR_ERROR();
 
   
   PriorityParsingStatus status;
   if ((aFlags & eParseDeclaration_AllowImportant) != 0) {
     status = ParsePriority();
-  }
-  else {
+  } else {
     status = ePriority_None;
   }
 
@@ -4805,15 +4867,26 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
     }
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
-    mTempData.ClearProperty(propID);
+    if (!customProperty) {
+      mTempData.ClearProperty(propID);
+    }
     mTempData.AssertInitialState();
     return false;
   }
 
-  *aChanged |= mData.TransferFromBlock(mTempData, propID,
-                                       status == ePriority_Important,
-                                       false, aMustCallValueAppended,
-                                       aDeclaration);
+  if (customProperty) {
+    MOZ_ASSERT(Substring(propertyName,
+                         0, VAR_PREFIX_LENGTH).EqualsLiteral("var-"));
+    nsDependentString varName(propertyName, VAR_PREFIX_LENGTH); 
+    aDeclaration->AddVariableDeclaration(varName, variableType, variableValue,
+                                         status == ePriority_Important);
+  } else {
+    *aChanged |= mData.TransferFromBlock(mTempData, propID,
+                                         status == ePriority_Important,
+                                         false, aMustCallValueAppended,
+                                         aDeclaration);
+  }
+
   return true;
 }
 
@@ -6437,6 +6510,7 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
                     "hashless color quirk should not be set");
   NS_ABORT_IF_FALSE(!mUnitlessLengthQuirk,
                     "unitless length quirk should not be set");
+
   if (mNavQuirkMode) {
     mHashlessColorQuirk =
       nsCSSProps::PropHasFlags(aPropID, CSS_PROPERTY_HASHLESS_COLOR_QUIRK);
@@ -11216,6 +11290,228 @@ CSSParserImpl::ParseAll()
   CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, eCSSProperty_all) {
     AppendValue(*p, value);
   }
+  return true;
+}
+
+bool
+CSSParserImpl::ParseVariableDeclaration(CSSVariableDeclarations::Type* aType,
+                                        nsString& aValue)
+{
+  CSSVariableDeclarations::Type type;
+  nsString variableValue;
+  nsString closingBrackets;
+
+  
+  mScanner->StartRecording();
+  if (!ParseValueWithVariables(&type, closingBrackets)) {
+    mScanner->StopRecording();
+    return false;
+  }
+
+  if (type == CSSVariableDeclarations::eTokenStream) {
+    
+    mScanner->StopRecording(variableValue);
+    variableValue.Append(closingBrackets);
+  } else {
+    
+    mScanner->StopRecording();
+  }
+
+  if (mHavePushBack && type == CSSVariableDeclarations::eTokenStream) {
+    
+    
+    
+    MOZ_ASSERT(mToken.IsSymbol('!') ||
+               mToken.IsSymbol(')') ||
+               mToken.IsSymbol(';') ||
+               mToken.IsSymbol(']') ||
+               mToken.IsSymbol('}'));
+    MOZ_ASSERT(!variableValue.IsEmpty());
+    MOZ_ASSERT(variableValue[variableValue.Length() - 1] == mToken.mSymbol);
+    variableValue.Truncate(variableValue.Length() - 1);
+  }
+
+  *aType = type;
+  aValue = variableValue;
+  return true;
+}
+
+bool
+CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
+                                       nsString& aClosingChars)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  StopSymbolCharStack stack;
+
+  
+  
+  
+  nsAutoTArray<uint32_t, 16> references;
+
+  if (!GetToken(false)) {
+    
+    REPORT_UNEXPECTED_EOF(PEVariableEOF);
+    return false;
+  }
+
+  if (mToken.mType == eCSSToken_Symbol &&
+      (mToken.mSymbol == '!' ||
+       mToken.mSymbol == ')' ||
+       mToken.mSymbol == ';' ||
+       mToken.mSymbol == ']' ||
+       mToken.mSymbol == '}')) {
+    
+    UngetToken();
+    REPORT_UNEXPECTED_TOKEN(PEVariableEmpty);
+    return false;
+  }
+
+  if (mToken.mType == eCSSToken_Whitespace) {
+    if (!GetToken(true)) {
+      
+      *aType = CSSVariableDeclarations::eTokenStream;
+      return true;
+    }
+  }
+
+  
+  CSSVariableDeclarations::Type type = CSSVariableDeclarations::eTokenStream;
+  if (mToken.mType == eCSSToken_Ident) {
+    if (mToken.mIdent.LowerCaseEqualsLiteral("initial")) {
+      type = CSSVariableDeclarations::eInitial;
+    } else if (mToken.mIdent.LowerCaseEqualsLiteral("inherit")) {
+      type = CSSVariableDeclarations::eInherit;
+    }
+  }
+
+  if (type != CSSVariableDeclarations::eTokenStream) {
+    if (!GetToken(true)) {
+      
+      *aType = type;
+      return true;
+    }
+    UngetToken();
+    if (mToken.mType == eCSSToken_Symbol &&
+        (mToken.mSymbol == '!' ||
+         mToken.mSymbol == ')' ||
+         mToken.mSymbol == ';' ||
+         mToken.mSymbol == ']' ||
+         mToken.mSymbol == '}')) {
+      
+      
+      *aType = type;
+      return true;
+    }
+  }
+
+  do {
+    switch (mToken.mType) {
+      case eCSSToken_Symbol:
+        if (mToken.mSymbol == '(') {
+          stack.AppendElement(')');
+        } else if (mToken.mSymbol == '[') {
+          stack.AppendElement(']');
+        } else if (mToken.mSymbol == '{') {
+          stack.AppendElement('}');
+        } else if (mToken.mSymbol == ';' ||
+                   mToken.mSymbol == '!') {
+          if (stack.IsEmpty()) {
+            UngetToken();
+            *aType = CSSVariableDeclarations::eTokenStream;
+            return true;
+          } else if (!references.IsEmpty() &&
+                     references.LastElement() == stack.Length() - 1) {
+            SkipUntilAllOf(stack);
+            return false;
+          }
+        } else if (mToken.mSymbol == ')' ||
+                   mToken.mSymbol == ']' ||
+                   mToken.mSymbol == '}') {
+          for (;;) {
+            if (stack.IsEmpty()) {
+              UngetToken();
+              *aType = CSSVariableDeclarations::eTokenStream;
+              return true;
+            }
+            PRUnichar c = stack.LastElement();
+            stack.TruncateLength(stack.Length() - 1);
+            if (!references.IsEmpty() &&
+                references.LastElement() == stack.Length()) {
+              references.TruncateLength(references.Length() - 1);
+            }
+            if (mToken.mSymbol == c) {
+              break;
+            }
+          }
+        }
+        break;
+
+      case eCSSToken_Function:
+        if (mToken.mIdent.LowerCaseEqualsLiteral("var")) {
+          if (GetToken(true)) {
+            if (mToken.mType != eCSSToken_Ident) {
+              UngetToken();
+              SkipUntil(')');
+              SkipUntilAllOf(stack);
+              return false;
+            }
+          }
+          if (ExpectSymbol(',', true)) {
+            if (ExpectSymbol(')', false)) {
+              
+              SkipUntilAllOf(stack);
+              return false;
+            }
+            references.AppendElement(stack.Length());
+            stack.AppendElement(')');
+          } else if (!ExpectSymbol(')', true)) {
+            UngetToken();
+            SkipUntilAllOf(stack);
+            return false;
+          }
+        } else {
+          stack.AppendElement(')');
+        }
+        break;
+
+      case eCSSToken_Bad_String:
+        SkipUntilAllOf(stack);
+        return false;
+
+      case eCSSToken_Bad_URL:
+        SkipUntil(')');
+        SkipUntilAllOf(stack);
+        return false;
+
+      default:
+        break;
+    }
+  } while (GetToken(true));
+
+  
+  uint32_t i = stack.Length();
+  while (i--) {
+    aClosingChars.Append(stack[i]);
+  }
+
+  *aType = type;
   return true;
 }
 

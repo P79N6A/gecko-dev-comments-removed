@@ -11,15 +11,15 @@
 #ifndef mozilla_css_Declaration_h
 #define mozilla_css_Declaration_h
 
-#include "mozilla/Attributes.h"
-#include "mozilla/MemoryReporting.h"
-
 
 
 #ifndef MOZILLA_INTERNAL_API
 #error "This file should only be included within libxul"
 #endif
 
+#include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
+#include "CSSVariableDeclarations.h"
 #include "nsCSSDataBlock.h"
 #include "nsCSSProperty.h"
 #include "nsCSSProps.h"
@@ -67,6 +67,52 @@ public:
   bool HasImportantData() const { return mImportantData != nullptr; }
   bool GetValueIsImportant(nsCSSProperty aProperty) const;
   bool GetValueIsImportant(const nsAString& aProperty) const;
+
+  
+
+
+
+
+
+
+
+
+  void AddVariableDeclaration(const nsAString& aName,
+                              CSSVariableDeclarations::Type aType,
+                              const nsString& aValue,
+                              bool aIsImportant);
+
+  
+
+
+
+
+  void RemoveVariableDeclaration(const nsAString& aName);
+
+  
+
+
+
+
+
+  bool HasVariableDeclaration(const nsAString& aName) const;
+
+  
+
+
+
+
+
+
+
+
+  void GetVariableDeclaration(const nsAString& aName, nsAString& aValue) const;
+
+  
+
+
+
+  bool GetVariableValueIsImportant(const nsAString& aName) const;
 
   uint32_t Count() const {
     return mOrder.Length();
@@ -204,7 +250,10 @@ public:
     AssertMutable();
     mData = nullptr;
     mImportantData = nullptr;
+    mVariables = nullptr;
+    mImportantVariables = nullptr;
     mOrder.Clear();
+    mVariableOrder.Clear();
   }
 
 #ifdef DEBUG
@@ -222,16 +271,50 @@ private:
   void AppendPropertyAndValueToString(nsCSSProperty aProperty,
                                       nsAutoString& aValue,
                                       nsAString& aResult) const;
+  
+  
+  void AppendVariableAndValueToString(const nsAString& aName,
+                                      nsAString& aResult) const;
 
 public:
-  nsCSSProperty OrderValueAt(uint32_t aValue) const {
-    return nsCSSProperty(mOrder.ElementAt(aValue));
+  
+
+
+
+
+  nsCSSProperty GetPropertyAt(uint32_t aIndex) const {
+    uint32_t value = mOrder[aIndex];
+    if (value >= eCSSProperty_COUNT) {
+      return eCSSPropertyExtra_variable;
+    }
+    return nsCSSProperty(value);
+  }
+
+  
+
+
+
+  void GetCustomPropertyNameAt(uint32_t aIndex, nsAString& aResult) const {
+    MOZ_ASSERT(mOrder[aIndex] >= eCSSProperty_COUNT);
+    aResult.Truncate();
+    aResult.AppendLiteral("var-");
+    aResult.Append(mVariableOrder[aIndex]);
   }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
-  nsAutoTArray<uint16_t, 8> mOrder;
+  
+  
+  
+  
+  
+  
+  
+  nsAutoTArray<uint32_t, 8> mOrder;
+
+  
+  nsTArray<nsString> mVariableOrder;
 
   
   
@@ -239,6 +322,12 @@ private:
 
   
   nsAutoPtr<nsCSSCompressedDataBlock> mImportantData;
+
+  
+  nsAutoPtr<CSSVariableDeclarations> mVariables;
+
+  
+  nsAutoPtr<CSSVariableDeclarations> mImportantVariables;
 
   
   

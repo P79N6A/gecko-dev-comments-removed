@@ -12,6 +12,7 @@
 
 #include "nsCSSProps.h"
 #include "nsCSSKeywords.h"
+#include "nsLayoutUtils.h"
 #include "nsStyleConsts.h"
 #include "nsIWidget.h"
 #include "nsThemeConstants.h"  
@@ -20,9 +21,6 @@
 
 #include "nsString.h"
 #include "nsStaticNameTable.h"
-#include "nsStyleConsts.h"
-#include "gfxFontConstants.h"
-#include "nsStyleStruct.h"
 
 #include "mozilla/Preferences.h"
 
@@ -348,11 +346,34 @@ nsCSSProps::ReleaseTable(void)
   }
 }
 
+
+#define VAR_PREFIX_LENGTH 4
+
+ bool
+nsCSSProps::IsCustomPropertyName(const nsACString& aProperty)
+{
+  
+  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
+         StringBeginsWith(aProperty, NS_LITERAL_CSTRING("var-"));
+}
+
+ bool
+nsCSSProps::IsCustomPropertyName(const nsAString& aProperty)
+{
+  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
+         StringBeginsWith(aProperty, NS_LITERAL_STRING("var-"));
+}
+
 nsCSSProperty
 nsCSSProps::LookupProperty(const nsACString& aProperty,
                            EnabledState aEnabled)
 {
   NS_ABORT_IF_FALSE(gPropertyTable, "no lookup table, needs addref");
+
+  if (nsLayoutUtils::CSSVariablesEnabled() &&
+      IsCustomPropertyName(aProperty)) {
+    return eCSSPropertyExtra_variable;
+  }
 
   nsCSSProperty res = nsCSSProperty(gPropertyTable->Lookup(aProperty));
   
@@ -377,6 +398,11 @@ nsCSSProps::LookupProperty(const nsACString& aProperty,
 nsCSSProperty
 nsCSSProps::LookupProperty(const nsAString& aProperty, EnabledState aEnabled)
 {
+  if (nsLayoutUtils::CSSVariablesEnabled() &&
+      IsCustomPropertyName(aProperty)) {
+    return eCSSPropertyExtra_variable;
+  }
+
   
   
   
