@@ -4840,7 +4840,6 @@ static const JSJitInfo dom_x_getterinfo = {
     false,    
     0,        
     JSJitInfo::AliasNone, 
-    nullptr,  
     nullptr   
 };
 
@@ -4855,7 +4854,6 @@ static const JSJitInfo dom_x_setterinfo = {
     false,    
     0,        
     JSJitInfo::AliasEverything, 
-    nullptr,  
     nullptr   
 };
 
@@ -4870,7 +4868,6 @@ static const JSJitInfo doFoo_methodinfo = {
     false,    
     0,        
     JSJitInfo::AliasEverything, 
-    nullptr,  
     nullptr   
 };
 
