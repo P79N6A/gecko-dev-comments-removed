@@ -1550,11 +1550,6 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
                 return 1;
             }
 
-            
-            
-            
-            JS::CompartmentOptionsRef(glob).setDiscardSource(false);
-
             backstagePass->SetGlobalObject(glob);
 
             JSAutoCompartment ac(cx, glob);

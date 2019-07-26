@@ -470,11 +470,6 @@ RecordAdoptedNode(JSCompartment *c);
 void
 RecordDonatedNode(JSCompartment *c);
 
-
-
-bool
-ShouldDiscardSystemSource();
-
 } 
 
 namespace mozilla {

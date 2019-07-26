@@ -600,12 +600,6 @@ pref("dom.forms.color", false);
 pref("gfx.gralloc.enabled", false);
 
 
-
-
-
-pref("javascript.options.discardSystemSource", true);
-
-
 pref("javascript.options.mem.log", false);
 
 

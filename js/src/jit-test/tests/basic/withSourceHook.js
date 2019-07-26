@@ -35,20 +35,20 @@ withSourceHook(function (url) {
                               }, function () {
                                 log += 'I';
                                 return evaluate('(function inner() { 2; })',
-                                                { fileName: 'inner', sourceIsLazy: true })
+                                                { fileName: 'inner', sourcePolicy: 'LAZY_SOURCE' })
                                        .toSource();
                               }),
                '(function inner() { 1; })');
       
       evaluate('(function middle() { })',
-               { fileName: 'middle', sourceIsLazy: true })
+               { fileName: 'middle', sourcePolicy: 'LAZY_SOURCE' })
       .toSource();
     });
   }, 'borborygmus');
 
   
   assertEq(evaluate('(function outer() { 4; })',
-                    { fileName: 'outer', sourceIsLazy: true })
+                    { fileName: 'outer', sourcePolicy: 'LAZY_SOURCE' })
            .toSource(),
            '(function outer() { 3; })');
 });
