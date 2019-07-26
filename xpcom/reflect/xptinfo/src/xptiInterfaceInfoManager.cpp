@@ -35,8 +35,8 @@ XPTInterfaceInfoManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
     
     
-    n += mWorkingSet.mIIDTable.SizeOfExcludingThis(NULL, aMallocSizeOf);
-    n += mWorkingSet.mNameTable.SizeOfExcludingThis(NULL, aMallocSizeOf);
+    n += mWorkingSet.mIIDTable.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+    n += mWorkingSet.mNameTable.SizeOfExcludingThis(nullptr, aMallocSizeOf);
     return n;
 }
 

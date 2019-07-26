@@ -56,6 +56,7 @@ nsEnvironment::Exists(const nsAString& aName, bool *aOutValue)
 
 
 
+
     const char *value = PR_GetEnv(nativeName.get());
     *aOutValue = value && *value;
 #else

@@ -35,8 +35,8 @@ NS_DEFINE_NAMED_CID(NS_SAMPLE_CID);
 
 
 static const mozilla::Module::CIDEntry kSampleCIDs[] = {
-    { &kNS_SAMPLE_CID, false, NULL, nsSampleImplConstructor },
-    { NULL }
+    { &kNS_SAMPLE_CID, false, nullptr, nsSampleImplConstructor },
+    { nullptr }
 };
 
 
@@ -45,7 +45,7 @@ static const mozilla::Module::CIDEntry kSampleCIDs[] = {
 
 static const mozilla::Module::ContractIDEntry kSampleContracts[] = {
     { NS_SAMPLE_CONTRACTID, &kNS_SAMPLE_CID },
-    { NULL }
+    { nullptr }
 };
 
 
@@ -55,7 +55,7 @@ static const mozilla::Module::ContractIDEntry kSampleContracts[] = {
 
 static const mozilla::Module::CategoryEntry kSampleCategories[] = {
     { "my-category", "my-key", NS_SAMPLE_CONTRACTID },
-    { NULL }
+    { nullptr }
 };
 
 static const mozilla::Module kSampleModule = {

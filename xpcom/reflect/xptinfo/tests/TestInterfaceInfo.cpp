@@ -71,7 +71,7 @@ int main (int argc, char **argv) {
 #endif
 
     
-    if (info5 == NULL) {
+    if (info5 == nullptr) {
         fprintf(stderr, "\nNo nsIComponentManager; cannot continue.\n");
         return 1;
     }
