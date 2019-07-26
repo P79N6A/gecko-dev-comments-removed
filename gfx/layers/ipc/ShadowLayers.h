@@ -329,7 +329,10 @@ public:
 
 
 
-  bool EndTransaction(InfallibleTArray<EditReply>* aReplies, bool aScheduleComposite, bool* aSent);
+  bool EndTransaction(InfallibleTArray<EditReply>* aReplies,
+                      const nsIntRegion& aRegionToClear,
+                      bool aScheduleComposite,
+                      bool* aSent);
 
   
 

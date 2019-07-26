@@ -497,6 +497,14 @@ LayerManagerComposite::Render()
   
   RootLayer()->RenderLayer(clipRect);
 
+  if (!mRegionToClear.IsEmpty()) {
+    nsIntRegionRectIterator iter(mRegionToClear);
+    const nsIntRect *r;
+    while ((r = iter.Next())) {
+      mCompositor->ClearRect(Rect(r->x, r->y, r->width, r->height));
+    }
+  }
+
   
   mCompositor->GetWidget()->DrawWindowOverlay(this, nsIntRect(actualBounds.x,
                                                               actualBounds.y,

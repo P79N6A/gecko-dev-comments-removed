@@ -740,6 +740,7 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
   
   
   mLayerManager->UpdateRenderBounds(aTargetConfig.clientBounds());
+  mLayerManager->SetRegionToClear(aTargetConfig.clearRegion());
 
   mCompositionManager->Updated(aIsFirstPaint, aTargetConfig);
   Layer* root = aLayerTree->GetRoot();
