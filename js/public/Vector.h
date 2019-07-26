@@ -1084,8 +1084,8 @@ template <class T, size_t N, class AP>
 inline void
 Vector<T,N,AP>::swap(Vector &other)
 {
-    
-    JS_STATIC_ASSERT(N == 0);
+    MOZ_STATIC_ASSERT(N == 0,
+                      "still need to implement this for N != 0");
 
     
     if (!usingInlineStorage() && other.usingInlineStorage()) {
