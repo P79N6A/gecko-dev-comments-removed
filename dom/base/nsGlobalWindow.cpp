@@ -2738,6 +2738,13 @@ nsGlobalWindow::DetachFromDocShell()
 
   mChromeEventHandler = nullptr; 
 
+  if (mArguments) { 
+    
+    
+    mArguments = nullptr;
+    mArgumentsOrigin = nullptr;
+  }
+
   if (mContext) {
     mContext->GC(JS::gcreason::SET_DOC_SHELL);
     mContext = nullptr;
