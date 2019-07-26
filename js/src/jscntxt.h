@@ -569,7 +569,7 @@ struct MallocProvider
 namespace gc {
 class MarkingValidator;
 } 
-class AutoEnterPolicy;
+class JS_FRIEND_API(AutoEnterPolicy);
 } 
 
 struct JSRuntime : js::RuntimeFriendFields,
