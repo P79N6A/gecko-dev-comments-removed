@@ -23,14 +23,14 @@ using mozilla::RangedPtr;
 using mozilla::RoundUpPow2;
 
 bool
-JSString::isShort() const
+JSString::isFatInline() const
 {
     
     
     
-    bool is_short = (getAllocKind() == gc::FINALIZE_SHORT_STRING) && isInline();
-    JS_ASSERT_IF(is_short, isFlat());
-    return is_short;
+    bool is_FatInline = (getAllocKind() == gc::FINALIZE_FAT_INLINE_STRING) && isInline();
+    JS_ASSERT_IF(is_FatInline, isFlat());
+    return is_FatInline;
 }
 
 bool
@@ -395,8 +395,8 @@ js::ConcatStrings(ThreadSafeContext *cx,
     if (!JSString::validateLength(cx, wholeLength))
         return nullptr;
 
-    if (JSShortString::lengthFits(wholeLength) && cx->isJSContext()) {
-        JSShortString *str = js_NewGCShortString<allowGC>(cx);
+    if (JSFatInlineString::lengthFits(wholeLength) && cx->isJSContext()) {
+        JSFatInlineString *str = js_NewGCFatInlineString<allowGC>(cx);
         if (!str)
             return nullptr;
 

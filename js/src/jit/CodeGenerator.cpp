@@ -4903,9 +4903,9 @@ JitCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     masm.add32(temp1, temp2);
 
     
-    Label isShort;
-    masm.branch32(Assembler::BelowOrEqual, temp2, Imm32(JSShortString::MAX_SHORT_LENGTH),
-                  &isShort);
+    Label isFatInline;
+    masm.branch32(Assembler::BelowOrEqual, temp2, Imm32(JSFatInlineString::MAX_FAT_INLINE_LENGTH),
+                  &isFatInline);
 
     
     masm.branch32(Assembler::Above, temp2, Imm32(JSString::MAX_LENGTH), &failure);
@@ -4944,7 +4944,7 @@ JitCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     masm.mov(lhs, output);
     masm.ret();
 
-    masm.bind(&isShort);
+    masm.bind(&isFatInline);
 
     
 
@@ -4958,12 +4958,12 @@ JitCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     
     switch (mode) {
       case SequentialExecution:
-        masm.newGCShortString(output, temp3, &failure);
+        masm.newGCFatInlineString(output, temp3, &failure);
         break;
       case ParallelExecution:
         masm.push(temp1);
         masm.push(temp2);
-        masm.newGCShortStringPar(output, forkJoinContext, temp1, temp2, &failurePopTemps);
+        masm.newGCFatInlineStringPar(output, forkJoinContext, temp1, temp2, &failurePopTemps);
         masm.pop(temp2);
         masm.pop(temp1);
         break;
@@ -4977,8 +4977,8 @@ JitCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     masm.storePtr(temp2, Address(output, JSString::offsetOfLengthAndFlags()));
 
     
-    masm.computeEffectiveAddress(Address(output, JSShortString::offsetOfInlineStorage()), temp2);
-    masm.storePtr(temp2, Address(output, JSShortString::offsetOfChars()));
+    masm.computeEffectiveAddress(Address(output, JSFatInlineString::offsetOfInlineStorage()), temp2);
+    masm.storePtr(temp2, Address(output, JSFatInlineString::offsetOfChars()));
 
     {
         

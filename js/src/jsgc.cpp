@@ -273,7 +273,7 @@ const uint32_t Arena::ThingSizes[] = {
     sizeof(Shape),              
     sizeof(BaseShape),          
     sizeof(types::TypeObject),  
-    sizeof(JSShortString),      
+    sizeof(JSFatInlineString),  
     sizeof(JSString),           
     sizeof(JSExternalString),   
     sizeof(jit::JitCode),       
@@ -299,7 +299,7 @@ const uint32_t Arena::FirstThingOffsets[] = {
     OFFSET(Shape),              
     OFFSET(BaseShape),          
     OFFSET(types::TypeObject),  
-    OFFSET(JSShortString),      
+    OFFSET(JSFatInlineString),  
     OFFSET(JSString),           
     OFFSET(JSExternalString),   
     OFFSET(jit::JitCode),       
@@ -357,7 +357,7 @@ static const AllocKind BackgroundPhaseObjects[] = {
 };
 
 static const AllocKind BackgroundPhaseStrings[] = {
-    FINALIZE_SHORT_STRING,
+    FINALIZE_FAT_INLINE_STRING,
     FINALIZE_STRING
 };
 
@@ -608,8 +608,8 @@ FinalizeArenas(FreeOp *fop,
         return FinalizeTypedArenas<types::TypeObject>(fop, src, dest, thingKind, budget);
       case FINALIZE_STRING:
         return FinalizeTypedArenas<JSString>(fop, src, dest, thingKind, budget);
-      case FINALIZE_SHORT_STRING:
-        return FinalizeTypedArenas<JSShortString>(fop, src, dest, thingKind, budget);
+      case FINALIZE_FAT_INLINE_STRING:
+        return FinalizeTypedArenas<JSFatInlineString>(fop, src, dest, thingKind, budget);
       case FINALIZE_EXTERNAL_STRING:
         return FinalizeTypedArenas<JSExternalString>(fop, src, dest, thingKind, budget);
       case FINALIZE_JITCODE:
@@ -1652,7 +1652,7 @@ ArenaLists::queueStringsForSweep(FreeOp *fop)
 {
     gcstats::AutoPhase ap(fop->runtime()->gcStats, gcstats::PHASE_SWEEP_STRING);
 
-    queueForBackgroundSweep(fop, FINALIZE_SHORT_STRING);
+    queueForBackgroundSweep(fop, FINALIZE_FAT_INLINE_STRING);
     queueForBackgroundSweep(fop, FINALIZE_STRING);
 
     queueForForegroundSweep(fop, FINALIZE_EXTERNAL_STRING);

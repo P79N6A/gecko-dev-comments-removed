@@ -363,7 +363,7 @@ class JSString : public js::gc::BarrieredCell<JSString>
         return *(JSInlineString *)this;
     }
 
-    bool isShort() const;
+    bool isFatInline() const;
 
     
     bool isExternal() const;
@@ -646,16 +646,16 @@ class JSInlineString : public JSFlatString
 
 JS_STATIC_ASSERT(sizeof(JSInlineString) == sizeof(JSString));
 
-class JSShortString : public JSInlineString
+class JSFatInlineString : public JSInlineString
 {
     
     static const size_t INLINE_EXTENSION_CHARS = sizeof(JSString::Data) / sizeof(jschar);
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(INLINE_EXTENSION_CHARS % js::gc::CellSize == 0);
-        JS_STATIC_ASSERT(MAX_SHORT_LENGTH + 1 ==
-                         (sizeof(JSShortString) -
-                          offsetof(JSShortString, d.inlineStorage)) / sizeof(jschar));
+        JS_STATIC_ASSERT(MAX_FAT_INLINE_LENGTH + 1 ==
+                         (sizeof(JSFatInlineString) -
+                          offsetof(JSFatInlineString, d.inlineStorage)) / sizeof(jschar));
     }
 
   protected: 
@@ -663,14 +663,14 @@ class JSShortString : public JSInlineString
 
   public:
     template <js::AllowGC allowGC>
-    static inline JSShortString *new_(js::ThreadSafeContext *cx);
+    static inline JSFatInlineString *new_(js::ThreadSafeContext *cx);
 
-    static const size_t MAX_SHORT_LENGTH = JSString::NUM_INLINE_CHARS +
-                                           INLINE_EXTENSION_CHARS
-                                           -1 ;
+    static const size_t MAX_FAT_INLINE_LENGTH = JSString::NUM_INLINE_CHARS +
+                                                INLINE_EXTENSION_CHARS
+                                                -1 ;
 
     static bool lengthFits(size_t length) {
-        return length <= MAX_SHORT_LENGTH;
+        return length <= MAX_FAT_INLINE_LENGTH;
     }
 
     
@@ -678,7 +678,7 @@ class JSShortString : public JSInlineString
     MOZ_ALWAYS_INLINE void finalize(js::FreeOp *fop);
 };
 
-JS_STATIC_ASSERT(sizeof(JSShortString) == 2 * sizeof(JSString));
+JS_STATIC_ASSERT(sizeof(JSFatInlineString) == 2 * sizeof(JSString));
 
 class JSExternalString : public JSFlatString
 {
