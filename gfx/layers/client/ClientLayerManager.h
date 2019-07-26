@@ -34,6 +34,7 @@ class CompositorChild;
 class ImageLayer;
 class PLayerChild;
 class TextureClientPool;
+class SimpleTextureClientPool;
 
 class TextureClientPoolMember
   : public LinkedListElement<TextureClientPoolMember> {
@@ -108,6 +109,7 @@ public:
   virtual void SetIsFirstPaint() MOZ_OVERRIDE;
 
   TextureClientPool *GetTexturePool(gfx::SurfaceFormat aFormat);
+  SimpleTextureClientPool *GetSimpleTileTexturePool(gfx::SurfaceFormat aFormat);
 
   
   
@@ -228,6 +230,9 @@ private:
 
   RefPtr<ShadowLayerForwarder> mForwarder;
   LinkedList<TextureClientPoolMember> mTexturePools;
+
+  
+  nsTArray<RefPtr<SimpleTextureClientPool> > mSimpleTilePools;
 };
 
 class ClientLayer : public ShadowableLayer

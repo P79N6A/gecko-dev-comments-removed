@@ -21,6 +21,7 @@
 #include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/TextureClientPool.h" 
+#include "mozilla/layers/SimpleTextureClientPool.h" 
 #include "nsAString.h"
 #include "nsIWidget.h"                  
 #include "nsTArray.h"                   
@@ -472,6 +473,21 @@ ClientLayerManager::GetTexturePool(SurfaceFormat aFormat)
   mTexturePools.insertBack(texturePoolMember);
 
   return texturePoolMember->mTexturePool;
+}
+
+SimpleTextureClientPool*
+ClientLayerManager::GetSimpleTileTexturePool(SurfaceFormat aFormat)
+{
+  int index = (int) aFormat;
+  mSimpleTilePools.EnsureLengthAtLeast(index+1);
+
+  if (mSimpleTilePools[index].get() == nullptr) {
+    mSimpleTilePools[index] = new SimpleTextureClientPool(aFormat, IntSize(TILEDLAYERBUFFER_TILE_SIZE,
+                                                                           TILEDLAYERBUFFER_TILE_SIZE),
+                                                          mForwarder);
+  }
+
+  return mSimpleTilePools[index];
 }
 
 void
