@@ -76,7 +76,7 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
     }
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         
-        if (act == js::Wrapper::GET && id == JSID_VOIDHANDLE)
+        if (act == js::Wrapper::ENUMERATE)
             return true;
         return false;
     }
@@ -93,7 +93,7 @@ struct ExposedPropertiesOnly : public Policy {
 
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         
-        return act == js::Wrapper::GET;
+        return act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE;
     }
     static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl);
 };

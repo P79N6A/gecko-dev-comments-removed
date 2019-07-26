@@ -177,7 +177,7 @@ ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
         return true;
     
     
-    *bp = (act == Wrapper::GET);
+    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE;
     if (!*bp || id == JSID_VOID)
         return false;
 

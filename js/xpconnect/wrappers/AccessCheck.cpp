@@ -219,10 +219,7 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
 
     
     
-    
-    
-    
-    if (id == JSID_VOID)
+    if (act == Wrapper::ENUMERATE)
         return false;
 
     const char *name;
