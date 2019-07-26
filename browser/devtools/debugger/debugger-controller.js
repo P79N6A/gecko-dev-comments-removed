@@ -1203,20 +1203,15 @@ function Breakpoints() {
   this._onEditorBreakpointRemove = this._onEditorBreakpointRemove.bind(this);
   this.addBreakpoint = this.addBreakpoint.bind(this);
   this.removeBreakpoint = this.removeBreakpoint.bind(this);
-  this.getBreakpoint = this.getBreakpoint.bind(this);
 }
 
 Breakpoints.prototype = {
   get activeThread() DebuggerController.ThreadState.activeThread,
-  get editor() DebuggerView.editor,
 
   
 
 
 
-
-
-  store: {},
 
   
 
@@ -1231,25 +1226,34 @@ Breakpoints.prototype = {
 
 
   _skipEditorBreakpointCallbacks: false,
+  _added: new Map(),
+  _removing: new Map(),
 
   
 
 
+
+
+
   initialize: function() {
-    this.editor.addEventListener(
+    DebuggerView.editor.addEventListener(
       SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
+
+    
+    return promise.resolve(null);
   },
 
   
 
 
+
+
+
   destroy: function() {
-    this.editor.removeEventListener(
+    DebuggerView.editor.removeEventListener(
       SourceEditor.EVENTS.BREAKPOINT_CHANGE, this._onEditorBreakpointChange);
 
-    for each (let breakpointClient in this.store) {
-      this.removeBreakpoint(breakpointClient);
-    }
+    return this.removeAllBreakpoints();
   },
 
   
@@ -1278,15 +1282,20 @@ Breakpoints.prototype = {
   _onEditorBreakpointAdd: function(aEditorBreakpoint) {
     let url = DebuggerView.Sources.selectedValue;
     let line = aEditorBreakpoint.line + 1;
+    let location = { url: url, line: line };
 
-    this.addBreakpoint({ url: url, line: line }, (aBreakpointClient) => {
+    
+    
+    this.addBreakpoint(location, { noEditorUpdate: true }).then(aBreakpointClient => {
       
       
       
-      if (aBreakpointClient.actualLocation) {
-        this.editor.removeBreakpoint(line - 1);
-        this.editor.addBreakpoint(aBreakpointClient.actualLocation.line - 1);
+      if (aBreakpointClient.requestedLocation) {
+        DebuggerView.editor.removeBreakpoint(aBreakpointClient.requestedLocation.line - 1);
+        DebuggerView.editor.addBreakpoint(aBreakpointClient.location.line - 1);
       }
+      
+      window.dispatchEvent(document, "Debugger:BreakpointShown", aEditorBreakpoint);
     });
   },
 
@@ -1299,8 +1308,14 @@ Breakpoints.prototype = {
   _onEditorBreakpointRemove: function(aEditorBreakpoint) {
     let url = DebuggerView.Sources.selectedValue;
     let line = aEditorBreakpoint.line + 1;
+    let location = { url: url, line: line };
 
-    this.removeBreakpoint(this.getBreakpoint(url, line));
+    
+    
+    this.removeBreakpoint(location, { noEditorUpdate: true }).then(() => {
+      
+      window.dispatchEvent(document, "Debugger:BreakpointHidden", aEditorBreakpoint);
+    });
   },
 
   
@@ -1310,13 +1325,16 @@ Breakpoints.prototype = {
 
 
   updateEditorBreakpoints: function() {
-    for each (let breakpointClient in this.store) {
-      if (DebuggerView.Sources.selectedValue == breakpointClient.location.url) {
-        this._showBreakpoint(breakpointClient, {
-          noPaneUpdate: true,
-          noPaneHighlight: true
-        });
-      }
+    for (let [, breakpointPromise] of this._added) {
+      breakpointPromise.then(aBreakpointClient => {
+        let currentSourceUrl = DebuggerView.Sources.selectedValue;
+        let breakpointUrl = aBreakpointClient.location.url;
+
+        
+        if (currentSourceUrl == breakpointUrl) {
+          this._showBreakpoint(aBreakpointClient, { noPaneUpdate: true });
+        }
+      });
     }
   },
 
@@ -1327,13 +1345,16 @@ Breakpoints.prototype = {
 
 
   updatePaneBreakpoints: function() {
-    for each (let breakpointClient in this.store) {
-      if (DebuggerView.Sources.containsValue(breakpointClient.location.url)) {
-        this._showBreakpoint(breakpointClient, {
-          noEditorUpdate: true,
-          noPaneHighlight: true
-        });
-      }
+    for (let [, breakpointPromise] of this._added) {
+      breakpointPromise.then(aBreakpointClient => {
+        let container = DebuggerView.Sources;
+        let breakpointUrl = aBreakpointClient.location.url;
+
+        
+        if (container.containsValue(breakpointUrl)) {
+          this._showBreakpoint(aBreakpointClient, { noEditorUpdate: true });
+        }
+      });
     }
   },
 
@@ -1354,65 +1375,154 @@ Breakpoints.prototype = {
 
 
 
-
-
-
-
-  addBreakpoint: function(aLocation, aCallback, aFlags = {}) {
+  addBreakpoint: function(aLocation, aOptions = {}) {
     
     if (!aLocation) {
-      aCallback && aCallback(null, new Error("Invalid breakpoint location."));
-      return;
+      return promise.reject(new Error("Invalid breakpoint location."));
     }
-    let breakpointClient = this.getBreakpoint(aLocation.url, aLocation.line);
 
     
-    if (breakpointClient) {
-      aCallback && aCallback(breakpointClient);
-      return;
+    
+    let addedPromise = this._getAdded(aLocation);
+    if (addedPromise) {
+      return addedPromise;
     }
 
+    
+    
+    let removingPromise = this._getRemoving(aLocation);
+    if (removingPromise) {
+      return removingPromise.then(() => this.addBreakpoint(aLocation, aOptions));
+    }
+
+    let deferred = promise.defer();
+
+    
+    let identifier = this._getIdentifier(aLocation);
+    this._added.set(identifier, deferred.promise);
+
+    
     this.activeThread.setBreakpoint(aLocation, (aResponse, aBreakpointClient) => {
-      let { url, line } = aResponse.actualLocation || aLocation;
-
-      
-      
-      if (this.getBreakpoint(url, line)) {
-        this._hideBreakpoint(aBreakpointClient);
-        return;
-      }
-
       
       
       if (aResponse.actualLocation) {
         
-        aBreakpointClient.requestedLocation = {
-          url: aBreakpointClient.location.url,
-          line: aBreakpointClient.location.line
-        };
+        let oldIdentifier = identifier;
+        let newIdentifier = this._getIdentifier(aResponse.actualLocation);
+        this._added.delete(oldIdentifier);
+        this._added.set(newIdentifier, deferred.promise);
+
         
-        aBreakpointClient.actualLocation = aResponse.actualLocation;
         
-        aBreakpointClient.location.url = aResponse.actualLocation.url;
-        aBreakpointClient.location.line = aResponse.actualLocation.line;
+        aBreakpointClient.requestedLocation = aLocation;
+        aBreakpointClient.location = aResponse.actualLocation;
       }
 
       
-      this.store[aBreakpointClient.actor] = aBreakpointClient;
+      
+      
+      
+      let line = aBreakpointClient.location.line - 1;
+      aBreakpointClient.text = DebuggerView.getEditorLineText(line).trim();
 
       
-      aBreakpointClient.conditionalExpression = aFlags.conditionalExpression;
+      this._showBreakpoint(aBreakpointClient, aOptions);
+      deferred.resolve(aBreakpointClient);
+    });
 
-      
-      
-      
-      aBreakpointClient.lineText = DebuggerView.getEditorLineText(line - 1).trim();
+    return deferred.promise;
+  },
 
-      
-      this._showBreakpoint(aBreakpointClient, aFlags);
+  
 
+
+
+
+
+
+
+
+
+
+  removeBreakpoint: function(aLocation, aOptions = {}) {
+    
+    if (!aLocation) {
+      return promise.reject(new Error("Invalid breakpoint location."));
+    }
+
+    
+    
+    let addedPromise = this._getAdded(aLocation);
+    if (!addedPromise) {
+      return promise.resolve(aLocation);
+    }
+
+    
+    
+    let removingPromise = this._getRemoving(aLocation);
+    if (removingPromise) {
+      return removingPromise;
+    }
+
+    let deferred = promise.defer();
+
+    
+    let identifier = this._getIdentifier(aLocation);
+    this._removing.set(identifier, deferred.promise);
+
+    
+    addedPromise.then(aBreakpointClient => {
       
-      aCallback && aCallback(aBreakpointClient, aResponse.error);
+      aBreakpointClient.remove(aResponse => {
+        
+        
+        if (aResponse.error) {
+          deferred.reject(aResponse);
+          return void this._removing.delete(identifier);
+        }
+
+        
+        this._added.delete(identifier);
+        this._removing.delete(identifier);
+
+        
+        this._hideBreakpoint(aLocation, aOptions);
+        deferred.resolve(aLocation);
+      });
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  removeAllBreakpoints: function() {
+    
+    let getActiveBreakpoints = (aPromises, aStore = []) => {
+      for (let [, breakpointPromise] of aPromises) {
+        aStore.push(breakpointPromise);
+      }
+      return aStore;
+    }
+
+    
+    let getRemovedBreakpoints = (aClients, aStore = []) => {
+      for (let breakpointClient of aClients) {
+        aStore.push(this.removeBreakpoint(breakpointClient.location));
+      }
+      return aStore;
+    }
+
+    
+    
+    
+    return promise.all(getActiveBreakpoints(this._added)).then(aBreakpointClients => {
+      return promise.all(getRemovedBreakpoints(aBreakpointClients));
     });
   },
 
@@ -1428,59 +1538,26 @@ Breakpoints.prototype = {
 
 
 
-  removeBreakpoint: function(aBreakpointClient, aCallback, aFlags = {}) {
-    
-    if (!aBreakpointClient) {
-      aCallback && aCallback(null, new Error("Invalid breakpoint client."));
-      return;
-    }
-    let breakpointActor = aBreakpointClient.actor;
-
-    
-    if (!this.store[breakpointActor]) {
-      aCallback && aCallback(aBreakpointClient.location);
-      return;
-    }
-
-    aBreakpointClient.remove(() => {
-      
-      delete this.store[breakpointActor];
-
-      
-      this._hideBreakpoint(aBreakpointClient, aFlags);
-
-      
-      aCallback && aCallback(aBreakpointClient.location);
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  _showBreakpoint: function(aBreakpointClient, aFlags = {}) {
+  _showBreakpoint: function(aBreakpointData, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
-    let { url, line } = aBreakpointClient.location;
+    let location = aBreakpointData.location;
 
     
     if (!aFlags.noEditorUpdate) {
-      if (url == currentSourceUrl) {
+      if (location.url == currentSourceUrl) {
         this._skipEditorBreakpointCallbacks = true;
-        this.editor.addBreakpoint(line - 1);
+        DebuggerView.editor.addBreakpoint(location.line - 1);
         this._skipEditorBreakpointCallbacks = false;
       }
     }
+
     
     if (!aFlags.noPaneUpdate) {
       DebuggerView.Sources.addBreakpoint({
-        sourceLocation: url,
-        lineNumber: line,
-        lineText: aBreakpointClient.lineText,
-        actor: aBreakpointClient.actor,
+        sourceLocation: location.url,
+        lineNumber: location.line,
+        lineText: aBreakpointData.text,
+        actor: aBreakpointData.actor,
         openPopupFlag: aFlags.openPopup
       });
     }
@@ -1488,9 +1565,6 @@ Breakpoints.prototype = {
     if (!aFlags.noPaneHighlight) {
       DebuggerView.Sources.highlightBreakpoint(url, line, aFlags);
     }
-
-    
-    window.dispatchEvent(document, "Debugger:BreakpointShown", aBreakpointClient);
   },
 
   
@@ -1501,25 +1575,21 @@ Breakpoints.prototype = {
 
 
 
-  _hideBreakpoint: function(aBreakpointClient, aFlags = {}) {
+  _hideBreakpoint: function(aLocation, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
-    let { url, line } = aBreakpointClient.location;
 
     
     if (!aFlags.noEditorUpdate) {
-      if (url == currentSourceUrl) {
+      if (aLocation.url == currentSourceUrl) {
         this._skipEditorBreakpointCallbacks = true;
-        this.editor.removeBreakpoint(line - 1);
+        DebuggerView.editor.removeBreakpoint(aLocation.line - 1);
         this._skipEditorBreakpointCallbacks = false;
       }
     }
     
     if (!aFlags.noPaneUpdate) {
-      DebuggerView.Sources.removeBreakpoint(url, line);
+      DebuggerView.Sources.removeBreakpoint(aLocation.url, aLocation.line);
     }
-
-    
-    window.dispatchEvent(document, "Debugger:BreakpointHidden", aBreakpointClient);
   },
 
   
@@ -1532,14 +1602,35 @@ Breakpoints.prototype = {
 
 
 
-  getBreakpoint: function(aUrl, aLine) {
-    for each (let breakpointClient in this.store) {
-      if (breakpointClient.location.url == aUrl &&
-          breakpointClient.location.line == aLine) {
-        return breakpointClient;
-      }
-    }
-    return null;
+  _getAdded: function(aLocation) {
+    return this._added.get(this._getIdentifier(aLocation));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _getRemoving: function(aLocation) {
+    return this._removing.get(this._getIdentifier(aLocation));
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getIdentifier: function(aLocation) {
+    return aLocation.url + ":" + aLocation.line;
   }
 };
 
