@@ -59,19 +59,33 @@ ReusableTileStoreOGL::InvalidateTiles(TiledThebesLayerOGL* aLayer,
   mContext->MakeCurrent();
   for (uint32_t i = 0; i < mTiles.Length();) {
     ReusableTiledTextureOGL* tile = mTiles[i];
-    bool release = false;
 
-    nsIntRect tileRect = tile->mTileRegion.GetBounds();
-    if (tile->mResolution != aResolution) {
+    
+    nsIntRect tileRect;
+    bool release = false;
+    if (tile->mResolution == aResolution) {
+      if (aValidRegion.Contains(tile->mTileRegion)) {
+        release = true;
+      } else {
+        tileRect = tile->mTileRegion.GetBounds();
+      }
+    } else {
       nsIntRegion transformedTileRegion(tile->mTileRegion);
       transformedTileRegion.ScaleRoundOut(tile->mResolution.width / aResolution.width,
                                           tile->mResolution.height / aResolution.height);
-      tileRect = transformedTileRegion.GetBounds();
+      if (aValidRegion.Contains(transformedTileRegion))
+        release = true;
+      else
+        tileRect = transformedTileRegion.GetBounds();
     }
 
     
-    if (aValidRegion.Contains(tileRect)) {
-      release = true;
+    
+    if (!release) {
+      
+      gfxRect tileBounds = aLayer->GetEffectiveTransform().TransformBounds(gfxRect(tileRect));
+      if (renderBounds.Contains(tileBounds))
+        release = true;
     }
 
     if (release) {
@@ -120,20 +134,16 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
     
     
     
-    if (w < 16) {
-      x += w;
+    if (w < 16)
       continue;
-    }
 
     for (int y = validBounds.y; y < validBounds.YMost();) {
       int h = tileSize - aVideoMemoryTiledBuffer->GetTileStart(y);
       if (y + h > validBounds.y + validBounds.height)
         h = validBounds.y + validBounds.height - y;
 
-      if (h < 16) {
-        y += h;
+      if (h < 16)
         continue;
-      }
 
       
       
@@ -156,6 +166,9 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
       }
 
       if (retainTile) {
+#ifdef GFX_TILEDLAYER_PREF_WARNINGS
+        printf_stderr("Retaining tile at %d,%d, x%f for reuse\n", x, y, aOldResolution.width);
+#endif
         TiledTexture removedTile;
         if (aVideoMemoryTiledBuffer->RemoveTile(nsIntPoint(x, y), removedTile)) {
           ReusableTiledTextureOGL* reusedTile =
@@ -163,9 +176,6 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
                                         tileSize, aOldResolution);
           mTiles.AppendElement(reusedTile);
 
-#ifdef GFX_TILEDLAYER_PREF_WARNINGS
-          bool replacedATile = false;
-#endif
           
           
           for (int i = 0; i < mTiles.Length() - 1; i++) {
@@ -176,20 +186,10 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
                 mTiles[i]->mResolution == aOldResolution) {
               mContext->fDeleteTextures(1, &mTiles[i]->mTexture.mTextureHandle);
               mTiles.RemoveElementAt(i);
-#ifdef GFX_TILEDLAYER_PREF_WARNINGS
-              replacedATile = true;
-#endif
               
               break;
             }
           }
-#ifdef GFX_TILEDLAYER_PREF_WARNINGS
-          if (replacedATile) {
-            printf_stderr("Replaced tile at %d,%d, x%f for reuse\n", x, y, aOldResolution.width);
-          } else {
-            printf_stderr("New tile at %d,%d, x%f for reuse\n", x, y, aOldResolution.width);
-          }
-#endif
         }
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
         else
@@ -218,7 +218,6 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
   }
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
-  printf_stderr("Retained tile limit: %f\n", aVideoMemoryTiledBuffer->GetTileCount() * mSizeLimit);
   printf_stderr("Retained %d tiles\n", mTiles.Length());
 #endif
 }
@@ -274,7 +273,6 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
     if (aResolution != tile->mResolution)
       transform.Scale(scaleFactor.width, scaleFactor.height, 1);
 
-    
     
     nsIntRegion transformedValidRegion(aValidRegion);
     if (aResolution != tile->mResolution)

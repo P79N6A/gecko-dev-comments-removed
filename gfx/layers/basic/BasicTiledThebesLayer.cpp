@@ -265,12 +265,6 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
   
   
-  if (mTiledBuffer.GetResolution() != resolution) {
-    mValidRegion = nsIntRegion();
-  }
-
-  
-  
   gfx::Point scrollOffset(0, 0);
   Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
   if (primaryScrollable) {
