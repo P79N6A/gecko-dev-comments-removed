@@ -251,7 +251,6 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
   }
 
   
-  bool needsRedraw = false;
   bool finished;
   nscoord passes = 0;
 
@@ -472,14 +471,7 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
            
         
         child->SetBounds(aState, childRect);
-
-        
-        needsRedraw = true;
       }
-
-      
-      if (oldRect.x != childRect.x || oldRect.y != childRect.y)
-          needsRedraw = true;
 
       
       
@@ -632,13 +624,9 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 
   
   if (!(frameState & NS_STATE_AUTO_STRETCH)) {
-    AlignChildren(aBox, aState, &needsRedraw);
+    AlignChildren(aBox, aState);
   }
-
   
-  if (needsRedraw)
-    aBox->Redraw(aState);
-
   
   
   return NS_OK;
@@ -919,8 +907,7 @@ nsSprocketLayout::ComputeChildsNextPosition(nsIFrame* aBox,
 
 void
 nsSprocketLayout::AlignChildren(nsIFrame* aBox,
-                                nsBoxLayoutState& aState,
-                                bool* aNeedsRedraw)
+                                nsBoxLayoutState& aState)
 {
   nsFrameState frameState = 0;
   GetFrameState(aBox, frameState);
@@ -1005,7 +992,6 @@ nsSprocketLayout::AlignChildren(nsIFrame* aBox,
     }
 
     if (childRect.TopLeft() != child->GetPosition()) {
-      *aNeedsRedraw = true;
       child->SetBounds(aState, childRect);
     }
 
