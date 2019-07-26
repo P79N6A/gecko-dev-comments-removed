@@ -148,27 +148,28 @@ TextTrack::GetActiveCues()
   
   if (mDirty) {
     mCuePos = 0;
-    mDirty = false;
+    mDirty = true;
     mActiveCueList->RemoveAll();
   }
 
   double playbackTime = mMediaElement->CurrentTime();
   
   
-  for (uint32_t i = mActiveCueList->Length(); i > 0; i--) {
-    if ((*mActiveCueList)[i - 1]->EndTime() < playbackTime) {
-      mActiveCueList->RemoveCueAt(i - 1);
-    }
+  
+  for (uint32_t i = 0; i < mActiveCueList->Length() &&
+                       (*mActiveCueList)[i]->EndTime() < playbackTime; i++) {
+    mActiveCueList->RemoveCueAt(i);
   }
   
   
   
   
-  for (; mCuePos < mCueList->Length() &&
-         (*mCueList)[mCuePos]->StartTime() <= playbackTime; mCuePos++) {
-    if ((*mCueList)[mCuePos]->EndTime() >= playbackTime) {
-      mActiveCueList->AddCue(*(*mCueList)[mCuePos]);
+  for (; mCuePos < mCueList->Length(); mCuePos++) {
+    TextTrackCue* cue = (*mCueList)[mCuePos];
+    if (cue->StartTime() > playbackTime || cue->EndTime() < playbackTime) {
+      break;
     }
+    mActiveCueList->AddCue(*cue);
   }
   return mActiveCueList;
 }
