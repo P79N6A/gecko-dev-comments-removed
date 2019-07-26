@@ -446,10 +446,6 @@ MetroInput::InitTouchEventTouchList(WidgetTouchEvent* aEvent)
 bool
 MetroInput::ShouldDeliverInputToRecognizer()
 {
-  
-  if (mChromeHitTestCacheForTouch) {
-    return true;
-  }
   return mRecognizerWantsEvents;
 }
 
