@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.13"
-#define SQLITE_VERSION_NUMBER 3007013
-#define SQLITE_SOURCE_ID      "2012-06-11 02:05:22 f5b5a13f7394dc143aa136f1d4faba6839eaa6dc"
+#define SQLITE_VERSION        "3.7.14"
+#define SQLITE_VERSION_NUMBER 3007014
+#define SQLITE_SOURCE_ID      "2012-09-03 15:42:36 c0d89d4a9752922f9e367362366efde4f1b06f2a"
 
 
 
@@ -224,6 +224,7 @@ SQLITE_API int sqlite3_threadsafe(void);
 
 
 
+
 typedef struct sqlite3 sqlite3;
 
 
@@ -287,7 +288,25 @@ typedef sqlite_uint64 sqlite3_uint64;
 
 
 
-SQLITE_API int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API int sqlite3_close(sqlite3*);
+SQLITE_API int sqlite3_close_v2(sqlite3*);
 
 
 
@@ -2649,6 +2668,12 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
 
 
+
+
+
+
+
+
 SQLITE_API int sqlite3_open(
   const char *filename,   
   sqlite3 **ppDb          
@@ -3098,6 +3123,9 @@ typedef struct Mem sqlite3_value;
 
 
 typedef struct sqlite3_context sqlite3_context;
+
+
+
 
 
 
@@ -4450,6 +4478,21 @@ SQLITE_API int sqlite3_sleep(int);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API SQLITE_EXTERN char *sqlite3_temp_directory;
 
 
@@ -5479,7 +5522,6 @@ SQLITE_API int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOff
 SQLITE_API sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
 SQLITE_API int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
 SQLITE_API int sqlite3_vfs_unregister(sqlite3_vfs*);
-
 
 
 

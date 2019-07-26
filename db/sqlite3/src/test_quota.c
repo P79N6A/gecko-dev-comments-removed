@@ -58,8 +58,6 @@
 #   define SQLITE_OS_UNIX 0
 #   undef SQLITE_OS_WIN
 #   define SQLITE_OS_WIN 0
-#   undef SQLITE_OS_OS2
-#   define SQLITE_OS_OS2 0
 # else
 #   undef SQLITE_OS_OTHER
 # endif
@@ -71,20 +69,12 @@
                        || defined(__MINGW32__) || defined(__BORLANDC__)
 #     define SQLITE_OS_WIN 1
 #     define SQLITE_OS_UNIX 0
-#     define SQLITE_OS_OS2 0
-#   elif defined(__EMX__) || defined(_OS2) || defined(OS2) \
-                          || defined(_OS2_) || defined(__OS2__)
-#     define SQLITE_OS_WIN 0
-#     define SQLITE_OS_UNIX 0
-#     define SQLITE_OS_OS2 1
 #   else
 #     define SQLITE_OS_WIN 0
 #     define SQLITE_OS_UNIX 1
-#     define SQLITE_OS_OS2 0
 #  endif
 # else
 #  define SQLITE_OS_UNIX 0
-#  define SQLITE_OS_OS2 0
 # endif
 #else
 # ifndef SQLITE_OS_WIN
