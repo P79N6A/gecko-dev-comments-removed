@@ -1,9 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@.db;
+
+
+
+package org.mozilla.gecko.db;
 
 import java.lang.IllegalArgumentException;
 import java.util.HashMap;
@@ -41,7 +40,7 @@ public class PasswordsProvider extends GeckoProvider {
     private static HashMap<String, String> PASSWORDS_PROJECTION_MAP;
     private static HashMap<String, String> DELETED_PASSWORDS_PROJECTION_MAP;
 
-    // this should be kept in sync with the version in toolkit/components/passwordmgr/storage-mozStorage.js
+    
     private static final int DB_VERSION = 5;
     private static final String DB_FILENAME = "signons.sqlite";
 
@@ -51,7 +50,7 @@ public class PasswordsProvider extends GeckoProvider {
     static {
         URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
 
-        // content://org.mozilla.gecko.providers.browser/passwords/#
+        
         URI_MATCHER.addURI(BrowserContract.PASSWORDS_AUTHORITY, "passwords", PASSWORDS);
 
         PASSWORDS_PROJECTION_MAP = new HashMap<String, String>();
@@ -145,7 +144,7 @@ public class PasswordsProvider extends GeckoProvider {
             case DELETED_PASSWORDS:
                 values.put(DeletedPasswords.TIME_DELETED, now);
 
-                // Deleted passwords must contain a guid
+                
                 if (!values.containsKey(Passwords.GUID)) {
                     throw new IllegalArgumentException("Must provide a GUID for a deleted password");
                 }
@@ -154,7 +153,7 @@ public class PasswordsProvider extends GeckoProvider {
             case PASSWORDS:
                 values.put(Passwords.TIME_CREATED, now);
 
-                // Generate GUID for new password. Don't override specified GUIDs.
+                
                 if (!values.containsKey(Passwords.GUID)) {
                     String guid = Utils.generateGuid();
                     values.put(Passwords.GUID, guid);

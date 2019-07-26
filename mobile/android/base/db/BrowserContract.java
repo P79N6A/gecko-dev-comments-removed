@@ -1,9 +1,8 @@
-/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
+
+
+
+
 package org.mozilla.gecko.db;
 
 import org.mozilla.gecko.AppConstants;
@@ -132,7 +131,7 @@ public class BrowserContract {
 
         public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "bookmarks");
         public static final Uri PARENTS_CONTENT_URI = Uri.withAppendedPath(CONTENT_URI, "parents");
-        // Hacky API for bulk-updating positions. Bug 728783.
+        
         public static final Uri POSITIONS_CONTENT_URI = Uri.withAppendedPath(CONTENT_URI, "positions");
         public static final long DEFAULT_POSITION = Long.MIN_VALUE;
 
@@ -154,7 +153,7 @@ public class BrowserContract {
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/browser-history";
     }
 
-    // Combined bookmarks and history
+    
     public static final class Combined implements CommonColumns, URLColumns, HistoryColumns, FaviconColumns  {
         private Combined() {}
         public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "combined");
@@ -179,10 +178,10 @@ public class BrowserContract {
 
         public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "control");
 
-        // These return 1 if done/finished, 0 if not.
-        // Check if history was completely migrated, do a bunch if it wasn't.
+        
+        
         public static final String ENSURE_HISTORY_MIGRATED = "ensure_history_migrated";
-        // Check if bookmarks were completely migrated, migrate them if not.
+        
         public static final String ENSURE_BOOKMARKS_MIGRATED = "ensure_bookmarks_migrated";
     }
 
@@ -206,7 +205,7 @@ public class BrowserContract {
         public static final String TIMES_USED = "timesUsed";
         public static final String GUID = "guid";
 
-        // This needs to be kept in sync with the types defined in toolkit/components/passwordmgr/nsILoginManagerCrypto.idl#45
+        
         public static final int ENCTYPE_SDR = 1;
     }
 
@@ -242,26 +241,26 @@ public class BrowserContract {
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/tab";
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/tab";
 
-        // Title of the tab.
-        public static final String TITLE = "title";
         
-        // Topmost URL from the history array. Allows processing of this tab without
-        // parsing that array.
+        public static final String TITLE = "title";
+
+        
+        
         public static final String URL = "url";
 
-        // Sync-assigned GUID for client device. NULL for local tabs.
+        
         public static final String CLIENT_GUID = "client_guid";
 
-        // JSON-encoded array of history URL strings, from most recent to least recent.
+        
         public static final String HISTORY = "history";
 
-        // Favicon URL for the tab's topmost history entry.
+        
         public static final String FAVICON = "favicon";
 
-        // Last used time of the tab.
+        
         public static final String LAST_USED = "last_used";
 
-        // Position of the tab. 0 represents foreground.
+        
         public static final String POSITION = "position";
     }
 
@@ -271,17 +270,17 @@ public class BrowserContract {
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/client";
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/client";
 
-        // Implicit rowid in SQL table.
+        
         public static final String ROWID = "rowid";
 
-        // Client-provided name string. Could conceivably be null.
+        
         public static final String NAME = "name";
 
-        // Sync-assigned GUID for client device. NULL for local tabs.
+        
         public static final String GUID = "guid";
 
-        // Last modified time for the client's tab record. For remote records, a server 
-        // timestamp provided by Sync during insertion.
+        
+        
         public static final String LAST_MODIFIED = "last_modified";
     }
 }

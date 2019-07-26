@@ -1,9 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@.db;
+
+
+
+package org.mozilla.gecko.db;
 
 import java.lang.IllegalArgumentException;
 import java.util.HashMap;
@@ -33,7 +32,7 @@ public class FormHistoryProvider extends GeckoProvider {
     private static HashMap<String, String> FORM_HISTORY_PROJECTION_MAP;
     private static HashMap<String, String> DELETED_FORM_HISTORY_PROJECTION_MAP;
 
-    // This should be kept in sync with the db version in toolkit/components/satchel/nsFormHistory.js
+    
     private static int DB_VERSION = 4;
     private static String DB_FILENAME = "formhistory.sqlite";
 
@@ -109,14 +108,14 @@ public class FormHistoryProvider extends GeckoProvider {
             case DELETED_FORM_HISTORY:
                 values.put(DeletedFormHistory.TIME_DELETED, now);
 
-                // Deleted entries must contain a guid
+                
                 if (!values.containsKey(FormHistory.GUID)) {
                     throw new IllegalArgumentException("Must provide a GUID for a deleted form history");
                 }
                 break;
 
             case FORM_HISTORY:
-                // Generate GUID for new entry. Don't override specified GUIDs.
+                
                 if (!values.containsKey(FormHistory.GUID)) {
                     String guid = Utils.generateGuid();
                     values.put(FormHistory.GUID, guid);

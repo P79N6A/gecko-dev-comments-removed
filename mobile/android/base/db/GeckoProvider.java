@@ -1,9 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@.db;
+
+
+
+package org.mozilla.gecko.db;
 
 import java.io.File;
 import java.util.HashMap;
@@ -24,16 +23,16 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
-/*
- * Provides a basic ContentProvider that sets up and sends queries through
- * SQLiteBridge. Content providers should extend this by setting the appropriate
- * table and version numbers in onCreate, and implementing the abstract methods:
- *
- *  public abstract String getTable(Uri uri);
- *  public abstract String getSortOrder(Uri uri, String aRequested);
- *  public abstract void setupDefaults(Uri uri, ContentValues values);
- *  public abstract void initGecko();
- */
+
+
+
+
+
+
+
+
+
+
 
 public abstract class GeckoProvider extends ContentProvider {
     private String mLogTag = "GeckoPasswordsProvider";
@@ -103,26 +102,26 @@ public abstract class GeckoProvider extends ContentProvider {
             int version = bridge.getVersion();
             dbNeedsSetup = version != mDBVersion;
         } catch (SQLiteBridgeException ex) {
-            // close the database
+            
             if (bridge != null)
                 bridge.close();
 
-            // this will throw if the database can't be found
-            // we should attempt to set it up if Gecko is running
+            
+            
             dbNeedsSetup = true;
             Log.e(mLogTag, "Error getting version ", ex);
 
-            // if Gecko is not running, we should bail out. Otherwise we try to
-            // let Gecko build the database for us
+            
+            
             if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
                 Log.e(mLogTag, "Can not set up database. Gecko is not running");
                 return null;
             }
         }
 
-        // If the database is not set up yet, or is the wrong schema version, we send an initialize
-        // call to Gecko. Gecko will handle building the database file correctly, as well as any
-        // migrations that are necessary
+        
+        
+        
         if (dbNeedsSetup) {
             bridge = null;
             initGecko();
@@ -181,7 +180,7 @@ public abstract class GeckoProvider extends ContentProvider {
         profile = uri.getQueryParameter(BrowserContract.PARAM_PROFILE);
         profilePath = uri.getQueryParameter(BrowserContract.PARAM_PROFILE_PATH);
 
-        // Testing will specify the absolute profile path
+        
         if (profilePath != null)
           return getDatabaseForPath(profilePath);
         return getDatabaseForProfile(profile);
@@ -223,9 +222,9 @@ public abstract class GeckoProvider extends ContentProvider {
         long id = -1;
         final SQLiteBridge db = getDatabase(uri);
 
-        // If we can not get a SQLiteBridge instance, its likely that the database
-        // has not been set up and Gecko is not running. We return null and expect
-        // callers to try again later
+        
+        
+        
         if (db == null)
             return null;
 
@@ -236,9 +235,9 @@ public abstract class GeckoProvider extends ContentProvider {
             if (useTransaction) {
                 db.beginTransaction();
             }
- 
-            // onPreInsert does a check for the item in the deleted table in some cases
-            // so we put it inside this transaction
+
+            
+            
             onPreInsert(values, uri, db);
             id = db.insert(getTable(uri), null, values);
 
@@ -260,9 +259,9 @@ public abstract class GeckoProvider extends ContentProvider {
     @Override
     public int bulkInsert(Uri uri, ContentValues[] allValues) {
         final SQLiteBridge db = getDatabase(uri);
-        // If we can not get a SQLiteBridge instance, its likely that the database
-        // has not been set up and Gecko is not running. We return 0 and expect
-        // callers to try again later
+        
+        
+        
         if (db == null)
             return 0;
 
@@ -300,9 +299,9 @@ public abstract class GeckoProvider extends ContentProvider {
         int updated = 0;
         final SQLiteBridge db = getDatabase(uri);
 
-        // If we can not get a SQLiteBridge instance, its likely that the database
-        // has not been set up and Gecko is not running. We return null and expect
-        // callers to try again later
+        
+        
+        
         if (db == null)
             return updated;
 
@@ -324,9 +323,9 @@ public abstract class GeckoProvider extends ContentProvider {
         Cursor cursor = null;
         final SQLiteBridge db = getDatabase(uri);
 
-        // If we can not get a SQLiteBridge instance, its likely that the database
-        // has not been set up and Gecko is not running. We return null and expect
-        // callers to try again later
+        
+        
+        
         if (db == null)
             return cursor;
 

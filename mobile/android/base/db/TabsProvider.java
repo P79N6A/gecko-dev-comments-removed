@@ -1,9 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@.db;
+
+
+
+package org.mozilla.gecko.db;
 
 import java.io.File;
 import java.util.Collections;
@@ -94,8 +93,8 @@ public class TabsProvider extends ContentProvider {
         return table + "." + column + " = ?";
     }
 
-    // Calculate these once, at initialization. isLoggable is too expensive to
-    // have in-line in each log call.
+    
+    
     private static boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
     private static boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
     protected static void trace(String message) {
@@ -120,7 +119,7 @@ public class TabsProvider extends ContentProvider {
             debug("Creating tabs.db: " + db.getPath());
             debug("Creating " + TABLE_TABS + " table");
 
-            // Table for each tab on any client.
+            
             db.execSQL("CREATE TABLE " + TABLE_TABS + "(" +
                     Tabs._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                     Tabs.CLIENT_GUID + " TEXT," +
@@ -132,7 +131,7 @@ public class TabsProvider extends ContentProvider {
                     Tabs.POSITION + " INTEGER" +
                     ");");
 
-            // Indices on CLIENT_GUID and POSITION.
+            
             db.execSQL("CREATE INDEX " + INDEX_TABS_GUID + " ON " + TABLE_TABS + "("
                     + Tabs.CLIENT_GUID + ")");
 
@@ -141,21 +140,21 @@ public class TabsProvider extends ContentProvider {
 
             debug("Creating " + TABLE_CLIENTS + " table");
 
-            // Table for client's name-guid mapping.
+            
             db.execSQL("CREATE TABLE " + TABLE_CLIENTS + "(" +
                     Clients.GUID + " TEXT PRIMARY KEY," +
                     Clients.NAME + " TEXT," +
                     Clients.LAST_MODIFIED + " INTEGER" +
                     ");");
 
-            // Index on GUID.
+            
             db.execSQL("CREATE INDEX " + INDEX_CLIENTS_GUID + " ON " + TABLE_CLIENTS + "("
                     + Clients.GUID + ")");
 
             createLocalClient(db);
         }
 
-        // Insert a client row for our local Fennec client.
+        
         private void createLocalClient(SQLiteDatabase db) {
             debug("Inserting local Fennec client into " + TABLE_CLIENTS + " table");
 
@@ -169,8 +168,8 @@ public class TabsProvider extends ContentProvider {
             debug("Upgrading tabs.db: " + db.getPath() + " from " +
                     oldVersion + " to " + newVersion);
 
-            // We have to do incremental upgrades until we reach the current
-            // database schema version.
+            
+            
             for (int v = oldVersion + 1; v <= newVersion; v++) {
                 switch(v) {
                     case 2:
@@ -192,13 +191,13 @@ public class TabsProvider extends ContentProvider {
                     cursor.close();
             }
 
-            // From Honeycomb on, it's possible to run several db
-            // commands in parallel using multiple connections.
+            
+            
             if (Build.VERSION.SDK_INT >= 11) {
                 db.enableWriteAheadLogging();
                 db.setLockingEnabled(false);
             } else {
-                // Pre-Honeycomb, we can do some lesser optimizations.
+                
                 cursor = null;
                 try {
                     cursor = db.rawQuery("PRAGMA journal_mode=PERSIST", null);
@@ -211,11 +210,11 @@ public class TabsProvider extends ContentProvider {
     }
 
     private DatabaseHelper getDatabaseHelperForProfile(String profile) {
-        // Each profile has a separate tabs.db database. The target
-        // profile is provided using a URI query argument in each request
-        // to our content provider.
+        
+        
+        
 
-        // Always fallback to default profile if none has been provided.
+        
         if (TextUtils.isEmpty(profile)) {
             profile = GeckoProfile.get(getContext()).getName();
         }
@@ -229,9 +228,9 @@ public class TabsProvider extends ContentProvider {
 
             String databasePath = getDatabasePath(profile);
 
-            // Before bug 768532, the database was located outside if the
-            // profile on Android 2.2. Make sure it is moved inside the profile
-            // directory.
+            
+            
+            
             if (Build.VERSION.SDK_INT == 8) {
                 File oldPath = mContext.getDatabasePath("tabs-" + profile + ".db");
                 if (oldPath.exists()) {
@@ -293,7 +292,7 @@ public class TabsProvider extends ContentProvider {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                // Kick this off early. It is synchronized so that other callers will wait
+                
                 try {
                     GeckoProfile.get(getContext()).getDir();
                 } catch (Exception ex) {
@@ -358,7 +357,7 @@ public class TabsProvider extends ContentProvider {
         } else {
             deleted = deleteInTransaction(uri, selection, selectionArgs);
         }
-        
+
         if (deleted > 0)
             getContext().getContentResolver().notifyChange(uri, null);
 
@@ -378,10 +377,10 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_CLIENTS, Clients.ROWID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case CLIENTS:
                 trace("Delete on CLIENTS: " + uri);
-                // Delete from both TABLE_TABS and TABLE_CLIENTS.
+                
                 deleteValues(uri, selection, selectionArgs, TABLE_TABS);
                 deleted = deleteValues(uri, selection, selectionArgs, TABLE_CLIENTS);
                 break;
@@ -391,7 +390,7 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_TABS, Tabs._ID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case TABS:
                 trace("Deleting on TABS: " + uri);
                 deleted = deleteValues(uri, selection, selectionArgs, TABLE_TABS);
@@ -506,7 +505,7 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_CLIENTS, Clients.ROWID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case CLIENTS:
                 trace("Update on CLIENTS: " + uri);
                 updated = updateValues(uri, values, selection, selectionArgs, TABLE_CLIENTS);
@@ -517,7 +516,7 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_TABS, Tabs._ID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case TABS:
                 trace("Update on TABS: " + uri);
                 updated = updateValues(uri, values, selection, selectionArgs, TABLE_TABS);
@@ -548,7 +547,7 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_TABS, Tabs._ID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case TABS:
                 trace("Query is on TABS: " + uri);
                 if (TextUtils.isEmpty(sortOrder)) {
@@ -566,7 +565,7 @@ public class TabsProvider extends ContentProvider {
                 selection = DBUtils.concatenateWhere(selection, selectColumn(TABLE_CLIENTS, Clients.ROWID));
                 selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                // fall through
+                
             case CLIENTS:
                 trace("Query is on CLIENTS: " + uri);
                 if (TextUtils.isEmpty(sortOrder)) {
@@ -627,7 +626,7 @@ public class TabsProvider extends ContentProvider {
                 } catch (SQLException e) {
                     Log.e(LOGTAG, "SQLException in bulkInsert", e);
 
-                    // Restart the transaction to continue insertions.
+                    
                     db.setTransactionSuccessful();
                     db.endTransaction();
                     db.beginTransaction();
