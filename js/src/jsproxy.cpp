@@ -1089,23 +1089,6 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
 
 static const char sScriptedDirectProxyHandlerFamily = 0;
 
-
-static bool
-FromGenericPropertyDescriptor(JSContext *cx, MutableHandle<PropDesc> desc, MutableHandleValue rval)
-{
-    
-    if (desc.isUndefined()) {
-        rval.setUndefined();
-        return true;
-    }
-
-    
-    if (!desc.makeObject(cx))
-        return false;
-    rval.set(desc.descriptorValue());
-    return true;
-}
-
 static inline bool
 IsDataDescriptor(const PropertyDescriptor &desc)
 {
