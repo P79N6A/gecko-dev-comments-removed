@@ -5940,6 +5940,10 @@ function WindowIsClosing()
   if (!closeWindow(false, warnAboutClosingWindow))
     return false;
 
+  
+  if (gMultiProcessBrowser)
+    return true;
+
   for (let browser of gBrowser.browsers) {
     let ds = browser.docShell;
     if (ds.contentViewer && !ds.contentViewer.permitUnload())
