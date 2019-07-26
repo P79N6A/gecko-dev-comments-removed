@@ -356,6 +356,7 @@ Experiments.Experiments.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITimerCallback, Ci.nsIObserver]),
 
   init: function () {
+    this._shutdown = false;
     configureLogging();
 
     gExperimentsEnabled = gPrefs.get(PREF_ENABLED, false);
@@ -389,7 +390,16 @@ Experiments.Experiments.prototype = {
 
 
 
-  uninit: function () {
+
+
+
+
+
+
+
+  uninit: Task.async(function* () {
+    yield this._loadTask;
+
     if (!this._shutdown) {
       this._stopWatchingAddons();
 
@@ -406,10 +416,11 @@ Experiments.Experiments.prototype = {
 
     this._shutdown = true;
     if (this._mainTask) {
-      return this._mainTask;
+      yield this._mainTask;
     }
-    return Promise.resolve();
-  },
+
+    this._log.info("Completed uninitialization.");
+  }),
 
   _startWatchingAddons: function () {
     AddonManager.addAddonListener(this);

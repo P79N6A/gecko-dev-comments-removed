@@ -20,9 +20,15 @@ function test() {
     
     if ("@mozilla.org/browser/experiments-service;1" in Components.classes) {
       Components.utils.import("resource:///modules/experiments/Experiments.jsm", gContext);
-      gContext.Experiments.instance()._stopWatchingAddons();
+
+      
+      
+      
+      let instance = gContext.Experiments.instance();
+      instance.uninit().then(run_next_test);
+    } else {
+      run_next_test();
     }
-    run_next_test();
   });
 }
 
@@ -33,10 +39,11 @@ function end_test() {
 
   close_manager(gManagerWindow, () => {
     if ("@mozilla.org/browser/experiments-service;1" in Components.classes) {
-      gContext.Experiments.instance()._startWatchingAddons();
+      gContext.Experiments.instance().init();
+      finish();
+    } else {
+      finish();
     }
-
-    finish();
   });
 }
 
