@@ -18,6 +18,7 @@ var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gContextMenu = null; 
+var gMultiProcessBrowser = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -739,6 +740,8 @@ var gBrowserInit = {
     if ("arguments" in window && window.arguments[0])
       var uriToLoad = window.arguments[0];
 
+    gMultiProcessBrowser = gPrefService.getBoolPref("browser.tabs.remote");
+
     var mustLoadSidebar = false;
 
     Cc["@mozilla.org/eventlistenerservice;1"]
@@ -806,13 +809,12 @@ var gBrowserInit = {
       Cu.reportError("Places database may be locked: " + ex);
     }
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    
-    gBrowser.addProgressListener(window.XULBrowserWindow);
-    gBrowser.addTabsProgressListener(window.TabsProgressListener);
-#endif
+    if (!gMultiProcessBrowser) {
+      
+      gBrowser.addProgressListener(window.XULBrowserWindow);
+      gBrowser.addTabsProgressListener(window.TabsProgressListener);
+    }
 
     
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
@@ -1084,13 +1086,12 @@ var gBrowserInit = {
     
     FullZoom.init();
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    let NP = {};
-    Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
-    NP.trackBrowserWindow(window);
-#endif
+    if (!gMultiProcessBrowser) {
+      let NP = {};
+      Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+      NP.trackBrowserWindow(window);
+    }
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
@@ -1134,12 +1135,11 @@ var gBrowserInit = {
     gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
     gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
-    if (Win7Features)
-      Win7Features.onOpenWindow();
-#endif
+    if (!gMultiProcessBrowser) {
+      if (Win7Features)
+        Win7Features.onOpenWindow();
+    }
 
    
     window.addEventListener("fullscreen", onFullScreen, true);
@@ -3625,15 +3625,15 @@ var XULBrowserWindow = {
   init: function () {
     this.throbberElement = document.getElementById("navigator-throbber");
 
-#ifdef MOZ_E10S_COMPAT
     
-#else
+    if (gMultiProcessBrowser)
+      return;
+
     
     
     var securityUI = gBrowser.securityUI;
     this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
-#endif
   },
 
   destroy: function () {
