@@ -12,7 +12,7 @@ function testBrokenCert() {
   window.removeEventListener("DOMContentLoaded", testBrokenCert, true);
 
   
-  ok(/^about:certerror/.test(gBrowser.contentDocument.documentURI), "Broken page should go to about:certerror, not about:neterror");
+  ok(gBrowser.contentDocument.documentURI.startsWith("about:certerror"), "Broken page should go to about:certerror, not about:neterror");
 
   
   var expertDiv = gBrowser.contentDocument.getElementById("expertContent");
