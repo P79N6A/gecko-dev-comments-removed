@@ -594,12 +594,16 @@ nsAppShell::~nsAppShell()
 {
     
     
-    mReaderThread->requestExit();
-    mEventHub->wake();
+    if (mReaderThread.get()) {
+        
+        
+        mReaderThread->requestExit();
+        mEventHub->wake();
 
-    status_t result = mReaderThread->requestExitAndWait();
-    if (result)
-        LOG("Could not stop reader thread - %d", result);
+        status_t result = mReaderThread->requestExitAndWait();
+        if (result)
+            LOG("Could not stop reader thread - %d", result);
+    }
     gAppShell = NULL;
 }
 
