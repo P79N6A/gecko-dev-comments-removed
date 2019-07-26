@@ -19,17 +19,9 @@ class CameraImageResultHandler implements ActivityResultHandler {
     private static final String LOGTAG = "GeckoCameraImageResultHandler";
 
     private final Queue<String> mFilePickerResult;
-    private final ActivityHandlerHelper.FileResultHandler mHandler;
 
     CameraImageResultHandler(Queue<String> resultQueue) {
         mFilePickerResult = resultQueue;
-        mHandler = null;
-    }
-
-    
-    public CameraImageResultHandler(ActivityHandlerHelper.FileResultHandler handler) {
-        mHandler = handler;
-        mFilePickerResult = null;
     }
 
     @Override
@@ -41,12 +33,7 @@ class CameraImageResultHandler implements ActivityResultHandler {
 
         File file = new File(Environment.getExternalStorageDirectory(), sImageName);
         sImageName = "";
-
-        if (mFilePickerResult != null)
-            mFilePickerResult.offer(file.getAbsolutePath());
-
-        if (mHandler != null)
-            mHandler.gotFile(file.getAbsolutePath());
+        mFilePickerResult.offer(file.getAbsolutePath());
     }
 
     
