@@ -1,9 +1,9 @@
 
 
 import os
-import time
 import unittest
 import proctest
+import mozinfo
 from mozprocess import processhandler
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +51,11 @@ class ProcTestWait(proctest.ProcTest):
         p.wait()
 
         detected, output = proctest.check_for_process(self.proclaunch)
+
+        if mozinfo.isUnix:
+            
+            self.assertLess(p.proc.returncode, 0)
+
         self.determine_status(detected,
                               output,
                               p.proc.returncode,

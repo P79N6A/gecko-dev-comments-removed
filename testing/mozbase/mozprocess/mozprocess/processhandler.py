@@ -2,8 +2,6 @@
 
 
 
-import logging
-import mozinfo
 import os
 import select
 import signal
@@ -19,7 +17,11 @@ __all__ = ['ProcessHandlerMixin', 'ProcessHandler']
 
 MOZPROCESS_DEBUG = os.getenv("MOZPROCESS_DEBUG")
 
-if mozinfo.isWin:
+
+isWin = os.name == "nt"
+isPosix = os.name == "posix" 
+
+if isWin:
     import ctypes, ctypes.wintypes, msvcrt
     from ctypes import sizeof, addressof, c_ulong, byref, POINTER, WinError, c_longlong
     import winprocess
@@ -31,8 +33,8 @@ class ProcessHandlerMixin(object):
     """
     A class for launching and manipulating local processes.
 
-    :param cmd: command to run.
-    :param args: is a list of arguments to pass to the command (defaults to None).
+    :param cmd: command to run. May be a string or a list. If specified as a list, the first element will be interpreted as the command, and all additional elements will be interpreted as arguments to that command.
+    :param args: list of arguments to pass to the command (defaults to None). Must not be set when `cmd` is specified as a list.
     :param cwd: working directory for command (defaults to None).
     :param env: is the environment to use for the process (defaults to os.environ).
     :param ignore_children: causes system to ignore child processes when True, defaults to False (which tracks child processes).
@@ -77,7 +79,7 @@ class ProcessHandlerMixin(object):
             
             self._ignore_children = ignore_children
 
-            if not self._ignore_children and not mozinfo.isWin:
+            if not self._ignore_children and not isWin:
                 
                 
                 
@@ -97,7 +99,7 @@ class ProcessHandlerMixin(object):
                 raise
 
         def __del__(self, _maxint=sys.maxint):
-            if mozinfo.isWin:
+            if isWin:
                 if self._handle:
                     if hasattr(self, '_internal_poll'):
                         self._internal_poll(_deadstate=_maxint)
@@ -110,7 +112,7 @@ class ProcessHandlerMixin(object):
 
         def kill(self):
             self.returncode = 0
-            if mozinfo.isWin:
+            if isWin:
                 if not self._ignore_children and self._handle and self._job:
                     winprocess.TerminateJobObject(self._job, winprocess.ERROR_CONTROL_C_EXIT)
                     self.returncode = winprocess.GetExitCodeProcess(self._handle)
@@ -155,7 +157,7 @@ class ProcessHandlerMixin(object):
 
         """ Private Members of Process class """
 
-        if mozinfo.isWin:
+        if isWin:
             
             def _execute_child(self, args, executable, preexec_fn, close_fds,
                                cwd, env, universal_newlines, startupinfo,
@@ -510,7 +512,7 @@ falling back to not using job objects for managing child processes"""
                 else:
                     self._handle = None
 
-        elif mozinfo.isMac or mozinfo.isUnix:
+        elif isPosix:
 
             def _wait(self):
                 """ Haven't found any reason to differentiate between these platforms
@@ -522,7 +524,19 @@ falling back to not using job objects for managing child processes"""
                 if not self._ignore_children:
                     try:
                         
-                        return os.waitpid(self.pid, 0)[1]
+                        
+                        
+                        
+                        
+                        
+                        
+                        status = os.waitpid(self.pid, 0)[1]
+
+                        
+                        
+                        if status > 255:
+                            return status >> 8
+                        return -status
                     except OSError, e:
                         if getattr(e, "errno", None) != 10:
                             
@@ -582,11 +596,12 @@ falling back to not using job objects for managing child processes"""
 
         
         
-        if not isinstance(self.cmd, list):
-            self.cmd = [self.cmd]
-
-        if self.args:
-            self.cmd = self.cmd + self.args
+        if isinstance(self.cmd, list):
+            if self.args != None:
+                raise TypeError("cmd and args must not both be lists")
+            (self.cmd, self.args) = (self.cmd[0], self.cmd[1:])
+        elif self.args is None:
+            self.args = []
 
     @property
     def timedOut(self):
@@ -624,7 +639,7 @@ falling back to not using job objects for managing child processes"""
         args.update(self.keywordargs)
 
         
-        self.proc = self.Process(self.cmd, **args)
+        self.proc = self.Process([self.cmd] + self.args, **args)
 
         self.processOutput(timeout=timeout, outputTimeout=outputTimeout)
 
@@ -701,9 +716,13 @@ falling back to not using job objects for managing child processes"""
                 lineReadTimeout = outputTimeout
 
             (lines, self.didTimeout) = self.readWithTimeout(logsource, lineReadTimeout)
-            while lines != "" and not self.didTimeout:
+            while lines != "":
                 for line in lines.splitlines():
                     self.processOutputLine(line.rstrip())
+
+                if self.didTimeout:
+                    break
+
                 if timeout:
                     lineReadTimeout = timeout - (datetime.now() - self.startTime).seconds
                 (lines, self.didTimeout) = self.readWithTimeout(logsource, lineReadTimeout)
@@ -732,6 +751,10 @@ falling back to not using job objects for managing child processes"""
         If timeout is not None, will return after timeout seconds.
         This timeout only causes the wait function to return and
         does not kill the process.
+
+        Returns the process' exit code. A None value indicates the
+        process hasn't terminated yet. A negative value -N indicates
+        the process was killed by signal N (Unix only).
         """
         if self.outThread:
             
@@ -754,7 +777,7 @@ falling back to not using job objects for managing child processes"""
 
     
 
-    if mozinfo.isWin:
+    if isWin:
         
         PeekNamedPipe = ctypes.windll.kernel32.PeekNamedPipe
         GetLastError = ctypes.windll.kernel32.GetLastError
@@ -795,7 +818,9 @@ falling back to not using job objects for managing child processes"""
 
                 output = os.read(f.fileno(), 4096)
                 if not output:
-                    return (self.read_buffer, False)
+                    output = self.read_buffer
+                    self.read_buffer = ''
+                    return (output, False)
                 self.read_buffer += output
                 if '\n' not in self.read_buffer:
                     time.sleep(0.01)
