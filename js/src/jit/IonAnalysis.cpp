@@ -919,17 +919,7 @@ TypeAnalyzer::checkFloatCoherency()
 
             for (MUseDefIterator use(*def); use; use++) {
                 MDefinition *consumer = use.def();
-                
-                
-                
-                
-                if (consumer->canConsumeFloat32())
-                    continue;
-                if (consumer->type() == MIRType_Float32)
-                    continue;
-                if (consumer->isToDouble())
-                    continue;
-                MOZ_ASSUME_UNREACHABLE("Float32 flowing into a non float specialized operation");
+                JS_ASSERT(consumer->isConsistentFloat32Use());
             }
         }
     }

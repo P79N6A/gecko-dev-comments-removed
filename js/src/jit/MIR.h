@@ -461,6 +461,12 @@ class MDefinition : public MNode
     virtual bool canProduceFloat32() const { return false; }
     virtual bool canConsumeFloat32() const { return false; }
     virtual void trySpecializeFloat32() {}
+#ifdef DEBUG
+    
+    virtual bool isConsistentFloat32Use() const {
+        return type() == MIRType_Float32 || canConsumeFloat32();
+    }
+#endif
 
     
     MUseIterator usesBegin() const {
@@ -2688,6 +2694,10 @@ class MToDouble
     void computeRange();
     bool truncate();
     bool isOperandTruncated(size_t index) const;
+
+#ifdef DEBUG
+    bool isConsistentFloat32Use() const { return true; }
+#endif
 };
 
 
