@@ -144,9 +144,6 @@ this.UITour = {
       return Services.urlFormatter.formatURLPref("browser.uitour.url");
     });
 
-    UITelemetry.addSimpleMeasureFunction("UITour",
-                                         this.getTelemetry.bind(this));
-
     
     let listenerMethods = [
       "onWidgetAdded",
@@ -541,6 +538,8 @@ this.UITour = {
                                          BUCKET_TIMESTEPS);
   },
 
+  
+  
   getTelemetry: function() {
     return {
       seenPageIDs: [...this.seenPageIDs.keys()],
