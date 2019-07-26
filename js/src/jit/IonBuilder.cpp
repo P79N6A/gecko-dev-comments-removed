@@ -4036,6 +4036,13 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
                         targetScript->filename(), targetScript->lineno);
                 return false;
             }
+
+            
+            if (script()->length >= js_IonOptions.inliningMaxCallerBytecodeLength) {
+                IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller excessively large.",
+                        targetScript->filename(), targetScript->lineno);
+                return false;
+            }
         }
 
         

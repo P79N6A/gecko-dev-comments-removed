@@ -204,6 +204,12 @@ struct IonOptions
     
     uint32_t usesBeforeCompilePar;
 
+    
+    
+    
+    
+    uint32_t inliningMaxCallerBytecodeLength;
+
     void setEagerCompilation() {
         eagerCompilation = true;
         usesBeforeCompile = 0;
@@ -242,7 +248,8 @@ struct IonOptions
         inlineMaxTotalBytecodeLength(1000),
         inlineUseCountRatio(128),
         eagerCompilation(false),
-        usesBeforeCompilePar(1)
+        usesBeforeCompilePar(1),
+        inliningMaxCallerBytecodeLength(10000)
     {
     }
 
