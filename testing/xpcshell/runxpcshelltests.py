@@ -380,28 +380,7 @@ class XPCShellTestThread(Thread):
                 return
 
         
-        if directory == self.pluginsDir:
-            self.cleanup_dir_list.append(directory)
-            return
-
-        
-        
-        if self.retry:
-            return
-
-        with LOG_MUTEX:
-            message = "TEST-UNEXPECTED-FAIL | %s | Failed to clean up directory: %s" % (name, sys.exc_info()[1])
-            self.log.error(message)
-            self.log_output(self.output_lines)
-            self.log_output(traceback.format_exc())
-
-        self.failCount += 1
-        xunit_result["passed"] = False
-        xunit_result["failure"] = {
-            "type": "TEST-UNEXPECTED-FAIL",
-            "message": message,
-            "text": "%s\n%s" % ("\n".join(self.output_lines), traceback.format_exc())
-        }
+        self.cleanup_dir_list.append(directory)
 
     def clean_temp_dirs(self, name, stdout):
         
