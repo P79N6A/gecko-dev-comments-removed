@@ -68,9 +68,6 @@ public:
     NS_ASSERTION(mUpdateCount == 0, "Dying in the middle of our own update?");
   }
 
-  struct RestyleData;
-  friend struct RestyleData;
-
   
   static void GetAlternateTextFor(nsIContent*    aContent,
                                   nsIAtom*       aTag,  
