@@ -86,7 +86,7 @@ public:
 
   
   virtual AdaptationSetType
-          GetAdaptationSetType(uint32_t aAdaptSetIdx) const = 0;
+          GetAdaptationSetType(uint32_t const aAdaptSetIdx) const = 0;
 
   
   
