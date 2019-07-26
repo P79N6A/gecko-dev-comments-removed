@@ -18,13 +18,26 @@ Cu.import("resource://gre/modules/accessibility/OutputGenerator.jsm", this);
 
 
 function testContextOutput(expected, aAccOrElmOrID, aOldAccOrElmOrID, aGenerator) {
-  aOldAccOrElmOrID = aOldAccOrElmOrID || "root";
   var accessible = getAccessible(aAccOrElmOrID);
-  var oldAccessible = getAccessible(aOldAccOrElmOrID);
+  var oldAccessible = aOldAccOrElmOrID !== null ?
+	getAccessible(aOldAccOrElmOrID || 'root') : null;
   var context = new PivotContext(accessible, oldAccessible);
   var output = aGenerator.genForContext(context).output;
 
-  isDeeply(output, expected,
+  
+  
+  
+  
+  var masked_output = [];
+  for (var i=0; i < output.length; i++) {
+    if (expected[i] === null) {
+      masked_output.push(null);
+    } else {
+      masked_output[i] = output[i];
+    }
+  }
+
+  isDeeply(masked_output, expected,
            "Context output is correct for " + aAccOrElmOrID +
            " (output: " + output.join(", ") + ") ==" +
            " (expected: " + expected.join(", ") + ")");
