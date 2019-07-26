@@ -104,7 +104,13 @@ MIRGraph::removeBlock(MBasicBlock *block)
     }
 
     block->discardAllInstructions();
-    block->discardAllPhis();
+
+    
+    
+    
+    
+    block->discardAllPhiOperands();
+
     block->markAsDead();
     blocks_.remove(block);
     numBlocks_--;
@@ -665,17 +671,23 @@ MBasicBlock::discardAllInstructions()
 }
 
 void
-MBasicBlock::discardAllPhis()
+MBasicBlock::discardAllPhiOperands()
 {
-    for (MPhiIterator iter = phisBegin(); iter != phisEnd(); ) {
+    for (MPhiIterator iter = phisBegin(); iter != phisEnd(); iter++) {
         MPhi *phi = *iter;
         for (size_t i = 0; i < phi->numOperands(); i++)
             phi->discardOperand(i);
-        iter = phis_.removeAt(iter);
     }
 
     for (MBasicBlock **pred = predecessors_.begin(); pred != predecessors_.end(); pred++)
         (*pred)->setSuccessorWithPhis(NULL, 0);
+}
+
+void
+MBasicBlock::discardAllPhis()
+{
+    discardAllPhiOperands();
+    phis_.clear();
 }
 
 void

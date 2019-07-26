@@ -322,6 +322,29 @@ IonBuilder::analyzeNewLoopTypes(MBasicBlock *entry, jsbytecode *start, jsbytecod
     
     
 
+    
+    
+    
+    
+    for (size_t i = 0; i < loopHeaders_.length(); i++) {
+        if (loopHeaders_[i].pc == start) {
+            MBasicBlock *oldEntry = loopHeaders_[i].header;
+            for (MPhiIterator oldPhi = oldEntry->phisBegin();
+                 oldPhi != oldEntry->phisEnd();
+                 oldPhi++)
+            {
+                MPhi *newPhi = entry->getSlot(oldPhi->slot())->toPhi();
+                newPhi->addBackedgeType(oldPhi->type(), oldPhi->resultTypeSet());
+            }
+            
+            
+            
+            loopHeaders_[i].header = entry;
+            return;
+        }
+    }
+    loopHeaders_.append(LoopHeader(start, entry));
+
     jsbytecode *last = NULL, *earlier = NULL;
     for (jsbytecode *pc = start; pc != end; earlier = last, last = pc, pc += GetBytecodeLength(pc)) {
         uint32_t slot;
