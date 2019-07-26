@@ -576,12 +576,20 @@ pref("hal.processPriorityManager.gonk.backgroundKillUnderMB", 20);
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
 
 
+
+
+
+
+
+
+
+
 pref("hal.processPriorityManager.gonk.masterNice", 0);
 pref("hal.processPriorityManager.gonk.foregroundHighNice", 0);
 pref("hal.processPriorityManager.gonk.foregroundNice", 1);
 pref("hal.processPriorityManager.gonk.backgroundPerceivableNice", 10);
-pref("hal.processPriorityManager.gonk.backgroundHomescreenNice", 20);
-pref("hal.processPriorityManager.gonk.backgroundNice", 20);
+pref("hal.processPriorityManager.gonk.backgroundHomescreenNice", 18);
+pref("hal.processPriorityManager.gonk.backgroundNice", 18);
 
 #ifndef DEBUG
 
@@ -664,6 +672,9 @@ pref("memory_info_dumper.watch_fifo.enabled", true);
 pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 
 pref("general.useragent.enable_overrides", true);
+
+
+pref("media.useAudioChannelService", true);
 
 pref("b2g.version", @MOZ_B2G_VERSION@);
 
