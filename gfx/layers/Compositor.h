@@ -222,14 +222,6 @@ public:
 
 
 
-
-
-  virtual void FallbackTextureInfo(TextureInfo& aInfo) {}
-
-  
-
-
-
   virtual TemporaryRef<CompositingRenderTarget>
   CreateRenderTarget(const gfx::IntRect& aRect, SurfaceInitMode aInit) = 0;
 

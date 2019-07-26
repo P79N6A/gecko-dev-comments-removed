@@ -75,7 +75,6 @@ enum TextureHostFlags
   TEXTURE_HOST_DEFAULT = 0,       
                                   
   TEXTURE_HOST_TILED = 1 << 0,    
-  TEXTURE_HOST_DIRECT = 1 << 1    
 };
 
 
@@ -99,6 +98,14 @@ struct TextureFactoryIdentifier
 
 
 
+typedef uint32_t TextureIdentifier;
+const TextureIdentifier TextureFront = 1;
+const TextureIdentifier TextureBack = 2;
+
+
+
+
+
 struct TextureInfo
 {
   CompositableType mCompositableType;
@@ -110,6 +117,19 @@ struct TextureInfo
     , mTextureHostFlags(0)
     , mTextureFlags(0)
   {}
+
+  TextureInfo(CompositableType aType)
+    : mCompositableType(aType)
+    , mTextureHostFlags(0)
+    , mTextureFlags(0)
+  {}
+
+  bool operator==(const TextureInfo& aOther) const
+  {
+    return mCompositableType == aOther.mCompositableType &&
+           mTextureHostFlags == aOther.mTextureHostFlags &&
+           mTextureFlags == aOther.mTextureFlags;
+  }
 };
 
 

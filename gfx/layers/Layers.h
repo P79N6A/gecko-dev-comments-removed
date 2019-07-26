@@ -67,7 +67,6 @@ class SpecificLayerAttributes;
 class SurfaceDescriptor;
 class Compositor;
 class LayerComposite;
-struct TextureIdentifier;
 struct TextureFactoryIdentifier;
 struct EffectMask;
 
@@ -157,7 +156,12 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = true; mUserData.Destroy(); }
+  virtual void Destroy()
+  {
+    mDestroyed = true;
+    mUserData.Destroy();
+    mRoot = nullptr;
+  }
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()

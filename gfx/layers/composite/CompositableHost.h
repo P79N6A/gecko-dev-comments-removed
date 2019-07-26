@@ -48,8 +48,10 @@ class SurfaceDescriptor;
 class CompositableHost : public RefCounted<CompositableHost>
 {
 public:
-  CompositableHost(Compositor* aCompositor = nullptr)
-    : mCompositor(aCompositor)
+  CompositableHost(const TextureInfo& aTextureInfo,
+                   Compositor* aCompositor = nullptr)
+    : mTextureInfo(aTextureInfo)
+    , mCompositor(aCompositor)
     , mLayer(nullptr)
   {
     MOZ_COUNT_CTOR(CompositableHost);
@@ -60,7 +62,7 @@ public:
     MOZ_COUNT_DTOR(CompositableHost);
   }
 
-  static TemporaryRef<CompositableHost> Create(CompositableType aType,
+  static TemporaryRef<CompositableHost> Create(const TextureInfo& aTextureInfo,
                                                Compositor* aCompositor = nullptr);
 
   virtual CompositableType GetType() = 0;
@@ -91,10 +93,6 @@ public:
 
 
 
-
-
-
-
   virtual void UpdateThebes(const ThebesBufferData& aData,
                             const nsIntRegion& aUpdated,
                             const nsIntRegion& aOldValidRegionBack,
@@ -103,8 +101,26 @@ public:
     MOZ_ASSERT(false, "should be implemented or not used");
   }
 
-  virtual void AddTextureHost(TextureHost* aTextureHost,
-                              ISurfaceAllocator* aAllocator = nullptr) = 0;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
+                                 const SurfaceDescriptor& aSurface,
+                                 ISurfaceAllocator* aAllocator,
+                                 const TextureInfo& aTextureInfo) = 0;
+
   virtual TextureHost* GetTextureHost() { return nullptr; }
 
   virtual LayerRenderState GetRenderState() = 0;
@@ -145,6 +161,7 @@ public:
 #endif
 
 protected:
+  TextureInfo mTextureInfo;
   Compositor* mCompositor;
   Layer* mLayer;
 };
@@ -155,10 +172,9 @@ class CompositableParent : public PCompositableParent
 {
 public:
   CompositableParent(CompositableParentManager* aMgr,
-                     CompositableType aType, uint64_t aID = 0);
+                     const TextureInfo& aTextureInfo,
+                     uint64_t aID = 0);
   ~CompositableParent();
-  PTextureParent* AllocPTexture(const TextureInfo& aInfo) MOZ_OVERRIDE;
-  bool DeallocPTexture(PTextureParent* aActor) MOZ_OVERRIDE;
 
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 

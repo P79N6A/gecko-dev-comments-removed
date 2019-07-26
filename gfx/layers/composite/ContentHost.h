@@ -39,8 +39,8 @@ public:
 #endif
 
 protected:
-  ContentHost(Compositor* aCompositor)
-  : CompositableHost(aCompositor)
+  ContentHost(const TextureInfo& aTextureInfo, Compositor* aCompositor)
+    : CompositableHost(aTextureInfo, aCompositor)
   {}
 };
 
@@ -61,7 +61,7 @@ public:
   typedef ThebesLayerBuffer::ContentType ContentType;
   typedef ThebesLayerBuffer::PaintState PaintState;
 
-  ContentHostBase(Compositor* aCompositor);
+  ContentHostBase(const TextureInfo& aTextureInfo, Compositor* aCompositor);
   ~ContentHostBase();
 
   virtual void Composite(EffectChain& aEffectChain,
@@ -97,14 +97,6 @@ public:
   }
 #endif
 
-  
-  
-  virtual void SetTextureHosts(TextureHost* aNewFront,
-                               TextureHost* aNewBack = nullptr) = 0;
-  
-  
-  virtual void AddTextureHost(TextureHost* aTextureHost,
-                              ISurfaceAllocator* aAllocator = nullptr) MOZ_OVERRIDE {}
   virtual TextureHost* GetTextureHost() MOZ_OVERRIDE;
 
   void SetPaintWillResample(bool aResample) { mPaintWillResample = aResample; }
@@ -143,8 +135,9 @@ protected:
 class ContentHostDoubleBuffered : public ContentHostBase
 {
 public:
-  ContentHostDoubleBuffered(Compositor* aCompositor)
-    : ContentHostBase(aCompositor)
+  ContentHostDoubleBuffered(const TextureInfo& aTextureInfo,
+                            Compositor* aCompositor)
+    : ContentHostBase(aTextureInfo, aCompositor)
   {}
 
   ~ContentHostDoubleBuffered();
@@ -156,9 +149,10 @@ public:
                             const nsIntRegion& aOldValidRegionBack,
                             nsIntRegion* aUpdatedRegionBack);
 
-  
-  virtual void SetTextureHosts(TextureHost* aNewFront,
-                               TextureHost* aNewBack = nullptr) MOZ_OVERRIDE;
+  virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
+                                 const SurfaceDescriptor& aSurface,
+                                 ISurfaceAllocator* aAllocator,
+                                 const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
   virtual void DestroyTextures() MOZ_OVERRIDE;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
@@ -179,8 +173,9 @@ protected:
 class ContentHostSingleBuffered : public ContentHostBase
 {
 public:
-  ContentHostSingleBuffered(Compositor* aCompositor)
-    : ContentHostBase(aCompositor)
+  ContentHostSingleBuffered(const TextureInfo& aTextureInfo,
+                            Compositor* aCompositor)
+    : ContentHostBase(aTextureInfo, aCompositor)
   {}
   virtual ~ContentHostSingleBuffered();
 
@@ -191,9 +186,10 @@ public:
                             const nsIntRegion& aOldValidRegionBack,
                             nsIntRegion* aUpdatedRegionBack);
 
-  
-  virtual void SetTextureHosts(TextureHost* aNewFront,
-                               TextureHost* aNewBack = nullptr) MOZ_OVERRIDE;
+  virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
+                                 const SurfaceDescriptor& aSurface,
+                                 ISurfaceAllocator* aAllocator,
+                                 const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
   virtual void DestroyTextures() MOZ_OVERRIDE;
 
 #ifdef MOZ_LAYERS_HAVE_LOG

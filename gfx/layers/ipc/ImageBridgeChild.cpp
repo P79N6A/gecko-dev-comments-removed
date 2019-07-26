@@ -1,18 +1,17 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/thread.h"
 
-#include "CompositorParent.h" 
+#include "CompositorParent.h" // for CompositorParent::CompositorLoop
 #include "ImageBridgeChild.h"
 #include "ImageBridgeParent.h"
 #include "gfxSharedImageSurface.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/layers/CompositableClient.h"
-#include "mozilla/layers/TextureChild.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/ImageClient.h"
@@ -78,13 +77,20 @@ struct AutoEndTransaction {
 };
 
 void
-ImageBridgeChild::UpdateTexture(TextureClient* aTexture,
-                                const SurfaceDescriptor& aImage)
+ImageBridgeChild::UpdateTexture(CompositableClient* aCompositable,
+                                TextureIdentifier aTextureId,
+                                SurfaceDescriptor* aDescriptor)
 {
-  MOZ_ASSERT(aImage.type() != SurfaceDescriptor::T__None, "[debug] STOP");
-  MOZ_ASSERT(aTexture);
-  MOZ_ASSERT(aTexture->GetIPDLActor());
-  mTxn->AddEdit(OpPaintTexture(nullptr, aTexture->GetIPDLActor(), aImage));
+  if (aDescriptor->type() != SurfaceDescriptor::T__None &&
+      aDescriptor->type() != SurfaceDescriptor::Tnull_t) {
+    MOZ_ASSERT(aCompositable);
+    MOZ_ASSERT(aCompositable->GetIPDLActor());
+    mTxn->AddEdit(OpPaintTexture(nullptr, aCompositable->GetIPDLActor(), 1,
+                  SurfaceDescriptor(*aDescriptor)));
+    *aDescriptor = SurfaceDescriptor();
+  } else {
+    NS_WARNING("Trying to send a null SurfaceDescriptor.");
+  }
 }
 
 void
@@ -94,11 +100,11 @@ ImageBridgeChild::UpdatePictureRect(CompositableClient* aCompositable,
   mTxn->AddNoSwapEdit(OpUpdatePictureRect(nullptr, aCompositable->GetIPDLActor(), aRect));
 }
 
-
+// Singleton
 static ImageBridgeChild *sImageBridgeChildSingleton = nullptr;
 static Thread *sImageBridgeChildThread = nullptr;
 
-
+// dispatched function
 static void StopImageBridgeSync(ReentrantMonitor *aBarrier, bool *aDone)
 {
   ReentrantMonitorAutoEnter autoMon(*aBarrier);
@@ -113,7 +119,7 @@ static void StopImageBridgeSync(ReentrantMonitor *aBarrier, bool *aDone)
   aBarrier->NotifyAll();
 }
 
-
+// dispatched function
 static void DeleteImageBridgeSync(ReentrantMonitor *aBarrier, bool *aDone)
 {
   ReentrantMonitorAutoEnter autoMon(*aBarrier);
@@ -126,7 +132,7 @@ static void DeleteImageBridgeSync(ReentrantMonitor *aBarrier, bool *aDone)
   aBarrier->NotifyAll();
 }
 
-
+// dispatched function
 static void CreateImageClientSync(RefPtr<ImageClient>* result,
                                   ReentrantMonitor* barrier,
                                   CompositableType aType,
@@ -156,7 +162,7 @@ struct GrallocParam {
   {}
 };
 
-
+// dispatched function
 static void AllocSurfaceDescriptorGrallocSync(const GrallocParam& aParam,
                                               Monitor* aBarrier,
                                               bool* aDone)
@@ -171,7 +177,7 @@ static void AllocSurfaceDescriptorGrallocSync(const GrallocParam& aParam,
   aBarrier->NotifyAll();
 }
 
-
+// dispatched function
 static void DeallocSurfaceDescriptorGrallocSync(const SurfaceDescriptor& aBuffer,
                                                 Monitor* aBarrier,
                                                 bool* aDone)
@@ -183,7 +189,7 @@ static void DeallocSurfaceDescriptorGrallocSync(const SurfaceDescriptor& aBuffer
   aBarrier->NotifyAll();
 }
 
-
+// dispatched function
 static void ConnectImageBridge(ImageBridgeChild * child, ImageBridgeParent * parent)
 {
   MessageLoop *parentMsgLoop = parent->GetMessageLoop();
@@ -206,7 +212,7 @@ ImageBridgeChild::Connect(CompositableClient* aCompositable)
   MOZ_ASSERT(aCompositable);
   uint64_t id = 0;
   CompositableChild* child = static_cast<CompositableChild*>(
-    SendPCompositableConstructor(aCompositable->GetType(), &id));
+    SendPCompositableConstructor(aCompositable->GetTextureInfo(), &id));
   MOZ_ASSERT(child);
   child->SetAsyncID(id);
   aCompositable->SetIPDLActor(child);
@@ -215,7 +221,7 @@ ImageBridgeChild::Connect(CompositableClient* aCompositable)
 }
 
 PCompositableChild*
-ImageBridgeChild::AllocPCompositable(const CompositableType& aType, uint64_t* aID)
+ImageBridgeChild::AllocPCompositable(const TextureInfo& aInfo, uint64_t* aID)
 {
   return new CompositableChild();
 }
@@ -253,7 +259,7 @@ static void
 ConnectImageBridgeInChildProcess(Transport* aTransport,
                                  ProcessHandle aOtherProcess)
 {
-  
+  // Bind the IPC channel to the image bridge thread.
   sImageBridgeChildSingleton->Open(aTransport, aOtherProcess,
                                    XRE_GetIOMessageLoop(),
                                    AsyncChannel::Child);
@@ -265,7 +271,7 @@ static void ReleaseImageClientNow(ImageClient* aClient)
   aClient->Release();
 }
 
-
+// static
 void ImageBridgeChild::DispatchReleaseImageClient(ImageClient* aClient)
 {
   sImageBridgeChildSingleton->GetMessageLoop()->PostTask(
@@ -282,7 +288,7 @@ static void UpdateImageClientNow(ImageClient* aClient, ImageContainer* aContaine
   sImageBridgeChildSingleton->EndTransaction();
 }
 
-
+//static
 void ImageBridgeChild::DispatchImageClientUpdate(ImageClient* aClient,
                                                  ImageContainer* aContainer)
 {
@@ -324,8 +330,8 @@ ImageBridgeChild::EndTransaction()
       return;
     }
   } else {
-    
-    
+    // If we don't require a swap we can call SendUpdateNoSwap which
+    // assumes that aReplies is empty (DEBUG assertion)
     if (!SendUpdateNoSwap(cset)) {
       NS_WARNING("could not send async texture transaction (no swap)");
       return;
@@ -336,10 +342,14 @@ ImageBridgeChild::EndTransaction()
     switch (reply.type()) {
     case EditReply::TOpTextureSwap: {
       const OpTextureSwap& ots = reply.get_OpTextureSwap();
-      PTextureChild* textureChild = ots.textureChild();
-      MOZ_ASSERT(textureChild);
-      TextureClient* texClient = static_cast<TextureChild*>(textureChild)->GetTextureClient();
-      texClient->SetDescriptor(ots.image());
+
+      CompositableChild* compositableChild =
+          static_cast<CompositableChild*>(ots.compositableChild());
+
+      MOZ_ASSERT(compositableChild);
+
+      compositableChild->GetCompositableClient()
+        ->SetDescriptorFromReply(ots.textureId(), ots.image());
       break;
     }
     default:
@@ -406,8 +416,8 @@ void ImageBridgeChild::DestroyBridge()
 {
   NS_ABORT_IF_FALSE(!InImageBridgeChildThread(),
                     "This method must not be called in this thread.");
-  
-  
+  // ...because we are about to dispatch synchronous messages to the
+  // ImageBridgeChild thread.
 
   if (!IsCreated()) {
     return;
@@ -461,8 +471,8 @@ ImageBridgeChild::CreateImageClient(CompositableType aType)
   RefPtr<ImageClient> result = nullptr;
   GetMessageLoop()->PostTask(FROM_HERE, NewRunnableFunction(&CreateImageClientSync,
                                                             &result, &barrier, aType, &done));
-  
-  
+  // should stop the thread until the ImageClient has been created on
+  // the other thread
   while (!done) {
     barrier.Wait();
   }
@@ -475,8 +485,7 @@ ImageBridgeChild::CreateImageClientNow(CompositableType aType)
   mCompositorBackend = LAYERS_OPENGL;
 
   RefPtr<ImageClient> client
-    = ImageClient::CreateImageClient(mCompositorBackend,
-                                     aType, this, 0);
+    = ImageClient::CreateImageClient(mCompositorBackend, aType, this, 0);
   MOZ_ASSERT(client, "failed to create ImageClient");
   if (client) {
     client->Connect();
@@ -550,7 +559,7 @@ ImageBridgeChild::AllocSurfaceDescriptorGrallocNow(const gfxIntSize& aSize,
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(gc);
   gba->InitFromHandle(handle.get_MagicGrallocBufferHandle());
 
-  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize,  false);
+  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize, /* external */ false);
   return true;
 #else
   NS_RUNTIMEABORT("No gralloc buffers for you");
@@ -602,7 +611,7 @@ ImageBridgeChild::AllocUnsafeShmem(size_t aSize,
   if (InImageBridgeChildThread()) {
     return PImageBridgeChild::AllocUnsafeShmem(aSize, aType, aShmem);
   } else {
-    return DispatchAllocShmemInternal(aSize, aType, aShmem, true); 
+    return DispatchAllocShmemInternal(aSize, aType, aShmem, true); // true: unsafe
   }
 }
 
@@ -614,12 +623,12 @@ ImageBridgeChild::AllocShmem(size_t aSize,
   if (InImageBridgeChildThread()) {
     return PImageBridgeChild::AllocShmem(aSize, aType, aShmem);
   } else {
-    return DispatchAllocShmemInternal(aSize, aType, aShmem, false); 
+    return DispatchAllocShmemInternal(aSize, aType, aShmem, false); // false: unsafe
   }
 }
 
-
-
+// NewRunnableFunction accepts a limited number of parameters so we need a
+// struct here
 struct AllocShmemParams {
   ISurfaceAllocator* mAllocator;
   size_t mSize;
@@ -731,5 +740,5 @@ ImageBridgeChild::AllocGrallocBuffer(const gfxIntSize& aSize,
 #endif
 }
 
-} 
-} 
+} // layers
+} // mozilla

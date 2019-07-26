@@ -1,13 +1,13 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef GFX_TILEDCONTENTHOST_H
 #define GFX_TILEDCONTENTHOST_H
 
 #include "ContentHost.h"
-#include "BasicTiledThebesLayer.h" 
+#include "BasicTiledThebesLayer.h" // for BasicTiledLayerBuffer
 
 namespace mozilla {
 namespace layers {
@@ -18,15 +18,15 @@ struct TexturedEffect;
 
 class TiledTexture {
 public:
-  
-  
-  
-  
+  // Constructs a placeholder TiledTexture. See the comments above
+  // TiledLayerBuffer for more information on what this is used for;
+  // essentially, this is a sentinel used to represent an invalid or blank
+  // tile.
   TiledTexture()
     : mTextureHost(nullptr)
   {}
 
-  
+  // Constructs a TiledTexture from a TextureHost.
   TiledTexture(TextureHost* aTextureHost)
     : mTextureHost(aTextureHost)
   {}
@@ -77,8 +77,8 @@ public:
 
   TiledTexture GetPlaceholderTile() const { return TiledTexture(); }
 
-  
-  
+  // Stores the absolute resolution of the containing frame, calculated
+  // by the sum of the resolutions of all parent layers' FrameMetrics.
   const gfxSize& GetFrameResolution() { return mFrameResolution; }
 
 protected:
@@ -86,7 +86,7 @@ protected:
                             const nsIntPoint& aTileRect,
                             const nsIntRegion& dirtyRect);
 
-  
+  // do nothing, the desctructor in the texture host takes care of releasing resources
   void ReleaseTile(TiledTexture aTile) {}
 
   void SwapTiles(TiledTexture& aTileA, TiledTexture& aTileB) {
@@ -101,33 +101,33 @@ private:
 
 class TiledThebesLayerComposite;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * ContentHost for tiled Thebes layers. Since tiled layers are special snow
+ * flakes, we don't call UpdateThebes or AddTextureHost, etc. We do call Composite
+ * in the usual way though.
+ *
+ * There is no corresponding content client - on the client side we use a
+ * BasicTiledLayerBuffer owned by a BasicTiledThebesLayer. On the host side, we
+ * just use a regular ThebesLayerComposite, but with a tiled content host.
+ *
+ * TiledContentHost has a TiledLayerBufferComposite which keeps hold of the tiles.
+ * Each tile has a reference to a texture host. During the layers transaction, we
+ * receive a copy of the client-side tile buffer (PaintedTiledLayerBuffer). This is
+ * copied into the main memory tile buffer and then deleted. Copying copies tiles,
+ * but we only copy references to the underlying texture clients.
+ *
+ * When the content host is composited, we first upload any pending tiles
+ * (Process*UploadQueue), then render (RenderLayerBuffer). The former calls Validate
+ * on the tile (via ValidateTile and Update), that calls Update on the texture host,
+ * which works as for regular texture hosts. Rendering takes us to RenderTile which
+ * is similar to Composite for non-tiled ContentHosts.
+ */
 class TiledContentHost : public ContentHost,
                          public TiledLayerComposer
 {
 public:
-  TiledContentHost(Compositor* aCompositor)
-    : ContentHost(aCompositor)
+  TiledContentHost(const TextureInfo& aTextureInfo, Compositor* aCompositor)
+    : ContentHost(aTextureInfo, aCompositor)
     , mVideoMemoryTiledBuffer(aCompositor)
     , mLowPrecisionVideoMemoryTiledBuffer(aCompositor)
     , mPendingUpload(false)
@@ -156,7 +156,7 @@ public:
 
   void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer);
 
-  
+  // Renders a single given tile.
   void RenderTile(const TiledTexture& aTile,
                   EffectChain& aEffectChain,
                   float aOpacity,
@@ -181,10 +181,13 @@ public:
 
   virtual TiledLayerComposer* AsTiledLayerComposer() { return this; }
 
-  virtual void AddTextureHost(TextureHost* aTextureHost,
-                              ISurfaceAllocator* aAllocator = nullptr)
+  virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
+                                 const SurfaceDescriptor& aSurface,
+                                 ISurfaceAllocator* aAllocator,
+                                 const TextureInfo& aTextureInfo) MOZ_OVERRIDE
   {
-    MOZ_ASSERT(false, "Does nothing");
+    MOZ_NOT_REACHED("Does nothing");
+    return false;
   }
 
 #ifdef MOZ_LAYERS_HAVE_LOG

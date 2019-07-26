@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TiledContentHost.h"
 #include "mozilla/layers/Effects.h"
@@ -77,7 +77,7 @@ TiledContentHost::PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuf
     mPendingUpload = true;
   }
 
-  
+  // TODO: Remove me once Bug 747811 lands.
   delete mTiledBuffer;
 }
 
@@ -92,9 +92,9 @@ TiledContentHost::ProcessLowPrecisionUploadQueue()
                                   mLowPrecisionMainMemoryTiledBuffer.GetValidRegion());
   mLowPrecisionVideoMemoryTiledBuffer.SetResolution(
     mLowPrecisionMainMemoryTiledBuffer.GetResolution());
-  
-  
-  
+  // It's assumed that the video memory tiled buffer has an up-to-date
+  // frame resolution. As it's always updated first when zooming, this
+  // should always be true.
   mLowPrecisionVideoMemoryTiledBuffer.Upload(&mLowPrecisionMainMemoryTiledBuffer,
                                  mLowPrecisionMainMemoryTiledBuffer.GetValidRegion(),
                                  mLowPrecisionRegionToUpload,
@@ -115,8 +115,8 @@ TiledContentHost::ProcessUploadQueue(nsIntRegion* aNewValidRegion,
   if (!mPendingUpload)
     return;
 
-  
-  
+  // If we coalesce uploads while the layers' valid region is changing we will
+  // end up trying to upload area outside of the valid region. (bug 756555)
   mRegionToUpload.And(mRegionToUpload, mMainMemoryTiledBuffer.GetValidRegion());
 
   mVideoMemoryTiledBuffer.Upload(&mMainMemoryTiledBuffer,
@@ -126,11 +126,11 @@ TiledContentHost::ProcessUploadQueue(nsIntRegion* aNewValidRegion,
   *aNewValidRegion = mVideoMemoryTiledBuffer.GetValidRegion();
 
   mMainMemoryTiledBuffer.ReadUnlock();
-  
-  
-  
-  
-  
+  // Release all the tiles by replacing the tile buffer with an empty
+  // tiled buffer. This will prevent us from doing a double unlock when
+  // calling  ~TiledThebesLayerComposite.
+  // XXX: This wont be needed when we do progressive upload and lock
+  // tile by tile.
   mMainMemoryTiledBuffer = BasicTiledLayerBuffer();
   mRegionToUpload = nsIntRegion();
   mPendingUpload = false;
@@ -143,17 +143,17 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
                             const gfx::Point& aOffset,
                             const gfx::Filter& aFilter,
                             const gfx::Rect& aClipRect,
-                            const nsIntRegion* aVisibleRegion ,
-                            TiledLayerProperties* aLayerProperties )
+                            const nsIntRegion* aVisibleRegion /* = nullptr */,
+                            TiledLayerProperties* aLayerProperties /* = nullptr */)
 {
   MOZ_ASSERT(aLayerProperties, "aLayerProperties required for TiledContentHost");
 
-  
-  
+  // note that ProcessUploadQueue updates the valid region which is then used by
+  // the RenderLayerBuffer calls below and then sent back to the layer.
   ProcessUploadQueue(&aLayerProperties->mValidRegion, aLayerProperties);
   ProcessLowPrecisionUploadQueue();
 
-  
+  // Render valid tiles.
   nsIntRect visibleRect = aVisibleRegion->GetBounds();
 
   RenderLayerBuffer(mLowPrecisionVideoMemoryTiledBuffer,
@@ -216,8 +216,8 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
 {
   float resolution = aLayerBuffer.GetResolution();
   gfxSize layerScale(1, 1);
-  
-  
+  // We assume that the current frame resolution is the one used in our primary
+  // layer buffer. Compensate for a changing frame resolution.
   if (aLayerBuffer.GetFrameResolution() != mVideoMemoryTiledBuffer.GetFrameResolution()) {
     const gfxSize& layerResolution = aLayerBuffer.GetFrameResolution();
     const gfxSize& localResolution = mVideoMemoryTiledBuffer.GetFrameResolution();
@@ -281,10 +281,10 @@ TiledTexture::Validate(gfxReusableSurfaceWrapper* aReusableSurface, Compositor* 
 {
   TextureFlags flags = 0;
   if (!mTextureHost) {
-    
+    // convert placeholder tile to a real tile
     mTextureHost = TextureHost::CreateTextureHost(SurfaceDescriptor::Tnull_t,
                                                   TEXTURE_HOST_TILED,
-                                                  0);
+                                                  flags);
     mTextureHost->SetCompositor(aCompositor);
     flags |= NewTile;
   }
@@ -303,5 +303,5 @@ TiledContentHost::PrintInfo(nsACString& aTo, const char* aPrefix)
 #endif
 
 
-} 
-} 
+} // namespace
+} // namespace

@@ -56,10 +56,12 @@ public:
 
 
   virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
-                                   TextureClient* aBuffer) = 0;
+                                   const SurfaceDescriptor& aDescriptor,
+                                   const TextureInfo& aTextureInfo) = 0;
   virtual void CreatedDoubleBuffer(CompositableClient* aCompositable,
-                                   TextureClient* aFront,
-                                   TextureClient* aBack) = 0;
+                                   const SurfaceDescriptor& aFrontDescriptor,
+                                   const SurfaceDescriptor& aBackDescriptor,
+                                   const TextureInfo& aTextureInfo) = 0;
 
   
 
@@ -71,8 +73,9 @@ public:
 
 
 
-  virtual void UpdateTexture(TextureClient* aTexture,
-                             const SurfaceDescriptor& aImage) = 0;
+  virtual void UpdateTexture(CompositableClient* aCompositable,
+                             TextureIdentifier aTextureId,
+                             SurfaceDescriptor* aDescriptor) = 0;
 
   
 
