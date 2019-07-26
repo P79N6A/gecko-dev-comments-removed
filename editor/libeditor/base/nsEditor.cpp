@@ -103,6 +103,7 @@
 #include "nsStyleStruct.h"              
 #include "nsStyleStructFwd.h"           
 #include "nsTextEditUtils.h"            
+#include "nsTextNode.h"                 
 #include "nsThreadUtils.h"              
 #include "nsTransactionManager.h"       
 #include "prtime.h"                     
@@ -2294,141 +2295,100 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(bool aScrollToAnchor)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsEditor::InsertTextImpl(const nsAString& aStringToInsert, 
-                                          nsCOMPtr<nsIDOMNode> *aInOutNode, 
-                                          int32_t *aInOutOffset,
-                                          nsIDOMDocument *aDoc)
+NS_IMETHODIMP
+nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
+                         nsCOMPtr<nsIDOMNode>* aInOutNode,
+                         int32_t* aInOutOffset,
+                         nsIDOMDocument* aDoc)
 {
   
   
   
-  
-  nsresult res;
-  NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc, NS_ERROR_NULL_POINTER);
-  if (!mInIMEMode && aStringToInsert.IsEmpty()) return NS_OK;
-  nsCOMPtr<nsIDOMText> nodeAsText = do_QueryInterface(*aInOutNode);
-  if (!nodeAsText && IsPlaintextEditor()) {
-    nsCOMPtr<nsIDOMNode> rootNode = do_QueryInterface(GetRoot());
+
+  NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc,
+                 NS_ERROR_NULL_POINTER);
+  if (!mInIMEMode && aStringToInsert.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsINode> node = do_QueryInterface(*aInOutNode);
+  NS_ENSURE_STATE(node);
+  uint32_t offset = static_cast<uint32_t>(*aInOutOffset);
+
+  if (!node->IsNodeOfType(nsINode::eTEXT) && IsPlaintextEditor()) {
+    nsCOMPtr<nsINode> root = GetRoot();
     
     
     
-    
-    if (*aInOutNode == rootNode && *aInOutOffset == 0) {
-      nsCOMPtr<nsIDOMNode> possibleTextNode;
-      res = (*aInOutNode)->GetFirstChild(getter_AddRefs(possibleTextNode));
-      if (NS_SUCCEEDED(res)) {
-        nodeAsText = do_QueryInterface(possibleTextNode);
-        if (nodeAsText) {
-          *aInOutNode = possibleTextNode;
-        }
-      }
+    if (node == root && offset == 0 && node->HasChildren() &&
+        node->GetFirstChild()->IsNodeOfType(nsINode::eTEXT)) {
+      node = node->GetFirstChild();
     }
     
     
     
-    if (!nodeAsText && *aInOutNode == rootNode && *aInOutOffset > 0) {
-      nsCOMPtr<nsIDOMNodeList> children;
-      res = (*aInOutNode)->GetChildNodes(getter_AddRefs(children));
-      if (NS_SUCCEEDED(res)) {
-        nsCOMPtr<nsIDOMNode> possibleMozBRNode;
-        children->Item(*aInOutOffset, getter_AddRefs(possibleMozBRNode));
-        if (possibleMozBRNode && nsTextEditUtils::IsMozBR(possibleMozBRNode)) {
-          nsCOMPtr<nsIDOMNode> possibleTextNode;
-          res = children->Item(*aInOutOffset - 1, getter_AddRefs(possibleTextNode));
-          if (NS_SUCCEEDED(res)) {
-            nodeAsText = do_QueryInterface(possibleTextNode);
-            if (nodeAsText) {
-              uint32_t length;
-              res = nodeAsText->GetLength(&length);
-              if (NS_SUCCEEDED(res)) {
-                *aInOutOffset = int32_t(length);
-                *aInOutNode = possibleTextNode;
-              }
-            }
-          }
-        } else {
-          
-          
-          nsCOMPtr<nsIDOMNode> possibleTextNode;
-          res = children->Item(*aInOutOffset - 1, getter_AddRefs(possibleTextNode));
-          nodeAsText = do_QueryInterface(possibleTextNode);
-          if (nodeAsText) {
-            uint32_t length;
-            res = nodeAsText->GetLength(&length);
-            if (NS_SUCCEEDED(res)) {
-              *aInOutOffset = int32_t(length);
-              *aInOutNode = possibleTextNode;
-            }
-          }
-        }
-      }
+    if (node == root && offset > 0 && node->GetChildAt(offset - 1) &&
+        node->GetChildAt(offset - 1)->IsNodeOfType(nsINode::eTEXT)) {
+      node = node->GetChildAt(offset - 1);
+      offset = node->Length();
     }
     
     
     
-    if (nsTextEditUtils::IsMozBR(*aInOutNode) && *aInOutOffset == 0) {
-      nsCOMPtr<nsIDOMNode> previous;
-      (*aInOutNode)->GetPreviousSibling(getter_AddRefs(previous));
-      nodeAsText = do_QueryInterface(previous);
-      if (nodeAsText) {
-        uint32_t length;
-        res = nodeAsText->GetLength(&length);
-        if (NS_SUCCEEDED(res)) {
-          *aInOutOffset = int32_t(length);
-          *aInOutNode = previous;
-        }
-      } else {
-        nsCOMPtr<nsIDOMNode> parent;
-        (*aInOutNode)->GetParentNode(getter_AddRefs(parent));
-        if (parent == rootNode) {
-          *aInOutNode = parent;
-        }
+    if (nsTextEditUtils::IsMozBR(node) && offset == 0) {
+      if (node->GetPreviousSibling() &&
+          node->GetPreviousSibling()->IsNodeOfType(nsINode::eTEXT)) {
+        node = node->GetPreviousSibling();
+        offset = node->Length();
+      } else if (node->GetParentNode() && node->GetParentNode() == root) {
+        node = node->GetParentNode();
       }
     }
   }
-  int32_t offset = *aInOutOffset;
-  if (mInIMEMode)
-  {
-    if (!nodeAsText)
-    {
+
+  nsresult res;
+  if (mInIMEMode) {
+    if (!node->IsNodeOfType(nsINode::eTEXT)) {
       
-      res = aDoc->CreateTextNode(EmptyString(), getter_AddRefs(nodeAsText));
-      NS_ENSURE_SUCCESS(res, res);
-      NS_ENSURE_TRUE(nodeAsText, NS_ERROR_NULL_POINTER);
-      nsCOMPtr<nsIDOMNode> newNode = do_QueryInterface(nodeAsText);
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
+      NS_ENSURE_STATE(doc);
+      nsRefPtr<nsTextNode> newNode = doc->CreateTextNode(EmptyString());
       
-      res = InsertNode(newNode, *aInOutNode, offset);
+      res = InsertNode(newNode->AsDOMNode(), node->AsDOMNode(), offset);
       NS_ENSURE_SUCCESS(res, res);
+      node = newNode;
       offset = 0;
     }
-    res = InsertTextIntoTextNodeImpl(aStringToInsert, nodeAsText, offset);
+    nsCOMPtr<nsIDOMCharacterData> charDataNode = do_QueryInterface(node);
+    NS_ENSURE_STATE(charDataNode);
+    res = InsertTextIntoTextNodeImpl(aStringToInsert, charDataNode, offset);
     NS_ENSURE_SUCCESS(res, res);
-  }
-  else
-  {
-    if (nodeAsText)
-    {
+    offset += aStringToInsert.Length();
+  } else {
+    if (node->IsNodeOfType(nsINode::eTEXT)) {
       
-      res = InsertTextIntoTextNodeImpl(aStringToInsert, nodeAsText, offset);
+      nsCOMPtr<nsIDOMCharacterData> charDataNode = do_QueryInterface(node);
+      NS_ENSURE_STATE(charDataNode);
+      res = InsertTextIntoTextNodeImpl(aStringToInsert, charDataNode, offset);
       NS_ENSURE_SUCCESS(res, res);
-      *aInOutOffset += aStringToInsert.Length();
-    }
-    else
-    {
+      offset += aStringToInsert.Length();
+    } else {
       
       
-      res = aDoc->CreateTextNode(aStringToInsert, getter_AddRefs(nodeAsText));
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
+      NS_ENSURE_STATE(doc);
+      nsRefPtr<nsTextNode> newNode = doc->CreateTextNode(aStringToInsert);
+      
+      res = InsertNode(newNode->AsDOMNode(), node->AsDOMNode(), offset);
       NS_ENSURE_SUCCESS(res, res);
-      NS_ENSURE_TRUE(nodeAsText, NS_ERROR_NULL_POINTER);
-      nsCOMPtr<nsIDOMNode> newNode = do_QueryInterface(nodeAsText);
-      
-      res = InsertNode(newNode, *aInOutNode, offset);
-      NS_ENSURE_SUCCESS(res, res);
-      *aInOutNode = newNode;
-      *aInOutOffset = aStringToInsert.Length();
+      node = newNode;
+      offset = aStringToInsert.Length();
     }
   }
-  return res;
+
+  *aInOutNode = node->AsDOMNode();
+  *aInOutOffset = static_cast<int32_t>(offset);
+  return NS_OK;
 }
 
 
