@@ -25,7 +25,7 @@
 
 
 extern JS_PUBLIC_API(bool)
-JS_StartProfiling(const char *profileName, pid_t pid);
+JS_StartProfiling(const char *profileName);
 
 
 
