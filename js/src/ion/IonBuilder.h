@@ -31,6 +31,16 @@ class IonBuilder : public MIRGenerator
         ControlStatus_None          
     };
 
+    enum SetElemSafety {
+        
+        SetElem_Normal,
+
+        
+        
+        
+        SetElem_Unsafe,
+    };
+
     struct DeferredEdge : public TempObject
     {
         MBasicBlock *block;
@@ -383,6 +393,7 @@ class IonBuilder : public MIRGenerator
     bool jsop_getelem_string();
     bool jsop_setelem();
     bool jsop_setelem_dense(types::StackTypeSet::DoubleConversion conversion,
+                            SetElemSafety safety,
                             MDefinition *object, MDefinition *index, MDefinition *value);
     bool jsop_setelem_typed(int arrayType,
                             SetElemSafety safety,
