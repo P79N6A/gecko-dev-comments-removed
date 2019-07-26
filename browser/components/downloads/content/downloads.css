@@ -54,7 +54,7 @@ richlistitem[type="download"]:not([selected]) button {
                               [state="6"], 
                               [state="8"], 
                               [state="9"]) )
-                                           .downloadRemoveFromListMenuItem,
+                                           .downloadRemoveFromHistoryMenuItem,
 
 .download-state:not(:-moz-any([state="-1"],
                               [state="5"], 
