@@ -570,24 +570,12 @@ void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
   nsRect dirty = aDirtyRect - aFrame->GetOffsetTo(aDirtyFrame);
   nsRect overflowRect = aFrame->GetVisualOverflowRect();
 
-  if (aFrame->IsTransformed() &&
-      nsLayoutUtils::HasAnimationsForCompositor(aFrame->GetContent(),
-                                                eCSSProperty_transform)) {
-   
-
-
-
-
-    overflowRect.Inflate(nsPresContext::CSSPixelsToAppUnits(32));
-  }
-
   if (mHasDisplayPort && IsFixedFrame(aFrame)) {
     dirty = overflowRect;
   }
 
   if (!dirty.IntersectRect(dirty, overflowRect))
     return;
-
   aFrame->Properties().Set(nsDisplayListBuilder::OutOfFlowDirtyRectProperty(),
                            new nsRect(dirty));
 
@@ -3903,13 +3891,7 @@ nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBui
                                                       nsIFrame* aFrame,
                                                       bool aLogAnimations)
 {
-  
-  
-  
-  
-  if (!aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
-      !nsLayoutUtils::HasAnimationsForCompositor(aFrame->GetContent(),
-                                                 eCSSProperty_transform)) {
+  if (!aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer)) {
     if (aLogAnimations) {
       nsCString message;
       message.AppendLiteral("Performance warning: Async animation disabled because frame was not marked active for transform animation");
@@ -3994,12 +3976,6 @@ nsDisplayTransform::GetTransform(float aAppUnitsPerPixel)
     }
   }
   return mTransform;
-}
-
-bool
-nsDisplayTransform::ShouldBuildLayerEvenIfInvisible(nsDisplayListBuilder* aBuilder)
-{
-  return ShouldPrerenderTransformedContent(aBuilder, mFrame, false);
 }
 
 already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBuilder,
