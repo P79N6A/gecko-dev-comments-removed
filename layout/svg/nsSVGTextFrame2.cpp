@@ -2043,7 +2043,7 @@ public:
 
 
 
-  void NextWithinSubtree(uint32_t aCount);
+  bool NextWithinSubtree(uint32_t aCount);
 
   
 
@@ -2305,15 +2305,16 @@ CharIterator::Next(uint32_t aCount)
   return true;
 }
 
-void
+bool
 CharIterator::NextWithinSubtree(uint32_t aCount)
 {
   while (IsWithinSubtree() && aCount) {
+    --aCount;
     if (!Next()) {
       break;
     }
-    aCount--;
   }
+  return !aCount;
 }
 
 bool
@@ -3654,6 +3655,38 @@ nsSVGTextFrame2::GetComputedTextLength(nsIContent* aContent)
 
 
 nsresult
+nsSVGTextFrame2::SelectSubString(nsIContent* aContent,
+                                 uint32_t charnum, uint32_t nchars)
+{
+  UpdateGlyphPositioning(false);
+
+  
+  
+  CharIterator chit(this, CharIterator::eAddressable, aContent);
+  if (!chit.AdvanceToSubtree() ||
+      !chit.Next(charnum) ||
+      chit.IsAfterSubtree()) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
+  charnum = chit.TextElementCharIndex();
+  nsIContent* content = chit.TextFrame()->GetContent();
+  if (!chit.NextWithinSubtree(nchars)) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
+  nchars = chit.TextElementCharIndex() - charnum;
+
+  nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
+
+  frameSelection->HandleClick(content, charnum, charnum + nchars,
+                              false, false, false);
+  return NS_OK;
+}
+
+
+
+
+
+nsresult
 nsSVGTextFrame2::GetSubStringLength(nsIContent* aContent,
                                     uint32_t charnum, uint32_t nchars,
                                     float* aResult)
@@ -3675,7 +3708,9 @@ nsSVGTextFrame2::GetSubStringLength(nsIContent* aContent,
   }
 
   charnum = chit.TextElementCharIndex();
-  chit.NextWithinSubtree(nchars);
+  if (!chit.NextWithinSubtree(nchars)) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
   nchars = chit.TextElementCharIndex() - charnum;
 
   
