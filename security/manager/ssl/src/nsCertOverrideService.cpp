@@ -145,17 +145,7 @@ nsCertOverrideService::Observe(nsISupports     *,
     
 
     ReentrantMonitorAutoEnter lock(monitor);
-
-    if (!nsCRT::strcmp(aData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
-      RemoveAllFromMemory();
-      
-      if (mSettingsFile) {
-        mSettingsFile->Remove(false);
-      }
-    } else {
-      RemoveAllFromMemory();
-    }
-
+    RemoveAllFromMemory();
   } else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
     

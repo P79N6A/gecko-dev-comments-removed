@@ -1149,13 +1149,8 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
     
     
     mIsShuttingDown = true;
-    if (!nsCRT::strcmp(someData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
-      
-      RemoveAllInternal(false);
-    } else {
-      RemoveAllFromMemory();
-      CloseDB(false);
-    }
+    RemoveAllFromMemory();
+    CloseDB(false);
   }
   else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
