@@ -170,18 +170,24 @@ function test()
   {
     let scriptsView = gView.Scripts;
     let scriptLocations = scriptsView.scriptLocations;
-    info("Available scripts: " + scriptLocations);
 
-    if (scriptLocations.length === 2) {
+    
+    let count = 0;
+    let intervalID = window.setInterval(function() {
+      dump("count: " + count + " ");
+      if (++count > 50) {
+        ok(false, "Timed out while polling for the scripts.");
+        closeDebuggerAndFinish();
+      }
+      if (scriptLocations.length !== 2) {
+        return;
+      }
+      info("Available scripts: " + scriptLocations);
+
       
+      window.clearInterval(intervalID);
       scriptsView.selectScript(scriptLocations[index]);
-      return;
-    }
-
-    window.addEventListener("Debugger:AfterNewScript", function _onEvent(aEvent) {
-      window.removeEventListener(aEvent.type, _onEvent);
-      switchScript(index);
-    });
+    }, 100);
   }
 
   function reloadPage()
