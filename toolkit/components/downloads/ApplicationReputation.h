@@ -16,8 +16,7 @@
 #include "nsString.h"
 
 class nsIRequest;
-class nsIUrlClassifierDBService;
-class nsIScriptSecurityManager;
+class PendingDBLookup;
 class PendingLookup;
 class PRLogModuleInfo;
 
@@ -32,6 +31,7 @@ public:
 
 private:
   friend class PendingLookup;
+  friend class PendingDBLookup;
   
 
 
@@ -40,11 +40,6 @@ private:
 
 
   static PRLogModuleInfo* prlog;
-  
-
-
-  nsCOMPtr<nsIUrlClassifierDBService> mDBService;
-  nsCOMPtr<nsIScriptSecurityManager> mSecurityManager;
   
 
 

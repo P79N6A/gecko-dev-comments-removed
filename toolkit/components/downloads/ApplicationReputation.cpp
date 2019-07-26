@@ -4,6 +4,8 @@
 
 
 
+
+
 #include "ApplicationReputation.h"
 #include "csd.pb.h"
 
@@ -20,12 +22,15 @@
 #include "nsIURI.h"
 #include "nsIUrlClassifierDBService.h"
 #include "nsIX509Cert.h"
+#include "nsIX509CertDB.h"
 #include "nsIX509CertList.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/TimeStamp.h"
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"
@@ -33,12 +38,15 @@
 #include "nsReadableUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
+#include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsXPCOMStrings.h"
 
 using mozilla::Preferences;
 using mozilla::Telemetry::Accumulate;
+using safe_browsing::ClientDownloadRequest;
 using safe_browsing::ClientDownloadRequest_SignatureInfo;
+using safe_browsing::ClientDownloadRequest_CertificateChain;
 
 
 
@@ -59,82 +67,243 @@ PRLogModuleInfo *ApplicationReputationService::prlog = nullptr;
 #define LOG_ENABLED() (false)
 #endif
 
+class PendingDBLookup;
 
 
 
 
-class PendingLookup MOZ_FINAL :
-  public nsIStreamListener,
-  public nsIUrlClassifierCallback {
+
+class PendingLookup MOZ_FINAL : public nsIStreamListener
+{
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
-  NS_DECL_NSIURLCLASSIFIERCALLBACK
+
+  
   PendingLookup(nsIApplicationReputationQuery* aQuery,
                 nsIApplicationReputationCallback* aCallback);
   ~PendingLookup();
 
+  
+  
+  
+  
+  
+  nsresult StartLookup();
+
 private:
+  friend class PendingDBLookup;
+
   
-
-
   
-
-
-
-  enum LIST_TYPES {
-    ALLOW_LIST = 0,
-    BLOCK_LIST = 1,
-    NO_LIST = 2,
-  };
-  
-
-
   enum SERVER_RESPONSE_TYPES {
     SERVER_RESPONSE_VALID = 0,
     SERVER_RESPONSE_FAILED = 1,
     SERVER_RESPONSE_INVALID = 2,
   };
 
+  
   nsCOMPtr<nsIApplicationReputationQuery> mQuery;
+
+  
   nsCOMPtr<nsIApplicationReputationCallback> mCallback;
+
   
+  
+  nsTArray<nsCString> mAllowlistSpecs;
 
+  
+  TimeStamp mStartTime;
 
+  
+  
+  ClientDownloadRequest_SignatureInfo mSignatureInfo;
 
-
+  
+  
+  
   nsCString mResponse;
+
   
-
-
-
+  
   nsresult OnComplete(bool shouldBlock, nsresult rv);
+
   
-
-
-
+  
   nsresult OnStopRequestInternal(nsIRequest *aRequest,
                                  nsISupports *aContext,
                                  nsresult aResult,
                                  bool* aShouldBlock);
+
   
+  nsCString EscapeCertificateAttribute(const nsACString& aAttribute);
 
+  
+  nsCString EscapeFingerprint(const nsACString& aAttribute);
 
+  
+  
+  nsresult GenerateWhitelistStringsForPair(
+    nsIX509Cert* certificate, nsIX509Cert* issuer);
 
+  
+  
+  nsresult GenerateWhitelistStringsForChain(
+    const ClientDownloadRequest_CertificateChain& aChain);
+
+  
+  
+  
+  
+  
+  nsresult GenerateWhitelistStrings(
+    const ClientDownloadRequest_SignatureInfo& aSignatureInfo);
+
+  
+  
   nsresult ParseCertificates(nsIArray* aSigArray,
                              ClientDownloadRequest_SignatureInfo* aSigInfo);
+
   
+  
+  nsresult DoLookupInternal();
 
+  
+  
+  
+  
+  nsresult LookupNext();
 
-
+  
+  
   nsresult SendRemoteQuery();
+
+  
+  nsresult SendRemoteQueryInternal();
 };
 
-NS_IMPL_ISUPPORTS3(PendingLookup,
-                   nsIStreamListener,
-                   nsIRequestObserver,
+
+
+class PendingDBLookup MOZ_FINAL : public nsIUrlClassifierCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIURLCLASSIFIERCALLBACK
+
+  
+  PendingDBLookup(PendingLookup* aPendingLookup);
+  ~PendingDBLookup();
+
+  
+  
+  
+  nsresult LookupSpec(const nsACString& aSpec, bool aAllowListOnly);
+private:
+  
+  
+  enum LIST_TYPES {
+    ALLOW_LIST = 0,
+    BLOCK_LIST = 1,
+    NO_LIST = 2,
+  };
+
+  nsCString mSpec;
+  bool mAllowListOnly;
+  nsRefPtr<PendingLookup> mPendingLookup;
+  nsresult LookupSpecInternal(const nsACString& aSpec);
+};
+
+NS_IMPL_ISUPPORTS1(PendingDBLookup,
                    nsIUrlClassifierCallback)
+
+PendingDBLookup::PendingDBLookup(PendingLookup* aPendingLookup) :
+  mAllowListOnly(false),
+  mPendingLookup(aPendingLookup)
+{
+  LOG(("Created pending DB lookup [this = %p]", this));
+}
+
+PendingDBLookup::~PendingDBLookup()
+{
+  LOG(("Destroying pending DB lookup [this = %p]", this));
+  mPendingLookup = nullptr;
+}
+
+nsresult
+PendingDBLookup::LookupSpec(const nsACString& aSpec,
+                            bool aAllowListOnly)
+{
+  LOG(("Checking principal %s", aSpec.Data()));
+  mSpec = aSpec;
+  mAllowListOnly = aAllowListOnly;
+  nsresult rv = LookupSpecInternal(aSpec);
+  if (NS_FAILED(rv)) {
+    LOG(("Error in LookupSpecInternal"));
+    return mPendingLookup->OnComplete(false, NS_OK);
+  }
+  
+  
+  return rv;
+}
+
+nsresult
+PendingDBLookup::LookupSpecInternal(const nsACString& aSpec)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIURI> uri = nullptr;
+  nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
+  rv = ios->NewURI(aSpec, nullptr, nullptr, getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIPrincipal> principal = nullptr;
+  nsCOMPtr<nsIScriptSecurityManager> secMan =
+    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = secMan->GetNoAppCodebasePrincipal(uri, getter_AddRefs(principal));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  LOG(("Checking DB service for principal %s [this = %p]", mSpec.get(), this));
+  nsCOMPtr<nsIUrlClassifierDBService> dbService =
+    do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
+  return dbService->Lookup(principal, this);
+}
+
+NS_IMETHODIMP
+PendingDBLookup::HandleEvent(const nsACString& tables)
+{
+  
+  
+  
+  
+  nsAutoCString allowList;
+  Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowList);
+  if (FindInReadable(tables, allowList)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
+    LOG(("Found principal %s on allowlist [this = %p]", mSpec.get(), this));
+    return mPendingLookup->OnComplete(false, NS_OK);
+  }
+
+  nsAutoCString blockList;
+  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
+  if (!mAllowListOnly && FindInReadable(tables, blockList)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
+    LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
+    return mPendingLookup->OnComplete(true, NS_OK);
+  }
+
+  LOG(("Didn't find principal %s on any list [this = %p]", mSpec.get(), this));
+  Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, NO_LIST);
+  return mPendingLookup->LookupNext();
+}
+
+NS_IMPL_ISUPPORTS2(PendingLookup,
+                   nsIStreamListener,
+                   nsIRequestObserver)
 
 PendingLookup::PendingLookup(nsIApplicationReputationQuery* aQuery,
                              nsIApplicationReputationCallback* aCallback) :
@@ -150,45 +319,25 @@ PendingLookup::~PendingLookup()
 }
 
 nsresult
-PendingLookup::OnComplete(bool shouldBlock, nsresult rv)
-{
-  Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_SHOULD_BLOCK,
-    shouldBlock);
-  if (shouldBlock) {
-    LOG(("Application Reputation check failed, blocking bad binary "
-         "[this = %p]", this));
-  } else {
-    LOG(("Application Reputation check passed [this = %p]", this));
-  }
-  nsresult res = mCallback->OnComplete(shouldBlock, rv);
-  return res;
-}
-
-
-
-NS_IMETHODIMP
-PendingLookup::HandleEvent(const nsACString& tables)
+PendingLookup::LookupNext()
 {
   
   
+  int index = mAllowlistSpecs.Length() - 1;
+  if (index >= 0) {
+    nsCString spec = mAllowlistSpecs[index];
+    mAllowlistSpecs.RemoveElementAt(index);
+    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
+    bool allowListOnly = true;
+    if (index == 0) {
+      
+      
+      allowListOnly = false;
+    }
+    return lookup->LookupSpec(spec, allowListOnly);
+  }
   
-  nsCString allow_list;
-  Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allow_list);
-  if (FindInReadable(tables, allow_list)) {
-    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
-    LOG(("Found principal on allowlist [this = %p]", this));
-    return OnComplete(false, NS_OK);
-  }
-
-  nsCString block_list;
-  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &block_list);
-  if (FindInReadable(tables, block_list)) {
-    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
-    LOG(("Found principal on blocklist [this = %p]", this));
-    return OnComplete(true, NS_OK);
-  }
-
-  Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, NO_LIST);
+  
   
 #if 0
   nsresult rv = SendRemoteQuery();
@@ -201,11 +350,207 @@ PendingLookup::HandleEvent(const nsACString& tables)
 #endif
 }
 
+nsCString
+PendingLookup::EscapeCertificateAttribute(const nsACString& aAttribute)
+{
+  
+  nsCString escaped;
+  escaped.SetCapacity(aAttribute.Length());
+  for (unsigned int i = 0; i < aAttribute.Length(); ++i) {
+    if (aAttribute.Data()[i] == '%') {
+      escaped.Append("%25");
+    } else if (aAttribute.Data()[i] == '/') {
+      escaped.Append("%2F");
+    } else if (aAttribute.Data()[i] == ' ') {
+      escaped.Append("%20");
+    } else {
+      escaped.Append(aAttribute.Data()[i]);
+    }
+  }
+  return escaped;
+}
+
+nsCString
+PendingLookup::EscapeFingerprint(const nsACString& aFingerprint)
+{
+  
+  nsCString escaped;
+  escaped.SetCapacity(aFingerprint.Length());
+  for (unsigned int i = 0; i < aFingerprint.Length(); ++i) {
+    if (aFingerprint.Data()[i] != ':') {
+      escaped.Append(aFingerprint.Data()[i]);
+    }
+  }
+  return escaped;
+}
+
+nsresult
+PendingLookup::GenerateWhitelistStringsForPair(
+  nsIX509Cert* certificate,
+  nsIX509Cert* issuer)
+{
+  
+  
+  
+  
+  
+  
+  nsCString whitelistString(
+    "http://sb-ssl.google.com/safebrowsing/csd/certificate/");
+
+  nsString fingerprint;
+  nsresult rv = issuer->GetSha1Fingerprint(fingerprint);
+  NS_ENSURE_SUCCESS(rv, rv);
+  whitelistString.Append(
+    EscapeFingerprint(NS_ConvertUTF16toUTF8(fingerprint)));
+
+  nsString commonName;
+  rv = certificate->GetCommonName(commonName);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!commonName.IsEmpty()) {
+    whitelistString.Append("/CN=");
+    whitelistString.Append(
+      EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(commonName)));
+  }
+
+  nsString organization;
+  rv = certificate->GetOrganization(organization);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!organization.IsEmpty()) {
+    whitelistString.Append("/O=");
+    whitelistString.Append(
+      EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(organization)));
+  }
+
+  nsString organizationalUnit;
+  rv = certificate->GetOrganizationalUnit(organizationalUnit);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!organizationalUnit.IsEmpty()) {
+    whitelistString.Append("/OU=");
+    whitelistString.Append(
+      EscapeCertificateAttribute(NS_ConvertUTF16toUTF8(organizationalUnit)));
+  }
+  LOG(("Whitelisting %s", whitelistString.get()));
+
+  mAllowlistSpecs.AppendElement(whitelistString);
+  return NS_OK;
+}
+
+nsresult
+PendingLookup::GenerateWhitelistStringsForChain(
+  const safe_browsing::ClientDownloadRequest_CertificateChain& aChain)
+{
+  
+  
+  if (aChain.element_size() < 2) {
+    return NS_OK;
+  }
+
+  
+  nsresult rv;
+  nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIX509Cert> signer = nullptr;
+  rv = certDB->ConstructX509(
+    const_cast<char *>(aChain.element(0).certificate().data()),
+    aChain.element(0).certificate().size(), getter_AddRefs(signer));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (int i = 1; i < aChain.element_size(); ++i) {
+    
+    nsCOMPtr<nsIX509Cert> issuer = nullptr;
+    rv = certDB->ConstructX509(
+      const_cast<char *>(aChain.element(i).certificate().data()),
+      aChain.element(i).certificate().size(), getter_AddRefs(issuer));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsresult rv = GenerateWhitelistStringsForPair(signer, issuer);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult
+PendingLookup::GenerateWhitelistStrings(
+  const safe_browsing::ClientDownloadRequest_SignatureInfo& aSignatureInfo)
+{
+  for (int i = 0; i < aSignatureInfo.certificate_chain_size(); ++i) {
+    nsresult rv = GenerateWhitelistStringsForChain(
+      aSignatureInfo.certificate_chain(i));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+nsresult
+PendingLookup::StartLookup()
+{
+  mStartTime = TimeStamp::Now();
+  nsresult rv = DoLookupInternal();
+  if (NS_FAILED(rv)) {
+    return OnComplete(false, NS_OK);
+  };
+  return rv;
+}
+
+nsresult
+PendingLookup::DoLookupInternal()
+{
+  
+  nsCOMPtr<nsIURI> uri = nullptr;
+  nsresult rv = mQuery->GetSourceURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString spec;
+  rv = uri->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  mAllowlistSpecs.AppendElement(spec);
+
+  
+  
+  nsCOMPtr<nsIArray> sigArray = nullptr;
+  rv = mQuery->GetSignatureInfo(getter_AddRefs(sigArray));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (sigArray) {
+    rv = ParseCertificates(sigArray, &mSignatureInfo);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = GenerateWhitelistStrings(mSignatureInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  return LookupNext();
+}
+
+nsresult
+PendingLookup::OnComplete(bool shouldBlock, nsresult rv)
+{
+  Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_SHOULD_BLOCK,
+    shouldBlock);
+#if defined(PR_LOGGING)
+  double t = (TimeStamp::Now() - mStartTime).ToMilliseconds();
+#endif
+  if (shouldBlock) {
+    LOG(("Application Reputation check failed, blocking bad binary in %f ms "
+         "[this = %p]", t, this));
+  } else {
+    LOG(("Application Reputation check passed in %f ms [this = %p]", t, this));
+  }
+  nsresult res = mCallback->OnComplete(shouldBlock, rv);
+  return res;
+}
+
 nsresult
 PendingLookup::ParseCertificates(
   nsIArray* aSigArray,
   ClientDownloadRequest_SignatureInfo* aSignatureInfo)
 {
+  
+  NS_ENSURE_ARG_POINTER(aSigArray);
+
   
   
   
@@ -260,11 +605,23 @@ PendingLookup::ParseCertificates(
 nsresult
 PendingLookup::SendRemoteQuery()
 {
+  nsresult rv = SendRemoteQueryInternal();
+  if (NS_FAILED(rv)) {
+    return OnComplete(false, NS_OK);
+  }
+  
+  
+  return rv;
+}
+
+nsresult
+PendingLookup::SendRemoteQueryInternal()
+{
   LOG(("Sending remote query for application reputation [this = %p]", this));
   
   
   safe_browsing::ClientDownloadRequest req;
-  nsCOMPtr<nsIURI> uri;
+  nsCOMPtr<nsIURI> uri = nullptr;
   nsresult rv;
   rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -292,21 +649,14 @@ PendingLookup::SendRemoteQuery()
   rv = mQuery->GetSuggestedFileName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
   req.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
-
-  
-  
-  nsCOMPtr<nsIArray> sigArray = nullptr;
-  rv = mQuery->GetSignatureInfo(getter_AddRefs(sigArray));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = ParseCertificates(sigArray, req.mutable_signature());
-  NS_ENSURE_SUCCESS(rv, rv);
+  req.mutable_signature()->CopyFrom(mSignatureInfo);
 
   if (req.signature().trusted()) {
-    LOG(("Got signed binary for application reputation [this = %p]", this));
+    LOG(("Got signed binary for remote application reputation check "
+         "[this = %p]", this));
   } else {
-    LOG(("Got unsigned binary for application reputation [this = %p]", this));
+    LOG(("Got unsigned binary for remote application reputation check "
+         "[this = %p]", this));
   }
 
   
@@ -325,14 +675,12 @@ PendingLookup::SendRemoteQuery()
   rv = sstream->SetData(serialized.c_str(), serialized.length());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
-  nsCOMPtr<nsIChannel> channel;
+  nsCOMPtr<nsIChannel> channel = nullptr;
   nsCString serviceUrl;
   NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
                     NS_ERROR_NOT_AVAILABLE);
+  nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
   rv = ios->NewChannel(serviceUrl, nullptr, nullptr, getter_AddRefs(channel));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -475,9 +823,8 @@ ApplicationReputationService::GetSingleton()
   return gApplicationReputationService;
 }
 
-ApplicationReputationService::ApplicationReputationService() :
-  mDBService(nullptr),
-  mSecurityManager(nullptr) {
+ApplicationReputationService::ApplicationReputationService()
+{
 #if defined(PR_LOGGING)
   if (!prlog) {
     prlog = PR_NewLogModule("ApplicationReputation");
@@ -487,6 +834,7 @@ ApplicationReputationService::ApplicationReputationService() :
 }
 
 ApplicationReputationService::~ApplicationReputationService() {
+  LOG(("Application reputation service shutting down"));
 }
 
 NS_IMETHODIMP
@@ -496,7 +844,6 @@ ApplicationReputationService::QueryReputation(
   NS_ENSURE_ARG_POINTER(aQuery);
   NS_ENSURE_ARG_POINTER(aCallback);
 
-  LOG(("Sending application reputation query"));
   Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_COUNT, true);
   nsresult rv = QueryReputationInternal(aQuery, aCallback);
   if (NS_FAILED(rv)) {
@@ -508,17 +855,7 @@ ApplicationReputationService::QueryReputation(
 nsresult ApplicationReputationService::QueryReputationInternal(
   nsIApplicationReputationQuery* aQuery,
   nsIApplicationReputationCallback* aCallback) {
-  
   nsresult rv;
-  if (!mDBService) {
-    mDBService = do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  if (!mSecurityManager) {
-    mSecurityManager = do_GetService("@mozilla.org/scriptsecuritymanager;1",
-                                     &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
   
   if (!Preferences::GetBool(PREF_SB_MALWARE_ENABLED, false)) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -532,25 +869,15 @@ nsresult ApplicationReputationService::QueryReputationInternal(
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  
-  nsRefPtr<PendingLookup> lookup(new PendingLookup(aQuery, aCallback));
-  NS_ENSURE_STATE(lookup);
-
-  nsCOMPtr<nsIURI> uri;
+  nsCOMPtr<nsIURI> uri = nullptr;
   rv = aQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
   
   NS_ENSURE_STATE(uri);
-  nsCOMPtr<nsIPrincipal> principal;
-  
-  
-  
-  
-  rv = mSecurityManager->GetNoAppCodebasePrincipal(uri,
-                                                   getter_AddRefs(principal));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  return mDBService->Lookup(principal, lookup);
+  nsRefPtr<PendingLookup> lookup(new PendingLookup(aQuery, aCallback));
+  NS_ENSURE_STATE(lookup);
+
+  return lookup->StartLookup();
 }

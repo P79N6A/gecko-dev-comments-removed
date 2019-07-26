@@ -62,71 +62,13 @@ function run_test() {
 
   gHttpServ = new HttpServer();
   gHttpServ.registerDirectory("/", do_get_cwd());
-
-  function createVerdict(aShouldBlock) {
-    
-    
-    blob = String.fromCharCode(parseInt(0x08, 16));
-    if (aShouldBlock) {
-      
-      blob += String.fromCharCode(parseInt(0x01, 16));
-    } else {
-      
-      blob += String.fromCharCode(parseInt(0x00, 16));
-    }
-    return blob;
-  }
-
   gHttpServ.registerPathHandler("/download", function(request, response) {
-    response.setHeader("Content-Type", "application/octet-stream", false);
-    let buf = NetUtil.readInputStreamToString(
-      request.bodyInputStream,
-      request.bodyInputStream.available());
-    do_print("Request length: " + buf.length);
-    
-    
-    let blob = "this is not a serialized protocol buffer";
-    
-    
-    if (buf.length == 35) {
-      
-      blob = createVerdict(true);
-    } else if (buf.length == 38) {
-      
-      blob = createVerdict(false);
-    }
-    response.bodyOutputStream.write(blob, blob.length);
+    do_throw("This test should never make a remote lookup");
   });
-
   gHttpServ.start(4444);
 
   run_next_test();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 add_test(function test_nullSourceURI() {
   gAppRep.queryReputation({
@@ -163,23 +105,6 @@ add_test(function test_disabled() {
     run_next_test();
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 add_test(function test_local_list() {
