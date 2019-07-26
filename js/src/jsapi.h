@@ -3727,13 +3727,6 @@ JS_PutEscapedFlatString(char *buffer, size_t size, JSFlatString *str, char quote
 
 
 
-extern JS_PUBLIC_API(JSString *)
-JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
-
-
-
-
-
 
 extern JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JS::HandleString str, size_t start,
