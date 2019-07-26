@@ -210,6 +210,30 @@ struct CodeSizes
 };
 
 
+struct GCSizes
+{
+#define FOR_EACH_SIZE(macro) \
+    macro(_, _, marker) \
+    macro(_, _, storeBufferVals) \
+    macro(_, _, storeBufferCells) \
+    macro(_, _, storeBufferSlots) \
+    macro(_, _, storeBufferWholeCells) \
+    macro(_, _, storeBufferRelocVals) \
+    macro(_, _, storeBufferRelocCells) \
+    macro(_, _, storeBufferGenerics)
+
+    GCSizes()
+      : FOR_EACH_SIZE(ZERO_SIZE)
+        dummy()
+    {}
+
+    FOR_EACH_SIZE(DECL_SIZE)
+    int dummy;  
+
+#undef FOR_EACH_SIZE
+};
+
+
 
 
 
@@ -294,7 +318,6 @@ struct RuntimeSizes
     macro(_, _, temporary) \
     macro(_, _, regexpData) \
     macro(_, _, interpreterStack) \
-    macro(_, _, gcMarker) \
     macro(_, _, mathCache) \
     macro(_, _, sourceDataCache) \
     macro(_, _, scriptData) \
@@ -302,11 +325,13 @@ struct RuntimeSizes
 
     RuntimeSizes()
       : FOR_EACH_SIZE(ZERO_SIZE)
-        code()
+        code(),
+        gc()
     {}
 
     FOR_EACH_SIZE(DECL_SIZE)
     CodeSizes code;
+    GCSizes   gc;
 
 #undef FOR_EACH_SIZE
 };

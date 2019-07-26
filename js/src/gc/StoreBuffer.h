@@ -20,6 +20,7 @@
 
 #include "ds/LifoAlloc.h"
 #include "gc/Nursery.h"
+#include "js/MemoryMetrics.h"
 #include "js/Tracer.h"
 
 namespace js {
@@ -139,6 +140,10 @@ class StoreBuffer
         
         void mark(StoreBuffer *owner, JSTracer *trc);
 
+        size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
+            return storage_ ? storage_->sizeOfIncludingThis(mallocSizeOf) : 0;
+        }
+
       private:
         MonoTypeBuffer &operator=(const MonoTypeBuffer& other) MOZ_DELETE;
     };
@@ -207,6 +212,10 @@ class StoreBuffer
 
             if (isAboutToOverflow())
                 owner->setAboutToOverflow();
+        }
+
+        size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
+            return storage_ ? storage_->sizeOfIncludingThis(mallocSizeOf) : 0;
         }
 
       private:
@@ -436,7 +445,8 @@ class StoreBuffer
 
     
     void setAboutToOverflow();
-    void setOverflowed();
+
+    void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::GCSizes *sizes);
 };
 
 } 
