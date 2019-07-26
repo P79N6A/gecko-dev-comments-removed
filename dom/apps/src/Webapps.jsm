@@ -178,7 +178,7 @@ this.DOMApplicationRegistry = {
 
   
   loadCurrentRegistry: function() {
-    return this._loadJSONAsync(this.appsFile).then((aData) => {
+    return AppsUtils.loadJSONAsync(this.appsFile).then((aData) => {
       if (!aData) {
         return;
       }
@@ -513,7 +513,7 @@ this.DOMApplicationRegistry = {
       }
 
       
-      let data = yield this._loadJSONAsync(file.path);
+      let data = yield AppsUtils.loadJSONAsync(file.path);
       if (!data) {
         return;
       }
@@ -944,56 +944,6 @@ this.DOMApplicationRegistry = {
     }
   },
 
-  _loadJSONAsync: function(aPath) {
-    let deferred = Promise.defer();
-
-    try {
-      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-      file.initWithPath(aPath);
-      let channel = NetUtil.newChannel(file);
-      channel.contentType = "application/json";
-      NetUtil.asyncFetch(channel, function(aStream, aResult) {
-        if (!Components.isSuccessCode(aResult)) {
-          deferred.resolve(null);
-
-          if (aResult == Cr.NS_ERROR_FILE_NOT_FOUND) {
-            
-            
-            return;
-          }
-
-          Cu.reportError("DOMApplicationRegistry: Could not read from json file "
-                         + aPath);
-          return;
-        }
-
-        try {
-          
-          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                          .createInstance(Ci.nsIScriptableUnicodeConverter);
-          converter.charset = "UTF-8";
-
-          
-          let data = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(aStream,
-                                                            aStream.available()) || ""));
-          aStream.close();
-
-          deferred.resolve(data);
-        } catch (ex) {
-          Cu.reportError("DOMApplicationRegistry: Could not parse JSON: " +
-                         aPath + " " + ex + "\n" + ex.stack);
-          deferred.resolve(null);
-        }
-      });
-    } catch (ex) {
-      Cu.reportError("DOMApplicationRegistry: Could not read from " +
-                     aPath + " : " + ex + "\n" + ex.stack);
-      deferred.resolve(null);
-    }
-
-    return deferred.promise;
-  },
-
   addMessageListener: function(aMsgNames, aApp, aMm) {
     aMsgNames.forEach(function (aMsgName) {
       let man = aApp && aApp.manifestURL;
@@ -1229,10 +1179,30 @@ this.DOMApplicationRegistry = {
   _writeFile: function(aPath, aData) {
     debug("Saving " + aPath);
 
-    return OS.File.writeAtomic(aPath,
-                               new TextEncoder().encode(aData),
-                               { tmpPath: aPath + ".tmp" })
-                  .then(null, Cu.reportError);
+    let deferred = Promise.defer();
+
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+    file.initWithPath(aPath);
+
+    
+    let ostream = FileUtils.openSafeFileOutputStream(file);
+
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                      .createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
+
+    
+    let istream = converter.convertToInputStream(aData);
+    NetUtil.asyncCopy(istream, ostream, function(aResult) {
+      if (!Components.isSuccessCode(aResult)) {
+        deferred.reject()
+      } else {
+        deferred.resolve();
+      }
+    });
+
+    return deferred.promise;
   },
 
   doLaunch: function (aData, aMm) {
@@ -1401,7 +1371,7 @@ this.DOMApplicationRegistry = {
       return;
     }
 
-    this._loadJSONAsync(file.path).then((aJSON) => {
+    AppsUtils.loadJSONAsync(file.path).then((aJSON) => {
       if (!aJSON) {
         debug("startDownload: No update manifest found at " + file.path + " " +
               aManifestURL);
@@ -1514,7 +1484,7 @@ this.DOMApplicationRegistry = {
           
           this.updateAppHandlers(aOldManifest, aData, app);
 
-          this._loadJSONAsync(staged.path).then((aUpdateManifest) => {
+          AppsUtils.loadJSONAsync(staged.path).then((aUpdateManifest) => {
             let appObject = AppsUtils.cloneAppObject(app);
             appObject.updateManifest = aUpdateManifest;
             this.notifyUpdateHandlers(appObject, aData, appFile.path);
@@ -2605,7 +2575,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
           let fileNames = ["manifest.webapp", "update.webapp", "manifest.json"];
           for (let fileName of fileNames) {
-            this._manifestCache[id] = yield this._loadJSONAsync(OS.Path.join(dir.path, fileName));
+            this._manifestCache[id] = yield AppsUtils.loadJSONAsync(OS.Path.join(dir.path, fileName));
             if (this._manifestCache[id]) {
               break;
             }
@@ -2896,39 +2866,30 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
 
   _computeFileHash: function(aFilePath) {
-    return Task.spawn(function*() {
+    let deferred = Promise.defer();
+
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+    file.initWithPath(aFilePath);
+
+    NetUtil.asyncFetch(file, function(inputStream, status) {
+      if (!Components.isSuccessCode(status)) {
+        debug("Error reading " + aFilePath + ": " + e);
+        deferred.reject();
+        return;
+      }
+
       let hasher = Cc["@mozilla.org/security/hash;1"]
                      .createInstance(Ci.nsICryptoHash);
       
       hasher.init(hasher.MD5);
 
-      const CHUNK_SIZE = 16384;
+      const PR_UINT32_MAX = 0xffffffff;
+      hasher.updateFromStream(inputStream, PR_UINT32_MAX);
 
       
       function toHexString(charCode) {
         return ("0" + charCode.toString(16)).slice(-2);
       }
-
-      let file;
-      try {
-        file = yield OS.File.open(aFilePath, { read: true });
-      } catch(e) {
-        debug("Error opening " + aFilePath + ": " + e);
-        return null;
-      }
-
-      try {
-        let array;
-        do {
-          array = yield file.read(CHUNK_SIZE);
-          hasher.update(array, array.length);
-        } while (array.length == CHUNK_SIZE);
-      } catch(e) {
-        debug("Error reading " + aFilePath + ": " + e);
-        return null;
-      }
-
-      yield file.close();
 
       
       let data = hasher.finish(false);
@@ -2936,8 +2897,10 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       let hash = [toHexString(data.charCodeAt(i)) for (i in data)].join("");
       debug("File hash computed: " + hash);
 
-      return hash;
+      deferred.resolve(hash);
     });
+
+    return deferred.promise;
   },
 
   
@@ -2965,12 +2928,15 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       aOldApp.manifestHash = aOldApp.staged.manifestHash;
       aOldApp.etag = aOldApp.staged.etag || aOldApp.etag;
       aOldApp.staged = {};
-      
-      let dirPath = this._getAppDir(aId).path;
 
       
-      OS.File.move(OS.Path.join(dirPath, "staged-update.webapp"),
-                   OS.Path.join(dirPath, "update.webapp"));
+      try {
+        let staged = this._getAppDir(aId);
+        staged.append("staged-update.webapp");
+        staged.moveTo(staged.parent, "update.webapp");
+      } catch (ex) {
+        
+      }
     }
 
     
