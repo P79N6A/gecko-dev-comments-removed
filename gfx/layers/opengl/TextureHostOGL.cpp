@@ -197,11 +197,13 @@ CompositableDataGonkOGL::DeleteTextureIfPresent()
   }
 }
 
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 bool
 TextureHostOGL::SetReleaseFence(const android::sp<android::Fence>& aReleaseFence)
 {
   if (!aReleaseFence.get() || !aReleaseFence->isValid()) {
+    
+    
     return false;
   }
 
@@ -226,9 +228,11 @@ TextureHostOGL::SetReleaseFence(const android::sp<android::Fence>& aReleaseFence
 android::sp<android::Fence>
 TextureHostOGL::GetAndResetReleaseFence()
 {
-  android::sp<android::Fence> fence = mReleaseFence;
+  
+  mPrevReleaseFence = mReleaseFence;
+  
   mReleaseFence = android::Fence::NO_FENCE;
-  return fence;
+  return mPrevReleaseFence;
 }
 #endif
 

@@ -340,6 +340,13 @@ public:
     return mReleaseFenceHandle;
   }
 
+  
+
+
+
+
+  virtual void WaitReleaseFence() {}
+
 private:
   
 

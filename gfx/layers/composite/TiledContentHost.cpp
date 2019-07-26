@@ -9,6 +9,7 @@
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/TextureHostOGL.h"  
 #include "nsAString.h"
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
@@ -30,6 +31,12 @@ TiledLayerBufferComposite::TiledLayerBufferComposite()
   , mHasDoubleBufferedTiles(false)
   , mUninitialized(true)
 {}
+
+ void
+TiledLayerBufferComposite::RecycleCallback(TextureHost* textureHost, void* aClosure)
+{
+  textureHost->CompositorRecycle();
+}
 
 TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocator,
                                                      const SurfaceDescriptorTiles& aDescriptor,
@@ -56,6 +63,11 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
     switch (tileDesc.type()) {
       case TileDescriptor::TTexturedTileDescriptor : {
         texture = TextureHost::AsTextureHost(tileDesc.get_TexturedTileDescriptor().textureParent());
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+        if (!gfxPrefs::LayersUseSimpleTiles()) {
+          texture->SetRecycleCallback(RecycleCallback, nullptr);
+        }
+#endif
         const TileLock& ipcLock = tileDesc.get_TexturedTileDescriptor().sharedLock();
         nsRefPtr<gfxSharedReadLock> sharedLock;
         if (ipcLock.type() == TileLock::TShmemSection) {
@@ -159,6 +171,23 @@ TiledLayerBufferComposite::SetCompositor(Compositor* aCompositor)
     mRetainedTiles[i].mTextureHost->SetCompositor(aCompositor);
   }
 }
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+void
+TiledLayerBufferComposite::SetReleaseFence(const android::sp<android::Fence>& aReleaseFence)
+{
+  for (size_t i = 0; i < mRetainedTiles.Length(); i++) {
+    if (!mRetainedTiles[i].mTextureHost) {
+      continue;
+    }
+    TextureHostOGL* texture = mRetainedTiles[i].mTextureHost->AsHostOGL();
+    if (!texture) {
+      continue;
+    }
+    texture->SetReleaseFence(new android::Fence(aReleaseFence->dup()));
+  }
+}
+#endif
 
 TiledContentHost::TiledContentHost(const TextureInfo& aTextureInfo)
   : ContentHost(aTextureInfo)

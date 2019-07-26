@@ -79,6 +79,9 @@ private:
   
   
   
+  
+  
+  
   std::stack<RefPtr<TextureClient> > mAvailableTextureClients;
   std::list<RefPtr<TextureClient> > mOutstandingTextureClients;
 

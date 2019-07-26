@@ -290,6 +290,16 @@ public:
   
 
 
+
+
+
+
+
+  void CompositorRecycle();
+
+  
+
+
   virtual bool Lock() { return true; }
 
   

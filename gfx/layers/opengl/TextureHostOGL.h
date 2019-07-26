@@ -157,7 +157,7 @@ private:
 class TextureHostOGL
 {
 public:
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 
   
 
@@ -169,8 +169,16 @@ public:
 
 
   virtual android::sp<android::Fence> GetAndResetReleaseFence();
+
 protected:
   android::sp<android::Fence> mReleaseFence;
+
+  
+
+
+
+
+  android::sp<android::Fence> mPrevReleaseFence;
 #endif
 };
 

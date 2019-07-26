@@ -19,6 +19,10 @@
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
 
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+#include <ui/Fence.h>
+#endif
+
 namespace mozilla {
 namespace layers {
 
@@ -206,6 +210,14 @@ public:
 
 
   virtual const nsIntRegion& GetValidLowPrecisionRegion() const = 0;
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+  
+
+
+
+  virtual void SetReleaseFence(const android::sp<android::Fence>& aReleaseFence) = 0;
+#endif
 };
 
 

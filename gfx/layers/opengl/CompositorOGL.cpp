@@ -27,6 +27,7 @@
 #include "mozilla/Preferences.h"        
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Matrix.h"         
+#include "mozilla/layers/LayerManagerComposite.h"  
 #include "mozilla/layers/CompositingRenderTargetOGL.h"
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/TextureHost.h"  
@@ -43,6 +44,7 @@
 #include "DecomposeIntoNoRepeatTriangles.h"
 #include "ScopedGLHelpers.h"
 #include "GLReadTexImageHelper.h"
+#include "TiledLayerBuffer.h"           
 
 #if MOZ_ANDROID_OMTC
 #include "TexturePoolOGL.h"
@@ -280,9 +282,8 @@ CompositorOGL::Initialize()
       LOCAL_GL_NONE
     };
 
-    if (!mGLContext->IsGLES2()) {
-      
-      textureTargets[1] = LOCAL_GL_TEXTURE_RECTANGLE_ARB;
+    if (mGLContext->IsGLES2()) {
+        textureTargets[1] = LOCAL_GL_TEXTURE_RECTANGLE_ARB;
     }
 
     mFBOTextureTarget = LOCAL_GL_NONE;
@@ -1192,27 +1193,26 @@ CompositorOGL::EndFrame()
   
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE0);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  if (!mGLContext->IsGLES2()) {
-    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
-  }
-
+  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE1);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  if (!mGLContext->IsGLES2()) {
-    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
-  }
-
+  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE2);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  if (!mGLContext->IsGLES2()) {
-    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
-  }
+  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
 }
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 void
 CompositorOGL::SetFBAcquireFence(Layer* aLayer)
 {
+  
+  
+  
+  
+  
+  
+
   if (!aLayer) {
     return;
   }
@@ -1229,6 +1229,17 @@ CompositorOGL::SetFBAcquireFence(Layer* aLayer)
       SetFBAcquireFence(child);
     }
     return;
+  }
+
+  
+  TiledLayerComposer* composer = nullptr;
+  LayerComposite* shadow = aLayer->AsLayerComposite();
+  if (shadow) {
+    composer = shadow->GetTiledLayerComposer();
+    if (composer) {
+      composer->SetReleaseFence(new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd()));
+      return;
+    }
   }
 
   
@@ -1269,10 +1280,6 @@ CompositorOGL::AbortFrame()
   mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
   mFrameInProgress = false;
   mCurrentRenderTarget = nullptr;
-
-  if (mTexturePool) {
-    mTexturePool->EndFrame();
-  }
 }
 
 void

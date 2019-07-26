@@ -49,7 +49,16 @@ public:
 
     virtual void UpdateFBSurface(EGLDisplay dpy, EGLSurface sur) = 0;
 
+    
+
+
+
+
     virtual void SetFBReleaseFd(int fd) = 0;
+
+    
+
+
 
     virtual int GetPrevFBAcquireFd() = 0;
 

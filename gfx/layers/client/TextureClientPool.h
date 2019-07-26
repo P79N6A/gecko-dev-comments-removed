@@ -99,6 +99,9 @@ private:
 
   uint32_t mOutstandingClients;
 
+  
+  
+  
   std::stack<RefPtr<TextureClient> > mTextureClients;
   std::stack<RefPtr<TextureClient> > mTextureClientsDeferred;
   nsRefPtr<nsITimer> mTimer;
