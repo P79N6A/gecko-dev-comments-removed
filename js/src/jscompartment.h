@@ -126,22 +126,26 @@ struct JSCompartment : public js::gc::GraphNodeBase<JSCompartment>
   private:
     friend struct JSRuntime;
     friend struct JSContext;
-    js::GlobalObject             *global_;
+    js::ReadBarriered<js::GlobalObject> global_;
+
+    unsigned                     enterCompartmentDepth;
+
   public:
+    void enter() { enterCompartmentDepth++; }
+    void leave() { enterCompartmentDepth--; }
+
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    js::GlobalObject *maybeGlobal() const {
-        JS_ASSERT_IF(global_, global_->compartment() == this);
-        return global_;
-    }
+
+
+
+
+
+
+
+
+
+
+    inline js::GlobalObject *maybeGlobal() const;
 
     void initGlobal(js::GlobalObject &global) {
         JS_ASSERT(global.compartment() == this);
@@ -555,7 +559,13 @@ JSContext::typeInferenceEnabled() const
 inline js::Handle<js::GlobalObject*>
 JSContext::global() const
 {
-    return js::Handle<js::GlobalObject*>::fromMarkedLocation(&compartment->global_);
+    
+
+
+
+
+
+    return js::Handle<js::GlobalObject*>::fromMarkedLocation(compartment->global_.unsafeGet());
 }
 
 namespace js {
@@ -582,16 +592,8 @@ class AutoCompartment
     JSCompartment * const origin_;
 
   public:
-    AutoCompartment(JSContext *cx, JSObject *target)
-      : cx_(cx),
-        origin_(cx->compartment)
-    {
-        cx_->enterCompartment(target->compartment());
-    }
-
-    ~AutoCompartment() {
-        cx_->leaveCompartment(origin_);
-    }
+    inline AutoCompartment(JSContext *cx, JSObject *target);
+    inline ~AutoCompartment();
 
     JSContext *context() const { return cx_; }
     JSCompartment *origin() const { return origin_; }

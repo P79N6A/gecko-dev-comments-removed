@@ -1393,33 +1393,8 @@ struct JSContext : js::ContextFriendFields,
         return enterCompartmentDepth_ > 0;
     }
 
-    void enterCompartment(JSCompartment *c) {
-        enterCompartmentDepth_++;
-        compartment = c;
-        if (throwing)
-            wrapPendingException();
-    }
-
-    inline void leaveCompartment(JSCompartment *oldCompartment) {
-        JS_ASSERT(hasEnteredCompartment());
-        enterCompartmentDepth_--;
-
-        
-
-
-
-
-
-
-
-        if (hasEnteredCompartment() || !defaultCompartmentObject_)
-            compartment = oldCompartment;
-        else
-            compartment = defaultCompartmentObject_->compartment();
-
-        if (throwing)
-            wrapPendingException();
-    }
+    inline void enterCompartment(JSCompartment *c);
+    inline void leaveCompartment(JSCompartment *oldCompartment);
 
     
   private:
@@ -1451,6 +1426,9 @@ struct JSContext : js::ContextFriendFields,
     js::ContextStack    stack;
 
     
+
+
+
     inline js::Handle<js::GlobalObject*> global() const;
 
     
