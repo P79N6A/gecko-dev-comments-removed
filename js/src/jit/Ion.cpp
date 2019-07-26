@@ -1739,7 +1739,8 @@ IonCompile(JSContext *cx, JSScript *script,
     }
 
     Maybe<AutoEnterIonCompilation> ionCompiling;
-    if (!cx->runtime()->profilingScripts) {
+    if (!cx->runtime()->profilingScripts && !IonSpewEnabled(IonSpew_Logs)) {
+        
         
         
         
