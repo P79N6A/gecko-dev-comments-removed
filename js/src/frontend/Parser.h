@@ -283,12 +283,6 @@ struct ParseContext : public GenericParseContext
     
     bool atBodyLevel() { return !topStmt; }
 
-    
-    
-    bool isFunctionConstructorBody() const {
-        return sc->isFunctionBox() && staticLevel == 0;
-    }
-
     inline bool useAsmOrInsideUseAsm() const {
         return sc->isFunctionBox() && sc->asFunctionBox()->useAsmOrInsideUseAsm();
     }
@@ -636,15 +630,6 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     TokenPos pos() const { return tokenStream.currentToken().pos; }
 
     bool asmJS(Node list);
-
-  public:
-    
-    
-    
-    
-    
-    uint32_t offsetOfCurrentAsmJSModule() const { return tokenStream.currentToken().pos.end; }
-  private:
 
     friend class CompExprTransplanter;
     friend class GenexpGuard<ParseHandler>;

@@ -3,7 +3,7 @@
 
 
 
-import os, posixpath, shlex, shutil, subprocess, sys, traceback
+import os, posixpath, shlex, subprocess, sys, traceback
 
 def add_libdir_to_path():
     from os.path import dirname, exists, join, realpath
@@ -196,18 +196,6 @@ def main(argv):
         prolog = posixpath.join(options.remote_test_root, 'jit-tests', 'jit-tests', 'lib', 'prolog.js')
 
     prefix += ['-f', prolog]
-    prefix += ['--js-cache', jittests.JS_CACHE_DIR]
-
-    
-    
-    
-    if options.max_jobs > 1 and jittests.HAVE_MULTIPROCESSING:
-        prefix += ['--js-cache-per-process']
-
-    
-    shutil.rmtree(jittests.JS_CACHE_DIR, ignore_errors=True)
-    os.mkdir(jittests.JS_CACHE_DIR)
-
     if options.debug:
         if len(job_list) > 1:
             print 'Multiple tests match command line arguments, debugger can only run one'

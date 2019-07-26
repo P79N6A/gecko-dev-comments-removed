@@ -85,13 +85,6 @@ struct IonOptions
     
     
     
-    
-    
-    bool assertGraphConsistency;
-
-    
-    
-    
     bool uce;
 
     
@@ -220,7 +213,6 @@ struct IonOptions
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
         checkRangeAnalysis(false),
-        assertGraphConsistency(true),
         uce(true),
         eaa(true),
 #ifdef CHECK_OSIPOINT_REGISTERS

@@ -1351,9 +1351,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSAccumulateTelemetryDataCallback telemetryCallback;
 
     
-    JS::AsmJSCacheOps asmJSCacheOps;
-
-    
 
 
 
