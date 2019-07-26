@@ -266,7 +266,7 @@ ArenaHeader::checkSynchronizedWithFreeList() const
 
 
 
-    if (IsBackgroundFinalized(getAllocKind()) && !zone->rt->isHeapBusy())
+    if (IsBackgroundFinalized(getAllocKind()) && zone->rt->gcHelperThread.onBackgroundThread())
         return;
 
     FreeSpan firstSpan = FreeSpan::decodeOffsets(arenaAddress(), firstFreeSpanOffsets);
@@ -2518,6 +2518,16 @@ GCHelperThread::doSweep()
     }
 }
 #endif 
+
+bool
+GCHelperThread::onBackgroundThread()
+{
+#ifdef JS_THREADSAFE
+    return PR_GetCurrentThread() == getThread();
+#else
+    return false;
+#endif
+}
 
 static bool
 ReleaseObservedTypes(JSRuntime *rt)
