@@ -776,32 +776,6 @@ CodeGenerator::visitDoubleToString(LDoubleToString *lir)
     return true;
 }
 
-typedef JSString *(*FloatToStringFn)(ThreadSafeContext *, float);
-typedef JSString *(*FloatToStringParFn)(ForkJoinContext *, float);
-static const VMFunctionsModal FloatToStringInfo = VMFunctionsModal(
-    FunctionInfo<FloatToStringFn>(FloatToString),
-    FunctionInfo<FloatToStringParFn>(FloatToStringPar));
-
-bool
-CodeGenerator::visitFloatToString(LFloatToString *lir)
-{
-    FloatRegister input = ToFloatRegister(lir->input());
-    Register temp = ToRegister(lir->tempInt());
-    Register output = ToRegister(lir->output());
-
-    OutOfLineCode *ool = oolCallVM(FloatToStringInfo, lir, (ArgList(), input),
-                                   StoreRegisterTo(output));
-    if (!ool)
-        return false;
-
-    
-    masm.convertFloat32ToInt32(input, temp, ool->entry(),  true);
-    emitIntToString(temp, output, ool->entry());
-
-    masm.bind(ool->rejoin());
-    return true;
-}
-
 typedef JSString *(*PrimitiveToStringFn)(JSContext *, HandleValue);
 typedef JSString *(*PrimitiveToStringParFn)(ForkJoinContext *, HandleValue);
 static const VMFunctionsModal PrimitiveToStringInfo = VMFunctionsModal(

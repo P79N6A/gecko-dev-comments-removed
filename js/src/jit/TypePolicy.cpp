@@ -420,6 +420,9 @@ ConvertToStringPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction
 
         replace = MUnbox::New(alloc, in, MIRType_String, MUnbox::Fallible);
     } else {
+        
+        EnsureOperandNotFloat32(alloc, ins, Op);
+        in = ins->getOperand(Op);
         replace = MToString::New(alloc, in);
     }
 
