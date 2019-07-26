@@ -2021,6 +2021,17 @@ class LNotD : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LNotF : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(NotF)
+
+    LNotF(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
+
 class LNotO : public LInstructionHelper<1, 1, 0>
 {
   public:
