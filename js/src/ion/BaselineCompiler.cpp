@@ -196,6 +196,12 @@ BaselineCompiler::emit_JSOP_LABEL()
 }
 
 bool
+BaselineCompiler::emit_JSOP_NOTEARG()
+{
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_POP()
 {
     frame.pop();
@@ -503,6 +509,12 @@ BaselineCompiler::emit_JSOP_GETLOCAL()
 }
 
 bool
+BaselineCompiler::emit_JSOP_CALLLOCAL()
+{
+    return emit_JSOP_GETLOCAL();
+}
+
+bool
 BaselineCompiler::emit_JSOP_SETLOCAL()
 {
     
@@ -526,6 +538,12 @@ BaselineCompiler::emit_JSOP_GETARG()
 }
 
 bool
+BaselineCompiler::emit_JSOP_CALLARG()
+{
+    return emit_JSOP_GETARG();
+}
+
+bool
 BaselineCompiler::emit_JSOP_SETARG()
 {
     
@@ -537,6 +555,57 @@ BaselineCompiler::emit_JSOP_SETARG()
     uint32_t arg = GET_SLOTNO(pc);
     storeValue(frame.peek(-1), frame.addressOfArg(arg), R0);
     return true;
+}
+
+bool
+BaselineCompiler::emitCall()
+{
+    JS_ASSERT(js_CodeSpec[*pc].format & JOF_INVOKE);
+
+    uint32_t argc = GET_ARGC(pc);
+
+    frame.syncStack(0);
+    masm.mov(Imm32(argc), R0.scratchReg());
+
+    
+    ICCall_Fallback::Compiler stubCompiler(cx, JSOp(*pc));
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    if (!entry)
+        return false;
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    
+    
+    masm.addPtr(Imm32((argc + 2) * sizeof(Value) * 2), BaselineStackReg);
+
+    
+    frame.popn(argc + 2, DontAdjustStack);
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_CALL()
+{
+    return emitCall();
+}
+
+bool
+BaselineCompiler::emit_JSOP_FUNCALL()
+{
+    return emitCall();
+}
+
+bool
+BaselineCompiler::emit_JSOP_FUNAPPLY()
+{
+    return emitCall();
 }
 
 bool

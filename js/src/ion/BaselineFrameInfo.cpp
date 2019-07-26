@@ -86,7 +86,7 @@ FrameInfo::popValue(ValueOperand dest)
     }
 
     
-    pop(false);
+    pop(DontAdjustStack);
 }
 
 void
