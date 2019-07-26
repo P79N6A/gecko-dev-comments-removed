@@ -127,6 +127,9 @@ public class GeckoAppShell
         mAlertCookies = new HashMap<String, String>();
 
     
+    static private final int HIGH_MEMORY_DEVICE_THRESHOLD_MB = 768;
+
+    
 
 
     static public final int WPL_STATE_START = 0x00000001;
@@ -1378,29 +1381,7 @@ public class GeckoAppShell
     }
 
     private static boolean isHighMemoryDevice() {
-        BufferedReader br = null;
-        FileReader fr = null;
-        try {
-            fr = new FileReader("/proc/meminfo");
-            if (fr == null)
-                return false;
-            br = new BufferedReader(fr);
-            String line = br.readLine();
-            while (line != null && !line.startsWith("MemTotal")) {
-                line = br.readLine();
-            }
-            String[] tokens = line.split("\\s+");
-            if (tokens.length >= 2 && Long.parseLong(tokens[1]) >= 786432 ) {
-                return true;
-            }
-        } catch (Exception ex) {
-        } finally {
-            try {
-                if (fr != null)
-                    fr.close();
-            } catch (IOException ioe) {}
-        }
-        return false;
+        return HardwareUtils.getMemSize() > HIGH_MEMORY_DEVICE_THRESHOLD_MB;
     }
 
     
