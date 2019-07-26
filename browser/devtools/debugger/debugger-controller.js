@@ -14,10 +14,64 @@ const FETCH_SOURCE_RESPONSE_DELAY = 200;
 const FRAME_STEP_CLEAR_DELAY = 100; 
 const CALL_STACK_PAGE_SIZE = 25; 
 
+
+const EVENTS = {
+  
+  EDITOR_LOADED: "Debugger:EditorLoaded",
+  EDITOR_UNLOADED: "Debugger:EditorUnoaded",
+
+  
+  NEW_SOURCE: "Debugger:NewSource",
+  SOURCES_ADDED: "Debugger:SourcesAdded",
+
+  
+  SOURCE_SHOWN: "Debugger:EditorSourceShown",
+  SOURCE_ERROR_SHOWN: "Debugger:EditorSourceErrorShown",
+
+  
+  
+  FETCHED_SCOPES: "Debugger:FetchedScopes",
+  FETCHED_VARIABLES: "Debugger:FetchedVariables",
+  FETCHED_PROPERTIES: "Debugger:FetchedProperties",
+  FETCHED_WATCH_EXPRESSIONS: "Debugger:FetchedWatchExpressions",
+
+  
+  BREAKPOINT_ADDED: "Debugger:BreakpointAdded",
+  BREAKPOINT_REMOVED: "Debugger:BreakpointRemoved",
+
+  
+  BREAKPOINT_SHOWN: "Debugger:BreakpointShown",
+  BREAKPOINT_HIDDEN: "Debugger:BreakpointHidden",
+
+  
+  CONDITIONAL_BREAKPOINT_POPUP_SHOWING: "Debugger:ConditionalBreakpointPopupShowing",
+  CONDITIONAL_BREAKPOINT_POPUP_HIDING: "Debugger:ConditionalBreakpointPopupHiding",
+
+  
+  FILE_SEARCH_MATCH_FOUND: "Debugger:FileSearch:MatchFound",
+  FILE_SEARCH_MATCH_NOT_FOUND: "Debugger:FileSearch:MatchNotFound",
+
+  
+  FUNCTION_SEARCH_MATCH_FOUND: "Debugger:FunctionSearch:MatchFound",
+  FUNCTION_SEARCH_MATCH_NOT_FOUND: "Debugger:FunctionSearch:MatchNotFound",
+
+  
+  GLOBAL_SEARCH_MATCH_FOUND: "Debugger:GlobalSearch:MatchFound",
+  GLOBAL_SEARCH_MATCH_NOT_FOUND: "Debugger:GlobalSearch:MatchNotFound",
+
+  
+  AFTER_FRAMES_CLEARED: "Debugger:AfterFramesCleared",
+
+  
+  OPTIONS_POPUP_SHOWING: "Debugger:OptionsPopupShowing",
+  OPTIONS_POPUP_HIDDEN: "Debugger:OptionsPopupHidden",
+};
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
+Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 Cu.import("resource:///modules/source-editor.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
@@ -643,7 +697,6 @@ StackFrames.prototype = {
       let title = StackFrameUtils.getFrameTitle(frame);
       DebuggerView.StackFrames.addFrame(title, location, line, depth, isBlackBoxed);
     }
-
     if (this.currentFrameDepth == -1) {
       DebuggerView.StackFrames.selectedDepth = 0;
     }
@@ -691,7 +744,8 @@ StackFrames.prototype = {
     DebuggerView.Sources.unhighlightBreakpoint();
     DebuggerView.WatchExpressions.toggleContents(true);
     DebuggerView.Variables.empty(0);
-    window.dispatchEvent(document, "Debugger:AfterFramesCleared");
+
+    window.emit(EVENTS.AFTER_FRAMES_CLEARED);
   },
 
   
@@ -772,7 +826,9 @@ StackFrames.prototype = {
     } while ((environment = environment.parent));
 
     
-    window.dispatchEvent(document, "Debugger:FetchedVariables");
+    
+    
+    window.emit(EVENTS.FETCHED_SCOPES);
     DebuggerView.Variables.commitHierarchy();
   },
 
@@ -860,7 +916,9 @@ StackFrames.prototype = {
       }
 
       
-      window.dispatchEvent(document, "Debugger:FetchedWatchExpressions");
+      
+      
+      window.emit(EVENTS.FETCHED_WATCH_EXPRESSIONS);
       DebuggerView.Variables.commitHierarchy();
     });
   },
@@ -1012,7 +1070,7 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    window.dispatchEvent(document, "Debugger:AfterNewSource");
+    window.emit(EVENTS.NEW_SOURCE);
   },
 
   
@@ -1053,7 +1111,7 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    window.dispatchEvent(document, "Debugger:AfterSourcesAdded");
+    window.emit(EVENTS.SOURCES_ADDED);
   },
 
   
@@ -1274,7 +1332,7 @@ Breakpoints.prototype = {
         DebuggerView.editor.addBreakpoint(aBreakpointClient.location.line - 1);
       }
       
-      window.dispatchEvent(document, "Debugger:BreakpointShown", aEditorBreakpoint);
+      window.emit(EVENTS.BREAKPOINT_SHOWN, aEditorBreakpoint);
     });
   },
 
@@ -1293,7 +1351,7 @@ Breakpoints.prototype = {
     
     this.removeBreakpoint(location, { noEditorUpdate: true }).then(() => {
       
-      window.dispatchEvent(document, "Debugger:BreakpointHidden", aEditorBreakpoint);
+      window.emit(EVENTS.BREAKPOINT_HIDDEN, aEditorBreakpoint);
     });
   },
 
@@ -1406,6 +1464,9 @@ Breakpoints.prototype = {
 
       
       this._showBreakpoint(aBreakpointClient, aOptions);
+
+      
+      window.emit(EVENTS.BREAKPOINT_ADDED, aBreakpointClient);
       deferred.resolve(aBreakpointClient);
     });
 
@@ -1466,6 +1527,9 @@ Breakpoints.prototype = {
 
         
         this._hideBreakpoint(aLocation, aOptions);
+
+        
+        window.emit(EVENTS.BREAKPOINT_REMOVED, aLocation);
         deferred.resolve(aLocation);
       });
     });
@@ -1630,6 +1694,11 @@ XPCOMUtils.defineLazyGetter(window, "_isChromeDebugger", function() {
   
   return !(window.frameElement instanceof XULElement);
 });
+
+
+
+
+EventEmitter.decorate(this);
 
 
 

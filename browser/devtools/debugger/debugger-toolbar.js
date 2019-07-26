@@ -233,6 +233,7 @@ OptionsView.prototype = {
 
   _onPopupShowing: function() {
     this._button.setAttribute("open", "true");
+    window.emit(EVENTS.OPTIONS_POPUP_SHOWING);
   },
 
   
@@ -246,7 +247,7 @@ OptionsView.prototype = {
 
 
   _onPopupHidden: function() {
-    window.dispatchEvent(document, "Debugger:OptionsPopupHidden");
+    window.emit(EVENTS.OPTIONS_POPUP_HIDDEN);
   },
 
   
@@ -306,9 +307,7 @@ OptionsView.prototype = {
       this._showOriginalSourceItem.getAttribute("checked") == "true";
 
     
-    window.addEventListener("Debugger:OptionsPopupHidden", function onHidden() {
-      window.removeEventListener("Debugger:OptionsPopupHidden", onHidden, false);
-
+    window.once(EVENTS.OPTIONS_POPUP_HIDDEN, () => {
       
       window.setTimeout(() => {
         DebuggerController.reconfigureThread(pref);
@@ -1308,6 +1307,7 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
     
     
     if (!aSearchResults.length) {
+      window.emit(EVENTS.FILE_SEARCH_MATCH_NOT_FOUND);
       return;
     }
 
@@ -1328,6 +1328,9 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
     
     this.selectedIndex = 0;
     this.hidden = false;
+
+    
+    window.emit(EVENTS.FILE_SEARCH_MATCH_FOUND);
   },
 
   
@@ -1479,6 +1482,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
     
     
     if (!aSearchResults.length) {
+      window.emit(EVENTS.FUNCTION_SEARCH_MATCH_NOT_FOUND);
       return;
     }
 
@@ -1523,6 +1527,9 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
     
     this.selectedIndex = 0;
     this.hidden = false;
+
+    
+    window.emit(EVENTS.FUNCTION_SEARCH_MATCH_FOUND);
   },
 
   
