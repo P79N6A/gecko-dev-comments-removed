@@ -49,6 +49,8 @@ class RtspControllerParent : public PRtspControllerParent
   
   nsCOMPtr<nsIStreamingProtocolController> mController;
   uint32_t mTotalTracks;
+  
+  void Destroy();
 };
 
 } 
