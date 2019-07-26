@@ -95,7 +95,7 @@ Tilt.prototype = {
   
 
 
-  initializeForCurrentTab: function T_initializeForCurrentTab()
+  toggle: function T_toggle()
   {
     let contentWindow = this.chromeWindow.gBrowser.selectedBrowser.contentWindow;
     let id = this.currentWindowId;
