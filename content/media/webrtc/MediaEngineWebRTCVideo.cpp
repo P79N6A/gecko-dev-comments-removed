@@ -9,6 +9,13 @@
 
 namespace mozilla {
 
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gMediaManagerLog;
+#define LOG(msg) PR_LOG(gMediaManagerLog, PR_LOG_DEBUG, msg)
+#else
+#define LOG(msg)
+#endif
+
 
 
 
@@ -65,6 +72,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
 
   
   if (mState != kStarted) {
+    LOG(("DeliverFrame: video not started"));
     return 0;
   }
 
