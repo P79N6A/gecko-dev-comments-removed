@@ -46,9 +46,8 @@ nsNSSCertificateFakeTransport::GetDbKey(char * *aDbKey)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
 NS_IMETHODIMP
-nsNSSCertificateFakeTransport::GetWindowTitle(char * *aWindowTitle)
+nsNSSCertificateFakeTransport::GetWindowTitle(nsAString& aWindowTitle)
 {
   NS_NOTREACHED("Unimplemented on content process");
   return NS_ERROR_NOT_IMPLEMENTED;
