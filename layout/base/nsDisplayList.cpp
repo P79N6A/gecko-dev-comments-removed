@@ -44,6 +44,7 @@
 #include "ImageLayers.h"
 #include "ImageContainer.h"
 #include "nsCanvasFrame.h"
+#include "mozilla/LookAndFeel.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -673,26 +674,35 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
 
   
   
+  const LayerToScreenScale layerToScreenScale(1.0f);
   metrics.mZoom = metrics.mResolution * metrics.mDevPixelsPerCSSPixel
-                * LayerToScreenScale(1.0f);
+                * layerToScreenScale;
 
   metrics.mMayHaveTouchListeners = aMayHaveTouchListeners;
 
-  if (nsIWidget* widget = aForFrame->GetNearestWidget()) {
-    nsIntRect bounds;
-    widget->GetBounds(bounds);
-    metrics.mCompositionBounds = ScreenIntRect::FromUnknownRect(
-      mozilla::gfx::IntRect(bounds.x, bounds.y, bounds.width, bounds.height));
-  }
+  if (aScrollFrame) {
+    metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(
+        aScrollFrame->GetScreenRectInAppUnits(), auPerDevPixel)
+                               * metrics.mResolution
+                               * layerToScreenScale);
 
-  
-  if (scrollableFrame) {
-    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
-    ScreenIntMargin boundMargins(nsPresContext::AppUnitsToIntCSSPixels(sizes.top),
-                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.right),
-                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.bottom),
-                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.left));
-    metrics.mCompositionBounds.Deflate(boundMargins);
+    
+    if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+      nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
+      
+      ScreenIntMargin boundMargins(nsPresContext::AppUnitsToIntCSSPixels(sizes.top),
+                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.right),
+                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.bottom),
+                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.left));
+      metrics.mCompositionBounds.Deflate(boundMargins);
+    }
+  } else {
+    
+    
+    metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(
+        aForFrame->GetScreenRectInAppUnits(), auPerDevPixel)
+                               * metrics.mResolution
+                               * layerToScreenScale);
   }
 
   metrics.mPresShellId = presShell->GetPresShellId();
