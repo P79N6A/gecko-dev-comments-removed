@@ -52,26 +52,106 @@ var W3CTest = {
   
 
 
+  "pathprefix": "/tests/dom/imptests/",
+
+  
+
+
+
+  "getPath": function() {
+    var url = this.getURL();
+    if (!url.startsWith(this.pathprefix)) {
+      return "";
+    }
+    return url.substring(this.pathprefix.length);
+  },
+
+  
+
 
   "getURL": function() {
-    return this.runner.currentTestURL.substring("/tests/dom/imptests/".length);
+    return this.runner ? this.runner.currentTestURL : location.pathname;
+  },
+
+  
+
+
+  "reportResults": function() {
+    var element = function element(aLocalName) {
+      var xhtmlNS = "http://www.w3.org/1999/xhtml";
+      return document.createElementNS(xhtmlNS, aLocalName);
+    };
+
+    var stylesheet = element("link");
+    stylesheet.setAttribute("rel", "stylesheet");
+    stylesheet.setAttribute("href", "/resources/testharness.css");
+    var heads = document.getElementsByTagName("head");
+    if (heads.length) {
+      heads[0].appendChild(stylesheet);
+    }
+
+    var log = document.getElementById("log");
+    if (!log) {
+      return;
+    }
+    var section = log.appendChild(element("section"));
+    section.id = "summary";
+    section.appendChild(element("h2")).textContent = "Details";
+
+    var table = section.appendChild(element("table"));
+    table.id = "results";
+
+    var tr = table.appendChild(element("thead")).appendChild(element("tr"));
+    for (var header of ["Result", "Test Name", "Message"]) {
+      tr.appendChild(element("th")).textContent = header;
+    }
+    var statuses = [
+      ["Unexpected Fail", "Pass"],
+      ["Known Fail", "Unexpected Pass"]
+    ];
+    var tbody = table.appendChild(element("tbody"));
+    for (var test of this.tests) {
+      tr = tbody.appendChild(element("tr"));
+      tr.className = (test.result === !test.todo ? "pass" : "fail");
+      tr.appendChild(element("td")).textContent =
+        statuses[+test.todo][+test.result];
+      tr.appendChild(element("td")).textContent = test.name;
+      tr.appendChild(element("td")).textContent = test.message;
+    }
+  },
+
+  
+
+
+
+  "formatTestMessage": function(aTest) {
+    return aTest.name + (aTest.message ? ": " + aTest.message : "");
   },
 
   
 
 
   "_log": function(test) {
+    var url = this.getURL();
     var msg = this.prefixes[+test.todo][+test.result] + " | ";
-    if (this.runner.currentTestURL) {
-      msg += this.runner.currentTestURL;
+    if (url) {
+      msg += url;
     }
-    msg += " | " + test.message;
-    this.runner[(test.result === !test.todo) ? "log" : "error"](msg);
+    msg += " | " + this.formatTestMessage(test);
+    if (this.runner) {
+      this.runner[(test.result === !test.todo) ? "log" : "error"](msg);
+    } else {
+      dump(msg + "\n");
+    }
   },
+
+  
+
 
   "_logCollapsedMessages": function() {
     if (this.collapsedMessages) {
       this._log({
+        "name": document.title,
         "result": true,
         "todo": false,
         "message": "Elided " + this.collapsedMessages + " passes or known failures."
@@ -122,9 +202,10 @@ var W3CTest = {
 
 
   "result": function(test) {
-    var url = this.getURL();
+    var url = this.getPath();
     this.report({
-      "message": test.name + (test.message ? "; " + test.message : ""),
+      "name": test.name,
+      "message": test.message || "",
       "result": test.status === test.PASS,
       "todo": this._todo(test)
     });
@@ -138,9 +219,10 @@ var W3CTest = {
 
 
   "finish": function(tests, status) {
-    var url = this.getURL();
+    var url = this.getPath();
     this.report({
-      "message": "Finished test, status " + status.status,
+      "name": "Finished test",
+      "message": "Status: " + status.status,
       "result": status.status === status.OK,
       "todo":
         url in this.expectedFailures &&
@@ -153,16 +235,27 @@ var W3CTest = {
       dump("@@@ @@@ Failures\n");
       dump(url + "@@@" + JSON.stringify(this.failures) + "\n");
     }
-    this.runner.testFinished(this.tests);
+    if (this.runner) {
+      this.runner.testFinished(this.tests.map(function(aTest) {
+        return {
+          "message": this.formatTestMessage(aTest),
+          "result": aTest.result,
+          "todo": aTest.todo
+        };
+      }, this));
+    } else {
+      this.reportResults();
+    }
   },
 
   
 
 
 
-  "logFailure": function(message) {
+  "logFailure": function(aTestName, aMessage) {
     this.report({
-      "message": message,
+      "name": aTestName,
+      "message": aMessage,
       "result": false,
       "todo": false
     });
@@ -173,24 +266,25 @@ var W3CTest = {
 
 
   "timeout": function() {
-    this.logFailure("Test runner timed us out.");
+    this.logFailure("Timeout", "Test runner timed us out.");
     timeout();
   }
 };
 (function() {
   try {
-    if (!W3CTest.runner) {
-      return;
-    }
-    
-    
-    var request = new XMLHttpRequest();
-    request.open("GET", "/tests/dom/imptests/failures/" + W3CTest.getURL() + ".json", false);
-    request.send();
-    if (request.status === 200) {
-      W3CTest.expectedFailures = JSON.parse(request.responseText);
-    } else if (request.status !== 404) {
-      W3CTest.logFailure("Request status was " + request.status);
+    var path = W3CTest.getPath();
+    if (path) {
+      
+      
+      var url = W3CTest.pathprefix + "failures/" + path + ".json";
+      var request = new XMLHttpRequest();
+      request.open("GET", url, false);
+      request.send();
+      if (request.status === 200) {
+        W3CTest.expectedFailures = JSON.parse(request.responseText);
+      } else if (request.status !== 404) {
+        W3CTest.logFailure("Fetching failures file", "Request status was " + request.status);
+      }
     }
 
     add_result_callback(W3CTest.result.bind(W3CTest));
@@ -200,6 +294,6 @@ var W3CTest = {
       "explicit_timeout": true
     });
   } catch (e) {
-    W3CTest.logFailure("Unexpected exception: " + e);
+    W3CTest.logFailure("Harness setup", "Unexpected exception: " + e);
   }
 })();
