@@ -48,9 +48,14 @@ let ocspResponseUnknown = ocspResponses[4];
 function run_test() {
   let ocspResponder = new HttpServer();
   ocspResponder.registerPrefixHandler("/", function(request, response) {
-    response.setStatusLine(request.httpVersion, 200, "OK");
-    response.setHeader("Content-Type", "application/ocsp-response");
-    response.write(gCurrentOCSPResponse);
+    if (gCurrentOCSPResponse) {
+      response.setStatusLine(request.httpVersion, 200, "OK");
+      response.setHeader("Content-Type", "application/ocsp-response");
+      response.write(gCurrentOCSPResponse);
+    } else {
+      response.setStatusLine(request.httpVersion, 500, "Internal Server Error");
+      response.write("Internal Server Error");
+    }
     gOCSPRequestCount++;
   });
   ocspResponder.start(8080);
@@ -83,14 +88,40 @@ function add_tests_in_mode(useMozillaPKIX)
                 ocspResponseGood);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK,
                 ocspResponseGood);
-  add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK,
+  
+  
+  add_ocsp_test("ocsp-stapling-expired.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
                 expiredOCSPResponseGood);
-  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK,
+  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
                 expiredOCSPResponseGood);
-  add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK,
+  add_ocsp_test("ocsp-stapling-expired.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
                 oldValidityPeriodOCSPResponseGood);
-  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK,
+  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
                 oldValidityPeriodOCSPResponseGood);
+  add_ocsp_test("ocsp-stapling-expired.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
+                null);
+  add_ocsp_test("ocsp-stapling-expired.example.com",
+                useMozillaPKIX
+                  ? getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE)
+                  : Cr.NS_OK,
+                null);
+  
+  
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 ocspResponseRevoked);
@@ -98,6 +129,9 @@ function add_tests_in_mode(useMozillaPKIX)
                 getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 ocspResponseRevoked);
   add_ocsp_test("ocsp-stapling-expired.example.com",
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
+                ocspResponseUnknown);
+  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 ocspResponseUnknown);
 
@@ -124,11 +158,8 @@ function check_ocsp_stapling_telemetry() {
   do_check_eq(histogram.counts[0], 2 * 0); 
   do_check_eq(histogram.counts[1], 2 * 0); 
   do_check_eq(histogram.counts[2], 2 * 0); 
-  do_check_eq(histogram.counts[3], 2 * 9 + 3); 
-                                               
-                                               
-                                               
-                                               
+  do_check_eq(histogram.counts[3], 2 * 12 + 3); 
+                                                
   do_check_eq(histogram.counts[4], 2 * 0); 
   run_next_test();
 }
