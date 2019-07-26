@@ -65,6 +65,7 @@ using namespace QtMobility;
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Likely.h"
+#include "LayersTypes.h"
 #include "nsIWidgetListener.h"
 
 #include "nsIStringBundle.h"
@@ -102,7 +103,9 @@ static Atom sPluginIMEAtom = nullptr;
 #endif
 #endif 
 
+#include "gfxUtils.h"
 #include "Layers.h"
+#include "GLContextProvider.h"
 #include "BasicLayers.h"
 #include "LayerManagerOGL.h"
 #include "nsFastStartupQt.h"
@@ -119,6 +122,8 @@ extern "C" {
 
 using namespace mozilla;
 using namespace mozilla::widget;
+using mozilla::gl::GLContext;
+using mozilla::layers::LayerManagerOGL;
 
 
 static nsRefPtr<gfxASurface> gBufferSurface;
@@ -379,16 +384,35 @@ nsWindow::Destroy(void)
 #endif
     }
 
+    
+    if (mLayerManager) {
+        nsRefPtr<GLContext> gl = nullptr;
+        if (mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
+            LayerManagerOGL *ogllm = static_cast<LayerManagerOGL*>(mLayerManager.get());
+            gl = ogllm->gl();
+        }
+
+        mLayerManager->Destroy();
+
+        if (gl) {
+            gl->MarkDestroyed();
+        }
+    }
+    mLayerManager = nullptr;
+
+    
+    
+    
+    
+    
+    DestroyCompositor();
+
+    ClearCachedResources();
+
     nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
     nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
     if (static_cast<nsIWidget *>(this) == rollupWidget)
         rollupListener->Rollup(0, nullptr);
-    }
-
-    if (mLayerManager) {
-        mLayerManager->Destroy();
-    }
-    mLayerManager = nullptr;
 
     Show(false);
 
@@ -429,6 +453,21 @@ nsWindow::Destroy(void)
     delete view;
 
     return NS_OK;
+}
+
+void
+nsWindow::ClearCachedResources()
+{
+    if (mLayerManager &&
+        mLayerManager->GetBackendType() == mozilla::layers::LAYERS_BASIC) {
+        static_cast<mozilla::layers::BasicLayerManager*> (mLayerManager.get())->
+            ClearCachedResources();
+    }
+    for (nsIWidget* kid = mFirstChild; kid; ) {
+        nsIWidget* next = kid->GetNextSibling();
+        static_cast<nsWindow*>(kid)->ClearCachedResources();
+        kid = next;
+    }
 }
 
 NS_IMETHODIMP
@@ -1659,7 +1698,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         KeySym keysym = aEvent->nativeVirtualKey();
         if (keysym) {
             domCharCode = (uint32_t) keysym2ucs(keysym);
-            if (domCharCode == -1 || ! QChar((quint32)domCharCode).isPrint()) {
+            if (domCharCode == -1 || !QChar((quint32)domCharCode).isPrint()) {
                 domCharCode = 0;
             }
         }
@@ -2609,6 +2648,7 @@ nsWindow::createQWidget(MozQWidget *parent,
     MozQWidget * widget = new MozQWidget(this, parentQWidget);
     if (!widget)
         return nullptr;
+    widget->setObjectName(QString(windowName));
 
     
     if (eWindowType_child == mWindowType || eWindowType_plugin == mWindowType) {
@@ -2857,6 +2897,13 @@ NS_IMETHODIMP
 nsWindow::Show(bool aState)
 {
     LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
+    if (aState == mIsShown)
+        return NS_OK;
+
+    
+    if (mIsShown && !aState) {
+        ClearCachedResources();
+    }
 
     mIsShown = aState;
 
