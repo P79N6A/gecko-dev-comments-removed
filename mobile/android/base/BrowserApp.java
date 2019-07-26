@@ -79,6 +79,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.view.animation.Interpolator;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -890,6 +891,12 @@ abstract public class BrowserApp extends GeckoApp
 
         
         mLayerView.setOnKeyListener(this);
+
+        
+        if (HardwareUtils.isTablet()) {
+            onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
+            invalidateOptionsMenu();
+        }
     }
 
     private void shareCurrentUrl() {
