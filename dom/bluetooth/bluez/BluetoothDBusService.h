@@ -45,8 +45,6 @@ public:
   BluetoothDBusService();
   ~BluetoothDBusService();
 
-  nsresult DispatchToBtThread(nsIRunnable* aRunnable);
-
   bool IsReady();
 
   virtual nsresult StartInternal() MOZ_OVERRIDE;
@@ -200,14 +198,6 @@ private:
                                 const char* aInterface,
                                 const nsAString& aMessage,
                                 mozilla::ipc::DBusReplyCallback aCallback);
-
-  
-
-
-
-
-
-  nsCOMPtr<nsIThread> mBluetoothThread;
 };
 
 END_BLUETOOTH_NAMESPACE
