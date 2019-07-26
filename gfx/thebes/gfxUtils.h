@@ -13,6 +13,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsPrintfCString.h"
 
+class gfxASurface;
 class gfxDrawable;
 class nsIntRegion;
 struct nsIntRect;
@@ -165,6 +166,11 @@ public:
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);
+
+    
+
+
+    static void ClearThebesSurface(gfxASurface* aSurface);
 
     
 
