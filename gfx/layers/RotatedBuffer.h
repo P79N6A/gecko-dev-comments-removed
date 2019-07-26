@@ -8,6 +8,7 @@
 
 #include <stdint.h>                     
 #include "gfxASurface.h"                
+#include "gfxContext.h"                 
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/2D.h"             
@@ -138,25 +139,9 @@ protected:
 
 
 
-class BorrowDrawTarget
-{
-protected:
-  void ReturnDrawTarget(gfx::DrawTarget*& aReturned);
-
-  
-  
-  
-  RefPtr<gfx::DrawTarget> mLoanedDrawTarget;
-  gfx::Matrix mLoanedTransform;
-};
 
 
-
-
-
-class RotatedContentBuffer : public RotatedBuffer
-                           , public BorrowDrawTarget
-{
+class RotatedContentBuffer : public RotatedBuffer {
 public:
   typedef gfxContentType ContentType;
 
@@ -212,15 +197,14 @@ public:
 
   struct PaintState {
     PaintState()
-      : mTarget(nullptr)
-      , mDidSelfCopy(false)
+      : mDidSelfCopy(false)
     {}
 
-    gfx::DrawTarget* mTarget;
+    nsRefPtr<gfxContext> mContext;
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
-    DrawRegionClip mClip;
     bool mDidSelfCopy;
+    DrawRegionClip mClip;
   };
 
   enum {
@@ -276,12 +260,8 @@ public:
 
 
 
-  void DrawTo(ThebesLayer* aLayer,
-              gfx::DrawTarget* aTarget,
-              float aOpacity,
-              gfx::CompositionOp aOp,
-              gfxASurface* aMask,
-              const gfxMatrix* aMaskTransform);
+  void DrawTo(ThebesLayer* aLayer, gfxContext* aTarget, float aOpacity,
+              gfxASurface* aMask, const gfxMatrix* aMaskTransform);
 
 protected:
   TemporaryRef<gfx::DrawTarget>
@@ -370,19 +350,10 @@ protected:
 
 
 
+  already_AddRefed<gfxContext>
+  GetContextForQuadrantUpdate(const nsIntRect& aBounds, ContextSource aSource, nsIntPoint* aTopLeft = nullptr);
 
-
-
-
-
-
-
-  gfx::DrawTarget*
-  BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
-                                    ContextSource aSource);
-  void ReturnDrawTarget(gfx::DrawTarget* aReturned);
-
-  static bool IsClippingCheap(gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
+  static bool IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion);
 
 protected:
   

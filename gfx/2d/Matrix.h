@@ -158,25 +158,6 @@ public:
 
   
 
-
-
-  bool HasNonIntegerTranslation() const {
-    return HasNonTranslation() ||
-      !FuzzyEqual(_31, floor(_31 + 0.5)) ||
-      !FuzzyEqual(_32, floor(_32 + 0.5));
-  }
-
-  
-
-
-
-  bool HasNonTranslation() const {
-    return !FuzzyEqual(_11, 1.0) || !FuzzyEqual(_22, 1.0) ||
-           !FuzzyEqual(_12, 0.0) || !FuzzyEqual(_21, 0.0);
-  }
-
-  
-
   bool IsIdentity() const
   {
     return _11 == 1.0f && _12 == 0.0f &&

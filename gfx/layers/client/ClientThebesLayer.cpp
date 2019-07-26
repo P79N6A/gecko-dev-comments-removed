@@ -22,7 +22,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
-#include "gfx2DGlue.h"
 
 using namespace mozilla::gfx;
 
@@ -62,7 +61,7 @@ ClientThebesLayer::PaintThebes()
       mContentClient->BeginPaintBuffer(this, contentType, flags);
     mValidRegion.Sub(mValidRegion, state.mRegionToInvalidate);
 
-    if (state.mTarget) {
+    if (state.mContext) {
       
       
       
@@ -70,16 +69,13 @@ ClientThebesLayer::PaintThebes()
       state.mRegionToInvalidate.And(state.mRegionToInvalidate,
                                     GetEffectiveVisibleRegion());
       nsIntRegion extendedDrawRegion = state.mRegionToDraw;
-      SetAntialiasingFlags(this, state.mTarget);
+      SetAntialiasingFlags(this, state.mContext);
 
-      nsRefPtr<gfxContext> ctx = gfxContext::ContextForDrawTarget(state.mTarget);
-      PaintBuffer(ctx,
+      PaintBuffer(state.mContext,
                   state.mRegionToDraw, extendedDrawRegion, state.mRegionToInvalidate,
                   state.mDidSelfCopy, state.mClip);
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PaintThebes", this));
       Mutated();
-      ctx = nullptr;
-      mContentClient->ReturnDrawTarget(state.mTarget);
     } else {
       
       
