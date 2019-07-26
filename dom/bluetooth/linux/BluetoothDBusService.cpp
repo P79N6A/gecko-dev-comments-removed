@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <dbus/dbus.h>
 
+#include "pratom.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "nsDebug.h"
@@ -151,7 +152,7 @@ static const char* sBluetoothDBusSignals[] =
 static nsAutoPtr<RawDBusConnection> gThreadConnection;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sPairingReqTable;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sAuthorizeReqTable;
-static bool sIsPairing = false;
+static PRInt32 sIsPairing = 0;
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
 
 class RemoveDeviceTask : public nsRunnable {
@@ -907,8 +908,7 @@ GetObjectPathCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable)
   if (sIsPairing) {
     RunDBusCallback(aMsg, aBluetoothReplyRunnable,
                     UnpackObjectPathMessage);
-
-    sIsPairing = false;
+    PR_AtomicDecrement(&sIsPairing);
   }
 }
 
@@ -1655,7 +1655,7 @@ BluetoothDBusService::StopInternal()
   sAuthorizeReqTable.EnumerateRead(UnrefDBusMessages, nullptr);
   sAuthorizeReqTable.Clear();
 
-  sIsPairing = false;
+  PR_AtomicSet(&sIsPairing, 0);
 
   StopDBus();
   return NS_OK;
@@ -2154,6 +2154,20 @@ BluetoothDBusService::CreatePairedDeviceInternal(const nsAString& aAdapterPath,
   nsCString tempDeviceAddress = NS_ConvertUTF16toUTF8(aDeviceAddress);
   const char *deviceAddress = tempDeviceAddress.get();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  PR_AtomicIncrement(&sIsPairing);
+
   nsRefPtr<BluetoothReplyRunnable> runnable = aRunnable;
   
   
@@ -2168,26 +2182,10 @@ BluetoothDBusService::CreatePairedDeviceInternal(const nsAString& aAdapterPath,
                                   DBUS_TYPE_OBJECT_PATH, &deviceAgentPath,
                                   DBUS_TYPE_STRING, &capabilities,
                                   DBUS_TYPE_INVALID);
-
   if (!ret) {
     NS_WARNING("Could not start async function!");
     return NS_ERROR_FAILURE;
   }
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  sIsPairing = true;
 
   runnable.forget();
   return NS_OK;
