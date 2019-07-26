@@ -25,8 +25,6 @@
 namespace mozilla {
 namespace layers {
 
-float APZCTreeManager::sDPI = 72.0;
-
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock")
 {
@@ -231,12 +229,6 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
         }
       } else if (mApzcForInputBlock) {
         APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
-        
-        
-        if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
-            (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END && multiTouchInput.mTouches.Length() == 1)) {
-          mApzcForInputBlock = nullptr;
-        }
       }
       if (mApzcForInputBlock) {
         GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
@@ -245,6 +237,12 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
         }
         mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+        
+        
+        if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
+            (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END && multiTouchInput.mTouches.Length() == 1)) {
+          mApzcForInputBlock = nullptr;
+        }
       }
       break;
     } case PINCHGESTURE_INPUT: {
@@ -302,12 +300,6 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
         }
       } else if (mApzcForInputBlock) {
         APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
-        
-        
-        if (touchEvent.message == NS_TOUCH_CANCEL ||
-            (touchEvent.message == NS_TOUCH_END && touchEvent.touches.Length() == 1)) {
-          mApzcForInputBlock = nullptr;
-        }
       }
       if (mApzcForInputBlock) {
         GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
@@ -322,7 +314,16 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
           ApplyTransform(&(outEvent->touches[i]->mRefPoint), outTransform);
         }
 
-        return mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+        nsEventStatus ret = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
+
+        
+        
+        if (touchEvent.message == NS_TOUCH_CANCEL ||
+            (touchEvent.message == NS_TOUCH_END && touchEvent.touches.Length() == 1)) {
+          mApzcForInputBlock = nullptr;
+        }
+
+        return ret;
       }
       break;
     } case NS_MOUSE_EVENT: {
