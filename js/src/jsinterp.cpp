@@ -334,12 +334,6 @@ js::RunScript(JSContext *cx, StackFrame *fp)
             return false;
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus status = ion::Cannon(cx, fp);
-
-            
-            
-            if (status == ion::IonExec_Bailout)
-                return Interpret(cx, fp, JSINTERP_REJOIN);
-
             return !IsErrorStatus(status);
         }
     }
@@ -350,13 +344,6 @@ js::RunScript(JSContext *cx, StackFrame *fp)
             return false;
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus status = ion::EnterBaselineMethod(cx, fp);
-
-            
-            
-            
-            
-            JS_ASSERT(status != ion::IonExec_Bailout);
-
             return !IsErrorStatus(status);
         }
     }
@@ -1287,7 +1274,6 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode, bool
 
 
 ADD_EMPTY_CASE(JSOP_NOP)
-ADD_EMPTY_CASE(JSOP_UNUSED71)
 ADD_EMPTY_CASE(JSOP_UNUSED132)
 ADD_EMPTY_CASE(JSOP_UNUSED148)
 ADD_EMPTY_CASE(JSOP_UNUSED161)
@@ -1346,47 +1332,12 @@ BEGIN_CASE(JSOP_LOOPENTRY)
 
 #ifdef JS_ION
     
-    
-    
-    if (ion::IsEnabled(cx)) {
-        ion::MethodStatus status =
-            ion::CanEnterAtBranch(cx, script, AbstractFramePtr(regs.fp()), regs.pc,
-                                  regs.fp()->isConstructing());
-        if (status == ion::Method_Error)
-            goto error;
-        if (status == ion::Method_Compiled) {
-            ion::IonExecStatus maybeOsr = ion::SideCannon(cx, regs.fp(), regs.pc);
-            if (maybeOsr == ion::IonExec_Bailout) {
-                
-                
-                SET_SCRIPT(regs.fp()->script());
-                op = JSOp(*regs.pc);
-                DO_OP();
-            }
-
-            
-            if (maybeOsr == ion::IonExec_Aborted)
-                goto error;
-
-            interpReturnOK = (maybeOsr == ion::IonExec_Ok);
-
-            if (entryFrame != regs.fp())
-                goto jit_return;
-
-            regs.fp()->setFinishedInInterpreter();
-            goto leave_on_safe_point;
-        }
-    }
-
     if (ion::IsBaselineEnabled(cx)) {
         ion::MethodStatus status = ion::CanEnterBaselineJIT(cx, script, regs.fp(), false);
         if (status == ion::Method_Error)
             goto error;
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus maybeOsr = ion::EnterBaselineAtBranch(cx, regs.fp(), regs.pc);
-
-            
-            JS_ASSERT(maybeOsr != ion::IonExec_Bailout);
 
             
             if (maybeOsr == ion::IonExec_Aborted)
@@ -2294,11 +2245,6 @@ BEGIN_CASE(JSOP_FUNCALL)
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus exec = ion::Cannon(cx, regs.fp());
             CHECK_BRANCH();
-            if (exec == ion::IonExec_Bailout) {
-                SET_SCRIPT(regs.fp()->script());
-                op = JSOp(*regs.pc);
-                DO_OP();
-            }
             interpReturnOK = !IsErrorStatus(exec);
             goto jit_return;
         }
@@ -2311,13 +2257,6 @@ BEGIN_CASE(JSOP_FUNCALL)
         if (status == ion::Method_Compiled) {
             ion::IonExecStatus exec = ion::EnterBaselineMethod(cx, regs.fp());
             CHECK_BRANCH();
-
-            
-            
-            
-            
-            JS_ASSERT(exec != ion::IonExec_Bailout);
-
             interpReturnOK = !IsErrorStatus(exec);
             goto jit_return;
         }
@@ -2521,6 +2460,13 @@ BEGIN_CASE(JSOP_ARGUMENTS)
     }
 END_CASE(JSOP_ARGUMENTS)
 
+BEGIN_CASE(JSOP_RUNONCE)
+{
+    if (!RunOnceScriptPrologue(cx, script))
+        goto error;
+}
+END_CASE(JSOP_RUNONCE)
+
 BEGIN_CASE(JSOP_REST)
 {
     RootedObject &rest = rootObject0;
@@ -2549,7 +2495,13 @@ END_CASE(JSOP_GETALIASEDVAR)
 BEGIN_CASE(JSOP_SETALIASEDVAR)
 {
     ScopeCoordinate sc = ScopeCoordinate(regs.pc);
-    regs.fp()->aliasedVarScope(sc).setAliasedVar(sc, regs.sp[-1]);
+    ScopeObject &obj = regs.fp()->aliasedVarScope(sc);
+
+    
+    
+    PropertyName *name = obj.hasSingletonType() ? ScopeCoordinateName(cx, script, regs.pc) : NULL;
+
+    obj.setAliasedVar(cx, sc, name, regs.sp[-1]);
 }
 END_CASE(JSOP_SETALIASEDVAR)
 
@@ -3641,4 +3593,23 @@ js::ImplicitThisOperation(JSContext *cx, HandleObject scopeObj, HandlePropertyNa
         return false;
 
     return ComputeImplicitThis(cx, obj, res);
+}
+
+bool
+js::RunOnceScriptPrologue(JSContext *cx, HandleScript script)
+{
+    JS_ASSERT(script->treatAsRunOnce);
+
+    if (!script->hasRunOnce) {
+        script->hasRunOnce = true;
+        return true;
+    }
+
+    
+    
+    if (!script->function()->getType(cx))
+        return false;
+
+    types::MarkTypeObjectFlags(cx, script->function(), types::OBJECT_FLAG_RUNONCE_INVALIDATED);
+    return true;
 }

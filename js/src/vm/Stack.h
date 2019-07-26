@@ -29,7 +29,6 @@ class InvokeArgsGuard;
 class InvokeFrameGuard;
 class FrameGuard;
 class ExecuteFrameGuard;
-class BailoutFrameGuard;
 class GeneratorFrameGuard;
 
 class CallIter;
@@ -41,11 +40,6 @@ class ScopeObject;
 class StaticBlockObject;
 
 struct ScopeCoordinate;
-
-namespace ion {
-    class IonBailoutIterator;
-    class SnapshotIterator;
-}
 
 
 
@@ -412,8 +406,6 @@ class StackFrame
     bool prologue(JSContext *cx);
     void epilogue(JSContext *cx);
 
-    
-    void initFromBailout(JSContext *cx, ion::SnapshotIterator &iter);
     bool initFunctionScopeObjects(JSContext *cx);
 
     
@@ -1428,7 +1420,6 @@ class ContextStack
     bool pushInvokeArgs(JSContext *cx, unsigned argc, InvokeArgsGuard *ag,
                         MaybeReportError report = REPORT_ERROR);
 
-    
     StackFrame *pushInvokeFrame(JSContext *cx, MaybeReportError report,
                                 const CallArgs &args, JSFunction *fun,
                                 InitialFrameFlags initial, FrameGuard *fg);
@@ -1441,14 +1432,6 @@ class ContextStack
     bool pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
                           HandleObject scopeChain, ExecuteType type,
                           AbstractFramePtr evalInFrame, ExecuteFrameGuard *efg);
-
-    
-    bool pushBailoutArgs(JSContext *cx, const ion::IonBailoutIterator &it,
-                         InvokeArgsGuard *iag);
-
-    
-    StackFrame *pushBailoutFrame(JSContext *cx, const ion::IonBailoutIterator &it,
-                                 const CallArgs &args, BailoutFrameGuard *bfg);
 
     
 
@@ -1536,9 +1519,6 @@ class InvokeFrameGuard : public FrameGuard
 {};
 
 class ExecuteFrameGuard : public FrameGuard
-{};
-
-class BailoutFrameGuard : public FrameGuard
 {};
 
 class DummyFrameGuard : public FrameGuard

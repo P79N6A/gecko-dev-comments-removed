@@ -458,10 +458,6 @@ HandleException(ResumeFromException *rfe)
 
     
     
-    js_delete(cx->mainThread().ionActivation->maybeTakeBailout());
-
-    
-    
     
     
     if (cx->runtime->hasIonReturnOverride())
