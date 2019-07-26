@@ -5636,15 +5636,11 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
         
         return jsop_getname(name);
     }
-    if (!propertyTypes->hasPropagatedProperty())
-        globalType->getFromPrototypes(cx, id, propertyTypes);
-
-    
 
     types::StackTypeSet *types = script()->analysis()->bytecodeTypes(pc);
-    bool barrier = !propertyTypes || !propertyTypes->isSubset(types);
-    if (!barrier)
-        propertyTypes->addFreeze(cx);
+    bool barrier = propertyReadNeedsTypeBarrier(globalType, name, types);
+
+    
 
     JSObject *singleton = types->getSingleton();
 
@@ -5945,7 +5941,7 @@ IonBuilder::elementAccessHasExtraIndexedProperty(MDefinition *obj)
 }
 
 bool
-IonBuilder::propertyReadNeedsTypeBarrier(MDefinition *obj, PropertyName *name,
+IonBuilder::propertyReadNeedsTypeBarrier(types::TypeObject *object, PropertyName *name,
                                          types::StackTypeSet *observed)
 {
     
@@ -5954,14 +5950,46 @@ IonBuilder::propertyReadNeedsTypeBarrier(MDefinition *obj, PropertyName *name,
     
     
 
+    if (object->unknownProperties())
+        return true;
+
+    jsid id = name ? types::IdToTypeId(NameToId(name)) : JSID_VOID;
+
+    types::HeapTypeSet *property = object->getProperty(cx, id, false);
+    if (!property)
+        return true;
+
+    if (!property->hasPropagatedProperty())
+        object->getFromPrototypes(cx, id, property);
+
+    if (!TypeSetIncludes(observed, MIRType_Value, property))
+        return true;
+
+    
+    
+    
+    if (property->empty() && name && object->singleton) {
+        Shape *shape = object->singleton->nativeLookup(cx, name);
+        if (shape && shape->hasDefaultGetter()) {
+            JS_ASSERT(object->singleton->nativeGetSlot(shape->slot()).isUndefined());
+            return true;
+        }
+    }
+
+    property->addFreeze(cx);
+    return false;
+}
+
+bool
+IonBuilder::propertyReadNeedsTypeBarrier(MDefinition *obj, PropertyName *name,
+                                         types::StackTypeSet *observed)
+{
     if (observed->unknown())
         return false;
 
     types::TypeSet *types = obj->resultTypeSet();
     if (!types || types->unknownObject())
         return true;
-
-    jsid id = name ? types::IdToTypeId(NameToId(name)) : JSID_VOID;
 
     for (size_t i = 0; i < types->getObjectCount(); i++) {
         types::TypeObject *object = types->getTypeObject(i);
@@ -5974,20 +6002,8 @@ IonBuilder::propertyReadNeedsTypeBarrier(MDefinition *obj, PropertyName *name,
                 return true;
         }
 
-        if (object->unknownProperties())
+        if (propertyReadNeedsTypeBarrier(object, name, observed))
             return true;
-
-        types::HeapTypeSet *property = object->getProperty(cx, id, false);
-        if (!property)
-            return true;
-
-        if (!property->hasPropagatedProperty())
-            object->getFromPrototypes(cx, id, property);
-
-        if (!TypeSetIncludes(observed, MIRType_Value, property))
-            return true;
-
-        property->addFreeze(cx);
     }
 
     return false;
