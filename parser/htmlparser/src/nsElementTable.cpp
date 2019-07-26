@@ -44,6 +44,7 @@ DECL_TAG_LIST(gParamParents,{eHTMLTag_applet COMMA eHTMLTag_object})
 DECL_TAG_LIST(gTRParents,{eHTMLTag_tbody COMMA eHTMLTag_tfoot COMMA eHTMLTag_thead COMMA eHTMLTag_table})
 DECL_TAG_LIST(gTREndParents,{eHTMLTag_tbody COMMA eHTMLTag_tfoot COMMA eHTMLTag_thead COMMA eHTMLTag_table COMMA eHTMLTag_applet})
 DECL_TAG_LIST(gSourceParents,{eHTMLTag_video COMMA eHTMLTag_audio})
+DECL_TAG_LIST(gTrackParents,{eHTMLTag_video COMMA eHTMLTag_audio})
 
 
 
@@ -88,8 +89,8 @@ DECL_TAG_LIST(gTableElemKids,{eHTMLTag_form COMMA eHTMLTag_noscript COMMA eHTMLT
 DECL_TAG_LIST(gTRKids,{eHTMLTag_td COMMA eHTMLTag_th COMMA eHTMLTag_form COMMA eHTMLTag_script})
 DECL_TAG_LIST(gTBodyKids,{eHTMLTag_tr COMMA eHTMLTag_form}) 
 DECL_TAG_LIST(gULKids,{eHTMLTag_li COMMA eHTMLTag_p})
-DECL_TAG_LIST(gVideoKids,{eHTMLTag_source})
-DECL_TAG_LIST(gAudioKids,{eHTMLTag_source})
+DECL_TAG_LIST(gVideoKids,{eHTMLTag_source COMMA eHTMLTag_track})
+DECL_TAG_LIST(gAudioKids,{eHTMLTag_source COMMA eHTMLTag_track})
 
 
 
@@ -1228,6 +1229,15 @@ const nsHTMLElement gHTMLElements[] = {
               kNone, kNone, kInlineEntity,
            (kBadContentWatch|kNoStyleLeaksIn|kNoStyleLeaksOut), kNoPropRange,
                 &gTRParents,&gTRKids,
+  },
+  {
+                                 eHTMLTag_track,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gTrackParents,&gTrackParents,
+     &gPAutoClose, 0, 0,0,
+              kSpecial, kNone, kNone,
+           kNonContainer,kNoPropRange,
+                &gTrackParents,0,
   },
   {
                                  eHTMLTag_tt,
