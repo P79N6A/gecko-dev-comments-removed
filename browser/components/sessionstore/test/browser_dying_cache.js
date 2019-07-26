@@ -14,10 +14,11 @@ function test() {
 function runTests() {
   
   let win = OpenBrowserWindow();
-  yield whenWindowLoaded(win);
+  yield whenDelayedStartupFinished(win, next);
 
   
-  win.gBrowser.selectedBrowser.loadURI("about:robots");
+  let flags = Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY;
+  win.gBrowser.selectedBrowser.loadURIWithFlags("about:robots", flags);
   yield whenBrowserLoaded(win.gBrowser.selectedBrowser);
 
   

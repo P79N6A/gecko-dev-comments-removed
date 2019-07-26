@@ -196,18 +196,13 @@ function test() {
       options = {private: true};
     }
 
-    let newWin = OpenBrowserWindow(options);
-    newWin.addEventListener("load", function(aEvent) {
-      newWin.removeEventListener("load", arguments.callee, false);
-      newWin.gBrowser.addEventListener("load", function(aEvent) {
-        newWin.gBrowser.removeEventListener("load", arguments.callee, true);
-        TEST_URLS.forEach(function (url) {
-          newWin.gBrowser.addTab(url);
-        });
+    whenNewWindowLoaded(options, function (newWin) {
+      TEST_URLS.forEach(function (url) {
+        newWin.gBrowser.addTab(url);
+      });
 
-        executeSoon(function() testFn(newWin));
-      }, true);
-    }, false);
+      executeSoon(() => testFn(newWin));
+    });
   }
 
   
@@ -230,20 +225,16 @@ function test() {
 
       
       
-      newWin = OpenBrowserWindow({});
-      newWin.addEventListener("load", function() {
-        this.removeEventListener("load", arguments.callee, true);
-        executeSoon(function() {
-          is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
-             "Restored window in-session with otherpopup windows around");
+      whenNewWindowLoaded({}, function (newWin) {
+        is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
+           "Restored window in-session with otherpopup windows around");
 
-          
-          newWin.close();
+        
+        newWin.close();
 
-          
-          executeSoon(nextFn);
-        });
-      }, true);
+        
+        executeSoon(nextFn);
+      });
     });
   }
 
@@ -259,32 +250,24 @@ function test() {
       
       
       
-      newWin = OpenBrowserWindow({private: true});
-      newWin.addEventListener("load", function() {
-        this.removeEventListener("load", arguments.callee, true);
-        executeSoon(function() {
-          is(newWin.gBrowser.browsers.length, 1,
-             "Did not restore in private browing mode");
+      whenNewWindowLoaded({private: true}, function (newWin) {
+        is(newWin.gBrowser.browsers.length, 1,
+           "Did not restore in private browing mode");
+
+        
+        newWin.BrowserTryToCloseWindow();
+
+        
+        whenNewWindowLoaded({}, function (newWin) {
+          is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
+             "Restored after leaving private browsing again");
+
+          newWin.close();
 
           
-          newWin.BrowserTryToCloseWindow();
-
-          
-          newWin = OpenBrowserWindow({});
-          newWin.addEventListener("load", function() {
-            this.removeEventListener("load", arguments.callee, true);
-            executeSoon(function() {
-              is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
-                 "Restored after leaving private browsing again");
-
-              newWin.close();
-
-              
-              executeSoon(nextFn);
-            });
-          }, true);
+          executeSoon(nextFn);
         });
-      }, true);
+      });
     });
   }
 
@@ -312,21 +295,17 @@ function test() {
           popup2.close();
 
           
-          newWin = OpenBrowserWindow({});
-          newWin.addEventListener("load", function() {
-            this.removeEventListener("load", arguments.callee, true);
-            executeSoon(function() {
-              is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
-                 "Restored window and associated tabs in session");
+          whenNewWindowLoaded({}, function (newWin) {
+            is(newWin.gBrowser.browsers.length, TEST_URLS.length + 1,
+               "Restored window and associated tabs in session");
 
-              
-              newWin.close();
-              popup.close();
+            
+            newWin.close();
+            popup.close();
 
-              
-              executeSoon(nextFn);
-            });
-          }, true);
+            
+            executeSoon(nextFn);
+          });
         }, true);
       }, false);
     });
@@ -366,22 +345,18 @@ function test() {
           
           popup.close();
 
-          let newWin = OpenBrowserWindow({});
-          newWin.addEventListener("load", function() {
-            newWin.removeEventListener("load", arguments.callee, true);
-            executeSoon(function() {
-              isnot(newWin.gBrowser.browsers.length, 2,
-                    "Did not restore the popup window");
-              is(TEST_URLS.indexOf(newWin.gBrowser.browsers[0].currentURI.spec), -1,
-                 "Did not restore the popup window (2)");
+          whenNewWindowLoaded({}, function (newWin) {
+            isnot(newWin.gBrowser.browsers.length, 2,
+                  "Did not restore the popup window");
+            is(TEST_URLS.indexOf(newWin.gBrowser.browsers[0].currentURI.spec), -1,
+               "Did not restore the popup window (2)");
 
-              
-              newWin.close();
+            
+            newWin.close();
 
-              
-              executeSoon(nextFn);
-            });
-          }, true);
+            
+            executeSoon(nextFn);
+          });
         }, true);
       }, false);
     }, true);
@@ -402,27 +377,23 @@ function test() {
 
         newWin = undoCloseWindow(0);
 
-        newWin2 = OpenBrowserWindow({});
-        newWin2.addEventListener("load", function() {
-          newWin2.removeEventListener("load", arguments.callee, true);
-          executeSoon(function() {
-            is(newWin2.gBrowser.browsers.length, 1,
-               "Did not restore, as undoCloseWindow() was last called");
-            is(TEST_URLS.indexOf(newWin2.gBrowser.browsers[0].currentURI.spec), -1,
-               "Did not restore, as undoCloseWindow() was last called (2)");
+        whenNewWindowLoaded({}, function (newWin2) {
+          is(newWin2.gBrowser.browsers.length, 1,
+             "Did not restore, as undoCloseWindow() was last called");
+          is(TEST_URLS.indexOf(newWin2.gBrowser.browsers[0].currentURI.spec), -1,
+             "Did not restore, as undoCloseWindow() was last called (2)");
 
-            browserWindowsCount([2, 3], "browser windows while running testOpenCloseRestoreFromPopup");
+          browserWindowsCount([2, 3], "browser windows while running testOpenCloseRestoreFromPopup");
 
-            
-            newWin.close();
-            newWin2.close();
+          
+          newWin.close();
+          newWin2.close();
 
-            browserWindowsCount([0, 1], "browser windows while running testOpenCloseRestoreFromPopup");
+          browserWindowsCount([0, 1], "browser windows while running testOpenCloseRestoreFromPopup");
 
-            
-            executeSoon(nextFn);
-          });
-        }, true);
+          
+          executeSoon(nextFn);
+        });
       });
     });
   }

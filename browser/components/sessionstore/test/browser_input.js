@@ -19,7 +19,7 @@ function runTests() {
   
   
   let win = OpenBrowserWindow();
-  yield waitForLoad(win);
+  yield whenDelayedStartupFinished(win, next);
 
   
   let tab = gBrowser.selectedTab = gBrowser.addTab(URL);
