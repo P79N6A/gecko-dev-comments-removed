@@ -20,10 +20,18 @@ public:
   nsCOMPtr<nsIFile> mFile;
   nsString mPath;
   nsString mStorageType;
+  nsString mRootDir;
   bool mEditable;
 
-  DeviceStorageFile(const nsAString& aStorageType, nsIFile* aFile, const nsAString& aPath);
-  DeviceStorageFile(const nsAString& aStorageType, nsIFile* aFile);
+  
+  DeviceStorageFile(const nsAString& aStorageType);
+  
+  DeviceStorageFile(const nsAString& aStorageType, const nsAString& aPath);
+  
+  
+  
+  DeviceStorageFile(const nsAString& aStorageType, const nsAString& aRootDir, const nsAString& aPath);
+
   void SetPath(const nsAString& aPath);
   void SetEditable(bool aEditable);
 
@@ -32,6 +40,7 @@ public:
   
   
   bool IsSafePath();
+  bool IsSafePath(const nsAString& aPath);
 
   nsresult Remove();
   nsresult Write(nsIInputStream* aInputStream);
@@ -40,10 +49,13 @@ public:
   void collectFilesInternal(nsTArray<nsRefPtr<DeviceStorageFile> > &aFiles, PRTime aSince, nsAString& aRootPath);
 
   static void DirectoryDiskUsage(nsIFile* aFile, uint64_t* aSoFar, const nsAString& aStorageType);
-
+  static void GetRootDirectoryForType(const nsAString& aType,
+                                      const nsAString& aVolName,
+                                      nsIFile** aFile);
 private:
+  void Init(const nsAString& aStorageType);
   void NormalizeFilePath();
-  void AppendRelativePath();
+  void AppendRelativePath(const nsAString& aPath);
 };
 
 
