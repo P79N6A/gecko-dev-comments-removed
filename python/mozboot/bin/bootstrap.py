@@ -46,7 +46,17 @@ REPOSITORY_PATHS = [
 
 TEMPDIR = None
 
+def setup_proxy():
+    
+    
+    
+    if 'ALL_PROXY' in os.environ and 'https_proxy' not in os.environ:
+        os.environ['https_proxy'] = os.environ['ALL_PROXY']
+    if 'ALL_PROXY' in os.environ and 'http_proxy' not in os.environ:
+        os.environ['http_proxy'] = os.environ['ALL_PROXY']
+
 def fetch_files(repo_url, repo_type):
+    setup_proxy()
     repo_url = repo_url.rstrip('/')
 
     files = {}
