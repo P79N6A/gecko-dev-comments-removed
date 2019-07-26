@@ -132,13 +132,7 @@ public class ToolbarComponent extends BaseComponent {
         WaitHelper.waitForPageLoad(new Runnable() {
             @Override
             public void run() {
-                if (InputMethods.shouldDisableUrlBarUpdate(mActivity)) {
-                    
-                    
-                    mSolo.sendKey(Solo.ENTER);
-                } else {
-                    mSolo.clickOnView(getGoButton());
-                }
+                mSolo.clickOnView(getGoButton());
             }
         });
         waitForNotEditing();
