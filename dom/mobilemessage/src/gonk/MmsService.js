@@ -62,6 +62,7 @@ const _MMS_ERROR_NO_SIM_CARD                   = -3;
 const _MMS_ERROR_SIM_CARD_CHANGED              = -4;
 const _MMS_ERROR_SHUTDOWN                      = -5;
 const _MMS_ERROR_USER_CANCELLED_NO_REASON      = -6;
+const _MMS_ERROR_SIM_NOT_MATCHED               = -7;
 
 const CONFIG_SEND_REPORT_NEVER       = 0;
 const CONFIG_SEND_REPORT_DEFAULT_NO  = 1;
@@ -501,6 +502,35 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnections", function() {
       conn = this._connections[id] = new MmsConnection(id);
       conn.init();
       return conn;
+    },
+    getConnByIccId: function(aIccId) {
+      if (!aIccId) {
+        
+        
+        
+        
+        
+        
+        return this.getConnByServiceId(0);
+      }
+
+      let numCardAbsent = 0;
+      let numRadioInterfaces = gRil.numRadioInterfaces;
+      for (let clientId = 0; clientId < numRadioInterfaces; clientId++) {
+        let mmsConnection = this.getConnByServiceId(clientId);
+        let iccId = mmsConnection.getIccId();
+        if (iccId === null) {
+          numCardAbsent++;
+          continue;
+        }
+
+        if (iccId === aIccId) {
+          return mmsConnection;
+        }
+      }
+
+      throw ((numCardAbsent === numRadioInterfaces)?
+               _MMS_ERROR_NO_SIM_CARD: _MMS_ERROR_SIM_NOT_MATCHED);
     },
   };
 });
@@ -2282,35 +2312,26 @@ MmsService.prototype = {
 
       
       
-      let serviceId;
+      let mmsConnection;
       try {
-        if (aMessageRecord.iccId == null) {
-          
-          
-          
-          
-          
-          
-          serviceId = 0;
-        } else {
-          serviceId = gRil.getClientIdByIccId(aMessageRecord.iccId);
-        }
+        mmsConnection = gMmsConnections.getConnByIccId(aMessageRecord.iccId);
       } catch (e) {
-        if (DEBUG) debug("RIL service is not available for ICC ID.");
-        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR);
+        if (DEBUG) debug("Failed to get connection by IccId. e= " + e);
+        let error = (e === _MMS_ERROR_SIM_NOT_MATCHED) ?
+                      Ci.nsIMobileMessageCallback.SIM_NOT_MATCHED_ERROR :
+                      Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR;
+        aRequest.notifyGetMessageFailed(error);
         return;
       }
 
       
       
       
-      if (serviceId != this.mmsDefaultServiceId) {
+      if (mmsConnection.serviceId != this.mmsDefaultServiceId) {
         if (DEBUG) debug("RIL service is not active to retrieve MMS.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR);
         return;
       }
-
-      let mmsConnection = gMmsConnections.getConnByServiceId(serviceId);
 
       let url =  aMessageRecord.headers["x-mms-content-location"].uri;
       
@@ -2432,25 +2453,14 @@ MmsService.prototype = {
 
     
     
-    let serviceId;
+    let mmsConnection;
     try {
-      if (iccId == null) {
-        
-        
-        
-        
-        
-        
-        serviceId = 0;
-      } else {
-        serviceId = gRil.getClientIdByIccId(iccId);
-      }
+      mmsConnection = gMmsConnections.getConnByIccId(iccId);
     } catch (e) {
-      if (DEBUG) debug("RIL service is not available for ICC ID.");
+      if (DEBUG) debug("Failed to get connection by IccId. e = " + e);
       return;
     }
 
-    let mmsConnection = gMmsConnections.getConnByServiceId(serviceId);
     try {
       let transaction =
         new ReadRecTransaction(mmsConnection, messageID, toAddress);
