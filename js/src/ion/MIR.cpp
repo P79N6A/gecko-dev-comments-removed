@@ -597,6 +597,10 @@ NeedNegativeZeroCheck(MDefinition *def)
         switch (use_def->op()) {
           case MDefinition::Op_Add: {
             
+            if (use_def->toAdd()->isTruncated())
+                break;
+
+            
 
             
             
@@ -640,6 +644,11 @@ NeedNegativeZeroCheck(MDefinition *def)
             
             break;
           }
+          case MDefinition::Op_Sub:
+            
+            if (use_def->toSub()->isTruncated())
+                break;
+            
           case MDefinition::Op_StoreElement:
           case MDefinition::Op_StoreElementHole:
           case MDefinition::Op_LoadElement:
@@ -648,7 +657,6 @@ NeedNegativeZeroCheck(MDefinition *def)
           case MDefinition::Op_LoadTypedArrayElementHole:
           case MDefinition::Op_CharCodeAt:
           case MDefinition::Op_Mod:
-          case MDefinition::Op_Sub:
             
             if (use_def->getOperand(0) == def)
                 return true;
@@ -672,6 +680,7 @@ NeedNegativeZeroCheck(MDefinition *def)
           case MDefinition::Op_BitOr:
           case MDefinition::Op_BitXor:
           case MDefinition::Op_Abs:
+          case MDefinition::Op_TruncateToInt32:
             
             break;
           default:
@@ -735,36 +744,36 @@ MDiv::analyzeEdgeCasesForward()
     
     
     if (lhs()->isConstant() && !lhs()->toConstant()->value().isInt32(INT32_MIN))
-        canBeNegativeOverflow_ = false;
+        setCanBeNegativeZero(false);
 
     
     if (rhs()->isConstant() && !rhs()->toConstant()->value().isInt32(-1))
-        canBeNegativeOverflow_ = false;
+        setCanBeNegativeZero(false);
 
     
     if (lhs()->isConstant() && !lhs()->toConstant()->value().isInt32(0))
-        canBeNegativeZero_ = false;
+        setCanBeNegativeZero(false);
 
     
     if (rhs()->isConstant()) {
         const js::Value &val = rhs()->toConstant()->value();
         if (val.isInt32() && val.toInt32() >= 0)
-            canBeNegativeZero_ = false;
+            setCanBeNegativeZero(false);
     }
 }
 
 void
 MDiv::analyzeEdgeCasesBackward()
 {
-    if (canBeNegativeZero_)
-        canBeNegativeZero_ = NeedNegativeZeroCheck(this);
+    if (canBeNegativeZero() && !NeedNegativeZeroCheck(this))
+        setCanBeNegativeZero(false);
 }
 
 void
 MDiv::analyzeTruncateBackward()
 {
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
+    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
+        setTruncated(true);
 }
 
 bool
@@ -774,8 +783,7 @@ MDiv::updateForReplacement(MDefinition *ins_)
     MDiv *ins = ins_->toDiv();
     
     
-    if (isTruncated())
-        setTruncated(ins->isTruncated());
+    setTruncated(isTruncated() && ins->isTruncated());
     return true;
 }
 
@@ -839,8 +847,8 @@ MMod::foldsTo(bool useValueNumbers)
 void
 MAdd::analyzeTruncateBackward()
 {
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
+    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
+        setTruncated(true);
 }
 
 bool
@@ -848,8 +856,7 @@ MAdd::updateForReplacement(MDefinition *ins_)
 {
     JS_ASSERT(ins_->isAdd());
     MAdd *ins = ins_->toAdd();
-    if (isTruncated())
-        setTruncated(ins->isTruncated());
+    setTruncated(isTruncated() && ins->isTruncated());
     return true;
 }
 
@@ -862,8 +869,8 @@ MAdd::fallible()
 void
 MSub::analyzeTruncateBackward()
 {
-    if (!isTruncated())
-        setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
+    if (!isTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
+        setTruncated(true);
 }
 
 bool
@@ -871,8 +878,7 @@ MSub::updateForReplacement(MDefinition *ins_)
 {
     JS_ASSERT(ins_->isSub());
     MSub *ins = ins_->toSub();
-    if (isTruncated())
-        setTruncated(ins->isTruncated());
+    setTruncated(isTruncated() && ins->isTruncated());
     return true;
 }
 
@@ -893,7 +899,7 @@ MMul::foldsTo(bool useValueNumbers)
         return this;
 
     if (EqualValues(useValueNumbers, lhs(), rhs()))
-        canBeNegativeZero_ = false;
+        setCanBeNegativeZero(false);
 
     return this;
 }
@@ -910,14 +916,14 @@ MMul::analyzeEdgeCasesForward()
     if (lhs()->isConstant()) {
         const js::Value &val = lhs()->toConstant()->value();
         if (val.isInt32() && val.toInt32() > 0)
-            canBeNegativeZero_ = false;
+            setCanBeNegativeZero(false);
     }
 
     
     if (rhs()->isConstant()) {
         const js::Value &val = rhs()->toConstant()->value();
         if (val.isInt32() && val.toInt32() > 0)
-            canBeNegativeZero_ = false;
+            setCanBeNegativeZero(false);
     }
 
 }
@@ -925,15 +931,15 @@ MMul::analyzeEdgeCasesForward()
 void
 MMul::analyzeEdgeCasesBackward()
 {
-    if (canBeNegativeZero_)
-        canBeNegativeZero_ = NeedNegativeZeroCheck(this);
+    if (canBeNegativeZero() && !NeedNegativeZeroCheck(this))
+        setCanBeNegativeZero(false);
 }
 
 void
 MMul::analyzeTruncateBackward()
 {
-    if (!isPossibleTruncated())
-        setPossibleTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
+    if (!isPossibleTruncated() && js::ion::EdgeCaseAnalysis::AllUsesTruncate(this))
+        setPossibleTruncated(true);
 }
 
 bool
@@ -941,8 +947,12 @@ MMul::updateForReplacement(MDefinition *ins_)
 {
     JS_ASSERT(ins_->isMul());
     MMul *ins = ins_->toMul();
-    if (isPossibleTruncated())
-        setPossibleTruncated(ins->isPossibleTruncated());
+    
+    
+    bool truncated = isPossibleTruncated() && ins->isPossibleTruncated();
+    bool negativeZero = canBeNegativeZero() || ins->canBeNegativeZero();
+    setPossibleTruncated(truncated);
+    setCanBeNegativeZero(negativeZero);
     return true;
 }
 
@@ -952,16 +962,6 @@ MMul::canOverflow()
     if (implicitTruncate_)
         return false;
     return !range() || !range()->isFinite();
-}
-
-bool
-MMul::canBeNegativeZero()
-{
-    if (!range())
-        return canBeNegativeZero_;
-    if (range()->lower() > 0 || range()->upper() < 0)
-        return false;
-    return canBeNegativeZero_;
 }
 
 void
@@ -1284,7 +1284,8 @@ MToInt32::foldsTo(bool useValueNumbers)
 void
 MToInt32::analyzeEdgeCasesBackward()
 {
-    canBeNegativeZero_ = NeedNegativeZeroCheck(this);
+    if (!NeedNegativeZeroCheck(this))
+        setCanBeNegativeZero(false);
 }
 
 MDefinition *

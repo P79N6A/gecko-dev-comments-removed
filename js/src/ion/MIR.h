@@ -1759,6 +1759,9 @@ class MToInt32 : public MUnaryInstruction
     bool canBeNegativeZero() {
         return canBeNegativeZero_;
     }
+    void setCanBeNegativeZero(bool negativeZero) {
+        canBeNegativeZero_ = negativeZero;
+    }
 
     bool congruentTo(MDefinition *const &ins) const {
         return congruentIfOperandsEqual(ins);
@@ -2438,8 +2441,8 @@ class MAdd : public MBinaryArithInstruction
     bool isTruncated() const {
         return implicitTruncate_;
     }
-    void setTruncated(bool val) {
-        implicitTruncate_ = val;
+    void setTruncated(bool truncate) {
+        implicitTruncate_ = truncate;
     }
     bool updateForReplacement(MDefinition *ins);
     double getIdentity() {
@@ -2470,8 +2473,8 @@ class MSub : public MBinaryArithInstruction
     bool isTruncated() const {
         return implicitTruncate_;
     }
-    void setTruncated(bool val) {
-        implicitTruncate_ = val;
+    void setTruncated(bool truncate) {
+        implicitTruncate_ = truncate;
     }
     bool updateForReplacement(MDefinition *ins);
 
@@ -2528,7 +2531,13 @@ class MMul : public MBinaryArithInstruction
     }
 
     bool canOverflow();
-    bool canBeNegativeZero();
+
+    bool canBeNegativeZero() {
+        return canBeNegativeZero_;
+    }
+    void setCanBeNegativeZero(bool negativeZero) {
+        canBeNegativeZero_ = negativeZero;
+    }
 
     bool updateForReplacement(MDefinition *ins);
 
@@ -2544,6 +2553,13 @@ class MMul : public MBinaryArithInstruction
 
     void setPossibleTruncated(bool truncate) {
         possibleTruncate_ = truncate;
+
+        
+        
+        
+        
+        
+        canBeNegativeZero_ = !truncate;
     }
 };
 
@@ -2589,12 +2605,15 @@ class MDiv : public MBinaryArithInstruction
     bool isTruncated() const {
         return implicitTruncate_;
     }
-    void setTruncated(bool val) {
-        implicitTruncate_ = val;
+    void setTruncated(bool truncate) {
+        implicitTruncate_ = truncate;
     }
 
     bool canBeNegativeZero() {
         return canBeNegativeZero_;
+    }
+    void setCanBeNegativeZero(bool negativeZero) {
+        canBeNegativeZero_ = negativeZero;
     }
 
     bool canBeNegativeOverflow() {
