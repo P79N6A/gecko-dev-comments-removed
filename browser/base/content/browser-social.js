@@ -874,18 +874,27 @@ SocialToolbar = {
     let toggleNotificationsCommand = document.getElementById("Social:ToggleNotifications");
     toggleNotificationsCommand.setAttribute("hidden", !socialEnabled);
 
-    let parent = document.getElementById("social-notification-panel");
-    while (parent.hasChildNodes()) {
-      let frame = parent.firstChild;
-      SharedFrame.forgetGroup(frame.id);
-      parent.removeChild(frame);
-    }
-
+    
+    
+    
+    
     let tbi = document.getElementById("social-provider-button");
     if (tbi) {
       
-      while (tbi.nextSibling) {
-        tbi.parentNode.removeChild(tbi.nextSibling);
+      let next = tbi.nextSibling;
+      let currentOrigin = Social.provider ? Social.provider.origin : null;
+
+      while (next) {
+        let button = next;
+        next = next.nextSibling;
+        
+        let frameId = button.getAttribute("notificationFrameId");
+        let frame = document.getElementById(frameId);
+        if (!socialEnabled || frame.getAttribute("origin") != currentOrigin) {
+          SharedFrame.forgetGroup(frame.id);
+          frame.parentNode.removeChild(frame);
+          button.parentNode.removeChild(button);
+        }
       }
     }
   },
