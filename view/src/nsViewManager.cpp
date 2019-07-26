@@ -625,9 +625,6 @@ NS_IMETHODIMP nsViewManager::InvalidateViewNoSuppression(nsIView *aView,
   
   AddDirtyRegion(displayRoot, nsRegion(damagedRect));
 
-  
-  PostPendingUpdate();
-
   return NS_OK;
 }
 
