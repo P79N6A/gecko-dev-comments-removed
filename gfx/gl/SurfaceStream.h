@@ -53,6 +53,13 @@ public:
 
     mozilla::gl::GLContext* GLContext() const { return mGLContext; }
 
+    
+
+
+
+    virtual bool HasDelayedFrame() const {
+      return false;
+    }
 
 protected:
     
@@ -60,12 +67,13 @@ protected:
     SharedSurface* mProducer;
     std::set<SharedSurface*> mSurfaces;
     std::stack<SharedSurface*> mScraps;
-    mutable Monitor mMonitor;
-    bool mIsAlive;
 
     
     
     mozilla::gl::GLContext* mGLContext;
+
+    mutable Monitor mMonitor;
+    bool mIsAlive;
 
     
     
@@ -190,18 +198,24 @@ class SurfaceStream_TripleBuffer
 protected:
     SharedSurface* mStaging;
     SharedSurface* mConsumer;
+    SharedSurface* mDelay;
+    bool mUseSwapDelay;
 
     
     virtual void WaitForCompositor() {}
 
     
-    SurfaceStream_TripleBuffer(SurfaceStreamType type, SurfaceStream* prevStream);
+    SurfaceStream_TripleBuffer(bool aUseSwapDelay, SurfaceStreamType type, SurfaceStream* prevStream);
 
 public:
     MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SurfaceStream_TripleBuffer)
-    SurfaceStream_TripleBuffer(SurfaceStream* prevStream);
+    SurfaceStream_TripleBuffer(bool aUseSwapDelay, SurfaceStream* prevStream);
     virtual ~SurfaceStream_TripleBuffer();
     virtual bool CopySurfaceToProducer(SharedSurface* src, SurfaceFactory* factory);
+
+    virtual bool HasDelayedFrame() const MOZ_OVERRIDE {
+      return !!mDelay;
+    }
 
 private:
     
@@ -224,7 +238,7 @@ protected:
     virtual void WaitForCompositor() MOZ_OVERRIDE;
 
 public:
-    SurfaceStream_TripleBuffer_Async(SurfaceStream* prevStream);
+    SurfaceStream_TripleBuffer_Async(bool aSwapDelay, SurfaceStream* prevStream);
     virtual ~SurfaceStream_TripleBuffer_Async();
 };
 
