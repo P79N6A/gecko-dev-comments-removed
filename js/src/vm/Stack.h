@@ -224,7 +224,7 @@ enum ExecuteType {
     EXECUTE_DIRECT_EVAL    =        0x4, 
     EXECUTE_INDIRECT_EVAL  =        0x5, 
     EXECUTE_DEBUG          =        0xc, 
-    EXECUTE_DEBUG_GLOBAL   =        0xd, 
+    EXECUTE_DEBUG_GLOBAL   =        0xd  
 };
 
 
