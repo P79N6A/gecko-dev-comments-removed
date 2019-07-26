@@ -2135,24 +2135,6 @@ public:
 
 
 
-
-  void BeginDeferringInvalidatesForDisplayRoot(const nsRegion& aExcludeRegion);
-
-  
-
-
-  void EndDeferringInvalidatesForDisplayRoot();
-
-  
-
-
-
-
-
-
-
-
-
   void MarkLayersActive(nsChangeHint aHint);
   
 

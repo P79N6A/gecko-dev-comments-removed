@@ -5583,15 +5583,7 @@ PresShell::Paint(nsView*        aViewToPaint,
 
   if (frame) {
     
-    
-    
-    
-    frame->BeginDeferringInvalidatesForDisplayRoot(aDirtyRegion);
-
-    
     nsLayoutUtils::PaintFrame(nullptr, frame, aDirtyRegion, bgcolor, flags);
-
-    frame->EndDeferringInvalidatesForDisplayRoot();
     return;
   }
 
