@@ -657,6 +657,7 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
 
   
   uint32_t r = static_cast<uint32_t>(aTakePicture->mRotation);
+  r += GonkCameraHardware::GetSensorOrientation(mHwHandle);
   r %= 360;
   r += 45;
   r /= 90;

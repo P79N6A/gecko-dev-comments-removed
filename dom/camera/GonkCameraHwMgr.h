@@ -55,6 +55,19 @@ public:
 
   static void     ReleaseHandle(uint32_t aHwHandle);
   static uint32_t GetHandle(GonkCamera* aTarget, uint32_t aCamera);
+
+  
+
+
+
+
+
+
+
+
+
+  static int      GetSensorOrientation(uint32_t aHwHandle);
+
   static int      AutoFocus(uint32_t aHwHandle);
   static void     CancelAutoFocus(uint32_t aHwHandle);
   static int      TakePicture(uint32_t aHwHandle);
@@ -103,6 +116,7 @@ protected:
 #endif
   sp<GonkCameraListener>        mListener;
   bool                          mInitialized;
+  int                           mSensorOrientation;
 
   bool IsInitialized()
   {
