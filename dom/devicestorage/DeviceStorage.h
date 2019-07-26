@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef DeviceStorage_h
 #define DeviceStorage_h
 
@@ -80,6 +82,15 @@ public:
 
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTTARGET
+  virtual void AddEventListener(const nsAString& aType,
+                                nsIDOMEventListener* aListener,
+                                bool aUseCapture,
+                                const mozilla::dom::Nullable<bool>& aWantsUntrusted,
+                                mozilla::ErrorResult& aRv) MOZ_OVERRIDE;
+  virtual void RemoveEventListener(const nsAString& aType,
+                                   nsIDOMEventListener* aListener,
+                                   bool aUseCapture,
+                                   mozilla::ErrorResult& aRv) MOZ_OVERRIDE;
 
   nsDOMDeviceStorage();
 
