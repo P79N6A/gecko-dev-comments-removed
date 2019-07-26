@@ -54,6 +54,8 @@ namespace base {
 class Thread;
 } 
 
+typedef void* EGLSurface;
+
 namespace mozilla {
 
 namespace hal {
@@ -87,8 +89,6 @@ typedef struct AndroidSystemColors {
     nscolor panelColorForeground;
     nscolor panelColorBackground;
 } AndroidSystemColors;
-
-typedef void* EGLSurface;
 
 class nsFilePickerCallback : nsISupports {
 public:
