@@ -532,7 +532,12 @@ gsmsdp_init_media (fsmdef_media_t *media)
     media->video = NULL;
     media->candidate_ct = 0;
     media->rtcp_mux = FALSE;
-    media->protocol = NULL;
+
+    media->local_datachannel_port = 0;
+    media->remote_datachannel_port = 0;
+    media->datachannel_streams = WEBRTC_DATACHANNEL_STREAMS_DEFAULT;
+    sstrncpy(media->datachannel_protocol, WEBRTC_DATA_CHANNEL_PROT, SDP_MAX_STRING_LEN);
+
     media->payloads = NULL;
     media->num_payloads = 0;
 }
@@ -1454,11 +1459,11 @@ gsmsdp_set_sctp_attributes (void *sdp_p, uint16_t level, fsmdef_media_t *media)
     }
 
     
-    (void) sdp_attr_set_fmtp_payload_type(sdp_p, level, 0, a_inst, media->sctp_port);
+    (void) sdp_attr_set_fmtp_payload_type(sdp_p, level, 0, a_inst, media->local_datachannel_port);
 
-    sdp_attr_set_fmtp_data_channel_protocol (sdp_p, level, 0, a_inst, WEBRTC_DATA_CHANNEL_PROT);
+    sdp_attr_set_fmtp_data_channel_protocol (sdp_p, level, 0, a_inst, media->datachannel_protocol);
 
-    sdp_attr_set_fmtp_streams (sdp_p, level, 0, a_inst, 16);
+    sdp_attr_set_fmtp_streams (sdp_p, level, 0, a_inst, media->datachannel_streams);
 }
 
 
@@ -2444,7 +2449,7 @@ gsmsdp_update_local_sdp_media (fsmdef_dcb_t *dcb_p, cc_sdp_t *cc_sdp_p,
     (void) sdp_set_media_type(sdp_p, level, media->type);
 
 
-    (void) sdp_set_media_portnum(sdp_p, level, port, media->sctp_port);
+    (void) sdp_set_media_portnum(sdp_p, level, port, media->local_datachannel_port);
 
     
     gsmsdp_update_local_sdp_media_transport(dcb_p, sdp_p, media, transport,
@@ -3303,27 +3308,37 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
     return (RTP_NONE);
 }
 
+
+
+
+
+
+
+
+
 static void
-gsmsdp_negotiate_datachannel_attribs(fsmdef_dcb_t* dcb_p, cc_sdp_t* sdp_p, uint16_t level, fsmdef_media_t* media)
+gsmsdp_negotiate_datachannel_attribs(fsmdef_dcb_t* dcb_p, cc_sdp_t* sdp_p, uint16_t level,
+    fsmdef_media_t* media, boolean offer)
 {
     uint32          num_streams;
     char           *protocol;
 
     sdp_attr_get_fmtp_streams (sdp_p->dest_sdp, level, 0, 1, &num_streams);
 
-    media->streams = num_streams;
+    media->datachannel_streams = num_streams;
 
-    if(media->protocol == NULL) {
-        media->protocol = cpr_malloc(SDP_MAX_STRING_LEN+1);
-        if (media->protocol == NULL)
-        	return;
-    }
-    sdp_attr_get_fmtp_data_channel_protocol(sdp_p->dest_sdp, level, 0, 1, media->protocol);
+    sdp_attr_get_fmtp_data_channel_protocol(sdp_p->dest_sdp, level, 0, 1, media->datachannel_protocol);
 
-    media->sctp_port = sdp_attr_get_fmtp_payload_type (sdp_p->dest_sdp, level, 0, 1);
+    media->remote_datachannel_port = sdp_get_media_sctp_port(sdp_p->dest_sdp, level);
 
     
-    media->sctp_port++;
+
+
+
+    if (offer) {
+        
+        media->local_datachannel_port = media->remote_datachannel_port + 1;
+    }
 }
 
 
@@ -4516,7 +4531,7 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                     break;
                 }
             } else {
-                gsmsdp_negotiate_datachannel_attribs(dcb_p, sdp_p, i, media);
+                gsmsdp_negotiate_datachannel_attribs(dcb_p, sdp_p, i, media, offer);
             }
 
             
@@ -4635,17 +4650,6 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                           MOZ_ASSERT(result);  
 
 
-                      } else {
-                          
-
-
-                          int pc_stream_id; 
-
-
-
-
-                          lsm_data_channel_negotiated(dcb_p->line, dcb_p->call_id,
-                                                      media, &pc_stream_id);
                       }
                   }
               }
@@ -5066,7 +5070,7 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
 
           if(media_cap->type == SDP_MEDIA_APPLICATION) {
             config_get_value(CFGID_SCTP_PORT, &sctp_port, sizeof(sctp_port));
-            media->sctp_port = sctp_port;
+            media->local_datachannel_port = sctp_port;
           }
 
           
