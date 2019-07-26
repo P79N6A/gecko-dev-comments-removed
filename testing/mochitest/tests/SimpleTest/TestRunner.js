@@ -73,6 +73,7 @@ var TestRunner = {};
 TestRunner.logEnabled = false;
 TestRunner._currentTest = 0;
 TestRunner._lastTestFinished = -1;
+TestRunner._loopIsRestarting = false;
 TestRunner.currentTestURL = "";
 TestRunner.originalTestURL = "";
 TestRunner._urls = [];
@@ -148,7 +149,7 @@ TestRunner.requestLongerTimeout = function(factor) {
 
 
 TestRunner.repeat = 0;
-TestRunner._currentLoop = 0;
+TestRunner._currentLoop = 1;
 
 TestRunner.expectAssertions = function(min, max) {
     if (typeof(max) == "undefined") {
@@ -304,39 +305,6 @@ TestRunner.resetTests = function(listURLs) {
 
 
 
-TestRunner.loopTest = function(testPath) {
-  
-  document.getElementById("current-test-path").innerHTML = testPath;
-  var numLoops = TestRunner.repeat;
-  var completed = 0; 
-
-  
-  function checkComplete() {
-    var testWindow = window.open(testPath, 'test window'); 
-    if (testWindow.document.readyState == "complete") {
-      
-      TestRunner.currentTestURL = testPath;
-      TestRunner.updateUI(testWindow.SimpleTest._tests);
-      testWindow.close();
-      if (TestRunner.repeat == completed  && TestRunner.onComplete) {
-        TestRunner.onComplete();
-      }
-      completed++;
-    }
-    else {
-      
-      setTimeout(checkComplete, 1000);
-    }
-  }
-  while (numLoops >= 0) {
-    checkComplete();
-    numLoops--;
-  }
-}
-
-
-
-
 TestRunner._haltTests = false;
 TestRunner.runNextTest = function() {
     if (TestRunner._currentTest < TestRunner._urls.length &&
@@ -389,9 +357,10 @@ TestRunner.runNextTest = function() {
              TestRunner.onComplete();
          }
 
-        if (TestRunner._currentLoop < TestRunner.repeat) {
+        if (TestRunner._currentLoop <= TestRunner.repeat) {
           TestRunner._currentLoop++;
           TestRunner.resetTests(TestRunner._urls);
+          TestRunner._loopIsRestarting = true;
         } else {
           
           if (TestRunner.logEnabled) {
@@ -416,7 +385,8 @@ TestRunner.expectChildProcessCrash = function() {
 TestRunner.testFinished = function(tests) {
     
     
-    if (TestRunner._currentTest == TestRunner._lastTestFinished) {
+    if (TestRunner._currentTest == TestRunner._lastTestFinished &&
+        !TestRunner._loopIsRestarting) {
         TestRunner.error("TEST-UNEXPECTED-FAIL | " +
                          TestRunner.currentTestURL +
                          " | called finish() multiple times");
@@ -424,6 +394,7 @@ TestRunner.testFinished = function(tests) {
         return;
     }
     TestRunner._lastTestFinished = TestRunner._currentTest;
+    TestRunner._loopIsRestarting = false;
 
     function cleanUpCrashDumpFiles() {
         if (!SpecialPowers.removeExpectedCrashDumpFiles(TestRunner._expectingProcessCrash)) {
