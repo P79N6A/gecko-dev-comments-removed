@@ -335,6 +335,11 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion,
 #endif
     return;
   }
+
+  if (aView->ForcedRepaint() && IsRefreshDriverPaintingEnabled()) {
+    ProcessPendingUpdates();
+    aView->SetForcedRepaint(false);
+  }
   
   nsIWidget *widget = aView->GetWidget();
   if (!widget) {
@@ -668,19 +673,6 @@ void nsViewManager::WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint)
 
     
     rootVM->ProcessPendingUpdates();
-  }
-
-  if (aWidget && IsRefreshDriverPaintingEnabled()) {
-    nsView* view = nsView::GetViewFor(aWidget);
-    if (view && view->ForcedRepaint()) {
-      ProcessPendingUpdates();
-      
-      
-      view = nsView::GetViewFor(aWidget);
-      if (view) {
-        view->SetForcedRepaint(false);
-      }
-    }
   }
 
   nsCOMPtr<nsIPresShell> shell = mPresShell;
