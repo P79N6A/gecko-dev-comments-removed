@@ -6162,13 +6162,13 @@ PresShell::GetRootWindow()
 
   
   
-  nsCOMPtr<nsIPresShell> parent = GetParentPresShell();
+  nsCOMPtr<nsIPresShell> parent = GetParentPresShellForEventHandling();
   NS_ENSURE_TRUE(parent, nullptr);
   return parent->GetRootWindow();
 }
 
 already_AddRefed<nsIPresShell>
-PresShell::GetParentPresShell()
+PresShell::GetParentPresShellForEventHandling()
 {
   NS_ENSURE_TRUE(mPresContext, nullptr);
 
@@ -6200,7 +6200,7 @@ PresShell::RetargetEventToParent(WidgetGUIEvent* aEvent,
   
 
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
-  nsCOMPtr<nsIPresShell> parentPresShell = GetParentPresShell();
+  nsCOMPtr<nsIPresShell> parentPresShell = GetParentPresShellForEventHandling();
   NS_ENSURE_TRUE(parentPresShell, NS_ERROR_FAILURE);
 
   
