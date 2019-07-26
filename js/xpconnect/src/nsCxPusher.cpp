@@ -137,6 +137,14 @@ nsCxPusher::DoPush(JSContext* cx)
     MOZ_CRASH();
   }
 
+  
+  
+  
+  if (cx) {
+    mAutoRequest.construct(cx);
+    xpc_UnmarkGrayContext(cx);
+  }
+
   mPushedSomething = true;
 #ifdef DEBUG
   mPushedContext = cx;
@@ -164,6 +172,9 @@ nsCxPusher::Pop()
     return;
   }
   MOZ_ASSERT(nsXPConnect::GetXPConnect());
+
+  
+  mAutoRequest.destroyIfConstructed();
 
   
   

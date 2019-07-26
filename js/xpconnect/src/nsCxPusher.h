@@ -41,6 +41,7 @@ private:
   
   void DoPush(JSContext* cx);
 
+  mozilla::Maybe<JSAutoRequest> mAutoRequest;
   nsCOMPtr<nsIScriptContext> mScx;
   bool mScriptIsRunning;
   bool mPushedSomething;
