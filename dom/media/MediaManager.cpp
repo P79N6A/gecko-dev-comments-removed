@@ -129,8 +129,8 @@ static nsresult ValidateTrackConstraints(
     nsString *aOutUnknownConstraint)
 {
   
-  dom::RootedDictionary<MediaTrackConstraints> track(aCx);
   JS::Rooted<JS::Value> rawval(aCx, JS::ObjectValue(*aRaw));
+  dom::RootedDictionary<MediaTrackConstraints> track(aCx);
   bool success = track.Init(aCx, rawval);
   NS_ENSURE_TRUE(success, NS_ERROR_FAILURE);
 
