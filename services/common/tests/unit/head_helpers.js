@@ -46,18 +46,7 @@ function do_check_throws(aFunc, aResult, aStack) {
 
 let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
 
-
-
-
-
-
-
-function get_server_port() {
-  return 8080;
-}
-
-function httpd_setup (handlers, port) {
-  let port   = port || 8080;
+function httpd_setup (handlers, port=-1) {
   let server = new HttpServer();
   for (let path in handlers) {
     server.registerPathHandler(path, handlers[path]);
@@ -72,6 +61,10 @@ function httpd_setup (handlers, port) {
     _("==========================================");
     do_throw(ex);
   }
+
+  
+  let i = server.identity;
+  server.baseURI = i.primaryScheme + "://" + i.primaryHost + ":" + i.primaryPort;
 
   return server;
 }
