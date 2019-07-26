@@ -6,7 +6,7 @@
 import os
 from setuptools import setup
 
-PACKAGE_VERSION = '0.0'
+PACKAGE_VERSION = '0.1'
 
 
 try:
@@ -17,7 +17,7 @@ except (OSError, IOError):
 
 setup(name='mozfile',
       version=PACKAGE_VERSION,
-      description="common file utilities for Mozilla python usage",
+      description="Library of file utilities for use in Mozilla testing",
       long_description=description,
       classifiers=[], 
       keywords='mozilla',

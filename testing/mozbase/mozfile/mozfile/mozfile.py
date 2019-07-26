@@ -2,12 +2,6 @@
 
 
 
-"""
-mozfile.py:
-Cointains file functions for mozbase:
-https://bugzilla.mozilla.org/show_bug.cgi?id=774916
-"""
-
 import os
 import tarfile
 import zipfile
@@ -89,9 +83,11 @@ def extract(src, dest=None):
 
 
 def rmtree(dir):
-    """This is a replacement for shutil.rmtree that works better under
-    windows. Thanks to Bear at the OSAF for the code."""
+    """Removes the specified directory tree
 
+    This is a replacement for shutil.rmtree that works better under
+    windows."""
+    
     if not os.path.exists(dir):
         return
     if os.path.islink(dir):
@@ -106,10 +102,12 @@ def rmtree(dir):
     
     
     
-    try:
-        dir = unicode(dir, "utf-8")
-    except:
-        print("rmtree: decoding from UTF-8 failed")
+    if not isinstance(dir, unicode):
+        try:
+            dir = unicode(dir, "utf-8")
+        except UnicodeDecodeError:
+            if os.environ.get('DEBUG') == '1':
+                print("rmtree: decoding from UTF-8 failed for directory: %s" %s)
 
     for name in os.listdir(dir):
         full_name = os.path.join(dir, name)
