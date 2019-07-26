@@ -260,15 +260,6 @@ XPCCallContext::GetCalleeMethodIndex(uint16_t *aCalleeMethodIndex)
 
 
 NS_IMETHODIMP
-XPCCallContext::GetCalleeWrapper(nsIXPConnectWrappedNative * *aCalleeWrapper)
-{
-    nsCOMPtr<nsIXPConnectWrappedNative> rval = mWrapper;
-    rval.forget(aCalleeWrapper);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 XPCCallContext::GetCalleeInterface(nsIInterfaceInfo * *aCalleeInterface)
 {
     nsCOMPtr<nsIInterfaceInfo> rval = mInterface->GetInterfaceInfo();
