@@ -74,6 +74,11 @@ public:
     
 
 
+    static void ClipToRegionSnapped(mozilla::gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
+
+    
+
+
     static void PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion);
 
     

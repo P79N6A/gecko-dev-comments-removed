@@ -91,6 +91,8 @@ private:
   
   
   size_t mAllocBytes;
+
+  friend class ISurfaceAllocator;
 };
 
 } 

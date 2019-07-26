@@ -6,15 +6,13 @@
 #define SHAREDRGBIMAGE_H_
 
 #include "ImageContainer.h"
+#include "ISurfaceAllocator.h"
 
 namespace mozilla {
 namespace ipc {
 class Shmem;
 }
 namespace layers {
-
-class ImageContainerChild;
-class SharedImage;
 
 
 
@@ -28,10 +26,10 @@ public:
     gfxImageFormat mImageFormat;
   };
 
-  SharedRGBImage(ImageContainerChild *aImageContainerChild);
+  SharedRGBImage(ISurfaceAllocator *aAllocator);
   ~SharedRGBImage();
 
-  static already_AddRefed<SharedRGBImage> Create(ImageContainer *aImageContainer,
+  static already_AddRefed<SharedRGBImage> Create(ImageContainer* aImageContainer,
                                                  nsIntSize aSize,
                                                  gfxImageFormat aImageFormat);
   uint8_t *GetBuffer();
@@ -42,14 +40,33 @@ public:
   static uint8_t BytesPerPixel(gfxImageFormat aImageFormat);
   already_AddRefed<gfxASurface> GetAsSurface();
 
-  SharedImage *ToSharedImage();
+  
+
+
+
+
+  bool ToSurfaceDescriptor(SurfaceDescriptor& aResult);
+
+  
+
+
+
+
+
+  bool DropToSurfaceDescriptor(SurfaceDescriptor& aResult);
+
+  
+
+
+
+  static SharedRGBImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
 
 private:
   bool AllocateBuffer(nsIntSize aSize, gfxImageFormat aImageFormat);
 
   gfxIntSize mSize;
   gfxImageFormat mImageFormat;
-  ImageContainerChild *mImageContainerChild;
+  ISurfaceAllocator* mSurfaceAllocator;
 
   bool mAllocated;
   ipc::Shmem *mShmem;

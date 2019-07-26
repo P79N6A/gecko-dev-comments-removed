@@ -8,6 +8,7 @@
 
 #include "mozilla/DebugOnly.h"
 
+#include "mozilla/layers/LayersTypes.h"
 #include "gfxTypes.h"
 #include "gfxASurface.h"
 #include "nsRegion.h"
@@ -21,26 +22,9 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsStyleAnimation.h"
-#include "LayersTypes.h"
 #include "FrameMetrics.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/TimeStamp.h"
-
-#if defined(DEBUG) || defined(PR_LOGGING)
-#  include <stdio.h>            
-#  include "prlog.h"
-#  ifndef MOZ_LAYERS_HAVE_LOG
-#    define MOZ_LAYERS_HAVE_LOG
-#  endif
-#  define MOZ_LAYERS_LOG(_args)                             \
-  PR_LOG(LayerManager::GetLog(), PR_LOG_DEBUG, _args)
-#  define MOZ_LAYERS_LOG_IF_SHADOWABLE(layer, _args)         \
-  do { if (layer->AsShadowableLayer()) { PR_LOG(LayerManager::GetLog(), PR_LOG_DEBUG, _args); } } while (0)
-#else
-struct PRLogModuleInfo;
-#  define MOZ_LAYERS_LOG(_args)
-#  define MOZ_LAYERS_LOG_IF_SHADOWABLE(layer, _args)
-#endif  
 
 class gfxContext;
 class nsPaintEvent;
@@ -80,6 +64,12 @@ class ShadowableLayer;
 class ShadowLayerForwarder;
 class ShadowLayerManager;
 class SpecificLayerAttributes;
+class SurfaceDescriptor;
+class Compositor;
+class LayerComposite;
+struct TextureIdentifier;
+struct TextureFactoryIdentifier;
+struct EffectMask;
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
   virtual const char* Name() const { return n; }            \
@@ -264,7 +254,7 @@ public:
   virtual bool HasShadowManagerInternal() const { return false; }
   bool HasShadowManager() const { return HasShadowManagerInternal(); }
 
-  bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
+  bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; }
 
   
 
@@ -354,7 +344,7 @@ public:
 
 
   static already_AddRefed<ImageContainer> CreateImageContainer();
-  
+
   
 
 
@@ -371,7 +361,7 @@ public:
 
 
   virtual LayersBackend GetBackendType() = 0;
- 
+
   
 
 
@@ -379,7 +369,7 @@ public:
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
                          gfxASurface::gfxImageFormat imageFormat);
- 
+
   
 
 
@@ -398,6 +388,12 @@ public:
                      mozilla::gfx::SurfaceFormat aFormat);
 
   virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return true; }
+
+  
+
+
+
+  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier();
 
   
 
@@ -422,8 +418,8 @@ public:
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { 
-    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+  {
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey))));
     return d;
   }
   
@@ -438,7 +434,7 @@ public:
 
 
   LayerUserData* GetUserData(void* aKey)
-  { 
+  {
     return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
   }
 
@@ -589,7 +585,7 @@ struct AnimData {
 
 
 class THEBES_API Layer {
-  NS_INLINE_DECL_REFCOUNTING(Layer)  
+  NS_INLINE_DECL_REFCOUNTING(Layer)
 
 public:
   
@@ -774,7 +770,7 @@ public:
 
   void SetBaseTransform(const gfx3DMatrix& aMatrix)
   {
-    NS_ASSERTION(!aMatrix.IsSingular(), 
+    NS_ASSERTION(!aMatrix.IsSingular(),
                  "Shouldn't be trying to draw with a singular matrix!");
     mPendingTransform = nullptr;
     if (mTransform == aMatrix) {
@@ -938,15 +934,15 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { 
+  {
     mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
   }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { 
-    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+  {
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey))));
     return d;
   }
   
@@ -961,7 +957,7 @@ public:
 
 
   LayerUserData* GetUserData(void* aKey)
-  { 
+  {
     return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
   }
 
@@ -1013,6 +1009,12 @@ public:
   virtual ShadowableLayer* AsShadowableLayer() { return nullptr; }
 
   
+
+
+
+  virtual LayerComposite* AsLayerComposite() { return nullptr; }
+
+  
   
   
   const nsIntRect* GetEffectiveClipRect();
@@ -1044,7 +1046,7 @@ public:
 
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
-    
+
   
 
 
@@ -1132,6 +1134,8 @@ public:
   void SetDebugColorIndex(uint32_t aIndex) { mDebugColorIndex = aIndex; }
   uint32_t GetDebugColorIndex() { return mDebugColorIndex; }
 #endif
+
+  virtual LayerRenderState GetRenderState() { return LayerRenderState(); }
 
 protected:
   Layer(LayerManager* aManager, void* aImplData);
@@ -1405,7 +1409,7 @@ public:
   }
 
   void SetInheritedScale(float aXScale, float aYScale)
-  { 
+  {
     if (mInheritedXScale == aXScale && mInheritedYScale == aYScale) {
       return;
     }
@@ -1625,14 +1629,14 @@ public:
 
 
 
-  bool IsDirty() 
-  { 
+  bool IsDirty()
+  {
     
     
     if (!mManager || !mManager->IsWidgetLayerManager()) {
       return true;
     }
-    return mDirty; 
+    return mDirty;
   }
 
   
@@ -1785,6 +1789,7 @@ public:
   {
     MOZ_ASSERT(!mFirstChild && !mLastChild);
     MOZ_ASSERT(!aLayer->GetParent());
+    MOZ_ASSERT(aLayer->Manager() == Manager());
 
     mFirstChild = mLastChild = aLayer;
     aLayer->SetParent(this);
@@ -1830,6 +1835,7 @@ protected:
 #ifdef MOZ_DUMP_PAINTING
 void WriteSnapshotToDumpFile(Layer* aLayer, gfxASurface* aSurf);
 void WriteSnapshotToDumpFile(LayerManager* aManager, gfxASurface* aSurf);
+void WriteSnapshotToDumpFile(Compositor* aCompositor, gfxASurface* aSurf);
 #endif
 
 }

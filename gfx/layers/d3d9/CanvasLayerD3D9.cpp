@@ -1,13 +1,11 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 
 #include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/PLayers.h"
-#include "mozilla/layers/ShadowLayers.h"
-#include "ShadowBufferD3D9.h"
 
 #include "gfxImageSurface.h"
 #include "gfxWindowsSurface.h"
@@ -83,7 +81,7 @@ CanvasLayerD3D9::UpdateSurface()
 
     SharedSurface_Basic* shareSurf = SharedSurface_Basic::Cast(surf);
 
-    // WebGL reads entire surface.
+    
     LockTextureRectD3D9 textureLock(mTexture);
     if (!textureLock.HasLock()) {
       NS_WARNING("Failed to lock CanvasLayer texture.");
@@ -93,7 +91,7 @@ CanvasLayerD3D9::UpdateSurface()
     D3DLOCKED_RECT rect = textureLock.GetLockRect();
 
     gfxImageSurface* frameData = shareSurf->GetData();
-    // Scope for gfxContext, so it's destroyed early.
+    
     {
       nsRefPtr<gfxImageSurface> mapSurf =
           new gfxImageSurface((uint8_t*)rect.pBits,
@@ -180,10 +178,10 @@ CanvasLayerD3D9::RenderLayer()
   if (!mTexture)
     return;
 
-  /*
-   * We flip the Y axis here, note we can only do this because we are in 
-   * CULL_NONE mode!
-   */
+  
+
+
+
 
   ShaderConstantRect quad(0, 0, mBounds.width, mBounds.height);
   if (mNeedsYFlip) {
@@ -225,7 +223,7 @@ void
 CanvasLayerD3D9::CleanResources()
 {
   if (mD3DManager->deviceManager()->HasDynamicTextures()) {
-    // In this case we have a texture in POOL_DEFAULT
+    
     mTexture = nullptr;
   }
 }
@@ -246,8 +244,8 @@ CanvasLayerD3D9::CreateTexture()
                                  D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
                                  getter_AddRefs(mTexture), NULL);
   } else {
-    // D3DPOOL_MANAGED is fine here since we require Dynamic Textures for D3D9Ex
-    // devices.
+    
+    
     hr = device()->CreateTexture(mBounds.width, mBounds.height, 1, 0,
                                  D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
                                  getter_AddRefs(mTexture), NULL);
@@ -259,97 +257,5 @@ CanvasLayerD3D9::CreateTexture()
   }
 }
 
-ShadowCanvasLayerD3D9::ShadowCanvasLayerD3D9(LayerManagerD3D9* aManager)
-  : ShadowCanvasLayer(aManager, nullptr)
-  , LayerD3D9(aManager)
-  , mNeedsYFlip(false)
-{
-  mImplData = static_cast<LayerD3D9*>(this);
-}
- 
-ShadowCanvasLayerD3D9::~ShadowCanvasLayerD3D9()
-{}
-
-void
-ShadowCanvasLayerD3D9::Initialize(const Data& aData)
-{
-  NS_RUNTIMEABORT("Non-shadow layer API unexpectedly used for shadow layer");
-}
-
-void
-ShadowCanvasLayerD3D9::Init(bool needYFlip)
-{
-  if (!mBuffer) {
-    mBuffer = new ShadowBufferD3D9(this);
-  }
-
-  mNeedsYFlip = needYFlip;
-}
-
-void
-ShadowCanvasLayerD3D9::Swap(const CanvasSurface& aNewFront,
-                            bool needYFlip,
-                            CanvasSurface* aNewBack)
-{
-  NS_ASSERTION(aNewFront.type() == CanvasSurface::TSurfaceDescriptor, 
-    "ShadowCanvasLayerD3D9::Swap expected CanvasSurface surface");
-
-  AutoOpenSurface surf(OPEN_READ_ONLY, aNewFront);
-  if (!mBuffer) {
-    Init(needYFlip);
-  }
-  mBuffer->Upload(surf.Get(), GetVisibleRegion().GetBounds());
-
-  *aNewBack = aNewFront;
-}
-
-void
-ShadowCanvasLayerD3D9::DestroyFrontBuffer()
-{
-  Destroy();
-}
-
-void
-ShadowCanvasLayerD3D9::Disconnect()
-{
-  Destroy();
-}
-
-void
-ShadowCanvasLayerD3D9::Destroy()
-{
-  mBuffer = nullptr;
-}
-
-void
-ShadowCanvasLayerD3D9::CleanResources()
-{
-  Destroy();
-}
-
-void
-ShadowCanvasLayerD3D9::LayerManagerDestroyed()
-{
-  mD3DManager->deviceManager()->mLayersWithResources.RemoveElement(this);
-  mD3DManager = nullptr;
-}
-
-Layer*
-ShadowCanvasLayerD3D9::GetLayer()
-{
-  return this;
-}
-
-void
-ShadowCanvasLayerD3D9::RenderLayer()
-{
-  if (!mBuffer || mD3DManager->CompositingDisabled()) {
-    return;
-  }
-
-  mBuffer->RenderTo(mD3DManager, GetEffectiveVisibleRegion());
-}
-
-
-} /* namespace layers */
-} /* namespace mozilla */
+} 
+} 

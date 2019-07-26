@@ -18,6 +18,8 @@ namespace ipc {
 }
 namespace layers {
 
+class Image;
+
 
 
 

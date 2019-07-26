@@ -8,6 +8,8 @@
 
 #include "mozilla/layers/PImageBridgeChild.h"
 #include "nsAutoPtr.h"
+#include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/LayersTypes.h"
 
 class gfxSharedImageSurface;
 
@@ -18,10 +20,15 @@ class Thread;
 namespace mozilla {
 namespace layers {
 
-class ImageContainerChild;
+class ImageClient;
+class ImageContainer;
 class ImageBridgeParent;
-class SharedImage;
+class SurfaceDescriptor;
+class CompositableClient;
+class CompositableTransaction;
+class ShadowableLayer;
 class Image;
+
 
 
 
@@ -71,7 +78,18 @@ bool InImageBridgeChildThread();
 
 
 
+
+
+
+
+
+
+
+
+
+
 class ImageBridgeChild : public PImageBridgeChild
+                       , public CompositableForwarder
 {
   friend class ImageContainer;
 public:
@@ -109,7 +127,7 @@ public:
 
 
   static void DestroyBridge();
-  
+
   
 
 
@@ -129,14 +147,17 @@ public:
 
 
   void ConnectAsync(ImageBridgeParent* aParent);
-    
+
+  void BeginTransaction();
+  void EndTransaction();
+
   
 
 
 
 
   base::Thread * GetThread() const;
-  
+
   
 
 
@@ -144,24 +165,14 @@ public:
 
   MessageLoop * GetMessageLoop() const;
 
-  
-  PImageContainerChild* AllocPImageContainer(uint64_t*);
-  
-  bool DeallocPImageContainer(PImageContainerChild* aImgContainerChild);
+  PCompositableChild* AllocPCompositable(const CompositableType& aType, uint64_t* aID) MOZ_OVERRIDE;
+  bool DeallocPCompositable(PCompositableChild* aActor) MOZ_OVERRIDE;
 
   
 
 
 
-  ~ImageBridgeChild() {};
-
-  
-
-
-
-
-
-  already_AddRefed<ImageContainerChild> CreateImageContainerChildNow();
+  ~ImageBridgeChild();
 
   virtual PGrallocBufferChild*
   AllocPGrallocBuffer(const gfxIntSize&, const uint32_t&, const uint32_t&,
@@ -208,36 +219,99 @@ public:
   bool
   DeallocSurfaceDescriptorGrallocNow(const SurfaceDescriptor& aBuffer);
 
+  TemporaryRef<ImageClient> CreateImageClient(CompositableType aType);
+  TemporaryRef<ImageClient> CreateImageClientNow(CompositableType aType);
+
+  static void DispatchReleaseImageClient(ImageClient* aClient);
+  static void DispatchImageClientUpdate(ImageClient* aClient, ImageContainer* aContainer);
+
+
+  
+
+  virtual void Connect(CompositableClient* aCompositable) MOZ_OVERRIDE;
+
+  
+
+
+
+  virtual void UpdateTexture(TextureClient* aTexture,
+                             const SurfaceDescriptor& aImage) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void UpdatePictureRect(CompositableClient* aCompositable,
+                                 const nsIntRect& aRect) MOZ_OVERRIDE;
+
+
+  
+  
+  virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
+                                   TextureClient* aBuffer) MOZ_OVERRIDE {
+    NS_RUNTIMEABORT("should not be called");
+  }
+  virtual void CreatedDoubleBuffer(CompositableClient* aCompositable,
+                                   TextureClient* aFront,
+                                   TextureClient* aBack) MOZ_OVERRIDE {
+    NS_RUNTIMEABORT("should not be called");
+  }
+  virtual void DestroyThebesBuffer(CompositableClient* aCompositable) MOZ_OVERRIDE {
+    NS_RUNTIMEABORT("should not be called");
+  }
+  virtual void UpdateTextureRegion(CompositableClient* aCompositable,
+                                   const ThebesBufferData& aThebesBufferData,
+                                   const nsIntRegion& aUpdatedRegion) MOZ_OVERRIDE {
+    NS_RUNTIMEABORT("should not be called");
+  }
+  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) MOZ_OVERRIDE
+  {
+    NS_RUNTIMEABORT("should not be called");
+  }
+
+
+  
+
+  
+
+
+
+
+
+  virtual bool AllocUnsafeShmem(size_t aSize,
+                                ipc::SharedMemory::SharedMemoryType aType,
+                                ipc::Shmem* aShmem) MOZ_OVERRIDE;
+  
+
+
+
+
+
+  virtual bool AllocShmem(size_t aSize,
+                          ipc::SharedMemory::SharedMemoryType aType,
+                          ipc::Shmem* aShmem) MOZ_OVERRIDE;
+  
+
+
+
+
+
+  virtual void DeallocShmem(ipc::Shmem& aShmem);
+
 protected:
-  
-  ImageBridgeChild() {};
+  ImageBridgeChild();
+  bool DispatchAllocShmemInternal(size_t aSize,
+                                  SharedMemory::SharedMemoryType aType,
+                                  Shmem* aShmem,
+                                  bool aUnsafe);
 
-  
+  CompositableTransaction* mTxn;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  already_AddRefed<ImageContainerChild> CreateImageContainerChild();
-
-  
+  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
+                                                  gfxASurface::gfxContentType aContent,
+                                                  MaybeMagicGrallocBufferHandle* aHandle) MOZ_OVERRIDE;
 };
 
 } 
 } 
 
-
 #endif
-

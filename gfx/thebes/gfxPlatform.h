@@ -442,6 +442,16 @@ public:
     
 
 
+
+    static bool GetPrefLayersOffMainThreadCompositionEnabled();
+    static bool GetPrefLayersAccelerationForceEnabled();
+    static bool GetPrefLayersAccelerationDisabled();
+    static bool GetPrefLayersPreferOpenGL();
+    static bool GetPrefLayersPreferD3D9();
+
+    
+
+
     static eCMSMode GetCMSMode();
 
     

@@ -33,7 +33,7 @@ public:
 
 
 
-  void SetContainer(ImageContainer* aContainer);
+  virtual void SetContainer(ImageContainer* aContainer);
 
   
 

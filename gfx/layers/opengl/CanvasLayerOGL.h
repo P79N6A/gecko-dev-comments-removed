@@ -101,53 +101,6 @@ protected:
   }
 };
 
-
-
-
-class ShadowCanvasLayerOGL : public ShadowCanvasLayer,
-                             public LayerOGL
-{
-  typedef gl::TextureImage TextureImage;
-
-public:
-  ShadowCanvasLayerOGL(LayerManagerOGL* aManager);
-  virtual ~ShadowCanvasLayerOGL();
-
-  
-  virtual void Initialize(const Data& aData);
-  virtual void Init(const CanvasSurface& aNewFront, bool needYFlip);
-
-  
-  virtual void Updated(const nsIntRect&) {}
-
-  
-  virtual void Swap(const CanvasSurface& aNewFront,
-                    bool needYFlip,
-                    CanvasSurface* aNewBack);
-
-  virtual void DestroyFrontBuffer();
-
-  virtual void Disconnect();
-
-  
-  void Destroy();
-  Layer* GetLayer();
-  virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
-  virtual void RenderLayer(int aPreviousFrameBuffer,
-                           const nsIntPoint& aOffset);
-  virtual void CleanupResources();
-
-private:
-  nsRefPtr<TextureImage> mTexImage;
-
-  bool mNeedsYFlip;
-  SurfaceDescriptor mFrontBufferDescriptor;
-  GLuint mUploadTexture;
-  GLuint mCurTexture;
-  EGLImage mGrallocImage;
-  gl::ShaderProgramType mShaderType;
-};
-
 } 
 } 
 #endif 

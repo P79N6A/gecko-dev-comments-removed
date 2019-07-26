@@ -1,0 +1,42 @@
+
+
+
+
+
+#include "ColorLayerComposite.h"
+#include "mozilla/layers/Effects.h"
+#include "gfx2DGlue.h"
+
+namespace mozilla {
+namespace layers {
+
+void
+ColorLayerComposite::RenderLayer(const nsIntPoint& aOffset,
+                                 const nsIntRect& aClipRect)
+{
+  EffectChain effects;
+  gfxRGBA color(GetColor());
+  effects.mPrimaryEffect = new EffectSolidColor(gfx::Color(color.r,
+                                                           color.g,
+                                                           color.b,
+                                                           color.a));
+  nsIntRect visibleRect = GetEffectiveVisibleRegion().GetBounds();
+
+  LayerManagerComposite::AddMaskEffect(GetMaskLayer(), effects);
+
+  gfx::Rect rect(visibleRect.x, visibleRect.y,
+                 visibleRect.width, visibleRect.height);
+  gfx::Rect clipRect(aClipRect.x, aClipRect.y,
+                     aClipRect.width, aClipRect.height);
+
+  float opacity = GetEffectiveOpacity();
+
+  gfx::Matrix4x4 transform;
+  ToMatrix4x4(GetEffectiveTransform(), transform);
+
+  mCompositor->DrawQuad(rect, clipRect, effects, opacity,
+                        transform, gfx::Point(aOffset.x, aOffset.y));
+}
+
+} 
+} 

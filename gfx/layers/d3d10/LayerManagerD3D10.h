@@ -6,8 +6,6 @@
 #ifndef GFX_LAYERMANAGERD3D10_H
 #define GFX_LAYERMANAGERD3D10_H
 
-#include "mozilla/layers/PLayers.h"
-#include "mozilla/layers/ShadowLayers.h"
 #include "Layers.h"
 
 #include <windows.h>
@@ -51,9 +49,7 @@ extern cairo_user_data_key_t gKeyD3D10Texture;
 
 
 
-
-class THEBES_API LayerManagerD3D10 : public ShadowLayerManager,
-                                     public ShadowLayerForwarder {
+class THEBES_API LayerManagerD3D10 : public LayerManager {
 public:
   LayerManagerD3D10(nsIWidget *aWidget);
   virtual ~LayerManagerD3D10();
@@ -72,12 +68,6 @@ public:
 
 
   virtual void Destroy();
-
-  virtual ShadowLayerForwarder* AsShadowForwarder()
-  { return this; }
-
-  virtual ShadowLayerManager* AsShadowManager()
-  { return this; }
 
   virtual void SetRoot(Layer *aLayer);
 
@@ -113,23 +103,10 @@ public:
   }
 
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
-  virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
-
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
-  virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
-
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
-  virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer()
-  { return nullptr; }
-
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
-  virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer()
-  { return nullptr; }
-
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
-  virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer()
-  { return nullptr; }
-
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
 
   virtual already_AddRefed<gfxASurface>
@@ -204,28 +181,6 @@ private:
 
 
   nsRefPtr<gfxContext> mTarget;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsRefPtr<ID3D10Texture2D> mBackBuffer;
-  nsRefPtr<ID3D10Texture2D> mRemoteFrontBuffer;
-  
-
-
-
-  nsRefPtr<DummyRoot> mRootForShadowTree;
 
   
 
@@ -322,45 +277,6 @@ protected:
   const static uint8_t SHADER_SOLID = 0x28;
 
   LayerManagerD3D10 *mD3DManager;
-};
-
-
-
-
-
-
-
-
-
-
-class WindowLayer : public ThebesLayer, public ShadowableLayer {
-public:
-  WindowLayer(LayerManagerD3D10* aManager);
-  virtual ~WindowLayer();
-
-  void InvalidateRegion(const nsIntRegion&) {}
-  Layer* AsLayer() { return this; }
-
-  void SetShadow(PLayerChild* aChild) { mShadow = aChild; }
-};
-
-
-
-
-
-
-class DummyRoot : public ContainerLayer, public ShadowableLayer {
-public:
-  DummyRoot(LayerManagerD3D10* aManager);
-  virtual ~DummyRoot();
-
-  void ComputeEffectiveTransforms(const gfx3DMatrix&) {}
-  void InsertAfter(Layer*, Layer*);
-  void RemoveChild(Layer*);
-  void RepositionChild(Layer*, Layer*);
-  Layer* AsLayer() { return this; }
-
-  void SetShadow(PLayerChild* aChild) { mShadow = aChild; }
 };
 
 } 

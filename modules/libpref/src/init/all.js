@@ -3950,6 +3950,10 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
+pref("layers.offmainthreadcomposition.enabled", false);
+
+
+pref("layers.offmainthreadcomposition.testing.enabled", false);
 
 pref("layers.offmainthreadcomposition.animate-opacity", false);
 pref("layers.offmainthreadcomposition.animate-transform", false);

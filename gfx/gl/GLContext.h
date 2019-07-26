@@ -169,10 +169,10 @@ public:
 
     bool MakeCurrent(bool aForce = false) {
 #ifdef DEBUG
-        PR_SetThreadPrivate(sCurrentGLContextTLS, this);
+    PR_SetThreadPrivate(sCurrentGLContextTLS, this);
 
-	
-	
+    
+    
 #if 0
         
         
@@ -355,6 +355,11 @@ public:
 
     virtual bool BindExternalBuffer(GLuint texture, void* buffer) { return false; }
     virtual bool UnbindExternalBuffer(GLuint texture) { return false; }
+
+#ifdef MOZ_WIDGET_GONK
+    virtual EGLImage CreateEGLImageForNativeBuffer(void* buffer) = 0;
+    virtual void DestroyEGLImage(EGLImage image) = 0;
+#endif
 
     virtual already_AddRefed<TextureImage>
     CreateDirectTextureImage(android::GraphicBuffer* aBuffer, GLenum aWrapMode)
@@ -1355,14 +1360,6 @@ protected:
 
     void InitExtensions();
 
-    virtual already_AddRefed<TextureImage>
-    CreateBasicTextureImage(GLuint aTexture,
-                            const nsIntSize& aSize,
-                            GLenum aWrapMode,
-                            TextureImage::ContentType aContentType,
-                            GLContext* aContext,
-                            TextureImage::Flags aFlags = TextureImage::NoFlags);
-
     bool IsOffscreenSizeAllowed(const gfxIntSize& aSize) const {
         int32_t biggerDimension = std::max(aSize.width, aSize.height);
         int32_t maxAllowed = std::min(mMaxRenderbufferSize, mMaxTextureSize);
@@ -2193,7 +2190,6 @@ public:
             height = -1;
             border = -1;
         }
-
         raw_fTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
     }
 

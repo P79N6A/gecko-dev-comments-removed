@@ -9,7 +9,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "gfxASurface.h" 
-#include "LayersTypes.h" 
+#include "mozilla/layers/LayersTypes.h" 
 #include "mozilla/TimeStamp.h"
 #include "ImageTypes.h"
 #include "nsTArray.h"
@@ -36,10 +36,10 @@ class CrossProcessMutex;
 namespace ipc {
 class Shmem;
 }
-    
+
 namespace layers {
 
-class ImageContainerChild;
+class ImageClient;
 class SharedPlanarYCbCrImage;
 
 struct ImageBackendData
@@ -565,7 +565,7 @@ protected:
   
   
   
-  nsRefPtr<ImageContainerChild> mImageContainerChild;
+  ImageClient* mImageClient;
 };
 
 class AutoLockImage
@@ -879,7 +879,6 @@ public:
   gfxIntSize mSize;
   RemoteImageData::Format mFormat;
 };
-
 
 } 
 } 

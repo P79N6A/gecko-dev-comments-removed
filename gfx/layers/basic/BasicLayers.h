@@ -28,7 +28,7 @@ class ShadowCanvasLayer;
 class ShadowColorLayer;
 class ReadbackProcessor;
 class ImageFactory;
-class PaintContext;
+class PaintLayerContext;
 
 
 
@@ -39,7 +39,7 @@ class PaintContext;
 
 
 class THEBES_API BasicLayerManager :
-    public ShadowLayerManager
+    public LayerManager
 {
 public:
   
@@ -107,19 +107,6 @@ public:
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
   virtual ImageFactory *GetImageFactory();
 
-  virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer()
-  { return nullptr; }
-  virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer()
-  { return nullptr; }
-  virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer()
-  { return nullptr; }
-  virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer()
-  { return nullptr; }
-  virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer()
-  { return nullptr; }
-  virtual already_AddRefed<ShadowRefLayer> CreateShadowRefLayer()
-  { return nullptr; }
-
   virtual LayersBackend GetBackendType() { return LAYERS_BASIC; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Basic"); }
 
@@ -165,11 +152,11 @@ protected:
   
   
   
-  void PaintSelfOrChildren(PaintContext& aPaintContext, gfxContext* aGroupTarget);
+  void PaintSelfOrChildren(PaintLayerContext& aPaintContext, gfxContext* aGroupTarget);
 
   
   
-  void FlushGroup(PaintContext& aPaintContext, bool aNeedsClipToVisibleRegion);
+  void FlushGroup(PaintLayerContext& aPaintContext, bool aNeedsClipToVisibleRegion);
 
   
   void PaintLayer(gfxContext* aTarget,
@@ -216,7 +203,6 @@ protected:
   bool mTransactionIncomplete;
   bool mCompositorMightResample;
 };
- 
 
 class BasicShadowLayerManager : public BasicLayerManager,
                                 public ShadowLayerForwarder
@@ -228,10 +214,6 @@ public:
   virtual ~BasicShadowLayerManager();
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
-  {
-    return this;
-  }
-  virtual ShadowLayerManager* AsShadowManager()
   {
     return this;
   }
@@ -255,12 +237,6 @@ public:
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
   virtual already_AddRefed<RefLayer> CreateRefLayer();
-  virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
-  virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
-  virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer();
-  virtual already_AddRefed<ShadowColorLayer> CreateShadowColorLayer();
-  virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer();
-  virtual already_AddRefed<ShadowRefLayer> CreateShadowRefLayer();
 
   ShadowableLayer* Hold(Layer* aLayer);
 
@@ -337,18 +313,6 @@ public:
     mShadow = aShadow;
   }
 
-  virtual void SetBackBuffer(const SurfaceDescriptor& aBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, |aBuffer| leaks");
-  }
-  
-  virtual void SetBackBufferYUVImage(const SurfaceDescriptor& aYBuffer,
-                                     const SurfaceDescriptor& aUBuffer,
-                                     const SurfaceDescriptor& aVBuffer)
-  {
-    NS_RUNTIMEABORT("if this default impl is called, the buffers leak");
-  }
-
   virtual void Disconnect()
   {
     
@@ -362,6 +326,12 @@ public:
   virtual BasicShadowableThebesLayer* AsThebes() { return nullptr; }
 };
 
+void
+PaintContext(gfxPattern* aPattern,
+             const nsIntRegion& aVisible,
+             float aOpacity,
+             gfxContext* aContext,
+             Layer* aMaskLayer);
 
 }
 }

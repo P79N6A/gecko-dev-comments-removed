@@ -322,7 +322,7 @@ protected:
 
     GLuint mTexture;
     TextureState mTextureState;
-    GLContext* mGLContext;
+    nsRefPtr<GLContext> mGLContext;
     nsRefPtr<gfxASurface> mUpdateSurface;
     nsIntRegion mUpdateRegion;
 
@@ -379,6 +379,18 @@ protected:
     nsIntRegion mUpdateRegion;
     TextureState mTextureState;
 };
+
+
+
+
+
+
+already_AddRefed<TextureImage>
+CreateBasicTextureImage(GLContext* aGL,
+                        const nsIntSize& aSize,
+                        TextureImage::ContentType aContentType,
+                        GLenum aWrapMode,
+                        TextureImage::Flags aFlags);
 
 } 
 } 

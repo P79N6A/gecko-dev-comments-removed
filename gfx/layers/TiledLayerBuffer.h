@@ -7,12 +7,12 @@
 
 #define TILEDLAYERBUFFER_TILE_SIZE 256
 
-
 #ifdef MOZ_ANDROID_OMTC
   
   
   #define FORCE_BASICTILEDTHEBESLAYER
 #endif
+
 
 
 
@@ -189,8 +189,6 @@ public:
 
 
   virtual void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* aTiledBuffer) = 0;
-
-  virtual void MemoryPressure() = 0;
 
   
 

@@ -21,7 +21,7 @@
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
-#include "LayersTypes.h"
+#include "mozilla/layers/LayersTypes.h"
 
 
 class   nsFontMetrics;
@@ -1156,15 +1156,9 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-
     virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
-
-
-
 
 
     virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;

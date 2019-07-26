@@ -67,7 +67,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
       !aMsg->ReadBytes(aIter, &data, nbytes)) {
     return false;
   }
-  
+
   int fds[nfds];
 
   for (size_t n = 0; n < nfds; ++n) {
@@ -232,6 +232,12 @@ ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext* aGL,
   return aGL->CreateDirectTextureImage(buffer.get(), aWrapMode);
 }
 
+ bool
+ShadowLayerManager::SupportsDirectTexturing()
+{
+  return true;
+}
+
  void
 ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {
@@ -257,7 +263,7 @@ GrallocBufferActor::Create(const gfxIntSize& aSize,
 }
 
 bool
-ShadowLayerManager::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
+ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
 {
   if (SurfaceDescriptor::TSurfaceDescriptorGralloc != aSurface->type()) {
     return false;
@@ -288,11 +294,19 @@ GrallocBufferActor::InitFromHandle(const MagicGrallocBufferHandle& aHandle)
   mGraphicBuffer = aHandle.mGraphicBuffer;
 }
 
+PGrallocBufferChild*
+ShadowLayerForwarder::AllocGrallocBuffer(const gfxIntSize& aSize,
+                                         gfxASurface::gfxContentType aContent,
+                                         MaybeMagicGrallocBufferHandle* aHandle)
+{
+  return mShadowManager->SendPGrallocBufferConstructor(aSize, aContent, aHandle);
+}
+
 bool
-ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
-                                          gfxASurface::gfxContentType aContent,
-                                          uint32_t aCaps,
-                                          SurfaceDescriptor* aBuffer)
+ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
+                                                  gfxASurface::gfxContentType aContent,
+                                                  uint32_t aCaps,
+                                                  SurfaceDescriptor* aBuffer)
 {
   
   
@@ -301,12 +315,11 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
   if (aSize.width < 64) {
     return false;
   }
-  PROFILER_LABEL("ShadowLayerForwarder", "PlatformAllocBuffer");
+  PROFILER_LABEL("ShadowLayerForwarder", "PlatformAllocSurfaceDescriptor");
   
   
   MaybeMagicGrallocBufferHandle handle;
-  PGrallocBufferChild* gc =
-    mShadowManager->SendPGrallocBufferConstructor(aSize, aContent, &handle);
+  PGrallocBufferChild* gc = AllocGrallocBuffer(aSize, aContent, &handle);
   if (handle.Tnull_t == handle.type()) {
     PGrallocBufferChild::Send__delete__(gc);
     return false;
@@ -420,10 +433,9 @@ ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor& aDescript
   }
 
   sp<GraphicBuffer> buffer = GrallocBufferActor::GetFrom(aDescriptor);
+  DebugOnly<status_t> status = buffer->unlock();
   
-  
-  
-  buffer->unlock();
+  MOZ_ASSERT(status == OK);
   return true;
 }
 

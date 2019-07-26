@@ -566,6 +566,8 @@ function BuildConditionSandbox(aURL) {
       gWindowUtils.layerManagerType != "Basic";
     sandbox.layersOpenGL =
       gWindowUtils.layerManagerType == "OpenGL";
+    sandbox.layersOMTC =
+      gWindowUtils.layerManagerRemote == true;
 
     
     sandbox.B2G = xr.widgetToolkit == "gonk";

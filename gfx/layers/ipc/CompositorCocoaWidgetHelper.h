@@ -14,13 +14,13 @@ namespace mozilla {
 namespace layers {
 
 class CompositorParent;
-class LayerManager;
+class LayerManagerComposite;
 
 namespace compositor {
 
 
 
-LayerManager* GetLayerManager(CompositorParent* aParent);
+LayerManagerComposite* GetLayerManager(CompositorParent* aParent);
 
 }
 }

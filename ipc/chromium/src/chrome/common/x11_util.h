@@ -19,11 +19,6 @@ typedef struct _XDisplay Display;
 namespace base {
 class Thread;
 }
-
-namespace gfx {
-class Size;
-}
-
 namespace x11_util {
 
 

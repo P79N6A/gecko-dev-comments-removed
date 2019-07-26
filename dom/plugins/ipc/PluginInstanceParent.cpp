@@ -919,7 +919,7 @@ PluginInstanceParent::DestroyBackground()
     unused << SendPPluginBackgroundDestroyerConstructor(pbd);
 }
 
-SurfaceDescriptor
+mozilla::plugins::SurfaceDescriptor
 PluginInstanceParent::BackgroundDescriptor()
 {
     NS_ABORT_IF_FALSE(mBackground, "Need a background here");
@@ -941,7 +941,7 @@ PluginInstanceParent::BackgroundDescriptor()
 
     
     
-    return SurfaceDescriptor();
+    return mozilla::plugins::SurfaceDescriptor();
 }
 
 ImageContainer*
