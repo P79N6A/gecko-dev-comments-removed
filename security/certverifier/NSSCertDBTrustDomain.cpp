@@ -72,13 +72,12 @@ NSSCertDBTrustDomain::FindPotentialIssuers(
 SECStatus
 NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                                    const CertPolicyId& policy,
-                                   const CERTCertificate* candidateCert,
+                                   const SECItem& candidateCertDER,
                                     TrustLevel* trustLevel)
 {
-  PR_ASSERT(candidateCert);
   PR_ASSERT(trustLevel);
 
-  if (!candidateCert || !trustLevel) {
+  if (!trustLevel) {
     PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
@@ -95,8 +94,22 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   
   
   
+  
+  ScopedCERTCertificate candidateCert(
+    CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                            const_cast<SECItem*>(&candidateCertDER), nullptr,
+                            false, true));
+  if (!candidateCert) {
+    return SECFailure;
+  }
+
+  
+  
+  
+  
+  
   CERTCertTrust trust;
-  if (CERT_GetCertTrust(candidateCert, &trust) == SECSuccess) {
+  if (CERT_GetCertTrust(candidateCert.get(), &trust) == SECSuccess) {
     PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, mCertDBTrustType);
 
     
@@ -122,7 +135,7 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
         return SECSuccess;
       }
 #ifndef MOZ_NO_EV_CERTS
-      if (CertIsAuthoritativeForEVPolicy(candidateCert, policy)) {
+      if (CertIsAuthoritativeForEVPolicy(candidateCert.get(), policy)) {
         *trustLevel = TrustLevel::TrustAnchor;
         return SECSuccess;
       }

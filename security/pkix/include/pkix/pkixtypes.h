@@ -95,7 +95,7 @@ public:
   
   virtual SECStatus GetCertTrust(EndEntityOrCA endEntityOrCA,
                                  const CertPolicyId& policy,
-                                 const CERTCertificate* candidateCert,
+                                 const SECItem& candidateCertDER,
                           TrustLevel* trustLevel) = 0;
 
   

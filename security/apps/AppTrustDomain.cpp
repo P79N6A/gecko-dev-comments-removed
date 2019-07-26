@@ -104,14 +104,13 @@ AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
 SECStatus
 AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                              const CertPolicyId& policy,
-                             const CERTCertificate* candidateCert,
+                             const SECItem& candidateCertDER,
                       TrustLevel* trustLevel)
 {
   MOZ_ASSERT(policy.IsAnyPolicy());
-  MOZ_ASSERT(candidateCert);
   MOZ_ASSERT(trustLevel);
   MOZ_ASSERT(mTrustedRoot);
-  if (!candidateCert || !trustLevel || !policy.IsAnyPolicy()) {
+  if (!trustLevel || !policy.IsAnyPolicy()) {
     PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
     return SECFailure;
   }
@@ -121,8 +120,20 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   }
 
   
+
+  
+  
+  
+  ScopedCERTCertificate candidateCert(
+    CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                            const_cast<SECItem*>(&candidateCertDER), nullptr,
+                            false, true));
+  if (!candidateCert) {
+    return SECFailure;
+  }
+
   CERTCertTrust trust;
-  if (CERT_GetCertTrust(candidateCert, &trust) == SECSuccess) {
+  if (CERT_GetCertTrust(candidateCert.get(), &trust) == SECSuccess) {
     PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, trustObjectSigning);
 
     
@@ -141,7 +152,7 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   }
 
   
-  if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert)) {
+  if (CERT_CompareCerts(mTrustedRoot.get(), candidateCert.get())) {
     *trustLevel = TrustLevel::TrustAnchor;
     return SECSuccess;
   }
