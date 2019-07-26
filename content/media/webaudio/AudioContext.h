@@ -4,14 +4,11 @@
 
 
 
-#pragma once
-
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "EnableWebAudioCheck.h"
-#include "nsAutoPtr.h"
 
 class JSContext;
 class nsIDOMWindow;
@@ -21,9 +18,6 @@ namespace mozilla {
 class ErrorResult;
 
 namespace dom {
-
-class AudioDestinationNode;
-class AudioBufferSourceNode;
 
 class AudioContext MOZ_FINAL : public nsISupports,
                                public nsWrapperCache,
@@ -48,16 +42,8 @@ public:
   static already_AddRefed<AudioContext>
   Constructor(nsISupports* aGlobal, ErrorResult& aRv);
 
-  AudioDestinationNode* Destination() const
-  {
-    return mDestination;
-  }
-
-  already_AddRefed<AudioBufferSourceNode> CreateBufferSource();
-
 private:
   nsCOMPtr<nsIDOMWindow> mWindow;
-  nsRefPtr<AudioDestinationNode> mDestination;
 };
 
 }

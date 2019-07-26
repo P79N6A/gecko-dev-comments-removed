@@ -4,8 +4,6 @@
 
 
 
-#pragma once
-
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
