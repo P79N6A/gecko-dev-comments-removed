@@ -242,18 +242,17 @@ ContainerRender(ContainerT* aContainer,
       aContainer->mSupportsComponentAlphaChildren = true;
       mode = INIT_MODE_NONE;
     } else {
-      gfx3DMatrix transform3D;
-      gfx::To3DMatrix(aContainer->GetEffectiveTransform(), transform3D);
-      gfxMatrix transform;
+      const gfx::Matrix4x4& transform3D = aContainer->GetEffectiveTransform();
+      gfx::Matrix transform;
       
       
       
       
       if (HasOpaqueAncestorLayer(aContainer) &&
-          transform3D.Is2D(&transform) && !transform.HasNonIntegerTranslation()) {
+          transform3D.Is2D(&transform) && !ThebesMatrix(transform).HasNonIntegerTranslation()) {
         surfaceCopyNeeded = gfxPlatform::ComponentAlphaEnabled();
-        sourcePoint.x += transform.x0;
-        sourcePoint.y += transform.y0;
+        sourcePoint.x += transform._31;
+        sourcePoint.y += transform._32;
         aContainer->mSupportsComponentAlphaChildren
           = gfxPlatform::ComponentAlphaEnabled();
       }

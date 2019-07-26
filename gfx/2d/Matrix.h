@@ -222,6 +222,15 @@ public:
   
 
 
+
+
+  bool HasNonAxisAlignedTransform() const {
+      return !FuzzyEqual(_21, 0.0) || !FuzzyEqual(_12, 0.0);
+  }
+
+  
+
+
   bool HasNonIntegerScale() const {
       return !FuzzyEqual(_11, floor(_11 + 0.5)) ||
              !FuzzyEqual(_22, floor(_22 + 0.5));

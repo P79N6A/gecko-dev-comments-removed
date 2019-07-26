@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include "ClientLayerManager.h"         
 #include "Layers.h"                     
-#include "gfx3DMatrix.h"                
 #include "gfxMatrix.h"                  
 #include "gfxPlatform.h"                
 #include "nsDebug.h"                    
@@ -55,12 +54,10 @@ public:
       if (GetEffectiveVisibleRegion().GetNumRects() != 1 ||
           !(GetContentFlags() & Layer::CONTENT_OPAQUE))
       {
-        gfx3DMatrix transform3D;
-        gfx::To3DMatrix(GetEffectiveTransform(), transform3D);
-        gfxMatrix transform;
+        gfx::Matrix transform;
         if (HasOpaqueAncestorLayer(this) &&
-            transform3D.Is2D(&transform) && 
-            !transform.HasNonIntegerTranslation()) {
+            GetEffectiveTransform().Is2D(&transform) &&
+            !gfx::ThebesMatrix(transform).HasNonIntegerTranslation()) {
           SetSupportsComponentAlphaChildren(
             gfxPlatform::ComponentAlphaEnabled());
         }
@@ -117,7 +114,7 @@ public:
                                                           aAfter ? ClientManager()->Hold(aAfter) : nullptr);
     ContainerLayer::RepositionChild(aChild, aAfter);
   }
-  
+
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
 

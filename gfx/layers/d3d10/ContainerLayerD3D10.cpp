@@ -8,6 +8,8 @@
 #include "ThebesLayerD3D10.h"
 #include "ReadbackProcessor.h"
 
+using namespace mozilla::gfx;
+
 namespace mozilla {
 namespace layers {
 
@@ -106,9 +108,8 @@ ContainerLayerD3D10::RenderLayer()
     previousViewportSize = mD3DManager->GetViewport();
 
     if (mVisibleRegion.GetNumRects() != 1 || !(GetContentFlags() & CONTENT_OPAQUE)) {
-      gfx3DMatrix transform3D;
-      gfx::To3DMatrix(GetEffectiveTransform(), transform3D);
-      gfxMatrix transform;
+      Matrix4x4 transform3D = GetEffectiveTransform();
+      Matrix transform;
       
       
       
@@ -121,8 +122,8 @@ ContainerLayerD3D10::RenderLayer()
         
         
         D3D10_BOX srcBox;
-        srcBox.left = std::max<int32_t>(visibleRect.x + int32_t(transform.x0) - int32_t(previousRenderTargetOffset[0]), 0);
-        srcBox.top = std::max<int32_t>(visibleRect.y + int32_t(transform.y0) - int32_t(previousRenderTargetOffset[1]), 0);
+        srcBox.left = std::max<int32_t>(visibleRect.x + int32_t(transform._31) - int32_t(previousRenderTargetOffset[0]), 0);
+        srcBox.top = std::max<int32_t>(visibleRect.y + int32_t(transform._32) - int32_t(previousRenderTargetOffset[1]), 0);
         srcBox.right = std::min<int32_t>(srcBox.left + visibleRect.width, previousViewportSize.width);
         srcBox.bottom = std::min<int32_t>(srcBox.top + visibleRect.height, previousViewportSize.height);
         srcBox.back = 1;
@@ -248,16 +249,15 @@ ContainerLayerD3D10::Validate()
   mSupportsComponentAlphaChildren = false;
 
   if (UseIntermediateSurface()) {
-    gfx3DMatrix transform3D;
-    gfx::To3DMatrix(GetEffectiveTransform(), transform3D);
-    gfxMatrix transform;
+    Matrix4x4 transform3D = GetEffectiveTransform();
+    Matrix transform;
 
     if (mVisibleRegion.GetNumRects() == 1 && (GetContentFlags() & CONTENT_OPAQUE)) {
       
       mSupportsComponentAlphaChildren = true;
     } else {
       if (HasOpaqueAncestorLayer(this) &&
-          transform3D.Is2D(&transform) && !transform.HasNonIntegerTranslation() &&
+          transform3D.Is2D(&transform) && !ThebesMatrix(transform).HasNonIntegerTranslation() &&
           GetParent()->GetEffectiveVisibleRegion().GetBounds().Contains(visibleRect))
       {
         
