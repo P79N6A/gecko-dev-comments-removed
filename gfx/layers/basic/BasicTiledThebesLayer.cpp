@@ -388,6 +388,37 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   if (invalidRegion.IsEmpty())
     return;
 
+  
+  gfx3DMatrix transform = GetEffectiveTransform();
+  
+  
+  
+  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
+    if (parent->UseIntermediateSurface()) {
+      transform.PreMultiply(parent->GetEffectiveTransform());
+    }
+  }
+  transform.Invert();
+
+  nsIntRect layerDisplayPort;
+  const gfx::Rect& criticalDisplayPort = GetParent()->GetFrameMetrics().mCriticalDisplayPort;
+  if (!criticalDisplayPort.IsEmpty()) {
+    
+    gfxRect transformedCriticalDisplayPort = transform.TransformBounds(
+      gfxRect(criticalDisplayPort.x, criticalDisplayPort.y,
+              criticalDisplayPort.width, criticalDisplayPort.height));
+    transformedCriticalDisplayPort.RoundOut();
+    layerDisplayPort = nsIntRect(transformedCriticalDisplayPort.x,
+                                 transformedCriticalDisplayPort.y,
+                                 transformedCriticalDisplayPort.width,
+                                 transformedCriticalDisplayPort.height);
+
+    
+    invalidRegion.And(invalidRegion, layerDisplayPort);
+    if (invalidRegion.IsEmpty())
+      return;
+  }
+
   gfxSize resolution(1, 1);
   for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
     const FrameMetrics& metrics = parent->GetFrameMetrics();
@@ -400,28 +431,22 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       !BasicManager()->HasShadowTarget() &&
       mTiledBuffer.GetResolution() == resolution) {
     
-    gfx3DMatrix transform = GetEffectiveTransform();
-    
-    
-    
-    for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-      if (parent->UseIntermediateSurface()) {
-        transform.PreMultiply(parent->GetEffectiveTransform());
-      }
-    }
-    transform.Invert();
-
-    
     
     
     nsIntRegion oldValidRegion = mTiledBuffer.GetValidRegion();
     oldValidRegion.And(oldValidRegion, mVisibleRegion);
+    if (!layerDisplayPort.IsEmpty()) {
+      oldValidRegion.And(oldValidRegion, layerDisplayPort);
+    }
     mTiledBuffer.ClearPaintedRegion();
 
     
     
     if (!BasicManager()->IsRepeatTransaction()) {
       mValidRegion.And(mValidRegion, mVisibleRegion);
+      if (!layerDisplayPort.IsEmpty()) {
+        mValidRegion.And(mValidRegion, layerDisplayPort);
+      }
     }
 
     
@@ -472,6 +497,9 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     mTiledBuffer.ClearPaintedRegion();
     mTiledBuffer.SetResolution(resolution);
     mValidRegion = mVisibleRegion;
+    if (!layerDisplayPort.IsEmpty()) {
+      mValidRegion.And(mValidRegion, layerDisplayPort);
+    }
     mTiledBuffer.PaintThebes(this, mValidRegion, invalidRegion, aCallback, aCallbackData);
   }
 
