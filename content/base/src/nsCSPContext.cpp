@@ -26,6 +26,7 @@
 #include "nsIPrincipal.h"
 #include "nsIPropertyBag2.h"
 #include "nsIScriptError.h"
+#include "nsIWebNavigation.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsString.h"
 #include "prlog.h"
@@ -439,11 +440,118 @@ nsCSPContext::SetRequestContext(nsIURI* aSelfURI,
   return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
 {
+  nsresult rv;
+
   
+  if (aDocShell == nullptr) {
+    return NS_ERROR_FAILURE;
+  }
+
   *outPermitsAncestry = true;
+
+  
+  nsCOMArray<nsIURI> ancestorsArray;
+
+  nsCOMPtr<nsIInterfaceRequestor> ir(do_QueryInterface(aDocShell));
+  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_GetInterface(ir));
+  nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
+  nsCOMPtr<nsIWebNavigation> webNav;
+  nsCOMPtr<nsIURI> currentURI;
+  nsCOMPtr<nsIURI> uriClone;
+
+  
+  while (NS_SUCCEEDED(treeItem->GetParent(getter_AddRefs(parentTreeItem))) &&
+         parentTreeItem != nullptr) {
+    ir     = do_QueryInterface(parentTreeItem);
+    NS_ASSERTION(ir, "Could not QI docShellTreeItem to nsIInterfaceRequestor");
+
+    webNav = do_GetInterface(ir);
+    NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
+
+    rv = webNav->GetCurrentURI(getter_AddRefs(currentURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (currentURI) {
+      
+      bool isChrome = false;
+      rv = currentURI->SchemeIs("chrome", &isChrome);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (isChrome) { break; }
+
+      
+      rv = currentURI->CloneIgnoringRef(getter_AddRefs(uriClone));
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = uriClone->SetUserPass(EmptyCString());
+      NS_ENSURE_SUCCESS(rv, rv);
+#ifdef PR_LOGGING
+      {
+      nsAutoCString spec;
+      uriClone->GetSpec(spec);
+      CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, found ancestor: %s", spec.get()));
+      }
+#endif
+      ancestorsArray.AppendElement(uriClone);
+    }
+
+    
+    treeItem = parentTreeItem;
+  }
+
+  nsAutoString violatedDirective;
+
+  
+  
+  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+    for (uint32_t a = 0; a < ancestorsArray.Length(); a++) {
+      
+      
+      
+#ifdef PR_LOGGING
+      {
+      nsAutoCString spec;
+      ancestorsArray[a]->GetSpec(spec);
+      CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, checking ancestor: %s", spec.get()));
+      }
+#endif
+      if (!mPolicies[i]->permits(nsIContentPolicy::TYPE_DOCUMENT,
+                                 ancestorsArray[a],
+                                 EmptyString(), 
+                                 violatedDirective)) {
+        
+        nsCOMPtr<nsIObserverService> observerService =
+          mozilla::services::GetObserverService();
+        NS_ENSURE_TRUE(observerService, NS_ERROR_NOT_AVAILABLE);
+
+        observerService->NotifyObservers(ancestorsArray[a],
+                                         CSP_VIOLATION_TOPIC,
+                                         violatedDirective.get());
+        
+        
+        
+        *outPermitsAncestry = false;
+      }
+    }
+  }
   return NS_OK;
 }
 
