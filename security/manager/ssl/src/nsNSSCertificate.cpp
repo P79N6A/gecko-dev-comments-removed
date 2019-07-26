@@ -825,45 +825,8 @@ nsNSSCertificate::GetChain(nsIArray **_rvChain)
   nsresult rv;
   
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Getting chain for \"%s\"\n", mCert->nickname));
-
   ScopedCERTCertList nssChain;
-  SECStatus srv;
-  nssChain = nullptr;
-  RefPtr<CertVerifier> certVerifier(GetDefaultCertVerifier());
-  NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
-  CERTCertList *pkixNssChain = nullptr;
-
-  
-  
-  srv = certVerifier->VerifyCert(mCert,
-                                 certificateUsageSSLServer, PR_Now(),
-                                 nullptr, 
-                                 CertVerifier::FLAG_LOCAL_ONLY,
-                                 &pkixNssChain);
-  for (int usage = certificateUsageSSLClient;
-       usage < certificateUsageAnyCA && !pkixNssChain;
-       usage = usage << 1) {
-    if (usage == certificateUsageSSLServer) {
-      continue;
-    }
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("pipnss: PKIX attempting chain(%d) for '%s'\n",usage, mCert->nickname));
-    srv = certVerifier->VerifyCert(mCert,
-                                   certificateUsageSSLClient, PR_Now(),
-                                   nullptr, 
-                                   CertVerifier::FLAG_LOCAL_ONLY,
-                                   &pkixNssChain);
-  }
-
-  if (!pkixNssChain) {
-    
-    
-    
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("pipnss: getchain :CertVerify failed to get chain for '%s'\n", mCert->nickname));
-    nssChain = CERT_GetCertChainFromCert(mCert, PR_Now(), certUsageSSLClient);
-  } else {
-    nssChain = pkixNssChain;
-  }
-
+  nssChain = CERT_GetCertChainFromCert(mCert, PR_Now(), certUsageSSLClient);
   if (!nssChain)
     return NS_ERROR_FAILURE;
   
