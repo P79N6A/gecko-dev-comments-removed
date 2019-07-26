@@ -2570,11 +2570,12 @@ nsHTMLEditor::CreateElementWithDefaults(const nsAString& aTagName, nsIDOMElement
   nsCOMPtr<nsIDOMDocument> doc = do_QueryReferent(mDocWeak);
   NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
 
-  
-  res = CreateHTMLContent(realTagName, getter_AddRefs(newContent));
+  ErrorResult rv;
+  newContent = CreateHTMLContent(realTagName, rv);
   newElement = do_QueryInterface(newContent);
-  if (NS_FAILED(res) || !newElement)
+  if (rv.Failed() || !newElement) {
     return NS_ERROR_FAILURE;
+  }
 
   
   newElement->SetAttribute(NS_LITERAL_STRING("_moz_dirty"), EmptyString());

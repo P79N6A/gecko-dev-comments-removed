@@ -1158,9 +1158,10 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
   }
 
   
-  nsCOMPtr<dom::Element> newContent;
-  nsresult rv = mEditor->CreateHTMLContent(NS_LITERAL_STRING("br"), getter_AddRefs(newContent));
-  NS_ENSURE_SUCCESS(rv, rv);
+  ErrorResult res;
+  nsCOMPtr<Element> newContent =
+    mEditor->CreateHTMLContent(NS_LITERAL_STRING("br"), res);
+  NS_ENSURE_SUCCESS(res.ErrorCode(), res.ErrorCode());
 
   
   mBogusNode = do_QueryInterface(newContent);
@@ -1172,7 +1173,7 @@ nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
 
   
   nsCOMPtr<nsIDOMNode> bodyNode = do_QueryInterface(body);
-  rv = mEditor->InsertNode(mBogusNode, bodyNode, 0);
+  nsresult rv = mEditor->InsertNode(mBogusNode, bodyNode, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

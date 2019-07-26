@@ -67,6 +67,7 @@ class nsString;
 class nsTransactionManager;
 
 namespace mozilla {
+class ErrorResult;
 class TextComposition;
 
 namespace dom {
@@ -241,9 +242,8 @@ public:
 
 
 
-
-  nsresult CreateHTMLContent(const nsAString& aTag,
-                             mozilla::dom::Element** aContent);
+  already_AddRefed<mozilla::dom::Element>
+    CreateHTMLContent(const nsAString& aTag, mozilla::ErrorResult& rv);
 
   
   virtual nsresult BeginIMEComposition(mozilla::WidgetCompositionEvent* aEvent);
