@@ -1,7 +1,7 @@
-/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "SurfaceStream.h"
 
@@ -16,7 +16,7 @@ SurfaceStreamType
 SurfaceStream::ChooseGLStreamType(SurfaceStream::OMTC omtc,
                                   bool preserveBuffer)
 {
-    if (omtc == SurfaceStream::OMTC::OffMainThread) {
+    if (omtc == SurfaceStream::OffMainThread) {
         if (preserveBuffer)
             return SurfaceStreamType::TripleBuffer_Copy;
         else
@@ -206,15 +206,15 @@ SurfaceStream_SingleBuffer::SwapProducer(SurfaceFactory* factory,
     }
 
     if (mProducer) {
-        // Fence now, before we start (maybe) juggling Prod around.
+        
         mProducer->Fence();
 
-        // Size mismatch means we need to squirrel the current Prod
-        // into Cons, and leave Prod empty, so it gets a new surface below.
+        
+        
         bool needsNewBuffer = mProducer->Size() != size;
 
-        // Even if we're the right size, if the type has changed, and we don't
-        // need to preserve, we should switch out for (presumedly) better perf.
+        
+        
         if (mProducer->Type() != factory->Type() &&
             !factory->Caps().preserve)
         {
@@ -226,8 +226,8 @@ SurfaceStream_SingleBuffer::SwapProducer(SurfaceFactory* factory,
         }
     }
 
-    // The old Prod (if there every was one) was invalid,
-    // so we need a new one.
+    
+    
     if (!mProducer) {
         New(factory, size, mProducer);
     }
@@ -240,8 +240,8 @@ SurfaceStream_SingleBuffer::SwapConsumer_NoWait()
 {
     MutexAutoLock lock(mMutex);
 
-    // Use Cons, if present.
-    // Otherwise, just use Prod directly.
+    
+    
     SharedSurface* toConsume = mConsumer;
     if (!toConsume)
         toConsume = mProducer;
@@ -307,15 +307,15 @@ SurfaceStream_TripleBuffer_Copy::SwapProducer(SurfaceFactory* factory,
             return nullptr;
 
         SharedSurface::Copy(mProducer, mStaging, factory);
-        // Fence now, before we start (maybe) juggling Prod around.
+        
         mStaging->Fence();
 
         if (mProducer->Size() != size)
             Recycle(factory, mProducer);
     }
 
-    // The old Prod (if there every was one) was invalid,
-    // so we need a new one.
+    
+    
     if (!mProducer) {
         New(factory, size, mProducer);
     }
@@ -409,5 +409,5 @@ SurfaceStream_TripleBuffer::SwapConsumer_NoWait()
     return mConsumer;
 }
 
-} /* namespace gfx */
-} /* namespace mozilla */
+} 
+} 
