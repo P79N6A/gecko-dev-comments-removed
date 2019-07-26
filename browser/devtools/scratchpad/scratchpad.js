@@ -610,66 +610,23 @@ var Scratchpad = {
       deferred.resolve(aError);
     }
     else {
-      let reject = aReason => deferred.reject(aReason);
       let objectClient = new ObjectClient(this.debuggerClient, aError);
-
-      
-      
-      
-      let names = ["message", "stack", "fileName", "lineNumber"];
-      let promises = names.map(aName => {
-        let deferred = promise.defer();
-
-        objectClient.getProperty(aName, aResponse => {
-          if (aResponse.error) {
-            deferred.reject(aResponse);
-          }
-          else {
-            deferred.resolve({
-              name: aName,
-              descriptor: aResponse.descriptor
-            });
-          }
-        });
-
-        return deferred.promise;
-      });
-
-      {
-        
-        
-        let deferred = promise.defer();
-        objectClient.getPrototypeAndProperties(aResponse => {
-          if (aResponse.error) {
-            deferred.reject(aResponse);
-          }
-          else {
-            deferred.resolve(aResponse);
-          }
-        });
-        promises.push(deferred.promise);
-      }
-
-      promise.all(promises).then(aProperties => {
-        let error = {};
-        let safeGetters;
-
-        
-        for (let property of aProperties) {
-          if (property.descriptor) {
-            error[property.name] = property.descriptor.value;
-          }
-          else if (property.safeGetterValues) {
-            safeGetters = property.safeGetterValues;
-          }
+      objectClient.getPrototypeAndProperties(aResponse => {
+        if (aResponse.error) {
+          deferred.reject(aResponse);
+          return;
         }
 
-        if (safeGetters) {
-          for (let key of Object.keys(safeGetters)) {
-            if (!error.hasOwnProperty(key)) {
-              error[key] = safeGetters[key].getterValue;
-            }
-          }
+        let { ownProperties, safeGetterValues } = aResponse;
+        let error = Object.create(null);
+
+        
+        for (let key of Object.keys(safeGetterValues)) {
+          error[key] = safeGetterValues[key].getterValue;
+        }
+
+        for (let key of Object.keys(ownProperties)) {
+          error[key] = ownProperties[key].value;
         }
 
         
@@ -693,23 +650,23 @@ var Scratchpad = {
           deferred.resolve(error.message + stack);
         }
         else {
-          objectClient.getDisplayString(aResult => {
-            if (aResult.error) {
-              deferred.reject(aResult);
+          objectClient.getDisplayString(aResponse => {
+            if (aResponse.error) {
+              deferred.reject(aResponse);
             }
-            else if (aResult.displayString.type == "null") {
-              deferred.resolve(stack);
+            else if (typeof aResponse.displayString == "string") {
+              deferred.resolve(aResponse.displayString + stack);
             }
             else {
-              deferred.resolve(aResult.displayString + stack);
+              deferred.resolve(stack);
             }
-          }, reject);
+          });
         }
-      }, reject);
+      });
     }
 
     return deferred.promise.then(aMessage => {
-      console.log(aMessage);
+      console.error(aMessage);
       this.writeAsComment("Exception: " + aMessage);
     });
   },
