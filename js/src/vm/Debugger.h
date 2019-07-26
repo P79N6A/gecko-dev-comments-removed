@@ -411,7 +411,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, Value *vp);
+    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue vp);
 
     
 
@@ -422,7 +422,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
+    bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
 
@@ -451,7 +451,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
+    bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
     bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, Value *vp);
@@ -464,14 +464,15 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     static void resultToCompletion(JSContext *cx, bool ok, const Value &rv,
-                                   JSTrapStatus *status, Value *value);
+                                   JSTrapStatus *status, MutableHandleValue value);
 
     
 
 
 
 
-    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value, Value *result);
+    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value,
+                            MutableHandleValue result);
 
     
 
@@ -485,7 +486,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
+    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val,
+                                MutableHandleValue vp);
 
     
 
