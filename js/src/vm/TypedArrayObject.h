@@ -4,8 +4,8 @@
 
 
 
-#ifndef jstypedarray_h
-#define jstypedarray_h
+#ifndef vm_TypedArrayObject_h
+#define vm_TypedArrayObject_h
 
 #include "jsapi.h"
 #include "jsclass.h"

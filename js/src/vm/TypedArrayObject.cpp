@@ -4,7 +4,7 @@
 
 
 
-#include "jstypedarray.h"
+#include "vm/TypedArrayObject.h"
 
 #include <string.h>
 
