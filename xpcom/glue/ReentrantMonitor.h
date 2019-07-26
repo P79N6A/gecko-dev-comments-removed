@@ -165,7 +165,7 @@ private:
 
 
  
-class NS_COM_GLUE NS_STACK_CLASS ReentrantMonitorAutoEnter
+class NS_COM_GLUE MOZ_STACK_CLASS ReentrantMonitorAutoEnter
 {
 public:
     

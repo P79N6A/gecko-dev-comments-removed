@@ -134,7 +134,7 @@ private:
 
  
 template<typename T>
-class NS_COM_GLUE NS_STACK_CLASS BaseAutoLock
+class NS_COM_GLUE MOZ_STACK_CLASS BaseAutoLock
 {
 public:
     
@@ -178,7 +178,7 @@ typedef BaseAutoLock<Mutex> MutexAutoLock;
 
  
 template<typename T>
-class NS_COM_GLUE NS_STACK_CLASS BaseAutoUnlock 
+class NS_COM_GLUE MOZ_STACK_CLASS BaseAutoUnlock 
 {
 public:
     BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM) :

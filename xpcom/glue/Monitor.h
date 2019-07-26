@@ -83,7 +83,7 @@ private:
 
 
 
-class NS_COM_GLUE NS_STACK_CLASS MonitorAutoLock
+class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoLock
 {
 public:
     MonitorAutoLock(Monitor& aMonitor) :
@@ -129,7 +129,7 @@ private:
 
 
 
-class NS_COM_GLUE NS_STACK_CLASS MonitorAutoUnlock
+class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoUnlock
 {
 public:
     MonitorAutoUnlock(Monitor& aMonitor) :

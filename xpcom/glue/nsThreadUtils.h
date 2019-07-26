@@ -501,7 +501,7 @@ private:
 
 
 
-class NS_STACK_CLASS nsAutoLowPriorityIO
+class MOZ_STACK_CLASS nsAutoLowPriorityIO
 {
 public:
   nsAutoLowPriorityIO();
