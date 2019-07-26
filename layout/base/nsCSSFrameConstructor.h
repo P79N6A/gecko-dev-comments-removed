@@ -1375,8 +1375,6 @@ private:
                        PendingBinding*          aPendingBinding,
                        nsIFrame*                aPossiblyLeafFrame = nullptr);
 
-  nsIFrame* GetFrameFor(nsIContent* aContent);
-
   
 
 

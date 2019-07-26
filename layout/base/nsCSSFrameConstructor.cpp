@@ -591,6 +591,30 @@ SetInitialSingleChild(nsIFrame* aParent, nsIFrame* aFrame)
   aParent->SetInitialChildList(kPrincipalList, temp);
 }
 
+static nsIFrame*
+GetContentInsertionFrameFor(nsIContent* aContent)
+{
+  
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+
+  if (!frame)
+    return nullptr;
+
+  
+  
+  
+  if (frame->GetContent() != aContent) {
+    return nullptr;
+  }
+
+  nsIFrame* insertionFrame = frame->GetContentInsertionFrame();
+
+  NS_ASSERTION(insertionFrame == frame || !frame->IsLeaf(),
+    "The insertion frame is the primary frame or the primary frame isn't a leaf");
+
+  return insertionFrame;
+}
+
 
 
 
@@ -5644,30 +5668,6 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchy()
 }
 
 nsIFrame*
-nsCSSFrameConstructor::GetFrameFor(nsIContent* aContent)
-{
-  
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-
-  if (!frame)
-    return nullptr;
-
-  
-  
-  
-  if (frame->GetContent() != aContent) {
-    return nullptr;
-  }
-
-  nsIFrame* insertionFrame = frame->GetContentInsertionFrame();
-
-  NS_ASSERTION(insertionFrame == frame || !frame->IsLeaf(),
-    "The insertion frame is the primary frame or the primary frame isn't a leaf");
-
-  return insertionFrame;
-}
-
-nsIFrame*
 nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
                                                   ContainingBlockType aType)
 {
@@ -6645,7 +6645,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   
-  nsIFrame* parentFrame = GetFrameFor(aContainer);
+  nsIFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
 
   
   if (!parentFrame && !aContainer->IsActiveChildrenElement()) {
@@ -7078,7 +7078,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     return rv;
   }
 
-  nsIFrame* parentFrame = GetFrameFor(aContainer);
+  nsIFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
   
   
   
@@ -8354,7 +8354,7 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent*   aContainer,
     if (aChildContent->GetBindingParent() == aContainer) {
       
       
-      return GetFrameFor(aContainer);
+      return ::GetContentInsertionFrameFor(aContainer);
     }
 
     insertionElement = bindingManager->FindNestedInsertionPoint(aContainer, aChildContent);
@@ -8375,7 +8375,7 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent*   aContainer,
     insertionElement = aContainer;
   }
 
-  nsIFrame* insertionPoint = GetFrameFor(insertionElement);
+  nsIFrame* insertionPoint = ::GetContentInsertionFrameFor(insertionElement);
 
   
   
