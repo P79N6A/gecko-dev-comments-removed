@@ -305,7 +305,7 @@ class ForkJoinOperation
     HandleObject updatable_;
     uint16_t sliceStart_;
     uint16_t sliceEnd_;
-    Vector<ParallelBailoutRecord, 16> bailoutRecords_;
+    Vector<ParallelBailoutRecord> bailoutRecords_;
     AutoScriptVector worklist_;
     Vector<WorklistData, 16> worklistData_;
     ForkJoinMode mode_;
@@ -339,14 +339,14 @@ class ForkJoinShared : public ParallelJob, public Monitor
     
     
 
-    JSContext *const cx_;                  
-    ThreadPool *const threadPool_;         
-    HandleFunction fun_;                   
-    HandleObject updatable_;               
-    uint16_t sliceStart_;                  
-    uint16_t sliceEnd_;                    
-    PRLock *cxLock_;                       
-    ParallelBailoutRecord *const records_; 
+    JSContext *const cx_;                    
+    ThreadPool *const threadPool_;           
+    HandleFunction fun_;                     
+    HandleObject updatable_;                 
+    uint16_t sliceStart_;                    
+    uint16_t sliceEnd_;                      
+    PRLock *cxLock_;                         
+    Vector<ParallelBailoutRecord> &records_; 
 
     
     
@@ -382,7 +382,7 @@ class ForkJoinShared : public ParallelJob, public Monitor
                    HandleObject updatable,
                    uint16_t sliceStart,
                    uint16_t sliceEnd,
-                   ParallelBailoutRecord *records);
+                   Vector<ParallelBailoutRecord> &records);
     ~ForkJoinShared();
 
     bool init();
@@ -1334,7 +1334,7 @@ ForkJoinOperation::parallelExecution(ExecutionStatus *status)
     ForkJoinActivation activation(cx_);
     ThreadPool *threadPool = &cx_->runtime()->threadPool;
     ForkJoinShared shared(cx_, threadPool, fun_, updatable_, sliceStart_, sliceEnd_,
-                          &bailoutRecords_[0]);
+                          bailoutRecords_);
     if (!shared.init()) {
         *status = ExecutionFatal;
         return RedLight;
@@ -1447,7 +1447,7 @@ ForkJoinShared::ForkJoinShared(JSContext *cx,
                                HandleObject updatable,
                                uint16_t sliceStart,
                                uint16_t sliceEnd,
-                               ParallelBailoutRecord *records)
+                               Vector<ParallelBailoutRecord> &records)
   : cx_(cx),
     threadPool_(threadPool),
     fun_(fun),

@@ -61,6 +61,9 @@ class RematerializedFrame
     
     static void FreeInVector(Vector<RematerializedFrame *> &frames);
 
+    
+    static void MarkInVector(JSTracer *trc, Vector<RematerializedFrame *> &frames);
+
     bool prevUpToDate() const {
         return prevUpToDate_;
     }
