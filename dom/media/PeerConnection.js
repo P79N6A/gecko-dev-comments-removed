@@ -1022,7 +1022,7 @@ PeerConnectionObserver.prototype = {
         
         this._dompc._executeNext();
       }
-      else if (this.localDescription) {
+      else if (this._dompc.localDescription) {
         
         
         
