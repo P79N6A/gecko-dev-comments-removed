@@ -330,6 +330,9 @@ public:
                             gfxRect *aResult);
     bool RenderSVGGlyph(gfxContext *aContext, uint32_t aGlyphId, int aDrawMode,
                         gfxTextContextPaint *aContextPaint);
+    
+    
+    void NotifyGlyphsChanged();
 
     virtual bool MatchesGenericFamily(const nsACString& aGeneric) const {
         return true;
@@ -1165,6 +1168,10 @@ public:
 
     enum { INVALID_WIDTH = 0xFFFF };
 
+    void NotifyGlyphsChanged() {
+        mTightGlyphExtents.Clear();
+    }
+
     
     
     
@@ -1699,6 +1706,9 @@ public:
             mWordCache->Clear();
         }
     }
+
+    
+    void NotifyGlyphsChanged();
 
     virtual void SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                      FontCacheSizes*   aSizes) const;
