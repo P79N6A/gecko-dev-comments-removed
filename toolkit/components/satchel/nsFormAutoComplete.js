@@ -488,9 +488,8 @@ FormAutoCompleteResult.prototype = {
 };
 
 
-if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT &&
-    Services.prefs.prefHasUserValue("browser.tabs.remote") &&
-    Services.prefs.getBoolPref("browser.tabs.remote")) {
+let remote = Services.appinfo.browserTabsRemote;
+if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT && remote) {
   
   
   let component = [FormAutoCompleteChild];

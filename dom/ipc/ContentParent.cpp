@@ -79,6 +79,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIURIFixup.h"
 #include "nsIWindowWatcher.h"
+#include "nsIXULRuntime.h"
 #include "nsMemoryReporterManager.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStyleSheetService.h"
@@ -3113,7 +3114,7 @@ ContentParent::ShouldContinueFromReplyTimeout()
 {
   
   
-  MOZ_ASSERT(Preferences::GetBool("browser.tabs.remote", false));
+  MOZ_ASSERT(BrowserTabsRemote());
   return false;
 }
 
