@@ -68,12 +68,7 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         
         
         
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-        bool forceAlign = true;
-#else
-        bool forceAlign = false;
-#endif
-        if (gen->needsInitialStackAlignment() || forceAlign) {
+        if (StackKeptAligned || gen->needsInitialStackAlignment()) {
             unsigned alignmentAtCall = AlignmentAtAsmJSPrologue + frameDepth_;
             if (unsigned rem = alignmentAtCall % StackAlignment) {
                 frameInitialAdjustment_ = StackAlignment - rem;
