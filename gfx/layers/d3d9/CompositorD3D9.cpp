@@ -511,29 +511,29 @@ CompositorD3D9::EnsureSwapChain()
   if (!mSwapChain) {
     mSwapChain = mDeviceManager->
       CreateSwapChain((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW));
+    
     if (!mSwapChain) {
+      
       DeviceManagerState state = mDeviceManager->VerifyReadyForRendering();
       if (state == DeviceMustRecreate) {
         mDeviceManager = nullptr;
-        mParent->SendInvalidateAll();
-      } else if (state == DeviceRetry) {
-        mParent->SendInvalidateAll();
       }
+      mParent->SendInvalidateAll();
       return false;
     }
   }
 
+  
   DeviceManagerState state = mSwapChain->PrepareForRendering();
   if (state == DeviceOK) {
     return true;
   }
+  
   if (state == DeviceMustRecreate) {
     mDeviceManager = nullptr;
     mSwapChain = nullptr;
-    mParent->SendInvalidateAll();
-  } else if (state == DeviceRetry) {
-    mParent->SendInvalidateAll();
   }
+  mParent->SendInvalidateAll();
   return false;
 }
 
@@ -553,6 +553,7 @@ CompositorD3D9::Ready()
     if (EnsureSwapChain()) {
       
       
+
       CheckResetCount();
       return true;
     }
@@ -560,7 +561,7 @@ CompositorD3D9::Ready()
   }
 
   NS_ASSERTION(!mCurrentRT && !mDefaultRT,
-                "Shouldn't have any render targets around, they must be released before our device");
+               "Shouldn't have any render targets around, they must be released before our device");
   mSwapChain = nullptr;
 
   mDeviceManager = gfxWindowsPlatform::GetPlatform()->GetD3D9DeviceManager();

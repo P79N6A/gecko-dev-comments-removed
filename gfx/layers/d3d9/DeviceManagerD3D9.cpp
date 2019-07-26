@@ -672,11 +672,11 @@ DeviceManagerD3D9::SetShaderMode(ShaderMode aMode, Layer* aMask, bool aIs2D)
 void
 DeviceManagerD3D9::DestroyDevice()
 {
+  ++mDeviceResetCount;
   mDeviceWasRemoved = true;
   if (!IsD3D9Ex()) {
     ReleaseTextureResources();
   }
-  LayerManagerD3D9::OnDeviceManagerDestroy(this);
   gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
 }
 
@@ -695,7 +695,6 @@ DeviceManagerD3D9::VerifyReadyForRendering()
 
       if (FAILED(hr)) {
         DestroyDevice();
-        ++mDeviceResetCount;
         return DeviceMustRecreate;
       }
     }
@@ -727,6 +726,11 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   
   
   
+  ++mDeviceResetCount;
+
+  
+  
+  
   
   
   if (hr == D3DERR_DEVICELOST) {
@@ -736,25 +740,23 @@ DeviceManagerD3D9::VerifyReadyForRendering()
       
 
 
+
+
+
+
       
 
-
-
-
-
-
+      DestroyDevice();
       return DeviceMustRecreate;
     }
-    return DeviceRetry;
+    return DeviceFail;
   }
   if (hr == D3DERR_DEVICENOTRESET) {
     hr = mDevice->Reset(&pp);
-    ++mDeviceResetCount;
   }
 
   if (FAILED(hr) || !CreateVertexBuffer()) {
     DestroyDevice();
-    ++mDeviceResetCount;
     return DeviceMustRecreate;
   }
 
