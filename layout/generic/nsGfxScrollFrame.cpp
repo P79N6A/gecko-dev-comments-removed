@@ -2311,6 +2311,22 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     if (usingDisplayport) {
       nsRect clip = displayPort + aBuilder->ToReferenceFrame(mOuter);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      clipState.Clear();
+
       if (mClipAllDescendants) {
         clipState.ClipContentDescendants(clip);
       } else {
