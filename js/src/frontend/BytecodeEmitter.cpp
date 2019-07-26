@@ -141,15 +141,6 @@ EmitCheck(ExclusiveContext *cx, BytecodeEmitter *bce, ptrdiff_t delta)
     return offset;
 }
 
-static StaticBlockObject &
-LastBlockAdded(BytecodeEmitter *bce, jsbytecode *pc)
-{
-    DebugOnly<uint32_t> index = GET_UINT32_INDEX(pc);
-    JS_ASSERT(index < bce->objectList.length);
-    JS_ASSERT(index == bce->objectList.length - 1);
-    return bce->objectList.lastbox->object->as<StaticBlockObject>();
-}
-
 static void
 UpdateDepth(ExclusiveContext *cx, BytecodeEmitter *bce, ptrdiff_t target)
 {
@@ -168,26 +159,8 @@ UpdateDepth(ExclusiveContext *cx, BytecodeEmitter *bce, ptrdiff_t target)
             bce->maxStackDepth = depth;
     }
 
-    
-
-
-
-
-
-    int nuses, ndefs;
-    if (op == JSOP_ENTERBLOCK) {
-        nuses = 0;
-        ndefs = LastBlockAdded(bce, pc).slotCount();
-    } else if (op == JSOP_ENTERLET0) {
-        nuses = ndefs = LastBlockAdded(bce, pc).slotCount();
-    } else if (op == JSOP_ENTERLET1) {
-        nuses = ndefs = LastBlockAdded(bce, pc).slotCount() + 1;
-    } else if (op == JSOP_ENTERLET2) {
-        nuses = ndefs = LastBlockAdded(bce, pc).slotCount() + 2;
-    } else {
-        nuses = StackUses(nullptr, pc);
-        ndefs = StackDefs(nullptr, pc);
-    }
+    int nuses = StackUses(nullptr, pc);
+    int ndefs = StackDefs(nullptr, pc);
 
     bce->stackDepth -= nuses;
     JS_ASSERT(bce->stackDepth >= 0);
@@ -568,7 +541,10 @@ class NonLocalExitScope {
             return false;
         if (!bce->blockScopeList.append(scopeObjectIndex, bce->offset(), parent))
             return false;
-        EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, blockObj.slotCount());
+        if (blockObj.needsClone()) {
+            if (Emit1(cx, bce, JSOP_POPBLOCKSCOPE) < 0)
+                return false;
+        }
         openScopeIndex = bce->blockScopeList.length() - 1;
         return true;
     }
@@ -623,11 +599,11 @@ NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
         }
 
         if (stmt->isBlockScope) {
-            FLUSH_POPS();
             JS_ASSERT(stmt->blockObj);
             StaticBlockObject &blockObj = *stmt->blockObj;
             if (!popScopeForNonLocalExit(blockObj, stmt->blockScopeIndex))
                 return false;
+            npops += blockObj.slotCount();
         }
     }
 
@@ -773,6 +749,55 @@ ComputeAliasedSlots(ExclusiveContext *cx, BytecodeEmitter *bce, StaticBlockObjec
 static bool
 EmitInternedObjectOp(ExclusiveContext *cx, uint32_t index, JSOp op, BytecodeEmitter *bce);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static bool
 EnterBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmt, ObjectBox *objbox,
                 unsigned extraSlots)
@@ -792,19 +817,13 @@ EnterBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *stmt, O
     JS_ASSERT(depth >= 0);
     blockObj.setStackDepth(depth);
 
-    JSOp op;
-    switch (extraSlots) {
-      case 0: op = JSOP_ENTERLET0; break;
-      case 1: op = JSOP_ENTERLET1; break;
-      case 2: op = JSOP_ENTERLET2; break;
-      default: MOZ_ASSUME_UNREACHABLE("unexpected extraSlots");
-    }
-
     if (!ComputeAliasedSlots(cx, bce, blockObj))
         return false;
 
-    if (!EmitInternedObjectOp(cx, scopeObjectIndex, op, bce))
-        return false;
+    if (blockObj.needsClone()) {
+        if (!EmitInternedObjectOp(cx, scopeObjectIndex, JSOP_PUSHBLOCKSCOPE, bce))
+            return false;
+    }
 
     stmt->blockScopeIndex = bce->blockScopeList.length();
     if (!bce->blockScopeList.append(scopeObjectIndex, bce->offset(), parent))
@@ -837,7 +856,7 @@ PopStatementBCE(ExclusiveContext *cx, BytecodeEmitter *bce)
 }
 
 static bool
-LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
+LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce)
 {
     StmtInfoBCE *stmt = bce->topStmt;
     JS_ASSERT(stmt->isBlockScope);
@@ -852,7 +871,7 @@ LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
     JS_ASSERT(blockObj == bce->blockChain);
 #endif
 
-    uint32_t slotCount = bce->blockChain->slotCount();
+    bool blockOnChain = bce->blockChain->needsClone();
 
     if (!PopStatementBCE(cx, bce))
         return false;
@@ -862,8 +881,10 @@ LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
 
     bce->blockScopeList.recordEnd(blockScopeIndex, bce->offset());
 
-    JS_ASSERT(op == JSOP_LEAVEBLOCK || op == JSOP_LEAVEBLOCKEXPR);
-    EMIT_UINT16_IMM_OP(op, slotCount);
+    if (blockOnChain) {
+        if (Emit1(cx, bce, JSOP_POPBLOCKSCOPE) < 0)
+            return false;
+    }
 
     return true;
 }
@@ -2684,10 +2705,10 @@ EmitSwitch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
     }
 
-
     if (pn->pn_right->isKind(PNK_LEXICALSCOPE)) {
-        if (!LeaveBlockScope(cx, bce, JSOP_LEAVEBLOCK))
+        if (!LeaveBlockScope(cx, bce))
             return false;
+        EMIT_UINT16_IMM_OP(JSOP_POPN, blockObj->slotCount());
     } else {
         if (!PopStatementBCE(cx, bce))
             return false;
@@ -4006,6 +4027,9 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         
         
         
+        
+        
+        
         for (ParseNode *pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
             JS_ASSERT(bce->stackDepth == depth);
 
@@ -4206,6 +4230,8 @@ EmitIf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
+
+
 MOZ_NEVER_INLINE static bool
 EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4236,8 +4262,12 @@ EmitLet(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
     if (!EmitTree(cx, bce, letBody->pn_expr))
         return false;
 
-    if (!LeaveBlockScope(cx, bce, letBody->getOp()))
+    if (!LeaveBlockScope(cx, bce))
         return false;
+
+    JSOp leaveOp = letBody->getOp();
+    JS_ASSERT(leaveOp == JSOP_POPN || leaveOp == JSOP_POPNV);
+    EMIT_UINT16_IMM_OP(leaveOp, blockObj->slotCount());
 
     return true;
 }
@@ -4250,7 +4280,7 @@ MOZ_NEVER_INLINE static bool
 EmitLexicalScope(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(pn->isKind(PNK_LEXICALSCOPE));
-    JS_ASSERT(pn->getOp() == JSOP_LEAVEBLOCK);
+    JS_ASSERT(pn->getOp() == JSOP_POPN);
 
     StmtInfoBCE stmtInfo(cx);
     ObjectBox *objbox = pn->pn_objbox;
@@ -4268,8 +4298,10 @@ EmitLexicalScope(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (!EmitTree(cx, bce, pn->pn_expr))
         return false;
 
-    if (!LeaveBlockScope(cx, bce, JSOP_LEAVEBLOCK))
+    if (!LeaveBlockScope(cx, bce))
         return false;
+
+    EMIT_UINT16_IMM_OP(JSOP_POPN, slots);
 
     return true;
 }
@@ -4440,13 +4472,13 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     if (!PopStatementBCE(cx, bce))
         return false;
 
-    
-    EMIT_UINT16_IMM_OP(JSOP_POPN, 2);
-
     if (letDecl) {
-        if (!LeaveBlockScope(cx, bce, JSOP_LEAVEBLOCK))
+        if (!LeaveBlockScope(cx, bce))
             return false;
     }
+
+    
+    EMIT_UINT16_IMM_OP(JSOP_POPN, blockObjCount + 2);
 
     return true;
 }
@@ -4467,6 +4499,10 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 
     if (letDecl) {
         
+
+
+
+
 
 
 
@@ -4600,8 +4636,9 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
         return false;
 
     if (letDecl) {
-        if (!LeaveBlockScope(cx, bce, JSOP_LEAVEBLOCK))
+        if (!LeaveBlockScope(cx, bce))
             return false;
+        EMIT_UINT16_IMM_OP(JSOP_POPN, blockObjCount);
     }
 
     return true;
