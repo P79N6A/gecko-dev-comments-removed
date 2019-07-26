@@ -9154,6 +9154,82 @@ let ICCRecordHelper = {
 
 
 
+
+
+
+
+
+  readIAP: function readIAP(fileId, recordNumber, onsuccess, onerror) {
+    function callback(options) {
+      let strLen = Buf.readUint32();
+      let octetLen = strLen / 2;
+
+      let iap = GsmPDUHelper.readHexOctetArray(octetLen);
+      Buf.readStringDelimiter(strLen);
+
+      if (onsuccess) {
+        onsuccess(iap);
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   recordNumber: recordNumber,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  readEmail: function readEmail(fileId, fileType, recordNumber, onsuccess, onerror) {
+    function callback(optoins) {
+      let strLen = Buf.readUint32();
+      let octetLen = strLen / 2;
+      let email = null;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      if (fileType == ICC_USIM_TYPE1_TAG) {
+        email = GsmPDUHelper.read8BitUnpackedToString(octetLen);
+      } else {
+        email = GsmPDUHelper.read8BitUnpackedToString(octetLen - 2);
+
+        
+        Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE); 
+      }
+
+      Buf.readStringDelimiter(strLen);
+
+      if (onsuccess) {
+        onsuccess(email);
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   recordNumber: recordNumber,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
+  },
+
+  
+
+
+
+
   getPLMNSelector: function getPLMNSelector() {
     function callback() {
       if (DEBUG) debug("PLMN Selector: Process PLMN Selector");
