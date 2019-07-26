@@ -10,6 +10,8 @@ import org.mozilla.gecko.gfx.InputConnectionHandler;
 import android.R;
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputType;
@@ -39,6 +41,8 @@ class GeckoInputConnection
     protected static final String LOGTAG = "GeckoInputConnection";
 
     private static final int INLINE_IME_MIN_DISPLAY_SIZE = 480;
+
+    private static Handler sBackgroundHandler;
 
     
     private int mIMEState;
@@ -310,7 +314,80 @@ class GeckoInputConnection
                             getComposingSpanEnd(editable));
     }
 
+    private static synchronized Handler getBackgroundHandler() {
+        if (sBackgroundHandler != null) {
+            return sBackgroundHandler;
+        }
+        
+        
+        
+        
+        Thread backgroundThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Looper.prepare();
+                synchronized (GeckoInputConnection.class) {
+                    sBackgroundHandler = new Handler();
+                    GeckoInputConnection.class.notify();
+                }
+                Looper.loop();
+                sBackgroundHandler = null;
+            }
+        });
+        backgroundThread.setDaemon(true);
+        backgroundThread.start();
+        while (sBackgroundHandler == null) {
+            try {
+                
+                GeckoInputConnection.class.wait();
+            } catch (InterruptedException e) {
+            }
+        }
+        return sBackgroundHandler;
+    }
+
+    private boolean canReturnCustomHandler() {
+        if (mIMEState == IME_STATE_DISABLED) {
+            return false;
+        }
+        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+            
+            
+            
+            
+            
+            
+            if ("startInputInner".equals(frame.getMethodName()) &&
+                "android.view.inputmethod.InputMethodManager".equals(frame.getClassName())) {
+                
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Handler getHandler(Handler defHandler) {
+        if (!canReturnCustomHandler()) {
+            return defHandler;
+        }
+        
+        
+        final Handler newHandler = sBackgroundHandler != null
+                                 ? sBackgroundHandler
+                                 : getBackgroundHandler();
+        if (mEditableClient.setInputConnectionHandler(newHandler)) {
+            return newHandler;
+        }
+        
+        return mEditableClient.getInputConnectionHandler();
+    }
+
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        if (mIMEState == IME_STATE_DISABLED) {
+            return null;
+        }
+
         outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
         outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE;
         outAttrs.actionLabel = null;
