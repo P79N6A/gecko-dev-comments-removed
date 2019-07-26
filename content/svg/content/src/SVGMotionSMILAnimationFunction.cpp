@@ -227,7 +227,7 @@ SVGMotionSMILAnimationFunction::
       bool ok =
         path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
       if (ok && mPathVertices.Length()) {
-        mPath = pathElem->GetFlattenedPath(gfxMatrix());
+        mPath = pathElem->GetPath(gfxMatrix());
       }
     }
   }
@@ -252,7 +252,7 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
     return;
   }
 
-  mPath = path.ToFlattenedPath(gfxMatrix());
+  mPath = path.ToPath(gfxMatrix());
   bool ok = path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
   if (!ok || !mPathVertices.Length()) {
     mPath = nullptr;
@@ -292,7 +292,7 @@ SVGMotionSMILAnimationFunction::
 
 bool
 SVGMotionSMILAnimationFunction::
-  GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
+  GenerateValuesForPathAndPoints(gfxPath* aPath,
                                  bool aIsKeyPoints,
                                  nsTArray<double>& aPointDistances,
                                  nsTArray<nsSMILValue>& aResult)

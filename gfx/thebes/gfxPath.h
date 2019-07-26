@@ -25,26 +25,11 @@ class gfxPath {
 protected:
     gfxPath(cairo_path_t* aPath);
 
+    void EnsureFlattenedPath();
+
 public:
     virtual ~gfxPath();
-
-protected:
-    cairo_path_t* mPath;
-};
-
-
-
-
-
-class gfxFlattenedPath : public gfxPath {
-    friend class gfxContext;
-
-protected:
-    gfxFlattenedPath(cairo_path_t* aPath);
-
-public:
-    virtual ~gfxFlattenedPath();
-
+    
     
 
 
@@ -59,6 +44,10 @@ public:
 
     gfxPoint FindPoint(gfxPoint aOffset,
                        gfxFloat* aAngle = nullptr);
+
+protected:
+    cairo_path_t* mPath;
+    cairo_path_t* mFlattenedPath;
 };
 
 #endif

@@ -648,11 +648,6 @@ public:
     
 
 
-    already_AddRefed<gfxFlattenedPath> GetFlattenedPath();
-
-    
-
-
 
     enum {
         

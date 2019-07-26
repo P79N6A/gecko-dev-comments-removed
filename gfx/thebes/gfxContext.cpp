@@ -1751,19 +1751,6 @@ gfxContext::GetUserStrokeExtent()
   }
 }
 
-already_AddRefed<gfxFlattenedPath>
-gfxContext::GetFlattenedPath()
-{
-  if (mCairo) {
-    nsRefPtr<gfxFlattenedPath> path =
-        new gfxFlattenedPath(cairo_copy_path_flat(mCairo));
-    return path.forget();
-  } else {
-    
-    return nullptr;
-  }
-}
-
 bool
 gfxContext::HasError()
 {

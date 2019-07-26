@@ -12,7 +12,7 @@
 #include "gfxMatrix.h"
 #include "nsISMILType.h"
 
-class gfxFlattenedPath;
+class gfxPath;
 class nsSMILValue;
 
 namespace mozilla {
@@ -65,7 +65,7 @@ public:
 
   
   
-  static nsSMILValue ConstructSMILValue(gfxFlattenedPath* aPath,
+  static nsSMILValue ConstructSMILValue(gfxPath* aPath,
                                         float aDist,
                                         RotateType aRotateType,
                                         float aRotateAngle);

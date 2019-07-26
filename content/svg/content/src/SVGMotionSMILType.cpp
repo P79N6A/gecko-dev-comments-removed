@@ -32,7 +32,7 @@ struct TranslationParams {
   float mY;
 };
 struct PathPointParams {  
-  gfxFlattenedPath* mPath; 
+  gfxPath* mPath; 
   float mDistToPoint; 
                       
 };
@@ -70,7 +70,7 @@ struct MotionSegment
   }
 
   
-  MotionSegment(gfxFlattenedPath* aPath, float aDistToPoint,
+  MotionSegment(gfxPath* aPath, float aDistToPoint,
                 RotateType aRotateType, float aRotateAngle)
     : mRotateType(aRotateType), mRotateAngle(aRotateAngle),
       mSegmentType(eSegmentType_PathPoint)
@@ -228,7 +228,7 @@ SVGMotionSMILType::IsEqual(const nsSMILValue& aLeft,
 
 
 inline static void
-GetAngleAndPointAtDistance(gfxFlattenedPath* aPath, float aDistance,
+GetAngleAndPointAtDistance(gfxPath* aPath, float aDistance,
                            RotateType aRotateType,
                            gfxFloat& aRotateAngle, 
                            gfxPoint& aPoint)       
@@ -287,7 +287,7 @@ SVGMotionSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
                     "unexpected angle mismatch");
   NS_ABORT_IF_FALSE(srcParams.mPath == dstParams.mPath,
                     "unexpected path mismatch");
-  gfxFlattenedPath* path = srcParams.mPath;
+  gfxPath* path = srcParams.mPath;
 
   
   gfxFloat rotateAngle = dstSeg.mRotateAngle;
@@ -411,7 +411,7 @@ SVGMotionSMILType::Interpolate(const nsSMILValue& aStartVal,
   
   
   
-  gfxFlattenedPath* path = endParams.mPath;
+  gfxPath* path = endParams.mPath;
   RotateType rotateType  = endSeg.mRotateType;
   float rotateAngle      = endSeg.mRotateAngle;
 
@@ -471,7 +471,7 @@ SVGMotionSMILType::CreateMatrix(const nsSMILValue& aSMILVal)
 }
 
  nsSMILValue
-SVGMotionSMILType::ConstructSMILValue(gfxFlattenedPath* aPath,
+SVGMotionSMILType::ConstructSMILValue(gfxPath* aPath,
                                       float aDist,
                                       RotateType aRotateType,
                                       float aRotateAngle)

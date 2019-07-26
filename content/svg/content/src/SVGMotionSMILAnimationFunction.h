@@ -78,7 +78,7 @@ protected:
   void     RebuildPathAndVerticesFromMpathElem(dom::SVGMPathElement* aMpathElem);
   void     RebuildPathAndVerticesFromPathAttr();
   void     RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
-  bool     GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
+  bool     GenerateValuesForPathAndPoints(gfxPath* aPath,
                                           bool aIsKeyPoints,
                                           nsTArray<double>& aPointDistances,
                                           nsTArray<nsSMILValue>& aResult);
@@ -91,7 +91,7 @@ protected:
   float                      mRotateAngle; 
 
   PathSourceType             mPathSourceType; 
-  nsRefPtr<gfxFlattenedPath> mPath;           
+  nsRefPtr<gfxPath> mPath;           
   nsTArray<double>           mPathVertices; 
 
   bool                       mIsPathStale;

@@ -17,7 +17,7 @@
 #include "nsSMILParserUtils.h"
 #include "nsTArray.h"
 
-class gfxFlattenedPath;
+class gfxPath;
 class nsAString;
 class nsSVGElement;
 
@@ -50,7 +50,7 @@ public:
     
     inline bool HaveReceivedCommands() { return mHaveReceivedCommands; }
     
-    already_AddRefed<gfxFlattenedPath> GetResultingPath();
+    already_AddRefed<gfxPath> GetResultingPath();
 
   protected:
     
