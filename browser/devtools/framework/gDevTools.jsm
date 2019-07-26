@@ -210,9 +210,7 @@ DevTools.prototype = {
 
 
 
-
-
-  showToolbox: function(target, toolId, hostType, hostOptions) {
+  showToolbox: function(target, toolId, hostType) {
     let deferred = promise.defer();
 
     let toolbox = this._toolboxes.get(target);
@@ -235,7 +233,7 @@ DevTools.prototype = {
     }
     else {
       
-      toolbox = new devtools.Toolbox(target, toolId, hostType, hostOptions);
+      toolbox = new devtools.Toolbox(target, toolId, hostType);
 
       this._toolboxes.set(target, toolbox);
 
