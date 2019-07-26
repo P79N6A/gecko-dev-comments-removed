@@ -267,24 +267,23 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
   } else if (mState == GESTURE_PINCH) {
     PinchGestureInput pinchEvent(PinchGestureInput::PINCHGESTURE_END,
                                  aEvent.mTime,
-                                 ScreenPoint(),  
-                                 1.0f,           
-                                 1.0f,           
+                                 ScreenPoint(),
+                                 1.0f,
+                                 1.0f,
                                  aEvent.modifiers);
-
-    if (mTouches.Length() > 0) {
-      
-      
-      pinchEvent.mFocusPoint = mTouches[0].mScreenPoint;
-    } else {
-      
-      
-      pinchEvent.mCurrentSpan = pinchEvent.mPreviousSpan = -1.0f;
-    }
-
     mAsyncPanZoomController->HandleInputEvent(pinchEvent);
 
     mState = GESTURE_NONE;
+
+    
+    
+    if (mTouches.Length() == 1) {
+      MultiTouchInput touchEvent(MultiTouchInput::MULTITOUCH_START,
+                                 aEvent.mTime,
+                                 aEvent.modifiers);
+      touchEvent.mTouches.AppendElement(mTouches[0]);
+      mAsyncPanZoomController->HandleInputEvent(touchEvent);
+    }
 
     rv = nsEventStatus_eConsumeNoDefault;
   } else if (mState == GESTURE_WAITING_PINCH) {
