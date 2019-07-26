@@ -66,6 +66,7 @@
 #include "nsXULAppAPI.h"
 #include "OrientationObserver.h"
 #include "UeventPoller.h"
+#include "nsIWritablePropertyBag2.h"
 #include <algorithm>
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk", args)
@@ -290,6 +291,25 @@ public:
     hal_impl::SetLight(hal::eHalLightID_Battery, aConfig);
 
     hal::NotifyBatteryChange(info);
+
+    {
+      
+      
+      
+      
+      nsCOMPtr<nsIObserverService> obsService = mozilla::services::GetObserverService();
+      nsCOMPtr<nsIWritablePropertyBag2> propbag =
+        do_CreateInstance("@mozilla.org/hash-property-bag;1");
+      if (obsService && propbag) {
+        propbag->SetPropertyAsBool(NS_LITERAL_STRING("charging"),
+                                   info.charging());
+        propbag->SetPropertyAsDouble(NS_LITERAL_STRING("level"),
+                                   info.level());
+
+        obsService->NotifyObservers(propbag, "gonkhal-battery-notifier", nullptr);
+      }
+    }
+
     return NS_OK;
   }
 };
