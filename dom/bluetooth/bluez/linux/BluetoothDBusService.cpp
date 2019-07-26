@@ -177,7 +177,6 @@ static nsString sAdapterPath;
 
 
 
-static bool sAdapterNameIsReady = false;
 static int sWaitingForAdapterNameInterval = 1000; 
 
 
@@ -764,16 +763,6 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
     for (uint32_t i= 0; i < length; i++) {
       nsString& data = propertyValue.get_ArrayOfnsString()[i];
       data = GetAddressFromObjectPath(data);
-    }
-  } else if (!sAdapterNameIsReady &&
-             aPropertyTypes == sAdapterProperties &&
-             propertyName.EqualsLiteral("Name")) {
-    MOZ_ASSERT(propertyValue.type() == BluetoothValue::TnsString);
-
-    
-    if (!propertyValue.get_nsString().IsEmpty()) {
-      sAdapterNameIsReady = true;
-      NS_DispatchToMainThread(new TryFiringAdapterAddedRunnable(false));
     }
   }
 
@@ -1856,8 +1845,6 @@ BluetoothDBusService::StopInternal()
 
   sAuthorizedServiceClass.Clear();
   sControllerArray.Clear();
-
-  sAdapterNameIsReady = false;
 
   StopDBus();
   return NS_OK;
