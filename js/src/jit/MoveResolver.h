@@ -50,7 +50,11 @@ class MoveResolver
             : kind_((Kind) addrKind),
             code_(reg.code()),
             disp_(disp)
-        { }
+        {
+            
+            if (disp == 0 && addrKind == EFFECTIVE)
+                kind_ = REG;
+        }
         MoveOperand(const MoveOperand &other)
           : kind_(other.kind_),
             code_(other.code_),
