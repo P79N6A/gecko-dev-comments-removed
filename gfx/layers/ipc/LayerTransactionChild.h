@@ -23,10 +23,9 @@ class RenderFrameChild;
 namespace layers {
 
 class LayerTransactionChild : public PLayerTransactionChild
-                            , public AtomicRefCounted<LayerTransactionChild>
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(LayerTransactionChild)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LayerTransactionChild)
   
 
 
@@ -43,8 +42,6 @@ protected:
     : mIPCOpen(false)
   {}
   ~LayerTransactionChild() { }
-  friend class AtomicRefCounted<LayerTransactionChild>;
-  friend class detail::RefCounted<LayerTransactionChild, detail::AtomicRefCount>;
 
   virtual PGrallocBufferChild*
   AllocPGrallocBufferChild(const IntSize&,

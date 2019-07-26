@@ -23,11 +23,13 @@ class SharedThreadPool;
 
 
 
-class MediaTaskQueue : public AtomicRefCounted<MediaTaskQueue> {
-public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(MediaTaskQueue)
-  MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
+class MediaTaskQueue MOZ_FINAL {
   ~MediaTaskQueue();
+
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaTaskQueue)
+
+  MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
 
   nsresult Dispatch(nsIRunnable* aRunnable);
 
