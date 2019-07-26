@@ -160,7 +160,8 @@ public:
 
   static void CreateDeviceStoragesFor(nsPIDOMWindow* aWin,
                                       const nsAString& aType,
-                                      nsTArray<nsRefPtr<nsDOMDeviceStorage> >& aStores);
+                                      nsTArray<nsRefPtr<nsDOMDeviceStorage> >& aStores,
+                                      bool aCompositeComponent);
   void Shutdown();
 
   static void GetOrderedVolumeNames(nsTArray<nsString>& aVolumeNames);
@@ -198,8 +199,21 @@ private:
   nsString mStorageType;
   nsCOMPtr<nsIFile> mRootDirectory;
   nsString mStorageName;
+  bool mCompositeComponent;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   bool IsComposite() { return mStores.Length() > 0; }
+  bool IsCompositeComponent() { return mCompositeComponent; }
   nsTArray<nsRefPtr<nsDOMDeviceStorage> > mStores;
   already_AddRefed<nsDOMDeviceStorage> GetStorage(const nsAString& aCompositePath,
                                                   nsAString& aOutStoragePath);
