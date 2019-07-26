@@ -269,6 +269,11 @@ CustomizeMode.prototype = {
       panelContents.removeAttribute("customize-transitioning");
 
       CustomizableUI.dispatchToolboxEvent("customizationready", {}, window);
+
+      
+      
+      
+      window.gCustomizationTabPreloader.ensurePreloading();
       if (!this._wantToBeInCustomizeMode) {
         this.exit();
       }
