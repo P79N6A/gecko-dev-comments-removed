@@ -19,10 +19,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "IdpProxy",
 
 
 
-function PeerConnectionIdp(window, timeout, warningFunc) {
+
+function PeerConnectionIdp(window, timeout, warningFunc, dispatchEventFunc) {
   this._win = window;
   this._timeout = timeout || 5000;
   this._warning = warningFunc;
+  this._dispatchEvent = dispatchEventFunc;
 
   this.assertion = null;
   this.provider = null;
@@ -40,6 +42,7 @@ function PeerConnectionIdp(window, timeout, warningFunc) {
 PeerConnectionIdp.prototype = {
   setIdentityProvider: function(provider, protocol, username) {
     this.provider = provider;
+    this.protocol = protocol;
     this.username = username;
     if (this._idpchannel) {
       if (this._idpchannel.isSame(provider, protocol)) {
@@ -59,6 +62,25 @@ PeerConnectionIdp.prototype = {
     }
   },
 
+  
+
+
+
+  reportError: function(type, message, extra) {
+    let args = {
+      idp: this.provider,
+      protocol: this.protocol
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function(k) {
+        args[k] = extra[k];
+      });
+    }
+    this._warning("RTC identity: " + message, null, 0);
+    let ev = new this._win.RTCPeerConnectionIdentityErrorEvent('idp' + type + 'error', args);
+    this._dispatchEvent(ev);
+  },
+
   _getFingerprintFromSdp: function(sdp) {
     let sections = sdp.split(PeerConnectionIdp._mLinePattern);
     let attributes = sections.map(function(sect) {
@@ -68,8 +90,8 @@ PeerConnectionIdp.prototype = {
         if (!remainder.match(PeerConnectionIdp._fingerprintPattern)) {
           return { algorithm: m[1], digest: m[2] };
         }
-        this._warning("RTC identity: two fingerprint values in same media " +
-            "section are not supported", null, 0);
+        this.reportError("validation", "two fingerprint values" +
+                         " in same media section are not supported");
         
         
         return "error";
@@ -97,7 +119,6 @@ PeerConnectionIdp.prototype = {
 
   _getIdentityFromSdp: function(sdp) {
     
-    
     let mLineMatch = sdp.match(PeerConnectionIdp._mLinePattern);
     let sessionLevel = sdp.substring(0, mLineMatch.index);
     let idMatch = sessionLevel.match(PeerConnectionIdp._identityPattern);
@@ -106,15 +127,17 @@ PeerConnectionIdp.prototype = {
       try {
         assertion = JSON.parse(atob(idMatch[1]));
       } catch (e) {
-        this._warning("RTC identity: invalid identity assertion: " + e, null, 0);
+        this.reportError("validation",
+                         "invalid identity assertion: " + e);
       } 
       if (typeof assertion.idp === "object" &&
           typeof assertion.idp.domain === "string" &&
           typeof assertion.assertion === "string") {
         return assertion;
       }
-      this._warning("RTC identity: assertion missing idp/idp.domain/assertion",
-                    null, 0);
+
+      this.reportError("validation", "assertion missing" +
+                       " idp/idp.domain/assertion");
     }
     
   },
@@ -134,8 +157,8 @@ PeerConnectionIdp.prototype = {
       callback(null);
       return;
     }
-    this.setIdentityProvider(identity.idp.domain, identity.idp.protocol);
 
+    this.setIdentityProvider(identity.idp.domain, identity.idp.protocol);
     this._verifyIdentity(identity.assertion, fingerprint, callback);
   },
 
@@ -160,7 +183,7 @@ PeerConnectionIdp.prototype = {
       if (providerPortIdx > 0) {
         provider = provider.substring(0, providerPortIdx);
       }
-      var idnService = Components.classes["@mozilla.org/network/idn-service;1"].
+      let idnService = Components.classes["@mozilla.org/network/idn-service;1"].
         getService(Components.interfaces.nsIIDNService);
       if (idnService.convertUTF8toACE(tail) !==
           idnService.convertUTF8toACE(provider)) {
@@ -174,10 +197,10 @@ PeerConnectionIdp.prototype = {
 
   
   
-  _checkVerifyResponse: function(
-      message, fingerprint) {
-    let warn = function(message) {
-      this._warning("RTC identity: VERIFY error: " + message, null, 0);
+  _checkVerifyResponse: function(message, fingerprint) {
+    let warn = function(msg) {
+      this.reportError("validation",
+                       "assertion validation failure: " + msg);
     }.bind(this);
 
     try {
@@ -207,14 +230,10 @@ PeerConnectionIdp.prototype = {
   _verifyIdentity: function(
       assertion, fingerprint, callback) {
     function onVerification(message) {
-      if (!message) {
-        this._warning("RTC identity: verification failure", null, 0);
-        callback(null);
-        return;
-      }
-      if (this._checkVerifyResponse(message, fingerprint)) {
+      if (message && this._checkVerifyResponse(message, fingerprint)) {
         callback(message);
       } else {
+        this._warning("RTC identity: assertion validation failure", null, 0);
         callback(null);
       }
     }
@@ -223,7 +242,7 @@ PeerConnectionIdp.prototype = {
       type: "VERIFY",
       message: assertion
     };
-    this._sendToIdp(request, onVerification.bind(this));
+    this._sendToIdp(request, "validation", onVerification.bind(this));
   },
 
   
@@ -233,21 +252,16 @@ PeerConnectionIdp.prototype = {
 
 
   appendIdentityToSDP: function(sdp, fingerprint, callback) {
-    if (!this._idpchannel) {
-      callback(sdp);
+    let onAssertion = function() {
+      callback(this.wrapSdp(sdp), this.assertion);
+    }.bind(this);
+
+    if (!this._idpchannel || this.assertion) {
+      onAssertion();
       return;
     }
 
-    if (this.assertion) {
-      callback(this.wrapSdp(sdp));
-      return;
-    }
-
-    function onAssertion(assertion) {
-      callback(this.wrapSdp(sdp), assertion);
-    }
-
-    this._getIdentityAssertion(fingerprint, onAssertion.bind(this));
+    this._getIdentityAssertion(fingerprint, onAssertion);
   },
 
   
@@ -267,7 +281,9 @@ PeerConnectionIdp.prototype = {
 
   getIdentityAssertion: function(fingerprint, callback) {
     if (!this._idpchannel) {
-      throw new Error("IdP not set");
+      this.reportError("assertion", "IdP not set");
+      callback(null);
+      return;
     }
 
     this._getIdentityAssertion(fingerprint, callback);
@@ -298,19 +314,7 @@ PeerConnectionIdp.prototype = {
       callback(this.assertion);
     }
 
-    this._sendToIdp(request, trapAssertion.bind(this));
-  },
-
-  
-
-
-  _sendToIdp: function(request, callback) {
-    
-    
-    
-    request.origin = this._win.document.nodePrincipal.origin;
-
-    this._idpchannel.send(request, this._wrapCallback(callback));
+    this._sendToIdp(request, "assertion", trapAssertion.bind(this));
   },
 
   
@@ -318,10 +322,36 @@ PeerConnectionIdp.prototype = {
 
 
 
-  _wrapCallback: function(callback) {
+
+  _sendToIdp: function(request, type, callback) {
+    request.origin = Cu.getWebIDLCallerPrincipal().origin;
+    this._idpchannel.send(request, this._wrapCallback(type, callback));
+  },
+
+  _reportIdpError: function(type, message) {
+    let args = {};
+    let msg = "";
+    if (message.type === "ERROR") {
+      msg = message.error;
+    } else {
+      msg = JSON.stringify(message.message);
+      if (message.type === "LOGINNEEDED") {
+        args.loginUrl = message.loginUrl;
+      }
+    }
+    this.reportError(type, "received response of type '" +
+                     message.type + "' from IdP: " + msg, args);
+  },
+
+  
+
+
+
+
+  _wrapCallback: function(type, callback) {
     let timeout = this._win.setTimeout(function() {
-      this._warning("RTC identity: IdP timeout for " + this._idpchannel + " " +
-           (this._idpchannel.ready ? "[ready]" : "[not ready]"), null, 0);
+      this.reportError(type, "IdP timeout for " + this._idpchannel + " " +
+                       (this._idpchannel.ready ? "[ready]" : "[not ready]"));
       timeout = null;
       callback(null);
     }.bind(this), this._timeout);
@@ -332,12 +362,12 @@ PeerConnectionIdp.prototype = {
       }
       this._win.clearTimeout(timeout);
       timeout = null;
-      var content = null;
+
+      let content = null;
       if (message.type === "SUCCESS") {
         content = message.message;
       } else {
-        this._warning("RTC Identity: received response of type '" +
-            message.type + "' from IdP: " + message.message, null, 0);
+        this._reportIdpError(type, message);
       }
       callback(content);
     }.bind(this);

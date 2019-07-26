@@ -259,7 +259,7 @@ pref("media.peerconnection.use_document_iceservers", true);
 
 
 pref("media.peerconnection.identity.enabled", false);
-pref("media.peerconnection.identity.timeout", 5000);
+pref("media.peerconnection.identity.timeout", 10000);
 
 
 
@@ -876,7 +876,7 @@ pref("network.warnOnAboutNetworking", true);
 
 
 
-pref("network.http.version", "1.1");	  
+pref("network.http.version", "1.1");      
 
 
 
@@ -930,13 +930,13 @@ pref("network.http.accept.default", "text/html,application/xhtml+xml,application
 
 
 
-pref("network.http.sendRefererHeader",      2); 
+pref("network.http.sendRefererHeader",      2);
 
-pref("network.http.referer.spoofSource", false); 
+pref("network.http.referer.spoofSource", false);
 
-pref("network.http.referer.trimmingPolicy", 0); 
+pref("network.http.referer.trimmingPolicy", 0);
 
-pref("network.http.referer.XOriginPolicy", 0); 
+pref("network.http.referer.XOriginPolicy", 0);
 
 
 
@@ -1187,7 +1187,7 @@ pref("network.IDN.whitelist.yt", true);
 
 
 
-pref("network.IDN.whitelist.xn--mgbaam7a8h", true); 
+pref("network.IDN.whitelist.xn--mgbaam7a8h", true);
 
 pref("network.IDN.whitelist.xn--fiqz9s", true); 
 pref("network.IDN.whitelist.xn--fiqs8s", true); 
@@ -1210,7 +1210,7 @@ pref("network.IDN.whitelist.xn--90a3ac", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
 
-pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
+pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true);
 pref("network.IDN.whitelist.xn--mgberp4a5d4a87g", true);
 pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
 pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
@@ -2287,7 +2287,7 @@ pref("font.name-list.monospace.zh-CN", "MS Song, SimSun, SimSun-ExtB");
 
 
 
-pref("font.name.serif.zh-TW", "Times New Roman"); 
+pref("font.name.serif.zh-TW", "Times New Roman");
 pref("font.name.sans-serif.zh-TW", "Arial");
 pref("font.name.monospace.zh-TW", "MingLiU");
 pref("font.name-list.serif.zh-TW", "PMingLiu, MingLiU, MingLiU-ExtB");
@@ -2326,8 +2326,8 @@ pref("font.name-list.monospace.x-armn", "Arial AMU, Arial Unicode MS, Code2000")
 pref("font.name.serif.x-beng", "Vrinda");
 pref("font.name.sans-serif.x-beng", "Vrinda");
 pref("font.name.monospace.x-beng", "Mitra Mono");
-pref("font.name-list.serif.x-beng", "Vrinda, Akaash, Likhan, Ekushey Punarbhaba, Code2000, Arial Unicode MS"); 
-pref("font.name-list.sans-serif.x-beng", "Vrinda, Akaash, Likhan, Ekushey Punarbhaba, Code2000, Arial Unicode MS"); 
+pref("font.name-list.serif.x-beng", "Vrinda, Akaash, Likhan, Ekushey Punarbhaba, Code2000, Arial Unicode MS");
+pref("font.name-list.sans-serif.x-beng", "Vrinda, Akaash, Likhan, Ekushey Punarbhaba, Code2000, Arial Unicode MS");
 pref("font.name-list.monospace.x-beng", "Likhan, Mukti Narrow, Code2000, Arial Unicode MS");
 
 pref("font.name.serif.x-cans", "Aboriginal Serif");
@@ -2714,10 +2714,10 @@ pref("font.name-list.fantasy.he", "Times New Roman");
 
 pref("font.name.serif.ja", "Hiragino Mincho ProN");
 pref("font.name.sans-serif.ja", "Hiragino Kaku Gothic ProN");
-pref("font.name.monospace.ja", "Osaka-Mono"); 
+pref("font.name.monospace.ja", "Osaka-Mono");
 pref("font.name-list.serif.ja", "Hiragino Mincho ProN,Hiragino Mincho Pro");
 pref("font.name-list.sans-serif.ja", "Hiragino Kaku Gothic ProN,Hiragino Kaku Gothic Pro");
-pref("font.name-list.monospace.ja", "Osaka-Mono"); 
+pref("font.name-list.monospace.ja", "Osaka-Mono");
 
 pref("font.name.serif.ko", "AppleMyungjo");
 pref("font.name.sans-serif.ko", "Apple SD Gothic Neo");
@@ -2750,7 +2750,7 @@ pref("font.name.monospace.x-armn", "Mshtakan");
 pref("font.name-list.serif.x-armn", "Mshtakan");
 pref("font.name-list.sans-serif.x-armn", "Mshtakan");
 pref("font.name-list.monospace.x-armn", "Mshtakan");
- 
+
 pref("font.name.serif.x-baltic", "Times");
 pref("font.name.sans-serif.x-baltic", "Helvetica");
 pref("font.name.monospace.x-baltic", "Courier");
@@ -2821,42 +2821,42 @@ pref("font.name-list.monospace.x-ethi", "Kefa,Abyssinica SIL");
 pref("font.name.serif.x-geor", "TITUS Cyberbit Basic");
 pref("font.name.sans-serif.x-geor", "Zuzumbo");
 pref("font.name.monospace.x-geor", "Zuzumbo");
-pref("font.name-list.serif.x-geor", "TITUS Cyberbit Basic"); 
+pref("font.name-list.serif.x-geor", "TITUS Cyberbit Basic");
 pref("font.name-list.sans-serif.x-geor", "Zuzumbo");
 pref("font.name-list.monospace.x-geor", "Zuzumbo");
 
 pref("font.name.serif.x-gujr", "Gujarati MT");
 pref("font.name.sans-serif.x-gujr", "Gujarati Sangam MN");
 pref("font.name.monospace.x-gujr", "Gujarati Sangam MN");
-pref("font.name-list.serif.x-gujr", "Gujarati MT"); 
+pref("font.name-list.serif.x-gujr", "Gujarati MT");
 pref("font.name-list.sans-serif.x-gujr", "Gujarati Sangam MN,Gujarati MT");
 pref("font.name-list.monospace.x-gujr", "Gujarati Sangam MN,Gujarati MT");
 
 pref("font.name.serif.x-guru", "Gurmukhi MT");
 pref("font.name.sans-serif.x-guru", "Gurmukhi MT");
 pref("font.name.monospace.x-guru", "Gurmukhi MT");
-pref("font.name-list.serif.x-guru", "Gurmukhi MT"); 
+pref("font.name-list.serif.x-guru", "Gurmukhi MT");
 pref("font.name-list.sans-serif.x-guru", "Gurmukhi MT");
 pref("font.name-list.monospace.x-guru", "Gurmukhi MT");
 
 pref("font.name.serif.x-khmr", "Khmer MN");
 pref("font.name.sans-serif.x-khmr", "Khmer Sangam MN");
 pref("font.name.monospace.x-khmr", "Khmer Sangam MN");
-pref("font.name-list.serif.x-khmr", "Khmer MN"); 
+pref("font.name-list.serif.x-khmr", "Khmer MN");
 pref("font.name-list.sans-serif.x-khmr", "Khmer Sangam MN");
 pref("font.name-list.monospace.x-khmr", "Khmer Sangam MN");
 
 pref("font.name.serif.x-mlym", "Malayalam MN");
 pref("font.name.sans-serif.x-mlym", "Malayalam Sangam MN");
 pref("font.name.monospace.x-mlym", "Malayalam Sangam MN");
-pref("font.name-list.serif.x-mlym", "Malayalam MN"); 
+pref("font.name-list.serif.x-mlym", "Malayalam MN");
 pref("font.name-list.sans-serif.x-mlym", "Malayalam Sangam MN");
 pref("font.name-list.monospace.x-mlym", "Malayalam Sangam MN");
 
 pref("font.name.serif.x-orya", "Oriya MN");
 pref("font.name.sans-serif.x-orya", "Oriya Sangam MN");
 pref("font.name.monospace.x-orya", "Oriya Sangam MN");
-pref("font.name-list.serif.x-orya", "Oriya MN"); 
+pref("font.name-list.serif.x-orya", "Oriya MN");
 pref("font.name-list.sans-serif.x-orya", "Oriya Sangam MN");
 pref("font.name-list.monospace.x-orya", "Oriya Sangam MN");
 
@@ -2927,9 +2927,9 @@ pref("font.name-list.serif.zh-CN", "Times,STSong,Heiti SC");
 pref("font.name-list.sans-serif.zh-CN", "Helvetica,STHeiti,Heiti SC");
 pref("font.name-list.monospace.zh-CN", "Courier,STHeiti,Heiti SC");
 
-pref("font.name.serif.zh-TW", "Times"); 
-pref("font.name.sans-serif.zh-TW", "Helvetica");  
-pref("font.name.monospace.zh-TW", "Courier");  
+pref("font.name.serif.zh-TW", "Times");
+pref("font.name.sans-serif.zh-TW", "Helvetica");
+pref("font.name.monospace.zh-TW", "Courier");
 pref("font.name-list.serif.zh-TW", "Times,LiSong Pro,Heiti TC");
 pref("font.name-list.sans-serif.zh-TW", "Helvetica,Heiti TC,LiHei Pro");
 pref("font.name-list.monospace.zh-TW", "Courier,Heiti TC,LiHei Pro");

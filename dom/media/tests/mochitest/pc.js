@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 
 
 
@@ -73,7 +75,8 @@ CommandChain.prototype = {
         var step = self._commands[self._current];
         self._current++;
 
-        info("Run step: " + step[0]);  
+        self.currentStepLabel = step[0];
+        info("Run step: " + self.currentStepLabel);
         step[1](self._framework);      
       }
       else if (typeof(self.onFinished) === 'function') {
@@ -505,7 +508,22 @@ PeerConnectionTest.prototype.close = function PCT_close(onSuccess) {
 
 
 PeerConnectionTest.prototype.next = function PCT_next() {
+  if (this._stepTimeout) {
+    clearTimeout(this._stepTimeout);
+    this._stepTimeout = null;
+  }
   this.chain.executeNext();
+};
+
+
+
+
+
+PeerConnectionTest.prototype.setStepTimeout = function(ms) {
+  this._stepTimeout = setTimeout(function() {
+    ok(false, "Step timed out: " + this.chain.currentStepLabel);
+    this.next();
+  }.bind(this), ms);
 };
 
 
