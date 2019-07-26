@@ -24,24 +24,6 @@ namespace dom {
 class CallbackInterface : public CallbackObject
 {
 public:
-  
-
-
-
-
-
-
-  CallbackInterface(JSContext* cx, JSObject* aOwner, JSObject* aCallback,
-                   bool* aInited)
-    : CallbackObject(cx, aOwner, aCallback, aInited)
-  {
-  }
-
-  
-
-
-
-
   explicit CallbackInterface(JSObject* aCallback)
     : CallbackObject(aCallback)
   {

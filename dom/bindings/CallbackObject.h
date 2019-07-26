@@ -46,37 +46,6 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CallbackObject)
 
-  
-
-
-
-
-
-
-  CallbackObject(JSContext* cx, JSObject* aOwner, JSObject* aCallback,
-                 bool* aInited)
-    : mCallback(nullptr)
-  {
-    
-    
-    if (aOwner) {
-      aOwner = js::UncheckedUnwrap(aOwner);
-      JSAutoCompartment ac(cx, aOwner);
-      if (!JS_WrapObject(cx, &aCallback)) {
-        *aInited = false;
-        return;
-      }
-    }
-
-    Init(aCallback);
-    *aInited = true;
-  }
-
-  
-
-
-
-
   explicit CallbackObject(JSObject* aCallback)
   {
     Init(aCallback);
@@ -377,12 +346,7 @@ public:
     SafeAutoJSContext cx;
     JSAutoCompartment ac(cx, obj);
 
-    bool inited;
-    nsRefPtr<WebIDLCallbackT> newCallback =
-      new WebIDLCallbackT(cx, nullptr, obj, &inited);
-    if (!inited) {
-      return nullptr;
-    }
+    nsRefPtr<WebIDLCallbackT> newCallback = new WebIDLCallbackT(obj);
     return newCallback.forget();
   }
 

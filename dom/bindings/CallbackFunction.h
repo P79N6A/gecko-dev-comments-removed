@@ -25,18 +25,10 @@ namespace dom {
 class CallbackFunction : public CallbackObject
 {
 public:
-  
-
-
-
-
-
-
-  CallbackFunction(JSContext* cx, JSObject* aOwner, JSObject* aCallable,
-                   bool* aInited)
-    : CallbackObject(cx, aOwner, aCallable, aInited)
+  explicit CallbackFunction(JSObject* aCallable)
+    : CallbackObject(aCallable)
   {
-    MOZ_ASSERT(JS_ObjectIsCallable(cx, aCallable));
+    MOZ_ASSERT(JS_ObjectIsCallable(nullptr, aCallable));
   }
 
   JSObject* Callable() const
