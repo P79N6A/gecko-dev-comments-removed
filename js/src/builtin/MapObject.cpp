@@ -474,24 +474,6 @@ class OrderedHashTable
                 *ep = &entry;
             }
         }
-
-        
-
-
-
-
-        void rekeyFrontWithSameHashCode(const Key &k) {
-            MOZ_ASSERT(valid());
-#ifdef DEBUG
-            
-            HashNumber h = Ops::hash(k) >> ht.hashShift;
-            Data *e = ht.hashTable[h];
-            while (e && e != &ht.data[i])
-                e = e->chain;
-            MOZ_ASSERT(e == &ht.data[i]);
-#endif
-            Ops::setKey(ht.data[i].element, k);
-        }
     };
 
     Range all() { return Range(*this); }
@@ -1101,23 +1083,9 @@ MarkKey(Range &r, const HashableValue &key, JSTracer *trc)
     HashableValue newKey = key.mark(trc);
 
     if (newKey.get() != key.get()) {
-        if (newKey.get().isString()) {
-            
-            
-            
-            
-            
-            
-            
-            r.rekeyFrontWithSameHashCode(newKey);
-        } else {
-            
-            
-            
-
-            JS_ASSERT(newKey.get().isObject());
-            r.rekeyFront(newKey);
-        }
+        
+        
+        r.rekeyFront(newKey);
     }
 }
 
