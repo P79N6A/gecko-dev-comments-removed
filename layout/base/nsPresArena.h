@@ -15,18 +15,6 @@
 
 struct nsArenaMemoryStats;
 
-
-
-
-
-
-
-#ifdef DEBUG_TRACEMALLOC_PRESARENA
-#define PRESARENA_MUST_FREE_DURING_DESTROY true
-#else
-#define PRESARENA_MUST_FREE_DURING_DESTROY false
-#endif
-
 class nsPresArena {
 public:
   nsPresArena();

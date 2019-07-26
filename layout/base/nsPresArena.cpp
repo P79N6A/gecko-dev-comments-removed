@@ -239,8 +239,6 @@ ARENA_POISON_init()
   return PR_SUCCESS;
 }
 
-#ifndef DEBUG_TRACEMALLOC_PRESARENA
-
 
 
 
@@ -466,36 +464,6 @@ nsPresArena::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
 {
   mState->SizeOfIncludingThis(aMallocSizeOf, aArenaStats);
 }
-
-#else
-
-
-
-
-struct nsPresArena::State
-{
-
-  State()
-  {
-    PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
-  }
-
-  void* Allocate(uint32_t , size_t aSize)
-  {
-    return moz_malloc(aSize);
-  }
-
-  void Free(uint32_t , void* aPtr)
-  {
-    moz_free(aPtr);
-  }
-};
-
-void
-nsPresArena::SizeOfExcludingThis(nsMallocSizeOfFun, nsArenaMemoryStats*)
-{}
-
-#endif 
 
 
 nsPresArena::nsPresArena()
