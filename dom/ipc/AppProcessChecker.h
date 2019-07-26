@@ -8,10 +8,6 @@
 #ifndef mozilla_AppProcessChecker_h
 #define mozilla_AppProcessChecker_h
 
-#include <stdint.h>
-
-class nsIPrincipal;
-
 namespace mozilla {
 
 namespace dom {
@@ -69,21 +65,6 @@ AssertAppProcess(mozilla::hal_sandbox::PHalParent* aActor,
 
 
 
-
-bool
-AssertAppPrincipal(mozilla::dom::PContentParent* aParent,
-                   nsIPrincipal* aPrincipal);
-
-
-
-
-
-
-
-
-uint32_t
-CheckPermission(mozilla::dom::PContentParent* aParent,
-                nsIPrincipal* aPrincipal, const char* aPermission);
 
 
 
