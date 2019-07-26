@@ -192,6 +192,9 @@ protected:
     SharedSurface* mConsumer;
 
     
+    virtual bool WaitForCompositor() { return false; }
+
+    
     SurfaceStream_TripleBuffer(SurfaceStreamType type, SurfaceStream* prevStream);
 
 public:
@@ -213,6 +216,18 @@ public:
 
     virtual void SurrenderSurfaces(SharedSurface*& producer, SharedSurface*& consumer);
 };
+
+class SurfaceStream_TripleBuffer_Async
+    : public SurfaceStream_TripleBuffer
+{
+protected:
+    virtual bool WaitForCompositor() MOZ_OVERRIDE;
+
+public:
+    SurfaceStream_TripleBuffer_Async(SurfaceStream* prevStream);
+    virtual ~SurfaceStream_TripleBuffer_Async();
+};
+
 
 } 
 } 
