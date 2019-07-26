@@ -1112,6 +1112,8 @@ class ObjectImpl : public gc::Cell
 
     inline bool isExtensible() const;
 
+    
+    
     static bool
     preventExtensions(JSContext *cx, Handle<ObjectImpl*> obj);
 
