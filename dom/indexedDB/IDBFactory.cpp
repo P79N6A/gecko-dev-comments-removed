@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Indexed Database.
- *
- * The Initial Developer of the Original Code is
- * The Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Ben Turner <bent.mozilla@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -85,7 +85,7 @@ struct ObjectStoreInfoMap
   ObjectStoreInfo* info;
 };
 
-} // anonymous namespace
+} 
 
 IDBFactory::IDBFactory()
 : mOwningObject(nsnull)
@@ -97,7 +97,7 @@ IDBFactory::~IDBFactory()
 {
 }
 
-// static
+
 already_AddRefed<nsIIDBFactory>
 IDBFactory::Create(nsPIDOMWindow* aWindow)
 {
@@ -115,7 +115,7 @@ IDBFactory::Create(nsPIDOMWindow* aWindow)
   return factory.forget();
 }
 
-// static
+
 already_AddRefed<nsIIDBFactory>
 IDBFactory::Create(JSContext* aCx,
                    JSObject* aOwningObject)
@@ -131,7 +131,7 @@ IDBFactory::Create(JSContext* aCx,
   return factory.forget();
 }
 
-// static
+
 already_AddRefed<mozIStorageConnection>
 IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
 {
@@ -158,7 +158,7 @@ IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
                                getter_AddRefs(connection));
   NS_ENSURE_SUCCESS(rv, nsnull);
 
-  // Turn on foreign key constraints!
+  
   rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "PRAGMA foreign_keys = ON;"
   ));
@@ -167,7 +167,7 @@ IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
   return connection.forget();
 }
 
-// static
+
 void
 IDBFactory::NoteUsedByProcessType(GeckoProcessType aProcessType)
 {
@@ -185,7 +185,7 @@ IgnoreWhitespace(PRUnichar c)
   return false;
 }
 
-// static
+
 nsresult
 IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
                                     nsIAtom* aDatabaseId,
@@ -197,7 +197,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
 
   aObjectStores.Clear();
 
-   // Load object store names and ids.
+   
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT name, id, key_path, auto_increment "
@@ -233,9 +233,9 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!keyPath.IsEmpty() && keyPath.First() == ',') {
-        // We use a comma in the beginning to indicate that it's an array of
-        // key paths. This is to be able to tell a string-keypath from an
-        // array-keypath which contains only one item.
+        
+        
+        
         nsCharSeparatedTokenizerTemplate<IgnoreWhitespace>
           tokenizer(keyPath, ',');
         tokenizer.nextToken();
@@ -262,7 +262,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Load index information
+  
   rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT object_store_id, id, name, key_path, unique_index, multientry "
     "FROM object_store_index"
@@ -297,9 +297,9 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
     rv = stmt->GetString(3, keyPath);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!keyPath.IsEmpty() && keyPath.First() == ',') {
-      // We use a comma in the beginning to indicate that it's an array of
-      // key paths. This is to be able to tell a string-keypath from an
-      // array-keypath which contains only one item.
+      
+      
+      
       nsCharSeparatedTokenizerTemplate<IgnoreWhitespace>
         tokenizer(keyPath, ',');
       tokenizer.nextToken();
@@ -318,7 +318,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Load version information.
+  
   rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT version "
     "FROM database"
@@ -341,7 +341,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   return rv;
 }
 
-// static
+
 nsresult
 IDBFactory::SetDatabaseMetadata(DatabaseInfo* aDatabaseInfo,
                                 PRUint64 aVersion,
@@ -417,10 +417,10 @@ IDBFactory::OpenCommon(const nsAString& aName,
   NS_ASSERTION(mWindow || mOwningObject, "Must have one of these!");
 
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    // Force ContentChild to cache the path from the parent, so that
-    // we do not end up in a side thread that asks for the path (which
-    // would make ContentChild try to send a message in a thread other
-    // than the main one).
+    
+    
+    
+    
     ContentChild::GetSingleton()->GetIndexedDBPath();
   }
 

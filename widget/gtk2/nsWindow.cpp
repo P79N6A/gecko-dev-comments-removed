@@ -302,9 +302,6 @@ typedef struct _GdkDisplay GdkDisplay;
 
 static GdkCursor *gCursorCache[eCursorCount];
 
-
-bool gDisableNativeTheme = false;
-
 static GtkWidget *gInvisibleContainer = NULL;
 
 
@@ -5763,8 +5760,6 @@ initialize_prefs(void)
 {
     gRaiseWindows =
         Preferences::GetBool("mozilla.widget.raise-on-setfocus", true);
-    gDisableNativeTheme =
-        Preferences::GetBool("mozilla.widget.disable-native-theme", false);
 
     return NS_OK;
 }

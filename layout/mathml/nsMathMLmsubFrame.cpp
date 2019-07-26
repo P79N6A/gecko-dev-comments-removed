@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -90,15 +91,24 @@ nsMathMLmsubFrame::Place (nsRenderingContext& aRenderingContext,
   nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f); 
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   nscoord subScriptShift = 0;
   nsAutoString value;
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    nsCSSValue cssValue;
-    if (ParseNumericValue(value, cssValue) && cssValue.IsLengthUnit()) {
-      subScriptShift = CalcLength(PresContext(), mStyleContext, cssValue);
-    }
+    ParseNumericValue(value, &subScriptShift,
+                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+                      PresContext(), mStyleContext);
   }
 
   return nsMathMLmsubFrame::PlaceSubScript(PresContext(), 

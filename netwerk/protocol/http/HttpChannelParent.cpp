@@ -330,16 +330,6 @@ HttpChannelParent::RecvUpdateAssociatedContentSecurity(const PRInt32& high,
   return true;
 }
 
-
-
-#ifdef _MSC_VER
-#pragma warning(disable : 4068)
-#endif
-#ifdef ANDROID
-
-#pragma GCC optimize ("O0")
-#endif
-
 bool
 HttpChannelParent::RecvRedirect2Verify(const nsresult& result, 
                                        const RequestHeaderTuples& changedHeaders)
@@ -360,26 +350,29 @@ HttpChannelParent::RecvRedirect2Verify(const nsresult& result,
   if (!mRedirectCallback) {
     
     if (mReceivedRedirect2Verify)
-      NS_RUNTIMEABORT("Duplicate fire");
+      LOG(("RecvRedirect2Verify[%p]: Duplicate fire", this));
     if (mSentRedirect1BeginFailed)
-      NS_RUNTIMEABORT("Send to child failed");
+      LOG(("RecvRedirect2Verify[%p]: Send to child failed", this));
     if (mSentRedirect1Begin && NS_FAILED(result))
-      NS_RUNTIMEABORT("Redirect failed");
+      LOG(("RecvRedirect2Verify[%p]: Redirect failed", this));
     if (mSentRedirect1Begin && NS_SUCCEEDED(result))
-      NS_RUNTIMEABORT("Redirect succeeded");
+      LOG(("RecvRedirect2Verify[%p]: Redirect succeeded", this));
     if (!mRedirectChannel)
-      NS_RUNTIMEABORT("Missing redirect channel");
+      LOG(("RecvRedirect2Verify[%p]: Missing redirect channel", this));
+
+    NS_ERROR("Unexpcted call to HttpChannelParent::RecvRedirect2Verify, "
+             "mRedirectCallback null");
   }
 
   mReceivedRedirect2Verify = true;
 
-  mRedirectCallback->OnRedirectVerifyCallback(result);
-  mRedirectCallback = nsnull;
+  if (mRedirectCallback) {
+    mRedirectCallback->OnRedirectVerifyCallback(result);
+    mRedirectCallback = nsnull;
+  }
+
   return true;
 }
-
-
-#pragma GCC reset_options
 
 bool
 HttpChannelParent::RecvDocumentChannelCleanup()
