@@ -556,6 +556,40 @@ function sendMMI(aMmi) {
 
 
 
+ function setVoicePrivacyMode(aEnabled) {
+  let request = mobileConnection.setVoicePrivacyMode(aEnabled);
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+ function getVoicePrivacyMode() {
+  let request = mobileConnection.getVoicePrivacyMode();
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
