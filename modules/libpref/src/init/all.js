@@ -276,6 +276,12 @@ pref("media.video_stats.enabled", true);
 
 pref("media.audio_data.enabled", true);
 
+
+
+
+
+pref("apzc.axis_lock_mode", 0);
+
 #ifdef XP_MACOSX
 
 
