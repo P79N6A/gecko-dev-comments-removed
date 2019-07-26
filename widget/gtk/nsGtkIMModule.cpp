@@ -549,7 +549,8 @@ nsGtkIMModule::SetInputContext(nsWindow* aCaller,
     }
 
     bool changingEnabledState =
-        aContext->mIMEState.mEnabled != mInputContext.mIMEState.mEnabled;
+        aContext->mIMEState.mEnabled != mInputContext.mIMEState.mEnabled ||
+        aContext->mHTMLInputType != mInputContext.mHTMLInputType;
 
     
     if (changingEnabledState && IsEditable()) {
@@ -559,12 +560,39 @@ nsGtkIMModule::SetInputContext(nsWindow* aCaller,
 
     mInputContext = *aContext;
 
-    
-    
-    
-    
     if (changingEnabledState) {
+#if (MOZ_WIDGET_GTK == 3)
+        static bool sInputPurposeSupported = !gtk_check_version(3, 6, 0);
+        if (sInputPurposeSupported && IsEditable()) {
+            GtkIMContext* context = GetContext();
+            if (context) {
+                GtkInputPurpose purpose = GTK_INPUT_PURPOSE_FREE_FORM;
+                const nsString& inputType = mInputContext.mHTMLInputType;
+                if (inputType.EqualsLiteral("password")) {
+                    purpose = GTK_INPUT_PURPOSE_PASSWORD;
+                } else if (inputType.EqualsLiteral("email")) {
+                    purpose = GTK_INPUT_PURPOSE_EMAIL;
+                } else if (inputType.EqualsLiteral("url")) {
+                    purpose = GTK_INPUT_PURPOSE_URL;
+                } else if (inputType.EqualsLiteral("tel")) {
+                    purpose = GTK_INPUT_PURPOSE_PHONE;
+                } else if (inputType.EqualsLiteral("number")) {
+                    purpose = GTK_INPUT_PURPOSE_NUMBER;
+                }
+
+                g_object_set(context, "input-purpose", purpose, nullptr);
+            }
+        }
+#endif 
+
+        
+        
+        
+        
         Focus();
+
+        
+        
     }
 }
 
