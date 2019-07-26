@@ -3005,19 +3005,18 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
   
   
   if (frameBounds.height == 0 || aUseWholeLineHeightForInlines) {
-    nsIAtom* frameType = NULL;
     nsIFrame *prevFrame = aFrame;
     nsIFrame *f = aFrame;
 
-    while (f &&
-           (frameType = f->GetType()) == nsGkAtoms::inlineFrame) {
+    while (f && f->IsFrameOfType(nsIFrame::eLineParticipant) &&
+           !f->IsTransformed() && !f->IsPositioned()) {
       prevFrame = f;
       f = prevFrame->GetParent();
     }
 
     if (f != aFrame &&
         f &&
-        frameType == nsGkAtoms::blockFrame) {
+        f->GetType() == nsGkAtoms::blockFrame) {
       
       if (f != aPrevBlock) {
         aLines = f->GetLineIterator();
