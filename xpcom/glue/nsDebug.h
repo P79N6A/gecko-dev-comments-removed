@@ -391,6 +391,7 @@ inline void NS_ABORT_OOM(size_t)
 }
 #endif
 
+typedef void (*StderrCallback)(const char *fmt, va_list args);
 
 
 
@@ -409,6 +410,11 @@ vprintf_stderr(const char *fmt, va_list args);
 
 NS_COM_GLUE void
 fprintf_stderr(FILE* aFile, const char *fmt, ...);
+
+
+
+NS_COM_GLUE void
+set_stderr_callback(StderrCallback aCallback);
 
 #ifdef __cplusplus
 }

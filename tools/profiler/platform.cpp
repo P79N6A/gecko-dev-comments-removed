@@ -435,6 +435,45 @@ bool is_main_thread_name(const char* aName) {
   return strcmp(aName, gGeckoThreadName) == 0;
 }
 
+#ifdef HAVE_VA_COPY
+#define VARARGS_ASSIGN(foo, bar)        VA_COPY(foo,bar)
+#elif defined(HAVE_VA_LIST_AS_ARRAY)
+#define VARARGS_ASSIGN(foo, bar)     foo[0] = bar[0]
+#else
+#define VARARGS_ASSIGN(foo, bar)     (foo) = (bar)
+#endif
+
+static void
+profiler_log(const char *fmt, va_list args)
+{
+  if (profiler_is_active()) {
+    
+    
+    char buf[2048];
+    va_list argsCpy;
+    VARARGS_ASSIGN(argsCpy, args);
+    int required = vsnprintf(buf, sizeof(buf), fmt, argsCpy);
+    va_end(argsCpy);
+
+    if (required < 0) {
+      return; 
+    } else if (required < 2048) {
+      profiler_tracing("log", buf, TRACING_EVENT);
+    } else {
+      char* heapBuf = new char[required+1];
+      va_list argsCpy;
+      VARARGS_ASSIGN(argsCpy, args);
+      vsnprintf(heapBuf, required+1, fmt, argsCpy);
+      va_end(argsCpy);
+      
+      
+      
+      profiler_tracing("log", heapBuf, TRACING_EVENT);
+      delete[] heapBuf;
+    }
+  }
+}
+
 
 
 
@@ -473,6 +512,8 @@ void mozilla_sampler_init(void* stackTop)
 
   
   OS::Startup();
+
+  set_stderr_callback(profiler_log);
 
   
   
@@ -520,6 +561,8 @@ void mozilla_sampler_shutdown()
   }
 
   profiler_stop();
+
+  set_stderr_callback(nullptr);
 
   Sampler::Shutdown();
 
