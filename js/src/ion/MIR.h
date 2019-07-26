@@ -473,6 +473,14 @@ class MDefinition : public MNode
         JS_ASSERT(getAliasSet().flags() & store->getAliasSet().flags());
         return true;
     }
+    
+    
+    
+    
+    
+    virtual bool isBigIntOutput() { return resultType_ == MIRType_Int32; }
+    virtual void recalculateBigInt() {}
+
 };
 
 
@@ -2568,10 +2576,12 @@ class MMathFunction
 class MAdd : public MBinaryArithInstruction
 {
     int implicitTruncate_;
-
+    
+    bool isBigInt_;
     MAdd(MDefinition *left, MDefinition *right)
       : MBinaryArithInstruction(left, right),
-        implicitTruncate_(0)
+        implicitTruncate_(0),
+        isBigInt_(left->isBigIntOutput() && right->isBigIntOutput())
     {
         setResultType(MIRType_Value);
     }
@@ -2596,6 +2606,16 @@ class MAdd : public MBinaryArithInstruction
 
     bool fallible();
     void computeRange();
+    
+    
+    
+    virtual bool isBigIntOutput() {
+        return (type() == MIRType_Int32) || isBigInt_;
+    }
+    
+    virtual void recalculateBigInt() {
+        isBigInt_ = (lhs()->isBigIntOutput() && rhs()->isBigIntOutput());
+    }
 };
 
 class MSub : public MBinaryArithInstruction

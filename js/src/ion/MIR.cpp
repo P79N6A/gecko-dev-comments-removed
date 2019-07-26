@@ -860,8 +860,22 @@ MMod::foldsTo(bool useValueNumbers)
 void
 MAdd::analyzeTruncateBackward()
 {
-    if (!isTruncated())
+    if (!isTruncated()) {
         setTruncated(js::ion::EdgeCaseAnalysis::AllUsesTruncate(this));
+    }
+    if (isTruncated() && isTruncated() < 20) {
+        
+        
+        
+        
+        
+        
+        
+        if (isBigInt_ && type() == MIRType_Double) {
+            specialization_ = MIRType_Int32;
+            setResultType(MIRType_Int32);
+        }
+    }
 }
 
 bool
