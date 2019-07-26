@@ -10,7 +10,6 @@
 #include "nsDOMEventTargetHelper.h"
 #include "mozilla/dom/AudioNodeBinding.h"
 #include "nsCycleCollectionParticipant.h"
-#include "EnableWebAudioCheck.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "AudioContext.h"
@@ -82,8 +81,7 @@ private:
 
 
 
-class AudioNode : public nsDOMEventTargetHelper,
-                  public EnableWebAudioCheck
+class AudioNode : public nsDOMEventTargetHelper
 {
 protected:
   

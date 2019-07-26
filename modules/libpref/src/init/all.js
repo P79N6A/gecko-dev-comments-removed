@@ -283,9 +283,6 @@ pref("media.encoder.omx.enabled", true);
 #endif
 
 
-pref("media.webaudio.enabled", true);
-
-
 pref("media.autoplay.enabled", true);
 
 

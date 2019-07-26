@@ -10,7 +10,6 @@
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
-#include "EnableWebAudioCheck.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "AudioContext.h"
@@ -31,8 +30,7 @@ class AudioContext;
 
 
 
-class AudioBuffer MOZ_FINAL : public nsWrapperCache,
-                              public EnableWebAudioCheck
+class AudioBuffer MOZ_FINAL : public nsWrapperCache
 {
 public:
   AudioBuffer(AudioContext* aContext, uint32_t aLength,
