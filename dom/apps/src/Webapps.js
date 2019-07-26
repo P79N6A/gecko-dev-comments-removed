@@ -21,7 +21,14 @@ function convertAppsArray(aApps, aWindow) {
   let apps = new aWindow.Array();
   for (let i = 0; i < aApps.length; i++) {
     let app = aApps[i];
-    apps.push(createApplicationObject(aWindow, app));
+    
+    
+    
+    
+    
+    
+    
+    Cu.waiveXrays(apps)[i] = createApplicationObject(aWindow, app);
   }
 
   return apps;
