@@ -33,6 +33,9 @@ public:
   nsMargin    mReflowMargin;
   
   
+  nsMargin    mExtraMargin;
+  
+  
   
   nsMargin    mEdgePaperMargin;
 

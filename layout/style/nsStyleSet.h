@@ -29,7 +29,6 @@
 class nsIURI;
 class nsCSSFontFaceRule;
 class nsCSSKeyframesRule;
-class nsCSSPageRule;
 class nsRuleWalker;
 struct RuleProcessorData;
 struct TreeMatchContext;
@@ -152,11 +151,6 @@ class nsStyleSet
   
   bool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
-
-  
-  
-  bool AppendPageRules(nsPresContext* aPresContext,
-                       nsTArray<nsCSSPageRule*>& aArray);
 
   
   

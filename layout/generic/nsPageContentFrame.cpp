@@ -24,6 +24,19 @@ NS_NewPageContentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsPageContentFrame)
 
+ nsSize
+nsPageContentFrame::ComputeSize(nsRenderingContext *aRenderingContext,
+                                nsSize aCBSize, nscoord aAvailableWidth,
+                                nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                                uint32_t aFlags)
+{
+  NS_ASSERTION(mPD, "Pages are supposed to have page data");
+  nscoord height = (!mPD || mPD->mReflowSize.height == NS_UNCONSTRAINEDSIZE)
+                   ? NS_UNCONSTRAINEDSIZE
+                   : (mPD->mReflowSize.height - mPD->mReflowMargin.TopBottom());
+  return nsSize(aAvailableWidth, height);
+}
+
 NS_IMETHODIMP
 nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
@@ -44,19 +57,18 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsSize  maxSize(aReflowState.ComputedWidth(),
-                  aReflowState.ComputedHeight());
-  SetSize(maxSize);
+  SetSize(nsSize(aReflowState.availableWidth, aReflowState.availableHeight));
  
   
   
   
   if (mFrames.NotEmpty()) {
     nsIFrame* frame = mFrames.FirstChild();
+    nsSize  maxSize(aReflowState.availableWidth, aReflowState.availableHeight);
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, frame, maxSize);
-    kidReflowState.SetComputedHeight(maxSize.height);
+    kidReflowState.SetComputedHeight(aReflowState.availableHeight);
 
-    mPD->mPageContentSize = maxSize.width;
+    mPD->mPageContentSize  = aReflowState.availableWidth;
 
     
     rv = ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, 0, 0, 0, aStatus);
@@ -100,9 +112,9 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(NS_FRAME_IS_COMPLETE(fixedStatus), "fixed frames can be truncated, but not incomplete");
 
   
-  aDesiredSize.width = aReflowState.ComputedWidth();
-  if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
-    aDesiredSize.height = aReflowState.ComputedHeight();
+  aDesiredSize.width = aReflowState.availableWidth;
+  if (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE) {
+    aDesiredSize.height = aReflowState.availableHeight;
   }
 
   FinishAndStoreOverflow(&aDesiredSize);

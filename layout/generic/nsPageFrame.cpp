@@ -72,9 +72,10 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*           aPresContext,
     if (mPD->mReflowSize.height == NS_UNCONSTRAINEDSIZE) {
       avHeight = NS_UNCONSTRAINEDSIZE;
     } else {
-      avHeight = mPD->mReflowSize.height;
+      avHeight = mPD->mReflowSize.height - mPD->mReflowMargin.TopBottom();
     }
-    nsSize  maxSize(mPD->mReflowSize.width, avHeight);
+    nsSize  maxSize(mPD->mReflowSize.width - mPD->mReflowMargin.LeftRight(),
+                    avHeight);
     float scale = aPresContext->GetPageScale();
     maxSize.width = NSToCoordCeil(maxSize.width / scale);
     if (maxSize.height != NS_UNCONSTRAINEDSIZE) {
@@ -97,45 +98,8 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*           aPresContext,
     kidReflowState.mFlags.mTableIsSplittable = true;
 
     
-    
-    nsMargin pageContentMargin;
-    const nsStyleSides& marginStyle = kidReflowState.mStyleMargin->mMargin;
-    NS_FOR_CSS_SIDES(side) {
-      if (marginStyle.GetUnit(side) == eStyleUnit_Auto) {
-        pageContentMargin.Side(side) = mPD->mReflowMargin.Side(side);
-      } else {
-        pageContentMargin.Side(side) = kidReflowState.mComputedMargin.Side(side);
-      }
-    }
-
-
-    nscoord maxWidth = maxSize.width - pageContentMargin.LeftRight() / scale;
-    nscoord maxHeight;
-    if (maxSize.height == NS_UNCONSTRAINEDSIZE) {
-      maxHeight = NS_UNCONSTRAINEDSIZE;
-    } else {
-      maxHeight = maxSize.height - pageContentMargin.TopBottom() / scale;
-    }
-
-    
-    
-    if (maxWidth < onePixelInTwips ||
-       (maxHeight != NS_UNCONSTRAINEDSIZE && maxHeight < onePixelInTwips)) {
-      NS_FOR_CSS_SIDES(side) {
-        pageContentMargin.Side(side) = mPD->mReflowMargin.Side(side);
-      }
-      maxWidth = maxSize.width - pageContentMargin.LeftRight() / scale;
-      if (maxHeight != NS_UNCONSTRAINEDSIZE) {
-        maxHeight = maxSize.height - pageContentMargin.TopBottom() / scale;
-      }
-    }
-
-    kidReflowState.SetComputedWidth(maxWidth);
-    kidReflowState.SetComputedHeight(maxHeight);
-
-    
-    nscoord xc = pageContentMargin.left;
-    nscoord yc = pageContentMargin.top;
+    nscoord xc = mPD->mReflowMargin.left + mPD->mExtraMargin.left;
+    nscoord yc = mPD->mReflowMargin.top + mPD->mExtraMargin.top;
 
     
     ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, xc, yc, 0, aStatus);
@@ -256,7 +220,7 @@ nscoord nsPageFrame::GetXPosition(nsRenderingContext& aRenderingContext,
   nscoord x = aRect.x;
   switch (aJust) {
     case nsIPrintSettings::kJustLeft:
-      x += mPD->mEdgePaperMargin.left;
+      x += mPD->mExtraMargin.left + mPD->mEdgePaperMargin.left;
       break;
 
     case nsIPrintSettings::kJustCenter:
@@ -264,7 +228,7 @@ nscoord nsPageFrame::GetXPosition(nsRenderingContext& aRenderingContext,
       break;
 
     case nsIPrintSettings::kJustRight:
-      x += aRect.width - width - mPD->mEdgePaperMargin.right;
+      x += aRect.width - width - mPD->mExtraMargin.right - mPD->mEdgePaperMargin.right;
       break;
   } 
 
@@ -381,9 +345,9 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
     nscoord x = GetXPosition(aRenderingContext, aRect, aJust, str);
     nscoord y;
     if (aHeaderFooter == eHeader) {
-      y = aRect.y + mPD->mEdgePaperMargin.top;
+      y = aRect.y + mPD->mExtraMargin.top + mPD->mEdgePaperMargin.top;
     } else {
-      y = aRect.YMost() - aHeight - mPD->mEdgePaperMargin.bottom;
+      y = aRect.YMost() - aHeight - mPD->mExtraMargin.bottom - mPD->mEdgePaperMargin.bottom;
     }
 
     
@@ -547,7 +511,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsRect clipRect(nsPoint(0, 0), child->GetSize());
   
   
-  nscoord expectedPageContentHeight = NSToCoordCeil(GetSize().height / scale);
+  nscoord expectedPageContentHeight = 
+    NSToCoordCeil((GetSize().height - mPD->mReflowMargin.TopBottom()) / scale);
   if (clipRect.height > expectedPageContentHeight) {
     
     

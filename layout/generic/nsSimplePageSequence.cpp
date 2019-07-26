@@ -65,6 +65,7 @@ nsSharedPageData::nsSharedPageData() :
   mDocURL(nullptr),
   mReflowSize(0,0),
   mReflowMargin(0,0,0,0),
+  mExtraMargin(0,0,0,0),
   mEdgePaperMargin(0,0,0,0),
   mPageContentXMost(0),
   mPageContentSize(0)
@@ -221,9 +222,28 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
+  nscoord extraThreshold = NS_MAX(pageSize.width, pageSize.height)/10;
+  int32_t gapInTwips = Preferences::GetInt("print.print_extra_margin");
+  gapInTwips = NS_MAX(0, gapInTwips);
+
+  nscoord extraGap = aPresContext->CSSTwipsToAppUnits(gapInTwips);
+  extraGap = NS_MIN(extraGap, extraThreshold); 
+
+  nsMargin extraMargin(0,0,0,0);
+  if (aPresContext->IsScreen()) {
+    extraMargin.SizeTo(extraGap, extraGap, extraGap, extraGap);
+  }
+
+  mPageData->mExtraMargin = extraMargin;
+
+  
+  
   
   nscoord y = 0;
   nscoord maxXMost = 0;
+
+  nsSize availSize(pageSize.width + extraMargin.LeftRight(),
+                   pageSize.height + extraMargin.TopBottom());
 
   
   nsHTMLReflowMetrics kidSize;
@@ -234,7 +254,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
     
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
-                                     pageSize);
+                                     availSize);
     nsReflowStatus  status;
 
     kidReflowState.SetComputedWidth(kidReflowState.availableWidth);
