@@ -21,6 +21,10 @@
 
 "use strict";
 
+if (!navigator.platform.startsWith("Win")) {
+  SimpleTest.expectAssertions(0, 1);
+}
+
 var testPrivApp = {
   'manifestURL' : 'https://aprivileged.com/manifest.webapp'
 };
