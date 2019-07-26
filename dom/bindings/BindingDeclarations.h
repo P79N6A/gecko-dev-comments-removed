@@ -472,6 +472,49 @@ private:
   double mMsecSinceEpoch;
 };
 
+class NonNullLazyRootedObject : public Maybe<JS::Rooted<JSObject*> >
+{
+public:
+  operator JSObject&() const
+  {
+    MOZ_ASSERT(!empty() && ref(), "Can not alias null.");
+    return *ref();
+  }
+
+  operator JS::Rooted<JSObject*>&()
+  {
+    
+    return ref();
+  }
+
+  JSObject** Slot() 
+  {
+    
+    return ref().address();
+  }
+};
+
+class LazyRootedObject : public Maybe<JS::Rooted<JSObject*> >
+{
+public:
+  operator JSObject*() const
+  {
+    return empty() ? static_cast<JSObject*>(nullptr) : ref();
+  }
+
+  operator JS::Rooted<JSObject*>&()
+  {
+    
+    return ref();
+  }
+
+  JSObject** operator&()
+  {
+    
+    return ref().address();
+  }
+};
+
 } 
 } 
 

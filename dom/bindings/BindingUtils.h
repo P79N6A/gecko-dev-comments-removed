@@ -1430,34 +1430,6 @@ protected:
 #endif
 };
 
-class NonNullLazyRootedObject : public Maybe<JS::RootedObject>
-{
-public:
-  operator JSObject&() const {
-    MOZ_ASSERT(!empty() && ref(), "Can not alias null.");
-    return *ref();
-  }
-
-  JSObject** Slot() { 
-    
-    return ref().address();
-  }
-};
-
-class LazyRootedObject : public Maybe<JS::RootedObject>
-{
-public:
-  operator JSObject*() const {
-    return empty() ? (JSObject*) nullptr : ref();
-  }
-
-  JSObject** operator&()
-  {
-    
-    return ref().address();
-  }
-};
-
 
 
 struct FakeDependentString {
