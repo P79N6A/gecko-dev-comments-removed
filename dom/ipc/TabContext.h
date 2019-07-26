@@ -35,24 +35,9 @@ protected:
   typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
 
 public:
-  
-
-
-
-
   TabContext();
 
   
-
-
-
-
-
-
-
-
-
-  TabContext(const IPCTabContext& aContext);
 
   
 
@@ -128,6 +113,8 @@ public:
   ScrollingBehavior GetScrollingBehavior() const { return mScrollingBehavior; }
 
 protected:
+  friend class MaybeInvalidTabContext;
+
   
 
 
@@ -161,17 +148,13 @@ private:
   
 
 
-  already_AddRefed<mozIApplication> GetAppForId(uint32_t aAppId) const;
-
-  
-
-
-  already_AddRefed<mozIApplication> GetAppForIdNoCache(uint32_t aAppId) const;
-
-  
-
-
   bool mInitialized;
+
+  
+
+
+
+  nsCOMPtr<mozIApplication> mOwnApp;
 
   
 
@@ -183,22 +166,13 @@ private:
 
 
 
-  mutable nsCOMPtr<mozIApplication> mOwnApp;
+
+  nsCOMPtr<mozIApplication> mContainingApp;
 
   
-
-
-
 
 
   uint32_t mContainingAppId;
-
-  
-
-
-
-
-  mutable nsCOMPtr<mozIApplication> mContainingApp;
 
   
 
@@ -239,6 +213,65 @@ public:
     return TabContext::SetTabContextForBrowserFrame(aBrowserFrameOwnerApp,
                                                     aRequestedBehavior);
   }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MaybeInvalidTabContext
+{
+public:
+  
+
+
+
+  MaybeInvalidTabContext(const IPCTabContext& aContext);
+
+  
+
+
+  bool IsValid();
+
+  
+
+
+
+
+  const char* GetInvalidReason();
+
+  
+
+
+
+
+  const TabContext& GetTabContext();
+
+private:
+  MaybeInvalidTabContext(const MaybeInvalidTabContext&) MOZ_DELETE;
+  MaybeInvalidTabContext& operator=(const MaybeInvalidTabContext&) MOZ_DELETE;
+
+  const char* mInvalidReason;
+  MutableTabContext mTabContext;
 };
 
 } 
