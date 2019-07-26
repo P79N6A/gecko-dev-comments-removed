@@ -703,6 +703,8 @@ protected:
   };
   nsTArray<RequestHeader> mModifiedRequestHeaders;
 
+  nsTHashtable<nsCStringHashKey> mAlreadySetHeaders;
+
   
   nsXMLHttpRequestXPCOMifier* mXPCOMifier;
 };

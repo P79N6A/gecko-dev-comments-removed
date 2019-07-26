@@ -405,6 +405,8 @@ nsXMLHttpRequest::nsXMLHttpRequest()
 {
   nsLayoutStatics::AddRef();
 
+  mAlreadySetHeaders.Init();
+
   SetIsDOMBinding();
 #ifdef DEBUG
   StaticAssertions();
@@ -1832,6 +1834,10 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
 
   
   
+  mAlreadySetHeaders.Clear();
+
+  
+  
   
   nsCOMPtr<nsILoadGroup> loadGroup = GetLoadGroup();
 
@@ -3185,22 +3191,34 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
 
   
   
+  
+  
+  
+  bool mergeHeaders = true;
+
+  
+  
+  bool isInvalidHeader = false;
+  const char *kInvalidHeaders[] = {
+    "accept-charset", "accept-encoding", "access-control-request-headers",
+    "access-control-request-method", "connection", "content-length",
+    "cookie", "cookie2", "content-transfer-encoding", "date", "dnt",
+    "expect", "host", "keep-alive", "origin", "referer", "te", "trailer",
+    "transfer-encoding", "upgrade", "user-agent", "via"
+  };
+  uint32_t i;
+  for (i = 0; i < ArrayLength(kInvalidHeaders); ++i) {
+    if (header.LowerCaseEqualsASCII(kInvalidHeaders[i])) {
+      isInvalidHeader = true;
+      break;
+    }
+  }
 
   if (!nsContentUtils::IsCallerChrome()) {
     
-    const char *kInvalidHeaders[] = {
-      "accept-charset", "accept-encoding", "access-control-request-headers",
-      "access-control-request-method", "connection", "content-length",
-      "cookie", "cookie2", "content-transfer-encoding", "date", "dnt",
-      "expect", "host", "keep-alive", "origin", "referer", "te", "trailer",
-      "transfer-encoding", "upgrade", "user-agent", "via"
-    };
-    uint32_t i;
-    for (i = 0; i < ArrayLength(kInvalidHeaders); ++i) {
-      if (header.LowerCaseEqualsASCII(kInvalidHeaders[i])) {
-        NS_WARNING("refusing to set request header");
-        return NS_OK;
-      }
+    if (isInvalidHeader) {
+      NS_WARNING("refusing to set request header");
+      return NS_OK;
     }
     if (StringBeginsWith(header, NS_LITERAL_CSTRING("proxy-"),
                          nsCaseInsensitiveCStringComparator()) ||
@@ -3231,14 +3249,27 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
         mCORSUnsafeHeaders.AppendElement(header);
       }
     }
+  } else {
+    
+    if (isInvalidHeader) {
+      mergeHeaders = false;
+    }
+  }
+
+  if (!mAlreadySetHeaders.Contains(header)) {
+    
+    mergeHeaders = false;
   }
 
   
-  nsresult rv = httpChannel->SetRequestHeader(header, value, false);
+  nsresult rv = httpChannel->SetRequestHeader(header, value, mergeHeaders);
   if (rv == NS_ERROR_INVALID_ARG) {
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
   if (NS_SUCCEEDED(rv)) {
+    
+    mAlreadySetHeaders.PutEntry(nsCString(header));
+
     
     RequestHeader reqHeader = {
       nsCString(header), nsCString(value)
