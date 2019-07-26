@@ -1167,8 +1167,12 @@ nsEventListenerManager::GetListenerInfo(nsCOMArray<nsIEventListenerInfo>* aList)
       CompileEventHandlerInternal(const_cast<nsListenerStruct*>(&ls),
                                   true, nullptr);
     }
-    const nsDependentSubstring& eventType =
-      Substring(nsDependentAtomString(ls.mTypeAtom), 2);
+    nsAutoString eventType;
+    if (ls.mAllEvents) {
+      eventType.SetIsVoid(true);
+    } else {
+      eventType.Assign(Substring(nsDependentAtomString(ls.mTypeAtom), 2));
+    }
     
     
     nsRefPtr<nsEventListenerInfo> info =
