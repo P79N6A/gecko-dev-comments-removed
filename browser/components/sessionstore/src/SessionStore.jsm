@@ -1057,8 +1057,8 @@ let SessionStoreInternal = {
     this._lastSessionState = null;
     let openWindows = {};
     this._forEachBrowserWindow(function(aWindow) {
-      Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
-        delete aTab.linkedBrowser.__SS_data;
+      Array.forEach(aWindow.gBrowser.tabs, aTab => {
+        RestoringTabsData.remove(aTab.linkedBrowser);
         delete aTab.linkedBrowser.__SS_formDataSaved;
         delete aTab.linkedBrowser.__SS_hostSchemeData;
         if (aTab.linkedBrowser.__SS_restoreState)
@@ -1249,7 +1249,7 @@ let SessionStoreInternal = {
     let mm = browser.messageManager;
     MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
-    delete browser.__SS_data;
+    RestoringTabsData.remove(aTab.linkedBrowser);
     delete browser.__SS_formDataSaved;
     delete browser.__SS_hostSchemeData;
 
@@ -1326,7 +1326,7 @@ let SessionStoreInternal = {
       return;
     }
 
-    delete aBrowser.__SS_data;
+    RestoringTabsData.remove(aBrowser);
     delete aBrowser.__SS_formDataSaved;
     this.saveStateDelayed(aWindow);
 
@@ -1635,10 +1635,13 @@ let SessionStoreInternal = {
     let data = {};
     if (aTab.__SS_extdata) {
       data = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      
-      data = aTab.linkedBrowser.__SS_data.extData;
+    } else {
+      let tabData = RestoringTabsData.get(aTab.linkedBrowser);
+      if (tabData && "extData" in tabData) {
+        
+        
+        data = tabData.extData;
+      }
     }
     return data[aKey] || "";
   },
@@ -1649,13 +1652,14 @@ let SessionStoreInternal = {
     let saveTo;
     if (aTab.__SS_extdata) {
       saveTo = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      saveTo = aTab.linkedBrowser.__SS_data.extData;
-    }
-    else {
-      aTab.__SS_extdata = {};
-      saveTo = aTab.__SS_extdata;
+    } else {
+      let tabData = RestoringTabsData.get(aTab.linkedBrowser);
+      if (tabData && "extData" in tabData) {
+        saveTo = tabData.extData;
+      } else {
+        aTab.__SS_extdata = {};
+        saveTo = aTab.__SS_extdata;
+      }
     }
     saveTo[aKey] = aStringValue;
     this.saveStateDelayed(aTab.ownerDocument.defaultView);
@@ -1668,9 +1672,11 @@ let SessionStoreInternal = {
     let deleteFrom;
     if (aTab.__SS_extdata) {
       deleteFrom = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      deleteFrom = aTab.linkedBrowser.__SS_data.extData;
+    } else {
+      let tabData = RestoringTabsData.get(aTab.linkedBrowser);
+      if (tabData && "extData" in tabData) {
+        deleteFrom = tabData.extData;
+      }
     }
 
     if (deleteFrom && deleteFrom[aKey])
@@ -1884,9 +1890,9 @@ let SessionStoreInternal = {
     if (!browser || !browser.currentURI)
       
       return tabData;
-    else if (browser.__SS_data) {
+    else if (RestoringTabsData.has(browser)) {
       
-      tabData = browser.__SS_data;
+      tabData = RestoringTabsData.get(browser);
       if (aTab.pinned)
         tabData.pinned = true;
       else
@@ -2164,7 +2170,7 @@ let SessionStoreInternal = {
   _updateTextAndScrollDataForTab:
     function ssi_updateTextAndScrollDataForTab(aWindow, aBrowser, aTabData, aFullData) {
     
-    if (aBrowser.__SS_data)
+    if (RestoringTabsData.has(aBrowser))
       return;
 
     var tabIndex = (aTabData.index || aTabData.entries.length) - 1;
@@ -2970,7 +2976,7 @@ let SessionStoreInternal = {
 
       
       
-      browser.__SS_data = tabData;
+      RestoringTabsData.set(browser, tabData);
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
       browser.setAttribute("pending", "true");
       tab.setAttribute("pending", "true");
@@ -3139,7 +3145,7 @@ let SessionStoreInternal = {
   restoreTab: function ssi_restoreTab(aTab) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
-    let tabData = browser.__SS_data;
+    let tabData = RestoringTabsData.get(browser);
 
     
     
@@ -4553,6 +4559,31 @@ let TabRestoreQueue = {
     } else {
       throw new Error("restore queue: visible tab not found");
     }
+  }
+};
+
+
+
+
+
+
+let RestoringTabsData = {
+  _data: new WeakMap(),
+
+  has: function (browser) {
+    return this._data.has(browser);
+  },
+
+  get: function (browser) {
+    return this._data.get(browser);
+  },
+
+  set: function (browser, data) {
+    this._data.set(browser, data);
+  },
+
+  remove: function (browser) {
+    this._data.delete(browser);
   }
 };
 
