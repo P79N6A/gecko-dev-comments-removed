@@ -459,6 +459,34 @@ add_task(function test_setTarget_multiple()
   destFile.remove(false);
 });
 
+add_task(function test_enableAppend()
+{
+  
+  let destFile = getTempFile(TEST_FILE_NAME_1);
+
+  
+  
+  for (let i = 0; i < 2; i++) {
+    let saver = new BackgroundFileSaverOutputStream();
+    saver.enableAppend();
+    let completionPromise = promiseSaverComplete(saver);
+
+    saver.setTarget(destFile, false);
+    yield promiseCopyToSaver(TEST_DATA_LONG, saver, true);
+
+    saver.finish(Cr.NS_OK);
+    yield completionPromise;
+
+    
+    let expectedContents = (i == 0 ? TEST_DATA_LONG
+                                   : TEST_DATA_LONG + TEST_DATA_LONG);
+    yield promiseVerifyContents(destFile, expectedContents);
+  }
+
+  
+  destFile.remove(false);
+});
+
 add_task(function test_enableAppend_hash()
 {
   

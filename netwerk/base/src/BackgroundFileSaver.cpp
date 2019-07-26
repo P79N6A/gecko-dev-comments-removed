@@ -494,7 +494,7 @@ BackgroundFileSaver::ProcessStateChange()
 
   
   
-  if (append && !isContinuation) {
+  if (mDigestContext && append && !isContinuation) {
     nsCOMPtr<nsIInputStream> inputStream;
     rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream),
                                     mActualTarget,
