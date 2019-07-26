@@ -88,7 +88,7 @@ function run_test() {
 
     
     try {
-      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+      yield BookmarkJSONUtils.importFromFile(jsonFile, true);
     } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
 
     

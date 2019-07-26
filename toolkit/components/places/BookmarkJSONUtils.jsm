@@ -49,7 +49,7 @@ this.BookmarkJSONUtils = Object.freeze({
 
   importFromFile: function BJU_importFromFile(aFile, aReplace) {
     let importer = new BookmarkImporter();
-    return importer.importFromURL(NetUtil.newURI(aFile).spec, aReplace);
+    return importer.importFromFile(aFile, aReplace);
   },
 
   
@@ -70,6 +70,31 @@ this.BookmarkJSONUtils = Object.freeze({
 
 function BookmarkImporter() {}
 BookmarkImporter.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+  importFromFile: function(aFile, aReplace) {
+    if (aFile.exists()) {
+      return this.importFromURL(NetUtil.newURI(aFile).spec, aReplace);
+    }
+
+    notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
+
+    return Task.spawn(function() {
+      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+      throw new Error("File does not exist.");
+    });
+  },
+
   
 
 
@@ -143,104 +168,104 @@ BookmarkImporter.prototype = {
       Services.tm.mainThread.dispatch(function() {
         deferred.resolve(); 
       }, Ci.nsIThread.DISPATCH_NORMAL);
-    }
+    } else {
+      
+      nodes[0].children.sort(function sortRoots(aNode, bNode) {
+        return (aNode.root && aNode.root == "tagsFolder") ? 1 :
+               (bNode.root && bNode.root == "tagsFolder") ? -1 : 0;
+      });
 
-    
-    nodes[0].children.sort(function sortRoots(aNode, bNode) {
-      return (aNode.root && aNode.root == "tagsFolder") ? 1 :
-             (bNode.root && bNode.root == "tagsFolder") ? -1 : 0;
-    });
-
-    let batch = {
-      nodes: nodes[0].children,
-      runBatched: function runBatched() {
-        if (aReplace) {
-          
-          
-          let excludeItems = PlacesUtils.annotations.getItemsWithAnnotation(
-                               PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
-          
-          
-          
-          let root = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
-                                                   false, false).root;
-          let childIds = [];
-          for (let i = 0; i < root.childCount; i++) {
-            let childId = root.getChild(i).itemId;
-            if (excludeItems.indexOf(childId) == -1 &&
-                childId != PlacesUtils.tagsFolderId) {
-              childIds.push(childId);
-            }
-          }
-          root.containerOpen = false;
-
-          for (let i = 0; i < childIds.length; i++) {
-            let rootItemId = childIds[i];
-            if (PlacesUtils.isRootItem(rootItemId)) {
-              PlacesUtils.bookmarks.removeFolderChildren(rootItemId);
-            } else {
-              PlacesUtils.bookmarks.removeItem(rootItemId);
-            }
-          }
-        }
-
-        let searchIds = [];
-        let folderIdMap = [];
-
-        batch.nodes.forEach(function(node) {
-          if (!node.children || node.children.length == 0)
-            return; 
-
-          if (node.root) {
-            let container = PlacesUtils.placesRootId; 
-            switch (node.root) {
-              case "bookmarksMenuFolder":
-                container = PlacesUtils.bookmarksMenuFolderId;
-                break;
-              case "tagsFolder":
-                container = PlacesUtils.tagsFolderId;
-                break;
-              case "unfiledBookmarksFolder":
-                container = PlacesUtils.unfiledBookmarksFolderId;
-                break;
-              case "toolbarFolder":
-                container = PlacesUtils.toolbarFolderId;
-                break;
-            }
-
+      let batch = {
+        nodes: nodes[0].children,
+        runBatched: function runBatched() {
+          if (aReplace) {
             
-            node.children.forEach(function(child) {
-              let index = child.index;
-              let [folders, searches] =
-                this.importJSONNode(child, container, index, 0);
-              for (let i = 0; i < folders.length; i++) {
-                if (folders[i])
-                  folderIdMap[i] = folders[i];
+            
+            let excludeItems = PlacesUtils.annotations.getItemsWithAnnotation(
+                                 PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO);
+            
+            
+            
+            let root = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
+                                                   false, false).root;
+            let childIds = [];
+            for (let i = 0; i < root.childCount; i++) {
+              let childId = root.getChild(i).itemId;
+              if (excludeItems.indexOf(childId) == -1 &&
+                  childId != PlacesUtils.tagsFolderId) {
+                childIds.push(childId);
               }
-              searchIds = searchIds.concat(searches);
-            }.bind(this));
-          } else {
-            this.importJSONNode(
-              node, PlacesUtils.placesRootId, node.index, 0);
+            }
+            root.containerOpen = false;
+
+            for (let i = 0; i < childIds.length; i++) {
+              let rootItemId = childIds[i];
+              if (PlacesUtils.isRootItem(rootItemId)) {
+                PlacesUtils.bookmarks.removeFolderChildren(rootItemId);
+              } else {
+                PlacesUtils.bookmarks.removeItem(rootItemId);
+              }
+            }
           }
-        }.bind(this));
 
-        
-        searchIds.forEach(function(aId) {
-          let oldURI = PlacesUtils.bookmarks.getBookmarkURI(aId);
-          let uri = fixupQuery(oldURI, folderIdMap);
-          if (!uri.equals(oldURI)) {
-            PlacesUtils.bookmarks.changeBookmarkURI(aId, uri);
-          }
-        });
+          let searchIds = [];
+          let folderIdMap = [];
 
-        Services.tm.mainThread.dispatch(function() {
-          deferred.resolve();
-        }, Ci.nsIThread.DISPATCH_NORMAL);
-      }.bind(this)
-    };
+          batch.nodes.forEach(function(node) {
+            if (!node.children || node.children.length == 0)
+              return; 
 
-    PlacesUtils.bookmarks.runInBatchMode(batch, null);
+            if (node.root) {
+              let container = PlacesUtils.placesRootId; 
+              switch (node.root) {
+                case "bookmarksMenuFolder":
+                  container = PlacesUtils.bookmarksMenuFolderId;
+                  break;
+                case "tagsFolder":
+                  container = PlacesUtils.tagsFolderId;
+                  break;
+                case "unfiledBookmarksFolder":
+                  container = PlacesUtils.unfiledBookmarksFolderId;
+                  break;
+                case "toolbarFolder":
+                  container = PlacesUtils.toolbarFolderId;
+                  break;
+              }
+
+              
+              node.children.forEach(function(child) {
+                let index = child.index;
+                let [folders, searches] =
+                  this.importJSONNode(child, container, index, 0);
+                for (let i = 0; i < folders.length; i++) {
+                  if (folders[i])
+                    folderIdMap[i] = folders[i];
+                }
+                searchIds = searchIds.concat(searches);
+              }.bind(this));
+            } else {
+              this.importJSONNode(
+                node, PlacesUtils.placesRootId, node.index, 0);
+            }
+          }.bind(this));
+
+          
+          searchIds.forEach(function(aId) {
+            let oldURI = PlacesUtils.bookmarks.getBookmarkURI(aId);
+            let uri = fixupQuery(oldURI, folderIdMap);
+            if (!uri.equals(oldURI)) {
+              PlacesUtils.bookmarks.changeBookmarkURI(aId, uri);
+            }
+          });
+
+          Services.tm.mainThread.dispatch(function() {
+            deferred.resolve();
+          }, Ci.nsIThread.DISPATCH_NORMAL);
+        }.bind(this)
+      };
+
+      PlacesUtils.bookmarks.runInBatchMode(batch, null);
+    }
 
     return deferred.promise;
   },
