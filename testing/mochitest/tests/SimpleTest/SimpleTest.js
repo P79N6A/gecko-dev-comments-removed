@@ -648,6 +648,24 @@ SimpleTest.expectAssertions = function(min, max) {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SimpleTest.requestFlakyTimeout = function (reason) {
+    
+}
+
 SimpleTest.waitForFocus_started = false;
 SimpleTest.waitForFocus_loaded = false;
 SimpleTest.waitForFocus_focused = false;
