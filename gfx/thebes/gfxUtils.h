@@ -9,6 +9,8 @@
 #include "gfxTypes.h"
 #include "GraphicsFilter.h"
 #include "imgIContainer.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 
 class gfxDrawable;
 class nsIntRegion;
@@ -22,8 +24,12 @@ class PlanarYCbCrData;
 
 class gfxUtils {
 public:
+    typedef mozilla::gfx::DataSourceSurface DataSourceSurface;
     typedef mozilla::gfx::IntPoint IntPoint;
     typedef mozilla::gfx::Matrix Matrix;
+    typedef mozilla::gfx::SourceSurface SourceSurface;
+    typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+
     
 
 
@@ -154,6 +160,51 @@ public:
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static mozilla::TemporaryRef<DataSourceSurface>
+    CopySurfaceToDataSourceSurfaceWithFormat(SourceSurface* aSurface,
+                                             SurfaceFormat aFormat);
 
     static const uint8_t sUnpremultiplyTable[256*256];
     static const uint8_t sPremultiplyTable[256*256];

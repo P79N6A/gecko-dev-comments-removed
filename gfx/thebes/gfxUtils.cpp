@@ -7,6 +7,8 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxDrawable.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "nsRegion.h"
 #include "yuv_convert.h"
 #include "ycbcr_to_rgb565.h"
@@ -846,6 +848,76 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
                                aStride,
                                yuvtype);
   }
+}
+
+ TemporaryRef<DataSourceSurface>
+gfxUtils::CopySurfaceToDataSourceSurfaceWithFormat(SourceSurface* aSurface,
+                                                   SurfaceFormat aFormat)
+{
+  MOZ_ASSERT(aFormat != aSurface->GetFormat(),
+             "Unnecessary - and very expersive - surface format conversion");
+
+  Rect bounds(0, 0, aSurface->GetSize().width, aSurface->GetSize().height);
+
+  if (aSurface->GetType() != SurfaceType::DATA) {
+    
+    
+    
+    
+    
+    
+    RefPtr<DrawTarget> dt = gfxPlatform::GetPlatform()->
+      CreateOffscreenContentDrawTarget(aSurface->GetSize(), aFormat);
+    
+    
+    
+    
+    dt->DrawSurface(aSurface, bounds, bounds, DrawSurfaceOptions(),
+                    DrawOptions(1.0f, CompositionOp::OP_OVER));
+    RefPtr<SourceSurface> surface = dt->Snapshot();
+    return surface->GetDataSurface();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  RefPtr<DataSourceSurface> dataSurface =
+    Factory::CreateDataSourceSurface(aSurface->GetSize(), aFormat);
+  DataSourceSurface::MappedSurface map;
+  if (!dataSurface ||
+      !dataSurface->Map(DataSourceSurface::MapType::READ_WRITE, &map)) {
+    return nullptr;
+  }
+  RefPtr<DrawTarget> dt =
+    Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                     map.mData,
+                                     dataSurface->GetSize(),
+                                     map.mStride,
+                                     aFormat);
+  if (!dt) {
+    dataSurface->Unmap();
+    return nullptr;
+  }
+  
+  
+  
+  
+  dt->DrawSurface(aSurface, bounds, bounds, DrawSurfaceOptions(),
+                  DrawOptions(1.0f, CompositionOp::OP_OVER));
+  dataSurface->Unmap();
+  return dataSurface.forget();
 }
 
 #ifdef MOZ_DUMP_PAINTING
