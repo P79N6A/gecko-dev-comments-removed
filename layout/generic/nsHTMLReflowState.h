@@ -165,7 +165,8 @@ public:
   
   static void* DisplayInitOffsetsEnter(nsIFrame* aFrame,
                                        nsCSSOffsetState* aState,
-                                       nscoord aCBWidth,
+                                       nscoord aHorizontalPercentBasis,
+                                       nscoord aVerticalPercentBasis,
                                        const nsMargin* aBorder,
                                        const nsMargin* aPadding);
   static void DisplayInitOffsetsExit(nsIFrame* aFrame,

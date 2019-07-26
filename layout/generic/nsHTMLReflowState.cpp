@@ -2138,8 +2138,10 @@ nsCSSOffsetState::InitOffsets(nscoord aHorizontalPercentBasis,
                               const nsMargin *aBorder,
                               const nsMargin *aPadding)
 {
-  
-  DISPLAY_INIT_OFFSETS(frame, this, aHorizontalPercentBasis, aBorder, aPadding);
+  DISPLAY_INIT_OFFSETS(frame, this,
+                       aHorizontalPercentBasis,
+                       aVerticalPercentBasis,
+                       aBorder, aPadding);
 
   
   
