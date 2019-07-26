@@ -14,11 +14,14 @@
 #include "nsComponentManagerUtils.h"
 #include <objbase.h>
 #include <initguid.h>
+#include "WinUtils.h"
 
 #include "nsUXThemeData.h"
 
 
 #include <unknwn.h>
+
+using namespace mozilla::widget;
 
 nsToolkit* nsToolkit::gToolkit = nullptr;
 HINSTANCE nsToolkit::mDllInstance = 0;
@@ -75,6 +78,7 @@ nsToolkit::Startup(HMODULE hModule)
 {
     nsToolkit::mDllInstance = hModule;
     nsUXThemeData::Initialize();
+    WinUtils::Initialize();
 }
 
 void
