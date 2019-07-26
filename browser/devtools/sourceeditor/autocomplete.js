@@ -169,7 +169,25 @@ function onEditorKeypress({ ed, Editor }, event) {
     return;
   }
 
+  if ((event.ctrlKey || event.metaKey) && event.keyCode == event.DOM_VK_SPACE) {
+    
+    
+    
+    private.doNotAutocomplete = false;
+    return;
+  }
+
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    private.doNotAutocomplete = true;
+    private.popup.hidePopup();
+    return;
+  }
+
   switch (event.keyCode) {
+    case event.DOM_VK_RETURN:
+      private.doNotAutocomplete = true;
+      break;
+
     case event.DOM_VK_ESCAPE:
       if (private.popup.isOpen)
         event.preventDefault();
