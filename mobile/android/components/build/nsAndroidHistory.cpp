@@ -84,6 +84,14 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
   if (!aURI)
     return NS_OK;
 
+  
+  bool canAdd;
+  nsresult rv = CanAddURI(aURI, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
   if (!(aFlags & VisitFlags::TOP_LEVEL))
     return NS_OK;
 
@@ -94,7 +102,7 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
     return NS_OK;
 
   nsAutoCString uri;
-  nsresult rv = aURI->GetSpec(uri);
+  rv = aURI->GetSpec(uri);
   if (NS_FAILED(rv)) return rv;
   NS_ConvertUTF8toUTF16 uriString(uri);
   GeckoAppShell::MarkURIVisited(uriString);
@@ -104,6 +112,14 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
 NS_IMETHODIMP
 nsAndroidHistory::SetURITitle(nsIURI *aURI, const nsAString& aTitle)
 {
+  
+  bool canAdd;
+  nsresult rv = CanAddURI(aURI, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
   if (AndroidBridge::Bridge()) {
     nsAutoCString uri;
     nsresult rv = aURI->GetSpec(uri);
@@ -142,5 +158,55 @@ nsAndroidHistory::Run()
       delete list;
     }
   }
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsAndroidHistory::CanAddURI(nsIURI* aURI, bool* canAdd)
+{
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+  NS_ENSURE_ARG(aURI);
+  NS_ENSURE_ARG_POINTER(canAdd);
+
+  nsAutoCString scheme;
+  nsresult rv = aURI->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (scheme.EqualsLiteral("http")) {
+    *canAdd = true;
+    return NS_OK;
+  }
+  if (scheme.EqualsLiteral("https")) {
+    *canAdd = true;
+    return NS_OK;
+  }
+
+  
+  if (scheme.EqualsLiteral("about") ||
+      scheme.EqualsLiteral("imap") ||
+      scheme.EqualsLiteral("news") ||
+      scheme.EqualsLiteral("mailbox") ||
+      scheme.EqualsLiteral("moz-anno") ||
+      scheme.EqualsLiteral("view-source") ||
+      scheme.EqualsLiteral("chrome") ||
+      scheme.EqualsLiteral("resource") ||
+      scheme.EqualsLiteral("data") ||
+      scheme.EqualsLiteral("wyciwyg") ||
+      scheme.EqualsLiteral("javascript") ||
+      scheme.EqualsLiteral("blob")) {
+    *canAdd = false;
+    return NS_OK;
+  }
+  *canAdd = true;
   return NS_OK;
 }

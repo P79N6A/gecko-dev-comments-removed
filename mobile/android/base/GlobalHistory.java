@@ -94,49 +94,12 @@ class GlobalHistory {
         GeckoAppShell.notifyUriVisited(uri);
     }
 
-    
-    
-    private boolean canAddURI(String uri) {
-        if (uri == null || uri.length() == 0)
-            return false;
-
-        
-        if (uri.startsWith("http:") || uri.startsWith("https:"))
-            return true;
-
-        String scheme = Uri.parse(uri).getScheme();
-        if (scheme == null)
-            return false;
-
-        
-        if (scheme.equals("about") ||
-            scheme.equals("imap") ||
-            scheme.equals("news") ||
-            scheme.equals("mailbox") ||
-            scheme.equals("moz-anno") ||
-            scheme.equals("view-source") ||
-            scheme.equals("chrome") ||
-            scheme.equals("resource") ||
-            scheme.equals("data") ||
-            scheme.equals("wyciwyg") ||
-            scheme.equals("javascript"))
-            return false;
-
-        return true;
-    }
-
     public void add(String uri) {
-        if (!canAddURI(uri))
-            return;
-
         BrowserDB.updateVisitedHistory(GeckoAppShell.getContext().getContentResolver(), uri);
         addToGeckoOnly(uri);
     }
 
     public void update(String uri, String title) {
-        if (!canAddURI(uri))
-            return;
-
         BrowserDB.updateHistoryTitle(GeckoAppShell.getContext().getContentResolver(), uri, title);
     }
 
