@@ -553,6 +553,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mAdjustOffsetForContextMenu = false;
   mVFlip = false;
   mHFlip = false;
+  mAlignmentOffset = 0;
 
   
   
@@ -577,6 +578,7 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     }
 
     mFlipBoth = flip.EqualsLiteral("both");
+    mSlide = flip.EqualsLiteral("slide");
 
     position.CompressWhitespace();
     int32_t spaceIdx = position.FindChar(' ');
@@ -680,6 +682,7 @@ nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
   mScreenXPos = aXPos;
   mScreenYPos = aYPos;
   mFlipBoth = false;
+  mSlide = false;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mIsContextMenu = aIsContextMenu;
@@ -697,6 +700,7 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
   mPopupState = ePopupShowing;
   mAdjustOffsetForContextMenu = false;
   mFlipBoth = false;
+  mSlide = false;
 
   
   
@@ -988,6 +992,23 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
 }
 
 nscoord
+nsMenuPopupFrame::SlideOrResize(nscoord& aScreenPoint, nscoord aSize,
+                               nscoord aScreenBegin, nscoord aScreenEnd,
+                               nscoord *aOffset)
+{
+  
+  
+  if (aScreenPoint < aScreenBegin) {
+    *aOffset = aScreenBegin - aScreenPoint;
+    aScreenPoint = aScreenBegin;
+  } else if (aScreenPoint + aSize > aScreenEnd) {
+    *aOffset = aScreenPoint + aSize - aScreenEnd;
+    aScreenPoint = std::max(aScreenEnd - aSize, 0);
+  }
+  return std::min(aSize, aScreenEnd - aScreenPoint);
+}
+
+nscoord
 nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize, 
                                nscoord aScreenBegin, nscoord aScreenEnd,
                                nscoord aAnchorBegin, nscoord aAnchorEnd,
@@ -1276,16 +1297,34 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
     
     
-    
-    
-    
-    mRect.width = FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
-                               screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
-                               margin.left, margin.right, offsetForContextMenu, hFlip, &mHFlip);
 
-    mRect.height = FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
-                                screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
-                                margin.top, margin.bottom, offsetForContextMenu, vFlip, &mVFlip);
+    
+    
+    
+    bool slideHorizontal = mSlide && mPosition <= POPUPPOSITION_AFTEREND;
+    bool slideVertical = mSlide && mPosition >= POPUPPOSITION_STARTBEFORE;
+
+    
+    
+    
+    if (slideHorizontal) {
+      mRect.width = SlideOrResize(screenPoint.x, mRect.width, screenRect.x,
+                                  screenRect.XMost(), &mAlignmentOffset);
+    } else {
+      mRect.width = FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
+                                 screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
+                                 margin.left, margin.right, offsetForContextMenu, hFlip,
+                                 &mHFlip);
+    }
+    if (slideVertical) {
+      mRect.height = SlideOrResize(screenPoint.y, mRect.height, screenRect.y,
+                                  screenRect.YMost(), &mAlignmentOffset);
+    } else {
+      mRect.height = FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
+                                  screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
+                                  margin.top, margin.bottom, offsetForContextMenu, vFlip,
+                                  &mVFlip);
+    }
 
     NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
                  screenPoint.x + mRect.width <= screenRect.XMost() &&

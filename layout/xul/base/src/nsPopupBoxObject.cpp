@@ -355,6 +355,23 @@ nsPopupBoxObject::GetAlignmentPosition(nsAString& positionStr)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsPopupBoxObject::GetAlignmentOffset(int32_t *aAlignmentOffset)
+{
+  nsMenuPopupFrame *menuPopupFrame = do_QueryFrame(GetFrame(true));
+  if (!menuPopupFrame)
+    return NS_OK;
+
+  int32_t pp = nsDeviceContext::AppUnitsPerCSSPixel();
+  
+  
+  
+  nsPoint appOffset(menuPopupFrame->GetAlignmentOffset(), 0);
+  nsIntPoint popupOffset = appOffset.ToNearestPixels(pp);
+  *aAlignmentOffset = popupOffset.x;
+  return NS_OK;
+}
+
 
 
 nsresult

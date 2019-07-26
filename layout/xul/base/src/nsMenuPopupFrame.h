@@ -334,6 +334,8 @@ public:
   
   int8_t GetAlignmentPosition() const;
 
+  
+  nscoord GetAlignmentOffset() const { return mAlignmentOffset; }
 protected:
 
   
@@ -372,6 +374,24 @@ protected:
                        nscoord aMarginBegin, nscoord aMarginEnd,
                        nscoord aOffsetForContextMenu, FlipStyle aFlip,
                        bool* aFlipSide);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord SlideOrResize(nscoord& aScreenPoint, nscoord aSize,
+                        nscoord aScreenBegin, nscoord aScreenEnd,
+                        nscoord *aOffset);
 
   
   void MoveToAttributePosition();
@@ -418,6 +438,12 @@ protected:
   int32_t mYPos;
   int32_t mScreenXPos;
   int32_t mScreenYPos;
+
+  
+  
+  
+  nscoord mAlignmentOffset;
+
   
   
   
@@ -434,6 +460,7 @@ protected:
   
   int8_t mConsumeRollupEvent;
   bool mFlipBoth; 
+  bool mSlide; 
 
   bool mIsOpenChanged; 
   bool mIsContextMenu; 
