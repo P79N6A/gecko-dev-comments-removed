@@ -271,6 +271,52 @@ inline nscoord NSToCoordCeilClamped(double aValue)
 
 
 
+
+inline nscoord NSToCoordTrunc(float aValue)
+{
+  
+  
+  return nscoord(aValue);
+}
+
+inline nscoord NSToCoordTrunc(double aValue)
+{
+  
+  
+  return nscoord(aValue);
+}
+
+inline nscoord NSToCoordTruncClamped(float aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordTrunc(aValue);
+}
+
+inline nscoord NSToCoordTruncClamped(double aValue)
+{
+#ifndef NS_COORD_IS_FLOAT
+  
+  if (aValue >= nscoord_MAX) {
+    return nscoord_MAX;
+  }
+  if (aValue <= nscoord_MIN) {
+    return nscoord_MIN;
+  }
+#endif
+  return NSToCoordTrunc(aValue);
+}
+
+
+
+
 inline int32_t NSToIntFloor(float aValue)
 {
   return int32_t(floorf(aValue));

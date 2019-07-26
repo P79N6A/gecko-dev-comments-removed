@@ -223,9 +223,21 @@ struct CalcLengthCalcOps : public css::BasicCoordCalcOps,
   }
 };
 
-static inline nscoord ScaleCoord(const nsCSSValue &aValue, float factor)
+static inline nscoord ScaleCoordRound(const nsCSSValue& aValue, float aFactor)
 {
-  return NSToCoordRoundWithClamp(aValue.GetFloatValue() * factor);
+  return NSToCoordRoundWithClamp(aValue.GetFloatValue() * aFactor);
+}
+
+static inline nscoord ScaleViewportCoordTrunc(const nsCSSValue& aValue,
+                                              nscoord aViewportSize)
+{
+  
+  
+  
+  
+  
+  return NSToCoordTruncClamped(aValue.GetFloatValue() *
+                               aViewportSize / 100.0f);
 }
 
 already_AddRefed<nsFontMetrics>
@@ -351,18 +363,22 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
     
     
     case eCSSUnit_ViewportWidth: {
-      return ScaleCoord(aValue, 0.01f * CalcViewportUnitsScale(aPresContext).width);
+      nscoord viewportWidth = CalcViewportUnitsScale(aPresContext).width;
+      return ScaleViewportCoordTrunc(aValue, viewportWidth);
     }
     case eCSSUnit_ViewportHeight: {
-      return ScaleCoord(aValue, 0.01f * CalcViewportUnitsScale(aPresContext).height);
+      nscoord viewportHeight = CalcViewportUnitsScale(aPresContext).height;
+      return ScaleViewportCoordTrunc(aValue, viewportHeight);
     }
     case eCSSUnit_ViewportMin: {
       nsSize vuScale(CalcViewportUnitsScale(aPresContext));
-      return ScaleCoord(aValue, 0.01f * min(vuScale.width, vuScale.height));
+      nscoord viewportMin = min(vuScale.width, vuScale.height);
+      return ScaleViewportCoordTrunc(aValue, viewportMin);
     }
     case eCSSUnit_ViewportMax: {
       nsSize vuScale(CalcViewportUnitsScale(aPresContext));
-      return ScaleCoord(aValue, 0.01f * max(vuScale.width, vuScale.height));
+      nscoord viewportMax = max(vuScale.width, vuScale.height);
+      return ScaleViewportCoordTrunc(aValue, viewportMax);
     }
     
     
@@ -415,7 +431,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         rootFontSize = rootStyleFont->mFont.size;
       }
 
-      return ScaleCoord(aValue, float(rootFontSize));
+      return ScaleCoordRound(aValue, float(rootFontSize));
     }
     default:
       
@@ -436,13 +452,13 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
     case eCSSUnit_EM: {
       
       
-      return ScaleCoord(aValue, float(aFontSize));
+      return ScaleCoordRound(aValue, float(aFontSize));
     }
     case eCSSUnit_XHeight: {
       nsRefPtr<nsFontMetrics> fm =
         GetMetricsFor(aPresContext, aStyleContext, styleFont,
                       aFontSize, aUseUserFontSet);
-      return ScaleCoord(aValue, float(fm->XHeight()));
+      return ScaleCoordRound(aValue, float(fm->XHeight()));
     }
     case eCSSUnit_Char: {
       nsRefPtr<nsFontMetrics> fm =
@@ -451,8 +467,8 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       gfxFloat zeroWidth = (fm->GetThebesFontGroup()->GetFontAt(0)
                             ->GetMetrics().zeroOrAveCharWidth);
 
-      return ScaleCoord(aValue, ceil(aPresContext->AppUnitsPerDevPixel() *
-                                     zeroWidth));
+      return ScaleCoordRound(aValue, ceil(aPresContext->AppUnitsPerDevPixel() *
+                                          zeroWidth));
     }
     default:
       NS_NOTREACHED("unexpected unit");
