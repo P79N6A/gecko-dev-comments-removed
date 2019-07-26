@@ -389,11 +389,16 @@ public:
     NS_IMETHOD GetAmount(int64_t* aAmount) { return GetResident(aAmount); }
 };
 
+
+
+
+
+
 class ResidentFastReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     ResidentFastReporter()
-      : MemoryUniReporter("resident-fast", KIND_OTHER, UNITS_BYTES,
+      : MemoryUniReporter("redundant/resident-fast", KIND_OTHER, UNITS_BYTES,
 "This is the same measurement as 'resident', but it tries to be as fast as "
 "possible at the expense of accuracy.  On most platforms this is identical to "
 "the 'resident' measurement, but on Mac it may over-count.  You should use "

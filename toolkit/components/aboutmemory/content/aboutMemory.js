@@ -1019,22 +1019,17 @@ function getPCollsByProcess(aProcessReports, aForceShowSmaps)
   
   
   
-  
-  
-  
-  
-  
 
   function ignoreReporter(aName)
   {
     return (aName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
-           aName === "resident-fast";
+           aName.startsWith("redundant/");
   }
 
   function ignoreReport(aUnsafePath)
   {
     return (isSmapsPath(aUnsafePath) && !gVerbose.checked && !aForceShowSmaps) ||
-           aUnsafePath == "resident-fast";
+           aUnsafePath.startsWith("redundant/");
   }
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
