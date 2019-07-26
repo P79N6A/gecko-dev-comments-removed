@@ -4580,7 +4580,20 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags)
         textRun->AddGlyphRun(font, gfxTextRange::kFontGroup, 0, false);
     }
     else {
-        textRun->SetSpaceGlyph(font, aParams->mContext, 0);
+        if (font->GetSpaceGlyph()) {
+            
+            
+            textRun->SetSpaceGlyph(font, aParams->mContext, 0);
+        } else {
+            
+            
+            uint8_t matchType;
+            nsRefPtr<gfxFont> spaceFont =
+                FindFontForChar(' ', 0, MOZ_SCRIPT_LATIN, nullptr, &matchType);
+            if (spaceFont) {
+                textRun->SetSpaceGlyph(spaceFont, aParams->mContext, 0);
+            }
+        }
     }
 
     
