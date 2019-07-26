@@ -758,9 +758,7 @@ let gHistorySwipeAnimation = {
 
 
   _isSupported: function HSA__isSupported() {
-    
-    
-    return window.matchMedia("(-moz-mac-lion-theme)").matches;
+    return window.matchMedia("(-moz-swipe-animation-enabled)").matches;
   },
 
   
