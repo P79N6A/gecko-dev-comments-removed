@@ -159,7 +159,7 @@ Probes::finalizeObject(JSObject *obj)
         const Class *clasp = obj->getClass();
 
         
-        JAVASCRIPT_OBJECT_FINALIZE(NULL, (char *)clasp->name, (uintptr_t)obj);
+        JAVASCRIPT_OBJECT_FINALIZE(nullptr, (char *)clasp->name, (uintptr_t)obj);
     }
 #endif
 

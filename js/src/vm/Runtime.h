@@ -107,7 +107,7 @@ struct GSNCache {
     jsbytecode      *code;
     Map             map;
 
-    GSNCache() : code(NULL) { }
+    GSNCache() : code(nullptr) { }
 
     void purge();
 };
@@ -157,7 +157,7 @@ struct ConservativeGCData
 
 #ifdef JS_THREADSAFE
     void updateForRequestEnd() {
-        nativeStackTop = NULL;
+        nativeStackTop = nullptr;
     }
 #endif
 
@@ -175,7 +175,7 @@ class SourceDataCache
     Map *map_;
 
   public:
-    SourceDataCache() : map_(NULL) {}
+    SourceDataCache() : map_(nullptr) {}
     JSStableString *lookup(ScriptSource *ss);
     void put(ScriptSource *ss, JSStableString *);
     void purge();
@@ -228,7 +228,7 @@ struct LazyScriptHashPolicy
     static void hash(JSScript *script, HashNumber hashes[NumHashes]);
     static bool match(JSScript *script, JSScript *lookup) { return script == lookup; }
 
-    static void clear(JSScript **pscript) { *pscript = NULL; }
+    static void clear(JSScript **pscript) { *pscript = nullptr; }
     static bool isCleared(JSScript *script) { return !script; }
 };
 
@@ -252,13 +252,13 @@ class NativeIterCache
     PropertyIteratorObject *last;
 
     NativeIterCache()
-      : last(NULL)
+      : last(nullptr)
     {
         mozilla::PodArrayZero(data);
     }
 
     void purge() {
-        last = NULL;
+        last = nullptr;
         mozilla::PodArrayZero(data);
     }
 
@@ -601,7 +601,7 @@ struct MallocProvider
         Client *client = static_cast<Client *>(this);
         client->updateMallocCounter(bytes);
         void *p = js_malloc(bytes);
-        return JS_LIKELY(!!p) ? p : client->onOutOfMemory(NULL, bytes);
+        return JS_LIKELY(!!p) ? p : client->onOutOfMemory(nullptr, bytes);
     }
 
     void *calloc_(size_t bytes) {
@@ -650,17 +650,17 @@ struct MallocProvider
         if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
             Client *client = static_cast<Client *>(this);
             client->reportAllocationOverflow();
-            return NULL;
+            return nullptr;
         }
         return (T *)malloc_(numElems * sizeof(T));
     }
 
     template <class T>
-    T *pod_calloc(size_t numElems, JSCompartment *comp = NULL, JSContext *cx = NULL) {
+    T *pod_calloc(size_t numElems, JSCompartment *comp = nullptr, JSContext *cx = nullptr) {
         if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
             Client *client = static_cast<Client *>(this);
             client->reportAllocationOverflow();
-            return NULL;
+            return nullptr;
         }
         return (T *)calloc_(numElems * sizeof(T));
     }
@@ -743,7 +743,7 @@ struct JSRuntime : public JS::shadow::Runtime,
         }
         ~AutoLockForOperationCallback() {
             JS_ASSERT(rt->operationCallbackOwner == PR_GetCurrentThread());
-            rt->operationCallbackOwner = NULL;
+            rt->operationCallbackOwner = nullptr;
             PR_Unlock(rt->operationCallbackLock);
         }
 #else 
@@ -1239,7 +1239,7 @@ struct JSRuntime : public JS::shadow::Runtime,
         void *data;
 
         ExtraTracer()
-          : op(NULL), data(NULL)
+          : op(nullptr), data(nullptr)
         {}
         ExtraTracer(JSTraceDataOp op, void *data)
           : op(op), data(data)
@@ -1549,7 +1549,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     void updateMallocCounter(size_t nbytes);
     void updateMallocCounter(JS::Zone *zone, size_t nbytes);
 
-    void reportAllocationOverflow() { js_ReportAllocationOverflow(NULL); }
+    void reportAllocationOverflow() { js_ReportAllocationOverflow(nullptr); }
 
     bool isTooMuchMalloc() const {
         return gcMallocBytes <= 0;
@@ -1709,7 +1709,7 @@ FreeOp::free_(void *p)
 class AutoLockGC
 {
   public:
-    explicit AutoLockGC(JSRuntime *rt = NULL
+    explicit AutoLockGC(JSRuntime *rt = nullptr
                         MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : runtime(rt)
     {
