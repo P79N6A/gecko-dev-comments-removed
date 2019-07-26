@@ -15,13 +15,6 @@ class nsISocketTransport;
 
 namespace mozilla { namespace net {
 
-
-
-
-
-
-
-
 class ASpdySession : public nsAHttpTransaction
 {
 public:
@@ -58,7 +51,8 @@ public:
   SpdyInformation();
   ~SpdyInformation() {}
 
-  
+  static const uint32_t kCount = 3;
+
   
   bool ProtocolEnabled(uint32_t index);
 
@@ -66,8 +60,8 @@ public:
   
   nsresult GetNPNVersionIndex(const nsACString &npnString, uint8_t *result);
 
-  uint8_t   Version[2];
-  nsCString VersionString[2];
+  uint8_t   Version[kCount];
+  nsCString VersionString[kCount];
 };
 
 }} 
