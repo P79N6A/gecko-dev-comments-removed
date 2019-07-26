@@ -1899,11 +1899,11 @@ InlineFrameIterator::computeScopeChain(Value scopeChainValue) const
     if (scopeChainValue.isObject())
         return &scopeChainValue.toObject();
 
-    if (isFunctionFrame()) {
-        
-        MOZ_ASSERT(!callee()->isHeavyweight());
+    
+    
+    
+    if (isFunctionFrame())
         return callee()->environment();
-    }
 
     
     MOZ_ASSERT(!script()->isForEval());
