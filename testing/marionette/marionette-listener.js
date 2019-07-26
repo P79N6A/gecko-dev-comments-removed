@@ -160,7 +160,7 @@ function startListeners() {
   addMessageListenerId("Marionette:importScript", importScript);
   addMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
   addMessageListenerId("Marionette:setTestName", setTestName);
-  addMessageListenerId("Marionette:screenShot", screenShot);
+  addMessageListenerId("Marionette:takeScreenshot", takeScreenshot);
   addMessageListenerId("Marionette:addCookie", addCookie);
   addMessageListenerId("Marionette:getCookies", getCookies);
   addMessageListenerId("Marionette:deleteAllCookies", deleteAllCookies);
@@ -260,7 +260,7 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:importScript", importScript);
   removeMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
   removeMessageListenerId("Marionette:setTestName", setTestName);
-  removeMessageListenerId("Marionette:screenShot", screenShot);
+  removeMessageListenerId("Marionette:takeScreenshot", takeScreenshot);
   removeMessageListenerId("Marionette:addCookie", addCookie);
   removeMessageListenerId("Marionette:getCookies", getCookies);
   removeMessageListenerId("Marionette:deleteAllCookies", deleteAllCookies);
@@ -2063,7 +2063,13 @@ function importScript(msg) {
 
 
 
-function screenShot(msg) {
+
+
+
+
+
+
+function takeScreenshot(msg) {
   let node = null;
   if (msg.json.id) {
     try {
@@ -2075,7 +2081,7 @@ function screenShot(msg) {
     }
   }
   else {
-      node = curFrame;
+    node = curFrame;
   }
   let highlights = msg.json.highlights;
 
@@ -2100,13 +2106,15 @@ function screenShot(msg) {
     left = rect.left;
   }
 
-  var canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  var canvas = document.createElementNS("http://www.w3.org/1999/xhtml",
+                                        "canvas");
   canvas.width = width;
   canvas.height = height;
   var ctx = canvas.getContext("2d");
   
-  ctx.drawWindow(win, left, top, width, height, 'rgb(255,255,255)');
+  ctx.drawWindow(win, left, top, width, height, "rgb(255,255,255)");
 
+  
   
   if (highlights) {
     ctx.lineWidth = "2";
@@ -2114,21 +2122,25 @@ function screenShot(msg) {
     ctx.save();
 
     for (var i = 0; i < highlights.length; ++i) {
-      var elem = elementManager.getKnownElement(highlights[i], curFrame)
+      var elem = elementManager.getKnownElement(highlights[i], curFrame);
       rect = elem.getBoundingClientRect();
 
       var offsetY = -top;
       var offsetX = -left;
 
       
-      ctx.strokeRect(rect.left + offsetX, rect.top + offsetY, rect.width, rect.height);
+      ctx.strokeRect(rect.left + offsetX,
+                     rect.top + offsetY,
+                     rect.width,
+                     rect.height);
     }
   }
 
   
   
-  var data_url = canvas.toDataURL("image/png","");
-  sendResponse({value: data_url.substring(data_url.indexOf(",") + 1)}, msg.json.command_id);
+  var dataUrl = canvas.toDataURL("image/png", "");
+  var data = dataUrl.substring(dataUrl.indexOf(",") + 1);
+  sendResponse({value: data}, msg.json.command_id);
 }
 
 

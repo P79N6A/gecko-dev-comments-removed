@@ -2211,13 +2211,22 @@ MarionetteServerConnection.prototype = {
 
 
 
-  screenShot: function MDA_saveScreenshot(aRequest) {
+
+
+
+
+
+
+
+
+
+
+
+  takeScreenshot: function MDA_takeScreenshot(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("screenShot",
-                   {
-                     id: aRequest.parameters.id,
-                     highlights: aRequest.parameters.highlights
-                   },
+    this.sendAsync("takeScreenshot",
+                   {id: aRequest.parameters.id,
+                    highlights: aRequest.parameters.highlights},
                    this.command_id);
   },
 
@@ -2256,13 +2265,15 @@ MarionetteServerConnection.prototype = {
 
     let mozOr = or.toLowerCase();
     if (ors.indexOf(mozOr) < 0) {
-      this.sendError("Unknown screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unknown screen orientation: " + or, 500, null,
+                     this.command_id);
       return;
     }
 
     let curWindow = this.getCurrentWindow();
     if (!curWindow.screen.mozLockOrientation(mozOr)) {
-      this.sendError("Unable to set screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unable to set screen orientation: " + or, 500,
+                     null, this.command_id);
     }
     this.sendOk(this.command_id);
   },
@@ -2445,7 +2456,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "close": MarionetteServerConnection.prototype.close,
   "closeWindow": MarionetteServerConnection.prototype.close,  
   "setTestName": MarionetteServerConnection.prototype.setTestName,
-  "screenShot": MarionetteServerConnection.prototype.screenShot,
+  "takeScreenshot": MarionetteServerConnection.prototype.takeScreenshot,
+  "screenShot": MarionetteServerConnection.prototype.takeScreenshot,  
   "addCookie": MarionetteServerConnection.prototype.addCookie,
   "getCookies": MarionetteServerConnection.prototype.getCookies,
   "getAllCookies": MarionetteServerConnection.prototype.getCookies,  
