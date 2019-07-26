@@ -395,6 +395,37 @@ var gCurrentFileFormatVersion = 1;
 
 
 
+function updateAboutMemoryFromJSONString(aJSONString)
+{
+  let body = clearBody();
+
+  try {
+    let json = JSON.parse(aJSONString);
+    assertInput(json.version === gCurrentFileFormatVersion,
+                "data version number missing or doesn't match");
+    assertInput(json.hasMozMallocUsableSize !== undefined,
+                "missing 'hasMozMallocUsableSize' property");
+    assertInput(json.reports && json.reports instanceof Array,
+                "missing or non-array 'reports' property");
+    let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
+      processMemoryReportsFromFile(json.reports, aIgnoreSingle,
+                                   aHandleReport);
+    }
+    appendAboutMemoryMain(body, process, json.hasMozMallocUsableSize);
+  } catch (ex) {
+    handleException(ex);
+  } finally {
+    appendAboutMemoryFooter(body);
+  }
+}
+
+
+
+
+
+
+
+
 
 function updateAboutMemoryFromFile(aFile)
 {
@@ -402,37 +433,50 @@ function updateAboutMemoryFromFile(aFile)
   
   
 
-  function readerOnload(aEvent) {
-    try {
-      let json = JSON.parse(aEvent.target.result);
-      assertInput(json.version === gCurrentFileFormatVersion,
-                  "data version number missing or doesn't match");
-      assertInput(json.hasMozMallocUsableSize !== undefined,
-                  "missing 'hasMozMallocUsableSize' property");
-      assertInput(json.reports && json.reports instanceof Array,
-                  "missing or non-array 'reports' property");
-      let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
-        processMemoryReportsFromFile(json.reports, aIgnoreSingle,
-                                     aHandleReport);
-      }
-      appendAboutMemoryMain(body, process, json.hasMozMallocUsableSize);
-    } catch (ex) {
-      handleException(ex);
-    } finally {
-      appendAboutMemoryFooter(body);
-    }
-  };
-
-  let body = clearBody();
-
   try {
     let reader = new FileReader();
-    reader.onerror = function(aEvent) { throw "FileReader.onerror"; }
-    reader.onabort = function(aEvent) { throw "FileReader.onabort"; }
-    reader.onload = readerOnload;
+    reader.onerror = function(aEvent) { throw "FileReader.onerror"; };
+    reader.onabort = function(aEvent) { throw "FileReader.onabort"; };
+    reader.onload = function(aEvent) {
+      updateAboutMemoryFromJSONString(aEvent.target.result);
+    };
     reader.readAsText(aFile);
 
   } catch (ex) {
+    let body = clearBody();
+    handleException(ex);
+    appendAboutMemoryFooter(body);
+  }
+}
+
+
+
+
+
+function updateAboutMemoryFromClipboard()
+{
+  
+  let cb = Cc["@mozilla.org/widget/clipboard;1"]
+             .getService(Components.interfaces.nsIClipboard);
+  let transferable = Cc["@mozilla.org/widget/transferable;1"]
+                       .createInstance(Ci.nsITransferable);
+  let loadContext = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsILoadContext);
+  transferable.init(loadContext);
+  transferable.addDataFlavor('text/unicode');
+  cb.getData(transferable, Ci.nsIClipboard.kGlobalClipboard);
+
+  var cbData = {};
+  try {
+    transferable.getTransferData('text/unicode', cbData,
+                                  {});
+    let cbString = cbData.value.QueryInterface(Ci.nsISupportsString).data;
+
+    
+    updateAboutMemoryFromJSONString(cbString);
+  } catch (ex) {
+    let body = clearBody();
     handleException(ex);
     appendAboutMemoryFooter(body);
   }
@@ -494,7 +538,8 @@ function appendAboutMemoryFooter(aBody)
                  "collection followed by a cycle collection, and causes the " +
                  "process to reduce memory usage in other ways, e.g. by " +
                  "flushing various caches.";
-  const RdDesc = "Read memory report data from file.";
+  const RdDesc = "Read memory report data from a file.";
+  const CbDesc = "Read memory report data from the clipboard.";
 
   function appendButton(aP, aTitle, aOnClick, aText, aId)
   {
@@ -526,7 +571,10 @@ function appendAboutMemoryFooter(aBody)
     updateAboutMemoryFromFile(file);
   }); 
   appendButton(div1, RdDesc, function() { input.click() },
-               "Read reports from file", "readReportsButton");
+               "Read reports from a file", "readReportsFromFileButton");
+
+  appendButton(div1, CbDesc, updateAboutMemoryFromClipboard,
+               "Read reports from clipboard", "readReportsFromClipboardButton");
 
   let div2 = appendElement(aBody, "div");
   if (gVerbose) {
