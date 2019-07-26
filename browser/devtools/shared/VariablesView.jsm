@@ -141,6 +141,7 @@ VariablesView.prototype = {
 
 
 
+
   set enumVisible(aFlag) {
     this._enumVisible = aFlag;
 
@@ -153,11 +154,27 @@ VariablesView.prototype = {
 
 
 
+
   set nonEnumVisible(aFlag) {
     this._nonEnumVisible = aFlag;
 
     for (let [, scope] in this) {
       scope._nonEnumVisible = aFlag;
+    }
+  },
+
+  
+
+
+
+
+  set onlyEnumVisible(aFlag) {
+    if (aFlag) {
+      this.enumVisible = true;
+      this.nonEnumVisible = false;
+    } else {
+      this.enumVisible = true;
+      this.nonEnumVisible = true;
     }
   },
 
