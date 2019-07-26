@@ -5434,8 +5434,10 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub, uint3
     Value *args = vp + 2;
 
     
-    if (op == JSOP_FUNAPPLY && argc == 2 && args[1].isMagic(JS_OPTIMIZED_ARGUMENTS))
-        GuardFunApplyArgumentsOptimization(cx, frame, callee, args, argc);
+    if (op == JSOP_FUNAPPLY && argc == 2 && args[1].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
+        if (!GuardFunApplyArgumentsOptimization(cx, frame, callee, args, argc))
+            return false;
+    }
 
     
     bool constructing = (op == JSOP_NEW);
