@@ -71,13 +71,13 @@ public:
   NS_DECL_NSIUPDATEPROCESSOR
 
 private:
-  struct BackgroundUpdateInfo {
-    BackgroundUpdateInfo()
+  struct StagedUpdateInfo {
+    StagedUpdateInfo()
       : mArgc(0),
         mArgv(nullptr),
         mIsOSUpdate(false)
     {}
-    ~BackgroundUpdateInfo() {
+    ~StagedUpdateInfo() {
       for (int i = 0; i < mArgc; ++i) {
         delete[] mArgv[i];
       }
@@ -95,7 +95,7 @@ private:
   };
 
 private:
-  void StartBackgroundUpdate();
+  void StartStagedUpdate();
   void WaitForProcess();
   void UpdateDone();
   void ShutdownWatcherThread();
@@ -104,7 +104,7 @@ private:
   ProcessType mUpdaterPID;
   nsCOMPtr<nsIThread> mProcessWatcher;
   nsCOMPtr<nsIUpdate> mUpdate;
-  BackgroundUpdateInfo mInfo;
+  StagedUpdateInfo mInfo;
 };
 #endif
 
