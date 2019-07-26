@@ -38,9 +38,6 @@ DOMCI_CLASS(XULTemplateBuilder)
 DOMCI_CLASS(XULTreeBuilder)
 #endif
 
-
-DOMCI_CLASS(DOMStringList)
-
 #ifdef MOZ_XUL
 DOMCI_CLASS(TreeColumn)
 #endif

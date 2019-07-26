@@ -72,6 +72,7 @@ class Selection;
 class TextComposition;
 
 namespace dom {
+class DataTransfer;
 class Element;
 class EventTarget;
 }  
@@ -808,7 +809,7 @@ public:
   
   
   
-  virtual nsresult InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
+  virtual nsresult InsertFromDataTransfer(mozilla::dom::DataTransfer *aDataTransfer,
                                           int32_t aIndex,
                                           nsIDOMDocument *aSourceDoc,
                                           nsIDOMNode *aDestinationNode,

@@ -20,7 +20,7 @@
 #include "nsIContent.h"                 
 #include "nsIController.h"              
 #include "nsID.h"
-#include "nsIDOMDOMStringList.h"        
+#include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "nsIDOMDocument.h"             
 #include "nsIDOMDragEvent.h"            
@@ -59,7 +59,7 @@
 class nsPresContext;
 
 using namespace mozilla;
-using mozilla::dom::EventTarget;
+using namespace mozilla::dom;
 
 static nsINativeKeyBindings *sNativeEditorBindings = nullptr;
 
@@ -805,29 +805,22 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
     return false;
   }
 
-  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
-  aEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
+  nsCOMPtr<nsIDOMDataTransfer> domDataTransfer;
+  aEvent->GetDataTransfer(getter_AddRefs(domDataTransfer));
+  nsCOMPtr<DataTransfer> dataTransfer = do_QueryInterface(domDataTransfer);
   NS_ENSURE_TRUE(dataTransfer, false);
 
-  nsCOMPtr<nsIDOMDOMStringList> types;
-  dataTransfer->GetTypes(getter_AddRefs(types));
-  NS_ENSURE_TRUE(types, false);
+  nsRefPtr<DOMStringList> types = dataTransfer->Types();
 
   
   
-  bool typeSupported;
-  types->Contains(NS_LITERAL_STRING(kTextMime), &typeSupported);
-  if (!typeSupported) {
-    types->Contains(NS_LITERAL_STRING(kMozTextInternal), &typeSupported);
-    if (!typeSupported && !mEditor->IsPlaintextEditor()) {
-      types->Contains(NS_LITERAL_STRING(kHTMLMime), &typeSupported);
-      if (!typeSupported) {
-        types->Contains(NS_LITERAL_STRING(kFileMime), &typeSupported);
-      }
-    }
+  if (!types->Contains(NS_LITERAL_STRING(kTextMime)) &&
+      !types->Contains(NS_LITERAL_STRING(kMozTextInternal)) &&
+      (mEditor->IsPlaintextEditor() ||
+       (!types->Contains(NS_LITERAL_STRING(kHTMLMime)) &&
+        !types->Contains(NS_LITERAL_STRING(kFileMime))))) {
+    return false;
   }
-
-  NS_ENSURE_TRUE(typeSupported, false);
 
   
   
