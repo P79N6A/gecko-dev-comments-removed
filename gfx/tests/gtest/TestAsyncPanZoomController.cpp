@@ -421,20 +421,20 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   gfx3DMatrix transform;
   transform.ScalePost(0.1, 0.1, 1);
   root->SetBaseTransform(transform);
-  root->ComputeEffectiveTransforms(gfx3DMatrix());
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(50, 50)); 
   EXPECT_EQ(nullAPZC, hit.get());
 
+  
+  
   hit = manager->GetTargetAPZC(ScreenPoint(2, 2));
-  EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
 
   
   layers[4]->SetBaseTransform(transform);
   
   
-  root->ComputeEffectiveTransforms(gfx3DMatrix());
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(2, 2));
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
@@ -455,7 +455,6 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   translateTransform3.ScalePost(1,15,1);
   layers[7]->SetBaseTransform(translateTransform3);
 
-  root->ComputeEffectiveTransforms(gfx3DMatrix());
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   
   hit = manager->GetTargetAPZC(ScreenPoint(1, 45));

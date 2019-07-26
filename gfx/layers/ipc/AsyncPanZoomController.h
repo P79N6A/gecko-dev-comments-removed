@@ -16,6 +16,7 @@
 #include "Axis.h"
 #include "TaskThrottler.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "gfx3DMatrix.h"
 
 #include "base/message_loop.h"
 
@@ -641,17 +642,28 @@ private:
 
 
 public:
-  void SetVisibleRegion(gfxRect rect) { mVisibleRegion = rect; }
+  void SetLayerHitTestData(const LayerRect& aRect, const gfx3DMatrix& aTransform) {
+    mVisibleRect = aRect;
+    mCSSTransform = aTransform;
+  }
 
-  bool VisibleRegionContains(const gfxPoint& aPoint) const {
-    return mVisibleRegion.Contains(aPoint.x, aPoint.y);
+  gfx3DMatrix GetCSSTransform() const {
+    return mCSSTransform;
+  }
+
+  bool VisibleRegionContains(const LayerPoint& aPoint) const {
+    return mVisibleRect.Contains(aPoint);
   }
 
 private:
   
 
 
-  gfxRect mVisibleRegion;
+
+  LayerRect mVisibleRect;
+  
+
+  gfx3DMatrix mCSSTransform;
 };
 
 }
