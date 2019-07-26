@@ -2275,11 +2275,16 @@ nsPresContext::NotifyDidPaintForSubtree(uint32_t aFlags)
 {
   if (IsRoot()) {
     static_cast<nsRootPresContext*>(this)->CancelDidPaintTimer();
-  }
 
-  if (!mFireAfterPaintEvents) {
-    return;
+    if (!mFireAfterPaintEvents) {
+      return;
+    }
   }
+  
+  
+  
+  
+  
 
   if (aFlags & nsIPresShell::PAINT_LAYERS) {
     mUndeliveredInvalidateRequestsBeforeLastPaint.TakeFrom(
