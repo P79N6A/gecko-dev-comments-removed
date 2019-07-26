@@ -67,52 +67,38 @@ let DOMApplicationRegistry = {
       ppmm.addMessageListener(msgName, this);
     }).bind(this));
 
+    cpmm.addMessageListener("Activities:Register:OK", this);
+
     Services.obs.addObserver(this, "xpcom-shutdown", false);
 
     this.appsFile = FileUtils.getFile(DIRECTORY_NAME,
                                       ["webapps", "webapps.json"], true);
 
-    let dirList = [DIRECTORY_NAME];
+    this.loadAndUpdateApps();
+  },
 
-#ifdef MOZ_WIDGET_GONK
-    dirList.push("coreAppsDir");
-#endif
-    let currentId = 1;
-    this.dirsToLoad = dirList.length;
-    this.dirsLoaded = 0;
-    dirList.forEach((function(dir) {
-      let curFile;
-      try {
-        
-        
-        
-        curFile = FileUtils.getFile(dir, ["webapps", "webapps.json"], false);
-      } catch(e) { }
-      if (curFile && curFile.exists()) {
-        let appDir = FileUtils.getDir(dir, ["webapps"], false);
-        this._loadJSONAsync(curFile, (function(aData) {
-          if (!aData) {
-            return;
-          }
-#ifdef MOZ_SYS_MSG
-          let ids = [];
-#endif
-          
-          for (let id in aData) {
-            this.webapps[id] = aData[id];
-            this.webapps[id].basePath = appDir.path;
-            this.webapps[id].removable = (dir == DIRECTORY_NAME);
-#ifdef MOZ_SYS_MSG
-            ids.push({ id: id });
-#endif
+  
+  
+  loadCurrentRegistry: function loadCurrentRegistry(aNext) {
+    let file = FileUtils.getFile(DIRECTORY_NAME, ["webapps", "webapps.json"], false);
+    if (file && file.exists) {
+      this._loadJSONAsync(file, (function loadRegistry(aData) {
+        if (aData) {
+          this.webapps = aData;
+          let appDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], false);
+          for (let id in this.webapps) {
             
+            if (this.webapps[id].localId === undefined) {
+              this.webapps[id].localId = this._nextLocalId();
+            }
+
+            if (this.webapps[id].basePath === undefined) {
+              this.webapps[id].basePath = appDir.path;
+            }
+
             
-            
-            
-            
-            
-            if (!this.webapps[id].removable) {
-              this.webapps[id].localId = currentId++;
+            if (this.webapps[id].removable === undefined) {
+              this.webapps[id].removable = true;
             }
 
             
@@ -120,14 +106,101 @@ let DOMApplicationRegistry = {
               this.webapps[id].appStatus = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
             }
           };
+        }
+        aNext();
+      }).bind(this));
+    } else {
+      aNext();
+    }
+  },
+
+  
+  
+  onInitDone: function onInitDone() {
+    Services.obs.notifyObservers(this, "webapps-registry-ready", null);
+    this._saveApps();
+  },
+
+  
+  registerAppsHandlers: function registerAppsHandlers() {
 #ifdef MOZ_SYS_MSG
-          this._processManifestForIds(ids);
+    let ids = [];
+    for (let id in this.webapps) {
+      ids.push({ id: id });
+    }
+    this._processManifestForIds(ids);
+#else
+    
+    this.onInitDone();
 #endif
-        }).bind(this));
-      } else {
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  loadAndUpdateApps: function loadAndUpdateApps() {
+    let runUpdate = Services.prefs.getBoolPref("dom.mozApps.runUpdate");
+    Services.prefs.setBoolPref("dom.mozApps.runUpdate", false);
+
+    
+    this.loadCurrentRegistry((function() {
+#ifdef MOZ_WIDGET_GONK
+    
+    if (runUpdate) {
+      let file = FileUtils.getFile("coreAppsDir", ["webapps", "webapps.json"], false);
+      if (file && file.exists) {
         
-        this.dirsToLoad--;
+        this._loadJSONAsync(file, (function loadCoreRegistry(aData) {
+          if (!aData) {
+            this.registerAppsHandlers();
+            return;
+          }
+
+          
+          for (let id in this.webapps) {
+            if (id in aData || this.webapps[id].removable)
+              continue;
+            let localId = this.webapps[id].localId;
+            delete this.webapps[id];
+            
+            
+          }
+
+          let appDir = FileUtils.getDir("coreAppsDir", ["webapps"], false);
+          
+          for (let id in aData) {
+            
+            
+            if (!(id in this.webapps)) {
+              this.webapps[id] = aData[id];
+              this.webapps[id].basePath = appDir.path;
+
+              
+              this.webapps[id].localId = this._nextLocalId();
+
+              
+              if (this.webapps[id].removable === undefined) {
+                this.webapps[id].removable = false;
+              }
+            }
+            
+            
+            
+          }
+          this.registerAppsHandlers();
+        }).bind(this));
       }
+    } else {
+      this.registerAppsHandlers();
+    }
+#else
+    this.registerAppsHandlers();
+#endif
     }).bind(this));
   },
 
@@ -200,6 +273,7 @@ let DOMApplicationRegistry = {
         "icon": manifest.iconURLForSize(128),
         "description": description
       }
+      this.activitiesToRegister++;
       cpmm.sendAsyncMessage("Activities:Register", json);
 
       let launchPath =
@@ -254,6 +328,9 @@ let DOMApplicationRegistry = {
   },
 
   _processManifestForIds: function(aIds) {
+    this.activitiesToRegister = 0;
+    this.activitiesRegistered = 0;
+    this.allActivitiesSent = false;
     this._readManifests(aIds, (function registerManifests(aResults) {
       aResults.forEach(function registerManifest(aResult) {
         let app = this.webapps[aResult.id];
@@ -262,10 +339,7 @@ let DOMApplicationRegistry = {
         this._registerSystemMessages(manifest, app);
         this._registerActivities(manifest, app);
       }, this);
-      this.dirsLoaded++;
-      if (this.dirsLoaded == this.dirsToLoad) {
-        Services.obs.notifyObservers(this, "webapps-registry-ready", null);
-      }
+      this.allActivitiesSent = true;
     }).bind(this));
   },
 #endif
@@ -393,6 +467,13 @@ let DOMApplicationRegistry = {
       case "Webapps:GetList":
         this.addMessageListener(["Webapps:AddApp", "Webapps:RemoveApp"], mm);
         return this.webapps;
+      case "Activities:Register:OK":
+        this.activitiesRegistered++;
+        if (this.allActivitiesSent &&
+            this.activitiesRegistered === this.activitiesToRegister) {
+          this.onInitDone();
+        }
+        break;
     }
   },
 
