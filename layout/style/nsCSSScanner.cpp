@@ -990,7 +990,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
     }
     if (ch == '\n') {
       aToken.mType = eCSSToken_Bad_String;
-      mReporter->ReportUnexpectedToken("SEUnterminatedString", aToken);
+      mReporter->ReportUnexpected("SEUnterminatedString", aToken);
       break;
     }
     if (ch == '\\') {
@@ -1004,7 +1004,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
         
         
         
-        mReporter->ReportUnexpectedToken("SEUnterminatedString", aToken);
+        mReporter->ReportUnexpected("SEUnterminatedString", aToken);
         break;
       }
     } else {
