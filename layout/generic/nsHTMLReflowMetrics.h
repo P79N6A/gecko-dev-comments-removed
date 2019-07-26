@@ -218,11 +218,27 @@ public:
   
   
   
-  nscoord ISize() const { return mISize; }
-  nscoord BSize() const { return mBSize; }
+  nscoord ISize(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mISize;
+  }
+  nscoord BSize(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mBSize;
+  }
+  mozilla::LogicalSize Size(mozilla::WritingMode aWritingMode) const {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mozilla::LogicalSize(aWritingMode, mISize, mBSize);
+  }
 
-  nscoord& ISize() { return mISize; }
-  nscoord& BSize() { return mBSize; }
+  nscoord& ISize(mozilla::WritingMode aWritingMode) {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mISize;
+  }
+  nscoord& BSize(mozilla::WritingMode aWritingMode) {
+    CHECK_WRITING_MODE(aWritingMode);
+    return mBSize;
+  }
 
   
   

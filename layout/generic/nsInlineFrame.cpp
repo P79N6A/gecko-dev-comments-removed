@@ -654,7 +654,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  aMetrics.ISize() = lineLayout->EndSpan(this);
+  aMetrics.ISize(wm) = lineLayout->EndSpan(this);
 
   
 
@@ -664,7 +664,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
       boxDecorationBreakClone) {
-    aMetrics.ISize() += aReflowState.ComputedLogicalBorderPadding().IStart(wm);
+    aMetrics.ISize(wm) += aReflowState.ComputedLogicalBorderPadding().IStart(wm);
   }
 
   
