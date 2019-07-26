@@ -1,3 +1,0 @@
-
-
-assertEq(typeof SavedFrame, "undefined");
