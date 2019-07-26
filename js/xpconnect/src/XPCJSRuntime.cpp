@@ -674,7 +674,7 @@ CanSkipWrappedJS(nsXPCWrappedJS *wrappedJS)
     
     
     
-    bool isRootWrappedJS = wrappedJS->GetRootWrapper() == wrappedJS;
+    bool isRootWrappedJS = wrappedJS->IsRootWrapper();
     if (nsCCUncollectableMarker::sGeneration &&
         (!obj || !xpc_IsGrayGCThing(obj)) &&
         !wrappedJS->IsSubjectToFinalization() &&
