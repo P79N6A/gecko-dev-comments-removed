@@ -25,6 +25,7 @@
 #include "nsWeakPtr.h"
 #include "mozilla/Attributes.h"
 #include "js/RootingAPI.h"
+#include "nsTObserverArray.h"
 
 namespace mozilla {
 namespace dom {
@@ -114,6 +115,11 @@ class nsAXPCNativeCallContext;
 
 struct nsMessageListenerInfo
 {
+  bool operator==(const nsMessageListenerInfo& aOther) const
+  {
+    return &aOther == this;
+  }
+
   
   nsCOMPtr<nsIMessageListener> mStrongListener;
   nsWeakPtr mWeakListener;
@@ -270,7 +276,8 @@ protected:
   friend class MMListenerRemover;
   
   
-  nsClassHashtable<nsStringHashKey, nsTArray<nsMessageListenerInfo>> mListeners;
+  nsClassHashtable<nsStringHashKey,
+                   nsAutoTObserverArray<nsMessageListenerInfo, 1>> mListeners;
   nsCOMArray<nsIContentFrameMessageManager> mChildManagers;
   bool mChrome;     
   bool mGlobal;     
