@@ -4,9 +4,6 @@
 
 
 
-#include "jscntxt.h"
-#include "jscompartment.h"
-
 #include "jit/Bailouts.h"
 #include "jit/IonCompartment.h"
 

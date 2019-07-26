@@ -28,8 +28,6 @@
 #ifndef yarr_YarrInterpreter_h
 #define yarr_YarrInterpreter_h
 
-#include "jscntxt.h"
-
 #include "yarr/YarrPattern.h"
 
 namespace WTF {

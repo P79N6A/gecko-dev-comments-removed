@@ -1,12 +1,10 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/PerfSpewer.h"
-
-#include <stdarg.h>
 
 #if defined(__linux__)
 # include <unistd.h>
@@ -80,7 +78,7 @@ PerfSpewer::PerfSpewer()
         return;
 
 #   if defined(__linux__)
-    
+    // perf expects its data to be in a file /tmp/perf-PID.map
     const ssize_t bufferSize = 256;
     char filenameBuffer[bufferSize];
     if (snprintf(filenameBuffer, bufferSize,
@@ -188,8 +186,8 @@ PerfSpewer::writeProfile(JSScript *script,
             }
         }
 
-        
-        
+        // Any stuff after the basic blocks is presumably OOL code,
+        // which I do not currently categorize.
         JS_ASSERT(cur <= funcEnd);
         if (cur < funcEnd) {
             fprintf(fp_,
@@ -221,7 +219,7 @@ AsmJSPerfSpewer::startBasicBlock(MBasicBlock *blk, MacroAssembler &masm)
     if (!PerfBlockEnabled() || !fp_)
         return true;
 
-    Record r("", blk->lineno(), blk->columnIndex(), blk->id()); 
+    Record r("", blk->lineno(), blk->columnIndex(), blk->id()); // filename is retrieved later
     masm.bind(&r.start);
     return basicBlocks_.append(r);
 }
@@ -246,7 +244,7 @@ AsmJSPerfSpewer::writeBlocksMap(unsigned long baseAddress, unsigned long funcSta
     if (!fp_ || !PerfBlockEnabled() || basicBlocks.length() == 0)
         return;
 
-    
+    // function begins with the prologue, which is located before the first basic block
     unsigned long prologueSize = basicBlocks[0].startOffset - funcStartOffset;
 
     unsigned long cur = baseAddress + funcStartOffset + prologueSize;
@@ -259,7 +257,7 @@ AsmJSPerfSpewer::writeBlocksMap(unsigned long baseAddress, unsigned long funcSta
         unsigned long blockEnd = baseAddress + (unsigned long) r.endOffset;
 
         if (i == basicBlocks.length() - 1) {
-            
+            // for the last block, manually add the ret instruction
             blockEnd += 1u;
         }
 
@@ -283,8 +281,8 @@ AsmJSPerfSpewer::writeBlocksMap(unsigned long baseAddress, unsigned long funcSta
         }
     }
 
-    
-    
+    // Any stuff after the basic blocks is presumably OOL code,
+    // which I do not currently categorize.
     JS_ASSERT(cur <= funcEnd);
     if (cur < funcEnd) {
         fprintf(fp_,
@@ -294,4 +292,4 @@ AsmJSPerfSpewer::writeBlocksMap(unsigned long baseAddress, unsigned long funcSta
                 funcName);
     }
 }
-#endif 
+#endif // defined (JS_ION_PERF)

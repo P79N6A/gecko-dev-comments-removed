@@ -266,21 +266,9 @@ struct ParseContext : public GenericParseContext
         prs->pc = this;
     }
 
-    ~ParseContext() {
-        
-        
-        JS_ASSERT(*parserPC == this);
-        *parserPC = this->oldpc;
-        js_delete(funcStmts);
-    }
+    ~ParseContext();
 
-    inline bool init()
-{
-    if (!frontend::GenerateBlockId(this, this->bodyid))
-        return false;
-
-    return decls_.init() && lexdeps.ensureMap(sc->context);
-}
+    bool init();
 
     unsigned blockid() { return topStmt ? topStmt->blockid : bodyid; }
 

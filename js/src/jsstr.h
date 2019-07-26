@@ -7,16 +7,13 @@
 #ifndef jsstr_h
 #define jsstr_h
 
+#include "mozilla/HashFunctions.h"
 #include "mozilla/PodOperations.h"
 
-#include <ctype.h>
-
 #include "jsapi.h"
-#include "jsatom.h"
-#include "jslock.h"
 #include "jsutil.h"
 
-#include "js/HashTable.h"
+#include "js/RootingAPI.h"
 #include "vm/Unicode.h"
 
 class JSFlatString;
@@ -27,20 +24,7 @@ namespace js {
 
 class StringBuffer;
 
-
-
-
-
-
-
-
-class StringSegmentRange;
 class MutatingRopeSegmentRange;
-
-
-
-
-class RopeBuilder;
 
 template <AllowGC allowGC>
 extern JSString *

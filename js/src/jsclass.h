@@ -1,17 +1,18 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsclass_h
 #define jsclass_h
 
-
-
-
-
-
+/*
+ * A JSClass acts as a vtable for JS objects that allows JSAPI clients to
+ * control various aspects of the behavior of an object like property lookup.
+ * js::Class is an engine-private extension that allows more control over
+ * object behavior and, e.g., allows custom slow layout.
+ */
 
 #include "jsapi.h"
 
@@ -24,29 +25,29 @@ class PropertyName;
 class Shape;
 class SpecialId;
 
-
-
+// This is equal to JSFunction::class_.  Use it in places where you don't want
+// to #include jsfun.h.
 extern JS_FRIEND_DATA(js::Class* const) FunctionClassPtr;
 
 static JS_ALWAYS_INLINE jsid
 SPECIALID_TO_JSID(const SpecialId &sid);
 
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * We partition the ways to refer to a property into three: by an index
+ * (uint32_t); by a string whose characters do not represent an index
+ * (PropertyName, see vm/String.h); and by various special values.
+ *
+ * Special values are encoded using SpecialId, which is layout-compatible but
+ * non-interconvertible with jsid.  A SpecialId is used for JSID_VOID, which
+ * does not occur in JS scripts but may be used to indicate the absence of a
+ * valid identifier.  In the future, a SpecialId may also be an object used by
+ * Harmony-proposed private names.
+ */
 class SpecialId
 {
     uintptr_t bits_;
 
-    
+    /* Needs access to raw bits. */
     friend JS_ALWAYS_INLINE jsid SPECIALID_TO_JSID(const SpecialId &sid);
     friend class PropertyId;
 
@@ -59,7 +60,7 @@ class SpecialId
   public:
     SpecialId() : bits_(TYPE_VOID) { }
 
-    
+    /* Object-valued */
 
     SpecialId(JSObject &obj)
       : bits_(uintptr_t(&obj) | TYPE_OBJECT)
@@ -77,7 +78,7 @@ class SpecialId
         return reinterpret_cast<JSObject *>(bits_ & ~TYPE_MASK);
     }
 
-    
+    /* Empty */
 
     static SpecialId empty() {
         SpecialId sid(TYPE_OBJECT);
@@ -89,7 +90,7 @@ class SpecialId
         return bits_ == TYPE_OBJECT;
     }
 
-    
+    /* Void */
 
     static SpecialId voidId() {
         SpecialId sid(TYPE_VOID);
@@ -133,7 +134,7 @@ JSID_TO_SPECIALID(jsid id)
 
 typedef JS::Handle<SpecialId> HandleSpecialId;
 
-
+/* js::Class operation signatures. */
 
 typedef bool
 (* LookupGenericOp)(JSContext *cx, HandleObject obj, HandleId id,
@@ -219,10 +220,10 @@ typedef void
     JSNative            construct;                                            \
     JSTraceOp           trace
 
-
-
-
-
+/*
+ * The helper struct to measure the size of JS_CLASS_MEMBERS to know how much
+ * we have to pad js::Class to match the size of JSClass.
+ */
 struct ClassSizeMeasurement
 {
     JS_CLASS_MEMBERS;
@@ -234,23 +235,23 @@ struct ClassExtension
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
 
-    
-
-
-
+    /*
+     * isWrappedNative is true only if the class is an XPCWrappedNative.
+     * WeakMaps use this to override the wrapper disposal optimization.
+     */
     bool                isWrappedNative;
 
-    
-
-
-
-
-
-
-
-
-
-
+    /*
+     * If an object is used as a key in a weakmap, it may be desirable for the
+     * garbage collector to keep that object around longer than it otherwise
+     * would. A common case is when the key is a wrapper around an object in
+     * another compartment, and we want to avoid collecting the wrapper (and
+     * removing the weakmap entry) as long as the wrapped object is alive. In
+     * that case, the wrapped object is returned by the wrapper's
+     * weakmapKeyDelegateOp hook. As long as the wrapper is used as a weakmap
+     * key, it will not be collected (and remain in the weakmap) until the
+     * wrapped object is collected.
+     */
     JSWeakmapKeyDelegateOp weakmapKeyDelegateOp;
 };
 
@@ -269,7 +270,7 @@ struct ObjectOps
     GenericIdOp         getGeneric;
     PropertyIdOp        getProperty;
     ElementIdOp         getElement;
-    ElementIfPresentOp  getElementIfPresent; 
+    ElementIfPresentOp  getElementIfPresent; /* can be null */
     SpecialIdOp         getSpecial;
     StrictGenericIdOp   setGeneric;
     StrictPropertyIdOp  setProperty;
@@ -304,7 +305,7 @@ struct Class
     uint8_t             pad[sizeof(JSClass) - sizeof(ClassSizeMeasurement) -
                             sizeof(ClassExtension) - sizeof(ObjectOps)];
 
-    
+    /* Class is not native and its map is not a scope. */
     static const uint32_t NON_NATIVE = JSCLASS_INTERNAL_FLAG2;
 
     bool isNative() const {
@@ -365,25 +366,25 @@ Valueify(const JSClass *c)
     return (const Class *)c;
 }
 
-
-
-
-
+/*
+ * Enumeration describing possible values of the [[Class]] internal property
+ * value of objects.
+ */
 enum ESClassValue {
     ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean,
     ESClass_RegExp, ESClass_ArrayBuffer, ESClass_Date
 };
 
-
-
-
-
-
-
+/*
+ * Return whether the given object has the given [[Class]] internal property
+ * value. Beware, this query says nothing about the js::Class of the JSObject
+ * so the caller must not assume anything about obj's representation (e.g., obj
+ * may be a proxy).
+ */
 inline bool
 ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
 
-
+/* Just a helper that checks v.isObject before calling ObjectClassIs. */
 inline bool
 IsObjectWithClass(const Value &v, ESClassValue classValue, JSContext *cx);
 
@@ -402,6 +403,6 @@ template <> struct GCMethods<SpecialId>
     static bool poisoned(SpecialId id) { return IsPoisonedSpecialId(id); }
 };
 
-}  
+}  /* namespace js */
 
-#endif  
+#endif  /* jsclass_h */

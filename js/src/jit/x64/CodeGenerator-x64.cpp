@@ -1,16 +1,13 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/x64/CodeGenerator-x64.h"
 
-#include "jsnum.h"
-
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
-#include "vm/Shape.h"
 
 #include "jsscriptinlines.h"
 
@@ -197,8 +194,8 @@ CodeGeneratorX64::storeUnboxedValue(const LAllocation *value, MIRType valueType,
         return;
     }
 
-    
-    
+    // For known integers and booleans, we can just store the unboxed value if
+    // the slot has the same type.
     if ((valueType == MIRType_Int32 || valueType == MIRType_Boolean) && slotType == valueType) {
         if (value->isConstant()) {
             Value val = *value->toConstant();
@@ -270,12 +267,12 @@ CodeGeneratorX64::visitImplicitThis(LImplicitThis *lir)
 {
     Register callee = ToRegister(lir->callee());
 
-    
-    
+    // The implicit |this| is always |undefined| if the function's environment
+    // is the current global.
     GlobalObject *global = &gen->info().script()->global();
     masm.cmpPtr(Operand(callee, JSFunction::offsetOfEnvironment()), ImmGCPtr(global));
 
-    
+    // TODO: OOL stub path.
     if (!bailoutIf(Assembler::NotEqual, lir->snapshot()))
         return false;
 
@@ -312,13 +309,13 @@ CodeGeneratorX64::visitCompareB(LCompareB *lir)
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
-    
+    // Load boxed boolean in ScratchReg.
     if (rhs->isConstant())
         masm.moveValue(*rhs->toConstant(), ScratchReg);
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchReg);
 
-    
+    // Perform the comparison.
     masm.cmpq(lhs.valueReg(), ScratchReg);
     masm.emitSet(JSOpToCondition(mir->compareType(), mir->jsop()), output);
     return true;
@@ -334,13 +331,13 @@ CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
-    
+    // Load boxed boolean in ScratchReg.
     if (rhs->isConstant())
         masm.moveValue(*rhs->toConstant(), ScratchReg);
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchReg);
 
-    
+    // Perform the comparison.
     masm.cmpq(lhs.valueReg(), ScratchReg);
     emitBranch(JSOpToCondition(mir->compareType(), mir->jsop()), lir->ifTrue(), lir->ifFalse());
     return true;
@@ -529,7 +526,7 @@ CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins)
 void
 DispatchIonCache::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
 {
-    
+    // Can always use the scratch register on x64.
     addState->dispatchScratch = ScratchReg;
 }
 
@@ -539,8 +536,8 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());
 
-    
-    
-    
+    // On x64, branchTruncateDouble uses cvttsd2sq. Unlike the x86
+    // implementation, this should handle most doubles and we can just
+    // call a stub if it fails.
     return emitTruncateDouble(input, output);
 }

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsclone_h
 #define jsclone_h
@@ -10,7 +10,6 @@
 #include "jsapi.h"
 #include "jscntxt.h"
 
-#include "js/HashTable.h"
 #include "js/Vector.h"
 
 namespace js {
@@ -92,7 +91,7 @@ struct SCInput {
     uint64_t *end;
 };
 
-} 
+} /* namespace js */
 
 struct JSStructuredCloneReader {
   public:
@@ -119,16 +118,16 @@ struct JSStructuredCloneReader {
 
     js::SCInput &in;
 
-    
+    // Stack of objects with properties remaining to be read.
     js::AutoValueVector objs;
 
-    
+    // Stack of all objects read during this deserialization
     js::AutoValueVector allObjs;
 
-    
+    // The user defined callbacks that will be used for cloning.
     const JSStructuredCloneCallbacks *callbacks;
 
-    
+    // Any value passed to JS_ReadStructuredClone.
     void *closure;
 
     friend bool JS_ReadTypedArray(JSStructuredCloneReader *r, jsval *vp);
@@ -172,36 +171,36 @@ struct JSStructuredCloneWriter {
 
     js::SCOutput &out;
 
-    
-    
-    
-    
+    // Vector of objects with properties remaining to be written.
+    //
+    // NB: These can span multiple compartments, so the compartment must be
+    // entered before any manipulation is performed.
     js::AutoValueVector objs;
 
-    
-    
+    // counts[i] is the number of properties of objs[i] remaining to be written.
+    // counts.length() == objs.length() and sum(counts) == ids.length().
     js::Vector<size_t> counts;
 
-    
+    // Ids of properties remaining to be written.
     js::AutoIdVector ids;
 
-    
-    
-    
+    // The "memory" list described in the HTML5 internal structured cloning algorithm.
+    // memory is a superset of objs; items are never removed from Memory
+    // until a serialization operation is finished
     typedef js::AutoObjectUnsigned32HashMap CloneMemory;
     CloneMemory memory;
 
-    
+    // The user defined callbacks that will be used for cloning.
     const JSStructuredCloneCallbacks *callbacks;
 
-    
+    // Any value passed to JS_WriteStructuredClone.
     void *closure;
 
-    
+    // List of transferable objects
     JS::RootedValue transferable;
     js::AutoObjectHashSet transferableObjects;
 
     friend bool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 };
 
-#endif 
+#endif /* jsclone_h */

@@ -1,14 +1,13 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/shared/CodeGenerator-shared-inl.h"
 
 #include "mozilla/DebugOnly.h"
 
-#include "builtin/ParallelArray.h"
 #include "jit/IonMacroAssembler.h"
 #include "jit/IonSpewer.h"
 #include "jit/MIR.h"
@@ -55,16 +54,16 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
     if (!gen->compilingAsmJS())
         masm.setInstrumentation(&sps_);
 
-    
-    
-    
+    // Since asm.js uses the system ABI which does not necessarily use a
+    // regular array where all slots are sizeof(Value), it maintains the max
+    // argument stack depth separately.
     if (gen->compilingAsmJS()) {
         JS_ASSERT(graph->argumentSlotCount() == 0);
         frameDepth_ += gen->maxAsmJSStackArgBytes();
 
-        
-        
-        
+        // An MAsmJSCall does not align the stack pointer at calls sites but instead
+        // relies on the a priori stack adjustment (in the prologue) on platforms
+        // (like x64) which require the stack to be aligned.
 #ifdef JS_CPU_ARM
         bool forceAlign = true;
 #else
@@ -76,8 +75,8 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
                 frameDepth_ += StackAlignment - rem;
         }
 
-        
-        
+        // FrameSizeClass is only used for bailing, which cannot happen in
+        // asm.js code.
         frameClass_ = FrameSizeClass::None();
     } else {
         frameClass_ = FrameSizeClass::FromDepth(frameDepth_);
@@ -108,9 +107,9 @@ bool
 CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code)
 {
     code->setFramePushed(masm.framePushed());
-    
-    
-    
+    // If an OOL instruction adds another OOL instruction, then use the original
+    // instruction's script/pc instead of the basic block's that we're on
+    // because they're probably not relevant any more.
     if (oolIns)
         code->setSource(oolIns->script(), oolIns->pc());
     else
@@ -118,7 +117,7 @@ CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code)
     return outOfLineCode_.append(code);
 }
 
-
+// see OffsetOfFrameSlot
 static inline int32_t
 ToStackIndex(LAllocation *a)
 {
@@ -173,7 +172,7 @@ CodeGeneratorShared::encodeSlots(LSnapshot *snapshot, MResumePoint *resumePoint,
                 MConstant *constant = mir->toConstant();
                 const Value &v = constant->value();
 
-                
+                // Don't bother with the constant pool for smallish integers.
                 if (v.isInt32() && v.toInt32() >= -32 && v.toInt32() <= 32) {
                     snapshots_.addInt32Slot(v.toInt32());
                 } else {
@@ -260,8 +259,8 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
         uint32_t exprStack = mir->stackDepth() - block->info().ninvoke();
         snapshots_.startFrame(fun, script, pc, exprStack);
 
-        
-        
+        // Ensure that all snapshot which are encoded can safely be used for
+        // bailouts.
         DebugOnly<jsbytecode *> bailPC = pc;
         if (mir->mode() == MResumePoint::ResumeAfter)
           bailPC = GetNextPc(pc);
@@ -270,20 +269,20 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
         if (GetIonContext()->cx) {
             uint32_t stackDepth = js_ReconstructStackDepth(GetIonContext()->cx, script, bailPC);
             if (JSOp(*bailPC) == JSOP_FUNCALL) {
-                
-                
-                
+                // For fun.call(this, ...); the reconstructStackDepth will
+                // include the this. When inlining that is not included.
+                // So the exprStackSlots will be one less.
                 JS_ASSERT(stackDepth - exprStack <= 1);
             } else if (JSOp(*bailPC) != JSOP_FUNAPPLY && !IsGetterPC(bailPC) && !IsSetterPC(bailPC)) {
-                
-                
-                
-                
+                // For fun.apply({}, arguments) the reconstructStackDepth will
+                // have stackdepth 4, but it could be that we inlined the
+                // funapply. In that case exprStackSlots, will have the real
+                // arguments in the slots and not be 4.
 
-                
-                
-                
-                
+                // With accessors, we have different stack depths depending on whether or not we
+                // inlined the accessor, as the inlined stack contains a callee function that should
+                // never have been there and we might just be capturing an uneventful property site,
+                // in which case there won't have been any violence.
                 JS_ASSERT(exprStack == stackDepth);
             }
         }
@@ -328,7 +327,7 @@ CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
 {
     JS_ASSERT(snapshot->snapshotOffset() != INVALID_SNAPSHOT_OFFSET);
 
-    
+    // Can we not use bailout tables at all?
     if (!deoptTable_)
         return false;
 
@@ -337,7 +336,7 @@ CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
     if (snapshot->bailoutId() != INVALID_BAILOUT_ID)
         return true;
 
-    
+    // Is the bailout table full?
     if (bailouts_.length() >= BAILOUT_TABLE_SIZE)
         return false;
 
@@ -382,21 +381,21 @@ CodeGeneratorShared::markSafepointAt(uint32_t offset, LInstruction *ins)
 void
 CodeGeneratorShared::ensureOsiSpace()
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // For a refresher, an invalidation point is of the form:
+    // 1: call <target>
+    // 2: ...
+    // 3: <osipoint>
+    //
+    // The four bytes *before* instruction 2 are overwritten with an offset.
+    // Callers must ensure that the instruction itself has enough bytes to
+    // support this.
+    //
+    // The bytes *at* instruction 3 are overwritten with an invalidation jump.
+    // jump. These bytes may be in a completely different IR sequence, but
+    // represent the join point of the call out of the function.
+    //
+    // At points where we want to ensure that invalidation won't corrupt an
+    // important instruction, we make sure to pad with nops.
     if (masm.currentOffset() - lastOsiPointOffset_ < Assembler::patchWrite_NearCallSize()) {
         int32_t paddingSize = Assembler::patchWrite_NearCallSize();
         paddingSize -= masm.currentOffset() - lastOsiPointOffset_;
@@ -420,16 +419,16 @@ CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32_t *callPointOffset)
     return osiIndices_.append(OsiIndex(*callPointOffset, so));
 }
 
-
-
+// Before doing any call to Cpp, you should ensure that volatile
+// registers are evicted by the register allocator.
 bool
 CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
 {
-    
+    // Different execution modes have different sets of VM functions.
     JS_ASSERT(fun.executionMode == gen->info().executionMode());
 
-    
-    
+    // If we're calling a function with an out parameter type of double, make
+    // sure we have an FPU.
     JS_ASSERT_IF(fun.outParam == Type_Double, GetIonContext()->runtime->jitSupportsFloatingPoint);
 
 #ifdef DEBUG
@@ -440,23 +439,23 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
     }
 #endif
 
-    
-    
-    
+    // Stack is:
+    //    ... frame ...
+    //    [args]
 #ifdef DEBUG
     JS_ASSERT(pushedArgs_ == fun.explicitArgs);
     pushedArgs_ = 0;
 #endif
 
-    
+    // Get the wrapper of the VM function.
     IonCode *wrapper = gen->ionRuntime()->getVMWrapper(fun);
     if (!wrapper)
         return false;
 
-    
-    
-    
-    
+    // Call the wrapper function.  The wrapper is in charge to unwind the stack
+    // when returning from the call.  Failures are handled with exceptions based
+    // on the return value of the C functions.  To guard the outcome of the
+    // returned value, use another LIR instruction.
     uint32_t callOffset;
     if (dynStack)
         callOffset = masm.callWithExitFrame(wrapper, *dynStack);
@@ -466,14 +465,14 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
     if (!markSafepointAt(callOffset, ins))
         return false;
 
-    
-    
+    // Remove rest of the frame left on the stack. We remove the return address
+    // which is implicitly poped when returning.
     int framePop = sizeof(IonExitFrameLayout) - sizeof(void*);
 
-    
+    // Pop arguments from framePushed.
     masm.implicitPop(fun.explicitStackSlots() * sizeof(void *) + framePop);
-    
-    
+    // Stack is:
+    //    ... frame ...
     return true;
 }
 
@@ -634,9 +633,9 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     Register scriptReg = regSet.takeGeneral();
     Register pcReg = regSet.takeGeneral();
 
-    
-    
-    
+    // This first move is here so that when you scan the disassembly,
+    // you can easily pick out where each instruction begins.  The
+    // next few items indicate to you the Basic Block / LIR.
     masm.move32(Imm32(0xDEADBEEF), blockIndexReg);
 
     if (lir) {
@@ -676,5 +675,5 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     return true;
 }
 
-} 
-} 
+} // namespace ion
+} // namespace js
