@@ -1270,6 +1270,7 @@ BluetoothHfpManager::GetNumberOfCalls(uint16_t aState)
 void
 BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             uint16_t aCallState,
+                                            const nsAString& aError,
                                             const nsAString& aNumber,
                                             const bool aIsOutgoing,
                                             bool aSend)
@@ -1391,7 +1392,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
     case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
       switch (prevCallState) {
         case nsITelephonyProvider::CALL_STATE_INCOMING:
-        case nsITelephonyProvider::CALL_STATE_BUSY:
           
           sStopSendingRingFlag = true;
         case nsITelephonyProvider::CALL_STATE_DIALING:
@@ -1424,7 +1424,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
         
         
-        if (prevCallState != nsITelephonyProvider::CALL_STATE_BUSY) {
+        if (!(aError.Equals(NS_LITERAL_STRING("BusyError")))) {
           DisconnectSco();
         } else {
           
