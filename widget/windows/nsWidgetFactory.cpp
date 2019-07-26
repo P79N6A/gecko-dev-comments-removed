@@ -152,7 +152,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDeviceContextSpecWin)
 namespace mozilla {
 namespace widget {
 
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(GfxInfo, Init);
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(GfxInfo, Init)
 }
 }
 

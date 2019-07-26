@@ -228,6 +228,6 @@ protected:
   uint32_t mMaxQualityIndex;
 };
 
-}; 
+} 
 
 #endif 
