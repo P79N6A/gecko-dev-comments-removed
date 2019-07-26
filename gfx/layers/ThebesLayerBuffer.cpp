@@ -8,6 +8,7 @@
 #include <algorithm>                    
 #include "BasicImplData.h"              
 #include "BasicLayersImpl.h"            
+#include "BufferUnrotate.h"             
 #include "GeckoProfiler.h"              
 #include "Layers.h"                     
 #include "gfxColor.h"                   
@@ -675,18 +676,54 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
             }
           }
           result.mDidSelfCopy = true;
+          mDidSelfCopy = true;
           
           
           mBufferRect = destBufferRect;
         } else {
           
           
-          destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
-          CreateBuffer(contentType, destBufferRect, bufferFlags,
-                       getter_AddRefs(destBuffer), getter_AddRefs(destBufferOnWhite),
-                       &destDTBuffer, &destDTBufferOnWhite);
-          if (!destBuffer && !destDTBuffer)
-            return result;
+          if (IsAzureBuffer()) {
+            unsigned char* data;
+            IntSize size;
+            int32_t stride;
+            SurfaceFormat format;
+
+            if (mDTBuffer->LockBits(&data, &size, &stride, &format)) {
+              uint8_t bytesPerPixel = BytesPerPixel(format);
+              BufferUnrotate(data,
+                             size.width * bytesPerPixel,
+                             size.height, stride,
+                             newRotation.x * bytesPerPixel, newRotation.y);
+              mDTBuffer->ReleaseBits(data);
+
+              if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+                mDTBufferOnWhite->LockBits(&data, &size, &stride, &format);
+                uint8_t bytesPerPixel = BytesPerPixel(format);
+                BufferUnrotate(data,
+                               size.width * bytesPerPixel,
+                               size.height, stride,
+                               newRotation.x * bytesPerPixel, newRotation.y);
+                mDTBufferOnWhite->ReleaseBits(data);
+              }
+
+              
+              
+              result.mDidSelfCopy = true;
+              mDidSelfCopy = true;
+              mBufferRect = destBufferRect;
+              mBufferRotation = nsIntPoint(0, 0);
+            }
+          }
+
+          if (!result.mDidSelfCopy) {
+            destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
+            CreateBuffer(contentType, destBufferRect, bufferFlags,
+                         getter_AddRefs(destBuffer), getter_AddRefs(destBufferOnWhite),
+                         &destDTBuffer, &destDTBufferOnWhite);
+            if (!destBuffer && !destDTBuffer)
+              return result;
+          }
         }
       } else {
         mBufferRect = destBufferRect;
