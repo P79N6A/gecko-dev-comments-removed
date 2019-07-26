@@ -275,6 +275,14 @@ private:
             break;
         }
         fclose(f);
+
+        
+        nsPrintfCString procFdPath("/proc/%s/fd", pidStr);
+        nsresult rv = CollectOpenFileReports(
+                  aHandleReport, aData, procFdPath, processName);
+        if (NS_FAILED(rv)) {
+          break;
+        }
       }
     }
     closedir(d);
@@ -717,6 +725,84 @@ private:
       nsPrintfCString comprSizePath("zram-compr-data-size/%s", name);
       REPORT_WITH_CLEANUP(comprSizePath, UNITS_BYTES, comprSize,
                           comprSizeDesc, closedir(d));
+    }
+
+    closedir(d);
+    return NS_OK;
+  }
+
+  nsresult
+  CollectOpenFileReports(nsIHandleReportCallback* aHandleReport,
+                         nsISupports* aData,
+                         const nsACString& aProcPath,
+                         const nsACString& aProcessName)
+  {
+    
+    
+    
+    
+    const char kFilePrefix[] = "/";
+    const char kSocketPrefix[] = "socket:";
+    const char kPipePrefix[] = "pipe:";
+    const char kAnonInodePrefix[] = "anon_inode:";
+
+    const nsCString procPath(aProcPath);
+    DIR* d = opendir(procPath.get());
+    if (!d) {
+      if (NS_WARN_IF(errno != ENOENT && errno != EACCES)) {
+        return NS_ERROR_FAILURE;
+      }
+      return NS_OK;
+    }
+
+    char linkPath[PATH_MAX + 1];
+    struct dirent* ent;
+    while ((ent = readdir(d))) {
+      const char* fd = ent->d_name;
+
+      
+      if (fd[0] == '.') {
+        continue;
+      }
+
+      nsPrintfCString fullPath("%s/%s", procPath.get(), fd);
+      ssize_t linkPathSize = readlink(fullPath.get(), linkPath, PATH_MAX);
+      if (linkPathSize > 0) {
+        linkPath[linkPathSize] = '\0';
+
+#define CHECK_PREFIX(prefix) \
+  (strncmp(linkPath, prefix, sizeof(prefix) - 1) == 0)
+
+        const char* category = nullptr;
+        const char* descriptionPrefix = nullptr;
+
+        if (CHECK_PREFIX(kFilePrefix)) {
+          category = "files"; 
+          descriptionPrefix = "An open";
+        } else if (CHECK_PREFIX(kSocketPrefix)) {
+          category = "sockets/";
+          descriptionPrefix = "A socket";
+        } else if (CHECK_PREFIX(kPipePrefix)) {
+          category = "pipes/";
+          descriptionPrefix = "A pipe";
+        } else if (CHECK_PREFIX(kAnonInodePrefix)) {
+          category = "anon_inodes/";
+          descriptionPrefix = "An anon_inode";
+        } else {
+          category = "";
+          descriptionPrefix = "An uncategorized";
+        }
+
+#undef CHECK_PREFIX
+
+        const nsCString processName(aProcessName);
+        nsPrintfCString entryPath(
+            "open-fds/%s/%s%s/%s", processName.get(), category, linkPath, fd);
+        nsPrintfCString entryDescription(
+            "%s file descriptor opened by the process", descriptionPrefix);
+        REPORT_WITH_CLEANUP(
+            entryPath, UNITS_COUNT, 1, entryDescription, closedir(d));
+      }
     }
 
     closedir(d);
