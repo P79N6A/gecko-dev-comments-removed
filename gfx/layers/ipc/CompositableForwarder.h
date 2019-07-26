@@ -110,16 +110,6 @@ public:
 
 
 
-
-
-
-  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) = 0;
-
-  
-
-
-
-
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) = 0;
 

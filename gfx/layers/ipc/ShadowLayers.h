@@ -203,16 +203,6 @@ public:
 
 
 
-
-
-
-  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) MOZ_OVERRIDE;
-
-  
-
-
-
-
   void Mutated(ShadowableLayer* aMutant);
 
   void SetRoot(ShadowableLayer* aRoot);
