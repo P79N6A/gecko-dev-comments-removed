@@ -285,7 +285,7 @@ class Assembler : public AssemblerX86Shared
 
     
     
-    void flush();
+    void finish();
 
     
     
