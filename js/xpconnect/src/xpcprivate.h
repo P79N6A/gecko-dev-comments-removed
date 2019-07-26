@@ -529,16 +529,10 @@ public:
     virtual void NotifyLeaveCycleCollectionThread();
     virtual void NotifyEnterMainThread();
     virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb);
-    virtual nsresult FinishTraverse();
     virtual nsCycleCollectionParticipant *GetParticipant();
     virtual void FixWeakMappingGrayBits();
     virtual bool NeedCollect();
     virtual void Collect(uint32_t reason);
-
-    XPCCallContext *GetCycleCollectionContext()
-    {
-        return mCycleCollectionContext;
-    }
 
     
     static nsCycleCollectionParticipant *JSContextParticipant();
@@ -582,7 +576,6 @@ private:
     
     
     uint16_t                   mEventDepth;
-    nsAutoPtr<XPCCallContext> mCycleCollectionContext;
 
     nsCOMPtr<nsIXPCScriptable> mBackstagePass;
 
@@ -668,8 +661,6 @@ public:
 
     XPCJSContextStack* GetJSContextStack() {return mJSContextStack;}
     void DestroyJSContextStack();
-
-    JSContext*     GetJSCycleCollectionContext();
 
     XPCCallContext*  GetCallContext() const {return mCallContext;}
     XPCCallContext*  SetCallContext(XPCCallContext* ccx)
@@ -941,7 +932,6 @@ private:
     nsXPConnect*             mXPConnect;
     JSRuntime*               mJSRuntime;
     XPCJSContextStack*       mJSContextStack;
-    JSContext*               mJSCycleCollectionContext;
     XPCCallContext*          mCallContext;
     AutoMarkingPtr*          mAutoRoots;
     jsid                     mResolveName;
