@@ -542,19 +542,19 @@ class StackTypeSet : public TypeSet
     
 
     void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         StackTypeSet *target, RawId id);
-    void addSetProperty(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         StackTypeSet *target, RawId id);
-    void addSetElement(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
                        StackTypeSet *objectTypes, StackTypeSet *valueTypes);
     void addCall(JSContext *cx, TypeCallsite *site);
-    void addArith(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addArith(JSContext *cx, JSScript *script, jsbytecode *pc,
                   TypeSet *target, TypeSet *other = NULL);
-    void addTransformThis(JSContext *cx, HandleScript script, TypeSet *target);
-    void addPropagateThis(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
+    void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc,
                           Type type, StackTypeSet *types = NULL);
-    void addSubsetBarrier(JSContext *cx, HandleScript script, jsbytecode *pc, TypeSet *target);
+    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
 
     
 
@@ -640,11 +640,11 @@ class HeapTypeSet : public TypeSet
     
 
     void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, HandleScript script, jsbytecode *pc,
+    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         StackTypeSet *target, RawId id);
-    void addCallProperty(JSContext *cx, HandleScript script, jsbytecode *pc, jsid id);
+    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
     void addFilterPrimitives(JSContext *cx, TypeSet *target);
-    void addSubsetBarrier(JSContext *cx, HandleScript script, jsbytecode *pc, TypeSet *target);
+    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
 
     
 
@@ -1088,11 +1088,11 @@ typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> T
 
 
 bool
-UseNewType(JSContext *cx, UnrootedScript script, jsbytecode *pc);
+UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 bool
-UseNewTypeForInitializer(JSContext *cx, HandleScript script, jsbytecode *pc, JSProtoKey key);
+UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey key);
 
 
 
@@ -1167,19 +1167,19 @@ class TypeScript
 #endif
 
     
-    static inline TypeObject *StandardType(JSContext *cx, HandleScript script, JSProtoKey kind);
+    static inline TypeObject *StandardType(JSContext *cx, JSProtoKey kind);
 
     
-    static inline TypeObject *InitObject(JSContext *cx, HandleScript script, jsbytecode *pc,
+    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc,
                                          JSProtoKey kind);
 
     
 
 
 
-    static inline void MonitorOverflow(JSContext *cx, HandleScript script, jsbytecode *pc);
-    static inline void MonitorString(JSContext *cx, HandleScript script, jsbytecode *pc);
-    static inline void MonitorUnknown(JSContext *cx, HandleScript script, jsbytecode *pc);
+    static inline void MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc);
+    static inline void MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc);
+    static inline void MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc);
 
     static inline void GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc);
     static inline void MonitorOverflow(JSContext *cx);
@@ -1193,7 +1193,7 @@ class TypeScript
 
 
 
-    static inline void Monitor(JSContext *cx, HandleScript script, jsbytecode *pc,
+    static inline void Monitor(JSContext *cx, JSScript *script, jsbytecode *pc,
                                const js::Value &val);
     static inline void Monitor(JSContext *cx, const js::Value &rval);
 
@@ -1201,13 +1201,13 @@ class TypeScript
     static inline void MonitorAssign(JSContext *cx, HandleObject obj, jsid id);
 
     
-    static inline void SetThis(JSContext *cx, HandleScript script, Type type);
-    static inline void SetThis(JSContext *cx, HandleScript script, const js::Value &value);
-    static inline void SetLocal(JSContext *cx, HandleScript script, unsigned local, Type type);
-    static inline void SetLocal(JSContext *cx, HandleScript script, unsigned local,
+    static inline void SetThis(JSContext *cx, JSScript *script, Type type);
+    static inline void SetThis(JSContext *cx, JSScript *script, const js::Value &value);
+    static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, Type type);
+    static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local,
                                 const js::Value &value);
-    static inline void SetArgument(JSContext *cx, HandleScript script, unsigned arg, Type type);
-    static inline void SetArgument(JSContext *cx, HandleScript script, unsigned arg,
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg,
                                    const js::Value &value);
 
     static void AddFreezeConstraints(JSContext *cx, HandleScript script);
@@ -1402,7 +1402,7 @@ struct TypeCompartment
     void addPendingRecompile(JSContext *cx, UnrootedScript script, jsbytecode *pc);
 
     
-    void monitorBytecode(JSContext *cx, HandleScript script, uint32_t offset,
+    void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,
                          bool returnOnly = false);
 
     

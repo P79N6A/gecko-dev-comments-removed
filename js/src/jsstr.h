@@ -40,13 +40,13 @@ class MutatingRopeSegmentRange;
 
 class RopeBuilder;
 
+template <AllowGC allowGC>
 extern JSString *
-ConcatStringsNoGC(JSContext *cx, JSString *s1, JSString *s2);
+ConcatStrings(JSContext *cx,
+              typename MaybeRooted<JSString*, allowGC>::HandleType left,
+              typename MaybeRooted<JSString*, allowGC>::HandleType right);
 
 }  
-
-extern JSString *
-js_ConcatStrings(JSContext *cx, js::HandleString s1, js::HandleString s2);
 
 extern JSString * JS_FASTCALL
 js_toLowerCase(JSContext *cx, JSString *str);
@@ -132,12 +132,12 @@ ToStringSlow(JSContext *cx, const Value &v);
 
 
 
+template <AllowGC allowGC>
 static JS_ALWAYS_INLINE JSString *
 ToString(JSContext *cx, const js::Value &v)
 {
-    AssertCanGC();
 #ifdef DEBUG
-    {
+    if (allowGC) {
         SkipRoot skip(cx, &v);
         MaybeCheckStackRoots(cx);
     }
@@ -145,7 +145,7 @@ ToString(JSContext *cx, const js::Value &v)
 
     if (v.isString())
         return v.toString();
-    return ToStringSlow<CanGC>(cx, v);
+    return ToStringSlow<allowGC>(cx, v);
 }
 
 

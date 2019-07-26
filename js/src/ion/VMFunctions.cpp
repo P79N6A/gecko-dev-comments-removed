@@ -56,7 +56,7 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
     
     
     if (fun->isInterpreted()) {
-        if (fun->isInterpretedLazy() && !JSFunction::getOrCreateScript(cx, fun))
+        if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
             return false;
 
         if (fun->isCloneAtCallsite()) {

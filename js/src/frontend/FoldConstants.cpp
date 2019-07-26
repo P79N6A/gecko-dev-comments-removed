@@ -304,7 +304,7 @@ FoldXMLConstants(JSContext *cx, ParseNode **pnp, Parser *parser)
             {
                 str = ((kind == PNK_XMLSTAGO || kind == PNK_XMLPTAGC) && i != 0)
                       ? js_AddAttributePart(cx, i & 1, accum, str)
-                      : js_ConcatStrings(cx, accum, str);
+                      : ConcatStrings<CanGC>(cx, accum, str);
             }
             if (!str)
                 return false;
@@ -327,7 +327,7 @@ FoldXMLConstants(JSContext *cx, ParseNode **pnp, Parser *parser)
                 str = cx->names().tagc;
         }
         if (str) {
-            accum = js_ConcatStrings(cx, accum, str);
+            accum = ConcatStrings<CanGC>(cx, accum, str);
             if (!accum)
                 return false;
         }
@@ -744,7 +744,7 @@ frontend::FoldConstants(JSContext *cx, ParseNode **pnp, Parser *parser, bool inG
                 return true;
             RootedString left(cx, pn1->pn_atom);
             RootedString right(cx, pn2->pn_atom);
-            RootedString str(cx, js_ConcatStrings(cx, left, right));
+            RootedString str(cx, ConcatStrings<CanGC>(cx, left, right));
             if (!str)
                 return false;
             pn->pn_atom = AtomizeString<CanGC>(cx, str);
