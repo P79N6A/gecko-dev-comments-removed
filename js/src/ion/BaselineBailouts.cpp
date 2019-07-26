@@ -518,13 +518,21 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
             JS_ASSERT(v.isUndefined());
 
             
-            
-            
-            if (iter.pcOffset() != 0 || iter.resumeAfter()) {
-                if (fun)
+            if (fun) {
+                
+                
+                
+                if (iter.pcOffset() != 0 || iter.resumeAfter())
                     scopeChain = fun->environment();
-                else
-                    scopeChain = &(script->global());
+            } else {
+                
+                
+                
+                
+                
+                JS_ASSERT(!script->isForEval());
+                JS_ASSERT(script->compileAndGo);
+                scopeChain = &(script->global());
             }
         }
     }
@@ -724,6 +732,9 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
             
             uint8_t *opReturnAddr;
             if (scopeChain == NULL) {
+                
+                
+                JS_ASSERT(fun);
                 JS_ASSERT(numUnsynced == 0);
                 opReturnAddr = baselineScript->prologueEntryAddr();
                 IonSpew(IonSpew_BaselineBailouts, "      Resuming into prologue.");
