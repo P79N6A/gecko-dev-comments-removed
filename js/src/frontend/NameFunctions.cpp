@@ -45,23 +45,23 @@ class NameResolver
 
     bool appendPropertyReference(JSAtom *name) {
         if (IsIdentifier(name))
-            return buf->append(".") && buf->append(name);
+            return buf->append('.') && buf->append(name);
 
         
         JSString *source = js_QuoteString(cx, name, '"');
-        return source && buf->append("[") && buf->append(source) && buf->append("]");
+        return source && buf->append('[') && buf->append(source) && buf->append(']');
     }
 
     
     bool appendNumber(double n) {
         char number[30];
         int digits = JS_snprintf(number, sizeof(number), "%g", n);
-        return buf->appendInflated(number, digits);
+        return buf->append(number, digits);
     }
 
     
     bool appendNumericPropertyReference(double n) {
-        return buf->append("[") && appendNumber(n) && buf->append("]");
+        return buf->append("[") && appendNumber(n) && buf->append(']');
     }
 
     
@@ -81,9 +81,9 @@ class NameResolver
 
           case PNK_ELEM:
             return nameExpression(n->pn_left) &&
-                   buf->append("[") &&
+                   buf->append('[') &&
                    nameExpression(n->pn_right) &&
-                   buf->append("]");
+                   buf->append(']');
 
           case PNK_NUMBER:
             return appendNumber(n->pn_dval);
@@ -189,7 +189,7 @@ class NameResolver
                 return true;
             }
             if (!buf.append(prefix) ||
-                !buf.append("/") ||
+                !buf.append('/') ||
                 !buf.append(fun->displayAtom()))
                 return false;
             retAtom.set(buf.finishAtom());
@@ -197,7 +197,7 @@ class NameResolver
         }
 
         
-        if (prefix != nullptr && (!buf.append(prefix) || !buf.append("/")))
+        if (prefix != nullptr && (!buf.append(prefix) || !buf.append('/')))
             return false;
 
         
@@ -235,7 +235,7 @@ class NameResolver
 
 
 
-                if (!buf.empty() && *(buf.end() - 1) != '<' && !buf.append("<"))
+                if (!buf.empty() && buf.getChar(buf.length() - 1) != '<' && !buf.append('<'))
                     return false;
             }
         }
@@ -245,7 +245,7 @@ class NameResolver
 
 
 
-        if (!buf.empty() && *(buf.end() - 1) == '/' && !buf.append("<"))
+        if (!buf.empty() && buf.getChar(buf.length() - 1) == '/' && !buf.append('<'))
             return false;
 
         if (buf.empty())

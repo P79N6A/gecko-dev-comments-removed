@@ -176,8 +176,12 @@ EscapeNakedForwardSlashes(JSContext *cx, HandleAtom unescaped)
             
             if (sb.empty()) {
                 
+                if (unescaped->hasTwoByteChars() && !sb.ensureTwoByteChars())
+                    return nullptr;
+
                 if (!sb.reserve(oldLen + 1))
                     return nullptr;
+
                 sb.infallibleAppend(oldChars, size_t(it - oldChars));
             }
             if (!sb.append('\\'))
