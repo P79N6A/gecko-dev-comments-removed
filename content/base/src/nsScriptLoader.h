@@ -65,7 +65,7 @@ public:
   {
     mObservers.RemoveObject(aObserver);
   }
-  
+
   
 
 
@@ -280,7 +280,7 @@ private:
                           const nsAFlatString& aScript,
                           void **aOffThreadToken);
 
-  nsIScriptContext *GetScriptContext(JSObject **aGlobal);
+  already_AddRefed<nsIScriptGlobalObject> GetScriptGlobalObject();
   void FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
                                     JS::Handle<JSObject *> scopeChain,
                                     JS::CompileOptions *aOptions);
@@ -338,14 +338,14 @@ public:
       mLoader->SetEnabled(false);
     }
   }
-  
+
   ~nsAutoScriptLoaderDisabler()
   {
     if (mWasEnabled) {
       mLoader->SetEnabled(true);
     }
   }
-  
+
   bool mWasEnabled;
   nsRefPtr<nsScriptLoader> mLoader;
 };
