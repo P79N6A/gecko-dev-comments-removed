@@ -31,12 +31,6 @@ namespace statistics {
   inline void IAccessibleTableUsed()
     { Telemetry::Accumulate(Telemetry::A11Y_IATABLE_USAGE_FLAG, true); }
 
-  
-
-
-  inline void XFormsAccessibleUsed()
-    { Telemetry::Accumulate(Telemetry::A11Y_XFORMS_USAGE_FLAG, true); }
-
 } 
 } 
 } 
