@@ -129,7 +129,7 @@ const PanelUI = {
       }
 
       let anchor;
-      if (aEvent.type == "mousedown" ||
+      if (!aEvent ||
           aEvent.type == "command") {
         anchor = this.menuButton;
       } else {
@@ -141,7 +141,7 @@ const PanelUI = {
 
       
       
-      let keyboardOpened = aEvent.sourceEvent &&
+      let keyboardOpened = aEvent && aEvent.sourceEvent &&
                            aEvent.sourceEvent.target.localName == "key";
       this.panel.setAttribute("noautofocus", !keyboardOpened);
       this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
