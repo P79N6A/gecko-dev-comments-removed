@@ -15,6 +15,8 @@ const basePath = "/" + testFileName + "/";
 const baseURI = "http://localhost:4444" + basePath;
 const normalEntry = "normal";
 const noStoreEntry = "no-store";
+const noStorePreRedirect = "no-store-pre-redirect";
+const noStorePostRedirect = "no-store-post-redirect";
 
 var cacheUpdateObserver = null;
 
@@ -112,6 +114,35 @@ add_test(function test_noStore() {
                  null);
 });
 
+
+
+
+function noStoreHandlerFailedRedirect(metadata, response)
+{
+  
+  
+  do_print("noStoreHandler-failedredirect");
+  response.setStatusLine(metadata.httpVersion, 302, "Found");
+  response.setHeader("Location", noStorePostRedirect, false);
+  response.setHeader("Content-Type", "text/plain");
+  response.setHeader("Cache-Control", "no-store");
+  response.bodyOutputStream.write(responseBody, responseBody.length);
+}
+function checkNoStoreFailedRedirect(request, buffer)
+{
+  do_check_eq(buffer, "");
+  asyncCheckCacheEntryExistance(noStorePreRedirect, false);
+  run_next_test();
+}
+add_test(function test_noStore_redirect() {
+  var chan = make_channel_for_offline_use(baseURI + noStorePreRedirect);
+  chan.notificationCallbacks = new ChannelEventSink(ES_ABORT_REDIRECT);
+  
+  chan.asyncOpen(new ChannelListener(checkNoStoreFailedRedirect, 
+                 chan, CL_EXPECT_FAILURE),
+                 null);
+});
+
 function run_test()
 {
   do_get_profile();
@@ -119,6 +150,8 @@ function run_test()
   httpServer = new HttpServer();
   httpServer.registerPathHandler(basePath + normalEntry, normalHandler);
   httpServer.registerPathHandler(basePath + noStoreEntry, noStoreHandler);
+  httpServer.registerPathHandler(basePath + noStorePreRedirect,
+                                 noStoreHandlerFailedRedirect);
   httpServer.start(4444);
   run_next_test();
 }
