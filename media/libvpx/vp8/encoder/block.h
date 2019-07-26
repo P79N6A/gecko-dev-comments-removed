@@ -37,7 +37,7 @@ typedef struct block
     
     short *quant;
     short *quant_fast;
-    unsigned char *quant_shift;
+    short *quant_shift;
     short *zbin;
     short *zrun_zbin_boost;
     short *round;

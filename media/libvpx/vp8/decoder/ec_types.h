@@ -17,7 +17,6 @@
 
 
 
-
 typedef struct
 {
     int overlap;
@@ -48,4 +47,4 @@ typedef struct
     MV_REFERENCE_FRAME ref_frame;
 } EC_BLOCK;
 
-#endif 
+#endif  

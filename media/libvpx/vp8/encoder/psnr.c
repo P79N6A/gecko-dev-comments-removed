@@ -13,7 +13,7 @@
 #include "math.h"
 #include "vp8/common/systemdependent.h" 
 
-#define MAX_PSNR 60
+#define MAX_PSNR 100
 
 double vp8_mse2psnr(double Samples, double Peak, double Mse)
 {
