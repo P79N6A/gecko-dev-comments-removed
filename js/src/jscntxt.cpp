@@ -1019,6 +1019,10 @@ js_InvokeOperationCallback(JSContext *cx)
     js::gc::GCIfNeeded(cx);
 
 #ifdef JS_ION
+#ifdef JS_THREADSAFE
+    rt->interruptPar = false;
+#endif
+
     
 
 

@@ -433,6 +433,7 @@ jit::TriggerOperationCallbackForIonCode(JSRuntime *rt,
         break;
 
       case JSRuntime::TriggerCallbackAnyThreadDontStopIon:
+      case JSRuntime::TriggerCallbackAnyThreadForkJoin:
         
         
         break;

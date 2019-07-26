@@ -797,7 +797,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    void checkInterruptFlagsPar(const Register &tempReg, Label *fail);
+    void checkInterruptFlagPar(const Register &tempReg, Label *fail);
 
     
     

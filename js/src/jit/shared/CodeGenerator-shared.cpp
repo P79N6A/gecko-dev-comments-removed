@@ -951,7 +951,7 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
             } else {
                 
                 
-                JS_ASSERT(iter->isInterruptCheck() || iter->isCheckInterruptPar());
+                JS_ASSERT(iter->isInterruptCheck() || iter->isInterruptCheckPar());
                 return nullptr;
             }
         }

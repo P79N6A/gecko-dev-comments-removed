@@ -52,6 +52,10 @@ class CompileRuntime
 
     const void *addressOfInterrupt();
 
+#ifdef JS_THREADSAFE
+    const void *addressOfInterruptPar();
+#endif
+
     const JitRuntime *jitRuntime();
 
     

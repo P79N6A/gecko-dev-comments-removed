@@ -689,6 +689,15 @@ struct JSRuntime : public JS::shadow::Runtime,
     int32_t interrupt;
 #endif
 
+#if defined(JS_THREADSAFE) && defined(JS_ION)
+    
+
+
+
+
+    mozilla::Atomic<bool, mozilla::Relaxed> interruptPar;
+#endif
+
     
     bool handlingSignal;
 
@@ -1629,7 +1638,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     
-    uint32_t parallelWarmup;
+    uint32_t forkJoinWarmup;
 
   private:
     
@@ -1722,7 +1731,8 @@ struct JSRuntime : public JS::shadow::Runtime,
     enum OperationCallbackTrigger {
         TriggerCallbackMainThread,
         TriggerCallbackAnyThread,
-        TriggerCallbackAnyThreadDontStopIon
+        TriggerCallbackAnyThreadDontStopIon,
+        TriggerCallbackAnyThreadForkJoin
     };
 
     void triggerOperationCallback(OperationCallbackTrigger trigger);
