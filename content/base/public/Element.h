@@ -115,6 +115,15 @@ namespace mozilla {
 namespace dom {
 
 class Link;
+class Element;
+
+} 
+} 
+
+typedef mozilla::dom::Element nsGenericElement;
+
+namespace mozilla {
+namespace dom {
 
 
 #define NS_ELEMENT_IID \
@@ -128,7 +137,11 @@ public:
   Element(already_AddRefed<nsINodeInfo> aNodeInfo) :
     FragmentOrElement(aNodeInfo),
     mState(NS_EVENT_STATE_MOZ_READONLY)
-  {}
+  {
+    NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::ELEMENT_NODE,
+                      "Bad NodeType in aNodeInfo");
+    SetIsElement();
+  }
 #endif 
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ELEMENT_IID)
@@ -203,7 +216,7 @@ public:
   
 
 
-  virtual css::StyleRule* GetInlineStyleRule() = 0;
+  virtual css::StyleRule* GetInlineStyleRule();
 
   
 
@@ -211,13 +224,13 @@ public:
 
   virtual nsresult SetInlineStyleRule(css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
-                                      bool aNotify) = 0;
+                                      bool aNotify);
 
   
 
 
 
-  virtual css::StyleRule* GetSMILOverrideStyleRule() = 0;
+  virtual css::StyleRule* GetSMILOverrideStyleRule();
 
   
 
@@ -225,7 +238,7 @@ public:
 
 
   virtual nsresult SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
-                                            bool aNotify) = 0;
+                                            bool aNotify);
 
   
 
@@ -233,22 +246,10 @@ public:
 
 
 
-  virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName) = 0;
-
-  
-
-
-
-
-
-
-
-  virtual nsICSSDeclaration* GetSMILOverrideStyle() = 0;
-
-  
-
-
-  virtual bool IsLabelable() const = 0;
+  virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName)
+  {
+    return nullptr;
+  }
 
   
 
@@ -257,7 +258,22 @@ public:
 
 
 
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
+
+  virtual nsICSSDeclaration* GetSMILOverrideStyle();
+
+  
+
+
+  virtual bool IsLabelable() const;
+
+  
+
+
+
+
+
+
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   
 
@@ -266,14 +282,14 @@ public:
 
 
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const = 0;
+                                              int32_t aModType) const;
 
   
 
 
 
 
-  virtual nsIAtom *GetClassAttributeName() const = 0;
+  virtual nsIAtom *GetClassAttributeName() const;
 
   inline mozilla::directionality::Directionality GetDirectionality() const {
     if (HasFlag(NODE_HAS_DIRECTION_RTL)) {
@@ -388,21 +404,8 @@ private:
   }
 
   nsEventStates mState;
-};
 
-NS_DEFINE_STATIC_IID_ACCESSOR(Element, NS_ELEMENT_IID)
-
-} 
-} 
-
-
-
-
-
-class nsGenericElement : public mozilla::dom::Element
-{
 public:
-  nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual void UpdateEditableState(bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -410,7 +413,6 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-  virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
   nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
@@ -481,18 +483,8 @@ public:
   virtual uint32_t GetAttrCount() const;
   virtual bool IsNodeOfType(uint32_t aFlags) const;
 
-  virtual nsISMILAttr* GetAnimatedAttr(int32_t , nsIAtom* )
-  {
-    return nullptr;
-  }
-  virtual nsICSSDeclaration* GetSMILOverrideStyle();
-  virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule();
-  virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                            bool aNotify);
-  virtual bool IsLabelable() const;
-
 #ifdef DEBUG
-  virtual void List(FILE* out, int32_t aIndent) const
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const
   {
     List(out, aIndent, EmptyCString());
   }
@@ -501,14 +493,6 @@ public:
   void ListAttributes(FILE* out) const;
 #endif
 
-  virtual mozilla::css::StyleRule* GetInlineStyleRule();
-  virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                      const nsAString* aSerialized,
-                                      bool aNotify);
-  NS_IMETHOD_(bool)
-    IsAttributeMapped(const nsIAtom* aAttribute) const;
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              int32_t aModType) const;
   
 
 
@@ -1098,6 +1082,11 @@ private:
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nullptr);
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(Element, NS_ELEMENT_IID)
+
+} 
+} 
 
 inline mozilla::dom::Element* nsINode::AsElement()
 {
