@@ -199,6 +199,8 @@ function WebConsoleFrame(aWebConsoleOwner)
 
   this._outputTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
   this._outputTimerInitialized = false;
+
+  EventEmitter.decorate(this);
 }
 
 WebConsoleFrame.prototype = {
@@ -882,11 +884,12 @@ WebConsoleFrame.prototype = {
 
 
 
+
   _filterRepeatedMessage: function WCF__filterRepeatedMessage(aNode)
   {
     let repeatNode = aNode.getElementsByClassName("webconsole-msg-repeat")[0];
     if (!repeatNode) {
-      return false;
+      return null;
     }
 
     let uid = repeatNode._uid;
@@ -905,7 +908,7 @@ WebConsoleFrame.prototype = {
               aNode.classList.contains("webconsole-msg-error"))) {
       let lastMessage = this.outputNode.lastChild;
       if (!lastMessage) {
-        return false;
+        return null;
       }
 
       let lastRepeatNode = lastMessage
@@ -917,10 +920,10 @@ WebConsoleFrame.prototype = {
 
     if (dupeNode) {
       this.mergeFilteredMessageNode(dupeNode, aNode);
-      return true;
+      return dupeNode;
     }
 
-    return false;
+    return null;
   },
 
   
@@ -1692,10 +1695,14 @@ WebConsoleFrame.prototype = {
     let hudIdSupportsString = WebConsoleUtils.supportsString(this.hudId);
 
     
+    let newOrUpdatedNodes = new Set();
     for (let item of batch) {
-      let node = this._outputMessageFromQueue(hudIdSupportsString, item);
-      if (node) {
-        lastVisibleNode = node;
+      let result = this._outputMessageFromQueue(hudIdSupportsString, item);
+      if (result) {
+        newOrUpdatedNodes.add(result.isRepeated || result.node);
+        if (result.visible && result.node == this.outputNode.lastChild) {
+          lastVisibleNode = result.node;
+        }
       }
     }
 
@@ -1735,6 +1742,8 @@ WebConsoleFrame.prototype = {
       
       scrollBox.scrollTop -= oldScrollHeight - scrollBox.scrollHeight;
     }
+
+    this.emit("messages-added", newOrUpdatedNodes);
 
     
     if (this._outputQueue.length > 0) {
@@ -1776,6 +1785,9 @@ WebConsoleFrame.prototype = {
 
 
 
+
+
+
   _outputMessageFromQueue:
   function WCF__outputMessageFromQueue(aHudIdSupportsString, aItem)
   {
@@ -1785,7 +1797,7 @@ WebConsoleFrame.prototype = {
                methodOrNode.apply(this, args || []) :
                methodOrNode;
     if (!node) {
-      return;
+      return null;
     }
 
     let afterNode = node._outputAfterNode;
@@ -1797,14 +1809,16 @@ WebConsoleFrame.prototype = {
 
     let isRepeated = this._filterRepeatedMessage(node);
 
-    let lastVisible = !isRepeated && !isFiltered;
+    let visible = !isRepeated && !isFiltered;
     if (!isRepeated) {
       this.outputNode.insertBefore(node,
                                    afterNode ? afterNode.nextSibling : null);
       this._pruneCategoriesQueue[node.category] = true;
-      if (afterNode) {
-        lastVisible = this.outputNode.lastChild == node;
-      }
+
+      let nodeID = node.getAttribute("id");
+      Services.obs.notifyObservers(aHudIdSupportsString,
+                                   "web-console-message-created", nodeID);
+
     }
 
     if (node._onOutput) {
@@ -1812,11 +1826,11 @@ WebConsoleFrame.prototype = {
       delete node._onOutput;
     }
 
-    let nodeID = node.getAttribute("id");
-    Services.obs.notifyObservers(aHudIdSupportsString,
-                                 "web-console-message-created", nodeID);
-
-    return lastVisible ? node : null;
+    return {
+      visible: visible,
+      node: node,
+      isRepeated: isRepeated,
+    };
   },
 
   
@@ -4386,6 +4400,7 @@ function WebConsoleConnectionProxy(aWebConsole, aTarget)
   this._onNetworkEventUpdate = this._onNetworkEventUpdate.bind(this);
   this._onFileActivity = this._onFileActivity.bind(this);
   this._onTabNavigated = this._onTabNavigated.bind(this);
+  this._onAttachTab = this._onAttachTab.bind(this);
   this._onAttachConsole = this._onAttachConsole.bind(this);
   this._onCachedMessages = this._onCachedMessages.bind(this);
   this._connectionTimeout = this._connectionTimeout.bind(this);
@@ -4426,6 +4441,12 @@ WebConsoleConnectionProxy.prototype = {
 
 
 
+  tabClient: null,
+
+  
+
+
+
   connected: false,
 
   
@@ -4445,6 +4466,14 @@ WebConsoleConnectionProxy.prototype = {
 
 
   _consoleActor: null,
+
+  
+
+
+
+
+
+  _tabActor: null,
 
   
 
@@ -4489,15 +4518,17 @@ WebConsoleConnectionProxy.prototype = {
     client.addListener("networkEvent", this._onNetworkEvent);
     client.addListener("networkEventUpdate", this._onNetworkEventUpdate);
     client.addListener("fileActivity", this._onFileActivity);
-    this.target.on("will-navigate", this._onTabNavigated);
-    this.target.on("navigate", this._onTabNavigated);
+    client.addListener("tabNavigated", this._onTabNavigated);
 
-    this._consoleActor = this.target.form.consoleActor;
     if (!this.target.chrome) {
-      let tab = this.target.form;
-      this.owner.onLocationChange(tab.url, tab.title);
+      
+      this._attachTab(this.target.form);
     }
-    this._attachConsole();
+    else {
+      
+      this._consoleActor = this.target.form.consoleActor;
+      this._attachConsole();
+    }
 
     return promise;
   },
@@ -4514,6 +4545,43 @@ WebConsoleConnectionProxy.prototype = {
     };
 
     this._connectDefer.reject(error);
+  },
+
+  
+
+
+
+
+
+
+  _attachTab: function WCCP__attachTab(aTab)
+  {
+    this._consoleActor = aTab.consoleActor;
+    this._tabActor = aTab.actor;
+    this.owner.onLocationChange(aTab.url, aTab.title);
+    this.client.attachTab(this._tabActor, this._onAttachTab);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _onAttachTab: function WCCP__onAttachTab(aResponse, aTabClient)
+  {
+    if (aResponse.error) {
+      Cu.reportError("attachTab failed: " + aResponse.error + " " +
+                     aResponse.message);
+      this._connectDefer.reject(aResponse);
+      return;
+    }
+
+    this.tabClient = aTabClient;
+    this._attachConsole();
   },
 
   
@@ -4685,7 +4753,7 @@ WebConsoleConnectionProxy.prototype = {
 
   _onTabNavigated: function WCCP__onTabNavigated(aType, aPacket)
   {
-    if (!this.owner) {
+    if (!this.owner || aPacket.from != this._tabActor) {
       return;
     }
 
@@ -4693,7 +4761,7 @@ WebConsoleConnectionProxy.prototype = {
       this.owner.onLocationChange(aPacket.url, aPacket.title);
     }
 
-    if (aType == "navigate" && !aPacket.nativeConsoleAPI) {
+    if (aPacket.state == "stop" && !aPacket.nativeConsoleAPI) {
       this.owner.logWarningAboutReplacedAPI();
     }
   },
@@ -4739,6 +4807,7 @@ WebConsoleConnectionProxy.prototype = {
 
     this.client = null;
     this.webConsoleClient = null;
+    this.tabClient = null;
     this.target = null;
     this.connected = false;
     this.owner = null;
