@@ -148,6 +148,7 @@ class MochitestServer(object):
     
     env = environment(xrePath=self._xrePath)
     env["XPCOM_DEBUG_BREAK"] = "warn"
+    env["LD_LIBRARY_PATH"] = self._xrePath
 
     
     
@@ -746,6 +747,7 @@ class SSLTunnel:
       exit(1)
 
     env = environment(xrePath=self.xrePath)
+    env["LD_LIBRARY_PATH"] = self.xrePath
     self.process = mozprocess.ProcessHandler([ssltunnel, self.configFile],
                                                env=env)
     self.process.run()
@@ -916,6 +918,7 @@ class Mochitest(MochitestUtilsMixin):
 
     
     env = self.environment(xrePath=options.xrePath)
+    env["LD_LIBRARY_PATH"] = options.xrePath
     bin_suffix = mozinfo.info.get('bin_suffix', '')
     certutil = os.path.join(options.utilityPath, "certutil" + bin_suffix)
     pk12util = os.path.join(options.utilityPath, "pk12util" + bin_suffix)
