@@ -938,6 +938,35 @@ NS_NewFirstLineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsFirstLineFrame)
 
+void
+nsFirstLineFrame::Init(nsIContent* aContent, nsIFrame* aParent,
+                       nsIFrame* aPrevInFlow)
+{
+  nsInlineFrame::Init(aContent, aParent, aPrevInFlow);
+  if (!aPrevInFlow) {
+    MOZ_ASSERT(StyleContext()->GetPseudo() == nsCSSPseudoElements::firstLine);
+    return;
+  }
+
+  
+  
+  if (aPrevInFlow->StyleContext()->GetPseudo() == nsCSSPseudoElements::firstLine) {
+    MOZ_ASSERT(GetFirstInFlow() == aPrevInFlow);
+    
+    
+    
+    
+    nsStyleContext* parentContext = aParent->StyleContext();
+    nsRefPtr<nsStyleContext> newSC = PresContext()->StyleSet()->
+      ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
+    SetStyleContext(newSC);
+  } else {
+    MOZ_ASSERT(GetFirstInFlow() != aPrevInFlow);
+    MOZ_ASSERT(aPrevInFlow->StyleContext()->GetPseudo() ==
+                 nsCSSAnonBoxes::mozLineFrame);
+  }
+}
+
 #ifdef DEBUG
 NS_IMETHODIMP
 nsFirstLineFrame::GetFrameName(nsAString& aResult) const
@@ -1040,33 +1069,6 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
       irs.mPrevFrame = frame;
     }
     irs.mPrevFrame = nullptr;
-  }
-  else {
-
-    
-    
-    
-    
-    nsFirstLineFrame* first = (nsFirstLineFrame*) GetFirstInFlow();
-    if (mStyleContext == first->mStyleContext) {
-      
-      
-      nsStyleContext* parentContext = first->GetParent()->StyleContext();
-      
-      
-      
-      
-      nsRefPtr<nsStyleContext> newSC;
-      newSC = aPresContext->StyleSet()->
-        ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
-      if (newSC) {
-        
-        SetStyleContext(newSC);
-
-        
-        ReparentChildListStyle(aPresContext, mFrames, this);
-      }
-    }
   }
 
   NS_ASSERTION(!aReflowState.mLineLayout->GetInFirstLine(),
