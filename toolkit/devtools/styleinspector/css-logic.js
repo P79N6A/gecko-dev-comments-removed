@@ -63,8 +63,9 @@ exports.CssLogic = CssLogic;
 
 
 CssLogic.FILTER = {
-  ALL: "all", 
-  UA: "ua",   
+  ALL: "user", 
+  USER: "user",
+  UA: "ua",    
 };
 
 
