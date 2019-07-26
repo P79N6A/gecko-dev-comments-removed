@@ -1387,3 +1387,127 @@ function CurrencyDigits(currency) {
         return currencyDigits[currency];
     return 2;
 }
+
+
+
+
+
+
+
+
+
+function Intl_NumberFormat_supportedLocalesOf(locales ) {
+    var options = arguments.length > 1 ? arguments[1] : undefined;
+
+    var availableLocales = numberFormatInternalProperties.availableLocales;
+    var requestedLocales = CanonicalizeLocaleList(locales);
+    return SupportedLocales(availableLocales, requestedLocales, options);
+}
+
+
+
+
+
+
+
+var numberFormatInternalProperties = {
+    localeData: numberFormatLocaleData,
+    availableLocales: runtimeAvailableLocales, 
+    relevantExtensionKeys: ["nu"]
+};
+
+
+function numberFormatLocaleData(locale) {
+    
+    return {
+        nu: ["latn"]
+    };
+}
+
+
+
+
+
+
+
+function numberFormatFormatToBind(value) {
+    
+    
+
+    
+    var x = ToNumber(value);
+    return FormatNumber(this, x);
+}
+
+
+
+
+
+
+
+
+
+function Intl_NumberFormat_format_get() {
+    
+    var internals = checkIntlAPIObject(this, "NumberFormat", "format");
+
+    
+    if (internals.boundFormat === undefined) {
+        
+        var F = numberFormatFormatToBind;
+
+        
+        var bf = callFunction(std_Function_bind, F, this);
+        internals.boundFormat = bf;
+    }
+    
+    return internals.boundFormat;
+}
+
+
+
+
+
+
+
+
+
+function FormatNumber(numberFormat, x) {
+    assert(typeof x === "number", "FormatNumber");
+
+    
+    return x.toLocaleString();
+}
+
+
+
+
+
+
+
+function Intl_NumberFormat_resolvedOptions() {
+    
+    var internals = checkIntlAPIObject(this, "NumberFormat", "resolvedOptions");
+
+    var result = {
+        locale: internals.locale,
+        numberingSystem: internals.numberingSystem,
+        style: internals.style,
+        minimumIntegerDigits: internals.minimumIntegerDigits,
+        minimumFractionDigits: internals.minimumFractionDigits,
+        maximumFractionDigits: internals.maximumFractionDigits,
+        useGrouping: internals.useGrouping
+    };
+    var optionalProperties = [
+        "currency",
+        "currencyDisplay",
+        "minimumSignificantDigits",
+        "maximumSignificantDigits"
+    ];
+    for (var i = 0; i < optionalProperties.length; i++) {
+        var p = optionalProperties[i];
+        if (callFunction(std_Object_hasOwnProperty, internals, p))
+            defineProperty(result, p, internals[p]);
+    }
+    return result;
+}
