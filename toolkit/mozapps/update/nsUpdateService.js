@@ -572,89 +572,99 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
     }
   }
 
-  try {
-    var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
-    LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
-    testWriteAccess(updateTestFile, false);
+  let useService = false;
+  if (shouldUseService() && isServiceInstalled()) {
+    
+    
+    LOG("gCanApplyUpdates - bypass the write checks because we'll use the service");
+    useService = true;
+  }
+
+  if (!useService) {
+    try {
+      var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
+      LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
+      testWriteAccess(updateTestFile, false);
 #ifdef XP_WIN
-    var sysInfo = Cc["@mozilla.org/system-info;1"].
-                  getService(Ci.nsIPropertyBag2);
+      var sysInfo = Cc["@mozilla.org/system-info;1"].
+                    getService(Ci.nsIPropertyBag2);
 
-    
-    var windowsVersion = sysInfo.getProperty("version");
-    LOG("gCanApplyUpdates - windowsVersion = " + windowsVersion);
-
-  
-
-
-
-
-
-
-
-
-
-
-    var userCanElevate = false;
-
-    if (parseFloat(windowsVersion) >= 6) {
-      try {
-        var fileLocator = Cc["@mozilla.org/file/directory_service;1"].
-                          getService(Ci.nsIProperties);
-        
-        
-        var dir = fileLocator.get(KEY_UPDROOT, Ci.nsIFile);
-        
-        userCanElevate = Services.appinfo.QueryInterface(Ci.nsIWinAppHelper).
-                         userCanElevate;
-        LOG("gCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
-      }
-      catch (ex) {
-        
-        
-        
-        LOG("gCanApplyUpdates - on Vista, appDir is not under Program Files");
-      }
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (!userCanElevate) {
       
-      var appDirTestFile = getAppBaseDir();
-      appDirTestFile.append(FILE_PERMS_TEST);
-      LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
-      if (appDirTestFile.exists())
-        appDirTestFile.remove(false)
-      appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-      appDirTestFile.remove(false);
-    }
-#endif 
-  }
-  catch (e) {
-     LOG("gCanApplyUpdates - unable to apply updates. Exception: " + e);
+      var windowsVersion = sysInfo.getProperty("version");
+      LOG("gCanApplyUpdates - windowsVersion = " + windowsVersion);
+
     
-    submitHasPermissionsTelemetryPing(false);
-    return false;
-  }
+
+
+
+
+
+
+
+
+
+
+      var userCanElevate = false;
+
+      if (parseFloat(windowsVersion) >= 6) {
+        try {
+          var fileLocator = Cc["@mozilla.org/file/directory_service;1"].
+                            getService(Ci.nsIProperties);
+          
+          
+          var dir = fileLocator.get(KEY_UPDROOT, Ci.nsIFile);
+          
+          userCanElevate = Services.appinfo.QueryInterface(Ci.nsIWinAppHelper).
+                           userCanElevate;
+          LOG("gCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
+        }
+        catch (ex) {
+          
+          
+          
+          LOG("gCanApplyUpdates - on Vista, appDir is not under Program Files");
+        }
+      }
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      if (!userCanElevate) {
+        
+        var appDirTestFile = getAppBaseDir();
+        appDirTestFile.append(FILE_PERMS_TEST);
+        LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
+        if (appDirTestFile.exists())
+          appDirTestFile.remove(false)
+        appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+        appDirTestFile.remove(false);
+      }
+#endif 
+    }
+    catch (e) {
+       LOG("gCanApplyUpdates - unable to apply updates. Exception: " + e);
+      
+      submitHasPermissionsTelemetryPing(false);
+      return false;
+    }
+  } 
 
   if (!hasUpdateMutex()) {
     LOG("gCanApplyUpdates - unable to apply updates because another instance" +
@@ -1111,6 +1121,33 @@ function shouldUseService() {
 #ifdef MOZ_MAINTENANCE_SERVICE
   return getPref("getBoolPref",
                  PREF_APP_UPDATE_SERVICE_ENABLED, false);
+#else
+  return false;
+#endif
+}
+
+
+
+
+
+
+
+function isServiceInstalled() {
+#ifdef XP_WIN
+  let installed = 0;
+  try {
+    let wrk = Cc["@mozilla.org/windows-registry-key;1"].
+              createInstance(Ci.nsIWindowsRegKey);
+    wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
+             "SOFTWARE\\Mozilla\\MaintenanceService",
+             wrk.ACCESS_READ | wrk.WOW64_64);
+    installed = wrk.readIntValue("Installed");
+    wrk.close();
+  } catch(e) {
+  }
+  installed = installed == 1;  
+  LOG("isServiceInstalled = " + installed);
+  return installed;
 #else
   return false;
 #endif
@@ -2243,7 +2280,7 @@ UpdateService.prototype = {
 
 
   _sendServiceInstalledTelemetryPing: function AUS__svcInstallTelemetryPing() {
-    let installed = 0;
+    let installed = isServiceInstalled(); 
     let attempted = 0;
     try {
       let wrk = Cc["@mozilla.org/windows-registry-key;1"].
@@ -2251,14 +2288,14 @@ UpdateService.prototype = {
       wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
                "SOFTWARE\\Mozilla\\MaintenanceService",
                wrk.ACCESS_READ | wrk.WOW64_64);
+      
       attempted = wrk.readIntValue("Attempted");
-      installed = wrk.readIntValue("Installed");
       wrk.close();
     } catch(e) {
     }
     try {
       let h = Services.telemetry.getHistogramById("UPDATER_SERVICE_INSTALLED");
-      h.add(installed);
+      h.add(Number(installed));
     } catch(e) {
       
       Cu.reportError(e);
@@ -4270,7 +4307,7 @@ Downloader.prototype = {
         "max fail: " + maxFail + ", " + "retryTimeout: " + retryTimeout);
     if (Components.isSuccessCode(status)) {
       if (this._verifyDownload()) {
-        state = shouldUseService() ? STATE_PENDING_SVC : STATE_PENDING
+        state = shouldUseService() ? STATE_PENDING_SVC : STATE_PENDING;
         if (this.background) {
           shouldShowPrompt = !getCanStageUpdates();
         }
