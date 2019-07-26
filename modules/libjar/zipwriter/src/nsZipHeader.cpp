@@ -133,7 +133,7 @@ NS_IMETHODIMP nsZipHeader::GetPermissions(uint32_t *aPermissions)
     NS_ASSERTION(mInited, "Not initalised");
 
     
-    *aPermissions = ((mEAttr >> 16) & 0xfff | 0x100);
+    *aPermissions = ((mEAttr >> 16) & 0xfff) | 0x100;
     return NS_OK;
 }
 
