@@ -26,7 +26,6 @@
 #include "AudioSegment.h"
 #include "StreamBuffer.h"
 #include "MediaStreamGraph.h"
-#include "LoadMonitor.h"
 
 #include "MediaEngineWrapper.h"
 
@@ -371,8 +370,6 @@ private:
   
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCVideoSource > mVideoSources;
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCAudioSource > mAudioSources;
-
-  nsRefPtr<LoadMonitor> mLoadMonitor;
 };
 
 }

@@ -39,7 +39,6 @@ class CpuOveruseObserver {
   virtual ~CpuOveruseObserver() {}
 };
 
-
 class WEBRTC_DLLEXPORT VideoEngine {
  public:
   
@@ -115,6 +114,10 @@ class WEBRTC_DLLEXPORT ViEBase {
   
   virtual int RegisterCpuOveruseObserver(int channel,
                                          CpuOveruseObserver* observer) = 0;
+
+  
+  
+  virtual void SetLoadManager(CPULoadStateCallbackInvoker* load_manager) = 0;
 
   
   

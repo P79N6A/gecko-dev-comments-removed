@@ -49,6 +49,8 @@ class ViEChannelManager: private ViEManagerBase {
 
   void SetModuleProcessThread(ProcessThread* module_process_thread);
 
+  void SetLoadManager(CPULoadStateCallbackInvoker* load_manager);
+
   
   int CreateChannel(int* channel_id);
 
@@ -136,6 +138,7 @@ class ViEChannelManager: private ViEManagerBase {
   VoiceEngine* voice_engine_;
   ProcessThread* module_process_thread_;
   const Config& config_;
+  CPULoadStateCallbackInvoker* load_manager_;
 };
 
 class ViEChannelManagerScoped: private ViEManagerScopedBase {
