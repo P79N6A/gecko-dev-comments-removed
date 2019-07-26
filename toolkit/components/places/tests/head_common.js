@@ -952,3 +952,18 @@ function promiseIsURIVisited(aURI) {
   return deferred.promise;
 }
 
+
+
+
+
+
+
+
+function promiseSetIconForPage(aPageURI, aIconURI) {
+  let deferred = Promise.defer();
+  PlacesUtils.favicons.setAndFetchFaviconForPage(
+    aPageURI, aIconURI, true,
+    PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+    () => { deferred.resolve(); });
+  return deferred.promise;
+}
