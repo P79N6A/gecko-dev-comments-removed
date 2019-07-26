@@ -1375,9 +1375,6 @@ struct JSContext : js::ContextFriendFields,
     
     bool                generatingError;
 
-    
-    JSCompartment       *compartment;
-
     inline void setCompartment(JSCompartment *c) { compartment = c; }
 
     
