@@ -834,12 +834,12 @@ static void
 InsertAppendedContent(XBLChildrenElement* aPoint,
                       nsIContent* aFirstNewContent)
 {
-  int32_t insertionIndex;
+  size_t insertionIndex;
   if (nsIContent* prevSibling = aFirstNewContent->GetPreviousSibling()) {
     
     
     insertionIndex = aPoint->IndexOfInsertedChild(prevSibling);
-    MOZ_ASSERT(insertionIndex != -1);
+    MOZ_ASSERT(insertionIndex != aPoint->NoIndex);
 
     
     ++insertionIndex;
@@ -847,7 +847,7 @@ InsertAppendedContent(XBLChildrenElement* aPoint,
     
     
     
-    insertionIndex = aPoint->InsertedChildrenLength();
+    insertionIndex = aPoint->mInsertedChildren.Length();
   }
 
   
@@ -1077,15 +1077,15 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
     
     
     
-    uint32_t index = aAppend ? point->InsertedChildrenLength() : 0;
+    size_t index = aAppend ? point->mInsertedChildren.Length() : 0;
     for (nsIContent* currentSibling = aChild->GetPreviousSibling();
          currentSibling;
          currentSibling = currentSibling->GetPreviousSibling()) {
       
       
       
-      int32_t pointIndex = point->IndexOfInsertedChild(currentSibling);
-      if (pointIndex != -1) {
+      size_t pointIndex = point->IndexOfInsertedChild(currentSibling);
+      if (pointIndex != point->NoIndex) {
         index = pointIndex + 1;
         break;
       }
