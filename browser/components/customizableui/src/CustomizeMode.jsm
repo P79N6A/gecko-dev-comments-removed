@@ -93,43 +93,56 @@ CustomizeMode.prototype = {
       return;
     }
 
-    
-    
-    LightweightThemeManager.temporarilyToggleTheme(false);
-
-    this.dispatchToolboxEvent("beforecustomization");
-
-    let window = this.window;
-    let document = this.document;
-
-    CustomizableUI.addListener(this);
-
-    
-    
-    
-    let deck = document.getElementById("tab-view-deck");
-    deck.addEventListener("keypress", this);
-    deck.addEventListener("mousedown", this);
-
-    
-    
-    window.PanelUI.hide();
-    window.PanelUI.menuButton.addEventListener("mousedown", this);
-    window.PanelUI.menuButton.open = true;
-    window.PanelUI.beginBatchUpdate();
-
-    
-    
-    let panelHolder = document.getElementById("customization-panelHolder");
-    panelHolder.appendChild(window.PanelUI.mainView);
-
-    this._transitioning = true;
-
-    let customizer = document.getElementById("customization-container");
-    customizer.parentNode.selectedPanel = customizer;
-    customizer.hidden = false;
-
     Task.spawn(function() {
+      
+      if (!this.window.gBrowserInit.delayedStartupFinished) {
+        let delayedStartupDeferred = Promise.defer();
+        let delayedStartupObserver = function(aSubject) {
+          if (aSubject == this.window) {
+            Services.obs.removeObserver(delayedStartupObserver, "browser-delayed-startup-finished");
+            delayedStartupDeferred.resolve();
+          }
+        }.bind(this);
+        Services.obs.addObserver(delayedStartupObserver, "browser-delayed-startup-finished", false);
+        yield delayedStartupDeferred.promise;
+      }
+
+      
+      
+      LightweightThemeManager.temporarilyToggleTheme(false);
+
+      this.dispatchToolboxEvent("beforecustomization");
+
+      let window = this.window;
+      let document = this.document;
+
+      CustomizableUI.addListener(this);
+
+      
+      
+      
+      let deck = document.getElementById("tab-view-deck");
+      deck.addEventListener("keypress", this);
+      deck.addEventListener("mousedown", this);
+
+      
+      
+      window.PanelUI.hide();
+      window.PanelUI.menuButton.addEventListener("mousedown", this);
+      window.PanelUI.menuButton.open = true;
+      window.PanelUI.beginBatchUpdate();
+
+      
+      
+      let panelHolder = document.getElementById("customization-panelHolder");
+      panelHolder.appendChild(window.PanelUI.mainView);
+
+      this._transitioning = true;
+
+      let customizer = document.getElementById("customization-container");
+      customizer.parentNode.selectedPanel = customizer;
+      customizer.hidden = false;
+
       yield this._doTransition(true);
 
       
