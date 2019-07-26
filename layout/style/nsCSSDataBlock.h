@@ -251,6 +251,14 @@ public:
                              bool aMustCallValueAppended,
                              mozilla::css::Declaration* aDeclaration);
 
+    
+
+
+
+
+
+    void MapRuleInfoInto(nsCSSProperty aPropID, nsRuleData* aRuleData) const;
+
     void AssertInitialState() {
 #ifdef DEBUG
         DoAssertInitialState();
@@ -298,6 +306,12 @@ private:
 
 
     nsCSSValue* PropertyAt(nsCSSProperty aProperty) {
+        NS_ABORT_IF_FALSE(0 <= aProperty &&
+                          aProperty < eCSSProperty_COUNT_no_shorthands,
+                          "property out of range");
+        return &mValues[aProperty];
+    }
+    const nsCSSValue* PropertyAt(nsCSSProperty aProperty) const {
         NS_ABORT_IF_FALSE(0 <= aProperty &&
                           aProperty < eCSSProperty_COUNT_no_shorthands,
                           "property out of range");

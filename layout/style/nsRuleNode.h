@@ -423,6 +423,18 @@ protected:
   const void* SetDefaultOnRoot(const nsStyleStructID aSID,
                                nsStyleContext* aContext);
 
+  
+
+
+
+
+
+
+
+  static bool ResolveVariableReferences(const nsStyleStructID aSID,
+                                        nsRuleData* aRuleData,
+                                        nsStyleContext* aContext);
+
   const void*
     WalkRuleTree(const nsStyleStructID aSID, nsStyleContext* aContext);
 

@@ -23,6 +23,7 @@ struct nsCSSSelectorList;
 class nsMediaList;
 class nsCSSKeyframeRule;
 class nsCSSValue;
+class nsRuleData;
 
 namespace mozilla {
 class CSSVariableValues;
@@ -219,6 +220,28 @@ public:
                             nsString& aResult,
                             nsCSSTokenSerializationType& aFirstToken,
                             nsCSSTokenSerializationType& aLastToken);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void ParsePropertyWithVariableReferences(
+                                   nsCSSProperty aPropertyID,
+                                   nsCSSProperty aShorthandPropertyID,
+                                   const nsAString& aValue,
+                                   const mozilla::CSSVariableValues* aVariables,
+                                   nsRuleData* aRuleData,
+                                   nsIURI* aDocURL,
+                                   nsIURI* aBaseURL,
+                                   nsIPrincipal* aDocPrincipal);
 
 protected:
   
