@@ -256,7 +256,7 @@ public:
 
     
     void RegisterCompositor(JNIEnv* env = NULL);
-    EGLSurface ProvideEGLSurface(bool waitUntilValid);
+    EGLSurface ProvideEGLSurface();
 
     bool GetStaticStringField(const char *classID, const char *field, nsAString &result, JNIEnv* env = nullptr);
 

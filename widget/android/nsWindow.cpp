@@ -688,41 +688,49 @@ nsWindow::GetLayerManager(PLayersChild*, LayersBackend, LayerManagerPersistence,
     if (mLayerManager) {
         return mLayerManager;
     }
+    
+    
+    if (UseOffMainThreadCompositing()) {
+        return sLayerManager;
+    }
+    return nullptr;
+}
+
+void
+nsWindow::CreateLayerManager()
+{
+    if (mLayerManager) {
+        return;
+    }
 
     nsWindow *topLevelWindow = FindTopLevel();
     if (!topLevelWindow || topLevelWindow->mWindowType == eWindowType_invisible) {
         
-        return nullptr;
+        return;
     }
 
     mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
 
-    bool useCompositor = UseOffMainThreadCompositing();
-
-    if (useCompositor) {
+    if (UseOffMainThreadCompositing()) {
         if (sLayerManager) {
-            return sLayerManager;
+            return;
         }
         CreateCompositor();
         if (mLayerManager) {
             
             
             SetCompositor(mLayerManager, mCompositorParent, mCompositorChild);
-            return mLayerManager;
+            return;
         }
 
         
         sFailedToCreateGLContext = true;
     }
 
-    if (!mUseLayersAcceleration ||
-        sFailedToCreateGLContext)
-    {
+    if (!mUseLayersAcceleration || sFailedToCreateGLContext) {
         printf_stderr(" -- creating basic, not accelerated\n");
         mLayerManager = CreateBasicLayerManager();
     }
-
-    return mLayerManager;
 }
 
 void
@@ -886,6 +894,8 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             break;
 
         case AndroidGeckoEvent::COMPOSITOR_RESUME:
+            win->CreateLayerManager();
+
             
             
             
@@ -2231,7 +2241,7 @@ nsWindow::DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect)
 nsRefPtr<mozilla::layers::LayerManager> nsWindow::sLayerManager = 0;
 nsRefPtr<mozilla::layers::CompositorParent> nsWindow::sCompositorParent = 0;
 nsRefPtr<mozilla::layers::CompositorChild> nsWindow::sCompositorChild = 0;
-bool nsWindow::sCompositorPaused = false;
+bool nsWindow::sCompositorPaused = true;
 
 void
 nsWindow::SetCompositor(mozilla::layers::LayerManager* aLayerManager,

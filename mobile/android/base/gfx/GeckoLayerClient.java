@@ -126,6 +126,17 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         sendResizeEventIfNecessary(true);
 
         DisplayPortCalculator.initPrefs();
+
+        
+        
+        
+        
+        
+        mView.post(new Runnable() {
+            public void run() {
+                mView.getGLController().createCompositor();
+            }
+        });
     }
 
     public void destroy() {
@@ -604,11 +615,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     @Override
     public void surfaceChanged(int width, int height) {
         setViewportSize(width, height);
-
-        
-        
-        
-        mView.getGLController().resumeCompositor(width, height);
     }
 
     

@@ -5,8 +5,12 @@
 
 package org.mozilla.gecko.gfx;
 
+import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoThread;
+
+import android.util.Log;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -41,6 +45,7 @@ public class GLController {
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
     private EGLConfig mEGLConfig;
+    private EGLSurface mEGLSurface;
 
     private static final int LOCAL_EGL_OPENGL_ES2_BIT = 4;
 
@@ -64,22 +69,11 @@ public class GLController {
         return sInstance;
     }
 
-    
-
-
-    synchronized void waitForValidSurface() {
-        while (!mSurfaceValid) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     synchronized void surfaceDestroyed() {
+        GeckoApp.assertOnUiThread();
+
         mSurfaceValid = false;
-        notifyAll();
+        mEGLSurface = null;
 
         
         
@@ -95,13 +89,85 @@ public class GLController {
     }
 
     synchronized void surfaceChanged(int newWidth, int newHeight) {
+        GeckoApp.assertOnUiThread();
+
         mWidth = newWidth;
         mHeight = newHeight;
+
+        if (mSurfaceValid) {
+            
+            
+            
+            resumeCompositor(mWidth, mHeight);
+            return;
+        }
         mSurfaceValid = true;
-        notifyAll();
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        mView.post(new Runnable() {
+            public void run() {
+                try {
+                    
+                    
+                    
+                    
+                    
+                    
+                    if (mSurfaceValid) {
+                        if (mEGL == null) {
+                            initEGL();
+                        }
+
+                        mEGLSurface = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
+                    }
+                } catch (Exception e) {
+                    Log.e(LOGTAG, "Unable to create window surface", e);
+                }
+                if (mEGLSurface == null || mEGLSurface == EGL10.EGL_NO_SURFACE) {
+                    mSurfaceValid = false;
+                    mEGLSurface = null; 
+                    Log.e(LOGTAG, "EGL window surface could not be created: " + getEGLError());
+                    return;
+                }
+                
+                
+                createCompositor();
+            }
+        });
+    }
+
+    void createCompositor() {
+        GeckoApp.assertOnUiThread();
+
+        if (mCompositorCreated) {
+            
+            
+            
+            resumeCompositor(mWidth, mHeight);
+            return;
+        }
+
+        
+        
+        
+        
+        if (mEGLSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorResumeEvent());
+        }
     }
 
     void compositorCreated() {
+        
+        
         mCompositorCreated = true;
     }
 
@@ -149,29 +215,8 @@ public class GLController {
     }
 
     
-
-
-
-
     private EGLSurface provideEGLSurface() {
-        synchronized (this) {
-            if (!mSurfaceValid) {
-                return null;
-            }
-        }
-
-        if (mEGL == null) {
-            initEGL();
-        }
-
-        Object window = mView.getNativeWindow();
-        EGLSurface surface = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, window, null);
-        if (surface == null || surface == EGL10.EGL_NO_SURFACE) {
-            throw new GLControllerException("EGL window surface could not be created! " +
-                                            getEGLError());
-        }
-
-        return surface;
+        return mEGLSurface;
     }
 
     private String getEGLError() {
