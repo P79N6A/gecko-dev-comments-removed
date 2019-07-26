@@ -37,15 +37,7 @@ ActivityWrapper.prototype = {
     
     cpmm.sendAsyncMessage("Activity:Ready", { id: aMessage.id });
 
-    let handler = Cc["@mozilla.org/dom/activities/request-handler;1"]
-                    .createInstance(Ci.nsIDOMMozActivityRequestHandler);
-    handler.wrappedJSObject._id = aMessage.id;
-
-    
-   handler.wrappedJSObject._options = Cu.cloneInto({
-     name: aMessage.payload.name,
-     data: Cu.cloneInto(aMessage.payload.data, aWindow),
-   }, aWindow);
+    let handler = new aWindow.ActivityRequestHandler(aMessage.id, aMessage.payload);
 
     
     
