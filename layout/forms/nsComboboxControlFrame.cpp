@@ -84,10 +84,6 @@ class nsPresState;
 
 
 
-const int32_t kSizeNotSet = -1;
-
-
-
 
 
 
