@@ -471,10 +471,11 @@ add_task(function test_finish_only()
 add_task(function test_invalid_hash()
 {
   let saver = new BackgroundFileSaverStreamListener();
+  let completionPromise = promiseSaverComplete(saver);
   
   try {
     let hash = saver.sha256Hash;
-    throw "Shouldn't be able to get hash if hashing not enabled";
+    do_throw("Shouldn't be able to get hash if hashing not enabled");
   } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) { }
   
   saver.enableSha256();
@@ -487,8 +488,14 @@ add_task(function test_invalid_hash()
   saver.finish(Cr.NS_ERROR_FAILURE);
   try {
     let hash = saver.sha256Hash;
-    throw "Shouldn't be able to get hash if save did not succeed";
+    do_throw("Shouldn't be able to get hash if save did not succeed");
   } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) { }
+  
+  
+  try {
+    yield completionPromise;
+    do_throw("completionPromise should throw");
+  } catch (ex if ex.result == Cr.NS_ERROR_FAILURE) { }
 });
 
 add_task(function test_teardown()
