@@ -77,10 +77,6 @@ public:
                                                  REFIID aIID,
                                                  void** aInstancePtr);
 
-
-    static void InitAccessibility();
-    static void ShutdownAccessibility();
-
     static int FilterA11yExceptions(unsigned int aCode, EXCEPTION_POINTERS *aExceptionInfo);
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT Msg,
@@ -90,11 +86,12 @@ public:
 
 protected:
 
-    
+  
 
 
 
-    static AccTextChangeEvent* gTextEvent;
+  static AccTextChangeEvent* gTextEvent;
+  friend void PlatformShutdown();
 };
 
 } 
