@@ -392,8 +392,40 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
         
         
         
-        mStartPointRange->Collapse(aFindPrev);
-
+        
+        if (aFindPrev) {
+          
+          
+          
+          int16_t compareResult;
+          nsresult rv =
+            mStartPointRange->CompareBoundaryPoints(nsIDOMRange::START_TO_END,
+                                                    returnRange, &compareResult);
+          if (NS_SUCCEEDED(rv) && compareResult <= 0) {
+            
+            mStartPointRange->Collapse(false);
+          } else {
+            
+            returnRange->CloneRange(getter_AddRefs(mStartPointRange));
+            mStartPointRange->Collapse(true);
+          }
+        } else {
+          
+          
+          
+          int16_t compareResult;
+          nsresult rv =
+            mStartPointRange->CompareBoundaryPoints(nsIDOMRange::END_TO_START,
+                                                    returnRange, &compareResult);
+          if (NS_SUCCEEDED(rv) && compareResult >= 0) {
+            
+            mStartPointRange->Collapse(true);
+          } else {
+            
+            returnRange->CloneRange(getter_AddRefs(mStartPointRange));
+            mStartPointRange->Collapse(false);
+          }
+        }
         continue;
       }
 
@@ -1146,9 +1178,9 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
     nsCOMPtr<nsIDOMNode> firstVisibleNode = do_QueryInterface(frame->GetContent());
 
     if (firstVisibleNode) {
-      (*aFirstVisibleRange)->SelectNode(firstVisibleNode);
       frame->GetOffsets(startFrameOffset, endFrameOffset);
       (*aFirstVisibleRange)->SetStart(firstVisibleNode, startFrameOffset);
+      (*aFirstVisibleRange)->SetEnd(firstVisibleNode, endFrameOffset);
     }
   }
 
