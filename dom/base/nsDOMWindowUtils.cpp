@@ -2194,12 +2194,7 @@ nsDOMWindowUtils::StopFrameTimeRecording(float** paintTimes, uint32_t *frameCoun
     
     for (uint32_t i = 0; i < *frameCount; i++) {
       (*frameIntervals)[i] = tmpFrameIntervals[i];
-#ifndef ANDROID
       (*paintTimes)[i] = tmpPaintTimes[i];
-#else
-      
-      (*paintTimes)[i] = 0;
-#endif
     }
   }
 
