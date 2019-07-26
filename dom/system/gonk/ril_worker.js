@@ -3360,6 +3360,13 @@ RilObject.prototype = {
 
     if (RILQUIRKS_SUBSCRIPTION_CONTROL && index === -1) {
       
+      if (this.radioState !== GECKO_RADIOSTATE_READY) {
+        
+        
+        
+        return;
+      }
+
       for (let i = 0; i < iccStatus.apps.length; i++) {
         this.setUiccSubscription({appIndex: i, enabled: true});
       }
