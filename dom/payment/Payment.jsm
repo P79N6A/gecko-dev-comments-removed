@@ -254,23 +254,15 @@ let PaymentManager =  {
       
       
       
+      
+      
+      segments[1] = segments[1].replace("-", "+", "g").replace("_", "/", "g");
       let payload = atob(segments[1]);
       debug("Payload " + payload);
       if (!payload.length) {
         this.paymentFailed(aRequestId, "PAY_REQUEST_ERROR_EMPTY_PAYLOAD");
         return true;
       }
-
-      
-      
-      if (payload.charAt(0) === '"') {
-        payload = payload.substr(1);
-      }
-      if (payload.charAt(payload.length - 1) === '"') {
-        payload = payload.slice(0, -1);
-      }
-      payload = payload.replace(/\\/g, '');
-
       payloadObject = JSON.parse(payload);
       if (!payloadObject) {
         this.paymentFailed(aRequestId,
