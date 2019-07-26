@@ -116,7 +116,7 @@ struct ParseContext
 
 
 
-    bool define(JSContext *cx, PropertyName *name, ParseNode *pn, Definition::Kind);
+    bool define(JSContext *cx, HandlePropertyName name, ParseNode *pn, Definition::Kind);
 
     
 
