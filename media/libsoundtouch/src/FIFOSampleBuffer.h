@@ -163,6 +163,12 @@ public:
     void setChannels(int numChannels);
 
     
+    int getChannels() 
+    {
+        return channels;
+    }
+
+    
     virtual int isEmpty() const;
 
     

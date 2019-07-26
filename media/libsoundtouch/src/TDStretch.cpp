@@ -51,8 +51,6 @@
 #include "cpu_detect.h"
 #include "TDStretch.h"
 
-#include <stdio.h>
-
 using namespace soundtouch;
 
 #define max(x, y) (((x) > (y)) ? (x) : (y))
@@ -159,7 +157,6 @@ void TDStretch::setParameters(int aSampleRate, int aSequenceMS,
 
     
     setTempo(tempo);
-
 }
 
 
@@ -212,7 +209,7 @@ void TDStretch::overlapMono(SAMPLETYPE *pOutput, const SAMPLETYPE *pInput) const
 
 void TDStretch::clearMidBuffer()
 {
-    memset(pMidBuffer, 0, 2 * sizeof(SAMPLETYPE) * overlapLength);
+    memset(pMidBuffer, 0, channels * sizeof(SAMPLETYPE) * overlapLength);
 }
 
 
@@ -265,13 +262,22 @@ int TDStretch::seekBestOverlapPosition(const SAMPLETYPE *refPos)
 
 inline void TDStretch::overlap(SAMPLETYPE *pOutput, const SAMPLETYPE *pInput, uint ovlPos) const
 {
-    if (channels == 2) 
+#ifndef USE_MULTICH_ALWAYS
+    if (channels == 1)
+    {
+        
+        overlapMono(pOutput, pInput + ovlPos);
+    }
+    else if (channels == 2)
     {
         
         overlapStereo(pOutput, pInput + 2 * ovlPos);
-    } else {
-        
-        overlapMono(pOutput, pInput + ovlPos);
+    } 
+    else 
+#endif 
+    {
+        assert(channels > 0);
+        overlapMulti(pOutput, pInput + channels * ovlPos);
     }
 }
 
@@ -287,6 +293,7 @@ int TDStretch::seekBestOverlapPositionFull(const SAMPLETYPE *refPos)
 {
     int bestOffs;
     double bestCorr, corr;
+    double norm;
     int i;
 
     bestCorr = FLT_MIN;
@@ -294,11 +301,15 @@ int TDStretch::seekBestOverlapPositionFull(const SAMPLETYPE *refPos)
 
     
     
-    for (i = 0; i < seekLength; i ++) 
+    bestCorr = calcCrossCorr(refPos, pMidBuffer, norm);
+    for (i = 1; i < seekLength; i ++) 
     {
         
         
-        corr = calcCrossCorr(refPos + channels * i, pMidBuffer);
+        
+        
+        corr = calcCrossCorrAccumulate(refPos + channels * i, pMidBuffer, norm);
+
         
         double tmp = (double)(2 * i - seekLength) / (double)seekLength;
         corr = ((corr + 0.1) * (1.0 - 0.25 * tmp * tmp));
@@ -346,12 +357,13 @@ int TDStretch::seekBestOverlapPositionQuick(const SAMPLETYPE *refPos)
         j = 0;
         while (_scanOffsets[scanCount][j]) 
         {
+            double norm;
             tempOffset = corrOffset + _scanOffsets[scanCount][j];
             if (tempOffset >= seekLength) break;
 
             
             
-            corr = (double)calcCrossCorr(refPos + channels * tempOffset, pMidBuffer);
+            corr = (double)calcCrossCorr(refPos + channels * tempOffset, pMidBuffer, norm);
             
             double tmp = (double)(2 * tempOffset - seekLength) / seekLength;
             corr = ((corr + 0.1) * (1.0 - 0.25 * tmp * tmp));
@@ -458,11 +470,15 @@ void TDStretch::setChannels(int numChannels)
 {
     assert(numChannels > 0);
     if (channels == numChannels) return;
-    assert(numChannels == 1 || numChannels == 2);
+
 
     channels = numChannels;
     inputBuffer.setChannels(channels);
     outputBuffer.setChannels(channels);
+
+    
+    overlapLength=0;
+    setParameters(sampleRate);
 }
 
 
@@ -498,7 +514,6 @@ void TDStretch::setChannels(int numChannels)
 
 
 
-#include <stdio.h>
 
 
 
@@ -588,7 +603,7 @@ void TDStretch::acceptNewOverlapLength(int newOverlapLength)
     {
         delete[] pMidBufferUnaligned;
 
-        pMidBufferUnaligned = new SAMPLETYPE[overlapLength * 2 + 16 / sizeof(SAMPLETYPE)];
+        pMidBufferUnaligned = new SAMPLETYPE[overlapLength * channels + 16 / sizeof(SAMPLETYPE)];
         
         pMidBuffer = (SAMPLETYPE *)SOUNDTOUCH_ALIGN_POINTER_16(pMidBufferUnaligned);
 
@@ -669,6 +684,27 @@ void TDStretch::overlapStereo(short *poutput, const short *input) const
 }
 
 
+
+
+void TDStretch::overlapMulti(SAMPLETYPE *poutput, const SAMPLETYPE *input) const
+{
+    SAMPLETYPE m1=(SAMPLETYPE)0;
+    SAMPLETYPE m2;
+    int i=0;
+
+    for (m2 = (SAMPLETYPE)overlapLength; m2; m2 --)
+    {
+        for (int c = 0; c < channels; c ++)
+        {
+            poutput[i] = (input[i] * m1 + pMidBuffer[i] * m2)  / overlapLength;
+            i++;
+        }
+
+        m1++;
+    }
+}
+
+
 static int _getClosest2Power(double value)
 {
     return (int)(log(value) / log(2.0) + 0.5);
@@ -701,32 +737,72 @@ void TDStretch::calculateOverlapLength(int aoverlapMs)
 }
 
 
-double TDStretch::calcCrossCorr(const short *mixingPos, const short *compare) const
+double TDStretch::calcCrossCorr(const short *mixingPos, const short *compare, double &norm) const
 {
     long corr;
-    long norm;
+    long lnorm;
     int i;
 
-    corr = norm = 0;
+    corr = lnorm = 0;
     
     
     
     for (i = 0; i < channels * overlapLength; i += 4) 
     {
         corr += (mixingPos[i] * compare[i] + 
-                 mixingPos[i + 1] * compare[i + 1] +
-                 mixingPos[i + 2] * compare[i + 2] + 
+                 mixingPos[i + 1] * compare[i + 1]) >> overlapDividerBits;  
+        corr += (mixingPos[i + 2] * compare[i + 2] + 
                  mixingPos[i + 3] * compare[i + 3]) >> overlapDividerBits;
-        norm += (mixingPos[i] * mixingPos[i] + 
-                 mixingPos[i + 1] * mixingPos[i + 1] +
-                 mixingPos[i + 2] * mixingPos[i + 2] + 
-                 mixingPos[i + 3] * mixingPos[i + 3]) >> overlapDividerBits;
+        lnorm += (mixingPos[i] * mixingPos[i] + 
+                  mixingPos[i + 1] * mixingPos[i + 1]) >> overlapDividerBits; 
+        lnorm += (mixingPos[i + 2] * mixingPos[i + 2] + 
+                  mixingPos[i + 3] * mixingPos[i + 3]) >> overlapDividerBits;
     }
 
     
     
-    if (norm == 0) norm = 1;    
-    return (double)corr / sqrt((double)norm);
+    norm = (double)lnorm;
+    return (double)corr / sqrt((norm < 1e-9) ? 1.0 : norm);
+}
+
+
+
+double TDStretch::calcCrossCorrAccumulate(const short *mixingPos, const short *compare, double &norm) const
+{
+    long corr;
+    long lnorm;
+    int i;
+
+    
+    lnorm = 0;
+    for (i = 1; i <= channels; i ++)
+    {
+        lnorm -= (mixingPos[-i] * mixingPos[-i]) >> overlapDividerBits;
+    }
+
+    corr = 0;
+    
+    
+    
+    for (i = 0; i < channels * overlapLength; i += 4) 
+    {
+        corr += (mixingPos[i] * compare[i] + 
+                 mixingPos[i + 1] * compare[i + 1]) >> overlapDividerBits;  
+        corr += (mixingPos[i + 2] * compare[i + 2] + 
+                 mixingPos[i + 3] * compare[i + 3]) >> overlapDividerBits;
+    }
+
+    
+    for (int j = 0; j < channels; j ++)
+    {
+        i --;
+        lnorm += (mixingPos[i] * mixingPos[i]) >> overlapDividerBits;
+    }
+    norm += (double)lnorm;
+
+    
+    
+    return (double)corr / sqrt((norm < 1e-9) ? 1.0 : norm);
 }
 
 #endif 
@@ -763,6 +839,34 @@ void TDStretch::overlapStereo(float *pOutput, const float *pInput) const
 
 
 
+void TDStretch::overlapMulti(float *pOutput, const float *pInput) const
+{
+    int i;
+    float fScale;
+    float f1;
+    float f2;
+
+    fScale = 1.0f / (float)overlapLength;
+
+    f1 = 0;
+    f2 = 1.0f;
+
+    i=0;
+    for (int i2 = 0; i2 < overlapLength; i2 ++)
+    {
+        
+        for (int c = 0; c < channels; c ++)
+        {
+            pOutput[i] = pInput[i] * f1 + pMidBuffer[i] * f2;
+            i++;
+        }
+        f1 += fScale;
+        f2 -= fScale;
+    }
+}
+
+
+
 void TDStretch::calculateOverlapLength(int overlapInMsec)
 {
     int newOvl;
@@ -778,10 +882,10 @@ void TDStretch::calculateOverlapLength(int overlapInMsec)
 }
 
 
-double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare) const
+
+double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare, double &norm) const
 {
     double corr;
-    double norm;
     int i;
 
     corr = norm = 0;
@@ -803,8 +907,43 @@ double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare) co
                 mixingPos[i + 3] * mixingPos[i + 3];
     }
 
-    if (norm < 1e-9) norm = 1.0;    
-    return corr / sqrt(norm);
+    return corr / sqrt((norm < 1e-9 ? 1.0 : norm));
 }
+
+
+
+double TDStretch::calcCrossCorrAccumulate(const float *mixingPos, const float *compare, double &norm) const
+{
+    double corr;
+    int i;
+
+    corr = 0;
+
+    
+    for (i = 1; i <= channels; i ++)
+    {
+        norm -= mixingPos[-i] * mixingPos[-i];
+    }
+
+    
+    
+    for (i = 0; i < channels * overlapLength; i += 4) 
+    {
+        corr += mixingPos[i] * compare[i] +
+                mixingPos[i + 1] * compare[i + 1] +
+                mixingPos[i + 2] * compare[i + 2] +
+                mixingPos[i + 3] * compare[i + 3];
+    }
+
+    
+    for (int j = 0; j < channels; j ++)
+    {
+        i --;
+        norm += mixingPos[i] * mixingPos[i];
+    }
+
+    return corr / sqrt((norm < 1e-9 ? 1.0 : norm));
+}
+
 
 #endif 

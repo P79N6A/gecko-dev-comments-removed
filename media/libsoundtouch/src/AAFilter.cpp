@@ -55,6 +55,30 @@ using namespace soundtouch;
 
 
 
+#ifdef _DEBUG_SAVE_AAFILTER_COEFFICIENTS
+    #include <stdio.h>
+
+    static void _DEBUG_SAVE_AAFIR_COEFFS(SAMPLETYPE *coeffs, int len)
+    {
+        FILE *fptr = fopen("aa_filter_coeffs.txt", "wt");
+        if (fptr == NULL) return;
+
+        for (int i = 0; i < len; i ++)
+        {
+            double temp = coeffs[i];
+            fprintf(fptr, "%lf\n", temp);
+        }
+        fclose(fptr);
+    }
+
+#else
+    #define _DEBUG_SAVE_AAFIR_COEFFS(x, y)
+#endif
+
+
+
+
+
 
 
 
@@ -99,7 +123,7 @@ void AAFilter::calculateCoeffs()
 {
     uint i;
     double cntTemp, temp, tempCoeff,h, w;
-    double fc2, wc;
+    double wc;
     double scaleCoeff, sum;
     double *work;
     SAMPLETYPE *coeffs;
@@ -112,8 +136,7 @@ void AAFilter::calculateCoeffs()
     work = new double[length];
     coeffs = new SAMPLETYPE[length];
 
-    fc2 = 2.0 * cutoffFreq; 
-    wc = PI * fc2;
+    wc = 2.0 * PI * cutoffFreq;
     tempCoeff = TWOPI / (double)length;
 
     sum = 0;
@@ -124,7 +147,7 @@ void AAFilter::calculateCoeffs()
         temp = cntTemp * wc;
         if (temp != 0) 
         {
-            h = fc2 * sin(temp) / temp;                     
+            h = sin(temp) / temp;                     
         } 
         else 
         {
@@ -153,16 +176,20 @@ void AAFilter::calculateCoeffs()
 
     for (i = 0; i < length; i ++) 
     {
-        
         temp = work[i] * scaleCoeff;
+
+        
         temp += (temp >= 0) ? 0.5 : -0.5;
         
         assert(temp >= -32768 && temp <= 32767);
+
         coeffs[i] = (SAMPLETYPE)temp;
     }
 
     
     pFIR->setCoefficients(coeffs, length, 14);
+
+    _DEBUG_SAVE_AAFIR_COEFFS(coeffs, length);
 
     delete[] work;
     delete[] coeffs;
@@ -175,6 +202,31 @@ void AAFilter::calculateCoeffs()
 uint AAFilter::evaluate(SAMPLETYPE *dest, const SAMPLETYPE *src, uint numSamples, uint numChannels) const
 {
     return pFIR->evaluate(dest, src, numSamples, numChannels);
+}
+
+
+
+
+
+
+uint AAFilter::evaluate(FIFOSampleBuffer &dest, FIFOSampleBuffer &src) const
+{
+    SAMPLETYPE *pdest;
+    const SAMPLETYPE *psrc;
+    uint numSrcSamples;
+    uint result;
+    int numChannels = src.getChannels();
+
+    assert(numChannels == dest.getChannels());
+
+    numSrcSamples = src.numSamples();
+    psrc = src.ptrBegin();
+    pdest = dest.ptrEnd(numSrcSamples);
+    result = pFIR->evaluate(pdest, psrc, numSrcSamples, numChannels);
+    src.receiveSamples(result);
+    dest.putSamples(result);
+
+    return result;
 }
 
 

@@ -73,6 +73,20 @@ namespace soundtouch
     
     
 
+    
+    
+    
+    
+    
+    
+
+    #if (defined(__SOFTFP__))
+        
+        
+        #undef  SOUNDTOUCH_FLOAT_SAMPLES
+        #define SOUNDTOUCH_INTEGER_SAMPLES      1
+    #endif
+
     #if !(SOUNDTOUCH_INTEGER_SAMPLES || SOUNDTOUCH_FLOAT_SAMPLES)
        
         
@@ -90,7 +104,7 @@ namespace soundtouch
         
         
         
-        #define SOUNDTOUCH_FLOAT_SAMPLES       1    //< 32bit float samples 
+        #define SOUNDTOUCH_FLOAT_SAMPLES       1    //< 32bit float samples
      
     #endif
 
@@ -152,7 +166,7 @@ namespace soundtouch
 
     #endif  
 
-}
+};
 
 
 #define ST_NO_EXCEPTION_HANDLING    1

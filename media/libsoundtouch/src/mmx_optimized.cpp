@@ -68,7 +68,7 @@ using namespace soundtouch;
 
 
 
-double TDStretchMMX::calcCrossCorr(const short *pV1, const short *pV2) const
+double TDStretchMMX::calcCrossCorr(const short *pV1, const short *pV2, double &dnorm) const
 {
     const __m64 *pVec1, *pVec2;
     __m64 shifter;
@@ -93,19 +93,19 @@ double TDStretchMMX::calcCrossCorr(const short *pV1, const short *pV2) const
         
         
 
-        temp = _mm_add_pi32(_mm_madd_pi16(pVec1[0], pVec2[0]),
-                            _mm_madd_pi16(pVec1[1], pVec2[1]));
-        temp2 = _mm_add_pi32(_mm_madd_pi16(pVec1[0], pVec1[0]),
-                             _mm_madd_pi16(pVec1[1], pVec1[1]));
-        accu = _mm_add_pi32(accu, _mm_sra_pi32(temp, shifter));
-        normaccu = _mm_add_pi32(normaccu, _mm_sra_pi32(temp2, shifter));
+        temp = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[0], pVec2[0]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[1], pVec2[1]), shifter));
+        temp2 = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[0], pVec1[0]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[1], pVec1[1]), shifter));
+        accu = _mm_add_pi32(accu, temp);
+        normaccu = _mm_add_pi32(normaccu, temp2);
 
-        temp = _mm_add_pi32(_mm_madd_pi16(pVec1[2], pVec2[2]),
-                            _mm_madd_pi16(pVec1[3], pVec2[3]));
-        temp2 = _mm_add_pi32(_mm_madd_pi16(pVec1[2], pVec1[2]),
-                             _mm_madd_pi16(pVec1[3], pVec1[3]));
-        accu = _mm_add_pi32(accu, _mm_sra_pi32(temp, shifter));
-        normaccu = _mm_add_pi32(normaccu, _mm_sra_pi32(temp2, shifter));
+        temp = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[2], pVec2[2]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[3], pVec2[3]), shifter));
+        temp2 = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[2], pVec1[2]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[3], pVec1[3]), shifter));
+        accu = _mm_add_pi32(accu, temp);
+        normaccu = _mm_add_pi32(normaccu, temp2);
 
         pVec1 += 4;
         pVec2 += 4;
@@ -125,13 +125,80 @@ double TDStretchMMX::calcCrossCorr(const short *pV1, const short *pV2) const
 
     
     
-    if (norm == 0) norm = 1;    
+    dnorm = (double)norm;
 
-    return (double)corr / sqrt((double)norm);
+    return (double)corr / sqrt(dnorm < 1e-9 ? 1.0 : dnorm);
     
     
 }
 
+
+
+double TDStretchMMX::calcCrossCorrAccumulate(const short *pV1, const short *pV2, double &dnorm) const
+{
+    const __m64 *pVec1, *pVec2;
+    __m64 shifter;
+    __m64 accu;
+    long corr, lnorm;
+    int i;
+   
+    
+    lnorm = 0;
+    for (i = 1; i <= channels; i ++)
+    {
+        lnorm -= (pV1[-i] * pV1[-i]) >> overlapDividerBits;
+    }
+
+    pVec1 = (__m64*)pV1;
+    pVec2 = (__m64*)pV2;
+
+    shifter = _m_from_int(overlapDividerBits);
+    accu = _mm_setzero_si64();
+
+    
+    
+    for (i = 0; i < channels * overlapLength / 16; i ++)
+    {
+        __m64 temp;
+
+        
+        
+        
+        
+
+        temp = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[0], pVec2[0]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[1], pVec2[1]), shifter));
+        accu = _mm_add_pi32(accu, temp);
+
+        temp = _mm_add_pi32(_mm_sra_pi32(_mm_madd_pi16(pVec1[2], pVec2[2]), shifter),
+                            _mm_sra_pi32(_mm_madd_pi16(pVec1[3], pVec2[3]), shifter));
+        accu = _mm_add_pi32(accu, temp);
+
+        pVec1 += 4;
+        pVec2 += 4;
+    }
+
+    
+    
+
+    accu = _mm_add_pi32(accu, _mm_srli_si64(accu, 32));
+    corr = _m_to_int(accu);
+
+    
+    _m_empty();
+
+    
+    pV1 = (short *)pVec1;
+    for (int j = 1; j <= channels; j ++)
+    {
+        lnorm += (pV1[-j] * pV1[-j]) >> overlapDividerBits;
+    }
+    dnorm += (double)lnorm;
+
+    
+    
+    return (double)corr / sqrt((dnorm < 1e-9) ? 1.0 : dnorm);
+}
 
 
 void TDStretchMMX::clearCrossCorrState()

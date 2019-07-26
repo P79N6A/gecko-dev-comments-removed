@@ -45,6 +45,7 @@
 #define AAFilter_H
 
 #include "STTypes.h"
+#include "FIFOSampleBuffer.h"
 
 namespace soundtouch
 {
@@ -84,6 +85,14 @@ public:
                   const SAMPLETYPE *src, 
                   uint numSamples, 
                   uint numChannels) const;
+
+    
+    
+    
+    
+    uint evaluate(FIFOSampleBuffer &dest, 
+                  FIFOSampleBuffer &src) const;
+
 };
 
 }

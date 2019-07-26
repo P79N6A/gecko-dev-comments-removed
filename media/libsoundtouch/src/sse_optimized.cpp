@@ -71,7 +71,7 @@ using namespace soundtouch;
 #include <math.h>
 
 
-double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2) const
+double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2, double &norm) const
 {
     int i;
     const float *pVec1;
@@ -141,11 +141,10 @@ double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2) const
 
     
     float *pvNorm = (float*)&vNorm;
-    double norm = sqrt(pvNorm[0] + pvNorm[1] + pvNorm[2] + pvNorm[3]);
-    if (norm < 1e-9) norm = 1.0;    
+    norm = (pvNorm[0] + pvNorm[1] + pvNorm[2] + pvNorm[3]);
 
     float *pvSum = (float*)&vSum;
-    return (double)(pvSum[0] + pvSum[1] + pvSum[2] + pvSum[3]) / norm;
+    return (double)(pvSum[0] + pvSum[1] + pvSum[2] + pvSum[3]) / sqrt(norm < 1e-9 ? 1.0 : norm);
 
     
 
@@ -179,6 +178,16 @@ double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2) const
 
 
 
+}
+
+
+
+double TDStretchSSE::calcCrossCorrAccumulate(const float *pV1, const float *pV2, double &norm) const
+{
+    
+    
+    
+    return calcCrossCorr(pV1, pV2, norm);
 }
 
 

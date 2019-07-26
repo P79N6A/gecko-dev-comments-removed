@@ -56,7 +56,47 @@ namespace soundtouch
 {
 
 
+class TransposerBase
+{
+public:
+        enum ALGORITHM {
+        LINEAR = 0,
+        CUBIC,
+        SHANNON
+    };
 
+protected:
+    virtual void resetRegisters() = 0;
+
+    virtual int transposeMono(SAMPLETYPE *dest, 
+                        const SAMPLETYPE *src, 
+                        int &srcSamples)  = 0;
+    virtual int transposeStereo(SAMPLETYPE *dest, 
+                        const SAMPLETYPE *src, 
+                        int &srcSamples) = 0;
+    virtual int transposeMulti(SAMPLETYPE *dest, 
+                        const SAMPLETYPE *src, 
+                        int &srcSamples) = 0;
+
+    static ALGORITHM algorithm;
+
+public:
+    float rate;
+    int numChannels;
+
+    TransposerBase();
+    virtual ~TransposerBase();
+
+    virtual int transpose(FIFOSampleBuffer &dest, FIFOSampleBuffer &src);
+    virtual void setRate(float newRate);
+    virtual void setChannels(int channels);
+
+    
+    static TransposerBase *newInstance();
+
+    
+    static void setAlgorithm(ALGORITHM a);
+};
 
 
 
@@ -66,39 +106,20 @@ class RateTransposer : public FIFOProcessor
 protected:
     
     AAFilter *pAAFilter;
-
-    float fRate;
-
-    int numChannels;
+    TransposerBase *pTransposer;
 
     
     
-    FIFOSampleBuffer storeBuffer;
+    FIFOSampleBuffer inputBuffer;
 
     
-    FIFOSampleBuffer tempBuffer;
+    FIFOSampleBuffer midBuffer;
 
     
     FIFOSampleBuffer outputBuffer;
 
     bool bUseAAFilter;
 
-    virtual void resetRegisters() = 0;
-
-    virtual uint transposeStereo(SAMPLETYPE *dest, 
-                         const SAMPLETYPE *src, 
-                         uint numSamples) = 0;
-    virtual uint transposeMono(SAMPLETYPE *dest, 
-                       const SAMPLETYPE *src, 
-                       uint numSamples) = 0;
-    inline uint transpose(SAMPLETYPE *dest, 
-                   const SAMPLETYPE *src, 
-                   uint numSamples);
-
-    void downsample(const SAMPLETYPE *src, 
-                    uint numSamples);
-    void upsample(const SAMPLETYPE *src, 
-                 uint numSamples);
 
     
     
@@ -107,25 +128,24 @@ protected:
     void processSamples(const SAMPLETYPE *src, 
                         uint numSamples);
 
-
 public:
     RateTransposer();
     virtual ~RateTransposer();
 
     
     
-    static void *operator new(size_t s);
+
 
     
     
     
-    static RateTransposer *newInstance();
+
 
     
     FIFOSamplePipe *getOutput() { return &outputBuffer; };
 
     
-    FIFOSamplePipe *getStore() { return &storeBuffer; };
+
 
     
     AAFilter *getAAFilter();

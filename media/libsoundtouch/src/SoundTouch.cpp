@@ -80,6 +80,11 @@
 #include "RateTransposer.h"
 #include "cpu_detect.h"
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 using namespace soundtouch;
     
 
@@ -97,7 +102,7 @@ SoundTouch::SoundTouch()
 {
     
 
-    pRateTransposer = RateTransposer::newInstance();
+    pRateTransposer = new RateTransposer();
     pTDStretch = TDStretch::newInstance();
 
     setOutPipe(pTDStretch);
@@ -143,10 +148,11 @@ uint SoundTouch::getVersionId()
 
 void SoundTouch::setChannels(uint numChannels)
 {
-    if (numChannels != 1 && numChannels != 2) 
-    {
-        ST_THROW_RT_ERROR("Illegal number of channels");
-    }
+    
+
+
+
+
     channels = numChannels;
     pRateTransposer->setChannels((int)numChannels);
     pTDStretch->setChannels((int)numChannels);
@@ -254,7 +260,7 @@ void SoundTouch::calcEffectiveRateAndTempo()
             tempoOut = pTDStretch->getOutput();
             tempoOut->moveSamples(*output);
             
-            pTDStretch->moveSamples(*pRateTransposer->getStore());
+            
 
             output = pTDStretch;
         }
@@ -347,7 +353,7 @@ void SoundTouch::flush()
     int i;
     int nUnprocessed;
     int nOut;
-    SAMPLETYPE buff[64*2];   
+    SAMPLETYPE *buff=(SAMPLETYPE*)alloca(64*channels*sizeof(SAMPLETYPE));
 
     
     
