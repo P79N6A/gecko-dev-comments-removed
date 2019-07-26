@@ -73,28 +73,30 @@ public:
     
     
 
-    bool     SupportsPipelining();
-    bool     IsKeepAlive() { return mUsingSpdyVersion ||
-                                    (mKeepAliveMask && mKeepAlive); }
-    bool     CanReuse();   
-    bool     CanDirectlyActivate();
+    bool SupportsPipelining();
+    bool IsKeepAlive()
+    {
+        return mUsingSpdyVersion || (mKeepAliveMask && mKeepAlive);
+    }
+    bool CanReuse();   
+    bool CanDirectlyActivate();
 
     
     uint32_t TimeToLive();
 
-    void     DontReuse();
+    void DontReuse();
 
-    bool     IsProxyConnectInProgress()
+    bool IsProxyConnectInProgress()
     {
         return mProxyConnectInProgress;
     }
 
-    bool     LastTransactionExpectedNoContent()
+    bool LastTransactionExpectedNoContent()
     {
         return mLastTransactionExpectedNoContent;
     }
 
-    void     SetLastTransactionExpectedNoContent(bool val)
+    void SetLastTransactionExpectedNoContent(bool val)
     {
         mLastTransactionExpectedNoContent = val;
     }
