@@ -250,6 +250,17 @@ this.FxAccountsManager = {
     return this._signOut();
   },
 
+  resendVerificationEmail: function() {
+    return this._fxAccounts.resendVerificationEmail().then(
+      (result) => {
+        return result;
+      },
+      (error) => {
+        return this._error(ERROR_SERVER_ERROR, error);
+      }
+    );
+  },
+
   getAccount: function() {
     
     if (this._activeSession) {
