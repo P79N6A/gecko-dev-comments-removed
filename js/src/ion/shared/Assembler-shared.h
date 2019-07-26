@@ -256,7 +256,9 @@ class Label : public LabelBase
     { }
     ~Label()
     {
-        JS_ASSERT(!used());
+        
+        
+        JS_ASSERT_IF(OOM_counter < OOM_maxAllocations, !used());
     }
 };
 
