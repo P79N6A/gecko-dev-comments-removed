@@ -20,6 +20,7 @@ this.EXPORTED_SYMBOLS = ["DebuggerTransport",
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 const { defer, resolve, reject } = promise;
 
@@ -199,6 +200,7 @@ const UnsolicitedPauses = {
   "resumeLimit": "resumeLimit",
   "debuggerStatement": "debuggerStatement",
   "breakpoint": "breakpoint",
+  "DOMEvent": "DOMEvent",
   "watchpoint": "watchpoint",
   "exception": "exception"
 };
@@ -1023,6 +1025,7 @@ ThreadClient.prototype = {
   get paused() { return this._state === "paused"; },
 
   _pauseOnExceptions: false,
+  _pauseOnDOMEvents: null,
 
   _actor: null,
   get actor() { return this._actor; },
@@ -1058,7 +1061,15 @@ ThreadClient.prototype = {
       
       this._state = "resuming";
 
-      aPacket.pauseOnExceptions = this._pauseOnExceptions;
+      if (!aPacket.resumeLimit) {
+        delete aPacket.resumeLimit;
+      }
+      if (this._pauseOnExceptions) {
+        aPacket.pauseOnExceptions = this._pauseOnExceptions;
+      }
+      if (this._pauseOnDOMEvents) {
+        aPacket.pauseOnDOMEvents = this._pauseOnDOMEvents;
+      }
       return aPacket;
     },
     after: function (aResponse) {
@@ -1144,6 +1155,33 @@ ThreadClient.prototype = {
         return;
       }
       this.resume(aOnResponse);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  pauseOnDOMEvents: function (events, onResponse) {
+    this._pauseOnDOMEvents = events;
+    
+    
+    
+    if (this.paused)
+      return void setTimeout(onResponse, 0);
+    this.interrupt(response => {
+      
+      if (response.error)
+        return void onResponse(response);
+      this.resume(onResponse);
     });
   },
 
@@ -1270,6 +1308,18 @@ ThreadClient.prototype = {
     actors: args(0)
   }, {
     telemetry: "THREADGRIPS"
+  }),
+
+  
+
+
+
+
+
+  eventListeners: DebuggerClient.requester({
+    type: "eventListeners"
+  }, {
+    telemetry: "EVENTLISTENERS"
   }),
 
   

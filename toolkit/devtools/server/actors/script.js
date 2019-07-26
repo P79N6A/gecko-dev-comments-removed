@@ -31,10 +31,13 @@ function ThreadActor(aHooks, aGlobal)
   this._environmentActors = [];
   this._hooks = aHooks;
   this.global = aGlobal;
+  
+  this._hiddenBreakpoints = new Map();
 
   this.findGlobals = this.globalManager.findGlobals.bind(this);
   this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
   this.onNewSource = this.onNewSource.bind(this);
+  this._allEventsListener = this._allEventsListener.bind(this);
 
   this._options = {
     useSourceMaps: false
@@ -86,13 +89,17 @@ ThreadActor.prototype = {
   
 
 
+
+
   addDebuggee: function TA_addDebuggee(aGlobal) {
+    let globalDebugObject;
     try {
-      this.dbg.addDebuggee(aGlobal);
+      globalDebugObject = this.dbg.addDebuggee(aGlobal);
     } catch (e) {
       
       dumpn("Ignoring request to add the debugger's compartment as a debuggee");
     }
+    return globalDebugObject;
   },
 
   
@@ -123,14 +130,17 @@ ThreadActor.prototype = {
   
 
 
+
+
   _addDebuggees: function TA__addDebuggees(aWindow) {
-    this.addDebuggee(aWindow);
+    let globalDebugObject = this.addDebuggee(aWindow);
     let frames = aWindow.frames;
     if (frames) {
       for (let i = 0; i < frames.length; i++) {
         this._addDebuggees(frames[i]);
       }
     }
+    return globalDebugObject;
   },
 
   
@@ -139,7 +149,7 @@ ThreadActor.prototype = {
 
   globalManager: {
     findGlobals: function TA_findGlobals() {
-      this._addDebuggees(this.global);
+      this.globalDebugObject = this._addDebuggees(this.global);
     },
 
     
@@ -426,7 +436,18 @@ ThreadActor.prototype = {
     if (aRequest) {
       this._options.pauseOnExceptions = aRequest.pauseOnExceptions;
       this.maybePauseOnExceptions();
+      
+      let events = aRequest.pauseOnDOMEvents;
+      if (this.global && events &&
+          (events == "*" ||
+          (Array.isArray(events) && events.length))) {
+        this._pauseOnDOMEvents = events;
+        let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                  .getService(Ci.nsIEventListenerService);
+        els.addListenerForAllEvents(this.global, this._allEventsListener, true);
+      }
     }
+
     let packet = this._resumed();
     DebuggerServer.xpcInspector.exitNestedEventLoop();
     return packet;
@@ -438,6 +459,86 @@ ThreadActor.prototype = {
   maybePauseOnExceptions: function() {
     if (this._options.pauseOnExceptions) {
       this.dbg.onExceptionUnwind = this.onExceptionUnwind.bind(this);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _allEventsListener: function(event) {
+    if (this._pauseOnDOMEvents == "*" ||
+        this._pauseOnDOMEvents.indexOf(event.type) != -1) {
+      for (let listener of this._getAllEventListeners(event.target)) {
+        if (event.type == listener.type || this._pauseOnDOMEvents == "*") {
+          this._breakOnEnter(listener.script);
+        }
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _getAllEventListeners: function(eventTarget) {
+    let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
+
+    let targets = els.getEventTargetChainFor(eventTarget);
+    let listeners = [];
+
+    for (let target of targets) {
+      let handlers = els.getListenerInfoFor(target);
+      for (let handler of handlers) {
+        
+        
+        
+        if (!handler || !handler.listenerObject || !handler.type)
+          continue;
+        
+        let l = Object.create(null);
+        l.type = handler.type;
+        let listener = handler.listenerObject;
+        l.script = this.globalDebugObject.makeDebuggeeValue(listener).script;
+        
+        
+        if (!l.script)
+          continue;
+        listeners.push(l);
+      }
+    }
+    return listeners;
+  },
+
+  
+
+
+  _breakOnEnter: function(script) {
+    let offsets = script.getAllOffsets();
+    for (let line = 0, n = offsets.length; line < n; line++) {
+      if (offsets[line]) {
+        let location = { url: script.url, line: line };
+        let resp = this._createAndStoreBreakpoint(location);
+        dbg_assert(!resp.actualLocation, "No actualLocation should be returned");
+        if (resp.error) {
+          reportError(new Error("Unable to set breakpoint on event listener"));
+          return;
+        }
+        let bpActor = this._breakpointStore[location.url][location.line].actor;
+        dbg_assert(bpActor, "Breakpoint actor must be created");
+        this._hiddenBreakpoints.set(bpActor.actorID, bpActor);
+        break;
+      }
     }
   },
 
@@ -576,19 +677,7 @@ ThreadActor.prototype = {
         return { error: "noScript" };
       }
 
-      
-      
-      if (!this._breakpointStore[aLocation.url]) {
-        this._breakpointStore[aLocation.url] = [];
-      }
-      let scriptBreakpoints = this._breakpointStore[aLocation.url];
-      scriptBreakpoints[line] = {
-        url: aLocation.url,
-        line: line,
-        column: aLocation.column
-      };
-
-      let response = this._setBreakpoint(aLocation);
+      let response = this._createAndStoreBreakpoint(aLocation);
       
       
       
@@ -615,6 +704,25 @@ ThreadActor.prototype = {
           return aResponse;
         });
     });
+  },
+
+  
+
+
+  _createAndStoreBreakpoint: function (aLocation) {
+      
+      
+      if (!this._breakpointStore[aLocation.url]) {
+        this._breakpointStore[aLocation.url] = [];
+      }
+      let scriptBreakpoints = this._breakpointStore[aLocation.url];
+      scriptBreakpoints[aLocation.line] = {
+        url: aLocation.url,
+        line: aLocation.line,
+        column: aLocation.column
+      };
+
+      return this._setBreakpoint(aLocation);
   },
 
   
@@ -839,6 +947,59 @@ ThreadActor.prototype = {
   
 
 
+  onEventListeners: function TA_onEventListeners(aRequest) {
+    
+    if (!this.global) {
+      return {
+        error: "notImplemented",
+        message: "eventListeners request is only supported in content debugging"
+      }
+    }
+
+    let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
+
+    let nodes = this.global.document.getElementsByTagName("*");
+    nodes = [this.global].concat([].slice.call(nodes));
+    let listeners = [];
+
+    for (let node of nodes) {
+      let handlers = els.getListenerInfoFor(node);
+
+      for (let handler of handlers) {
+        
+        let listenerForm = Object.create(null);
+        let listener = handler.listenerObject;
+        
+        
+        if (!listener) {
+          continue;
+        }
+
+        
+        let selector = node.tagName ? findCssSelector(node) : "window";
+        let nodeDO = this.globalDebugObject.makeDebuggeeValue(node);
+        listenerForm.node = {
+          selector: selector,
+          object: this.createValueGrip(nodeDO)
+        };
+        listenerForm.type = handler.type;
+        listenerForm.capturing = handler.capturing;
+        listenerForm.allowsUntrusted = handler.allowsUntrusted;
+        listenerForm.inSystemEventGroup = handler.inSystemEventGroup;
+        listenerForm.isEventHandler = !!node["on" + listenerForm.type];
+        
+        let listenerDO = this.globalDebugObject.makeDebuggeeValue(listener);
+        listenerForm.function = this.createValueGrip(listenerDO);
+        listeners.push(listenerForm);
+      }
+    }
+    return { listeners: listeners };
+  },
+
+  
+
+
   _requestFrame: function TA_requestFrame(aFrameID) {
     if (!aFrameID) {
       return this.youngestFrame;
@@ -870,6 +1031,18 @@ ThreadActor.prototype = {
       aFrame.onStep = undefined;
       aFrame.onPop = undefined;
     }
+    
+    
+    
+    if (this.global && !this.global.toString().contains("Sandbox")) {
+      let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
+      els.removeListenerForAllEvents(this.global, this._allEventsListener, true);
+      for (let [,bp] of this._hiddenBreakpoints) {
+        bp.onDelete();
+      }
+      this._hiddenBreakpoints.clear();
+    }
 
     this._state = "paused";
 
@@ -879,7 +1052,7 @@ ThreadActor.prototype = {
 
     
     
-    dbg_assert(!this._pausePool);
+    dbg_assert(!this._pausePool, "No pause pool should exist yet");
     this._pausePool = new ActorPool(this.conn);
     this.conn.addActorPool(this._pausePool);
 
@@ -888,7 +1061,7 @@ ThreadActor.prototype = {
     this._pausePool.threadActor = this;
 
     
-    dbg_assert(!this._pauseActor);
+    dbg_assert(!this._pauseActor, "No pause actor should exist yet");
     this._pauseActor = new PauseActor(this._pausePool);
     this._pausePool.addActor(this._pauseActor);
 
@@ -920,7 +1093,7 @@ ThreadActor.prototype = {
     requestor.connection = this.conn;
     DebuggerServer.xpcInspector.enterNestedEventLoop(requestor);
 
-    dbg_assert(this.state === "running");
+    dbg_assert(this.state === "running", "Should be in the running state");
 
     if (this._hooks.postNest) {
       this._hooks.postNest(nestData)
@@ -1358,6 +1531,7 @@ ThreadActor.prototype.requestTypes = {
   "clientEvaluate": ThreadActor.prototype.onClientEvaluate,
   "frames": ThreadActor.prototype.onFrames,
   "interrupt": ThreadActor.prototype.onInterrupt,
+  "eventListeners": ThreadActor.prototype.onEventListeners,
   "releaseMany": ThreadActor.prototype.onReleaseMany,
   "setBreakpoint": ThreadActor.prototype.onSetBreakpoint,
   "sources": ThreadActor.prototype.onSources,
@@ -1592,6 +1766,12 @@ ObjectActor.prototype = {
       let desc = this.obj.getOwnPropertyDescriptor("displayName");
       if (desc && desc.value && typeof desc.value == "string") {
         g.userDisplayName = this.threadActor.createValueGrip(desc.value);
+      }
+
+      
+      if (this.obj.script) {
+        g.url = this.obj.script.url;
+        g.line = this.obj.script.startLine;
       }
     }
 
@@ -2209,8 +2389,14 @@ BreakpointActor.prototype = {
       return undefined;
     }
 
-    
-    let reason = { type: "breakpoint", actors: [ this.actorID ] };
+    let reason = {};
+    if (this.threadActor._hiddenBreakpoints.has(this.actorID)) {
+      reason.type = "pauseOnDOMEvents";
+    } else {
+      reason.type = "breakpoint";
+      
+      reason.actors = [ this.actorID ];
+    }
     return this.threadActor._pauseAndRespond(aFrame, reason, (aPacket) => {
       let { url, line } = aPacket.frame.where;
       return this.threadActor.sources.getOriginalLocation(url, line)
@@ -2645,7 +2831,7 @@ ThreadSources.prototype = {
     if (aScript.url in this._sourceMapsByGeneratedSource) {
       return this._sourceMapsByGeneratedSource[aScript.url];
     }
-    dbg_assert(aScript.sourceMapURL);
+    dbg_assert(aScript.sourceMapURL, "Script should have a sourceMapURL");
     let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
     let map = this._fetchSourceMap(sourceMapURL)
       .then((aSourceMap) => {
@@ -2783,7 +2969,7 @@ ThreadSources.prototype = {
 
 
   _normalize: function TS__normalize(...aURLs) {
-    dbg_assert(aURLs.length > 1);
+    dbg_assert(aURLs.length > 1, "Should have more than 1 URL");
     let base = Services.io.newURI(aURLs.pop(), null, null);
     let url;
     while ((url = aURLs.pop())) {
@@ -2951,4 +3137,81 @@ function reportError(aError, aPrefix="") {
   let msg = aPrefix + aError.message + ":\n" + aError.stack;
   Cu.reportError(msg);
   dumpn(msg);
+}
+
+
+
+
+
+
+
+
+
+function findCssSelector(ele) {
+  var document = ele.ownerDocument;
+  if (ele.id && document.getElementById(ele.id) === ele) {
+    return '#' + ele.id;
+  }
+
+  
+  var tagName = ele.tagName.toLowerCase();
+  if (tagName === 'html') {
+    return 'html';
+  }
+  if (tagName === 'head') {
+    return 'head';
+  }
+  if (tagName === 'body') {
+    return 'body';
+  }
+
+  if (ele.parentNode == null) {
+    console.log('danger: ' + tagName);
+  }
+
+  
+  var selector, index, matches;
+  if (ele.classList.length > 0) {
+    for (var i = 0; i < ele.classList.length; i++) {
+      
+      selector = '.' + ele.classList.item(i);
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+      
+      selector = tagName + selector;
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+      
+      index = positionInNodeList(ele, ele.parentNode.children) + 1;
+      selector = selector + ':nth-child(' + index + ')';
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+    }
+  }
+
+  
+  index = positionInNodeList(ele, ele.parentNode.children) + 1;
+  selector = findCssSelector(ele.parentNode) + ' > ' +
+          tagName + ':nth-child(' + index + ')';
+
+  return selector;
+};
+
+
+
+
+
+function positionInNodeList(element, nodeList) {
+  for (var i = 0; i < nodeList.length; i++) {
+    if (element === nodeList[i]) {
+      return i;
+    }
+  }
+  return -1;
 }
