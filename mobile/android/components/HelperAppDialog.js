@@ -133,10 +133,9 @@ HelperAppLauncherDialog.prototype = {
         
         
         
-        if (file.exists())
-          file.remove(false);
+        file.remove(false);
       }
-      catch (e) { }
+      catch (e) {}
       var newDir = file.parent.QueryInterface(Ci.nsILocalFile);
       prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
       file = this.validateLeafName(newDir, file.leafName, null);
