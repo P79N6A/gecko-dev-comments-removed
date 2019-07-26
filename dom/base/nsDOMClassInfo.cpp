@@ -164,10 +164,6 @@
 #include "FMRadio.h"
 #endif
 
-#ifdef MOZ_B2G_BT
-#include "BluetoothDevice.h"
-#endif
-
 #include "nsIDOMCameraManager.h"
 #include "nsIDOMGlobalObjectConstructor.h"
 #include "nsIDOMLockedFile.h"
@@ -486,11 +482,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
 #ifdef MOZ_B2G_RIL
   NS_DEFINE_CLASSINFO_DATA(MozIccManager, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-#endif
-
-#ifdef MOZ_B2G_BT
-  NS_DEFINE_CLASSINFO_DATA(BluetoothDevice, nsEventTargetSH,
-                           EVENTTARGET_SCRIPTABLE_FLAGS)
 #endif
 
   NS_DEFINE_CLASSINFO_DATA(CameraCapabilities, nsDOMGenericSH,
@@ -1201,12 +1192,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
   DOM_CLASSINFO_MAP_END
 
-#endif
-
-#ifdef MOZ_B2G_BT
-  DOM_CLASSINFO_MAP_BEGIN(BluetoothDevice, nsIDOMBluetoothDevice)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMBluetoothDevice)
-  DOM_CLASSINFO_MAP_END
 #endif
 
   DOM_CLASSINFO_MAP_BEGIN(CameraCapabilities, nsICameraCapabilities)
@@ -3356,14 +3341,46 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return DefineComponentsShim(cx, obj, win);
   }
 
+  nsIScriptContext *my_context = win->GetContextInternal();
+
   
   
-  bool isXray = xpc::WrapperFactory::IsXrayWrapper(obj);
-  if (!isXray) {
+  if (!xpc::WrapperFactory::IsXrayWrapper(obj)) {
     bool did_resolve = false;
-    if (!JS_ResolveStandardClass(cx, obj, id, &did_resolve)) {
+    bool ok = true;
+    JS::Rooted<JS::Value> exn(cx, JSVAL_VOID);
+
+    {
       
       
+      
+      
+      
+      
+      AutoPushJSContext my_cx(my_context ? my_context->GetNativeContext() : cx);
+      JSAutoCompartment ac(my_cx, obj);
+
+      ok = JS_ResolveStandardClass(my_cx, obj, id, &did_resolve);
+
+      if (!ok) {
+        
+        
+
+        if (!JS_GetPendingException(my_cx, &exn)) {
+          return NS_ERROR_UNEXPECTED;
+        }
+
+        
+        
+        
+        
+
+        JS_ClearPendingException(my_cx);
+      }
+    }
+
+    if (!ok) {
+      JS_SetPendingException(cx, exn);
       *_retval = false;
       return NS_OK;
     }
@@ -3374,10 +3391,14 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  
-  
-  
-  if (sLocation_id == id && isXray) {
+  if (!my_context || !my_context->IsContextInitialized()) {
+    
+    
+
+    return NS_OK;
+  }
+
+  if (sLocation_id == id) {
     
     
     
@@ -3408,10 +3429,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  
-  
-  
-  if (sTop_id == id && isXray) {
+  if (sTop_id == id) {
     nsCOMPtr<nsIDOMWindow> top;
     nsresult rv = win->GetScriptableTop(getter_AddRefs(top));
     NS_ENSURE_SUCCESS(rv, rv);
