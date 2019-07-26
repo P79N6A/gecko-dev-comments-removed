@@ -521,13 +521,6 @@ public:
 
 
   bool mPostedRunInStableStateEvent;
-  
-
-
-
-
-
-  bool mNonRealtimeIsRunning;
 
   
 
