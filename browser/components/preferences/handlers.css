@@ -2,11 +2,11 @@
 
 
 
-richlistitem {
+#handlersView > richlistitem {
   -moz-binding: url("chrome://browser/content/preferences/handlers.xml#handler");
 }
 
-richlistitem[selected="true"] {
+#handlersView > richlistitem[selected="true"] {
   -moz-binding: url("chrome://browser/content/preferences/handlers.xml#handler-selected");
 }
 
