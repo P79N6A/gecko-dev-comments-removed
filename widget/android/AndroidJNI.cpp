@@ -61,7 +61,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent(JNIEnv *jenv, jclass jc,
 {
     
     if (nsAppShell::gAppShell)
-        nsAppShell::gAppShell->PostEvent(new AndroidGeckoEvent(jenv, event));
+        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeFromJavaObject(jenv, event));
 }
 
 NS_EXPORT void JNICALL
