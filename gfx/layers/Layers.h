@@ -845,6 +845,16 @@ public:
   void SetFixedPositionAnchor(const gfxPoint& aAnchor) { mAnchor = aAnchor; }
 
   
+
+
+
+
+
+
+
+  void SetFixedPositionMargins(const gfx::Margin& aMargins) { mMargins = aMargins; }
+
+  
   float GetOpacity() { return mOpacity; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
@@ -860,6 +870,7 @@ public:
   float GetPostYScale() { return mPostYScale; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
   gfxPoint GetFixedPositionAnchor() { return mAnchor; }
+  const gfx::Margin& GetFixedPositionMargins() { return mMargins; }
   Layer* GetMaskLayer() { return mMaskLayer; }
 
   
@@ -1208,6 +1219,7 @@ protected:
   bool mUseTileSourceRect;
   bool mIsFixedPosition;
   gfxPoint mAnchor;
+  gfx::Margin mMargins;
   DebugOnly<uint32_t> mDebugColorIndex;
   
   
