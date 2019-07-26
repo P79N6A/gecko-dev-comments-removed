@@ -308,7 +308,11 @@ public:
   bool MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv);
 #ifdef MOZ_B2G_RIL
   nsIDOMTelephony* GetMozTelephony(ErrorResult& aRv);
-#endif
+  nsIDOMMozMobileConnection* GetMozMobileConnection(ErrorResult& aRv);
+  nsIDOMMozCellBroadcast* GetMozCellBroadcast(ErrorResult& aRv);
+  nsIDOMMozVoicemail* GetMozVoicemail(ErrorResult& aRv);
+  nsIDOMMozIccManager* GetMozIccManager(ErrorResult& aRv);
+#endif 
 
 
   
@@ -329,6 +333,14 @@ public:
 #ifdef MOZ_B2G_RIL
   static bool HasTelephonySupport(JSContext* ,
                                   JSObject* aGlobal);
+  static bool HasMobileConnectionSupport(JSContext* ,
+                                         JSObject* aGlobal);
+  static bool HasCellBroadcastSupport(JSContext* ,
+                                      JSObject* aGlobal);
+  static bool HasVoicemailSupport(JSContext* ,
+                                  JSObject* aGlobal);
+  static bool HasIccManagerSupport(JSContext* ,
+                                   JSObject* aGlobal);
 #endif 
   nsPIDOMWindow* GetParentObject() const
   {
