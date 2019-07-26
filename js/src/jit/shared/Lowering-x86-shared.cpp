@@ -15,6 +15,7 @@
 using namespace js;
 using namespace js::jit;
 
+using mozilla::Abs;
 using mozilla::FloorLog2;
 
 LTableSwitch *
@@ -141,18 +142,17 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
         
         
         
-        
-        int32_t shift = FloorLog2(rhs);
-        if (rhs > 0 && 1 << shift == rhs) {
+        int32_t shift = FloorLog2(Abs(rhs));
+        if (rhs != 0 && uint32_t(1) << shift == Abs(rhs)) {
             LAllocation lhs = useRegisterAtStart(div->lhs());
             LDivPowTwoI *lir;
             if (!div->canBeNegativeDividend()) {
                 
-                lir = new(alloc()) LDivPowTwoI(lhs, lhs, shift);
+                lir = new(alloc()) LDivPowTwoI(lhs, lhs, shift, rhs < 0);
             } else {
                 
                 
-                lir = new(alloc()) LDivPowTwoI(lhs, useRegister(div->lhs()), shift);
+                lir = new(alloc()) LDivPowTwoI(lhs, useRegister(div->lhs()), shift, rhs < 0);
             }
             if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
@@ -175,8 +175,8 @@ LIRGeneratorX86Shared::lowerModI(MMod *mod)
 
     if (mod->rhs()->isConstant()) {
         int32_t rhs = mod->rhs()->toConstant()->value().toInt32();
-        int32_t shift = FloorLog2(rhs);
-        if (rhs > 0 && 1 << shift == rhs) {
+        int32_t shift = FloorLog2(Abs(rhs));
+        if (rhs != 0 && uint32_t(1) << shift == Abs(rhs)) {
             LModPowTwoI *lir = new(alloc()) LModPowTwoI(useRegisterAtStart(mod->lhs()), shift);
             if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
