@@ -26,23 +26,6 @@
 
 namespace js {
 
-struct ScriptAndCounts
-{
-    
-    JSScript *script;
-    ScriptCounts scriptCounts;
-
-    PCCounts &getPCCounts(jsbytecode *pc) const {
-        return scriptCounts.pcCountsVector[script->pcToOffset(pc)];
-    }
-
-    jit::IonScriptCounts *getIonCounts() const {
-        return scriptCounts.ionCounts;
-    }
-};
-
-typedef Vector<ScriptAndCounts, 0, SystemAllocPolicy> ScriptAndCountsVector;
-
 namespace gc {
 
 typedef Vector<JS::Zone *, 4, SystemAllocPolicy> ZoneVector;
@@ -538,9 +521,6 @@ class GCRuntime
 
     
     size_t                systemAllocGranularity;
-
-    
-    js::ScriptAndCountsVector *scriptAndCountsVector;
 
 #ifdef DEBUG
     
