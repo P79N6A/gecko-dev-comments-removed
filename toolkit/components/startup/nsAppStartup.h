@@ -56,6 +56,7 @@ private:
   int32_t      mConsiderQuitStopper; 
   bool mRunning;        
   bool mShuttingDown;   
+  bool mStartingUp;     
   bool mAttemptingQuit; 
   bool mRestart;        
   bool mInterrupted;    
