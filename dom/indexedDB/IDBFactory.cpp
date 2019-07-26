@@ -235,6 +235,9 @@ IDBFactory::Create(ContentParent* aContentParent,
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
   NS_ASSERTION(nsContentUtils::IsCallerChrome(), "Only for chrome!");
+  NS_ASSERTION(aContentParent, "Null ContentParent!");
+
+  NS_ASSERTION(!nsContentUtils::GetCurrentJSContext(), "Should be called from C++");
 
   
   
