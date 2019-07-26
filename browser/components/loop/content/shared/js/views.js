@@ -40,7 +40,9 @@ loop.shared.views = (function(TB) {
   var ConversationView = BaseView.extend({
     el: "#conversation",
 
-    videoStyles: { width: "100%", height: "100%" },
+    
+    
+    videoStyles: { width: "100%", height: "auto" },
 
     
 
