@@ -257,7 +257,7 @@ public:
     return !((uintptr_t)stackAddress() & 0x1);
   }
 
-  void setStackAddressCopy(void *sp, bool copy) volatile {
+  void setStackAddressCopy(void *sparg, bool copy) volatile {
     
     
     
@@ -265,10 +265,10 @@ public:
     
     if (copy) {
       setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sp) & ~0x1));
+                        reinterpret_cast<uintptr_t>(sparg) & ~0x1));
     } else {
       setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sp) | 0x1));
+                        reinterpret_cast<uintptr_t>(sparg) | 0x1));
     }
   }
 };
