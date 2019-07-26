@@ -22,7 +22,7 @@ enum FrameType
 {
     
     
-    IonFrame_JS,
+    IonFrame_OptimizedJS,
 
     IonFrame_BaselineJS,
 
@@ -97,7 +97,7 @@ class IonFrameIterator
     inline uint8 *returnAddress() const;
 
     IonJSFrameLayout *jsFrame() const {
-        JS_ASSERT(type() == IonFrame_JS);
+        JS_ASSERT(type() == IonFrame_OptimizedJS);
         return (IonJSFrameLayout *) fp();
     }
 
@@ -112,7 +112,7 @@ class IonFrameIterator
     bool checkInvalidation() const;
 
     bool isScripted() const {
-        return type_ == IonFrame_JS;
+        return type_ == IonFrame_OptimizedJS;
     }
     bool isNative() const;
     bool isOOLNativeGetter() const;
