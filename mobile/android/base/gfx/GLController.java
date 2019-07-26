@@ -46,7 +46,7 @@ public class GLController {
     private EGL10 mEGL;
     private EGLDisplay mEGLDisplay;
     private EGLConfig mEGLConfig;
-    private EGLSurface mEGLSurface;
+    private EGLSurface mClientSurface;
 
     private static final int LOCAL_EGL_OPENGL_ES2_BIT = 4;
 
@@ -84,7 +84,7 @@ public class GLController {
         Log.w(LOGTAG, "GLController::surfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
         mServerSurfaceValid = false;
-        mEGLSurface = null;
+        mClientSurface = null;
 
         
         
@@ -143,14 +143,14 @@ public class GLController {
                             initEGL();
                         }
 
-                        mEGLSurface = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
+                        mClientSurface = mEGL.eglCreateWindowSurface(mEGLDisplay, mEGLConfig, mView.getNativeWindow(), null);
                     }
                 } catch (Exception e) {
                     Log.e(LOGTAG, "Unable to create window surface", e);
                 }
-                if (mEGLSurface == null || mEGLSurface == EGL10.EGL_NO_SURFACE) {
+                if (mClientSurface == null || mClientSurface == EGL10.EGL_NO_SURFACE) {
                     mServerSurfaceValid = false;
-                    mEGLSurface = null; 
+                    mClientSurface = null; 
                     Log.e(LOGTAG, "EGL window surface could not be created: " + getEGLError());
                     return;
                 }
@@ -178,7 +178,7 @@ public class GLController {
         
         
         
-        if (mEGLSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+        if (mClientSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorCreateEvent(mWidth, mHeight));
         }
         Log.w(LOGTAG, "done GLController::createCompositor");
@@ -251,7 +251,7 @@ public class GLController {
 
     @GeneratableAndroidBridgeTarget(allowMultithread = true, stubName = "ProvideEGLSurfaceWrapper")
     private EGLSurface provideEGLSurface() {
-        return mEGLSurface;
+        return mClientSurface;
     }
 
     private String getEGLError() {
