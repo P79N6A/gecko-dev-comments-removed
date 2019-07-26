@@ -24,6 +24,7 @@
 
 namespace js {
 
+class ScriptSource;
 class SPSProfiler;
 class AsmJSModule;
 namespace frontend { struct TokenStream; struct ParseNode; }
@@ -39,20 +40,22 @@ IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern bool
-CompileAsmJS(JSContext *cx, frontend::TokenStream &ts, frontend::ParseNode *fn, HandleScript s);
-
-
-
-
-
-
-
-
-
 
 extern bool
-LinkAsmJS(JSContext *cx, StackFrame *fp, MutableHandleValue rval);
+CompileAsmJS(JSContext *cx, frontend::TokenStream &ts, frontend::ParseNode *fn,
+             const CompileOptions &options,
+             ScriptSource *scriptSource, uint32_t bufStart, uint32_t bufEnd,
+             MutableHandleFunction moduleFun);
+
+
+
+
+
+
+
+
+extern JSBool
+LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
@@ -147,6 +150,19 @@ struct AsmJSParallelTask
         lir = NULL;
     }
 };
+
+
+
+#ifdef JS_ASMJS
+bool
+IsAsmJSModuleNative(js::Native native);
+#else
+static inline bool
+IsAsmJSModuleNative(js::Native native)
+{
+    return false;
+}
+#endif
 
 } 
 

@@ -1436,43 +1436,6 @@ BEGIN_CASE(JSOP_LOOPENTRY)
 
 END_CASE(JSOP_LOOPENTRY)
 
-BEGIN_CASE(JSOP_LINKASMJS)
-#ifdef JS_ASMJS
-{
-    RootedValue &rval = rootValue0;
-
-    
-
-
-
-
-
-    rval = NullValue();
-    if (!LinkAsmJS(cx, regs.fp(), &rval))
-        goto error;
-
-    
-
-
-
-
-    if (rval.isObject()) {
-        regs.fp()->setReturnValue(rval);
-        regs.setToEndOfScript();
-        interpReturnOK = true;
-        if (entryFrame != regs.fp())
-            goto inline_return;
-        goto exit;
-    }
-
-    
-
-
-
-}
-#endif
-END_CASE(JSOP_LINKASMJS)
-
 BEGIN_CASE(JSOP_NOTEARG)
 END_CASE(JSOP_NOTEARG)
 
@@ -2409,7 +2372,7 @@ BEGIN_CASE(JSOP_FUNCALL)
     funScript = fun->nonLazyScript();
     if (!cx->stack.pushInlineFrame(cx, regs, args, fun, funScript, initial))
         goto error;
- 
+
     if (newType)
         regs.fp()->setUseNewType();
 
@@ -3489,7 +3452,7 @@ js::DefFunOperation(JSContext *cx, HandleScript script, HandleObject scopeChain,
 
 
     RootedFunction fun(cx, funArg);
-    if (fun->environment() != scopeChain) {
+    if (fun->isNative() || fun->environment() != scopeChain) {
         fun = CloneFunctionObjectIfNotSingleton(cx, fun, scopeChain);
         if (!fun)
             return false;

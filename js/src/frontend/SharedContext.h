@@ -199,8 +199,9 @@ class FunctionBox : public ObjectBox, public SharedContext
 {
   public:
     Bindings        bindings;               
-    size_t          bufStart;
-    size_t          bufEnd;
+    uint32_t        bufStart;
+    uint32_t        bufEnd;
+    uint32_t        asmStart;               
     uint16_t        ndefaults;
     bool            inWith:1;               
     bool            inGenexpLambda:1;       
