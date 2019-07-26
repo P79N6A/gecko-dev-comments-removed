@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.tabspanel;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -16,14 +16,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.TabsAccessor;
+
 
 
 
 
 class RemoteTabsList extends ExpandableListView
-                            implements ExpandableListView.OnGroupClickListener,
-                                       ExpandableListView.OnChildClickListener,
-                                       TabsAccessor.OnQueryTabsCompleteListener {
+                     implements ExpandableListView.OnGroupClickListener,
+                                ExpandableListView.OnChildClickListener,
+                                TabsAccessor.OnQueryTabsCompleteListener {
     private static final String[] CLIENT_KEY = new String[] { "name" };
     private static final String[] TAB_KEY = new String[] { "title", "url" };
     private static final int[] CLIENT_RESOURCE = new int[] { R.id.client };

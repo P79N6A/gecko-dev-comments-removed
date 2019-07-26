@@ -3,11 +3,17 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.tabspanel;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mozilla.gecko.AboutPages;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tab;
+import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.PropertyAnimator.Property;
 import org.mozilla.gecko.animation.ViewHelper;
@@ -31,7 +37,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class TabsTray extends TwoWayView
+class TabsTray extends TwoWayView
     implements TabsPanel.PanelView {
     private static final String LOGTAG = "GeckoTabsTray";
 
