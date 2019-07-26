@@ -1012,12 +1012,17 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
-        *aFlipSide = true;
-        aScreenPoint = endpos + aMarginEnd;
         
         
-        if (aScreenPoint + aSize > aScreenEnd) {
-          popupSize = aScreenEnd - aScreenPoint;
+        nscoord newScreenPoint = endpos + aMarginEnd;
+        if (newScreenPoint != aScreenPoint) {
+          *aFlipSide = true;
+          aScreenPoint = newScreenPoint;
+          
+          
+          if (aScreenPoint + aSize > aScreenEnd) {
+            popupSize = aScreenEnd - aScreenPoint;
+          }
         }
       }
     }
@@ -1047,15 +1052,19 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
-        *aFlipSide = true;
-        aScreenPoint = startpos - aSize - aMarginBegin - aOffsetForContextMenu;
+        
+        nscoord newScreenPoint = startpos - aSize - aMarginBegin - aOffsetForContextMenu;
+        if (newScreenPoint != aScreenPoint) {
+          *aFlipSide = true;
+          aScreenPoint = newScreenPoint;
 
-        
-        
-        if (aScreenPoint < aScreenBegin) {
-          aScreenPoint = aScreenBegin;
-          if (!mIsContextMenu) {
-            popupSize = startpos - aScreenPoint - aMarginBegin;
+          
+          
+          if (aScreenPoint < aScreenBegin) {
+            aScreenPoint = aScreenBegin;
+            if (!mIsContextMenu) {
+              popupSize = startpos - aScreenPoint - aMarginBegin;
+            }
           }
         }
       }
