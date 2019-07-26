@@ -1083,12 +1083,15 @@ Loader::CreateSheet(nsIURI* aURI,
     }
 #endif
 
+    bool fromCompleteSheets = false;
     if (!sheet) {
       
       URIPrincipalAndCORSModeHashKey key(aURI, aLoaderPrincipal, aCORSMode);
 
       mCompleteSheets.Get(&key, getter_AddRefs(sheet));
       LOG(("  From completed: %p", sheet.get()));
+
+      fromCompleteSheets = !!sheet;
     }
 
     if (sheet) {
@@ -1156,6 +1159,15 @@ Loader::CreateSheet(nsIURI* aURI,
                    "Sheet thinks it's not complete while we think it is");
 
       *aSheet = sheet->Clone(nullptr, nullptr, nullptr, nullptr).get();
+      if (*aSheet && fromCompleteSheets &&
+          !sheet->GetOwnerNode() && !sheet->GetParentSheet()) {
+        
+        
+        
+        
+        URIPrincipalAndCORSModeHashKey key(aURI, aLoaderPrincipal, aCORSMode);
+        mCompleteSheets.Put(&key, *aSheet);
+      }
     }
   }
 
@@ -1759,13 +1771,26 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
   
   
   if (NS_SUCCEEDED(aStatus) && aLoadData->mURI) {
+    
+    
+    
+    
+    data = aLoadData;
+    nsCSSStyleSheet* sheet = aLoadData->mSheet;
+    while (data) {
+      if (data->mSheet->GetParentSheet() || data->mSheet->GetOwnerNode()) {
+        sheet = data->mSheet;
+        break;
+      }
+      data = data->mNext;
+    }
 #ifdef MOZ_XUL
     if (IsChromeURI(aLoadData->mURI)) {
       nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
       if (cache && cache->IsEnabled()) {
         if (!cache->GetStyleSheet(aLoadData->mURI)) {
           LOG(("  Putting sheet in XUL prototype cache"));
-          cache->PutStyleSheet(aLoadData->mSheet);
+          cache->PutStyleSheet(sheet);
         }
       }
     }
@@ -1774,7 +1799,7 @@ Loader::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
       URIPrincipalAndCORSModeHashKey key(aLoadData->mURI,
                                          aLoadData->mLoaderPrincipal,
                                          aLoadData->mSheet->GetCORSMode());
-      mCompleteSheets.Put(&key, aLoadData->mSheet);
+      mCompleteSheets.Put(&key, sheet);
 #ifdef MOZ_XUL
     }
 #endif
