@@ -151,6 +151,13 @@ bool TConstTraverser::visitSelection(Visit visit, TIntermSelection* node)
 
 void TConstTraverser::visitConstantUnion(TIntermConstantUnion* node)
 {
+    if (!node->getUnionArrayPointer())
+    {
+        
+        assert(infoSink.info.size() != 0);
+        return;
+    }
+
     ConstantUnion* leftUnionArray = unionArray;
     int instanceSize = type.getObjectSize();
 

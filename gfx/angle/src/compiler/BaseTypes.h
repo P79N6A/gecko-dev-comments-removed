@@ -16,7 +16,7 @@ enum TPrecision
     EbpUndefined,
     EbpLow,
     EbpMedium,
-    EbpHigh,
+    EbpHigh
 };
 
 inline const char* getPrecisionString(TPrecision p)
@@ -47,7 +47,7 @@ enum TBasicType
     EbtGuardSamplerEnd,    
     EbtStruct,
     EbtAddress,            
-    EbtInvariant,          
+    EbtInvariant          
 };
 
 inline const char* getBasicString(TBasicType t)
@@ -114,7 +114,7 @@ enum TQualifier
     EvqFragData,
 
     
-    EvqLast,
+    EvqLast
 };
 
 

@@ -31,7 +31,7 @@ public:
     void Insert(const char* originalName, const char* mappedName);
 
     
-    int Size() const;
+    size_t Size() const;
 
 private:
     LongNameMap();
