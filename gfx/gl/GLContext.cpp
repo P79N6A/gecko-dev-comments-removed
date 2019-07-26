@@ -1787,14 +1787,8 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     if (aSrcRect.IsEmpty() || aDstRect.IsEmpty())
         return;
 
-    
-    
     int savedFb = 0;
-    if (mWorkAroundDriverBugs &&
-        mVendor == VendorQualcomm)
-    {
-        fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &savedFb);
-    }
+    fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &savedFb);
 
     fDisable(LOCAL_GL_SCISSOR_TEST);
     fDisable(LOCAL_GL_BLEND);
@@ -1921,16 +1915,7 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     
     SetBlitFramebufferForDestTexture(0);
 
-    
-    
-    
-    
-    
-    
-    if (mWorkAroundDriverBugs &&
-        mVendor == VendorQualcomm) {
-        fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, savedFb);
-    }
+    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, savedFb);
 
     fEnable(LOCAL_GL_SCISSOR_TEST);
     fEnable(LOCAL_GL_BLEND);
