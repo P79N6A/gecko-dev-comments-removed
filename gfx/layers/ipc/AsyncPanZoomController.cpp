@@ -133,7 +133,7 @@ namespace layers {
 
 
 
-static float gTouchStartTolerance = 1.0f/16.0f;
+static float gTouchStartTolerance = 1.0f/2.0f;
 
 
 
