@@ -1497,7 +1497,8 @@ IonBuilder::inlineUnsafeGetReservedSlot(CallInfo &callInfo)
     current->push(load);
 
     
-    pushTypeBarrier(load, getInlineReturnTypeSet(), true);
+    if (!pushTypeBarrier(load, getInlineReturnTypeSet(), true))
+        return InliningStatus_Error;
 
     return InliningStatus_Inlined;
 }
