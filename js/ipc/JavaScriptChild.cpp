@@ -118,7 +118,7 @@ JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
     
     
 
-    jsval exn;
+    RootedValue exn(cx);
     if (!JS_GetPendingException(cx, &exn))
         return true;
 

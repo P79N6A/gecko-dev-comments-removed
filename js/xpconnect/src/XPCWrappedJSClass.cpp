@@ -255,7 +255,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
         if (!success && JS_IsExceptionPending(cx)) {
             RootedValue jsexception(cx, NullValue());
 
-            if (JS_GetPendingException(cx, jsexception.address())) {
+            if (JS_GetPendingException(cx, &jsexception)) {
                 nsresult rv;
                 if (jsexception.isObject()) {
                     
@@ -941,7 +941,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
     nsresult pending_result = xpcc->GetPendingResult();
 
     RootedValue js_exception(cx);
-    bool is_js_exception = JS_GetPendingException(cx, js_exception.address());
+    bool is_js_exception = JS_GetPendingException(cx, &js_exception);
 
     
     if (is_js_exception) {

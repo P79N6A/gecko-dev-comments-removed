@@ -3530,7 +3530,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
         
         
 
-        if (!JS_GetPendingException(my_cx, exn.address())) {
+        if (!JS_GetPendingException(my_cx, &exn)) {
           return NS_ERROR_UNEXPECTED;
         }
 

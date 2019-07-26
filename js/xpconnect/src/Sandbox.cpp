@@ -1552,7 +1552,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
         }
 
         
-        if (JS_GetPendingException(sandcx, exn.address())) {
+        if (JS_GetPendingException(sandcx, &exn)) {
             MOZ_ASSERT(!ok);
             JS_ClearPendingException(sandcx);
             if (returnStringOnly) {
