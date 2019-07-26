@@ -35,10 +35,6 @@
 #include "MediaEngineWebRTC.h"
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-#include "MediaPermissionGonk.h"
-#endif
-
 
 
 #ifdef GetCurrentTime
@@ -1070,10 +1066,6 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     
     
     (void) MediaManager::Get();
-#ifdef MOZ_WIDGET_GONK
-    
-    (void) MediaPermissionManager::GetInstance();
-#endif 
   }
 
   
@@ -1134,7 +1126,10 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
 
 #ifdef MOZ_B2G_CAMERA
   if (mCameraManager == nullptr) {
-    mCameraManager = nsDOMCameraManager::CreateInstance(aWindow);
+    aPrivileged = nsDOMCameraManager::CheckPermission(aWindow);
+    if (aPrivileged) {
+      mCameraManager = nsDOMCameraManager::CreateInstance(aWindow);
+    }
   }
 #endif
 
