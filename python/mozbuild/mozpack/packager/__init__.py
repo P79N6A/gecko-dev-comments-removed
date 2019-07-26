@@ -2,7 +2,7 @@
 
 
 
-from Preprocessor import Preprocessor
+from mozbuild.preprocessor import Preprocessor
 import re
 import os
 from mozpack.errors import errors
