@@ -21,6 +21,8 @@
 #include "jsgcinlines.h"
 #include "jsinferinlines.h"
 
+#include "vm/ObjectImpl-inl.h"
+
  inline bool
 JSObject::setGenericAttributes(JSContext *cx, js::HandleObject obj,
                                js::HandleId id, unsigned *attrsp)
@@ -406,6 +408,33 @@ JSObject::getProto(JSContext *cx, js::HandleObject obj, js::MutableHandleObject 
         protop.set(obj->js::ObjectImpl::getProto());
         return true;
     }
+}
+
+ inline bool
+JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, bool *succeeded)
+{
+    
+    bool extensible;
+    if (!JSObject::isExtensible(cx, obj, &extensible))
+        return false;
+    if (!extensible) {
+        *succeeded = false;
+        return true;
+    }
+
+    
+    js::RootedObject obj2(cx);
+    for (obj2 = proto; obj2; ) {
+        if (obj2 == obj) {
+            *succeeded = false;
+            return true;
+        }
+
+        if (!JSObject::getProto(cx, obj2, &obj2))
+            return false;
+    }
+
+    return SetClassAndProto(cx, obj, obj->getClass(), proto, succeeded);
 }
 
 inline bool JSObject::isVarObj()
