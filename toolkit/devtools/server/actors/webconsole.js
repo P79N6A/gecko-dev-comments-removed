@@ -138,14 +138,6 @@ WebConsoleActor.prototype =
 
 
 
-  _globalWindowId: 0,
-
-  
-
-
-
-
-
   _dbgGlobals: null,
 
   
@@ -156,16 +148,6 @@ WebConsoleActor.prototype =
 
 
   _netEvents: null,
-
-  
-
-
-
-
-
-
-
-  _jstermHelpers: null,
 
   
 
@@ -266,10 +248,8 @@ WebConsoleActor.prototype =
     this._netEvents.clear();
     this._protoChains.clear();
     this._dbgGlobals.clear();
-    this._jstermHelpers = null;
     this.dbg.enabled = false;
     this.dbg = null;
-    this._globalWindowId = 0;
     this.conn = this._window = null;
   },
 
@@ -741,8 +721,14 @@ WebConsoleActor.prototype =
 
   _getJSTermHelpers: function WCA__getJSTermHelpers(aDebuggerGlobal)
   {
-    let helpers = Object.create(this);
-    helpers.sandbox = Object.create(null);
+    let helpers = {
+      window: this.window,
+      chromeWindow: this.chromeWindow.bind(this),
+      makeDebuggeeValue: aDebuggerGlobal.makeDebuggeeValue.bind(aDebuggerGlobal),
+      createValueGrip: this.createValueGrip.bind(this),
+      sandbox: Object.create(null),
+      helperResult: null,
+    };
     JSTermHelpers(helpers);
 
     
@@ -816,8 +802,9 @@ WebConsoleActor.prototype =
       aString = "help()";
     }
 
+    
+    
     let bindSelf = null;
-
     if (aOptions.bindObjectActor) {
       let objActor = this.getActorByID(aOptions.bindObjectActor);
       if (objActor) {
@@ -825,6 +812,7 @@ WebConsoleActor.prototype =
       }
     }
 
+    
     let frame = null, frameActor = null;
     if (aOptions.frameActor) {
       frameActor = this.conn.getActor(aOptions.frameActor);
@@ -837,20 +825,49 @@ WebConsoleActor.prototype =
       }
     }
 
+    
+    
+    
+    
     let dbg = this.dbg;
-    let dbgWindow = null;
-    let helpers = null;
-    let found$ = false, found$$ = false;
-
-    
-    
+    let dbgWindow = this._getDebuggerGlobal(this.window);
     if (frame) {
-      
-      
       dbg = frameActor.threadActor.dbg;
       dbgWindow = dbg.addDebuggee(this.window);
-      helpers = this._getJSTermHelpers(dbgWindow);
+    }
 
+    
+    
+    if (bindSelf) {
+      let jsObj = bindSelf.unsafeDereference();
+      let global = Cu.getGlobalForObject(jsObj);
+
+      
+      if (global != this.window) {
+        dbgWindow = dbg.addDebuggee(global);
+
+        
+        
+        
+        if (dbg == this.dbg) {
+          dbg.removeDebuggee(global);
+        }
+      }
+
+      bindSelf = dbgWindow.makeDebuggeeValue(jsObj);
+    }
+
+    
+    let helpers = this._getJSTermHelpers(dbgWindow);
+    let bindings = helpers.sandbox;
+    if (bindSelf) {
+      bindings._self = bindSelf;
+    }
+
+    
+    
+    let found$ = false, found$$ = false;
+    if (frame) {
       let env = frame.environment;
       if (env) {
         found$ = !!env.find("$");
@@ -858,37 +875,8 @@ WebConsoleActor.prototype =
       }
     }
     else {
-      
-      dbgWindow = this._getDebuggerGlobal(this.window);
-
-      let windowId = WebConsoleUtils.getInnerWindowId(this.window);
-      if (this._globalWindowId != windowId) {
-        this._jstermHelpers = null;
-        this._globalWindowId = windowId;
-      }
-      if (!this._jstermHelpers) {
-        this._jstermHelpers = this._getJSTermHelpers(dbgWindow);
-      }
-
-      helpers = this._jstermHelpers;
       found$ = !!dbgWindow.getOwnPropertyDescriptor("$");
       found$$ = !!dbgWindow.getOwnPropertyDescriptor("$$");
-    }
-
-    let bindings = helpers.sandbox;
-    if (bindSelf) {
-      
-      let jsObj = bindSelf.unsafeDereference();
-      let global = Cu.getGlobalForObject(jsObj);
-
-      if (global != this.window) {
-        dbgWindow = dbg.addDebuggee(global);
-        if (dbg == this.dbg) {
-          dbg.removeDebuggee(global);
-        }
-      }
-
-      bindings._self = dbgWindow.makeDebuggeeValue(jsObj);
     }
 
     let $ = null, $$ = null;
@@ -901,6 +889,7 @@ WebConsoleActor.prototype =
       delete bindings.$$;
     }
 
+    
     helpers.evalInput = aString;
 
     let result;
