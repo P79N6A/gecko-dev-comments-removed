@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+<html>
+<head>
+  <style>
+    .flexContainer {
+      background: purple;
+      display: flex;
+      width: 70px;
+      height: 70px;
+      float: left;
+      margin-right: 5px;
+    }
+    .bigItem {
+      background: blue;
+      height: 200px;
+      flex: 3;
+    }
+    .smallItem {
+      background: teal;
+      margin-bottom: 10px;
+      flex: 1;
+    }
+    .scroll { overflow: scroll }
+    .auto   { overflow: auto   }
+    .hidden { overflow: hidden }
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer hidden">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer scroll">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer auto">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+</body>
+</html>
