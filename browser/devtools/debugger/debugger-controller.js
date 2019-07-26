@@ -9,6 +9,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+const NEW_SCRIPT_DISPLAY_DELAY = 100; 
 const FRAME_STEP_CACHE_DURATION = 100; 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const SCRIPTS_URL_MAX_LENGTH = 64; 
@@ -942,14 +943,20 @@ SourceScripts.prototype = {
       DebuggerView.Scripts.selectScript(aPacket.url);
     }
     
-    else if (!DebuggerView.Scripts.selected) {
-      DebuggerView.Scripts.selectIndex(0);
-      
-      
-      
-      
-      
-      DebuggerView.Scripts.preferredScriptUrl = preferredScriptUrl;
+    else {
+      window.setTimeout(function() {
+        
+        
+        if (!DebuggerView.Scripts.selected) {
+          DebuggerView.Scripts.selectIndex(0);
+          
+          
+          
+          
+          
+          DebuggerView.Scripts.preferredScriptUrl = preferredScriptUrl;
+        }
+      }, NEW_SCRIPT_DISPLAY_DELAY);
     }
 
     
@@ -1210,7 +1217,11 @@ SourceScripts.prototype = {
 
   showScript: function SS_showScript(aScript, aOptions = {}) {
     if (aScript.loaded) {
-      this._onShowScript(aScript, aOptions);
+      
+      
+      if (aScript.url === DebuggerView.Scripts.selected) {
+        this._onShowScript(aScript, aOptions);
+      }
       return;
     }
 
