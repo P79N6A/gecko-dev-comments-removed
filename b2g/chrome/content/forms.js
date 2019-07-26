@@ -326,12 +326,13 @@ let FormAssistant = {
           break;
         }
 
-        if (target instanceof HTMLDocument ||
-            
-            target instanceof HTMLBodyElement ||
-            target == content) {
-          break;
-        }
+        
+        if (target instanceof HTMLHtmlElement)
+          target = target.document.body;
+        else if (target instanceof HTMLDocument)
+          target = target.body;
+        else if (target instanceof HTMLIFrameElement)
+          target = target.contentDocument.body;
 
         if (isContentEditable(target)) {
           this.showKeyboard(this.getTopLevelEditable(target));
@@ -628,24 +629,11 @@ let FormAssistant = {
 
   getTopLevelEditable: function fa_getTopLevelEditable(element) {
     function retrieveTopLevelEditable(element) {
-      
-      if (element instanceof HTMLHtmlElement)
-        element = element.ownerDocument.body;
-      else if (element instanceof HTMLDocument)
-        element = element.body;
-
       while (element && !isContentEditable(element))
         element = element.parentNode;
 
-      
-      if (element &&
-          element instanceof HTMLBodyElement &&
-          element.ownerDocument.defaultView != content.document.defaultView)
-        return element.ownerDocument.defaultView.frameElement;
-    }
-
-    if (element instanceof HTMLIFrameElement)
       return element;
+    }
 
     return retrieveTopLevelEditable(element) || element;
   },
@@ -710,14 +698,6 @@ function isContentEditable(element) {
   }
 
   if (element.isContentEditable || element.designMode == "on")
-    return true;
-
-  
-  
-  if (element instanceof HTMLIFrameElement &&
-      element.contentDocument &&
-      (element.contentDocument.body.isContentEditable ||
-       element.contentDocument.designMode == "on"))
     return true;
 
   return element.ownerDocument && element.ownerDocument.designMode == "on";
