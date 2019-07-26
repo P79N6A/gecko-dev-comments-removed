@@ -83,6 +83,7 @@ void LaunchMacPostProcess(const char* aAppExe);
 #if defined(MOZ_WIDGET_GONK)
 # include "automounter_gonk.h"
 # include <unistd.h>
+# include <android/log.h>
 # define MAYBE_USE_HARD_LINKS 1
 static bool sUseHardLinks = true;
 #else
@@ -2250,6 +2251,23 @@ UpdateThreadFunc(void *param)
 
 int NS_main(int argc, NS_tchar **argv)
 {
+#if defined(MOZ_WIDGET_GONK)
+  if (getenv("LD_PRELOAD")) {
+    
+    
+    
+    
+    
+    
+    
+    
+    unsetenv("LD_PRELOAD");
+    execv(argv[0], argv);
+    __android_log_print(ANDROID_LOG_INFO, "updater",
+                        "execve failed: errno: %d. Exiting...", errno);
+    _exit(1);
+  }
+#endif
   InitProgressUI(&argc, &argv);
 
   
