@@ -393,7 +393,9 @@ extern JS_FRIEND_DATA(js::Class*) FunctionProxyClassPtr;
 extern JS_FRIEND_DATA(js::Class*) ObjectProxyClassPtr;
 extern JS_FRIEND_DATA(js::Class*) OuterWindowProxyClassPtr;
 
-extern JS_FRIEND_DATA(js::Class) ObjectClass;
+
+
+extern JS_FRIEND_DATA(js::Class*) ObjectClassPtr;
 
 inline js::Class *
 GetObjectClass(JSObject *obj)
