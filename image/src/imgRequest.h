@@ -65,7 +65,7 @@ public:
                 int32_t aCORSMode);
 
   
-  nsresult AddProxy(imgRequestProxy *proxy);
+  void AddProxy(imgRequestProxy *proxy);
 
   
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
