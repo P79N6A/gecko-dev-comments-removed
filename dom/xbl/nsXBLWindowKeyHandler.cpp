@@ -26,6 +26,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Event.h"
 #include "nsEventStateManager.h"
 #include "nsIEditor.h"
 #include "nsIHTMLEditor.h"
@@ -276,24 +277,23 @@ nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventTy
   nsresult rv = EnsureHandlers();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<Element> el = GetElement();
+  bool isDisabled;
+  nsCOMPtr<Element> el = GetElement(&isDisabled);
   if (!el) {
     if (mUserHandler) {
-      WalkHandlersInternal(aKeyEvent, aEventType, mUserHandler);
+      WalkHandlersInternal(aKeyEvent, aEventType, mUserHandler, true);
       aKeyEvent->GetDefaultPrevented(&prevent);
       if (prevent)
         return NS_OK; 
     }
   }
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(el);
   
-  if (content && content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                                      nsGkAtoms::_true, eCaseMatters)) {
+  if (isDisabled) {
     return NS_OK;
   }
 
-  WalkHandlersInternal(aKeyEvent, aEventType, mHandler);
+  WalkHandlersInternal(aKeyEvent, aEventType, mHandler, true);
 
   return NS_OK;
 }
@@ -304,20 +304,50 @@ nsXBLWindowKeyHandler::HandleEvent(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIDOMKeyEvent> keyEvent(do_QueryInterface(aEvent));
   NS_ENSURE_TRUE(keyEvent, NS_ERROR_INVALID_ARG);
 
+  uint16_t eventPhase;
+  aEvent->GetEventPhase(&eventPhase);
+  if (eventPhase == nsIDOMEvent::CAPTURING_PHASE) {
+    HandleEventOnCapture(keyEvent);
+    return NS_OK;
+  }
+
   nsAutoString eventType;
   aEvent->GetType(eventType);
   nsCOMPtr<nsIAtom> eventTypeAtom = do_GetAtom(eventType);
   NS_ENSURE_TRUE(eventTypeAtom, NS_ERROR_OUT_OF_MEMORY);
 
-  if (!mWeakPtrForElement) {
-    nsCOMPtr<mozilla::dom::Element> originalTarget =
-      do_QueryInterface(aEvent->GetInternalNSEvent()->originalTarget);
-    if (nsEventStateManager::IsRemoteTarget(originalTarget)) {
-      return NS_OK;
-    }
+  return WalkHandlers(keyEvent, eventTypeAtom);
+}
+
+void
+nsXBLWindowKeyHandler::HandleEventOnCapture(nsIDOMKeyEvent* aEvent)
+{
+  WidgetKeyboardEvent* widgetEvent =
+    aEvent->GetInternalNSEvent()->AsKeyboardEvent();
+
+  if (widgetEvent->mFlags.mNoCrossProcessBoundaryForwarding) {
+    return;
   }
 
-  return WalkHandlers(keyEvent, eventTypeAtom);
+  nsCOMPtr<mozilla::dom::Element> originalTarget =
+    do_QueryInterface(aEvent->GetInternalNSEvent()->originalTarget);
+  if (!nsEventStateManager::IsRemoteTarget(originalTarget)) {
+    return;
+  }
+
+  if (!HasHandlerForEvent(aEvent)) {
+    return;
+  }
+
+  
+  
+  
+  
+
+  
+  
+  widgetEvent->mFlags.mWantReplyFromContentProcess = 1;
+  aEvent->StopPropagation();
 }
 
 
@@ -394,26 +424,28 @@ nsXBLWindowKeyHandler::IsHTMLEditableFieldFocused()
 
 
 
-nsresult
+
+bool
 nsXBLWindowKeyHandler::WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
                                             nsIAtom* aEventType, 
-                                            nsXBLPrototypeHandler* aHandler)
+                                            nsXBLPrototypeHandler* aHandler,
+                                            bool aExecute)
 {
   nsAutoTArray<nsShortcutCandidate, 10> accessKeys;
   nsContentUtils::GetAccelKeyCandidates(aKeyEvent, accessKeys);
 
   if (accessKeys.IsEmpty()) {
-    WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler, 0, false);
-    return NS_OK;
+    return WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
+                                  0, false, aExecute);
   }
 
   for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
     nsShortcutCandidate &key = accessKeys[i];
     if (WalkHandlersAndExecute(aKeyEvent, aEventType, aHandler,
-                               key.mCharCode, key.mIgnoreShift))
-      return NS_OK;
+                               key.mCharCode, key.mIgnoreShift, aExecute))
+      return true;
   }
-  return NS_OK;
+  return false;
 }
 
 bool
@@ -421,7 +453,8 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
                                               nsIAtom* aEventType,
                                               nsXBLPrototypeHandler* aHandler,
                                               uint32_t aCharCode,
-                                              bool aIgnoreShiftKey)
+                                              bool aIgnoreShiftKey,
+                                              bool aExecute)
 {
   nsresult rv;
 
@@ -491,6 +524,10 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
       piTarget = mTarget;
     }
 
+    if (!aExecute) {
+      return true;
+    }
+
     rv = currHandler->ExecuteHandler(piTarget, aKeyEvent);
     if (NS_SUCCEEDED(rv)) {
       return true;
@@ -500,10 +537,38 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
   return false;
 }
 
+bool
+nsXBLWindowKeyHandler::HasHandlerForEvent(nsIDOMKeyEvent* aEvent)
+{
+  if (!aEvent->InternalDOMEvent()->IsTrusted()) {
+    return false;
+  }
+
+  nsresult rv = EnsureHandlers();
+  NS_ENSURE_SUCCESS(rv, false);
+
+  bool isDisabled;
+  nsCOMPtr<Element> el = GetElement(&isDisabled);
+  if (el && isDisabled) {
+    return false;
+  }
+
+  nsAutoString eventType;
+  aEvent->GetType(eventType);
+  nsCOMPtr<nsIAtom> eventTypeAtom = do_GetAtom(eventType);
+  NS_ENSURE_TRUE(eventTypeAtom, false);
+
+  return WalkHandlersInternal(aEvent, eventTypeAtom, mHandler, false);
+}
+
 already_AddRefed<Element>
-nsXBLWindowKeyHandler::GetElement()
+nsXBLWindowKeyHandler::GetElement(bool* aIsDisabled)
 {
   nsCOMPtr<Element> element = do_QueryReferent(mWeakPtrForElement);
+  if (element && aIsDisabled) {
+    *aIsDisabled = element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
+                                        nsGkAtoms::_true, eCaseMatters);
+  }
   return element.forget();
 }
 
