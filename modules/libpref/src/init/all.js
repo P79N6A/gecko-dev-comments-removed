@@ -454,7 +454,7 @@ pref("toolkit.telemetry.enabledPreRelease", true);
 #else
 pref("toolkit.telemetry.enabled", false);
 #endif
-pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
+pref("toolkit.telemetry.server", "https://data.mozilla.com");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
 
@@ -481,6 +481,8 @@ pref("devtools.debugger.force-local", true);
 pref("devtools.debugger.prompt-connection", true);
 
 pref("devtools.debugger.enable-content-actors", true);
+
+pref("devtools.debugger.forbid-certified-apps", true);
 
 
 pref("view_source.syntax_highlight", true);
