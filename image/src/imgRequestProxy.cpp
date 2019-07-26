@@ -651,7 +651,10 @@ NS_IMETHODIMP imgRequestProxy::SetPriority(int32_t priority)
 
 NS_IMETHODIMP imgRequestProxy::AdjustPriority(int32_t priority)
 {
-  NS_ENSURE_STATE(GetOwner() && !mCanceled);
+  
+  
+  
+  NS_ENSURE_STATE(GetOwner());
   GetOwner()->AdjustPriority(this, priority);
   return NS_OK;
 }
