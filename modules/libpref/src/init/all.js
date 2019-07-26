@@ -4077,6 +4077,8 @@ pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
 
+pref("layers.max-active", -1);
+
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 #else
