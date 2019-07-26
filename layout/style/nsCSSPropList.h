@@ -71,10 +71,15 @@
 
 
 
+
+
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)
 #define DEFINED_CSS_PROP_SHORTHAND
 #endif
+
+#define CSS_PROP_DOMPROP_PREFIXED(name_) \
+  CSS_PROP_PUBLIC_OR_PRIVATE(Moz ## name_, name_)
 
 #define CSS_PROP_NO_OFFSET (-1)
 
@@ -3640,3 +3645,5 @@ CSS_PROP_TABLE(
 #undef CSS_PROP_SHORTHAND
 #undef DEFINED_CSS_PROP_SHORTHAND
 #endif
+
+#undef CSS_PROP_DOMPROP_PREFIXED(name_)
