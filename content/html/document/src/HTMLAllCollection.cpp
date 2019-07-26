@@ -206,7 +206,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JS::Handle<JSObject*> ob
     obj = proto;
   }
 
-  nsHTMLDocument *doc = GetDocument(obj);
+  HTMLAllCollection* allCollection = GetDocument(obj)->All();
   nsISupports *result;
   nsWrapperCache *cache;
   nsresult rv = NS_OK;
@@ -214,13 +214,13 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JS::Handle<JSObject*> ob
   if (JSID_IS_STRING(id)) {
     if (nsDOMClassInfo::sLength_id == id) {
       
-      vp.setNumber(doc->All()->Length());
+      vp.setNumber(allCollection->Length());
       return true;
     }
 
     
     nsDependentJSString str(id);
-    result = doc->All()->GetNamedItem(str, &cache, &rv);
+    result = allCollection->GetNamedItem(str, &cache, &rv);
 
     if (NS_FAILED(rv)) {
       xpc::Throw(cx, rv);
@@ -230,7 +230,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JS::Handle<JSObject*> ob
     
     
 
-    nsIContent* node = doc->All()->Item(SafeCast<uint32_t>(JSID_TO_INT(id)));
+    nsIContent* node = allCollection->Item(SafeCast<uint32_t>(JSID_TO_INT(id)));
 
     result = node;
     cache = node;
