@@ -10,6 +10,7 @@
 #include "GeckoContentController.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/RefPtr.h"
 #include "InputData.h"
 #include "Axis.h"
@@ -535,7 +536,7 @@ protected:
   
   
   
-  Monitor mMonitor;
+  ReentrantMonitor mMonitor;
 
 private:
   
