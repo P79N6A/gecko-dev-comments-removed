@@ -1611,19 +1611,19 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
 
   if (aItem->GetType() == nsDisplayItem::TYPE_PLUGIN) {
+    
+    nsRefPtr<ImageContainer> container = mInstanceOwner->GetImageContainer();
+    if (!container) {
+      
+      return nullptr;
+    }
+
     if (!layer) {
       mInstanceOwner->NotifyPaintWaiter(aBuilder);
       
       layer = aManager->CreateImageLayer();
       if (!layer)
         return nullptr;
-    }
-
-    
-    nsRefPtr<ImageContainer> container = mInstanceOwner->GetImageContainer();
-    if (!container) {
-      
-      return nullptr;
     }
 
     NS_ASSERTION(layer->GetType() == Layer::TYPE_IMAGE, "Bad layer type");
