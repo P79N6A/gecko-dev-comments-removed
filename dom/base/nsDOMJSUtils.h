@@ -28,6 +28,8 @@ GetScriptContextFromJSContext(JSContext *cx)
   return scx;
 }
 
+JSObject* GetDefaultScopeFromJSContext(JSContext *cx);
+
 
 
 
