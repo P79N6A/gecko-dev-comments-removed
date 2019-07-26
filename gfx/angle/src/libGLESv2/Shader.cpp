@@ -315,7 +315,7 @@ void Shader::uncompile()
 void Shader::compileToHLSL(void *compiler)
 {
     
-    char *source = "\0";
+    const char *source = "\0";
     if (mSource)
     {
         source = mSource;
@@ -504,7 +504,7 @@ void VertexShader::uncompile()
 
     
     mAttributes.clear();
-};
+}
 
 void VertexShader::compile()
 {

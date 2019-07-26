@@ -20,9 +20,16 @@
 
 #include "common/angleutils.h"
 
-
-
-
+TType::TType(const TPublicType &p) :
+            type(p.type), precision(p.precision), qualifier(p.qualifier), size(p.size), matrix(p.matrix), array(p.array), arraySize(p.arraySize),
+            maxArraySize(0), arrayInformationType(0), structure(0), structureSize(0), deepestStructNesting(0), fieldName(0), mangled(0), typeName(0)
+{
+    if (p.userDef) {
+        structure = p.userDef->getStruct();
+        typeName = NewPoolTString(p.userDef->getTypeName().c_str());
+        computeDeepestStructNesting();
+    }
+}
 
 
 
@@ -90,6 +97,25 @@ void TType::computeDeepestStructNesting()
     }
 
     deepestStructNesting = 1 + maxNesting;
+}
+
+bool TType::isStructureContainingArrays() const
+{
+    if (!structure)
+    {
+        return false;
+    }
+
+    for (TTypeList::const_iterator member = structure->begin(); member != structure->end(); member++)
+    {
+        if (member->type->isArray() ||
+            member->type->isStructureContainingArrays())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 

@@ -36,6 +36,6 @@ void TranslatorGLSL::translate(TIntermNode* root) {
         sink, false);
 
     
-    TOutputGLSL outputGLSL(sink);
+    TOutputGLSL outputGLSL(sink, getHashFunction(), getNameMap(), getSymbolTable());
     root->traverse(&outputGLSL);
 }

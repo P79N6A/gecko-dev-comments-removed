@@ -70,7 +70,8 @@ egl::Display *Display::getDisplay(EGLNativeDisplayType displayId)
 Display::Display(EGLNativeDisplayType displayId, HDC deviceContext, bool software) : mDc(deviceContext)
 {
     mD3d9Module = NULL;
-    
+    mD3dCompilerModule = NULL;
+
     mD3d9 = NULL;
     mD3d9Ex = NULL;
     mDevice = NULL;
@@ -127,6 +128,31 @@ bool Display::initialize()
 
     typedef HRESULT (WINAPI *Direct3DCreate9ExFunc)(UINT, IDirect3D9Ex**);
     Direct3DCreate9ExFunc Direct3DCreate9ExPtr = reinterpret_cast<Direct3DCreate9ExFunc>(GetProcAddress(mD3d9Module, "Direct3DCreate9Ex"));
+
+  #if defined(ANGLE_PRELOADED_D3DCOMPILER_MODULE_NAMES)
+      
+      static TCHAR* d3dCompilerNames[] = ANGLE_PRELOADED_D3DCOMPILER_MODULE_NAMES;
+  
+      for (int i = 0; i < sizeof(d3dCompilerNames) / sizeof(*d3dCompilerNames); ++i)
+      {
+          if (GetModuleHandleEx(0, d3dCompilerNames[i], &mD3dCompilerModule))
+          {
+              break;
+          }
+      }
+  #else
+      
+      mD3dCompilerModule = LoadLibrary(D3DCOMPILER_DLL);
+  #endif  
+  
+      if (!mD3dCompilerModule)
+      {
+          terminate();
+          return false;
+      }
+  
+      mD3DCompileFunc = reinterpret_cast<D3DCompileFunc>(GetProcAddress(mD3dCompilerModule, "D3DCompile"));
+      ASSERT(mD3DCompileFunc);
 
     
     
@@ -231,7 +257,7 @@ bool Display::initialize()
 
         ConfigSet configSet;
 
-        for (int formatIndex = 0; formatIndex < sizeof(renderTargetFormats) / sizeof(D3DFORMAT); formatIndex++)
+        for (unsigned int formatIndex = 0; formatIndex < sizeof(renderTargetFormats) / sizeof(D3DFORMAT); formatIndex++)
         {
             D3DFORMAT renderTargetFormat = renderTargetFormats[formatIndex];
 
@@ -239,7 +265,7 @@ bool Display::initialize()
 
             if (SUCCEEDED(result))
             {
-                for (int depthStencilIndex = 0; depthStencilIndex < sizeof(depthStencilFormats) / sizeof(D3DFORMAT); depthStencilIndex++)
+                for (unsigned int depthStencilIndex = 0; depthStencilIndex < sizeof(depthStencilFormats) / sizeof(D3DFORMAT); depthStencilIndex++)
                 {
                     D3DFORMAT depthStencilFormat = depthStencilFormats[depthStencilIndex];
                     HRESULT result = D3D_OK;
@@ -366,6 +392,12 @@ void Display::terminate()
     if (mD3d9Module)
     {
         mD3d9Module = NULL;
+    }
+
+    if (mD3dCompilerModule)
+    {
+        FreeLibrary(mD3dCompilerModule);
+        mD3dCompilerModule = NULL;
     }
 }
 
@@ -1234,6 +1266,11 @@ bool Display::shareHandleSupported() const
 IDirect3DVertexShader9 *Display::createVertexShader(const DWORD *function, size_t length)
 {
     return mVertexShaderCache.create(function, length);
+}
+
+HRESULT Display::compileShaderSource(const char* hlsl, const char* sourceName, const char* profile, DWORD flags, ID3DBlob** binary, ID3DBlob** errorMessage)
+{
+    return mD3DCompileFunc(hlsl, strlen(hlsl), sourceName, NULL, NULL, "main", profile, flags, 0, binary, errorMessage);
 }
 
 IDirect3DPixelShader9 *Display::createPixelShader(const DWORD *function, size_t length)

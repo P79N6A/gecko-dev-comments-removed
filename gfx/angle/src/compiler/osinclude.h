@@ -24,9 +24,7 @@
 #error Unsupported platform.
 #endif
 
-#if defined(ANGLE_USE_NSPR)
-#include "prthread.h"
-#elif defined(ANGLE_OS_WIN)
+#if defined(ANGLE_OS_WIN)
 #define STRICT
 #define VC_EXTRALEAN 1
 #include <windows.h>
@@ -37,15 +35,12 @@
 #endif  
 
 
-#include "compiler/compilerdebug.h"
+#include "compiler/compiler_debug.h"
 
 
 
 
-#if defined(ANGLE_USE_NSPR)
-typedef unsigned OS_TLSIndex;
-#define OS_INVALID_TLS_INDEX 0xFFFFFFFF
-#elif defined(ANGLE_OS_WIN)
+#if defined(ANGLE_OS_WIN)
 typedef DWORD OS_TLSIndex;
 #define OS_INVALID_TLS_INDEX (TLS_OUT_OF_INDEXES)
 #elif defined(ANGLE_OS_POSIX)
@@ -60,9 +55,7 @@ bool OS_FreeTLSIndex(OS_TLSIndex nIndex);
 inline void* OS_GetTLSValue(OS_TLSIndex nIndex)
 {
     ASSERT(nIndex != OS_INVALID_TLS_INDEX);
-#if defined(ANGLE_USE_NSPR)
-    return PR_GetThreadPrivate(nIndex);
-#elif defined(ANGLE_OS_WIN)
+#if defined(ANGLE_OS_WIN)
     return TlsGetValue(nIndex);
 #elif defined(ANGLE_OS_POSIX)
     return pthread_getspecific(nIndex);

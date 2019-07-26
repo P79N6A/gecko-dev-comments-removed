@@ -30,6 +30,11 @@ static const int GLSL_VERSION_120 = 120;
 
 
 
+
+
+
+
+
 TVersionGLSL::TVersionGLSL(ShShaderType type)
     : mShaderType(type),
       mVersion(GLSL_VERSION_110)
@@ -77,6 +82,26 @@ bool TVersionGLSL::visitAggregate(Visit, TIntermAggregate* node)
             (qualifier == EvqInvariantVaryingOut)) {
             updateVersion(GLSL_VERSION_120);
         }
+        break;
+      }
+      case EOpParameters: {
+        const TIntermSequence& params = node->getSequence();
+        for (TIntermSequence::const_iterator iter = params.begin();
+             iter != params.end(); ++iter)
+        {
+            const TIntermTyped* param = (*iter)->getAsTyped();
+            if (param->isArray())
+            {
+                TQualifier qualifier = param->getQualifier();
+                if ((qualifier == EvqOut) || (qualifier ==  EvqInOut))
+                {
+                    updateVersion(GLSL_VERSION_120);
+                    break;
+                }
+            }
+        }
+        
+        visitChildren = false;
         break;
       }
       case EOpConstructMat2:

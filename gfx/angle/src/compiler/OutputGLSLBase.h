@@ -16,7 +16,10 @@
 class TOutputGLSLBase : public TIntermTraverser
 {
 public:
-    TOutputGLSLBase(TInfoSinkBase& objSink);
+    TOutputGLSLBase(TInfoSinkBase& objSink,
+                    ShHashFunction64 hashFunction,
+                    NameMap& nameMap,
+                    TSymbolTable& symbolTable);
 
 protected:
     TInfoSinkBase& objSink() { return mObjSink; }
@@ -25,6 +28,7 @@ protected:
     virtual bool writeVariablePrecision(TPrecision precision) = 0;
     void writeFunctionParameters(const TIntermSequence& args);
     const ConstantUnion* writeConstantUnion(const TType& type, const ConstantUnion* pConstUnion);
+    TString getTypeName(const TType& type);
 
     virtual void visitSymbol(TIntermSymbol* node);
     virtual void visitConstantUnion(TIntermConstantUnion* node);
@@ -37,6 +41,15 @@ protected:
 
     void visitCodeBlock(TIntermNode* node);
 
+
+    
+    
+    TString hashName(const TString& name);
+    
+    TString hashVariableName(const TString& name);
+    
+    TString hashFunctionName(const TString& mangled_name);
+
 private:
     TInfoSinkBase& mObjSink;
     bool mDeclaringVariables;
@@ -48,6 +61,12 @@ private:
     DeclaredStructs mDeclaredStructs;
 
     ForLoopUnroll mLoopUnroll;
+
+    
+    ShHashFunction64 mHashFunction;
+    NameMap& mNameMap;
+
+    TSymbolTable& mSymbolTable;
 };
 
 #endif  

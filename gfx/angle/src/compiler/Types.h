@@ -9,12 +9,14 @@
 
 #include "compiler/BaseTypes.h"
 #include "compiler/Common.h"
-#include "compiler/compilerdebug.h"
-
-
-
+#include "compiler/compiler_debug.h"
 
 class TType;
+struct TPublicType;
+
+
+
+
 struct TTypeLine {
     TType* type;
     int line;
@@ -27,59 +29,14 @@ inline TTypeList* NewPoolTTypeList()
     return new(memory) TTypeList;
 }
 
-
-
-
-
-
-
-
-
-
-class TPublicType {
-public:
-    TBasicType type;
-    TQualifier qualifier;
-    TPrecision precision;
-    int size;          
-    bool matrix;
-    bool array;
-    int arraySize;
-    TType* userDef;
-    int line;
-
-    void setBasic(TBasicType bt, TQualifier q, int ln = 0)
-    {
-        type = bt;
-        qualifier = q;
-        precision = EbpUndefined;
-        size = 1;
-        matrix = false;
-        array = false;
-        arraySize = 0;
-        userDef = 0;
-        line = ln;
-    }
-
-    void setAggregate(int s, bool m = false)
-    {
-        size = s;
-        matrix = m;
-    }
-
-    void setArray(bool a, int s = 0)
-    {
-        array = a;
-        arraySize = s;
-    }
-};
-
 typedef TMap<TTypeList*, TTypeList*> TStructureMap;
 typedef TMap<TTypeList*, TTypeList*>::iterator TStructureMapIterator;
 
 
 
-class TType {
+
+class TType
+{
 public:
     POOL_ALLOCATOR_NEW_DELETE(GlobalPoolAllocator)
     TType() {}
@@ -88,16 +45,7 @@ public:
             maxArraySize(0), arrayInformationType(0), structure(0), structureSize(0), deepestStructNesting(0), fieldName(0), mangled(0), typeName(0)
     {
     }
-    explicit TType(const TPublicType &p) :
-            type(p.type), precision(p.precision), qualifier(p.qualifier), size(p.size), matrix(p.matrix), array(p.array), arraySize(p.arraySize),
-            maxArraySize(0), arrayInformationType(0), structure(0), structureSize(0), deepestStructNesting(0), fieldName(0), mangled(0), typeName(0)
-    {
-        if (p.userDef) {
-            structure = p.userDef->getStruct();
-            typeName = NewPoolTString(p.userDef->getTypeName().c_str());
-            computeDeepestStructNesting();
-        }
-    }
+    explicit TType(const TPublicType &p);
     TType(TTypeList* userDef, const TString& n, TPrecision p = EbpUndefined) :
             type(EbtStruct), precision(p), qualifier(EvqTemporary), size(1), matrix(false), array(false), arraySize(0),
             maxArraySize(0), arrayInformationType(0), structure(userDef), structureSize(0), deepestStructNesting(0), fieldName(0), mangled(0)
@@ -284,6 +232,8 @@ public:
     
     int getDeepestStructNesting() const { return deepestStructNesting; }
 
+    bool isStructureContainingArrays() const;
+
 protected:
     void buildMangledName(TString&);
     int getStructSize() const;
@@ -306,6 +256,63 @@ protected:
     TString *fieldName;         
     TString *mangled;
     TString *typeName;          
+};
+
+
+
+
+
+
+
+
+
+
+struct TPublicType
+{
+    TBasicType type;
+    TQualifier qualifier;
+    TPrecision precision;
+    int size;          
+    bool matrix;
+    bool array;
+    int arraySize;
+    TType* userDef;
+    int line;
+
+    void setBasic(TBasicType bt, TQualifier q, int ln = 0)
+    {
+        type = bt;
+        qualifier = q;
+        precision = EbpUndefined;
+        size = 1;
+        matrix = false;
+        array = false;
+        arraySize = 0;
+        userDef = 0;
+        line = ln;
+    }
+
+    void setAggregate(int s, bool m = false)
+    {
+        size = s;
+        matrix = m;
+    }
+
+    void setArray(bool a, int s = 0)
+    {
+        array = a;
+        arraySize = s;
+    }
+
+    bool isStructureContainingArrays() const
+    {
+        if (!userDef)
+        {
+            return false;
+        }
+
+        return userDef->isStructureContainingArrays();
+    }
 };
 
 #endif 

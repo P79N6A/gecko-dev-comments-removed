@@ -23,10 +23,14 @@
 
 
 
+
 class TVersionGLSL : public TIntermTraverser {
 public:
     TVersionGLSL(ShShaderType type);
 
+    
+    
+    
     
     
     

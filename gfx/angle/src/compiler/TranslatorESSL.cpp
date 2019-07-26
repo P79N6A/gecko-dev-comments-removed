@@ -23,7 +23,7 @@ void TranslatorESSL::translate(TIntermNode* root) {
         sink, getShaderType() == SH_FRAGMENT_SHADER);
 
     
-    TOutputESSL outputESSL(sink);
+    TOutputESSL outputESSL(sink, getHashFunction(), getNameMap(), getSymbolTable());
     root->traverse(&outputESSL);
 }
 

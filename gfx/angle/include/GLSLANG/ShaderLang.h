@@ -23,6 +23,8 @@
 #define COMPILER_EXPORT
 #endif
 
+#include "khrplatform.h"
+
 
 
 
@@ -110,7 +112,10 @@ typedef enum {
   SH_ACTIVE_UNIFORM_MAX_LENGTH   =  0x8B87,
   SH_ACTIVE_ATTRIBUTES           =  0x8B89,
   SH_ACTIVE_ATTRIBUTE_MAX_LENGTH =  0x8B8A,
-  SH_MAPPED_NAME_MAX_LENGTH      =  0x8B8B
+  SH_MAPPED_NAME_MAX_LENGTH      =  0x6000,
+  SH_NAME_MAX_LENGTH             =  0x6001,
+  SH_HASHED_NAME_MAX_LENGTH      =  0x6002,
+  SH_HASHED_NAMES_COUNT          =  0x6003
 } ShShaderInfo;
 
 
@@ -145,7 +150,7 @@ typedef enum {
   SH_DEPENDENCY_GRAPH = 0x0400,
 
   
-  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800,
+  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800
 } ShCompileOptions;
 
 
@@ -159,6 +164,10 @@ COMPILER_EXPORT int ShInitialize();
 
 
 COMPILER_EXPORT int ShFinalize();
+
+
+
+typedef khronos_uint64_t (*ShHashFunction64)(const char*, unsigned int);
 
 
 
@@ -181,6 +190,11 @@ typedef struct
     int OES_standard_derivatives;
     int OES_EGL_image_external;
     int ARB_texture_rectangle;
+
+    
+    
+    
+    ShHashFunction64 HashFunction;
 } ShBuiltInResources;
 
 
@@ -247,6 +261,11 @@ COMPILER_EXPORT int ShCompile(
     const int numStrings,
     int compileOptions
     );
+
+
+
+
+
 
 
 
@@ -346,6 +365,24 @@ COMPILER_EXPORT void ShGetActiveUniform(const ShHandle handle,
                                         ShDataType* type,
                                         char* name,
                                         char* mappedName);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+COMPILER_EXPORT void ShGetNameHashingEntry(const ShHandle handle,
+                                           int index,
+                                           char* name,
+                                           char* hashedName);
 
 #ifdef __cplusplus
 }

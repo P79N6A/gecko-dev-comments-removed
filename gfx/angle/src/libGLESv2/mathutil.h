@@ -15,6 +15,17 @@
 
 namespace gl
 {
+struct Vector4
+{
+    Vector4() {}
+    Vector4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
 inline bool isPow2(int x)
 {
     return (x & (x - 1)) == 0 && (x != 0);
@@ -94,6 +105,41 @@ inline bool supportsSSE2()
 
     return supports;
 }
+
+inline unsigned short float32ToFloat16(float fp32)
+{
+    unsigned int fp32i = (unsigned int&)fp32;
+    unsigned int sign = (fp32i & 0x80000000) >> 16;
+    unsigned int abs = fp32i & 0x7FFFFFFF;
+
+    if(abs > 0x47FFEFFF)   
+    {
+        return sign | 0x7FFF;
+    }
+    else if(abs < 0x38800000)   
+    {
+        unsigned int mantissa = (abs & 0x007FFFFF) | 0x00800000;   
+        int e = 113 - (abs >> 23);
+
+        if(e < 24)
+        {
+            abs = mantissa >> e;
+        }
+        else
+        {
+            abs = 0;
+        }
+
+        return sign | (abs + 0x00000FFF + ((abs >> 13) & 1)) >> 13;
+    }
+    else
+    {
+        return sign | (abs + 0xC8000000 + 0x00000FFF + ((abs >> 13) & 1)) >> 13;
+    }
+}
+
+float float16ToFloat32(unsigned short h);
+
 }
 
 #endif   
