@@ -160,18 +160,30 @@ public:
         break;
 
       case SETLOCALDESC:
+        
+        
+        mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetLocalDescriptionSuccess(mCode);
         break;
 
       case SETREMOTEDESC:
+        
+        
+        mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetRemoteDescriptionSuccess(mCode);
         break;
 
       case SETLOCALDESCERROR:
+        
+        
+        mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetLocalDescriptionError(mCode);
         break;
 
       case SETREMOTEDESCERROR:
+        
+        
+        mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetRemoteDescriptionError(mCode);
         break;
 
@@ -1386,6 +1398,18 @@ PeerConnectionImpl::IceStreamReady(NrIceMediaStream *aStream)
   MOZ_ASSERT(aStream);
 
   CSFLogDebug(logTag, "%s: %s", __FUNCTION__, aStream->name().c_str());
+}
+
+void
+PeerConnectionImpl::OnSdpParseError(const char *message) {
+  CSFLogError(logTag, "%s SDP Parse Error: %s", __FUNCTION__, message);
+  
+  mSDPParseErrorMessages.push_back(message);
+}
+
+void
+PeerConnectionImpl::ClearSdpParseErrorMessages() {
+  mSDPParseErrorMessages.clear();
 }
 
 

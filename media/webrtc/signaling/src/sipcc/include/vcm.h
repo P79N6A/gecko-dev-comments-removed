@@ -1004,6 +1004,15 @@ int vcmDtmfBurst(int digit, int duration, int direction);
 int vcmGetILBCMode();
 
 
+
+
+
+
+
+
+int vcmOnSdpParseError(const char *peercconnection, const char *message);
+
+
 #ifdef __cplusplus
 }
 #endif

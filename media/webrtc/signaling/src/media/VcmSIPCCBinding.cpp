@@ -2700,3 +2700,22 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
   }
   return flow;
 }
+
+
+
+
+
+
+
+
+
+int vcmOnSdpParseError(const char *peerconnection, const char *message) {
+
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
+
+  pc.impl()->OnSdpParseError(message);
+
+  return 0;
+}
+

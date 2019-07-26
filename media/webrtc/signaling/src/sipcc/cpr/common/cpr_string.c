@@ -2,7 +2,6 @@
 
 
 
-#include <stdio.h>
 #include <stdarg.h>
 
 #include "mozilla/Assertions.h"
@@ -168,20 +167,27 @@ void flex_string_append(flex_string *fs, const char *more) {
 
 
 
+#ifndef va_copy
+#define va_copy(d,s) ((d) = (s))
+#endif
 
 
-void flex_string_sprintf(flex_string *fs, const char *format, ...) {
+
+
+
+
+void flex_string_vsprintf(flex_string *fs, const char *format, va_list original_ap) {
   va_list ap;
   int vsnprintf_result;
 
-  va_start(ap, format);
+  va_copy(ap, original_ap);
   vsnprintf_result = vsnprintf(fs->buffer + fs->string_length, fs->buffer_length - fs->string_length, format, ap);
   va_end(ap);
 
   
 
   if (vsnprintf_result < 0) {
-    va_start(ap, format);
+    va_copy(ap, original_ap);
     vsnprintf_result = vsnprintf(NULL, 0, format, ap);
     va_end(ap);
   }
@@ -191,10 +197,10 @@ void flex_string_sprintf(flex_string *fs, const char *format, ...) {
     flex_string_check_alloc(fs, fs->string_length + vsnprintf_result + 1);
 
     
-    va_start(ap, format);
+    va_copy(ap, original_ap);
     vsnprintf_result = vsnprintf(fs->buffer + fs->string_length, fs->buffer_length - fs->string_length, format, ap);
-    MOZ_ASSERT(vsnprintf_result > 0 && vsnprintf_result < (fs->buffer_length - fs->string_length));
     va_end(ap);
+    MOZ_ASSERT(vsnprintf_result > 0 && vsnprintf_result < (fs->buffer_length - fs->string_length));
   }
 
   if (vsnprintf_result > 0) {
@@ -202,4 +208,16 @@ void flex_string_sprintf(flex_string *fs, const char *format, ...) {
   }
 }
 
+
+
+
+
+
+void flex_string_sprintf(flex_string *fs, const char *format, ...) {
+  va_list ap;
+
+  va_start(ap, format);
+  flex_string_vsprintf(fs, format, ap);
+  va_end(ap);
+}
 

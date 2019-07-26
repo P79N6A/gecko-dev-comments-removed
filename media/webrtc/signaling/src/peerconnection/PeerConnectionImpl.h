@@ -222,6 +222,15 @@ public:
   NS_IMETHODIMP CreateOffer(MediaConstraints& aConstraints);
   NS_IMETHODIMP CreateAnswer(MediaConstraints& aConstraints);
 
+  
+  
+  
+  void OnSdpParseError(const char* errorMessage);
+
+  
+  
+  void ClearSdpParseErrorMessages();
+
 private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
@@ -312,6 +321,9 @@ private:
   
   int mNumAudioStreams;
   int mNumVideoStreams;
+
+  
+  std::vector<std::string> mSDPParseErrorMessages;
 
 public:
   
