@@ -346,7 +346,22 @@ var gMetadataTests = [
       COMMENTS:"Audio Description"
     }
   },
-  { name:"sound.ogg", tags: { } }
+  { name:"sound.ogg", tags: { } },
+  { name:"badtags.ogg", tags: {
+      
+      
+      title:"Invalid comments test file",
+      empty:"",
+      "":"empty",
+      "{- [(`!@\"#$%^&')] -}":"valid tag name, surprisingly"
+      
+      
+      
+      
+      
+      
+    }
+  }
 ];
 
 function checkMetadata(msg, e, test) {
