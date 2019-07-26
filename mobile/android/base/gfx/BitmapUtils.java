@@ -55,18 +55,27 @@ public final class BitmapUtils {
     }
 
     public static int getDominantColor(Bitmap source, boolean applyThreshold) {
-      int[] colors = new int[37];
-      int[] sat = new int[11];
-      int[] val = new int[11];
-      int maxH = 0;
-      int maxS = 0;
-      int maxV = 0;
       if (source == null)
         return Color.argb(255,255,255,255);
+
+      
+      
+      int[] colorBins = new int[36];
+
+      
+      
+      int maxBin = -1;
+
+      
+      
+      float[] sumHue = new float[36];
+      float[] sumSat = new float[36];
+      float[] sumVal = new float[36];
 
       for (int row = 0; row < source.getHeight(); row++) {
         for (int col = 0; col < source.getWidth(); col++) {
           int c = source.getPixel(col, row);
+          
           if (Color.alpha(c) < 128)
             continue;
 
@@ -74,29 +83,35 @@ public final class BitmapUtils {
           Color.colorToHSV(c, hsv);
 
           
-          if (applyThreshold && hsv[1] <= 0.35f && hsv[2] <= 0.35f)
+          if (applyThreshold && (hsv[1] <= 0.35f || hsv[2] <= 0.35f))
             continue;
 
-          int h = Math.round(hsv[0] / 10.0f);
-          int s = Math.round(hsv[1] * 10.0f);
-          int v = Math.round(hsv[2] * 10.0f);
-          colors[h]++;
-          sat[s]++;
-          val[v]++;
+          
+          int bin = (int) Math.floor(hsv[0] / 10.0f);
 
           
+          sumHue[bin] = sumHue[bin] + hsv[0];
+          sumSat[bin] = sumSat[bin] + hsv[1];
+          sumVal[bin] = sumVal[bin] + hsv[2];
+
           
-          if (colors[h] > colors[maxH]) {
-            maxH = h;
-            maxS = s;
-            maxV = v;
-          }
+          colorBins[bin]++;
+
+          
+          if (maxBin < 0 || colorBins[bin] > colorBins[maxBin])
+            maxBin = bin;
         }
       }
+
+      
+      if (maxBin < 0)
+        return Color.argb(255,255,255,255);
+
+      
       float[] hsv = new float[3];
-      hsv[0] = maxH*10.0f;
-      hsv[1] = (float)maxS/10.0f;
-      hsv[2] = (float)maxV/10.0f;
+      hsv[0] = sumHue[maxBin]/colorBins[maxBin];
+      hsv[1] = sumSat[maxBin]/colorBins[maxBin];
+      hsv[2] = sumVal[maxBin]/colorBins[maxBin];
       return Color.HSVToColor(hsv);
     }
 
