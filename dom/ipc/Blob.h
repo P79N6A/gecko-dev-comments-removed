@@ -19,7 +19,7 @@ namespace mozilla {
 namespace dom {
 
 class ContentChild;
-class nsIContentParent;
+class ContentParent;
 class PBlobStreamChild;
 class PBlobStreamParent;
 
@@ -103,7 +103,7 @@ private:
 class BlobParent MOZ_FINAL
   : public PBlobParent
 {
-  friend class nsIContentParent;
+  friend class ContentParent;
 
   class OpenStreamRunnable;
   friend class OpenStreamRunnable;
@@ -113,7 +113,7 @@ class BlobParent MOZ_FINAL
 
   nsIDOMBlob* mBlob;
   RemoteBlob* mRemoteBlob;
-  nsRefPtr<nsIContentParent> mStrongManager;
+  nsRefPtr<ContentParent> mStrongManager;
 
   
   
@@ -130,7 +130,7 @@ class BlobParent MOZ_FINAL
 public:
   
   static BlobParent*
-  Create(nsIContentParent* aManager, nsIDOMBlob* aBlob)
+  Create(ContentParent* aManager, nsIDOMBlob* aBlob)
   {
     return new BlobParent(aManager, aBlob);
   }
@@ -150,21 +150,19 @@ public:
   bool
   SetMysteryBlobInfo(const nsString& aContentType, uint64_t aLength);
 
-  nsIContentParent* Manager();
-
 private:
   
-  BlobParent(nsIContentParent* aManager, nsIDOMBlob* aBlob);
+  BlobParent(ContentParent* aManager, nsIDOMBlob* aBlob);
 
   
-  BlobParent(nsIContentParent* aManager,
+  BlobParent(ContentParent* aManager,
              const ParentBlobConstructorParams& aParams);
 
   ~BlobParent();
 
   
   static BlobParent*
-  Create(nsIContentParent* aManager, const ParentBlobConstructorParams& aParams);
+  Create(ContentParent* aManager, const ParentBlobConstructorParams& aParams);
 
   static already_AddRefed<RemoteBlob>
   CreateRemoteBlob(const ParentBlobConstructorParams& aParams);

@@ -445,7 +445,7 @@ private:
 
   
   
-  nsRefPtr<mozilla::dom::nsIContentParent> mContentParent;
+  nsRefPtr<mozilla::dom::ContentParent> mContentParent;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
   uint64_t mChildID;
