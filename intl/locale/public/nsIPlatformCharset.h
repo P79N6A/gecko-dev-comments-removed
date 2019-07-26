@@ -34,6 +34,13 @@ typedef enum {
      kPlatformCharsetSel_PlainTextInFile = 7
 } nsPlatformCharsetSel;
 
+
+
+
+
+
+
+
 class nsIPlatformCharset : public nsISupports
 {
 public:
