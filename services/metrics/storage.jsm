@@ -1180,19 +1180,29 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
       });
 
       
+      let missingTypes = [];
       for (let type of self._BUILTIN_TYPES) {
         type = self[type];
         if (self._typesByName.has(type)) {
           continue;
         }
 
-        let params = {name: type};
-        yield self._connection.executeCached(SQL.addType, params);
-        let rows = yield self._connection.executeCached(SQL.getTypeID, params);
-        let id = rows[0].getResultByIndex(0);
+        missingTypes.push(type);
+      }
 
-        self._typesByID.set(id, type);
-        self._typesByName.set(type, id);
+      
+      if (missingTypes.length) {
+        yield self._connection.executeTransaction(function populateBuiltinTypes() {
+          for (let type of missingTypes) {
+            let params = {name: type};
+            yield self._connection.executeCached(SQL.addType, params);
+            let rows = yield self._connection.executeCached(SQL.getTypeID, params);
+            let id = rows[0].getResultByIndex(0);
+
+            self._typesByID.set(id, type);
+            self._typesByName.set(type, id);
+          }
+        });
       }
 
       
