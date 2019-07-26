@@ -128,16 +128,28 @@ nsRuleNode::ChildrenHashOps = {
 
 
 
+
+
+
+
+
+
+
 void
-nsRuleNode::EnsureBlockDisplay(uint8_t& display)
+nsRuleNode::EnsureBlockDisplay(uint8_t& display,
+                               bool aConvertListItem )
 {
   
   switch (display) {
+  case NS_STYLE_DISPLAY_LIST_ITEM :
+    if (aConvertListItem) {
+      display = NS_STYLE_DISPLAY_BLOCK;
+      break;
+    } 
   case NS_STYLE_DISPLAY_NONE :
     
   case NS_STYLE_DISPLAY_TABLE :
   case NS_STYLE_DISPLAY_BLOCK :
-  case NS_STYLE_DISPLAY_LIST_ITEM :
   case NS_STYLE_DISPLAY_FLEX :
     
     
