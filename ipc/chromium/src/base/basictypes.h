@@ -11,6 +11,7 @@
 
 #include "base/port.h"    
 
+#include "mozilla/Assertions.h"
 #include "mozilla/StandardInteger.h"
 
 
@@ -293,7 +294,8 @@ template <class Dest, class Source>
 inline Dest bit_cast(const Source& source) {
   
   
-  typedef char VerifySizesAreEqual [sizeof(Dest) == sizeof(Source) ? 1 : -1];
+  MOZ_STATIC_ASSERT(sizeof(Dest) == sizeof(Source),
+                    "Only bit-cast between identically-sized types!");
 
   Dest dest;
   memcpy(&dest, &source, sizeof(dest));
