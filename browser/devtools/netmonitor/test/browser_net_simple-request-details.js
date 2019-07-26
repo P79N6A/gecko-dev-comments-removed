@@ -73,14 +73,15 @@ function test() {
 
       is(responseScope.querySelector(".name").getAttribute("value"),
         L10N.getStr("responseHeaders") + " (" +
-        L10N.getFormatStr("networkMenu.sizeKB", "0.169") + ")",
+        L10N.getFormatStr("networkMenu.sizeKB", L10N.numberWithDecimals(0.168, 3)) + ")",
         "The response headers scope doesn't have the correct title.");
 
       ok(requestScope.querySelector(".name").getAttribute("value").contains(
-        L10N.getStr("requestHeaders") + " (0."),
-        
-        
+        L10N.getStr("requestHeaders") + " (0"),
         "The request headers scope doesn't have the correct title.");
+      
+      
+      
 
       is(responseScope.querySelectorAll(".variables-view-variable .name")[0].getAttribute("value"),
         "Connection", "The first response header name was incorrect.");

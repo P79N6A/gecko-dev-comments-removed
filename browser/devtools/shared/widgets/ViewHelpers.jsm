@@ -201,6 +201,32 @@ ViewHelpers.L10N.prototype = {
 
   getFormatStr: function L10N_getFormatStr(aName, ...aArgs) {
     return this.stringBundle.formatStringFromName(aName, aArgs, aArgs.length);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  numberWithDecimals: function L10N__numberWithDecimals(aNumber, aDecimals = 0) {
+    
+    if (aNumber == (aNumber | 0)) {
+      return aNumber;
+    }
+    
+    
+    
+    
+    let localized = aNumber.toLocaleString(); 
+    let padded = localized + new Array(aDecimals).join("0"); 
+    let match = padded.match("([^]*?\\d{" + aDecimals + "})\\d*$");
+    return match.pop();
   }
 };
 
