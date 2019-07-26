@@ -70,6 +70,7 @@ public:
     : mElement(aElement),
       mLoading(true),
       mIsInline(true),
+      mHasSourceMapURL(false),
       mJSVersion(aVersion),
       mLineNo(1),
       mCORSMode(aCORSMode)
@@ -93,9 +94,11 @@ public:
   }
 
   nsCOMPtr<nsIScriptElement> mElement;
-  bool mLoading;             
-  bool mIsInline;            
-  nsString mScriptText;              
+  bool mLoading;          
+  bool mIsInline;         
+  bool mHasSourceMapURL;  
+  nsString mSourceMapURL; 
+  nsString mScriptText;   
   uint32_t mJSVersion;
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIPrincipal> mOriginPrincipal;
@@ -944,6 +947,9 @@ nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
   aOptions->setFileAndLine(aRequest->mURL.get(), aRequest->mLineNo);
   aOptions->setVersion(JSVersion(aRequest->mJSVersion));
   aOptions->setCompileAndGo(JS_IsGlobalObject(scopeChain));
+  if (aRequest->mHasSourceMapURL) {
+    aOptions->setSourceMapURL(aRequest->mSourceMapURL.get());
+  }
   if (aRequest->mOriginPrincipal) {
     aOptions->setOriginPrincipals(nsJSPrincipals::get(aRequest->mOriginPrincipal));
   }
@@ -1298,6 +1304,11 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
     if (NS_SUCCEEDED(rv) && !requestSucceeded) {
       return NS_ERROR_NOT_AVAILABLE;
     }
+
+    nsAutoCString sourceMapURL;
+    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("X-SourceMap"), sourceMapURL);
+    aRequest->mHasSourceMapURL = true;
+    aRequest->mSourceMapURL = NS_ConvertUTF8toUTF16(sourceMapURL);
   }
 
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(req);
