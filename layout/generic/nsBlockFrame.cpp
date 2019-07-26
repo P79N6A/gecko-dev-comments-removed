@@ -2574,7 +2574,7 @@ nsBlockFrame::PullFrameFrom(nsLineBox*           aLine,
 
     
     
-    ReparentFloats(frame, aFromContainer, true);
+    ReparentFloats(frame, aFromContainer, false);
   } else {
     MOZ_ASSERT(aLine == aFromLine.prev());
   }
