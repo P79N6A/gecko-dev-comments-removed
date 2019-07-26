@@ -1505,6 +1505,8 @@ bool
 GetElementIC::attachGetProp(JSContext *cx, IonScript *ion, HandleObject obj,
                             const Value &idval, HandlePropertyName name)
 {
+    JS_ASSERT(index().reg().hasValue());
+
     RootedObject holder(cx);
     RootedShape shape(cx);
     if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
@@ -1557,24 +1559,34 @@ GetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
     masm.branchTestObjShape(Assembler::NotEqual, object(), shape, &failures);
 
     
-    ValueOperand val = index().reg().valueReg();
-    masm.branchTestInt32(Assembler::NotEqual, val, &failures);
+    Register indexReg = InvalidReg;
+
+    if (index().reg().hasValue()) {
+        indexReg = output().scratchReg().gpr();
+        JS_ASSERT(indexReg != InvalidReg);
+        ValueOperand val = index().reg().valueReg();
+
+        masm.branchTestInt32(Assembler::NotEqual, val, &failures);
+
+        
+        masm.unboxInt32(val, indexReg);
+    } else {
+        JS_ASSERT(!index().reg().typedReg().isFloat());
+        indexReg = index().reg().typedReg().gpr();
+    }
 
     
     masm.push(object());
     masm.loadPtr(Address(object(), JSObject::offsetOfElements()), object());
 
-    
-    masm.unboxInt32(val, scratchReg);
-
     Label hole;
 
     
     Address initLength(object(), ObjectElements::offsetOfInitializedLength());
-    masm.branch32(Assembler::BelowOrEqual, initLength, scratchReg, &hole);
+    masm.branch32(Assembler::BelowOrEqual, initLength, indexReg, &hole);
 
     
-    masm.loadElementTypedOrValue(BaseIndex(object(), scratchReg, TimesEight),
+    masm.loadElementTypedOrValue(BaseIndex(object(), indexReg, TimesEight),
                                  output(), true, &hole);
 
     masm.pop(object());
@@ -1616,12 +1628,19 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
     masm.branchTestObjClass(Assembler::NotEqual, object(), tmpReg, obj->getClass(), &failures);
 
     
-    ValueOperand val = index().reg().valueReg();
-    masm.branchTestInt32(Assembler::NotEqual, val, &failures);
-
-    
     Register indexReg = tmpReg;
-    masm.unboxInt32(val, indexReg);
+
+    JS_ASSERT(!index().constant());
+    if (index().reg().hasValue()) {
+        ValueOperand val = index().reg().valueReg();
+        masm.branchTestInt32(Assembler::NotEqual, val, &failures);
+
+        
+        masm.unboxInt32(val, indexReg);
+    } else {
+        JS_ASSERT(!index().reg().typedReg().isFloat());
+        indexReg = index().reg().typedReg().gpr();
+    }
 
     
     Address length(object(), TypedArray::lengthOffset());
