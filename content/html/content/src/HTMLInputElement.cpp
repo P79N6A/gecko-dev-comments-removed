@@ -3601,7 +3601,32 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   }
 
   if (NS_SUCCEEDED(rv)) {
-    if (nsEventStatus_eIgnore == aVisitor.mEventStatus) {
+    WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+    if (mType ==  NS_FORM_INPUT_NUMBER &&
+        keyEvent && keyEvent->message == NS_KEY_PRESS &&
+        aVisitor.mEvent->mFlags.mIsTrusted &&
+        (keyEvent->keyCode == NS_VK_UP || keyEvent->keyCode == NS_VK_DOWN) &&
+        !(keyEvent->IsShift() || keyEvent->IsControl() ||
+          keyEvent->IsAlt() || keyEvent->IsMeta() ||
+          keyEvent->IsAltGraph() || keyEvent->IsFn() ||
+          keyEvent->IsOS())) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      ApplyStep(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
+      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+    } else if (nsEventStatus_eIgnore == aVisitor.mEventStatus) {
       switch (aVisitor.mEvent->message) {
 
         case NS_FOCUS_CONTENT:
