@@ -302,6 +302,28 @@ def module_name(name):
     return name.replace('inlines.h', '').replace('-inl.h', '').replace('.h', '').replace('.cpp', '')
 
 
+def is_module_header(enclosing_inclname, header_inclname):
+    '''Determine if an included name is the "module header", i.e. should be
+    first in the file.'''
+
+    module = module_name(enclosing_inclname)
+
+    
+    if module == module_name(header_inclname):
+        return True
+
+    
+    m = re.match(r'js\/(.*)\.h', header_inclname)
+    if m is not None and module.endswith('/' + m.group(1)):
+        return True
+
+    
+    if module == 'jsmemorymetrics' and header_inclname == 'js/MemoryMetrics.h':
+        return True
+
+    return False
+
+
 class Include(object):
     '''Important information for a single #include statement.'''
 
@@ -313,7 +335,7 @@ class Include(object):
     def isLeaf(self):
         return True
 
-    def section(self, module):
+    def section(self, enclosing_inclname):
         '''Identify which section inclname belongs to.
 
         The section numbers are as follows.
@@ -335,10 +357,7 @@ class Include(object):
 
         
         
-        if module == module_name(self.inclname) or \
-           module == 'jsmemorymetrics' and self.inclname == 'js/MemoryMetrics.h' or \
-           module == 'vm/PropertyKey' and self.inclname == 'js/PropertyKey.h' or \
-           module == 'vm/StructuredClone' and self.inclname == 'js/StructuredClone.h':
+        if is_module_header(enclosing_inclname, self.inclname):
             return 0
 
         if '/' in self.inclname:
@@ -452,8 +471,6 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
                 if inclname == include.inclname:
                     error(filename, include.linenum, 'the file includes itself')
 
-    module = module_name(inclname)
-
     def check_includes_order(include1, include2):
         '''Check the ordering of two #include statements.'''
 
@@ -461,8 +478,8 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
            include2.inclname in oddly_ordered_inclnames:
             return
 
-        section1 = include1.section(module)
-        section2 = include2.section(module)
+        section1 = include1.section(inclname)
+        section2 = include2.section(inclname)
         if (section1 > section2) or \
            ((section1 == section2) and (include1.inclname.lower() > include2.inclname.lower())):
             error(filename, str(include1.linenum) + ':' + str(include2.linenum),
