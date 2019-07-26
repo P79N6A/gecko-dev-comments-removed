@@ -149,12 +149,6 @@ protected:
   nsresult ResolveConstructor(JSContext *cx, JSObject *obj,
                               JSObject **objp);
 
-  
-  
-  
-  static int32_t GetArrayIndexFromId(JSContext *cx, JS::Handle<jsid> id,
-                                     bool *aIsNumber = nullptr);
-
   static nsIXPConnect *sXPConnect;
   static nsIScriptSecurityManager *sSecMan;
 
