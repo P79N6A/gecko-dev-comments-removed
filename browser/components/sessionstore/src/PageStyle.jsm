@@ -12,13 +12,17 @@ const Ci = Components.interfaces;
 
 
 this.PageStyle = Object.freeze({
-  collect: function (docShell) {
-    return PageStyleInternal.collect(docShell);
+  collect: function (docShell, frameTree) {
+    return PageStyleInternal.collect(docShell, frameTree);
   },
 
   restore: function (docShell, frameList, pageStyle) {
     PageStyleInternal.restore(docShell, frameList, pageStyle);
   },
+
+  restoreTree: function (docShell, data) {
+    PageStyleInternal.restoreTree(docShell, data);
+  }
 });
 
 
@@ -28,45 +32,27 @@ let PageStyleInternal = {
   
 
 
+  collect: function (docShell, frameTree) {
+    let result = frameTree.map(({document: doc}) => {
+      let style;
 
-  collect: function (docShell) {
+      if (doc) {
+        
+        style = doc.selectedStyleSheetSet || doc.lastStyleSheetSet;
+      }
+
+      return style ? {pageStyle: style} : null;
+    });
+
     let markupDocumentViewer =
       docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
+
     if (markupDocumentViewer.authorStyleDisabled) {
-      return NO_STYLE;
+      result = result || {};
+      result.disabled = true;
     }
 
-    let content = docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-
-    return this.collectFrame(content);
-  },
-
-  
-
-
-
-
-
-  collectFrame: function (content) {
-    const forScreen = /(?:^|,)\s*(?:all|screen)\s*(?:,|$)/i;
-
-    let sheets = content.document.styleSheets;
-    for (let i = 0; i < sheets.length; i++) {
-      let ss = sheets[i];
-      let media = ss.media.mediaText;
-      if (!ss.disabled && ss.title && (!media || forScreen.test(media))) {
-        return ss.title;
-      }
-    }
-
-    for (let i = 0; i < content.frames.length; i++) {
-      let selectedPageStyle = this.collectFrame(content.frames[i]);
-      if (selectedPageStyle) {
-        return selectedPageStyle;
-      }
-    }
-
-    return "";
+    return result && Object.keys(result).length ? result : null;
   },
 
   
@@ -91,4 +77,51 @@ let PageStyleInternal = {
       });
     }
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  restoreTree: function (docShell, data) {
+    let disabled = data.disabled || false;
+    let markupDocumentViewer =
+      docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
+    markupDocumentViewer.authorStyleDisabled = disabled;
+
+    function restoreFrame(root, data) {
+      if (data.hasOwnProperty("pageStyle")) {
+        root.document.selectedStyleSheetSet = data.pageStyle;
+      }
+
+      if (!data.hasOwnProperty("children")) {
+        return;
+      }
+
+      let frames = root.frames;
+      data.children.forEach((child, index) => {
+        if (child && index < frames.length) {
+          restoreFrame(frames[index], child);
+        }
+      });
+    }
+
+    let ifreq = docShell.QueryInterface(Ci.nsIInterfaceRequestor);
+    restoreFrame(ifreq.getInterface(Ci.nsIDOMWindow), data);
+  }
 };
