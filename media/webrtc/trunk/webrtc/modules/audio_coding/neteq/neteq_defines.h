@@ -347,7 +347,7 @@
     #define NETEQ_CELT_CODEC
     
 
-
+    
     #define NETEQ_48KHZ_WIDEBAND
 
 
