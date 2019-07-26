@@ -505,6 +505,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register cxreg = IntArgReg0;
+    regs.take(cxreg);
 
     
     
