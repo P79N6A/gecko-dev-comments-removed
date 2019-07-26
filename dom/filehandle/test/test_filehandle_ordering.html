@@ -14,34 +14,31 @@
   {
     for each (let fileStorage in fileStorages) {
       let request = getMutableFile(fileStorage.key, "test.txt");
-      is(request.readyState, "pending", "Correct readyState");
-
       request.onerror = errorHandler;
       request.onsuccess = grabEventAndContinueHandler;
       let event = yield undefined;
 
-      is(request.readyState, "done", "Correct readyState");
-
       let mutableFile = event.target.result;
       mutableFile.onerror = errorHandler;
 
-      let fileHandle = mutableFile.open("readwrite");
-      request = fileHandle.write("string");
-      is(request.readyState, "pending", "Correct readyState");
+      let fileHandle1 = mutableFile.open("readwrite");
+      let fileHandle2 = mutableFile.open("readwrite");
 
-      request.onsuccess = grabEventAndContinueHandler;
+      let request1 = fileHandle2.write("2");
+      let request2 = fileHandle1.write("1");
+
+      fileHandle1.oncomplete = grabEventAndContinueHandler;
+      fileHandle2.oncomplete = grabEventAndContinueHandler;
+
+      yield undefined;
+      yield undefined;
+
+      let fileHandle3 = mutableFile.open("readonly");
+      let request3 = fileHandle3.readAsText(1);
+      request3.onsuccess = grabEventAndContinueHandler;
+
       event = yield undefined;
-
-      is(request.readyState, "done", "Correct readyState");
-
-      fileHandle.location = 0;
-      request = fileHandle.readAsText(6);
-      request.onsuccess = grabEventAndContinueHandler;
-      is(request.readyState, "pending", "Correct readyState");
-      event = yield undefined;
-
-      ok(event.target.result, "Got something");
-      is(request.readyState, "done", "Correct readyState");
+      is(event.target.result, "2", "File handles were ordered properly.");
     }
 
     finishTest();

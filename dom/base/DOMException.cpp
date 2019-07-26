@@ -69,7 +69,7 @@ enum DOM4ErrorTypeCodeMap {
   NotReadableError         = 0,
 
   
-  LockedFileInactiveError = 0,
+  FileHandleInactiveError = 0,
 
   
   OperationError           = 0,
