@@ -4585,10 +4585,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       nsCOMPtr<nsIFontEnumerator> fontEnum = do_GetService("@mozilla.org/gfx/fontenumerator;1", &rv);
       if (NS_SUCCEEDED(rv)) {
         fontEnum->UpdateFontList(&didChange);
-        
-        if (didChange)  {
-          ForceFontUpdate();
-        }
+        ForceFontUpdate();
       } 
     }
     break;
