@@ -369,6 +369,8 @@ BacktrackingAllocator::groupAndQueueRegisters()
             continue;
 
         
+#if 0
+        
         
         LDefinition *def = reg.def();
         if (def->policy() == LDefinition::PRESET && !def->output()->isRegister()) {
@@ -376,6 +378,7 @@ BacktrackingAllocator::groupAndQueueRegisters()
             if (reg.group() && reg.group()->spill.isUse())
                 reg.group()->spill = *def->output();
         }
+#endif
 
         
         
