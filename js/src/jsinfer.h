@@ -1267,9 +1267,24 @@ class TypeScript
 {
     friend class ::JSScript;
 
+    
+    StackTypeSet typeArray_[1];
+
   public:
     
-    StackTypeSet *typeArray() const { return (StackTypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
+    StackTypeSet *typeArray() const {
+        
+        JS_STATIC_ASSERT(sizeof(TypeScript) ==
+            sizeof(typeArray_) + offsetof(TypeScript, typeArray_));
+        return const_cast<StackTypeSet *>(typeArray_);
+    }
+
+    static inline size_t SizeIncludingTypeArray(size_t arraySize) {
+        
+        JS_STATIC_ASSERT(sizeof(TypeScript) ==
+            sizeof(StackTypeSet) + offsetof(TypeScript, typeArray_));
+        return offsetof(TypeScript, typeArray_) + arraySize * sizeof(StackTypeSet);
+    }
 
     static inline unsigned NumTypeSets(JSScript *script);
 
