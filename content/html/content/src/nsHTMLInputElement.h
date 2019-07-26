@@ -565,6 +565,19 @@ protected:
 
 
 
+
+  bool IsValidDate(nsAString& aValue) const;
+
+  
+
+
+  uint32_t NumberOfDaysInMonth(uint32_t aMonth, uint32_t aYear) const;
+
+  
+
+
+
+
   void SetValue(double aValue);
 
   
