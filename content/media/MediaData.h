@@ -37,6 +37,7 @@ public:
     , mOffset(aOffset)
     , mTime(aTimestamp)
     , mDuration(aDuration)
+    , mDiscontinuity(false)
   {}
 
   virtual ~MediaData() {}
@@ -52,6 +53,10 @@ public:
 
   
   const int64_t mDuration;
+
+  
+  
+  bool mDiscontinuity;
 
   int64_t GetEndTime() const { return mTime + mDuration; }
 
@@ -207,7 +212,7 @@ public:
   
   
   static void SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
-                                  VideoInfo& aInfo,                  
+                                  VideoInfo& aInfo,
                                   const YCbCrBuffer &aBuffer,
                                   const IntRect& aPicture,
                                   bool aCopyData);
