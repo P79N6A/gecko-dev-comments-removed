@@ -1794,6 +1794,17 @@ pref("font.size.inflation.minTwips", 0);
 
 
 
+pref("font.size.inflation.forceEnabled", false);
+
+
+
+
+
+
+
+
+
+
 
 
 

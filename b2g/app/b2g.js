@@ -585,5 +585,8 @@ pref("network.activity.blipIntervalMilliseconds", 250);
 pref("jsloader.reuseGlobal", true);
 
 
+pref("font.size.inflation.minTwips", 120);
+
+
 
 pref("memory.free_dirty_pages", true);
