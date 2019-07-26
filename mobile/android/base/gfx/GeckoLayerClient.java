@@ -377,15 +377,16 @@ public class GeckoLayerClient
         
         
         
+        
 
         
         
         
         
-        if (Math.abs(displayPort.getLeft() - x) <= 1 &&
-            Math.abs(displayPort.getTop() - y) <= 1 &&
-            Math.abs(displayPort.getBottom() - (y + height)) <= 1 &&
-            Math.abs(displayPort.getRight() - (x + width)) <= 1) {
+        if (Math.abs(displayPort.getLeft() - x) <= 2 &&
+            Math.abs(displayPort.getTop() - y) <= 2 &&
+            Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
+            Math.abs(displayPort.getRight() - (x + width)) <= 2) {
             return mProgressiveUpdateData;
         }
 
