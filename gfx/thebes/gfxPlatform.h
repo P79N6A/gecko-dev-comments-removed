@@ -95,12 +95,9 @@ enum eFontPrefLang {
     eFontPrefLang_Sinhala     = 28,
     eFontPrefLang_Tibetan     = 29,
 
-    eFontPrefLang_LangCount   = 30, 
-
     eFontPrefLang_Others      = 30, 
 
-    eFontPrefLang_CJKSet      = 31, 
-    eFontPrefLang_AllCount    = 32
+    eFontPrefLang_CJKSet      = 31  
 };
 
 enum eCMSMode {
