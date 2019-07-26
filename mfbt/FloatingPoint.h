@@ -190,7 +190,13 @@ DoubleIsInt32(double d, int32_t* i)
 static MOZ_ALWAYS_INLINE double
 UnspecifiedNaN()
 {
-  return SpecificNaN(0, 0xfffffffffffffULL);
+  
+
+
+
+
+
+  return SpecificNaN(1, 0xfffffffffffffULL);
 }
 
 
