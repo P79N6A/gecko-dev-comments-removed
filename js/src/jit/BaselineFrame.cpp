@@ -77,6 +77,13 @@ BaselineFrame::trace(JSTracer *trc, IonFrameIterator &frameIterator)
     JS_ASSERT(nlivefixed <= nfixed);
     JS_ASSERT(nlivefixed >= script->nfixedvars());
 
+    
+    
+    if (numValueSlots() == 0)
+        return;
+
+    JS_ASSERT(nfixed <= numValueSlots());
+
     if (nfixed == nlivefixed) {
         
         MarkLocals(this, trc, 0, numValueSlots());
