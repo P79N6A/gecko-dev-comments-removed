@@ -95,13 +95,22 @@ this.FxAccountsClient.prototype = {
 
 
 
-  signIn: function signIn(email, password, retryOK=true) {
+
+
+
+
+
+
+
+  signIn: function signIn(email, password, getKeys=false, retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
         email: creds.emailUTF8,
         authPW: CommonUtils.bytesAsHex(creds.authPW),
       };
-      return this._request("/account/login", "POST", null, data).then(
+      let keys = getKeys ? "?keys=true" : "";
+
+      return this._request("/account/login" + keys, "POST", null, data).then(
         
         
         result => {
@@ -126,7 +135,7 @@ this.FxAccountsClient.prototype = {
               log.error("Server returned errno 120 but did not provide email");
               throw error;
             }
-            return this.signIn(error.email, password, false);
+            return this.signIn(error.email, password, getKeys, false);
           }
           throw error;
         }
