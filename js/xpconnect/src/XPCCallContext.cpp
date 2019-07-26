@@ -397,7 +397,7 @@ XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned
     
     if (!IS_WN_REFLECTOR(unwrapped))
         return nullptr;
-    XPCWrappedNative *wn = (XPCWrappedNative*)js::GetObjectPrivate(unwrapped);
+    XPCWrappedNative *wn = XPCWrappedNative::Get(unwrapped);
 
     
     XPCNativeInterface *interface;

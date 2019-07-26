@@ -872,7 +872,7 @@ XPCConvert::NativeInterface2JSObject(jsval* d,
     } else {
         MOZ_ASSERT(IS_WN_REFLECTOR(flat));
 
-        wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
+        wrapper = XPCWrappedNative::Get(flat);
 
         
         
