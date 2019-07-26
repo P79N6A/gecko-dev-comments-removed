@@ -19,9 +19,19 @@ namespace mozilla {
 
 
 
+
+typedef int32_t TrackRate;
+const int64_t TRACK_RATE_MAX_BITS = 20;
+const TrackRate TRACK_RATE_MAX = 1 << TRACK_RATE_MAX_BITS;
+
+
+
+
+
+
 typedef int64_t MediaTime;
 const int64_t MEDIA_TIME_FRAC_BITS = 20;
-const int64_t MEDIA_TIME_MAX = INT64_MAX;
+const int64_t MEDIA_TIME_MAX = INT64_MAX >> TRACK_RATE_MAX_BITS;
 
 inline MediaTime MillisecondsToMediaTime(int32_t aMS)
 {

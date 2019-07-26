@@ -21,13 +21,6 @@ const StreamTime STREAM_TIME_MAX = MEDIA_TIME_MAX;
 
 
 
-typedef int32_t TrackRate;
-const TrackRate TRACK_RATE_MAX = 1 << MEDIA_TIME_FRAC_BITS;
-
-
-
-
-
 
 typedef int32_t TrackID;
 const TrackID TRACK_NONE = 0;
@@ -224,8 +217,14 @@ public:
 
   Track& AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart, MediaSegment* aSegment)
   {
-    NS_ASSERTION(TimeToTicksRoundDown(aRate, mTracksKnownTime) <= aStart,
-                 "Start time too early");
+    if (mTracksKnownTime == STREAM_TIME_MAX) {
+      
+      
+      NS_WARNING("Adding track to StreamBuffer that should have no more tracks");
+    } else {
+      NS_ASSERTION(TimeToTicksRoundDown(aRate, mTracksKnownTime) <= aStart,
+                   "Start time too early");
+    }
     NS_ASSERTION(!FindTrack(aID), "Track with this ID already exists");
 
     return **mTracks.InsertElementSorted(new Track(aID, aRate, aStart, aSegment),
