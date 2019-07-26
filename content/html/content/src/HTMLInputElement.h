@@ -1070,7 +1070,7 @@ protected:
 
 
 
-  bool ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget);
+  bool ShouldPreventDOMActivateDispatch(nsIDOMEventTarget* aOriginalTarget);
 
   nsCOMPtr<nsIControllers> mControllers;
 

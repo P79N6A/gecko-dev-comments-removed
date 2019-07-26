@@ -660,10 +660,16 @@ StaticRefPtr<VibrateWindowListener> gVibrateWindowListener;
 NS_IMETHODIMP
 VibrateWindowListener::HandleEvent(nsIDOMEvent* aEvent)
 {
-  nsCOMPtr<nsIDocument> doc =
-    do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
+  nsCOMPtr<nsIDOMEventTarget> target;
+  aEvent->GetTarget(getter_AddRefs(target));
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(target);
 
-  if (!doc || doc->Hidden()) {
+  bool hidden = true;
+  if (doc) {
+    doc->GetHidden(&hidden);
+  }
+
+  if (hidden) {
     
     
     
@@ -681,7 +687,7 @@ VibrateWindowListener::HandleEvent(nsIDOMEvent* aEvent)
 void
 VibrateWindowListener::RemoveListener()
 {
-  nsCOMPtr<EventTarget> target = do_QueryReferent(mDocument);
+  nsCOMPtr<nsIDOMEventTarget> target = do_QueryReferent(mDocument);
   if (!target) {
     return;
   }

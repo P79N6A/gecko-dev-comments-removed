@@ -1184,7 +1184,7 @@ public:
 
 
 
-  virtual void Sanitize() = 0;
+  virtual nsresult Sanitize() = 0;
 
   
 
@@ -2091,7 +2091,7 @@ public:
              nsISupports* aResult, mozilla::ErrorResult& rv);
   
   already_AddRefed<nsIDOMTouch>
-    CreateTouch(nsIDOMWindow* aView, mozilla::dom::EventTarget* aTarget,
+    CreateTouch(nsIDOMWindow* aView, nsISupports* aTarget,
                 int32_t aIdentifier, int32_t aPageX, int32_t aPageY,
                 int32_t aScreenX, int32_t aScreenY, int32_t aClientX,
                 int32_t aClientY, int32_t aRadiusX, int32_t aRadiusY,

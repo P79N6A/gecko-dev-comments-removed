@@ -2941,11 +2941,11 @@ nsIDocument::GetActiveElement()
   }
 
   
-  nsRefPtr<nsHTMLDocument> htmlDoc = AsHTMLDocument();
+  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryObject(this);
   if (htmlDoc) {
     
     
-    return htmlDoc->GetBody();
+    return static_cast<nsHTMLDocument*>(htmlDoc.get())->GetBody();
   }
 
   
@@ -3115,7 +3115,7 @@ nsIDocument::ReleaseCapture() const
 {
   
   
-  nsCOMPtr<nsINode> node = nsIPresShell::GetCapturingContent();
+  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(nsIPresShell::GetCapturingContent());
   if (node && nsContentUtils::CanCallerAccess(node)) {
     nsIPresShell::SetCapturingContent(nullptr, 0);
   }
@@ -7445,7 +7445,7 @@ nsDocument::IsSafeToFlush() const
   return shell->IsSafeToFlush();
 }
 
-void
+nsresult
 nsDocument::Sanitize()
 {
   
@@ -7457,16 +7457,24 @@ nsDocument::Sanitize()
   
   
 
-  nsRefPtr<nsContentList> nodes = GetElementsByTagName(NS_LITERAL_STRING("input"));
+  nsCOMPtr<nsIDOMNodeList> nodes;
+  nsresult rv = GetElementsByTagName(NS_LITERAL_STRING("input"),
+                                     getter_AddRefs(nodes));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIContent> item;
+  uint32_t length = 0;
+  if (nodes)
+    nodes->GetLength(&length);
+
+  nsCOMPtr<nsIDOMNode> item;
   nsAutoString value;
+  uint32_t i;
 
-  uint32_t length = nodes->Length(true);
-  for (uint32_t i = 0; i < length; ++i) {
-    NS_ASSERTION(nodes->Item(i), "null item in node list!");
+  for (i = 0; i < length; ++i) {
+    nodes->Item(i, getter_AddRefs(item));
+    NS_ASSERTION(item, "null item in node list!");
 
-    nsCOMPtr<nsIDOMHTMLInputElement> input = do_QueryInterface(nodes->Item(i));
+    nsCOMPtr<nsIDOMHTMLInputElement> input = do_QueryInterface(item);
     if (!input)
       continue;
 
@@ -7488,13 +7496,18 @@ nsDocument::Sanitize()
   }
 
   
-  nodes = GetElementsByTagName(NS_LITERAL_STRING("form"));
+  rv = GetElementsByTagName(NS_LITERAL_STRING("form"), getter_AddRefs(nodes));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  length = nodes->Length(true);
-  for (uint32_t i = 0; i < length; ++i) {
-    NS_ASSERTION(nodes->Item(i), "null item in nodelist");
+  length = 0;
+  if (nodes)
+    nodes->GetLength(&length);
 
-    nsCOMPtr<nsIDOMHTMLFormElement> form = do_QueryInterface(nodes->Item(i));
+  for (i = 0; i < length; ++i) {
+    nodes->Item(i, getter_AddRefs(item));
+    NS_ASSERTION(item, "null item in nodelist");
+
+    nsCOMPtr<nsIDOMHTMLFormElement> form = do_QueryInterface(item);
     if (!form)
       continue;
 
@@ -7502,6 +7515,8 @@ nsDocument::Sanitize()
     if (value.LowerCaseEqualsLiteral("off"))
       form->Reset();
   }
+
+  return NS_OK;
 }
 
 struct SubDocEnumArgs
@@ -9163,8 +9178,7 @@ nsDocument::CreateTouch(nsIDOMWindow* aView,
                         float aForce,
                         nsIDOMTouch** aRetVal)
 {
-  nsCOMPtr<EventTarget> target = do_QueryInterface(aTarget);
-  *aRetVal = nsIDocument::CreateTouch(aView, target, aIdentifier, aPageX,
+  *aRetVal = nsIDocument::CreateTouch(aView, aTarget, aIdentifier, aPageX,
                                       aPageY, aScreenX, aScreenY, aClientX,
                                       aClientY, aRadiusX, aRadiusY,
                                       aRotationAngle, aForce).get();
@@ -9173,7 +9187,7 @@ nsDocument::CreateTouch(nsIDOMWindow* aView,
 
 already_AddRefed<nsIDOMTouch>
 nsIDocument::CreateTouch(nsIDOMWindow* aView,
-                         EventTarget* aTarget,
+                         nsISupports* aTarget,
                          int32_t aIdentifier,
                          int32_t aPageX, int32_t aPageY,
                          int32_t aScreenX, int32_t aScreenY,
@@ -9182,7 +9196,8 @@ nsIDocument::CreateTouch(nsIDOMWindow* aView,
                          float aRotationAngle,
                          float aForce)
 {
-  nsCOMPtr<nsIDOMTouch> touch = new Touch(aTarget,
+  nsCOMPtr<EventTarget> target = do_QueryInterface(aTarget);
+  nsCOMPtr<nsIDOMTouch> touch = new Touch(target,
                                           aIdentifier,
                                           aPageX, aPageY,
                                           aScreenX, aScreenY,

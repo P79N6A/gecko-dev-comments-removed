@@ -48,6 +48,7 @@
 #include "nsBoxLayoutState.h"
 #include <algorithm>
 
+#include "nsIDOMEventTarget.h"
 #include "nsIDocument.h" 
 #include "nsIStyleSheet.h"
 #include "nsIStyleRule.h"

@@ -5,8 +5,8 @@
 
 #include "nsXULTooltipListener.h"
 
-#include "nsDOMEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIDOMXULElement.h"
 #include "nsIDocument.h"
@@ -31,8 +31,8 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
 
+
 using namespace mozilla;
-using namespace mozilla::dom;
 
 nsXULTooltipListener* nsXULTooltipListener::mInstance = nullptr;
 
@@ -101,8 +101,9 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aEvent)
   
   if (currentTooltip) {
     
-    nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(
-      aEvent->InternalDOMEvent()->GetTarget());
+    nsCOMPtr<nsIDOMEventTarget> eventTarget;
+    aEvent->GetTarget(getter_AddRefs(eventTarget));
+    nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(eventTarget));
 
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm) {
@@ -155,8 +156,10 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aEvent)
   mMouseScreenX = newMouseX;
   mMouseScreenY = newMouseY;
 
-  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(
-    aEvent->InternalDOMEvent()->GetCurrentTarget());
+  nsCOMPtr<nsIDOMEventTarget> currentTarget;
+  aEvent->GetCurrentTarget(getter_AddRefs(currentTarget));
+
+  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(currentTarget);
   mSourceNode = do_GetWeakReference(sourceContent);
 #ifdef MOZ_XUL
   mIsSourceTree = sourceContent->Tag() == nsGkAtoms::treechildren;
@@ -173,7 +176,8 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aEvent)
   
   
   if (!currentTooltip && !mTooltipShownOnce) {
-    nsCOMPtr<EventTarget> eventTarget = aEvent->InternalDOMEvent()->GetTarget();
+    nsCOMPtr<nsIDOMEventTarget> eventTarget;
+    aEvent->GetTarget(getter_AddRefs(eventTarget));
 
     
     
@@ -669,13 +673,15 @@ nsXULTooltipListener::DestroyTooltip()
     }
 
     
+    nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
+
+    
     
     mCurrentTooltip = nullptr;
 
-    
-    currentTooltip->RemoveEventListener(NS_LITERAL_STRING("popuphiding"), this, false);
+    evtTarget->RemoveEventListener(NS_LITERAL_STRING("popuphiding"), this, false);
   }
-
+  
   
   KillTooltipTimer();
   mSourceNode = nullptr;

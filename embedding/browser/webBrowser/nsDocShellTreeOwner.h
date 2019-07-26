@@ -28,13 +28,8 @@
 #include "nsITooltipTextProvider.h"
 #include "nsCTooltipTextProvider.h"
 #include "nsIDroppedLinkHandler.h"
+#include "nsIDOMEventTarget.h"
 #include "nsCommandHandler.h"
-
-namespace mozilla {
-namespace dom {
-class EventTarget;
-}
-}
 
 class nsWebBrowser;
 class ChromeTooltipListener;
@@ -174,9 +169,9 @@ private:
   NS_IMETHOD HideTooltip ( ) ;
 
   nsWebBrowser* mWebBrowser;
-  nsCOMPtr<mozilla::dom::EventTarget> mEventTarget;
+  nsCOMPtr<nsIDOMEventTarget> mEventTarget;
   nsCOMPtr<nsITooltipTextProvider> mTooltipTextProvider;
-
+  
     
     
     
@@ -240,7 +235,7 @@ private:
   bool mContextMenuListenerInstalled;
 
   nsWebBrowser* mWebBrowser;
-  nsCOMPtr<mozilla::dom::EventTarget> mEventTarget;
+  nsCOMPtr<nsIDOMEventTarget> mEventTarget;
   nsCOMPtr<nsIWebBrowserChrome> mWebBrowserChrome;
 
 }; 
