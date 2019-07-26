@@ -4,6 +4,7 @@
 
 
 
+
 function getElement(id) {
     return ((typeof(id) == "string") ?
         document.getElementById(id) : id);
@@ -84,6 +85,9 @@ TestRunner._expectedMaxAsserts = 0;
 TestRunner.timeout = 5 * 60 * 1000; 
 TestRunner.maxTimeouts = 4; 
 TestRunner.runSlower = false;
+TestRunner.dumpOutputDirectory = "";
+TestRunner.dumpAboutMemoryAfterTest = false;
+TestRunner.dumpDMDAfterTest = false;
 TestRunner.slowestTestTime = 0;
 TestRunner.slowestTestURL = "";
 
