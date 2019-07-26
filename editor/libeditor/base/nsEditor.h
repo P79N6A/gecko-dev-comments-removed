@@ -864,9 +864,7 @@ protected:
   int8_t            mDocDirtyState;      
   uint8_t           mSpellcheckCheckboxState; 
 
-  bool mInIMEMode;        
   bool mIsIMEComposing;   
-                                                       
 
   bool mShouldTxnSetSelection;  
   bool mDidPreDestroy;    

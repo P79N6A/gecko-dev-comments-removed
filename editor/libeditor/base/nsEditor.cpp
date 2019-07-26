@@ -144,7 +144,6 @@ nsEditor::nsEditor()
 ,  mDirection(eNone)
 ,  mDocDirtyState(-1)
 ,  mSpellcheckCheckboxState(eTriUnset)
-,  mInIMEMode(false)
 ,  mIsIMEComposing(false)
 ,  mShouldTxnSetSelection(true)
 ,  mDidPreDestroy(false)
@@ -967,7 +966,9 @@ nsEditor::EndPlaceHolderTransaction()
       }
       
       
-      if (!mInIMEMode) NotifyEditorObservers();
+      if (!mComposition) {
+        NotifyEditorObservers();
+      }
     }
   }
   mPlaceHolderBatch--;
@@ -2030,7 +2031,6 @@ nsEditor::BeginIMEComposition(WidgetCompositionEvent* aCompositionEvent)
 {
   MOZ_ASSERT(!mComposition, "There is composition already");
   EnsureComposition(aCompositionEvent);
-  mInIMEMode = true;
   if (mPhonetic) {
     mPhonetic->Truncate(0);
   }
@@ -2040,7 +2040,7 @@ nsEditor::BeginIMEComposition(WidgetCompositionEvent* aCompositionEvent)
 void
 nsEditor::EndIMEComposition()
 {
-  NS_ENSURE_TRUE_VOID(mInIMEMode); 
+  NS_ENSURE_TRUE_VOID(mComposition); 
 
   
   
@@ -2058,7 +2058,6 @@ nsEditor::EndIMEComposition()
   mIMETextNode = nullptr;
   mIMETextOffset = 0;
   mIMEBufferLength = 0;
-  mInIMEMode = false;
   mIsIMEComposing = false;
   mComposition = nullptr;
 
@@ -2090,7 +2089,7 @@ nsEditor::ForceCompositionEnd()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  if (!mInIMEMode) {
+  if (!mComposition) {
     
     
     
@@ -2329,7 +2328,7 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
 
   NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc,
                  NS_ERROR_NULL_POINTER);
-  if (!mInIMEMode && aStringToInsert.IsEmpty()) {
+  if (!mComposition && aStringToInsert.IsEmpty()) {
     return NS_OK;
   }
 
@@ -2369,7 +2368,7 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   }
 
   nsresult res;
-  if (mInIMEMode) {
+  if (mComposition) {
     if (!node->IsNodeOfType(nsINode::eTEXT)) {
       
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
@@ -2424,7 +2423,7 @@ nsresult nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
   bool isIMETransaction = false;
   
   
-  if (mIMETextRangeList && mInIMEMode && !aSuppressIME)
+  if (mIMETextRangeList && mComposition && !aSuppressIME)
   {
     if (!mIMETextNode)
     {
