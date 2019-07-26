@@ -31,6 +31,13 @@ public:
 
   virtual void HandleDoubleTap(const nsIntPoint& aPoint) = 0;
 
+  
+
+
+
+
+  virtual void HandleSingleTap(const nsIntPoint& aPoint) = 0;
+
   GeckoContentController() {}
   virtual ~GeckoContentController() {}
 };

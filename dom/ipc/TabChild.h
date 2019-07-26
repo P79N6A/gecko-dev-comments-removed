@@ -183,6 +183,7 @@ public:
     virtual bool RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size);
     virtual bool RecvUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
     virtual bool RecvHandleDoubleTap(const nsIntPoint& aPoint);
+    virtual bool RecvHandleSingleTap(const nsIntPoint& aPoint);
     virtual bool RecvActivate();
     virtual bool RecvDeactivate();
     virtual bool RecvMouseEvent(const nsString& aType,
@@ -322,6 +323,9 @@ private:
     
     void DispatchMessageManagerMessage(const nsAString& aMessageName,
                                        const nsACString& aJSONData);
+
+    
+    void DispatchSynthesizedMouseEvent(const nsTouchEvent& aEvent);
 
     nsresult
     BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
