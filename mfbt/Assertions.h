@@ -277,7 +277,7 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 
-#ifdef DEBUG
+
    
 #  define MOZ_ASSERT_HELPER1(expr) \
      do { \
@@ -315,9 +315,11 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 #  define MOZ_ASSERT_CHOOSE_HELPER(count) MOZ_ASSERT_CHOOSE_HELPER1(count)
    
 #  define MOZ_ASSERT_GLUE(x, y) x y
-#  define MOZ_ASSERT(...) \
+#  define MOZ_RELEASE_ASSERT(...) \
      MOZ_ASSERT_GLUE(MOZ_ASSERT_CHOOSE_HELPER(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__)), \
                      (__VA_ARGS__))
+#ifdef DEBUG
+#  define MOZ_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
 #else
 #  define MOZ_ASSERT(...) do { } while(0)
 #endif 
