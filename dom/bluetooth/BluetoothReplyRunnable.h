@@ -36,7 +36,7 @@ public:
 protected:
   virtual ~BluetoothReplyRunnable();
 
-  virtual bool ParseSuccessfulReply(jsval* aValue) = 0;
+  virtual bool ParseSuccessfulReply(JS::Value* aValue) = 0;
 
   
   
@@ -44,7 +44,7 @@ protected:
   nsAutoPtr<BluetoothReply> mReply;
 
 private:
-  nsresult FireReply(const jsval& aVal);
+  nsresult FireReply(const JS::Value& aVal);
   nsresult FireErrorString();
 
   nsCOMPtr<nsIDOMDOMRequest> mDOMRequest;
@@ -58,7 +58,7 @@ public:
  ~BluetoothVoidReplyRunnable();
 
 protected:
-  virtual bool ParseSuccessfulReply(jsval* aValue)
+  virtual bool ParseSuccessfulReply(JS::Value* aValue)
   {
     *aValue = JSVAL_VOID;
     return true;
