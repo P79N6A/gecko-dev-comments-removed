@@ -114,7 +114,9 @@ var FullScreen = {
     
     
     
-    if (event.target.defaultView.top != gBrowser.contentWindow) {
+    if (!event.target.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIWebNavigation)
+                                 .QueryInterface(Ci.nsIDocShell).isActive) {
       document.mozCancelFullScreen();
       return;
     }
