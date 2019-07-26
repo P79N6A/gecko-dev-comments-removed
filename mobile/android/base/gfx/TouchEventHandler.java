@@ -299,6 +299,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
     private class ListenerTimeoutProcessor implements Runnable {
         
+        @Override
         public void run() {
             if (mProcessingBalance < 0) {
                 
@@ -313,6 +314,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
     
 
+    @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         if ((Tabs.getInstance().isSelectedTab(tab) && msg == Tabs.TabEvents.STOP) || msg == Tabs.TabEvents.SELECTED) {
             mWaitForTouchListeners = tab.getHasTouchListeners();

@@ -67,6 +67,7 @@ public class BookmarksTab extends AwesomeBarTab {
             list.setAdapter(null);
             list.setAdapter(getCursorAdapter());
             list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     handleItemClick(parent, view, position, id);
                 }
@@ -368,6 +369,7 @@ public class BookmarksTab extends AwesomeBarTab {
         protected void onPostExecute(final Cursor cursor) {
             
             GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+                @Override
                 public void run() {
                     
                     

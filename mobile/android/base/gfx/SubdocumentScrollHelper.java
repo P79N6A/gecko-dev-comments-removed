@@ -118,9 +118,11 @@ class SubdocumentScrollHelper implements GeckoEventListener {
 
     
 
+    @Override
     public void handleMessage(final String event, final JSONObject message) {
         
         mUiHandler.post(new Runnable() {
+            @Override
             public void run() {
                 Log.i(LOGTAG, "Got message: " + event);
                 try {

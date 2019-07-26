@@ -43,6 +43,7 @@ public class GeckoAccessibility {
 
     public static void updateAccessibilitySettings () {
         GeckoAppShell.getHandler().post(new Runnable() {
+                @Override
                 public void run() {
                     JSONObject ret = new JSONObject();
                     sEnabled = false;
@@ -129,6 +130,7 @@ public class GeckoAccessibility {
             
             
             GeckoAppShell.getHandler().post(new Runnable() {
+                    @Override
                     public void run() {
                         sendDirectAccessibilityEvent(eventType, message);
                 }
@@ -160,6 +162,7 @@ public class GeckoAccessibility {
             
             sEventMessage = message;
             GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+                    @Override
                     public void run() {
                         
                         

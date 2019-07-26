@@ -130,6 +130,7 @@ public class AwesomeBarTabs extends TabHost
         setup();
 
         mListTouchListener = new View.OnTouchListener() {
+            @Override
             public boolean onTouch(View view, MotionEvent event) {
                 if (event.getActionMasked() == MotionEvent.ACTION_DOWN)
                     hideSoftInput(view);
@@ -264,6 +265,7 @@ public class AwesomeBarTabs extends TabHost
         
         
         indicatorView.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View v) {
                 mViewPager.setCurrentItem(contentId, true);
             }

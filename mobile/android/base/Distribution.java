@@ -47,6 +47,7 @@ public final class Distribution {
     public static void init(final Context context, final String packagePath) {
         
         GeckoBackgroundThread.getHandler().post(new Runnable() {
+            @Override
             public void run() {
                 
                 SharedPreferences settings = context.getSharedPreferences(GeckoApp.PREFS_NAME, Activity.MODE_PRIVATE);

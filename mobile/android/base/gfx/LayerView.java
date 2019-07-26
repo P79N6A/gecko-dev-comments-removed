@@ -132,6 +132,7 @@ public class LayerView extends FrameLayout {
         
         
         post(new Runnable() {
+            @Override
             public void run() {
                 mTouchIntercepter = touchIntercepter;
             }
@@ -428,14 +429,17 @@ public class LayerView extends FrameLayout {
     }
 
     private class SurfaceListener implements SurfaceHolder.Callback {
+        @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width,
                                                 int height) {
             onSizeChanged(width, height);
         }
 
+        @Override
         public void surfaceCreated(SurfaceHolder holder) {
         }
 
+        @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
             onDestroyed();
         }

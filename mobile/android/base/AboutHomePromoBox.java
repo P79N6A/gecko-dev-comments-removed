@@ -66,6 +66,7 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
             super(aText, aBoldText, aImage);
             
             mAccountListener = new OnAccountsUpdateListener() {
+                @Override
                 public void onAccountsUpdated(Account[] accounts) {
                     showRandomPromo();
                 }
@@ -125,6 +126,7 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
                 
                 
                 v.postDelayed(new Runnable() {
+                    @Override
                     public void run() {
                         showRandomPromo();
                     }
@@ -149,6 +151,7 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
 
     public void showRandomPromo() {
         getAvailableTypes(new GetTypesCallback() {
+            @Override
             public void onGotTypes(ArrayList<Type> types) {
                 if (types.size() == 0) {
                     hide();
