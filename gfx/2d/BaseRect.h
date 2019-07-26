@@ -15,20 +15,6 @@ namespace gfx {
 
 
 
-template<typename T>
-T gfx_min(T aVal1, T aVal2)
-{
-  return (aVal1 < aVal2) ? aVal1 : aVal2;
-}
-
-template<typename T>
-T gfx_max(T aVal1, T aVal2)
-{
-  return (aVal1 > aVal2) ? aVal1 : aVal2;
-}
-
-
-
 
 
 
