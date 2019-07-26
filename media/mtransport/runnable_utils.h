@@ -18,8 +18,8 @@ namespace mozilla {
 class runnable_args_base : public nsRunnable {
  public:
   NS_IMETHOD Run() = 0;
+  virtual bool returns_value() const { return false; }
 };
-
 
 
 
@@ -52,6 +52,15 @@ static inline nsresult RUN_ON_THREAD(nsIEventTarget *thread, nsIRunnable *runnab
     }
   }
   return runnable_ref->Run();
+}
+
+static inline nsresult RUN_ON_THREAD(nsIEventTarget *thread, runnable_args_base *runnable, uint32_t flags) {
+  
+  
+  
+  MOZ_ASSERT((!(runnable->returns_value()) || (flags != NS_DISPATCH_NORMAL)));
+
+  return RUN_ON_THREAD(thread, static_cast<nsIRunnable *>(runnable), flags);
 }
 
 #ifdef MOZ_DEBUG
