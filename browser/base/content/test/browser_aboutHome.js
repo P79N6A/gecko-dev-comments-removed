@@ -2,6 +2,11 @@
 
 
 
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+
 registerCleanupFunction(function() {
   
   try {
@@ -22,19 +27,15 @@ let gTests = [
       .getService(Ci.nsIObserver)
       .observe(null, "cookie-changed", "cleared");
   },
-  run: function ()
+  run: function (aSnippetsMap)
   {
-    let storage = getStorage();
-    isnot(storage.getItem("snippets-last-update"), null);
-    executeSoon(runNextTest);
+    isnot(aSnippetsMap.get("snippets-last-update"), null);
   }
 },
 
 {
   desc: "Check default snippets are shown",
-  setup: function ()
-  {
-  },
+  setup: function () { },
   run: function ()
   {
     let doc = gBrowser.selectedTab.linkedBrowser.contentDocument;
@@ -42,19 +43,17 @@ let gTests = [
     ok(snippetsElt, "Found snippets element")
     is(snippetsElt.getElementsByTagName("span").length, 1,
        "A default snippet is visible.");
-    executeSoon(runNextTest);
   }
 },
 
 {
   desc: "Check default snippets are shown if snippets are invalid xml",
-  setup: function ()
+  setup: function (aSnippetsMap)
   {
-    let storage = getStorage();
     
-    storage.setItem("snippets", "<p><b></p></b>");
+    aSnippetsMap.set("snippets", "<p><b></p></b>");
   },
-  run: function ()
+  run: function (aSnippetsMap)
   {
     let doc = gBrowser.selectedTab.linkedBrowser.contentDocument;
 
@@ -62,16 +61,14 @@ let gTests = [
     ok(snippetsElt, "Found snippets element");
     is(snippetsElt.getElementsByTagName("span").length, 1,
        "A default snippet is visible.");
-    let storage = getStorage();
-    storage.removeItem("snippets");
-    executeSoon(runNextTest);
+
+    aSnippetsMap.delete("snippets");
   }
 },
+
 {
   desc: "Check that search engine logo has alt text",
-  setup: function ()
-  {
-  },
+  setup: function () { },
   run: function ()
   {
     let doc = gBrowser.selectedTab.linkedBrowser.contentDocument;
@@ -85,37 +82,38 @@ let gTests = [
 
     isnot(altText, "undefined",
           "Search engine logo's alt text shouldn't be the string 'undefined'");
-
-    executeSoon(runNextTest);
   }
 },
+
 {
   desc: "Check that performing a search fires a search event.",
   setup: function () { },
   run: function () {
+    let deferred = Promise.defer();
     let doc = gBrowser.contentDocument;
 
     doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
       is(e.detail, doc.documentElement.getAttribute("searchEngineName"), "Detail is search engine name");
 
       gBrowser.stop();
-      executeSoon(runNextTest);
+      deferred.resolve();
     }, true, true);
 
     doc.getElementById("searchText").value = "it works";
     doc.getElementById("searchSubmit").click();
-  },
+    return deferred.promise;
+  }
 },
+
 {
   desc: "Check that performing a search records to Firefox Health Report.",
   setup: function () { },
   run: function () {
     if (!("@mozilla.org/datareporting/service;1" in Components.classes)) {
-      runNextTest();
       return;
     }
 
-
+    let deferred = Promise.defer();
     let doc = gBrowser.contentDocument;
 
     
@@ -146,7 +144,7 @@ let gTests = [
           
           is(day.get(field), 2, "Have searches recorded.");
 
-          executeSoon(runNextTest);
+          deferred.resolve();
         });
 
       });
@@ -154,62 +152,118 @@ let gTests = [
 
     doc.getElementById("searchText").value = "a search";
     doc.getElementById("searchSubmit").click();
-  },
+    return deferred.promise;
+  }
 },
+
 ];
 
 function test()
 {
   waitForExplicitFinish();
 
-  
-  
-  let storage = getStorage();
-  storage.setItem("snippets-last-update", Date.now());
-  storage.removeItem("snippets");
+  Task.spawn(function () {
+    for (let test of gTests) {
+      info(test.desc);
 
-  executeSoon(runNextTest);
-}
+      let tab = yield promiseNewTabLoadEvent("about:home", "DOMContentLoaded");
 
-function runNextTest()
-{
-  while (gBrowser.tabs.length > 1) {
-    gBrowser.removeCurrentTab();
-  }
+      
+      
+      
+      
+      let promise = promiseBrowserAttributes(tab);
+      
+      let snippetsMap = yield promiseSetupSnippetsMap(tab, test.setup);
+      
+      yield promise;
 
-  if (gTests.length) {
-    let test = gTests.shift();
-    info(test.desc);
-    test.setup();
-    let tab = gBrowser.selectedTab = gBrowser.addTab("about:home");
-    tab.linkedBrowser.addEventListener("load", function load(event) {
-      tab.linkedBrowser.removeEventListener("load", load, true);
+      yield test.run(snippetsMap);
 
-      let observer = new MutationObserver(function (mutations) {
-        for (let mutation of mutations) {
-          if (mutation.attributeName == "searchEngineURL") {
-            observer.disconnect();
-            executeSoon(test.run);
-            return;
-          }
-        }
-      });
-      let docElt = tab.linkedBrowser.contentDocument.documentElement;
-      observer.observe(docElt, { attributes: true });
-    }, true);
-  }
-  else {
+      gBrowser.removeCurrentTab();
+    }
+
     finish();
-  }
+  });
 }
 
-function getStorage()
+
+
+
+
+
+
+
+
+
+function promiseNewTabLoadEvent(aUrl, aEventType="load")
 {
-  let aboutHomeURI = Services.io.newURI("moz-safe-about:home", null, null);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"].
-                  getService(Components.interfaces.nsIScriptSecurityManager).
-                  getNoAppCodebasePrincipal(Services.io.newURI("about:home", null, null));
-  let dsm = Components.classes["@mozilla.org/dom/storagemanager;1"].
-            getService(Components.interfaces.nsIDOMStorageManager);
-  return dsm.getLocalStorageForPrincipal(principal, "");
-};
+  let deferred = Promise.defer();
+  let tab = gBrowser.selectedTab = gBrowser.addTab(aUrl);
+  tab.linkedBrowser.addEventListener(aEventType, function load(event) {
+    tab.linkedBrowser.removeEventListener(aEventType, load, true);
+    deferred.resolve(tab);
+  }, true);
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseSetupSnippetsMap(aTab, aSetupFn)
+{
+  let deferred = Promise.defer();
+  let cw = aTab.linkedBrowser.contentWindow.wrappedJSObject;
+  cw.ensureSnippetsMapThen(function (aSnippetsMap) {
+    
+    aSnippetsMap.set("snippets-last-update", Date.now());
+    
+    aSnippetsMap.delete("snippets");
+    aSetupFn(aSnippetsMap);
+    
+    executeSoon(function() deferred.resolve(aSnippetsMap));
+  });
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+function promiseBrowserAttributes(aTab)
+{
+  let deferred = Promise.defer();
+
+  let docElt = aTab.linkedBrowser.contentDocument.documentElement;
+  
+  let observer = new MutationObserver(function (mutations) {
+    for (let mutation of mutations) {
+      if (mutation.attributeName == "snippetsURL" &&
+          docElt.getAttribute("snippetsURL") != "nonexistent://test") {
+        docElt.setAttribute("snippetsURL", "nonexistent://test");
+      }
+
+      
+      if (mutation.attributeName == "searchEngineURL") {
+        observer.disconnect();
+        
+        executeSoon(function() deferred.resolve());
+        break;
+      }
+    }
+  });
+  observer.observe(docElt, { attributes: true });
+
+  return deferred.promise;
+}
