@@ -361,16 +361,15 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
 
   
   if totalBytesLeaked > leakThreshold:
+    
     prefix = "TEST-UNEXPECTED-FAIL"
   else:
     prefix = "WARNING"
   
   
+  
   maxSummaryObjects = 5
   leakedObjectSummary = ', '.join(leakedObjectNames[:maxSummaryObjects])
-  
-  
-  
   if len(leakedObjectNames) > maxSummaryObjects:
     leakedObjectSummary += ', ...'
   log.info("%s %s| leakcheck | %d bytes leaked (%s)"
