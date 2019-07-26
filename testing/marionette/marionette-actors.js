@@ -410,7 +410,7 @@ MarionetteDriverActor.prototype = {
     this.curBrowser = this.browsers[winId];
     if (this.curBrowser.elementManager.seenItems[winId] == undefined) {
       
-      this.curBrowser.elementManager.seenItems[winId] = win;
+      this.curBrowser.elementManager.seenItems[winId] = Cu.getWeakReference(win);
     }
   },
 
@@ -2166,7 +2166,7 @@ MarionetteDriverActor.prototype = {
           reg.id = this.curBrowser.register(this.generateFrameId(message.json.value),
                                          message.json.href); 
         }
-        this.curBrowser.elementManager.seenItems[reg.id] = listenerWindow; 
+        this.curBrowser.elementManager.seenItems[reg.id] = Cu.getWeakReference(listenerWindow); 
         reg.importedScripts = this.importedScripts.path;
         if (nullPrevious && (this.curBrowser.curFrameId != null)) {
           this.sendAsync("newSession", {B2G: (appName == "B2G")});
