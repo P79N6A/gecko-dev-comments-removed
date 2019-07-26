@@ -328,6 +328,17 @@ private:
 
   double AddFrameAndGetFps(const TimeStamp& timestamp);
 
+  
+
+
+
+
+
+
+
+
+  GLint FlipY(GLint y) const { return mHeight - y; }
+
   bool mDestroyed;
 
   nsAutoPtr<FPSState> mFPS;
@@ -335,6 +346,12 @@ private:
   
   nsTArray<GLuint> mTextures;
   static bool sDrawFPS;
+
+  
+
+
+
+  GLint mHeight;
 };
 
 }

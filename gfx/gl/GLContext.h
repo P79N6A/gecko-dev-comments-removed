@@ -878,8 +878,6 @@ public:
     }
 
     void fCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border) {
-        y = FixYValue(y, height);
-
         if (!IsTextureSizeSafeToPassToDriver(target, width, height)) {
             
             
@@ -896,8 +894,6 @@ public:
     }
 
     void fCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height) {
-        y = FixYValue(y, height);
-
         BeforeGLReadCall();
         raw_fCopyTexSubImage2D(target, level, xoffset, yoffset,
                                x, y, width, height);
@@ -1373,14 +1369,12 @@ public:
 private:
     void raw_fReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels) {
         BEFORE_GL_CALL;
-        mSymbols.fReadPixels(x, FixYValue(y, height), width, height, format, type, pixels);
+        mSymbols.fReadPixels(x, y, width, height, format, type, pixels);
         AFTER_GL_CALL;
     }
 
 public:
     void fReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels) {
-        y = FixYValue(y, height);
-
         BeforeGLReadCall();
 
         bool didReadPixels = false;
@@ -2560,8 +2554,6 @@ public:
                                  const char *extension);
 
     GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
-    void SetFlipped(bool aFlipped) { mFlipped = aFlipped; }
-
 
 public:
     
@@ -2611,7 +2603,6 @@ protected:
     
     static unsigned sCurrentGLContextTLS;
 #endif
-    bool mFlipped;
 
     ScopedDeletePtr<GLBlitHelper> mBlitHelper;
     ScopedDeletePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
@@ -2825,20 +2816,9 @@ protected:
 
     
 
-protected:
-    GLint FixYValue(GLint y, GLint height)
-    {
-        MOZ_ASSERT( !(mIsOffscreen && mFlipped) );
-        return mFlipped ? ViewportRect().height - (height + y) : y;
-    }
-
 public:
     void fScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         ScissorRect().SetRect(x, y, width, height);
-
-        
-        
-        y = FixYValue(y, height);
         raw_fScissor(x, y, width, height);
     }
 
@@ -2876,11 +2856,6 @@ private:
     
     void raw_fViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
-        
-        
-        
-        
-        NS_ASSERTION(!mFlipped || (x == 0 && y == 0), "TODO: Need to flip the viewport rect");
         mSymbols.fViewport(x, y, width, height);
         AFTER_GL_CALL;
     }
