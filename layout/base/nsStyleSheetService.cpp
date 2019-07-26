@@ -98,6 +98,9 @@ nsresult
 nsStyleSheetService::Init()
 {
   
+  
+
+  
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     return NS_OK;
   }
