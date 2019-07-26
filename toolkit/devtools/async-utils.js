@@ -66,6 +66,28 @@ exports.asyncOnce = function asyncOnce(func) {
 
 
 
+exports.listenOnce = function listenOnce(element, event, useCapture) {
+  return new Promise(function(resolve, reject) {
+    var onEvent = function(ev) {
+      element.removeEventListener(event, onEvent, useCapture);
+      resolve(ev);
+    }
+    element.addEventListener(event, onEvent, useCapture);
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
