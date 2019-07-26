@@ -1265,6 +1265,23 @@ MetroInput::OnTapped(UI::Input::IGestureRecognizer* aSender,
     
     mouseEvent.message = NS_MOUSE_BUTTON_UP;
     DispatchEventIgnoreStatus(&mouseEvent);
+
+    
+    
+    
+    
+    POINT point;
+    if (GetCursorPos(&point)) {
+      ScreenToClient((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW), &point);
+      Foundation::Point oldMousePosition;
+      oldMousePosition.X = static_cast<FLOAT>(point.x);
+      oldMousePosition.Y = static_cast<FLOAT>(point.y);
+      mouseEvent.refPoint = MetroUtils::LogToPhys(oldMousePosition);
+      mouseEvent.message = NS_MOUSE_MOVE;
+      mouseEvent.button = 0;
+
+      DispatchEventIgnoreStatus(&mouseEvent);
+    }
   }
 
   return S_OK;
