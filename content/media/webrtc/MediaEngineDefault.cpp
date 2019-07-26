@@ -203,9 +203,18 @@ MediaEngineDefaultVideoSource::Notify(nsITimer* aTimer)
   return NS_OK;
 }
 
+void
+MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
+                                          StreamTime aDesiredTime)
+{
+  
+}
+
+
+
+
+
 NS_IMPL_THREADSAFE_ISUPPORTS1(MediaEngineDefaultAudioSource, nsITimerCallback)
-
-
 
 MediaEngineDefaultAudioSource::MediaEngineDefaultAudioSource()
   : mTimer(nullptr)
@@ -215,6 +224,13 @@ MediaEngineDefaultAudioSource::MediaEngineDefaultAudioSource()
 
 MediaEngineDefaultAudioSource::~MediaEngineDefaultAudioSource()
 {}
+
+void
+MediaEngineDefaultAudioSource::NotifyPull(MediaStreamGraph* aGraph,
+                                          StreamTime aDesiredTime)
+{
+  
+}
 
 void
 MediaEngineDefaultAudioSource::GetName(nsAString& aName)

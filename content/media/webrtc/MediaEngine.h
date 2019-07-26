@@ -74,6 +74,9 @@ public:
   virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile) = 0;
 
   
+  virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) = 0;
+
+  
   virtual nsresult Stop() = 0;
 
   
