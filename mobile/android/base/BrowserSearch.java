@@ -11,6 +11,8 @@ import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.home.HomeFragment;
+import org.mozilla.gecko.home.HomeListView;
 import org.mozilla.gecko.home.TwoLinePageRow;
 import org.mozilla.gecko.widget.FaviconView;
 
@@ -47,8 +49,9 @@ import java.util.ArrayList;
 
 
 
-public class BrowserSearch extends Fragment implements AdapterView.OnItemClickListener,
-                                                       GeckoEventListener {
+public class BrowserSearch extends HomeFragment
+                           implements AdapterView.OnItemClickListener,
+                                      GeckoEventListener {
     
     private static final String LOGTAG = "GeckoBrowserSearch";
 
@@ -187,7 +190,7 @@ public class BrowserSearch extends Fragment implements AdapterView.OnItemClickLi
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         
         
-        mList = new ListView(container.getContext());
+        mList = new HomeListView(container.getContext());
         return mList;
     }
 
@@ -196,6 +199,7 @@ public class BrowserSearch extends Fragment implements AdapterView.OnItemClickLi
         super.onViewCreated(view, savedInstanceState);
 
         mList.setOnItemClickListener(this);
+        registerForContextMenu(mList);
     }
 
     @Override
