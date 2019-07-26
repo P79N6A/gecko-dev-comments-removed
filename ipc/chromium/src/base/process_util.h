@@ -286,10 +286,6 @@ class ProcessMetrics {
   size_t GetPeakPagefileUsage() const;
   
   size_t GetWorkingSetSize() const;
-  
-  
-  
-  size_t GetPrivateBytes() const;
 
   
   

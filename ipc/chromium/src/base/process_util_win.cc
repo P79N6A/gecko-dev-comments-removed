@@ -494,20 +494,6 @@ size_t ProcessMetrics::GetWorkingSetSize() const {
   return 0;
 }
 
-size_t ProcessMetrics::GetPrivateBytes() const {
-  
-  
-  
-  
-  PROCESS_MEMORY_COUNTERS_EX pmcx;
-  if (GetProcessMemoryInfo(process_,
-                          reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmcx),
-                          sizeof(pmcx))) {
-      return pmcx.PrivateUsage;
-  }
-  return 0;
-}
-
 static uint64_t FileTimeToUTC(const FILETIME& ftime) {
   LARGE_INTEGER li;
   li.LowPart = ftime.dwLowDateTime;
