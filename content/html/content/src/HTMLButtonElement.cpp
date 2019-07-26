@@ -505,15 +505,14 @@ HTMLButtonElement::SaveState()
     return NS_OK;
   }
   
-  nsPresState *state = nullptr;
-  nsresult rv = GetPrimaryPresState(this, &state);
+  nsPresState* state = GetPrimaryPresState();
   if (state) {
     
     
     state->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
   }
 
-  return rv;
+  return NS_OK;
 }
 
 bool

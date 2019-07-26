@@ -1175,28 +1175,22 @@ nsGenericHTMLElement::GetFormControlFrame(bool aFlushFrames)
   return nullptr;
 }
 
- nsresult
-nsGenericHTMLElement::GetPrimaryPresState(nsGenericHTMLElement* aContent,
-                                          nsPresState** aPresState)
+nsPresState*
+nsGenericHTMLElement::GetPrimaryPresState()
 {
-  NS_ENSURE_ARG_POINTER(aPresState);
-  *aPresState = nullptr;
-
-  nsresult result = NS_OK;
-
   nsAutoCString key;
-  nsCOMPtr<nsILayoutHistoryState> history = GetLayoutHistoryAndKey(aContent, false, key);
-
-  if (history) {
-    
-    result = history->GetState(key, aPresState);
-    if (!*aPresState) {
-      *aPresState = new nsPresState();
-      result = history->AddState(key, *aPresState);
-    }
+  nsCOMPtr<nsILayoutHistoryState> history = GetLayoutHistoryAndKey(this, false, key);
+  if (!history) {
+    return nullptr;
   }
 
-  return result;
+  
+  nsPresState* presState = history->GetState(key);
+  if (!presState) {
+    presState = new nsPresState();
+    history->AddState(key, presState);
+  }
+  return presState;
 }
 
 
@@ -1255,10 +1249,8 @@ nsGenericHTMLElement::RestoreFormControlState(nsGenericHTMLElement* aContent,
     return false;
   }
 
-  nsPresState *state;
-  
-  nsresult rv = history->GetState(key, &state);
-  if (NS_SUCCEEDED(rv) && state) {
+  nsPresState* state = history->GetState(key);
+  if (state) {
     bool result = aControl->RestoreState(state);
     history->RemoveState(key);
     return result;

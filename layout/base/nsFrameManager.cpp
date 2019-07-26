@@ -490,11 +490,7 @@ nsFrameManager::CaptureFrameStateFor(nsIFrame* aFrame,
   }
 
   
-  rv = aState->AddState(stateKey, frameState);
-  if (NS_SUCCEEDED(rv)) {
-    
-    frameState.forget();
-  }
+  aState->AddState(stateKey, frameState.forget());
 }
 
 void
@@ -557,8 +553,7 @@ nsFrameManager::RestoreFrameStateFor(nsIFrame* aFrame,
   }
 
   
-  nsPresState *frameState;
-  rv = aState->GetState(stateKey, &frameState);
+  nsPresState* frameState = aState->GetState(stateKey);
   if (!frameState) {
     return;
   }

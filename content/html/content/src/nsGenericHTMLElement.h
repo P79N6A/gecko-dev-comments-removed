@@ -630,9 +630,7 @@ public:
 
 
 
-
-  static nsresult GetPrimaryPresState(nsGenericHTMLElement* aContent,
-                                      nsPresState** aPresState);
+  nsPresState* GetPrimaryPresState();
   
 
 
