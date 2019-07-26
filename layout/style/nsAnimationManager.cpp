@@ -4,13 +4,16 @@
 
 
 #include "nsAnimationManager.h"
+#include "nsTransitionManager.h"
 
 #include "mozilla/MemoryReporting.h"
 
 #include "nsPresContext.h"
 #include "nsRuleProcessorData.h"
 #include "nsStyleSet.h"
+#include "nsStyleChangeList.h"
 #include "nsCSSRules.h"
+#include "RestyleManager.h"
 #include "nsStyleAnimation.h"
 #include "nsEventDispatcher.h"
 #include "nsLayoutUtils.h"
@@ -21,10 +24,12 @@
 using namespace mozilla;
 using namespace mozilla::css;
 
-ElementAnimations::ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                                     nsAnimationManager *aAnimationManager)
+ElementAnimations::ElementAnimations(mozilla::dom::Element *aElement,
+                                     nsIAtom *aElementProperty,
+                                     nsAnimationManager *aAnimationManager,
+                                     TimeStamp aNow)
   : CommonElementAnimationData(aElement, aElementProperty,
-                               aAnimationManager),
+                               aAnimationManager, aNow),
     mNeedsRefreshes(true)
 {
 }
@@ -451,7 +456,8 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
                              aElement->GetProperty(propName));
   if (!ea && aCreateIfNeeded) {
     
-    ea = new ElementAnimations(aElement, propName, this);
+    ea = new ElementAnimations(aElement, propName, this,
+           mPresContext->RefreshDriver()->MostRecentRefresh());
     nsresult rv = aElement->SetProperty(propName, ea,
                                         ElementAnimationsPropertyDtor, false);
     if (NS_FAILED(rv)) {
@@ -1088,3 +1094,62 @@ nsAnimationManager::DoDispatchEvents()
     }
   }
 }
+
+void
+nsAnimationManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                                nsStyleContext* aParentStyle,
+                                                nsStyleChangeList& aChangeList)
+{
+  dom::Element* element;
+  if (aContent->IsElement()) {
+    element = aContent->AsElement();
+  } else {
+    element = nullptr;
+  }
+
+  nsRefPtr<nsStyleContext> newStyle;
+
+  ElementAnimations* ea;
+  if (element &&
+      (ea = GetElementAnimations(element,
+                                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                                 false))) {
+    
+    newStyle = UpdateThrottledStyle(element, aParentStyle, aChangeList);
+    
+    ea->mFlushGeneration = mPresContext->RefreshDriver()->MostRecentRefresh();
+  } else {
+    newStyle = ReparentContent(aContent, aParentStyle);
+  }
+
+  
+  if (newStyle) {
+    for (nsIContent *child = aContent->GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      UpdateThrottledStylesForSubtree(child, newStyle, aChangeList);
+    }
+  }
+}
+
+IMPL_UPDATE_ALL_THROTTLED_STYLES_INTERNAL(nsAnimationManager,
+                                          GetElementAnimations)
+
+void
+nsAnimationManager::UpdateAllThrottledStyles()
+{
+  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+    
+    mPresContext->TickLastUpdateThrottledAnimationStyle();
+    return;
+  }
+
+  if (mPresContext->ThrottledAnimationStyleIsUpToDate()) {
+    
+    return;
+  }
+
+  mPresContext->TickLastUpdateThrottledAnimationStyle();
+
+  UpdateAllThrottledStylesInternal();
+}
+

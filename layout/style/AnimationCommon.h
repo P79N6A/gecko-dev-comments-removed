@@ -17,7 +17,8 @@
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h"
 #include "mozilla/Attributes.h"
-
+#include "nsCSSPseudoElements.h"
+ 
 class nsPresContext;
 class nsIFrame;
 
@@ -70,9 +71,81 @@ protected:
   virtual void ElementDataRemoved() = 0;
   void RemoveAllElementData();
 
+  
+  
+  
+  nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
+                                       nsStyleContext* aParentStyle,
+                                       nsStyleChangeList &aChangeList);
+  
+  already_AddRefed<nsStyleContext> ReparentContent(nsIContent* aContent,
+                                                  nsStyleContext* aParentStyle);
+  
+  static void ReparentBeforeAndAfter(dom::Element* aElement,
+                                     nsIFrame* aPrimaryFrame,
+                                     nsStyleContext* aNewStyle,
+                                     nsStyleSet* aStyleSet);
+
   PRCList mElementData;
   nsPresContext *mPresContext; 
 };
+
+
+
+#define IMPL_UPDATE_ALL_THROTTLED_STYLES_INTERNAL(class_, animations_getter_)  \
+void                                                                           \
+class_::UpdateAllThrottledStylesInternal()                                     \
+{                                                                              \
+  TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();          \
+                                                                               \
+  nsStyleChangeList changeList;                                                \
+                                                                               \
+  /* update each transitioning element by finding its root-most ancestor
+     with a transition, and flushing the style on that ancestor and all
+     its descendants*/                                                         \
+  PRCList *next = PR_LIST_HEAD(&mElementData);                                 \
+  while (next != &mElementData) {                                              \
+    CommonElementAnimationData* ea =                                           \
+      static_cast<CommonElementAnimationData*>(next);                          \
+    next = PR_NEXT_LINK(next);                                                 \
+                                                                               \
+    if (ea->mFlushGeneration == now) {                                         \
+                                     \
+      continue;                                                                \
+    }                                                                          \
+                                                                               \
+    
+
+                         \
+    dom::Element* element = ea->mElement;                                      \
+                                                 \
+    nsTArray<dom::Element*> ancestors;                                         \
+    do {                                                                       \
+      ancestors.AppendElement(element);                                        \
+    } while ((element = element->GetParentElement()));                         \
+                                                                               \
+    \
+    for (int32_t i = ancestors.Length() - 1; i >= 0; --i) {                    \
+      if (animations_getter_(ancestors[i],                                     \
+                            nsCSSPseudoElements::ePseudo_NotPseudoElement,     \
+                            false)) {                                          \
+        element = ancestors[i];                                                \
+        break;                                                                 \
+      }                                                                        \
+    }                                                                          \
+                                                                               \
+    nsIFrame* primaryFrame;                                                    \
+    if (element &&                                                             \
+        (primaryFrame = nsLayoutUtils::GetStyleFrame(element))) {              \
+      UpdateThrottledStylesForSubtree(element,                                 \
+        primaryFrame->StyleContext()->GetParent(), changeList);                \
+    }                                                                          \
+  }                                                                            \
+                                                                               \
+  RestyleManager* restyleManager = mPresContext->RestyleManager();             \
+  restyleManager->ProcessRestyledFrames(changeList);                           \
+  restyleManager->FlushOverflowChangedTracker();                               \
+}
 
 
 
@@ -132,11 +205,12 @@ private:
 struct CommonElementAnimationData : public PRCList
 {
   CommonElementAnimationData(dom::Element *aElement, nsIAtom *aElementProperty,
-                             CommonAnimationManager *aManager)
+                             CommonAnimationManager *aManager, TimeStamp aNow)
     : mElement(aElement)
     , mElementProperty(aElementProperty)
     , mManager(aManager)
     , mAnimationGeneration(0)
+    , mFlushGeneration(aNow)
 #ifdef DEBUG
     , mCalledPropertyDtor(false)
 #endif
@@ -215,6 +289,11 @@ struct CommonElementAnimationData : public PRCList
 
   
   TimeStamp mStyleRuleRefreshTime;
+
+  
+  
+  
+  TimeStamp mFlushGeneration;
 
 #ifdef DEBUG
   bool mCalledPropertyDtor;
