@@ -386,7 +386,7 @@ void TelemetryIOInterposeObserver::AddPath(const nsAString& aPath,
 void TelemetryIOInterposeObserver::Observe(Observation& aOb)
 {
   
-  if (!NS_IsMainThread()) {
+  if (!IsMainThread()) {
     return;
   }
 
@@ -2968,10 +2968,6 @@ InitIOReporting(nsIFile* aXreDir)
     return;
   }
 
-  
-  IOInterposer::Init();
-  InitPoisonIOInterposer();
- 
   sTelemetryIOObserver = new TelemetryIOInterposeObserver(aXreDir);
   IOInterposer::Register(IOInterposeObserver::OpAll, sTelemetryIOObserver);
 }
