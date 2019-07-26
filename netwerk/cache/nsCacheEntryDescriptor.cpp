@@ -655,7 +655,7 @@ nsCacheEntryDescriptor::VisitMetaData(nsICacheMetaDataVisitor * visitor)
 
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsInputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsInputStreamWrapper::Release()
 {
     
@@ -847,7 +847,7 @@ nsInputStreamWrapper::IsNonBlocking(bool *result)
 
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsDecompressInputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsDecompressInputStreamWrapper::Release()
 {
     
@@ -1037,7 +1037,7 @@ nsDecompressInputStreamWrapper::EndZstream()
 
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsOutputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsOutputStreamWrapper::Release()
 {
     
@@ -1267,7 +1267,7 @@ nsOutputStreamWrapper::IsNonBlocking(bool *result)
 
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsCompressOutputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsCompressOutputStreamWrapper::Release()
 {
     

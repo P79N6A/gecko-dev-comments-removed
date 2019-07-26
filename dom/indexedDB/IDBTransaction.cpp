@@ -75,12 +75,12 @@ public:
 };
 
 
-NS_IMETHODIMP_(nsrefcnt) StartTransactionRunnable::AddRef()
+NS_IMETHODIMP_(MozExternalRefCountType) StartTransactionRunnable::AddRef()
 {
   return 2;
 }
 
-NS_IMETHODIMP_(nsrefcnt) StartTransactionRunnable::Release()
+NS_IMETHODIMP_(MozExternalRefCountType) StartTransactionRunnable::Release()
 {
   return 1;
 }

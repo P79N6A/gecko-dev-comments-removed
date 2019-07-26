@@ -36,8 +36,8 @@ public:
   
   
   
-  NS_IMETHOD_(nsrefcnt) AddRef() MOZ_OVERRIDE = 0;
-  NS_IMETHOD_(nsrefcnt) Release() MOZ_OVERRIDE = 0;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef() MOZ_OVERRIDE = 0;
+  NS_IMETHOD_(MozExternalRefCountType) Release() MOZ_OVERRIDE = 0;
 
   NS_DECL_NSICSSDECLARATION
   using nsICSSDeclaration::GetLength;

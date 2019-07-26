@@ -498,7 +498,7 @@ NS_INTERFACE_MAP_END
 
 
 
-NS_IMETHODIMP_(nsrefcnt) Connection::Release(void)
+NS_IMETHODIMP_(MozExternalRefCountType) Connection::Release(void)
 {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
   nsrefcnt count = --mRefCnt;

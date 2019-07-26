@@ -218,7 +218,7 @@ nsXPCWrappedJS::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 
 
 
-nsrefcnt
+MozExternalRefCountType
 nsXPCWrappedJS::AddRef(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))
@@ -237,7 +237,7 @@ nsXPCWrappedJS::AddRef(void)
     return cnt;
 }
 
-nsrefcnt
+MozExternalRefCountType
 nsXPCWrappedJS::Release(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))

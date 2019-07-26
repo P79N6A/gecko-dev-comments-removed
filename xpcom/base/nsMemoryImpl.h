@@ -20,8 +20,8 @@ class nsMemoryImpl : public nsIMemory
 public:
     
     NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult);
-    NS_IMETHOD_(nsrefcnt) AddRef(void) { return 1; }
-    NS_IMETHOD_(nsrefcnt) Release(void) { return 1; }
+    NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return 1; }
+    NS_IMETHOD_(MozExternalRefCountType) Release(void) { return 1; }
 
     NS_DECL_NSIMEMORY
 

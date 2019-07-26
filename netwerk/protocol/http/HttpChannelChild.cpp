@@ -66,7 +66,7 @@ HttpChannelChild::~HttpChannelChild()
 
 NS_IMPL_ADDREF(HttpChannelChild)
 
-NS_IMETHODIMP_(nsrefcnt) HttpChannelChild::Release()
+NS_IMETHODIMP_(MozExternalRefCountType) HttpChannelChild::Release()
 {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
   NS_ASSERT_OWNINGTHREAD(HttpChannelChild);
