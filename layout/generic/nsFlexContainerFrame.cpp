@@ -2312,6 +2312,16 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
     FlexItem& curItem = items[i];
+
+    nsPoint physicalPosn = axisTracker.PhysicalPositionFromLogicalPosition(
+                             curItem.GetMainPosition(),
+                             curItem.GetCrossPosition(),
+                             contentBoxMainSize,
+                             contentBoxCrossSize);
+    
+    
+    physicalPosn += containerContentBoxOrigin;
+
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        curItem.Frame(),
                                        nsSize(aReflowState.ComputedWidth(),
@@ -2368,15 +2378,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-
-    nsPoint physicalPosn = axisTracker.PhysicalPositionFromLogicalPosition(
-                             curItem.GetMainPosition(),
-                             curItem.GetCrossPosition(),
-                             contentBoxMainSize,
-                             contentBoxCrossSize);
-    
-    
-    physicalPosn += containerContentBoxOrigin;
 
     nsHTMLReflowMetrics childDesiredSize;
     nsReflowStatus childReflowStatus;
