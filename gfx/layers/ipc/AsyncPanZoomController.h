@@ -633,6 +633,14 @@ public:
   AsyncPanZoomController* GetLastChild() const { return mLastChild; }
   AsyncPanZoomController* GetPrevSibling() const { return mPrevSibling; }
   AsyncPanZoomController* GetParent() const { return mParent; }
+
+  
+
+
+  bool IsRootForLayersId() const {
+    return !mParent || (mParent->mLayersId != mLayersId);
+  }
+
 private:
   nsRefPtr<AsyncPanZoomController> mLastChild;
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
