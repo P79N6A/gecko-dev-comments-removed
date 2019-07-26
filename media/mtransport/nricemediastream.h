@@ -63,21 +63,6 @@ typedef struct nr_ice_media_stream_ nr_ice_media_stream;
 
 class NrIceCtx;
 
-
-
-struct NrIceCandidate {
-  enum Type {
-    ICE_HOST,
-    ICE_SERVER_REFLEXIVE,
-    ICE_PEER_REFLEXIVE,
-    ICE_RELAYED
-  };
-
-  std::string host;
-  uint16_t port;
-  Type type;
-};
-
 class NrIceMediaStream {
  public:
   static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
@@ -103,14 +88,6 @@ class NrIceMediaStream {
 
   
   nsresult ParseTrickleCandidate(const std::string& candidate);
-
-  
-  
-  nsresult GetActivePair(int component,
-                         NrIceCandidate** local, NrIceCandidate** remote);
-
-  
-  int components() const { return components_; }
 
   
   nr_ice_media_stream *stream() { return stream_; }
@@ -149,7 +126,11 @@ class NrIceMediaStream {
       ctx_(ctx),
       name_(name),
       components_(components),
-      stream_(nullptr) {}
+      stream_(nullptr)
+  {
+    
+    (void)components_;
+  }
 
   DISALLOW_COPY_ASSIGN(NrIceMediaStream);
 
