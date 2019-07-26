@@ -320,19 +320,24 @@ function run_test() {
   
   PlacesUtils.history;
   
+  Services.obs.addObserver(function waitPlaceInitComplete() {
+    Services.obs.removeObserver(waitPlaceInitComplete, "places-browser-init-complete");
+
+    
+    do_check_false(Services.prefs.getBoolPref(PREF_AUTO_EXPORT_HTML));
+    do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
+    try {
+      do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
+      do_throw("importBookmarksHTML pref should not exist");
+    }
+    catch(ex) {}
+
+    waitForImportAndSmartBookmarks(next_test);
+  }, "places-browser-init-complete", false);
+
+  
   
   bg.observe(null, "places-init-complete", null);
-
-  
-  do_check_false(Services.prefs.getBoolPref(PREF_AUTO_EXPORT_HTML));
-  do_check_false(Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
-  try {
-    do_check_false(Services.prefs.getBoolPref(PREF_IMPORT_BOOKMARKS_HTML));
-    do_throw("importBookmarksHTML pref should not exist");
-  }
-  catch(ex) {}
-
-  waitForImportAndSmartBookmarks(next_test);
 }
 
 function waitForImportAndSmartBookmarks(aCallback) {

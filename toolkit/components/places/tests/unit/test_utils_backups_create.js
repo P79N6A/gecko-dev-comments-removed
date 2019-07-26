@@ -32,32 +32,32 @@ function run_test() {
   
   dates.sort();
 
-  
-  var bookmarksBackupDir = PlacesBackups.folder;
-
-  
-  
-  
-  for (let i = dates.length - 1; i >= 0; i--) {
-    let backupFilename;
-    if (i > Math.floor(dates.length/2))
-      backupFilename = PREFIX + dates[i] + SUFFIX;
-    else
-      backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
-    dump("creating: " + backupFilename + "\n");
-    let backupFile = bookmarksBackupDir.clone();
-    backupFile.append(backupFilename);
-    backupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
-    do_check_true(backupFile.exists());
-  }
- 
-  
-  
-  PlacesUtils.getFormattedString = function (aKey, aValue) {
-    return LOCALIZED_PREFIX + aValue;
-  }
-
   Task.spawn(function() {
+    
+    let backupFolderPath = yield PlacesBackups.getBackupFolder();
+    let bookmarksBackupDir = new FileUtils.File(backupFolderPath);
+
+    
+    
+    
+    for (let i = dates.length - 1; i >= 0; i--) {
+      let backupFilename;
+      if (i > Math.floor(dates.length/2))
+        backupFilename = PREFIX + dates[i] + SUFFIX;
+      else
+        backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
+      let backupFile = bookmarksBackupDir.clone();
+      backupFile.append(backupFilename);
+      backupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+      do_check_true(backupFile.exists());
+    }
+
+    
+    
+    PlacesUtils.getFormattedString = function (aKey, aValue) {
+      return LOCALIZED_PREFIX + aValue;
+    }
+
     yield PlacesBackups.create(Math.floor(dates.length/2));
     
     dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
@@ -99,9 +99,6 @@ function run_test() {
       entry.remove(false);
     }
     do_check_false(bookmarksBackupDir.directoryEntries.hasMoreElements());
-
-    
-    PlacesBackups.folder;
 
     do_test_finished();
   });
