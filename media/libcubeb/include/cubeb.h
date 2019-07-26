@@ -74,7 +74,6 @@ extern "C" {
 
 
 
-
 typedef struct cubeb cubeb;               
 typedef struct cubeb_stream cubeb_stream; 
 
