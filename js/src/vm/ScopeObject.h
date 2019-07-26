@@ -483,10 +483,9 @@ class ScopeIter
     
     ScopeIter(const ScopeIter &si) MOZ_DELETE;
 
+    ScopeIter(JSContext *cx) MOZ_DELETE;
+
   public:
-    
-    explicit ScopeIter(JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
     explicit ScopeIter(const ScopeIter &si, JSContext *cx
