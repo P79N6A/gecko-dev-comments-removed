@@ -158,6 +158,14 @@ this.DOMApplicationRegistry = {
             }
 
             
+            if (this.webapps[id].storeId === undefined) {
+              this.webapps[id].storeId = "";
+            }
+            if (this.webapps[id].storeVersion === undefined) {
+              this.webapps[id].storeVersion = 0;
+            }
+
+            
             
             app.downloading = false;
             app.readyToApplyDownload = false;
@@ -2116,6 +2124,39 @@ this.DOMApplicationRegistry = {
                               app: app });
     }
 
+    
+    
+    
+    function checkForStoreIdMatch(aStoreId, aStoreVersion) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      
+      let appId = self.getAppLocalIdByStoreId(aStoreId);
+      let isInstalled = appId != Ci.nsIScriptSecurityManager.NO_APP_ID;
+      if (aIsUpdate) {
+        if (!isInstalled || (app.localId !== appId)) {
+          
+          
+          throw "WRONG_APP_STORE_ID";
+        }
+        if (app.storeVersion >= aStoreVersion) {
+          throw "APP_STORE_VERSION_ROLLBACK";
+        }
+      } else if (isInstalled) {
+        throw "WRONG_APP_STORE_ID";
+      }
+    }
+
     function download() {
       debug("About to download " + aManifest.fullPackagePath());
 
@@ -2354,6 +2395,31 @@ this.DOMApplicationRegistry = {
 
                 if (!AppsUtils.checkInstallAllowed(manifest, aApp.installOrigin)) {
                   throw "INSTALL_FROM_DENIED";
+                }
+
+                
+                if (isSigned) {
+                  let idsStream;
+                  try {
+                    idsStream = zipReader.getInputStream("META-INF/ids.json");
+                  } catch (e) {
+                    throw zipReader.hasEntry("META-INF/ids.json")
+                          ? e
+                          : "MISSING_IDS_JSON";
+                  }
+                  let ids =
+                    JSON.parse(
+                      converter.ConvertToUnicode(
+                        NetUtil.readInputStreamToString(
+                          idsStream, idsStream.available()) || ""));
+                  if ((!ids.id) || !Number.isInteger(ids.version) ||
+                      (ids.version <= 0)) {
+                     throw "INVALID_IDS_JSON";
+                  }
+                  let storeId = aApp.installOrigin + "#" + ids.id;
+                  checkForStoreIdMatch(storeId, ids.version);
+                  app.storeId = storeId;
+                  app.storeVersion = ids.version;
                 }
 
                 let maxStatus = isSigned ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
@@ -2671,6 +2737,11 @@ this.DOMApplicationRegistry = {
   getCSPByLocalId: function(aLocalId) {
     debug("getCSPByLocalId:" + aLocalId);
     return AppsUtils.getCSPByLocalId(this.webapps, aLocalId);
+  },
+
+  getAppLocalIdByStoreId: function(aStoreId) {
+    debug("getAppLocalIdByStoreId:" + aStoreId);
+    return AppsUtils.getAppLocalIdByStoreId(this.webapps, aStoreId);
   },
 
   getAppByLocalId: function(aLocalId) {
