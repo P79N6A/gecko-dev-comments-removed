@@ -461,6 +461,8 @@ pref("canvas.focusring.enabled", false);
 pref("canvas.customfocusring.enabled", false);
 pref("canvas.hitregions.enabled", false);
 
+pref("canvas.path.enabled", false);
+
 
 
 
