@@ -547,7 +547,9 @@ AudioContext::Shutdown()
   
   
   
-  Mute();
+  if (!mIsOffline) {
+    Mute();
+  }
 
   mDecoder.Shutdown();
 
