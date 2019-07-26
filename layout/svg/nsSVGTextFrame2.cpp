@@ -3807,21 +3807,9 @@ nsSVGTextFrame2::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 {
   NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
 
-  SVGBBox bbox;
-  if (NS_SUBTREE_DIRTY(this)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    return bbox;
-  }
-
   UpdateGlyphPositioning();
 
+  SVGBBox bbox;
   nsPresContext* presContext = PresContext();
 
   TextRenderedRunIterator it(this);
