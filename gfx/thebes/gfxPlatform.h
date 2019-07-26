@@ -639,7 +639,8 @@ protected:
 
 
 
-    void InitBackendPrefs(uint32_t aCanvasBitmask, uint32_t aContentBitmask);
+    void InitBackendPrefs(uint32_t aCanvasBitmask, mozilla::gfx::BackendType aCanvasDefault,
+                          uint32_t aContentBitmask, mozilla::gfx::BackendType aContentDefault);
 
     
 
@@ -659,10 +660,7 @@ protected:
 
 
 
-
-
-    static mozilla::gfx::BackendType GetBackendPref(const char* aEnabledPrefName,
-                                                    const char* aBackendPrefName,
+    static mozilla::gfx::BackendType GetBackendPref(const char* aBackendPrefName,
                                                     uint32_t &aBackendBitmask);
     
 
