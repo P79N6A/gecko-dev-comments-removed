@@ -190,10 +190,10 @@ XPCOMUtils.defineLazyGetter(this, "Rect", function() {
 });
 
 function resolveGeckoURI(aURI) {
-  if (aURI.indexOf("chrome://") == 0) {
+  if (aURI.startsWith("chrome://")) {
     let registry = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci["nsIChromeRegistry"]);
     return registry.convertChromeURL(Services.io.newURI(aURI, null, null)).spec;
-  } else if (aURI.indexOf("resource://") == 0) {
+  } else if (aURI.startsWith("resource://")) {
     let handler = Services.io.getProtocolHandler("resource").QueryInterface(Ci.nsIResProtocolHandler);
     return handler.resolveURI(Services.io.newURI(aURI, null, null));
   }
@@ -201,7 +201,7 @@ function resolveGeckoURI(aURI) {
 }
 
 function shouldShowProgress(url) {
-  return (url != "about:home" && !/^about:reader/.test(url));
+  return (url != "about:home" && !url.startsWith("about:reader"));
 }
 
 
@@ -2171,7 +2171,7 @@ var UserAgent = {
     if (aUri.schemeIs("http") || aUri.schemeIs("https")) {
       if (this.YOUTUBE_DOMAIN.test(aUri.host)) {
         
-        if (defaultUA.indexOf("Android; Mobile;") === -1)
+        if (!defaultUA.contains("Android; Mobile;"))
           return defaultUA.replace("Android;", "Android; Mobile;");
       }
     }
@@ -3058,7 +3058,8 @@ Tab.prototype = {
         
         
         
-        if (/^about:/.test(target.documentURI)) {
+        let docURI = target.documentURI;
+        if (docURI.startsWith("about:certerror") || docURI.startsWith("about:blocked")) {
           this.browser.addEventListener("click", ErrorPageEventHandler, true);
           let listener = function() {
             this.browser.removeEventListener("click", ErrorPageEventHandler, true);
@@ -3068,7 +3069,7 @@ Tab.prototype = {
           this.browser.addEventListener("pagehide", listener, true);
         }
 
-        if (/^about:reader/.test(target.documentURI))
+        if (docURI.startsWith("about:reader"))
           new AboutReader(this.browser.contentDocument, this.browser.contentWindow);
 
         break;
@@ -3246,7 +3247,7 @@ Tab.prototype = {
           if (article == null || (article.url != tabURL)) {
             
             
-            if (!/^about:reader/i.test(tabURL))
+            if (!tabURL.startsWith("about:reader"))
               this.savedArticle = null;
 
             return;
@@ -4463,7 +4464,7 @@ var ErrorPageEventHandler = {
 
         
         
-        if (/^about:certerror\?e=nssBadCert/.test(errorDoc.documentURI)) {
+        if (errorDoc.documentURI.startsWith("about:certerror?e=nssBadCert")) {
           let perm = errorDoc.getElementById("permanentExceptionButton");
           let temp = errorDoc.getElementById("temporaryExceptionButton");
           if (target == temp || target == perm) {
@@ -4484,11 +4485,11 @@ var ErrorPageEventHandler = {
           } else if (target == errorDoc.getElementById("getMeOutOfHereButton")) {
             errorDoc.location = "about:home";
           }
-        } else if (/^about:blocked/.test(errorDoc.documentURI)) {
+        } else if (errorDoc.documentURI.startsWith("about:blocked")) {
           
           
           
-          let isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
+          let isMalware = errorDoc.documentURI.contains("e=malwareBlocked");
           let bucketName = isMalware ? "WARNING_MALWARE_PAGE_" : "WARNING_PHISHING_PAGE_";
           let nsISecTel = Ci.nsISecurityUITelemetry;
           let isIframe = (aOwnerDoc.defaultView.parent === aOwnerDoc.defaultView);
@@ -4754,7 +4755,7 @@ var FormAssistant = {
       else if (item.text)
         label = item.text;
 
-      if (filter && label.toLowerCase().indexOf(lowerFieldValue) == -1)
+      if (filter && !(label.toLowerCase().contains(lowerFieldValue)) )
         continue;
       suggestions.push({ label: label, value: item.value });
     }
