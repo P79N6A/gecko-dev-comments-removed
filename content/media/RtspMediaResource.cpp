@@ -50,7 +50,6 @@ namespace mozilla {
 struct BufferSlotData {
   int32_t mLength;
   uint64_t mTime;
-  int32_t  mFrameType;
 };
 
 class RtspTrackBuffer
@@ -177,9 +176,6 @@ nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
   
   
   while (1) {
-    if (mBufferSlotData[mConsumerIdx].mFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
-      return NS_BASE_STREAM_CLOSED;
-    }
     if (mBufferSlotData[mConsumerIdx].mLength > 0) {
       
       if ((int32_t)aToBufferSize < mBufferSlotData[mConsumerIdx].mLength) {
@@ -310,23 +306,15 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     mProducerIdx = 0;
   }
 
-  if (!(aFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM)) {
-    memcpy(&(mRingBuffer[mSlotSize * mProducerIdx]), aFromBuffer, aWriteCount);
-  }
+  memcpy(&(mRingBuffer[mSlotSize * mProducerIdx]), aFromBuffer, aWriteCount);
 
   if (mProducerIdx <= mConsumerIdx && mConsumerIdx < mProducerIdx + slots
       && mBufferSlotData[mConsumerIdx].mLength > 0) {
     
     RTSPMLOG("overwrite!! %d time %lld"
              ,mTrackIdx,mBufferSlotData[mConsumerIdx].mTime);
-    if (aFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
-      mBufferSlotData[mProducerIdx].mLength = 0;
-      mBufferSlotData[mProducerIdx].mTime = 0;
-    } else {
-      mBufferSlotData[mProducerIdx].mLength = aWriteCount;
-      mBufferSlotData[mProducerIdx].mTime = aFrameTime;
-    }
-    mBufferSlotData[mProducerIdx].mFrameType = aFrameType;
+    mBufferSlotData[mProducerIdx].mLength = aWriteCount;
+    mBufferSlotData[mProducerIdx].mTime = aFrameTime;
     
     if (isMultipleSlots) {
       for (i = mProducerIdx + 1; i < mProducerIdx + slots; ++i) {
@@ -339,14 +327,8 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
     mConsumerIdx = mProducerIdx;
   } else {
     
-    if (aFrameType & MEDIASTREAM_FRAMETYPE_END_OF_STREAM) {
-      mBufferSlotData[mProducerIdx].mLength = 0;
-      mBufferSlotData[mProducerIdx].mTime = 0;
-    } else {
-      mBufferSlotData[mProducerIdx].mLength = aWriteCount;
-      mBufferSlotData[mProducerIdx].mTime = aFrameTime;
-    }
-    mBufferSlotData[mProducerIdx].mFrameType = aFrameType;
+    mBufferSlotData[mProducerIdx].mLength = aWriteCount;
+    mBufferSlotData[mProducerIdx].mTime = aFrameTime;
     
     if (isMultipleSlots) {
       for (i = mProducerIdx + 1; i < mProducerIdx + slots; ++i) {
@@ -366,7 +348,6 @@ void RtspTrackBuffer::Reset() {
   for (uint32_t i = 0; i < BUFFER_SLOT_NUM; ++i) {
     mBufferSlotData[i].mLength = BUFFER_SLOT_EMPTY;
     mBufferSlotData[i].mTime = BUFFER_SLOT_EMPTY;
-    mBufferSlotData[i].mFrameType = MEDIASTREAM_FRAMETYPE_NORMAL;
   }
   mMonitor.NotifyAll();
 }

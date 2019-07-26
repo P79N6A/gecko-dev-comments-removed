@@ -2498,10 +2498,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     TimeStamp presTime = mPlayStartTime - UsecsToDuration(mPlayDuration) +
                           UsecsToDuration(currentFrame->mTime - mStartTime);
     NS_ASSERTION(currentFrame->mTime >= mStartTime, "Should have positive frame time");
-    
-    
-    int64_t frameTime = currentFrame->mTime - mStartTime;
-    if (frameTime > 0  || (frameTime == 0 && mPlayDuration == 0)) {
+    {
       ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
       
       
