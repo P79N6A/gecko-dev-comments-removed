@@ -59,18 +59,14 @@ void NeckoChild::DestroyNeckoChild()
   }
 }
 
-PHttpChannelChild* 
-NeckoChild::AllocPHttpChannel(PBrowserChild* browser)
+PHttpChannelChild*
+NeckoChild::AllocPHttpChannel(PBrowserChild* browser,
+                              const SerializedLoadContext& loadContext)
 {
   
   
-  
-  
-
-  
-  HttpChannelChild* httpChannel = new HttpChannelChild();
-  httpChannel->AddIPDLReference();
-  return httpChannel;
+  NS_NOTREACHED("AllocPHttpChannel should not be called on child");
+  return nullptr;
 }
 
 bool 

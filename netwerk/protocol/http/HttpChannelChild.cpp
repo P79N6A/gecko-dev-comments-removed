@@ -807,8 +807,10 @@ HttpChannelChild::ConnectParent(uint32_t id)
   
   AddIPDLReference();
 
-  if (!gNeckoChild->SendPHttpChannelConstructor(this, tabChild))
+  if (!gNeckoChild->SendPHttpChannelConstructor(
+                      this, tabChild, IPC::SerializedLoadContext(this))) {
     return NS_ERROR_FAILURE;
+  }
 
   if (!SendConnectChannel(id))
     return NS_ERROR_FAILURE;
@@ -1037,7 +1039,8 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   
   AddIPDLReference();
 
-  gNeckoChild->SendPHttpChannelConstructor(this, tabChild);
+  gNeckoChild->SendPHttpChannelConstructor(this, tabChild,
+                                           IPC::SerializedLoadContext(this));
 
   URIParams uri;
   SerializeURI(mURI, uri);
@@ -1055,7 +1058,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
                 mUploadStreamHasHeaders, mPriority, mRedirectionLimit,
                 mAllowPipelining, mForceAllowThirdPartyCookie, mSendResumeAt,
                 mStartPos, mEntityID, mChooseApplicationCache,
-                appCacheClientId, mAllowSpdy, IPC::SerializedLoadContext(this));
+                appCacheClientId, mAllowSpdy);
 
   return NS_OK;
 }
