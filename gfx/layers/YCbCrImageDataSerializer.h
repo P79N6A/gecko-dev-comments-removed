@@ -69,6 +69,11 @@ public:
   
 
 
+  StereoMode GetStereoMode();
+
+  
+
+
   uint8_t* GetData();
 protected:
   YCbCrImageDataDeserializerBase(uint8_t* aData)
@@ -111,9 +116,11 @@ public:
 
 
   void InitializeBufferInfo(const gfx::IntSize& aYSize,
-                            const gfx::IntSize& aCbCrSize);
+                            const gfx::IntSize& aCbCrSize,
+                            StereoMode aStereoMode);
   void InitializeBufferInfo(const gfxIntSize& aYSize,
-                            const gfxIntSize& aCbCrSize);
+                            const gfxIntSize& aCbCrSize,
+                            StereoMode aStereoMode);
 
   bool CopyData(const uint8_t* aYData,
                 const uint8_t* aCbData, const uint8_t* aCrData,

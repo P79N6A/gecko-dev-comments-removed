@@ -11,6 +11,7 @@
 #include "nsAutoPtr.h"
 #include "d3d9.h"
 #include "nsTArray.h"
+#include "mozilla/layers/CompositorTypes.h"
 
 namespace mozilla {
 namespace layers {
@@ -26,7 +27,39 @@ const int CBmProjection = 4;
 const int CBvRenderTargetOffset = 8;
 const int CBvTextureCoords = 9;
 const int CBvLayerQuad = 10;
+
 const int CBfLayerOpacity = 0;
+const int CBvColor = 0;
+
+
+
+
+
+
+
+
+struct ShaderConstantRect
+{
+  float mX, mY, mWidth, mHeight;
+
+  
+  
+  ShaderConstantRect(float aX, float aY, float aWidth, float aHeight)
+    : mX(aX), mY(aY), mWidth(aWidth), mHeight(aHeight)
+  { }
+
+  ShaderConstantRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
+    : mX((float)aX), mY((float)aY)
+    , mWidth((float)aWidth), mHeight((float)aHeight)
+  { }
+
+  ShaderConstantRect(int32_t aX, int32_t aY, float aWidth, float aHeight)
+    : mX((float)aX), mY((float)aY), mWidth(aWidth), mHeight(aHeight)
+  { }
+
+  
+  operator float* () { return &mX; }
+};
 
 
 
@@ -50,11 +83,14 @@ public:
 
   bool PrepareForRendering();
 
+  already_AddRefed<IDirect3DSurface9> GetBackBuffer();
+
   
 
 
 
   void Present(const nsIntRect &aRect);
+  void Present();
 
 private:
   friend class DeviceManagerD3D9;
@@ -83,13 +119,8 @@ class DeviceManagerD3D9 MOZ_FINAL
 {
 public:
   DeviceManagerD3D9();
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
-protected:
-  nsAutoRefCnt mRefCnt;
-  NS_DECL_OWNINGTHREAD
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DeviceManagerD3D9)
 
-public:
   bool Init();
 
   
@@ -118,6 +149,8 @@ public:
   };
 
   void SetShaderMode(ShaderMode aMode, Layer* aMask, bool aIs2D);
+  
+  uint32_t SetShaderMode(ShaderMode aMode, MaskType aMaskType);
 
   
 
@@ -138,6 +171,8 @@ public:
   nsTArray<LayerD3D9*> mLayersWithResources;
 
   int32_t GetMaxTextureSize() { return mMaxTextureSize; }
+
+  static uint32_t sMaskQuadRegister;
 
 private:
   friend class SwapChainD3D9;
@@ -221,6 +256,12 @@ private:
   uint32_t mDeviceResetCount;
 
   uint32_t mMaxTextureSize;
+
+  
+
+
+
+  D3DTEXTUREADDRESS mTextureAddressingMode;
 
   
   bool mHasDynamicTextures;
