@@ -277,6 +277,8 @@ richlistitem[type="download"]:hover > stack > .downloadButton.downloadRetry:acti
 
 
   position: relative;
+  
+  z-index: 1;
 }
 
 
