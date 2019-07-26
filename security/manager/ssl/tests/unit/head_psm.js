@@ -38,8 +38,9 @@ const SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION              = SEC_ERROR_BASE +  41;
 const SEC_ERROR_INADEQUATE_KEY_USAGE                    = SEC_ERROR_BASE +  90; 
 const SEC_ERROR_INADEQUATE_CERT_TYPE                    = SEC_ERROR_BASE +  91; 
 const SEC_ERROR_CERT_NOT_IN_NAME_SPACE                  = SEC_ERROR_BASE + 112; 
+const SEC_ERROR_CERT_BAD_ACCESS_LOCATION                = SEC_ERROR_BASE + 117; 
 const SEC_ERROR_OCSP_MALFORMED_REQUEST                  = SEC_ERROR_BASE + 120;
-const SEC_ERROR_OCSP_SERVER_ERROR                       = SEC_ERROR_BASE + 121;
+const SEC_ERROR_OCSP_SERVER_ERROR                       = SEC_ERROR_BASE + 121; 
 const SEC_ERROR_OCSP_TRY_SERVER_LATER                   = SEC_ERROR_BASE + 122;
 const SEC_ERROR_OCSP_REQUEST_NEEDS_SIG                  = SEC_ERROR_BASE + 123;
 const SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST               = SEC_ERROR_BASE + 124;
@@ -407,4 +408,70 @@ function generateOCSPResponses(ocspRespArray, nssDBlocation)
     ocspFile.remove(false);
   }
   return retArray;
+}
+
+
+
+
+function getFailingHttpServer(serverPort, serverIdentities) {
+  let httpServer = new HttpServer();
+  httpServer.registerPrefixHandler("/", function(request, response) {
+    do_check_true(false);
+  });
+  httpServer.identity.setPrimary("http", serverIdentities.shift(), serverPort);
+  serverIdentities.forEach(function(identity) {
+    httpServer.identity.add("http", identity, serverPort);
+  });
+  httpServer.start(serverPort);
+  return httpServer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startOCSPResponder(serverPort, identity, invalidIdentities,
+                            nssDBLocation, expectedCertNames,
+                            expectedBasePaths) {
+  let httpServer = new HttpServer();
+  httpServer.registerPrefixHandler("/",
+    function handleServerCallback(aRequest, aResponse) {
+      invalidIdentities.forEach(function(identity) {
+        do_check_neq(aRequest.host, identity)
+      });
+      let basePath = aRequest.path.slice(1).split("/")[0];
+      if (expectedBasePaths.length >= 1) {
+        do_check_eq(basePath, expectedBasePaths.shift());
+      }
+      do_check_true(expectedCertNames.length >= 1);
+      let expectedNick = expectedCertNames.shift();
+      do_print("Generating ocsp response for '" + expectedNick + "(" +
+               basePath + ")'");
+      aResponse.setStatusLine(aRequest.httpVersion, 200, "OK");
+      aResponse.setHeader("Content-Type", "application/ocsp-response");
+      let args = [ ["good", expectedNick, "unused" ] ];
+      let retArray = generateOCSPResponses(args, nssDBLocation);
+      let responseBody = retArray[0];
+      aResponse.bodyOutputStream.write(responseBody, responseBody.length);
+    });
+  httpServer.identity.setPrimary("http", identity, serverPort);
+  invalidIdentities.forEach(function(identity) {
+    httpServer.identity.add("http", identity, serverPort);
+  });
+  httpServer.start(serverPort);
+  return {
+    stop: function(callback) {
+      do_check_eq(expectedCertNames.length, 0);
+      httpServer.stop(callback);
+    }
+  };
 }
