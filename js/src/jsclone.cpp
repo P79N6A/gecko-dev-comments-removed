@@ -335,7 +335,7 @@ SCInput::readPtr(void **p)
     
     uint64_t tmp;
     bool ret = read(&tmp);
-    *p = (void *) tmp;
+    *p = reinterpret_cast<void*>(tmp);
     return ret;
 }
 
