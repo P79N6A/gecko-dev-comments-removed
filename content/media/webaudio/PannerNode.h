@@ -60,29 +60,6 @@ public:
   }
   void SetPanningModel(PanningModelType aPanningModel)
   {
-    if (!Preferences::GetBool("media.webaudio.legacy.PannerNode")) {
-      
-      
-      switch (aPanningModel) {
-      case PanningModelType::_0:
-      case PanningModelType::_1:
-        
-        return;
-      default:
-        
-        break;
-      }
-    }
-
-    
-    switch (aPanningModel) {
-    case PanningModelType::_0: aPanningModel = PanningModelType::Equalpower; break;
-    case PanningModelType::_1: aPanningModel = PanningModelType::HRTF; break;
-    default:
-      
-      break;
-    }
-
     mPanningModel = aPanningModel;
     SendInt32ParameterToStream(PANNING_MODEL, int32_t(mPanningModel));
   }
@@ -93,31 +70,6 @@ public:
   }
   void SetDistanceModel(DistanceModelType aDistanceModel)
   {
-    if (!Preferences::GetBool("media.webaudio.legacy.PannerNode")) {
-      
-      
-      switch (aDistanceModel) {
-      case DistanceModelType::_0:
-      case DistanceModelType::_1:
-      case DistanceModelType::_2:
-        
-        return;
-      default:
-        
-        break;
-      }
-    }
-
-    
-    switch (aDistanceModel) {
-    case DistanceModelType::_0: aDistanceModel = DistanceModelType::Linear; break;
-    case DistanceModelType::_1: aDistanceModel = DistanceModelType::Inverse; break;
-    case DistanceModelType::_2: aDistanceModel = DistanceModelType::Exponential; break;
-    default:
-      
-      break;
-    }
-
     mDistanceModel = aDistanceModel;
     SendInt32ParameterToStream(DISTANCE_MODEL, int32_t(mDistanceModel));
   }

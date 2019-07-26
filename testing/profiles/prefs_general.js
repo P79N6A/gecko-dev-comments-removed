@@ -145,9 +145,6 @@ user_pref("dom.gamepad.enabled", true);
 user_pref("dom.gamepad.non_standard_events.enabled", true);
 
 
-user_pref("media.webaudio.legacy.PannerNode", true);
-
-
 
 user_pref("geo.provider.testing", true);
 
