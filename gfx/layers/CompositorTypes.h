@@ -26,18 +26,18 @@ const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
 
 typedef uint32_t TextureFlags;
 
-const TextureFlags UseNearestFilter           = 1 << 0;
+const TextureFlags TEXTURE_USE_NEAREST_FILTER = 1 << 0;
 
-const TextureFlags NeedsYFlip                 = 1 << 1;
+const TextureFlags TEXTURE_NEEDS_Y_FLIP       = 1 << 1;
 
 
 const TextureFlags TEXTURE_DISALLOW_BIGIMAGE  = 1 << 2;
 
-const TextureFlags AllowRepeat                = 1 << 3;
+const TextureFlags TEXTURE_ALLOW_REPEAT       = 1 << 3;
 
-const TextureFlags NewTile                    = 1 << 4;
+const TextureFlags TEXTURE_NEW_TILE           = 1 << 4;
 
-const TextureFlags ComponentAlpha             = 1 << 5;
+const TextureFlags TEXTURE_COMPONENT_ALPHA    = 1 << 5;
 
 
 
