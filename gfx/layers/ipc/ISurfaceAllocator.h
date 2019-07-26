@@ -125,6 +125,11 @@ public:
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);
 
+  
+
+
+  virtual int32_t GetMaxTextureSize() const { return INT32_MAX; }
+
   virtual void DestroySharedSurface(SurfaceDescriptor* aSurface);
 
   
