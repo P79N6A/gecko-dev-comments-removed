@@ -396,6 +396,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mDecoder(nullptr),
   mBytesDecoded(0),
   mInDecoder(false),
+  mStatusDiff(ImageStatusDiff::NoChange()),
+  mNotifying(false),
   mHasSize(false),
   mDecodeOnDraw(false),
   mMultipart(false),
@@ -2896,6 +2898,33 @@ RasterImage::GetFramesNotified(uint32_t *aFramesNotified)
 #endif
 
 nsresult
+RasterImage::RequestDecodeIfNeeded(nsresult aStatus,
+                                   eShutdownIntent aIntent,
+                                   bool aDone,
+                                   bool aWasSize)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  if (NS_SUCCEEDED(aStatus) &&
+      aIntent != eShutdownIntent_Error &&
+      aDone &&
+      aWasSize &&
+      mWantFullDecode) {
+    mWantFullDecode = false;
+
+    
+    
+    
+    return StoringSourceData() ? RequestDecode()
+                               : SyncDecode();
+  }
+
+  
+  return aStatus;
+}
+
+nsresult
 RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
                                   DecodeRequest* aRequest )
 {
@@ -2963,39 +2992,39 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
   }
 
-  ImageStatusDiff diff;
-  if (request) {
-    diff = image->mStatusTracker->Difference(request->mStatusTracker);
-    image->mStatusTracker->ApplyDifference(diff);
+  ImageStatusDiff diff =
+    request ? image->mStatusTracker->Difference(request->mStatusTracker)
+            : image->mStatusTracker->DecodeStateAsDifference();
+  image->mStatusTracker->ApplyDifference(diff);
+
+  
+  
+  MutexAutoUnlock unlock(mDecodingMutex);
+
+  if (mNotifying) {
+    
+    
+    
+    
+    mStatusDiff.Combine(diff);
   } else {
-    diff = image->mStatusTracker->DecodeStateAsDifference();
-  }
+    MOZ_ASSERT(mStatusDiff.IsNoChange(), "Shouldn't have an accumulated change at this point");
 
-  {
-    
-    MutexAutoUnlock unlock(mDecodingMutex);
-
-    
-    image->mStatusTracker->SyncNotifyDifference(diff);
-
-    
-    if (NS_SUCCEEDED(rv) && aIntent != eShutdownIntent_Error && done &&
-        wasSize && image->mWantFullDecode) {
-      image->mWantFullDecode = false;
+    while (!diff.IsNoChange()) {
+      
+      mNotifying = true;
+      image->mStatusTracker->SyncNotifyDifference(diff);
+      mNotifying = false;
 
       
       
       
-      if (!image->StoringSourceData()) {
-        rv = image->SyncDecode();
-      } else {
-        rv = image->RequestDecode();
-      }
+      diff = mStatusDiff;
+      mStatusDiff = ImageStatusDiff::NoChange();
     }
-
   }
 
-  return rv;
+  return RequestDecodeIfNeeded(rv, aIntent, done, wasSize);
 }
 
 NS_IMPL_ISUPPORTS1(RasterImage::DecodePool,
