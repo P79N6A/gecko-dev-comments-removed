@@ -151,10 +151,23 @@ AudioChannelService::GetMuted(AudioChannelType aType, bool aElementHidden)
         return true;
 
       case AUDIO_CHANNEL_CONTENT:
+      {
         
-        if (mChannelCounters[AUDIO_CHANNEL_CONTENT].Length() > 1)
-          return true;
+        
+        uint32_t childId = CONTENT_PARENT_UNKNOWN_CHILD_ID;
+        bool empty = true;
+        for (uint32_t i = 0;
+             i < mChannelCounters[AUDIO_CHANNEL_CONTENT].Length();
+             ++i) {
+          if (empty) {
+            childId = mChannelCounters[AUDIO_CHANNEL_CONTENT][i];
+            empty = false;
+          }
+          else if (childId != mChannelCounters[AUDIO_CHANNEL_CONTENT][i])
+            return true;
+        }
         break;
+      }
 
       case AUDIO_CHANNEL_NOTIFICATION:
       case AUDIO_CHANNEL_ALARM:
