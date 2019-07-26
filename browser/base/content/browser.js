@@ -4201,10 +4201,6 @@ function setToolbarVisibility(toolbar, isVisible) {
   PlacesToolbarHelper.init();
   BookmarkingUI.onToolbarVisibilityChange();
   gBrowser.updateWindowResizers();
-
-#ifdef CAN_DRAW_IN_TITLEBAR
-  updateTitlebarDisplay();
-#endif
 }
 
 var TabsInTitlebar = {
@@ -4226,6 +4222,8 @@ var TabsInTitlebar = {
     let menu = document.getElementById("toolbar-menubar");
     this._menuObserver = new MutationObserver(this._onMenuMutate);
     this._menuObserver.observe(menu, {attributes: true});
+
+    gNavToolbox.addEventListener("customization-transitionend", this);
     this._initialized = true;
 #endif
   },
@@ -4262,6 +4260,12 @@ var TabsInTitlebar = {
       this._readPref();
   },
 
+  handleEvent: function(ev) {
+    if (ev.type == "customization-transitionend") {
+      this._update(true);
+    }
+  },
+
   _onMenuMutate: function (aMutations) {
     for (let mutation of aMutations) {
       if (mutation.attributeName == "inactive" ||
@@ -4285,6 +4289,7 @@ var TabsInTitlebar = {
   _update: function (aForce=false) {
     function $(id) document.getElementById(id);
     function rect(ele) ele.getBoundingClientRect();
+    function verticalMargins(cstyle) parseInt(cstyle.marginBottom, 10) + parseInt(cstyle.marginTop, 10);
 
     if (!this._initialized || window.fullScreen)
       return;
@@ -4312,12 +4317,6 @@ var TabsInTitlebar = {
     let titlebarContent = $("titlebar-content");
     let menubar = $("toolbar-menubar");
 
-    
-    
-    titlebarContent.style.marginBottom = "";
-    titlebar.style.marginBottom = "";
-    menubar.style.paddingBottom = "";
-
     if (allowed) {
       
       
@@ -4325,51 +4324,100 @@ var TabsInTitlebar = {
 
       
       
+
+      
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
-      let titlebarContentHeight = rect(titlebarContent).height;
-      let menuHeight = this._outerHeight(menubar);
-      let tabsToolbar = $("TabsToolbar");
-      let tabsToolbarOuterHeight = this._outerHeight(tabsToolbar);
 #ifdef XP_MACOSX
       let fullscreenButtonWidth = rect($("titlebar-fullscreen-button")).width;
+      
+      let menuHeight = 0;
+      let fullMenuHeight = 0;
+#else
+      
+      let menuHeight = rect(menubar).height;
+      let menuStyles = window.getComputedStyle(menubar);
+      let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
 #endif
+      
+      let tabsToolbar = $("TabsToolbar");
+      let tabsStyles = window.getComputedStyle(tabsToolbar);
+      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
+
+      
+      
+      let navbarMarginTop = parseInt(window.getComputedStyle($("nav-bar")).marginTop, 10);
+      navbarMarginTop = Math.min(navbarMarginTop, 0);
+
+      
+      let titlebarContentHeight = rect(titlebarContent).height;
+
+      
+      
+      let areCustomizing = document.documentElement.hasAttribute("customizing") ||
+                           document.documentElement.hasAttribute("customize-exiting");
+      let customizePadding = 0;
+      if (areCustomizing) {
+        let deckStyle = window.getComputedStyle($("tab-view-deck"));
+        customizePadding = parseInt(deckStyle.paddingTop, 10);
+      }
+
+      
+
+      
+      
+      
+      if (menuHeight) {
+        
+        let menuTitlebarDelta = titlebarContentHeight - fullMenuHeight;
+        let paddingBottom;
+        
+        if (menuTitlebarDelta > 0) {
+          fullMenuHeight += menuTitlebarDelta;
+          
+          
+          if ((paddingBottom = menuStyles.paddingBottom)) {
+            menuTitlebarDelta += parseInt(paddingBottom, 10);
+          }
+          menubar.style.paddingBottom = menuTitlebarDelta + "px";
+        
+        } else if (menuTitlebarDelta < 0 && (paddingBottom = menuStyles.paddingBottom)) {
+          let existingPadding = parseInt(paddingBottom, 10);
+          
+          let desiredPadding = Math.max(0, existingPadding + menuTitlebarDelta);
+          menubar.style.paddingBottom = desiredPadding + "px";
+          
+          fullMenuHeight += desiredPadding - existingPadding;
+        }
+      }
+
+      
+      
+      let tabAndMenuHeight = fullTabsHeight + fullMenuHeight;
+      
+      if (areCustomizing) {
+        tabAndMenuHeight += customizePadding;
+      }
+
+      if (tabAndMenuHeight > titlebarContentHeight) {
+        
+        
+        let extraMargin = tabAndMenuHeight - titlebarContentHeight;
+        
+        
+        extraMargin += navbarMarginTop;
+        titlebarContent.style.marginBottom = extraMargin + "px";
+        titlebarContentHeight += extraMargin;
+      }
+
+      
+      titlebar.style.marginBottom = "-" + titlebarContentHeight + "px";
+
 
       
 #ifdef XP_MACOSX
       this._sizePlaceholder("fullscreen-button", fullscreenButtonWidth);
 #endif
       this._sizePlaceholder("caption-buttons", captionButtonsBoxWidth);
-
-      
-      
-      if (menuHeight && titlebarContentHeight > menuHeight) {
-        let menuTitlebarDelta = titlebarContentHeight - menuHeight;
-        menubar.style.paddingBottom = menuTitlebarDelta + "px";
-        menuHeight += menuTitlebarDelta;
-      }
-
-      
-      
-      let tabAndMenuHeight = tabsToolbarOuterHeight + menuHeight;
-      titlebarContent.style.marginBottom = tabAndMenuHeight + "px";
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      let baseHeight = tabAndMenuHeight;
-      baseHeight += (titlebarContentHeight > tabAndMenuHeight) ? tabAndMenuHeight
-                                                               : titlebarContentHeight;
-      titlebar.style.marginBottom = "-" + baseHeight + "px";
 
       if (!this._draghandles) {
         this._draghandles = {};
@@ -4388,29 +4436,16 @@ var TabsInTitlebar = {
       }
     } else {
       document.documentElement.removeAttribute("tabsintitlebar");
+      
+      titlebarContent.style.marginBottom = "";
+      titlebar.style.marginBottom = "";
+      menubar.style.paddingBottom = "";
     }
   },
 
   _sizePlaceholder: function (type, width) {
     Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='"+ type +"']"),
                   function (node) { node.width = width; });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _outerHeight: function (ele) {
-    let cstyle = document.defaultView.getComputedStyle(ele);
-    let margins = parseInt(cstyle.marginTop) + parseInt(cstyle.marginBottom);
-    let height = ele.getBoundingClientRect().height;
-    return height > 0 ? Math.abs(height + margins) : 0;
   },
 #endif
 
