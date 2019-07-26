@@ -885,6 +885,13 @@ var BrowserUI = {
     }
 
     
+    
+    
+    
+    if(Elements.windowState.getAttribute("viewstate") == "snapped") {
+      return false;
+    }
+    
     if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE) {
       return false;
     }
