@@ -415,7 +415,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     
     
     
-    if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
+    if (!JS_GetPropertyDescriptorById(cx, holder, id, desc))
         return false;
     if (desc.object()) {
         desc.object().set(wrapper);
@@ -482,7 +482,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     return JS_DefinePropertyById(cx, holder, id,
                                  ObjectValue(*JS_GetFunctionObject(fun)),
                                  nullptr, nullptr, 0) &&
-           JS_GetPropertyDescriptorById(cx, holder, id, 0, desc);
+           JS_GetPropertyDescriptorById(cx, holder, id, desc);
 }
 
 bool
@@ -952,7 +952,7 @@ XPCWrappedNativeXrayTraits::resolveDOMCollectionProperty(JSContext *cx, HandleOb
         return false;
     }
 
-    if (pobj && !JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
+    if (pobj && !JS_GetPropertyDescriptorById(cx, holder, id, desc))
         return false;
 
     return true;
@@ -1138,7 +1138,7 @@ XrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     bool found = false;
     if (expando) {
         JSAutoCompartment ac(cx, expando);
-        if (!JS_GetPropertyDescriptorById(cx, expando, id, 0, desc))
+        if (!JS_GetPropertyDescriptorById(cx, expando, id, desc))
             return false;
         found = !!desc.object();
     }
@@ -1184,7 +1184,7 @@ XrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
                                              JSPROP_ENUMERATE | JSPROP_SHARED)) {
             return false;
         }
-        if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
+        if (!JS_GetPropertyDescriptorById(cx, holder, id, desc))
             return false;
         desc.object().set(wrapper);
         return true;
@@ -1280,7 +1280,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper
     
     
     
-    return JS_GetPropertyDescriptorById(cx, holder, id, 0, desc);
+    return JS_GetPropertyDescriptorById(cx, holder, id, desc);
 }
 
 bool
@@ -1778,8 +1778,7 @@ XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, HandleObject wrapper
 template <typename Base, typename Traits>
 bool
 XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wrapper, HandleId id,
-                                                 JS::MutableHandle<JSPropertyDescriptor> desc,
-                                                 unsigned flags)
+                                                 JS::MutableHandle<JSPropertyDescriptor> desc)
 {
     assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
     RootedObject holder(cx, Traits::singleton.ensureHolder(cx, wrapper));
@@ -1813,11 +1812,11 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
     
 
     
-    if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, flags))
+    if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, 0))
         return false;
 
     
-    if (!desc.object() && !JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
+    if (!desc.object() && !JS_GetPropertyDescriptorById(cx, holder, id, desc))
         return false;
     if (desc.object()) {
         desc.object().set(wrapper);
@@ -1825,7 +1824,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
     }
 
     
-    if (!Traits::singleton.resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
+    if (!Traits::singleton.resolveNativeProperty(cx, wrapper, holder, id, desc, 0))
         return false;
 
     
@@ -1897,7 +1896,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
 
     if (!JS_DefinePropertyById(cx, holder, id, desc.value(), desc.getter(),
                                desc.setter(), desc.attributes()) ||
-        !JS_GetPropertyDescriptorById(cx, holder, id, flags, desc))
+        !JS_GetPropertyDescriptorById(cx, holder, id, desc))
     {
         return false;
     }
@@ -1909,8 +1908,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
 template <typename Base, typename Traits>
 bool
 XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, HandleObject wrapper, HandleId id,
-                                                    JS::MutableHandle<JSPropertyDescriptor> desc,
-                                                    unsigned flags)
+                                                    JS::MutableHandle<JSPropertyDescriptor> desc)
 {
     assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
     RootedObject holder(cx, Traits::singleton.ensureHolder(cx, wrapper));
@@ -1924,7 +1922,7 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, HandleObject 
     
     
 
-    if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, flags))
+    if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, 0))
         return false;
     if (desc.object())
         desc.object().set(wrapper);
@@ -1996,7 +1994,7 @@ XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
     assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::SET);
 
     Rooted<JSPropertyDescriptor> existing_desc(cx);
-    if (!getOwnPropertyDescriptor(cx, wrapper, id, &existing_desc, 0))
+    if (!getOwnPropertyDescriptor(cx, wrapper, id, &existing_desc))
         return false;
 
     if (existing_desc.object() && existing_desc.isPermanent())
