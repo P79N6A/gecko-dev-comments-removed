@@ -9,7 +9,6 @@
 #include "GLContextProvider.h"          
 #include "ImageContainer.h"             
 #include "ImageTypes.h"                 
-#include "gfxPoint.h"                   
 #include "nsCOMPtr.h"                   
 #include "mozilla/gfx/Point.h"          
 

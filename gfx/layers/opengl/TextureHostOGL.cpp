@@ -16,7 +16,6 @@
 #include "TiledLayerBuffer.h"           
 #include "gfx2DGlue.h"                  
 #include "gfxImageSurface.h"            
-#include "gfxPoint.h"                   
 #include "gfxReusableSurfaceWrapper.h"  
 #include "ipc/AutoOpenSurface.h"        
 #include "mozilla/gfx/2D.h"             
@@ -882,8 +881,8 @@ YCbCrDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage,
 
   YCbCrImageDataDeserializer deserializer(aImage.get_YCbCrImage().data().get<uint8_t>());
 
-  gfxIntSize gfxSize = deserializer.GetYSize();
-  gfxIntSize gfxCbCrSize = deserializer.GetCbCrSize();
+  gfx::IntSize gfxSize = gfx::ToIntSize(deserializer.GetYSize());
+  gfx::IntSize gfxCbCrSize = gfx::ToIntSize(deserializer.GetCbCrSize());
 
   if (!mYTexture->mTexImage || mYTexture->mTexImage->GetSize() != gfxSize) {
     mYTexture->mTexImage = CreateBasicTextureImage(mGL,
@@ -907,15 +906,21 @@ YCbCrDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage,
                                                     FlagsToGLFlags(mFlags));
   }
 
-  RefPtr<gfxImageSurface> tempY = new gfxImageSurface(deserializer.GetYData(),
-                                       gfxSize, deserializer.GetYStride(),
-                                       gfxImageFormatA8);
-  RefPtr<gfxImageSurface> tempCb = new gfxImageSurface(deserializer.GetCbData(),
-                                       gfxCbCrSize, deserializer.GetCbCrStride(),
-                                       gfxImageFormatA8);
-  RefPtr<gfxImageSurface> tempCr = new gfxImageSurface(deserializer.GetCrData(),
-                                       gfxCbCrSize, deserializer.GetCbCrStride(),
-                                       gfxImageFormatA8);
+  RefPtr<gfxImageSurface> tempY =
+    new gfxImageSurface(deserializer.GetYData(),
+                        gfx::ThebesIntSize(gfxSize),
+                        deserializer.GetYStride(),
+                        gfxImageFormatA8);
+  RefPtr<gfxImageSurface> tempCb =
+    new gfxImageSurface(deserializer.GetCbData(),
+                        gfx::ThebesIntSize(gfxCbCrSize),
+                        deserializer.GetCbCrStride(),
+                        gfxImageFormatA8);
+  RefPtr<gfxImageSurface> tempCr =
+    new gfxImageSurface(deserializer.GetCrData(),
+                        gfx::ThebesIntSize(gfxCbCrSize),
+                        deserializer.GetCbCrStride(),
+                        gfxImageFormatA8);
 
   nsIntRegion yRegion(nsIntRect(0, 0, gfxSize.width, gfxSize.height));
   nsIntRegion cbCrRegion(nsIntRect(0, 0, gfxCbCrSize.width, gfxCbCrSize.height));
