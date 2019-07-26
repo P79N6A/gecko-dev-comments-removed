@@ -838,7 +838,14 @@ function JSPropertyProvider(aDbgObject, anEnvironment, aInputValue, aCursor)
       return null;
     }
 
-    obj = DevToolsUtils.getProperty(obj, prop);
+    if (/\[\d+\]$/.test(prop))Â {
+      
+      
+      obj = getArrayMemberProperty(obj, prop);
+    }
+    else {
+      obj = DevToolsUtils.getProperty(obj, prop);
+    }
 
     if (!isObjectUsable(obj)) {
       return null;
@@ -851,6 +858,50 @@ function JSPropertyProvider(aDbgObject, anEnvironment, aInputValue, aCursor)
   }
 
   return getMatchedPropsInDbgObject(obj, matchProp);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getArrayMemberProperty(aObj, aProp)
+{
+  
+  let obj = aObj;
+  let propWithoutIndices = aProp.substr(0, aProp.indexOf("["));
+  obj = DevToolsUtils.getProperty(obj, propWithoutIndices);
+  if (!isObjectUsable(obj)) {
+    return null;
+  }
+
+  
+  let result;
+  let arrayIndicesRegex = /\[[^\]]*\]/g;
+  while ((result = arrayIndicesRegex.exec(aProp)) !== null) {
+    let indexWithBrackets = result[0];
+    let indexAsText = indexWithBrackets.substr(1, indexWithBrackets.length - 2);
+    let index = parseInt(indexAsText);
+
+    if (isNaN(index)) {
+      return null;
+    }
+
+    obj = DevToolsUtils.getProperty(obj, index);
+
+    if (!isObjectUsable(obj)) {
+      return null;
+    }
+  }
+
+  return obj;
 }
 
 
