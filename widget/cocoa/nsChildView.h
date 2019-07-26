@@ -267,18 +267,10 @@ typedef NSInteger NSEventGestureAxis;
     eGestureState_None,
     eGestureState_StartGesture,
     eGestureState_MagnifyGesture,
-    eGestureState_RotateGesture,
-    eGestureState_TapGesture
+    eGestureState_RotateGesture
   } mGestureState;
   float mCumulativeMagnification;
   float mCumulativeRotation;
-
-  
-  
-  
-  
-  
-  NSTimeInterval mFirstTapTime;
 
   BOOL mDidForceRefreshOpenGL;
   BOOL mWaitingForPaint;
@@ -348,10 +340,6 @@ typedef NSInteger NSEventGestureAxis;
 - (void)magnifyWithEvent:(NSEvent *)anEvent;
 - (void)rotateWithEvent:(NSEvent *)anEvent;
 - (void)endGestureWithEvent:(NSEvent *)anEvent;
-
-
-
-- (void)tapWithEvent:(NSEvent *)anEvent;
 
 
 #ifdef __LP64__
@@ -523,7 +511,9 @@ public:
 
   virtual void CreateCompositor();
   virtual gfxASurface* GetThebesSurface();
-  virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect);
+  virtual void PrepareWindowEffects() MOZ_OVERRIDE;
+  virtual void CleanupWindowEffects() MOZ_OVERRIDE;
+  virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) MOZ_OVERRIDE;
 
   virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries);
 
@@ -613,7 +603,21 @@ protected:
   nsWeakPtr             mAccessible;
 #endif
 
+
   nsRefPtr<gfxASurface> mTempThebesSurface;
+
+  mozilla::Mutex mEffectsLock;
+
+  
+  
+  bool mShowsResizeIndicator;
+  nsIntRect mResizeIndicatorRect;
+  bool mHasRoundedBottomCorners;
+  int mDevPixelCornerRadius;
+
+  
+  bool                  mFailedResizerImage;
+  bool                  mFailedCornerMaskImage;
   nsRefPtr<mozilla::gl::TextureImage> mResizerImage;
   nsRefPtr<mozilla::gl::TextureImage> mCornerMaskImage;
 
@@ -626,8 +630,6 @@ protected:
   
   CGFloat               mBackingScaleFactor;
 
-  bool                  mFailedResizerImage;
-  bool                  mFailedCornerMaskImage;
   bool                  mVisible;
   bool                  mDrawing;
   bool                  mPluginDrawing;
