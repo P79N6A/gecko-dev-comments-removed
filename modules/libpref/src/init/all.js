@@ -1035,7 +1035,16 @@ pref("network.http.request.max-start-delay", 10);
 
 
 pref("network.http.accept.default", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+
+
+
 pref("network.http.sendRefererHeader",      2); 
+
+pref("network.http.referer.spoofSource", false); 
+
+pref("network.http.referer.trimmingPolicy", 0); 
+
+pref("network.http.referer.XOriginPolicy", 0); 
 
 
 

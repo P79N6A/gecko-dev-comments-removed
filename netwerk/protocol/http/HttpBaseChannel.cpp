@@ -854,12 +854,31 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
       return NS_OK;
 
   
+  
+  
+  uint32_t userReferrerLevel = gHttpHandler->ReferrerLevel();
+
+  
+  
+  bool userSpoofReferrerSource = gHttpHandler->SpoofReferrerSource();
+
+  
+  
+  
+  int userReferrerTrimmingPolicy = gHttpHandler->ReferrerTrimmingPolicy();
+
+  
+  
+  
+  int userReferrerXOriginPolicy = gHttpHandler->ReferrerXOriginPolicy();
+
+  
   uint32_t referrerLevel;
   if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
     referrerLevel = 1; 
   else
     referrerLevel = 2; 
-  if (gHttpHandler->ReferrerLevel() < referrerLevel)
+  if (userReferrerLevel < referrerLevel)
     return NS_OK;
 
   nsCOMPtr<nsIURI> referrerGrip;
@@ -910,7 +929,6 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     "http",
     "https",
     "ftp",
-    "gopher",
     nullptr
   };
   match = false;
@@ -962,13 +980,86 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   rv = referrer->CloneIgnoringRef(getter_AddRefs(clone));
   if (NS_FAILED(rv)) return rv;
 
+  nsAutoCString currentHost;
+  nsAutoCString referrerHost;
+
+  rv = mURI->GetAsciiHost(currentHost);
+  if (NS_FAILED(rv)) return rv;
+
+  rv = clone->GetAsciiHost(referrerHost);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  if (userReferrerXOriginPolicy == 2 && !currentHost.Equals(referrerHost))
+    return NS_OK;
+
+  if (userReferrerXOriginPolicy == 1) {
+    nsAutoCString currentDomain = currentHost;
+    nsAutoCString referrerDomain = referrerHost;
+    uint32_t extraDomains = 0;
+    nsCOMPtr<nsIEffectiveTLDService> eTLDService = do_GetService(
+      NS_EFFECTIVETLDSERVICE_CONTRACTID);
+    if (eTLDService) {
+      rv = eTLDService->GetBaseDomain(mURI, extraDomains, currentDomain);
+      if (NS_FAILED(rv)) return rv;
+      rv = eTLDService->GetBaseDomain(clone, extraDomains, referrerDomain); 
+      if (NS_FAILED(rv)) return rv;
+    }
+
+    
+    
+    if (!currentDomain.Equals(referrerDomain))
+      return NS_OK;
+  }
+
+  
+  if (userSpoofReferrerSource) {
+    nsCOMPtr<nsIURI> mURIclone;
+    rv = mURI->CloneIgnoringRef(getter_AddRefs(mURIclone));
+    if (NS_FAILED(rv)) return rv;
+    clone = mURIclone;
+    currentHost = referrerHost;
+  }
+
   
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString spec;
-  rv = clone->GetAsciiSpec(spec);
-  if (NS_FAILED(rv)) return rv;
+
+  
+  switch (userReferrerTrimmingPolicy) {
+
+  case 1: {
+    
+    nsAutoCString prepath, path;
+    rv = clone->GetPrePath(prepath);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIURL> url(do_QueryInterface(clone));
+    if (!url) {
+      
+      
+      spec = prepath;
+      break;
+    }
+    rv = url->GetFilePath(path);
+    if (NS_FAILED(rv)) return rv;
+    spec = prepath + path;
+    break;
+  }
+  case 2:
+    
+    rv = clone->GetPrePath(spec);
+    if (NS_FAILED(rv)) return rv;
+    break;
+
+  default:
+    
+    rv = clone->GetAsciiSpec(spec);
+    if (NS_FAILED(rv)) return rv;
+    break;
+  }
 
   
   mReferrer = clone;
