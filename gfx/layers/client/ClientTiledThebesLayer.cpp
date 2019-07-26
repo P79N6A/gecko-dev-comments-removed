@@ -296,12 +296,8 @@ ClientTiledThebesLayer::RenderLowPrecision(nsIntRegion& aInvalidRegion,
 }
 
 void
-ClientTiledThebesLayer::EndPaint(bool aFinish)
+ClientTiledThebesLayer::EndPaint()
 {
-  if (!aFinish && !mPaintData.mPaintFinished) {
-    return;
-  }
-
   mPaintData.mLastScrollOffset = mPaintData.mScrollOffset;
   mPaintData.mPaintFinished = true;
   mPaintData.mFirstPaint = false;
@@ -338,7 +334,7 @@ ClientTiledThebesLayer::RenderLayer()
   nsIntRegion invalidRegion;
   invalidRegion.Sub(mVisibleRegion, mValidRegion);
   if (invalidRegion.IsEmpty()) {
-    EndPaint(true);
+    EndPaint();
     return;
   }
 
@@ -407,7 +403,7 @@ ClientTiledThebesLayer::RenderLayer()
 
   
   if (lowPrecisionInvalidRegion.IsEmpty()) {
-    EndPaint(true);
+    EndPaint();
     return;
   }
 
@@ -420,7 +416,6 @@ ClientTiledThebesLayer::RenderLayer()
     ClientManager()->SetRepeatTransaction();
     mPaintData.mLowPrecisionPaintCount = 1;
     mPaintData.mPaintFinished = false;
-    EndPaint(false);
     return;
   }
 
@@ -433,10 +428,13 @@ ClientTiledThebesLayer::RenderLayer()
       
       
       ClientManager()->SetRepeatTransaction();
+      return;
     }
   }
 
-  EndPaint(false);
+  
+  
+  EndPaint();
 }
 
 } 

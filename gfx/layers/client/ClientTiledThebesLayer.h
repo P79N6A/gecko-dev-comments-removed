@@ -107,8 +107,7 @@ private:
 
 
 
-
-  void EndPaint(bool aFinish);
+  void EndPaint();
 
   RefPtr<TiledContentClient> mContentClient;
   nsIntRegion mLowPrecisionValidRegion;
