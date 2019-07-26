@@ -1731,179 +1731,179 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
   
   nsStyleContext* oldContext = aFrame->StyleContext();
 
-    nsRefPtr<nsStyleContext> newContext;
-    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
-    bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
-    nsStyleContext* newParentContext = nullptr;
-    nsIFrame* providerChild = nullptr;
-    if (isChild) {
-      ReparentStyleContext(providerFrame);
-      newParentContext = providerFrame->StyleContext();
-      providerChild = providerFrame;
-    } else if (providerFrame) {
-      newParentContext = providerFrame->StyleContext();
-    } else {
-      NS_NOTREACHED("Reparenting something that has no usable parent? "
-                    "Shouldn't happen!");
-    }
-    
-    
-    
-    
-    
+  nsRefPtr<nsStyleContext> newContext;
+  nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+  bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
+  nsStyleContext* newParentContext = nullptr;
+  nsIFrame* providerChild = nullptr;
+  if (isChild) {
+    ReparentStyleContext(providerFrame);
+    newParentContext = providerFrame->StyleContext();
+    providerChild = providerFrame;
+  } else if (providerFrame) {
+    newParentContext = providerFrame->StyleContext();
+  } else {
+    NS_NOTREACHED("Reparenting something that has no usable parent? "
+                  "Shouldn't happen!");
+  }
+  
+  
+  
+  
+  
 
 #ifdef DEBUG
-    {
-      
-      
-      
-      
-      
-      
-      
-      
-      nsIFrame *nextContinuation = aFrame->GetNextContinuation();
-      if (nextContinuation) {
-        nsStyleContext *nextContinuationContext =
-          nextContinuation->StyleContext();
-        NS_ASSERTION(oldContext == nextContinuationContext ||
-                     oldContext->GetPseudo() !=
-                       nextContinuationContext->GetPseudo() ||
-                     oldContext->GetParent() !=
-                       nextContinuationContext->GetParent(),
-                     "continuations should have the same style context");
-      }
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame *nextContinuation = aFrame->GetNextContinuation();
+    if (nextContinuation) {
+      nsStyleContext *nextContinuationContext =
+        nextContinuation->StyleContext();
+      NS_ASSERTION(oldContext == nextContinuationContext ||
+                   oldContext->GetPseudo() !=
+                     nextContinuationContext->GetPseudo() ||
+                   oldContext->GetParent() !=
+                     nextContinuationContext->GetParent(),
+                   "continuations should have the same style context");
     }
+  }
 #endif
 
-    nsIFrame *prevContinuation =
-      GetPrevContinuationWithPossiblySameStyle(aFrame);
-    nsStyleContext *prevContinuationContext;
-    bool copyFromContinuation =
-      prevContinuation &&
-      (prevContinuationContext = prevContinuation->StyleContext())
-        ->GetPseudo() == oldContext->GetPseudo() &&
-       prevContinuationContext->GetParent() == newParentContext;
-    if (copyFromContinuation) {
-      
-      
-      
-      
-      newContext = prevContinuationContext;
-    } else {
-      nsIFrame* parentFrame = aFrame->GetParent();
-      Element* element =
-        ElementForStyleContext(parentFrame ? parentFrame->GetContent() : nullptr,
-                               aFrame,
-                               oldContext->GetPseudoType());
-      newContext = mPresContext->StyleSet()->
-                     ReparentStyleContext(oldContext, newParentContext, element);
-    }
+  nsIFrame *prevContinuation =
+    GetPrevContinuationWithPossiblySameStyle(aFrame);
+  nsStyleContext *prevContinuationContext;
+  bool copyFromContinuation =
+    prevContinuation &&
+    (prevContinuationContext = prevContinuation->StyleContext())
+      ->GetPseudo() == oldContext->GetPseudo() &&
+     prevContinuationContext->GetParent() == newParentContext;
+  if (copyFromContinuation) {
+    
+    
+    
+    
+    newContext = prevContinuationContext;
+  } else {
+    nsIFrame* parentFrame = aFrame->GetParent();
+    Element* element =
+      ElementForStyleContext(parentFrame ? parentFrame->GetContent() : nullptr,
+                             aFrame,
+                             oldContext->GetPseudoType());
+    newContext = mPresContext->StyleSet()->
+                   ReparentStyleContext(oldContext, newParentContext, element);
+  }
 
-    if (newContext) {
-      if (newContext != oldContext) {
-        
-        
-        
-        
-        
+  if (newContext) {
+    if (newContext != oldContext) {
+      
+      
+      
+      
+      
 #if 0
-        if (!copyFromContinuation) {
-          TryStartingTransition(mPresContext, aFrame->GetContent(),
-                                oldContext, &newContext);
-        }
-#endif
-
-        
-        
-        DebugOnly<nsChangeHint> styleChange =
-          oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
-        
-        
-        
-        
-        NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
-                     "Our frame tree is likely to be bogus!");
-
-        aFrame->SetStyleContext(newContext);
-
-        nsIFrame::ChildListIterator lists(aFrame);
-        for (; !lists.IsDone(); lists.Next()) {
-          nsFrameList::Enumerator childFrames(lists.CurrentList());
-          for (; !childFrames.AtEnd(); childFrames.Next()) {
-            nsIFrame* child = childFrames.get();
-            
-            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-                child != providerChild) {
-#ifdef DEBUG
-              if (nsGkAtoms::placeholderFrame == child->GetType()) {
-                nsIFrame* outOfFlowFrame =
-                  nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
-                NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
-
-                NS_ASSERTION(outOfFlowFrame != providerChild,
-                             "Out of flow provider?");
-              }
-#endif
-              ReparentStyleContext(child);
-            }
-          }
-        }
-
-        
-        
-        
-        
-        
-        
-        if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
-            !aFrame->GetPrevContinuation()) {
-          nsIFrame* sib = static_cast<nsIFrame*>
-            (aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
-          if (sib) {
-            ReparentStyleContext(sib);
-          }
-        }
-
-        
-        int32_t contextIndex = -1;
-        while (1) {
-          nsStyleContext* oldExtraContext =
-            aFrame->GetAdditionalStyleContext(++contextIndex);
-          if (oldExtraContext) {
-            nsRefPtr<nsStyleContext> newExtraContext;
-            newExtraContext = mPresContext->StyleSet()->
-                                ReparentStyleContext(oldExtraContext,
-                                                     newContext, nullptr);
-            if (newExtraContext) {
-              if (newExtraContext != oldExtraContext) {
-                
-                
-                
-                styleChange =
-                  oldExtraContext->CalcStyleDifference(newExtraContext,
-                                                       nsChangeHint(0));
-                
-                
-                
-                
-                
-                NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
-                             "Our frame tree is likely to be bogus!");
-              }
-
-              aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
-            }
-          }
-          else {
-            break;
-          }
-        }
-#ifdef DEBUG
-        VerifyStyleTree(mPresContext, aFrame, newParentContext);
-#endif
+      if (!copyFromContinuation) {
+        TryStartingTransition(mPresContext, aFrame->GetContent(),
+                              oldContext, &newContext);
       }
+#endif
+
+      
+      
+      DebugOnly<nsChangeHint> styleChange =
+        oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
+      
+      
+      
+      
+      NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                   "Our frame tree is likely to be bogus!");
+
+      aFrame->SetStyleContext(newContext);
+
+      nsIFrame::ChildListIterator lists(aFrame);
+      for (; !lists.IsDone(); lists.Next()) {
+        nsFrameList::Enumerator childFrames(lists.CurrentList());
+        for (; !childFrames.AtEnd(); childFrames.Next()) {
+          nsIFrame* child = childFrames.get();
+          
+          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+              child != providerChild) {
+#ifdef DEBUG
+            if (nsGkAtoms::placeholderFrame == child->GetType()) {
+              nsIFrame* outOfFlowFrame =
+                nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
+              NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
+
+              NS_ASSERTION(outOfFlowFrame != providerChild,
+                           "Out of flow provider?");
+            }
+#endif
+            ReparentStyleContext(child);
+          }
+        }
+      }
+
+      
+      
+      
+      
+      
+      
+      if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+          !aFrame->GetPrevContinuation()) {
+        nsIFrame* sib = static_cast<nsIFrame*>
+          (aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+        if (sib) {
+          ReparentStyleContext(sib);
+        }
+      }
+
+      
+      int32_t contextIndex = -1;
+      while (1) {
+        nsStyleContext* oldExtraContext =
+          aFrame->GetAdditionalStyleContext(++contextIndex);
+        if (oldExtraContext) {
+          nsRefPtr<nsStyleContext> newExtraContext;
+          newExtraContext = mPresContext->StyleSet()->
+                              ReparentStyleContext(oldExtraContext,
+                                                   newContext, nullptr);
+          if (newExtraContext) {
+            if (newExtraContext != oldExtraContext) {
+              
+              
+              
+              styleChange =
+                oldExtraContext->CalcStyleDifference(newExtraContext,
+                                                     nsChangeHint(0));
+              
+              
+              
+              
+              
+              NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                           "Our frame tree is likely to be bogus!");
+            }
+
+            aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
+          }
+        }
+        else {
+          break;
+        }
+      }
+#ifdef DEBUG
+      VerifyStyleTree(mPresContext, aFrame, newParentContext);
+#endif
     }
+  }
 
   return NS_OK;
 }
