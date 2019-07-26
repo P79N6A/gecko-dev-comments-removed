@@ -2722,6 +2722,15 @@ nsCycleCollector::ShutdownCollect()
     }
 }
 
+static void
+PrintPhase(const char *aPhase)
+{
+#ifdef DEBUG_PHASES
+    printf("cc: begin %s on %s\n", aPhase,
+           NS_IsMainThread() ? "mainthread" : "worker");
+#endif
+}
+
 bool
 nsCycleCollector::Collect(ccType aCCType,
                           SliceBudget &aBudget,
@@ -2748,9 +2757,11 @@ nsCycleCollector::Collect(ccType aCCType,
     do {
         switch (mIncrementalPhase) {
         case IdlePhase:
+            PrintPhase("BeginCollection");
             BeginCollection(aCCType, aManualListener);
             break;
         case GraphBuildingPhase:
+            PrintPhase("MarkRoots");
             MarkRoots();
             break;
         case ScanAndCollectWhitePhase:
@@ -2758,10 +2769,13 @@ nsCycleCollector::Collect(ccType aCCType,
             
             
             
+            PrintPhase("ScanRoots");
             ScanRoots();
+            PrintPhase("CollectWhite");
             collectedAny = CollectWhite();
             break;
         case CleanupPhase:
+            PrintPhase("CleanupAfterCollection");
             CleanupAfterCollection();
             finished = true;
             break;
