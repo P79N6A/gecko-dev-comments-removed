@@ -40,7 +40,6 @@ class nsIDOMMozConnection;
 namespace mozilla {
 namespace dom {
 class Geolocation;
-class systemMessageCallback;
 }
 }
 
@@ -70,8 +69,6 @@ class nsIDOMTelephony;
 
 
 
-void NS_GetNavigatorAppName(nsAString& aAppName);
-
 namespace mozilla {
 namespace dom {
 
@@ -82,15 +79,6 @@ class BatteryManager;
 class DesktopNotificationCenter;
 class SmsManager;
 class MobileMessageManager;
-class MozIdleObserver;
-#ifdef MOZ_GAMEPAD
-class Gamepad;
-#endif 
-#ifdef MOZ_MEDIA_NAVIGATOR
-class MozDOMGetUserMediaSuccessCallback;
-class MozDOMGetUserMediaErrorCallback;
-class MozGetUserMediaDevicesSuccessCallback;
-#endif 
 
 namespace icc {
 #ifdef MOZ_B2G_RIL
@@ -204,7 +192,7 @@ public:
   static void Init();
 
   void Invalidate();
-  nsPIDOMWindow *GetWindow() const
+  nsPIDOMWindow *GetWindow()
   {
     return mWindow;
   }
@@ -230,187 +218,8 @@ public:
 
   NS_DECL_NSIDOMNAVIGATORCAMERA
 
-  
-  void GetAppName(nsString& aAppName)
-  {
-    NS_GetNavigatorAppName(aAppName);
-  }
-  void GetAppVersion(nsString& aAppVersion, ErrorResult& aRv)
-  {
-    aRv = GetAppVersion(aAppVersion);
-  }
-  void GetPlatform(nsString& aPlatform, ErrorResult& aRv)
-  {
-    aRv = GetPlatform(aPlatform);
-  }
-  void GetUserAgent(nsString& aUserAgent, ErrorResult& aRv)
-  {
-    aRv = GetUserAgent(aUserAgent);
-  }
-  
-  
-  bool OnLine();
-  void RegisterProtocolHandler(const nsAString& aScheme, const nsAString& aURL,
-                               const nsAString& aTitle, ErrorResult& rv)
-  {
-    rv = RegisterProtocolHandler(aScheme, aURL, aTitle);
-  }
-  void RegisterContentHandler(const nsAString& aMIMEType, const nsAString& aURL,
-                              const nsAString& aTitle, ErrorResult& rv)
-  {
-    rv = RegisterContentHandler(aMIMEType, aURL, aTitle);
-  }
-  nsMimeTypeArray* GetMimeTypes(ErrorResult& aRv);
-  nsPluginArray* GetPlugins(ErrorResult& aRv);
-  
-  Geolocation* GetGeolocation(ErrorResult& aRv);
-  battery::BatteryManager* GetBattery(ErrorResult& aRv);
-  void Vibrate(uint32_t aDuration, ErrorResult& aRv);
-  void Vibrate(const nsTArray<uint32_t>& aDuration, ErrorResult& aRv);
-  void GetAppCodeName(nsString& aAppCodeName, ErrorResult& aRv)
-  {
-    aRv = GetAppCodeName(aAppCodeName);
-  }
-  void GetOscpu(nsString& aOscpu, ErrorResult& aRv)
-  {
-    aRv = GetOscpu(aOscpu);
-  }
-  
-  
-  
-  bool CookieEnabled();
-  void GetBuildID(nsString& aBuildID, ErrorResult& aRv)
-  {
-    aRv = GetBuildID(aBuildID);
-  }
-  nsIDOMMozPowerManager* GetMozPower(ErrorResult& aRv);
-  bool JavaEnabled(ErrorResult& aRv);
-  bool TaintEnabled()
-  {
-    return false;
-  }
-  void AddIdleObserver(MozIdleObserver& aObserver, ErrorResult& aRv);
-  void RemoveIdleObserver(MozIdleObserver& aObserver, ErrorResult& aRv);
-  already_AddRefed<nsIDOMMozWakeLock> RequestWakeLock(const nsAString &aTopic,
-                                                      ErrorResult& aRv);
-  nsDOMDeviceStorage* GetDeviceStorage(const nsAString& aType,
-                                       ErrorResult& aRv);
-  void GetDeviceStorages(const nsAString& aType,
-                         nsTArray<nsRefPtr<nsDOMDeviceStorage> >& aStores,
-                         ErrorResult& aRv);
-  DesktopNotificationCenter* GetMozNotification(ErrorResult& aRv);
-  bool MozIsLocallyAvailable(const nsAString& aURI, bool aWhenOffline,
-                             ErrorResult& aRv)
-  {
-    bool available = false;
-    aRv = MozIsLocallyAvailable(aURI, aWhenOffline, &available);
-    return available;
-  }
-  nsIDOMMozSmsManager* GetMozSms();
-  nsIDOMMozMobileMessageManager* GetMozMobileMessage();
-  nsIDOMMozConnection* GetMozConnection();
-  nsDOMCameraManager* GetMozCameras(ErrorResult& aRv);
-  void MozSetMessageHandler(const nsAString& aType,
-                            systemMessageCallback* aCallback,
-                            ErrorResult& aRv);
-  bool MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv);
-#ifdef MOZ_B2G_RIL
-  nsIDOMTelephony* GetMozTelephony(ErrorResult& aRv);
-  nsIDOMMozMobileConnection* GetMozMobileConnection(ErrorResult& aRv);
-  nsIDOMMozCellBroadcast* GetMozCellBroadcast(ErrorResult& aRv);
-  nsIDOMMozVoicemail* GetMozVoicemail(ErrorResult& aRv);
-  nsIDOMMozIccManager* GetMozIccManager(ErrorResult& aRv);
-#endif 
-#ifdef MOZ_GAMEPAD
-  void GetGamepads(nsTArray<nsRefPtr<Gamepad> >& aGamepads, ErrorResult& aRv);
-#endif 
-#ifdef MOZ_B2G_BT
-  nsIDOMBluetoothManager* GetMozBluetooth(ErrorResult& aRv);
-#endif 
-#ifdef MOZ_TIME_MANAGER
-  time::TimeManager* GetMozTime(ErrorResult& aRv);
-#endif 
-#ifdef MOZ_AUDIO_CHANNEL_MANAGER
-  system::AudioChannelManager* GetMozAudioChannelManager(ErrorResult& aRv);
-#endif 
-#ifdef MOZ_MEDIA_NAVIGATOR
-  void MozGetUserMedia(nsIMediaStreamOptions* aParams,
-                       MozDOMGetUserMediaSuccessCallback* aOnSuccess,
-                       MozDOMGetUserMediaErrorCallback* aOnError,
-                       ErrorResult& aRv);
-  void MozGetUserMedia(nsIMediaStreamOptions* aParams,
-                       nsIDOMGetUserMediaSuccessCallback* aOnSuccess,
-                       nsIDOMGetUserMediaErrorCallback* aOnError,
-                       ErrorResult& aRv);
-  void MozGetUserMediaDevices(MozGetUserMediaDevicesSuccessCallback* aOnSuccess,
-                              MozDOMGetUserMediaErrorCallback* aOnError,
-                              ErrorResult& aRv);
-  void MozGetUserMediaDevices(nsIGetUserMediaDevicesSuccessCallback* aOnSuccess,
-                              nsIDOMGetUserMediaErrorCallback* aOnError,
-                              ErrorResult& aRv);
-#endif 
-  bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                    JS::Handle<jsid> aId, unsigned aFlags,
-                    JS::MutableHandle<JSObject*> aObjp);
-
-  
-  static bool HasBatterySupport(JSContext* , JSObject* );
-  static bool HasPowerSupport(JSContext* , JSObject* aGlobal);
-  static bool HasIdleSupport(JSContext* , JSObject* aGlobal);
-  static bool HasWakeLockSupport(JSContext* , JSObject* );
-  static bool HasDesktopNotificationSupport(JSContext* ,
-                                            JSObject* )
-  {
-    return HasDesktopNotificationSupport();
-  }
-  static bool HasSmsSupport(JSContext* , JSObject* aGlobal);
-  static bool HasMobileMessageSupport(JSContext* ,
-                                      JSObject* aGlobal);
-  static bool HasCameraSupport(JSContext* ,
-                               JSObject* aGlobal);
-#ifdef MOZ_B2G_RIL
-  static bool HasTelephonySupport(JSContext* ,
-                                  JSObject* aGlobal);
-  static bool HasMobileConnectionSupport(JSContext* ,
-                                         JSObject* aGlobal);
-  static bool HasCellBroadcastSupport(JSContext* ,
-                                      JSObject* aGlobal);
-  static bool HasVoicemailSupport(JSContext* ,
-                                  JSObject* aGlobal);
-  static bool HasIccManagerSupport(JSContext* ,
-                                   JSObject* aGlobal);
-#endif 
-#ifdef MOZ_B2G_BT
-  static bool HasBluetoothSupport(JSContext* , JSObject* aGlobal);
-#endif 
-#ifdef MOZ_TIME_MANAGER
-  static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
-#endif 
-#ifdef MOZ_MEDIA_NAVIGATOR
-  static bool HasUserMediaSupport(JSContext* ,
-                                  JSObject* );
-#endif 
-
-  nsPIDOMWindow* GetParentObject() const
-  {
-    return GetWindow();
-  }
-
-  virtual JSObject* WrapObject(JSContext* cx,
-                               JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
-
 private:
   bool CheckPermission(const char* type);
-  static bool CheckPermission(nsPIDOMWindow* aWindow, const char* aType);
-  static bool HasMobileMessageSupport(nsPIDOMWindow* aWindow);
-  
-  
-  static already_AddRefed<nsPIDOMWindow> GetWindowFromGlobal(JSObject* aGlobal);
-
-  
-  
-  void AddIdleObserver(nsIIdleObserver& aIdleObserver);
-  void RemoveIdleObserver(nsIIdleObserver& aIdleObserver);
 
   nsRefPtr<nsMimeTypeArray> mMimeTypes;
   nsRefPtr<nsPluginArray> mPlugins;
@@ -449,5 +258,6 @@ private:
 nsresult NS_GetNavigatorUserAgent(nsAString& aUserAgent);
 nsresult NS_GetNavigatorPlatform(nsAString& aPlatform);
 nsresult NS_GetNavigatorAppVersion(nsAString& aAppVersion);
+nsresult NS_GetNavigatorAppName(nsAString& aAppName);
 
 #endif 
