@@ -172,7 +172,7 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
         return;
 
     
-    if (IsDebugFD(fd))
+    if (IsDebugFile(fd))
         return;
 
     
@@ -203,6 +203,11 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
 } 
 
 namespace mozilla {
+
+intptr_t FileDescriptorToID(int aFd) {
+    return aFd;
+}
+
 void PoisonWrite() {
     
     static bool WritesArePoisoned = false;

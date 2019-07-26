@@ -31,7 +31,7 @@
 using namespace mozilla;
 
 namespace {
-struct DebugFDAutoLockTraits {
+struct DebugFilesAutoLockTraits {
   typedef PRLock *type;
   const static type empty() {
     return nullptr;
@@ -41,11 +41,11 @@ struct DebugFDAutoLockTraits {
   }
 };
 
-class DebugFDAutoLock : public Scoped<DebugFDAutoLockTraits> {
+class DebugFilesAutoLock : public Scoped<DebugFilesAutoLockTraits> {
   static PRLock *Lock;
 public:
   static void Clear();
-  static PRLock *getDebugFDsLock() {
+  static PRLock *getDebugFileIDsLock() {
     
     
     
@@ -63,25 +63,29 @@ public:
     return Lock;
   }
 
-  DebugFDAutoLock() : Scoped<DebugFDAutoLockTraits>(getDebugFDsLock()) {
+  DebugFilesAutoLock() :
+    Scoped<DebugFilesAutoLockTraits>(getDebugFileIDsLock()) {
     PR_Lock(get());
   }
 };
 
-PRLock *DebugFDAutoLock::Lock;
-void DebugFDAutoLock::Clear() {
+PRLock *DebugFilesAutoLock::Lock;
+void DebugFilesAutoLock::Clear() {
   MOZ_ASSERT(Lock != nullptr);
   Lock = nullptr;
 }
 
 static char *sProfileDirectory = NULL;
 
-std::vector<int>* getDebugFDs() {
-  PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(DebugFDAutoLock::getDebugFDsLock());
+
+
+std::vector<intptr_t>* getDebugFileIDs() {
+  PRLock *lock = DebugFilesAutoLock::getDebugFileIDsLock();
+  PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(lock);
   
   
-  static std::vector<int> *DebugFDs = new std::vector<int>();
-  return DebugFDs;
+  static std::vector<intptr_t> *DebugFileIDs = new std::vector<intptr_t>();
+  return DebugFileIDs;
 }
 
 
@@ -272,10 +276,10 @@ void DisableWritePoisoning() {
 
   PRLock *Lock;
   {
-    DebugFDAutoLock lockedScope;
-    delete getDebugFDs();
-    Lock = DebugFDAutoLock::getDebugFDsLock();
-    DebugFDAutoLock::Clear();
+    DebugFilesAutoLock lockedScope;
+    delete getDebugFileIDs();
+    Lock = DebugFilesAutoLock::getDebugFileIDsLock();
+    DebugFilesAutoLock::Clear();
   }
   PR_DestroyLock(Lock);
 }
@@ -288,11 +292,11 @@ bool PoisonWriteEnabled()
   return sPoisoningState == POISON_ON;
 }
 
-bool IsDebugFD(int fd) {
-  DebugFDAutoLock lockedScope;
+bool IsDebugFile(intptr_t aFileID) {
+  DebugFilesAutoLock lockedScope;
 
-  std::vector<int> &Vec = *getDebugFDs();
-  return std::find(Vec.begin(), Vec.end(), fd) != Vec.end();
+  std::vector<intptr_t> &Vec = *getDebugFileIDs();
+  return std::find(Vec.begin(), Vec.end(), aFileID) != Vec.end();
 }
 
 } 
@@ -301,10 +305,11 @@ extern "C" {
   void MozillaRegisterDebugFD(int fd) {
     if (sPoisoningState == POISON_OFF)
       return;
-    DebugFDAutoLock lockedScope;
-    std::vector<int> &Vec = *getDebugFDs();
-    MOZ_ASSERT(std::find(Vec.begin(), Vec.end(), fd) == Vec.end());
-    Vec.push_back(fd);
+    DebugFilesAutoLock lockedScope;
+    intptr_t fileId = FileDescriptorToID(fd);
+    std::vector<intptr_t> &Vec = *getDebugFileIDs();
+    MOZ_ASSERT(std::find(Vec.begin(), Vec.end(), fileId) == Vec.end());
+    Vec.push_back(fileId);
   }
   void MozillaRegisterDebugFILE(FILE *f) {
     if (sPoisoningState == POISON_OFF)
@@ -317,9 +322,11 @@ extern "C" {
   void MozillaUnRegisterDebugFD(int fd) {
     if (sPoisoningState == POISON_OFF)
       return;
-    DebugFDAutoLock lockedScope;
-    std::vector<int> &Vec = *getDebugFDs();
-    std::vector<int>::iterator i = std::find(Vec.begin(), Vec.end(), fd);
+    DebugFilesAutoLock lockedScope;
+    intptr_t fileId = FileDescriptorToID(fd);
+    std::vector<intptr_t> &Vec = *getDebugFileIDs();
+    std::vector<intptr_t>::iterator i =
+      std::find(Vec.begin(), Vec.end(), fileId);
     MOZ_ASSERT(i != Vec.end());
     Vec.erase(i);
   }
