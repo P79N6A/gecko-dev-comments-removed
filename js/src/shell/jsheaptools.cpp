@@ -59,7 +59,8 @@ using mozilla::MoveRef;
 
 
 
-class HeapReverser : public JSTracer {
+class HeapReverser : public JSTracer, public JS::CustomAutoRooter
+{
   public:
     struct Edge;
 
@@ -83,6 +84,11 @@ class HeapReverser : public JSTracer {
             return *this;
         }
 
+        void trace(JSTracer *trc) {
+            for (Edge *e = incoming.begin(); e != incoming.end(); e++)
+                e->trace(trc);
+        }
+
         
         JSGCTraceKind kind;
 
@@ -97,8 +103,8 @@ class HeapReverser : public JSTracer {
         bool marked;
 
       private:
-        Node(const Node &);
-        Node &operator=(const Node &);
+        Node(const Node &) MOZ_DELETE;
+        Node &operator=(const Node &) MOZ_DELETE;
     };
 
     
@@ -119,6 +125,11 @@ class HeapReverser : public JSTracer {
             this->~Edge();
             new(this) Edge(rhs);
             return *this;
+        }
+
+        void trace(JSTracer *trc) {
+            if (origin)
+                gc::MarkGCThingRoot(trc, &origin, "HeapReverser::Edge");
         }
 
         
@@ -142,8 +153,17 @@ class HeapReverser : public JSTracer {
     Map map;
 
     
-    HeapReverser(JSContext *cx) : rooter(cx, 0, NULL), parent(NULL) {
-        JS_TracerInit(this, JS_GetRuntime(cx), traverseEdgeWithThis);
+    HeapReverser(JSContext *cx)
+      : JS::CustomAutoRooter(cx),
+        runtime(JS_GetRuntime(cx)),
+        parent(NULL)
+    {
+        JS_TracerInit(this, runtime, traverseEdgeWithThis);
+        JS::DisableGenerationalGC(runtime);
+    }
+
+    ~HeapReverser() {
+        JS::EnableGenerationalGC(runtime);
     }
 
     bool init() { return map.init(); }
@@ -153,26 +173,7 @@ class HeapReverser : public JSTracer {
 
   private:
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    Vector<jsval, 0, SystemAllocPolicy> roots;
-    AutoArrayRooter rooter;
+    JSRuntime *runtime;
 
     
 
@@ -240,18 +241,23 @@ class HeapReverser : public JSTracer {
         JSObject *object = static_cast<JSObject *>(cell);
         return OBJECT_TO_JSVAL(object);
     }
+
+    
+    virtual void trace(JSTracer *trc) MOZ_OVERRIDE {
+        if (!map.initialized())
+            return;
+        for (Map::Enum e(map); !e.empty(); e.popFront()) {
+            gc::MarkGCThingRoot(trc, const_cast<void **>(&e.front().key), "HeapReverser::map::key");
+            e.front().value.trace(trc);
+        }
+        for (Child *c = work.begin(); c != work.end(); ++c)
+            gc::MarkGCThingRoot(trc, &c->cell, "HeapReverser::Child");
+    }
 };
 
 bool
 HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind)
 {
-    jsval v = nodeToValue(cell, kind);
-    if (v.isObject()) {
-        if (!roots.append(v))
-            return false;
-        rooter.changeArray(roots.begin(), roots.length());
-    }
-
     
     char *edgeDescription = getEdgeDescription();
     if (!edgeDescription)
