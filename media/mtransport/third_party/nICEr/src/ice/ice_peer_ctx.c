@@ -247,7 +247,27 @@ int nr_ice_peer_ctx_parse_trickle_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_
       }
     }
 
-    _status =0;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (!pstream->timer) {
+      if(r=nr_ice_media_stream_start_checks(pctx, pstream)) {
+        r_log(LOG_ICE,LOG_ERR,"ICE(%s): peer (%s), stream(%s) failed to start checks",pctx->ctx->label,pctx->label,stream->label);
+        ABORT(r);
+      }
+    }
+
+    _status=0;
  abort:
     return(_status);
 

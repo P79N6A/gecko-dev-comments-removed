@@ -146,11 +146,6 @@ nsresult NrIceMediaStream::ParseTrickleCandidate(const std::string& candidate) {
     }
   }
 
-  if (ctx_->state() == NrIceCtx::ICE_CTX_GATHERED) {
-    
-    return ctx_->StartChecks();
-  }
-
   return NS_OK;
 }
 
