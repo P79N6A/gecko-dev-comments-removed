@@ -102,11 +102,6 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
 }
 
 void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta) {
-  if (mPos == aPos) {
-    
-    return;
-  }
-
   float newVelocity = (mPos - aPos) / aTimeDelta.ToMilliseconds();
 
   bool curVelocityBelowThreshold = fabsf(newVelocity) < gVelocityThreshold;
