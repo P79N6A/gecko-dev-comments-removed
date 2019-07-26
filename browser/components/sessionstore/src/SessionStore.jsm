@@ -4549,7 +4549,9 @@ let TabState = {
     }
     if (browser.__SS_data && browser.__SS_tabStillLoading) {
       
-      tabData = browser.__SS_data;
+      
+      
+      tabData = JSON.parse(JSON.stringify(browser.__SS_data));
       if (tab.pinned)
         tabData.pinned = true;
       else
