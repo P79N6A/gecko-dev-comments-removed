@@ -14,6 +14,8 @@
 #include "nsIMozNavigatorNetwork.h"
 #include "nsAutoPtr.h"
 #include "nsWrapperCache.h"
+#include "nsHashKeys.h"
+#include "nsInterfaceHashtable.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
@@ -348,6 +350,13 @@ private:
   nsTArray<nsRefPtr<nsDOMDeviceStorage> > mDeviceStorageStores;
   nsRefPtr<time::TimeManager> mTimeManager;
   nsCOMPtr<nsPIDOMWindow> mWindow;
+
+  
+  
+  
+  
+  
+  nsInterfaceHashtable<nsStringHashKey, nsISupports> mCachedResolveResults;
 };
 
 } 
