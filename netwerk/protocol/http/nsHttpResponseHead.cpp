@@ -578,6 +578,12 @@ nsHttpResponseHead::ParseVersion(const char *str)
 
     
     if (PL_strncasecmp(str, "HTTP", 4) != 0) {
+        if (PL_strncasecmp(str, "ICY ", 4) == 0) {
+            
+            LOG(("Treating ICY as HTTP 1.0\n"));
+            mVersion = NS_HTTP_VERSION_1_0;
+            return;
+        }
         LOG(("looks like a HTTP/0.9 response\n"));
         mVersion = NS_HTTP_VERSION_0_9;
         return;
