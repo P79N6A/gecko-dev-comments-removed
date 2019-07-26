@@ -31,6 +31,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 
 
@@ -59,7 +60,13 @@ public class DynamicPanel extends HomeFragment
     private static final String DATASET_REQUEST = "dataset_request";
 
     
+    private FrameLayout mView;
+
+    
     private PanelLayout mPanelLayout;
+
+    
+    private PanelAuthLayout mPanelAuthLayout;
 
     
     private PanelConfig mPanelConfig;
@@ -117,7 +124,10 @@ public class DynamicPanel extends HomeFragment
 
         Log.d(LOGTAG, "Created layout of type: " + mPanelConfig.getLayoutType());
 
-        return mPanelLayout;
+        mView = new FrameLayout(getActivity());
+        mView.addView(mPanelLayout);
+
+        return mView;
     }
 
     @Override
@@ -129,7 +139,9 @@ public class DynamicPanel extends HomeFragment
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        mView = null;
         mPanelLayout = null;
+        mPanelAuthLayout = null;
 
         GeckoAppShell.unregisterEventListener("HomePanels:RefreshDataset", this);
     }
@@ -159,7 +171,31 @@ public class DynamicPanel extends HomeFragment
     @Override
     protected void load() {
         Log.d(LOGTAG, "Loading layout");
-        mPanelLayout.load();
+
+        if (requiresAuth()) {
+            
+            setAuthVisible(true);
+        } else {
+            mPanelLayout.load();
+        }
+    }
+
+    
+
+
+    private boolean requiresAuth() {
+        return mPanelConfig.getAuthConfig() != null;
+    }
+
+    private void setAuthVisible(boolean visible) {
+        
+        if (visible && mPanelAuthLayout == null) {
+            mPanelAuthLayout = new PanelAuthLayout(getActivity(), mPanelConfig);
+            mView.addView(mPanelAuthLayout, 0);
+        }
+
+        mPanelAuthLayout.setVisibility(visible ? View.VISIBLE : View.GONE);
+        mPanelLayout.setVisibility(visible ? View.GONE : View.VISIBLE);
     }
 
     @Override
