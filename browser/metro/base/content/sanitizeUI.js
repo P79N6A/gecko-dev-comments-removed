@@ -39,6 +39,7 @@ var SanitizeUI = {
       checkbox.disabled = true;
     }
     clearNotificationDeck.selectedPanel = clearNotificationClearing;
+    document.getElementById("clearprivacythrobber").enabled = true;
 
     
     setTimeout(function() {
@@ -57,6 +58,7 @@ var SanitizeUI = {
         checkbox.disabled = false;
       }
       clearNotificationDeck.selectedPanel = clearNotificationDone;
+      document.getElementById("clearprivacythrobber").enabled = false;
 
       
       clearTimeout(SanitizeUI._clearNotificationTimeout);
