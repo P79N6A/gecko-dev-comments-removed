@@ -381,12 +381,13 @@ VirtualKey::FillKbdState(PBYTE aKbdState,
 
 
 
-NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
-                     nsWindow* aWindow,
-                     const MSG& aKeyOrCharMessage) :
+NativeKey::NativeKey(nsWindow* aWindow,
+                     const MSG& aKeyOrCharMessage,
+                     const ModifierKeyState& aModKeyState) :
   mDOMKeyCode(0), mMessage(aKeyOrCharMessage.message),
   mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
 {
+  KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
   mScanCode = WinUtils::GetScanCode(aKeyOrCharMessage.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(aKeyOrCharMessage.lParam);
   
@@ -486,7 +487,7 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
       
       mVirtualKeyCode = static_cast<uint8_t>(
         ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                          MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
+                          MAPVK_VSC_TO_VK_EX, keyboardLayout->GetLayout()));
 
       
       
@@ -528,7 +529,7 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
       }
       mVirtualKeyCode = mOriginalVirtualKeyCode = static_cast<uint8_t>(
         ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                          MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
+                          MAPVK_VSC_TO_VK_EX, keyboardLayout->GetLayout()));
       break;
     default:
       MOZ_NOT_REACHED("Unsupported message");
@@ -540,9 +541,11 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
   }
 
   mDOMKeyCode =
-    aKeyboardLayout.ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
+    keyboardLayout->ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
   mKeyNameIndex =
-    aKeyboardLayout.ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
+    keyboardLayout->ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
+
+  keyboardLayout->InitNativeKey(*this, aModKeyState);
 }
 
 UINT
@@ -628,13 +631,32 @@ NativeKey::GetKeyLocation() const
 
 
 
+KeyboardLayout* KeyboardLayout::sInstance = nullptr;
+
+
+KeyboardLayout*
+KeyboardLayout::GetInstance()
+{
+  if (!sInstance) {
+    sInstance = new KeyboardLayout();
+  }
+  return sInstance;
+}
+
+
+void
+KeyboardLayout::Shutdown()
+{
+  delete sInstance;
+  sInstance = nullptr;
+}
+
 KeyboardLayout::KeyboardLayout() :
-  mKeyboardLayout(0), mPendingKeyboardLayout(0)
+  mKeyboardLayout(0), mIsOverridden(false),
+  mIsPendingToRestoreKeyboardLayout(false)
 {
   mDeadKeyTableListHead = nullptr;
 
-  
-  
   
 }
 
@@ -666,8 +688,8 @@ void
 KeyboardLayout::InitNativeKey(NativeKey& aNativeKey,
                               const ModifierKeyState& aModKeyState)
 {
-  if (mPendingKeyboardLayout) {
-    LoadLayout(mPendingKeyboardLayout);
+  if (mIsPendingToRestoreKeyboardLayout) {
+    LoadLayout(::GetKeyboardLayout(0));
   }
 
   uint8_t virtualKey = aNativeKey.GetOriginalVirtualKeyCode();
@@ -769,14 +791,9 @@ KeyboardLayout::GetUniCharsAndModifiers(
 }
 
 void
-KeyboardLayout::LoadLayout(HKL aLayout, bool aLoadLater)
+KeyboardLayout::LoadLayout(HKL aLayout)
 {
-  if (aLoadLater) {
-    mPendingKeyboardLayout = aLayout;
-    return;
-  }
-
-  mPendingKeyboardLayout = 0;
+  mIsPendingToRestoreKeyboardLayout = false;
 
   if (mKeyboardLayout == aLayout) {
     return;
