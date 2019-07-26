@@ -49,9 +49,13 @@ public:
 
 class VideoTrackMetadata : public TrackMetadataBase {
 public:
+  
   virtual uint32_t GetVideoHeight() = 0;
-
   virtual uint32_t GetVideoWidth() = 0;
+
+  
+  virtual uint32_t GetVideoDisplayHeight() = 0;
+  virtual uint32_t GetVideoDisplayWidth() = 0;
 
   
   
