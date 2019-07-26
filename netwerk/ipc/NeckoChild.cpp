@@ -189,7 +189,7 @@ NeckoChild::DeallocPTCPServerSocketChild(PTCPServerSocketChild* child)
 }
 
 PRemoteOpenFileChild*
-NeckoChild::AllocPRemoteOpenFileChild(const URIParams&, PBrowserChild*)
+NeckoChild::AllocPRemoteOpenFileChild(const URIParams&)
 {
   
   
