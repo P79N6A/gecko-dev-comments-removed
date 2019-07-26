@@ -133,4 +133,12 @@
 #  define MOZ_END_EXTERN_C
 #endif
 
+
+
+
+#if defined(__GNUC__) && defined(__cplusplus) && \
+  !defined(__GXX_EXPERIMENTAL_CXX0X__) && __cplusplus < 201103L
+#  define decltype __typeof__
+#endif
+
 #endif  
