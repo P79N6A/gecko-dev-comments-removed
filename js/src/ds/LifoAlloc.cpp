@@ -60,9 +60,16 @@ LifoAlloc::freeAll()
     while (first) {
         BumpChunk *victim = first;
         first = first->next();
+        decrementCurSize(victim->computedSizeOfIncludingThis());
         BumpChunk::delete_(victim);
     }
     first = latest = last = NULL;
+
+    
+
+
+
+    JS_ASSERT(curSize_ == 0);
 }
 
 LifoAlloc::BumpChunk *
@@ -105,6 +112,11 @@ LifoAlloc::getOrCreateChunk(size_t n)
         latest->setNext(newChunk);
         latest = last = newChunk;
     }
+
+    size_t computedChunkSize = newChunk->computedSizeOfIncludingThis();
+    JS_ASSERT(computedChunkSize == chunkSize);
+    incrementCurSize(computedChunkSize);
+
     return newChunk;
 }
 
@@ -118,8 +130,10 @@ LifoAlloc::transferFrom(LifoAlloc *other)
     if (!other->first)
         return;
 
+    incrementCurSize(other->curSize_);
     append(other->first, other->last);
     other->first = other->last = other->latest = NULL;
+    other->curSize_ = 0;
 }
 
 void
@@ -133,12 +147,20 @@ LifoAlloc::transferUnusedFrom(LifoAlloc *other)
 
     
 
-
-
-
-
-
     if (other->latest->next()) {
+        if (other->latest == other->first) {
+            
+            size_t delta = other->curSize_ - other->first->computedSizeOfIncludingThis();
+            other->decrementCurSize(delta);
+            incrementCurSize(delta);
+        } else {
+            for (BumpChunk *chunk = other->latest->next(); chunk; chunk = chunk->next()) {
+                size_t size = chunk->computedSizeOfIncludingThis();
+                incrementCurSize(size);
+                other->decrementCurSize(size);
+            }
+        }
+
         append(other->latest->next(), other->last);
         other->latest->setNext(NULL);
         other->last = other->latest;
