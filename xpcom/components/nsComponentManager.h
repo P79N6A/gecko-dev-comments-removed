@@ -15,7 +15,7 @@
 #include "nsIFile.h"
 #include "mozilla/Module.h"
 #include "mozilla/ModuleLoader.h"
-#include "mozilla/ReentrantMonitor.h"
+#include "mozilla/Mutex.h"
 #include "nsXULAppAPI.h"
 #include "nsNativeComponentLoader.h"
 #include "nsIFactory.h"
@@ -112,7 +112,7 @@ public:
     nsDataHashtable<nsIDHashKey, nsFactoryEntry*> mFactories;
     nsDataHashtable<nsCStringHashKey, nsFactoryEntry*> mContractIDs;
 
-    mozilla::ReentrantMonitor mMon;
+    mozilla::Mutex mLock;
 
     static void InitializeStaticModules();
     static void InitializeModuleLocations();
@@ -198,12 +198,17 @@ public:
     
     nsClassHashtable<nsCStringHashKey, KnownModule> mKnownModules;
 
+    
     void RegisterModule(const mozilla::Module* aModule,
                         mozilla::FileLocation* aFile);
-    void RegisterCIDEntry(const mozilla::Module::CIDEntry* aEntry,
-                          KnownModule* aModule);
-    void RegisterContractID(const mozilla::Module::ContractIDEntry* aEntry);
 
+
+    
+    void RegisterCIDEntryLocked(const mozilla::Module::CIDEntry* aEntry,
+                          KnownModule* aModule);
+    void RegisterContractIDLocked(const mozilla::Module::ContractIDEntry* aEntry);
+
+    
     void RegisterManifest(NSLocationType aType, mozilla::FileLocation &aFile,
                           bool aChromeOnly);
 
