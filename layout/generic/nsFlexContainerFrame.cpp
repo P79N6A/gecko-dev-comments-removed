@@ -466,17 +466,10 @@ protected:
 };
 
 
-
-
-
-
-
-
-
-static nsIContent*
-GetContentForComparison(const nsIFrame* aFrame)
+static nsIFrame*
+GetFirstNonAnonBoxDescendant(nsIFrame* aFrame)
 {
-  MOZ_ASSERT(aFrame, "null frame passed to GetContentForComparison()");
+  MOZ_ASSERT(aFrame, "null frame passed to GetFirstNonAnonBoxDescendant()");
   MOZ_ASSERT(aFrame->IsFlexItem(), "only intended for flex items");
 
   while (true) {
@@ -486,7 +479,7 @@ GetContentForComparison(const nsIFrame* aFrame)
     if (!pseudoTag ||                                 
         !nsCSSAnonBoxes::IsAnonBox(pseudoTag) ||      
         pseudoTag == nsCSSAnonBoxes::mozNonElement) { 
-      return aFrame->GetContent();
+      return aFrame;
     }
 
     
@@ -531,6 +524,13 @@ IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
   
   
   
+  aFrame1 = GetFirstNonAnonBoxDescendant(aFrame1);
+  aFrame2 = GetFirstNonAnonBoxDescendant(aFrame2);
+
+  
+  
+  
+  
   
   
   nsIAtom* pseudo1 = aFrame1->StyleContext()->GetPseudo();
@@ -547,8 +547,8 @@ IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
   }
 
   
-  nsIContent* content1 = GetContentForComparison(aFrame1);
-  nsIContent* content2 = GetContentForComparison(aFrame2);
+  nsIContent* content1 = aFrame1->GetContent();
+  nsIContent* content2 = aFrame2->GetContent();
   MOZ_ASSERT(content1 != content2,
              "Two different flex items are using the same nsIContent node for "
              "comparison, so we may be sorting them in an arbitrary order");
