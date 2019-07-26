@@ -20,6 +20,9 @@ pref("extensions.showMismatchUI", false);
 pref("webapprt.firstrun", false);
 
 
+pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
+
+
 pref("extensions.blocklist.enabled", true);
 pref("extensions.blocklist.interval", 86400);
 
