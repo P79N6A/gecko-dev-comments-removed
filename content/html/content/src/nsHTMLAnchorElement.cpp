@@ -41,21 +41,9 @@ public:
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
-  NS_IMETHOD Click() {
-    return nsGenericHTMLElement::Click();
-  }
-  NS_IMETHOD Focus() {
-    return nsGenericHTMLElement::Focus();
-  }
-  NS_IMETHOD GetDraggable(bool* aDraggable);
-  NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::GetInnerHTML(aInnerHTML);
-  }
-  NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML) {
-    return nsGenericHTMLElement::SetInnerHTML(aInnerHTML);
-  }
+  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
+  virtual bool Draggable() const MOZ_OVERRIDE;
 
   
   NS_DECL_NSIDOMHTMLANCHORELEMENT  
@@ -190,19 +178,18 @@ nsHTMLAnchorElement::SetItemValueText(const nsAString& aValue)
   SetHref(aValue);
 }
 
-NS_IMETHODIMP
-nsHTMLAnchorElement::GetDraggable(bool* aDraggable)
+bool
+nsHTMLAnchorElement::Draggable() const
 {
   
   
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
-    *aDraggable = !AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
-                               nsGkAtoms::_false, eIgnoreCase);
-    return NS_OK;
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
+    
+    return nsGenericHTMLElement::Draggable();
   }
 
-  
-  return nsGenericHTMLElement::GetDraggable(aDraggable);
+  return !AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
+                      nsGkAtoms::_false, eIgnoreCase);
 }
 
 void

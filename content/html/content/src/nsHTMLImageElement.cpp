@@ -132,13 +132,12 @@ nsHTMLImageElement::SetItemValueText(const nsAString& aValue)
 
 NS_IMPL_STRING_ATTR(nsHTMLImageElement, CrossOrigin, crossorigin)
 
-NS_IMETHODIMP
-nsHTMLImageElement::GetDraggable(bool* aDraggable)
+bool
+nsHTMLImageElement::Draggable() const
 {
   
-  *aDraggable = !AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
-                             nsGkAtoms::_false, eIgnoreCase);
-  return NS_OK;
+  return !AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
+                      nsGkAtoms::_false, eIgnoreCase);
 }
 
 NS_IMETHODIMP
