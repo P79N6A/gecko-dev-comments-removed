@@ -37,6 +37,7 @@
 #include <stdio.h> 
 #include "nsChangeHint.h"
 #include "nsRefPtrHashtable.h"
+#include "nsClassHashtable.h"
 #include "nsPresArena.h"
 #include "nsIImageLoadingContent.h"
 #include "nsMargin.h"
@@ -1162,6 +1163,32 @@ public:
 
   static nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Touch>* gCaptureTouchList;
   static bool gPreventMouseEvents;
+
+  
+  
+  
+  static nsRefPtrHashtable<nsUint32HashKey, nsIContent>* gPointerCaptureList;
+
+  struct PointerInfo
+  {
+    bool      mActiveState;
+    uint16_t  mPointerType;
+    PointerInfo(bool aActiveState, uint16_t aPointerType) :
+      mActiveState(aActiveState), mPointerType(aPointerType) {}
+  };
+  
+  static nsClassHashtable<nsUint32HashKey, PointerInfo>* gActivePointersIds;
+
+  static void DispatchGotOrLostPointerCaptureEvent(bool aIsGotCapture,
+                                                    uint32_t aPointerId,
+                                                    nsIContent* aCaptureTarget);
+  static void SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
+  static void ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
+  static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
+
+  
+  
+  static bool GetPointerInfo(uint32_t aPointerId, bool& aActiveState);
 
   
 

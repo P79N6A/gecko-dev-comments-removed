@@ -632,6 +632,32 @@ public:
     GetElementsByClassName(const nsAString& aClassNames);
   bool MozMatchesSelector(const nsAString& aSelector,
                           ErrorResult& aError);
+  void SetPointerCapture(int32_t aPointerId, ErrorResult& aError)
+  {
+    bool activeState = false;
+    if (!nsIPresShell::GetPointerInfo(aPointerId, activeState)) {
+      aError.Throw(NS_ERROR_DOM_INVALID_POINTER_ERR);
+      return;
+    }
+    if (!activeState) {
+      return;
+    }
+    nsIPresShell::SetPointerCapturingContent(aPointerId, this);
+  }
+  void ReleasePointerCapture(int32_t aPointerId, ErrorResult& aError)
+  {
+    bool activeState = false;
+    if (!nsIPresShell::GetPointerInfo(aPointerId, activeState)) {
+      aError.Throw(NS_ERROR_DOM_INVALID_POINTER_ERR);
+      return;
+    }
+
+    
+    
+    if (nsIPresShell::GetPointerCapturingContent(aPointerId) == this) {
+      nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+    }
+  }
   void SetCapture(bool aRetargetToElement)
   {
     
