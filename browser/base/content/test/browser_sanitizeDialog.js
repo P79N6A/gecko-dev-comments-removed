@@ -17,6 +17,11 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
+                                  "resource://gre/modules/FormHistory.jsm");
+
 let tempScope = {};
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
                                            .loadSubScript("chrome://browser/content/sanitize.js", tempScope);
@@ -24,10 +29,10 @@ let Sanitizer = tempScope.Sanitizer;
 
 const dm = Cc["@mozilla.org/download-manager;1"].
            getService(Ci.nsIDownloadManager);
-const formhist = Cc["@mozilla.org/satchel/form-history;1"].
-                 getService(Ci.nsIFormHistory2);
 
 const kUsecPerMin = 60 * 1000000;
+
+let formEntries;
 
 
 var gAllTests = [
@@ -80,7 +85,7 @@ var gAllTests = [
       };
       wh.onunload = function () {
         yield promiseHistoryClearedState(uris, false);
-        blankSlate();
+        yield blankSlate();
         yield promiseHistoryClearedState(uris, true);
       };
       wh.open();
@@ -148,12 +153,29 @@ var gAllTests = [
         ensureDownloadsClearedState(olderDownloadIDs, false);
 
         
-        blankSlate();
+        yield blankSlate();
         yield promiseHistoryClearedState(olderURIs, true);
         ensureDownloadsClearedState(olderDownloadIDs, true);
       };
       wh.open();
     });
+  },
+
+  
+
+
+  function () {
+    formEntries = [];
+
+    let iter = function() {
+      for (let i = 0; i < 5; i++) {
+        formEntries.push(addFormEntryWithMinutesAgo(iter, i));
+        yield;
+      }
+      doNextTest();
+    }();
+
+    iter.next();
   },
 
   
@@ -175,10 +197,6 @@ var gAllTests = [
       let downloadIDs = [];
       for (let i = 0; i < 5; i++) {
         downloadIDs.push(addDownloadWithMinutesAgo(i));
-      }
-      let formEntries = [];
-      for (let i = 0; i < 5; i++) {
-        formEntries.push(addFormEntryWithMinutesAgo(i));
       }
 
       let wh = new WindowHelper();
@@ -207,10 +225,14 @@ var gAllTests = [
         
         yield promiseHistoryClearedState(uris, false);
         ensureDownloadsClearedState(downloadIDs, false);
-        ensureFormEntriesClearedState(formEntries, true);
+
+        formEntries.forEach(function (entry) {
+          let exists = yield formNameExists(entry);
+          is(exists, false, "form entry " + entry + " should no longer exist");
+        });
 
         
-        blankSlate();
+        yield blankSlate();
         yield promiseHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
       };
@@ -304,6 +326,19 @@ var gAllTests = [
   
 
 
+  function () {
+    let iter = function() {
+      formEntries = [ addFormEntryWithMinutesAgo(iter, 10) ];
+      yield;
+      doNextTest();
+    }();
+
+    iter.next();
+  },
+
+  
+
+
 
 
   function () {
@@ -311,7 +346,6 @@ var gAllTests = [
     let pURI = makeURI("http://" + 10 + "-minutes-ago.com/");
     addVisits({uri: pURI, visitDate: visitTimeForMinutesAgo(10)}, function() {
       let uris = [ pURI ];
-      let formEntries = [ addFormEntryWithMinutesAgo(10) ];
 
       let wh = new WindowHelper();
       wh.onload = function() {
@@ -331,7 +365,9 @@ var gAllTests = [
       };
       wh.onunload = function () {
         yield promiseHistoryClearedState(uris, true);
-        ensureFormEntriesClearedState(formEntries, true);
+
+        let exists = yield formNameExists(formEntries[0]);
+        is(exists, false, "form entry " + formEntries[0] + " should no longer exist");
       };
       wh.open();
     });
@@ -365,9 +401,21 @@ var gAllTests = [
     }
     wh.open();
   },
-  function () {
-    let formEntries = [ addFormEntryWithMinutesAgo(10) ];
 
+  
+
+
+  function () {
+    let iter = function() {
+      formEntries = [ addFormEntryWithMinutesAgo(iter, 10) ];
+      yield;
+      doNextTest();
+    }();
+
+    iter.next();
+  },
+
+  function () {
     let wh = new WindowHelper();
     wh.onload = function() {
       boolPrefIs("cpd.formdata", true,
@@ -383,7 +431,8 @@ var gAllTests = [
       this.acceptDialog();
     };
     wh.onunload = function () {
-      ensureFormEntriesClearedState(formEntries, true);
+      let exists = yield formNameExists(formEntries[0]);
+      is(exists, false, "form entry " + formEntries[0] + " should no longer exist");
     };
     wh.open();
   },
@@ -741,6 +790,8 @@ WindowHelper.prototype = {
 
 
 
+
+
   open: function () {
     let wh = this;
 
@@ -891,19 +942,37 @@ function addDownloadWithMinutesAgo(aMinutesAgo) {
 
 
 
-function addFormEntryWithMinutesAgo(aMinutesAgo) {
+function addFormEntryWithMinutesAgo(then, aMinutesAgo) {
   let name = aMinutesAgo + "-minutes-ago";
-  formhist.addEntry(name, "dummy");
 
   
-  let db = formhist.DBConnection;
   let timestamp = now_uSec - (aMinutesAgo * kUsecPerMin);
-  db.executeSimpleSQL("UPDATE moz_formhistory SET firstUsed = " +
-                      timestamp +  " WHERE fieldname = '" + name + "'");
 
-  is(formhist.nameExists(name), true,
-     "Sanity check: form entry " + name + " should exist after creating it");
+  FormHistory.update({ op: "add", fieldname: name, value: "dummy", firstUsed: timestamp },
+                     { onSuccess: function () { then.next(); },
+                       onFailure: function (error) {
+                         do_throw("Error occurred updating form history: " + error);
+                       }
+                     });
   return name;
+}
+
+
+
+
+function formNameExists(name)
+{
+  let deferred = Promise.defer();
+
+   FormHistory.count({ fieldname: name },
+                     { onSuccess: function(num) deferred.resolve(num),
+                       onFailure: function (error) {
+                         do_throw("Error occurred searching form history: " + error);
+                         deferred.reject(error)
+                       }
+                     });
+
+  return deferred.promise;
 }
 
 
@@ -912,7 +981,17 @@ function addFormEntryWithMinutesAgo(aMinutesAgo) {
 function blankSlate() {
   PlacesUtils.bhistory.removeAllPages();
   dm.cleanUp();
-  formhist.removeAllEntries();
+
+  let deferred = Promise.defer();
+  FormHistory.update({ op: "remove" },
+                     { onSuccess: function () { deferred.resolve(); },
+                       onFailure: function (error) {
+                         do_throw("Error occurred updating form history: " + error);
+                         deferred.reject(error)
+                       }
+                     });
+
+  return deferred.promise;
 }
 
 
@@ -990,22 +1069,6 @@ function ensureDownloadsClearedState(aDownloadIDs, aShouldBeCleared) {
 
 
 
-function ensureFormEntriesClearedState(aFormEntries, aShouldBeCleared) {
-  let niceStr = aShouldBeCleared ? "no longer" : "still";
-  aFormEntries.forEach(function (entry) {
-    is(formhist.nameExists(entry), !aShouldBeCleared,
-       "form entry " + entry + " should " + niceStr + " exist");
-  });
-}
-
-
-
-
-
-
-
-
-
 
 
 function intPrefIs(aPrefName, aExpectedVal, aMsg) {
@@ -1026,8 +1089,8 @@ function visitTimeForMinutesAgo(aMinutesAgo) {
 
 function test() {
   requestLongerTimeout(2);
-  blankSlate();
   waitForExplicitFinish();
+  blankSlate();
   
   waitForAsyncUpdates(doNextTest);
 }
