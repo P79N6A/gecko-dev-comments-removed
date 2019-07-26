@@ -437,6 +437,23 @@ struct JSObject : public js::ObjectImpl
         return type_;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+    inline JSObject *getProto() const;
+    inline js::TaggedProto getTaggedProto() const;
+    static inline bool getProto(JSContext *cx, js::HandleObject obj,
+                                js::MutableHandleObject protop);
+
     inline void setType(js::types::TypeObject *newType);
 
     js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL,
@@ -460,7 +477,7 @@ struct JSObject : public js::ObjectImpl
     bool setNewTypeUnknown(JSContext *cx);
 
     
-    bool splicePrototype(JSContext *cx, js::HandleObject proto);
+    bool splicePrototype(JSContext *cx, js::Handle<js::TaggedProto> proto);
 
     
 
@@ -1167,6 +1184,9 @@ js_DefineOwnProperty(JSContext *cx, js::HandleObject obj, js::HandleId id,
 
 namespace js {
 
+JSObject *
+CloneObject(JSContext *cx, HandleObject obj, Handle<js::TaggedProto> proto, HandleObject parent);
+
 
 
 
@@ -1324,10 +1344,10 @@ extern JSBool
 CheckAccess(JSContext *cx, JSObject *obj, HandleId id, JSAccessMode mode,
             MutableHandleValue v, unsigned *attrsp);
 
-} 
-
 extern bool
-js_IsDelegate(JSContext *cx, JSObject *obj, const js::Value &v);
+IsDelegate(JSContext *cx, HandleObject obj, const Value &v, bool *result);
+
+} 
 
 
 
@@ -1400,7 +1420,7 @@ js_GetClassPrototype(JSContext *cx, JSProtoKey protoKey, js::MutableHandleObject
 namespace js {
 
 extern bool
-SetProto(JSContext *cx, HandleObject obj, HandleObject proto, bool checkForCycles);
+SetProto(JSContext *cx, HandleObject obj, Handle<TaggedProto> proto, bool checkForCycles);
 
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);

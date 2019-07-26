@@ -463,7 +463,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-    if (self->shouldSplicePrototype(cx) && !self->splicePrototype(cx, objectProto))
+    Rooted<TaggedProto> tagged(cx, TaggedProto(objectProto));
+    if (self->shouldSplicePrototype(cx) && !self->splicePrototype(cx, tagged))
         return NULL;
 
     

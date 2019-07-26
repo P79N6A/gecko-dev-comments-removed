@@ -6817,6 +6817,8 @@ mjit::Compiler::jsop_instanceof()
     
     masm.loadPtr(Address(obj, JSObject::offsetOfType()), obj);
     masm.loadPtr(Address(obj, offsetof(types::TypeObject, proto)), obj);
+    Jump isLazy = masm.branch32(Assembler::Equal, obj, Imm32(1));
+    stubcc.linkExit(isLazy, Uses(2));
     Jump isFalse2 = masm.branchTestPtr(Assembler::Zero, obj, obj);
     Jump isTrue = masm.branchPtr(Assembler::NotEqual, obj, proto);
     isTrue.linkTo(loop, &masm);
