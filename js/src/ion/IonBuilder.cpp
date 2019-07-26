@@ -2953,17 +2953,25 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
     BaselineInspector inspector(cx, target->nonLazyScript());
 
     
-    if (callInfo.argsBarrier()) {
-        addTypeBarrier(0, callInfo, oracle.thisTypeSet(calleeScript));
-        int32_t max = (callInfo.argc() < target->nargs) ? callInfo.argc() : target->nargs;
+    bool argsBarrier = callInfo.argsBarrier();
+    CallInfo clonedCallInfo(cx, callInfo.constructing());
+    CallInfo &thisCall = argsBarrier ? clonedCallInfo : callInfo;
+
+    
+    if (argsBarrier) {
+        if (!thisCall.init(callInfo))
+            return false;
+
+        addTypeBarrier(0, thisCall, oracle.thisTypeSet(calleeScript));
+        int32_t max = (thisCall.argc() < target->nargs) ? thisCall.argc() : target->nargs;
         for (int32_t i = 1; i <= max; i++)
-            addTypeBarrier(i, callInfo, oracle.parameterTypeSet(calleeScript, i - 1));
+            addTypeBarrier(i, thisCall, oracle.parameterTypeSet(calleeScript, i - 1));
     }
 
     
     LifoAlloc *alloc = GetIonContext()->temp->lifoAlloc();
     CompileInfo *info = alloc->new_<CompileInfo>(calleeScript.get(), target,
-                                                 (jsbytecode *)NULL, callInfo.constructing(),
+                                                 (jsbytecode *)NULL, thisCall.constructing(),
                                                  SequentialExecution);
     if (!info)
         return false;
@@ -2974,7 +2982,7 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
     
     IonBuilder inlineBuilder(cx, &temp(), &graph(), &oracle, &inspector, info, inliningDepth_ + 1,
                              loopDepth_);
-    if (!inlineBuilder.buildInline(this, outerResumePoint, callInfo)) {
+    if (!inlineBuilder.buildInline(this, outerResumePoint, thisCall)) {
         JS_ASSERT(calleeScript->hasAnalysis());
 
         
@@ -3002,7 +3010,7 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
 
     
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
-    MDefinition *retvalDefn = patchInlinedReturns(callInfo, exits, returnBlock);
+    MDefinition *retvalDefn = patchInlinedReturns(thisCall, exits, returnBlock);
     if (!retvalDefn)
         return false;
     returnBlock->push(retvalDefn);
