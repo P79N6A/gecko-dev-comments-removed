@@ -1156,6 +1156,13 @@ class nsIWidget : public nsISupports {
 
 
 
+
+    virtual void SetDrawsTitle(bool aDrawTitle) {}
+
+    
+
+
+
     NS_IMETHOD HideWindowChrome(bool aShouldHide) = 0;
 
     
