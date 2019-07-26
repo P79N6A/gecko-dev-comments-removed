@@ -245,7 +245,8 @@ SetNameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleObject s
         JS_ASSERT(!scope->getOps()->setProperty);
         RootedId id(cx, NameToId(name));
         return baseops::SetPropertyHelper<SequentialExecution>(cx, scope, scope, id,
-                                                               DNP_UNQUALIFIED, &valCopy, strict);
+                                                               baseops::Unqualified, &valCopy,
+                                                               strict);
     }
 
     return JSObject::setProperty(cx, scope, scope, name, &valCopy, strict);
