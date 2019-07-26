@@ -402,7 +402,15 @@ AbstractHealthReporter.prototype = Object.freeze({
       
       
       Metrics.Storage.shutdown.addBlocker("FHR: Flushing storage shutdown",
-        this._promiseShutdown,
+        () => {
+          
+          
+          
+          
+          
+          this._initiateShutdown();
+          return this._promiseShutdown;
+        },
         () => ({
             shutdownInitiated: this._shutdownInitiated,
             initialized: this._initialized,
@@ -412,7 +420,7 @@ AbstractHealthReporter.prototype = Object.freeze({
             storageInProgress: this._storageInProgress,
             hasProviderManager: !!this._providerManager,
             hasStorage: !!this._storage,
-            shutdownComplete: this.shutdownComplete
+            shutdownComplete: this._shutdownComplete
           }));
 
       try {
