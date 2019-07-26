@@ -130,12 +130,18 @@ FrameWorker.prototype = {
                      'setInterval', 'setTimeout', 'XMLHttpRequest',
                      'MozBlobBuilder', 'FileReader', 'Blob',
                      'location'];
+    
+    
+    let needsWaive = ['XMLHttpRequest', 'WebSocket'];
+    
+    let needsBind = ['atob', 'btoa', 'dump', 'setInterval', 'clearInterval',
+                     'setTimeout', 'clearTimeout'];
     workerAPI.forEach(function(fn) {
       try {
-        
-        
-        if (fn == "XMLHttpRequest" || fn == "WebSocket")
+        if (needsWaive.indexOf(fn) != -1)
           sandbox[fn] = XPCNativeWrapper.unwrap(workerWindow)[fn];
+        else if (needsBind.indexOf(fn) != -1)
+          sandbox[fn] = workerWindow[fn].bind(workerWindow);
         else
           sandbox[fn] = workerWindow[fn];
       }
