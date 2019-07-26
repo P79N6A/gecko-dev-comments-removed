@@ -93,6 +93,10 @@ private:
     double m_a2;
 
     
+    
+    
+    
+    
     double m_x1; 
     double m_x2; 
     double m_y1; 
