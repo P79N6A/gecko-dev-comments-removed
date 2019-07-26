@@ -16,7 +16,7 @@
 #include <windows.h>
 #endif
 
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+#define BUFFER_OFFSET(i) ((char *)nullptr + (i))
 
 #include "gfxContext.h"
 #include "gfx3DMatrix.h"
