@@ -894,10 +894,6 @@ struct JSRuntime : js::RuntimeFriendFields
     JSContext           *ionJSContext;
     uintptr_t            ionStackLimit;
 
-    void resetIonStackLimit() {
-        ionStackLimit = nativeStackLimit;
-    }
-
     
     js::ion::IonActivation  *ionActivation;
 
