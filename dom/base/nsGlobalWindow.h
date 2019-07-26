@@ -933,6 +933,12 @@ protected:
   nsDOMWindowList* GetWindowList();
 
   
+  nsresult GetComputedStyleHelper(nsIDOMElement* aElt,
+                                  const nsAString& aPseudoElt,
+                                  bool aDefaultStylesOnly,
+                                  nsIDOMCSSStyleDeclaration** aReturn);
+
+  
   
   
   

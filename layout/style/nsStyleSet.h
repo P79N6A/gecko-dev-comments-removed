@@ -90,7 +90,7 @@ class nsStyleSet
   
   already_AddRefed<nsStyleContext>
   ResolveStyleForRules(nsStyleContext* aParentContext,
-                       const nsCOMArray<nsIStyleRule> &aRules);
+                       const nsTArray< nsCOMPtr<nsIStyleRule> > &aRules);
 
   
   
