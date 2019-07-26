@@ -19,6 +19,13 @@
 #include "nsJSEnvironment.h"
 #include "nsPrintfCString.h"
 
+#ifdef XP_WIN
+#include <process.h>
+#define getpid _getpid
+#else
+#include <unistd.h>
+#endif
+
 #ifdef XP_LINUX
 #include <fcntl.h>
 #endif
@@ -214,10 +221,11 @@ public:
     if (signum == sDumpAboutMemorySignum ||
         signum == sDumpAboutMemoryAfterMMUSignum) {
       
+      bool doMMUFirst = signum == sDumpAboutMemoryAfterMMUSignum;
       nsRefPtr<DumpMemoryReportsRunnable> runnable =
         new DumpMemoryReportsRunnable(
              EmptyString(),
-            signum == sDumpAboutMemoryAfterMMUSignum,
+            doMMUFirst,
              true);
       NS_DispatchToMainThread(runnable);
     }
@@ -270,20 +278,28 @@ MemoryInfoDumper::Initialize()
 #endif
 }
 
-   void
+static void
+EnsureNonEmptyIdentifier(nsAString& aIdentifier)
+{
+  if (!aIdentifier.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  
+  
+  aIdentifier.AppendInt(static_cast<int64_t>(PR_Now()) / 1000000);
+}
+
+ void
 MemoryInfoDumper::DumpMemoryReportsToFile(
     const nsAString& aIdentifier,
     bool aMinimizeMemoryUsage,
     bool aDumpChildProcesses)
 {
-  
-  
-  
-  
   nsString identifier(aIdentifier);
-  if (identifier.IsEmpty()) {
-    identifier.AppendInt(static_cast<int64_t>(PR_Now()) / 1000000);
-  }
+  EnsureNonEmptyIdentifier(identifier);
 
   
   
@@ -318,14 +334,8 @@ MemoryInfoDumper::DumpGCAndCCLogsToFile(
   const nsAString& aIdentifier,
   bool aDumpChildProcesses)
 {
-  
-  
-  
-  
   nsString identifier(aIdentifier);
-  if (identifier.IsEmpty()) {
-    identifier.AppendInt(static_cast<int64_t>(PR_Now()) / 1000000);
-  }
+  EnsureNonEmptyIdentifier(identifier);
 
   if (aDumpChildProcesses) {
     nsTArray<ContentParent*> children;
@@ -582,15 +592,15 @@ MemoryInfoDumper::DumpMemoryReportsToFileImpl(
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIConsoleService> cs =
-      do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
+    do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString path;
   tmpFile->GetPath(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsString msg = NS_LITERAL_STRING("nsIMemoryReporterManager::dumpReports() "
-                                   "dumped reports to ");
+  nsString msg = NS_LITERAL_STRING(
+    "nsIMemoryReporterManager::dumpReports() dumped reports to ");
   msg.Append(path);
   return cs->LogStringMessage(msg.get());
 }
