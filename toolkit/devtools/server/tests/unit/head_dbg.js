@@ -7,12 +7,14 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const { DevToolsLoader, devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const worker = new DevToolsLoader(); 
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const Services = devtools.require("Services");
 const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 const { DebuggerServer } = devtools.require("devtools/server/main");
+const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
 
 
 
