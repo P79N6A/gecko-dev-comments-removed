@@ -467,6 +467,11 @@ public:
     return mIsPendingToRestoreKeyboardLayout ? ::GetKeyboardLayout(0) :
                                                mKeyboardLayout;
   }
+
+  
+
+
+  WORD ComputeScanCodeForVirtualKeyCode(uint8_t aVirtualKeyCode) const;
 };
 
 } 
