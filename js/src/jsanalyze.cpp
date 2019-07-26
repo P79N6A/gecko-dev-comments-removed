@@ -65,7 +65,7 @@ ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
 
     if (offset < *currentOffset) {
         
-        isJaegerInlineable = isIonInlineable = false;
+        isJaegerInlineable = false;
         hasLoops_ = true;
 
         if (code->analyzed) {
