@@ -1197,6 +1197,11 @@ JS::Rooted<JSObject*> obj(cx, &args.callee());
         
         
         
+        
+        
+        
+        
+        
         name = self._ctor.identifier.name
         if name != "constructor":
             ctorName = name
