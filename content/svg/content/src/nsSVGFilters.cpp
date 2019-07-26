@@ -149,7 +149,13 @@ nsSVGFE::SetupScalingFilter(nsSVGFilterInstance *aInstance,
   r.RoundOut();
   if (!gfxUtils::GfxRectToIntRect(r, &result.mDataRect))
     return result;
+
   
+  
+  
+  result.mDataRect.IntersectRect(result.mDataRect,
+                                 nsIntRect(nsIntPoint(), scaledSize));
+
   result.mSource = new gfxImageSurface(scaledSize,
                                        gfxASurface::ImageFormatARGB32);
   result.mTarget = new gfxImageSurface(scaledSize,
