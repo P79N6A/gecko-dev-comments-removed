@@ -3144,9 +3144,7 @@ exports.testSelectionInOuterFrameNoMatch = function (test) {
 
 
 function TestHelper(test) {
-  
-  
-  test.waitUntilDone(30*1000);
+  test.waitUntilDone();
   this.test = test;
   this.loaders = [];
   this.browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
