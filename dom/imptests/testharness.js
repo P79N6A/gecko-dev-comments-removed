@@ -356,14 +356,26 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 (function ()
 {
     var debug = false;
     
     var settings = {
       output:true,
-      timeout:5000,
-      test_timeout:2000
+      harness_timeout:{"normal":10000,
+                       "long":60000},
+      test_timeout:null
     };
 
     var xhtml_ns = "http://www.w3.org/1999/xhtml";
@@ -415,7 +427,7 @@
         properties = properties ? properties : {};
         var test_obj = new Test(test_name, properties);
         test_obj.step(func);
-        if (test_obj.status === test_obj.NOTRUN) {
+        if (test_obj.phase === test_obj.phases.STARTED) {
             test_obj.done();
         }
     }
@@ -496,10 +508,39 @@
     
 
 
+    function is_node(object)
+    {
+        
+        
+        
+        
+        if ("nodeType" in object
+        && "nodeName" in object
+        && "nodeValue" in object
+        && "childNodes" in object)
+        {
+            try
+            {
+                object.nodeType;
+            }
+            catch (e)
+            {
+                
+                
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    
+
+
     function format_value(val, seen)
     {
-	if (!seen) {
-	    seen = [];
+        if (!seen) {
+            seen = [];
         }
         if (typeof val === "object" && val !== null)
         {
@@ -507,7 +548,7 @@
             {
                 return "[...]";
             }
-	    seen.push(val);
+            seen.push(val);
         }
         if (Array.isArray(val))
         {
@@ -577,13 +618,7 @@
 
             
             
-            
-            
-            
-            if ("nodeType" in val
-            && "nodeName" in val
-            && "nodeValue" in val
-            && "childNodes" in val)
+            if (is_node(val))
             {
                 switch (val.nodeType)
                 {
@@ -1070,12 +1105,25 @@
     function Test(name, properties)
     {
         this.name = name;
+
+        this.phases = {
+            INITIAL:0,
+            STARTED:1,
+            HAS_RESULT:2,
+            COMPLETE:3
+        };
+        this.phase = this.phases.INITIAL;
+
         this.status = this.NOTRUN;
         this.timeout_id = null;
-        this.is_done = false;
 
         this.properties = properties;
-        this.timeout_length = properties.timeout ? properties.timeout : settings.test_timeout;
+        var timeout = properties.timeout ? properties.timeout : settings.test_timeout
+        if (timeout != null) {
+            this.timeout_length = timeout * tests.timeout_multiplier;
+        } else {
+            this.timeout_length = null;
+        }
 
         this.message = null;
 
@@ -1111,15 +1159,18 @@
 
     Test.prototype.step = function(func, this_obj)
     {
-        
-        if (this.status !== this.NOTRUN)
+        if (this.phase > this.phases.STARTED)
         {
           return;
         }
+        this.phase = this.phases.STARTED;
+        
+        this.set_status(this.TIMEOUT, "Test timed out");
 
         tests.started = true;
 
-        if (this.timeout_id === null) {
+        if (this.timeout_id === null)
+        {
             this.set_timeout();
         }
 
@@ -1136,25 +1187,21 @@
         }
         catch(e)
         {
-            
-            
-            if (this.status !== this.NOTRUN)
+            if (this.phase >= this.phases.HAS_RESULT)
             {
                 return;
             }
-            this.status = this.FAIL;
-            this.message = (typeof e === "object" && e !== null) ? e.message : e;
+            var message = (typeof e === "object" && e !== null) ? e.message : e;
             if (typeof e.stack != "undefined" && typeof e.message == "string") {
                 
                 
                 
                 
-                this.message += "(stack: " + e.stack + ")";
+                message += "(stack: " + e.stack + ")";
             }
+            this.set_status(this.FAIL, message);
+            this.phase = this.phases.HAS_RESULT;
             this.done();
-            if (debug && e.constructor !== AssertionError) {
-                throw e;
-            }
         }
     };
 
@@ -1189,36 +1236,51 @@
                 Array.prototype.slice.call(arguments)));
             test_this.done();
         };
-    };
+    }
 
     Test.prototype.set_timeout = function()
     {
-        var this_obj = this;
-        this.timeout_id = setTimeout(function()
-                                     {
-                                         this_obj.timeout();
-                                     }, this.timeout_length);
-    };
+        if (this.timeout_length !== null)
+        {
+            var this_obj = this;
+            this.timeout_id = setTimeout(function()
+                                         {
+                                             this_obj.timeout();
+                                         }, this.timeout_length);
+        }
+    }
+
+    Test.prototype.set_status = function(status, message)
+    {
+        this.status = status;
+        this.message = message;
+    }
 
     Test.prototype.timeout = function()
     {
-        this.status = this.TIMEOUT;
         this.timeout_id = null;
-        this.message = "Test timed out";
+        this.set_status(this.TIMEOUT, "Test timed out")
+        this.phase = this.phases.HAS_RESULT;
         this.done();
     };
 
     Test.prototype.done = function()
     {
-        if (this.is_done) {
+        if (this.phase == this.phases.COMPLETE) {
             return;
-        }
-        clearTimeout(this.timeout_id);
-        if (this.status === this.NOTRUN)
+        } else if (this.phase <= this.phases.STARTED)
         {
-            this.status = this.PASS;
+            this.set_status(this.PASS, null);
         }
-        this.is_done = true;
+
+        if (this.status == this.NOTRUN)
+        {
+            alert(this.phase);
+        }
+
+        this.phase = this.phases.COMPLETE;
+
+        clearTimeout(this.timeout_id);
         tests.result(this);
     };
 
@@ -1278,7 +1340,8 @@
 
         this.allow_uncaught_exception = false;
 
-        this.timeout_length = settings.timeout;
+        this.timeout_multiplier = 1;
+        this.timeout_length = this.get_timeout();
         this.timeout_id = null;
 
         this.start_callbacks = [];
@@ -1320,11 +1383,7 @@
             if (properties.hasOwnProperty(p))
             {
                 var value = properties[p]
-                if (p == "timeout")
-                {
-                    this.timeout_length = value;
-                }
-                else if (p == "allow_uncaught_exception") {
+                if (p == "allow_uncaught_exception") {
                     this.allow_uncaught_exception = value;
                 }
                 else if (p == "explicit_done" && value)
@@ -1333,6 +1392,14 @@
                 }
                 else if (p == "explicit_timeout" && value) {
                     this.timeout_length = null;
+                    if (this.timeout_id)
+                    {
+                        clearTimeout(this.timeout_id);
+                    }
+                }
+                else if (p == "timeout_multiplier")
+                {
+                    this.timeout_multiplier = value;
                 }
             }
         }
@@ -1350,6 +1417,23 @@
         }
         this.set_timeout();
     };
+
+    Tests.prototype.get_timeout = function()
+    {
+        var metas = document.getElementsByTagName("meta");
+        for (var i=0; i<metas.length; i++)
+        {
+            if (metas[i].name == "timeout")
+            {
+                if (metas[i].content == "long")
+                {
+                    return settings.harness_timeout.long;
+                }
+                break;
+            }
+        }
+        return settings.harness_timeout.normal;
+    }
 
     Tests.prototype.set_timeout = function()
     {
@@ -1630,7 +1714,7 @@
         if (typeof this.output_document === "function")
         {
             output_document = this.output_document.apply(undefined);
-        } else
+        } else 
         {
             output_document = this.output_document;
         }
