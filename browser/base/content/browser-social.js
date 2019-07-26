@@ -170,12 +170,10 @@ let SocialUI = {
   },
 
   _updateMenuItems: function () {
-    if (!Social.provider)
-      return;
-
+    let provider = Social.provider || Social.defaultProvider;
     
     for (let id of ["menu_socialSidebar", "menu_socialAmbientMenu"])
-      document.getElementById(id).setAttribute("label", Social.provider.name);
+      document.getElementById(id).setAttribute("label", provider.name);
   },
 
   
