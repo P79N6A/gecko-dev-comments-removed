@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/HTMLProgressElement.h"
+#include "mozilla/dom/HTMLProgressElementBinding.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Progress)
 DOMCI_NODE_DATA(HTMLProgressElement, mozilla::dom::HTMLProgressElement)
@@ -19,6 +20,8 @@ const double HTMLProgressElement::kDefaultMax            =  1.0;
 HTMLProgressElement::HTMLProgressElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
+
   
   AddStatesSilently(NS_EVENT_STATE_INDETERMINATE);
 }
@@ -136,6 +139,13 @@ HTMLProgressElement::IsIndeterminate() const
 {
   const nsAttrValue* attrValue = mAttrsAndChildren.GetAttr(nsGkAtoms::value);
   return !attrValue || attrValue->Type() != nsAttrValue::eDoubleValue;
+}
+
+JSObject*
+HTMLProgressElement::WrapNode(JSContext* aCx, JSObject* aScope,
+                              bool* aTriedToWrap)
+{
+  return HTMLProgressElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
