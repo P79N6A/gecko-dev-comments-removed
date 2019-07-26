@@ -8,6 +8,7 @@
 
 #include "base/basictypes.h"
 #include <cutils/properties.h>
+#include <stagefright/foundation/ADebug.h>
 #include <stagefright/foundation/AMessage.h>
 #include <stagefright/MediaExtractor.h>
 #include <stagefright/MetaData.h>
@@ -174,8 +175,10 @@ OmxDecoder::~OmxDecoder()
 
 void OmxDecoder::statusChanged()
 {
-  mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  mDecoder->GetReentrantMonitor().NotifyAll();
+  sp<AMessage> notify =
+           new AMessage(kNotifyStatusChanged, mReflector->id());
+ 
+ notify->post();
 }
 
 static sp<IOMX> sOMX = nullptr;
@@ -765,12 +768,28 @@ void OmxDecoder::Pause()
 
 void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
 {
-  Mutex::Autolock autoLock(mSeekLock);
+  switch (msg->what()) {
+    case kNotifyPostReleaseVideoBuffer:
+    {
+      Mutex::Autolock autoLock(mSeekLock);
+      
+      
+      if (!mIsVideoSeeking) {
+        ReleaseAllPendingVideoBuffersLocked();
+      }
+      break;
+    }
 
-  
-  
-  if (mIsVideoSeeking != true) {
-    ReleaseAllPendingVideoBuffersLocked();
+    case kNotifyStatusChanged:
+    {
+      mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      mDecoder->GetReentrantMonitor().NotifyAll();
+      break;
+    }
+
+    default:
+      TRESPASS();
+      break;
   }
 }
 
