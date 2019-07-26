@@ -328,16 +328,10 @@ HTMLTextFieldAccessible::NativeName(nsString& aName)
   if (!aName.IsEmpty())
     return nameFlag;
 
-  if (mContent->GetBindingParent()) {
-    
-    
-    
-    
-    
-    Accessible* parent = Parent();
-    if (parent)
-      parent->GetName(aName);
-  }
+  
+  nsIContent* widgetElm = XULWidgetElm();
+  if (widgetElm)
+    XULElmName(mDoc, widgetElm, aName);
 
   if (!aName.IsEmpty())
     return eNameOK;
@@ -369,8 +363,13 @@ void
 HTMLTextFieldAccessible::ApplyARIAState(uint64_t* aState) const
 {
   HyperTextAccessibleWrap::ApplyARIAState(aState);
-
   aria::MapToState(aria::eARIAAutoComplete, mContent->AsElement(), aState);
+
+  
+  
+  nsIContent* widgetElm = XULWidgetElm();
+  if (widgetElm)
+    aria::MapToState(aria::eARIAAutoComplete, widgetElm->AsElement(), aState);
 }
 
 uint64_t
@@ -409,8 +408,7 @@ HTMLTextFieldAccessible::NativeState()
     return state | states::SUPPORTS_AUTOCOMPLETION | states::HASPOPUP;
 
   
-  
-  if (mParent && Preferences::GetBool("browser.formfill.enable")) {
+  if (!XULWidgetElm() && Preferences::GetBool("browser.formfill.enable")) {
     
     
     

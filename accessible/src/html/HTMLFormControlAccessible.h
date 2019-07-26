@@ -143,6 +143,11 @@ public:
 protected:
   
   virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+
+  
+
+
+  nsIContent* XULWidgetElm() const { return mContent->GetBindingParent(); }
 };
 
 

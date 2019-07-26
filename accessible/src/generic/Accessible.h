@@ -881,8 +881,8 @@ protected:
   
 
 
-  mozilla::a11y::ENameValueFlag GetHTMLName(nsString& aName);
-  mozilla::a11y::ENameValueFlag GetXULName(nsString& aName);
+  static void XULElmName(DocAccessible* aDocument,
+                         nsIContent* aElm, nsString& aName);
 
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
