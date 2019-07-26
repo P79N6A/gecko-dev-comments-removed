@@ -430,6 +430,12 @@ InitProcessPriorityManager()
 bool
 CurrentProcessIsForeground()
 {
+  
+  
+  if (!sManager) {
+    return true;
+  }
+
   return sManager->GetPriority() >= PROCESS_PRIORITY_FOREGROUND;
 }
 
