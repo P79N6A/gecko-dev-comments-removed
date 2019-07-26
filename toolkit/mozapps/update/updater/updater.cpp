@@ -298,7 +298,7 @@ static NS_tchar* gSourcePath;
 static NS_tchar gDestinationPath[MAXPATHLEN];
 static ArchiveReader gArchiveReader;
 static bool gSucceeded = false;
-static bool sBackgroundUpdate = false;
+static bool sStagedUpdate = false;
 static bool sReplaceRequest = false;
 static bool sUsingService = false;
 static bool sIsOSUpdate = false;
@@ -906,7 +906,7 @@ static int backup_discard(const NS_tchar *path)
 
   int rv = ensure_remove(backup);
 #if defined(XP_WIN)
-  if (rv && !sBackgroundUpdate && !sReplaceRequest) {
+  if (rv && !sStagedUpdate && !sReplaceRequest) {
     LOG(("backup_discard: unable to remove: " LOG_S, backup));
     NS_tchar path[MAXPATHLEN];
     GetTempFileNameW(DELETE_DIR, L"moz", 0, path);
@@ -1769,7 +1769,7 @@ WriteStatusFile(int status)
 
   char buf[32];
   if (status == OK) {
-    if (sBackgroundUpdate) {
+    if (sStagedUpdate) {
       text = "applied\n";
     } else {
       text = "succeeded\n";
@@ -1858,7 +1858,7 @@ static bool
 GetInstallationDir(NS_tchar (&installDir)[N])
 {
   NS_tsnprintf(installDir, N, NS_T("%s"), gDestinationPath);
-  if (!sBackgroundUpdate && !sReplaceRequest) {
+  if (!sStagedUpdate && !sReplaceRequest) {
     
     return true;
   }
@@ -2200,7 +2200,7 @@ UpdateThreadFunc(void *param)
 
     if (rv == OK) {
       NS_tchar installDir[MAXPATHLEN];
-      if (sBackgroundUpdate) {
+      if (sStagedUpdate) {
         if (!GetInstallationDir(installDir)) {
           rv = NO_INSTALLDIR_ERROR;
         }
@@ -2225,7 +2225,7 @@ UpdateThreadFunc(void *param)
     }
 #endif
 
-    if (rv == OK && sBackgroundUpdate && !sIsOSUpdate) {
+    if (rv == OK && sStagedUpdate && !sIsOSUpdate) {
       rv = CopyInstallDirToDestDir();
     }
 
@@ -2400,7 +2400,7 @@ int NS_main(int argc, NS_tchar **argv)
     if (pid == -1) {
       
       
-      sBackgroundUpdate = true;
+      sStagedUpdate = true;
     } else if (NS_tstrstr(argv[3], NS_T("/replace"))) {
       
       
@@ -2445,8 +2445,8 @@ int NS_main(int argc, NS_tchar **argv)
     return 1;
   }
 
-  if (sBackgroundUpdate) {
-    LOG(("Performing a background update"));
+  if (sStagedUpdate) {
+    LOG(("Performing a staged update"));
   } else if (sReplaceRequest) {
     LOG(("Performing a replace request"));
   }
@@ -2535,9 +2535,9 @@ int NS_main(int argc, NS_tchar **argv)
   HANDLE updateLockFileHandle = INVALID_HANDLE_VALUE;
   NS_tchar elevatedLockFilePath[MAXPATHLEN] = {NS_T('\0')};
   if (!sUsingService &&
-      (argc > callbackIndex || sBackgroundUpdate || sReplaceRequest)) {
+      (argc > callbackIndex || sStagedUpdate || sReplaceRequest)) {
     NS_tchar updateLockFilePath[MAXPATHLEN];
-    if (sBackgroundUpdate) {
+    if (sStagedUpdate) {
       
       
       NS_tsnprintf(updateLockFilePath,
@@ -2570,7 +2570,7 @@ int NS_main(int argc, NS_tchar **argv)
         NS_tremove(updateLockFilePath) != 0) {
       
       
-      if (sBackgroundUpdate || sReplaceRequest) {
+      if (sStagedUpdate || sReplaceRequest) {
         
         
         WriteStatusFile("pending");
@@ -2702,7 +2702,7 @@ int NS_main(int argc, NS_tchar **argv)
         if (useService) {
           bool showProgressUI = false;
           
-          if (!sBackgroundUpdate) {
+          if (!sStagedUpdate) {
             
             
             
@@ -2736,8 +2736,7 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      
-      if (!useService && sBackgroundUpdate) {
+      if (!useService && sStagedUpdate) {
         if (updateLockFileHandle != INVALID_HANDLE_VALUE) {
           CloseHandle(updateLockFileHandle);
         }
@@ -2752,8 +2751,7 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      
-      if (useService && !sBackgroundUpdate) {
+      if (useService && !sStagedUpdate) {
         bool updateStatusSucceeded = false;
         if (IsUpdateStatusSucceeded(updateStatusSucceeded) && 
             updateStatusSucceeded) {
@@ -2848,7 +2846,7 @@ int NS_main(int argc, NS_tchar **argv)
     }
 #endif
 
-  if (sBackgroundUpdate) {
+  if (sStagedUpdate) {
     
     
     ensure_remove_recursive(gDestinationPath);
@@ -3054,7 +3052,7 @@ int NS_main(int argc, NS_tchar **argv)
   }
 
   
-  if (!sBackgroundUpdate && !sReplaceRequest) {
+  if (!sStagedUpdate && !sReplaceRequest) {
     
     
     
@@ -3069,7 +3067,7 @@ int NS_main(int argc, NS_tchar **argv)
   
   Thread t;
   if (t.Run(UpdateThreadFunc, nullptr) == 0) {
-    if (!sBackgroundUpdate && !sReplaceRequest) {
+    if (!sStagedUpdate && !sReplaceRequest) {
       ShowProgressUI();
     }
   }
@@ -3084,7 +3082,7 @@ int NS_main(int argc, NS_tchar **argv)
     NS_tremove(gCallbackBackupPath);
   }
 
-  if (!sBackgroundUpdate && !sReplaceRequest && _wrmdir(DELETE_DIR)) {
+  if (!sStagedUpdate && !sReplaceRequest && _wrmdir(DELETE_DIR)) {
     LOG(("NS_main: unable to remove directory: " LOG_S ", err: %d",
          DELETE_DIR, errno));
     
