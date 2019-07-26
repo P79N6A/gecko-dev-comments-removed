@@ -137,12 +137,16 @@ this.TranslationDocument.prototype = {
 
     let str = "";
     item.original = [];
+    let wasLastItemPlaceholder = false;
 
     for (let child of item.nodeRef.childNodes) {
       if (child.nodeType == TEXT_NODE) {
         let x = child.nodeValue.trim();
-        str += x;
-        item.original.push(x);
+        if (x != "") {
+          item.original.push(x);
+          str += x;
+          wasLastItemPlaceholder = false;
+        }
         continue;
       }
 
@@ -156,13 +160,20 @@ this.TranslationDocument.prototype = {
         
         item.original.push(objInMap);
         str += this.generateTextForItem(objInMap);
+        wasLastItemPlaceholder = false;
       } else {
         
         
         
         
         
-        str += '<br/>';
+        
+        
+        if (!wasLastItemPlaceholder) {
+          item.original.push(TranslationItem_NodePlaceholder);
+          str += '<br>';
+          wasLastItemPlaceholder = true;
+        }
       }
     }
 
@@ -259,8 +270,8 @@ TranslationItem.prototype = {
   isSimpleRoot: false,
 
   toString: function() {
-    let rootType = this._isRoot
-                   ? (this._isSimpleRoot ? ' (simple root)' : ' (non simple root)')
+    let rootType = this.isRoot
+                   ? (this.isSimpleRoot ? ' (simple root)' : ' (non simple root)')
                    : '';
     return "[object TranslationItem: <" + this.nodeRef.localName + ">"
            + rootType + "]";
@@ -331,6 +342,19 @@ TranslationItem.prototype = {
 
 
 
+const TranslationItem_NodePlaceholder = {
+  toString: function() {
+    return "[object TranslationItem_NodePlaceholder]";
+  }
+};
+
+
+
+
+
+
+
+
 
 function generateTranslationHtmlForItem(item, content) {
   let localName = item.isRoot ? "div" : "b";
@@ -354,22 +378,13 @@ function regenerateTextFromOriginalHelper(item) {
   }
 
   let str = "";
-
-  let wasLastItemText = false;
   for (let child of item.original) {
     if (child instanceof TranslationItem) {
       str += regenerateTextFromOriginalHelper(child);
-      wasLastItemText = false;
+    } else if (child === TranslationItem_NodePlaceholder) {
+      str += "<br>";
     } else {
-      
-      
-      
-      
-      if (wasLastItemText) {
-        str += "<br/>";
-      }
       str += child;
-      wasLastItemText = true;
     }
   }
 
@@ -395,6 +410,8 @@ function parseResultNode(item, node) {
   for (let child of node.childNodes) {
     if (child.nodeType == TEXT_NODE) {
       item.translation.push(child.nodeValue);
+    } else if (child.localName == "br") {
+      item.translation.push(TranslationItem_NodePlaceholder);
     } else {
       let translationItemChild = item.getChildById(child.id);
 
