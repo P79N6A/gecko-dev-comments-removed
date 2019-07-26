@@ -98,6 +98,42 @@ enum nsCSSTokenType {
 
 
 
+
+
+
+
+
+enum nsCSSTokenSerializationType {
+  eCSSTokenSerialization_Nothing,
+  eCSSTokenSerialization_Whitespace,
+  eCSSTokenSerialization_AtKeyword_or_Hash,
+  eCSSTokenSerialization_Number,
+  eCSSTokenSerialization_Dimension,
+  eCSSTokenSerialization_Percentage,
+  eCSSTokenSerialization_URange,
+  eCSSTokenSerialization_URL_or_BadURL,
+  eCSSTokenSerialization_Function,
+  eCSSTokenSerialization_Ident,
+  eCSSTokenSerialization_CDC,
+  eCSSTokenSerialization_DashMatch,
+  eCSSTokenSerialization_ContainsMatch,
+  eCSSTokenSerialization_Symbol_Hash,         
+  eCSSTokenSerialization_Symbol_At,           
+  eCSSTokenSerialization_Symbol_Dot_or_Plus,  
+  eCSSTokenSerialization_Symbol_Minus,        
+  eCSSTokenSerialization_Symbol_OpenParen,    
+  eCSSTokenSerialization_Symbol_Question,     
+  eCSSTokenSerialization_Symbol_Assorted,     
+  eCSSTokenSerialization_Symbol_Equals,       
+  eCSSTokenSerialization_Symbol_Bar,          
+  eCSSTokenSerialization_Symbol_Slash,        
+  eCSSTokenSerialization_Symbol_Asterisk,     
+  eCSSTokenSerialization_Other                
+};
+
+
+
+
 struct nsCSSToken {
   nsAutoString    mIdent;
   float           mNumber;
