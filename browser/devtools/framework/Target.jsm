@@ -275,25 +275,31 @@ TabTarget.prototype = {
 
     this._setupRemoteListeners();
 
-    if (this.isRemote) {
-      
-      
-      this._remote.resolve(null);
-    } else {
+    let attachTab = () => {
+      this._client.attachTab(this._form.actor, (aResponse, aTabClient) => {
+        if (!aTabClient) {
+          this._remote.reject("Unable to attach to the tab");
+          return;
+        }
+        this.threadActor = aResponse.threadActor;
+        this._remote.resolve(null);
+      });
+    };
+
+    if (this.isLocalTab) {
       this._client.connect((aType, aTraits) => {
         this._client.listTabs(aResponse => {
           this._form = aResponse.tabs[aResponse.selected];
-
-          this._client.attachTab(this._form.actor, (aResponse, aTabClient) => {
-            if (!aTabClient) {
-              this._remote.reject("Unable to attach to the tab");
-              return;
-            }
-            this.threadActor = aResponse.threadActor;
-            this._remote.resolve(null);
-          });
+          attachTab();
         });
       });
+    } else if (!this.chrome) {
+      
+      
+      attachTab();
+    } else {
+      
+      this._remote.resolve(null);
     }
 
     return this._remote.promise;

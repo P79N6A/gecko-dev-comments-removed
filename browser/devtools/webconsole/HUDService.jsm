@@ -663,9 +663,19 @@ var HeadsUpDisplayUICommands = {
 
       let client = new DebuggerClient(DebuggerServer.connectPipe());
       client.connect(() =>
-        client.listTabs((aResponse) =>
-          deferred.resolve({ form: aResponse, client: client })
-        ));
+        client.listTabs((aResponse) => {
+          
+          let globals = JSON.parse(JSON.stringify(aResponse));
+          delete globals.tabs;
+          delete globals.selected;
+          
+          
+          if (Object.keys(globals).length > 1) {
+            deferred.resolve({ form: globals, client: client, chrome: true });
+          } else {
+            deferred.reject("Global console not found!");
+          }
+        }));
 
       return deferred.promise;
     }
