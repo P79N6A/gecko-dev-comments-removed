@@ -18,6 +18,7 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 Cu.import("resource:///modules/DownloadsCommon.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
@@ -97,10 +98,14 @@ DownloadElementShell.prototype = {
     if ((this._dataItem = aValue)) {
       this._wasDone = this._dataItem.done;
       this._wasInProgress = this._dataItem.inProgress;
+      this._targetFileInfoFetched = false;
+      this._fetchTargetFileInfo();
     }
     else if (this._placesNode) {
       this._wasInProgress = false;
       this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
+      this._targetFileInfoFetched = false;
+      this._fetchTargetFileInfo();
     }
 
     this._updateStatusUI();
@@ -117,10 +122,15 @@ DownloadElementShell.prototype = {
         this._annotations = new Map();
       }
       this._placesNode = aNode;
+
+      
+      
       if (!this._dataItem && this._placesNode) {
         this._wasInProgress = false;
         this._wasDone = this.getDownloadState(true) == nsIDM.DOWNLOAD_FINISHED;
+        this._targetFileInfoFetched = false;
         this._updateStatusUI();
+        this._fetchTargetFileInfo();
       }
     }
     return aNode;
@@ -182,14 +192,6 @@ DownloadElementShell.prototype = {
   },
 
   
-  get _targetFileURI() {
-    if (this._dataItem)
-      return this._dataItem.file;
-
-    return this._getAnnotation(DESTINATION_FILE_URI_ANNO, "");
-  },
-
-  
   get _displayName() {
     if (this._dataItem)
       return this._dataItem.target;
@@ -204,42 +206,69 @@ DownloadElementShell.prototype = {
   },
 
   
-  get _file() {
-    if (!("__file" in this)) {
-      if (this._dataItem) {
-        this.__file = this._dataItem.localFile;
-      }
-      else {
-        this.__file = this._targetFileURI ?
-          GetFileForFileURI(this._targetFileURI) : null;
-      }
+  get _targetFileURI() {
+    if (this._dataItem)
+      return this._dataItem.file;
+
+    return this._getAnnotation(DESTINATION_FILE_URI_ANNO, "");
+  },
+
+  get _targetFilePath() {
+    let fileURI = this._targetFileURI;
+    if (fileURI)
+      return GetFileForFileURI(fileURI).path;
+    return "";
+  },
+
+  _fetchTargetFileInfo: function DES__fetchTargetFileInfo() {
+    if (this._targetFileInfoFetched)
+      throw new Error("_fetchTargetFileInfo should not be called if the information was already fetched");
+
+    let path = this._targetFilePath;
+
+    
+    
+    if (!path) {
+      this._targetFileInfoFetched = true;
+      this._targetFileExists = false;
+      return;
     }
-    return this.__file;
+
+    OS.File.stat(path).then(
+      function onSuccess(fileInfo) {
+        this._targetFileInfoFetched = true;
+        this._targetFileExists = true;
+        this._targetFileSize = fileInfo.size;
+        delete this._state;
+        this._updateDownloadStatusUI();
+      }.bind(this),
+
+      function onFailure(aReason) {
+        if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
+          this._targetFileInfoFetched = true;
+          this._targetFileExists = false;
+        }
+        else {
+          Cu.reportError("Could not fetch info for target file (reason: " +
+                         aReason + ")");
+        }
+
+        this._updateDownloadStatusUI();
+      }.bind(this)
+    );
   },
 
   
-  
-  get _fileSize() {
-    if (!("__fileSize" in this)) {
-      if (!this._file || !this._file.exists())
-        this.__fileSize = 0;
-      try {
-        this.__fileSize = this._file.fileSize;
-      }
-      catch(ex) {
-        Cu.reportError(ex);
-        this.__fileSize = 0;
-      }
-    }
-    return this.__fileSize;
-  },
-
-  
 
 
 
 
-  
+
+
+
+
+
+
   getDownloadState: function DES_getDownloadState(aForceUpdate = false) {
     if (aForceUpdate || !("_state" in this)) {
       if (this._dataItem) {
@@ -250,19 +279,12 @@ DownloadElementShell.prototype = {
           this._state = this._getAnnotation(DOWNLOAD_STATE_ANNO);
         }
         catch (ex) {
-          
-          if (!this._file) {
+          if (!this._targetFileInfoFetched || !this._targetFileExists)
+            this._state = undefined;
+          else if (this._targetFileSize > 0)
+            this._state = nsIDM.DOWNLOAD_FINISHED;
+          else
             this._state = nsIDM.DOWNLOAD_FAILED;
-          }
-          else if (this._file.exists()) {
-            this._state = this._fileSize > 0 ?
-              nsIDM.DOWNLOAD_FINISHED : nsIDM.DOWNLOAD_FAILED;
-          }
-          else {
-            
-            
-            this._state = nsIDM.DOWNLOAD_CANCELED;
-          }
         }
       }
     }
@@ -270,7 +292,7 @@ DownloadElementShell.prototype = {
   },
 
   
-  get _statusText() {
+  _getStatusText: function DES__getStatusText() {
     let s = DownloadsCommon.strings;
     if (this._dataItem && this._dataItem.inProgress) {
       if (this._dataItem.paused) {
@@ -320,15 +342,15 @@ DownloadElementShell.prototype = {
         return s.stateDirty;
       case nsIDM.DOWNLOAD_FINISHED:{
         
-        if (this._fileSize > 0) {
-          let [size, unit] = DownloadUtils.convertByteUnits(this._fileSize);
+        if (this._targetFileInfoFetched && this._targetFileExists) {
+          let [size, unit] = DownloadUtils.convertByteUnits(this._targetFileSize);
           return s.sizeWithUnits(size, unit);
         }
         break;
       }
     }
 
-    return "";
+    return s.sizeUnknown;
   },
 
   
@@ -346,8 +368,11 @@ DownloadElementShell.prototype = {
   
   
   _updateDownloadStatusUI: function  DES__updateDownloadStatusUI() {
-    this._element.setAttribute("state", this.getDownloadState(true));
-    this._element.setAttribute("status", this._statusText);
+    let state = this.getDownloadState(true);
+    if (state !== undefined)
+      this._element.setAttribute("state", state);
+
+    this._element.setAttribute("status", this._getStatusText());
 
     
     
@@ -378,14 +403,12 @@ DownloadElementShell.prototype = {
       event.initEvent("ValueChange", true, true);
       this._progressElement.dispatchEvent(event);
     }
-
-    goUpdateDownloadCommands();
   },
 
   _updateStatusUI: function DES__updateStatusUI() {
-    this._updateDownloadStatusUI();
-    this._element.setAttribute("image", this._icon);
     this._element.setAttribute("displayName", this._displayName);
+    this._element.setAttribute("image", this._icon);
+    this._updateDownloadStatusUI();
   },
 
   placesNodeIconChanged: function DES_placesNodeIconChanged() {
@@ -410,15 +433,21 @@ DownloadElementShell.prototype = {
       }
       else if (aAnnoName == DOWNLOAD_STATE_ANNO) {
         this._updateDownloadStatusUI();
+        if (this._element.selected)
+          goUpdateDownloadCommands();
       }
     }
   },
 
   
   onStateChange: function DES_onStateChange() {
-    
-    if (!this._wasDone && this._dataItem.done)
+    if (!this._wasDone && this._dataItem.done) {
+      
       this._element.setAttribute("image", this._icon + "&state=normal");
+
+      this._targetFileInfoFetched = false;
+      this._fetchTargetFileInfo();
+    }
 
     this._wasDone = this._dataItem.done;
 
@@ -431,6 +460,8 @@ DownloadElementShell.prototype = {
     this._wasInProgress = this._dataItem.inProgress;
 
     this._updateDownloadStatusUI();
+    if (this._element.selected)
+      goUpdateDownloadCommands();
   },
 
   
@@ -442,18 +473,37 @@ DownloadElementShell.prototype = {
   isCommandEnabled: function DES_isCommandEnabled(aCommand) {
     switch (aCommand) {
       case "downloadsCmd_open": {
-        return this._file.exists() &&
-               ((this._dataItem && this._dataItem.openable) ||
-                (this.getDownloadState() == nsIDM.DOWNLOAD_FINISHED));
+        
+        
+        
+        if (this._dataItem && !this._dataItem.openable)
+          return false;
+
+        
+        
+        if (!this._targetFileInfoFetched)
+          return false;
+
+        return this._targetFileExists;
       }
       case "downloadsCmd_show": {
-        return this._getTargetFileOrPartFileIfExists() != null;
+        
+        if (this._dataItem &&
+            this._dataItem.partFile && this._dataItem.partFile.exists())
+          return true;
+
+        
+        
+        if (!this._targetFileInfoFetched)
+          return false;
+
+        return this._targetFileExists;
       }
       case "downloadsCmd_pauseResume":
         return this._dataItem && this._dataItem.inProgress && this._dataItem.resumable;
       case "downloadsCmd_retry":
-        return ((this._dataItem && this._dataItem.canRetry) ||
-                (!this._dataItem && this._file))
+        
+        return this._dataItem && this._dataItem.canRetry;
       case "downloadsCmd_openReferrer":
         return this._dataItem && !!this._dataItem.referrer;
       case "cmd_delete":
@@ -465,15 +515,6 @@ DownloadElementShell.prototype = {
         return this._dataItem != null;
     }
     return false;
-  },
-
-  _getTargetFileOrPartFileIfExists: function DES__getTargetFileOrPartFileIfExists() {
-    if (this._file && this._file.exists())
-      return this._file;
-    if (this._dataItem &&
-        this._dataItem.partFile && this._dataItem.partFile.exists())
-      return this._dataItem.partFile;
-    return null;
   },
 
   _retryAsHistoryDownload: function DES__retryAsHistoryDownload() {
@@ -488,14 +529,16 @@ DownloadElementShell.prototype = {
         if (this._dateItem)
           this._dataItem.openLocalFile(window);
         else
-          DownloadsCommon.openDownloadedFile(this._file, null, window);
+          DownloadsCommon.openDownloadedFile(
+            GetFileForFileURI(this._targetFileURI), null, window);
         break;
       }
       case "downloadsCmd_show": {
         if (this._dataItem)
           this._dataItem.showLocalFile();
         else
-          DownloadsCommon.showDownloadedFile(this._getTargetFileOrPartFileIfExists());
+          DownloadsCommon.showDownloadedFile(
+            GetFileForFileURI(this._targetFileURI));
         break;
       }
       case "downloadsCmd_openReferrer": {
@@ -1111,7 +1154,12 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    contextMenu.setAttribute("state", element._shell.getDownloadState());
+    let state = element._shell.getDownloadState();
+    if (state !== undefined)
+      contextMenu.setAttribute("state", state);
+    else
+      contextMenu.removeAttribute("state");
+
     return true;
   },
 

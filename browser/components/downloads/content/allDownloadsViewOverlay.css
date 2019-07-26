@@ -26,9 +26,8 @@ richlistitem.download {
                               [state="4"], 
                               [state="5"]) )
                                            .downloadShowMenuItem,
-
-.download-state[state="7"]                 .downloadCommandsSeparator
-
+.download-state[state="7"]                 .downloadCommandsSeparator,
+.download-state:not([state])                 .downloadCommandsSeparator
 {
   display: none;
 }
