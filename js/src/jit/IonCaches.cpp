@@ -1161,6 +1161,12 @@ CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &ca
     
     
     
+    
+    
+    
+    
+    
+    
     if (cache.allowGetters() &&
         (IsCacheableGetPropCallNative(obj, holder, shape) ||
          IsCacheableGetPropCallPropertyOp(obj, holder, shape)))

@@ -8606,6 +8606,10 @@ IonBuilder::jsop_getprop(PropertyName *name)
         return emitted;
 
     
+    if (!getPropTryInnerize(&emitted, obj, name, types) || emitted)
+        return emitted;
+
+    
     if (!getPropTryCache(&emitted, obj, name, barrier, types) || emitted)
         return emitted;
 
@@ -9071,6 +9075,79 @@ IonBuilder::getPropTryCache(bool *emitted, MDefinition *obj, PropertyName *name,
         return false;
 
     *emitted = true;
+    return true;
+}
+
+MDefinition *
+IonBuilder::tryInnerizeWindow(MDefinition *obj)
+{
+    
+    
+    
+    
+    
+
+    if (obj->type() != MIRType_Object)
+        return obj;
+
+    types::TemporaryTypeSet *types = obj->resultTypeSet();
+    if (!types)
+        return obj;
+
+    JSObject *singleton = types->getSingleton();
+    if (!singleton)
+        return obj;
+
+    JSObject *inner = GetInnerObject(singleton);
+    if (inner == singleton || inner != &script()->global())
+        return obj;
+
+    
+    
+    
+    types::TypeObjectKey *objType = types::TypeObjectKey::get(singleton);
+    if (objType->hasFlags(constraints(), types::OBJECT_FLAG_UNKNOWN_PROPERTIES))
+        return obj;
+
+    obj->setImplicitlyUsedUnchecked();
+    return constant(ObjectValue(script()->global()));
+}
+
+bool
+IonBuilder::getPropTryInnerize(bool *emitted, MDefinition *obj, PropertyName *name,
+                               types::TemporaryTypeSet *types)
+{
+    
+
+    MOZ_ASSERT(*emitted == false);
+
+    MDefinition *inner = tryInnerizeWindow(obj);
+    if (inner == obj)
+        return true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (!getPropTryConstant(emitted, inner, name, types) || *emitted)
+        return *emitted;
+
+    if (!getStaticName(&script()->global(), name, emitted) || *emitted)
+        return *emitted;
+
+    
+    
+    BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
+                                                       inner, name, types);
+    if (!getPropTryCache(emitted, inner, name, barrier, types) || *emitted)
+        return *emitted;
+
+    MOZ_ASSERT(*emitted == false);
     return true;
 }
 
