@@ -170,6 +170,12 @@ let HomePanels = Object.freeze({
   }),
 
   
+  ItemHandler: Object.freeze({
+    BROWSER: "browser",
+    INTENT: "intent"
+  }),
+
+  
   _panels: {},
 
   _panelToJSON : function(panel) {
@@ -223,6 +229,13 @@ let HomePanels = Object.freeze({
     for (let view of panel.views) {
       if (!this._valueExists(this.View, view.type)) {
         throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
+      }
+
+      if (!view.itemHandler) {
+        
+        view.itemHandler = this.ItemHandler.BROWSER;
+      } else if (!this._valueExists(this.ItemHandler, view.itemHandler)) {
+        throw "Home.panels: Invalid item handler: panel.id = " + panel.id + ", view.itemHandler = " + view.itemHandler;
       }
 
       if (!view.dataset) {
