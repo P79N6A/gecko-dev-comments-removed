@@ -683,6 +683,8 @@ FilterView.prototype = {
     this._searchboxHelpPanel = document.getElementById("searchbox-help-panel");
     this._globalOperatorButton = document.getElementById("global-operator-button");
     this._globalOperatorLabel = document.getElementById("global-operator-label");
+    this._functionOperatorButton = document.getElementById("function-operator-button");
+    this._functionOperatorLabel = document.getElementById("function-operator-label");
     this._tokenOperatorButton = document.getElementById("token-operator-button");
     this._tokenOperatorLabel = document.getElementById("token-operator-label");
     this._lineOperatorButton = document.getElementById("line-operator-button");
@@ -692,6 +694,7 @@ FilterView.prototype = {
 
     this._fileSearchKey = LayoutHelpers.prettyKey(document.getElementById("fileSearchKey"), true);
     this._globalSearchKey = LayoutHelpers.prettyKey(document.getElementById("globalSearchKey"), true);
+    this._filteredFunctionsKey = LayoutHelpers.prettyKey(document.getElementById("functionSearchKey"), true);
     this._tokenSearchKey = LayoutHelpers.prettyKey(document.getElementById("tokenSearchKey"), true);
     this._lineSearchKey = LayoutHelpers.prettyKey(document.getElementById("lineSearchKey"), true);
     this._variableSearchKey = LayoutHelpers.prettyKey(document.getElementById("variableSearchKey"), true);
@@ -703,12 +706,15 @@ FilterView.prototype = {
     this._searchbox.addEventListener("blur", this._onBlur, false);
 
     this._globalOperatorButton.setAttribute("label", SEARCH_GLOBAL_FLAG);
+    this._functionOperatorButton.setAttribute("label", SEARCH_FUNCTION_FLAG);
     this._tokenOperatorButton.setAttribute("label", SEARCH_TOKEN_FLAG);
     this._lineOperatorButton.setAttribute("label", SEARCH_LINE_FLAG);
     this._variableOperatorButton.setAttribute("label", SEARCH_VARIABLE_FLAG);
 
     this._globalOperatorLabel.setAttribute("value",
       L10N.getFormatStr("searchPanelGlobal", [this._globalSearchKey]));
+    this._functionOperatorLabel.setAttribute("value",
+      L10N.getFormatStr("searchPanelFunction", [this._filteredFunctionsKey]));
     this._tokenOperatorLabel.setAttribute("value",
       L10N.getFormatStr("searchPanelToken", [this._tokenSearchKey]));
     this._lineOperatorLabel.setAttribute("value",
@@ -759,18 +765,25 @@ FilterView.prototype = {
 
 
 
+  get target() this._target,
+
+  
+
+
+
   get searchboxInfo() {
-    let file, line, token, isGlobal, isVariable;
+    let operator, file, line, token;
 
     let rawValue = this._searchbox.value;
     let rawLength = rawValue.length;
     let globalFlagIndex = rawValue.indexOf(SEARCH_GLOBAL_FLAG);
+    let functionFlagIndex = rawValue.indexOf(SEARCH_FUNCTION_FLAG);
     let variableFlagIndex = rawValue.indexOf(SEARCH_VARIABLE_FLAG);
     let lineFlagIndex = rawValue.lastIndexOf(SEARCH_LINE_FLAG);
     let tokenFlagIndex = rawValue.lastIndexOf(SEARCH_TOKEN_FLAG);
 
     
-    if (globalFlagIndex != 0 && variableFlagIndex != 0) {
+    if (globalFlagIndex != 0 && functionFlagIndex != 0 && variableFlagIndex != 0) {
       let fileEnd = lineFlagIndex != -1
         ? lineFlagIndex
         : tokenFlagIndex != -1 ? tokenFlagIndex : rawLength;
@@ -779,49 +792,59 @@ FilterView.prototype = {
         ? tokenFlagIndex
         : rawLength;
 
+      operator = "";
       file = rawValue.slice(0, fileEnd);
       line = ~~(rawValue.slice(fileEnd + 1, lineEnd)) || 0;
       token = rawValue.slice(lineEnd + 1);
-      isGlobal = false;
-      isVariable = false;
     }
     
     else if (globalFlagIndex == 0) {
+      operator = SEARCH_GLOBAL_FLAG;
       file = "";
       line = 0;
       token = rawValue.slice(1);
-      isGlobal = true;
-      isVariable = false;
+    }
+    
+    else if (functionFlagIndex == 0) {
+      operator = SEARCH_FUNCTION_FLAG;
+      file = "";
+      line = 0;
+      token = rawValue.slice(1);
     }
     
     else if (variableFlagIndex == 0) {
+      operator = SEARCH_VARIABLE_FLAG;
       file = "";
       line = 0;
       token = rawValue.slice(1);
-      isGlobal = false;
-      isVariable = true;
     }
 
-    return [file, line, token, isGlobal, isVariable];
+    return [operator, file, line, token];
   },
 
   
 
 
 
-  get searchedFile() this.searchboxInfo[0],
+  get currentOperator() this.searchboxInfo[0],
 
   
 
 
 
-  get searchedLine() this.searchboxInfo[1],
+  get searchedFile() this.searchboxInfo[1],
 
   
 
 
 
-  get searchedToken() this.searchboxInfo[2],
+  get searchedLine() this.searchboxInfo[2],
+
+  
+
+
+
+  get searchedToken() this.searchboxInfo[3],
 
   
 
@@ -955,11 +978,11 @@ FilterView.prototype = {
 
   _onSearch: function DVF__onScriptsSearch() {
     this._searchboxHelpPanel.hidePopup();
-    let [file, line, token, isGlobal, isVariable] = this.searchboxInfo;
+    let [operator, file, line, token] = this.searchboxInfo;
 
     
     
-    if (isGlobal) {
+    if (operator == SEARCH_GLOBAL_FLAG) {
       DebuggerView.GlobalSearch.scheduleSearch(token);
       this._prevSearchedToken = token;
       return;
@@ -967,13 +990,23 @@ FilterView.prototype = {
 
     
     
-    if (isVariable) {
+    if (operator == SEARCH_FUNCTION_FLAG) {
+      DebuggerView.FilteredFunctions.scheduleSearch(token);
+      this._prevSearchedToken = token;
+      return;
+    }
+
+    
+    
+    if (operator == SEARCH_VARIABLE_FLAG) {
       DebuggerView.Variables.scheduleSearch(token);
       this._prevSearchedToken = token;
       return;
     }
 
     DebuggerView.GlobalSearch.clearView();
+    DebuggerView.FilteredFunctions.clearView();
+
     this._performFileSearch(file);
     this._performLineSearch(line);
     this._performTokenSearch(token);
@@ -986,18 +1019,20 @@ FilterView.prototype = {
     
     e.char = String.fromCharCode(e.charCode);
 
-    let [file, line, token, isGlobal, isVariable] = this.searchboxInfo;
-    let isFileSearch, isLineSearch, isDifferentToken, isReturnKey;
+    let [operator, file, line, token] = this.searchboxInfo;
+    let isGlobal = operator == SEARCH_GLOBAL_FLAG;
+    let isFunction = operator == SEARCH_FUNCTION_FLAG;
+    let isVariable = operator == SEARCH_VARIABLE_FLAG;
     let action = -1;
 
     if (file && !line && !token) {
-      isFileSearch = true;
+      var isFileSearch = true;
     }
     if (line && !token) {
-      isLineSearch = true;
+      var isLineSearch = true;
     }
     if (this._prevSearchedToken != token) {
-      isDifferentToken = true;
+      var isDifferentToken = true;
     }
 
     
@@ -1013,7 +1048,7 @@ FilterView.prototype = {
     else switch (e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
-        isReturnKey = true;
+        var isReturnKey = true;
         
       case e.DOM_VK_DOWN:
         action = 0;
@@ -1030,8 +1065,7 @@ FilterView.prototype = {
       DebuggerView.editor.focus();
       return;
     }
-    if (action == -1 || (!file && !line && !token)) {
-      DebuggerView.FilteredSources.hidden = true;
+    if (action == -1 || (!operator && !file && !line && !token)) {
       return;
     }
 
@@ -1041,7 +1075,7 @@ FilterView.prototype = {
     
     if (isFileSearch) {
       if (isReturnKey) {
-        DebuggerView.FilteredSources.hidden = true;
+        DebuggerView.FilteredSources.clearView();
         DebuggerView.editor.focus();
         this.clearSearch();
       } else {
@@ -1057,6 +1091,21 @@ FilterView.prototype = {
         DebuggerView.GlobalSearch.performSearch(token);
       } else {
         DebuggerView.GlobalSearch[["focusNextMatch", "focusPrevMatch"][action]]();
+      }
+      this._prevSearchedToken = token;
+      return;
+    }
+
+    
+    if (isFunction) {
+      if (isReturnKey && (isDifferentToken || DebuggerView.FilteredFunctions.hidden)) {
+        DebuggerView.FilteredFunctions.performSearch(token);
+      } else if (!isReturnKey) {
+        DebuggerView.FilteredFunctions[["focusNext", "focusPrev"][action]]();
+      } else {
+        DebuggerView.FilteredFunctions.clearView();
+        DebuggerView.editor.focus();
+        this.clearSearch();
       }
       this._prevSearchedToken = token;
       return;
@@ -1097,6 +1146,8 @@ FilterView.prototype = {
 
   _onBlur: function DVF__onBlur() {
     DebuggerView.GlobalSearch.clearView();
+    DebuggerView.FilteredSources.clearView();
+    DebuggerView.FilteredFunctions.clearView();
     DebuggerView.Variables.performSearch(null);
     this._searchboxHelpPanel.hidePopup();
   },
@@ -1109,6 +1160,7 @@ FilterView.prototype = {
 
   _doSearch: function DVF__doSearch(aOperator = "") {
     this._searchbox.focus();
+    this._searchbox.value = ""; 
     this._searchbox.value = aOperator;
   },
 
@@ -1125,6 +1177,14 @@ FilterView.prototype = {
 
   _doGlobalSearch: function DVF__doGlobalSearch() {
     this._doSearch(SEARCH_GLOBAL_FLAG);
+    this._searchboxHelpPanel.hidePopup();
+  },
+
+  
+
+
+  _doFunctionSearch: function DVF__doFunctionSearch() {
+    this._doSearch(SEARCH_FUNCTION_FLAG);
     this._searchboxHelpPanel.hidePopup();
   },
 
@@ -1165,6 +1225,8 @@ FilterView.prototype = {
   _searchboxHelpPanel: null,
   _globalOperatorButton: null,
   _globalOperatorLabel: null,
+  _functionOperatorButton: null,
+  _functionOperatorLabel: null,
   _tokenOperatorButton: null,
   _tokenOperatorLabel: null,
   _lineOperatorButton: null,
@@ -1173,6 +1235,7 @@ FilterView.prototype = {
   _variableOperatorLabel: null,
   _fileSearchKey: "",
   _globalSearchKey: "",
+  _filteredFunctionsKey: "",
   _tokenSearchKey: "",
   _lineSearchKey: "",
   _variableSearchKey: "",
@@ -1187,23 +1250,20 @@ FilterView.prototype = {
 
 function FilteredSourcesView() {
   dumpn("FilteredSourcesView was instantiated");
+  ResultsPanelContainer.call(this);
 
-  this._onClick = this._onClick.bind(this);
+  this.onClick = this.onClick.bind(this);
+  this.onSelect = this.onSelect.bind(this);
 }
 
-create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
+create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototype }, {
   
 
 
   initialize: function DVFS_initialize() {
     dumpn("Initializing the FilteredSourcesView");
 
-    this.node = new ListWidget(document.getElementById("filtered-sources-panel"));
-    this._searchbox = document.getElementById("searchbox");
-
-    this.node.itemFactory = this._createItemView;
-    this.node.itemType = "vbox";
-    this.node.addEventListener("click", this._onClick, false);
+    this.anchor = document.getElementById("searchbox");
   },
 
   
@@ -1212,19 +1272,7 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
   destroy: function DVFS_destroy() {
     dumpn("Destroying the FilteredSourcesView");
 
-    this.node.removeEventListener("click", this._onClick, false);
-  },
-
-  
-
-
-
-  set hidden(aFlag) {
-    if (aFlag) {
-      this.node._parent.hidePopup();
-    } else {
-      this.node._parent.openPopup(this._searchbox);
-    }
+    this.anchor = null;
   },
 
   
@@ -1243,12 +1291,12 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
 
     
     let visibleItems = DebuggerView.Sources.visibleItems;
-    let displayedItems = visibleItems.slice(0, FILTERED_SOURCES_MAX_RESULTS);
+    let displayedItems = visibleItems.slice(0, RESULTS_PANEL_MAX_RESULTS);
 
     for (let item of displayedItems) {
       
       let trimmedLabel = SourceUtils.trimUrlLength(item.label);
-      let trimmedValue = SourceUtils.trimUrlLength(item.value);
+      let trimmedValue = SourceUtils.trimUrlLength(item.value, 0, "start");
       let locationItem = this.push([trimmedLabel, trimmedValue], {
         relaxed: true, 
         attachment: {
@@ -1258,39 +1306,20 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
       });
     }
 
-    this._updateSelection(this.getItemAtIndex(0));
-    this.hidden = false;
+    
+    this.select(0);
+
+    
+    this.hidden = this.itemCount == 0;
   },
 
   
 
 
-  focusNext: function DVFS_focusNext() {
-    let nextIndex = this.selectedIndex + 1;
-    if (nextIndex >= this.itemCount) {
-      nextIndex = 0;
-    }
-    this._updateSelection(this.getItemAtIndex(nextIndex));
-  },
-
-  
-
-
-  focusPrev: function DVFS_focusPrev() {
-    let prevIndex = this.selectedIndex - 1;
-    if (prevIndex < 0) {
-      prevIndex = this.itemCount - 1;
-    }
-    this._updateSelection(this.getItemAtIndex(prevIndex));
-  },
-
-  
-
-
-  _onClick: function DVFS__onClick(e) {
+  onClick: function DVFS_onClick(e) {
     let locationItem = this.getItemForElement(e.target);
     if (locationItem) {
-      this._updateSelection(locationItem);
+      this.select(locationItem);
       DebuggerView.Filtering.clearSearch();
     }
   },
@@ -1301,9 +1330,66 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
 
 
 
-  _updateSelection: function DVFS__updateSelection(aItem) {
-    this.selectedItem = aItem;
-    DebuggerView.Filtering._target.selectedValue = aItem.attachment.fullValue;
+  onSelect: function DVFS_onSelect(e) {
+    let locationItem = this.getItemForElement(e.target);
+    if (locationItem) {
+      DebuggerView.Sources.selectedValue = locationItem.attachment.fullValue;
+    }
+  }
+});
+
+
+
+
+function FilteredFunctionsView() {
+  dumpn("FilteredFunctionsView was instantiated");
+  ResultsPanelContainer.call(this);
+
+  this._performFunctionSearch = this._performFunctionSearch.bind(this);
+  this.onClick = this.onClick.bind(this);
+  this.onSelect = this.onSelect.bind(this);
+}
+
+create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.prototype }, {
+  
+
+
+  initialize: function DVFF_initialize() {
+    dumpn("Initializing the FilteredFunctionsView");
+
+    this.anchor = document.getElementById("searchbox");
+  },
+
+  
+
+
+  destroy: function DVFF_destroy() {
+    dumpn("Destroying the FilteredFunctionsView");
+
+    this.anchor = null;
+  },
+
+  
+
+
+  delayedSearch: true,
+
+  
+
+
+
+
+
+  scheduleSearch: function DVFF_scheduleSearch(aQuery) {
+    if (!this.delayedSearch) {
+      this.performSearch(aQuery);
+      return;
+    }
+    let delay = Math.max(FUNCTION_SEARCH_ACTION_MAX_DELAY / aQuery.length, 0);
+
+    window.clearTimeout(this._searchTimeout);
+    this._searchFunction = this._startSearch.bind(this, aQuery);
+    this._searchTimeout = window.setTimeout(this._searchFunction, delay);
   },
 
   
@@ -1312,28 +1398,171 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
 
 
 
-
-
-
-
-
-
-  _createItemView:
-  function DVFS__createItemView(aElementNode, aAttachment, aLabel, aValue) {
-    let labelNode = document.createElement("label");
-    labelNode.className = "plain dbg-source-item-name";
-    labelNode.setAttribute("value", aLabel);
-
-    let valueNode = document.createElement("label");
-    valueNode.setAttribute("value", aValue);
-    valueNode.className = "plain dbg-source-item-details";
-
-    aElementNode.className = "light dbg-source-item";
-    aElementNode.appendChild(labelNode);
-    aElementNode.appendChild(valueNode);
+  performSearch: function DVFF_performSearch(aQuery) {
+    window.clearTimeout(this._searchTimeout);
+    this._searchFunction = null;
+    this._startSearch(aQuery);
   },
 
-  _searchbox: null
+  
+
+
+
+
+
+  _startSearch: function DVFF__startSearch(aQuery) {
+    this._searchedToken = aQuery;
+
+    DebuggerController.SourceScripts.fetchSources(DebuggerView.Sources.values, {
+      onFinished: this._performFunctionSearch
+    });
+  },
+
+  
+
+
+
+  _performFunctionSearch: function DVFF__performFunctionSearch() {
+    
+    
+    
+    let token = this._searchedToken;
+
+    
+    
+    let sourcesCache = DebuggerController.SourceScripts.getCache();
+    let currentUrl = DebuggerView.Sources.selectedValue;
+    sourcesCache.sort(function([sourceUrl]) sourceUrl == currentUrl ? -1 : 1);
+
+    
+    if (!token) {
+      sourcesCache.splice(1);
+    }
+
+    
+    let searchResults = [];
+
+    for (let [location, contents] of sourcesCache) {
+      let parserMethods = DebuggerController.Parser.get(location, contents);
+      let sourceResults = parserMethods.getNamedFunctionDefinitions(token);
+
+      for (let scriptResult of sourceResults) {
+        for (let parseResult of scriptResult.parseResults) {
+          searchResults.push({
+            sourceUrl: scriptResult.sourceUrl,
+            scriptOffset: scriptResult.scriptOffset,
+            functionName: parseResult.functionName,
+            functionLocation: parseResult.functionLocation,
+            inferredName: parseResult.inferredName,
+            inferredChain: parseResult.inferredChain,
+            inferredLocation: parseResult.inferredLocation
+          });
+
+          
+          
+          if (searchResults.length >= RESULTS_PANEL_MAX_RESULTS) {
+            this._syncFunctionSearch(searchResults);
+            return;
+          }
+        }
+      }
+    }
+    
+    
+    this._syncFunctionSearch(searchResults);
+  },
+
+  
+
+
+
+
+
+  _syncFunctionSearch: function DVFF__syncFunctionSearch(aSearchResults) {
+    this.empty();
+
+    
+    
+    if (!aSearchResults.length) {
+      this.hidden = true;
+      return;
+    }
+
+    for (let item of aSearchResults) {
+      
+      
+      
+      if (item.functionName && item.inferredName &&
+          item.functionName != item.inferredName) {
+        let s = " " + L10N.getStr("functionSearchSeparatorLabel") + " ";
+        item.displayedName = item.inferredName + s + item.functionName;
+      }
+      
+      else if (item.inferredName) {
+        item.displayedName = item.inferredName;
+      }
+      
+      else {
+        item.displayedName = item.functionName;
+      }
+
+      
+      
+      if (item.inferredLocation) {
+        item.actualLocation = item.inferredLocation;
+      } else {
+        item.actualLocation = item.functionLocation;
+      }
+
+      
+      let trimmedLabel = SourceUtils.trimUrlLength(item.displayedName + "()");
+      let trimmedValue = SourceUtils.trimUrlLength(item.sourceUrl, 0, "start");
+      let description = (item.inferredChain || []).join(".");
+
+      let functionItem = this.push([trimmedLabel, trimmedValue, description], {
+        index: -1, 
+        relaxed: true, 
+        attachment: item
+      });
+    }
+
+    
+    this.select(0);
+    this.hidden = this.itemCount == 0;
+  },
+
+  
+
+
+  onClick: function DVFF_onClick(e) {
+    let functionItem = this.getItemForElement(e.target);
+    if (functionItem) {
+      this.select(functionItem);
+      DebuggerView.Filtering.clearSearch();
+    }
+  },
+
+  
+
+
+  onSelect: function DVFF_onSelect(e) {
+    let functionItem = this.getItemForElement(e.target);
+    if (functionItem) {
+      let sourceUrl = functionItem.attachment.sourceUrl;
+      let scriptOffset = functionItem.attachment.scriptOffset;
+      let actualLocation = functionItem.attachment.actualLocation;
+
+      DebuggerView.updateEditor(sourceUrl, actualLocation.start.line, {
+        charOffset: scriptOffset,
+        columnOffset: actualLocation.start.column,
+        noDebug: true
+      });
+    }
+  },
+
+  _searchTimeout: null,
+  _searchFunction: null,
+  _searchedToken: ""
 });
 
 
@@ -1343,5 +1572,6 @@ DebuggerView.Toolbar = new ToolbarView();
 DebuggerView.Options = new OptionsView();
 DebuggerView.Filtering = new FilterView();
 DebuggerView.FilteredSources = new FilteredSourcesView();
+DebuggerView.FilteredFunctions = new FilteredFunctionsView();
 DebuggerView.ChromeGlobals = new ChromeGlobalsView();
 DebuggerView.StackFrames = new StackFramesView();

@@ -1513,11 +1513,8 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 function GlobalSearchView() {
   dumpn("GlobalSearchView was instantiated");
 
-  this._cache = new Map();
   this._startSearch = this._startSearch.bind(this);
-  this._onFetchSourceFinished = this._onFetchSourceFinished.bind(this);
-  this._onFetchSourceTimeout = this._onFetchSourceTimeout.bind(this);
-  this._onFetchSourcesFinished = this._onFetchSourcesFinished.bind(this);
+  this._performGlobalSearch = this._performGlobalSearch.bind(this);
   this._createItemView = this._createItemView.bind(this);
   this._onScroll = this._onScroll.bind(this);
   this._onHeaderClick = this._onHeaderClick.bind(this);
@@ -1578,14 +1575,6 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   
 
 
-  clearCache: function DVGS_clearCache() {
-    this._cache = new Map();
-    window.dispatchEvent(document, "Debugger:GlobalSearch:CacheCleared");
-  },
-
-  
-
-
   focusNextMatch: function DVGS_focusNextMatch() {
     let totalLineResults = LineResults.size();
     if (!totalLineResults) {
@@ -1631,7 +1620,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
       this.performSearch(aQuery);
       return;
     }
-    let delay = Math.max(GLOBAL_SEARCH_ACTION_MAX_DELAY / aQuery.length);
+    let delay = Math.max(GLOBAL_SEARCH_ACTION_MAX_DELAY / aQuery.length, 0);
 
     window.clearTimeout(this._searchTimeout);
     this._searchFunction = this._startSearch.bind(this, aQuery);
@@ -1657,93 +1646,11 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
   _startSearch: function DVGS__startSearch(aQuery) {
-    let locations = DebuggerView.Sources.values;
-    this._sourcesCount = locations.length;
     this._searchedToken = aQuery;
 
-    this._fetchSources(locations, {
-      onFetch: this._onFetchSourceFinished,
-      onTimeout: this._onFetchSourceTimeout,
-      onFinished: this._onFetchSourcesFinished
+    DebuggerController.SourceScripts.fetchSources(DebuggerView.Sources.values, {
+      onFinished: this._performGlobalSearch
     });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _fetchSources:
-  function DVGS__fetchSources(aLocations, { onFetch, onTimeout, onFinished }) {
-    
-    if (this._cache.size == aLocations.length) {
-      onFinished();
-      return;
-    }
-
-    
-    for (let location of aLocations) {
-      if (this._cache.has(location)) {
-        continue;
-      }
-      let sourceItem = DebuggerView.Sources.getItemByValue(location);
-      let sourceObject = sourceItem.attachment.source;
-      DebuggerController.SourceScripts.getText(sourceObject, onFetch, onTimeout);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  _onFetchSourceFinished: function DVGS__onFetchSourceFinished(aLocation, aContents, aError) {
-    if (aError) {
-      return;
-    }
-
-    
-    this._cache.set(aLocation, aContents);
-
-    
-    if (this._cache.size == this._sourcesCount) {
-      this._onFetchSourcesFinished();
-    }
-  },
-
-  
-
-
-  _onFetchSourceTimeout: function DVGS__onFetchSourceTimeout() {
-    
-    this._sourcesCount--;
-
-    
-    if (this._cache.size == this._sourcesCount) {
-      this._onFetchSourcesFinished();
-    }
-  },
-
-  
-
-
-  _onFetchSourcesFinished: function DVGS__onFetchSourcesFinished() {
-    
-    if (!this._sourcesCount) {
-      return;
-    }
-    
-    this._performGlobalSearch();
-    this._sourcesCount = 0;
   },
 
   
@@ -1767,8 +1674,9 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
     
     let globalResults = new GlobalResults();
+    let sourcesCache = DebuggerController.SourceScripts.getCache();
 
-    for (let [location, contents] of this._cache) {
+    for (let [location, contents] of sourcesCache) {
       
       if (!contents.toLowerCase().contains(lowerCaseToken)) {
         continue;
@@ -2002,9 +1910,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   _forceExpandResults: false,
   _searchTimeout: null,
   _searchFunction: null,
-  _searchedToken: "",
-  _sourcesCount: -1,
-  _cache: null
+  _searchedToken: ""
 });
 
 

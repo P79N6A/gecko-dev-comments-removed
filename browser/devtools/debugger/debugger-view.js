@@ -17,11 +17,14 @@ const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000;
 const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "before_start";
 const BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X = 7; 
 const BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y = -3; 
-const FILTERED_SOURCES_MAX_RESULTS = 10;
+const RESULTS_PANEL_POPUP_POSITION = "before_end";
+const RESULTS_PANEL_MAX_RESULTS = 10;
 const GLOBAL_SEARCH_EXPAND_MAX_RESULTS = 50;
 const GLOBAL_SEARCH_LINE_MAX_LENGTH = 300; 
 const GLOBAL_SEARCH_ACTION_MAX_DELAY = 1500; 
+const FUNCTION_SEARCH_ACTION_MAX_DELAY = 400; 
 const SEARCH_GLOBAL_FLAG = "!";
+const SEARCH_FUNCTION_FLAG = "@";
 const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
@@ -46,6 +49,7 @@ let DebuggerView = {
     this.Options.initialize();
     this.Filtering.initialize();
     this.FilteredSources.initialize();
+    this.FilteredFunctions.initialize();
     this.ChromeGlobals.initialize();
     this.StackFrames.initialize();
     this.Sources.initialize();
@@ -76,6 +80,7 @@ let DebuggerView = {
     this.Options.destroy();
     this.Filtering.destroy();
     this.FilteredSources.destroy();
+    this.FilteredFunctions.destroy();
     this.ChromeGlobals.destroy();
     this.StackFrames.destroy();
     this.Sources.destroy();
@@ -260,7 +265,7 @@ let DebuggerView = {
 
     
     if (!aSource.loaded) {
-      DebuggerController.SourceScripts.getText(aSource, set.bind(this, aSource));
+      DebuggerController.SourceScripts.getText(aSource, set.bind(this));
     }
     
     else {
@@ -371,10 +376,10 @@ let DebuggerView = {
         aLine += aFlags.lineOffset;
       }
       if (!aFlags.noCaret) {
-        editor.setCaretPosition(aLine - 1);
+        editor.setCaretPosition(aLine - 1, aFlags.columnOffset);
       }
       if (!aFlags.noDebug) {
-        editor.setDebugLocation(aLine - 1);
+        editor.setDebugLocation(aLine - 1, aFlags.columnOffset);
       }
     }
   },
@@ -388,11 +393,22 @@ let DebuggerView = {
 
 
 
-  getEditorLine: function SS_getEditorLine(aLine) {
+  getEditorLine: function DV_getEditorLine(aLine) {
     let line = aLine || this.editor.getCaretPosition().line;
     let start = this.editor.getLineStart(line);
     let end = this.editor.getLineEnd(line);
     return this.editor.getText(start, end);
+  },
+
+  
+
+
+
+
+
+  getEditorSelection: function DV_getEditorSelection() {
+    let selection = this.editor.getSelection();
+    return this.editor.getText(selection.start, selection.end);
   },
 
   
@@ -486,13 +502,13 @@ let DebuggerView = {
     dumpn("Handling tab navigation in the DebuggerView");
 
     this.Filtering.clearSearch();
+    this.FilteredSources.clearView();
+    this.FilteredFunctions.clearView();
     this.GlobalSearch.clearView();
-    this.GlobalSearch.clearCache();
     this.ChromeGlobals.empty();
     this.StackFrames.empty();
     this.Sources.empty();
     this.Variables.empty();
-    SourceUtils.clearCache();
 
     if (this.editor) {
       this.editor.setText("");
@@ -749,6 +765,202 @@ ListWidget.prototype = {
   _emptyTextNode: null,
   _emptyTextValue: ""
 };
+
+
+
+
+
+function ResultsPanelContainer() {
+  this._createItemView = this._createItemView.bind(this);
+}
+
+create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
+  onClick: null,
+  onSelect: null,
+
+  
+
+
+
+  set anchor(aNode) {
+    this._anchor = aNode;
+
+    
+    
+    if (aNode) {
+      if (!this._panel) {
+        this._panel = document.createElement("panel");
+        this._panel.className = "results-panel";
+        this._panel.setAttribute("level", "top");
+        this._panel.setAttribute("noautofocus", "true");
+        document.documentElement.appendChild(this._panel);
+      }
+      if (!this.node) {
+        this.node = new ListWidget(this._panel);
+        this.node.itemType = "vbox";
+        this.node.itemFactory = this._createItemView;
+        this.node.addEventListener("click", this.onClick, false);
+      }
+    }
+    
+    else {
+      if (this._panel) {
+        document.documentElement.removeChild(this._panel);
+        this._panel = null;
+      }
+      if (this.node) {
+        this.node.removeEventListener("click", this.onClick, false);
+        this.node = null;
+      }
+    }
+  },
+
+  
+
+
+
+  get anchor() this._anchor,
+
+  
+
+
+
+  set options(aOptions) {
+    this._top = aOptions.top;
+    this._left = aOptions.left;
+    this._position = aOptions.position;
+  },
+
+  
+
+
+
+  get options() ({
+    top: this._top,
+    left: this._left,
+    position: this._position
+  }),
+
+  
+
+
+
+  set hidden(aFlag) {
+    if (aFlag) {
+      this._panel.hidePopup();
+    } else {
+      this._panel.openPopup(this._anchor, this._position, this._left, this._top);
+      this.anchor.focus();
+    }
+  },
+
+  
+
+
+
+  get hidden()
+    this._panel.state == "closed" ||
+    this._panel.state == "hiding",
+
+  
+
+
+  clearView: function RPC_clearView() {
+    this.hidden = true;
+    this.empty();
+    window.dispatchEvent(document, "Debugger:ResultsPanelContainer:ViewCleared");
+  },
+
+  
+
+
+  focusNext: function RPC_focusNext() {
+    let nextIndex = this.selectedIndex + 1;
+    if (nextIndex >= this.itemCount) {
+      nextIndex = 0;
+    }
+    this.select(this.getItemAtIndex(nextIndex));
+  },
+
+  
+
+
+  focusPrev: function RPC_focusPrev() {
+    let prevIndex = this.selectedIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = this.itemCount - 1;
+    }
+    this.select(this.getItemAtIndex(prevIndex));
+  },
+
+  
+
+
+
+
+
+  select: function RPC_select(aItem) {
+    if (typeof aItem == "number") {
+      this.select(this.getItemAtIndex(aItem));
+      return;
+    }
+
+    
+    
+    this.selectedItem = aItem;
+
+    
+    
+    if (this.onSelect) {
+      this.onSelect({ target: aItem.target });
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _createItemView:
+  function RPC__createItemView(aElementNode, aAttachment, aLabel, aValue, aDescription) {
+    let labelsGroup = document.createElement("hbox");
+    if (aDescription) {
+      let preLabelNode = document.createElement("label");
+      preLabelNode.className = "plain results-panel-item-pre";
+      preLabelNode.setAttribute("value", aDescription);
+      labelsGroup.appendChild(preLabelNode);
+    }
+    if (aLabel) {
+      let labelNode = document.createElement("label");
+      labelNode.className = "plain results-panel-item-name";
+      labelNode.setAttribute("value", aLabel);
+      labelsGroup.appendChild(labelNode);
+    }
+
+    let valueNode = document.createElement("label");
+    valueNode.className = "plain results-panel-item-details";
+    valueNode.setAttribute("value", aValue);
+
+    aElementNode.className = "light results-panel-item";
+    aElementNode.appendChild(labelsGroup);
+    aElementNode.appendChild(valueNode);
+  },
+
+  _anchor: null,
+  _panel: null,
+  _position: RESULTS_PANEL_POPUP_POSITION,
+  _left: 0,
+  _top: 0
+});
 
 
 

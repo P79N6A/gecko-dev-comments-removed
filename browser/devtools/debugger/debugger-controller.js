@@ -38,8 +38,8 @@ Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this,
-  "Reflect", "resource://gre/modules/reflect.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Parser",
+  "resource:///modules/devtools/Parser.jsm");
 
 
 
@@ -231,6 +231,11 @@ let DebuggerController = {
   _onTabNavigated: function DC__onTabNavigated(aType, aPacket) {
     if (aPacket.state == "start") {
       DebuggerView._handleTabNavigation();
+
+      
+      DebuggerController.SourceScripts.clearCache();
+      DebuggerController.Parser.clearCache();
+      SourceUtils.clearCache();
       return;
     }
 
@@ -957,7 +962,7 @@ StackFrames.prototype = {
     let sanitizedExpressions = list.map(function(str) {
       
       try {
-        Reflect.parse(str);
+        Parser.reflectionAPI.parse(str);
         return str; 
       } catch (e) {
         return "\"" + e.name + ": " + e.message + "\""; 
@@ -1009,9 +1014,13 @@ StackFrames.prototype = {
 
 
 function SourceScripts() {
+  this._cache = new Map(); 
   this._onNewSource = this._onNewSource.bind(this);
   this._onNewGlobal = this._onNewGlobal.bind(this);
   this._onSourcesAdded = this._onSourcesAdded.bind(this);
+  this._onFetch = this._onFetch.bind(this);
+  this._onTimeout = this._onTimeout.bind(this);
+  this._onFinished = this._onFinished.bind(this);
 }
 
 SourceScripts.prototype = {
@@ -1157,32 +1166,158 @@ SourceScripts.prototype = {
 
 
 
-  getText: function SS_getText(aSource, aCallback, aOnTimeout) {
+  getText: function SS_getText(aSource, aCallback, aTimeout) {
     
     if (aSource.loaded) {
-      aCallback(aSource.url, aSource.text);
+      aCallback(aSource);
       return;
     }
 
     
     
-    if (aOnTimeout) {
-      var fetchTimeout = window.setTimeout(aOnTimeout, FETCH_SOURCE_RESPONSE_DELAY);
+    if (aTimeout) {
+      var fetchTimeout = window.setTimeout(() => {
+        aSource._fetchingTimedOut = true;
+        aTimeout(aSource);
+      }, FETCH_SOURCE_RESPONSE_DELAY);
     }
 
     
-    this.activeThread.source(aSource).source(function(aResponse) {
-      window.clearTimeout(fetchTimeout);
-
+    this.activeThread.source(aSource).source((aResponse) => {
+      if (aTimeout) {
+        window.clearTimeout(fetchTimeout);
+      }
       if (aResponse.error) {
         Cu.reportError("Error loading: " + aSource.url + "\n" + aResponse.message);
-        return void aCallback(aSource.url, "", aResponse.error);
+        return void aCallback(aSource);
       }
       aSource.loaded = true;
       aSource.text = aResponse.source;
-      aCallback(aSource.url, aResponse.source);
+      aCallback(aSource);
     });
-  }
+  },
+
+  
+
+
+
+
+
+  getCache: function SS_getCache() {
+    let sources = [];
+    for (let source of this._cache) {
+      sources.push(source);
+    }
+    return sources.sort(([first], [second]) => first > second);
+  },
+
+  
+
+
+  clearCache: function SS_clearCache() {
+    this._cache = new Map();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  fetchSources: function SS_fetchSources(aUrls, aCallbacks = {}) {
+    this._fetchQueue = new Set();
+    this._fetchCallbacks = aCallbacks;
+
+    
+    for (let url of aUrls) {
+      if (!this._cache.has(url)) {
+        this._fetchQueue.add(url);
+      }
+    }
+
+    
+    if (this._fetchQueue.size == 0) {
+      this._onFinished();
+      return;
+    }
+
+    
+    for (let url of this._fetchQueue) {
+      let sourceItem = DebuggerView.Sources.getItemByValue(url);
+      let sourceObject = sourceItem.attachment.source;
+      this.getText(sourceObject, this._onFetch, this._onTimeout);
+    }
+  },
+
+  
+
+
+
+
+
+  _onFetch: function SS__onFetch(aSource) {
+    
+    this._cache.set(aSource.url, aSource.text);
+
+    
+    this._fetchQueue.delete(aSource.url);
+
+    
+    
+    if (aSource._fetchingTimedOut) {
+      return;
+    }
+
+    
+    if (this._fetchCallbacks.onFetch) {
+      this._fetchCallbacks.onFetch(aSource);
+    }
+
+    
+    if (this._fetchQueue.size == 0) {
+      this._onFinished();
+    }
+  },
+
+  
+
+
+
+
+
+  _onTimeout: function SS__onTimeout(aSource) {
+    
+    this._fetchQueue.delete(aSource.url);
+
+    
+    if (this._fetchCallbacks.onTimeout) {
+      this._fetchCallbacks.onTimeout(aSource);
+    }
+
+    
+    if (this._fetchQueue.size == 0) {
+      this._onFinished();
+    }
+  },
+
+  
+
+
+  _onFinished: function SS__onFinished() {
+    
+    if (this._fetchCallbacks.onFinished) {
+      this._fetchCallbacks.onFinished();
+    }
+  },
+
+  _cache: null,
+  _fetchQueue: null,
+  _fetchCallbacks: null
 };
 
 
@@ -1637,6 +1772,7 @@ XPCOMUtils.defineLazyGetter(window, "_isChromeDebugger", function() {
 
 
 DebuggerController.initialize();
+DebuggerController.Parser = new Parser();
 DebuggerController.ThreadState = new ThreadState();
 DebuggerController.StackFrames = new StackFrames();
 DebuggerController.SourceScripts = new SourceScripts();
