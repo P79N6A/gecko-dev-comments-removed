@@ -55,12 +55,6 @@ class Trace {
   static uint32_t level_filter() { return level_filter_; }
 
   
-  static void set_aec_debug(bool enable) { aec_debug_ = enable; }
-  static void set_aec_debug_size(uint32_t size) { aec_debug_size_ = size; }
-  static bool aec_debug() { return aec_debug_; }
-  static uint32_t aec_debug_size() { return aec_debug_size_; }
-
-  
   
   
   static int32_t SetTraceFile(const char* file_name,
@@ -91,16 +85,8 @@ class Trace {
 
  private:
   static uint32_t level_filter_;
-  static bool aec_debug_;
-  static uint32_t aec_debug_size_;
 };
 
 }  
-
-extern "C" {
-  extern int AECDebug();
-  extern uint32_t AECDebugMaxSize();
-  extern void AECDebugEnable(uint32_t enable);
-}
 
 #endif  
