@@ -10,6 +10,7 @@ import org.mozilla.gecko.util.FloatUtils;
 import org.json.JSONArray;
 
 import android.util.Log;
+import android.view.View;
 
 import java.util.Map;
 
@@ -105,6 +106,7 @@ abstract class Axis {
 
     private final SubdocumentScrollHelper mSubscroller;
 
+    private int mOverscrollMode; 
     private float mFirstTouchPos;           
     private float mTouchPos;                
     private float mLastTouchPos;            
@@ -122,6 +124,15 @@ abstract class Axis {
 
     Axis(SubdocumentScrollHelper subscroller) {
         mSubscroller = subscroller;
+        mOverscrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS;
+    }
+
+    public void setOverScrollMode(int overscrollMode) {
+        mOverscrollMode = overscrollMode;
+    }
+
+    public int getOverScrollMode() {
+        return mOverscrollMode;
     }
 
     private float getViewportEnd() {
@@ -206,10 +217,17 @@ abstract class Axis {
         
         if (mSubscroller.scrolling()) {
             return !mScrollingDisabled;
-        } else {
-            return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE &&
-                   !mScrollingDisabled;
         }
+
+        
+        if (mScrollingDisabled) {
+            return false;
+        }
+
+        
+        
+        return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE ||
+               getOverScrollMode() == View.OVER_SCROLL_ALWAYS;
     }
 
     
@@ -294,14 +312,27 @@ abstract class Axis {
 
     
     void displace() {
-        if (!scrollable()) {
+        
+        if (!scrollable())
             return;
-        }
 
         if (mFlingState == FlingStates.PANNING)
             mDisplacement += (mLastTouchPos - mTouchPos) * getEdgeResistance(false);
         else
             mDisplacement += mVelocity;
+
+        
+        
+        
+        if (getOverScrollMode() == View.OVER_SCROLL_NEVER) {
+            if (mDisplacement + getOrigin() < getPageStart()) {
+                mDisplacement = getPageStart() - getOrigin();
+                stopFling();
+            } else if (mDisplacement + getViewportEnd() > getPageEnd()) {
+                mDisplacement = getPageEnd() - getViewportEnd();
+                stopFling();
+            }
+        }
     }
 
     float resetDisplacement() {
