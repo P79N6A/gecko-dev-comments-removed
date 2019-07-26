@@ -927,9 +927,14 @@ BeginSwapDocShellsForDocument(nsIDocument* aDocument, void*)
   NS_PRECONDITION(aDocument, "");
 
   nsIPresShell* shell = aDocument->GetShell();
-  nsIFrame* rootFrame = shell ? shell->GetRootFrame() : nullptr;
-  if (rootFrame) {
-    ::DestroyDisplayItemDataForFrames(rootFrame);
+  if (shell) {
+    
+    shell->SetNeverPainting(true);
+
+    nsIFrame* rootFrame = shell->GetRootFrame();
+    if (rootFrame) {
+      ::DestroyDisplayItemDataForFrames(rootFrame);
+    }
   }
   aDocument->EnumerateFreezableElements(
     nsObjectFrame::BeginSwapDocShells, nullptr);
@@ -1014,6 +1019,9 @@ EndSwapDocShellsForDocument(nsIDocument* aDocument, void*)
     while (cv) {
       nsCOMPtr<nsPresContext> pc;
       cv->GetPresContext(getter_AddRefs(pc));
+      if (pc && pc->GetPresShell()) {
+        pc->GetPresShell()->SetNeverPainting(ds->IsInvisible());
+      }
       nsDeviceContext* dc = pc ? pc->DeviceContext() : nullptr;
       if (dc) {
         nsView* v = cv->FindContainerView();
