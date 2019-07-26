@@ -766,6 +766,31 @@ public:
 
 
 
+  static nsresult ReportToConsoleNonLocalized(const nsAString& aErrorText,
+                                              uint32_t aErrorFlags,
+                                              const char *aCategory,
+                                              nsIDocument* aDocument,
+                                              nsIURI* aURI = nullptr,
+                                              const nsAFlatString& aSourceLine
+                                                = EmptyString(),
+                                              uint32_t aLineNumber = 0,
+                                              uint32_t aColumnNumber = 0);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -146,7 +146,6 @@
 
 
 
-#include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 
 
@@ -2015,6 +2014,20 @@ nsDocShell::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing)
 NS_IMETHODIMP
 nsDocShell::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
 {
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+    nsContentUtils::ReportToConsoleNonLocalized(
+        NS_LITERAL_STRING("Only internal code is allowed to set the usePrivateBrowsing attribute"),
+        nsIScriptError::warningFlag,
+        "Internal API Used",
+        mContentViewer ? mContentViewer->GetDocument() : nullptr);
+#endif
+
+    return SetPrivateBrowsing(aUsePrivateBrowsing);
+}
+
+NS_IMETHODIMP
+nsDocShell::SetPrivateBrowsing(bool aUsePrivateBrowsing)
+{
     bool changed = aUsePrivateBrowsing != mInPrivateBrowsing;
     if (changed) {
         mInPrivateBrowsing = aUsePrivateBrowsing;
@@ -2024,12 +2037,12 @@ nsDocShell::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
             DecreasePrivateDocShellCount();
         }
     }
-    
+
     int32_t count = mChildList.Count();
     for (int32_t i = 0; i < count; ++i) {
         nsCOMPtr<nsILoadContext> shell = do_QueryInterface(ChildAt(i));
         if (shell) {
-            shell->SetUsePrivateBrowsing(aUsePrivateBrowsing);
+            shell->SetPrivateBrowsing(aUsePrivateBrowsing);
         }
     }
 
@@ -2769,7 +2782,7 @@ nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
     if (parentAsLoadContext &&
         NS_SUCCEEDED(parentAsLoadContext->GetUsePrivateBrowsing(&value)))
     {
-        SetUsePrivateBrowsing(value);
+        SetPrivateBrowsing(value);
 #ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
         
         
