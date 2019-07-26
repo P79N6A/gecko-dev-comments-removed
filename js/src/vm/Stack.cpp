@@ -1303,6 +1303,9 @@ StackIter::settleOnNewState()
     AutoAssertNoGC nogc;
 
     
+    poppedCallDuringSettle_ = false;
+
+    
 
 
 
@@ -1399,6 +1402,7 @@ StackIter::settleOnNewState()
 
         
         popCall();
+        poppedCallDuringSettle_ = true;
     }
 }
 
@@ -1406,7 +1410,8 @@ StackIter::StackIter(JSContext *cx, SavedOption savedOption)
   : perThread_(&cx->runtime->mainThread),
     maybecx_(cx),
     savedOption_(savedOption),
-    script_(cx, NULL)
+    script_(cx, NULL),
+    poppedCallDuringSettle_(false)
 #ifdef JS_ION
     , ionActivations_(cx),
     ionFrames_((uint8_t *)NULL),
@@ -1431,7 +1436,8 @@ StackIter::StackIter(JSRuntime *rt, StackSegment &seg)
   : perThread_(&rt->mainThread),
     maybecx_(NULL),
     savedOption_(STOP_AT_SAVED),
-    script_(rt, NULL)
+    script_(rt, NULL),
+    poppedCallDuringSettle_(false)
 #ifdef JS_ION
     , ionActivations_(rt),
     ionFrames_((uint8_t *)NULL),
@@ -1457,7 +1463,8 @@ StackIter::StackIter(const StackIter &other)
     seg_(other.seg_),
     pc_(other.pc_),
     script_(perThread_, other.script_),
-    args_(other.args_)
+    args_(other.args_),
+    poppedCallDuringSettle_(other.poppedCallDuringSettle_)
 #ifdef JS_ION
     , ionActivations_(other.ionActivations_),
     ionFrames_(other.ionFrames_),

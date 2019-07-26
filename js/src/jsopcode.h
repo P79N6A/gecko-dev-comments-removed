@@ -365,6 +365,13 @@ DecompileValueGenerator(JSContext *cx, int spindex, HandleValue v,
 
 
 
+
+char *
+DecompileArgument(JSContext *cx, int formalIndex, HandleValue v);
+
+
+
+
 class Sprinter
 {
   public:
