@@ -1740,12 +1740,6 @@ GetPropertyParIC::update(ForkJoinSlice *slice, size_t cacheIndex,
                     return TP_FATAL;
                 attachedStub = true;
             }
-
-            if (!attachedStub) {
-                
-                
-                return TP_RETRY_SEQUENTIALLY;
-            }
         }
     }
 
