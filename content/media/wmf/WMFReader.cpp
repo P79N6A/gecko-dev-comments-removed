@@ -16,6 +16,9 @@
 #include "ImageContainer.h"
 #include "Layers.h"
 #include "mozilla/layers/LayersTypes.h"
+#include "WinUtils.h"
+
+using namespace mozilla::widget;
 
 #ifndef MOZ_SAMPLE_TYPE_FLOAT32
 #error We expect 32bit float audio samples on desktop for the Windows Media Foundation media backend.
@@ -102,7 +105,10 @@ WMFReader::OnDecodeThreadFinish()
 bool
 WMFReader::InitializeDXVA()
 {
-  if (!Preferences::GetBool("media.windows-media-foundation.use-dxva", false)) {
+  if (!Preferences::GetBool("media.windows-media-foundation.use-dxva", false) ||
+      WinUtils::GetWindowsVersion() == WinUtils::VISTA_VERSION) {
+    
+    
     return false;
   }
 
