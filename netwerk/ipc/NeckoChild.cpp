@@ -62,7 +62,8 @@ void NeckoChild::DestroyNeckoChild()
 
 PHttpChannelChild*
 NeckoChild::AllocPHttpChannel(PBrowserChild* browser,
-                              const SerializedLoadContext& loadContext)
+                              const SerializedLoadContext& loadContext,
+                              const HttpChannelCreationArgs& aOpenArgs)
 {
   
   
@@ -82,7 +83,8 @@ NeckoChild::DeallocPHttpChannel(PHttpChannelChild* channel)
 
 PFTPChannelChild*
 NeckoChild::AllocPFTPChannel(PBrowserChild* aBrowser,
-                             const SerializedLoadContext& aSerialized)
+                             const SerializedLoadContext& aSerialized,
+                             const FTPChannelCreationArgs& aOpenArgs)
 {
   
   NS_RUNTIMEABORT("AllocPFTPChannel should not be called");

@@ -35,6 +35,12 @@ namespace net {
 
 NeckoParent::NeckoParent()
 {
+  
+  
+  
+  nsCOMPtr<nsIProtocolHandler> proto =
+    do_GetService("@mozilla.org/network/protocol;1?name=http");
+
   if (UsingNeckoIPCSecurity()) {
     
     nsAutoString corePath, webPath;
@@ -153,7 +159,8 @@ NeckoParent::CreateChannelLoadContext(PBrowserParent* aBrowser,
 
 PHttpChannelParent*
 NeckoParent::AllocPHttpChannel(PBrowserParent* aBrowser,
-                               const SerializedLoadContext& aSerialized)
+                               const SerializedLoadContext& aSerialized,
+                               const HttpChannelCreationArgs& aOpenArgs)
 {
   nsCOMPtr<nsILoadContext> loadContext;
   const char *error = CreateChannelLoadContext(aBrowser, aSerialized,
@@ -178,9 +185,21 @@ NeckoParent::DeallocPHttpChannel(PHttpChannelParent* channel)
   return true;
 }
 
+bool
+NeckoParent::RecvPHttpChannelConstructor(
+                      PHttpChannelParent* aActor,
+                      PBrowserParent* aBrowser,
+                      const SerializedLoadContext& aSerialized,
+                      const HttpChannelCreationArgs& aOpenArgs)
+{
+  HttpChannelParent* p = static_cast<HttpChannelParent*>(aActor);
+  return p->Init(aOpenArgs);
+}
+
 PFTPChannelParent*
 NeckoParent::AllocPFTPChannel(PBrowserParent* aBrowser,
-                              const SerializedLoadContext& aSerialized)
+                              const SerializedLoadContext& aSerialized,
+                              const FTPChannelCreationArgs& aOpenArgs)
 {
   nsCOMPtr<nsILoadContext> loadContext;
   const char *error = CreateChannelLoadContext(aBrowser, aSerialized,
@@ -203,6 +222,17 @@ NeckoParent::DeallocPFTPChannel(PFTPChannelParent* channel)
   FTPChannelParent *p = static_cast<FTPChannelParent *>(channel);
   p->Release();
   return true;
+}
+
+bool
+NeckoParent::RecvPFTPChannelConstructor(
+                      PFTPChannelParent* aActor,
+                      PBrowserParent* aBrowser,
+                      const SerializedLoadContext& aSerialized,
+                      const FTPChannelCreationArgs& aOpenArgs)
+{
+  FTPChannelParent* p = static_cast<FTPChannelParent*>(aActor);
+  return p->Init(aOpenArgs);
 }
 
 PCookieServiceParent* 

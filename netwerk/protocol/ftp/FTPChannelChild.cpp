@@ -169,8 +169,6 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  
-  gNeckoChild->SendPFTPChannelConstructor(this, tabChild, IPC::SerializedLoadContext(this));
   mListener = listener;
   mListenerContext = aContext;
 
@@ -178,13 +176,18 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nullptr);
 
-  URIParams uri;
-  SerializeURI(nsBaseChannel::URI(), uri);
-
   OptionalInputStreamParams uploadStream;
   SerializeInputStream(mUploadStream, uploadStream);
 
-  SendAsyncOpen(uri, mStartPos, mEntityID, uploadStream);
+  FTPChannelOpenArgs openArgs;
+  SerializeURI(nsBaseChannel::URI(), openArgs.uri());
+  openArgs.startPos() = mStartPos;
+  openArgs.entityID() = mEntityID;
+  openArgs.uploadStream() = uploadStream;
+
+  gNeckoChild->
+    SendPFTPChannelConstructor(this, tabChild, IPC::SerializedLoadContext(this),
+                               openArgs);
 
   
   
@@ -517,12 +520,13 @@ FTPChannelChild::ConnectParent(uint32_t id)
   
   AddIPDLReference();
 
-  if (!gNeckoChild->SendPFTPChannelConstructor(this, tabChild,
-                                               IPC::SerializedLoadContext(this)))
-    return NS_ERROR_FAILURE;
+  FTPChannelConnectArgs connectArgs(id);
 
-  if (!SendConnectChannel(id))
+  if (!gNeckoChild->SendPFTPChannelConstructor(this, tabChild,
+                                               IPC::SerializedLoadContext(this),
+                                               connectArgs)) {
     return NS_ERROR_FAILURE;
+  }
 
   return NS_OK;
 }
