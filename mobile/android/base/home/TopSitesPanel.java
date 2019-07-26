@@ -181,6 +181,8 @@ public class TopSitesPanel extends HomeFragment {
 
                 final String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
 
+                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM);
+
                 
                 mUrlOpenListener.onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
             }

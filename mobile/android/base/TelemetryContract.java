@@ -64,6 +64,15 @@ public interface TelemetryContract {
 
         
         public static final String INTENT = "intent";
+
+        
+        public static final String CONTEXT_MENU = "contextmenu";
+
+        
+        public static final String GRID_ITEM = "griditem";
+
+        
+        public static final String LIST_ITEM = "listitem";
     }
 
     
