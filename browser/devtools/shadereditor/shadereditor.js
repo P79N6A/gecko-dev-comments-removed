@@ -38,7 +38,6 @@ const SHADERS_AUTOGROW_ITEMS = 4;
 const GUTTER_ERROR_PANEL_OFFSET_X = 7; 
 const GUTTER_ERROR_PANEL_DELAY = 100; 
 const DEFAULT_EDITOR_CONFIG = {
-  mode: Editor.modes.text,
   gutters: ["errors"],
   lineNumbers: true,
   showAnnotationRuler: true
@@ -389,6 +388,7 @@ let ShadersEditorsView = {
     
     let parent = $("#" + type +"-editor");
     let editor = new Editor(DEFAULT_EDITOR_CONFIG);
+    editor.config.mode = Editor.modes[type];
     editor.appendTo(parent).then(() => deferred.resolve(editor));
 
     return deferred.promise;
