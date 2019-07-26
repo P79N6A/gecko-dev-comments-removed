@@ -603,22 +603,27 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
 ContentParent::StartUp()
 {
     
+    
+    
+    sCanLaunchSubprocesses = true;
+
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+        return;
+    }
+
+    
     RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());
 
     mozilla::dom::time::InitializeDateCacheCleaner();
 
-    sCanLaunchSubprocesses = true;
+    BackgroundChild::Startup();
 
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        BackgroundChild::Startup();
+    
+    PreallocatedProcessManager::AllocateAfterDelay();
 
-        
-        PreallocatedProcessManager::AllocateAfterDelay();
-
-        
-        
-        MaybeTestPBackground();
-    }
+    
+    
+    MaybeTestPBackground();
 }
 
  void
