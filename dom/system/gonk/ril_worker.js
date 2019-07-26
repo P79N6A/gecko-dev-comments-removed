@@ -3085,6 +3085,164 @@ let RIL = {
 
 
 
+  dataDownloadViaSMSPP: function dataDownloadViaSMSPP(message) {
+    let options = {
+      pid: message.pid,
+      dcs: message.dcs,
+      encoding: message.encoding,
+    };
+    Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_WITH_STATUS, options);
+
+    Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+                           - 2 * UINT32_SIZE)); 
+    let messageStringLength = Buf.readUint32(); 
+    let smscLength = GsmPDUHelper.readHexOctet(); 
+    let tpduLength = (messageStringLength / 2) - (smscLength + 1); 
+
+    
+    
+    
+    let berLen = 4 +
+                 (smscLength ? (2 + smscLength) : 0) +
+                 (tpduLength <= 127 ? 2 : 3) + tpduLength; 
+
+    let parcelLength = (berLen <= 127 ? 2 : 3) + berLen; 
+    Buf.writeUint32(parcelLength * 2); 
+
+    
+    GsmPDUHelper.writeHexOctet(BER_SMS_PP_DOWNLOAD_TAG);
+    if (berLen > 127) {
+      GsmPDUHelper.writeHexOctet(0x81);
+    }
+    GsmPDUHelper.writeHexOctet(berLen);
+
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DEVICE_ID |
+                               COMPREHENSIONTLV_FLAG_CR);
+    GsmPDUHelper.writeHexOctet(0x02);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_NETWORK);
+    GsmPDUHelper.writeHexOctet(STK_DEVICE_ID_SIM);
+
+    
+    if (smscLength) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ADDRESS);
+      GsmPDUHelper.writeHexOctet(smscLength);
+      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * smscLength);
+    }
+
+    
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_SMS_TPDU |
+                               COMPREHENSIONTLV_FLAG_CR);
+    if (tpduLength > 127) {
+      GsmPDUHelper.writeHexOctet(0x81);
+    }
+    GsmPDUHelper.writeHexOctet(tpduLength);
+    Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * tpduLength);
+
+    
+    Buf.writeStringDelimiter(0);
+
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
+
+
+
+  acknowledgeIncomingGsmSmsWithPDU: function acknowledgeIncomingGsmSmsWithPDU(success, responsePduLen, options) {
+    Buf.newParcel(REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU);
+
+    
+    Buf.writeUint32(2);
+
+    
+    Buf.writeString(success ? "1" : "0");
+
+    
+    Buf.writeUint32(2 * (responsePduLen + (success ? 5 : 6))); 
+    
+    GsmPDUHelper.writeHexOctet(PDU_MTI_SMS_DELIVER);
+    if (!success) {
+      
+      GsmPDUHelper.writeHexOctet(PDU_FCS_USIM_DATA_DOWNLOAD_ERROR);
+    }
+    
+    GsmPDUHelper.writeHexOctet(PDU_PI_USER_DATA_LENGTH |
+                               PDU_PI_DATA_CODING_SCHEME |
+                               PDU_PI_PROTOCOL_IDENTIFIER);
+    
+    GsmPDUHelper.writeHexOctet(options.pid);
+    
+    GsmPDUHelper.writeHexOctet(options.dcs);
+    
+    if (options.encoding == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      GsmPDUHelper.writeHexOctet(Math.floor(responsePduLen * 8 / 7));
+    } else {
+      GsmPDUHelper.writeHexOctet(responsePduLen);
+    }
+    
+    Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * responsePduLen);
+    
+    Buf.writeStringDelimiter(0);
+
+    Buf.sendParcel();
+  },
+
+  
+
+
+  writeSmsToSIM: function writeSmsToSIM(message) {
+    Buf.newParcel(REQUEST_WRITE_SMS_TO_SIM);
+
+    
+    Buf.writeUint32(EFSMS_STATUS_FREE);
+
+    Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+                           - 2 * UINT32_SIZE)); 
+    let messageStringLength = Buf.readUint32(); 
+    let smscLength = GsmPDUHelper.readHexOctet(); 
+    let pduLength = (messageStringLength / 2) - (smscLength + 1); 
+
+    
+    if (smscLength > 0) {
+      Buf.seekIncoming(smscLength * PDU_HEX_OCTET_SIZE);
+    }
+    
+    Buf.writeUint32(2 * pduLength); 
+    if (pduLength) {
+      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * pduLength);
+    }
+    
+    Buf.writeStringDelimiter(0);
+
+    
+    
+    Buf.writeUint32(2 * (smscLength + 1)); 
+    
+    GsmPDUHelper.writeHexOctet(smscLength);
+    
+    if (smscLength) {
+      Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+                             - 2 * UINT32_SIZE 
+                             - 2 * PDU_HEX_OCTET_SIZE)); 
+      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * smscLength);
+    }
+    
+    Buf.writeStringDelimiter(0);
+
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
 
 
 
@@ -3128,12 +3286,44 @@ let RIL = {
       return PDU_FCS_OK;
     }
 
+    if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+      switch (message.epid) {
+        case PDU_PID_ANSI_136_R_DATA:
+        case PDU_PID_USIM_DATA_DOWNLOAD:
+          if (this.isICCServiceAvailable("DATA_DOWNLOAD_SMS_PP")) {
+            
+            
+            
+            
+            this.dataDownloadViaSMSPP(message);
+
+            
+            
+            return PDU_FCS_RESERVED;
+          }
+
+          
+          
+          
+        default:
+          this.writeSmsToSIM(message);
+          break;
+      }
+    }
+
     
     if ((message.messageClass != PDU_DCS_MSG_CLASS_0) && !true) {
       
       
       
       
+
+      if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+        
+        
+        return PDU_FCS_MEMORY_CAPACITY_EXCEEDED;
+      }
+
       return PDU_FCS_UNSPECIFIED;
     }
 
@@ -3152,6 +3342,12 @@ let RIL = {
     if (message) {
       message.rilMessageType = "sms-received";
       this.sendDOMMessage(message);
+    }
+
+    if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+      
+      
+      return PDU_FCS_RESERVED;
     }
 
     return PDU_FCS_OK;
@@ -4059,7 +4255,17 @@ RIL[REQUEST_OEM_HOOK_RAW] = null;
 RIL[REQUEST_OEM_HOOK_STRINGS] = null;
 RIL[REQUEST_SCREEN_STATE] = null;
 RIL[REQUEST_SET_SUPP_SVC_NOTIFICATION] = null;
-RIL[REQUEST_WRITE_SMS_TO_SIM] = null;
+RIL[REQUEST_WRITE_SMS_TO_SIM] = function REQUEST_WRITE_SMS_TO_SIM(length, options) {
+  if (options.rilRequestError) {
+    
+    
+    
+    
+    this.acknowledgeSMS(false, PDU_FCS_PROTOCOL_ERROR);
+  } else {
+    this.acknowledgeSMS(true, PDU_FCS_OK);
+  }
+};
 RIL[REQUEST_DELETE_SMS_ON_SIM] = null;
 RIL[REQUEST_SET_BAND_MODE] = null;
 RIL[REQUEST_QUERY_AVAILABLE_BAND_MODE] = null;
@@ -4106,6 +4312,33 @@ RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, option
 RIL[REQUEST_SET_SMSC_ADDRESS] = null;
 RIL[REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
 RIL[REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
+RIL[REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU] = null;
+RIL[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_WITH_STATUS(length, options) {
+  if (options.rilRequestError) {
+    this.acknowledgeSMS(false, PDU_FCS_UNSPECIFIED);
+    return;
+  }
+
+  let sw1 = Buf.readUint32();
+  let sw2 = Buf.readUint32();
+  if ((sw1 == ICC_STATUS_SAT_BUSY) && (sw2 == 0x00)) {
+    this.acknowledgeSMS(false, PDU_FCS_USAT_BUSY);
+    return;
+  }
+
+  let success = ((sw1 == ICC_STATUS_NORMAL_ENDING) && (sw2 == 0x00))
+                || (sw1 == ICC_STATUS_NORMAL_ENDING_WITH_EXTRA);
+
+  let messageStringLength = Buf.readUint32(); 
+  let responsePduLen = messageStringLength / 2; 
+  if (!responsePduLen) {
+    this.acknowledgeSMS(success, success ? PDU_FCS_OK
+                                         : PDU_FCS_USIM_DATA_DOWNLOAD_ERROR);
+    return;
+  }
+
+  this.acknowledgeIncomingGsmSmsWithPDU(success, responsePduLen, options);
+};
 RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = Buf.readUint32();
 
@@ -4175,7 +4408,10 @@ RIL[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RES
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
   let result = this._processSmsDeliver(length);
-  this.acknowledgeSMS(result == PDU_FCS_OK, result);
+  if (result != PDU_FCS_RESERVED) {
+    
+    this.acknowledgeSMS(result == PDU_FCS_OK, result);
+  }
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
   let result = this._processSmsStatusReport(length);
@@ -5152,6 +5388,8 @@ let GsmPDUHelper = {
         
         switch (msg.epid) {
           case PDU_PID_SHORT_MESSAGE_TYPE_0:
+          case PDU_PID_ANSI_136_R_DATA:
+          case PDU_PID_USIM_DATA_DOWNLOAD:
             return;
           case PDU_PID_RETURN_CALL_MESSAGE:
             
