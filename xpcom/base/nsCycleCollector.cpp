@@ -220,13 +220,6 @@ using namespace mozilla;
 
 
 
-MOZ_NEVER_INLINE void
-CC_AbortIfNull(void *ptr)
-{
-    if (!ptr)
-        MOZ_CRASH();
-}
-
 
 
 
@@ -1232,7 +1225,9 @@ private:
 
     void CheckedPush(nsDeque &aQueue, PtrInfo *pi)
     {
-        CC_AbortIfNull(pi);
+        if (!pi) {
+            MOZ_CRASH();
+        }
         if (!aQueue.Push(pi, fallible_t())) {
             mVisitor.Failed();
         }
@@ -1318,7 +1313,6 @@ GraphWalker<Visitor>::DoWalk(nsDeque &aQueue)
     
     while (aQueue.GetSize() > 0) {
         PtrInfo *pi = static_cast<PtrInfo*>(aQueue.PopFront());
-        CC_AbortIfNull(pi);
 
         if (pi->mParticipant && mVisitor.ShouldVisitNode(pi)) {
             mVisitor.VisitNode(pi);
@@ -2536,7 +2530,10 @@ nsCycleCollector::MarkRoots(SliceBudget &aBudget)
 
     while (!aBudget.isOverBudget() && !mCurrNode->IsDone()) {
         PtrInfo *pi = mCurrNode->GetNext();
-        CC_AbortIfNull(pi);
+        if (!pi) {
+            MOZ_CRASH();
+        }
+
         
         
         
