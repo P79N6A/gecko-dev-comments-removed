@@ -1,13 +1,7 @@
 
 
 
-function log(text) {
-  dump("WORKER "+text+"\n");
-}
-
-function send(message) {
-  self.postMessage(message);
-}
+importScripts('worker_test_osfile_shared.js');
 
 self.onmessage = function(msg) {
   self.onmessage = function(msg) {
@@ -22,25 +16,6 @@ self.onmessage = function(msg) {
   test_path();
   finish();
 };
-
-function finish() {
-  send({kind: "finish"});
-}
-
-function ok(condition, description) {
-  send({kind: "ok", condition: condition, description:description});
-}
-function is(a, b, description) {
-  let outcome = a == b; 
-  send({kind: "is", outcome: outcome, description: description, a:""+a, b:""+b});
-}
-function isnot(a, b, description) {
-  let outcome = a != b; 
-  send({kind: "isnot", outcome: outcome, description: description, a:""+a, b:""+b});
-}
-function info(description) {
-  send({kind: "info", description:description});
-}
 
 function test_init() {
   info("Starting test_init");

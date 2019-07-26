@@ -1,13 +1,7 @@
 
 
 
-function log(text) {
-  dump("WORKER "+text+"\n");
-}
-
-function send(message) {
-  self.postMessage(message);
-}
+importScripts('worker_test_osfile_shared.js');
 
 function should_throw(f) {
   try {
@@ -45,23 +39,6 @@ self.onmessage = function onmessage_start(msg) {
   }
   finish();
 };
-
-function finish() {
-  send({kind: "finish"});
-}
-
-function ok(condition, description) {
-  send({kind: "ok", condition: condition, description:description});
-}
-function is(a, b, description) {
-  send({kind: "is", a: a, b:b, description:description});
-}
-function isnot(a, b, description) {
-  send({kind: "isnot", a: a, b:b, description:description});
-}
-function info(description) {
-  send({kind: "info", description:description});
-}
 
 function test_init() {
   info("Starting test_init");
