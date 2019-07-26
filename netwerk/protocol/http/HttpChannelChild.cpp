@@ -885,24 +885,30 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
     newHttpChannelChild->GetClientSetRequestHeaders(&headerTuples);
   }
 
+  
+
+  SerializeURI(nullptr, redirectURI);
+
   if (NS_SUCCEEDED(result)) {
     
-    HttpChannelChild* base =
-      static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
-    
     
     
     
     
     
 
-    
+    nsCOMPtr<nsIHttpChannelInternal> newHttpChannelInternal =
+      do_QueryInterface(mRedirectChannelChild);
+    if (newHttpChannelInternal) {
+      nsCOMPtr<nsIURI> apiRedirectURI;
+      nsresult rv = newHttpChannelInternal->GetApiRedirectToURI(
+        getter_AddRefs(apiRedirectURI));
+      if (NS_SUCCEEDED(rv) && apiRedirectURI) {
+        
 
-    SerializeURI(base->mAPIRedirectToURI, redirectURI);
-  } else {
-    
-
-    SerializeURI(nullptr, redirectURI);
+        SerializeURI(apiRedirectURI, redirectURI);
+      }
+    }
   }
 
   if (mIPCOpen)
