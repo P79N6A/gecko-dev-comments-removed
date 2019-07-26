@@ -9,7 +9,7 @@ let Cu = Components.utils;
 
 
 
-__defineGetter__("webNavigation", function () {
+this.__defineGetter__("webNavigation", function () {
   return docShell.QueryInterface(Ci.nsIWebNavigation);
 });
 

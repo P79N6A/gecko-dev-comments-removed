@@ -188,7 +188,7 @@ var DEBUG_AUS_TEST = false;
 
 
 
-__defineGetter__("gTest", function() {
+this.__defineGetter__("gTest", function() {
   return TESTS[gTestCounter];
 });
 
@@ -197,7 +197,7 @@ __defineGetter__("gTest", function() {
 
 
 
-__defineGetter__("gCallback", function() {
+this.__defineGetter__("gCallback", function() {
   return gTest.overrideCallback ? gTest.overrideCallback
                                 : defaultCallback;
 });
@@ -206,7 +206,7 @@ __defineGetter__("gCallback", function() {
 
 
 
-__defineGetter__("gRemoteContent", function() {
+this.__defineGetter__("gRemoteContent", function() {
   switch (gTest.pageid) {
     case PAGEID_FOUND_BILLBOARD:
       return gWin.document.getElementById("updateMoreInfoContent");
@@ -220,7 +220,7 @@ __defineGetter__("gRemoteContent", function() {
 
 
 
-__defineGetter__("gRemoteContentState", function() {
+this.__defineGetter__("gRemoteContentState", function() {
   if (gRemoteContent) {
     return gRemoteContent.getAttribute("state");
   }
@@ -230,14 +230,14 @@ __defineGetter__("gRemoteContentState", function() {
 
 
 
-__defineGetter__("gAcceptDeclineLicense", function() {
+this.__defineGetter__("gAcceptDeclineLicense", function() {
   return gWin.document.getElementById("acceptDeclineLicense");
 });
 
 
 
 
-__defineGetter__("gIncompatibleListbox", function() {
+this.__defineGetter__("gIncompatibleListbox", function() {
   return gWin.document.getElementById("incompatibleListbox");
 });
 

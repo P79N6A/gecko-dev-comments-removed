@@ -10,7 +10,7 @@ Cu.import("resource:///modules/tabview/utils.jsm");
 
 
 
-__defineGetter__("webProgress", function () {
+this.__defineGetter__("webProgress", function () {
   let ifaceReq = docShell.QueryInterface(Ci.nsIInterfaceRequestor);
   return ifaceReq.getInterface(Ci.nsIWebProgress);
 });

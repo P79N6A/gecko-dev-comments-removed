@@ -20,8 +20,8 @@ class XPCCallContext;
 
 struct xpc_qsPropertySpec {
     uint16_t name_index;
-    JSPropertyOp getter;
-    JSStrictPropertyOp setter;
+    JSNative getter;
+    JSNative setter;
 };
 
 struct xpc_qsFunctionSpec {
@@ -73,6 +73,13 @@ JSBool
 xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
                               JSObject *obj, jsid memberId);
 
+JSBool
+xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
+                              JSObject *obj, const char* memberName);
+JSBool
+xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
+                              JSObject *obj, uint16_t memberIndex);
+
 
 
 
@@ -113,9 +120,19 @@ void
 xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
                           jsid propId);
 
+void
+xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
+                          const char* propName);
+void
+xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
+                          uint16_t name_index);
+
 
 JSBool
 xpc_qsGetterOnlyPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, JSMutableHandleValue vp);
+
+JSBool
+xpc_qsGetterOnlyNativeStub(JSContext *cx, unsigned argc, jsval *vp);
 
 
 
