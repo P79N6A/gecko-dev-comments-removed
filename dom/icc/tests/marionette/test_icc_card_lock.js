@@ -90,10 +90,80 @@ function testPinChangeSuccess() {
   };
 }
 
+
+function testPinCardLockRetryCount() {
+  let request = icc.getCardLockRetryCount('pin');
+
+  ok(request instanceof DOMRequest,
+     'request instanceof ' + request.constructor);
+
+  request.onsuccess = function onsuccess() {
+    is(request.result.lockType, 'pin',
+        'lockType is ' + request.result.lockType);
+    ok(request.result.retryCount >= 0,
+        'retryCount is ' + request.result.retryCount);
+    runNextTest();
+  };
+  request.onerror = function onerror() {
+    
+    
+    
+    is(request.error.name, 'RequestNotSupported',
+        'error name is ' + request.error.name);
+    runNextTest();
+  };
+}
+
+
+function testPukCardLockRetryCount() {
+  let request = icc.getCardLockRetryCount('puk');
+
+  ok(request instanceof DOMRequest,
+     'request instanceof ' + request.constructor);
+
+  request.onsuccess = function onsuccess() {
+    is(request.result.lockType, 'puk',
+        'lockType is ' + request.result.lockType);
+    ok(request.result.retryCount >= 0,
+        'retryCount is ' + request.result.retryCount);
+    runNextTest();
+  };
+  request.onerror = function onerror() {
+    
+    
+    
+    is(request.error.name, 'RequestNotSupported',
+        'error name is ' + request.error.name);
+    runNextTest();
+  };
+}
+
+
+function testInvalidCardLockRetryCount() {
+  let request = icc.getCardLockRetryCount('invalid-lock-type');
+
+  ok(request instanceof DOMRequest,
+     'request instanceof ' + request.constructor);
+
+  request.onsuccess = function onsuccess() {
+    ok(false,
+        'request should never return success for an invalid lock type');
+    runNextTest();
+  };
+  request.onerror = function onerror() {
+    is(request.error.name, 'GenericFailure',
+        'error name is ' + request.error.name);
+    runNextTest();
+  };
+}
+
 let tests = [
   testPinChangeFailed,
   testPinChangeFailedNotification,
   testPinChangeSuccess,
+  testPinCardLockRetryCount,
+  testPukCardLockRetryCount,
+  testInvalidCardLockRetryCount
 ];
 
 function runNextTest() {
