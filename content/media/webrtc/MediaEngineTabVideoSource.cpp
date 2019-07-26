@@ -158,9 +158,9 @@ NotifyPull(MediaStreamGraph*, SourceMediaStream* aSource, mozilla::TrackID aID, 
     
     if (image) {
       gfx::IntSize size = image->GetSize();
-      segment.AppendFrame(image.forget(), delta, gfx::ThebesIntSize(size));
+      segment.AppendFrame(image.forget(), delta, size);
     } else {
-      segment.AppendFrame(nullptr, delta, gfxIntSize(0,0));
+      segment.AppendFrame(nullptr, delta, IntSize(0, 0));
     }
     
     

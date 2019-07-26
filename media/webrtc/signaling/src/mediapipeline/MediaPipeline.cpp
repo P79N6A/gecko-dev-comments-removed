@@ -1243,8 +1243,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
   
   if (delta > 0) {
     VideoSegment segment;
-    segment.AppendFrame(image ? image.forget() : nullptr, delta,
-                        gfxIntSize(width_, height_));
+    segment.AppendFrame(image.forget(), delta, IntSize(width_, height_));
     
     if (source_->AppendToTrack(track_id_, &segment)) {
       played_ticks_ = target;

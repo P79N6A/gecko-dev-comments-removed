@@ -154,7 +154,8 @@ class Fake_VideoGenerator {
     
     mozilla::VideoSegment *segment = new mozilla::VideoSegment();
     
-    segment->AppendFrame(image.forget(), mozilla::USECS_PER_S / 10, gfxIntSize(WIDTH, HEIGHT));
+    segment->AppendFrame(image.forget(), mozilla::USECS_PER_S / 10,
+                         IntSize(WIDTH, HEIGHT));
 
     gen->mStream->GetStream()->AsSourceStream()->AppendToTrack(1, segment);
   }

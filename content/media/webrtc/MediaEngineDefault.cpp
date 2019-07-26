@@ -247,9 +247,9 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     
     if (image) {
       segment.AppendFrame(image.forget(), delta,
-                          gfxIntSize(mOpts.mWidth, mOpts.mHeight));
+                          IntSize(mOpts.mWidth, mOpts.mHeight));
     } else {
-      segment.AppendFrame(nullptr, delta, gfxIntSize(0,0));
+      segment.AppendFrame(nullptr, delta, IntSize(0, 0));
     }
     
     
