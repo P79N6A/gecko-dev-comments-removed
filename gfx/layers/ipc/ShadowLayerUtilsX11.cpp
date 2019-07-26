@@ -94,6 +94,9 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
+  if (!PR_GetEnv("MOZ_LAYERS_ENABLE_XLIB_SURFACES")) {
+      return false;
+  }
   if (!UsingXCompositing()) {
     
     
