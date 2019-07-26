@@ -84,17 +84,10 @@ private:
   nsRefPtr<SVGLoadEventListener>     mLoadEventListener;
   nsRefPtr<SVGParseCompleteListener> mParseCompleteListener;
 
-  nsIntRect      mRestrictedRegion;       
-                                          
-                                          
-                                          
-
   bool           mIsInitialized;          
   bool           mIsFullyLoaded;          
   bool           mIsDrawing;              
   bool           mHaveAnimations;         
-                                          
-  bool           mHaveRestrictedRegion;   
                                           
 
   friend class ImageFactory;

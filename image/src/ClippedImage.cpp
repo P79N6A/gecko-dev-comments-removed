@@ -200,19 +200,6 @@ ClippedImage::GetImageContainer(LayerManager* aManager, ImageContainer** _retval
   return NS_OK;
 }
 
-NS_IMETHODIMP
-ClippedImage::ExtractFrame(uint32_t ,
-                           const nsIntRect& ,
-                           uint32_t ,
-                           imgIContainer** )
-{
-  
-  
-  
-  MOZ_ASSERT(false, "ClippedImage::ExtractFrame shouldn't be called");
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
 bool
 ClippedImage::WillTile(const gfxRect& aSourceRect,
                        const uint32_t aFlags) const
