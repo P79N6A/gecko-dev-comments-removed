@@ -247,7 +247,7 @@ public class testSettingsMenuItems extends PixelTest {
                     mActions.sendSpecialKey(Actions.SpecialKey.BACK);
                     menuDepth--;
                     
-                    mSolo.sleep(50);
+                    mSolo.sleep(150);
                 }
             }
         }
