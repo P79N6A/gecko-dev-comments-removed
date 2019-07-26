@@ -200,9 +200,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
           apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
                                             AsyncPanZoomController::USE_GESTURE_DETECTOR);
           apzc->SetCompositorParent(aCompositor);
-          if (state->mCrossProcessParent != nullptr) {
-            apzc->ShareFrameMetricsAcrossProcesses();
-          }
+          apzc->SetCrossProcessCompositorParent(state->mCrossProcessParent);
         } else {
           
           

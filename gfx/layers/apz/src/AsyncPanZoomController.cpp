@@ -10,7 +10,6 @@
 #include <algorithm>                    
 #include "AnimationCommon.h"            
 #include "AsyncPanZoomController.h"     
-#include "Compositor.h"                 
 #include "CompositorParent.h"           
 #include "FrameMetrics.h"               
 #include "GestureEventListener.h"       
@@ -461,10 +460,10 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
                                                GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
   :  mLayersId(aLayersId),
+     mCrossProcessCompositorParent(nullptr),
      mPaintThrottler(GetFrameTime()),
      mGeckoContentController(aGeckoContentController),
      mRefPtrMonitor("RefPtrMonitor"),
-     mSharingFrameMetricsAcrossProcesses(false),
      mMonitor("AsyncPanZoomController"),
      mTouchActionPropertyEnabled(gfxPrefs::TouchActionEnabled()),
      mContentResponseTimeoutTask(nullptr),
@@ -493,7 +492,9 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
 }
 
 AsyncPanZoomController::~AsyncPanZoomController() {
-  PCompositorParent* compositor = GetSharedFrameMetricsCompositor();
+
+  PCompositorParent* compositor =
+    (mCrossProcessCompositorParent ? mCrossProcessCompositorParent : mCompositorParent.get());
 
   
   if (compositor && mSharedFrameMetricsBuffer) {
@@ -504,19 +505,6 @@ AsyncPanZoomController::~AsyncPanZoomController() {
   delete mSharedLock;
 
   MOZ_COUNT_DTOR(AsyncPanZoomController);
-}
-
-PCompositorParent*
-AsyncPanZoomController::GetSharedFrameMetricsCompositor()
-{
-  Compositor::AssertOnCompositorThread();
-
-  if (mSharingFrameMetricsAcrossProcesses) {
-    const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(mLayersId);
-    
-    return state ? state->mCrossProcessParent : nullptr;
-  }
-  return mCompositorParent.get();
 }
 
 already_AddRefed<GeckoContentController>
@@ -1406,8 +1394,8 @@ void AsyncPanZoomController::SetCompositorParent(CompositorParent* aCompositorPa
   mCompositorParent = aCompositorParent;
 }
 
-void AsyncPanZoomController::ShareFrameMetricsAcrossProcesses() {
-  mSharingFrameMetricsAcrossProcesses = true;
+void AsyncPanZoomController::SetCrossProcessCompositorParent(PCompositorParent* aCrossProcessCompositorParent) {
+  mCrossProcessCompositorParent = aCrossProcessCompositorParent;
 }
 
 void AsyncPanZoomController::ScrollBy(const CSSPoint& aOffset) {
@@ -2220,7 +2208,8 @@ void AsyncPanZoomController::UpdateSharedCompositorFrameMetrics()
 
 void AsyncPanZoomController::ShareCompositorFrameMetrics() {
 
-  PCompositorParent* compositor = GetSharedFrameMetricsCompositor();
+  PCompositorParent* compositor =
+    (mCrossProcessCompositorParent ? mCrossProcessCompositorParent : mCompositorParent.get());
 
   
   
