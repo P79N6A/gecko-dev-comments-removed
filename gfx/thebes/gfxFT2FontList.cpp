@@ -946,8 +946,19 @@ gfxFT2FontList::FindFonts()
 
     
     nsCOMPtr<nsIFile> localDir;
-    nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR,
+    nsresult rv = NS_GetSpecialDirectory(NS_APP_RES_DIR,
                                          getter_AddRefs(localDir));
+    if (NS_SUCCEEDED(rv)) {
+        nsCString localPath;
+        rv = localDir->GetNativePath(localPath);
+        if (NS_SUCCEEDED(rv)) {
+            FindFontsInDir(localPath, &fnc);
+        }
+    }
+
+    
+    rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR,
+                                getter_AddRefs(localDir));
     if (NS_SUCCEEDED(rv)) {
         nsCString localPath;
         rv = localDir->GetNativePath(localPath);
