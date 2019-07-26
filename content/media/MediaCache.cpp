@@ -55,6 +55,10 @@ static const uint32_t REPLAY_PENALTY_FACTOR = 3;
 
 static const uint32_t FREE_BLOCK_SCAN_LIMIT = 16;
 
+
+
+static const uint32_t CACHE_POWERSAVE_WAKEUP_LOW_THRESHOLD_MS = 10000;
+
 #ifdef DEBUG
 
 
@@ -1019,30 +1023,34 @@ MediaCache::Update()
     TimeStamp now = TimeStamp::Now();
 
     int32_t freeBlockCount = mFreeBlocks.GetCount();
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     TimeDuration latestPredictedUseForOverflow = 0;
-    for (int32_t blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
-         --blockIndex) {
-      if (IsBlockFree(blockIndex)) {
-        
-        --freeBlockCount;
-        continue;
+    if (mIndex.Length() > uint32_t(maxBlocks)) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      for (int32_t blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
+           --blockIndex) {
+        if (IsBlockFree(blockIndex)) {
+          
+          --freeBlockCount;
+          continue;
+        }
+        TimeDuration predictedUse = PredictNextUse(now, blockIndex);
+        latestPredictedUseForOverflow = std::max(latestPredictedUseForOverflow, predictedUse);
       }
-      TimeDuration predictedUse = PredictNextUse(now, blockIndex);
-      latestPredictedUseForOverflow = std::max(latestPredictedUseForOverflow, predictedUse);
+    } else {
+      freeBlockCount += maxBlocks - mIndex.Length();
     }
 
     
@@ -1190,21 +1198,29 @@ MediaCache::Update()
         
         LOG(PR_LOG_DEBUG, ("Stream %p throttling to reduce cache size", stream));
         enableReading = false;
-      } else if (freeBlockCount > 0 || mIndex.Length() < uint32_t(maxBlocks)) {
-        
-        LOG(PR_LOG_DEBUG, ("Stream %p reading since there are free blocks", stream));
-        enableReading = true;
-      } else if (latestNextUse <= TimeDuration(0)) {
-        
-        LOG(PR_LOG_DEBUG, ("Stream %p throttling due to no reusable blocks", stream));
-        enableReading = false;
       } else {
-        
-        
         TimeDuration predictedNewDataUse = PredictNextUseForIncomingData(stream);
-        LOG(PR_LOG_DEBUG, ("Stream %p predict next data in %f, current worst block is %f",
-            stream, predictedNewDataUse.ToSeconds(), latestNextUse.ToSeconds()));
-        enableReading = predictedNewDataUse < latestNextUse;
+
+        if (stream->mCacheSuspended &&
+            predictedNewDataUse.ToMilliseconds() > CACHE_POWERSAVE_WAKEUP_LOW_THRESHOLD_MS) {
+          
+          LOG(PR_LOG_DEBUG, ("Stream %p avoiding wakeup since more data is not needed", stream));
+          enableReading = false;
+        } else if (freeBlockCount > 0) {
+          
+          LOG(PR_LOG_DEBUG, ("Stream %p reading since there are free blocks", stream));
+          enableReading = true;
+        } else if (latestNextUse <= TimeDuration(0)) {
+          
+          LOG(PR_LOG_DEBUG, ("Stream %p throttling due to no reusable blocks", stream));
+          enableReading = false;
+        } else {
+          
+          
+          LOG(PR_LOG_DEBUG, ("Stream %p predict next data in %f, current worst block is %f",
+              stream, predictedNewDataUse.ToSeconds(), latestNextUse.ToSeconds()));
+          enableReading = predictedNewDataUse < latestNextUse;
+        }
       }
 
       if (enableReading) {
