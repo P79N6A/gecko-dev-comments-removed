@@ -157,14 +157,15 @@ class SyntaxParseHandler
     bool addCatchBlock(Node catchList, Node letBlock,
                        Node catchName, Node catchGuard, Node catchBody) { return true; }
 
-    void setLeaveBlockResult(Node block, Node kid, bool leaveBlockExpr) {}
-
     void setLastFunctionArgumentDefault(Node funcpn, Node pn) {}
     Node newFunctionDefinition() { return NodeGeneric; }
     void setFunctionBody(Node pn, Node kid) {}
     void setFunctionBox(Node pn, FunctionBox *funbox) {}
     void addFunctionArgument(Node pn, Node argpn) {}
+
     Node newLexicalScope(ObjectBox *blockbox) { return NodeGeneric; }
+    void setLexicalScopeBody(Node block, Node body) {}
+
     bool isOperationWithoutParens(Node pn, ParseNodeKind kind) {
         
         

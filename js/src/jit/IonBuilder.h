@@ -30,7 +30,7 @@ class BaselineFrameInspector;
 
 
 BaselineFrameInspector *
-NewBaselineFrameInspector(TempAllocator *temp, BaselineFrame *frame);
+NewBaselineFrameInspector(TempAllocator *temp, BaselineFrame *frame, CompileInfo *info);
 
 class IonBuilder : public MIRGenerator
 {

@@ -939,7 +939,7 @@ class StackFrame
 
   public:
     void mark(JSTracer *trc);
-    void markValues(JSTracer *trc, Value *sp);
+    void markValues(JSTracer *trc, Value *sp, jsbytecode *pc);
 
     
     bool runningInJit() const {

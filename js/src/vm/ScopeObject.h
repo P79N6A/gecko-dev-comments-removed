@@ -410,30 +410,6 @@ class BlockObject : public NestedScopeObject
         return propertyCount();
     }
 
-    
-
-
-
-
-    uint32_t slotToLocalIndex(const Bindings &bindings, uint32_t slot) {
-        JS_ASSERT(slot < RESERVED_SLOTS + slotCount());
-        return bindings.numVars() + stackDepth() + (slot - RESERVED_SLOTS);
-    }
-
-    uint32_t localIndexToSlot(const Bindings &bindings, uint32_t i) {
-        return RESERVED_SLOTS + (i - (bindings.numVars() + stackDepth()));
-    }
-
-    
-
-
-
-    uint32_t shapeToIndex(const Shape &shape) {
-        uint32_t slot = shape.slot();
-        JS_ASSERT(slot - RESERVED_SLOTS < slotCount());
-        return slot - RESERVED_SLOTS;
-    }
-
   protected:
     
     const Value &slotValue(unsigned i) {
@@ -447,15 +423,51 @@ class BlockObject : public NestedScopeObject
 
 class StaticBlockObject : public BlockObject
 {
+    static const unsigned LOCAL_OFFSET_SLOT = 1;
+
   public:
     static StaticBlockObject *create(ExclusiveContext *cx);
+
+    
+    JSObject *enclosingStaticScope() const {
+        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    }
 
     
 
 
 
-    bool containsVarAtDepth(uint32_t depth) {
-        return depth >= stackDepth() && depth < stackDepth() + slotCount();
+    uint32_t shapeToIndex(const Shape &shape) {
+        uint32_t slot = shape.slot();
+        JS_ASSERT(slot - RESERVED_SLOTS < slotCount());
+        return slot - RESERVED_SLOTS;
+    }
+
+    
+
+
+
+    inline StaticBlockObject *enclosingBlock() const;
+
+    uint32_t localOffset() {
+        return getReservedSlot(LOCAL_OFFSET_SLOT).toPrivateUint32();
+    }
+
+    
+    
+    uint32_t varToLocalIndex(uint32_t var) {
+        JS_ASSERT(var < slotCount());
+        return getReservedSlot(LOCAL_OFFSET_SLOT).toPrivateUint32() + var;
+    }
+
+    
+    
+    
+    uint32_t localIndexToSlot(uint32_t local) {
+        JS_ASSERT(local >= localOffset());
+        local -= localOffset();
+        JS_ASSERT(local < slotCount());
+        return RESERVED_SLOTS + local;
     }
 
     
@@ -486,9 +498,9 @@ class StaticBlockObject : public BlockObject
         }
     }
 
-    void setStackDepth(uint32_t depth) {
-        JS_ASSERT(getReservedSlot(DEPTH_SLOT).isUndefined());
-        initReservedSlot(DEPTH_SLOT, PrivateUint32Value(depth));
+    void setLocalOffset(uint32_t offset) {
+        JS_ASSERT(getReservedSlot(LOCAL_OFFSET_SLOT).isUndefined());
+        initReservedSlot(LOCAL_OFFSET_SLOT, PrivateUint32Value(offset));
     }
 
     
@@ -511,7 +523,7 @@ class StaticBlockObject : public BlockObject
 
 
 
-    static const unsigned VAR_INDEX_LIMIT = JS_BIT(16);
+    static const unsigned LOCAL_INDEX_LIMIT = JS_BIT(16);
 
     static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                          unsigned index, bool *redeclared);
