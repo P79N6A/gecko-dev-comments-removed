@@ -140,8 +140,7 @@ let gTransformation = {
 
 
 
-
-  rearrangeSites: function (aSites, aDraggedSite, aOptions) {
+  rearrangeSites: function (aSites, aOptions) {
     let self = this;
     let cells = gGrid.cells;
     let unfreeze = aOptions && aOptions.unfreeze;
@@ -150,7 +149,7 @@ let gTransformation = {
       let index = 0;
 
       for (let site of aSites) {
-        if (site && site !== aDraggedSite) {
+        if (site && site !== gDrag.draggedSite) {
           if (!cells[index]) {
             
             yield self.hideSite(site);

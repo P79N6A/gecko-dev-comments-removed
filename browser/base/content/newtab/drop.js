@@ -57,7 +57,7 @@ let gDrop = {
     this._cancelDelayedArrange();
 
     
-    gUpdater.updateGrid(gDrag.draggedSite);
+    gUpdater.updateGrid();
   },
 
   
@@ -145,6 +145,6 @@ let gDrop = {
     if (aCell)
       sites = gDropPreview.rearrange(aCell);
 
-    gTransformation.rearrangeSites(sites, gDrag.draggedSite, {unfreeze: !aCell});
+    gTransformation.rearrangeSites(sites, {unfreeze: !aCell});
   }
 };
