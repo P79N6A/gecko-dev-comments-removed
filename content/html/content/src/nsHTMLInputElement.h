@@ -577,6 +577,19 @@ protected:
 
 
 
+
+
+
+
+
+  bool ConvertNumberToString(double aValue, nsAString& aResultString) const;
+
+  
+
+
+
+
+
   bool IsValidDate(nsAString& aValue) const;
 
   
@@ -618,6 +631,13 @@ protected:
 
 
   double GetMaxAsDouble() const;
+
+   
+
+
+
+
+  double GetStepScaleFactor() const;
 
   
 
@@ -687,6 +707,10 @@ protected:
 
 
   nsString mFocusedValue;  
+
+  
+  static const double kStepScaleFactorDate;
+  static const double kStepScaleFactorNumber;
 
   
   static const double kDefaultStepBase;
