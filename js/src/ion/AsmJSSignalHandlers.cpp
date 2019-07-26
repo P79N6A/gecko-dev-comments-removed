@@ -81,6 +81,13 @@ InnermostAsmJSActivation()
     return threadData->asmJSActivationStackFromOwnerThread();
 }
 
+static bool
+PCIsInModule(const AsmJSModule &module, void *pc)
+{
+    uint8_t *code = module.functionCode();
+    return pc >= code && pc < (code + module.functionBytes());
+}
+
 # if defined(JS_CPU_X64)
 template <class T>
 static void
@@ -106,7 +113,7 @@ SetXMMRegToNaN(bool isFloat32, T *xmm_reg)
 static const AsmJSHeapAccess *
 LookupHeapAccess(const AsmJSModule &module, uint8_t *pc)
 {
-    JS_ASSERT(module.pcIsInModule(pc));
+    JS_ASSERT(PCIsInModule(module, pc));
     size_t targetOffset = pc - module.functionCode();
 
     if (module.numHeapAccesses() == 0)
@@ -214,7 +221,7 @@ HandleException(PEXCEPTION_POINTERS exception)
 	JS_ASSERT(pc == record->ExceptionAddress);
 
     const AsmJSModule &module = activation->module();
-    if (!module.pcIsInModule(pc))
+    if (!PCIsInModule(module, pc))
         return false;
 
 	if (record->NumberParameters < 2)
@@ -227,7 +234,7 @@ HandleException(PEXCEPTION_POINTERS exception)
     
     
     
-    if (module.pcIsInModule(faultingAddress)) {
+    if (PCIsInModule(module, faultingAddress)) {
         activation->setResumePC(pc);
         *ppc = module.operationCallbackExit();
         DWORD oldProtect;
@@ -282,27 +289,6 @@ AsmJSExceptionHandler(LPEXCEPTION_POINTERS exception)
 # else  
 #  include <signal.h>
 #  include <sys/mman.h>
-
-#if defined(XP_MACOSX)
-
-
-
-
-#include <mach/exc.h>
-#include <mach/mig.h>
-#include <mach/thread_act.h>
-
-extern "C" {
-    
-    
-    
-    boolean_t BreakpadUserExceptionHandler64(exception_type_t extype,
-                                             mach_exception_data_t code,
-                                             mach_msg_type_number_t code_count,
-                                             mach_port_t thread)
-        __attribute__((visibility("default")));
-}
-#endif
 
 
 
@@ -381,60 +367,49 @@ ContextToPC(mcontext_t context)
 
 #   if defined(JS_CPU_X64)
 static void
-SetFloatStateRegisterToCoercedUndefined(x86_float_state64_t *fs, bool isFloat32, AnyRegister reg)
-{
-    switch (reg.fpu().code()) {
-      case JSC::X86Registers::xmm0:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm0); break;
-      case JSC::X86Registers::xmm1:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm1); break;
-      case JSC::X86Registers::xmm2:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm2); break;
-      case JSC::X86Registers::xmm3:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm3); break;
-      case JSC::X86Registers::xmm4:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm4); break;
-      case JSC::X86Registers::xmm5:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm5); break;
-      case JSC::X86Registers::xmm6:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm6); break;
-      case JSC::X86Registers::xmm7:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm7); break;
-      case JSC::X86Registers::xmm8:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm8); break;
-      case JSC::X86Registers::xmm9:  SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm9); break;
-      case JSC::X86Registers::xmm10: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm10); break;
-      case JSC::X86Registers::xmm11: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm11); break;
-      case JSC::X86Registers::xmm12: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm12); break;
-      case JSC::X86Registers::xmm13: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm13); break;
-      case JSC::X86Registers::xmm14: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm14); break;
-      case JSC::X86Registers::xmm15: SetXMMRegToNaN(isFloat32, &fs->__fpu_xmm15); break;
-      default: MOZ_CRASH();
-    }
-}
-
-static void
-SetThreadStateRegisterToCoercedUndefined(x86_thread_state64_t *ss, bool isFloat32, AnyRegister reg)
-{
-    switch (reg.gpr().code()) {
-      case JSC::X86Registers::eax: ss->__rax = 0; break;
-      case JSC::X86Registers::ecx: ss->__rcx = 0; break;
-      case JSC::X86Registers::edx: ss->__rdx = 0; break;
-      case JSC::X86Registers::ebx: ss->__rbx = 0; break;
-      case JSC::X86Registers::esp: ss->__rsp = 0; break;
-      case JSC::X86Registers::ebp: ss->__rbp = 0; break;
-      case JSC::X86Registers::esi: ss->__rsi = 0; break;
-      case JSC::X86Registers::edi: ss->__rdi = 0; break;
-      case JSC::X86Registers::r8:  ss->__r8  = 0; break;
-      case JSC::X86Registers::r9:  ss->__r9  = 0; break;
-      case JSC::X86Registers::r10: ss->__r10 = 0; break;
-      case JSC::X86Registers::r11: ss->__r11 = 0; break;
-      case JSC::X86Registers::r12: ss->__r12 = 0; break;
-      case JSC::X86Registers::r13: ss->__r13 = 0; break;
-      case JSC::X86Registers::r14: ss->__r14 = 0; break;
-      case JSC::X86Registers::r15: ss->__r15 = 0; break;
-      default: MOZ_CRASH();
-    }
-}
-
-static void
 SetRegisterToCoercedUndefined(mcontext_t &context, bool isFloat32, AnyRegister reg)
 {
-    if (reg.isFloat())
-        SetFloatStateRegisterToCoercedUndefined(&context->__fs, isFloat32, reg);
-    else
-        SetThreadStateRegisterToCoercedUndefined(&context->__ss, isFloat32, reg);
+    if (reg.isFloat()) {
+        switch (reg.fpu().code()) {
+          case JSC::X86Registers::xmm0:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm0); break;
+          case JSC::X86Registers::xmm1:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm1); break;
+          case JSC::X86Registers::xmm2:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm2); break;
+          case JSC::X86Registers::xmm3:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm3); break;
+          case JSC::X86Registers::xmm4:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm4); break;
+          case JSC::X86Registers::xmm5:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm5); break;
+          case JSC::X86Registers::xmm6:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm6); break;
+          case JSC::X86Registers::xmm7:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm7); break;
+          case JSC::X86Registers::xmm8:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm8); break;
+          case JSC::X86Registers::xmm9:  SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm9); break;
+          case JSC::X86Registers::xmm10: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm10); break;
+          case JSC::X86Registers::xmm11: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm11); break;
+          case JSC::X86Registers::xmm12: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm12); break;
+          case JSC::X86Registers::xmm13: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm13); break;
+          case JSC::X86Registers::xmm14: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm14); break;
+          case JSC::X86Registers::xmm15: SetXMMRegToNaN(isFloat32, &context->__fs.__fpu_xmm15); break;
+          default: MOZ_CRASH();
+        }
+    } else {
+        switch (reg.gpr().code()) {
+          case JSC::X86Registers::eax: context->__ss.__rax = 0; break;
+          case JSC::X86Registers::ecx: context->__ss.__rcx = 0; break;
+          case JSC::X86Registers::edx: context->__ss.__rdx = 0; break;
+          case JSC::X86Registers::ebx: context->__ss.__rbx = 0; break;
+          case JSC::X86Registers::esp: context->__ss.__rsp = 0; break;
+          case JSC::X86Registers::ebp: context->__ss.__rbp = 0; break;
+          case JSC::X86Registers::esi: context->__ss.__rsi = 0; break;
+          case JSC::X86Registers::edi: context->__ss.__rdi = 0; break;
+          case JSC::X86Registers::r8:  context->__ss.__r8  = 0; break;
+          case JSC::X86Registers::r9:  context->__ss.__r9  = 0; break;
+          case JSC::X86Registers::r10: context->__ss.__r10 = 0; break;
+          case JSC::X86Registers::r11: context->__ss.__r11 = 0; break;
+          case JSC::X86Registers::r12: context->__ss.__r12 = 0; break;
+          case JSC::X86Registers::r13: context->__ss.__r13 = 0; break;
+          case JSC::X86Registers::r14: context->__ss.__r14 = 0; break;
+          case JSC::X86Registers::r15: context->__ss.__r15 = 0; break;
+          default: MOZ_CRASH();
+        }
+    }
 }
 #   endif
 #  endif  
@@ -453,7 +428,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
     uint8_t *pc = *ppc;
 
     const AsmJSModule &module = activation->module();
-    if (!module.pcIsInModule(pc))
+    if (!PCIsInModule(module, pc))
         return false;
 
     void *faultingAddress = info->si_addr;
@@ -463,7 +438,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
     
     
     
-    if (module.pcIsInModule(faultingAddress)) {
+    if (PCIsInModule(module, faultingAddress)) {
         activation->setResumePC(pc);
         *ppc = module.operationCallbackExit();
         mprotect(module.functionCode(), module.functionBytes(), PROT_EXEC);
@@ -524,128 +499,6 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
         exit(signum);  
     }
 }
-
-#if defined(XP_MACOSX)
-
-
-
-
-
-
-boolean_t
-BreakpadUserExceptionHandler64(exception_type_t extype,
-                               mach_exception_data_t code,
-                               mach_msg_type_number_t code_count,
-                               mach_port_t thread)
-{
-    
-    if (extype != EXC_BAD_ACCESS)
-        return false;
-
-    kern_return_t kr;
-
-# if defined(JS_CPU_X64)
-    x86_thread_state64_t state;
-    unsigned int count = x86_THREAD_STATE64_COUNT;
-    unsigned int state_flavor = x86_THREAD_STATE64;
-    uint8_t **ppc = reinterpret_cast<uint8_t**>(&state.__rip);
-#else
-    x86_thread_state32_t state;
-    unsigned int count = x86_THREAD_STATE32_COUNT;
-    unsigned int state_flavor = x86_THREAD_STATE32;
-    uint8_t **ppc = reinterpret_cast<uint8_t**>(&state.__eip);
-#endif
-
-    kr = thread_get_state(thread, state_flavor, (thread_state_t) &state, &count);
-    if (kr != KERN_SUCCESS) {
-        
-        return false;
-    }
-
-    uint8_t *pc = *ppc;
-
-    AsmJSActivation *activation = JSRuntime::findAsmJSActivationForPC(pc);
-    if (!activation) {
-        return false;
-    }
-
-    
-    const AsmJSModule &module = activation->module();
-
-    void *faultingAddress = reinterpret_cast<void*>(code[1]);
-
-    
-    
-    
-    
-    
-    if (module.pcIsInModule(faultingAddress)) {
-        activation->setResumePC(pc);
-        *ppc = module.operationCallbackExit();
-        mprotect(module.functionCode(), module.functionBytes(), PROT_EXEC);
-
-        
-        kr = thread_set_state(thread, state_flavor, (thread_state_t) &state, count);
-        if (kr != KERN_SUCCESS) {
-            return false;
-        }
-        
-        return true;
-    }
-
-# if defined(JS_CPU_X64)
-    
-    
-    if (!module.maybeHeap() ||
-        faultingAddress < module.maybeHeap() ||
-        faultingAddress >= module.maybeHeap() + AsmJSBufferProtectedSize)
-    {
-        return false;
-    }
-
-    const AsmJSHeapAccess *heapAccess = LookupHeapAccess(module, pc);
-    if (!heapAccess)
-        return false;
-
-    
-    
-    
-    
-    
-    
-    if (heapAccess->isLoad()) {
-        AnyRegister reg = heapAccess->loadedReg();
-        if (reg.isFloat()) {
-            
-            x86_float_state64_t fstate;
-            count = x86_FLOAT_STATE64_COUNT;
-            kr = thread_get_state(thread, x86_FLOAT_STATE64, (thread_state_t) &fstate, &count);
-            if (kr != KERN_SUCCESS)
-                return false;
-
-            SetFloatStateRegisterToCoercedUndefined(&fstate, heapAccess->isFloat32Load(), reg);
-
-            kr = thread_set_state(thread, x86_FLOAT_STATE64, (thread_state_t) &fstate, x86_FLOAT_STATE64_COUNT);
-            if (kr != KERN_SUCCESS)
-                return false;
-        } else {
-            SetThreadStateRegisterToCoercedUndefined(&state, heapAccess->isFloat32Load(), reg);
-        }
-    }
-
-    *ppc += heapAccess->opLength();
-
-    kr = thread_set_state(thread, x86_THREAD_STATE64, (thread_state_t) &state, x86_THREAD_STATE64_COUNT);
-    if (kr != KERN_SUCCESS)
-        return false;
-
-    return true;
-#  else
-    return false;
-#  endif
-}
-#endif
-
 # endif
 #endif 
 
