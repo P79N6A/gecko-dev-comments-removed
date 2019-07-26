@@ -74,6 +74,10 @@ Sync11Service.prototype = {
 
   get serverURL() Svc.Prefs.get("serverURL"),
   set serverURL(value) {
+    if (!value.endsWith("/")) {
+      value += "/";
+    }
+
     
     if (value == this.serverURL)
       return;
