@@ -396,8 +396,20 @@ PannerNodeEngine::ComputeAzimuthAndElevation(float& aAzimuth, float& aElevation)
   ThreeDPoint up = listenerRight.CrossProduct(listenerFront);
 
   double upProjection = sourceListener.DotProduct(up);
+  aElevation = 90 - 180 * acos(upProjection) / M_PI;
+
+  if (aElevation > 90) {
+    aElevation = 180 - aElevation;
+  } else if (aElevation < -90) {
+    aElevation = -180 - aElevation;
+  }
 
   ThreeDPoint projectedSource = sourceListener - up * upProjection;
+  if (projectedSource.IsZero()) {
+    
+    aAzimuth = 0.0;
+    return;
+  }
   projectedSource.Normalize();
 
   
@@ -415,14 +427,6 @@ PannerNodeEngine::ComputeAzimuthAndElevation(float& aAzimuth, float& aElevation)
     aAzimuth = 90 - aAzimuth;
   } else {
     aAzimuth = 450 - aAzimuth;
-  }
-
-  aElevation = 90 - 180 * acos(upProjection) / M_PI;
-
-  if (aElevation > 90) {
-    aElevation = 180 - aElevation;
-  } else if (aElevation < -90) {
-    aElevation = -180 - aElevation;
   }
 }
 
