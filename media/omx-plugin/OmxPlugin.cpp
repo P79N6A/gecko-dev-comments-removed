@@ -26,6 +26,12 @@
 #define MAX_DECODER_NAME_LEN 256
 #define AVC_MIME_TYPE "video/avc"
 
+#if !defined(MOZ_ANDROID_FROYO)
+#define DEFAULT_STAGEFRIGHT_FLAGS OMXCodec::kClientNeedsFramebuffer
+#else
+#define DEFAULT_STAGEFRIGHT_FLAGS 0
+#endif
+
 #undef LOG
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "OmxPlugin" , ## args)
 
@@ -204,32 +210,6 @@ static sp<IOMX> GetOMX() {
 }
 #endif
 
-static uint32_t
-GetDefaultStagefrightFlags(PluginHost *aPluginHost)
-{
-  uint32_t flags = 0;
-
-#if !defined(MOZ_ANDROID_FROYO)
-
-  char hardware[256];
-  aPluginHost->GetSystemInfoString("hardware", hardware, sizeof(hardware));
-
-  if (hardware && strcmp("qcom", hardware)) {
-    
-    
-    
-    
-    
-    flags |= OMXCodec::kClientNeedsFramebuffer;
-  }
-
-  LOG("Hardware %s; using default flags %#x\n", hardware, flags);
-
-#endif
-
-  return flags;
-}
-
 static uint32_t GetVideoCreationFlags(PluginHost* aPluginHost)
 {
 #ifdef MOZ_WIDGET_GONK
@@ -256,7 +236,7 @@ static uint32_t GetVideoCreationFlags(PluginHost* aPluginHost)
 #endif
   }
 
-  flags |= GetDefaultStagefrightFlags(aPluginHost);
+  flags |= DEFAULT_STAGEFRIGHT_FLAGS;
 
   return static_cast<uint32_t>(flags);
 #endif
