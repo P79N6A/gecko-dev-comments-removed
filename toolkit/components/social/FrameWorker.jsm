@@ -30,7 +30,7 @@ var _nextPortId = 1;
 
 
 this.getFrameWorkerHandle =
- function getFrameWorkerHandle(url, clientWindow, name, origin) {
+ function getFrameWorkerHandle(url, clientWindow, name, origin, exposeLocalStorage = false) {
   
   
   let portid = _nextPortId++;
@@ -39,7 +39,7 @@ this.getFrameWorkerHandle =
   let existingWorker = workerCache[url];
   if (!existingWorker) {
     
-    let worker = new FrameWorker(url, name, origin);
+    let worker = new FrameWorker(url, name, origin, exposeLocalStorage);
     worker.pendingPorts.push(clientPort);
     existingWorker = workerCache[url] = worker;
   } else {
@@ -69,7 +69,7 @@ this.getFrameWorkerHandle =
 
 
 
-function FrameWorker(url, name, origin) {
+function FrameWorker(url, name, origin, exposeLocalStorage) {
   this.url = url;
   this.name = name || url;
   this.ports = new Map();
@@ -78,6 +78,7 @@ function FrameWorker(url, name, origin) {
   this.reloading = false;
   this.origin = origin;
   this._injectController = null;
+  this.exposeLocalStorage = exposeLocalStorage;
 
   this.frame = makeHiddenFrame();
   this.load();
@@ -133,11 +134,17 @@ FrameWorker.prototype = {
     
     
     
-    let workerAPI = ['WebSocket', 'localStorage', 'atob', 'btoa',
+    let workerAPI = ['WebSocket', 'atob', 'btoa',
                      'clearInterval', 'clearTimeout', 'dump',
                      'setInterval', 'setTimeout', 'XMLHttpRequest',
                      'FileReader', 'Blob', 'EventSource', 'indexedDB',
                      'location'];
+
+    
+    if (this.exposeLocalStorage) {
+      workerAPI.push('localStorage');
+    }
+
     
     
     let needsWaive = ['XMLHttpRequest', 'WebSocket'];
