@@ -246,6 +246,9 @@ private:
   void StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 
   
+  void AddSubtreeToOverflowTracker(nsIFrame* aFrame);
+
+  
   
   
   bool RecomputePosition(nsIFrame* aFrame);
