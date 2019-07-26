@@ -328,7 +328,7 @@ WorkerThread::maybePause()
 #endif 
 
 
-class AutoPauseWorkersForGC
+class AutoPauseWorkersForTracing
 {
 #ifdef JS_WORKER_THREADS
     JSRuntime *runtime;
@@ -338,8 +338,8 @@ class AutoPauseWorkersForGC
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
-    AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~AutoPauseWorkersForGC();
+    AutoPauseWorkersForTracing(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoPauseWorkersForTracing();
 };
 
 
