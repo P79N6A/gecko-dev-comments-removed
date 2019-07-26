@@ -18,6 +18,8 @@ namespace js {
 
 namespace frontend { struct Definition; }
 
+class StaticWithObject;
+
 
 
 
@@ -65,14 +67,16 @@ class StaticScopeIter
       : obj(cx, obj), onNamedLambda(false)
     {
         JS_STATIC_ASSERT(allowGC == CanGC);
-        JS_ASSERT_IF(obj, obj->is<StaticBlockObject>() || obj->is<JSFunction>());
+        JS_ASSERT_IF(obj, obj->is<StaticBlockObject>() || obj->is<StaticWithObject>() ||
+                     obj->is<JSFunction>());
     }
 
     StaticScopeIter(JSObject *obj)
       : obj((ExclusiveContext *) nullptr, obj), onNamedLambda(false)
     {
         JS_STATIC_ASSERT(allowGC == NoGC);
-        JS_ASSERT_IF(obj, obj->is<StaticBlockObject>() || obj->is<JSFunction>());
+        JS_ASSERT_IF(obj, obj->is<StaticBlockObject>() || obj->is<StaticWithObject>() ||
+                     obj->is<JSFunction>());
     }
 
     bool done() const;
@@ -82,10 +86,11 @@ class StaticScopeIter
     bool hasDynamicScopeObject() const;
     Shape *scopeShape() const;
 
-    enum Type { BLOCK, FUNCTION, NAMED_LAMBDA };
+    enum Type { WITH, BLOCK, FUNCTION, NAMED_LAMBDA };
     Type type() const;
 
     StaticBlockObject &block() const;
+    StaticWithObject &staticWith() const;
     JSScript *funScript() const;
 };
 
@@ -140,6 +145,8 @@ ScopeCoordinateName(ScopeCoordinateNameCache &cache, JSScript *script, jsbytecod
 
 extern JSScript *
 ScopeCoordinateFunctionScript(JSScript *script, jsbytecode *pc);
+
+
 
 
 
@@ -317,6 +324,15 @@ class NestedScopeObject : public ScopeObject
     inline NestedScopeObject *enclosingNestedScope() const;
 
     
+    inline bool isStatic() { return !getProto(); }
+
+    
+    inline NestedScopeObject* staticScope() {
+        JS_ASSERT(!isStatic());
+        return &getProto()->as<NestedScopeObject>();
+    }
+
+    
     JSObject *enclosingScopeForStaticScopeIter() {
         return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
@@ -342,30 +358,46 @@ class NestedScopeObject : public ScopeObject
     }
 };
 
-class WithObject : public NestedScopeObject
-{
-    static const unsigned THIS_SLOT = 2;
 
-    
-    JSObject *getProto() const;
+class StaticWithObject : public NestedScopeObject
+{
+  public:
+    static const unsigned RESERVED_SLOTS = 2;
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT2_BACKGROUND;
+
+    static const Class class_;
+
+    static StaticWithObject *create(ExclusiveContext *cx);
+};
+
+
+class DynamicWithObject : public NestedScopeObject
+{
+    static const unsigned OBJECT_SLOT = 2;
+    static const unsigned THIS_SLOT = 3;
 
   public:
-    static const unsigned RESERVED_SLOTS = 3;
+    static const unsigned RESERVED_SLOTS = 4;
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
 
     static const Class class_;
 
-    static WithObject *
-    create(JSContext *cx, HandleObject proto, HandleObject enclosing, uint32_t depth);
+    static DynamicWithObject *
+    create(JSContext *cx, HandleObject object, HandleObject enclosing, uint32_t depth,
+           HandleObject staticWith);
 
-    
-    JSObject &withThis() const {
-        return getReservedSlot(THIS_SLOT).toObject();
+    StaticWithObject& staticWith() const {
+        return getProto()->as<StaticWithObject>();
     }
 
     
     JSObject &object() const {
-        return *JSObject::getProto();
+        return getReservedSlot(OBJECT_SLOT).toObject();
+    }
+
+    
+    JSObject &withThis() const {
+        return getReservedSlot(THIS_SLOT).toObject();
     }
 };
 
@@ -411,12 +443,6 @@ class StaticBlockObject : public BlockObject
 {
   public:
     static StaticBlockObject *create(ExclusiveContext *cx);
-
-    
-
-
-
-    inline StaticBlockObject *enclosingBlock() const;
 
     
 
@@ -519,6 +545,11 @@ template<XDRMode mode>
 bool
 XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                      StaticBlockObject **objp);
+
+template<XDRMode mode>
+bool
+XDRStaticWithObject(XDRState<mode> *xdr, HandleObject enclosingScope,
+                    StaticWithObject **objp);
 
 extern JSObject *
 CloneNestedScopeObject(JSContext *cx, HandleObject enclosingScope, Handle<NestedScopeObject*> src);
@@ -806,7 +837,7 @@ template<>
 inline bool
 JSObject::is<js::NestedScopeObject>() const
 {
-    return is<js::BlockObject>() || is<js::WithObject>();
+    return is<js::BlockObject>() || is<js::StaticWithObject>() || is<js::DynamicWithObject>();
 }
 
 template<>
@@ -865,13 +896,6 @@ NestedScopeObject::enclosingNestedScope() const
 {
     JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     return obj && obj->is<NestedScopeObject>() ? &obj->as<NestedScopeObject>() : nullptr;
-}
-
-inline StaticBlockObject *
-StaticBlockObject::enclosingBlock() const
-{
-    JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
-    return obj && obj->is<StaticBlockObject>() ? &obj->as<StaticBlockObject>() : nullptr;
 }
 
 #ifdef DEBUG

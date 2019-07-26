@@ -420,6 +420,7 @@ enum ParseNodeArity
     PN_NULLARY,                         
     PN_UNARY,                           
     PN_BINARY,                          
+    PN_BINARY_OBJ,                      
     PN_TERNARY,                         
     PN_CODE,                            
     PN_LIST,                            
@@ -516,7 +517,10 @@ class ParseNode
         struct {                        
             ParseNode   *left;
             ParseNode   *right;
-            unsigned    iflags;         
+            union {
+                unsigned iflags;        
+                ObjectBox *objbox;      
+            };
         } binary;
         struct {                        
             ParseNode   *kid;
@@ -570,6 +574,7 @@ class ParseNode
 #define pn_right        pn_u.binary.right
 #define pn_pval         pn_u.binary.pval
 #define pn_iflags       pn_u.binary.iflags
+#define pn_binary_obj   pn_u.binary.objbox
 #define pn_kid          pn_u.unary.kid
 #define pn_prologue     pn_u.unary.prologue
 #define pn_atom         pn_u.name.atom
@@ -898,6 +903,30 @@ struct BinaryNode : public ParseNode
 
     static bool test(const ParseNode &node) {
         return node.isArity(PN_BINARY);
+    }
+
+#ifdef DEBUG
+    void dump(int indent);
+#endif
+};
+
+struct BinaryObjNode : public ParseNode
+{
+    BinaryObjNode(ParseNodeKind kind, JSOp op, const TokenPos &pos, ParseNode *left, ParseNode *right,
+                  ObjectBox *objbox)
+      : ParseNode(kind, op, PN_BINARY_OBJ, pos)
+    {
+        pn_left = left;
+        pn_right = right;
+        pn_binary_obj = objbox;
+    }
+
+    static inline BinaryObjNode *create(ParseNodeKind kind, FullParseHandler *handler) {
+        return (BinaryObjNode *) ParseNode::create(kind, PN_BINARY_OBJ, handler);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_BINARY_OBJ);
     }
 
 #ifdef DEBUG
