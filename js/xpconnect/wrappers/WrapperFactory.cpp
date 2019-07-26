@@ -124,8 +124,9 @@ WrapperFactory::DoubleWrap(JSContext *cx, JSObject *obj, unsigned flags)
 }
 
 JSObject *
-WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj, unsigned flags)
+WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj_, unsigned flags)
 {
+    JS::RootedObject obj(cx, obj_);
     
     
     if (js::IsInnerObject(obj)) {
