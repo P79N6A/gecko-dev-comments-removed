@@ -1497,6 +1497,14 @@ HyperTextAccessible::GetEditor() const
 nsresult
 HyperTextAccessible::SetSelectionRange(int32_t aStartPos, int32_t aEndPos)
 {
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIEditor> editor = GetEditor();
+
   bool isFocusable = InteractiveState() & states::FOCUSABLE;
 
   
