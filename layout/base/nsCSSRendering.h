@@ -396,7 +396,13 @@ struct nsCSSRendering {
 
 
 
-  static void DidPaint();
+  static void BeginFrameTreesLocked();
+  
+
+
+
+
+  static void EndFrameTreesLocked();
 
   
   
