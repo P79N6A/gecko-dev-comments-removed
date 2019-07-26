@@ -2307,6 +2307,7 @@ public class GeckoAppShell
 
 
 
+    @RobocopTarget
     public static void unregisterEventListener(String event, GeckoEventListener listener) {
         sEventDispatcher.unregisterEventListener(event, listener);
     }
