@@ -113,18 +113,6 @@ function getTestPlugin(aName) {
 
 
 
-
-function setTestPluginEnabledState(newEnabledState, pluginName) {
-  var plugin = getTestPlugin(pluginName);
-  var oldEnabledState = plugin.enabledState;
-  plugin.enabledState = newEnabledState;
-  SimpleTest.registerCleanupFunction(function() {
-    getTestPlugin(pluginName).enabledState = oldEnabledState;
-  });
-}
-
-
-
 function clearAllPluginPermissions() {
   let perms = Services.perms.enumerator;
   while (perms.hasMoreElements()) {
