@@ -2505,22 +2505,10 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
                                        nscoord aContainingBlockHeight,
                                        const nsHTMLReflowState* aContainingBlockRS)
 {
-#ifdef MOZ_FLEXBOX
-  nsFlexContainerFrame* flexContainerFrame = GetFlexContainer(frame);
-#endif 
-
   
   if (eStyleUnit_Auto == mStylePosition->mMinWidth.GetUnit()) {
+    
     mComputedMinWidth = 0;
-#ifdef MOZ_FLEXBOX
-    if (flexContainerFrame && flexContainerFrame->IsHorizontal()) {
-      mComputedMinWidth =
-        ComputeWidthValue(aContainingBlockWidth,
-                          mStylePosition->mBoxSizing,
-                          nsStyleCoord(NS_STYLE_WIDTH_MIN_CONTENT,
-                                       eStyleUnit_Enumerated));
-    }
-#endif 
   } else {
     mComputedMinWidth = ComputeWidthValue(aContainingBlockWidth,
                                           mStylePosition->mBoxSizing,
