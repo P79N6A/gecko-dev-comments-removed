@@ -42,6 +42,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
+           "@mozilla.org/uriloader/external-helper-app-service;1",
+           Ci.nsIExternalHelperAppService);
+
 const ServerSocket = Components.Constructor(
                                 "@mozilla.org/network/server-socket;1",
                                 "nsIServerSocket",
@@ -283,6 +287,68 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
 
 
+
+
+
+function promiseStartExternalHelperAppServiceDownload() {
+  let sourceURI = NetUtil.newURI(httpUrl("interruptible_resumable.txt"));
+
+  let deferred = Promise.defer();
+
+  Downloads.getPublicDownloadList().then(function (aList) {
+    
+    
+    aList.addView({
+      onDownloadAdded: function (aDownload) {
+        aList.removeView(this);
+
+        
+        
+        aList.remove(aDownload);
+
+        
+        deferred.resolve(aDownload);
+      },
+    });
+
+    let channel = NetUtil.newChannel(sourceURI);
+
+    
+    channel.asyncOpen({
+      contentListener: null,
+
+      onStartRequest: function (aRequest, aContext)
+      {
+        let channel = aRequest.QueryInterface(Ci.nsIChannel);
+        this.contentListener = gExternalHelperAppService.doContent(
+                                     channel.contentType, aRequest, null, true);
+        this.contentListener.onStartRequest(aRequest, aContext);
+      },
+
+      onStopRequest: function (aRequest, aContext, aStatusCode)
+      {
+        this.contentListener.onStopRequest(aRequest, aContext, aStatusCode);
+      },
+
+      onDataAvailable: function (aRequest, aContext, aInputStream, aOffset,
+                                 aCount)
+      {
+        this.contentListener.onDataAvailable(aRequest, aContext, aInputStream,
+                                             aOffset, aCount);
+      },
+    }, null);
+  }.bind(this)).then(null, do_report_unexpected_exception);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
 function promiseNewDownloadList() {
   
   Downloads._promisePublicDownloadList = null;
@@ -317,22 +383,33 @@ function promiseNewPrivateDownloadList() {
 
 function promiseVerifyContents(aPath, aExpectedContents)
 {
-  let deferred = Promise.defer();
-  let file = new FileUtils.File(aPath);
-  NetUtil.asyncFetch(file, function(aInputStream, aStatus) {
-    do_check_true(Components.isSuccessCode(aStatus));
-    let contents = NetUtil.readInputStreamToString(aInputStream,
-                                                   aInputStream.available());
-    if (contents.length <= TEST_DATA_SHORT.length * 2) {
-      do_check_eq(contents, aExpectedContents);
-    } else {
-      
-      do_check_eq(contents.length, aExpectedContents.length);
-      do_check_true(contents == aExpectedContents);
+  return Task.spawn(function() {
+    let file = new FileUtils.File(aPath);
+
+    if (!(yield OS.File.exists(aPath))) {
+      do_throw("File does not exist: " + aPath);
     }
-    deferred.resolve();
+
+    if ((yield OS.File.stat(aPath)).size == 0) {
+      do_throw("File is empty: " + aPath);
+    }
+
+    let deferred = Promise.defer();
+    NetUtil.asyncFetch(file, function(aInputStream, aStatus) {
+      do_check_true(Components.isSuccessCode(aStatus));
+      let contents = NetUtil.readInputStreamToString(aInputStream,
+                                                     aInputStream.available());
+      if (contents.length <= TEST_DATA_SHORT.length * 2) {
+        do_check_eq(contents, aExpectedContents);
+      } else {
+        
+        do_check_eq(contents.length, aExpectedContents.length);
+        do_check_true(contents == aExpectedContents);
+      }
+      deferred.resolve();
+    });
+    yield deferred.promise;
   });
-  return deferred.promise;
 }
 
 
@@ -564,4 +641,61 @@ add_task(function test_common_initialize()
   DownloadIntegration._deferTestOpenFile = Promise.defer();
   DownloadIntegration._deferTestShowDir = Promise.defer();
 
+  
+  
+  let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+  do_register_cleanup(() => registrar = null);
+
+  
+  
+  let mockFactory = {
+    createInstance: function (aOuter, aIid) {
+      return {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+        promptForSaveToFile: function (aLauncher, aWindowContext,
+                                       aDefaultFileName,
+                                       aSuggestedFileExtension,
+                                       aForcePrompt)
+        {
+          throw new Components.Exception(
+                             "Synchronous promptForSaveToFile not implemented.",
+                             Cr.NS_ERROR_NOT_AVAILABLE);
+        },
+        promptForSaveToFileAsync: function (aLauncher, aWindowContext,
+                                            aDefaultFileName,
+                                            aSuggestedFileExtension,
+                                            aForcePrompt)
+        {
+          let file = getTempFile(TEST_TARGET_FILE_NAME);
+          aLauncher.saveDestinationAvailable(file);
+        },
+      }.QueryInterface(aIid);
+    }
+  };
+
+  let contractID = "@mozilla.org/helperapplauncherdialog;1";
+  let cid = registrar.contractIDToCID(contractID);
+  let oldFactory = Components.manager.getClassObject(Cc[contractID],
+                                                     Ci.nsIFactory);
+
+  registrar.unregisterFactory(cid, oldFactory);
+  registrar.registerFactory(cid, "", contractID, mockFactory);
+  do_register_cleanup(function () {
+    registrar.unregisterFactory(cid, mockFactory);
+    registrar.registerFactory(cid, "", contractID, oldFactory);
+  });
+
+  
+  
+  
+  
+  
+  let transferContractID = "@mozilla.org/transfer;1";
+  let transferNewCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
+  let transferCid = registrar.contractIDToCID(transferContractID);
+
+  registrar.registerFactory(transferNewCid, "", transferContractID, null);
+  do_register_cleanup(function () {
+    registrar.registerFactory(transferCid, "", transferContractID, null);
+  });
 });

@@ -87,9 +87,16 @@ DownloadLegacyTransfer.prototype = {
       this._componentFailed = true;
     }
 
-    
-    if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
+    if ((aStateFlags & Ci.nsIWebProgressListener.STATE_START) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
+      
+      
+      this._deferDownload.promise.then(function (aDownload) {
+        aDownload.saver.onTransferStarted(aRequest);
+      }).then(null, Cu.reportError);
+    } else if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
+        (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
+      
       
       this._deferDownload.promise.then(function DLT_OSC_onDownload(aDownload) {
         aDownload.saver.onTransferFinished(aRequest, aStatus);
@@ -175,7 +182,8 @@ DownloadLegacyTransfer.prototype = {
     
     Downloads.createDownload({
       source: { url: aSource.spec, isPrivate: aIsPrivate },
-      target: aTarget.QueryInterface(Ci.nsIFileURL).file,
+      target: { path: aTarget.QueryInterface(Ci.nsIFileURL).file.path,
+                partFilePath: aTempFile && aTempFile.path },
       saver: "legacy",
       launchWhenSuccedded: launchWhenSuccedded,
       contentType: contentType,
@@ -188,6 +196,11 @@ DownloadLegacyTransfer.prototype = {
           aCancelable.cancel(Cr.NS_ERROR_ABORT);
         }
       }).then(null, Cu.reportError);
+
+      
+      if (aTempFile) {
+        aDownload.tryToKeepPartialData = true;
+      }
 
       
       aDownload.start().then(null, function () {

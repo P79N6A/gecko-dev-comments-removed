@@ -108,32 +108,55 @@ function promiseStartDownload_tryToKeepPartialData() {
     mustInterruptResponses();
 
     
-    let targetFilePath = getTempFile(TEST_TARGET_FILE_NAME).path;
-    let download = yield Downloads.createDownload({
-      source: httpUrl("interruptible_resumable.txt"),
-      target: { path: targetFilePath,
-                partFilePath: targetFilePath + ".part" },
-    });
-    download.tryToKeepPartialData = true;
-    download.start();
+    let download;
+    if (!gUseLegacySaver) {
+      let targetFilePath = getTempFile(TEST_TARGET_FILE_NAME).path;
+      download = yield Downloads.createDownload({
+        source: httpUrl("interruptible_resumable.txt"),
+        target: { path: targetFilePath,
+                  partFilePath: targetFilePath + ".part" },
+      });
+      download.tryToKeepPartialData = true;
+      download.start();
+    } else {
+      
+      
+      download = yield promiseStartExternalHelperAppServiceDownload();
+    }
 
     yield promiseDownloadMidway(download);
+    yield promisePartFileReady(download);
 
-    
+    throw new Task.Result(download);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+function promisePartFileReady(aDownload) {
+  return Task.spawn(function () {
     
     
     
     
     try {
-      while (!(yield OS.File.exists(download.target.partFilePath))) {
+      do {
         yield promiseTimeout(50);
-      }
+      } while (!(yield OS.File.exists(aDownload.target.partFilePath)));
     } catch (ex if ex instanceof OS.File.Error) {
       
       
+      do_print("Expected exception while checking existence: " + ex.toString());
+      
+      yield promiseTimeout(100);
     }
-
-    throw new Task.Result(download);
   });
 }
 
@@ -559,11 +582,6 @@ add_task(function test_cancel_immediately()
 
 add_task(function test_cancel_midway_restart()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
   mustInterruptResponses();
 
   let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
@@ -610,6 +628,12 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
+
   do_check_true(download.stopped);
   do_check_true(download.hasPartialData);
 
@@ -642,6 +666,12 @@ add_task(function test_cancel_midway_restart_removePartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
+
   do_check_true(download.hasPartialData);
   yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
 
@@ -673,6 +703,12 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
+
   download.tryToKeepPartialData = false;
 
   
@@ -687,12 +723,19 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   download.start();
 
   yield promiseDownloadMidway(download);
+  yield promisePartFileReady(download);
 
   
   do_check_false(download.hasPartialData);
   do_check_true(yield OS.File.exists(download.target.partFilePath));
 
   yield download.cancel();
+
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
 
   
   do_check_false(download.hasPartialData);
@@ -716,11 +759,6 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
 
 add_task(function test_cancel_immediately_restart_immediately()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
   mustInterruptResponses();
 
   let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
@@ -771,11 +809,6 @@ add_task(function test_cancel_immediately_restart_immediately()
 
 add_task(function test_cancel_midway_restart_immediately()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
   mustInterruptResponses();
 
   let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
@@ -910,6 +943,12 @@ add_task(function test_finalize_tryToKeepPartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.finalize();
 
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
+
   do_check_true(download.hasPartialData);
   do_check_true(yield OS.File.exists(download.target.partFilePath));
 
@@ -920,6 +959,12 @@ add_task(function test_finalize_tryToKeepPartialData()
   download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.finalize(true);
 
+  
+  
+  if (gUseLegacySaver) {
+    yield promiseTimeout(250);
+  }
+
   do_check_false(download.hasPartialData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
@@ -929,20 +974,25 @@ add_task(function test_finalize_tryToKeepPartialData()
 
 add_task(function test_whenSucceeded_after_restart()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
   mustInterruptResponses();
 
-  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  let promiseSucceeded;
+
+  let download;
+  if (!gUseLegacySaver) {
+    
+    
+    download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    promiseSucceeded = download.whenSucceeded();
+    download.start();
+  } else {
+    
+    
+    download = yield promiseStartLegacyDownload(httpUrl("interruptible.txt"));
+    promiseSucceeded = download.whenSucceeded();
+  }
 
   
-  let promiseSucceeded = download.whenSucceeded();
-
-  
-  download.start();
   yield download.cancel();
 
   
@@ -1057,21 +1107,25 @@ add_task(function test_error_target()
 
 add_task(function test_error_restart()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
-  let download = yield promiseNewDownload();
-
-  do_check_true(download.error === null);
+  let download;
 
   
-  let targetFile = new FileUtils.File(download.target.path);
+  let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
   targetFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0);
-
   try {
-    yield download.start();
+    
+    
+    if (!gUseLegacySaver) {
+      download = yield Downloads.createDownload({
+        source: httpUrl("source.txt"),
+        target: targetFile,
+      });
+      download.start();
+    } else {
+      download = yield promiseStartLegacyDownload(null,
+                                                  { targetFile: targetFile });
+    }
+    yield promiseDownloadStopped(download);
     do_throw("The download should have failed.");
   } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
     
@@ -1162,14 +1216,8 @@ add_task(function test_public_and_private()
 
 add_task(function test_cancel_immediately_restart_and_check_startTime()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
+  let download = yield promiseStartDownload();
 
-  let download = yield promiseNewDownload();
-
-  download.start();
   let startTime = download.startTime;
   do_check_true(isValidDate(download.startTime));
 
@@ -1222,23 +1270,24 @@ add_task(function test_with_content_encoding()
 
 add_task(function test_cancel_midway_restart_with_content_encoding()
 {
-  
-  if (gUseLegacySaver) {
-    return;
-  }
-
-  let download = yield promiseNewDownload(httpUrl("interruptible_gzip.txt"));
-
-  
   mustInterruptResponses();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible_gzip.txt"));
+
+  
   let deferCancel = Promise.defer();
-  download.onchange = function () {
+  let onchange = function () {
     if (!download.stopped && !download.canceled &&
         download.currentBytes == TEST_DATA_SHORT_GZIP_ENCODED_FIRST.length) {
       deferCancel.resolve(download.cancel());
     }
   };
-  download.start();
+
+  
+  
+  download.onchange = onchange;
+  onchange();
+
   yield deferCancel.promise;
 
   do_check_true(download.stopped);

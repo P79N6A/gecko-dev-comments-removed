@@ -1431,14 +1431,36 @@ DownloadLegacySaver.prototype = {
       return;
     }
 
+    let hasPartFile = !!this.download.target.partFilePath;
+
     this.progressWasNotified = true;
-    this.setProgressBytesFn(aCurrentBytes, aTotalBytes);
+    this.setProgressBytesFn(aCurrentBytes, aTotalBytes,
+                            aCurrentBytes > 0 && hasPartFile);
   },
 
   
 
 
   progressWasNotified: false,
+
+  
+
+
+
+
+
+  onTransferStarted: function (aRequest)
+  {
+    
+    if (this.download.tryToKeepPartialData &&
+        aRequest instanceof Ci.nsIResumableChannel) {
+      try {
+        
+        this.entityID = aRequest.entityID;
+      } catch (ex if ex instanceof Components.Exception &&
+                     ex.result == Cr.NS_ERROR_NOT_RESUMABLE) { }
+    }
+  },
 
   
 
@@ -1465,8 +1487,33 @@ DownloadLegacySaver.prototype = {
   
 
 
+
+
+  firstExecutionFinished: false,
+
+  
+
+
+
+
+  copySaver: null,
+
+  
+
+
   execute: function DLS_execute(aSetProgressBytesFn)
   {
+    
+    
+    if (this.firstExecutionFinished) {
+      if (!this.copySaver) {
+        this.copySaver = new DownloadCopySaver();
+        this.copySaver.download = this.download;
+        this.copySaver.entityID = this.entityID;
+      }
+      return this.copySaver.execute.apply(this.copySaver, arguments);
+    }
+
     this.setProgressBytesFn = aSetProgressBytesFn;
 
     return Task.spawn(function task_DLS_execute() {
@@ -1495,6 +1542,8 @@ DownloadLegacySaver.prototype = {
       } finally {
         
         this.request = null;
+        
+        this.firstExecutionFinished = true;
       }
     }.bind(this));
   },
@@ -1505,6 +1554,11 @@ DownloadLegacySaver.prototype = {
   cancel: function DLS_cancel()
   {
     
+    if (this.copySaver) {
+      return this.copySaver.cancel.apply(this.copySaver, arguments);
+    }
+
+    
     this.deferCanceled.resolve();
 
     
@@ -1512,6 +1566,29 @@ DownloadLegacySaver.prototype = {
     
     this.deferExecuted.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
                                                 "Download canceled."));
+  },
+
+  
+
+
+  removePartialData: function ()
+  {
+    
+    
+    
+    return DownloadCopySaver.prototype.removePartialData.call(this);
+  },
+
+  
+
+
+  toSerializable: function ()
+  {
+    
+    
+    
+    
+    return "copy";
   },
 };
 
