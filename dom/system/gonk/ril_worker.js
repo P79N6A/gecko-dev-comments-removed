@@ -3452,7 +3452,10 @@ RilObject.prototype = {
       }
     };
 
-    if (!this._isGsmTechGroup(this.voiceRegistrationState.radioTech)) {
+    
+    
+    if (("radioTech" in this.voiceRegistrationState) &&
+        !this._isGsmTechGroup(this.voiceRegistrationState.radioTech)) {
       
       
       
