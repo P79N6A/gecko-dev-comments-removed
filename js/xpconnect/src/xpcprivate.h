@@ -3848,9 +3848,6 @@ extern JSBool
 xpc_DumpEvalInJSStackFrame(JSContext* cx, uint32_t frameno, const char* text);
 
 extern JSBool
-xpc_DumpJSObject(JSObject* obj);
-
-extern JSBool
 xpc_InstallJSDebuggerKeywordHandler(JSRuntime* rt);
 
 
