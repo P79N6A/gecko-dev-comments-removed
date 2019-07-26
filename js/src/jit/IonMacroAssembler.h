@@ -212,7 +212,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    MacroAssembler(JSContext *cx)
+    MacroAssembler(JSContext *cx, IonScript *ion = nullptr)
       : enoughMemory_(true),
         embedsNurseryPointers_(false),
         sps_(nullptr)
@@ -225,6 +225,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
+        if (ion)
+            setFramePushed(ion->frameSize());
     }
 
     
