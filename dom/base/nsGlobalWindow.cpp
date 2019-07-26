@@ -2128,37 +2128,39 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(WINDOWSTATEHOLDER_IID)
   NS_DECL_ISUPPORTS
 
-  WindowStateHolder(nsGlobalWindow *aWindow);
+  WindowStateHolder(nsIScriptContext* aContext, nsGlobalWindow *aWindow);
 
   nsGlobalWindow* GetInnerWindow() { return mInnerWindow; }
 
   void DidRestoreWindow()
   {
     mInnerWindow = nullptr;
+    mInnerWindowReflector = nullptr;
   }
 
 protected:
   ~WindowStateHolder();
 
-  nsRefPtr<nsGlobalWindow> mInnerWindow;
+  nsGlobalWindow *mInnerWindow;
+  
+  
+  JS::PersistentRooted<JSObject*> mInnerWindowReflector;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
 
-WindowStateHolder::WindowStateHolder(nsGlobalWindow* aWindow)
-  : mInnerWindow(aWindow)
+WindowStateHolder::WindowStateHolder(nsIScriptContext* aContext,
+                                     nsGlobalWindow* aWindow)
+  : mInnerWindow(aWindow),
+    mInnerWindowReflector(aContext->GetNativeContext(), aWindow->GetWrapper())
 {
   NS_PRECONDITION(aWindow, "null window");
   NS_PRECONDITION(aWindow->IsInnerWindow(), "Saving an outer window");
 
-  
-  
-  mInnerWindow->PreserveWrapper(ToSupports(mInnerWindow));
-
   aWindow->SuspendTimeouts();
 
   
-  xpc::Scriptability::Get(aWindow->GetWrapperPreserveColor()).SetDocShellAllowsScript(false);
+  xpc::Scriptability::Get(mInnerWindowReflector).SetDocShellAllowsScript(false);
 }
 
 WindowStateHolder::~WindowStateHolder()
@@ -12652,7 +12654,7 @@ nsGlobalWindow::SaveWindowState()
   
   inner->Freeze();
 
-  nsCOMPtr<nsISupports> state = new WindowStateHolder(inner);
+  nsCOMPtr<nsISupports> state = new WindowStateHolder(mContext, inner);
 
 #ifdef DEBUG_PAGE_CACHE
   printf("saving window state, state = %p\n", (void*)state);
