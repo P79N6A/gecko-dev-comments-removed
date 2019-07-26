@@ -64,6 +64,8 @@ public:
   
   static uint32_t ParseLinkTypes(const nsAString& aTypes);
 
+  static bool IsImportEnabled();
+  
   void UpdateStyleSheetInternal()
   {
     UpdateStyleSheetInternal(nullptr, nullptr);
