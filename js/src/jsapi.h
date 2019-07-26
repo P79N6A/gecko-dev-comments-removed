@@ -5757,6 +5757,22 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 
 
 
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_SetDefaultLocale(JSContext *cx, const char *locale);
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_ResetDefaultLocale(JSContext *cx);
+
+
+
+
 struct JSLocaleCallbacks {
     JSLocaleToUpperCase     localeToUpperCase;
     JSLocaleToLowerCase     localeToLowerCase;

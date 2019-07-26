@@ -1363,8 +1363,26 @@ struct JSContext : js::ContextFriendFields,
     
     unsigned            runOptions;          
 
+    
+    char                *defaultLocale;
+
   public:
     int32_t             reportGranularity;  
+
+    
+
+
+
+
+
+
+    bool setDefaultLocale(const char *locale);
+
+    
+    void resetDefaultLocale();
+
+    
+    const char *getDefaultLocale();
 
     
     JSLocaleCallbacks   *localeCallbacks;
