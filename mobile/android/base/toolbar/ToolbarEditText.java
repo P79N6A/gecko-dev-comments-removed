@@ -11,15 +11,20 @@ import org.mozilla.gecko.toolbar.BrowserToolbar.OnDismissListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnFilterListener;
 import org.mozilla.gecko.CustomEditText;
 import org.mozilla.gecko.CustomEditText.OnKeyPreImeListener;
+import org.mozilla.gecko.InputMethods;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.text.Editable;
+import android.text.NoCopySpan;
+import android.text.Selection;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -36,6 +41,7 @@ public class ToolbarEditText extends CustomEditText
                              implements AutocompleteHandler {
 
     private static final String LOGTAG = "GeckoToolbarEditText";
+    private static final NoCopySpan AUTOCOMPLETE_SPAN = new NoCopySpan.Concrete();
 
     private final Context mContext;
 
@@ -45,9 +51,12 @@ public class ToolbarEditText extends CustomEditText
 
     
     private String mAutoCompleteResult = "";
-
     
-    private String mAutoCompletePrefix = null;
+    private int mAutoCompletePrefixLength;
+    
+    private boolean mSettingAutoComplete;
+    
+    private Object[] mAutoCompleteSpans;
 
     public ToolbarEditText(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -70,6 +79,7 @@ public class ToolbarEditText extends CustomEditText
     public void onAttachedToWindow() {
         setOnKeyListener(new KeyListener());
         setOnKeyPreImeListener(new KeyPreImeListener());
+        setOnSelectionChangedListener(new SelectionChangeListener());
         addTextChangedListener(new TextChangeListener());
     }
 
@@ -82,8 +92,9 @@ public class ToolbarEditText extends CustomEditText
             return;
         }
 
-        InputMethodManager imm = (InputMethodManager)
-                mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
+        removeAutocomplete(getText());
+
+        final InputMethodManager imm = InputMethods.getInputMethodManager(mContext);
         try {
             imm.restartInput(this);
             imm.hideSoftInputFromWindow(getWindowToken(), 0);
@@ -94,32 +105,201 @@ public class ToolbarEditText extends CustomEditText
     }
 
     
+
+
+
+    private void beginSettingAutocomplete() {
+        beginBatchEdit();
+        mSettingAutoComplete = true;
+    }
+
     
-    @Override
-    public final void onAutocomplete(final String result) {
-        if (!isEnabled()) {
+
+
+    private void endSettingAutocomplete() {
+        mSettingAutoComplete = false;
+        endBatchEdit();
+    }
+
+    
+
+
+    private void resetAutocompleteState() {
+        final int textColor = getCurrentTextColor();
+
+        mAutoCompleteSpans = new Object[] {
+            
+            AUTOCOMPLETE_SPAN,
+            
+            new ForegroundColorSpan(Color.argb(
+                0x80, Color.red(textColor), Color.green(textColor), Color.blue(textColor)))
+        };
+
+        mAutoCompleteResult = "";
+        mAutoCompletePrefixLength = 0;
+    }
+
+    
+
+
+
+
+    private static String getNonAutocompleteText(final Editable text) {
+        final int start = text.getSpanStart(AUTOCOMPLETE_SPAN);
+        if (start < 0) {
+            
+            return text.toString();
+        }
+
+        
+        return TextUtils.substring(text, 0, start);
+    }
+
+    
+
+
+
+
+    private void removeAutocomplete(final Editable text) {
+        final int start = text.getSpanStart(AUTOCOMPLETE_SPAN);
+        if (start < 0) {
+            
             return;
         }
 
-        final String text = getText().toString();
+        beginSettingAutocomplete();
 
-        if (result == null) {
+        
+        text.delete(start, text.length());
+
+        
+        
+        mAutoCompleteResult = "";
+
+        endSettingAutocomplete();
+    }
+
+    
+
+
+
+
+    private void commitAutocomplete(final Editable text) {
+        beginSettingAutocomplete();
+
+        
+        for (final Object span : mAutoCompleteSpans) {
+            text.removeSpan(span);
+        }
+
+        
+        
+        mAutoCompletePrefixLength = text.length();
+
+        endSettingAutocomplete();
+
+        
+        if (mFilterListener != null) {
+            mFilterListener.onFilter(text.toString(), null);
+        }
+    }
+
+    
+
+
+
+
+    @Override
+    public final void onAutocomplete(final String result) {
+        if (!isEnabled() || result == null) {
             mAutoCompleteResult = "";
             return;
         }
 
-        if (!result.startsWith(text) || text.equals(result)) {
-            return;
-        }
-
+        final Editable text = getText();
+        final int textLength = text.length();
+        final int resultLength = result.length();
+        final int autoCompleteStart = text.getSpanStart(AUTOCOMPLETE_SPAN);
         mAutoCompleteResult = result;
-        getText().append(result.substring(text.length()));
-        setSelection(text.length(), result.length());
-    }
 
-    private void resetAutocompleteState() {
-        mAutoCompleteResult = "";
-        mAutoCompletePrefix = null;
+        if (autoCompleteStart > -1) {
+            
+
+            
+            
+            if (!TextUtils.regionMatches(result, 0, text, 0, autoCompleteStart)) {
+                return;
+            }
+
+            beginSettingAutocomplete();
+
+            
+            
+            text.replace(autoCompleteStart, textLength, result, autoCompleteStart, resultLength);
+
+            endSettingAutocomplete();
+
+        } else {
+            
+
+            
+            
+            if (resultLength <= textLength ||
+                    !TextUtils.regionMatches(result, 0, text, 0, textLength)) {
+                return;
+            }
+
+            final Object[] spans = text.getSpans(textLength, textLength, Object.class);
+            final int[] spanStarts = new int[spans.length];
+            final int[] spanEnds = new int[spans.length];
+            final int[] spanFlags = new int[spans.length];
+
+            
+            for (int i = 0; i < spans.length; i++) {
+                final Object span = spans[i];
+                final int spanFlag = text.getSpanFlags(span);
+
+                
+                
+                if ((spanFlag & Spanned.SPAN_COMPOSING) == 0 &&
+                        (span != Selection.SELECTION_START) &&
+                        (span != Selection.SELECTION_END)) {
+                    continue;
+                }
+
+                spanStarts[i] = text.getSpanStart(span);
+                spanEnds[i] = text.getSpanEnd(span);
+                spanFlags[i] = spanFlag;
+            }
+
+            beginSettingAutocomplete();
+
+            
+            text.append(result, textLength, resultLength);
+
+            
+            for (final Object span : mAutoCompleteSpans) {
+                text.setSpan(span, textLength, resultLength, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+
+            
+            
+            
+            
+            bringPointIntoView(resultLength);
+
+            
+            for (int i = 0; i < spans.length; i++) {
+                final int spanFlag = spanFlags[i];
+                if (spanFlag == 0) {
+                    
+                    continue;
+                }
+                text.setSpan(spans[i], spanStarts[i], spanEnds[i], spanFlag);
+            }
+
+            endSettingAutocomplete();
+        }
     }
 
     private static boolean hasCompositionString(Editable content) {
@@ -137,44 +317,64 @@ public class ToolbarEditText extends CustomEditText
         return false;
     }
 
-    private class TextChangeListener implements TextWatcher {
+    private class SelectionChangeListener implements OnSelectionChangedListener {
         @Override
-        public void afterTextChanged(final Editable s) {
-            if (!isEnabled()) {
+        public void onSelectionChanged(final int selStart, final int selEnd) {
+            
+            
+
+            final Editable text = getText();
+            final int start = text.getSpanStart(AUTOCOMPLETE_SPAN);
+
+            if (start < 0 || (start == selStart && start == selEnd)) {
+                
+                
                 return;
             }
 
-            final String text = s.toString();
-
-            boolean useHandler = false;
-            boolean reuseAutocomplete = false;
-
-            if (!hasCompositionString(s) && !StringUtils.isSearchQuery(text, false)) {
-                useHandler = true;
-
+            if (selStart <= start && selEnd <= start) {
                 
+                removeAutocomplete(text);
+            } else {
                 
-                if (mAutoCompletePrefix != null && (mAutoCompletePrefix.length() >= text.length())) {
-                    useHandler = false;
-                } else if (mAutoCompleteResult != null && mAutoCompleteResult.startsWith(text)) {
-                    
-                    
-                    useHandler = false;
-                    reuseAutocomplete = true;
-                }
+                commitAutocomplete(text);
+            }
+        }
+    }
+
+    private class TextChangeListener implements TextWatcher {
+        @Override
+        public void afterTextChanged(final Editable editable) {
+            if (!isEnabled() || mSettingAutoComplete) {
+                return;
             }
 
-            
-            if (TextUtils.isEmpty(mAutoCompleteResult) || !mAutoCompleteResult.equals(text)) {
-                if (mFilterListener != null) {
-                    mFilterListener.onFilter(text, useHandler ? ToolbarEditText.this : null);
-                }
+            final String text = getNonAutocompleteText(editable);
+            final int textLength = text.length();
+            boolean doAutocomplete = true;
 
-                mAutoCompletePrefix = text;
+            if (StringUtils.isSearchQuery(text, false)) {
+                doAutocomplete = false;
+            } else if (mAutoCompletePrefixLength > textLength) {
+                
+                doAutocomplete = false;
+            }
 
-                if (reuseAutocomplete) {
-                    onAutocomplete(mAutoCompleteResult);
-                }
+            mAutoCompletePrefixLength = textLength;
+
+            if (doAutocomplete && mAutoCompleteResult.startsWith(text)) {
+                
+                
+                onAutocomplete(mAutoCompleteResult);
+                doAutocomplete = false;
+            } else {
+                
+                
+                removeAutocomplete(editable);
+            }
+
+            if (mFilterListener != null) {
+                mFilterListener.onFilter(text, doAutocomplete ? ToolbarEditText.this : null);
             }
         }
 
