@@ -1044,33 +1044,14 @@ static CipherPref CipherPrefs[] = {
 static void
 setNonPkixOcspEnabled(int32_t ocspEnabled, nsIPrefBranch * pref)
 {
-  switch (ocspEnabled) {
-  case 0:
+  
+  
+  if (!ocspEnabled) {
     CERT_DisableOCSPChecking(CERT_GetDefaultCertDB());
     CERT_DisableOCSPDefaultResponder(CERT_GetDefaultCertDB());
-    break;
-  case 1:
+  } else {
     CERT_EnableOCSPChecking(CERT_GetDefaultCertDB());
     CERT_DisableOCSPDefaultResponder(CERT_GetDefaultCertDB());
-    break;
-  case 2:
-    {
-      char *signingCA = nullptr;
-      char *url = nullptr;
-
-      
-      pref->GetCharPref("security.OCSP.signingCA", &signingCA);
-      pref->GetCharPref("security.OCSP.URL", &url);
-
-      
-      CERT_EnableOCSPChecking(CERT_GetDefaultCertDB());
-      CERT_SetOCSPDefaultResponder(CERT_GetDefaultCertDB(), url, signingCA);
-      CERT_EnableOCSPDefaultResponder(CERT_GetDefaultCertDB());
-
-      nsMemory::Free(signingCA);
-      nsMemory::Free(url);
-    }
-    break;
   }
 }
 
