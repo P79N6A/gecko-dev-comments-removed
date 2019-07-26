@@ -1249,7 +1249,7 @@ pref("devtools.toolbox.footer.height", 250);
 pref("devtools.toolbox.sidebar.width", 500);
 pref("devtools.toolbox.host", "bottom");
 pref("devtools.toolbox.selectedTool", "webconsole");
-pref("devtools.toolbox.toolbarSpec", '["splitconsole", "paintflashing toggle","tilt toggle","scratchpad","resize toggle","eyedropper"]');
+pref("devtools.toolbox.toolbarSpec", '["splitconsole", "paintflashing toggle","tilt toggle","scratchpad","resize toggle","eyedropper","screenshot --fullpage"]');
 pref("devtools.toolbox.sideEnabled", true);
 pref("devtools.toolbox.zoomValue", "1");
 
@@ -1261,6 +1261,7 @@ pref("devtools.command-button-tilt.enabled", false);
 pref("devtools.command-button-scratchpad.enabled", false);
 pref("devtools.command-button-responsive.enabled", true);
 pref("devtools.command-button-eyedropper.enabled", false);
+pref("devtools.command-button-screenshot.enabled", false);
 
 
 
@@ -1274,6 +1275,8 @@ pref("devtools.inspector.remote", false);
 pref("devtools.inspector.show_pseudo_elements", true);
 
 pref("devtools.inspector.imagePreviewTooltipSize", 300);
+
+pref("devtools.inspector.showUserAgentStyles", false);
 
 
 pref("devtools.defaultColorUnit", "hex");
@@ -1464,7 +1467,7 @@ pref("browser.newtabpage.rows", 3);
 
 pref("browser.newtabpage.columns", 3);
 
-pref("browser.newtabpage.directorySource", "chrome://global/content/directoryLinks.json");
+pref("browser.newtabpage.directory.source", "chrome://global/content/directoryLinks.json");
 
 
 pref("full-screen-api.enabled", true);
@@ -1523,6 +1526,9 @@ pref("security.csp.speccompliant", true);
 pref("security.mixed_content.block_active_content", true);
 
 
+pref("security.cert_pinning.enforcement_level", 1);
+
+
 pref("plain_text.wrap_long_lines", true);
 
 
@@ -1567,6 +1573,8 @@ pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings"
 pref("ui.key.menuAccessKeyFocuses", true);
 #endif
 
+
+pref("media.eme.enabled", false);
 
 
 pref("browser.cache.auto_delete_cache_version", 1);
