@@ -394,5 +394,39 @@ AbstractFile.writeAtomic =
   return bytesWritten;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+AbstractFile.removeDir = function(path, options = {}) {
+  let iterator = new OS.File.DirectoryIterator(path);
+  if (!iterator.exists() && options.ignoreAbsent) {
+    return;
+  }
+
+  try {
+    for (let entry in iterator) {
+      if (entry.isDir) {
+        OS.File.removeDir(entry.path, options);
+      } else {
+        OS.File.remove(entry.path, options);
+      }
+    }
+  } finally {
+    iterator.close();
+  }
+
+  OS.File.removeEmptyDir(path);
+};
+
    exports.OS.Shared.AbstractFile = AbstractFile;
 })(this);
