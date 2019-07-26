@@ -382,6 +382,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
+        
         bool isWhitelisted =
           cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator()) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator());
@@ -395,7 +396,8 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
             cModel.Equals("GT-S7500", nsCaseInsensitiveCStringComparator()) ||
             cModel.Equals("GT-S7500T", nsCaseInsensitiveCStringComparator()) ||
             cModel.Equals("GT-S7500L", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("GT-S6500T", nsCaseInsensitiveCStringComparator()))
+            cModel.Equals("GT-S6500T", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()))
         {
           isWhitelisted = false;
         }
