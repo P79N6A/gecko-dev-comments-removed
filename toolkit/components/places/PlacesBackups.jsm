@@ -132,6 +132,13 @@ this.PlacesBackups = {
       let backupFolderPath = yield this.getBackupFolder();
       let iterator = new OS.File.DirectoryIterator(backupFolderPath);
       yield iterator.forEach(function(aEntry) {
+        
+        
+        if (aEntry.name.endsWith(".tmp")) {
+          OS.File.remove(aEntry.path);
+          return;
+        }
+
         let matches = aEntry.name.match(this._filenamesRegex);
         if (matches) {
           

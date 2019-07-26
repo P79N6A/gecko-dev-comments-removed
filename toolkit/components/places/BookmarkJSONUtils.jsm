@@ -100,9 +100,10 @@ this.BookmarkJSONUtils = Object.freeze({
       }
 
       
-      let tmpPath = OS.Path.join(OS.Constants.Path.tmpDir,
-                                 OS.Path.basename(aFilePath) + ".tmp");
-      yield OS.File.writeAtomic(aFilePath, jsonString, { tmpPath: tmpPath });
+      
+      
+      yield OS.File.writeAtomic(aFilePath, jsonString,
+                                { tmpPath: OS.Path.join(aFilePath + ".tmp") });
       return count;
     });
   },
