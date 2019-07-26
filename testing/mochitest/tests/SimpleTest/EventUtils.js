@@ -997,6 +997,25 @@ function synthesizeQuerySelectedText(aWindow)
 
 
 
+function synthesizeQueryCaretRect(aOffset, aWindow)
+{
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return null;
+  }
+  return utils.sendQueryContentEvent(utils.QUERY_CARET_RECT,
+                                     aOffset, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

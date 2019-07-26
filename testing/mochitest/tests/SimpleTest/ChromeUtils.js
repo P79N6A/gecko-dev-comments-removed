@@ -42,25 +42,6 @@ function synthesizeQueryTextContent(aOffset, aLength, aWindow)
 
 
 
-function synthesizeQueryCaretRect(aOffset, aWindow)
-{
-  var utils = _getDOMWindowUtils(aWindow);
-  if (!utils) {
-    return nullptr;
-  }
-  return utils.sendQueryContentEvent(utils.QUERY_CARET_RECT,
-                                     aOffset, 0, 0, 0);
-}
-
-
-
-
-
-
-
-
-
-
 
 
 function synthesizeQueryTextRect(aOffset, aLength, aWindow)
