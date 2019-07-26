@@ -42,6 +42,8 @@
 
 
 
+"use strict";
+
 const gDebugExpectedDurations = false;
 
 function ProgressReporter() {

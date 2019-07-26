@@ -4,6 +4,8 @@
 
 
 
+"use strict";
+
 importScripts("ProgressReporter.js");
 
 var gProfiles = [];
@@ -229,6 +231,7 @@ function makeSample(frames, extraInfo) {
 function cloneSample(sample) {
   return makeSample(sample.frames.slice(0), sample.extraInfo);
 }
+
 function parseRawProfile(requestID, params, rawProfile) {
   var progressReporter = new ProgressReporter();
   progressReporter.addListener(function (r) {
@@ -258,13 +261,12 @@ function parseRawProfile(requestID, params, rawProfile) {
     }
   }
 
-
   if (rawProfile.profileJSON && !rawProfile.profileJSON.meta && rawProfile.meta) {
     rawProfile.profileJSON.meta = rawProfile.meta;
   }
 
   if (typeof rawProfile == "object") {
-    switch (rawProfile.format) {
+    switch (rawProfile.format || null) {
       case "profileStringWithSymbolicationTable,1":
         symbolicationTable = rawProfile.symbolicationTable;
         parseProfileString(rawProfile.profileString);

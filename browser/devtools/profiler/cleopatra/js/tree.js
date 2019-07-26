@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 var kMaxChunkDuration = 30; 
 
 function escapeHTML(html) {
@@ -129,18 +131,16 @@ TreeView.prototype = {
       data: data[0].getData()
     });
     this._processPendingActionsChunk();
-    if (this._initSelection === true) {
-      this._initSelection = false;
-      this._select(this._horizontalScrollbox.firstChild);
-      this._toggle(this._horizontalScrollbox.firstChild);
-    }
     changeFocus(this._container);
   },
   
   getReverseSelectionSnapshot: function TreeView__getReverseSelectionSnapshot(isJavascriptOnly) {
-    if (!this._selectedNode)
-      return;
     var snapshot = [];
+
+    if (!this._selectedNode) {
+      return snapshot;
+    }
+
     var curr = this._selectedNode.data;
 
     while(curr) {

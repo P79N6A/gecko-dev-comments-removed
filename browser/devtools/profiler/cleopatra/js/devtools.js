@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 var gInstanceUID;
 var gParsedQS;
 var gHideSourceLinks;
@@ -95,8 +97,6 @@ window.addEventListener("message", onParentMessage);
 
 function initUI() {
   gHideSourceLinks = getParam("ext") === "true";
-  gLightMode = true;
-
   gFileList = { profileParsingFinished: function () {} };
   gInfoBar = { display: function () {} };
 
