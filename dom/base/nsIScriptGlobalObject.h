@@ -10,11 +10,11 @@
 #include "nsISupports.h"
 #include "nsEvent.h"
 #include "nsIGlobalObject.h"
+#include "js/TypeDecls.h"
 
 class nsIScriptContext;
 class nsScriptErrorEvent;
 class nsIScriptGlobalObject;
-class JSObject;
 
 
 

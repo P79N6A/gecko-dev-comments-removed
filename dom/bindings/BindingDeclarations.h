@@ -23,8 +23,6 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h" 
 
-struct JSContext;
-class JSObject;
 class nsWrapperCache;
 
 

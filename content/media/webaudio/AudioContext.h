@@ -17,6 +17,7 @@
 #include "nsDOMEventTargetHelper.h"
 #include "nsHashKeys.h"
 #include "nsTHashtable.h"
+#include "js/TypeDecls.h"
 
 
 
@@ -24,8 +25,6 @@
 #undef CurrentTime
 #endif
 
-struct JSContext;
-class JSObject;
 class nsPIDOMWindow;
 
 namespace mozilla {

@@ -7,6 +7,7 @@
 #define PROFILER_FUNCS_H
 
 #include "mozilla/NullPtr.h"
+#include "js/TypeDecls.h"
 #include <stdint.h>
 
 namespace mozilla {
@@ -16,9 +17,6 @@ class TimeStamp;
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
-
-struct JSContext;
-class JSObject;
 
 
 

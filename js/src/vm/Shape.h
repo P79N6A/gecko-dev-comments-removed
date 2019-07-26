@@ -93,8 +93,6 @@
 
 
 
-class JSObject;
-
 namespace js {
 
 class Bindings;

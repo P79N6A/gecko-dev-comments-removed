@@ -7,13 +7,23 @@
 #ifndef js_Id_h
 #define js_Id_h
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "jstypes.h"
 
-#include "js/IdForward.h"
+#include "js/TypeDecls.h"
 #include "js/Utility.h"
-
-class JSObject;
-class JSString;
 
 #ifdef JS_USE_JSID_STRUCT_TYPES
 struct jsid

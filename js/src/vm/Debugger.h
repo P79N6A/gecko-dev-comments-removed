@@ -365,7 +365,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    JSObject *newDebuggerSource(JSContext *cx, JS::HandleScriptSource source);
+    JSObject *newDebuggerSource(JSContext *cx, js::HandleScriptSource source);
 
     
 
@@ -528,7 +528,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    JSObject *wrapSource(JSContext *cx, JS::HandleScriptSource source);
+    JSObject *wrapSource(JSContext *cx, js::HandleScriptSource source);
 
   private:
     Debugger(const Debugger &) MOZ_DELETE;

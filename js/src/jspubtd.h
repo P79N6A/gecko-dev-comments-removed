@@ -15,21 +15,14 @@
 
 #include "jsprototypes.h"
 #include "jstypes.h"
-#include "jsversion.h"  
 
-#include "js/IdForward.h"
+#include "js/TypeDecls.h"
 
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING) || defined(DEBUG)
 # define JSGC_TRACK_EXACT_ROOTS
 #endif
 
 namespace JS {
-
-
-
-
-
-class Value;
 
 class AutoIdVector;
 class CallArgs;
@@ -45,12 +38,6 @@ class JS_PUBLIC_API(CompartmentOptions);
 struct Zone;
 
 } 
-
-#ifdef WIN32
-typedef wchar_t   jschar;
-#else
-typedef uint16_t  jschar;
-#endif
 
 
 
@@ -150,7 +137,6 @@ typedef enum {
 typedef struct JSClass                      JSClass;
 typedef struct JSCompartment                JSCompartment;
 typedef struct JSConstDoubleSpec            JSConstDoubleSpec;
-typedef struct JSContext                    JSContext;
 typedef struct JSCrossCompartmentCall       JSCrossCompartmentCall;
 typedef struct JSErrorReport                JSErrorReport;
 typedef struct JSExceptionState             JSExceptionState;
@@ -170,11 +156,7 @@ typedef struct JSStructuredCloneWriter      JSStructuredCloneWriter;
 typedef struct JSTracer                     JSTracer;
 
 class                                       JSFlatString;
-class                                       JSFunction;
-class                                       JSObject;
-class                                       JSScript;
 class                                       JSStableString;  
-class                                       JSString;
 
 #ifdef JS_THREADSAFE
 typedef struct PRCallOnceType   JSCallOnceType;

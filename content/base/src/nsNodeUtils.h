@@ -8,10 +8,9 @@
 
 #include "nsIContent.h"          
 #include "nsIMutationObserver.h" 
+#include "js/TypeDecls.h"
 
 struct CharacterDataChangeInfo;
-struct JSContext;
-class JSObject;
 class nsIVariant;
 class nsIDOMNode;
 class nsIDOMUserDataHandler;

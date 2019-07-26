@@ -103,8 +103,6 @@
 
 
 
-class JSFunction;
-
 namespace js {
 
 class ProfileEntry;

@@ -11,9 +11,6 @@
 
 #include "js/RootingAPI.h"
 
-struct JSContext;
-class JSObject;
-
 
 
 
@@ -25,7 +22,6 @@ class JSObject;
 
 extern JSObject *
 js_InitIntlClass(JSContext *cx, js::HandleObject obj);
-
 
 namespace js {
 

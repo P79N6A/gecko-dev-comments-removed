@@ -108,8 +108,6 @@ StructuredCloneData UnpackClonedMessageDataForChild(const ClonedMessageData& aDa
 } 
 
 class nsAXPCNativeCallContext;
-struct JSContext;
-class JSObject;
 
 struct nsMessageListenerInfo
 {
