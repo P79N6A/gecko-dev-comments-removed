@@ -2401,7 +2401,6 @@ SourceActor.prototype = {
 
 
   onPrettyPrint: function ({ indent }) {
-    console.time('pretty print');
     return this._getSourceText()
       .then(this._parseAST)
       .then(this._generatePrettyCodeAndMap(indent))
@@ -2412,11 +2411,7 @@ SourceActor.prototype = {
         from: this.actorID,
         error: "prettyPrintError",
         message: DevToolsUtils.safeErrorString(error)
-      }))
-      .then(p => {
-        console.timeEnd('pretty print');
-        return p;
-      });
+      }));
   },
 
   
@@ -2441,8 +2436,8 @@ SourceActor.prototype = {
           style: indent
         }
       },
-      
-      
+      sourceMap: this._url,
+      sourceMapWithCode: true
     });
   },
 
@@ -2452,36 +2447,36 @@ SourceActor.prototype = {
 
 
 
-
-
   _invertSourceMap: function SA__invertSourceMap({ code, map }) {
-    
-    
-    
-
-    map.setSourceContent(this._url, code);
-    const consumer = new SourceMapConsumer.fromSourceMap(map);
-    const getOrigPos = consumer.originalPositionFor.bind(consumer);
-    const getGenPos = consumer.generatedPositionFor.bind(consumer);
-
-    consumer.originalPositionFor = ({ line, column }) => {
-      const location = getGenPos({
-        line: line,
-        column: column,
-        source: this._url
-      });
-      location.source = this._url;
-      return location;
-    };
-
-    consumer.generatedPositionFor = ({ line, column }) => getOrigPos({
-      line: line,
-      column: column
+    const smc = new SourceMapConsumer(map.toJSON());
+    const invertedMap = new SourceMapGenerator({
+      file: this._url
     });
+
+    smc.eachMapping(m => {
+      if (!m.originalLine || !m.originalColumn) {
+        return;
+      }
+      const invertedMapping = {
+        source: m.source,
+        name: m.name,
+        original: {
+          line: m.generatedLine,
+          column: m.generatedColumn
+        },
+        generated: {
+          line: m.originalLine,
+          column: m.originalColumn
+        }
+      };
+      invertedMap.addMapping(invertedMapping);
+    });
+
+    invertedMap.setSourceContent(this._url, code);
 
     return {
       code: code,
-      map: consumer
+      map: new SourceMapConsumer(invertedMap.toJSON())
     };
   },
 
@@ -2496,7 +2491,7 @@ SourceActor.prototype = {
       
       this._sourceMap = SourceMapGenerator.fromSourceMap(this._sourceMap);
       this._sourceMap.applySourceMap(map, this._url);
-      this._sourceMap = SourceMapConsumer.fromSourceMap(this._sourceMap);
+      this._sourceMap = new SourceMapConsumer(this._sourceMap.toJSON());
       this._threadActor.sources.saveSourceMap(this._sourceMap,
                                               this._generatedSource);
     } else {
