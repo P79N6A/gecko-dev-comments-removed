@@ -279,6 +279,11 @@ protected:
   nsresult GetMode(int32_t *result);
 
   
+  void CheckJavaC2PJSObjectQuirk(uint16_t paramCount,
+                                 const char* const* names,
+                                 const char* const* values);
+
+  
   
   NPP_t mNPP;
 
@@ -355,6 +360,9 @@ private:
 
   nsIntSize mCurrentSize;
 #endif
+
+  
+  bool mHaveJavaC2PJSObjectQuirk;
 };
 
 #endif 
