@@ -19,7 +19,6 @@ import org.mozilla.gecko.health.BrowserHealthReporter;
 import org.mozilla.gecko.home.BrowserSearch;
 import org.mozilla.gecko.home.HomePager;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.home.SearchEngine;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.prompts.Prompt;
 import org.mozilla.gecko.util.Clipboard;
@@ -167,6 +166,12 @@ abstract public class BrowserApp extends GeckoApp
     private OrderedBroadcastHelper mOrderedBroadcastHelper;
 
     private BrowserHealthReporter mBrowserHealthReporter;
+
+    
+    
+    
+    
+    private boolean mHideWebContentOnAnimationEnd = false;
 
     private SiteIdentityPopup mSiteIdentityPopup;
 
@@ -1492,12 +1497,9 @@ abstract public class BrowserApp extends GeckoApp
 
 
 
-    private static void recordSearch(SearchEngine engine, String where) {
-        Log.i(LOGTAG, "Recording search: " +
-                      ((engine == null) ? "null" : engine.name) +
-                      ", " + where);
+    private static void recordSearch(String identifier, String where) {
+        Log.i(LOGTAG, "Recording search: " + identifier + ", " + where);
         try {
-            String identifier = (engine == null) ? "other" : engine.getEngineIdentifier();
             JSONObject message = new JSONObject();
             message.put("type", BrowserHealthRecorder.EVENT_SEARCH);
             message.put("location", where);
@@ -1578,7 +1580,38 @@ abstract public class BrowserApp extends GeckoApp
             final ViewStub homePagerStub = (ViewStub) findViewById(R.id.home_pager_stub);
             mHomePager = (HomePager) homePagerStub.inflate();
         }
+
         mHomePager.show(getSupportFragmentManager(), page, animator);
+
+        
+        hideWebContentOnPropertyAnimationEnd(animator);
+    }
+
+    private void hideWebContentOnPropertyAnimationEnd(final PropertyAnimator animator) {
+        if (animator == null) {
+            hideWebContent();
+            return;
+        }
+
+        animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+                mHideWebContentOnAnimationEnd = true;
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                if (mHideWebContentOnAnimationEnd) {
+                    hideWebContent();
+                }
+            }
+        });
+    }
+
+    private void hideWebContent() {
+        
+        
+        mLayerView.setVisibility(View.INVISIBLE);
     }
 
     private void hideHomePager() {
@@ -1590,6 +1623,12 @@ abstract public class BrowserApp extends GeckoApp
         if (tab != null && isAboutHome(tab)) {
             return;
         }
+
+        
+        mHideWebContentOnAnimationEnd = false;
+
+        
+        mLayerView.setVisibility(View.VISIBLE);
 
         if (mHomePager != null) {
             mHomePager.hide();
@@ -2312,9 +2351,9 @@ abstract public class BrowserApp extends GeckoApp
 
     
     @Override
-    public void onSearch(SearchEngine engine, String text) {
-        recordSearch(engine, "barsuggest");
-        openUrl(text, engine.name);
+    public void onSearch(String engineId, String text) {
+        recordSearch(engineId, "barsuggest");
+        openUrl(text, engineId);
     }
 
     
