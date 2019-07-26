@@ -29,6 +29,7 @@
 #endif
 
 #include "nsIContent.h"
+#include "nsIContentInlines.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
@@ -336,6 +337,18 @@ CheckPingURI(nsIURI* uri, nsIContent* content)
 typedef void (* ForEachPingCallback)(void *closure, nsIContent *content,
                                      nsIURI *uri, nsIIOService *ios);
 
+static bool
+IsElementAnchor(nsIContent* aContent)
+{
+  
+  
+  if (!aContent->IsHTML()) {
+    return false;
+  }
+  nsIAtom* nameAtom = aContent->Tag();
+  return nameAtom == nsGkAtoms::a || nameAtom == nsGkAtoms::area;
+}
+
 static void
 ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
 {
@@ -346,10 +359,7 @@ ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
 
   
   
-  if (!content->IsHTML())
-    return;
-  nsIAtom *nameAtom = content->Tag();
-  if (nameAtom != nsGkAtoms::a && nameAtom != nsGkAtoms::area)
+  if (!IsElementAnchor(content))
     return;
 
   nsCOMPtr<nsIAtom> pingAtom = do_GetAtom("ping");
@@ -9080,6 +9090,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 if (!newDoc || newDoc->IsInitialDocument()) {
                     isNewWindow = true;
                     aFlags |= INTERNAL_LOAD_FLAGS_FIRST_LOAD;
+
+                    
+                    if (aFlags & INTERNAL_LOAD_FLAGS_NO_OPENER) {
+                      piNewWin->SetOpenerWindow(nullptr, false);
+                    }
                 }
             }
 
@@ -12634,6 +12649,18 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
     }
   }
 
+  uint32_t flags = INTERNAL_LOAD_FLAGS_NONE;
+  if (IsElementAnchor(aContent)) {
+    MOZ_ASSERT(aContent->IsHTML());
+    if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::rel,
+                              NS_LITERAL_STRING("noreferrer"),
+                              aContent->IsInHTMLDocument() ?
+                              eIgnoreCase : eCaseMatters)) {
+        flags |= INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER |
+                 INTERNAL_LOAD_FLAGS_NO_OPENER;
+    }
+  }
+
   
   
   
@@ -12684,7 +12711,7 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
                              referer,                   
                              aContent->NodePrincipal(), 
                                                         
-                             INTERNAL_LOAD_FLAGS_NONE,
+                             flags,
                              target.get(),              
                              NS_LossyConvertUTF16toASCII(typeHint).get(),
                              aFileName,                 
