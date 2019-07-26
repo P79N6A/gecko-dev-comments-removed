@@ -14,7 +14,7 @@ function testSelectableSelection(aIdentifier, aSelectedChildren, aMsg)
   var len = aSelectedChildren.length;
 
   
-  var selectedChildren = acc.GetSelectedChildren();
+  var selectedChildren = acc.selectedItems;
   is(selectedChildren ? selectedChildren.length : 0, len,
      msg + "getSelectedChildren: wrong selected children count for " +
      prettyName(aIdentifier));
@@ -29,27 +29,25 @@ function testSelectableSelection(aIdentifier, aSelectedChildren, aMsg)
   }
 
   
-  
-  
-  
-  
+  is(acc.selectedItemCount, aSelectedChildren.length,
+     "selectedItemCount: wrong selected children count for " + prettyName(aIdentifier));
 
   
   for (var idx = 0; idx < len; idx++) {
     var expectedAcc = getAccessible(aSelectedChildren[idx]);
-    is(acc.refSelection(idx), expectedAcc,
-       msg + "refSelection: wrong selected child at index " + idx + " for " +
+    is(acc.getSelectedItemAt(idx), expectedAcc,
+       msg + "getSelectedItemAt: wrong selected child at index " + idx + " for " +
        prettyName(aIdentifier));
   }
 
   
-  testIsChildSelected(acc, acc, { value: 0 }, aSelectedChildren, msg);
+  testIsItemSelected(acc, acc, { value: 0 }, aSelectedChildren, msg);
 }
 
 
 
 
-function testIsChildSelected(aSelectAcc, aTraversedAcc, aIndexObj, aSelectedChildren, aMsg)
+function testIsItemSelected(aSelectAcc, aTraversedAcc, aIndexObj, aSelectedChildren, aMsg)
 {
   var childCount = aTraversedAcc.childCount;
   for (var idx = 0; idx < childCount; idx++) {
@@ -66,8 +64,8 @@ function testIsChildSelected(aSelectAcc, aTraversedAcc, aIndexObj, aSelectedChil
       }
 
       
-      is(aSelectAcc.isChildSelected(aIndexObj.value++), isSelected,
-         aMsg + "isChildSelected: wrong selected child " + prettyName(child) +
+      is(aSelectAcc.isItemSelected(aIndexObj.value++), isSelected,
+         aMsg + "isItemSelected: wrong selected child " + prettyName(child) +
          " for " + prettyName(aSelectAcc));
 
       
@@ -77,6 +75,6 @@ function testIsChildSelected(aSelectAcc, aTraversedAcc, aIndexObj, aSelectedChil
       continue;
     }
 
-    testIsChildSelected(aSelectAcc, child, aIndexObj, aSelectedChildren);
+    testIsItemSelected(aSelectAcc, child, aIndexObj, aSelectedChildren);
   }
 }
