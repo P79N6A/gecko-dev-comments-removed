@@ -1124,8 +1124,8 @@ protected:
   Attr* GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
                                    const nsAString& aLocalName);
 
-  inline void RegisterFreezableElement();
-  inline void UnregisterFreezableElement();
+  inline void RegisterActivityObserver();
+  inline void UnregisterActivityObserver();
 
   
 

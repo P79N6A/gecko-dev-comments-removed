@@ -28,7 +28,7 @@ HTMLSharedObjectElement::HTMLSharedObjectElement(already_AddRefed<nsINodeInfo>& 
   : nsGenericHTMLElement(aNodeInfo),
     mIsDoneAddingChildren(mNodeInfo->Equals(nsGkAtoms::embed) || !aFromParser)
 {
-  RegisterFreezableElement();
+  RegisterActivityObserver();
   SetIsNetworkCreated(aFromParser == FROM_PARSER_NETWORK);
 
   
@@ -57,7 +57,7 @@ HTMLSharedObjectElement::SetItemValueText(const nsAString& aValue)
 
 HTMLSharedObjectElement::~HTMLSharedObjectElement()
 {
-  UnregisterFreezableElement();
+  UnregisterActivityObserver();
   DestroyImageLoadingContent();
 }
 

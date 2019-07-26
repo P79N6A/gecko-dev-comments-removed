@@ -187,12 +187,12 @@ public:
 
 
 
-  static void BeginSwapDocShells(nsIContent* aContent, void*);
+  static void BeginSwapDocShells(nsISupports* aSupports, void*);
   
 
 
 
-  static void EndSwapDocShells(nsIContent* aContent, void*);
+  static void EndSwapDocShells(nsISupports* aSupports, void*);
 
   nsIWidget* GetWidget() MOZ_OVERRIDE { return mInnerView ? mWidget : nullptr; }
 

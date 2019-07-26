@@ -1697,10 +1697,17 @@ public:
 
   bool IsActive() const { return mDocumentContainer && !mRemovedFromDocShell; }
 
-  void RegisterFreezableElement(nsIContent* aContent);
-  bool UnregisterFreezableElement(nsIContent* aContent);
-  typedef void (* FreezableElementEnumerator)(nsIContent*, void*);
-  void EnumerateFreezableElements(FreezableElementEnumerator aEnumerator,
+  
+
+
+
+
+
+  void RegisterActivityObserver(nsISupports* aSupports);
+  bool UnregisterActivityObserver(nsISupports* aSupports);
+  
+  typedef void (* ActivityObserverEnumerator)(nsISupports*, void*);
+  void EnumerateActivityObservers(ActivityObserverEnumerator aEnumerator,
                                   void* aData);
 
   
@@ -2389,7 +2396,8 @@ protected:
   
   
   
-  nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
+  
+  nsAutoPtr<nsTHashtable<nsPtrHashKey<nsISupports> > > mActivityObservers;
 
   
   

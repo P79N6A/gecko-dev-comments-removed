@@ -471,7 +471,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
     if (aNode->IsElement()) {
       Element* element = aNode->AsElement();
       oldDoc->ClearBoxObjectFor(element);
-      wasRegistered = oldDoc->UnregisterFreezableElement(element);
+      wasRegistered = oldDoc->UnregisterActivityObserver(element);
     }
 
     aNode->mNodeInfo.swap(newNodeInfo);
@@ -484,7 +484,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
       
       
       if (wasRegistered) {
-        newDoc->RegisterFreezableElement(aNode->AsElement());
+        newDoc->RegisterActivityObserver(aNode->AsElement());
       }
 
       nsPIDOMWindow* window = newDoc->GetInnerWindow();
