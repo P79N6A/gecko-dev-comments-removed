@@ -19,9 +19,9 @@
 namespace mozilla {
 
 class DtlsIdentity {
- public:
   ~DtlsIdentity();
 
+ public:
   
   static TemporaryRef<DtlsIdentity> Generate();
 
