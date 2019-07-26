@@ -323,6 +323,7 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
   leaks = open(leakLogFileName, "r")
   crashedOnPurpose = False
   totalBytesLeaked = None
+  leakedObjectNames = []
   for line in leaks:
     if line.find("purposefully crash") > -1:
       crashedOnPurpose = True
@@ -342,6 +343,7 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
       totalBytesLeaked = bytesLeaked
     else:
       if numLeaked != 0:
+        leakedObjectNames.append(name)
         if numLeaked > 1:
           instance = "instances"
           rest = " each (%s bytes total)" % matches.group("bytesLeaked")
@@ -364,16 +366,25 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
     else:
       log.info("WARNING | leakcheck | missing output line for total leaks!")
   else:
-    
-    if totalBytesLeaked < 0 or totalBytesLeaked > leakThreshold:
-      leakLog = "TEST-UNEXPECTED-FAIL %s| leakcheck | leaked" \
-                " %d bytes during test execution" % (processString, totalBytesLeaked)
-    elif totalBytesLeaked > 0:
-      leakLog = "TEST-PASS %s| leakcheck | WARNING leaked" \
-                " %d bytes during test execution" % (processString, totalBytesLeaked)
+    if totalBytesLeaked == 0:
+      leakLog = "TEST-PASS %s| leakcheck | no leaks detected!" % (processString)
     else:
-      leakLog = "TEST-PASS %s| leakcheck | no leaks detected!" \
-                % processString
+      
+      if totalBytesLeaked > leakThreshold:
+        prefix = "TEST-UNEXPECTED-FAIL"
+      else:
+        prefix = "WARNING"
+      
+      
+      maxSummaryObjects = 5
+      leakedObjectSummary = ', '.join(leakedObjectNames[:maxSummaryObjects])
+      
+      
+      
+      if len(leakedObjectNames) > maxSummaryObjects:
+        leakedObjectSummary += ', ...'
+      leakLog = "%s %s| leakcheck | %d bytes leaked (%s)" \
+                % (prefix, processString, totalBytesLeaked, leakedObjectSummary)
     
     if leakThreshold != 0:
       leakLog += " (threshold set at %d bytes)" % leakThreshold
