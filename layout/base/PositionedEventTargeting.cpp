@@ -204,16 +204,62 @@ ComputeDistanceFromRect(const nsPoint& aPoint, const nsRect& aRect)
   return float(NS_hypot(dx, dy));
 }
 
+static float
+ComputeDistanceFromRegion(const nsPoint& aPoint, const nsRegion& aRegion)
+{
+  nsRegionRectIterator iter(aRegion);
+  const nsRect* r;
+  float minDist = -1;
+  while ((r = iter.Next()) != nullptr) {
+    float dist = ComputeDistanceFromRect(aPoint, *r);
+    if (dist < minDist || minDist < 0) {
+      minDist = dist;
+    }
+  }
+  return minDist;
+}
+
+
+
+static void
+SubtractFromExposedRegion(nsRegion* aExposedRegion, const nsRegion& aRegion)
+{
+  if (aRegion.IsEmpty())
+    return;
+
+  nsRegion tmp;
+  tmp.Sub(*aExposedRegion, aRegion);
+  
+  
+  
+  if (tmp.GetNumRects() <= 15 || tmp.Area() <= aExposedRegion->Area()/2) {
+    *aExposedRegion = tmp;
+  }
+}
+
 static nsIFrame*
 GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
-           const EventRadiusPrefs* aPrefs, nsIFrame* aRestrictToDescendants,
-           nsTArray<nsIFrame*>& aCandidates)
+           const nsRect& aTargetRect, const EventRadiusPrefs* aPrefs,
+           nsIFrame* aRestrictToDescendants, nsTArray<nsIFrame*>& aCandidates)
 {
   nsIFrame* bestTarget = nullptr;
   
   float bestDistance = 1e6f;
+  nsRegion exposedRegion(aTargetRect);
   for (uint32_t i = 0; i < aCandidates.Length(); ++i) {
     nsIFrame* f = aCandidates[i];
+
+    bool preservesAxisAlignedRectangles = false;
+    nsRect borderBox = nsLayoutUtils::TransformFrameRectToAncestor(f,
+        nsRect(nsPoint(0, 0), f->GetSize()), aRoot, &preservesAxisAlignedRectangles);
+    nsRegion region;
+    region.And(exposedRegion, borderBox);
+    if (preservesAxisAlignedRectangles) {
+      
+      
+      SubtractFromExposedRegion(&exposedRegion, region);
+    }
+
     if (!IsElementClickable(f)) {
       continue;
     }
@@ -226,10 +272,8 @@ GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
       continue;
     }
 
-    nsRect borderBox = nsLayoutUtils::TransformFrameRectToAncestor(f,
-        nsRect(nsPoint(0, 0), f->GetSize()), aRoot);
     
-    float distance = ComputeDistanceFromRect(aPointRelativeToRootFrame, borderBox);
+    float distance = ComputeDistanceFromRegion(aPointRelativeToRootFrame, region);
     nsIContent* content = f->GetContent();
     if (content && content->IsElement() &&
         content->AsElement()->State().HasState(nsEventStates(NS_EVENT_STATE_VISITED))) {
@@ -283,7 +327,7 @@ FindFrameTargetedByInputEvent(const nsGUIEvent *aEvent,
   nsIFrame* restrictToDescendants = target ?
     target->PresContext()->PresShell()->GetRootFrame() : aRootFrame;
   nsIFrame* closestClickable =
-    GetClosest(aRootFrame, aPointRelativeToRootFrame, prefs,
+    GetClosest(aRootFrame, aPointRelativeToRootFrame, targetRect, prefs,
                restrictToDescendants, candidates);
   return closestClickable ? closestClickable : target;
 }
