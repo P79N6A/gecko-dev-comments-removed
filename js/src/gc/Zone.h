@@ -272,10 +272,8 @@ struct Zone : public JS::shadow::Zone,
 
 
 
-        ptrdiff_t oldCount = gcMallocBytes;
-        ptrdiff_t newCount = oldCount - ptrdiff_t(nbytes);
-        gcMallocBytes = newCount;
-        if (JS_UNLIKELY(newCount <= 0 && oldCount > 0))
+        gcMallocBytes -= ptrdiff_t(nbytes);
+        if (JS_UNLIKELY(isTooMuchMalloc()))
             onTooMuchMalloc();
     }
 
