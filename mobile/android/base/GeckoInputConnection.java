@@ -243,6 +243,12 @@ class GeckoInputConnection
         return super.setSelection(newSelection.start, newSelection.end);
     }
 
+    private static void postToUiThread(Runnable runnable) {
+        
+        
+        GeckoApp.mAppContext.mMainHandler.post(runnable);
+    }
+
     @Override
     public CharSequence getTextBeforeCursor(int length, int flags) {
         
@@ -991,16 +997,6 @@ class GeckoInputConnection
     }
 
     public void notifyIME(int type, int state) {
-        
-        
-        
-        if (typeHint.equals("date") || typeHint.equals("time") ||
-            (Build.VERSION.SDK_INT > 10 &&
-            (typeHint.equals("datetime") || typeHint.equals("month") ||
-            typeHint.equals("week") || typeHint.equals("datetime-local")))) {
-            return;
-        }
-
         View v = getView();
         if (v == null)
             return;
@@ -1048,6 +1044,16 @@ class GeckoInputConnection
     }
 
     public void notifyIMEEnabled(int state, String typeHint, final String modeHint, String actionHint) {
+        
+        
+        
+        if (typeHint.equals("date") || typeHint.equals("time") ||
+            (Build.VERSION.SDK_INT > 10 &&
+            (typeHint.equals("datetime") || typeHint.equals("month") ||
+            typeHint.equals("week") || typeHint.equals("datetime-local")))) {
+            return;
+        }
+
         View v = getView();
 
         if (v == null)
