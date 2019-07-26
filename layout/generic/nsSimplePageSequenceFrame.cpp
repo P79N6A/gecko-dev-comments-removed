@@ -3,7 +3,7 @@
 
 
 
-#include "nsSimplePageSequence.h"
+#include "nsSimplePageSequenceFrame.h"
 
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"

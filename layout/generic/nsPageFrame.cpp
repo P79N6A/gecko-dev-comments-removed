@@ -11,7 +11,7 @@
 #include "nsPageContentFrame.h"
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h" 
-#include "nsSimplePageSequence.h" 
+#include "nsSimplePageSequenceFrame.h" 
 #include "nsTextFormatter.h" 
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"

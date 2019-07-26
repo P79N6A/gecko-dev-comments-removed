@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsSimplePageSequence_h___
-#define nsSimplePageSequence_h___
+#ifndef nsSimplePageSequenceFrame_h___
+#define nsSimplePageSequenceFrame_h___
 
 #include "mozilla/Attributes.h"
 #include "nsIPageSequenceFrame.h"
