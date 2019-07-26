@@ -210,17 +210,7 @@ IncomingMessage.prototype = Object.create(PassThrough.prototype, { constructor: 
 
 IncomingMessage.prototype._onHeaders = function _onHeaders(headers) {
   
-  
-  
-  
-  for (var i = 0; i < deprecatedHeaders.length; i++) {
-    var key = deprecatedHeaders[i];
-    if (key in headers) {
-      this._log.error({ key: key, value: headers[key] }, 'Deprecated header found');
-      this.stream.emit('error', 'PROTOCOL_ERROR');
-      return;
-    }
-  }
+  this._validateHeaders(headers);
 
   
   for (var name in headers) {
@@ -245,12 +235,41 @@ IncomingMessage.prototype.setTimeout = noop;
 IncomingMessage.prototype._checkSpecialHeader = function _checkSpecialHeader(key, value) {
   if ((typeof value !== 'string') || (value.length === 0)) {
     this._log.error({ key: key, value: value }, 'Invalid or missing special header field');
-    this.stream.emit('error', 'PROTOCOL_ERROR');
+    this.stream.reset('PROTOCOL_ERROR');
   }
 
   return value;
-}
-;
+};
+
+IncomingMessage.prototype._validateHeaders = function _validateHeaders(headers) {
+  
+  
+  
+  
+  for (var i = 0; i < deprecatedHeaders.length; i++) {
+    var key = deprecatedHeaders[i];
+    if (key in headers) {
+      this._log.error({ key: key, value: headers[key] }, 'Deprecated header found');
+      this.stream.reset('PROTOCOL_ERROR');
+      return;
+    }
+  }
+
+  for (var headerName in headers) {
+    
+    if (headerName.length <= 1) {
+      this.stream.reset('PROTOCOL_ERROR');
+      return;
+    }
+    
+    
+    
+    if(/[A-Z]/.test(headerName)) {
+      this.stream.reset('PROTOCOL_ERROR');
+      return;
+    }
+  }
+};
 
 
 
