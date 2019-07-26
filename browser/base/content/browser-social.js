@@ -80,6 +80,10 @@ let SocialUI = {
     let accesskey = gNavigatorBundle.getString("social.toggle.accesskey");
     toggleCommand.setAttribute("label", label);
     toggleCommand.setAttribute("accesskey", accesskey);
+    
+    
+    if (Services.appinfo.inSafeMode)
+      toggleCommand.setAttribute("checked", Services.prefs.getBoolPref("social.enabled"));
 
     SocialToolbar.init();
     SocialShareButton.init();
