@@ -90,7 +90,7 @@ ElementManager.prototype = {
     this.seenItems[id] = Components.utils.getWeakReference(element);
     return id;
   },
-  
+
   
 
 
@@ -124,8 +124,13 @@ ElementManager.prototype = {
     }
     return el;
   },
+
   
-  
+
+
+
+
+
 
 
 
@@ -136,20 +141,25 @@ ElementManager.prototype = {
 
 
   wrapValue: function EM_wrapValue(val) {
-    let result;
-    switch(typeof(val)) {
+    let result = null;
+
+    switch (typeof(val)) {
       case "undefined":
         result = null;
         break;
+
       case "string":
       case "number":
       case "boolean":
         result = val;
         break;
+
       case "object":
-        if (Object.prototype.toString.call(val) == '[object Array]') {
+        let type = Object.prototype.toString.call(val);
+        if (type == "[object Array]" ||
+            type == "[object NodeList]") {
           result = [];
-          for (let i in val) {
+          for (let i = 0; i < val.length; ++i) {
             result.push(this.wrapValue(val[i]));
           }
         }
@@ -167,9 +177,10 @@ ElementManager.prototype = {
         }
         break;
     }
+
     return result;
   },
-  
+
   
 
 
@@ -216,11 +227,11 @@ ElementManager.prototype = {
     }
     return converted;
   },
-  
+
   
 
 
-  
+
   
 
 
@@ -245,7 +256,7 @@ ElementManager.prototype = {
     });
     return namedArgs;
   },
-  
+
   
 
 
@@ -352,7 +363,7 @@ ElementManager.prototype = {
     }
     return elements;
   },
-  
+
   
 
 
@@ -373,12 +384,12 @@ ElementManager.prototype = {
     switch (using) {
       case ID:
         element = startNode.getElementById ?
-                  startNode.getElementById(value) : 
+                  startNode.getElementById(value) :
                   this.findByXPath(rootNode, './/*[@id="' + value + '"]', startNode);
         break;
       case NAME:
         element = startNode.getElementsByName ?
-                  startNode.getElementsByName(value)[0] : 
+                  startNode.getElementsByName(value)[0] :
                   this.findByXPath(rootNode, './/*[@name="' + value + '"]', startNode);
         break;
       case CLASS_NAME:
@@ -438,7 +449,7 @@ ElementManager.prototype = {
         break;
       case NAME:
         elements = startNode.getElementsByName ?
-                   startNode.getElementsByName(value) : 
+                   startNode.getElementsByName(value) :
                    this.findByXPathAll(rootNode, './/*[@name="' + value + '"]', startNode);
         break;
       case CLASS_NAME:
