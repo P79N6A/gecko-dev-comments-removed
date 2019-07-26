@@ -70,10 +70,9 @@ public interface TelemetryContract {
 
 
 
-    public interface Method {
-        
-        public static final String LIST = "list";
 
+
+    public interface Method {
         
         public static final String ACTIONBAR = "actionbar";
 
@@ -84,38 +83,49 @@ public interface TelemetryContract {
         public static final String BUTTON = "button";
 
         
-        public static final String DIALOG = "dialog";
-
-        
-        public static final String INTENT = "intent";
-
-        
-        public static final String MENU = "menu";
-
-        
         public static final String CONTEXT_MENU = "contextmenu";
+
+        
+        public static final String DIALOG = "dialog";
 
         
         public static final String GRID_ITEM = "griditem";
 
         
+        public static final String INTENT = "intent";
+
+        
+        public static final String LIST = "list";
+
+        
         public static final String LIST_ITEM = "listitem";
 
         
-        public static final String SUGGESTION = "suggestion";
+        public static final String MENU = "menu";
 
         
         
         public static final String PAGEACTION = "pageaction";
+
+        
+        public static final String SUGGESTION = "suggestion";
     }
 
     
 
 
 
+
+
     public interface Session {
         
         public static final String AWESOMESCREEN = "awesomescreen.1";
+
+        
+        public static final String FIRSTRUN = "firstrun.1";
+
+        
+        public static final String FRECENCY = "frecency.1";
 
         
         public static final String HOME = "home.1";
@@ -127,15 +137,11 @@ public interface TelemetryContract {
         
         
         public static final String READER = "reader.1";
-
-        
-        public static final String FRECENCY = "frecency.1";
-
-        
-        public static final String FIRSTRUN = "firstrun.1";
     }
 
     
+
+
 
 
 
