@@ -47,6 +47,13 @@ public:
 
 
   static uint64_t GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext);
+
+  
+
+
+
+
+  static void ReportPendingException(JSContext *aContext);
 };
 
 

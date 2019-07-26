@@ -1650,6 +1650,11 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     if (!result)
       return NS_ERROR_DOM_SECURITY_ERR;
 
+    if (!aTargetObj) {
+        
+        return NS_OK;
+    }
+
     
 
 
