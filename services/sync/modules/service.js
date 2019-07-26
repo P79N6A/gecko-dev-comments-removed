@@ -417,6 +417,9 @@ WeaveSvc.prototype = {
       engines = pref.split(",");
     }
 
+    
+    this.clientsEngine = Clients;
+
     for (let name of engines) {
       if (!name in ENGINE_MODULES) {
         this._log.info("Do not know about engine: " + name);
@@ -818,7 +821,7 @@ WeaveSvc.prototype = {
     
     if (this.clusterURL != "") {
       
-      for each (let engine in [Clients].concat(this.engineManager.getAll())) {
+      for each (let engine in [this.clientsEngine].concat(this.engineManager.getAll())) {
         try {
           engine.removeClientData();
         } catch(ex) {
@@ -1237,7 +1240,7 @@ WeaveSvc.prototype = {
     Records.set(this.metaURL, meta);
 
     
-    let engines = [Clients].concat(this.engineManager.getAll());
+    let engines = [this.clientsEngine].concat(this.engineManager.getAll());
     let collections = [engine.name for each (engine in engines)];
 
     
@@ -1311,7 +1314,7 @@ WeaveSvc.prototype = {
       
       this.resetService();
 
-      engines = [Clients].concat(this.engineManager.getAll());
+      engines = [this.clientsEngine].concat(this.engineManager.getAll());
     }
     
     else {
@@ -1346,15 +1349,15 @@ WeaveSvc.prototype = {
 
       
       if (engines) {
-        engines.forEach(function(e) Clients.sendCommand("wipeEngine", [e]), this);
+        engines.forEach(function(e) this.clientsEngine.sendCommand("wipeEngine", [e]), this);
       }
       
       else {
-        Clients.sendCommand("wipeAll", []);
+        this.clientsEngine.sendCommand("wipeAll", []);
       }
 
       
-      Clients.sync();
+      this.clientsEngine.sync();
     } catch (ex) {
       this.errorHandler.checkServerError(ex);
       throw ex;
@@ -1387,7 +1390,7 @@ WeaveSvc.prototype = {
         
         this.resetService();
 
-        engines = [Clients].concat(this.engineManager.getAll());
+        engines = [this.clientsEngine].concat(this.engineManager.getAll());
       }
       
       else {
