@@ -3,6 +3,9 @@
 
 
 
+#ifndef __NS_SVGINNERSVGFRAME_H__
+#define __NS_SVGINNERSVGFRAME_H__
+
 #include "mozilla/Attributes.h"
 #include "nsSVGContainerFrame.h"
 #include "nsISVGSVGFrame.h"
@@ -71,3 +74,6 @@ protected:
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
 };
+
+#endif
+
