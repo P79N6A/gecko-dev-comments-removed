@@ -431,7 +431,7 @@ public:
     }
 #endif
 
-    virtual void SetEGLSurfaceOverride(void* surf) MOZ_OVERRIDE {
+    virtual void SetEGLSurfaceOverride(EGLSurface surf) MOZ_OVERRIDE {
         if (Screen()) {
             
 

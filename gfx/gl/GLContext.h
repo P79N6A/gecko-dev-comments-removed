@@ -2460,7 +2460,7 @@ public:
 
 
 
-    virtual void SetEGLSurfaceOverride(void* surf) {
+    virtual void SetEGLSurfaceOverride(EGLSurface surf) {
         MOZ_CRASH("Must be called against a GLContextEGL.");
     }
 
