@@ -147,6 +147,9 @@ class BumpChunk
 
 } 
 
+void
+CrashAtUnhandlableOOM(const char *reason);
+
 
 
 
@@ -269,6 +272,14 @@ class LifoAlloc
         return result;
     }
 
+    MOZ_ALWAYS_INLINE
+    void *allocInfallible(size_t n) {
+        if (void *result = alloc(n))
+            return result;
+        CrashAtUnhandlableOOM("LifoAlloc::allocInfallible");
+        return nullptr;
+    }
+
     
     
     
@@ -385,6 +396,7 @@ class LifoAlloc
     }
 
     JS_DECLARE_NEW_METHODS(new_, alloc, MOZ_ALWAYS_INLINE)
+    JS_DECLARE_NEW_METHODS(newInfallible, allocInfallible, MOZ_ALWAYS_INLINE)
 
     
     class Enum
@@ -490,6 +502,12 @@ class LifoAllocScope
     }
 };
 
+enum Fallibility {
+    Fallible,
+    Infallible
+};
+
+template <Fallibility fb>
 class LifoAllocPolicy
 {
     LifoAlloc &alloc_;
@@ -499,18 +517,19 @@ class LifoAllocPolicy
       : alloc_(alloc)
     {}
     void *malloc_(size_t bytes) {
-        return alloc_.alloc(bytes);
+        return fb == Fallible ? alloc_.alloc(bytes) : alloc_.allocInfallible(bytes);
     }
     void *calloc_(size_t bytes) {
         void *p = malloc_(bytes);
-        if (p)
-            memset(p, 0, bytes);
+        if (fb == Fallible && !p)
+            return nullptr;
+        memset(p, 0, bytes);
         return p;
     }
     void *realloc_(void *p, size_t oldBytes, size_t bytes) {
         void *n = malloc_(bytes);
-        if (!n)
-            return n;
+        if (fb == Fallible && !n)
+            return nullptr;
         memcpy(n, p, Min(oldBytes, bytes));
         return n;
     }

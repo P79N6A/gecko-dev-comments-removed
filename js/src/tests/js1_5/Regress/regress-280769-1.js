@@ -19,6 +19,9 @@ var a = new Array(N + 1);
 var prefix = a.join("z"); 
 var str = prefix+"[AB]"; 
 var re = new RegExp(str);
-re.exec(prefix+"A");
-
-reportCompare(expect, actual, status);
+try { 
+  re.exec(prefix+"A");
+  reportCompare(expect, actual, status);
+} catch (e) {
+  reportCompare(true, e instanceof Error, actual, status);
+}

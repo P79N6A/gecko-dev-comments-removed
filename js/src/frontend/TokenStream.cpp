@@ -291,7 +291,7 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     
     
     
-    userbuf.setAddressOfNextRawChar(base);
+    userbuf.setAddressOfNextRawChar(base,  true);
 
     
     
@@ -629,6 +629,17 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     } else {
         err.report.lineno = srcCoords.lineNum(offset);
         err.report.column = srcCoords.columnIndex(offset);
+    }
+
+    
+    if (offset != NoOffset && !err.report.filename && cx->isJSContext()) {
+        NonBuiltinFrameIter iter(cx->asJSContext(),
+                                 FrameIter::ALL_CONTEXTS, FrameIter::GO_THROUGH_SAVED,
+                                 cx->compartment()->principals);
+        if (!iter.done() && iter.scriptFilename()) {
+            err.report.filename = iter.scriptFilename();
+            err.report.lineno = iter.computeLine(&err.report.column);
+        }
     }
 
     err.argumentsType = (flags & JSREPORT_UC) ? ArgumentsAreUnicode : ArgumentsAreASCII;

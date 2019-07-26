@@ -22,9 +22,13 @@ var re = new RegExp(prefix+"0?"+suffix);
 
 var str_to_match = prefix+suffix;  
 
-var index = str_to_match.search(re);
+try {
+  var index = str_to_match.search(re);
 
-expect = 0;
-actual = index;
+  expect = 0;
+  actual = index;
 
-reportCompare(expect, actual, summary);
+  reportCompare(expect, actual, summary);
+} catch (e) {
+  reportCompare(true, e instanceof Error, actual, summary);
+}

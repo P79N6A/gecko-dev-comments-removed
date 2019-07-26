@@ -6,10 +6,6 @@
 
 
 
-
-
-
-
 function isRegExpSyntaxError(pattern) {
     try {
         var re = new RegExp(pattern);
@@ -20,9 +16,9 @@ function isRegExpSyntaxError(pattern) {
     return false;
 }
 
-assertEq(isRegExpSyntaxError('[C-\\s]'), true);
-assertEq(isRegExpSyntaxError('[C-\\d]'), true);
-assertEq(isRegExpSyntaxError('[C-\\W]'), true);
+
+
+
 assertEq(isRegExpSyntaxError('[C-]'), false);
 assertEq(isRegExpSyntaxError('[-C]'), false);
 assertEq(isRegExpSyntaxError('[C-C]'), false);
@@ -31,8 +27,8 @@ assertEq(isRegExpSyntaxError('[\\b-\\b]'), false);
 assertEq(isRegExpSyntaxError('[\\B-\\B]'), false);
 assertEq(isRegExpSyntaxError('[\\b-\\B]'), false);
 assertEq(isRegExpSyntaxError('[\\B-\\b]'), true);
-assertEq(isRegExpSyntaxError('[\\b-\\w]'), true);
-assertEq(isRegExpSyntaxError('[\\B-\\w]'), true);
+
+
 
 
 assertEq(isRegExpSyntaxError('[\\s-\\s]'), false);

@@ -19,6 +19,8 @@ js_InitRegExpClass(JSContext *cx, js::HandleObject obj);
 
 namespace js {
 
+class MatchConduit;
+
 
 
 enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };

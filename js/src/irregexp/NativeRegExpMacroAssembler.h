@@ -1,0 +1,224 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef V8_NATIVE_REGEXP_MACRO_ASSEMBLER_H_
+#define V8_NATIVE_REGEXP_MACRO_ASSEMBLER_H_
+
+#ifdef JS_ION
+
+#include "irregexp/RegExpMacroAssembler.h"
+
+namespace js {
+namespace irregexp {
+
+struct InputOutputData
+{
+    const jschar *inputStart;
+    const jschar *inputEnd;
+
+    
+    size_t startIndex;
+
+    MatchPairs *matches;
+
+    
+    
+    int32_t result;
+
+    InputOutputData(const jschar *inputStart, const jschar *inputEnd,
+                    size_t startIndex, MatchPairs *matches)
+      : inputStart(inputStart),
+        inputEnd(inputEnd),
+        startIndex(startIndex),
+        matches(matches),
+        result(0)
+    {}
+};
+
+struct FrameData
+{
+    
+    jschar *inputStart;
+    size_t startIndex;
+
+    
+    jschar *inputStartMinusOne;
+
+    
+    int32_t *outputRegisters;
+    int32_t numOutputRegisters;
+
+    int32_t successfulCaptures;
+
+    void *backtrackStackBase;
+};
+
+class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
+{
+  public:
+    
+    enum Mode { ASCII = 1, JSCHAR = 2 };
+
+    NativeRegExpMacroAssembler(LifoAlloc *alloc, RegExpShared *shared,
+                               JSRuntime *rt, Mode mode, int registers_to_save);
+
+    
+    RegExpCode GenerateCode(JSContext *cx);
+    int stack_limit_slack();
+    bool CanReadUnaligned();
+    void AdvanceCurrentPosition(int by);
+    void AdvanceRegister(int reg, int by);
+    void Backtrack();
+    void Bind(jit::Label* label);
+    void CheckAtStart(jit::Label* on_at_start);
+    void CheckCharacter(unsigned c, jit::Label* on_equal);
+    void CheckCharacterAfterAnd(unsigned c, unsigned and_with, jit::Label* on_equal);
+    void CheckCharacterGT(jschar limit, jit::Label* on_greater);
+    void CheckCharacterLT(jschar limit, jit::Label* on_less);
+    void CheckGreedyLoop(jit::Label* on_tos_equals_current_position);
+    void CheckNotAtStart(jit::Label* on_not_at_start);
+    void CheckNotBackReference(int start_reg, jit::Label* on_no_match);
+    void CheckNotBackReferenceIgnoreCase(int start_reg, jit::Label* on_no_match);
+    void CheckNotCharacter(unsigned c, jit::Label* on_not_equal);
+    void CheckNotCharacterAfterAnd(unsigned c, unsigned and_with, jit::Label* on_not_equal);
+    void CheckNotCharacterAfterMinusAnd(jschar c, jschar minus, jschar and_with,
+                                        jit::Label* on_not_equal);
+    void CheckCharacterInRange(jschar from, jschar to,
+                               jit::Label* on_in_range);
+    void CheckCharacterNotInRange(jschar from, jschar to,
+                                  jit::Label* on_not_in_range);
+    void CheckBitInTable(uint8_t *table, jit::Label* on_bit_set);
+    void CheckPosition(int cp_offset, jit::Label* on_outside_input);
+    void JumpOrBacktrack(jit::Label *to);
+    bool CheckSpecialCharacterClass(jschar type, jit::Label* on_no_match);
+    void Fail();
+    void IfRegisterGE(int reg, int comparand, jit::Label* if_ge);
+    void IfRegisterLT(int reg, int comparand, jit::Label* if_lt);
+    void IfRegisterEqPos(int reg, jit::Label* if_eq);
+    void LoadCurrentCharacter(int cp_offset, jit::Label* on_end_of_input,
+                              bool check_bounds = true, int characters = 1);
+    void PopCurrentPosition();
+    void PopRegister(int register_index);
+    void PushCurrentPosition();
+    void PushRegister(int register_index, StackCheckFlag check_stack_limit);
+    void ReadCurrentPositionFromRegister(int reg);
+    void ReadBacktrackStackPointerFromRegister(int reg);
+    void SetCurrentPositionFromEnd(int by);
+    void SetRegister(int register_index, int to);
+    bool Succeed();
+    void WriteCurrentPositionToRegister(int reg, int cp_offset);
+    void ClearRegisters(int reg_from, int reg_to);
+    void WriteBacktrackStackPointerToRegister(int reg);
+    void PushBacktrack(jit::Label *label);
+    void BindBacktrack(jit::Label *label);
+
+    
+    
+    static int CaseInsensitiveCompareUC16(jit::Address byte_offset1,
+                                          jit::Address byte_offset2,
+                                          size_t byte_length);
+
+    
+    
+    
+    static const uint8_t word_character_map[256];
+
+    
+    inline int char_size() { return static_cast<int>(mode_); }
+    inline jit::Scale factor() { return mode_ == JSCHAR ? jit::TimesTwo : jit::TimesOne; }
+
+    void BranchOrBacktrack(jit::Assembler::Condition condition, jit::Label *to);
+
+    
+    
+    void PushBacktrack(jit::Register value);
+    void PushBacktrack(int32_t value);
+
+    
+    void PopBacktrack(jit::Register target);
+
+    
+    void CheckBacktrackStackLimit();
+
+    void LoadCurrentCharacterUnchecked(int cp_offset, int characters);
+
+  private:
+    jit::MacroAssembler masm;
+
+    JSRuntime *runtime;
+    Mode mode_;
+    jit::Label entry_label_;
+    jit::Label start_label_;
+    jit::Label backtrack_label_;
+    jit::Label success_label_;
+    jit::Label exit_label_;
+    jit::Label stack_overflow_label_;
+    jit::Label exit_with_exception_label_;
+
+    jit::GeneralRegisterSet savedNonVolatileRegisters;
+
+    struct LabelPatch {
+        
+        
+        jit::Label *label;
+        size_t labelOffset;
+
+        jit::CodeOffsetLabel patchOffset;
+
+        LabelPatch(jit::Label *label, jit::CodeOffsetLabel patchOffset)
+          : label(label), labelOffset(0), patchOffset(patchOffset)
+        {}
+    };
+
+    Vector<LabelPatch, 4, SystemAllocPolicy> labelPatches;
+
+    
+    jit::Register input_end_pointer;
+    jit::Register current_character;
+    jit::Register current_position;
+    jit::Register backtrack_stack_pointer;
+    jit::Register temp0, temp1, temp2;
+
+    
+    jit::Address register_location(int register_index) {
+        checkRegister(register_index);
+        return jit::Address(jit::StackPointer, register_offset(register_index));
+    }
+
+    int32_t register_offset(int register_index) {
+        return sizeof(FrameData) + register_index * sizeof(void *);
+    }
+};
+
+} }  
+
+#endif 
+
+#endif  
