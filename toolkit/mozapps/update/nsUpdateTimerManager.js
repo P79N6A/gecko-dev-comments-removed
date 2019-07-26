@@ -169,7 +169,6 @@ TimerManager.prototype = {
       let entry = entries.getNext().QueryInterface(Ci.nsISupportsCString).data;
       let value = catMan.getCategoryEntry(CATEGORY_UPDATE_TIMER, entry);
       let [cid, method, timerID, prefInterval, defaultInterval] = value.split(",");
-      let lastUpdateTime;
 
       defaultInterval = parseInt(defaultInterval);
       
@@ -182,16 +181,19 @@ TimerManager.prototype = {
 
       let interval = getPref("getIntPref", prefInterval, defaultInterval);
       let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/,
-                                                                  timerID);
-      if (Services.prefs.prefHasUserValue(prefLastUpdate)) {
-        lastUpdateTime = Services.prefs.getIntPref(prefLastUpdate);
-      }
-      else {
-        
-        
+                                                                      timerID);
+      
+      
+      let lastUpdateTime = getPref("getIntPref", prefLastUpdate, 0);
+
+      
+      
+      
+      if (lastUpdateTime > now)
         lastUpdateTime = 0;
+
+      if (lastUpdateTime == 0)
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
-      }
 
       tryFire(function() {
         try {
@@ -211,6 +213,14 @@ TimerManager.prototype = {
     for (let _timerID in this._timers) {
       let timerID = _timerID; 
       let timerData = this._timers[timerID];
+      
+      
+      
+      if (timerData.lastUpdateTime > now) {
+        let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, timerID);
+        timerData.lastUpdateTime = 0;
+        Services.prefs.setIntPref(prefLastUpdate, timerData.lastUpdateTime);
+      }
       tryFire(function() {
         if (timerData.callback instanceof Ci.nsITimerCallback) {
           try {
@@ -228,7 +238,7 @@ TimerManager.prototype = {
         }
         lastUpdateTime = now;
         timerData.lastUpdateTime = lastUpdateTime;
-        var prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, timerID);
+        let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, timerID);
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
         updateNextDelay(timerData.lastUpdateTime + timerData.interval - now);
       }, timerData.lastUpdateTime + timerData.interval);
@@ -281,14 +291,15 @@ TimerManager.prototype = {
 
   registerTimer: function TM_registerTimer(id, callback, interval) {
     LOG("TimerManager:registerTimer - id: " + id);
-    var prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, id);
-    var lastUpdateTime;
-    if (Services.prefs.prefHasUserValue(prefLastUpdate)) {
-      lastUpdateTime = Services.prefs.getIntPref(prefLastUpdate);
-    } else {
-      lastUpdateTime = Math.round(Date.now() / 1000);
+    let prefLastUpdate = PREF_APP_UPDATE_LASTUPDATETIME_FMT.replace(/%ID%/, id);
+    
+    
+    let lastUpdateTime = getPref("getIntPref", prefLastUpdate, 0);
+    let now = Math.round(Date.now() / 1000);
+    if (lastUpdateTime > now)
+      lastUpdateTime = 0;
+    if (lastUpdateTime == 0)
       Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
-    }
     this._timers[id] = { callback       : callback,
                          interval       : interval,
                          lastUpdateTime : lastUpdateTime };
