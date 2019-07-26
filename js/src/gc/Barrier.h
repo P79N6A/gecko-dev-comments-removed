@@ -332,6 +332,11 @@ class EncapsulatedPtr
     void pre() { T::writeBarrierPre(value); }
 };
 
+
+
+
+
+
 template <class T, class Unioned = uintptr_t>
 class HeapPtr : public EncapsulatedPtr<T, Unioned>
 {
@@ -634,6 +639,11 @@ class EncapsulatedValue : public ValueOperations<EncapsulatedValue>
     friend class ValueOperations<EncapsulatedValue>;
     const Value * extract() const { return &value; }
 };
+
+
+
+
+
 
 class HeapValue : public EncapsulatedValue
 {
@@ -1018,6 +1028,11 @@ class RelocatableId : public EncapsulatedId
         return *this;
     }
 };
+
+
+
+
+
 
 class HeapId : public EncapsulatedId
 {
