@@ -70,4 +70,12 @@ protected:
 } 
 } 
 
+
+
+
+already_AddRefed<mozilla::dom::ProcessingInstruction>
+NS_NewXMLProcessingInstruction(nsNodeInfoManager *aNodeInfoManager,
+                               const nsAString& aTarget,
+                               const nsAString& aData);
+
 #endif 
