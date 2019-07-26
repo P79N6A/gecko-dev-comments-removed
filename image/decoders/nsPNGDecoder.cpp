@@ -249,6 +249,18 @@ nsPNGDecoder::InitInternal()
     png_set_chunk_malloc_max(mPNG, 4000000L);
 #endif
 
+#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
+#ifndef PR_LOGGING
+  
+
+
+
+
+
+    png_set_check_for_invalid_index(mPNG, 0);
+#endif
+#endif
+
   
   png_set_progressive_read_fn(mPNG, static_cast<png_voidp>(this),
                               nsPNGDecoder::info_callback,

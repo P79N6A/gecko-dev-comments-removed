@@ -1261,7 +1261,7 @@ DOMCI_DATA(CSSNameSpaceRule, css::NameSpaceRule)
 
 
 static void
-AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult NS_OUTPARAM)
+AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult)
 {
   NS_PRECONDITION(src.GetUnit() == eCSSUnit_Array,
                   "improper value unit for src:");
@@ -1310,7 +1310,7 @@ AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult NS_OUTPARAM)
 
 
 static void
-AppendSerializedUnicodePoint(PRUint32 aCode, nsACString &aBuf NS_OUTPARAM)
+AppendSerializedUnicodePoint(PRUint32 aCode, nsACString &aBuf)
 {
   aBuf.Append(nsPrintfCString("%04X", aCode));
 }
@@ -1321,7 +1321,7 @@ AppendSerializedUnicodePoint(PRUint32 aCode, nsACString &aBuf NS_OUTPARAM)
 
 static void
 AppendSerializedUnicodeRange(nsCSSValue const & aValue,
-                             nsAString & aResult NS_OUTPARAM)
+                             nsAString & aResult)
 {
   NS_PRECONDITION(aValue.GetUnit() == eCSSUnit_Null ||
                   aValue.GetUnit() == eCSSUnit_Array,
@@ -1377,7 +1377,7 @@ NS_IMPL_RELEASE_USING_AGGREGATOR(nsCSSFontFaceStyleDecl, ContainingRule())
 
 nsresult
 nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
-                                         nsAString & aResult NS_OUTPARAM) const
+                                         nsAString & aResult) const
 {
   NS_ENSURE_ARG_RANGE(aFontDescID, eCSSFontDesc_UNKNOWN,
                       eCSSFontDesc_COUNT - 1);
@@ -1476,7 +1476,7 @@ nsCSSFontFaceStyleDecl::SetCssText(const nsAString & aCssText)
 
 NS_IMETHODIMP
 nsCSSFontFaceStyleDecl::GetPropertyValue(const nsAString & propertyName,
-                                         nsAString & aResult NS_OUTPARAM)
+                                         nsAString & aResult)
 {
   return GetPropertyValue(nsCSSProps::LookupFontDesc(propertyName), aResult);
 }
@@ -1484,7 +1484,7 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(const nsAString & propertyName,
 
 NS_IMETHODIMP
 nsCSSFontFaceStyleDecl::GetPropertyCSSValue(const nsAString & propertyName,
-                                            nsIDOMCSSValue **aResult NS_OUTPARAM)
+                                            nsIDOMCSSValue **aResult)
 {
   
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -1493,7 +1493,7 @@ nsCSSFontFaceStyleDecl::GetPropertyCSSValue(const nsAString & propertyName,
 
 NS_IMETHODIMP
 nsCSSFontFaceStyleDecl::RemoveProperty(const nsAString & propertyName,
-                                       nsAString & aResult NS_OUTPARAM)
+                                       nsAString & aResult)
 {
   nsCSSFontDesc descID = nsCSSProps::LookupFontDesc(propertyName);
   NS_ASSERTION(descID >= eCSSFontDesc_UNKNOWN &&
@@ -1513,7 +1513,7 @@ nsCSSFontFaceStyleDecl::RemoveProperty(const nsAString & propertyName,
 
 NS_IMETHODIMP
 nsCSSFontFaceStyleDecl::GetPropertyPriority(const nsAString & propertyName,
-                                            nsAString & aResult NS_OUTPARAM)
+                                            nsAString & aResult)
 {
   
   aResult.Truncate();
@@ -1547,7 +1547,7 @@ nsCSSFontFaceStyleDecl::GetLength(PRUint32 *aLength)
 
 
 NS_IMETHODIMP
-nsCSSFontFaceStyleDecl::Item(PRUint32 index, nsAString & aResult NS_OUTPARAM)
+nsCSSFontFaceStyleDecl::Item(PRUint32 index, nsAString & aResult)
  {
   PRInt32 nset = -1;
   for (nsCSSFontDesc id = nsCSSFontDesc(eCSSFontDesc_UNKNOWN + 1);

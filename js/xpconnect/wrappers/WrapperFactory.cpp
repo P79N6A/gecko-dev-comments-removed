@@ -54,6 +54,55 @@ GetCurrentOuter(JSContext *cx, JSObject *obj)
 }
 
 JSObject *
+WrapperFactory::GetXrayWaiver(JSObject *obj)
+{
+    
+    MOZ_ASSERT(obj == UnwrapObject(obj));
+    MOZ_ASSERT(!js::GetObjectClass(obj)->ext.outerObject);
+    CompartmentPrivate *priv = GetCompartmentPrivate(obj);
+    MOZ_ASSERT(priv);
+
+    if (!priv->waiverWrapperMap)
+        return NULL;
+    return xpc_UnmarkGrayObject(priv->waiverWrapperMap->Find(obj));
+}
+
+JSObject *
+WrapperFactory::CreateXrayWaiver(JSContext *cx, JSObject *obj)
+{
+    
+    
+    MOZ_ASSERT(!GetXrayWaiver(obj));
+    CompartmentPrivate *priv = GetCompartmentPrivate(obj);
+
+    
+    JSObject *proto = js::GetObjectProto(obj);
+    if (proto && !(proto = WaiveXray(cx, proto)))
+        return nsnull;
+
+    
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, obj) || !JS_WrapObject(cx, &proto))
+        return nsnull;
+    JSObject *waiver = Wrapper::New(cx, obj, proto,
+                                    JS_GetGlobalForObject(cx, obj),
+                                    &XrayWaiver);
+    if (!waiver)
+        return nsnull;
+
+    
+    
+    if (!priv->waiverWrapperMap) {
+        priv->waiverWrapperMap = JSObject2JSObjectMap::
+                                   newMap(XPC_WRAPPER_MAP_SIZE);
+        MOZ_ASSERT(priv->waiverWrapperMap);
+    }
+    if (!priv->waiverWrapperMap->Add(obj, waiver))
+        return nsnull;
+    return waiver;
+}
+
+JSObject *
 WrapperFactory::WaiveXray(JSContext *cx, JSObject *obj)
 {
     obj = UnwrapObject(obj);
@@ -62,45 +111,10 @@ WrapperFactory::WaiveXray(JSContext *cx, JSObject *obj)
     
     obj = GetCurrentOuter(cx, obj);
 
-    {
-        
-        CompartmentPrivate *priv = GetCompartmentPrivate(obj);
-        JSObject *wobj = nsnull;
-        if (priv && priv->waiverWrapperMap) {
-            wobj = priv->waiverWrapperMap->Find(obj);
-            xpc_UnmarkGrayObject(wobj);
-        }
-
-        
-        if (!wobj) {
-            JSObject *proto = js::GetObjectProto(obj);
-            if (proto && !(proto = WaiveXray(cx, proto)))
-                return nsnull;
-
-            JSAutoEnterCompartment ac;
-            if (!ac.enter(cx, obj) || !JS_WrapObject(cx, &proto))
-                return nsnull;
-            wobj = Wrapper::New(cx, obj, proto, JS_GetGlobalForObject(cx, obj),
-                                &XrayWaiver);
-            if (!wobj)
-                return nsnull;
-
-            
-            if (priv) {
-                if (!priv->waiverWrapperMap) {
-                    priv->waiverWrapperMap = JSObject2JSObjectMap::newMap(XPC_WRAPPER_MAP_SIZE);
-                    if (!priv->waiverWrapperMap)
-                        return nsnull;
-                }
-                if (!priv->waiverWrapperMap->Add(obj, wobj))
-                    return nsnull;
-            }
-        }
-
-        obj = wobj;
-    }
-
-    return obj;
+    JSObject *waiver = GetXrayWaiver(obj);
+    if (waiver)
+        return waiver;
+    return CreateXrayWaiver(cx, obj);
 }
 
 
@@ -574,6 +588,72 @@ WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
         return nsnull;
     js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
     return wrapperObj;
+}
+
+
+
+
+
+
+static bool
+FixWaiverAfterTransplant(JSContext *cx, JSObject *oldWaiver, JSObject *newobj)
+{
+    MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == &XrayWaiver);
+    MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newobj));
+
+    
+    
+    
+    
+    JSObject *newWaiver = WrapperFactory::CreateXrayWaiver(cx, newobj);
+    if (!newWaiver)
+        return false;
+
+    
+    
+    if (!js::RemapAllWrappersForObject(cx, oldWaiver, newWaiver))
+        return false;
+
+    
+    
+    
+    CompartmentPrivate *priv = GetCompartmentPrivate(oldWaiver);
+    JSObject *key = Wrapper::wrappedObject(oldWaiver);
+    MOZ_ASSERT(priv->waiverWrapperMap->Find(key));
+    priv->waiverWrapperMap->Remove(key);
+    return true;
+}
+
+JSObject *
+TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
+{
+    JSObject *oldWaiver = WrapperFactory::GetXrayWaiver(origobj);
+    JSObject *newIdentity = JS_TransplantObject(cx, origobj, target);
+    if (!newIdentity || !oldWaiver)
+       return newIdentity;
+
+    if (!FixWaiverAfterTransplant(cx, oldWaiver, newIdentity))
+        return NULL;
+    return newIdentity;
+}
+
+JSObject *
+TransplantObjectWithWrapper(JSContext *cx,
+                            JSObject *origobj, JSObject *origwrapper,
+                            JSObject *targetobj, JSObject *targetwrapper)
+{
+    JSObject *oldWaiver = WrapperFactory::GetXrayWaiver(origobj);
+    JSObject *newSameCompartmentWrapper =
+      js_TransplantObjectWithWrapper(cx, origobj, origwrapper, targetobj,
+                                     targetwrapper);
+    if (!newSameCompartmentWrapper || !oldWaiver)
+        return newSameCompartmentWrapper;
+
+    JSObject *newIdentity = Wrapper::wrappedObject(newSameCompartmentWrapper);
+    JS_ASSERT(js::IsWrapper(newIdentity));
+    if (!FixWaiverAfterTransplant(cx, oldWaiver, newIdentity))
+        return NULL;
+    return newSameCompartmentWrapper;
 }
 
 }

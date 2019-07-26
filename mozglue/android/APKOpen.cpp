@@ -1,13 +1,13 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * This custom library loading code is only meant to be called
- * during initialization. As a result, it takes no special 
- * precautions to be threadsafe. Any of the library loading functions
- * like mozload should not be available to other code.
- */
+
+
+
+
+
+
+
+
+
 
 #include <jni.h>
 #include <android/log.h>
@@ -40,24 +40,24 @@
 #endif
 #include "application.ini.h"
 
-/* Android headers don't define RUSAGE_THREAD */
+
 #ifndef RUSAGE_THREAD
 #define RUSAGE_THREAD 1
 #endif
 
 extern "C" {
-/*
- * To work around http://code.google.com/p/android/issues/detail?id=23203
- * we don't link with the crt objects. In some configurations, this means
- * a lack of the __dso_handle symbol because it is defined there, and
- * depending on the android platform and ndk versions used, it may or may
- * not be defined in libc.so. In the latter case, we fail to link. Defining
- * it here as weak makes us provide the symbol when it's not provided by
- * the crt objects, making the change transparent for future NDKs that
- * would fix the original problem. On older NDKs, it is not a problem
- * either because the way __dso_handle was used was already broken (and
- * the custom linker works around it).
- */
+
+
+
+
+
+
+
+
+
+
+
+
   NS_EXPORT __attribute__((weak)) void *__dso_handle;
 }
 
@@ -116,7 +116,7 @@ createAshmem(size_t bytes, const char *name)
   char buf[ASHMEM_NAME_LEN];
 
   strlcpy(buf, name, sizeof(buf));
-  /*ret = */ioctl(fd, ASHMEM_SET_NAME, buf);
+  ioctl(fd, ASHMEM_SET_NAME, buf);
 
   if (!ioctl(fd, ASHMEM_SET_SIZE, bytes))
     return fd;
@@ -323,6 +323,7 @@ SHELL_WRAPPER2(notifyFilePickerResult, jstring, jlong)
 SHELL_WRAPPER1_WITH_RETURN(getSurfaceBits, jobject, jobject)
 SHELL_WRAPPER1(onFullScreenPluginHidden, jobject)
 SHELL_WRAPPER1_WITH_RETURN(getNextMessageFromQueue, jobject, jobject)
+SHELL_WRAPPER2(onSurfaceTextureFrameAvailable, jobject, jint);
 
 static void * xul_handle = NULL;
 static void * sqlite_handle = NULL;
@@ -397,8 +398,8 @@ extractFile(const char * path, Zip::Stream &s)
 
   close(fd);
 #ifdef ANDROID_ARM_LINKER
-  /* We just extracted data that is going to be executed in the future.
-   * We thus need to ensure Instruction and Data cache coherency. */
+  
+
   cacheflush((unsigned) buf, (unsigned) buf + size, 0);
 #endif
   munmap(buf, size);
@@ -582,14 +583,14 @@ static void * mozload(const char * path, Zip *zip)
     if (cache_fd < 0) {
       extractLib(s, buf);
 #ifdef ANDROID_ARM_LINKER
-      /* We just extracted data that is going to be executed in the future.
-       * We thus need to ensure Instruction and Data cache coherency. */
+      
+
       cacheflush((unsigned) buf, (unsigned) buf + s.GetUncompressedSize(), 0);
 #endif
       addLibCacheFd(path, fd, lib_size, buf);
     }
 
-    // preload libxul, to avoid slowly demand-paging it
+    
     if (!strcmp(path, "libxul.so"))
       madvise(buf, s.GetUncompressedSize(), MADV_WILLNEED);
   }
@@ -689,7 +690,7 @@ loadGeckoLibs(const char *apkName)
   char *file = new char[strlen(apkName) + sizeof("!/libxpcom.so")];
   sprintf(file, "%s!/libxpcom.so", apkName);
   __wrap_dlopen(file, RTLD_GLOBAL | RTLD_LAZY);
-  // libxul.so is pulled from libxpcom.so, so we don't need to give the full path
+  
   xul_handle = __wrap_dlopen("libxul.so", RTLD_GLOBAL | RTLD_LAZY);
   delete[] file;
 #else
@@ -746,6 +747,7 @@ loadGeckoLibs(const char *apkName)
   GETFUNC(getSurfaceBits);
   GETFUNC(onFullScreenPluginHidden);
   GETFUNC(getNextMessageFromQueue);
+  GETFUNC(onSurfaceTextureFrameAvailable);
 #undef GETFUNC
 
   void (*XRE_StartupTimelineRecord)(int, MOZTime);
@@ -897,8 +899,8 @@ extern "C" NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_loadGeckoLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName)
 {
   const char* str;
-  // XXX: java doesn't give us true UTF8, we should figure out something
-  // better to do here
+  
+  
   str = jenv->GetStringUTFChars(jApkName, NULL);
   if (str == NULL)
     return;
@@ -921,8 +923,8 @@ Java_org_mozilla_gecko_GeckoAppShell_loadSQLiteLibsNative(JNIEnv *jenv, jclass j
   }
 
   const char* str;
-  // XXX: java doesn't give us true UTF8, we should figure out something
-  // better to do here
+  
+  
   str = jenv->GetStringUTFChars(jApkName, NULL);
   if (str == NULL)
     return;
@@ -947,8 +949,8 @@ Java_org_mozilla_gecko_GeckoAppShell_loadNSSLibsNative(JNIEnv *jenv, jclass jGec
   }
 
   const char* str;
-  // XXX: java doesn't give us true UTF8, we should figure out something
-  // better to do here
+  
+  
   str = jenv->GetStringUTFChars(jApkName, NULL);
   if (str == NULL)
     return;
@@ -971,10 +973,10 @@ Java_org_mozilla_gecko_GeckoAppShell_nativeRun(JNIEnv *jenv, jclass jc, jstring 
   xul_dlsym("GeckoStart", &GeckoStart);
   if (GeckoStart == NULL)
     return;
-  // XXX: java doesn't give us true UTF8, we should figure out something
-  // better to do here
+  
+  
   int len = jenv->GetStringUTFLength(jargs);
-  // GeckoStart needs to write in the args buffer, so we need a copy.
+  
   char *args = (char *) malloc(len + 1);
   jenv->GetStringUTFRegion(jargs, 0, len, args);
   args[len] = '\0';
@@ -1009,7 +1011,7 @@ ChildProcessInit(int argc, char* argv[])
     return FAILURE;
   }
 
-  // don't pass the last arg - it's only recognized by the lib cache
+  
   argc--;
 
   GeckoProcessType (*fXRE_StringToChildProcessType)(char*);

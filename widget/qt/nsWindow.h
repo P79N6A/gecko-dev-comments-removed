@@ -188,7 +188,7 @@ public:
     }
 
     
-    NS_IMETHOD         IsEnabled        (bool *aState);
+    virtual bool IsEnabled() const;
 
     
     void OnDestroy(void);

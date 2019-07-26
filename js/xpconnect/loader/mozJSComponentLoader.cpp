@@ -55,6 +55,8 @@
 #include "xpcprivate.h"
 #include "xpcpublic.h"
 #include "nsIResProtocolHandler.h"
+#include "nsContentUtils.h"
+#include "WrapperFactory.h"
 
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
@@ -67,6 +69,7 @@
 
 using namespace mozilla;
 using namespace mozilla::scache;
+using namespace xpc;
 
 static const char kJSRuntimeServiceContractID[] = "@mozilla.org/js/xpc/RuntimeService;1";
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
@@ -965,7 +968,7 @@ mozJSComponentLoader::UnloadModules()
 
 NS_IMETHODIMP
 mozJSComponentLoader::Import(const nsACString& registryLocation,
-                             const JS::Value& targetObj,
+                             const JS::Value& targetVal_,
                              JSContext* cx,
                              PRUint8 optionalArgc,
                              JS::Value* retval)
@@ -975,15 +978,30 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
 
     JSAutoRequest ar(cx);
 
-    JSObject *targetObject = nsnull;
+    JS::Value targetVal = targetVal_;
+    JSObject *targetObject = NULL;
 
+    MOZ_ASSERT(nsContentUtils::CallerHasUniversalXPConnect());
     if (optionalArgc) {
         
-        if (targetObj.isObjectOrNull()) {
-            targetObject = targetObj.toObjectOrNull();
-        } else {
+        if (targetVal.isObject()) {
+            
+            
+            
+            
+            
+            
+            if (WrapperFactory::IsXrayWrapper(&targetVal.toObject()) &&
+                !WrapperFactory::WaiveXrayAndWrap(cx, &targetVal))
+            {
+                return NS_ERROR_FAILURE;
+            }
+            targetObject = &targetVal.toObject();
+        } else if (!targetVal.isNull()) {
+            
+            
             return ReportOnCaller(cx, ERROR_SCOPE_OBJ,
-                                  PromiseFlatCString(registryLocation).get());            
+                                  PromiseFlatCString(registryLocation).get());
         }
     } else {
         

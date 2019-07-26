@@ -6267,7 +6267,10 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   nsAutoPtr<TextOverflow> textOverflow(
-    TextOverflow::WillProcessLines(aBuilder, aLists, this));
+    TextOverflow::WillProcessLines(aBuilder, this));
+
+  
+  nsDisplayListCollection linesDisplayListCollection;
 
   
   
@@ -6293,7 +6296,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
           break;
         }
         rv = DisplayLine(aBuilder, lineArea, aDirtyRect, line, depth, drawnLines,
-                         aLists, this, textOverflow);
+                         linesDisplayListCollection, this, textOverflow);
         if (NS_FAILED(rv))
           break;
       }
@@ -6308,7 +6311,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
          ++line) {
       nsRect lineArea = line->GetVisualOverflowArea();
       rv = DisplayLine(aBuilder, lineArea, aDirtyRect, line, depth, drawnLines,
-                       aLists, this, textOverflow);
+                       linesDisplayListCollection, this, textOverflow);
       if (NS_FAILED(rv))
         break;
       if (!lineArea.IsEmpty()) {
@@ -6326,6 +6329,15 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       SetupLineCursor();
     }
   }
+
+  
+  
+  
+  
+  if (textOverflow) {
+    aLists.PositionedDescendants()->AppendToTop(&textOverflow->GetMarkers());
+  }
+  linesDisplayListCollection.MoveTo(aLists);
 
   if (NS_SUCCEEDED(rv) && HasOutsideBullet()) {
     

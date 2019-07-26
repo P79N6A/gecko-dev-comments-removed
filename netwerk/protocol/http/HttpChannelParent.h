@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
 
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_net_HttpChannelParent_h
 #define mozilla_net_HttpChannelParent_h
@@ -70,7 +70,8 @@ protected:
                              const bool &               isContent,
                              const bool&                usingPrivateBrowsing,
                              const bool&                isInBrowserElement,
-                             const PRUint32&            appId);
+                             const PRUint32&            appId,
+                             const nsCString&           extendedOrigin);
 
   virtual bool RecvConnectChannel(const PRUint32& channelId);
   virtual bool RecvSetPriority(const PRUint16& priority);
@@ -97,15 +98,15 @@ private:
   nsCOMPtr<nsIChannel>                    mChannel;
   nsCOMPtr<nsICacheEntryDescriptor>       mCacheDescriptor;
   nsCOMPtr<nsIAssociatedContentSecurity>  mAssociatedContentSecurity;
-  bool mIPCClosed;                // PHttpChannel actor has been Closed()
+  bool mIPCClosed;                
 
   nsCOMPtr<nsIChannel> mRedirectChannel;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
 
   nsAutoPtr<class nsHttpChannel::OfflineCacheEntryAsForeignMarker> mOfflineForeignMarker;
 
-  // state for combining OnStatus/OnProgress with OnDataAvailable
-  // into one IPDL call to child.
+  
+  
   nsresult mStoredStatus;
   PRUint64 mStoredProgress;
   PRUint64 mStoredProgressMax;
@@ -114,16 +115,17 @@ private:
   bool mSentRedirect1BeginFailed    : 1;
   bool mReceivedRedirect2Verify     : 1;
 
-  // fields for impersonating nsILoadContext
+  
   bool mHaveLoadContext             : 1;
   bool mIsContent                   : 1;
   bool mUsePrivateBrowsing          : 1;
   bool mIsInBrowserElement          : 1;
 
   PRUint32 mAppId;
+  nsCString mExtendedOrigin;
 };
 
-} // namespace net
-} // namespace mozilla
+} 
+} 
 
-#endif // mozilla_net_HttpChannelParent_h
+#endif 

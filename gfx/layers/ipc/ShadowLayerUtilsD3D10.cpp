@@ -75,6 +75,14 @@ ShadowLayerManager::PlatformDestroySharedSurface(SurfaceDescriptor*)
   return false;
 }
 
+ already_AddRefed<TextureImage>
+ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext*,
+                                                     const SurfaceDescriptor&,
+                                                     GLenum)
+{
+  return nsnull;
+}
+
  void
 ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {

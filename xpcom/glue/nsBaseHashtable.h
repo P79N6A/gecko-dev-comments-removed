@@ -99,7 +99,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const
+  bool Get(KeyType aKey, UserDataType* pData) const
   {
     EntryType* ent = this->GetEntry(aKey);
 
@@ -125,7 +125,7 @@ public:
   {
     EntryType* ent = this->GetEntry(aKey);
     if (!ent)
-      return nsnull;
+      return 0;
 
     return ent->mData;
   }

@@ -27,6 +27,17 @@ using gl::TextureImage;
 
 static const int ALLOW_REPEAT = ThebesLayerBuffer::ALLOW_REPEAT;
 
+GLenum
+WrapMode(GLContext *aGl, PRUint32 aFlags)
+{
+  if ((aFlags & ALLOW_REPEAT) &&
+      (aGl->IsExtensionSupported(GLContext::ARB_texture_non_power_of_two) ||
+       aGl->IsExtensionSupported(GLContext::OES_texture_npot))) {
+    return LOCAL_GL_REPEAT;
+  }
+  return LOCAL_GL_CLAMP_TO_EDGE;
+}
+
 
 
 
@@ -39,15 +50,8 @@ CreateClampOrRepeatTextureImage(GLContext *aGl,
                                 TextureImage::ContentType aContentType,
                                 PRUint32 aFlags)
 {
-  GLenum wrapMode = LOCAL_GL_CLAMP_TO_EDGE;
-  if ((aFlags & ALLOW_REPEAT) &&
-      (aGl->IsExtensionSupported(GLContext::ARB_texture_non_power_of_two) ||
-       aGl->IsExtensionSupported(GLContext::OES_texture_npot)))
-  {
-    wrapMode = LOCAL_GL_REPEAT;
-  }
 
-  return aGl->CreateTextureImage(aSize, aContentType, wrapMode);
+  return aGl->CreateTextureImage(aSize, aContentType, WrapMode(aGl, aFlags));
 }
 
 static void
@@ -878,8 +882,12 @@ public:
   void DirectUpdate(gfxASurface* aUpdate, nsIntRegion& aRegion);
 
   void Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
-              const nsIntRect& aRect, const nsIntPoint& aRotation,
-              bool aDelayUpload, nsIntRegion& aPendingUploadRegion);
+              const nsIntRect& aRect, const nsIntPoint& aRotation);
+
+  already_AddRefed<TextureImage>
+  Swap(TextureImage* aNewBackBuffer,
+       const nsIntRect& aRect, const nsIntPoint& aRotation,
+       nsIntRect* aPrevRect, nsIntPoint* aPrevRotation);
 
 protected:
   virtual nsIntPoint GetOriginOffset() {
@@ -915,8 +923,7 @@ ShadowBufferOGL::DirectUpdate(gfxASurface* aUpdate, nsIntRegion& aRegion)
 
 void
 ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
-                        const nsIntRect& aRect, const nsIntPoint& aRotation,
-                        bool aDelayUpload, nsIntRegion& aPendingUploadRegion)
+                        const nsIntRect& aRect, const nsIntPoint& aRotation)
 {
   
   nsIntRegion destRegion(aUpdated);
@@ -935,19 +942,29 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
                ((destBounds.y % size.height) + destBounds.height <= size.height),
                "Updated region lies across rotation boundaries!");
 
-  if (aDelayUpload) {
-    
-    
-    aPendingUploadRegion.Or(aPendingUploadRegion, destRegion).
-      And(aPendingUploadRegion, nsIntRect(0, 0, size.width, size.height));
-  } else {
-    
-    DirectUpdate(aUpdate, destRegion);
-    aPendingUploadRegion.Sub(aPendingUploadRegion, destRegion);
-  }
+  
+  DirectUpdate(aUpdate, destRegion);
 
   mBufferRect = aRect;
   mBufferRotation = aRotation;
+}
+
+already_AddRefed<TextureImage>
+ShadowBufferOGL::Swap(TextureImage* aNewBackBuffer,
+                      const nsIntRect& aRect, const nsIntPoint& aRotation,
+                      nsIntRect* aPrevRect, nsIntPoint* aPrevRotation)
+{
+  nsRefPtr<TextureImage> prevBuffer = mTexImage;
+  *aPrevRect = mBufferRect;
+  *aPrevRotation = mBufferRotation;
+
+  mTexImage = aNewBackBuffer;
+  mBufferRect = aRect;
+  mBufferRotation = aRotation;
+
+  mInitialised = !!mTexImage;
+
+  return prevBuffer.forget();
 }
 
 ShadowThebesLayerOGL::ShadowThebesLayerOGL(LayerManagerOGL *aManager)
@@ -978,29 +995,77 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
     return;
   }
 
+  if (IsSurfaceDescriptorValid(mBufferDescriptor)) {
+    AutoOpenSurface currentFront(OPEN_READ_ONLY, mBufferDescriptor);
+    AutoOpenSurface newFront(OPEN_READ_ONLY, aNewFront.buffer());
+    if (currentFront.Size() != newFront.Size()) {
+      
+      
+      DestroyFrontBuffer();
+    }
+  }
+
   if (!mBuffer) {
     mBuffer = new ShadowBufferOGL(this);
   }
-  AutoOpenSurface frontSurface(OPEN_READ_ONLY, aNewFront.buffer());
-  mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), false, mRegionPendingUpload);
+  
+  if (nsRefPtr<TextureImage> texImage =
+      ShadowLayerManager::OpenDescriptorForDirectTexturing(
+        gl(), aNewFront.buffer(), WrapMode(gl(), ALLOW_REPEAT))) {
     
-  *aNewBack = aNewFront;
-  *aNewBackValidRegion = mValidRegion;
-  *aReadOnlyFront = null_t();
-  aFrontUpdatedRegion->SetEmpty();
+    
+    
+    ThebesBuffer newBack;
+    {
+      nsRefPtr<TextureImage> destroy = mBuffer->Swap(
+        texImage, aNewFront.rect(), aNewFront.rotation(),
+        &newBack.rect(), &newBack.rotation());
+    }
+    newBack.buffer() = mBufferDescriptor;
+    mBufferDescriptor = aNewFront.buffer();
+
+    if (IsSurfaceDescriptorValid(newBack.buffer())) {
+      *aNewBack = newBack;
+      
+      
+      aNewBackValidRegion->Sub(mValidRegionForNextBackBuffer, aUpdatedRegion);
+    } else {
+      *aNewBack = null_t();
+      aNewBackValidRegion->SetEmpty();
+    }
+    *aReadOnlyFront = aNewFront;
+    *aFrontUpdatedRegion = aUpdatedRegion;
+  } else {
+    
+    
+    
+    AutoOpenSurface frontSurface(OPEN_READ_ONLY, aNewFront.buffer());
+    mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation());
+    
+    *aNewBack = aNewFront;
+    *aNewBackValidRegion = mValidRegion;
+    *aReadOnlyFront = null_t();
+    aFrontUpdatedRegion->SetEmpty();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  mValidRegionForNextBackBuffer = mValidRegion;
 }
 
 void
 ShadowThebesLayerOGL::DestroyFrontBuffer()
 {
-  mFrontBuffer.Clear();
-  mOldValidRegion.SetEmpty();
-
-  if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-    mAllocator->DestroySharedSurface(&mFrontBufferDescriptor);
-  }
-
   mBuffer = nsnull;
+  mValidRegionForNextBackBuffer.SetEmpty();
+  if (IsSurfaceDescriptorValid(mBufferDescriptor)) {
+    mAllocator->DestroySharedSurface(&mBufferDescriptor);
+  }
 }
 
 void

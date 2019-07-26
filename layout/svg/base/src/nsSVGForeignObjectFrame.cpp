@@ -384,9 +384,14 @@ nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)
 NS_IMETHODIMP_(nsRect)
 nsSVGForeignObjectFrame::GetCoveredRegion()
 {
+  float x, y, w, h;
+  static_cast<nsSVGForeignObjectElement*>(mContent)->
+    GetAnimatedLengthValues(&x, &y, &w, &h, nsnull);
+  if (w < 0.0f) w = 0.0f;
+  if (h < 0.0f) h = 0.0f;
   
-  
-  return mCoveredRegion;
+  return ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(FOR_OUTERSVG_TM),
+                        PresContext());
 }
 
 void
@@ -416,9 +421,6 @@ nsSVGForeignObjectFrame::ReflowSVG()
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(
                            gfxRect(x, y, w, h),
                            PresContext()->AppUnitsPerCSSPixel());
-  
-  mCoveredRegion = ToCanvasBounds(gfxRect(0.0, 0.0, w, h),
-                     GetCanvasTM(FOR_OUTERSVG_TM), PresContext());
 
   
   
@@ -471,10 +473,6 @@ nsSVGForeignObjectFrame::ReflowSVG()
 void
 nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
 {
-  NS_ABORT_IF_FALSE(!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS) ||
-                    (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "Must be NS_STATE_SVG_NONDISPLAY_CHILD!");
-
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 

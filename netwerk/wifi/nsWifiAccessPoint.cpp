@@ -18,8 +18,8 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsWifiAccessPoint, nsIWifiAccessPoint)
 nsWifiAccessPoint::nsWifiAccessPoint()
 {
   
-  mMac[0] = nsnull;
-  mSsid[0] = nsnull;
+  mMac[0] = '\0';
+  mSsid[0] = '\0';
   mSsidLen = 0;
 }
 

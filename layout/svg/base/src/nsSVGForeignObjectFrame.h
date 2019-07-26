@@ -113,8 +113,6 @@ protected:
   
   nsRegion mSubDocDirtyRegion;
 
-  nsRect mCoveredRegion;
-
   bool mInReflow;
 };
 

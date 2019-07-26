@@ -227,11 +227,19 @@ class MutableHandle : public MutableHandleBase<T>
 typedef MutableHandle<JSObject*>    MutableHandleObject;
 typedef MutableHandle<Value>        MutableHandleValue;
 
+
+
+
+
+
+template <typename T>
+struct RootKind<T *> { static ThingRootKind rootKind() { return T::rootKind(); }; };
+
 template <typename T>
 struct RootMethods<T *>
 {
     static T *initial() { return NULL; }
-    static ThingRootKind kind() { return T::rootKind(); }
+    static ThingRootKind kind() { return RootKind<T *>::rootKind(); }
     static bool poisoned(T *v) { return IsPoisonedPtr(v); }
 };
 

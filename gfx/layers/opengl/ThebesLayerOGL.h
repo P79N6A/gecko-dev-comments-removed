@@ -125,7 +125,6 @@ public:
 
   virtual void SetValidRegion(const nsIntRegion& aRegion)
   {
-    mOldValidRegion = mValidRegion;
     ShadowThebesLayer::SetValidRegion(aRegion);
   }
 
@@ -139,20 +138,8 @@ public:
 
 private:
   nsRefPtr<ShadowBufferOGL> mBuffer;
-
-  
-  
-  nsIntRegion mRegionPendingUpload;
-
-  
-  ShadowThebesLayerBufferOGL mFrontBuffer;
-  
-  SurfaceDescriptor mFrontBufferDescriptor;
-  
-  
-  
-  
-  nsIntRegion mOldValidRegion;
+  SurfaceDescriptor mBufferDescriptor;
+  nsIntRegion mValidRegionForNextBackBuffer;
 };
 
 } 
