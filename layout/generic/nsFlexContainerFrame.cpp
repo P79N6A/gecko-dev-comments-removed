@@ -24,6 +24,9 @@ using namespace mozilla::layout;
 
 
 
+typedef nsFlexContainerFrame::FlexItem FlexItem;
+typedef nsFlexContainerFrame::FlexLine FlexLine;
+typedef nsFlexContainerFrame::FlexboxAxisTracker FlexboxAxisTracker;
 typedef nsFlexContainerFrame::StrutInfo StrutInfo;
 
 #ifdef PR_LOGGING
@@ -202,7 +205,7 @@ MarginComponentForSide(nsMargin& aMargin, Side aSide)
   IsAxisHorizontal((axisTracker_).GetCrossAxis()) ? (width_) : (height_)
 
 
-class MOZ_STACK_CLASS FlexboxAxisTracker {
+class MOZ_STACK_CLASS nsFlexContainerFrame::FlexboxAxisTracker {
 public:
   FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame);
 
@@ -277,7 +280,7 @@ private:
 
 
 
-class FlexItem {
+class nsFlexContainerFrame::FlexItem {
 public:
   
   FlexItem(nsIFrame* aChildFrame,
@@ -561,7 +564,7 @@ protected:
 
 
 
-class FlexLine {
+class nsFlexContainerFrame::FlexLine {
 public:
   FlexLine()
   : mTotalInnerHypotheticalMainSize(0),
