@@ -1,9 +1,16 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* Font for code */
 
+.devtools-monospace {
+  font: message-box;
+  font-family: monospace;
+}
 
-
-
-
+/* Toolbar and Toolbar items */
 
 .devtools-toolbar {
   -moz-appearance: none;
@@ -125,7 +132,7 @@
   -moz-box-align: center;
 }
 
-
+/* Search input */
 
 .devtools-searchinput {
   -moz-appearance: none;
@@ -167,7 +174,7 @@
   color: hsl(208,10%,66%);
 }
 
-
+/* Close button */
 
 .devtools-closebutton {
   list-style-image: url("chrome://browser/skin/devtools/toolbarbutton-close.png");
@@ -190,7 +197,7 @@
   -moz-image-region: rect(0, 48px, 16px, 32px);
 }
 
-
+/* Splitters */
 
 .devtools-horizontal-splitter {
   -moz-appearance: none;
@@ -213,7 +220,7 @@
   position: relative;
 }
 
-
+/* In-tools sidebar */
 
 .devtools-sidebar-tabs {
   -moz-appearance: none;
@@ -272,32 +279,32 @@
   color: white !important;
 }
 
-
+/* Theme */
 
 .devtools-theme-background {
   background-color: white;
 }
 
 .devtools-theme-comment {
-  color: hsl(90,2%,46%); 
+  color: hsl(90,2%,46%); /* grey */
 }
 
 .devtools-theme-keyword {
-  color: hsl(276,44%,45%); 
+  color: hsl(276,44%,45%); /* purple */
 }
 
 .devtools-theme-string {
-  color: hsl(72,100%,27%); 
+  color: hsl(72,100%,27%); /* green */
 }
 
 .devtools-theme-tagname {
-  color: hsl(208,81%,21%); 
+  color: hsl(208,81%,21%); /* dark blue */
 }
 
 .devtools-theme-attrname {
-  color: hsl(208,56%,40%); 
+  color: hsl(208,56%,40%); /* blue */
 }
 
 .devtools-theme-attrvalue {
-  color: hsl(24,85%,39%); 
+  color: hsl(24,85%,39%); /* orange */
 }
