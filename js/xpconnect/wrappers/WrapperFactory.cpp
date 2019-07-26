@@ -59,12 +59,12 @@ WrapperFactory::GetXrayWaiver(JSObject *obj)
     
     MOZ_ASSERT(obj == UnwrapObject(obj));
     MOZ_ASSERT(!js::GetObjectClass(obj)->ext.outerObject);
-    CompartmentPrivate *priv = GetCompartmentPrivate(obj);
-    MOZ_ASSERT(priv);
+    XPCWrappedNativeScope *scope = ObjectScope(obj);
+    MOZ_ASSERT(scope);
 
-    if (!priv->waiverWrapperMap)
+    if (!scope->mWaiverWrapperMap)
         return NULL;
-    return xpc_UnmarkGrayObject(priv->waiverWrapperMap->Find(obj));
+    return xpc_UnmarkGrayObject(scope->mWaiverWrapperMap->Find(obj));
 }
 
 JSObject *
@@ -73,7 +73,7 @@ WrapperFactory::CreateXrayWaiver(JSContext *cx, JSObject *obj)
     
     
     MOZ_ASSERT(!GetXrayWaiver(obj));
-    CompartmentPrivate *priv = GetCompartmentPrivate(obj);
+    XPCWrappedNativeScope *scope = ObjectScope(obj);
 
     
     JSObject *proto;
@@ -94,12 +94,12 @@ WrapperFactory::CreateXrayWaiver(JSContext *cx, JSObject *obj)
 
     
     
-    if (!priv->waiverWrapperMap) {
-        priv->waiverWrapperMap = JSObject2JSObjectMap::
-                                   newMap(XPC_WRAPPER_MAP_SIZE);
-        MOZ_ASSERT(priv->waiverWrapperMap);
+    if (!scope->mWaiverWrapperMap) {
+        scope->mWaiverWrapperMap =
+          JSObject2JSObjectMap::newMap(XPC_WRAPPER_MAP_SIZE);
+        MOZ_ASSERT(scope->mWaiverWrapperMap);
     }
-    if (!priv->waiverWrapperMap->Add(obj, waiver))
+    if (!scope->mWaiverWrapperMap->Add(obj, waiver))
         return nullptr;
     return waiver;
 }
@@ -606,10 +606,10 @@ FixWaiverAfterTransplant(JSContext *cx, JSObject *oldWaiver, JSObject *newobj)
     
     
     
-    CompartmentPrivate *priv = GetCompartmentPrivate(oldWaiver);
+    XPCWrappedNativeScope *scope = ObjectScope(oldWaiver);
     JSObject *key = Wrapper::wrappedObject(oldWaiver);
-    MOZ_ASSERT(priv->waiverWrapperMap->Find(key));
-    priv->waiverWrapperMap->Remove(key);
+    MOZ_ASSERT(scope->mWaiverWrapperMap->Find(key));
+    scope->mWaiverWrapperMap->Remove(key);
     return true;
 }
 
