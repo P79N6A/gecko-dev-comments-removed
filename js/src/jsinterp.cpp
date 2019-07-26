@@ -3023,7 +3023,7 @@ BEGIN_CASE(JSOP_ENDINIT)
 {
     
     JS_ASSERT(regs.stackDepth() >= 1);
-    JS_ASSERT(regs.sp[-1].isObject());
+    JS_ASSERT(regs.sp[-1].isObject() || regs.sp[-1].isUndefined());
 }
 END_CASE(JSOP_ENDINIT)
 

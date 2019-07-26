@@ -43,6 +43,95 @@ ion::SplitCriticalEdges(MIRGraph &graph)
 
 
 
+
+
+
+
+
+
+
+bool
+ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
+{
+    for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
+        if (mir->shouldCancel("Eliminate Dead Resume Point Operands (main loop)"))
+            return false;
+
+        
+        if (block->isLoopHeader() && block->backedge() == *block)
+            continue;
+
+        for (MInstructionIterator ins = block->begin(); ins != block->end(); ins++) {
+            
+            if (ins->isConstant())
+                continue;
+
+            
+            
+            
+            
+            
+            if (ins->isUnbox() || ins->isParameter())
+                continue;
+
+            
+            
+            
+            
+            
+            uint32 maxDefinition = 0;
+            for (MUseDefIterator uses(*ins); uses; uses++) {
+                if (uses.def()->block() != *block || uses.def()->isBox() || uses.def()->isPassArg()) {
+                    maxDefinition = UINT32_MAX;
+                    break;
+                }
+                maxDefinition = Max(maxDefinition, uses.def()->id());
+            }
+            if (maxDefinition == UINT32_MAX)
+                continue;
+
+            
+            
+            for (MUseIterator uses(ins->usesBegin()); uses != ins->usesEnd(); ) {
+                if (uses->node()->isDefinition()) {
+                    uses++;
+                    continue;
+                }
+                MResumePoint *mrp = uses->node()->toResumePoint();
+                if (mrp->block() != *block ||
+                    !mrp->instruction() ||
+                    mrp->instruction() == *ins ||
+                    mrp->instruction()->id() <= maxDefinition)
+                {
+                    uses++;
+                    continue;
+                }
+
+                
+                
+                
+                
+                
+                
+                
+                
+                MConstant *constant = MConstant::New(UndefinedValue());
+                block->insertBefore(*(block->begin()), constant);
+                uses = mrp->replaceOperand(uses, constant);
+            }
+
+            MResumePoint *mrp = ins->resumePoint();
+            if (!mrp)
+                continue;
+        }
+    }
+
+    return true;
+}
+
+
+
+
 bool
 ion::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
 {

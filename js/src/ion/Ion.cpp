@@ -849,6 +849,15 @@ CompileBackEnd(MIRGenerator *mir)
 
         if (mir->shouldCancel("Alias analysis"))
             return NULL;
+
+        
+        
+        
+        if (!EliminateDeadResumePointOperands(mir, graph))
+            return NULL;
+
+        if (mir->shouldCancel("Eliminate dead resume point operands"))
+            return NULL;
     }
 
     if (js_IonOptions.edgeCaseAnalysis) {

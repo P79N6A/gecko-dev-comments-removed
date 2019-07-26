@@ -5608,6 +5608,13 @@ TypeScript::CheckBytecode(JSContext *cx, HandleScript script, jsbytecode *pc, co
         if (IgnorePushed(pc, i))
             continue;
 
+        
+
+
+
+        if (val.isUndefined())
+            continue;
+
         Type type = GetValueType(cx, val);
 
         if (!types->hasType(type)) {
