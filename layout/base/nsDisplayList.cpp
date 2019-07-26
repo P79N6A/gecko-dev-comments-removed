@@ -3652,6 +3652,30 @@ nsDisplayScrollLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
   return LAYER_ACTIVE_FORCE;
 }
 
+
+
+
+bool
+WouldCauseIncorrectClippingOnAbsPosItem(nsDisplayListBuilder* aBuilder,
+                                        nsDisplayScrollLayer* aItem)
+{
+  nsIFrame* scrollFrame = aItem->GetScrollFrame();
+  nsIPresShell* presShell = scrollFrame->PresContext()->PresShell();
+  if (scrollFrame == presShell->GetRootScrollFrame()) {
+    return false;
+  }
+  nsIFrame* scrolledFrame = aItem->GetScrolledFrame();
+  nsIFrame* frame = aItem->Frame();
+  if (frame == scrolledFrame || !frame->IsAbsolutelyPositioned() ||
+      nsLayoutUtils::IsAncestorFrameCrossDoc(scrollFrame, frame, presShell->GetRootFrame())) {
+    return false;
+  }
+  if (!aItem->GetClip().IsRectAffectedByClip(aItem->GetChildren()->GetBounds(aBuilder))) {
+    return false;
+  }
+  return true;
+}
+
 bool
 nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
                                nsDisplayItem* aItem)
@@ -3664,6 +3688,11 @@ nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
     return false;
   }
   if (aItem->GetClip() != GetClip()) {
+    return false;
+  }
+
+  if (WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, this) ||
+      WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, other)) {
     return false;
   }
 
@@ -3704,12 +3733,16 @@ PropagateClip(nsDisplayListBuilder* aBuilder, const DisplayItemClip& aClip,
 bool
 nsDisplayScrollLayer::ShouldFlattenAway(nsDisplayListBuilder* aBuilder)
 {
-  if (GetScrollLayerCount() > 1) {
+  bool badAbsPosClip = WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, this);
+  if (GetScrollLayerCount() > 1 || badAbsPosClip) {
     
     
     
     
-    PropagateClip(aBuilder, GetClip(), &mList);
+    
+    if (!badAbsPosClip) {
+      PropagateClip(aBuilder, GetClip(), &mList);
+    }
     return true;
   }
   if (mFrame != mScrolledFrame) {
