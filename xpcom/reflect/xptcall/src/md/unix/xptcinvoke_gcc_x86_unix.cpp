@@ -52,11 +52,11 @@ __asm__ (
 
 
 	".align 2\n\t"
-	".globl " SYMBOL_UNDERSCORE "NS_InvokeByIndex\n\t"
+	".globl " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P\n\t"
 #ifndef XP_MACOSX
-	".type  " SYMBOL_UNDERSCORE "NS_InvokeByIndex,@function\n"
+	".type  " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P,@function\n"
 #endif
-	SYMBOL_UNDERSCORE "NS_InvokeByIndex:\n\t"
+	SYMBOL_UNDERSCORE "NS_InvokeByIndex_P:\n\t"
 	"pushl %ebp\n\t"
 	"movl  %esp, %ebp\n\t"
 	"movl  0x10(%ebp), %eax\n\t"
@@ -92,6 +92,6 @@ __asm__ (
 	"popl  %ebp\n\t"
 	"ret\n"
 #ifndef XP_MACOSX
-	".size " SYMBOL_UNDERSCORE "NS_InvokeByIndex, . -" SYMBOL_UNDERSCORE "NS_InvokeByIndex\n\t"
+	".size " SYMBOL_UNDERSCORE "NS_InvokeByIndex_P, . -" SYMBOL_UNDERSCORE "NS_InvokeByIndex_P\n\t"
 #endif
 );

@@ -64,8 +64,8 @@ __asm__ (
 
 
 	".align 2\n\t"
-	".globl _NS_InvokeByIndex\n\t"
-	"_NS_InvokeByIndex:\n\t"
+	".globl _NS_InvokeByIndex_P\n\t"
+	"_NS_InvokeByIndex_P:\n\t"
 	"pushl %ebp\n\t"
 	"movl  %esp, %ebp\n\t"
 	"movl  0x10(%ebp), %eax\n\t"
@@ -101,6 +101,6 @@ __asm__ (
 	"popl  %ebp\n\t"
 	"ret\n"
 	".section .drectve\n\t"
-	".ascii \" -export:NS_InvokeByIndex\"\n\t"
+	".ascii \" -export:NS_InvokeByIndex_P\"\n\t"
 	".text\n\t"
 );

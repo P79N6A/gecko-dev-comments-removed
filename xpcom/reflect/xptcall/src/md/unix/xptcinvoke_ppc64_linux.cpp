@@ -90,6 +90,6 @@ invoke_copy_to_stack(uint64_t* gpregs,
 }
 
 EXPORT_XPCOM_API(nsresult)
-NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
+NS_InvokeByIndex_P(nsISupports* that, uint32_t methodIndex,
                    uint32_t paramCount, nsXPTCVariant* params);
 

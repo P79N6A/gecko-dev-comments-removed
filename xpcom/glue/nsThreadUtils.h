@@ -22,6 +22,23 @@
 
 
 
+#ifdef MOZILLA_INTERNAL_API
+# define NS_SetThreadName NS_SetThreadName_P
+# define NS_NewThread NS_NewThread_P
+# define NS_NewNamedThread NS_NewNamedThread_P
+# define NS_GetCurrentThread NS_GetCurrentThread_P
+# define NS_GetMainThread NS_GetMainThread_P
+# define NS_IsMainThread NS_IsMainThread_P
+# define NS_DispatchToCurrentThread NS_DispatchToCurrentThread_P
+# define NS_DispatchToMainThread NS_DispatchToMainThread_P
+# define NS_ProcessPendingEvents NS_ProcessPendingEvents_P
+# define NS_HasPendingEvents NS_HasPendingEvents_P
+# define NS_ProcessNextEvent NS_ProcessNextEvent_P
+#endif
+
+
+
+
 
 
 
