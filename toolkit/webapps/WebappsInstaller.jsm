@@ -229,8 +229,8 @@ WinNativeApp.prototype = {
   install: function() {
     try {
       this._copyPrebuiltFiles();
-      this._createConfigFiles();
       this._createShortcutFiles();
+      this._createConfigFiles();
       this._writeSystemKeys();
     } catch (ex) {
       this._removeInstallation(false);
@@ -280,6 +280,29 @@ WinNativeApp.prototype = {
     this.uninstallSubkeyStr = this.uniqueName;
 
     
+    this.shortcutLogsINI = this.uninstallDir.clone();
+    this.shortcutLogsINI.append("shortcuts_log.ini");
+
+    if (this.shortcutLogsINI.exists()) {
+      
+      
+      let factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"]
+                      .getService(Ci.nsIINIParserFactory);
+      let parser = factory.createINIParser(this.shortcutLogsINI);
+
+      this.shortcutName = parser.getString("STARTMENU", "Shortcut0");
+    } else {
+      let desktop = Services.dirsvc.get("Desk", Ci.nsIFile);
+      let startMenu = Services.dirsvc.get("Progs", Ci.nsIFile);
+
+      
+      
+      this.shortcutName = getAvailableFileName([ startMenu, desktop ],
+                                               this.appNameAsFilename,
+                                               ".lnk");
+    }
+
+    
     this._removeInstallation(true);
 
     this._createDirectoryStructure();
@@ -306,11 +329,11 @@ WinNativeApp.prototype = {
         uninstallKey.close();
     }
 
-    let desktopShortcut = Services.dirsvc.get("Desk", Ci.nsILocalFile);
-    desktopShortcut.append(this.appNameAsFilename + ".lnk");
+    let desktopShortcut = Services.dirsvc.get("Desk", Ci.nsIFile);
+    desktopShortcut.append(this.shortcutName);
 
-    let startMenuShortcut = Services.dirsvc.get("Progs", Ci.nsILocalFile);
-    startMenuShortcut.append(this.appNameAsFilename + ".lnk");
+    let startMenuShortcut = Services.dirsvc.get("Progs", Ci.nsIFile);
+    startMenuShortcut.append(this.shortcutName);
 
     let filesToRemove = [desktopShortcut, startMenuShortcut];
 
@@ -382,13 +405,9 @@ WinNativeApp.prototype = {
     writer.setString("WebappRT", "InstallDir", this.runtimeFolder.path);
     writer.writeFile(null, Ci.nsIINIParserWriter.WRITE_UTF16);
 
-    
-    let shortcutLogsINI = this.uninstallDir.clone().QueryInterface(Ci.nsILocalFile);
-    shortcutLogsINI.append("shortcuts_log.ini");
-
-    writer = factory.createINIParser(shortcutLogsINI).QueryInterface(Ci.nsIINIParserWriter);
-    writer.setString("STARTMENU", "Shortcut0", this.appNameAsFilename + ".lnk");
-    writer.setString("DESKTOP", "Shortcut0", this.appNameAsFilename + ".lnk");
+    writer = factory.createINIParser(this.shortcutLogsINI).QueryInterface(Ci.nsIINIParserWriter);
+    writer.setString("STARTMENU", "Shortcut0", this.shortcutName);
+    writer.setString("DESKTOP", "Shortcut0", this.shortcutName);
     writer.setString("TASKBAR", "Migrated", "true");
     writer.writeFile(null, Ci.nsIINIParserWriter.WRITE_UTF16);
 
@@ -448,7 +467,7 @@ WinNativeApp.prototype = {
 
   _createShortcutFiles: function() {
     let shortcut = this.installDir.clone().QueryInterface(Ci.nsILocalFileWin);
-    shortcut.append(this.appNameAsFilename + ".lnk");
+    shortcut.append(this.shortcutName);
 
     let target = this.installDir.clone();
     target.append(this.webapprt.leafName);
@@ -462,8 +481,8 @@ WinNativeApp.prototype = {
     let desktop = Services.dirsvc.get("Desk", Ci.nsILocalFile);
     let startMenu = Services.dirsvc.get("Progs", Ci.nsILocalFile);
 
-    shortcut.copyTo(desktop, this.appNameAsFilename + ".lnk");
-    shortcut.copyTo(startMenu, this.appNameAsFilename + ".lnk");
+    shortcut.copyTo(desktop, this.shortcutName);
+    shortcut.copyTo(startMenu, this.shortcutName);
 
     shortcut.followLinks = false;
     shortcut.remove(false);
@@ -660,13 +679,13 @@ MacNativeApp.prototype = {
 
   _moveToApplicationsFolder: function() {
     let appDir = Services.dirsvc.get("LocApp", Ci.nsILocalFile);
-    let destination = getAvailableFile(appDir,
-                                       this.appNameAsFilename,
-                                       ".app");
-    if (!destination) {
+    let destinationName = getAvailableFileName([appDir],
+                                               this.appNameAsFilename,
+                                              ".app");
+    if (!destinationName) {
       return false;
     }
-    this.installDir.moveTo(destination.parent, destination.leafName);
+    this.installDir.moveTo(appDir, destinationName);
   },
 
   
@@ -974,31 +993,54 @@ function stripStringForFilename(aPossiblyBadFilenameString) {
 
 
 
-function getAvailableFile(aFolder, aName, aExtension) {
-  let folder = aFolder.QueryInterface(Ci.nsILocalFile);
-  folder.followLinks = false;
-  if (!folder.isDirectory() || !folder.isWritable()) {
-    return null;
-  }
 
-  let file = folder.clone();
-  file.append(aName + aExtension);
+function getAvailableFileName(aFolderSet, aName, aExtension) {
+  let fileSet = [];
+  let name = aName + aExtension;
+  let isUnique = true;
 
-  if (!file.exists()) {
-    return file;
-  }
-
-  for (let i = 2; i < 10; i++) {
-    file.leafName = aName + " (" + i + ")" + aExtension;
-    if (!file.exists()) {
-      return file;
+  
+  for (let folder of aFolderSet) {
+    folder.followLinks = false;
+    if (!folder.isDirectory() || !folder.isWritable()) {
+      return null;
     }
+
+    let file = folder.clone();
+    file.append(name);
+    
+    
+    if (isUnique && file.exists()) {
+      isUnique = false;
+    }
+
+    fileSet.push(file);
   }
 
-  for (let i = 10; i < 100; i++) {
-    file.leafName = aName + "-" + i + aExtension;
-    if (!file.exists()) {
-      return file;
+  if (isUnique) {
+    return name;
+  }
+
+
+  function checkUnique(aName) {
+    for (let file of fileSet) {
+      file.leafName = aName;
+
+      if (file.exists()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  
+  
+  for (let i = 2; i < 100; i++) {
+    name = aName + " (" + i + ")" + aExtension;
+
+    if (checkUnique(name)) {
+      return name;
     }
   }
 
