@@ -92,8 +92,15 @@ public:
     mValue -= aOther.mValue;
     return *this;
   }
-  TimeDuration operator*(const double aMultiplier) const {
-    return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
+
+private:
+  
+  
+  TimeDuration operator*(const double aMultiplier) const MOZ_DELETE;
+
+public:
+  TimeDuration MultDouble(double aMultiplier) const {
+    return TimeDuration::FromTicks(static_cast<int64_t>(mValue * aMultiplier));
   }
   TimeDuration operator*(const int32_t aMultiplier) const {
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
