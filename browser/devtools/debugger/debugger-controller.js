@@ -797,7 +797,9 @@ StackFrames.prototype = {
       case "object":
         
         this.activeThread.pauseGrip(env.object).getPrototypeAndProperties(function(aResponse) {
-          this._insertScopeVariables(aResponse.ownProperties, aScope);
+          let { ownProperties, safeGetterValues } = aResponse;
+          this._mergeSafeGetterValues(ownProperties, safeGetterValues);
+          this._insertScopeVariables(ownProperties, aScope);
 
           
           window.dispatchEvent(document, "Debugger:FetchedVariables");
@@ -903,8 +905,10 @@ StackFrames.prototype = {
     let grip = aVar._sourceGrip;
 
     this.activeThread.pauseGrip(grip).getPrototypeAndProperties(function(aResponse) {
-      let { ownProperties, prototype } = aResponse;
+      let { ownProperties, prototype, safeGetterValues } = aResponse;
       let sortable = VariablesView.NON_SORTABLE_CLASSES.indexOf(grip.class) == -1;
+
+      this._mergeSafeGetterValues(ownProperties, safeGetterValues);
 
       
       if (ownProperties) {
@@ -930,6 +934,33 @@ StackFrames.prototype = {
       window.dispatchEvent(document, "Debugger:FetchedProperties");
       DebuggerView.Variables.commitHierarchy();
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _mergeSafeGetterValues:
+  function SF__mergeSafeGetterValues(aOwnProperties, aSafeGetterValues) {
+    
+    
+    for (let name of Object.keys(aSafeGetterValues)) {
+      if (name in aOwnProperties) {
+        aOwnProperties[name].getterValue = aSafeGetterValues[name].getterValue;
+        aOwnProperties[name].getterPrototypeLevel = aSafeGetterValues[name]
+                                                    .getterPrototypeLevel;
+      }
+      else {
+        aOwnProperties[name] = aSafeGetterValues[name];
+      }
+    }
   },
 
   
