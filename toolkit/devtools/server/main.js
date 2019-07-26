@@ -267,10 +267,28 @@ var DebuggerServer = {
     let serverTransport = new LocalDebuggerTransport;
     let clientTransport = new LocalDebuggerTransport(serverTransport);
     serverTransport.other = clientTransport;
-    this._onConnection(serverTransport);
+    let connection = this._onConnection(serverTransport);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    clientTransport._serverConnection = connection;
 
     return clientTransport;
   },
+
 
   
 
@@ -318,6 +336,8 @@ var DebuggerServer = {
     conn.addActor(conn.rootActor);
     aTransport.send(conn.rootActor.sayHello());
     aTransport.ready();
+
+    return conn;
   },
 
   
