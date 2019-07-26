@@ -23,8 +23,10 @@
 #include "prmem.h"
 #include "nsIContent.h"
 #include "nsPluginInstanceOwner.h"
-#include "mozilla/HashFunctions.h"
 #include "nsWrapperCacheInlines.h"
+#include "js/HashTable.h"
+#include "mozilla/HashFunctions.h"
+
 
 #define NPRUNTIME_JSCLASS_NAME "NPObject JS wrapper class"
 
@@ -35,6 +37,20 @@ using namespace mozilla;
 using mozilla::plugins::PluginScriptableObjectParent;
 using mozilla::plugins::ParentNPObject;
 
+struct JSObjWrapperHasher : public js::DefaultHasher<nsJSObjWrapperKey>
+{
+  typedef nsJSObjWrapperKey Key;
+  typedef Key Lookup;
+
+  static uint32_t hash(const Lookup &l) {
+    return HashGeneric(l.mJSObj, l.mNpp);
+  }
+
+  static void rekey(Key &k, const Key& newKey) {
+    MOZ_ASSERT(k.mNpp == newKey.mNpp);
+    k.mJSObj = newKey.mJSObj;
+  }
+};
 
 
 
@@ -42,7 +58,12 @@ using mozilla::plugins::ParentNPObject;
 
 
 
-static PLDHashTable sJSObjWrappers;
+
+typedef js::HashMap<nsJSObjWrapperKey,
+                    nsJSObjWrapper*,
+                    JSObjWrapperHasher,
+                    js::SystemAllocPolicy> JSObjWrapperTable;
+static JSObjWrapperTable sJSObjWrappers;
 
 
 static PLDHashTable sNPObjWrappers;
@@ -237,18 +258,16 @@ OnWrapperDestroyed()
   NS_ASSERTION(sWrapperCount, "Whaaa, unbalanced created/destroyed calls!");
 
   if (--sWrapperCount == 0) {
-    if (sJSObjWrappers.ops) {
-      NS_ASSERTION(sJSObjWrappers.entryCount == 0, "Uh, hash not empty?");
+    if (sJSObjWrappers.initialized()) {
+      MOZ_ASSERT(sJSObjWrappers.count() == 0);
 
       
       
-      PL_DHashTableFinish(&sJSObjWrappers);
-
-      sJSObjWrappers.ops = nullptr;
+      sJSObjWrappers.finish();
     }
 
     if (sNPObjWrappers.ops) {
-      NS_ASSERTION(sNPObjWrappers.entryCount == 0, "Uh, hash not empty?");
+      MOZ_ASSERT(sNPObjWrappers.entryCount == 0);
 
       
       
@@ -480,9 +499,8 @@ ReportExceptionIfPending(JSContext *cx)
   return false;
 }
 
-
 nsJSObjWrapper::nsJSObjWrapper(NPP npp)
-  : nsJSObjWrapperKey(nullptr, npp)
+  : mNpp(npp)
 {
   MOZ_COUNT_CTOR(nsJSObjWrapper);
   OnWrapperCreated();
@@ -496,6 +514,15 @@ nsJSObjWrapper::~nsJSObjWrapper()
   NP_Invalidate(this);
 
   OnWrapperDestroyed();
+}
+
+void
+nsJSObjWrapper::ClearJSObject() {
+  
+  JS_RemoveObjectRootRT(sJSRuntime, &mJSObj);
+
+  
+  mJSObj = nullptr;
 }
 
 
@@ -523,18 +550,13 @@ nsJSObjWrapper::NP_Invalidate(NPObject *npobj)
   nsJSObjWrapper *jsnpobj = (nsJSObjWrapper *)npobj;
 
   if (jsnpobj && jsnpobj->mJSObj) {
-    
-    JS_RemoveObjectRootRT(sJSRuntime, &jsnpobj->mJSObj);
-
-    if (sJSObjWrappers.ops) {
-      
-
-      nsJSObjWrapperKey key(jsnpobj->mJSObj, jsnpobj->mNpp);
-      PL_DHashTableOperate(&sJSObjWrappers, &key, PL_DHASH_REMOVE);
-    }
 
     
-    jsnpobj->mJSObj = nullptr;
+    MOZ_ASSERT(sJSObjWrappers.initialized());
+    nsJSObjWrapperKey key(jsnpobj->mJSObj, jsnpobj->mNpp);
+    sJSObjWrappers.remove(key);
+
+    jsnpobj->ClearJSObject();
   }
 }
 
@@ -915,33 +937,22 @@ nsJSObjWrapper::NP_Construct(NPObject *npobj, const NPVariant *args,
 }
 
 
-class JSObjWrapperHashEntry : public PLDHashEntryHdr
-{
-public:
-  nsJSObjWrapper *mJSObjWrapper;
-};
 
 
-static PLDHashNumber
-JSObjWrapperHash(PLDHashTable *table, const void *key)
-{
-  const nsJSObjWrapperKey *e = static_cast<const nsJSObjWrapperKey *>(key);
-  return HashGeneric(e->mJSObj, e->mNpp);
+
+
+
+static void
+JSObjWrapperKeyMarkCallback(JSTracer *trc, void *key, void *data) {
+  JSObject *obj = static_cast<JSObject*>(key);
+  nsJSObjWrapper* wrapper = static_cast<nsJSObjWrapper*>(data);
+  JSObject *prior = obj;
+  JS_CallObjectTracer(trc, &obj, "sJSObjWrappers key object");
+  NPP npp = wrapper->mNpp;
+  nsJSObjWrapperKey oldKey(prior, npp);
+  nsJSObjWrapperKey newKey(obj, npp);
+  sJSObjWrappers.rekeyIfMoved(oldKey, newKey);
 }
-
-static bool
-JSObjWrapperHashMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *entry,
-                           const void *key)
-{
-  const nsJSObjWrapperKey *objWrapperKey =
-    static_cast<const nsJSObjWrapperKey *>(key);
-  const JSObjWrapperHashEntry *e =
-    static_cast<const JSObjWrapperHashEntry *>(entry);
-
-  return (e->mJSObjWrapper->mJSObj == objWrapperKey->mJSObj &&
-          e->mJSObjWrapper->mNpp == objWrapperKey->mNpp);
-}
-
 
 
 
@@ -990,22 +1001,9 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
       return _retainobject(npobj);
   }
 
-  if (!sJSObjWrappers.ops) {
+  if (!sJSObjWrappers.initialized()) {
     
-
-    static const PLDHashTableOps ops =
-      {
-        PL_DHashAllocTable,
-        PL_DHashFreeTable,
-        JSObjWrapperHash,
-        JSObjWrapperHashMatchEntry,
-        PL_DHashMoveEntryStub,
-        PL_DHashClearEntryStub,
-        PL_DHashFinalizeStub
-      };
-
-    if (!PL_DHashTableInit(&sJSObjWrappers, &ops, nullptr,
-                           sizeof(JSObjWrapperHashEntry), 16)) {
+    if (!sJSObjWrappers.init(16)) {
       NS_ERROR("Error initializing PLDHashTable!");
 
       return nullptr;
@@ -1014,18 +1012,13 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
 
   nsJSObjWrapperKey key(obj, npp);
 
-  JSObjWrapperHashEntry *entry = static_cast<JSObjWrapperHashEntry *>
-    (PL_DHashTableOperate(&sJSObjWrappers, &key, PL_DHASH_ADD));
+  JSObjWrapperTable::AddPtr p = sJSObjWrappers.lookupForAdd(key);
 
-  if (!entry) {
-    
-    return nullptr;
-  }
-
-  if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->mJSObjWrapper) {
+  if (p) {
+    MOZ_ASSERT(p->value);
     
 
-    return _retainobject(entry->mJSObjWrapper);
+    return _retainobject(p->value);
   }
 
   
@@ -1035,15 +1028,16 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
 
   if (!wrapper) {
     
-
-    PL_DHashTableRawRemove(&sJSObjWrappers, entry);
-
     return nullptr;
   }
 
   wrapper->mJSObj = obj;
 
-  entry->mJSObjWrapper = wrapper;
+  if (!sJSObjWrappers.add(p, key, wrapper)) {
+    
+    _releaseobject(wrapper);
+    return nullptr;
+  }
 
   NS_ASSERTION(wrapper->mNpp == npp, "nsJSObjWrapper::mNpp not initialized!");
 
@@ -1052,12 +1046,14 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
   if (!::JS_AddNamedObjectRoot(cx, &wrapper->mJSObj, "nsJSObjWrapper::mJSObject")) {
     NS_ERROR("Failed to root JSObject!");
 
+    sJSObjWrappers.remove(key);
     _releaseobject(wrapper);
-
-    PL_DHashTableRawRemove(&sJSObjWrappers, entry);
 
     return nullptr;
   }
+
+  
+  JS_StoreObjectPostBarrierCallback(cx, JSObjWrapperKeyMarkCallback, obj, wrapper);
 
   return wrapper;
 }
@@ -1813,35 +1809,6 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 
 
 
-static PLDHashOperator
-JSObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                                    uint32_t number, void *arg)
-{
-  JSObjWrapperHashEntry *entry = (JSObjWrapperHashEntry *)hdr;
-
-  nsJSObjWrapper *npobj = entry->mJSObjWrapper;
-
-  if (npobj->mNpp == arg) {
-    
-    
-    const PLDHashTableOps *ops = table->ops;
-    table->ops = nullptr;
-
-    if (npobj->_class && npobj->_class->invalidate) {
-      npobj->_class->invalidate(npobj);
-    }
-
-    _releaseobject(npobj);
-
-    table->ops = ops;
-
-    return PL_DHASH_REMOVE;
-  }
-
-  return PL_DHASH_NEXT;
-}
-
-
 
 struct NppAndCx
 {
@@ -1888,7 +1855,7 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
 
     ::JS_SetPrivate(entry->mJSObj, nullptr);
 
-    table->ops = ops;    
+    table->ops = ops;
 
     if (sDelayedReleases && sDelayedReleases->RemoveElement(npobj)) {
       OnWrapperDestroyed();
@@ -1904,9 +1871,16 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
 void
 nsJSNPRuntime::OnPluginDestroy(NPP npp)
 {
-  if (sJSObjWrappers.ops) {
-    PL_DHashTableEnumerate(&sJSObjWrappers,
-                           JSObjWrapperPluginDestroyedCallback, npp);
+  if (sJSObjWrappers.initialized()) {
+    for (JSObjWrapperTable::Enum e(sJSObjWrappers); !e.empty(); e.popFront()) {
+      nsJSObjWrapper *npobj = e.front().value;
+      MOZ_ASSERT(npobj->_class == &nsJSObjWrapper::sJSObjWrapperNPClass);
+      if (npobj->mNpp == npp) {
+        npobj->ClearJSObject();
+        _releaseobject(npobj);
+        e.removeFront();
+      }
+    }
   }
 
   
