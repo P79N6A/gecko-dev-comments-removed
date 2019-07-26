@@ -272,34 +272,25 @@ const EXCEPTION_NAMES = {
    GET_DEBUG: function() {
      return SharedAll.Config.DEBUG;
    },
-   Meta_getUnclosedResources: function() {
-     
-     
-     return {
+   
+
+
+
+
+
+   Meta_shutdown: function(kill) {
+     let result = {
        openedFiles: OpenedFiles.listOpenedResources(),
-       openedDirectoryIterators: OpenedDirectoryIterators.listOpenedResources()
+       openedDirectoryIterators: OpenedDirectoryIterators.listOpenedResources(),
+       killed: false 
      };
-   },
-   Meta_reset: function() {
+
      
-     
-     
-     
-     let openedFiles = OpenedFiles.listOpenedResources();
-     let openedDirectoryIterators =
-       OpenedDirectoryIterators.listOpenedResources();
-     let canShutdown = openedFiles.length == 0
-                         && openedDirectoryIterators.length == 0;
-     if (canShutdown) {
-       
-       return new Meta(null, {shutdown: true});
-     } else {
-       
-       return {
-         openedFiles: openedFiles,
-         openedDirectoryIterators: openedDirectoryIterators
-       };
-     }
+     let safe = result.openedFiles.length == 0
+           && result.openedDirectoryIterators.length == 0;
+     result.killed = safe && kill;
+
+     return new Meta(result, {shutdown: result.killed});
    },
    
    stat: function stat(path, options) {
