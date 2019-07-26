@@ -132,6 +132,13 @@ FrameWorker.prototype = {
 
     
     
+    
+    sandbox._evalInSandbox = function(s) {
+      Cu.evalInSandbox(s, sandbox);
+    };
+
+    
+    
     this.frame.addEventListener('offline', function fw_onoffline(event) {
       Cu.evalInSandbox("onoffline();", sandbox);
     }, false);
