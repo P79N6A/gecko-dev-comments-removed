@@ -319,7 +319,7 @@ pref("gfx.font_rendering.opentype_svg.enabled", false);
 
 
 pref("gfx.canvas.azure.backends", "direct2d,skia,cairo");
-pref("gfx.content.azure.backends", "direct2d");
+pref("gfx.content.azure.backends", "direct2d,cairo");
 pref("gfx.content.azure.enabled", true);
 #else
 pref("gfx.content.azure.enabled", false);
@@ -4323,6 +4323,11 @@ pref("dom.placeholder.show_on_focus", true);
 
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
+
+
+
+
+pref("dom.mms.version", 19);
 
 
 
