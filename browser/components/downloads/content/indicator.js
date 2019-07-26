@@ -334,15 +334,17 @@ const DownloadsIndicatorView = {
 
     let anchor = DownloadsButton._placeholder;
     let widgetGroup = CustomizableUI.getWidget("downloads-button");
-    let widgetInWindow = widgetGroup.forWindow(window);
-    if (widgetInWindow.overflowed || widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+    let widget = widgetGroup.forWindow(window);
+    if (widget.overflowed || widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
       if (anchor && this._isAncestorPanelOpen(anchor)) {
+        
+        
         
         return;
       }
 
       
-      anchor = widgetInWindow.anchor;
+      anchor = widget.anchor;
     }
     if (!anchor || !isElementVisible(anchor.parentNode)) {
       
