@@ -2376,13 +2376,6 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
 
   
   
-  if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-      aChildRestyleHint) {
-    RestyleAfterPseudo();
-  }
-
-  
-  
   
   
   
@@ -2396,6 +2389,13 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
     RestyleContentChildren(aChildRestyleHint);
 
     SendAccessibilityNotifications();
+  }
+
+  
+  
+  if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
+      aChildRestyleHint) {
+    RestyleAfterPseudo();
   }
 }
 
