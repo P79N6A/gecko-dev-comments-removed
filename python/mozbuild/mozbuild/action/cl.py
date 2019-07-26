@@ -96,7 +96,9 @@ def InvokeClWithDependencyGeneration(cmdline):
     ret = p.wait()
 
     if ret != 0 or target == "":
-        return ret
+        
+        
+        return int(ret)
 
     depsdir = os.path.normpath(os.path.join(os.curdir, ".deps"))
     depstarget = os.path.join(depsdir, depstarget)
