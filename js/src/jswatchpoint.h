@@ -29,14 +29,12 @@ struct WatchKey {
     }
 };
 
-struct WatchpointStackValue;
 struct Watchpoint {
     JSWatchPointHandler handler;
-    RelocatablePtrObject closure;
+    EncapsulatedPtrObject closure;  
     bool held;  
-
-    inline Watchpoint(const WatchpointStackValue& w);
-    inline Watchpoint &operator=(const WatchpointStackValue& w);
+    Watchpoint(JSWatchPointHandler handler, JSObject* closure, bool held)
+      : handler(handler), closure(closure), held(held) {}
 };
 
 template <>
