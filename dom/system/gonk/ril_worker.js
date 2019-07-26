@@ -1723,6 +1723,23 @@ let RIL = {
   
 
 
+  setVoicePrivacyMode: function setVoicePrivacyMode(options) {
+    Buf.newParcel(REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE, options);
+    Buf.writeUint32(1);
+    Buf.writeUint32(options.enabled ? 1 : 0);
+    Buf.sendParcel();
+  },
+
+  
+
+
+  queryVoicePrivacyMode: function getVoicePrivacyMode(options) {
+    Buf.simpleRequest(REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE, options);
+  },
+
+  
+
+
   iccOpenChannel: function iccOpenChannel(options) {
     if (DEBUG) {
       debug("iccOpenChannel: " + JSON.stringify(options));
@@ -6034,8 +6051,26 @@ RIL[REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = function REQUEST_CDMA_QUERY_ROAMING
 };
 RIL[REQUEST_SET_TTY_MODE] = null;
 RIL[REQUEST_QUERY_TTY_MODE] = null;
-RIL[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = null;
-RIL[REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = null;
+RIL[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  this.sendChromeMessage(options);
+};
+RIL[REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
+  if (options.rilRequestError) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
+    return;
+  }
+
+  let enabled = Buf.readUint32List();
+  options.enabled = enabled[0] ? true : false;
+  this.sendChromeMessage(options);
+};
 RIL[REQUEST_CDMA_FLASH] = null;
 RIL[REQUEST_CDMA_BURST_DTMF] = null;
 RIL[REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = null;
