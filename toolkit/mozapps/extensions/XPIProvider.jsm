@@ -2201,7 +2201,7 @@ var XPIProvider = {
 
   getAddonStates: function XPI_getAddonStates(aLocation) {
     let addonStates = {};
-    aLocation.addonLocations.forEach(function(file) {
+    for (let file of aLocation.addonLocations) {
       let id = aLocation.getIDForLocation(file);
       let unpacked = 0;
       let [modFile, modTime] = recursiveLastModifiedTime(file);
@@ -2219,7 +2219,8 @@ var XPIProvider = {
       catch (e) { }
       this._mostRecentlyModifiedFile[id] = modFile;
       this.setTelemetry(id, "unpacked", unpacked);
-    }, this);
+      this.setTelemetry(id, "location", aLocation.name);
+    }
 
     return addonStates;
   },
@@ -3182,7 +3183,7 @@ var XPIProvider = {
     
     
     
-    aState.reverse().forEach(function(aSt) {
+    for (let aSt of aState.reverse()) {
 
       
       
@@ -3195,7 +3196,7 @@ var XPIProvider = {
         let addons = XPIDatabase.getAddonsInLocation(installLocation.name);
         
         
-        addons.forEach(function(aOldAddon) {
+        for (let aOldAddon of addons) {
           
           
           if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
@@ -3214,9 +3215,24 @@ var XPIProvider = {
               XPIProvider.inactiveAddonIDs.push(aOldAddon.id);
 
             
+            let loc = aOldAddon.defaultLocale;
+            if (loc) {
+              XPIProvider.setTelemetry(aOldAddon.id, "name", loc.name);
+              XPIProvider.setTelemetry(aOldAddon.id, "creator", loc.creator);
+            }
+
+            
             if (aOldAddon.updateDate != addonState.mtime) {
               
-              if (addonState.rdfTime) {
+              if (addonState.mtime < aOldAddon.updateDate) {
+                this.setTelemetry(aOldAddon.id, "olderFile", {
+                  name: this._mostRecentlyModifiedFile[aOldAddon.id],
+                  mtime: addonState.mtime,
+                  oldtime: aOldAddon.updateDate
+                });
+              }
+              
+              else if (addonState.rdfTime) {
                 
                 if (addonState.rdfTime > aOldAddon.updateDate) {
                   this.setTelemetry(aOldAddon.id, "modifiedInstallRDF", 1);
@@ -3256,7 +3272,7 @@ var XPIProvider = {
           else {
             changed = removeMetadata(aOldAddon) || changed;
           }
-        }, this);
+        }
       }
 
       
@@ -3269,7 +3285,7 @@ var XPIProvider = {
         changed = addMetadata(installLocation, id, addonStates[id],
                               locMigrateData[id]) || changed;
       }
-    }, this);
+    }
 
     
     
@@ -3277,9 +3293,9 @@ var XPIProvider = {
     
     for (let location of knownLocations) {
       let addons = XPIDatabase.getAddonsInLocation(location);
-      addons.forEach(function(aOldAddon) {
+      for (let aOldAddon of addons) {
         changed = removeMetadata(aOldAddon) || changed;
-      }, this);
+      }
     }
 
     
@@ -5402,6 +5418,7 @@ AddonInstall.prototype = {
     let stagedAddon = stagingDir.clone();
 
     Task.spawn((function() {
+      let installedUnpacked = 0;
       yield this.installLocation.requestStagingDir();
 
       
@@ -5412,6 +5429,7 @@ AddonInstall.prototype = {
         yield recursiveRemoveAsync(stagedAddon);
         yield OS.File.makeDir(stagedAddon.path);
         yield extractFilesAsync(this.file, stagedAddon);
+        installedUnpacked = 1;
       }
       else {
         LOG("Addon " + this.addon.id + " will be installed as " +
@@ -5550,6 +5568,13 @@ AddonInstall.prototype = {
             
             XPIProvider.unloadBootstrapScope(this.addon.id);
           }
+        }
+        XPIProvider.setTelemetry(this.addon.id, "unpacked", installedUnpacked);
+        XPIProvider.setTelemetry(this.addon.id, "location", this.installLocation.name);
+        let loc = this.addon.defaultLocale;
+        if (loc) {
+          XPIProvider.setTelemetry(this.addon.id, "name", loc.name);
+          XPIProvider.setTelemetry(this.addon.id, "creator", loc.creator);
         }
       }
     }).bind(this)).then(null, (e) => {
