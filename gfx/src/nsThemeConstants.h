@@ -257,6 +257,9 @@
 #define NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON                 226
 
 
+#define NS_THEME_MOZ_MAC_HELP_BUTTON                       227
+
+
 #define NS_THEME_WIN_BORDERLESS_GLASS                      229
 #define NS_THEME_WIN_GLASS                                 230
 
