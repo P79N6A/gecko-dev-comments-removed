@@ -156,11 +156,9 @@ SetOrRemoveObject(PLDHashTable& table, nsIContent* aKey, nsISupports* aValue)
 {
   if (aValue) {
     
-    if (!table.ops &&
-        !PL_DHashTableInit(&table, &ObjectTableOps, nullptr,
-                           sizeof(ObjectEntry), 16)) {
-      table.ops = nullptr;
-      return NS_ERROR_OUT_OF_MEMORY;
+    if (!table.ops) {
+      PL_DHashTableInit(&table, &ObjectTableOps, nullptr,
+                        sizeof(ObjectEntry), 16);
     }
     aKey->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
     return AddObjectEntry(table, aKey, aValue);

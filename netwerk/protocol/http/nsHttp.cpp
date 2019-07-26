@@ -108,8 +108,9 @@ nsHttp::CreateAtomTable()
     
     
     
-    if (!PL_DHashTableInit(&sAtomTable, &ops, nullptr, sizeof(PLDHashEntryStub),
-                           NUM_HTTP_ATOMS + 10)) {
+    if (!PL_DHashTableInit(&sAtomTable, &ops, nullptr,
+                           sizeof(PLDHashEntryStub),
+                           NUM_HTTP_ATOMS + 10, fallible_t())) {
         sAtomTable.ops = nullptr;
         return NS_ERROR_OUT_OF_MEMORY;
     }

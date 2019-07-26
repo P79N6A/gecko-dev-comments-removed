@@ -8,6 +8,7 @@
 
 
 
+#include "mozilla/fallible.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 #include "nscore.h"
@@ -401,9 +402,20 @@ PL_DHashTableDestroy(PLDHashTable *table);
 
 
 
-NS_COM_GLUE bool
+
+
+NS_COM_GLUE void
 PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
                   uint32_t entrySize, uint32_t capacity);
+
+
+
+
+
+NS_COM_GLUE bool
+PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
+                  uint32_t entrySize, uint32_t capacity,
+                  const mozilla::fallible_t& ) MOZ_WARN_UNUSED_RESULT;
 
 
 
