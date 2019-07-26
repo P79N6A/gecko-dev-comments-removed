@@ -85,6 +85,7 @@ public:
     , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
+    , mRootCompositionSize(0, 0)
   {}
 
   
@@ -94,6 +95,7 @@ public:
     
     
     return mCompositionBounds.IsEqualEdges(aOther.mCompositionBounds) &&
+           mRootCompositionSize == aOther.mRootCompositionSize &&
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
@@ -376,7 +378,17 @@ public:
   {
     mScrollId = scrollId;
   }
-  
+
+  void SetRootCompositionSize(const CSSSize& aRootCompositionSize)
+  {
+    mRootCompositionSize = aRootCompositionSize;
+  }
+
+  const CSSSize& GetRootCompositionSize() const
+  {
+    return mRootCompositionSize;
+  }
+
 private:
   
   
@@ -416,6 +428,9 @@ private:
   
   
   std::string mContentDescription;
+
+  
+  CSSSize mRootCompositionSize;
 };
 
 

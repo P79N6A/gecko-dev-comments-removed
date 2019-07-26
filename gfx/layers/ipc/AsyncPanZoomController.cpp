@@ -66,11 +66,12 @@
 
 #define APZC_LOG_FM(fm, prefix, ...) \
   APZC_LOG(prefix ":" \
-           " i=(%ld %lld) cb=(%d %d %d %d) dp=(%.3f %.3f %.3f %.3f) v=(%.3f %.3f %.3f %.3f) " \
+           " i=(%ld %lld) cb=(%d %d %d %d) rcs=(%.3f %.3f) dp=(%.3f %.3f %.3f %.3f) v=(%.3f %.3f %.3f %.3f) " \
            "s=(%.3f %.3f) sr=(%.3f %.3f %.3f %.3f) z=(%.3f %.3f %.3f %.3f) u=(%d %llu)\n", \
            __VA_ARGS__, \
            fm.mPresShellId, fm.GetScrollId(), \
            fm.mCompositionBounds.x, fm.mCompositionBounds.y, fm.mCompositionBounds.width, fm.mCompositionBounds.height, \
+           fm.GetRootCompositionSize().width, fm.GetRootCompositionSize().height, \
            fm.mDisplayPort.x, fm.mDisplayPort.y, fm.mDisplayPort.width, fm.mDisplayPort.height, \
            fm.mViewport.x, fm.mViewport.y, fm.mViewport.width, fm.mViewport.height, \
            fm.GetScrollOffset().x, fm.GetScrollOffset().y, \
@@ -1368,7 +1369,7 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale,
 
 
 static CSSSize
-CalculateDisplayPortSize(const CSSRect& aCompositionBounds,
+CalculateDisplayPortSize(const CSSSize& aCompositionSize,
                          const CSSPoint& aVelocity)
 {
   float xMultiplier = fabsf(aVelocity.x) < gMinSkateSpeed
@@ -1377,8 +1378,8 @@ CalculateDisplayPortSize(const CSSRect& aCompositionBounds,
   float yMultiplier = fabsf(aVelocity.y) < gMinSkateSpeed
                         ? gYStationarySizeMultiplier
                         : gYSkateSizeMultiplier;
-  return CSSSize(aCompositionBounds.width * xMultiplier,
-                 aCompositionBounds.height * yMultiplier);
+  return CSSSize(aCompositionSize.width * xMultiplier,
+                 aCompositionSize.height * yMultiplier);
 }
 
 
@@ -1388,7 +1389,6 @@ CalculateDisplayPortSize(const CSSRect& aCompositionBounds,
 
 static void
 RedistributeDisplayPortExcess(CSSSize& aDisplayPortSize,
-                              const CSSRect& aCompositionBounds,
                               const CSSRect& aScrollableRect)
 {
   float xSlack = std::max(0.0f, aDisplayPortSize.width - aScrollableRect.width);
@@ -1414,15 +1414,19 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   double aEstimatedPaintDuration)
 {
   CSSRect compositionBounds(aFrameMetrics.CalculateCompositedRectInCssPixels());
+  CSSSize compositionSize = aFrameMetrics.GetRootCompositionSize();
+  compositionSize =
+    CSSSize(std::min(compositionBounds.width, compositionSize.width),
+            std::min(compositionBounds.height, compositionSize.height));
   CSSPoint velocity = aVelocity / aFrameMetrics.GetZoom();
   CSSPoint scrollOffset = aFrameMetrics.GetScrollOffset();
   CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
 
   
-  CSSSize displayPortSize = CalculateDisplayPortSize(compositionBounds, velocity);
+  CSSSize displayPortSize = CalculateDisplayPortSize(compositionSize, velocity);
 
   if (gEnlargeDisplayPortWhenClipped) {
-    RedistributeDisplayPortExcess(displayPortSize, compositionBounds, scrollableRect);
+    RedistributeDisplayPortExcess(displayPortSize, scrollableRect);
   }
 
   
@@ -1433,8 +1437,8 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
                                 displayPortSize);
 
   
-  displayPort.MoveBy((compositionBounds.width - displayPort.width)/2.0f,
-                     (compositionBounds.height - displayPort.height)/2.0f);
+  displayPort.MoveBy((compositionSize.width - displayPort.width)/2.0f,
+                     (compositionSize.height - displayPort.height)/2.0f);
 
   
   displayPort = displayPort.ForceInside(scrollableRect) - scrollOffset;
@@ -1749,6 +1753,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     }
     mFrameMetrics.mScrollableRect = aLayerMetrics.mScrollableRect;
     mFrameMetrics.mCompositionBounds = aLayerMetrics.mCompositionBounds;
+    mFrameMetrics.SetRootCompositionSize(aLayerMetrics.GetRootCompositionSize());
     mFrameMetrics.mResolution = aLayerMetrics.mResolution;
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
     mFrameMetrics.mHasScrollgrab = aLayerMetrics.mHasScrollgrab;

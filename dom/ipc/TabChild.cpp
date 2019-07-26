@@ -244,6 +244,8 @@ TabChildBase::HandlePossibleViewportChange()
   metrics.mCompositionBounds = ParentLayerIntRect(
       ParentLayerIntPoint(),
       ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
+  metrics.SetRootCompositionSize(
+      ScreenSize(mInnerSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.mDevPixelsPerCSSPixel);
 
   
   
@@ -1344,7 +1346,7 @@ TabChild::SetProcessNameToAppName()
     return;
   }
 
-  ContentChild::GetSingleton()->SetProcessName(appName, true);
+  ContentChild::GetSingleton()->SetProcessName(appName);
 }
 
 bool
