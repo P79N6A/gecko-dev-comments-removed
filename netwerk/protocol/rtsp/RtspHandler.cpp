@@ -4,7 +4,7 @@
 
 
 
-#include "RtspChannel.h"
+#include "RtspChannelChild.h"
 #include "RtspHandler.h"
 #include "nsILoadGroup.h"
 #include "nsIInterfaceRequestor.h"
@@ -68,13 +68,13 @@ NS_IMETHODIMP
 RtspHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
 {
   bool isRtsp = false;
-  nsRefPtr<RtspChannel> rtspChannel;
+  nsRefPtr<RtspChannelChild> rtspChannel;
 
   nsresult rv = aURI->SchemeIs("rtsp", &isRtsp);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(isRtsp, NS_ERROR_UNEXPECTED);
 
-  rtspChannel = new RtspChannel();
+  rtspChannel = new RtspChannelChild();
 
   rv = rtspChannel->Init(aURI);
   NS_ENSURE_SUCCESS(rv, rv);

@@ -4,8 +4,8 @@
 
 
 
-#ifndef RtspChannel_h
-#define RtspChannel_h
+#ifndef RtspChannelChild_h
+#define RtspChannelChild_h
 
 #include "nsBaseChannel.h"
 
@@ -21,14 +21,14 @@ namespace net {
 
 
 
-class RtspChannel : public nsBaseChannel
+class RtspChannelChild : public nsBaseChannel
 {
 public:
   NS_DECL_ISUPPORTS
 
-  RtspChannel() { }
+  RtspChannelChild() { }
 
-  ~RtspChannel() { }
+  ~RtspChannelChild() { }
 
   
   NS_IMETHOD AsyncOpen(nsIStreamListener *listener,
