@@ -17,7 +17,8 @@
 #endif
 
 #define CHANNELS 1
-#define RATE USECS_PER_S
+#define VIDEO_RATE USECS_PER_S
+#define AUDIO_RATE 16000
 
 namespace mozilla {
 
@@ -132,7 +133,7 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   
   VideoSegment *segment = new VideoSegment();
   segment->AppendFrame(image.forget(), USECS_PER_S / DEFAULT_FPS, gfxIntSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
-  mSource->AddTrack(aID, RATE, 0, segment);
+  mSource->AddTrack(aID, VIDEO_RATE, 0, segment);
 
   
   mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);
@@ -284,7 +285,7 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   
   AudioSegment* segment = new AudioSegment();
   segment->Init(CHANNELS);
-  mSource->AddTrack(aID, RATE, 0, segment);
+  mSource->AddTrack(aID, AUDIO_RATE, 0, segment);
 
   
   mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);
@@ -330,7 +331,7 @@ MediaEngineDefaultAudioSource::Notify(nsITimer* aTimer)
 {
   AudioSegment segment;
   segment.Init(CHANNELS);
-  segment.InsertNullDataAtStart(1);
+  segment.InsertNullDataAtStart(AUDIO_RATE/100); 
 
   mSource->AppendToTrack(mTrackID, &segment);
 
