@@ -60,7 +60,7 @@ function triggerSecondaryCommand(popup, index)
 
   
   
-  document.getAnonymousNodes(popup)[0].style.transition = "none";
+  SpecialPowers.wrap(document).getAnonymousNodes(popup)[0].style.transition = "none";
 
   notification.button.focus();
 
