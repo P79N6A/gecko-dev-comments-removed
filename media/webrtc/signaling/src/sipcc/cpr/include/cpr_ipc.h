@@ -6,6 +6,11 @@
 #define _CPR_IPC_H_
 
 #include "cpr_types.h"
+#include "cpr_threads.h"
+
+#ifndef SIP_OS_WINDOWS
+#include <pthread.h>
+#endif 
 
 __BEGIN_DECLS
 
@@ -21,13 +26,32 @@ typedef void* cprMsgQueue_t;
 
 #define WAIT_FOREVER -1
 
-#if defined SIP_OS_LINUX
-#include "../linux/cpr_linux_ipc.h"
-#elif defined SIP_OS_WINDOWS
-#include "../win32/cpr_win_ipc.h"
-#elif defined SIP_OS_OSX
-#include "../darwin/cpr_darwin_ipc.h"
-#endif
+
+#define CPR_USE_SET_MESSAGE_QUEUE_THREAD
+
+
+#define CPR_MAX_MSG_SIZE  8192
+
+
+#ifdef SIP_OS_WINDOWS
+#define PHONE_IPC_MSG 0xF005
+
+
+struct msgbuffer {
+    int32_t mtype; 
+    void *msgPtr;  
+    void *usrPtr;  
+};
+
+#else
+#define PHONE_IPC_MSG 1
+
+
+
+
+extern pthread_mutex_t msgQueueListMutex;
+
+#endif 
 
 
 
@@ -59,23 +83,6 @@ typedef void* cprMsgQueue_t;
 cprMsgQueue_t
 cprCreateMessageQueue(const char *name, uint16_t depth);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cprRC_t
-cprDestroyMessageQueue(cprMsgQueue_t msgQueue);
 
 #ifdef CPR_USE_SET_MESSAGE_QUEUE_THREAD
 
@@ -158,6 +165,13 @@ cprRC_t
 cprSendMessage(cprMsgQueue_t msgQueue,
                void* msg,
                void** usrPtr);
+
+
+
+
+
+
+uint16_t cprGetDepth(cprMsgQueue_t msgQueue);
 
 __END_DECLS
 
