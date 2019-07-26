@@ -169,7 +169,10 @@ Site.prototype = {
     this._node.addEventListener("dragstart", this, false);
     this._node.addEventListener("dragend", this, false);
     this._node.addEventListener("mouseover", this, false);
-    this._node.addEventListener("click", this, false);
+
+    
+    
+    addEventListener("click", this, false);
 
     
     let sponsored = this._querySelector(".newtab-control-sponsored");
@@ -240,7 +243,11 @@ Site.prototype = {
   handleEvent: function Site_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "click":
-        this._onClick(aEvent);
+        
+        if (this._node.compareDocumentPosition(aEvent.target) &
+            this._node.DOCUMENT_POSITION_CONTAINED_BY) {
+          this._onClick(aEvent);
+        }
         break;
       case "mouseover":
         this._node.removeEventListener("mouseover", this, false);
