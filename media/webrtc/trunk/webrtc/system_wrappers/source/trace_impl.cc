@@ -87,14 +87,12 @@ TraceImpl::TraceImpl()
 
   for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
     for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
-#if defined(WEBRTC_LAZY_TRACE_ALLOC)
-      message_queue_[m][n] = new
-      char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
-#else
       message_queue_[m][n] = NULL;
-#endif
     }
   }
+#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
+  AllocateTraceBuffers();
+#endif
 }
 
 bool TraceImpl::StopThread() {
@@ -341,20 +339,27 @@ int32_t TraceImpl::AddModuleAndId(char* trace_message,
   return kMessageLength;
 }
 
-int32_t TraceImpl::SetTraceFileImpl(const char* file_name_utf8,
-                                    const bool add_file_counter) {
-#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
-  if (file_name_utf8) {
-    
-    
-    
-    CriticalSectionScoped lock(critsect_array_);
+void TraceImpl::AllocateTraceBuffers()
+{
+  
+  
+  
+  CriticalSectionScoped lock(critsect_array_);
 
+  if (!message_queue_[0][0]) {
     for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
       for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
         message_queue_[m][n] = new char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
       }
     }
+  }
+}
+
+int32_t TraceImpl::SetTraceFileImpl(const char* file_name_utf8,
+                                    const bool add_file_counter) {
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  if (file_name_utf8) {
+    AllocateTraceBuffers();
   }
 #endif
 
@@ -392,6 +397,11 @@ int32_t TraceImpl::TraceFileImpl(
 }
 
 int32_t TraceImpl::SetTraceCallbackImpl(TraceCallback* callback) {
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  if (callback) {
+    AllocateTraceBuffers();
+  }
+#endif
   CriticalSectionScoped lock(critsect_interface_);
   callback_ = callback;
   return 0;
@@ -444,7 +454,7 @@ void TraceImpl::AddMessageToList(
 
   uint16_t idx = next_free_idx_[active_queue_];
 
-#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
   
   
   
