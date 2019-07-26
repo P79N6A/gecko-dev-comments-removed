@@ -48,6 +48,9 @@ public class HomePager extends ViewPager {
     private String mInitialPageId;
 
     
+    private boolean mRestartLoader;
+
+    
     
     static final String LIST_TAG_HISTORY = "history";
     static final String LIST_TAG_BOOKMARKS = "bookmarks";
@@ -154,7 +157,20 @@ public class HomePager extends ViewPager {
         super.addView(child, index, params);
     }
 
-    public void redisplay(LoaderManager lm, FragmentManager fm) {
+    
+
+
+    public void invalidate(LoaderManager lm, FragmentManager fm) {
+        
+        mRestartLoader = true;
+
+        
+        if (isVisible()) {
+            redisplay(lm, fm);
+        }
+    }
+
+    private void redisplay(LoaderManager lm, FragmentManager fm) {
         final HomeAdapter adapter = (HomeAdapter) getAdapter();
 
         
@@ -194,7 +210,12 @@ public class HomePager extends ViewPager {
         mTabStrip.setVisibility(View.INVISIBLE);
 
         
-        lm.initLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
+        if (mRestartLoader) {
+            lm.restartLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
+            mRestartLoader = false;
+        } else {
+            lm.initLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
+        }
 
         if (shouldAnimate) {
             animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {

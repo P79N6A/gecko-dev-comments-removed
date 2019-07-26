@@ -1631,9 +1631,9 @@ abstract public class BrowserApp extends GeckoApp
     @Override
     public void onLocaleReady(final String locale) {
         super.onLocaleReady(locale);
-        if (isHomePagerVisible()) {
-            
-            mHomePager.redisplay(getSupportLoaderManager(), getSupportFragmentManager());
+
+        if (mHomePager != null) {
+            mHomePager.invalidate(getSupportLoaderManager(), getSupportFragmentManager());
         }
 
         if (mMenu != null) {
