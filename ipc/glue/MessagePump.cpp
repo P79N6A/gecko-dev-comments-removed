@@ -91,7 +91,7 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     
     
     
-    did_work |= AndroidBridge::Bridge()->PumpMessageLoop();
+    did_work |= GeckoAppShell::PumpMessageLoop();
 #endif
 
     did_work |= aDelegate->DoDelayedWork(&delayed_work_time_);
