@@ -210,6 +210,11 @@ typedef struct fsmdef_media_t_ {
     
 
 
+    sdp_setup_type_e setup;
+
+    
+
+
     uint16_t       local_datachannel_port;
     uint16_t       remote_datachannel_port;
 

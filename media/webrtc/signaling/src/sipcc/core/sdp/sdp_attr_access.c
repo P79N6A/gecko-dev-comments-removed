@@ -4098,6 +4098,163 @@ sdp_result_e sdp_attr_set_rtcp_mux_attribute(void *sdp_ptr, u16 level,
 
 
 
+
+sdp_result_e sdp_attr_get_setup_attribute (void *sdp_ptr, u16 level,
+    u8 cap_num, u16 inst_num, sdp_setup_type_e *setup_type)
+{
+    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_attr_t  *attr_p;
+
+    if (!sdp_verify_sdp_ptr(sdp_p)) {
+        return SDP_INVALID_SDP_PTR;
+    }
+
+    attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SETUP, inst_num);
+    if (!attr_p) {
+        if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+            CSFLogError(logTag,
+                "%s setup attribute, level %u instance %u not found.",
+                sdp_p->debug_str, level, inst_num);
+        }
+        sdp_p->conf_p->num_invalid_param++;
+        return SDP_INVALID_PARAMETER;
+    }
+
+    *setup_type = attr_p->attr.setup;
+    return SDP_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sdp_result_e
+sdp_attr_set_setup_attribute(void *sdp_ptr, u16 level,
+    u8 cap_num, u16 inst_num, sdp_setup_type_e setup_type)
+{
+    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_attr_t  *attr_p;
+
+    if (!sdp_verify_sdp_ptr(sdp_p)) {
+        return SDP_INVALID_SDP_PTR;
+    }
+
+    attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SETUP, inst_num);
+    if (!attr_p) {
+        if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+            CSFLogError(logTag, "%s setup attribute, level %u instance %u "
+                      "not found.", sdp_p->debug_str, level, inst_num);
+        }
+        sdp_p->conf_p->num_invalid_param++;
+        return SDP_INVALID_PARAMETER;
+    }
+
+    attr_p->attr.setup = setup_type;
+    return SDP_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sdp_result_e sdp_attr_get_connection_attribute (void *sdp_ptr, u16 level,
+    u8 cap_num, u16 inst_num, sdp_connection_type_e *connection_type)
+{
+    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_attr_t  *attr_p;
+
+    if (!sdp_verify_sdp_ptr(sdp_p)) {
+        return SDP_INVALID_SDP_PTR;
+    }
+
+    attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_CONNECTION,
+        inst_num);
+    if (!attr_p) {
+        if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+            CSFLogError(logTag,
+                "%s setup attribute, level %u instance %u not found.",
+                sdp_p->debug_str, level, inst_num);
+        }
+        sdp_p->conf_p->num_invalid_param++;
+        return SDP_INVALID_PARAMETER;
+    }
+
+    *connection_type = attr_p->attr.connection;
+    return SDP_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sdp_result_e
+sdp_attr_set_connection_attribute(void *sdp_ptr, u16 level,
+    u8 cap_num, u16 inst_num, sdp_connection_type_e connection_type)
+{
+    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_attr_t  *attr_p;
+
+    if (!sdp_verify_sdp_ptr(sdp_p)) {
+        return SDP_INVALID_SDP_PTR;
+    }
+
+    attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_CONNECTION,
+        inst_num);
+    if (!attr_p) {
+        if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
+            CSFLogError(logTag, "%s connection attribute, level %u instance %u "
+                      "not found.", sdp_p->debug_str, level, inst_num);
+        }
+        sdp_p->conf_p->num_invalid_param++;
+        return SDP_INVALID_PARAMETER;
+    }
+
+    attr_p->attr.connection = connection_type;
+    return SDP_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sdp_result_e sdp_attr_get_dtls_fingerprint_attribute (void *sdp_ptr, u16 level,
                                   u8 cap_num, sdp_attr_e sdp_attr, u16 inst_num,
                                   char **out)
