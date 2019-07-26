@@ -323,7 +323,7 @@ class RegExpCompartment
 
 
 
-    HeapPtrObject matchResultTemplateObject_;
+    ReadBarriered<JSObject> matchResultTemplateObject_;
 
   public:
     RegExpCompartment(JSRuntime *rt);
@@ -339,7 +339,7 @@ class RegExpCompartment
     bool get(JSContext *cx, HandleAtom source, JSString *maybeOpt, RegExpGuard *g);
 
     
-    HeapPtrObject &getOrCreateMatchResultTemplateObject(JSContext *cx);
+    JSObject *getOrCreateMatchResultTemplateObject(JSContext *cx);
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
 };
