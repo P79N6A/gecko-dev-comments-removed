@@ -147,7 +147,7 @@ public:
   
   void ReportHang(PRIntervalTime aHangTime);
   
-  void ReportPermaHang() const;
+  void ReportPermaHang();
   
   void NotifyActivity();
   
@@ -265,6 +265,7 @@ BackgroundHangManager::RunMonitorThread()
         
         
         currentThread->mWaiting = true;
+        currentThread->mHanging = false;
         currentThread->ReportPermaHang();
         continue;
       }
@@ -376,12 +377,13 @@ BackgroundHangThread::ReportHang(PRIntervalTime aHangTime)
 }
 
 void
-BackgroundHangThread::ReportPermaHang() const
+BackgroundHangThread::ReportPermaHang()
 {
   
   
 
   
+  ReportHang(mMaxTimeout);
 }
 
 MOZ_ALWAYS_INLINE void
