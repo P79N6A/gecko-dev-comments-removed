@@ -275,6 +275,12 @@ WebappsActor.prototype = {
       
       
       let installDir = DOMApplicationRegistry._getAppDir(aId);
+      try {
+        installDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+      } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+        
+      }
+
       if (aManifest) {
         let manFile = OS.Path.join(installDir.path, "manifest.webapp");
         return DOMApplicationRegistry._writeFile(manFile, JSON.stringify(aManifest)).then(() => {
@@ -394,6 +400,12 @@ WebappsActor.prototype = {
           
           
           let installDir = DOMApplicationRegistry._getAppDir(id);
+          try {
+            installDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+          } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+            
+          }
+
           let manFile = installDir.clone();
           manFile.append("manifest.webapp");
           zipReader.extract("manifest.webapp", manFile);

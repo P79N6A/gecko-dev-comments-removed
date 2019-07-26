@@ -110,14 +110,14 @@ XPCOMUtils.defineLazyGetter(this, "updateSvc", function() {
 });
 
 #ifdef MOZ_WIDGET_GONK
-  const DIRECTORY_NAME = "webappsDir";
+  const DIRECTORY_KEY = "webappsDir";
 #elifdef ANDROID
-  const DIRECTORY_NAME = "webappsDir";
+  const DIRECTORY_KEY = "webappsDir";
 #else
   
   
   
-  const DIRECTORY_NAME = WEBAPP_RUNTIME ? "WebappRegD" : "ProfD";
+  const DIRECTORY_KEY = WEBAPP_RUNTIME ? "WebappRegD" : "ProfD";
 #endif
 
 
@@ -161,8 +161,8 @@ this.DOMApplicationRegistry = {
 
     AppDownloadManager.registerCancelFunction(this.cancelDownload.bind(this));
 
-    this.appsFile = FileUtils.getFile(DIRECTORY_NAME,
-                                      ["webapps", "webapps.json"], true).path;
+    this.appsFile = OS.Path.join(Services.dirsvc.get(DIRECTORY_KEY, Ci.nsIFile).path,
+                                 "webapps", "webapps.json");
 
     this.loadAndUpdateApps();
   },
@@ -171,7 +171,10 @@ this.DOMApplicationRegistry = {
   loadCurrentRegistry: function() {
     return this._loadJSONAsync(this.appsFile).then((aData) => {
       if (!aData) {
-        return;
+        
+        
+        return OS.File.makeDir(OS.Path.dirname(this.appsFile),
+                               { ignoreExisting: true });
       }
 
       this.webapps = aData;
@@ -408,7 +411,12 @@ this.DOMApplicationRegistry = {
           " from " + baseDir.path);
 
     
-    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
+    let destDir = this._getAppDir(aId);
+    try {
+      destDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+      
+    }
 
     filesToMove.forEach(function(aFile) {
         let file = baseDir.clone();
@@ -1231,7 +1239,7 @@ this.DOMApplicationRegistry = {
   },
 
   _getAppDir: function(aId) {
-    return FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
+    return FileUtils.getDir(DIRECTORY_KEY, ["webapps", aId], false, true);
   },
 
   _writeFile: function(aPath, aData) {
@@ -1371,11 +1379,8 @@ this.DOMApplicationRegistry = {
 
     
     
-    let file = FileUtils.getFile(DIRECTORY_NAME,
-                                 ["webapps", id,
-                                  isUpdate ? "staged-update.webapp"
-                                           : "update.webapp"],
-                                 true);
+    let file = this._getAppDir(id);
+    file.append(isUpdate ? "staged-update.webapp" : "update.webapp");
 
     if (!file.exists()) {
       
@@ -1465,13 +1470,13 @@ this.DOMApplicationRegistry = {
     
     this.getManifestFor(aManifestURL).then((aOldManifest) => {
       
-      let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
+      let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], false, true);
       let manFile = tmpDir.clone();
       manFile.append("manifest.webapp");
       let appFile = tmpDir.clone();
       appFile.append("application.zip");
 
-      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
+      let dir = this._getAppDir(id);
       appFile.moveTo(dir, "application.zip");
       manFile.moveTo(dir, "manifest.webapp");
 
@@ -2234,16 +2239,14 @@ this.DOMApplicationRegistry = {
   },
 
   denyInstall: function(aData) {
-    let packageId = aData.app.packageId;
-    if (packageId) {
-      let dir = FileUtils.getDir("TmpD", ["webapps", packageId],
-                                 true, true);
-      try {
-        dir.remove(true);
-      } catch(e) {
+    Task.spawn(function*() {
+      let packageId = aData.app.packageId;
+      if (packageId) {
+        let dir = OS.Path.join(OS.Constants.Path.tmpDir, "webapps", packageId);
+        yield OS.File.removeDir(dir, { ignoreAbsent: true });
       }
-    }
-    aData.mm.sendAsyncMessage("Webapps:Install:Return:KO", aData);
+      aData.mm.sendAsyncMessage("Webapps:Install:Return:KO", aData);
+    }).then(null, Cu.reportError);
   },
 
   
@@ -2345,14 +2348,13 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     return appObject;
   },
 
-  _writeManifestFile: function(aId, aIsPackage, aJsonManifest) {
+  _writeManifestFile: function(aDir, aIsPackage, aJsonManifest) {
     debug("_writeManifestFile");
 
     
     let manifestName = aIsPackage ? "update.webapp" : "manifest.webapp";
 
-    let dir = this._getAppDir(aId).path;
-    let manFile = OS.Path.join(dir, manifestName);
+    let manFile = OS.Path.join(aDir, manifestName);
     this._writeFile(manFile, JSON.stringify(aJsonManifest));
   },
 
@@ -2378,10 +2380,18 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       localId = this._nextLocalId();
     }
 
+    
+    let dir = this._getAppDir(id);
+    try {
+      dir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+      
+    }
+
     let app = this._setupApp(aData, id);
 
     let jsonManifest = aData.isPackage ? app.updateManifest : app.manifest;
-    this._writeManifestFile(id, aData.isPackage, jsonManifest);
+    this._writeManifestFile(dir.path, aData.isPackage, jsonManifest);
 
     debug("app.origin: " + app.origin);
     let manifest = new ManifestHelper(jsonManifest, app.origin);
@@ -2501,11 +2511,14 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     debug("_onDownloadPackage");
     
     let app = this.webapps[aId];
-    let zipFile =
-      FileUtils.getFile("TmpD", ["webapps", aId, "application.zip"], true);
+
+    let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], false, true);
+    let zipFile = tmpDir.clone();
+    zipFile.append("application.zip");
+
     let dir = this._getAppDir(aId);
     zipFile.moveTo(dir, "application.zip");
-    let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
+
     try {
       tmpDir.remove(true);
     } catch(e) { }
@@ -2598,7 +2611,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         if (!this._manifestCache[id]) {
           
           let baseDir = this.webapps[id].basePath == this.getCoreAppsBasePath()
-                          ? "coreAppsDir" : DIRECTORY_NAME;
+                          ? "coreAppsDir" : DIRECTORY_KEY;
 
           let dir = FileUtils.getDir(baseDir, ["webapps", id], false, true);
 
@@ -2726,7 +2739,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       debug("No deviceStorage");
       
       
-      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true);
+      let dir = FileUtils.getDir(DIRECTORY_KEY, ["webapps"], false, true);
       try {
         let sufficientStorage = this._checkDownloadSize(dir.diskSpaceAvailable,
                                                         aNewApp);
@@ -2983,10 +2996,9 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         eventType: ["downloadsuccess", "downloadapplied"]
       });
     });
-    let file = FileUtils.getFile("TmpD", ["webapps", aId], false);
-    if (file && file.exists()) {
-      file.remove(true);
-    }
+
+    let appDir = OS.Path.join(OS.Constants.Path.tmpDir, "webapps", aId);
+    OS.File.removeDir(appDir, { ignoreAbsent: true });
   },
 
   _openAndReadPackage: function(aZipFile, aOldApp, aNewApp, aIsLocalFileInstall,
@@ -3251,9 +3263,9 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         this.webapps[newId] = aOldApp;
         delete this.webapps[oldId];
         
-        [DIRECTORY_NAME, "TmpD"].forEach(function(aDir) {
-          let parent = FileUtils.getDir(aDir, ["webapps"], true, true);
-          let dir = FileUtils.getDir(aDir, ["webapps", oldId], true, true);
+        [DIRECTORY_KEY, "TmpD"].forEach(function(aDir) {
+          let parent = FileUtils.getDir(aDir, ["webapps"], false, true);
+          let dir = FileUtils.getDir(aDir, ["webapps", oldId], false, true);
           dir.moveTo(parent, newId);
         });
         
@@ -3330,7 +3342,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
   
   _revertDownloadPackage: function(aId, aOldApp, aNewApp, aIsUpdate, aError) {
     debug("Cleanup: " + aError + "\n" + aError.stack);
-    let dir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
+    let dir = FileUtils.getDir("TmpD", ["webapps", aId], false, true);
     try {
       dir.remove(true);
     } catch (e) { }
