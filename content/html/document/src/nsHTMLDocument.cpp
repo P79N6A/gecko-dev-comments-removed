@@ -1504,8 +1504,7 @@ nsHTMLDocument::Open(JSContext* cx,
   
   
   
-  nsCOMPtr<nsIDocument> callerDoc =
-    do_QueryInterface(nsContentUtils::GetDocumentFromContext());
+  nsCOMPtr<nsIDocument> callerDoc = nsContentUtils::GetDocumentFromContext();
   if (!callerDoc) {
     
     

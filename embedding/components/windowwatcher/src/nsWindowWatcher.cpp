@@ -30,7 +30,6 @@
 #include "nsIScreen.h"
 #include "nsIScreenManager.h"
 #include "nsIScriptContext.h"
-#include "nsIJSContextStack.h"
 #include "nsIObserverService.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
@@ -65,8 +64,6 @@
 #endif
 
 using namespace mozilla;
-
-static const char *sJSStackContractID="@mozilla.org/js/xpc/ContextStack;1";
 
 
 
@@ -233,60 +230,6 @@ void nsWatcherWindowEnumerator::WindowRemoved(nsWatcherWindowEntry *inInfo) {
   if (mCurrentPosition == inInfo)
     mCurrentPosition = mCurrentPosition != inInfo->mYounger ?
                        inInfo->mYounger : 0;
-}
-
-
-
-
-
-class MOZ_STACK_CLASS JSContextAutoPopper {
-public:
-  JSContextAutoPopper();
-  ~JSContextAutoPopper();
-
-  nsresult   Push(JSContext *cx = nullptr);
-  JSContext *get() { return mContext; }
-
-protected:
-  nsCOMPtr<nsIThreadJSContextStack>  mService;
-  JSContext                         *mContext;
-  nsCOMPtr<nsIScriptContext>         mContextKungFuDeathGrip;
-};
-
-JSContextAutoPopper::JSContextAutoPopper() : mContext(nullptr)
-{
-}
-
-JSContextAutoPopper::~JSContextAutoPopper()
-{
-  JSContext *cx;
-  nsresult   rv;
-
-  if(mContext) {
-    rv = mService->Pop(&cx);
-    NS_ASSERTION(NS_SUCCEEDED(rv) && cx == mContext, "JSContext push/pop mismatch");
-  }
-}
-
-nsresult JSContextAutoPopper::Push(JSContext *cx)
-{
-  if (mContext) 
-    return NS_ERROR_FAILURE;
-
-  mService = do_GetService(sJSStackContractID);
-  if (mService) {
-    
-    if (!cx) {
-      cx = mService->GetSafeJSContext();
-    }
-
-    
-    if (cx && NS_SUCCEEDED(mService->Push(cx))) {
-      mContext = cx;
-      mContextKungFuDeathGrip = nsJSUtils::GetDynamicScriptContext(cx);
-    }
-  }
-  return mContext ? NS_OK : NS_ERROR_FAILURE;
 }
 
 
@@ -498,7 +441,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIURI>                uriToLoad;        
   nsCOMPtr<nsIDocShellTreeOwner>  parentTreeOwner;  
   nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
-  JSContextAutoPopper             callerContextGuard;
+  nsCxPusher                      callerContextGuard;
 
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = 0;
@@ -829,8 +772,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       nsCOMPtr<nsIDocShellTreeItem> callerItem = GetCallerTreeItem(parentItem);
       nsCOMPtr<nsPIDOMWindow> callerWin = do_GetInterface(callerItem);
       if (callerWin) {
-        nsCOMPtr<nsIDocument> doc =
-          do_QueryInterface(callerWin->GetExtantDocument());
+        nsCOMPtr<nsIDocument> doc = callerWin->GetExtantDoc();
         if (doc) {
           newMuCV->SetDefaultCharacterSet(doc->GetDocumentCharacterSet());
         }
@@ -927,18 +869,23 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
   if (uriToLoad && aNavigate) { 
-    JSContextAutoPopper contextGuard;
-
-    cx = GetJSContextFromCallStack();
 
     
-    if (!cx)
-      cx = GetJSContextFromWindow(aParent);
+    
+    
+    
+    
+    
+    
+    
+    
+    cx = nsContentUtils::GetCurrentJSContext();
+    nsCxPusher pusher;
     if (!cx) {
-      rv = contextGuard.Push();
-      if (NS_FAILED(rv))
-        return rv;
-      cx = contextGuard.get();
+      cx = GetJSContextFromWindow(aParent);
+      if (!cx)
+        cx = nsContentUtils::GetSafeJSContext();
+      pusher.Push(cx);
     }
 
     newDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
@@ -951,12 +898,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
 
     
-    nsCOMPtr<nsIJSContextStack> stack = do_GetService(sJSStackContractID);
-
-    JSContext* ccx = nullptr;
-
-    
-    if (stack && NS_SUCCEEDED(stack->Peek(&ccx)) && ccx) {
+    JSContext* ccx = nsContentUtils::GetCurrentJSContext();
+    if (ccx) {
       nsIScriptGlobalObject *sgo = nsJSUtils::GetDynamicScriptGlobal(ccx);
 
       nsCOMPtr<nsPIDOMWindow> w(do_QueryInterface(sgo));
@@ -967,8 +910,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
 
 
-        nsCOMPtr<nsIDocument> doc(do_QueryInterface(w->GetExtantDocument()));
-        if (doc) { 
+        nsCOMPtr<nsIDocument> doc = w->GetExtantDoc();
+        if (doc) {
           
           loadInfo->SetReferrer(doc->GetDocumentURI());
         }
@@ -1412,7 +1355,7 @@ nsWindowWatcher::URIfromURL(const char *aURL,
   
 
 
-  JSContext *cx = GetJSContextFromCallStack();
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (cx) {
     nsIScriptContext *scriptcx = nsJSUtils::GetDynamicScriptContext(cx);
     if (scriptcx) {
@@ -1774,15 +1717,7 @@ nsWindowWatcher::FindItemWithName(const PRUnichar* aName,
 already_AddRefed<nsIDocShellTreeItem>
 nsWindowWatcher::GetCallerTreeItem(nsIDocShellTreeItem* aParentItem)
 {
-  nsCOMPtr<nsIJSContextStack> stack =
-    do_GetService(sJSStackContractID);
-
-  JSContext *cx = nullptr;
-
-  if (stack) {
-    stack->Peek(&cx);
-  }
-
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
   nsIDocShellTreeItem* callerItem = nullptr;
 
   if (cx) {
@@ -1863,8 +1798,7 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem *aOpenedItem,
         NS_ASSERTION(!chan, "Why is there a document channel?");
 #endif
 
-        nsCOMPtr<nsIDocument> doc =
-          do_QueryInterface(piOpenedWindow->GetExtantDocument());
+        nsCOMPtr<nsIDocument> doc = piOpenedWindow->GetExtantDoc();
         if (doc) {
           doc->SetIsInitialDocument(true);
         }
@@ -2158,18 +2092,6 @@ nsWindowWatcher::GetWindowTreeOwner(nsIDOMWindow *inWindow,
   GetWindowTreeItem(inWindow, getter_AddRefs(treeItem));
   if (treeItem)
     treeItem->GetTreeOwner(outTreeOwner);
-}
-
-JSContext *
-nsWindowWatcher::GetJSContextFromCallStack()
-{
-  JSContext *cx = 0;
-
-  nsCOMPtr<nsIThreadJSContextStack> cxStack(do_GetService(sJSStackContractID));
-  if (cxStack)
-    cxStack->Peek(&cx);
-
-  return cx;
 }
 
 JSContext *
