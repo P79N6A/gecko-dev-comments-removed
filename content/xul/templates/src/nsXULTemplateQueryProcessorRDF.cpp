@@ -142,7 +142,8 @@ nsXULTemplateQueryProcessorRDF::InitGlobals()
     
     
     if (!gRDFService) {
-        rv = CallGetService(NS_RDFSERVICE_CID, &gRDFService);
+        NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
+        rv = CallGetService(kRDFServiceCID, &gRDFService);
         if (NS_FAILED(rv))
             return rv;
     }
