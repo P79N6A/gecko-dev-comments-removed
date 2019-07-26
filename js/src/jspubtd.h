@@ -359,6 +359,34 @@ struct ContextFriendFields
     friend JS::Zone *GetContextZone(const JSContext *cx);
 };
 
+
+
+
+
+
+
+
+
+
+
+inline JSRuntime *
+GetRuntime(const JSContext *cx)
+{
+    return ContextFriendFields::get(cx)->runtime_;
+}
+
+inline JSCompartment *
+GetContextCompartment(const JSContext *cx)
+{
+    return ContextFriendFields::get(cx)->compartment_;
+}
+
+inline JS::Zone *
+GetContextZone(const JSContext *cx)
+{
+    return ContextFriendFields::get(cx)->zone_;
+}
+
 class PerThreadData;
 
 struct PerThreadDataFriendFields
