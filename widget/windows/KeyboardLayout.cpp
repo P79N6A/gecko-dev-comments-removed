@@ -874,6 +874,170 @@ NativeKey::HandleKeyUpMessage(bool* aEventDispatched) const
   return DispatchKeyEvent(keyupEvent, &mMsg);
 }
 
+bool
+NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
+                        const UniCharsAndModifiers& aInputtingChars,
+                        const EventFlags& aExtraFlags) const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
+
+  KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
+
+  UniCharsAndModifiers inputtingChars(aInputtingChars);
+  UniCharsAndModifiers shiftedChars;
+  UniCharsAndModifiers unshiftedChars;
+  uint32_t shiftedLatinChar = 0;
+  uint32_t unshiftedLatinChar = 0;
+
+  if (!KeyboardLayout::IsPrintableCharKey(mVirtualKeyCode)) {
+    inputtingChars.Clear();
+  }
+
+  if (mModKeyState.IsControl() ^ mModKeyState.IsAlt()) {
+    ModifierKeyState capsLockState(
+                       mModKeyState.GetModifiers() & MODIFIER_CAPSLOCK);
+
+    unshiftedChars =
+      keyboardLayout->GetUniCharsAndModifiers(mVirtualKeyCode, capsLockState);
+    capsLockState.Set(MODIFIER_SHIFT);
+    shiftedChars =
+      keyboardLayout->GetUniCharsAndModifiers(mVirtualKeyCode, capsLockState);
+
+    
+    
+    
+    capsLockState.Unset(MODIFIER_SHIFT);
+    WidgetUtils::GetLatinCharCodeForKeyCode(mDOMKeyCode,
+                                            capsLockState.GetModifiers(),
+                                            &unshiftedLatinChar,
+                                            &shiftedLatinChar);
+
+    
+    if (shiftedLatinChar) {
+      
+      
+      
+      if (unshiftedLatinChar == unshiftedChars.mChars[0] &&
+          shiftedLatinChar == shiftedChars.mChars[0]) {
+        shiftedLatinChar = unshiftedLatinChar = 0;
+      }
+    } else if (unshiftedLatinChar) {
+      
+      
+      
+      
+      
+      
+      
+      if (unshiftedLatinChar == unshiftedChars.mChars[0] ||
+          unshiftedLatinChar == shiftedChars.mChars[0]) {
+        unshiftedLatinChar = 0;
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (mModKeyState.IsControl()) {
+      uint32_t ch =
+        mModKeyState.IsShift() ? shiftedLatinChar : unshiftedLatinChar;
+      if (ch &&
+          (!inputtingChars.mLength ||
+           inputtingChars.UniCharsCaseInsensitiveEqual(
+             mModKeyState.IsShift() ? shiftedChars : unshiftedChars))) {
+        inputtingChars.Clear();
+        inputtingChars.Append(ch, mModKeyState.GetModifiers());
+      }
+    }
+  }
+
+  if (inputtingChars.IsEmpty() &&
+      shiftedChars.IsEmpty() && unshiftedChars.IsEmpty()) {
+    nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
+    keypressEvent.mFlags.Union(aExtraFlags);
+    keypressEvent.keyCode = mDOMKeyCode;
+    InitKeyEvent(keypressEvent, mModKeyState);
+    return (DispatchKeyEvent(keypressEvent) || aExtraFlags.mDefaultPrevented);
+  }
+
+  uint32_t longestLength =
+    std::max(inputtingChars.mLength,
+             std::max(shiftedChars.mLength, unshiftedChars.mLength));
+  uint32_t skipUniChars = longestLength - inputtingChars.mLength;
+  uint32_t skipShiftedChars = longestLength - shiftedChars.mLength;
+  uint32_t skipUnshiftedChars = longestLength - unshiftedChars.mLength;
+  UINT keyCode = !inputtingChars.mLength ? mDOMKeyCode : 0;
+  bool defaultPrevented = aExtraFlags.mDefaultPrevented;
+  for (uint32_t cnt = 0; cnt < longestLength; cnt++) {
+    uint16_t uniChar, shiftedChar, unshiftedChar;
+    uniChar = shiftedChar = unshiftedChar = 0;
+    ModifierKeyState modKeyState(mModKeyState);
+    if (skipUniChars <= cnt) {
+      if (cnt - skipUniChars  < inputtingChars.mLength) {
+        
+        
+        
+        
+        
+        
+        modKeyState.Unset(MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_ALT |
+                          MODIFIER_ALTGRAPH | MODIFIER_CAPSLOCK);
+        modKeyState.Set(inputtingChars.mModifiers[cnt - skipUniChars]);
+      }
+      uniChar = inputtingChars.mChars[cnt - skipUniChars];
+    }
+    if (skipShiftedChars <= cnt)
+      shiftedChar = shiftedChars.mChars[cnt - skipShiftedChars];
+    if (skipUnshiftedChars <= cnt)
+      unshiftedChar = unshiftedChars.mChars[cnt - skipUnshiftedChars];
+    nsAutoTArray<nsAlternativeCharCode, 5> altArray;
+
+    if (shiftedChar || unshiftedChar) {
+      nsAlternativeCharCode chars(unshiftedChar, shiftedChar);
+      altArray.AppendElement(chars);
+    }
+    if (cnt == longestLength - 1) {
+      if (unshiftedLatinChar || shiftedLatinChar) {
+        nsAlternativeCharCode chars(unshiftedLatinChar, shiftedLatinChar);
+        altArray.AppendElement(chars);
+      }
+
+      
+      
+      
+      
+      
+      
+      PRUnichar charForOEMKeyCode = 0;
+      switch (mVirtualKeyCode) {
+        case VK_OEM_PLUS:   charForOEMKeyCode = '+'; break;
+        case VK_OEM_COMMA:  charForOEMKeyCode = ','; break;
+        case VK_OEM_MINUS:  charForOEMKeyCode = '-'; break;
+        case VK_OEM_PERIOD: charForOEMKeyCode = '.'; break;
+      }
+      if (charForOEMKeyCode &&
+          charForOEMKeyCode != unshiftedChars.mChars[0] &&
+          charForOEMKeyCode != shiftedChars.mChars[0] &&
+          charForOEMKeyCode != unshiftedLatinChar &&
+          charForOEMKeyCode != shiftedLatinChar) {
+        nsAlternativeCharCode OEMChars(charForOEMKeyCode, charForOEMKeyCode);
+        altArray.AppendElement(OEMChars);
+      }
+    }
+
+    nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
+    keypressEvent.mFlags.Union(aExtraFlags);
+    keypressEvent.charCode = uniChar;
+    keypressEvent.alternativeCharCodes.AppendElements(altArray);
+    InitKeyEvent(keypressEvent, modKeyState);
+    defaultPrevented = (DispatchKeyEvent(keypressEvent) || defaultPrevented);
+  }
+
+  return defaultPrevented;
+}
+
 
 
 
