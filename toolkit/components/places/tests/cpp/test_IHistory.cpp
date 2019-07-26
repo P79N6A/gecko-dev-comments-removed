@@ -115,6 +115,26 @@ test_set_places_enabled()
 }
 
 
+void
+test_wait_checkpoint()
+{
+  
+  
+  
+  nsCOMPtr<mozIStorageConnection> db = do_get_db();
+  nsCOMPtr<mozIStorageAsyncStatement> stmt;
+  db->CreateAsyncStatement(NS_LITERAL_CSTRING("SELECT 1"),
+                           getter_AddRefs(stmt));
+  nsRefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
+  nsCOMPtr<mozIStoragePendingStatement> pending;
+  (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
+  spinner->SpinUntilCompleted();
+
+  
+  run_next_test();
+}
+
+
 
 namespace test_unvisited_does_not_notify {
   nsCOMPtr<nsIURI> testURI;
@@ -591,6 +611,7 @@ test_two_null_links_same_uri()
 
 Test gTests[] = {
   TEST(test_set_places_enabled), 
+  TEST(test_wait_checkpoint), 
   TEST(test_unvisited_does_not_notify_part1), 
   TEST(test_visited_notifies),
   TEST(test_unvisited_does_not_notify_part2), 
