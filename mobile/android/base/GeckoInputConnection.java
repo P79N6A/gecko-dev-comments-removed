@@ -125,16 +125,22 @@ class GeckoInputConnection
             }
         }
 
-        public void sendEventFromUiThread(final Handler uiHandler,
-                                          final GeckoEditableClient client,
-                                          final GeckoEvent event) {
+        public void runOnIcThread(final Handler uiHandler,
+                                  final GeckoEditableClient client,
+                                  final Runnable runnable) {
             final Handler icHandler = client.getInputConnectionHandler();
             if (icHandler.getLooper() == uiHandler.getLooper()) {
                 
-                client.sendEvent(event);
+                runnable.run();
                 return;
             }
-            runOnIcThread(icHandler, new Runnable() {
+            runOnIcThread(icHandler, runnable);
+        }
+
+        public void sendEventFromUiThread(final Handler uiHandler,
+                                          final GeckoEditableClient client,
+                                          final GeckoEvent event) {
+            runOnIcThread(uiHandler, client, new Runnable() {
                 @Override public void run() {
                     client.sendEvent(event);
                 }
@@ -849,10 +855,22 @@ class GeckoInputConnection
     }
 
     @Override
-    public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+    public boolean onKeyMultiple(int keyCode, int repeatCount, final KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_UNKNOWN) {
             
-            return commitText(event.getCharacters(), 1);
+            View view = getView();
+            if (view != null) {
+                InputThreadUtils.sInstance.runOnIcThread(
+                    view.getRootView().getHandler(), mEditableClient,
+                    new Runnable() {
+                        @Override public void run() {
+                            
+                            
+                            GeckoInputConnection.super.commitText(event.getCharacters(), 1);
+                        }
+                    });
+            }
+            return true;
         }
         while ((repeatCount--) != 0) {
             if (!processKey(keyCode, event, true) ||
