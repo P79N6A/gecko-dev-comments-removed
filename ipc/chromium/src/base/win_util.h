@@ -94,17 +94,6 @@ std::wstring FormatMessage(unsigned messageid);
 
 std::wstring FormatLastWin32Error();
 
-
-
-
-void NotifyHWNDCreation(const tracked_objects::Location& from_here, HWND hwnd);
-void NotifyHWNDDestruction(const tracked_objects::Location& from_here,
-                           HWND hwnd);
-
-#define TRACK_HWND_CREATION(hwnd) win_util::NotifyHWNDCreation(FROM_HERE, hwnd)
-#define TRACK_HWND_DESTRUCTION(hwnd) \
-    win_util::NotifyHWNDDestruction(FROM_HERE, hwnd)
-
 }  
 
 #endif  
