@@ -13,6 +13,9 @@ const PREF_EM_STRICT_COMPATIBILITY    = "extensions.strictCompatibility";
 const PREF_EM_MIN_COMPAT_APP_VERSION      = "extensions.minCompatibleAppVersion";
 const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVersion";
 
+
+const TIMEOUT_MS = 900000;
+
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1250,7 +1253,23 @@ var data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 stream.write(data, data.length);
 stream.close();
 
+
+
+function timeout() {
+  timer = null;
+  do_throw("Test ran longer than " + TIMEOUT_MS + "ms");
+
+  
+  do_test_finished();
+}
+
+var timer = AM_Cc["@mozilla.org/timer;1"].createInstance(AM_Ci.nsITimer);
+timer.init(timeout, TIMEOUT_MS, AM_Ci.nsITimer.TYPE_ONE_SHOT);
+
 do_register_cleanup(function() {
+  if (timer)
+    timer.cancel();
+
   
   var dirEntries = gTmpD.directoryEntries
                         .QueryInterface(AM_Ci.nsIDirectoryEnumerator);
