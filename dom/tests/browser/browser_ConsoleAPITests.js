@@ -48,7 +48,14 @@ function testConsoleData(aMessageObject) {
   else {
     is(aMessageObject.arguments.length, gArgs.length, "arguments.length matches");
     gArgs.forEach(function (a, i) {
-      is(aMessageObject.arguments[i], a, "correct arg " + i);
+      
+      
+      
+      
+      var arg = aMessageObject.arguments[i];
+      if (Components.utils.isXrayWrapper(arg))
+        arg = arg.wrappedJSObject;
+      is(arg, a, "correct arg " + i);
     });
   }
 
