@@ -19,7 +19,45 @@ typedef bool WebGLboolean;
 
 namespace mozilla {
 
-enum FakeBlackStatus { DoNotNeedFakeBlack, DoNeedFakeBlack, DontKnowIfNeedFakeBlack };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MOZ_BEGIN_ENUM_CLASS(WebGLContextFakeBlackStatus, int)
+  Unknown,
+  NotNeeded,
+  Needed
+MOZ_END_ENUM_CLASS(WebGLContextFakeBlackStatus)
+
+MOZ_BEGIN_ENUM_CLASS(WebGLTextureFakeBlackStatus, int)
+  Unknown,
+  NotNeeded,
+  IncompleteTexture,
+  UninitializedImageData
+MOZ_END_ENUM_CLASS(WebGLTextureFakeBlackStatus)
 
 struct VertexAttrib0Status {
     enum { Default, EmulatedUninitializedArray, EmulatedInitializedArray };
