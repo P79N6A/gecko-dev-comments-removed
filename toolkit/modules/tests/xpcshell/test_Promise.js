@@ -8,6 +8,10 @@ Components.utils.import("resource://gre/modules/Task.jsm");
 
 
 
+Promise.Debugging.clearUncaughtErrorObservers();
+
+
+
 
 let run_promise_tests = function run_promise_tests(tests, cb) {
   let loop = function loop(index) {
@@ -959,28 +963,26 @@ function wait_for_uncaught(aMustAppear, aTimeout = undefined) {
   let deferred = Promise.defer();
   let print = do_print;
   let execute_soon = do_execute_soon;
-  let observer = function(aMessage) {
-    execute_soon(function() {
-      let message = aMessage.message;
-      print("Observing " + message);
-      for (let expected of remaining) {
-        if (message.indexOf(expected) != -1) {
-          print("I found " + expected);
-          remaining.delete(expected);
-        }
+  let observer = function({message, stack}) {
+    let data = message + stack;
+    print("Observing " + message + ", looking for " + aMustAppear.join(", "));
+    for (let expected of remaining) {
+      if (data.indexOf(expected) != -1) {
+        print("I found " + expected);
+        remaining.delete(expected);
       }
       if (remaining.size == 0 && observer) {
-        Services.console.unregisterListener(observer);
+        Promise.Debugging.removeUncaughtErrorObserver(observer);
         observer = null;
         deferred.resolve();
       }
-    });
+    }
   };
-  Services.console.registerListener(observer);
+  Promise.Debugging.addUncaughtErrorObserver(observer);
   if (aTimeout) {
     do_timeout(aTimeout, function timeout() {
       if (observer) {
-        Services.console.unregisterListener(observer);
+        Promise.Debugging.removeUncaughtErrorObserver(observer);
         observer = null;
       }
       deferred.reject(new Error("Timeout"));
@@ -1055,6 +1057,7 @@ function wait_for_uncaught(aMustAppear, aTimeout = undefined) {
             Promise.reject(error);
           }
         })();
+        do_print("Posted all rejections");
         Components.utils.forceGC();
         Components.utils.forceCC();
         Components.utils.forceShrinkingGC();
