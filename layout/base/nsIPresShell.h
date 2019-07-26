@@ -116,8 +116,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0x7e29e8a8, 0x9c77, 0x4445, \
-    { 0xa5, 0x23, 0x41, 0xb3, 0x63, 0xe0, 0xc9, 0x8a } }
+{ 0xebc1bbe4, 0x5456, 0x4c62, \
+  { 0xba, 0x1f, 0xc2, 0xef, 0x73, 0x87, 0x96, 0x3e } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1233,12 +1233,26 @@ public:
 
 
 
+
+
   virtual void WillPaint(bool aWillSendDidPaint) = 0;
   
 
 
 
+
   virtual void DidPaint() = 0;
+  
+
+
+
+
+  virtual void WillPaintWindow(bool aWillSendDidPaint) = 0;
+  
+
+
+
+  virtual void DidPaintWindow() = 0;
 
   
 

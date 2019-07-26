@@ -6980,20 +6980,20 @@ PresShell::ShouldIgnoreInvalidation()
 void
 PresShell::WillPaint(bool aWillSendDidPaint)
 {
+  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (!rootPresContext) {
+    
+    
+    
+    return;
+  }
+
   
   
   if (mPaintingSuppressed || !mIsActive || !IsVisible()) {
     return;
   }
 
-  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  if (!rootPresContext) {
-    return;
-  }
-
-  if (!aWillSendDidPaint && rootPresContext == mPresContext) {
-    rootPresContext->ApplyPluginGeometryUpdates();
-  }
   rootPresContext->FlushWillPaintObservers();
   if (mIsDestroying)
     return;
@@ -7008,18 +7008,34 @@ PresShell::WillPaint(bool aWillSendDidPaint)
 void
 PresShell::DidPaint()
 {
-  if (mPaintingSuppressed || !mIsActive || !IsVisible()) {
+}
+
+void
+PresShell::WillPaintWindow(bool aWillSendDidPaint)
+{
+  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (rootPresContext != mPresContext) {
+    
+    
     return;
   }
 
-  NS_ASSERTION(mPresContext->IsRoot(), "Should only call DidPaint on root presshells");
-
-  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  
-  
-  if (rootPresContext == mPresContext) {
+  if (!aWillSendDidPaint) {
     rootPresContext->ApplyPluginGeometryUpdates();
   }
+}
+
+void
+PresShell::DidPaintWindow()
+{
+  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (rootPresContext != mPresContext) {
+    
+    
+    return;
+  }
+
+  rootPresContext->ApplyPluginGeometryUpdates();
 
   if (nsContentUtils::XPConnect()) {
     nsContentUtils::XPConnect()->NotifyDidPaint();

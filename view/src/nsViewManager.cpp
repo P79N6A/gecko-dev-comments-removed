@@ -653,35 +653,33 @@ void nsViewManager::InvalidateViews(nsView *aView)
 
 void nsViewManager::WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint)
 {
-  if (IsRefreshDriverPaintingEnabled())
-    return;
-
-  if (!aWidget || !mContext)
-    return;
-
-  
-  
-  for (nsViewManager *vm = this; vm;
-       vm = vm->mRootView->GetParent()
-              ? vm->mRootView->GetParent()->GetViewManager()
-              : nullptr) {
-    if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-        vm->mRootView->IsEffectivelyVisible() &&
-        mPresShell && mPresShell->IsVisible()) {
-      vm->FlushDelayedResize(true);
-      vm->InvalidateView(vm->mRootView);
+  if (!IsRefreshDriverPaintingEnabled() && aWidget && mContext) {
+    
+    
+    for (nsViewManager *vm = this; vm;
+         vm = vm->mRootView->GetParent()
+                ? vm->mRootView->GetParent()->GetViewManager()
+                : nullptr) {
+      if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+          vm->mRootView->IsEffectivelyVisible() &&
+          mPresShell && mPresShell->IsVisible()) {
+        vm->FlushDelayedResize(true);
+        vm->InvalidateView(vm->mRootView);
+      }
     }
-  }
 
-  
-  
-  nsRefPtr<nsViewManager> rootVM = RootViewManager();
-  if (mPresShell) {
+    
+    nsRefPtr<nsViewManager> rootVM = RootViewManager();
     rootVM->CallWillPaintOnObservers(aWillSendDidPaint);
+
+    
+    rootVM->ProcessPendingUpdates();
   }
 
-  
-  rootVM->ProcessPendingUpdates();
+  nsCOMPtr<nsIPresShell> shell = mPresShell;
+  if (shell) {
+    shell->WillPaintWindow(aWillSendDidPaint);
+  }
 }
 
 bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
@@ -709,6 +707,11 @@ bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
 
 void nsViewManager::DidPaintWindow()
 {
+  nsCOMPtr<nsIPresShell> shell = mPresShell;
+  if (shell) {
+    shell->DidPaintWindow();
+  }
+
   if (!IsRefreshDriverPaintingEnabled()) {
     mRootViewManager->CallDidPaintOnObserver();
   }
@@ -1202,7 +1205,6 @@ nsViewManager::ProcessPendingUpdates()
   if (IsRefreshDriverPaintingEnabled()) {
     mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
       
-    
     
     if (mPresShell) {
       CallWillPaintOnObservers(true);
