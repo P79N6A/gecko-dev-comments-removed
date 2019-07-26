@@ -94,6 +94,7 @@ this.PermissionPromptHelper = {
         
         let request = {
           type: msg.type,
+          access: msg.access ? msg.access : "unused",
           principal: principal,
           QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionRequest]),
           allow: aCallbacks.allow,
