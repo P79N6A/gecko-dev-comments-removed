@@ -220,13 +220,16 @@ ConsoleAPI.prototype = {
 
 
 
-  queueCall: function CA_queueCall(aMethod, aArguments)
+
+
+
+  queueCall: function CA_queueCall(aMethod, aArguments, aStack = null)
   {
     let window = this._window.get();
     let metaForCall = {
       private: PrivateBrowsingUtils.isWindowPrivate(window),
       timeStamp: Date.now(),
-      stack: this.getStackTrace(aMethod != "trace" ? 1 : null),
+      stack: (aStack ? aStack : this.getStackTrace(aMethod != "trace" ? 1 : null)),
     };
 
     if (aMethod == "time" || aMethod == "timeEnd") {
