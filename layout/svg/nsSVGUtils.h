@@ -425,18 +425,9 @@ public:
                                      const gfxPoint &aSurfaceOffset,
                                      const gfxMatrix &aCTM);
 
-  static void CompositePatternMatrix(gfxContext *aContext,
-                                     gfxPattern *aPattern,
-                                     const gfxMatrix &aCTM, float aWidth, float aHeight, float aOpacity);
-
   static void SetClipRect(gfxContext *aContext,
                           const gfxMatrix &aCTM,
                           const gfxRect &aRect);
-
-  
-
-
-  static void ClipToGfxRect(nsIntRect* aRect, const gfxRect& aGfxRect);
 
   
 
