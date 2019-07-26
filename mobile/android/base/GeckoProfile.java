@@ -3,10 +3,6 @@
 
 
 
-
-
-
-
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.util.INIParser;

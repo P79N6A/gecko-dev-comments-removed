@@ -14,8 +14,10 @@ import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.PanZoomController;
 import org.mozilla.gecko.gfx.PluginLayer;
 import org.mozilla.gecko.gfx.PointUtils;
+import org.mozilla.gecko.health.BrowserHealthRecorder;
 import org.mozilla.gecko.updater.UpdateService;
 import org.mozilla.gecko.updater.UpdateServiceHelper;
+import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.GeckoEventResponder;
 import org.mozilla.gecko.util.HardwareUtils;
@@ -175,6 +177,7 @@ abstract public class GeckoApp
     private String mPrivateBrowsingSession;
 
     private PointF mInitialTouchPoint = null;
+    private volatile BrowserHealthRecorder mHealthRecorder = null;
 
     abstract public int getLayout();
     abstract public boolean hasTabsSideBar();
@@ -1246,6 +1249,11 @@ abstract public class GeckoApp
     }
 
     
+
+
+
+
+
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -1272,6 +1280,7 @@ abstract public class GeckoApp
                     profileName = m.group(1);
                 }
             }
+
             if (args.contains("-profile")) {
                 Pattern p = Pattern.compile("(?:-profile\\s*)(\\S*)(\\s*)");
                 Matcher m = p.matcher(args);
@@ -1285,6 +1294,7 @@ abstract public class GeckoApp
                 }
                 GeckoApp.sIsUsingCustomProfile = true;
             }
+
             if (profileName != null || profilePath != null) {
                 mProfile = GeckoProfile.get(this, profileName, profilePath);
             }
@@ -1361,6 +1371,7 @@ abstract public class GeckoApp
             mPrivateBrowsingSession = savedInstanceState.getString(SAVED_STATE_PRIVATE_SESSION);
         }
 
+        
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
@@ -1379,6 +1390,14 @@ abstract public class GeckoApp
                 
                 editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
                 editor.commit();
+
+                
+                
+                
+                final String profilePath = getProfile().getDir().getAbsolutePath();
+                final EventDispatcher dispatcher = GeckoAppShell.getEventDispatcher();
+                Log.i(LOGTAG, "Creating BrowserHealthRecorder.");
+                mHealthRecorder = new BrowserHealthRecorder(GeckoApp.mAppContext, profilePath, dispatcher);
             }
         });
 
@@ -2022,6 +2041,10 @@ abstract public class GeckoApp
         super.onDestroy();
 
         Tabs.unregisterOnTabsChangedListener(this);
+        if (mHealthRecorder != null) {
+            mHealthRecorder.close(GeckoAppShell.getEventDispatcher());
+            mHealthRecorder = null;
+        }
     }
 
     protected void registerEventListener(String event) {

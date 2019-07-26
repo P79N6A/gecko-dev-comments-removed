@@ -1,0 +1,365 @@
+
+
+
+
+
+package org.mozilla.gecko.health;
+
+import java.util.ArrayList;
+
+import android.content.Context;
+import android.content.ContentProviderClient;
+import android.util.Log;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.PrefsHelper;
+import org.mozilla.gecko.PrefsHelper.PrefHandler;
+
+import org.mozilla.gecko.background.healthreport.EnvironmentBuilder;
+import org.mozilla.gecko.background.healthreport.HealthReportDatabaseStorage;
+import org.mozilla.gecko.background.healthreport.HealthReportStorage.Field;
+import org.mozilla.gecko.background.healthreport.HealthReportStorage.MeasurementFields;
+import org.mozilla.gecko.background.healthreport.HealthReportStorage.MeasurementFields.FieldSpec;
+import org.mozilla.gecko.background.healthreport.ProfileInformationCache;
+
+import org.mozilla.gecko.util.EventDispatcher;
+import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.Scanner;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public class BrowserHealthRecorder implements GeckoEventListener {
+    private static final String LOG_TAG = "GeckoHealthRec";
+    private static final String PREF_BLOCKLIST_ENABLED = "extensions.blocklist.enabled";
+
+    public enum State {
+        NOT_INITIALIZED,
+        INITIALIZING,
+        INITIALIZED,
+        INITIALIZATION_FAILED,
+        CLOSED
+    }
+
+    protected volatile State state = State.NOT_INITIALIZED;
+
+    private volatile int env = -1;
+    private HealthReportDatabaseStorage storage;
+    private ContentProviderClient client;
+    private ProfileInformationCache profileCache;
+
+    
+
+
+
+    private void setHealthEnvironment(final int env) {
+        this.env = env;
+    }
+
+    
+
+
+    public BrowserHealthRecorder(final Context context, final String profilePath, final EventDispatcher dispatcher) {
+        Log.d(LOG_TAG, "Initializing. Dispatcher is " + dispatcher);
+        this.client = EnvironmentBuilder.getContentProviderClient(context);
+        if (this.client == null) {
+            throw new IllegalStateException("Could not fetch Health Report content provider.");
+        }
+
+        this.storage = EnvironmentBuilder.getStorage(this.client, profilePath);
+        if (this.storage == null) {
+            throw new IllegalStateException("No storage in health recorder!");
+        }
+
+        this.profileCache = new ProfileInformationCache(profilePath);
+        try {
+            this.initialize(context, profilePath, dispatcher);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception initializing.", e);
+        }
+
+        
+    }
+
+    
+
+
+
+    public synchronized void close(final EventDispatcher dispatcher) {
+        switch (this.state) {
+            case CLOSED:
+                Log.w(LOG_TAG, "Ignoring attempt to double-close closed BrowserHealthRecorder.");
+                return;
+            case INITIALIZED:
+                Log.i(LOG_TAG, "Closing Health Report client.");
+                break;
+            default:
+                Log.i(LOG_TAG, "Closing incompletely initialized BrowserHealthRecorder.");
+        }
+
+        this.state = State.CLOSED;
+        this.unregisterEventListeners(dispatcher);
+
+        
+        this.storage = null;
+        if (this.client != null) {
+            this.client.release();
+            this.client = null;
+        }
+    }
+
+    private void unregisterEventListeners(EventDispatcher dispatcher) {
+    }
+
+    public void onBlocklistPrefChanged(boolean to) {
+        this.profileCache.beginInitialization();
+        this.profileCache.setBlocklistEnabled(to);
+    }
+
+    public void onTelemetryPrefChanged(boolean to) {
+        this.profileCache.beginInitialization();
+        this.profileCache.setTelemetryEnabled(to);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    public synchronized void onEnvironmentChanged() {
+        this.env = -1;
+        try {
+            profileCache.completeInitialization();
+        } catch (java.io.IOException e) {
+            Log.e(LOG_TAG, "Error completing profile cache initialization.", e);
+            this.state = State.INITIALIZATION_FAILED;
+            return;
+        }
+    }
+
+    protected synchronized int ensureEnvironment() {
+        if (!(state == State.INITIALIZING ||
+              state == State.INITIALIZED)) {
+            throw new IllegalStateException("Not initialized.");
+        }
+
+        if (this.env != -1) {
+            return this.env;
+        }
+        return this.env = EnvironmentBuilder.registerCurrentEnvironment(this.storage,
+                                                                        this.profileCache);
+    }
+
+    private static final String getTimesPath(final String profilePath) {
+        return profilePath + File.separator + "times.json";
+    }
+
+    
+
+
+
+
+    protected static long getProfileInitTimeFromFile(final String profilePath) {
+        final File times = new File(getTimesPath(profilePath));
+        Log.d(LOG_TAG, "Looking for " + times.getAbsolutePath());
+        if (!times.exists()) {
+            return -1;
+        }
+
+        Log.d(LOG_TAG, "Using times.json for profile creation time.");
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(times, "UTF-8");
+            final String contents = scanner.useDelimiter("\\A").next();
+            return new JSONObject(contents).getLong("created");
+        } catch (Exception e) {
+            
+            
+            Log.w(LOG_TAG, "Failed to read times.json.", e);
+        } finally {
+            if (scanner != null) {
+                scanner.close();
+            }
+        }
+        return -1;
+    }
+
+    
+
+
+
+
+    protected static long getPackageInstallTime(final Context context) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.GINGERBREAD) {
+            return -1;
+        }
+
+        try {
+            return context.getPackageManager().getPackageInfo(AppConstants.ANDROID_PACKAGE_NAME, 0).firstInstallTime;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            Log.e(LOG_TAG, "Unable to fetch our own package info. This should never occur.", e);
+        }
+        return -1;
+    }
+
+    private static long getProfileInitTimeHeuristic(final Context context, final String profilePath) {
+        
+        
+        final long time = getPackageInstallTime(context);
+        if (time != -1) {
+            return time;
+        }
+
+        
+        
+        Log.d(LOG_TAG, "Using profile directory modified time as proxy for profile creation time.");
+        return new File(profilePath).lastModified();
+    }
+
+    private static long getAndPersistProfileInitTime(final Context context, final String profilePath) {
+        
+        long time = getProfileInitTimeFromFile(profilePath);
+        if (time > 0) {
+            Log.i(LOG_TAG, "Incorporating environment: times.json profile creation = " + time);
+            return time;
+        }
+
+        
+        time = getProfileInitTimeHeuristic(context, profilePath);
+
+        if (time > 0) {
+            
+            try {
+                FileOutputStream stream = new FileOutputStream(getTimesPath(profilePath));
+                OutputStreamWriter writer = new OutputStreamWriter(stream, Charset.forName("UTF-8"));
+                try {
+                    writer.append("{\"created\": " + time + "}\n");
+                } finally {
+                    writer.close();
+                }
+            } catch (Exception e) {
+                
+                Log.w(LOG_TAG, "Couldn't write times.json.", e);
+            }
+        }
+
+        Log.i(LOG_TAG, "Incorporating environment: profile creation = " + time);
+        return time;
+    }
+
+
+    
+
+
+    private void initialize(final Context context,
+                            final String profilePath,
+                            final EventDispatcher dispatcher)
+        throws java.io.IOException {
+
+        Log.d(LOG_TAG, "Initializing profile cache.");
+        this.state = State.INITIALIZING;
+        this.profileCache.beginInitialization();
+
+        this.profileCache.setProfileCreationTime(getAndPersistProfileInitTime(context, profilePath));
+
+        PrefHandler handler = new PrefsHelper.PrefHandlerBase() {
+            @Override
+            public void prefValue(String pref, boolean value) {
+                Log.i(LOG_TAG, "Incorporating environment: " + pref + " = " + value);
+                if (AppConstants.TELEMETRY_PREF_NAME.equals(pref)) {
+                    profileCache.setTelemetryEnabled(value);
+                    return;
+                }
+                if (PREF_BLOCKLIST_ENABLED.equals(pref)) {
+                    profileCache.setBlocklistEnabled(value);
+                    return;
+                }
+                Log.w(LOG_TAG, "Unexpected pref: " + pref);
+            }
+
+            @Override
+            public void finish() {
+                try {
+                    profileCache.completeInitialization();
+                } catch (java.io.IOException e) {
+                    Log.e(LOG_TAG, "Error completing profile cache initialization.", e);
+                    return;
+                }
+
+                Log.d(LOG_TAG, "Done initializing profile cache. Beginning storage init.");
+
+                ThreadUtils.postToBackgroundThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            storage.beginInitialization();
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Failed to init storage.", e);
+                            state = State.INITIALIZATION_FAILED;
+                            return;
+                        }
+
+                        try {
+                            
+
+                            Log.d(LOG_TAG, "Ensuring environment.");
+                            ensureEnvironment();
+
+                            Log.d(LOG_TAG, "Finishing init.");
+                            storage.finishInitialization();
+                            state = State.INITIALIZED;
+                        } catch (Exception e) {
+                            state = State.INITIALIZATION_FAILED;
+                            storage.abortInitialization();
+                            Log.e(LOG_TAG, "Initialization failed.", e);
+                        }
+                    }
+                });
+            }
+        };
+
+        
+        PrefsHelper.getPrefs(new String[] {
+                                 AppConstants.TELEMETRY_PREF_NAME,
+                                 PREF_BLOCKLIST_ENABLED
+                             },
+                             handler);
+        Log.d(LOG_TAG, "Done initializing profile cache. Beginning storage init.");
+    }
+
+    @Override
+    public void handleMessage(String event, JSONObject message) {
+        try {
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Exception handling message \"" + event + "\":", e);
+        }
+    }
+}
+
