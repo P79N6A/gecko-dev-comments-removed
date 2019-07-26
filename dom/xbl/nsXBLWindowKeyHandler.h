@@ -35,23 +35,14 @@ protected:
   nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType);
 
   
-  bool WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
-                            nsIAtom* aEventType,
-                            nsXBLPrototypeHandler* aHandler,
-                            bool aExecute);
+  nsresult WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
+                                nsIAtom* aEventType, 
+                                nsXBLPrototypeHandler* aHandler);
 
-  
   
   bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
-                              nsXBLPrototypeHandler* aHandler,
-                              uint32_t aCharCode, bool aIgnoreShiftKey,
-                              bool aExecute);
-
-  
-  void HandleEventOnCapture(nsIDOMKeyEvent* aEvent);
-
-  
-  bool HasHandlerForEvent(nsIDOMKeyEvent* aEvent);
+                                nsXBLPrototypeHandler* aHandler,
+                                uint32_t aCharCode, bool aIgnoreShiftKey);
 
   
   
@@ -67,9 +58,7 @@ protected:
 
   
   
-  
-  
-  already_AddRefed<mozilla::dom::Element> GetElement(bool* aIsDisabled = nullptr);
+  already_AddRefed<mozilla::dom::Element> GetElement();
   
   nsWeakPtr              mWeakPtrForElement;
   mozilla::dom::EventTarget* mTarget; 
