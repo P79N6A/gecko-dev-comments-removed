@@ -1,0 +1,66 @@
+
+
+
+
+
+#ifndef mozilla_dom_SVGAnimateMotionElement_h
+#define mozilla_dom_SVGAnimateMotionElement_h
+
+#include "mozilla/dom/SVGAnimationElement.h"
+#include "nsIDOMSVGAnimateMotionElement.h"
+#include "SVGMotionSMILAnimationFunction.h"
+
+nsresult NS_NewSVGAnimateMotionElement(nsIContent **aResult,
+                                       already_AddRefed<nsINodeInfo> aNodeInfo);
+
+namespace mozilla {
+namespace dom {
+
+class SVGAnimateMotionElement MOZ_FINAL : public SVGAnimationElement,
+                                          public nsIDOMSVGAnimateMotionElement
+{
+protected:
+  SVGAnimateMotionElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+
+  SVGMotionSMILAnimationFunction mAnimationFunction;
+  friend nsresult
+    (::NS_NewSVGAnimateMotionElement(nsIContent **aResult,
+                                     already_AddRefed<nsINodeInfo> aNodeInfo));
+
+public:
+  
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIDOMSVGANIMATEMOTIONELEMENT
+
+  NS_FORWARD_NSIDOMNODE_TO_NSINODE
+  NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
+  NS_FORWARD_NSIDOMSVGELEMENT(SVGAnimationElement::)
+  NS_FORWARD_NSIDOMSVGANIMATIONELEMENT(SVGAnimationElement::)
+
+  
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+
+  
+  virtual nsSMILAnimationFunction& AnimationFunction();
+  virtual bool GetTargetAttributeName(int32_t *aNamespaceID,
+                                        nsIAtom **aLocalName) const;
+  virtual nsSMILTargetAttrType GetTargetAttributeType() const;
+
+  
+  virtual nsIAtom* GetPathDataAttrName() const {
+    return nsGkAtoms::path;
+  }
+
+  
+  
+  void MpathChanged() { mAnimationFunction.MpathChanged(); }
+
+  virtual nsXPCClassInfo* GetClassInfo();
+
+  virtual nsIDOMNode* AsDOMNode() { return this; }
+};
+
+} 
+} 
+
+#endif 
