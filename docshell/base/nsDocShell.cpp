@@ -4536,10 +4536,6 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     }
     else if (aURL)
     {
-        
-        nsresult rv = NS_NewURI(getter_AddRefs(mFailedURI), "about:blank");
-        NS_ENSURE_SUCCESS(rv, rv);
-
         CopyUTF16toUTF8(aURL, url);
     }
     else
@@ -8001,6 +7997,10 @@ nsDocShell::CreateContentViewer(const char *aContentType,
 
         if (!failedURI) {
             failedURI = mFailedURI;
+        }
+        if (!failedURI) {
+            
+            NS_NewURI(getter_AddRefs(failedURI), "about:blank");
         }
 
         
