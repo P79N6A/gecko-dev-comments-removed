@@ -1632,15 +1632,6 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
 
       mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
 
-      
-      
-      
-      
-      if (PlaceholderApplies() &&
-          HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
-        UpdateState(true);
-      }
-
       return NS_OK;
     }
 
@@ -3509,11 +3500,6 @@ nsHTMLInputElement::IntrinsicState() const
     }
   }
 
-  if (PlaceholderApplies() && HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder) &&
-      IsValueEmpty()) {
-    state |= NS_EVENT_STATE_MOZ_PLACEHOLDER;
-  }
-
   if (mForm && !mForm->GetValidity() && IsSubmitControl()) {
     state |= NS_EVENT_STATE_MOZ_SUBMITINVALID;
   }
@@ -4620,13 +4606,6 @@ NS_IMETHODIMP_(void)
 nsHTMLInputElement::OnValueChanged(bool aNotify)
 {
   UpdateAllValidityStates(aNotify);
-
-  
-  
-  if (PlaceholderApplies() &&
-      HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
-    UpdateState(aNotify);
-  }
 }
 
 NS_IMETHODIMP_(bool)

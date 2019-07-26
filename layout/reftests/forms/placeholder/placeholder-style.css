@@ -2,9 +2,3 @@ textarea.placeholder,
 input.placeholder {
   color: GrayText;
 }
-
-
-textarea:focus,
-input:focus {
-  color: -moz-FieldText;
-}
