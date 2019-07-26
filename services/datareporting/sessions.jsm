@@ -74,6 +74,7 @@ this.SessionRecorder = function (branch) {
   this._prefs = new Preferences(branch);
   this._lastActivityWasInactive = false;
   this._activeTicks = 0;
+  this.fineTotalTime = 0;
   this._started = false;
   this._timer = null;
   this._startupFieldTries = 0;
@@ -120,12 +121,20 @@ SessionRecorder.prototype = Object.freeze({
     this._prefs.set("current.activeTicks", ++this._activeTicks);
   },
 
+  
+
+
+
+
   get totalTime() {
     return this._prefs.get("current.totalTime", 0);
   },
 
   updateTotalTime: function () {
-    this._prefs.set("current.totalTime", Date.now() - this.startDate);
+    
+    
+    this.fineTotalTime = Date.now() - this.startDate;
+    this._prefs.set("current.totalTime", Math.floor(this.fineTotalTime / 1000));
   },
 
   get main() {
