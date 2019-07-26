@@ -207,23 +207,18 @@ struct SuppressErrorsGuard
 static JSString *
 ComputeStackString(JSContext *cx)
 {
-    JSCheckAccessOp checkAccess = cx->runtime()->securityCallbacks->checkObjectAccess;
-
     StringBuffer sb(cx);
 
     {
         RootedAtom atom(cx);
         SuppressErrorsGuard seg(cx);
-        for (NonBuiltinScriptFrameIter i(cx); !i.done(); ++i) {
-            
-            if (checkAccess && i.isNonEvalFunctionFrame()) {
-                RootedValue v(cx);
-                RootedId callerid(cx, NameToId(cx->names().caller));
-                RootedObject obj(cx, i.callee());
-                if (!checkAccess(cx, obj, callerid, JSACC_READ, &v))
-                    break;
-            }
-
+        
+        
+        for (NonBuiltinScriptFrameIter i(cx, ScriptFrameIter::CURRENT_CONTEXT,
+                                         ScriptFrameIter::STOP_AT_SAVED,
+                                         cx->compartment()->principals);
+            !i.done(); ++i)
+        {
             
             atom = nullptr;
             if (i.isNonEvalFunctionFrame() && i.callee()->displayAtom())
