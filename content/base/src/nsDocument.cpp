@@ -6635,9 +6635,6 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 
   nsCOMArray<nsINode> nodesWithProperties;
   rv = nsNodeUtils::Adopt(adoptedNode, sameDocument ? nullptr : mNodeInfoManager,
-                          
-                          
-                          newScope ? (JSContext*) cx : nullptr,
                           newScope, nodesWithProperties);
   if (rv.Failed()) {
     

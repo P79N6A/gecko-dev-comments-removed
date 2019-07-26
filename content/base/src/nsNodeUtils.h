@@ -152,7 +152,7 @@ public:
                         nsCOMArray<nsINode> &aNodesWithProperties,
                         nsINode **aResult)
   {
-    return CloneAndAdopt(aNode, true, aDeep, aNewNodeInfoManager, nullptr,
+    return CloneAndAdopt(aNode, true, aDeep, aNewNodeInfoManager,
                          nullptr, aNodesWithProperties, nullptr, aResult);
   }
 
@@ -162,7 +162,7 @@ public:
   static nsresult Clone(nsINode *aNode, bool aDeep, nsINode **aResult)
   {
     nsCOMArray<nsINode> dummyNodeWithProperties;
-    return CloneAndAdopt(aNode, true, aDeep, nullptr, nullptr, nullptr,
+    return CloneAndAdopt(aNode, true, aDeep, nullptr, nullptr,
                          dummyNodeWithProperties, aNode->GetParent(), aResult);
   }
 
@@ -183,15 +183,13 @@ public:
 
 
 
-
-
   static nsresult Adopt(nsINode *aNode, nsNodeInfoManager *aNewNodeInfoManager,
-                        JSContext *aCx, JSObject *aNewScope,
+                        JSObject *aReparentScope,
                         nsCOMArray<nsINode> &aNodesWithProperties)
   {
     nsCOMPtr<nsINode> node;
     nsresult rv = CloneAndAdopt(aNode, false, true, aNewNodeInfoManager,
-                                aCx, aNewScope, aNodesWithProperties,
+                                aReparentScope, aNodesWithProperties,
                                 nullptr, getter_AddRefs(node));
 
     nsMutationGuard::DidMutate();
@@ -294,11 +292,9 @@ private:
 
 
 
-
-
   static nsresult CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
-                                JSContext *aCx, JSObject *aNewScope,
+                                JSObject *aReparentScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsINode *aParent, nsINode **aResult);
 };
