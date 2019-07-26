@@ -676,6 +676,28 @@ nsHttpTransaction::WritePipeSegment(nsIOutputStream *stream,
     
     
     
+    if (!trans->mHaveAllHeaders) {
+        
+        
+        
+        count = std::min(count, 1024U);
+    } else if (trans->mChunkedDecoder) {
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!trans->mChunkedDecoder->GetChunkRemaining()) {
+            count = std::min(count, 6U); 
+        } else {
+            
+            count = std::min(count,
+                             trans->mChunkedDecoder->GetChunkRemaining() + 2);
+        }
+    }
     rv = trans->mWriter->OnWriteSegment(buf, count, countWritten);
     if (NS_FAILED(rv)) return rv; 
 
