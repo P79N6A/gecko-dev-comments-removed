@@ -18,7 +18,12 @@ var FullScreen = {
 
     
     
-    document.getElementById("View:FullScreen").setAttribute("checked", enterFS);
+    let fullscreenCommand = document.getElementById("View:FullScreen");
+    if (enterFS) {
+      fullscreenCommand.setAttribute("checked", enterFS);
+    } else {
+      fullscreenCommand.removeAttribute("checked");
+    }
 
 #ifdef XP_MACOSX
     
