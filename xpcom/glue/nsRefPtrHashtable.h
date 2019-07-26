@@ -49,6 +49,18 @@ public:
 
 
   RefPtr* GetWeak(KeyType aKey, bool* aFound = nullptr) const;
+
+  
+  using base_type::Remove;
+
+  
+
+
+
+
+
+
+  bool Remove(KeyType aKey, UserDataType* pData);
 };
 
 template <typename K, typename T>
@@ -122,6 +134,26 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
   }
 
   return nullptr;
+}
+
+template<class KeyClass, class RefPtr>
+bool
+nsRefPtrHashtable<KeyClass,RefPtr>::Remove(KeyType aKey,
+                                           UserDataType* pRefPtr)
+{
+  MOZ_ASSERT(pRefPtr);
+  typename base_type::EntryType* ent = this->GetEntry(aKey);
+
+  if (ent) {
+    ent->mData.forget(pRefPtr);
+    this->Remove(aKey);
+    return true;
+  }
+
+  
+  
+  *pRefPtr = nullptr;
+  return false;
 }
 
 #endif 
