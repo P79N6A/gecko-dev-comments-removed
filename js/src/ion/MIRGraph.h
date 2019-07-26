@@ -468,6 +468,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     void dumpStack(FILE *fp);
 
+    void dump(FILE *fp);
+
     
     
     void updateTrackedPc(jsbytecode *pc) {
@@ -666,6 +668,8 @@ class MIRGraph
     
     
     MDefinition *parSlice();
+
+    void dump(FILE *fp);
 };
 
 class MDefinitionIterator
