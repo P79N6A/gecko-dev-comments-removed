@@ -120,9 +120,28 @@ template <class ErrorResult>
 class AudioEventTimeline
 {
 public:
+  
+  
+  AudioEventTimeline()
+    : mValue(0.f)
+  {
+  }
+
   explicit AudioEventTimeline(float aDefaultValue)
     : mValue(aDefaultValue)
   {
+  }
+
+  bool HasSimpleValue() const
+  {
+    return mEvents.IsEmpty();
+  }
+
+  float GetValue() const
+  {
+    
+    MOZ_ASSERT(HasSimpleValue());
+    return mValue;
   }
 
   float Value() const

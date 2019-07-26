@@ -103,6 +103,13 @@ void AudioBlockCopyChannelWithScale(const float aInput[WEBAUDIO_BLOCK_SIZE],
 
 
 
+void AudioBlockCopyChannelWithScale(const float aInput[WEBAUDIO_BLOCK_SIZE],
+                                    const float aScale[WEBAUDIO_BLOCK_SIZE],
+                                    float aOutput[WEBAUDIO_BLOCK_SIZE]);
+
+
+
+
 
 class AudioNodeEngine {
 public:
