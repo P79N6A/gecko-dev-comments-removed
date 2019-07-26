@@ -8,7 +8,6 @@
 
 #include "gfxContext.h"
 #include "gfxASurface.h"
-#include "gfxPlatform.h"
 #include "nsRegion.h"
 
 namespace mozilla {
@@ -70,7 +69,6 @@ public:
   void Clear()
   {
     mBuffer = nullptr;
-    mDTBuffer = nullptr;
     mBufferProvider = nullptr;
     mBufferRect.SetEmpty();
   }
@@ -132,29 +130,8 @@ public:
   
 
 
-  virtual TemporaryRef<gfx::DrawTarget>
-  CreateDrawTarget(const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat)
-  {
-    return gfxPlatform::GetPlatform()->CreateOffscreenDrawTarget(aSize, aFormat);
-  }
-
-  
 
 
-  TemporaryRef<gfx::DrawTarget>
-  CreateDrawTarget(const nsIntSize& aSize, ContentType aContent) 
-  {
-    gfx::SurfaceFormat format = gfx::SurfaceFormatForImageFormat(
-      gfxPlatform::GetPlatform()->OptimalFormatForContent(aContent));
-    return CreateDrawTarget(gfx::IntSize(aSize.width, aSize.height), format);
-  }
-
-  
-
-
-
-
-  gfx::DrawTarget* GetDT() { return mDTBuffer; }
   gfxASurface* GetBuffer() { return mBuffer; }
 
 protected:
@@ -197,17 +174,6 @@ protected:
     return tmp.forget();
   }
 
-  TemporaryRef<gfx::DrawTarget>
-  SetDT(gfx::DrawTarget* aBuffer,
-            const nsIntRect& aBufferRect, const nsIntPoint& aBufferRotation)
-  {
-    RefPtr<gfx::DrawTarget> tmp = mDTBuffer.forget();
-    mDTBuffer = aBuffer;
-    mBufferRect = aBufferRect;
-    mBufferRotation = aBufferRotation;
-    return tmp.forget();
-  }
-
   
 
 
@@ -224,7 +190,6 @@ protected:
     mBufferProvider = aProvider;
     if (!mBufferProvider) {
       mBuffer = nullptr;
-      mDTBuffer = nullptr;
     } else {
       
       
@@ -252,22 +217,13 @@ private:
   
 
 
-  void EnsureBuffer();
-
-  
-
-
-  bool BufferValid() {
-    return mBuffer || mDTBuffer;
-  }
-
+  gfxASurface* EnsureBuffer();
   
 
 
 
   bool HaveBuffer();
 
-  RefPtr<gfx::DrawTarget> mDTBuffer;
   nsRefPtr<gfxASurface> mBuffer;
   
 
