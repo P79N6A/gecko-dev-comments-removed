@@ -20,6 +20,7 @@
 #define ERR_REACHED_CONNECTION_LIMIT    "ReachedConnectionLimitError"
 #define ERR_SERVICE_CHANNEL_NOT_FOUND   "DeviceChannelRetrievalError"
 #define ERR_UNKNOWN_PROFILE             "UnknownProfileError"
+#define ERR_OPERATION_TIMEOUT           "OperationTimeout"
 
 #include "BluetoothCommon.h"
 #include "nsIObserver.h"
@@ -67,6 +68,11 @@ public:
   
 
 
+  virtual void Reset() = 0;
+
+  
+
+
   virtual void GetName(nsACString& aName) = 0;
 };
 
@@ -85,6 +91,7 @@ public:                                                                         
   virtual void Disconnect(BluetoothProfileController* aController) MOZ_OVERRIDE; \
   virtual void OnConnect(const nsAString& aErrorStr) MOZ_OVERRIDE;               \
   virtual void OnDisconnect(const nsAString& AErrorStr) MOZ_OVERRIDE;            \
+  virtual void Reset() MOZ_OVERRIDE;
 
 END_BLUETOOTH_NAMESPACE
 

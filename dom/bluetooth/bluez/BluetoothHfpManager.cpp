@@ -342,7 +342,7 @@ Call::IsActive()
 
 
 
-BluetoothHfpManager::BluetoothHfpManager() : mController(nullptr)
+BluetoothHfpManager::BluetoothHfpManager()
 {
 #ifdef MOZ_B2G_RIL
   mPhoneType = PhoneType::NONE;
@@ -384,15 +384,7 @@ BluetoothHfpManager::Reset()
   mCCWA = false;
   mCLIP = false;
   mDialingRequestProcessed = true;
-#endif
-  mCMEE = false;
-  mCMER = false;
-  mConnectScoRequest = false;
-  mSlcConnected = false;
-  mIsHsp = false;
-  mReceiveVgsFlag = false;
 
-#ifdef MOZ_B2G_RIL
   
   
   
@@ -402,6 +394,13 @@ BluetoothHfpManager::Reset()
 
   ResetCallArray();
 #endif
+  mCMEE = false;
+  mCMER = false;
+  mConnectScoRequest = false;
+  mSlcConnected = false;
+  mIsHsp = false;
+  mReceiveVgsFlag = false;
+  mController = nullptr;
 }
 
 bool
@@ -1936,3 +1935,4 @@ BluetoothHfpManager::OnDisconnect(const nsAString& aErrorStr)
 }
 
 NS_IMPL_ISUPPORTS1(BluetoothHfpManager, nsIObserver)
+
