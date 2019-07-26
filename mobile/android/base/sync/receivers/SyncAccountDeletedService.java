@@ -7,6 +7,7 @@ package org.mozilla.gecko.sync.receivers;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.sync.Sync11Configuration;
 import org.mozilla.gecko.sync.SyncConstants;
 import org.mozilla.gecko.sync.SyncConfiguration;
 import org.mozilla.gecko.sync.Utils;
@@ -113,27 +114,29 @@ public class SyncAccountDeletedService extends IntentService {
       return;
     }
 
-    final String clientGuid = prefs.getString(SyncConfiguration.PREF_ACCOUNT_GUID, null);
-    final String clusterURL = prefs.getString(SyncConfiguration.PREF_CLUSTER_URL, null);
-
-    
-    prefs.edit().clear().commit();
-
-    if (clientGuid == null) {
-      Logger.warn(LOG_TAG, "Client GUID was null; not deleting client record from server.");
-      return;
-    }
-
-    if (clusterURL == null) {
-      Logger.warn(LOG_TAG, "Cluster URL was null; not deleting client record from server.");
-      return;
-    }
-
     try {
-      ClientRecordTerminator.deleteClientRecord(encodedUsername, clusterURL, clientGuid, new BasicAuthHeaderProvider(encodedUsername, password));
-    } catch (Exception e) {
+      final String clientGUID = prefs.getString(SyncConfiguration.PREF_ACCOUNT_GUID, null);
+      if (clientGUID == null) {
+        Logger.warn(LOG_TAG, "Client GUID was null; not deleting client record from server.");
+        return;
+      }
+
+      BasicAuthHeaderProvider authHeaderProvider = new BasicAuthHeaderProvider(encodedUsername, password);
+      SyncConfiguration configuration = new Sync11Configuration(encodedUsername, authHeaderProvider, prefs);
+      if (configuration.getClusterURL() == null) {
+        Logger.warn(LOG_TAG, "Cluster URL was null; not deleting client record from server.");
+        return;
+      }
+
+      try {
+        ClientRecordTerminator.deleteClientRecord(configuration, clientGUID);
+      } catch (Exception e) {
+        
+        Logger.warn(LOG_TAG, "Got exception deleting client record from server; ignoring.", e);
+      }
+    } finally {
       
-      Logger.warn(LOG_TAG, "Got exception deleting client record from server; ignoring.", e);
+      prefs.edit().clear().commit();
     }
   }
 }
