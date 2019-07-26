@@ -416,6 +416,11 @@ class AsmJSModule
 
     FunctionCountsVector                  functionCounts_;
 
+    
+    
+    
+    mutable bool                          codeIsProtected_;
+
   public:
     explicit AsmJSModule(ScriptSource *scriptSource, uint32_t charsBegin);
     ~AsmJSModule();
@@ -806,7 +811,13 @@ class AsmJSModule
     const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
     bool loadedFromCache() const { return loadedFromCache_; }
 
-    bool clone(ExclusiveContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const;
+    bool clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const;
+
+    
+    
+    void protectCode(JSRuntime *rt) const;
+    void unprotectCode(JSRuntime *rt) const;
+    bool codeIsProtected(JSRuntime *rt) const;
 };
 
 
