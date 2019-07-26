@@ -8,8 +8,6 @@
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource://gre/modules/OrderedBroadcast.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/SharedPreferences.jsm");
 
@@ -18,10 +16,10 @@ Cu.import("resource://gre/modules/SharedPreferences.jsm");
 const PREF_UPLOAD_ENABLED = "android.not_a_preference.healthreport.uploadEnabled";
 
 
-const BROADCAST_ACTION_HEALTH_REPORT = "@ANDROID_PACKAGE_NAME@" + ".healthreport.request";
-
-
 const PREF_REPORTURL = "datareporting.healthreport.about.reportUrl";
+
+const EVENT_HEALTH_REQUEST = "HealthReport:Request";
+const EVENT_HEALTH_RESPONSE = "HealthReport:Response";
 
 function sendMessageToJava(message) {
   return Cc["@mozilla.org/android/bridge;1"]
@@ -30,73 +28,31 @@ function sendMessageToJava(message) {
 }
 
 
+
 let sharedPrefs = new SharedPreferences();
-
-let reporter = {
-  onInit: function () {
-    let deferred = Promise.defer();
-    deferred.resolve();
-
-    return deferred.promise;
-  },
-
-  collectAndObtainJSONPayload: function () {
-    let deferred = Promise.defer();
-
-    let callback = function (data, token, action) {
-      if (data) {
-        
-        
-        
-        
-        
-        
-        
-        deferred.resolve(JSON.stringify(data));
-      } else {
-        deferred.reject();
-      }
-    };
-
-    sendOrderedBroadcast(BROADCAST_ACTION_HEALTH_REPORT, null, callback);
-
-    return deferred.promise;
-  },
-};
-
-let policy = {
-  get healthReportUploadEnabled() {
-    return sharedPrefs.getBoolPref(PREF_UPLOAD_ENABLED);
-  },
-
-  recordHealthReportUploadEnabled: function (enabled) {
-    sharedPrefs.setBoolPref(PREF_UPLOAD_ENABLED, !!enabled);
-  },
-};
 
 let healthReportWrapper = {
   init: function () {
-    reporter.onInit().then(healthReportWrapper.refreshPayload,
-                           healthReportWrapper.handleInitFailure);
-
     let iframe = document.getElementById("remote-report");
     iframe.addEventListener("load", healthReportWrapper.initRemotePage, false);
     let report = this._getReportURI();
     iframe.src = report.spec;
 
     sharedPrefs.addObserver(PREF_UPLOAD_ENABLED, this, false);
+    Services.obs.addObserver(this, EVENT_HEALTH_RESPONSE, false);
   },
 
   observe: function (subject, topic, data) {
-    if (topic != PREF_UPLOAD_ENABLED) {
-      return;
+    if (topic == PREF_UPLOAD_ENABLED) {
+      this.updatePrefState();
+    } else if (topic == EVENT_HEALTH_RESPONSE) {
+      this.updatePayload(data);
     }
-
-    subject.updatePrefState();
   },
 
   uninit: function () {
     sharedPrefs.removeObserver(PREF_UPLOAD_ENABLED, this);
+    Services.obs.removeObserver(this, EVENT_HEALTH_RESPONSE);
   },
 
   _getReportURI: function () {
@@ -105,21 +61,22 @@ let healthReportWrapper = {
   },
 
   onOptIn: function () {
-    policy.recordHealthReportUploadEnabled(true,
-                                           "Health report page sent opt-in command.");
+    console.log("AboutHealthReport: page sent opt-in command.");
+    sharedPrefs.setBoolPref(PREF_UPLOAD_ENABLED, true);
     this.updatePrefState();
   },
 
   onOptOut: function () {
-    policy.recordHealthReportUploadEnabled(false,
-                                           "Health report page sent opt-out command.");
+    console.log("AboutHealthReport: page sent opt-out command.");
+    sharedPrefs.setBoolPref(PREF_UPLOAD_ENABLED, false);
     this.updatePrefState();
   },
 
   updatePrefState: function () {
+    console.log("AboutHealthReport: page requested pref state.");
     try {
       let prefs = {
-        enabled: policy.healthReportUploadEnabled,
+        enabled: sharedPrefs.getBoolPref(PREF_UPLOAD_ENABLED),
       };
       this.injectData("prefs", prefs);
     } catch (e) {
@@ -128,12 +85,18 @@ let healthReportWrapper = {
   },
 
   refreshPayload: function () {
-    reporter.collectAndObtainJSONPayload().then(healthReportWrapper.updatePayload,
-                                                healthReportWrapper.handlePayloadFailure);
+    console.log("AboutHealthReport: page requested fresh payload.");
+    sendMessageToJava({
+      type: EVENT_HEALTH_REQUEST,
+    });
   },
 
   updatePayload: function (data) {
     healthReportWrapper.injectData("payload", data);
+    
+    
+    console.log("AboutHealthReport: sending payload to page " +
+         "(" + typeof(data) + " of length " + data.length + ").");
   },
 
   injectData: function (type, content) {
@@ -141,8 +104,8 @@ let healthReportWrapper = {
 
     
     
-
-    let reportUrl = report.scheme == "file" ? "*" : report.spec;
+    
+    let reportUrl = (report.scheme == "file") ? "*" : report.spec;
 
     let data = {
       type: type,
