@@ -737,6 +737,11 @@ pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 
 pref("general.useragent.enable_overrides", true);
 
+pref("general.useragent.updates.enabled", true);
+pref("general.useragent.updates.url", "");
+pref("general.useragent.updates.interval", 604800); 
+pref("general.useragent.updates.retry", 86400); 
+
 
 pref("media.useAudioChannelService", true);
 
