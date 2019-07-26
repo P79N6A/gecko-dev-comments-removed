@@ -22,7 +22,6 @@
 SimpleTest.waitForExplicitFinish();
 
 window.onload = function() {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var img = document.getElementById("animated");
   var content =  img.QueryInterface(Components.interfaces.nsIImageLoadingContent);
 
