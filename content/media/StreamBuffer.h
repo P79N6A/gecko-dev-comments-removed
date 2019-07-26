@@ -224,6 +224,13 @@ public:
 
   StreamTime GetEnd() const;
 
+  
+
+
+
+
+  StreamTime GetAllTracksEnd() const;
+
 #ifdef DEBUG
   void DumpTrackInfo() const;
 #endif
