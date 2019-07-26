@@ -529,26 +529,17 @@ IsPluginEnabledByExtension(nsIURI* uri, nsCString& mimeType)
   return false;
 }
 
-nsresult
-IsPluginEnabledForType(const nsCString& aMIMEType)
+bool
+PluginExistsForType(const char* aMIMEType)
 {
   nsRefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
 
   if (!pluginHost) {
     NS_NOTREACHED("No pluginhost");
-    return NS_ERROR_FAILURE;
+    return false;
   }
 
-  nsresult rv = pluginHost->IsPluginEnabledForType(aMIMEType.get());
-
-  
-  
-  
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return NS_OK;
+  return pluginHost->PluginExistsForType(aMIMEType);
 }
 
 
@@ -1297,9 +1288,8 @@ nsObjectLoadingContent::UpdateObjectParameters()
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::classid, classIDAttr);
     if (!classIDAttr.IsEmpty()) {
       
-      rv = IsPluginEnabledForType(NS_LITERAL_CSTRING("application/x-java-vm"));
-      if (NS_SUCCEEDED(rv) &&
-          StringBeginsWith(classIDAttr, NS_LITERAL_STRING("java:"))) {
+      if (StringBeginsWith(classIDAttr, NS_LITERAL_STRING("java:")) &&
+          PluginExistsForType("application/x-java-vm")) {
         newMime.Assign("application/x-java-vm");
         isJava = true;
       } else {
@@ -1709,16 +1699,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   if (mType == eType_Null && GetTypeOfContent(mContentType) == eType_Null) {
-    
-    nsresult pluginsupport = IsPluginEnabledForType(mContentType);
-    if (pluginsupport == NS_ERROR_PLUGIN_DISABLED) {
-      fallbackType = eFallbackDisabled;
-    } else if (pluginsupport == NS_ERROR_PLUGIN_BLOCKLISTED) {
-      fallbackType = eFallbackBlocklisted;
-    } else {
-      
-      fallbackType = eFallbackUnsupported;
-    }
+    fallbackType = eFallbackUnsupported;
   }
 
   
@@ -2269,7 +2250,8 @@ nsObjectLoadingContent::GetTypeOfContent(const nsCString& aMIMEType)
     return eType_Document;
   }
 
-  if ((caps & eSupportPlugins) && NS_SUCCEEDED(IsPluginEnabledForType(aMIMEType))) {
+  if (caps & eSupportPlugins && PluginExistsForType(aMIMEType.get())) {
+    
     return eType_Plugin;
   }
 
@@ -2729,9 +2711,7 @@ nsObjectLoadingContent::CancelPlayPreview()
 bool
 nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
 {
-  
-  
-  
+  nsresult rv;
 
   nsRefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
 
@@ -2754,30 +2734,44 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
     return true;
   }
 
-  bool isCTP;
-  nsresult rv = pluginHost->IsPluginClickToPlayForType(mContentType, &isCTP);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  if (!isCTP || mActivated) {
+  if (mActivated) {
     return true;
   }
 
   
-  aReason = eFallbackClickToPlay;
   
-  uint32_t state;
-  rv = pluginHost->GetBlocklistStateForType(mContentType.get(), &state);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (state == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE) {
+  aReason = eFallbackClickToPlay;
+  uint32_t blocklistState = nsIBlocklistService::STATE_NOT_BLOCKED;
+  pluginHost->GetBlocklistStateForType(mContentType.get(), &blocklistState);
+  if (blocklistState == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE) {
     aReason = eFallbackVulnerableUpdatable;
   }
-  else if (state == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
+  else if (blocklistState == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
     aReason = eFallbackVulnerableNoUpdate;
   }
+  else if (blocklistState == nsIBlocklistService::STATE_BLOCKED) {
+    
+    aReason = eFallbackBlocklisted;
+    return false;
+  }
 
-  
+  if (aReason == eFallbackClickToPlay && isPlayPreviewSpecified &&
+      !mPlayPreviewCanceled && !ignoreCTP) {
+    
+    aReason = eFallbackPlayPreview;
+  }
+
   
   
 
@@ -2800,7 +2794,6 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
   nsCOMPtr<nsIPermissionManager> permissionManager = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, false);
 
-  bool allowPerm = false;
   
   
   
@@ -2815,16 +2808,43 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
                                                         permissionString.Data(),
                                                         &permission);
     NS_ENSURE_SUCCESS(rv, false);
-    allowPerm = permission == nsIPermissionManager::ALLOW_ACTION;
+    switch (permission) {
+    case nsIPermissionManager::ALLOW_ACTION:
+      return true;
+    case nsIPermissionManager::DENY_ACTION:
+      aReason = eFallbackDisabled;
+      return false;
+    case nsIPermissionManager::PROMPT_ACTION:
+      return false;
+    case nsIPermissionManager::UNKNOWN_ACTION:
+      break;
+    default:
+      MOZ_ASSERT(false);
+      return false;
+    }
   }
 
-  if (aReason == eFallbackClickToPlay && isPlayPreviewSpecified &&
-      !mPlayPreviewCanceled && !ignoreCTP) {
-    
-    aReason = eFallbackPlayPreview;
+  uint32_t enabledState = nsIPluginTag::STATE_DISABLED;
+  pluginHost->GetStateForType(mContentType, &enabledState);
+  if (nsIPluginTag::STATE_DISABLED == enabledState) {
+    aReason = eFallbackDisabled;
+    return false;
   }
 
-  return allowPerm;
+  
+  if (blocklistState == nsIBlocklistService::STATE_VULNERABLE_UPDATE_AVAILABLE ||
+      blocklistState == nsIBlocklistService::STATE_VULNERABLE_NO_UPDATE) {
+    return false;
+  }
+
+  switch (enabledState) {
+  case nsIPluginTag::STATE_ENABLED:
+    return true;
+  case nsIPluginTag::STATE_CLICKTOPLAY:
+    return false;
+  }
+  MOZ_NOT_REACHED("Unexpected enabledState");
+  return false;
 }
 
 nsIDocument*
