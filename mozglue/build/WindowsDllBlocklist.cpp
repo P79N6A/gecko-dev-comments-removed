@@ -614,7 +614,10 @@ DllBlocklist_Initialize()
 
   ReentrancySentinel::InitializeStatics();
 
-  bool ok = NtDllIntercept.AddHook("LdrLoadDll", reinterpret_cast<intptr_t>(patched_LdrLoadDll), (void**) &stub_LdrLoadDll);
+  
+  
+  
+  bool ok = NtDllIntercept.AddDetour("LdrLoadDll", reinterpret_cast<intptr_t>(patched_LdrLoadDll), (void**) &stub_LdrLoadDll);
 
   if (!ok) {
     sBlocklistInitFailed = true;

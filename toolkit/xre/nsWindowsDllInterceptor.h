@@ -671,24 +671,34 @@ public:
 
   bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
   {
+    
+    
+
     if (!mModuleName) {
-      
       return false;
     }
 
     if (mNopSpacePatcher.AddHook(pname, hookDest, origFunc)) {
-      
       return true;
     }
 
+    return AddDetour(pname, hookDest, origFunc);
+  }
+
+  bool AddDetour(const char *pname, intptr_t hookDest, void **origFunc)
+  {
+    
+    
+
+    if (!mModuleName) {
+      return false;
+    }
+
     if (!mDetourPatcher.Initialized()) {
-      
       mDetourPatcher.Init(mModuleName, mNHooks);
     }
 
-    bool rv = mDetourPatcher.AddHook(pname, hookDest, origFunc);
-    
-    return rv;
+    return mDetourPatcher.AddHook(pname, hookDest, origFunc);
   }
 };
 
