@@ -16,6 +16,7 @@
 #include "nsTraceRefcnt.h"
 #include "mozilla/gfx/BaseRect.h"
 #include "mozilla/Likely.h"
+#include <climits>
 
 struct nsIntRect;
 
@@ -231,16 +232,16 @@ struct NS_GFX nsIntRect :
 
   
   
-  static const nsIntRect& GetMaxSizedIntRect() { return kMaxSizedIntRect; }
+  static const nsIntRect& GetMaxSizedIntRect() {
+    static const nsIntRect r(0, 0, INT_MAX, INT_MAX);
+    return r;
+  }
 
   
   bool operator==(const nsIntRect& aRect) const
   {
     return IsEqualEdges(aRect);
   }
-
-protected:
-  static const nsIntRect kMaxSizedIntRect;
 };
 
 
