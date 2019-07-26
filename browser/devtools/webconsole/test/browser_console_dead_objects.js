@@ -49,10 +49,7 @@ function test()
       EventUtils.synthesizeKey(c, {}, hud.iframeWindow);
     }
 
-    hud.jsterm.execute(null, () => {
-      
-      executeSoon(onReadProperty.bind(null, msg));
-    });
+    hud.jsterm.execute(null, onReadProperty.bind(null, msg));
   }
 
   function onReadProperty(deadObjectMessage)
@@ -72,7 +69,6 @@ function test()
 
   function onFetched()
   {
-    ok(true, "variables view fetched");
     hud.jsterm.execute("delete window.foobarzTezt; 2013-26", onCalcResult);
   }
 
