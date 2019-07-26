@@ -300,11 +300,6 @@ struct ForkJoinSlice : ThreadSafeContext
     const uint32_t numSlices;
 
     
-    
-    
-    Allocator *const allocator;
-
-    
     ParallelBailoutRecord *const bailoutRecord;
 
 #ifdef DEBUG
@@ -313,7 +308,7 @@ struct ForkJoinSlice : ThreadSafeContext
 #endif
 
     ForkJoinSlice(PerThreadData *perThreadData, uint32_t sliceId, uint32_t numSlices,
-                  Allocator *arenaLists, ForkJoinShared *shared,
+                  Allocator *allocator, ForkJoinShared *shared,
                   ParallelBailoutRecord *bailoutRecord);
 
     

@@ -30,20 +30,21 @@ namespace js {
 
 
 
-
-
-
-
 class Allocator
 {
+    
+
+
+
+
+    friend class gc::ArenaLists;
+
     JS::Zone *zone_;
 
   public:
     explicit Allocator(JS::Zone *zone);
 
     js::gc::ArenaLists arenas;
-
-    inline void *parallelNewGCThing(gc::AllocKind thingKind, size_t thingSize);
 };
 
 typedef Vector<JSCompartment *, 1, SystemAllocPolicy> CompartmentVector;

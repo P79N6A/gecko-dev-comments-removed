@@ -466,7 +466,7 @@ struct ArenaLists
     }
 
     template <AllowGC allowGC>
-    static void *refillFreeList(JSContext *cx, AllocKind thingKind);
+    static void *refillFreeList(ThreadSafeContext *cx, AllocKind thingKind);
 
     
 
@@ -499,14 +499,6 @@ struct ArenaLists
 
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
-
-    
-
-
-
-
-
-    void *parallelAllocate(JS::Zone *zone, AllocKind thingKind, size_t thingSize);
 
   private:
     inline void finalizeNow(FreeOp *fop, AllocKind thingKind);

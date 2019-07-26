@@ -518,7 +518,7 @@ MacroAssembler::parNewGCThing(const Register &result,
 
     
     
-    loadPtr(Address(threadContextReg, offsetof(js::ForkJoinSlice, allocator)),
+    loadPtr(Address(threadContextReg, ThreadSafeContext::offsetOfAllocator()),
             tempReg1);
 
     

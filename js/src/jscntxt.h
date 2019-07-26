@@ -1539,6 +1539,31 @@ struct ThreadSafeContext : js::ContextFriendFields,
     bool isForkJoinSlice() const;
     ForkJoinSlice *asForkJoinSlice();
 
+#ifdef JSGC_GENERATIONAL
+    inline bool hasNursery() const;
+    inline js::Nursery &nursery();
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+
+  protected:
+    Allocator *allocator_;
+
+  public:
+    static size_t offsetOfAllocator() { return offsetof(ThreadSafeContext, allocator_); }
+
+    inline Allocator *const allocator();
+    inline AllowGC allowGC();
+
     void *onOutOfMemory(void *p, size_t nbytes) {
         return runtime_->onOutOfMemory(p, nbytes, isJSContext() ? asJSContext() : NULL);
     }
