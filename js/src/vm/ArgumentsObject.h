@@ -153,13 +153,7 @@ class ArgumentsObject : public JSObject
 
 
 
-    static ArgumentsObject *createUnexpected(JSContext *cx, StackFrame *fp);
-
-    
-
-
-
-    static ArgumentsObject *createPoison(JSContext *cx, uint32_t argc, HandleObject callee);
+    static ArgumentsObject *createUnexpected(JSContext *cx, StackIter& iter);
 
     
 
