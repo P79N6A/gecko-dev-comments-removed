@@ -845,7 +845,7 @@ Sync11Service.prototype = {
     
     
     
-    this.identity.syncKey = null;
+    this.identity.resetSyncKey();
     this.status.login = LOGIN_FAILED_NO_PASSPHRASE;
     this.logout();
     Svc.Obs.notify("weave:service:start-over");

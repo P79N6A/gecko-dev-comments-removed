@@ -133,7 +133,21 @@ IdentityManager.prototype = {
     
     
     this._log.info("Username changed. Removing stored credentials.");
+    this.resetCredentials();
+  },
+
+  
+
+
+  resetCredentials: function() {
     this.basicPassword = null;
+    this.resetSyncKey();
+  },
+
+  
+
+
+  resetSyncKey: function() {
     this.syncKey = null;
     
   },
