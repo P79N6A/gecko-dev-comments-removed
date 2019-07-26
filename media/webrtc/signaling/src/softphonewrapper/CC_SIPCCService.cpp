@@ -723,6 +723,18 @@ void CC_SIPCCService::onCallEvent(ccapi_call_event_e eventType, cc_call_handle_t
         call_event_getname(eventType), callPtr->toString().c_str(),
     	call_state_getname(infoPtr->getCallState()), CC_CallCapabilityEnum::toString(capSet).c_str());
     _self->notifyCallEventObservers(eventType, callPtr.get(), infoPtr.get());
+
+    
+    
+    if (infoPtr->getCallState() == ONHOOK) {
+        CSFLogDebug( logTag, "Removing call info from wrapper map (handle=%u)",
+                     handle);
+        CC_SIPCCCall::release(handle);
+    }
+
+    
+    
+    CC_SIPCCCallInfo::release(info);
 }
 
 void CC_SIPCCService::addCCObserver ( CC_Observer * observer )
