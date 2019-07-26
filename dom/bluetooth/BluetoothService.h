@@ -180,6 +180,18 @@ public:
 
 
 
+  virtual nsresult
+  GetDevicePropertiesInternal(const nsAString& aDevicePath,
+                              const nsAString& aSignalPath) = 0;
+
+  
+
+
+
+
+
+
+
 
 
   virtual nsresult
