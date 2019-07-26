@@ -31,16 +31,24 @@ ContentPermission.prototype = {
 
   prompt: function(request) {
     
+    let types = request.types.QueryInterface(Ci.nsIArray);
+    if (types.length != 1) {
+      request.cancel();
+      return;
+    }
+    let perm = types.queryElementAt(0, Ci.nsIContentPermissionType);
+
+    
     let result =
       Services.perms.testExactPermissionFromPrincipal(request.principal,
-                                                      request.type);
+                                                      perm.type);
 
     
     
     
     if ((result == Ci.nsIPermissionManager.UNKNOWN_ACTION ||
          result == Ci.nsIPermissionManager.PROMPT_ACTION) &&
-        request.type == "geolocation") {
+        perm.type == "geolocation") {
       let geoResult = Services.perms.testExactPermission(request.principal.URI,
                                                          "geo");
       
@@ -56,7 +64,7 @@ ContentPermission.prototype = {
       return;
     } else if (result == Ci.nsIPermissionManager.DENY_ACTION ||
                (result == Ci.nsIPermissionManager.UNKNOWN_ACTION &&
-                UNKNOWN_FAIL.indexOf(request.type) >= 0)) {
+                UNKNOWN_FAIL.indexOf(perm.type) >= 0)) {
       request.cancel();
       return;
     }
@@ -71,16 +79,16 @@ ContentPermission.prototype = {
     let remember = {value: false};
     let choice = Services.prompt.confirmEx(
       chromeWin,
-      bundle.formatStringFromName(request.type + ".title", [name], 1),
-      bundle.GetStringFromName(request.type + ".description"),
+      bundle.formatStringFromName(perm.type + ".title", [name], 1),
+      bundle.GetStringFromName(perm.type + ".description"),
       
       Ci.nsIPromptService.BUTTON_POS_1_DEFAULT |
         Ci.nsIPromptService.BUTTON_TITLE_IS_STRING * Ci.nsIPromptService.BUTTON_POS_0 |
         Ci.nsIPromptService.BUTTON_TITLE_IS_STRING * Ci.nsIPromptService.BUTTON_POS_1,
-      bundle.GetStringFromName(request.type + ".allow"),
-      bundle.GetStringFromName(request.type + ".deny"),
+      bundle.GetStringFromName(perm.type + ".allow"),
+      bundle.GetStringFromName(perm.type + ".deny"),
       null,
-      bundle.GetStringFromName(request.type + ".remember"),
+      bundle.GetStringFromName(perm.type + ".remember"),
       remember);
 
     let action = Ci.nsIPermissionManager.ALLOW_ACTION;
@@ -90,10 +98,10 @@ ContentPermission.prototype = {
 
     if (remember.value) {
       
-      Services.perms.addFromPrincipal(request.principal, request.type, action);
+      Services.perms.addFromPrincipal(request.principal, perm.type, action);
     } else {
       
-      Services.perms.addFromPrincipal(request.principal, request.type, action,
+      Services.perms.addFromPrincipal(request.principal, perm.type, action,
                                       Ci.nsIPermissionManager.EXPIRE_SESSION);
     }
 
