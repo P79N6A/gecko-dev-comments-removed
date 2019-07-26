@@ -34,6 +34,7 @@ Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/policies.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/main.js");
+Cu.import("resource://services-sync/stages/cluster.js");
 Cu.import("resource://services-sync/stages/enginesync.js");
 
 const STORAGE_INFO_TYPES = [INFO_COLLECTIONS,
@@ -294,6 +295,8 @@ WeaveSvc.prototype = {
 
     this._log.info("Loading Weave " + WEAVE_VERSION);
 
+    this._clusterManager = new ClusterManager(this);
+
     this.enabled = true;
 
     this._registerEngines();
@@ -424,68 +427,13 @@ WeaveSvc.prototype = {
   },
 
   
-  _findCluster: function _findCluster() {
-    this._log.debug("Finding cluster for user " + this._identity.username);
-
-    let fail;
-    let res = new Resource(this.userAPI + this._identity.username + "/node/weave");
-    try {
-      let node = res.get();
-      switch (node.status) {
-        case 400:
-          Status.login = LOGIN_FAILED_LOGIN_REJECTED;
-          fail = "Find cluster denied: " + ErrorHandler.errorStr(node);
-          break;
-        case 404:
-          this._log.debug("Using serverURL as data cluster (multi-cluster support disabled)");
-          return this.serverURL;
-        case 0:
-        case 200:
-          if (node == "null") {
-            node = null;
-          }
-          this._log.trace("_findCluster successfully returning " + node);
-          return node;
-        default:
-          ErrorHandler.checkServerError(node);
-          fail = "Unexpected response code: " + node.status;
-          break;
-      }
-    } catch (e) {
-      this._log.debug("Network error on findCluster");
-      Status.login = LOGIN_FAILED_NETWORK_ERROR;
-      ErrorHandler.checkServerError(e);
-      fail = e;
-    }
-    throw fail;
-  },
-
-  
-  _setCluster: function _setCluster() {
-    
-    let cluster = this._findCluster();
-    this._log.debug("Cluster value = " + cluster);
-    if (cluster == null)
-      return false;
-
-    
-    if (cluster == this.clusterURL)
-      return false;
-
-    this._log.debug("Setting cluster to " + cluster);
-    this.clusterURL = cluster;
-    Svc.Prefs.set("lastClusterUpdate", Date.now().toString());
-    return true;
-  },
-
-  
   
   _updateCluster: function _updateCluster() {
     this._log.info("Updating cluster.");
     let cTime = Date.now();
     let lastUp = parseFloat(Svc.Prefs.get("lastClusterUpdate"));
     if (!lastUp || ((cTime - lastUp) >= CLUSTER_BACKOFF)) {
-      return this._setCluster();
+      return this._clusterManager.setCluster();
     }
     return false;
   },
@@ -655,7 +603,7 @@ WeaveSvc.prototype = {
       
       
       
-      if (this.clusterURL == "" && !this._setCluster()) {
+      if (this.clusterURL == "" && !this._clusterManager.setCluster()) {
         Status.sync = NO_SYNC_NODE_FOUND;
         Svc.Obs.notify("weave:service:sync:delayed");
         return true;
@@ -695,7 +643,7 @@ WeaveSvc.prototype = {
 
         case 404:
           
-          if (this._setCluster()) {
+          if (this._clusterManager.setCluster()) {
             return this.verifyLogin();
           }
 
