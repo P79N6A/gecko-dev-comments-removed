@@ -217,6 +217,9 @@ var AboutConfig = {
   uninit: function AC_uninit() {
     
     Services.prefs.removeObserver("", this);
+
+    
+    Services.prefs.savePrefFile(null);
   },
 
   
