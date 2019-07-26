@@ -1668,6 +1668,16 @@ class FrameIter
 
     
     
+    bool ensureHasRematerializedFrame();
+
+    
+    
+    bool hasUsableAbstractFramePtr() const;
+
+    
+    
+    
+    
     
 
     AbstractFramePtr abstractFramePtr() const;
