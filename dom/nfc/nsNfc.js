@@ -164,23 +164,25 @@ mozNfc.prototype = {
   init: function init(aWindow) {
     debug("mozNfc init called");
     this._window = aWindow;
-    let origin = this._window.document.nodePrincipal.origin;
-    
-    if (origin !== 'app://system.gaiamobile.org') {
-      return;
-    }
-    let self = this;
-    this._window.addEventListener("nfc-p2p-user-accept", function (event) {
-      let appID = appsService.getAppLocalIdByManifestURL(event.detail.manifestUrl);
-      
-      self._nfcContentHelper.notifyUserAcceptedP2P(self._window, appID);
-    });
   },
 
+  
+  
   checkP2PRegistration: function checkP2PRegistration(manifestUrl) {
     
     let appID = appsService.getAppLocalIdByManifestURL(manifestUrl);
     return this._nfcContentHelper.checkP2PRegistration(this._window, appID);
+  },
+
+  notifyUserAcceptedP2P: function notifyUserAcceptedP2P(manifestUrl) {
+    let appID = appsService.getAppLocalIdByManifestURL(manifestUrl);
+    
+    this._nfcContentHelper.notifyUserAcceptedP2P(this._window, appID);
+  },
+
+  notifySendFileStatus: function notifySendFileStatus(status, requestId) {
+    this._nfcContentHelper.notifySendFileStatus(this._window,
+                                                status, requestId);
   },
 
   getNFCTag: function getNFCTag(sessionToken) {
