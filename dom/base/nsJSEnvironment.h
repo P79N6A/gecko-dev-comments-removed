@@ -101,6 +101,9 @@ public:
   
   static void RunCycleCollectorSlice();
 
+  
+  static void RunCycleCollectorWorkSlice(int64_t aWorkBudget);
+
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);
 

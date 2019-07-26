@@ -2800,7 +2800,7 @@ nsXPCComponents_Utils::FinishCC()
 NS_IMETHODIMP
 nsXPCComponents_Utils::CcSlice(int64_t budget)
 {
-    nsCycleCollector_collectSliceWork(budget);
+    nsJSContext::RunCycleCollectorWorkSlice(budget);
     return NS_OK;
 }
 
