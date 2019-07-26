@@ -157,7 +157,10 @@ const WorkerSandbox = EventEmitter.compose({
       wantXrays: true,
       wantGlobalProperties: wantGlobalProperties,
       sameZoneAs: window,
-      metadata: { SDKContentScript: true }
+      metadata: {
+        SDKContentScript: true,
+        'inner-window-id': getInnerId(window)
+      }
     });
     
     

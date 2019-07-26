@@ -18,6 +18,7 @@ const { URL } = require('../url');
 const { sandbox, evaluate, load } = require('../loader/sandbox');
 const { merge } = require('../util/object');
 const { getTabForContentWindow } = require('../tabs/utils');
+const { getInnerId } = require('../window/utils');
 
 
 const sandboxes = new WeakMap();
@@ -28,12 +29,13 @@ const sandboxes = new WeakMap();
 
 let prefix = module.uri.split('sandbox.js')[0];
 const CONTENT_WORKER_URL = prefix + 'content-worker.js';
+const metadata = require('@loader/options').metadata;
 
 
 
 
 
-const permissions = require('@loader/options').metadata['permissions'] || {};
+const permissions = (metadata && metadata['permissions']) || {};
 const EXPANDED_PRINCIPALS = permissions['cross-domain-content'] || [];
 
 const JS_VERSION = '1.8';
@@ -128,7 +130,10 @@ const WorkerSandbox = Class({
       wantXrays: true,
       wantGlobalProperties: wantGlobalProperties,
       sameZoneAs: window,
-      metadata: { SDKContentScript: true }
+      metadata: {
+        SDKContentScript: true,
+        'inner-window-id': getInnerId(window)
+      }
     });
     model.sandbox = content;
 

@@ -3,7 +3,6 @@
 
 
 
-
 "use strict";
 
 let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
@@ -636,7 +635,19 @@ ThreadActor.prototype = {
 
   globalManager: {
     findGlobals: function () {
+      const { gDevToolsExtensions: {
+        getContentGlobals
+      } } = Cu.import("resource://gre/modules/devtools/DevToolsExtensions.jsm", {});
+
       this.globalDebugObject = this._addDebuggees(this.global);
+
+      
+      try {
+        getContentGlobals({
+          'inner-window-id': getInnerId(this.global)
+        }).forEach(this.addDebuggee.bind(this));
+      }
+      catch(e) {}
     },
 
     
@@ -647,11 +658,26 @@ ThreadActor.prototype = {
 
 
     onNewGlobal: function (aGlobal) {
+      let useGlobal = (aGlobal.hostAnnotations &&
+                       aGlobal.hostAnnotations.type == "document" &&
+                       aGlobal.hostAnnotations.element === this.global);
+
+      
+      if (!useGlobal) {
+        let metadata = {};
+        let id = "";
+        try {
+          id = getInnerId(this.global);
+          metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
+        }
+        catch (e) {}
+
+        useGlobal = (metadata['inner-window-id'] && metadata['inner-window-id'] == id);
+      }
+
       
       
-      if (aGlobal.hostAnnotations &&
-          aGlobal.hostAnnotations.type == "document" &&
-          aGlobal.hostAnnotations.element === this.global) {
+      if (useGlobal) {
         this.addDebuggee(aGlobal);
         
         this.conn.send({
@@ -5325,3 +5351,8 @@ function makeDebuggeeValueIfNeeded(obj, value) {
   }
   return value;
 }
+
+function getInnerId(window) {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor).
+                getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+};
