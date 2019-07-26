@@ -3782,7 +3782,7 @@ if (!returnArray) {
         wrapCode = wrapCode % { "result": result }
         return wrapCode, False
 
-    if type.tag() == IDLType.Tags.any:
+    if type.isAny():
         
         
         
