@@ -586,6 +586,26 @@ function sendContextMenuClick(aX, aY) {
 
 
 
+function sendContextMenuClickToSelection(aWindow) {
+  let selection = aWindow.getSelection();
+  if (!selection || !selection.rangeCount) {
+    ok(false, "no selection to tap!");
+    return;
+  }
+  let range = selection.getRangeAt(0);
+  let rect = range.getBoundingClientRect();
+  let x = rect.left + (rect.width / 2);
+  let y = rect.top + (rect.height / 2);
+  let utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+  utils.sendMouseEventToWindow("contextmenu", x, y, 2, 1, 0, true,
+                                1, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+}
+
+
+
+
+
 
 
 
