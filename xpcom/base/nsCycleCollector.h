@@ -9,6 +9,7 @@
 class nsCycleCollectionJSRuntime;
 class nsICycleCollectorListener;
 class nsISupports;
+class nsScriptObjectTracer;
 
 
 class nsCycleCollectorResults
@@ -62,5 +63,17 @@ extern nsresult
 nsCycleCollectorLoggerConstructor(nsISupports* outer,
                                   const nsIID& aIID,
                                   void* *aInstancePtr);
+
+namespace mozilla {
+namespace cyclecollector {
+
+void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer);
+void RemoveJSHolder(void* aHolder);
+#ifdef DEBUG
+bool TestJSHolder(void* aHolder);
+#endif
+
+} 
+} 
 
 #endif 
