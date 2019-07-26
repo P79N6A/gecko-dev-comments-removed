@@ -132,41 +132,99 @@ let tests = {
     
     
     
+
+    
+    
+    
+    
+    let contentScript = function() {
+      
+      
+      
+      
+      addMessageListener("frameworker-test:ready", function onready() {
+        removeMessageListener("frameworker-test:ready", onready);
+        
+        let port, id
+        for ([id, port] of frameworker.ports) {
+          ; 
+        }
+        let unloadHasFired = false,
+            haveNoPendingMessagesBefore = true,
+            havePendingMessagesAfter = false;
+        content.addEventListener("unload", function workerUnload(e) {
+          content.removeEventListener("unload", workerUnload);
+          
+          
+          
+          
+          
+          for (let [temp_id, temp_port] of frameworker.ports) {
+            if (temp_port._pendingMessagesOutgoing.length == 0)
+              continue;
+            if (temp_port._pendingMessagesOutgoing.length == 1 &&
+                temp_port._pendingMessagesOutgoing[0].data &&
+                JSON.parse(temp_port._pendingMessagesOutgoing[0].data).topic == "social.initialize")
+              continue;
+            
+            haveNoPendingMessagesBefore = false;
+          }
+          unloadHasFired = true; 
+        });
+        addEventListener("DOMWindowCreated", function workerLoaded(e) {
+          removeEventListener("DOMWindowCreated", workerLoaded);
+          
+          port.postMessage({topic: "test-pending-msg"});
+          for (let [temp_id, temp_port] of frameworker.ports) {
+            if (temp_port._pendingMessagesOutgoing.length >= 0) {
+              havePendingMessagesAfter = true;
+            }
+          }
+          let ok = unloadHasFired && haveNoPendingMessagesBefore && havePendingMessagesAfter;
+          sendAsyncMessage("test-result", {ok: ok});
+        });
+      });
+    };
+
     let reloading = false;
     let worker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
-    let frame =  worker._worker.frame;
-    let win = frame.contentWindow;
     let port = provider.getWorkerPort();
-    win.addEventListener("unload", function workerUnload(e) {
-      win.removeEventListener("unload", workerUnload);
-      ok(true, "worker unload event has fired");
-      is(port._pendingMessagesOutgoing.length, 0, "port has no pending outgoing message");
-    });
-    frame.addEventListener("DOMWindowCreated", function workerLoaded(e) {
-      frame.removeEventListener("DOMWindowCreated", workerLoaded);
-      
-      port.postMessage({topic: "test-pending-msg"});
-      ok(port._pendingMessagesOutgoing.length > 0, "port has pending outgoing message");
-    });
-    ok(port, "provider has a port");
-    port.onmessage = function (e) {
-      let topic = e.data.topic;
-      switch (topic) {
-        case "test-initialization-complete":
-          
-          port.postMessage({topic: "test-reload-init"});
-          break;
-        case "test-pending-response":
-          
-          
-          let newWorker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
-          is(worker._worker, newWorker._worker, "worker is the same after reload");
-          ok(true, "worker reloaded and testPort was reconnected");
-          next();
-          break;
+    worker._worker.browserPromise.then(browser => {
+      browser.messageManager.loadFrameScript("data:," + encodeURI(contentScript.toSource()) + "();", false);
+      browser.messageManager.sendAsyncMessage("frameworker-test:ready");
+      let seenTestResult = false;
+      browser.messageManager.addMessageListener("test-result", function _onTestResult(msg) {
+        browser.messageManager.removeMessageListener("test-result", _onTestResult);
+        ok(msg.json.ok, "test result from content-script is ok");
+        seenTestResult = true;
+      });
+
+      port.onmessage = function (e) {
+        let topic = e.data.topic;
+        switch (topic) {
+          case "test-initialization-complete":
+            
+            
+            
+            
+            
+            
+            
+            port.postMessage({topic: "test-reload-init"});
+            break;
+          case "test-pending-response":
+            ok(e.data.data.seenInit, "worker has seen the social.initialize message");
+            
+            let newWorker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
+            is(worker._worker, newWorker._worker, "worker is the same after reload");
+            ok(true, "worker reloaded and testPort was reconnected");
+            ok(seenTestResult, "saw result message from content");
+            next();
+            break;
+        }
       }
-    }
-    port.postMessage({topic: "test-initialization"});
+      port.postMessage({topic: "test-initialization"});
+    });
   },
 
   testNotificationLinks: function(next) {

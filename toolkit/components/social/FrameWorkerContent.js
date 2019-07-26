@@ -7,6 +7,9 @@
 
 "use strict";
 
+
+let frameworker;
+
 (function () { 
 
 
@@ -270,9 +273,6 @@ FrameWorker.prototype = {
     });
   },
 };
-
-
-let frameworker;
 
 const FrameWorkerManager = {
   init: function() {
