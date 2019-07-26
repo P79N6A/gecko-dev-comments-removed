@@ -279,6 +279,10 @@ typedef NSInteger NSEventGestureAxis;
 
   
   BOOL mUsingOMTCompositor;
+
+  
+  
+  CGImageRef mTopLeftCornerMask;
 }
 
 
@@ -315,6 +319,8 @@ typedef NSInteger NSEventGestureAxis;
 
 - (void)setGLContext:(NSOpenGLContext *)aGLContext;
 - (void)preRender:(NSOpenGLContext *)aGLContext;
+
+- (BOOL)isCoveringTitlebar;
 
 
 
@@ -538,6 +544,8 @@ public:
     return mTextInputHandler;
   }
 
+  void              NotifyDirtyRegion(const nsIntRegion& aDirtyRegion);
+
   
   int32_t           CocoaPointsToDevPixels(CGFloat aPts) {
     return nsCocoaUtils::CocoaPointsToDevPixels(aPts, BackingScaleFactor());
@@ -573,8 +581,20 @@ protected:
     return widget.forget();
   }
 
-  void MaybeDrawResizeIndicator(mozilla::layers::GLManager* aManager, nsIntRect aRect);
-  void MaybeDrawRoundedBottomCorners(mozilla::layers::GLManager* aManager, nsIntRect aRect);
+  
+  void MaybeDrawResizeIndicator(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
+  void MaybeDrawRoundedCorners(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
+  void MaybeDrawTitlebar(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
+
+  
+  
+  void UpdateTitlebarImageBuffer();
+
+  
+  
+  void UpdateTitlebarImage(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
+
+  nsIntRect RectContainingTitlebarControls();
 
   nsIWidget* GetWidgetForListenerEvents();
 
@@ -604,12 +624,25 @@ protected:
   nsIntRect mResizeIndicatorRect;
   bool mHasRoundedBottomCorners;
   int mDevPixelCornerRadius;
+  bool mIsCoveringTitlebar;
+  nsIntRect mTitlebarRect;
+
+  
+  
+  nsIntRegion mUpdatedTitlebarRegion;
+
+  nsRefPtr<gfxQuartzSurface> mTitlebarImageBuffer;
 
   
   bool                  mFailedResizerImage;
   bool                  mFailedCornerMaskImage;
   nsRefPtr<mozilla::gl::TextureImage> mResizerImage;
   nsRefPtr<mozilla::gl::TextureImage> mCornerMaskImage;
+  nsRefPtr<mozilla::gl::TextureImage> mTitlebarImage;
+
+  
+  
+  nsIntRegion           mDirtyTitlebarRegion;
 
   
   
