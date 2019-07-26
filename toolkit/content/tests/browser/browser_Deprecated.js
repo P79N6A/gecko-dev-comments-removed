@@ -67,10 +67,7 @@ let tests = [
 
 {
   deprecatedFunction: basicDeprecatedFunction,
-  expectedObservation: function (aMessage) {
-    
-    ok(false, "Deprecated warning should not log anything when pref is unset.");
-  },
+  expectedObservation: null,
   
   logWarnings: false
 },
@@ -81,11 +78,13 @@ let tests = [
     testAMessage(aMessage);
     ok(aMessage.errorMessage.indexOf("deprecationFunctionCustomCallstack") > 0,
       "Callstack is correctly logged.");
-    finish();
   },
   
   logWarnings: true
 }];
+
+
+let idx = -1;
 
 function test() {
   waitForExplicitFinish();
@@ -93,8 +92,7 @@ function test() {
   
   ok(Deprecated, "Deprecated object exists");
 
-  
-  tests.forEach(testDeprecated);
+  nextTest();
 }
 
 
@@ -106,7 +104,17 @@ function testAMessage (aMessage) {
     "URL is correctly logged.");
 }
 
-function testDeprecated (test) {
+function nextTest() {
+  idx++;
+
+  if (idx == tests.length) {
+    finish();
+    return;
+  }
+
+  info("Running test #" + idx);
+  let test = tests[idx];
+
   
   if (typeof test.logWarnings !== "undefined") {
     Services.prefs.setBoolPref(PREF_DEPRECATION_WARNINGS, test.logWarnings);
@@ -125,13 +133,25 @@ function testDeprecated (test) {
       }
       ok(aMessage instanceof Ci.nsIScriptError,
         "Deprecation log message is an instance of type nsIScriptError.");
-      test.expectedObservation(aMessage);
+
+
+      if (test.expectedObservation === null) {
+        ok(false, "Deprecated warning not expected");
+      }
+      else {
+        test.expectedObservation(aMessage);
+      }
+
+      Services.console.unregisterListener(consoleListener);
+      executeSoon(nextTest);
     }
   };
-  
   Services.console.registerListener(consoleListener);
-  
   test.deprecatedFunction();
-  
-  Services.console.unregisterListener(consoleListener);
+  if (test.expectedObservation === null) {
+    executeSoon(function() {
+      Services.console.unregisterListener(consoleListener);
+      executeSoon(nextTest);
+    });
+  }
 }
