@@ -22,6 +22,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "GeckoProfiler.h"
+#include "mozilla/layers/TransactionIdAllocator.h"
 
 class nsPresContext;
 class nsIPresShell;
@@ -62,16 +63,13 @@ public:
   virtual void DidRefresh() = 0;
 };
 
-class nsRefreshDriver MOZ_FINAL : public nsISupports {
+class nsRefreshDriver MOZ_FINAL : public mozilla::layers::TransactionIdAllocator {
 public:
   nsRefreshDriver(nsPresContext *aPresContext);
   ~nsRefreshDriver();
 
   static void InitializeStatics();
   static void Shutdown();
-
-  
-  NS_DECL_ISUPPORTS
 
   
 
@@ -273,31 +271,9 @@ public:
   bool IsInRefresh() { return mInRefresh; }
 
   
-
-
-
-
-
-
-  uint64_t GetTransactionId();
-
-  
-
-
-
-
-
-
-
-  void NotifyTransactionCompleted(uint64_t aTransactionId);
-
-  
-
-
-
-
-
-  void RevokeTransactionId(uint64_t aTransactionId);
+  virtual uint64_t GetTransactionId() MOZ_OVERRIDE;
+  void NotifyTransactionCompleted(uint64_t aTransactionId) MOZ_OVERRIDE;
+  void RevokeTransactionId(uint64_t aTransactionId) MOZ_OVERRIDE;
 
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
