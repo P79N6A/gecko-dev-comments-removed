@@ -24,7 +24,7 @@ public:
     {
     }
 
-    JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope);
+    JSObject* WrapObject(JSContext *cx);
 
     
     GLint RangeMin() const {

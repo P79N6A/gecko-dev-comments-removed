@@ -271,7 +271,7 @@ EventSource::Init(nsISupports* aOwner,
 }
 
  JSObject*
-EventSource::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+EventSource::WrapObject(JSContext* aCx)
 {
   return EventSourceBinding::Wrap(aCx, this);
 }

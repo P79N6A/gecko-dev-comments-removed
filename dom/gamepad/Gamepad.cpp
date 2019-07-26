@@ -104,7 +104,7 @@ Gamepad::Clone(nsISupports* aParent)
 }
 
  JSObject*
-Gamepad::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Gamepad::WrapObject(JSContext* aCx)
 {
   return GamepadBinding::Wrap(aCx, this);
 }

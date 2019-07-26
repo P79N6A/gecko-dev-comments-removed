@@ -26,7 +26,7 @@ nsDOMCSSDeclaration::~nsDOMCSSDeclaration()
 }
 
  JSObject*
-nsDOMCSSDeclaration::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsDOMCSSDeclaration::WrapObject(JSContext* aCx)
 {
   return dom::CSS2PropertiesBinding::Wrap(aCx, this);
 }

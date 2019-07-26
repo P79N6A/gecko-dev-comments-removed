@@ -48,7 +48,7 @@ WebGL2Context::Create()
 
 
 JSObject*
-WebGL2Context::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+WebGL2Context::WrapObject(JSContext *cx)
 {
     return dom::WebGL2RenderingContextBinding::Wrap(cx, this);
 }

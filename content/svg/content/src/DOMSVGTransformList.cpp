@@ -71,7 +71,7 @@ NS_INTERFACE_MAP_END
 
 
 JSObject*
-DOMSVGTransformList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+DOMSVGTransformList::WrapObject(JSContext *cx)
 {
   return mozilla::dom::SVGTransformListBinding::Wrap(cx, this);
 }

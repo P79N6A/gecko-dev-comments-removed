@@ -148,7 +148,7 @@ public:
 
   
   JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope);
+  WrapObject(JSContext* aCx);
 
   nsISupports*
   GetParentObject() const

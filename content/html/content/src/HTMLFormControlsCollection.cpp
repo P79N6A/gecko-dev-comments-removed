@@ -405,8 +405,7 @@ HTMLFormControlsCollection::GetSupportedNames(nsTArray<nsString>& aNames)
 }
 
  JSObject*
-HTMLFormControlsCollection::WrapObject(JSContext* aCx,
-                                       JS::Handle<JSObject*> aScope)
+HTMLFormControlsCollection::WrapObject(JSContext* aCx)
 {
   return HTMLFormControlsCollectionBinding::Wrap(aCx, this);
 }

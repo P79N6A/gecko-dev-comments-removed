@@ -72,7 +72,7 @@ HTMLCanvasPrintState::~HTMLCanvasPrintState()
 }
 
  JSObject*
-HTMLCanvasPrintState::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLCanvasPrintState::WrapObject(JSContext* aCx)
 {
   return MozCanvasPrintStateBinding::Wrap(aCx, this);
 }
@@ -139,7 +139,7 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLElement)
 NS_IMPL_ELEMENT_CLONE(HTMLCanvasElement)
 
  JSObject*
-HTMLCanvasElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLCanvasElement::WrapNode(JSContext* aCx)
 {
   return HTMLCanvasElementBinding::Wrap(aCx, this);
 }
