@@ -415,12 +415,10 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       
-      nsRect bounds;
-      nsRect subdocBoundsInParentUnits = GetContentRectRelativeToSelf();
+      nsRect bounds = GetContentRectRelativeToSelf() +
+        aBuilder->ToReferenceFrame(this);
       if (subdocRootFrame) {
-        bounds = subdocBoundsInParentUnits.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
-      } else {
-        bounds = subdocBoundsInParentUnits;
+        bounds = bounds.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
       }
 
       
