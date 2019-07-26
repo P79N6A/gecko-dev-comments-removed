@@ -4255,13 +4255,6 @@ pref("layers.use-deprecated-textures", true);
 
 pref("layers.async-video.enabled",false);
 
-
-
-
-#if defined(XP_WIN) && defined(NIGHTLY_BUILD)
-pref("layers.offmainthreadcomposition.enabled", true);
-#endif
-
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.use-deprecated-textures", false);
