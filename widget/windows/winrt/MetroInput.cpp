@@ -1161,6 +1161,55 @@ MetroInput::DispatchAsyncTouchEvent(WidgetTouchEvent* aEvent)
   NS_DispatchToCurrentThread(runnable);
 }
 
+static void DumpTouchIds(const char* aTarget, WidgetTouchEvent* aEvent)
+{
+  
+  if (aEvent->message == NS_TOUCH_MOVE) {
+    return;
+  }
+  switch(aEvent->message) {
+    case NS_TOUCH_START:
+    WinUtils::Log("DumpTouchIds: NS_TOUCH_START block");
+    break;
+    case NS_TOUCH_MOVE:
+    WinUtils::Log("DumpTouchIds: NS_TOUCH_MOVE block");
+    break;
+    case NS_TOUCH_END:
+    WinUtils::Log("DumpTouchIds: NS_TOUCH_END block");
+    break;
+    case NS_TOUCH_CANCEL:
+    WinUtils::Log("DumpTouchIds: NS_TOUCH_CANCEL block");
+    break;
+  }
+  nsTArray< nsRefPtr<dom::Touch> >& touches = aEvent->touches;
+  for (uint32_t i = 0; i < touches.Length(); ++i) {
+    dom::Touch* touch = touches[i];
+    if (!touch) {
+      continue;
+    }
+    int32_t id = touch->Identifier();
+    WinUtils::Log("   id=%d target=%s", id, aTarget);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define DUMP_TOUCH_IDS(...)
+
 void
 MetroInput::DeliverNextQueuedTouchEvent()
 {
@@ -1205,6 +1254,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   
   
   if (!mCancelable && mChromeHitTestCacheForTouch) {
+    DUMP_TOUCH_IDS("DOM(1)", event);
     mWidget->DispatchEvent(event, status);
     return;
   }
@@ -1214,7 +1264,9 @@ MetroInput::DeliverNextQueuedTouchEvent()
   
   if (mCancelable) {
     WidgetTouchEvent transformedEvent(*event);
+    DUMP_TOUCH_IDS("APZC(1)", event);
     mWidget->ApzReceiveInputEvent(event, &transformedEvent);
+    DUMP_TOUCH_IDS("DOM(2)", event);
     mWidget->DispatchEvent(mChromeHitTestCacheForTouch ? event : &transformedEvent, status);
     if (event->message == NS_TOUCH_START) {
       mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
@@ -1250,12 +1302,15 @@ MetroInput::DeliverNextQueuedTouchEvent()
     
     
     
+    DUMP_TOUCH_IDS("APZC(2)", event);
     mWidget->ApzReceiveInputEvent(event);
+    DUMP_TOUCH_IDS("DOM(3)", event);
     mWidget->DispatchEvent(event, status);
     return;
   }
 
   
+  DUMP_TOUCH_IDS("APZC(3)", event);
   mWidget->ApzReceiveInputEvent(event);
 }
 
@@ -1285,6 +1340,7 @@ MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
     return;
   }
 
+  DUMP_TOUCH_IDS("DOM(4)", &touchEvent);
   mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
 }
 
