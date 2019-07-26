@@ -68,10 +68,16 @@ this.TelemetryFile = {
 
 
 
+
   savePingToFile: function(ping, file, overwrite) {
-    let pingString = JSON.stringify(ping);
-    return OS.File.writeAtomic(file, pingString, {tmpPath: file + ".tmp",
-                                noOverwrite: !overwrite});
+    return Task.spawn(function*() {
+      try {
+        let pingString = JSON.stringify(ping);
+        yield OS.File.writeAtomic(file, pingString, {tmpPath: file + ".tmp",
+                                  noOverwrite: !overwrite});
+      } catch(e if e.becauseExists) {
+      }
+    })
   },
 
   
@@ -86,7 +92,7 @@ this.TelemetryFile = {
     return Task.spawn(function*() {
       yield getPingDirectory();
       let file = pingFilePath(ping);
-      return this.savePingToFile(ping, file, overwrite);
+      yield this.savePingToFile(ping, file, overwrite);
     }.bind(this));
   },
 
@@ -98,6 +104,8 @@ this.TelemetryFile = {
 
   savePendingPings: function(sessionPing) {
     let p = pendingPings.reduce((p, ping) => {
+      
+      
       p.push(this.savePing(ping, false));
       return p;}, [this.savePing(sessionPing, true)]);
 
