@@ -28,19 +28,20 @@ var SelectHelperUI = {
   },
 
   show: function selectHelperShow(aList, aTitle, aRect) {
-    if (this._list)
+    if (this._list) {
       this.reset();
+    }
 
     this._list = aList;
 
-    
-    this._container.setAttribute("multiple", aList.multiple ? "true" : "false");
+    this._listbox.setAttribute("seltype", aList.multiple ? "multiple" : "single");
 
     let firstSelected = null;
 
     
     let fragment = document.createDocumentFragment();
     let choices = aList.choices;
+    let selectedItems = [];
     for (let i = 0; i < choices.length; i++) {
       let choice = choices[i];
       let item = document.createElement("richlistitem");
@@ -51,12 +52,10 @@ var SelectHelperUI = {
       item.setAttribute("crop", "center");
       label.setAttribute("value", choice.text);
       item.appendChild(label);
-
-      choice.selected ? item.setAttribute("selected", "true")
-                      : item.removeAttribute("selected");
-
+      item.setAttribute("oldstate", "false");
       choice.disabled ? item.setAttribute("disabled", "true")
                       : item.removeAttribute("disabled");
+
       fragment.appendChild(item);
 
       if (choice.group) {
@@ -67,18 +66,27 @@ var SelectHelperUI = {
       item.optionIndex = choice.optionIndex;
       item.choiceIndex = i;
 
-      if (choice.inGroup)
+      if (choice.inGroup) {
         item.classList.add("in-optgroup");
+      }
 
       if (choice.selected) {
-        item.classList.add("selected");
         firstSelected = firstSelected || item;
+        selectedItems.push(item);
       }
     }
     this._listbox.appendChild(fragment);
 
     this._container.addEventListener("click", this, false);
+    window.addEventListener("MozPrecisePointer", this, false);
     this._menuPopup.show(this._positionOptions(aRect));
+
+    
+    this._listbox.clearSelection();
+    for (let item of selectedItems) {
+      this._listbox.addItemToSelection(item);
+      item.setAttribute("oldstate", "true");
+    }
     this._listbox.ensureElementIsVisible(firstSelected);
   },
 
@@ -94,6 +102,7 @@ var SelectHelperUI = {
       return;
 
     this._container.removeEventListener("click", this, false);
+    window.removeEventListener("MozPrecisePointer", this, false);
     this._menuPopup.hide();
     this.reset();
   },
@@ -111,31 +120,38 @@ var SelectHelperUI = {
     };
   },
 
-  _forEachOption: function _selectHelperForEachOption(aCallback) {
-    let children = this._listbox.childNodes;
-    for (let i = 0; i < children.length; i++) {
-      let item = children[i];
-      if (!item.hasOwnProperty("optionIndex"))
-        continue;
-      aCallback(item, i);
-    }
-  },
-
   _updateControl: function _selectHelperUpdateControl() {
     Browser.selectedBrowser.messageManager.sendAsyncMessage("FormAssist:ChoiceChange", { });
   },
 
   handleEvent: function selectHelperHandleEvent(aEvent) {
     switch (aEvent.type) {
+      case "MozPrecisePointer":
+        this.hide();
+      break;
       case "click":
         let item = aEvent.target;
         if (item && item.hasOwnProperty("optionIndex")) {
           if (this._list.multiple) {
-            item.classList.toggle("selected");
-          } else {
-            item.classList.add("selected");
+            
+            
+            
+            if (item.getAttribute("oldstate") == "true") {
+              item.setAttribute("oldstate", "false");
+            } else {
+              item.setAttribute("oldstate", "true");
+            }
+            
+            
+            this._listbox.clearSelection();
+            for (let node of this._listbox.childNodes) {
+              if (node.getAttribute("oldstate") == "true") {
+                this._listbox.addItemToSelection(node);
+              }
+            }
           }
-          this.onSelect(item.optionIndex, item.classList.contains("selected"));
+          
+          this.onSelect(item.optionIndex, item.selected);
         }
         break;
     }
