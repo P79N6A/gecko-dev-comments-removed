@@ -16,7 +16,13 @@
 
 #include <msctf.h>
 #include <textstor.h>
-#include <InputScope.h>
+
+
+
+#ifdef INPUTSCOPE_INIT_GUID
+#include <initguid.h>
+#endif
+#include <inputscope.h>
 
 struct ITfThreadMgr;
 struct ITfDocumentMgr;
