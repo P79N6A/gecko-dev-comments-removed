@@ -171,7 +171,7 @@ protected:
   
   
   
-  imgStatusTracker& GetStatusTracker() const;
+  already_AddRefed<imgStatusTracker> GetStatusTracker() const;
 
   nsITimedChannel* TimedChannel()
   {

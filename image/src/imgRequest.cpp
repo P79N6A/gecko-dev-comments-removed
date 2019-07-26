@@ -124,7 +124,7 @@ nsresult imgRequest::Init(nsIURI *aURI,
   return NS_OK;
 }
 
-imgStatusTracker&
+already_AddRefed<imgStatusTracker>
 imgRequest::GetStatusTracker()
 {
   if (mImage && mGotData) {
@@ -134,7 +134,9 @@ imgRequest::GetStatusTracker()
   } else {
     NS_ABORT_IF_FALSE(mStatusTracker,
                       "Should have mStatusTracker until we create mImage");
-    return *mStatusTracker;
+    nsRefPtr<imgStatusTracker> statusTracker = mStatusTracker;
+    MOZ_ASSERT(statusTracker);
+    return statusTracker.forget();
   }
 }
 
@@ -162,12 +164,13 @@ void imgRequest::AddProxy(imgRequestProxy *proxy)
 
   
   
-  if (GetStatusTracker().ConsumerCount() == 0) {
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+  if (statusTracker->ConsumerCount() == 0) {
     NS_ABORT_IF_FALSE(mURI, "Trying to SetHasProxies without key uri.");
     mLoader->SetHasProxies(mURI);
   }
 
-  GetStatusTracker().AddConsumer(proxy);
+  statusTracker->AddConsumer(proxy);
 }
 
 nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus)
@@ -183,11 +186,11 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus)
   
   
   
-  imgStatusTracker& statusTracker = GetStatusTracker();
-  if (!statusTracker.RemoveConsumer(proxy, aStatus))
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+  if (!statusTracker->RemoveConsumer(proxy, aStatus))
     return NS_OK;
 
-  if (statusTracker.ConsumerCount() == 0) {
+  if (statusTracker->ConsumerCount() == 0) {
     
     
     
@@ -209,7 +212,7 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus)
 
 
 
-    if (statusTracker.IsLoading() && NS_FAILED(aStatus)) {
+    if (statusTracker->IsLoading() && NS_FAILED(aStatus)) {
       LOG_MSG(GetImgLog(), "imgRequest::RemoveProxy", "load in progress.  canceling");
 
       this->Cancel(NS_BINDING_ABORTED);
@@ -248,11 +251,11 @@ void imgRequest::Cancel(nsresult aStatus)
 
   LOG_SCOPE(GetImgLog(), "imgRequest::Cancel");
 
-  imgStatusTracker& statusTracker = GetStatusTracker();
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
 
-  statusTracker.MaybeUnblockOnload();
+  statusTracker->MaybeUnblockOnload();
 
-  statusTracker.RecordCancel();
+  statusTracker->RecordCancel();
 
   if (NS_IsMainThread()) {
     RemoveFromCache();
@@ -261,7 +264,7 @@ void imgRequest::Cancel(nsresult aStatus)
       NS_NewRunnableMethod(this, &imgRequest::RemoveFromCache));
   }
 
-  if (mRequest && statusTracker.IsLoading())
+  if (mRequest && statusTracker->IsLoading())
     mRequest->Cancel(aStatus);
 }
 
@@ -323,7 +326,8 @@ void imgRequest::AdjustPriority(imgRequestProxy *proxy, int32_t delta)
   
   
   
-  if (!GetStatusTracker().FirstConsumerIs(proxy))
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+  if (!statusTracker->FirstConsumerIs(proxy))
     return;
 
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mChannel);
@@ -517,9 +521,10 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
   if (mpchan) {
     mIsMultiPartChannel = true;
-    GetStatusTracker().SetIsMultipart();
+    statusTracker->SetIsMultipart();
   }
 
   
@@ -554,7 +559,9 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     mRequest = chan;
   }
 
-  GetStatusTracker().OnStartRequest();
+  
+  statusTracker = GetStatusTracker();
+  statusTracker->OnStartRequest();
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
@@ -579,7 +586,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   mApplicationCache = GetApplicationCache(aRequest);
 
   
-  if (GetStatusTracker().ConsumerCount() == 0) {
+  if (statusTracker->ConsumerCount() == 0) {
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
   }
 
@@ -660,8 +667,8 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   if (!mImage) {
     
     
-    imgStatusTracker& statusTracker = GetStatusTracker();
-    statusTracker.OnStopRequest(lastPart, status);
+    nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+    statusTracker->OnStopRequest(lastPart, status);
   }
 
   mTimedChannel = nullptr;
@@ -757,9 +764,10 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       if (resniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
 
-        imgStatusTracker* freshTracker = new imgStatusTracker(nullptr);
-        freshTracker->AdoptConsumers(&GetStatusTracker());
-        mStatusTracker = freshTracker;
+        nsRefPtr<imgStatusTracker> freshTracker = new imgStatusTracker(nullptr);
+        nsRefPtr<imgStatusTracker> oldStatusTracker = GetStatusTracker();
+        freshTracker->AdoptConsumers(oldStatusTracker);
+        mStatusTracker = freshTracker.forget();
       }
 
       SetProperties(chan);
@@ -781,7 +789,8 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
 
       
       
-      GetStatusTracker().OnDataAvailable();
+      nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+      statusTracker->OnDataAvailable();
 
       if (mImage->HasError() && !mIsMultiPartChannel) { 
         
@@ -791,7 +800,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
         return NS_BINDING_ABORTED;
       }
 
-      NS_ABORT_IF_FALSE(!!GetStatusTracker().GetImage(), "Status tracker should have an image!");
+      NS_ABORT_IF_FALSE(statusTracker->GetImage(), "Status tracker should have an image!");
       NS_ABORT_IF_FALSE(mImage, "imgRequest should have an image!");
 
       if (mDecodeRequested)

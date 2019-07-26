@@ -115,7 +115,7 @@ public:
   
   
   
-  imgStatusTracker& GetStatusTracker();
+  already_AddRefed<imgStatusTracker> GetStatusTracker();
 
   
   inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); }

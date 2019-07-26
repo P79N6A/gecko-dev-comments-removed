@@ -123,6 +123,8 @@ ClippedImage::ShouldClip()
   
   if (mShouldClip.empty()) {
     int32_t width, height;
+    nsRefPtr<imgStatusTracker> innerImageStatusTracker =
+      InnerImage()->GetStatusTracker();
     if (InnerImage()->HasError()) {
       
       mShouldClip.construct(false);
@@ -134,7 +136,8 @@ ClippedImage::ShouldClip()
       
       
       mShouldClip.construct(!mClip.IsEqualInterior(nsIntRect(0, 0, width, height)));
-    } else if (InnerImage()->GetStatusTracker().IsLoading()) {
+    } else if (innerImageStatusTracker &&
+               innerImageStatusTracker->IsLoading()) {
       
       
       

@@ -17,6 +17,7 @@ class imgStatusTrackerNotifyingObserver;
 class nsIRunnable;
 
 #include "mozilla/RefPtr.h"
+#include "mozilla/WeakPtr.h"
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 #include "nsThreadUtils.h"
@@ -105,7 +106,8 @@ enum {
 
 
 
-class imgStatusTracker
+
+class imgStatusTracker : public mozilla::SupportsWeakPtr<imgStatusTracker>
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(imgStatusTracker)
@@ -114,7 +116,7 @@ public:
   
   
   imgStatusTracker(mozilla::image::Image* aImage);
-  ~imgStatusTracker();
+  virtual ~imgStatusTracker();
 
   
   
@@ -175,6 +177,7 @@ public:
 
   void AdoptConsumers(imgStatusTracker* aTracker) {
     MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
+    MOZ_ASSERT(aTracker);
     mConsumers = aTracker->mConsumers;
   }
 
@@ -265,7 +268,7 @@ public:
 
   inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
-  imgStatusTracker* CloneForRecording();
+  already_AddRefed<imgStatusTracker> CloneForRecording();
 
   
   mozilla::image::ImageStatusDiff Difference(imgStatusTracker* aOther) const;
