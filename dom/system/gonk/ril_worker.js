@@ -10840,7 +10840,7 @@ let ICCRecordHelper = {
 
 
 
-  getFreeRecordId: function getFreeRecordId(fileId, onsuccess, onerror) {
+  findFreeRecordId: function findFreeRecordId(fileId, onsuccess, onerror) {
     function callback(options) {
       let strLen = Buf.readUint32();
       let octetLen = strLen / 2;
@@ -11352,12 +11352,12 @@ let ICCContactHelper = {
       case "adn":
         switch (appType) {
           case CARD_APPTYPE_SIM:
-            ICCRecordHelper.getFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
+            ICCRecordHelper.findFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
             break;
           case CARD_APPTYPE_USIM:
             let gotPbrCb = function gotPbrCb(pbr) {
               if (pbr.adn) {
-                ICCRecordHelper.getFreeRecordId(pbr.adn.fileId, onsuccess, onerror);
+                ICCRecordHelper.findFreeRecordId(pbr.adn.fileId, onsuccess, onerror);
               }
             }.bind(this);
 
@@ -11366,7 +11366,7 @@ let ICCContactHelper = {
         }
         break;
       case "fdn":
-        ICCRecordHelper.getFreeRecordId(ICC_EF_FDN, onsuccess, onerror);
+        ICCRecordHelper.findFreeRecordId(ICC_EF_FDN, onsuccess, onerror);
         break;
       default:
         if (onerror) {
