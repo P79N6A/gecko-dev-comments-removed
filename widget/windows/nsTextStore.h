@@ -142,12 +142,6 @@ public:
 
   static nsIMEUpdatePreference GetIMEUpdatePreference();
 
-  static bool CanOptimizeKeyAndIMEMessages()
-  {
-    
-    return true;
-  }
-
   
   
   static void* GetNativeData(uint32_t aDataType)

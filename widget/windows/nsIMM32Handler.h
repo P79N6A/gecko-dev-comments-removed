@@ -122,14 +122,12 @@ public:
     return IsComposing() && IsComposingWindow(aWindow);
   }
 
-  static bool CanOptimizeKeyAndIMEMessages();
-
 #ifdef DEBUG
   
 
 
 
-  static bool IsIMEAvailable() { return sIsIME; }
+  static bool IsIMEAvailable() { return !!::ImmIsIME(::GetKeyboardLayout(0)); }
 #endif
 
   
@@ -325,9 +323,6 @@ protected:
   bool mIsComposing;
   bool mIsComposingOnPlugin;
   bool mNativeCaretIsCreated;
-
-  static bool sIsIME;
-  static bool sIsIMEOpening;
 
   static UINT sCodePage;
   static DWORD sIMEProperty;

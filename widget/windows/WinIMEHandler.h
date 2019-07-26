@@ -39,12 +39,6 @@ public:
   
 
 
-
-  static bool CanOptimizeKeyAndIMEMessages();
-
-  
-
-
   static bool IsIMEEnabled(const InputContext& aInputContext);
   static bool IsIMEEnabled(IMEState::Enabled aIMEState);
 
