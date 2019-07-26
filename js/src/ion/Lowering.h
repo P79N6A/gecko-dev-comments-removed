@@ -38,6 +38,12 @@ class LIRGenerator : public LIRGeneratorSpecific
     
     uint32_t maxargslots_;
 
+#ifdef DEBUG
+    
+    
+    Vector<MPrepareCall *, 4, SystemAllocPolicy> prepareCallStack_;
+#endif
+
   public:
     LIRGenerator(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
       : LIRGeneratorSpecific(gen, graph, lirGraph),
