@@ -511,7 +511,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
     if (sciWrapper.GetFlags().WantPreCreate()) {
         
-        js::AutoDeadCompartmentGC agc(parent);
+        js::AutoMaybeTouchDeadCompartments agc(parent);
 
         JSObject* plannedParent = parent;
         nsresult rv = sciWrapper.GetCallback()->PreCreate(identity, ccx,
@@ -1757,7 +1757,7 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
     parentObj = js::UnwrapObject(parentObj,  false);
 
     
-    js::AutoDeadCompartmentGC agc(parentobj);
+    js::AutoMaybeTouchDeadCompartments agc(parentObj);
 
     
     
@@ -3817,7 +3817,7 @@ ConstructSlimWrapper(XPCCallContext &ccx,
     }
 
     
-    js::AutoDeadCompartmentGC agc(parent);
+    js::AutoMaybeTouchDeadCompartments agc(parent);
 
     JSObject* plannedParent = parent;
     nsresult rv = classInfoHelper->PreCreate(identityObj, ccx, parent, &parent);
