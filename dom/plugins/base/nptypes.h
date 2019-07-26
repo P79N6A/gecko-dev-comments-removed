@@ -11,7 +11,7 @@
 
 
 
-#if defined(WIN32) || defined(OS2)
+#if defined(WIN32)
   
 
 

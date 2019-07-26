@@ -1977,7 +1977,7 @@ nsFocusManager::RaiseWindow(nsPIDOMWindow* aWindow)
     return;
   }
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
   
   
   

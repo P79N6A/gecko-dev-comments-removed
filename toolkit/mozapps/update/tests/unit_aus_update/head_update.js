@@ -35,12 +35,6 @@ const IS_WIN = true;
 const IS_WIN = false;
 #endif
 
-#ifdef XP_OS2
-const IS_OS2 = true;
-#else
-const IS_OS2 = false;
-#endif
-
 #ifdef XP_MACOSX
 const IS_MACOSX = true;
 #ifdef MOZ_SHARK
@@ -1749,7 +1743,7 @@ function setupUpdaterTest(aMarFile) {
 
       
       
-      if (!IS_WIN && !IS_OS2 && aTestFile.originalPerms) {
+      if (!IS_WIN && aTestFile.originalPerms) {
         testFile.permissions = aTestFile.originalPerms;
         
         
@@ -1905,7 +1899,7 @@ function checkFilesAfterUpdateSuccess() {
 
       
       
-      if (!IS_WIN && !IS_OS2 && aTestFile.comparePerms) {
+      if (!IS_WIN && aTestFile.comparePerms) {
         
         let logPerms = "testing file permissions - ";
         if (aTestFile.originalPerms) {
@@ -1998,7 +1992,7 @@ function checkFilesAfterUpdateFailure(aGetDirectory) {
 
       
       
-      if (!IS_WIN && !IS_OS2 && aTestFile.comparePerms) {
+      if (!IS_WIN && aTestFile.comparePerms) {
         
         let logPerms = "testing file permissions - ";
         if (aTestFile.originalPerms) {

@@ -13,7 +13,7 @@
 #if defined(MOZALLOC_EXPORT)
 
 
-#elif defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
+#elif defined(XP_WIN)
 #  define MOZALLOC_EXPORT __declspec(dllimport)
 #elif defined(HAVE_VISIBILITY_ATTRIBUTE)
 

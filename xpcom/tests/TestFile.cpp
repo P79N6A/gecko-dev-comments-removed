@@ -40,7 +40,7 @@ static nsCString FixName(const char* aName)
     for (uint32_t i = 0; aName[i]; ++i) {
         char ch = aName[i];
        
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
         if (ch == '/') {
             ch = '\\';
         }

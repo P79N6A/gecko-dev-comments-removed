@@ -118,7 +118,7 @@ inline bool net_IsValidScheme(const nsAFlatCString &scheme)
 
 NS_HIDDEN_(bool) net_FilterURIString(const char *str, nsACString& result);
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
 
 
 

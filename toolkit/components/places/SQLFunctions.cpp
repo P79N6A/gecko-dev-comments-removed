@@ -15,9 +15,6 @@
 #include "nsINavHistoryService.h"
 #include "nsPrintfCString.h"
 #include "nsNavHistory.h"
-#if defined(XP_OS2)
-#include "nsIRandomGenerator.h"
-#endif
 #include "mozilla/Telemetry.h"
 #include "mozilla/Likely.h"
 
@@ -618,15 +615,6 @@ namespace places {
   nsresult
   GenerateGUIDFunction::create(mozIStorageConnection *aDBConn)
   {
-#if defined(XP_OS2)
-    
-    
-    
-    nsCOMPtr<nsIRandomGenerator> rg =
-      do_GetService("@mozilla.org/security/random-generator;1");
-    NS_ENSURE_STATE(rg);
-#endif
-
     nsRefPtr<GenerateGUIDFunction> function = new GenerateGUIDFunction();
     nsresult rv = aDBConn->CreateFunction(
       NS_LITERAL_CSTRING("generate_guid"), 0, function

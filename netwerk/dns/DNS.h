@@ -14,7 +14,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 
-#if !defined(XP_WIN) && !defined(XP_OS2)
+#if !defined(XP_WIN)
 #include <arpa/inet.h>
 #endif
 
@@ -103,14 +103,10 @@ union NetAddr {
     IPv6Addr ip;                    
     uint32_t scope_id;              
   } inet6;
-#if defined(XP_UNIX) || defined(XP_OS2)
+#if defined(XP_UNIX)
   struct {                          
     uint16_t family;                
-#ifdef XP_OS2
-    char path[108];                 
-#else
     char path[104];                 
-#endif
   } local;
 #endif
   

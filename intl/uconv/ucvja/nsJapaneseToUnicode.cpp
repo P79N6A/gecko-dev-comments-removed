@@ -13,18 +13,9 @@
 
 #include "mozilla/Assertions.h"
 
-#ifdef XP_OS2
-  
-  
-  
-  
-  #define SJIS_INDEX gIBM943Index[0]
-  #define JIS0208_INDEX gIBM943Index[1]
-#else
-  
-  #define SJIS_INDEX gCP932Index[0]
-  #define JIS0208_INDEX gCP932Index[1]
-#endif
+
+#define SJIS_INDEX gCP932Index[0]
+#define JIS0208_INDEX gCP932Index[1]
 
 #define JIS0212_INDEX gJIS0212Index
 #define SJIS_UNMAPPED	0x30fb

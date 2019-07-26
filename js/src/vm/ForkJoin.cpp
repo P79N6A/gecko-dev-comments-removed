@@ -4,7 +4,7 @@
 
 
 
-#if defined(XP_OS2) || defined(XP_WIN)
+#if defined(XP_WIN)
 # include <io.h>     
 #else
 # include <unistd.h> 

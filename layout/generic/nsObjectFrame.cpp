@@ -81,13 +81,6 @@ using mozilla::DefaultXDisplay;
 #include <winuser.h>
 #endif
 
-#ifdef XP_OS2
-#define INCL_PM
-#define INCL_GPI
-#include <os2.h>
-#include "gfxOS2Surface.h"
-#endif
-
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #include "GLContext.h"
@@ -1235,19 +1228,6 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 }
 
-#ifdef XP_OS2
-static void *
-GetPSFromRC(nsRenderingContext& aRenderingContext)
-{
-  nsRefPtr<gfxASurface>
-    surf = aRenderingContext.ThebesContext()->CurrentSurface();
-  if (!surf || surf->CairoStatus())
-    return nullptr;
-  return (void *)(static_cast<gfxOS2Surface*>
-                  (static_cast<gfxASurface*>(surf.get()))->GetPS());
-}
-#endif
-
 void
 nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect)
@@ -1401,15 +1381,6 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
   (void)window;
   (void)npprint;
 
-#elif defined(XP_OS2)
-  void *hps = GetPSFromRC(aRenderingContext);
-  if (!hps)
-    return;
-
-  npprint.print.embedPrint.platformPrint = hps;
-  npprint.print.embedPrint.window = window;
-  
-  pi->Print(&npprint);
 #elif defined(XP_WIN)
 
   
@@ -1865,98 +1836,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
     }
 
     ctx->SetMatrix(currentMatrix);
-  }
-#elif defined(XP_OS2)
-  nsRefPtr<nsNPAPIPluginInstance> inst;
-  GetPluginInstance(getter_AddRefs(inst));
-  if (inst) {
-    
-    NPWindow *window;
-    mInstanceOwner->GetWindow(window);
-
-    if (window->type == NPWindowTypeDrawable) {
-      
-      nsRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aPluginRect.TopLeft());
-
-      
-      bool doupdatewindow = false;
-      
-      nsIntPoint origin;
-
-      
-
-
-
-
-
-
-
-      gfxContext *ctx = aRenderingContext.ThebesContext();
-
-      gfxMatrix ctxMatrix = ctx->CurrentMatrix();
-      if (ctxMatrix.HasNonTranslation()) {
-        
-        
-        
-
-        
-        
-        
-
-        return;
-      }
-
-      origin.x = NSToIntRound(ctxMatrix.GetTranslation().x);
-      origin.y = NSToIntRound(ctxMatrix.GetTranslation().y);
-
-      
-      ctx->UpdateSurfaceClip();
-
-      
-      gfxFloat xoff, yoff;
-      nsRefPtr<gfxASurface> surf = ctx->CurrentSurface(&xoff, &yoff);
-
-      if (surf->CairoStatus() != 0) {
-        NS_WARNING("Plugin is being asked to render to a surface that's in error!");
-        return;
-      }
-
-      
-      HPS hps = (HPS)GetPSFromRC(aRenderingContext);
-      if (reinterpret_cast<HPS>(window->window) != hps) {
-        window->window = reinterpret_cast<void*>(hps);
-        doupdatewindow = true;
-      }
-      LONG lPSid = GpiSavePS(hps);
-      RECTL rclViewport;
-      if (GpiQueryDevice(hps) != NULLHANDLE) { 
-        if (GpiQueryPageViewport(hps, &rclViewport)) {
-          rclViewport.xLeft += (LONG)xoff;
-          rclViewport.xRight += (LONG)xoff;
-          rclViewport.yBottom += (LONG)yoff;
-          rclViewport.yTop += (LONG)yoff;
-          GpiSetPageViewport(hps, &rclViewport);
-        }
-      }
-
-      if ((window->x != origin.x) || (window->y != origin.y)) {
-        window->x = origin.x;
-        window->y = origin.y;
-        doupdatewindow = true;
-      }
-
-      
-      if (doupdatewindow) {
-        inst->SetWindow(window);        
-      }
-
-      mInstanceOwner->Paint(aDirtyRect, hps);
-      if (lPSid >= 1) {
-        GpiRestorePS(hps, lPSid);
-      }
-      surf->MarkDirty();
-    }
   }
 #endif
 }

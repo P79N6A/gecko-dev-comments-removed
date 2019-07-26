@@ -61,12 +61,6 @@ RealBreak();
 static void
 Break(const char *aMsg);
 
-#if defined(XP_OS2)
-#  define INCL_WINDIALOGS
-#  include <os2.h>
-#  include <string.h>
-#endif 
-
 #if defined(_WIN32)
 #include <windows.h>
 #include <signal.h>
@@ -217,7 +211,7 @@ static nsAssertBehavior GetAssertBehavior()
     gAssertBehavior = NS_ASSERT_WARN;
   else
     gAssertBehavior = NS_ASSERT_TRAP;
-#elif defined(XP_WIN) || defined(XP_OS2)
+#elif defined(XP_WIN)
   gAssertBehavior = NS_ASSERT_TRAP;
 #else
   gAssertBehavior = NS_ASSERT_WARN;
@@ -341,7 +335,7 @@ NS_DebugBreak(uint32_t aSeverity, const char *aStr, const char *aExpr,
    PR_LogFlush();
 
    
-#if !defined(XP_WIN) && !defined(XP_OS2)
+#if !defined(XP_WIN)
    if (ll != PR_LOG_WARNING)
      fprintf(stderr, "\07");
 #endif
@@ -432,8 +426,6 @@ RealBreak()
 {
 #if defined(_WIN32)
   ::DebugBreak();
-#elif defined(XP_OS2)
-   asm("int $3");
 #elif defined(XP_MACOSX)
    raise(SIGTRAP);
 #elif defined(__GNUC__) && (defined(__i386__) || defined(__i386) || defined(__x86_64__))
@@ -518,28 +510,6 @@ Break(const char *aMsg)
   }
 
   RealBreak();
-#elif defined(XP_OS2)
-   char msg[1200];
-   PR_snprintf(msg, sizeof(msg),
-               "%s\n\nClick Cancel to Debug Application.\n"
-               "Click Enter to continue running the Application.", aMsg);
-   ULONG code = MBID_ERROR;
-   code = WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, msg, 
-                        "NSGlue_Assertion", 0,
-                        MB_ERROR | MB_ENTERCANCEL);
-
-   
-
-
-
-
-
-
-
-   if (( code == MBID_ENTER ) || (code == MBID_ERROR))
-     return;
-
-   RealBreak();
 #elif defined(XP_MACOSX)
    
 

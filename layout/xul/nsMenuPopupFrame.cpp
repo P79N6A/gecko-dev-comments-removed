@@ -1475,7 +1475,7 @@ bool nsMenuPopupFrame::ConsumeOutsideClicks()
     nsINodeInfo *ni = parentContent->NodeInfo();
     if (ni->Equals(nsGkAtoms::menulist, kNameSpaceID_XUL))
       return true;  
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
     
     if (ni->Equals(nsGkAtoms::menu, kNameSpaceID_XUL) ||
         ni->Equals(nsGkAtoms::splitmenu, kNameSpaceID_XUL) ||

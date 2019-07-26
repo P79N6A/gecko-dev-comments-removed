@@ -442,7 +442,7 @@ NS_IMETHODIMP nsXULWindow::Destroy()
   if (mWindow)
     mWindow->Show(false);
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
   
   
   nsCOMPtr<nsIBaseWindow> parent(do_QueryReferent(mParentWindow));

@@ -1046,19 +1046,6 @@ XRE_GetFileFromPath(const char *aPath, nsIFile* *aResult)
 
     return NS_NewNativeLocalFile(nsDependentCString(fullPath), true,
                                  aResult);
-#elif defined(XP_OS2)
-    char fullPath[MAXPATHLEN];
-
-    if (!realpath(aPath, fullPath))
-        return NS_ERROR_FAILURE;
-
-    
-    for (char* ptr = strchr(fullPath, '/'); ptr; ptr = strchr(ptr, '/'))
-        *ptr = '\\';
-
-    return NS_NewNativeLocalFile(nsDependentCString(fullPath), true,
-                                 aResult);
-
 #elif defined(XP_WIN)
     WCHAR fullPath[MAXPATHLEN];
 

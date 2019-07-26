@@ -22,13 +22,6 @@
 #endif
 
 
-#ifdef XP_OS2
-#include "prio.h"
-#include "nsIFileURL.h"
-#include "nsILocalFileOS2.h"
-#endif
-
-
 #ifdef XP_UNIX
 #include "nsINIParser.h"
 #define DESKTOP_ENTRY_SECTION "Desktop Entry"
@@ -96,50 +89,6 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
         }
         urlLink->Release();
     }
-    return rv;
-}
-
-#elif defined(XP_OS2)
-NS_IMETHODIMP
-nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
-{
-    nsresult rv;
-
-    nsCOMPtr<nsILocalFileOS2> os2File (do_QueryInterface(aFile, &rv));
-    if (NS_FAILED(rv))
-        return NS_ERROR_NOT_AVAILABLE;
-
-    
-    bool isUrl;
-    rv = os2File->IsFileType(NS_LITERAL_CSTRING("UniformResourceLocator"),
-                             &isUrl);
-    if (NS_FAILED(rv) || !isUrl)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    
-    PRFileDesc *file;
-    rv = os2File->OpenNSPRFileDesc(PR_RDONLY, 0, &file);
-    if (NS_FAILED(rv))
-        return NS_ERROR_NOT_AVAILABLE;
-
-    int64_t fileSize;
-    os2File->GetFileSize(&fileSize);
-    rv = NS_ERROR_NOT_AVAILABLE;
-
-    
-    
-    char * buffer = (char*)NS_Alloc(fileSize+1);
-    if (buffer) {
-        int32_t cnt = PR_Read(file, buffer, fileSize);
-        if (cnt > 0) {
-            buffer[cnt] = '\0';
-            if (NS_SUCCEEDED(NS_NewURI(aURI, nsDependentCString(buffer))))
-                rv = NS_OK;
-        }
-        NS_Free(buffer);
-    }
-    PR_Close(file);
-
     return rv;
 }
 
@@ -214,7 +163,7 @@ nsFileProtocolHandler::NewURI(const nsACString &spec,
 
     const nsACString *specPtr = &spec;
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
     nsAutoCString buf;
     if (net_NormalizeFileURL(spec, buf))
         specPtr = &buf;

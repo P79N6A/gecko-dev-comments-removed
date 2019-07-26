@@ -1,6 +1,0 @@
-
-
-
-
-
-platform.value = "windows";

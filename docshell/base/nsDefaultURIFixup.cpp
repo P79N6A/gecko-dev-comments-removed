@@ -163,7 +163,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
         if(*aURI)
             return NS_OK;
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
         
         
         
@@ -602,7 +602,7 @@ nsresult nsDefaultURIFixup::ConvertFileToStringURI(const nsACString& aIn,
 {
     bool attemptFixup = false;
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
     
     if(kNotFound != aIn.FindChar('\\') ||
        (aIn.Length() == 2 && (aIn.Last() == ':' || aIn.Last() == '|')))

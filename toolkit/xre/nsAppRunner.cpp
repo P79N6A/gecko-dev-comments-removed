@@ -3,11 +3,6 @@
 
 
 
-#if defined(XP_OS2) && defined(MOZ_OS2_HIGH_MEMORY)
-
-#include <os2safe.h>
-#endif
-
 #if defined(MOZ_WIDGET_QT)
 #include <QApplication>
 #include <QStringList>
@@ -47,9 +42,6 @@
 #include <sys/sysctl.h>
 #endif
 
-#ifdef XP_OS2
-#include "private/pprthred.h"
-#endif
 #include "prmem.h"
 #include "prnetdb.h"
 #include "prprf.h"
@@ -454,7 +446,7 @@ CheckArg(const char* aArg, bool aCheckOSInt = false, const char **aParam = nullp
     char *arg = curarg[0];
 
     if (arg[0] == '-'
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
         || *arg == '/'
 #endif
         ) {
@@ -472,7 +464,7 @@ CheckArg(const char* aArg, bool aCheckOSInt = false, const char **aParam = nullp
 
         if (*curarg) {
           if (**curarg == '-'
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
               || **curarg == '/'
 #endif
               )
@@ -1378,7 +1370,7 @@ DumpHelp()
          "  -UILocale <locale> Start with <locale> resources as UI Locale.\n"
          "  -safe-mode         Disables extensions and themes for this session.\n", gAppData->name);
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN)
   printf("  -console           Start %s with a debugging console.\n", gAppData->name);
 #endif
 
@@ -1564,92 +1556,6 @@ XRE_GetBinaryPath(const char* argv0, nsIFile* *aResult)
 typedef BOOL (WINAPI* SetProcessDEPPolicyFunc)(DWORD dwFlags);
 #endif
 
-#if defined(XP_OS2) && (__KLIBC__ == 0 && __KLIBC_MINOR__ >= 6) 
-
-
-
-char *createEnv()
-{
-  
-  
-  char *env = (char *)calloc(0x6000, sizeof(char));
-  if (!env) {
-    return nullptr;
-  }
-
-  
-  
-  
-  char *penv = env; 
-  int i = 0, space = 0x6000;
-  while (environ[i] && environ[i][0]) {
-    int len = strlen(environ[i]);
-    if (space - len <= 0) {
-      break;
-    }
-    strcpy(penv, environ[i]);
-    i++; 
-    penv += len + 1; 
-    space -= len - 1; 
-  }
-
-  return env;
-}
-
-
-
-
-
-
-int OS2LaunchChild(const char *aExePath, int aArgc, char **aArgv)
-{
-  
-  int len = 0;
-  for (int i = 0; i < aArgc; i++) {
-    len += strlen(aArgv[i]) + 1; 
-  }
-  len++; 
-  
-  
-  char *args = (char *)calloc(len, sizeof(char));
-  if (!args) {
-    return -1;
-  }
-  char *pargs = args; 
-  
-  
-  for (int i = 0; i < aArgc; i++, *pargs++ = ' ') {
-    strcpy(pargs, aArgv[i]);
-    pargs += strlen(aArgv[i]);
-  }
-  if (aArgc > 1) {
-    *(pargs-1) = '\0'; 
-  }
-  *pargs = '\0';
-  
-  pargs = strchr(args, ' ');
-  if (pargs) {
-    *pargs = '\0';
-  }
-
-  char *env = createEnv();
-
-  char error[CCHMAXPATH] = { 0 };
-  RESULTCODES crc = { 0 };
-  ULONG rc = DosExecPgm(error, sizeof(error), EXEC_ASYNC, args, env,
-                        &crc, (PSZ)aExePath);
-  free(args); 
-  if (env) {
-    free(env);
-  }
-  if (rc != NO_ERROR) {
-    return -1;
-  }
-
-  return 0;
-}
-#endif
-
 
 
 
@@ -1708,14 +1614,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   if (NS_FAILED(rv))
     return rv;
 
-#if defined(XP_OS2) && (__KLIBC__ == 0 && __KLIBC_MINOR__ >= 6)
-  
-  if (OS2LaunchChild(exePath.get(), gRestartArgc, gRestartArgv) == -1)
-    return NS_ERROR_FAILURE;
-#elif defined(XP_OS2)
-  if (_execv(exePath.get(), gRestartArgv) == -1)
-    return NS_ERROR_FAILURE;
-#elif defined(XP_UNIX)
+#if defined(XP_UNIX)
   if (execv(exePath.get(), gRestartArgv) == -1)
     return NS_ERROR_FAILURE;
 #else
@@ -2560,7 +2459,7 @@ RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
 #define PLATFORM_FASL_SUFFIX ".mfasl"
-#elif defined(XP_WIN) || defined(XP_OS2)
+#elif defined(XP_WIN)
 #define PLATFORM_FASL_SUFFIX ".mfl"
 #endif
 
@@ -2630,18 +2529,6 @@ static void MakeOrSetMinidumpPath(nsIFile* profD)
 #endif
 
 const nsXREAppData* gAppData = nullptr;
-
-#if defined(XP_OS2)
-
-class ScopedFPHandler {
-private:
-  EXCEPTIONREGISTRATIONRECORD excpreg;
-
-public:
-  ScopedFPHandler() { PR_OS2_SetFloatExcpHandler(&excpreg); }
-  ~ScopedFPHandler() { PR_OS2_UnsetFloatExcpHandler(&excpreg); }
-};
-#endif
 
 #ifdef MOZ_WIDGET_GTK
 #include "prlink.h"
@@ -3192,13 +3079,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
 
   gRestartArgv[gRestartArgc] = nullptr;
   
-
-#if defined(XP_OS2)
-  bool StartOS2App(int aArgc, char **aArgv);
-  if (!StartOS2App(gArgc, gArgv))
-    return 1;
-  ScopedFPHandler handler;
-#endif 
 
   if (EnvHasValue("MOZ_SAFE_MODE_RESTART")) {
     gSafeMode = true;
@@ -4544,9 +4424,7 @@ SetupErrorHandling(const char* progname)
   _CrtSetReportHook(MSCRTReportHook);
 #endif
 
-#ifndef XP_OS2
   InstallSignalHandlers(progname);
-#endif
 
   
   setbuf(stdout, 0);
