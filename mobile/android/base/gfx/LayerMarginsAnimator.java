@@ -226,17 +226,17 @@ public class LayerMarginsAnimator implements TouchEventInterceptor {
 
 
     ImmutableViewportMetrics scrollBy(ImmutableViewportMetrics aMetrics, float aDx, float aDy) {
-        
-        if (mAnimationTimer != null) {
-            mAnimationTimer.cancel();
-            mAnimationTimer = null;
-        }
-
         float[] newMarginsX = { aMetrics.marginLeft, aMetrics.marginRight };
         float[] newMarginsY = { aMetrics.marginTop, aMetrics.marginBottom };
 
         
         if (!mMarginsPinned) {
+            
+            if (mAnimationTimer != null) {
+                mAnimationTimer.cancel();
+                mAnimationTimer = null;
+            }
+
             
             if ((aDx >= 0) != (mTouchTravelDistance.x >= 0)) {
                 mTouchTravelDistance.x = 0;
