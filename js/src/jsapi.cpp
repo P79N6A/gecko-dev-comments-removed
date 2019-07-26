@@ -3482,7 +3482,7 @@ JS_DeepFreezeObject(JSContext *cx, JSObject *objArg)
     assertSameCompartment(cx, obj);
 
     
-    if (obj->isExtensible())
+    if (!obj->isExtensible())
         return true;
 
     if (!JSObject::freeze(cx, obj))
