@@ -11,8 +11,8 @@
 #include "nsIFrame.h"
 #include "nsStyleStruct.h"
 #include "prclist.h"
-#include "nsIDOMCharacterData.h"
 #include "nsCSSPseudoElements.h"
+#include "nsTextNode.h"
 
 class nsGenConList;
 
@@ -30,7 +30,7 @@ struct nsGenConNode : public PRCList {
 
   
   
-  nsCOMPtr<nsIDOMCharacterData> mText;
+  nsRefPtr<nsTextNode> mText;
 
   nsGenConNode(int32_t aContentIndex)
     : mPseudoFrame(nullptr)
