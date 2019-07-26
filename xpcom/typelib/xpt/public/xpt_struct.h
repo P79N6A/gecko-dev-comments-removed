@@ -206,11 +206,16 @@ XPT_DestroyInterfaceDirectoryEntry(XPTArena *arena,
 
 
 struct XPTInterfaceDescriptor {
+    
+
+
+
+    XPTMethodDescriptor     *method_descriptors;
+    XPTConstDescriptor      *const_descriptors;
+    XPTTypeDescriptor       *additional_types;
     uint16_t                parent_interface;
     uint16_t                num_methods;
-    XPTMethodDescriptor     *method_descriptors;
     uint16_t                num_constants;
-    XPTConstDescriptor      *const_descriptors;
     uint8_t                 flags;
 
     
@@ -229,7 +234,6 @@ struct XPTInterfaceDescriptor {
 
 
 
-    XPTTypeDescriptor       *additional_types;
     uint16_t                num_additional_types;
 };
 
