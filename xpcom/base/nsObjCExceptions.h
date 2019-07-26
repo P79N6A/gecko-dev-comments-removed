@@ -3,6 +3,10 @@
 
 
 
+
+#undef try
+#undef catch
+
 #ifndef nsObjCExceptions_h_
 #define nsObjCExceptions_h_
 
@@ -21,6 +25,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include "nsError.h"
+
+
+#undef try
+#undef catch
 
 
 

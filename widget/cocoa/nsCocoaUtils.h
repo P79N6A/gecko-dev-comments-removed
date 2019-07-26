@@ -9,10 +9,12 @@
 #import <Cocoa/Cocoa.h>
 
 #include "nsRect.h"
-#include "nsObjCExceptions.h"
 #include "imgIContainer.h"
 #include "nsEvent.h"
 #include "npapi.h"
+
+
+#include "nsObjCExceptions.h"
 
 
 
