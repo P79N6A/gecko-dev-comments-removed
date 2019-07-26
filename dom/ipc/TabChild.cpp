@@ -304,11 +304,12 @@ TabChildBase::HandlePossibleViewportChange()
 
   
   
-  metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
+  metrics.SetDisplayPortMargins(AsyncPanZoomController::CalculatePendingDisplayPort(
     
     
     
-    metrics, ScreenPoint(0.0f, 0.0f), 0.0);
+    metrics, ScreenPoint(0.0f, 0.0f), 0.0));
+  metrics.SetUseDisplayPortMargins();
 
   
   

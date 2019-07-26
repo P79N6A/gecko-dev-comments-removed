@@ -86,6 +86,8 @@ public:
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
     , mRootCompositionSize(0, 0)
+    , mDisplayPortMargins(0, 0, 0, 0)
+    , mUseDisplayPortMargins(false)
   {}
 
   
@@ -97,6 +99,8 @@ public:
     return mCompositionBounds.IsEqualEdges(aOther.mCompositionBounds) &&
            mRootCompositionSize == aOther.mRootCompositionSize &&
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
+           mDisplayPortMargins == aOther.mDisplayPortMargins &&
+           mUseDisplayPortMargins == aOther.mUseDisplayPortMargins &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
            mScrollableRect.IsEqualEdges(aOther.mScrollableRect) &&
@@ -389,6 +393,26 @@ public:
     return mRootCompositionSize;
   }
 
+  void SetDisplayPortMargins(const LayerMargin& aDisplayPortMargins)
+  {
+    mDisplayPortMargins = aDisplayPortMargins;
+  }
+
+  const LayerMargin& GetDisplayPortMargins() const
+  {
+    return mDisplayPortMargins;
+  }
+
+  void SetUseDisplayPortMargins()
+  {
+    mUseDisplayPortMargins = true;
+  }
+
+  bool GetUseDisplayPortMargins() const
+  {
+    return mUseDisplayPortMargins;
+  }
+
 private:
   
   
@@ -431,6 +455,14 @@ private:
 
   
   CSSSize mRootCompositionSize;
+
+  
+  
+  LayerMargin mDisplayPortMargins;
+
+  
+  
+  bool mUseDisplayPortMargins;
 };
 
 

@@ -238,7 +238,7 @@ public:
 
 
 
-  static const CSSRect CalculatePendingDisplayPort(
+  static const LayerMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
     double aEstimatedPaintDuration);
