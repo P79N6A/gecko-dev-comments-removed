@@ -1718,8 +1718,6 @@ main(int argc, char **argv, char **envp)
         if (NS_FAILED(rv))
             return 1;
 
-        
-        xpc->GetSafeJSContext();
         {
             JS::Rooted<JSObject*> glob(cx, holder->GetJSObject());
             if (!glob) {

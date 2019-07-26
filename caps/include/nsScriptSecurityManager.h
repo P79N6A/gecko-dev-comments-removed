@@ -489,6 +489,9 @@ private:
     InitDomainPolicy(JSContext* cx, const char* aPolicyName,
                      DomainPolicy* aDomainPolicy);
 
+    
+    static jsid sEnabledID;
+
     inline void
     ScriptSecurityPrefChanged();
 
