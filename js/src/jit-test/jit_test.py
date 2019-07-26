@@ -10,6 +10,14 @@ import datetime, os, re, sys, tempfile, traceback, time, shlex
 import subprocess
 from subprocess import *
 from threading import Thread
+import signal
+
+try:
+    from multiprocessing import Process, Pool, Queue, Manager, cpu_count
+    HAVE_MULTIPROCESSING = True
+except ImportError:
+    HAVE_MULTIPROCESSING = False
+
 
 def add_libdir_to_path():
     from os.path import dirname, exists, join, realpath
@@ -272,58 +280,108 @@ def print_tinderbox(label, test, message=None):
         result += ": " + message
     print result
 
-def run_tests(tests, test_dir, lib_dir, shell_args):
-    pb = NullProgressBar()
-    if not OPTIONS.hide_progress and not OPTIONS.show_cmd and ProgressBar.conservative_isatty():
-        fmt = [
-            {'value': 'PASS',    'color': 'green'},
-            {'value': 'FAIL',    'color': 'red'},
-            {'value': 'TIMEOUT', 'color': 'blue'},
-            {'value': 'SKIP',    'color': 'brightgray'},
-        ]
-        pb = ProgressBar(len(tests), fmt)
+def wrap_parallel_run_test(test, lib_dir, shell_args, resultQueue, options, js):
+    
+    
+    global OPTIONS
+    global JS
+    OPTIONS = options
+    JS = js
 
-    failures = []
-    timeouts = 0
-    complete = False
-    doing = 'before starting'
+    result = run_test(test, lib_dir, shell_args) + (test,)
+    resultQueue.put(result)
+    return result
+
+
+
+def disable_sigint():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+def run_tests_parallel(tests, test_dir, lib_dir, shell_args):
+    worker_pool = Pool(processes=OPTIONS.max_jobs, initializer=disable_sigint)
+
+    
+    
+    
+    async_test_result_queue_manager = Manager()
+    async_test_result_queue = async_test_result_queue_manager.Queue()
+
+    
+    
+    result_process_return_queue = Queue()
+    result_process = Process(target=process_test_results_parallel, args=(async_test_result_queue, result_process_return_queue, len(tests), OPTIONS, JS))
+    result_process.start()
+
+    
+    
+    sigint_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGTERM, sigint_handler)
+
+    async_test_results = []
+
     try:
         for i, test in enumerate(tests):
-            doing = 'on %s'%test.path
-            ok, out, err, code, timed_out = run_test(test, lib_dir, shell_args)
-            doing = 'after %s'%test.path
+            async_test_result = worker_pool.apply_async(wrap_parallel_run_test, (test, lib_dir, shell_args, async_test_result_queue, OPTIONS, JS))
+            async_test_results.append(async_test_result)
 
-            if not ok:
-                failures.append([ test, out, err, code, timed_out ])
-                pb.message("FAIL - %s" % test.path)
-            if timed_out:
-                timeouts += 1
-
-            if OPTIONS.tinderbox:
-                if ok:
-                    print_tinderbox("TEST-PASS", test);
+        
+        
+        
+        
+        
+        
+        while len(async_test_results) > 0:
+            new_async_test_results = []
+            for async_test_result in async_test_results:
+                if async_test_result.ready():
+                    if not async_test_result.successful():
+                        async_test_result.get() 
                 else:
-                    lines = [ _ for _ in out.split('\n') + err.split('\n')
-                              if _ != '' ]
-                    if len(lines) >= 1:
-                        msg = lines[-1]
-                    else:
-                        msg = ''
-                    print_tinderbox("TEST-UNEXPECTED-FAIL", test, msg);
+                    new_async_test_results.append(async_test_result)
+            async_test_results = new_async_test_results
+            time.sleep(1)
 
-            n = i + 1
-            pb.update(n, {
-                'PASS': n - len(failures),
-                'FAIL': len(failures),
-                'TIMEOUT': timeouts,
-                'SKIP': 0}
-            )
-        complete = True
-    except KeyboardInterrupt:
-        print_tinderbox("TEST-UNEXPECTED-FAIL", test);
+        
+        worker_pool.close()
+        worker_pool.join()
 
-    pb.finish(True)
+        
+        async_test_result_queue.put(None)
+        result_process.join()
 
+        
+        return result_process_return_queue.get()
+    except (Exception, KeyboardInterrupt) as e:
+        
+        
+        if not isinstance(e,KeyboardInterrupt):
+            traceback.print_exc()
+
+        try:
+            worker_pool.terminate()
+        except:
+            pass
+        worker_pool.close()
+        result_process.terminate()
+
+    return False
+
+def get_parallel_results(async_test_result_queue):
+    while True:
+        async_test_result = async_test_result_queue.get()
+
+        
+        if (async_test_result == None):
+            return
+
+        yield async_test_result
+
+def process_test_results_parallel(async_test_result_queue, return_queue, num_tests, options, js):
+    gen = get_parallel_results(async_test_result_queue)
+    ok = process_test_results(gen, num_tests, options, js)
+    return_queue.put(ok)
+
+def print_test_summary(failures, complete, doing):
     if failures:
         if OPTIONS.write_failures:
             try:
@@ -366,6 +424,68 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
         print('PASSED ALL' + ('' if complete else ' (partial run -- interrupted by user %s)'%doing))
         return True
 
+def process_test_results(results, num_tests, options, js):
+    pb = NullProgressBar()
+    if not options.hide_progress and not options.show_cmd and ProgressBar.conservative_isatty():
+        fmt = [
+            {'value': 'PASS',    'color': 'green'},
+            {'value': 'FAIL',    'color': 'red'},
+            {'value': 'TIMEOUT', 'color': 'blue'},
+            {'value': 'SKIP',    'color': 'brightgray'},
+        ]
+        pb = ProgressBar(num_tests, fmt)
+
+    failures = []
+    timeouts = 0
+    complete = False
+    doing = 'before starting'
+    try:
+        for i, (ok, out, err, code, timed_out, test) in enumerate(results):
+            doing = 'after %s'%test.path
+
+            if not ok:
+                failures.append([ test, out, err, code, timed_out ])
+                pb.message("FAIL - %s" % test.path)
+            if timed_out:
+                timeouts += 1
+
+            if options.tinderbox:
+                if ok:
+                    print_tinderbox("TEST-PASS", test);
+                else:
+                    lines = [ _ for _ in out.split('\n') + err.split('\n')
+                              if _ != '' ]
+                    if len(lines) >= 1:
+                        msg = lines[-1]
+                    else:
+                        msg = ''
+                    print_tinderbox("TEST-UNEXPECTED-FAIL", test, msg);
+
+            n = i + 1
+            pb.update(n, {
+                'PASS': n - len(failures),
+                'FAIL': len(failures),
+                'TIMEOUT': timeouts,
+                'SKIP': 0}
+            )
+        complete = True
+    except KeyboardInterrupt:
+        print_tinderbox("TEST-UNEXPECTED-FAIL", test);
+
+    pb.finish(True)
+    return print_test_summary(failures, complete, doing)
+
+
+def get_serial_results(tests, lib_dir, shell_args):
+    for test in tests:
+        result = run_test(test, lib_dir, shell_args)
+        yield result + (test,)
+
+def run_tests(tests, test_dir, lib_dir, shell_args):
+    gen = get_serial_results(tests, lib_dir, shell_args)
+    ok = process_test_results(gen, len(tests), OPTIONS, JS)
+    return ok
+
 def parse_jitflags():
     jitflags = [ [ '-' + flag for flag in flags ]
                  for flags in OPTIONS.jitflags.split(',') ]
@@ -399,6 +519,14 @@ def main(argv):
     script_dir = os.path.dirname(script_path)
     test_dir = os.path.join(script_dir, 'tests')
     lib_dir = os.path.join(script_dir, 'lib')
+
+    
+    max_jobs_default = 1
+    if HAVE_MULTIPROCESSING:
+        try:
+            max_jobs_default = cpu_count()
+        except NotImplementedError:
+            pass
 
     
     
@@ -446,6 +574,9 @@ def main(argv):
                   help='Run tests once with --ion-eager and once with --no-jm (ignores --jitflags)')
     op.add_option('--tbpl', dest='tbpl', action='store_true',
                   help='Run tests with all IonMonkey option combinations (ignores --jitflags)')
+    op.add_option('-j', '--worker-count', dest='max_jobs', type=int, default=max_jobs_default,
+                  help='Number of tests to run in parallel (default %default)')
+
     (OPTIONS, args) = op.parse_args(argv)
     if len(args) < 1:
         op.error('missing JS_SHELL argument')
@@ -560,7 +691,11 @@ def main(argv):
         sys.exit()
 
     try:
-        ok = run_tests(job_list, test_dir, lib_dir, shell_args)
+        ok = None
+        if OPTIONS.max_jobs > 1 and HAVE_MULTIPROCESSING:
+            ok = run_tests_parallel(job_list, test_dir, lib_dir, shell_args)
+        else:
+            ok = run_tests(job_list, test_dir, lib_dir, shell_args)
         if not ok:
             sys.exit(2)
     except OSError:
