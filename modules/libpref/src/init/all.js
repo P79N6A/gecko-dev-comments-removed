@@ -1823,6 +1823,19 @@ pref("font.size.inflation.mappingIntercept", 1);
 
 
 
+
+
+pref("font.size.inflation.maxRatio", 0);
+
+
+
+
+
+
+
+
+
+
 pref("ui.touch.radius.enabled", false);
 pref("ui.touch.radius.leftmm", 8);
 pref("ui.touch.radius.topmm", 12);
