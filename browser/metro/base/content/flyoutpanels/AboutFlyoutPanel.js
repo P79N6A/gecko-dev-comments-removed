@@ -454,7 +454,7 @@ appUpdater.prototype =
 
 
   onUpdateAvailable: function(aAddon, aInstall) {
-    if (!Services.blocklist.isAddonBlocklisted(aAddon.id, aInstall.version,
+    if (!Services.blocklist.isAddonBlocklisted(aAddon,
                                                this.update.appVersion,
                                                this.update.platformVersion)) {
       
