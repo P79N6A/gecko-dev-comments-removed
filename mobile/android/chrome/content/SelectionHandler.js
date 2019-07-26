@@ -541,6 +541,10 @@ var SelectionHandler = {
     
     let viewOffset = this._getViewOffset();
     let caretPos = this._contentWindow.document.caretPositionFromPoint(aX - viewOffset.x, aY - viewOffset.y);
+    if (!caretPos) {
+      
+      return;
+    }
 
     
     let targetIsEditable = this._targetElement instanceof Ci.nsIDOMNSEditableElement;
