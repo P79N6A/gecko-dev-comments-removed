@@ -213,24 +213,14 @@ class FileCopier(FileRegistry):
         
         
 
-        required_dirs = set()
+        required_dirs = set([destination])
         dest_files = set()
 
         for p, f in self:
-            required_dirs.add(os.path.normpath(os.path.dirname(p)))
             dest_files.add(os.path.normpath(os.path.join(destination, p)))
 
-        
-        extra = set()
-        for d in required_dirs:
-            parent = d
-            while parent:
-                parent = os.path.dirname(parent)
-                extra.add(parent)
-
-        required_dirs |= extra
-        required_dirs = set(os.path.normpath(os.path.join(destination, d))
-            for d in required_dirs)
+        required_dirs |= set(os.path.normpath(os.path.join(destination, d))
+            for d in self.required_directories())
 
         
         
