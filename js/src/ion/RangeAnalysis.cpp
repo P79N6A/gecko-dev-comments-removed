@@ -1044,6 +1044,8 @@ RangeAnalysis::markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *current)
 void
 RangeAnalysis::analyzeLoop(MBasicBlock *header)
 {
+    JS_ASSERT(header->hasUniqueBackedge());
+
     
     
     
@@ -1097,17 +1099,14 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     
     
 
-    for (MDefinitionIterator iter(header); iter; iter++) {
-        MDefinition *def = *iter;
-        if (def->isPhi())
-            analyzeLoopPhi(header, iterationBound, def->toPhi());
-    }
+    for (MPhiIterator iter(header->phisBegin()); iter != header->phisEnd(); iter++)
+        analyzeLoopPhi(header, iterationBound, *iter);
 
     
 
     Vector<MBoundsCheck *, 0, IonAllocPolicy> hoistedChecks;
 
-    for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
+    for (ReversePostorderIterator iter(graph_.rpoBegin(header)); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
         if (!block->isMarked())
             continue;
@@ -1258,8 +1257,7 @@ RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound
     
     
 
-    if (phi->numOperands() != 2)
-        return;
+    JS_ASSERT(phi->numOperands() == 2);
 
     MBasicBlock *preLoop = header->loopPredecessor();
     JS_ASSERT(!preLoop->isMarked() && preLoop->successorWithPhis() == header);
