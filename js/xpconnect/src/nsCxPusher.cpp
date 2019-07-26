@@ -113,15 +113,15 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull) : mScriptIsRunning(fal
     mScx = GetScriptContextFromJSContext(cx);
 
   
-  if (cx && nsJSUtils::GetDynamicScriptContext(cx) &&
-      xpc::IsJSContextOnStack(cx))
+  XPCJSContextStack *stack = XPCJSRuntime::Get()->GetJSContextStack();
+  if (cx && nsJSUtils::GetDynamicScriptContext(cx) && stack->HasJSContext(cx))
   {
     
     
     mScriptIsRunning = true;
   }
 
-  if (!xpc::PushJSContext(cx)) {
+  if (!stack->Push(cx)) {
     MOZ_CRASH();
   }
 
@@ -154,7 +154,7 @@ AutoCxPusher::~AutoCxPusher()
                                 js::GetEnterCompartmentDepth(mPushedContext));
   DebugOnly<JSContext*> stackTop;
   MOZ_ASSERT(mPushedContext == nsXPConnect::XPConnect()->GetCurrentJSContext());
-  xpc::PopJSContext();
+  XPCJSRuntime::Get()->GetJSContextStack()->Pop();
 
   if (!mScriptIsRunning && mScx) {
     

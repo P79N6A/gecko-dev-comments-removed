@@ -3225,6 +3225,18 @@ struct XPCJSContextInfo {
     bool savedFrameChain;
 };
 
+namespace xpc {
+
+
+
+
+
+
+bool PushJSContextNoScriptContext(JSContext *aCx);
+void PopJSContextNoScriptContext();
+
+} 
+
 class XPCJSContextStack
 {
 public:
@@ -3869,11 +3881,6 @@ JSObject* NewOutObject(JSContext* cx, JSObject* scope);
 bool IsOutObject(JSContext* cx, JSObject* obj);
 
 nsresult HasInstance(JSContext *cx, JS::HandleObject objArg, const nsID *iid, bool *bp);
-
-
-bool PushJSContext(JSContext *aCx);
-void PopJSContext();
-bool IsJSContextOnStack(JSContext *aCx);
 
 } 
 

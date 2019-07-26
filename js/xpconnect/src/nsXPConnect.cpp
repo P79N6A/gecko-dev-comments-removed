@@ -1129,7 +1129,7 @@ nsXPConnect::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
     
     
     MOZ_ASSERT(NS_IsMainThread());
-    bool ok = PushJSContext(nullptr);
+    bool ok = PushJSContextNoScriptContext(nullptr);
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     return NS_OK;
 }
@@ -1148,7 +1148,7 @@ nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
     nsJSContext::MaybePokeCC();
     nsDOMMutationObserver::HandleMutations();
 
-    PopJSContext();
+    PopJSContextNoScriptContext();
 
     
     
@@ -1284,13 +1284,14 @@ nsXPConnect::GetSafeJSContext()
 namespace xpc {
 
 bool
-PushJSContext(JSContext *aCx)
+PushJSContextNoScriptContext(JSContext *aCx)
 {
+    MOZ_ASSERT_IF(aCx, !GetScriptContextFromJSContext(aCx));
     return XPCJSRuntime::Get()->GetJSContextStack()->Push(aCx);
 }
 
 void
-PopJSContext()
+PopJSContextNoScriptContext()
 {
     XPCJSRuntime::Get()->GetJSContextStack()->Pop();
 }
