@@ -1719,7 +1719,7 @@ protected:
   
   nsAutoArrayBase(const self_type &aOther) {
     Init();
-    AppendElements(aOther);
+    this->AppendElements(aOther);
   }
 
 private:
