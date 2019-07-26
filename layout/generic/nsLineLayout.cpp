@@ -743,6 +743,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
+  
   pfd->mBounds.IStart(lineWM) = psd->mICoord;
   pfd->mBounds.BStart(lineWM) = mBStartEdge;
 
@@ -1018,7 +1019,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        BlockDirAlignFrames(span);
+        VerticalAlignFrames(span);
       }
       
       if (!continuingTextRun) {
@@ -1370,7 +1371,7 @@ nsLineLayout::DumpPerSpanData(PerSpanData* psd, int32_t aIndent)
 #define VALIGN_BOTTOM 2
 
 void
-nsLineLayout::BlockDirAlignLine()
+nsLineLayout::VerticalAlignLine()
 {
   
   PerFrameData rootPFD(mBlockReflowState->frame->GetWritingMode());
@@ -1382,8 +1383,11 @@ nsLineLayout::BlockDirAlignLine()
   
   
   PerSpanData* psd = mRootSpan;
-  BlockDirAlignFrames(psd);
+  VerticalAlignFrames(psd);
 
+  
+  
+  
   
   
   
@@ -1450,7 +1454,7 @@ nsLineLayout::BlockDirAlignLine()
       pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
     }
   }
-  PlaceStartEndFrames(psd, -mBStartEdge, lineBSize);
+  PlaceTopBottomFrames(psd, -mBStartEdge, lineBSize);
 
   
   
@@ -1488,10 +1492,11 @@ nsLineLayout::BlockDirAlignLine()
   mRootSpan->mFrame = nullptr;
 }
 
+
 void
-nsLineLayout::PlaceStartEndFrames(PerSpanData* psd,
-                                  nscoord aDistanceFromStart,
-                                  nscoord aLineBSize)
+nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
+                                   nscoord aDistanceFromStart,
+                                   nscoord aLineBSize)
 {
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
     PerSpanData* span = pfd->mSpan;
@@ -1539,7 +1544,7 @@ nsLineLayout::PlaceStartEndFrames(PerSpanData* psd,
     }
     if (span) {
       nscoord fromStart = aDistanceFromStart + pfd->mBounds.BStart(lineWM);
-      PlaceStartEndFrames(span, fromStart, aLineBSize);
+      PlaceTopBottomFrames(span, fromStart, aLineBSize);
     }
   }
 }
@@ -1565,8 +1570,9 @@ GetInflationForBlockDirAlignment(nsIFrame* aFrame,
 
 
 
+
 void
-nsLineLayout::BlockDirAlignFrames(PerSpanData* psd)
+nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 {
   
   PerFrameData* spanFramePFD = psd->mFrame;
@@ -2498,9 +2504,11 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
   return deltaICoord;
 }
 
+
+
 void
-nsLineLayout::InlineDirAlignFrames(nsLineBox* aLine,
-                                   bool aIsLastLine)
+nsLineLayout::TextAlignLine(nsLineBox* aLine,
+                            bool aIsLastLine)
 {
   
 

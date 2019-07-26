@@ -90,11 +90,17 @@ public:
     PushFrame(aFrame);
   }
 
-  void BlockDirAlignLine();
+  
+
+
+  void VerticalAlignLine();
 
   bool TrimTrailingWhiteSpace();
 
-  void InlineDirAlignFrames(nsLineBox* aLine, bool aIsLastLine);
+  
+
+
+  void TextAlignLine(nsLineBox* aLine, bool aIsLastLine);
 
   
 
@@ -542,11 +548,11 @@ protected:
   void PlaceFrame(PerFrameData* pfd,
                   nsHTMLReflowMetrics& aMetrics);
 
-  void BlockDirAlignFrames(PerSpanData* psd);
+  void VerticalAlignFrames(PerSpanData* psd);
 
-  void PlaceStartEndFrames(PerSpanData* psd,
-                           nscoord aDistanceFromStart,
-                           nscoord aLineBSize);
+  void PlaceTopBottomFrames(PerSpanData* psd,
+                            nscoord aDistanceFromStart,
+                            nscoord aLineBSize);
 
   void RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflowAreas);
 

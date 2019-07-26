@@ -4105,7 +4105,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
     aLineLayout.AddBulletFrame(bullet, metrics);
     addedBullet = true;
   }
-  aLineLayout.BlockDirAlignLine();
+  aLineLayout.VerticalAlignLine();
 
   
   
@@ -4167,7 +4167,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
      (aLineLayout.GetLineEndsInBR() ||
       IsLastLine(aState, aLine)));
 
-  aLineLayout.InlineDirAlignFrames(aLine, isLastLine);
+  aLineLayout.TextAlignLine(aLine, isLastLine);
 
   
   
