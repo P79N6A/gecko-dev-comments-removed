@@ -52,11 +52,8 @@ let observer = {
           Services.prefs.clearUserPref(LAST_DIR_PREF);
         
         
-        let cps2 = Components.classes["@mozilla.org/content-pref/service;1"].
-                     getService(Components.interfaces.nsIContentPrefService2);
-
-        cps2.removeByName(LAST_DIR_PREF, {usePrivateBrowsing: false});
-        cps2.removeByName(LAST_DIR_PREF, {usePrivateBrowsing: true});
+        Services.contentPrefs.removePrefsByName(LAST_DIR_PREF, {usePrivateBrowsing: false});
+        Services.contentPrefs.removePrefsByName(LAST_DIR_PREF, {usePrivateBrowsing: true});
         break;
     }
   }
