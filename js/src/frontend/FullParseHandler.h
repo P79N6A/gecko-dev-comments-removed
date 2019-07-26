@@ -130,6 +130,18 @@ class FullParseHandler
     ParseNode *newNullLiteral(const TokenPos &pos) {
         return new_<NullLiteral>(pos);
     }
+
+    
+    
+    
+    template <class Boxer>
+    ParseNode *newRegExp(HandleObject reobj, const TokenPos &pos, Boxer &boxer) {
+        ObjectBox *objbox = boxer.newObjectBox(reobj);
+        if (!objbox)
+            return null();
+        return new_<RegExpLiteral>(objbox, pos);
+    }
+
     ParseNode *newConditional(ParseNode *cond, ParseNode *thenExpr, ParseNode *elseExpr) {
         return new_<ConditionalExpression>(cond, thenExpr, elseExpr);
     }

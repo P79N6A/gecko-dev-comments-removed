@@ -820,9 +820,16 @@ struct NullaryNode : public ParseNode
 {
     NullaryNode(ParseNodeKind kind, const TokenPos &pos)
       : ParseNode(kind, JSOP_NOP, PN_NULLARY, pos) {}
+    NullaryNode(ParseNodeKind kind, JSOp op, const TokenPos &pos)
+      : ParseNode(kind, op, PN_NULLARY, pos) {}
 
-    static inline NullaryNode *create(ParseNodeKind kind, FullParseHandler *handler) {
-        return (NullaryNode *) ParseNode::create(kind, PN_NULLARY, handler);
+    
+    
+    
+    NullaryNode(ParseNodeKind kind, JSOp op, const TokenPos &pos, JSAtom *atom)
+      : ParseNode(kind, op, PN_NULLARY, pos)
+    {
+        pn_atom = atom;
     }
 
     static bool test(const ParseNode &node) {
@@ -1110,6 +1117,25 @@ class BooleanLiteral : public ParseNode
     BooleanLiteral(bool b, const TokenPos &pos)
       : ParseNode(b ? PNK_TRUE : PNK_FALSE, b ? JSOP_TRUE : JSOP_FALSE, PN_NULLARY, pos)
     { }
+};
+
+class RegExpLiteral : public NullaryNode
+{
+  public:
+    RegExpLiteral(ObjectBox *reobj, const TokenPos &pos)
+      : NullaryNode(PNK_REGEXP, JSOP_REGEXP, pos)
+    {
+        pn_objbox = reobj;
+    }
+
+    ObjectBox *objbox() const { return pn_objbox; }
+
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_REGEXP);
+        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_REGEXP));
+        return match;
+    }
 };
 
 class PropertyAccess : public ParseNode
