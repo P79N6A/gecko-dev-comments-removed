@@ -1785,6 +1785,7 @@ pref("layout.css.prefixes.border-image", true);
 pref("layout.css.prefixes.transforms", true);
 pref("layout.css.prefixes.transitions", true);
 pref("layout.css.prefixes.animations", true);
+pref("layout.css.prefixes.box-sizing", true);
 
 
 #ifdef RELEASE_BUILD
