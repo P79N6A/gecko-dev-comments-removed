@@ -119,15 +119,21 @@ private:
 
   void MarkChanged();
 
+#ifdef USE_SKIA_GPU
+  
+
+
+
+
+
+  RefPtr<GenericRefCountedBase> mGLContext;
+  SkRefPtr<GrGLInterface> mGrGLInterface;
+  SkRefPtr<GrContext> mGrContext;
+#endif
+
   IntSize mSize;
   SkRefPtr<SkCanvas> mCanvas;
   std::vector<SourceSurfaceSkia*> mSnapshots;
-
-#ifdef USE_SKIA_GPU
-  SkRefPtr<GrContext> mGrContext;
-  SkRefPtr<GrGLInterface> mGrGLInterface;
-  RefPtr<GenericRefCountedBase> mGLContext;
-#endif
 };
 
 }
