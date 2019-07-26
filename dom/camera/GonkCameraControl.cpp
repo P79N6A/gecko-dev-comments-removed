@@ -244,7 +244,6 @@ nsGonkCameraControl::SetPictureConfiguration(const Configuration& aConfig)
   mRecorderProfile = nullptr;
 
   nsresult rv = SetPreviewSize(aConfig.mPreviewSize);
-  PushParameters();
   NS_ENSURE_SUCCESS(rv, rv);
 
   mParams.Get(CAMERA_PARAM_PREVIEWFRAMERATE, mPreviewFps);
@@ -1010,97 +1009,53 @@ nsGonkCameraControl::SetPreviewSize(const Size& aSize)
     return rv;
   }
 
-  Size best;
-  rv  = GetSupportedSize(aSize, previewSizes, best);
-  if (NS_FAILED(rv)) {
-    DOM_CAMERA_LOGE("Failed to find a supported preview size, requested size %dx%d",
-        aSize.width, aSize.height);
-    return rv;
-  }
-
-  
-  
-  
-  if (best.width * best.height > mLastRecorderSize.width * mLastRecorderSize.height) {
-    SetVideoSize(best);
-  }
-  mCurrentConfiguration.mPreviewSize = best;
-  return mParams.Set(CAMERA_PARAM_PREVIEWSIZE, best);
-}
-
-nsresult
-nsGonkCameraControl::SetVideoSize(const Size& aSize)
-{
-  MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
-
-  nsTArray<Size> videoSizes;
-  nsresult rv = mParams.Get(CAMERA_PARAM_SUPPORTED_VIDEOSIZES, videoSizes);
-  if (NS_FAILED(rv)) {
-    DOM_CAMERA_LOGE("Camera failed to return any video sizes (0x%x)\n", rv);
-    return rv;
-  }
-
-  Size best;
-  rv = GetSupportedSize(aSize, videoSizes, best);
-  if (NS_FAILED(rv)) {
-    DOM_CAMERA_LOGE("Failed to find a supported video size, requested size %dx%d",
-        aSize.width, aSize.height);
-    return rv;
-  }
-  mLastRecorderSize = best;
-  return mParams.Set(CAMERA_PARAM_VIDEOSIZE, best);
-}
-
-nsresult
-nsGonkCameraControl::GetSupportedSize(const Size& aSize,
-                                      const nsTArray<Size>& supportedSizes,
-                                      Size& best)
-{
-  nsresult rv = NS_ERROR_INVALID_ARG;
-  best = aSize;
+  Size best = aSize;
   uint32_t minSizeDelta = UINT32_MAX;
   uint32_t delta;
 
   if (!aSize.width && !aSize.height) {
     
-    best = supportedSizes[0];
-    rv = NS_OK;
+    best = previewSizes[0];
   } else if (aSize.width && aSize.height) {
     
     uint32_t targetArea = aSize.width * aSize.height;
-    for (nsTArray<Size>::index_type i = 0; i < supportedSizes.Length(); i++) {
-      Size size = supportedSizes[i];
+    for (uint32_t i = 0; i < previewSizes.Length(); i++) {
+      Size size = previewSizes[i];
       uint32_t delta = abs((long int)(size.width * size.height - targetArea));
       if (delta < minSizeDelta) {
         minSizeDelta = delta;
         best = size;
-        rv = NS_OK;
       }
     }
   } else if (!aSize.width) {
     
-    for (nsTArray<Size>::index_type i = 0; i < supportedSizes.Length(); i++) {
-      Size size = supportedSizes[i];
+    for (uint32_t i = 0; i < previewSizes.Length(); i++) {
+      Size size = previewSizes[i];
       delta = abs((long int)(size.height - aSize.height));
       if (delta < minSizeDelta) {
         minSizeDelta = delta;
         best = size;
-        rv = NS_OK;
       }
     }
   } else if (!aSize.height) {
     
-    for (nsTArray<Size>::index_type i = 0; i < supportedSizes.Length(); i++) {
-      Size size = supportedSizes[i];
+    for (uint32_t i = 0; i < previewSizes.Length(); i++) {
+      Size size = previewSizes[i];
       delta = abs((long int)(size.width - aSize.width));
       if (delta < minSizeDelta) {
         minSizeDelta = delta;
         best = size;
-        rv = NS_OK;
       }
     }
   }
-  return rv;
+
+  
+  
+  
+  mParams.Set(CAMERA_PARAM_PREVIEWSIZE, best);
+  mParams.Set(CAMERA_PARAM_VIDEOSIZE, best);
+  mCurrentConfiguration.mPreviewSize = best;
+  return PushParameters();
 }
 
 nsresult
@@ -1142,32 +1097,27 @@ nsGonkCameraControl::SetupVideoMode(const nsAString& aProfile)
     
     
     
-    nsresult rv = SetVideoSize(size);
-    if (NS_FAILED(rv)) {
-      DOM_CAMERA_LOGE("Failed to set video mode video size (0x%x)\n", rv);
-      return rv;
-    }
-
-    rv = SetPreviewSize(size);
+    nsresult rv = SetAndPush(CAMERA_PARAM_PREVIEWSIZE, size);
     if (NS_FAILED(rv)) {
       DOM_CAMERA_LOGE("Failed to set video mode preview size (0x%x)\n", rv);
       return rv;
     }
 
-    rv = mParams.Set(CAMERA_PARAM_PREVIEWFRAMERATE, fps);
+    rv = SetAndPush(CAMERA_PARAM_VIDEOSIZE, size);
+    if (NS_FAILED(rv)) {
+      DOM_CAMERA_LOGE("Failed to set video mode video size (0x%x)\n", rv);
+      return rv;
+    }
+
+    rv = SetAndPush(CAMERA_PARAM_PREVIEWFRAMERATE, fps);
     if (NS_FAILED(rv)) {
       DOM_CAMERA_LOGE("Failed to set video mode frame rate (0x%x)\n", rv);
       return rv;
     }
-
-    rv = PushParameters();
-    if (NS_FAILED(rv)) {
-      DOM_CAMERA_LOGE("Failed to set video mode settings (0x%x)\n", rv);
-      return rv;
-    }
-
     mPreviewFps = fps;
   }
+
+  mLastRecorderSize = size;
   return NS_OK;
 }
 
