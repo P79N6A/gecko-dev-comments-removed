@@ -479,6 +479,10 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     
     nsDirectoryService::gService->RegisterCategoryProviders();
 
+    
+    
+    nsCOMPtr<nsISupports> componentLoader = do_GetService("@mozilla.org/moz/jsloader;1");
+
     mozilla::scache::StartupCache::GetSingleton();
     mozilla::AvailableMemoryTracker::Activate();
 
