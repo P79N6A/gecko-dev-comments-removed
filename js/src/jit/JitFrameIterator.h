@@ -355,6 +355,7 @@ class SnapshotIterator
   public:
     
     void nextFrame();
+    void settleOnFrame();
 
     inline bool moreFrames() const {
         

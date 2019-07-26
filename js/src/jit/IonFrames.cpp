@@ -1629,11 +1629,19 @@ SnapshotIterator::fromInstructionResult(uint32_t index) const
 }
 
 void
+SnapshotIterator::settleOnFrame()
+{
+    
+    MOZ_ASSERT(snapshot_.numAllocationsRead() == 0);
+    while (!instruction()->isResumePoint())
+        skipInstruction();
+}
+
+void
 SnapshotIterator::nextFrame()
 {
     nextInstruction();
-    while (!instruction()->isResumePoint())
-        skipInstruction();
+    settleOnFrame();
 }
 
 IonScript *
@@ -1699,8 +1707,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
 
     
     
-    if (!si_.instruction()->isResumePoint())
-        si_.nextFrame();
+    si_.settleOnFrame();
 
     pc_ = script_->offsetToPC(si_.pcOffset());
 #ifdef DEBUG
