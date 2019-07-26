@@ -135,18 +135,19 @@ final class ThumbnailHelper {
             return;
         }
 
-        GeckoEvent e = GeckoEvent.createScreenshotEvent(
-                tab.getId(),
-                0, 0, 0, 0, 
-                0, 0, mWidth, mHeight, 
-                mWidth, mHeight, 
-                ScreenshotHandler.SCREENSHOT_THUMBNAIL,
-                mBuffer);
+        GeckoEvent e = GeckoEvent.createThumbnailEvent(tab.getId(), mWidth, mHeight, mBuffer);
         GeckoAppShell.sendEventToGecko(e);
     }
 
     
-    void handleThumbnailData(Tab tab, ByteBuffer data) {
+    public static void notifyThumbnail(ByteBuffer data, int tabId) {
+        Tab tab = Tabs.getInstance().getTab(tabId);
+        if (tab != null) {
+            ThumbnailHelper.getInstance().handleThumbnailData(tab, data);
+        }
+    }
+
+    private void handleThumbnailData(Tab tab, ByteBuffer data) {
         if (data != mBuffer) {
             
             Log.e(LOGTAG, "handleThumbnailData called with an unexpected ByteBuffer!");
