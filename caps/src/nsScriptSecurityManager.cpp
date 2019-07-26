@@ -1893,75 +1893,6 @@ nsScriptSecurityManager::DoGetCertificatePrincipal(const nsACString& aCertFinger
                                     aPrettyName, aCertificate, aURI,
                                     UNKNOWN_APP_ID, false);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIPrincipal> fromTable;
-    mPrincipals.Get(certificate, getter_AddRefs(fromTable));
-    if (fromTable) {
-        
-        
-
-        if (aModifyTable) {
-            
-            
-            
-            rv = static_cast<nsPrincipal*>
-                            (static_cast<nsIPrincipal*>(fromTable))
-                ->EnsureCertData(aSubjectName, aPrettyName, aCertificate);
-            if (NS_FAILED(rv)) {
-                
-                
-                
-                NS_ADDREF(*result = certificate);
-                return NS_OK;
-            }                
-        }
-        
-        if (!aURI) {
-            
-            
-            certificate = static_cast<nsPrincipal*>
-                                     (static_cast<nsIPrincipal*>
-                                                 (fromTable));
-        } else {
-            
-            
-            
-            
-            nsXPIDLCString prefName;
-            nsXPIDLCString id;
-            nsXPIDLCString subjectName;
-            nsXPIDLCString granted;
-            nsXPIDLCString denied;
-            bool isTrusted;
-            rv = fromTable->GetPreferences(getter_Copies(prefName),
-                                           getter_Copies(id),
-                                           getter_Copies(subjectName),
-                                           getter_Copies(granted),
-                                           getter_Copies(denied),
-                                           &isTrusted);
-            
-            if (NS_SUCCEEDED(rv)) {
-                NS_ASSERTION(!isTrusted, "Shouldn't have isTrusted true here");
-                
-                certificate = new nsPrincipal();
-                if (!certificate)
-                    return NS_ERROR_OUT_OF_MEMORY;
-
-                rv = certificate->InitFromPersistent(prefName, id,
-                                                     subjectName, aPrettyName,
-                                                     granted, denied,
-                                                     aCertificate,
-                                                     true, false,
-                                                     UNKNOWN_APP_ID, false);
-                if (NS_FAILED(rv))
-                    return rv;
-                
-                certificate->SetURI(aURI);
-            }
-        }
-    }
-
     NS_ADDREF(*result = certificate);
 
     return rv;
@@ -2070,52 +2001,6 @@ nsScriptSecurityManager::GetCodebasePrincipalInternal(nsIURI *aURI,
     rv = CreateCodebasePrincipal(aURI, aAppId, aInMozBrowser,
                                  getter_AddRefs(principal));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (mPrincipals.Count() > 0)
-    {
-        
-        nsCOMPtr<nsIPrincipal> fromTable;
-        mPrincipals.Get(principal, getter_AddRefs(fromTable));
-        if (fromTable) {
-            
-            
-            
-            
-            
-            
-            nsXPIDLCString prefName;
-            nsXPIDLCString id;
-            nsXPIDLCString subjectName;
-            nsXPIDLCString granted;
-            nsXPIDLCString denied;
-            bool isTrusted;
-            rv = fromTable->GetPreferences(getter_Copies(prefName),
-                                           getter_Copies(id),
-                                           getter_Copies(subjectName),
-                                           getter_Copies(granted),
-                                           getter_Copies(denied),
-                                           &isTrusted);
-            if (NS_SUCCEEDED(rv)) {
-                nsRefPtr<nsPrincipal> codebase = new nsPrincipal();
-                if (!codebase)
-                    return NS_ERROR_OUT_OF_MEMORY;
-
-                rv = codebase->InitFromPersistent(prefName, id,
-                                                  subjectName, EmptyCString(),
-                                                  granted, denied,
-                                                  nullptr, false,
-                                                  isTrusted,
-                                                  aAppId,
-                                                  aInMozBrowser);
-                NS_ENSURE_SUCCESS(rv, rv);
-
-                codebase->SetURI(aURI);
-                principal = codebase;
-            }
-
-        }
-    }
-
     NS_IF_ADDREF(*result = principal);
 
     return NS_OK;
@@ -2718,14 +2603,12 @@ nsScriptSecurityManager::AsyncOnChannelRedirect(nsIChannel* oldChannel,
 const char sJSEnabledPrefName[] = "javascript.enabled";
 const char sFileOriginPolicyPrefName[] =
     "security.fileuri.strict_origin_policy";
-static const char sPrincipalPrefix[] = "capability.principal";
 static const char sPolicyPrefix[] = "capability.policy.";
 
 static const char* kObservedPrefs[] = {
   sJSEnabledPrefName,
   sFileOriginPolicyPrefName,
   sPolicyPrefix,
-  sPrincipalPrefix,
   nullptr
 };
 
@@ -2750,19 +2633,6 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
         
         mPolicyPrefsChanged = true;
     }
-    else if ((PL_strncmp(message, sPrincipalPrefix, sizeof(sPrincipalPrefix)-1) == 0) &&
-             !mIsWritingPrefs)
-    {
-        static const char id[] = "id";
-        char* lastDot = PL_strrchr(message, '.');
-        
-        if(PL_strlen(lastDot) >= sizeof(id))
-        {
-            PL_strcpy(lastDot + 1, id);
-            const char** idPrefArray = (const char**)&message;
-            rv = InitPrincipals(1, idPrefArray);
-        }
-    }
     return rv;
 }
 
@@ -2781,7 +2651,6 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
     MOZ_STATIC_ASSERT(sizeof(intptr_t) == sizeof(void*),
                       "intptr_t and void* have different lengths on this platform. "
                       "This may cause a security failure with the SecurityLevel union.");
-    mPrincipals.Init(31);
 }
 
 nsresult nsScriptSecurityManager::Init()
@@ -3214,145 +3083,6 @@ nsScriptSecurityManager::InitDomainPolicy(JSContext* cx,
     return NS_OK;
 }
 
-
-
-nsresult
-nsScriptSecurityManager::GetPrincipalPrefNames(const char* prefBase,
-                                               nsCString& grantedPref,
-                                               nsCString& deniedPref,
-                                               nsCString& subjectNamePref)
-{
-    char* lastDot = PL_strrchr(prefBase, '.');
-    if (!lastDot) return NS_ERROR_FAILURE;
-    int32_t prefLen = lastDot - prefBase + 1;
-
-    grantedPref.Assign(prefBase, prefLen);
-    deniedPref.Assign(prefBase, prefLen);
-    subjectNamePref.Assign(prefBase, prefLen);
-
-#define GRANTED "granted"
-#define DENIED "denied"
-#define SUBJECTNAME "subjectName"
-
-    grantedPref.AppendLiteral(GRANTED);
-    if (grantedPref.Length() != prefLen + sizeof(GRANTED) - 1) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    deniedPref.AppendLiteral(DENIED);
-    if (deniedPref.Length() != prefLen + sizeof(DENIED) - 1) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    subjectNamePref.AppendLiteral(SUBJECTNAME);
-    if (subjectNamePref.Length() != prefLen + sizeof(SUBJECTNAME) - 1) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-#undef SUBJECTNAME
-#undef DENIED
-#undef GRANTED
-    
-    return NS_OK;
-}
-
-nsresult
-nsScriptSecurityManager::InitPrincipals(uint32_t aPrefCount, const char** aPrefNames)
-{
-    
-
-
-
-
-
-
-
-    
-
-
-
-
-    static const char idSuffix[] = ".id";
-    for (uint32_t c = 0; c < aPrefCount; c++)
-    {
-        int32_t prefNameLen = PL_strlen(aPrefNames[c]) - 
-            (ArrayLength(idSuffix) - 1);
-        if (PL_strcasecmp(aPrefNames[c] + prefNameLen, idSuffix) != 0)
-            continue;
-
-        nsAdoptingCString id = Preferences::GetCString(aPrefNames[c]);
-        if (!id) {
-            return NS_ERROR_FAILURE;
-        }
-
-        nsAutoCString grantedPrefName;
-        nsAutoCString deniedPrefName;
-        nsAutoCString subjectNamePrefName;
-        nsresult rv = GetPrincipalPrefNames(aPrefNames[c],
-                                            grantedPrefName,
-                                            deniedPrefName,
-                                            subjectNamePrefName);
-        if (rv == NS_ERROR_OUT_OF_MEMORY)
-            return rv;
-        if (NS_FAILED(rv))
-            continue;
-
-        nsAdoptingCString grantedList =
-            Preferences::GetCString(grantedPrefName.get());
-        nsAdoptingCString deniedList =
-            Preferences::GetCString(deniedPrefName.get());
-        nsAdoptingCString subjectName =
-            Preferences::GetCString(subjectNamePrefName.get());
-
-        
-        if (id.IsEmpty() || (grantedList.IsEmpty() && deniedList.IsEmpty()))
-        {
-            Preferences::ClearUser(aPrefNames[c]);
-            Preferences::ClearUser(grantedPrefName.get());
-            Preferences::ClearUser(deniedPrefName.get());
-            Preferences::ClearUser(subjectNamePrefName.get());
-            continue;
-        }
-
-        
-        static const char certificateName[] = "capability.principal.certificate";
-        static const char codebaseName[] = "capability.principal.codebase";
-        static const char codebaseTrustedName[] = "capability.principal.codebaseTrusted";
-
-        bool isCert = false;
-        bool isTrusted = false;
-        
-        if (PL_strncmp(aPrefNames[c], certificateName,
-                       sizeof(certificateName) - 1) == 0)
-        {
-            isCert = true;
-        }
-        else if (PL_strncmp(aPrefNames[c], codebaseName,
-                            sizeof(codebaseName) - 1) == 0)
-        {
-            isTrusted = (PL_strncmp(aPrefNames[c], codebaseTrustedName,
-                                    sizeof(codebaseTrustedName) - 1) == 0);
-        }
-        else
-        {
-          NS_ERROR("Not a codebase or a certificate?!");
-        }
-
-        nsRefPtr<nsPrincipal> newPrincipal = new nsPrincipal();
-        if (!newPrincipal)
-            return NS_ERROR_OUT_OF_MEMORY;
-
-        rv = newPrincipal->InitFromPersistent(aPrefNames[c], id, subjectName,
-                                              EmptyCString(),
-                                              grantedList, deniedList, nullptr, 
-                                              isCert, isTrusted, UNKNOWN_APP_ID,
-                                              false);
-        if (NS_SUCCEEDED(rv))
-            mPrincipals.Put(newPrincipal, newPrincipal);
-    }
-    return NS_OK;
-}
-
 inline void
 nsScriptSecurityManager::ScriptSecurityPrefChanged()
 {
@@ -3378,7 +3108,6 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
 nsresult
 nsScriptSecurityManager::InitPrefs()
 {
-    nsresult rv;
     nsIPrefBranch* branch = Preferences::GetRootBranch();
     NS_ENSURE_TRUE(branch, NS_ERROR_FAILURE);
 
@@ -3389,17 +3118,6 @@ nsScriptSecurityManager::InitPrefs()
 
     
     Preferences::AddStrongObservers(this, kObservedPrefs);
-
-    uint32_t prefCount;
-    char** prefNames;
-    
-    rv = branch->GetChildList(sPrincipalPrefix, &prefCount, &prefNames);
-    if (NS_SUCCEEDED(rv) && prefCount > 0)
-    {
-        rv = InitPrincipals(prefCount, (const char**)prefNames);
-        NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(prefCount, prefNames);
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
 
     return NS_OK;
 }

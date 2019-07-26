@@ -124,23 +124,6 @@ void nsNullPrincipal::dumpImpl()
 
 
 NS_IMETHODIMP
-nsNullPrincipal::GetPreferences(char** aPrefName, char** aID,
-                                char** aSubjectName,
-                                char** aGrantedList, char** aDeniedList,
-                                bool* aIsTrusted)
-{
-  
-  *aPrefName = nullptr;
-  *aID = nullptr;
-  *aSubjectName = nullptr;
-  *aGrantedList = nullptr;
-  *aDeniedList = nullptr;
-  *aIsTrusted = false;
-
-  return NS_ERROR_FAILURE; 
-}
-
-NS_IMETHODIMP
 nsNullPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
 {
   
@@ -176,33 +159,6 @@ nsNullPrincipal::SetSecurityPolicy(void* aSecurityPolicy)
 {
   
   
-  return NS_OK;
-}
-
-NS_IMETHODIMP 
-nsNullPrincipal::CanEnableCapability(const char *aCapability, 
-                                     int16_t *aResult)
-{
-  
-  *aResult = nsIPrincipal::ENABLE_DENIED;
-  return NS_OK;
-}
-
-NS_IMETHODIMP 
-nsNullPrincipal::IsCapabilityEnabled(const char *aCapability, 
-                                     void *aAnnotation, 
-                                     bool *aResult)
-{
-  
-  *aResult = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP 
-nsNullPrincipal::EnableCapability(const char *aCapability, void **aAnnotation)
-{
-  NS_NOTREACHED("Didn't I say it?  NO CAPABILITIES!");
-  *aAnnotation = nullptr;
   return NS_OK;
 }
 
