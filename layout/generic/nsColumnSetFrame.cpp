@@ -1039,10 +1039,12 @@ nsColumnSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                    const nsDisplayListSet& aLists) {
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
-  aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+  if (IsVisibleForPainting(aBuilder)) {
+    aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
       nsDisplayGenericOverflow(aBuilder, this, ::PaintColumnRule, "ColumnRule",
                                nsDisplayItem::TYPE_COLUMN_RULE));
-  
+  }
+
   
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     BuildDisplayListForChild(aBuilder, e.get(), aDirtyRect, aLists);
