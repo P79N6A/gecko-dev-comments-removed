@@ -41,14 +41,27 @@ protected:
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
-  NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
+  
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists) {
+    return NS_OK;
+  }
+
+  NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              PRInt32         aModType);
+                              int32_t         aModType);
+
+  
+
+
+
+
 
   nsresult PaintFilteredFrame(nsRenderingContext *aContext,
                               nsIFrame *aFilteredFrame,
                               nsSVGFilterPaintCallback *aPaintCallback,
-                              const nsIntRect* aDirtyArea);
+                              const nsRect* aDirtyArea);
 
   
 
@@ -56,8 +69,8 @@ public:
 
 
 
-  nsIntRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                   const nsIntRect& aPreFilterDirtyRect);
+  nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
+                                const nsRect& aPreFilterDirtyRect);
 
   
 
@@ -65,8 +78,8 @@ public:
 
 
 
-  nsIntRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                   const nsIntRect& aPostFilterDirtyRect);
+  nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
+                                const nsRect& aPostFilterDirtyRect);
 
   
 
@@ -76,10 +89,9 @@ public:
 
 
 
-
-  nsIntRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
-                                const gfxRect *aOverrideBBox = nsnull,
-                                const nsIntRect *aPreFilterBounds = nsnull);
+  nsRect GetPostFilterBounds(nsIFrame *aFilteredFrame,
+                             const gfxRect *aOverrideBBox = nullptr,
+                             const nsRect *aPreFilterBounds = nullptr);
 
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
@@ -104,18 +116,18 @@ private:
   nsSVGFilterFrame* GetReferencedFilterIfNotInUse();
 
   
-  PRUint16 GetEnumValue(PRUint32 aIndex, nsIContent *aDefault);
-  PRUint16 GetEnumValue(PRUint32 aIndex)
+  uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
+  uint16_t GetEnumValue(uint32_t aIndex)
   {
     return GetEnumValue(aIndex, mContent);
   }
-  const nsSVGIntegerPair *GetIntegerPairValue(PRUint32 aIndex, nsIContent *aDefault);
-  const nsSVGIntegerPair *GetIntegerPairValue(PRUint32 aIndex)
+  const nsSVGIntegerPair *GetIntegerPairValue(uint32_t aIndex, nsIContent *aDefault);
+  const nsSVGIntegerPair *GetIntegerPairValue(uint32_t aIndex)
   {
     return GetIntegerPairValue(aIndex, mContent);
   }
-  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex, nsIContent *aDefault);
-  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex)
+  const nsSVGLength2 *GetLengthValue(uint32_t aIndex, nsIContent *aDefault);
+  const nsSVGLength2 *GetLengthValue(uint32_t aIndex)
   {
     return GetLengthValue(aIndex, mContent);
   }

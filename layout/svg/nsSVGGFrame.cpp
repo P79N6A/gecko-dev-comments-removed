@@ -11,6 +11,7 @@
 #include "nsIDOMSVGTransformable.h"
 #include "nsIFrame.h"
 #include "nsSVGGraphicElement.h"
+#include "nsSVGIntegrationUtils.h"
 #include "nsSVGUtils.h"
 
 
@@ -48,33 +49,35 @@ nsSVGGFrame::GetType() const
 
 
 void
-nsSVGGFrame::NotifySVGChanged(PRUint32 aFlags)
+nsSVGGFrame::NotifySVGChanged(uint32_t aFlags)
 {
-  NS_ABORT_IF_FALSE(!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS) ||
-                    (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "Must be NS_STATE_SVG_NONDISPLAY_CHILD!");
-
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
   if (aFlags & TRANSFORM_CHANGED) {
     
-    mCanvasTM = nsnull;
+    mCanvasTM = nullptr;
   }
 
   nsSVGGFrameBase::NotifySVGChanged(aFlags);
 }
 
 gfxMatrix
-nsSVGGFrame::GetCanvasTM()
+nsSVGGFrame::GetCanvasTM(uint32_t aFor)
 {
+  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    if ((aFor == FOR_PAINTING && NS_SVGDisplayListPaintingEnabled()) ||
+        (aFor == FOR_HIT_TESTING && NS_SVGDisplayListHitTestingEnabled())) {
+      return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(this);
+    }
+  }
   if (!mCanvasTM) {
     NS_ASSERTION(mParent, "null parent");
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
     nsSVGGraphicElement *content = static_cast<nsSVGGraphicElement*>(mContent);
 
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
+    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM(aFor));
 
     mCanvasTM = new gfxMatrix(tm);
   }
@@ -82,13 +85,13 @@ nsSVGGFrame::GetCanvasTM()
 }
 
 NS_IMETHODIMP
-nsSVGGFrame::AttributeChanged(PRInt32         aNameSpaceID,
+nsSVGGFrame::AttributeChanged(int32_t         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              PRInt32         aModType)
+                              int32_t         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::transform) {
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
     NotifySVGChanged(TRANSFORM_CHANGED);
   }
   

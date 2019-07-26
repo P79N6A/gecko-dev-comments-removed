@@ -6,6 +6,7 @@
 
 #include "gfxMatrix.h"
 #include "nsSVGAElement.h"
+#include "nsSVGIntegrationUtils.h"
 #include "nsSVGTSpanFrame.h"
 #include "nsSVGUtils.h"
 #include "SVGLengthList.h"
@@ -37,9 +38,9 @@ public:
 #endif
 
   
-  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               PRInt32         aModType);
+                               int32_t         aModType);
 
   
 
@@ -55,16 +56,16 @@ public:
   }
 #endif
   
-  virtual void NotifySVGChanged(PRUint32 aFlags);
+  virtual void NotifySVGChanged(uint32_t aFlags);
   
   
-  virtual gfxMatrix GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM(uint32_t aFor);
 
   
   virtual void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
   virtual void GetDxDy(mozilla::SVGUserUnitList *aDx, mozilla::SVGUserUnitList *aDy);
   virtual const SVGNumberList* GetRotate() {
-    return nsnull;
+    return nullptr;
   }
 
 private:
@@ -100,13 +101,13 @@ nsSVGAFrame::Init(nsIContent* aContent,
 #endif 
 
 NS_IMETHODIMP
-nsSVGAFrame::AttributeChanged(PRInt32         aNameSpaceID,
+nsSVGAFrame::AttributeChanged(int32_t         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              PRInt32         aModType)
+                              int32_t         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::transform) {
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
     NotifySVGChanged(TRANSFORM_CHANGED);
   }
 
@@ -123,18 +124,14 @@ nsSVGAFrame::GetType() const
 
 
 void
-nsSVGAFrame::NotifySVGChanged(PRUint32 aFlags)
+nsSVGAFrame::NotifySVGChanged(uint32_t aFlags)
 {
-  NS_ABORT_IF_FALSE(!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS) ||
-                    (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "Must be NS_STATE_SVG_NONDISPLAY_CHILD!");
-
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
   if (aFlags & TRANSFORM_CHANGED) {
     
-    mCanvasTM = nsnull;
+    mCanvasTM = nullptr;
   }
 
   nsSVGAFrameBase::NotifySVGChanged(aFlags);
@@ -144,15 +141,21 @@ nsSVGAFrame::NotifySVGChanged(PRUint32 aFlags)
 
 
 gfxMatrix
-nsSVGAFrame::GetCanvasTM()
+nsSVGAFrame::GetCanvasTM(uint32_t aFor)
 {
+  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    if ((aFor == FOR_PAINTING && NS_SVGDisplayListPaintingEnabled()) ||
+        (aFor == FOR_HIT_TESTING && NS_SVGDisplayListHitTestingEnabled())) {
+      return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(this);
+    }
+  }
   if (!mCanvasTM) {
     NS_ASSERTION(mParent, "null parent");
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
     nsSVGAElement *content = static_cast<nsSVGAElement*>(mContent);
 
-    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM());
+    gfxMatrix tm = content->PrependLocalTransformsTo(parent->GetCanvasTM(aFor));
 
     mCanvasTM = new gfxMatrix(tm);
   }
