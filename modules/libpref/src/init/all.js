@@ -358,6 +358,7 @@ pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.
 pref("toolkit.telemetry.debugSlowSql", false);
 
 
+pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
 
 
@@ -3796,8 +3797,6 @@ pref("social.enabled", false);
 
 
 pref("dom.idle-observers-api.fuzz_time.disabled", true);
-
-pref("toolkit.identity.debug", false);
 
 
 
