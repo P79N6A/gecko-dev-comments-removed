@@ -370,35 +370,15 @@ LayoutHelpers.prototype = {
 
 
 
-
-
   getFrameElement: function LH_getFrameElement(win) {
     if (this.isTopLevelWindow(win)) {
       return null;
     }
 
-    
-    let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIWebNavigation)
-                   .QueryInterface(Ci.nsIDocShell);
+    let winUtils = win.
+      QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+      getInterface(Components.interfaces.nsIDOMWindowUtils);
 
-    if (docShell.isBrowserOrApp) {
-      
-      
-      let parentDocShell = docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
-      
-      
-      let parentDoc = parentDocShell.contentViewer.DOMDocument;
-      let allIframes = parentDoc.querySelectorAll("iframe");
-      for (let f of allIframes) {
-        if (f.contentWindow === win) {
-          return f;
-        }
-      }
-
-      return null;
-    } else {
-      return win.frameElement;
-    }
+    return winUtils.containerElement;
   },
 };
