@@ -117,6 +117,15 @@ static inline void profiler_start(int aProfileEntries, double aInterval,
 
 static inline void profiler_stop() {}
 
+
+
+
+
+
+static inline bool profiler_is_paused() { return false; }
+static inline void profiler_pause() {}
+static inline void profiler_resume() {}
+
 class ProfilerBacktrace;
 
 
