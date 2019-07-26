@@ -68,9 +68,16 @@ var Authentication = {
     Weave.Service.identity.basicPassword = account["password"];
     Weave.Service.identity.syncKey = account["passphrase"];
 
-    
-    Weave.Service.login();
-    Weave.Svc.Obs.notify("weave:service:setup-complete");
+    if (Weave.Status.login !== Weave.LOGIN_SUCCEEDED) {
+      Logger.logInfo("Logging into Weave.");
+      Weave.Service.login();
+      Logger.AssertEqual(Weave.Status.login, Weave.LOGIN_SUCCEEDED,
+                         "Weave logged in");
+
+      
+      
+      Weave.Svc.Obs.notify("weave:service:setup-complete");
+    }
 
     return true;
   }
