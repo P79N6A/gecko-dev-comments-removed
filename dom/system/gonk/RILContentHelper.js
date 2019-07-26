@@ -305,7 +305,8 @@ MobileCallForwardingInfo.prototype = {
                       serviceClass: 'r'}
 };
 
-function CellBroadcastMessage(pdu) {
+function CellBroadcastMessage(clientId, pdu) {
+  this.serviceId = clientId;
   this.gsmGeographicalScope = RIL.CB_GSM_GEOGRAPHICAL_SCOPE_NAMES[pdu.geographicalScope];
   this.messageCode = pdu.messageCode;
   this.messageId = pdu.messageId;
@@ -331,6 +332,7 @@ CellBroadcastMessage.prototype = {
   }),
 
   
+  serviceId: -1,
 
   gsmGeographicalScope: null,
   messageCode: null,
@@ -1545,11 +1547,15 @@ RILContentHelper.prototype = {
   registerCellBroadcastMsg: function(listener) {
     if (DEBUG) debug("Registering for Cell Broadcast related messages");
     
+    
+    
     this.registerListener("_cellBroadcastListeners", 0, listener);
     cpmm.sendAsyncMessage("RIL:RegisterCellBroadcastMsg");
   },
 
   unregisterCellBroadcastMsg: function(listener) {
+    
+    
     
     this.unregisterListener("_cellBroadcastListeners", 0, listener);
   },
@@ -1824,8 +1830,10 @@ RILContentHelper.prototype = {
         this.handleSimpleRequest(data.requestId, data.errorMsg, null);
         break;
       case "RIL:CellBroadcastReceived": {
-        let message = new CellBroadcastMessage(data);
-        this._deliverEvent(clientId,
+        
+        
+        let message = new CellBroadcastMessage(clientId, data);
+        this._deliverEvent(0, 
                            "_cellBroadcastListeners",
                            "notifyMessageReceived",
                            [message]);
