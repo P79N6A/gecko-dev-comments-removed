@@ -2899,52 +2899,18 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 }
 
 
-
-
-
-
-
 bool
 JSObject::swap(JSContext *cx, JSObject *other)
 {
     
     JS_ASSERT(IsBackgroundFinalized(getAllocKind()) ==
               IsBackgroundFinalized(other->getAllocKind()));
+    JS_ASSERT(compartment() == other->compartment());
 
-    if (this->compartment() == other->compartment()) {
-        TradeGutsReserved reserved(cx);
-        if (!ReserveForTradeGuts(cx, this, other, reserved))
-            return false;
-        TradeGuts(cx, this, other, reserved);
-        return true;
-    }
-
-    JSObject *thisClone;
-    JSObject *otherClone;
-    {
-        AutoCompartment ac(cx, other);
-        thisClone = JS_CloneObject(cx, this, other->getProto(), other->getParent());
-        if (!thisClone || !JS_CopyPropertiesFrom(cx, thisClone, this))
-            return false;
-    }
-    {
-        AutoCompartment ac(cx, this);
-        otherClone = JS_CloneObject(cx, other, other->getProto(), other->getParent());
-        if (!otherClone || !JS_CopyPropertiesFrom(cx, otherClone, other))
-            return false;
-    }
-
-    TradeGutsReserved reservedThis(cx);
-    TradeGutsReserved reservedOther(cx);
-
-    if (!ReserveForTradeGuts(cx, this, otherClone, reservedThis) ||
-        !ReserveForTradeGuts(cx, other, thisClone, reservedOther)) {
+    TradeGutsReserved reserved(cx);
+    if (!ReserveForTradeGuts(cx, this, other, reserved))
         return false;
-    }
-
-    TradeGuts(cx, this, otherClone, reservedThis);
-    TradeGuts(cx, other, thisClone, reservedOther);
-
+    TradeGuts(cx, this, other, reserved);
     return true;
 }
 
