@@ -15,6 +15,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+function checkLoginInvalid(aLoginInfo, aExpectedError)
+{
+  
+  Assert.throws(() => Services.logins.addLogin(aLoginInfo), aExpectedError);
+  LoginTest.checkLogins([]);
+
+  
+  let testLogin = TestData.formLogin({ hostname: "http://modify.example.com" });
+  Services.logins.addLogin(testLogin);
+
+  
+  Assert.throws(() => Services.logins.modifyLogin(testLogin, aLoginInfo),
+                aExpectedError);
+  Assert.throws(() => Services.logins.modifyLogin(testLogin, newPropertyBag({
+    hostname: aLoginInfo.hostname,
+    formSubmitURL: aLoginInfo.formSubmitURL,
+    httpRealm: aLoginInfo.httpRealm,
+    username: aLoginInfo.username,
+    password: aLoginInfo.password,
+    usernameField: aLoginInfo.usernameField,
+    passwordField: aLoginInfo.passwordField,
+  })), aExpectedError);
+
+  
+  LoginTest.checkLogins([testLogin]);
+  Services.logins.removeLogin(testLogin);
+}
+
+
+
+
+
+
+
 add_task(function test_addLogin_removeLogin()
 {
   
@@ -45,81 +88,63 @@ add_task(function test_addLogin_removeLogin()
 
 
 
-add_task(function test_addLogin_invalid_httpRealm_formSubmitURL()
+add_task(function test_invalid_httpRealm_formSubmitURL()
 {
   
-  let loginInfo = TestData.formLogin({ formSubmitURL: null });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /without a httpRealm or formSubmitURL/);
+  checkLoginInvalid(TestData.formLogin({ formSubmitURL: null }),
+                    /without a httpRealm or formSubmitURL/);
 
   
-  loginInfo = TestData.authLogin({ httpRealm: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /without a httpRealm or formSubmitURL/);
+  checkLoginInvalid(TestData.authLogin({ httpRealm: "" }),
+                    /without a httpRealm or formSubmitURL/);
 
   
-  loginInfo = TestData.formLogin({ formSubmitURL: "" });
   
   
   
 
   
-  loginInfo = TestData.formLogin({ formSubmitURL: "", httpRealm: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /both a httpRealm and formSubmitURL/);
+  checkLoginInvalid(TestData.formLogin({ formSubmitURL: "", httpRealm: "" }),
+                    /both a httpRealm and formSubmitURL/);
 
   
-  loginInfo = TestData.formLogin({ httpRealm: "The HTTP Realm" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /both a httpRealm and formSubmitURL/);
+  checkLoginInvalid(TestData.formLogin({ httpRealm: "The HTTP Realm" }),
+                    /both a httpRealm and formSubmitURL/);
 
   
-  loginInfo = TestData.formLogin({ httpRealm: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /both a httpRealm and formSubmitURL/);
+  checkLoginInvalid(TestData.formLogin({ httpRealm: "" }),
+                    /both a httpRealm and formSubmitURL/);
 
   
-  loginInfo = TestData.authLogin({ formSubmitURL: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /both a httpRealm and formSubmitURL/);
-
-  
-  LoginTest.checkLogins([]);
+  checkLoginInvalid(TestData.authLogin({ formSubmitURL: "" }),
+                    /both a httpRealm and formSubmitURL/);
 });
 
 
 
 
-add_task(function test_addLogin_missing_properties()
+add_task(function test_missing_properties()
 {
-  let loginInfo = TestData.formLogin({ hostname: null });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /null or empty hostname/);
+  checkLoginInvalid(TestData.formLogin({ hostname: null }),
+                    /null or empty hostname/);
 
-  loginInfo = TestData.formLogin({ hostname: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /null or empty hostname/);
+  checkLoginInvalid(TestData.formLogin({ hostname: "" }),
+                    /null or empty hostname/);
 
-  loginInfo = TestData.formLogin({ username: null });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /null username/);
+  checkLoginInvalid(TestData.formLogin({ username: null }),
+                    /null username/);
 
-  loginInfo = TestData.formLogin({ password: null });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /null or empty password/);
+  checkLoginInvalid(TestData.formLogin({ password: null }),
+                    /null or empty password/);
 
-  loginInfo = TestData.formLogin({ password: "" });
-  Assert.throws(() => Services.logins.addLogin(loginInfo),
-                /null or empty password/);
-
-  
-  LoginTest.checkLogins([]);
+  checkLoginInvalid(TestData.formLogin({ password: "" }),
+                    /null or empty password/);
 });
 
 
 
 
-add_task(function test_addLogin_invalid_characters()
+add_task(function test_invalid_characters()
 {
   let loginList = [
     TestData.authLogin({ hostname: "http://null\0X.example.com" }),
@@ -132,12 +157,8 @@ add_task(function test_addLogin_invalid_characters()
     TestData.formLogin({ password: "pass\0word" }),
   ];
   for (let loginInfo of loginList) {
-    Assert.throws(() => Services.logins.addLogin(loginInfo),
-                  /login values can't contain nulls/);
+    checkLoginInvalid(loginInfo, /login values can't contain nulls/);
   }
-
-  
-  LoginTest.checkLogins([]);
 });
 
 
@@ -200,15 +221,12 @@ add_task(function test_modifyLogin_nsILoginInfo()
   LoginTest.checkLogins([loginInfo, differentLoginInfo]);
 
   
-  
-  Services.logins.modifyLogin(loginInfo, differentLoginInfo);
-  LoginTest.checkLogins([differentLoginInfo, differentLoginInfo]);
+  Assert.throws(
+         () => Services.logins.modifyLogin(loginInfo, differentLoginInfo),
+         /already exists/);
+  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
 
-  
-  Services.logins.removeLogin(differentLoginInfo);
-  LoginTest.checkLogins([differentLoginInfo]);
-  Services.logins.removeLogin(differentLoginInfo);
-  LoginTest.checkLogins([]);
+  LoginTest.clearData();
 });
 
 
@@ -270,13 +288,10 @@ add_task(function test_modifyLogin_nsIProperyBag()
   LoginTest.checkLogins([loginInfo, differentLoginInfo]);
 
   
-  
-  Services.logins.modifyLogin(loginInfo, differentLoginProperties);
-  LoginTest.checkLogins([differentLoginInfo, differentLoginInfo]);
+  Assert.throws(
+         () => Services.logins.modifyLogin(loginInfo, differentLoginProperties),
+         /already exists/);
+  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
 
-  
-  Services.logins.removeLogin(differentLoginInfo);
-  LoginTest.checkLogins([differentLoginInfo]);
-  Services.logins.removeLogin(differentLoginInfo);
-  LoginTest.checkLogins([]);
+  LoginTest.clearData();
 });

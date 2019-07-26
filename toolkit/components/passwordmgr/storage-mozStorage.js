@@ -432,7 +432,41 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         
+        if (newLogin.hostname == null || newLogin.hostname.length == 0)
+            throw "Can't add a login with a null or empty hostname.";
+
+        
+        if (newLogin.username == null)
+            throw "Can't add a login with a null username.";
+
+        if (newLogin.password == null || newLogin.password.length == 0)
+            throw "Can't add a login with a null or empty password.";
+
+        if (newLogin.formSubmitURL || newLogin.formSubmitURL == "") {
+            
+            if (newLogin.httpRealm != null)
+                throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        } else if (newLogin.httpRealm) {
+            
+            if (newLogin.formSubmitURL != null)
+                throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        } else {
+            
+            throw "Can't add a login without a httpRealm or formSubmitURL.";
+        }
+
+        
         this._checkLoginValues(newLogin);
+
+        
+        if (!newLogin.matches(oldLogin, true)) {
+            let logins = this.findLogins({}, newLogin.hostname,
+                                         newLogin.formSubmitURL,
+                                         newLogin.httpRealm);
+
+            if (logins.some(login => newLogin.matches(login, true)))
+                throw "This login already exists.";
+        }
 
         
         let [encUsername, encPassword, encType] = this._encryptLogin(newLogin);
