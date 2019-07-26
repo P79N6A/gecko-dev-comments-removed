@@ -3540,8 +3540,12 @@ class CGMethodCall(CGThing):
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
 
-            
-            for (returnType, args) in possibleSignatures:
+            for (_, args) in possibleSignatures:
+                
+                
+                
+                assert not args[distinguishingIndex].type.isAny()
+                
                 if args[distinguishingIndex].type.isUnion():
                     raise TypeError("No support for unions as distinguishing "
                                     "arguments yet: %s",
@@ -3575,23 +3579,69 @@ class CGMethodCall(CGThing):
                     return True
                 return False
 
-            
-            pickFirstSignature("%s.isNullOrUndefined()" % distinguishingArg,
-                               lambda s: (s[1][distinguishingIndex].type.nullable() or
-                                          s[1][distinguishingIndex].type.isDictionary()))
+            def distinguishingType(signature):
+                return signature[1][distinguishingIndex].type
 
             
             
             
-            interfacesSigs = [
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            pickFirstSignature(
+                "%s.isNullOrUndefined()" % distinguishingArg,
+                lambda s: ((distinguishingType(s).nullable() and not
+                            distinguishingType(s).isString() and not
+                            distinguishingType(s).isEnum() and not
+                            distinguishingType(s).isPrimitive()) or
+                           distinguishingType(s).isDictionary()))
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            
+            
+            
+            
+            
+            objectSigs = [
                 s for s in possibleSignatures
-                if (s[1][distinguishingIndex].type.isObject() or
-                    s[1][distinguishingIndex].type.isNonCallbackInterface()) ]
+                if (distinguishingType(s).isObject() or
+                    distinguishingType(s).isNonCallbackInterface()) ]
+
+            
+            objectSigs.extend(s for s in possibleSignatures
+                              if (distinguishingType(s).isArray() or
+                                  distinguishingType(s).isSequence()))
+
+            
+            objectSigs.extend(s for s in possibleSignatures
+                              if distinguishingType(s).isDate())
+
             
             
-            
-            if len(interfacesSigs) > 0:
-                
+            if len(objectSigs) > 0:
                 
                 
                 
@@ -3604,9 +3654,9 @@ class CGMethodCall(CGThing):
                 
                 caseBody.append(CGGeneric("if (%s.isObject()) {" %
                                           (distinguishingArg)))
-                for sig in interfacesSigs:
+                for sig in objectSigs:
                     caseBody.append(CGIndenter(CGGeneric("do {")));
-                    type = sig[1][distinguishingIndex].type
+                    type = distinguishingType(sig)
 
                     
                     
@@ -3635,44 +3685,22 @@ class CGMethodCall(CGThing):
 
             
             
-            
-            pickFirstSignature("%s.isObject() && IsArrayLike(cx, &%s.toObject())" %
-                               (distinguishingArg, distinguishingArg),
-                               lambda s:
-                                   (s[1][distinguishingIndex].type.isArray() or
-                                    s[1][distinguishingIndex].type.isSequence() or
-                                    s[1][distinguishingIndex].type.isObject()))
-
-            
-            
-            pickFirstSignature("%s.isObject() && JS_ObjectIsDate(cx, &%s.toObject())" %
-                               (distinguishingArg, distinguishingArg),
-                               lambda s: (s[1][distinguishingIndex].type.isDate() or
-                                          s[1][distinguishingIndex].type.isObject()))
-
-            
-            
             pickFirstSignature("%s.isObject() && !IsPlatformObject(cx, &%s.toObject())" %
                                (distinguishingArg, distinguishingArg),
-                               lambda s: (s[1][distinguishingIndex].type.isCallback() or
-                                          s[1][distinguishingIndex].type.isCallbackInterface() or
-                                          s[1][distinguishingIndex].type.isDictionary() or
-                                          s[1][distinguishingIndex].type.isObject()))
+                               lambda s: (distinguishingType(s).isCallback() or
+                                          distinguishingType(s).isCallbackInterface() or
+                                          distinguishingType(s).isDictionary()))
 
             
             
             
             if pickFirstSignature(None,
-                                  lambda s: (s[1][distinguishingIndex].type.isString() or
-                                             s[1][distinguishingIndex].type.isEnum())):
+                                  lambda s: (distinguishingType(s).isString() or
+                                             distinguishingType(s).isEnum())):
                 pass
             
             elif pickFirstSignature(None,
-                                    lambda s: s[1][distinguishingIndex].type.isPrimitive()):
-                pass
-            
-            elif pickFirstSignature(None,
-                                    lambda s: s[1][distinguishingIndex].type.isAny()):
+                                    lambda s: distinguishingType(s).isPrimitive()):
                 pass
             else:
                 
