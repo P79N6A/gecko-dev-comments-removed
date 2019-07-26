@@ -1110,6 +1110,9 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
   }
 
   
+  *aPermission = nsIPermissionManager::UNKNOWN_ACTION;
+
+  
   
   nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
   if (ep) {
@@ -1117,9 +1120,6 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
     nsresult rv = ep->GetWhiteList(&whitelist);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    *aPermission = nsIPermissionManager::DENY_ACTION;
     for (size_t i = 0; i < whitelist->Length(); ++i) {
       uint32_t perm;
       rv = CommonTestPermission(whitelist->ElementAt(i), aType, &perm, aExactHostMatch,
@@ -1136,9 +1136,6 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
 
     return NS_OK;
   }
-
-  
-  *aPermission = nsIPermissionManager::UNKNOWN_ACTION;
 
   nsAutoCString host;
   nsresult rv = GetHostForPrincipal(aPrincipal, host);
