@@ -1541,6 +1541,9 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
   
   const nsStyleList* myList = StyleList();
   nscoord ascent;
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+                                        aFontSizeInflation);
 
   RemoveStateBits(BULLET_FRAME_IMAGE_LOADING);
 
@@ -1552,6 +1555,17 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
       
       aMetrics.Width() = mIntrinsicSize.width;
       aMetrics.SetTopAscent(aMetrics.Height() = mIntrinsicSize.height);
+
+      
+      nscoord halfEm = fm->EmHeight() / 2;
+      WritingMode wm = GetWritingMode();
+      if (wm.IsVertical()) {
+        mPadding.bottom += halfEm;
+      } else if (wm.IsBidiLTR()) {
+        mPadding.right += halfEm;
+      } else {
+        mPadding.left += halfEm;
+      }
 
       AddStateBits(BULLET_FRAME_IMAGE_LOADING);
 
@@ -1567,9 +1581,6 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
   
   mIntrinsicSize.SizeTo(0, 0);
 
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
-                                        aFontSizeInflation);
   nscoord bulletSize;
 
   nsAutoString text;
