@@ -7,6 +7,9 @@
 #include "nsNSSComponent.h"
 #include "nsSmartCardMonitor.h"
 #include "nsSmartCardEvent.h"
+#include "mozilla/unused.h"
+
+using namespace mozilla;
 
 
 
@@ -25,8 +28,6 @@
 
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-
-#include <assert.h>
 
 
 
@@ -73,8 +74,7 @@ SmartCardThreadList::~SmartCardThreadList()
 void
 SmartCardThreadList::Remove(SECMODModule *aModule)
 {
-  SmartCardThreadEntry *current;
-  for (current = head; current; current=current->next) {
+  for (SmartCardThreadEntry *current = head; current; current = current->next) {
     if (current->thread->GetModule() == aModule) {
       
       delete current;
@@ -90,6 +90,8 @@ SmartCardThreadList::Add(SmartCardMonitoringThread *thread)
   SmartCardThreadEntry *current = new SmartCardThreadEntry(thread, head, nullptr,
                                                            &head);
   
+  unused << current;
+
   return thread->Start();
 }
 
