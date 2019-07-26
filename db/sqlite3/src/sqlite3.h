@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.17"
-#define SQLITE_VERSION_NUMBER 3007017
-#define SQLITE_SOURCE_ID      "2013-05-20 00:56:22 118a3b35693b134d56ebd780123b7fd6f1497668"
+#define SQLITE_VERSION        "3.8.0.2"
+#define SQLITE_VERSION_NUMBER 3008000
+#define SQLITE_SOURCE_ID      "2013-09-03 17:11:13 7dd4968f235d6e1ca9547cda9cf3bd570e1609ef"
 
 
 
@@ -478,8 +478,10 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_IOERR_SEEK              (SQLITE_IOERR | (22<<8))
 #define SQLITE_IOERR_DELETE_NOENT      (SQLITE_IOERR | (23<<8))
 #define SQLITE_IOERR_MMAP              (SQLITE_IOERR | (24<<8))
+#define SQLITE_IOERR_GETTEMPPATH       (SQLITE_IOERR | (25<<8))
 #define SQLITE_LOCKED_SHAREDCACHE      (SQLITE_LOCKED |  (1<<8))
 #define SQLITE_BUSY_RECOVERY           (SQLITE_BUSY   |  (1<<8))
+#define SQLITE_BUSY_SNAPSHOT           (SQLITE_BUSY   |  (2<<8))
 #define SQLITE_CANTOPEN_NOTEMPDIR      (SQLITE_CANTOPEN | (1<<8))
 #define SQLITE_CANTOPEN_ISDIR          (SQLITE_CANTOPEN | (2<<8))
 #define SQLITE_CANTOPEN_FULLPATH       (SQLITE_CANTOPEN | (3<<8))
@@ -499,6 +501,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_CONSTRAINT_VTAB         (SQLITE_CONSTRAINT | (9<<8))
 #define SQLITE_NOTICE_RECOVER_WAL      (SQLITE_NOTICE | (1<<8))
 #define SQLITE_NOTICE_RECOVER_ROLLBACK (SQLITE_NOTICE | (2<<8))
+#define SQLITE_WARNING_AUTOINDEX       (SQLITE_WARNING | (1<<8))
 
 
 
@@ -2577,6 +2580,7 @@ SQLITE_API SQLITE_EXPERIMENTAL void *sqlite3_profile(sqlite3*,
 
 
 
+
 SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
 
@@ -4218,6 +4222,14 @@ SQLITE_API sqlite3 *sqlite3_context_db_handle(sqlite3_context*);
 
 
 
+
+
+
+
+
+
+
+
 SQLITE_API void *sqlite3_get_auxdata(sqlite3_context*, int N);
 SQLITE_API void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
 
@@ -4518,6 +4530,11 @@ SQLITE_API int sqlite3_key(
   sqlite3 *db,                   
   const void *pKey, int nKey     
 );
+SQLITE_API int sqlite3_key_v2(
+  sqlite3 *db,                   
+  const char *zDbName,           
+  const void *pKey, int nKey     
+);
 
 
 
@@ -4529,6 +4546,11 @@ SQLITE_API int sqlite3_key(
 
 SQLITE_API int sqlite3_rekey(
   sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+SQLITE_API int sqlite3_rekey_v2(
+  sqlite3 *db,                   
+  const char *zDbName,           
   const void *pKey, int nKey     
 );
 
@@ -5118,7 +5140,20 @@ SQLITE_API int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 
 
 
+
 SQLITE_API int sqlite3_auto_extension(void (*xEntryPoint)(void));
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API int sqlite3_cancel_auto_extension(void (*xEntryPoint)(void));
 
 
 
@@ -6234,6 +6269,12 @@ SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int r
 
 
 
+
+
+
+
+
+
 #define SQLITE_DBSTATUS_LOOKASIDE_USED       0
 #define SQLITE_DBSTATUS_CACHE_USED           1
 #define SQLITE_DBSTATUS_SCHEMA_USED          2
@@ -6244,7 +6285,8 @@ SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int r
 #define SQLITE_DBSTATUS_CACHE_HIT            7
 #define SQLITE_DBSTATUS_CACHE_MISS           8
 #define SQLITE_DBSTATUS_CACHE_WRITE          9
-#define SQLITE_DBSTATUS_MAX                  9   /* Largest defined DBSTATUS */
+#define SQLITE_DBSTATUS_DEFERRED_FKS        10
+#define SQLITE_DBSTATUS_MAX                 10   /* Largest defined DBSTATUS */
 
 
 
@@ -6300,9 +6342,19 @@ SQLITE_API int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
 
 
 
+
+
+
+
+
+
+
+
+
 #define SQLITE_STMTSTATUS_FULLSCAN_STEP     1
 #define SQLITE_STMTSTATUS_SORT              2
 #define SQLITE_STMTSTATUS_AUTOINDEX         3
+#define SQLITE_STMTSTATUS_VM_STEP           4
 
 
 
