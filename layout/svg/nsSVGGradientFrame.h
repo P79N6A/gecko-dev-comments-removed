@@ -22,7 +22,7 @@ class nsStyleContext;
 struct gfxRect;
 
 namespace mozilla {
-class SVGAnimatedTransformList;
+class nsSVGAnimatedTransformList;
 
 namespace dom {
 class SVGLinearGradientElement;
@@ -79,7 +79,7 @@ private:
   void GetStopInformation(int32_t aIndex,
                           float *aOffset, nscolor *aColor, float *aStopOpacity);
 
-  const mozilla::SVGAnimatedTransformList* GetGradientTransformList(
+  const mozilla::nsSVGAnimatedTransformList* GetGradientTransformList(
     nsIContent* aDefault);
   
   gfxMatrix GetGradientTransform(nsIFrame *aSource,

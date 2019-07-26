@@ -4,8 +4,8 @@
 
 
 
-#ifndef MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
-#define MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
+#ifndef mozilla_dom_SVGAnimatedTransformList_h
+#define mozilla_dom_SVGAnimatedTransformList_h
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -17,7 +17,9 @@
 namespace mozilla {
 
 class DOMSVGTransformList;
-class SVGAnimatedTransformList;
+class nsSVGAnimatedTransformList;
+
+namespace dom {
 
 
 
@@ -35,14 +37,13 @@ class SVGAnimatedTransformList;
 
 
 
-class DOMSVGAnimatedTransformList MOZ_FINAL : public nsISupports,
-                                              public nsWrapperCache
+class SVGAnimatedTransformList MOZ_FINAL : public nsWrapperCache
 {
   friend class DOMSVGTransformList;
 
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedTransformList)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGAnimatedTransformList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGAnimatedTransformList)
 
   
 
@@ -55,16 +56,16 @@ public:
 
 
 
-  static already_AddRefed<DOMSVGAnimatedTransformList>
-    GetDOMWrapper(SVGAnimatedTransformList *aList, nsSVGElement *aElement);
+  static already_AddRefed<SVGAnimatedTransformList>
+    GetDOMWrapper(nsSVGAnimatedTransformList *aList, nsSVGElement *aElement);
 
   
 
 
 
 
-  static DOMSVGAnimatedTransformList*
-    GetDOMWrapperIfExists(SVGAnimatedTransformList *aList);
+  static SVGAnimatedTransformList*
+    GetDOMWrapperIfExists(nsSVGAnimatedTransformList *aList);
 
   
 
@@ -100,7 +101,7 @@ private:
 
 
 
-  explicit DOMSVGAnimatedTransformList(nsSVGElement *aElement)
+  explicit SVGAnimatedTransformList(nsSVGElement *aElement)
     : mBaseVal(nullptr)
     , mAnimVal(nullptr)
     , mElement(aElement)
@@ -108,11 +109,11 @@ private:
     SetIsDOMBinding();
   }
 
-  ~DOMSVGAnimatedTransformList();
+  ~SVGAnimatedTransformList();
 
   
-  SVGAnimatedTransformList& InternalAList();
-  const SVGAnimatedTransformList& InternalAList() const;
+  nsSVGAnimatedTransformList& InternalAList();
+  const nsSVGAnimatedTransformList& InternalAList() const;
 
   
   
@@ -125,6 +126,7 @@ private:
   nsRefPtr<nsSVGElement> mElement;
 };
 
+} 
 } 
 
 #endif 
