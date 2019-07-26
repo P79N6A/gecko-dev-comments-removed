@@ -302,6 +302,10 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   nscoord& ComputedMinHeight() { return mComputedMinHeight; }
   nscoord& ComputedMaxHeight() { return mComputedMaxHeight; }
 
+  
+  
+  
+  
   nscoord AvailableISize() const
     { return mWritingMode.IsVertical() ? mAvailableHeight : mAvailableWidth; }
   nscoord AvailableBSize() const

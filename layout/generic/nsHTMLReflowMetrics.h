@@ -218,15 +218,25 @@ public:
     , mWritingMode(aState.GetWritingMode())
   {}
 
+  
+  
+  
+  
   nscoord ISize() const { return mISize; }
   nscoord BSize() const { return mBSize; }
 
   nscoord& ISize() { return mISize; }
   nscoord& BSize() { return mBSize; }
 
+  
+  
+  
+  
   nscoord Width() const { return mWritingMode.IsVertical() ? mBSize : mISize; }
   nscoord Height() const { return mWritingMode.IsVertical() ? mISize : mBSize; }
 
+  
+  
   nscoord TopAscent() const
   {
     return mWritingMode.IsVertical() ? 0 : mBlockStartAscent;
@@ -245,11 +255,15 @@ public:
   nscoord& Width() { return mWritingMode.IsVertical() ? mBSize : mISize; }
   nscoord& Height() { return mWritingMode.IsVertical() ? mISize : mBSize; }
 
+  
+  
   void SetBlockStartAscent(mozilla::WritingMode aWritingMode, nscoord aAscent)
   {
     NS_ASSERTION(aWritingMode == mWritingMode, "writing mode mismatch");
     mBlockStartAscent = aAscent;
   }
+  
+  
   void SetTopAscent(nscoord aAscent)
   {
     NS_ASSERTION(!mWritingMode.IsVertical(), "writing mode mismatch");
