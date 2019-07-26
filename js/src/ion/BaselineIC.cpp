@@ -386,27 +386,20 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
     JS_ASSERT(jitcodePtr);
     JS_ASSERT(!*jitcodePtr);
 
-    
-    
-    if (JSOp(*pc) != JSOP_LOOPENTRY) {
-        IonSpew(IonSpew_BaselineICFallback, "  Not at LOOPENTRY.");
-        
-        JS_ASSERT(pc == script->code);
-        return true;
-    }
-
-    
-    if (script->isIonCompilingOffThread()) {
-        IonSpew(IonSpew_BaselineOSR, "  IonScript exists, and is compiling off thread!");
-        
-        
-        
-        script->resetUseCount();
-        return true;
-    }
+    bool isLoopEntry = (JSOp(*pc) == JSOP_LOOPENTRY);
 
     bool isConstructing = ScriptFrameIter(cx).isConstructing();
-    MethodStatus stat = CanEnterAtBranch(cx, script, frame, pc, isConstructing);
+    MethodStatus stat;
+    if (isLoopEntry) {
+        IonSpew(IonSpew_BaselineOSR, "  Compile at loop entry!");
+        stat = CanEnterAtBranch(cx, script, frame, pc, isConstructing);
+    } else if (frame->isFunctionFrame()) {
+        IonSpew(IonSpew_BaselineOSR, "  Compile function from top for later entry!");
+        stat = CompileFunctionForBaseline(cx, script, frame, isConstructing);
+    } else {
+        return true;
+    }
+
     if (stat == Method_Error) {
         IonSpew(IonSpew_BaselineOSR, "  Compile with Ion errored!");
         return false;
@@ -429,13 +422,14 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
         return true;
     }
 
-    IonSpew(IonSpew_BaselineOSR, "  IonScript exists, and OSR possible!");
-    IonScript *ion = script->ionScript();
-    void *osrcode = ion->method()->raw() + ion->osrEntryOffset();
-
-    *jitcodePtr = osrcode;
+    if (isLoopEntry) {
+        IonSpew(IonSpew_BaselineOSR, "  OSR possible!");
+        IonScript *ion = script->ionScript();
+        *jitcodePtr = ion->method()->raw() + ion->osrEntryOffset();
+    }
 
     script->resetUseCount();
+
     return true;
 }
 
@@ -549,6 +543,32 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
 
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
+    bool isLoopEntry = JSOp(*pc) == JSOP_LOOPENTRY;
+
+    if (!script->canIonCompile()) {
+        
+        
+        
+        script->resetUseCount();
+        return true;
+    }
+    if (script->isIonCompilingOffThread()) {
+        
+        
+        
+        script->resetUseCount();
+        return true;
+    }
+
+    
+    
+    if (script->hasIonScript() && !isLoopEntry) {
+        IonSpew(IonSpew_BaselineOSR, "IonScript exists, but not at loop entry!");
+        
+        
+        
+        return true;
+    }
 
     
     IonSpew(IonSpew_BaselineOSR,
@@ -558,6 +578,8 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
     if (!EnsureCanEnterIon(cx, stub, frame, script, pc, &jitcode))
         return false;
 
+    
+    JS_ASSERT_IF(!isLoopEntry, !jitcode);
     if (!jitcode)
         return true;
 
