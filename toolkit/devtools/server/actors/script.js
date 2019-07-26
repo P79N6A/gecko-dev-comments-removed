@@ -1226,7 +1226,9 @@ ThreadActor.prototype = {
 
 
   onDebuggerStatement: function TA_onDebuggerStatement(aFrame) {
-    if (this.sources.isBlackBoxed(aFrame.script.url)) {
+    
+    
+    if (this.sources.isBlackBoxed(aFrame.script.url) || aFrame.onStep) {
       return undefined;
     }
     return this._pauseAndRespond(aFrame, { type: "debuggerStatement" });
@@ -2200,7 +2202,10 @@ BreakpointActor.prototype = {
 
 
   hit: function BA_hit(aFrame) {
-    if (this.threadActor.sources.isBlackBoxed(this.location.url)) {
+    
+    
+    if (this.threadActor.sources.isBlackBoxed(this.location.url) ||
+        aFrame.onStep) {
       return undefined;
     }
 
