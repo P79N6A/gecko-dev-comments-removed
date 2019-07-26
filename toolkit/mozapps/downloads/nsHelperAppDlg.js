@@ -36,11 +36,8 @@ nsUnknownContentTypeDialogProgressListener.prototype = {
   onStatusChange: function( aWebProgress, aRequest, aStatus, aMessage ) {
     if ( aStatus != Components.results.NS_OK ) {
       
-      var prompter = Components.classes[ "@mozilla.org/embedcomp/prompt-service;1" ]
-                               .getService( Components.interfaces.nsIPromptService );
       
-      
-      prompter.alert( this.dialog, this.helperAppDlg.mTitle, aMessage );
+      Services.prompt.alert( this.dialog, this.helperAppDlg.mTitle, aMessage );
       
       this.helperAppDlg.onCancel();
       if ( this.helperAppDlg.mDialog ) {
@@ -187,12 +184,27 @@ nsUnknownContentTypeDialog.prototype = {
   
   
   
+  displayBadPermissionAlert: function () {
+    let bundle =
+      Services.strings.createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
+
+    Services.prompt.alert(this.dialog,
+                   bundle.GetStringFromName("badPermissions.title"),
+                   bundle.GetStringFromName("badPermissions"));
+  },
+
   
   
   
   
   
   
+  
+  
+  
+  
+  
+
   promptForSaveToFile: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
     throw new Components.Exception("Async version must be used", Components.results.NS_ERROR_NOT_AVAILABLE);
   },
@@ -204,9 +216,9 @@ nsUnknownContentTypeDialog.prototype = {
 
     let prefs = Components.classes["@mozilla.org/preferences-service;1"]
                           .getService(Components.interfaces.nsIPrefBranch);
-    let bundle = Components.classes["@mozilla.org/intl/stringbundle;1"].
-                            getService(Components.interfaces.nsIStringBundleService).
-                            createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
+    let bundle =
+      Services.strings
+              .createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
 
     Task.spawn(function() {
       if (!aForcePrompt) {
@@ -226,22 +238,13 @@ nsUnknownContentTypeDialog.prototype = {
             result = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExtension);
           }
           catch (ex) {
-            if (ex.result == Components.results.NS_ERROR_FILE_ACCESS_DENIED) {
-              let prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
-                                        getService(Components.interfaces.nsIPromptService);
-
-              
-              prompter.alert(this.dialog,
-                             bundle.GetStringFromName("badPermissions.title"),
-                             bundle.GetStringFromName("badPermissions"));
-
-              aLauncher.saveDestinationAvailable(null);
-              return;
-            }
+            
+            
           }
 
           
           if (result) {
+            
             aLauncher.saveDestinationAvailable(result);
             return;
           }
@@ -306,13 +309,31 @@ nsUnknownContentTypeDialog.prototype = {
             if (result.exists())
               result.remove(false);
           }
-          catch (e) { }
+          catch (ex) {
+            
+            
+          }
+
           var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
 
           
           gDownloadLastDir.setFile(aLauncher.source, newDir);
 
-          result = this.validateLeafName(newDir, result.leafName, null);
+          try {
+            result = this.validateLeafName(newDir, result.leafName, null);
+          }
+          catch (ex) {
+            
+            
+            
+
+            if (ex.result == Components.results.NS_ERROR_FILE_ACCESS_DENIED) {
+              this.displayBadPermissionAlert();
+              aLauncher.saveDestinationAvailable(null);
+              return;
+            }
+
+          }
         }
         aLauncher.saveDestinationAvailable(result);
       }.bind(this));
@@ -335,11 +356,14 @@ nsUnknownContentTypeDialog.prototype = {
 
 
 
+
+
   validateLeafName: function (aLocalFolder, aLeafName, aFileExt)
   {
-    if (!(aLocalFolder && isUsableDirectory(aLocalFolder)))
-      return null;
-
+    if (!(aLocalFolder && isUsableDirectory(aLocalFolder))) {
+      throw new Components.Exception("Destination directory non-existing or permission error",
+                                     Components.results.NS_ERROR_FILE_ACCESS_DENIED);
+    }
     
     
     aLeafName = aLeafName.replace(/^\.+/, "");
@@ -348,6 +372,8 @@ nsUnknownContentTypeDialog.prototype = {
       aLeafName = "unnamed" + (aFileExt ? "." + aFileExt : "");
     aLocalFolder.append(aLeafName);
 
+    
+    
     var createdFile = DownloadPaths.createNiceUniqueFile(aLocalFolder);
 
 #ifdef XP_WIN
@@ -847,8 +873,7 @@ nsUnknownContentTypeDialog.prototype = {
         
         var bundle = this.dialogElement("strings");
         var msg = bundle.getFormattedString("badApp", [this.dialogElement("otherHandler").getAttribute("path")]);
-        var svc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].getService(Components.interfaces.nsIPromptService);
-        svc.alert(this.mDialog, bundle.getString("badApp.title"), msg);
+        Services.prompt.alert(this.mDialog, bundle.getString("badApp.title"), msg);
 
         
         this.mDialog.document.documentElement.getButton("accept").disabled = true;
