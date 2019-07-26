@@ -2,7 +2,7 @@
 
 
 
-%include ../../../shared/in-content/preferences.css
+%include ../../../shared/incontentprefs/preferences.css
 
 button > .button-box,
 menulist > .menulist-label-box {
