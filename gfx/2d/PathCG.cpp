@@ -241,6 +241,9 @@ PathCG::GetBounds(const Matrix &aTransform) const
 {
   
   Rect bounds = CGRectToRect(CGPathGetBoundingBox(mPath));
+  if (!bounds.IsFinite()) {
+    return Rect();
+  }
   
   
   return aTransform.TransformBounds(bounds);
@@ -265,6 +268,10 @@ PathCG::GetStrokedBounds(const StrokeOptions &aStrokeOptions,
   Rect bounds = CGRectToRect(CGContextGetPathBoundingBox(cg));
 
   CGContextRestoreGState(cg);
+
+  if (!bounds.IsFinite()) {
+    return Rect();
+  }
 
   return aTransform.TransformBounds(bounds);
 }
