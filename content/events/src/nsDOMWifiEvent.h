@@ -16,7 +16,7 @@ class nsDOMMozWifiStatusChangeEvent : public nsDOMEvent,
 public:
   nsDOMMozWifiStatusChangeEvent(nsPresContext* aPresContext, nsEvent* aEvent)
     : nsDOMEvent(aPresContext, aEvent) {}
-                     
+
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMMozWifiStatusChangeEvent, nsDOMEvent)
   
@@ -37,7 +37,7 @@ class nsDOMMozWifiConnectionInfoEvent : public nsDOMEvent,
 public:
   nsDOMMozWifiConnectionInfoEvent(nsPresContext* aPresContext, nsEvent* aEvent)
     : nsDOMEvent(aPresContext, aEvent) {}
-                     
+
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMMozWifiConnectionInfoEvent, nsDOMEvent)
   
@@ -52,6 +52,7 @@ private:
   int16_t mSignalStrength;
   int16_t mRelSignalStrength;
   int32_t mLinkSpeed;
+  nsString mIpAddress;
 };
 
 #endif 
