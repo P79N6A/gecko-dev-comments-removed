@@ -616,6 +616,7 @@ static void UnmarkFrameForDisplay(nsIFrame* aFrame) {
 
 static void RecordFrameMetrics(nsIFrame* aForFrame,
                                nsIFrame* aScrollFrame,
+                               const nsIFrame* aReferenceFrame,
                                ContainerLayer* aRoot,
                                const nsRect& aVisibleRect,
                                const nsRect& aViewport,
@@ -680,29 +681,26 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
 
   metrics.mMayHaveTouchListeners = aMayHaveTouchListeners;
 
-  if (aScrollFrame) {
-    metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(
-        aScrollFrame->GetScreenRectInAppUnits(), auPerDevPixel)
-                               * metrics.mResolution
-                               * layerToScreenScale);
+  
+  
+  
+  
+  nsIFrame* frameForCompositionBoundsCalculation = aScrollFrame ? aScrollFrame : aForFrame;
+  nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
+                           frameForCompositionBoundsCalculation->GetSize());
+  metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
+                             * metrics.mResolution
+                             * layerToScreenScale);
 
+  
+  if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
     
-    if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-      nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
-      
-      ScreenIntMargin boundMargins(nsPresContext::AppUnitsToIntCSSPixels(sizes.top),
-                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.right),
-                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.bottom),
-                                   nsPresContext::AppUnitsToIntCSSPixels(sizes.left));
-      metrics.mCompositionBounds.Deflate(boundMargins);
-    }
-  } else {
-    
-    
-    metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(
-        aForFrame->GetScreenRectInAppUnits(), auPerDevPixel)
-                               * metrics.mResolution
-                               * layerToScreenScale);
+    ScreenIntMargin boundMargins(nsPresContext::AppUnitsToIntCSSPixels(sizes.top),
+                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.right),
+                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.bottom),
+                                 nsPresContext::AppUnitsToIntCSSPixels(sizes.left));
+    metrics.mCompositionBounds.Deflate(boundMargins);
   }
 
   metrics.mPresShellId = presShell->GetPresShellId();
@@ -1206,6 +1204,7 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   nsRect viewport(aBuilder->ToReferenceFrame(aForFrame), aForFrame->GetSize());
 
   RecordFrameMetrics(aForFrame, rootScrollFrame,
+                     aBuilder->FindReferenceFrameFor(aForFrame),
                      root, mVisibleRect, viewport,
                      (usingDisplayport ? &displayport : nullptr),
                      (usingCriticalDisplayport ? &criticalDisplayport : nullptr),
@@ -3287,7 +3286,8 @@ nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
     usingCriticalDisplayport =
       nsLayoutUtils::GetCriticalDisplayPort(content, &criticalDisplayport);
   }
-  RecordFrameMetrics(mScrolledFrame, mScrollFrame, layer, mVisibleRect, viewport,
+  RecordFrameMetrics(mScrolledFrame, mScrollFrame, ReferenceFrame(), layer,
+                     mVisibleRect, viewport,
                      (usingDisplayport ? &displayport : nullptr),
                      (usingCriticalDisplayport ? &criticalDisplayport : nullptr),
                      scrollId, aContainerParameters, false);
