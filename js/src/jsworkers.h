@@ -88,7 +88,7 @@ struct WorkerThread
     bool terminate;
 
     
-    JSScript *ionScript;
+    ion::IonBuilder *ionBuilder;
 
     void destroy();
 
