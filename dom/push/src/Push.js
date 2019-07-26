@@ -42,26 +42,11 @@ Push.prototype = {
     debug("init()");
 
     let principal = aWindow.document.nodePrincipal;
-
-    this._pageURL = principal.URI;
-
     let appsService = Cc["@mozilla.org/AppsService;1"]
                         .getService(Ci.nsIAppsService);
-    this._app = appsService.getAppByLocalId(principal.appId);
-    this._manifestURL = appsService.getManifestURLByLocalId(principal.appId);
-    if (!this._manifestURL) {
-	
-	
-	return;
-    }
 
-    let perm = Services.perms.testExactPermissionFromPrincipal(principal,
-                                                               "push");
-    if (perm != Ci.nsIPermissionManager.ALLOW_ACTION) {
-	
-	
-	return;
-    }
+    this._manifestURL = appsService.getManifestURLByLocalId(principal.appId);
+    this._pageURL = principal.URI;
 
     this.initDOMRequestHelper(aWindow, [
       "PushService:Register:OK",

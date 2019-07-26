@@ -283,6 +283,9 @@ public:
                                   JSObject* );
 #endif 
 
+  static bool HasPushNotificationsSupport(JSContext* ,
+                                          JSObject* aGlobal);
+
   nsPIDOMWindow* GetParentObject() const
   {
     return GetWindow();

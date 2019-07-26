@@ -1737,6 +1737,14 @@ bool Navigator::HasUserMediaSupport(JSContext* ,
 #endif 
 
 
+bool Navigator::HasPushNotificationsSupport(JSContext* ,
+                                            JSObject* aGlobal)
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  return win && Preferences::GetBool("services.push.enabled", false) && CheckPermission(win, "push");
+}
+
+
 already_AddRefed<nsPIDOMWindow>
 Navigator::GetWindowFromGlobal(JSObject* aGlobal)
 {
