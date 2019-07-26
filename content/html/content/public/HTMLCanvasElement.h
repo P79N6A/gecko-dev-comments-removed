@@ -178,7 +178,7 @@ protected:
   nsCOMPtr<nsIPrintCallback> mPrintCallback;
   nsCOMPtr<nsICanvasRenderingContextInternal> mCurrentContext;
   nsCOMPtr<HTMLCanvasPrintState> mPrintState;
-  
+
 public:
   
   
@@ -196,12 +196,6 @@ public:
 
   HTMLCanvasElement* GetOriginalCanvas();
 };
-
-inline nsISupports*
-GetISupports(HTMLCanvasElement* p)
-{
-  return static_cast<Element*>(p);
-}
 
 } 
 } 
