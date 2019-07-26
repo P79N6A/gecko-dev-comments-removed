@@ -2056,7 +2056,12 @@ RadioInterface.prototype = {
       mwi.returnMessage = message.fullBody;
       gMessageManager.sendVoicemailMessage("RIL:VoicemailNotification",
                                            this.clientId, mwi);
-      return true;
+
+      
+      
+      if (mwi.discard) {
+        return true;
+      }
     }
 
     let notifyReceived = function notifyReceived(rv, domMessage) {
