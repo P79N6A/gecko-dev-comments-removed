@@ -7,7 +7,7 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 function test() {
   waitForExplicitFinish();
-  
+
   
   
   let oldNetworkProxyType = Services.prefs.getIntPref("network.proxy.type");
@@ -16,10 +16,9 @@ function test() {
     Services.prefs.clearUserPref("network.proxy.no_proxies_on");
     Services.prefs.clearUserPref("browser.preferences.instantApply");
   });
-  
-  let connectionURI = "chrome://browser/content/preferences/connection.xul";
-  let windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"]
-                          .getService(Components.interfaces.nsIWindowWatcher);
+
+  let connectionURL = "chrome://browser/content/preferences/connection.xul";
+  let windowWatcher = Services.ww;
 
   
   
@@ -28,13 +27,12 @@ function test() {
   
   let observer = {
     observe: function(aSubject, aTopic, aData) {
-      
       if (aTopic == "domwindowopened") {
         
         let win = aSubject.QueryInterface(Components.interfaces.nsIDOMWindow);
         win.addEventListener("load", function winLoadListener() {
           win.removeEventListener("load", winLoadListener, false);
-          if (win.location.href == connectionURI) {
+          if (win.location.href == connectionURL) {
             ok(true, "connection window opened");
             runConnectionTests(win);
             win.document.documentElement.acceptDialog();
@@ -43,7 +41,7 @@ function test() {
       } else if (aTopic == "domwindowclosed") {
         
         let win = aSubject.QueryInterface(Components.interfaces.nsIDOMWindow);
-        if (win.location.href == connectionURI) {
+        if (win.location.href == connectionURL) {
           windowWatcher.unregisterNotification(observer);
           ok(true, "connection window closed");
           
@@ -54,9 +52,8 @@ function test() {
           finish();
         }
       }
-
     }
-  }
+  };
 
   
 
@@ -82,7 +79,7 @@ function runConnectionTests(win) {
      "networkProxyNone textbox is multiline");
   is(networkProxyNone.getAttribute("rows"), "2",
      "networkProxyNone textbox has two rows");
-  
+
   
   
   function testSanitize(input, expected, errorMessage) {
