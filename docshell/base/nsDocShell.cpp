@@ -4347,13 +4347,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         nsCOMPtr<Element> element = do_QueryInterface(handler);
         element->GetAttribute(NS_LITERAL_STRING("crashedPageTitle"), messageStr);
       }
-
-      
-      
-      
-      if (messageStr.IsEmpty()) {
-        messageStr.Assign(NS_LITERAL_STRING(" "));
-      }
     }
     else {
         
@@ -4598,8 +4591,26 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     errorPageUrl.AppendLiteral("&d=");
     errorPageUrl.AppendASCII(escapedDescription.get());
 
+    
+    uint32_t appId;
+    nsresult rv = GetAppId(&appId);
+    if (appId != nsIScriptSecurityManager::NO_APP_ID &&
+        appId != nsIScriptSecurityManager::UNKNOWN_APP_ID) {
+      nsCOMPtr<nsIAppsService> appsService =
+        do_GetService(APPS_SERVICE_CONTRACTID);
+      NS_ASSERTION(appsService, "No AppsService available");
+      nsAutoString manifestURL;
+      appsService->GetManifestURLByLocalId(appId, manifestURL);
+      nsCString manifestParam;
+      SAFE_ESCAPE(manifestParam,
+                  NS_ConvertUTF16toUTF8(manifestURL).get(),
+                  url_Path);
+      errorPageUrl.AppendLiteral("&m=");
+      errorPageUrl.AppendASCII(manifestParam.get());
+    }
+
     nsCOMPtr<nsIURI> errorPageURI;
-    nsresult rv = NS_NewURI(getter_AddRefs(errorPageURI), errorPageUrl);
+    rv = NS_NewURI(getter_AddRefs(errorPageURI), errorPageUrl);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return InternalLoad(errorPageURI, nullptr, nullptr,
