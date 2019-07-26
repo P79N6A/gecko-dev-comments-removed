@@ -25,8 +25,9 @@ public final class JavascriptMessageParser {
 
     
     
+    
     private static final Pattern testMessagePattern =
-        Pattern.compile("\n+TEST-(.*) \\| (.*) \\| (.*)\n*");
+        Pattern.compile("TEST-([A-Z\\-]+) \\| (.*?) \\| (.*)", Pattern.DOTALL);
 
     private final Assert asserter;
     
@@ -43,7 +44,7 @@ public final class JavascriptMessageParser {
     }
 
     public void logMessage(final String str) {
-        final Matcher m = testMessagePattern.matcher(str);
+        final Matcher m = testMessagePattern.matcher(str.trim());
 
         if (m.matches()) {
             final String type = m.group(1);
