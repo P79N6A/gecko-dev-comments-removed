@@ -18,7 +18,6 @@
 #include "mozilla/TouchEvents.h"
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
-#include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 
 #include <algorithm>                    
@@ -41,6 +40,38 @@ APZCTreeManager::APZCTreeManager()
 
 APZCTreeManager::~APZCTreeManager()
 {
+}
+
+void
+APZCTreeManager::GetAllowedTouchBehavior(WidgetInputEvent* aEvent,
+                                         nsTArray<TouchBehaviorFlags>& aOutValues)
+{
+  WidgetTouchEvent *touchEvent = aEvent->AsTouchEvent();
+
+  aOutValues.Clear();
+
+  for (size_t i = 0; i < touchEvent->touches.Length(); i++) {
+    
+    
+    mozilla::ScreenIntPoint spt;
+    spt.x = touchEvent->touches[i]->mRefPoint.x;
+    spt.y = touchEvent->touches[i]->mRefPoint.y;
+
+    nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(spt);
+    aOutValues.AppendElement(apzc
+      ? apzc->GetAllowedTouchBehavior(spt)
+      : AllowedTouchBehavior::UNKNOWN);
+  }
+}
+
+void
+APZCTreeManager::SetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
+                                         const nsTArray<TouchBehaviorFlags> &aValues)
+{
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
+  if (apzc) {
+    apzc->SetAllowedTouchBehavior(aValues);
+  }
 }
 
 void

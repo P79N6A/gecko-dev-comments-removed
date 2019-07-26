@@ -65,6 +65,7 @@ class AsyncPanZoomController {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomController)
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
+  typedef uint32_t TouchBehaviorFlags;
 
 public:
   enum GestureBehavior {
@@ -297,6 +298,24 @@ public:
 
 
 
+
+
+
+
+  TouchBehaviorFlags GetAllowedTouchBehavior(ScreenIntPoint& aPoint);
+
+  
+
+
+
+
+  void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
+
+  
+
+
+
+
   void CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                           uint32_t aOverscrollHandoffChainIndex);
 
@@ -425,6 +444,16 @@ protected:
   
 
 
+  void HandlePanningWithTouchAction(double angle, TouchBehaviorFlags value);
+
+  
+
+
+  void HandlePanning(double angle);
+
+  
+
+
 
   nsEventStatus StartPanning(const MultiTouchInput& aStartPoint);
 
@@ -513,6 +542,13 @@ private:
 
 
 
+  TouchBehaviorFlags GetTouchBehavior(uint32_t touchIndex);
+
+  
+
+
+
+
   void SetState(PanZoomState aState);
 
   
@@ -564,6 +600,12 @@ protected:
   
   ReentrantMonitor mMonitor;
 
+  
+  
+  
+  
+  bool mTouchActionPropertyEnabled;
+
 private:
   
   
@@ -583,6 +625,10 @@ private:
 
   AxisX mX;
   AxisY mY;
+
+  
+  
+  bool mPanDirRestricted;
 
   
   
@@ -621,6 +667,12 @@ private:
   
   
   bool mHandlingTouchQueue;
+
+  
+  
+  
+  
+  nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
 
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 

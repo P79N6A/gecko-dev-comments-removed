@@ -19,6 +19,7 @@
 #include "nsISupportsImpl.h"
 #include "nsTraceRefcnt.h"              
 #include "mozilla/Vector.h"             
+#include "nsTArray.h"                   
 
 class gfx3DMatrix;
 template <class E> class nsTArray;
@@ -27,6 +28,14 @@ namespace mozilla {
 class InputData;
 
 namespace layers {
+
+enum AllowedTouchBehavior {
+  NONE =               0,
+  VERTICAL_PAN =       1 << 0,
+  HORIZONTAL_PAN =     1 << 1,
+  ZOOM =               1 << 2,
+  UNKNOWN =            1 << 3
+};
 
 class Layer;
 class AsyncPanZoomController;
@@ -56,6 +65,9 @@ class CompositorParent;
 
 class APZCTreeManager {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(APZCTreeManager)
+
+  typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
+  typedef uint32_t TouchBehaviorFlags;
 
 public:
   APZCTreeManager();
@@ -188,6 +200,22 @@ public:
 
 
   static float GetDPI() { return sDPI; }
+
+  
+
+
+
+
+  void GetAllowedTouchBehavior(WidgetInputEvent* aEvent,
+                               nsTArray<TouchBehaviorFlags>& aOutValues);
+
+  
+
+
+
+
+  void SetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
+                               const nsTArray<TouchBehaviorFlags>& aValues);
 
   
 

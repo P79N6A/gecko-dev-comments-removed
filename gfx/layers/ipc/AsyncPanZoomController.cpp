@@ -127,6 +127,13 @@ using namespace mozilla::css;
 namespace mozilla {
 namespace layers {
 
+typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
+
+
+
+
+static bool gTouchActionPropertyEnabled = false;
+
 
 
 
@@ -134,6 +141,13 @@ namespace layers {
 
 
 static float gTouchStartTolerance = 1.0f/2.0f;
+
+
+
+
+static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
+                                             AllowedTouchBehavior::HORIZONTAL_PAN |
+                                             AllowedTouchBehavior::ZOOM;
 
 
 
@@ -149,6 +163,15 @@ static const float AXIS_BREAKOUT_THRESHOLD = 1.0f/32.0f;
 
 
 static const double AXIS_BREAKOUT_ANGLE = M_PI / 8.0; 
+
+
+
+
+
+
+
+
+static const double ALLOWED_DIRECT_PAN_ANGLE = M_PI / 3.0; 
 
 
 
@@ -358,6 +381,7 @@ AsyncPanZoomController::InitializeGlobalState()
     return;
   sInitialized = true;
 
+  Preferences::AddBoolVarCache(&gTouchActionPropertyEnabled, "layout.css.touch_action.enabled", gTouchActionPropertyEnabled);
   Preferences::AddIntVarCache(&gPanRepaintInterval, "apz.pan_repaint_interval", gPanRepaintInterval);
   Preferences::AddIntVarCache(&gFlingRepaintInterval, "apz.fling_repaint_interval", gFlingRepaintInterval);
   Preferences::AddFloatVarCache(&gMinSkateSpeed, "apz.min_skate_speed", gMinSkateSpeed);
@@ -390,9 +414,11 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mGeckoContentController(aGeckoContentController),
      mRefPtrMonitor("RefPtrMonitor"),
      mMonitor("AsyncPanZoomController"),
+     mTouchActionPropertyEnabled(gTouchActionPropertyEnabled),
      mTouchListenerTimeoutTask(nullptr),
      mX(MOZ_THIS_IN_INITIALIZER_LIST()),
      mY(MOZ_THIS_IN_INITIALIZER_LIST()),
+     mPanDirRestricted(false),
      mZoomConstraints(false, MIN_ZOOM, MAX_ZOOM),
      mLastSampleTime(GetFrameTime()),
      mState(NOTHING),
@@ -561,6 +587,7 @@ nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) 
 
 nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent) {
   APZC_LOG("%p got a touch-start in state %d\n", this, mState);
+  mPanDirRestricted = false;
   ScreenIntPoint point = GetFirstTouchScreenPoint(aEvent);
 
   switch (mState) {
@@ -624,6 +651,17 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
         return nsEventStatus_eIgnore;
       }
 
+      if (mTouchActionPropertyEnabled &&
+          (GetTouchBehavior(0) & AllowedTouchBehavior::VERTICAL_PAN) &&
+          (GetTouchBehavior(0) & AllowedTouchBehavior::HORIZONTAL_PAN)) {
+        
+        
+        
+        
+        StartPanning(aEvent);
+        return nsEventStatus_eConsumeNoDefault;
+      }
+
       return StartPanning(aEvent);
     }
 
@@ -648,7 +686,13 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
 
 nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) {
   APZC_LOG("%p got a touch-end in state %d\n", this, mState);
-  {
+
+  
+  
+  
+  
+  
+  if (mState != NOTHING) {
     ReentrantMonitorAutoEnter lock(mMonitor);
     SendAsyncScrollEvent();
   }
@@ -934,6 +978,74 @@ const gfx::Point AsyncPanZoomController::GetAccelerationVector() {
   return gfx::Point(mX.GetAccelerationFactor(), mY.GetAccelerationFactor());
 }
 
+void AsyncPanZoomController::HandlePanningWithTouchAction(double aAngle, TouchBehaviorFlags aBehavior) {
+  
+  
+  if ((aBehavior & AllowedTouchBehavior::VERTICAL_PAN) && (aBehavior & AllowedTouchBehavior::HORIZONTAL_PAN)) {
+    if (mX.Scrollable() && mY.Scrollable()) {
+      if (IsCloseToHorizontal(aAngle, AXIS_LOCK_ANGLE)) {
+        mY.SetScrollingDisabled(true);
+        SetState(PANNING_LOCKED_X);
+      } else if (IsCloseToVertical(aAngle, AXIS_LOCK_ANGLE)) {
+        mX.SetScrollingDisabled(true);
+        SetState(PANNING_LOCKED_Y);
+      } else {
+        SetState(PANNING);
+      }
+    } else if (mX.Scrollable() || mY.Scrollable()) {
+      SetState(PANNING);
+    } else {
+      SetState(NOTHING);
+    }
+  } else if (aBehavior & AllowedTouchBehavior::HORIZONTAL_PAN) {
+    
+    
+    if (IsCloseToHorizontal(aAngle, ALLOWED_DIRECT_PAN_ANGLE)) {
+      mY.SetScrollingDisabled(true);
+      SetState(PANNING_LOCKED_X);
+      mPanDirRestricted = true;
+    } else {
+      
+      
+      SetState(NOTHING);
+    }
+  } else if (aBehavior & AllowedTouchBehavior::VERTICAL_PAN) {
+    if (IsCloseToVertical(aAngle, ALLOWED_DIRECT_PAN_ANGLE)) {
+      mX.SetScrollingDisabled(true);
+      SetState(PANNING_LOCKED_Y);
+      mPanDirRestricted = true;
+    } else {
+      SetState(NOTHING);
+    }
+  } else {
+    SetState(NOTHING);
+  }
+}
+
+void AsyncPanZoomController::HandlePanning(double aAngle) {
+  if (!gCrossSlideEnabled && (!mX.Scrollable() || !mY.Scrollable())) {
+    SetState(PANNING);
+  } else if (IsCloseToHorizontal(aAngle, AXIS_LOCK_ANGLE)) {
+    mY.SetScrollingDisabled(true);
+    if (mX.Scrollable()) {
+      SetState(PANNING_LOCKED_X);
+    } else {
+      SetState(CROSS_SLIDING_X);
+      mX.SetScrollingDisabled(true);
+    }
+  } else if (IsCloseToVertical(aAngle, AXIS_LOCK_ANGLE)) {
+    mX.SetScrollingDisabled(true);
+    if (mY.Scrollable()) {
+      SetState(PANNING_LOCKED_Y);
+    } else {
+      SetState(CROSS_SLIDING_Y);
+      mY.SetScrollingDisabled(true);
+    }
+  } else {
+    SetState(PANNING);
+  }
+}
+
 nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
   ReentrantMonitorAutoEnter lock(mMonitor);
 
@@ -947,34 +1059,18 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
   mY.StartTouch(point.y);
   mLastEventTime = aEvent.mTime;
 
-  if (GetAxisLockMode() == FREE) {
-    SetState(PANNING);
-    return nsEventStatus_eConsumeNoDefault;
-  }
-
   double angle = atan2(dy, dx); 
   angle = fabs(angle); 
 
-  if (!gCrossSlideEnabled && (!mX.Scrollable() || !mY.Scrollable())) {
-    SetState(PANNING);
-  } else if (IsCloseToHorizontal(angle, AXIS_LOCK_ANGLE)) {
-    mY.SetScrollingDisabled(true);
-    if (mX.Scrollable()) {
-      SetState(PANNING_LOCKED_X);
-    } else {
-      SetState(CROSS_SLIDING_X);
-      mX.SetScrollingDisabled(true);
-    }
-  } else if (IsCloseToVertical(angle, AXIS_LOCK_ANGLE)) {
-    mX.SetScrollingDisabled(true);
-    if (mY.Scrollable()) {
-      SetState(PANNING_LOCKED_Y);
-    } else {
-      SetState(CROSS_SLIDING_Y);
-      mY.SetScrollingDisabled(true);
-    }
+  if (mTouchActionPropertyEnabled) {
+    HandlePanningWithTouchAction(angle, GetTouchBehavior(0));
   } else {
-    SetState(PANNING);
+    if (GetAxisLockMode() == FREE) {
+      SetState(PANNING);
+      return nsEventStatus_eConsumeNoDefault;
+    }
+
+    HandlePanning(angle);
   }
 
   
@@ -1060,7 +1156,7 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
   }
 
   
-  if (GetAxisLockMode() == STICKY) {
+  if (GetAxisLockMode() == STICKY && !mPanDirRestricted) {
     ScreenIntPoint point = GetFirstTouchScreenPoint(aEvent);
     float dx = mX.PanDistance(point.x);
     float dy = mY.PanDistance(point.y);
@@ -1470,17 +1566,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
         aLayerMetrics.mScrollOffset.x, aLayerMetrics.mScrollOffset.y);
 
       mFrameMetrics.mScrollOffset = aLayerMetrics.mScrollOffset;
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      needContentRepaint = true;
     }
   }
 
@@ -1616,6 +1701,27 @@ void AsyncPanZoomController::ContentReceivedTouch(bool aPreventDefault) {
 
     mHandlingTouchQueue = false;
   }
+}
+
+AsyncPanZoomController::TouchBehaviorFlags
+AsyncPanZoomController::GetTouchBehavior(uint32_t touchIndex) {
+  if (touchIndex < mAllowedTouchBehaviors.Length()) {
+    return mAllowedTouchBehaviors[touchIndex];
+  }
+  return DefaultTouchBehavior;
+}
+
+AsyncPanZoomController::TouchBehaviorFlags
+AsyncPanZoomController::GetAllowedTouchBehavior(ScreenIntPoint& aPoint) {
+  
+  
+  
+  return AllowedTouchBehavior::UNKNOWN;
+}
+
+void AsyncPanZoomController::SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors) {
+  mAllowedTouchBehaviors.Clear();
+  mAllowedTouchBehaviors.AppendElements(aBehaviors);
 }
 
 void AsyncPanZoomController::SetState(PanZoomState aNewState) {
