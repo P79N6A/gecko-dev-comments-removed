@@ -382,6 +382,14 @@ MacroAssemblerARM::ma_mvn(Register src1, Register dest,
     as_alu(dest, InvalidReg, O2Reg(src1), op_mvn, sc, c);
 }
 
+
+void
+MacroAssemblerARM::ma_neg(Register src1, Register dest,
+                          SetCond_ sc, Assembler::Condition c)
+{
+    as_rsb(dest, src1, Imm8(0), sc, c);
+}
+
     
 void
 MacroAssemblerARM::ma_and(Register src, Register dest,
@@ -911,13 +919,59 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
     
     if (size == 32 || (size == 8 && !IsSigned) ) {
         if (off < 4096 && off > -4096) {
+            
+            
             as_dtr(ls, size, mode, rt, DTRAddr(rn, DtrOffImm(off)), cc);
             return;
         }
         
         
+        
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if (rt == pc && mode == PostIndex && ls == IsLoad) {
+            ma_mov(rn, ScratchRegister);
+            ma_alu(rn, offset, rn, op_add);
+            as_dtr(IsLoad, size, Offset, pc, DTRAddr(ScratchRegister, DtrOffImm(0)), cc);
+            return;
+        }
         int bottom = off & 0xfff;
         int neg_bottom = 0x1000 - bottom;
+        
+        
+        Register base = ScratchRegister;
+        
+        
+        if (mode == PreIndex)
+            base = rn;
+        JS_ASSERT(mode != PostIndex);
         
         
         if (off < 0) {
@@ -947,12 +1001,13 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                 return;
             }
         }
-        JS_NOT_REACHED("TODO: implement bigger offsets :(");
-
+        ma_mov(offset, ScratchRegister);
+        as_dtr(ls, size, mode, rt, DTRAddr(rn, DtrRegImmShift(ScratchRegister, LSL, 0)));
     } else {
         
         if (off < 256 && off > -256) {
             as_extdtr(ls, size, IsSigned, mode, rt, EDtrAddr(rn, EDtrOffImm(off)), cc);
+            return;
         }
         
         
@@ -995,7 +1050,8 @@ MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size, bool IsSigned,
                 return;
             }
         }
-        JS_NOT_REACHED("TODO: implement bigger offsets :(");
+        ma_mov(offset, ScratchRegister);
+        as_extdtr(ls, size, IsSigned, mode, rt, EDtrAddr(rn, EDtrOffReg(ScratchRegister)), cc);
     }
 }
 void
