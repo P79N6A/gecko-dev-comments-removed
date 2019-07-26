@@ -1026,10 +1026,7 @@ LayerManager::StartFrameTimeRecording(int32_t aBufferSize)
     mRecording.mIsPaused = false;
 
     if (!mRecording.mIntervals.Length()) { 
-      if (!mRecording.mIntervals.SetLength(aBufferSize)) {
-        mRecording.mIsPaused = true; 
-        mRecording.mIntervals.Clear();
-      }
+      mRecording.mIntervals.SetLength(aBufferSize);
     }
 
     
@@ -1085,11 +1082,12 @@ LayerManager::StopFrameTimeRecording(uint32_t         aStartIndex,
     length = 0;
   }
 
-  
-  if (!length || !aFrameIntervals.SetLength(length)) {
+  if (!length) {
     aFrameIntervals.Clear();
     return; 
   }
+  
+  aFrameIntervals.SetLength(length);
 
   uint32_t cyclicPos = aStartIndex % bufferSize;
   for (uint32_t i = 0; i < length; i++, cyclicPos++) {
