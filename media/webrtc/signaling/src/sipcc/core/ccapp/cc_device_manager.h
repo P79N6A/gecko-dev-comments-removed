@@ -2,6 +2,9 @@
 
 
 
+#ifndef __CC_DEVICE_MANAGER_H__
+#define __CC_DEVICE_MANAGER_H__
+
 
 
 
@@ -41,3 +44,5 @@ MGMT_STATE_DESTROY_AWAIT_SHUTDOWN_ACK
 
 extern void registration_processEvent(int event);
 cc_boolean is_phone_registered();
+
+#endif
