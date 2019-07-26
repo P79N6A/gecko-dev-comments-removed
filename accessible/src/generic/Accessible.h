@@ -768,6 +768,11 @@ public:
   
 
 
+  inline bool HasDirtyGroupInfo() const { return mStateFlags & eGroupInfoDirty; }
+
+  
+
+
   bool HasOwnContent() const
     { return mContent && !(mStateFlags & eSharedNode); }
 
@@ -856,9 +861,10 @@ protected:
     eSharedNode = 1 << 2, 
     eNotNodeMapEntry = 1 << 3, 
     eHasNumericValue = 1 << 4, 
-    eIgnoreDOMUIEvent = 1 << 5, 
+    eGroupInfoDirty = 1 << 5, 
+    eIgnoreDOMUIEvent = 1 << 6, 
 
-    eLastStateFlag = eHasNumericValue
+    eLastStateFlag = eGroupInfoDirty
   };
 
 protected:
@@ -939,6 +945,22 @@ protected:
   AccGroupInfo* GetGroupInfo();
 
   
+
+
+  inline void SetDirtyGroupInfo(bool aIsDirty)
+  {
+    if (aIsDirty)
+      mStateFlags |= eGroupInfoDirty;
+    else
+      mStateFlags &= ~eGroupInfoDirty;
+  }
+
+  
+
+
+  void InvalidateChildrenGroupInfo();
+
+  
   nsCOMPtr<nsIContent> mContent;
   DocAccessible* mDoc;
 
@@ -947,7 +969,7 @@ protected:
   int32_t mIndexInParent;
 
   static const uint8_t kChildrenFlagsBits = 2;
-  static const uint8_t kStateFlagsBits = 5;
+  static const uint8_t kStateFlagsBits = 6;
   static const uint8_t kTypeBits = 6;
   static const uint8_t kGenericTypesBits = 12;
 

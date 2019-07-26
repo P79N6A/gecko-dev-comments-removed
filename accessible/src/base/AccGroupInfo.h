@@ -37,6 +37,11 @@ public:
   
 
 
+  void Update();
+
+  
+
+
   static AccGroupInfo* CreateGroupInfo(Accessible* aAccessible)
   {
     mozilla::a11y::role role = aAccessible->Role();
@@ -99,6 +104,8 @@ private:
   uint32_t mPosInSet;
   uint32_t mSetSize;
   Accessible* mParent;
+  Accessible* mItem;
+  a11y::role mRole;
 };
 
 } 
