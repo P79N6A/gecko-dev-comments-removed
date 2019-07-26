@@ -233,6 +233,15 @@ class Descriptor(DescriptorProvider):
                 nativeTypeDefault = "mozilla::dom::" + ifaceName
 
         self.nativeType = desc.get('nativeType', nativeTypeDefault)
+        
+        
+        prettyNativeType = self.nativeType.split("::")
+        if prettyNativeType[0] == "mozilla":
+            prettyNativeType.pop(0)
+            if prettyNativeType[0] == "dom":
+                prettyNativeType.pop(0)
+        self.prettyNativeType = "::".join(prettyNativeType)
+
         self.jsImplParent = desc.get('jsImplParent', self.nativeType)
 
         
