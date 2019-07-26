@@ -2303,7 +2303,8 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
     }
 
     
-    if (inputType == MIRType_Object && !types->hasType(types::Type::AnyObjectType()))
+    if (inputType == MIRType_Object && !types->hasType(types::Type::AnyObjectType()) &&
+        ins->barrierKind() != BarrierKind::TypeTagOnly)
     {
         LDefinition tmp = needTemp ? temp() : LDefinition::BogusTemp();
         LTypeBarrierO *barrier = new(alloc()) LTypeBarrierO(useRegister(ins->getOperand(0)), tmp);
