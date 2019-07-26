@@ -47,15 +47,10 @@ using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
 
-static bluetooth_device_t* sBtDevice;
-static const bt_interface_t* sBtInterface;
-static bool sAdapterDiscoverable = false;
 static nsString sAdapterBdAddress;
 static nsString sAdapterBdName;
-static uint32_t sAdapterDiscoverableTimeout;
 static InfallibleTArray<nsString> sAdapterBondedAddressArray;
 static InfallibleTArray<BluetoothNamedValue> sRemoteDevicesPack;
-static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sBondingRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sChangeDiscoveryRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
@@ -63,9 +58,16 @@ static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 static nsTArray<int> sRequestedDeviceCountArray;
 
 
+static const bt_interface_t* sBtInterface;
+static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
 
 
+
+
+
+static Atomic<bool> sAdapterDiscoverable(false);
+static Atomic<uint32_t> sAdapterDiscoverableTimeout(0);
 
 
 
@@ -690,15 +692,17 @@ EnsureBluetoothHalLoad()
 {
   hw_module_t* module;
   hw_device_t* device;
+
   int err = hw_get_module(BT_HARDWARE_MODULE_ID, (hw_module_t const**)&module);
   if (err != 0) {
     BT_LOGR("Error: %s", strerror(err));
     return false;
   }
   module->methods->open(module, BT_HARDWARE_MODULE_ID, &device);
-  sBtDevice = (bluetooth_device_t *)device;
-  NS_ENSURE_TRUE(sBtDevice, false);
-  sBtInterface = sBtDevice->get_bluetooth_interface();
+  bluetooth_device_t* btDevice = (bluetooth_device_t *)device;
+  NS_ENSURE_TRUE(btDevice, false);
+
+  sBtInterface = btDevice->get_bluetooth_interface();
   NS_ENSURE_TRUE(sBtInterface, false);
 
   return true;
@@ -849,6 +853,11 @@ BluetoothServiceBluedroid::GetAdaptersInternal(
   uint32_t numAdapters = 1; 
 
   for (uint32_t i = 0; i < numAdapters; i++) {
+    
+    
+    bool discoverable = sAdapterDiscoverable;
+    uint32_t discoverableTimeout = sAdapterDiscoverableTimeout;
+
     BluetoothValue properties = InfallibleTArray<BluetoothNamedValue>();
 
     
@@ -857,9 +866,9 @@ BluetoothServiceBluedroid::GetAdaptersInternal(
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
                           "Name", sAdapterBdName);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
-                          "Discoverable", sAdapterDiscoverable);
+                          "Discoverable", discoverable);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
-                          "DiscoverableTimeout", sAdapterDiscoverableTimeout);
+                          "DiscoverableTimeout", discoverableTimeout);
     BT_APPEND_NAMED_VALUE(properties.get_ArrayOfBluetoothNamedValue(),
                           "Devices", sAdapterBondedAddressArray);
 
