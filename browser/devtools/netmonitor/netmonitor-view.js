@@ -1252,7 +1252,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
         $("#response-content-textarea-box").hidden = false;
         NetMonitorView.editor("#response-content-textarea").then((aEditor) => {
           aEditor.setMode(SourceEditor.MODES.TEXT);
-          aEditor.setText(aString);
+          aEditor.setText(NetworkHelper.convertToUnicode(aString, "UTF-8"));
 
           
           for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
