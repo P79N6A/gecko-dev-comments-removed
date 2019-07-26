@@ -5,10 +5,10 @@
 
 #include "mozilla/dom/HTMLCanvasElement.h"
 
-#include "ImageEncoder.h"
+#include "Layers.h"
+#include "imgIEncoder.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "Layers.h"
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
@@ -44,6 +44,28 @@ namespace {
 
 typedef mozilla::dom::HTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement
 HTMLImageOrCanvasOrVideoElement;
+
+class ToBlobRunnable : public nsRunnable
+{
+public:
+  ToBlobRunnable(nsIFileCallback* aCallback,
+                 nsIDOMBlob* aBlob)
+    : mCallback(aCallback),
+      mBlob(aBlob)
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  }
+
+  NS_IMETHOD Run()
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+    mCallback->Receive(mBlob);
+    return NS_OK;
+  }
+private:
+  nsCOMPtr<nsIFileCallback> mCallback;
+  nsCOMPtr<nsIDOMBlob> mBlob;
+};
 
 } 
 
@@ -345,10 +367,10 @@ HTMLCanvasElement::MozFetchAsStream(nsIInputStreamCallback *aCallback,
     return NS_ERROR_FAILURE;
 
   nsresult rv;
+  bool fellBackToPNG = false;
   nsCOMPtr<nsIInputStream> inputData;
 
-  nsAutoString type(aType);
-  rv = ExtractData(type, EmptyString(), getter_AddRefs(inputData));
+  rv = ExtractData(aType, EmptyString(), getter_AddRefs(inputData), fellBackToPNG);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIAsyncInputStream> asyncData = do_QueryInterface(inputData, &rv);
@@ -388,15 +410,68 @@ HTMLCanvasElement::GetMozPrintCallback(nsIPrintCallback** aCallback)
 }
 
 nsresult
-HTMLCanvasElement::ExtractData(nsAString& aType,
+HTMLCanvasElement::ExtractData(const nsAString& aType,
                                const nsAString& aOptions,
-                               nsIInputStream** aStream)
+                               nsIInputStream** aStream,
+                               bool& aFellBackToPNG)
 {
-  return ImageEncoder::ExtractData(aType,
-                                   aOptions,
-                                   GetSize(),
-                                   mCurrentContext,
-                                   aStream);
+  
+  
+  
+  nsRefPtr<gfxImageSurface> emptyCanvas;
+  nsIntSize size = GetWidthHeight();
+  if (!mCurrentContext) {
+    emptyCanvas = new gfxImageSurface(gfxIntSize(size.width, size.height), gfxASurface::ImageFormatARGB32);
+    if (emptyCanvas->CairoStatus()) {
+      return NS_ERROR_INVALID_ARG;
+    }
+  }
+
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIInputStream> imgStream;
+  NS_ConvertUTF16toUTF8 encoderType(aType);
+
+ try_again:
+  if (mCurrentContext) {
+    rv = mCurrentContext->GetInputStream(encoderType.get(),
+                                         nsPromiseFlatString(aOptions).get(),
+                                         getter_AddRefs(imgStream));
+  } else {
+    
+    nsCString enccid("@mozilla.org/image/encoder;2?type=");
+    enccid += encoderType;
+
+    nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(enccid.get(), &rv);
+    if (NS_SUCCEEDED(rv) && encoder) {
+      rv = encoder->InitFromData(emptyCanvas->Data(),
+                                 size.width * size.height * 4,
+                                 size.width,
+                                 size.height,
+                                 size.width * 4,
+                                 imgIEncoder::INPUT_FORMAT_HOSTARGB,
+                                 aOptions);
+      if (NS_SUCCEEDED(rv)) {
+        imgStream = do_QueryInterface(encoder);
+      }
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
+  }
+
+  if (NS_FAILED(rv) && !aFellBackToPNG) {
+    
+    
+    aFellBackToPNG = true;
+    encoderType.AssignLiteral("image/png");
+    goto try_again;
+  }
+
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  imgStream.forget(aStream);
+  return NS_OK;
 }
 
 nsresult
@@ -447,6 +522,8 @@ HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
                                  const JS::Value& aEncoderOptions,
                                  nsAString& aDataURL)
 {
+  bool fallbackToPNG = false;
+
   nsIntSize size = GetWidthHeight();
   if (size.height == 0 || size.width == 0) {
     aDataURL = NS_LITERAL_STRING("data:,");
@@ -467,18 +544,23 @@ HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
   }
 
   nsCOMPtr<nsIInputStream> stream;
-  rv = ExtractData(type, params, getter_AddRefs(stream));
+  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
 
   
   
   if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
-    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream));
+    fallbackToPNG = false;
+    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
   }
 
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  aDataURL = NS_LITERAL_STRING("data:") + type + NS_LITERAL_STRING(";base64,");
+  if (fallbackToPNG)
+    aDataURL = NS_LITERAL_STRING("data:image/png;base64,");
+  else
+    aDataURL = NS_LITERAL_STRING("data:") + type +
+      NS_LITERAL_STRING(";base64,");
 
   uint64_t count;
   rv = stream->Available(&count);
@@ -487,6 +569,7 @@ HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
 
   return Base64EncodeInputStream(stream, aDataURL, (uint32_t)count, aDataURL.Length());
 }
+
 
 NS_IMETHODIMP
 HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
@@ -516,24 +599,43 @@ HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
     return rv;
   }
 
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
-  nsCOMPtr<nsIThread> currentThread = NS_GetCurrentThread();
+  bool fallbackToPNG = false;
 
-  uint8_t* imageBuffer = nullptr;
-  int32_t format = 0;
-  if (mCurrentContext) {
-    mCurrentContext->GetImageBuffer(&imageBuffer, &format);
+  nsCOMPtr<nsIInputStream> stream;
+  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
+  
+  
+  if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
+    fallbackToPNG = false;
+    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
   }
 
-  return ImageEncoder::ExtractDataAsync(type,
-                                        params,
-                                        usingCustomParseOptions,
-                                        imageBuffer,
-                                        format,
-                                        GetSize(),
-                                        mCurrentContext,
-                                        cx,
-                                        aCallback);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (fallbackToPNG) {
+    type.AssignLiteral("image/png");
+  }
+
+  uint64_t imgSize;
+  rv = stream->Available(&imgSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(imgSize <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
+
+  void* imgData = nullptr;
+  rv = NS_ReadInputStreamToBuffer(stream, &imgData, imgSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsRefPtr<nsDOMMemoryFile> blob =
+    new nsDOMMemoryFile(imgData, imgSize, type);
+
+  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  if (cx) {
+    JS_updateMallocCounter(cx, imgSize);
+  }
+
+  nsRefPtr<ToBlobRunnable> runnable = new ToBlobRunnable(aCallback, blob);
+  return NS_DispatchToCurrentThread(runnable);
 }
 
 already_AddRefed<nsIDOMFile>
@@ -567,10 +669,17 @@ HTMLCanvasElement::MozGetAsFileImpl(const nsAString& aName,
                                     const nsAString& aType,
                                     nsIDOMFile** aResult)
 {
+  bool fallbackToPNG = false;
+
   nsCOMPtr<nsIInputStream> stream;
-  nsAutoString type(aType);
-  nsresult rv = ExtractData(type, EmptyString(), getter_AddRefs(stream));
+  nsresult rv = ExtractData(aType, EmptyString(), getter_AddRefs(stream),
+                            fallbackToPNG);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString type(aType);
+  if (fallbackToPNG) {
+    type.AssignLiteral("image/png");
+  }
 
   uint64_t imgSize;
   rv = stream->Available(&imgSize);
@@ -671,14 +780,6 @@ HTMLCanvasElement::GetContext(const nsAString& aContextId,
   return rv.ErrorCode();
 }
 
-static bool
-IsContextIdWebGL(const nsAString& str)
-{
-  return str.EqualsLiteral("webgl") ||
-         str.EqualsLiteral("experimental-webgl") ||
-         str.EqualsLiteral("moz-webgl");
-}
-
 already_AddRefed<nsISupports>
 HTMLCanvasElement::GetContext(JSContext* aCx,
                               const nsAString& aContextId,
@@ -710,20 +811,6 @@ HTMLCanvasElement::GetContext(JSContext* aCx,
   }
 
   if (!mCurrentContextId.Equals(aContextId)) {
-    if (IsContextIdWebGL(aContextId) &&
-        IsContextIdWebGL(mCurrentContextId))
-    {
-      
-      
-      nsCString creationId = NS_LossyConvertUTF16toASCII(mCurrentContextId);
-      nsCString requestId = NS_LossyConvertUTF16toASCII(aContextId);
-      JS_ReportWarning(aCx, "WebGL: Retrieving a WebGL context from a canvas "
-                            "via a request id ('%s') different from the id used "
-                            "to create the context ('%s') is not allowed.",
-                            requestId.get(),
-                            creationId.get());
-    }
-    
     
     return nullptr;
   }
