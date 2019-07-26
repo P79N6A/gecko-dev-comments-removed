@@ -7,12 +7,13 @@
 
 #include <stdint.h>
 #include "nscore.h"
+#include "Units.h"
 
 
 
 
-static const double   kViewportMinScale = 0.0;
-static const double   kViewportMaxScale = 10.0;
+static const mozilla::LayoutDeviceToScreenScale kViewportMinScale(0.0f);
+static const mozilla::LayoutDeviceToScreenScale kViewportMaxScale(10.0f);
 static const uint32_t kViewportMinWidth = 200;
 static const uint32_t kViewportMaxWidth = 10000;
 static const uint32_t kViewportMinHeight = 223;
@@ -28,19 +29,20 @@ class MOZ_STACK_CLASS nsViewportInfo
   public:
     nsViewportInfo(uint32_t aDisplayWidth, uint32_t aDisplayHeight) :
       mDefaultZoom(1.0),
-      mMinZoom(kViewportMinScale),
-      mMaxZoom(kViewportMaxScale),
       mWidth(aDisplayWidth),
       mHeight(aDisplayHeight),
       mAutoSize(true),
       mAllowZoom(true)
     {
+        mozilla::CSSToLayoutDeviceScale pixelRatio(1.0f);
+        mMinZoom = pixelRatio * kViewportMinScale;
+        mMaxZoom = pixelRatio * kViewportMaxScale;
         ConstrainViewportValues();
     }
 
-    nsViewportInfo(double aDefaultZoom,
-                   double aMinZoom,
-                   double aMaxZoom,
+    nsViewportInfo(const mozilla::CSSToScreenScale& aDefaultZoom,
+                   const mozilla::CSSToScreenScale& aMinZoom,
+                   const mozilla::CSSToScreenScale& aMaxZoom,
                    uint32_t aWidth,
                    uint32_t aHeight,
                    bool aAutoSize,
@@ -56,10 +58,10 @@ class MOZ_STACK_CLASS nsViewportInfo
       ConstrainViewportValues();
     }
 
-    double GetDefaultZoom() { return mDefaultZoom; }
-    void SetDefaultZoom(const double aDefaultZoom);
-    double GetMinZoom() { return mMinZoom; }
-    double GetMaxZoom() { return mMaxZoom; }
+    mozilla::CSSToScreenScale GetDefaultZoom() { return mDefaultZoom; }
+    void SetDefaultZoom(const mozilla::CSSToScreenScale& aDefaultZoom);
+    mozilla::CSSToScreenScale GetMinZoom() { return mMinZoom; }
+    mozilla::CSSToScreenScale GetMaxZoom() { return mMaxZoom; }
 
     uint32_t GetWidth() { return mWidth; }
     uint32_t GetHeight() { return mHeight; }
@@ -78,13 +80,13 @@ class MOZ_STACK_CLASS nsViewportInfo
 
     
     
-    double mDefaultZoom;
+    mozilla::CSSToScreenScale mDefaultZoom;
 
     
-    double mMinZoom;
+    mozilla::CSSToScreenScale mMinZoom;
 
     
-    double mMaxZoom;
+    mozilla::CSSToScreenScale mMaxZoom;
 
     
     

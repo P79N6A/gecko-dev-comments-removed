@@ -68,7 +68,6 @@
 #include "nsDataHashtable.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Attributes.h"
-#include "nsIDOMXPathEvaluator.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -505,8 +504,7 @@ class nsDocument : public nsIDocument,
                    public nsIRadioGroupContainer,
                    public nsIApplicationCacheContainer,
                    public nsStubMutationObserver,
-                   public nsIObserver,
-                   public nsIDOMXPathEvaluator
+                   public nsIObserver
 {
 public:
   typedef mozilla::dom::Element Element;
@@ -787,8 +785,6 @@ public:
 
   
   NS_DECL_NSIOBSERVER
-
-  NS_DECL_NSIDOMXPATHEVALUATOR
 
   virtual nsresult Init();
 
@@ -1349,6 +1345,8 @@ private:
   nsDocument(const nsDocument& aOther);
   nsDocument& operator=(const nsDocument& aOther);
 
+  nsCOMPtr<nsISupports> mXPathEvaluatorTearoff;
+
   
   
   
@@ -1412,7 +1410,10 @@ private:
   
   
   bool mValidWidth, mValidHeight;
-  float mScaleMinFloat, mScaleMaxFloat, mScaleFloat, mPixelRatio;
+  mozilla::LayoutDeviceToScreenScale mScaleMinFloat;
+  mozilla::LayoutDeviceToScreenScale mScaleMaxFloat;
+  mozilla::LayoutDeviceToScreenScale mScaleFloat;
+  mozilla::CSSToLayoutDeviceScale mPixelRatio;
   bool mAutoSize, mAllowZoom, mValidScaleFloat, mValidMaxScale, mScaleStrEmpty, mWidthStrEmpty;
   uint32_t mViewportWidth, mViewportHeight;
 
