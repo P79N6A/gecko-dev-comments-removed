@@ -20,6 +20,7 @@
 
 
 if (typeof Components != "undefined") {
+  Components.utils.importGlobalProperties(["URL"]);
   
   
   
@@ -33,7 +34,9 @@ let EXPORTED_SYMBOLS = [
   "dirname",
   "join",
   "normalize",
-  "split"
+  "split",
+  "toFileURI",
+  "fromFileURI",
 ];
 
 
@@ -147,6 +150,37 @@ let split = function(path) {
   };
 };
 exports.split = split;
+
+
+
+
+
+let toFileURIExtraEncodings = {';': '%3b', '?': '%3F', "'": '%27', '#': '%23'};
+let toFileURI = function toFileURI(path) {
+  let uri = encodeURI(this.normalize(path));
+
+  
+  
+  let prefix = "file://";
+  uri = prefix + uri.replace(/[;?'#]/g, match => toFileURIExtraEncodings[match]);
+
+  return uri;
+};
+exports.toFileURI = toFileURI;
+
+
+
+
+let fromFileURI = function fromFileURI(uri) {
+  let url = new URL(uri);
+  if (url.protocol != 'file:') {
+    throw new Error("fromFileURI expects a file URI");
+  }
+  let path = this.normalize(decodeURIComponent(url.pathname));
+  return path;
+};
+exports.fromFileURI = fromFileURI;
+
 
 
 if (typeof Components != "undefined") {
