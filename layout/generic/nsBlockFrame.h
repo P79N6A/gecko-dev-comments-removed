@@ -70,7 +70,7 @@ class nsFirstLineFrame;
 
 
 
-#define nsBlockFrameSuper nsContainerFrame
+typedef nsContainerFrame nsBlockFrameSuper;
 
 
 
