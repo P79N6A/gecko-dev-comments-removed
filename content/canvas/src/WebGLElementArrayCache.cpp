@@ -7,6 +7,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/MathAlgorithms.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -293,16 +294,6 @@ public:
     }
   }
 
-  template<typename U>
-  static U NextPowerOfTwo(U x) {
-    U result = 1;
-    while (result < x)
-      result <<= 1;
-    MOZ_ASSERT(result >= x);
-    MOZ_ASSERT((result & (result - 1)) == 0);
-    return result;
-  }
-
   
   
   bool Update(size_t firstByte, size_t lastByte);
@@ -365,7 +356,7 @@ bool WebGLElementArrayCacheTree<T>::Update(size_t firstByte, size_t lastByte)
     
     size_t numLeavesNonPOT = (numberOfElements + sElementsPerLeaf - 1) / sElementsPerLeaf;
     
-    requiredNumLeaves = NextPowerOfTwo(numLeavesNonPOT);
+    requiredNumLeaves = RoundUpPow2(numLeavesNonPOT);
   }
 
   
