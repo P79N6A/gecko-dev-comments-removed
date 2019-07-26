@@ -960,7 +960,7 @@ IonGetsFirstChance(JSContext *cx, JSScript *script, jsbytecode *pc, CompileReque
         return false;
 
     
-    if (script->hasIonScript() && script->ion->bailoutExpected())
+    if (script->hasIonScript() && script->ionScript()->bailoutExpected())
         return false;
 
     
@@ -976,7 +976,7 @@ IonGetsFirstChance(JSContext *cx, JSScript *script, jsbytecode *pc, CompileReque
 
     
     
-    if (script->ion == ION_COMPILING_SCRIPT)
+    if (script->isIonCompilingOffThread())
         return false;
 
     return true;
@@ -4024,7 +4024,7 @@ mjit::Compiler::ionCompileHelper()
     if (!recompileCheckForIon)
         return;
 
-    void *ionScriptAddress = &script_->ion;
+    const void *ionScriptAddress = script_->addressOfIonScript();
 
 #ifdef JS_CPU_X64
     
@@ -4055,7 +4055,8 @@ mjit::Compiler::ionCompileHelper()
     trigger.inlineJump = masm.branch32(Assembler::GreaterThanOrEqual,
                                        AbsoluteAddress(useCountAddress),
                                        Imm32(minUses));
-    Jump scriptJump = stubcc.masm.branch32(Assembler::Equal, AbsoluteAddress(ionScriptAddress),
+    Jump scriptJump = stubcc.masm.branch32(Assembler::Equal,
+                                           AbsoluteAddress((void *)ionScriptAddress),
                                            Imm32(0));
 #elif defined(JS_CPU_X64)
     
@@ -4063,7 +4064,7 @@ mjit::Compiler::ionCompileHelper()
     trigger.inlineJump = masm.branch32(Assembler::GreaterThanOrEqual,
                                        Address(reg),
                                        Imm32(minUses));
-    stubcc.masm.move(ImmPtr(ionScriptAddress), reg);
+    stubcc.masm.move(ImmPtr((void *)ionScriptAddress), reg);
     Jump scriptJump = stubcc.masm.branchPtr(Assembler::Equal, Address(reg), ImmPtr(NULL));
     frame.freeReg(reg);
 #else

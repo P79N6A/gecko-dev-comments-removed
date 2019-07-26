@@ -306,14 +306,14 @@ ParallelCompileContext::appendToWorklist(HandleFunction fun)
     }
 
     
-    if (script->parallelIon == ION_COMPILING_SCRIPT) {
+    if (script->isParallelIonCompilingOffThread()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, off-main-thread compilation in progress",
              fun.get(), script->filename(), script->lineno);
         return true;
     }
 
     
-    if (script->parallelIon && script->parallelIon->bailoutExpected()) {
+    if (script->hasParallelIonScript() && script->parallelIonScript()->bailoutExpected()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, bailout expected",
              fun.get(), script->filename(), script->lineno);
         return true;
