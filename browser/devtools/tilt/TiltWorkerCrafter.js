@@ -17,7 +17,6 @@ self.onmessage = function TWC_onMessage(event)
 {
   let data = event.data;
   let maxGroupNodes = parseInt(data.maxGroupNodes);
-  let thickness = data.thickness;
   let style = data.style;
   let texWidth = data.texWidth;
   let texHeight = data.texHeight;
@@ -55,11 +54,10 @@ self.onmessage = function TWC_onMessage(event)
     }
 
     let info = nodesInfo[n];
-    let depth = info.depth;
     let coord = info.coord;
 
     
-    let z = depth * thickness;
+    let z = coord.depth + coord.thickness;
     let y = coord.top;
     let x = coord.left;
     let w = coord.width;
@@ -80,7 +78,7 @@ self.onmessage = function TWC_onMessage(event)
 
     let xpw = x + w;
     let yph = y + h;
-    let zmt = z - thickness;
+    let zmt = coord.depth;
 
     let xotw = x / texWidth;
     let yoth = y / texHeight;
@@ -157,7 +155,7 @@ self.onmessage = function TWC_onMessage(event)
                           ip5,  ip9,  ip10, ip5,  ip10, ip6);
 
     
-    if (depth !== 0) {
+    if (coord.thickness !== 0) {
       wireframeIndices.unshift(i,    ip1, ip1,  ip2,
                                ip2,  ip3, ip3,  i,
                                ip8,  i,   ip9,  ip1,

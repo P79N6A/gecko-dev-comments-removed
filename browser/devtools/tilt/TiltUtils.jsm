@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 
+const STACK_THICKNESS = 15;
+
 this.EXPORTED_SYMBOLS = ["TiltUtils"];
 
 
@@ -395,6 +397,47 @@ TiltUtils.DOM = {
 
 
 
+
+
+
+
+
+
+
+
+
+  getNodePosition: function TUD_getNodePosition(aContentWindow, aNode,
+                                                aParentPosition) {
+    
+    let coord = LayoutHelpers.getRect(aNode, aContentWindow);
+    if (!coord) {
+      return null;
+    }
+
+    coord.depth = aParentPosition ? (aParentPosition.depth + aParentPosition.thickness) : 0;
+    coord.thickness = STACK_THICKNESS;
+
+    return coord;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   traverse: function TUD_traverse(aContentWindow, aProperties)
   {
     
@@ -409,20 +452,21 @@ TiltUtils.DOM = {
     let store = { info: [], nodes: [] };
     let depth = 0;
 
-    while (nodes.length) {
-      let queue = [];
+    let queue = [
+      { parentPosition: null, nodes: aContentWindow.document.childNodes }
+    ]
 
-      for (let i = 0, len = nodes.length; i < len; i++) {
-        let node = nodes[i];
+    while (queue.length) {
+      let { nodes, parentPosition } = queue.shift();
 
+      for (let node of nodes) {
         
         let name = node.localName;
         if (!name || aInvisibleElements[name]) {
           continue;
         }
 
-        
-        let coord = LayoutHelpers.getRect(node, aContentWindow);
+        let coord = this.getNodePosition(aContentWindow, node, parentPosition);
         if (!coord) {
           continue;
         }
@@ -436,17 +480,14 @@ TiltUtils.DOM = {
         if (coord.width > aMinSize && coord.height > aMinSize) {
 
           
-          store.info.push({ depth: depth, coord: coord, name: name });
+          store.info.push({ coord: coord, name: name });
           store.nodes.push(node);
         }
 
-        
-        Array.prototype.push.apply(queue, name === "iframe" || name === "frame" ?
-                                          node.contentDocument.childNodes :
-                                          node.childNodes);
+        let childNodes = (name === "iframe" || name === "frame") ? node.contentDocument.childNodes : node.childNodes;
+        if (childNodes.length > 0)
+          queue.push({ parentPosition: coord, nodes: childNodes });
       }
-      nodes = queue;
-      depth++;
     }
 
     return store;
