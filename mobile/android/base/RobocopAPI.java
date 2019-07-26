@@ -4,12 +4,11 @@
 
 package org.mozilla.gecko;
 
-import android.content.Context;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.PanningPerfAPI;
 import org.mozilla.gecko.mozglue.GeckoLoader;
-import org.mozilla.gecko.mozglue.RobocopJNITarget;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.sqlite.SQLiteBridge;
 import org.mozilla.gecko.util.GeckoEventListener;
 
@@ -38,6 +37,7 @@ import java.util.List;
 
 
 
+@RobocopTarget
 public class RobocopAPI {
     private final GeckoApp mGeckoApp;
 

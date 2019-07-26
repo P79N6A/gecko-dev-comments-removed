@@ -392,7 +392,6 @@ public class GeckoAppShell
         } catch (NoSuchElementException e) {}
     }
 
-    
     public static void sendEventToGecko(GeckoEvent e) {
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             notifyGeckoOfEvent(e);
@@ -2323,8 +2322,6 @@ public class GeckoAppShell
 
 
 
-
-
     public static void registerEventListener(String event, GeckoEventListener listener) {
         sEventDispatcher.registerEventListener(event, listener);
     }
@@ -2334,8 +2331,6 @@ public class GeckoAppShell
     }
 
     
-
-
 
 
 

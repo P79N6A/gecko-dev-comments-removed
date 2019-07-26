@@ -82,7 +82,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private boolean mProfileRender;
     private long mProfileOutputTime;
 
-    
     private IntBuffer mPixelBuffer;
 
     
