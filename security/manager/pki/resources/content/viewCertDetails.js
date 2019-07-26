@@ -242,9 +242,9 @@ function DisplayGeneralDataFromCert(cert)
   
   addAttributeFromCert('serialnumber',cert.serialNumber);
   
-  addAttributeFromCert('sha1fingerprint',cert.sha1Fingerprint);
+  addAttributeFromCert('sha256fingerprint', cert.sha256Fingerprint);
   
-  addAttributeFromCert('md5fingerprint',cert.md5Fingerprint);
+  addAttributeFromCert('sha1fingerprint',cert.sha1Fingerprint);
   
   addAttributeFromCert('validitystart', cert.validity.notBeforeLocalDay);
   
