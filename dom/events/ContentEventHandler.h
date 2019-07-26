@@ -17,6 +17,12 @@ struct nsRect;
 
 namespace mozilla {
 
+enum LineBreakType
+{
+  LINE_BREAK_TYPE_NATIVE,
+  LINE_BREAK_TYPE_XP
+};
+
 
 
 
@@ -73,14 +79,22 @@ public:
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
                                            nsINode* aNode,
                                            int32_t aNodeOffset,
-                                           uint32_t* aOffset);
+                                           uint32_t* aOffset,
+                                           LineBreakType aLineBreakType);
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
                                            nsRange* aRange,
-                                           uint32_t* aOffset);
+                                           uint32_t* aOffset,
+                                           LineBreakType aLineBreakType);
   
   static uint32_t GetNativeTextLength(nsIContent* aContent,
                                       uint32_t aMaxLength = UINT32_MAX);
 protected:
+  static uint32_t GetTextLength(nsIContent* aContent,
+                                LineBreakType aLineBreakType,
+                                uint32_t aMaxLength = UINT32_MAX);
+  static LineBreakType GetLineBreakType(WidgetQueryContentEvent* aEvent);
+  static LineBreakType GetLineBreakType(WidgetSelectionEvent* aEvent);
+  static LineBreakType GetLineBreakType(bool aUseNativeLineBreak);
   
   nsIContent* GetFocusedContent();
   
@@ -94,6 +108,7 @@ protected:
   nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
                                       uint32_t aNativeOffset,
                                       uint32_t aNativeLength,
+                                      LineBreakType aLineBreakType,
                                       bool aExpandToClusterBoundaries,
                                       uint32_t* aNewNativeOffset = nullptr);
   
