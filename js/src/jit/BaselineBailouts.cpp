@@ -537,6 +537,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     JSObject *scopeChain = nullptr;
+    Value returnValue;
     ArgumentsObject *argsObj = nullptr;
     BailoutKind bailoutKind = iter.bailoutKind();
     if (bailoutKind == Bailout_ArgumentCheck) {
@@ -546,6 +547,10 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         
         IonSpew(IonSpew_BaselineBailouts, "      Bailout_ArgumentCheck! (no valid scopeChain)");
         iter.skip();
+
+        
+        iter.skip();
+        returnValue = UndefinedValue();
 
         
         if (script->argumentsHasVarBinding()) {
@@ -583,6 +588,9 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         }
 
         
+        returnValue = iter.read();
+
+        
         if (script->argumentsHasVarBinding()) {
             v = iter.read();
             JS_ASSERT(v.isObject() || v.isUndefined());
@@ -592,6 +600,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
     IonSpew(IonSpew_BaselineBailouts, "      ScopeChain=%p", scopeChain);
     blFrame->setScopeChain(scopeChain);
+    IonSpew(IonSpew_BaselineBailouts, "      ReturnValue=%016llx", *((uint64_t *) &returnValue));
+    blFrame->setReturnValue(returnValue);
 
     
 

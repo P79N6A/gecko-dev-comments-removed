@@ -4413,6 +4413,28 @@ class MOsrArgumentsObject : public MUnaryInstruction
 };
 
 
+
+class MOsrReturnValue : public MUnaryInstruction
+{
+  private:
+    MOsrReturnValue(MOsrEntry *entry)
+      : MUnaryInstruction(entry)
+    {
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(OsrReturnValue)
+    static MOsrReturnValue *New(MOsrEntry *entry) {
+        return new MOsrReturnValue(entry);
+    }
+
+    MOsrEntry *entry() {
+        return getOperand(0)->toOsrEntry();
+    }
+};
+
+
 class MCheckOverRecursed : public MNullaryInstruction
 {
   public:

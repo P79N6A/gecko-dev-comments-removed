@@ -19,12 +19,21 @@ StartArgSlot(JSScript *script, JSFunction *fun)
 {
     
     
-    return 1 + (script->argumentsHasVarBinding() ? 1 : 0);
+    
+
+    
+    
+
+    return 2 + (script->argumentsHasVarBinding() ? 1 : 0);
 }
 
 inline unsigned
 CountArgSlots(JSScript *script, JSFunction *fun)
 {
+    
+    
+    
+    
     return StartArgSlot(script, fun) + (fun ? fun->nargs + 1 : 0);
 }
 
@@ -132,9 +141,16 @@ class CompileInfo
         return nslots_;
     }
 
+    
+    
+    unsigned nimplicit() const {
+        return nimplicit_;
+    }
+    
     unsigned nargs() const {
         return nargs_;
     }
+    
     unsigned nlocals() const {
         return nlocals_;
     }
@@ -146,13 +162,18 @@ class CompileInfo
         JS_ASSERT(script());
         return 0;
     }
+    uint32_t returnValueSlot() const {
+        JS_ASSERT(script());
+        return 1;
+    }
     uint32_t argsObjSlot() const {
         JS_ASSERT(hasArguments());
-        return 1;
+        return 2;
     }
     uint32_t thisSlot() const {
         JS_ASSERT(fun());
-        return hasArguments() ? 2 : 1;
+        JS_ASSERT(nimplicit_ > 0);
+        return nimplicit_ - 1;
     }
     uint32_t firstArgSlot() const {
         return nimplicit_;
@@ -184,16 +205,17 @@ class CompileInfo
     }
 
     uint32_t startArgSlot() const {
-        JS_ASSERT(scopeChainSlot() == 0);
+        JS_ASSERT(script());
         return StartArgSlot(script(), fun());
     }
     uint32_t endArgSlot() const {
-        JS_ASSERT(scopeChainSlot() == 0);
+        JS_ASSERT(script());
         return CountArgSlots(script(), fun());
     }
 
     uint32_t totalSlots() const {
-        return 2 + (hasArguments() ? 1 : 0) + nargs() + nlocals();
+        JS_ASSERT(script() && fun());
+        return nimplicit() + nargs() + nlocals();
     }
 
     bool isSlotAliased(uint32_t index) const {

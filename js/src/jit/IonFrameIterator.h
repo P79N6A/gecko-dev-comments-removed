@@ -274,6 +274,9 @@ class SnapshotIterator : public SnapshotReader
             skip();
 
         
+        skip();
+
+        
         if (script->argumentsHasVarBinding())
             skip();
 
@@ -420,8 +423,8 @@ class InlineFrameIteratorMaybeGC
 
             
             
-            JS_ASSERT(parent_s.slots() >= nactual + 2 + argsObjAdj);
-            unsigned skip = parent_s.slots() - nactual - 2 - argsObjAdj;
+            JS_ASSERT(parent_s.slots() >= nactual + 3 + argsObjAdj);
+            unsigned skip = parent_s.slots() - nactual - 3 - argsObjAdj;
             for (unsigned j = 0; j < skip; j++)
                 parent_s.skip();
 
@@ -462,6 +465,9 @@ class InlineFrameIteratorMaybeGC
     JSObject *thisObject() const {
         
         SnapshotIterator s(si_);
+
+        
+        s.skip();
 
         
         s.skip();

@@ -896,6 +896,12 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
     }
 
     
+    if (frame->hasReturnValue()) {
+        *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) |= StackFrame::HAS_RVAL;
+        *((Value *) (stackFrame + StackFrame::offsetOfReturnValue())) = *(frame->returnValue());
+    }
+
+    
     
     
     Value *stackFrameLocalsStart = (Value *) (stackFrame + sizeof(StackFrame));
