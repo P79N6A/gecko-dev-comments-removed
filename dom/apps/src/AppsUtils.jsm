@@ -25,6 +25,13 @@ function debug(s) {
   
 }
 
+function isAbsoluteURI(aURI) {
+  let foo = Services.io.newURI("http://foo", null, null);
+  let bar = Services.io.newURI("http://bar", null, null);
+  return Services.io.newURI(aURI, null, foo).prePath != foo.prePath ||
+         Services.io.newURI(aURI, null, bar).prePath != bar.prePath;
+}
+
 this.AppsUtils = {
   
   cloneAppObject: function cloneAppObject(aApp) {
@@ -161,21 +168,13 @@ this.AppsUtils = {
     if (aManifest.name == undefined)
       return false;
 
-    function isAbsolute(uri) {
-      
-      let foo = Services.io.newURI("http://foo", null, null);
-      let bar = Services.io.newURI("http://bar", null, null);
-      return Services.io.newURI(uri, null, foo).prePath != foo.prePath ||
-             Services.io.newURI(uri, null, bar).prePath != bar.prePath;
-    }
-
     
-    if (aManifest.launch_path && isAbsolute(aManifest.launch_path))
+    if (aManifest.launch_path && isAbsoluteURI(aManifest.launch_path))
       return false;
 
     function checkAbsoluteEntryPoints(entryPoints) {
       for (let name in entryPoints) {
-        if (entryPoints[name].launch_path && isAbsolute(entryPoints[name].launch_path)) {
+        if (entryPoints[name].launch_path && isAbsoluteURI(entryPoints[name].launch_path)) {
           return true;
         }
       }
@@ -188,6 +187,35 @@ this.AppsUtils = {
     for (let localeName in aManifest.locales) {
       if (checkAbsoluteEntryPoints(aManifest.locales[localeName].entry_points)) {
         return false;
+      }
+    }
+
+    if (aManifest.activities) {
+      for (let activityName in aManifest.activities) {
+        let activity = aManifest.activities[activityName];
+        if (activity.href && isAbsoluteURI(activity.href)) {
+          return false;
+        }
+      }
+    }
+
+    
+    
+    let messages = aManifest.messages;
+    if (messages) {
+      if (!Array.isArray(messages)) {
+        return false;
+      }
+      for (let item of aManifest.messages) {
+        if (typeof item == "object") {
+          let keys = Object.keys(item);
+          if (keys.length != 1) {
+            return false;
+          }
+          if (isAbsoluteURI(item[keys[0]])) {
+            return false;
+          }
+        }
       }
     }
 
@@ -440,6 +468,10 @@ ManifestHelper.prototype = {
   },
 
   resolveFromOrigin: function(aURI) {
+    
+    if (!isAbsoluteURI(aURI)) {
+      throw new Error("Webapps.jsm: non-relative URI passed to resolveFromOrigin");
+    }
     return this._origin.resolve(aURI);
   },
 
