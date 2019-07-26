@@ -1006,6 +1006,12 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
 void
 nsHTMLDocument::SetDomain(const nsAString& aDomain, ErrorResult& rv)
 {
+  if (mSandboxFlags & SANDBOXED_DOMAIN) {
+    
+    rv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return;
+  }
+
   if (aDomain.IsEmpty()) {
     rv.Throw(NS_ERROR_DOM_BAD_DOCUMENT_DOMAIN);
     return;
