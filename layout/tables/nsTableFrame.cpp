@@ -3527,22 +3527,26 @@ nscoord nsTableFrame::GetCellSpacingY()
 
 
  nscoord
-nsTableFrame::GetBaseline() const
+nsTableFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
   nscoord ascent = 0;
   RowGroupArray orderedRowGroups;
   OrderRowGroups(orderedRowGroups);
   nsTableRowFrame* firstRow = nullptr;
+  
+  nscoord containerWidth = mRect.width;
   for (uint32_t rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
     nsTableRowGroupFrame* rgFrame = orderedRowGroups[rgIndex];
     if (rgFrame->GetRowCount()) {
       firstRow = rgFrame->GetFirstRow();
-      ascent = rgFrame->GetRect().y + firstRow->GetRect().y + firstRow->GetRowBaseline();
+      ascent = rgFrame->BStart(aWritingMode, containerWidth) +
+               firstRow->BStart(aWritingMode, containerWidth) +
+               firstRow->GetRowBaseline(aWritingMode);
       break;
     }
   }
   if (!firstRow)
-    ascent = GetRect().height;
+    ascent = BSize(aWritingMode);
   return ascent;
 }
 

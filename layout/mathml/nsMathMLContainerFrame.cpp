@@ -849,11 +849,11 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
   if (aDesiredSize.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
     
     nscoord ascent;
-    if (!nsLayoutUtils::GetLastLineBaseline(aChildFrame, &ascent)) {
+    WritingMode wm = aReflowState.GetWritingMode();
+    if (!nsLayoutUtils::GetLastLineBaseline(wm, aChildFrame, &ascent)) {
       
       
       
-      WritingMode wm = aReflowState.GetWritingMode();
       aDesiredSize.SetBlockStartAscent(aDesiredSize.BSize(wm));
     } else {
       aDesiredSize.SetBlockStartAscent(ascent);

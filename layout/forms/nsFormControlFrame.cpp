@@ -63,14 +63,15 @@ nsFormControlFrame::GetIntrinsicHeight()
 }
 
 nscoord
-nsFormControlFrame::GetBaseline() const
+nsFormControlFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
   NS_ASSERTION(!NS_SUBTREE_DIRTY(this),
                "frame must not be dirty");
   
   
   
-  return mRect.height - GetUsedBorderAndPadding().bottom;
+  return BSize(aWritingMode) -
+         GetLogicalUsedBorderAndPadding(aWritingMode).BEnd(aWritingMode);
 }
 
 void

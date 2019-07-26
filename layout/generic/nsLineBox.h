@@ -495,8 +495,8 @@ public:
 
 
 
-  nscoord GetAscent() const { return mAscent; }
-  void SetAscent(nscoord aAscent) { mAscent = aAscent; }
+  nscoord GetLogicalAscent() const { return mAscent; }
+  void SetLogicalAscent(nscoord aAscent) { mAscent = aAscent; }
 
   nscoord BStart() const {
     return mBounds.BStart(mWritingMode);

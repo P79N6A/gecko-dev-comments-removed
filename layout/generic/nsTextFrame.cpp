@@ -4684,7 +4684,9 @@ nsTextFrame::GetTextDecorations(
       }
     }
     else if (!nearestBlockFound) {
-      baselineOffset = frameTopOffset - f->GetBaseline();
+      
+      
+      baselineOffset = frameTopOffset - f->GetLogicalBaseline(WritingMode());
     }
 
     nearestBlockFound = nearestBlockFound || firstBlock;
@@ -8525,7 +8527,7 @@ nsTextFrame::IsAtEndOfLine() const
 }
 
 nscoord
-nsTextFrame::GetBaseline() const
+nsTextFrame::GetLogicalBaseline(WritingMode aWritingMode ) const
 {
   return mAscent;
 }

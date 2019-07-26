@@ -65,6 +65,7 @@ namespace mozilla {
 class SVGImageContext;
 struct IntrinsicSize;
 struct ContainerLayerParameters;
+class WritingMode;
 namespace dom {
 class DOMRectList;
 class Element;
@@ -1360,7 +1361,8 @@ public:
 
 
 
-  static bool GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
+  static bool GetFirstLineBaseline(mozilla::WritingMode aWritingMode,
+                                   const nsIFrame* aFrame, nscoord* aResult);
 
   
 
@@ -1370,17 +1372,18 @@ public:
 
 
   struct LinePosition {
-    nscoord mTop, mBaseline, mBottom;
+    nscoord mBStart, mBaseline, mBEnd;
 
     LinePosition operator+(nscoord aOffset) const {
       LinePosition result;
-      result.mTop = mTop + aOffset;
+      result.mBStart = mBStart + aOffset;
       result.mBaseline = mBaseline + aOffset;
-      result.mBottom = mBottom + aOffset;
+      result.mBEnd = mBEnd + aOffset;
       return result;
     }
   };
-  static bool GetFirstLinePosition(const nsIFrame* aFrame,
+  static bool GetFirstLinePosition(mozilla::WritingMode aWritingMode,
+                                   const nsIFrame* aFrame,
                                    LinePosition* aResult);
 
 
@@ -1392,7 +1395,8 @@ public:
 
 
 
-  static bool GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
+  static bool GetLastLineBaseline(mozilla::WritingMode aWritingMode,
+                                  const nsIFrame* aFrame, nscoord* aResult);
 
   
 
@@ -1402,7 +1406,9 @@ public:
 
 
 
-  static nscoord CalculateContentBottom(nsIFrame* aFrame);
+
+  static nscoord CalculateContentBEnd(mozilla::WritingMode aWritingMode,
+                                      nsIFrame* aFrame);
 
   
 

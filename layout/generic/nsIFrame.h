@@ -980,7 +980,7 @@ public:
 
 
 
-  virtual nscoord GetBaseline() const = 0;
+  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const = 0;
 
   
 
@@ -989,7 +989,7 @@ public:
 
 
   virtual nscoord GetCaretBaseline() const {
-    return GetBaseline();
+    return GetLogicalBaseline(GetWritingMode());
   }
 
   

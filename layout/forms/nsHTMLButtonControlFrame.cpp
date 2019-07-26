@@ -333,7 +333,8 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   if (contentsDesiredSize.BlockStartAscent() ==
       nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    contentsDesiredSize.SetBlockStartAscent(aFirstKid->GetBaseline());
+    WritingMode wm = aButtonReflowState.GetWritingMode();
+    contentsDesiredSize.SetBlockStartAscent(aFirstKid->GetLogicalBaseline(wm));
   }
 
   

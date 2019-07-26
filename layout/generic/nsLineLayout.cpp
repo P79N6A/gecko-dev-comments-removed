@@ -348,7 +348,7 @@ nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
     }
   }
 
-  mBStartEdge = aNewAvailSpace.y;
+  mBStartEdge = availSpace.BStart(lineWM);
   mImpactedByFloats = true;
 
   mLastFloatWasLetterFrame = nsGkAtoms::letterFrame == aFloatFrame->GetType();
@@ -1292,7 +1292,7 @@ nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
 
   
   if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    pfd->mAscent = pfd->mFrame->GetBaseline();
+    pfd->mAscent = pfd->mFrame->GetLogicalBaseline(lineWM);
   } else {
     pfd->mAscent = aMetrics.BlockStartAscent();
   }
@@ -1333,7 +1333,7 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
   mRootSpan->AppendFrame(pfd);
   pfd->SetFlag(PFD_ISBULLET, true);
   if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    pfd->mAscent = aFrame->GetBaseline();
+    pfd->mAscent = aFrame->GetLogicalBaseline(lineWM);
   } else {
     pfd->mAscent = aMetrics.BlockStartAscent();
   }
@@ -1475,13 +1475,13 @@ nsLineLayout::BlockDirAlignLine()
                       mContainerWidth);
 
   mFinalLineBSize = lineBSize;
-  mLineBox->SetAscent(baselineBCoord - mBStartEdge);
+  mLineBox->SetLogicalAscent(baselineBCoord - mBStartEdge);
 #ifdef NOISY_BLOCKDIR_ALIGN
   printf(
     "  [line]==> bounds{x,y,w,h}={%d,%d,%d,%d} lh=%d a=%d\n",
     mLineBox->GetBounds().IStart(lineWM), mLineBox->GetBounds().BStart(lineWM),
     mLineBox->GetBounds().ISize(lineWM), mLineBox->GetBounds().BSize(lineWM),
-    mFinalLineBSize, mLineBox->GetAscent());
+    mFinalLineBSize, mLineBox->GetLogicalAscent());
 #endif
 
   
@@ -1911,6 +1911,8 @@ nsLineLayout::BlockDirAlignFrames(PerSpanData* psd)
 
         case NS_STYLE_VERTICAL_ALIGN_TEXT_TOP:
         {
+          
+          
           
           
           nscoord parentAscent = fm->MaxAscent();

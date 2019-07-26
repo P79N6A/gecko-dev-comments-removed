@@ -122,7 +122,7 @@ public:
 
   
 
-  nscoord GetRowBaseline();
+  nscoord GetRowBaseline(mozilla::WritingMode aWritingMode);
  
   
   virtual int32_t GetRowIndex() const;

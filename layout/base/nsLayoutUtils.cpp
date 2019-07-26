@@ -4595,17 +4595,19 @@ nsLayoutUtils::GetCenteredFontBaseline(nsFontMetrics* aFontMetrics,
 
 
  bool
-nsLayoutUtils::GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
+nsLayoutUtils::GetFirstLineBaseline(WritingMode aWritingMode,
+                                    const nsIFrame* aFrame, nscoord* aResult)
 {
   LinePosition position;
-  if (!GetFirstLinePosition(aFrame, &position))
+  if (!GetFirstLinePosition(aWritingMode, aFrame, &position))
     return false;
   *aResult = position.mBaseline;
   return true;
 }
 
  bool
-nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
+nsLayoutUtils::GetFirstLinePosition(WritingMode aWM,
+                                    const nsIFrame* aFrame,
                                     LinePosition* aResult)
 {
   const nsBlockFrame* block = nsLayoutUtils::GetAsBlock(const_cast<nsIFrame*>(aFrame));
@@ -4614,11 +4616,11 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
     
     nsIAtom* fType = aFrame->GetType();
     if (fType == nsGkAtoms::tableOuterFrame) {
-      aResult->mTop = 0;
-      aResult->mBaseline = aFrame->GetBaseline();
+      aResult->mBStart = 0;
+      aResult->mBaseline = aFrame->GetLogicalBaseline(aWM);
       
       
-      aResult->mBottom = aFrame->GetSize().height;
+      aResult->mBEnd = aFrame->BSize(aWM);
       return true;
     }
 
@@ -4629,11 +4631,13 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
         NS_NOTREACHED("not scroll frame");
       }
       LinePosition kidPosition;
-      if (GetFirstLinePosition(sFrame->GetScrolledFrame(), &kidPosition)) {
+      if (GetFirstLinePosition(aWM,
+                               sFrame->GetScrolledFrame(), &kidPosition)) {
         
         
         
-        *aResult = kidPosition + aFrame->GetUsedBorderAndPadding().top;
+        *aResult = kidPosition +
+          aFrame->GetLogicalUsedBorderAndPadding(aWM).BStart(aWM);
         return true;
       }
       return false;
@@ -4643,8 +4647,9 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
       LinePosition kidPosition;
       nsIFrame* kid = aFrame->GetFirstPrincipalChild();
       
-      if (GetFirstLinePosition(kid, &kidPosition)) {
-        *aResult = kidPosition + kid->GetNormalPosition().y;
+      if (GetFirstLinePosition(aWM, kid, &kidPosition)) {
+        *aResult = kidPosition +
+          kid->GetLogicalNormalPosition(aWM, aFrame->GetSize().width).B(aWM);
         return true;
       }
       return false;
@@ -4660,18 +4665,23 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
     if (line->IsBlock()) {
       nsIFrame *kid = line->mFirstChild;
       LinePosition kidPosition;
-      if (GetFirstLinePosition(kid, &kidPosition)) {
-        *aResult = kidPosition + kid->GetNormalPosition().y;
+      if (GetFirstLinePosition(aWM, kid, &kidPosition)) {
+        
+        
+        
+        nscoord containerWidth = line->mContainerWidth;
+        *aResult = kidPosition +
+                   kid->GetLogicalNormalPosition(aWM, containerWidth).B(aWM);
         return true;
       }
     } else {
       
       
       if (line->BSize() != 0 || !line->IsEmpty()) {
-        nscoord top = line->BStart();
-        aResult->mTop = top;
-        aResult->mBaseline = top + line->GetAscent();
-        aResult->mBottom = top + line->BSize();
+        nscoord bStart = line->BStart();
+        aResult->mBStart = bStart;
+        aResult->mBaseline = bStart + line->GetLogicalAscent();
+        aResult->mBEnd = bStart + line->BSize();
         return true;
       }
     }
@@ -4680,7 +4690,8 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
 }
 
  bool
-nsLayoutUtils::GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
+nsLayoutUtils::GetLastLineBaseline(WritingMode aWM,
+                                   const nsIFrame* aFrame, nscoord* aResult)
 {
   const nsBlockFrame* block = nsLayoutUtils::GetAsBlock(const_cast<nsIFrame*>(aFrame));
   if (!block)
@@ -4693,21 +4704,24 @@ nsLayoutUtils::GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
     if (line->IsBlock()) {
       nsIFrame *kid = line->mFirstChild;
       nscoord kidBaseline;
-      if (GetLastLineBaseline(kid, &kidBaseline)) {
+      nscoord containerWidth = line->mContainerWidth;
+      if (GetLastLineBaseline(aWM, kid, &kidBaseline)) {
         
-        *aResult = kidBaseline + kid->GetNormalPosition().y;
+        *aResult = kidBaseline +
+          kid->GetLogicalNormalPosition(aWM, containerWidth).B(aWM);
         return true;
       } else if (kid->GetType() == nsGkAtoms::scrollFrame) {
         
         
-        *aResult = kid->GetNormalPosition().y + kid->GetRect().height;
+        *aResult = kid->GetLogicalNormalPosition(aWM, containerWidth).B(aWM) +
+                   kid->BSize(aWM);
         return true;
       }
     } else {
       
       
       if (line->BSize() != 0 || !line->IsEmpty()) {
-        *aResult = line->BStart() + line->GetAscent();
+        *aResult = line->BStart() + line->GetLogicalAscent();
         return true;
       }
     }
@@ -4716,45 +4730,49 @@ nsLayoutUtils::GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult)
 }
 
 static nscoord
-CalculateBlockContentBottom(nsBlockFrame* aFrame)
+CalculateBlockContentBEnd(WritingMode aWM, nsBlockFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "null ptr");
 
-  nscoord contentBottom = 0;
+  nscoord contentBEnd = 0;
 
   for (nsBlockFrame::line_iterator line = aFrame->begin_lines(),
                                    line_end = aFrame->end_lines();
        line != line_end; ++line) {
     if (line->IsBlock()) {
       nsIFrame* child = line->mFirstChild;
-      nscoord offset = child->GetNormalPosition().y;
-      contentBottom = std::max(contentBottom,
-                        nsLayoutUtils::CalculateContentBottom(child) + offset);
+      nscoord containerWidth = line->mContainerWidth;
+      nscoord offset =
+        child->GetLogicalNormalPosition(aWM, containerWidth).B(aWM);
+      contentBEnd =
+        std::max(contentBEnd,
+                 nsLayoutUtils::CalculateContentBEnd(aWM, child) + offset);
     }
     else {
-      contentBottom = std::max(contentBottom, line->BEnd());
+      contentBEnd = std::max(contentBEnd, line->BEnd());
     }
   }
-  return contentBottom;
+  return contentBEnd;
 }
 
  nscoord
-nsLayoutUtils::CalculateContentBottom(nsIFrame* aFrame)
+nsLayoutUtils::CalculateContentBEnd(WritingMode aWM, nsIFrame* aFrame)
 {
   NS_PRECONDITION(aFrame, "null ptr");
 
-  nscoord contentBottom = aFrame->GetRect().height;
+  nscoord contentBEnd = aFrame->BSize(aWM);
 
   
   
-  if (aFrame->GetScrollableOverflowRect().height > contentBottom) {
+  LogicalSize overflowSize(aWM, aFrame->GetScrollableOverflowRect().Size());
+  if (overflowSize.BSize(aWM) > contentBEnd) {
     nsIFrame::ChildListIDs skip(nsIFrame::kOverflowList |
                                 nsIFrame::kExcessOverflowContainersList |
                                 nsIFrame::kOverflowOutOfFlowList);
     nsBlockFrame* blockFrame = GetAsBlock(aFrame);
     if (blockFrame) {
-      contentBottom =
-        std::max(contentBottom, CalculateBlockContentBottom(blockFrame));
+      contentBEnd =
+        std::max(contentBEnd, CalculateBlockContentBEnd(aWM, blockFrame));
       skip |= nsIFrame::kPrincipalList;
     }
     nsIFrame::ChildListIterator lists(aFrame);
@@ -4763,14 +4781,16 @@ nsLayoutUtils::CalculateContentBottom(nsIFrame* aFrame)
         nsFrameList::Enumerator childFrames(lists.CurrentList()); 
         for (; !childFrames.AtEnd(); childFrames.Next()) {
           nsIFrame* child = childFrames.get();
-          nscoord offset = child->GetNormalPosition().y;
-          contentBottom = std::max(contentBottom,
-                                 CalculateContentBottom(child) + offset);
+          nscoord offset =
+            child->GetLogicalNormalPosition(aWM,
+                                            aFrame->GetSize().width).B(aWM);
+          contentBEnd = std::max(contentBEnd,
+                                 CalculateContentBEnd(aWM, child) + offset);
         }
       }
     }
   }
-  return contentBottom;
+  return contentBEnd;
 }
 
  nsIFrame*
