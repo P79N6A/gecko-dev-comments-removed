@@ -1094,11 +1094,6 @@ protected:
   
   bool                          mDialogsPermanentlyDisabled;
 
-  
-  
-  bool mObservingNetworkUpload;
-  bool mObservingNetworkDownload;
-
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
   nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
