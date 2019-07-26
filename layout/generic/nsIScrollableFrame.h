@@ -156,7 +156,7 @@ public:
 
 
 
-  virtual void ScrollToCSSPixels(nsIntPoint aScrollPosition) = 0;
+  virtual void ScrollToCSSPixels(const mozilla::CSSIntPoint& aScrollPosition) = 0;
   
 
 
