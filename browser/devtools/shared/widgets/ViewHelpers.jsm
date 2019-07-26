@@ -995,11 +995,10 @@ this.WidgetMethods = {
 
     
     
-    if (targetElement == prevElement) {
-      return;
+    if (targetElement != prevElement) {
+      this._widget.selectedItem = targetElement;
+      ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
     }
-    this._widget.selectedItem = targetElement;
-    ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
 
     
     
