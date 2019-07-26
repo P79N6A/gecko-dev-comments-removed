@@ -165,7 +165,7 @@ namespace {
   
   
   union LParamForKeyEvents {
-    LPARAM lParam;
+    uintptr_t lParam;
     struct {
       
       uint16_t repeatCount;
@@ -197,7 +197,7 @@ namespace {
   
   void
   InitPluginKeyEventLParamFromKeyStatus(
-                      uint32_t& aLParam,
+                      uintptr_t& aLParam,
                       UI::Core::CorePhysicalKeyStatus const& aKeyStatus) {
     LParamForKeyEvents lParam;
 
@@ -228,7 +228,7 @@ namespace {
   
   
   union LParamForMouseEvents {
-    LPARAM lParam;
+    uintptr_t lParam;
     
     struct lParamDeconstruction {
       
@@ -241,8 +241,8 @@ namespace {
   
   void
   InitPluginMouseEventParams(nsInputEvent const& aEvent,
-                             uint32_t& aWParam,
-                             uint32_t& aLParam) {
+                             uintptr_t& aWParam,
+                             uintptr_t& aLParam) {
     
     aWParam = 0;
     if (IS_VK_DOWN(VK_LBUTTON)) {
@@ -453,7 +453,7 @@ MetroInput::OnPointerWheelChanged(UI::Core::ICoreWindow* aSender,
   pluginEvent.event = horzEvent ? WM_MOUSEHWHEEL : WM_MOUSEWHEEL;
 
   union {
-    uint32_t wParam;
+    uintptr_t wParam;
     uint16_t parts[2];
   } wParam;
 
