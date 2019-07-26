@@ -926,13 +926,19 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   if (fabs(overscroll.x) > EPSILON || fabs(overscroll.y) > EPSILON) {
     
     
-    
-    APZCTreeManager* treeManagerLocal = mTreeManager;
-    if (treeManagerLocal) {
-      
-      treeManagerLocal->HandleOverscroll(this, aEndPoint + overscroll, aEndPoint,
-                                         aOverscrollHandoffChainIndex);
-    }
+    CallDispatchScroll(aEndPoint + overscroll, aEndPoint, aOverscrollHandoffChainIndex + 1);
+  }
+}
+
+void AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+                                                uint32_t aOverscrollHandoffChainIndex) {
+  
+  
+  
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (treeManagerLocal) {
+    treeManagerLocal->DispatchScroll(this, aStartPoint, aEndPoint,
+                                     aOverscrollHandoffChainIndex);
   }
 }
 
@@ -974,7 +980,7 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
 
   UpdateWithTouchAtDevicePoint(aEvent);
 
-  AttemptScroll(prevTouchPoint, touchPoint);
+  CallDispatchScroll(prevTouchPoint, touchPoint, 0);
 }
 
 ScreenIntPoint& AsyncPanZoomController::GetFirstTouchScreenPoint(const MultiTouchInput& aEvent) {

@@ -283,6 +283,14 @@ public:
 
 
 
+
+  void CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+                          uint32_t aOverscrollHandoffChainIndex);
+
+  
+
+
+
   bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
 
 protected:

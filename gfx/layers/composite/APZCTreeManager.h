@@ -227,8 +227,29 @@ public:
 
 
 
-  void HandleOverscroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
-                        uint32_t aOverscrollHandoffChainIndex);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void DispatchScroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
+                      uint32_t aOverscrollHandoffChainIndex);
 
 protected:
   
@@ -237,6 +258,10 @@ protected:
 
   virtual void AssertOnCompositorThread();
 
+  
+
+
+  void BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
 public:
   
 
@@ -246,10 +271,6 @@ public:
 
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint);
-  
-
-
-  already_AddRefed<AsyncPanZoomController> AdjustForScrollGrab(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
   void GetRootAPZCsFor(const uint64_t& aLayersId,
                        nsTArray< nsRefPtr<AsyncPanZoomController> >* aOutRootApzcs);
   void GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
