@@ -4,11 +4,10 @@
 
 
 #include "GLContextProvider.h"
-#include "GLContext.h"
+#include "GLContextWGL.h"
 #include "GLLibraryLoader.h"
 #include "nsDebug.h"
 #include "nsIWidget.h"
-#include "WGLLibrary.h"
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
 #include "gfxPlatform.h"
@@ -24,8 +23,6 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace gl {
-
-typedef WGLLibrary::LibraryType LibType;
 
 WGLLibrary sWGLLib[WGLLibrary::LIBS_MAX];
 
@@ -253,161 +250,153 @@ WGLLibrary::EnsureInitialized(bool aUseMesaLlvmPipe)
     return true;
 }
 
-class GLContextWGL : public GLContext
+GLContextWGL::GLContextWGL(
+                  const SurfaceCaps& caps,
+                  GLContext* sharedContext,
+                  bool isOffscreen,
+                  HDC aDC,
+                  HGLRC aContext,
+                  LibType aLibUsed,
+                  HWND aWindow)
+    : GLContext(caps, sharedContext, isOffscreen),
+      mDC(aDC),
+      mContext(aContext),
+      mWnd(aWindow),
+      mPBuffer(nullptr),
+      mPixelFormat(0),
+      mLibType(aLibUsed),
+      mIsDoubleBuffered(false)
 {
-public:
     
-    GLContextWGL(const SurfaceCaps& caps,
-                 GLContext* sharedContext,
-                 bool isOffscreen,
-                 HDC aDC,
-                 HGLRC aContext,
-                 LibType aLibUsed,
-                 HWND aWindow = nullptr)
-        : GLContext(caps, sharedContext, isOffscreen),
-          mDC(aDC),
-          mContext(aContext),
-          mWnd(aWindow),
-          mPBuffer(nullptr),
-          mPixelFormat(0),
-          mLibType(aLibUsed),
-          mIsDoubleBuffered(false)
-    {
-        
-        SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
-    }
+    SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
+}
+
+GLContextWGL::GLContextWGL(
+                  const SurfaceCaps& caps,
+                  GLContext* sharedContext,
+                  bool isOffscreen,
+                  HANDLE aPbuffer,
+                  HDC aDC,
+                  HGLRC aContext,
+                  int aPixelFormat,
+                  LibType aLibUsed)
+    : GLContext(caps, sharedContext, isOffscreen),
+      mDC(aDC),
+      mContext(aContext),
+      mWnd(nullptr),
+      mPBuffer(aPbuffer),
+      mPixelFormat(aPixelFormat),
+      mLibType(aLibUsed),
+      mIsDoubleBuffered(false)
+{
+    
+    SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
+}
+
+GLContextWGL::~GLContextWGL()
+{
+    MarkDestroyed();
+
+    sWGLLib[mLibType].fDeleteContext(mContext);
+
+    if (mPBuffer)
+        sWGLLib[mLibType].fDestroyPbuffer(mPBuffer);
+    if (mWnd)
+        DestroyWindow(mWnd);
+}
+
+GLContextType
+GLContextWGL::GetContextType() {
+    return ContextTypeWGL;
+}
+
+bool
+GLContextWGL::Init()
+{
+    if (!mDC || !mContext)
+        return false;
 
     
-    GLContextWGL(const SurfaceCaps& caps,
-                 GLContext* sharedContext,
-                 bool isOffscreen,
-                 HANDLE aPbuffer,
-                 HDC aDC,
-                 HGLRC aContext,
-                 int aPixelFormat,
-                 LibType aLibUsed)
-        : GLContext(caps, sharedContext, isOffscreen),
-          mDC(aDC),
-          mContext(aContext),
-          mWnd(nullptr),
-          mPBuffer(aPbuffer),
-          mPixelFormat(aPixelFormat),
-          mLibType(aLibUsed),
-          mIsDoubleBuffered(false)
-    {
-        
-        SetProfileVersion(ContextProfile::OpenGLCompatibility, 200);
+    if (!sWGLLib[mLibType].fMakeCurrent(mDC, mContext))
+        return false;
+
+    SetupLookupFunction();
+    if (!InitWithPrefix("gl", true))
+        return false;
+
+    return true;
+}
+
+bool
+GLContextWGL::MakeCurrentImpl(bool aForce)
+{
+    BOOL succeeded = true;
+
+    
+    
+    
+    
+    if (aForce || sWGLLib[mLibType].fGetCurrentContext() != mContext) {
+        succeeded = sWGLLib[mLibType].fMakeCurrent(mDC, mContext);
+        NS_ASSERTION(succeeded, "Failed to make GL context current!");
     }
 
-    ~GLContextWGL()
-    {
-        MarkDestroyed();
+    return succeeded;
+}
 
-        sWGLLib[mLibType].fDeleteContext(mContext);
+bool
+GLContextWGL::IsCurrent() {
+    return sWGLLib[mLibType].fGetCurrentContext() == mContext;
+}
 
-        if (mPBuffer)
-            sWGLLib[mLibType].fDestroyPbuffer(mPBuffer);
-        if (mWnd)
-            DestroyWindow(mWnd);
+void
+GLContextWGL::SetIsDoubleBuffered(bool aIsDB) {
+    mIsDoubleBuffered = aIsDB;
+}
+
+bool
+GLContextWGL::IsDoubleBuffered() {
+    return mIsDoubleBuffered;
+}
+
+bool
+GLContextWGL::SupportsRobustness()
+{
+    return sWGLLib[mLibType].HasRobustness();
+}
+
+bool
+GLContextWGL::SwapBuffers() {
+    if (!mIsDoubleBuffered)
+        return false;
+    return ::SwapBuffers(mDC);
+}
+
+bool
+GLContextWGL::SetupLookupFunction()
+{
+    
+    
+    
+    MOZ_ASSERT(mLibrary == nullptr);
+
+    mLibrary = sWGLLib[mLibType].GetOGLLibrary();
+    mLookupFunc = (PlatformLookupFunction)sWGLLib[mLibType].fGetProcAddress;
+    return true;
+}
+
+void*
+GLContextWGL::GetNativeData(NativeDataType aType)
+{
+    switch (aType) {
+    case NativeGLContext:
+        return mContext;
+
+    default:
+        return nullptr;
     }
+}
 
-    GLContextType GetContextType() {
-        return ContextTypeWGL;
-    }
-
-    bool Init()
-    {
-        if (!mDC || !mContext)
-            return false;
-
-        
-        if (!sWGLLib[mLibType].fMakeCurrent(mDC, mContext))
-            return false;
-
-        SetupLookupFunction();
-        if (!InitWithPrefix("gl", true))
-            return false;
-
-        return true;
-    }
-
-    bool MakeCurrentImpl(bool aForce = false)
-    {
-        BOOL succeeded = true;
-
-        
-        
-        
-        
-        if (aForce || sWGLLib[mLibType].fGetCurrentContext() != mContext) {
-            succeeded = sWGLLib[mLibType].fMakeCurrent(mDC, mContext);
-            NS_ASSERTION(succeeded, "Failed to make GL context current!");
-        }
-
-        return succeeded;
-    }
-
-    virtual bool IsCurrent() {
-        return sWGLLib[mLibType].fGetCurrentContext() == mContext;
-    }
-
-    void SetIsDoubleBuffered(bool aIsDB) {
-        mIsDoubleBuffered = aIsDB;
-    }
-
-    virtual bool IsDoubleBuffered() {
-        return mIsDoubleBuffered;
-    }
-
-    bool SupportsRobustness()
-    {
-        return sWGLLib[mLibType].HasRobustness();
-    }
-
-    virtual bool SwapBuffers() {
-        if (!mIsDoubleBuffered)
-            return false;
-        return ::SwapBuffers(mDC);
-    }
-
-    bool SetupLookupFunction()
-    {
-        
-        
-        
-        MOZ_ASSERT(mLibrary == nullptr);
-
-        mLibrary = sWGLLib[mLibType].GetOGLLibrary();
-        mLookupFunc = (PlatformLookupFunction)sWGLLib[mLibType].fGetProcAddress;
-        return true;
-    }
-
-    void *GetNativeData(NativeDataType aType)
-    {
-        switch (aType) {
-        case NativeGLContext:
-            return mContext;
-
-        default:
-            return nullptr;
-        }
-    }
-
-    bool ResizeOffscreen(const gfx::IntSize& aNewSize);
-
-    HGLRC Context() { return mContext; }
-
-protected:
-    friend class GLContextProviderWGL;
-
-    HDC mDC;
-    HGLRC mContext;
-    HWND mWnd;
-    HANDLE mPBuffer;
-    int mPixelFormat;
-    LibType mLibType;
-    bool mIsDoubleBuffered;
-};
 
 
 static bool
