@@ -242,16 +242,37 @@ class ParallelDo
         GreenLight
     };
 
+    struct WorklistData {
+        
+        
+        bool calleesEnqueued;
+
+        
+        
+        uint32_t useCount;
+
+        
+        
+        uint32_t stallCount;
+
+        void reset() {
+            calleesEnqueued = false;
+            useCount = 0;
+            stallCount = 0;
+        }
+    };
+
     JSContext *cx_;
     HandleObject fun_;
     Vector<ParallelBailoutRecord, 16> bailoutRecords_;
     AutoScriptVector worklist_;
-    Vector<bool, 16> calleesEnqueued_;
+    Vector<WorklistData, 16> worklistData_;
     ForkJoinMode mode_;
 
     TrafficLight enqueueInitialScript(ExecutionStatus *status);
     TrafficLight compileForParallelExecution(ExecutionStatus *status);
-    TrafficLight warmupExecution(ExecutionStatus *status);
+    TrafficLight warmupExecution(bool stopIfComplete,
+                                 ExecutionStatus *status);
     TrafficLight parallelExecution(ExecutionStatus *status);
     TrafficLight sequentialExecution(bool disqualified, ExecutionStatus *status);
     TrafficLight recoverFromBailout(ExecutionStatus *status);
@@ -512,7 +533,7 @@ js::ParallelDo::ParallelDo(JSContext *cx,
     fun_(fun),
     bailoutRecords_(cx),
     worklist_(cx),
-    calleesEnqueued_(cx),
+    worklistData_(cx),
     mode_(mode)
 { }
 
@@ -543,7 +564,8 @@ js::ParallelDo::apply()
     
     
 
-    if (!ion::IsEnabled(cx_))
+    JS_ASSERT_IF(!ion::IsBaselineEnabled(cx_), !ion::IsEnabled(cx_));
+    if (!ion::IsBaselineEnabled(cx_) || !ion::IsEnabled(cx_))
         return sequentialExecution(true);
 
     SpewBeginOp(cx_, "ParallelDo");
@@ -618,17 +640,10 @@ js::ParallelDo::enqueueInitialScript(ExecutionStatus *status)
 
     
     
+    
     RootedScript script(cx_, callee->getOrCreateScript(cx_));
     if (!script)
         return RedLight;
-    if (script->getUseCount() < js_IonOptions.usesBeforeCompileParallel) {
-        if (warmupExecution(status) == RedLight)
-            return RedLight;
-    }
-
-    
-    
-    
     if (script->hasParallelIonScript()) {
         if (!script->parallelIonScript()->hasUncompiledCallTarget()) {
             Spew(SpewOps, "Script %p:%s:%d already compiled, no uncompiled callees",
@@ -664,16 +679,56 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
 
     
     
+    const uint32_t stallThreshold = 3;
+
+    
+    
+    
     
     
     
     while (true) {
         bool offMainThreadCompilationsInProgress = false;
+        bool gatheringTypeInformation = false;
 
         
         for (uint32_t i = 0; i < worklist_.length(); i++) {
             script = worklist_[i];
             fun = script->function();
+
+            
+            
+            
+            
+            
+            
+            if (!script->hasBaselineScript()) {
+                uint32_t previousUseCount = worklistData_[i].useCount;
+                uint32_t currentUseCount = script->getUseCount();
+                if (previousUseCount < currentUseCount) {
+                    worklistData_[i].useCount = currentUseCount;
+                    worklistData_[i].stallCount = 0;
+                    gatheringTypeInformation = true;
+
+                    Spew(SpewCompile,
+                         "Script %p:%s:%d has no baseline script, "
+                         "but use count grew from %d to %d",
+                         script.get(), script->filename(), script->lineno,
+                         previousUseCount, currentUseCount);
+                } else {
+                    uint32_t stallCount = ++worklistData_[i].stallCount;
+                    if (stallCount < stallThreshold) {
+                        gatheringTypeInformation = true;
+                    }
+
+                    Spew(SpewCompile,
+                         "Script %p:%s:%d has no baseline script, "
+                         "and use count has %u stalls at %d",
+                         script.get(), script->filename(), script->lineno,
+                         stallCount, previousUseCount);
+                }
+                continue;
+            }
 
             if (!script->hasParallelIonScript()) {
                 
@@ -727,8 +782,15 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
         
         
         
-        if (offMainThreadCompilationsInProgress) {
-            if (warmupExecution(status) == RedLight)
+        
+        
+        
+        
+        
+        
+        if (offMainThreadCompilationsInProgress || gatheringTypeInformation) {
+            bool stopIfComplete = (mode_ != ForkJoinModeCompile);
+            if (warmupExecution(stopIfComplete, status) == RedLight)
                 return RedLight;
             continue;
         }
@@ -741,8 +803,16 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
         bool allScriptsPresent = true;
         for (uint32_t i = 0; i < worklist_.length(); i++) {
             if (!worklist_[i]->hasParallelIonScript()) {
-                calleesEnqueued_[i] = false;
-                allScriptsPresent = false;
+                if (worklistData_[i].stallCount < stallThreshold) {
+                    worklistData_[i].reset();
+                    allScriptsPresent = false;
+
+                    Spew(SpewCompile,
+                         "Script %p:%s:%d is not stalled, "
+                         "but no parallel ion script found, "
+                         "restarting loop",
+                         script.get(), script->filename(), script->lineno);
+                }
             }
         }
         if (allScriptsPresent)
@@ -755,13 +825,18 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
     
     
     
+    
+    
     for (uint32_t i = 0; i < worklist_.length(); i++) {
-        JS_ASSERT(worklist_[i]->hasParallelIonScript());
-        JS_ASSERT(calleesEnqueued_[i]);
-        worklist_[i]->parallelIonScript()->clearHasUncompiledCallTarget();
+        if (worklist_[i]->hasParallelIonScript()) {
+            JS_ASSERT(worklistData_[i].calleesEnqueued);
+            worklist_[i]->parallelIonScript()->clearHasUncompiledCallTarget();
+        } else {
+            JS_ASSERT(worklistData_[i].stallCount >= stallThreshold);
+        }
     }
     worklist_.clear();
-    calleesEnqueued_.clear();
+    worklistData_.clear();
     return GreenLight;
 }
 
@@ -776,9 +851,9 @@ js::ParallelDo::appendCallTargetsToWorklist(uint32_t index,
 
     
     
-    if (calleesEnqueued_[index])
+    if (worklistData_[index].calleesEnqueued)
         return GreenLight;
-    calleesEnqueued_[index] = true;
+    worklistData_[index].calleesEnqueued = true;
 
     
     RootedScript target(cx_);
@@ -818,17 +893,6 @@ js::ParallelDo::appendCallTargetToWorklist(HandleScript script,
                  script.get(), script->filename(), script->lineno);
             return sequentialExecution(false, status);
         }
-
-        
-        
-        
-        
-        if (script->getUseCount() < js_IonOptions.usesBeforeCompileParallel) {
-            Spew(SpewCompile, "Skipping %p:%s:%u, use count %u < %u",
-                 script.get(), script->filename(), script->lineno,
-                 script->getUseCount(), js_IonOptions.usesBeforeCompileParallel);
-            return GreenLight;
-        }
     }
 
     if (!addToWorklist(script))
@@ -859,8 +923,9 @@ js::ParallelDo::addToWorklist(HandleScript script)
         return false;
 
     
-    if (!calleesEnqueued_.append(false))
+    if (!worklistData_.append(WorklistData()))
         return false;
+    worklistData_[worklistData_.length() - 1].reset();
 
     return true;
 }
@@ -1037,7 +1102,8 @@ js::ParallelDo::invalidateBailedOutScripts()
 }
 
 js::ParallelDo::TrafficLight
-js::ParallelDo::warmupExecution(ExecutionStatus *status)
+js::ParallelDo::warmupExecution(bool stopIfComplete,
+                                ExecutionStatus *status)
 {
     
     
@@ -1052,14 +1118,10 @@ js::ParallelDo::warmupExecution(ExecutionStatus *status)
         return RedLight;
     }
 
-    if (complete) {
+    if (complete && stopIfComplete) {
         Spew(SpewOps, "Warmup execution finished all the work.");
-        if (mode_ != ForkJoinModeCompile) {
-            *status = ExecutionWarmup;
-            return RedLight;
-        } else {
-            Spew(SpewOps, "Compile mode, so continuing to wait");
-        }
+        *status = ExecutionWarmup;
+        return RedLight;
     }
 
     return GreenLight;
@@ -1161,7 +1223,7 @@ js::ParallelDo::recoverFromBailout(ExecutionStatus *status)
     if (!invalidateBailedOutScripts())
         return fatalError(status);
 
-    if (warmupExecution(status) == RedLight)
+    if (warmupExecution(true, status) == RedLight)
         return RedLight;
 
     return GreenLight;
