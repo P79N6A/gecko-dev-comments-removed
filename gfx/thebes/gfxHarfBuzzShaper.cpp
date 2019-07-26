@@ -26,10 +26,6 @@
 #include "nsCRT.h"
 #include <algorithm>
 
-#if defined(XP_WIN)
-#include "gfxWindowsPlatform.h"
-#endif
-
 #define FloatToFixed(f) (65536 * (f))
 #define FixedToFloat(f) ((f) * (1.0 / 65536.0))
 
@@ -1028,80 +1024,6 @@ gfxHarfBuzzShaper::ShapeText(gfxContext      *aContext,
     return NS_SUCCEEDED(rv);
 }
 
-
-
-
-
-
-
-
-
-
-static void
-GetRoundOffsetsToPixels(gfxContext *aContext,
-                        bool *aRoundX, bool *aRoundY)
-{
-    *aRoundX = false;
-    
-    
-    
-    if (aContext->CurrentMatrix().HasNonTranslation()) {
-        *aRoundY = false;
-        return;
-    }
-
-    
-    
-    *aRoundY = true;
-
-    cairo_t *cr = aContext->GetCairo();
-    cairo_scaled_font_t *scaled_font = cairo_get_scaled_font(cr);
-    
-    cairo_font_options_t *font_options = cairo_font_options_create();
-    cairo_scaled_font_get_font_options(scaled_font, font_options);
-    cairo_hint_metrics_t hint_metrics =
-        cairo_font_options_get_hint_metrics(font_options);
-    cairo_font_options_destroy(font_options);
-
-    switch (hint_metrics) {
-    case CAIRO_HINT_METRICS_OFF:
-        *aRoundY = false;
-        return;
-    case CAIRO_HINT_METRICS_DEFAULT:
-        
-        
-        
-        
-        
-        switch (cairo_scaled_font_get_type(scaled_font)) {
-#if CAIRO_HAS_DWRITE_FONT 
-        case CAIRO_FONT_TYPE_DWRITE:
-            
-            
-            
-            if (!cairo_dwrite_scaled_font_get_force_GDI_classic(scaled_font) &&
-                gfxWindowsPlatform::GetPlatform()->DWriteMeasuringMode() ==
-                    DWRITE_MEASURING_MODE_NATURAL) {
-                return;
-            }
-#endif
-        case CAIRO_FONT_TYPE_QUARTZ:
-            
-            if (cairo_surface_get_type(cairo_get_target(cr)) ==
-                CAIRO_SURFACE_TYPE_QUARTZ) {
-                return;
-            }
-        default:
-            break;
-        }
-        
-    case CAIRO_HINT_METRICS_ON:
-        break;
-    }
-    *aRoundX = true;
-    return;
-}
-
 #define SMALL_GLYPH_RUN 128 // some testing indicates that 90%+ of text runs
                             
                             
@@ -1146,7 +1068,7 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext      *aContext,
 
     bool roundX;
     bool roundY;
-    GetRoundOffsetsToPixels(aContext, &roundX, &roundY);
+    aContext->GetRoundOffsetsToPixels(&roundX, &roundY);
 
     int32_t appUnitsPerDevUnit = aShapedText->GetAppUnitsPerDevUnit();
     gfxShapedText::CompressedGlyph *charGlyphs =

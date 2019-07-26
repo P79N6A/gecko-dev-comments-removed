@@ -684,6 +684,9 @@ public:
 
     bool IsCairo() const { return !mDT; }
 
+    
+    void GetRoundOffsetsToPixels(bool *aRoundX, bool *aRoundY);
+
 #ifdef MOZ_DUMP_PAINTING
     
 
