@@ -539,6 +539,7 @@ this.BrowserIDManager.prototype = {
   
   _ensureValidToken: function() {
     if (this.hasValidToken()) {
+      this._log.debug("_ensureValidToken already has one");
       return Promise.resolve();
     }
     return this._fetchTokenForUser().then(
@@ -627,15 +628,25 @@ BrowserIDClusterManager.prototype = {
       if (!endpoint.endsWith("/")) {
         endpoint += "/";
       }
+      log.debug("_findCluster returning " + endpoint);
       return endpoint;
     }.bind(this);
 
     
     let promiseClusterURL = function() {
       return this.identity.whenReadyToAuthenticate.promise.then(
-        () => this.identity._ensureValidToken()
-      ).then(
-        () => endPointFromIdentityToken()
+        () => {
+          
+          
+          
+          
+          if (this.service.clusterURL) {
+            log.debug("_findCluster found existing clusterURL, so discarding the current token");
+            this.identity._token = null;
+          }
+          return this.identity._ensureValidToken();
+        }
+      ).then(endPointFromIdentityToken
       );
     }.bind(this);
 

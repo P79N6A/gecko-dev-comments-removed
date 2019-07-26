@@ -656,7 +656,7 @@ Sync11Service.prototype = {
     }
   },
 
-  verifyLogin: function verifyLogin() {
+  verifyLogin: function verifyLogin(allow40XRecovery = true) {
     
     if (!this.identity.readyToAuthenticate) {
       this._log.info("Not ready to authenticate in verifyLogin.");
@@ -727,8 +727,8 @@ Sync11Service.prototype = {
 
         case 404:
           
-          if (this._clusterManager.setCluster()) {
-            return this.verifyLogin();
+          if (allow40XRecovery && this._clusterManager.setCluster()) {
+            return this.verifyLogin(false);
           }
 
           
@@ -987,9 +987,8 @@ Sync11Service.prototype = {
 
   logout: function logout() {
     
-    if (!this._loggedIn)
-      return;
-
+    
+    
     this._log.info("Logging out");
     this.identity.logout();
     this._loggedIn = false;
@@ -1058,6 +1057,14 @@ Sync11Service.prototype = {
 
       
       let newMeta = this.recordManager.get(this.metaURL);
+
+      
+      
+      if (this.recordManager.response.status == 401) {
+        this._log.debug("Fetching meta/global record on the server returned 401.");
+        this.errorHandler.checkServerError(this.recordManager.response);
+        return false;
+      }
 
       if (!this.recordManager.response.success || !newMeta) {
         this._log.debug("No meta/global record on the server. Creating one.");

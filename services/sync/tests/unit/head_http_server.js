@@ -806,7 +806,12 @@ SyncServer.prototype = {
     }
 
     let [all, version, username, first, rest] = parts;
-    if (version != SYNC_API_VERSION) {
+    
+    
+    
+    
+    
+    if (parseFloat(version) != parseFloat(SYNC_API_VERSION)) {
       this._log.debug("SyncServer: Unknown version.");
       throw HTTP_404;
     }
