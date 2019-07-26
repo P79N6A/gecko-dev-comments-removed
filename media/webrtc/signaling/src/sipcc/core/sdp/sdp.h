@@ -714,7 +714,7 @@ typedef struct sdp_fmtp {
 
 typedef struct sdp_sctpmap {
     u16                       port;
-    u16                       streams;   
+    u32                       streams;   
     char                      protocol[SDP_MAX_STRING_LEN+1];
 } sdp_sctpmap_t;
 
