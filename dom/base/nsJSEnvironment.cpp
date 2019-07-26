@@ -2719,20 +2719,20 @@ static JSFunctionSpec JProfFunctions[] = {
 
 #endif 
 
-#ifdef MOZ_DMD
+#ifdef MOZ_DMDV
 
 
 
 
 static JSBool
-DMDCheckJS(JSContext *cx, unsigned argc, jsval *vp)
+DMDVCheckAndDumpJS(JSContext *cx, unsigned argc, jsval *vp)
 {
-  mozilla::DMDCheckAndDump();
+  mozilla::DMDVCheckAndDump();
   return JS_TRUE;
 }
 
-static JSFunctionSpec DMDFunctions[] = {
-    JS_FS("DMD",                        DMDCheckJS,                 0, 0),
+static JSFunctionSpec DMDVFunctions[] = {
+    JS_FS("DMDV",                       DMDVCheckAndDumpJS,         0, 0),
     JS_FS_END
 };
 
@@ -2761,9 +2761,9 @@ nsJSContext::InitClasses(JSObject* aGlobalObj)
   ::JS_DefineFunctions(mContext, aGlobalObj, JProfFunctions);
 #endif
 
-#ifdef MOZ_DMD
+#ifdef MOZ_DMDV
   
-  ::JS_DefineFunctions(mContext, aGlobalObj, DMDFunctions);
+  ::JS_DefineFunctions(mContext, aGlobalObj, DMDVFunctions);
 #endif
 
   return rv;

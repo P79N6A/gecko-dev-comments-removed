@@ -543,7 +543,7 @@ static int64_t GetHeapAllocated()
 
 
 
-#ifndef MOZ_DMD
+#ifndef MOZ_DMDV
 #define HAVE_HEAP_ZONE0_REPORTERS 1
 static int64_t GetHeapZone0Committed()
 {
@@ -1589,7 +1589,7 @@ NS_UnregisterMemoryMultiReporter (nsIMemoryMultiReporter *reporter)
 
 namespace mozilla {
 
-#ifdef MOZ_DMD
+#ifdef MOZ_DMDV
 
 class NullMultiReporterCallback : public nsIMemoryMultiReporterCallback
 {
@@ -1611,7 +1611,7 @@ NS_IMPL_ISUPPORTS1(
 )
 
 void
-DMDCheckAndDump()
+DMDVCheckAndDump()
 {
     nsCOMPtr<nsIMemoryReporterManager> mgr =
         do_GetService("@mozilla.org/memory-reporter-manager;1");
@@ -1639,7 +1639,7 @@ DMDCheckAndDump()
       r->CollectReports(cb, nullptr);
     }
 
-    VALGRIND_DMD_CHECK_REPORTING;
+    VALGRIND_DMDV_CHECK_REPORTING;
 }
 
 #endif  
