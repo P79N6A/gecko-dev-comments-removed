@@ -338,22 +338,19 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
   
   
   if (!mParent) {
-    if (disp->mDisplay != NS_STYLE_DISPLAY_NONE &&
-        disp->mDisplay != NS_STYLE_DISPLAY_BLOCK &&
-        disp->mDisplay != NS_STYLE_DISPLAY_TABLE) {
-      nsStyleDisplay *mutable_display = static_cast<nsStyleDisplay*>
-                                                   (GetUniqueStyleData(eStyleStruct_Display));
+    uint8_t displayVal = disp->mDisplay;
+    nsRuleNode::EnsureBlockDisplay(displayVal, true);
+    if (displayVal != disp->mDisplay) {
+      nsStyleDisplay *mutable_display =
+        static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
+
       
       
       
       
       
-      if (mutable_display->mDisplay == NS_STYLE_DISPLAY_INLINE_TABLE)
-        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
-          NS_STYLE_DISPLAY_TABLE;
-      else
-        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
-          NS_STYLE_DISPLAY_BLOCK;
+      mutable_display->mOriginalDisplay = mutable_display->mDisplay =
+        displayVal;
     }
   }
 

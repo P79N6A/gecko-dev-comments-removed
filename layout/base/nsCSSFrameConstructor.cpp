@@ -2415,6 +2415,12 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
                                      frameItems);
     newFrame = frameItems.FirstChild();
     NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
+  } else if (display->mDisplay == NS_STYLE_DISPLAY_FLEX) {
+    contentFrame = NS_NewFlexContainerFrame(mPresShell, styleContext);
+    InitAndRestoreFrame(state, aDocElement, mDocElementContainingBlock,
+                        contentFrame);
+    newFrame = contentFrame;
+    processChildren = true;
   } else if (display->mDisplay == NS_STYLE_DISPLAY_TABLE) {
     
     
@@ -2438,6 +2444,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     newFrame = frameItems.FirstChild();
     NS_ASSERTION(frameItems.OnlyChild(), "multiple root element frames");
   } else {
+    MOZ_ASSERT(display->mDisplay == NS_STYLE_DISPLAY_BLOCK,
+               "Unhandled display type for root element");
     contentFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
     nsFrameItems frameItems;
     
