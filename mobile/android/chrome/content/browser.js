@@ -3772,7 +3772,7 @@ Tab.prototype = {
       }
 
       
-      let success = false; 
+      let success = false;
       let uri = "";
       try {
         
@@ -3783,7 +3783,11 @@ Tab.prototype = {
       } catch (e) { }
       try {
         success = aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded;
-      } catch (e) { }
+      } catch (e) {
+        
+        
+        success = aRequest.status == 0;
+      }
 
       
       
