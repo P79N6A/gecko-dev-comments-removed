@@ -1742,7 +1742,9 @@ IonBuilder::restartLoop(CFGState state)
     graph().removeBlocksAfter(header);
 
     
+    
     header->discardAllInstructions();
+    header->discardAllResumePoints( false);
     header->setStackDepth(header->getPredecessor(0)->stackDepth());
 
     popCfgStack();
