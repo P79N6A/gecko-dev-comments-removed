@@ -15,7 +15,6 @@
 #include "jsarray.h"
 #include "jsatom.h"
 #include "jscntxt.h"
-#include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsobj.h"
 #include "jsopcode.h"
@@ -40,7 +39,6 @@
 
 using namespace js;
 using namespace js::gc;
-using JS::ForOfIterator;
 
 using mozilla::ArrayLength;
 #ifdef JS_MORE_DETERMINISTIC
@@ -1270,10 +1268,9 @@ const Class StopIterationObject::class_ = {
     nullptr                  
 };
 
-JS_FRIEND_API(bool)
-ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavior)
+bool
+ForOfIterator::init(HandleValue iterable)
 {
-    JSContext *cx = cx_;
     RootedObject iterableObj(cx, ToObject(cx, iterable));
     if (!iterableObj)
         return false;
@@ -1291,10 +1288,7 @@ ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavio
     
     
     
-    
     if (!callee.isObject() || !callee.toObject().isCallable()) {
-        if (nonIterableBehavior == AllowNonIterable)
-            return true;
         char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, iterable, NullPtr());
         if (!bytes)
             return false;
@@ -1314,12 +1308,11 @@ ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavio
     return true;
 }
 
-JS_FRIEND_API(bool)
+bool
 ForOfIterator::next(MutableHandleValue vp, bool *done)
 {
     JS_ASSERT(iterator);
 
-    JSContext *cx = cx_;
     RootedValue method(cx);
     if (!JSObject::getProperty(cx, iterator, iterator, cx->names().next, &method))
         return false;

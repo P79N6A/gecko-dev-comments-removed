@@ -4807,63 +4807,6 @@ struct AsmJSCacheOps
 extern JS_PUBLIC_API(void)
 SetAsmJSCacheOps(JSRuntime *rt, const AsmJSCacheOps *callbacks);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
-  protected:
-    JSContext *cx_;
-    JS::RootedObject iterator;
-
-    ForOfIterator(const ForOfIterator &) MOZ_DELETE;
-    ForOfIterator &operator=(const ForOfIterator &) MOZ_DELETE;
-
-  public:
-    ForOfIterator(JSContext *cx) : cx_(cx), iterator(cx) { }
-
-    enum NonIterableBehavior {
-        ThrowOnNonIterable,
-        AllowNonIterable
-    };
-
-    
-
-
-
-
-
-    JS_PUBLIC_API(bool) init(JS::HandleValue iterable,
-                             NonIterableBehavior nonIterableBehavior = ThrowOnNonIterable);
-
-    
-
-
-
-    JS_PUBLIC_API(bool) next(JS::MutableHandleValue val, bool *done);
-
-    
-
-
-
-    bool valueIsIterable() const {
-        return iterator;
-    }
-};
-
 } 
 
 #endif
