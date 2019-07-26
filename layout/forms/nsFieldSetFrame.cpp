@@ -87,6 +87,11 @@ public:
                          nsIFrame*      aOldFrame);
 
   virtual nsIAtom* GetType() const;
+  virtual bool IsFrameOfType(uint32_t aFlags) const
+  {
+    return nsContainerFrame::IsFrameOfType(aFlags &
+             ~nsIFrame::eCanContainOverflowContainers);
+  }
 
 #ifdef ACCESSIBILITY  
   virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
@@ -196,7 +201,8 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  if (IsVisibleForPainting(aBuilder)) {
+  if (!(GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+      IsVisibleForPainting(aBuilder)) {
     if (StyleBorder()->mBoxShadow) {
       aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayBoxShadowOuter(aBuilder, this));
@@ -210,6 +216,10 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     DisplayOutlineUnconditional(aBuilder, aLists);
 
     DO_GLOBAL_REFLOW_COUNT_DSP("nsFieldSetFrame");
+  }
+
+  if (GetPrevInFlow()) {
+    DisplayOverflowContainers(aBuilder, aDirtyRect, aLists);
   }
 
   nsDisplayListCollection contentDisplayItems;
@@ -392,6 +402,13 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   aStatus = NS_FRAME_COMPLETE;
 
+  nsOverflowAreas ocBounds;
+  nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
+  if (GetPrevInFlow()) {
+    ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
+                                    ocStatus);
+  }
+
   
   bool reflowContent;
   bool reflowLegend;
@@ -571,6 +588,11 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mLegendFrame);
   if (mContentFrame)
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mContentFrame);
+
+  
+  aDesiredSize.mOverflowAreas.UnionWith(ocBounds);
+  NS_MergeReflowStatusInto(&aStatus, ocStatus);
+
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   InvalidateFrame();
