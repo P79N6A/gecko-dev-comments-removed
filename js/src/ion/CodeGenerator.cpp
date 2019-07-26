@@ -144,6 +144,12 @@ CodeGenerator::~CodeGenerator()
     js_delete(unassociatedScriptCounts_);
 }
 
+typedef bool (*StringToNumberFn)(ThreadSafeContext *, JSString *, double *);
+typedef ParallelResult (*StringToNumberParFn)(ForkJoinSlice *, JSString *, double *);
+static const VMFunctionsModal StringToNumberInfo = VMFunctionsModal(
+    FunctionInfo<StringToNumberFn>(StringToNumber),
+    FunctionInfo<StringToNumberParFn>(StringToNumberPar));
+
 bool
 CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
 {
@@ -152,10 +158,19 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
 
     Register tag = masm.splitTagForTest(operand);
 
-    Label done, simple, isInt32, isBool, notDouble;
+    Label done, simple, isInt32, isBool, isString, notDouble;
     
-    masm.branchTestInt32(Assembler::Equal, tag, &isInt32);
-    masm.branchTestBoolean(Assembler::Equal, tag, &isBool);
+    MDefinition *input;
+    if (lir->mode() == LValueToInt32::NORMAL)
+        input = lir->mirNormal()->input();
+    else
+        input = lir->mirTruncate()->input();
+    masm.branchEqualTypeIfNeeded(MIRType_Int32, input, tag, &isInt32);
+    masm.branchEqualTypeIfNeeded(MIRType_Boolean, input, tag, &isBool);
+    
+    
+    if (lir->mode() == LValueToInt32::TRUNCATE)
+        masm.branchEqualTypeIfNeeded(MIRType_String, input, tag, &isString);
     masm.branchTestDouble(Assembler::NotEqual, tag, &notDouble);
 
     
@@ -163,16 +178,13 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
     FloatRegister temp = ToFloatRegister(lir->tempFloat());
     masm.unboxDouble(operand, temp);
 
-    Label fails;
-    switch (lir->mode()) {
-      case LValueToInt32::TRUNCATE:
+    Label fails, isDouble;
+    masm.bind(&isDouble);
+    if (lir->mode() == LValueToInt32::TRUNCATE) {
         if (!emitTruncateDouble(temp, output))
             return false;
-        break;
-      default:
-        JS_ASSERT(lir->mode() == LValueToInt32::NORMAL);
-        masm.convertDoubleToInt32(temp, output, &fails, lir->mir()->canBeNegativeZero());
-        break;
+    } else {
+        masm.convertDoubleToInt32(temp, output, &fails, lir->mirNormal()->canBeNegativeZero());
     }
     masm.jump(&done);
 
@@ -185,8 +197,7 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
     } else {
         
         
-        masm.branchTestObject(Assembler::Equal, tag, &fails);
-        masm.branchTestString(Assembler::Equal, tag, &fails);
+        masm.branchEqualTypeIfNeeded(MIRType_Object, input, tag, &fails);
     }
 
     if (fails.used() && !bailoutFrom(&fails, lir->snapshot()))
@@ -197,13 +208,32 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
     masm.jump(&done);
 
     
-    masm.bind(&isBool);
-    masm.unboxBoolean(operand, output);
-    masm.jump(&done);
+    
+    if (isString.used()) {
+        masm.bind(&isString);
+        Register str = masm.extractString(operand, ToRegister(lir->temp()));
+        OutOfLineCode *ool = oolCallVM(StringToNumberInfo, lir, (ArgList(), str),
+                                       StoreFloatRegisterTo(temp));
+        if (!ool)
+            return false;
+
+        masm.jump(ool->entry());
+        masm.bind(ool->rejoin());
+        masm.jump(&isDouble);
+    }
 
     
-    masm.bind(&isInt32);
-    masm.unboxInt32(operand, output);
+    if (isBool.used()) {
+        masm.bind(&isBool);
+        masm.unboxBoolean(operand, output);
+        masm.jump(&done);
+    }
+
+    
+    if (isInt32.used()) {
+        masm.bind(&isInt32);
+        masm.unboxInt32(operand, output);
+    }
 
     masm.bind(&done);
 

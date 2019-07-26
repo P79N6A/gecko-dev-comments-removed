@@ -44,6 +44,7 @@ ParallelResult ConcatStringsPar(ForkJoinSlice *slice, HandleString left, HandleS
                                 MutableHandleString out);
 ParallelResult IntToStringPar(ForkJoinSlice *slice, int i, MutableHandleString out);
 ParallelResult DoubleToStringPar(ForkJoinSlice *slice, double d, MutableHandleString out);
+ParallelResult StringToNumberPar(ForkJoinSlice *slice, JSString *str, double *out);
 
 
 

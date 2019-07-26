@@ -617,6 +617,11 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
+    
+    void branchEqualTypeIfNeeded(MIRType type, MDefinition *def, const Register &tag,
+                                 Label *label);
+
+    
     void newGCThing(const Register &result, gc::AllocKind allocKind, Label *fail);
     void newGCThing(const Register &result, JSObject *templateObject, Label *fail);
     void newGCString(const Register &result, Label *fail);
