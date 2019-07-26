@@ -587,7 +587,11 @@ nsAutoCompleteController::HandleDelete(bool *_retval)
     
     
     ClearSearchTimer();
-    ClosePopup();
+    uint32_t minResults;
+    input->GetMinResultsForPopup(&minResults);
+    if (minResults) {
+      ClosePopup();
+    }
   }
 
   return NS_OK;
@@ -1344,10 +1348,13 @@ nsAutoCompleteController::ProcessResult(int32_t aSearchIndex, nsIAutoCompleteRes
     NS_ENSURE_TRUE(popup != nullptr, NS_ERROR_FAILURE);
     popup->Invalidate();
 
+    uint32_t minResults;
+    input->GetMinResultsForPopup(&minResults);
+
     
     
     
-    if (mRowCount) {
+    if (mRowCount || !minResults) {
       OpenPopup();
     } else if (result != nsIAutoCompleteResult::RESULT_NOMATCH_ONGOING) {
       ClosePopup();
