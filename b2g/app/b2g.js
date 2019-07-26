@@ -907,9 +907,3 @@ pref("browser.autofocus", false);
 
 
 pref("dom.wakelock.enabled", true);
-
-
-#ifdef MOZ_SERVICES_FXACCOUNTS
-pref("services.sync.fxaccounts.enabled", true);
-pref("identity.fxaccounts.enabled", true);
-#endif
