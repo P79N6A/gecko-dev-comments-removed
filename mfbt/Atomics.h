@@ -26,7 +26,15 @@
 
 
 #if defined(__clang__)
-#  if (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)) && \
+   
+
+
+
+
+
+
+#  if !defined(__linux__) && \
+      (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)) && \
       __has_include(<atomic>)
 #    define MOZ_HAVE_CXX11_ATOMICS
 #  endif
