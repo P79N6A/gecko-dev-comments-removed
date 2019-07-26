@@ -337,6 +337,16 @@ class StructMetaTypeDescr : public JSObject
 class StructTypeDescr : public SizedTypeDescr {
   public:
     static const Class class_;
+
+    
+    
+    bool fieldIndex(jsid id, size_t *out);
+
+    
+    SizedTypeDescr &fieldDescr(size_t index);
+
+    
+    size_t fieldOffset(size_t index);
 };
 
 typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
