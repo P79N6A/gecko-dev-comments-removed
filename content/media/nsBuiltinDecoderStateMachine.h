@@ -116,7 +116,7 @@ public:
   ~nsBuiltinDecoderStateMachine();
 
   
-  virtual nsresult Init(nsBuiltinDecoderStateMachine* aCloneDonor);
+  nsresult Init(nsBuiltinDecoderStateMachine* aCloneDonor);
 
   
   enum State {
@@ -135,20 +135,20 @@ public:
 
   
   
-  virtual void SetVolume(double aVolume);
-  virtual void SetAudioCaptured(bool aCapture);
-  virtual void Shutdown();
+  void SetVolume(double aVolume);
+  void SetAudioCaptured(bool aCapture);
+  void Shutdown();
 
   
   
-  virtual int64_t GetDuration();
+  int64_t GetDuration();
 
   
   
   
   
   
-  virtual void SetDuration(int64_t aDuration);
+  void SetDuration(int64_t aDuration);
 
   
   
@@ -157,7 +157,7 @@ public:
 
   
   
-  virtual bool OnDecodeThread() const {
+  bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
   bool OnStateMachineThread() const;
@@ -165,43 +165,43 @@ public:
     return IsCurrentThread(mAudioThread);
   }
 
-  virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
+  nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
 
   
   
   
-  virtual void Play();
+  void Play();
 
   
-  virtual void Seek(double aTime);
-
-  
-  
-  
-  virtual double GetCurrentTime() const;
+  void Seek(double aTime);
 
   
   
   
-  virtual void ClearPositionChangeFlag();
+  double GetCurrentTime() const;
 
   
   
   
-  virtual void SetSeekable(bool aSeekable);
+  void ClearPositionChangeFlag();
 
   
   
   
-  
-  
-  virtual void UpdatePlaybackPosition(int64_t aTime);
+  void SetSeekable(bool aSeekable);
 
   
   
   
   
-  virtual void StartBuffering();
+  
+  void UpdatePlaybackPosition(int64_t aTime);
+
+  
+  
+  
+  
+  void StartBuffering();
 
   
   NS_IMETHOD Run();
@@ -275,7 +275,7 @@ public:
 
   
   
-  virtual void SetFrameBufferLength(uint32_t aLength);
+  void SetFrameBufferLength(uint32_t aLength);
 
   
   static nsIThread* GetStateMachineThread();
@@ -323,9 +323,9 @@ public:
 
   
   
-  bool IsShutdown() MOZ_OVERRIDE;
+  bool IsShutdown();
 
-protected:
+private:
   class WakeDecoderRunnable : public nsRunnable {
   public:
     WakeDecoderRunnable(nsBuiltinDecoderStateMachine* aSM)
@@ -421,7 +421,7 @@ protected:
   
   
   void RenderVideoFrame(VideoData* aData, TimeStamp aTarget);
- 
+
   
   
   
@@ -651,7 +651,7 @@ protected:
   
   
   int64_t mVideoFrameEndTime;
-  
+
   
   
   
@@ -694,7 +694,7 @@ protected:
   
   
   bool mGotDurationFromMetaData;
-    
+
   
   
   bool mStopDecodeThread;
@@ -749,8 +749,7 @@ protected:
   
   
   bool mRequestedNewDecodeThread;
-  
-private:
+
   
   
   
