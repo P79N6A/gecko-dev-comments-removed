@@ -1227,10 +1227,6 @@ LIRGenerator::visitMul(MMul *ins)
         ReorderCommutative(&lhs, &rhs);
 
         
-        if (lhs->isConstant() && lhs->toConstant()->value() == DoubleValue(-1.0))
-            return defineReuseInput(new LNegD(useRegisterAtStart(rhs)), ins, 0);
-
-        
         if (rhs->isConstant() && rhs->toConstant()->value() == DoubleValue(-1.0))
             return defineReuseInput(new LNegD(useRegisterAtStart(lhs)), ins, 0);
 
