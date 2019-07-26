@@ -311,6 +311,19 @@ struct ElementAnimation
   }
 
   
+  mozilla::TimeDuration ActiveDuration() const {
+    return mTiming.mIterationDuration.MultDouble(mTiming.mIterationCount);
+  }
+
+  
+  
+  
+  
+  mozilla::TimeDuration InitialAdvance() const {
+    return std::max(TimeDuration(), mDelay * -1);
+  }
+
+  
   
   
   
