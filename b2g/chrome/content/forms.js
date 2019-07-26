@@ -262,9 +262,14 @@ function getJSON(element) {
   
   
   
-  let inputmode = element.inputmode || element.getAttribute('inputmode');
+  
+  
+  
+  let inputmode = element.getAttribute('inputmode');
   if (inputmode) {
     inputmode = inputmode.toLowerCase();
+  } else {
+    inputmode = '';
   }
 
   return {
