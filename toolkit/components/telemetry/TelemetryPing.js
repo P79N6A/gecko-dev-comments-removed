@@ -174,7 +174,6 @@ TelemetryPing.prototype = {
   _pendingPings: [],
   _doLoadSaveNotifications: false,
   _startupIO : {},
-  _hashID: Ci.nsICryptoHash.SHA256,
   
   
   _pingsLoaded: 0,
@@ -611,17 +610,6 @@ TelemetryPing.prototype = {
     return { __iterator__: payloadIterWithThis };
   },
 
-  hashString: function hashString(s) {
-    let digest = Cc["@mozilla.org/security/hash;1"]
-                 .createInstance(Ci.nsICryptoHash);
-    digest.init(this._hashID);
-    let stream = Cc["@mozilla.org/io/string-input-stream;1"]
-                 .createInstance(Ci.nsIStringInputStream);
-    stream.data = s;
-    digest.updateFromStream(stream, stream.available());
-    return digest.finish(true);
-  },
-
   
 
 
@@ -828,18 +816,6 @@ TelemetryPing.prototype = {
                                  Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
-  ensurePingChecksum: function ensurePingChecksum(ping) {
-    
-    if (!ping.checksum) {
-      return;
-    }
-
-    let checksumNow = this.hashString(ping.payload);
-    if (ping.checksum != checksumNow) {
-      throw new Error("Invalid ping checksum")
-    }
-  },
-
   addToPendingPings: function addToPendingPings(file, stream) {
     let success = false;
 
@@ -848,8 +824,6 @@ TelemetryPing.prototype = {
       stream.close();
       let ping = JSON.parse(string);
       this._pingLoadsCompleted++;
-      
-      this.ensurePingChecksum(ping);
       this._pendingPings.push(ping);
       if (this._doLoadSaveNotifications &&
           this._pingLoadsCompleted == this._pingsLoaded) {
@@ -986,9 +960,6 @@ TelemetryPing.prototype = {
   },
 
   saveFileForPing: function saveFileForPing(ping) {
-    if (!('checksum' in ping)) {
-      ping.checksum = this.hashString(ping.payload);
-    }
     let file = this.ensurePingDirectory();
     file.append(ping.slug);
     return file;
