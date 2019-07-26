@@ -32,8 +32,12 @@ registerCleanupFunction(function() {
 });
 
 function finishTests(client) {
+  
+  forceCollections();
   client.close(() => {
+    forceCollections();
     DebuggerServer.destroy();
+    forceCollections();
     DebuggerClient = DebuggerServer = gFront = null;
     finish();
   });

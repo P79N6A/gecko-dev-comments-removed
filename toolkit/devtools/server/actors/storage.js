@@ -784,13 +784,7 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
     this.childWindowPool = new Set();
 
     
-    this.topDocshell = tabActor.window
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIWebNavigation)
-      .QueryInterface(Ci.nsIDocShell)
-      .QueryInterface(Ci.nsIDocShellTreeItem);
-    
-    this.fetchChildWindows(this.topDocshell);
+    this.fetchChildWindows(this.parentActor.docShell);
 
     
     for (let [store, actor] of storageTypePool) {
@@ -805,6 +799,7 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
     tabActor.browser.addEventListener("pageshow", this.onPageChange, true);
     tabActor.browser.addEventListener("pagehide", this.onPageChange, true);
 
+    this.destroyed = false;
     this.boundUpdate = {};
     
     
@@ -820,9 +815,11 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
   destroy: function() {
     this.updateTimer.cancel();
     this.updateTimer = null;
+    this.layoutHelper = null;
     
     Services.obs.removeObserver(this, "content-document-global-created", false);
     Services.obs.removeObserver(this, "inner-window-destroyed", false);
+    this.destroyed = true;
     if (this.parentActor.browser) {
       this.parentActor.browser.removeEventListener(
         "pageshow", this.onPageChange, true);
@@ -834,7 +831,8 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
       actor.destroy();
     }
     this.childActorPool.clear();
-    this.topDocshell = null;
+    this.childWindowPool.clear();
+    this.childWindowPool = this.childActorPool = null;
   },
 
   
@@ -897,7 +895,7 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
     else if (topic == "inner-window-destroyed") {
       let window = this.getWindowFromInnerWindowID(subject);
       if (window) {
-        this.childActorPool.delete(window);
+        this.childWindowPool.delete(window);
         events.emit(this, "window-destroyed", window);
       }
     }
@@ -905,6 +903,9 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
   },
 
   onPageChange: function({target, type}) {
+    if (this.destroyed) {
+      return;
+    }
     let window = target.defaultView;
     if (type == "pagehide" && this.childWindowPool.delete(window)) {
       events.emit(this, "window-destroyed", window)
@@ -929,7 +930,7 @@ let StorageActor = exports.StorageActor = protocol.ActorClass({
   listStores: method(function() {
     
     this.childWindowPool.clear();
-    this.fetchChildWindows(this.topDocshell);
+    this.fetchChildWindows(this.parentActor.docShell);
 
     let toReturn = {};
     for (let [name, value] of this.childActorPool) {
