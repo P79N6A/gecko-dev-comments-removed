@@ -175,6 +175,12 @@ static const char* GetOmxLibraryName()
     
     return "lib/libomxplugingb.so";
   }
+  else if (version == 10 && release_version >= NS_LITERAL_STRING("2.3.4") &&
+           device.Find("HTC") == 0) {
+    
+    
+    return "lib/libomxplugingb.so";
+  }
   else if (version == 9 || (version == 10 && release_version <= NS_LITERAL_STRING("2.3.5"))) {
     
     
