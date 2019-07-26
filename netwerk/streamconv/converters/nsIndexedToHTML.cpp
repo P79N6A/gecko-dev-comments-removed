@@ -733,6 +733,10 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
 
     pushBuffer.AppendLiteral("\" href=\"");
 
+    nsXPIDLCString encoding;
+    rv = mParser->GetEncoding(getter_Copies(encoding));
+    if (NS_FAILED(rv)) return rv;
+
     
     nsAutoCString locEscaped;
 
@@ -764,6 +768,12 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     
     
     locEscaped.ReplaceSubstring(";", "%3b");
+    if (!encoding.EqualsLiteral("UTF-8")) {
+        
+        nsAutoCString outstr;
+        NS_EscapeURL(locEscaped, esc_AlwaysCopy | esc_OnlyNonASCII, outstr);
+        locEscaped = outstr;
+    }
     nsAdoptingCString htmlEscapedURL(nsEscapeHTML(locEscaped.get()));
     pushBuffer.Append(htmlEscapedURL);
 
