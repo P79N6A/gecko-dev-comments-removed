@@ -36,6 +36,7 @@ SocialUI = {
     Services.obs.addObserver(this, "social:frameworker-error", false);
     Services.obs.addObserver(this, "social:provider-set", false);
     Services.obs.addObserver(this, "social:providers-changed", false);
+    Services.obs.addObserver(this, "social:provider-reload", false);
 
     Services.prefs.addObserver("social.sidebar.open", this, false);
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
@@ -60,6 +61,7 @@ SocialUI = {
     Services.obs.removeObserver(this, "social:frameworker-error");
     Services.obs.removeObserver(this, "social:provider-set");
     Services.obs.removeObserver(this, "social:providers-changed");
+    Services.obs.removeObserver(this, "social:provider-reload");
 
     Services.prefs.removeObserver("social.sidebar.open", this);
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
@@ -74,6 +76,16 @@ SocialUI = {
     
     try {
       switch (topic) {
+        case "social:provider-reload":
+          
+          
+          if (!Social.provider || Social.provider.origin != data)
+            return;
+          
+          
+          
+          SocialSidebar.unloadSidebar();
+          
         case "social:provider-set":
           
           
@@ -142,7 +154,7 @@ SocialUI = {
 
   
   showProfile: function SocialUI_showProfile() {
-    if (Social.haveLoggedInUser())
+    if (Social.provider.haveLoggedInUser())
       openUILinkIn(Social.provider.profile.profileURL, "tab");
     else {
       
@@ -974,22 +986,20 @@ SocialToolbar = {
     let toggleNotificationsCommand = document.getElementById("Social:ToggleNotifications");
     toggleNotificationsCommand.setAttribute("hidden", !socialEnabled);
 
-    if (!Social.haveLoggedInUser() || !socialEnabled) {
-      let parent = document.getElementById("social-notification-panel");
-      while (parent.hasChildNodes()) {
-        let frame = parent.firstChild;
-        SharedFrame.forgetGroup(frame.id);
-        parent.removeChild(frame);
-      }
+    let parent = document.getElementById("social-notification-panel");
+    while (parent.hasChildNodes()) {
+      let frame = parent.firstChild;
+      SharedFrame.forgetGroup(frame.id);
+      parent.removeChild(frame);
+    }
 
-      let tbi = document.getElementById("social-toolbar-item");
-      if (tbi) {
-        
-        let next = SocialMark.button.previousSibling;
-        while (next != this.button) {
-          tbi.removeChild(next);
-          next = SocialMark.button.previousSibling;
-        }
+    let tbi = document.getElementById("social-toolbar-item");
+    if (tbi) {
+      
+      let next = SocialMark.button.previousSibling;
+      while (next != this.button) {
+        tbi.removeChild(next);
+        next = SocialMark.button.previousSibling;
       }
     }
   },
@@ -1033,7 +1043,7 @@ SocialToolbar = {
     
     
     if (!SocialUI.enabled ||
-        (!Social.haveLoggedInUser() && Social.provider.profile !== undefined)) {
+        (!Social.provider.haveLoggedInUser() && Social.provider.profile !== undefined)) {
       
       
       

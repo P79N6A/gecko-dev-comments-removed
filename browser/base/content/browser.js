@@ -6088,7 +6088,7 @@ var gIdentityHandler = {
   IDENTITY_MODE_UNKNOWN                                : "unknownIdentity",  
   IDENTITY_MODE_MIXED_DISPLAY_LOADED                   : "unknownIdentity mixedContent mixedDisplayContent",  
   IDENTITY_MODE_MIXED_ACTIVE_LOADED                    : "unknownIdentity mixedContent mixedActiveContent",  
-  IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED    : "unknownIdentity mixedContent",  
+  IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED    : "unknownIdentity mixedContent mixedDisplayContent",  
   IDENTITY_MODE_CHROMEUI                               : "chromeUI",         
 
   
