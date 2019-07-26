@@ -1606,6 +1606,7 @@ pref("security.notification_enable_delay", 500);
 
 pref("security.csp.enable", true);
 pref("security.csp.debug", false);
+pref("security.csp.experimentalEnabled", false);
 
 
 pref("security.mixed_content.block_active_content", false);
@@ -1872,9 +1873,6 @@ pref("layout.css.supports-rule.enabled", true);
 
 
 pref("layout.css.filters.enabled", false);
-
-
-pref("layout.css.flexbox.enabled", true);
 
 
 #ifdef RELEASE_BUILD
