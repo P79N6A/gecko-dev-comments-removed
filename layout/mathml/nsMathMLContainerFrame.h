@@ -33,6 +33,7 @@ class nsMathMLContainerFrame : public nsContainerFrame,
 public:
   nsMathMLContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
 
+  NS_DECL_QUERYFRAME_TARGET(nsMathMLContainerFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -101,7 +102,9 @@ public:
   
 
 
-  virtual nscoord GetIntrinsicWidth(nsRenderingContext *aRenderingContext);
+  virtual void
+  GetIntrinsicWidthMetrics(nsRenderingContext* aRenderingContext,
+                           nsHTMLReflowMetrics& aDesiredSize);
 
   NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,
