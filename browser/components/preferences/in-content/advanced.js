@@ -1,3 +1,4 @@
+#filter substitution
 
 
 
@@ -139,6 +140,18 @@ var gAdvancedPane = {
                getService(Components.interfaces.nsICrashReporter);
       cr.submitReports = checkbox.checked;
     } catch (e) { }
+  },
+
+  
+
+
+
+  telemetryEnabledChanged: function (event)
+  {
+    let rejected = document.getElementById("toolkit.telemetry.rejected");
+    rejected.value = !event.target.value;
+    let displayed = document.getElementById("toolkit.telemetry.prompted");
+    displayed.value = @MOZ_TELEMETRY_DISPLAY_REV@;
   },
 
   
