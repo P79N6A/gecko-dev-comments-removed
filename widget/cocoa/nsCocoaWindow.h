@@ -125,6 +125,11 @@ typedef struct _nsCocoaWindowList {
 - (NSRect)contentRectForFrameRect:(NSRect)windowFrame styleMask:(NSUInteger)windowStyle;
 - (NSRect)frameRectForContentRect:(NSRect)windowContentRect styleMask:(NSUInteger)windowStyle;
 
+
+
+
++ (Class)frameViewClassForStyleMask:(NSUInteger)styleMask;
+
 @end
 
 @interface PopupWindow : BaseWindow
@@ -192,6 +197,8 @@ typedef struct _nsCocoaWindowList {
   CGFloat mUnifiedToolbarHeight;
   NSColor *mBackgroundColor;
   NSView *mTitlebarView; 
+  NSRect mWindowButtonsRect;
+  NSRect mFullScreenButtonRect;
 }
 
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
@@ -202,6 +209,10 @@ typedef struct _nsCocoaWindowList {
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect;
 - (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
+- (void)placeWindowButtons:(NSRect)aRect;
+- (void)placeFullScreenButton:(NSRect)aRect;
+- (NSPoint)windowButtonsPositionWithDefaultPosition:(NSPoint)aDefaultPosition;
+- (NSPoint)fullScreenButtonPositionWithDefaultPosition:(NSPoint)aDefaultPosition;
 @end
 
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa

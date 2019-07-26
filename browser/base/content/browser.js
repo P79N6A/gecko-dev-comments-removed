@@ -4291,6 +4291,8 @@ var TabsInTitlebar = {
       
       let menuHeight = 0;
       let fullMenuHeight = 0;
+      
+      let titlebarPadding = parseInt(window.getComputedStyle(titlebar).paddingTop, 10);
 #else
       
       let menuHeight = rect(menubar).height;
@@ -4364,7 +4366,16 @@ var TabsInTitlebar = {
         
         
         extraMargin += navbarMarginTop;
+        
+#ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";
+#else
+        
+        
+        let halfMargin = (extraMargin - titlebarPadding) / 2;
+        titlebarContent.style.marginTop =  halfMargin + "px";
+        titlebarContent.style.marginBottom =  (titlebarPadding + halfMargin) + "px";
+#endif
         titlebarContentHeight += extraMargin;
       }
 
