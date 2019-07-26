@@ -7,6 +7,7 @@
 #include "MediaBufferDecoder.h"
 #include "BufferDecoder.h"
 #include "mozilla/dom/AudioContextBinding.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include <speex/speex_resampler.h>
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
@@ -18,7 +19,6 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScriptError.h"
 #include "nsMimeTypes.h"
-#include "nsCxPusher.h"
 #include "WebAudioUtils.h"
 
 namespace mozilla {
@@ -403,10 +403,14 @@ WebAudioDecodeJob::AllocateBuffer()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  AutoPushJSContext cx(mContext->GetJSContext());
-  if (!cx) {
+  JSObject* global = mContext->GetGlobalJSObject();
+  if (NS_WARN_IF(!global)) {
     return false;
   }
+
+  AutoJSAPI jsapi;
+  JSContext* cx = jsapi.cx();
+  JSAutoCompartment ac(cx, global);
 
   
   mOutput = new AudioBuffer(mContext, mWriteIndex, mContext->SampleRate());
