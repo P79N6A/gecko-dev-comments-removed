@@ -683,7 +683,7 @@ bool
 CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
 {
     OutOfLineTestObject *ool = nullptr;
-    MDefinition* input = lir->mir()->input();
+    MDefinition *input = lir->mir()->input();
     
     
     
@@ -5366,8 +5366,12 @@ CodeGenerator::visitNotV(LNotV *lir)
     Label *ifFalsy;
 
     OutOfLineTestObjectWithLabels *ool = nullptr;
-    if (lir->mir()->operandMightEmulateUndefined()) {
-        MOZ_ASSERT(lir->mir()->operand()->mightBeType(MIRType_Object));
+    MDefinition *operand = lir->mir()->operand();
+    
+    
+    
+    
+    if (lir->mir()->operandMightEmulateUndefined() && operand->mightBeType(MIRType_Object)) {
         ool = new(alloc()) OutOfLineTestObjectWithLabels();
         if (!addOutOfLineCode(ool))
             return false;
@@ -5382,7 +5386,7 @@ CodeGenerator::visitNotV(LNotV *lir)
 
     testValueTruthyKernel(ToValue(lir, LNotV::Input), lir->temp1(), lir->temp2(),
                           ToFloatRegister(lir->tempFloat()),
-                          ifTruthy, ifFalsy, ool, lir->mir()->operand());
+                          ifTruthy, ifFalsy, ool, operand);
 
     Label join;
     Register output = ToRegister(lir->output());
