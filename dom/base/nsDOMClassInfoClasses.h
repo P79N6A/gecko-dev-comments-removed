@@ -15,7 +15,6 @@ DOMCI_CLASS(CSSCharsetRule)
 DOMCI_CLASS(CSSImportRule)
 DOMCI_CLASS(CSSMediaRule)
 DOMCI_CLASS(CSSNameSpaceRule)
-DOMCI_CLASS(CSSStyleSheet)
 
 
 #ifdef MOZ_XUL
