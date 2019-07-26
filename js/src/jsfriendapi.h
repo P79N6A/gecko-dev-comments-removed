@@ -1083,6 +1083,12 @@ enum ViewType {
 
     TYPE_UINT8_CLAMPED,
 
+    
+
+
+
+    TYPE_DATAVIEW,
+
     TYPE_MAX
 };
 
@@ -1263,7 +1269,7 @@ JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
 
 
 extern JS_FRIEND_API(JSArrayBufferViewType)
-JS_GetTypedArrayType(JSObject *obj);
+JS_GetArrayBufferViewType(JSObject *obj);
 
 
 

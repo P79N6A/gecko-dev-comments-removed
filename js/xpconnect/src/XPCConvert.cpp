@@ -1527,6 +1527,7 @@ CheckTargetAndPopulate(const nsXPTType& type,
 
 
 
+
 JSBool
 XPCConvert::JSTypedArray2Native(void** d,
                                 JSObject* jsArray,
@@ -1550,7 +1551,7 @@ XPCConvert::JSTypedArray2Native(void** d,
 
     void* output = nullptr;
 
-    switch (JS_GetTypedArrayType(jsArray)) {
+    switch (JS_GetArrayBufferViewType(jsArray)) {
     case js::ArrayBufferView::TYPE_INT8:
         if (!CheckTargetAndPopulate(nsXPTType::T_I8, type,
                                     sizeof(int8_t), count,
