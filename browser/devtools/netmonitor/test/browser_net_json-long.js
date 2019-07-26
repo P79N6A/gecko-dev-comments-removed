@@ -11,7 +11,7 @@ function test() {
 
     
     
-    requestLongerTimeout(2);
+    requestLongerTimeout(3);
 
     let { document, L10N, SourceEditor, NetMonitorView } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
