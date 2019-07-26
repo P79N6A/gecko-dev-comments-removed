@@ -503,13 +503,6 @@ bool
 ParseRegExpFlags(JSContext *cx, JSString *flagStr, RegExpFlag *flagsOut);
 
 
-
-
-
-
-
-
-
 inline bool
 RegExpToShared(JSContext *cx, HandleObject obj, RegExpGuard *g)
 {
