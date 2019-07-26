@@ -134,6 +134,13 @@ public:
            gl::RGBARectLayerProgramType : gl::RGBALayerProgramType;
   }
 
+  
+
+
+
+
+
+  GLuint GetTemporaryTexture(GLenum aUnit);
 private:
   
 
@@ -319,6 +326,9 @@ private:
   bool mDestroyed;
 
   nsAutoPtr<FPSState> mFPS;
+  
+  
+  GLuint mTextures[3];
   static bool sDrawFPS;
   static bool sFrameCounter;
 };

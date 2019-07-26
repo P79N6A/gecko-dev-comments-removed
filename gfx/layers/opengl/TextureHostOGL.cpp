@@ -700,28 +700,29 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
   }
 }
 
+GrallocTextureHostOGL::GrallocTextureHostOGL()
+: mCompositor(nullptr)
+, mTextureTarget(0)
+, mEGLImage(0)
+{
+}
+
 void GrallocTextureHostOGL::SetCompositor(Compositor* aCompositor)
 {
   CompositorOGL* glCompositor = static_cast<CompositorOGL*>(aCompositor);
-  if (mGL && !glCompositor) {
+  if (mCompositor && !glCompositor) {
     DeleteTextures();
   }
-  mGL = glCompositor ? glCompositor->gl() : nullptr;
+  mCompositor = glCompositor;
 }
 
 void
 GrallocTextureHostOGL::DeleteTextures()
 {
-  if (mGLTexture || mEGLImage) {
-    mGL->MakeCurrent();
-    if (mGLTexture) {
-      mGL->fDeleteTextures(1, &mGLTexture);
-      mGLTexture = 0;
-    }
-    if (mEGLImage) {
-      mGL->DestroyEGLImage(mEGLImage);
-      mEGLImage = 0;
-    }
+  if (mEGLImage) {
+    gl()->MakeCurrent();
+    gl()->DestroyEGLImage(mEGLImage);
+    mEGLImage = 0;
   }
 }
 
@@ -767,20 +768,43 @@ GrallocTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
   RegisterTextureHostAtGrallocBufferActor(this, aImage);
 }
 
+gl::GLContext*
+GrallocTextureHostOGL::gl() const
+{
+  return mCompositor ? mCompositor->gl() : nullptr;
+}
+
 void GrallocTextureHostOGL::BindTexture(GLenum aTextureUnit)
 {
-  MOZ_ASSERT(mGLTexture);
+  
 
-  mGL->MakeCurrent();
-  mGL->fActiveTexture(aTextureUnit);
-  mGL->fBindTexture(mTextureTarget, mGLTexture);
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
+
+
+
+
+
+
+
+
+
+  MOZ_ASSERT(gl());
+  gl()->MakeCurrent();
+
+  GLuint tex = mCompositor->GetTemporaryTexture(aTextureUnit);
+
+  gl()->fActiveTexture(aTextureUnit);
+  gl()->fBindTexture(mTextureTarget, tex);
+  if (!mEGLImage) {
+    mEGLImage = gl()->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
+  }
+  gl()->fEGLImageTargetTexture2D(mTextureTarget, mEGLImage);
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 }
 
 bool
 GrallocTextureHostOGL::IsValid() const
 {
-  return !!mGL && !!mGraphicBuffer.get();
+  return !!gl() && !!mGraphicBuffer.get();
 }
 
 GrallocTextureHostOGL::~GrallocTextureHostOGL()
@@ -798,65 +822,14 @@ GrallocTextureHostOGL::~GrallocTextureHostOGL()
 bool
 GrallocTextureHostOGL::Lock()
 {
-  if (!IsValid()) {
-    return false;
-  }
   
-
-
-
-
-
-
-
-
-
-
-  MOZ_ASSERT(mGraphicBuffer.get());
-
-  mGL->MakeCurrent();
-
-  if (!mGLTexture) {
-    mGL->fGenTextures(1, &mGLTexture);
-  }
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-  mGL->fBindTexture(mTextureTarget, mGLTexture);
-  if (!mEGLImage) {
-    mEGLImage = mGL->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
-  }
-  mGL->fEGLImageTargetTexture2D(mTextureTarget, mEGLImage);
-  return true;
+  return IsValid();
 }
 
 void
 GrallocTextureHostOGL::Unlock()
 {
   
-
-
-
-
-
-
-
-
-  if (mGL->Renderer() == GLContext::RendererAdrenoTM205) {
-    
-
-
-
-    if (mGLTexture) {
-      mGL->MakeCurrent();
-      mGL->fDeleteTextures(1, &mGLTexture);
-      mGLTexture = 0;
-    }
-    return;
-  }
-
-  mGL->MakeCurrent();
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-  mGL->fBindTexture(mTextureTarget, mGLTexture);
-  mGL->fEGLImageTargetTexture2D(mTextureTarget, mGL->GetNullEGLImage());
 }
 
 gfx::SurfaceFormat
@@ -877,7 +850,7 @@ GrallocTextureHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* 
   RegisterTextureHostAtGrallocBufferActor(this, *mBuffer);
 }
 
-#endif
+#endif 
 
 already_AddRefed<gfxImageSurface>
 TextureImageTextureHostOGL::GetAsSurface() {
@@ -932,10 +905,20 @@ TiledTextureHostOGL::GetAsSurface() {
 #ifdef MOZ_WIDGET_GONK
 already_AddRefed<gfxImageSurface>
 GrallocTextureHostOGL::GetAsSurface() {
-  nsRefPtr<gfxImageSurface> surf = IsValid() && mGLTexture ?
-    mGL->GetTexImage(mGLTexture,
-                     false,
-                     GetShaderProgram())
+  gl()->MakeCurrent();
+
+  GLuint tex = mCompositor->GetTemporaryTexture(LOCAL_GL_TEXTURE0);
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->fBindTexture(mTextureTarget, tex);
+  if (!mEGLImage) {
+    mEGLImage = gl()->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
+  }
+  gl()->fEGLImageTargetTexture2D(mTextureTarget, mEGLImage);
+
+  nsRefPtr<gfxImageSurface> surf = IsValid() ?
+    gl()->GetTexImage(tex,
+                      false,
+                      GetShaderProgram())
     : nullptr;
   return surf.forget();
 }
