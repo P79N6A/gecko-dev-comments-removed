@@ -59,7 +59,9 @@ static const uint32_t SEEK_FUZZ_USECS = 500000;
 
 
 
+#ifdef MOZ_OPUS
 static const int64_t SEEK_OPUS_PREROLL = 80 * USECS_PER_MS;
+#endif 
 
 enum PageSyncResult {
   PAGE_SYNC_ERROR = 1,
@@ -86,8 +88,10 @@ OggReader::OggReader(AbstractMediaDecoder* aDecoder)
     mMonitor("OggReader"),
     mTheoraState(nullptr),
     mVorbisState(nullptr),
+#ifdef MOZ_OPUS
     mOpusState(nullptr),
     mOpusEnabled(MediaDecoder::IsOpusEnabled()),
+#endif 
     mSkeletonState(nullptr),
     mVorbisSerial(0),
     mOpusSerial(0),
@@ -164,8 +168,10 @@ void OggReader::BuildSerialList(nsTArray<uint32_t>& aTracks)
   if (HasAudio()) {
     if (mVorbisState) {
       aTracks.AppendElement(mVorbisState->mSerial);
-    } else if(mOpusState) {
+#ifdef MOZ_OPUS
+    } else if (mOpusState) {
       aTracks.AppendElement(mOpusState->mSerial);
+#endif
     }
   }
 }
@@ -222,6 +228,7 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
         
         mTheoraState = static_cast<TheoraState*>(codecState);
       }
+#ifdef MOZ_OPUS
       if (codecState &&
           codecState->GetType() == OggCodecState::TYPE_OPUS &&
           !mOpusState)
@@ -233,6 +240,7 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
                      " See media.opus.enabled in about:config");
         }
       }
+#endif 
       if (codecState &&
           codecState->GetType() == OggCodecState::TYPE_SKELETON &&
           !mSkeletonState)
@@ -256,7 +264,10 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
   
   for (uint32_t i = 0; i < bitstreams.Length(); i++) {
     OggCodecState* s = bitstreams[i];
-    if (s != mVorbisState && s != mOpusState &&
+    if (s != mVorbisState &&
+#ifdef MOZ_OPUS
+        s != mOpusState &&
+#endif 
         s != mTheoraState && s != mSkeletonState) {
       s->Deactivate();
     }
@@ -607,16 +618,22 @@ void OggReader::DownmixToStereo(nsAutoArrayPtr<AudioDataValue>& buffer,
 bool OggReader::DecodeAudioData()
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  NS_ASSERTION(mVorbisState != nullptr || mOpusState != nullptr,
-    "Need audio codec state to decode audio");
+  DebugOnly<bool> haveCodecState = mVorbisState != nullptr
+#ifdef MOZ_OPUS
+    || mOpusState != nullptr
+#endif 
+    ;
+  NS_ASSERTION(haveCodecState, "Need audio codec state to decode audio");
 
   
   ogg_packet* packet = 0;
   OggCodecState* codecState;
   if (mVorbisState)
     codecState = static_cast<OggCodecState*>(mVorbisState);
+#ifdef MOZ_OPUS
   else
     codecState = static_cast<OggCodecState*>(mOpusState);
+#endif 
   do {
     if (packet) {
       OggCodecState::ReleasePacket(packet);
@@ -663,7 +680,9 @@ void OggReader::SetChained(bool aIsChained) {
 bool OggReader::ReadOggChain()
 {
   bool chained = false;
+#ifdef MOZ_OPUS
   OpusState* newOpusState = nullptr;
+#endif 
   VorbisState* newVorbisState = nullptr;
   int channels = 0;
   long rate = 0;
@@ -1342,10 +1361,12 @@ nsresult OggReader::SeekInUnbuffered(int64_t aTarget,
   if (HasVideo() && mTheoraState) {
     keyframeOffsetMs = mTheoraState->MaxKeyframeOffset();
   }
+#ifdef MOZ_OPUS
   
   if (HasAudio() && mOpusState) {
     keyframeOffsetMs = std::max(keyframeOffsetMs, SEEK_OPUS_PREROLL);
   }
+#endif 
   int64_t seekTarget = std::max(aStartTime, aTarget - keyframeOffsetMs);
   
   
@@ -1366,9 +1387,11 @@ nsresult OggReader::Seek(int64_t aTarget,
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource != nullptr, NS_ERROR_FAILURE);
   int64_t adjustedTarget = aTarget;
+#ifdef MOZ_OPUS
   if (HasAudio() && mOpusState){
     adjustedTarget = std::max(aStartTime, aTarget - SEEK_OPUS_PREROLL);
   }
+#endif 
 
   if (adjustedTarget == aStartTime) {
     
