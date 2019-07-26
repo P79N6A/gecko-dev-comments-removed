@@ -3917,15 +3917,8 @@ nsDisplayTransform::GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
 
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
-  nsRect boundingRect;
-  if (aBoundsOverride) {
-    boundingRect = *aBoundsOverride;
-  } else if (display->mTransformOrigin[0].GetUnit() != eStyleUnit_Coord ||
-             display->mTransformOrigin[1].GetUnit() != eStyleUnit_Coord) {
-    
-    
-    boundingRect = nsDisplayTransform::GetFrameBoundsForTransform(aFrame);
-  }
+  nsRect boundingRect = (aBoundsOverride ? *aBoundsOverride :
+                         nsDisplayTransform::GetFrameBoundsForTransform(aFrame));
 
   
   float coords[2];
