@@ -4,9 +4,6 @@
 
 
 
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -16,9 +13,6 @@ const Cc = Components.classes;
 let gLoggingEnabled = false;
 let gTestingEnabled = false;
 let gUseScanning = true;
-
-let gPrivateAccessToken = '';
-let gPrivateAccessTime = 0;
 
 function LOG(aMsg) {
   if (gLoggingEnabled)
@@ -62,11 +56,6 @@ WifiGeoPositionObject.prototype = {
                                     classDescription: "wifi geo location position object"}),
 };
 
-function privateBrowsingObserver(aSubject, aTopic, aData) {
-  gPrivateAccessToken = '';
-  gPrivateAccessTime = 0;
-}
-
 function WifiGeoPositionProvider() {
   try {
     gLoggingEnabled = Services.prefs.getBoolPref("geo.wifi.logging.enabled");
@@ -84,9 +73,6 @@ function WifiGeoPositionProvider() {
   this.timer = null;
   this.hasSeenWiFi = false;
   this.started = false;
-  this.lastRequestPrivate = false;
-
-  Services.obs.addObserver(privateBrowsingObserver, "last-pb-context-exited", false);
 }
 
 WifiGeoPositionProvider.prototype = {
@@ -112,13 +98,12 @@ WifiGeoPositionProvider.prototype = {
       this.timer.initWithCallback(this, 200, this.timer.TYPE_REPEATING_SLACK);
   },
 
-  watch: function(c, requestPrivate) {
+  watch: function(c) {
     LOG("watch called");
 
     if (!this.wifiService && gUseScanning) {
       this.wifiService = Cc["@mozilla.org/wifi/monitor;1"].getService(Components.interfaces.nsIWifiMonitor);
       this.wifiService.startWatching(this);
-      this.lastRequestPrivate = requestPrivate;
     }
     if (this.hasSeenWiFi) {
       this.hasSeenWiFi = false;
@@ -129,7 +114,6 @@ WifiGeoPositionProvider.prototype = {
         
         this.timer.initWithCallback(this, 5000, this.timer.TYPE_ONE_SHOT);
       }
-      this.lastRequestPrivate = requestPrivate;
     }
   },
 
@@ -144,181 +128,77 @@ WifiGeoPositionProvider.prototype = {
       this.timer = null;
     }
 
-    
-    
-    
-    
-    
-    if (Services.prefs.getIntPref("network.cookie.lifetimePolicy") != 0)
-      Services.prefs.deleteBranch("geo.wifi.access_token.");
     this.started = false;
   },
 
   setHighAccuracy: function(enable) {
   },
 
-  getAccessTokenForURL: function(url)
-  {
-    
-    let accessToken = "";
-    try {
-      if (this.lastRequestPrivate) {
-        accessToken = gPrivateAccessToken;
-      } else {
-        let accessTokenPrefName = "geo.wifi.access_token." + url;
-        accessToken = Services.prefs.getCharPref(accessTokenPrefName);
-      }
-
-      
-      let accessTokenDate;
-      if (this.lastRequestPrivate) {
-        accessTokenDate = gPrivateAccessTime;
-      } else {
-        accessTokenDate = Services.prefs.getIntPref(accessTokenPrefName + ".time");
-      }
-      
-      let accessTokenInterval = 1209600;  
-      try {
-        accessTokenInterval = Services.prefs.getIntPref("geo.wifi.access_token.recycle_interval");
-      } catch (e) {}
-            
-      if ((Date.now() / 1000) - accessTokenDate > accessTokenInterval)
-        accessToken = "";
-    }
-    catch (e) {
-      accessToken = "";
-    }
-    return accessToken;
-  },
-
   onChange: function(accessPoints) {
     LOG("onChange called");
     this.hasSeenWiFi = true;
 
-    let providerUrlBase = "https://maps.googleapis.com/maps/api/browserlocation/json";
-    try {
-        providerUrlBase = Services.prefs.getCharPref("geo.wifi.uri");      
-    } catch (x) {};
-    let providerUrl;
+    let url = Services.urlFormatter.formatURLPref("geo.wifi.uri");
 
-    let query = providerUrlBase.indexOf("?");
-    if (query == -1)
-      providerUrl = providerUrlBase + "?"
-    else
-      providerUrl = providerUrlBase + "&";
-    providerUrl = providerUrl + "browser=firefox&sensor=true";
-    
+    function isPublic(ap) {
+        let mask = "_nomap"
+        let result = ap.ssid.indexOf(mask, ap.ssid.length - mask.length) == -1;
+        if (result != -1) {
+            LOG("Filtering out " + ap.ssid);
+        }
+        return result;
+    };
 
-    let accessToken = this.getAccessTokenForURL(providerUrlBase);
-    if (accessToken !== "")
-      providerUrl = providerUrl + "&access_token="+accessToken;
-
-    function bySignal(a, b) {
+    function sort(a, b) {
       return b.signal - a.signal;
     };
 
-    function noOptOut(ap) {
-      let optOut = (ap.ssid === "" || ap.ssid.endsWith("_nomap"));
-      return !optOut;
-    };
-
     function encode(ap) {
-      
-      ap.ssid = ap.ssid.replace("|", "\\|");
-      
-      return "&wifi=mac:"+ap.mac+"|ssid:"+ap.ssid+"|ss:"+ap.signal;
+      return { 'macAddress': ap.mac, 'signalStrength': ap.signal }; 
     };
 
+    var data;
     if (accessPoints) {
-        providerUrl += accessPoints.filter(noOptOut)
-                                   .sort(bySignal)
-                                   .map(encode)
-                                   .join("");
+        data = JSON.stringify({wifiAccessPoints: accessPoints.filter(isPublic).sort(sort).map(encode)})
     }
 
-    providerUrl = encodeURI(providerUrl);
-
-    
-    let x = providerUrl.length - 2000;
-    if (x >= 0) {
-	
-	let doomed = providerUrl.lastIndexOf("&", 2000);
-	LOG("Doomed:"+doomed);
-	providerUrl = providerUrl.substring(0, doomed);
-    }
-    
-    LOG("************************************* Sending request:\n" + providerUrl + "\n");
+    LOG("************************************* Sending request:\n" + url + "\n");
 
     
     let xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                         .createInstance(Ci.nsIXMLHttpRequest);
 
     
+  
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+    xhr.responseType = "json";
     xhr.mozBackgroundRequest = true;
-    xhr.open("GET", providerUrl, true);
     xhr.channel.loadFlags = Ci.nsIChannel.LOAD_ANONYMOUS;
-    xhr.addEventListener("error", function(req) {
-        LOG("onerror: " + req);
-    }, false);
-    xhr.addEventListener("load", function (req) {  
-        LOG("service returned: " + req.target.responseText);
-        response = JSON.parse(req.target.responseText);
-        
+    xhr.onerror = function() {
+        LOG("onerror: " + xhr);
+    };
 
-
-
-
-
-
-
-
-
-
-
-        if (response.status != "OK")
-          return;
-
-        if (response.location) {
-          let newLocation = new WifiGeoPositionObject(response.location.lat,
-                                                      response.location.lng,
-                                                      response.accuracy);
-
-          let update = Cc["@mozilla.org/geolocation/service;1"].getService(Ci.nsIGeolocationUpdate);
-          update.update(newLocation);
+    xhr.onload = function() {  
+        LOG("gls returned status: " + xhr.status + " --> " +  JSON.stringify(xhr.response));
+        if (xhr.status != 200) {
+            return;
         }
 
-        
-        let newAccessToken = response.access_token;
-        if (newAccessToken !== undefined)
-        {
-          let accessToken = "";
-          let accessTokenPrefName = "geo.wifi.access_token." + providerUrlBase;
-          if (this.lastRequestPrivate) {
-            accessTokenPrefName = gPrivateAccessToken;
-          } else {
-            try { accessToken = Services.prefs.getCharPref(accessTokenPrefName); } catch (e) {}
-          }
-
-          if (accessToken != newAccessToken) {
-            
-            LOG("New Access Token: " + newAccessToken + "\n" + accessTokenPrefName);
-            if (this.lastRequestPrivate) {
-              gPrivateAccessToken = newAccessToken;
-              gPrivateAccessTime = nowInSeconds();
-            } else {
-              try {
-                Services.prefs.setIntPref(accessTokenPrefName + ".time", nowInSeconds());
-                Services.prefs.setCharPref(accessTokenPrefName, newAccessToken);
-              } catch (x) {
-                  
-              }
-            }
-          }
+        if (!xhr.response.location) {
+            return;
         }
-    }, false);
 
-    LOG("************************************* ------>>>> sending.");
-    xhr.send(null);
+        let newLocation = new WifiGeoPositionObject(xhr.response.location.lat,
+                                                    xhr.response.location.lng,
+                                                    xhr.response.accuracy);
+        
+        Cc["@mozilla.org/geolocation/service;1"].getService(Ci.nsIGeolocationUpdate)
+            .update(newLocation);
+    };
+
+    LOG("************************************* ------>>>> sending " + data);
+    xhr.send(data);
   },
 
   onError: function (code) {

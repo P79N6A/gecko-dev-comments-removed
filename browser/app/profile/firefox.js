@@ -1073,13 +1073,19 @@ pref("devtools.debugger.chrome-enabled", true);
 pref("devtools.debugger.chrome-debugging-host", "localhost");
 pref("devtools.debugger.chrome-debugging-port", 6080);
 pref("devtools.debugger.remote-host", "localhost");
+pref("devtools.debugger.remote-autoconnect", false);
+pref("devtools.debugger.remote-connection-retries", 3);
 pref("devtools.debugger.remote-timeout", 20000);
-pref("devtools.debugger.pause-on-exceptions", false);
 pref("devtools.debugger.source-maps-enabled", true);
 
 
+pref("devtools.debugger.ui.win-x", 0);
+pref("devtools.debugger.ui.win-y", 0);
+pref("devtools.debugger.ui.win-width", 900);
+pref("devtools.debugger.ui.win-height", 400);
 pref("devtools.debugger.ui.panes-sources-width", 200);
 pref("devtools.debugger.ui.panes-instruments-width", 300);
+pref("devtools.debugger.ui.pause-on-exceptions", false);
 pref("devtools.debugger.ui.panes-visible-on-startup", false);
 pref("devtools.debugger.ui.variables-sorting-enabled", true);
 pref("devtools.debugger.ui.variables-only-enum-visible", false);
@@ -1187,7 +1193,7 @@ pref("browser.panorama.animate_zoom", true);
 
 pref("browser.newtab.url", "about:newtab");
 
-pref("browser.newtab.preload", true);
+pref("browser.newtab.preload", false);
 
 
 pref("browser.newtabpage.enabled", true);
@@ -1267,3 +1273,6 @@ pref("media.webaudio.enabled", true);
 
 
 pref("dom.debug.propagate_gesture_events_through_content", false);
+
+
+pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%GOOGLE_API_KEY%");

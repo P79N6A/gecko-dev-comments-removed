@@ -130,7 +130,7 @@ public:
   nsIDOMGeoPosition* GetCachedPosition();
 
   
-  nsresult StartDevice(nsIPrincipal* aPrincipal, bool aRequestPrivate);
+  nsresult StartDevice(nsIPrincipal* aPrincipal);
 
   
   void     StopDevice();

@@ -41,11 +41,6 @@ const Cu = Components.utils;
 this.ForgetAboutSite = {
   removeDataFromDomain: function CRH_removeDataFromDomain(aDomain)
   {
-    
-    try {
-        Services.prefs.deleteBranch("geo.wifi.access_token.");
-    } catch (e) {}
-
     PlacesUtils.history.removePagesFromHost(aDomain, true);
 
     
