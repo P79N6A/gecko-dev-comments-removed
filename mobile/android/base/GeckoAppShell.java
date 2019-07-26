@@ -297,7 +297,7 @@ public class GeckoAppShell
         
         MessageQueue.IdleHandler idleHandler = new MessageQueue.IdleHandler() {
             @Override public boolean queueIdle() {
-                Handler geckoHandler = ThreadUtils.getGeckoHandler();
+                final Handler geckoHandler = ThreadUtils.sGeckoHandler;
                 Message idleMsg = Message.obtain(geckoHandler);
                 
                 idleMsg.obj = geckoHandler;
@@ -1283,11 +1283,6 @@ public class GeckoAppShell
     public static void alertsProgressListener_OnProgress(String aAlertName, long aProgress, long aProgressMax, String aAlertText) {
         int notificationID = aAlertName.hashCode();
         sNotificationClient.update(notificationID, aProgress, aProgressMax, aAlertText);
-
-        if (aProgress == aProgressMax) {
-            
-            removeObserver(aAlertName);
-        }
     }
 
     public static void closeNotification(String aAlertName) {
@@ -2465,12 +2460,12 @@ public class GeckoAppShell
     }
 
     public static boolean pumpMessageLoop() {
-        Handler geckoHandler = ThreadUtils.getGeckoHandler();
-        MessageQueue mq = Looper.myQueue();
-        Message msg = getNextMessageFromQueue(mq); 
+        Handler geckoHandler = ThreadUtils.sGeckoHandler;
+        Message msg = getNextMessageFromQueue(ThreadUtils.sGeckoQueue);
+
         if (msg == null)
             return false;
-        if (msg.getTarget() == geckoHandler && msg.obj == geckoHandler) {
+        if (msg.obj == geckoHandler && msg.getTarget() == geckoHandler) {
             
             msg.recycle();
             return false;
