@@ -33,6 +33,7 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptTimeoutHandler.h"
+#include "nsDOMWindowResizeEventDetail.h"
 
 #ifdef XP_WIN
 
@@ -47,7 +48,7 @@
 
 #include "nsJSUtils.h"
 #include "jsapi.h"              
-#include "js/OldDebugAPI.h"     
+#include "jsdbgapi.h"           
 #include "jsfriendapi.h"        
 #include "jswrapper.h"
 #include "nsReadableUtils.h"
@@ -145,6 +146,7 @@
 #include "nsIDOMXULControlElement.h"
 #include "nsMenuPopupFrame.h"
 #endif
+#include "nsIDOMCustomEvent.h"
 
 #include "xpcprivate.h"
 
@@ -4949,6 +4951,39 @@ nsGlobalWindow::DispatchCustomEvent(const char *aEventName)
   return defaultActionEnabled;
 }
 
+
+bool
+nsGlobalWindow::DispatchResizeEvent(const nsIntSize& aSize)
+{
+  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(mDoc);
+  nsCOMPtr<nsIDOMEvent> event;
+  nsresult rv = domDoc->CreateEvent(NS_LITERAL_STRING("CustomEvent"),
+                                    getter_AddRefs(event));
+  NS_ENSURE_SUCCESS(rv, false);
+
+  nsCOMPtr<nsIWritableVariant> detailVariant = new nsVariant();
+  nsCOMPtr<nsIDOMDOMWindowResizeEventDetail> detail =
+    new nsDOMWindowResizeEventDetail(aSize);
+  rv = detailVariant->SetAsISupports(detail);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(event);
+  customEvent->InitCustomEvent(NS_LITERAL_STRING("DOMWindowResize"),
+                                true,
+                                true,
+                               detailVariant);
+  customEvent->SetTrusted(true);
+  customEvent->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
+
+  nsCOMPtr<EventTarget> target = do_QueryInterface(GetOuterWindow());
+  customEvent->SetTarget(target);
+
+  bool defaultActionEnabled = true;
+  target->DispatchEvent(event, &defaultActionEnabled);
+
+  return defaultActionEnabled;
+}
+
 void
 nsGlobalWindow::RefreshCompartmentPrincipal()
 {
@@ -5946,6 +5981,19 @@ nsGlobalWindow::ResizeTo(int32_t aWidth, int32_t aHeight)
 
 
 
+  if (mDocShell->GetIsBrowserOrApp()) {
+    nsIntSize size(aWidth, aHeight);
+    if (!DispatchResizeEvent(size)) {
+      
+      
+      return NS_OK;
+    }
+  }
+
+  
+
+
+
 
   if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
@@ -5968,6 +6016,25 @@ NS_IMETHODIMP
 nsGlobalWindow::ResizeBy(int32_t aWidthDif, int32_t aHeightDif)
 {
   FORWARD_TO_OUTER(ResizeBy, (aWidthDif, aHeightDif), NS_ERROR_NOT_INITIALIZED);
+
+  
+
+
+
+  if (mDocShell->GetIsBrowserOrApp()) {
+    CSSIntSize size;
+    nsresult rv = GetInnerSize(size);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
+
+    size.width += aWidthDif;
+    size.height += aHeightDif;
+
+    if (!DispatchResizeEvent(nsIntSize(size.width, size.height))) {
+      
+      
+      return NS_OK;
+    }
+  }
 
   
 
