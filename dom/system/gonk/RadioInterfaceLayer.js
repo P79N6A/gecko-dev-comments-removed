@@ -28,6 +28,8 @@ const DEBUG = RIL.DEBUG_RIL;
 
 const RADIOINTERFACELAYER_CID =
   Components.ID("{2d831c8d-6017-435b-a80c-e5d422810cea}");
+const RILNETWORKINTERFACE_CID =
+  Components.ID("{3bdd52a9-3965-4130-b569-0ac5afed045e}");
 
 const nsIAudioManager = Ci.nsIAudioManager;
 const nsIRadioInterfaceLayer = Ci.nsIRadioInterfaceLayer;
@@ -93,6 +95,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
                                    "@mozilla.org/system-message-internal;1",
                                    "nsISystemMessagesInternal");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
+                                   "@mozilla.org/network/manager;1",
+                                   "nsINetworkManager");
+
 XPCOMUtils.defineLazyGetter(this, "WAP", function () {
   let WAP = {};
   Cu.import("resource://gre/modules/WapPushManager.js", WAP);
@@ -150,6 +156,10 @@ XPCOMUtils.defineLazyGetter(this, "gAudioManager", function getAudioManager() {
 
 
 function RadioInterfaceLayer() {
+  this.dataNetworkInterface = new RILNetworkInterface(this, Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE);
+  this.mmsNetworkInterface = new RILNetworkInterface(this, Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS);
+  this.suplNetworkInterface = new RILNetworkInterface(this, Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL);
+
   debug("Starting RIL Worker");
   this.worker = new ChromeWorker("resource://gre/modules/ril_worker.js");
   this.worker.onerror = this.onerror.bind(this);
@@ -619,7 +629,7 @@ RadioInterfaceLayer.prototype = {
     dataInfo.type = newInfo.type;
     
     
-    dataInfo.connected = RILNetworkInterface.connected;
+    dataInfo.connected = this.dataNetworkInterface.connected;
 
     
     
@@ -646,14 +656,12 @@ RadioInterfaceLayer.prototype = {
 
 
   handleDataCallError: function handleDataCallError(message) {
-    if (message.apn != this.dataCallSettings["apn"]) {
-      return;
+    
+    if (message.apn == this.dataCallSettings["apn"]) {
+      ppmm.broadcastAsyncMessage("RIL:DataError", message);
     }
 
-    
-    RILNetworkInterface.reset();
-    
-    ppmm.broadcastAsyncMessage("RIL:DataError", message);
+    this._deliverDataCallCallback("dataCallError", [message]);
   },
 
   handleSignalStrengthChange: function handleSignalStrengthChange(message) {
@@ -797,12 +805,12 @@ RadioInterfaceLayer.prototype = {
       return;
     }
 
-    if (!this.dataCallSettings["enabled"] && RILNetworkInterface.connected) {
+    if (!this.dataCallSettings["enabled"] && this.dataNetworkInterface.connected) {
       debug("Data call settings: disconnect data call.");
-      RILNetworkInterface.disconnect();
+      this.dataNetworkInterface.disconnect();
       return;
     }
-    if (!this.dataCallSettings["enabled"] || RILNetworkInterface.connected) {
+    if (!this.dataCallSettings["enabled"] || this.dataNetworkInterface.connected) {
       debug("Data call settings: nothing to do.");
       return;
     }
@@ -822,7 +830,7 @@ RadioInterfaceLayer.prototype = {
     }
 
     debug("Data call settings: connect data call.");
-    RILNetworkInterface.connect(this.dataCallSettings);
+    this.dataNetworkInterface.connect(this.dataCallSettings);
   },
 
   
@@ -1113,9 +1121,10 @@ RadioInterfaceLayer.prototype = {
   handleDataCallState: function handleDataCallState(datacall) {
     let data = this.rilContext.data;
 
-    if (datacall.ifname) {
+    if (datacall.ifname &&
+        datacall.apn == this.dataCallSettings["apn"]) {
       data.connected = (datacall.state == RIL.GECKO_NETWORK_STATE_CONNECTED);
-      ppmm.broadcastAsyncMessage("RIL:DataInfoChanged", data);    
+      ppmm.broadcastAsyncMessage("RIL:DataInfoChanged", data);
     }
 
     this._deliverDataCallCallback("dataCallStateChanged",
@@ -1192,7 +1201,10 @@ RadioInterfaceLayer.prototype = {
         for each (let msgname in RIL_IPC_MSG_NAMES) {
           ppmm.removeMessageListener(msgname, this);
         }
-        RILNetworkInterface.shutdown();
+        
+        this.dataNetworkInterface.shutdown();
+        this.mmsNetworkInterface.shutdown();
+        this.suplNetworkInterface.shutdown();
         ppmm = null;
         Services.obs.removeObserver(this, "xpcom-shutdown");
         Services.obs.removeObserver(this, kMozSettingsChangedObserverTopic);
@@ -1889,8 +1901,18 @@ RadioInterfaceLayer.prototype = {
   }
 };
 
-let RILNetworkInterface = {
+function RILNetworkInterface(ril, type)
+{
+  this.mRIL = ril;
+  this.type = type;
+}
 
+RILNetworkInterface.prototype = {
+  classID:   RILNETWORKINTERFACE_CID,
+  classInfo: XPCOMUtils.generateCI({classID: RILNETWORKINTERFACE_CID,
+                                    classDescription: "RILNetworkInterface",
+                                    interfaces: [Ci.nsINetworkInterface,
+                                                 Ci.nsIRIODataCallback]}),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkInterface,
                                          Ci.nsIRILDataCallback]),
 
@@ -1942,8 +1964,20 @@ let RILNetworkInterface = {
 
   
 
+  dataCallError: function dataCallError(message) {
+    if (message.apn != this.dataCallSettings["apn"]) {
+      return;
+    }
+    debug("Data call error on APN: " + message.apn);
+    this.reset();
+  },
+
   dataCallStateChanged: function dataCallStateChanged(datacall) {
-    debug("Data call ID: " + datacall.cid + ", interface name: " + datacall.ifname);
+    if (datacall.apn != this.dataCallSettings["apn"]) {
+      return;
+    }
+    debug("Data call ID: " + datacall.cid + ", interface name: " +
+          datacall.ifname + ", APN name: " + datacall.apn);
     if (this.connecting &&
         (datacall.state == RIL.GECKO_NETWORK_STATE_CONNECTING ||
          datacall.state == RIL.GECKO_NETWORK_STATE_CONNECTED)) {
@@ -1959,9 +1993,7 @@ let RILNetworkInterface = {
         this.dns2 = datacall.dns[1];
       }
       if (!this.registeredAsNetworkInterface) {
-        let networkManager = Cc["@mozilla.org/network/manager;1"]
-                               .getService(Ci.nsINetworkManager);
-        networkManager.registerNetworkInterface(this);
+        gNetworkManager.registerNetworkInterface(this);
         this.registeredAsNetworkInterface = true;
       }
     }
@@ -1973,6 +2005,14 @@ let RILNetworkInterface = {
     }
 
     this.state = datacall.state;
+
+    if (this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
+       this.registeredAsNetworkInterface) {
+      gNetworkManager.unregisterNetworkInterface(this);
+      this.registeredAsNetworkInterface = false;
+      return;
+    }
+
     Services.obs.notifyObservers(this,
                                  kNetworkInterfaceStateChangedTopic,
                                  null);
@@ -1991,13 +2031,6 @@ let RILNetworkInterface = {
 
   
   apnRetryCounter: 0,
-
-  get mRIL() {
-    delete this.mRIL;
-    return this.mRIL = Cc["@mozilla.org/telephony/system-worker-manager;1"]
-                         .getService(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIRadioInterfaceLayer);
-  },
 
   get connected() {
     return this.state == RIL.GECKO_NETWORK_STATE_CONNECTED;
@@ -2069,7 +2102,7 @@ let RILNetworkInterface = {
 
   
   notify: function(timer) {
-    RILNetworkInterface.connect();
+    this.connect();
   },
 
   shutdown: function() {
