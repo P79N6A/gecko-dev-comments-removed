@@ -256,24 +256,7 @@ ZoneOfValueFromAnyThread(const JS::Value &value)
 
 
 
-
-
-template <class Map, class Key>
-inline void
-HashTableWriteBarrierPost(JSRuntime *rt, Map *map, const Key &key)
-{
-#ifdef JSGC_GENERATIONAL
-    if (key && IsInsideNursery(rt, key)) {
-        JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
-        shadowRuntime->gcStoreBufferPtr()->putGeneric(gc::HashKeyRef<Map, Key>(map, key));
-    }
-#endif
-}
-
-
-
-
-template<class T, typename Unioned = uintptr_t>
+template <class T, typename Unioned = uintptr_t>
 class BarrieredPtr
 {
   protected:
@@ -312,7 +295,7 @@ class BarrieredPtr
     void pre() { T::writeBarrierPre(value); }
 };
 
-template<class T, typename Unioned = uintptr_t>
+template <class T, typename Unioned = uintptr_t>
 class EncapsulatedPtr : public BarrieredPtr<T, Unioned>
 {
   public:
@@ -381,7 +364,7 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
     void post() { T::writeBarrierPost(this->value, (void *)&this->value); }
 
     
-    template<class T1, class T2>
+    template <class T1, class T2>
     friend inline void
     BarrieredSetPair(Zone *zone,
                      HeapPtr<T1> &v1, T1 *val1,
@@ -483,7 +466,7 @@ class RelocatablePtr : public BarrieredPtr<T>
 
 
 
-template<class T1, class T2>
+template <class T1, class T2>
 static inline void
 BarrieredSetPair(Zone *zone,
                  HeapPtr<T1> &v1, T1 *val1,
@@ -522,7 +505,8 @@ typedef HeapPtr<BaseShape> HeapPtrBaseShape;
 typedef HeapPtr<types::TypeObject> HeapPtrTypeObject;
 
 
-template<class T>
+
+template <class T>
 struct HeapPtrHasher
 {
     typedef HeapPtr<T> Key;
@@ -537,7 +521,7 @@ struct HeapPtrHasher
 template <class T>
 struct DefaultHasher< HeapPtr<T> > : HeapPtrHasher<T> { };
 
-template<class T>
+template <class T>
 struct EncapsulatedPtrHasher
 {
     typedef EncapsulatedPtr<T> Key;
@@ -1113,7 +1097,7 @@ class HeapId : public BarrieredId
 
 
 
-template<class T>
+template <class T>
 class ReadBarriered
 {
     T *value;
@@ -1156,6 +1140,20 @@ class ReadBarrieredValue
     inline operator const Value &() const;
 
     inline JSObject &toObject() const;
+};
+
+
+
+
+
+
+template <typename T> struct Unbarriered {};
+template <typename S> struct Unbarriered< EncapsulatedPtr<S> > { typedef S *type; };
+template <typename S> struct Unbarriered< RelocatablePtr<S> > { typedef S *type; };
+template <> struct Unbarriered<EncapsulatedValue> { typedef Value type; };
+template <> struct Unbarriered<RelocatableValue> { typedef Value type; };
+template <typename S> struct Unbarriered< DefaultHasher< EncapsulatedPtr<S> > > {
+    typedef DefaultHasher<S *> type;
 };
 
 } 
