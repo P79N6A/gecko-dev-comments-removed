@@ -5115,9 +5115,26 @@ function handleLinkClick(event, href, linkNode) {
     return true;
   }
 
+  var referrerURI = doc.documentURIObject;
+  
+  
+  
+  var persistDisableMCBInChildTab = false;
+
+  if (where == "tab" && gBrowser.docShell.mixedContentChannel) {
+    const sm = Services.scriptSecurityManager;
+    try {
+      var targetURI = makeURI(href);
+      sm.checkSameOriginURI(referrerURI, targetURI, false);
+      persistDisableMCBInChildTab = true;
+    }
+    catch (e) { }
+  }
+
   urlSecurityCheck(href, doc.nodePrincipal);
-  openLinkIn(href, where, { referrerURI: doc.documentURIObject,
-                            charset: doc.characterSet });
+  openLinkIn(href, where, { referrerURI: referrerURI,
+                            charset: doc.characterSet,
+                            disableMCB: persistDisableMCBInChildTab});
   event.preventDefault();
   return true;
 }
