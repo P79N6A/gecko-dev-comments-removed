@@ -9,9 +9,9 @@
 namespace mozilla {
 namespace dom {
 class Element;
-class HTMLCanvasElement;
 } 
 } 
+class nsHTMLCanvasElement;
 class imgIRequest;
 class gfxASurface;
 
@@ -27,7 +27,7 @@ public:
 
 
   static void NotifyDrawImage(dom::Element* aImage,
-                              dom::HTMLCanvasElement* aCanvas,
+                              nsHTMLCanvasElement* aCanvas,
                               imgIRequest* aRequest,
                               gfxASurface* aSurface,
                               const gfxIntSize& aSize);
@@ -39,7 +39,7 @@ public:
 
 
   static gfxASurface* Lookup(dom::Element* aImage,
-                             dom::HTMLCanvasElement* aCanvas,
+                             nsHTMLCanvasElement* aCanvas,
                              gfxIntSize* aSize);
 };
 
