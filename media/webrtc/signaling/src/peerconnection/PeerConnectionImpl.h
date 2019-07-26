@@ -27,7 +27,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PeerConnectionImplEnumsBinding.h"
 #include "StreamBuffer.h"
-#include "LoadManagerFactory.h"
 
 #ifdef MOZILLA_INTERNAL_API
 #include "mozilla/TimeStamp.h"
@@ -252,10 +251,6 @@ public:
   const nsRefPtr<PeerConnectionMedia>& media() const {
     PC_AUTO_ENTER_API_CALL_NO_CHECK();
     return mMedia;
-  }
-
-  mozilla::LoadManager* load_manager()  {
-    return mLoadManager;
   }
 
   
@@ -693,9 +688,6 @@ private:
 
   
   nsCOMPtr<nsIEventTarget> mSTSThread;
-
-  
-  mozilla::LoadManager* mLoadManager;
 
 #ifdef MOZILLA_INTERNAL_API
   

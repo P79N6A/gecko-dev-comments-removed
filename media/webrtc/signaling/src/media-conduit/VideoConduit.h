@@ -11,6 +11,7 @@
 #include "MediaConduitInterface.h"
 #include "MediaEngineWrapper.h"
 #include "CodecStatistics.h"
+#include "LoadManagerFactory.h"
 
 
 #undef FF
@@ -358,6 +359,8 @@ private:
 
   
   nsAutoPtr<VideoCodecStatistics> mVideoCodecStat;
+
+  nsAutoPtr<LoadManager> mLoadManager;
 };
 
 } 
