@@ -62,8 +62,8 @@ this.WapPushManager = {
 
     let appid = options.headers["x-wap-application-id"];
     if (!appid) {
+      
       debug("Push message doesn't contains X-Wap-Application-Id.");
-      return;
     }
 
     
