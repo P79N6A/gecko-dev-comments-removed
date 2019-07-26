@@ -711,9 +711,9 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    
     if (anonBlock && !(anonBlock->GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-        (svgTextFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
+        (svgTextFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY) &&
+        !(svgTextFrame->GetStateBits() & NS_STATE_SVG_TEXT_IN_REFLOW)) {
       svgTextFrame->ScheduleReflowSVGNonDisplayText();
     }
   }
