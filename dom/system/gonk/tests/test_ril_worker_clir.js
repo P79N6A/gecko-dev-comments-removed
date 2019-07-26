@@ -41,6 +41,7 @@ add_test(function test_setCLIR_success() {
 
   worker.RIL.setCLIR = function fakeSetCLIR(options) {
     worker.RIL[REQUEST_SET_CLIR](0, {
+      rilMessageType: "setCLIR",
       rilRequestError: ERROR_SUCCESS
     });
   };
@@ -63,6 +64,7 @@ add_test(function test_setCLIR_generic_failure() {
 
   worker.RIL.setCLIR = function fakeSetCLIR(options) {
     worker.RIL[REQUEST_SET_CLIR](0, {
+      rilMessageType: "setCLIR",
       rilRequestError: ERROR_GENERIC_FAILURE
     });
   };
@@ -95,6 +97,7 @@ add_test(function test_getCLIR_n0_m1() {
       2   
     ];
     worker.RIL[REQUEST_GET_CLIR](1, {
+      rilMessageType: "setCLIR",
       rilRequestError: ERROR_SUCCESS
     });
   };
@@ -126,6 +129,7 @@ add_test(function test_getCLIR_error_generic_failure_invalid_length() {
       0   
     ];
     worker.RIL[REQUEST_GET_CLIR](1, {
+      rilMessageType: "setCLIR",
       rilRequestError: ERROR_SUCCESS
     });
   };
