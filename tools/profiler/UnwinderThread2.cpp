@@ -29,6 +29,7 @@
 #include <ostream>
 
 #include "ProfileEntry.h"
+#include "SyncProfile.h"
 #include "UnwinderThread2.h"
 
 #if !defined(SPS_OS_windows)
@@ -39,8 +40,8 @@
 # include <sys/mman.h>
 #endif
 
-#if defined(SPS_OS_android)
-# include "android-signal-defs.h"
+#if defined(SPS_OS_android) || defined(SPS_OS_linux)
+# include <ucontext.h>
 #endif
 
 #include "shared-libraries.h"
@@ -87,10 +88,27 @@ void uwt__unregister_thread_for_profiling()
 {
 }
 
+LinkedUWTBuffer* utb__acquire_sync_buffer(void* stackTop)
+{
+  return nullptr;
+}
+
 
 UnwinderThreadBuffer* uwt__acquire_empty_buffer()
 {
   return NULL;
+}
+
+void
+utb__finish_sync_buffer(ThreadProfile* aProfile,
+                        UnwinderThreadBuffer* utb,
+                        void*  ucV)
+{
+}
+
+void
+utb__release_sync_buffer(LinkedUWTBuffer* utb)
+{
 }
 
 
@@ -133,8 +151,18 @@ static void thread_unregister_for_profiling();
 static void do_breakpad_unwind_Buffer_free_singletons();
 
 
+static LinkedUWTBuffer* acquire_sync_buffer(void* stackTop);
+
+
 
 static UnwinderThreadBuffer* acquire_empty_buffer();
+
+static void finish_sync_buffer(ThreadProfile* aProfile,
+                               UnwinderThreadBuffer* utb,
+                               void*  ucV);
+
+
+static void release_sync_buffer(LinkedUWTBuffer* utb);
 
 
 
@@ -186,6 +214,23 @@ void uwt__register_thread_for_profiling(void* stackTop)
 void uwt__unregister_thread_for_profiling()
 {
   thread_unregister_for_profiling();
+}
+
+LinkedUWTBuffer* utb__acquire_sync_buffer(void* stackTop)
+{
+  return acquire_sync_buffer(stackTop);
+}
+
+void utb__finish_sync_buffer(ThreadProfile* profile,
+                             UnwinderThreadBuffer* buff,
+                             void*  ucV)
+{
+  finish_sync_buffer(profile, buff, ucV);
+}
+
+void utb__release_sync_buffer(LinkedUWTBuffer* buff)
+{
+  release_sync_buffer(buff);
 }
 
 
@@ -671,6 +716,43 @@ static void show_registered_threads()
 
 
 
+
+static void init_empty_buffer(UnwinderThreadBuffer* buff, void* stackTop)
+{
+  
+  buff->aProfile       = NULL;
+  buff->entsUsed       = 0;
+  buff->haveNativeInfo = false;
+  buff->stackImgUsed   = 0;
+  buff->stackImgAddr   = 0;
+  buff->stackMaxSafe   = stackTop; 
+
+  for (size_t i = 0; i < N_PROF_ENT_PAGES; i++)
+    buff->entsPages[i] = ProfEntsPage_INVALID;
+}
+
+struct SyncUnwinderThreadBuffer : public LinkedUWTBuffer
+{
+  UnwinderThreadBuffer* GetBuffer()
+  {
+    return &mBuff;
+  }
+  
+  UnwinderThreadBuffer  mBuff;
+};
+
+static LinkedUWTBuffer* acquire_sync_buffer(void* stackTop)
+{
+  MOZ_ASSERT(stackTop);
+  SyncUnwinderThreadBuffer* buff = new SyncUnwinderThreadBuffer();
+  
+  
+  buff->GetBuffer()->state = S_FILLING;
+  init_empty_buffer(buff->GetBuffer(), stackTop);
+  return buff;
+}
+
+
 static UnwinderThreadBuffer* acquire_empty_buffer()
 {
   
@@ -758,25 +840,16 @@ static UnwinderThreadBuffer* acquire_empty_buffer()
   spinLock_release(&g_spinLock);
 
   
-  buff->aProfile       = NULL;
-  buff->entsUsed       = 0;
-  buff->haveNativeInfo = false;
-  buff->stackImgUsed   = 0;
-  buff->stackImgAddr   = 0;
-  buff->stackMaxSafe   = myStackTop; 
-
-  for (i = 0; i < N_PROF_ENT_PAGES; i++)
-    buff->entsPages[i] = ProfEntsPage_INVALID;
+  init_empty_buffer(buff, myStackTop);
   return buff;
 }
 
 
 
 
-
-static void release_full_buffer(ThreadProfile* aProfile,
-                                UnwinderThreadBuffer* buff,
-                                void*  ucV )
+static void fill_buffer(ThreadProfile* aProfile,
+                        UnwinderThreadBuffer* buff,
+                        void*  ucV)
 {
   MOZ_ASSERT(buff->state == S_FILLING);
 
@@ -814,7 +887,7 @@ static void release_full_buffer(ThreadProfile* aProfile,
     buff->regs.r12 = mc->arm_ip; 
     buff->regs.r11 = mc->arm_fp; 
     buff->regs.r7  = mc->arm_r7; 
-#   elif defined(SPS_PLAT_x86_linux)
+#   elif defined(SPS_PLAT_x86_linux) || defined(SPS_PLAT_x86_android)
     ucontext_t* uc = (ucontext_t*)ucV;
     mcontext_t* mc = &(uc->uc_mcontext);
     buff->regs.eip = mc->gregs[REG_EIP];
@@ -827,12 +900,6 @@ static void release_full_buffer(ThreadProfile* aProfile,
     buff->regs.eip = ss->__eip;
     buff->regs.esp = ss->__esp;
     buff->regs.ebp = ss->__ebp;
-#   elif defined(SPS_PLAT_x86_android)
-    ucontext_t* uc = (ucontext_t*)ucV;
-    mcontext_t* mc = &(uc->uc_mcontext);
-    buff->regs.eip = mc->eip;
-    buff->regs.esp = mc->esp;
-    buff->regs.ebp = mc->ebp;
 #   else
 #     error "Unknown plat"
 #   endif
@@ -875,14 +942,22 @@ static void release_full_buffer(ThreadProfile* aProfile,
   } 
   
   
+}
 
+
+
+
+static void release_full_buffer(ThreadProfile* aProfile,
+                                UnwinderThreadBuffer* buff,
+                                void*  ucV )
+{
+  fill_buffer(aProfile, buff, ucV);
   
 
   spinLock_acquire(&g_spinLock);
   buff->state = S_FULL;
   spinLock_release(&g_spinLock);
 }
-
 
 
 
@@ -967,6 +1042,345 @@ static ProfileEntry utb_get_profent(UnwinderThreadBuffer* buff, uintptr_t i)
   }
 }
 
+
+
+
+
+static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
+{
+  
+
+  buff->aProfile->BeginUnwind();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+  const uintptr_t infUW = ~(uintptr_t)0; 
+  bool  need_native_unw = false;
+  uintptr_t ix_first_hP = infUW; 
+  uintptr_t ix_last_hQ  = infUW; 
+
+  uintptr_t k;
+  for (k = 0; k < buff->entsUsed; k++) {
+    ProfileEntry ent = utb_get_profent(buff, k);
+    if (ent.is_ent_hint('N')) {
+      need_native_unw = true;
+    }
+    else if (ent.is_ent_hint('P') && ix_first_hP == ~(uintptr_t)0) {
+      ix_first_hP = k;
+    }
+    else if (ent.is_ent_hint('Q')) {
+      ix_last_hQ = k;
+    }
+  }
+
+  if (0) LOGF("BPUnw: ix_first_hP %llu  ix_last_hQ %llu  need_native_unw %llu",
+              (unsigned long long int)ix_first_hP,
+              (unsigned long long int)ix_last_hQ,
+              (unsigned long long int)need_native_unw);
+
+  
+
+
+  MOZ_ASSERT( (ix_first_hP == infUW && ix_last_hQ == infUW) ||
+              (ix_first_hP != infUW && ix_last_hQ != infUW) );
+  bool have_P = ix_first_hP != infUW;
+  if (have_P) {
+    MOZ_ASSERT(ix_first_hP < ix_last_hQ);
+    MOZ_ASSERT(ix_last_hQ <= buff->entsUsed);
+  }
+
+  
+
+  if (!need_native_unw && !have_P) {
+    for (k = 0; k < buff->entsUsed; k++) {
+      ProfileEntry ent = utb_get_profent(buff, k);
+      
+      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      
+      if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
+      
+      if (ent.is_ent('B')) {
+        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
+        process_buffer(buff, -1);
+        continue;
+      }
+      
+      buff->aProfile->addTag( ent );
+    }
+  }
+  else 
+  if (need_native_unw && !have_P) {
+    for (k = 0; k < buff->entsUsed; k++) {
+      ProfileEntry ent = utb_get_profent(buff, k);
+      
+      if (ent.is_ent_hint('N')) {
+        MOZ_ASSERT(buff->haveNativeInfo);
+        PCandSP* pairs = NULL;
+        unsigned int nPairs = 0;
+        do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
+        buff->aProfile->addTag( ProfileEntry('s', "(root)") );
+        for (unsigned int i = 0; i < nPairs; i++) {
+          
+
+
+          if (pairs[i].pc == 0 && pairs[i].sp == 0)
+            continue;
+          buff->aProfile
+              ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
+        }
+        if (pairs)
+          free(pairs);
+        continue;
+      }
+      
+      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      
+      if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
+      
+      if (ent.is_ent('B')) {
+        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
+        process_buffer(buff, -1);
+        continue;
+      }
+      
+      buff->aProfile->addTag( ent );
+    }
+  }
+  else 
+  if (!need_native_unw && have_P) {
+    
+
+
+
+
+    for (k = 0; k < buff->entsUsed; k++) {
+      ProfileEntry ent = utb_get_profent(buff, k);
+      
+      if (k == ix_first_hP) {
+        buff->aProfile->addTag( ProfileEntry('s', "(root)") );
+      }
+      
+      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      
+      if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
+      
+      if (ent.is_ent('B')) {
+        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
+        process_buffer(buff, -1);
+        continue;
+      }
+      
+      buff->aProfile->addTag( ent );
+    }
+  }
+  else 
+  if (need_native_unw && have_P)
+  {
+    
+
+
+
+
+
+    MOZ_ASSERT(buff->haveNativeInfo);
+
+    
+    PCandSP* pairs = NULL;
+    unsigned int n_pairs = 0;
+    do_breakpad_unwind_Buffer(&pairs, &n_pairs, buff, oldest_ix);
+
+    
+    for (k = 0; k < ix_first_hP; k++) {
+      ProfileEntry ent = utb_get_profent(buff, k);
+      
+      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      
+      if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
+      
+      if (ent.is_ent('B')) {
+        UnwinderThreadBuffer* buff = (UnwinderThreadBuffer*)ent.get_tagPtr();
+        process_buffer(buff, -1);
+        continue;
+      }
+      
+      buff->aProfile->addTag( ent );
+    }
+
+    
+    buff->aProfile->addTag( ProfileEntry('s', "(root)") );
+    unsigned int next_N = 0; 
+    unsigned int next_P = ix_first_hP; 
+    bool last_was_P = false;
+    if (0) LOGF("at mergeloop: n_pairs %llu ix_last_hQ %llu",
+                (unsigned long long int)n_pairs,
+                (unsigned long long int)ix_last_hQ);
+    
+
+
+    while (next_N < n_pairs && pairs[next_N].pc == 0 && pairs[next_N].sp == 0)
+      next_N++;
+
+    while (true) {
+      if (next_P <= ix_last_hQ) {
+        
+        MOZ_ASSERT(utb_get_profent(buff, next_P).is_ent_hint('P'));
+      }
+      if (next_N >= n_pairs && next_P > ix_last_hQ) {
+        
+        break;
+      }
+      
+
+
+
+
+
+
+
+      bool use_P = true;
+      if (next_N >= n_pairs) {
+        
+        use_P = true;
+        if (0) LOG("  P  <=  no remaining N entries");
+      }
+      else if (next_P > ix_last_hQ) {
+        
+        use_P = false;
+        if (0) LOG("  N  <=  no remaining P entries");
+      }
+      else {
+        
+        
+        u_int64_t sp_cur_P = 0;
+        unsigned int m = next_P + 1;
+        while (1) {
+          
+
+
+          MOZ_ASSERT(m < buff->entsUsed);
+          ProfileEntry ent = utb_get_profent(buff, m);
+          if (ent.is_ent_hint('Q'))
+            break;
+          if (ent.is_ent('S')) {
+            sp_cur_P = reinterpret_cast<u_int64_t>(ent.get_tagPtr());
+            break;
+          }
+          m++;
+        }
+        if (last_was_P && sp_cur_P == 0) {
+          if (0) LOG("  P  <=  last_was_P && sp_cur_P == 0");
+          use_P = true;
+        } else {
+          u_int64_t sp_cur_N = pairs[next_N].sp;
+          use_P = (sp_cur_P > sp_cur_N);
+          if (0) LOGF("  %s  <=  sps P %p N %p",
+                      use_P ? "P" : "N", (void*)(intptr_t)sp_cur_P, 
+                                         (void*)(intptr_t)sp_cur_N);
+        }
+      }
+      
+      if (use_P) {
+        unsigned int m = next_P + 1;
+        while (true) {
+          MOZ_ASSERT(m < buff->entsUsed);
+          ProfileEntry ent = utb_get_profent(buff, m);
+          if (ent.is_ent_hint('Q')) {
+            next_P = m + 1;
+            break;
+          }
+          
+          MOZ_ASSERT(!ent.is_ent_hint('F'));
+          
+          if (ent.is_ent_hint() || ent.is_ent('S')) { m++; continue; }
+          
+          buff->aProfile->addTag( ent );
+          m++;
+        }
+      } else {
+        buff->aProfile
+            ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[next_N].pc)) );
+        next_N++;
+      }
+      
+      last_was_P = use_P;
+    }
+
+    MOZ_ASSERT(next_P == ix_last_hQ + 1);
+    MOZ_ASSERT(next_N == n_pairs);
+    
+
+    
+    for (k = ix_last_hQ+1; k < buff->entsUsed; k++) {
+      ProfileEntry ent = utb_get_profent(buff, k);
+      
+      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      
+      if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
+      
+      buff->aProfile->addTag( ent );
+    }
+
+    
+    if (pairs)
+      free(pairs);
+  }
+
+#if 0
+  bool show = true;
+  if (show) LOG("----------------");
+  for (k = 0; k < buff->entsUsed; k++) {
+    ProfileEntry ent = utb_get_profent(buff, k);
+    if (show) ent.log();
+    if (ent.is_ent_hint('F')) {
+      
+      buff->aProfile->flush();
+    } 
+    else if (ent.is_ent_hint('N')) {
+      
+      MOZ_ASSERT(buff->haveNativeInfo);
+      PCandSP* pairs = NULL;
+      unsigned int nPairs = 0;
+      do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
+      buff->aProfile->addTag( ProfileEntry('s', "(root)") );
+      for (unsigned int i = 0; i < nPairs; i++) {
+        buff->aProfile
+            ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
+      }
+      if (pairs)
+        free(pairs);
+    } else {
+      
+      buff->aProfile->addTag( ent );
+    }
+  }
+#endif
+
+  buff->aProfile->EndUnwind();
+}
 
 
 static void* unwind_thr_fn(void* exit_nowV)
@@ -1092,319 +1506,7 @@ static void* unwind_thr_fn(void* exit_nowV)
     if (0) LOGF("BPUnw: unwinder: seqNo %llu: emptying buf %d\n",
                 (unsigned long long int)oldest_seqNo, oldest_ix);
 
-    
-
-
-
-
-    
-
-    buff->aProfile->GetMutex()->Lock();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-    const uintptr_t infUW = ~(uintptr_t)0; 
-    bool  need_native_unw = false;
-    uintptr_t ix_first_hP = infUW; 
-    uintptr_t ix_last_hQ  = infUW; 
-
-    uintptr_t k;
-    for (k = 0; k < buff->entsUsed; k++) {
-      ProfileEntry ent = utb_get_profent(buff, k);
-      if (ent.is_ent_hint('N')) {
-        need_native_unw = true;
-      }
-      else if (ent.is_ent_hint('P') && ix_first_hP == ~(uintptr_t)0) {
-        ix_first_hP = k;
-      }
-      else if (ent.is_ent_hint('Q')) {
-        ix_last_hQ = k;
-      }
-    }
-
-    if (0) LOGF("BPUnw: ix_first_hP %llu  ix_last_hQ %llu  need_native_unw %llu",
-                (unsigned long long int)ix_first_hP,
-                (unsigned long long int)ix_last_hQ,
-                (unsigned long long int)need_native_unw);
-
-    
-
-
-    MOZ_ASSERT( (ix_first_hP == infUW && ix_last_hQ == infUW) ||
-                (ix_first_hP != infUW && ix_last_hQ != infUW) );
-    bool have_P = ix_first_hP != infUW;
-    if (have_P) {
-      MOZ_ASSERT(ix_first_hP < ix_last_hQ);
-      MOZ_ASSERT(ix_last_hQ <= buff->entsUsed);
-    }
-
-    
-
-    if (!need_native_unw && !have_P) {
-      for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry ent = utb_get_profent(buff, k);
-        
-        if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
-        
-        if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
-        
-        buff->aProfile->addTag( ent );
-      }
-    }
-    else 
-    if (need_native_unw && !have_P) {
-      for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry ent = utb_get_profent(buff, k);
-        
-        if (ent.is_ent_hint('N')) {
-          MOZ_ASSERT(buff->haveNativeInfo);
-          PCandSP* pairs = NULL;
-          unsigned int nPairs = 0;
-          do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
-          buff->aProfile->addTag( ProfileEntry('s', "(root)") );
-          for (unsigned int i = 0; i < nPairs; i++) {
-            
-
-
-            if (pairs[i].pc == 0 && pairs[i].sp == 0)
-              continue;
-            buff->aProfile
-                ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
-          }
-          if (pairs)
-            free(pairs);
-          continue;
-        }
-        
-        if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
-        
-        if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
-        
-        buff->aProfile->addTag( ent );
-      }
-    }
-    else 
-    if (!need_native_unw && have_P) {
-      
-
-
-
-
-      for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry ent = utb_get_profent(buff, k);
-        
-        if (k == ix_first_hP) {
-          buff->aProfile->addTag( ProfileEntry('s', "(root)") );
-        }
-        
-        if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
-        
-        if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
-        
-        buff->aProfile->addTag( ent );
-      }
-    }
-    else 
-    if (need_native_unw && have_P)
-    {
-      
-
-
-
-
-
-      MOZ_ASSERT(buff->haveNativeInfo);
-
-      
-      PCandSP* pairs = NULL;
-      unsigned int n_pairs = 0;
-      do_breakpad_unwind_Buffer(&pairs, &n_pairs, buff, oldest_ix);
-
-      
-      for (k = 0; k < ix_first_hP; k++) {
-        ProfileEntry ent = utb_get_profent(buff, k);
-        
-        if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
-        
-        if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
-        
-        buff->aProfile->addTag( ent );
-      }
-
-      
-      buff->aProfile->addTag( ProfileEntry('s', "(root)") );
-      unsigned int next_N = 0; 
-      unsigned int next_P = ix_first_hP; 
-      bool last_was_P = false;
-      if (0) LOGF("at mergeloop: n_pairs %llu ix_last_hQ %llu",
-                  (unsigned long long int)n_pairs,
-                  (unsigned long long int)ix_last_hQ);
-      
-
-
-      while (next_N < n_pairs && pairs[next_N].pc == 0 && pairs[next_N].sp == 0)
-        next_N++;
-
-      while (true) {
-        if (next_P <= ix_last_hQ) {
-          
-          MOZ_ASSERT(utb_get_profent(buff, next_P).is_ent_hint('P'));
-        }
-        if (next_N >= n_pairs && next_P > ix_last_hQ) {
-          
-          break;
-        }
-        
-
-
-
-
-
-
-
-        bool use_P = true;
-        if (next_N >= n_pairs) {
-          
-          use_P = true;
-          if (0) LOG("  P  <=  no remaining N entries");
-        }
-        else if (next_P > ix_last_hQ) {
-          
-          use_P = false;
-          if (0) LOG("  N  <=  no remaining P entries");
-        }
-        else {
-          
-          
-          u_int64_t sp_cur_P = 0;
-          unsigned int m = next_P + 1;
-          while (1) {
-            
-
-
-            MOZ_ASSERT(m < buff->entsUsed);
-            ProfileEntry ent = utb_get_profent(buff, m);
-            if (ent.is_ent_hint('Q'))
-              break;
-            if (ent.is_ent('S')) {
-              sp_cur_P = reinterpret_cast<u_int64_t>(ent.get_tagPtr());
-              break;
-            }
-            m++;
-          }
-          if (last_was_P && sp_cur_P == 0) {
-            if (0) LOG("  P  <=  last_was_P && sp_cur_P == 0");
-            use_P = true;
-          } else {
-            u_int64_t sp_cur_N = pairs[next_N].sp;
-            use_P = (sp_cur_P > sp_cur_N);
-            if (0) LOGF("  %s  <=  sps P %p N %p",
-                        use_P ? "P" : "N", (void*)(intptr_t)sp_cur_P, 
-                                           (void*)(intptr_t)sp_cur_N);
-          }
-        }
-        
-        if (use_P) {
-          unsigned int m = next_P + 1;
-          while (true) {
-            MOZ_ASSERT(m < buff->entsUsed);
-            ProfileEntry ent = utb_get_profent(buff, m);
-            if (ent.is_ent_hint('Q')) {
-              next_P = m + 1;
-              break;
-            }
-            
-            MOZ_ASSERT(!ent.is_ent_hint('F'));
-            
-            if (ent.is_ent_hint() || ent.is_ent('S')) { m++; continue; }
-            
-            buff->aProfile->addTag( ent );
-            m++;
-          }
-        } else {
-          buff->aProfile
-              ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[next_N].pc)) );
-          next_N++;
-        }
-        
-        last_was_P = use_P;
-      }
-
-      MOZ_ASSERT(next_P == ix_last_hQ + 1);
-      MOZ_ASSERT(next_N == n_pairs);
-      
-
-      
-      for (k = ix_last_hQ+1; k < buff->entsUsed; k++) {
-        ProfileEntry ent = utb_get_profent(buff, k);
-        
-        if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
-        
-        if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
-        
-        buff->aProfile->addTag( ent );
-      }
-
-      
-      if (pairs)
-        free(pairs);
-    }
-
-#if 0
-    bool show = true;
-    if (show) LOG("----------------");
-    for (k = 0; k < buff->entsUsed; k++) {
-      ProfileEntry ent = utb_get_profent(buff, k);
-      if (show) ent.log();
-      if (ent.is_ent_hint('F')) {
-        
-        buff->aProfile->flush();
-      } 
-      else if (ent.is_ent_hint('N')) {
-        
-        MOZ_ASSERT(buff->haveNativeInfo);
-        PCandSP* pairs = NULL;
-        unsigned int nPairs = 0;
-        do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
-        buff->aProfile->addTag( ProfileEntry('s', "(root)") );
-        for (unsigned int i = 0; i < nPairs; i++) {
-          buff->aProfile
-              ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
-        }
-        if (pairs)
-          free(pairs);
-      } else {
-        
-        buff->aProfile->addTag( ent );
-      }
-    }
-#endif
-
-    buff->aProfile->GetMutex()->Unlock();
+    process_buffer(buff, oldest_ix);
 
     
 
@@ -1427,6 +1529,26 @@ static void* unwind_thr_fn(void* exit_nowV)
   return NULL;
 }
 
+static void finish_sync_buffer(ThreadProfile* profile,
+                               UnwinderThreadBuffer* buff,
+                               void*  ucV)
+{
+  SyncProfile* syncProfile = profile->AsSyncProfile();
+  MOZ_ASSERT(syncProfile);
+  SyncUnwinderThreadBuffer* utb = static_cast<SyncUnwinderThreadBuffer*>(
+                                                   syncProfile->GetUWTBuffer());
+  fill_buffer(profile, utb->GetBuffer(), ucV);
+  utb->GetBuffer()->state = S_FULL;
+  PseudoStack* stack = profile->GetPseudoStack();
+  stack->addLinkedUWTBuffer(utb);
+}
+
+static void release_sync_buffer(LinkedUWTBuffer* buff)
+{
+  SyncUnwinderThreadBuffer* data = static_cast<SyncUnwinderThreadBuffer*>(buff);
+  MOZ_ASSERT(data->GetBuffer()->state == S_EMPTY);
+  delete data;
+}
 
 
 

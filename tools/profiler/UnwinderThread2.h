@@ -72,4 +72,21 @@ void uwt__release_full_buffer(ThreadProfile* aProfile,
                               UnwinderThreadBuffer* utb,
                               void*  ucV);
 
+struct LinkedUWTBuffer;
+
+
+
+LinkedUWTBuffer* utb__acquire_sync_buffer(void* stackTop);
+
+void utb__finish_sync_buffer(ThreadProfile* aProfile,
+                             UnwinderThreadBuffer* utb,
+                             void*  ucV);
+
+
+
+void utb__release_sync_buffer(LinkedUWTBuffer* utb);
+
+
+typedef void (*UTB_RELEASE_FUNC)(ThreadProfile*,UnwinderThreadBuffer*,void*);
+
 #endif 

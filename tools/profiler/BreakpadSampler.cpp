@@ -10,9 +10,6 @@
 #include <ostream>
 #include <fstream>
 #include <sstream>
-#if defined(ANDROID)
-# include "android-signal-defs.h"
-#endif
 
 
 #include "PlatformMacros.h"
@@ -24,6 +21,7 @@
 #include "shared-libraries.h"
 #include "mozilla/StackWalk.h"
 #include "ProfileEntry.h"
+#include "SyncProfile.h"
 #include "SaveProfileTask.h"
 #include "UnwinderThread2.h"
 #include "TableTicker.h"
@@ -157,57 +155,53 @@ void genPseudoBacktraceEntries(UnwinderThreadBuffer* utb,
 }
 
 
-void TableTicker::UnwinderTick(TickSample* sample)
+static
+void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
+                    UTB_RELEASE_FUNC releaseFunction, bool jankOnly)
 {
-  if (!sample->threadProfile) {
-    
-    sample->threadProfile = GetPrimaryThreadProfile();
-  }
-
-  ThreadProfile& currThreadProfile = *sample->threadProfile;
+  ThreadProfile& sampledThreadProfile = *sample->threadProfile;
+  PseudoStack* stack = sampledThreadProfile.GetPseudoStack();
 
   
-
-  UnwinderThreadBuffer* utb = uwt__acquire_empty_buffer();
-
-  
-
-
-  if (!utb)
-    return;
-
-  
-
-
-  
-  PseudoStack* stack = currThreadProfile.GetPseudoStack();
-  ProfilerMarkerLinkedList* pendingMarkersList = stack->getPendingMarkers();
-  while (pendingMarkersList && pendingMarkersList->peek()) {
-    ProfilerMarker* marker = pendingMarkersList->popHead();
-    stack->addStoredMarker(marker);
-    utb__addEntry( utb, ProfileEntry('m', marker) );
-  }
-  stack->updateGeneration(currThreadProfile.GetGenerationID());
 
   bool recordSample = true;
-  if (mJankOnly) {
-    
-    
-    if (sLastSampledEventGeneration != sCurrentEventGeneration) {
-      
-      
-      
-      currThreadProfile.erase();
-    }
-    sLastSampledEventGeneration = sCurrentEventGeneration;
 
-    recordSample = false;
+  
+
+  if (!sample->isSamplingCurrentThread) {
     
+    UWTBufferLinkedList* syncBufs = stack->getLinkedUWTBuffers();
+    while (syncBufs && syncBufs->peek()) {
+      LinkedUWTBuffer* syncBuf = syncBufs->popHead();
+      utb__addEntry(utb, ProfileEntry('B', syncBuf->GetBuffer()));
+    }
     
-    if (!sLastTracerEvent.IsNull()) {
-      TimeDuration delta = sample->timestamp - sLastTracerEvent;
-      if (delta.ToMilliseconds() > 100.0) {
-          recordSample = true;
+    ProfilerMarkerLinkedList* pendingMarkersList = stack->getPendingMarkers();
+    while (pendingMarkersList && pendingMarkersList->peek()) {
+      ProfilerMarker* marker = pendingMarkersList->popHead();
+      stack->addStoredMarker(marker);
+      utb__addEntry( utb, ProfileEntry('m', marker) );
+    }
+    stack->updateGeneration(sampledThreadProfile.GetGenerationID());
+    if (jankOnly) {
+      
+      
+      if (sLastSampledEventGeneration != sCurrentEventGeneration) {
+        
+        
+        
+        sampledThreadProfile.erase();
+      }
+      sLastSampledEventGeneration = sCurrentEventGeneration;
+
+      recordSample = false;
+      
+      
+      if (!sLastTracerEvent.IsNull()) {
+        TimeDuration delta = sample->timestamp - sLastTracerEvent;
+        if (delta.ToMilliseconds() > 100.0) {
+            recordSample = true;
+        }
       }
     }
   }
@@ -304,10 +298,55 @@ void TableTicker::UnwinderTick(TickSample* sample)
 #   else
 #     error "Unsupported platform"
 #   endif
-    uwt__release_full_buffer(&currThreadProfile, utb, ucV);
+    releaseFunction(&sampledThreadProfile, utb, ucV);
   } else {
-    uwt__release_full_buffer(&currThreadProfile, utb, NULL);
+    releaseFunction(&sampledThreadProfile, utb, NULL);
   }
+}
+
+static
+void sampleCurrent(TickSample* sample)
+{
+  
+  MOZ_ASSERT(sample->threadProfile);
+  LinkedUWTBuffer* syncBuf = utb__acquire_sync_buffer(tlsStackTop.get());
+  if (!syncBuf) {
+    return;
+  }
+  SyncProfile* syncProfile = sample->threadProfile->AsSyncProfile();
+  MOZ_ASSERT(syncProfile);
+  if (!syncProfile->SetUWTBuffer(syncBuf)) {
+    utb__release_sync_buffer(syncBuf);
+    return;
+  }
+  UnwinderThreadBuffer* utb = syncBuf->GetBuffer();
+  populateBuffer(utb, sample, &utb__finish_sync_buffer, false);
+}
+
+
+void TableTicker::UnwinderTick(TickSample* sample)
+{
+  if (sample->isSamplingCurrentThread) {
+    sampleCurrent(sample);
+    return;
+  }
+
+  if (!sample->threadProfile) {
+    
+    sample->threadProfile = GetPrimaryThreadProfile();
+  }
+
+  
+
+  UnwinderThreadBuffer* utb = uwt__acquire_empty_buffer();
+
+  
+
+
+  if (!utb)
+    return;
+
+  populateBuffer(utb, sample, &uwt__release_full_buffer, mJankOnly);
 }
 
 

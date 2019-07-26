@@ -199,11 +199,16 @@ class Thread {
 
 #ifdef XP_WIN
   HANDLE thread_;
-  unsigned thread_id_;
+  typedef DWORD tid_t;
+  tid_t thread_id_;
+#else
+  typedef ::pid_t tid_t;
 #endif
 #if defined(XP_MACOSX)
   pthread_t thread_;
 #endif
+
+  static tid_t GetCurrentId();
 
  private:
   void set_name(const char *name);
@@ -243,6 +248,7 @@ extern int     sUnwindStackScan;
 
 extern int     sProfileEntries;   
 
+void set_tls_stack_top(void* stackTop);
 
 
 
@@ -265,27 +271,28 @@ class TickSample {
 #ifdef ENABLE_ARM_LR_SAVING
         lr(NULL),
 #endif
-        function(NULL),
         context(NULL),
-        frames_count(0) {}
+        isSamplingCurrentThread(false) {}
+
+  void PopulateContext(void* aContext);
+
   Address pc;  
   Address sp;  
   Address fp;  
 #ifdef ENABLE_ARM_LR_SAVING
   Address lr;  
 #endif
-  Address function;  
   void*   context;   
                      
+  bool    isSamplingCurrentThread;
   ThreadProfile* threadProfile;
-  static const int kMaxFramesCount = 64;
-  int frames_count;  
   mozilla::TimeStamp timestamp;
 };
 
 class ThreadInfo;
 class PlatformData;
 class TableTicker;
+class SyncProfile;
 class Sampler {
  public:
   
@@ -297,6 +304,9 @@ class Sampler {
   
   
   virtual void Tick(TickSample* sample) = 0;
+
+  
+  virtual SyncProfile* GetBacktrace() = 0;
 
   
   virtual void RequestSave() = 0;

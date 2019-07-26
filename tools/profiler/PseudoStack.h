@@ -101,12 +101,13 @@ public:
 };
 
 class ProfilerMarkerPayload;
-class ProfilerMarkerLinkedList;
+template<typename T>
+class ProfilerLinkedList;
 class JSAObjectBuilder;
 class JSCustomArray;
 class ThreadProfile;
 class ProfilerMarker {
-  friend class ProfilerMarkerLinkedList;
+  friend class ProfilerLinkedList<ProfilerMarker>;
 public:
   ProfilerMarker(const char* aMarkerName,
          ProfilerMarkerPayload* aPayload = nullptr);
@@ -133,24 +134,72 @@ private:
   int mGenID;
 };
 
-class ProfilerMarkerLinkedList {
+
+typedef struct _UnwinderThreadBuffer UnwinderThreadBuffer;
+
+
+
+
+
+
+struct LinkedUWTBuffer
+{
+  LinkedUWTBuffer()
+    :mNext(nullptr)
+  {}
+  virtual ~LinkedUWTBuffer() {}
+  virtual UnwinderThreadBuffer* GetBuffer() = 0;
+  LinkedUWTBuffer*  mNext;
+};
+
+template<typename T>
+class ProfilerLinkedList {
 public:
-  ProfilerMarkerLinkedList()
+  ProfilerLinkedList()
     : mHead(nullptr)
     , mTail(nullptr)
   {}
 
-  void insert(ProfilerMarker* elem);
-  ProfilerMarker* popHead();
+  void insert(T* elem)
+  {
+    if (!mTail) {
+      mHead = elem;
+      mTail = elem;
+    } else {
+      mTail->mNext = elem;
+      mTail = elem;
+    }
+    elem->mNext = nullptr;
+  }
 
-  const ProfilerMarker* peek() {
+  T* popHead()
+  {
+    if (!mHead) {
+      MOZ_ASSERT(false);
+      return nullptr;
+    }
+
+    T* head = mHead;
+
+    mHead = head->mNext;
+    if (!mHead) {
+      mTail = nullptr;
+    }
+
+    return head;
+  }
+
+  const T* peek() {
     return mHead;
   }
 
 private:
-  ProfilerMarker* mHead;
-  ProfilerMarker* mTail;
+  T* mHead;
+  T* mTail;
 };
+
+typedef ProfilerLinkedList<ProfilerMarker> ProfilerMarkerLinkedList;
+typedef ProfilerLinkedList<LinkedUWTBuffer> UWTBufferLinkedList;
 
 class PendingMarkers {
 public:
@@ -206,6 +255,38 @@ private:
   volatile mozilla::sig_safe_t mGenID;
 };
 
+class PendingUWTBuffers
+{
+public:
+  PendingUWTBuffers()
+    : mSignalLock(false)
+  {
+  }
+
+  void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
+  {
+    MOZ_ASSERT(aBuff);
+    mSignalLock = true;
+    STORE_SEQUENCER();
+    mPendingUWTBuffers.insert(aBuff);
+    STORE_SEQUENCER();
+    mSignalLock = false;
+  }
+
+  
+  UWTBufferLinkedList* getLinkedUWTBuffers()
+  {
+    if (mSignalLock) {
+      return nullptr;
+    }
+    return &mPendingUWTBuffers;
+  }
+
+private:
+  UWTBufferLinkedList mPendingUWTBuffers;
+  volatile bool       mSignalLock;
+};
+
 
 
 struct PseudoStack
@@ -226,6 +307,16 @@ public:
       
       abort();
     }
+  }
+
+  void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
+  {
+    mPendingUWTBuffers.addLinkedUWTBuffer(aBuff);
+  }
+
+  UWTBufferLinkedList* getLinkedUWTBuffers()
+  {
+    return mPendingUWTBuffers.getLinkedUWTBuffers();
   }
 
   void addMarker(const char *aMarkerStr, ProfilerMarkerPayload *aPayload)
@@ -322,6 +413,8 @@ public:
   
   
   PendingMarkers mPendingMarkers;
+  
+  PendingUWTBuffers mPendingUWTBuffers;
   
   
   mozilla::sig_safe_t mStackPointer;

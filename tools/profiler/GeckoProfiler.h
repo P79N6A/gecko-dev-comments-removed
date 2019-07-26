@@ -108,6 +108,14 @@ static inline void profiler_start(int aProfileEntries, double aInterval,
 
 static inline void profiler_stop() {}
 
+class ProfilerBacktrace;
+
+
+static inline ProfilerBacktrace* profiler_get_backtrace() { return nullptr; }
+
+
+static inline void profiler_free_backtrace(ProfilerBacktrace* aBacktrace) {}
+
 static inline bool profiler_is_active() { return false; }
 
 
@@ -150,6 +158,7 @@ static inline void profiler_unregister_thread() {}
 static inline void profiler_js_operation_callback() {}
 
 static inline double profiler_time() { return 0; }
+static inline double profiler_time(const mozilla::TimeStamp& aTime) { return 0; }
 
 static inline bool profiler_in_privacy_mode() { return false; }
 

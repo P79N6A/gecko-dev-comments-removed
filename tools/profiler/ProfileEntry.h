@@ -3,12 +3,14 @@
 
 
 
+
 #ifndef MOZ_PROFILE_ENTRY_H
 #define MOZ_PROFILE_ENTRY_H
 
 #include <ostream>
 #include "GeckoProfilerImpl.h"
 #include "platform.h"
+#include "ProfilerBacktrace.h"
 #include "mozilla/Mutex.h"
 
 class ThreadProfile;
@@ -62,9 +64,9 @@ class ThreadProfile
 {
 public:
   ThreadProfile(const char* aName, int aEntrySize, PseudoStack *aStack,
-                int aThreadId, PlatformData* aPlatformData,
+                Thread::tid_t aThreadId, PlatformData* aPlatformData,
                 bool aIsMainThread, void *aStackTop);
-  ~ThreadProfile();
+  virtual ~ThreadProfile();
   void addTag(ProfileEntry aTag);
   void flush();
   void erase();
@@ -77,10 +79,13 @@ public:
   PseudoStack* GetPseudoStack();
   mozilla::Mutex* GetMutex();
   template <typename Builder> void BuildJSObject(Builder& b, typename Builder::ObjectHandle profile);
+  void BeginUnwind();
+  virtual void EndUnwind();
+  virtual SyncProfile* AsSyncProfile() { return nullptr; }
 
   bool IsMainThread() const { return mIsMainThread; }
   const char* Name() const { return mName; }
-  int ThreadId() const { return mThreadId; }
+  Thread::tid_t ThreadId() const { return mThreadId; }
 
   PlatformData* GetPlatformData() { return mPlatformData; }
   int GetGenerationID() const { return mGeneration; }
@@ -91,7 +96,7 @@ public:
 private:
   
   
-  ProfileEntry* mEntries;
+  ProfileEntry*  mEntries;
   int            mWritePos; 
   int            mLastFlushPos; 
   int            mReadPos;  
@@ -99,7 +104,7 @@ private:
   PseudoStack*   mPseudoStack;
   mozilla::Mutex mMutex;
   char*          mName;
-  int            mThreadId;
+  Thread::tid_t  mThreadId;
   bool           mIsMainThread;
   PlatformData*  mPlatformData;  
   int            mGeneration;
