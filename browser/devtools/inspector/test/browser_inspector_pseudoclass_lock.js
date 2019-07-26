@@ -64,20 +64,32 @@ function performTests()
   
   inspector.togglePseudoClass(pseudo);
 
-  testAdded();
-
   
-  inspector.togglePseudoClass(pseudo);
-
-  testRemoved();
-  testRemovedFromUI();
-
   
-  inspector.togglePseudoClass(pseudo);
+  inspector.selection.once("pseudoclass", () => {
+    
+    executeSoon(() => {
+      testAdded();
 
-  testNavigate(() => {
-   
-    finishUp();
+      
+      inspector.togglePseudoClass(pseudo);
+      inspector.selection.once("pseudoclass", () => {
+        
+        executeSoon(() => {
+          testRemoved();
+          testRemovedFromUI();
+
+          
+          inspector.togglePseudoClass(pseudo);
+          inspector.selection.once("pseudoclass", () => {
+            testNavigate(() => {
+              
+              finishUp();
+            });
+          });
+        });
+      });
+    });
   });
 }
 
@@ -91,9 +103,7 @@ function testNavigate(callback)
          "pseudo-class lock is still applied after inspecting ancestor");
 
     inspector.selection.setNode(div2);
-
-    inspector.once("inspector-updated", () => {
-
+    inspector.selection.once("pseudoclass", () => {
       
       is(DOMUtils.hasPseudoClassLock(div, pseudo), false,
            "pseudo-class lock is removed after inspecting sibling node");
@@ -102,7 +112,9 @@ function testNavigate(callback)
       inspector.selection.setNode(div);
       inspector.once("inspector-updated", () => {
         inspector.togglePseudoClass(pseudo);
-        callback();
+        inspector.selection.once("pseudoclass", () => {
+          callback();
+        });
       });
     });
   });

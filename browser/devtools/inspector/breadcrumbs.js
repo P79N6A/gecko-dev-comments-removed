@@ -151,13 +151,8 @@ HTMLBreadcrumbs.prototype = {
       }
     }
 
-    
-    let rawNode = aNode.rawNode();
-    for (let i = 0; i < PSEUDO_CLASSES.length; i++) {
-      let pseudo = PSEUDO_CLASSES[i];
-      if (DOMUtils.hasPseudoClassLock(rawNode, pseudo)) {
-        text += pseudo;
-      }
+    for (let pseudo of aNode.pseudoClassLocks) {
+      text += pseudo;
     }
 
     return text;
@@ -202,12 +197,11 @@ HTMLBreadcrumbs.prototype = {
     }
 
     
-    let rawNode = aNode.rawNode();
+    for (let pseudo of aNode.pseudoClassLocks) {
 
-    let pseudos = PSEUDO_CLASSES.filter(function(pseudo) {
-      return DOMUtils.hasPseudoClassLock(rawNode, pseudo);
-    }, this);
-    pseudosLabel.textContent = pseudos.join("");
+    }
+
+    pseudosLabel.textContent = aNode.pseudoClassLocks.join("");
 
     fragment.appendChild(tagLabel);
     fragment.appendChild(idLabel);
@@ -353,18 +347,6 @@ HTMLBreadcrumbs.prototype = {
 
   destroy: function BC_destroy()
   {
-    this.nodeHierarchy.forEach(function(crumb) {
-      
-      
-      
-      if (crumb.node.actorID) {
-        let rawNode = crumb.node.rawNode();
-        if (LayoutHelpers.isNodeConnected(rawNode)) {
-          DOMUtils.clearPseudoClassLocks(rawNode);
-        }
-      }
-    });
-
     this.selection.off("new-node-front", this.update);
     this.selection.off("pseudoclass", this.updateSelectors);
     this.selection.off("attribute-changed", this.updateSelectors);
