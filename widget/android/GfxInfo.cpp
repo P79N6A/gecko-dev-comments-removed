@@ -410,6 +410,30 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           return NS_OK;
         }
       }
+      else if (CompareVersions(mOSVersion.get(), "4.2.0") < 0)
+      {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        bool isBlocklisted =
+          cModel.Equals("SAMSUNG-SPH-L710", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Equals("SAMSUNG-SGH-T999", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Equals("SAMSUNG-SCH-I535", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Equals("SAMSUNG-GT-I8190", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Equals("SAMSUNG-SGH-I747M", nsCaseInsensitiveCStringComparator()) ||
+          cModel.Equals("SAMSUNG-SGH-I747", nsCaseInsensitiveCStringComparator());
+
+        if (isBlocklisted) {
+          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
+          return NS_OK;
+        }
+      }
     }
   }
 
