@@ -73,6 +73,7 @@ let observer = {
     let path = stack.split("\n").slice(1).map(line => {
       return line.replace(/:\d+$/, "");
     }).join("|");
+    let pathWithLineNumbers = (new Error().stack).split("\n").slice(1).join("|");
 
     
     if (path === "") {
@@ -89,9 +90,7 @@ let observer = {
       }
     }
 
-    ok(false, "unexpected uninterruptible reflow '" + path + "'");
-    
-    info(stack);
+    ok(false, "unexpected uninterruptible reflow '" + pathWithLineNumbers + "'");
   },
 
   reflowInterruptible: function (start, end) {
