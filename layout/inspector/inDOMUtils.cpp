@@ -388,6 +388,11 @@ inDOMUtils::IsInheritedProperty(const nsAString &aPropertyName, bool *_retval)
     return NS_OK;
   }
 
+  if (prop == eCSSPropertyExtra_variable) {
+    *_retval = true;
+    return NS_OK;
+  }
+
   if (nsCSSProps::IsShorthand(prop)) {
     prop = nsCSSProps::SubpropertyEntryFor(prop)[0];
   }
@@ -565,7 +570,9 @@ inDOMUtils::GetCSSValuesForProperty(const nsAString& aProperty,
   nsTArray<nsString> array;
   
   
-  if (!nsCSSProps::IsShorthand(propertyID)) {
+  if (propertyID == eCSSPropertyExtra_variable) {
+    
+  } else if (!nsCSSProps::IsShorthand(propertyID)) {
     
     uint32_t propertyParserVariant = nsCSSProps::ParserVariant(propertyID);
     
