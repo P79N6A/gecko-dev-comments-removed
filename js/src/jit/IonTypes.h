@@ -62,6 +62,13 @@ BailoutKindString(BailoutKind kind)
 }
 #endif
 
+static const uint32_t ELEMENT_TYPE_BITS = 4;
+static const uint32_t ELEMENT_TYPE_SHIFT = 0;
+static const uint32_t ELEMENT_TYPE_MASK = (1 << ELEMENT_TYPE_BITS) - 1;
+static const uint32_t VECTOR_SCALE_BITS = 2;
+static const uint32_t VECTOR_SCALE_SHIFT = ELEMENT_TYPE_BITS + ELEMENT_TYPE_SHIFT;
+static const uint32_t VECTOR_SCALE_MASK = (1 << VECTOR_SCALE_BITS) - 1;
+
 
 
 
@@ -77,13 +84,30 @@ enum MIRType
     MIRType_Object,
     MIRType_Magic,
     MIRType_Value,
-    MIRType_None,         
-    MIRType_Slots,        
-    MIRType_Elements,     
-    MIRType_Pointer,      
-    MIRType_Shape,        
-    MIRType_ForkJoinSlice 
+    MIRType_None,          
+    MIRType_Slots,         
+    MIRType_Elements,      
+    MIRType_Pointer,       
+    MIRType_Shape,         
+    MIRType_ForkJoinSlice, 
+    MIRType_Last = MIRType_ForkJoinSlice,
+    MIRType_Float32x4 = MIRType_Float32 | (2 << VECTOR_SCALE_SHIFT),
+    MIRType_Int32x4   = MIRType_Int32   | (2 << VECTOR_SCALE_SHIFT),
+    MIRType_Doublex2  = MIRType_Double  | (1 << VECTOR_SCALE_SHIFT)
 };
+
+static inline MIRType
+ElementType(MIRType type)
+{
+    JS_STATIC_ASSERT(MIRType_Last <= ELEMENT_TYPE_MASK);
+    return static_cast<MIRType>((type >> ELEMENT_TYPE_SHIFT) & ELEMENT_TYPE_MASK);
+}
+
+static inline uint32_t
+VectorSize(MIRType type)
+{
+    return 1 << ((type >> VECTOR_SCALE_SHIFT) & VECTOR_SCALE_MASK);
+}
 
 static inline MIRType
 MIRTypeFromValueType(JSValueType type)
