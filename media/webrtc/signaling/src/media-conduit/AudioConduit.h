@@ -18,14 +18,12 @@
 #include "voice_engine/include/voe_file.h"
 #include "voice_engine/include/voe_network.h"
 #include "voice_engine/include/voe_external_media.h"
-#include "voice_engine/include/voe_audio_processing.h"
 
 
  using webrtc::VoEBase;
  using webrtc::VoENetwork;
  using webrtc::VoECodec;
  using webrtc::VoEExternalMedia;
- using webrtc::VoEAudioProcessing;
 
 
 
@@ -143,23 +141,18 @@ public:
 
 
   WebrtcAudioConduit():
-                      mOtherDirection(NULL),
-                      mShutDown(false),
                       mVoiceEngine(NULL),
                       mTransport(NULL),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
-                      mCurSendCodecConfig(NULL),
-                      mCaptureDelay(150),
-                      mEchoOn(true),
-                      mEchoCancel(webrtc::kEcAec)
+                      mCurSendCodecConfig(NULL)
   {
   }
 
   virtual ~WebrtcAudioConduit();
 
-  MediaConduitErrorCode Init(WebrtcAudioConduit *other);
+  MediaConduitErrorCode Init();
 
 private:
   WebrtcAudioConduit(const WebrtcAudioConduit& other) MOZ_DELETE;
@@ -192,19 +185,12 @@ private:
   
   void DumpCodecDB() const;
 
-  WebrtcAudioConduit*  mOtherDirection;
-  
-  bool mShutDown;
-
-  
-  
   webrtc::VoiceEngine* mVoiceEngine;
   mozilla::RefPtr<TransportInterface> mTransport;
   webrtc::VoENetwork*  mPtrVoENetwork;
   webrtc::VoEBase*     mPtrVoEBase;
   webrtc::VoECodec*    mPtrVoECodec;
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
-  webrtc::VoEAudioProcessing* mPtrVoEProcessing;
 
   
   bool mEngineTransmitting; 
@@ -214,12 +200,6 @@ private:
   int mChannel;
   RecvCodecList    mRecvCodecList;
   AudioCodecConfig* mCurSendCodecConfig;
-
-  
-  int32_t mCaptureDelay;
-
-  bool mEchoOn;
-  webrtc::EcModes  mEchoCancel;
 };
 
 } 
