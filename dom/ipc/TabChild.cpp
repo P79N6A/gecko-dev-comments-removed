@@ -1489,8 +1489,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
         return true;
     }
 
-    CSSRect cssCompositedRect =
-      AsyncPanZoomController::CalculateCompositedRectInCssPixels(aFrameMetrics);
+    CSSRect cssCompositedRect = aFrameMetrics.CalculateCompositedRectInCssPixels();
     
     
     nsCString data;
