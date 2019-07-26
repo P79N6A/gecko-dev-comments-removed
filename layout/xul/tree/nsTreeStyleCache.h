@@ -66,10 +66,22 @@ public:
 class nsTreeStyleCache
 {
 public:
-  nsTreeStyleCache() :mTransitionTable(nullptr), mCache(nullptr), mNextState(0) {}
-  ~nsTreeStyleCache() { Clear(); }
+  nsTreeStyleCache()
+    : mNextState(0)
+  {
+  }
 
-  void Clear() { delete mTransitionTable; mTransitionTable = nullptr; delete mCache; mCache = nullptr; mNextState = 0; }
+  ~nsTreeStyleCache()
+  {
+    Clear();
+  }
+
+  void Clear()
+  {
+    mTransitionTable = nullptr;
+    mCache = nullptr;
+    mNextState = 0;
+  }
 
   nsStyleContext* GetStyleContext(nsICSSPseudoComparator* aComparator,
                                   nsPresContext* aPresContext,
@@ -97,11 +109,11 @@ protected:
   
   
   
-  nsObjectHashtable* mTransitionTable;
+  nsAutoPtr<nsObjectHashtable> mTransitionTable;
 
   
   
-  nsObjectHashtable* mCache;
+  nsAutoPtr<nsObjectHashtable> mCache;
 
   
   
