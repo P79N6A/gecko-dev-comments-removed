@@ -676,7 +676,7 @@ struct ParseNode {
 
 
     static ParseNode *
-    append(ParseNodeKind tt, JSOp op, ParseNode *left, ParseNode *right);
+    append(ParseNodeKind tt, JSOp op, ParseNode *left, ParseNode *right, Parser *parser);
 
     
 
@@ -1021,7 +1021,15 @@ struct TernaryNode : public ParseNode {
 #endif
 };
 
-struct ListNode : public ParseNode {
+struct ListNode : public ParseNode
+{
+    ListNode(ParseNodeKind kind, JSOp op, ParseNode *kid)
+      : ParseNode(kind, op, PN_LIST)
+    {
+        pn_pos = kid->pn_pos;
+        initList(kid);
+    }
+
     static inline ListNode *create(ParseNodeKind kind, Parser *parser) {
         return (ListNode *) ParseNode::create(kind, PN_LIST, parser);
     }
