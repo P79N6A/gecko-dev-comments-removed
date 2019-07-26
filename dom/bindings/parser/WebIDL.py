@@ -473,8 +473,8 @@ class IDLInterface(IDLObjectWithScope):
         if originalObject.tag != IDLInterfaceMember.Tags.Method or \
            newObject.tag != IDLInterfaceMember.Tags.Method:
             
-            IDLScope.resolveIdentifierConflict(self, identifier, originalObject,
-                                               newObject)
+            IDLScope.resolveIdentifierConflict(self, scope, identifier,
+                                               originalObject, newObject)
             assert False 
 
         retval = originalObject.addOverload(newObject)
