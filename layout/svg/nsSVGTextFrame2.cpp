@@ -1874,12 +1874,6 @@ TextRenderedRunIterator::Next()
 
     frame = mFrameIterator.Current();
 
-    
-    
-    if (frame != mCurrent.mFrame) {
-      mFrameStartTextElementCharIndex += mFrameIterator.UndisplayedCharacters();
-      mTextElementCharIndex += mFrameIterator.UndisplayedCharacters();
-    }
     charIndex = mTextElementCharIndex;
 
     
@@ -1943,6 +1937,7 @@ TextRenderedRunIterator::Next()
     
     if (offset + untrimmedLength >= contentEnd) {
       mFrameIterator.Next();
+      mTextElementCharIndex += mFrameIterator.UndisplayedCharacters();
       mFrameStartTextElementCharIndex = mTextElementCharIndex;
     }
 
@@ -1975,6 +1970,11 @@ TextRenderedRunIterator::First()
     mFrameIterator.Close();
     return TextRenderedRun();
   }
+  
+  
+  mTextElementCharIndex = mFrameIterator.UndisplayedCharacters();
+  mFrameStartTextElementCharIndex = mTextElementCharIndex;
+
   return Next();
 }
 
@@ -2215,6 +2215,14 @@ private:
   
 
 
+  void UpdateGlyphStartTextElementCharIndex() {
+    if (!IsOriginalCharSkipped() && IsClusterAndLigatureGroupStart()) {
+      mGlyphStartTextElementCharIndex = mTextElementCharIndex;
+    }
+  }
+  
+
+
   CharacterFilter mFilter;
 
   
@@ -2265,6 +2273,7 @@ CharIterator::CharIterator(nsSVGTextFrame2* aSVGTextFrame,
     mSkipCharsIterator = TextFrame()->EnsureTextRun(nsTextFrame::eInflated);
     mTextRun = TextFrame()->GetTextRun(nsTextFrame::eInflated);
     mTextElementCharIndex = mFrameIterator.UndisplayedCharacters();
+    UpdateGlyphStartTextElementCharIndex();
     if (!MatchesFilter()) {
       Next();
     }
@@ -2477,10 +2486,7 @@ CharIterator::NextCharacter()
   mSkipCharsIterator.AdvanceOriginal(1);
   if (mSkipCharsIterator.GetOriginalOffset() < TextFrame()->GetContentEnd()) {
     
-    if (!IsOriginalCharSkipped() && IsClusterAndLigatureGroupStart()) {
-      
-      mGlyphStartTextElementCharIndex = mTextElementCharIndex;
-    }
+    UpdateGlyphStartTextElementCharIndex();
     return true;
   }
 
@@ -2497,10 +2503,7 @@ CharIterator::NextCharacter()
 
   mSkipCharsIterator = TextFrame()->EnsureTextRun(nsTextFrame::eInflated);
   mTextRun = TextFrame()->GetTextRun(nsTextFrame::eInflated);
-  if (!IsOriginalCharSkipped() && IsClusterAndLigatureGroupStart()) {
-    
-    mGlyphStartTextElementCharIndex = mTextElementCharIndex;
-  }
+  UpdateGlyphStartTextElementCharIndex();
   return true;
 }
 
