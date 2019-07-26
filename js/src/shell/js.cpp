@@ -2524,6 +2524,13 @@ EvalInFrame(JSContext *cx, unsigned argc, jsval *vp)
     JS_ASSERT(cx->hasfp());
 
     
+    if (!JS_GetDebugMode(cx)) {
+        JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
+                                     NULL, JSMSG_NEED_DEBUG_MODE);
+        return false;
+    }
+
+    
     ScriptFrameIter fi(cx);
     for (uint32_t i = 0; i < upCount; ++i, ++fi) {
         if (!fi.interpFrame()->prev())
