@@ -754,6 +754,24 @@ JSRuntime::getDefaultLocale()
 }
 
 void
+JSRuntime::triggerActivityCallback(bool active)
+{
+    if (!activityCallback)
+        return;
+
+    
+
+
+
+
+
+
+    AutoSuppressGC suppress(this);
+
+    activityCallback(activityCallbackArg, active);
+}
+
+void
 JSRuntime::setGCMaxMallocBytes(size_t value)
 {
     
