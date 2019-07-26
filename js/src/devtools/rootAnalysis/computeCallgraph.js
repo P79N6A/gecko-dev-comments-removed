@@ -25,6 +25,7 @@ function addClassEntry(index, name, other)
     index[name].push(other);
 }
 
+
 function processCSU(csuName, csu)
 {
     if (!("FunctionField" in csu))
