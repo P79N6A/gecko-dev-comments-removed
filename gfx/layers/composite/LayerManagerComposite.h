@@ -110,6 +110,8 @@ public:
   }
   void BeginTransactionWithDrawTarget(gfx::DrawTarget* aTarget);
 
+  void NotifyShadowTreeTransaction();
+
   virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) MOZ_OVERRIDE;
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData,
@@ -117,14 +119,11 @@ public:
 
   virtual void SetRoot(Layer* aLayer) MOZ_OVERRIDE { mRoot = aLayer; }
 
-  
-  
   virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) MOZ_OVERRIDE;
 
-  virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE
-  {
-    MOZ_CRASH("Call on compositor, not LayerManagerComposite");
-  }
+  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() MOZ_OVERRIDE;
+
+  virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE;
 
   virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
 
@@ -142,15 +141,23 @@ public:
 
   virtual LayersBackend GetBackendType() MOZ_OVERRIDE
   {
-    MOZ_CRASH("Shouldn't be called for composited layer manager");
+    return LAYERS_NONE;
   }
   virtual void GetBackendName(nsAString& name) MOZ_OVERRIDE
   {
-    MOZ_CRASH("Shouldn't be called for composited layer manager");
+    MOZ_ASSERT(false, "Shouldn't be called for composited layer manager");
+    name.AssignLiteral("Composite");
   }
 
   virtual already_AddRefed<gfxASurface>
     CreateOptimalMaskSurface(const gfxIntSize &aSize) MOZ_OVERRIDE;
+
+
+  DrawThebesLayerCallback GetThebesLayerCallback() const
+  { return mThebesLayerCallback; }
+
+  void* GetThebesLayerCallbackData() const
+  { return mThebesLayerCallbackData; }
 
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
 
@@ -188,8 +195,10 @@ public:
 
 
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
-    CreateDrawTarget(const mozilla::gfx::IntSize& aSize,
+    CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat) MOZ_OVERRIDE;
+
+  const nsIntSize& GetWidgetSize();
 
   
 
@@ -207,6 +216,8 @@ public:
   static bool SupportsDirectTexturing();
 
   static void PlatformSyncBeforeReplyUpdate();
+
+  void SetCompositorID(uint32_t aID);
 
   void AddInvalidRegion(const nsIntRegion& aRegion)
   {
@@ -234,7 +245,7 @@ private:
   nsIntRect mRenderBounds;
 
   
-  LayerComposite* RootLayer() const;
+  LayerComposite *RootLayer() const;
 
   
 
@@ -264,6 +275,10 @@ private:
   
   nsRefPtr<Composer2D> mComposer2D;
 
+  
+
+  DrawThebesLayerCallback mThebesLayerCallback;
+  void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
 
   bool mInTransaction;

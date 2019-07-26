@@ -431,6 +431,7 @@ public:
   
   
   virtual nsIWidget* GetWidget() const { return nullptr; }
+  virtual const nsIntSize& GetWidgetSize() = 0;
 
   
   

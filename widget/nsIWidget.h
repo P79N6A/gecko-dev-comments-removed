@@ -41,7 +41,6 @@ namespace layers {
 class Composer2D;
 class CompositorChild;
 class LayerManager;
-class LayerManagerComposite;
 class PLayerTransactionChild;
 }
 namespace gfx {
@@ -97,8 +96,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x746cb189, 0x9793, 0x4e53, \
-  { 0x89, 0x47, 0x78, 0x56, 0xb6, 0xcd, 0x9f, 0x71 } }
+{ 0xa1f684e6, 0x2ae1, 0x4513, \
+  { 0xb6, 0x89, 0xf4, 0xd4, 0xfe, 0x9d, 0x2c, 0xdb } }
 
 
 
@@ -465,7 +464,6 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::Composer2D Composer2D;
     typedef mozilla::layers::CompositorChild CompositorChild;
     typedef mozilla::layers::LayerManager LayerManager;
-    typedef mozilla::layers::LayerManagerComposite LayerManagerComposite;
     typedef mozilla::layers::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayerTransactionChild PLayerTransactionChild;
     typedef mozilla::widget::NotificationToIME NotificationToIME;
@@ -1224,7 +1222,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual bool PreRender(LayerManagerComposite* aManager) = 0;
+    virtual bool PreRender(LayerManager* aManager) = 0;
 
     
 
@@ -1233,21 +1231,23 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void PostRender(LayerManagerComposite* aManager) = 0;
+    virtual void PostRender(LayerManager* aManager) = 0;
 
     
 
 
 
 
-    virtual void DrawWindowUnderlay(LayerManagerComposite* aManager, nsIntRect aRect) = 0;
+
+    virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
 
 
 
 
-    virtual void DrawWindowOverlay(LayerManagerComposite* aManager, nsIntRect aRect) = 0;
+
+    virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
 

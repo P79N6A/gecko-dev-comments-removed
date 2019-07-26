@@ -647,8 +647,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
   
   if (lm && lm->GetBackendType() == LAYERS_CLIENT) {
-    *aTextureFactoryIdentifier =
-      static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
+    *aTextureFactoryIdentifier = lm->GetTextureFactoryIdentifier();
   } else {
     *aTextureFactoryIdentifier = TextureFactoryIdentifier();
   }
