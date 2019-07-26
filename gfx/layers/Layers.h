@@ -1781,19 +1781,15 @@ class CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mSurface(nullptr)
-      , mDrawTarget(nullptr)
+      : mDrawTarget(nullptr)
       , mGLContext(nullptr)
       , mSize(0,0)
       , mIsGLAlphaPremult(false)
     { }
 
     
-    gfxASurface* mSurface;  
     mozilla::gfx::DrawTarget *mDrawTarget; 
-
-    
-    mozilla::gl::GLContext* mGLContext;
+    mozilla::gl::GLContext* mGLContext; 
 
     
     nsIntSize mSize;
