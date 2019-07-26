@@ -1616,6 +1616,11 @@ public:
   
 
 
+  static bool AnimatedImageLayersEnabled();
+
+  
+
+
 
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
