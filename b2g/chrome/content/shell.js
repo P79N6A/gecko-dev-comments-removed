@@ -243,17 +243,6 @@ var shell = {
     window.addEventListener('sizemodechange', this);
     this.contentBrowser.addEventListener('mozbrowserloadstart', this, true);
 
-    
-    
-    
-    
-    
-    try {
-      Services.audioManager.masterVolume = 0.5;
-    } catch(e) {
-      dump('Error setting master volume: ' + e + '\n');
-    }
-
     CustomEventManager.init();
     WebappsHelper.init();
     AccessFu.attach(window);
