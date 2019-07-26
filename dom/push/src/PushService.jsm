@@ -1291,8 +1291,7 @@ this.PushService = {
     this._retryFailCount = 0;
 
     
-    
-    this._udpPort = this._listenForUDPWakeup();
+    this._listenForUDPWakeup();
 
     let data = {
       messageType: "hello",
@@ -1306,7 +1305,7 @@ this.PushService = {
       
       data["wakeup_hostport"] = {
         ip: networkState.ip,
-        port: this._udpPort
+        port: this._udpServer && this._udpServer.port
       };
 
       data["mobilenetwork"] = {
@@ -1449,7 +1448,7 @@ this.PushService = {
 
 
   onPacketReceived: function(aServ, aMessage) {
-    debug("Recv UDP datagram on port: " + this._udpPort);
+    debug("Recv UDP datagram on port: " + this._udpServer.port);
     this._beginWSSetup();
   },
 
@@ -1461,7 +1460,7 @@ this.PushService = {
 
   onStopListening: function(aServ, aStatus) {
     debug("UDP Server socket was shutdown. Status: " + aStatus);
-    this._udpPort = undefined;
+    this._udpServer = undefined;
     this._beginWSSetup();
   },
 
