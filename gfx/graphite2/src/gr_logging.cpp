@@ -33,7 +33,7 @@
 #include "inc/Segment.h"
 
 #if defined _WIN32
-#include "Windows.h"
+#include "windows.h"
 #endif
 
 using namespace graphite2;
