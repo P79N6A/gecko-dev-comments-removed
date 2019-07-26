@@ -1204,7 +1204,7 @@ BrowserGlue.prototype = {
       
       
       waitingForHTMLExportToComplete = false;
-      BookmarkHTMLUtils.exportToFile(FileUtils.getFile("BMarks", [])).then(
+      BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile)).then(
         function onSuccess() {
           waitingForHTMLExportToComplete = true;
         },
