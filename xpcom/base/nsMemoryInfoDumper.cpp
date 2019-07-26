@@ -184,7 +184,7 @@ public:
 
 
   virtual void OnFileCanReadWithoutBlocking(int aFd) = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int Afd) {};
+  virtual void OnFileCanWriteWithoutBlocking(int aFd) {};
 
   NS_DECL_ISUPPORTS
 
