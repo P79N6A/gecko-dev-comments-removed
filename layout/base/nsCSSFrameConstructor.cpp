@@ -9370,7 +9370,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
     return rv;
   }
 
-  nsINode* containerNode = aContent->GetNodeParent();
+  nsINode* containerNode = aContent->GetParentNode();
   
   if (containerNode) {
     

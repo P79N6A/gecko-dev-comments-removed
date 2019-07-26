@@ -156,7 +156,7 @@ nsXFormsComboboxPopupWidgetAccessible::Value(nsString& aValue)
 void
 nsXFormsComboboxPopupWidgetAccessible::CacheChildren()
 {
-  nsCOMPtr<nsIDOMNode> parent = do_QueryInterface(mContent->GetNodeParent());
+  nsCOMPtr<nsIDOMNode> parent = do_QueryInterface(mContent->GetParentNode());
   
   CacheSelectChildren(parent);
 }

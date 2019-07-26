@@ -353,7 +353,7 @@ txMozillaXMLOutput::endElement()
 
         
         
-        if (!mCurrentNode->GetNodeParent()) {
+        if (!mCurrentNode->GetParentNode()) {
             parent->AppendChildTo(mNonAddedNode, true);
         }
         mNonAddedNode = nullptr;

@@ -93,7 +93,7 @@ public:
   
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGLinearGradientElementBase::)
 
-  NS_FORWARD_NSIDOMNODE(nsSVGLinearGradientElementBase::)
+  NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT(nsSVGLinearGradientElementBase::)
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -137,7 +137,7 @@ public:
   NS_DECL_NSIDOMSVGRADIALGRADIENTELEMENT
 
   
-  NS_FORWARD_NSIDOMNODE(nsSVGRadialGradientElementBase::)
+  NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT(nsSVGRadialGradientElementBase::)
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGRadialGradientElementBase::)
 

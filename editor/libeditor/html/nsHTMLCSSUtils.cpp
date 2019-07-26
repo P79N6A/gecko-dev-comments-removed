@@ -1422,7 +1422,7 @@ nsHTMLCSSUtils::GetElementContainerOrSelf(nsINode* aNode)
   nsINode* node = aNode;
   
   while (node && !node->IsElement()) {
-    node = node->GetNodeParent();
+    node = node->GetParentNode();
   }
 
   NS_ENSURE_TRUE(node, nullptr);

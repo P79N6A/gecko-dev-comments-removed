@@ -282,10 +282,9 @@ public:
 
 
 
-  static bool PositionIsBefore(nsINode* aNode1,
-                                 nsINode* aNode2)
+  static bool PositionIsBefore(nsINode* aNode1, nsINode* aNode2)
   {
-    return (aNode2->CompareDocPosition(aNode1) &
+    return (aNode2->CompareDocumentPosition(*aNode1) &
       (nsIDOMNode::DOCUMENT_POSITION_PRECEDING |
        nsIDOMNode::DOCUMENT_POSITION_DISCONNECTED)) ==
       nsIDOMNode::DOCUMENT_POSITION_PRECEDING;

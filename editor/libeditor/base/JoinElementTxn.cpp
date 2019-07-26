@@ -83,11 +83,11 @@ NS_IMETHODIMP JoinElementTxn::DoTransaction(void)
   NS_ENSURE_STATE(rightNode);
 
   
-  nsCOMPtr<nsINode> leftParent = leftNode->GetNodeParent();
+  nsCOMPtr<nsINode> leftParent = leftNode->GetParentNode();
   NS_ENSURE_TRUE(leftParent, NS_ERROR_NULL_POINTER);
 
   
-  nsCOMPtr<nsINode> rightParent = rightNode->GetNodeParent();
+  nsCOMPtr<nsINode> rightParent = rightNode->GetParentNode();
   NS_ENSURE_TRUE(rightParent, NS_ERROR_NULL_POINTER);
 
   if (leftParent != rightParent) {

@@ -556,13 +556,13 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIContent* aNode,
 
   nsCOMPtr<nsIContent> previousSibling = aNode->GetPreviousSibling(),
                        nextSibling = aNode->GetNextSibling();
-  nsCOMPtr<nsINode> parent = aNode->GetNodeParent();
+  nsCOMPtr<nsINode> parent = aNode->GetParentNode();
   NS_ENSURE_STATE(parent);
 
   nsresult res = RemoveStyleInside(aNode->AsDOMNode(), aProperty, aAttribute);
   NS_ENSURE_SUCCESS(res, res);
 
-  if (aNode->GetNodeParent()) {
+  if (aNode->GetParentNode()) {
     
     return SetInlinePropertyOnNodeImpl(aNode, aProperty,
                                        aAttribute, aValue);
@@ -571,8 +571,8 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIContent* aNode,
   
   
   
-  if ((previousSibling && previousSibling->GetNodeParent() != parent) ||
-      (nextSibling && nextSibling->GetNodeParent() != parent)) {
+  if ((previousSibling && previousSibling->GetParentNode() != parent) ||
+      (nextSibling && nextSibling->GetParentNode() != parent)) {
     return NS_ERROR_UNEXPECTED;
   }
   nsCOMArray<nsIContent> nodesToSet;
