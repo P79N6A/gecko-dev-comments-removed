@@ -384,6 +384,11 @@ class MessageChannel : HasResultCodes
         return mDispatchingSyncMessage;
     }
 
+    
+    bool DispatchingUrgentMessage() const {
+        return mDispatchingUrgentMessageCount > 0;
+    }
+
     bool Connected() const;
 
   private:
@@ -575,6 +580,9 @@ class MessageChannel : HasResultCodes
 
     
     bool mDispatchingSyncMessage;
+
+    
+    size_t mDispatchingUrgentMessageCount;
 
     
     
