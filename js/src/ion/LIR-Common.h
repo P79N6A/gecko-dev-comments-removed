@@ -420,26 +420,26 @@ class LToIdV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
 
 
 
-class LCreateThisWithTemplate : public LInstructionHelper<1, 0, 0>
-{
-  public:
-    LIR_HEADER(CreateThisWithTemplate)
-
-    LCreateThisWithTemplate()
-    { }
-
-    MCreateThisWithTemplate *mir() const {
-        return mir_->toCreateThisWithTemplate();
-    }
-};
-
-
-class LCreateThis : public LCallInstructionHelper<1, 2, 0>
+class LCreateThis : public LInstructionHelper<1, 0, 0>
 {
   public:
     LIR_HEADER(CreateThis)
 
-    LCreateThis(const LAllocation &callee, const LAllocation &prototype)
+    LCreateThis()
+    { }
+
+    MCreateThis *mir() const {
+        return mir_->toCreateThis();
+    }
+};
+
+
+class LCreateThisVM : public LCallInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(CreateThisVM)
+
+    LCreateThisVM(const LAllocation &callee, const LAllocation &prototype)
     {
         setOperand(0, callee);
         setOperand(1, prototype);

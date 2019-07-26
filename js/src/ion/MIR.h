@@ -1571,59 +1571,27 @@ class MGuardString
 
 
 
-class MCreateThisWithTemplate
-  : public MNullaryInstruction
-{
-    
-    CompilerRootObject templateObject_;
-
-    MCreateThisWithTemplate(JSObject *templateObject)
-      : templateObject_(templateObject)
-    {
-        setResultType(MIRType_Object);
-    }
-
-  public:
-    INSTRUCTION_HEADER(CreateThisWithTemplate);
-    static MCreateThisWithTemplate *New(JSObject *templateObject)
-    {
-        return new MCreateThisWithTemplate(templateObject);
-    }
-    JSObject *getTemplateObject() const {
-        return templateObject_;
-    }
-
-    
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-};
-
-
-
 
 class MCreateThis
   : public MAryInstruction<2>,
     public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1> >
 {
-    bool needNativeCheck_;
+    
+    CompilerRootObject templateObject_;
 
-    MCreateThis(MDefinition *callee, MDefinition *prototype)
-      : needNativeCheck_(true)
+    MCreateThis(MDefinition *callee, MDefinition *prototype, JSObject *templateObject)
+      : templateObject_(templateObject)
     {
         initOperand(0, callee);
         initOperand(1, prototype);
-
-        
-        
-        setResultType(MIRType_Value);
+        setResultType(MIRType_Object);
     }
 
   public:
     INSTRUCTION_HEADER(CreateThis)
-    static MCreateThis *New(MDefinition *callee, MDefinition *prototype)
+    static MCreateThis *New(MDefinition *callee, MDefinition *prototype, JSObject *templateObject)
     {
-        return new MCreateThis(callee, prototype);
+        return new MCreateThis(callee, prototype, templateObject);
     }
 
     MDefinition *getCallee() const {
@@ -1632,12 +1600,12 @@ class MCreateThis
     MDefinition *getPrototype() const {
         return getOperand(1);
     }
-    void removeNativeCheck() {
-        needNativeCheck_ = false;
-        setResultType(MIRType_Object);
+    bool hasTemplateObject() const {
+        return !!templateObject_;
     }
-    bool needNativeCheck() const {
-        return needNativeCheck_;
+    JSObject *getTemplateObject() const {
+        JS_ASSERT(hasTemplateObject());
+        return templateObject_;
     }
 
     

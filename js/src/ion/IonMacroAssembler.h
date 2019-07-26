@@ -284,16 +284,6 @@ class MacroAssembler : public MacroAssemblerSpecific
         uint32_t bit = JSFunction::INTERPRETED << 16;
         branchTest32(Assembler::Zero, address, Imm32(bit), label);
     }
-    void branchIfInterpreted(Register fun, Label *label) {
-        
-        
-        JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);
-        JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
-        JS_STATIC_ASSERT(IS_LITTLE_ENDIAN);
-        Address address(fun, offsetof(JSFunction, nargs));
-        uint32_t bit = JSFunction::INTERPRETED << 16;
-        branchTest32(Assembler::NonZero, address, Imm32(bit), label);
-    }
 
     using MacroAssemblerSpecific::Push;
 

@@ -236,23 +236,16 @@ LIRGenerator::visitPassArg(MPassArg *arg)
 }
 
 bool
-LIRGenerator::visitCreateThisWithTemplate(MCreateThisWithTemplate *ins)
-{
-    LCreateThisWithTemplate *lir = new LCreateThisWithTemplate();
-    return define(lir, ins) && assignSafepoint(lir, ins);
-}
-
-bool
 LIRGenerator::visitCreateThis(MCreateThis *ins)
 {
-    LAllocation callee = useRegisterOrConstantAtStart(ins->getCallee());
-    LAllocation prototype = useRegisterOrConstantAtStart(ins->getPrototype());
-
     
-    if (ins->needNativeCheck())
-        callee = useRegisterAtStart(ins->getCallee());
+    if (ins->hasTemplateObject()) {
+        LCreateThis *lir = new LCreateThis();
+        return define(lir, ins) && assignSafepoint(lir, ins);
+    }
 
-    LCreateThis *lir = new LCreateThis(callee, prototype);
+    LCreateThisVM *lir = new LCreateThisVM(useRegisterOrConstantAtStart(ins->getCallee()),
+                                           useRegisterOrConstantAtStart(ins->getPrototype()));
 
     return defineReturn(lir, ins) && assignSafepoint(lir, ins);
 }
