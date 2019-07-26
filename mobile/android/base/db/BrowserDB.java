@@ -41,7 +41,7 @@ public class BrowserDB {
 
         
         
-        public Cursor getTopBookmarks(ContentResolver cr, int limit);
+        public Cursor getTopSites(ContentResolver cr, int limit);
 
         public void updateVisitedHistory(ContentResolver cr, String uri);
 
@@ -138,12 +138,12 @@ public class BrowserDB {
         return sDb.filter(cr, constraint, limit);
     }
 
-    public static Cursor getTopBookmarks(ContentResolver cr, int limit) {
+    public static Cursor getTopSites(ContentResolver cr, int limit) {
         
         
-        Cursor topBookmarks = sDb.getTopBookmarks(cr, limit);
+        Cursor topSites = sDb.getTopSites(cr, limit);
         Cursor pinnedSites = sDb.getPinnedSites(cr, limit);
-        return new TopSitesCursorWrapper(pinnedSites, topBookmarks, limit);
+        return new TopSitesCursorWrapper(pinnedSites, topSites, limit);
     }
 
     public static void updateVisitedHistory(ContentResolver cr, String uri) {

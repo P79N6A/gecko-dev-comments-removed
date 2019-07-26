@@ -231,13 +231,9 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     }
 
     @Override
-    public Cursor getTopBookmarks(ContentResolver cr, int limit) {
+    public Cursor getTopSites(ContentResolver cr, int limit) {
         
-        
-        String selection = Combined.BOOKMARK_ID + " IS NOT NULL";
-
-        
-        selection = DBUtils.concatenateWhere(selection, Combined.URL + " NOT IN (SELECT " +
+        String selection = DBUtils.concatenateWhere("", Combined.URL + " NOT IN (SELECT " +
                                              Bookmarks.URL + " FROM bookmarks WHERE " +
                                              DBUtils.qualifyColumn("bookmarks", Bookmarks.PARENT) + " == ? AND " +
                                              DBUtils.qualifyColumn("bookmarks", Bookmarks.IS_DELETED) + " == 0)");
