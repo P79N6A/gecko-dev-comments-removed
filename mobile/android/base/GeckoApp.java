@@ -1357,15 +1357,15 @@ abstract public class GeckoApp
 
         
         
-        mMainHandler.post(new Runnable() {
+        mMainHandler.post(new Runnable() { 
             public void run() {
-                mLayerView.show();
+                mLayerView.setVisibility(View.VISIBLE);
             }
         });
 
         FrameLayout decor = (FrameLayout)getWindow().getDecorView();
         decor.removeView(mFullScreenPluginContainer);
-
+        
         mFullScreenPluginView = null;
 
         GeckoScreenOrientationListener.getInstance().unlockScreenOrientation();
@@ -2651,7 +2651,7 @@ abstract public class GeckoApp
 
             mMainHandler.post(new Runnable() { 
                 public void run() {
-                    mLayerView.hide();
+                    mLayerView.setVisibility(View.INVISIBLE);
                 }
             });
         }
