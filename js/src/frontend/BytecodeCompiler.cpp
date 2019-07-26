@@ -194,13 +194,40 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, AbstractFramePtr
     if (!SetSourceMap(cx, tokenStream, ss, script))
         return UnrootedScript(NULL);
 
-    
-    if (callerFrame && callerFrame.isFunctionFrame() && callerFrame.fun()->hasRest()) {
+    if (callerFrame && callerFrame.isFunctionFrame()) {
         HandlePropertyName arguments = cx->names().arguments;
         for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
-                parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
-                return UnrootedScript(NULL);
+                if (callerFrame.fun()->hasRest()) {
+                    
+                    
+                    parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
+                    return UnrootedScript(NULL);
+                }
+                
+                
+                RootedScript script(cx, callerFrame.fun()->nonLazyScript());
+                if (script->argumentsHasVarBinding()) {
+                    if (!JSScript::argumentsOptimizationFailed(cx, script))
+                        return UnrootedScript(NULL);
+                }
+            }
+        }
+
+        
+        
+        
+        if (pc.sc->hasDebuggerStatement()) {
+            RootedObject scope(cx, callerFrame.scopeChain());
+            while (scope->isScope() || scope->isDebugScope()) {
+                if (scope->isCall() && !scope->asCall().isForEval()) {
+                    RootedScript script(cx, scope->asCall().callee().nonLazyScript());
+                    if (script->argumentsHasVarBinding()) {
+                        if (!JSScript::argumentsOptimizationFailed(cx, script))
+                            return UnrootedScript(NULL);
+                    }
+                }
+                scope = scope->enclosingScope();
             }
         }
     }

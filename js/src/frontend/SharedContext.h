@@ -55,10 +55,16 @@ class AnyContextFlags
     
     bool            bindingsAccessedDynamically:1;
 
+    
+    
+    
+    bool            hasDebuggerStatement:1;
+
   public:
     AnyContextFlags()
      :  hasExplicitUseStrict(false),
-        bindingsAccessedDynamically(false)
+        bindingsAccessedDynamically(false),
+        hasDebuggerStatement(false)
     { }
 };
 
@@ -156,9 +162,11 @@ class SharedContext
 
     bool hasExplicitUseStrict()        const { return anyCxFlags.hasExplicitUseStrict; }
     bool bindingsAccessedDynamically() const { return anyCxFlags.bindingsAccessedDynamically; }
+    bool hasDebuggerStatement()        const { return anyCxFlags.hasDebuggerStatement; }
 
     void setExplicitUseStrict()           { anyCxFlags.hasExplicitUseStrict        = true; }
     void setBindingsAccessedDynamically() { anyCxFlags.bindingsAccessedDynamically = true; }
+    void setHasDebuggerStatement()        { anyCxFlags.hasDebuggerStatement        = true; }
 
     
     inline bool needStrictChecks();

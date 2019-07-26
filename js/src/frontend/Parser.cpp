@@ -886,7 +886,22 @@ Parser::functionBody(FunctionBodyType type)
         funbox->setArgumentsHasLocalBinding();
 
         
-        if (pc->sc->bindingsAccessedDynamically())
+
+
+
+
+
+
+        if (pc->sc->bindingsAccessedDynamically() && maybeArgDef)
+            funbox->setDefinitelyNeedsArgsObj();
+
+        
+
+
+
+
+
+        if (pc->sc->hasDebuggerStatement())
             funbox->setDefinitelyNeedsArgsObj();
 
         
@@ -907,6 +922,9 @@ Parser::functionBody(FunctionBodyType type)
                     }
                 }
             }
+            
+            if (pc->sc->bindingsAccessedDynamically())
+                funbox->setDefinitelyNeedsArgsObj();
           exitLoop: ;
         }
     }
@@ -1769,6 +1787,8 @@ Parser::functionArgsAndBody(ParseNode *pn, HandleFunction fun, HandlePropertyNam
 
     if (funbox->bindingsAccessedDynamically())
         outerpc->sc->setBindingsAccessedDynamically();
+    if (funbox->hasDebuggerStatement())
+        outerpc->sc->setHasDebuggerStatement();
 
 #if JS_HAS_DESTRUCTURING
     
@@ -1811,7 +1831,8 @@ Parser::functionArgsAndBody(ParseNode *pn, HandleFunction fun, HandlePropertyNam
 
     if (funbox->bindingsAccessedDynamically())
         outerpc->sc->setBindingsAccessedDynamically();
-
+    if (funbox->hasDebuggerStatement())
+        outerpc->sc->setHasDebuggerStatement();
 
     pn->pn_funbox = funbox;
     pn->pn_body->append(body);
@@ -4020,6 +4041,7 @@ Parser::statement()
         if (!pn)
             return NULL;
         pc->sc->setBindingsAccessedDynamically();
+        pc->sc->setHasDebuggerStatement();
         break;
 
       case TOK_ERROR:

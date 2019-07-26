@@ -1913,11 +1913,30 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-    if (script_->bindingsAccessedDynamically || script_->funHasAnyAliasedFormal ||
-        localsAliasStack() || cx->compartment->debugMode() || script_->isGenerator)
-    {
+
+
+
+
+
+    if (script_->bindingsAccessedDynamically)
+        return false;
+
+    
+
+
+
+
+    if (localsAliasStack() || cx->compartment->debugMode() || script_->isGenerator)
         return true;
-    }
+
+    
+
+
+
+
+
+    if (script_->funHasAnyAliasedFormal)
+        return true;
 
     unsigned pcOff = script_->argumentsBytecode() - script_->code;
 
