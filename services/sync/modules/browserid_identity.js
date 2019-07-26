@@ -441,6 +441,9 @@ this.BrowserIDManager.prototype = {
   
   _fetchTokenForUser: function() {
     let tokenServerURI = Svc.Prefs.get("tokenServerURI");
+    if (tokenServerURI.endsWith("/")) { 
+      tokenServerURI = tokenServerURI.slice(0, -1);
+    }
     let log = this._log;
     let client = this._tokenServerClient;
     let fxa = this._fxaService;
