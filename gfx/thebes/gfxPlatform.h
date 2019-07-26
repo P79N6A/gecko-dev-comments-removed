@@ -411,6 +411,11 @@ public:
     
 
 
+    uint32_t WordCacheMaxEntries();
+
+    
+
+
 
     bool UseGraphiteShaping();
 
@@ -679,6 +684,9 @@ protected:
 
     
     int32_t mWordCacheCharLimit;
+
+    
+    int32_t mWordCacheMaxEntries;
 
 private:
     

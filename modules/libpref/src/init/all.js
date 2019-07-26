@@ -295,6 +295,9 @@ pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
 pref("gfx.font_rendering.wordcache.charlimit", 32);
 
+
+pref("gfx.font_rendering.wordcache.maxentries", 10000);
+
 pref("gfx.font_rendering.graphite.enabled", true);
 
 

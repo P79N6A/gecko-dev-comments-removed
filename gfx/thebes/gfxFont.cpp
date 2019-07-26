@@ -2958,7 +2958,9 @@ gfxFont::GetShapedWord(gfxContext *aContext,
                        uint32_t    aFlags)
 {
     
-    if (mWordCache->Count() > 10000) {
+    uint32_t wordCacheMaxEntries =
+        gfxPlatform::GetPlatform()->WordCacheMaxEntries();
+    if (mWordCache->Count() > wordCacheMaxEntries) {
         NS_WARNING("flushing shaped-word cache");
         ClearCachedWords();
     }
