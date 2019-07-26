@@ -10355,6 +10355,58 @@ let ICCRecordHelper = {
 
 
 
+
+
+
+
+
+
+  readANR: function readANR(fileId, fileType, recordNumber, onsuccess, onerror) {
+    function callback(optoins) {
+      let strLen = Buf.readUint32();
+      let octetLen = strLen / 2;
+      let number = null;
+
+      
+      Buf.seekIncoming(1 * PDU_HEX_OCTET_SIZE);
+
+      let numLen = GsmPDUHelper.readHexOctet();
+      if (numLen != 0xff) {
+        if (numLen > ADN_MAX_BCD_NUMBER_BYTES) {
+          throw new Error("invalid length of BCD number/SSC contents - " + numLen);
+        }
+        number = GsmPDUHelper.readDiallingNumber(numLen);
+      } else {
+        Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * PDU_HEX_OCTET_SIZE);
+      }
+
+      
+      Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+
+      
+      if (fileType == ICC_USIM_TYPE2_TAG) {
+        
+        Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+      }
+
+      Buf.readStringDelimiter(strLen);
+
+      if (onsuccess) {
+        onsuccess(number);
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   recordNumber: recordNumber,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
+  },
+
+  
+
+
+
+
   getPLMNSelector: function getPLMNSelector() {
     function callback() {
       if (DEBUG) debug("PLMN Selector: Process PLMN Selector");
@@ -11184,15 +11236,7 @@ let ICCContactHelper = {
     let gotPbrCb = function gotPbrCb(pbr) {
       if (pbr.adn) {
         let gotAdnCb = function gotAdnCb(contacts) {
-          
-          if (!pbr.email) {
-            if (onsuccess) {
-              onsuccess(contacts)
-            }
-            return;
-          }
-
-          this.readUSimEmails(pbr, contacts, onsuccess, onerror);
+          this.readSupportedPBRFields(pbr, contacts, onsuccess, onerror);
         }.bind(this);
 
         let fileId = pbr.adn.fileId;
@@ -11214,8 +11258,43 @@ let ICCContactHelper = {
 
 
 
-  readUSimEmails: function readUSimEmails(pbr, contacts, onsuccess, onerror) {
-    (function doReadContactEmail(n) {
+  readSupportedPBRFields: function readSupportedPBRFields(pbr, contacts, onsuccess, onerror) {
+    
+    
+    
+    const fields = ["email", "anr0"];
+
+    (function readField(field) {
+      let field = fields.pop();
+      if (!field) {
+        if (onsuccess) {
+          onsuccess(contacts);
+        }
+        return;
+      }
+
+      ICCContactHelper.readPhonebookField(pbr, contacts, field, readField, onerror);
+    })();
+  },
+
+  
+
+
+
+
+
+
+
+
+  readPhonebookField: function readPhonebookField(pbr, contacts, field, onsuccess, onerror) {
+    if (!pbr[field]) {
+      if (onsuccess) {
+        onsuccess(contacts)
+      }
+      return;
+    }
+
+    (function doReadContactField(n) {
       if (n >= contacts.length) {
         
         if (onsuccess) {
@@ -11225,8 +11304,8 @@ let ICCContactHelper = {
       }
 
       
-      ICCContactHelper.readUSimContactEmail(
-        pbr, contacts[n], doReadContactEmail.bind(this, n + 1), onerror);
+      ICCContactHelper.readContactField(
+        pbr, contacts[n], field, doReadContactField.bind(this, n + 1), onerror);
     })(0);
   },
 
@@ -11238,32 +11317,86 @@ let ICCContactHelper = {
 
 
 
-  readUSimContactEmail: function readUSimContactEmail(pbr, contact, onsuccess, onerror) {
+
+  readContactField: function readContactField(pbr, contact, field, onsuccess, onerror) {
     let gotRecordIdCb = function gotRecordIdCb(recordId) {
       if (recordId == 0xff) {
-        
         if (onsuccess) {
           onsuccess();
         }
         return;
       }
 
-      let fileId = pbr.email.fileId;
-      let fileType = pbr.email.fileType;
-      let gotEmailCb = function gotEmailCb(email) {
-        
-        if (email) {
-          contact.email = email;
+      let fileId = pbr[field].fileId;
+      let fileType = pbr[field].fileType;
+      let gotFieldCb = function gotFieldCb(value) {
+        if (value) {
+          
+          if (field.startsWith("anr")) {
+            if (!contact["anr"]) {
+              contact["anr"] = [];
+            }
+            contact["anr"].push(value);
+          } else {
+            contact[field] = value;
+          }
         }
+
         if (onsuccess) {
           onsuccess();
         }
       }.bind(this);
 
-      ICCRecordHelper.readEmail(fileId, fileType, recordId, gotEmailCb, onerror);
+      
+      let ef = field.startsWith("anr") ? "anr" : field;
+      switch (ef) {
+        case "email":
+          ICCRecordHelper.readEmail(fileId, fileType, recordId, gotFieldCb, onerror);
+          break;
+        case "anr":
+          ICCRecordHelper.readANR(fileId, fileType, recordId, gotFieldCb, onerror);
+          break;
+        default:
+          onerror("Unknown field " + field);
+          break;
+      }
     }.bind(this);
 
-    this.getEmailRecordId(pbr, contact, gotRecordIdCb, onerror);
+    this.getContactFieldRecordId(pbr, contact, field, gotRecordIdCb, onerror);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getContactFieldRecordId: function getContactFieldRecordId(pbr, contact, field, onsuccess, onerror) {
+    if (pbr[field].fileType == ICC_USIM_TYPE1_TAG) {
+      
+      if (onsuccess) {
+        onsuccess(contact.recordId);
+      }
+    } else {
+      
+      let gotIapCb = function gotIapCb(iap) {
+        let indexInIAP = pbr[field].indexInIAP;
+        let recordId = iap[indexInIAP];
+
+        if (onsuccess) {
+          onsuccess(recordId);
+        }
+      }.bind(this);
+
+      ICCRecordHelper.readIAP(pbr.iap.fileId, contact.recordId, gotIapCb, onerror);
+    }
   },
 
   
@@ -11306,41 +11439,6 @@ let ICCContactHelper = {
 
   updateSimContact: function updateSimContact(contact, onsuccess, onerror) {
     ICCRecordHelper.updateADN(ICC_EF_ADN, contact, onsuccess, onerror);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  getEmailRecordId: function getEmailRecordId(pbr, contact, onsuccess, onerror) {
-    if (pbr.email.fileType == ICC_USIM_TYPE1_TAG) {
-      
-      if (onsuccess) {
-        onsuccess(contact.recordId);
-      }
-    } else {
-      
-      let gotIapCb = function gotIapCb(iap) {
-        let indexInIAP = pbr.email.indexInIAP;
-        let recordId = iap[indexInIAP];
-
-        if (onsuccess) {
-          onsuccess(recordId);
-        }
-      }.bind(this);
-
-      let fileId = pbr.iap.fileId;
-      ICCRecordHelper.readIAP(fileId, contact.recordId, gotIapCb, onerror);
-    }
   },
 };
 
