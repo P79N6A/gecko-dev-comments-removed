@@ -402,6 +402,10 @@ public:
   void ExerciseTypedefInterfaces3(TestInterface&);
 
   
+  int32_t AttrWithLenientThis();
+  void SetAttrWithLenientThis(int32_t);
+
+  
   bool ImplementedProperty();
   void SetImplementedProperty(bool);
   void ImplementedMethod();

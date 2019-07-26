@@ -8,6 +8,7 @@
 #define mozilla_dom_BindingUtils_h__
 
 #include "mozilla/dom/DOMJSClass.h"
+#include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/dom/workers/Workers.h"
 #include "mozilla/ErrorResult.h"
 
@@ -20,6 +21,7 @@
 #include "xpcpublic.h"
 #include "nsTraceRefcnt.h"
 #include "nsWrapperCacheInlines.h"
+#include "mozilla/Likely.h"
 
 
 
@@ -27,6 +29,17 @@ class nsGlobalWindow;
 
 namespace mozilla {
 namespace dom {
+
+enum ErrNum {
+#define MSG_DEF(_name, _argc, _str) \
+  _name,
+#include "mozilla/dom/Errors.msg"
+#undef MSG_DEF
+  Err_Limit
+};
+
+bool
+ThrowErrorMessage(JSContext* aCx, const ErrNum aErrorNumber, ...);
 
 template<bool mainThread>
 inline bool
@@ -66,13 +79,35 @@ IsDOMClass(const js::Class* clasp)
   return IsDOMClass(Jsvalify(clasp));
 }
 
+
+
+
+enum DOMObjectSlot {
+  eNonDOMObject = -1,
+  eRegularDOMObject = DOM_OBJECT_SLOT,
+  eProxyDOMObject = DOM_PROXY_OBJECT_SLOT
+};
+
 template <class T>
 inline T*
-UnwrapDOMObject(JSObject* obj)
+UnwrapDOMObject(JSObject* obj, DOMObjectSlot slot)
 {
-  MOZ_ASSERT(IsDOMClass(JS_GetClass(obj)));
+  MOZ_ASSERT(slot != eNonDOMObject,
+             "Don't pass non-DOM objects to this function");
 
-  JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+#ifdef DEBUG
+  if (IsDOMClass(js::GetObjectClass(obj))) {
+    MOZ_ASSERT(slot == eRegularDOMObject);
+  } else {
+    MOZ_ASSERT(js::IsObjectProxyClass(js::GetObjectClass(obj)) ||
+               js::IsFunctionProxyClass(js::GetObjectClass(obj)));
+    MOZ_ASSERT(js::GetProxyHandler(obj)->family() == ProxyFamily());
+    MOZ_ASSERT(IsNewProxyBinding(js::GetProxyHandler(obj)));
+    MOZ_ASSERT(slot == eProxyDOMObject);
+  }
+#endif
+
+  JS::Value val = js::GetReservedSlot(obj, slot);
   
   
   
@@ -85,6 +120,64 @@ UnwrapDOMObject(JSObject* obj)
 }
 
 
+inline const DOMClass*
+GetDOMClass(JSObject* obj)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  if (IsDOMClass(clasp)) {
+    return &DOMJSClass::FromJSClass(clasp)->mClass;
+  }
+
+  js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
+  MOZ_ASSERT(handler->family() == ProxyFamily());
+  MOZ_ASSERT(IsNewProxyBinding(handler));
+  return &static_cast<DOMProxyHandler*>(handler)->mClass;
+}
+
+inline DOMObjectSlot
+GetDOMClass(JSObject* obj, const DOMClass*& result)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  if (IsDOMClass(clasp)) {
+    result = &DOMJSClass::FromJSClass(clasp)->mClass;
+    return eRegularDOMObject;
+  }
+
+  if (js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) {
+    js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
+    if (handler->family() == ProxyFamily() && IsNewProxyBinding(handler)) {
+      result = &static_cast<DOMProxyHandler*>(handler)->mClass;
+      return eProxyDOMObject;
+    }
+  }
+
+  return eNonDOMObject;
+}
+
+inline bool
+UnwrapDOMObjectToISupports(JSObject* obj, nsISupports*& result)
+{
+  const DOMClass* clasp;
+  DOMObjectSlot slot = GetDOMClass(obj, clasp);
+  if (slot == eNonDOMObject || !clasp->mDOMObjectIsISupports) {
+    return false;
+  }
+ 
+  result = UnwrapDOMObject<nsISupports>(obj, slot);
+  return true;
+}
+
+inline bool
+IsDOMObject(JSObject* obj)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  return IsDOMClass(clasp) ||
+         ((js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) &&
+          (js::GetProxyHandler(obj)->family() == ProxyFamily() &&
+           IsNewProxyBinding(js::GetProxyHandler(obj))));
+}
+
+
 
 
 
@@ -93,8 +186,9 @@ inline nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
-  JSClass* clasp = js::GetObjectJSClass(obj);
-  if (!IsDOMClass(clasp)) {
+  const DOMClass* domClass;
+  DOMObjectSlot slot = GetDOMClass(obj, domClass);
+  if (slot == eNonDOMObject) {
     
     if (!js::IsWrapper(obj)) {
       
@@ -106,22 +200,19 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
     MOZ_ASSERT(!js::IsWrapper(obj));
-    clasp = js::GetObjectJSClass(obj);
-    if (!IsDOMClass(clasp)) {
+    slot = GetDOMClass(obj, domClass);
+    if (slot == eNonDOMObject) {
       
       return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
   }
 
-  MOZ_ASSERT(IsDOMClass(clasp));
-
   
 
 
-  DOMJSClass* domClass = DOMJSClass::FromJSClass(clasp);
   if (domClass->mInterfaceChain[PrototypeTraits<PrototypeID>::Depth] ==
       PrototypeID) {
-    value = UnwrapDOMObject<T>(obj);
+    value = UnwrapDOMObject<T>(obj, slot);
     return NS_OK;
   }
 
@@ -136,7 +227,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
   
   
   
-  JSAutoEnterCompartment ac;
+  Maybe<JSAutoCompartment> ac;
   if (js::IsWrapper(obj)) {
     obj = xpc::Unwrap(cx, obj, false);
     if (!obj) {
@@ -144,9 +235,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
       return false;
     }
 
-    if (!ac.enter(cx, obj)) {
-      return false;
-    }
+    ac.construct(cx, obj);
   }
 
   
@@ -187,7 +276,7 @@ inline nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   return UnwrapObject<static_cast<prototypes::ID>(
-           PrototypeIDMap<T>::PrototypeID)>(cx, obj, value);
+           PrototypeIDMap<T>::PrototypeID), T>(cx, obj, value);
 }
 
 const size_t kProtoOrIfaceCacheCount =
@@ -291,11 +380,14 @@ struct Prefable {
 
 
 
+
+
 JSObject*
 CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
-                       unsigned ctorNargs, Prefable<JSFunctionSpec>* methods,
+                       unsigned ctorNargs, const DOMClass* domClass,
+                       Prefable<JSFunctionSpec>* methods,
                        Prefable<JSPropertySpec>* properties,
                        Prefable<ConstantSpec>* constants,
                        Prefable<JSFunctionSpec>* staticMethods, const char* name);
@@ -351,12 +443,12 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
   {
     
     
-    JSAutoEnterCompartment ac;
+    Maybe<JSAutoCompartment> ac;
     if (js::IsWrapper(scope)) {
       scope = xpc::Unwrap(cx, scope, false);
-      if (!scope || !ac.enter(cx, scope)) {
+      if (!scope)
         return false;
-      }
+      ac.construct(cx, scope);
     }
 
     obj = value->WrapObject(cx, scope);
@@ -413,8 +505,38 @@ struct EnumEntry {
   size_t length;
 };
 
+template<bool Fatal>
+inline bool
+EnumValueNotFound(JSContext* cx, const jschar* chars, size_t length,
+                  const char* type)
+{
+  return false;
+}
+
+template<>
+inline bool
+EnumValueNotFound<false>(JSContext* cx, const jschar* chars, size_t length,
+                         const char* type)
+{
+  
+  return true;
+}
+
+template<>
+inline bool
+EnumValueNotFound<true>(JSContext* cx, const jschar* chars, size_t length,
+                        const char* type)
+{
+  NS_LossyConvertUTF16toASCII deflated(static_cast<const PRUnichar*>(chars),
+                                       length);
+  return ThrowErrorMessage(cx, MSG_INVALID_ENUM_VALUE, deflated.get(), type);
+}
+
+
+template<bool InvalidValueFatal>
 inline int
-FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values, bool* ok)
+FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values,
+                    const char* type, bool* ok)
 {
   
   JSString* str = JS_ValueToString(cx, v);
@@ -450,7 +572,7 @@ FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values, bool* o
     }
   }
 
-  *ok = true;
+  *ok = EnumValueNotFound<InvalidValueFatal>(cx, chars, length, type);
   return -1;
 }
 
@@ -509,6 +631,28 @@ GetParentPointer(const ParentObject& aObject)
 {
   return ToSupports(aObject.mObject);
 }
+
+template<class T>
+inline void
+ClearWrapper(T* p, nsWrapperCache* cache)
+{
+  cache->ClearWrapper();
+}
+
+template<class T>
+inline void
+ClearWrapper(T* p, void*)
+{
+  nsWrapperCache* cache;
+  CallQueryInterface(p, &cache);
+  ClearWrapper(p, cache);
+}
+
+
+
+JSBool
+InstanceClassHasProtoAtDepth(JSHandleObject protoObject, uint32_t protoID,
+                             uint32_t depth);
 
 
 
@@ -648,8 +792,14 @@ JSBool
 QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp);
 JSBool
 ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
-JSBool
-ThrowingConstructorWorkers(JSContext* cx, unsigned argc, JS::Value* vp);
+
+bool
+GetPropertyOnPrototype(JSContext* cx, JSObject* proxy, jsid id, bool* found,
+                       JS::Value* vp);
+
+bool
+HasPropertyOnPrototype(JSContext* cx, JSObject* proxy, DOMProxyHandler* handler,
+                       jsid id);
 
 template<class T>
 class NonNull
@@ -675,6 +825,15 @@ public:
 
   void operator=(T* t) {
     ptr = t;
+    MOZ_ASSERT(ptr);
+#ifdef DEBUG
+    inited = true;
+#endif
+  }
+
+  template<typename U>
+  void operator=(U* t) {
+    ptr = t->ToAStringPtr();
     MOZ_ASSERT(ptr);
 #ifdef DEBUG
     inited = true;
@@ -735,17 +894,83 @@ protected:
 #endif
 };
 
+
+
+struct FakeDependentString {
+  FakeDependentString() :
+    mFlags(nsDependentString::F_TERMINATED)
+  {
+  }
+
+  void SetData(const nsDependentString::char_type* aData,
+               nsDependentString::size_type aLength) {
+    MOZ_ASSERT(mFlags == nsDependentString::F_TERMINATED);
+    mData = aData;
+    mLength = aLength;
+  }
+
+  void Truncate() {
+    mData = nsDependentString::char_traits::sEmptyBuffer;
+    mLength = 0;
+  }
+
+  void SetNull() {
+    Truncate();
+    mFlags |= nsDependentString::F_VOIDED;
+  }
+
+  const nsAString* ToAStringPtr() const {
+    return reinterpret_cast<const nsDependentString*>(this);
+  }
+
+  nsAString* ToAStringPtr() {
+    return reinterpret_cast<nsDependentString*>(this);
+  }
+
+  operator const nsAString& () const {
+    return *reinterpret_cast<const nsDependentString*>(this);
+  }
+
+private:
+  const nsDependentString::char_type* mData;
+  nsDependentString::size_type mLength;
+  uint32_t mFlags;
+
+  
+  
+  class DependentStringAsserter;
+  friend class DependentStringAsserter;
+
+  class DepedentStringAsserter : public nsDependentString {
+  public:
+    static void StaticAsserts() {
+      MOZ_STATIC_ASSERT(sizeof(FakeDependentString) == sizeof(nsDependentString),
+                        "Must have right object size");
+      MOZ_STATIC_ASSERT(offsetof(FakeDependentString, mData) ==
+                          offsetof(DepedentStringAsserter, mData),
+                        "Offset of mData should match");
+      MOZ_STATIC_ASSERT(offsetof(FakeDependentString, mLength) ==
+                          offsetof(DepedentStringAsserter, mLength),
+                        "Offset of mLength should match");
+      MOZ_STATIC_ASSERT(offsetof(FakeDependentString, mFlags) ==
+                          offsetof(DepedentStringAsserter, mFlags),
+                        "Offset of mFlags should match");
+    }
+  };
+};
+
 enum StringificationBehavior {
   eStringify,
   eEmpty,
   eNull
 };
 
+
 static inline bool
 ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
                        StringificationBehavior nullBehavior,
                        StringificationBehavior undefinedBehavior,
-                       nsDependentString& result)
+                       FakeDependentString& result)
 {
   JSString *s;
   if (v.isString()) {
@@ -760,13 +985,12 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
       behavior = eStringify;
     }
 
-    
-    
-    
-    if (behavior != eStringify || !pval) {
-      
-      
-      result.SetIsVoid(behavior != eEmpty);
+    if (behavior != eStringify) {
+      if (behavior == eEmpty) {
+        result.Truncate();
+      } else {
+        result.SetNull();
+      }
       return true;
     }
 
@@ -783,7 +1007,7 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
     return false;
   }
 
-  result.Rebind(chars, len);
+  result.SetData(chars, len);
   return true;
 }
 
@@ -838,6 +1062,12 @@ public:
     mPassed = true;
   }
 
+  void operator=(const FakeDependentString* str) {
+    MOZ_ASSERT(str);
+    mStr = str->ToAStringPtr();
+    mPassed = true;
+  }
+
   const nsAString& Value() const {
     MOZ_ASSERT(WasPassed());
     return *mStr;
@@ -881,6 +1111,39 @@ public:
       storage.addr()->~T();
     }
 };
+
+
+bool
+XrayResolveProperty(JSContext* cx, JSObject* wrapper, jsid id,
+                    JSPropertyDescriptor* desc,
+                    
+                    Prefable<JSFunctionSpec>* methods,
+                    jsid* methodIds,
+                    JSFunctionSpec* methodSpecs,
+                    size_t methodCount,
+                    Prefable<JSPropertySpec>* attributes,
+                    jsid* attributeIds,
+                    JSPropertySpec* attributeSpecs,
+                    size_t attributeCount,
+                    Prefable<ConstantSpec>* constants,
+                    jsid* constantIds,
+                    ConstantSpec* constantSpecs,
+                    size_t constantCount);
+
+bool
+XrayEnumerateProperties(JS::AutoIdVector& props,
+                        Prefable<JSFunctionSpec>* methods,
+                        jsid* methodIds,
+                        JSFunctionSpec* methodSpecs,
+                        size_t methodCount,
+                        Prefable<JSPropertySpec>* attributes,
+                        jsid* attributeIds,
+                        JSPropertySpec* attributeSpecs,
+                        size_t attributeCount,
+                        Prefable<ConstantSpec>* constants,
+                        jsid* constantIds,
+                        ConstantSpec* constantSpecs,
+                        size_t constantCount);
 
 } 
 } 
