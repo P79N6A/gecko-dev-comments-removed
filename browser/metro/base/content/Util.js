@@ -83,19 +83,25 @@ let Util = {
             aElement instanceof Ci.nsIDOMHTMLTextAreaElement);
   },
 
+  
+
+
+
+
   isEditableContent: function isEditableContent(aElement) {
-    if (!aElement)
-      return false;
-    if (aElement.isContentEditable || aElement.designMode == "on")
-      return true;
-    return false;
+    return !!aElement && (aElement.isContentEditable ||
+                          this.isOwnerDocumentInDesignMode(aElement));
+
   },
 
   isEditable: function isEditable(aElement) {
-    if (!aElement)
+    if (!aElement) {
       return false;
-    if (this.isTextInput(aElement) || this.isEditableContent(aElement))
+    }
+
+    if (this.isTextInput(aElement) || this.isEditableContent(aElement)) {
       return true;
+    }
 
     
     
@@ -106,7 +112,15 @@ let Util = {
       return true;
     }
 
-    return aElement.ownerDocument && aElement.ownerDocument.designMode == "on";
+    return false;
+  },
+
+  
+
+
+  isOwnerDocumentInDesignMode: function(aElement) {
+    return !!aElement && !!aElement.ownerDocument &&
+           aElement.ownerDocument.designMode == "on";
   },
 
   isMultilineInput: function isMultilineInput(aElement) {
