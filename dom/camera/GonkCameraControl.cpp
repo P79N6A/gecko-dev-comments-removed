@@ -215,11 +215,18 @@ nsGonkCameraControl::SetConfigurationImpl(const Configuration& aConfig)
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
   
-  StopPreviewImpl();
+  nsresult rv = PausePreview();
+  if (NS_FAILED(rv)) {
+    
+    NS_WARNING("PausePreview() in SetConfigurationImpl() failed");
+  }
 
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
-  nsresult rv = SetConfigurationInternal(aConfig);
-  NS_ENSURE_SUCCESS(rv, rv);
+  rv = SetConfigurationInternal(aConfig);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    StopPreviewImpl();
+    return rv;
+  }
 
   
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
@@ -506,8 +513,19 @@ nsGonkCameraControl::StopPreviewImpl()
   DOM_CAMERA_LOGI("Stopping preview (this=%p)\n", this);
 
   mCameraHw->StopPreview();
-
   OnPreviewStateChange(CameraControlListener::kPreviewStopped);
+  return NS_OK;
+}
+
+nsresult
+nsGonkCameraControl::PausePreview()
+{
+  RETURN_IF_NO_CAMERA_HW();
+
+  DOM_CAMERA_LOGI("Pausing preview (this=%p)\n", this);
+
+  mCameraHw->StopPreview();
+  OnPreviewStateChange(CameraControlListener::kPreviewPaused);
   return NS_OK;
 }
 
