@@ -25,8 +25,15 @@ protected:
     nsCOMArray_base(const nsCOMArray_base& other);
     ~nsCOMArray_base();
 
-    int32_t IndexOf(nsISupports* aObject) const;
+    int32_t IndexOf(nsISupports* aObject, uint32_t aStartIndex = 0) const;
+    bool Contains(nsISupports* aObject) const {
+        return IndexOf(aObject) != -1;
+    }
+
     int32_t IndexOfObject(nsISupports* aObject) const;
+    bool ContainsObject(nsISupports* aObject) const {
+        return IndexOfObject(aObject) != -1;
+    }
 
     typedef bool (* nsBaseArrayEnumFunc)
         (void* aElement, void *aData);
@@ -48,25 +55,60 @@ protected:
     void Sort(nsBaseArrayComparatorFunc aFunc, void* aData);
 
     bool InsertObjectAt(nsISupports* aObject, int32_t aIndex);
+    void InsertElementAt(uint32_t aIndex, nsISupports* aElement);
     bool InsertObjectsAt(const nsCOMArray_base& aObjects, int32_t aIndex);
+    void InsertElementsAt(uint32_t aIndex, const nsCOMArray_base& aElements);
+    void InsertElementsAt(uint32_t aIndex, nsISupports* const* aElements, uint32_t aCount);
     bool ReplaceObjectAt(nsISupports* aObject, int32_t aIndex);
+    void ReplaceElementAt(uint32_t aIndex, nsISupports* aElement) {
+        nsISupports* oldElement = mArray[aIndex];
+        NS_IF_ADDREF(mArray[aIndex] = aElement);
+        NS_IF_RELEASE(oldElement);
+    }
     bool AppendObject(nsISupports *aObject) {
         return InsertObjectAt(aObject, Count());
+    }
+    void AppendElement(nsISupports* aElement) {
+        InsertElementAt(Length(), aElement);
     }
     bool AppendObjects(const nsCOMArray_base& aObjects) {
         return InsertObjectsAt(aObjects, Count());
     }
+    void AppendElements(const nsCOMArray_base& aElements) {
+        return InsertElementsAt(Length(), aElements);
+    }
+    void AppendElements(nsISupports* const* aElements, uint32_t aCount) {
+        return InsertElementsAt(Length(), aElements, aCount);
+    }
     bool RemoveObject(nsISupports *aObject);
+    nsISupports** Elements() {
+        return mArray.Elements();
+    }
+    void SwapElements(nsCOMArray_base& aOther) {
+        mArray.SwapElements(aOther.mArray);
+    }
 
 public:
     
     int32_t Count() const {
         return mArray.Length();
     }
+    
+    uint32_t Length() const {
+        return mArray.Length();
+    }
+    bool IsEmpty() const {
+        return mArray.IsEmpty();
+    }
 
     
     
     bool SetCount(int32_t aNewCount);
+    
+    void TruncateLength(uint32_t aNewLength) {
+        if (mArray.Length() > aNewLength)
+            RemoveElementsAt(aNewLength, mArray.Length() - aNewLength);
+    }
 
     
     void Clear();
@@ -75,26 +117,47 @@ public:
         return mArray[aIndex];
     }
     
+    nsISupports* ElementAt(uint32_t aIndex) const {
+        return mArray[aIndex];
+    }
+    
     nsISupports* SafeObjectAt(int32_t aIndex) const {
+        return mArray.SafeElementAt(aIndex, nullptr);
+    }
+    
+    nsISupports* SafeElementAt(uint32_t aIndex) const {
         return mArray.SafeElementAt(aIndex, nullptr);
     }
 
     nsISupports* operator[](int32_t aIndex) const {
-        return ObjectAt(aIndex);
+        return mArray[aIndex];
     }
 
     
     
     bool RemoveObjectAt(int32_t aIndex);
+    
+    void RemoveElementAt(uint32_t aIndex);
 
     
     
     bool RemoveObjectsAt(int32_t aIndex, int32_t aCount);
+    
+    void RemoveElementsAt(uint32_t aIndex, uint32_t aCount);
+
+    void SwapElementsAt(uint32_t aIndex1, uint32_t aIndex2) {
+        nsISupports *tmp = mArray[aIndex1];
+        mArray[aIndex1] = mArray[aIndex2];
+        mArray[aIndex2] = tmp;
+    }
 
     
     
     bool SetCapacity(uint32_t aCapacity) {
-      return mArray.SetCapacity(aCapacity);
+        return mArray.SetCapacity(aCapacity);
+    }
+    uint32_t Capacity() {
+        return mArray.Capacity();
     }
 
     typedef size_t (* nsBaseArraySizeOfElementIncludingThisFunc)
@@ -159,10 +222,11 @@ class nsCOMArray : public nsCOMArray_base
 {
  public:
     nsCOMArray() {}
+
+    explicit
     nsCOMArray(int32_t aCount) : nsCOMArray_base(aCount) {}
     
-    
-    
+    explicit
     nsCOMArray(const nsCOMArray<T>& aOther) : nsCOMArray_base(aOther) { }
 
     ~nsCOMArray() {}
@@ -171,10 +235,18 @@ class nsCOMArray : public nsCOMArray_base
     T* ObjectAt(int32_t aIndex) const {
         return static_cast<T*>(nsCOMArray_base::ObjectAt(aIndex));
     }
+    
+    T* ElementAt(uint32_t aIndex) const {
+        return static_cast<T*>(nsCOMArray_base::ElementAt(aIndex));
+    }
 
     
     T* SafeObjectAt(int32_t aIndex) const {
         return static_cast<T*>(nsCOMArray_base::SafeObjectAt(aIndex));
+    }
+    
+    T* SafeElementAt(uint32_t aIndex) const {
+        return static_cast<T*>(nsCOMArray_base::SafeElementAt(aIndex));
     }
 
     
@@ -185,8 +257,11 @@ class nsCOMArray : public nsCOMArray_base
     
     
     
-    int32_t IndexOf(T* aObject) const {
-        return nsCOMArray_base::IndexOf(static_cast<nsISupports*>(aObject));
+    int32_t IndexOf(T* aObject, uint32_t aStartIndex = 0) const {
+        return nsCOMArray_base::IndexOf(aObject, aStartIndex);
+    }
+    bool Contains(nsISupports* aObject) const {
+        return nsCOMArray_base::Contains(aObject);
     }
 
     
@@ -195,13 +270,20 @@ class nsCOMArray : public nsCOMArray_base
     
     
     int32_t IndexOfObject(T* aObject) const {
-        return nsCOMArray_base::IndexOfObject(static_cast<nsISupports*>(aObject));
+        return nsCOMArray_base::IndexOfObject(aObject);
+    }
+    bool ContainsObject(nsISupports* aObject) const {
+        return nsCOMArray_base::ContainsObject(aObject);
     }
 
     
     
     bool InsertObjectAt(T* aObject, int32_t aIndex) {
-        return nsCOMArray_base::InsertObjectAt(static_cast<nsISupports*>(aObject), aIndex);
+        return nsCOMArray_base::InsertObjectAt(aObject, aIndex);
+    }
+    
+    void InsertElementAt(uint32_t aIndex, T* aElement) {
+        nsCOMArray_base::InsertElementAt(aIndex, aElement);
     }
 
     
@@ -209,11 +291,22 @@ class nsCOMArray : public nsCOMArray_base
     bool InsertObjectsAt(const nsCOMArray<T>& aObjects, int32_t aIndex) {
         return nsCOMArray_base::InsertObjectsAt(aObjects, aIndex);
     }
+    
+    void InsertElementsAt(uint32_t aIndex, const nsCOMArray<T>& aElements) {
+        nsCOMArray_base::InsertElementsAt(aIndex, aElements);
+    }
+    void InsertElementsAt(uint32_t aIndex, T* const* aElements, uint32_t aCount) {
+        nsCOMArray_base::InsertElementsAt(aIndex, reinterpret_cast<nsISupports* const*>(aElements), aCount);
+    }
 
     
     
     bool ReplaceObjectAt(T* aObject, int32_t aIndex) {
-        return nsCOMArray_base::ReplaceObjectAt(static_cast<nsISupports*>(aObject), aIndex);
+        return nsCOMArray_base::ReplaceObjectAt(aObject, aIndex);
+    }
+    
+    void ReplaceElementAt(uint32_t aIndex, T* aElement) {
+        nsCOMArray_base::ReplaceElementAt(aIndex, aElement);
     }
 
     
@@ -242,7 +335,11 @@ class nsCOMArray : public nsCOMArray_base
 
     
     bool AppendObject(T *aObject) {
-        return nsCOMArray_base::AppendObject(static_cast<nsISupports*>(aObject));
+        return nsCOMArray_base::AppendObject(aObject);
+    }
+    
+    void AppendElement(T* aElement) {
+        nsCOMArray_base::AppendElement(aElement);
     }
 
     
@@ -250,11 +347,29 @@ class nsCOMArray : public nsCOMArray_base
         return nsCOMArray_base::AppendObjects(aObjects);
     }
     
+    void AppendElements(const nsCOMArray<T>& aElements) {
+        return nsCOMArray_base::AppendElements(aElements);
+    }
+    void AppendElements(T* const* aElements, uint32_t aCount) {
+        InsertElementsAt(Length(), aElements, aCount);
+    }
+    
     
     
     
     bool RemoveObject(T *aObject) {
-        return nsCOMArray_base::RemoveObject(static_cast<nsISupports*>(aObject));
+        return nsCOMArray_base::RemoveObject(aObject);
+    }
+    
+    bool RemoveElement(T* aElement) {
+        return nsCOMArray_base::RemoveObject(aElement);
+    }
+
+    T** Elements() {
+        return reinterpret_cast<T**>(nsCOMArray_base::Elements());
+    }
+    void SwapElements(nsCOMArray<T>& aOther) {
+        nsCOMArray_base::SwapElements(aOther);
     }
 
     
