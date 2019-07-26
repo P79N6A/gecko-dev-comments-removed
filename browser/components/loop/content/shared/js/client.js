@@ -27,6 +27,13 @@ loop.shared.Client = (function($) {
     
 
 
+    _hoursToSeconds: function(value) {
+      return value * 60 * 60;
+    },
+
+    
+
+
 
 
 
@@ -106,13 +113,19 @@ loop.shared.Client = (function($) {
 
 
 
+
+
+
     _requestCallUrlInternal: function(nickname, cb) {
       var endpoint = this.settings.baseServerUrl + "/call-url/",
           reqData  = {callerId: nickname};
 
       var req = $.post(endpoint, reqData, function(callUrlData) {
         try {
-          cb(null, this._validate(callUrlData, ["call_url"]));
+          cb(null, this._validate(callUrlData, ["call_url", "expiresAt"]));
+
+          var expiresHours = this._hoursToSeconds(callUrlData.expiresAt);
+          navigator.mozLoop.noteCallUrlExpiry(expiresHours);
         } catch (err) {
           console.log("Error requesting call info", err);
           cb(err);
@@ -123,6 +136,9 @@ loop.shared.Client = (function($) {
     },
 
     
+
+
+
 
 
 
