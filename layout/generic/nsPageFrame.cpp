@@ -542,6 +542,13 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       break;
     y += page->GetSize().height;
   }
+  
+  
+  
+  
+  nsRect backgroundRect = nsRect(nsPoint(0, 0), child->GetSize());
+  rv = PresContext()->GetPresShell()->AddCanvasBackgroundColorItem(
+         *aBuilder, content, child, backgroundRect, NS_RGBA(0,0,0,0));
 
   float scale = PresContext()->GetPageScale();
   nsRect clipRect(nsPoint(0, 0), child->GetSize());
