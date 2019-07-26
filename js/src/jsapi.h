@@ -107,7 +107,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
         SHAPEVECTOR =  -4, 
         IDARRAY =      -6, 
         DESCRIPTORS =  -7, 
-        ID =           -9, 
         VALVECTOR =   -10, 
         IDVECTOR =    -13, 
         OBJVECTOR =   -14, 
@@ -838,31 +837,6 @@ JS_PUBLIC_API(jsid)
 INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str);
 
 namespace JS {
-
-class AutoIdRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoIdRooter(JSContext *cx, jsid aId = INT_TO_JSID(0)
-                          MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, ID), id_(aId)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    jsid id() {
-        return id_;
-    }
-
-    jsid * addr() {
-        return &id_;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    jsid id_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
 
 
 
