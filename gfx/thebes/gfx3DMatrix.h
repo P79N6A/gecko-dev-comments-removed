@@ -9,8 +9,9 @@
 #include <gfxTypes.h>
 #include <gfxPoint3D.h>
 #include <gfxPointH3D.h>
-#include <gfxMatrix.h>
 #include <gfxQuad.h>
+
+class gfxMatrix;
 
 
 
