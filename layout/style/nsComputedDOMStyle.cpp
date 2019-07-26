@@ -6,9 +6,10 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsComputedDOMStyle.h"
+
+#include "mozilla/Preferences.h"
+#include "mozilla/Util.h"
 
 #include "nsError.h"
 #include "nsDOMString.h"
@@ -82,6 +83,149 @@ NS_NewComputedDOMStyle(dom::Element* aElement, const nsAString& aPseudoElt,
   }
 
   return computedStyle.forget();
+}
+
+
+
+
+
+struct nsComputedStyleMap
+{
+  friend class nsComputedDOMStyle;
+
+  struct Entry
+  {
+    
+    typedef mozilla::dom::CSSValue* (nsComputedDOMStyle::*ComputeMethod)();
+
+    nsCSSProperty mProperty;
+    ComputeMethod mGetter;
+
+    bool IsLayoutFlushNeeded() const
+    {
+      return nsCSSProps::PropHasFlags(mProperty,
+                                      CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH);
+    }
+
+    bool IsEnabled() const
+    {
+      return nsCSSProps::IsEnabled(mProperty);
+    }
+  };
+
+  
+  
+  
+  enum {
+#define COMPUTED_STYLE_PROP(prop_, method_) \
+    eComputedStyleProperty_##prop_,
+#include "nsComputedDOMStylePropertyList.h"
+#undef COMPUTED_STYLE_PROP
+    eComputedStyleProperty_COUNT
+  };
+
+  
+
+
+
+  uint32_t Length()
+  {
+    Update();
+    return mExposedPropertyCount;
+  }
+
+  
+
+
+
+
+  nsCSSProperty PropertyAt(uint32_t aIndex)
+  {
+    Update();
+    return kEntries[EntryIndex(aIndex)].mProperty;
+  }
+
+  
+
+
+
+
+  const Entry* FindEntryForProperty(nsCSSProperty aPropID)
+  {
+    Update();
+    for (uint32_t i = 0; i < mExposedPropertyCount; i++) {
+      const Entry* entry = &kEntries[EntryIndex(i)];
+      if (entry->mProperty == aPropID) {
+        return entry;
+      }
+    }
+    return nullptr;
+  }
+
+  
+
+
+
+  void MarkDirty() { mExposedPropertyCount = 0; }
+
+  
+  
+  
+
+  
+
+
+  const Entry kEntries[eComputedStyleProperty_COUNT];
+
+  
+
+
+
+
+
+  uint32_t mExposedPropertyCount;
+
+  
+
+
+  uint32_t mIndexMap[eComputedStyleProperty_COUNT];
+
+private:
+  
+
+
+  bool IsDirty() { return mExposedPropertyCount == 0; }
+
+  
+
+
+
+  void Update();
+
+  
+
+
+  uint32_t EntryIndex(uint32_t aIndex) const
+  {
+    MOZ_ASSERT(aIndex < mExposedPropertyCount);
+    return mIndexMap[aIndex];
+  }
+};
+
+void
+nsComputedStyleMap::Update()
+{
+  if (!IsDirty()) {
+    return;
+  }
+
+  uint32_t index = 0;
+  for (uint32_t i = 0; i < eComputedStyleProperty_COUNT; i++) {
+    if (kEntries[i].IsEnabled()) {
+      mIndexMap[index++] = i;
+    }
+  }
+  mExposedPropertyCount = index;
 }
 
 nsComputedDOMStyle::nsComputedDOMStyle(dom::Element* aElement,
@@ -225,7 +369,7 @@ nsComputedDOMStyle::GetLength(uint32_t* aLength)
 {
   NS_PRECONDITION(aLength, "Null aLength!  Prepare to die!");
 
-  (void)GetQueryablePropertyMap(aLength);
+  *aLength = GetComputedStyleMap()->Length();
 
   return NS_OK;
 }
@@ -468,17 +612,9 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorRes
     prop = subprops[0];
   }
 
-  const ComputedStyleMapEntry* propEntry = nullptr;
-  {
-    uint32_t length = 0;
-    const ComputedStyleMapEntry* propMap = GetQueryablePropertyMap(&length);
-    for (uint32_t i = 0; i < length; ++i) {
-      if (prop == propMap[i].mProperty) {
-        propEntry = &propMap[i];
-        break;
-      }
-    }
-  }
+  const nsComputedStyleMap::Entry* propEntry =
+    GetComputedStyleMap()->FindEntryForProperty(prop);
+
   if (!propEntry) {
 #ifdef DEBUG_ComputedDOMStyle
     NS_WARNING(PromiseFlatCString(NS_ConvertUTF16toUTF8(aPropertyName) +
@@ -621,11 +757,10 @@ void
 nsComputedDOMStyle::IndexedGetter(uint32_t aIndex, bool& aFound,
                                   nsAString& aPropName)
 {
-  uint32_t length = 0;
-  const ComputedStyleMapEntry* propMap = GetQueryablePropertyMap(&length);
-  aFound = aIndex < length;
+  nsComputedStyleMap* map = GetComputedStyleMap();
+  aFound = aIndex < map->Length();
   if (aFound) {
-    CopyASCIItoUTF16(nsCSSProps::GetStringValue(propMap[aIndex].mProperty),
+    CopyASCIItoUTF16(nsCSSProps::GetStringValue(map->PropertyAt(aIndex)),
                      aPropName);
   }
 }
@@ -5019,17 +5154,59 @@ nsComputedDOMStyle::DoGetAnimationPlayState()
   return valueList;
 }
 
-const nsComputedDOMStyle::ComputedStyleMapEntry*
-nsComputedDOMStyle::GetQueryablePropertyMap(uint32_t* aLength)
+static int
+MarkComputedStyleMapDirty(const char* aPref, void* aData)
 {
-  static const ComputedStyleMapEntry map[] = {
+  static_cast<nsComputedStyleMap*>(aData)->MarkDirty();
+  return 0;
+}
+
+ nsComputedStyleMap*
+nsComputedDOMStyle::GetComputedStyleMap()
+{
+  static nsComputedStyleMap map = {
+    {
 #define COMPUTED_STYLE_PROP(prop_, method_) \
   { eCSSProperty_##prop_, &nsComputedDOMStyle::DoGet##method_ },
 #include "nsComputedDOMStylePropertyList.h"
 #undef COMPUTED_STYLE_PROP
+    }
   };
+  return &map;
+}
 
-  *aLength = ArrayLength(map);
+ void
+nsComputedDOMStyle::RegisterPrefChangeCallbacks()
+{
+  
+  
+  
+  
+  nsComputedStyleMap* data = GetComputedStyleMap();
+#define REGISTER_CALLBACK(pref_)                                             \
+  if (pref_[0]) {                                                            \
+    Preferences::RegisterCallback(MarkComputedStyleMapDirty, pref_, data);   \
+  }
+#define CSS_PROP(prop_, id_, method_, flags_, pref_, parsevariant_,          \
+                 kwtable_, stylestruct_, stylestructoffset_, animtype_)      \
+  REGISTER_CALLBACK(pref_)
+#include "nsCSSPropList.h"
+#undef CSS_PROP
+#undef REGISTER_CALLBACK
+}
 
-  return map;
+ void
+nsComputedDOMStyle::UnregisterPrefChangeCallbacks()
+{
+  nsComputedStyleMap* data = GetComputedStyleMap();
+#define UNREGISTER_CALLBACK(pref_)                                             \
+  if (pref_[0]) {                                                              \
+    Preferences::UnregisterCallback(MarkComputedStyleMapDirty, pref_, data);   \
+  }
+#define CSS_PROP(prop_, id_, method_, flags_, pref_, parsevariant_,            \
+                 kwtable_, stylestruct_, stylestructoffset_, animtype_)        \
+  UNREGISTER_CALLBACK(pref_)
+#include "nsCSSPropList.h"
+#undef CSS_PROP
+#undef UNREGISTER_CALLBACK
 }
