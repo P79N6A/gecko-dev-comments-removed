@@ -161,7 +161,7 @@ public:
 
 
 
-  static MSG InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam);
+  static MSG InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam, HWND aWnd);
 
   
 

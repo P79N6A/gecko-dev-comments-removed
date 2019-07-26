@@ -553,6 +553,40 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
   mIsPrintableKey = KeyboardLayout::IsPrintableCharKey(mOriginalVirtualKeyCode);
 }
 
+bool
+NativeKey::IsIMEDoingKakuteiUndo() const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  MSG startCompositionMsg, compositionMsg, charMsg;
+  return WinUtils::PeekMessage(&startCompositionMsg, mMsg.hwnd,
+                               WM_IME_STARTCOMPOSITION, WM_IME_STARTCOMPOSITION,
+                               PM_NOREMOVE | PM_NOYIELD) &&
+         WinUtils::PeekMessage(&compositionMsg, mMsg.hwnd, WM_IME_COMPOSITION,
+                               WM_IME_COMPOSITION, PM_NOREMOVE | PM_NOYIELD) &&
+         WinUtils::PeekMessage(&charMsg, mMsg.hwnd, WM_CHAR, WM_CHAR,
+                               PM_NOREMOVE | PM_NOYIELD) &&
+         startCompositionMsg.wParam == 0x0 &&
+         startCompositionMsg.lParam == 0x0 &&
+         compositionMsg.wParam == 0x0 &&
+         compositionMsg.lParam == 0x1BF &&
+         charMsg.wParam == VK_BACK && charMsg.lParam == 0x1 &&
+         startCompositionMsg.time <= compositionMsg.time &&
+         compositionMsg.time <= charMsg.time;
+}
+
 UINT
 NativeKey::GetScanCodeWithExtendedFlag() const
 {
@@ -906,12 +940,69 @@ NativeKey::NeedsToHandleWithoutFollowingCharMessages() const
   return IsPrintableKey();
 }
 
+void
+NativeKey::RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg,
+                        const nsFakeCharMessage* aFakeCharMessage) const
+{
+  MSG msg;
+  if (aFakeCharMessage) {
+    if (aFirstMsg > WM_CHAR || aLastMsg < WM_CHAR) {
+      return;
+    }
+    msg = aFakeCharMessage->GetCharMessage(mMsg.hwnd);
+  } else {
+    WinUtils::GetMessage(&msg, mMsg.hwnd, aFirstMsg, aLastMsg);
+  }
+  mWidget->DispatchPluginEvent(msg);
+}
+
+bool
+NativeKey::DispatchKeyPressEventsAndDiscardsCharMessages(
+                        const UniCharsAndModifiers& aInputtingChars,
+                        const EventFlags& aExtraFlags,
+                        const nsFakeCharMessage* aFakeCharMessage) const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
+
+  
+  
+  
+  
+  bool anyCharMessagesRemoved = false;
+
+  if (aFakeCharMessage) {
+    RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST,
+                                        aFakeCharMessage);
+    anyCharMessagesRemoved = true;
+  } else {
+    MSG msg;
+    bool gotMsg =
+      WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
+                            PM_NOREMOVE | PM_NOYIELD);
+    while (gotMsg && (msg.message == WM_CHAR || msg.message == WM_SYSCHAR)) {
+      RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST);
+      anyCharMessagesRemoved = true;
+      gotMsg = WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
+                                     PM_NOREMOVE | PM_NOYIELD);
+    }
+  }
+
+  if (!anyCharMessagesRemoved &&
+      mDOMKeyCode == NS_VK_BACK && IsIMEDoingKakuteiUndo()) {
+    MOZ_ASSERT(!aFakeCharMessage);
+    RemoveMessageAndDispatchPluginEvent(WM_CHAR, WM_CHAR);
+  }
+
+  return DispatchKeyPressEventsWithKeyboardLayout(aInputtingChars, aExtraFlags);
+}
+
 bool
 NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
                         const UniCharsAndModifiers& aInputtingChars,
                         const EventFlags& aExtraFlags) const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
+  MOZ_ASSERT(!mIsDeadKey);
 
   KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
 

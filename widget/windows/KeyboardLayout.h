@@ -11,6 +11,7 @@
 #include "nsEvent.h"
 #include "nsString.h"
 #include "nsWindowBase.h"
+#include "nsWindowDefs.h "
 #include <windows.h>
 
 #define NS_NUM_OF_KEYS          68
@@ -354,6 +355,17 @@ public:
 
 
 
+  bool DispatchKeyPressEventsAndDiscardsCharMessages(
+                        const UniCharsAndModifiers& aInputtingChars,
+                        const EventFlags& aExtraFlags,
+                        const nsFakeCharMessage* aFakeCharMessage) const;
+
+  
+
+
+
+
+
 
   bool NeedsToHandleWithoutFollowingCharMessages() const;
 
@@ -414,6 +426,19 @@ private:
 
   
   uint32_t GetKeyLocation() const;
+
+  
+
+
+
+
+  bool IsIMEDoingKakuteiUndo() const;
+
+  
+
+
+  void RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg,
+                const nsFakeCharMessage* aFakeCharMessage = nullptr) const;
 };
 
 class KeyboardLayout

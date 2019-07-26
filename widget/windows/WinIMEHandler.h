@@ -112,13 +112,6 @@ public:
 
   static void InitInputContext(nsWindow* aWindow, InputContext& aInputContext);
 
-  
-
-
-
-
-  static bool IsDoingKakuteiUndo(HWND aWnd);
-
 #ifdef DEBUG
   
 

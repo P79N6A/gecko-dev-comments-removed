@@ -373,41 +373,6 @@ IMEHandler::CurrentKeyboardLayoutHasIME()
 #endif 
 
 
-bool
-IMEHandler::IsDoingKakuteiUndo(HWND aWnd)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  MSG startCompositionMsg, compositionMsg, charMsg;
-  return WinUtils::PeekMessage(&startCompositionMsg, aWnd,
-                               WM_IME_STARTCOMPOSITION, WM_IME_STARTCOMPOSITION,
-                               PM_NOREMOVE | PM_NOYIELD) &&
-         WinUtils::PeekMessage(&compositionMsg, aWnd, WM_IME_COMPOSITION,
-                               WM_IME_COMPOSITION, PM_NOREMOVE | PM_NOYIELD) &&
-         WinUtils::PeekMessage(&charMsg, aWnd, WM_CHAR, WM_CHAR,
-                               PM_NOREMOVE | PM_NOYIELD) &&
-         startCompositionMsg.wParam == 0x0 &&
-         startCompositionMsg.lParam == 0x0 &&
-         compositionMsg.wParam == 0x0 &&
-         compositionMsg.lParam == 0x1BF &&
-         charMsg.wParam == VK_BACK && charMsg.lParam == 0x1 &&
-         startCompositionMsg.time <= compositionMsg.time &&
-         compositionMsg.time <= charMsg.time;
-}
-
-
 void
 IMEHandler::SetInputScopeForIMM32(nsWindow* aWindow,
                                   const nsAString& aHTMLInputType)
