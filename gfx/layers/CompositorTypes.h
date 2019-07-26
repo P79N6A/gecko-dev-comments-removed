@@ -56,8 +56,6 @@ const TextureFlags TEXTURE_ON_BLACK           = 1 << 14;
 
 const TextureFlags TEXTURE_TILE               = 1 << 15;
 
-const TextureFlags TEXTURE_RECYCLE            = 1 << 16;
-
 
 const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
 
@@ -166,9 +164,7 @@ enum CompositableType
   BUFFER_CONTENT_DIRECT,  
   BUFFER_CONTENT_INC,     
                           
-  
   BUFFER_TILED,           
-  BUFFER_SIMPLE_TILED,
   
   COMPOSITABLE_IMAGE,     
   COMPOSITABLE_CONTENT_SINGLE,  

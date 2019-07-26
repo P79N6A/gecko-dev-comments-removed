@@ -283,15 +283,6 @@ public:
 
 
 
-
-
-  void WaitForCompositorRecycle();
-
-  
-
-
-
-
   bool IsImmutable() const { return mFlags & TEXTURE_IMMUTABLE; }
 
   void MarkImmutable() { AddFlags(TEXTURE_IMMUTABLE); }
