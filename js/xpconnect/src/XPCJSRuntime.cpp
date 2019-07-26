@@ -71,9 +71,6 @@ const char* XPCJSRuntime::mStrings[] = {
     "__proto__",            
     "__iterator__",         
     "__exposedProps__",     
-    "baseURIObject",        
-    "nodePrincipal",        
-    "mozMatchesSelector"    
 };
 
 
@@ -2514,29 +2511,13 @@ CompartmentNameCallback(JSRuntime *rt, JSCompartment *comp,
 }
 
 static bool
-PreserveWrapper(JSContext *cx, JSObject *objArg)
+PreserveWrapper(JSContext *cx, JSObject *obj)
 {
     MOZ_ASSERT(cx);
-    MOZ_ASSERT(objArg);
-    MOZ_ASSERT(js::GetObjectClass(objArg)->ext.isWrappedNative ||
-               mozilla::dom::IsDOMObject(objArg));
+    MOZ_ASSERT(obj);
+    MOZ_ASSERT(IS_WN_REFLECTOR(obj) || mozilla::dom::IsDOMObject(obj));
 
-    RootedObject obj(cx, objArg);
-    XPCCallContext ccx(NATIVE_CALLER, cx);
-    if (!ccx.IsValid())
-        return false;
-
-    if (!IS_WN_REFLECTOR(obj))
-        return mozilla::dom::TryPreserveWrapper(obj);
-
-    nsISupports *supports = XPCWrappedNative::Get(obj)->Native();
-
-    
-    if (nsCOMPtr<nsINode> node = do_QueryInterface(supports)) {
-        node->PreserveWrapper(supports);
-        return true;
-    }
-    return false;
+    return mozilla::dom::IsDOMObject(obj) && mozilla::dom::TryPreserveWrapper(obj);
 }
 
 static nsresult
