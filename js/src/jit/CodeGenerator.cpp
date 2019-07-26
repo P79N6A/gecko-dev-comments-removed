@@ -3567,7 +3567,7 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
         return false;
 
 #ifdef JSGC_GENERATIONAL
-    if (templateObj->hasDynamicSlots()) {
+    if (ins->templateObject()->hasDynamicSlots()) {
         
         
         masm.jump(ool->entry());
