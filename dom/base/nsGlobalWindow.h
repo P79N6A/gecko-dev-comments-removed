@@ -917,11 +917,11 @@ protected:
 
   void FlushPendingNotifications(mozFlushType aType);
   void EnsureReflowFlushAndPaint();
-  nsresult CheckSecurityWidthAndHeight(int32_t* width, int32_t* height);
-  nsresult CheckSecurityLeftAndTop(int32_t* left, int32_t* top);
+  void CheckSecurityWidthAndHeight(int32_t* width, int32_t* height);
+  void CheckSecurityLeftAndTop(int32_t* left, int32_t* top);
 
   
-  nsresult SetCSSViewportWidthAndHeight(nscoord width, nscoord height);
+  void SetCSSViewportWidthAndHeight(nscoord width, nscoord height);
   
   nsresult SetDocShellWidthAndHeight(int32_t width, int32_t height);
 
