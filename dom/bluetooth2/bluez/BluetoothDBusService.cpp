@@ -538,8 +538,10 @@ public:
     BluetoothService* bs = BluetoothService::Get();
     NS_ENSURE_TRUE_VOID(bs);
 
+#if 0 
     bs->AdapterAddedReceived();
     bs->TryFiringAdapterAdded();
+#endif
   }
 };
 

@@ -128,14 +128,6 @@ public:
     }
 
     
-    
-    BluetoothService* bs = BluetoothService::Get();
-    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
-
-    bs->AdapterAddedReceived();
-    bs->TryFiringAdapterAdded();
-
-    
     BluetoothOppManager* opp = BluetoothOppManager::Get();
     if (!opp || !opp->Listen()) {
       BT_LOGR("Fail to start BluetoothOppManager listening");

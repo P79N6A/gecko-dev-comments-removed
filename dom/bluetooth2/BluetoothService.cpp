@@ -25,7 +25,6 @@
 #include "mozilla/unused.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
-#include "mozilla/ipc/UnixSocket.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
 #include "nsIObserverService.h"
@@ -163,7 +162,6 @@ BluetoothService::ToggleBtAck::Run()
   sBluetoothService->SetEnabled(mEnabled);
   sToggleInProgress = false;
 
-  sBluetoothService->TryFiringAdapterAdded();
   sBluetoothService->FireAdapterStateChanged(mEnabled);
 
   return NS_OK;
@@ -376,8 +374,6 @@ BluetoothService::StartBluetooth(bool aIsStartup,
     return NS_ERROR_FAILURE;
   }
 
-  mAdapterAddedReceived = false;
-
   
 
 
@@ -438,8 +434,6 @@ BluetoothService::StopBluetooth(bool aIsStartup,
     profile->Reset();
   }
 
-  mAdapterAddedReceived = false;
-
   
 
 
@@ -494,8 +488,8 @@ BluetoothService::SetEnabled(bool aEnabled)
 
 
   if (mEnabled == aEnabled) {
-    BT_WARNING("Bluetooth has already been enabled/disabled before "
-               "or the toggling is failed.");
+    BT_WARNING("Bluetooth is already %s, or the toggling failed.",
+               mEnabled ? "enabled" : "disabled");
   }
 
   mEnabled = aEnabled;
@@ -706,28 +700,6 @@ BluetoothService::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_ERROR_UNEXPECTED;
 }
 
-void
-BluetoothService::TryFiringAdapterAdded()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (IsToggling() || !mAdapterAddedReceived) {
-    return;
-  }
-
-  BluetoothSignal signal(NS_LITERAL_STRING("AdapterAdded"),
-                         NS_LITERAL_STRING(KEY_MANAGER), true);
-  DistributeSignal(signal);
-}
-
-void
-BluetoothService::AdapterAddedReceived()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mAdapterAddedReceived = true;
-}
-
 
 
 
@@ -795,10 +767,8 @@ BluetoothService::Notify(const BluetoothSignal& aData)
       "pairedstatuschanged: Wrong length of parameters");
     type.AssignLiteral("bluetooth-pairedstatuschanged");
   } else {
-    nsCString warningMsg;
-    warningMsg.AssignLiteral("Not handling service signal: ");
-    warningMsg.Append(NS_ConvertUTF16toUTF8(aData.name()));
-    BT_WARNING(warningMsg.get());
+    BT_WARNING("Not handling service signal: %s",
+               NS_ConvertUTF16toUTF8(aData.name()).get());
     return;
   }
 
