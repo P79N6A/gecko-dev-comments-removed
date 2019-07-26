@@ -484,6 +484,11 @@ class RecursiveMakeBackend(CommonBackend):
             return current, all_subdirs, []
 
         
+        def compile_filter(current, subdirs):
+            current, parallel, sequential = parallel_filter(current, subdirs)
+            return current, subdirs.static + parallel, sequential
+
+        
         
         def export_filter(current, subdirs):
             if self._parallel_export:
@@ -498,7 +503,7 @@ class RecursiveMakeBackend(CommonBackend):
             if current in self._may_skip[tier]:
                 current = None
             return current, [], subdirs.parallel + \
-                subdirs.static + subdirs.dirs + subdirs.tests
+                subdirs.dirs + subdirs.tests
 
         
         
@@ -506,12 +511,12 @@ class RecursiveMakeBackend(CommonBackend):
             if current in self._may_skip[tier]:
                 current = None
             return current, subdirs.parallel, \
-                subdirs.static + subdirs.dirs + subdirs.tests + subdirs.tools
+                subdirs.dirs + subdirs.tests + subdirs.tools
 
         
         filters = {
             'export': export_filter,
-            'compile': parallel_filter,
+            'compile': compile_filter,
             'binaries': parallel_filter,
             'libs': libs_filter,
             'tools': tools_filter,
