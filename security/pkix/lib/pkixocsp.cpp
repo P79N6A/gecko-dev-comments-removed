@@ -169,9 +169,9 @@ static inline der::Result CheckExtensionsForCriticality(der::Input&);
 static inline der::Result CertID(der::Input& input,
                                   const Context& context,
                                    bool& match);
-static der::Result MatchIssuerKey(const SECItem& issuerKeyHash,
-                                   const CERTCertificate& issuer,
-                                    bool& match);
+static der::Result MatchKeyHash(const SECItem& issuerKeyHash,
+                                const CERTCertificate& issuer,
+                                 bool& match);
 
 
 
@@ -240,12 +240,11 @@ GetOCSPSignerCertificate(TrustDomain& trustDomain,
               != der::Success) {
           return nullptr;
         }
-        SECItem issuerKeyHash;
-        if (der::Skip(responderID, der::OCTET_STRING, issuerKeyHash) != der::Success) {
+        SECItem keyHash;
+        if (der::Skip(responderID, der::OCTET_STRING, keyHash) != der::Success) {
           return nullptr;
         }
-        if (MatchIssuerKey(issuerKeyHash, *potentialSigner.get(), match)
-              != der::Success) {
+        if (MatchKeyHash(keyHash, *potentialSigner.get(), match) != der::Success) {
           return nullptr;
         }
         break;
@@ -784,17 +783,17 @@ CertID(der::Input& input, const Context& context,  bool& match)
     return der::Success;
   }
 
-  return MatchIssuerKey(issuerKeyHash, issuerCert, match);
+  return MatchKeyHash(issuerKeyHash, issuerCert, match);
 }
 
 
 
 
 static der::Result
-MatchIssuerKey(const SECItem& issuerKeyHash, const CERTCertificate& issuer,
-                bool& match)
+MatchKeyHash(const SECItem& keyHash, const CERTCertificate& cert,
+              bool& match)
 {
-  if (issuerKeyHash.len != SHA1_LENGTH)  {
+  if (keyHash.len != SHA1_LENGTH)  {
     return der::Fail(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
   }
 
@@ -803,7 +802,7 @@ MatchIssuerKey(const SECItem& issuerKeyHash, const CERTCertificate& issuer,
   
   
   
-  SECItem spk = issuer.subjectPublicKeyInfo.subjectPublicKey;
+  SECItem spk = cert.subjectPublicKeyInfo.subjectPublicKey;
   DER_ConvertBitString(&spk);
 
   static uint8_t hashBuf[SHA1_LENGTH];
@@ -811,7 +810,7 @@ MatchIssuerKey(const SECItem& issuerKeyHash, const CERTCertificate& issuer,
     return der::Failure;
   }
 
-  match = !memcmp(hashBuf, issuerKeyHash.data, issuerKeyHash.len);
+  match = !memcmp(hashBuf, keyHash.data, keyHash.len);
   return der::Success;
 }
 
