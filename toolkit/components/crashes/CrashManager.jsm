@@ -33,6 +33,13 @@ const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
 
 
+function dateToDays(date) {
+  return Math.floor(date.getTime() / MILLISECONDS_IN_DAY);
+}
+
+
+
+
 
 
 
@@ -526,6 +533,17 @@ let gCrashManager;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 function CrashStore(storeDir, telemetrySizeKey) {
   this._storeDir = storeDir;
   this._telemetrySizeKey = telemetrySizeKey;
@@ -534,12 +552,26 @@ function CrashStore(storeDir, telemetrySizeKey) {
 
   
   this._data = null;
+
+  
+  
+  
+  this._countsByDay = new Map();
 }
 
 CrashStore.prototype = Object.freeze({
+  
   TYPE_MAIN_CRASH: "main-crash",
+
+  
   TYPE_PLUGIN_CRASH: "plugin-crash",
+
+  
   TYPE_PLUGIN_HANG: "plugin-hang",
+
+  
+  
+  HIGH_WATER_DAILY_THRESHOLD: 100,
 
   
 
@@ -548,11 +580,13 @@ CrashStore.prototype = Object.freeze({
 
   load: function () {
     return Task.spawn(function* () {
+      
       this._data = {
         v: 1,
         crashes: new Map(),
         corruptDate: null,
       };
+      this._countsByDay = new Map();
 
       try {
         let decoder = new TextDecoder();
@@ -563,10 +597,42 @@ CrashStore.prototype = Object.freeze({
           this._data.corruptDate = new Date(data.corruptDate);
         }
 
+        
+        
+        let actualCounts = new Map();
+
         for (let id in data.crashes) {
           let crash = data.crashes[id];
           let denormalized = this._denormalize(crash);
+
           this._data.crashes.set(id, denormalized);
+
+          let key = dateToDays(denormalized.crashDate) + "-" + denormalized.type;
+          actualCounts.set(key, (actualCounts.get(key) || 0) + 1);
+        }
+
+        
+        
+        for (let dayKey in data.countsByDay) {
+          let day = parseInt(dayKey, 10);
+          for (let type in data.countsByDay[day]) {
+            this._ensureCountsForDay(day);
+
+            let count = data.countsByDay[day][type];
+            let key = day + "-" + type;
+
+            
+            
+            if (!actualCounts.has(key)) {
+              continue;
+            }
+
+            
+            
+            count = Math.max(count, actualCounts.get(key));
+
+            this._countsByDay.get(day).set(type, count);
+          }
         }
       } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
         
@@ -594,8 +660,22 @@ CrashStore.prototype = Object.freeze({
       }
 
       let normalized = {
+        
+        
         v: 1,
+        
         crashes: {},
+        
+        
+        
+        
+        
+        
+        
+        
+        countsByDay: {},
+
+        
         corruptDate: null,
       };
 
@@ -606,6 +686,13 @@ CrashStore.prototype = Object.freeze({
       for (let [id, crash] of this._data.crashes) {
         let c = this._normalize(crash);
         normalized.crashes[id] = c;
+      }
+
+      for (let [day, m] of this._countsByDay) {
+        normalized.countsByDay[day] = {};
+        for (let [type, count] of m) {
+          normalized.countsByDay[day][type] = count;
+        }
       }
 
       let encoder = new TextEncoder();
@@ -729,16 +816,51 @@ CrashStore.prototype = Object.freeze({
     return null;
   },
 
-  _ensureCrashRecord: function (id) {
+  _ensureCountsForDay: function (day) {
+    if (!this._countsByDay.has(day)) {
+      this._countsByDay.set(day, new Map());
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _ensureCrashRecord: function (id, type, date) {
+    let day = dateToDays(date);
+    this._ensureCountsForDay(day);
+
+    let count = (this._countsByDay.get(day).get(type) || 0) + 1;
+    this._countsByDay.get(day).set(type, count);
+
+    if (count > this.HIGH_WATER_DAILY_THRESHOLD && type != this.TYPE_MAIN_CRASH) {
+      return null;
+    }
+
     if (!this._data.crashes.has(id)) {
       this._data.crashes.set(id, {
         id: id,
-        type: null,
-        crashDate: null,
+        type: type,
+        crashDate: date,
       });
     }
 
-    return this._data.crashes.get(id);
+    let crash = this._data.crashes.get(id);
+    crash.type = type;
+    crash.date = date;
+
+    return crash;
   },
 
   
@@ -748,9 +870,7 @@ CrashStore.prototype = Object.freeze({
 
 
   addMainProcessCrash: function (id, date) {
-    let r = this._ensureCrashRecord(id);
-    r.type = this.TYPE_MAIN_CRASH;
-    r.crashDate = date;
+    this._ensureCrashRecord(id, this.TYPE_MAIN_CRASH, date);
   },
 
   
@@ -760,9 +880,7 @@ CrashStore.prototype = Object.freeze({
 
 
   addPluginCrash: function (id, date) {
-    let r = this._ensureCrashRecord(id);
-    r.type = this.TYPE_PLUGIN_CRASH;
-    r.crashDate = date;
+    this._ensureCrashRecord(id, this.TYPE_PLUGIN_CRASH, date);
   },
 
   
@@ -772,9 +890,7 @@ CrashStore.prototype = Object.freeze({
 
 
   addPluginHang: function (id, date) {
-    let r = this._ensureCrashRecord(id);
-    r.type = this.TYPE_PLUGIN_HANG;
-    r.crashDate = date;
+    this._ensureCrashRecord(id, this.TYPE_PLUGIN_HANG, date);
   },
 
   get mainProcessCrashes() {
@@ -844,6 +960,10 @@ CrashRecord.prototype = Object.freeze({
 
   get newestDate() {
     
+    return this._o.crashDate;
+  },
+
+  get oldestDate() {
     return this._o.crashDate;
   },
 
