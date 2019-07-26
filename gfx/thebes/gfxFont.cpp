@@ -3545,7 +3545,8 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
     
     uint32_t flags = aTextRun->GetFlags();
     flags &= (gfxTextRunFactory::TEXT_IS_RTL |
-              gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES);
+              gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES |
+              gfxTextRunFactory::TEXT_USE_MATH_SCRIPT);
     if (sizeof(T) == sizeof(uint8_t)) {
         flags |= gfxTextRunFactory::TEXT_IS_8BIT;
     }
