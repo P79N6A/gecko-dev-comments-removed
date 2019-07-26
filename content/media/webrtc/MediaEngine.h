@@ -101,8 +101,7 @@ public:
   
   virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
                           bool aAgcOn, uint32_t aAGC,
-                          bool aNoiseOn, uint32_t aNoise,
-                          int32_t aPlayoutDelay) = 0;
+                          bool aNoiseOn, uint32_t aNoise) = 0;
 
   
 
