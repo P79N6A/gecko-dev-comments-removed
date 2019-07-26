@@ -39,6 +39,7 @@
 #include "nsJSEnvironment.h"
 #include "nsJSUtils.h"
 #include "nsNetUtil.h"
+#include "nsProxyRelease.h"
 #include "nsSandboxFlags.h"
 #include "nsThreadUtils.h"
 #include "xpcpublic.h"
@@ -2444,6 +2445,18 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
   if (aParent) {
     aParent->AssertIsOnWorkerThread();
 
+    
+    Status currentStatus;
+    {
+      MutexAutoLock lock(aParent->mMutex);
+      currentStatus = aParent->mStatus;
+    }
+
+    if (currentStatus > Running) {
+      JS_ReportError(aCx, "Cannot create child workers from the close handler!");
+      return nullptr;
+    }
+
     parentContext = aCx;
 
     
@@ -2608,6 +2621,30 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
     rv =
       scriptloader::ChannelFromScriptURLWorkerThread(aCx, aParent, scriptURL,
                                                      getter_AddRefs(channel));
+
+    
+    
+
+    Status currentStatus;
+    {
+      MutexAutoLock lock(aParent->mMutex);
+      currentStatus = aParent->mStatus;
+    }
+
+    if (currentStatus > Running) {
+      nsCOMPtr<nsIThread> mainThread;
+      NS_GetMainThread(getter_AddRefs(mainThread));
+      if (!mainThread) {
+        MOZ_CRASH();
+      }
+
+      nsIChannel* rawChannel;
+      channel.forget(&rawChannel);
+      
+      NS_ProxyRelease(mainThread, rawChannel);
+
+      return nullptr;
+    }
   }
   else {
     rv =
@@ -3272,16 +3309,17 @@ WorkerPrivate::AddChildWorker(JSContext* aCx, ParentType* aChildWorker)
 {
   AssertIsOnWorkerThread();
 
-  Status currentStatus;
+#ifdef DEBUG
   {
+    Status currentStatus;
+    {
     MutexAutoLock lock(mMutex);
     currentStatus = mStatus;
-  }
+    }
 
-  if (currentStatus > Running) {
-    JS_ReportError(aCx, "Cannot create child workers from the close handler!");
-    return false;
+    MOZ_ASSERT(currentStatus == Running);
   }
+#endif
 
   NS_ASSERTION(!mChildWorkers.Contains(aChildWorker),
                "Already know about this one!");
