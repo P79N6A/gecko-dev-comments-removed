@@ -19,6 +19,8 @@
 namespace js {
 namespace gc {
 
+class AccumulateEdgesTracer;
+
 #ifdef JS_GC_ZEAL
 
 
@@ -113,14 +115,14 @@ class HashKeyRef : public BufferableRef
     }
 };
 
+typedef HashSet<void *, PointerHasher<void *, 3>, SystemAllocPolicy> EdgeSet;
+
 
 
 
 
 class StoreBuffer
 {
-    typedef HashSet<void *, PointerHasher<void *, 3>, SystemAllocPolicy> EdgeSet;
-
     
 
 
@@ -374,9 +376,35 @@ class StoreBuffer
         void mark(JSTracer *trc);
     };
 
+    class WholeObjectEdges
+    {
+        friend class StoreBuffer;
+        friend class StoreBuffer::MonoTypeBuffer<WholeObjectEdges>;
+
+        JSObject *tenured;
+
+        WholeObjectEdges(JSObject *obj) : tenured(obj) {
+            JS_ASSERT(tenured->isTenured());
+        }
+
+        bool operator==(const WholeObjectEdges &other) const { return tenured == other.tenured; }
+        bool operator!=(const WholeObjectEdges &other) const { return tenured != other.tenured; }
+
+        template <typename NurseryType>
+        bool inRememberedSet(NurseryType *nursery) const { return true; }
+
+        
+        void *location() const { return (void *)tenured; }
+
+        bool isNullEdge() const { return false; }
+
+        void mark(JSTracer *trc);
+    };
+
     MonoTypeBuffer<ValueEdge> bufferVal;
     MonoTypeBuffer<CellPtrEdge> bufferCell;
     MonoTypeBuffer<SlotEdge> bufferSlot;
+    MonoTypeBuffer<WholeObjectEdges> bufferWholeObject;
     RelocatableMonoTypeBuffer<ValueEdge> bufferRelocVal;
     RelocatableMonoTypeBuffer<CellPtrEdge> bufferRelocCell;
     GenericBuffer bufferGeneric;
@@ -392,25 +420,17 @@ class StoreBuffer
     
     EdgeSet edgeSet;
 
-#ifdef JS_GC_ZEAL
-    
-    static const size_t ValueBufferSize = 1024 * 1024 * sizeof(ValueEdge);
-    static const size_t CellBufferSize = 1024 * 1024 * sizeof(CellPtrEdge);
-    static const size_t SlotBufferSize = 1024 * 1024 * sizeof(SlotEdge);
-    static const size_t RelocValueBufferSize = 1 * 1024 * sizeof(ValueEdge);
-    static const size_t RelocCellBufferSize = 1 * 1024 * sizeof(CellPtrEdge);
-    static const size_t GenericBufferSize = 1024 * 1024 * sizeof(int);
-#else
     
     static const size_t ValueBufferSize = 1 * 1024 * sizeof(ValueEdge);
     static const size_t CellBufferSize = 2 * 1024 * sizeof(CellPtrEdge);
     static const size_t SlotBufferSize = 2 * 1024 * sizeof(SlotEdge);
+    static const size_t WholeObjectBufferSize = 2 * 1024 * sizeof(WholeObjectEdges);
     static const size_t RelocValueBufferSize = 1 * 1024 * sizeof(ValueEdge);
     static const size_t RelocCellBufferSize = 1 * 1024 * sizeof(CellPtrEdge);
     static const size_t GenericBufferSize = 1 * 1024 * sizeof(int);
-#endif
     static const size_t TotalSize = ValueBufferSize + CellBufferSize +
-                                    SlotBufferSize + RelocValueBufferSize + RelocCellBufferSize +
+                                    SlotBufferSize + WholeObjectBufferSize +
+                                    RelocValueBufferSize + RelocCellBufferSize +
                                     GenericBufferSize;
 
     
@@ -419,7 +439,7 @@ class StoreBuffer
 
   public:
     explicit StoreBuffer(JSRuntime *rt)
-      : bufferVal(this), bufferCell(this), bufferSlot(this),
+      : bufferVal(this), bufferCell(this), bufferSlot(this), bufferWholeObject(this),
         bufferRelocVal(this), bufferRelocCell(this), bufferGeneric(this),
         runtime(rt), buffer(NULL), aboutToOverflow(false), overflowed(false),
         enabled(false)
@@ -444,6 +464,9 @@ class StoreBuffer
     }
     void putSlot(JSObject *obj, HeapSlot::Kind kind, uint32_t slot) {
         bufferSlot.put(SlotEdge(obj, kind, slot));
+    }
+    void putWholeObject(JSObject *obj) {
+        bufferWholeObject.put(WholeObjectEdges(obj));
     }
 
     
