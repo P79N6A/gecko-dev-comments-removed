@@ -131,8 +131,8 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x0300e2e0, 0x24c9, 0x4ecf, \
-  { 0x81, 0xec, 0x64, 0x26, 0x9a, 0x4b, 0xef, 0x18 } }
+{ 0xc9e11955, 0xaa55, 0x49a1, \
+  { 0x94, 0x29, 0x58, 0xe9, 0xbe, 0xf6, 0x79, 0x54 } }
 
 
 enum DocumentFlavor {
@@ -1270,6 +1270,18 @@ public:
   {
     return mSecurityInfo;
   }
+
+  
+
+
+
+  virtual nsIChannel* GetFailedChannel() const = 0;
+
+  
+
+
+
+  virtual void SetFailedChannel(nsIChannel* aChannel) = 0;
 
   
 
@@ -2566,6 +2578,10 @@ protected:
 
   
   nsCOMPtr<nsISupports> mSecurityInfo;
+
+  
+  
+  nsCOMPtr<nsIChannel> mFailedChannel;
 
   
   
