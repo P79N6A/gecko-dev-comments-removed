@@ -78,6 +78,9 @@ static bool gHQDownscaling = false;
 static uint32_t gHQDownscalingMinFactor = 1000;
 static bool gMultithreadedDecoding = true;
 static int32_t gDecodingThreadLimit = -1;
++
++
++static uint32_t gHQUpscalingMaxSize = 20971520;
 
 
 
@@ -98,6 +101,8 @@ InitPrefCaches()
                                "image.multithreaded_decoding.enabled", true);
   Preferences::AddIntVarCache(&gDecodingThreadLimit,
                               "image.multithreaded_decoding.limit", -1);
+  Preferences::AddUintVarCache(&gHQUpscalingMaxSize,
+                               "image.high_quality_upscaling.max_size", 20971520);
 }
 
 
@@ -2981,15 +2986,19 @@ RasterImage::SyncDecode()
   return mError ? NS_ERROR_FAILURE : NS_OK;
 }
 
-static inline bool
-IsDownscale(const gfxSize& scale)
+bool
+RasterImage::CanQualityScale(const gfxSize& scale)
 {
-  if (scale.width > 1.0)
-    return false;
-  if (scale.height > 1.0)
-    return false;
+  
   if (scale.width == 1.0 && scale.height == 1.0)
     return false;
+
+  
+  if (scale.width > 1.0 || scale.height > 1.0) {
+    uint32_t scaled_size = static_cast<uint32_t>(mSize.width * mSize.height * scale.width * scale.height);
+    if (scaled_size > gHQUpscalingMaxSize)
+      return false;
+  }
 
   return true;
 }
@@ -3003,8 +3012,9 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
   
   
   if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
-      !mAnim && mDecoded && !mMultipart && IsDownscale(aScale)) {
+      !mAnim && mDecoded && !mMultipart && CanQualityScale(aScale)) {
     gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
+
     return (aScale.width < factor || aScale.height < factor);
   }
 #endif
