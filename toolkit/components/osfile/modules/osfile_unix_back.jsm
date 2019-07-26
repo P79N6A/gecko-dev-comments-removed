@@ -447,6 +447,14 @@
                        Types.void_t.out_ptr,
                     Types.size_t);
 
+       UnixFile.posix_fadvise =
+         declareFFI("posix_fadvise", ctypes.default_abi,
+                     Types.int,
+                         Types.fd,
+                     Types.off_t,
+                        Types.off_t,
+                     Types.int);
+
        if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
          
          
