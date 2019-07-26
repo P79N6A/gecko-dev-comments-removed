@@ -1738,6 +1738,36 @@ protected:
   Type mType;
 };
 
+
+
+
+
+
+class nsDisplayGenericOverflow : public nsDisplayGeneric {
+  public:
+    nsDisplayGenericOverflow(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                             PaintCallback aPaint, const char* aName, Type aType)
+      : nsDisplayGeneric(aBuilder, aFrame, aPaint, aName, aType)
+    {
+      MOZ_COUNT_CTOR(nsDisplayGenericOverflow);
+    }
+  #ifdef NS_BUILD_REFCNT_LOGGING
+    virtual ~nsDisplayGenericOverflow() {
+      MOZ_COUNT_DTOR(nsDisplayGenericOverflow);
+    }
+  #endif
+
+    
+
+
+    virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
+                             bool* aSnap) MOZ_OVERRIDE
+    {
+      *aSnap = false;
+      return Frame()->GetVisualOverflowRect() + ToReferenceFrame();
+    }
+};
+
 #if defined(MOZ_REFLOW_PERF_DSP) && defined(MOZ_REFLOW_PERF)
 
 
