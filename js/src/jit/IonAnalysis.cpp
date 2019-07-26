@@ -1764,6 +1764,10 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     
     
 
+    if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx)) {
+        return false;
+    }
+
     if (!fun->nonLazyScript()->compileAndGo)
         return true;
 
