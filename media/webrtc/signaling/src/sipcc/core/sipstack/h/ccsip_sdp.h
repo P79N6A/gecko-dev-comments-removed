@@ -10,7 +10,7 @@
 #include "pmhutils.h"
 #include "sdp.h"
 #include "ccapi.h"
-
+#include "mozilla-config.h"
 
 
 #define CCSIP_SRC_SDP_BIT       0x1
@@ -44,7 +44,7 @@ PMH_EXTERN void sipsdp_free(cc_sdp_t **sip_sdp);
 
 #define SIPSDP_VERSION              0
 
-#define SIPSDP_ORIGIN_USERNAME      "Mozilla-SIPUA"
+#define SIPSDP_ORIGIN_USERNAME      "Mozilla-SIPUA-" MOZ_APP_UA_VERSION
 #define SIPSDP_SESSION_NAME         "SIP Call"
 
 
