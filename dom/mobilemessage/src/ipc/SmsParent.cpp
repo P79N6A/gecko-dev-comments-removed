@@ -345,7 +345,7 @@ SmsParent::RecvPSmsRequestConstructor(PSmsRequestParent* aActor,
 }
 
 PSmsRequestParent*
-SmsParent::AllocPSmsRequest(const IPCSmsRequest& aRequest)
+SmsParent::AllocPSmsRequestParent(const IPCSmsRequest& aRequest)
 {
   SmsRequestParent* actor = new SmsRequestParent();
   
@@ -356,7 +356,7 @@ SmsParent::AllocPSmsRequest(const IPCSmsRequest& aRequest)
 }
 
 bool
-SmsParent::DeallocPSmsRequest(PSmsRequestParent* aActor)
+SmsParent::DeallocPSmsRequestParent(PSmsRequestParent* aActor)
 {
   
   static_cast<SmsRequestParent*>(aActor)->Release();
@@ -383,7 +383,7 @@ SmsParent::RecvPMobileMessageCursorConstructor(PMobileMessageCursorParent* aActo
 }
 
 PMobileMessageCursorParent*
-SmsParent::AllocPMobileMessageCursor(const IPCMobileMessageCursor& aRequest)
+SmsParent::AllocPMobileMessageCursorParent(const IPCMobileMessageCursor& aRequest)
 {
   MobileMessageCursorParent* actor = new MobileMessageCursorParent();
   
@@ -394,7 +394,7 @@ SmsParent::AllocPMobileMessageCursor(const IPCMobileMessageCursor& aRequest)
 }
 
 bool
-SmsParent::DeallocPMobileMessageCursor(PMobileMessageCursorParent* aActor)
+SmsParent::DeallocPMobileMessageCursorParent(PMobileMessageCursorParent* aActor)
 {
   
   static_cast<MobileMessageCursorParent*>(aActor)->Release();

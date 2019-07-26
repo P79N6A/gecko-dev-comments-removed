@@ -110,26 +110,26 @@ SmsChild::RecvNotifyDeliveryErrorMessage(const MobileMessageData& aData)
 }
 
 PSmsRequestChild*
-SmsChild::AllocPSmsRequest(const IPCSmsRequest& aRequest)
+SmsChild::AllocPSmsRequestChild(const IPCSmsRequest& aRequest)
 {
   MOZ_CRASH("Caller is supposed to manually construct a request!");
 }
 
 bool
-SmsChild::DeallocPSmsRequest(PSmsRequestChild* aActor)
+SmsChild::DeallocPSmsRequestChild(PSmsRequestChild* aActor)
 {
   delete aActor;
   return true;
 }
 
 PMobileMessageCursorChild*
-SmsChild::AllocPMobileMessageCursor(const IPCMobileMessageCursor& aCursor)
+SmsChild::AllocPMobileMessageCursorChild(const IPCMobileMessageCursor& aCursor)
 {
   MOZ_CRASH("Caller is supposed to manually construct a cursor!");
 }
 
 bool
-SmsChild::DeallocPMobileMessageCursor(PMobileMessageCursorChild* aActor)
+SmsChild::DeallocPMobileMessageCursorChild(PMobileMessageCursorChild* aActor)
 {
   
   
