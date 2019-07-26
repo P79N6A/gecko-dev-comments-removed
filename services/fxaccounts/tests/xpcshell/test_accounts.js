@@ -11,6 +11,12 @@ Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 
+const ONE_HOUR_MS = 1000 * 60 * 60;
+const ONE_DAY_MS = ONE_HOUR_MS * 24;
+const TWO_MINUTES_MS = 1000 * 60 * 2;
+
+initTestLogging("Trace");
+
 
 Cu.importGlobalProperties(['atob']);
 
@@ -383,40 +389,39 @@ add_task(function test_getAssertion() {
   yield fxa.setSignedInUser(creds);
 
   _("== ready to go\n");
-  let now = 138000000*1000;
-  let start = Date.now();
+  
+  
+  
+  let now = Date.parse("Mon, 13 Jan 2014 21:45:06 GMT");
+  let start = now;
   fxa._now_is = now;
+
   let d = fxa.getAssertion("audience.example.com");
   
   _("-- back from fxa.getAssertion\n");
   fxa._d_signCertificate.resolve("cert1");
   let assertion = yield d;
-  let finish = Date.now();
   do_check_eq(fxa._getCertificateSigned_calls.length, 1);
   do_check_eq(fxa._getCertificateSigned_calls[0][0], "sessionToken");
   do_check_neq(assertion, null);
-  _("ASSERTION: "+assertion+"\n");
+  _("ASSERTION: " + assertion + "\n");
   let pieces = assertion.split("~");
   do_check_eq(pieces[0], "cert1");
   do_check_neq(fxa.internal.keyPair, undefined);
-  _(fxa.internal.keyPair.validUntil+"\n");
+  _(fxa.internal.keyPair.validUntil + "\n");
   let p2 = pieces[1].split(".");
   let header = JSON.parse(atob(p2[0]));
-  _("HEADER: "+JSON.stringify(header)+"\n");
+  _("HEADER: " + JSON.stringify(header) + "\n");
   do_check_eq(header.alg, "DS128");
   let payload = JSON.parse(atob(p2[1]));
-  _("PAYLOAD: "+JSON.stringify(payload)+"\n");
+  _("PAYLOAD: " + JSON.stringify(payload) + "\n");
   do_check_eq(payload.aud, "audience.example.com");
-  
-  do_check_eq(fxa.internal.keyPair.validUntil, now + (12*3600*1000));
-  
-  do_check_eq(fxa.internal.cert.validUntil, now + (6*3600*1000));
-  _("delta: "+(new Date(payload.exp) - now)+"\n");
+  do_check_eq(fxa.internal.keyPair.validUntil, start + KEY_LIFETIME);
+  do_check_eq(fxa.internal.cert.validUntil, start + CERT_LIFETIME);
+  _("delta: " + Date.parse(payload.exp - start) + "\n");
   let exp = Number(payload.exp);
-  
-  
-  do_check_true(start + 2*60*1000 <= exp);
-  do_check_true(exp <= finish + 2*60*1000);
+
+  do_check_eq(exp, now + TWO_MINUTES_MS);
 
   
   fxa._d_signCertificate = Promise.defer();
@@ -424,15 +429,43 @@ add_task(function test_getAssertion() {
   
   
   assertion = yield fxa.getAssertion("other.example.com");
+
+  
   do_check_eq(fxa._getCertificateSigned_calls.length, 1);
 
   
-  fxa._now_is = now + 24*3600*1000;
-  start = Date.now();
-  d = fxa.getAssertion("third.example.com");
+  now += ONE_HOUR_MS;
+  fxa._now_is = now;
+
+  
+  
+  assertion = yield fxa.getAssertion("third.example.com");
+
+  
+  pieces = assertion.split("~");
+  do_check_eq(pieces[0], "cert1");
+  p2 = pieces[1].split(".");
+  header = JSON.parse(atob(p2[0]));
+  payload = JSON.parse(atob(p2[1]));
+  do_check_eq(payload.aud, "third.example.com");
+
+  
+  
+  
+  
+
+  do_check_eq(fxa.internal.keyPair.validUntil, start + KEY_LIFETIME);
+  do_check_eq(fxa.internal.cert.validUntil, start + CERT_LIFETIME);
+  exp = Number(payload.exp);
+  do_check_eq(exp, now + TWO_MINUTES_MS);
+
+  
+  
+  now += ONE_DAY_MS;
+  fxa._now_is = now;
+  d = fxa.getAssertion("fourth.example.com");
   fxa._d_signCertificate.resolve("cert2");
   assertion = yield d;
-  finish = Date.now();
   do_check_eq(fxa._getCertificateSigned_calls.length, 2);
   do_check_eq(fxa._getCertificateSigned_calls[1][0], "sessionToken");
   pieces = assertion.split("~");
@@ -440,15 +473,12 @@ add_task(function test_getAssertion() {
   p2 = pieces[1].split(".");
   header = JSON.parse(atob(p2[0]));
   payload = JSON.parse(atob(p2[1]));
-  do_check_eq(payload.aud, "third.example.com");
-  
-  do_check_eq(fxa.internal.keyPair.validUntil, now + 24*3600*1000 + (12*3600*1000));
-  
-  do_check_eq(fxa.internal.cert.validUntil, now + 24*3600*1000 + (6*3600*1000));
+  do_check_eq(payload.aud, "fourth.example.com");
+  do_check_eq(fxa.internal.keyPair.validUntil, now + KEY_LIFETIME);
+  do_check_eq(fxa.internal.cert.validUntil, now + CERT_LIFETIME);
   exp = Number(payload.exp);
-  do_check_true(start + 2*60*1000 <= exp);
-  do_check_true(exp <= finish + 2*60*1000);
 
+  do_check_eq(exp, now + TWO_MINUTES_MS);
   _("----- DONE ----\n");
 });
 

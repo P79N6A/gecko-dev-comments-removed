@@ -24,6 +24,7 @@ XPCOMUtils.defineLazyServiceGetter(this,
 this.EXPORTED_SYMBOLS = ["jwcrypto"];
 
 const ALGORITHMS = { RS256: "RS256", DS160: "DS160" };
+const DURATION_MS = 1000 * 60 * 2; 
 
 function log(...aMessageArgs) {
   Logger.log.apply(Logger, ["jwcrypto"].concat(aMessageArgs));
@@ -87,6 +88,23 @@ function jwcryptoClass()
 }
 
 jwcryptoClass.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getExpiration: function(duration=DURATION_MS, localtimeOffsetMsec=0, now=Date.now()) {
+    return now + localtimeOffsetMsec + duration;
+  },
+
   isCertValid: function(aCert, aCallback) {
     
     aCallback(true);
@@ -97,7 +115,41 @@ jwcryptoClass.prototype = {
     generateKeyPair(aAlgorithmName, aCallback);
   },
 
-  generateAssertion: function(aCert, aKeyPair, aAudience, aCallback) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  generateAssertion: function(aCert, aKeyPair, aAudience, aOptions, aCallback) {
+    if (typeof aOptions == "function") {
+      aCallback = aOptions;
+      aOptions = { };
+    }
+
     
     
     var header = {"alg": "DS128"};
@@ -105,9 +157,8 @@ jwcryptoClass.prototype = {
                           JSON.stringify(header));
 
     var payload = {
-      
-      
-      exp: Date.now() + (2 * 60 * 1000),
+      exp: this.getExpiration(
+               aOptions.duration, aOptions.localtimeOffsetMsec, aOptions.now),
       aud: aAudience
     };
     var payloadBytes = IdentityCryptoService.base64UrlEncode(

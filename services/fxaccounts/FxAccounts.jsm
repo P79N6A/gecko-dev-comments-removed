@@ -70,6 +70,26 @@ InternalMethods.prototype = {
   
 
 
+
+  now: function() {
+    return this.fxAccountsClient.now();
+  },
+
+  
+
+
+
+
+
+
+
+  get localtimeOffsetMsec() {
+    return this.fxAccountsClient.localtimeOffsetMsec;
+  },
+
+  
+
+
   checkEmailStatus: function checkEmailStatus(sessionToken) {
     return this.fxAccountsClient.recoveryEmailStatus(sessionToken);
   },
@@ -206,9 +226,13 @@ InternalMethods.prototype = {
     log.debug("getAssertionFromCert");
     let payload = {};
     let d = Promise.defer();
+    let options = {
+      localtimeOffsetMsec: internal.localtimeOffsetMsec,
+      now: internal.now()
+    };
     
     
-    jwcrypto.generateAssertion(cert, keyPair, audience, function(err, signed) {
+    jwcrypto.generateAssertion(cert, keyPair, audience, options, (err, signed) => {
       if (err) {
         log.error("getAssertionFromCert: " + err);
         d.reject(err);
@@ -228,7 +252,7 @@ InternalMethods.prototype = {
       return Promise.resolve(this.cert.cert);
     }
     
-    let willBeValidUntil = this.now() + CERT_LIFETIME;
+    let willBeValidUntil = internal.now() + CERT_LIFETIME;
     return this.getCertificateSigned(data.sessionToken,
                                      keyPair.serializedPublicKey,
                                      CERT_LIFETIME)
@@ -255,7 +279,7 @@ InternalMethods.prototype = {
       return Promise.resolve(this.keyPair.keyPair);
     }
     
-    let willBeValidUntil = this.now() + KEY_LIFETIME;
+    let willBeValidUntil = internal.now() + KEY_LIFETIME;
     let d = Promise.defer();
     jwcrypto.generateKeyPair("DS160", (err, kp) => {
       if (err) {

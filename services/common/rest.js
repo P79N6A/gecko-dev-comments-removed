@@ -9,7 +9,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 this.EXPORTED_SYMBOLS = [
   "RESTRequest",
   "RESTResponse",
-  "TokenAuthenticatedRESTRequest"
+  "TokenAuthenticatedRESTRequest",
+  "HAWKAuthenticatedRESTRequest",
 ];
 
 #endif
@@ -145,6 +146,11 @@ RESTRequest.prototype = {
   IN_PROGRESS: 2,
   COMPLETED:   4,
   ABORTED:     8,
+
+  
+
+
+  statusText: null,
 
   
 
@@ -612,8 +618,7 @@ RESTResponse.prototype = {
   get status() {
     let status;
     try {
-      let channel = this.request.channel.QueryInterface(Ci.nsIHttpChannel);
-      status = channel.responseStatus;
+      status = this.request.channel.responseStatus;
     } catch (ex) {
       this._log.debug("Caught exception fetching HTTP status code:" +
                       CommonUtils.exceptionStr(ex));
@@ -626,11 +631,26 @@ RESTResponse.prototype = {
   
 
 
+  get statusText() {
+    let statusText;
+    try {
+      statusText = this.request.channel.responseStatusText;
+    } catch (ex) {
+      this._log.debug("Caught exception fetching HTTP status text:" +
+                      CommonUtils.exceptionStr(ex));
+      return null;
+    }
+    delete this.statusText;
+    return this.statusText = statusText;
+  },
+
+  
+
+
   get success() {
     let success;
     try {
-      let channel = this.request.channel.QueryInterface(Ci.nsIHttpChannel);
-      success = channel.requestSucceeded;
+      success = this.request.channel.requestSucceeded;
     } catch (ex) {
       this._log.debug("Caught exception fetching HTTP success flag:" +
                       CommonUtils.exceptionStr(ex));
@@ -703,4 +723,61 @@ TokenAuthenticatedRESTRequest.prototype = {
       this, method, data, onComplete, onProgress
     );
   },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.HAWKAuthenticatedRESTRequest =
+ function HawkAuthenticatedRESTRequest(uri, credentials, extra={}) {
+  RESTRequest.call(this, uri);
+
+  this.credentials = credentials;
+  this.now = extra.now || Date.now();
+  this.localtimeOffsetMsec = extra.localtimeOffsetMsec || 0;
+  this._log.trace("local time, offset: " + this.now + ", " + (this.localtimeOffsetMsec));
+};
+HAWKAuthenticatedRESTRequest.prototype = {
+  __proto__: RESTRequest.prototype,
+
+  dispatch: function dispatch(method, data, onComplete, onProgress) {
+    if (this.credentials) {
+      let options = {
+        now: this.now,
+        localtimeOffsetMsec: this.localtimeOffsetMsec,
+        credentials: this.credentials,
+        payload: data && JSON.stringify(data) || "",
+        contentType: "application/json; charset=utf-8",
+      };
+      let header = CryptoUtils.computeHAWK(this.uri, method, options);
+      this.setHeader("Authorization", header.field);
+      this._log.trace("hawk auth header: " + header.field);
+    }
+
+    return RESTRequest.prototype.dispatch.call(
+      this, method, data, onComplete, onProgress
+    );
+  }
 };
