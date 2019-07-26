@@ -2539,7 +2539,8 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
-#TabsToolbar::after {
+#main-window:not([tabsintitlebar]) #TabsToolbar::after,
+#TabsToolbar:-moz-lwtheme::after {
   content: '';
   
 
