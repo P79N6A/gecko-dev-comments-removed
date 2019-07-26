@@ -70,8 +70,6 @@ public:
 
 
 
-  virtual void OnDataAvailable(const nsIntRect * aRect) = 0;
-
   virtual void FrameChanged(const nsIntRect * aDirtyRect) = 0;
 
   

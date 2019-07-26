@@ -158,7 +158,6 @@ Decoder::FlushInvalidations()
   
   mImage.FrameUpdated(mFrameCount - 1, mInvalidRect);
 
-  
   if (mObserver) {
 #ifdef XP_MACOSX
     
@@ -174,7 +173,7 @@ Decoder::FlushInvalidations()
     mInvalidRect.Inflate(1);
     mInvalidRect = mInvalidRect.Intersect(mImageBound);
 #endif
-    mObserver->OnDataAvailable(&mInvalidRect);
+    mObserver->FrameChanged(&mInvalidRect);
   }
 
   
