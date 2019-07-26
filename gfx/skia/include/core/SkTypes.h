@@ -126,8 +126,19 @@ template <bool>
 struct SkCompileAssert {
 };
 
+
+
+
+
+
+#  if defined(__GNUC__)
+#    define SK_COMPILE_ASSERT_UNUSED_ATTRIBUTE __attribute__((unused))
+#  else
+#    define SK_COMPILE_ASSERT_UNUSED_ATTRIBUTE
+#  endif
+
 #define SK_COMPILE_ASSERT(expr, msg) \
-    typedef SkCompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
+    typedef SkCompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1] SK_COMPILE_ASSERT_UNUSED_ATTRIBUTE
 
 
 
