@@ -27,6 +27,7 @@
 #include "nsBlockFrame.h"
 #include "sampler.h"
 #include "nsExpirationTracker.h"
+#include "RoundedRect.h"
 
 #include "gfxContext.h"
 
@@ -1801,7 +1802,6 @@ nsCSSBorderRenderer::DrawBorders()
   }
 
   bool allBordersSolid;
-  bool noCornerOutsideCenter = true;
 
   
   
@@ -1848,40 +1848,34 @@ nsCSSBorderRenderer::DrawBorders()
 
   
   if (allBordersSame &&
-      allBordersSameWidth &&
       mCompositeColors[0] == NULL &&
       mBorderStyles[0] == NS_STYLE_BORDER_STYLE_SOLID &&
-      !mAvoidStroke)
+      !mAvoidStroke &&
+      !mNoBorderRadius)
   {
-    NS_FOR_CSS_CORNERS(i) {
-      if (mBorderRadii[i].width <= mBorderWidths[0]) {
-        noCornerOutsideCenter = false;
-      }
-      if (mBorderRadii[i].height <= mBorderWidths[0]) {
-        noCornerOutsideCenter = false;
-      }
-    }
+    
+    SetupStrokeStyle(NS_SIDE_TOP);
+
+    RoundedRect borderInnerRect(mOuterRect, mBorderRadii);
+    borderInnerRect.Deflate(mBorderWidths[NS_SIDE_TOP],
+                      mBorderWidths[NS_SIDE_BOTTOM],
+                      mBorderWidths[NS_SIDE_LEFT],
+                      mBorderWidths[NS_SIDE_RIGHT]);
 
     
     
-
-    if (noCornerOutsideCenter) {
-      
-      SetupStrokeStyle(NS_SIDE_TOP);
-      mOuterRect.Deflate(mBorderWidths[0] / 2.0);
-      NS_FOR_CSS_CORNERS(corner) {
-        if (mBorderRadii.sizes[corner].height == 0 || mBorderRadii.sizes[corner].width == 0) {
-          continue;
-        }
-        mBorderRadii.sizes[corner].width -= mBorderWidths[0] / 2;
-        mBorderRadii.sizes[corner].height -= mBorderWidths[0] / 2;
-      }
-
-      mContext->NewPath();
-      mContext->RoundedRectangle(mOuterRect, mBorderRadii);
-      mContext->Stroke();
-      return;
-    }
+    
+    
+    
+    
+    
+    
+    
+    mContext->NewPath();
+    mContext->RoundedRectangle(mOuterRect, mBorderRadii, true);
+    mContext->RoundedRectangle(borderInnerRect.rect, borderInnerRect.corners, false);
+    mContext->Fill();
+    return;
   }
 
   bool hasCompositeColors;
