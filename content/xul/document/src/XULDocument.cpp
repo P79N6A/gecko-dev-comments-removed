@@ -1517,6 +1517,29 @@ XULDocument::GetHeight(ErrorResult& aRv)
     return height;
 }
 
+JSObject*
+GetScopeObjectOfNode(nsIDOMNode* node)
+{
+    MOZ_ASSERT(node, "Must not be called with null.")
+
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsINode> inode = do_QueryInterface(node);
+    MOZ_ASSERT(inode, "How can this happen?");
+
+    nsIDocument* doc = inode->OwnerDoc();
+    MOZ_ASSERT(inode, "This should never happen.");
+
+    nsIGlobalObject* global = doc->GetScopeObject();
+    return global ? global->GetGlobalJSObject() : nullptr;
+}
+
 
 
 
@@ -1539,8 +1562,10 @@ XULDocument::GetPopupNode(nsIDOMNode** aNode)
         }
     }
 
-    if (node && nsContentUtils::CanCallerAccess(node))
-      node.swap(*aNode);
+    if (node && nsContentUtils::CanCallerAccess(node)
+        && GetScopeObjectOfNode(node)) {
+        node.swap(*aNode);
+    }
 
     return NS_OK;
 }
