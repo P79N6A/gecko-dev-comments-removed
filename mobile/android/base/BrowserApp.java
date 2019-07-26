@@ -199,7 +199,7 @@ abstract public class BrowserApp extends GeckoApp
             case PAGE_SHOW:
                 loadFavicon(tab);
                 break;
-            case LINK_ADDED:
+            case LINK_FAVICON:
                 
                 
                 
@@ -452,11 +452,7 @@ abstract public class BrowserApp extends GeckoApp
                 
                 LayerView layerView = mLayerView;
                 if (layerView != null && !layerView.hasFocus() && GamepadUtils.isPanningControl(event)) {
-                    if (Boolean.FALSE.equals(mAboutHomeShowing)) {
-                        layerView.requestFocus();
-                    } else {
-                        mAboutHomeContent.requestFocus();
-                    }
+                    layerView.requestFocus();
                 }
                 return false;
             }
