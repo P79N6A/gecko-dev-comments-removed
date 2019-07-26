@@ -2369,7 +2369,7 @@ nsHTMLDocument::NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
 
   JS::Value val;
   { 
-    JSObject* wrapper = GetWrapper();
+    JS::Rooted<JSObject*> wrapper(cx, GetWrapper());
     JSAutoCompartment ac(cx, wrapper);
     
     
