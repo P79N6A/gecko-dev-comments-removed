@@ -582,6 +582,11 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 
         
         
+        
+        InitWritePoisoning();
+
+        
+        
         if (observerService) {
             
             
