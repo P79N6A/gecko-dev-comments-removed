@@ -5,6 +5,7 @@
 
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 Components.utils.import("resource://gre/modules/LoadContextInfo.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var gAdvancedPane = {
   _inited: false,
@@ -282,51 +283,28 @@ var gAdvancedPane = {
   
   updateActualCacheSize: function ()
   {
-    var sum = 0;
-    function updateUI(consumption) {
-      var actualSizeLabel = document.getElementById("actualDiskCacheSize");
-      var sizeStrings = DownloadUtils.convertByteUnits(consumption);
-      var prefStrBundle = document.getElementById("bundlePreferences");
-      var sizeStr = prefStrBundle.getFormattedString("actualDiskCacheSize", sizeStrings);
-      actualSizeLabel.value = sizeStr;
-    }
+    var actualSizeLabel = document.getElementById("actualDiskCacheSize");
+    var prefStrBundle = document.getElementById("bundlePreferences");
 
-    Visitor.prototype = {
-      expected: 0,
-      sum: 0,
-      QueryInterface: function listener_qi(iid) {
-        if (iid.equals(Ci.nsISupports) ||
-            iid.equals(Ci.nsICacheStorageVisitor)) {
-          return this;
-        }
-        throw Components.results.NS_ERROR_NO_INTERFACE;
+    
+    this.observer = {
+      onNetworkCacheDiskConsumption: function(consumption) {
+        var size = DownloadUtils.convertByteUnits(consumption);
+        actualSizeLabel.value = prefStrBundle.getFormattedString("actualDiskCacheSize", size);
       },
-      onCacheStorageInfo: function(num, consumption)
-      {
-        this.sum += consumption;
-        if (!--this.expected)
-          updateUI(this.sum);
-      },
-      onCacheEntryInfo: function(entry)
-      {
-      }
+
+      QueryInterface: XPCOMUtils.generateQI([
+        Components.interfaces.nsICacheStorageConsumptionObserver,
+        Components.interfaces.nsISupportsWeakReference
+      ])
     };
-    function Visitor(callbacksExpected) {
-      this.expected = callbacksExpected;
-    }
+
+    actualSizeLabel.value = prefStrBundle.getString("actualDiskCacheSizeCalculated");
 
     var cacheService =
       Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
                 .getService(Components.interfaces.nsICacheStorageService);
-    
-    var storage1 = cacheService.diskCacheStorage(LoadContextInfo.default, false);
-    
-    var storage2 = cacheService.diskCacheStorage(LoadContextInfo.anonymous, false);
-
-    
-    var visitor = new Visitor(2);
-    storage1.asyncVisitStorage(visitor, false );
-    storage2.asyncVisitStorage(visitor, false );
+    cacheService.asyncGetDiskConsumption(this.observer);
   },
 
   

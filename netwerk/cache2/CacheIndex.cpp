@@ -1247,6 +1247,44 @@ CacheIndex::GetCacheSize(uint32_t *_retval)
   return NS_OK;
 }
 
+
+nsresult
+CacheIndex::AsyncGetDiskConsumption(nsICacheStorageConsumptionObserver* aObserver)
+{
+  LOG(("CacheIndex::AsyncGetDiskConsumption()"));
+
+  nsRefPtr<CacheIndex> index = gInstance;
+
+  if (!index) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  CacheIndexAutoLock lock(index);
+
+  if (!index->IsIndexUsable()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsRefPtr<DiskConsumptionObserver> observer =
+    DiskConsumptionObserver::Init(aObserver);
+
+  NS_ENSURE_ARG(observer);
+
+  if (index->mState == READY || index->mState == WRITING) {
+    LOG(("CacheIndex::AsyncGetDiskConsumption - calling immediately"));
+    
+    
+    observer->OnDiskConsumption(index->mIndexStats.Size() << 10);
+    return NS_OK;
+  }
+
+  LOG(("CacheIndex::AsyncGetDiskConsumption - remembering callback"));
+  
+  index->mDiskConsumptionObservers.AppendElement(observer);
+
+  return NS_OK;
+}
+
 bool
 CacheIndex::IsIndexUsable()
 {
@@ -2967,6 +3005,16 @@ CacheIndex::ChangeState(EState aNewState)
   }
 
   mState = aNewState;
+
+  if (mState == READY && mDiskConsumptionObservers.Length()) {
+    for (uint32_t i = 0; i < mDiskConsumptionObservers.Length(); ++i) {
+      DiskConsumptionObserver* o = mDiskConsumptionObservers[i];
+      
+      o->OnDiskConsumption(mIndexStats.Size() << 10);
+    }
+
+    mDiskConsumptionObservers.Clear();
+  }
 }
 
 void
@@ -3422,6 +3470,7 @@ CacheIndex::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) cons
   
   n += mFrecencyArray.SizeOfExcludingThis(mallocSizeOf);
   n += mExpirationArray.SizeOfExcludingThis(mallocSizeOf);
+  n += mDiskConsumptionObservers.SizeOfExcludingThis(mallocSizeOf);
 
   return n;
 }

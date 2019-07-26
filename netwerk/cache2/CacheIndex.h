@@ -9,9 +9,12 @@
 #include "CacheFileIOManager.h"
 #include "nsIRunnable.h"
 #include "CacheHashUtils.h"
+#include "nsICacheStorageService.h"
 #include "nsICacheEntry.h"
 #include "nsILoadContextInfo.h"
 #include "nsTHashtable.h"
+#include "nsThreadUtils.h"
+#include "nsWeakReference.h"
 #include "mozilla/SHA1.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Endian.h"
@@ -547,6 +550,9 @@ public:
   static nsresult GetCacheSize(uint32_t *_retval);
 
   
+  static nsresult AsyncGetDiskConsumption(nsICacheStorageConsumptionObserver* aObserver);
+
+  
   static size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
   static size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -895,6 +901,50 @@ private:
   
   nsTArray<CacheIndexRecord *>  mFrecencyArray;
   nsTArray<CacheIndexRecord *>  mExpirationArray;
+
+  class DiskConsumptionObserver : public nsRunnable
+  {
+  public:
+    static DiskConsumptionObserver* Init(nsICacheStorageConsumptionObserver* aObserver)
+    {
+      nsWeakPtr observer = do_GetWeakReference(aObserver);
+      if (!observer)
+        return nullptr;
+
+      return new DiskConsumptionObserver(observer);
+    }
+
+    void OnDiskConsumption(int64_t aSize)
+    {
+      mSize = aSize;
+      NS_DispatchToMainThread(this);
+    }
+
+  private:
+    DiskConsumptionObserver(nsWeakPtr const &aWeakObserver)
+      : mObserver(aWeakObserver) { }
+    virtual ~DiskConsumptionObserver() { }
+
+    NS_IMETHODIMP Run()
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      nsCOMPtr<nsICacheStorageConsumptionObserver> observer =
+        do_QueryReferent(mObserver);
+
+      if (observer) {
+        observer->OnNetworkCacheDiskConsumption(mSize);
+      }
+
+      return NS_OK;
+    }
+
+    nsWeakPtr mObserver;
+    int64_t mSize;
+  };
+
+  
+  nsTArray<nsRefPtr<DiskConsumptionObserver> > mDiskConsumptionObservers;
 };
 
 
