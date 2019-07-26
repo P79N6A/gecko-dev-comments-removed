@@ -41,6 +41,7 @@ public:
 
     void SetMatrix(const gfxMatrix& matrix);
     gfxMatrix GetMatrix() const;
+    gfxMatrix GetInverseMatrix() const;
 
     
 
