@@ -325,35 +325,6 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
   return GetAnimationRule(aElement, aStyleContext->GetPseudoType());
 }
 
-class PercentageHashKey : public PLDHashEntryHdr
-{
-public:
-  typedef const float& KeyType;
-  typedef const float* KeyTypePointer;
-
-  PercentageHashKey(KeyTypePointer aKey) : mValue(*aKey) { }
-  PercentageHashKey(const PercentageHashKey& toCopy) : mValue(toCopy.mValue) { }
-  ~PercentageHashKey() { }
-
-  KeyType GetKey() const { return mValue; }
-  bool KeyEquals(KeyTypePointer aKey) const { return *aKey == mValue; }
-
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-  static PLDHashNumber HashKey(KeyTypePointer aKey) {
-    static_assert(sizeof(PLDHashNumber) == sizeof(uint32_t),
-                  "this hash function assumes PLDHashNumber is uint32_t");
-    static_assert(PLDHashNumber(-1) > PLDHashNumber(0),
-                  "this hash function assumes PLDHashNumber is uint32_t");
-    float key = *aKey;
-    NS_ABORT_IF_FALSE(0.0f <= key && key <= 1.0f, "out of range");
-    return PLDHashNumber(key * UINT32_MAX);
-  }
-  enum { ALLOW_MEMMOVE = true };
-
-private:
-  const float mValue;
-};
-
 struct KeyframeData {
   float mKey;
   uint32_t mIndex; 
@@ -467,8 +438,6 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       for (uint32_t keyIdx = 0, keyEnd = keys.Length();
            keyIdx != keyEnd; ++keyIdx) {
         float key = keys[keyIdx];
-        
-        
         
         
         if (0.0f <= key && key <= 1.0f) {
