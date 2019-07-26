@@ -416,6 +416,8 @@ private:
   
   bool mCurrentRequestRegistered;
   bool mPendingRequestRegistered;
+
+  uint32_t mVisibleCount;
 };
 
 #endif 
