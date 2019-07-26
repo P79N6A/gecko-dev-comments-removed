@@ -23,6 +23,32 @@ struct JSStructuredCloneWriter;
 
 
 
+namespace JS {
+enum TransferableOwnership {
+    
+    SCTAG_TMO_UNFILLED = 0,
+
+    
+    SCTAG_TMO_UNOWNED = 1,
+
+    
+    SCTAG_TMO_FIRST_OWNED = 2,
+
+    
+    SCTAG_TMO_ALLOC_DATA = 2,
+
+    
+    SCTAG_TMO_SHARED_BUFFER = 3,
+
+    
+    
+    
+    SCTAG_TMO_CUSTOM = 4,
+
+    SCTAG_TMO_USER_MIN
+};
+} 
+
 
 
 
@@ -43,12 +69,51 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 typedef bool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
-                                         JS::HandleObject obj, void *closure);
+                                       JS::HandleObject obj, void *closure);
 
 
 
 
 typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32_t errorid);
+
+
+
+
+
+
+typedef bool (*ReadTransferStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
+                                              uint32_t tag, void *content, uint64_t extraData,
+                                              void *closure,
+                                              JS::MutableHandleObject returnObject);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef bool (*TransferStructuredCloneOp)(JSContext *cx,
+                                          JS::Handle<JSObject*> obj,
+                                          void *closure,
+                                          
+                                          uint32_t *tag,
+                                          JS::TransferableOwnership *ownership,
+                                          void **content,
+                                          uint64_t *extraData);
+
+
+
+
+typedef void (*FreeTransferStructuredCloneOp)(uint32_t tag, JS::TransferableOwnership ownership,
+                                              void *content, uint64_t extraData, void *closure);
 
 
 
@@ -59,6 +124,9 @@ struct JSStructuredCloneCallbacks {
     ReadStructuredCloneOp read;
     WriteStructuredCloneOp write;
     StructuredCloneErrorOp reportError;
+    ReadTransferStructuredCloneOp readTransfer;
+    TransferStructuredCloneOp writeTransfer;
+    FreeTransferStructuredCloneOp freeTransfer;
 };
 
 
@@ -75,7 +143,9 @@ JS_WriteStructuredClone(JSContext *cx, JS::HandleValue v, uint64_t **datap, size
                         void *closure, JS::HandleValue transferable);
 
 JS_PUBLIC_API(bool)
-JS_ClearStructuredClone(const uint64_t *data, size_t nbytes);
+JS_ClearStructuredClone(uint64_t *data, size_t nbytes,
+                        const JSStructuredCloneCallbacks *optionalCallbacks,
+                        void *closure);
 
 JS_PUBLIC_API(bool)
 JS_StructuredCloneHasTransferables(const uint64_t *data, size_t nbytes, bool *hasTransferable);
@@ -89,10 +159,19 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     uint64_t *data_;
     size_t nbytes_;
     uint32_t version_;
+    const JSStructuredCloneCallbacks *callbacks_;
+    void *closure_;
 
   public:
     JSAutoStructuredCloneBuffer()
-        : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
+        : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION),
+          callbacks_(nullptr), closure_(nullptr)
+    {}
+
+    JSAutoStructuredCloneBuffer(const JSStructuredCloneCallbacks *callbacks, void *closure)
+        : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION),
+          callbacks_(callbacks), closure_(closure)
+    {}
 
     JSAutoStructuredCloneBuffer(JSAutoStructuredCloneBuffer &&other);
     JSAutoStructuredCloneBuffer &operator=(JSAutoStructuredCloneBuffer &&other);
@@ -128,8 +207,8 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
 
   private:
     
-    JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other);
-    JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other);
+    JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other) MOZ_DELETE;
+    JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other) MOZ_DELETE;
 };
 
 
