@@ -2434,9 +2434,9 @@ nsDOMClassInfo::Init()
 {
   
 
-  NS_ASSERTION(sizeof(PtrBits) == sizeof(void*),
-               "BAD! You'll need to adjust the size of PtrBits to the size "
-               "of a pointer on your platform.");
+  MOZ_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void*),
+                    "BAD! You'll need to adjust the size of uintptr_t to the "
+                    "size of a pointer on your platform.");
 
   NS_ENSURE_TRUE(!sIsInitialized, NS_ERROR_ALREADY_INITIALIZED);
 

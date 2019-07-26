@@ -57,8 +57,6 @@ class nsDOMTokenList;
 class ContentUnbinder;
 struct nsRect;
 
-typedef uintptr_t PtrBits;
-
 
 
 
