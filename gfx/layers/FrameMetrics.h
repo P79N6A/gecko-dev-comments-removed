@@ -114,6 +114,30 @@ public:
   }
 
   
+  
+  
+  
+  
+  
+  CSSRect GetExpandedScrollableRect() const
+  {
+    CSSRect scrollableRect = mScrollableRect;
+    if (scrollableRect.width < mCompositionBounds.width) {
+      scrollableRect.x = std::max(0.f,
+                                  scrollableRect.x - (mCompositionBounds.width - scrollableRect.width));
+      scrollableRect.width = mCompositionBounds.width;
+    }
+
+    if (scrollableRect.height < mCompositionBounds.height) {
+      scrollableRect.y = std::max(0.f,
+                                  scrollableRect.y - (mCompositionBounds.height - scrollableRect.height));
+      scrollableRect.height = mCompositionBounds.height;
+    }
+
+    return scrollableRect;
+  }
+
+  
 
 
 
