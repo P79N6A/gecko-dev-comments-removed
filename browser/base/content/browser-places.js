@@ -1061,6 +1061,16 @@ let BookmarkingUI = {
     if (event.target != event.currentTarget)
       return;
 
+    
+    
+    
+    if (this._currentAreaType == CustomizableUI.TYPE_MENU_PANEL) {
+      this._showSubview();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     let widget = CustomizableUI.getWidget("bookmarks-menu-button")
                                .forWindow(window);
     if (widget.overflowed) {
@@ -1346,25 +1356,30 @@ let BookmarkingUI = {
     }, 1000);
   },
 
+  _showSubview: function() {
+    let view = document.getElementById("PanelUI-bookmarks");
+    view.addEventListener("ViewShowing", this);
+    view.addEventListener("ViewHiding", this);
+    let anchor = document.getElementById("bookmarks-menu-button");
+    anchor.setAttribute("closemenu", "none");
+    PanelUI.showSubView("PanelUI-bookmarks", anchor,
+                        CustomizableUI.AREA_PANEL);
+  },
+
   onCommand: function BUI_onCommand(aEvent) {
     if (aEvent.target != aEvent.currentTarget) {
       return;
     }
 
     
-    let widget = CustomizableUI.getWidget("bookmarks-menu-button")
-                               .forWindow(window);
     let isBookmarked = this._itemIds.length > 0;
 
     if (this._currentAreaType == CustomizableUI.TYPE_MENU_PANEL) {
-      let view = document.getElementById("PanelUI-bookmarks");
-      view.addEventListener("ViewShowing", this);
-      view.addEventListener("ViewHiding", this);
-      widget.node.setAttribute("closemenu", "none");
-      PanelUI.showSubView("PanelUI-bookmarks", widget.node,
-                          CustomizableUI.AREA_PANEL);
+      this._showSubview();
       return;
     }
+    let widget = CustomizableUI.getWidget("bookmarks-menu-button")
+                               .forWindow(window);
     if (widget.overflowed) {
       
       
