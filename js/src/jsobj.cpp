@@ -3439,6 +3439,26 @@ JS::IdentifyStandardInstanceOrPrototype(JSObject *obj)
     return JSCLASS_CACHED_PROTO_KEY(obj->getClass());
 }
 
+JSProtoKey
+JS::IdentifyStandardConstructor(JSObject *obj)
+{
+    
+    
+    
+    
+    if (!obj->is<JSFunction>() || !(obj->as<JSFunction>().flags() & JSFunction::NATIVE_CTOR))
+        return JSProto_Null;
+
+    GlobalObject &global = obj->global();
+    for (size_t k = 0; k < JSProto_LIMIT; ++k) {
+        JSProtoKey key = static_cast<JSProtoKey>(k);
+        if (global.getConstructor(key) == ObjectValue(*obj))
+            return key;
+    }
+
+    return JSProto_Null;
+}
+
 bool
 js::FindClassObject(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp)
 {

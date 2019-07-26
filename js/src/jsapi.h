@@ -1777,6 +1777,9 @@ IdentifyStandardPrototype(JSObject *obj);
 extern JS_PUBLIC_API(JSProtoKey)
 IdentifyStandardInstanceOrPrototype(JSObject *obj);
 
+extern JS_PUBLIC_API(JSProtoKey)
+IdentifyStandardConstructor(JSObject *obj);
+
 } 
 
 extern JS_PUBLIC_API(JSProtoKey)
