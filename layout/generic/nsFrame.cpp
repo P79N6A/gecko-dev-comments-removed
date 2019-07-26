@@ -515,6 +515,11 @@ nsFrame::Init(nsIContent*      aContent,
   if (disp->mPosition == NS_STYLE_POSITION_STICKY &&
       !aPrevInFlow &&
       !(mState & NS_FRAME_IS_NONDISPLAY)) {
+    
+    
+    
+    
+    
     StickyScrollContainer* ssc =
       StickyScrollContainer::GetStickyScrollContainerForFrame(this);
     if (ssc) {

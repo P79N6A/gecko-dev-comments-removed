@@ -948,6 +948,13 @@ public:
 
 
 
+  static bool
+  IsFirstContinuationOrSpecialSibling(nsIFrame *aFrame);
+
+  
+
+
+
 
 
 

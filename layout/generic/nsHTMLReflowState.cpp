@@ -874,7 +874,9 @@ nsHTMLReflowState::ApplyRelativePositioning(nsIFrame* aFrame,
   if (NS_STYLE_POSITION_RELATIVE == display->mPosition) {
     *aPosition += nsPoint(aComputedOffsets.left, aComputedOffsets.top);
   } else if (NS_STYLE_POSITION_STICKY == display->mPosition &&
-             !aFrame->GetNextContinuation() && !aFrame->GetPrevContinuation()) {
+             !aFrame->GetNextContinuation() &&
+             !aFrame->GetPrevContinuation() &&
+             !(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
     
     
     
