@@ -44,7 +44,7 @@ static uint64_t sFontSetGeneration = 0;
 
 gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
              uint32_t aWeight,
-             uint32_t aStretch,
+             int32_t aStretch,
              uint32_t aItalicStyle,
              const nsTArray<gfxFontFeature>& aFeatureSettings,
              uint32_t aLanguageOverride,
@@ -59,6 +59,8 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
     mSrcIndex = 0;
     mWeight = aWeight;
     mStretch = aStretch;
+    
+    
     mItalic = (aItalicStyle & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) != 0;
     mFeatureSettings.AppendElements(aFeatureSettings);
     mLanguageOverride = aLanguageOverride;
@@ -67,6 +69,29 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
 
 gfxProxyFontEntry::~gfxProxyFontEntry()
 {
+}
+
+bool
+gfxProxyFontEntry::Matches(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+                           uint32_t aWeight,
+                           int32_t aStretch,
+                           uint32_t aItalicStyle,
+                           const nsTArray<gfxFontFeature>& aFeatureSettings,
+                           uint32_t aLanguageOverride,
+                           gfxSparseBitSet *aUnicodeRanges)
+{
+    
+    bool isItalic =
+        (aItalicStyle & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) != 0;
+
+    return mWeight == aWeight &&
+           mStretch == aStretch &&
+           mItalic == isItalic &&
+           mFeatureSettings == aFeatureSettings &&
+           mLanguageOverride == aLanguageOverride &&
+           mSrcList == aFontFaceSrcList;
+           
+           
 }
 
 gfxFont*
@@ -90,14 +115,12 @@ gfxFontEntry*
 gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
                             const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                             uint32_t aWeight,
-                            uint32_t aStretch,
+                            int32_t aStretch,
                             uint32_t aItalicStyle,
                             const nsTArray<gfxFontFeature>& aFeatureSettings,
                             const nsString& aLanguageOverride,
                             gfxSparseBitSet *aUnicodeRanges)
 {
-    gfxProxyFontEntry *proxyEntry = nullptr;
-
     nsAutoString key(aFamilyName);
     ToLowerCase(key);
 
@@ -114,10 +137,42 @@ gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
         mFontFamilies.Put(key, family);
     }
 
-    
     uint32_t languageOverride =
         gfxFontStyle::ParseFontLanguageOverride(aLanguageOverride);
-    proxyEntry =
+
+    
+    
+    
+    
+    
+    
+    nsTArray<nsRefPtr<gfxFontEntry> >& fontList = family->GetFontList();
+    for (uint32_t i = 0, count = fontList.Length(); i < count; i++) {
+        if (!fontList[i]->mIsProxy) {
+            continue;
+        }
+
+        gfxProxyFontEntry *existingProxyEntry =
+            static_cast<gfxProxyFontEntry*>(fontList[i].get());
+        if (!existingProxyEntry->Matches(aFontFaceSrcList,
+                                         aWeight, aStretch, aItalicStyle,
+                                         aFeatureSettings, languageOverride,
+                                         aUnicodeRanges)) {
+            continue;
+        }
+
+        
+        
+        
+        
+        nsRefPtr<gfxFontEntry> ref(existingProxyEntry);
+        family->RemoveFontEntry(existingProxyEntry);
+        family->AddFontEntry(existingProxyEntry);
+        return existingProxyEntry;
+    }
+
+    
+    gfxProxyFontEntry *proxyEntry =
         new gfxProxyFontEntry(aFontFaceSrcList, aWeight, aStretch,
                               aItalicStyle,
                               aFeatureSettings,
