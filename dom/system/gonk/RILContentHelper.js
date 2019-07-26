@@ -1327,6 +1327,9 @@ RILContentHelper.prototype = {
     if (this.voicemailStatus.messageCount != message.msgCount) {
       changed = true;
       this.voicemailStatus.messageCount = message.msgCount;
+    } else if (message.msgCount == -1) {
+      
+      changed = true;
     }
 
     if (this.voicemailStatus.returnNumber != message.returnNumber) {
