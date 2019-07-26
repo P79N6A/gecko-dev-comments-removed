@@ -7488,6 +7488,70 @@ class ForwardDeclarationBuilder:
         return self._build(atTopLevel=True)
 
 
+class CGForwardDeclarations(CGWrapper):
+    """
+    Code generate the forward declarations for a header file.
+    """
+    def __init__(self, config, descriptors, mainCallbacks, workerCallbacks,
+                 callbackInterfaces):
+        builder = ForwardDeclarationBuilder()
+
+        def forwardDeclareForType(t, workerness='both'):
+            t = t.unroll()
+            if t.isGeckoInterface():
+                name = t.inner.identifier.name
+                
+                if workerness != 'workeronly':
+                    try:
+                        desc = config.getDescriptor(name, False)
+                        builder.add(desc.nativeType)
+                    except NoSuchDescriptorError:
+                        pass
+                
+                if workerness != 'mainthreadonly':
+                    try:
+                        desc = config.getDescriptor(name, True)
+                        builder.add(desc.nativeType)
+                    except NoSuchDescriptorError:
+                        pass
+            elif t.isCallback():
+                builder.addInMozillaDom(str(t))
+            elif t.isDictionary():
+                builder.addInMozillaDom(t.inner.identifier.name, isStruct=True)
+            elif t.isCallbackInterface():
+                builder.addInMozillaDom(t.inner.identifier.name)
+            elif t.isUnion():
+                builder.addInMozillaDom(str(t))
+            
+            
+
+        
+        for d in descriptors:
+            builder.add(d.nativeType)
+
+        for callback in mainCallbacks:
+            forwardDeclareForType(callback)
+            for t in getTypesFromCallback(callback):
+                forwardDeclareForType(t, workerness='mainthreadonly')
+
+        for callback in workerCallbacks:
+            forwardDeclareForType(callback)
+            for t in getTypesFromCallback(callback):
+                forwardDeclareForType(t, workerness='workeronly')
+
+        for d in callbackInterfaces:
+            builder.add(d.nativeType)
+            for t in getTypesFromDescriptor(d):
+                forwardDeclareForType(t)
+
+        
+        
+        
+        
+
+        CGWrapper.__init__(self, builder.build())
+
+
 class CGBindingRoot(CGThing):
     """
     Root codegen class for binding generation. Instantiate the class, and call
@@ -7509,81 +7573,6 @@ class CGBindingRoot(CGThing):
                                                     isCallback=True)
         jsImplemented = config.getDescriptors(webIDLFile=webIDLFile,
                                               isJSImplemented=True)
-        forwardDeclares = ForwardDeclarationBuilder()
-
-        descriptorsForForwardDeclaration = list(descriptors)
-        ifaces = []
-        workerIfaces = []
-        def getInterfacesFromDictionary(d):
-            return [ type.unroll().inner
-                     for type in getTypesFromDictionary(d)
-                     if type.unroll().isGeckoInterface() ]
-        for dictionary in mainDictionaries:
-            ifaces.extend(getInterfacesFromDictionary(dictionary))
-        for dictionary in workerDictionaries:
-            workerIfaces.extend(getInterfacesFromDictionary(dictionary))
-
-        def getInterfacesFromCallback(c):
-            return [ t.unroll().inner
-                     for t in getTypesFromCallback(c)
-                     if t.unroll().isGeckoInterface() ]
-        for callback in mainCallbacks:
-            ifaces.extend(getInterfacesFromCallback(callback))
-        for callback in workerCallbacks:
-            workerIfaces.extend(getInterfacesFromCallback(callback))
-
-        for callbackDescriptor in callbackDescriptors + jsImplemented:
-            callbackDescriptorIfaces = [
-                t.unroll().inner
-                for t in getTypesFromDescriptor(callbackDescriptor)
-                if t.unroll().isGeckoInterface() ]
-            workerIfaces.extend(callbackDescriptorIfaces)
-            ifaces.extend(callbackDescriptorIfaces)
-
-        
-        descriptorsForForwardDeclaration.extend(
-            config.getDescriptor(iface.identifier.name, False) for
-            iface in ifaces)
-        
-        
-        for iface in workerIfaces:
-            try:
-                descriptorsForForwardDeclaration.append(
-                    config.getDescriptor(iface.identifier.name, True))
-            except NoSuchDescriptorError:
-                
-                pass
-
-        forwardDeclares.add('XPCWrappedNativeScope')
-
-        for x in descriptorsForForwardDeclaration:
-            forwardDeclares.add(x.nativeType)
-
-        
-        
-        for callback in mainCallbacks + workerCallbacks:
-            for t in getTypesFromCallback(callback):
-                if t.unroll().isUnion() or t.unroll().isCallback():
-                    forwardDeclares.addInMozillaDom(str(t.unroll()))
-
-        for callbackDescriptor in callbackDescriptors:
-            for t in getTypesFromDescriptor(callbackDescriptor):
-                if t.unroll().isUnion() or t.unroll().isCallback():
-                    forwardDeclares.addInMozillaDom(str(t.unroll()))
-
-        
-        for dictionary in mainDictionaries + workerDictionaries:
-            for t in getTypesFromDictionary(dictionary):
-                if t.unroll().isCallback():
-                    forwardDeclares.addInMozillaDom(str(t.unroll()))
-
-        
-        for desc in descriptors:
-            for t in getTypesFromDescriptor(desc):
-                if t.unroll().isCallback():
-                    forwardDeclares.addInMozillaDom(str(t.unroll()))
-
-        forwardDeclares = forwardDeclares.build()
 
         descriptorsWithPrototype = filter(lambda d: d.interface.hasInterfacePrototypeObject(),
                                           descriptors)
@@ -7658,7 +7647,9 @@ class CGBindingRoot(CGThing):
         curr = CGNamespace.build(['mozilla', 'dom'],
                                  CGWrapper(curr, pre="\n"))
 
-        curr = CGList([forwardDeclares,
+        curr = CGList([CGForwardDeclarations(config, descriptors,
+                                             mainCallbacks, workerCallbacks,
+                                             callbackDescriptors + jsImplemented),
                        CGWrapper(CGGeneric("using namespace mozilla::dom;"),
                                  defineOnly=True),
                        traitsClasses, curr],

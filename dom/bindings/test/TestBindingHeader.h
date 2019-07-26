@@ -12,9 +12,18 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/TypedArray.h"
 #include "nsCOMPtr.h"
+#include "mozilla/dom/UnionTypes.h"
+
+
+
+namespace mozilla {
+namespace dom {
+class TestExternalInterface;
+} 
+} 
+
 
 #include "../TestCodeGenBinding.h"
-#include "mozilla/dom/UnionTypes.h"
 
 extern bool TestFuncControlledMember(JSContext*, JSObject*);
 
