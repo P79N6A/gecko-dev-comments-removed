@@ -102,9 +102,9 @@ private:
     , mTypeOmitted(aOther.mTypeOmitted)
     , mHadUnknownExpression(aOther.mHadUnknownExpression)
     , mMediaType(aOther.mMediaType)
-    
     , mExpressions(aOther.mExpressions)
   {
+    MOZ_ASSERT(mExpressions.Length() == aOther.mExpressions.Length());
   }
 
 public:
