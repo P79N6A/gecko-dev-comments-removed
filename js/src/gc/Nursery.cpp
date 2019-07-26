@@ -133,6 +133,9 @@ JSObject *
 js::Nursery::allocateObject(JSContext *cx, size_t size, size_t numDynamic)
 {
     
+    JS_ASSERT(size >= sizeof(RelocationOverlay));
+
+    
     if (numDynamic && numDynamic <= MaxNurserySlots) {
         size_t totalSize = size + sizeof(HeapSlot) * numDynamic;
         JSObject *obj = static_cast<JSObject *>(allocate(totalSize));
@@ -165,9 +168,6 @@ js::Nursery::allocate(size_t size)
 {
     JS_ASSERT(isEnabled());
     JS_ASSERT(!runtime()->isHeapBusy());
-
-    
-    JS_ASSERT(size >= sizeof(RelocationOverlay));
 
     if (position() + size > currentEnd()) {
         if (currentChunk_ + 1 == numActiveChunks_)
