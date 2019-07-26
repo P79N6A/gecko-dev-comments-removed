@@ -1395,15 +1395,6 @@ struct SharedScriptData
     }
 };
 
-
-
-
-
-
-
-extern bool
-SaveSharedScriptData(ExclusiveContext *cx, Handle<JSScript *> script, SharedScriptData *ssd);
-
 struct ScriptBytecodeHasher
 {
     struct Lookup
@@ -1424,9 +1415,6 @@ struct ScriptBytecodeHasher
 typedef HashSet<SharedScriptData*,
                 ScriptBytecodeHasher,
                 SystemAllocPolicy> ScriptDataTable;
-
-inline void
-MarkScriptBytecode(JSRuntime *rt, const jsbytecode *bytecode);
 
 extern void
 SweepScriptData(JSRuntime *rt);
