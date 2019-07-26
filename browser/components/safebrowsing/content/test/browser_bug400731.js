@@ -7,7 +7,16 @@ function test() {
   
   
   
-  window.addEventListener("DOMContentLoaded", testMalware, true);
+  
+  
+  gBrowser.addTabsProgressListener({
+    onLocationChange: function(aTab, aWebProgress, aRequest, aLocation, aFlags) {
+      if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
+        gBrowser.removeTabsProgressListener(this);
+        window.addEventListener("DOMContentLoaded", testMalware, true);
+      }
+    }
+  });
   content.location = "http://www.mozilla.org/firefox/its-an-attack.html";
 }
 
