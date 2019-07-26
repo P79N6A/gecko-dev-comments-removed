@@ -6,12 +6,15 @@
 #ifndef mozilla_layers_opengl_FPSCounter_h_
 #define mozilla_layers_opengl_FPSCounter_h_
 
-#include <stddef.h>                     
 #include <algorithm>                    
+#include <stddef.h>                     
+#include <map>                          
 #include "GLDefs.h"                     
+#include "mozilla/RefPtr.h"             
 #include "mozilla/TimeStamp.h"          
 #include "nsTArray.h"                   
 #include "VBOArena.h"                   
+#include "prio.h"                       
 
 namespace mozilla {
 namespace gl {
@@ -21,67 +24,90 @@ namespace layers {
 
 class DataTextureSource;
 class ShaderProgramOGL;
+class Compositor;
 
-const double kFpsWindowMs = 250.0;
-const size_t kNumFrameTimeStamps = 16;
-struct FPSCounter {
-  FPSCounter() : mCurrentFrameIndex(0) {
-      mFrames.SetLength(kNumFrameTimeStamps);
-  }
 
-  
-  
-  
-  
-  nsAutoTArray<TimeStamp, kNumFrameTimeStamps> mFrames;
-  size_t mCurrentFrameIndex;
+const int kFpsDumpInterval = 10;
 
-  void AddFrame(TimeStamp aNewFrame) {
-    mFrames[mCurrentFrameIndex] = aNewFrame;
-    mCurrentFrameIndex = (mCurrentFrameIndex + 1) % kNumFrameTimeStamps;
-  }
 
-  double AddFrameAndGetFps(TimeStamp aCurrentFrame) {
-    AddFrame(aCurrentFrame);
-    return EstimateFps(aCurrentFrame);
-  }
 
-  double GetFpsAt(TimeStamp aNow) {
-    return EstimateFps(aNow);
-  }
+const int kMaxFrames = 2400;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class FPSCounter {
+public:
+  FPSCounter(const char* aName);
+  ~FPSCounter();
+
+  void AddFrame(TimeStamp aTimestamp);
+  double AddFrameAndGetFps(TimeStamp aTimestamp);
+  double GetFPS(TimeStamp aTimestamp);
 
 private:
-  double EstimateFps(TimeStamp aNow) {
-    TimeStamp beginningOfWindow =
-      (aNow - TimeDuration::FromMilliseconds(kFpsWindowMs));
-    TimeStamp earliestFrameInWindow = aNow;
-    size_t numFramesDrawnInWindow = 0;
-    for (size_t i = 0; i < kNumFrameTimeStamps; ++i) {
-      const TimeStamp& frame = mFrames[i];
-      if (!frame.IsNull() && frame > beginningOfWindow) {
-        ++numFramesDrawnInWindow;
-        earliestFrameInWindow = std::min(earliestFrameInWindow, frame);
-      }
-    }
-    double realWindowSecs = (aNow - earliestFrameInWindow).ToSeconds();
-    if (realWindowSecs == 0.0 || numFramesDrawnInWindow == 1) {
-      return 0.0;
-    }
-    return double(numFramesDrawnInWindow - 1) / realWindowSecs;
-  }
+  void      Init();
+  bool      CapturedFullInterval(TimeStamp aTimestamp);
+
+  
+  void      ResetReverseIterator();
+  bool      HasNext(TimeStamp aTimestamp, double aDuration = kFpsDumpInterval);
+  TimeStamp GetNextTimeStamp();
+  int       GetLatestReadIndex();
+  TimeStamp GetLatestTimeStamp();
+  void      WriteFrameTimeStamps(PRFileDesc* fd);
+  bool      IteratedFullInterval(TimeStamp aTimestamp, double aDuration);
+
+  void      PrintFPS();
+  int       BuildHistogram(std::map<int, int>& aHistogram);
+  void      PrintHistogram(std::map<int, int>& aHistogram);
+  double    GetMean(std::map<int,int> aHistogram);
+  double    GetStdDev(std::map<int, int> aHistogram);
+  nsresult  WriteFrameTimeStamps();
+
+  
+
+
+
+
+
+  nsAutoTArray<TimeStamp, kMaxFrames> mFrameTimestamps;
+  int mWriteIndex;      
+  int mIteratorIndex;   
+  const char* mFPSName;
+  TimeStamp mLastInterval;
 };
 
 struct FPSState {
-  FPSCounter mCompositionFps;
-  FPSCounter mTransactionFps;
-
-  FPSState() {}
-
+  FPSState();
   void DrawFPS(TimeStamp, int offsetX, int offsetY, unsigned, Compositor* aCompositor);
-
   void NotifyShadowTreeTransaction() {
     mTransactionFps.AddFrame(TimeStamp::Now());
   }
+
+  FPSCounter mCompositionFps;
+  FPSCounter mTransactionFps;
 
 private:
   RefPtr<DataTextureSource> mFPSTextureSource;
