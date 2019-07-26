@@ -328,22 +328,28 @@ var Addons = {
       if (xhr.responseXML) {
         
         let settings = xhr.responseXML.querySelectorAll(":root > setting");
-        for (let i = 0; i < settings.length; i++) {
-          var setting = settings[i];
-          var desc = stripTextNodes(setting).trim();
-          if (!setting.hasAttribute("desc"))
-            setting.setAttribute("desc", desc);
-          box.appendChild(setting);
+        if (settings.length > 0) {
+          for (let i = 0; i < settings.length; i++) {
+            var setting = settings[i];
+            var desc = stripTextNodes(setting).trim();
+            if (!setting.hasAttribute("desc"))
+              setting.setAttribute("desc", desc);
+            box.appendChild(setting);
+          }
+          
+          
+          let event = document.createEvent("Events");
+          event.initEvent("AddonOptionsLoad", true, false);
+          window.dispatchEvent(event);
+  
+          
+          let id = aListItem.getAttribute("addonID");
+          Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
+        } else {
+          
+          detailItem.setAttribute("optionsURL", "");
+          aListItem.setAttribute("optionsURL", "");
         }
-        
-        
-        let event = document.createEvent("Events");
-        event.initEvent("AddonOptionsLoad", true, false);
-        window.dispatchEvent(event);
-
-        
-        let id = aListItem.getAttribute("addonID");
-        Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
       }
     } catch (e) { }
 
