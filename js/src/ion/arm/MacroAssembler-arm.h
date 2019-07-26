@@ -240,9 +240,11 @@ class MacroAssemblerARM : public Assembler
 
     
     void ma_smod(Register num, Register div, Register dest);
+    void ma_umod(Register num, Register div, Register dest);
 
     
     void ma_sdiv(Register num, Register div, Register dest, Condition cond = Always);
+    void ma_udiv(Register num, Register div, Register dest, Condition cond = Always);
 
     
     
