@@ -3233,10 +3233,7 @@ if (!%(resultStr)s) {
         
         
         
-        
-        
-        if (descriptorProvider.workers or
-            type.unroll().identifier.name == "EventHandlerNonNull"):
+        if descriptorProvider.workers:
             return (setValue("JS::ObjectOrNullValue(%s)" % result, True), False)
 
         wrapCode = (("if (%(result)s) {\n" +
@@ -3369,10 +3366,7 @@ def typeNeedsCx(type, descriptorProvider, retVal=False):
     if retVal and type.isSpiderMonkeyInterface():
         return True
     if type.isCallback():
-        
-        
-        return (descriptorProvider.workers or
-                type.unroll().identifier.name == "EventHandlerNonNull")
+        return descriptorProvider.workers
     return type.isAny() or type.isObject()
 
 
@@ -3407,9 +3401,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         return result, False
     if returnType.isCallback():
         name = returnType.unroll().identifier.name
-        
-        
-        if descriptorProvider.workers or name == "EventHandlerNonNull":
+        if descriptorProvider.workers:
             return CGGeneric("JSObject*"), False
         return CGGeneric("nsRefPtr<%s>" % name), False
     if returnType.isAny():
