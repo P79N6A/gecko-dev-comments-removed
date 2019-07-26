@@ -416,6 +416,15 @@ protected:
 
 
 
+
+
+  virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) {}
+
+  
+
+
+
+
   DeprecatedTextureClient* mDeprecatedBufferProvider;
   DeprecatedTextureClient* mDeprecatedBufferProviderOnWhite;
   TextureClient* mBufferProvider;

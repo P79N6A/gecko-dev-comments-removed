@@ -540,9 +540,36 @@ ContentClientDoubleBuffered::SwapBuffers(const nsIntRegion& aFrontUpdatedRegion)
 }
 
 void
-ContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
+ContentClientDoubleBuffered::PrepareFrame()
+{
+  mIsNewBuffer = false;
+
+  if (!mFrontAndBackBufferDiffer) {
+    return;
+  }
+
+  if (mDidSelfCopy) {
+    
+    
+    
+    
+    mBufferRect.MoveTo(mFrontBufferRect.TopLeft());
+    mBufferRotation = nsIntPoint();
+    return;
+  }
+  mBufferRect = mFrontBufferRect;
+  mBufferRotation = mFrontBufferRotation;
+}
+
+
+
+
+
+void
+ContentClientDoubleBuffered::FinalizeFrame(const nsIntRegion& aRegionToDraw)
 {
   if (!mFrontAndBackBufferDiffer) {
+    MOZ_ASSERT(!mDidSelfCopy, "If we have to copy the world, then our buffers are different, right?");
     return;
   }
   MOZ_ASSERT(mFrontClient);
@@ -554,29 +581,20 @@ ContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
                   mFrontUpdatedRegion.GetBounds().width,
                   mFrontUpdatedRegion.GetBounds().height));
 
+  mFrontAndBackBufferDiffer = false;
+
   nsIntRegion updateRegion = mFrontUpdatedRegion;
-
-  
-  
-  
-  
-
   if (mDidSelfCopy) {
     mDidSelfCopy = false;
-    
-    
-    
-    
-    mBufferRect.MoveTo(mFrontBufferRect.TopLeft());
-    mBufferRotation = nsIntPoint();
     updateRegion = mBufferRect;
-  } else {
-    mBufferRect = mFrontBufferRect;
-    mBufferRotation = mFrontBufferRotation;
   }
 
-  mIsNewBuffer = false;
-  mFrontAndBackBufferDiffer = false;
+  
+  
+  updateRegion.Sub(updateRegion, aRegionToDraw);
+  if (updateRegion.IsEmpty()) {
+    return;
+  }
 
   
   
@@ -765,18 +783,43 @@ private:
   DeprecatedTextureClient* mTexture;
 };
 
+
 void
-DeprecatedContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
+DeprecatedContentClientDoubleBuffered::PrepareFrame()
 {
   mIsNewBuffer = false;
 
   if (!mFrontAndBackBufferDiffer) {
     return;
   }
+
+  if (mDidSelfCopy) {
+    
+    
+    
+    
+    mBufferRect.MoveTo(mFrontBufferRect.TopLeft());
+    mBufferRotation = nsIntPoint();
+
+    return;
+  }
+
+  mBufferRect = mFrontBufferRect;
+  mBufferRotation = mFrontBufferRotation;
+}
+
+void
+DeprecatedContentClientDoubleBuffered::FinalizeFrame(const nsIntRegion& aRegionToDraw)
+{
+  if (!mFrontAndBackBufferDiffer) {
+    return;
+  }
+  mFrontAndBackBufferDiffer = false;
+
   MOZ_ASSERT(mFrontClient);
-  MOZ_ASSERT(mFrontClient->GetAccessMode() == DeprecatedTextureClient::ACCESS_READ_ONLY);
+  MOZ_ASSERT(mFrontClient->GetAccessMode() != DeprecatedTextureClient::ACCESS_NONE);
   MOZ_ASSERT(!mFrontClientOnWhite ||
-             mFrontClientOnWhite->GetAccessMode() == DeprecatedTextureClient::ACCESS_READ_ONLY);
+             mFrontClientOnWhite->GetAccessMode() != DeprecatedTextureClient::ACCESS_NONE);
 
   MOZ_LAYERS_LOG(("BasicShadowableThebes(%p): reading back <x=%d,y=%d,w=%d,h=%d>",
                   this,
@@ -786,24 +829,16 @@ DeprecatedContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
                   mFrontUpdatedRegion.GetBounds().height));
 
   nsIntRegion updateRegion = mFrontUpdatedRegion;
-
-  
-  
-  
-  
-
   if (mDidSelfCopy) {
-    mDidSelfCopy = false;
-    
-    
-    
-    
-    mBufferRect.MoveTo(mFrontBufferRect.TopLeft());
-    mBufferRotation = nsIntPoint();
     updateRegion = mBufferRect;
-  } else {
-    mBufferRect = mFrontBufferRect;
-    mBufferRotation = mFrontBufferRotation;
+    mDidSelfCopy = false;
+  }
+
+  
+  
+  updateRegion.Sub(updateRegion, aRegionToDraw);
+  if (updateRegion.IsEmpty()) {
+    return;
   }
  
   AutoDeprecatedTextureClient autoTextureFront;
@@ -820,8 +855,6 @@ DeprecatedContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
 
   
   FlushBuffers();
-
-  mFrontAndBackBufferDiffer = false;
 }
 
 void
@@ -864,7 +897,7 @@ DeprecatedContentClientDoubleBuffered::UpdateDestinationFrom(const RotatedBuffer
 }
 
 void
-ContentClientSingleBuffered::SyncFrontBufferToBackBuffer()
+ContentClientSingleBuffered::PrepareFrame()
 {
   if (!mFrontAndBackBufferDiffer) {
     return;
@@ -911,7 +944,7 @@ DeprecatedContentClientSingleBuffered::CreateFrontBufferAndNotify(const nsIntRec
 }
 
 void
-DeprecatedContentClientSingleBuffered::SyncFrontBufferToBackBuffer()
+DeprecatedContentClientSingleBuffered::PrepareFrame()
 {
   mIsNewBuffer = false;
   if (!mFrontAndBackBufferDiffer) {
@@ -969,7 +1002,6 @@ FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
 
 RotatedContentBuffer::PaintState
 ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
-                                           RotatedContentBuffer::ContentType aContentType,
                                            uint32_t aFlags)
 {
   mTextureInfo.mDeprecatedTextureHostFlags = 0;
@@ -980,15 +1012,18 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
 
   nsIntRegion validRegion = aLayer->GetValidRegion();
 
+  bool canUseOpaqueSurface = aLayer->CanUseOpaqueSurface();
+  ContentType contentType =
+    canUseOpaqueSurface ? GFX_CONTENT_COLOR :
+                          GFX_CONTENT_COLOR_ALPHA;
+
   Layer::SurfaceMode mode;
-  ContentType contentType;
   nsIntRegion neededRegion;
   bool canReuseBuffer;
   nsIntRect destBufferRect;
 
   while (true) {
     mode = aLayer->GetSurfaceMode();
-    contentType = aContentType;
     neededRegion = aLayer->GetVisibleRegion();
     
     canReuseBuffer = neededRegion.GetBounds().Size() <= mBufferRect.Size() &&
