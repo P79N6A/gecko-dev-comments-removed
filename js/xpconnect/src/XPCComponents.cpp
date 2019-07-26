@@ -3048,6 +3048,23 @@ xpc::CreateObjectIn(JSContext *cx, HandleValue vobj, CreateObjectInOptions &opti
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::EvalInWindow(const nsAString &source, const Value &window,
+                                    JSContext *cx, Value *rval)
+{
+    if (!window.isObject())
+        return NS_ERROR_INVALID_ARG;
+
+    RootedObject rwindow(cx, &window.toObject());
+    RootedValue res(cx);
+    if (!xpc::EvalInWindow(cx, source, rwindow, &res))
+        return NS_ERROR_FAILURE;
+
+    *rval = res;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::ExportFunction(const Value &vfunction, const Value &vscope,
                                       const Value &vname, JSContext *cx, Value *rval)
 {

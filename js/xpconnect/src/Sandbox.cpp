@@ -293,7 +293,6 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
 
 
 
-
 static bool
 ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -428,37 +427,13 @@ CloneNonReflectors(JSContext *cx, MutableHandleValue val)
     return true;
 }
 
+namespace xpc {
 
-
-
-
-
-
-
-
-
-
-
-static bool
-EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
+bool
+EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, MutableHandleValue rval)
 {
-    MOZ_ASSERT(cx);
-    if (argc < 2) {
-        JS_ReportError(cx, "Function requires two arguments");
-        return false;
-    }
-
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (!args[0].isString() || !args[1].isObject()) {
-        JS_ReportError(cx, "Invalid arguments");
-        return false;
-    }
-
-    RootedString srcString(cx, args[0].toString());
-    RootedObject targetScope(cx, &args[1].toObject());
-
     
-    targetScope = CheckedUnwrap(targetScope);
+    RootedObject targetScope(cx, CheckedUnwrap(scope));
     if (!targetScope) {
         JS_ReportError(cx, "Permission denied to eval in target scope");
         return false;
@@ -496,9 +471,6 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
         lineNo = 0;
     }
 
-    nsDependentJSString srcDepString;
-    srcDepString.init(cx, srcString);
-
     {
         
         
@@ -513,11 +485,11 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
         evaluateOptions.setReportUncaught(false);
 
         nsresult rv = nsJSUtils::EvaluateString(wndCx,
-                                                srcDepString,
+                                                source,
                                                 targetScope,
                                                 compileOptions,
                                                 evaluateOptions,
-                                                args.rval().address());
+                                                rval.address());
 
         if (NS_FAILED(rv)) {
             
@@ -525,16 +497,16 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
             
             MOZ_ASSERT(!JS_IsExceptionPending(wndCx),
                        "Exception should be delivered as return value.");
-            if (args.rval().isUndefined()) {
+            if (rval.isUndefined()) {
                 MOZ_ASSERT(rv == NS_ERROR_OUT_OF_MEMORY);
                 return false;
             }
 
             
             
-            RootedValue exn(wndCx, args.rval());
+            RootedValue exn(wndCx, rval);
             
-            args.rval().set(UndefinedValue());
+            rval.set(UndefinedValue());
 
             
             if (CloneNonReflectors(cx, &exn))
@@ -545,15 +517,45 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     
-    if (!CloneNonReflectors(cx, args.rval())) {
-        args.rval().set(UndefinedValue());
+    if (!CloneNonReflectors(cx, rval)) {
+        rval.set(UndefinedValue());
         return false;
     }
 
     return true;
 }
 
-namespace xpc {
+
+
+
+
+
+static bool
+EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() < 2) {
+        JS_ReportError(cx, "Function requires two arguments");
+        return false;
+    }
+
+    if (!args[0].isString() || !args[1].isObject()) {
+        JS_ReportError(cx, "Invalid arguments");
+        return false;
+    }
+
+    RootedString srcString(cx, args[0].toString());
+    RootedObject targetScope(cx, &args[1].toObject());
+
+    nsDependentJSString srcDepString;
+    if (!srcDepString.init(cx, srcString)) {
+        JS_ReportError(cx, "Source string is invalid");
+        return false;
+    }
+
+    return EvalInWindow(cx, srcDepString, targetScope, args.rval());
+}
+
 static bool
 CreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
 {
