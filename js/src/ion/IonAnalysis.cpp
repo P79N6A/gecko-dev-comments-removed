@@ -202,10 +202,9 @@ IsPhiObservable(MPhi *phi, Observability observe)
 
     
     
+    
     CompileInfo &info = phi->block()->info();
     if (info.fun() && info.hasArguments()) {
-        
-        JS_ASSERT(!phi->block()->callerResumePoint());
         uint32_t first = info.firstArgSlot();
         if (first <= slot && slot - first < info.nargs())
             return true;
