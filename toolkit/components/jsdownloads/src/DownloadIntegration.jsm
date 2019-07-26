@@ -66,12 +66,6 @@ XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   return null;
 });
 
-
-XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
-  return Services.strings.
-    createBundle("chrome://mozapps/locale/downloads/downloads.properties");
-});
-
 const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
                                      "initWithCallback");
 
@@ -737,10 +731,8 @@ this.DownloadObserver = {
 
 
 
-
-
   _confirmCancelDownloads: function DO_confirmCancelDownload(
-    aCancel, aDownloadsCount, aIdTitle, aIdMessageSingle, aIdMessageMultiple, aIdButton) {
+    aCancel, aDownloadsCount, aPrompter, aPromptType) {
     
     if ((aCancel instanceof Ci.nsISupportsPRBool) && aCancel.data) {
       return;
@@ -750,32 +742,8 @@ this.DownloadObserver = {
       DownloadIntegration.testPromptDownloads = aDownloadsCount;
       return;
     }
-    
-    if (aDownloadsCount <= 0) {
-      return;
-    }
 
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
-    let buttonFlags = (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
-                      (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
-    let title = gStringBundle.GetStringFromName(aIdTitle);
-    let dontQuitButton = gStringBundle.GetStringFromName(aIdButton);
-    let quitButton;
-    let message;
-
-    if (aDownloadsCount > 1) {
-      message = gStringBundle.formatStringFromName(aIdMessageMultiple,
-                                                   [aDownloadsCount], 1);
-      quitButton = gStringBundle.formatStringFromName("cancelDownloadsOKTextMultiple",
-                                                      [aDownloadsCount], 1);
-    } else {
-      message = gStringBundle.GetStringFromName(aIdMessageSingle);
-      quitButton = gStringBundle.GetStringFromName("cancelDownloadsOKText");
-    }
-
-    let rv = Services.prompt.confirmEx(win, title, message, buttonFlags,
-                                       quitButton, dontQuitButton, null, null, {});
-    aCancel.data = (rv == 1);
+    aCancel.data = aPrompter.confirmCancelDownloads(aDownloadsCount, aPromptType);
   },
 
   
@@ -783,40 +751,22 @@ this.DownloadObserver = {
 
   observe: function DO_observe(aSubject, aTopic, aData) {
     let downloadsCount;
+    let p = DownloadUIHelper.getPrompter();
     switch (aTopic) {
       case "quit-application-requested":
         downloadsCount = this._publicInProgressDownloads.size +
                          this._privateInProgressDownloads.size;
-#ifndef XP_MACOSX
-        this._confirmCancelDownloads(aSubject, downloadsCount,
-                                     "quitCancelDownloadsAlertTitle",
-                                     "quitCancelDownloadsAlertMsg",
-                                     "quitCancelDownloadsAlertMsgMultiple",
-                                     "dontQuitButtonWin");
-#else
-        this._confirmCancelDownloads(aSubject, downloadsCount,
-                                     "quitCancelDownloadsAlertTitle",
-                                     "quitCancelDownloadsAlertMsgMac",
-                                     "quitCancelDownloadsAlertMsgMacMultiple",
-                                     "dontQuitButtonMac");
-#endif
+        this._confirmCancelDownloads(aSubject, downloadsCount, p, p.ON_QUIT);
         break;
       case "offline-requested":
         downloadsCount = this._publicInProgressDownloads.size +
                          this._privateInProgressDownloads.size;
-        this._confirmCancelDownloads(aSubject, downloadsCount,
-                                     "offlineCancelDownloadsAlertTitle",
-                                     "offlineCancelDownloadsAlertMsg",
-                                     "offlineCancelDownloadsAlertMsgMultiple",
-                                     "dontGoOfflineButton");
+        this._confirmCancelDownloads(aSubject, downloadsCount, p, p.ON_OFFLINE);
         break;
       case "last-pb-context-exiting":
-        this._confirmCancelDownloads(aSubject,
-                                     this._privateInProgressDownloads.size,
-                                     "leavePrivateBrowsingCancelDownloadsAlertTitle",
-                                     "leavePrivateBrowsingWindowsCancelDownloadsAlertMsg",
-                                     "leavePrivateBrowsingWindowsCancelDownloadsAlertMsgMultiple",
-                                     "dontLeavePrivateBrowsingButton");
+        downloadsCount = this._privateInProgressDownloads.size;
+        this._confirmCancelDownloads(aSubject, downloadsCount, p,
+                                     p.ON_LEAVE_PRIVATE_BROWSING);
         break;
     }
   },
