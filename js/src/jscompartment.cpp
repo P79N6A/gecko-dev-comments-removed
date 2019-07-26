@@ -6,6 +6,7 @@
 
 
 #include "jscntxt.h"
+#include "jsdate.h"
 #include "jscompartment.h"
 #include "jsgc.h"
 #include "jsiter.h"
@@ -92,6 +93,14 @@ JSCompartment::~JSCompartment()
 bool
 JSCompartment::init(JSContext *cx)
 {
+    
+
+
+
+
+
+    js_ClearDateCaches();
+
     activeAnalysis = activeInference = false;
     types.init(cx);
 
