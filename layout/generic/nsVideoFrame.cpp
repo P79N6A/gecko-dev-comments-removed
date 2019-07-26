@@ -26,7 +26,6 @@
 #include "ImageContainer.h"
 #include "ImageLayers.h"
 #include "nsContentList.h"
-#include "mozilla/dom/ScriptSettings.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -74,9 +73,6 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     element = NS_NewHTMLImageElement(nodeInfo.forget());
     mPosterImage = element;
     NS_ENSURE_TRUE(mPosterImage, NS_ERROR_OUT_OF_MEMORY);
-
-    
-    AutoSystemCaller asc;
 
     
     

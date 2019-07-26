@@ -54,7 +54,6 @@
 #endif
 
 using namespace mozilla;
-using mozilla::dom::AutoSystemCaller;
 
 #ifdef DEBUG_chb
 static void PrintReqURL(imgIRequest* req) {
@@ -1196,9 +1195,6 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason,
     return;
 
   
-  AutoSystemCaller asc;
-
-  
   
   nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mPendingRequest,
                                         &mPendingRequestRegistered);
@@ -1257,10 +1253,6 @@ nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   if (!aDocument)
     return;
 
-  
-  
-  AutoSystemCaller asc;
-
   TrackImage(mCurrentRequest);
   TrackImage(mPendingRequest);
 
@@ -1275,10 +1267,6 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
   nsCOMPtr<nsIDocument> doc = GetOurCurrentDoc();
   if (!doc)
     return;
-
-  
-  
-  AutoSystemCaller asc;
 
   UntrackImage(mCurrentRequest);
   UntrackImage(mPendingRequest);
