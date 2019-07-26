@@ -71,25 +71,6 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIFragmentContentSink,
                               NS_I_FRAGMENT_CONTENT_SINK_IID)
 
-
-
-
-
-class nsIParanoidFragmentContentSink : public nsISupports {
-public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_I_PARANOID_FRAGMENT_CONTENT_SINK_IID)
-
-  
-
-
-  virtual void AllowStyles() = 0;
-
-  
-
-
-  virtual void AllowComments() = 0;
-};
-
 nsresult
 NS_NewXMLFragmentContentSink(nsIFragmentContentSink** aInstancePtrResult);
 

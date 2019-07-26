@@ -18,10 +18,13 @@ class nsIContent;
 
 class nsINativeMenuService : public nsISupports {
 public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INATIVEMENUSERVICE_IID)
   
   
   
   NS_IMETHOD CreateNativeMenuBar(nsIWidget* aParent, nsIContent* aMenuBarNode)=0;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsINativeMenuService, NS_INATIVEMENUSERVICE_IID)
 
 #endif 
