@@ -170,7 +170,7 @@ protected:
   
   
   
-  PLDHashTable mWrapperTable;
+  nsAutoPtr<PLDHashTable> mWrapperTable;
 
   
   
