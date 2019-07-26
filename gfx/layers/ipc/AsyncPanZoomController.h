@@ -133,7 +133,7 @@ public:
 
 
 
-  void ZoomToRect(const gfxRect& aRect);
+  void ZoomToRect(CSSRect aRect);
 
   
 
