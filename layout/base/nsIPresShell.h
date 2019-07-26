@@ -976,11 +976,8 @@ public:
 
 
 
-  void SetForwardingContainer(const mozilla::WeakPtr<nsDocShell> &aContainer)
-  {
-    mForwardingContainer = aContainer;
-  }
-  
+  void SetForwardingContainer(const mozilla::WeakPtr<nsDocShell> &aContainer);
+
   
 
 
