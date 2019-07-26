@@ -217,8 +217,13 @@ let SyncHandler = {
 let SessionHistoryListener = {
   init: function () {
     gFrameTree.addObserver(this);
+    addEventListener("load", this, true);
     addEventListener("hashchange", this, true);
-    Services.obs.addObserver(this, "browser:purge-session-history", true);
+    Services.obs.addObserver(this, "browser:purge-session-history", false);
+  },
+
+  uninit: function () {
+    Services.obs.removeObserver(this, "browser:purge-session-history");
   },
 
   observe: function () {
@@ -230,8 +235,11 @@ let SessionHistoryListener = {
     setTimeout(() => this.collect(), 0);
   },
 
-  handleEvent: function () {
-    this.collect();
+  handleEvent: function (event) {
+    
+    if (event.type == "hashchange" || event.target != content.document) {
+      this.collect();
+    }
   },
 
   collect: function () {
@@ -246,10 +254,7 @@ let SessionHistoryListener = {
 
   onFrameTreeReset: function () {
     this.collect();
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference])
+  }
 };
 
 
@@ -673,6 +678,7 @@ addEventListener("unload", () => {
   
   PageStyleListener.uninit();
   SessionStorageListener.uninit();
+  SessionHistoryListener.uninit();
 
   
   
