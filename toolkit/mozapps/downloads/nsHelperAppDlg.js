@@ -189,6 +189,10 @@ nsUnknownContentTypeDialog.prototype = {
   
   
   promptForSaveToFile: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
+    throw new Components.Exception("Async version must be used", Components.results.NS_ERROR_NOT_AVAILABLE);
+  },
+
+  promptForSaveToFileAsync: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
     var result = null;
 
     this.mLauncher = aLauncher;
@@ -226,13 +230,16 @@ nsUnknownContentTypeDialog.prototype = {
                            bundle.GetStringFromName("badPermissions.title"),
                            bundle.GetStringFromName("badPermissions"));
 
+            aLauncher.saveDestinationAvailable(null);
             return;
           }
         }
 
         
-        if (result)
-          return result;
+        if (result) {
+          aLauncher.saveDestinationAvailable(result);
+          return;
+        }
       }
     }
 
@@ -283,7 +290,8 @@ nsUnknownContentTypeDialog.prototype = {
 
     if (picker.show() == nsIFilePicker.returnCancel) {
       
-      return null;
+      aLauncher.saveDestinationAvailable(null);
+      return;
     }
 
     
@@ -307,7 +315,8 @@ nsUnknownContentTypeDialog.prototype = {
 
       result = this.validateLeafName(newDir, result.leafName, null);
     }
-    return result;
+    aLauncher.saveDestinationAvailable(result);
+    return;
   },
 
   
