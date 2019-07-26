@@ -274,8 +274,9 @@ nsHttpTransaction::Init(uint32_t caps,
     mConsumerTarget = target;
     mCaps = caps;
 
-    if (requestHead->Method() == nsHttp::Head)
+    if (requestHead->IsHead()) {
         mNoContent = true;
+    }
 
     
     
@@ -289,7 +290,7 @@ nsHttpTransaction::Init(uint32_t caps,
     
     
     
-    if ((requestHead->Method() == nsHttp::Post || requestHead->Method() == nsHttp::Put) &&
+    if ((requestHead->IsPost() || requestHead->IsPut()) &&
         !requestBody && !requestHead->PeekHeader(nsHttp::Transfer_Encoding)) {
         requestHead->SetHeader(nsHttp::Content_Length, NS_LITERAL_CSTRING("0"));
     }
@@ -1314,7 +1315,7 @@ nsHttpTransaction::ParseHead(char *buf,
             char *p = LocateHttpStart(buf, std::min<uint32_t>(count, 11), true);
             if (!p) {
                 
-                if (mRequestHead->Method() == nsHttp::Put)
+                if (mRequestHead->IsPut())
                     return NS_ERROR_ABORT;
 
                 mResponseHead->ParseStatusLine("");
@@ -1497,7 +1498,7 @@ nsHttpTransaction::HandleContentStart()
 
     
     
-    if (mRequestHead->Method() == nsHttp::Get)
+    if (mRequestHead->IsGet())
         mRestartInProgressVerifier.Set(mContentLength, mResponseHead);
 
     return NS_OK;

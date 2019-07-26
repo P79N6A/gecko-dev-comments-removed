@@ -122,7 +122,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   LOG(("uri=%s\n", mSpec.get()));
 
   
-  mRequestHead.SetMethod(nsHttp::Get);
+  MOZ_ASSERT(mRequestHead.EqualsMethod(nsHttpRequestHead::kMethod_Get));
 
   
   nsAutoCString hostLine;
@@ -490,10 +490,10 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
     bool hasHeaders;
 
     if (contentType.IsEmpty()) {
-      method = nsHttp::Post;
+      method = NS_LITERAL_CSTRING("POST");
       hasHeaders = true;
     } else {
-      method = nsHttp::Put;
+      method = NS_LITERAL_CSTRING("PUT");
       hasHeaders = false;
     }
     return ExplicitSetUploadStream(stream, contentType, contentLength,
@@ -503,7 +503,7 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
   
   
   mUploadStreamHasHeaders = false;
-  mRequestHead.SetMethod(nsHttp::Get); 
+  mRequestHead.SetMethod(NS_LITERAL_CSTRING("GET")); 
   mUploadStream = stream;
   return NS_OK;
 }
@@ -826,11 +826,7 @@ HttpBaseChannel::SetRequestMethod(const nsACString& aMethod)
   if (!nsHttp::IsValidToken(flatMethod))
     return NS_ERROR_INVALID_ARG;
 
-  nsHttpAtom atom = nsHttp::ResolveAtom(flatMethod.get());
-  if (!atom)
-    return NS_ERROR_FAILURE;
-
-  mRequestHead.SetMethod(atom);
+  mRequestHead.SetMethod(flatMethod);
   return NS_OK;
 }
 
@@ -1610,7 +1606,7 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
 {
   
   
-  if (mRequestHead.Method() != nsHttp::Get) {
+  if (!mRequestHead.IsGet()) {
     return NS_ERROR_NOT_RESUMABLE;
   }
 
@@ -1747,6 +1743,22 @@ CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
   return PL_DHASH_NEXT;
 }
 
+bool
+HttpBaseChannel::ShouldRewriteRedirectToGET(uint32_t httpStatus,
+                                            nsHttpRequestHead::ParsedMethodType method)
+{
+  
+  if (httpStatus == 301 || httpStatus == 302)
+    return method == nsHttpRequestHead::kMethod_Post;
+
+  
+  if (httpStatus == 303)
+    return method != nsHttpRequestHead::kMethod_Head;
+
+  
+  return false;
+}
+
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
                                          nsIChannel   *newChannel,
@@ -1807,7 +1819,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
         int64_t len = clen ? nsCRT::atoll(clen) : -1;
         uploadChannel2->ExplicitSetUploadStream(
                                   mUploadStream, nsDependentCString(ctype), len,
-                                  nsDependentCString(mRequestHead.Method()),
+                                  mRequestHead.Method(),
                                   mUploadStreamHasHeaders);
       } else {
         if (mUploadStreamHasHeaders) {
@@ -1834,7 +1846,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     
 
-    httpChannel->SetRequestMethod(nsDependentCString(mRequestHead.Method()));
+    httpChannel->SetRequestMethod(mRequestHead.Method());
   }
   
   if (mReferrer)

@@ -162,14 +162,6 @@ struct nsHttp
 
     
     
-    static bool ShouldRewriteRedirectToGET(uint32_t httpStatus, nsHttpAtom method);
-
-    
-    
-    static bool IsSafeMethod(nsHttpAtom method);
-
-    
-    
     
     
     

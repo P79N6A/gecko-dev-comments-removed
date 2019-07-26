@@ -300,7 +300,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
                     mOrigin, hashkey);
 
   
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get) {
+  if (mTransaction->RequestHead()->IsGet()) {
     
     nsILoadGroupConnectionInfo *loadGroupCI = mTransaction->LoadGroupConnectionInfo();
     SpdyPushCache *cache = nullptr;
@@ -356,7 +356,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
 
   nsCString compressedData;
   mSession->Compressor()->EncodeHeaderBlock(mFlatHttpRequestHeaders,
-                                            nsCString(mTransaction->RequestHead()->Method().get()),
+                                            mTransaction->RequestHead()->Method(),
                                             mTransaction->RequestHead()->RequestURI(),
                                             hostHeader,
                                             NS_LITERAL_CSTRING("https"),
@@ -366,17 +366,17 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
   
   uint8_t firstFrameFlags =  Http2Session::kFlag_PRIORITY;
 
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get ||
-      mTransaction->RequestHead()->Method() == nsHttp::Connect ||
-      mTransaction->RequestHead()->Method() == nsHttp::Head) {
+  if (mTransaction->RequestHead()->IsGet() ||
+      mTransaction->RequestHead()->IsConnect() ||
+      mTransaction->RequestHead()->IsHead()) {
     
     
 
     SetSentFin(true);
     firstFrameFlags |= Http2Session::kFlag_END_STREAM;
-  } else if (mTransaction->RequestHead()->Method() == nsHttp::Post ||
-             mTransaction->RequestHead()->Method() == nsHttp::Put ||
-             mTransaction->RequestHead()->Method() == nsHttp::Options) {
+  } else if (mTransaction->RequestHead()->IsPost() ||
+             mTransaction->RequestHead()->IsPut() ||
+             mTransaction->RequestHead()->IsOptions()) {
     
   } else if (!mRequestBodyLenRemaining) {
     

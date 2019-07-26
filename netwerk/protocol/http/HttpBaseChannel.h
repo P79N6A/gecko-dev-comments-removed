@@ -205,6 +205,12 @@ public:
 
 public: 
 
+
+    
+    
+    static bool ShouldRewriteRedirectToGET(uint32_t httpStatus,
+                                           nsHttpRequestHead::ParsedMethodType method);
+
 protected:
     nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
 

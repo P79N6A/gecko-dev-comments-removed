@@ -295,7 +295,7 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
                     mOrigin, hashkey);
 
   
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get) {
+  if (mTransaction->RequestHead()->IsGet()) {
     
     nsILoadGroupConnectionInfo *loadGroupCI = mTransaction->LoadGroupConnectionInfo();
     SpdyPushCache *cache = nullptr;
@@ -490,18 +490,18 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
   
   
 
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get ||
-      mTransaction->RequestHead()->Method() == nsHttp::Connect ||
-      mTransaction->RequestHead()->Method() == nsHttp::Head) {
+  if (mTransaction->RequestHead()->IsGet() ||
+      mTransaction->RequestHead()->IsConnect() ||
+      mTransaction->RequestHead()->IsHead()) {
     
     
 
     mSentFinOnData = 1;
     mTxInlineFrame[4] = SpdySession31::kFlag_Data_FIN;
   }
-  else if (mTransaction->RequestHead()->Method() == nsHttp::Post ||
-           mTransaction->RequestHead()->Method() == nsHttp::Put ||
-           mTransaction->RequestHead()->Method() == nsHttp::Options) {
+  else if (mTransaction->RequestHead()->IsPost() ||
+           mTransaction->RequestHead()->IsPut() ||
+           mTransaction->RequestHead()->IsOptions()) {
     
     
   }
