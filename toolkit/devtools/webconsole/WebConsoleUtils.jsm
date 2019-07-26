@@ -1937,6 +1937,15 @@ NetworkMonitor.prototype = {
     event.url = aChannel.URI.spec;
 
     
+    try {
+      let callbacks = aChannel.notificationCallbacks;
+      let xhrRequest = callbacks ? callbacks.getInterface(Ci.nsIXMLHttpRequest) : null;
+      event.isXHR = !!xhrRequest;
+    } catch (e) {
+      event.isXHR = false;
+    }
+
+    
     aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
     aChannel.getRequestVersion(httpVersionMaj, httpVersionMin);
 

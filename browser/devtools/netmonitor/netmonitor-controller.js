@@ -243,13 +243,23 @@ TargetEventsHandler.prototype = {
 
 
   _onTabNavigated: function(aType, aPacket) {
-    if (aType == "will-navigate") {
-      NetMonitorView.RequestsMenu.reset();
-      NetMonitorView.NetworkDetails.reset();
-      window.emit("NetMonitor:TargetWillNavigate");
-    }
-    if (aType == "navigate") {
-      window.emit("NetMonitor:TargetNavigate");
+    switch (aType) {
+      case "will-navigate": {
+        
+        NetMonitorView.RequestsMenu.reset();
+        NetMonitorView.NetworkDetails.reset();
+
+        
+        nsIURL.store.clear();
+        drain.store.clear();
+
+        window.emit("NetMonitor:TargetWillNavigate");
+        break;
+      }
+      case "navigate": {
+        window.emit("NetMonitor:TargetNavigate");
+        break;
+      }
     }
   },
 
@@ -310,8 +320,8 @@ NetworkEventsHandler.prototype = {
 
 
   _onNetworkEvent: function(aType, aPacket) {
-    let { actor, startedDateTime, method, url } = aPacket.eventActor;
-    NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url);
+    let { actor, startedDateTime, method, url, isXHR } = aPacket.eventActor;
+    NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url, isXHR);
 
     window.emit("NetMonitor:NetworkEvent");
   },

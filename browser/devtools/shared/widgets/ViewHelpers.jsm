@@ -607,7 +607,7 @@ MenuContainer.prototype = {
 
     
     if (aOptions.sorted) {
-      stagedItems.sort((a, b) => this._sortPredicate(a.item, b.item));
+      stagedItems.sort((a, b) => this._currentSortPredicate(a.item, b.item));
     }
     
     for (let { item, options } of stagedItems) {
@@ -698,9 +698,13 @@ MenuContainer.prototype = {
 
 
 
+
+
+
+
   toggleContents: function(aVisibleFlag) {
-    for (let [, item] of this._itemsByElement) {
-      item._target.hidden = !aVisibleFlag;
+    for (let [element, item] of this._itemsByElement) {
+      element.hidden = !aVisibleFlag;
     }
   },
 
@@ -712,8 +716,24 @@ MenuContainer.prototype = {
 
 
 
-  sortContents: function(aPredicate = this._sortPredicate) {
-    let sortedItems = this.allItems.sort(this._sortPredicate = aPredicate);
+  filterContents: function(aPredicate = this._currentFilterPredicate) {
+    this._currentFilterPredicate = aPredicate;
+
+    for (let [element, item] of this._itemsByElement) {
+      element.hidden = !aPredicate(item);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  sortContents: function(aPredicate = this._currentSortPredicate) {
+    let sortedItems = this.allItems.sort(this._currentSortPredicate = aPredicate);
 
     for (let i = 0, len = sortedItems.length; i < len; i++) {
       this.swapItems(this.getItemAtIndex(i), sortedItems[i]);
@@ -1123,7 +1143,7 @@ MenuContainer.prototype = {
     let itemCount = this.itemCount;
 
     for (let i = 0; i < itemCount; i++) {
-      if (this._sortPredicate(this.getItemAtIndex(i), aItem) > 0) {
+      if (this._currentSortPredicate(this.getItemAtIndex(i), aItem) > 0) {
         return i;
       }
     }
@@ -1160,6 +1180,9 @@ MenuContainer.prototype = {
       aItem.attachment));
 
     
+    if (!this._currentFilterPredicate(aItem)) {
+      aItem._target.hidden = true;
+    }
     if (aOptions.attributes) {
       aItem.setAttributes(aOptions.attributes, aItem._target);
     }
@@ -1226,11 +1249,24 @@ MenuContainer.prototype = {
 
 
 
+  _currentFilterPredicate: function(aItem) {
+    return true;
+  },
+
+  
 
 
 
 
-  _sortPredicate: function(aFirst, aSecond) {
+
+
+
+
+
+
+
+
+  _currentSortPredicate: function(aFirst, aSecond) {
     return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
   },
 
