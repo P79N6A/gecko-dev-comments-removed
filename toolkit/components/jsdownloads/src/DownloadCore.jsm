@@ -408,12 +408,12 @@ Download.prototype = {
         }
       }
 
-      
-      if (yield DownloadIntegration.shouldBlockForParentalControls(this)) {
-        throw new DownloadError({ becauseBlockedByParentalControls: true });
-      }
-
       try {
+        
+        if (yield DownloadIntegration.shouldBlockForParentalControls(this)) {
+          throw new DownloadError({ becauseBlockedByParentalControls: true });
+        }
+
         
         yield this.saver.execute(DS_setProgressBytes.bind(this),
                                  DS_setProperties.bind(this));
@@ -428,6 +428,15 @@ Download.prototype = {
         
         if (this._promiseCanceled) {
           throw new DownloadError({ message: "Download canceled." });
+        }
+
+        
+        
+        
+        
+        
+        if (this._blockedByParentalControls) {
+          ex = new DownloadError({ becauseBlockedByParentalControls: true });
         }
 
         
@@ -472,7 +481,7 @@ Download.prototype = {
 
     
     this._notifyChange();
-    return this._currentAttempt;
+    return currentAttempt;
   },
 
   
@@ -1336,6 +1345,31 @@ DownloadSaver.prototype = {
 
 
 
+
+
+
+  isResponseParentalBlocked: function(aRequest)
+  {
+    
+    
+    if (aRequest instanceof Ci.nsIHttpChannel &&
+        aRequest.responseStatus == 450) {
+      
+      
+      
+      this.download._blockedByParentalControls = true;
+      aRequest.cancel(Cr.NS_BINDING_ABORTED);
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
   toSerializable: function ()
   {
     throw new Error("Not implemented.");
@@ -1527,6 +1561,10 @@ DownloadCopySaver.prototype = {
           channel.asyncOpen({
             onStartRequest: function (aRequest, aContext) {
               backgroundFileSaver.onStartRequest(aRequest, aContext);
+
+              if (this.isResponseParentalBlocked(aRequest)) {
+                return;
+              }
 
               aSetPropertiesFn({ contentType: channel.contentType });
 
@@ -1797,6 +1835,10 @@ DownloadLegacySaver.prototype = {
         this.entityID = aRequest.entityID;
       } catch (ex if ex instanceof Components.Exception &&
                      ex.result == Cr.NS_ERROR_NOT_RESUMABLE) { }
+    }
+
+    if (this.isResponseParentalBlocked(aRequest)) {
+      return;
     }
 
     

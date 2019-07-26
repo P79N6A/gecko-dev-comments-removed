@@ -774,6 +774,13 @@ add_task(function test_common_initialize()
     });
 
   
+  gHttpServer.registerPathHandler("/parentalblocked.zip",
+    function (aRequest, aResponse) {
+      aResponse.setStatusLine(aRequest.httpVersion, 450,
+                              "Blocked by Windows Parental Controls");
+    });
+
+  
   DownloadIntegration.dontLoadList = true;
   DownloadIntegration.dontLoadObservers = true;
   
