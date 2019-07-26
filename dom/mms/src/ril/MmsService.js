@@ -1430,8 +1430,9 @@ MmsService.prototype = {
     });
   },
 
-  retrieve: function retrieve(id, aRequest) {
-    gMobileMessageDatabaseService.getMessageRecordById(id,
+  retrieve: function retrieve(aMessageId, aRequest) {
+    if (DEBUG) debug("Retrieving message with ID " + aMessageId);
+    gMobileMessageDatabaseService.getMessageRecordById(aMessageId,
         (function notifyResult(aRv, aMessageRecord) {
       if (Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR != aRv) {
         if (DEBUG) debug("Function getMessageRecordById() return error.");
@@ -1439,12 +1440,16 @@ MmsService.prototype = {
         return;
       }
       if ("mms" != aMessageRecord.type) {
-        if (DEBUG) debug("Type of message record is not mms");
+        if (DEBUG) debug("Type of message record is not 'mms'.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
         return;
       }
-      if (!aMessageRecord.headers ||
-          !aMessageRecord.headers["x-mms-content-location"]) {
+      if (!aMessageRecord.headers) {
+        if (DEBUG) debug("Must need the MMS' headers to proceed the retrieve.");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
+      if (!aMessageRecord.headers["x-mms-content-location"]) {
         if (DEBUG) debug("Can't find mms content url in database.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
         return;
@@ -1453,12 +1458,14 @@ MmsService.prototype = {
       
       
       
-      let expiriedDate = aMessageRecord.timestamp +
-        aMessageRecord.headers["x-mms-expiry"] * 1000;
-      if (expiriedDate < Date.now()) {
-        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR);
-        if (DEBUG) debug("This notification indication is expired.");
-        return;
+      if (aMessageRecord.headers["x-mms-expiry"] != undefined) {
+        let expiryDate = aMessageRecord.timestamp +
+                         aMessageRecord.headers["x-mms-expiry"] * 1000;
+        if (expiryDate < Date.now()) {
+          if (DEBUG) debug("The message to be retrieved is expired.");
+          aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR);
+          return;
+        }
       }
 
       let url =  aMessageRecord.headers["x-mms-content-location"].uri;
