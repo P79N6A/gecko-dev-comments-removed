@@ -55,24 +55,25 @@ public:
   typedef std::map<ViewID, nsRefPtr<nsContentView> > ViewMap;
 
   
-
-
-
-
-  RenderFrameParent(nsFrameLoader* aFrameLoader,
-                    ScrollingBehavior aScrollingBehavior,
-                    TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                    uint64_t* aId);
+  RenderFrameParent();
   virtual ~RenderFrameParent();
 
+  
+
+
+
+
+  void Init(nsFrameLoader* aFrameLoader,
+            ScrollingBehavior aScrollingBehavior,
+            TextureFactoryIdentifier* aTextureFactoryIdentifier,
+            uint64_t* aId);
   void Destroy();
 
   
 
 
 
-  nsContentView* GetContentView(ViewID aId);
-  nsContentView* GetRootContentView();
+  nsContentView* GetContentView(ViewID aId = FrameMetrics::ROOT_SCROLL_ID);
 
   void ContentViewScaleChanged(nsContentView* aView);
 
@@ -118,7 +119,6 @@ public:
 
   void UpdateZoomConstraints(uint32_t aPresShellId,
                              ViewID aViewId,
-                             bool aIsRoot,
                              bool aAllowZoom,
                              const CSSToScreenScale& aMinZoom,
                              const CSSToScreenScale& aMaxZoom);
