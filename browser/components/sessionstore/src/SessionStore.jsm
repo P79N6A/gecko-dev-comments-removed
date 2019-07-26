@@ -132,6 +132,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
   "resource:///modules/sessionstore/SessionCookies.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
+  "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
   "resource:///modules/sessionstore/_SessionFile.jsm");
 
@@ -392,10 +394,6 @@ let SessionStoreInternal = {
 
     this._initPrefs();
     this._initialized = true;
-
-    
-    this._sessionhistory_max_entries =
-      this._prefBranch.getIntPref("sessionhistory.max_entries");
 
     
     gSessionStartup.onceInitialized.then(() => {
@@ -4388,60 +4386,17 @@ let TabState = {
 
   _collectTabHistory: function (tab, tabData, options = {}) {
     let includePrivateData = options && options.includePrivateData;
-    let browser = tab.linkedBrowser;
-    let history = null;
-    try {
-      history = browser.sessionHistory;
-    } catch (ex) {
-      
-    }
+    let docShell = tab.linkedBrowser.docShell;
 
-    
-    
-    if (history && browser.__SS_data &&
-        browser.__SS_data.entries[history.index] &&
-        browser.__SS_data.entries[history.index].url == browser.currentURI.spec &&
-        history.index < this._sessionhistory_max_entries - 1 && !includePrivateData) {
-      tabData = browser.__SS_data;
-      tabData.index = history.index + 1;
-    }
-    else if (history && history.count > 0) {
-      try {
-        for (let j = 0; j < history.count; j++) {
-          let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  includePrivateData, tab.pinned);
-          tabData.entries.push(entry);
-        }
-        
-        
-        delete tab.__SS_broken_history;
-      }
-      catch (ex) {
-        
-        
-        
-        
-        
-        
-        if (!tab.__SS_broken_history) {
-          
-          tab.ownerDocument.defaultView.focus();
-          tab.ownerDocument.defaultView.gBrowser.selectedTab = tab;
-          debug("SessionStore failed gathering complete history " +
-                "for the focused window/tab. See bug 669196.");
-          tab.__SS_broken_history = true;
-        }
-      }
-      tabData.index = history.index + 1;
+    if (docShell instanceof Ci.nsIDocShell) {
+      let history = SessionHistory.read(docShell, includePrivateData);
+      tabData.entries = history.entries;
 
       
-      if (!includePrivateData)
-        browser.__SS_data = tabData;
-    }
-    else if (browser.currentURI.spec != "about:blank" ||
-             browser.contentDocument.body.hasChildNodes()) {
-      tabData.entries[0] = { url: browser.currentURI.spec };
-      tabData.index = 1;
+      
+      if ("index" in history) {
+        tabData.index = history.index;
+      }
     }
   },
 
@@ -4457,158 +4412,14 @@ let TabState = {
 
   _collectTabSessionStorage: function (tab, tabData, options = {}) {
     let includePrivateData = options && options.includePrivateData;
-    let browser = tab.linkedBrowser;
-    let history = null;
-    try {
-      history = browser.sessionHistory;
-    } catch (ex) {
-      
-    }
+    let docShell = tab.linkedBrowser.docShell;
 
-    if (history && browser.docShell instanceof Ci.nsIDocShell) {
-      let storageData = SessionStorage.serialize(browser.docShell, includePrivateData)
+    if (docShell instanceof Ci.nsIDocShell) {
+      let storageData = SessionStorage.serialize(docShell, includePrivateData)
       if (Object.keys(storageData).length) {
         tabData.storage = storageData;
       }
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _serializeHistoryEntry: function (shEntry, includePrivateData, isPinned) {
-    let entry = { url: shEntry.URI.spec };
-
-    if (shEntry.title && shEntry.title != entry.url) {
-      entry.title = shEntry.title;
-    }
-    if (shEntry.isSubFrame) {
-      entry.subframe = true;
-    }
-    if (!(shEntry instanceof Ci.nsISHEntry)) {
-      return entry;
-    }
-
-    let cacheKey = shEntry.cacheKey;
-    if (cacheKey && cacheKey instanceof Ci.nsISupportsPRUint32 &&
-        cacheKey.data != 0) {
-      
-      
-      entry.cacheKey = cacheKey.data;
-    }
-    entry.ID = shEntry.ID;
-    entry.docshellID = shEntry.docshellID;
-
-    
-    
-    if (shEntry.referrerURI)
-      entry.referrer = shEntry.referrerURI.spec;
-
-    if (shEntry.srcdocData)
-      entry.srcdocData = shEntry.srcdocData;
-
-    if (shEntry.isSrcdocEntry)
-      entry.isSrcdocEntry = shEntry.isSrcdocEntry;
-
-    if (shEntry.contentType)
-      entry.contentType = shEntry.contentType;
-
-    let x = {}, y = {};
-    shEntry.getScrollPosition(x, y);
-    if (x.value != 0 || y.value != 0)
-      entry.scroll = x.value + "," + y.value;
-
-    try {
-      let isHttps = shEntry.URI.schemeIs("https");
-      let prefPostdata = Services.prefs.getIntPref("browser.sessionstore.postdata");
-      if (shEntry.postData && (includePrivateData || prefPostdata &&
-          PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned}))) {
-        shEntry.postData.QueryInterface(Ci.nsISeekableStream).
-                        seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
-        let stream = Cc["@mozilla.org/binaryinputstream;1"].
-                     createInstance(Ci.nsIBinaryInputStream);
-        stream.setInputStream(shEntry.postData);
-        let postBytes = stream.readByteArray(stream.available());
-        let postdata = String.fromCharCode.apply(null, postBytes);
-        if (includePrivateData || prefPostdata == -1 ||
-            postdata.replace(/^(Content-.*\r\n)+(\r\n)*/, "").length <=
-              prefPostdata) {
-          
-          
-          
-          entry.postdata_b64 = btoa(postdata);
-        }
-      }
-    }
-    catch (ex) { debug(ex); } 
-
-    if (shEntry.owner) {
-      
-      
-      try {
-        let binaryStream = Cc["@mozilla.org/binaryoutputstream;1"].
-                           createInstance(Ci.nsIObjectOutputStream);
-        let pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
-        pipe.init(false, false, 0, 0xffffffff, null);
-        binaryStream.setOutputStream(pipe.outputStream);
-        binaryStream.writeCompoundObject(shEntry.owner, Ci.nsISupports, true);
-        binaryStream.close();
-
-        
-        let scriptableStream = Cc["@mozilla.org/binaryinputstream;1"].
-                               createInstance(Ci.nsIBinaryInputStream);
-        scriptableStream.setInputStream(pipe.inputStream);
-        let ownerBytes =
-          scriptableStream.readByteArray(scriptableStream.available());
-        
-        
-        
-        entry.owner_b64 = btoa(String.fromCharCode.apply(null, ownerBytes));
-      }
-      catch (ex) { debug(ex); }
-    }
-
-    entry.docIdentifier = shEntry.BFCacheEntry.ID;
-
-    if (shEntry.stateData != null) {
-      entry.structuredCloneState = shEntry.stateData.getDataAsBase64();
-      entry.structuredCloneVersion = shEntry.stateData.formatVersion;
-    }
-
-    if (!(shEntry instanceof Ci.nsISHContainer)) {
-      return entry;
-    }
-
-    if (shEntry.childCount > 0) {
-      let children = [];
-      for (let i = 0; i < shEntry.childCount; i++) {
-        let child = shEntry.GetChildAt(i);
-
-        if (child) {
-          
-          if (child.URI.schemeIs("wyciwyg")) {
-            children = [];
-            break;
-          }
-
-          children.push(this._serializeHistoryEntry(child, includePrivateData,
-                                                    isPinned));
-        }
-      }
-
-      if (children.length)
-        entry.children = children;
-    }
-
-    return entry;
   },
 
   
