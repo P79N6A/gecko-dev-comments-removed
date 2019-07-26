@@ -775,6 +775,48 @@ struct ParseNode {
         return !(isOp(JSOP_LAMBDA) || isOp(JSOP_DEFFUN));
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool isStringExprStatement() const {
+        if (getKind() == PNK_SEMI) {
+            JS_ASSERT(pn_arity == PN_UNARY);
+            ParseNode *kid = pn_kid;
+            return kid && kid->getKind() == PNK_STRING && !kid->pn_parens;
+        }
+        return false;
+    }
+
+    
+
+
+
+
+    bool isEscapeFreeStringLiteral() const {
+        JS_ASSERT(isKind(PNK_STRING) && !pn_parens);
+
+        
+
+
+
+
+        JSString *str = pn_atom;
+        return (pn_pos.begin.lineno == pn_pos.end.lineno &&
+                pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
+    }
+
     inline bool test(unsigned flag) const;
 
     bool isLet() const          { return test(PND_LET); }

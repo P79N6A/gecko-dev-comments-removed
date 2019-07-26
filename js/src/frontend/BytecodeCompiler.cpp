@@ -168,17 +168,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 #endif
 
     TokenStream &tokenStream = parser.tokenStream;
-    {
-        ParseNode *stringsAtStart = ListNode::create(PNK_STATEMENTLIST, &parser);
-        if (!stringsAtStart)
-            return NULL;
-        stringsAtStart->makeEmpty();
-        bool ok = parser.processDirectives(stringsAtStart) && EmitTree(cx, &bce, stringsAtStart);
-        parser.freeTree(stringsAtStart);
-        if (!ok)
-            return NULL;
-    }
-    JS_ASSERT(globalsc.strictModeState != StrictMode::UNKNOWN);
+    bool canHaveDirectives = true;
     for (;;) {
         TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF) {
@@ -191,6 +181,11 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         pn = parser.statement();
         if (!pn)
             return NULL;
+
+        if (canHaveDirectives) {
+            if (!parser.maybeParseDirective(pn, &canHaveDirectives))
+                return NULL;
+        }
 
         if (!FoldConstants(cx, pn, &parser))
             return NULL;
@@ -279,14 +274,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
 
     JS_ASSERT(fun);
 
-    StrictMode sms = StrictModeFromContext(cx);
-    FunctionBox *funbox = parser.newFunctionBox(fun,  NULL, sms);
     fun->setArgCount(formals.length());
-
-    unsigned staticLevel = 0;
-    ParseContext funpc(&parser, funbox, staticLevel,  0);
-    if (!funpc.init())
-        return false;
 
     
     ParseNode *fn = FunctionNode::create(PNK_NAME, &parser);
@@ -303,36 +291,33 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     argsbody->makeEmpty();
     fn->pn_body = argsbody;
 
-    for (unsigned i = 0; i < formals.length(); i++) {
-        if (!DefineArg(&parser, fn, formals[i]))
-            return false;
-    }
-
-    
-
-
-
-
-    ParseNode *pn = parser.functionBody(Parser::StatementListBody);
-    if (!pn)
-        return false;
-
-    if (!parser.tokenStream.matchToken(TOK_EOF)) {
-        parser.reportError(NULL, JSMSG_SYNTAX_ERROR);
-        return false;
-    }
-
-    if (!FoldConstants(cx, pn, &parser))
-        return false;
-
     Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), false, options,
-                                                  staticLevel, ss, 0, length));
+                                                   0, ss,
+                                                   0, length));
     if (!script)
         return false;
 
-    InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!funpc.generateFunctionBindings(cx, bindings))
-        return false;
+    
+    
+    
+    TokenStream::Position start;
+    parser.tokenStream.tell(&start);
+    bool initiallyStrict = StrictModeFromContext(cx) == StrictMode::STRICT;
+    bool becameStrict;
+    FunctionBox *funbox;
+    ParseNode *pn = parser.standaloneFunctionBody(fun, formals, script, fn, &funbox,
+                                                  initiallyStrict, &becameStrict);
+    if (!pn) {
+        if (initiallyStrict || !becameStrict || parser.tokenStream.hadError())
+            return false;
+
+        
+        parser.tokenStream.seek(start);
+        pn = parser.standaloneFunctionBody(fun, formals, script, fn, &funbox,
+                                            true);
+        if (!pn)
+            return false;
+    }
 
     BytecodeEmitter funbce( NULL, &parser, funbox, script,  NULL,
                             false, options.lineno);

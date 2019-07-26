@@ -707,6 +707,48 @@ CheckStrictBinding(JSContext *cx, Parser *parser, HandlePropertyName name, Parse
 }
 
 ParseNode *
+Parser::standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals, HandleScript script,
+                               ParseNode *fn, FunctionBox **funbox, bool strict, bool *becameStrict)
+{
+    if (becameStrict)
+        *becameStrict = false;
+
+    *funbox = newFunctionBox(fun,  NULL, strict ? StrictMode::STRICT : StrictMode::NOTSTRICT);
+    if (!funbox)
+        return NULL;
+
+    ParseContext funpc(this, *funbox, 0,  0);
+    if (!funpc.init())
+        return NULL;
+
+    for (unsigned i = 0; i < formals.length(); i++) {
+        if (!DefineArg(this, fn, formals[i]))
+            return NULL;
+    }
+
+    ParseNode *pn = functionBody(StatementListBody);
+    if (!pn) {
+        if (becameStrict && pc->funBecameStrict)
+            *becameStrict = true;
+        return NULL;
+    }
+
+    if (!tokenStream.matchToken(TOK_EOF)) {
+        reportError(NULL, JSMSG_SYNTAX_ERROR);
+        return NULL;
+    }
+
+    if (!FoldConstants(context, pn, this))
+        return NULL;
+
+    InternalHandle<Bindings*> bindings(script, &script->bindings);
+    if (!funpc.generateFunctionBindings(context, bindings))
+        return NULL;
+
+    return pn;
+}
+
+ParseNode *
 Parser::functionBody(FunctionBodyType type)
 {
     JS_ASSERT(pc->sc->isFunction);
@@ -719,10 +761,6 @@ Parser::functionBody(FunctionBodyType type)
         JS_ASSERT(type == ExpressionBody);
         JS_ASSERT(JS_HAS_EXPR_CLOSURES);
 
-        
-        
-        if (!setStrictMode(false))
-            return NULL;
         pn = UnaryNode::create(PNK_RETURN, this);
         if (pn) {
             pn->pn_kid = assignExpr();
@@ -1475,7 +1513,8 @@ Parser::functionArguments(ParseNode **listp, ParseNode* funcpn, bool &hasRest)
 }
 
 ParseNode *
-Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSyntaxKind kind)
+Parser::functionDef(HandlePropertyName funName, const TokenStream::Position &start,
+                    FunctionType type, FunctionSyntaxKind kind)
 {
     JS_ASSERT_IF(kind == Statement, funName);
 
@@ -1484,6 +1523,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
     if (!pn)
         return NULL;
     pn->pn_body = NULL;
+    pn->pn_funbox = NULL;
     pn->pn_cookie.makeFree();
     pn->pn_dflags = 0;
 
@@ -1589,31 +1629,55 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         pn->setOp(JSOP_LAMBDA);
     }
 
-    ParseContext *outerpc = pc;
-
-    RootedFunction fun(context, newFunction(outerpc, funName, kind));
+    RootedFunction fun(context, newFunction(pc, funName, kind));
     if (!fun)
         return NULL;
 
     
-    StrictMode sms = (outerpc->sc->strictModeState == StrictMode::STRICT) ?
-        StrictMode::STRICT : StrictMode::UNKNOWN;
+    
+    
+    pn->pn_body = NULL;
+    bool initiallyStrict = pc->sc->strictModeState == StrictMode::STRICT;
+    bool becameStrict;
+    if (!functionArgsAndBody(pn, fun, funName, type, kind, initiallyStrict, &becameStrict)) {
+        if (initiallyStrict || !becameStrict || tokenStream.hadError())
+            return NULL;
+
+        
+        tokenStream.seek(start);
+        if (funName && tokenStream.getToken() == TOK_ERROR)
+            return NULL;
+        pn->pn_body = NULL;
+        if (!functionArgsAndBody(pn, fun, funName, type, kind, true))
+            return NULL;
+    }
+
+    return pn;
+}
+
+bool
+Parser::functionArgsAndBody(ParseNode *pn, HandleFunction fun, HandlePropertyName funName, FunctionType type,
+                            FunctionSyntaxKind kind, bool strict, bool *becameStrict)
+{
+    if (becameStrict)
+        *becameStrict = false;
+    ParseContext *outerpc = pc;
 
     
-    FunctionBox *funbox = newFunctionBox(fun, outerpc, sms);
+    FunctionBox *funbox = newFunctionBox(fun, pc, strict ? StrictMode::STRICT : StrictMode::NOTSTRICT);
     if (!funbox)
-        return NULL;
+        return false;
 
     
     ParseContext funpc(this, funbox, outerpc->staticLevel + 1, outerpc->blockidGen);
     if (!funpc.init())
-        return NULL;
+        return false;
 
     
     ParseNode *prelude = NULL;
     bool hasRest;
     if (!functionArguments(&prelude, pn, hasRest))
-        return NULL;
+        return false;
 
     fun->setArgCount(funpc.numArgs());
     if (funbox->ndefaults)
@@ -1623,44 +1687,54 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
     if (type == Getter && fun->nargs > 0) {
         reportError(NULL, JSMSG_ACCESSOR_WRONG_ARGS, "getter", "no", "s");
-        return NULL;
+        return false;
     }
     if (type == Setter && fun->nargs != 1) {
         reportError(NULL, JSMSG_ACCESSOR_WRONG_ARGS, "setter", "one", "");
-        return NULL;
+        return false;
     }
 
     FunctionBodyType bodyType = StatementListBody;
 #if JS_HAS_EXPR_CLOSURES
     if (tokenStream.getToken(TSF_OPERAND) != TOK_LC) {
         tokenStream.ungetToken();
-        fun->setIsExprClosure();
         bodyType = ExpressionBody;
+        fun->setIsExprClosure();
     }
 #else
-    MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_BODY);
+    if (!tokenStream.matchToken(TOK_LC)) {
+        reportError(NULL, JSMSG_CURLY_BEFORE_BODY);
+        return false;
+    }
 #endif
 
     ParseNode *body = functionBody(bodyType);
-    if (!body)
-        return NULL;
+    if (!body) {
+        
+        if (becameStrict && pc->funBecameStrict)
+            *becameStrict = true;
+        return false;
+    }
 
     if (funName && !CheckStrictBinding(context, this, funName, pn))
-        return NULL;
+        return false;
 
 #if JS_HAS_EXPR_CLOSURES
     if (bodyType == StatementListBody) {
 #endif
-        MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
+        if (!tokenStream.matchToken(TOK_RC)) {
+            reportError(NULL, JSMSG_CURLY_AFTER_BODY);
+            return false;
+        }
         funbox->bufEnd = tokenStream.offsetOfToken(tokenStream.currentToken()) + 1;
 #if JS_HAS_EXPR_CLOSURES
     } else {
         
         if (tokenStream.hadError())
-            return NULL;
+            return false;
         funbox->bufEnd = tokenStream.endOffset(tokenStream.currentToken());
         if (kind == Statement && !MatchOrInsertSemicolon(context, &tokenStream))
-            return NULL;
+            return false;
     }
 #endif
     pn->pn_pos.end = tokenStream.currentToken().pos.end;
@@ -1687,7 +1761,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
             block = ListNode::create(PNK_SEQ, this);
             if (!block)
-                return NULL;
+                return false;
             block->pn_pos = body->pn_pos;
             block->initList(body);
 
@@ -1696,7 +1770,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
         ParseNode *item = UnaryNode::create(PNK_SEMI, this);
         if (!item)
-            return NULL;
+            return false;
 
         item->pn_pos.begin = item->pn_pos.end = body->pn_pos.begin;
         item->pn_kid = prelude;
@@ -1723,9 +1797,9 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
     pn->pn_blockid = outerpc->blockid();
 
     if (!LeaveFunction(pn, this, funName, kind))
-        return NULL;
+        return false;
 
-    return pn;
+    return true;
 }
 
 ParseNode *
@@ -1741,12 +1815,15 @@ Parser::functionStmt()
         return NULL;
     }
 
+    TokenStream::Position start;
+    tokenStream.positionAfterLastFunctionKeyword(start);
+
     
     if (!pc->atBodyLevel() && pc->sc->needStrictChecks() &&
         !reportStrictModeError(NULL, JSMSG_STRICT_FUNCTION_STATEMENT))
         return NULL;
 
-    return functionDef(name, Normal, Statement);
+    return functionDef(name, start, Normal, Statement);
 }
 
 ParseNode *
@@ -1754,146 +1831,78 @@ Parser::functionExpr()
 {
     RootedPropertyName name(context);
     JS_ASSERT(tokenStream.currentToken().type == TOK_FUNCTION);
+    TokenStream::Position start;
+    tokenStream.positionAfterLastFunctionKeyword(start);
     if (tokenStream.getToken(TSF_KEYWORD_IS_NAME) == TOK_NAME)
         name = tokenStream.currentToken().name();
     else
         tokenStream.ungetToken();
-    return functionDef(name, Normal, Expression);
+    return functionDef(name, start, Normal, Expression);
 }
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool
-Parser::setStrictMode(bool strictMode)
+Parser::maybeParseDirective(ParseNode *pn, bool *cont)
 {
-    if (pc->sc->strictModeState != StrictMode::UNKNOWN) {
-        
-        JS_ASSERT(pc->sc->strictModeState == StrictMode::STRICT);
-        if (pc->sc->isFunction) {
-            JS_ASSERT_IF(pc->parent, pc->parent->sc->strictModeState == StrictMode::STRICT);
-        } else {
-            JS_ASSERT_IF(pc->staticLevel == 0,
-                         StrictModeFromContext(context) == StrictMode::STRICT);
-        }
+    *cont = pn->isStringExprStatement();
+    if (!*cont)
         return true;
-    }
 
-    if (strictMode) {
-        if (pc->queuedStrictModeError) {
-            
-            
-            JS_ASSERT(!(pc->queuedStrictModeError->report.flags & JSREPORT_WARNING));
-            pc->queuedStrictModeError->throwError();
-            return false;
-        }
-        pc->sc->strictModeState = StrictMode::STRICT;
-    } else {
-        if (!pc->parent || pc->parent->sc->strictModeState == StrictMode::NOTSTRICT) {
-            
-            
-            pc->sc->strictModeState = StrictMode::NOTSTRICT;
-            if (pc->queuedStrictModeError && context->hasStrictOption() &&
-                pc->queuedStrictModeError->report.errorNumber != JSMSG_STRICT_CODE_WITH) {
-                
-                pc->queuedStrictModeError->report.flags |= JSREPORT_WARNING;
-                pc->queuedStrictModeError->throwError();
-            }
-        } else {
-            
-            
-            
-            
-            JS_ASSERT(pc->sc->isFunction);
-        }
-    }
-    return true;
-}
-
-
-
-
-
-
-static bool
-IsEscapeFreeStringLiteral(const Token &tok)
-{
-    
-
-
-
-
-    return (tok.pos.begin.lineno == tok.pos.end.lineno &&
-            tok.pos.begin.index + tok.atom()->length() + 2 == tok.pos.end.index);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-Parser::processDirectives(ParseNode *stmts)
-{
-    bool gotStrictMode = false;
-    for (TokenKind tt = tokenStream.getToken(TSF_OPERAND); tt == TOK_STRING; tt = tokenStream.getToken(TSF_OPERAND)) {
-        ParseNode *stringNode = atomNode(PNK_STRING, JSOP_STRING);
-        if (!stringNode)
-            return false;
-        const Token directive = tokenStream.currentToken();
-        bool isDirective = IsEscapeFreeStringLiteral(directive);
-        JSAtom *atom = directive.atom();
-        TokenKind next = tokenStream.peekTokenSameLine();
-
+    ParseNode *string = pn->pn_kid;
+    if (string->isEscapeFreeStringLiteral()) {
         
         
         
-        if (next != TOK_EOF && next != TOK_SEMI && next != TOK_RC &&
-           (next != TOK_EOL || TokenContinuesStringExpression(tokenStream.peekToken())))
-        {
-            freeTree(stringNode);
-            if (next == TOK_ERROR)
-                return false;
-            break;
-        }
-        tokenStream.matchToken(TOK_SEMI);
-        if (isDirective) {
+        
+        
+        
+        
+        
+        
+        
+        pn->pn_prologue = true;
+
+        JSAtom *directive = string->pn_atom;
+        if (directive == context->runtime->atomState.useStrict) {
             
-            if (atom == context->names().useStrict && !gotStrictMode) {
-                pc->sc->setExplicitUseStrict();
-                if (!setStrictMode(true))
+            
+            pc->sc->setExplicitUseStrict();
+            if (pc->sc->strictModeState == StrictMode::NOTSTRICT) {
+                if (pc->sc->isFunction) {
+                    
+                    pc->funBecameStrict = true;
                     return false;
-                gotStrictMode = true;
+                } else {
+                    
+                    
+                    
+                    if (tokenStream.sawOctalEscape()) {
+                        reportError(NULL, JSMSG_DEPRECATED_OCTAL);
+                        return false;
+                    }
+                    pc->sc->strictModeState = StrictMode::STRICT;
+                }
             }
         }
-        ParseNode *stmt = UnaryNode::create(PNK_SEMI, this);
-        if (!stmt) {
-            freeTree(stringNode);
-            return false;
-        }
-        stmt->pn_pos = stringNode->pn_pos;
-        stmt->pn_kid = stringNode;
-        stmt->pn_prologue = isDirective;
-        stmts->append(stmt);
     }
-    tokenStream.ungetToken();
-    if (!gotStrictMode && !setStrictMode(false))
-        return false;
     return true;
 }
 
@@ -1917,8 +1926,7 @@ Parser::statements(bool *hasFunctionStmt)
     ParseNode *saveBlock = pc->blockNode;
     pc->blockNode = pn;
 
-    if (pc->atBodyLevel() && !processDirectives(pn))
-        return NULL;
+    bool canHaveDirectives = pc->atBodyLevel();
     for (;;) {
         TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF || tt == TOK_RC) {
@@ -1934,6 +1942,11 @@ Parser::statements(bool *hasFunctionStmt)
             if (tokenStream.isEOF())
                 tokenStream.setUnexpectedEOF();
             return NULL;
+        }
+
+        if (canHaveDirectives) {
+            if (!maybeParseDirective(next, &canHaveDirectives))
+                return NULL;
         }
 
         if (next->isKind(PNK_FUNCTION)) {
@@ -6711,7 +6724,10 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
 
                     
                     Rooted<PropertyName*> funName(context, NULL);
-                    pn2 = functionDef(funName, op == JSOP_GETTER ? Getter : Setter, Expression);
+                    TokenStream::Position start;
+                    tokenStream.tell(&start);
+                    pn2 = functionDef(funName, start, op == JSOP_GETTER ? Getter : Setter,
+                                      Expression);
                     if (!pn2)
                         return NULL;
                     TokenPos pos = {begin, pn2->pn_pos.end};

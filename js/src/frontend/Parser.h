@@ -199,6 +199,10 @@ struct ParseContext
     
     bool            inDeclDestructuring:1;
 
+    
+    
+    bool            funBecameStrict:1;
+
     inline ParseContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
     inline ~ParseContext();
 
@@ -350,7 +354,12 @@ struct Parser : private AutoGCRooter
 
     
     ParseNode *statement();
-    bool processDirectives(ParseNode *stringsAtStart);
+    bool maybeParseDirective(ParseNode *pn, bool *cont);
+
+    
+    ParseNode *standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals, HandleScript script,
+                                      ParseNode *fn, FunctionBox **funbox, bool strict,
+                                      bool *becameStrict = NULL);
 
     
 
@@ -424,7 +433,11 @@ struct Parser : private AutoGCRooter
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(ParseNode **list, ParseNode *funcpn, bool &hasRest);
 
-    ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
+    ParseNode *functionDef(HandlePropertyName name, const TokenStream::Position &start,
+                           FunctionType type, FunctionSyntaxKind kind);
+    bool functionArgsAndBody(ParseNode *pn, HandleFunction fun, HandlePropertyName funName,
+                             FunctionType type, FunctionSyntaxKind kind, bool strict,
+                             bool *becameStrict = NULL);
 
     ParseNode *unaryOpExpr(ParseNodeKind kind, JSOp op);
 
@@ -473,7 +486,6 @@ struct Parser : private AutoGCRooter
     ParseNode *propertyQualifiedIdentifier();
 #endif 
 
-    bool setStrictMode(bool strictMode);
     bool setAssignmentLhsOps(ParseNode *pn, JSOp op);
     bool matchInOrOf(bool *isForOfp);
 };
