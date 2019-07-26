@@ -110,9 +110,9 @@ this.Keyboard = {
         return;
       }
 
-      if (!mm.assertPermission("keyboard")) {
+      if (!mm.assertPermission("input")) {
         dump("Keyboard message " + msg.name +
-        " from a content process with no 'keyboard' privileges.");
+        " from a content process with no 'input' privileges.");
         return;
       }
     }
