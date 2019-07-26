@@ -44,10 +44,10 @@ AbstractPort.prototype = {
     
     
     
-    data = this._JSONParse(data);
     if (!this._handler) {
       this._pendingMessagesIncoming.push(data);
     } else {
+      data = this._JSONParse(data);
       try {
         this._handler({
           data: data,
