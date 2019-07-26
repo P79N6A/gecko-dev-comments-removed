@@ -1874,6 +1874,10 @@ var SelectionHandler = {
         break;
       }
       case "Tab:Selected":
+        if (this._activeType == this.TYPE_CURSOR) {
+          this.hideThumb();
+        }
+        
       case "Window:Resize": {
         if (this._activeType == this.TYPE_SELECTION) {
           
