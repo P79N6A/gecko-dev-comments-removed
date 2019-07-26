@@ -2075,6 +2075,8 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
     return NS_OK;
   }
 
+  AutoIncrementalSearchResetter incrementalSearchResetter;
+
   
   
 
@@ -2124,41 +2126,45 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
                                 1, 1);
       break;
     case NS_VK_RETURN:
-      if (mComboboxFrame) {
-        nsWeakFrame weakFrame(this);
+      if (IsInDropDownMode()) {
+        
+        
+        
+        aKeyEvent->PreventDefault();
+
         if (mComboboxFrame->IsDroppedDown()) {
-          
-          
-          aKeyEvent->PreventDefault();
+          nsWeakFrame weakFrame(this);
           ComboboxFinish(mEndSelectionIndex);
           if (!weakFrame.IsAlive()) {
             return NS_OK;
           }
         }
+        
+        
+        
         FireOnChange();
-        if (!weakFrame.IsAlive()) {
-          
-          
-          
-          aKeyEvent->PreventDefault();
-        }
         return NS_OK;
       }
+
+      
+      if (!GetMultiple()) {
+        return NS_OK;
+      }
+
       newIndex = mEndSelectionIndex;
       break;
     case NS_VK_ESCAPE: {
-      nsWeakFrame weakFrame(this);
       
-      
-      AboutToRollup();
-      if (!weakFrame.IsAlive()) {
-        
-        
-        
-        aKeyEvent->PreventDefault();
+      if (!IsInDropDownMode()) {
         return NS_OK;
       }
-      break;
+
+      AboutToRollup();
+      
+      
+      
+      aKeyEvent->PreventDefault();
+      return NS_OK;
     }
     case NS_VK_PAGE_UP: {
       int32_t itemsPerPage =
@@ -2194,13 +2200,11 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
 #endif
 
     default: 
+      incrementalSearchResetter.Cancel();
       return NS_OK;
   }
 
   aKeyEvent->PreventDefault();
-
-  
-  GetIncrementalString().Truncate();
 
   
   
@@ -2217,6 +2221,8 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
     return NS_OK;
   }
+
+  AutoIncrementalSearchResetter incrementalSearchResetter;
 
   const WidgetKeyboardEvent* keyEvent =
     aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
@@ -2252,14 +2258,22 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   if (!keyEvent->charCode) {
     
     
-    
-    
-    if (keyEvent->keyCode == NS_VK_BACK && !GetIncrementalString().IsEmpty()) {
-      GetIncrementalString().Truncate(GetIncrementalString().Length() - 1);
+    if (keyEvent->keyCode == NS_VK_BACK) {
+      incrementalSearchResetter.Cancel();
+      if (!GetIncrementalString().IsEmpty()) {
+        GetIncrementalString().Truncate(GetIncrementalString().Length() - 1);
+      }
       aKeyEvent->PreventDefault();
+    } else {
+      
+      
+      
+      
     }
     return NS_OK;
   }
+
+  incrementalSearchResetter.Cancel();
 
   
   aKeyEvent->PreventDefault();
