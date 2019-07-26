@@ -3440,19 +3440,39 @@ nsWindow::Create(nsIWidget        *aParent,
 
             
             
+            
+            
+            
+            
+            
+            GtkWindowType type = aInitData->mNoAutoHide ?
+                                     GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP;
+            mShell = gtk_window_new(type);
+            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup",
+                                   gdk_get_program_class());
+            
             if (!aInitData->mNoAutoHide) {
+                GdkScreen *screen = gtk_widget_get_screen(mShell);
                 
                 
                 
-                mShell = gtk_window_new(GTK_WINDOW_POPUP);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", 
-                                       gdk_get_program_class());
+                
+                
+                
+                
+                
+                
+                if (gdk_screen_is_composited(screen)) {
+#if defined(MOZ_WIDGET_GTK2)
+                    GdkColormap *colormap =
+                        gdk_screen_get_rgba_colormap(screen);
+                    gtk_widget_set_colormap(mShell, colormap);
+#else
+                    GdkVisual *visual = gdk_screen_get_rgba_visual(screen);
+                    gtk_widget_set_visual(mShell, visual);
+#endif
+                }
             } else {
-                
-                
-                mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", 
-                                       gdk_get_program_class());
                 
                 
                 if (mBorderStyle == eBorderStyle_default) {
