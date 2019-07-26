@@ -103,23 +103,37 @@ class RefCounted
   public:
     
     void AddRef() const {
+      
       MOZ_ASSERT(int32_t(refCnt) >= 0);
+#ifndef MOZ_REFCOUNTED_LEAK_CHECKING
       ++refCnt;
-#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-      detail::RefCountLogger::logAddRef(static_cast<const T*>(this), refCnt,
-                                        static_cast<const T*>(this)->typeName(),
-                                        static_cast<const T*>(this)->typeSize());
+#else
+      const char* type = static_cast<const T*>(this)->typeName();
+      uint32_t size = static_cast<const T*>(this)->typeSize();
+      const void* ptr = static_cast<const T*>(this);
+      MozRefCountType cnt = ++refCnt;
+      detail::RefCountLogger::logAddRef(ptr, cnt, type, size);
 #endif
     }
 
     void Release() const {
+      
       MOZ_ASSERT(int32_t(refCnt) > 0);
-      --refCnt;
-#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-      detail::RefCountLogger::logRelease(static_cast<const T*>(this), refCnt,
-                                         static_cast<const T*>(this)->typeName());
+#ifndef MOZ_REFCOUNTED_LEAK_CHECKING
+      MozRefCountType cnt = --refCnt;
+#else
+      const char* type = static_cast<const T*>(this)->typeName();
+      const void* ptr = static_cast<const T*>(this);
+      MozRefCountType cnt = --refCnt;
+      
+      
+      detail::RefCountLogger::logRelease(ptr, cnt, type);
 #endif
-      if (0 == refCnt) {
+      if (0 == cnt) {
+        
+        
+        
+        
 #ifdef DEBUG
         refCnt = detail::DEAD;
 #endif
