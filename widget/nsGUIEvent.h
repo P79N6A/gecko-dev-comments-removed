@@ -1838,6 +1838,14 @@ public:
   }
 
   nsCOMPtr<nsIAtom> command;
+
+  
+  void AssignCommandEventData(const nsCommandEvent& aEvent, bool aCopyTargets)
+  {
+    AssignGUIEventData(aEvent, aCopyTargets);
+
+    
+  }
 };
 
 
