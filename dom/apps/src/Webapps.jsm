@@ -952,6 +952,17 @@ this.DOMApplicationRegistry = {
 
     
     
+    if (!app.downloadAvailable) {
+      this.broadcastMessage("Webapps:PackageEvent",
+                            { type: "canceled",
+                              manifestURL: app.manifestURL,
+                              app: app,
+                              error: "NO_DOWNLOAD_AVAILABLE" });
+      return;
+    }
+
+    
+    
     let isUpdate = (app.installState == "installed");
 
     
