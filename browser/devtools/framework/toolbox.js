@@ -555,7 +555,7 @@ Toolbox.prototype = {
     this._pickerButton.className = "command-button command-button-invertable";
     this._pickerButton.setAttribute("tooltiptext", toolboxStrings("pickButton.tooltip"));
 
-    let container = this.doc.querySelector("#toolbox-buttons");
+    let container = this.doc.querySelector("#toolbox-picker-container");
     container.appendChild(this._pickerButton);
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
@@ -690,21 +690,29 @@ Toolbox.prototype = {
       vbox.id = "toolbox-panel-" + id;
     }
 
-    
-    if (tabs.childNodes.length == 0 ||
-        +tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
-      tabs.appendChild(radio);
+    if (id === "options") {
+      
+      
+      let optionTabContainer = this.doc.getElementById("toolbox-option-container");
+      optionTabContainer.appendChild(radio);
       deck.appendChild(vbox);
     } else {
       
-      Array.some(tabs.childNodes, (node, i) => {
-        if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
-          tabs.insertBefore(radio, node);
-          deck.insertBefore(vbox, deck.childNodes[i]);
-          return true;
-        }
-        return false;
-      });
+      if (tabs.childNodes.length == 0 ||
+          tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
+        tabs.appendChild(radio);
+        deck.appendChild(vbox);
+      } else {
+        
+        Array.some(tabs.childNodes, (node, i) => {
+          if (+node.getAttribute("ordinal") > toolDefinition.ordinal) {
+            tabs.insertBefore(radio, node);
+            deck.insertBefore(vbox, deck.childNodes[i]);
+            return true;
+          }
+          return false;
+        });
+      }
     }
 
     this._addKeysToWindow();
@@ -805,6 +813,15 @@ Toolbox.prototype = {
     let tab = this.doc.getElementById("toolbox-tab-" + id);
     tab.setAttribute("selected", "true");
 
+    
+    
+    let sep = this.doc.getElementById("toolbox-controls-separator");
+    if (id === "options") {
+      sep.setAttribute("invisible", "true");
+    } else {
+      sep.removeAttribute("invisible");
+    }
+
     if (this.currentToolId == id) {
       
       this.focusTool(id);
@@ -832,19 +849,12 @@ Toolbox.prototype = {
 
     
     
-    let index = 0;
-    let tabs = tabstrip.childNodes;
-    for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i] === tab) {
-        index = i;
-        break;
-      }
-    }
-    tabstrip.selectedItem = tab;
+    tabstrip.selectedItem = tab || tabstrip.childNodes[0];
 
     
     let deck = this.doc.getElementById("toolbox-deck");
-    deck.selectedIndex = index;
+    let panel = this.doc.getElementById("toolbox-panel-" + id);
+    deck.selectedPanel = panel;
 
     this.currentToolId = id;
     this._refreshConsoleDisplay();
@@ -907,8 +917,10 @@ Toolbox.prototype = {
 
 
   selectNextTool: function() {
+    let tools = this.doc.querySelectorAll(".devtools-tab");
     let selected = this.doc.querySelector(".devtools-tab[selected]");
-    let next = selected.nextSibling || selected.parentNode.firstChild;
+    let nextIndex = [...tools].indexOf(selected) + 1;
+    let next = tools[nextIndex] || tools[0];
     let tool = next.getAttribute("toolid");
     return this.selectTool(tool);
   },
@@ -917,9 +929,11 @@ Toolbox.prototype = {
 
 
   selectPreviousTool: function() {
+    let tools = this.doc.querySelectorAll(".devtools-tab");
     let selected = this.doc.querySelector(".devtools-tab[selected]");
-    let previous = selected.previousSibling || selected.parentNode.lastChild;
-    let tool = previous.getAttribute("toolid");
+    let prevIndex = [...tools].indexOf(selected) - 1;
+    let prev = tools[prevIndex] || tools[tools.length - 1];
+    let tool = prev.getAttribute("toolid");
     return this.selectTool(tool);
   },
 
