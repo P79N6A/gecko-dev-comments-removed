@@ -731,6 +731,17 @@ CanonicalizeParticipant(void **parti, nsCycleCollectionParticipant **cp)
     }
 }
 
+struct nsPurpleBufferEntry {
+  union {
+    void *mObject;                        
+    nsPurpleBufferEntry *mNextInFreeList; 
+  };
+
+  nsCycleCollectingAutoRefCnt *mRefCnt;
+
+  nsCycleCollectionParticipant *mParticipant; 
+};
+
 class nsCycleCollector;
 
 struct nsPurpleBuffer

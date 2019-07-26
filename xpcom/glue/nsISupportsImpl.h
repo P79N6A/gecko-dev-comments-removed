@@ -74,17 +74,6 @@ private:
 
 
 
-struct nsPurpleBufferEntry {
-  union {
-    void *mObject;                        
-    nsPurpleBufferEntry *mNextInFreeList; 
-  };
-
-  nsCycleCollectingAutoRefCnt *mRefCnt;
-
-  nsCycleCollectionParticipant *mParticipant; 
-};
-
 #define NS_NUMBER_OF_FLAGS_IN_REFCNT 2
 #define NS_IN_PURPLE_BUFFER (1 << 0)
 #define NS_IS_PURPLE (1 << 1)
