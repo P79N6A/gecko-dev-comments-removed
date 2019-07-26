@@ -3356,12 +3356,22 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
   if (!kid)
     return NS_OK;
 
+  nsPresContext* presContext = PresContext();
+
   gfxContext *gfx = aContext->ThebesContext();
   gfxMatrix initialMatrix = gfx->CurrentMatrix();
 
   AutoCanvasTMForMarker autoCanvasTMFor(this, FOR_PAINTING);
 
   if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    
+    
+    
+    
+    if (presContext->PresShell()->InDrawWindowNotFlushing() &&
+        NS_SUBTREE_DIRTY(this)) {
+      return NS_OK;
+    }
     
     
     UpdateGlyphPositioning();
@@ -3380,8 +3390,6 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
 
   gfxMatrix matrixForPaintServers(canvasTM);
   matrixForPaintServers.Multiply(initialMatrix);
-
-  nsPresContext* presContext = PresContext();
 
   
   if (aDirtyRect) {
