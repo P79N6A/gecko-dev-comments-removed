@@ -56,6 +56,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
 XPCOMUtils.defineLazyModuleGetter(this, "HelperApps",
                                   "resource://gre/modules/HelperApps.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SSLExceptions",
+                                  "resource://gre/modules/SSLExceptions.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
                                   "resource://gre/modules/FormHistory.jsm");
 
@@ -460,9 +463,9 @@ var BrowserApp = {
 
   _initRuntime: function(status, url, callback) {
     let sandbox = {};
-    Services.scriptloader.loadSubScript("chrome://browser/content/WebappRT.js", sandbox);
-    window.WebappRT = sandbox.WebappRT;
-    WebappRT.init(status, url, callback);
+    Services.scriptloader.loadSubScript("chrome://browser/content/WebAppRT.js", sandbox);
+    window.WebAppRT = sandbox.WebAppRT;
+    WebAppRT.init(status, url, callback);
   },
 
   initContextMenu: function ba_initContextMenu() {
@@ -7116,7 +7119,7 @@ var WebappsUI = {
         break;
       case "webapps-uninstall":
         sendMessageToJava({
-          type: "Webapps:Uninstall",
+          type: "WebApps:Uninstall",
           origin: data.origin
         });
         break;
@@ -7132,7 +7135,7 @@ var WebappsUI = {
       
       let origin = aData.app.origin;
       let profilePath = sendMessageToJava({
-        type: "Webapps:Preinstall",
+        type: "WebApps:PreInstall",
         name: manifest.name,
         manifestURL: aData.app.manifestURL,
         origin: origin
@@ -7164,7 +7167,7 @@ var WebappsUI = {
 
                   
                   sendMessageToJava({
-                    type: "Webapps:Postinstall",
+                    type: "WebApps:PostInstall",
                     name: localeManifest.name,
                     manifestURL: aData.app.manifestURL,
                     originalOrigin: origin,
@@ -7232,7 +7235,7 @@ var WebappsUI = {
 
   openURL: function openURL(aManifestURL, aOrigin) {
     sendMessageToJava({
-      type: "Webapps:Open",
+      type: "WebApps:Open",
       manifestURL: aManifestURL,
       origin: aOrigin
     });
