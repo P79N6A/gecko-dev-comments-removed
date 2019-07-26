@@ -85,17 +85,17 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
 }
 
 bool
-InvokeConstructorFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *rval)
+InvokeConstructor(JSContext *cx, JSObject *obj, uint32 argc, Value *argv, Value *rval)
 {
-    Value fval = ObjectValue(*fun);
+    Value fval = ObjectValue(*obj);
 
     
-    bool needsMonitor = ShouldMonitorReturnType(fun);
+    bool needsMonitor = !obj->isFunction() || ShouldMonitorReturnType(obj->toFunction());
 
     
     Value *argvWithoutThis = argv + 1;
 
-    bool ok = InvokeConstructor(cx, fval, argc, argvWithoutThis, rval);
+    bool ok = js::InvokeConstructor(cx, fval, argc, argvWithoutThis, rval);
     if (ok && needsMonitor)
         types::TypeScript::Monitor(cx, *rval);
 
