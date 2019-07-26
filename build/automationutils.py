@@ -150,7 +150,7 @@ def checkForCrashes(dumpDir, symbolsPath, testName=None):
   removeSymbolsPath = False
 
   
-  if isURL(symbolsPath):
+  if symbolsPath and isURL(symbolsPath):
     print "Downloading symbols from: " + symbolsPath
     removeSymbolsPath = True
     
