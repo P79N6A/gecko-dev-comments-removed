@@ -264,7 +264,8 @@ PopupNotifications.prototype = {
       
       
       
-      if (browser == this.tabbrowser.selectedBrowser)
+      if (!notification.dismissed &&
+          browser == this.tabbrowser.selectedBrowser)
         this.window.getAttention();
 
       
