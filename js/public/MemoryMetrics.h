@@ -346,6 +346,15 @@ struct ZoneStats : js::ZoneStatsPod
         }
     }
 
+    size_t sizeOfLiveGCThings() const {
+        size_t n = ZoneStatsPod::sizeOfLiveGCThings();
+        for (size_t i = 0; i < notableStrings.length(); i++) {
+            const JS::NotableStringInfo& info = notableStrings[i];
+            n += info.totalGCHeapSizeOf();
+        }
+        return n;
+    }
+
     typedef js::HashMap<JSString*,
                         StringInfo,
                         js::InefficientNonFlatteningStringHashPolicy,
@@ -428,9 +437,8 @@ struct RuntimeStats
     macro(_, gcHeapDecommittedArenas) \
     macro(_, gcHeapUnusedChunks) \
     macro(_, gcHeapUnusedArenas) \
-    macro(_, gcHeapUnusedGcThings) \
     macro(_, gcHeapChunkAdmin) \
-    macro(_, gcHeapGcThings) \
+    macro(_, gcHeapGCThings) \
 
     RuntimeStats(mozilla::MallocSizeOf mallocSizeOf)
       : FOR_EACH_SIZE(ZERO_SIZE)
@@ -443,6 +451,7 @@ struct RuntimeStats
         mallocSizeOf_(mallocSizeOf)
     {}
 
+    
     
     
     
