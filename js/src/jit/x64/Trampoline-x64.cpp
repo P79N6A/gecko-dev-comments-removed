@@ -173,6 +173,27 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.subPtr(Imm32(BaselineFrame::Size()), rsp);
         masm.mov(rsp, framePtr);
 
+#ifdef XP_WIN
+        
+        masm.mov(numStackValues, scratch);
+        masm.lshiftPtr(Imm32(3), scratch);
+        masm.subPtr(scratch, framePtr);
+        {
+            masm.movePtr(rsp, scratch);
+            masm.subPtr(Imm32(WINDOWS_BIG_FRAME_TOUCH_INCREMENT), scratch);
+
+            Label touchFrameLoop;
+            Label touchFrameLoopEnd;
+            masm.bind(&touchFrameLoop);
+            masm.branchPtr(Assembler::Below, scratch, framePtr, &touchFrameLoopEnd);
+            masm.store32(Imm32(0), Address(scratch, 0));
+            masm.subPtr(Imm32(WINDOWS_BIG_FRAME_TOUCH_INCREMENT), scratch);
+            masm.jump(&touchFrameLoop);
+            masm.bind(&touchFrameLoopEnd);
+        }
+        masm.mov(rsp, framePtr);
+#endif
+
         
         Register valuesSize = regs.takeAny();
         masm.mov(numStackValues, valuesSize);

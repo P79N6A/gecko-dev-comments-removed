@@ -34,7 +34,8 @@ BaselineFrame::trace(JSTracer *trc)
     }
 
     
-    gc::MarkObjectRoot(trc, &scopeChain_, "baseline-scopechain");
+    if (scopeChain_)
+        gc::MarkObjectRoot(trc, &scopeChain_, "baseline-scopechain");
 
     
     if (hasReturnValue())
