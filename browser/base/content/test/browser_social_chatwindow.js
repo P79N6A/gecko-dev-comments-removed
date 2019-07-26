@@ -143,6 +143,35 @@ var tests = {
     }
     port.postMessage({topic: "test-init", data: { id: 1 }});
   },
+  testSameChatCallbacks: function(next) {
+    let chats = document.getElementById("pinnedchats");
+    let port = Social.provider.getWorkerPort();
+    let seen_opened = false;
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "test-init-done":
+          port.postMessage({topic: "test-chatbox-open"});
+          break;
+        case "chatbox-opened":
+          is(e.data.result, "ok", "the sidebar says it got a chatbox");
+          if (seen_opened) {
+            
+            
+            let chats = document.getElementById("pinnedchats");
+            chats.selectedChat.close();
+            is(chats.selectedChat, null, "should only have been one chat open");
+            next();
+          } else {
+            
+            
+            seen_opened = true;
+            port.postMessage({topic: "test-chatbox-open"});
+          }
+      }
+    }
+    port.postMessage({topic: "test-init", data: { id: 1 }});
+  },
   testCloseOnLogout: function(next) {
     const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
     let port = Social.provider.getWorkerPort();
