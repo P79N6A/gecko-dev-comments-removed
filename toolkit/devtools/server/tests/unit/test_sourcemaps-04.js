@@ -1,24 +1,15 @@
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/**
- * Check that absolute source map urls work.
- */
+
+
+
+
+
 
 var gDebuggee;
 var gClient;
 var gThreadClient;
 
 Components.utils.import('resource:///modules/devtools/SourceMap.jsm');
-
-// Deep in the complicated labyrinth of code that this test invokes, beneath
-// debugger callbacks, sandboxes and nested event loops, lies an exception.
-// This exception lay sleeping since the dawn of time, held captive in a
-// delicate balance of custom xpcshell error reporters and garbage data about
-// the XPCCallContext stack. But bholley dug too greedily, and too deep, and
-// awoke shadow and flame in the darkness of nsExternalHelperAppService.cpp.
-// We must now trust in deep magic to ensure that it does not awaken again.
-ignoreReportedErrors(true);
 
 function run_test()
 {

@@ -123,6 +123,61 @@ static PRLogModuleInfo *gJSCLLog;
 #define ERROR_GETTING_SYMBOL "%s - Could not get symbol '%s'."
 #define ERROR_SETTING_SYMBOL "%s - Could not set symbol '%s' on target object."
 
+void
+mozJSLoaderErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep)
+{
+    nsresult rv;
+
+    
+    nsCOMPtr<nsIConsoleService> consoleService =
+        do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+
+    
+
+
+
+
+    nsCOMPtr<nsIScriptError> errorObject =
+        do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
+
+    if (consoleService && errorObject) {
+        uint32_t column = rep->uctokenptr - rep->uclinebuf;
+
+        const PRUnichar* ucmessage =
+            static_cast<const PRUnichar*>(rep->ucmessage);
+        const PRUnichar* uclinebuf =
+            static_cast<const PRUnichar*>(rep->uclinebuf);
+
+        rv = errorObject->Init(
+              ucmessage ? nsDependentString(ucmessage) : EmptyString(),
+              NS_ConvertASCIItoUTF16(rep->filename),
+              uclinebuf ? nsDependentString(uclinebuf) : EmptyString(),
+              rep->lineno, column, rep->flags,
+              "component javascript");
+        if (NS_SUCCEEDED(rv)) {
+            rv = consoleService->LogMessage(errorObject);
+            if (NS_SUCCEEDED(rv)) {
+                
+                
+                
+                
+            }
+        }
+    }
+
+    
+
+
+
+#ifdef DEBUG
+    fprintf(stderr, "JS Component Loader: %s %s:%d\n"
+            "                     %s\n",
+            JSREPORT_IS_WARNING(rep->flags) ? "WARNING" : "ERROR",
+            rep->filename, rep->lineno,
+            message ? message : "<no message>");
+#endif
+}
+
 static JSBool
 Dump(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -515,7 +570,7 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
         return NULL;
     }
 
-    JSCLAutoErrorReporterSetter aers(cx, xpc::SystemErrorReporter);
+    JSCLAutoErrorReporterSetter aers(cx, mozJSLoaderErrorReporter);
 
     RootedValue NSGetFactory_val(cx);
     if (!JS_GetProperty(cx, entry->obj, "NSGetFactory", NSGetFactory_val.address()) ||
@@ -766,7 +821,7 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
 
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
 
-    JSCLAutoErrorReporterSetter aers(cx, xpc::SystemErrorReporter);
+    JSCLAutoErrorReporterSetter aers(cx, mozJSLoaderErrorReporter);
 
     bool realFile = false;
     RootedObject obj(cx, PrepareObjectForLocation(cx, aComponentFile, aURI,

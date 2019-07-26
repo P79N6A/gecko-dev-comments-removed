@@ -413,12 +413,6 @@ GetNativeForGlobal(JSObject *global);
 
 JSObject *
 GetJunkScope();
-
-
-
-NS_EXPORT_(void)
-SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
-
 } 
 
 namespace mozilla {
