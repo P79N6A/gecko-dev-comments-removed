@@ -1960,7 +1960,8 @@ CheckScriptSize(JSContext *cx, JSScript* script)
         return Method_CantCompile;
     }
 
-    uint32_t numLocalsAndArgs = analyze::TotalSlots(script);
+    uint32_t numLocalsAndArgs = NumLocalsAndArgs(script);
+
     if (cx->runtime()->isWorkerRuntime()) {
         
         
