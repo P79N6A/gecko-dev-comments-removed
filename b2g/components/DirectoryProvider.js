@@ -28,6 +28,10 @@ XPCOMUtils.defineLazyServiceGetter(Services, "volumeService",
                                    "@mozilla.org/telephony/volume-service;1",
                                    "nsIVolumeService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
+                                   "@mozilla.org/childprocessmessagemanager;1",
+                                   "nsISyncMessageSender");
+
 XPCOMUtils.defineLazyGetter(this, "gExtStorage", function dp_gExtStorage() {
     return Services.env.get("EXTERNAL_STORAGE");
 });
@@ -49,6 +53,8 @@ DirectoryProvider.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDirectoryServiceProvider]),
   _xpcom_factory: XPCOMUtils.generateSingletonFactory(DirectoryProvider),
+
+  _profD: null,
 
   getFile: function dp_getFile(prop, persistent) {
 #ifdef MOZ_WIDGET_GONK
@@ -87,6 +93,31 @@ DirectoryProvider.prototype = {
       
       
       return this.getUpdateDir(persistent, FOTA_DIR);
+    }
+#else
+    
+    
+    
+    if (prop == "coreAppsDir") {
+      let appsDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+      appsDir.append("webapps");
+      persistent.value = true;
+      return appsDir;
+    } else if (prop == "ProfD") {
+      let inParent = Cc["@mozilla.org/xre/app-info;1"]
+                       .getService(Ci.nsIXULRuntime)
+                       .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+      if (inParent) {
+        
+        return null;
+      }
+      if (!this._profD) {
+        this._profD = cpmm.sendSyncMessage("getProfD", {})[0];
+      }
+      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+      file.initWithPath(this._profD);
+      persistent.value = true;
+      return file;
     }
 #endif
     return null;
