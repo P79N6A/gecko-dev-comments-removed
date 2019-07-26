@@ -179,8 +179,13 @@ WebGLContext::BindRenderbuffer(GLenum target, WebGLRenderbuffer *wrb)
 
     MakeContextCurrent();
 
-    GLuint renderbuffername = wrb ? wrb->GLName() : 0;
-    gl->fBindRenderbuffer(target, renderbuffername);
+    
+    
+    if (wrb) {
+        wrb->BindRenderbuffer();
+    } else {
+        gl->fBindRenderbuffer(target, 0);
+    }
 
     mBoundRenderbuffer = wrb;
 }
@@ -1411,8 +1416,8 @@ WebGLContext::GetRenderbufferParameter(GLenum target, GLenum pname)
         case LOCAL_GL_RENDERBUFFER_DEPTH_SIZE:
         case LOCAL_GL_RENDERBUFFER_STENCIL_SIZE:
         {
-            GLint i = 0;
-            gl->fGetRenderbufferParameteriv(target, pname, &i);
+            
+            GLint i = mBoundRenderbuffer->GetRenderbufferParameter(target, pname);
             return JS::Int32Value(i);
         }
         case LOCAL_GL_RENDERBUFFER_INTERNAL_FORMAT:
@@ -2373,7 +2378,7 @@ WebGLContext::RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei 
     if (IsContextLost())
         return;
 
-    if (!mBoundRenderbuffer || !mBoundRenderbuffer->GLName())
+    if (!mBoundRenderbuffer)
         return ErrorInvalidOperation("renderbufferStorage called on renderbuffer 0");
 
     if (target != LOCAL_GL_RENDERBUFFER)
@@ -2408,12 +2413,6 @@ WebGLContext::RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei 
         break;
     case LOCAL_GL_DEPTH_STENCIL:
         
-        
-        
-        
-        
-        
-        
         internalformatForGL = LOCAL_GL_DEPTH24_STENCIL8;
         break;
     default:
@@ -2427,7 +2426,7 @@ WebGLContext::RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei 
                        internalformat != mBoundRenderbuffer->InternalFormat();
     if (sizeChanges) {
         UpdateWebGLErrorAndClearGLError();
-        gl->fRenderbufferStorage(target, internalformatForGL, width, height);
+        mBoundRenderbuffer->RenderbufferStorage(internalformatForGL, width, height);
         GLenum error = LOCAL_GL_NO_ERROR;
         UpdateWebGLErrorAndClearGLError(&error);
         if (error) {
@@ -2435,7 +2434,7 @@ WebGLContext::RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei 
             return;
         }
     } else {
-        gl->fRenderbufferStorage(target, internalformatForGL, width, height);
+        mBoundRenderbuffer->RenderbufferStorage(internalformatForGL, width, height);
     }
 
     mBoundRenderbuffer->SetInternalFormat(internalformat);
