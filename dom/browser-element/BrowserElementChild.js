@@ -621,6 +621,10 @@ BrowserElementChild.prototype = {
         return;
       }
 
+      
+      location = Cc["@mozilla.org/docshell/urifixup;1"]
+        .getService(Ci.nsIURIFixup).createExposableURI(location);
+
       sendAsyncMsg('locationchange', location.spec);
     },
 
