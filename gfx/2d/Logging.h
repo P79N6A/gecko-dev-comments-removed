@@ -14,10 +14,17 @@
 #include "Matrix.h"
 
 #ifdef WIN32
-#include <windows.h>
+
+
+
+
+
+
+
+extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* lpOutputString);
 #endif
 
-#ifdef PR_LOGGING
+#if defined(DEBUG) || defined(PR_LOGGING)
 #include <prlog.h>
 
 extern PRLogModuleInfo *GetGFX2DLog();
@@ -29,7 +36,7 @@ namespace gfx {
 const int LOG_DEBUG = 1;
 const int LOG_WARNING = 2;
 
-#ifdef PR_LOGGING
+#if defined(DEBUG) || defined(PR_LOGGING)
 
 inline PRLogModuleLevel PRLogLevelForLevel(int aLevel) {
   switch (aLevel) {
@@ -43,7 +50,7 @@ inline PRLogModuleLevel PRLogLevelForLevel(int aLevel) {
 
 #endif
 
-extern int sGfxLogLevel;
+extern GFX2D_API int sGfxLogLevel;
 
 static inline void OutputMessage(const std::string &aString, int aLevel) {
 #if defined(WIN32) && !defined(PR_LOGGING)
