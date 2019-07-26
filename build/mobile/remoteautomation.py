@@ -48,7 +48,7 @@ class RemoteAutomation(Automation):
         self._remoteLog = logfile
 
     
-    def environment(self, env = None, xrePath = None, crashreporter = True):
+    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False):
         
         
         if env is None:
@@ -60,7 +60,7 @@ class RemoteAutomation(Automation):
         if 'MOZ_HIDE_RESULTS_TABLE' in os.environ:
             env['MOZ_HIDE_RESULTS_TABLE'] = os.environ['MOZ_HIDE_RESULTS_TABLE']
 
-        if crashreporter:
+        if crashreporter and not debugger:
             env['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
             env['MOZ_CRASHREPORTER'] = '1'
         else:
