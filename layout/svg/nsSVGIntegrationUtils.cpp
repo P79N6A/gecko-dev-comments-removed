@@ -464,7 +464,16 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
 
   nsPoint firstFrameOffset = GetOffsetToUserSpace(firstFrame);
   nsPoint offset = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
-  nsPoint offsetWithoutSVGGeomFramePos = offset;
+  nsPoint offsetWithoutSVGGeomFramePos;
+  if (firstFrame->IsFrameOfType(nsIFrame::eSVG)) {
+    offsetWithoutSVGGeomFramePos = offset;
+  } else {
+    
+
+    offsetWithoutSVGGeomFramePos = nsPoint(
+      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offset.x),
+      aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(offset.y));
+  }
   nsPoint svgGeomFramePos;
   if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
       aFrame->IsSVGText()) {
