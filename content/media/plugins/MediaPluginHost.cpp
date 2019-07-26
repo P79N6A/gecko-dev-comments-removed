@@ -152,7 +152,10 @@ static const char* GetOmxLibraryName()
     ALOG("Android Release Version is: %s", NS_LossyConvertUTF16toASCII(release_version).get());
   }
 
-  if (version == 10 && release_version >= NS_LITERAL_STRING("2.3.6")) {
+  if (version == 13 || version == 12 || version == 11) {
+    return "lib/libomxpluginhc.so";
+  }
+  else if (version == 10 && release_version >= NS_LITERAL_STRING("2.3.6")) {
     
     
     return "lib/libomxplugingb.so";
