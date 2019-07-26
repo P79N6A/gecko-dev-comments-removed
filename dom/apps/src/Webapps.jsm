@@ -553,6 +553,12 @@ this.DOMApplicationRegistry = {
           if (this.webapps[id].removable === undefined) {
             this.webapps[id].removable = false;
           }
+        } else {
+          
+          
+          
+          this.webapps[id].updateTime = data[id].updateTime;
+          this.webapps[id].lastUpdateCheck = data[id].updateTime;
         }
       }
     }.bind(this)).then(null, Cu.reportError);
