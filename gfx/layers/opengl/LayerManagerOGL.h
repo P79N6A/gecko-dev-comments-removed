@@ -290,6 +290,8 @@ public:
   gfxMatrix& GetWorldTransform(void);
   void WorldTransformRect(nsIntRect& aRect);
 
+  void UpdateRenderBounds(const nsIntRect& aRect);
+
   
 
 
@@ -414,6 +416,7 @@ private:
   void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
   nsAutoPtr<FPSState> mFPS;
+  nsIntRect mRenderBounds;
 #ifdef DEBUG
   
   

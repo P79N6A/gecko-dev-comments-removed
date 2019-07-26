@@ -15,6 +15,7 @@
 #include "nsXULAppAPI.h"
 #include "RenderTrace.h"
 #include "sampler.h"
+#include "Hal.h"
 
 #define PIXMAN_DONT_DEFINE_STDINT
 #include "pixman.h"
@@ -1094,7 +1095,17 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   if (HasShadowManager()) {
-    ShadowLayerForwarder::BeginTransaction(mTargetBounds, mTargetRotation);
+    ScreenOrientation orientation;
+    nsIntRect clientBounds;
+    if (TabChild* window = mWidget->GetOwningTabChild()) {
+      orientation = window->GetOrientation();
+    } else {
+      hal::ScreenConfiguration currentConfig;
+      hal::GetCurrentScreenConfiguration(&currentConfig);
+      orientation = currentConfig.orientation();
+    }
+    mWidget->GetClientBounds(clientBounds);
+    ShadowLayerForwarder::BeginTransaction(mTargetBounds, mTargetRotation, clientBounds, orientation);
 
     
     
