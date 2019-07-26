@@ -131,6 +131,10 @@
 
 
 #  define MOZ_ENUM_CLASS_ENUM_TYPE(Name) Name
+  
+
+
+#  define MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(Name) Name
 #else
    
 
@@ -253,6 +257,37 @@
 
 
 #  define MOZ_ENUM_CLASS_ENUM_TYPE(Name) Name::Enum
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#  define MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(Name) typename Name::Enum
 #endif
 
    
