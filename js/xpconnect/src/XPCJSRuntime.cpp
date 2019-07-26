@@ -24,6 +24,7 @@
 #include "nsLayoutStatics.h"
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"
+#include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectorUtils.h"
 #include "nsScriptLoader.h"
 #include "jsfriendapi.h"
@@ -448,7 +449,7 @@ void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
 struct Closure
 {
     bool cycleCollectionEnabled;
-    nsCycleCollectionTraversalCallback *cb;
+    nsCycleCollectionNoteRootCallback *cb;
 };
 
 static void
@@ -483,7 +484,7 @@ NoteJSHolder(void *holder, nsScriptObjectTracer *&tracer, void *arg)
 
 void
 XPCJSRuntime::SuspectWrappedNative(XPCWrappedNative *wrapper,
-                                   nsCycleCollectionTraversalCallback &cb)
+                                   nsCycleCollectionNoteRootCallback &cb)
 {
     if (!wrapper->IsValid() || wrapper->IsWrapperExpired())
         return;
@@ -528,7 +529,7 @@ CanSkipWrappedJS(nsXPCWrappedJS *wrappedJS)
 }
 
 void
-XPCJSRuntime::AddXPConnectRoots(nsCycleCollectionTraversalCallback &cb)
+XPCJSRuntime::AddXPConnectRoots(nsCycleCollectionNoteRootCallback &cb)
 {
     
     

@@ -8,12 +8,12 @@
 #define nsCycleCollectionJSRuntime_h__
 
 class nsCycleCollectionParticipant;
-class nsCycleCollectionTraversalCallback;
+class nsCycleCollectionNoteRootCallback;
 
 
 struct nsCycleCollectionJSRuntime
 {
-  virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &aCb) = 0;
+  virtual nsresult BeginCycleCollection(nsCycleCollectionNoteRootCallback &aCb) = 0;
 
   
 
