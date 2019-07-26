@@ -17,6 +17,9 @@
 
 #define RECENTLY_VISITED_URI_SIZE 8
 
+
+#define EMBED_URI_SIZE 128
+
 class nsAndroidHistory : public mozilla::IHistory, public nsIRunnable
 {
 public:
@@ -51,6 +54,17 @@ private:
 
   void AppendToRecentlyVisitedURIs(nsIURI* aURI);
   bool IsRecentlyVisitedURI(nsIURI* aURI);
+
+  
+
+
+
+  typedef nsAutoTArray<nsCOMPtr<nsIURI>, EMBED_URI_SIZE> EmbedArray;
+  EmbedArray::index_type mEmbedURIsNextIndex;
+  EmbedArray mEmbedURIs;
+
+  void AppendToEmbedURIs(nsIURI* aURI);
+  bool IsEmbedURI(nsIURI* aURI);
 };
 
 #endif
