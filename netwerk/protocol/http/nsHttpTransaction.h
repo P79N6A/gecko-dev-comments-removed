@@ -86,8 +86,7 @@ public:
 
     nsIEventTarget        *ConsumerTarget() { return mConsumerTarget; }
 
-    void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks,
-                              nsIEventTarget* aCallbackTarget);
+    void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks);
 
     
     

@@ -37,8 +37,7 @@ public:
 
     
     
-    virtual void GetSecurityCallbacks(nsIInterfaceRequestor **,
-                                      nsIEventTarget **) = 0;
+    virtual void GetSecurityCallbacks(nsIInterfaceRequestor **) = 0;
 
     
     virtual void OnTransportStatus(nsITransport* transport,
@@ -138,8 +137,7 @@ public:
 #define NS_DECL_NSAHTTPTRANSACTION \
     void SetConnection(nsAHttpConnection *); \
     nsAHttpConnection *Connection(); \
-    void GetSecurityCallbacks(nsIInterfaceRequestor **, \
-                              nsIEventTarget **);       \
+    void GetSecurityCallbacks(nsIInterfaceRequestor **);       \
     void OnTransportStatus(nsITransport* transport, \
                            nsresult status, uint64_t progress); \
     bool     IsDone(); \

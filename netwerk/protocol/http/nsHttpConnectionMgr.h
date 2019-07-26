@@ -105,8 +105,7 @@ public:
     
     
     nsresult SpeculativeConnect(nsHttpConnectionInfo *,
-                                nsIInterfaceRequestor *,
-                                nsIEventTarget *);
+                                nsIInterfaceRequestor *);
 
     
     
