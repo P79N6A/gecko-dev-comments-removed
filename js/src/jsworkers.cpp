@@ -10,13 +10,9 @@
 # include "ion/IonBuilder.h"
 #endif
 
-#if defined(JS_ION) && defined(JS_THREADSAFE)
-# define ENABLE_WORKERS
-#endif
-
 using namespace js;
 
-#ifdef ENABLE_WORKERS
+#ifdef JS_PARALLEL_COMPILATION
 
 bool
 js::StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder)
