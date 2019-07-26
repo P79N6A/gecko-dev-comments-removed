@@ -400,4 +400,15 @@ class TempFile {
     }
 };
 
+
+class TestJSPrincipals : public JSPrincipals
+{
+  public:
+    TestJSPrincipals(int rc = 0)
+      : JSPrincipals()
+    {
+        refcount = rc;
+    }
+};
+
 #endif 

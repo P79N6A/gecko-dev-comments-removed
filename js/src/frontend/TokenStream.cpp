@@ -287,7 +287,7 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
 
     
     
-    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount);
+    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount > 0);
 
     
     

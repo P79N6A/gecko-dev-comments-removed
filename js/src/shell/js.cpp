@@ -5652,9 +5652,6 @@ MaybeOverrideOutFileFromEnv(const char* const envVar,
     }
 }
 
-
-static const JSPrincipals shellTrustedPrincipals = { 1 };
-
 static bool
 CheckObjectAccess(JSContext *cx, HandleObject obj, HandleId id, JSAccessMode mode,
                   MutableHandleValue vp)
@@ -5884,6 +5881,10 @@ main(int argc, char **argv, char **envp)
     if (op.getBoolOption("no-ggc"))
         JS::DisableGenerationalGC(rt);
 #endif
+
+    
+    JSPrincipals shellTrustedPrincipals;
+    shellTrustedPrincipals.refcount = 1;
 
     JS_SetTrustedPrincipals(rt, &shellTrustedPrincipals);
     JS_SetSecurityCallbacks(rt, &securityCallbacks);
