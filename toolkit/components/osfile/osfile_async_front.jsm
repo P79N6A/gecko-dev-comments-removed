@@ -510,6 +510,21 @@ File.exists = function exists(path) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 File.writeAtomic = function writeAtomic(path, buffer, options) {
   
   options = clone(options || noOptions);

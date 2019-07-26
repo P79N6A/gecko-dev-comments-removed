@@ -329,6 +329,20 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options) {
   options = options || noOptions;
@@ -347,7 +361,9 @@ AbstractFile.writeAtomic =
   let bytesWritten;
   try {
     bytesWritten = tmpFile.write(buffer, options);
-    tmpFile.flush();
+    if ("flush" in options && options.flush) {
+      tmpFile.flush();
+    }
   } catch (x) {
     OS.File.remove(tmpPath);
     throw x;
