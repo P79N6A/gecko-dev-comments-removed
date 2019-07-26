@@ -37,7 +37,7 @@ static char *sPopupAllowedEvents;
 
 
 nsDOMEvent::nsDOMEvent(mozilla::dom::EventTarget* aOwner,
-                       nsPresContext* aPresContext, nsEvent* aEvent)
+                       nsPresContext* aPresContext, WidgetEvent* aEvent)
 {
   ConstructorInit(aOwner, aPresContext, aEvent);
 }
@@ -49,7 +49,7 @@ nsDOMEvent::nsDOMEvent(nsPIDOMWindow* aParent)
 
 void
 nsDOMEvent::ConstructorInit(mozilla::dom::EventTarget* aOwner,
-                            nsPresContext* aPresContext, nsEvent* aEvent)
+                            nsPresContext* aPresContext, WidgetEvent* aEvent)
 {
   SetIsDOMBinding();
   SetOwner(aOwner);
@@ -87,7 +87,7 @@ nsDOMEvent::ConstructorInit(mozilla::dom::EventTarget* aOwner,
 
 
 
-    mEvent = new nsEvent(false, 0);
+    mEvent = new WidgetEvent(false, 0);
     mEvent->time = PR_Now();
   }
 
@@ -506,18 +506,18 @@ nsDOMEvent::DuplicatePrivateData()
   
   
   
-  NS_ASSERTION(mEvent, "No nsEvent for nsDOMEvent duplication!");
+  NS_ASSERTION(mEvent, "No WidgetEvent for nsDOMEvent duplication!");
   if (mEventIsInternal) {
     return NS_OK;
   }
 
-  nsEvent* newEvent = nullptr;
+  WidgetEvent* newEvent = nullptr;
   uint32_t msg = mEvent->message;
 
   switch (mEvent->eventStructType) {
     case NS_EVENT:
     {
-      newEvent = new nsEvent(false, msg);
+      newEvent = new WidgetEvent(false, msg);
       newEvent->AssignEventData(*mEvent, true);
       break;
     }
@@ -790,7 +790,7 @@ nsDOMEvent::IsDispatchStopped()
   return mEvent->mFlags.mPropagationStopped;
 }
 
-NS_IMETHODIMP_(nsEvent*)
+NS_IMETHODIMP_(WidgetEvent*)
 nsDOMEvent::GetInternalNSEvent()
 {
   return mEvent;
@@ -844,7 +844,7 @@ PopupAllowedForEvent(const char *eventName)
 
 
 PopupControlState
-nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
+nsDOMEvent::GetEventPopupControlState(WidgetEvent* aEvent)
 {
   
   
@@ -1024,7 +1024,7 @@ nsDOMEvent::Shutdown()
 
 nsIntPoint
 nsDOMEvent::GetScreenCoords(nsPresContext* aPresContext,
-                            nsEvent* aEvent,
+                            WidgetEvent* aEvent,
                             LayoutDeviceIntPoint aPoint)
 {
   if (nsEventStateManager::sIsPointerLocked) {
@@ -1056,7 +1056,7 @@ nsDOMEvent::GetScreenCoords(nsPresContext* aPresContext,
 
 CSSIntPoint
 nsDOMEvent::GetPageCoords(nsPresContext* aPresContext,
-                          nsEvent* aEvent,
+                          WidgetEvent* aEvent,
                           LayoutDeviceIntPoint aPoint,
                           CSSIntPoint aDefaultPoint)
 {
@@ -1080,7 +1080,7 @@ nsDOMEvent::GetPageCoords(nsPresContext* aPresContext,
 
 CSSIntPoint
 nsDOMEvent::GetClientCoords(nsPresContext* aPresContext,
-                            nsEvent* aEvent,
+                            WidgetEvent* aEvent,
                             LayoutDeviceIntPoint aPoint,
                             CSSIntPoint aDefaultPoint)
 {
@@ -1244,7 +1244,7 @@ nsDOMEvent::SetOwner(mozilla::dom::EventTarget* aOwner)
 nsresult NS_NewDOMEvent(nsIDOMEvent** aInstancePtrResult,
                         mozilla::dom::EventTarget* aOwner,
                         nsPresContext* aPresContext,
-                        nsEvent *aEvent) 
+                        WidgetEvent* aEvent) 
 {
   nsRefPtr<nsDOMEvent> it =
     new nsDOMEvent(aOwner, aPresContext, aEvent);

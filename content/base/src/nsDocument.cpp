@@ -4626,7 +4626,7 @@ nsDocument::DispatchContentLoadedEvents()
         
         
 
-        nsEvent* innerEvent = event->GetInternalNSEvent();
+        WidgetEvent* innerEvent = event->GetInternalNSEvent();
         if (innerEvent) {
           nsEventStatus status = nsEventStatus_eIgnore;
 

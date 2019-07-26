@@ -438,7 +438,7 @@ protected:
     nsRefPtr<HTMLFormElement> mForm;
   };
 
-  nsresult DoSubmitOrReset(nsEvent* aEvent,
+  nsresult DoSubmitOrReset(WidgetEvent* aEvent,
                            int32_t aMessage);
   nsresult DoReset();
 
@@ -456,7 +456,7 @@ protected:
 
 
 
-  nsresult DoSubmit(nsEvent* aEvent);
+  nsresult DoSubmit(WidgetEvent* aEvent);
 
   
 
@@ -465,7 +465,7 @@ protected:
 
 
   nsresult BuildSubmission(nsFormSubmission** aFormSubmission,
-                           nsEvent* aEvent);
+                           WidgetEvent* aEvent);
   
 
 

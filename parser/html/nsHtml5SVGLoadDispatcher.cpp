@@ -8,6 +8,8 @@
 #include "nsIPresShell.h"
 #include "mozilla/BasicEvents.h"
 
+using namespace mozilla;
+
 nsHtml5SVGLoadDispatcher::nsHtml5SVGLoadDispatcher(nsIContent* aElement)
   : mElement(aElement)
   , mDocument(mElement->OwnerDoc())
@@ -18,7 +20,7 @@ nsHtml5SVGLoadDispatcher::nsHtml5SVGLoadDispatcher(nsIContent* aElement)
 NS_IMETHODIMP
 nsHtml5SVGLoadDispatcher::Run()
 {
-  nsEvent event(true, NS_SVG_LOAD);
+  WidgetEvent event(true, NS_SVG_LOAD);
   event.mFlags.mBubbles = false;
   
   

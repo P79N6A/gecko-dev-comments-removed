@@ -940,7 +940,7 @@ XULDocument::ExecuteOnBroadcastHandlerFor(Element* aBroadcaster,
 
         
         
-        nsEvent event(true, NS_XUL_BROADCAST);
+        WidgetEvent event(true, NS_XUL_BROADCAST);
 
         nsCOMPtr<nsIPresShell> shell = GetShell();
         if (shell) {

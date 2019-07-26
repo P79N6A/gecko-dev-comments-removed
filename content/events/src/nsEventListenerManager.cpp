@@ -510,7 +510,8 @@ nsEventListenerManager::RemoveEventListenerInternal(
 }
 
 bool
-nsEventListenerManager::ListenerCanHandle(nsListenerStruct* aLs, nsEvent* aEvent)
+nsEventListenerManager::ListenerCanHandle(nsListenerStruct* aLs,
+                                          WidgetEvent* aEvent)
 {
   
   
@@ -968,7 +969,7 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
 
 void
 nsEventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
-                                            nsEvent* aEvent,
+                                            WidgetEvent* aEvent,
                                             nsIDOMEvent** aDOMEvent,
                                             EventTarget* aCurrentTarget,
                                             nsEventStatus* aEventStatus,

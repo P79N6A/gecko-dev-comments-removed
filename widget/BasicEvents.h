@@ -1022,7 +1022,4 @@ public:
 
 } 
 
-
-typedef mozilla::WidgetEvent      nsEvent;
-
 #endif 

@@ -581,7 +581,7 @@ XMLDocument::EndLoad()
     
     
     
-    nsEvent event(true, NS_LOAD);
+    WidgetEvent event(true, NS_LOAD);
     nsEventDispatcher::Dispatch(static_cast<nsIDocument*>(this), nullptr,
                                 &event);
   }

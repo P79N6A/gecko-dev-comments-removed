@@ -2917,7 +2917,7 @@ HTMLInputElement::DispatchSelectEvent(nsPresContext* aPresContext)
 
   
   if (!mHandlingSelectEvent) {
-    nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
+    WidgetEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
 
     mHandlingSelectEvent = true;
     nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),

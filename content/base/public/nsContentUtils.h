@@ -1372,7 +1372,7 @@ public:
 
 
 
-  static nsEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
+  static mozilla::WidgetEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
 
   
 

@@ -46,7 +46,7 @@ class EventTarget;
 class nsEventChainVisitor {
 public:
   nsEventChainVisitor(nsPresContext* aPresContext,
-                      nsEvent* aEvent,
+                      mozilla::WidgetEvent* aEvent,
                       nsIDOMEvent* aDOMEvent,
                       nsEventStatus aEventStatus = nsEventStatus_eIgnore)
   : mPresContext(aPresContext), mEvent(aEvent), mDOMEvent(aDOMEvent),
@@ -61,7 +61,7 @@ public:
   
 
 
-  nsEvent* const        mEvent;
+  mozilla::WidgetEvent* const mEvent;
 
   
 
@@ -101,7 +101,7 @@ public:
 class nsEventChainPreVisitor : public nsEventChainVisitor {
 public:
   nsEventChainPreVisitor(nsPresContext* aPresContext,
-                         nsEvent* aEvent,
+                         mozilla::WidgetEvent* aEvent,
                          nsIDOMEvent* aDOMEvent,
                          nsEventStatus aEventStatus,
                          bool aIsInAnon)
@@ -225,7 +225,7 @@ public:
 
   static nsresult Dispatch(nsISupports* aTarget,
                            nsPresContext* aPresContext,
-                           nsEvent* aEvent,
+                           mozilla::WidgetEvent* aEvent,
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
                            nsDispatchingCallback* aCallback = nullptr,
@@ -240,7 +240,8 @@ public:
 
 
   static nsresult DispatchDOMEvent(nsISupports* aTarget,
-                                   nsEvent* aEvent, nsIDOMEvent* aDOMEvent,
+                                   mozilla::WidgetEvent* aEvent,
+                                   nsIDOMEvent* aDOMEvent,
                                    nsPresContext* aPresContext,
                                    nsEventStatus* aEventStatus);
 
@@ -249,7 +250,7 @@ public:
 
   static nsresult CreateEvent(mozilla::dom::EventTarget* aOwner,
                               nsPresContext* aPresContext,
-                              nsEvent* aEvent,
+                              mozilla::WidgetEvent* aEvent,
                               const nsAString& aEventType,
                               nsIDOMEvent** aDOMEvent);
 

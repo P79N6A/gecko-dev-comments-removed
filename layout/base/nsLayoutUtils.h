@@ -460,8 +460,9 @@ public:
 
 
 
-  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
-                                               nsIFrame* aFrame);
+  static nsPoint GetEventCoordinatesRelativeTo(
+                   const mozilla::WidgetEvent* aEvent,
+                   nsIFrame* aFrame);
 
   
 
@@ -473,9 +474,10 @@ public:
 
 
 
-  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
-                                               const nsIntPoint aPoint,
-                                               nsIFrame* aFrame);
+  static nsPoint GetEventCoordinatesRelativeTo(
+                   const mozilla::WidgetEvent* aEvent,
+                   const nsIntPoint aPoint,
+                   nsIFrame* aFrame);
 
   
 
@@ -498,8 +500,9 @@ public:
 
 
 
-  static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
-                                                    const nsEvent* aEvent);
+  static nsIFrame* GetPopupFrameForEventCoordinates(
+                     nsPresContext* aPresContext,
+                     const mozilla::WidgetEvent* aEvent);
 
   
 

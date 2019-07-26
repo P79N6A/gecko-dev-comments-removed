@@ -1844,7 +1844,7 @@ public:
 
     
     
-    nsEvent inputEvent(true, NS_FORM_INPUT);
+    WidgetEvent inputEvent(true, NS_FORM_INPUT);
     inputEvent.mFlags.mCancelable = false;
     inputEvent.time = static_cast<uint64_t>(PR_Now() / 1000);
     nsEventStatus status = nsEventStatus_eIgnore;
@@ -5166,7 +5166,7 @@ WidgetKeyboardEvent*
 nsEditor::GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent)
 {
   NS_ENSURE_TRUE(aDOMKeyEvent, nullptr);
-  nsEvent* nativeEvent = aDOMKeyEvent->GetInternalNSEvent();
+  WidgetEvent* nativeEvent = aDOMKeyEvent->GetInternalNSEvent();
   NS_ENSURE_TRUE(nativeEvent, nullptr);
   NS_ENSURE_TRUE(nativeEvent->eventStructType == NS_KEY_EVENT, nullptr);
   return static_cast<WidgetKeyboardEvent*>(nativeEvent);
