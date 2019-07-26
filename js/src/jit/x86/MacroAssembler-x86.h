@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jit_x86_MacroAssembler_x86_h
 #define jit_x86_MacroAssembler_x86_h
@@ -18,8 +18,8 @@ namespace jit {
 
 class MacroAssemblerX86 : public MacroAssemblerX86Shared
 {
-    // Number of bytes the stack is adjusted inside a call to C. Calls to C may
-    // not be nested.
+    
+    
     bool inCall_;
     uint32_t args_;
     uint32_t passedArgs_;
@@ -70,29 +70,23 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     using MacroAssemblerX86Shared::callWithExitFrame;
     using MacroAssemblerX86Shared::branch32;
 
-    enum Result {
-        GENERAL,
-        DOUBLE,
-        FLOAT
-    };
-
     MacroAssemblerX86()
       : inCall_(false),
         enoughMemory_(true)
     {
     }
 
-    // The buffer is about to be linked, make sure any constant pools or excess
-    // bookkeeping has been flushed to the instruction stream.
+    
+    
     void finish();
 
     bool oom() const {
         return MacroAssemblerX86Shared::oom() || !enoughMemory_;
     }
 
-    /////////////////////////////////////////////////////////////////
-    // X86-specific interface.
-    /////////////////////////////////////////////////////////////////
+    
+    
+    
 
     Operand ToPayload(Operand base) {
         return base;
@@ -125,15 +119,15 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         Register s0 = src.typeReg(), d0 = dest.typeReg(),
                  s1 = src.payloadReg(), d1 = dest.payloadReg();
 
-        // Either one or both of the source registers could be the same as a
-        // destination register.
+        
+        
         if (s1 == d0) {
             if (s0 == d1) {
-                // If both are, this is just a swap of two registers.
+                
                 xchgl(d0, d1);
                 return;
             }
-            // If only one is, copy that source first.
+            
             mozilla::Swap(s0, s1);
             mozilla::Swap(d0, d1);
         }
@@ -144,9 +138,9 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
             movl(s1, d1);
     }
 
-    /////////////////////////////////////////////////////////////////
-    // X86/X64-common interface.
-    /////////////////////////////////////////////////////////////////
+    
+    
+    
     void storeValue(ValueOperand val, Operand dest) {
         movl(val.payloadReg(), ToPayload(dest));
         movl(val.typeReg(), ToType(dest));
@@ -172,8 +166,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         Operand payload = ToPayload(src);
         Operand type = ToType(src);
 
-        // Ensure that loading the payload does not erase the pointer to the
-        // Value in memory or the index.
+        
+        
         Register baseReg = Register::FromCode(src.base());
         Register indexReg = (src.kind() == Operand::MEM_SCALE) ? Register::FromCode(src.index()) : InvalidReg;
 
@@ -256,7 +250,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         movl(src, dest);
     }
 
-    // Returns the register containing the type tag.
+    
     Register splitTagForTest(const ValueOperand &value) {
         return value.typeReg();
     }
@@ -458,7 +452,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
                          Label *label)
     {
         JS_ASSERT(cond == Equal || cond == NotEqual);
-        // Check payload before tag, since payload is more likely to differ.
+        
         if (cond == NotEqual) {
             branchPtr(NotEqual, payloadOf(valaddr), value.payloadReg(), label);
             branchPtr(NotEqual, tagOf(valaddr), value.typeReg(), label);
@@ -511,9 +505,9 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     Condition testNegativeZero(const FloatRegister &reg, const Register &scratch);
     Condition testNegativeZeroFloat32(const FloatRegister &reg, const Register &scratch);
 
-    /////////////////////////////////////////////////////////////////
-    // Common interface.
-    /////////////////////////////////////////////////////////////////
+    
+    
+    
     void reserveStack(uint32_t amount) {
         if (amount)
             subl(Imm32(amount), StackPointer);
@@ -569,7 +563,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         j(cond, label);
     }
 
-    // Specialization for AsmJSAbsoluteAddress.
+    
     void branchPtr(Condition cond, AsmJSAbsoluteAddress lhs, Register ptr, Label *label) {
         cmpl(lhs, ptr);
         j(cond, label);
@@ -685,8 +679,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         movl(reg, Operand(esp, arg * STACK_SLOT_SIZE));
     }
 
-    // Type testing instructions can take a tag in a register or a
-    // ValueOperand.
+    
+    
     template <typename T>
     void branchTestUndefined(Condition cond, const T &t, Label *label) {
         cond = testUndefined(cond, t);
@@ -747,11 +741,11 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         if (cond == Equal) {
-            // Test for magic
+            
             Label notmagic;
             Condition testCond = testMagic(Equal, val);
             j(InvertCondition(testCond), &notmagic);
-            // Test magic value
+            
             branch32(Equal, val.payloadReg(), Imm32(static_cast<int32_t>(why)), label);
             bind(&notmagic);
         } else {
@@ -761,7 +755,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         }
     }
 
-    // Note: this function clobbers the source register.
+    
     void boxDouble(const FloatRegister &src, const ValueOperand &dest) {
         movd(src, dest.payloadReg());
         psrldq(Imm32(4), src);
@@ -847,9 +841,9 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         xorl(Imm32(1), val.payloadReg());
     }
 
-    // Extended unboxing API. If the payload is already in a register, returns
-    // that register. Otherwise, provides a move to the given scratch register,
-    // and returns that.
+    
+    
+    
     Register extractObject(const Address &address, Register scratch) {
         movl(payloadOf(address), scratch);
         return scratch;
@@ -892,18 +886,18 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     void branchTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail) {
         cvttsd2si(src, dest);
 
-        // cvttsd2si returns 0x80000000 on failure. Test for it by
-        // subtracting 1 and testing overflow (this permits the use of a
-        // smaller immediate field).
+        
+        
+        
         cmpl(dest, Imm32(1));
         j(Assembler::Overflow, fail);
     }
     void branchTruncateFloat32(const FloatRegister &src, const Register &dest, Label *fail) {
         cvttss2si(src, dest);
 
-        // cvttss2si returns 0x80000000 on failure. Test for it by
-        // subtracting 1 and testing overflow (this permits the use of a
-        // smaller immediate field).
+        
+        
+        
         cmpl(dest, Imm32(1));
         j(Assembler::Overflow, fail);
     }
@@ -973,29 +967,29 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         movl(Operand(StackPointer, 0x0), dest);
     }
 
-    // Note: this function clobbers the source register.
+    
     void convertUInt32ToDouble(const Register &src, const FloatRegister &dest) {
-        // src is [0, 2^32-1]
+        
         subl(Imm32(0x80000000), src);
 
-        // Now src is [-2^31, 2^31-1] - int range, but not the same value.
+        
         convertInt32ToDouble(src, dest);
 
-        // dest is now a double with the int range.
-        // correct the double value by adding 0x80000000.
+        
+        
         addConstantDouble(2147483648.0, dest);
     }
 
-    // Note: this function clobbers the source register.
+    
     void convertUInt32ToFloat32(const Register &src, const FloatRegister &dest) {
-        // src is [0, 2^32-1]
+        
         subl(Imm32(0x80000000), src);
 
-        // Do it the GCC way
+        
         convertInt32ToFloat32(src, dest);
 
-        // dest is now a double with the int range.
-        // correct the double value by adding 0x80000000.
+        
+        
         addConstantFloat32(2147483648.f, dest);
     }
 
@@ -1008,8 +1002,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     }
 
 
-    // If source is a double, load it into dest. If source is int32,
-    // convert it to double. Else, branch to failure.
+    
+    
     void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {
         Label isDouble, done;
         branchTestDouble(Assembler::Equal, source.typeReg(), &isDouble);
@@ -1024,40 +1018,40 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         bind(&done);
     }
 
-    // Setup a call to C/C++ code, given the number of general arguments it
-    // takes. Note that this only supports cdecl.
-    //
-    // In order for alignment to work correctly, the MacroAssembler must have a
-    // consistent view of the stack displacement. It is okay to call "push"
-    // manually, however, if the stack alignment were to change, the macro
-    // assembler should be notified before starting a call.
+    
+    
+    
+    
+    
+    
+    
     void setupAlignedABICall(uint32_t args);
 
-    // Sets up an ABI call for when the alignment is not known. This may need a
-    // scratch register.
+    
+    
     void setupUnalignedABICall(uint32_t args, const Register &scratch);
 
-    // Arguments must be assigned to a C/C++ call in order. They are moved
-    // in parallel immediately before performing the call. This process may
-    // temporarily use more stack, in which case esp-relative addresses will be
-    // automatically adjusted. It is extremely important that esp-relative
-    // addresses are computed *after* setupABICall(). Furthermore, no
-    // operations should be emitted while setting arguments.
-    void passABIArg(const MoveOperand &from);
+    
+    
+    
+    
+    
+    
+    void passABIArg(const MoveOperand &from, MoveOp::Kind kind);
     void passABIArg(const Register &reg);
-    void passABIArg(const FloatRegister &reg);
+    void passABIArg(const FloatRegister &reg, MoveOp::Kind kind);
 
   private:
     void callWithABIPre(uint32_t *stackAdjust);
-    void callWithABIPost(uint32_t stackAdjust, Result result);
+    void callWithABIPost(uint32_t stackAdjust, MoveOp::Kind result);
 
   public:
-    // Emits a call to a C/C++ function, resolving all argument moves.
-    void callWithABI(void *fun, Result result = GENERAL);
-    void callWithABI(AsmJSImmPtr fun, Result result = GENERAL);
-    void callWithABI(const Address &fun, Result result = GENERAL);
+    
+    void callWithABI(void *fun, MoveOp::Kind result = MoveOp::GENERAL);
+    void callWithABI(AsmJSImmPtr fun, MoveOp::Kind result = MoveOp::GENERAL);
+    void callWithABI(const Address &fun, MoveOp::Kind result = MoveOp::GENERAL);
 
-    // Used from within an Exit frame to handle a pending exception.
+    
     void handleFailureWithHandler(void *handler);
     void handleFailureWithHandlerTail();
 
@@ -1066,8 +1060,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         orl(Imm32(type), frameSizeReg);
     }
 
-    // Save an exit frame (which must be aligned to the stack pointer) to
-    // ThreadData::ionTop of the main thread.
+    
+    
     void linkExitFrame() {
         movl(StackPointer, Operand(AbsoluteAddress(GetIonContext()->runtime->addressOfIonTop())));
     }
@@ -1079,14 +1073,14 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         call(target);
     }
 
-    // Save an exit frame to the thread data of the current thread, given a
-    // register that holds a PerThreadData *.
+    
+    
     void linkParallelExitFrame(const Register &pt) {
         movl(StackPointer, Operand(pt, offsetof(PerThreadData, ionTop)));
     }
 
     void enterOsr(Register calleeToken, Register code) {
-        push(Imm32(0)); // num actual args.
+        push(Imm32(0)); 
         push(calleeToken);
         push(Imm32(MakeFrameDescriptor(0, IonFrame_Osr)));
         call(code);
@@ -1096,7 +1090,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 
 typedef MacroAssemblerX86 MacroAssemblerSpecific;
 
-} // namespace jit
-} // namespace js
+} 
+} 
 
-#endif /* jit_x86_MacroAssembler_x86_h */
+#endif 

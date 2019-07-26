@@ -865,12 +865,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     
 
     template <typename T>
-    void callWithABINoProfiling(const T &fun, Result result = GENERAL) {
+    void callWithABINoProfiling(const T &fun, MoveOp::Kind result = MoveOp::GENERAL) {
         MacroAssemblerSpecific::callWithABI(fun, result);
     }
 
     template <typename T>
-    void callWithABI(const T &fun, Result result = GENERAL) {
+    void callWithABI(const T &fun, MoveOp::Kind result = MoveOp::GENERAL) {
         leaveSPSFrame();
         callWithABINoProfiling(fun, result);
         reenterSPSFrame();
