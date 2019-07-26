@@ -153,17 +153,16 @@ class NodeBuilder
     bool        saveLoc;               
     char const  *src;                  
     RootedValue srcval;                
-    Value       callbacks[AST_LIMIT];  
-    AutoValueArray callbacksRoots;     
+    Value       callbacks_[AST_LIMIT]; 
+    AutoValueArray callbacks;          
     RootedValue userv;                 
-    RootedValue undefinedVal;          
 
   public:
     NodeBuilder(JSContext *c, bool l, char const *s)
         : cx(c), tokenStream(nullptr), saveLoc(l), src(s), srcval(c),
-          callbacksRoots(c, callbacks, AST_LIMIT), userv(c), undefinedVal(c, UndefinedValue())
+          callbacks(c, callbacks_, AST_LIMIT), userv(c)
     {
-        MakeRangeGCSafe(callbacks, mozilla::ArrayLength(callbacks));
+        MakeRangeGCSafe(callbacks.start(), callbacks.length());
     }
 
     bool init(HandleObject userobj = js::NullPtr()) {
@@ -206,7 +205,7 @@ class NodeBuilder
                 return false;
             }
 
-            callbacks[i] = funv;
+            callbacks[i].set(funv);
         }
 
         return true;
@@ -317,7 +316,7 @@ class NodeBuilder
     
     HandleValue opt(HandleValue v) {
         JS_ASSERT_IF(v.isMagic(), v.whyMagic() == JS_SERIALIZE_NO_NODE);
-        return v.isMagic(JS_SERIALIZE_NO_NODE) ? undefinedVal : v;
+        return v.isMagic(JS_SERIALIZE_NO_NODE) ? JS::UndefinedHandleValue : v;
     }
 
     bool atomValue(const char *s, MutableHandleValue dst) {
