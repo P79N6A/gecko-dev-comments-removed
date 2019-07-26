@@ -1922,6 +1922,11 @@ pref("layout.interruptible-reflow.enabled", true);
 pref("layout.frame_rate", -1);
 
 
+#ifdef MOZ_DUMP_PAINTING
+pref("layout.display-list.dump", false);
+#endif
+
+
 
 
 
