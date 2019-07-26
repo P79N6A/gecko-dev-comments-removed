@@ -314,7 +314,9 @@ public:
   
 
 
-  nsSize GetWidthHeightForImage(imgIRequest *aImageRequest);
+
+
+  nsSize GetWidthHeightForImage(nsRefPtr<imgRequestProxy>& aImageRequest);
 
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
