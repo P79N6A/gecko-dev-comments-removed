@@ -15,6 +15,7 @@
 #include "jsarray.h"
 #include "jsatom.h"
 #include "jscntxt.h"
+#include "jsfriendapi.h"
 #include "jsgc.h"
 #include "jsobj.h"
 #include "jsopcode.h"
@@ -39,6 +40,7 @@
 
 using namespace js;
 using namespace js::gc;
+using JS::ForOfIterator;
 
 using mozilla::ArrayLength;
 #ifdef JS_MORE_DETERMINISTIC
@@ -1268,8 +1270,8 @@ const Class StopIterationObject::class_ = {
     nullptr                  
 };
 
-bool
-ForOfIterator::init(HandleValue iterable)
+JS_FRIEND_API(bool)
+ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavior)
 {
     JSContext *cx = cx_;
     RootedObject iterableObj(cx, ToObject(cx, iterable));
@@ -1289,7 +1291,10 @@ ForOfIterator::init(HandleValue iterable)
     
     
     
+    
     if (!callee.isObject() || !callee.toObject().isCallable()) {
+        if (nonIterableBehavior == AllowNonIterable)
+            return true;
         char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, iterable, NullPtr());
         if (!bytes)
             return false;
@@ -1309,7 +1314,7 @@ ForOfIterator::init(HandleValue iterable)
     return true;
 }
 
-bool
+JS_FRIEND_API(bool)
 ForOfIterator::next(MutableHandleValue vp, bool *done)
 {
     JS_ASSERT(iterator);
