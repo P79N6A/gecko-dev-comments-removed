@@ -51,56 +51,94 @@ log_and_free_dbus_error(DBusError* err, const char* function, DBusMessage* msg)
   dbus_error_free((err));
 }
 
-typedef struct {
-  DBusCallback user_cb;
-  void *user;
-} dbus_async_call_t;
-
-void dbus_func_args_async_callback(DBusPendingCall *call, void *data)
+class DBusConnectionSendRunnableBase : public nsRunnable
 {
-  nsAutoPtr<dbus_async_call_t> req(static_cast<dbus_async_call_t*>(data));
-
-  
-  DBusMessage *msg = dbus_pending_call_steal_reply(call);
-
-  if (msg) {
-    if (req->user_cb) {
-      
-      req->user_cb(msg, req->user);
-    }
-    dbus_message_unref(msg);
+protected:
+  DBusConnectionSendRunnableBase(DBusConnection* aConnection,
+                                 DBusMessage* aMessage)
+  : mConnection(aConnection),
+    mMessage(aMessage)
+  {
+    MOZ_ASSERT(mConnection);
+    MOZ_ASSERT(mMessage);
   }
 
-  
-  dbus_pending_call_cancel(call);
-  dbus_pending_call_unref(call);
-}
-
-class DBusConnectionSendWithReplyTask : public nsRunnable
-{
-public:
-  DBusConnectionSendWithReplyTask(DBusConnection* aConnection,
-                                  DBusMessage* aMessage,
-                                  int aTimeout,
-                                  void (*aCallback)(DBusMessage*, void*),
-                                  void* aData)
-  : mConnection(aConnection),
-    mMessage(aMessage),
-    mTimeout(aTimeout),
-    mCallback(aCallback),
-    mData(aData)
+  virtual ~DBusConnectionSendRunnableBase()
   { }
 
-  NS_METHOD Run()
+  DBusConnection*   mConnection;
+  DBusMessageRefPtr mMessage;
+};
+
+
+
+
+
+class DBusConnectionSendWithReplyRunnable : public DBusConnectionSendRunnableBase
+{
+private:
+  class NotifyData
   {
+  public:
+    NotifyData(void (*aCallback)(DBusMessage*, void*), void* aData)
+    : mCallback(aCallback),
+      mData(aData)
+    { }
+
+    void RunNotifyCallback(DBusMessage* aMessage)
+    {
+      if (mCallback) {
+        mCallback(aMessage, mData);
+      }
+    }
+
+  private:
+    void (*mCallback)(DBusMessage*, void*);
+    void*  mData;
+  };
+
+  
+  
+  static void Notify(DBusPendingCall* aCall, void* aData)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    nsAutoPtr<NotifyData> data(static_cast<NotifyData*>(aData));
+
     
-    nsAutoPtr<dbus_async_call_t> pending(new dbus_async_call_t);
-    NS_ENSURE_TRUE(pending, NS_ERROR_OUT_OF_MEMORY);
+    
+    DBusMessage* reply = dbus_pending_call_steal_reply(aCall);
 
-    pending->user_cb = mCallback;
-    pending->user = mData;
+    if (reply) {
+      data->RunNotifyCallback(reply);
+      dbus_message_unref(reply);
+    }
 
-    DBusPendingCall *call;
+    dbus_pending_call_cancel(aCall);
+    dbus_pending_call_unref(aCall);
+  }
+
+public:
+  DBusConnectionSendWithReplyRunnable(DBusConnection* aConnection,
+                                      DBusMessage* aMessage,
+                                      int aTimeout,
+                                      void (*aCallback)(DBusMessage*, void*),
+                                      void* aData)
+  : DBusConnectionSendRunnableBase(aConnection, aMessage),
+    mCallback(aCallback),
+    mData(aData),
+    mTimeout(aTimeout)
+  { }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    
+    nsAutoPtr<NotifyData> data(new NotifyData(mCallback, mData));
+    NS_ENSURE_TRUE(data, NS_ERROR_OUT_OF_MEMORY);
+
+    DBusPendingCall* call;
 
     dbus_bool_t success = dbus_connection_send_with_reply(mConnection,
                                                           mMessage,
@@ -108,45 +146,37 @@ public:
                                                           mTimeout);
     NS_ENSURE_TRUE(success == TRUE, NS_ERROR_FAILURE);
 
-    success = dbus_pending_call_set_notify(call,
-                                           dbus_func_args_async_callback,
-                                           pending,
-                                           NULL);
+    success = dbus_pending_call_set_notify(call, Notify, data, nullptr);
     NS_ENSURE_TRUE(success == TRUE, NS_ERROR_FAILURE);
 
-    pending.forget();
+    data.forget();
     dbus_message_unref(mMessage);
 
     return NS_OK;
   };
 
 protected:
-  ~DBusConnectionSendWithReplyTask()
+  ~DBusConnectionSendWithReplyRunnable()
   { }
 
 private:
-  DBusConnection* mConnection;
-  DBusMessage* mMessage;
-  int mTimeout;
   void (*mCallback)(DBusMessage*, void*);
-  void* mData;
+  void*  mData;
+  int    mTimeout;
 };
 
-dbus_bool_t dbus_func_send_async(DBusConnection *conn,
-                                 DBusMessage *msg,
+dbus_bool_t dbus_func_send_async(DBusConnection* conn,
+                                 DBusMessage* msg,
                                  int timeout_ms,
                                  void (*user_cb)(DBusMessage*,
                                                  void*),
-                                 void *user)
+                                 void* user)
 {
-   nsRefPtr<nsIRunnable> t(
-    new DBusConnectionSendWithReplyTask(conn, msg, timeout_ms, user_cb, user));
-  if (!t) {
-    if (msg) {
-      dbus_message_unref(msg);
-    }
-    return FALSE;
-  }
+  nsRefPtr<nsIRunnable> t(new DBusConnectionSendWithReplyRunnable(conn, msg,
+                                                                  timeout_ms,
+                                                                  user_cb,
+                                                                  user));
+  MOZ_ASSERT(t);
 
   nsresult rv = DispatchToDBusThread(t);
 
