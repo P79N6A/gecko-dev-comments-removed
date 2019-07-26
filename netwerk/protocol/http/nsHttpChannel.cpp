@@ -884,6 +884,28 @@ nsresult
 nsHttpChannel::CallOnStartRequest()
 {
     mTracingEnabled = false;
+
+    
+    if ((mLoadFlags & LOAD_CALL_CONTENT_SNIFFERS) &&
+        gIOService->GetContentSniffers().Count() != 0) {
+        
+        
+        
+        
+
+        nsIChannel* thisChannel = static_cast<nsIChannel*>(this);
+
+        bool typeSniffersCalled = false;
+        if (mCachePump) {
+          typeSniffersCalled =
+            NS_SUCCEEDED(mCachePump->PeekStream(CallTypeSniffers, thisChannel));
+        }
+        
+        if (!typeSniffersCalled && mTransactionPump) {
+          mTransactionPump->PeekStream(CallTypeSniffers, thisChannel);
+        }
+    }
+
     bool shouldSniff = mResponseHead && (mResponseHead->ContentType().IsEmpty() ||
         ((mResponseHead->ContentType().EqualsLiteral(APPLICATION_OCTET_STREAM) &&
         (mLoadFlags & LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN))));
@@ -928,26 +950,6 @@ nsHttpChannel::CallOnStartRequest()
         nsresult rv = mCacheEntry->SetPredictedDataSize(
             mResponseHead->ContentLength());
         NS_ENSURE_SUCCESS(rv, rv);
-    }
-    
-    if ((mLoadFlags & LOAD_CALL_CONTENT_SNIFFERS) &&
-        gIOService->GetContentSniffers().Count() != 0) {
-        
-        
-        
-        
-
-        nsIChannel* thisChannel = static_cast<nsIChannel*>(this);
-
-        bool typeSniffersCalled = false;
-        if (mCachePump) {
-          typeSniffersCalled =
-            NS_SUCCEEDED(mCachePump->PeekStream(CallTypeSniffers, thisChannel));
-        }
-        
-        if (!typeSniffersCalled && mTransactionPump) {
-          mTransactionPump->PeekStream(CallTypeSniffers, thisChannel);
-        }
     }
 
     LOG(("  calling mListener->OnStartRequest\n"));
