@@ -28,17 +28,15 @@ WMFDecoder::GetSupportedCodecs(const nsACString& aType,
 
   
   
-  
-  
-  
   static char const *const mp3AudioCodecs[] = {
+    "mp3",
     nullptr
   };
-  if (aType.EqualsASCII("audio/mpeg")) {
+  if (aType.EqualsASCII("audio/mpeg") ||
+      aType.EqualsASCII("audio/mp3")) {
     if (aCodecList) {
       *aCodecList = mp3AudioCodecs;
     }
-    
     return true;
   }
 
@@ -47,7 +45,8 @@ WMFDecoder::GetSupportedCodecs(const nsACString& aType,
     "mp4a.40.2",    
     nullptr
   };
-  if (aType.EqualsASCII("audio/mp4")) {
+  if (aType.EqualsASCII("audio/mp4") ||
+      aType.EqualsASCII("audio/x-m4a")) {
     if (aCodecList) {
       *aCodecList = aacAudioCodecs;
     }
