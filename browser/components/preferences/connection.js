@@ -18,6 +18,21 @@ var gConnectionsDialog = {
     var httpProxyURLPref = document.getElementById("network.proxy.http");
     var httpProxyPortPref = document.getElementById("network.proxy.http_port");
     var shareProxiesPref = document.getElementById("network.proxy.share_proxy_settings");
+
+    
+    for (let prefName of ["http","ssl","ftp","socks"]) {
+      let proxyPortPref = document.getElementById("network.proxy." + prefName + "_port");
+      let proxyPref = document.getElementById("network.proxy." + prefName);
+      
+      
+      if (proxyPref.value != "" && proxyPortPref.value == 0 &&
+            (prefName == "http" || !shareProxiesPref.value)) {
+        document.getElementById("networkProxy" + prefName.toUpperCase() + "_Port").focus();
+        return false;
+      }
+    }
+
+    
     if (shareProxiesPref.value) {
       var proxyPrefs = ["ssl", "ftp", "socks"];
       for (var i = 0; i < proxyPrefs.length; ++i) {
