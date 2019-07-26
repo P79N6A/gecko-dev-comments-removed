@@ -808,6 +808,12 @@ public class GeckoAppShell
         return getHandlersForIntent(intent);
     }
 
+    static boolean hasHandlersForIntent(Intent intent) {
+        PackageManager pm = GeckoApp.mAppContext.getPackageManager();
+        List<ResolveInfo> list = pm.queryIntentActivities(intent, 0);
+        return !list.isEmpty();
+    }
+
     static String[] getHandlersForIntent(Intent intent) {
         PackageManager pm = GeckoApp.mAppContext.getPackageManager();
         List<ResolveInfo> list = pm.queryIntentActivities(intent, 0);
@@ -828,10 +834,10 @@ public class GeckoAppShell
 
     static Intent getIntentForActionString(String aAction) {
         
-        if (aAction != null && aAction.length() > 0)
-            return new Intent(aAction);
-        else
+        if (TextUtils.isEmpty(aAction)) {
             return new Intent(Intent.ACTION_VIEW);
+        }
+        return new Intent(aAction);
     }
 
     static String getExtensionFromMimeType(String aMimeType) {
@@ -1069,18 +1075,24 @@ public class GeckoAppShell
         final String scheme = uri.getScheme();
 
         final Intent intent;
-        if ("vnd.youtube".equals(scheme) && getHandlersForURL(targetURI, action).length == 0) {
+
+        
+        
+        
+        
+        final Intent likelyIntent = getIntentForActionString(action);
+        likelyIntent.setData(uri);
+
+        if ("vnd.youtube".equals(scheme) && !hasHandlersForIntent(likelyIntent)) {
+            
             
             intent = new Intent(VideoPlayer.VIDEO_ACTION);
             intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
                                 "org.mozilla.gecko.VideoPlayer");
+            intent.setData(uri);
         } else {
-            intent = getIntentForActionString(action);
+            intent = likelyIntent;
         }
-
-        
-        
-        intent.setData(uri);
 
         
         
