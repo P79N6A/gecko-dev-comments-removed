@@ -72,6 +72,14 @@ public:
 
   uint32_t GetType() { return mTrackType; }
 
+  void SetLastFragmentLastFrameTime(uint32_t aTime) {
+    mLastFrameTimeOfLastFragment = aTime;
+  }
+
+  uint32_t GetLastFragmentLastFrameTime() {
+    return mLastFrameTimeOfLastFragment;
+  }
+
 private:
   uint32_t mTrackType;
 
@@ -91,6 +99,12 @@ private:
   
   
   uint32_t mFragmentNumber;
+
+  
+  
+  
+  
+  uint32_t mLastFrameTimeOfLastFragment;
 
   
   
