@@ -3,8 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
 
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.ProgressDialog;

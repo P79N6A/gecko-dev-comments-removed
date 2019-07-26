@@ -3,7 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
+
+import org.mozilla.gecko.Tabs;
 
 import android.content.Context;
 import android.preference.Preference;

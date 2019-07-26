@@ -8,11 +8,6 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 
-interface GeckoActivityStatus {
-    public boolean isGeckoActivityOpened();
-    public boolean isFinishing();  
-};
-
 public class GeckoActivity extends FragmentActivity implements GeckoActivityStatus {
     
     private boolean mGeckoActivityOpened = false;

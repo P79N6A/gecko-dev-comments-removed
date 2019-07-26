@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
 
 import org.mozilla.gecko.sync.setup.SyncAccounts;
 import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;

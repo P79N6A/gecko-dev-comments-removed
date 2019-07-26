@@ -3,7 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
+
+import org.mozilla.gecko.R;
 
 import android.app.AlertDialog;
 import android.content.Context;

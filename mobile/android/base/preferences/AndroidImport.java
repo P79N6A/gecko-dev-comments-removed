@@ -3,8 +3,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.LocalBrowserDB;

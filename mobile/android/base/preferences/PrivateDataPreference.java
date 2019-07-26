@@ -3,7 +3,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
+
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 
 import org.json.JSONException;
 import org.json.JSONObject;

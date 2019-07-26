@@ -3,7 +3,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.preferences;
+
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.PrefsHelper;
 
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
