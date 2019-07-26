@@ -825,14 +825,6 @@ var gBrowserInit = {
     gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
 
     
-    gBrowser.addEventListener("MozApplicationManifest",
-                              OfflineApps, false);
-    
-    let socialBrowser = document.getElementById("social-sidebar-browser");
-    socialBrowser.addEventListener("MozApplicationManifest",
-                              OfflineApps, false);
-
-    
     gGestureSupport.init(true);
 
     
@@ -977,6 +969,17 @@ var gBrowserInit = {
     TelemetryTimestamps.add("delayedStartupStarted");
 
     this._cancelDelayedStartup();
+
+    
+    
+    
+    
+    gBrowser.addEventListener("MozApplicationManifest",
+                              OfflineApps, false);
+    
+    let socialBrowser = document.getElementById("social-sidebar-browser");
+    socialBrowser.addEventListener("MozApplicationManifest",
+                              OfflineApps, false);
 
     var isLoadingBlank = isBlankPageURL(uriToLoad);
 
