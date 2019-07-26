@@ -234,6 +234,115 @@ inline JSGCTraceKind
 GetGCThingTraceKind(const void *thing);
 
 
+const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
+
+extern const AllocKind slotsToThingKind[];
+
+
+static inline AllocKind
+GetGCObjectKind(size_t numSlots)
+{
+    if (numSlots >= SLOTS_TO_THING_KIND_LIMIT)
+        return FINALIZE_OBJECT16;
+    return slotsToThingKind[numSlots];
+}
+
+
+static inline AllocKind
+GetGCArrayKind(size_t numSlots)
+{
+    
+
+
+
+
+
+    JS_STATIC_ASSERT(ObjectElements::VALUES_PER_HEADER == 2);
+    if (numSlots > JSObject::NELEMENTS_LIMIT || numSlots + 2 >= SLOTS_TO_THING_KIND_LIMIT)
+        return FINALIZE_OBJECT2;
+    return slotsToThingKind[numSlots + 2];
+}
+
+static inline AllocKind
+GetGCObjectFixedSlotsKind(size_t numFixedSlots)
+{
+    JS_ASSERT(numFixedSlots < SLOTS_TO_THING_KIND_LIMIT);
+    return slotsToThingKind[numFixedSlots];
+}
+
+static inline AllocKind
+GetBackgroundAllocKind(AllocKind kind)
+{
+    JS_ASSERT(!IsBackgroundFinalized(kind));
+    JS_ASSERT(kind <= FINALIZE_OBJECT_LAST);
+    return (AllocKind) (kind + 1);
+}
+
+
+
+
+
+static inline bool
+TryIncrementAllocKind(AllocKind *kindp)
+{
+    size_t next = size_t(*kindp) + 2;
+    if (next >= size_t(FINALIZE_OBJECT_LIMIT))
+        return false;
+    *kindp = AllocKind(next);
+    return true;
+}
+
+
+static inline size_t
+GetGCKindSlots(AllocKind thingKind)
+{
+    
+    switch (thingKind) {
+      case FINALIZE_OBJECT0:
+      case FINALIZE_OBJECT0_BACKGROUND:
+        return 0;
+      case FINALIZE_OBJECT2:
+      case FINALIZE_OBJECT2_BACKGROUND:
+        return 2;
+      case FINALIZE_OBJECT4:
+      case FINALIZE_OBJECT4_BACKGROUND:
+        return 4;
+      case FINALIZE_OBJECT8:
+      case FINALIZE_OBJECT8_BACKGROUND:
+        return 8;
+      case FINALIZE_OBJECT12:
+      case FINALIZE_OBJECT12_BACKGROUND:
+        return 12;
+      case FINALIZE_OBJECT16:
+      case FINALIZE_OBJECT16_BACKGROUND:
+        return 16;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Bad object finalize kind");
+    }
+}
+
+static inline size_t
+GetGCKindSlots(AllocKind thingKind, Class *clasp)
+{
+    size_t nslots = GetGCKindSlots(thingKind);
+
+    
+    if (clasp->flags & JSCLASS_HAS_PRIVATE) {
+        JS_ASSERT(nslots > 0);
+        nslots--;
+    }
+
+    
+
+
+
+    if (clasp == FunctionClassPtr)
+        nslots = 0;
+
+    return nslots;
+}
+
+
 
 
 
