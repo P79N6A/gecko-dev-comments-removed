@@ -30,8 +30,11 @@ function test_histogram(histogram_type, name, min, max, bucket_count) {
   
   do_check_eq(sum, s.sum);
   if (histogram_type == Telemetry.HISTOGRAM_EXPONENTIAL) {
-    do_check_eq(log_sum, s.log_sum);
-    do_check_eq(log_sum_squares, s.log_sum_squares);
+    
+    
+    
+    do_check_eq(Math.floor(log_sum), Math.floor(s.log_sum));
+    do_check_eq(Math.floor(log_sum_squares), Math.floor(s.log_sum_squares));
     do_check_false("sum_squares_lo" in s);
     do_check_false("sum_squares_hi" in s);
   } else {
