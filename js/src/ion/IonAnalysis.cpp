@@ -551,6 +551,17 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
             if (in->isBox() && in->toBox()->input()->type() == phiType) {
                 phi->replaceOperand(i, in->toBox()->input());
             } else {
+                
+                
+                
+                if (in->type() != MIRType_Value) {
+                    MBox *box = MBox::New(in);
+                    in->block()->insertBefore(in->block()->lastIns(), box);
+                    in = box;
+                }
+
+                
+                
                 MUnbox *unbox = MUnbox::New(in, phiType, MUnbox::Fallible);
                 in->block()->insertBefore(in->block()->lastIns(), unbox);
                 phi->replaceOperand(i, unbox);
