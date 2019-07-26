@@ -30,6 +30,12 @@
   color: #f5f7fa; 
 }
 
+
+.not-displayed .open,
+.not-displayed .close {
+  opacity: .7;
+}
+
 .tag-line {
   padding-left: 2px;
 }
