@@ -293,9 +293,6 @@ private:
 };
 
 
-void ProfilerJSEventMarker(const char *event);
-
-
 
 struct PseudoStack
 {
@@ -401,7 +398,6 @@ public:
   void enableJSSampling() {
     if (mRuntime) {
       js::EnableRuntimeProfilingStack(mRuntime, true);
-      js::RegisterRuntimeProfilingEventMarker(mRuntime, &ProfilerJSEventMarker);
       mStartJSSampling = false;
     } else {
       mStartJSSampling = true;
