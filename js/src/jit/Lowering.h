@@ -1,14 +1,14 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_Lowering_h
 #define jit_Lowering_h
 
-
-
+// This file declares the structures that are used for attaching LIR to a
+// MIRGraph.
 
 #include "jit/IonAllocPolicy.h"
 #include "jit/LIR.h"
@@ -31,14 +31,14 @@ class LIRGenerator : public LIRGeneratorSpecific
     void updateResumeState(MInstruction *ins);
     void updateResumeState(MBasicBlock *block);
 
-    
+    // The active depth of the (perhaps nested) call argument vectors.
     uint32_t argslots_;
-    
+    // The maximum depth, for framesizeclass determination.
     uint32_t maxargslots_;
 
 #ifdef DEBUG
-    
-    
+    // In debug builds, check MPrepareCall and MCall are properly
+    // nested. The argslots_ mechanism relies on this.
     Vector<MPrepareCall *, 4, SystemAllocPolicy> prepareCallStack_;
 #endif
 
@@ -63,21 +63,21 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool precreatePhi(LBlock *block, MPhi *phi);
     bool definePhis();
 
-    
+    // Allocate argument slots for a future function call.
     void allocateArguments(uint32_t argc);
-    
-    
+    // Map an MPassArg's argument number to a slot in the frame arg vector.
+    // Slots are indexed from 1. argnum is indexed from 0.
     uint32_t getArgumentSlot(uint32_t argnum);
     uint32_t getArgumentSlotForCall() { return argslots_; }
-    
+    // Free argument slots following a function call.
     void freeArguments(uint32_t argc);
 
   public:
     bool visitInstruction(MInstruction *ins);
     bool visitBlock(MBasicBlock *block);
 
-    
-    
+    // Visitor hooks are explicit, to give CPU-specific versions a chance to
+    // intercept without a bunch of explicit gunk in the .cpp.
     bool visitParameter(MParameter *param);
     bool visitCallee(MCallee *callee);
     bool visitGoto(MGoto *ins);
@@ -206,6 +206,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitGuardClass(MGuardClass *ins);
     bool visitGuardObject(MGuardObject *ins);
     bool visitGuardString(MGuardString *ins);
+    bool visitAssertRange(MAssertRange *ins);
     bool visitCallGetProperty(MCallGetProperty *ins);
     bool visitDeleteProperty(MDeleteProperty *ins);
     bool visitGetNameCache(MGetNameCache *ins);
@@ -249,7 +250,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitGetDOMProperty(MGetDOMProperty *ins);
 };
 
-} 
-} 
+} // namespace ion
+} // namespace js
 
-#endif 
+#endif /* jit_Lowering_h */

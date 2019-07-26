@@ -1612,6 +1612,35 @@ RangeAnalysis::analyze()
     return true;
 }
 
+bool
+RangeAnalysis::addRangeAssertions()
+{
+    if (!js_IonOptions.checkRangeAnalysis)
+        return true;
+
+    
+    
+    
+    
+    for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
+        MBasicBlock *block = *iter;
+
+        for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
+            MInstruction *ins = *iter;
+
+            Range *r = ins->range();
+            if (!r || ins->isAssertRange() || ins->isBeta())
+                continue;
+
+            MAssertRange *guard = MAssertRange::New(ins);
+            guard->setRange(new Range(*r));
+            block->insertAfter(ins, guard);
+        }
+    }
+
+    return true;
+}
+
 
 
 
