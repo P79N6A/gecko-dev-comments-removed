@@ -53,6 +53,7 @@ using namespace js::types;
 
 using mozilla::IsNaN;
 using mozilla::PodCopy;
+using JS::CanonicalizeNaN;
 using JS::GenericNaN;
 
 
@@ -1263,7 +1264,7 @@ js::ToDoubleForTypedArray(JSContext *cx, JS::HandleValue vp, double *d)
     
     
     
-    *d = JS_CANONICALIZE_NAN(*d);
+    *d = CanonicalizeNaN(*d);
 #endif
 
     return true;
@@ -2633,7 +2634,7 @@ TypedArrayObjectTemplate<float>::copyIndexToValue(JSObject *tarray, uint32_t ind
 
 
 
-    vp.setDouble(JS_CANONICALIZE_NAN(dval));
+    vp.setDouble(CanonicalizeNaN(dval));
 }
 
 template<>
@@ -2650,7 +2651,7 @@ TypedArrayObjectTemplate<double>::copyIndexToValue(JSObject *tarray, uint32_t in
 
 
 
-    vp.setDouble(JS_CANONICALIZE_NAN(val));
+    vp.setDouble(CanonicalizeNaN(val));
 }
 
 } 
@@ -3111,7 +3112,7 @@ DataViewObject::getFloat32Impl(JSContext *cx, CallArgs args)
     if (!read(cx, thisView, args, &val, "getFloat32"))
         return false;
 
-    args.rval().setDouble(JS_CANONICALIZE_NAN(val));
+    args.rval().setDouble(CanonicalizeNaN(val));
     return true;
 }
 
@@ -3133,7 +3134,7 @@ DataViewObject::getFloat64Impl(JSContext *cx, CallArgs args)
     if (!read(cx, thisView, args, &val, "getFloat64"))
         return false;
 
-    args.rval().setDouble(JS_CANONICALIZE_NAN(val));
+    args.rval().setDouble(CanonicalizeNaN(val));
     return true;
 }
 
