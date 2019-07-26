@@ -106,6 +106,9 @@ public:
   static AudioStream* AllocateStream();
 
   
+  static int MaxNumberOfChannels();
+
+  
   
   
   virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
