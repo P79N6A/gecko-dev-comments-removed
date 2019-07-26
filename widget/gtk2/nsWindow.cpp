@@ -1814,17 +1814,16 @@ nsWindow::CaptureMouse(bool aCapture)
     if (!mGdkWindow)
         return NS_OK;
 
-    GtkWidget *widget = GetMozContainerWidget();
-    if (!widget)
+    if (!mShell)
         return NS_ERROR_FAILURE;
 
     if (aCapture) {
-        gtk_grab_add(widget);
+        gtk_grab_add(mShell);
         GrabPointer(GetLastUserInputTime());
     }
     else {
         ReleaseGrabs();
-        gtk_grab_remove(widget);
+        gtk_grab_remove(mShell);
     }
 
     return NS_OK;
@@ -1837,8 +1836,7 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
     if (!mGdkWindow)
         return NS_OK;
 
-    GtkWidget *widget = GetMozContainerWidget();
-    if (!widget)
+    if (!mShell)
         return NS_ERROR_FAILURE;
 
     LOG(("CaptureRollupEvents %p\n", (void *)this));
@@ -1847,7 +1845,12 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
         gRollupListener = aListener;
         
         if (!nsWindow::DragInProgress()) {
-            gtk_grab_add(widget);
+            
+            
+            
+            
+            
+            gtk_grab_add(mShell);
             GrabPointer(GetLastUserInputTime());
         }
     }
@@ -1858,7 +1861,7 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
         
         
         
-        gtk_grab_remove(widget);
+        gtk_grab_remove(mShell);
         gRollupListener = nullptr;
     }
 
