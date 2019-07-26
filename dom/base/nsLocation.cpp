@@ -983,50 +983,27 @@ nsLocation::ToString(nsAString& aReturn)
 }
 
 nsresult
-nsLocation::GetSourceDocument(JSContext* cx, nsIDocument** aDocument)
-{
-  
-  
-  
-  
-  
-  
-
-  nsresult rv = NS_ERROR_FAILURE;
-
-  
-  
-  
-  
-
-  nsCOMPtr<nsIDOMWindow> window =
-    do_QueryInterface(nsJSUtils::GetDynamicScriptGlobal(cx), &rv);
-
-  if (window) {
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    rv = window->GetDocument(getter_AddRefs(domDoc));
-    if (domDoc) {
-      return CallQueryInterface(domDoc, aDocument);
-    }
-  } else {
-    *aDocument = nullptr;
-  }
-
-  return rv;
-}
-
-nsresult
 nsLocation::GetSourceBaseURL(JSContext* cx, nsIURI** sourceURL)
 {
-  nsCOMPtr<nsIDocument> doc;
-  nsresult rv = GetSourceDocument(cx, getter_AddRefs(doc));
-  if (doc) {
-    *sourceURL = doc->GetBaseURI().get();
-  } else {
-    *sourceURL = nullptr;
-  }
 
-  return rv;
+  *sourceURL = nullptr;
+  nsCOMPtr<nsIScriptGlobalObject> sgo = nsJSUtils::GetDynamicScriptGlobal(cx);
+  
+  
+  
+  
+  
+  
+  if (!sgo && GetDocShell()) {
+    sgo = do_GetInterface(GetDocShell());
+  }
+  NS_ENSURE_TRUE(sgo, NS_OK);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
+  NS_ENSURE_TRUE(window, NS_ERROR_UNEXPECTED);
+  nsIDocument* doc = window->GetDoc();
+  NS_ENSURE_TRUE(doc, NS_OK);
+  *sourceURL = doc->GetBaseURI().get();
+  return NS_OK;
 }
 
 bool
