@@ -149,8 +149,10 @@ OuterDocAccessible::InvalidateChildren()
 }
 
 bool
-OuterDocAccessible::AppendChild(Accessible* aAccessible)
+OuterDocAccessible::InsertChildAt(uint32_t aIdx, Accessible* aAccessible)
 {
+  NS_ASSERTION(aAccessible->IsDoc(),
+               "OuterDocAccessible should only have document child!");
   
   
   
@@ -159,7 +161,7 @@ OuterDocAccessible::AppendChild(Accessible* aAccessible)
   if (mChildren.Length())
     mChildren[0]->Shutdown();
 
-  if (!AccessibleWrap::AppendChild(aAccessible))
+  if (!AccessibleWrap::InsertChildAt(0, aAccessible))
     return false;
 
 #ifdef A11Y_LOG
