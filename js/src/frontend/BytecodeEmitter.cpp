@@ -4851,6 +4851,13 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     {
         SharedContext *outersc = bce->sc;
         FunctionBox *funbox = pn->pn_funbox;
+
+        
+        
+        if (funbox->strictModeState == StrictMode::UNKNOWN) {
+            JS_ASSERT(outersc->strictModeState != StrictMode::UNKNOWN);
+            funbox->strictModeState = outersc->strictModeState;
+        }
         if (outersc->isFunction && outersc->asFunbox()->mightAliasLocals())
             funbox->setMightAliasLocals();      
         JS_ASSERT_IF(outersc->inStrictMode(), funbox->inStrictMode());

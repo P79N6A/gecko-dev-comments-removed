@@ -159,8 +159,6 @@ class SharedContext
     
     
     
-    
-    
     StrictMode strictModeState;
 
     
@@ -212,8 +210,6 @@ class FunctionBox : public SharedContext
                 StrictMode sms);
 
     JSFunction *fun() const { return objbox.object->toFunction(); }
-
-    void recursivelySetStrictMode(StrictMode strictness);
 
     bool isGenerator()              const { return funCxFlags.isGenerator; }
     bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }

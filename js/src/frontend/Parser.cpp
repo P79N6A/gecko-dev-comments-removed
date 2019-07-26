@@ -1795,16 +1795,6 @@ Parser::functionExpr()
     return functionDef(name, Normal, Expression);
 }
 
-void
-FunctionBox::recursivelySetStrictMode(StrictMode strictness)
-{
-    if (strictModeState == StrictMode::UNKNOWN) {
-        strictModeState = strictness;
-        for (FunctionBox *kid = kids; kid; kid = kid->siblings)
-            kid->recursivelySetStrictMode(strictness);
-    }
-}
-
 
 
 
@@ -1818,10 +1808,12 @@ Parser::setStrictMode(bool strictMode)
         if (pc->sc->isFunction) {
             JS_ASSERT(pc->parent->sc->strictModeState == StrictMode::STRICT);
         } else {
-            JS_ASSERT(StrictModeFromContext(context) == StrictMode::STRICT || pc->staticLevel);
+            JS_ASSERT_IF(pc->staticLevel == 0,
+                         StrictModeFromContext(context) == StrictMode::STRICT);
         }
         return true;
     }
+
     if (strictMode) {
         if (pc->queuedStrictModeError) {
             
@@ -1831,24 +1823,24 @@ Parser::setStrictMode(bool strictMode)
             return false;
         }
         pc->sc->strictModeState = StrictMode::STRICT;
-    } else if (!pc->parent || pc->parent->sc->strictModeState == StrictMode::NOTSTRICT) {
-        
-        pc->sc->strictModeState = StrictMode::NOTSTRICT;
-        if (pc->queuedStrictModeError && context->hasStrictOption() &&
-            pc->queuedStrictModeError->report.errorNumber != JSMSG_STRICT_CODE_WITH) {
+    } else {
+        if (!pc->parent || pc->parent->sc->strictModeState == StrictMode::NOTSTRICT) {
             
-            pc->queuedStrictModeError->report.flags |= JSREPORT_WARNING;
-            pc->queuedStrictModeError->throwError();
+            
+            pc->sc->strictModeState = StrictMode::NOTSTRICT;
+            if (pc->queuedStrictModeError && context->hasStrictOption() &&
+                pc->queuedStrictModeError->report.errorNumber != JSMSG_STRICT_CODE_WITH) {
+                
+                pc->queuedStrictModeError->report.flags |= JSREPORT_WARNING;
+                pc->queuedStrictModeError->throwError();
+            }
+        } else {
+            
+            
+            
+            
+            JS_ASSERT(pc->sc->isFunction);
         }
-    }
-    JS_ASSERT_IF(!pc->sc->isFunction, !pc->functionList);
-    if (pc->sc->strictModeState != StrictMode::UNKNOWN && pc->sc->isFunction) {
-        
-        
-        
-        pc->sc->asFunbox()->strictModeState = pc->sc->strictModeState;
-        for (FunctionBox *kid = pc->functionList; kid; kid = kid->siblings)
-            kid->recursivelySetStrictMode(pc->sc->strictModeState);
     }
     return true;
 }
