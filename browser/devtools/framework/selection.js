@@ -160,20 +160,22 @@ Selection.prototype = {
 
   setNodeFront: function(value, reason="unknown") {
     this.reason = reason;
-    if (value !== this._nodeFront) {
-      let rawValue = null;
-      if (value && value.isLocal_toBeDeprecated()) {
-        rawValue = value.rawNode();
-      }
-      this.emit("before-new-node", rawValue, reason);
-      this.emit("before-new-node-front", value, reason);
-      let previousNode = this._node;
-      let previousFront = this._nodeFront;
-      this._node = rawValue;
-      this._nodeFront = value;
-      this.emit("new-node", previousNode, this.reason);
-      this.emit("new-node-front", value, this.reason);
+
+    
+    
+    
+    let rawValue = null;
+    if (value && value.isLocal_toBeDeprecated()) {
+      rawValue = value.rawNode();
     }
+    this.emit("before-new-node", rawValue, reason);
+    this.emit("before-new-node-front", value, reason);
+    let previousNode = this._node;
+    let previousFront = this._nodeFront;
+    this._node = rawValue;
+    this._nodeFront = value;
+    this.emit("new-node", previousNode, this.reason);
+    this.emit("new-node-front", value, this.reason);
   },
 
   get documentFront() {
