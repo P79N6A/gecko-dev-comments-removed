@@ -734,7 +734,29 @@ function onLoad() {
 
   
   Telemetry.asyncFetchTelemetryData(displayPingData);
-}
+};
+
+let LateWritesSingleton = {
+  renderLateWrites: function LateWritesSingleton_renderLateWrites(lateWrites) {
+    let writesDiv = document.getElementById("late-writes-data");
+    clearDivData(writesDiv);
+    
+
+    let stacks = lateWrites.stacks;
+    if (stacks.length == 0) {
+      showEmptySectionMessage("late-writes-section");
+      return;
+    }
+
+    let memoryMap = lateWrites.memoryMap;
+    StackRenderer.renderMemoryMap(writesDiv, memoryMap);
+
+    for (let i = 0; i < stacks.length; ++i) {
+      let stack = stacks[i];
+      StackRenderer.renderStack(writesDiv, stack);
+    }
+  }
+};
 
 function displayPingData() {
   let ping = TelemetryPing.getPayload();
@@ -745,6 +767,8 @@ function displayPingData() {
   } else {
     showEmptySectionMessage("simple-measurements-section");
   }
+
+  LateWritesSingleton.renderLateWrites(ping.lateWrites);
 
   
   if (Object.keys(ping.info).length) {
