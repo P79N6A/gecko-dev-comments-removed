@@ -1,6 +1,6 @@
 
 
-if (!getBuildConfiguration().threadsafe)
+if (workerThreadCount() === 0)
   quit(0);
 
 var g = newGlobal();
