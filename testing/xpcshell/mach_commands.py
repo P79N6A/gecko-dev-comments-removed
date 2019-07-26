@@ -7,6 +7,7 @@
 from __future__ import unicode_literals
 
 import os
+import sys
 
 from StringIO import StringIO
 
@@ -20,6 +21,12 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+
+
+if sys.version_info[0] < 3:
+    unicode_type = unicode
+else:
+    unicode_type = str
 
 
 class XPCShellRunner(MozbuildObject):
@@ -108,7 +115,19 @@ class XPCShellRunner(MozbuildObject):
             args['testPath'] = test_path
 
         
-        xpcshell.runTests(**args)
+        
+        filtered_args = {}
+        for k, v in args.items():
+            if isinstance(v, unicode_type):
+                v = v.encode('utf-8')
+
+            if isinstance(k, unicode_type):
+                k = k.encode('utf-8')
+
+            filtered_args[k] = v
+
+        
+        xpcshell.runTests(**filtered_args)
 
         self.log_manager.disable_unstructured()
 
