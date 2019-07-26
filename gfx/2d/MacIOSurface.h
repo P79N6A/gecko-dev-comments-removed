@@ -39,10 +39,11 @@ public:
   
   
   
-  
   size_t GetWidth();
   size_t GetHeight();
   double GetContentsScaleFactor() { return mContentsScaleFactor; }
+  size_t GetDevicePixelWidth();
+  size_t GetDevicePixelHeight();
   size_t GetBytesPerRow();
   void Lock();
   void Unlock();
