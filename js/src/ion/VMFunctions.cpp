@@ -99,7 +99,14 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
     Value *argvWithoutThis = argv + 1;
 
     
-    bool ok = Invoke(cx, thisv, ObjectValue(*fun), argc, argvWithoutThis, rval);
+    
+    
+    bool ok;
+    if (thisv.isMagic(JS_IS_CONSTRUCTING))
+        ok = InvokeConstructor(cx, ObjectValue(*fun), argc, argvWithoutThis, rval);
+    else
+        ok = Invoke(cx, thisv, ObjectValue(*fun), argc, argvWithoutThis, rval);
+
     if (ok && needsMonitor)
         types::TypeScript::Monitor(cx, *rval);
 
