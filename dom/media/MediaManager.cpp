@@ -41,8 +41,6 @@
 #include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
 
-#include "mozilla/Preferences.h"
-
 
 #include "MediaEngineDefault.h"
 #if defined(MOZ_WEBRTC)
@@ -52,6 +50,8 @@
 #ifdef MOZ_B2G
 #include "MediaPermissionGonk.h"
 #endif
+
+#include "browser_logging/WebRtcLog.h"
 
 
 
@@ -1576,6 +1576,8 @@ MediaManager::GetUserMedia(bool aPrivileged,
                                                                 callID, c, isHTTPS);
     obs->NotifyObservers(req, "getUserMedia:request", nullptr);
   }
+
+  EnableWebRtcLog();
 
   return NS_OK;
 }
