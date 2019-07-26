@@ -32,14 +32,11 @@ public:
       
       
       
-      nsILoadGroup* loadGroup = static_cast<Channel*>(this)->mLoadGroup;
       nsCOMPtr<nsILoadContext> loadContext;
-      if (!loadGroup) {
-        NS_QueryNotificationCallbacks(static_cast<Channel*>(this), loadContext);
-      }
-      MOZ_ASSERT(!loadGroup && !loadContext);
-      if (loadGroup || loadContext) {
-        return NS_ERROR_FAILURE;
+      NS_QueryNotificationCallbacks(static_cast<Channel*>(this), loadContext);
+      MOZ_ASSERT(!loadContext);
+      if (loadContext) {
+          return NS_ERROR_FAILURE;
       }
 
       mPrivateBrowsingOverriden = true;
