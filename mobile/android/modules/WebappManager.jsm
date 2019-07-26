@@ -34,7 +34,7 @@ function debug(aMessage) {
   
   
   
-#ifdef MOZ_DEBUG
+#ifdef DEBUG
   dump(aMessage);
 #endif
 }
