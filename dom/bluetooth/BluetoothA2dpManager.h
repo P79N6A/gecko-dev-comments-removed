@@ -38,10 +38,13 @@ public:
   virtual void OnUpdateSdpRecords(const nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual void GetAddress(nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual bool IsConnected() MOZ_OVERRIDE;
+  virtual void Connect(const nsAString& aDeviceAddress,
+                       BluetoothProfileController* aController) MOZ_OVERRIDE;
+  virtual void Disconnect(BluetoothProfileController* aController) MOZ_OVERRIDE;
+  virtual void OnConnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
+  virtual void OnDisconnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
 
   
-  bool Connect(const nsAString& aDeviceAddress);
-  void Disconnect();
   void HandleSinkPropertyChanged(const BluetoothSignal& aSignal);
 
   
@@ -67,17 +70,16 @@ private:
   BluetoothA2dpManager();
   bool Init();
 
-  void HandleSinkStateChanged(SinkState aState);
   void HandleShutdown();
 
   void DispatchConnectionStatusChanged();
   void NotifyConnectionStatusChanged();
 
   nsString mDeviceAddress;
+  BluetoothProfileController* mController;
 
   
   bool mA2dpConnected;
-  bool mPlaying;
   SinkState mSinkState;
 
   
