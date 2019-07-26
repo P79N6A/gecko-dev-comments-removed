@@ -1672,9 +1672,15 @@ var XPIProvider = {
     for (let id in this.bootstrappedAddons) {
       let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
       file.persistentDescriptor = this.bootstrappedAddons[id].descriptor;
+      let reason = BOOTSTRAP_REASONS.APP_STARTUP;
+      
+      
+      if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
+                      .indexOf(id) !== -1)
+        reason = BOOTSTRAP_REASONS.ADDON_INSTALL;
       this.callBootstrapMethod(id, this.bootstrappedAddons[id].version,
                                this.bootstrappedAddons[id].type, file,
-                               "startup", BOOTSTRAP_REASONS.APP_STARTUP);
+                               "startup", reason);
     }
     AddonManagerPrivate.recordTimestamp("XPI_bootstrap_addons_end");
 
