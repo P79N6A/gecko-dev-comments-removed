@@ -448,6 +448,41 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSObject *
+FindObjectForHasInstance(JSContext *cx, JSObject *obj)
+{
+    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) &&
+           !mozilla::dom::IsDOMObject(obj))
+    {
+        if (js::IsWrapper(obj))
+            obj = js::UnwrapObjectChecked(obj,  false);
+        else if (!js::GetObjectProto(cx, obj, &obj))
+            return nullptr;
+    }
+    return obj;
+}
+
+
+
 NS_IMETHODIMP
 nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
                      JSContext * cx, JSObject * obj,
@@ -462,9 +497,14 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
 
         NS_ASSERTION(obj, "when is an object not an object?");
 
+        nsISupports *identity = nullptr;
         
         const nsIID* iid;
         mInfo->GetIIDShared(&iid);
+
+        obj = FindObjectForHasInstance(cx, obj);
+        if (!obj)
+            return NS_OK;
 
         if (IS_SLIM_WRAPPER(obj)) {
             XPCWrappedNativeProto* proto = GetSlimWrapperProto(obj);
@@ -480,22 +520,15 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
 #endif
             if (!MorphSlimWrapper(cx, obj))
                 return NS_ERROR_FAILURE;
-        } else {
-            JSObject* unsafeObj =
-                XPCWrapper::Unwrap(cx, obj,  false);
-            JSObject* cur = unsafeObj ? unsafeObj : obj;
-            nsISupports *identity;
-            if (mozilla::dom::UnwrapDOMObjectToISupports(cur, identity)) {
-                nsCOMPtr<nsISupports> supp;
-                identity->QueryInterface(*iid, getter_AddRefs(supp));
-                *bp = supp;
-                return NS_OK;
-            }
+        } else if (mozilla::dom::UnwrapDOMObjectToISupports(obj, identity)) {
+              nsCOMPtr<nsISupports> supp;
+              identity->QueryInterface(*iid, getter_AddRefs(supp));
+              *bp = supp;
+              return NS_OK;
         }
 
-        XPCWrappedNative* other_wrapper =
-           XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
-
+        MOZ_ASSERT(IS_WN_WRAPPER(obj));
+        XPCWrappedNative* other_wrapper = XPCWrappedNative::Get(obj);
         if (!other_wrapper)
             return NS_OK;
 
@@ -816,16 +849,14 @@ nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
         NS_ASSERTION(obj, "when is an object not an object?");
 
         
-        JSObject* obj2;
-        XPCWrappedNative* other_wrapper =
-           XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nullptr, &obj2);
-
-        if (!other_wrapper && !obj2)
-            return NS_OK;
-
-        nsIClassInfo* ci = other_wrapper ?
-                           other_wrapper->GetClassInfo() :
-                           GetSlimWrapperProto(obj2)->GetClassInfo();
+        nsIClassInfo* ci = nullptr;
+        obj = FindObjectForHasInstance(cx, obj);
+        if (!obj || !IS_WRAPPER_CLASS(js::GetObjectClass(obj)))
+            return rv;
+        if (IS_SLIM_WRAPPER_OBJECT(obj))
+            ci = GetSlimWrapperProto(obj)->GetClassInfo();
+        else if (XPCWrappedNative* other_wrapper = XPCWrappedNative::Get(obj))
+            ci = other_wrapper->GetClassInfo();
 
         
         
@@ -872,8 +903,10 @@ xpc_JSObjectToID(JSContext *cx, JSObject* obj)
         return nullptr;
 
     
-    XPCWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+    XPCWrappedNative* wrapper = nullptr;
+    obj = js::UnwrapObjectChecked(obj);
+    if (obj && IS_WN_WRAPPER(obj))
+        wrapper = XPCWrappedNative::Get(obj);
     if (wrapper &&
         (wrapper->HasInterfaceNoQI(NS_GET_IID(nsIJSID))  ||
          wrapper->HasInterfaceNoQI(NS_GET_IID(nsIJSIID)) ||
@@ -888,8 +921,10 @@ xpc_JSObjectIsID(JSContext *cx, JSObject* obj)
 {
     NS_ASSERTION(cx && obj, "bad param");
     
-    XPCWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+    XPCWrappedNative* wrapper = nullptr;
+    obj = js::UnwrapObjectChecked(obj);
+    if (obj && IS_WN_WRAPPER(obj))
+        wrapper = XPCWrappedNative::Get(obj);
     return wrapper &&
            (wrapper->HasInterfaceNoQI(NS_GET_IID(nsIJSID))  ||
             wrapper->HasInterfaceNoQI(NS_GET_IID(nsIJSIID)) ||
