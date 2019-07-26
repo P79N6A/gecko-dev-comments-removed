@@ -680,7 +680,7 @@ nsHostResolver::ResolveHost(const char            *host,
                         he->rec->addr_info = nullptr;
                         if (unspecHe->rec->negative) {
                             he->rec->negative = unspecHe->rec->negative;
-                        } else if (he->rec->addr_info) {
+                        } else if (unspecHe->rec->addr_info) {
                             
                             
                             
