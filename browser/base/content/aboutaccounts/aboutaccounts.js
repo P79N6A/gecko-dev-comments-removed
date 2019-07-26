@@ -281,6 +281,11 @@ function openPrefs() {
 
 function init() {
   fxAccounts.getSignedInUser().then(user => {
+    
+    
+    if (window.closed) {
+      return;
+    }
     if (window.location.href.contains("action=signin")) {
       if (user) {
         
