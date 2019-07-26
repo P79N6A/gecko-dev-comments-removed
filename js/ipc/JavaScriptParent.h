@@ -66,16 +66,9 @@ class JavaScriptParent
     void drop(JSObject *obj);
 
     static bool IsCPOW(JSObject *obj);
-
     static nsresult InstanceOf(JSObject *obj, const nsID *id, bool *bp);
+
     nsresult instanceOf(JSObject *obj, const nsID *id, bool *bp);
-
-    
-
-
-
-    static bool DOMInstanceOf(JSObject *obj, int prototypeID, int depth, bool *bp);
-    bool domInstanceOf(JSObject *obj, int prototypeID, int depth, bool *bp);
 
   protected:
     JSObject *unwrap(JSContext *cx, ObjectId objId);
