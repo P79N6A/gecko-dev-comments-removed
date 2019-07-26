@@ -38,3 +38,28 @@ function Number_toLocaleString() {
     
     return intl_FormatNumber(numberFormat, x);
 }
+
+
+function Number_isSafeInteger(number) {
+    
+    if (typeof number !== 'number')
+        return false;
+
+    
+    if (!std_isFinite(number))
+        return false;
+
+    
+    var integer = ToInteger(number);
+
+    
+    if (integer !== number)
+        return false;
+
+    
+    if (std_Math_abs(integer) <= 9007199254740991)
+        return true;
+
+    
+    return false;
+}
