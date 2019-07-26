@@ -17,6 +17,7 @@
 #include "mozilla/Maybe.h"
 
 class nsPIDOMWindow;
+class nsGlobalWindow;
 
 namespace mozilla {
 namespace dom {
@@ -156,9 +157,14 @@ public:
 
   
   
-  bool InitUsingWin(nsPIDOMWindow* aWindow);
-  bool InitUsingWin(nsPIDOMWindow* aWindow, JSContext* aCx);
-  bool InitWithLegacyErrorReportingUsingWin(nsPIDOMWindow* aWindow);
+  bool Init(nsPIDOMWindow* aWindow);
+  bool Init(nsPIDOMWindow* aWindow, JSContext* aCx);
+
+  bool Init(nsGlobalWindow* aWindow);
+  bool Init(nsGlobalWindow* aWindow, JSContext* aCx);
+
+  bool InitWithLegacyErrorReporting(nsPIDOMWindow* aWindow);
+  bool InitWithLegacyErrorReporting(nsGlobalWindow* aWindow);
 
   JSContext* cx() const {
     MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
