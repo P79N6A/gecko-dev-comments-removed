@@ -308,9 +308,6 @@ public:
   bool
   IsToggling() const;
 
-  void
-  RemoveObserverFromTable(const nsAString& key);
-
   
 
 
