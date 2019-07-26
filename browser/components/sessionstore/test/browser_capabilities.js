@@ -1,22 +1,17 @@
 
 
 
-function test() {
-  TestRunner.run();
-}
+"use strict";
 
 
 
 
 
 
-
-function runTests() {
-  
-  let tab = gBrowser.selectedTab = gBrowser.addTab("about:mozilla");
+add_task(function docshell_capabilities() {
+  let tab = yield createTab();
   let browser = tab.linkedBrowser;
   let docShell = browser.docShell;
-  yield waitForLoad(browser);
 
   
   let flags = Object.keys(docShell).filter(k => k.startsWith("allow"));
@@ -33,7 +28,10 @@ function runTests() {
   
   
   browser.reload();
-  yield whenBrowserLoaded(browser);
+  yield promiseBrowserLoaded(browser);
+
+  
+  SyncHandlers.get(browser).flush();
 
   
   let disallowedState = JSON.parse(ss.getTabState(tab));
@@ -44,7 +42,10 @@ function runTests() {
 
   
   ss.setTabState(tab, JSON.stringify({ entries: [{url: "about:robots"}] }));
-  yield waitForLoad(browser);
+  yield promiseTabRestored(tab);
+
+  
+  SyncHandlers.get(browser).flush();
 
   
   state = JSON.parse(ss.getTabState(tab));
@@ -53,7 +54,7 @@ function runTests() {
 
   
   ss.setTabState(tab, JSON.stringify(disallowedState));
-  yield waitForLoad(browser);
+  yield promiseTabRestored(tab);
 
   
   ok(!docShell.allowImages, "images not allowed");
@@ -68,11 +69,10 @@ function runTests() {
 
   
   gBrowser.removeTab(tab);
-}
+});
 
-function waitForLoad(aElement) {
-  aElement.addEventListener("load", function onLoad() {
-    aElement.removeEventListener("load", onLoad, true);
-    executeSoon(next);
-  }, true);
+function createTab() {
+  let tab = gBrowser.addTab("about:mozilla");
+  let browser = tab.linkedBrowser;
+  return promiseBrowserLoaded(browser).then(() => tab);
 }
