@@ -387,8 +387,8 @@ gfxPlatformMac::CreateThebesSurfaceAliasForDrawTarget_hack(mozilla::gfx::DrawTar
     size_t stride = CGBitmapContextGetBytesPerRow(cg);
     gfxIntSize size(aTarget->GetSize().width, aTarget->GetSize().height);
     nsRefPtr<gfxImageSurface> imageSurface = new gfxImageSurface(data, size, stride, bpp == 2
-                                                                                     ? gfxImageFormat::ImageFormatRGB16_565
-                                                                                     : gfxImageFormat::ImageFormatARGB32);
+                                                                                     ? gfxASurface::ImageFormatRGB16_565
+                                                                                     : gfxASurface::ImageFormatARGB32);
     
     
     
