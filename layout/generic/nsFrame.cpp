@@ -4955,16 +4955,10 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
   return layer;
 }
 
-
-
-
-
-
 static nsRect
-ComputeOutlineAndEffectsRect(nsIFrame* aFrame,
-                             const nsRect& aOverflowRect,
-                             const nsSize& aNewSize,
-                             bool aStoreRectProperties) {
+ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
+                   const nsSize& aNewSize, bool aStoreRectProperties)
+{
   nsRect r = aOverflowRect;
 
   if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
@@ -6941,8 +6935,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
 
   
   aOverflowAreas.VisualOverflow() =
-    ComputeOutlineAndEffectsRect(this, aOverflowAreas.VisualOverflow(), 
-                                 aNewSize, true);
+    ComputeEffectsRect(this, aOverflowAreas.VisualOverflow(), aNewSize, true);
 
   
   nsRect clipPropClipRect;
