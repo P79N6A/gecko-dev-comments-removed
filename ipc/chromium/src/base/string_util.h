@@ -255,12 +255,4 @@ void SplitString(const std::string& str,
                  char s,
                  std::vector<std::string>* r);
 
-
-
-
-
-
-bool MatchPattern(const std::wstring& string, const std::wstring& pattern);
-bool MatchPattern(const std::string& string, const std::string& pattern);
-
 #endif  
