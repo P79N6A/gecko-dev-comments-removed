@@ -265,6 +265,63 @@ this.AppsUtils = {
 
     return ((mstone != savedmstone) || (buildID != savedBuildID));
   },
+
+  
+
+
+
+
+  compareManifests: function compareManifests(aManifest1, aManifest2) {
+    
+    let locales1 = [];
+    let locales2 = [];
+    if (aManifest1.locales) {
+      for (let locale in aManifest1.locales) {
+        locales1.push(locale);
+      }
+    }
+    if (aManifest2.locales) {
+      for (let locale in aManifest2.locales) {
+        locales2.push(locale);
+      }
+    }
+    if (locales1.sort().join() !== locales2.sort().join()) {
+      return false;
+    }
+
+    
+    
+    let checkNameAndDev = function(aRoot1, aRoot2) {
+      let name1 = aRoot1.name;
+      let name2 = aRoot2.name;
+      if (name1 !== name2) {
+        return false;
+      }
+
+      let dev1 = aRoot1.developer;
+      let dev2 = aRoot2.developer;
+      if ((dev1 && !dev2) || (dev2 && !dev1)) {
+        return false;
+      }
+
+      return (dev1.name === dev2.name && dev1.url === dev2.url);
+    }
+
+    
+    if (!checkNameAndDev(aManifest1, aManifest2)) {
+      return false;
+    }
+
+    for (let locale in aManifest1.locales) {
+      if (!checkNameAndDev(aManifest1.locales[locale],
+                           aManifest2.locales[locale])) {
+        return false;
+      }
+    }
+
+    
+    return true;
+  }
 }
 
 
