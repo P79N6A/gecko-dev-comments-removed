@@ -13,14 +13,16 @@ this.EXPORTED_SYMBOLS = ["ObjectWrapper"];
 
 
 this.ObjectWrapper = {
-  getObjectKind: function objWrapper_getobjectkind(aObject) {
+  getObjectKind: function objWrapper_getObjectKind(aObject) {
     if (!aObject) {
       return "null";
     }
 
     if (Array.isArray(aObject)) {
       return "array";
-    } else if (aObject.mozSlice && (typeof aObject.mozSlice == "function")) {
+    } else if (aObject instanceof Ci.nsIDOMFile) {
+      return "file";
+    } else if (aObject instanceof Ci.nsIDOMBlob) {
       return "blob";
     } else if (typeof aObject == "object") {
       return "object";
@@ -30,18 +32,20 @@ this.ObjectWrapper = {
   },
 
   wrap: function objWrapper_wrap(aObject, aCtxt) {
-    if (!aObject) {
-      return null;
-    }
-
     
     let kind = this.getObjectKind(aObject);
-    if (kind == "array") {
+    if (kind == "null") {
+      return null;
+    } else if (kind == "array") {
       let res = Cu.createArrayIn(aCtxt);
       aObject.forEach(function(aObj) {
         res.push(this.wrap(aObj, aCtxt));
       }, this);
       return res;
+    } else if (kind == "file") {
+      return new aCtxt.File(aObject,
+                            { name: aObject.name,
+                              type: aObject.type });
     } else if (kind == "blob") {
       return new aCtxt.Blob([aObject]);
     } else if (kind == "primitive") {
@@ -52,26 +56,11 @@ this.ObjectWrapper = {
     let res = Cu.createObjectIn(aCtxt);
     let propList = { };
     for (let prop in aObject) {
-      let value;
-      let objProp = aObject[prop];
-      let propKind = this.getObjectKind(objProp);
-      if (propKind == "array") {
-        value = Cu.createArrayIn(aCtxt);
-        objProp.forEach(function(aObj) {
-          value.push(this.wrap(aObj, aCtxt));
-        }, this);
-      } else if (propKind == "blob") {
-        value = new aCtxt.Blob([objProp]);
-      } else if (propKind == "object") {
-        value = this.wrap(objProp, aCtxt);
-      } else {
-        value = objProp;
-      }
       propList[prop] = {
         enumerable: true,
         configurable: true,
         writable: true,
-        value: value
+        value: this.wrap(aObject[prop], aCtxt)
       }
     }
     Object.defineProperties(res, propList);
