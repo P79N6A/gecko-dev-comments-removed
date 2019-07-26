@@ -72,7 +72,6 @@
 #include "nsComputedDOMStyle.h"
 #include "ActiveLayerTracker.h"
 
-#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Preferences.h"
 
 #ifdef MOZ_XUL
@@ -4774,10 +4773,6 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
     forceCopy = true;
     wantImageSurface = true;
   }
-
-  
-  
-  AutoSystemCaller asc;
 
   nsCOMPtr<imgIRequest> imgRequest;
   rv = aElement->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
