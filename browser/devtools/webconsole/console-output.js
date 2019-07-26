@@ -70,6 +70,7 @@ const COMPAT = {
 
 const CONSOLE_API_LEVELS_TO_SEVERITIES = {
   error: "error",
+  exception: "error",
   warn: "warning",
   info: "info",
   log: "log",
