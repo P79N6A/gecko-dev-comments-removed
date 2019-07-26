@@ -1912,6 +1912,11 @@ pref("plugin.default.state", 2);
 
 
 
+
+pref("plugin.java.mime", "application/x-java-vm");
+
+
+
 pref("plugin.sessionPermissionNow.intervalInMinutes", 60);
 
 
