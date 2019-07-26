@@ -433,9 +433,11 @@ Tester.prototype = {
 
         
         
+        
+        
 
         let checkForLeakedGlobalWindows = aCallback => {
-          Cu.schedulePreciseGC(() => {
+          Cu.schedulePreciseShrinkingGC(() => {
             let analyzer = new CCAnalyzer();
             analyzer.run(() => {
               let results = [];
