@@ -576,8 +576,25 @@ struct AutoFlushCache {
     static void updateTop(uintptr_t p, size_t len);
     ~AutoFlushCache();
     AutoFlushCache(const char * nonce, IonCompartment *comp = NULL);
+    void flushAnyway();
 };
 
+
+
+
+
+
+
+
+
+struct AutoFlushInhibitor {
+  private:
+    IonCompartment *ic_;
+    AutoFlushCache *afc;
+  public:
+    AutoFlushInhibitor(IonCompartment *ic);
+    ~AutoFlushInhibitor();
+};
 } 
 
 namespace gc {
