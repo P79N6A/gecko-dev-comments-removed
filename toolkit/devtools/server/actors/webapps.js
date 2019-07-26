@@ -149,6 +149,11 @@ WebappsActor.prototype = {
     let reg = DOMApplicationRegistry;
     let self = this;
 
+    
+    if (aId in reg._manifestCache) {
+      delete reg._manifestCache[aId];
+    }
+
     aApp.installTime = Date.now();
     aApp.installState = "installed";
     aApp.removable = true;
@@ -167,12 +172,24 @@ WebappsActor.prototype = {
 
       reg._saveApps(function() {
         aApp.manifest = manifest;
+
+        
+        
+        
+        reg.broadcastMessage("Webapps:PackageEvent",
+                             { type: "installed",
+                               manifestURL: aApp.manifestURL,
+                               app: aApp,
+                               manifest: manifest
+                             });
+
         reg.broadcastMessage("Webapps:AddApp", { id: aId, app: aApp });
         reg.broadcastMessage("Webapps:Install:Return:OK",
                              { app: aApp,
                                oid: "foo",
                                requestID: "bar"
                              });
+
         delete aApp.manifest;
         self.conn.send({ from: self.actorID,
                          type: "webappsEvent",
