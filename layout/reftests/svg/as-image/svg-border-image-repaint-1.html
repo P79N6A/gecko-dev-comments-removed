@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+<html class="reftest-wait">
+  <head>
+    <script>
+      document.addEventListener('MozReftestInvalidate', function() {
+        document.getElementById('test').style.opacity = '1.0';
+        document.documentElement.removeAttribute('class');
+      }, false);
+    </script>
+  </head>
+  <body>
+    <iframe id="test" src="svg-border-image-repaint-iframe.html" style="opacity: 0.5"></iframe>
+  </body>
+</html>
