@@ -3,8 +3,8 @@
 
 
 
-#ifndef __mozilla_widget_APZCCallbackHelper_h__
-#define __mozilla_widget_APZCCallbackHelper_h__
+#ifndef mozilla_layers_APZCCallbackHelper_h
+#define mozilla_layers_APZCCallbackHelper_h
 
 #include "FrameMetrics.h"
 #include "nsIContent.h"
@@ -12,7 +12,7 @@
 #include "nsIDOMWindowUtils.h"
 
 namespace mozilla {
-namespace widget {
+namespace layers {
 
 
 

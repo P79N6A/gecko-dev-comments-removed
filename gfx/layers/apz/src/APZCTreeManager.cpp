@@ -4,7 +4,6 @@
 
 
 #include "APZCTreeManager.h"
-#include "AsyncCompositionManager.h"    
 #include "Compositor.h"                 
 #include "CompositorParent.h"           
 #include "InputData.h"                  
@@ -12,6 +11,7 @@
 #include "gfx3DMatrix.h"                
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/Point.h"          
+#include "mozilla/layers/AsyncCompositionManager.h" 
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
