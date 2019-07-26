@@ -81,8 +81,6 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Mutex.h"
-#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Util.h"
 
 #include <math.h>
@@ -252,118 +250,9 @@ inline JSObject* GetWNExpandoChain(JSObject *obj)
 }
 
 
-
-
-
 #ifdef _MSC_VER
 #pragma warning(disable : 4355) // OK to pass "this" in member initializer
 #endif
-
-typedef mozilla::ReentrantMonitor XPCLock;
-
-static inline void xpc_Wait(XPCLock* lock)
-    {
-        MOZ_ASSERT(lock, "xpc_Wait called with null lock!");
-        lock->Wait();
-    }
-
-static inline void xpc_NotifyAll(XPCLock* lock)
-    {
-        MOZ_ASSERT(lock, "xpc_NotifyAll called with null lock!");
-        lock->NotifyAll();
-    }
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS XPCAutoLock {
-public:
-
-    static XPCLock* NewLock(const char* name)
-                        {return new mozilla::ReentrantMonitor(name);}
-    static void     DestroyLock(XPCLock* lock)
-                        {delete lock;}
-
-    XPCAutoLock(XPCLock* lock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mLock(lock)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        if (mLock)
-            mLock->Enter();
-    }
-
-    ~XPCAutoLock()
-    {
-        if (mLock) {
-            mLock->Exit();
-        }
-    }
-
-private:
-    XPCLock*  mLock;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-    
-    
-    XPCAutoLock(void) {}
-    XPCAutoLock(XPCAutoLock& ) {}
-    XPCAutoLock& operator =(XPCAutoLock& ) {
-        return *this;
-    }
-
-    
-    
-    static void* operator new(size_t ) CPP_THROW_NEW {
-        return nullptr;
-    }
-    static void operator delete(void* ) {}
-};
-
-
-
-class MOZ_STACK_CLASS XPCAutoUnlock {
-public:
-    XPCAutoUnlock(XPCLock* lock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mLock(lock)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        if (mLock) {
-            mLock->Exit();
-        }
-    }
-
-    ~XPCAutoUnlock()
-    {
-        if (mLock)
-            mLock->Enter();
-    }
-
-private:
-    XPCLock*  mLock;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-    
-    
-    XPCAutoUnlock(void) {}
-    XPCAutoUnlock(XPCAutoUnlock& ) {}
-    XPCAutoUnlock& operator =(XPCAutoUnlock& ) {
-        return *this;
-    }
-
-    
-    
-    static void* operator new(size_t ) CPP_THROW_NEW {
-        return nullptr;
-    }
-    static void operator delete(void* ) {}
-};
 
 
 
@@ -507,8 +396,8 @@ public:
     }
 
     inline XPCRootSetElem* GetNextRoot() { return mNext; }
-    void AddToRootSet(XPCLock *lock, XPCRootSetElem **listHead);
-    void RemoveFromRootSet(XPCLock *lock);
+    void AddToRootSet(XPCRootSetElem **listHead);
+    void RemoveFromRootSet();
 
 private:
     XPCRootSetElem *mNext;
@@ -609,8 +498,6 @@ public:
 
     XPCWrappedNativeProtoMap* GetDetachedWrappedNativeProtoMap() const
         {return mDetachedWrappedNativeProtoMap;}
-
-    XPCLock* GetMapLock() const {return mMapLock;}
 
     bool OnJSContextNew(JSContext* cx);
 
@@ -751,7 +638,6 @@ private:
     XPCNativeScriptableSharedMap* mNativeScriptableSharedMap;
     XPCWrappedNativeProtoMap* mDyingWrappedNativeProtoMap;
     XPCWrappedNativeProtoMap* mDetachedWrappedNativeProtoMap;
-    XPCLock* mMapLock;
     PRThread* mThreadRunningGC;
     nsTArray<nsXPCWrappedJS*> mWrappedJSToReleaseArray;
     nsTArray<nsISupports*> mNativesToReleaseArray;
@@ -1960,15 +1846,11 @@ public:
 #define GET_IT(f_) const {return !!(mClassInfoFlags & nsIClassInfo:: f_ );}
 
     bool ClassIsSingleton()           GET_IT(SINGLETON)
-    bool ClassIsThreadSafe()          GET_IT(THREADSAFE)
     bool ClassIsMainThreadOnly()      GET_IT(MAIN_THREAD_ONLY)
     bool ClassIsDOMObject()           GET_IT(DOM_OBJECT)
     bool ClassIsPluginObject()        GET_IT(PLUGIN_OBJECT)
 
 #undef GET_IT
-
-    XPCLock* GetLock() const
-        {return ClassIsThreadSafe() ? GetRuntime()->GetMapLock() : nullptr;}
 
     void SetScriptableInfo(XPCNativeScriptableInfo* si)
         {MOZ_ASSERT(!mScriptableInfo, "leak here!"); mScriptableInfo = si;}
@@ -2222,15 +2104,11 @@ public:
     JSObject*
     GetFlatJSObjectPreserveColor() const {return mFlatJSObject;}
 
-    XPCLock*
-    GetLock() const {return IsValid() && HasProto() ?
-                                GetProto()->GetLock() : nullptr;}
-
     XPCNativeSet*
-    GetSet() const {XPCAutoLock al(GetLock()); return mSet;}
+    GetSet() const {return mSet;}
 
     void
-    SetSet(XPCNativeSet* set) {XPCAutoLock al(GetLock()); mSet = set;}
+    SetSet(XPCNativeSet* set) {mSet = set;}
 
     static XPCWrappedNative* Get(JSObject *obj) {
         MOZ_ASSERT(IS_WN_REFLECTOR(obj));

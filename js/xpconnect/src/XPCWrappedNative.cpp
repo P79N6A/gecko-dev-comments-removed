@@ -302,18 +302,13 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
         return NS_ERROR_FAILURE;
     }
 
-    XPCLock* mapLock = Scope->GetRuntime()->GetMapLock();
-
     nsRefPtr<XPCWrappedNative> wrapper;
 
     Native2WrappedNativeMap* map = Scope->GetWrappedNativeMap();
     
     
     
-    {   
-        XPCAutoLock lock(mapLock);
-        wrapper = map->Find(identity);
-    }
+    wrapper = map->Find(identity);
 
     if (wrapper) {
         if (!wrapper->FindTearOff(Interface, false, &rv)) {
@@ -404,8 +399,6 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
             if (cached)
                 wrapper = XPCWrappedNative::Get(cached);
         } else {
-            
-            XPCAutoLock lock(mapLock);
             wrapper = map->Find(identity);
         }
 
@@ -494,21 +487,16 @@ FinishCreate(XPCWrappedNativeScope* Scope,
     AutoJSContext cx;
     MOZ_ASSERT(inWrapper);
 
-    XPCLock* mapLock = Scope->GetRuntime()->GetMapLock();
     Native2WrappedNativeMap* map = Scope->GetWrappedNativeMap();
 
     nsRefPtr<XPCWrappedNative> wrapper;
-    {   
-
-        
-        
-        
-        
-        XPCAutoLock lock(mapLock);
-        wrapper = map->Add(inWrapper);
-        if (!wrapper)
-            return NS_ERROR_FAILURE;
-    }
+    
+    
+    
+    
+    wrapper = map->Add(inWrapper);
+    if (!wrapper)
+        return NS_ERROR_FAILURE;
 
     if (wrapper == inWrapper) {
         JSObject *flat = wrapper->GetFlatJSObject();
@@ -539,10 +527,7 @@ FinishCreate(XPCWrappedNativeScope* Scope,
                          "cause a crash in combination with a JS GC. Fix the "
                          "failing PostCreate ASAP!");
 
-                {   
-                    XPCAutoLock lock(mapLock);
-                    map->Remove(wrapper);
-                }
+                map->Remove(wrapper);
 
                 
                 
@@ -591,13 +576,10 @@ XPCWrappedNative::GetUsedOnly(nsISupports* Object,
 
         Native2WrappedNativeMap* map = Scope->GetWrappedNativeMap();
 
-        {   
-            XPCAutoLock lock(Scope->GetRuntime()->GetMapLock());
-            wrapper = map->Find(identity);
-            if (!wrapper) {
-                *resultWrapper = nullptr;
-                return NS_OK;
-            }
+        wrapper = map->Find(identity);
+        if (!wrapper) {
+            *resultWrapper = nullptr;
+            return NS_OK;
         }
     }
 
@@ -661,9 +643,6 @@ XPCWrappedNative::Destroy()
     XPCWrappedNativeScope *scope = GetScope();
     if (scope) {
         Native2WrappedNativeMap* map = scope->GetWrappedNativeMap();
-
-        
-        XPCAutoLock lock(GetRuntime()->GetMapLock());
 
         
         
@@ -1254,42 +1233,39 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
 
         
         
-        {   
-            Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
-            Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
-            XPCAutoLock lock(aOldScope->GetRuntime()->GetMapLock());
+        Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
+        Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
 
-            oldMap->Remove(wrapper);
+        oldMap->Remove(wrapper);
 
-            if (wrapper->HasProto())
-                wrapper->SetProto(newProto);
+        if (wrapper->HasProto())
+            wrapper->SetProto(newProto);
 
+        
+        
+        
+
+        if (wrapper->mScriptableInfo &&
+            wrapper->mScriptableInfo == oldProto->GetScriptableInfo()) {
             
             
             
-
-            if (wrapper->mScriptableInfo &&
-                wrapper->mScriptableInfo == oldProto->GetScriptableInfo()) {
-                
-                
-                
-                
-
-                MOZ_ASSERT(oldProto->GetScriptableInfo()->GetScriptableShared() ==
-                           newProto->GetScriptableInfo()->GetScriptableShared(),
-                           "Changing proto is also changing JSObject Classname or "
-                           "helper's nsIXPScriptable flags. This is not allowed!");
-
-                wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
-            }
-
             
-            if (newMap->Find(wrapper->GetIdentityObject()))
-                MOZ_CRASH();
 
-            if (!newMap->Add(wrapper))
-                MOZ_CRASH();
+            MOZ_ASSERT(oldProto->GetScriptableInfo()->GetScriptableShared() ==
+                       newProto->GetScriptableInfo()->GetScriptableShared(),
+                       "Changing proto is also changing JSObject Classname or "
+                       "helper's nsIXPScriptable flags. This is not allowed!");
+
+            wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
         }
+
+        
+        if (newMap->Find(wrapper->GetIdentityObject()))
+            MOZ_CRASH();
+
+        if (!newMap->Add(wrapper))
+            MOZ_CRASH();
 
         RootedObject ww(cx, wrapper->GetWrapper());
         if (ww) {
@@ -1440,7 +1416,6 @@ bool
 XPCWrappedNative::ExtendSet(XPCNativeInterface* aInterface)
 {
     AutoJSContext cx;
-    
 
     if (!mSet->HasInterface(aInterface)) {
         AutoMarkingNativeSetPtr newSet(cx);
@@ -1457,8 +1432,6 @@ XPCWrappedNative::ExtendSet(XPCNativeInterface* aInterface)
 XPCWrappedNativeTearOff*
 XPCWrappedNative::LocateTearOff(XPCNativeInterface* aInterface)
 {
-    XPCAutoLock al(GetLock()); 
-
     for (XPCWrappedNativeTearOffChunk* chunk = &mFirstChunk;
          chunk != nullptr;
          chunk = chunk->mNextChunk) {
@@ -1482,8 +1455,6 @@ XPCWrappedNative::FindTearOff(XPCNativeInterface* aInterface,
                               nsresult* pError )
 {
     AutoJSContext cx;
-    XPCAutoLock al(GetLock()); 
-
     nsresult rv = NS_OK;
     XPCWrappedNativeTearOff* to;
     XPCWrappedNativeTearOff* firstAvailable = nullptr;
@@ -1561,8 +1532,6 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     
 
-    
-
     const nsIID* iid = aInterface->GetIID();
     nsISupports* identity = GetIdentityObject();
     nsISupports* obj;
@@ -1581,98 +1550,93 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     aTearOff->SetReserved();
 
-    {   
-        XPCAutoUnlock unlock(GetLock());
+    if (NS_FAILED(identity->QueryInterface(*iid, (void**)&obj)) || !obj) {
+        aTearOff->SetInterface(nullptr);
+        return NS_ERROR_NO_INTERFACE;
+    }
 
-        if (NS_FAILED(identity->QueryInterface(*iid, (void**)&obj)) || !obj) {
+    
+    if (iid->Equals(NS_GET_IID(nsIClassInfo))) {
+        nsCOMPtr<nsISupports> alternate_identity(do_QueryInterface(obj));
+        if (alternate_identity.get() != identity) {
+            NS_RELEASE(obj);
             aTearOff->SetInterface(nullptr);
             return NS_ERROR_NO_INTERFACE;
         }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+
+    nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(obj));
+    if (wrappedJS) {
+        RootedObject jso(cx, wrappedJS->GetJSObject());
+        if (jso == mFlatJSObject) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            NS_RELEASE(obj);
+            aTearOff->SetInterface(nullptr);
+            return NS_OK;
+        }
 
         
-        if (iid->Equals(NS_GET_IID(nsIClassInfo))) {
-            nsCOMPtr<nsISupports> alternate_identity(do_QueryInterface(obj));
-            if (alternate_identity.get() != identity) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        nsXPCWrappedJSClass* clazz;
+        if (iid->Equals(NS_GET_IID(nsIPropertyBag)) && jso &&
+            NS_SUCCEEDED(nsXPCWrappedJSClass::GetNewOrUsed(cx,*iid,&clazz))&&
+            clazz) {
+            RootedObject answer(cx,
+                                clazz->CallQueryInterfaceOnJSObject(cx, jso, *iid));
+            NS_RELEASE(clazz);
+            if (!answer) {
                 NS_RELEASE(obj);
                 aTearOff->SetInterface(nullptr);
                 return NS_ERROR_NO_INTERFACE;
             }
         }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-
-        nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(obj));
-        if (wrappedJS) {
-            RootedObject jso(cx, wrappedJS->GetJSObject());
-            if (jso == mFlatJSObject) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-
-                NS_RELEASE(obj);
-                aTearOff->SetInterface(nullptr);
-                return NS_OK;
-            }
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-            nsXPCWrappedJSClass* clazz;
-            if (iid->Equals(NS_GET_IID(nsIPropertyBag)) && jso &&
-                NS_SUCCEEDED(nsXPCWrappedJSClass::GetNewOrUsed(cx,*iid,&clazz))&&
-                clazz) {
-                RootedObject answer(cx,
-                    clazz->CallQueryInterfaceOnJSObject(cx, jso, *iid));
-                NS_RELEASE(clazz);
-                if (!answer) {
-                    NS_RELEASE(obj);
-                    aTearOff->SetInterface(nullptr);
-                    return NS_ERROR_NO_INTERFACE;
-                }
-            }
-        }
-
-        nsIXPCSecurityManager* sm = nsXPConnect::XPConnect()->GetDefaultSecurityManager();
-        if (sm && NS_FAILED(sm->
-                            CanCreateWrapper(cx, *iid, identity,
-                                             GetClassInfo(), GetSecurityInfoAddr()))) {
-            
-            NS_RELEASE(obj);
-            aTearOff->SetInterface(nullptr);
-            return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-        }
     }
-    
+
+    nsIXPCSecurityManager* sm = nsXPConnect::XPConnect()->GetDefaultSecurityManager();
+    if (sm && NS_FAILED(sm->
+                        CanCreateWrapper(cx, *iid, identity,
+                                         GetClassInfo(), GetSecurityInfoAddr()))) {
+        
+        NS_RELEASE(obj);
+        aTearOff->SetInterface(nullptr);
+        return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+    }
 
     
     
@@ -1697,8 +1661,6 @@ bool
 XPCWrappedNative::InitTearOffJSObject(XPCWrappedNativeTearOff* to)
 {
     AutoJSContext cx;
-
-    
 
     JSObject* obj = JS_NewObject(cx, Jsvalify(&XPC_WN_Tearoff_JSClass),
                                  JS_GetObjectPrototype(cx, mFlatJSObject),
@@ -2881,7 +2843,7 @@ XPCJSObjectHolder::XPCJSObjectHolder(JSObject* obj)
 
 XPCJSObjectHolder::~XPCJSObjectHolder()
 {
-    RemoveFromRootSet(nsXPConnect::GetRuntimeInstance()->GetMapLock());
+    RemoveFromRootSet();
 }
 
 void
