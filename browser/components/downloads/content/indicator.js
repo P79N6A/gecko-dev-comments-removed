@@ -359,6 +359,10 @@ const DownloadsIndicatorView = {
       return;
     }
 
+    if (!DownloadsCommon.animateNotifications) {
+      return;
+    }
+
     
     if (DownloadsPanel.isPanelShowing) {
       return;
