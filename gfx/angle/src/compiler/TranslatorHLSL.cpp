@@ -9,15 +9,16 @@
 #include "compiler/InitializeParseContext.h"
 #include "compiler/OutputHLSL.h"
 
-TranslatorHLSL::TranslatorHLSL(ShShaderType type, ShShaderSpec spec)
-    : TCompiler(type, spec)
+TranslatorHLSL::TranslatorHLSL(ShShaderType type, ShShaderSpec spec, ShShaderOutput output)
+    : TCompiler(type, spec), mOutputType(output)
 {
 }
 
 void TranslatorHLSL::translate(TIntermNode *root)
 {
     TParseContext& parseContext = *GetGlobalParseContext();
-    sh::OutputHLSL outputHLSL(parseContext);
+    sh::OutputHLSL outputHLSL(parseContext, getResources(), mOutputType);
 
     outputHLSL.output();
+    mActiveUniforms = outputHLSL.getUniforms();
 }

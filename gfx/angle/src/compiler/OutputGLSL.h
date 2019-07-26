@@ -20,6 +20,7 @@ public:
 
 protected:
     virtual bool writeVariablePrecision(TPrecision);
+    virtual void visitSymbol(TIntermSymbol* node);
 };
 
 #endif  

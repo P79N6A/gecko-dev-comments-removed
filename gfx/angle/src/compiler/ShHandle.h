@@ -27,6 +27,7 @@
 class LongNameMap;
 class TCompiler;
 class TDependencyGraph;
+class TranslatorHLSL;
 
 
 
@@ -42,6 +43,7 @@ public:
     TShHandleBase();
     virtual ~TShHandleBase();
     virtual TCompiler* getAsCompiler() { return 0; }
+    virtual TranslatorHLSL* getAsTranslatorHLSL() { return 0; }
 
 protected:
     
@@ -82,7 +84,7 @@ protected:
     
     void clearResults();
     
-    bool detectRecursion(TIntermNode* root);
+    bool detectCallDepth(TIntermNode* root, TInfoSink& infoSink, bool limitCallStackDepth);
     
     void rewriteCSSShader(TIntermNode* root);
     
@@ -105,7 +107,11 @@ protected:
     
     bool enforceFragmentShaderTimingRestrictions(const TDependencyGraph& graph);
     
+    bool limitExpressionComplexity(TIntermNode* root);
+    
     const TExtensionBehavior& getExtensionBehavior() const;
+    
+    const ShBuiltInResources& getResources() const;
 
     const ArrayBoundsClamper& getArrayBoundsClamper() const;
     ShArrayIndexClampingStrategy getArrayIndexClampingStrategy() const;
@@ -116,6 +122,10 @@ private:
     ShShaderSpec shaderSpec;
 
     int maxUniformVectors;
+    int maxExpressionComplexity;
+    int maxCallStackDepth;
+
+    ShBuiltInResources compileResources;
 
     
     

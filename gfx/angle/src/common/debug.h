@@ -100,6 +100,13 @@ namespace gl
 #endif
 
 
+#if !defined(NDEBUG) && (!defined(_MSC_VER) || defined(_CPPRTTI))
+#define HAS_DYNAMIC_TYPE(type, obj) (dynamic_cast<type >(obj) != NULL)
+#else
+#define HAS_DYNAMIC_TYPE(type, obj) true
+#endif
+
+
 #define META_ASSERT(condition) typedef int COMPILE_TIME_ASSERT_##__LINE__[static_cast<bool>(condition)?1:-1]
 
 #endif   

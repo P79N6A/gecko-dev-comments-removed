@@ -14,36 +14,24 @@
 
 #include "compiler/PoolAlloc.h"
 
+struct TSourceLoc {
+    int first_file;
+    int first_line;
+    int last_file;
+    int last_line;
+};
 
 
 
 
-
-
-typedef int TSourceLoc;
-const unsigned int SOURCE_LOC_LINE_SIZE = 16;  
-const unsigned int SOURCE_LOC_LINE_MASK = (1 << SOURCE_LOC_LINE_SIZE) - 1;
-
-inline TSourceLoc EncodeSourceLoc(int string, int line) {
-    return (string << SOURCE_LOC_LINE_SIZE) | (line & SOURCE_LOC_LINE_MASK);
-}
-
-inline void DecodeSourceLoc(TSourceLoc loc, int* string, int* line) {
-    if (string) *string = loc >> SOURCE_LOC_LINE_SIZE;
-    if (line) *line = loc & SOURCE_LOC_LINE_MASK;
-}
-
-
-
-
-#define POOL_ALLOCATOR_NEW_DELETE(A)                                  \
-    void* operator new(size_t s) { return (A).allocate(s); }          \
-    void* operator new(size_t, void *_Where) { return (_Where);	}     \
-    void operator delete(void*) { }                                   \
-    void operator delete(void *, void *) { }                          \
-    void* operator new[](size_t s) { return (A).allocate(s); }        \
-    void* operator new[](size_t, void *_Where) { return (_Where);	} \
-    void operator delete[](void*) { }                                 \
+#define POOL_ALLOCATOR_NEW_DELETE()                                                  \
+    void* operator new(size_t s) { return GetGlobalPoolAllocator()->allocate(s); }   \
+    void* operator new(size_t, void *_Where) { return (_Where); }                    \
+    void operator delete(void*) { }                                                  \
+    void operator delete(void *, void *) { }                                         \
+    void* operator new[](size_t s) { return GetGlobalPoolAllocator()->allocate(s); } \
+    void* operator new[](size_t, void *_Where) { return (_Where); }                  \
+    void operator delete[](void*) { }                                                \
     void operator delete[](void *, void *) { }
 
 
@@ -54,7 +42,7 @@ typedef std::basic_string <char, std::char_traits<char>, TStringAllocator> TStri
 typedef std::basic_ostringstream<char, std::char_traits<char>, TStringAllocator> TStringStream;
 inline TString* NewPoolTString(const char* s)
 {
-	void* memory = GlobalPoolAllocator.allocate(sizeof(TString));
+	void* memory = GetGlobalPoolAllocator()->allocate(sizeof(TString));
 	return new(memory) TString(s);
 }
 

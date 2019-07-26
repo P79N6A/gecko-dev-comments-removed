@@ -17,55 +17,32 @@
 
 OS_TLSIndex PoolIndex = OS_INVALID_TLS_INDEX;
 
-void InitializeGlobalPools()
-{
-    TThreadGlobalPools* globalPools= static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));    
-    if (globalPools)
-        return;
-
-    TThreadGlobalPools* threadData = new TThreadGlobalPools();
-    threadData->globalPoolAllocator = 0;
-
-    OS_SetTLSValue(PoolIndex, threadData);
-}
-
-void FreeGlobalPools()
-{
-    
-    TThreadGlobalPools* globalPools= static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));    
-    if (!globalPools)
-        return;
- 
-    delete globalPools;
-}
-
 bool InitializePoolIndex()
 {
-    
-    if ((PoolIndex = OS_AllocTLSIndex()) == OS_INVALID_TLS_INDEX)
-        return false;
+    assert(PoolIndex == OS_INVALID_TLS_INDEX);
 
-    return true;
+    PoolIndex = OS_AllocTLSIndex();
+    return PoolIndex != OS_INVALID_TLS_INDEX;
 }
 
 void FreePoolIndex()
 {
-    
+    assert(PoolIndex != OS_INVALID_TLS_INDEX);
+
     OS_FreeTLSIndex(PoolIndex);
+    PoolIndex = OS_INVALID_TLS_INDEX;
 }
 
-TPoolAllocator& GetGlobalPoolAllocator()
+TPoolAllocator* GetGlobalPoolAllocator()
 {
-    TThreadGlobalPools* threadData = static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));
-
-    return *threadData->globalPoolAllocator;
+    assert(PoolIndex != OS_INVALID_TLS_INDEX);
+    return static_cast<TPoolAllocator*>(OS_GetTLSValue(PoolIndex));
 }
 
 void SetGlobalPoolAllocator(TPoolAllocator* poolAllocator)
 {
-    TThreadGlobalPools* threadData = static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));
-
-    threadData->globalPoolAllocator = poolAllocator;
+    assert(PoolIndex != OS_INVALID_TLS_INDEX);
+    OS_SetTLSValue(PoolIndex, poolAllocator);
 }
 
 
@@ -231,13 +208,6 @@ void* TPoolAllocator::allocate(size_t numBytes)
     
     
     
-    
-    
-    size_t allocationSize = TAllocation::allocationSize(numBytes);
-    
-    
-    
-    
     ++numCalls;
     totalBytes += numBytes;
 
@@ -245,7 +215,17 @@ void* TPoolAllocator::allocate(size_t numBytes)
     
     
     
-    if (currentPageOffset + allocationSize <= pageSize) {
+    
+    size_t allocationSize = TAllocation::allocationSize(numBytes);
+    
+    if (allocationSize < numBytes)
+        return 0;
+
+    
+    
+    
+    
+    if (allocationSize <= pageSize - currentPageOffset) {
         
         
         
@@ -256,12 +236,16 @@ void* TPoolAllocator::allocate(size_t numBytes)
         return initializeAllocation(inUseList, memory, numBytes);
     }
 
-    if (allocationSize + headerSkip > pageSize) {
+    if (allocationSize > pageSize - headerSkip) {
         
         
         
         
         size_t numBytesToAlloc = allocationSize + headerSkip;
+        
+        if (numBytesToAlloc < allocationSize)
+            return 0;
+
         tHeader* memory = reinterpret_cast<tHeader*>(::new char[numBytesToAlloc]);
         if (memory == 0)
             return 0;

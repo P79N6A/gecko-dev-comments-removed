@@ -9,15 +9,12 @@
 #ifndef LIBGLESV2_FENCE_H_
 #define LIBGLESV2_FENCE_H_
 
-#define GL_APICALL
-#include <GLES2/gl2.h>
-#include <d3d9.h>
-
 #include "common/angleutils.h"
 
-namespace egl
+namespace rx
 {
-class Display;
+class Renderer;
+class FenceImpl;
 }
 
 namespace gl
@@ -26,7 +23,7 @@ namespace gl
 class Fence
 {
   public:
-    explicit Fence(egl::Display* display);
+    explicit Fence(rx::Renderer *renderer);
     virtual ~Fence();
 
     GLboolean isFence();
@@ -38,10 +35,7 @@ class Fence
   private:
     DISALLOW_COPY_AND_ASSIGN(Fence);
 
-    egl::Display* mDisplay;
-    IDirect3DQuery9* mQuery;
-    GLenum mCondition;
-    GLboolean mStatus;
+    rx::FenceImpl *mFence;
 };
 
 }

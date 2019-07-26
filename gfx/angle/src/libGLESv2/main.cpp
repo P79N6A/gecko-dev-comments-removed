@@ -1,3 +1,4 @@
+#include "precompiled.h"
 
 
 
@@ -7,12 +8,8 @@
 
 
 #include "libGLESv2/main.h"
-#include "libGLESv2/utilities.h"
 
-#include "common/debug.h"
-#include "libEGL/Surface.h"
-
-#include "libGLESv2/Framebuffer.h"
+#include "libGLESv2/Context.h"
 
 static DWORD currentTLS = TLS_OUT_OF_INDEXES;
 
@@ -83,7 +80,7 @@ void makeCurrent(Context *context, egl::Display *display, egl::Surface *surface)
 
     if (context && display && surface)
     {
-        context->makeCurrent(display, surface);
+        context->makeCurrent(surface);
     }
 }
 
@@ -102,7 +99,7 @@ Context *getNonLostContext()
     {
         if (context->isContextLost())
         {
-            error(GL_OUT_OF_MEMORY);
+            gl::error(GL_OUT_OF_MEMORY);
             return NULL;
         }
         else
@@ -118,27 +115,6 @@ egl::Display *getDisplay()
     Current *current = (Current*)TlsGetValue(currentTLS);
 
     return current->display;
-}
-
-IDirect3DDevice9 *getDevice()
-{
-    egl::Display *display = getDisplay();
-
-    return display->getDevice();
-}
-
-bool checkDeviceLost(HRESULT errorCode)
-{
-    egl::Display *display = NULL;
-
-    if (isDeviceLostError(errorCode))
-    {
-        display = gl::getDisplay();
-        display->notifyDeviceLost();
-        return true;
-    }
-    return false;
-}
 }
 
 
@@ -174,3 +150,6 @@ void error(GLenum errorCode)
         }
     }
 }
+
+}
+

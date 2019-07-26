@@ -14,6 +14,7 @@
 #include "compiler/InitializeDll.h"
 #include "compiler/preprocessor/length_limits.h"
 #include "compiler/ShHandle.h"
+#include "compiler/TranslatorHLSL.h"
 
 
 
@@ -89,10 +90,8 @@ static void getVariableInfo(ShShaderInfo varType,
 
 int ShInitialize()
 {
-    if (!InitProcess())
-        return 0;
-
-    return 1;
+    static const bool kInitialized = InitProcess();
+    return kInitialized ? 1 : 0;
 }
 
 
@@ -100,9 +99,7 @@ int ShInitialize()
 
 int ShFinalize()
 {
-    if (!DetachProcess())
-        return 0;
-
+    DetachProcess();
     return 1;
 }
 
@@ -126,6 +123,7 @@ void ShInitBuiltInResources(ShBuiltInResources* resources)
     resources->OES_EGL_image_external = 0;
     resources->ARB_texture_rectangle = 0;
     resources->EXT_draw_buffers = 0;
+    resources->EXT_frag_depth = 0;
 
     
     resources->FragmentPrecisionHigh = 0;
@@ -143,9 +141,6 @@ ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
                              ShShaderOutput output,
                              const ShBuiltInResources* resources)
 {
-    if (!InitThread())
-        return 0;
-
     TShHandleBase* base = static_cast<TShHandleBase*>(ConstructCompiler(type, spec, output));
     TCompiler* compiler = base->getAsCompiler();
     if (compiler == 0)
@@ -184,9 +179,6 @@ int ShCompile(
     size_t numStrings,
     int compileOptions)
 {
-    if (!InitThread())
-        return 0;
-
     if (handle == 0)
         return 0;
 
@@ -350,4 +342,22 @@ void ShGetNameHashingEntry(const ShHandle handle,
     strncpy(hashedName, it->second.c_str(), len);
     
     hashedName[len - 1] = '\0';
+}
+
+void ShGetInfoPointer(const ShHandle handle, ShShaderInfo pname, void** params)
+{
+    if (!handle || !params)
+        return;
+
+    TShHandleBase* base = static_cast<TShHandleBase*>(handle);
+    TranslatorHLSL* translator = base->getAsTranslatorHLSL();
+    if (!translator) return;
+
+    switch(pname)
+    {
+    case SH_ACTIVE_UNIFORMS_ARRAY:
+        *params = (void*)&translator->getUniforms();
+        break;
+    default: UNREACHABLE();
+    }
 }

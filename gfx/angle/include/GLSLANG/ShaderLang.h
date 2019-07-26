@@ -78,9 +78,11 @@ typedef enum {
 } ShShaderSpec;
 
 typedef enum {
-  SH_ESSL_OUTPUT = 0x8B45,
-  SH_GLSL_OUTPUT = 0x8B46,
-  SH_HLSL_OUTPUT = 0x8B47
+  SH_ESSL_OUTPUT   = 0x8B45,
+  SH_GLSL_OUTPUT   = 0x8B46,
+  SH_HLSL_OUTPUT   = 0x8B47,
+  SH_HLSL9_OUTPUT  = 0x8B47,
+  SH_HLSL11_OUTPUT = 0x8B48
 } ShShaderOutput;
 
 typedef enum {
@@ -116,7 +118,8 @@ typedef enum {
   SH_MAPPED_NAME_MAX_LENGTH      =  0x6000,
   SH_NAME_MAX_LENGTH             =  0x6001,
   SH_HASHED_NAME_MAX_LENGTH      =  0x6002,
-  SH_HASHED_NAMES_COUNT          =  0x6003
+  SH_HASHED_NAMES_COUNT          =  0x6003,
+  SH_ACTIVE_UNIFORMS_ARRAY       =  0x6004
 } ShShaderInfo;
 
 
@@ -159,7 +162,13 @@ typedef enum {
   
   
   
-  SH_CLAMP_INDIRECT_ARRAY_BOUNDS = 0x1000
+  SH_CLAMP_INDIRECT_ARRAY_BOUNDS = 0x1000,
+
+  
+  SH_LIMIT_EXPRESSION_COMPLEXITY = 0x2000,
+
+  
+  SH_LIMIT_CALL_STACK_DEPTH = 0x4000,
 } ShCompileOptions;
 
 
@@ -209,6 +218,7 @@ typedef struct
     int OES_EGL_image_external;
     int ARB_texture_rectangle;
     int EXT_draw_buffers;
+    int EXT_frag_depth;
 
     
     
@@ -222,6 +232,12 @@ typedef struct
     
     
     ShArrayIndexClampingStrategy ArrayIndexClampingStrategy;
+
+    
+    int MaxExpressionComplexity;
+
+    
+    int MaxCallStackDepth;
 } ShBuiltInResources;
 
 
@@ -410,6 +426,18 @@ COMPILER_EXPORT void ShGetNameHashingEntry(const ShHandle handle,
                                            int index,
                                            char* name,
                                            char* hashedName);
+
+
+
+
+
+
+
+
+
+COMPILER_EXPORT void ShGetInfoPointer(const ShHandle handle,
+                                      ShShaderInfo pname,
+                                      void** params);
 
 #ifdef __cplusplus
 }
