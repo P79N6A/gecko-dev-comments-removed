@@ -193,7 +193,7 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 }
 
 inline bool
-IsArrayLike(JSContext* cx, JSObject* obj)
+IsNotDateOrRegExp(JSContext* cx, JSObject* obj)
 {
   MOZ_ASSERT(obj);
   
@@ -214,17 +214,34 @@ IsArrayLike(JSContext* cx, JSObject* obj)
   return !JS_ObjectIsDate(cx, obj) && !JS_ObjectIsRegExp(cx, obj);
 }
 
+MOZ_ALWAYS_INLINE bool
+IsArrayLike(JSContext* cx, JSObject* obj)
+{
+  return IsNotDateOrRegExp(cx, obj);
+}
+
+MOZ_ALWAYS_INLINE bool
+IsConvertibleToDictionary(JSContext* cx, JSObject* obj)
+{
+  return IsNotDateOrRegExp(cx, obj);
+}
+
+MOZ_ALWAYS_INLINE bool
+IsConvertibleToDictionary(JSContext* cx, JS::Value val)
+{
+  return val.isNullOrUndefined() ||
+    (val.isObject() && IsConvertibleToDictionary(cx, &val.toObject()));
+}
+
 inline bool
 IsPlatformObject(JSContext* cx, JSObject* obj)
 {
-  
-  
-  
-  
-  
   MOZ_ASSERT(obj);
   
   JSClass* clasp = js::GetObjectJSClass(obj);
+  if (js::Valueify(clasp) == &js::ObjectClass) {
+    return false;
+  }
   if (IsDOMClass(clasp)) {
     return true;
   }

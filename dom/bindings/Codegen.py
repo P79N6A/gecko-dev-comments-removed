@@ -2348,20 +2348,19 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             callbackObject = None
 
+        if callbackObject:
+            callbackObject = CGWrapper(CGIndenter(callbackObject),
+                                       pre="if (!IsPlatformObject(cx, &argObj)) {\n",
+                                       post="\n}")
+        else:
+            callbackObject = None
+
         dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
         if len(dictionaryMemberTypes) > 0:
             raise TypeError("No support for unwrapping dictionaries as member "
                             "of a union")
         else:
             dictionaryObject = None
-
-        if callbackObject or dictionaryObject:
-            nonPlatformObject = CGList([callbackObject, dictionaryObject], "\n")
-            nonPlatformObject = CGWrapper(CGIndenter(nonPlatformObject),
-                                          pre="if (!IsPlatformObject(cx, &argObj)) {\n",
-                                          post="\n}")
-        else:
-            nonPlatformObject = None
 
         objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
         if len(objectMemberTypes) > 0:
@@ -2370,32 +2369,32 @@ for (uint32_t i = 0; i < length; ++i) {
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or callbackObject or dictionaryObject or object
         if hasObjectTypes:
             
-            
-            if object and (interfaceObject or arrayObject or dateObject or nonPlatformObject):
-                object = CGWrapper(CGIndenter(object), pre="if (!done) {\n",
-                                   post=("\n}"))
-
-            if arrayObject or dateObject or nonPlatformObject:
+            assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or dictionaryObject)
+            if arrayObject or dateObject or callbackObject or dictionaryObject:
                 
                 
                 
-                assert not (arrayObject and nonPlatformObject)
-                templateBody = CGList([arrayObject, dateObject, nonPlatformObject], " else ")
+                assert not (arrayObject and callbackObject)
+                assert not (arrayObject and dictionaryObject)
+                assert not (dictionaryObject and callbackObject)
+                templateBody = CGList([arrayObject, dateObject, callbackObject,
+                                       dictionaryObject], " else ")
             else:
                 templateBody = None
             if interfaceObject:
+                assert not object
                 if templateBody:
-                    templateBody = CGList([templateBody, object], "\n")
                     templateBody = CGWrapper(CGIndenter(templateBody),
                                              pre="if (!done) {\n", post=("\n}"))
                 templateBody = CGList([interfaceObject, templateBody], "\n")
             else:
                 templateBody = CGList([templateBody, object], "\n")
 
-            if any([arrayObject, dateObject, nonPlatformObject, object]):
+            if any([arrayObject, dateObject, callbackObject, dictionaryObject,
+                    object]):
                 templateBody.prepend(CGGeneric("JSObject& argObj = ${val}.toObject();"))
             templateBody = CGWrapper(CGIndenter(templateBody),
                                      pre="if (${val}.isObject()) {\n",
@@ -2870,8 +2869,10 @@ for (uint32_t i = 0; i < length; ++i) {
         return (template, declType, None, isOptional)
 
     if type.isDictionary():
-        if failureCode is not None:
-            raise TypeError("Can't handle dictionaries when failureCode is not None")
+        if failureCode is not None and not isDefinitelyObject:
+            raise TypeError("Can't handle dictionaries when failureCode is "
+                            "not None and we don't know we're an object")
+
         
         assert not type.nullable()
         
@@ -2893,15 +2894,29 @@ for (uint32_t i = 0; i < length; ++i) {
 
         
         
-        if defaultValue is not None:
+        
+        
+        
+        if (not isNullOrUndefined and not isDefinitelyObject and
+            defaultValue is not None):
             assert(isinstance(defaultValue, IDLNullValue))
             val = "(${haveValue}) ? ${val} : JSVAL_NULL"
         else:
             val = "${val}"
 
-        template = ("if (!%s.Init(cx, ${obj}, %s)) {\n"
-                    "%s\n"
-                    "}" % (selfRef, val, exceptionCodeIndented.define()))
+        if failureCode is not None:
+            assert isDefinitelyObject
+            
+            
+            template = CGIfWrapper(
+                CGGeneric(failureCode),
+                "!IsConvertibleToDictionary(cx, &${val}.toObject())").define() + "\n\n"
+        else:
+            template = ""
+
+        template += ("if (!%s.Init(cx, ${obj}, %s)) {\n"
+                     "%s\n"
+                     "}" % (selfRef, val, exceptionCodeIndented.define()))
 
         return (template, declType, None, False)
 
@@ -4041,12 +4056,14 @@ class CGMethodCall(CGThing):
 
             
             objectSigs.extend(s for s in possibleSignatures
-                              if (distinguishingType(s).isArray() or
-                                  distinguishingType(s).isSequence()))
+                              if distinguishingType(s).isDate())
 
             
+            
             objectSigs.extend(s for s in possibleSignatures
-                              if distinguishingType(s).isDate())
+                              if (distinguishingType(s).isArray() or
+                                  distinguishingType(s).isSequence() or
+                                  distinguishingType(s).isDictionary()))
 
             
             
@@ -4073,12 +4090,10 @@ class CGMethodCall(CGThing):
                 caseBody.append(CGGeneric("}"))
 
             
-            
             pickFirstSignature("%s.isObject() && !IsPlatformObject(cx, &%s.toObject())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (distinguishingType(s).isCallback() or
-                                          distinguishingType(s).isCallbackInterface() or
-                                          distinguishingType(s).isDictionary()))
+                                          distinguishingType(s).isCallbackInterface()))
 
             
             
@@ -6637,8 +6652,8 @@ class CGDictionary(CGThing):
             ("  JSBool found;\n"
              "  JS::Value temp;\n" if len(memberInits) > 0 else "") +
             "  bool isNull = val.isNullOrUndefined();\n"
-            "  if (!isNull && !val.isObject()) {\n"
-            "    return ThrowErrorMessage(cx, MSG_NOT_OBJECT);\n"
+            "  if (!IsConvertibleToDictionary(cx, val)) {\n"
+            "    return ThrowErrorMessage(cx, MSG_NOT_DICTIONARY);\n"
             "  }\n"
             "\n"
             "${initMembers}\n"
