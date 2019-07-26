@@ -33,7 +33,7 @@ using namespace layers;
 namespace image {
 
 
-class SVGRootRenderingObserver : public nsSVGRenderingObserver {
+class SVGRootRenderingObserver MOZ_FINAL : public nsSVGRenderingObserver {
 public:
   SVGRootRenderingObserver(SVGDocumentWrapper* aDocWrapper,
                            VectorImage*        aVectorImage)
@@ -41,19 +41,15 @@ public:
       mDocWrapper(aDocWrapper),
       mVectorImage(aVectorImage)
   {
+    MOZ_ASSERT(mDocWrapper, "Need a non-null SVG document wrapper");
+    MOZ_ASSERT(mVectorImage, "Need a non-null VectorImage");
+
     StartListening();
     Element* elem = GetTarget();
-    if (elem) {
-      nsSVGEffects::AddRenderingObserver(elem, this);
-      mInObserverList = true;
-    }
-#ifdef DEBUG
-    else {
-      NS_ABORT_IF_FALSE(!mInObserverList,
-                        "Have no target, so we can't be in "
-                        "target's observer list...");
-    }
-#endif
+    MOZ_ASSERT(elem, "no root SVG node for us to observe");
+
+    nsSVGEffects::AddRenderingObserver(elem, this);
+    mInObserverList = true;
   }
 
   void ResumeListening()
@@ -68,16 +64,15 @@ public:
   }
 
 protected:
-  virtual Element* GetTarget()
+  virtual Element* GetTarget() MOZ_OVERRIDE
   {
     return mDocWrapper->GetRootSVGElem();
   }
 
-  virtual void DoUpdate()
+  virtual void DoUpdate() MOZ_OVERRIDE
   {
     Element* elem = GetTarget();
-    if (!elem)
-      return;
+    MOZ_ASSERT(elem, "missing root SVG node");
 
     if (!mDocWrapper->ShouldIgnoreInvalidation()) {
       nsIFrame* frame = elem->GetPrimaryFrame();
@@ -95,8 +90,8 @@ protected:
   }
 
   
-  nsRefPtr<SVGDocumentWrapper> mDocWrapper;
-  VectorImage* mVectorImage;   
+  const nsRefPtr<SVGDocumentWrapper> mDocWrapper;
+  VectorImage* const mVectorImage;   
 };
 
 class SVGParseCompleteListener MOZ_FINAL : public nsStubDocumentObserver {
@@ -146,7 +141,7 @@ public:
 
 private:
   nsCOMPtr<nsIDocument> mDocument;
-  VectorImage* mImage; 
+  VectorImage* const mImage; 
 };
 
 NS_IMPL_ISUPPORTS1(SVGParseCompleteListener, nsIDocumentObserver)
@@ -215,7 +210,7 @@ public:
 
 private:
   nsCOMPtr<nsIDocument> mDocument;
-  VectorImage* mImage; 
+  VectorImage* const mImage; 
 };
 
 NS_IMPL_ISUPPORTS1(SVGLoadEventListener, nsIDOMEventListener)
