@@ -973,10 +973,10 @@ uint32_t GetListBaseExpandoSlot();
 
 
 extern JS_FRIEND_API(JSBool)
-js_DateIsValid(JSContext *cx, JSObject* obj);
+js_DateIsValid(JSObject* obj);
 
 extern JS_FRIEND_API(double)
-js_DateGetMsecSinceEpoch(JSContext *cx, JSRawObject obj);
+js_DateGetMsecSinceEpoch(JSRawObject obj);
 
 
 
