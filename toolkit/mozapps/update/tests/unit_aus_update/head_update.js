@@ -1765,6 +1765,9 @@ function checkUpdateLogContents(aCompareLogFile) {
   updateLogContents = updateLogContents.replace(/\n+/g, "\n");
   
   updateLogContents = updateLogContents.replace(/^\n|\n$/g, "");
+  
+  
+  updateLogContents = updateLogContents.replace(/^calling QuitProgressUI\n[^\n]*\nUPDATE TYPE/g, "UPDATE TYPE");
 
   let compareLog = getTestDirFile(aCompareLogFile);
   let compareLogContents = readFileBytes(compareLog);
