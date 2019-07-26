@@ -204,7 +204,6 @@ __BitScanReverse32(unsigned int val)
 }
 # define js_bitscan_ctz32(val)  __BitScanForward32(val)
 # define js_bitscan_clz32(val)  __BitScanReverse32(val)
-# define JS_HAS_BUILTIN_BITSCAN32
 
 #if defined(_M_AMD64) || defined(_M_X64)
 unsigned char _BitScanForward64(unsigned long * Index, unsigned __int64 Mask);
@@ -246,7 +245,6 @@ __BitScanReverse64(unsigned __int64 val)
 }
 # define js_bitscan_ctz64(val)  __BitScanForward64(val)
 # define js_bitscan_clz64(val)  __BitScanReverse64(val)
-# define JS_HAS_BUILTIN_BITSCAN64
 #elif MOZ_IS_GCC
 
 #if MOZ_GCC_VERSION_AT_LEAST(3, 4, 0)
@@ -266,12 +264,10 @@ __BitScanReverse64(unsigned __int64 val)
 JS_STATIC_ASSERT(sizeof(unsigned int) == sizeof(uint32_t));
 # define js_bitscan_ctz32(val)  __builtin_ctz(val)
 # define js_bitscan_clz32(val)  __builtin_clz(val)
-# define JS_HAS_BUILTIN_BITSCAN32
 
 JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));
 # define js_bitscan_ctz64(val)  __builtin_ctzll(val)
 # define js_bitscan_clz64(val)  __builtin_clzll(val)
-# define JS_HAS_BUILTIN_BITSCAN64
 
 # undef USE_BUILTIN_CTZ
 
@@ -281,7 +277,6 @@ JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));
 
 
 
-#ifdef JS_HAS_BUILTIN_BITSCAN32
 
 
 
@@ -292,25 +287,6 @@ JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));
         unsigned int j_ = (unsigned int)(_n);                                 \
         (_log2) = (j_ <= 1 ? 0 : 32 - js_bitscan_clz32(j_ - 1));              \
     JS_END_MACRO
-#else
-# define JS_CEILING_LOG2(_log2,_n)                                            \
-    JS_BEGIN_MACRO                                                            \
-        uint32_t j_ = (uint32_t)(_n);                                         \
-        (_log2) = 0;                                                          \
-        if ((j_) & ((j_)-1))                                                  \
-            (_log2) += 1;                                                     \
-        if ((j_) >> 16)                                                       \
-            (_log2) += 16, (j_) >>= 16;                                       \
-        if ((j_) >> 8)                                                        \
-            (_log2) += 8, (j_) >>= 8;                                         \
-        if ((j_) >> 4)                                                        \
-            (_log2) += 4, (j_) >>= 4;                                         \
-        if ((j_) >> 2)                                                        \
-            (_log2) += 2, (j_) >>= 2;                                         \
-        if ((j_) >> 1)                                                        \
-            (_log2) += 1;                                                     \
-    JS_END_MACRO
-#endif
 
 
 
@@ -318,7 +294,6 @@ JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));
 
 
 
-#ifdef JS_HAS_BUILTIN_BITSCAN32
 
 
 
@@ -328,38 +303,13 @@ JS_STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t));
     JS_BEGIN_MACRO                                                            \
         (_log2) = 31 - js_bitscan_clz32(((unsigned int)(_n)) | 1);            \
     JS_END_MACRO
-#else
-# define JS_FLOOR_LOG2(_log2,_n)                                              \
-    JS_BEGIN_MACRO                                                            \
-        uint32_t j_ = (uint32_t)(_n);                                         \
-        (_log2) = 0;                                                          \
-        if ((j_) >> 16)                                                       \
-            (_log2) += 16, (j_) >>= 16;                                       \
-        if ((j_) >> 8)                                                        \
-            (_log2) += 8, (j_) >>= 8;                                         \
-        if ((j_) >> 4)                                                        \
-            (_log2) += 4, (j_) >>= 4;                                         \
-        if ((j_) >> 2)                                                        \
-            (_log2) += 2, (j_) >>= 2;                                         \
-        if ((j_) >> 1)                                                        \
-            (_log2) += 1;                                                     \
-    JS_END_MACRO
-#endif
 
 #if JS_BYTES_PER_WORD == 4
-# ifdef JS_HAS_BUILTIN_BITSCAN32
 #  define js_FloorLog2wImpl(n)                                                \
     ((size_t)(JS_BITS_PER_WORD - 1 - js_bitscan_clz32(n)))
-# else
-JS_PUBLIC_API(size_t) js_FloorLog2wImpl(size_t n);
-# endif
 #elif JS_BYTES_PER_WORD == 8
-# ifdef JS_HAS_BUILTIN_BITSCAN64
 #  define js_FloorLog2wImpl(n)                                                \
     ((size_t)(JS_BITS_PER_WORD - 1 - js_bitscan_clz64(n)))
-# else
-JS_PUBLIC_API(size_t) js_FloorLog2wImpl(size_t n);
-# endif
 #else
 # error "NOT SUPPORTED"
 #endif
