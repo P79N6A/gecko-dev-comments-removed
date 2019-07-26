@@ -259,9 +259,7 @@ let gSyncPane = {
       gSyncUtils._openLink(url);
       return;
     }
-    win.switchToTabHavingURI(url, true);
-    
-    window.close();
+    win.openUILinkIn(url, "tab");
   },
 
   signUp: function() {
