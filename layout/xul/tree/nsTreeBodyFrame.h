@@ -24,9 +24,16 @@
 #include "nsScrollbarFrame.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LookAndFeel.h"
+#include "nsIScrollbarOwner.h"
 
 class nsOverflowChecker;
 class nsTreeImageListener;
+
+namespace mozilla {
+namespace layout {
+class ScrollbarActivity;
+}
+}
 
 
 struct nsTreeImageCacheEntry
@@ -45,8 +52,11 @@ class nsTreeBodyFrame MOZ_FINAL
   , public nsICSSPseudoComparator
   , public nsIScrollbarMediator
   , public nsIReflowCallback
+  , public nsIScrollbarOwner
 {
 public:
+  typedef mozilla::layout::ScrollbarActivity ScrollbarActivity;
+
   nsTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
   ~nsTreeBodyFrame();
 
@@ -125,6 +135,12 @@ public:
   NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex);
   NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex) MOZ_OVERRIDE;
   NS_IMETHOD VisibilityChanged(bool aVisible) MOZ_OVERRIDE { Invalidate(); return NS_OK; }
+
+  
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
+    ScrollParts parts = GetScrollParts();
+    return aVertical ? parts.mVScrollbar : parts.mHScrollbar;
+  }
 
   
   virtual void Init(nsIContent*     aContent,
@@ -524,6 +540,8 @@ protected:
   Slots* mSlots;
 
   nsRevocableEventPtr<ScrollEvent> mScrollEvent;
+
+  nsCOMPtr<ScrollbarActivity> mScrollbarActivity;
 
   
   nsCOMPtr<nsITreeBoxObject> mTreeBoxObject;

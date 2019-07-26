@@ -187,6 +187,8 @@ public:
     
     eIntID_MenusCanOverlapOSBar,
     
+    eIntID_UseOverlayScrollbars,
+    
     eIntID_ShowHideScrollbars,
     
     eIntID_SkipNavigatingDisabledMenuItem,

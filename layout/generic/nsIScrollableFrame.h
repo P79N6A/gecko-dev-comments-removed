@@ -14,6 +14,7 @@
 #include "nsCoord.h"
 #include "nsPresContext.h"
 #include "mozilla/gfx/Point.h"
+#include "nsIScrollbarOwner.h"
 
 #define NS_DEFAULT_VERTICAL_SCROLL_DISTANCE   3
 #define NS_DEFAULT_HORIZONTAL_SCROLL_DISTANCE 5
@@ -27,7 +28,7 @@ class nsIFrame;
 
 
 
-class nsIScrollableFrame : public nsQueryFrame {
+class nsIScrollableFrame : public nsIScrollbarOwner {
 public:
   typedef mozilla::gfx::Point Point;
 
@@ -201,14 +202,6 @@ public:
 
 
   virtual void RemoveScrollPositionListener(nsIScrollPositionListener* aListener) = 0;
-
-  
-
-
-
-
-
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) = 0;
 
   
 
