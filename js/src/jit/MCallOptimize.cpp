@@ -976,7 +976,7 @@ IonBuilder::inlineMathMinMax(CallInfo &callInfo, bool max)
 
         
         if (returnType == MIRType_Int32 && IsFloatingPointType(argType))
-            return InliningStatus_NotInlined;
+            returnType = MIRType_Double;
     }
 
     callInfo.setImplicitlyUsedUnchecked();
