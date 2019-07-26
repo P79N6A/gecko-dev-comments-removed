@@ -834,9 +834,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     inline bool ensureHasTypes(JSContext *cx);
 
     
-    inline bool ensureHasBytecodeTypeMap(JSContext *cx);
-
-    
 
 
 
@@ -873,7 +870,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
   private:
     bool makeTypes(JSContext *cx);
-    bool makeBytecodeTypeMap(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
 
   public:

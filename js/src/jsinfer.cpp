@@ -3352,15 +3352,10 @@ types::TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const 
     if (!(js_CodeSpec[*pc].format & JOF_TYPESET))
         return;
 
-    if (!script->types)
+    if (!script->hasBaselineScript())
         return;
 
     AutoEnterAnalysis enter(cx);
-
-    if (!script->ensureHasBytecodeTypeMap(cx)) {
-        cx->compartment()->types.setPendingNukeTypes(cx);
-        return;
-    }
 
     Type type = GetValueType(rval);
     TypeSet *types = TypeScript::BytecodeTypes(script, pc);
@@ -3481,36 +3476,6 @@ JSScript::makeTypes(JSContext *cx)
 #endif
 
     return analyzedArgsUsage() || ensureRanAnalysis(cx);
-}
-
-bool
-JSScript::makeBytecodeTypeMap(JSContext *cx)
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-    JS_ASSERT(types && !types->bytecodeMap);
-
-    types->bytecodeMap = cx->typeLifoAlloc().newArrayUninitialized<uint32_t>(nTypeSets + 1);
-
-    if (!types->bytecodeMap)
-        return false;
-
-    uint32_t added = 0;
-    for (jsbytecode *pc = code; pc < code + length; pc += GetBytecodeLength(pc)) {
-        JSOp op = JSOp(*pc);
-        if (js_CodeSpec[op].format & JOF_TYPESET) {
-            types->bytecodeMap[added++] = pc - code;
-            if (added == nTypeSets)
-                break;
-        }
-    }
-
-    JS_ASSERT(added == nTypeSets);
-
-    
-    
-    types->bytecodeMap[nTypeSets] = 0;
-
-    return true;
 }
 
 bool
@@ -4370,7 +4335,7 @@ TypeScript::printTypes(JSContext *cx, HandleScript script) const
 {
     JS_ASSERT(script->types == this);
 
-    if (!bytecodeMap)
+    if (!script->hasBaselineScript())
         return;
 
     AutoEnterAnalysis enter(nullptr, script->compartment());

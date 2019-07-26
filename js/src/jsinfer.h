@@ -1150,12 +1150,6 @@ class TypeScript
     
     analyze::ScriptAnalysis *analysis;
 
-    
-
-
-
-    uint32_t *bytecodeMap;
-
   public:
     
     StackTypeSet *typeArray() const { return (StackTypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
