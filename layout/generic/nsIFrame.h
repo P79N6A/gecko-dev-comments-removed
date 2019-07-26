@@ -679,6 +679,15 @@ public:
 
 
 
+  mozilla::WritingMode GetWritingMode(nsIFrame* aSubFrame) const;
+
+  
+
+
+
+
+
+
 
   nsRect GetRect() const { return mRect; }
   nsPoint GetPosition() const { return mRect.TopLeft(); }

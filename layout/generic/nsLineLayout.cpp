@@ -23,12 +23,13 @@
 #include "nsLayoutUtils.h"
 #include "nsTextFrame.h"
 #include "nsStyleStructInlines.h"
+#include "nsBidiPresUtils.h"
 #include <algorithm>
 
 #ifdef DEBUG
-#undef  NOISY_HORIZONTAL_ALIGN
-#undef  NOISY_VERTICAL_ALIGN
-#undef  REALLY_NOISY_VERTICAL_ALIGN
+#undef  NOISY_INLINEDIR_ALIGN
+#undef  NOISY_BLOCKDIR_ALIGN
+#undef  REALLY_NOISY_BLOCKDIR_ALIGN
 #undef  NOISY_REFLOW
 #undef  REALLY_NOISY_REFLOW
 #undef  NOISY_PUSHING
@@ -60,7 +61,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
     mLastOptionalBreakPriority(gfxBreakPriority::eNoBreak),
     mLastOptionalBreakContentOffset(-1),
     mForceBreakContentOffset(-1),
-    mMinLineHeight(0),
+    mMinLineBSize(0),
     mTextIndent(0),
     mFirstLetterStyleOK(false),
     mIsTopOfPage(false),
@@ -91,7 +92,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
 
   mLineNumber = 0;
   mTotalPlacedFrames = 0;
-  mTopEdge = 0;
+  mBStartEdge = 0;
   mTrimmableWidth = 0;
 
   mInflationMinFontSize =
@@ -133,33 +134,34 @@ HasPrevInFlow(nsIFrame *aFrame)
 }
 
 void
-nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
-                              nscoord aWidth, nscoord aHeight,
+nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
+                              nscoord aISize, nscoord aBSize,
                               bool aImpactedByFloats,
                               bool aIsTopOfPage,
-                              uint8_t aDirection)
+                              WritingMode aWritingMode,
+                              nscoord aContainerWidth)
 {
   NS_ASSERTION(nullptr == mRootSpan, "bad linelayout user");
-  NS_WARN_IF_FALSE(aWidth != NS_UNCONSTRAINEDSIZE,
+  NS_WARN_IF_FALSE(aISize != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
 #ifdef DEBUG
-  if ((aWidth != NS_UNCONSTRAINEDSIZE) && CRAZY_WIDTH(aWidth)) {
+  if ((aISize != NS_UNCONSTRAINEDSIZE) && CRAZY_SIZE(aISize)) {
     nsFrame::ListTag(stdout, mBlockReflowState->frame);
     printf(": Init: bad caller: width WAS %d(0x%x)\n",
-           aWidth, aWidth);
+           aISize, aISize);
   }
-  if ((aHeight != NS_UNCONSTRAINEDSIZE) && CRAZY_HEIGHT(aHeight)) {
+  if ((aBSize != NS_UNCONSTRAINEDSIZE) && CRAZY_SIZE(aBSize)) {
     nsFrame::ListTag(stdout, mBlockReflowState->frame);
     printf(": Init: bad caller: height WAS %d(0x%x)\n",
-           aHeight, aHeight);
+           aBSize, aBSize);
   }
 #endif
 #ifdef NOISY_REFLOW
   nsFrame::ListTag(stdout, mBlockReflowState->frame);
   printf(": BeginLineReflow: %d,%d,%d,%d impacted=%s %s\n",
-         aX, aY, aWidth, aHeight,
+         aICoord, aBCoord, aISize, aBSize,
          aImpactedByFloats?"true":"false",
          aIsTopOfPage ? "top-of-page" : "");
 #endif
@@ -175,7 +177,7 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
   mLineAtStart = true;
   mLineEndsInBR = false;
   mSpanDepth = 0;
-  mMaxTopBoxHeight = mMaxBottomBoxHeight = 0;
+  mMaxStartBoxBSize = mMaxEndBoxBSize = 0;
 
   if (mGotLineBox) {
     mLineBox->ClearHasBullet();
@@ -184,9 +186,10 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
   PerSpanData* psd = NewPerSpanData();
   mCurrentSpan = mRootSpan = psd;
   psd->mReflowState = mBlockReflowState;
-  psd->mLeftEdge = aX;
-  psd->mX = aX;
-  psd->mRightEdge = aX + aWidth;
+  psd->mIStart = aICoord;
+  psd->mICoord = aICoord;
+  psd->mIEnd = aICoord + aISize;
+  mContainerWidth = aContainerWidth;
 
   
   
@@ -200,17 +203,16 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
       LineContainerFrame()->PresContext()->PresShell()->MaxLineBoxWidth();
 
     if (maxLineBoxWidth > 0 &&
-        psd->mRightEdge - psd->mLeftEdge > maxLineBoxWidth) {
-      psd->mRightEdge = psd->mLeftEdge + maxLineBoxWidth;
+        psd->mIEnd - psd->mIStart > maxLineBoxWidth) {
+      psd->mIEnd = psd->mIStart + maxLineBoxWidth;
     }
   }
 
-  mTopEdge = aY;
+  mBStartEdge = aBCoord;
 
   psd->mNoWrap =
     !mStyleText->WhiteSpaceCanWrapStyle() || LineContainerFrame()->IsSVGText();
-  psd->mDirection = aDirection;
-  psd->mChangedFrameDirection = false;
+  psd->mWritingMode = aWritingMode;
 
   
   
@@ -230,12 +232,7 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
 
     mTextIndent = indent;
 
-    if (NS_STYLE_DIRECTION_RTL == psd->mDirection) {
-      psd->mRightEdge -= indent;
-    }
-    else {
-      psd->mX += indent;
-    }
+    psd->mICoord += indent;
   }
 }
 
@@ -244,7 +241,7 @@ nsLineLayout::EndLineReflow()
 {
 #ifdef NOISY_REFLOW
   nsFrame::ListTag(stdout, mBlockReflowState->frame);
-  printf(": EndLineReflow: width=%d\n", mRootSpan->mX - mRootSpan->mLeftEdge);
+  printf(": EndLineReflow: width=%d\n", mRootSpan->mICoord - mRootSpan->mIStart);
 #endif
 
   FreeSpan(mRootSpan);
@@ -276,61 +273,68 @@ void
 nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
                          nsIFrame* aFloatFrame)
 {
+  WritingMode lineWM = mRootSpan->mWritingMode;
+  LogicalRect availSpace(lineWM, aNewAvailSpace, mContainerWidth);
 #ifdef REALLY_NOISY_REFLOW
-  printf("nsLL::UpdateBand %d, %d, %d, %d, frame=%p\n  will set mImpacted to true\n",
+  printf("nsLL::UpdateBand %d, %d, %d, %d, (logical %d, %d, %d, %d); frame=%p\n  will set mImpacted to true\n",
          aNewAvailSpace.x, aNewAvailSpace.y,
          aNewAvailSpace.width, aNewAvailSpace.height,
+         availSpace.IStart(lineWM), availSpace.BStart(lineWM),
+         availSpace.ISize(lineWM), availSpace.BSize(lineWM),
          aFloatFrame);
 #endif
 #ifdef DEBUG
-  if ((aNewAvailSpace.width != NS_UNCONSTRAINEDSIZE) && CRAZY_WIDTH(aNewAvailSpace.width)) {
+  if ((availSpace.ISize(lineWM) != NS_UNCONSTRAINEDSIZE) &&
+      CRAZY_SIZE(availSpace.ISize(lineWM))) {
     nsFrame::ListTag(stdout, mBlockReflowState->frame);
-    printf(": UpdateBand: bad caller: width WAS %d(0x%x)\n",
-           aNewAvailSpace.width, aNewAvailSpace.width);
+    printf(": UpdateBand: bad caller: ISize WAS %d(0x%x)\n",
+           availSpace.ISize(lineWM), availSpace.ISize(lineWM));
   }
-  if ((aNewAvailSpace.height != NS_UNCONSTRAINEDSIZE) && CRAZY_HEIGHT(aNewAvailSpace.height)) {
+  if ((availSpace.BSize(lineWM) != NS_UNCONSTRAINEDSIZE) &&
+      CRAZY_SIZE(availSpace.BSize(lineWM))) {
     nsFrame::ListTag(stdout, mBlockReflowState->frame);
-    printf(": UpdateBand: bad caller: height WAS %d(0x%x)\n",
-           aNewAvailSpace.height, aNewAvailSpace.height);
+    printf(": UpdateBand: bad caller: BSize WAS %d(0x%x)\n",
+           availSpace.BSize(lineWM), availSpace.BSize(lineWM));
   }
 #endif
 
   
-  NS_WARN_IF_FALSE(mRootSpan->mRightEdge != NS_UNCONSTRAINEDSIZE &&
+  NS_WARN_IF_FALSE(mRootSpan->mIEnd != NS_UNCONSTRAINEDSIZE &&
                    aNewAvailSpace.width != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
   
-  nscoord deltaX = aNewAvailSpace.x - mRootSpan->mLeftEdge;
+  nscoord deltaICoord = availSpace.IStart(lineWM) - mRootSpan->mIStart;
   
   
-  nscoord deltaWidth = aNewAvailSpace.width - (mRootSpan->mRightEdge - mRootSpan->mLeftEdge);
+  nscoord deltaISize = availSpace.ISize(lineWM) -
+                       (mRootSpan->mIEnd - mRootSpan->mIStart);
 #ifdef NOISY_REFLOW
   nsFrame::ListTag(stdout, mBlockReflowState->frame);
-  printf(": UpdateBand: %d,%d,%d,%d deltaWidth=%d deltaX=%d\n",
+  printf(": UpdateBand: %d,%d,%d,%d deltaISize=%d deltaICoord=%d\n",
          aNewAvailSpace.x, aNewAvailSpace.y,
-         aNewAvailSpace.width, aNewAvailSpace.height, deltaWidth, deltaX);
+         aNewAvailSpace.width, aNewAvailSpace.height, deltaISize, deltaICoord);
 #endif
 
   
-  mRootSpan->mLeftEdge += deltaX;
-  mRootSpan->mRightEdge += deltaX;
-  mRootSpan->mX += deltaX;
+  mRootSpan->mIStart += deltaICoord;
+  mRootSpan->mIEnd += deltaICoord;
+  mRootSpan->mICoord += deltaICoord;
 
   
   
   for (PerSpanData* psd = mCurrentSpan; psd; psd = psd->mParent) {
-    psd->mRightEdge += deltaWidth;
+    psd->mIEnd += deltaISize;
     psd->mContainsFloat = true;
 #ifdef NOISY_REFLOW
-    printf("  span %p: oldRightEdge=%d newRightEdge=%d\n",
-           psd, psd->mRightEdge - deltaRightEdge, psd->mRightEdge);
+    printf("  span %p: oldIEnd=%d newIEnd=%d\n",
+           psd, psd->mIEnd - deltaISize, psd->mIEnd);
 #endif
   }
   NS_ASSERTION(mRootSpan->mContainsFloat &&
-               mRootSpan->mLeftEdge == aNewAvailSpace.x &&
-               mRootSpan->mRightEdge == aNewAvailSpace.XMost(),
+               mRootSpan->mIStart == availSpace.IStart(lineWM) &&
+               mRootSpan->mIEnd == availSpace.IEnd(lineWM),
                "root span was updated incorrectly?");
 
   
@@ -338,13 +342,13 @@ nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
   
   
   
-  if (deltaX != 0) {
+  if (deltaICoord != 0) {
     for (PerFrameData* pfd = mRootSpan->mFirstFrame; pfd; pfd = pfd->mNext) {
-      pfd->mBounds.x += deltaX;
+      pfd->mBounds.IStart(lineWM) += deltaICoord;
     }
   }
 
-  mTopEdge = aNewAvailSpace.y;
+  mBStartEdge = aNewAvailSpace.y;
   mImpactedByFloats = true;
 
   mLastFloatWasLetterFrame = nsGkAtoms::letterFrame == aFloatFrame->GetType();
@@ -382,15 +386,15 @@ nsLineLayout::NewPerSpanData()
 void
 nsLineLayout::BeginSpan(nsIFrame* aFrame,
                         const nsHTMLReflowState* aSpanReflowState,
-                        nscoord aLeftEdge, nscoord aRightEdge,
+                        nscoord aIStart, nscoord aIEnd,
                         nscoord* aBaseline)
 {
-  NS_ASSERTION(aRightEdge != NS_UNCONSTRAINEDSIZE,
+  NS_ASSERTION(aIEnd != NS_UNCONSTRAINEDSIZE,
                "should no longer be using unconstrained sizes");
 #ifdef NOISY_REFLOW
   nsFrame::IndentBy(stdout, mSpanDepth+1);
   nsFrame::ListTag(stdout, aFrame);
-  printf(": BeginSpan leftEdge=%d rightEdge=%d\n", aLeftEdge, aRightEdge);
+  printf(": BeginSpan leftEdge=%d rightEdge=%d\n", aIStart, aIEnd);
 #endif
 
   PerSpanData* psd = NewPerSpanData();
@@ -403,15 +407,14 @@ nsLineLayout::BeginSpan(nsIFrame* aFrame,
   psd->mFrame = pfd;
   psd->mParent = mCurrentSpan;
   psd->mReflowState = aSpanReflowState;
-  psd->mLeftEdge = aLeftEdge;
-  psd->mX = aLeftEdge;
-  psd->mRightEdge = aRightEdge;
+  psd->mIStart = aIStart;
+  psd->mICoord = aIStart;
+  psd->mIEnd = aIEnd;
   psd->mBaseline = aBaseline;
 
   nsIFrame* frame = aSpanReflowState->frame;
   psd->mNoWrap = !frame->StyleText()->WhiteSpaceCanWrap(frame);
-  psd->mDirection = aSpanReflowState->mStyleVisibility->mDirection;
-  psd->mChangedFrameDirection = false;
+  psd->mWritingMode = aSpanReflowState->GetWritingMode();
 
   
   mCurrentSpan = psd;
@@ -425,15 +428,15 @@ nsLineLayout::EndSpan(nsIFrame* aFrame)
 #ifdef NOISY_REFLOW
   nsFrame::IndentBy(stdout, mSpanDepth);
   nsFrame::ListTag(stdout, aFrame);
-  printf(": EndSpan width=%d\n", mCurrentSpan->mX - mCurrentSpan->mLeftEdge);
+  printf(": EndSpan width=%d\n", mCurrentSpan->mICoord - mCurrentSpan->mIStart);
 #endif
   PerSpanData* psd = mCurrentSpan;
-  nscoord widthResult = psd->mLastFrame ? (psd->mX - psd->mLeftEdge) : 0;
+  nscoord iSizeResult = psd->mLastFrame ? (psd->mICoord - psd->mIStart) : 0;
 
   mSpanDepth--;
   mCurrentSpan->mReflowState = nullptr;  
   mCurrentSpan = mCurrentSpan->mParent;
-  return widthResult;
+  return iSizeResult;
 }
 
 int32_t
@@ -561,12 +564,12 @@ nsLineLayout::FreeSpan(PerSpanData* psd)
 }
 
 bool
-nsLineLayout::IsZeroHeight()
+nsLineLayout::IsZeroBSize()
 {
   PerSpanData* psd = mCurrentSpan;
   PerFrameData* pfd = psd->mFirstFrame;
   while (nullptr != pfd) {
-    if (0 != pfd->mBounds.height) {
+    if (0 != pfd->mBounds.BSize(psd->mWritingMode)) {
       return false;
     }
     pfd = pfd->mNext;
@@ -575,7 +578,7 @@ nsLineLayout::IsZeroHeight()
 }
 
 nsLineLayout::PerFrameData*
-nsLineLayout::NewPerFrameData()
+nsLineLayout::NewPerFrameData(nsIFrame* aFrame)
 {
   PerFrameData* pfd = mFrameFreeList;
   if (!pfd) {
@@ -592,11 +595,18 @@ nsLineLayout::NewPerFrameData()
   pfd->mSpan = nullptr;
   pfd->mNext = nullptr;
   pfd->mPrev = nullptr;
-  pfd->mFrame = nullptr;
   pfd->mFlags = 0;  
+  pfd->mFrame = aFrame;
+
+  WritingMode frameWM = aFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
+  pfd->mBounds = LogicalRect(lineWM);
+  pfd->mMargin = LogicalMargin(frameWM);
+  pfd->mBorderPadding = LogicalMargin(frameWM);
+  pfd->mOffsets = LogicalMargin(frameWM);
 
 #ifdef DEBUG
-  pfd->mVerticalAlign = 0xFF;
+  pfd->mBlockDirAlign = 0xFF;
   mFramesAllocated++;
 #endif
   return pfd;
@@ -710,7 +720,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   aPushedFrame = false;
 
-  PerFrameData* pfd = NewPerFrameData();
+  PerFrameData* pfd = NewPerFrameData(aFrame);
   PerSpanData* psd = mCurrentSpan;
   psd->AppendFrame(pfd);
 
@@ -726,14 +736,15 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 
   
   
-  pfd->mFrame = aFrame;
+  WritingMode frameWM = aFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
 
   
   
   
   
-  pfd->mBounds.x = psd->mX;
-  pfd->mBounds.y = mTopEdge;
+  pfd->mBounds.IStart(lineWM) = psd->mICoord;
+  pfd->mBounds.BStart(lineWM) = mBStartEdge;
 
   
   
@@ -759,11 +770,11 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
-  NS_WARN_IF_FALSE(psd->mRightEdge != NS_UNCONSTRAINEDSIZE,
+  NS_WARN_IF_FALSE(psd->mIEnd != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
-  nscoord availableSpaceOnLine = psd->mRightEdge - psd->mX;
+  nscoord availableSpaceOnLine = psd->mIEnd - psd->mICoord;
 
   
   Maybe<nsHTMLReflowState> reflowStateHolder;
@@ -775,24 +786,24 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     reflowState.mFlags.mIsTopOfPage = mIsTopOfPage;
     if (reflowState.ComputedWidth() == NS_UNCONSTRAINEDSIZE)
       reflowState.AvailableWidth() = availableSpaceOnLine;
-    pfd->mMargin = reflowState.ComputedPhysicalMargin();
-    pfd->mBorderPadding = reflowState.ComputedPhysicalBorderPadding();
+    WritingMode stateWM = reflowState.GetWritingMode();
+    pfd->mMargin =
+      reflowState.ComputedLogicalMargin().ConvertTo(frameWM, stateWM);
+    pfd->mBorderPadding =
+      reflowState.ComputedLogicalBorderPadding().ConvertTo(frameWM, stateWM);
     pfd->SetFlag(PFD_RELATIVEPOS,
                  reflowState.mStyleDisplay->IsRelativelyPositionedStyle());
     if (pfd->GetFlag(PFD_RELATIVEPOS)) {
-      pfd->mOffsets = reflowState.ComputedPhysicalOffsets();
+      pfd->mOffsets =
+        reflowState.ComputedLogicalOffsets().ConvertTo(frameWM, stateWM);
     }
 
     
     
     ApplyStartMargin(pfd, reflowState);
-  } else {
-    pfd->mMargin.SizeTo(0, 0, 0, 0);
-    pfd->mBorderPadding.SizeTo(0, 0, 0, 0);
-    pfd->mOffsets.SizeTo(0, 0, 0, 0);
-    
-    
   }
+  
+  
 
   
   
@@ -811,13 +822,14 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   aFrame->WillReflow(mPresContext);
 
   
-  nsHTMLReflowMetrics metrics(mBlockReflowState->GetWritingMode());
+  nsHTMLReflowMetrics metrics(lineWM);
 #ifdef DEBUG
   metrics.Width() = nscoord(0xdeadbeef);
   metrics.Height() = nscoord(0xdeadbeef);
 #endif
-  nscoord tx = pfd->mBounds.x;
-  nscoord ty = pfd->mBounds.y;
+  nsRect physicalBounds = pfd->mBounds.GetPhysicalRect(lineWM, mContainerWidth);
+  nscoord tx = physicalBounds.x;
+  nscoord ty = physicalBounds.y;
   mFloatManager->Translate(tx, ty);
 
   int32_t savedOptionalBreakOffset;
@@ -858,7 +870,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nscoord availableWidth = psd->mRightEdge - (psd->mX - mTrimmableWidth);
+        nscoord availableWidth = psd->mIEnd - (psd->mICoord - mTrimmableWidth);
         if (psd->mNoWrap) {
           
           
@@ -919,7 +931,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   if (!NS_INLINE_IS_BREAK_BEFORE(aReflowStatus)) {
-    if (CRAZY_WIDTH(metrics.Width()) || CRAZY_HEIGHT(metrics.Height())) {
+    if (CRAZY_SIZE(metrics.Width()) || CRAZY_SIZE(metrics.Height())) {
       printf("nsLineLayout: ");
       nsFrame::ListTag(stdout, aFrame);
       printf(" metrics=%d,%d!\n", metrics.Width(), metrics.Height());
@@ -940,8 +952,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   pfd->mOverflowAreas = metrics.mOverflowAreas;
 
-  pfd->mBounds.width = metrics.Width();
-  pfd->mBounds.height = metrics.Height();
+  pfd->mBounds.ISize(lineWM) = metrics.ISize();
+  pfd->mBounds.BSize(lineWM) = metrics.BSize();
 
   
   aFrame->SetSize(nsSize(metrics.Width(), metrics.Height()));
@@ -988,13 +1000,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
                  !reflowStateHolder.ref().IsFloating(),
                  "How'd we get a floated inline frame? "
                  "The frame ctor should've dealt with this.");
-    
-    
-    
-    uint8_t direction =
-      isText ? psd->mReflowState->mStyleVisibility->mDirection :
-               reflowStateHolder.ref().mStyleVisibility->mDirection;
-    if (CanPlaceFrame(pfd, direction, notSafeToBreak, continuingTextRun,
+    if (CanPlaceFrame(pfd, notSafeToBreak, continuingTextRun,
                       savedOptionalBreakContent != nullptr, metrics,
                       aReflowStatus, &optionalBreakAfterFits)) {
       if (!isEmpty) {
@@ -1015,7 +1021,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        VerticalAlignFrames(span);
+        BlockDirAlignFrames(span);
       }
       
       if (!continuingTextRun) {
@@ -1062,8 +1068,8 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
                "How'd we get a floated inline frame? "
                "The frame ctor should've dealt with this.");
 
-  
-  bool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
+  WritingMode frameWM = pfd->mFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
 
   
   
@@ -1075,13 +1081,21 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
       pfd->mFrame->FrameIsNonFirstInIBSplit()) {
     
     
-    if (ltr)
-      pfd->mMargin.left = 0;
-    else
-      pfd->mMargin.right = 0;
+    pfd->mMargin.IStart(frameWM) = 0;
   }
-  else {
-    pfd->mBounds.x += ltr ? pfd->mMargin.left : pfd->mMargin.right;
+  if ((pfd->mFrame->LastInFlow()->GetNextContinuation() ||
+      pfd->mFrame->FrameIsNonLastInIBSplit())
+    && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
+    pfd->mMargin.IEnd(frameWM) = 0;
+  }
+  nscoord startMargin = pfd->mMargin.ConvertTo(lineWM, frameWM).IStart(lineWM);
+  if (startMargin) {
+    
+    
+    
+    if (lineWM.IsBidiLTR() && frameWM.IsBidiLTR()) {
+      pfd->mBounds.IStart(lineWM) += startMargin;
+    }
 
     NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != aReflowState.AvailableWidth(),
                      "have unconstrained width; this should only result from "
@@ -1092,18 +1106,18 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
       
       
       
-      aReflowState.AvailableWidth() -= ltr ? pfd->mMargin.left : pfd->mMargin.right;
+      aReflowState.AvailableWidth() -= startMargin;
     }
   }
 }
 
 nscoord
-nsLineLayout::GetCurrentFrameXDistanceFromBlock()
+nsLineLayout::GetCurrentFrameInlineDistanceFromBlock()
 {
   PerSpanData* psd;
   nscoord x = 0;
   for (psd = mCurrentSpan; psd; psd = psd->mParent) {
-    x += psd->mX;
+    x += psd->mICoord;
   }
   return x;
 }
@@ -1120,7 +1134,6 @@ nsLineLayout::GetCurrentFrameXDistanceFromBlock()
 
 bool
 nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
-                            uint8_t aFrameDirection,
                             bool aNotSafeToBreak,
                             bool aFrameCanContinueTextRun,
                             bool aCanRollBackBeforeFrame,
@@ -1129,13 +1142,12 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
                             bool* aOptionalBreakAfterFits)
 {
   NS_PRECONDITION(pfd && pfd->mFrame, "bad args, null pointers for frame data");
-  
+
   *aOptionalBreakAfterFits = true;
 
+  WritingMode frameWM = pfd->mFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
   
-  bool ltr = NS_STYLE_DIRECTION_LTR == aFrameDirection;
-
-  
 
 
 
@@ -1149,15 +1161,22 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
 
+  if (pfd->mFrame->GetPrevContinuation() ||
+      pfd->mFrame->FrameIsNonFirstInIBSplit()) {
+    pfd->mMargin.IStart(frameWM) = 0;
+  }
   if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
        pfd->mFrame->LastInFlow()->GetNextContinuation() ||
        pfd->mFrame->FrameIsNonLastInIBSplit())
       && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
-    if (ltr) {
-      pfd->mMargin.right = 0;
-    } else {
-      pfd->mMargin.left = 0;
-    }
+    pfd->mMargin.IEnd(frameWM) = 0;
+  }
+  LogicalMargin usedMargins = pfd->mMargin.ConvertTo(lineWM, frameWM);
+  nscoord startMargin = usedMargins.IStart(lineWM);
+  nscoord endMargin = usedMargins.IEnd(lineWM);
+
+  if (!(lineWM.IsBidiLTR() && frameWM.IsBidiLTR())) {
+    pfd->mBounds.IStart(lineWM) += startMargin;
   }
 
   PerSpanData* psd = mCurrentSpan;
@@ -1165,8 +1184,6 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
     
     return true;
   }
-
-  nscoord endMargin = ltr ? pfd->mMargin.right : pfd->mMargin.left;
 
 #ifdef NOISY_CAN_PLACE_FRAME
   if (nullptr != psd->mFrame) {
@@ -1177,12 +1194,15 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
   } 
   printf(": aNotSafeToBreak=%s frame=", aNotSafeToBreak ? "true" : "false");
   nsFrame::ListTag(stdout, pfd->mFrame);
-  printf(" frameWidth=%d\n", pfd->mBounds.XMost() + endMargin - psd->mX);
+  printf(" frameWidth=%d, margins=%d,%d\n",
+         pfd->mBounds.IEnd(lineWM) + endMargin - psd->mICoord,
+         startMargin, endMargin);
 #endif
 
   
   
-  bool outside = pfd->mBounds.XMost() - mTrimmableWidth + endMargin > psd->mRightEdge;
+  bool outside = pfd->mBounds.IEnd(lineWM) - mTrimmableWidth + endMargin >
+                 psd->mIEnd;
   if (!outside) {
     
 #ifdef NOISY_CAN_PLACE_FRAME
@@ -1194,7 +1214,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
   
   
-  if (0 == pfd->mMargin.left + pfd->mBounds.width + pfd->mMargin.right) {
+  if (0 == startMargin + pfd->mBounds.ISize(lineWM) + endMargin) {
     
 #ifdef NOISY_CAN_PLACE_FRAME
     printf("   ==> empty frame fits\n");
@@ -1219,7 +1239,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 #ifdef NOISY_CAN_PLACE_FRAME
     printf("   ==> not-safe and not-impacted fits: ");
     while (nullptr != psd) {
-      printf("<psd=%p x=%d left=%d> ", psd, psd->mX, psd->mLeftEdge);
+      printf("<psd=%p x=%d left=%d> ", psd, psd->mICoord, psd->mIStart);
       psd = psd->mParent;
     }
     printf("\n");
@@ -1288,14 +1308,16 @@ nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
   else
     pfd->mAscent = aMetrics.TopAscent();
 
-  bool ltr = (NS_STYLE_DIRECTION_LTR == pfd->mFrame->StyleVisibility()->mDirection);
   
-  mCurrentSpan->mX = pfd->mBounds.XMost() +
-                     (ltr ? pfd->mMargin.right : pfd->mMargin.left);
+  WritingMode frameWM = pfd->mFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
+  mCurrentSpan->mICoord = pfd->mBounds.IEnd(lineWM) +
+                          pfd->mMargin.ConvertTo(lineWM, frameWM).IEnd(lineWM);
 
   
   if (pfd->mFrame->GetType() == nsGkAtoms::placeholderFrame) {
-    NS_ASSERTION(pfd->mBounds.width == 0 && pfd->mBounds.height == 0,
+    NS_ASSERTION(pfd->mBounds.ISize(lineWM) == 0 &&
+                 pfd->mBounds.BSize(lineWM) == 0,
                  "placeholders should have 0 width/height (checking "
                  "placeholders were never counted by the old code in "
                  "this function)");
@@ -1319,12 +1341,8 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
     mLineBox->SetHasBullet();
   }
 
-  PerFrameData* pfd = NewPerFrameData();
+  PerFrameData* pfd = NewPerFrameData(aFrame);
   mRootSpan->AppendFrame(pfd);
-  pfd->mFrame = aFrame;
-  pfd->mMargin.SizeTo(0, 0, 0, 0);
-  pfd->mBorderPadding.SizeTo(0, 0, 0, 0);
-  pfd->mFlags = 0;  
   pfd->SetFlag(PFD_ISBULLET, true);
   if (aMetrics.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE)
     pfd->mAscent = aFrame->GetBaseline();
@@ -1332,7 +1350,8 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
     pfd->mAscent = aMetrics.TopAscent();
 
   
-  pfd->mBounds = aFrame->GetRect();
+  pfd->mBounds = LogicalRect(mRootSpan->mWritingMode,
+                             aFrame->GetRect(), mContainerWidth);
   pfd->mOverflowAreas = aMetrics.mOverflowAreas;
 }
 
@@ -1342,13 +1361,14 @@ nsLineLayout::DumpPerSpanData(PerSpanData* psd, int32_t aIndent)
 {
   nsFrame::IndentBy(stdout, aIndent);
   printf("%p: left=%d x=%d right=%d\n", static_cast<void*>(psd),
-         psd->mLeftEdge, psd->mX, psd->mRightEdge);
+         psd->mIStart, psd->mICoord, psd->mIEnd);
   PerFrameData* pfd = psd->mFirstFrame;
   while (nullptr != pfd) {
     nsFrame::IndentBy(stdout, aIndent+1);
     nsFrame::ListTag(stdout, pfd->mFrame);
-    printf(" %d,%d,%d,%d\n", pfd->mBounds.x, pfd->mBounds.y,
-           pfd->mBounds.width, pfd->mBounds.height);
+    nsRect rect = pfd->mBounds.GetPhysicalRect(psd->mWritingMode,
+                                               mContainerWidth);
+    printf(" %d,%d,%d,%d\n", rect.x, rect.y, rect.width, rect.height);
     if (pfd->mSpan) {
       DumpPerSpanData(pfd->mSpan, aIndent + 1);
     }
@@ -1362,10 +1382,10 @@ nsLineLayout::DumpPerSpanData(PerSpanData* psd, int32_t aIndent)
 #define VALIGN_BOTTOM 2
 
 void
-nsLineLayout::VerticalAlignLine()
+nsLineLayout::BlockDirAlignLine()
 {
   
-  PerFrameData rootPFD;
+  PerFrameData rootPFD(mBlockReflowState->frame->GetWritingMode());
   rootPFD.mFrame = mBlockReflowState->frame;
   rootPFD.mAscent = 0;
   mRootSpan->mFrame = &rootPFD;
@@ -1374,7 +1394,7 @@ nsLineLayout::VerticalAlignLine()
   
   
   PerSpanData* psd = mRootSpan;
-  VerticalAlignFrames(psd);
+  BlockDirAlignFrames(psd);
 
   
   
@@ -1386,17 +1406,22 @@ nsLineLayout::VerticalAlignLine()
   
   
   
-  nscoord lineHeight = psd->mMaxY - psd->mMinY;
+  
+  
+  
+  
+  
+  nscoord lineBSize = psd->mMaxBCoord - psd->mMinBCoord;
 
   
   
   
-  nscoord baselineY;
-  if (psd->mMinY < 0) {
-    baselineY = mTopEdge - psd->mMinY;
+  nscoord baselineBCoord;
+  if (psd->mMinBCoord < 0) {
+    baselineBCoord = mBStartEdge - psd->mMinBCoord;
   }
   else {
-    baselineY = mTopEdge;
+    baselineBCoord = mBStartEdge;
   }
 
   
@@ -1412,17 +1437,17 @@ nsLineLayout::VerticalAlignLine()
   
   
   
-  if (lineHeight < mMaxBottomBoxHeight) {
+  if (lineBSize < mMaxEndBoxBSize) {
     
-    nscoord extra = mMaxBottomBoxHeight - lineHeight;
-    baselineY += extra;
-    lineHeight = mMaxBottomBoxHeight;
+    nscoord extra = mMaxEndBoxBSize - lineBSize;
+    baselineBCoord += extra;
+    lineBSize = mMaxEndBoxBSize;
   }
-  if (lineHeight < mMaxTopBoxHeight) {
-    lineHeight = mMaxTopBoxHeight;
+  if (lineBSize < mMaxStartBoxBSize) {
+    lineBSize = mMaxStartBoxBSize;
   }
-#ifdef NOISY_VERTICAL_ALIGN
-  printf("  [line]==> lineHeight=%d baselineY=%d\n", lineHeight, baselineY);
+#ifdef NOISY_BLOCKDIR_ALIGN
+  printf("  [line]==> lineBSize=%d baselineBCoord=%d\n", lineBSize, baselineBCoord);
 #endif
 
   
@@ -1430,13 +1455,14 @@ nsLineLayout::VerticalAlignLine()
   
   
   
+  WritingMode lineWM = psd->mWritingMode;
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-    if (pfd->mVerticalAlign == VALIGN_OTHER) {
-      pfd->mBounds.y += baselineY;
-      pfd->mFrame->SetRect(pfd->mBounds);
+    if (pfd->mBlockDirAlign == VALIGN_OTHER) {
+      pfd->mBounds.BStart(lineWM) += baselineBCoord;
+      pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
     }
   }
-  PlaceTopBottomFrames(psd, -mTopEdge, lineHeight);
+  PlaceStartEndFrames(psd, -mBStartEdge, lineBSize);
 
   
   
@@ -1447,7 +1473,7 @@ nsLineLayout::VerticalAlignLine()
     for (const PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
       const nsIFrame *const f = pfd->mFrame;
       if (f->VerticalAlignEnum() != NS_STYLE_VERTICAL_ALIGN_BASELINE) {
-        const nscoord offset = baselineY - pfd->mBounds.y;
+        const nscoord offset = baselineBCoord - pfd->mBounds.BStart(lineWM);
         f->Properties().Set(nsIFrame::LineBaselineOffset(),
                             NS_INT32_TO_PTR(offset));
       }
@@ -1455,18 +1481,19 @@ nsLineLayout::VerticalAlignLine()
   }
 
   
-  mLineBox->mBounds.x = psd->mLeftEdge;
-  mLineBox->mBounds.y = mTopEdge;
-  mLineBox->mBounds.width = psd->mX - psd->mLeftEdge;
-  mLineBox->mBounds.height = lineHeight;
-  mFinalLineHeight = lineHeight;
-  mLineBox->SetAscent(baselineY - mTopEdge);
-#ifdef NOISY_VERTICAL_ALIGN
+  mLineBox->mBounds.x = psd->mIStart;
+  mLineBox->mBounds.y = mBStartEdge;
+  mLineBox->mBounds.width = psd->mICoord - psd->mIStart;
+  mLineBox->mBounds.height = lineBSize;
+
+  mFinalLineBSize = lineBSize;
+  mLineBox->SetAscent(baselineBCoord - mBStartEdge);
+#ifdef NOISY_BLOCKDIR_ALIGN
   printf(
     "  [line]==> bounds{x,y,w,h}={%d,%d,%d,%d} lh=%d a=%d\n",
     mLineBox->mBounds.x, mLineBox->mBounds.y,
     mLineBox->mBounds.width, mLineBox->mBounds.height,
-    mFinalLineHeight, mLineBox->GetAscent());
+    mFinalLineBSize, mLineBox->GetAscent());
 #endif
 
   
@@ -1474,59 +1501,63 @@ nsLineLayout::VerticalAlignLine()
 }
 
 void
-nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
-                                   nscoord aDistanceFromTop,
-                                   nscoord aLineHeight)
+nsLineLayout::PlaceStartEndFrames(PerSpanData* psd,
+                                  nscoord aDistanceFromStart,
+                                  nscoord aLineBSize)
 {
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
     PerSpanData* span = pfd->mSpan;
 #ifdef DEBUG
-    NS_ASSERTION(0xFF != pfd->mVerticalAlign, "umr");
+    NS_ASSERTION(0xFF != pfd->mBlockDirAlign, "umr");
 #endif
-    switch (pfd->mVerticalAlign) {
+    WritingMode frameWM = pfd->mFrame->GetWritingMode();
+    WritingMode lineWM = mRootSpan->mWritingMode;
+    switch (pfd->mBlockDirAlign) {
       case VALIGN_TOP:
         if (span) {
-          pfd->mBounds.y = -aDistanceFromTop - span->mMinY;
+          pfd->mBounds.BStart(lineWM) = -aDistanceFromStart - span->mMinBCoord;
         }
         else {
-          pfd->mBounds.y = -aDistanceFromTop + pfd->mMargin.top;
+          pfd->mBounds.BStart(lineWM) =
+            -aDistanceFromStart + pfd->mMargin.BStart(frameWM);
         }
-        pfd->mFrame->SetRect(pfd->mBounds);
-#ifdef NOISY_VERTICAL_ALIGN
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+#ifdef NOISY_BLOCKDIR_ALIGN
         printf("    ");
         nsFrame::ListTag(stdout, pfd->mFrame);
         printf(": y=%d dTop=%d [bp.top=%d topLeading=%d]\n",
-               pfd->mBounds.y, aDistanceFromTop,
-               span ? pfd->mBorderPadding.top : 0,
-               span ? span->mTopLeading : 0);
+               pfd->mBounds.BStart(lineWM), aDistanceFromStart,
+               span ? pfd->mBorderPadding.BStart(frameWM) : 0,
+               span ? span->mBStartLeading : 0);
 #endif
         break;
       case VALIGN_BOTTOM:
         if (span) {
           
-          pfd->mBounds.y = -aDistanceFromTop + aLineHeight - span->mMaxY;
+          pfd->mBounds.BStart(lineWM) =
+            -aDistanceFromStart + aLineBSize - span->mMaxBCoord;
         }
         else {
-          pfd->mBounds.y = -aDistanceFromTop + aLineHeight -
-            pfd->mMargin.bottom - pfd->mBounds.height;
+          pfd->mBounds.BStart(lineWM) = -aDistanceFromStart + aLineBSize -
+            pfd->mMargin.BEnd(frameWM) - pfd->mBounds.BSize(lineWM);
         }
-        pfd->mFrame->SetRect(pfd->mBounds);
-#ifdef NOISY_VERTICAL_ALIGN
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+#ifdef NOISY_BLOCKDIR_ALIGN
         printf("    ");
         nsFrame::ListTag(stdout, pfd->mFrame);
-        printf(": y=%d\n", pfd->mBounds.y);
+        printf(": y=%d\n", pfd->mBounds.BStart(lineWM));
 #endif
         break;
     }
     if (span) {
-      nscoord distanceFromTop = aDistanceFromTop + pfd->mBounds.y;
-      PlaceTopBottomFrames(span, distanceFromTop, aLineHeight);
+      nscoord fromStart = aDistanceFromStart + pfd->mBounds.BStart(lineWM);
+      PlaceStartEndFrames(span, fromStart, aLineBSize);
     }
   }
 }
 
 static float
-GetInflationForVerticalAlignment(nsIFrame* aFrame,
+GetInflationForBlockDirAlignment(nsIFrame* aFrame,
                                  nscoord aInflationMinFontSize)
 {
   if (aFrame->IsSVGText()) {
@@ -1539,15 +1570,15 @@ GetInflationForVerticalAlignment(nsIFrame* aFrame,
   return nsLayoutUtils::FontSizeInflationInner(aFrame, aInflationMinFontSize);
 }
 
-#define VERTICAL_ALIGN_FRAMES_NO_MINIMUM nscoord_MAX
-#define VERTICAL_ALIGN_FRAMES_NO_MAXIMUM nscoord_MIN
+#define BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM nscoord_MAX
+#define BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM nscoord_MIN
 
 
 
 
 
 void
-nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
+nsLineLayout::BlockDirAlignFrames(PerSpanData* psd)
 {
   
   PerFrameData* spanFramePFD = psd->mFrame;
@@ -1556,7 +1587,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   
   nsRefPtr<nsFontMetrics> fm;
   float inflation =
-    GetInflationForVerticalAlignment(spanFrame, mInflationMinFontSize);
+    GetInflationForBlockDirAlignment(spanFrame, mInflationMinFontSize);
   nsLayoutUtils::GetFontMetricsForFrame(spanFrame, getter_AddRefs(fm),
                                         inflation);
   mBlockReflowState->rendContext->SetFont(fm);
@@ -1567,28 +1598,32 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   
   
   
+  WritingMode frameWM = spanFramePFD->mFrame->GetWritingMode();
+  WritingMode lineWM = mRootSpan->mWritingMode;
   bool emptyContinuation = psd != mRootSpan &&
     spanFrame->GetPrevInFlow() && !spanFrame->GetNextInFlow() &&
-    (0 == spanFramePFD->mBounds.width) && (0 == spanFramePFD->mBounds.height);
+    spanFramePFD->mBounds.IsZeroSize();
 
-#ifdef NOISY_VERTICAL_ALIGN
+#ifdef NOISY_BLOCKDIR_ALIGN
   printf("[%sSpan]", (psd == mRootSpan)?"Root":"");
   nsFrame::ListTag(stdout, spanFrame);
   printf(": preMode=%s strictMode=%s w/h=%d,%d emptyContinuation=%s",
          preMode ? "yes" : "no",
          mPresContext->CompatibilityMode() != eCompatibility_NavQuirks ? "yes" : "no",
-         spanFramePFD->mBounds.width, spanFramePFD->mBounds.height,
+         spanFramePFD->mBounds.ISize(lineWM),
+         spanFramePFD->mBounds.BSize(lineWM),
          emptyContinuation ? "yes" : "no");
   if (psd != mRootSpan) {
+    WritingMode frameWM = spanFramePFD->mFrame->GetWritingMode();
     printf(" bp=%d,%d,%d,%d margin=%d,%d,%d,%d",
-           spanFramePFD->mBorderPadding.top,
-           spanFramePFD->mBorderPadding.right,
-           spanFramePFD->mBorderPadding.bottom,
-           spanFramePFD->mBorderPadding.left,
-           spanFramePFD->mMargin.top,
-           spanFramePFD->mMargin.right,
-           spanFramePFD->mMargin.bottom,
-           spanFramePFD->mMargin.left);
+           spanFramePFD->mBorderPadding.Top(frameWM),
+           spanFramePFD->mBorderPadding.Right(frameWM),
+           spanFramePFD->mBorderPadding.Bottom(frameWM),
+           spanFramePFD->mBorderPadding.Left(frameWM),
+           spanFramePFD->mMargin.Top(frameWM),
+           spanFramePFD->mMargin.Right(frameWM),
+           spanFramePFD->mMargin.Bottom(frameWM),
+           spanFramePFD->mMargin.Left(frameWM));
   }
   printf("\n");
 #endif
@@ -1630,14 +1665,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   if ((emptyContinuation ||
        mPresContext->CompatibilityMode() != eCompatibility_FullStandards) &&
       ((psd == mRootSpan) ||
-       ((0 == spanFramePFD->mBorderPadding.top) &&
-        (0 == spanFramePFD->mBorderPadding.right) &&
-        (0 == spanFramePFD->mBorderPadding.bottom) &&
-        (0 == spanFramePFD->mBorderPadding.left) &&
-        (0 == spanFramePFD->mMargin.top) &&
-        (0 == spanFramePFD->mMargin.right) &&
-        (0 == spanFramePFD->mMargin.bottom) &&
-        (0 == spanFramePFD->mMargin.left)))) {
+       (spanFramePFD->mBorderPadding.IsEmpty() &&
+        spanFramePFD->mMargin.IsEmpty()))) {
     
     
     
@@ -1657,7 +1686,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
       if (pfd->GetFlag(PFD_ISTEXTFRAME) &&
           (pfd->GetFlag(PFD_ISNONWHITESPACETEXTFRAME) || preMode ||
-           pfd->mBounds.width != 0)) {
+           pfd->mBounds.ISize(mRootSpan->mWritingMode) != 0)) {
         zeroEffectiveSpanBox = false;
         break;
       }
@@ -1666,7 +1695,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   psd->mZeroEffectiveSpanBox = zeroEffectiveSpanBox;
 
   
-  nscoord baselineY, minY, maxY;
+  nscoord baselineBCoord, minBCoord, maxBCoord;
   if (psd == mRootSpan) {
     
     
@@ -1674,14 +1703,14 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
-    baselineY = 0;
-    minY = VERTICAL_ALIGN_FRAMES_NO_MINIMUM;
-    maxY = VERTICAL_ALIGN_FRAMES_NO_MAXIMUM;
-#ifdef NOISY_VERTICAL_ALIGN
+    baselineBCoord = 0;
+    minBCoord = BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM;
+    maxBCoord = BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM;
+#ifdef NOISY_BLOCKDIR_ALIGN
     printf("[RootSpan]");
     nsFrame::ListTag(stdout, spanFrame);
-    printf(": pass1 valign frames: topEdge=%d minLineHeight=%d zeroEffectiveSpanBox=%s\n",
-           mTopEdge, mMinLineHeight,
+    printf(": pass1 valign frames: topEdge=%d minLineBSize=%d zeroEffectiveSpanBox=%s\n",
+           mBStartEdge, mMinLineBSize,
            zeroEffectiveSpanBox ? "yes" : "no");
 #endif
   }
@@ -1690,26 +1719,27 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     float inflation =
-      GetInflationForVerticalAlignment(spanFrame, mInflationMinFontSize);
-    nscoord logicalHeight = nsHTMLReflowState::
+      GetInflationForBlockDirAlignment(spanFrame, mInflationMinFontSize);
+    nscoord logicalBSize = nsHTMLReflowState::
       CalcLineHeight(spanFrame->StyleContext(),
                      mBlockReflowState->ComputedHeight(),
                      inflation);
-    nscoord contentHeight = spanFramePFD->mBounds.height -
-      spanFramePFD->mBorderPadding.top - spanFramePFD->mBorderPadding.bottom;
+    nscoord contentBSize = spanFramePFD->mBounds.BSize(lineWM) -
+      spanFramePFD->mBorderPadding.BStart(frameWM) -
+      spanFramePFD->mBorderPadding.BEnd(frameWM);
 
     
     
     if (spanFramePFD->GetFlag(PFD_ISLETTERFRAME) &&
         !spanFrame->GetPrevInFlow() &&
         spanFrame->StyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal) {
-      logicalHeight = spanFramePFD->mBounds.height;
+      logicalBSize = spanFramePFD->mBounds.BSize(lineWM);
     }
 
-    nscoord leading = logicalHeight - contentHeight;
-    psd->mTopLeading = leading / 2;
-    psd->mBottomLeading = leading - psd->mTopLeading;
-    psd->mLogicalHeight = logicalHeight;
+    nscoord leading = logicalBSize - contentBSize;
+    psd->mBStartLeading = leading / 2;
+    psd->mBEndLeading = leading - psd->mBStartLeading;
+    psd->mLogicalBSize = logicalBSize;
 
     if (zeroEffectiveSpanBox) {
       
@@ -1719,8 +1749,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
       
       
-      minY = VERTICAL_ALIGN_FRAMES_NO_MINIMUM;
-      maxY = VERTICAL_ALIGN_FRAMES_NO_MAXIMUM;
+      minBCoord = BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM;
+      maxBCoord = BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM;
     }
     else {
 
@@ -1729,32 +1759,35 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       
       
       
-      minY = spanFramePFD->mBorderPadding.top - psd->mTopLeading;
-      maxY = minY + psd->mLogicalHeight;
+      minBCoord = spanFramePFD->mBorderPadding.BStart(frameWM) -
+                  psd->mBStartLeading;
+      maxBCoord = minBCoord + psd->mLogicalBSize;
     }
 
     
     
     
-    *psd->mBaseline = baselineY = spanFramePFD->mAscent;
+    *psd->mBaseline = baselineBCoord = spanFramePFD->mAscent;
 
 
-#ifdef NOISY_VERTICAL_ALIGN
+#ifdef NOISY_BLOCKDIR_ALIGN
     printf("[%sSpan]", (psd == mRootSpan)?"Root":"");
     nsFrame::ListTag(stdout, spanFrame);
-    printf(": baseLine=%d logicalHeight=%d topLeading=%d h=%d bp=%d,%d zeroEffectiveSpanBox=%s\n",
-           baselineY, psd->mLogicalHeight, psd->mTopLeading,
-           spanFramePFD->mBounds.height,
-           spanFramePFD->mBorderPadding.top, spanFramePFD->mBorderPadding.bottom,
+    printf(": baseLine=%d logicalBSize=%d topLeading=%d h=%d bp=%d,%d zeroEffectiveSpanBox=%s\n",
+           baselineBCoord, psd->mLogicalBSize, psd->mBStartLeading,
+           spanFramePFD->mBounds.BSize(lineWM),
+           spanFramePFD->mBorderPadding.Top(frameWM),
+           spanFramePFD->mBorderPadding.Bottom(frameWM),
            zeroEffectiveSpanBox ? "yes" : "no");
 #endif
   }
 
-  nscoord maxTopBoxHeight = 0;
-  nscoord maxBottomBoxHeight = 0;
+  nscoord maxStartBoxBSize = 0;
+  nscoord maxEndBoxBSize = 0;
   PerFrameData* pfd = psd->mFirstFrame;
   while (nullptr != pfd) {
     nsIFrame* frame = pfd->mFrame;
+    WritingMode frameWM = frame->GetWritingMode();
 
     
     NS_ASSERTION(frame, "null frame in PerFrameData - something is very very bad");
@@ -1763,29 +1796,31 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     }
 
     
-    nscoord logicalHeight;
+    nscoord logicalBSize;
     PerSpanData* frameSpan = pfd->mSpan;
     if (frameSpan) {
       
       
-      logicalHeight = frameSpan->mLogicalHeight;
+      logicalBSize = frameSpan->mLogicalBSize;
     }
     else {
       
       
-      logicalHeight = pfd->mBounds.height + pfd->mMargin.TopBottom();
-      if (logicalHeight < 0 &&
+      logicalBSize = pfd->mBounds.BSize(lineWM) +
+                     pfd->mMargin.BStartEnd(frameWM);
+      if (logicalBSize < 0 &&
           mPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
-        pfd->mAscent -= logicalHeight;
-        logicalHeight = 0;
+        pfd->mAscent -= logicalBSize;
+        logicalBSize = 0;
       }
     }
 
     
+    
     const nsStyleCoord& verticalAlign =
       frame->StyleTextReset()->mVerticalAlign;
     uint8_t verticalAlignEnum = frame->VerticalAlignEnum();
-#ifdef NOISY_VERTICAL_ALIGN
+#ifdef NOISY_BLOCKDIR_ALIGN
     printf("  [frame]");
     nsFrame::ListTag(stdout, frame);
     printf(": verticalAlignUnit=%d (enum == %d",
@@ -1807,8 +1842,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          pfd->mBounds.y = baselineY - pfd->mAscent;
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          pfd->mBounds.BStart(lineWM) = baselineBCoord - pfd->mAscent;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
@@ -1819,9 +1854,9 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           
           nscoord parentSubscript = fm->SubscriptOffset();
-          nscoord revisedBaselineY = baselineY + parentSubscript;
-          pfd->mBounds.y = revisedBaselineY - pfd->mAscent;
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          nscoord revisedBaselineBCoord = baselineBCoord + parentSubscript;
+          pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
@@ -1832,38 +1867,38 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           
           nscoord parentSuperscript = fm->SuperscriptOffset();
-          nscoord revisedBaselineY = baselineY - parentSuperscript;
-          pfd->mBounds.y = revisedBaselineY - pfd->mAscent;
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          nscoord revisedBaselineBCoord = baselineBCoord - parentSuperscript;
+          pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
         case NS_STYLE_VERTICAL_ALIGN_TOP:
         {
-          pfd->mVerticalAlign = VALIGN_TOP;
-          nscoord subtreeHeight = logicalHeight;
+          pfd->mBlockDirAlign = VALIGN_TOP;
+          nscoord subtreeBSize = logicalBSize;
           if (frameSpan) {
-            subtreeHeight = frameSpan->mMaxY - frameSpan->mMinY;
-            NS_ASSERTION(subtreeHeight >= logicalHeight,
-                         "unexpected subtree height");
+            subtreeBSize = frameSpan->mMaxBCoord - frameSpan->mMinBCoord;
+            NS_ASSERTION(subtreeBSize >= logicalBSize,
+                         "unexpected subtree block size");
           }
-          if (subtreeHeight > maxTopBoxHeight) {
-            maxTopBoxHeight = subtreeHeight;
+          if (subtreeBSize > maxStartBoxBSize) {
+            maxStartBoxBSize = subtreeBSize;
           }
           break;
         }
 
         case NS_STYLE_VERTICAL_ALIGN_BOTTOM:
         {
-          pfd->mVerticalAlign = VALIGN_BOTTOM;
-          nscoord subtreeHeight = logicalHeight;
+          pfd->mBlockDirAlign = VALIGN_BOTTOM;
+          nscoord subtreeBSize = logicalBSize;
           if (frameSpan) {
-            subtreeHeight = frameSpan->mMaxY - frameSpan->mMinY;
-            NS_ASSERTION(subtreeHeight >= logicalHeight,
-                         "unexpected subtree height");
+            subtreeBSize = frameSpan->mMaxBCoord - frameSpan->mMinBCoord;
+            NS_ASSERTION(subtreeBSize >= logicalBSize,
+                         "unexpected subtree block size");
           }
-          if (subtreeHeight > maxBottomBoxHeight) {
-            maxBottomBoxHeight = subtreeHeight;
+          if (subtreeBSize > maxEndBoxBSize) {
+            maxEndBoxBSize = subtreeBSize;
           }
           break;
         }
@@ -1874,14 +1909,15 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           nscoord parentXHeight = fm->XHeight();
           if (frameSpan) {
-            pfd->mBounds.y = baselineY -
-              (parentXHeight + pfd->mBounds.height)/2;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord -
+              (parentXHeight + pfd->mBounds.BSize(lineWM))/2;
           }
           else {
-            pfd->mBounds.y = baselineY - (parentXHeight + logicalHeight)/2 +
-              pfd->mMargin.top;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord -
+              (parentXHeight + logicalBSize)/2 +
+              pfd->mMargin.BStart(frameWM);
           }
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
@@ -1891,13 +1927,14 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           nscoord parentAscent = fm->MaxAscent();
           if (frameSpan) {
-            pfd->mBounds.y = baselineY - parentAscent -
-              pfd->mBorderPadding.top + frameSpan->mTopLeading;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord - parentAscent -
+              pfd->mBorderPadding.BStart(frameWM) + frameSpan->mBStartLeading;
           }
           else {
-            pfd->mBounds.y = baselineY - parentAscent + pfd->mMargin.top;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord - parentAscent +
+                                          pfd->mMargin.BStart(frameWM);
           }
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
@@ -1907,15 +1944,17 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           nscoord parentDescent = fm->MaxDescent();
           if (frameSpan) {
-            pfd->mBounds.y = baselineY + parentDescent -
-              pfd->mBounds.height + pfd->mBorderPadding.bottom -
-              frameSpan->mBottomLeading;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord + parentDescent -
+                                          pfd->mBounds.BStart(lineWM) +
+                                          pfd->mBorderPadding.BEnd(frameWM) -
+                                          frameSpan->mBEndLeading;
           }
           else {
-            pfd->mBounds.y = baselineY + parentDescent -
-              pfd->mBounds.height - pfd->mMargin.bottom;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord + parentDescent -
+                                          pfd->mBounds.BSize(lineWM) -
+                                          pfd->mMargin.BEnd(frameWM);
           }
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
 
@@ -1923,12 +1962,14 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           if (frameSpan) {
-            pfd->mBounds.y = baselineY - pfd->mBounds.height/2;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord -
+                                          pfd->mBounds.BSize(lineWM)/2;
           }
           else {
-            pfd->mBounds.y = baselineY - logicalHeight/2 + pfd->mMargin.top;
+            pfd->mBounds.BStart(lineWM) = baselineBCoord - logicalBSize/2 +
+                                          pfd->mMargin.BStart(frameWM);
           }
-          pfd->mVerticalAlign = VALIGN_OTHER;
+          pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
         }
       }
@@ -1939,9 +1980,9 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         
         
         float inflation =
-          GetInflationForVerticalAlignment(frame, mInflationMinFontSize);
+          GetInflationForBlockDirAlignment(frame, mInflationMinFontSize);
         pctBasis = nsHTMLReflowState::CalcLineHeight(
-          frame->StyleContext(), mBlockReflowState->ComputedHeight(),
+          frame->StyleContext(), mBlockReflowState->ComputedBSize(),
           inflation);
       }
       nscoord offset =
@@ -1951,14 +1992,14 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       
       
       
-      nscoord revisedBaselineY = baselineY - offset;
-      pfd->mBounds.y = revisedBaselineY - pfd->mAscent;
-      pfd->mVerticalAlign = VALIGN_OTHER;
+      nscoord revisedBaselineBCoord = baselineBCoord - offset;
+      pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+      pfd->mBlockDirAlign = VALIGN_OTHER;
     }
 
     
     
-    if (pfd->mVerticalAlign == VALIGN_OTHER) {
+    if (pfd->mBlockDirAlign == VALIGN_OTHER) {
       
       
       
@@ -1980,42 +2021,44 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           frame->StyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal;
       }
       if (canUpdate) {
-        nscoord yTop, yBottom;
+        nscoord blockStart, blockEnd;
         if (frameSpan) {
           
           
           
-          yTop = pfd->mBounds.y + frameSpan->mMinY;
-          yBottom = pfd->mBounds.y + frameSpan->mMaxY;
+          blockStart = pfd->mBounds.BStart(lineWM) + frameSpan->mMinBCoord;
+          blockEnd = pfd->mBounds.BStart(lineWM) + frameSpan->mMaxBCoord;
         }
         else {
-          yTop = pfd->mBounds.y - pfd->mMargin.top;
-          yBottom = yTop + logicalHeight;
+          blockStart = pfd->mBounds.BStart(lineWM) -
+                       pfd->mMargin.BStart(frameWM);
+          blockEnd = blockStart + logicalBSize;
         }
         if (!preMode &&
             mPresContext->CompatibilityMode() != eCompatibility_FullStandards &&
-            !logicalHeight) {
+            !logicalBSize) {
           
           
           
           if (nsGkAtoms::brFrame == frame->GetType()) {
-            yTop = VERTICAL_ALIGN_FRAMES_NO_MINIMUM;
-            yBottom = VERTICAL_ALIGN_FRAMES_NO_MAXIMUM;
+            blockStart = BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM;
+            blockEnd = BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM;
           }
         }
-        if (yTop < minY) minY = yTop;
-        if (yBottom > maxY) maxY = yBottom;
-#ifdef NOISY_VERTICAL_ALIGN
-        printf("     [frame]raw: a=%d h=%d bp=%d,%d logical: h=%d leading=%d y=%d minY=%d maxY=%d\n",
-               pfd->mAscent, pfd->mBounds.height,
-               pfd->mBorderPadding.top, pfd->mBorderPadding.bottom,
-               logicalHeight,
-               frameSpan ? frameSpan->mTopLeading : 0,
-               pfd->mBounds.y, minY, maxY);
+        if (blockStart < minBCoord) minBCoord = blockStart;
+        if (blockEnd > maxBCoord) maxBCoord = blockEnd;
+#ifdef NOISY_BLOCKDIR_ALIGN
+        printf("     [frame]raw: a=%d h=%d bp=%d,%d logical: h=%d leading=%d y=%d minBCoord=%d maxBCoord=%d\n",
+               pfd->mAscent, pfd->mBounds.BSize(lineWM),
+               pfd->mBorderPadding.Top(frameWM),
+               pfd->mBorderPadding.Bottom(frameWM),
+               logicalBSize,
+               frameSpan ? frameSpan->mBStartLeading : 0,
+               pfd->mBounds.BStart(lineWM), minBCoord, maxBCoord);
 #endif
       }
       if (psd != mRootSpan) {
-        frame->SetRect(pfd->mBounds);
+        frame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
       }
     }
     pfd = pfd->mNext;
@@ -2052,22 +2095,22 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     }
     if (applyMinLH) {
       if (psd->mHasNonemptyContent || preMode || mHasBullet) {
-#ifdef NOISY_VERTICAL_ALIGN
-        printf("  [span]==> adjusting min/maxY: currentValues: %d,%d", minY, maxY);
+#ifdef NOISY_BLOCKDIR_ALIGN
+        printf("  [span]==> adjusting min/maxBCoord: currentValues: %d,%d", minBCoord, maxBCoord);
 #endif
-        nscoord minimumLineHeight = mMinLineHeight;
-        nscoord yTop =
-          -nsLayoutUtils::GetCenteredFontBaseline(fm, minimumLineHeight);
-        nscoord yBottom = yTop + minimumLineHeight;
+        nscoord minimumLineBSize = mMinLineBSize;
+        nscoord blockStart =
+          -nsLayoutUtils::GetCenteredFontBaseline(fm, minimumLineBSize);
+        nscoord blockEnd = blockStart + minimumLineBSize;
 
-        if (yTop < minY) minY = yTop;
-        if (yBottom > maxY) maxY = yBottom;
+        if (blockStart < minBCoord) minBCoord = blockStart;
+        if (blockEnd > maxBCoord) maxBCoord = blockEnd;
 
-#ifdef NOISY_VERTICAL_ALIGN
-        printf(" new values: %d,%d\n", minY, maxY);
+#ifdef NOISY_BLOCKDIR_ALIGN
+        printf(" new values: %d,%d\n", minBCoord, maxBCoord);
 #endif
-#ifdef NOISY_VERTICAL_ALIGN
-        printf("            Used mMinLineHeight: %d, yTop: %d, yBottom: %d\n", mMinLineHeight, yTop, yBottom);
+#ifdef NOISY_BLOCKDIR_ALIGN
+        printf("            Used mMinLineBSize: %d, blockStart: %d, blockEnd: %d\n", mMinLineBSize, blockStart, blockEnd);
 #endif
       }
       else {
@@ -2077,30 +2120,31 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         
 
         
-#ifdef NOISY_VERTICAL_ALIGN
-        printf("  [span]==> zapping min/maxY: currentValues: %d,%d newValues: 0,0\n",
-               minY, maxY);
+#ifdef NOISY_BLOCKDIR_ALIGN
+        printf("  [span]==> zapping min/maxBCoord: currentValues: %d,%d newValues: 0,0\n",
+               minBCoord, maxBCoord);
 #endif
-        minY = maxY = 0;
+        minBCoord = maxBCoord = 0;
       }
     }
   }
 
-  if ((minY == VERTICAL_ALIGN_FRAMES_NO_MINIMUM) ||
-      (maxY == VERTICAL_ALIGN_FRAMES_NO_MAXIMUM)) {
-    minY = maxY = baselineY;
+  if ((minBCoord == BLOCKDIR_ALIGN_FRAMES_NO_MINIMUM) ||
+      (maxBCoord == BLOCKDIR_ALIGN_FRAMES_NO_MAXIMUM)) {
+    minBCoord = maxBCoord = baselineBCoord;
   }
 
   if ((psd != mRootSpan) && (psd->mZeroEffectiveSpanBox)) {
-#ifdef NOISY_VERTICAL_ALIGN
+#ifdef NOISY_BLOCKDIR_ALIGN
     printf("   [span]adjusting for zeroEffectiveSpanBox\n");
-    printf("     Original: minY=%d, maxY=%d, height=%d, ascent=%d, logicalHeight=%d, topLeading=%d, bottomLeading=%d\n",
-           minY, maxY, spanFramePFD->mBounds.height,
+    printf("     Original: minBCoord=%d, maxBCoord=%d, bSize=%d, ascent=%d, logicalBSize=%d, topLeading=%d, bottomLeading=%d\n",
+           minBCoord, maxBCoord, spanFramePFD->mBounds.BSize(frameWM),
            spanFramePFD->mAscent,
-           psd->mLogicalHeight, psd->mTopLeading, psd->mBottomLeading);
+           psd->mLogicalBSize, psd->mBStartLeading, psd->mBEndLeading);
 #endif
-    nscoord goodMinY = spanFramePFD->mBorderPadding.top - psd->mTopLeading;
-    nscoord goodMaxY = goodMinY + psd->mLogicalHeight;
+    nscoord goodMinBCoord = spanFramePFD->mBorderPadding.BStart(frameWM) -
+                            psd->mBStartLeading;
+    nscoord goodMaxBCoord = goodMinBCoord + psd->mLogicalBSize;
 
     
     
@@ -2113,98 +2157,100 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
-    if (maxTopBoxHeight > maxY - minY) {
+    if (maxStartBoxBSize > maxBCoord - minBCoord) {
       
       
       
-      nscoord distribute = maxTopBoxHeight - (maxY - minY);
-      nscoord ascentSpace = std::max(minY - goodMinY, 0);
+      nscoord distribute = maxStartBoxBSize - (maxBCoord - minBCoord);
+      nscoord ascentSpace = std::max(minBCoord - goodMinBCoord, 0);
       if (distribute > ascentSpace) {
         distribute -= ascentSpace;
-        minY -= ascentSpace;
-        nscoord descentSpace = std::max(goodMaxY - maxY, 0);
+        minBCoord -= ascentSpace;
+        nscoord descentSpace = std::max(goodMaxBCoord - maxBCoord, 0);
         if (distribute > descentSpace) {
-          maxY += descentSpace;
+          maxBCoord += descentSpace;
         } else {
-          maxY += distribute;
+          maxBCoord += distribute;
         }
       } else {
-        minY -= distribute;
+        minBCoord -= distribute;
       }
     }
-    if (maxBottomBoxHeight > maxY - minY) {
+    if (maxEndBoxBSize > maxBCoord - minBCoord) {
       
-      nscoord distribute = maxBottomBoxHeight - (maxY - minY);
-      nscoord descentSpace = std::max(goodMaxY - maxY, 0);
+      nscoord distribute = maxEndBoxBSize - (maxBCoord - minBCoord);
+      nscoord descentSpace = std::max(goodMaxBCoord - maxBCoord, 0);
       if (distribute > descentSpace) {
         distribute -= descentSpace;
-        maxY += descentSpace;
-        nscoord ascentSpace = std::max(minY - goodMinY, 0);
+        maxBCoord += descentSpace;
+        nscoord ascentSpace = std::max(minBCoord - goodMinBCoord, 0);
         if (distribute > ascentSpace) {
-          minY -= ascentSpace;
+          minBCoord -= ascentSpace;
         } else {
-          minY -= distribute;
+          minBCoord -= distribute;
         }
       } else {
-        maxY += distribute;
+        maxBCoord += distribute;
       }
     }
 
-    if (minY > goodMinY) {
-      nscoord adjust = minY - goodMinY; 
+    if (minBCoord > goodMinBCoord) {
+      nscoord adjust = minBCoord - goodMinBCoord; 
 
       
-      psd->mLogicalHeight -= adjust;
-      psd->mTopLeading -= adjust;
+      psd->mLogicalBSize -= adjust;
+      psd->mBStartLeading -= adjust;
     }
-    if (maxY < goodMaxY) {
-      nscoord adjust = goodMaxY - maxY;
-      psd->mLogicalHeight -= adjust;
-      psd->mBottomLeading -= adjust;
+    if (maxBCoord < goodMaxBCoord) {
+      nscoord adjust = goodMaxBCoord - maxBCoord;
+      psd->mLogicalBSize -= adjust;
+      psd->mBEndLeading -= adjust;
     }
-    if (minY > 0) {
+    if (minBCoord > 0) {
 
       
       
       
-      spanFramePFD->mAscent -= minY; 
-      spanFramePFD->mBounds.height -= minY; 
-      psd->mTopLeading += minY;
-      *psd->mBaseline -= minY;
+      spanFramePFD->mAscent -= minBCoord; 
+      spanFramePFD->mBounds.BSize(lineWM) -= minBCoord; 
+      psd->mBStartLeading += minBCoord;
+      *psd->mBaseline -= minBCoord;
 
       pfd = psd->mFirstFrame;
       while (nullptr != pfd) {
-        pfd->mBounds.y -= minY; 
-        pfd->mFrame->SetRect(pfd->mBounds);
+        pfd->mBounds.BStart(lineWM) -= minBCoord; 
+                                                  
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
         pfd = pfd->mNext;
       }
-      maxY -= minY; 
-      minY = 0;
+      maxBCoord -= minBCoord; 
+                              
+      minBCoord = 0;
     }
-    if (maxY < spanFramePFD->mBounds.height) {
-      nscoord adjust = spanFramePFD->mBounds.height - maxY;
-      spanFramePFD->mBounds.height -= adjust; 
-      psd->mBottomLeading += adjust;
+    if (maxBCoord < spanFramePFD->mBounds.BSize(lineWM)) {
+      nscoord adjust = spanFramePFD->mBounds.BSize(lineWM) - maxBCoord;
+      spanFramePFD->mBounds.BSize(lineWM) -= adjust; 
+      psd->mBEndLeading += adjust;
     }
-#ifdef NOISY_VERTICAL_ALIGN
-    printf("     New: minY=%d, maxY=%d, height=%d, ascent=%d, logicalHeight=%d, topLeading=%d, bottomLeading=%d\n",
-           minY, maxY, spanFramePFD->mBounds.height,
+#ifdef NOISY_BLOCKDIR_ALIGN
+    printf("     New: minBCoord=%d, maxBCoord=%d, bSize=%d, ascent=%d, logicalBSize=%d, topLeading=%d, bottomLeading=%d\n",
+           minBCoord, maxBCoord, spanFramePFD->mBounds.BSize(lineWM),
            spanFramePFD->mAscent,
-           psd->mLogicalHeight, psd->mTopLeading, psd->mBottomLeading);
+           psd->mLogicalBSize, psd->mBStartLeading, psd->mBEndLeading);
 #endif
   }
 
-  psd->mMinY = minY;
-  psd->mMaxY = maxY;
-#ifdef NOISY_VERTICAL_ALIGN
-  printf("  [span]==> minY=%d maxY=%d delta=%d maxTopBoxHeight=%d maxBottomBoxHeight=%d\n",
-         minY, maxY, maxY - minY, maxTopBoxHeight, maxBottomBoxHeight);
+  psd->mMinBCoord = minBCoord;
+  psd->mMaxBCoord = maxBCoord;
+#ifdef NOISY_BLOCKDIR_ALIGN
+  printf("  [span]==> minBCoord=%d maxBCoord=%d delta=%d maxStartBoxBSize=%d maxEndBoxBSize=%d\n",
+         minBCoord, maxBCoord, maxBCoord - minBCoord, maxStartBoxBSize, maxEndBoxBSize);
 #endif
-  if (maxTopBoxHeight > mMaxTopBoxHeight) {
-    mMaxTopBoxHeight = maxTopBoxHeight;
+  if (maxStartBoxBSize > mMaxStartBoxBSize) {
+    mMaxStartBoxBSize = maxStartBoxBSize;
   }
-  if (maxBottomBoxHeight > mMaxBottomBoxHeight) {
-    mMaxBottomBoxHeight = maxBottomBoxHeight;
+  if (maxEndBoxBSize > mMaxEndBoxBSize) {
+    mMaxEndBoxBSize = maxEndBoxBSize;
   }
 }
 
@@ -2221,19 +2267,11 @@ static void SlideSpanFrameRect(nsIFrame* aFrame, nscoord aDeltaWidth)
 
 bool
 nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
-                                       nscoord* aDeltaWidth)
+                                       nscoord* aDeltaISize)
 {
-#ifndef IBMBIDI
-
-  if (NS_STYLE_DIRECTION_RTL == psd->mDirection) {
-    *aDeltaWidth = 0;
-    return true;
-  }
-#endif
-
   PerFrameData* pfd = psd->mFirstFrame;
   if (!pfd) {
-    *aDeltaWidth = 0;
+    *aDeltaISize = 0;
     return false;
   }
   pfd = pfd->Last();
@@ -2247,13 +2285,14 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
     printf("\n");
 #endif
     PerSpanData* childSpan = pfd->mSpan;
+    WritingMode lineWM = mRootSpan->mWritingMode;
     if (childSpan) {
       
-      if (TrimTrailingWhiteSpaceIn(childSpan, aDeltaWidth)) {
-        nscoord deltaWidth = *aDeltaWidth;
-        if (deltaWidth) {
+      if (TrimTrailingWhiteSpaceIn(childSpan, aDeltaISize)) {
+        nscoord deltaISize = *aDeltaISize;
+        if (deltaISize) {
           
-          pfd->mBounds.width -= deltaWidth;
+          pfd->mBounds.ISize(lineWM) -= deltaISize;
           if (psd != mRootSpan) {
             
             
@@ -2262,13 +2301,13 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
             
             
             nsIFrame* f = pfd->mFrame;
-            nsRect r = f->GetRect();
-            r.width -= deltaWidth;
-            f->SetRect(r);
+            LogicalRect r(lineWM, f->GetRect(), mContainerWidth);
+            r.ISize(lineWM) -= deltaISize;
+            f->SetRect(lineWM, r, mContainerWidth);
           }
 
           
-          psd->mX -= deltaWidth;
+          psd->mICoord -= deltaISize;
 
           
           
@@ -2276,7 +2315,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
           
           while (pfd->mNext) {
             pfd = pfd->mNext;
-            pfd->mBounds.x -= deltaWidth;
+            pfd->mBounds.IStart(lineWM) -= deltaISize;
             if (psd != mRootSpan) {
               
               
@@ -2284,7 +2323,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
               
               
               
-              SlideSpanFrameRect(pfd->mFrame, deltaWidth);
+              SlideSpanFrameRect(pfd->mFrame, deltaISize);
             }
           }
         }
@@ -2295,7 +2334,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
              !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
       
       
-      *aDeltaWidth = 0;
+      *aDeltaISize = 0;
       return true;
     }
     else if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
@@ -2321,17 +2360,17 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
       }
 
       if (trimOutput.mDeltaWidth) {
-        pfd->mBounds.width -= trimOutput.mDeltaWidth;
+        pfd->mBounds.ISize(lineWM) -= trimOutput.mDeltaWidth;
 
         
         if (psd != mRootSpan) {
           
           
-          pfd->mFrame->SetRect(pfd->mBounds);
+          pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
         }
 
         
-        psd->mX -= trimOutput.mDeltaWidth;
+        psd->mICoord -= trimOutput.mDeltaWidth;
 
         
         
@@ -2339,7 +2378,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         
         while (pfd->mNext) {
           pfd = pfd->mNext;
-          pfd->mBounds.x -= trimOutput.mDeltaWidth;
+          pfd->mBounds.IStart(lineWM) -= trimOutput.mDeltaWidth;
           if (psd != mRootSpan) {
             
             
@@ -2354,14 +2393,14 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
 
       if (pfd->GetFlag(PFD_ISNONEMPTYTEXTFRAME) || trimOutput.mChanged) {
         
-        *aDeltaWidth = trimOutput.mDeltaWidth;
+        *aDeltaISize = trimOutput.mDeltaWidth;
         return true;
       }
     }
     pfd = pfd->mPrev;
   }
 
-  *aDeltaWidth = 0;
+  *aDeltaISize = 0;
   return false;
 }
 
@@ -2369,9 +2408,9 @@ bool
 nsLineLayout::TrimTrailingWhiteSpace()
 {
   PerSpanData* psd = mRootSpan;
-  nscoord deltaWidth;
-  TrimTrailingWhiteSpaceIn(psd, &deltaWidth);
-  return 0 != deltaWidth;
+  nscoord deltaISize;
+  TrimTrailingWhiteSpaceIn(psd, &deltaISize);
+  return 0 != deltaISize;
 }
 
 void
@@ -2412,14 +2451,15 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
   NS_ASSERTION(aPSD, "null arg");
   NS_ASSERTION(aState, "null arg");
 
-  nscoord deltaX = 0;
+  nscoord deltaICoord = 0;
   for (PerFrameData* pfd = aPSD->mFirstFrame; pfd != nullptr; pfd = pfd->mNext) {
     
     if (!pfd->GetFlag(PFD_ISBULLET)) {
       nscoord dw = 0;
-      
-      pfd->mBounds.x += deltaX;
-      
+      WritingMode lineWM = aPSD->mWritingMode;
+
+      pfd->mBounds.IStart(lineWM) += deltaICoord;
+
       if (true == pfd->GetFlag(PFD_ISTEXTFRAME)) {
         if (aState->mTotalWidthForSpaces > 0 &&
             aState->mTotalNumSpaces > 0) {
@@ -2456,36 +2496,39 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
           dw += ApplyFrameJustification(pfd->mSpan, aState);
         }
       }
-      
-      pfd->mBounds.width += dw;
 
-      deltaX += dw;
-      pfd->mFrame->SetRect(pfd->mBounds);
+      pfd->mBounds.ISize(lineWM) += dw;
+
+      deltaICoord += dw;
+      pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
     }
   }
-  return deltaX;
+  return deltaICoord;
 }
 
 void
-nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
-                                    bool aIsLastLine)
+nsLineLayout::InlineDirAlignFrames(nsRect& aLineBounds,
+                                    bool aIsLastLine,
+                                    int32_t aFrameCount)
 {
   
 
 
 
   PerSpanData* psd = mRootSpan;
-  NS_WARN_IF_FALSE(psd->mRightEdge != NS_UNCONSTRAINEDSIZE,
+  NS_WARN_IF_FALSE(psd->mIEnd != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
-  nscoord availWidth = psd->mRightEdge - psd->mLeftEdge;
+  nscoord availWidth = psd->mIEnd - psd->mIStart;
   nscoord remainingWidth = availWidth - aLineBounds.width;
-#ifdef NOISY_HORIZONTAL_ALIGN
+#ifdef NOISY_INLINEDIR_ALIGN
   nsFrame::ListTag(stdout, mBlockReflowState->frame);
-  printf(": availWidth=%d lineWidth=%d delta=%d\n",
-         availWidth, aLineBounds.width, remainingWidth);
+  printf(": availWidth=%d lineBounds.x=%d lineWidth=%d delta=%d\n",
+         availWidth, aLineBounds.x, aLineBounds.width, remainingWidth);
 #endif
+
+  WritingMode lineWM = psd->mWritingMode;
 
   
   
@@ -2531,30 +2574,27 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
         
 
       case NS_STYLE_TEXT_ALIGN_DEFAULT:
-        if (NS_STYLE_DIRECTION_LTR == psd->mDirection) {
-          
-          break;
-        }
         
-        
-
-      case NS_STYLE_TEXT_ALIGN_RIGHT:
-      case NS_STYLE_TEXT_ALIGN_MOZ_RIGHT:
-        dx = remainingWidth;
         break;
-
-      case NS_STYLE_TEXT_ALIGN_END:
-        if (NS_STYLE_DIRECTION_LTR == psd->mDirection) {
-          
-          dx = remainingWidth;
-          break;
-        }
-        
-        
 
       case NS_STYLE_TEXT_ALIGN_LEFT:
       case NS_STYLE_TEXT_ALIGN_MOZ_LEFT:
+        if (!lineWM.IsBidiLTR()) {
+          dx = remainingWidth;
+        }
         break;
+
+      case NS_STYLE_TEXT_ALIGN_RIGHT:
+      case NS_STYLE_TEXT_ALIGN_MOZ_RIGHT:
+        if (lineWM.IsBidiLTR()) {
+          dx = remainingWidth;
+        }
+        break;
+
+      case NS_STYLE_TEXT_ALIGN_END:
+        dx = remainingWidth;
+        break;
+
 
       case NS_STYLE_TEXT_ALIGN_CENTER:
       case NS_STYLE_TEXT_ALIGN_MOZ_CENTER:
@@ -2562,30 +2602,19 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
         break;
     }
   }
-  else if (remainingWidth < 0 || textAlignTrue) {
-    if (NS_STYLE_DIRECTION_RTL == psd->mDirection) {
-      dx = remainingWidth;
-      psd->mX += dx;
-      psd->mLeftEdge += dx;
-    }
-  }
-
-  if (NS_STYLE_DIRECTION_RTL == psd->mDirection &&
-      !psd->mChangedFrameDirection) {
-    if (psd->mLastFrame->GetFlag(PFD_ISBULLET) ) {
-      PerFrameData* bulletPfd = psd->mLastFrame;
-      bulletPfd->mBounds.x -= remainingWidth;
-      bulletPfd->mFrame->SetRect(bulletPfd->mBounds);
-    }
-    psd->mChangedFrameDirection = true;
-  }
 
   if (dx) {
     for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-      pfd->mBounds.x += dx;
-      pfd->mFrame->SetRect(pfd->mBounds);
+      pfd->mBounds.IStart(lineWM) += dx;
+      pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
     }
     aLineBounds.x += dx;
+  }
+
+  if (mPresContext->BidiEnabled() &&
+      (!mPresContext->IsVisualMode() || !lineWM.IsBidiLTR())) {
+    nsBidiPresUtils::ReorderFrames(psd->mFirstFrame->mFrame, aFrameCount,
+                                   lineWM, mContainerWidth);
   }
 }
 
@@ -2599,6 +2628,7 @@ void
 nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflowAreas)
 {
   nsOverflowAreas overflowAreas;
+  WritingMode wm = psd->mWritingMode;
   if (nullptr != psd->mFrame) {
     
     
@@ -2618,18 +2648,13 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
       psd->mFrame->mOverflowAreas.VisualOverflow(), adjustedBounds);
   }
   else {
+    LogicalRect rect(wm, psd->mIStart, mBStartEdge,
+                     psd->mICoord - psd->mIStart, mFinalLineBSize);
     
     
     
     
-    overflowAreas.VisualOverflow().x = psd->mLeftEdge;
-    
-    
-    overflowAreas.VisualOverflow().width =
-      psd->mX - overflowAreas.VisualOverflow().x;
-    overflowAreas.VisualOverflow().y = mTopEdge;
-    overflowAreas.VisualOverflow().height = mFinalLineHeight;
-
+    overflowAreas.VisualOverflow() = rect.GetPhysicalRect(wm, mContainerWidth);
     overflowAreas.ScrollableOverflow() = overflowAreas.VisualOverflow();
   }
 
@@ -2640,9 +2665,12 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
     
     if (pfd->GetFlag(PFD_RELATIVEPOS)) {
       
+      nsMargin physicalOffsets =
+        pfd->mOffsets.GetPhysicalMargin(pfd->mFrame->GetWritingMode());
+      
       
       nsHTMLReflowState::ApplyRelativePositioning(pfd->mFrame,
-                                                  pfd->mOffsets,
+                                                  physicalOffsets,
                                                   &origin);
       frame->SetPosition(origin);
     }
