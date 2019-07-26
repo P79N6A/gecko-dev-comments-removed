@@ -641,13 +641,15 @@ CairoImage::GetTextureClient(CompositableClient *aClient)
     return nullptr;
   }
 
+  TextureClientAutoUnlock autoUnolck(textureClient);
   {
     
     RefPtr<DrawTarget> dt = textureClient->GetAsDrawTarget();
+    if (!dt) {
+      return nullptr;
+    }
     dt->CopySurface(surface, IntRect(IntPoint(), surface->GetSize()), IntPoint());
   }
-
-  textureClient->Unlock();
 
   mTextureClients.Put(forwarder->GetSerial(), textureClient);
   return textureClient;
