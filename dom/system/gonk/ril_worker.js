@@ -2941,7 +2941,7 @@ let RIL = {
       
       
       if (this.appType == CARD_APPTYPE_SIM) {
-        ICCRecordHelper.getICCPhase();
+        ICCRecordHelper.readICCPhase();
         ICCRecordHelper.fetchICCRecords();
       } else if (this.appType == CARD_APPTYPE_USIM) {
         this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
@@ -10031,19 +10031,19 @@ let ICCRecordHelper = {
 
 
   fetchICCRecords: function fetchICCRecords() {
-    this.getICCID();
+    this.readICCID();
     RIL.getIMSI();
-    this.getMSISDN();
-    this.getAD();
-    this.getSST();
-    this.getMBDN();
+    this.readMSISDN();
+    this.readAD();
+    this.readSST();
+    this.readMBDN();
   },
 
   
 
 
 
-  getICCPhase: function getICCPhase() {
+  readICCPhase: function readICCPhase() {
     function callback() {
       let length = Buf.readUint32();
 
@@ -10064,7 +10064,7 @@ let ICCRecordHelper = {
   
 
 
-  getICCID: function getICCID() {
+  readICCID: function readICCID() {
     function callback() {
       let length = Buf.readUint32();
       RIL.iccInfo.iccid = GsmPDUHelper.readSwappedNibbleBcdString(length / 2);
@@ -10083,7 +10083,7 @@ let ICCRecordHelper = {
   
 
 
-  getMSISDN: function getMSISDN() {
+  readMSISDN: function readMSISDN() {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact || RIL.iccInfo.msisdn === contact.number) {
@@ -10101,7 +10101,7 @@ let ICCRecordHelper = {
   
 
 
-  getAD: function getAD() {
+  readAD: function readAD() {
     function callback() {
       let length = Buf.readUint32();
       
@@ -10135,7 +10135,7 @@ let ICCRecordHelper = {
   
 
 
-  getSPN: function getSPN() {
+  readSPN: function readSPN() {
     function callback() {
       let length = Buf.readUint32();
       
@@ -10166,7 +10166,7 @@ let ICCRecordHelper = {
   
 
 
-  getSST: function getSST() {
+  readSST: function readSST() {
     function callback() {
       let length = Buf.readUint32();
       
@@ -10185,14 +10185,14 @@ let ICCRecordHelper = {
       
       if (ICCUtilsHelper.isICCServiceAvailable("SPN")) {
         if (DEBUG) debug("SPN: SPN is available");
-        this.getSPN();
+        this.readSPN();
       } else {
         if (DEBUG) debug("SPN: SPN service is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("SPDI")) {
         if (DEBUG) debug("SPDI: SPDI available.");
-        this.getSPDI();
+        this.readSPDI();
       } else {
         if (DEBUG) debug("SPDI: SPDI service is not available");
       }
@@ -10206,18 +10206,18 @@ let ICCRecordHelper = {
 
       if (ICCUtilsHelper.isICCServiceAvailable("OPL")) {
         if (DEBUG) debug("OPL: OPL is available");
-        this.getOPL();
+        this.readOPL();
       } else {
         if (DEBUG) debug("OPL: OPL is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("CBMI")) {
-        this.getCBMI();
+        this.readCBMI();
       } else {
         RIL.cellBroadcastConfigs.CBMI = null;
       }
       if (ICCUtilsHelper.isICCServiceAvailable("CBMIR")) {
-        this.getCBMIR();
+        this.readCBMIR();
       } else {
         RIL.cellBroadcastConfigs.CBMIR = null;
       }
@@ -10306,7 +10306,7 @@ let ICCRecordHelper = {
 
 
 
-  getMBDN: function getMBDN() {
+  readMBDN: function readMBDN() {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact || RIL.iccInfo.mbdn === contact.number){
@@ -10538,7 +10538,7 @@ let ICCRecordHelper = {
 
 
 
-  getPLMNSelector: function getPLMNSelector() {
+  readPLMNSelector: function readPLMNSelector() {
     function callback() {
       if (DEBUG) debug("PLMN Selector: Process PLMN Selector");
 
@@ -10564,7 +10564,7 @@ let ICCRecordHelper = {
 
 
 
-  getSPDI: function getSPDI() {
+  readSPDI: function readSPDI() {
     function callback() {
       let length = Buf.readUint32();
       let readLen = 0;
@@ -10612,7 +10612,7 @@ let ICCRecordHelper = {
 
 
 
-  getCBMI: function getCBMI() {
+  readCBMI: function readCBMI() {
     function callback() {
       let strLength = Buf.readUint32();
 
@@ -10655,7 +10655,7 @@ let ICCRecordHelper = {
 
 
 
-  getCBMIR: function getCBMIR() {
+  readCBMIR: function readCBMIR() {
     function callback() {
       let strLength = Buf.readUint32();
 
@@ -10703,7 +10703,7 @@ let ICCRecordHelper = {
 
 
 
-  getOPL: function getOPL() {
+  readOPL: function readOPL() {
     let opl = [];
     function callback(options) {
       let len = Buf.readUint32();
@@ -11688,7 +11688,7 @@ let ICCContactHelper = {
 
 let RuimRecordHelper = {
   fetchRuimRecords: function fetchRuimRecords() {
-    ICCRecordHelper.getICCID();
+    ICCRecordHelper.readICCID();
     RIL.getIMSI();
     this.readCST();
     this.readCDMAHome();
