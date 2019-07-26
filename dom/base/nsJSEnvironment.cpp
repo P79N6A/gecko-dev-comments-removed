@@ -122,6 +122,9 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_CC_SKIPPABLE_DELAY       400 // ms
 
 
+static const int64_t kICCIntersliceDelay = 32; 
+
+
 
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
 #define NS_CC_FORCED_PURPLE_LIMIT   10
@@ -144,6 +147,7 @@ static PRLogModuleInfo* gJSDiagnostics;
 static nsITimer *sGCTimer;
 static nsITimer *sShrinkGCBuffersTimer;
 static nsITimer *sCCTimer;
+static nsITimer *sICCTimer;
 static nsITimer *sFullGCTimer;
 static nsITimer *sInterSliceGCTimer;
 
@@ -223,6 +227,7 @@ KillTimers()
   nsJSContext::KillGCTimer();
   nsJSContext::KillShrinkGCBuffersTimer();
   nsJSContext::KillCCTimer();
+  nsJSContext::KillICCTimer();
   nsJSContext::KillFullGCTimer();
   nsJSContext::KillInterSliceGCTimer();
 }
@@ -2082,6 +2087,30 @@ nsJSContext::ScheduledCycleCollectNow()
   nsCycleCollector_scheduledCollect();
 }
 
+static void
+ICCTimerFired(nsITimer* aTimer, void* aClosure)
+{
+  if (sDidShutdown) {
+    return;
+  }
+
+  
+  
+
+  if (sCCLockedOut) {
+    PRTime now = PR_Now();
+    if (sCCLockedOutTime == 0) {
+      sCCLockedOutTime = now;
+      return;
+    }
+    if (now - sCCLockedOutTime < NS_MAX_CC_LOCKEDOUT_TIME) {
+      return;
+    }
+  }
+
+  nsJSContext::ScheduledCycleCollectNow();
+}
+
 
 void
 nsJSContext::BeginCycleCollectionCallback()
@@ -2092,6 +2121,20 @@ nsJSContext::BeginCycleCollectionCallback()
   gCCStats.mSuspected = nsCycleCollector_suspectedCount();
 
   KillCCTimer();
+
+  MOZ_ASSERT(!sICCTimer, "Tried to create a new ICC timer when one already existed.");
+
+  if (!sIncrementalCC) {
+    return;
+  }
+
+  CallCreateInstance("@mozilla.org/timer;1", &sICCTimer);
+  if (sICCTimer) {
+    sICCTimer->InitWithFuncCallback(ICCTimerFired,
+                                    nullptr,
+                                    kICCIntersliceDelay,
+                                    nsITimer::TYPE_REPEATING_SLACK);
+  }
 }
 
 
@@ -2099,6 +2142,8 @@ void
 nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  nsJSContext::KillICCTimer();
 
   sCCollectedWaitingForGC += aResults.mFreedRefCounted + aResults.mFreedGCed;
 
@@ -2426,7 +2471,7 @@ nsJSContext::PokeShrinkGCBuffers()
 void
 nsJSContext::MaybePokeCC()
 {
-  if (sCCTimer || sShuttingDown || !sHasRunGC) {
+  if (sCCTimer || sICCTimer || sShuttingDown || !sHasRunGC) {
     return;
   }
 
@@ -2495,6 +2540,19 @@ nsJSContext::KillCCTimer()
     sCCTimer->Cancel();
 
     NS_RELEASE(sCCTimer);
+  }
+}
+
+
+void
+nsJSContext::KillICCTimer()
+{
+  sCCLockedOutTime = 0;
+
+  if (sICCTimer) {
+    sICCTimer->Cancel();
+
+    NS_RELEASE(sICCTimer);
   }
 }
 
@@ -2659,7 +2717,7 @@ void
 mozilla::dom::StartupJSEnvironment()
 {
   
-  sGCTimer = sFullGCTimer = sCCTimer = nullptr;
+  sGCTimer = sFullGCTimer = sCCTimer = sICCTimer = nullptr;
   sCCLockedOut = false;
   sCCLockedOutTime = 0;
   sLastCCEndTime = 0;
