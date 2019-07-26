@@ -24,6 +24,8 @@
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
 
+static const size_t MAX_READ_SIZE = 1 << 16;
+
 #undef LOG
 #if defined(MOZ_WIDGET_GONK)
 #include <android/log.h>
@@ -585,7 +587,7 @@ UnixSocketConsumer::SendSocketData(const nsACString& aStr)
   if (!mImpl) {
     return false;
   }
-  if (aStr.Length() > UnixSocketRawData::MAX_DATA_SIZE) {
+  if (aStr.Length() > MAX_READ_SIZE) {
     return false;
   }
   nsCString str(aStr);
@@ -629,15 +631,14 @@ UnixSocketImpl::OnFileCanReadWithoutBlocking(int aFd)
   
   while (true) {
     if (!mIncoming) {
-      mIncoming = new UnixSocketRawData();
-      ssize_t ret = read(aFd, mIncoming->mData, UnixSocketRawData::MAX_DATA_SIZE);
+      uint8_t data[MAX_READ_SIZE];
+      ssize_t ret = read(aFd, data, MAX_READ_SIZE);
       if (ret <= 0) {
         if (ret == -1) {
           if (errno == EINTR) {
             continue; 
           }
           else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            mIncoming.forget();
             return; 
           }
           
@@ -647,19 +648,18 @@ UnixSocketImpl::OnFileCanReadWithoutBlocking(int aFd)
 #endif
         
         
-        mIncoming.forget();
         mReadWatcher.StopWatchingFileDescriptor();
         mWriteWatcher.StopWatchingFileDescriptor();
         nsRefPtr<SocketCloseTask> t = new SocketCloseTask(this);
         NS_DispatchToMainThread(t);
         return;
       }
-      mIncoming->mData[ret] = 0;
-      mIncoming->mSize = ret;
+      mIncoming = new UnixSocketRawData(ret);
+      memcpy(mIncoming->mData, data, ret);
       nsRefPtr<SocketReceiveTask> t =
         new SocketReceiveTask(this, mIncoming.forget());
       NS_DispatchToMainThread(t);
-      if (ret < ssize_t(UnixSocketRawData::MAX_DATA_SIZE)) {
+      if (ret < ssize_t(MAX_READ_SIZE)) {
         return;
       }
     }

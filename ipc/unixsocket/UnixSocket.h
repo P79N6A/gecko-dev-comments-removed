@@ -16,10 +16,10 @@
 namespace mozilla {
 namespace ipc {
 
-struct UnixSocketRawData
+class UnixSocketRawData
 {
-  static const size_t MAX_DATA_SIZE = 1024;
-  uint8_t mData[MAX_DATA_SIZE];
+public:
+  nsAutoArrayPtr<uint8_t> mData;
 
   
   size_t mSize;
@@ -30,23 +30,14 @@ struct UnixSocketRawData
 
 
 
-  UnixSocketRawData() :
-    mSize(0),
-    mCurrentWriteOffset(0)
-  {
-  }
-
-  
-
-
-
-
   UnixSocketRawData(int aSize) :
     mSize(aSize),
     mCurrentWriteOffset(0)
   {
+    mData = new uint8_t[aSize];
   }
-
+private:
+  UnixSocketRawData() {}
 };
 
 class UnixSocketImpl;
