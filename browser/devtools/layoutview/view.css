@@ -22,7 +22,7 @@ body {
   vertical-align: top;
 }
 
-#header:dir(rtl) {
+body[dir=rtl] > #header {
   -moz-box-direction: reverse;
 }
 
@@ -34,7 +34,7 @@ body {
   -moz-box-flex: 1;
 }
 
-#element-size:dir(rtl) {
+body[dir=rtl] > #header > #element-size {
   -moz-box-pack: end;
 }
 
@@ -45,7 +45,7 @@ body {
 #main {
   margin: 0 10px 10px 10px;
   -moz-box-sizing: border-box;
-  width: calc(100% - 2 * 10px);
+  width: -moz-calc(100% - 2 * 10px);
   position: absolute;
   border-width: 1px;
   font: 10px/12px monospace;
@@ -108,7 +108,7 @@ body {
 }
 
 .top, .bottom {
-  width: calc(100% - 2px);
+  width: -moz-calc(100% - 2px);
   text-align: center;
 }
 
@@ -138,7 +138,7 @@ body {
 }
 
 .size {
-  width: calc(100% - 2px);
+  width: -moz-calc(100% - 2px);
 }
 
 .margin.right,
