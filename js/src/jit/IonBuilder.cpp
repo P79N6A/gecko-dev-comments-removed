@@ -654,7 +654,7 @@ IonBuilder::build()
     
     current->makeStart(MStart::New(alloc(), MStart::StartType_Default));
     if (instrumentedProfiling())
-        current->add(MFunctionBoundary::New(alloc(), script(), MFunctionBoundary::Enter));
+        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Enter));
 
     
     
@@ -793,9 +793,9 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     
     
     if (instrumentedProfiling()) {
-        predecessor->add(MFunctionBoundary::New(alloc(), script(),
-                                                MFunctionBoundary::Inline_Enter,
-                                                inliningDepth_));
+        predecessor->add(MProfilerStackOp::New(alloc(), script(),
+                                               MProfilerStackOp::InlineEnter,
+                                               inliningDepth_));
     }
 
     predecessor->end(MGoto::New(alloc(), current));
@@ -3628,8 +3628,8 @@ IonBuilder::processReturn(JSOp op)
     }
 
     if (instrumentedProfiling()) {
-        current->add(MFunctionBoundary::New(alloc(), script(), MFunctionBoundary::Exit,
-                                            inliningDepth_));
+        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Exit,
+                                           inliningDepth_));
     }
     MReturn *ret = MReturn::New(alloc(), def);
     current->end(ret);
@@ -3963,7 +3963,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
 
     
     if (instrumentedProfiling())
-        returnBlock->add(MFunctionBoundary::New(alloc(), nullptr, MFunctionBoundary::Inline_Exit));
+        returnBlock->add(MProfilerStackOp::New(alloc(), nullptr, MProfilerStackOp::InlineExit));
 
     
     returnBlock->inheritSlots(current);
