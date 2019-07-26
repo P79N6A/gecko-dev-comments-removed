@@ -144,7 +144,17 @@ bool CompositorParent::CreateThread()
   }
   sCompositorThreadRefCount = 1;
   sCompositorThread = new Thread("Compositor");
-  if (!sCompositorThread->Start()) {
+
+  Thread::Options options;
+  
+
+
+  options.transient_hang_timeout = 128; 
+  
+
+  options.permanent_hang_timeout = 8192; 
+
+  if (!sCompositorThread->StartWithOptions(options)) {
     delete sCompositorThread;
     sCompositorThread = nullptr;
     return false;

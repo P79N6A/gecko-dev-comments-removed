@@ -270,6 +270,20 @@ public:
 #endif  
 
   
+  
+  void set_hang_timeouts(uint32_t transient_timeout_ms,
+                         uint32_t permanent_timeout_ms) {
+    transient_hang_timeout_ = transient_timeout_ms;
+    permanent_hang_timeout_ = permanent_timeout_ms;
+  }
+  uint32_t transient_hang_timeout() const {
+    return transient_hang_timeout_;
+  }
+  uint32_t permanent_hang_timeout() const {
+    return permanent_hang_timeout_;
+  }
+
+  
  protected:
   struct RunState {
     
@@ -419,6 +433,10 @@ public:
   
   bool os_modal_loop_;
 #endif
+
+  
+  uint32_t transient_hang_timeout_;
+  uint32_t permanent_hang_timeout_;
 
   
   int next_sequence_num_;

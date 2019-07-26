@@ -5,6 +5,7 @@
 #ifndef BASE_THREAD_H_
 #define BASE_THREAD_H_
 
+#include <stdint.h>
 #include <string>
 
 #include "base/message_loop.h"
@@ -28,9 +29,21 @@ class Thread : PlatformThread::Delegate {
     
     size_t stack_size;
 
-    Options() : message_loop_type(MessageLoop::TYPE_DEFAULT), stack_size(0) {}
+    
+    
+    uint32_t transient_hang_timeout;
+    uint32_t permanent_hang_timeout;
+
+    Options()
+        : message_loop_type(MessageLoop::TYPE_DEFAULT)
+        , stack_size(0)
+        , transient_hang_timeout(0)
+        , permanent_hang_timeout(0) {}
     Options(MessageLoop::Type type, size_t size)
-        : message_loop_type(type), stack_size(size) {}
+        : message_loop_type(type)
+        , stack_size(size)
+        , transient_hang_timeout(0)
+        , permanent_hang_timeout(0) {}
   };
 
   
