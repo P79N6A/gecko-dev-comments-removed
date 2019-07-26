@@ -86,12 +86,22 @@ loop.webapp = (function($, TB, webl10n) {
       });
     },
 
+    
+
+
+
+
+    disableForm: function() {
+      this.$("button").attr("disabled", "disabled");
+    },
+
     initiate: function(event) {
       event.preventDefault();
       this.model.initiate({
         baseServerUrl: baseServerUrl,
         outgoing: true
       });
+      this.disableForm();
     }
   });
 
