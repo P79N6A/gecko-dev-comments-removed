@@ -483,6 +483,9 @@ function updateAboutMemoryFromReporters()
 }
 
 
+
+
+
 var gCurrentFileFormatVersion = 1;
 
 
@@ -958,8 +961,29 @@ function getPCollsByProcess(aProcessReports)
                   "non-sentence explicit description");
 
     } else {
-      assertInput(gSentenceRegExp.test(aDescription),
-                  "non-sentence other description");
+      const kLenientPrefixes =
+        ['rss/', 'pss/', 'size/', 'swap/', 'compartments/', 'ghost-windows/'];
+      let beLenient = function(aUnsafePath) {
+        for (let i = 0; i < kLenientPrefixes.length; i++) {
+          if (aUnsafePath.startsWith(kLenientPrefixes[i])) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      if (!beLenient(aUnsafePath)) {
+        assertInput(gSentenceRegExp.test(aDescription),
+                    "non-sentence other description: " + aUnsafePath + ", " +
+                    aDescription);
+      }
     }
 
     assert(aPresence === undefined ||
