@@ -163,6 +163,10 @@ GonkDisplayICS::GetHWCDevice()
 bool
 GonkDisplayICS::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
+    
+    
+    mFBSurface->compositionComplete();
+
     if (!mHwc)
         return eglSwapBuffers(dpy, sur);
 

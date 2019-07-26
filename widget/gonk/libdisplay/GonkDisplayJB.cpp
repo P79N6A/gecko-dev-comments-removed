@@ -166,6 +166,13 @@ GonkDisplayJB::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
     StopBootAnimation();
     mBootAnimBuffer = nullptr;
 
+    
+    
+    
+    
+    if (mFBDevice && mFBDevice->compositionComplete) {
+        mFBDevice->compositionComplete(mFBDevice);
+    }
     mList->outbuf = nullptr;
     mList->outbufAcquireFenceFd = -1;
     eglSwapBuffers(dpy, sur);
