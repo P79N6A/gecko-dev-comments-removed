@@ -3484,6 +3484,17 @@ nsDisplayScrollLayer::~nsDisplayScrollLayer()
 }
 #endif
 
+nsRect
+nsDisplayScrollLayer::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+{
+  nsIScrollableFrame* sf = do_QueryFrame(mScrollFrame);
+  if (sf) {
+    *aSnap = false;
+    return sf->GetScrollPortRect() + aBuilder->ToReferenceFrame(mScrollFrame);
+  }
+  return nsDisplayWrapList::GetBounds(aBuilder, aSnap);
+}
+
 already_AddRefed<Layer>
 nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
                                  LayerManager* aManager,
@@ -3510,7 +3521,7 @@ nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
       nsLayoutUtils::GetCriticalDisplayPort(content, &criticalDisplayport);
   }
   RecordFrameMetrics(mScrolledFrame, mScrollFrame, ReferenceFrame(), layer,
-                     mVisibleRect, viewport,
+                     mList.GetVisibleRect(), viewport,
                      (usingDisplayport ? &displayport : nullptr),
                      (usingCriticalDisplayport ? &criticalDisplayport : nullptr),
                      scrollId, false, aContainerParameters);
@@ -3534,28 +3545,29 @@ nsDisplayScrollLayer::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                         const nsRect& aAllowVisibleRegionExpansion)
 {
   nsRect displayport;
-  if (nsLayoutUtils::GetDisplayPort(mScrolledFrame->GetContent(), &displayport)) {
+  bool usingDisplayPort =
+    nsLayoutUtils::GetDisplayPort(mScrolledFrame->GetContent(), &displayport);
+  nsRegion childVisibleRegion;
+  if (usingDisplayPort) {
     
     
     
-
-    nsRegion childVisibleRegion = displayport + mScrollFrame->GetOffsetToCrossDoc(ReferenceFrame());
-
-    nsRect boundedRect =
-      childVisibleRegion.GetBounds().Intersect(mList.GetBounds(aBuilder));
-    nsRect allowExpansion = boundedRect.Intersect(aAllowVisibleRegionExpansion);
-    bool visible = mList.ComputeVisibilityForSublist(
-      aBuilder, &childVisibleRegion, boundedRect, allowExpansion);
-    
-    
-    
-    mVisibleRect = boundedRect;
-
-    return visible;
+    childVisibleRegion = displayport + mScrollFrame->GetOffsetToCrossDoc(ReferenceFrame());
   } else {
-    return nsDisplayWrapList::ComputeVisibility(aBuilder, aVisibleRegion,
-                                                aAllowVisibleRegionExpansion);
+    bool snap;
+    childVisibleRegion = GetBounds(aBuilder, &snap);
   }
+
+  nsRect boundedRect =
+    childVisibleRegion.GetBounds().Intersect(mList.GetBounds(aBuilder));
+  nsRect allowExpansion = boundedRect.Intersect(aAllowVisibleRegionExpansion);
+  bool visible = mList.ComputeVisibilityForSublist(
+    aBuilder, &childVisibleRegion, boundedRect, allowExpansion);
+  
+  
+  
+
+  return visible;
 }
 
 LayerState
@@ -3666,6 +3678,12 @@ nsDisplayScrollInfoLayer::~nsDisplayScrollInfoLayer()
   FrameProperties props = mScrolledFrame->Properties();
   props.Remove(nsIFrame::ScrollLayerCount());
   MOZ_COUNT_DTOR(nsDisplayScrollInfoLayer);
+}
+
+nsRect
+nsDisplayScrollInfoLayer::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
+{
+  return nsDisplayWrapList::GetBounds(aBuilder, aSnap);
 }
 
 LayerState
