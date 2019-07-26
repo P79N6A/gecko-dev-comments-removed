@@ -228,6 +228,39 @@ js::intrinsic_Dump(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+intrinsic_ParallelDo(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return parallel::Do(cx, args);
+}
+
+
+
+
+
 static JSBool
 intrinsic_ParallelSlices(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -408,6 +441,7 @@ JSFunctionSpec intrinsic_functions[] = {
     JS_FN("DecompileArg",         intrinsic_DecompileArg,         2,0),
     JS_FN("RuntimeDefaultLocale", intrinsic_RuntimeDefaultLocale, 0,0),
 
+    JS_FN("ParallelDo",           intrinsic_ParallelDo,           2,0),
     JS_FN("ParallelSlices",       intrinsic_ParallelSlices,       0,0),
     JS_FN("NewDenseArray",        intrinsic_NewDenseArray,        1,0),
     JS_FN("UnsafeSetElement",     intrinsic_UnsafeSetElement,     3,0),

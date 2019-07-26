@@ -19,6 +19,12 @@ namespace parallel {
 
 
 
+
+bool Do(JSContext *cx, CallArgs &args);
+
+
+
+
 enum ExecutionStatus {
     
     ExecutionFatal,
