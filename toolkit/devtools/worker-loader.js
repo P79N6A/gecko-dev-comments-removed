@@ -102,7 +102,6 @@ function createModule(id) {
 
 
 let chromeWhitelist = [
-  "devtools/server/main",
   "devtools/toolkit/transport/transport",
   "devtools/toolkit/transport/stream-utils",
   "devtools/toolkit/transport/packets",
