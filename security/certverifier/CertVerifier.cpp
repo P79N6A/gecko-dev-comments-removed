@@ -379,13 +379,6 @@ CertVerifier::MozillaPKIXVerifyCert(
                                                   : ocsp_get_disabled;
 
   SECStatus rv;
-  
-  
-  
-  
-
-  
-  
 
   mozilla::pkix::ScopedCERTCertList builtChain;
   switch (usage) {
