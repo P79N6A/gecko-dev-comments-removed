@@ -4,6 +4,13 @@
 
 
 
+#ifdef MOZ_WIDGET_QT
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QEventLoop>
+#include "NestedLoopTimer.h"
+#endif
+
 #include "mozilla/plugins/PluginModuleParent.h"
 
 #include "base/process_util.h"
@@ -37,12 +44,6 @@
 #elif XP_MACOSX
 #include "PluginInterposeOSX.h"
 #include "PluginUtilsOSX.h"
-#endif
-
-#ifdef MOZ_WIDGET_QT
-#include <QtCore/QCoreApplication>
-#include <QtCore/QEventLoop>
-#include "NestedLoopTimer.h"
 #endif
 
 using base::KillProcess;
