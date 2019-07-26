@@ -7453,15 +7453,11 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 nsViewportInfo
 nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
 {
-  
-  
-  
-
   switch (mViewportType) {
   case DisplayWidthHeight:
     return nsViewportInfo(aDisplaySize);
   case DisplayWidthHeightNoZoom:
-    return nsViewportInfo(aDisplaySize,  false,  false);
+    return nsViewportInfo(aDisplaySize,  false);
   case Unknown:
   {
     nsAutoString viewport;
@@ -7481,7 +7477,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
           {
             
             mViewportType = DisplayWidthHeight;
-            return nsViewportInfo(aDisplaySize, true, false);
+            return nsViewportInfo(aDisplaySize);
           }
         }
       }
@@ -7490,7 +7486,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
       if (handheldFriendly.EqualsLiteral("true")) {
         mViewportType = DisplayWidthHeight;
-        return nsViewportInfo(aDisplaySize, true, false);
+        return nsViewportInfo(aDisplaySize);
       }
 
       
@@ -7513,7 +7509,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
                                           "ImplicitMetaViewportTagFallback");
         }
         mViewportType = DisplayWidthHeightNoZoom;
-        return nsViewportInfo(aDisplaySize, false, false);
+        return nsViewportInfo(aDisplaySize,  false);
       }
     }
 
@@ -7587,7 +7583,6 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
         (userScalable.EqualsLiteral("false"))) {
       mAllowZoom = false;
     }
-    mAllowDoubleTapZoom = mAllowZoom;
 
     mScaleStrEmpty = scaleStr.IsEmpty();
     mWidthStrEmpty = widthStr.IsEmpty();
@@ -7654,7 +7649,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
     }
 
     return nsViewportInfo(scaleFloat, scaleMinFloat, scaleMaxFloat, size,
-                          mAutoSize, mAllowZoom, mAllowDoubleTapZoom);
+                          mAutoSize, mAllowZoom);
   }
 }
 
@@ -11323,7 +11318,7 @@ public:
     }
 
     if (doc->mIsApprovedForFullscreen || doc->mAllowRelocking) {
-      Allow();
+      Allow(JS::UndefinedHandleValue);
       return NS_OK;
     }
 
@@ -11368,8 +11363,10 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsPointerLockPermissionRequest,
 NS_IMETHODIMP
 nsPointerLockPermissionRequest::GetTypes(nsIArray** aTypes)
 {
+  nsTArray<nsString> emptyOptions;
   return CreatePermissionArray(NS_LITERAL_CSTRING("pointerLock"),
                                NS_LITERAL_CSTRING("unused"),
+                               emptyOptions,
                                aTypes);
 }
 
@@ -11414,8 +11411,10 @@ nsPointerLockPermissionRequest::Cancel()
 }
 
 NS_IMETHODIMP
-nsPointerLockPermissionRequest::Allow()
+nsPointerLockPermissionRequest::Allow(JS::HandleValue aChoices)
 {
+  MOZ_ASSERT(aChoices.isUndefined());
+
   nsCOMPtr<Element> e = do_QueryReferent(mElement);
   nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);
   nsDocument* d = static_cast<nsDocument*>(doc.get());
