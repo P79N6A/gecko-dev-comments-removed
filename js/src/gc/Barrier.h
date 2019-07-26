@@ -556,20 +556,21 @@ class HeapPtr : public BarrieredPtr<T>
 
 
 
-template <class T>
-class FixedHeapPtr
+template <typename T>
+class ImmutableTenuredPtr
 {
-    T *value;
+    T value;
 
   public:
-    operator T*() const { return value; }
-    T * operator->() const { return value; }
+    operator T() const { return value; }
+    T operator->() const { return value; }
 
-    operator Handle<T*>() const {
-        return Handle<T*>::fromMarkedLocation(&value);
+    operator Handle<T>() const {
+        return Handle<T>::fromMarkedLocation(&value);
     }
 
-    void init(T *ptr) {
+    void init(T ptr) {
+        JS_ASSERT(ptr->isTenured());
         value = ptr;
     }
 };
@@ -727,6 +728,8 @@ typedef BarrieredPtr<jsid> BarrieredId;
 typedef EncapsulatedPtr<jsid> EncapsulatedId;
 typedef RelocatablePtr<jsid> RelocatableId;
 typedef HeapPtr<jsid> HeapId;
+
+typedef ImmutableTenuredPtr<PropertyName*> ImmutablePropertyNamePtr;
 
 
 template <class T>
