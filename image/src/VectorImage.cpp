@@ -552,6 +552,23 @@ VectorImage::GetAnimated(bool* aAnimated)
 
 
 
+int32_t
+VectorImage::GetFirstFrameDelay()
+{
+  if (mError)
+    return -1;
+
+  if (!mSVGDocumentWrapper->IsAnimated())
+    return -1;
+
+  
+  
+  return 0;
+}
+
+
+
+
 NS_IMETHODIMP_(bool)
 VectorImage::FrameIsOpaque(uint32_t aWhichFrame)
 {
