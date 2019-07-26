@@ -278,16 +278,56 @@ class Program(SandboxDerived):
             program += bin_suffix
         self.program = program
 
-class XpcshellManifests(SandboxDerived):
-    """Build object container for XPCSHELL_TESTS_MANIFESTS (was: XPCSHELL_TESTS).
 
-    This object contains a list of xpcshell.ini manifest files.
-    """
-    __slots__ = ('xpcshell_manifests')
+class TestManifest(SandboxDerived):
+    """Represents a manifest file containing information about tests."""
 
-    def __init__(self, sandbox, manifests):
+    __slots__ = (
+        
+        'flavor',
+
+        
+        
+        'installs',
+
+        
+        
+        'install_prefix',
+
+        
+        'external_installs',
+
+        
+        'path',
+
+        
+        'directory',
+
+        
+        'manifest',
+
+        
+        'manifest_relpath',
+
+        
+        
+        'dupe_manifest',
+    )
+
+    def __init__(self, sandbox, path, manifest, flavor=None,
+            install_prefix=None, relpath=None, dupe_manifest=False):
         SandboxDerived.__init__(self, sandbox)
-        self.xpcshell_manifests = manifests
+
+        self.path = path
+        self.directory = os.path.dirname(path)
+        self.manifest = manifest
+        self.flavor = flavor
+        self.install_prefix = install_prefix
+        self.manifest_relpath = relpath
+        self.dupe_manifest = dupe_manifest
+        self.installs = {}
+        self.external_installs = set()
+
 
 class LocalInclude(SandboxDerived):
     """Describes an individual local include path."""

@@ -4,12 +4,18 @@
 
 from __future__ import unicode_literals
 
+import json
 import logging
 import os
+import traceback
+import sys
 
 from mach.mixin.logging import LoggingMixin
 
 import mozpack.path as mozpath
+import manifestparser
+
+from mozpack.files import FileFinder
 
 from .data import (
     ConfigFileSubstitution,
@@ -24,10 +30,10 @@ from .data import (
     Program,
     ReaderSummary,
     TestWebIDLFile,
+    TestManifest,
     VariablePassthru,
-    XPIDLFile,
-    XpcshellManifests,
     WebIDLFile,
+    XPIDLFile,
 )
 
 from .reader import (
@@ -48,6 +54,13 @@ class TreeMetadataEmitter(LoggingMixin):
         self.populate_logger()
 
         self.config = config
+
+        
+        mozinfo_path = os.path.join(config.topobjdir, 'mozinfo.json')
+        if os.path.exists(mozinfo_path):
+            self.mozinfo = json.load(open(mozinfo_path, 'rt'))
+        else:
+            self.mozinfo = {}
 
     def emit(self, output):
         """Convert the BuildReader output into data structures.
@@ -179,11 +192,135 @@ class TreeMetadataEmitter(LoggingMixin):
             ('PREPROCESSED_WEBIDL_FILES', PreprocessedWebIDLFile),
             ('TEST_WEBIDL_FILES', TestWebIDLFile),
             ('WEBIDL_FILES', WebIDLFile),
-            ('XPCSHELL_TESTS_MANIFESTS', XpcshellManifests),
         ]
         for sandbox_var, klass in simple_lists:
             for name in sandbox.get(sandbox_var, []):
                 yield klass(sandbox, name)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        test_manifests = dict(
+            A11Y=('a11y', 'testing/mochitest/a11y', True),
+            BROWSER_CHROME=('browser-chrome', 'testing/mochitest/browser', True),
+            MOCHITEST=('mochitest', 'testing/mochitest/tests', True),
+            MOCHITEST_CHROME=('chrome', 'testing/mochitest/chrome', True),
+            XPCSHELL_TESTS=('xpcshell', 'xpcshell', False),
+        )
+
+        for prefix, info in test_manifests.items():
+            for path in sandbox.get('%s_MANIFESTS' % prefix, []):
+                for obj in self._process_test_manifest(sandbox, info, path):
+                    yield obj
+
+    def _process_test_manifest(self, sandbox, info, manifest_path):
+        flavor, install_prefix, filter_inactive = info
+
+        manifest_path = os.path.normpath(manifest_path)
+        path = mozpath.normpath(mozpath.join(sandbox['SRCDIR'], manifest_path))
+        manifest_dir = mozpath.dirname(path)
+        manifest_reldir = mozpath.dirname(mozpath.relpath(path,
+            self.config.topsrcdir))
+
+        try:
+            m = manifestparser.TestManifest(manifests=[path], strict=True)
+
+            if not m.tests:
+                raise SandboxValidationError('Empty test manifest: %s'
+                    % path)
+
+            obj = TestManifest(sandbox, path, m, flavor=flavor,
+                install_prefix=install_prefix,
+                relpath=mozpath.join(manifest_reldir, mozpath.basename(path)),
+                dupe_manifest='dupe-manifest' in m.tests[0])
+
+            filtered = m.tests
+
+            if filter_inactive:
+                filtered = m.active_tests(**self.mozinfo)
+
+            out_dir = mozpath.join(install_prefix, manifest_reldir)
+
+            finder = FileFinder(base=manifest_dir, find_executables=False)
+
+            for test in filtered:
+                obj.installs[mozpath.normpath(test['path'])] = \
+                    mozpath.join(out_dir, test['relpath'])
+
+                
+                
+                
+                for thing in ('head', 'tail', 'support-files'):
+                    for pattern in test.get(thing, '').split():
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        if '*' in pattern and thing == 'support-files':
+                            paths = [f[0] for f in finder.find(pattern)]
+                            if not paths:
+                                raise SandboxValidationError('%s support-files '
+                                    'wildcard in %s returns no results.' % (
+                                    pattern, path))
+
+                            for f in paths:
+                                full = mozpath.normpath(mozpath.join(manifest_dir, f))
+                                obj.installs[full] = mozpath.join(out_dir, f)
+
+                        else:
+                            full = mozpath.normpath(mozpath.join(manifest_dir,
+                                pattern))
+                            
+                            
+                            if not full.startswith(manifest_dir):
+                                continue
+
+                            obj.installs[full] = mozpath.join(out_dir, pattern)
+
+            
+            out_path = mozpath.join(out_dir, os.path.basename(manifest_path))
+            obj.installs[path] = out_path
+
+            
+            
+            
+            
+            
+            for f in m.tests[0].get('generated-files', '').split():
+                
+                try:
+                    del obj.installs[mozpath.join(manifest_dir, f)]
+                except KeyError:
+                    raise SandboxValidationError('Error processing test '
+                        'manifest %s: entry in generated-files not present '
+                        'elsewhere in manifest: %s' % (path, f))
+
+                obj.external_installs.add(mozpath.join(out_dir, f))
+
+            yield obj
+        except (AssertionError, Exception):
+            raise SandboxValidationError('Error processing test '
+                'manifest file %s: %s' % (path,
+                    '\n'.join(traceback.format_exception(*sys.exc_info()))))
 
     def _emit_directory_traversal_from_sandbox(self, sandbox):
         o = DirectoryTraversal(sandbox)
