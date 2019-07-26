@@ -196,7 +196,7 @@ function testReceiving_ETWS_Timestamp() {
   doTestHelper(pdu, testReceiving_ETWS_WarningType, function(message) {
     
     
-    let msMessage = message.timestamp.getTime();
+    let msMessage = message.timestamp;
     let msNow = Date.now();
     ok(Math.abs(msMessage - msNow) < (1000 * 60), "message.timestamp");
   });
