@@ -123,7 +123,6 @@ public:
     info.spaceType() = mSpaceType;
 
     EnableFMRadio(info);
-    IFMRadioService::Singleton()->EnableAudio(true);
 
     return NS_OK;
   }
@@ -302,9 +301,9 @@ FMRadioService::EnableAudio(bool aAudioEnabled)
     return;
   }
 
-  bool AudioEnabled;
-  audioManager->GetFmRadioAudioEnabled(&AudioEnabled);
-  if (AudioEnabled != aAudioEnabled) {
+  bool audioEnabled;
+  audioManager->GetFmRadioAudioEnabled(&audioEnabled);
+  if (audioEnabled != aAudioEnabled) {
     audioManager->SetFmRadioAudioEnabled(aAudioEnabled);
   }
 }
@@ -735,6 +734,12 @@ FMRadioService::Notify(const FMRadioOperationInformation& aInfo)
       
       
       SetFMRadioFrequency(mPendingFrequencyInKHz);
+
+      
+      
+      
+      
+      EnableAudio(true);
 
       
       
