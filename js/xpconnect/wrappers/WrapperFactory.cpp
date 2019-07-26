@@ -686,4 +686,32 @@ TransplantObjectWithWrapper(JSContext *cx,
     return newSameCompartmentWrapper;
 }
 
+nsIGlobalObject *
+GetNativeForGlobal(JSObject *obj)
+{
+    MOZ_ASSERT(JS_IsGlobalObject(obj));
+    if (!EnsureCompartmentPrivate(obj)->scope)
+        return nullptr;
+
+    
+    MOZ_ASSERT(GetObjectClass(obj)->flags & (JSCLASS_PRIVATE_IS_NSISUPPORTS |
+                                             JSCLASS_HAS_PRIVATE));
+    nsISupports *native =
+        static_cast<nsISupports *>(js::GetObjectPrivate(obj));
+    MOZ_ASSERT(native);
+
+    
+    
+    
+    
+    if (nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(native)) {
+        native = wn->Native();
+    }
+
+    nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(native);
+    MOZ_ASSERT(global, "Native held by global needs to implement nsIGlobalObject!");
+
+    return global;
+}
+
 }
