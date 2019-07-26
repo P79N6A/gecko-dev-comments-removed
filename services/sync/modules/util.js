@@ -2,8 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "NetUtil",
-                         "FileUtils", "Utils", "Async", "Svc", "Str"];
+this.EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "Utils", "Async", "Svc", "Str"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -14,11 +13,11 @@ Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-common/async.js", this);
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://gre/modules/FileUtils.jsm", this);
-Cu.import("resource://gre/modules/NetUtil.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/osfile.jsm", this);
+Cu.import("resource://gre/modules/Task.jsm", this);
 
 
 
@@ -337,41 +336,28 @@ this.Utils = {
 
 
 
-  jsonLoad: function jsonLoad(filePath, that, callback) {
-    let path = "weave/" + filePath + ".json";
+  jsonLoad: Task.async(function*(filePath, that, callback) {
+    let path = OS.Path.join(OS.Constants.Path.profileDir, "weave", filePath + ".json");
 
     if (that._log) {
       that._log.trace("Loading json from disk: " + filePath);
     }
 
-    let file = FileUtils.getFile("ProfD", path.split("/"), true);
-    if (!file.exists()) {
-      callback.call(that);
-      return;
+    let json;
+
+    try {
+      json = yield CommonUtils.readJSON(path);
+    } catch (e if e instanceof OS.File.Error && e.becauseNoSuchFile) {
+      
+    } catch (e) {
+      if (that._log) {
+        that._log.debug("Failed to load json: " +
+                        CommonUtils.exceptionStr(e));
+      }
     }
 
-    let channel = NetUtil.newChannel(file);
-    channel.contentType = "application/json";
-
-    NetUtil.asyncFetch(channel, function (is, result) {
-      if (!Components.isSuccessCode(result)) {
-        callback.call(that);
-        return;
-      }
-      let string = NetUtil.readInputStreamToString(is, is.available());
-      is.close();
-      let json;
-      try {
-        json = JSON.parse(string);
-      } catch (ex) {
-        if (that._log) {
-          that._log.debug("Failed to load json: " +
-                          CommonUtils.exceptionStr(ex));
-        }
-      }
-      callback.call(that, json);
-    });
-  },
+    callback.call(that, json);
+  }),
 
   
 
@@ -389,25 +375,27 @@ this.Utils = {
 
 
 
-  jsonSave: function jsonSave(filePath, that, obj, callback) {
-    let path = "weave/" + filePath + ".json";
-    if (that._log) {
-      that._log.trace("Saving json to disk: " + path);
-    }
+  jsonSave: Task.async(function*(filePath, that, obj, callback) {
+    let path = OS.Path.join(OS.Constants.Path.profileDir, "weave",
+                            ...(filePath + ".json").split("/"));
+    let dir = OS.Path.dirname(path);
+    let error = null;
 
-    let file = FileUtils.getFile("ProfD", path.split("/"), true);
-    let json = typeof obj == "function" ? obj.call(that) : obj;
-    let out = JSON.stringify(json);
+    try {
+      yield OS.File.makeDir(dir, { from: OS.Constants.Path.profileDir });
 
-    let fos = FileUtils.openSafeFileOutputStream(file);
-    let is = this._utf8Converter.convertToInputStream(out);
-    NetUtil.asyncCopy(is, fos, function (result) {
-      if (typeof callback == "function") {
-        let error = (result == Cr.NS_OK) ? null : result;
-        callback.call(that, error);
+      if (that._log) {
+        that._log.trace("Saving json to disk: " + path);
       }
-    });
-  },
+
+      let json = typeof obj == "function" ? obj.call(that) : obj;
+
+      yield CommonUtils.writeJSON(json, path);
+    } catch (e) {
+      error = e
+    }
+    callback.call(that, error);
+  }),
 
   getErrorString: function Utils_getErrorString(error, args) {
     try {
