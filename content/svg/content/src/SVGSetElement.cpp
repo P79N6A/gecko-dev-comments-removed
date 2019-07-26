@@ -20,7 +20,7 @@ SVGSetElement::WrapNode(JSContext *aCx)
 
 
 
-SVGSetElement::SVGSetElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGSetElement::SVGSetElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGAnimationElement(aNodeInfo)
 {
 }

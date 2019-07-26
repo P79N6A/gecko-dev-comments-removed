@@ -32,7 +32,7 @@ nsSVGElement::LengthInfo SVGForeignObjectElement::sLengthInfo[4] =
 
 
 
-SVGForeignObjectElement::SVGForeignObjectElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGForeignObjectElement::SVGForeignObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGGraphicsElement(aNodeInfo)
 {
 }

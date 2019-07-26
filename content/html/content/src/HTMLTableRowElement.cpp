@@ -171,7 +171,7 @@ HTMLTableRowElement::InsertCell(int32_t aIndex,
   }
 
   
-  nsCOMPtr<nsINodeInfo> nodeInfo;
+  nsRefPtr<mozilla::dom::NodeInfo> nodeInfo;
   nsContentUtils::NameChanged(mNodeInfo, nsGkAtoms::td,
                               getter_AddRefs(nodeInfo));
 

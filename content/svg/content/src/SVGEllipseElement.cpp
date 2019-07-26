@@ -33,7 +33,7 @@ nsSVGElement::LengthInfo SVGEllipseElement::sLengthInfo[4] =
 
 
 
-SVGEllipseElement::SVGEllipseElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGEllipseElement::SVGEllipseElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGEllipseElementBase(aNodeInfo)
 {
 }

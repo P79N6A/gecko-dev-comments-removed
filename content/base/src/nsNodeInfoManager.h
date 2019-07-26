@@ -21,12 +21,16 @@ class nsBindingManager;
 class nsIAtom;
 class nsIDocument;
 class nsIDOMDocumentType;
-class nsINodeInfo;
 class nsIPrincipal;
-class nsNodeInfo;
 struct PLHashEntry;
 struct PLHashTable;
 template<class T> struct already_AddRefed;
+
+namespace mozilla {
+namespace dom {
+class NodeInfo;
+}
+}
 
 class nsNodeInfoManager MOZ_FINAL
 {
@@ -52,31 +56,30 @@ public:
   
 
 
-  already_AddRefed<nsINodeInfo> GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
-                                            int32_t aNamespaceID,
-                                            uint16_t aNodeType,
-                                            nsIAtom* aExtraName = nullptr);
+  already_AddRefed<mozilla::dom::NodeInfo>
+  GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, int32_t aNamespaceID,
+              uint16_t aNodeType, nsIAtom* aExtraName = nullptr);
   nsresult GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
                        int32_t aNamespaceID, uint16_t aNodeType,
-                       nsINodeInfo** aNodeInfo);
+                       mozilla::dom::NodeInfo** aNodeInfo);
   nsresult GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
                        const nsAString& aNamespaceURI, uint16_t aNodeType,
-                       nsINodeInfo** aNodeInfo);
+                       mozilla::dom::NodeInfo** aNodeInfo);
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetTextNodeInfo();
+  already_AddRefed<mozilla::dom::NodeInfo> GetTextNodeInfo();
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetCommentNodeInfo();
+  already_AddRefed<mozilla::dom::NodeInfo> GetCommentNodeInfo();
 
   
 
 
-  already_AddRefed<nsINodeInfo> GetDocumentNodeInfo();
+  already_AddRefed<mozilla::dom::NodeInfo> GetDocumentNodeInfo();
 
   
 
@@ -95,7 +98,7 @@ public:
     return mPrincipal;
   }
 
-  void RemoveNodeInfo(nsNodeInfo *aNodeInfo);
+  void RemoveNodeInfo(mozilla::dom::NodeInfo *aNodeInfo);
 
   nsBindingManager* GetBindingManager() const
   {
@@ -128,9 +131,9 @@ private:
   uint32_t mNonDocumentNodeInfos;
   nsCOMPtr<nsIPrincipal> mPrincipal; 
   nsCOMPtr<nsIPrincipal> mDefaultPrincipal; 
-  nsINodeInfo *mTextNodeInfo; 
-  nsINodeInfo *mCommentNodeInfo; 
-  nsINodeInfo *mDocumentNodeInfo; 
+  mozilla::dom::NodeInfo *mTextNodeInfo; 
+  mozilla::dom::NodeInfo *mCommentNodeInfo; 
+  mozilla::dom::NodeInfo *mDocumentNodeInfo; 
   nsRefPtr<nsBindingManager> mBindingManager;
 };
 

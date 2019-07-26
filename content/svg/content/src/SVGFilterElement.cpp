@@ -50,7 +50,7 @@ nsSVGElement::StringInfo SVGFilterElement::sStringInfo[1] =
 
 
 
-SVGFilterElement::SVGFilterElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGFilterElement::SVGFilterElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGFilterElementBase(aNodeInfo)
 {
 }

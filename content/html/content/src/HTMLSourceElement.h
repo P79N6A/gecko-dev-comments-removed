@@ -19,7 +19,7 @@ class HTMLSourceElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsIDOMHTMLSourceElement
 {
 public:
-  HTMLSourceElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
+  HTMLSourceElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~HTMLSourceElement();
 
   
@@ -28,7 +28,7 @@ public:
   
   NS_DECL_NSIDOMHTMLSOURCEELEMENT
 
-  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
   
   

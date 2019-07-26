@@ -1511,7 +1511,7 @@ bool nsMenuPopupFrame::ConsumeOutsideClicks()
 
   nsCOMPtr<nsIContent> parentContent = mContent->GetParent();
   if (parentContent) {
-    nsINodeInfo *ni = parentContent->NodeInfo();
+    dom::NodeInfo *ni = parentContent->NodeInfo();
     if (ni->Equals(nsGkAtoms::menulist, kNameSpaceID_XUL))
       return true;  
 #if defined(XP_WIN)

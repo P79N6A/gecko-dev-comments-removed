@@ -4,59 +4,72 @@
 
 
 
+#ifndef mozilla_dom_NodeInfoInlines_h___
+#define mozilla_dom_NodeInfoInlines_h___
 
-
-
-
-
-
-#ifndef nsNodeInfo_h___
-#define nsNodeInfo_h___
-
-#include "mozilla/Attributes.h"
-#include "nsINodeInfo.h"
-#include "nsNodeInfoManager.h"
-#include "plhash.h"
 #include "nsIAtom.h"
-#include "nsCOMPtr.h"
 #include "nsIDOMNode.h"
+#include "nsDOMString.h"
 #include "nsGkAtoms.h"
 
-class nsNodeInfo : public nsINodeInfo
+namespace mozilla {
+namespace dom {
+
+inline bool
+NodeInfo::Equals(NodeInfo *aNodeInfo) const
 {
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_CLASS(nsNodeInfo)
+  return aNodeInfo == this || aNodeInfo->Equals(mInner.mName, mInner.mPrefix,
+                                                mInner.mNamespaceID);
+}
 
-  
-  virtual void GetNamespaceURI(nsAString& aNameSpaceURI) const;
-  virtual bool NamespaceEquals(const nsAString& aNamespaceURI) const MOZ_OVERRIDE;
+inline bool
+NodeInfo::NameAndNamespaceEquals(NodeInfo *aNodeInfo) const
+{
+  return aNodeInfo == this || aNodeInfo->Equals(mInner.mName,
+                                                mInner.mNamespaceID);
+}
 
-  
-public:
-  
+inline bool
+NodeInfo::Equals(const nsAString& aName) const
+{
+  return mInner.mName->Equals(aName);
+}
 
+inline bool
+NodeInfo::Equals(const nsAString& aName, const nsAString& aPrefix) const
+{
+  return mInner.mName->Equals(aName) &&
+    (mInner.mPrefix ? mInner.mPrefix->Equals(aPrefix) : aPrefix.IsEmpty());
+}
 
-  nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, int32_t aNamespaceID,
-             uint16_t aNodeType, nsIAtom *aExtraName,
-             nsNodeInfoManager *aOwnerManager);
+inline bool
+NodeInfo::Equals(const nsAString& aName, int32_t aNamespaceID) const
+{
+  return mInner.mNamespaceID == aNamespaceID &&
+    mInner.mName->Equals(aName);
+}
 
-private:
-  nsNodeInfo(); 
-  nsNodeInfo(const nsNodeInfo& aOther); 
-protected:
-  virtual ~nsNodeInfo();
+inline bool
+NodeInfo::Equals(const nsAString& aName, const nsAString& aPrefix,
+                 int32_t aNamespaceID) const
+{
+  return mInner.mName->Equals(aName) && mInner.mNamespaceID == aNamespaceID &&
+    (mInner.mPrefix ? mInner.mPrefix->Equals(aPrefix) : aPrefix.IsEmpty());
+}
 
-public:
-  bool CanSkip();
+inline bool
+NodeInfo::QualifiedNameEquals(nsIAtom* aNameAtom) const
+{
+  MOZ_ASSERT(aNameAtom, "Must have name atom");
+  if (!GetPrefixAtom()) {
+    return Equals(aNameAtom);
+  }
 
-private:
-  
+  return aNameAtom->Equals(mQualifiedName);
+}
 
-
-
-  void LastRelease();
-};
+} 
+} 
 
 inline void
 CheckValidNodeInfo(uint16_t aNodeType, nsIAtom *aName, int32_t aNamespaceID,

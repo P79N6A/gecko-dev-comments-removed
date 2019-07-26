@@ -26,7 +26,7 @@ class WebVTTListener;
 class HTMLTrackElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLTrackElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
+  HTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~HTMLTrackElement();
 
   
@@ -90,7 +90,7 @@ public:
 
   TextTrack* GetTrack();
 
-  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
   
   virtual void GetItemValueText(nsAString& aText) MOZ_OVERRIDE

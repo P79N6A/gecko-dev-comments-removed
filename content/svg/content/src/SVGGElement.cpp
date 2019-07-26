@@ -20,7 +20,7 @@ SVGGElement::WrapNode(JSContext *aCx)
 
 
 
-SVGGElement::SVGGElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGGElement::SVGGElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGGraphicsElement(aNodeInfo)
 {
 }

@@ -66,12 +66,12 @@ protected:
 
     nsresult OpenRoot(const char16_t** aAttributes,
                       const uint32_t aAttrLen,
-                      nsINodeInfo *aNodeInfo);
+                      mozilla::dom::NodeInfo *aNodeInfo);
 
     nsresult OpenTag(const char16_t** aAttributes,
                      const uint32_t aAttrLen,
                      const uint32_t aLineNumber,
-                     nsINodeInfo *aNodeInfo);
+                     mozilla::dom::NodeInfo *aNodeInfo);
 
     
     
@@ -93,7 +93,7 @@ protected:
 
     nsresult NormalizeAttributeString(const char16_t *aExpatName,
                                       nsAttrName &aName);
-    nsresult CreateElement(nsINodeInfo *aNodeInfo,
+    nsresult CreateElement(mozilla::dom::NodeInfo *aNodeInfo,
                            nsXULPrototypeElement** aResult);
 
 

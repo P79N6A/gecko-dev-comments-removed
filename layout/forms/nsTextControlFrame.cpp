@@ -16,7 +16,6 @@
 #include "nsTextFragment.h"
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsNameSpaceManager.h"
-#include "nsINodeInfo.h"
 #include "nsFormControlFrame.h" 
 
 #include "nsIContent.h"

@@ -61,7 +61,7 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   ErrorResult er;
   
   if (PresShell::TouchCaretPrefEnabled()) {
-    nsCOMPtr<nsINodeInfo> nodeInfo;
+    nsRefPtr<dom::NodeInfo> nodeInfo;
 
     
     nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,

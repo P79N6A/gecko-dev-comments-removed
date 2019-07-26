@@ -1796,7 +1796,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
          rulenode;
          rulenode = rulenode->GetNextSibling()) {
 
-        nsINodeInfo *ni = rulenode->NodeInfo();
+        mozilla::dom::NodeInfo *ni = rulenode->NodeInfo();
 
         
         if (*aPriority == INT16_MAX)

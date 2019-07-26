@@ -88,7 +88,7 @@ public:
                              nsCaseTreatment aCaseSensitive) const;
   const nsAttrValue* AttrAt(uint32_t aPos) const;
   nsresult SetAndTakeAttr(nsIAtom* aLocalName, nsAttrValue& aValue);
-  nsresult SetAndTakeAttr(nsINodeInfo* aName, nsAttrValue& aValue);
+  nsresult SetAndTakeAttr(mozilla::dom::NodeInfo* aName, nsAttrValue& aValue);
 
   
   

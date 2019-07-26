@@ -54,7 +54,7 @@ public:
   
   
 
-  nsIContent(already_AddRefed<nsINodeInfo>& aNodeInfo)
+  nsIContent(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsINode(aNodeInfo)
   {
     MOZ_ASSERT(mNodeInfo);
@@ -264,7 +264,7 @@ public:
 
 
 
-  inline nsINodeInfo* NodeInfo() const
+  inline mozilla::dom::NodeInfo* NodeInfo() const
   {
     return mNodeInfo;
   }

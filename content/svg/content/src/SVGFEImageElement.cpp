@@ -47,7 +47,7 @@ NS_IMPL_ISUPPORTS_INHERITED(SVGFEImageElement, SVGFEImageElementBase,
 
 
 
-SVGFEImageElement::SVGFEImageElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+SVGFEImageElement::SVGFEImageElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
   : SVGFEImageElementBase(aNodeInfo)
 {
   
