@@ -51,6 +51,53 @@ public:
   bool mIsInfinite;
 };
 
+struct ContainerLayerParameters {
+  ContainerLayerParameters() :
+    mXScale(1), mYScale(1), mAncestorClipRect(nullptr),
+    mInTransformedSubtree(false), mInActiveTransformedSubtree(false),
+    mDisableSubpixelAntialiasingInDescendants(false)
+  {}
+  ContainerLayerParameters(float aXScale, float aYScale) :
+    mXScale(aXScale), mYScale(aYScale), mAncestorClipRect(nullptr),
+    mInTransformedSubtree(false), mInActiveTransformedSubtree(false),
+    mDisableSubpixelAntialiasingInDescendants(false)
+  {}
+  ContainerLayerParameters(float aXScale, float aYScale,
+                           const nsIntPoint& aOffset,
+                           const ContainerLayerParameters& aParent) :
+    mXScale(aXScale), mYScale(aYScale), mAncestorClipRect(nullptr),
+    mOffset(aOffset),
+    mInTransformedSubtree(aParent.mInTransformedSubtree),
+    mInActiveTransformedSubtree(aParent.mInActiveTransformedSubtree),
+    mDisableSubpixelAntialiasingInDescendants(aParent.mDisableSubpixelAntialiasingInDescendants)
+  {}
+  float mXScale, mYScale;
+  
+
+
+
+  const nsIntRect* mAncestorClipRect;
+  
+
+
+  nsIntPoint mOffset;
+
+  bool mInTransformedSubtree;
+  bool mInActiveTransformedSubtree;
+  bool mDisableSubpixelAntialiasingInDescendants;
+  
+
+
+
+  bool AllowResidualTranslation()
+  {
+    
+    
+    
+    return mInTransformedSubtree && !mInActiveTransformedSubtree;
+  }
+};
+
 
 
 
@@ -132,52 +179,6 @@ public:
 
   void DidEndTransaction();
 
-  struct ContainerParameters {
-    ContainerParameters() :
-      mXScale(1), mYScale(1), mAncestorClipRect(nullptr),
-      mInTransformedSubtree(false), mInActiveTransformedSubtree(false),
-      mDisableSubpixelAntialiasingInDescendants(false)
-    {}
-    ContainerParameters(float aXScale, float aYScale) :
-      mXScale(aXScale), mYScale(aYScale), mAncestorClipRect(nullptr),
-      mInTransformedSubtree(false), mInActiveTransformedSubtree(false),
-      mDisableSubpixelAntialiasingInDescendants(false)
-    {}
-    ContainerParameters(float aXScale, float aYScale,
-                        const nsIntPoint& aOffset,
-                        const ContainerParameters& aParent) :
-      mXScale(aXScale), mYScale(aYScale), mAncestorClipRect(nullptr),
-      mOffset(aOffset),
-      mInTransformedSubtree(aParent.mInTransformedSubtree),
-      mInActiveTransformedSubtree(aParent.mInActiveTransformedSubtree),
-      mDisableSubpixelAntialiasingInDescendants(aParent.mDisableSubpixelAntialiasingInDescendants)
-    {}
-    float mXScale, mYScale;
-    
-
-
-
-    const nsIntRect* mAncestorClipRect;
-    
-
-
-    nsIntPoint mOffset;
-
-    bool mInTransformedSubtree;
-    bool mInActiveTransformedSubtree;
-    bool mDisableSubpixelAntialiasingInDescendants;
-    
-
-
-
-    bool AllowResidualTranslation()
-    {
-      
-      
-      
-      return mInTransformedSubtree && !mInActiveTransformedSubtree;
-    }
-  };
   enum {
     CONTAINER_NOT_CLIPPED_BY_ANCESTORS = 0x01
   };
@@ -204,7 +205,7 @@ public:
                          nsIFrame* aContainerFrame,
                          nsDisplayItem* aContainerItem,
                          const nsDisplayList& aChildren,
-                         const ContainerParameters& aContainerParameters,
+                         const ContainerLayerParameters& aContainerParameters,
                          const gfx3DMatrix* aTransform,
                          uint32_t aFlags = 0);
 

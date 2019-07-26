@@ -233,7 +233,7 @@ public:
                  nsIFrame* aContainerFrame,
                  nsDisplayItem* aContainerItem,
                  ContainerLayer* aContainerLayer,
-                 const FrameLayerBuilder::ContainerParameters& aParameters) :
+                 const ContainerLayerParameters& aParameters) :
     mBuilder(aBuilder), mManager(aManager),
     mLayerBuilder(aLayerBuilder),
     mContainerFrame(aContainerFrame),
@@ -637,7 +637,7 @@ protected:
   nsIFrame*                        mContainerFrame;
   const nsIFrame*                  mContainerReferenceFrame;
   ContainerLayer*                  mContainerLayer;
-  FrameLayerBuilder::ContainerParameters mParameters;
+  ContainerLayerParameters         mParameters;
   
 
 
@@ -2546,7 +2546,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
   
       nsAutoPtr<LayerProperties> props(LayerProperties::CloneFrom(tempManager->GetRoot()));
       nsRefPtr<Layer> layer =
-        aItem->BuildLayer(mDisplayListBuilder, tempManager, FrameLayerBuilder::ContainerParameters());
+        aItem->BuildLayer(mDisplayListBuilder, tempManager, ContainerLayerParameters());
       
       
       if (!layer) {
@@ -2792,10 +2792,10 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
                            nsDisplayListBuilder* aDisplayListBuilder,
                            nsIFrame* aContainerFrame,
                            const gfx3DMatrix* aTransform,
-                           const FrameLayerBuilder::ContainerParameters& aIncomingScale,
+                           const ContainerLayerParameters& aIncomingScale,
                            ContainerLayer* aLayer,
                            LayerState aState,
-                           FrameLayerBuilder::ContainerParameters& aOutgoingScale)
+                           ContainerLayerParameters& aOutgoingScale)
 {
   nsIntPoint offset;
 
@@ -2893,8 +2893,8 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   aLayer->SetInheritedScale(aIncomingScale.mXScale,
                             aIncomingScale.mYScale);
 
-  aOutgoingScale = 
-    FrameLayerBuilder::ContainerParameters(scale.width, scale.height, -offset, aIncomingScale);
+  aOutgoingScale =
+    ContainerLayerParameters(scale.width, scale.height, -offset, aIncomingScale);
   if (aTransform) {
     aOutgoingScale.mInTransformedSubtree = true;
     if (ActiveLayerTracker::IsStyleAnimated(aContainerFrame, eCSSProperty_transform)) {
@@ -2948,7 +2948,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           nsIFrame* aContainerFrame,
                                           nsDisplayItem* aContainerItem,
                                           const nsDisplayList& aChildren,
-                                          const ContainerParameters& aParameters,
+                                          const ContainerLayerParameters& aParameters,
                                           const gfx3DMatrix* aTransform,
                                           uint32_t aFlags)
 {
@@ -3015,7 +3015,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     return containerLayer.forget();
   }
 
-  ContainerParameters scaleParameters;
+  ContainerLayerParameters scaleParameters;
   if (!ChooseScaleAndSetTransform(this, aBuilder, aContainerFrame, aTransform, aParameters,
                                   containerLayer, state, scaleParameters)) {
     return nullptr;
