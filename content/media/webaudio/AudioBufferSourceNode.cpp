@@ -413,7 +413,7 @@ public:
     
     
     if (currentPosition >= mStop ||
-        (!mLoop && currentPosition - mStart + mOffset > mDuration)) {
+        (!mLoop && currentPosition - mStart + mOffset >= mDuration)) {
       *aFinished = true;
     }
   }
