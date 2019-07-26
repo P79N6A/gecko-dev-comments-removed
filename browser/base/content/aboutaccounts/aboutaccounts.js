@@ -143,7 +143,7 @@ let wrapper = {
 
 function handleOldSync() {
   
-  window.location = "https://services.mozilla.com/legacysync";
+  window.location = Services.urlFormatter.formatURLPref("app.support.baseURL") + "old-sync";
 }
 
 function getStarted() {
