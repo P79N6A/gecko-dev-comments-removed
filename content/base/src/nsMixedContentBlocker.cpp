@@ -345,52 +345,83 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
   
   
-  if (!aRequestingLocation) {
-    if (!aRequestPrincipal) {
-      
-      
-      nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
-      if (node) {
-        aRequestPrincipal = node->NodePrincipal();
-      } else {
-        
-        nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(aRequestingContext);
-        if (scriptObjPrin) {
-          aRequestPrincipal = scriptObjPrin->GetPrincipal();
-        }
-      }
-    }
-    if (aRequestPrincipal) {
-      nsCOMPtr<nsIURI> principalUri;
-      nsresult rvalue = aRequestPrincipal->GetURI(getter_AddRefs(principalUri));
-      if (NS_SUCCEEDED(rvalue)) {
-        aRequestingLocation = principalUri;
-      }
-    }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-    if (!aRequestingLocation) {
-      
-      
-      
-      nsCOMPtr<nsIExpandedPrincipal> expanded = do_QueryInterface(aRequestPrincipal);
-      if (expanded || (aRequestPrincipal && nsContentUtils::IsSystemPrincipal(aRequestPrincipal))) {
-        *aDecision = ACCEPT;
-        return NS_OK;
-      } else {
-        
-        
-        *aDecision = REJECT_REQUEST;
-        return NS_OK;
-      }
+  nsCOMPtr<nsIPrincipal> principal;
+  
+  nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
+  if (node) {
+    principal = node->NodePrincipal();
+  }
+
+  
+  if (!principal) {
+    nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(aRequestingContext);
+    if (scriptObjPrin) {
+      principal = scriptObjPrin->GetPrincipal();
+    }
+  }
+
+  nsCOMPtr<nsIURI> requestingLocation;
+  if (principal) {
+    principal->GetURI(getter_AddRefs(requestingLocation));
+  }
+
+  
+  if (principal && !requestingLocation) {
+    if (nsContentUtils::IsSystemPrincipal(principal)) {
+      *aDecision = ACCEPT;
+      return NS_OK;
     }
   }
 
   
   
+  
+  
+  if (!requestingLocation) {
+    requestingLocation = aRequestingLocation;
+  }
+
+  
+  
+  
+  if (!principal && !requestingLocation && aRequestPrincipal) {
+    nsCOMPtr<nsIExpandedPrincipal> expanded = do_QueryInterface(aRequestPrincipal);
+    if (expanded) {
+      *aDecision = ACCEPT;
+      return NS_OK;
+    }
+  }
+
+  
+  
+  if (!requestingLocation) {
+    *aDecision = REJECT_REQUEST;
+    return NS_OK;
+  }
+
+  
+  
   bool parentIsHttps;
-  nsresult rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  nsresult rv = requestingLocation->SchemeIs("https", &parentIsHttps);
   if (NS_FAILED(rv)) {
-    NS_ERROR("aRequestingLocation->SchemeIs failed");
+    NS_ERROR("requestingLocation->SchemeIs failed");
     *aDecision = REJECT_REQUEST;
     return NS_OK;
   }
