@@ -278,7 +278,7 @@ class StackFrame
         RUNNING_IN_ION       = 0x400000,  
         CALLING_INTO_ION     = 0x800000,  
 
-        JIT_REVISED_STACK   = 0x1000000,  
+        JIT_REVISED_STACK   = 0x1000000   
     };
 
   private:
