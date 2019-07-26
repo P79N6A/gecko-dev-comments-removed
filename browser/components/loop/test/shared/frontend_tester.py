@@ -3,9 +3,11 @@ import threading
 import SimpleHTTPServer
 import SocketServer
 import BaseHTTPServer
+import socket
+import urllib
 import urlparse
+import os
 
-PORT = 2222
 DEBUG = False
 
 
@@ -36,7 +38,9 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         else:
             handler = QuietHttpRequestHandler
 
-        cls.server = ThreadingSimpleServer(('', PORT), handler)
+        
+        cls.server = ThreadingSimpleServer(('', 0), handler)
+        cls.ip, cls.port = cls.server.server_address
 
         cls.server_thread = threading.Thread(target=cls.server.serve_forever)
         cls.server_thread.daemon = False
@@ -61,9 +65,23 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         
         self.marionette.set_search_timeout(10000)
 
-    def set_server_prefix(self, srcdir_path=None):
-        self.server_prefix = urlparse.urljoin("http://localhost:" + str(PORT),
-                                              srcdir_path)
+    
+    def set_server_prefix(self, srcdir_path):
+        
+        
+        
+
+        
+        commonPath = os.path.commonprefix([__file__, os.getcwd()])
+
+        
+        relPath = os.path.relpath(os.path.dirname(__file__), commonPath)
+
+        relPath = urllib.pathname2url(os.path.join(relPath, srcdir_path))
+
+        
+        self.server_prefix = urlparse.urljoin("http://localhost:" + str(self.port),
+                                              relPath)
 
     def check_page(self, page):
 
