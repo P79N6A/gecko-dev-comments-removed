@@ -1141,7 +1141,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
     ::JS_SetOperationCallback(mContext, DOMOperationCallback);
   }
   mIsInitialized = false;
-  mTerminations = nullptr;
   mScriptsEnabled = true;
   mOperationCallbackTime = 0;
   mModalStateTime = 0;
@@ -1155,11 +1154,6 @@ nsJSContext::~nsJSContext()
   if (mNext) {
     mNext->mPrev = mPrev;
   }
-
-  
-  
-  
-  delete mTerminations;
 
   mGlobalObjectRef = nullptr;
 
@@ -1289,8 +1283,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(ok, NS_OK);
 
-  nsJSContext::TerminationFuncHolder holder(this);
-
   
   
   XPCAutoRequest ar(mContext);
@@ -1414,7 +1406,6 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject_,
   nsCxPusher pusher;
   pusher.Push(mContext);
 
-  nsJSContext::TerminationFuncHolder holder(this);
   XPCAutoRequest ar(mContext);
 
   
@@ -2361,20 +2352,6 @@ nsJSContext::IsContextInitialized()
 void
 nsJSContext::ScriptEvaluated(bool aTerminated)
 {
-  if (aTerminated && mTerminations) {
-    
-    
-    nsJSContext::TerminationFuncClosure* start = mTerminations;
-    mTerminations = nullptr;
-
-    for (nsJSContext::TerminationFuncClosure* cur = start;
-         cur;
-         cur = cur->mNext) {
-      (*(cur->mTerminationFunc))(cur->mTerminationFuncArg);
-    }
-    delete start;
-  }
-
   JS_MaybeGC(mContext);
 
   if (aTerminated) {
@@ -2382,17 +2359,6 @@ nsJSContext::ScriptEvaluated(bool aTerminated)
     mModalStateTime = 0;
     mActive = true;
   }
-}
-
-void
-nsJSContext::SetTerminationFunction(nsScriptTerminationFunc aFunc,
-                                    nsIDOMWindow* aRef)
-{
-  NS_PRECONDITION(GetExecutingScript(), "should be executing script");
-
-  nsJSContext::TerminationFuncClosure* newClosure =
-    new nsJSContext::TerminationFuncClosure(aFunc, aRef, mTerminations);
-  mTerminations = newClosure;
 }
 
 bool

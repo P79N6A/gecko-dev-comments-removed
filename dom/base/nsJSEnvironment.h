@@ -75,8 +75,6 @@ public:
   virtual bool IsContextInitialized();
 
   virtual void ScriptEvaluated(bool aTerminated);
-  virtual void SetTerminationFunction(nsScriptTerminationFunc aFunc,
-                                      nsIDOMWindow* aRef);
   virtual bool GetScriptsEnabled();
   virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
 
@@ -186,66 +184,6 @@ private:
   JSContext *mContext;
   bool mActive;
 
-  
-public:
-  struct TerminationFuncHolder;
-protected:
-  friend struct TerminationFuncHolder;
-  
-  struct TerminationFuncClosure
-  {
-    TerminationFuncClosure(nsScriptTerminationFunc aFunc,
-                           nsISupports* aArg,
-                           TerminationFuncClosure* aNext) :
-      mTerminationFunc(aFunc),
-      mTerminationFuncArg(aArg),
-      mNext(aNext)
-    {
-    }
-    ~TerminationFuncClosure()
-    {
-      delete mNext;
-    }
-    
-    nsScriptTerminationFunc mTerminationFunc;
-    nsCOMPtr<nsISupports> mTerminationFuncArg;
-    TerminationFuncClosure* mNext;
-  };
-
-  
-public:
-  struct TerminationFuncHolder
-  {
-    TerminationFuncHolder(nsJSContext* aContext)
-      : mContext(aContext),
-        mTerminations(aContext->mTerminations)
-    {
-      aContext->mTerminations = nullptr;
-    }
-    ~TerminationFuncHolder()
-    {
-      
-      
-      
-      
-      if (mTerminations) {
-        TerminationFuncClosure* cur = mTerminations;
-        while (cur->mNext) {
-          cur = cur->mNext;
-        }
-        cur->mNext = mContext->mTerminations;
-        mContext->mTerminations = mTerminations;
-      }
-    }
-
-    nsJSContext* mContext;
-    TerminationFuncClosure* mTerminations;
-  };
-
-protected:
-  TerminationFuncClosure* mTerminations;
-
-private:
   bool mIsInitialized;
   bool mScriptsEnabled;
   bool mGCOnDestruction;

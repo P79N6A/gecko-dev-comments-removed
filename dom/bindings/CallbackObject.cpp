@@ -109,14 +109,6 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   nsresult rv = nsContentUtils::GetSecurityManager()->
     CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
 
-  
-  
-  
-  
-  if (ctx) {
-    mTerminationFuncHolder.construct(static_cast<nsJSContext*>(ctx));
-  }
-
   if (NS_FAILED(rv)) {
     
     return;

@@ -27,11 +27,9 @@ class nsIScriptObjectPrincipal;
 class nsIDOMWindow;
 class nsIURI;
 
-typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
-
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x821c5be9, 0xbf9e, 0x4041, \
-  { 0x9f, 0xf2, 0x1f, 0xca, 0x39, 0xf7, 0x89, 0xf3 } }
+{ 0xef0c91ce, 0x14f6, 0x41c9, \
+  { 0xa5, 0x77, 0xa6, 0xeb, 0xdc, 0x6d, 0x44, 0x7b } }
 
 
 
@@ -185,7 +183,6 @@ public:
 
 
 
-
   virtual void ScriptEvaluated(bool aTerminated) = 0;
 
   virtual nsresult Serialize(nsIObjectOutputStream* aStream,
@@ -195,19 +192,6 @@ public:
 
   virtual nsresult Deserialize(nsIObjectInputStream* aStream,
                                JS::MutableHandle<JSScript*> aResult) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual void SetTerminationFunction(nsScriptTerminationFunc aFunc,
-                                      nsIDOMWindow* aRef) = 0;
 
   
 

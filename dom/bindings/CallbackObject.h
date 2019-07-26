@@ -148,10 +148,6 @@ protected:
     
     Maybe<XPCAutoRequest> mAr;
 
-    
-    
-    Maybe<nsJSContext::TerminationFuncHolder> mTerminationFuncHolder;
-
     nsCxPusher mCxPusher;
 
     
