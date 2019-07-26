@@ -1,16 +1,8 @@
 
 
 
+let Toolbox = devtools.Toolbox;
 let temp = {};
-Cu.import("resource:///modules/devtools/Toolbox.jsm", temp);
-let Toolbox = temp.Toolbox;
-temp = {};
-Cu.import("resource:///modules/devtools/Target.jsm", temp);
-let TargetFactory = temp.TargetFactory;
-temp = {};
-Cu.import("resource:///modules/devtools/gDevTools.jsm", temp);
-let gDevTools = temp.gDevTools;
-temp = {};
 Cu.import("resource://gre/modules/Services.jsm", temp);
 let Services = temp.Services;
 temp = null;

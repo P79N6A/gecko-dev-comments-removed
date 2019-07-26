@@ -2,12 +2,19 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["EventEmitter"];
 
 
 
 
 this.EventEmitter = function EventEmitter() {};
+
+if (typeof(require) === "function") {
+   module.exports = EventEmitter;
+   var {Cu} = require("chrome");
+} else {
+  var EXPORTED_SYMBOLS = ["EventEmitter"];
+  var Cu = this["Components"].utils;
+}
 
 
 
@@ -102,7 +109,7 @@ EventEmitter.prototype = {
         catch (ex) {
           
           let msg = ex + ": " + ex.stack;
-          Components.utils.reportError(msg);
+          Cu.reportError(msg);
           dump(msg + "\n");
         }
       }

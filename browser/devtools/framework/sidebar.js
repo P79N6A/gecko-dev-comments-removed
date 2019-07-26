@@ -4,12 +4,8 @@
 
 
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
-
-this.EXPORTED_SYMBOLS = ["ToolSidebar"];
-
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource:///modules/devtools/EventEmitter.jsm");
+var Promise = require("sdk/core/promise");
+var EventEmitter = require("devtools/shared/event-emitter");
 
 const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
@@ -24,7 +20,7 @@ const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 
-this.ToolSidebar = function ToolSidebar(tabbox, panel, showTabstripe=true)
+function ToolSidebar(tabbox, panel, showTabstripe=true)
 {
   EventEmitter.decorate(this);
 
@@ -40,6 +36,8 @@ this.ToolSidebar = function ToolSidebar(tabbox, panel, showTabstripe=true)
     this._tabbox.setAttribute("hidetabs", "true");
   }
 }
+
+exports.ToolSidebar = ToolSidebar;
 
 ToolSidebar.prototype = {
   

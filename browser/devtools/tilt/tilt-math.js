@@ -5,19 +5,18 @@
 
 "use strict";
 
-const Cu = Components.utils;
+const {Cu} = require("chrome");
 
-Cu.import("resource:///modules/devtools/TiltUtils.jsm");
-
-this.EXPORTED_SYMBOLS =
-  ["EPSILON", "TiltMath", "vec3", "mat3", "mat4", "quat4"];
+let TiltUtils = require("devtools/tilt/tilt-utils");
 
 
 
 
 
 
-this.EPSILON = 0.01;
+let EPSILON = 0.01;
+exports.EPSILON = EPSILON;
+
 const PI_OVER_180 = Math.PI / 180;
 const INV_PI_OVER_180 = 180 / Math.PI;
 const FIFTEEN_OVER_225 = 15 / 225;
@@ -26,7 +25,7 @@ const ONE_OVER_255 = 1 / 255;
 
 
 
-this.vec3 = {
+let vec3 = {
 
   
 
@@ -493,10 +492,12 @@ this.vec3 = {
   }
 };
 
+exports.vec3 = vec3;
 
 
 
-this.mat3 = {
+
+let mat3 = {
 
   
 
@@ -656,10 +657,12 @@ this.mat3 = {
   }
 };
 
+exports.mat3 = mat3;
 
 
 
-this.mat4 = {
+
+let mat4 = {
 
   
 
@@ -1624,10 +1627,12 @@ this.mat4 = {
   }
 };
 
+exports.mat4 = mat4;
 
 
 
-this.quat4 = {
+
+let quat4 = {
 
   
 
@@ -2113,10 +2118,12 @@ this.quat4 = {
   }
 };
 
+exports.quat4 = quat4;
 
 
 
-this.TiltMath = {
+
+let TiltMath = {
 
   
 
@@ -2304,6 +2311,8 @@ this.TiltMath = {
     };
   }())
 };
+
+exports.TiltMath = TiltMath;
 
 
 TiltUtils.bindObjectFunc(vec3);

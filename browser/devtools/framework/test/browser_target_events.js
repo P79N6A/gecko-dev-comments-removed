@@ -2,10 +2,6 @@
 
 
 
-var tempScope = {};
-Cu.import("resource:///modules/devtools/Target.jsm", tempScope);
-var TargetFactory = tempScope.TargetFactory;
-
 var target;
 
 function test()
