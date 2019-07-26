@@ -367,51 +367,15 @@ GetDirectionFromText(const nsTextFragment* aFrag,
 
 
 
-
-
-
-
 static nsINode*
-WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
-                                    nsINode* aStartAfterNode = nullptr)
+WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true)
 {
   MOZ_ASSERT(aElement, "aElement is null");
   if (DoesNotParticipateInAutoDirection(aElement)) {
     return nullptr;
   }
 
-  nsIContent* child;
-  if (aStartAfterNode &&
-      nsContentUtils::ContentIsDescendantOf(aStartAfterNode, aElement)) {
-    nsIContent* firstNode = aStartAfterNode->GetNextNode(aElement);
-
-#ifdef DEBUG
-    
-    
-    
-    child = aElement->GetFirstChild();
-    while (child && child != firstNode) {
-      
-      
-      if (child->IsElement() &&
-          DoesNotAffectDirectionOfAncestors(child->AsElement())) {
-        child = child->GetNextNonChildNode(aElement);
-        continue;
-      }
-
-      if (child->NodeType() == nsIDOMNode::TEXT_NODE) {
-        MOZ_ASSERT(GetDirectionFromText(child->GetText()) == eDir_NotSet,
-                   "Strong directional characters before aStartAfterNode");
-      }
-      child = child->GetNextNode(aElement);
-    }
-#else
-    child = firstNode;
-#endif
-  } else {
-    child = aElement->GetFirstChild();
-  }
-
+  nsIContent* child = aElement->GetFirstChild();
   while (child) {
     if (child->IsElement() &&
         DoesNotAffectDirectionOfAncestors(child->AsElement())) {
@@ -515,10 +479,8 @@ private:
     MOZ_ASSERT(aEntry->GetKey()->IsElement(), "Must be an Element");
     
     
-    nsINode* startAfterNode = static_cast<Element*>(aData);
     Element* rootNode = aEntry->GetKey();
-    nsINode* textNode = WalkDescendantsSetDirectionFromText(rootNode, true,
-                                                            startAfterNode);
+    nsINode* textNode = WalkDescendantsSetDirectionFromText(rootNode, true);
     if (textNode) {
       nsTextNodeDirectionalityMap::AddEntryToMap(textNode, rootNode);
     } else {
@@ -534,9 +496,9 @@ public:
     mElements.EnumerateEntries(SetNodeDirection, &aDir);
   }
 
-  void ResetAutoDirection(nsINode* aStartAfterNode)
+  void ResetAutoDirection()
   {
-    mElements.EnumerateEntries(ResetNodeDirection, aStartAfterNode);
+    mElements.EnumerateEntries(ResetNodeDirection, nullptr);
   }
 
   static void RemoveElementFromMap(nsINode* aTextNode, Element* aElement)
@@ -563,12 +525,11 @@ public:
     GetDirectionalityMap(aTextNode)->UpdateAutoDirection(aDir);
   }
 
-  static void ResetTextNodeDirection(nsINode* aTextNode,
-                                     nsINode* aStartAfterNode = nullptr)
+  static void ResetTextNodeDirection(nsINode* aTextNode)
   {
     MOZ_ASSERT(aTextNode->HasTextNodeDirectionalityMap(),
                "Map missing in ResetTextNodeDirection");
-    GetDirectionalityMap(aTextNode)->ResetAutoDirection(aStartAfterNode);
+    GetDirectionalityMap(aTextNode)->ResetAutoDirection();
   }
 };
 
@@ -672,7 +633,7 @@ WalkDescendantsResetAutoDirection(Element* aElement)
     }
 
     if (child->HasTextNodeDirectionalityMap()) {
-      nsTextNodeDirectionalityMap::ResetTextNodeDirection(child, child);
+      nsTextNodeDirectionalityMap::ResetTextNodeDirection(child);
     }
     child = child->GetNextNode(aElement);
   }
