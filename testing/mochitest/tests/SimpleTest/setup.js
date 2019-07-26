@@ -119,14 +119,6 @@ if (params.logFile) {
 }
 
 
-if (!params.quiet) {
-  function dumpListener(msg) {
-    dump(msg.num + " " + msg.level + " " + msg.info.join(' ') + "\n");
-  }
-  TestRunner.logger.addListener("dumpListener", consoleLevel + "", dumpListener);
-}
-
-
 if (params.runSlower) {
   TestRunner.runSlower = true;
 }
@@ -142,6 +134,11 @@ if (params.dumpAboutMemoryAfterTest) {
 if (params.dumpDMDAfterTest) {
   TestRunner.dumpDMDAfterTest = true;
 }
+
+
+TestRunner.logger.addListener("dumpListener", consoleLevel + "", function(msg) {
+  dump(msg.num + " " + msg.level + " " + msg.info.join(' ') + "\n");
+});
 
 var gTestList = [];
 var RunSet = {}
