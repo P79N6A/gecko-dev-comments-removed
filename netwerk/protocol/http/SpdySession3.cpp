@@ -385,6 +385,16 @@ SpdySession3::SetWriteCallbacks()
 }
 
 void
+SpdySession3::RealignOutputQueue()
+{
+  mOutputQueueUsed -= mOutputQueueSent;
+  memmove(mOutputQueueBuffer.get(),
+          mOutputQueueBuffer.get() + mOutputQueueSent,
+          mOutputQueueUsed);
+  mOutputQueueSent = 0;
+}
+
+void
 SpdySession3::FlushOutputQueue()
 {
   if (!mSegmentReader || !mOutputQueueUsed)
@@ -417,11 +427,7 @@ SpdySession3::FlushOutputQueue()
   
   if ((mOutputQueueSent >= kQueueMinimumCleanup) &&
       ((mOutputQueueSize - mOutputQueueUsed) < kQueueTailRoom)) {
-    mOutputQueueUsed -= mOutputQueueSent;
-    memmove(mOutputQueueBuffer.get(),
-            mOutputQueueBuffer.get() + mOutputQueueSent,
-            mOutputQueueUsed);
-    mOutputQueueSent = 0;
+    RealignOutputQueue();
   }
 }
 
@@ -1963,7 +1969,7 @@ SpdySession3::OnReadSegment(const char *buf,
 }
 
 nsresult
-SpdySession3::CommitToSegmentSize(uint32_t count)
+SpdySession3::CommitToSegmentSize(uint32_t count, bool forceCommitment)
 {
   if (mOutputQueueUsed)
     FlushOutputQueue();
@@ -1971,19 +1977,25 @@ SpdySession3::CommitToSegmentSize(uint32_t count)
   
   if ((mOutputQueueUsed + count) <= (mOutputQueueSize - kQueueReserved))
     return NS_OK;
+
   
   
-  if (mOutputQueueUsed)
+  if (mOutputQueueUsed && !forceCommitment)
     return NS_BASE_STREAM_WOULD_BLOCK;
 
-  
-  
-  
-  
-  
-  
+  if (mOutputQueueUsed) {
+    
+    
+    RealignOutputQueue();
 
-  EnsureBuffer(mOutputQueueBuffer, count + kQueueReserved, 0, mOutputQueueSize);
+    
+    if ((mOutputQueueUsed + count) <= (mOutputQueueSize - kQueueReserved))
+      return NS_OK;
+  }
+
+  
+  EnsureBuffer(mOutputQueueBuffer, mOutputQueueUsed + count + kQueueReserved,
+               mOutputQueueUsed, mOutputQueueSize);
 
   NS_ABORT_IF_FALSE((mOutputQueueUsed + count) <=
                     (mOutputQueueSize - kQueueReserved),

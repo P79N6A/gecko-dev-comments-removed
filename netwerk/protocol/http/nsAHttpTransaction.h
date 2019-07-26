@@ -177,7 +177,8 @@ public:
     
     
     
-    virtual nsresult CommitToSegmentSize(uint32_t size)
+    
+    virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment)
     {
         return NS_ERROR_FAILURE;
     }

@@ -117,8 +117,8 @@ public:
   const static uint32_t kDefaultBufferSize = 2048;
 
   
-  const static uint32_t kDefaultQueueSize =  16384;
-  const static uint32_t kQueueMinimumCleanup = 8192;
+  const static uint32_t kDefaultQueueSize =  32768;
+  const static uint32_t kQueueMinimumCleanup = 24576;
   const static uint32_t kQueueTailRoom    =  4096;
   const static uint32_t kQueueReserved    =  1024;
 
@@ -153,7 +153,7 @@ public:
   void TransactionHasDataToWrite(SpdyStream2 *);
 
   
-  virtual nsresult CommitToSegmentSize(uint32_t size);
+  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment);
   
   void     PrintDiagnostics (nsCString &log);
 
@@ -185,6 +185,7 @@ private:
 
   void        SetWriteCallbacks();
   void        FlushOutputQueue();
+  void        RealignOutputQueue();
 
   bool        RoomForMoreConcurrent();
   void        ActivateStream(SpdyStream2 *);
