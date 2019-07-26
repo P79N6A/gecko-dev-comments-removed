@@ -3547,13 +3547,15 @@ class ArrayAutoMarkingPtr : public AutoMarkingPtr
 typedef ArrayAutoMarkingPtr<XPCNativeInterface> AutoMarkingNativeInterfacePtrArrayPtr;
 
 
+namespace xpc {
+
+char *
+CloneAllAccess();
 
 
-extern char* xpc_CloneAllAccess();
-
-
-
-extern char * xpc_CheckAccessList(const PRUnichar* wideName, const char* const list[]);
+char *
+CheckAccessList(const PRUnichar *wideName, const char *const list[]);
+} 
 
 
 
@@ -3681,21 +3683,26 @@ xpc_GetSafeJSContext()
     return XPCJSRuntime::Get()->GetJSContextStack()->GetSafeJSContext();
 }
 
+namespace xpc {
+
+
+
+
 bool
 NewFunctionForwarder(JSContext *cx, JS::HandleId id, JS::HandleObject callable,
                      bool doclone, JS::MutableHandleValue vp);
 
+
 nsresult
-ThrowAndFail(nsresult errNum, JSContext* cx, bool* retval);
+ThrowAndFail(nsresult errNum, JSContext *cx, bool *retval);
 
 
 already_AddRefed<nsIXPCComponents_utils_Sandbox>
 NewSandboxConstructor();
 
+
 bool
 IsSandbox(JSObject *obj);
-
-namespace xpc {
 
 struct SandboxOptions {
     SandboxOptions(JSContext *cx)
@@ -3719,7 +3726,6 @@ struct SandboxOptions {
 JSObject *
 CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
                    JS::CompartmentOptions& aOptions);
-}
 
 
 
@@ -3731,8 +3737,8 @@ CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
 
 
 nsresult
-xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        xpc::SandboxOptions& options);
+CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop,
+                    xpc::SandboxOptions& options);
 
 
 
@@ -3744,10 +3750,12 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
 
 
 nsresult
-xpc_EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
-                  const char *filename, int32_t lineNo,
-                  JSVersion jsVersion, bool returnStringOnly,
-                  JS::MutableHandleValue rval);
+EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
+              const char *filename, int32_t lineNo,
+              JSVersion jsVersion, bool returnStringOnly,
+              JS::MutableHandleValue rval);
+
+} 
 
 
 
