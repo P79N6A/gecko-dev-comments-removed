@@ -8,7 +8,6 @@
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsIStreamListener.h"
 #include "nsICharsetDetectionObserver.h"
 #include "nsHtml5MetaScanner.h"
 #include "nsIUnicodeDecoder.h"
@@ -20,7 +19,6 @@
 #include "nsHtml5Speculation.h"
 #include "nsITimer.h"
 #include "nsICharsetDetector.h"
-#include "nsIThreadRetargetableStreamListener.h"
 
 class nsHtml5Parser;
 
@@ -101,9 +99,7 @@ enum eHtml5StreamState {
   STREAM_ENDED = 2
 };
 
-class nsHtml5StreamParser : public nsIStreamListener,
-                            public nsIThreadRetargetableStreamListener,
-                            public nsICharsetDetectionObserver {
+class nsHtml5StreamParser : public nsICharsetDetectionObserver {
 
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
@@ -113,7 +109,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser, nsIStreamListener)
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser,
+                                             nsICharsetDetectionObserver)
 
     static void InitializeStatics();
 
@@ -124,12 +121,20 @@ class nsHtml5StreamParser : public nsIStreamListener,
     virtual ~nsHtml5StreamParser();
 
     
-    NS_DECL_NSIREQUESTOBSERVER
-    
-    NS_DECL_NSISTREAMLISTENER
-    
-    NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
-    
+    nsresult CheckListenerChain();
+
+    nsresult OnStartRequest(nsIRequest* aRequest, nsISupports* aContext);
+
+    nsresult OnDataAvailable(nsIRequest* aRequest,
+                             nsISupports* aContext,
+                             nsIInputStream* aInStream,
+                             uint64_t aSourceOffset,
+                             uint32_t aLength);
+
+    nsresult OnStopRequest(nsIRequest* aRequest,
+                           nsISupports* aContext,
+                           nsresult status);
+
     
     
 
