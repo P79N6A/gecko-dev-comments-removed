@@ -1677,6 +1677,15 @@ class JS_PUBLIC_API(JSAutoCompartment)
     ~JSAutoCompartment();
 };
 
+class JS_PUBLIC_API(JSAutoNullCompartment)
+{
+    JSContext *cx_;
+    JSCompartment *oldCompartment_;
+  public:
+    JSAutoNullCompartment(JSContext *cx);
+    ~JSAutoNullCompartment();
+};
+
 
 extern JS_PUBLIC_API(JSCompartment *)
 JS_EnterCompartment(JSContext *cx, JSObject *target);
