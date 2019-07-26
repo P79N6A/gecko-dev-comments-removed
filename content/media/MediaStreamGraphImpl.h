@@ -10,6 +10,7 @@
 
 #include "mozilla/Monitor.h"
 #include "mozilla/TimeStamp.h"
+#include "nsIMemoryReporter.h"
 #include "nsIThread.h"
 #include "nsIRunnable.h"
 #include "Latency.h"
@@ -106,8 +107,12 @@ protected:
 
 
 
-class MediaStreamGraphImpl : public MediaStreamGraph {
+class MediaStreamGraphImpl : public MediaStreamGraph,
+                             public nsIMemoryReporter {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIMEMORYREPORTER
+
   
 
 
@@ -116,7 +121,12 @@ public:
 
 
   explicit MediaStreamGraphImpl(bool aRealtime);
-  virtual ~MediaStreamGraphImpl();
+
+  
+
+
+
+  void Destroy();
 
   
   
@@ -578,6 +588,32 @@ public:
 
 
   nsAutoPtr<AudioMixer> mMixer;
+
+private:
+  virtual ~MediaStreamGraphImpl();
+
+  MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
+
+  
+
+
+  Monitor mMemoryReportMonitor;
+  
+
+
+
+
+
+
+  nsRefPtr<MediaStreamGraphImpl> mSelfRef;
+  
+
+
+  nsTArray<AudioNodeSizes> mAudioStreamSizes;
+  
+
+
+  bool mNeedsMemoryReport;
 };
 
 }

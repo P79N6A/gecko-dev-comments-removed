@@ -88,6 +88,20 @@ HRTFDatabaseLoader::~HRTFDatabaseLoader()
     }
 }
 
+size_t HRTFDatabaseLoader::sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+    size_t amount = aMallocSizeOf(this);
+
+    
+    const_cast<HRTFDatabaseLoader*>(this)->waitForLoaderThreadCompletion();
+
+    if (m_hrtfDatabase) {
+        amount += m_hrtfDatabase->sizeOfIncludingThis(aMallocSizeOf);
+    }
+
+    return amount;
+}
+
 class HRTFDatabaseLoader::ProxyReleaseEvent MOZ_FINAL : public nsRunnable {
 public:
     explicit ProxyReleaseEvent(HRTFDatabaseLoader* loader) : mLoader(loader) {}

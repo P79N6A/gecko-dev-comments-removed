@@ -77,6 +77,37 @@ AudioNode::~AudioNode()
   }
 }
 
+size_t
+AudioNode::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  
+  
+  
+  size_t amount = 0;
+
+  amount += mInputNodes.SizeOfExcludingThis(aMallocSizeOf);
+  for (size_t i = 0; i < mInputNodes.Length(); i++) {
+    amount += mInputNodes[i].SizeOfExcludingThis(aMallocSizeOf);
+  }
+
+  
+  
+  amount += mOutputNodes.SizeOfExcludingThis(aMallocSizeOf);
+
+  amount += mOutputParams.SizeOfExcludingThis(aMallocSizeOf);
+  for (size_t i = 0; i < mOutputParams.Length(); i++) {
+    amount += mOutputParams[i]->SizeOfIncludingThis(aMallocSizeOf);
+  }
+
+  return amount;
+}
+
+size_t
+AudioNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+}
+
 template <class InputNode>
 static uint32_t
 FindIndexOfNode(const nsTArray<InputNode>& aInputNodes, const AudioNode* aNode)

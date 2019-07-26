@@ -151,6 +151,35 @@ ReverbConvolver::~ReverbConvolver()
     }
 }
 
+size_t ReverbConvolver::sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+    size_t amount = aMallocSizeOf(this);
+    amount += m_stages.SizeOfExcludingThis(aMallocSizeOf);
+    for (size_t i = 0; i < m_stages.Length(); i++) {
+        if (m_stages[i]) {
+            amount += m_stages[i]->sizeOfIncludingThis(aMallocSizeOf);
+        }
+    }
+
+    amount += m_backgroundStages.SizeOfExcludingThis(aMallocSizeOf);
+    for (size_t i = 0; i < m_backgroundStages.Length(); i++) {
+        if (m_backgroundStages[i]) {
+            amount += m_backgroundStages[i]->sizeOfIncludingThis(aMallocSizeOf);
+        }
+    }
+
+    
+    
+    amount += m_accumulationBuffer.sizeOfExcludingThis(aMallocSizeOf);
+    amount += m_inputBuffer.sizeOfExcludingThis(aMallocSizeOf);
+
+    
+    
+    
+    
+    return amount;
+}
+
 void ReverbConvolver::backgroundThreadEntry()
 {
     while (!m_wantsToExit) {

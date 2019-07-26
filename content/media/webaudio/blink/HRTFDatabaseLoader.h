@@ -31,6 +31,7 @@
 
 #include "nsHashKeys.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Mutex.h"
 #include "HRTFDatabase.h"
 
@@ -92,6 +93,8 @@ public:
     
     
     void load();
+
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
     

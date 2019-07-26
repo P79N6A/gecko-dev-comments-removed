@@ -30,6 +30,44 @@ AudioNodeStream::~AudioNodeStream()
   MOZ_COUNT_DTOR(AudioNodeStream);
 }
 
+size_t
+AudioNodeStream::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t amount = 0;
+
+  
+  
+
+  amount += ProcessedMediaStream::SizeOfExcludingThis(aMallocSizeOf);
+  amount += mLastChunks.SizeOfExcludingThis(aMallocSizeOf);
+  for (size_t i = 0; i < mLastChunks.Length(); i++) {
+    
+    
+    amount += mLastChunks[i].SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+  }
+
+  return amount;
+}
+
+size_t
+AudioNodeStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+}
+
+void
+AudioNodeStream::SizeOfAudioNodesIncludingThis(MallocSizeOf aMallocSizeOf,
+                                               AudioNodeSizes& aUsage) const
+{
+  
+  aUsage.mStream = SizeOfIncludingThis(aMallocSizeOf);
+
+  if (mEngine) {
+    
+    mEngine->SizeOfIncludingThis(aMallocSizeOf, aUsage);
+  }
+}
+
 void
 AudioNodeStream::SetStreamTimeParameter(uint32_t aIndex, AudioContext* aContext,
                                         double aStreamTime)

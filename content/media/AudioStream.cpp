@@ -172,6 +172,22 @@ AudioStream::~AudioStream()
   }
 }
 
+size_t
+AudioStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t amount = aMallocSizeOf(this);
+
+  
+  
+  
+  
+
+  amount += mInserts.SizeOfExcludingThis(aMallocSizeOf);
+  amount += mBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+  return amount;
+}
+
  void AudioStream::InitLibrary()
 {
 #ifdef PR_LOGGING

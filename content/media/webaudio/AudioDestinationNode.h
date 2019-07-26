@@ -74,6 +74,14 @@ public:
   
   void SetIsOnlyNodeForContext(bool aIsOnlyNode);
 
+  virtual const char* NodeType() const
+  {
+    return "AudioDestinationNode";
+  }
+
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+
 private:
   bool CheckAudioChannelPermissions(AudioChannel aValue);
   void CreateAudioChannelAgent();
