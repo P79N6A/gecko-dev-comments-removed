@@ -99,7 +99,6 @@
 #include "nsIWinAppHelper.h"
 #include <windows.h>
 #include "cairo/cairo-features.h"
-#include "mozilla/WindowsVersion.h"
 #ifdef MOZ_METRO
 #include <roapi.h>
 #endif
@@ -2187,10 +2186,10 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
       
       
       
-      rv = aProfileSvc->CreateProfile(lf, lf, nsDependentCSubstring(arg, delim),
+      rv = aProfileSvc->CreateProfile(lf, nsDependentCSubstring(arg, delim),
                                      getter_AddRefs(profile));
     } else {
-      rv = aProfileSvc->CreateProfile(nullptr, nullptr, nsDependentCString(arg),
+      rv = aProfileSvc->CreateProfile(nullptr, nsDependentCString(arg),
                                      getter_AddRefs(profile));
     }
     
@@ -2275,7 +2274,6 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
     
     nsCOMPtr<nsIToolkitProfile> profile;
     nsresult rv = aProfileSvc->CreateProfile(nullptr, 
-                                             nullptr, 
                                              NS_LITERAL_CSTRING("default"),
                                              getter_AddRefs(profile));
     if (NS_SUCCEEDED(rv)) {
@@ -2868,8 +2866,10 @@ XREMain::XRE_mainInit(bool* aExitFlag)
     
     
     
-
-    if (IsVistaOrLater()) {
+      
+    OSVERSIONINFO vinfo;
+    vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+    if (GetVersionEx(&vinfo) && vinfo.dwMajorVersion >= 6) {
       CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)&InitDwriteBG,
                    nullptr, 0, nullptr);
     }

@@ -195,7 +195,7 @@ function onFinish()
 
   
   try {
-    profile = gProfileService.createProfile(gProfileRoot, null, profileName);
+    profile = gProfileService.createProfile(gProfileRoot, profileName);
   }
   catch (e) {
     var profileCreationFailed =
