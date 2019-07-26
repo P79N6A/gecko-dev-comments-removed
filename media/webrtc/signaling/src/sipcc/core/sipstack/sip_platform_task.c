@@ -39,12 +39,16 @@
 
 
 #ifdef __ANDROID__
-#define SIP_IPC_TEMP_PATH "/data/data/com.cisco.telephony.provider/SIP-%d"
+
+
+
+#define SIP_IPC_TEMP_BASEPATH "/data/local/tmp"
 #else
-#define SIP_IPC_TEMP_PATH "/tmp/SIP-%d"
+#define SIP_IPC_TEMP_BASEPATH "/tmp"
 #endif
-#define SIP_MSG_SERV_NAME "Main"
-#define SIP_MSG_CLNT_NAME "MsgQ"
+#define SIP_IPC_TEMP_DIRNAME "SIP-%d"
+#define SIP_MSG_SERV_SUFFIX "/Main"
+#define SIP_MSG_CLNT_SUFFIX "/MsgQ"
 
 #define SIP_PAUSE_WAIT_IPC_LISTEN_READY_TIME   50  /* 50ms. */
 #define SIP_MAX_WAIT_FOR_IPC_LISTEN_READY    1200  /* 50 * 1200 = 1 minutes */
@@ -143,6 +147,42 @@ sip_platform_task_init (void)
 
 
 
+
+
+
+
+
+
+static PRUint32 sip_get_sock_dir_tmpl(char *out, PRUint32 outlen,
+                                      const char *suffix) {
+
+    char *tmpdir;
+    tmpdir = getenv("TMPDIR");
+
+    if (suffix) {
+        return PR_snprintf(out, outlen, "%s/%s%s",
+                           tmpdir ? tmpdir : SIP_IPC_TEMP_BASEPATH,
+                           SIP_IPC_TEMP_DIRNAME,
+                           suffix);
+    }
+
+    return PR_snprintf(out, outlen, "%s/%s",
+                       tmpdir ? tmpdir : SIP_IPC_TEMP_BASEPATH,
+                       SIP_IPC_TEMP_DIRNAME);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 static cpr_socket_t sip_create_IPC_sock (const char *name)
 {
     const char *fname = "sip_create_IPC_sock";
@@ -208,6 +248,7 @@ void sip_platform_task_msgqwait (void *arg)
     uint8_t       num_messages = 0;
     uint8_t       response = 0;
     boolean       quit_thread = FALSE;
+    char          template[sizeof(sip_serv_sock_addr.sun_path)];
 
     if (msgq == NULL) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"task msgq is null, exiting\n", fname);
@@ -244,8 +285,8 @@ void sip_platform_task_msgqwait (void *arg)
 
 
 
-    cpr_set_sockun_addr(&sip_clnt_sock_addr,
-                        SIP_IPC_TEMP_PATH "/" SIP_MSG_CLNT_NAME, getpid());
+    sip_get_sock_dir_tmpl(template, sizeof(template), SIP_MSG_CLNT_SUFFIX);
+    cpr_set_sockun_addr(&sip_clnt_sock_addr, template, getpid());
 
     sip_ipc_clnt_socket = sip_create_IPC_sock(sip_clnt_sock_addr.sun_path);
 
@@ -367,6 +408,9 @@ static void sip_process_int_msg (void)
         syshdr = int_msg->syshdr;
         if (msg != NULL && syshdr != NULL) {
             if (syshdr->Cmd == THREAD_UNLOAD) {
+                char template[sizeof(sip_serv_sock_addr.sun_path)];
+                char stmpdir[sizeof(sip_serv_sock_addr.sun_path)];
+
                 
 
 
@@ -374,8 +418,8 @@ static void sip_process_int_msg (void)
                 cprCloseSocket(sip_ipc_serv_socket);
                 unlink(sip_serv_sock_addr.sun_path);
 
-                char stmpdir[sizeof(sip_serv_sock_addr.sun_path)];
-                PR_snprintf(stmpdir, sizeof(stmpdir), SIP_IPC_TEMP_PATH, getpid());
+                sip_get_sock_dir_tmpl(template, sizeof(template), NULL);
+                PR_snprintf(stmpdir, sizeof(stmpdir), template, getpid());
                 if (rmdir(stmpdir) != 0) {
                     CCSIP_DEBUG_ERROR(SIP_F_PREFIX"failed to remove temp dir\n",
                                       fname);
@@ -452,16 +496,20 @@ sip_platform_task_loop (void *arg)
 
 
     {
+      char template[sizeof(sip_serv_sock_addr.sun_path)];
       char stmpdir[sizeof(sip_serv_sock_addr.sun_path)];
-      PR_snprintf(stmpdir, sizeof(stmpdir), SIP_IPC_TEMP_PATH, getpid());
+
+      sip_get_sock_dir_tmpl(template, sizeof(template), NULL);
+      PR_snprintf(stmpdir, sizeof(stmpdir), template, getpid());
 
       if (mkdir(stmpdir, 0700) != 0) {
           CCSIP_DEBUG_ERROR(SIP_F_PREFIX"failed to create temp dir\n", fname);
           return;
       }
+
+      sip_get_sock_dir_tmpl(template, sizeof(template), SIP_MSG_SERV_SUFFIX);
+      cpr_set_sockun_addr(&sip_serv_sock_addr, template, getpid());
     }
-    cpr_set_sockun_addr(&sip_serv_sock_addr,
-                        SIP_IPC_TEMP_PATH "/" SIP_MSG_SERV_NAME, getpid());
 
     
 
