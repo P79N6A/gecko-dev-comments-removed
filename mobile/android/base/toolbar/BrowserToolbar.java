@@ -20,6 +20,7 @@ import org.mozilla.gecko.animation.PropertyAnimator.PropertyAnimationListener;
 import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.MenuPopup;
+import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.toolbar.ToolbarDisplayLayout.OnStopListener;
 import org.mozilla.gecko.toolbar.ToolbarDisplayLayout.UpdateFlags;
 import org.mozilla.gecko.util.Clipboard;
@@ -72,6 +73,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
                                        GeckoMenu.ActionItemBarPresenter,
                                        GeckoEventListener {
     private static final String LOGTAG = "GeckoToolbar";
+    public static final String PREF_TITLEBAR_MODE = "browser.chrome.titlebarMode";
+    public static final String PREF_TRIM_URLS = "browser.urlbar.trimURLs";
 
     public interface OnActivateListener {
         public void onActivate();
@@ -134,8 +137,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private int mUrlBarViewOffset;
     private int mDefaultForwardMargin;
 
-    private ToolbarTitlePrefs mTitlePrefs;
-
     private static final Interpolator sButtonsInterpolator = new AccelerateInterpolator();
 
     private static final int FORWARD_ANIMATION_DURATION = 450;
@@ -145,6 +146,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private final ForegroundColorSpan mPrivateDomainColor;
 
     private final LightweightTheme mTheme;
+
+    private boolean mShowUrl;
+    private boolean mTrimURLs;
+
+    private Integer mPrefObserverId;
 
     public BrowserToolbar(Context context) {
         this(context, null);
@@ -162,9 +168,58 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         Tabs.registerOnTabsChangedListener(this);
         mSwitchingTabs = true;
-        mAnimatingEntry = false;
 
-        mTitlePrefs = new ToolbarTitlePrefs();
+        mAnimatingEntry = false;
+        mShowUrl = false;
+        mTrimURLs = true;
+
+        final String[] prefs = {
+            PREF_TITLEBAR_MODE,
+            PREF_TRIM_URLS
+        };
+        
+        mPrefObserverId = PrefsHelper.getPrefs(prefs, new PrefsHelper.PrefHandlerBase() {
+            @Override
+            public void prefValue(String pref, String str) {
+                
+                int value = Integer.parseInt(str);
+                boolean shouldShowUrl = (value == 1);
+
+                if (shouldShowUrl == mShowUrl) {
+                    return;
+                }
+                mShowUrl = shouldShowUrl;
+
+                triggerTitleUpdate();
+            }
+
+            @Override
+            public void prefValue(String pref, boolean value) {
+                
+                if (value == mTrimURLs) {
+                    return;
+                }
+                mTrimURLs = value;
+
+                triggerTitleUpdate();
+            }
+
+            @Override
+            public boolean isObserver() {
+                
+                
+                return true;
+            }
+
+            private void triggerTitleUpdate() {
+                ThreadUtils.postToUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateTitle();
+                    }
+                });
+            }
+        });
 
         Resources res = getResources();
         mUrlColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_urltext));
@@ -661,7 +716,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     
-    
     private void updateTitle() {
         final Tab tab = Tabs.getInstance().getSelectedTab();
         
@@ -691,13 +745,13 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
 
         
-        if (!mTitlePrefs.shouldShowUrl() || url == null) {
+        if (!mShowUrl || url == null) {
             setTitle(tab.getDisplayTitle());
             return;
         }
 
         CharSequence title = url;
-        if (mTitlePrefs.shouldTrimUrls()) {
+        if (mTrimURLs) {
             title = StringUtils.stripCommonSubdomains(StringUtils.stripScheme(url));
         }
 
@@ -1278,7 +1332,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     public void onDestroy() {
-        mTitlePrefs.close();
+        if (mPrefObserverId != null) {
+             PrefsHelper.removeObserver(mPrefObserverId);
+             mPrefObserverId = null;
+        }
         Tabs.unregisterOnTabsChangedListener(this);
 
         unregisterEventListener("Reader:Click");
