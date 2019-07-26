@@ -2541,6 +2541,8 @@ TypeCompartment::nukeTypes(FreeOp *fop)
 # endif
     }
 #endif 
+
+    pendingNukeTypes = false;
 }
 
 void
