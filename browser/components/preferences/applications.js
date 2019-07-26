@@ -8,14 +8,9 @@
 
 
 
-
-
-
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cr = Components.results;
-
-
 
 Components.utils.import('resource://gre/modules/Services.jsm');
 
@@ -276,7 +271,7 @@ HandlerInfoWrapper.prototype = {
   
   get preferredAction() {
     
-    if (this.plugin && !this.isDisabledPluginType)
+    if (this.pluginName && !this.isDisabledPluginType)
       return kActionUsePlugin;
 
     
@@ -312,7 +307,7 @@ HandlerInfoWrapper.prototype = {
     
     
     
-    if (this.plugin && this.handledOnlyByPlugin)
+    if (this.pluginName && this.handledOnlyByPlugin)
       return false;
 
     
@@ -1092,10 +1087,17 @@ var gApplicationsPane = {
 
 
   _loadPluginHandlers: function() {
-    for (let i = 0; i < navigator.plugins.length; ++i) {
-      let plugin = navigator.plugins[i];
-      for (let j = 0; j < plugin.length; ++j) {
-        let type = plugin[j].type;
+    "use strict";
+
+    let pluginHost = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
+    let pluginTags = pluginHost.getPluginTags();
+
+    for (let i = 0; i < pluginTags.length; ++i) {
+      let pluginTag = pluginTags[i];
+
+      let mimeTypes = pluginTag.getMimeTypes();
+      for (let j = 0; j < mimeTypes.length; ++j) {
+        let type = mimeTypes[j];
 
         let handlerInfoWrapper;
         if (type in this._handledTypes)
@@ -1108,7 +1110,7 @@ var gApplicationsPane = {
           this._handledTypes[type] = handlerInfoWrapper;
         }
 
-        handlerInfoWrapper.plugin = plugin;
+        handlerInfoWrapper.pluginName = pluginTag.name;
       }
     }
   },
@@ -1302,7 +1304,7 @@ var gApplicationsPane = {
 
       case kActionUsePlugin:
         return this._prefsBundle.getFormattedString("usePluginIn",
-                                                    [aHandlerInfo.plugin.name,
+                                                    [aHandlerInfo.pluginName,
                                                      this._brandShortName]);
     }
   },
@@ -1484,11 +1486,11 @@ var gApplicationsPane = {
     }
 
     
-    if (handlerInfo.plugin) {
+    if (handlerInfo.pluginName) {
       var pluginMenuItem = document.createElement("menuitem");
       pluginMenuItem.setAttribute("action", kActionUsePlugin);
       let label = this._prefsBundle.getFormattedString("usePluginIn",
-                                                       [handlerInfo.plugin.name,
+                                                       [handlerInfo.pluginName,
                                                         this._brandShortName]);
       pluginMenuItem.setAttribute("label", label);
       pluginMenuItem.setAttribute("tooltiptext", label);
@@ -1651,7 +1653,7 @@ var gApplicationsPane = {
       
       if (action == kActionUsePlugin)
         handlerInfo.enablePluginType();
-      else if (handlerInfo.plugin && !handlerInfo.isDisabledPluginType)
+      else if (handlerInfo.pluginName && !handlerInfo.isDisabledPluginType)
         handlerInfo.disablePluginType();
 
       
