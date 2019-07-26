@@ -44,14 +44,11 @@ ion::SplitCriticalEdges(MIRGraph &graph)
 
 
 bool
-ion::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
+ion::EliminateDeadCode(MIRGraph &graph)
 {
     
     
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
-        if (mir->shouldCancel("Eliminate Dead Code (main loop)"))
-            return false;
-
         
         for (MInstructionReverseIterator inst = block->rbegin(); inst != block->rend(); ) {
             if (!inst->isEffectful() && !inst->hasUses() && !inst->isGuard() &&
@@ -110,16 +107,13 @@ IsPhiRedundant(MPhi *phi)
 }
 
 bool
-ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph)
+ion::EliminatePhis(MIRGraph &graph)
 {
     Vector<MPhi *, 16, SystemAllocPolicy> worklist;
 
     
     
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
-        if (mir->shouldCancel("Eliminate Phis (populate loop)"))
-            return false;
-
         MPhiIterator iter = block->phisBegin();
         while (iter != block->phisEnd()) {
             
@@ -145,9 +139,6 @@ ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph)
 
     
     while (!worklist.empty()) {
-        if (mir->shouldCancel("Eliminate Phis (worklist)"))
-            return false;
-
         MPhi *phi = worklist.popCopy();
         JS_ASSERT(phi->isUnused());
         phi->setNotInWorklist();
@@ -209,7 +200,6 @@ ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph)
 
 class TypeAnalyzer
 {
-    MIRGenerator *mir;
     MIRGraph &graph;
     Vector<MPhi *, 0, SystemAllocPolicy> phiWorklist_;
 
@@ -236,8 +226,8 @@ class TypeAnalyzer
     bool insertConversions();
 
   public:
-    TypeAnalyzer(MIRGenerator *mir, MIRGraph &graph)
-      : mir(mir), graph(graph)
+    TypeAnalyzer(MIRGraph &graph)
+      : graph(graph)
     { }
 
     bool analyze();
@@ -325,9 +315,6 @@ bool
 TypeAnalyzer::specializePhis()
 {
     for (PostorderIterator block(graph.poBegin()); block != graph.poEnd(); block++) {
-        if (mir->shouldCancel("Specialize Phis (main loop)"))
-            return false;
-
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
             MIRType type = GuessPhiType(*phi);
             phi->specialize(type);
@@ -344,9 +331,6 @@ TypeAnalyzer::specializePhis()
     }
 
     while (!phiWorklist_.empty()) {
-        if (mir->shouldCancel("Specialize Phis (worklist)"))
-            return false;
-
         MPhi *phi = popPhi();
         if (!propagateSpecialization(phi))
             return false;
@@ -438,9 +422,6 @@ TypeAnalyzer::insertConversions()
     
     
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
-        if (mir->shouldCancel("Insert Conversions"))
-            return false;
-
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd();) {
             if (phi->type() <= MIRType_Null || phi->type() == MIRType_Magic) {
                 replaceRedundantPhi(*phi);
@@ -469,9 +450,9 @@ TypeAnalyzer::analyze()
 }
 
 bool
-ion::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
+ion::ApplyTypeInformation(MIRGraph &graph)
 {
-    TypeAnalyzer analyzer(mir, graph);
+    TypeAnalyzer analyzer(graph);
 
     if (!analyzer.analyze())
         return false;

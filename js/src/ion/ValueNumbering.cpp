@@ -6,7 +6,6 @@
 
 
 #include "Ion.h"
-#include "IonBuilder.h"
 #include "IonSpewer.h"
 #include "CompileInfo.h"
 #include "ValueNumbering.h"
@@ -14,9 +13,8 @@
 using namespace js;
 using namespace js::ion;
 
-ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic)
-  : mir(mir),
-    graph_(graph),
+ValueNumberer::ValueNumberer(MIRGraph &graph, bool optimistic)
+  : graph_(graph),
     pessimisticPass_(!optimistic),
     count_(0)
 { }
@@ -147,8 +145,6 @@ ValueNumberer::computeValueNumbers()
         return false;
     
     for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        if (mir->shouldCancel("Value Numbering (preparation loop"))
-            return false;
         for (MDefinitionIterator iter(*block); iter; iter++)
             iter->setValueNumberData(new ValueNumberData);
         MControlInstruction *jump = block->lastIns();
@@ -193,8 +189,6 @@ ValueNumberer::computeValueNumbers()
         }
 #endif
         for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-            if (mir->shouldCancel("Value Numbering (main loop)"))
-                return false;
             for (MDefinitionIterator iter(*block); iter; ) {
 
                 if (!isMarked(*iter)) {
@@ -331,8 +325,6 @@ ValueNumberer::eliminateRedundancies()
 
     
     while (!worklist.empty()) {
-        if (mir->shouldCancel("Value Numbering (eliminate loop)"))
-            return false;
         MBasicBlock *block = worklist.popCopy();
 
         IonSpew(IonSpew_GVN, "Looking at block %d", block->id());
