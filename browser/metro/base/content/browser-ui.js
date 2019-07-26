@@ -4,6 +4,7 @@
 
 
 Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-server.jsm")
 
 
 
@@ -1341,6 +1342,13 @@ var StartUI = {
       if (section.init)
         section.init();
     });
+
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+      DebuggerServer.addActors('chrome://browser/content/dbg-metro-actors.js');
+    }
+    DebuggerServer.openListener(6000);
   },
 
   uninit: function() {
