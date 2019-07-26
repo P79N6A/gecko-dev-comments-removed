@@ -22,7 +22,6 @@
 #include "nsIObserver.h"
 #include "nsIExceptionService.h"
 #include "nsIScriptRuntime.h"
-#include "nsIScriptGlobalObject.h" 
 #include "mozilla/Attributes.h"
 
 class nsDOMScriptObjectFactory MOZ_FINAL : public nsIDOMScriptObjectFactory,
