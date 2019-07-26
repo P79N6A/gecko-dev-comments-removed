@@ -135,8 +135,6 @@ public:
     mSandboxEnabled = aSandboxEnabled;
   }
 
-  static void CacheGreDir();
-
 protected:
   GeckoProcessType mProcessType;
   bool mSandboxEnabled;
@@ -194,6 +192,7 @@ private:
 			     base::ProcessArchitecture aArch=base::GetCurrentProcessArchitecture());
 
   static void GetPathToBinary(FilePath& exePath);
+  static void CacheGreDir();
 
   
   

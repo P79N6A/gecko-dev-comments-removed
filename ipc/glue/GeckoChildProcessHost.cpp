@@ -65,6 +65,7 @@ static const bool kLowRightsSubprocesses =
   ;
 
 mozilla::StaticRefPtr<nsIFile> GeckoChildProcessHost::sGreDir;
+mozilla::DebugOnly<bool> GeckoChildProcessHost::sGreDirCached;
 
 static bool
 ShouldHaveDirectoryService()
@@ -129,7 +130,7 @@ void
 GeckoChildProcessHost::GetPathToBinary(FilePath& exePath)
 {
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDir);
+    MOZ_ASSERT(sGreDirCached);
     if (sGreDir) {
 #ifdef OS_WIN
       nsString path;
@@ -266,11 +267,19 @@ GeckoChildProcessHost::PrepareLaunch()
 void
 GeckoChildProcessHost::CacheGreDir()
 {
-  if (sGreDir) {
-    return;
-  }
+  
+  
+  
+  
 
+#ifdef MOZ_WIDGET_GONK
+  
+  
+
+  
+  
   MOZ_ASSERT(NS_IsMainThread());
+#endif
 
   if (ShouldHaveDirectoryService()) {
     nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
@@ -286,6 +295,7 @@ GeckoChildProcessHost::CacheGreDir()
       }
     }
   }
+  sGreDirCached = true;
 }
 
 #ifdef XP_WIN
@@ -549,7 +559,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   
   
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDir);
+    MOZ_ASSERT(sGreDirCached);
     if (sGreDir) {
       nsCString path;
       MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
