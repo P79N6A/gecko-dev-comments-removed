@@ -113,7 +113,7 @@ nsSecurityNameSet::InitializeNameSet(nsIScriptContext* aScriptContext)
     
     
     
-    if (!Preferences::GetBool("security.enablePrivilege.enable_for_tests"))
+    if (!Preferences::GetBool("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer"))
         return NS_OK;
 
     
