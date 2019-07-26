@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.14.1"
-#define SQLITE_VERSION_NUMBER 3007014
-#define SQLITE_SOURCE_ID      "2012-10-04 19:37:12 091570e46d04e84b67228e0bdbcd6e1fb60c6bdb"
+#define SQLITE_VERSION        "3.7.15.1"
+#define SQLITE_VERSION_NUMBER 3007015
+#define SQLITE_SOURCE_ID      "2012-12-19 20:39:10 6b85b767d0ff7975146156a99ad673f2c1a23318"
 
 
 
@@ -474,10 +474,12 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_IOERR_SHMLOCK           (SQLITE_IOERR | (20<<8))
 #define SQLITE_IOERR_SHMMAP            (SQLITE_IOERR | (21<<8))
 #define SQLITE_IOERR_SEEK              (SQLITE_IOERR | (22<<8))
+#define SQLITE_IOERR_DELETE_NOENT      (SQLITE_IOERR | (23<<8))
 #define SQLITE_LOCKED_SHAREDCACHE      (SQLITE_LOCKED |  (1<<8))
 #define SQLITE_BUSY_RECOVERY           (SQLITE_BUSY   |  (1<<8))
 #define SQLITE_CANTOPEN_NOTEMPDIR      (SQLITE_CANTOPEN | (1<<8))
 #define SQLITE_CANTOPEN_ISDIR          (SQLITE_CANTOPEN | (2<<8))
+#define SQLITE_CANTOPEN_FULLPATH       (SQLITE_CANTOPEN | (3<<8))
 #define SQLITE_CORRUPT_VTAB            (SQLITE_CORRUPT | (1<<8))
 #define SQLITE_READONLY_RECOVERY       (SQLITE_READONLY | (1<<8))
 #define SQLITE_READONLY_CANTLOCK       (SQLITE_READONLY | (2<<8))
@@ -857,6 +859,26 @@ struct sqlite3_io_methods {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define SQLITE_FCNTL_LOCKSTATE               1
 #define SQLITE_GET_LOCKPROXYFILE             2
 #define SQLITE_SET_LOCKPROXYFILE             3
@@ -871,6 +893,8 @@ struct sqlite3_io_methods {
 #define SQLITE_FCNTL_VFSNAME                12
 #define SQLITE_FCNTL_POWERSAFE_OVERWRITE    13
 #define SQLITE_FCNTL_PRAGMA                 14
+#define SQLITE_FCNTL_BUSYHANDLER            15
+#define SQLITE_FCNTL_TEMPFILENAME           16
 
 
 
@@ -1573,6 +1597,34 @@ struct sqlite3_mem_methods {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define SQLITE_CONFIG_SINGLETHREAD  1  /* nil */
 #define SQLITE_CONFIG_MULTITHREAD   2  /* nil */
 #define SQLITE_CONFIG_SERIALIZED    3  /* nil */
@@ -1592,6 +1644,8 @@ struct sqlite3_mem_methods {
 #define SQLITE_CONFIG_URI          17  /* int */
 #define SQLITE_CONFIG_PCACHE2      18  /* sqlite3_pcache_methods2* */
 #define SQLITE_CONFIG_GETPCACHE2   19  /* sqlite3_pcache_methods2* */
+#define SQLITE_CONFIG_COVERING_INDEX_SCAN 20  /* int */
+#define SQLITE_CONFIG_SQLLOG       21  /* xSqllog, void* */
 
 
 
@@ -2766,10 +2820,16 @@ SQLITE_API sqlite3_int64 sqlite3_uri_int64(const char*, const char*, sqlite3_int
 
 
 
+
+
+
+
+
 SQLITE_API int sqlite3_errcode(sqlite3 *db);
 SQLITE_API int sqlite3_extended_errcode(sqlite3 *db);
 SQLITE_API const char *sqlite3_errmsg(sqlite3*);
 SQLITE_API const void *sqlite3_errmsg16(sqlite3*);
+SQLITE_API const char *sqlite3_errstr(int);
 
 
 
@@ -4707,6 +4767,9 @@ SQLITE_API void *sqlite3_update_hook(
   void(*)(void *,int ,char const *,char const *,sqlite3_int64),
   void*
 );
+
+
+
 
 
 
