@@ -16,6 +16,7 @@
 #include "nsSVGEffects.h"
 #include "nsSVGElement.h"
 #include "nsSVGFilterFrame.h"
+#include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGMaskFrame.h"
 #include "nsSVGPaintServerFrame.h"
@@ -276,7 +277,7 @@ nsRect
   overrideBBox.RoundOut();
 
   nsRect overflowRect =
-    filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox);
+    nsSVGFilterInstance::GetPostFilterBounds(filterFrame, firstFrame, &overrideBBox);
 
   
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
@@ -327,8 +328,8 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
 
   
   
-  nsRect result = filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
-           toUserSpace;
+  nsRect result = nsSVGFilterInstance::GetPostFilterDirtyArea(filterFrame,
+    firstFrame, preEffectsRect) - toUserSpace;
   
   return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
@@ -352,8 +353,8 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   
-  return filterFrame->GetPreFilterNeededArea(firstFrame, postEffectsRect) -
-           toUserSpace;
+  return nsSVGFilterInstance::GetPreFilterNeededArea(filterFrame, firstFrame,
+    postEffectsRect) - toUserSpace;
 }
 
 bool
@@ -517,7 +518,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
                                        offsetWithoutSVGGeomFramePos);
     nsRect dirtyRect = aDirtyRect - offset;
-    filterFrame->PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRect, nullptr);
+    nsSVGFilterInstance::PaintFilteredFrame(filterFrame, aCtx, aFrame,
+                                            &callback, &dirtyRect);
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());
     aLayerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer, aBuilder);

@@ -65,6 +65,52 @@ public:
 
 
 
+  static nsresult PaintFilteredFrame(nsSVGFilterFrame* aFilterFrame,
+                                     nsRenderingContext *aContext,
+                                     nsIFrame *aFilteredFrame,
+                                     nsSVGFilterPaintCallback *aPaintCallback,
+                                     const nsRect* aDirtyArea,
+                                     nsIFrame* aTransformRoot = nullptr);
+
+  
+
+
+
+
+
+  static nsRect GetPostFilterDirtyArea(nsSVGFilterFrame* aFilterFrame,
+                                       nsIFrame *aFilteredFrame,
+                                       const nsRect& aPreFilterDirtyRect);
+
+  
+
+
+
+
+
+  static nsRect GetPreFilterNeededArea(nsSVGFilterFrame* aFilterFrame,
+                                       nsIFrame *aFilteredFrame,
+                                       const nsRect& aPostFilterDirtyRect);
+
+  
+
+
+
+
+
+
+
+  static nsRect GetPostFilterBounds(nsSVGFilterFrame* aFilterFrame,
+                                    nsIFrame *aFilteredFrame,
+                                    const gfxRect *aOverrideBBox = nullptr,
+                                    const nsRect *aPreFilterBounds = nullptr);
+
+  
+
+
+
+
+
 
 
 
@@ -124,7 +170,7 @@ public:
 
 
 
-  nsresult ComputePostFilterDirtyRect(nsIntRect* aPostFilterDirtyRect);
+  nsresult ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect);
 
   
 
@@ -133,7 +179,7 @@ public:
 
 
 
-  nsresult ComputePostFilterExtents(nsIntRect* aPostFilterExtents);
+  nsresult ComputePostFilterExtents(nsRect* aPostFilterExtents);
 
   
 
@@ -142,7 +188,7 @@ public:
 
 
 
-  nsresult ComputeSourceNeededRect(nsIntRect* aDirty);
+  nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
   float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const
   {
@@ -269,6 +315,7 @@ private:
 
 
   nsIntRect FrameSpaceToFilterSpace(const nsRect* aRect) const;
+  nsRect FilterSpaceToFrameSpace(const nsIntRect& aRect) const;
 
   
 
