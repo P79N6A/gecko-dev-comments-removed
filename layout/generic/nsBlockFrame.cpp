@@ -1846,13 +1846,9 @@ static void DumpLine(const nsBlockReflowState& aState, nsLineBox* aLine,
 #endif
 }
 
-
-
-
-nsresult
+void
 nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 {
-  nsresult rv = NS_OK;
   bool keepGoing = true;
   bool repositionViews = false; 
   bool foundAnyClears = aState.mFloatBreakType != NS_STYLE_CLEAR_NONE;
@@ -2447,8 +2443,6 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
            aState.mReflowStatus);
   }
 #endif
-
-  return rv;
 }
 
 static void MarkAllDescendantLinesDirty(nsBlockFrame* aBlock)
