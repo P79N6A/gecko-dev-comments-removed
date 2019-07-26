@@ -56,14 +56,11 @@ namespace unicode {
 
 
 
-
-
 struct CharFlag {
     enum temp {
         SPACE  = 1 << 0,
         LETTER = 1 << 1,
         IDENTIFIER_PART = 1 << 2,
-        NO_DELTA = 1 << 3
     };
 };
 
@@ -72,10 +69,6 @@ const jschar NO_BREAK_SPACE  = 0x00A0;
 
 class CharacterInfo {
     
-
-
-
-
 
 
 
@@ -200,13 +193,6 @@ ToUpperCase(jschar ch)
 {
     const CharacterInfo &info = CharInfo(ch);
 
-    
-
-
-
-    if (info.flags & CharFlag::NO_DELTA)
-        return info.upperCase;
-
     return uint16_t(ch) + info.upperCase;
 }
 
@@ -214,9 +200,6 @@ inline jschar
 ToLowerCase(jschar ch)
 {
     const CharacterInfo &info = CharInfo(ch);
-
-    if (info.flags & CharFlag::NO_DELTA)
-        return info.lowerCase;
 
     return uint16_t(ch) + info.lowerCase;
 }
