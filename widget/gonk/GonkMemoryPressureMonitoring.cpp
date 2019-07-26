@@ -5,19 +5,26 @@
 
 
 #include "GonkMemoryPressureMonitoring.h"
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/FileUtils.h"
+#include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsMemoryPressure.h"
-#include "nsXULAppAPI.h"
-#include "base/message_loop.h"
+#include "nsThreadUtils.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <android/log.h>
 
 #define LOG(args...)  \
   __android_log_print(ANDROID_LOG_INFO, "GonkMemoryPressure" , ## args)
+
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
 
 using namespace mozilla;
 
@@ -43,175 +50,168 @@ namespace {
 
 
 
-class MemoryPressureWatcher : public MessageLoopForIO::Watcher
+
+
+
+
+
+
+
+
+
+class MemoryPressureWatcher
+  : public nsIRunnable
+  , public nsIObserver
 {
 public:
-  class PollTask : public CancelableTask
+  MemoryPressureWatcher()
+    : mMonitor("MemoryPressureWatcher")
+    , mShuttingDown(false)
   {
-  public:
-    PollTask(MemoryPressureWatcher* aWatcher)
-    : mWatcher(aWatcher)
-    {
-      MOZ_ASSERT(mWatcher);
-    }
-
-    static void* operator new(size_t aSize);
-    static void operator delete(void* aMem, size_t aSize);
-
-    void Run() MOZ_OVERRIDE
-    {
-      MOZ_ASSERT(MessageLoopForIO::current());
-
-      if (mWatcher) {
-        MOZ_ASSERT(MessageLoopForIO::current() == mWatcher->GetIOLoop());
-        mWatcher->StartWatching();
-      }
-    }
-
-    void Cancel() MOZ_OVERRIDE
-    {
-      mWatcher = nullptr;
-    }
-
-  private:
-    MemoryPressureWatcher* mWatcher;
-  };
-
-  template <size_t Size> class PollTaskAllocator
-  {
-  public:
-    void* Alloc()
-    {
-      MOZ_ASSERT(!sAllocated);
-      sAllocated = true;
-      return mMem;
-    }
-    void Release(void* aMem)
-    {
-      MOZ_ASSERT(mMem == aMem);
-      MOZ_ASSERT(sAllocated);
-      sAllocated = false;
-    }
-
-  private:
-    static bool sAllocated;
-    unsigned char mMem[Size];
-  };
-
-  MemoryPressureWatcher(MessageLoop* aIOLoop, uint32_t aPollMS)
-  : mFd(-1)
-  , mIOLoop(aIOLoop)
-  , mPollTask(nullptr)
-  , mPollMS(aPollMS)
-  , mMemoryPressure(false)
-  {
-    MOZ_ASSERT(mIOLoop);
   }
 
-  virtual ~MemoryPressureWatcher()
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  nsresult Init()
   {
-    MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
-    MOZ_ASSERT(mFd == -1);
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    NS_ENSURE_STATE(os);
+
+    
+    os->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,  false);
+
+    
+    
+    
+    
+    mPollMS = Preferences::GetUint("gonk.systemMemoryPressureRecoveryPollMS",
+                                    5000);
+
+    int pipes[2];
+    NS_ENSURE_STATE(!pipe(pipes));
+    mShutdownPipeRead = pipes[0];
+    mShutdownPipeWrite = pipes[1];
+    return NS_OK;
   }
 
-  MessageLoop* GetIOLoop () const
+  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
+                     const char16_t* aData)
   {
-    return mIOLoop;
-  }
+    MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
+    LOG("Observed XPCOM shutdown.");
 
-  nsresult Open()
-  {
-    MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
+    MonitorAutoLock lock(mMonitor);
+    mShuttingDown = true;
+    mMonitor.Notify();
 
-    int fd;
-
+    int rv;
     do {
-      fd = open("/sys/kernel/mm/lowmemkiller/notify_trigger_active",
-                O_RDONLY | O_CLOEXEC);
-    } while (fd == -1 && errno == EINTR);
-
-    if (NS_WARN_IF(fd == -1)) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    mFd = fd;
+      
+      uint32_t dummy = 0;
+      rv = write(mShutdownPipeWrite, &dummy, sizeof(dummy));
+    } while(rv == -1 && errno == EINTR);
 
     return NS_OK;
   }
 
-  void Close()
+  NS_IMETHOD Run()
   {
-    MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
+    MOZ_ASSERT(!NS_IsMainThread());
 
-    if (NS_WARN_IF(mFd == -1)) {
-      return;
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+      NS_ASSERTION(NuwaMarkCurrentThread != nullptr,
+                   "NuwaMarkCurrentThread is undefined!");
+      NuwaMarkCurrentThread(nullptr, nullptr);
     }
+#endif
 
-    int res;
+    int lowMemFd = open("/sys/kernel/mm/lowmemkiller/notify_trigger_active",
+                        O_RDONLY | O_CLOEXEC);
+    NS_ENSURE_STATE(lowMemFd != -1);
+    ScopedClose autoClose(lowMemFd);
 
-    do {
-      res = close(mFd);
-    } while (res == -1 && errno == EINTR);
+    nsresult rv = CheckForMemoryPressure(lowMemFd, nullptr);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    NS_WARN_IF(res == -1);
-    mFd = -1;
-  }
+    while (true) {
+      
+      
+      
+      struct pollfd pollfds[2];
+      pollfds[0].fd = lowMemFd;
+      pollfds[0].events = POLLPRI;
+      pollfds[1].fd = mShutdownPipeRead;
+      pollfds[1].events = POLLIN;
 
-  void StartWatching()
-  {
-    MessageLoopForIO* ioLoop = MessageLoopForIO::current();
-    MOZ_ASSERT(ioLoop == mIOLoop);
-    ioLoop->WatchFileDescriptor(mFd, true, MessageLoopForIO::WATCH_READ,
-                                &mReadWatcher, this);
-    mPollTask = nullptr;
-  }
+      int pollRv;
+      do {
+        pollRv = poll(pollfds, ArrayLength(pollfds),  -1);
+      } while (pollRv == -1 && errno == EINTR);
 
-  void StopWatching()
-  {
-    if (mPollTask) {
-      mPollTask->Cancel();
-    }
-    mReadWatcher.StopWatchingFileDescriptor();
-  }
-
-  virtual void OnFileCanWriteWithoutBlocking(int aFd) MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
-    NS_WARNING("Must not write to memory monitor");
-  }
-
-  virtual void OnFileCanReadWithoutBlocking(int aFd) MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(MessageLoopForIO::current() == mIOLoop);
-
-    bool memoryPressure;
-    nsresult rv = CheckForMemoryPressure(memoryPressure);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
-    if (memoryPressure) {
-      LOG("Memory pressure detected.");
-      StopWatching();
-      if (mMemoryPressure) {
-        rv = NS_DispatchMemoryPressure(MemPressure_Ongoing);
-      } else {
-        rv = NS_DispatchMemoryPressure(MemPressure_New);
+      if (pollfds[1].revents) {
+        
+        LOG("shutting down (1)");
+        return NS_OK;
       }
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return;
+
+      
+      if (!(pollfds[0].revents & POLLPRI)) {
+        LOG("Unexpected revents value after poll(): %d. "
+            "Shutting down GonkMemoryPressureMonitoring.", pollfds[0].revents);
+        return NS_ERROR_FAILURE;
       }
 
       
       
       
       
-      mPollTask = new PollTask(this);
-      mIOLoop->PostDelayedTask(FROM_HERE, mPollTask, mPollMS);
-    } else if (mMemoryPressure) {
+
+      
+      
+      rv = NS_DispatchMemoryPressure(MemPressure_New);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      
+      
+      
+      
+      bool memoryPressure;
+      do {
+        {
+          MonitorAutoLock lock(mMonitor);
+
+          
+          
+          
+          
+          
+          
+          
+          if (mShuttingDown) {
+            LOG("shutting down (2)");
+            return NS_OK;
+          }
+          mMonitor.Wait(PR_MillisecondsToInterval(mPollMS));
+        }
+
+        LOG("Checking to see if memory pressure is over.");
+        rv = CheckForMemoryPressure(lowMemFd, &memoryPressure);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (memoryPressure) {
+          rv = NS_DispatchMemoryPressure(MemPressure_Ongoing);
+          NS_ENSURE_SUCCESS(rv, rv);
+          continue;
+        }
+      } while (false);
+
       LOG("Memory pressure is over.");
     }
-    mMemoryPressure = memoryPressure;
+
+    return NS_OK;
   }
 
 private:
@@ -222,138 +222,38 @@ private:
 
 
 
-  nsresult CheckForMemoryPressure(bool& aOut)
+  nsresult CheckForMemoryPressure(int aLowMemFd, bool* aOut)
   {
-    aOut = false;
-
-    off_t off = lseek(mFd, 0, SEEK_SET);
-    if (NS_WARN_IF(off)) {
-      return NS_ERROR_UNEXPECTED;
+    if (aOut) {
+      *aOut = false;
     }
+
+    lseek(aLowMemFd, 0, SEEK_SET);
 
     char buf[2];
     int nread;
     do {
-      nread = read(mFd, buf, sizeof(buf));
+      nread = read(aLowMemFd, buf, sizeof(buf));
     } while(nread == -1 && errno == EINTR);
-    if (NS_WARN_IF(nread != 2)) {
-      return NS_ERROR_UNEXPECTED;
+    NS_ENSURE_STATE(nread == 2);
+
+    
+    
+    if (aOut) {
+      *aOut = buf[0] == '1' && buf[1] == '\n';
     }
-
-    
-    
-    aOut = buf[0] == '1' && buf[1] == '\n';
-
     return NS_OK;
   }
 
-  int mFd;
-  MessageLoop* mIOLoop;
-  MessageLoopForIO::FileDescriptorWatcher mReadWatcher;
-  PollTask* mPollTask;
+  Monitor mMonitor;
   uint32_t mPollMS;
-  bool mMemoryPressure;
+  bool mShuttingDown;
+
+  ScopedClose mShutdownPipeRead;
+  ScopedClose mShutdownPipeWrite;
 };
 
-static
-  MemoryPressureWatcher::PollTaskAllocator<sizeof(MemoryPressureWatcher::PollTask)>
-    sPollTaskAllocator;
-
-template<>
-bool
-  MemoryPressureWatcher::PollTaskAllocator<sizeof(MemoryPressureWatcher::PollTask)>::sAllocated(false);
-
-void*
-MemoryPressureWatcher::PollTask::operator new(size_t aSize)
-{
-  return sPollTaskAllocator.Alloc();
-}
-
-void
-MemoryPressureWatcher::PollTask::operator delete(void* aMem, size_t aSize)
-{
-  sPollTaskAllocator.Release(aMem);
-}
-
-
-
-class InitMemoryPressureWatcherTask : public Task
-{
-public:
-  InitMemoryPressureWatcherTask(MemoryPressureWatcher* aWatcher)
-  : mWatcher(aWatcher)
-  {
-    MOZ_ASSERT(mWatcher);
-  }
-
-  void Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(MessageLoopForIO::current() == mWatcher->GetIOLoop());
-
-    nsresult rv = mWatcher->Open();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-    mWatcher->StartWatching();
-  }
-
-private:
-  MemoryPressureWatcher* mWatcher;
-};
-
-
-
-class ShutdownMemoryPressureWatcherTask : public Task
-{
-public:
-  ShutdownMemoryPressureWatcherTask(MemoryPressureWatcher* aWatcher)
-  : mWatcher(aWatcher)
-  {
-    MOZ_ASSERT(mWatcher);
-  }
-
-  void Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(MessageLoopForIO::current() == mWatcher->GetIOLoop());
-
-    mWatcher->StopWatching();
-    mWatcher->Close();
-  }
-
-private:
-  nsAutoPtr<MemoryPressureWatcher> mWatcher;
-};
-
-
-
-class ShutdownObserver : public nsIObserver
-{
-public:
-  ShutdownObserver(MemoryPressureWatcher* aWatcher)
-  : mWatcher(aWatcher)
-  {
-    MOZ_ASSERT(mWatcher);
-  }
-
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
-                     const char16_t* aData)
-  {
-    MOZ_ASSERT(!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID));
-    LOG("Observed XPCOM shutdown.");
-
-    Task* task = new ShutdownMemoryPressureWatcherTask(mWatcher);
-    mWatcher->GetIOLoop()->PostTask(FROM_HERE, task);
-
-    return NS_OK;
-  }
-
-private:
-  MemoryPressureWatcher* mWatcher;
-};
-
-NS_IMPL_ISUPPORTS1(ShutdownObserver, nsIObserver);
+NS_IMPL_ISUPPORTS2(MemoryPressureWatcher, nsIRunnable, nsIObserver);
 
 } 
 
@@ -362,22 +262,13 @@ namespace mozilla {
 void
 InitGonkMemoryPressureMonitoring()
 {
-  MessageLoop* ioLoop = XRE_GetIOMessageLoop();
-  uint32_t pollMS =
-    Preferences::GetUint("gonk.systemMemoryPressureRecoveryPollMS", 5000);
-  MemoryPressureWatcher* watcher = new MemoryPressureWatcher(ioLoop, pollMS);
-
   
-  Task* task = new InitMemoryPressureWatcherTask(watcher);
-  watcher->GetIOLoop()->PostTask(FROM_HERE, task);
+  nsRefPtr<MemoryPressureWatcher> memoryPressureWatcher =
+    new MemoryPressureWatcher();
+  NS_ENSURE_SUCCESS_VOID(memoryPressureWatcher->Init());
 
-  
-  nsCOMPtr<nsIObserverService> os = services::GetObserverService();
-  if (NS_WARN_IF(!os)) {
-    return;
-  }
-  nsRefPtr<ShutdownObserver> observer = new ShutdownObserver(watcher);
-  os->AddObserver(observer, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+  nsCOMPtr<nsIThread> thread;
+  NS_NewThread(getter_AddRefs(thread), memoryPressureWatcher);
 }
 
 } 
