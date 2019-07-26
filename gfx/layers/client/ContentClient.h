@@ -257,9 +257,6 @@ protected:
   
   virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) = 0;
   virtual void DestroyFrontBuffer() {}
-  
-  
-  virtual void LockFrontBuffer() {}
 
   bool CreateAndAllocateTextureClient(RefPtr<TextureClient>& aClient,
                                       TextureFlags aFlags = 0);
@@ -410,7 +407,6 @@ public:
 protected:
   virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
   virtual void DestroyFrontBuffer() MOZ_OVERRIDE;
-  virtual void LockFrontBuffer() MOZ_OVERRIDE;
 
 private:
   void UpdateDestinationFrom(const RotatedBuffer& aSource,
