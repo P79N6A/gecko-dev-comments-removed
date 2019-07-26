@@ -30,7 +30,7 @@
 #include "nsIMobileConnectionInfo.h"
 #include "nsIMobileConnectionProvider.h"
 #include "nsIMobileNetworkInfo.h"
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 #include "nsRadioInterfaceLayer.h"
 #endif
 
@@ -333,7 +333,7 @@ Call::Call()
 void
 Call::Reset()
 {
-  mState = nsITelephonyProvider::CALL_STATE_DISCONNECTED;
+  mState = nsITelephonyService::CALL_STATE_DISCONNECTED;
   mDirection = false;
   mIsConference = false;
   mNumber.Truncate();
@@ -343,7 +343,7 @@ Call::Reset()
 bool
 Call::IsActive()
 {
-  return (mState == nsITelephonyProvider::CALL_STATE_CONNECTED);
+  return (mState == nsITelephonyService::CALL_STATE_CONNECTED);
 }
 #endif 
 
@@ -1205,7 +1205,7 @@ BluetoothHfpManager::SendCCWA(const nsAString& aNumber, int aType)
 bool
 BluetoothHfpManager::SendCLCC(const Call& aCall, int aIndex)
 {
-  if (aCall.mState == nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
+  if (aCall.mState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
     return true;
   }
 
@@ -1217,23 +1217,23 @@ BluetoothHfpManager::SendCLCC(const Call& aCall, int aIndex)
 
   int status = 0;
   switch (aCall.mState) {
-    case nsITelephonyProvider::CALL_STATE_CONNECTED:
+    case nsITelephonyService::CALL_STATE_CONNECTED:
       if (mPhoneType == PhoneType::CDMA && aIndex == 1) {
         status = (mCdmaSecondCall.IsActive()) ? 1 : 0;
       }
       message.AppendInt(status);
       break;
-    case nsITelephonyProvider::CALL_STATE_HELD:
+    case nsITelephonyService::CALL_STATE_HELD:
       message.AppendInt(1);
       break;
-    case nsITelephonyProvider::CALL_STATE_DIALING:
+    case nsITelephonyService::CALL_STATE_DIALING:
       message.AppendInt(2);
       break;
-    case nsITelephonyProvider::CALL_STATE_ALERTING:
+    case nsITelephonyService::CALL_STATE_ALERTING:
       message.AppendInt(3);
       break;
-    case nsITelephonyProvider::CALL_STATE_INCOMING:
-      if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+    case nsITelephonyService::CALL_STATE_INCOMING:
+      if (!FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED)) {
         message.AppendInt(4);
       } else {
         message.AppendInt(5);
@@ -1457,11 +1457,11 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
   nsString address;
 
   switch (aCallState) {
-    case nsITelephonyProvider::CALL_STATE_HELD:
+    case nsITelephonyService::CALL_STATE_HELD:
       switch (prevCallState) {
-        case nsITelephonyProvider::CALL_STATE_CONNECTED: {
-          uint32_t numActive = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_CONNECTED);
-          uint32_t numHeld = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_HELD);
+        case nsITelephonyService::CALL_STATE_CONNECTED: {
+          uint32_t numActive = GetNumberOfCalls(nsITelephonyService::CALL_STATE_CONNECTED);
+          uint32_t numHeld = GetNumberOfCalls(nsITelephonyService::CALL_STATE_HELD);
           uint32_t numConCalls = GetNumberOfConCalls();
 
           
@@ -1489,7 +1489,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
               sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
             }
             SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
-          } else if (GetNumberOfConCalls(nsITelephonyProvider::CALL_STATE_HELD)
+          } else if (GetNumberOfConCalls(nsITelephonyService::CALL_STATE_HELD)
                      == numConCalls) {
             if (numActive + numHeld == numConCalls) {
               
@@ -1502,10 +1502,10 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           }
           break;
         }
-        case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
+        case nsITelephonyService::CALL_STATE_DISCONNECTED:
           
           
-          if (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+          if (FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED)) {
             
             sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
             SendCommand(RESPONSE_CIEV, CINDType::CALLHELD);
@@ -1513,8 +1513,8 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           break;
       }
       break;
-    case nsITelephonyProvider::CALL_STATE_INCOMING:
-      if (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+    case nsITelephonyService::CALL_STATE_INCOMING:
+      if (FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED)) {
         SendCCWA(aNumber, mCurrentCallArray[aCallIndex].mType);
         UpdateCIND(CINDType::CALLSETUP, CallSetupState::INCOMING, aSend);
       } else {
@@ -1539,7 +1539,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           sRingInterval);
       }
       break;
-    case nsITelephonyProvider::CALL_STATE_DIALING:
+    case nsITelephonyService::CALL_STATE_DIALING:
       if (!mDialingRequestProcessed) {
         SendLine("OK");
         mDialingRequestProcessed = true;
@@ -1548,14 +1548,14 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING, aSend);
       ConnectSco();
       break;
-    case nsITelephonyProvider::CALL_STATE_ALERTING:
+    case nsITelephonyService::CALL_STATE_ALERTING:
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING_ALERTING, aSend);
 
       
       
       ConnectSco();
       break;
-    case nsITelephonyProvider::CALL_STATE_CONNECTED:
+    case nsITelephonyService::CALL_STATE_CONNECTED:
       
 
 
@@ -1563,32 +1563,32 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
 
       switch (prevCallState) {
-        case nsITelephonyProvider::CALL_STATE_INCOMING:
-        case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
+        case nsITelephonyService::CALL_STATE_INCOMING:
+        case nsITelephonyService::CALL_STATE_DISCONNECTED:
           
           sStopSendingRingFlag = true;
           ConnectSco();
           
-        case nsITelephonyProvider::CALL_STATE_DIALING:
-        case nsITelephonyProvider::CALL_STATE_ALERTING:
+        case nsITelephonyService::CALL_STATE_DIALING:
+        case nsITelephonyService::CALL_STATE_ALERTING:
           
           UpdateCIND(CINDType::CALL, CallState::IN_PROGRESS, aSend);
           UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, aSend);
 
-          if (FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+          if (FindFirstCall(nsITelephonyService::CALL_STATE_HELD)) {
             
             UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_ACTIVE, aSend);
           }
           break;
-        case nsITelephonyProvider::CALL_STATE_CONNECTED:
+        case nsITelephonyService::CALL_STATE_CONNECTED:
           
           
           if (aIsConference) {
             UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
           }
           break;
-        case nsITelephonyProvider::CALL_STATE_HELD:
-          if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+        case nsITelephonyService::CALL_STATE_HELD:
+          if (!FindFirstCall(nsITelephonyService::CALL_STATE_HELD)) {
             if (aIsConference && !prevCallIsConference) {
               
               UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
@@ -1604,17 +1604,17 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           BT_WARNING("Not handling state changed");
       }
       break;
-    case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
+    case nsITelephonyService::CALL_STATE_DISCONNECTED:
       switch (prevCallState) {
-        case nsITelephonyProvider::CALL_STATE_INCOMING:
+        case nsITelephonyService::CALL_STATE_INCOMING:
           
           sStopSendingRingFlag = true;
-        case nsITelephonyProvider::CALL_STATE_DIALING:
-        case nsITelephonyProvider::CALL_STATE_ALERTING:
+        case nsITelephonyService::CALL_STATE_DIALING:
+        case nsITelephonyService::CALL_STATE_ALERTING:
           
           UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, aSend);
           break;
-        case nsITelephonyProvider::CALL_STATE_CONNECTED:
+        case nsITelephonyService::CALL_STATE_CONNECTED:
           
           if (sCINDItems[CINDType::CALLHELD].value ==
               CallHeldState::NO_CALLHELD) {
@@ -1626,9 +1626,9 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       }
 
       
-      if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+      if (!FindFirstCall(nsITelephonyService::CALL_STATE_HELD)) {
         UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
-      } else if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+      } else if (!FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED)) {
         UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_NOACTIVE, aSend);
       } else {
         UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_ACTIVE, aSend);
@@ -1636,7 +1636,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
       
       if (mCurrentCallArray.Length() - 1 ==
-          GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
+          GetNumberOfCalls(nsITelephonyService::CALL_STATE_DISCONNECTED)) {
         
         
         if (!(aError.EqualsLiteral("BusyError"))) {
@@ -1699,7 +1699,7 @@ BluetoothHfpManager::AnswerWaitingCall()
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
   
-  mCdmaSecondCall.mState = nsITelephonyProvider::CALL_STATE_CONNECTED;
+  mCdmaSecondCall.mState = nsITelephonyService::CALL_STATE_CONNECTED;
   UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, true);
 
   sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
@@ -1724,8 +1724,8 @@ BluetoothHfpManager::ToggleCalls()
 
   
   mCdmaSecondCall.mState = (mCdmaSecondCall.IsActive()) ?
-                             nsITelephonyProvider::CALL_STATE_HELD :
-                             nsITelephonyProvider::CALL_STATE_CONNECTED;
+                             nsITelephonyService::CALL_STATE_HELD :
+                             nsITelephonyService::CALL_STATE_CONNECTED;
 }
 #endif 
 

@@ -4,7 +4,7 @@
 
 
 #include "TelephonyChild.h"
-#include "TelephonyIPCProvider.h"
+#include "TelephonyIPCService.h"
 
 USING_TELEPHONY_NAMESPACE
 
@@ -12,7 +12,7 @@ USING_TELEPHONY_NAMESPACE
 
 
 
-TelephonyChild::TelephonyChild(TelephonyIPCProvider* aProvider)
+TelephonyChild::TelephonyChild(TelephonyIPCService* aProvider)
   : mProvider(aProvider)
 {
   MOZ_ASSERT(aProvider);

@@ -11,7 +11,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 
 
 
@@ -41,7 +41,7 @@ class Telephony MOZ_FINAL : public DOMEventTargetHelper
   class EnumerationAck;
   friend class EnumerationAck;
 
-  nsCOMPtr<nsITelephonyProvider> mProvider;
+  nsCOMPtr<nsITelephonyService> mProvider;
   nsRefPtr<Listener> mListener;
 
   TelephonyCall* mActiveCall;
@@ -130,7 +130,7 @@ public:
     NotifyCallsChanged(aCall);
   }
 
-  nsITelephonyProvider*
+  nsITelephonyService*
   Provider() const
   {
     return mProvider;
