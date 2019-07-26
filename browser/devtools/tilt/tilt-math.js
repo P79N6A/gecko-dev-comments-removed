@@ -1,18 +1,18 @@
-
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
 const {Cu} = require("chrome");
 
 let TiltUtils = require("devtools/tilt/tilt-utils");
 
-
-
-
-
+/**
+ * Module containing high performance matrix and vector operations for WebGL.
+ * Inspired by glMatrix, version 0.9.6, (c) 2011 Brandon Jones.
+ */
 
 let EPSILON = 0.01;
 exports.EPSILON = EPSILON;
@@ -22,20 +22,20 @@ const INV_PI_OVER_180 = 180 / Math.PI;
 const FIFTEEN_OVER_225 = 15 / 225;
 const ONE_OVER_255 = 1 / 255;
 
-
-
-
+/**
+ * vec3 - 3 Dimensional Vector.
+ */
 let vec3 = {
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Creates a new instance of a vec3 using the Float32Array type.
+   * Any array containing at least 3 numeric elements can serve as a vec3.
+   *
+   * @param {Array} aVec
+   *                optional, vec3 containing values to initialize with
+   *
+   * @return {Array} a new instance of a vec3
+   */
   create: function V3_create(aVec)
   {
     let dest = new Float32Array(3);
@@ -48,16 +48,16 @@ let vec3 = {
     return dest;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the values of one vec3 to another.
+   *
+   * @param {Array} aVec
+   *                vec3 containing values to copy
+   * @param {Array} aDest
+   *                vec3 receiving copied values
+   *
+   * @return {Array} the destination vec3 receiving copied values
+   */
   set: function V3_set(aVec, aDest)
   {
     aDest[0] = aVec[0];
@@ -66,14 +66,14 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Sets a vec3 to an zero vector.
+   *
+   * @param {Array} aDest
+   *                vec3 to set
+   *
+   * @return {Array} the same vector
+   */
   zero: function V3_zero(aDest)
   {
     aDest[0] = 0;
@@ -82,19 +82,19 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a vector addition.
+   *
+   * @param {Array} aVec
+   *                vec3, first operand
+   * @param {Array} aVec2
+   *                vec3, second operand
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   add: function V3_add(aVec, aVec2, aDest)
   {
     if (!aDest) {
@@ -107,19 +107,19 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a vector subtraction.
+   *
+   * @param {Array} aVec
+   *                vec3, first operand
+   * @param {Array} aVec2
+   *                vec3, second operand
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   subtract: function V3_subtract(aVec, aVec2, aDest)
   {
     if (!aDest) {
@@ -132,17 +132,17 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Negates the components of a vec3.
+   *
+   * @param {Array} aVec
+   *                vec3 to negate
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   negate: function V3_negate(aVec, aDest)
   {
     if (!aDest) {
@@ -155,19 +155,19 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Multiplies the components of a vec3 by a scalar value.
+   *
+   * @param {Array} aVec
+   *                vec3 to scale
+   * @param {Number} aVal
+   *                 numeric value to scale by
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   scale: function V3_scale(aVec, aVal, aDest)
   {
     if (!aDest) {
@@ -180,18 +180,18 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a unit vector of the same direction as the provided vec3.
+   * If vector length is 0, returns [0, 0, 0].
+   *
+   * @param {Array} aVec
+   *                vec3 to normalize
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   normalize: function V3_normalize(aVec, aDest)
   {
     if (!aDest) {
@@ -217,19 +217,19 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates the cross product of two vectors.
+   *
+   * @param {Array} aVec
+   *                vec3, first operand
+   * @param {Array} aVec2
+   *                vec3, second operand
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   cross: function V3_cross(aVec, aVec2, aDest)
   {
     if (!aDest) {
@@ -249,29 +249,29 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Caclulate the dot product of two vectors.
+   *
+   * @param {Array} aVec
+   *                vec3, first operand
+   * @param {Array} aVec2
+   *                vec3, second operand
+   *
+   * @return {Array} dot product of the first and second operand
+   */
   dot: function V3_dot(aVec, aVec2)
   {
     return aVec[0] * aVec2[0] + aVec[1] * aVec2[1] + aVec[2] * aVec2[2];
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Caclulate the length of a vec3.
+   *
+   * @param {Array} aVec
+   *                vec3 to calculate length of
+   *
+   * @return {Array} length of the vec3
+   */
   length: function V3_length(aVec)
   {
     let x = aVec[0];
@@ -281,19 +281,19 @@ let vec3 = {
     return Math.sqrt(x * x + y * y + z * z);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a unit vector pointing from one vector to another.
+   *
+   * @param {Array} aVec
+   *                origin vec3
+   * @param {Array} aVec2
+   *                vec3 to point to
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   direction: function V3_direction(aVec, aVec2, aDest)
   {
     if (!aDest) {
@@ -319,21 +319,21 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a linear interpolation between two vec3.
+   *
+   * @param {Array} aVec
+   *                first vector
+   * @param {Array} aVec2
+   *                second vector
+   * @param {Number} aLerp
+   *                 interpolation amount between the two inputs
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, first operand otherwise
+   */
   lerp: function V3_lerp(aVec, aVec2, aLerp, aDest)
   {
     if (!aDest) {
@@ -346,40 +346,40 @@ let vec3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Projects a 3D point on a 2D screen plane.
+   *
+   * @param {Array} aP
+   *                the [x, y, z] coordinates of the point to project
+   * @param {Array} aViewport
+   *                the viewport [x, y, width, height] coordinates
+   * @param {Array} aMvMatrix
+   *                the model view matrix
+   * @param {Array} aProjMatrix
+   *                the projection matrix
+   * @param {Array} aDest
+   *                optional parameter, the array to write the values to
+   *
+   * @return {Array} the projected coordinates
+   */
   project: function V3_project(aP, aViewport, aMvMatrix, aProjMatrix, aDest)
   {
-    
+    /*jshint undef: false */
 
     let mvpMatrix = new Float32Array(16);
     let coordinates = new Float32Array(4);
 
-    
+    // compute the perspective * model view matrix
     mat4.multiply(aProjMatrix, aMvMatrix, mvpMatrix);
 
-    
+    // now transform that vector into homogenous coordinates
     coordinates[0] = aP[0];
     coordinates[1] = aP[1];
     coordinates[2] = aP[2];
     coordinates[3] = 1;
     mat4.multiplyVec4(mvpMatrix, coordinates);
 
-    
+    // transform the homogenous coordinates into screen space
     coordinates[0] /= coordinates[3];
     coordinates[0] *= aViewport[2] * 0.5;
     coordinates[0] += aViewport[2] * 0.5;
@@ -396,45 +396,45 @@ let vec3 = {
     return coordinates;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Unprojects a 2D point to 3D space.
+   *
+   * @param {Array} aP
+   *                the [x, y, z] coordinates of the point to unproject;
+   *                the z value should range between 0 and 1, as clipping plane
+   * @param {Array} aViewport
+   *                the viewport [x, y, width, height] coordinates
+   * @param {Array} aMvMatrix
+   *                the model view matrix
+   * @param {Array} aProjMatrix
+   *                the projection matrix
+   * @param {Array} aDest
+   *                optional parameter, the array to write the values to
+   *
+   * @return {Array} the unprojected coordinates
+   */
   unproject: function V3_unproject(
     aP, aViewport, aMvMatrix, aProjMatrix, aDest)
   {
-    
+    /*jshint undef: false */
 
     let mvpMatrix = new Float32Array(16);
     let coordinates = new Float32Array(4);
 
-    
+    // compute the inverse of the perspective * model view matrix
     mat4.multiply(aProjMatrix, aMvMatrix, mvpMatrix);
     mat4.inverse(mvpMatrix);
 
-    
+    // transformation of normalized coordinates (-1 to 1)
     coordinates[0] = +((aP[0] - aViewport[0]) / aViewport[2] * 2 - 1);
     coordinates[1] = -((aP[1] - aViewport[1]) / aViewport[3] * 2 - 1);
     coordinates[2] = 2 * aP[2] - 1;
     coordinates[3] = 1;
 
-    
+    // now transform that vector into space coordinates
     mat4.multiplyVec4(mvpMatrix, coordinates);
 
-    
+    // invert to normalize x, y, and z values
     coordinates[3] = 1 / coordinates[3];
     coordinates[0] *= coordinates[3];
     coordinates[1] *= coordinates[3];
@@ -448,27 +448,27 @@ let vec3 = {
     return coordinates;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Create a ray between two points using the current model view & projection
+   * matrices. This is useful when creating a ray destined for 3D picking.
+   *
+   * @param {Array} aP0
+   *                the [x, y, z] coordinates of the first point
+   * @param {Array} aP1
+   *                the [x, y, z] coordinates of the second point
+   * @param {Array} aViewport
+   *                the viewport [x, y, width, height] coordinates
+   * @param {Array} aMvMatrix
+   *                the model view matrix
+   * @param {Array} aProjMatrix
+   *                the projection matrix
+   *
+   * @return {Object} a ray object containing the direction vector between
+   * the two unprojected points, the position and the lookAt
+   */
   createRay: function V3_createRay(aP0, aP1, aViewport, aMvMatrix, aProjMatrix)
   {
-    
+    // unproject the two points
     vec3.unproject(aP0, aViewport, aMvMatrix, aProjMatrix, aP0);
     vec3.unproject(aP1, aViewport, aMvMatrix, aProjMatrix, aP1);
 
@@ -478,14 +478,14 @@ let vec3 = {
     };
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns a string representation of a vector.
+   *
+   * @param {Array} aVec
+   *                vec3 to represent as a string
+   *
+   * @return {String} representation of the vector
+   */
   str: function V3_str(aVec)
   {
     return '[' + aVec[0] + ", " + aVec[1] + ", " + aVec[2] + ']';
@@ -494,20 +494,20 @@ let vec3 = {
 
 exports.vec3 = vec3;
 
-
-
-
+/**
+ * mat3 - 3x3 Matrix.
+ */
 let mat3 = {
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Creates a new instance of a mat3 using the Float32Array array type.
+   * Any array containing at least 9 numeric elements can serve as a mat3.
+   *
+   * @param {Array} aMat
+   *                optional, mat3 containing values to initialize with
+   *
+   * @return {Array} a new instance of a mat3
+   */
   create: function M3_create(aMat)
   {
     let dest = new Float32Array(9);
@@ -520,16 +520,16 @@ let mat3 = {
     return dest;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the values of one mat3 to another.
+   *
+   * @param {Array} aMat
+   *                mat3 containing values to copy
+   * @param {Array} aDest
+   *                mat3 receiving copied values
+   *
+   * @return {Array} the destination mat3 receiving copied values
+   */
   set: function M3_set(aMat, aDest)
   {
     aDest[0] = aMat[0];
@@ -544,14 +544,14 @@ let mat3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Sets a mat3 to an identity matrix.
+   *
+   * @param {Array} aDest
+   *                mat3 to set
+   *
+   * @return {Array} the same matrix
+   */
   identity: function M3_identity(aDest)
   {
     aDest[0] = 1;
@@ -566,17 +566,17 @@ let mat3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Transposes a mat3 (flips the values over the diagonal).
+   *
+   * @param {Array} aMat
+   *                mat3 to transpose
+   * @param {Array} aDest
+   *                optional, mat3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat3 if specified, first operand otherwise
+   */
   transpose: function M3_transpose(aMat, aDest)
   {
     if (!aDest || aMat === aDest) {
@@ -605,17 +605,17 @@ let mat3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the elements of a mat3 into the upper 3x3 elements of a mat4.
+   *
+   * @param {Array} aMat
+   *                mat3 containing values to copy
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat3 if specified, first operand otherwise
+   */
   toMat4: function M3_toMat4(aMat, aDest)
   {
     if (!aDest) {
@@ -641,14 +641,14 @@ let mat3 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns a string representation of a 3x3 matrix.
+   *
+   * @param {Array} aMat
+   *                mat3 to represent as a string
+   *
+   * @return {String} representation of the matrix
+   */
   str: function M3_str(aMat)
   {
     return "["  + aMat[0] + ", " + aMat[1] + ", " + aMat[2] +
@@ -659,20 +659,20 @@ let mat3 = {
 
 exports.mat3 = mat3;
 
-
-
-
+/**
+ * mat4 - 4x4 Matrix.
+ */
 let mat4 = {
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Creates a new instance of a mat4 using the default Float32Array type.
+   * Any array containing at least 16 numeric elements can serve as a mat4.
+   *
+   * @param {Array} aMat
+   *                optional, mat4 containing values to initialize with
+   *
+   * @return {Array} a new instance of a mat4
+   */
   create: function M4_create(aMat)
   {
     let dest = new Float32Array(16);
@@ -685,16 +685,16 @@ let mat4 = {
     return dest;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the values of one mat4 to another
+   *
+   * @param {Array} aMat
+   *                mat4 containing values to copy
+   * @param {Array} aDest
+   *                mat4 receiving copied values
+   *
+   * @return {Array} the destination mat4 receiving copied values
+   */
   set: function M4_set(aMat, aDest)
   {
     aDest[0] = aMat[0];
@@ -716,14 +716,14 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Sets a mat4 to an identity matrix.
+   *
+   * @param {Array} aDest
+   *                mat4 to set
+   *
+   * @return {Array} the same matrix
+   */
   identity: function M4_identity(aDest)
   {
     aDest[0] = 1;
@@ -745,17 +745,17 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Transposes a mat4 (flips the values over the diagonal).
+   *
+   * @param {Array} aMat
+   *                mat4 to transpose
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   transpose: function M4_transpose(aMat, aDest)
   {
     if (!aDest || aMat === aDest) {
@@ -800,14 +800,14 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Calculate the determinant of a mat4.
+   *
+   * @param {Array} aMat
+   *                mat4 to calculate determinant of
+   *
+   * @return {Number} determinant of the matrix
+   */
   determinant: function M4_determinant(mat)
   {
     let a00 = mat[0], a01 = mat[1], a02 = mat[2], a03 = mat[3];
@@ -829,17 +829,17 @@ let mat4 = {
            a10 * a01 * a22 * a33 + a00 * a11 * a22 * a33;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculate the inverse of a mat4.
+   *
+   * @param {Array} aMat
+   *                mat4 to calculate inverse of
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   inverse: function M4_inverse(aMat, aDest)
   {
     if (!aDest) {
@@ -885,17 +885,17 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the upper 3x3 elements of a mat4 into another mat4.
+   *
+   * @param {Array} aMat
+   *                mat4 containing values to copy
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   toRotationMat: function M4_toRotationMat(aMat, aDest)
   {
     if (!aDest) {
@@ -921,17 +921,17 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the upper 3x3 elements of a mat4 into a mat3.
+   *
+   * @param {Array} aMat
+   *                mat4 containing values to copy
+   * @param {Array} aDest
+   *                optional, mat3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat3 if specified, first operand otherwise
+   */
   toMat3: function M4_toMat3(aMat, aDest)
   {
     if (!aDest) {
@@ -950,19 +950,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculate the inverse of the upper 3x3 elements of a mat4 and copies
+   * the result into a mat3. The resulting matrix is useful for calculating
+   * transformed normals.
+   *
+   * @param {Array} aMat
+   *                mat4 containing values to invert and copy
+   * @param {Array} aDest
+   *                optional, mat3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat3 if specified, first operand otherwise
+   */
   toInverseMat3: function M4_toInverseMat3(aMat, aDest)
   {
     if (!aDest) {
@@ -990,19 +990,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a matrix multiplication.
+   *
+   * @param {Array} aMat
+   *                first operand
+   * @param {Array} aMat2
+   *                second operand
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   multiply: function M4_multiply(aMat, aMat2, aDest)
   {
     if (!aDest) {
@@ -1038,20 +1038,20 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Transforms a vec3 with the given matrix.
+   * 4th vector component is implicitly 1.
+   *
+   * @param {Array} aMat
+   *                mat4 to transform the vector with
+   * @param {Array} aVec
+   *                vec3 to transform
+   * @param {Array} aDest
+   *                optional, vec3 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, aVec operand otherwise
+   */
   multiplyVec3: function M4_multiplyVec3(aMat, aVec, aDest)
   {
     if (!aDest) {
@@ -1068,19 +1068,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Transforms a vec4 with the given matrix.
+   *
+   * @param {Array} aMat
+   *                mat4 to transform the vector with
+   * @param {Array} aVec
+   *                vec4 to transform
+   * @param {Array} aDest
+   *                optional, vec4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec4 if specified, vec4 operand otherwise
+   */
   multiplyVec4: function M4_multiplyVec4(aMat, aVec, aDest)
   {
     if (!aDest) {
@@ -1099,19 +1099,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Translates a matrix by the given vector.
+   *
+   * @param {Array} aMat
+   *                mat4 to translate
+   * @param {Array} aVec
+   *                vec3 specifying the translation
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   translate: function M4_translate(aMat, aVec, aDest)
   {
     let x = aVec[0];
@@ -1149,19 +1149,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Scales a matrix by the given vector.
+   *
+   * @param {Array} aMat
+   *                mat4 to translate
+   * @param {Array} aVec
+   *                vec3 specifying the scale on each axis
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   scale: function M4_scale(aMat, aVec, aDest)
   {
     let x = aVec[0];
@@ -1203,23 +1203,23 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Rotates a matrix by the given angle around the specified axis.
+   * If rotating around a primary axis (x, y, z) one of the specialized
+   * rotation functions should be used instead for performance,
+   *
+   * @param {Array} aMat
+   *                mat4 to rotate
+   * @param {Number} aAngle
+   *                 the angle (in radians) to rotate
+   * @param {Array} aAxis
+   *                vec3 representing the axis to rotate around
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   rotate: function M4_rotate(aMat, aAngle, aAxis, aDest)
   {
     let x = aAxis[0];
@@ -1267,19 +1267,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Rotates a matrix by the given angle around the X axis.
+   *
+   * @param {Array} aMat
+   *                mat4 to rotate
+   * @param {Number} aAngle
+   *                 the angle (in radians) to rotate
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   rotateX: function M4_rotateX(aMat, aAngle, aDest)
   {
     let s = Math.sin(aAngle);
@@ -1312,19 +1312,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Rotates a matrix by the given angle around the Y axix.
+   *
+   * @param {Array} aMat
+   *                mat4 to rotate
+   * @param {Number} aAngle
+   *                 the angle (in radians) to rotate
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   rotateY: function M4_rotateY(aMat, aAngle, aDest)
   {
     let s = Math.sin(aAngle);
@@ -1357,19 +1357,19 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Rotates a matrix by the given angle around the Z axix.
+   *
+   * @param {Array} aMat
+   *                mat4 to rotate
+   * @param {Number} aAngle
+   *                 the angle (in radians) to rotate
+   * @param {Array} aDest
+   *                optional, mat4 receiving operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   rotateZ: function M4_rotateZ(aMat, aAngle, aDest)
   {
     let s = Math.sin(aAngle);
@@ -1402,27 +1402,27 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a frustum matrix with the given bounds.
+   *
+   * @param {Number} aLeft
+   *                 scalar, left bound of the frustum
+   * @param {Number} aRight
+   *                 scalar, right bound of the frustum
+   * @param {Number} aBottom
+   *                 scalar, bottom bound of the frustum
+   * @param {Number} aTop
+   *                 scalar, top bound of the frustum
+   * @param {Number} aNear
+   *                 scalar, near bound of the frustum
+   * @param {Number} aFar
+   *                 scalar, far bound of the frustum
+   * @param {Array} aDest
+   *                optional, mat4 frustum matrix will be written into
+   *                if not specified result is written to a new mat4
+   *
+   * @return {Array} the destination mat4 if specified, a new mat4 otherwise
+   */
   frustum: function M4_frustum(
     aLeft, aRight, aBottom, aTop, aNear, aFar, aDest)
   {
@@ -1453,54 +1453,54 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a perspective projection matrix with the given bounds.
+   *
+   * @param {Number} aFovy
+   *                 scalar, vertical field of view (degrees)
+   * @param {Number} aAspect
+   *                 scalar, aspect ratio (typically viewport width/height)
+   * @param {Number} aNear
+   *                 scalar, near bound of the frustum
+   * @param {Number} aFar
+   *                 scalar, far bound of the frustum
+   * @param {Array} aDest
+   *                optional, mat4 frustum matrix will be written into
+   *                if not specified result is written to a new mat4
+   *
+   * @return {Array} the destination mat4 if specified, a new mat4 otherwise
+   */
   perspective: function M4_perspective(
     aFovy, aAspect, aNear, aFar, aDest, aFlip)
   {
-    let upper = aNear * Math.tan(aFovy * 0.00872664626); 
+    let upper = aNear * Math.tan(aFovy * 0.00872664626); // PI * 180 / 2
     let right = upper * aAspect;
     let top = upper * (aFlip || 1);
 
     return mat4.frustum(-right, right, -top, top, aNear, aFar, aDest);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a orthogonal projection matrix with the given bounds.
+   *
+   * @param {Number} aLeft
+   *                 scalar, left bound of the frustum
+   * @param {Number} aRight
+   *                 scalar, right bound of the frustum
+   * @param {Number} aBottom
+   *                 scalar, bottom bound of the frustum
+   * @param {Number} aTop
+   *                 scalar, top bound of the frustum
+   * @param {Number} aNear
+   *                 scalar, near bound of the frustum
+   * @param {Number} aFar
+   *                 scalar, far bound of the frustum
+   * @param {Array} aDest
+   *                optional, mat4 frustum matrix will be written into
+   *                if not specified result is written to a new mat4
+   *
+   * @return {Array} the destination mat4 if specified, a new mat4 otherwise
+   */
   ortho: function M4_ortho(aLeft, aRight, aBottom, aTop, aNear, aFar, aDest)
   {
     if (!aDest) {
@@ -1530,22 +1530,22 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a look-at matrix with the given eye position, focal point, and
+   * up axis.
+   *
+   * @param {Array} aEye
+   *                vec3, position of the viewer
+   * @param {Array} aCenter
+   *                vec3, point the viewer is looking at
+   * @param {Array} aUp
+   *                vec3 pointing up
+   * @param {Array} aDest
+   *                optional, mat4 frustum matrix will be written into
+   *                if not specified result is written to a new mat4
+   *
+   * @return {Array} the destination mat4 if specified, a new mat4 otherwise
+   */
   lookAt: function M4_lookAt(aEye, aCenter, aUp, aDest)
   {
     if (!aDest) {
@@ -1609,14 +1609,14 @@ let mat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns a string representation of a 4x4 matrix.
+   *
+   * @param {Array} aMat
+   *                mat4 to represent as a string
+   *
+   * @return {String} representation of the matrix
+   */
   str: function M4_str(mat)
   {
     return "[" + mat[0] + ", " + mat[1] + ", " + mat[2] + ", " + mat[3] +
@@ -1629,20 +1629,20 @@ let mat4 = {
 
 exports.mat4 = mat4;
 
-
-
-
+/**
+ * quat4 - Quaternion.
+ */
 let quat4 = {
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Creates a new instance of a quat4 using the default Float32Array type.
+   * Any array containing at least 4 numeric elements can serve as a quat4.
+   *
+   * @param {Array} aQuat
+   *                optional, quat4 containing values to initialize with
+   *
+   * @return {Array} a new instance of a quat4
+   */
   create: function Q4_create(aQuat)
   {
     let dest = new Float32Array(4);
@@ -1655,16 +1655,16 @@ let quat4 = {
     return dest;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Copies the values of one quat4 to another.
+   *
+   * @param {Array} aQuat
+   *                quat4 containing values to copy
+   * @param {Array} aDest
+   *                quat4 receiving copied values
+   *
+   * @return {Array} the destination quat4 receiving copied values
+   */
   set: function Q4_set(aQuat, aDest)
   {
     aDest[0] = aQuat[0];
@@ -1674,14 +1674,14 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Sets a quat4 to an identity quaternion.
+   *
+   * @param {Array} aDest
+   *                quat4 to set
+   *
+   * @return {Array} the same quaternion
+   */
   identity: function Q4_identity(aDest)
   {
     aDest[0] = 0;
@@ -1691,19 +1691,19 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculate the W component of a quat4 from the X, Y, and Z components.
+   * Assumes that quaternion is 1 unit in length.
+   * Any existing W component will be ignored.
+   *
+   * @param {Array} aQuat
+   *                quat4 to calculate W component of
+   * @param {Array} aDest
+   *                optional, quat4 receiving calculated values
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination quat if specified, first operand otherwise
+   */
   calculateW: function Q4_calculateW(aQuat, aDest)
   {
     if (!aDest) {
@@ -1721,17 +1721,17 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculate the inverse of a quat4.
+   *
+   * @param {Array} aQuat
+   *                quat4 to calculate the inverse of
+   * @param {Array} aDest
+   *                optional, quat4 receiving the inverse values
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination quat if specified, first operand otherwise
+   */
   inverse: function Q4_inverse(aQuat, aDest)
   {
     if (!aDest) {
@@ -1744,18 +1744,18 @@ let quat4 = {
     return aQuat;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates a unit quaternion of the same direction as the provided quat4.
+   * If quaternion length is 0, returns [0, 0, 0, 0].
+   *
+   * @param {Array} aQuat
+   *                quat4 to normalize
+   * @param {Array} aDest
+   *                optional, quat4 receiving the operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination quat if specified, first operand otherwise
+   */
   normalize: function Q4_normalize(aQuat, aDest)
   {
     if (!aDest) {
@@ -1784,14 +1784,14 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Calculate the length of a quat4.
+   *
+   * @param {Array} aQuat
+   *                quat4 to calculate the length of
+   *
+   * @return {Number} length of the quaternion
+   */
   length: function Q4_length(aQuat)
   {
     let x = aQuat[0];
@@ -1802,19 +1802,19 @@ let quat4 = {
     return Math.sqrt(x * x + y * y + z * z + w * w);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a quaternion multiplication.
+   *
+   * @param {Array} aQuat
+   *                first operand
+   * @param {Array} aQuat2
+   *                second operand
+   * @param {Array} aDest
+   *                optional, quat4 receiving the operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination quat if specified, first operand otherwise
+   */
   multiply: function Q4_multiply(aQuat, aQuat2, aDest)
   {
     if (!aDest) {
@@ -1837,19 +1837,19 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Transforms a vec3 with the given quaternion.
+   *
+   * @param {Array} aQuat
+   *                quat4 to transform the vector with
+   * @param {Array} aVec
+   *                vec3 to transform
+   * @param {Array} aDest
+   *                optional, vec3 receiving the operation result
+   *                if not specified result is written to the first operand
+   *
+   * @return {Array} the destination vec3 if specified, aVec operand otherwise
+   */
   multiplyVec3: function Q4_multiplyVec3(aQuat, aVec, aDest)
   {
     if (!aDest) {
@@ -1876,21 +1876,21 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Performs a spherical linear interpolation between two quat4.
+   *
+   * @param {Array} aQuat
+   *                first quaternion
+   * @param {Array} aQuat2
+   *                second quaternion
+   * @param {Number} aSlerp
+   *                 interpolation amount between the two inputs
+   * @param {Array} aDest
+   *                 optional, quat4 receiving the operation result
+   *                 if not specified result is written to the first operand
+   *
+   * @return {Array} the destination quat if specified, first operand otherwise
+   */
   slerp: function Q4_slerp(aQuat, aQuat2, aSlerp, aDest)
   {
     if (!aDest) {
@@ -1931,17 +1931,17 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculates a 3x3 matrix from the given quat4.
+   *
+   * @param {Array} aQuat
+   *                quat4 to create matrix from
+   * @param {Array} aDest
+   *                optional, mat3 receiving the initialization result
+   *                if not specified, a new matrix is created
+   *
+   * @return {Array} the destination mat3 if specified, first operand otherwise
+   */
   toMat3: function Q4_toMat3(aQuat, aDest)
   {
     if (!aDest) {
@@ -1978,17 +1978,17 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Calculates a 4x4 matrix from the given quat4.
+   *
+   * @param {Array} aQuat
+   *                quat4 to create matrix from
+   * @param {Array} aDest
+   *                optional, mat4 receiving the initialization result
+   *                if not specified, a new matrix is created
+   *
+   * @return {Array} the destination mat4 if specified, first operand otherwise
+   */
   toMat4: function Q4_toMat4(aQuat, aDest)
   {
     if (!aDest) {
@@ -2032,20 +2032,20 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Creates a rotation quaternion from axis-angle.
+   * This function expects that the axis is a normalized vector.
+   *
+   * @param {Array} aAxis
+   *                an array of elements representing the [x, y, z] axis
+   * @param {Number} aAngle
+   *                 the angle of rotation
+   * @param {Array} aDest
+   *                optional, quat4 receiving the initialization result
+   *                if not specified, a new quaternion is created
+   *
+   * @return {Array} the quaternion as [x, y, z, w]
+   */
   fromAxis: function Q4_fromAxis(aAxis, aAngle, aDest)
   {
     if (!aDest) {
@@ -2063,21 +2063,21 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Creates a rotation quaternion from Euler angles.
+   *
+   * @param {Number} aYaw
+   *                 the yaw angle of rotation
+   * @param {Number} aPitch
+   *                 the pitch angle of rotation
+   * @param {Number} aRoll
+   *                 the roll angle of rotation
+   * @param {Array} aDest
+   *                optional, quat4 receiving the initialization result
+   *                if not specified, a new quaternion is created
+   *
+   * @return {Array} the quaternion as [x, y, z, w]
+   */
   fromEuler: function Q4_fromEuler(aYaw, aPitch, aRoll, aDest)
   {
     if (!aDest) {
@@ -2102,14 +2102,14 @@ let quat4 = {
     return aDest;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns a string representation of a quaternion.
+   *
+   * @param {Array} aQuat
+   *                quat4 to represent as a string
+   *
+   * @return {String} representation of the quaternion
+   */
   str: function Q4_str(aQuat) {
     return "[" + aQuat[0] + ", " +
                  aQuat[1] + ", " +
@@ -2120,79 +2120,79 @@ let quat4 = {
 
 exports.quat4 = quat4;
 
-
-
-
+/**
+ * Various algebraic math functions required by the engine.
+ */
 let TiltMath = {
 
-  
-
-
-
-
-
-
-
+  /**
+   * Helper function, converts degrees to radians.
+   *
+   * @param {Number} aDegrees
+   *                 the degrees to be converted to radians
+   *
+   * @return {Number} the degrees converted to radians
+   */
   radians: function TM_radians(aDegrees)
   {
     return aDegrees * PI_OVER_180;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Helper function, converts radians to degrees.
+   *
+   * @param {Number} aRadians
+   *                 the radians to be converted to degrees
+   *
+   * @return {Number} the radians converted to degrees
+   */
   degrees: function TM_degrees(aRadians)
   {
     return aRadians * INV_PI_OVER_180;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Re-maps a number from one range to another.
+   *
+   * @param {Number} aValue
+   *                 the number to map
+   * @param {Number} aLow1
+   *                 the normal lower bound of the number
+   * @param {Number} aHigh1
+   *                 the normal upper bound of the number
+   * @param {Number} aLow2
+   *                 the new lower bound of the number
+   * @param {Number} aHigh2
+   *                 the new upper bound of the number
+   *
+   * @return {Number} the remapped number
+   */
   map: function TM_map(aValue, aLow1, aHigh1, aLow2, aHigh2)
   {
     return aLow2 + (aHigh2 - aLow2) * ((aValue - aLow1) / (aHigh1 - aLow1));
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns if number is power of two.
+   *
+   * @param {Number} aNumber
+   *                 the number to be verified
+   *
+   * @return {Boolean} true if x is power of two
+   */
   isPowerOfTwo: function TM_isPowerOfTwo(aNumber)
   {
     return !(aNumber & (aNumber - 1));
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Returns the next closest power of two greater than a number.
+   *
+   * @param {Number} aNumber
+   *                 the number to be converted
+   *
+   * @return {Number} the next closest power of two for x
+   */
   nextPowerOfTwo: function TM_nextPowerOfTwo(aNumber)
   {
     --aNumber;
@@ -2203,41 +2203,41 @@ let TiltMath = {
     return aNumber + 1;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * A convenient way of limiting values to a set boundary.
+   *
+   * @param {Number} aValue
+   *                 the number to be limited
+   * @param {Number} aMin
+   *                 the minimum allowed value for the number
+   * @param {Number} aMax
+   *                 the maximum allowed value for the number
+   */
   clamp: function TM_clamp(aValue, aMin, aMax)
   {
     return Math.max(aMin, Math.min(aMax, aValue));
   },
 
-  
-
-
-
-
-
+  /**
+   * Convenient way to clamp a value to 0..1
+   *
+   * @param {Number} aValue
+   *                 the number to be limited
+   */
   saturate: function TM_saturate(aValue)
   {
     return Math.max(0, Math.min(1, aValue));
   },
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Converts a hex color to rgba.
+   * If the passed param is invalid, it will be converted to [0, 0, 0, 1];
+   *
+   * @param {String} aColor
+   *                 color expressed in hex, or using rgb() or rgba()
+   *
+   * @return {Array} with 4 color 0..1 components: [red, green, blue, alpha]
+   */
   hex2rgba: (function()
   {
     let cache = {};
@@ -2245,12 +2245,12 @@ let TiltMath = {
     return function TM_hex2rgba(aColor) {
       let hex = aColor.charAt(0) === "#" ? aColor.substring(1) : aColor;
 
-      
+      // check the cache to see if this color wasn't converted already
       if (cache[hex] !== undefined) {
         return cache[hex];
       }
 
-      
+      // e.g. "f00"
       if (hex.length === 3) {
         let r = parseInt(hex.substring(0, 1), 16) * FIFTEEN_OVER_225;
         let g = parseInt(hex.substring(1, 2), 16) * FIFTEEN_OVER_225;
@@ -2258,7 +2258,7 @@ let TiltMath = {
 
         return (cache[hex] = [r, g, b, 1]);
       }
-      
+      // e.g. "f008"
       if (hex.length === 4) {
         let r = parseInt(hex.substring(0, 1), 16) * FIFTEEN_OVER_225;
         let g = parseInt(hex.substring(1, 2), 16) * FIFTEEN_OVER_225;
@@ -2267,7 +2267,7 @@ let TiltMath = {
 
         return (cache[hex] = [r, g, b, a]);
       }
-      
+      // e.g. "ff0000"
       if (hex.length === 6) {
         let r = parseInt(hex.substring(0, 2), 16) * ONE_OVER_255;
         let g = parseInt(hex.substring(2, 4), 16) * ONE_OVER_255;
@@ -2276,7 +2276,7 @@ let TiltMath = {
 
         return (cache[hex] = [r, g, b, a]);
       }
-      
+      // e.g "ff0000aa"
       if (hex.length === 8) {
         let r = parseInt(hex.substring(0, 2), 16) * ONE_OVER_255;
         let g = parseInt(hex.substring(2, 4), 16) * ONE_OVER_255;
@@ -2285,17 +2285,17 @@ let TiltMath = {
 
         return (cache[hex] = [r, g, b, a]);
       }
-      
+      // e.g. "rgba(255, 0, 0, 0.5)"
       if (hex.match("^rgba")) {
         let rgba = hex.substring(5, hex.length - 1).split(",");
         rgba[0] *= ONE_OVER_255;
         rgba[1] *= ONE_OVER_255;
         rgba[2] *= ONE_OVER_255;
-        
+        // in CSS, the alpha component of rgba() is already in the range 0..1
 
         return (cache[hex] = rgba);
       }
-      
+      // e.g. "rgb(255, 0, 0)"
       if (hex.match("^rgb")) {
         let rgba = hex.substring(4, hex.length - 1).split(",");
         rgba[0] *= ONE_OVER_255;
@@ -2306,7 +2306,7 @@ let TiltMath = {
         return (cache[hex] = rgba);
       }
 
-      
+      // your argument is invalid
       return (cache[hex] = [0, 0, 0, 1]);
     };
   }())
@@ -2314,7 +2314,7 @@ let TiltMath = {
 
 exports.TiltMath = TiltMath;
 
-
+// bind the owner object to the necessary functions
 TiltUtils.bindObjectFunc(vec3);
 TiltUtils.bindObjectFunc(mat3);
 TiltUtils.bindObjectFunc(mat4);

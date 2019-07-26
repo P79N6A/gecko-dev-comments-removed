@@ -1,26 +1,26 @@
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+/**
+   File Name:          15.6.2.js
+   ECMA Section:       15.6.2 The Boolean Constructor
+   15.6.2.1 new Boolean( value )
+   15.6.2.2 new Boolean()
 
+   This test verifies that the Boolean constructor
+   initializes a new object (typeof should return
+   "object").  The prototype of the new object should
+   be Boolean.prototype.  The value of the object
+   should be ToBoolean( value ) (a boolean value).
 
+   Description:
+   Author:             christine@netscape.com
+   Date:               june 27, 1997
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/
 var SECTION = "15.6.2";
 var VERSION = "ECMA_1";
 startTest();

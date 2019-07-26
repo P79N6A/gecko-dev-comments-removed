@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var view = 
 {
@@ -135,7 +135,7 @@ regressionStats =
     },
     getParent: function(aDS, aSource)
     {
-        
+        // parent chached?
         var parent = this.mRegressionDS.GetTarget(aSource, krTypeParent, true);
         if (!parent) {
             var labels = view.mXalanDS.ArcLabelsIn(aSource);
@@ -143,7 +143,7 @@ regressionStats =
                 var arc = labels.getNext().QueryInterface(nsIRDFResource);
                 if (arc.Value.match(this.mChildRE)) {
                     parent = view.mXalanDS.GetSource(arc, aSource, true);
-                    
+                    // cache the parent
                     this.mRegressionDS.Assert(aSource, krTypeParent,
                                               parent, true);
                 }
@@ -155,7 +155,7 @@ regressionStats =
     {
         var root = kRDFSvc.GetResource('urn:root');
         var count = 0;
-        
+        // parent chached?
         var parent = this.getParent(view.XalanDS, aSource);
         while (parent && !parent.EqualsNode(root)) {
             var countRes = view.mResultDS.GetTarget(parent, aArc, true);

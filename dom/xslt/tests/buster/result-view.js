@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function onNewResultView(event)
 {
@@ -25,7 +25,7 @@ function onNewResultView(event)
     currentResultItem.testpath = xalan_fl;
     currentResultItem.refpath = xalan_ref;
     var currentRunItem = itemCache.getItem(res);
-    
+    // XXX todo, keep a list of these windows, so that we can close them.
     resultWin = window.openDialog('result-view.xul','_blank',
                                    'chrome,resizable,dialog=no',
                                    currentResultItem, currentRunItem);

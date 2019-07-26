@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -52,10 +52,10 @@ this.WifiNetUtil = function(controlMessage) {
   };
 
   util.stopDhcp = function (ifname, callback) {
-    
-    
-    
-    
+    // This function does exactly what dhcp_stop does. Unforunately, if we call
+    // this function twice before the previous callback is returned. We may block
+    // our self waiting for the callback. It slows down the wifi startup procedure.
+    // Therefore, we have to roll our own version here.
     let dhcpService = DHCP_PROP + "_" + ifname;
     let suffix = (ifname.substr(0, 3) === "p2p") ? "p2p" : ifname;
     let processName = DHCP + "_" + suffix;
@@ -171,9 +171,9 @@ this.WifiNetUtil = function(controlMessage) {
     });
   };
 
-  
-  
-  
+  //--------------------------------------------------
+  // Helper functions.
+  //--------------------------------------------------
 
   function stopProcess(service, process, callback) {
     var count = 0;
@@ -185,22 +185,22 @@ this.WifiNetUtil = function(controlMessage) {
         return;
       }
       if (result === "stopped" || ++count >= 5) {
-        
+        // Either we succeeded or ran out of time.
         timer = null;
         callback();
         return;
       }
 
-      
+      // Else it's still running, continue waiting.
       timer.initWithCallback(tick, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
     }
 
     setProperty("ctl.stop", process, tick);
   }
 
-  
-  
-  
+  // Wrapper around libcutils.property_set that returns true if setting the
+  // value was successful.
+  // Note that the callback is not called asynchronously.
   function setProperty(key, value, callback) {
     let ok = true;
     try {

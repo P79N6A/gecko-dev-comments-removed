@@ -1,4 +1,4 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -50,8 +50,8 @@ function isMatchingDestructor(constructor, edge)
     return sameVariable(constructExp.Variable, destructExp.Variable);
 }
 
-
-
+// Return all calls within the RAII scope of the constructor matched by
+// isConstructor()
 function allRAIIGuardedCallPoints(body, isConstructor)
 {
     if (!("PEdge" in body))
@@ -78,8 +78,8 @@ function allRAIIGuardedCallPoints(body, isConstructor)
     return points;
 }
 
-
-
+// Test whether the given edge is the constructor corresponding to the given
+// destructor edge
 function isMatchingConstructor(destructor, edge)
 {
     if (edge.Kind != "Call")

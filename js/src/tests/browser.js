@@ -1,39 +1,39 @@
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var gPageCompleted;
 var GLOBAL = this + '';
 
-
+// Variables local to jstests harness.
 var jstestsTestPassesUnlessItThrows = false;
 var jstestsRestoreFunction;
 var jstestsOptions;
 
-
-
-
-
-
-
+/*
+ * Signals to this script that the current test case should be considered to
+ * have passed if it doesn't throw an exception.
+ *
+ * Overrides the same-named function in shell.js.
+ */
 function testPassesUnlessItThrows() {
   jstestsTestPassesUnlessItThrows = true;
 }
 
-
-
-
-
+/*
+ * Requests to load the given JavaScript file before the file containing the
+ * test case.
+ */
 function include(file) {
   outputscripttag(file, {language: "type", mimetype: "text/javascript"});
 }
 
-
-
-
-
-
+/*
+ * Sets a restore function which restores the standard built-in ECMAScript
+ * properties after a destructive test case, and which will be called after
+ * the test case terminates.
+ */
 function setRestoreFunction(restore) {
   jstestsRestoreFunction = restore;
 }
@@ -118,10 +118,10 @@ window.onerror = function (msg, page, line)
 {
   jstestsTestPassesUnlessItThrows = false;
 
-  
+  // Restore options in case a test case used this common variable name.
   options = jstestsOptions;
 
-  
+  // Restore the ECMAScript environment after potentially destructive tests.
   if (typeof jstestsRestoreFunction === "function") {
     jstestsRestoreFunction();
   }
@@ -141,7 +141,7 @@ window.onerror = function (msg, page, line)
 
   if (document.location.href.indexOf('-n.js') != -1)
   {
-    
+    // negative test
     testcase.passed = true;
   }
 
@@ -185,8 +185,8 @@ function quit()
 
 function options(aOptionName)
 {
-  
-  
+  // return value of options() is a comma delimited list
+  // of the previously set values
 
   var value = '';
   for (var optionName in options.currvalues)
@@ -200,17 +200,17 @@ function options(aOptionName)
 
   if (aOptionName) {
     if (!(aOptionName in SpecialPowers.Cu)) {
-      
-      
-      
+      // This test is trying to flip an unsupported option, so it's
+      // likely no longer testing what it was supposed to.  Fail it
+      // hard.
       throw "Unsupported JSContext option '"+ aOptionName +"'";
     }
 
     if (options.currvalues.hasOwnProperty(aOptionName))
-      
+      // option is set, toggle it to unset
       delete options.currvalues[aOptionName];
     else
-      
+      // option is not set, toggle it to set
       options.currvalues[aOptionName] = true;
 
     SpecialPowers.Cu[aOptionName] =
@@ -220,26 +220,26 @@ function options(aOptionName)
   return value;
 }
 
-
-
-
+// Keep a reference to options around so that we can restore it after running
+// a test case, which may have used this common name for one of its own
+// variables.
 jstestsOptions = options;
 
 function optionsInit() {
 
-  
+  // hash containing the set options.
   options.currvalues = {
     strict:     true,
     werror:     true,
     strict_mode: true
   };
 
-  
-  
+  // record initial values to support resetting
+  // options to their initial values
   options.initvalues = {};
 
-  
-  
+  // record values in a stack to support pushing
+  // and popping options
   options.stackvalues = [];
 
   for (var optionName in options.currvalues)
@@ -283,7 +283,7 @@ function jsTestDriverBrowserInit()
 
   if (document.location.search.indexOf('?') != 0)
   {
-    
+    // not called with a query string
     return;
   }
 
@@ -301,7 +301,7 @@ function jsTestDriverBrowserInit()
       properties[propertycaptures[1]] = decodeURIComponent(propertycaptures[2]);
       if (propertycaptures[1] == 'language')
       {
-        
+        // language=(type|language);mimetype
         properties.mimetype = fields[ifield+1];
       }
     }
@@ -320,17 +320,17 @@ function jsTestDriverBrowserInit()
 
   if (!properties.version && navigator.userAgent.indexOf('Gecko/') != -1)
   {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // If the version is not specified, and the browser is Gecko,
+    // use the default version corresponding to the shell's version(0).
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=522760#c11
+    // Otherwise adjust the version to match the suite version for 1.6,
+    // and later due to the use of for-each, let, yield, etc.
+    //
+    // The logic to upgrade the JS version in the shell lives in the
+    // corresponding shell.js.
+    //
+    // Note that js1_8, js1_8_1, and js1_8_5 are treated identically in
+    // the browser.
     if (properties.test.match(/^js1_6/))
     {
       properties.version = '1.6';
@@ -349,8 +349,8 @@ function jsTestDriverBrowserInit()
     }
   }
 
-  
-  
+  // default to language=type;text/javascript. required for
+  // reftest style manifests.
   if (!properties.language)
   {
     properties.language = 'type';
@@ -364,14 +364,14 @@ function jsTestDriverBrowserInit()
     gczeal(Number(properties.gczeal));
   }
 
-  
-
-
-
-
-
-
-
+  /*
+   * since the default setting of jit changed from false to true
+   * in http://hg.mozilla.org/tracemonkey/rev/685e00e68be9
+   * bisections which depend upon jit settings can be thrown off.
+   * default jit(false) when not running jsreftests to make bisections
+   * depending upon jit settings consistent over time. This is not needed
+   * in shell tests as the default jit setting has not changed there.
+   */
 
   if (properties.jit  || !document.location.href.match(/jsreftest.html/))
     jit(properties.jit);
@@ -380,18 +380,18 @@ function jsTestDriverBrowserInit()
 
   if (testpathparts.length < 3)
   {
-    
+    // must have at least suitepath/subsuite/testcase.js
     return;
   }
 
   document.write('<title>' + properties.test + '<\/title>');
 
-  
-  
+  // XXX bc - the first document.written script is ignored if the protocol
+  // is file:. insert an empty script tag, to work around it.
   document.write('<script></script>');
 
-  
-  
+  // Output script tags for shell.js, then browser.js, at each level of the
+  // test path hierarchy.
   var prepath = "";
   var i = 0;
   for (end = testpathparts.length - 1; i < end; i++) {
@@ -400,10 +400,10 @@ function jsTestDriverBrowserInit()
     outputscripttag(prepath + "browser.js", properties);
   }
 
-  
+  // Output the test script itself.
   outputscripttag(prepath + testpathparts[i], properties);
 
-  
+  // Finally output the driver-end script to advance to the next test.
   outputscripttag('js-test-driver-end.js', properties);
   return;
 }
@@ -440,13 +440,13 @@ function outputscripttag(src, properties)
 
 function jsTestDriverEnd()
 {
-  
-  
-  
-  
-  
-  
-  
+  // gDelayTestDriverEnd is used to
+  // delay collection of the test result and
+  // signal to Spider so that tests can continue
+  // to run after page load has fired. They are
+  // responsible for setting gDelayTestDriverEnd = true
+  // then when completed, setting gDelayTestDriverEnd = false
+  // then calling jsTestDriverEnd()
 
   if (gDelayTestDriverEnd)
   {
@@ -455,10 +455,10 @@ function jsTestDriverEnd()
 
   window.onerror = null;
 
-  
+  // Restore options in case a test case used this common variable name.
   options = jstestsOptions;
 
-  
+  // Restore the ECMAScript environment after potentially destructive tests.
   if (typeof jstestsRestoreFunction === "function") {
     jstestsRestoreFunction();
   }
@@ -493,17 +493,17 @@ function jsTestDriverEnd()
       gTestcases[i].dump();
     }
 
-    
+    // tell reftest the test is complete.
     document.documentElement.className = '';
-    
+    // tell Spider page is complete
     gPageCompleted = true;
   }
 }
 
-
+//var dlog = (function (s) { print('debug: ' + s); });
 var dlog = (function (s) {});
 
-
+// dialog closer from http://bclary.com/projects/spider/spider/chrome/content/spider/dialog-closer.js
 
 var gDialogCloser;
 var gDialogCloserObserver;
@@ -534,8 +534,8 @@ function unregisterDialogCloser()
   gDialogCloser = null;
 }
 
-
-
+// use an array to handle the case where multiple dialogs
+// appear at one time
 var gDialogCloserSubjects = [];
 
 function dialogCloser_observe(subject, topic, data)
@@ -543,7 +543,7 @@ function dialogCloser_observe(subject, topic, data)
   if (subject instanceof ChromeWindow && topic == 'domwindowopened' )
   {
     gDialogCloserSubjects.push(subject);
-    
+    // timeout of 0 needed when running under reftest framework.
     subject.setTimeout(closeDialog, 0);
   }
 }
@@ -561,7 +561,7 @@ function closeDialog()
     }
     else
     {
-      
+      // alerts inside of reftest framework are not XULDocument dialogs.
       subject.close();
     }
   }

@@ -1,4 +1,4 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -103,8 +103,8 @@ function getSuccessors(body)
     return body.successors;
 }
 
-
-
+// Split apart a function from sixgill into its mangled and unmangled name. If
+// no mangled name was given, use the unmangled name as its mangled name
 function splitFunction(func)
 {
     var split = func.indexOf("|");

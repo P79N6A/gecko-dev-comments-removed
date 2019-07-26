@@ -1,8 +1,8 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
-
+// Ignore calls made through these function pointers
 var ignoreIndirectCalls = {
     "mallocSizeOf" : true,
     "aMallocSizeOf" : true,
@@ -18,10 +18,10 @@ function indirectCallCannotGC(fullCaller, fullVariable)
 {
     var caller = readable(fullCaller);
 
-    
-    
-    
-    
+    // This is usually a simple variable name, but sometimes a full name gets
+    // passed through. And sometimes that name is truncated. Examples:
+    //   _ZL13gAbortHandler|mozalloc_oom.cpp:void (* gAbortHandler)(size_t)
+    //   _ZL14pMutexUnlockFn|umutex.cpp:void (* pMutexUnlockFn)(const void*
     var name = readable(fullVariable);
 
     if (name in ignoreIndirectCalls)
@@ -40,11 +40,11 @@ function indirectCallCannotGC(fullCaller, fullVariable)
     if (name == "checkArg" && caller == CheckCallArgs)
         return true;
 
-    
+    // hook called during script finalization which cannot GC.
     if (/CallDestroyScriptHook/.test(caller))
         return true;
 
-    
+    // template method called during marking and hence cannot GC
     if (name == "op" && caller.indexOf("bool js::WeakMap<Key, Value, HashPolicy>::keyNeedsMark(JSObject*)") != -1)
     {
         return true;
@@ -53,7 +53,7 @@ function indirectCallCannotGC(fullCaller, fullVariable)
     return false;
 }
 
-
+// Ignore calls through functions pointers with these types
 var ignoreClasses = {
     "JSTracer" : true,
     "JSStringFinalizer" : true,
@@ -62,19 +62,19 @@ var ignoreClasses = {
     "JSLocaleCallbacks" : true,
     "JSC::ExecutableAllocator" : true,
     "PRIOMethods": true,
-    "XPCOMFunctions" : true, 
+    "XPCOMFunctions" : true, // I'm a little unsure of this one
     "_MD_IOVector" : true,
 };
 
-
-
+// Ignore calls through TYPE.FIELD, where TYPE is the class or struct name containing
+// a function pointer field named FIELD.
 var ignoreCallees = {
     "js::Class.trace" : true,
     "js::Class.finalize" : true,
     "JSRuntime.destroyPrincipals" : true,
-    "icu_50::UObject.__deleting_dtor" : true, 
-    "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
-    "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, 
+    "icu_50::UObject.__deleting_dtor" : true, // destructors in ICU code can't cause GC
+    "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, // During tracing, cannot GC.
+    "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, // During tracing, cannot GC.
     "PLDHashTableOps.hashKey" : true,
     "z_stream_s.zfree" : true,
 };
@@ -90,7 +90,7 @@ function fieldCallCannotGC(csu, fullfield)
 
 function ignoreEdgeUse(edge, variable)
 {
-    
+    // Functions which should not be treated as using variable.
     if (edge.Kind == "Call") {
         var callee = edge.Exp[0];
         if (callee.Kind == "Var") {
@@ -109,10 +109,10 @@ function ignoreEdgeUse(edge, variable)
 
 function ignoreEdgeAddressTaken(edge)
 {
-    
-    
-    
-    
+    // Functions which may take indirect pointers to unrooted GC things,
+    // but will copy them into rooted locations before calling anything
+    // that can GC. These parameters should usually be replaced with
+    // handles or mutable handles.
     if (edge.Kind == "Call") {
         var callee = edge.Exp[0];
         if (callee.Kind == "Var") {
@@ -125,17 +125,17 @@ function ignoreEdgeAddressTaken(edge)
     return false;
 }
 
-
+// Ignore calls of these functions (so ignore any stack containing these)
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
     "je_malloc_printf" : true,
     "PR_ExplodeTime" : true,
     "PR_ErrorInstallTable" : true,
     "PR_SetThreadPrivate" : true,
-    "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, 
+    "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, // FIXME: mark with AutoSuppressGCAnalysis instead
     "uint8 NS_IsMainThread()" : true,
 
-    
+    // FIXME!
     "NS_LogInit": true,
     "NS_LogTerm": true,
     "NS_LogAddRef": true,
@@ -145,23 +145,23 @@ var ignoreFunctions = {
     "NS_LogCOMPtrAddRef": true,
     "NS_LogCOMPtrRelease": true,
 
-    
+    // FIXME!
     "NS_DebugBreak": true,
 
-    
-    
+    // These are a little overzealous -- these destructors *can* GC if they end
+    // up wrapping a pending exception. See bug 898815 for the heavyweight fix.
     "void js::AutoCompartment::~AutoCompartment(int32)" : true,
     "void JSAutoCompartment::~JSAutoCompartment(int32)" : true,
 
-    
-    
-    
-    
+    // Bug 948646 - the only thing AutoJSContext's constructor calls
+    // is an Init() routine whose entire body is covered with an
+    // AutoSuppressGCAnalysis. AutoSafeJSContext is the same thing, just with
+    // a different value for the 'aSafe' parameter.
     "void mozilla::AutoJSContext::AutoJSContext(mozilla::detail::GuardObjectNotifier*)" : true,
     "void mozilla::AutoSafeJSContext::~AutoSafeJSContext(int32)" : true,
 
-    
-    
+    // And these are workarounds to avoid even more analysis work,
+    // which would sadly still be needed even with bug 898815.
     "void js::AutoCompartment::AutoCompartment(js::ExclusiveContext*, JSCompartment*)": true,
 };
 
@@ -173,11 +173,11 @@ function ignoreGCFunction(mangled)
     if (fun in ignoreFunctions)
         return true;
 
-    
+    // Templatized function
     if (fun.indexOf("void nsCOMPtr<T>::Assert_NoQueryNeeded()") >= 0)
         return true;
 
-    
+    // XXX modify refillFreeList<NoGC> to not need data flow analysis to understand it cannot GC.
     if (/refillFreeList/.test(fun) && /\(js::AllowGC\)0u/.test(fun))
         return true;
     return false;
@@ -229,9 +229,9 @@ function isSuppressConstructor(name)
         || name.indexOf("::AutoIgnoreRootingHazards") != -1;
 }
 
-
-
-
+// nsISupports subclasses' methods may be scriptable (or overridden
+// via binary XPCOM), and so may GC. But some fields just aren't going
+// to get overridden with something that can GC.
 function isOverridableField(initialCSU, csu, field)
 {
     if (csu != 'nsISupports')

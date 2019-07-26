@@ -1,32 +1,32 @@
+// -*- indent-tabs-mode: nil -*-
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// A RectArray<X,k> is a subclass of Array with 'width', 'height',
+// and 'payload' properties (where payload holds 'k').
+// properties, and 'width*height*k' elements (each an X) in the array.
+//
+// A RectTypedByteArray<k> is a subclass of ArrayBuffer with 'width'
+// and 'height' properties, and 'width*height*k' bytes in the buffer.
+//
+// The 'payload' property is initialized with the value of 'k'.
+//
+// (Felix would have used Array or ArrayView, but for the following bug: 
+//   Bug 695438 - TypedArrays don't support new named properties
+//   https://bugzilla.mozilla.org/show_bug.cgi?id=695438
+//  and so he is resorting to extending ArrayBuffer instead.)
+//
+// Both classes add a .get(x,y[,k]) method that eases access to the
+// contents, and a set(x,y[,k],value) method that eases modifying
+// their entries.
+//
+// In addition, for those who prefer functional-style,
+// RectArray.build,
+// and RectByteTypedArray.build
 
 var RectArray, RectByteTypedArray;
 
-
-
-
+// This is a variant of RectArray that supports the same interface,
+// but instead of attempting to extend Array (a practice fraught with
+// peril), it instead makes a wrapper around another array.
 
 var WrapArray, WrapByteTypedArray;
 
@@ -154,8 +154,8 @@ var WrapArray, WrapByteTypedArray;
            var entryNeedsComma = false;
            ret += "(";
            for (var k=0; k < payload; k++) {
-             
-             
+             // Might be inefficient (does JavaScript have
+             // StringBuffers?, or use them internally, like Tamarin?)
              if (entryNeedsComma)
                ret += ", ";
              if (view[i] !== undefined)
@@ -209,7 +209,7 @@ var WrapArray, WrapByteTypedArray;
      return ret;
    };
 
-   
+   // (Array<X>|ArrayView<X>) Nat Nat Nat (Nat Nat Nat -> X) -> void
    function fillArrayView(view, width, height, k, fill) {
      var i = 0;
      for (var y=0; y < height; y++) {
@@ -222,7 +222,7 @@ var WrapArray, WrapByteTypedArray;
    }
 
 
-   
+   // Nat Nat (Nat Nat [Nat] -> X) -> RectArray<X,1>
    RectArray.build =
      function buildRectArray1(width, height, fill) {
        var a = new RectArray(width, height, 1);
@@ -243,7 +243,7 @@ var WrapArray, WrapByteTypedArray;
        return a;
      };
 
-   
+   // Nat Nat (Nat Nat Nat -> X) -> RectArray<X,4>
    RectArray.build4 =
      function buildRectArray4(width, height, fill) {
        var a = new RectArray(width, height, 4);
@@ -251,7 +251,7 @@ var WrapArray, WrapByteTypedArray;
        return a;
      };
 
-   
+   // Nat Nat (Nat Nat Nat -> X) -> RectArray<X,1>
    RectArray.buildN =
      function buildRectArrayN(width, height, n, fill) {
        var a = new RectArray(width, height, n);
@@ -260,7 +260,7 @@ var WrapArray, WrapByteTypedArray;
      };
 
 
-   
+   // Nat Nat (Nat Nat [Nat] -> Byte) -> RectTypedByteArray<4>
    RectByteTypedArray.build =
      function buildRectByteTypedArray1(width, height, fill) {
        var buf = new RectByteTypedArray(width, height, 1);
@@ -268,7 +268,7 @@ var WrapArray, WrapByteTypedArray;
        return buf;
      };
 
-   
+   // Nat Nat (Nat Nat Nat -> Byte) -> RectTypedByteArray<4>
    RectByteTypedArray.build4 =
      function buildRectByteTypedArray4(width, height, fill) {
        var buf = new RectByteTypedArray(width, height, 4);
@@ -276,7 +276,7 @@ var WrapArray, WrapByteTypedArray;
        return buf;
      };
 
-   
+   // Nat Nat (Nat Nat Nat -> Byte) -> RectTypedByteArray<4>
    RectByteTypedArray.buildN =
      function buildRectByteTypedArray4(width, height, n, fill) {
        var buf = new RectByteTypedArray(width, height, n);

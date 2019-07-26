@@ -1,37 +1,37 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
-
-
-
-
-
-
-
-
+// Apply FUNCNAME to ARGS, and check against EXPECTED.
+// Expect a loop containing such a call to be traced.
+// FUNCNAME and ARGS are both strings.
+// ARGS has the form of an argument list: a comma-separated list of expressions.
+// Certain Tracemonkey limitations require us to pass FUNCNAME as a string.
+// Passing ARGS as a string allows us to assign better test names:
+// expressions like Math.PI/4 haven't been evaluated to big hairy numbers.
 function testmath(funcname, args, expected) {
     var i, j;
 
     var arg_value_list = eval("[" + args + "]");
     var arity = arg_value_list.length;
 
-    
+    // Build the string "a[i][0],...,a[i][ARITY-1]".
     var actuals = []
     for (i = 0; i < arity; i++)
         actuals.push("a[i][" + i + "]");
     actuals = actuals.join(",");
 
-    
-    
-    
-    
+    // Create a function that maps FUNCNAME across an array of input values.
+    // Unless we eval here, the call to funcname won't get traced.
+    // FUNCNAME="Infinity/Math.abs" and cases like that happen to
+    // parse, too, in a twisted way.
     var mapfunc = eval("(function(a) {\n"
                        + "   for (var i = 0; i < a.length; i++)\n"
                        + "       a[i] = " + funcname + "(" + actuals +");\n"
                        + " })\n");
 
-    
-    
-    
-    
+    // To prevent the compiler from doing constant folding, produce an
+    // array to pass to mapfunc that contains enough dummy
+    // values at the front to get the loop body jitted, and then our
+    // actual test value.
     var dummies_and_input = [];
     for (i = 0; i < 9; i++) {
         var dummy_list = [];
@@ -42,7 +42,7 @@ function testmath(funcname, args, expected) {
     dummies_and_input[9] = arg_value_list;
 
     function testfunc() {
-        
+        // Map the function across the dummy values and the test input.
         mapfunc(dummies_and_input);
         return dummies_and_input[9];
     }
@@ -57,18 +57,18 @@ function close_enough(expected, actual)
   if (typeof expected != 'number')
     return actual == expected;
 
-  
-  
+  // Distinguish NaN from other values.  Using x != x comparisons here
+  // works even if tests redefine isNaN.
   if (actual != actual)
     return expected != expected
   if (expected != expected)
     return false;
 
-  
+  // Tolerate a certain degree of error.
   if (actual != expected)
     return Math.abs(actual - expected) <= 1E-10;
 
-  
+  // Distinguish 0 and -0.
   if (actual == 0)
     return (1 / actual > 0) == (1 / expected > 0);
 

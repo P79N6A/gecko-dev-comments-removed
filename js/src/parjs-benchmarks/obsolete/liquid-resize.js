@@ -1,17 +1,17 @@
+// -*- indent-tabs-mode: nil -*-
 
+// Adapted from
+//
+// https://github.com/RiverTrail/RiverTrail/blob/master/examples/liquid-resize/resize-compute-dp.js
+//
+// which in turn is based on an algorithm from the paper below (which
+// also appeared in ACM SIGGRAPH 2007):
+// Shai Avidan and Ariel Shamir. 2007. Seam carving for content-aware image resizing.
+// ACM Trans. Graph. 26, 3, Article 10 (July 2007).
+// DOI=10.1145/1276377.1276390 http://doi.acm.org/10.1145/1276377.1276390
 
-
-
-
-
-
-
-
-
-
-
-
-
+///////////////////////////////////////////////////////////////////////////
+// Inputs
 
 function buildArray(width, height, func) {
   var length = width * height;
@@ -85,7 +85,7 @@ var bigImage =
     return ret.charCodeAt(0) - 32;
   });
 
-
+// randomImage: Nat Nat Nat Nat -> RectArray
 function randomImage(w, h, sparsity, variety) {
   return buildArray(w, h, function (x,y) {
     if (Math.random() > 1/sparsity)
@@ -95,7 +95,7 @@ function randomImage(w, h, sparsity, variety) {
   });
 }
 
-
+// stripedImage: Nat Nat -> RectArray
 function stripedImage(w, h) {
   return buildArray(w, h, function (y, x) {
     return (Math.abs(x%100-y%100) < 10) ? 32 : 0;
@@ -117,8 +117,8 @@ function printImage(array, width, height) {
   }
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// Common
 
 var SobelX = [[-1.0,  0.0,  1.0],
               [-2.0,  0.0,  2.0],
@@ -127,12 +127,12 @@ var SobelY = [[ 1.0,  2.0,  1.0],
               [ 0.0,  0.0,  0.0],
               [-1.0, -2.0, -1.0]];
 
-
-
-
-
-
-
+// computeEnergy: Array -> RectArray
+//
+// (The return type is forced upon us, for now at least, until we add
+// appropriate API to ParallelArray; there's a dependency from each
+// row upon its predecessor, but the contents of each row could be
+// computed in parallel.)
 function computeEnergy(source, width, height) {
   var energy = new Array(width * height);
   energy[0] = 0;
@@ -155,8 +155,8 @@ function computeEnergy(source, width, height) {
   return energy;
 }
 
-
-
+// findPath: RectArray -> Array
+// (This is inherently sequential.)
 function findPath(energy, width, height)
 {
   var path = new Array(height);
@@ -174,7 +174,7 @@ function findPath(energy, width, height)
   path[y] = minPos;
   for (y = height - 2; y >= 0; y--) {
     minEnergy = energy[y*width + minPos];
-    
+    // var line = energy[y]
     var p = minPos;
     if (p >= 1 && energy[y*width + p-1] < minEnergy) {
       minPos = p-1; minEnergy = energy[y*width + p-1];
@@ -187,8 +187,8 @@ function findPath(energy, width, height)
   return path;
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// Sequential
 
 function transposeSeq(array, width, height) {
   return buildArray(height, width, function(y, x) {
@@ -196,7 +196,7 @@ function transposeSeq(array, width, height) {
   });
 }
 
-
+// detectEdgesSeq: Array Nat Nat -> Array
 function detectEdgesSeq(data, width, height) {
   var data1 = new Array(width * height);
   for (var y = 0; y < height; y++) {
@@ -255,7 +255,7 @@ function cutHorizontalSeamBWSeq(array, width, height)
   var edges = detectEdgesSeq(array, width, height);
   var energy = computeEnergy(edges, width, height);
   var path = findPath(energy, width, height);
-  edges = null; 
+  edges = null; // no longer live
   return cutPathHorizontallyBWSeq(array, width, height, path);
 }
 
@@ -265,7 +265,7 @@ function cutVerticalSeamBWSeq(array, width, height)
   var edges = detectEdgesSeq(arrayT, height, width);
   var energy = computeEnergy(edges, height, width);
   var path = findPath(energy, height, width);
-  edges = null; 
+  edges = null; // no longer live
   return cutPathVerticallyBWSeq(array, width, height, path);
 }
 
@@ -292,8 +292,8 @@ function reduceImageBWSeq(image,
   return image;
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// Parallel
 
 function transposePar(image) {
   var height = image.shape[0];
@@ -303,7 +303,7 @@ function transposePar(image) {
   });
 }
 
-
+// detectEdgesSeq: Array Nat Nat -> Array
 function detectEdgesPar(image) {
   var height = image.shape[0];
   var width = image.shape[1];
@@ -362,7 +362,7 @@ function cutHorizontalSeamBWPar(image)
   var edges = detectEdgesPar(image);
   var energy = computeEnergy(edges.buffer, width, height);
   var path = findPath(energy, width, height);
-  edges = null; 
+  edges = null; // no longer live
   return cutPathHorizontallyBWPar(image, path);
 }
 
@@ -373,7 +373,7 @@ function cutVerticalSeamBWPar(image) {
   var edges = detectEdgesPar(imageT);
   var energy = computeEnergy(edges.buffer, height, width);
   var path = findPath(energy, height, width);
-  edges = null; 
+  edges = null; // no longer live
   return cutPathVerticallyBWPar(image, path);
 }
 
@@ -401,8 +401,8 @@ function reduceImageBWPar(image,
   return image.buffer;
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// Benchmarking via run.sh
 
 var BenchmarkImageWidth = 512;
 var BenchmarkImageHeight = 256;
@@ -434,8 +434,8 @@ if (benchmarking) {
             });
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// Running (sanity check)
 
 if (!benchmarking) {
   var seqData =

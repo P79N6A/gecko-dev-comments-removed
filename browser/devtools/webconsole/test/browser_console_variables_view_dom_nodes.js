@@ -1,10 +1,10 @@
-
-
-
-
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
-
+/* Test that ensures DOM nodes are rendered correctly in VariablesView. */
 
 function test() {
   const TEST_URI = 'data:text/html;charset=utf-8,                           \

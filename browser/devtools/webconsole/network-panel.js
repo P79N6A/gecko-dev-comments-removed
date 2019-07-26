@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
+/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -18,18 +18,18 @@ const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Creates a new NetworkPanel.
+ *
+ * @constructor
+ * @param nsIDOMNode aParent
+ *        Parent node to append the created panel to.
+ * @param object aHttpActivity
+ *        HttpActivity to display in the panel.
+ * @param object aWebConsoleFrame
+ *        The parent WebConsoleFrame object that owns this network panel
+ *        instance.
+ */
 function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
 {
   let doc = aParent.ownerDocument;
@@ -39,7 +39,7 @@ function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
   this._responseBodyFetch = this._responseBodyFetch.bind(this);
   this._requestBodyFetch = this._requestBodyFetch.bind(this);
 
-  
+  // Create the underlaying panel
   this.panel = createElement(doc, "panel", {
     label: l10n.getStr("NetworkPanel.label"),
     titlebar: "normal",
@@ -48,7 +48,7 @@ function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
     close: "true"
   });
 
-  
+  // Create the iframe that displays the NetworkPanel XHTML.
   this.iframe = createAndAppendElement(this.panel, "iframe", {
     src: "chrome://browser/content/devtools/NetworkPanel.xhtml",
     type: "content",
@@ -57,7 +57,7 @@ function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
 
   let self = this;
 
-  
+  // Destroy the panel when it's closed.
   this.panel.addEventListener("popuphidden", function onPopupHide() {
     self.panel.removeEventListener("popuphidden", onPopupHide, false);
     self.panel.parentNode.removeChild(self.panel);
@@ -72,7 +72,7 @@ function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
     }
   }, false);
 
-  
+  // Set the document object and update the content once the panel is loaded.
   this.iframe.addEventListener("load", function onLoad() {
     if (!self.iframe) {
       return;
@@ -87,7 +87,7 @@ function NetworkPanel(aParent, aHttpActivity, aWebConsoleFrame)
     self.update();
   }, true);
 
-  
+  // Create the footer.
   let footer = createElement(doc, "hbox", { align: "end" });
   createAndAppendElement(footer, "spacer", { flex: 1 });
 
@@ -100,14 +100,14 @@ exports.NetworkPanel = NetworkPanel;
 
 NetworkPanel.prototype =
 {
-  
-
-
+  /**
+   * The current state of the output.
+   */
   _state: 0,
 
-  
-
-
+  /**
+   * State variables.
+   */
   _INIT: 0,
   _DISPLAYED_REQUEST_HEADER: 1,
   _DISPLAYED_REQUEST_BODY: 2,
@@ -118,13 +118,13 @@ NetworkPanel.prototype =
 
   _contentType: null,
 
-  
-
-
-
-
-
-
+  /**
+   * Function callback invoked whenever the panel content is updated. This is
+   * used only by tests.
+   *
+   * @private
+   * @type function
+   */
   _onUpdate: null,
 
   get document() {
@@ -132,32 +132,32 @@ NetworkPanel.prototype =
            this.iframe.contentWindow.document : null;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Small helper function that is nearly equal to l10n.getFormatStr
+   * except that it prefixes aName with "NetworkPanel.".
+   *
+   * @param string aName
+   *        The name of an i10n string to format. This string is prefixed with
+   *        "NetworkPanel." before calling the HUDService.getFormatStr function.
+   * @param array aArray
+   *        Values used as placeholder for the i10n string.
+   * @returns string
+   *          The i10n formated string.
+   */
   _format: function NP_format(aName, aArray)
   {
     return l10n.getFormatStr("NetworkPanel." + aName, aArray);
   },
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Returns the content type of the response body. This is based on the
+   * response.content.mimeType property. If this value is not available, then
+   * the content type is guessed by the file extension of the request URL.
+   *
+   * @return string
+   *         Content type or empty string if no content type could be figured
+   *         out.
+   */
   get contentType()
   {
     if (this._contentType) {
@@ -182,14 +182,14 @@ NetworkPanel.prototype =
       return contentType;
     }
 
-    
+    // Try to get the content type from the request file extension.
     let uri = NetUtil.newURI(request.url);
     if ((uri instanceof Ci.nsIURL) && uri.fileExtension) {
       try {
          contentType = mimeService.getTypeFromExtension(uri.fileExtension);
       }
       catch(ex) {
-        
+        // Added to prevent failures on OS X 64. No Flash?
         Cu.reportError(ex);
       }
     }
@@ -198,46 +198,46 @@ NetworkPanel.prototype =
     return contentType;
   },
 
-  
-
-
-
-
+  /**
+   *
+   * @returns boolean
+   *          True if the response is an image, false otherwise.
+   */
   get _responseIsImage()
   {
     return this.contentType &&
            NetworkHelper.mimeCategoryMap[this.contentType] == "image";
   },
 
-  
-
-
-
-
+  /**
+   *
+   * @returns boolean
+   *          True if the response body contains text, false otherwise.
+   */
   get _isResponseBodyTextData()
   {
     return this.contentType ?
            NetworkHelper.isTextMimeType(this.contentType) : false;
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Tells if the server response is cached.
+   *
+   * @returns boolean
+   *          Returns true if the server responded that the request is already
+   *          in the browser's cache, false otherwise.
+   */
   get _isResponseCached()
   {
     return this.httpActivity.response.status == 304;
   },
 
-  
-
-
-
-
-
+  /**
+   * Tells if the request body includes form data.
+   *
+   * @returns boolean
+   *          Returns true if the posted body contains form data.
+   */
   get _isRequestBodyFormData()
   {
     let requestBody = this.httpActivity.request.postData.text;
@@ -247,15 +247,15 @@ NetworkPanel.prototype =
     return this._fromDataRegExp.test(requestBody);
   },
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Appends the node with id=aId by the text aValue.
+   *
+   * @private
+   * @param string aId
+   * @param string aValue
+   * @return nsIDOMElement
+   *         The DOM element with id=aId.
+   */
   _appendTextNode: function NP__appendTextNode(aId, aValue)
   {
     let textNode = this.document.createTextNode(aValue);
@@ -264,19 +264,19 @@ NetworkPanel.prototype =
     return elem;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Generates some HTML to display the key-value pair of the aList data. The
+   * generated HTML is added to node with id=aParentId.
+   *
+   * @param string aParentId
+   *        Id of the parent node to append the list to.
+   * @oaram array aList
+   *        Array that holds the objects you want to display. Each object must
+   *        have two properties: name and value.
+   * @param boolean aIgnoreCookie
+   *        If true, the key-value named "Cookie" is not added to the list.
+   * @returns void
+   */
   _appendList: function NP_appendList(aParentId, aList, aIgnoreCookie)
   {
     let parent = this.document.getElementById(aParentId);
@@ -299,14 +299,14 @@ NetworkPanel.prototype =
         longString = true;
       }
 
-      
-
-
-
-
-
-
-
+      /**
+       * The following code creates the HTML:
+       * <tr>
+       * <th scope="row" class="property-name">${line}:</th>
+       * <td class="property-value">${aList[line]}</td>
+       * </tr>
+       * and adds it to parent.
+       */
       let row = doc.createElement("tr");
       let textNode = doc.createTextNode(name + ":");
       let th = doc.createElement("th");
@@ -335,16 +335,16 @@ NetworkPanel.prototype =
     });
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * The click event handler for the ellipsis which allows the user to retrieve
+   * the full header value.
+   *
+   * @private
+   * @param object aHeader
+   *        The header object with the |name| and |value| properties.
+   * @param nsIDOMEvent aEvent
+   *        The DOM click event object.
+   */
   _longStringClick: function NP__longStringClick(aHeader, aEvent)
   {
     aEvent.preventDefault();
@@ -367,29 +367,29 @@ NetworkPanel.prototype =
       });
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Displays the node with id=aId.
+   *
+   * @private
+   * @param string aId
+   * @return nsIDOMElement
+   *         The element with id=aId.
+   */
   _displayNode: function NP__displayNode(aId)
   {
     let elem = this.document.getElementById(aId);
     elem.style.display = "block";
   },
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Sets the request URL, request method, the timing information when the
+   * request started and the request header content on the NetworkPanel.
+   * If the request header contains cookie data, a list of sent cookies is
+   * generated and a special sent cookie section is displayed + the cookie list
+   * added to it.
+   *
+   * @returns void
+   */
   _displayRequestHeader: function NP__displayRequestHeader()
   {
     let request = this.httpActivity.request;
@@ -408,12 +408,12 @@ NetworkPanel.prototype =
     }
   },
 
-  
-
-
-
-
-
+  /**
+   * Displays the request body section of the NetworkPanel and set the request
+   * body content on the NetworkPanel.
+   *
+   * @returns void
+   */
   _displayRequestBody: function NP__displayRequestBody()
   {
     let postData = this.httpActivity.request.postData;
@@ -421,12 +421,12 @@ NetworkPanel.prototype =
     this._appendTextNode("requestBodyContent", postData.text);
   },
 
-  
-
-
-
-
-
+  /*
+   * Displays the `sent form data` section. Parses the request header for the
+   * submitted form data displays it inside of the `sent form data` section.
+   *
+   * @returns void
+   */
   _displayRequestForm: function NP__processRequestForm()
   {
     let postData = this.httpActivity.request.postData.text;
@@ -460,13 +460,13 @@ NetworkPanel.prototype =
     this._displayNode("requestFormData");
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Displays the response section of the NetworkPanel, sets the response status,
+   * the duration between the start of the request and the receiving of the
+   * response header as well as the response header content on the the NetworkPanel.
+   *
+   * @returns void
+   */
   _displayResponseHeader: function NP__displayResponseHeader()
   {
     let timing = this.httpActivity.timings;
@@ -476,8 +476,8 @@ NetworkPanel.prototype =
                          [response.httpVersion, response.status,
                           response.statusText].join(" "));
 
-    
-    
+    // Calculate how much time it took from the request start, until the
+    // response started to be received.
     let deltaDuration = 0;
     ["dns", "connect", "send", "wait"].forEach(function (aValue) {
       let ms = timing[aValue];
@@ -498,14 +498,14 @@ NetworkPanel.prototype =
     }
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Displays the respones image section, sets the source of the image displayed
+   * in the image response section to the request URL and the duration between
+   * the receiving of the response header and the end of the request. Once the
+   * image is loaded, the size of the requested image is set.
+   *
+   * @returns void
+   */
   _displayResponseImage: function NP__displayResponseImage()
   {
     let self = this;
@@ -530,7 +530,7 @@ NetworkPanel.prototype =
         "data:" + this.contentType + ";base64," + text);
     }
 
-    
+    // This function is called to set the imageInfo.
     function setImageInfo() {
       self._appendTextNode("responseImage" + cached + "Info",
         self._format("imageSizeDeltaDurationMS",
@@ -539,12 +539,12 @@ NetworkPanel.prototype =
       );
     }
 
-    
+    // Check if the image is already loaded.
     if (imageNode.width != 0) {
       setImageInfo();
     }
     else {
-      
+      // Image is not loaded yet therefore add a load event.
       imageNode.addEventListener("load", function imageNodeLoad() {
         imageNode.removeEventListener("load", imageNodeLoad, false);
         setImageInfo();
@@ -554,13 +554,13 @@ NetworkPanel.prototype =
     this._displayNode("responseImage" + cached);
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Displays the response body section, sets the the duration between
+   * the receiving of the response header and the end of the request as well as
+   * the content of the response body on the NetworkPanel.
+   *
+   * @returns void
+   */
   _displayResponseBody: function NP__displayResponseBody()
   {
     let timing = this.httpActivity.timings;
@@ -581,10 +581,10 @@ NetworkPanel.prototype =
     this._appendTextNode("responseBody" + cached + "Content", text);
   },
 
-  
-
-
-
+  /**
+   * Show the "fetch response body" link.
+   * @private
+   */
   _showResponseBodyFetchLink: function NP__showResponseBodyFetchLink()
   {
     let content = this.httpActivity.response.content;
@@ -597,13 +597,13 @@ NetworkPanel.prototype =
     elem.addEventListener("mousedown", this._responseBodyFetch);
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Click event handler for the link that allows users to fetch the remaining
+   * response body.
+   *
+   * @private
+   * @param nsIDOMEvent aEvent
+   */
   _responseBodyFetch: function NP__responseBodyFetch(aEvent)
   {
     aEvent.target.style.display = "none";
@@ -635,12 +635,12 @@ NetworkPanel.prototype =
       });
   },
 
-  
-
-
-
-
-
+  /**
+   * Displays the `Unknown Content-Type hint` and sets the duration between the
+   * receiving of the response header on the NetworkPanel.
+   *
+   * @returns void
+   */
   _displayResponseBodyUnknownType: function NP__displayResponseBodyUnknownType()
   {
     let timing = this.httpActivity.timings;
@@ -653,12 +653,12 @@ NetworkPanel.prototype =
       this._format("responseBodyUnableToDisplay.content", [this.contentType]));
   },
 
-  
-
-
-
-
-
+  /**
+   * Displays the `no response body` section and sets the the duration between
+   * the receiving of the response header and the end of the request.
+   *
+   * @returns void
+   */
   _displayNoResponseBody: function NP_displayNoResponseBody()
   {
     let timing = this.httpActivity.timings;
@@ -668,11 +668,11 @@ NetworkPanel.prototype =
       this._format("durationMS", [timing.receive]));
   },
 
-  
-
-
-
-
+  /**
+   * Updates the content of the NetworkPanel's iframe.
+   *
+   * @returns void
+   */
   update: function NP_update()
   {
     if (!this.document || this.document.readyState != "complete") {
@@ -688,15 +688,15 @@ NetworkPanel.prototype =
       case this._INIT:
         this._displayRequestHeader();
         this._state = this._DISPLAYED_REQUEST_HEADER;
-        
+        // FALL THROUGH
 
       case this._DISPLAYED_REQUEST_HEADER:
-        
+        // Process the request body if there is one.
         if (!this.httpActivity.discardRequestBody && request.postData.text) {
           this._updateRequestBody();
           this._state = this._DISPLAYED_REQUEST_BODY;
         }
-        
+        // FALL THROUGH
 
       case this._DISPLAYED_REQUEST_BODY:
         if (!response.headers.length || !Object.keys(timing).length) {
@@ -704,7 +704,7 @@ NetworkPanel.prototype =
         }
         this._displayResponseHeader();
         this._state = this._DISPLAYED_RESPONSE_HEADER;
-        
+        // FALL THROUGH
 
       case this._DISPLAYED_RESPONSE_HEADER:
         if (updates.indexOf("responseContent") == -1 ||
@@ -737,11 +737,11 @@ NetworkPanel.prototype =
     }
   },
 
-  
-
-
-
-
+  /**
+   * Update the panel to hold the current information we have about the request
+   * body.
+   * @private
+   */
   _updateRequestBody: function NP__updateRequestBody()
   {
     let postData = this.httpActivity.request.postData;
@@ -755,7 +755,7 @@ NetworkPanel.prototype =
       return;
     }
 
-    
+    // Check if we send some form data. If so, display the form data special.
     if (this._isRequestBodyFormData) {
       this._displayRequestForm();
     }
@@ -764,13 +764,13 @@ NetworkPanel.prototype =
     }
   },
 
-  
-
-
-
-
-
-
+  /**
+   * Click event handler for the link that allows users to fetch the remaining
+   * request body.
+   *
+   * @private
+   * @param nsIDOMEvent aEvent
+   */
   _requestBodyFetch: function NP__requestBodyFetch(aEvent)
   {
     aEvent.target.style.display = "none";
@@ -792,19 +792,19 @@ NetworkPanel.prototype =
   },
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Creates a DOMNode and sets all the attributes of aAttributes on the created
+ * element.
+ *
+ * @param nsIDOMDocument aDocument
+ *        Document to create the new DOMNode.
+ * @param string aTag
+ *        Name of the tag for the DOMNode.
+ * @param object aAttributes
+ *        Attributes set on the created DOMNode.
+ *
+ * @returns nsIDOMNode
+ */
 function createElement(aDocument, aTag, aAttributes)
 {
   let node = aDocument.createElement(aTag);
@@ -816,18 +816,18 @@ function createElement(aDocument, aTag, aAttributes)
   return node;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Creates a new DOMNode and appends it to aParent.
+ *
+ * @param nsIDOMNode aParent
+ *        A parent node to append the created element.
+ * @param string aTag
+ *        Name of the tag for the DOMNode.
+ * @param object aAttributes
+ *        Attributes set on the created DOMNode.
+ *
+ * @returns nsIDOMNode
+ */
 function createAndAppendElement(aParent, aTag, aAttributes)
 {
   let node = createElement(aParent.ownerDocument, aTag, aAttributes);

@@ -1,21 +1,21 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
+// helper function to shortcut component creation
 function doCreate(aContract, aInterface)
 {
     return Components.classes[aContract].createInstance(aInterface);
 }
 
-
+// for the items, loading a text file
 const IOSERVICE_CTRID = "@mozilla.org/network/io-service;1";
 const nsIIOService    = Components.interfaces.nsIIOService;
 const SIS_CTRID       = "@mozilla.org/scriptableinputstream;1"
 const nsISIS          = Components.interfaces.nsIScriptableInputStream;
 
-
+// rdf foo, onload handler
 const kRDFSvcContractID = "@mozilla.org/rdf/rdf-service;1";
 const kRDFInMemContractID = 
     "@mozilla.org/rdf/datasource;1?name=in-memory-datasource";

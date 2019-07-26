@@ -1,23 +1,23 @@
+/* -*- tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+/**
+   File Name:          15.4.4.5-3.js
+   ECMA Section:       Array.prototype.sort(comparefn)
+   Description:
 
+   This is a regression test for
+   http://scopus/bugsplat/show_bug.cgi?id=117144
 
+   Verify that sort is successfull, even if the sort compare function returns
+   a very large negative or positive value.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   Author:             christine@netscape.com
+   Date:               12 november 1997
+*/
 
 
 var SECTION = "15.4.4.5-3";
@@ -56,7 +56,7 @@ testarr3 = new Array();
 clone( array, testarr3 );
 testarr3.sort( comparefn3 );
 
-
+// when there's no sort function, sort sorts by the toString value of Date.
 
 var testarr4 = new Array();
 clone( array, testarr4 );

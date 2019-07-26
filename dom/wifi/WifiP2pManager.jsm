@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -28,7 +28,7 @@ this.EXPORTED_SYMBOLS = ["WifiP2pManager"];
 const EVENT_IGNORED                      = -1;
 const EVENT_UNKNOWN                      = -2;
 
-
+// Events from supplicant for p2p.
 const EVENT_P2P_DEVICE_FOUND             = 0;
 const EVENT_P2P_DEVICE_LOST              = 1;
 const EVENT_P2P_GROUP_STARTED            = 2;
@@ -47,11 +47,11 @@ const EVENT_P2P_INVITATION_RESULT        = 14;
 const EVENT_P2P_INVITATION_RECEIVED      = 15;
 const EVENT_P2P_PROV_DISC_FAILURE        = 16;
 
-
+// Events from supplicant but not p2p specific.
 const EVENT_AP_STA_DISCONNECTED          = 100;
 const EVENT_AP_STA_CONNECTED             = 101;
 
-
+// Events from DOM.
 const EVENT_P2P_SET_PAIRING_CONFIRMATION = 1000;
 const EVENT_P2P_CMD_CONNECT              = 1001;
 const EVENT_P2P_CMD_DISCONNECT           = 1002;
@@ -62,7 +62,7 @@ const EVENT_P2P_CMD_DISABLE_SCAN         = 1006;
 const EVENT_P2P_CMD_BLOCK_SCAN           = 1007;
 const EVENT_P2P_CMD_UNBLOCK_SCAN         = 1008;
 
-
+// Internal events.
 const EVENT_TIMEOUT_PAIRING_CONFIRMATION = 10000;
 const EVENT_TIMEOUT_NEG_REQ              = 10001;
 const EVENT_TIMEOUT_CONNECTING           = 10002;
@@ -70,25 +70,25 @@ const EVENT_P2P_ENABLE_SUCCESS           = 10003;
 const EVENT_P2P_ENABLE_FAILED            = 10004;
 const EVENT_P2P_DISABLE_SUCCESS          = 10005;
 
-
+// WPS method string.
 const WPS_METHOD_PBC     = "pbc";
 const WPS_METHOD_DISPLAY = "display";
 const WPS_METHOD_KEYPAD  = "keypad";
 
-
+// Role string.
 const P2P_ROLE_GO     = "GO";
 const P2P_ROLE_CLIENT = "client";
 
-
+// System message for pairing request.
 const PAIRING_REQUEST_SYS_MSG = "wifip2p-pairing-request";
 
-
+// Configuration.
 const P2P_INTERFACE_NAME = "p2p0";
 const DEFAULT_GO_INTENT = 15;
 const DEFAULT_P2P_DEVICE_NAME = "FirefoxPhone";
 const P2P_SCAN_TIMEOUT_SEC = 120;
-const DEFAULT_P2P_WPS_METHODS = "virtual_push_button physical_display keypad"; 
-const DEFAULT_P2P_DEVICE_TYPE = "10-0050F204-5"; 
+const DEFAULT_P2P_WPS_METHODS = "virtual_push_button physical_display keypad"; // For wpa_supplicant.
+const DEFAULT_P2P_DEVICE_TYPE = "10-0050F204-5"; // For wpa_supplicant.
 
 const GO_NETWORK_INTERFACE = {
   ip:         "192.168.2.1",
@@ -106,7 +106,7 @@ const GO_DHCP_SERVER_IP_RANGE = {
 
 let gDebug = false;
 
-
+// Device Capability bitmap
 const DEVICE_CAPAB_SERVICE_DISCOVERY         = 1;
 const DEVICE_CAPAB_CLIENT_DISCOVERABILITY    = 1<<1;
 const DEVICE_CAPAB_CONCURRENT_OPER           = 1<<2;
@@ -114,7 +114,7 @@ const DEVICE_CAPAB_INFRA_MANAGED             = 1<<3;
 const DEVICE_CAPAB_DEVICE_LIMIT              = 1<<4;
 const DEVICE_CAPAB_INVITATION_PROCEDURE      = 1<<5;
 
-
+// Group Capability bitmap
 const GROUP_CAPAB_GROUP_OWNER                = 1;
 const GROUP_CAPAB_PERSISTENT_GROUP           = 1<<1;
 const GROUP_CAPAB_GROUP_LIMIT                = 1<<2;
@@ -123,7 +123,7 @@ const GROUP_CAPAB_CROSS_CONN                 = 1<<4;
 const GROUP_CAPAB_PERSISTENT_RECONN          = 1<<5;
 const GROUP_CAPAB_GROUP_FORMATION            = 1<<6;
 
-
+// Constants defined in wpa_supplicants.
 const DEV_PW_REGISTRAR_SPECIFIED = 5;
 const DEV_PW_USER_SPECIFIED      = 1;
 const DEV_PW_PUSHBUTTON          = 4;
@@ -139,24 +139,24 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
 
   let _stateMachine = P2pStateMachine(aP2pCommand, aNetUtil);
 
-  
-  
-  
+  // Set debug flag to true or false.
+  //
+  // @param aDebug Boolean to indicate enabling or disabling the debug flag.
   manager.setDebug = function(aDebug) {
     gDebug = aDebug;
   };
 
-  
-  
-  
-  
+  // Set observer of observing internal state machine events.
+  //
+  // @param aObserver Used to notify WifiWorker what's happening
+  //        in the internal p2p state machine.
   manager.setObserver = function(aObserver) {
     _stateMachine.setObserver(aObserver);
   };
 
-  
-  
-  
+  // Handle wpa_supplicant events.
+  //
+  // @param aEventString string from wpa_supplicant.
   manager.handleEvent = function(aEventString) {
     let event = parseEventString(aEventString);
     if (EVENT_UNKNOWN === event.id || EVENT_IGNORED === event.id) {
@@ -166,12 +166,12 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     return _stateMachine.sendEvent(event);
   };
 
-  
-  
-  
-  
-  
-  
+  // Set the confirmation of pairing request.
+  //
+  // @param aResult Object of confirmation result which contains:
+  //    .accepted: user granted.
+  //    .pin: pin code which is displaying or input by user.
+  //    .wpsMethod: string of "pbc" or "display" or "keypad".
   manager.setPairingConfirmation = function(aResult) {
     let event = {
       id: EVENT_P2P_SET_PAIRING_CONFIRMATION,
@@ -183,13 +183,13 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     _stateMachine.sendEvent(event);
   };
 
-  
-  
-  
-  
-  
-  
-  
+  // Connect to a known peer.
+  //
+  // @param aAddress MAC address of the peer to connect.
+  // @param aWpsMethod String of "pbc" or "display" or "keypad".
+  // @param aGoIntent Number from 0 to 15.
+  // @param aCallback Callback |true| on attempting to connect.
+  //                          |false| on failed to connect.
   manager.connect = function(aAddress, aWpsMethod, aGoIntent, aCallback) {
     let event = {
       id: EVENT_P2P_CMD_CONNECT,
@@ -203,11 +203,11 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     _stateMachine.sendEvent(event);
   };
 
-  
-  
-  
-  
-  
+  // Disconnect with a known peer.
+  //
+  // @param aAddress The address the user desires to disconect.
+  // @param aCallback Callback |true| on "attempting" to disconnect.
+  //                           |false| on failed to disconnect.
   manager.disconnect = function(aAddress, aCallback) {
     let event = {
       id: EVENT_P2P_CMD_DISCONNECT,
@@ -219,13 +219,13 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     _stateMachine.sendEvent(event);
   };
 
-  
-  
-  
-  
-  
-  
-  
+  // Enable/disable wifi p2p.
+  //
+  // @param aEnabled |true| to enable, |false| to disable.
+  // @param aCallbacks object for callbacks:
+  //   .onEnabled
+  //   .onDisabled
+  //   .onSupplicantConnected
   manager.setEnabled = function(aEnabled, aCallbacks) {
     let event = {
       id: (aEnabled ? EVENT_P2P_CMD_ENABLE : EVENT_P2P_CMD_DISABLE),
@@ -238,11 +238,11 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     _stateMachine.sendEvent(event);
   };
 
-  
-  
-  
-  
-  
+  // Enable/disable the wifi p2p scan.
+  //
+  // @param aEnabled |true| to enable scan, |false| to disable scan.
+  // @param aCallback Callback |true| on success to enable/disable scan.
+  //                           |false| on failed to enable/disable scan.
   manager.setScanEnabled = function(aEnabled, aCallback) {
     let event = {
       id: (aEnabled ? EVENT_P2P_CMD_ENABLE_SCAN : EVENT_P2P_CMD_DISABLE_SCAN),
@@ -251,28 +251,28 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     _stateMachine.sendEvent(event);
   };
 
-  
+  // Block wifi p2p scan.
   manager.blockScan = function() {
     _stateMachine.sendEvent({ id: EVENT_P2P_CMD_BLOCK_SCAN });
   };
 
-  
+  // Un-block and do the pending scan if any.
   manager.unblockScan = function() {
     _stateMachine.sendEvent({ id: EVENT_P2P_CMD_UNBLOCK_SCAN });
   };
 
-  
+  // Set the p2p device name.
   manager.setDeviceName = function(newDeivceName, callback) {
     aP2pCommand.setDeviceName(newDeivceName, callback);
   };
 
-  
-  
-  
-  
-  
-  
-  
+  // Parse wps_supplicant event string.
+  //
+  // @param aEventString The raw event string from wpa_supplicant.
+  //
+  // @return Object:
+  //   .id: a number to represent an event.
+  //   .info: the additional information carried by this event string.
   function parseEventString(aEventString) {
     if (isIgnoredEvent(aEventString)) {
       return { id: EVENT_IGNORED };
@@ -289,7 +289,7 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
 
     let id = EVENT_UNKNOWN;
 
-    
+    // general info.
     let info = {};
 
     if (match) {
@@ -308,12 +308,12 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
       info.wpsCapabilities = wpsFlagToCapabilities(info.wpsFlag);
       info.isGroupOwner = isPeerGroupOwner(info.groupFlag);
     } else if (0 === aEventString.indexOf("P2P-DEVICE-LOST")) {
-      
+      // e.g. "P2P-DEVICE-LOST p2p_dev_addr=5e:0a:5b:15:1f:80".
       id = EVENT_P2P_DEVICE_LOST;
       info.address = /p2p_dev_addr=([0-9a-f:]+)/.exec(aEventString)[1];
     } else if (0 === aEventString.indexOf("P2P-GROUP-STARTED")) {
-      
-      
+      // e.g. "P2P-GROUP-STARTED wlan0-p2p-0 GO ssid="DIRECT-3F Testing
+      //       passphrase="12345678" go_dev_addr=02:40:61:c2:f3:b7 [PERSISTENT]".
 
       id = EVENT_P2P_GROUP_STARTED;
       let groupMatch = RegExp('ssid="(.*)" ' +
@@ -323,9 +323,9 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
       info.ssid = groupMatch[1];
       info.freq = groupMatch[2];
       if ('passphrase' === groupMatch[3]) {
-        let s = groupMatch[4]; 
-        info.passphrase = s.substring(1, s.length-1); 
-      } else { 
+        let s = groupMatch[4]; // e.g. "G7jHkkz9".
+        info.passphrase = s.substring(1, s.length-1); // Trim the double quote.
+      } else { // psk
         info.psk = groupMatch[4];
       }
       info.goAddress = groupMatch[5];
@@ -333,7 +333,7 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
       info.role = tokens[2];
     } else if (0 === aEventString.indexOf("P2P-GROUP-REMOVED")) {
       id = EVENT_P2P_GROUP_REMOVED;
-      
+      // e.g. "P2P-GROUP-REMOVED wlan0-p2p-0 GO".
       info.ifname = tokens[1];
       info.role = tokens[2];
     } else if (0 === aEventString.indexOf("P2P-PROV-DISC-PBC-REQ")) {
@@ -341,31 +341,31 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
       info.wpsMethod = WPS_METHOD_PBC;
     } else if (0 === aEventString.indexOf("P2P-PROV-DISC-PBC-RESP")) {
       id = EVENT_P2P_PROV_DISC_PBC_RESP;
-      
+      // The address is different from the general pattern.
       info.address = aEventString.split(" ")[1];
       info.wpsMethod = WPS_METHOD_PBC;
     } else if (0 === aEventString.indexOf("P2P-PROV-DISC-SHOW-PIN")) {
       id = EVENT_P2P_PROV_DISC_SHOW_PIN;
-      
+      // Obtain peer address and pin from tokens.
       info.address = tokens[1];
       info.pin     = tokens[2];
       info.wpsMethod = WPS_METHOD_DISPLAY;
     } else if (0 === aEventString.indexOf("P2P-PROV-DISC-ENTER-PIN")) {
       id = EVENT_P2P_PROV_DISC_ENTER_PIN;
-      
+      // Obtain peer address from tokens.
       info.address = tokens[1];
       info.wpsMethod = WPS_METHOD_KEYPAD;
     } else if (0 === aEventString.indexOf("P2P-GO-NEG-REQUEST")) {
       id = EVENT_P2P_GO_NEG_REQUEST;
       info.address = tokens[1];
       switch (parseInt(tokens[2].split("=")[1], 10)) {
-        case DEV_PW_REGISTRAR_SPECIFIED: 
+        case DEV_PW_REGISTRAR_SPECIFIED: // (5) Peer is display.
           info.wpsMethod = WPS_METHOD_KEYPAD;
           break;
-        case DEV_PW_USER_SPECIFIED: 
+        case DEV_PW_USER_SPECIFIED: // (1) Peer is keypad.
           info.wpsMethod = WPS_METHOD_DISPLAY;
           break;
-        case DEV_PW_PUSHBUTTON: 
+        case DEV_PW_PUSHBUTTON: // (4) Peer is pbc.
           info.wpsMethod = WPS_METHOD_PBC;
           break;
         default:
@@ -386,14 +386,14 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
       id = EVENT_P2P_INVITATION_RESULT;
       info.status = /status=([0-9]+)/.exec(aEventString)[1];
     } else if (0 === aEventString.indexOf("P2P-INVITATION-RECEIVED")) {
-      
+      // e.g. "P2P-INVITATION-RECEIVED sa=32:85:a9:da:e6:1f persistent=7".
       id = EVENT_P2P_INVITATION_RECEIVED;
       info.address = /sa=([0-9a-f:]+)/.exec(aEventString)[1];
       info.netId = /persistent=([0-9]+)/.exec(aEventString)[1];
     } else if (0 === aEventString.indexOf("P2P-PROV-DISC-FAILURE")) {
       id = EVENT_P2P_PROV_DISC_FAILURE;
     } else {
-      
+      // Not P2P event but we do receive it. Try to recognize it.
       if (0 === aEventString.indexOf("AP-STA-DISCONNECTED")) {
         id = EVENT_AP_STA_DISCONNECTED;
         info.address = tokens[1];
@@ -401,7 +401,7 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
         id = EVENT_AP_STA_CONNECTED;
         info.address = tokens[1];
       } else {
-        
+        // Neither P2P event nor recognized supplicant event.
         debug('Unknwon event string: ' + aEventString);
       }
     }
@@ -433,10 +433,10 @@ this.WifiP2pManager = function (aP2pCommand, aNetUtil) {
     return (aGroupFlag & GROUP_CAPAB_GROUP_OWNER) !== 0;
   }
 
-  
-  
-  
-  
+  // Convert flag to a wps capability array.
+  //
+  // @param aWpsFlag Number that represents the wps capabilities.
+  // @return Array of WPS flag.
   function wpsFlagToCapabilities(aWpsFlag) {
     let wpsCapabilities = [];
     if (aWpsFlag & 0x8) {
@@ -462,19 +462,19 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     }
   }
 
-  let p2pSm = {};  
+  let p2pSm = {};  // The state machine to return.
 
-  let _sm = StateMachine('WIFIP2P'); 
+  let _sm = StateMachine('WIFIP2P'); // The general purpose state machine.
 
-  
+  // Information we need to keep track across states.
   let _observer;
 
   let _onEnabled;
   let _onDisabled;
   let _onSupplicantConnected;
-  let _savedConfig = {}; 
-  let _groupInfo = {};   
-  let _removedGroupInfo = {}; 
+  let _savedConfig = {}; // Configuration used to do P2P_CONNECT.
+  let _groupInfo = {};   // The information of the group we have formed.
+  let _removedGroupInfo = {}; // Used to store the group info we are going to remove.
 
   let _scanBlocked = false;
   let _scanPostponded = false;
@@ -498,7 +498,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     httpProxyHost: null,
     httpProxyPort: null,
 
-    
+    // help
     registered: false,
 
     getAddresses: function (ips, prefixLengths) {
@@ -523,21 +523,21 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     }
   };
 
-  
-  
-  
+  //---------------------------------------------------------
+  // State machine APIs.
+  //---------------------------------------------------------
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // Register the observer which is implemented in WifiP2pWorkerObserver.jsm.
+  //
+  // @param aObserver:
+  //   .onEnabled
+  //   .onDisbaled
+  //   .onPeerFound
+  //   .onPeerLost
+  //   .onConnecting
+  //   .onConnected
+  //   .onDisconnected
+  //   .onLocalDeviceChanged
   p2pSm.setObserver = function(aObserver) {
     _observer = aObserver;
   };
@@ -552,14 +552,14 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     return willBeHandled;
   };
 
-  
+  // Initialize internal state machine _sm.
   _sm.setDefaultEventHandler(handleEventCommon);
 
-  
-  
-  
+  //----------------------------------------------------------
+  // State definition.
+  //----------------------------------------------------------
 
-  
+  // The initial state.
   var stateDisabled = _sm.makeState("DISABLED", {
     enter: function() {
       _onEnabled = null;
@@ -583,12 +583,12 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
       return true;
     }
   });
 
-  
+  // The state where we are trying to enable wifi p2p.
   var stateEnabling = _sm.makeState("ENABLING", {
     enter: function() {
 
@@ -606,7 +606,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
       _sm.pause();
 
-      
+      // Step 1: Connect to p2p0.
       aP2pCommand.connectToSupplicant(function (status) {
         let detail;
 
@@ -619,7 +619,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         debug('wpa_supplicant p2p0 connected!');
         _onSupplicantConnected();
 
-        
+        // Step 2: Get MAC address.
         if (!_localDevice.address) {
           aP2pCommand.getMacAddress(function (address) {
             if (!address) {
@@ -633,7 +633,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           });
         }
 
-        
+        // Step 3: Enable p2p with the device name and wps methods.
         detail = { deviceName: _localDevice.deviceName,
                    deviceType: libcutils.property_get("ro.moz.wifi.p2p_device_type") || DEFAULT_P2P_DEVICE_TYPE,
                    wpsMethods: libcutils.property_get("ro.moz.wifi.p2p_wps_methods") || DEFAULT_P2P_WPS_METHODS };
@@ -647,8 +647,8 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
           debug('P2P is enabled! Enabling net interface...');
 
-          
-          
+          // Step 4: Enable p2p0 net interface. wpa_supplicant may have
+          //         already done it for us.
           aNetUtil.enableInterface(P2P_INTERFACE_NAME, function (success) {
             onSuccess();
           });
@@ -657,12 +657,12 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     },
 
     handleEvent: function(aEvent) {
-      
+      // We won't receive any event since all of them will be blocked.
       return true;
     }
   });
 
-  
+  // The state just after enabling wifi direct.
   var stateInactive = _sm.makeState("INACTIVE", {
     enter: function() {
       registerP2pNetworkInteface();
@@ -671,14 +671,14 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         _observer.onDisconnected(_savedConfig);
       }
 
-      _savedConfig = null; 
-      _groupInfo   = null; 
+      _savedConfig = null; // Used to connect p2p peer.
+      _groupInfo   = null; // The information of the formed group.
     },
 
     handleEvent: function(aEvent) {
       switch (aEvent.id) {
-        
-        
+        // Receiving the following 3 states implies someone is trying to
+        // connect to me.
         case EVENT_P2P_PROV_DISC_PBC_REQ:
         case EVENT_P2P_PROV_DISC_SHOW_PIN:
         case EVENT_P2P_PROV_DISC_ENTER_PIN:
@@ -689,13 +689,13 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
             address:   aEvent.info.address,
             wpsMethod: aEvent.info.wpsMethod,
             goIntent:  DEFAULT_GO_INTENT,
-            pin:       aEvent.info.pin 
+            pin:       aEvent.info.pin // EVENT_P2P_PROV_DISC_SHOW_PIN only.
           };
 
           _sm.gotoState(stateWaitingForConfirmation);
           break;
 
-        
+        // Connect to a peer.
         case EVENT_P2P_CMD_CONNECT:
           debug('Trying to connect to peer: ' + JSON.stringify(aEvent.info));
 
@@ -720,7 +720,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           break;
 
         case EVENT_P2P_GROUP_STARTED:
-          
+          // Most likely the peer just reinvoked a peristen group and succeeeded.
 
           _savedConfig = { address: aEvent.info.goAddress };
 
@@ -731,18 +731,18 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           break;
 
         case EVENT_AP_STA_DISCONNECTED:
-          
-          
+          // We will hit this case when we used to be a group owner and
+          // requested to remove the group we owned.
           break;
 
         default:
           return false;
-      } 
+      } // End of switch.
       return true;
     },
   });
 
-  
+  // Waiting for user's confirmation.
   var stateWaitingForConfirmation = _sm.makeState("WAITING_FOR_CONFIRMATION", {
     timeoutTimer: null,
 
@@ -756,23 +756,23 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         case EVENT_P2P_SET_PAIRING_CONFIRMATION:
           if (!aEvent.info.accepted) {
             debug('User rejected this request');
-            _sm.gotoState(stateInactive); 
+            _sm.gotoState(stateInactive); // Reset to inactive state.
             break;
           }
 
           debug('User accepted this request');
 
-          
+          // The only information we may have to grab from user.
           _savedConfig.pin = aEvent.info.pin;
 
-          
-          
+          // The case that user requested to form a group ealier on.
+          // Just go to connecting state and do p2p_connect.
           if (_sm.getPreviousState() === stateProvisionDiscovery) {
             _sm.gotoState(stateConnecting);
             break;
           }
 
-          
+          // Otherwise, wait for EVENT_P2P_GO_NEG_REQUEST.
           _sm.gotoState(stateWaitingForNegReq);
           break;
 
@@ -787,7 +787,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
 
       return true;
     },
@@ -822,7 +822,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
       return true;
     },
 
@@ -832,7 +832,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     }
   });
 
-  
+  // Waiting for user's confirmation for invitation.
   var stateWaitingForInvitationConfirmation = _sm.makeState("WAITING_FOR_INV_CONFIRMATION", {
     timeoutTimer: null,
 
@@ -846,7 +846,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         case EVENT_P2P_SET_PAIRING_CONFIRMATION:
           if (!aEvent.info.accepted) {
             debug('User rejected this request');
-            _sm.gotoState(stateInactive); 
+            _sm.gotoState(stateInactive); // Reset to inactive state.
             break;
           }
 
@@ -866,7 +866,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
 
       return true;
     },
@@ -891,7 +891,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           _sm.gotoState(stateInactive);
           return;
         }
-        
+        // Waiting for EVENT_P2P_GROUP_STARTED.
         self.timeoutTimer = initTimeoutTimer(60000, EVENT_TIMEOUT_CONNECTING);
         _sm.resume();
       });
@@ -936,7 +936,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
 
       return true;
     },
@@ -960,7 +960,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           _sm.gotoState(stateInactive);
           return;
         }
-        
+        // Waiting for EVENT_P2P_GROUP_STARTED.
         self.timeoutTimer = initTimeoutTimer(60000, EVENT_TIMEOUT_CONNECTING);
         _sm.resume();
       });
@@ -1005,7 +1005,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
 
       return true;
     },
@@ -1027,9 +1027,9 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         debug('p2p_prov_disc has been sent.');
 
         _sm.resume();
-        
-        
-        
+        // Waiting for EVENT_P2P_PROV_DISC_PBC_RESP or
+        //             EVENT_P2P_PROV_DISC_SHOW_PIN or
+        //             EVENT_P2P_PROV_DISC_ENTER_PIN.
       }
 
       _sm.pause();
@@ -1041,7 +1041,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     handleEvent: function(aEvent) {
       switch (aEvent.id) {
         case EVENT_P2P_PROV_DISC_PBC_RESP:
-          _sm.gotoState(stateConnecting); 
+          _sm.gotoState(stateConnecting); // No need for local user grant.
           break;
         case EVENT_P2P_PROV_DISC_SHOW_PIN:
         case EVENT_P2P_PROV_DISC_ENTER_PIN:
@@ -1060,13 +1060,13 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
       return true;
     }
   });
 
-  
-  
+  // We are going to connect to the peer.
+  // |_savedConfig| is supposed to have been filled properly.
   var stateConnecting = _sm.makeState("CONNECTING", {
     timeoutTimer: null,
 
@@ -1082,10 +1082,10 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       let wpsMethodWithPin;
       if (WPS_METHOD_KEYPAD === _savedConfig.wpsMethod ||
           WPS_METHOD_DISPLAY === _savedConfig.wpsMethod) {
-        
+        // e.g. '12345678 display or '12345678 keypad'.
         wpsMethodWithPin = (_savedConfig.pin + ' ' + _savedConfig.wpsMethod);
       } else {
-        
+        // e.g. 'pbc'.
         wpsMethodWithPin = _savedConfig.wpsMethod;
       }
 
@@ -1153,7 +1153,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
 
       return true;
     },
@@ -1179,8 +1179,8 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       if (!_groupInfo.isGroupOwner) {
         _observer.onConnected(this.groupOwner, _savedConfig);
       } else {
-        
-        
+        // If I am a group owner, notify onConnected until EVENT_AP_STA_CONNECTED
+        // is received.
       }
 
       _removedGroupInfo = null;
@@ -1205,7 +1205,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         case EVENT_AP_STA_DISCONNECTED:
           debug('Client disconnected: ' + aEvent.info.address);
 
-          
+          // Now we suppose it's the only client. Remove my group.
           _sm.pause();
           aP2pCommand.p2pGroupRemove(_groupInfo.ifname, function (success) {
             debug('Requested to remove p2p group. Wait for EVENT_P2P_GROUP_REMOVED.');
@@ -1214,8 +1214,8 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           break;
 
         case EVENT_P2P_CMD_DISCONNECT:
-          
-          
+          // Since we only support single connection, we can ignore
+          // the given peer address.
           _sm.pause();
           aP2pCommand.p2pGroupRemove(_groupInfo.ifname, function(success) {
             aEvent.info.onDoDisconnect(true);
@@ -1242,7 +1242,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // end of switch
       return true;
     }
   });
@@ -1285,7 +1285,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
         default:
           return false;
-      } 
+      } // End of switch.
       return true;
     },
 
@@ -1307,14 +1307,14 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     },
 
     handleEvent: function(aEvent) {
-      return false; 
+      return false; // We will not receive any event in this state.
     }
   });
 
   var stateDisabling = _sm.makeState("DISABLING", {
     enter: function() {
       _sm.pause();
-      aNetUtil.stopDhcpServer(function (success) { 
+      aNetUtil.stopDhcpServer(function (success) { // Stopping DHCP server is harmless.
         debug('Stop DHCP server result: ' + success);
         aP2pCommand.p2pDisable(function(success) {
           debug('P2P function disabled');
@@ -1331,26 +1331,26 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     },
 
     handleEvent: function(aEvent) {
-      return false; 
+      return false; // We will not receive any event in this state.
     }
   });
 
-  
-  
-  
+  //----------------------------------------------------------
+  // Helper functions.
+  //----------------------------------------------------------
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // Handle 'P2P_GROUP_STARTED' event. Note that this function
+  // will also do the state transitioning and error handling.
+  //
+  // @param aInfo Information carried by "P2P_GROUP_STARTED" event:
+  //   .role: P2P_ROLE_GO or P2P_ROLE_CLIENT
+  //   .ssid:
+  //   .freq:
+  //   .passphrase: Used to connect to GO for legacy device.
+  //   .goAddress:
+  //   .ifname: e.g. p2p-p2p0
+  //
+  // @param aCallback Callback function.
   function handleGroupStarted(aInfo, aCallback) {
     debug('handleGroupStarted: ' + JSON.stringify(aInfo));
 
@@ -1367,7 +1367,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         aCallback(false);
 
         if (success) {
-          return; 
+          return; // Stay in current state and wait for EVENT_P2P_GROUP_REMOVED.
         }
 
         debug('p2pGroupRemove command error!');
@@ -1375,7 +1375,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       });
     }
 
-    
+    // Save this group information.
     _groupInfo = aInfo;
     _groupInfo.isGroupOwner = (P2P_ROLE_GO === aInfo.role);
 
@@ -1394,7 +1394,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
           return;
         }
 
-        
+        // Update p2p network interface.
         _p2pNetworkInterface.state = Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
         _p2pNetworkInterface.ips = [GO_NETWORK_INTERFACE.ip];
         _p2pNetworkInterface.prefixLengths = [GO_NETWORK_INTERFACE.maskLength];
@@ -1410,7 +1410,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       return;
     }
 
-    
+    // We are the client.
 
     debug("Client. Request IP from DHCP server on interface: " + _groupInfo.ifname);
 
@@ -1421,14 +1421,14 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
         return;
       }
 
-      
+      // Save network interface.
       debug("DHCP request success: " + JSON.stringify(dhcpData.info));
 
-      
+      // Update p2p network interface.
       let maskLength =
         netHelpers.getMaskLength(netHelpers.stringToIP(dhcpData.info.mask_str));
       if (!maskLength) {
-        maskLength = 32; 
+        maskLength = 32; // max prefix for IPv4.
       }
       _p2pNetworkInterface.state = Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
       _p2pNetworkInterface.ips = [dhcpData.info.ipaddr_str];
@@ -1481,13 +1481,13 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
                                  null);
   }
 
-  
-  
-  
-  
-  
-  
-  
+  // Handle 'P2P_GROUP_STARTED' event.
+  //
+  // @param aInfo information carried by "P2P_GROUP_REMOVED" event:
+  //   .ifname
+  //   .role: "GO" or "client".
+  //
+  // @param aCallback Callback function.
   function handleGroupRemoved(aInfo, aCallback) {
     if (!_groupInfo) {
       debug('No group info. Why?');
@@ -1500,7 +1500,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
             ' v.s. ' + JSON.stringify(aInfo));
     }
 
-    
+    // Update p2p network interface.
     _p2pNetworkInterface.state = Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED;
     handleP2pNetworkInterfaceStateChanged();
 
@@ -1516,7 +1516,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     }
   }
 
-  
+  // Non state-specific event handler.
   function handleEventCommon(aEvent) {
     switch (aEvent.id) {
       case EVENT_P2P_DEVICE_FOUND:
@@ -1567,7 +1567,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
 
       default:
         return false;
-    } 
+    } // End of switch.
     return true;
   }
 
@@ -1602,7 +1602,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
     return timer;
   }
 
-  
+  // Converts local WPS method to peer WPS method.
   function toPeerWpsMethod(aLocalWpsMethod) {
     switch (aLocalWpsMethod) {
       case WPS_METHOD_DISPLAY:
@@ -1612,7 +1612,7 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       case WPS_METHOD_PBC:
         return WPS_METHOD_PBC;
       default:
-        return WPS_METHOD_PBC; 
+        return WPS_METHOD_PBC; // Use "push button" as the default method.
     }
   }
 

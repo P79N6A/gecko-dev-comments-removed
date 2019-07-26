@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const kFileOutStreamCID = "@mozilla.org/network/file-output-stream;1";
 const nsIFileOutputStream = Components.interfaces.nsIFileOutputStream;
@@ -29,8 +29,8 @@ var cmdFileController =
                 var sink = new Object;
                 sink.write = function(aContent, aCount)
                 {
-                    
-                    
+                    // replace NC:succ with NC:orig_succ,
+                    //  so the rdf stuff differs
                     var content = aContent.replace(/NC:succ/g,"NC:orig_succ");
                     content = content.replace(/NC:failCount/g,"NC:orig_failCount");
                     this.mSink.write(content, content.length);

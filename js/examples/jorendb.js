@@ -1,35 +1,35 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*-
+ * vim: set ts=8 sw=4 et tw=78:
+ *
+ * jorendb - A toy command-line debugger for shell-js programs.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
+/*
+ * jorendb is a simple command-line debugger for shell-js programs. It is
+ * intended as a demo of the Debugger object (as there are no shell js programs
+ * to speak of).
+ *
+ * To run it: $JS -d path/to/this/file/jorendb.js
+ * To run some JS code under it, try:
+ *    (jorendb) print load("my-script-to-debug.js")
+ * Execution will stop at debugger statements and you'll get a jorendb prompt.
+ */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Debugger state.
 var focusedFrame = null;
 var topFrame = null;
 var debuggeeValues = {};
 var nextDebuggeeValueIndex = 1;
 var lastExc = null;
 
-
+// Cleanup functions to run when we next re-enter the repl.
 var replCleanups = [];
 
-
+// Convert a debuggee value v to a string.
 function dvToString(v) {
     return (typeof v !== 'object' || v === null) ? uneval(v) : "[object " + v.class + "]";
 }
@@ -121,7 +121,7 @@ function saveExcursion(fn) {
     }
 }
 
-
+// Evaluate an expression in the Debugger global
 function evalCommand(expr) {
     eval(expr);
 }
@@ -139,7 +139,7 @@ function backtraceCommand() {
 }
 
 function printCommand(rest) {
-    
+    // This is the real deal.
     var cv = saveExcursion(
         () => focusedFrame == null
               ? debuggeeGlobalWrapper.evalInGlobalWithBindings(rest, debuggeeValues)
@@ -295,8 +295,8 @@ function printPop(f, c) {
     }
 }
 
-
-
+// Set |prop| on |obj| to |value|, but then restore its current value
+// when we next enter the repl.
 function setUntilRepl(obj, prop, value) {
     var saved = obj[prop];
     obj[prop] = value;
@@ -310,8 +310,8 @@ function doStepOrNext(kind) {
     print("starting line: " + uneval(startLine));
 
     function stepPopped(completion) {
-        
-        
+        // Note that we're popping this frame; we need to watch for
+        // subsequent step events on its caller.
         this.reportedPop = true;
         printPop(this, completion);
         topFrame = focusedFrame = this;
@@ -326,7 +326,7 @@ function doStepOrNext(kind) {
 
     function stepStepped() {
         print("stepStepped: " + this.fullDescription());
-        
+        // If we've changed frame or line, then report that.
         if (this !== startFrame || this.line != startLine) {
             topFrame = focusedFrame = this;
             if (focusedFrame != startFrame)
@@ -334,15 +334,15 @@ function doStepOrNext(kind) {
             return repl();
         }
 
-        
+        // Otherwise, let execution continue.
         return undefined;
     }
 
     if (kind.step)
         setUntilRepl(dbg, 'onEnterFrame', stepEntered);
 
-    
-    
+    // If we're stepping after an onPop, watch for steps and pops in the
+    // next-older frame; this one is done.
     var stepFrame = startFrame.reportedPop ? startFrame.older : startFrame;
     if (!stepFrame || !stepFrame.script)
         stepFrame = null;
@@ -351,14 +351,14 @@ function doStepOrNext(kind) {
         setUntilRepl(stepFrame, 'onPop',  stepPopped);
     }
 
-    
+    // Let the program continue!
     return [undefined];
 }
 
 function stepCommand() { return doStepOrNext({step:true}); }
 function nextCommand() { return doStepOrNext({next:true}); }
 
-
+// Build the table of commands.
 var commands = {};
 var commandArray = [
     backtraceCommand, "bt", "where",
@@ -403,8 +403,8 @@ function helpCommand(rest) {
     printcmd(group);
 }
 
-
-
+// Break cmd into two parts: its first word and everything else. If it begins
+// with punctuation, treat that as a separate word.
 function breakcmd(cmd) {
     cmd = cmd.trimLeft();
     if ("!@#$%^&*_+=/?.,<>:;'\"".indexOf(cmd.substr(0, 1)) != -1)
@@ -449,7 +449,7 @@ function repl() {
         try {
             var result = runcmd(cmd);
             if (result === undefined)
-                ; 
+                ; // do nothing
             else if (Array.isArray(result))
                 return result[0];
             else
@@ -482,7 +482,7 @@ dbg.onThrow = function (frame, exc) {
         });
 };
 
-
+// The depth of jorendb nesting.
 var jorendbDepth;
 if (typeof jorendbDepth == 'undefined') jorendbDepth = 0;
 

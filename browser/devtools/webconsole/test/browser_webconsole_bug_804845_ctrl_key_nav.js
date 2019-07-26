@@ -1,16 +1,16 @@
+/* -*- js-indent-level: 2; indent-tabs-mode: nil -*- */
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ *
+ * Contributor(s):
+ *  zmgmoz <zmgmoz@gmail.com>
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
+// Test navigation of webconsole contents via ctrl-a, ctrl-e, ctrl-p, ctrl-n
+// see https://bugzilla.mozilla.org/show_bug.cgi?id=804845
 
 let jsterm, inputNode;
 function test() {
@@ -37,20 +37,20 @@ function doTests(HUD) {
 }
 
 function testSingleLineInputNavNoHistory() {
-  
+  // Single char input
   EventUtils.synthesizeKey("1", {});
   is(inputNode.selectionStart, 1, "caret location after single char input");
 
-  
+  // nav to start/end with ctrl-a and ctrl-e;
   EventUtils.synthesizeKey("a", { ctrlKey: true });
   is(inputNode.selectionStart, 0, "caret location after single char input and ctrl-a");
 
   EventUtils.synthesizeKey("e", { ctrlKey: true });
   is(inputNode.selectionStart, 1, "caret location after single char input and ctrl-e");
 
-  
+  // Second char input
   EventUtils.synthesizeKey("2", {});
-  
+  // nav to start/end with up/down keys; verify behaviour using ctrl-p/ctrl-n
   EventUtils.synthesizeKey("VK_UP", {});
   is(inputNode.selectionStart, 0, "caret location after two char input and VK_UP");
   EventUtils.synthesizeKey("VK_DOWN", {});
@@ -80,7 +80,7 @@ function testSingleLineInputNavNoHistory() {
 function testMultiLineInputNavNoHistory() {
   let lineValues = ["one", "2", "something longer", "", "", "three!"];
   jsterm.setInputValue("");
-  
+  // simulate shift-return
   for (let i = 0; i < lineValues.length; i++) {
     jsterm.setInputValue(inputNode.value + lineValues[i]);
     EventUtils.synthesizeKey("VK_RETURN", { shiftKey: true });
@@ -89,10 +89,10 @@ function testMultiLineInputNavNoHistory() {
   is(inputNode.selectionStart, inputNode.selectionEnd);
   is(inputNode.selectionStart, inputValue.length, "caret at end of multiline input");
 
-  
+  // possibility newline is represented by one ('\r', '\n') or two ('\r\n') chars
   let newlineString = inputValue.match(/(\r\n?|\n\r?)$/)[0];
 
-  
+  // Ok, test navigating within the multi-line string!
   EventUtils.synthesizeKey("VK_UP", {});
   let expectedStringAfterCarat = lineValues[5]+newlineString;
   is(inputNode.value.slice(inputNode.selectionStart), expectedStringAfterCarat,
@@ -102,7 +102,7 @@ function testMultiLineInputNavNoHistory() {
   is(inputNode.value.slice(inputNode.selectionStart), "",
      "down arrow from within multiline");
 
-  
+  // navigate up through input lines
   EventUtils.synthesizeKey("p", { ctrlKey: true });
   is(inputNode.value.slice(inputNode.selectionStart), expectedStringAfterCarat,
      "ctrl-p from end of multiline");
@@ -118,7 +118,7 @@ function testMultiLineInputNavNoHistory() {
   is(inputNode.value, inputValue,
      "no change to multiline input on ctrl-p from beginning of multiline");
 
-  
+  // navigate to end of first line
   EventUtils.synthesizeKey("e", { ctrlKey: true });
   let caretPos = inputNode.selectionStart;
   let expectedStringBeforeCarat = lineValues[0];
@@ -128,7 +128,7 @@ function testMultiLineInputNavNoHistory() {
   is(inputNode.selectionStart, caretPos,
      "repeat ctrl-e doesn't change caret position in multiline input");
 
-  
+  // navigate down one line; ctrl-a to the beginning; ctrl-e to end
   for (let i = 1; i < lineValues.length; i++) {
     EventUtils.synthesizeKey("n", { ctrlKey: true });
     EventUtils.synthesizeKey("a", { ctrlKey: true });
@@ -146,13 +146,13 @@ function testMultiLineInputNavNoHistory() {
 }
 
 function testNavWithHistory() {
-  
-  
+  // NOTE: Tests does NOT currently define behaviour for ctrl-p/ctrl-n with
+  // caret placed _within_ single line input
   let values = ['"single line input"',
                 '"a longer single-line input to check caret repositioning"',
                 ['"multi-line"', '"input"', '"here!"'].join("\n"),
                ];
-  
+  // submit to history
   for (let i = 0; i < values.length; i++) {
     jsterm.setInputValue(values[i]);
     jsterm.execute();
@@ -163,18 +163,18 @@ function testNavWithHistory() {
   is(inputNode.selectionStart, values[values.length-1].length,
      "caret location correct at end of last history input");
 
-  
+  // Navigate backwards history with ctrl-p
   for (let i = values.length-1; i > 0; i--) {
     let match = values[i].match(/(\n)/g);
     if (match) {
-      
+      // multi-line inputs won't update from history unless caret at beginning
       EventUtils.synthesizeKey("a", { ctrlKey: true });
       for (let i = 0; i < match.length; i++) {
         EventUtils.synthesizeKey("p", { ctrlKey: true });
       }
       EventUtils.synthesizeKey("p", { ctrlKey: true });
     } else {
-      
+      // single-line inputs will update from history from end of line
       EventUtils.synthesizeKey("p", { ctrlKey: true });
     }
     is(inputNode.value, values[i-1],
@@ -187,7 +187,7 @@ function testNavWithHistory() {
   is(inputNode.value, inputValue,
      "no change to input value on ctrl-p from beginning of line");
 
-  
+  // Navigate forwards history with ctrl-n
   for (let i = 1; i<values.length; i++) {
     EventUtils.synthesizeKey("n", { ctrlKey: true });
     is(inputNode.value, values[i],
@@ -198,11 +198,11 @@ function testNavWithHistory() {
   EventUtils.synthesizeKey("n", { ctrlKey: true });
   ok(!inputNode.value, "ctrl-n at end of history updates to empty input");
 
-  
+  // Simulate editing multi-line
   inputValue = "one\nlinebreak";
   jsterm.setInputValue(inputValue);
 
-  
+  // Attempt nav within input
   EventUtils.synthesizeKey("p", { ctrlKey: true });
   is(inputNode.value, inputValue,
      "ctrl-p from end of multi-line does not trigger history");

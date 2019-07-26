@@ -1,4 +1,4 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -40,15 +40,15 @@ for (var name in gcFunctions) {
         print(name + "|" + readable);
 }
 
-
-
-
-
-
-
-
-
-
+// gcEdges is a list of edges that can GC for more specific reasons than just
+// calling a function that is in gcFunctions.txt.
+//
+// Right now, it is unused. It was meant for ~AutoCompartment when it might
+// wrap an exception, but anything held live across ~AC will have to be held
+// live across the corresponding constructor (and hence the whole scope of the
+// AC), and in that case it'll be held live across whatever could create an
+// exception within the AC scope. So ~AC edges are redundant. I will leave the
+// stub machinery here for now.
 printErr("Writing " + gcEdges_filename);
 redirect(gcEdges_filename);
 for (var block in gcEdges) {

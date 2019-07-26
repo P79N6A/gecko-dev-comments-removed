@@ -1,24 +1,24 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+/**
+   File Name:          15.6.4.2.js
+   ECMA Section:       15.6.4.2-1 Boolean.prototype.toString()
+   Description:        If this boolean value is true, then the string "true"
+   is returned; otherwise this boolean value must be false,
+   and the string "false" is returned.
 
+   The toString function is not generic; it generates
+   a runtime error if its this value is not a Boolean
+   object.  Therefore it cannot be transferred to other
+   kinds of objects for use as a method.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   Author:             christine@netscape.com
+   Date:               june 27, 1997
+*/
 
 var SECTION = "15.6.4.2-1";
 var VERSION = "ECMA_1";

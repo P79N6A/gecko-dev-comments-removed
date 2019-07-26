@@ -1,5 +1,5 @@
-
-
+/* -*- js-indent-level: 4; indent-tabs-mode: nil -*- */
+// Source.prototype.displayURL can be a string or null.
 
 let g = newGlobal('new-compartment');
 let dbg = new Debugger;
@@ -10,7 +10,7 @@ function getDisplayURL() {
     return fw.script.source.displayURL;
 }
 
-
+// Comment pragmas
 g.evaluate('function f() {}\n' +
            '//@ sourceURL=file:///var/quux.js');
 assertEq(getDisplayURL(), 'file:///var/quux.js');

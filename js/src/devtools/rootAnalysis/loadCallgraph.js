@@ -1,38 +1,38 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
 loadRelativeToScript('utility.js');
 
+// Functions come out of sixgill in the form "mangled|readable". The mangled
+// name is Truth. One mangled name might correspond to multiple readable names,
+// for multiple reasons, including (1) sixgill/gcc doesn't always qualify types
+// the same way or de-typedef the same amount; (2) sixgill's output treats
+// references and pointers the same, and so doesn't distinguish them, but C++
+// treats them as separate for overloading and linking; (3) (identical)
+// destructors sometimes have an int32 parameter, sometimes not.
+//
+// The readable names are useful because they're far more meaningful to the
+// user, and are what should show up in reports and questions to mrgiggles. At
+// least in most cases, it's fine to have the extra mangled name tacked onto
+// the beginning for these.
+//
+// The strategy used is to separate out the pieces whenever they are read in,
+// create a table mapping mangled names to (one of the) readable names, and
+// use the mangled names in all computation.
+//
+// Note that callgraph.txt uses a compressed representation -- each name is
+// mapped to an integer, and those integers are what is recorded in the edges.
+// But the integers depend on the full name, whereas the true edge should only
+// consider the mangled name. And some of the names encoded in callgraph.txt
+// are FieldCalls, not just function names.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var readableNames = {}; 
-var mangledName = {}; 
-var calleeGraph = {}; 
-var callerGraph = {}; 
-var gcFunctions = {}; 
-var suppressedFunctions = {}; 
+var readableNames = {}; // map from mangled name => list of readable names
+var mangledName = {}; // map from demangled names => mangled names. Could be eliminated.
+var calleeGraph = {}; // map from mangled => list of tuples of {'callee':mangled, 'suppressed':bool}
+var callerGraph = {}; // map from mangled => list of tuples of {'caller':mangled, 'suppressed':bool}
+var gcFunctions = {}; // map from mangled callee => reason
+var suppressedFunctions = {}; // set of mangled names (map from mangled name => true)
 var gcEdges = {};
 
 function addGCFunction(caller, reason)
@@ -62,11 +62,11 @@ function addCallEdge(caller, callee, suppressed)
     callerGraph[callee].push({caller:caller, suppressed:suppressed});
 }
 
-
-
+// Map from identifier to full "mangled|readable" name. Or sometimes to a
+// Class.Field name.
 var functionNames = [""];
 
-
+// Map from identifier to mangled name (or to a Class.Field)
 var idToMangled = [""];
 
 function loadCallgraph(file)
@@ -121,8 +121,8 @@ function loadCallgraph(file)
         }
     }
 
-    
-    
+    // Initialize suppressedFunctions to the set of all functions, and the
+    // worklist to all toplevel callers.
     var worklist = [];
     for (var callee in callerGraph)
         suppressedFunctions[callee] = true;
@@ -133,9 +133,9 @@ function loadCallgraph(file)
         }
     }
 
-    
-    
-    
+    // Find all functions reachable via an unsuppressed call chain, and remove
+    // them from the suppressedFunctions set. Everything remaining is only
+    // reachable when GC is suppressed.
     var top = worklist.length;
     while (top > 0) {
         name = worklist[--top];
@@ -150,7 +150,7 @@ function loadCallgraph(file)
         }
     }
 
-    
+    // Such functions are known to not GC.
     for (var name in gcFunctions) {
         if (name in suppressedFunctions)
             delete gcFunctions[name];
@@ -167,12 +167,12 @@ function loadCallgraph(file)
         addGCFunction(mangledName[gcName], "GC");
     }
 
-    
+    // Initialize the worklist to all known gcFunctions.
     var worklist = [];
     for (var name in gcFunctions)
         worklist.push(name);
 
-    
+    // Recursively find all callers and add them to the set of gcFunctions.
     while (worklist.length) {
         name = worklist.shift();
         assert(name in gcFunctions);
@@ -184,8 +184,8 @@ function loadCallgraph(file)
         }
     }
 
-    
-    
+    // Any field call that has been resolved to all possible callees can be
+    // trusted to not GC if all of those callees are known to not GC.
     for (var name in resolvedFunctions) {
         if (!(name in gcFunctions))
             suppressedFunctions[name] = true;

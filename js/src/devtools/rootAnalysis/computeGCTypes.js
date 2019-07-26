@@ -1,4 +1,4 @@
-
+/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
 
 "use strict";
 
@@ -18,8 +18,8 @@ function processCSU(csu, body)
                 addNestedPointer(csu, target.Name, fieldName);
         }
         if (type.Kind == "CSU") {
-            
-            
+            // Ignore nesting in classes which are AutoGCRooters. We only consider
+            // types with fields that may not be properly rooted.
             if (type.Name == "JS::AutoGCRooter" || type.Name == "JS::CustomAutoRooter")
                 return;
             addNestedStructure(csu, type.Name, fieldName);
@@ -27,8 +27,8 @@ function processCSU(csu, body)
     }
 }
 
-var structureParents = {}; 
-var pointerParents = {}; 
+var structureParents = {}; // Map from field => list of <parent, fieldName>
+var pointerParents = {}; // Map from field => list of <parent, fieldName>
 
 function addNestedStructure(csu, inner, field)
 {
@@ -61,8 +61,8 @@ for (var csuIndex = minStream; csuIndex <= maxStream; csuIndex++) {
     xdb.free_string(data);
 }
 
-var gcTypes = {}; 
-var gcPointers = {}; 
+var gcTypes = {}; // map from parent struct => Set of GC typed children
+var gcPointers = {}; // map from parent struct => Set of GC typed children
 var gcFields = {};
 
 function addGCType(name, child, why)
@@ -104,7 +104,7 @@ function addGCPointer(name, child, why)
     if (!child)
         child = 'annotation';
 
-    
+    // Ignore types that are properly rooted.
     if (isRootedPointerTypeName(name))
         return;
 

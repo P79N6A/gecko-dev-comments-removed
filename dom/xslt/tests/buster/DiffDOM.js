@@ -1,11 +1,11 @@
+/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
+// ----------------------
+// DiffDOM(node1,node2)
+// ----------------------
 
 var isHTML = false;
 
@@ -16,11 +16,11 @@ function DiffDOM(node1, node2, aIsHTML)
 }
 
 
-
+// namespace attributes in the second node are ignored
 const nsreg = /^xmlns[|:\w]/;
 
-
-
+// This function does the work of DiffDOM by recursively calling
+// itself to explore the tree
 function DiffNodeAndChildren(node1, node2)
 {
   if (!node1 && !node2)
