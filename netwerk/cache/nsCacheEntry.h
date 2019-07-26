@@ -303,9 +303,9 @@ private:
                                      void *                 arg);
                                      
     
-    static PLDHashTableOps ops;
-    PLDHashTable           table;
-    bool                   initialized;
+    static const PLDHashTableOps ops;
+    PLDHashTable                 table;
+    bool                         initialized;
 };
 
 #endif 
