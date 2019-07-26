@@ -144,10 +144,16 @@ function testBody() {
   do_log_info("stateChange: " + stateChange / 1000000);
   do_log_info("startHibernation: " + startHibernation / 1000000);
   do_log_info("stopHibernation: " + stopHibernation / 1000000);
-  do_check_true(stateChange > now + 10*1000*1000);
-  do_check_true(startHibernation > now + 2*1000*1000);
-  do_check_true(startHibernation < now + 5*1000*1000);
-  do_check_true(stopHibernation > now + 10*1000*1000);
+  
+  
+  
+  
+  
+  const FUZZ_FACTOR = 1 * 1000 * 1000;
+  do_check_true(stateChange > now + 10*1000*1000 - FUZZ_FACTOR);
+  do_check_true(startHibernation > now + 2*1000*1000 - FUZZ_FACTOR);
+  do_check_true(startHibernation < now + 5*1000*1000 + FUZZ_FACTOR);
+  do_check_true(stopHibernation > now + 10*1000*1000 - FUZZ_FACTOR);
 
   do_test_finished();
   yield;
