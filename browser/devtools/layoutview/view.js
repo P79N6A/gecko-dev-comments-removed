@@ -199,7 +199,7 @@ LayoutView.prototype = {
       
       if (this.dimmed) {
         this.inspector.emit("layoutview-updated");
-        return;
+        return null;
       }
 
       for (let i in this.map) {
@@ -247,7 +247,9 @@ LayoutView.prototype = {
       }
 
       this.inspector.emit("layoutview-updated");
+      return null;
     });
+
     this._lastRequest = lastRequest;
     return this._lastRequest;
   }
