@@ -1573,14 +1573,19 @@ typedef nsRuleNode::RuleDetail
 
 
 
+
 inline void
 ExamineCSSValue(const nsCSSValue& aValue,
-                uint32_t& aSpecifiedCount, uint32_t& aInheritedCount)
+                uint32_t& aSpecifiedCount,
+                uint32_t& aInheritedCount,
+                uint32_t& aUnsetCount)
 {
   if (aValue.GetUnit() != eCSSUnit_Null) {
     ++aSpecifiedCount;
     if (aValue.GetUnit() == eCSSUnit_Inherit) {
       ++aInheritedCount;
+    } else if (aValue.GetUnit() == eCSSUnit_Unset) {
+      ++aUnsetCount;
     }
   }
 }
@@ -1839,8 +1844,9 @@ nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
   
   uint32_t total = 0,      
            specified = 0,  
-           inherited = 0;  
+           inherited = 0,  
                            
+           unset = 0;      
 
   
   NS_ABORT_IF_FALSE(aRuleData->mValueOffsets[aSID] == 0,
@@ -1849,7 +1855,13 @@ nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
               *values_end = values + nsCSSProps::PropertyCountInStruct(aSID);
        values != values_end; ++values) {
     ++total;
-    ExamineCSSValue(*values, specified, inherited);
+    ExamineCSSValue(*values, specified, inherited, unset);
+  }
+
+  if (!nsCachedStyleData::IsReset(aSID)) {
+    
+    inherited += unset;
+    unset = 0;
   }
 
 #if 0
