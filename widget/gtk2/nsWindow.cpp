@@ -3713,8 +3713,10 @@ nsWindow::Create(nsIWidget        *aParent,
     }
 
     if (eventWidget) {
+#if defined(MOZ_WIDGET_GTK2)
         
         GTK_PRIVATE_SET_FLAG(eventWidget, GTK_HAS_SHAPE_MASK);
+#endif
 
         
         
