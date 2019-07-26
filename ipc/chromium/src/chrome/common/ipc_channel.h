@@ -113,6 +113,10 @@ class Channel : public Message::Sender {
 
   
   int GetServerFileDescriptor() const;
+
+  
+  void CloseClientFileDescriptor();
+
 #elif defined(OS_WIN)
   
   void* GetServerPipeHandle() const;

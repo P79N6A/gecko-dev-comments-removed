@@ -656,6 +656,11 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 #endif
                   false, &process, arch);
 
+  
+  
+  
+  GetChannel()->CloseClientFileDescriptor();
+
 #ifdef MOZ_WIDGET_COCOA
   
   const int kTimeoutMs = 10000;
