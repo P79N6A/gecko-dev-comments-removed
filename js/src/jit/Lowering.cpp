@@ -662,6 +662,12 @@ LIRGenerator::visitTest(MTest *test)
     }
 
     
+    if (opd->type() == MIRType_Float32 && opd->isConstant()) {
+        bool result = ToBoolean(opd->toConstant()->value());
+        return add(new LGoto(result ? ifTrue : ifFalse));
+    }
+
+    
     if (opd->type() == MIRType_Int32 && opd->isConstant()) {
         int32_t num = opd->toConstant()->value().toInt32();
         return add(new LGoto(num ? ifTrue : ifFalse));
@@ -759,6 +765,14 @@ LIRGenerator::visitTest(MTest *test)
         }
 
         
+        if (comp->isFloat32Comparison()) {
+            LAllocation lhs = useRegister(left);
+            LAllocation rhs = useRegister(right);
+            LCompareFAndBranch *lir = new LCompareFAndBranch(lhs, rhs, ifTrue, ifFalse);
+            return add(lir, comp);
+        }
+
+        
         if (comp->compareType() == MCompare::Compare_Value) {
             LCompareVAndBranch *lir = new LCompareVAndBranch(ifTrue, ifFalse);
             if (!useBoxAtStart(lir, LCompareVAndBranch::LhsInput, left))
@@ -782,6 +796,9 @@ LIRGenerator::visitTest(MTest *test)
 
     if (opd->type() == MIRType_Double)
         return add(new LTestDAndBranch(useRegister(opd), ifTrue, ifFalse));
+
+    if (opd->type() == MIRType_Float32)
+        return add(new LTestFAndBranch(useRegister(opd), ifTrue, ifFalse));
 
     JS_ASSERT(opd->type() == MIRType_Int32 || opd->type() == MIRType_Boolean);
     return add(new LTestIAndBranch(useRegister(opd), ifTrue, ifFalse));
@@ -930,6 +947,10 @@ LIRGenerator::visitCompare(MCompare *comp)
     
     if (comp->isDoubleComparison())
         return define(new LCompareD(useRegister(left), useRegister(right)), comp);
+
+    
+    if (comp->isFloat32Comparison())
+        return define(new LCompareF(useRegister(left), useRegister(right)), comp);
 
     
     if (comp->compareType() == MCompare::Compare_Value) {
