@@ -967,32 +967,30 @@ let RIL = {
 
   iccUnlockCardLock: function iccUnlockCardLock(options) {
     switch (options.lockType) {
-      case GECKO_CARDLOCK_PIN:
+      case "pin":
         this.enterICCPIN(options);
         break;
-      case GECKO_CARDLOCK_PIN2:
+      case "pin2":
         this.enterICCPIN2(options);
         break;
-      case GECKO_CARDLOCK_PUK:
+      case "puk":
         this.enterICCPUK(options);
         break;
-      case GECKO_CARDLOCK_PUK2:
+      case "puk2":
         this.enterICCPUK2(options);
         break;
-      case GECKO_CARDLOCK_NCK:
-      case GECKO_CARDLOCK_CCK: 
-      case GECKO_CARDLOCK_SPCK: {
-        let type = GECKO_PERSO_LOCK_TO_CARD_PERSO_LOCK[options.lockType];
-        this.enterDepersonalization(type, options.pin, options);
+      case "nck":
+        options.type = CARD_PERSOSUBSTATE_SIM_NETWORK;
+        this.enterDepersonalization(options);
         break;
-      }
-      case GECKO_CARDLOCK_NCK_PUK:
-      case GECKO_CARDLOCK_CCK_PUK: 
-      case GECKO_CARDLOCK_SPCK_PUK: {
-        let type = GECKO_PERSO_LOCK_TO_CARD_PERSO_LOCK[options.lockType];
-        this.enterDepersonalization(type, options.puk, options);
+      case "cck":
+        options.type = CARD_PERSOSUBSTATE_SIM_CORPORATE;
+        this.enterDepersonalization(options);
         break;
-      }
+      case "spck":
+        options.type = CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER;
+        this.enterDepersonalization(options);
+        break;
       default:
         options.errorMsg = "Unsupported Card Lock.";
         options.success = false;
@@ -1044,10 +1042,10 @@ let RIL = {
 
 
 
-  enterDepersonalization: function enterDepersonalization(type, password, options) {
+  enterDepersonalization: function enterDepersonalization(options) {
     Buf.newParcel(REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE, options);
-    Buf.writeUint32(type);
-    Buf.writeString(password);
+    Buf.writeUint32(options.type);
+    Buf.writeString(options.pin);
     Buf.sendParcel();
   },
 
@@ -1057,10 +1055,10 @@ let RIL = {
   iccSetCardLock: function iccSetCardLock(options) {
     if (options.newPin !== undefined) { 
       switch (options.lockType) {
-        case GECKO_CARDLOCK_PIN:
+        case "pin":
           this.changeICCPIN(options);
           break;
-        case GECKO_CARDLOCK_PIN2:
+        case "pin2":
           this.changeICCPIN2(options);
           break;
         default:
@@ -1070,11 +1068,11 @@ let RIL = {
       }
     } else { 
       switch (options.lockType) {
-        case GECKO_CARDLOCK_PIN:
+        case "pin":
           options.facility = ICC_CB_FACILITY_SIM;
           options.password = options.pin;
           break;
-        case GECKO_CARDLOCK_FDN:
+        case "fdn":
           options.facility = ICC_CB_FACILITY_FDN;
           options.password = options.pin2;
           break;
@@ -1180,10 +1178,10 @@ let RIL = {
 
   iccGetCardLockState: function iccGetCardLockState(options) {
     switch (options.lockType) {
-      case GECKO_CARDLOCK_PIN:
+      case "pin":
         options.facility = ICC_CB_FACILITY_SIM;
         break;
-      case GECKO_CARDLOCK_FDN:
+      case "fdn":
         options.facility = ICC_CB_FACILITY_FDN;
         break;
       default:
@@ -1506,25 +1504,6 @@ let RIL = {
 
 
 
-  _getCLIRMode: function _getCLIRMode(mmi) {
-    if (!mmi ||
-        (mmi.serviceCode != MMI_SC_CLIR) ||
-        (mmi.procedure != MMI_PROCEDURE_ACTIVATION &&
-         mmi.procedure != MMI_PROCEDURE_DEACTIVATION)) {
-      return CLIR_DEFAULT;
-    }
-
-    return mmi.procedure == MMI_PROCEDURE_ACTIVATION ? CLIR_INVOCATION :
-                                                       CLIR_SUPPRESSION;
-  },
-
-  
-
-
-
-
-
-
 
   setCLIR: function setCLIR(options) {
     if (options) {
@@ -1791,14 +1770,6 @@ let RIL = {
     if (this._isEmergencyNumber(options.number)) {
       this.dialEmergencyNumber(options, onerror);
     } else {
-      
-      
-      
-      let mmi = this._parseMMI(options.number);
-      if (mmi && this._isTemporaryModeCLIR(mmi)) {
-        options.number = mmi.dialNumber;
-        options.clirMode = this._getCLIRMode(mmi);
-      }
       this.dialNonEmergencyNumber(options, onerror);
     }
   },
@@ -2568,9 +2539,6 @@ let RIL = {
         return;
 
       
-      
-      
-      
       case MMI_SC_CLIR:
         options.mmiServiceCode = MMI_KS_SC_CLIR;
         options.procedure = mmi.procedure;
@@ -3185,20 +3153,6 @@ let RIL = {
      }
 
      return numbers.indexOf(number) != -1;
-   },
-
-   
-
-
-
-
-
-   _isTemporaryModeCLIR: function _isTemporaryModeCLIR(mmi) {
-     return (mmi &&
-             mmi.serviceCode == MMI_SC_CLIR &&
-             mmi.dialNumber &&
-             (mmi.procedure == MMI_PROCEDURE_ACTIVATION ||
-              mmi.procedure == MMI_PROCEDURE_DEACTIVATION));
    },
 
   
@@ -10524,8 +10478,6 @@ let ICCFileHelper = {
       case ICC_EF_CSIM_CST:
       case ICC_EF_CSIM_SPN:
         return EF_PATH_MF_SIM + EF_PATH_DF_CDMA;
-      case ICC_EF_FDN:
-        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
       default:
         return null;
     }
@@ -11082,8 +11034,9 @@ let ICCRecordHelper = {
     }
 
     if (!contact || !contact.recordId) {
-      let error = onerror || debug;
-      error(GECKO_ERROR_INVALID_PARAMETER);
+      if (onerror) {
+        onerror("Invalid parameter.");
+      }
       return;
     }
 
@@ -11759,8 +11712,9 @@ let ICCRecordHelper = {
         ICCIOHelper.loadNextRecord(options);
       } else {
         
-        let error = onerror || debug;
-        error("No free record found.");
+        if (onerror) {
+          onerror("No free record found.");
+        }
       }
     }
 
@@ -12227,22 +12181,6 @@ let ICCContactHelper = {
   
 
 
-  hasDfPhoneBook: function hasDfPhoneBook(appType) {
-    switch (appType) {
-      case CARD_APPTYPE_SIM:
-        return false;
-      case CARD_APPTYPE_USIM:
-        return true;
-      case CARD_APPTYPE_RUIM:
-        return ICCUtilsHelper.isICCServiceAvailable("ENHANCED_PHONEBOOK");
-      default:
-        return false;
-    }
-  },
-
-  
-
-
 
 
 
@@ -12251,18 +12189,17 @@ let ICCContactHelper = {
   readICCContacts: function readICCContacts(appType, contactType, onsuccess, onerror) {
     switch (contactType) {
       case "adn":
-        if (!this.hasDfPhoneBook(appType)) {
-          ICCRecordHelper.readADNLike(ICC_EF_ADN, onsuccess, onerror);
-        } else {
-          this.readUSimContacts(onsuccess, onerror);
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            ICCRecordHelper.readADNLike(ICC_EF_ADN, onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            this.readUSimContacts(onsuccess, onerror);
+            break;
         }
         break;
       case "fdn":
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
-        break;
-      default:
-        let error = onerror || debug;
-        error(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
         break;
     }
   },
@@ -12278,22 +12215,26 @@ let ICCContactHelper = {
   findFreeICCContact: function findFreeICCContact(appType, contactType, onsuccess, onerror) {
     switch (contactType) {
       case "adn":
-        if (!this.hasDfPhoneBook(appType)) {
-          ICCRecordHelper.findFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
-        } else {
-          let gotPbrCb = function gotPbrCb(pbrs) {
-            this.findUSimFreeADNRecordId(pbrs, onsuccess, onerror);
-          }.bind(this);
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            ICCRecordHelper.findFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            let gotPbrCb = function gotPbrCb(pbrs) {
+              this.findUSimFreeADNRecordId(pbrs, onsuccess, onerror);
+            }.bind(this);
 
-          ICCRecordHelper.readPBR(gotPbrCb, onerror);
+            ICCRecordHelper.readPBR(gotPbrCb, onerror);
+            break;
         }
         break;
       case "fdn":
         ICCRecordHelper.findFreeRecordId(ICC_EF_FDN, onsuccess, onerror);
         break;
       default:
-        let error = onerror || debug;
-        error(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        if (onerror) {
+          onerror(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        }
         break;
     }
   },
@@ -12356,18 +12297,22 @@ let ICCContactHelper = {
   updateICCContact: function updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror) {
     switch (contactType) {
       case "adn":
-        if (!this.hasDfPhoneBook(appType)) {
-          ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
-        } else {
-          this.updateUSimContact(contact, onsuccess, onerror);
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            this.updateUSimContact(contact, onsuccess, onerror);
+            break;
         }
         break;
       case "fdn":
         ICCRecordHelper.updateADNLike(ICC_EF_FDN, contact, pin2, onsuccess, onerror);
         break;
       default:
-        let error = onerror || debug;
-        error(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        if (onerror) {
+          onerror(GECKO_ERROR_REQUEST_NOT_SUPPORTED);
+        }
         break;
     }
   },
@@ -12538,8 +12483,7 @@ let ICCContactHelper = {
           ICCRecordHelper.readANR(fileId, fileType, recordId, gotFieldCb, onerror);
           break;
         default:
-          let error = onerror || debug;
-          error("Unknown field " + field);
+          onerror("Unknown field " + field);
           break;
       }
     }.bind(this);
@@ -12650,7 +12594,8 @@ let ICCContactHelper = {
       
       
       if ((field === USIM_PBR_EMAIL && !contact.email) ||
-          (field === USIM_PBR_ANR0 && !contact.anr[0])) {
+          (field === USIM_PBR_ANR0 && (!Array.isArray(contact.anr) ||
+                                       !contact.anr[0]))) {
         updateField();
         return;
       }
