@@ -45,7 +45,7 @@ SocialUI = {
 
     if (!Social.initialized) {
       Social.init();
-    } else if (Social.enabled) {
+    } else if (Social.providers.length > 0) {
       
       
       this.observe(null, "social:providers-changed", null);

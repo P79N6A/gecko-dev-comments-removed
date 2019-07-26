@@ -4,6 +4,8 @@
 
 
 
+let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+
 
 
 
@@ -12,7 +14,6 @@ function resetSocial() {
   Social._provider = null;
   Social.providers = [];
   
-  let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
   SocialService._providerListeners.clear();
 }
 
@@ -55,6 +56,7 @@ let tests = {
   
   testInactiveStartup: function(cbnext) {
     is(Social.providers.length, 0, "needs zero providers to start this test.");
+    ok(!SocialService.hasEnabledProviders, "no providers are enabled");
     resetSocial();
     openWindowAndWaitForInit(function(w1) {
       checkSocialUI(w1);
@@ -73,6 +75,7 @@ let tests = {
       resetSocial();
       openWindowAndWaitForInit(function(w1) {
         ok(Social.enabled, "social is enabled");
+        ok(SocialService.hasEnabledProviders, "providers are enabled");
         checkSocialUI(w1);
         
         openWindowAndWaitForInit(function(w2) {
@@ -93,9 +96,11 @@ let tests = {
 
   
   testDisabledStartup: function(cbnext) {
-    runSocialTestWithProvider(manifest, function (finishcb) {
+    setManifestPref("social.manifest.test", manifest);
+    SocialService.addProvider(manifest, function (provider) {
       Services.prefs.setBoolPref("social.enabled", false);
       resetSocial();
+      ok(SocialService.hasEnabledProviders, "providers are enabled");
       openWindowAndWaitForInit(function(w1) {
         ok(!Social.enabled, "social is disabled");
         checkSocialUI(w1);
@@ -109,7 +114,10 @@ let tests = {
             ok(Social.enabled, "social is enabled");
             checkSocialUI(w2);
             checkSocialUI(w1);
-            finishcb();
+            SocialService.removeProvider(manifest.origin, function() {
+              Services.prefs.clearUserPref("social.manifest.test");
+              cbnext();
+            });
           });
         });
       });
@@ -118,24 +126,21 @@ let tests = {
 
   
   testRemoveProvider: function(cbnext) {
-    runSocialTestWithProvider(manifest, function (finishcb) {
+    setManifestPref("social.manifest.test", manifest);
+    SocialService.addProvider(manifest, function (provider) {
       openWindowAndWaitForInit(function(w1) {
         checkSocialUI(w1);
         
         openWindowAndWaitForInit(function(w2) {
           checkSocialUI(w2);
           
-          let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
           SocialService.removeProvider(manifest.origin, function() {
             ok(!Social.enabled, "social is disabled");
             is(Social.providers.length, 0, "no providers");
             checkSocialUI(w2);
             checkSocialUI(w1);
-            
-            
-            SocialService.addProvider(manifest, function() {
-              finishcb();
-            });
+            Services.prefs.clearUserPref("social.manifest.test");
+            cbnext();
           });
         });
       });

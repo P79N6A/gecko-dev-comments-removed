@@ -350,6 +350,16 @@ function schedule(callback) {
 
 
 this.SocialService = {
+  get hasEnabledProviders() {
+    
+    
+    
+    
+    for (let p in ActiveProviders._providers) {
+      return true;
+    };
+    return false;
+  },
   get enabled() {
     return SocialServiceInternal.enabled;
   },

@@ -158,8 +158,9 @@ this.Social = {
       return;
     }
     this.initialized = true;
-
-    if (SocialService.enabled) {
+    
+    
+    if (SocialService.hasEnabledProviders) {
       
       SocialService.getOrderedProviderList(function (providers) {
         Social._updateProviderCache(providers);
