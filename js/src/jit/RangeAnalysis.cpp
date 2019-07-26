@@ -1288,33 +1288,35 @@ RangeAnalysis::analyzeLoop(MBasicBlock *header)
     for (MPhiIterator iter(header->phisBegin()); iter != header->phisEnd(); iter++)
         analyzeLoopPhi(header, iterationBound, *iter);
 
-    
+    if (!mir->compilingAsmJS()) {
+        
 
-    Vector<MBoundsCheck *, 0, IonAllocPolicy> hoistedChecks;
+        Vector<MBoundsCheck *, 0, IonAllocPolicy> hoistedChecks;
 
-    for (ReversePostorderIterator iter(graph_.rpoBegin(header)); iter != graph_.rpoEnd(); iter++) {
-        MBasicBlock *block = *iter;
-        if (!block->isMarked())
-            continue;
+        for (ReversePostorderIterator iter(graph_.rpoBegin(header)); iter != graph_.rpoEnd(); iter++) {
+            MBasicBlock *block = *iter;
+            if (!block->isMarked())
+                continue;
 
-        for (MDefinitionIterator iter(block); iter; iter++) {
-            MDefinition *def = *iter;
-            if (def->isBoundsCheck() && def->isMovable()) {
-                if (tryHoistBoundsCheck(header, def->toBoundsCheck()))
-                    hoistedChecks.append(def->toBoundsCheck());
+            for (MDefinitionIterator iter(block); iter; iter++) {
+                MDefinition *def = *iter;
+                if (def->isBoundsCheck() && def->isMovable()) {
+                    if (tryHoistBoundsCheck(header, def->toBoundsCheck()))
+                        hoistedChecks.append(def->toBoundsCheck());
+                }
             }
         }
-    }
 
-    
-    
-    
-    
-    
-    for (size_t i = 0; i < hoistedChecks.length(); i++) {
-        MBoundsCheck *ins = hoistedChecks[i];
-        ins->replaceAllUsesWith(ins->index());
-        ins->block()->discard(ins);
+        
+        
+        
+        
+        
+        for (size_t i = 0; i < hoistedChecks.length(); i++) {
+            MBoundsCheck *ins = hoistedChecks[i];
+            ins->replaceAllUsesWith(ins->index());
+            ins->block()->discard(ins);
+        }
     }
 
     graph_.unmarkBlocks();
