@@ -1427,7 +1427,7 @@ namespace {
 struct ExpressionDecompiler
 {
     JSContext *cx;
-    StackFrame *fp;
+    InterpreterFrame *fp;
     RootedScript script;
     RootedFunction fun;
     BindingVector *localNames;

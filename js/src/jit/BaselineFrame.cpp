@@ -151,7 +151,7 @@ BaselineFrame::initFunctionScopeObjects(JSContext *cx)
 }
 
 bool
-BaselineFrame::initForOsr(StackFrame *fp, uint32_t numStackValues)
+BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
 {
     mozilla::PodZero(this);
 

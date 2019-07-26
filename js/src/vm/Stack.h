@@ -29,7 +29,7 @@ class InterpreterRegs;
 class ScopeObject;
 class ScriptFrameIter;
 class SPSProfiler;
-class StackFrame;
+class InterpreterFrame;
 class StaticBlockObject;
 
 struct ScopeCoordinate;
@@ -104,7 +104,7 @@ class AbstractFramePtr
 
     enum {
         Tag_ScriptFrameIterData = 0x0,
-        Tag_StackFrame = 0x1,
+        Tag_InterpreterFrame = 0x1,
         Tag_BaselineFrame = 0x2,
         TagMask = 0x3
     };
@@ -114,10 +114,10 @@ class AbstractFramePtr
       : ptr_(0)
     {}
 
-    AbstractFramePtr(StackFrame *fp)
-      : ptr_(fp ? uintptr_t(fp) | Tag_StackFrame : 0)
+    AbstractFramePtr(InterpreterFrame *fp)
+      : ptr_(fp ? uintptr_t(fp) | Tag_InterpreterFrame : 0)
     {
-        MOZ_ASSERT(asStackFrame() == fp);
+        MOZ_ASSERT(asInterpreterFrame() == fp);
     }
 
     AbstractFramePtr(jit::BaselineFrame *fp)
@@ -140,12 +140,12 @@ class AbstractFramePtr
     bool isScriptFrameIterData() const {
         return !!ptr_ && (ptr_ & TagMask) == Tag_ScriptFrameIterData;
     }
-    bool isStackFrame() const {
-        return ptr_ & Tag_StackFrame;
+    bool isInterpreterFrame() const {
+        return ptr_ & Tag_InterpreterFrame;
     }
-    StackFrame *asStackFrame() const {
-        JS_ASSERT(isStackFrame());
-        StackFrame *res = (StackFrame *)(ptr_ & ~TagMask);
+    InterpreterFrame *asInterpreterFrame() const {
+        JS_ASSERT(isInterpreterFrame());
+        InterpreterFrame *res = (InterpreterFrame *)(ptr_ & ~TagMask);
         JS_ASSERT(res);
         return res;
     }
@@ -254,7 +254,7 @@ enum ExecuteType {
 
 
 
-class StackFrame
+class InterpreterFrame
 {
   public:
     enum Flags {
@@ -339,7 +339,7 @@ class StackFrame
 
 
 
-    StackFrame          *prev_;
+    InterpreterFrame    *prev_;
     jsbytecode          *prevpc_;
     Value               *prevsp_;
 
@@ -355,8 +355,8 @@ class StackFrame
     LifoAlloc::Mark     mark_;          
 
     static void staticAsserts() {
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(Value) == 0);
-        JS_STATIC_ASSERT(sizeof(StackFrame) % sizeof(Value) == 0);
+        JS_STATIC_ASSERT(offsetof(InterpreterFrame, rval_) % sizeof(Value) == 0);
+        JS_STATIC_ASSERT(sizeof(InterpreterFrame) % sizeof(Value) == 0);
     }
 
     void writeBarrierPost();
@@ -381,8 +381,9 @@ class StackFrame
 
 
     
-    void initCallFrame(JSContext *cx, StackFrame *prev, jsbytecode *prevpc, Value *prevsp, JSFunction &callee,
-                       JSScript *script, Value *argv, uint32_t nactual, StackFrame::Flags flags);
+    void initCallFrame(JSContext *cx, InterpreterFrame *prev, jsbytecode *prevpc, Value *prevsp,
+                       JSFunction &callee, JSScript *script, Value *argv, uint32_t nactual,
+                       InterpreterFrame::Flags flags);
 
     
     void initExecuteFrame(JSContext *cx, JSScript *script, AbstractFramePtr prev,
@@ -487,7 +488,7 @@ class StackFrame
 
 
 
-    StackFrame *prev() const {
+    InterpreterFrame *prev() const {
         return prev_;
     }
 
@@ -792,6 +793,7 @@ class StackFrame
 
 
 
+
     bool isGeneratorFrame() const {
         bool ret = flags_ & GENERATOR;
         JS_ASSERT_IF(ret, isNonEvalFunctionFrame());
@@ -824,7 +826,7 @@ class StackFrame
         NoPostBarrier = false
     };
     template <TriggerPostBarriers doPostBarrier>
-    void copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
+    void copyFrameAndValues(JSContext *cx, Value *vp, InterpreterFrame *otherfp,
                             const Value *othervp, Value *othersp);
 
     
@@ -942,12 +944,12 @@ class StackFrame
     }
 };
 
-static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);
+static const size_t VALUES_PER_STACK_FRAME = sizeof(InterpreterFrame) / sizeof(Value);
 
-static inline StackFrame::Flags
+static inline InterpreterFrame::Flags
 ToFrameFlags(InitialFrameFlags initial)
 {
-    return StackFrame::Flags(initial);
+    return InterpreterFrame::Flags(initial);
 }
 
 static inline InitialFrameFlags
@@ -970,9 +972,9 @@ class InterpreterRegs
     Value *sp;
     jsbytecode *pc;
   private:
-    StackFrame *fp_;
+    InterpreterFrame *fp_;
   public:
-    StackFrame *fp() const { return fp_; }
+    InterpreterFrame *fp() const { return fp_; }
 
     unsigned stackDepth() const {
         JS_ASSERT(sp >= fp_->base());
@@ -985,7 +987,7 @@ class InterpreterRegs
     }
 
     
-    void rebaseFromTo(const InterpreterRegs &from, StackFrame &to) {
+    void rebaseFromTo(const InterpreterRegs &from, InterpreterFrame &to) {
         fp_ = &to;
         sp = to.slots() + (from.sp - from.fp_->slots());
         pc = from.pc;
@@ -998,7 +1000,7 @@ class InterpreterRegs
         fp_ = fp_->prev();
         JS_ASSERT(fp_);
     }
-    void prepareToRun(StackFrame &fp, JSScript *script) {
+    void prepareToRun(InterpreterFrame &fp, JSScript *script) {
         pc = script->code();
         sp = fp.slots() + script->nfixed();
         fp_ = &fp;
@@ -1031,11 +1033,11 @@ class InterpreterStack
 
     inline uint8_t *allocateFrame(JSContext *cx, size_t size);
 
-    inline StackFrame *
+    inline InterpreterFrame *
     getCallFrame(JSContext *cx, const CallArgs &args, HandleScript script,
-                 StackFrame::Flags *pflags, Value **pargv);
+                 InterpreterFrame::Flags *pflags, Value **pargv);
 
-    void releaseFrame(StackFrame *fp) {
+    void releaseFrame(InterpreterFrame *fp) {
         frameCount_--;
         allocator_.release(fp->mark_);
     }
@@ -1051,12 +1053,13 @@ class InterpreterStack
     }
 
     
-    StackFrame *pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
+    InterpreterFrame *pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
                                  HandleObject scopeChain, ExecuteType type,
                                  AbstractFramePtr evalInFrame);
 
     
-    StackFrame *pushInvokeFrame(JSContext *cx, const CallArgs &args, InitialFrameFlags initial);
+    InterpreterFrame *pushInvokeFrame(JSContext *cx, const CallArgs &args,
+                                      InitialFrameFlags initial);
 
     
     
@@ -1227,7 +1230,7 @@ class InterpreterActivation : public Activation
 
     RunState &state_;
     InterpreterRegs regs_;
-    StackFrame *entryFrame_;
+    InterpreterFrame *entryFrame_;
     size_t opMask_; 
 
 #ifdef DEBUG
@@ -1235,20 +1238,20 @@ class InterpreterActivation : public Activation
 #endif
 
   public:
-    inline InterpreterActivation(RunState &state, JSContext *cx, StackFrame *entryFrame);
+    inline InterpreterActivation(RunState &state, JSContext *cx, InterpreterFrame *entryFrame);
     inline ~InterpreterActivation();
 
     inline bool pushInlineFrame(const CallArgs &args, HandleScript script,
                                 InitialFrameFlags initial);
-    inline void popInlineFrame(StackFrame *frame);
+    inline void popInlineFrame(InterpreterFrame *frame);
 
-    StackFrame *current() const {
+    InterpreterFrame *current() const {
         return regs_.fp();
     }
     InterpreterRegs &regs() {
         return regs_;
     }
-    StackFrame *entryFrame() const {
+    InterpreterFrame *entryFrame() const {
         return entryFrame_;
     }
     size_t opMask() const {
@@ -1377,7 +1380,7 @@ class JitActivationIterator : public ActivationIterator
 class InterpreterFrameIterator
 {
     InterpreterActivation *activation_;
-    StackFrame *fp_;
+    InterpreterFrame *fp_;
     jsbytecode *pc_;
     Value *sp_;
 
@@ -1395,7 +1398,7 @@ class InterpreterFrameIterator
         }
     }
 
-    StackFrame *frame() const {
+    InterpreterFrame *frame() const {
         JS_ASSERT(!done());
         return fp_;
     }
@@ -1594,7 +1597,7 @@ class FrameIter
     Data *copyData() const;
 
     
-    inline StackFrame *interpFrame() const;
+    inline InterpreterFrame *interpFrame() const;
 
   private:
     Data data_;
@@ -1773,7 +1776,7 @@ FrameIter::isBaseline() const
 #endif
 }
 
-inline StackFrame *
+inline InterpreterFrame *
 FrameIter::interpFrame() const
 {
     JS_ASSERT(data_.state_ == INTERP);

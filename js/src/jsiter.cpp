@@ -1471,7 +1471,7 @@ FinalizeGenerator(FreeOp *fop, JSObject *obj)
               gen->state == JSGEN_OPEN);
     
     if (gen->fp)
-        JS_POISON(gen->fp, JS_FREE_PATTERN, sizeof(StackFrame));
+        JS_POISON(gen->fp, JS_FREE_PATTERN, sizeof(InterpreterFrame));
     JS_POISON(gen, JS_FREE_PATTERN, sizeof(JSGenerator));
     fop->free_(gen);
 }
@@ -1566,7 +1566,7 @@ GeneratorState::~GeneratorState()
         cx_->leaveGenerator(gen_);
 }
 
-StackFrame *
+InterpreterFrame *
 GeneratorState::pushInterpreterFrame(JSContext *cx)
 {
     
@@ -1648,7 +1648,7 @@ JSObject *
 js_NewGenerator(JSContext *cx, const InterpreterRegs &stackRegs)
 {
     JS_ASSERT(stackRegs.stackDepth() == 0);
-    StackFrame *stackfp = stackRegs.fp();
+    InterpreterFrame *stackfp = stackRegs.fp();
 
     JS_ASSERT(stackfp->script()->isGenerator());
 
@@ -1690,7 +1690,7 @@ js_NewGenerator(JSContext *cx, const InterpreterRegs &stackRegs)
                     stackfp->script()->nslots()) * sizeof(HeapValue);
 
     JS_ASSERT(nbytes % sizeof(Value) == 0);
-    JS_STATIC_ASSERT(sizeof(StackFrame) % sizeof(HeapValue) == 0);
+    JS_STATIC_ASSERT(sizeof(InterpreterFrame) % sizeof(HeapValue) == 0);
 
     JSGenerator *gen = (JSGenerator *) cx->calloc_(nbytes);
     if (!gen)
@@ -1700,7 +1700,7 @@ js_NewGenerator(JSContext *cx, const InterpreterRegs &stackRegs)
     HeapValue *genvp = gen->stackSnapshot;
     SetValueRangeToUndefined((Value *)genvp, vplen);
 
-    StackFrame *genfp = reinterpret_cast<StackFrame *>(genvp + vplen);
+    InterpreterFrame *genfp = reinterpret_cast<InterpreterFrame *>(genvp + vplen);
 
     
     gen->obj.init(obj);
@@ -1710,7 +1710,7 @@ js_NewGenerator(JSContext *cx, const InterpreterRegs &stackRegs)
 
     
     gen->regs.rebaseFromTo(stackRegs, *genfp);
-    genfp->copyFrameAndValues<StackFrame::DoPostBarrier>(cx, (Value *)genvp, stackfp,
+    genfp->copyFrameAndValues<InterpreterFrame::DoPostBarrier>(cx, (Value *)genvp, stackfp,
                                                          stackvp, stackRegs.sp);
     genfp->setSuspended();
     obj->setPrivate(gen);

@@ -3485,8 +3485,6 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
-
-
         if (i.isIon())
             continue;
         AbstractFramePtr frame = i.abstractFramePtr();

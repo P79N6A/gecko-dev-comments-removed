@@ -515,7 +515,7 @@ struct JSContext : public js::ExclusiveContext,
     bool currentlyRunningInJit() const {
         return mainThread().activation()->isJit();
     }
-    js::StackFrame *interpreterFrame() const {
+    js::InterpreterFrame *interpreterFrame() const {
         return mainThread().activation()->asInterpreter()->current();
     }
     js::InterpreterRegs &interpreterRegs() const {
