@@ -398,6 +398,20 @@ ParseTypeAttribute(const nsAString& aType, JSVersion* aVersion)
     return false;
   }
 
+  nsAutoString value;
+  rv = parser.GetParameter("e4x", value);
+  if (NS_SUCCEEDED(rv)) {
+    if (value.Length() == 1 && value[0] == '1') {
+      
+      
+      
+      
+      *aVersion = js::VersionSetMoarXML(*aVersion, true);
+    }
+  } else if (rv != NS_ERROR_INVALID_ARG) {
+    return false;
+  }
+
   return true;
 }
 

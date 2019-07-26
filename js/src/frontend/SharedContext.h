@@ -197,6 +197,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     size_t          bufEnd;
     uint16_t        ndefaults;
     bool            inWith:1;               
+
     bool            inGenexpLambda:1;       
 
     FunctionContextFlags funCxFlags;

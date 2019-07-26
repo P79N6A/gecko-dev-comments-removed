@@ -51,6 +51,7 @@ CastAsStrictPropertyOp(JSObject *object)
 
 
 
+
 class PropertyId
 {
     jsid id;

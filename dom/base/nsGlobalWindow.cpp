@@ -1906,8 +1906,17 @@ nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
 {
   JSContext* cx = mContext->GetNativeContext();
 
+  bool isChrome = IsChromeWindow();
+  if (isChrome) {
+    
+    
+    
+    
+    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_MOAR_XML);
+  }
+
   JSObject* outer = NewOuterWindowProxy(cx, aNewInner->FastGetGlobalJSObject(),
-                                        IsChromeWindow());
+                                        isChrome);
   if (!outer) {
     return NS_ERROR_FAILURE;
   }

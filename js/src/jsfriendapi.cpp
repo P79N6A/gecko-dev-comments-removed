@@ -501,6 +501,15 @@ js::SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback)
 
 
 
+
+extern size_t sE4XObjectsCreated;
+
+JS_FRIEND_API(size_t)
+JS_GetE4XObjectsCreated(JSContext *)
+{
+    return sE4XObjectsCreated;
+}
+
 namespace js {
 
 extern size_t sSetProtoCalled;
@@ -707,6 +716,13 @@ JS_FRIEND_API(const JSStructuredCloneCallbacks *)
 js::GetContextStructuredCloneCallbacks(JSContext *cx)
 {
     return cx->runtime->structuredCloneCallbacks;
+}
+
+JS_FRIEND_API(JSVersion)
+js::VersionSetMoarXML(JSVersion version, bool enable)
+{
+    return enable ? JSVersion(uint32_t(version) | VersionFlags::MOAR_XML)
+                  : JSVersion(uint32_t(version) & ~VersionFlags::MOAR_XML);
 }
 
 JS_FRIEND_API(bool)

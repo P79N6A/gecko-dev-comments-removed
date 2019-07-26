@@ -48,6 +48,7 @@ class SpecialId
 
     static const uintptr_t TYPE_VOID = JSID_TYPE_VOID;
     static const uintptr_t TYPE_OBJECT = JSID_TYPE_OBJECT;
+    static const uintptr_t TYPE_DEFAULT_XML_NAMESPACE = JSID_TYPE_DEFAULT_XML_NAMESPACE;
     static const uintptr_t TYPE_MASK = JSID_TYPE_MASK;
 
     SpecialId(uintptr_t bits) : bits(bits) { }
@@ -96,6 +97,18 @@ class SpecialId
     bool isVoid() const {
         return bits == TYPE_VOID;
     }
+
+    
+
+    static SpecialId defaultXMLNamespace() {
+        SpecialId sid(TYPE_DEFAULT_XML_NAMESPACE);
+        JS_ASSERT(sid.isDefaultXMLNamespace());
+        return sid;
+    }
+
+    bool isDefaultXMLNamespace() const {
+        return bits == TYPE_DEFAULT_XML_NAMESPACE;
+    }
 };
 
 static JS_ALWAYS_INLINE jsid
@@ -106,13 +119,15 @@ SPECIALID_TO_JSID(const SpecialId &sid)
     JS_ASSERT_IF(sid.isObject(), JSID_IS_OBJECT(id) && JSID_TO_OBJECT(id) == sid.toObject());
     JS_ASSERT_IF(sid.isVoid(), JSID_IS_VOID(id));
     JS_ASSERT_IF(sid.isEmpty(), JSID_IS_EMPTY(id));
+    JS_ASSERT_IF(sid.isDefaultXMLNamespace(), JSID_IS_DEFAULT_XML_NAMESPACE(id));
     return id;
 }
 
 static JS_ALWAYS_INLINE bool
 JSID_IS_SPECIAL(jsid id)
 {
-    return JSID_IS_OBJECT(id) || JSID_IS_EMPTY(id) || JSID_IS_VOID(id);
+    return JSID_IS_OBJECT(id) || JSID_IS_EMPTY(id) || JSID_IS_VOID(id) ||
+           JSID_IS_DEFAULT_XML_NAMESPACE(id);
 }
 
 static JS_ALWAYS_INLINE SpecialId
@@ -123,8 +138,10 @@ JSID_TO_SPECIALID(jsid id)
         return SpecialId(*JSID_TO_OBJECT(id));
     if (JSID_IS_EMPTY(id))
         return SpecialId::empty();
-    JS_ASSERT(JSID_IS_VOID(id));
-    return SpecialId::voidId();
+    if (JSID_IS_VOID(id))
+        return SpecialId::voidId();
+    JS_ASSERT(JSID_IS_DEFAULT_XML_NAMESPACE(id));
+    return SpecialId::defaultXMLNamespace();
 }
 
 typedef JS::Handle<SpecialId> HandleSpecialId;

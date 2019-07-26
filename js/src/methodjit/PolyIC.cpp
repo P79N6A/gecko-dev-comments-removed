@@ -2638,6 +2638,16 @@ ic::GetElement(VMFrame &f, ic::GetElementIC *ic)
     if (!obj)
         THROW();
 
+#if JS_HAS_XML_SUPPORT
+    
+    
+    if (obj->isXML()) {
+        ic->disable(f, "XML object");
+        stubs::GetElem(f);
+        return;
+    }
+#endif
+
     Rooted<jsid> id(cx);
     if (idval.isInt32() && INT_FITS_IN_JSID(idval.toInt32())) {
         id = INT_TO_JSID(idval.toInt32());

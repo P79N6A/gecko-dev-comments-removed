@@ -1068,8 +1068,8 @@ class JS_PUBLIC_API(AutoGCRooter) {
         SHAPEVECTOR =  -4, 
         IDARRAY =      -6, 
         DESCRIPTORS =  -7, 
-        
-        
+        NAMESPACES =   -8, 
+        XML =          -9, 
         OBJECT =      -10, 
         ID =          -11, 
         VALVECTOR =   -12, 
@@ -2392,10 +2392,13 @@ JS_NumberValue(double d)
 
 
 
+
+
 #define JSID_TYPE_STRING                 0x0
 #define JSID_TYPE_INT                    0x1
 #define JSID_TYPE_VOID                   0x2
 #define JSID_TYPE_OBJECT                 0x4
+#define JSID_TYPE_DEFAULT_XML_NAMESPACE  0x6
 #define JSID_TYPE_MASK                   0x7
 
 
@@ -2502,6 +2505,25 @@ JSID_TO_GCTHING(jsid id)
 {
     return (void *)(JSID_BITS(id) & ~(size_t)JSID_TYPE_MASK);
 }
+
+
+
+
+
+
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_DEFAULT_XML_NAMESPACE(jsid id)
+{
+    JS_ASSERT_IF(((size_t)JSID_BITS(id) & JSID_TYPE_MASK) == JSID_TYPE_DEFAULT_XML_NAMESPACE,
+                 JSID_BITS(id) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
+    return ((size_t)JSID_BITS(id) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
+}
+
+#ifdef JS_USE_JSID_STRUCT_TYPES
+extern JS_PUBLIC_DATA(jsid) JS_DEFAULT_XML_NAMESPACE_ID;
+#else
+# define JS_DEFAULT_XML_NAMESPACE_ID ((jsid)JSID_TYPE_DEFAULT_XML_NAMESPACE)
+#endif
 
 
 
@@ -3143,6 +3165,11 @@ JS_StringToVersion(const char *string);
                                                    option supported for the
                                                    XUL preprocessor and kindred
                                                    beasts. */
+#define JSOPTION_ALLOW_XML      JS_BIT(6)       /* enable E4X syntax (deprecated)
+                                                   and define the E4X-related
+                                                   globals: XML, XMLList,
+                                                   Namespace, etc. */
+#define JSOPTION_MOAR_XML       JS_BIT(7)       
 
 
 
@@ -3189,7 +3216,7 @@ JS_StringToVersion(const char *string);
 #define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
 
 
-#define JSCOMPILEOPTION_MASK    0
+#define JSCOMPILEOPTION_MASK    (JSOPTION_ALLOW_XML | JSOPTION_MOAR_XML)
 
 #define JSRUNOPTION_MASK        (JS_BITMASK(21) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)

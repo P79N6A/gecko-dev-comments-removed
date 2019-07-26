@@ -183,6 +183,8 @@ GetDefCount(UnrootedScript script, unsigned offset)
       case JSOP_OR:
       case JSOP_AND:
         return 1;
+      case JSOP_FILTER:
+        return 2;
       case JSOP_PICK:
         
 
@@ -245,6 +247,7 @@ BytecodeNoFallThrough(JSOp op)
       case JSOP_RETRVAL:
       case JSOP_THROW:
       case JSOP_TABLESWITCH:
+      case JSOP_FILTER:
         return true;
       case JSOP_GOSUB:
         

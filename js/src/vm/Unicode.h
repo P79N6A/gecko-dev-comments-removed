@@ -62,12 +62,17 @@ namespace unicode {
 
 
 
+
+
+
 struct CharFlag {
     enum temp {
         SPACE  = 1 << 0,
         LETTER = 1 << 1,
         IDENTIFIER_PART = 1 << 2,
-        NO_DELTA = 1 << 3
+        NO_DELTA = 1 << 3,
+        ENCLOSING_MARK = 1 << 4,
+        COMBINING_SPACING_MARK = 1 << 5
     };
 };
 
@@ -110,6 +115,14 @@ class CharacterInfo {
 
     inline bool isIdentifierPart() const {
         return flags & (CharFlag::IDENTIFIER_PART | CharFlag::LETTER);
+    }
+
+    inline bool isEnclosingMark() const {
+        return flags & CharFlag::ENCLOSING_MARK;
+    }
+
+    inline bool isCombiningSpacingMark() const {
+        return flags & CharFlag::COMBINING_SPACING_MARK;
     }
 };
 
@@ -223,6 +236,51 @@ ToLowerCase(jschar ch)
 
     return uint16_t(ch) + info.lowerCase;
 }
+
+
+
+inline bool
+IsXMLSpace(jschar ch)
+{
+    return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
+}
+
+inline bool
+IsXMLNamespaceStart(jschar ch)
+{
+    if (ch == '_')
+        return true;
+
+    return CharInfo(ch).isCombiningSpacingMark() || IsIdentifierStart(ch);
+}
+
+inline bool
+IsXMLNamespacePart(jschar ch)
+{
+    if (ch == '.' || ch == '-' || ch == '_')
+        return true;
+
+    return CharInfo(ch).isEnclosingMark() || IsIdentifierPart(ch);
+}
+
+inline bool
+IsXMLNameStart(jschar ch)
+{
+    if (ch == '_' || ch == ':')
+        return true;
+
+    return CharInfo(ch).isCombiningSpacingMark() || IsIdentifierStart(ch);
+}
+
+inline bool
+IsXMLNamePart(jschar ch)
+{
+    if (ch == '.' || ch == '-' || ch == '_' || ch == ':')
+        return true;
+
+    return CharInfo(ch).isEnclosingMark() || IsIdentifierPart(ch);
+}
+
 
 } 
 } 

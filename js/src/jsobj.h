@@ -237,6 +237,7 @@ extern Class StringClass;
 extern Class StrictArgumentsObjectClass;
 extern Class WeakMapClass;
 extern Class WithClass;
+extern Class XMLFilterClass;
 
 class ArgumentsObject;
 class ArrayBufferObject;
@@ -701,6 +702,45 @@ class JSObject : public js::ObjectImpl
     
 
 
+
+    
+
+
+
+
+
+
+  private:
+    static const uint32_t JSSLOT_NAME_PREFIX          = 0;   
+    static const uint32_t JSSLOT_NAME_URI             = 1;   
+
+    static const uint32_t JSSLOT_NAMESPACE_DECLARED   = 2;
+
+    static const uint32_t JSSLOT_QNAME_LOCAL_NAME     = 2;
+
+  public:
+    static const uint32_t NAMESPACE_CLASS_RESERVED_SLOTS = 3;
+    static const uint32_t QNAME_CLASS_RESERVED_SLOTS     = 3;
+
+    inline JSLinearString *getNamePrefix() const;
+    inline jsval getNamePrefixVal() const;
+    inline void setNamePrefix(JSLinearString *prefix);
+    inline void clearNamePrefix();
+
+    inline JSLinearString *getNameURI() const;
+    inline jsval getNameURIVal() const;
+    inline void setNameURI(JSLinearString *uri);
+
+    inline jsval getNamespaceDeclared() const;
+    inline void setNamespaceDeclared(jsval decl);
+
+    inline JSAtom *getQNameLocalName() const;
+    inline jsval getQNameLocalNameVal() const;
+    inline void setQNameLocalName(JSAtom *name);
+
+    
+
+
     inline bool isCallable();
 
     inline void finish(js::FreeOp *fop);
@@ -986,6 +1026,12 @@ class JSObject : public js::ObjectImpl
     inline bool isStopIteration() const;
     inline bool isTypedArray() const;
     inline bool isWeakMap() const;
+#if JS_HAS_XML_SUPPORT
+    inline bool isNamespace() const;
+    inline bool isQName() const;
+    inline bool isXML() const;
+    inline bool isXMLId() const;
+#endif
 
     
     inline bool isBlock() const;

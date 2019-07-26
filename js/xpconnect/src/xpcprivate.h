@@ -451,10 +451,12 @@ private:
 
 
 
+
+
 inline bool
 AddToCCKind(JSGCTraceKind kind)
 {
-    return kind == JSTRACE_OBJECT || kind == JSTRACE_SCRIPT;
+    return kind == JSTRACE_OBJECT || kind == JSTRACE_XML || kind == JSTRACE_SCRIPT;
 }
 
 class nsXPConnect : public nsIXPConnect,

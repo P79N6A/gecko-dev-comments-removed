@@ -54,6 +54,8 @@ enum BinaryOperator {
     BINOP_BITOR, BINOP_BITXOR, BINOP_BITAND,
     
     BINOP_IN, BINOP_INSTANCEOF,
+    
+    BINOP_DBLDOT,
 
     BINOP_LIMIT
 };

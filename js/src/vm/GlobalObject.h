@@ -61,6 +61,7 @@ class Debugger;
 
 
 
+
 class GlobalObject : public JSObject
 {
     
@@ -426,6 +427,8 @@ class GlobalObject : public JSObject
         JS_ASSERT(getSlot(EVAL).isObject());
         return getSlot(EVAL);
     }
+
+    bool getFunctionNamespace(JSContext *cx, Value *vp);
 
     
     static bool initIteratorClasses(JSContext *cx, Handle<GlobalObject*> global);

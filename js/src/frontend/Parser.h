@@ -286,6 +286,10 @@ struct Parser : private AutoGCRooter
 
     ParseNode *parse(JSObject *chain);
 
+#if JS_HAS_XML_SUPPORT
+    ParseNode *parseXMLText(JSObject *chain, bool allowList);
+#endif
+
     
 
 
@@ -413,7 +417,7 @@ struct Parser : private AutoGCRooter
     ParseNode *mulExpr1n();
     ParseNode *unaryExpr();
     ParseNode *memberExpr(bool allowCallSyntax);
-    ParseNode *primaryExpr(TokenKind tt);
+    ParseNode *primaryExpr(TokenKind tt, bool afterDoubleDot);
     ParseNode *parenExpr(bool *genexp = NULL);
 
     
@@ -440,11 +444,35 @@ struct Parser : private AutoGCRooter
     ParseNode *returnOrYield(bool useAssignExpr);
     ParseNode *destructuringExpr(BindData *data, TokenKind tt);
 
-    ParseNode *identifierName();
+    bool checkForFunctionNode(PropertyName *name, ParseNode *node);
+
+    ParseNode *identifierName(bool afterDoubleDot);
+
+#if JS_HAS_XML_SUPPORT
+    bool allowsXML() const { return tokenStream.allowsXML(); }
+
+    ParseNode *endBracketedExpr();
+
+    ParseNode *propertySelector();
+    ParseNode *qualifiedSuffix(ParseNode *pn);
+    ParseNode *qualifiedIdentifier();
+    ParseNode *attributeIdentifier();
+    ParseNode *xmlExpr(bool inTag);
+    ParseNode *xmlNameExpr();
+    ParseNode *xmlTagContent(ParseNodeKind tagkind, JSAtom **namep);
+    bool xmlElementContent(ParseNode *pn);
+    ParseNode *xmlElementOrList(bool allowList);
+    ParseNode *xmlElementOrListRoot(bool allowList);
+
+    ParseNode *starOrAtPropertyIdentifier(TokenKind tt);
+    ParseNode *propertyQualifiedIdentifier();
+#endif 
 
     bool allowsForEachIn() {
 #if !JS_HAS_FOR_EACH_IN
         return false;
+#elif JS_HAS_XML_SUPPORT
+        return allowsXML() || tokenStream.hasMoarXML();
 #else
         return versionNumber() >= JSVERSION_1_6;
 #endif
