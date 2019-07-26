@@ -341,6 +341,8 @@ public:
   
   virtual void SetAudioCaptured(bool aCaptured);
 
+  virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
+
   void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);
 

@@ -1325,8 +1325,21 @@ void MediaDecoderStateMachine::StartWaitForResources()
 {
   NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
                "Should be on state machine or decode thread.");
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  AssertCurrentThreadInMonitor();
   mState = DECODER_STATE_WAIT_FOR_RESOURCES;
+}
+
+void MediaDecoderStateMachine::NotifyWaitingForResourcesStatusChanged()
+{
+  AssertCurrentThreadInMonitor();
+  if (mState != DECODER_STATE_WAIT_FOR_RESOURCES ||
+      mReader->IsWaitingMediaResources()) {
+    return;
+  }
+  
+  
+  mState = DECODER_STATE_DECODING_METADATA;
+  EnqueueDecodeMetadataTask();
 }
 
 void MediaDecoderStateMachine::Play()
@@ -1457,8 +1470,6 @@ void MediaDecoderStateMachine::StopAudioThread()
 nsresult
 MediaDecoderStateMachine::EnqueueDecodeMetadataTask()
 {
-  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
-               "Should be on state machine or decode thread.");
   AssertCurrentThreadInMonitor();
 
   if (mState != DECODER_STATE_DECODING_METADATA) {

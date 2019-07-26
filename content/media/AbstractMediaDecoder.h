@@ -114,6 +114,10 @@ public:
 
   
   
+  virtual void NotifyWaitingForResourcesStatusChanged() = 0;
+
+  
+  
   
   class AutoNotifyDecoded {
   public:

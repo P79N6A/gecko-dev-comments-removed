@@ -357,6 +357,11 @@ public:
   
   bool IsPlaying();
 
+  
+  
+  
+  void NotifyWaitingForResourcesStatusChanged();
+
 protected:
 
   void AssertCurrentThreadInMonitor() const { mDecoder->GetReentrantMonitor().AssertCurrentThreadIn(); }

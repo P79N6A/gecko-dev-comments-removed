@@ -182,6 +182,12 @@ BufferDecoder::OnReadMetadataCompleted()
   
 }
 
+void
+BufferDecoder::NotifyWaitingForResourcesStatusChanged()
+{
+  
+}
+
 MediaDecoderOwner*
 BufferDecoder::GetOwner()
 {

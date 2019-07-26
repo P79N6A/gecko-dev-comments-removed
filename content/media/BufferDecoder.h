@@ -74,6 +74,8 @@ public:
 
   virtual MediaDecoderOwner* GetOwner() MOZ_FINAL MOZ_OVERRIDE;
 
+  virtual void NotifyWaitingForResourcesStatusChanged() MOZ_FINAL MOZ_OVERRIDE;
+
 protected:
   
   

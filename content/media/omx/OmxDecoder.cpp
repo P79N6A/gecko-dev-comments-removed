@@ -1017,8 +1017,9 @@ void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
 
     case kNotifyStatusChanged:
     {
-      mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mDecoder->GetReentrantMonitor().NotifyAll();
+      
+      
+      mDecoder->NotifyWaitingForResourcesStatusChanged();
       break;
     }
 
