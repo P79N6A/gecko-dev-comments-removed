@@ -286,8 +286,6 @@ IonBuilder::inlineArray(CallInfo &callInfo)
         
         
         
-        
-        
         MConstant *id = nullptr;
         for (uint32_t i = 0; i < initLength; i++) {
             id = MConstant::New(alloc(), Int32Value(i));
@@ -299,6 +297,12 @@ IonBuilder::inlineArray(CallInfo &callInfo)
                 current->add(valueDouble);
                 value = valueDouble;
             }
+
+            
+            
+            
+            if (ins->initialHeap() == gc::TenuredHeap)
+                current->add(MPostWriteBarrier::New(alloc(), ins, value));
 
             MStoreElement *store = MStoreElement::New(alloc(), elements, id, value,
                                                        false);
