@@ -242,6 +242,9 @@ public:
     
     void IncrementGeneration();
 
+    
+    void RebuildLocalRules();
+
     class UserFontCache {
     public:
         
@@ -419,9 +422,15 @@ protected:
     static bool OTSMessage(void *aUserData, const char *format, ...);
 
     
+    virtual void DoRebuildUserFontSet() = 0;
+
+    
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
 
     uint64_t        mGeneration;
+
+    
+    bool mLocalRulesUsed;
 
     static PRLogModuleInfo* GetUserFontsLog();
 
