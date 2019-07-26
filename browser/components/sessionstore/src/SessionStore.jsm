@@ -80,7 +80,7 @@ Cu.import("resource:///modules/TelemetryTimestamps.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm", this);
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
+Cu.import("resource://gre/modules/commonjs/promise/core.js", this);
 
 XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
   "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
@@ -1452,7 +1452,9 @@ let SessionStoreInternal = {
     let newTab = aTab == aWindow.gBrowser.selectedTab ?
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
-    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0, 0, 0);
+
+    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0, 0, 0,
+                                 true );
 
     return newTab;
   },
@@ -2889,8 +2891,12 @@ let SessionStoreInternal = {
 
 
 
+
+
+
   restoreHistoryPrecursor:
-    function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount) {
+    function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
+                                         aIx, aCount, aRestoreImmediately = false) {
     var tabbrowser = aWindow.gBrowser;
 
     
@@ -2904,7 +2910,8 @@ let SessionStoreInternal = {
       catch (ex) { 
         if (aCount < 10) {
           var restoreHistoryFunc = function(self) {
-            self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount + 1);
+            self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
+                                         aIx, aCount + 1, aRestoreImmediately);
           }
           aWindow.setTimeout(restoreHistoryFunc, 100, this);
           return;
@@ -3003,7 +3010,8 @@ let SessionStoreInternal = {
     
     var idMap = { used: {} };
     var docIdentMap = {};
-    this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap);
+    this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap,
+                        aRestoreImmediately);
   },
 
   
@@ -3017,8 +3025,12 @@ let SessionStoreInternal = {
 
 
 
+
+
+
   restoreHistory:
-    function ssi_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
+    function ssi_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
+                                aRestoreImmediately) {
     var _this = this;
     
     while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
@@ -3085,12 +3097,13 @@ let SessionStoreInternal = {
 
     
     aWindow.setTimeout(function(){
-      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap);
+      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap,
+                           aRestoreImmediately);
     }, 0);
 
     
     
-    if (aWindow.gBrowser.selectedBrowser == browser) {
+    if (aRestoreImmediately || aWindow.gBrowser.selectedBrowser == browser) {
       this.restoreTab(tab);
     }
     else {
