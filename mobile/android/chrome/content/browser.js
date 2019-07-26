@@ -1358,7 +1358,6 @@ var NativeWindow = {
 var SelectionHandler = {
   
   cache: null,
-  selectedText: "",
 
   
   get _view() {
@@ -1426,9 +1425,6 @@ var SelectionHandler = {
     this._isRTL = (this._view.getComputedStyle(aElement, "").direction == "rtl");
 
     
-    this.selectedText = "";
-
-    
     
     let selection = this._view.getSelection();
     selection.removeAllRanges();
@@ -1458,22 +1454,15 @@ var SelectionHandler = {
     }
 
     
-    if (selection.rangeCount == 0 || !selection.getRangeAt(0))
+    if (!selection.rangeCount || !selection.getRangeAt(0) || !selection.toString().trim().length) {
+      selection.collapseToStart();
       return;
+    }
 
     
     this.cache = {};
     this.updateCacheForSelection();
     this.updateCacheOffset();
-
-    
-    this.selectedText = selection.toString().trim();
-
-    
-    if (!this.selectedText.length) {
-      selection.collapseToStart();
-      return;
-    }
 
     this.showHandles();
   },
@@ -1588,29 +1577,39 @@ var SelectionHandler = {
   
   endSelection: function sh_endSelection(aX, aY) {
     this.hideHandles();
-    this._view.getSelection().removeAllRanges();
 
-    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
-    let element = ElementTouchHelper.elementFromPoint(contentWindow, aX, aY);
-    if (!element)
-      element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
+    let selectedText = "";
+    if (this._view) {
+      let selection = this._view.getSelection();
+      if (selection) {
+        selectedText = selection.toString().trim();
+        selection.removeAllRanges();
+      }
+    }
 
     
-    if (element.ownerDocument.defaultView == this._view) {
-      let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      let scrollX = {}, scrollY = {};
-      cwu.getScrollXY(false, scrollX, scrollY);
+    if (selectedText.length) {
+      let contentWindow = BrowserApp.selectedBrowser.contentWindow;
+      let element = ElementTouchHelper.elementFromPoint(contentWindow, aX, aY);
+      if (!element)
+        element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
 
       
-      let pointInSelection = (aX - this.cache.offset.x + scrollX.value > this.cache.rect.left &&
-                              aX - this.cache.offset.x + scrollX.value < this.cache.rect.right) &&
-                             (aY - this.cache.offset.y + scrollY.value > this.cache.rect.top &&
-                              aY - this.cache.offset.y + scrollY.value < this.cache.rect.bottom);
+      if (element.ownerDocument.defaultView == this._view) {
+        let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+        let scrollX = {}, scrollY = {};
+        cwu.getScrollXY(false, scrollX, scrollY);
 
-      if (pointInSelection && this.selectedText.length) {
-        let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
-        clipboard.copyString(this.selectedText);
-        NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
+        
+        let pointInSelection = (aX - this.cache.offset.x + scrollX.value > this.cache.rect.left &&
+                                aX - this.cache.offset.x + scrollX.value < this.cache.rect.right) &&
+                               (aY - this.cache.offset.y + scrollY.value > this.cache.rect.top &&
+                                aY - this.cache.offset.y + scrollY.value < this.cache.rect.bottom);
+        if (pointInSelection) {
+          let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
+          clipboard.copyString(selectedText);
+          NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
+        }
       }
     }
 
@@ -1745,10 +1744,6 @@ var SelectionHandler = {
 
         this._touchId = null;
         this._touchDelta = null;
-
-        
-        let selection = this._view.getSelection();
-        this.selectedText = selection.toString().trim();
 
         
         this.positionHandles();
