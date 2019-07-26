@@ -242,37 +242,17 @@ DecoderTraits::IsDASHMPDType(const nsACString& aType)
 
 bool DecoderTraits::ShouldHandleMediaType(const char* aMIMEType)
 {
-#ifdef MOZ_RAW
-  if (IsRawType(nsDependentCString(aMIMEType)))
-    return true;
-#endif
-#ifdef MOZ_OGG
-  if (IsOggType(nsDependentCString(aMIMEType)))
-    return true;
-#endif
-#ifdef MOZ_WEBM
-  if (IsWebMType(nsDependentCString(aMIMEType)))
-    return true;
-#endif
-#ifdef MOZ_GSTREAMER
-  if (IsH264Type(nsDependentCString(aMIMEType)))
-    return true;
-#endif
-#ifdef MOZ_WIDGET_GONK
-  if (IsOmxSupportedType(nsDependentCString(aMIMEType))) {
-    return true;
+#ifdef MOZ_WAVE
+  if (IsWaveType(nsDependentCString(aMIMEType))) {
+    
+    
+    
+    
+    
+    return false;
   }
 #endif
-#ifdef MOZ_MEDIA_PLUGINS
-  if (MediaDecoder::IsMediaPluginsEnabled() && GetMediaPluginHost()->FindDecoder(nsDependentCString(aMIMEType), NULL))
-    return true;
-#endif
-  
-  
-  
-  
-  
-  return false;
+  return CanHandleMediaType(aMIMEType, false, EmptyString()) != CANPLAY_NO;
 }
 
 
