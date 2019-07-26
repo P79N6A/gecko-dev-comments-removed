@@ -27,20 +27,62 @@ GetUserMediaLog()
 }
 #endif
 
-#undef LOG
-#define LOG(args) PR_LOG(GetUserMediaLog(), PR_LOG_DEBUG, args)
-
 #include "MediaEngineWebRTC.h"
 #include "ImageContainer.h"
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #endif
 
+#undef LOG
+#define LOG(args) PR_LOG(GetUserMediaLog(), PR_LOG_DEBUG, args)
+
 namespace mozilla {
 
 void
 MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSource> >* aVSources)
 {
+#ifdef MOZ_WIDGET_GONK
+  MutexAutoLock lock(mMutex);
+  if (!mCameraManager) {
+    return;
+  }
+
+  
+
+
+
+
+
+
+
+  int num = 0;
+  nsresult result;
+  result = mCameraManager->GetNumberOfCameras(num);
+  if (num <= 0 || result != NS_OK) {
+    return;
+  }
+
+  for (int i = 0; i < num; i++) {
+    nsCString cameraName;
+    result = mCameraManager->GetCameraName(i, cameraName);
+    if (result != NS_OK) {
+      continue;
+    }
+
+    nsRefPtr<MediaEngineWebRTCVideoSource> vSource;
+    NS_ConvertUTF8toUTF16 uuid(cameraName);
+    if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
+      
+      aVSources->AppendElement(vSource.get());
+    } else {
+      vSource = new MediaEngineWebRTCVideoSource(mCameraManager, i, mWindowId);
+      mVideoSources.Put(uuid, vSource); 
+      aVSources->AppendElement(vSource);
+    }
+  }
+
+  return;
+#else
   webrtc::ViEBase* ptrViEBase;
   webrtc::ViECapture* ptrViECapture;
   
@@ -168,6 +210,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
   ptrViECapture->Release();
 
   return;
+#endif
 }
 
 void
@@ -177,20 +220,6 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
   webrtc::VoEHardware* ptrVoEHw = NULL;
   
   MutexAutoLock lock(mMutex);
-
-#ifdef MOZ_WIDGET_ANDROID
-  jobject context = mozilla::AndroidBridge::Bridge()->GetGlobalContextRef();
-
-  
-  JavaVM *jvm = mozilla::AndroidBridge::Bridge()->GetVM();
-
-  JNIEnv *env;
-  jvm->AttachCurrentThread(&env, NULL);
-
-  webrtc::VoiceEngine::SetAndroidObjects(jvm, (void*)context);
-
-  env->DeleteGlobalRef(context);
-#endif
 
   if (!mVoiceEngine) {
     mVoiceEngine = webrtc::VoiceEngine::Create();
@@ -233,7 +262,6 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
       continue;
     }
 
-    LOG(("  Capture Device Index %d, Name %s Uuid %s", i, deviceName, uniqueId));
     if (uniqueId[0] == '\0') {
       
       MOZ_ASSERT(sizeof(deviceName) == sizeof(uniqueId)); 
