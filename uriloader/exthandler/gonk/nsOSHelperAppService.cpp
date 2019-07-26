@@ -15,6 +15,16 @@
 
 
 #include "nsOSHelperAppService.h"
+#include "nsMIMEInfoImpl.h"
+
+
+
+class nsGonkMIMEInfo : public nsMIMEInfoImpl {
+protected:
+    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) {
+        return NS_ERROR_NOT_IMPLEMENTED;
+    }
+};
 
 nsOSHelperAppService::nsOSHelperAppService() : nsExternalHelperAppService()
 {
@@ -30,7 +40,10 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
                                         bool* aFound)
 {
     *aFound = false;
-    return nullptr;
+    
+    
+    nsRefPtr<nsGonkMIMEInfo> mimeInfo = new nsGonkMIMEInfo();
+    return mimeInfo.forget();
 }
 
 nsresult
