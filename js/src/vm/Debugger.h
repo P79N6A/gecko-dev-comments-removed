@@ -411,7 +411,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, Value *vp);
+    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue vp);
 
     
 
