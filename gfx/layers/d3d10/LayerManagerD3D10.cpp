@@ -755,6 +755,17 @@ LayerManagerD3D10::Render(EndTransactionFlags aFlags)
 
   static_cast<LayerD3D10*>(mRoot->ImplData())->RenderLayer();
 
+  
+  
+  
+  
+  
+  
+  
+  if (FAILED(mDevice->GetDeviceRemovedReason())) {
+    return;
+  }
+
   if (mTarget) {
     PaintToTarget();
   } else if (mBackBuffer) {
