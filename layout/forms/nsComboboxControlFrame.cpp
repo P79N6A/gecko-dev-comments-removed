@@ -644,10 +644,11 @@ nsComboboxControlFrame::GetAvailableDropdownSpace(nscoord* aAbove,
   }
 
   nscoord minY;
-  if (!PresContext()->IsChrome()) {
-    nsIFrame* root = PresContext()->PresShell()->GetRootFrame();
+  nsPresContext* pc = PresContext()->GetToplevelContentDocumentPresContext();
+  nsIFrame* root = pc ? pc->PresShell()->GetRootFrame() : nullptr;
+  if (root) {
     minY = root->GetScreenRectInAppUnits().y;
-    if (mLastDropDownBelowScreenY < root->GetScreenRectInAppUnits().y) {
+    if (mLastDropDownBelowScreenY < minY) {
       
       return;
     }
