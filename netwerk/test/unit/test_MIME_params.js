@@ -409,6 +409,14 @@ var tests = [
    "attachment", Cr.NS_ERROR_INVALID_ARG], 
 
   
+
+  ["attachment; filename*=UTF-8''f%oo; filename=bar", 
+   "attachment", "bar"], 
+
+  ["attachment; filename*=UTF-8''foo%; filename=bar", 
+   "attachment", "bar"], 
+
+  
   ['attachment; filename="\\b\\a\\', 
    "attachment", "ba\\"], 
 ];
