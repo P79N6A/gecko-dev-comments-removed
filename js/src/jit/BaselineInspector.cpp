@@ -60,6 +60,20 @@ SetElemICInspector::sawDenseWrite() const
 }
 
 bool
+SetElemICInspector::sawTypedArrayWrite() const
+{
+    if (!icEntry_)
+        return false;
+
+    
+    for (ICStub *stub = icEntry_->firstStub(); stub; stub = stub->next()) {
+        if (stub->isSetElem_TypedArray())
+            return true;
+    }
+    return false;
+}
+
+bool
 BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, Vector<Shape *> &shapes)
 {
     

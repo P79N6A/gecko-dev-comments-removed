@@ -1110,6 +1110,9 @@ struct TypeObject : gc::Cell
     inline Property *getProperty(unsigned i);
 
     
+    inline int getTypedArrayType();
+
+    
 
 
 

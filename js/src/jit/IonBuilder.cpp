@@ -7266,7 +7266,7 @@ IonBuilder::setElemTryCache(bool *emitted, MDefinition *object,
     
     
     SetElemICInspector icInspect(inspector->setElemICInspector(pc));
-    if (!icInspect.sawDenseWrite())
+    if (!icInspect.sawDenseWrite() && !icInspect.sawTypedArrayWrite())
         return true;
 
     bool needsBarrier;
