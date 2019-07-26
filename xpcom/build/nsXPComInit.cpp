@@ -602,10 +602,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 
     
     
-    InitWritePoisoning();
-
-    
-    
     
     mozilla::services::Shutdown();
 

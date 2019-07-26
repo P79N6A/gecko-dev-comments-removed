@@ -44,6 +44,7 @@ public:
 };
 
 bool PoisonWriteEnabled();
+void PoisonWriteBase();
 bool ValidWriteAssert(bool ok);
 void BaseCleanup();
 
