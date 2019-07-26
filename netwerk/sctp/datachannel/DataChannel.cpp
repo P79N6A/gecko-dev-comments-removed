@@ -159,7 +159,14 @@ DataChannelConnection::~DataChannelConnection()
   MOZ_ASSERT(mState == CLOSED);
   MOZ_ASSERT(!mMasterSocket);
   MOZ_ASSERT(mPending.GetSize() == 0);
+
   
+  
+  if (mTransportFlow && !IsSTSThread()) {
+    MOZ_ASSERT(mSTS);
+    RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow),
+                  NS_DISPATCH_NORMAL);
+  }
 }
 
 void
@@ -819,6 +826,9 @@ DataChannelConnection::SendOpenRequestMessage(const nsACString& label,
   moz_free(req);
   return result;
 }
+
+
+
 
 
 

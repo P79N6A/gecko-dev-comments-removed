@@ -234,6 +234,10 @@ private:
 #endif
 
   
+  static void ReleaseTransportFlow(nsRefPtr<TransportFlow> aFlow) {}
+
+  
+  
   
   nsAutoTArray<nsRefPtr<DataChannel>,16> mStreamsOut;
   nsAutoTArray<nsRefPtr<DataChannel>,16> mStreamsIn;
