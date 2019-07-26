@@ -27,6 +27,7 @@
 #include "nsWrapperCache.h"
 #include "nsJSEnvironment.h"
 #include "xpcpublic.h"
+#include "nsLayoutStatics.h"
 
 namespace mozilla {
 namespace dom {
@@ -63,6 +64,8 @@ public:
     
     
     mCallable = aCallable;
+    
+    nsLayoutStatics::AddRef();
     NS_HOLD_JS_OBJECTS(this, CallbackFunction);
     *aInited = true;
   }
@@ -90,6 +93,7 @@ protected:
     if (mCallable) {
       NS_DROP_JS_OBJECTS(this, CallbackFunction);
       mCallable = nullptr;
+      nsLayoutStatics::Release();
     }
   }
 
