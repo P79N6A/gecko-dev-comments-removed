@@ -709,6 +709,7 @@ WebrtcOMXH264VideoEncoder::WebrtcOMXH264VideoEncoder()
   , mHeight(0)
   , mFrameRate(0)
   , mBitRateKbps(0)
+  , mBitRateAtLastIDR(0)
   , mOMXConfigured(false)
   , mOMXReconfigure(false)
 {
@@ -785,7 +786,10 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     
     
     
-    format->setInt32("i-frame-interval", 2 );
+
+    
+    
+    format->setInt32("i-frame-interval", 4 );
     
     
     format->setInt32("color-format", OMX_COLOR_FormatYUV420SemiPlanar);
@@ -803,8 +807,8 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     format->setInt32("frame-rate", mFrameRate);
     format->setInt32("bitrate", mBitRateKbps*1000);
 
-    CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p configuring encoder %dx%d @ %d fps",
-               this, mWidth, mHeight, mFrameRate);
+    CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p configuring encoder %dx%d @ %d fps, rate %d kbps",
+               this, mWidth, mHeight, mFrameRate, mBitRateKbps);
     nsresult rv = mOMX->ConfigureDirect(format,
                                         OMXVideoEncoder::BlobFormat::AVC_NAL);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -812,11 +816,38 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
       return WEBRTC_VIDEO_CODEC_ERROR;
     }
     mOMXConfigured = true;
+    mLastIDRTime = TimeStamp::Now();
+    mBitRateAtLastIDR = mBitRateKbps;
   }
 
   if (aFrameTypes && aFrameTypes->size() &&
       ((*aFrameTypes)[0] == webrtc::kKeyFrame)) {
     mOMX->RequestIDRFrame();
+    mLastIDRTime = TimeStamp::Now();
+    mBitRateAtLastIDR = mBitRateKbps;
+  } else if (mBitRateKbps != mBitRateAtLastIDR) {
+    
+    TimeStamp now = TimeStamp::Now();
+    if (mLastIDRTime.IsNull()) {
+      
+      mLastIDRTime = now;
+    }
+    int32_t timeSinceLastIDR = (now - mLastIDRTime).ToMilliseconds();
+
+    
+    
+    if ((mBitRateKbps < (mBitRateAtLastIDR * 8)/10) ||
+        (timeSinceLastIDR < 300 && mBitRateKbps < (mBitRateAtLastIDR * 9)/10) ||
+        (timeSinceLastIDR < 1000 && mBitRateKbps < (mBitRateAtLastIDR * 97)/100) ||
+        (timeSinceLastIDR >= 1000 && mBitRateKbps < mBitRateAtLastIDR) ||
+        (mBitRateKbps > (mBitRateAtLastIDR * 15)/10) ||
+        (timeSinceLastIDR < 500 && mBitRateKbps > (mBitRateAtLastIDR * 13)/10) ||
+        (timeSinceLastIDR < 1000 && mBitRateKbps > (mBitRateAtLastIDR * 11)/10) ||
+        (timeSinceLastIDR >= 1000 && mBitRateKbps > mBitRateAtLastIDR)) {
+      mOMX->RequestIDRFrame();
+      mLastIDRTime = now;
+      mBitRateAtLastIDR = mBitRateKbps;
+    }
   }
 
   
