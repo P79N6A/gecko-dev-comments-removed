@@ -20,6 +20,9 @@ const RIL_GETTHREADSCURSOR_CID =
   Components.ID("{95ee7c3e-d6f2-4ec4-ade5-0c453c036d35}");
 
 const DEBUG = false;
+const DISABLE_MMS_GROUPING_FOR_RECEIVING = true;
+
+
 const DB_NAME = "sms";
 const DB_VERSION = 11;
 const MESSAGE_STORE_NAME = "sms";
@@ -1136,7 +1139,7 @@ MobileMessageDatabaseService.prototype = {
       
       
       aMessage.receiver = self;
-    } else if (aMessage.type == "mms") {
+    } else if (aMessage.type == "mms" && !DISABLE_MMS_GROUPING_FOR_RECEIVING) {
       let receivers = aMessage.receivers;
       
       
@@ -1149,17 +1152,26 @@ MobileMessageDatabaseService.prototype = {
       
       
       
+      
+      
       if (receivers.length >= 2) {
-        
-        
-        
+        let isSuccess = false;
         let slicedReceivers = receivers.slice();
         if (self) {
           let found = slicedReceivers.indexOf(self);
           if (found !== -1) {
+            isSuccess = true;
             slicedReceivers.splice(found, 1);
           }
         }
+
+        if (!isSuccess) {
+          
+          
+          
+          if (DEBUG) debug("Error! Cannot strip out user's own phone number!");
+        }
+
         threadParticipants = threadParticipants.concat(slicedReceivers);
       }
     }
