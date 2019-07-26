@@ -203,6 +203,7 @@ namespace winrt {
 MetroInput::MetroInput(MetroWidget* aWidget,
                        UI::Core::ICoreWindow* aWindow)
               : mWidget(aWidget),
+                mChromeHitTestCacheForTouch(false),
                 mWindow(aWindow)
 {
   LogFunction();
@@ -644,6 +645,43 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   return S_OK;
 }
 
+
+
+
+bool
+MetroInput::HitTestChrome(const LayoutDeviceIntPoint& pt)
+{
+  
+  nsMouseEvent hittest(true, NS_MOUSE_MOZHITTEST, mWidget.Get(), nsMouseEvent::eReal, nsMouseEvent::eNormal);
+  hittest.refPoint = pt;
+  nsEventStatus status;
+  mWidget->DispatchEvent(&hittest, status);
+  return (status == nsEventStatus_eConsumeNoDefault);
+}
+
+void
+MetroInput::TransformRefPoint(const Foundation::Point& aPosition, LayoutDeviceIntPoint& aRefPointOut)
+{
+  
+  
+  LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(aPosition));
+  aRefPointOut = pt;
+  
+  
+  bool apzIntersect = mWidget->HitTestAPZC(mozilla::ScreenPoint(pt.x, pt.y));
+  if (apzIntersect && HitTestChrome(pt)) {
+    return;
+  }
+  nsMouseEvent event(true,
+                     NS_MOUSE_MOVE,
+                     mWidget.Get(),
+                     nsMouseEvent::eReal,
+                     nsMouseEvent::eNormal);
+  event.refPoint = aRefPointOut;
+  mWidget->ApzReceiveInputEvent(&event);
+  aRefPointOut = event.refPoint;
+}
+
 void
 MetroInput::InitGeckoMouseEventFromPointerPoint(
                                   nsMouseEvent* aEvent,
@@ -667,7 +705,7 @@ MetroInput::InitGeckoMouseEventFromPointerPoint(
   props->get_Pressure(&pressure);
   mGestureRecognizer->CanBeDoubleTap(aPointerPoint, &canBeDoubleTap);
 
-  aEvent->refPoint = LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(position));
+  TransformRefPoint(position, aEvent->refPoint);
 
   if (!canBeDoubleTap) {
     aEvent->clickCount = 1;
@@ -965,8 +1003,7 @@ MetroInput::OnTapped(UI::Input::IGestureRecognizer* aSender,
 
   Foundation::Point position;
   aArgs->get_Position(&position);
-  HandleSingleTap(
-    LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(position)));
+  HandleSingleTap(position);
   return S_OK;
 }
 
@@ -987,18 +1024,20 @@ MetroInput::OnRightTapped(UI::Input::IGestureRecognizer* aSender,
 
   Foundation::Point position;
   aArgs->get_Position(&position);
-  HandleLongTap(
-    LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(position)));
+  HandleLongTap(position);
 
   return S_OK;
 }
 
 void
-MetroInput::HandleSingleTap(const LayoutDeviceIntPoint& aPoint)
+MetroInput::HandleSingleTap(const Foundation::Point& aPoint)
 {
 #ifdef DEBUG_INPUT
   LogFunction();
 #endif
+  
+  LayoutDeviceIntPoint refPoint;
+  TransformRefPoint(aPoint, refPoint);
 
   
   nsMouseEvent* mouseEvent = new nsMouseEvent(true,
@@ -1006,7 +1045,7 @@ MetroInput::HandleSingleTap(const LayoutDeviceIntPoint& aPoint)
                                               mWidget.Get(),
                                               nsMouseEvent::eReal,
                                               nsMouseEvent::eNormal);
-  mouseEvent->refPoint = aPoint;
+  mouseEvent->refPoint = refPoint;
   mouseEvent->clickCount = 1;
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   DispatchAsyncEventIgnoreStatus(mouseEvent);
@@ -1017,7 +1056,7 @@ MetroInput::HandleSingleTap(const LayoutDeviceIntPoint& aPoint)
                                 mWidget.Get(),
                                 nsMouseEvent::eReal,
                                 nsMouseEvent::eNormal);
-  mouseEvent->refPoint = aPoint;
+  mouseEvent->refPoint = refPoint;
   mouseEvent->clickCount = 1;
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   mouseEvent->button = nsMouseEvent::buttonType::eLeftButton;
@@ -1028,7 +1067,7 @@ MetroInput::HandleSingleTap(const LayoutDeviceIntPoint& aPoint)
                                 mWidget.Get(),
                                 nsMouseEvent::eReal,
                                 nsMouseEvent::eNormal);
-  mouseEvent->refPoint = aPoint;
+  mouseEvent->refPoint = refPoint;
   mouseEvent->clickCount = 1;
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   mouseEvent->button = nsMouseEvent::buttonType::eLeftButton;
@@ -1055,18 +1094,20 @@ MetroInput::HandleSingleTap(const LayoutDeviceIntPoint& aPoint)
 }
 
 void
-MetroInput::HandleLongTap(const LayoutDeviceIntPoint& aPoint)
+MetroInput::HandleLongTap(const Foundation::Point& aPoint)
 {
 #ifdef DEBUG_INPUT
   LogFunction();
 #endif
+  LayoutDeviceIntPoint refPoint;
+  TransformRefPoint(aPoint, refPoint);
 
   nsMouseEvent* contextEvent = new nsMouseEvent(true,
                                                 NS_CONTEXTMENU,
                                                 mWidget.Get(),
                                                 nsMouseEvent::eReal,
                                                 nsMouseEvent::eNormal);
-  contextEvent->refPoint = aPoint;
+  contextEvent->refPoint = refPoint;
   contextEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   DispatchAsyncEventIgnoreStatus(contextEvent);
 }
@@ -1139,15 +1180,31 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
+  
+  if (event->message == NS_TOUCH_START) {
+    nsRefPtr<Touch> touch = event->touches[0];
+    LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(touch->mRefPoint);
+    bool apzIntersect = mWidget->HitTestAPZC(mozilla::ScreenPoint(pt.x, pt.y));
+    mChromeHitTestCacheForTouch = (apzIntersect && HitTestChrome(pt));
+  }
+
+  
+  
+  
   if (mTouchStartDefaultPrevented || mTouchMoveDefaultPrevented) {
-    
+    if (!mChromeHitTestCacheForTouch) {
+      
+      
+      mWidget->ApzReceiveInputEvent(event);
+    }
     mWidget->DispatchEvent(event, status);
     return status;
   }
 
   
   
-  status = mWidget->ApzReceiveInputEvent(event);
+  nsTouchEvent transformedEvent(*event);
+  status = mWidget->ApzReceiveInputEvent(event, &transformedEvent);
   if (!mCancelable && status == nsEventStatus_eConsumeNoDefault) {
     if (!mTouchCancelSent) {
       mTouchCancelSent = true;
@@ -1157,7 +1214,8 @@ MetroInput::DeliverNextQueuedTouchEvent()
   }
 
   
-  mWidget->DispatchEvent(event, status);
+  
+  mWidget->DispatchEvent(!mChromeHitTestCacheForTouch ? &transformedEvent : event, status);
   return status;
 }
 
