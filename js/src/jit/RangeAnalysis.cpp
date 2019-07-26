@@ -693,7 +693,7 @@ Range *
 Range::min(const Range *lhs, const Range *rhs)
 {
     
-    if (!lhs->isInt32() || !rhs->isInt32())
+    if (!lhs->hasInt32Bounds() || !rhs->hasInt32Bounds())
         return new Range();
 
     return new Range(Min(lhs->lower(), rhs->lower()),
@@ -706,7 +706,7 @@ Range *
 Range::max(const Range *lhs, const Range *rhs)
 {
     
-    if (!lhs->isInt32() || !rhs->isInt32())
+    if (!lhs->hasInt32Bounds() || !rhs->hasInt32Bounds())
         return new Range();
 
     return new Range(Max(lhs->lower(), rhs->lower()),
@@ -1056,7 +1056,7 @@ MMod::computeRange()
 
     
     
-    if (!lhs.isInt32() || !rhs.isInt32())
+    if (!lhs.hasInt32Bounds() || !rhs.hasInt32Bounds())
         return;
 
     
@@ -1737,8 +1737,10 @@ Range::clampToInt32()
 void
 Range::wrapAroundToInt32()
 {
-    if (!isInt32())
+    if (!hasInt32Bounds())
         set(JSVAL_INT_MIN, JSVAL_INT_MAX);
+    else if (canHaveFractionalPart())
+        set(lower(), upper(), false, exponent());
 }
 
 void
@@ -1835,12 +1837,21 @@ MDiv::truncate()
     
     setTruncated(true);
 
-    
-    
-    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
-        unsigned_ = true;
+    if (type() == MIRType_Double || type() == MIRType_Int32) {
+        specialization_ = MIRType_Int32;
+        setResultType(MIRType_Int32);
+        if (range())
+            range()->wrapAroundToInt32();
+
+        
+        
+        if (tryUseUnsignedOperands())
+            unsigned_ = true;
+
         return true;
     }
+
+    JS_ASSERT(specialization() != MIRType_Int32); 
 
     
     return false;

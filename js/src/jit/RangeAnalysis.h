@@ -259,11 +259,20 @@ class Range : public TempObject {
         return hasInt32UpperBound_;
     }
 
-    bool isInt32() const {
+    
+    
+    bool hasInt32Bounds() const {
         return hasInt32LowerBound() && hasInt32UpperBound();
     }
+
+    
+    bool isInt32() const {
+        return hasInt32Bounds() && !canHaveFractionalPart();
+    }
+
+    
     bool isBoolean() const {
-        return lower() >= 0 && upper() <= 1;
+        return lower() >= 0 && upper() <= 1 && !canHaveFractionalPart();
     }
 
     bool hasRoundingErrors() const {
@@ -376,7 +385,7 @@ class Range : public TempObject {
     
     
     void rectifyExponent() {
-        if (!isInt32()) {
+        if (!hasInt32Bounds()) {
             JS_ASSERT(max_exponent_ >= MaxInt32Exponent);
             return;
         }
