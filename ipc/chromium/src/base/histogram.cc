@@ -96,7 +96,6 @@ Histogram* Histogram::FactoryGet(const std::string& name,
     
     
     
-    
     Histogram* tentative_histogram =
         new Histogram(name, minimum, maximum, bucket_count);
     tentative_histogram->InitializeBucketRange();
@@ -853,7 +852,6 @@ Histogram* LinearHistogram::FactoryGet(const std::string& name,
     maximum = kSampleType_MAX - 1;
 
   if (!StatisticsRecorder::FindHistogram(name, &histogram)) {
-    
     LinearHistogram* tentative_histogram =
         new LinearHistogram(name, minimum, maximum, bucket_count);
     tentative_histogram->InitializeBucketRange();
@@ -949,7 +947,6 @@ Histogram* BooleanHistogram::FactoryGet(const std::string& name, Flags flags) {
   Histogram* histogram(NULL);
 
   if (!StatisticsRecorder::FindHistogram(name, &histogram)) {
-    
     BooleanHistogram* tentative_histogram = new BooleanHistogram(name);
     tentative_histogram->InitializeBucketRange();
     tentative_histogram->SetFlags(flags);
@@ -991,7 +988,6 @@ FlagHistogram::FactoryGet(const std::string &name, Flags flags)
   Histogram *h(nullptr);
 
   if (!StatisticsRecorder::FindHistogram(name, &h)) {
-    
     FlagHistogram *fh = new FlagHistogram(name);
     fh->InitializeBucketRange();
     fh->SetFlags(flags);
@@ -1075,7 +1071,6 @@ Histogram* CustomHistogram::FactoryGet(const std::string& name,
   DCHECK_LT(ranges.back(), kSampleType_MAX);
 
   if (!StatisticsRecorder::FindHistogram(name, &histogram)) {
-    
     CustomHistogram* tentative_histogram = new CustomHistogram(name, ranges);
     tentative_histogram->InitializedCustomBucketRange(ranges);
     tentative_histogram->SetFlags(flags);
@@ -1152,6 +1147,13 @@ StatisticsRecorder::~StatisticsRecorder() {
     base::AutoLock auto_lock(*lock_);
     histograms = histograms_;
     histograms_ = NULL;
+    for (HistogramMap::iterator it = histograms->begin();
+         histograms->end() != it;
+         ++it) {
+      
+      
+      delete it->second;
+    }
   }
   delete histograms;
   
