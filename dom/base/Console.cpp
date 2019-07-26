@@ -7,8 +7,6 @@
 #include "mozilla/dom/ConsoleBinding.h"
 
 #include "mozilla/dom/Exceptions.h"
-#include "mozilla/dom/ToJSValue.h"
-#include "mozilla/Maybe.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDocument.h"
 #include "nsDOMNavigationTiming.h"
@@ -18,7 +16,6 @@
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 #include "xpcprivate.h"
-#include "nsContentUtils.h"
 
 #include "nsIConsoleAPIStorage.h"
 #include "nsIDOMWindowUtils.h"
@@ -153,9 +150,10 @@ public:
   }
 
   void
-  Initialize(Console::MethodName aName,
+  Initialize(JSContext* aCx, Console::MethodName aName,
              const nsAString& aString, const Sequence<JS::Value>& aArguments)
   {
+    mGlobal = JS::CurrentGlobalOrNull(aCx);
     mMethodName = aName;
     mMethodString = aString;
 
@@ -164,6 +162,8 @@ public:
     }
   }
 
+  JS::Heap<JSObject*> mGlobal;
+
   Console::MethodName mMethodName;
   bool mPrivate;
   int64_t mTimeStamp;
@@ -171,16 +171,7 @@ public:
 
   nsString mMethodString;
   nsTArray<JS::Heap<JS::Value>> mArguments;
-
-  
-  
-  
-  
-  
-  
-  Maybe<ConsoleStackEntry> mTopStackFrame;
-  Maybe<nsTArray<ConsoleStackEntry>> mReifiedStack;
-  nsCOMPtr<nsIStackFrame> mStack;
+  Sequence<ConsoleStackEntry> mStack;
 };
 
 
@@ -216,11 +207,13 @@ public:
   }
 
   bool
-  Dispatch(JSContext* aCx)
+  Dispatch()
   {
     mWorkerPrivate->AssertIsOnWorkerThread();
 
-    if (!PreDispatch(aCx)) {
+    JSContext* cx = mWorkerPrivate->GetJSContext();
+
+    if (!PreDispatch(cx)) {
       return false;
     }
 
@@ -228,7 +221,7 @@ public:
     mSyncLoopTarget = syncLoop.EventTarget();
 
     if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
-      JS_ReportError(aCx,
+      JS_ReportError(cx,
                      "Failed to dispatch to main thread for the Console API!");
       return false;
     }
@@ -282,6 +275,7 @@ private:
   PreDispatch(JSContext* aCx) MOZ_OVERRIDE
   {
     ClearException ce(aCx);
+    JSAutoCompartment ac(aCx, mCallData->mGlobal);
 
     JS::Rooted<JSObject*> arguments(aCx,
       JS_NewArrayObject(aCx, mCallData->mArguments.Length()));
@@ -303,6 +297,7 @@ private:
     }
 
     mCallData->mArguments.Clear();
+    mCallData->mGlobal = nullptr;
     return true;
   }
 
@@ -357,6 +352,7 @@ private:
 
     MOZ_ASSERT(mCallData->mArguments.Length() == length);
 
+    mCallData->mGlobal = JS::CurrentGlobalOrNull(cx);
     console->AppendCallData(mCallData.forget());
   }
 
@@ -506,6 +502,10 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(Console)
 
   for (ConsoleCallData* data = tmp->mQueuedCalls.getFirst(); data != nullptr;
        data = data->getNext()) {
+    if (data->mGlobal) {
+      aCallbacks.Trace(&data->mGlobal, "data->mGlobal", aClosure);
+    }
+
     for (uint32_t i = 0; i < data->mArguments.Length(); ++i) {
       aCallbacks.Trace(&data->mArguments[i], "data->mArguments[i]", aClosure);
     }
@@ -672,7 +672,7 @@ Console::ProfileMethod(JSContext* aCx, const nsAString& aAction,
     
     nsRefPtr<ConsoleProfileRunnable> runnable =
       new ConsoleProfileRunnable(aAction, aData);
-    runnable->Dispatch(aCx);
+    runnable->Dispatch();
     return;
   }
 
@@ -733,58 +733,6 @@ Console::__noSuchMethod__()
   
 }
 
-static
-nsresult
-StackFrameToStackEntry(nsIStackFrame* aStackFrame,
-                       ConsoleStackEntry& aStackEntry,
-                       uint32_t aLanguage)
-{
-  MOZ_ASSERT(aStackFrame);
-
-  nsresult rv = aStackFrame->GetFilename(aStackEntry.mFilename);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  int32_t lineNumber;
-  rv = aStackFrame->GetLineNumber(&lineNumber);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  aStackEntry.mLineNumber = lineNumber;
-
-  rv = aStackFrame->GetName(aStackEntry.mFunctionName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  aStackEntry.mLanguage = aLanguage;
-  return NS_OK;
-}
-
-static
-nsresult
-ReifyStack(nsIStackFrame* aStack, nsTArray<ConsoleStackEntry>& aRefiedStack)
-{
-  nsCOMPtr<nsIStackFrame> stack(aStack);
-
-  while (stack) {
-    uint32_t language;
-    nsresult rv = stack->GetLanguage(&language);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (language == nsIProgrammingLanguage::JAVASCRIPT ||
-        language == nsIProgrammingLanguage::JAVASCRIPT2) {
-      ConsoleStackEntry& data = *aRefiedStack.AppendElement();
-      rv = StackFrameToStackEntry(stack, data, language);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    nsCOMPtr<nsIStackFrame> caller;
-    rv = stack->GetCaller(getter_AddRefs(caller));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    stack.swap(caller);
-  }
-
-  return NS_OK;
-}
-
 
 void
 Console::Method(JSContext* aCx, MethodName aMethodName,
@@ -824,7 +772,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
   ConsoleCallData* callData = new ConsoleCallData();
   mQueuedCalls.insertBack(callData);
 
-  callData->Initialize(aMethodName, aMethodString, aData);
+  callData->Initialize(aCx, aMethodName, aMethodString, aData);
   RAII raii(mQueuedCalls);
 
   if (mWindow) {
@@ -850,6 +798,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
   }
 
   
+  
   do {
     uint32_t language;
     nsresult rv = stack->GetLanguage(&language);
@@ -860,16 +809,30 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
 
     if (language == nsIProgrammingLanguage::JAVASCRIPT ||
         language == nsIProgrammingLanguage::JAVASCRIPT2) {
-      callData->mTopStackFrame.construct();
-      nsresult rv = StackFrameToStackEntry(stack,
-                                           callData->mTopStackFrame.ref(),
-                                           language);
+      ConsoleStackEntry& data = *callData->mStack.AppendElement();
+
+      rv = stack->GetFilename(data.mFilename);
       if (NS_FAILED(rv)) {
         Throw(aCx, rv);
         return;
       }
 
-      break;
+      int32_t lineNumber;
+      rv = stack->GetLineNumber(&lineNumber);
+      if (NS_FAILED(rv)) {
+        Throw(aCx, rv);
+        return;
+      }
+
+      data.mLineNumber = lineNumber;
+
+      rv = stack->GetName(data.mFunctionName);
+      if (NS_FAILED(rv)) {
+        Throw(aCx, rv);
+        return;
+      }
+
+      data.mLanguage = language;
     }
 
     nsCOMPtr<nsIStackFrame> caller;
@@ -881,19 +844,6 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
 
     stack.swap(caller);
   } while (stack);
-
-  if (NS_IsMainThread()) {
-    callData->mStack = stack;
-  } else {
-    
-    
-    callData->mReifiedStack.construct();
-    nsresult rv = ReifyStack(stack, callData->mReifiedStack.ref());
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      Throw(aCx, rv);
-      return;
-    }
-  }
 
   
   if ((aMethodName == MethodTime || aMethodName == MethodTimeEnd) && mWindow) {
@@ -921,7 +871,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
 
     nsRefPtr<ConsoleCallDataRunnable> runnable =
       new ConsoleCallDataRunnable(callData);
-    runnable->Dispatch(aCx);
+    runnable->Dispatch();
     return;
   }
 
@@ -968,77 +918,21 @@ Console::Notify(nsITimer *timer)
   return NS_OK;
 }
 
-
-
-
-
-
-enum {
-  SLOT_STACKOBJ,
-  SLOT_RAW_STACK
-};
-
-bool
-LazyStackGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
-{
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-  JS::Rooted<JSObject*> callee(aCx, &args.callee());
-
-  JS::Value v = js::GetFunctionNativeReserved(&args.callee(), SLOT_RAW_STACK);
-  if (v.isUndefined()) {
-    
-    args.rval().set(js::GetFunctionNativeReserved(callee, SLOT_STACKOBJ));
-    return true;
-  }
-
-  nsIStackFrame* stack = reinterpret_cast<nsIStackFrame*>(v.toPrivate());
-  nsTArray<ConsoleStackEntry> reifiedStack;
-  nsresult rv = ReifyStack(stack, reifiedStack);
-  if (NS_FAILED(rv)) {
-    Throw(aCx, rv);
-    return false;
-  }
-
-  JS::Rooted<JS::Value> stackVal(aCx);
-  if (!ToJSValue(aCx, reifiedStack, &stackVal)) {
-    return false;
-  }
-
-  MOZ_ASSERT(stackVal.isObject());
-
-  js::SetFunctionNativeReserved(callee, SLOT_STACKOBJ, stackVal);
-  js::SetFunctionNativeReserved(callee, SLOT_RAW_STACK, JS::UndefinedValue());
-
-  args.rval().set(stackVal);
-  return true;
-}
-
 void
 Console::ProcessCallData(ConsoleCallData* aData)
 {
   MOZ_ASSERT(aData);
-  MOZ_ASSERT(NS_IsMainThread());
 
   ConsoleStackEntry frame;
-  if (!aData->mTopStackFrame.empty()) {
-    frame = aData->mTopStackFrame.ref();
+  if (!aData->mStack.IsEmpty()) {
+    frame = aData->mStack[0];
   }
 
   AutoSafeJSContext cx;
   ClearException ce(cx);
   RootedDictionary<ConsoleEvent> event(cx);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  JSAutoCompartment ac(cx, xpc::GetJunkScope());
+  JSAutoCompartment ac(cx, aData->mGlobal);
 
   event.mID.Construct();
   event.mInnerID.Construct();
@@ -1077,9 +971,14 @@ Console::ProcessCallData(ConsoleCallData* aData)
       ArgumentsToValueList(aData->mArguments, event.mArguments.Value());
   }
 
-  if (aData->mMethodName == MethodGroup ||
-      aData->mMethodName == MethodGroupCollapsed ||
-      aData->mMethodName == MethodGroupEnd) {
+  if (ShouldIncludeStackrace(aData->mMethodName)) {
+    event.mStacktrace.Construct();
+    event.mStacktrace.Value().SwapElements(aData->mStack);
+  }
+
+  else if (aData->mMethodName == MethodGroup ||
+           aData->mMethodName == MethodGroupCollapsed ||
+           aData->mMethodName == MethodGroupEnd) {
     ComposeGroupName(cx, aData->mArguments, event.mGroupName);
   }
 
@@ -1106,50 +1005,6 @@ Console::ProcessCallData(ConsoleCallData* aData)
 
   if (!JS_DefineProperty(cx, eventObj, "wrappedJSObject", eventValue, JSPROP_ENUMERATE)) {
     return;
-  }
-
-  if (ShouldIncludeStackrace(aData->mMethodName)) {
-    
-    
-    
-    if (!aData->mReifiedStack.empty()) {
-      JS::Rooted<JS::Value> stacktrace(cx);
-      if (!ToJSValue(cx, aData->mReifiedStack.ref(), &stacktrace) ||
-          !JS_DefineProperty(cx, eventObj, "stacktrace", stacktrace,
-                             nullptr, nullptr, JSPROP_ENUMERATE)) {
-        return;
-      }
-    } else {
-      JSFunction* fun = js::NewFunctionWithReserved(cx, LazyStackGetter, 0, 0,
-                                                    eventObj, "stacktrace");
-      if (!fun) {
-        return;
-      }
-
-      JS::Rooted<JSObject*> funObj(cx, JS_GetFunctionObject(fun));
-
-      
-      
-      
-      JS::Rooted<JS::Value> stackVal(cx);
-      nsresult rv = nsContentUtils::WrapNative(cx, aData->mStack,
-                                               &stackVal);
-      if (NS_FAILED(rv)) {
-        return;
-      }
-
-      js::SetFunctionNativeReserved(funObj, SLOT_STACKOBJ, stackVal);
-      js::SetFunctionNativeReserved(funObj, SLOT_RAW_STACK,
-                                    JS::PrivateValue(aData->mStack.get()));
-
-      if (!JS_DefineProperty(cx, eventObj, "stacktrace", JS::UndefinedValue(),
-                             JS_DATA_TO_FUNC_PTR(JSPropertyOp, funObj.get()),
-                             nullptr,
-                             JSPROP_ENUMERATE | JSPROP_SHARED | JSPROP_GETTER |
-                             JSPROP_SETTER)) {
-        return;
-      }
-    }
   }
 
   if (!mStorage) {
