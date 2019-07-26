@@ -132,10 +132,6 @@ public:
 
   
   
-  HRESULT OnEdgeGestureStarted(IEdgeGesture* aSender,
-                               IEdgeGestureEventArgs* aArgs);
-  HRESULT OnEdgeGestureCanceled(IEdgeGesture* aSender,
-                                IEdgeGestureEventArgs* aArgs);
   HRESULT OnEdgeGestureCompleted(IEdgeGesture* aSender,
                                  IEdgeGestureEventArgs* aArgs);
 
@@ -269,9 +265,7 @@ private:
 
   
   
-  EventRegistrationToken mTokenEdgeStarted;
-  EventRegistrationToken mTokenEdgeCanceled;
-  EventRegistrationToken mTokenEdgeCompleted;
+  EventRegistrationToken mTokenEdgeGesture;
 
   
   

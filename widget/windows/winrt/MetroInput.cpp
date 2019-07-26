@@ -291,9 +291,7 @@ MetroInput::MetroInput(MetroWidget* aWidget,
   mTokenPointerExited.value = 0;
   mTokenPointerWheelChanged.value = 0;
   mTokenAcceleratorKeyActivated.value = 0;
-  mTokenEdgeStarted.value = 0;
-  mTokenEdgeCanceled.value = 0;
-  mTokenEdgeCompleted.value = 0;
+  mTokenEdgeGesture.value = 0;
   mTokenManipulationStarted.value = 0;
   mTokenManipulationUpdated.value = 0;
   mTokenManipulationCompleted.value = 0;
@@ -372,70 +370,6 @@ MetroInput::OnAcceleratorKeyActivated(UI::Core::ICoreDispatcher* sender,
 
 
 
-
-
-
-HRESULT
-MetroInput::OnEdgeGestureStarted(UI::Input::IEdgeGesture* sender,
-                                 UI::Input::IEdgeGestureEventArgs* aArgs)
-{
-#ifdef DEBUG_INPUT
-  LogFunction();
-#endif
-  nsSimpleGestureEvent geckoEvent(true,
-                                  NS_SIMPLE_GESTURE_EDGE_STARTED,
-                                  mWidget.Get(),
-                                  0,
-                                  0.0);
-  mModifierKeyState.Update();
-  mModifierKeyState.InitInputEvent(geckoEvent);
-  geckoEvent.time = ::GetMessageTime();
-
-  geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-
-  DispatchEventIgnoreStatus(&geckoEvent);
-  return S_OK;
-}
-
-
-
-
-
-
-
-
-
-
-HRESULT
-MetroInput::OnEdgeGestureCanceled(UI::Input::IEdgeGesture* sender,
-                                  UI::Input::IEdgeGestureEventArgs* aArgs)
-{
-#ifdef DEBUG_INPUT
-  LogFunction();
-#endif
-  nsSimpleGestureEvent geckoEvent(true,
-                                  NS_SIMPLE_GESTURE_EDGE_CANCELED,
-                                  mWidget.Get(),
-                                  0,
-                                  0.0);
-  mModifierKeyState.Update();
-  mModifierKeyState.InitInputEvent(geckoEvent);
-  geckoEvent.time = ::GetMessageTime();
-
-  geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-
-  DispatchEventIgnoreStatus(&geckoEvent);
-  return S_OK;
-}
-
-
-
-
-
-
-
-
-
 HRESULT
 MetroInput::OnEdgeGestureCompleted(UI::Input::IEdgeGesture* sender,
                                    UI::Input::IEdgeGestureEventArgs* aArgs)
@@ -444,7 +378,7 @@ MetroInput::OnEdgeGestureCompleted(UI::Input::IEdgeGesture* sender,
   LogFunction();
 #endif
   nsSimpleGestureEvent geckoEvent(true,
-                                  NS_SIMPLE_GESTURE_EDGE_COMPLETED,
+                                  NS_SIMPLE_GESTURE_EDGEUI,
                                   mWidget.Get(),
                                   0,
                                   0.0);
@@ -1433,9 +1367,7 @@ MetroInput::UnregisterInputEvents() {
       edgeStatics.GetAddressOf()))) {
     WRL::ComPtr<UI::Input::IEdgeGesture> edge;
     if (SUCCEEDED(edgeStatics->GetForCurrentView(edge.GetAddressOf()))) {
-      edge->remove_Starting(mTokenEdgeStarted);
-      edge->remove_Canceled(mTokenEdgeCanceled);
-      edge->remove_Completed(mTokenEdgeCompleted);
+      edge->remove_Completed(mTokenEdgeGesture);
     }
   }
 
@@ -1762,23 +1694,11 @@ MetroInput::RegisterInputEvents()
   WRL::ComPtr<UI::Input::IEdgeGesture> edge;
   edgeStatics->GetForCurrentView(edge.GetAddressOf());
 
-  edge->add_Starting(
-      WRL::Callback<EdgeGestureHandler>(
-                                  this,
-                                  &MetroInput::OnEdgeGestureStarted).Get(),
-      &mTokenEdgeStarted);
-
-  edge->add_Canceled(
-      WRL::Callback<EdgeGestureHandler>(
-                                  this,
-                                  &MetroInput::OnEdgeGestureCanceled).Get(),
-      &mTokenEdgeCanceled);
-
   edge->add_Completed(
       WRL::Callback<EdgeGestureHandler>(
                                   this,
                                   &MetroInput::OnEdgeGestureCompleted).Get(),
-      &mTokenEdgeCompleted);
+      &mTokenEdgeGesture);
 
   
   

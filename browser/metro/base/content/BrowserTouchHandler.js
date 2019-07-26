@@ -46,7 +46,7 @@ const BrowserTouchHandler = {
       
       
       let event = document.createEvent("Events");
-      event.initEvent("MozEdgeUICompleted", true, false);
+      event.initEvent("MozEdgeUIGesture", true, false);
       window.dispatchEvent(event);
     }
   },
