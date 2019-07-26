@@ -45,9 +45,6 @@ abstract class HomeFragment extends Fragment {
     private static final String SHARE_MIME_TYPE = "text/plain";
 
     
-    static final boolean DEFAULT_CAN_LOAD_HINT = false;
-
-    
     
     
     private boolean mCanLoadHint;
@@ -61,9 +58,9 @@ abstract class HomeFragment extends Fragment {
 
         final Bundle args = getArguments();
         if (args != null) {
-            mCanLoadHint = args.getBoolean(HomePager.CAN_LOAD_ARG, DEFAULT_CAN_LOAD_HINT);
+            mCanLoadHint = args.getBoolean(HomePager.CAN_LOAD_ARG, false);
         } else {
-            mCanLoadHint = DEFAULT_CAN_LOAD_HINT;
+            mCanLoadHint = false;
         }
 
         mIsLoaded = false;
