@@ -112,7 +112,6 @@ namespace analyze {
 
 namespace types {
 
-class TypeCallsite;
 class TypeCompartment;
 class TypeSet;
 
@@ -1141,13 +1140,6 @@ class TypeScript
     uint32_t *bytecodeMap;
 
   public:
-    
-
-
-
-
-    HeapTypeSet *propertyReadTypes;
-
     
     TypeSet *typeArray() const { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
 
