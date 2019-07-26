@@ -627,26 +627,18 @@ DumpReport(nsIGZFileWriter *aWriter, bool *aIsFirstPtr,
   
   
   
-  nsAutoCString processId;
+  nsAutoCString process;
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     
-    processId.AssignLiteral("Main Process ");
+    process.AssignLiteral("Main Process ");
   } else if (ContentChild *cc = ContentChild::GetSingleton()) {
     
-    nsAutoString processName;
-    cc->GetProcessName(processName);
-    processId.Assign(NS_ConvertUTF16toUTF8(processName));
-    if (!processId.IsEmpty()) {
-      processId.AppendLiteral(" ");
-    }
+    cc->GetProcessName(process);
   }
-
-  
-  unsigned pid = getpid();
-  processId.Append(nsPrintfCString("(pid %u)", pid));
+  ContentChild::AppendProcessId(process);
 
   DUMP(aWriter, "\n    {\"process\": \"");
-  DUMP(aWriter, processId);
+  DUMP(aWriter, process);
 
   DUMP(aWriter, "\", \"path\": \"");
   nsCString path(aPath);
