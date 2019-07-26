@@ -1,3 +1,4 @@
+
 function coerceForeign(stdlib, foreign)
 {
     "use asm";
