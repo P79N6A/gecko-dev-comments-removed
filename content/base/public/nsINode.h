@@ -114,6 +114,9 @@ enum {
   NODE_MAY_HAVE_CLASS =                   NODE_FLAG_BIT(8),
 
   
+  NODE_IS_IN_SHADOW_TREE =                NODE_FLAG_BIT(9),
+
+  
   NODE_HAS_EMPTY_SELECTOR =               NODE_FLAG_BIT(10),
 
   

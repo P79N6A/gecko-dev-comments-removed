@@ -648,6 +648,9 @@ public:
 
   already_AddRefed<DOMRectList> GetClientRects();
   already_AddRefed<DOMRect> GetBoundingClientRect();
+
+  already_AddRefed<ShadowRoot> CreateShadowRoot(ErrorResult& aError);
+
   void ScrollIntoView()
   {
     ScrollIntoView(true);
@@ -1079,8 +1082,8 @@ protected:
   
 
 
-  inline void AddToIdTable(nsIAtom* aId);
-  inline void RemoveFromIdTable();
+  void AddToIdTable(nsIAtom* aId);
+  void RemoveFromIdTable();
 
   
 

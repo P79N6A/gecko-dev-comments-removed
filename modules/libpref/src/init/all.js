@@ -309,10 +309,6 @@ pref("gfx.hidpi.enabled", 2);
 #endif
 
 
-pref("gfx.layerscope.enabled", false);
-pref("gfx.layerscope.port", 23456);
-
-
 
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
@@ -899,6 +895,8 @@ pref("privacy.donottrackheader.value",      1);
 
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
+
+pref("dom.webcomponents.enabled",           false);
 
 pref("javascript.enabled",                  true);
 pref("javascript.options.strict",           false);

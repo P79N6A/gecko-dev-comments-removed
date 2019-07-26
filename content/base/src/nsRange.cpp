@@ -30,6 +30,7 @@
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/DOMRect.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Likely.h"
 #include "nsCSSFrameConstructor.h"
@@ -1076,6 +1077,12 @@ nsRange::IsValidBoundary(nsINode* aNode)
     }
 
     if (!mMaySpanAnonymousSubtrees) {
+      
+      ShadowRoot* containingShadow = content->GetContainingShadow();
+      if (containingShadow) {
+        return containingShadow;
+      }
+
       
       
       nsINode* root = content->GetBindingParent();

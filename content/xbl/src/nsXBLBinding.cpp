@@ -58,6 +58,7 @@
 #include "nsDOMClassInfo.h"
 
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ShadowRoot.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -163,6 +164,16 @@ nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
   NS_ADDREF(mPrototypeBinding->XBLDocumentInfo());
 }
 
+
+nsXBLBinding::nsXBLBinding(ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aBinding)
+  : mMarkedForDeath(false),
+    mPrototypeBinding(aBinding),
+    mContent(aShadowRoot)
+{
+  NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
+  
+  NS_ADDREF(mPrototypeBinding->XBLDocumentInfo());
+}
 
 nsXBLBinding::~nsXBLBinding(void)
 {
@@ -273,6 +284,13 @@ void
 nsXBLBinding::UninstallAnonymousContent(nsIDocument* aDocument,
                                         nsIContent* aAnonParent)
 {
+  if (aAnonParent->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+    
+    
+    
+    return;
+  }
+
   nsAutoScriptBlocker scriptBlocker;
   
   nsCOMPtr<nsIContent> anonParent = aAnonParent;

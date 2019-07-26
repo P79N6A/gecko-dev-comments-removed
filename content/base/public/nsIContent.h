@@ -21,6 +21,9 @@ class nsIFrame;
 class nsXBLBinding;
 
 namespace mozilla {
+namespace dom {
+class ShadowRoot;
+} 
 namespace widget {
 struct IMEState;
 } 
@@ -34,8 +37,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID \
-{ 0x34117ca3, 0x45d0, 0x479e, \
-  { 0x91, 0x30, 0x54, 0x49, 0xa9, 0x5f, 0x25, 0x99 } }
+{ 0x4b05faf2, 0x12e0, 0x4f56, \
+  { 0xb5, 0x2e, 0x3e, 0xb6, 0xad, 0x9c, 0x6e, 0xbe } }
 
 
 
@@ -624,6 +627,30 @@ public:
 
   virtual void SetXBLBinding(nsXBLBinding* aBinding,
                              nsBindingManager* aOldBindingManager = nullptr) = 0;
+
+  
+
+
+
+
+
+  virtual void SetShadowRoot(mozilla::dom::ShadowRoot* aShadowRoot) = 0;
+
+  
+
+
+
+
+  virtual mozilla::dom::ShadowRoot *GetShadowRoot() const = 0;
+
+  
+
+
+
+
+
+
+  virtual mozilla::dom::ShadowRoot *GetContainingShadow() const = 0;
 
   
 

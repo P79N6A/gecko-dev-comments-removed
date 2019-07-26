@@ -97,6 +97,7 @@
 #include "nsCSSParser.h"
 #include "HTMLLegendElement.h"
 #include "nsWrapperCacheInlines.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "WrapperFactory.h"
 #include "DocumentType.h"
 #include <algorithm>
@@ -238,6 +239,15 @@ nsINode::GetTextEditorRootContent(nsIEditor** aEditor)
 static nsIContent* GetRootForContentSubtree(nsIContent* aContent)
 {
   NS_ENSURE_TRUE(aContent, nullptr);
+
+  
+  
+  
+  ShadowRoot* containingShadow = aContent->GetContainingShadow();
+  if (containingShadow) {
+    return containingShadow;
+  }
+
   nsIContent* stop = aContent->GetBindingParent();
   while (aContent) {
     nsIContent* parent = aContent->GetParent();
@@ -306,8 +316,17 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
   
   
   NS_ENSURE_TRUE(content, nullptr);
-  return nsContentUtils::IsInSameAnonymousTree(this, content) ?
-           content : GetRootForContentSubtree(static_cast<nsIContent*>(this));
+  if (!nsContentUtils::IsInSameAnonymousTree(this, content)) {
+    content = GetRootForContentSubtree(static_cast<nsIContent*>(this));
+    
+    
+    ShadowRoot* shadowRoot = ShadowRoot::FromNode(content);
+    if (shadowRoot) {
+      content = shadowRoot->GetHost();
+    }
+  }
+
+  return content;
 }
 
 nsINodeList*
@@ -1551,7 +1570,11 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
   
   if (aNewChild == aParent ||
       ((aNewChild->GetFirstChild() ||
-        aNewChild->Tag() == nsGkAtoms::_template) &&
+        
+        
+        
+        aNewChild->Tag() == nsGkAtoms::_template ||
+        aNewChild->GetShadowRoot()) &&
        nsContentUtils::ContentIsHostIncludingDescendantOf(aParent,
                                                           aNewChild))) {
     return false;

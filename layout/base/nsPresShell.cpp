@@ -4209,8 +4209,13 @@ PresShell::ContentAppended(nsIDocument *aDocument,
   
   
   
-  mPresContext->RestyleManager()->
-    RestyleForAppend(aContainer->AsElement(), aFirstNewContent);
+  if (aContainer->IsElement()) {
+    
+    
+    
+    mPresContext->RestyleManager()->
+      RestyleForAppend(aContainer->AsElement(), aFirstNewContent);
+  }
 
   mFrameConstructor->ContentAppended(aContainer, aFirstNewContent, true);
 
@@ -4240,7 +4245,10 @@ PresShell::ContentInserted(nsIDocument* aDocument,
   
   
   
-  if (aContainer) {
+  if (aContainer && aContainer->IsElement()) {
+    
+    
+    
     mPresContext->RestyleManager()->
       RestyleForInsertOrChange(aContainer->AsElement(), aChild);
   }

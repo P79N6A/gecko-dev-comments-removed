@@ -75,6 +75,7 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 
 #include "nsError.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ShadowRoot.h"
 
 using namespace mozilla;
 
@@ -1745,7 +1746,16 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent *aNode,
       }
     }
   }
+
   
+  
+  
+  mozilla::dom::ShadowRoot* shadowRoot =
+    mozilla::dom::ShadowRoot::FromNode(theNode);
+  if (shadowRoot) {
+    theNode = shadowRoot->GetHost();
+  }
+
   nsIFrame* returnFrame = theNode->GetPrimaryFrame();
   if (!returnFrame)
     return nullptr;
@@ -4649,18 +4659,32 @@ Selection::Extend(nsINode* aParentNode, int32_t aOffset)
   
   
   
+  
+  
+  
+  
   bool disconnected = false;
+  bool shouldClearRange = false;
   int32_t result1 = nsContentUtils::ComparePoints(anchorNode, anchorOffset,
                                                   focusNode, focusOffset,
                                                   &disconnected);
   
+  shouldClearRange |= disconnected;
   int32_t result2 = nsContentUtils::ComparePoints(focusNode, focusOffset,
                                                   aParentNode, aOffset,
                                                   &disconnected);
   
+  shouldClearRange |= disconnected;
   int32_t result3 = nsContentUtils::ComparePoints(anchorNode, anchorOffset,
                                                   aParentNode, aOffset,
                                                   &disconnected);
+
+  
+  
+  if (shouldClearRange) {
+    
+    selectFrames(presContext, range, false);
+  }
 
   nsRefPtr<nsRange> difRange = new nsRange(aParentNode);
   if ((result1 == 0 && result3 < 0) || (result1 <= 0 && result2 < 0)){

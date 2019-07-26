@@ -160,6 +160,7 @@ private:
 namespace mozilla {
 namespace dom {
 
+class ShadowRoot;
 class UndoManager;
 
 class FragmentOrElement : public nsIContent
@@ -203,6 +204,9 @@ public:
   virtual nsXBLBinding *GetXBLBinding() const MOZ_OVERRIDE;
   virtual void SetXBLBinding(nsXBLBinding* aBinding,
                              nsBindingManager* aOldBindingManager = nullptr) MOZ_OVERRIDE;
+  virtual ShadowRoot *GetShadowRoot() const MOZ_OVERRIDE;
+  virtual ShadowRoot *GetContainingShadow() const MOZ_OVERRIDE;
+  virtual void SetShadowRoot(ShadowRoot* aBinding) MOZ_OVERRIDE;
   virtual nsIContent *GetXBLInsertionParent() const;
   virtual void SetXBLInsertionParent(nsIContent* aContent);
   virtual bool IsLink(nsIURI** aURI) const MOZ_OVERRIDE;
@@ -353,6 +357,16 @@ public:
 
 
     nsRefPtr<nsDOMTokenList> mClassList;
+
+    
+
+
+    nsRefPtr<ShadowRoot> mShadowRoot;
+
+    
+
+
+    nsRefPtr<ShadowRoot> mContainingShadow;
 
     
 
