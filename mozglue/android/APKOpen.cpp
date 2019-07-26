@@ -27,6 +27,7 @@
 #include "APKOpen.h"
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/prctl.h>
 #include "Zip.h"
 #include "sqlite3.h"
 #include "SQLiteBridge.h"
@@ -37,6 +38,20 @@
 
 #ifndef RUSAGE_THREAD
 #define RUSAGE_THREAD 1
+#endif
+
+#ifndef RELEASE_BUILD
+
+
+
+
+
+
+
+__attribute__((constructor))
+void make_dumpable() {
+  prctl(PR_SET_DUMPABLE, 1);
+}
 #endif
 
 extern "C" {
