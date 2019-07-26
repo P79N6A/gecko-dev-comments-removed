@@ -1552,6 +1552,11 @@ MediaCache::ReleaseStream(MediaCacheStream* aStream)
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   CACHE_LOG(PR_LOG_DEBUG, ("Stream %p closed", aStream));
   mStreams.RemoveElement(aStream);
+
+  
+  
+  
+  gMediaCache->QueueUpdate();
 }
 
 void
