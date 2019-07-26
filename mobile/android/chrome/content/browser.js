@@ -334,7 +334,6 @@ var BrowserApp = {
     Reader.init();
     UserAgentOverrides.init();
     DesktopUserAgent.init();
-    ExternalApps.init();
     Distribution.init();
     Tabs.init();
 #ifdef ACCESSIBILITY
@@ -368,6 +367,9 @@ var BrowserApp = {
       SearchEngines.init();
       this.initContextMenu();
     }
+    
+    
+    ExternalApps.init();
 
     
     Services.io.offline = false;
