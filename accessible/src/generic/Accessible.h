@@ -311,7 +311,8 @@ public:
 
 
 
-  virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
+  void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
+    { mRoleMapEntry = aRoleMapEntry; }
 
   
 

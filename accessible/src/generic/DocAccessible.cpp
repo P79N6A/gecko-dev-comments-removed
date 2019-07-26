@@ -243,29 +243,6 @@ DocAccessible::NativeRole()
   return roles::PANE; 
 }
 
-
-void
-DocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
-{
-  NS_ASSERTION(mDocument, "No document during initialization!");
-  if (!mDocument)
-    return;
-
-  mRoleMapEntry = aRoleMapEntry;
-
-  nsIDocument *parentDoc = mDocument->GetParentDocument();
-  if (!parentDoc)
-    return; 
-
-  
-  nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
-  if (ownerContent) {
-    nsRoleMapEntry* roleMapEntry = aria::GetRoleMap(ownerContent);
-    if (roleMapEntry)
-      mRoleMapEntry = roleMapEntry; 
-  }
-}
-
 void
 DocAccessible::Description(nsString& aDescription)
 {
