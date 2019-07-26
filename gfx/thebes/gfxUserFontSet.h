@@ -24,6 +24,8 @@ class nsFontFaceLoader;
 
 
 
+
+
 struct gfxFontFaceSrc {
     bool                   mIsLocal;       
 
@@ -270,6 +272,11 @@ public:
         
         static void Shutdown();
 
+#ifdef DEBUG_USERFONT_CACHE
+        
+        static void Dump();
+#endif
+
     private:
         
         
@@ -348,6 +355,10 @@ public:
             static PLDHashOperator RemoveIfPrivate(Entry* aEntry, void* aUserData);
             static PLDHashOperator RemoveIfMatches(Entry* aEntry, void* aUserData);
             static PLDHashOperator DisconnectSVG(Entry* aEntry, void* aUserData);
+
+#ifdef DEBUG_USERFONT_CACHE
+            static PLDHashOperator DumpEntry(Entry* aEntry, void* aUserData);
+#endif
 
         private:
             static uint32_t
