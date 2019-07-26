@@ -9729,6 +9729,11 @@ let StkCommandParamsFactory = {
       menu.isHelpAvailable = true;
     }
 
+    ctlv = StkProactiveCmdHelper.searchForTag(COMPREHENSIONTLV_TAG_NEXT_ACTION_IND, ctlvs);
+    if (ctlv) {
+      menu.nextActionList = ctlv.value;
+    }
+
     return menu;
   },
 
@@ -10419,6 +10424,23 @@ let StkProactiveCmdHelper = {
     return {url: s};
   },
 
+  
+
+
+
+
+
+
+
+
+  retrieveNextActionList: function retrieveNextActionList(length) {
+    let nextActionList = [];
+    for (let i = 0; i < length; i++) {
+      nextActionList.push(GsmPDUHelper.readHexOctet());
+    }
+    return nextActionList;
+  },
+
   searchForTag: function searchForTag(tag, ctlvs) {
     let iter = Iterator(ctlvs);
     return this.searchForNextTag(tag, iter);
@@ -10483,6 +10505,9 @@ StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE] = function COMPRE
 };
 StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_URL] = function COMPREHENSIONTLV_TAG_URL(length) {
   return this.retrieveUrl(length);
+};
+StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_NEXT_ACTION_IND] = function COMPREHENSIONTLV_TAG_NEXT_ACTION_IND(length) {
+  return this.retrieveNextActionList(length);
 };
 
 let ComprehensionTlvHelper = {
