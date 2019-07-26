@@ -5,10 +5,12 @@
 
 
 
+#include "mozilla/EventStateManager.h"
 #include "nsXULLabelFrame.h"
 #include "nsHTMLParts.h"
 #include "nsNameSpaceManager.h"
-#include "nsEventStateManager.h"
+
+using namespace mozilla;
 
 nsIFrame*
 NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -47,7 +49,7 @@ nsXULLabelFrame::RegUnregAccessKey(bool aDoReg)
 
   
   
-  nsEventStateManager *esm = PresContext()->EventStateManager();
+  EventStateManager* esm = PresContext()->EventStateManager();
 
   uint32_t key = accessKey.First();
   if (aDoReg)

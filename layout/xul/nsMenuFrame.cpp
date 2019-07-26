@@ -33,10 +33,10 @@
 #include "nsDisplayList.h"
 #include "nsIReflowCallback.h"
 #include "nsISound.h"
-#include "nsEventStateManager.h"
 #include "nsIDOMXULMenuListElement.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/Likely.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
@@ -1267,7 +1267,7 @@ nsMenuFrame::CreateMenuCommandEvent(WidgetGUIEvent* aEvent, bool aFlipChecked)
   
   
   
-  bool userinput = nsEventStateManager::IsHandlingUserInput();
+  bool userinput = EventStateManager::IsHandlingUserInput();
 
   mDelayedMenuCommandEvent =
     new nsXULMenuCommandEvent(mContent, isTrusted, shift, control, alt, meta,

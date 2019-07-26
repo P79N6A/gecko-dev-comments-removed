@@ -51,7 +51,6 @@ class ContentUnbinder;
 class nsContentList;
 class nsDOMTokenList;
 struct nsRect;
-class nsEventStateManager;
 class nsFocusManager;
 class nsGlobalWindow;
 class nsICSSDeclaration;
@@ -106,6 +105,7 @@ class EventChainPostVisitor;
 class EventChainPreVisitor;
 class EventChainVisitor;
 class EventListenerManager;
+class EventStateManager;
 
 namespace dom {
 
@@ -374,7 +374,7 @@ protected:
 private:
   
   
-  friend class ::nsEventStateManager;
+  friend class mozilla::EventStateManager;
   friend class ::nsGlobalWindow;
   friend class ::nsFocusManager;
 

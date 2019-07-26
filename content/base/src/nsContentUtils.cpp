@@ -43,6 +43,7 @@
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Likely.h"
@@ -75,7 +76,6 @@
 #include "nsDOMJSUtils.h"
 #include "nsDOMMutationObserver.h"
 #include "nsError.h"
-#include "nsEventStateManager.h"
 #include "nsFocusManager.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGenericHTMLFrameElement.h"
@@ -5844,7 +5844,7 @@ nsContentUtils::IsSubDocumentTabbable(nsIContent* aContent)
 
   
   
-  if (nsEventStateManager::IsRemoteTarget(aContent)) {
+  if (EventStateManager::IsRemoteTarget(aContent)) {
     return true;
   }
 
@@ -6278,7 +6278,7 @@ bool
 nsContentUtils::IsRequestFullScreenAllowed()
 {
   return !sTrustedFullScreenOnly ||
-         nsEventStateManager::IsHandlingUserInput() ||
+         EventStateManager::IsHandlingUserInput() ||
          IsCallerChrome();
 }
 
@@ -6419,7 +6419,7 @@ nsContentUtils::IsInPointerLockContext(nsIDOMWindow* aWin)
   }
 
   nsCOMPtr<nsIDocument> pointerLockedDoc =
-    do_QueryReferent(nsEventStateManager::sPointerLockedDoc);
+    do_QueryReferent(EventStateManager::sPointerLockedDoc);
   if (!pointerLockedDoc || !pointerLockedDoc->GetWindow()) {
     return false;
   }

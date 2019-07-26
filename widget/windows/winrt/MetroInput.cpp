@@ -13,12 +13,12 @@
 #include "InputData.h"
 #include "UIABridgePrivate.h"
 #include "MetroAppShell.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/Preferences.h"  
 #include "WinUtils.h"
 #include "nsIPresShell.h"
-#include "nsEventStateManager.h"
 
 
 #include <windows.ui.core.h> 
@@ -1128,7 +1128,7 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
   }
   nsCOMPtr<nsIPresShell> presShell = mWidget->GetPresShell();
   if (presShell) {
-    nsEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+    EventStateManager* esm = presShell->GetPresContext()->EventStateManager();
     if (esm) {
       esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
     }
