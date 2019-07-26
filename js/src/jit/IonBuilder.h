@@ -337,6 +337,11 @@ class IonBuilder : public MIRGenerator
     
     
     
+    bool pushDOMTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed, JSFunction* func);
+
+    
+    
+    
     
     MDefinition *ensureDefiniteType(MDefinition* def, JSValueType definiteType);
 
