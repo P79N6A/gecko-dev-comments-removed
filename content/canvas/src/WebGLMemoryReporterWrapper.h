@@ -3,8 +3,8 @@
 
 
 
-#ifndef WEBGLMEMORYMULTIREPORTWRAPER_H_
-#define WEBGLMEMORYMULTIREPORTWRAPER_H_
+#ifndef WEBGLMEMORYREPORTWRAPER_H_
+#define WEBGLMEMORYREPORTWRAPER_H_
 
 #include "WebGLContext.h"
 #include "WebGLBuffer.h"
@@ -17,11 +17,11 @@
 
 namespace mozilla {
 
-class WebGLMemoryMultiReporterWrapper
+class WebGLMemoryReporterWrapper
 {
-    WebGLMemoryMultiReporterWrapper();
-    ~WebGLMemoryMultiReporterWrapper();
-    static WebGLMemoryMultiReporterWrapper* sUniqueInstance;
+    WebGLMemoryReporterWrapper();
+    ~WebGLMemoryReporterWrapper();
+    static WebGLMemoryReporterWrapper* sUniqueInstance;
 
     
     
@@ -29,9 +29,9 @@ class WebGLMemoryMultiReporterWrapper
     typedef nsTArray<const WebGLContext*> ContextsArrayType;
     ContextsArrayType mContexts;
 
-    nsCOMPtr<nsIMemoryMultiReporter> mReporter;
+    nsCOMPtr<nsIMemoryReporter> mReporter;
 
-    static WebGLMemoryMultiReporterWrapper* UniqueInstance();
+    static WebGLMemoryReporterWrapper* UniqueInstance();
 
     static ContextsArrayType & Contexts() { return UniqueInstance()->mContexts; }
 

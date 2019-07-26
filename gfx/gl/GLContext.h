@@ -3394,12 +3394,12 @@ public:
 #endif
 };
 
-class GfxTexturesReporter MOZ_FINAL : public MemoryReporterBase
+class GfxTexturesReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     GfxTexturesReporter()
-      : MemoryReporterBase("gfx-textures", KIND_OTHER, UNITS_BYTES,
-                           "Memory used for storing GL textures.")
+      : MemoryUniReporter("gfx-textures", KIND_OTHER, UNITS_BYTES,
+                          "Memory used for storing GL textures.")
     {
 #ifdef DEBUG
         

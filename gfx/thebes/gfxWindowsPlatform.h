@@ -52,7 +52,7 @@ class IDirect3DDevice9;
 class ID3D11Device;
 class IDXGIAdapter1;
 
-class nsIMemoryMultiReporter;
+class nsIMemoryReporter;
 
 
 
@@ -315,7 +315,7 @@ private:
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
 
-    nsIMemoryMultiReporter* mGPUAdapterMultiReporter;
+    nsIMemoryReporter* mGPUAdapterReporter;
 };
 
 #endif
