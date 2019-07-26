@@ -269,6 +269,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
 
     
     if (!displayPort.IsEmpty()) {
+      
       gfxRect transformedRenderBounds = transform.Inverse().TransformBounds(displayPort);
       tileRegion.Sub(tileRegion, nsIntRect(transformedRenderBounds.x,
                                            transformedRenderBounds.y,
@@ -278,6 +279,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
 
     
     if (!contentBounds.IsEmpty()) {
+      
       gfxRect transformedRenderBounds = transform.Inverse().TransformBounds(contentBounds);
       tileRegion.And(tileRegion, nsIntRect(transformedRenderBounds.x,
                                            transformedRenderBounds.y,
