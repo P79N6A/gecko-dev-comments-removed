@@ -486,6 +486,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason)
         comp->markAllInitialShapeTableEntries(&trc);
     }
     markStoreBuffer(&trc);
+    rt->newObjectCache.clearNurseryObjects(rt);
 
     
 

@@ -339,6 +339,9 @@ class NewObjectCache
     void purge() { mozilla::PodZero(this); }
 
     
+    inline void clearNurseryObjects(JSRuntime *rt);
+
+    
 
 
 
