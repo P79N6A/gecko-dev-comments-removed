@@ -1299,7 +1299,6 @@ SpdySession3::HandleGoAway(SpdySession3 *self)
         PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[3]),
         self->mStreamTransactionHash.Count()));
 
-  self->ResumeRecv();
   self->ResetDownstreamState();
   return NS_OK;
 }
@@ -1430,7 +1429,6 @@ SpdySession3::HandleWindowUpdate(SpdySession3 *self)
   }
 
   self->ResetDownstreamState();
-  self->ResumeRecv();
   return NS_OK;
 }
 
@@ -1648,7 +1646,7 @@ SpdySession3::WriteSegments(nsAHttpSegmentWriter *writer,
             this, rv));
       
       if (rv == NS_BASE_STREAM_WOULD_BLOCK)
-        ResumeRecv();
+        rv = NS_OK;
       return rv;
     }
 
@@ -1823,6 +1821,13 @@ SpdySession3::WriteSegments(nsAHttpSegmentWriter *writer,
       mNeedsCleanup = nullptr;
     }
 
+    if (NS_FAILED(rv)) {
+      LOG3(("SpdySession3 %p data frame read failure %x\n", this, rv));
+      
+      if (rv == NS_BASE_STREAM_WOULD_BLOCK)
+        rv = NS_OK;
+    }
+
     return rv;
   }
 
@@ -1842,7 +1847,7 @@ SpdySession3::WriteSegments(nsAHttpSegmentWriter *writer,
       LOG3(("SpdySession3 %p discard frame read failure %x\n", this, rv));
       
       if (rv == NS_BASE_STREAM_WOULD_BLOCK)
-        ResumeRecv();
+        rv = NS_OK;
       return rv;
     }
 
@@ -1872,7 +1877,7 @@ SpdySession3::WriteSegments(nsAHttpSegmentWriter *writer,
           this, rv));
     
     if (rv == NS_BASE_STREAM_WOULD_BLOCK)
-      ResumeRecv();
+      rv = NS_OK;
     return rv;
   }
 
