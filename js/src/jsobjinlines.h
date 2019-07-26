@@ -582,11 +582,10 @@ JSObject::finish(js::FreeOp *fop)
 
  inline bool
 JSObject::hasProperty(JSContext *cx, js::HandleObject obj,
-                      js::HandleId id, bool *foundp, unsigned flags)
+                      js::HandleId id, bool *foundp)
 {
     JS::RootedObject pobj(cx);
     js::RootedShape prop(cx);
-    JSAutoResolveFlags rf(cx, flags);
     if (!lookupGeneric(cx, obj, id, &pobj, &prop)) {
         *foundp = false;  
         return false;
