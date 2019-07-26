@@ -1833,6 +1833,7 @@ NS_METHOD nsWindow::SetFocus(bool aRaise)
 
 
 
+
 NS_METHOD nsWindow::GetBounds(nsIntRect &aRect)
 {
   if (mWnd) {
@@ -1933,6 +1934,32 @@ NS_METHOD nsWindow::GetScreenBounds(nsIntRect &aRect)
   } else
     aRect = mBounds;
 
+  return NS_OK;
+}
+
+NS_METHOD nsWindow::GetRestoredBounds(nsIntRect &aRect)
+{
+  if (SizeMode() == nsSizeMode_Normal) {
+    return GetScreenBounds(aRect);
+  }
+  if (!mWnd) {
+    return NS_ERROR_FAILURE;
+  }
+
+  WINDOWPLACEMENT pl = { sizeof WINDOWPLACEMENT, };
+  VERIFY(::GetWindowPlacement(mWnd, &pl));
+  const RECT& r = pl.rcNormalPosition;
+
+  HMONITOR monitor = ::MonitorFromWindow(mWnd, MONITOR_DEFAULTTONULL);
+  if (!monitor) {
+    return NS_ERROR_FAILURE;
+  }
+  MONITORINFO mi = { sizeof MONITORINFO, };
+  VERIFY(::GetMonitorInfo(monitor, &mi));
+
+  aRect.SetRect(r.left, r.top, r.right - r.left, r.bottom - r.top);
+  aRect.MoveBy(mi.rcWork.left - mi.rcMonitor.left,
+               mi.rcWork.top - mi.rcMonitor.top);
   return NS_OK;
 }
 
