@@ -4,6 +4,7 @@
 
 
 
+#include "nsCache.h"
 #include <limits.h>
 
 
@@ -32,7 +33,6 @@
 #include "nsDiskCache.h"
 
 #include "nsCacheService.h"
-#include "nsCache.h"
 
 #include "nsDeleteDir.h"
 

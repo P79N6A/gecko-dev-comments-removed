@@ -4,12 +4,11 @@
 
 
 
+#include "nsCache.h"
 #include "nsDiskCache.h"
 #include "nsDiskCacheEntry.h"
 #include "nsDiskCacheBinding.h"
 #include "nsCRT.h"
-
-#include "nsCache.h"
 
 #include "nsISerializable.h"
 #include "nsSerializationHelper.h"

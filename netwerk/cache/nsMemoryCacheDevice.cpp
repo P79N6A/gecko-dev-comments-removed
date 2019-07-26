@@ -4,13 +4,13 @@
 
 
 
+#include "nsCache.h"
 #include "nsMemoryCacheDevice.h"
 #include "nsCacheService.h"
 #include "nsICacheService.h"
 #include "nsIStorageStream.h"
 #include "nsICacheVisitor.h"
 #include "nsCRT.h"
-#include "nsCache.h"
 #include "nsReadableUtils.h"
 #include "mozilla/Telemetry.h"
 

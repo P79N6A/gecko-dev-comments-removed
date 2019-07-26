@@ -4,6 +4,7 @@
 
 
 
+#include "nsCache.h"
 #include <limits.h>
 
 #include "nscore.h"
