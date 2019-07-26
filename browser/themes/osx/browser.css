@@ -395,10 +395,8 @@ toolbarbutton.bookmark-item > menupopup {
 
 
 
-
-
 #nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker::before,
-#nav-bar toolbaritem:not(#urlbar-container) > .toolbarbutton-1 + .toolbarbutton-1::before {
+#nav-bar .toolbaritem-combined-buttons > .toolbarbutton-1 + .toolbarbutton-1::before {
   content: "";
   display: -moz-box;
   position: absolute;
