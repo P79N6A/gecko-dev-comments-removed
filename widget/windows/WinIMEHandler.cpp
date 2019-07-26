@@ -221,7 +221,7 @@ IMEHandler::GetUpdatePreference()
   }
 #endif 
 
-  return nsIMEUpdatePreference(false, false);
+  return nsIMEUpdatePreference();
 }
 
 

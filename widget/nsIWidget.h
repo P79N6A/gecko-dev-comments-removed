@@ -206,17 +206,28 @@ enum nsTopLevelWidgetZPlacement {
 
 
 
+
 struct nsIMEUpdatePreference {
 
+  typedef int8_t Notifications;
+
+  enum
+  {
+    NOTIFY_NOTHING           = 0x0000,
+    NOTIFY_SELECTION_CHANGE  = 0x0001,
+    NOTIFY_TEXT_CHANGE       = 0x0002
+  };
+
   nsIMEUpdatePreference()
-    : mWantUpdates(false), mWantHints(false)
+    : mWantUpdates(NOTIFY_NOTHING), mWantHints(false)
   {
   }
-  nsIMEUpdatePreference(bool aWantUpdates, bool aWantHints)
+  nsIMEUpdatePreference(Notifications aWantUpdates, bool aWantHints)
     : mWantUpdates(aWantUpdates), mWantHints(aWantHints)
   {
   }
-  bool mWantUpdates;
+
+  Notifications mWantUpdates;
   bool mWantHints;
 };
 
