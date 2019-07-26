@@ -362,13 +362,16 @@ var DebuggerServer = {
 
 
 
-  connectPipe: function DS_connectPipe() {
+
+
+
+  connectPipe: function DS_connectPipe(aPrefix) {
     this._checkInit();
 
     let serverTransport = new LocalDebuggerTransport;
     let clientTransport = new LocalDebuggerTransport(serverTransport);
     serverTransport.other = clientTransport;
-    let connection = this._onConnection(serverTransport);
+    let connection = this._onConnection(serverTransport, aPrefix);
 
     
     
@@ -427,13 +430,28 @@ var DebuggerServer = {
 
 
 
-  _onConnection: function DS_onConnection(aTransport) {
-    let connID = "conn" + this._nextConnID++ + '.';
+
+
+
+
+
+
+  _onConnection: function DS_onConnection(aTransport, aForwardingPrefix) {
+    let connID;
+    if (aForwardingPrefix) {
+      connID = aForwardingPrefix + ":";
+    } else {
+      connID = "conn" + this._nextConnID++ + '.';
+    }
     let conn = new DebuggerServerConnection(connID, aTransport);
     this._connections[connID] = conn;
 
     
     conn.rootActor = this.createRootActor(conn);
+    if (aForwardingPrefix)
+      conn.rootActor.actorID = aForwardingPrefix + ":root";
+    else
+      conn.rootActor.actorID = "root";
     conn.addActor(conn.rootActor);
     aTransport.send(conn.rootActor.sayHello());
     aTransport.ready();
@@ -649,6 +667,14 @@ function DebuggerServerConnection(aPrefix, aTransport)
 
   this._actorPool = new ActorPool(this);
   this._extraPools = [];
+
+  
+
+
+
+
+
+  this._forwardingPrefixes = new Map;
 }
 
 DebuggerServerConnection.prototype = {
@@ -769,7 +795,53 @@ DebuggerServerConnection.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+  setForwarding: function(aPrefix, aTransport) {
+    this._forwardingPrefixes.set(aPrefix, aTransport);
+  },
+
+  
+
+
+
+  cancelForwarding: function(aPrefix) {
+    this._forwardingPrefixes.delete(aPrefix);
+  },
+
+  
+
+  
+
+
+
+
+
   onPacket: function DSC_onPacket(aPacket) {
+    
+    
+    
+    
+    
+    
+    if (this._forwardingPrefixes.size > 0) {
+      let colon = aPacket.to.indexOf(':');
+      if (colon >= 0) {
+        let forwardTo = this._forwardingPrefixes.get(aPacket.to.substring(0, colon));
+        if (forwardTo) {
+          forwardTo.send(aPacket);
+          return;
+        }
+      }
+    }
+
     let actor = this.getActor(aPacket.to);
     if (!actor) {
       this.transport.send({ from: aPacket.to ? aPacket.to : "root",
@@ -823,18 +895,18 @@ DebuggerServerConnection.prototype = {
     }
 
     resolve(ret)
-      .then(null, (e) => {
-        return this._unknownError(
-          "error occurred while processing '" + aPacket.type,
-          e);
-      })
       .then(function (aResponse) {
         if (!aResponse.from) {
           aResponse.from = aPacket.to;
         }
         return aResponse;
       })
-      .then(this.transport.send.bind(this.transport));
+      .then(this.transport.send.bind(this.transport))
+      .then(null, (e) => {
+        return this._unknownError(
+          "error occurred while processing '" + aPacket.type,
+          e);
+      });
   },
 
   

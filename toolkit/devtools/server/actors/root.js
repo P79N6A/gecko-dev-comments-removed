@@ -164,7 +164,7 @@ RootActor.prototype = {
 
   sayHello: function() {
     return {
-      from: "root",
+      from: this.actorID,
       applicationType: this.applicationType,
       
       testConnectionPrefix: this.conn.prefix,
@@ -197,7 +197,7 @@ RootActor.prototype = {
   onListTabs: function() {
     let tabList = this._parameters.tabList;
     if (!tabList) {
-      return { from: "root", error: "noTabs",
+      return { from: this.actorID, error: "noTabs",
                message: "This root actor has no browser tabs." };
     }
 
@@ -234,7 +234,7 @@ RootActor.prototype = {
     this.conn.addActorPool(this._tabActorPool);
 
     let reply = {
-      "from": "root",
+      "from": this.actorID,
       "selected": selected || 0,
       "tabs": [actor.grip() for (actor of tabActorList)],
     };
@@ -253,13 +253,19 @@ RootActor.prototype = {
   },
 
   onTabListChanged: function () {
-    this.conn.send({ from:"root", type:"tabListChanged" });
+    this.conn.send({ from: this.actorID, type:"tabListChanged" });
     
     this._parameters.tabList.onListChanged = null;
   },
 
   
-  onEcho: (aRequest) => aRequest,
+  onEcho: function (aRequest) {
+    
+
+
+
+    return JSON.parse(JSON.stringify(aRequest));
+  },
 
   
   _createExtraActors: CommonCreateExtraActors,
