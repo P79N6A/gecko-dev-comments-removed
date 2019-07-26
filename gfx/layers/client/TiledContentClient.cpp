@@ -11,6 +11,7 @@
 #include "CompositorChild.h"            
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/MathAlgorithms.h"     
 #include "mozilla/gfx/Point.h"          
@@ -83,7 +84,8 @@ TiledContentClient::TiledContentClient(ClientTiledThebesLayer* aThebesLayer,
 {
   MOZ_COUNT_CTOR(TiledContentClient);
 
-  mLowPrecisionTiledBuffer.SetResolution(gfxPlatform::GetLowPrecisionResolution());
+  
+  mLowPrecisionTiledBuffer.SetResolution(gfxPrefs::LowPrecisionResolution()/1000.f);
 }
 
 void

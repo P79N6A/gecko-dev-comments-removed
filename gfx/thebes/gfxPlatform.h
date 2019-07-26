@@ -485,9 +485,6 @@ public:
         
     }
 
-    
-    static float GetLowPrecisionResolution();
-
     static bool OffMainThreadCompositingEnabled();
 
     
@@ -495,10 +492,7 @@ public:
 
 
     static bool GetPrefLayersOffMainThreadCompositionEnabled();
-    static bool GetPrefLayersPreferOpenGL();
-    static bool GetPrefLayersPreferD3D9();
     static bool CanUseDirect3D9();
-    static bool GetPrefLayersEnableTiles();
 
     static bool OffMainThreadCompositionRequired();
 
