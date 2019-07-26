@@ -606,6 +606,9 @@ protected:
   }
 
   
+  bool CheckAudioChannelPermissions(const nsAString& aType);
+
+  
   
   nsRefPtr<MediaDecoder> mDecoder;
 
