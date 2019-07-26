@@ -25,17 +25,6 @@ extern PRLogModuleInfo* gFTPLog;
 #endif 
 
 
-static inline uint32_t
-PRTimeToSeconds(PRTime t_usec)
-{
-    return uint32_t(t_usec / PR_USEC_PER_SEC);
-}
-
-#define NowInSeconds() PRTimeToSeconds(PR_Now())
-
-
-
-
 
 
 
