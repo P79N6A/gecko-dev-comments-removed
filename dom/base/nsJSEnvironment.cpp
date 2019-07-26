@@ -3308,6 +3308,12 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
 
     PRTime now = PR_Now();
     if (sCCLockedOutTime == 0) {
+      
+      
+      
+      
+      
+      sCCTimerFireCount = 0;
       sCCLockedOutTime = now;
       return;
     }
