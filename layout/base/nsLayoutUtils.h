@@ -1528,7 +1528,18 @@ public:
 
 
 
+
   static nsIFrame* GetReferenceFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+
+  static nsIFrame* GetTransformRootFrame(nsIFrame* aFrame);
 
   
 
