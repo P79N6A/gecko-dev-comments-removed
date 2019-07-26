@@ -1472,7 +1472,10 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     nsresult rv = utils->GetPresShellId(&presShellId);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     if (NS_SUCCEEDED(rv) && aFrameMetrics.mPresShellId != presShellId) {
-        return true;
+        
+        
+        
+        return ProcessUpdateFrame(mLastMetrics);
     }
     return ProcessUpdateFrame(aFrameMetrics);
 }
