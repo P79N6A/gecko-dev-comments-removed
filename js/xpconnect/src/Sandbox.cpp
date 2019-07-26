@@ -215,44 +215,20 @@ CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
+namespace xpc {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
+bool
+ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleValue vname,
+               MutableHandleValue rval)
 {
-    MOZ_ASSERT(cx);
-    if (argc < 3) {
-        JS_ReportError(cx, "Function requires at least 3 arguments");
-        return false;
-    }
-
-    CallArgs args = CallArgsFromVp(argc, vp);
-    if (!args[0].isObject() || !args[1].isObject() || !args[2].isString()) {
+    if (!vscope.isObject() || !vfunction.isObject() || !vname.isString()) {
         JS_ReportError(cx, "Invalid argument");
         return false;
     }
 
-    RootedObject funObj(cx, &args[0].toObject());
-    RootedObject targetScope(cx, &args[1].toObject());
-    RootedString funName(cx, args[2].toString());
+    RootedObject funObj(cx, &vfunction.toObject());
+    RootedObject targetScope(cx, &vscope.toObject());
+    RootedString funName(cx, vname.toString());
 
     
     
@@ -286,30 +262,51 @@ ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
             return false;
 
         RootedId id(cx);
-        if (!JS_ValueToId(cx, args[2], id.address()))
+        if (!JS_ValueToId(cx, vname, id.address()))
             return false;
 
         
         
-        if (!NewFunctionForwarder(cx, id, funObj,  true, args.rval())) {
+        if (!NewFunctionForwarder(cx, id, funObj,  true, rval)) {
             JS_ReportError(cx, "Exporting function failed");
             return false;
         }
 
         
         
-        if (!JS_DefinePropertyById(cx, targetScope, id, args.rval(),
+        if (!JS_DefinePropertyById(cx, targetScope, id, rval,
                                    JS_PropertyStub, JS_StrictPropertyStub,
                                    JSPROP_ENUMERATE))
             return false;
     }
 
     
-    if (!JS_WrapValue(cx, args.rval()))
+    if (!JS_WrapValue(cx, rval))
         return false;
 
     return true;
 }
+
+
+
+
+
+
+
+
+static bool
+ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() < 3) {
+        JS_ReportError(cx, "Function requires at least 3 arguments");
+        return false;
+    }
+
+    return ExportFunction(cx, args[0], args[1],
+                          args[2], args.rval());
+}
+} 
 
 static bool
 GetFilenameAndLineNumber(JSContext *cx, nsACString &filename, unsigned &lineno)
