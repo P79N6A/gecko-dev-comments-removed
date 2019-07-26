@@ -4,8 +4,6 @@
 
 
 
-#include "jsanalyzeinlines.h"
-
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/PodOperations.h"
@@ -16,14 +14,463 @@
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
-
-using namespace js;
-using namespace js::analyze;
+#include "jsopcodeinlines.h"
 
 using mozilla::DebugOnly;
 using mozilla::PodCopy;
 using mozilla::PodZero;
 using mozilla::FloorLog2;
+
+namespace js {
+namespace analyze {
+class LoopAnalysis;
+} 
+} 
+
+namespace mozilla {
+
+template <> struct IsPod<js::analyze::LifetimeVariable> : TrueType {};
+template <> struct IsPod<js::analyze::LoopAnalysis>     : TrueType {};
+template <> struct IsPod<js::analyze::SlotValue>        : TrueType {};
+template <> struct IsPod<js::analyze::SSAValue>         : TrueType {};
+template <> struct IsPod<js::analyze::SSAUseChain>      : TrueType {};
+
+} 
+
+namespace js {
+namespace analyze {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Bytecode
+{
+    friend class ScriptAnalysis;
+
+  public:
+    Bytecode() { mozilla::PodZero(this); }
+
+    
+
+    
+    bool jumpTarget : 1;
+
+    
+    bool fallthrough : 1;
+
+    
+    bool jumpFallthrough : 1;
+
+    
+
+
+
+    bool unconditional : 1;
+
+    
+    bool analyzed : 1;
+
+    
+    bool exceptionEntry : 1;
+
+    
+    uint32_t stackDepth;
+
+  private:
+
+    
+    LoopAnalysis *loop;
+
+    
+
+    
+    SSAValue *poppedValues;
+
+    
+    SSAUseChain **pushedUses;
+
+    union {
+        
+
+
+
+
+
+        SlotValue *newValues;
+
+        
+
+
+
+
+
+
+
+        Vector<SlotValue> *pendingValues;
+    };
+};
+
+
+
+
+
+
+
+
+struct Lifetime
+{
+    
+
+
+
+    uint32_t start;
+    uint32_t end;
+
+    
+
+
+
+    uint32_t savedEnd;
+
+    
+
+
+
+    bool write;
+
+    
+    Lifetime *next;
+
+    Lifetime(uint32_t offset, uint32_t savedEnd, Lifetime *next)
+        : start(offset), end(offset), savedEnd(savedEnd),
+          write(false), next(next)
+    {}
+};
+
+
+class LoopAnalysis
+{
+  public:
+    
+    LoopAnalysis *parent;
+
+    
+    uint32_t head;
+
+    
+
+
+
+    uint32_t backedge;
+};
+
+
+struct LifetimeVariable
+{
+    
+    Lifetime *lifetime;
+
+    
+    Lifetime *saved;
+
+    
+    uint32_t savedEnd : 31;
+
+    
+    bool ensured : 1;
+
+    
+    Lifetime * live(uint32_t offset) const {
+        if (lifetime && lifetime->end >= offset)
+            return lifetime;
+        Lifetime *segment = lifetime ? lifetime : saved;
+        while (segment && segment->start <= offset) {
+            if (segment->end >= offset)
+                return segment;
+            segment = segment->next;
+        }
+        return nullptr;
+    }
+
+    
+
+
+
+    uint32_t firstWrite(uint32_t start, uint32_t end) const {
+        Lifetime *segment = lifetime ? lifetime : saved;
+        while (segment && segment->start <= end) {
+            if (segment->start >= start && segment->write)
+                return segment->start;
+            segment = segment->next;
+        }
+        return UINT32_MAX;
+    }
+    uint32_t firstWrite(LoopAnalysis *loop) const {
+        return firstWrite(loop->head, loop->backedge);
+    }
+
+    
+
+
+
+    uint32_t onlyWrite(LoopAnalysis *loop) const {
+        uint32_t offset = UINT32_MAX;
+        Lifetime *segment = lifetime ? lifetime : saved;
+        while (segment && segment->start <= loop->backedge) {
+            if (segment->start >= loop->head && segment->write) {
+                if (offset != UINT32_MAX)
+                    return UINT32_MAX;
+                offset = segment->start;
+            }
+            segment = segment->next;
+        }
+        return offset;
+    }
+
+#ifdef DEBUG
+    void print() const;
+#endif
+};
+
+struct SSAPhiNode;
+
+
+
+
+
+
+
+class SSAValue
+{
+    friend class ScriptAnalysis;
+
+  public:
+    enum Kind {
+        EMPTY  = 0, 
+        PUSHED = 1, 
+        VAR    = 2, 
+        PHI    = 3  
+    };
+
+    Kind kind() const {
+        JS_ASSERT(u.pushed.kind == u.var.kind && u.pushed.kind == u.phi.kind);
+
+        
+        return (Kind) (u.pushed.kind & 0x3);
+    }
+
+    bool operator==(const SSAValue &o) const {
+        return !memcmp(this, &o, sizeof(SSAValue));
+    }
+
+    
+
+    uint32_t pushedOffset() const {
+        JS_ASSERT(kind() == PUSHED);
+        return u.pushed.offset;
+    }
+
+    uint32_t pushedIndex() const {
+        JS_ASSERT(kind() == PUSHED);
+        return u.pushed.index;
+    }
+
+    
+
+    bool varInitial() const {
+        JS_ASSERT(kind() == VAR);
+        return u.var.initial;
+    }
+
+    uint32_t varSlot() const {
+        JS_ASSERT(kind() == VAR);
+        return u.var.slot;
+    }
+
+    uint32_t varOffset() const {
+        JS_ASSERT(!varInitial());
+        return u.var.offset;
+    }
+
+    
+
+    uint32_t phiSlot() const;
+    uint32_t phiLength() const;
+    const SSAValue &phiValue(uint32_t i) const;
+
+    
+    uint32_t phiOffset() const {
+        JS_ASSERT(kind() == PHI);
+        return u.phi.offset;
+    }
+
+    SSAPhiNode *phiNode() const {
+        JS_ASSERT(kind() == PHI);
+        return u.phi.node;
+    }
+
+    
+
+#ifdef DEBUG
+    void print() const;
+#endif
+
+    void clear() {
+        mozilla::PodZero(this);
+        JS_ASSERT(kind() == EMPTY);
+    }
+
+    void initPushed(uint32_t offset, uint32_t index) {
+        clear();
+        u.pushed.kind = PUSHED;
+        u.pushed.offset = offset;
+        u.pushed.index = index;
+    }
+
+    static SSAValue PushedValue(uint32_t offset, uint32_t index) {
+        SSAValue v;
+        v.initPushed(offset, index);
+        return v;
+    }
+
+    void initInitial(uint32_t slot) {
+        clear();
+        u.var.kind = VAR;
+        u.var.initial = true;
+        u.var.slot = slot;
+    }
+
+    void initWritten(uint32_t slot, uint32_t offset) {
+        clear();
+        u.var.kind = VAR;
+        u.var.initial = false;
+        u.var.slot = slot;
+        u.var.offset = offset;
+    }
+
+    static SSAValue WrittenVar(uint32_t slot, uint32_t offset) {
+        SSAValue v;
+        v.initWritten(slot, offset);
+        return v;
+    }
+
+    void initPhi(uint32_t offset, SSAPhiNode *node) {
+        clear();
+        u.phi.kind = PHI;
+        u.phi.offset = offset;
+        u.phi.node = node;
+    }
+
+    static SSAValue PhiValue(uint32_t offset, SSAPhiNode *node) {
+        SSAValue v;
+        v.initPhi(offset, node);
+        return v;
+    }
+
+  private:
+    union {
+        struct {
+            Kind kind : 2;
+            uint32_t offset : 30;
+            uint32_t index;
+        } pushed;
+        struct {
+            Kind kind : 2;
+            bool initial : 1;
+            uint32_t slot : 29;
+            uint32_t offset;
+        } var;
+        struct {
+            Kind kind : 2;
+            uint32_t offset : 30;
+            SSAPhiNode *node;
+        } phi;
+    } u;
+};
+
+
+
+
+
+
+
+struct SSAPhiNode
+{
+    uint32_t slot;
+    uint32_t length;
+    SSAValue *options;
+    SSAUseChain *uses;
+    SSAPhiNode() { mozilla::PodZero(this); }
+};
+
+inline uint32_t
+SSAValue::phiSlot() const
+{
+    return u.phi.node->slot;
+}
+
+inline uint32_t
+SSAValue::phiLength() const
+{
+    JS_ASSERT(kind() == PHI);
+    return u.phi.node->length;
+}
+
+inline const SSAValue &
+SSAValue::phiValue(uint32_t i) const
+{
+    JS_ASSERT(kind() == PHI && i < phiLength());
+    return u.phi.node->options[i];
+}
+
+class SSAUseChain
+{
+  public:
+    bool popped : 1;
+    uint32_t offset : 31;
+    
+    union {
+        uint32_t which;
+        SSAPhiNode *phi;
+    } u;
+    SSAUseChain *next;
+
+    SSAUseChain() { mozilla::PodZero(this); }
+};
+
+class SlotValue
+{
+  public:
+    uint32_t slot;
+    SSAValue value;
+    SlotValue(uint32_t slot, const SSAValue &value) : slot(slot), value(value) {}
+};
 
 
 
@@ -31,7 +478,7 @@ using mozilla::FloorLog2;
 
 #ifdef DEBUG
 void
-analyze::PrintBytecode(JSContext *cx, HandleScript script, jsbytecode *pc)
+PrintBytecode(JSContext *cx, HandleScript script, jsbytecode *pc)
 {
     fprintf(stderr, "#%u:", script->id());
     Sprinter sprinter(cx);
@@ -41,6 +488,87 @@ analyze::PrintBytecode(JSContext *cx, HandleScript script, jsbytecode *pc)
     fprintf(stderr, "%s", sprinter.string());
 }
 #endif
+
+
+
+
+
+static inline bool
+ExtendedDef(jsbytecode *pc)
+{
+    switch ((JSOp)*pc) {
+      case JSOP_SETARG:
+      case JSOP_SETLOCAL:
+        return true;
+      default:
+        return false;
+    }
+}
+
+
+
+
+
+static inline bool
+ExtendedUse(jsbytecode *pc)
+{
+    if (ExtendedDef(pc))
+        return true;
+    switch ((JSOp)*pc) {
+      case JSOP_GETARG:
+      case JSOP_CALLARG:
+      case JSOP_GETLOCAL:
+      case JSOP_CALLLOCAL:
+        return true;
+      default:
+        return false;
+    }
+}
+
+static inline unsigned
+FollowBranch(JSContext *cx, JSScript *script, unsigned offset)
+{
+    
+
+
+
+
+    jsbytecode *pc = script->offsetToPC(offset);
+    unsigned targetOffset = offset + GET_JUMP_OFFSET(pc);
+    if (targetOffset < offset) {
+        jsbytecode *target = script->offsetToPC(targetOffset);
+        JSOp nop = JSOp(*target);
+        if (nop == JSOP_GOTO)
+            return targetOffset + GET_JUMP_OFFSET(target);
+    }
+    return targetOffset;
+}
+
+static inline uint32_t StackSlot(JSScript *script, uint32_t index) {
+    return TotalSlots(script) + index;
+}
+
+static inline uint32_t GetBytecodeSlot(JSScript *script, jsbytecode *pc)
+{
+    switch (JSOp(*pc)) {
+
+      case JSOP_GETARG:
+      case JSOP_CALLARG:
+      case JSOP_SETARG:
+        return ArgSlot(GET_ARGNO(pc));
+
+      case JSOP_GETLOCAL:
+      case JSOP_CALLLOCAL:
+      case JSOP_SETLOCAL:
+        return LocalSlot(script, GET_LOCALNO(pc));
+
+      case JSOP_THIS:
+        return ThisSlot();
+
+      default:
+        MOZ_ASSUME_UNREACHABLE("Bad slot opcode");
+    }
+}
 
 
 
@@ -84,6 +612,126 @@ ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
     }
 
     return true;
+}
+
+inline bool
+ScriptAnalysis::jumpTarget(uint32_t offset)
+{
+    JS_ASSERT(offset < script_->length());
+    return codeArray[offset] && codeArray[offset]->jumpTarget;
+}
+
+inline bool
+ScriptAnalysis::jumpTarget(const jsbytecode *pc)
+{
+    return jumpTarget(script_->pcToOffset(pc));
+}
+
+inline const SSAValue &
+ScriptAnalysis::poppedValue(uint32_t offset, uint32_t which)
+{
+    JS_ASSERT(which < GetUseCount(script_, offset) +
+              (ExtendedUse(script_->offsetToPC(offset)) ? 1 : 0));
+    return getCode(offset).poppedValues[which];
+}
+
+inline const SSAValue &
+ScriptAnalysis::poppedValue(const jsbytecode *pc, uint32_t which)
+{
+    return poppedValue(script_->pcToOffset(pc), which);
+}
+
+inline const SlotValue *
+ScriptAnalysis::newValues(uint32_t offset)
+{
+    JS_ASSERT(offset < script_->length());
+    return getCode(offset).newValues;
+}
+
+inline const SlotValue *
+ScriptAnalysis::newValues(const jsbytecode *pc)
+{
+    return newValues(script_->pcToOffset(pc));
+}
+
+inline bool
+ScriptAnalysis::trackUseChain(const SSAValue &v)
+{
+    JS_ASSERT_IF(v.kind() == SSAValue::VAR, trackSlot(v.varSlot()));
+    return v.kind() != SSAValue::EMPTY &&
+        (v.kind() != SSAValue::VAR || !v.varInitial());
+}
+
+
+
+
+
+inline SSAUseChain *&
+ScriptAnalysis::useChain(const SSAValue &v)
+{
+    JS_ASSERT(trackUseChain(v));
+    if (v.kind() == SSAValue::PUSHED)
+        return getCode(v.pushedOffset()).pushedUses[v.pushedIndex()];
+    if (v.kind() == SSAValue::VAR)
+        return getCode(v.varOffset()).pushedUses[GetDefCount(script_, v.varOffset())];
+    return v.phiNode()->uses;
+}
+
+
+inline jsbytecode *
+ScriptAnalysis::getCallPC(jsbytecode *pc)
+{
+    SSAUseChain *uses = useChain(SSAValue::PushedValue(script_->pcToOffset(pc), 0));
+    JS_ASSERT(uses && uses->popped);
+    JS_ASSERT(js_CodeSpec[script_->code()[uses->offset]].format & JOF_INVOKE);
+    return script_->offsetToPC(uses->offset);
+}
+
+
+
+
+
+
+
+
+
+
+inline bool
+ScriptAnalysis::slotEscapes(uint32_t slot)
+{
+    JS_ASSERT(script_->compartment()->activeAnalysis);
+    if (slot >= numSlots)
+        return true;
+    return escapedSlots[slot];
+}
+
+
+
+
+
+
+
+inline bool
+ScriptAnalysis::trackSlot(uint32_t slot)
+{
+    return !slotEscapes(slot) && canTrackVars && slot < 1000;
+}
+
+inline const LifetimeVariable &
+ScriptAnalysis::liveness(uint32_t slot)
+{
+    JS_ASSERT(script_->compartment()->activeAnalysis);
+    JS_ASSERT(!slotEscapes(slot));
+    return lifetimes[slot];
+}
+
+inline void
+ScriptAnalysis::setOOM(JSContext *cx)
+{
+    if (!outOfMemory)
+        js_ReportOutOfMemory(cx);
+    outOfMemory = true;
+    hadFailure = true;
 }
 
 void
@@ -835,6 +1483,19 @@ ScriptAnalysis::ensureVariable(LifetimeVariable &var, unsigned until)
 
 
 
+
+
+struct SSAValueInfo
+{
+    SSAValue v;
+
+    
+
+
+
+
+    int32_t branchSize;
+};
 
 void
 ScriptAnalysis::analyzeSSA(JSContext *cx)
@@ -1719,4 +2380,12 @@ ScriptAnalysis::assertMatchingDebugMode()
     JS_ASSERT(!!script_->compartment()->debugMode() == !!originalDebugMode_);
 }
 
+void
+ScriptAnalysis::assertMatchingStackDepthAtOffset(uint32_t offset, uint32_t stackDepth) {
+    JS_ASSERT_IF(maybeCode(offset), getCode(offset).stackDepth == stackDepth);
+}
+
 #endif  
+
+} 
+} 
