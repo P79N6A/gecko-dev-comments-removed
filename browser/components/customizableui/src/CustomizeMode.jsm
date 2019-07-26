@@ -427,30 +427,26 @@ CustomizeMode.prototype = {
 
   _doTransition: function(aEntering) {
     let deferred = Promise.defer();
-    let deck = this.document.getElementById("content-deck");
+    let deck = this.document.getElementById("tab-view-deck");
 
     let customizeTransitionEnd = function(aEvent) {
       if (aEvent != "timedout" &&
-          (aEvent.originalTarget != deck || aEvent.propertyName != "margin-left")) {
+          (aEvent.originalTarget != deck || aEvent.propertyName != "padding-bottom")) {
         return;
       }
       this.window.clearTimeout(catchAllTimeout);
-      
-      
-      this.window.setTimeout(function () {
-        deck.removeEventListener("transitionend", customizeTransitionEnd);
+      deck.removeEventListener("transitionend", customizeTransitionEnd);
 
-        if (!aEntering) {
-          this.document.documentElement.removeAttribute("customize-exiting");
-          this.document.documentElement.removeAttribute("customizing");
-        } else {
-          this.document.documentElement.setAttribute("customize-entered", true);
-          this.document.documentElement.removeAttribute("customize-entering");
-        }
-        this.dispatchToolboxEvent("customization-transitionend", aEntering);
+      if (!aEntering) {
+        this.document.documentElement.removeAttribute("customize-exiting");
+        this.document.documentElement.removeAttribute("customizing");
+      } else {
+        this.document.documentElement.setAttribute("customize-entered", true);
+        this.document.documentElement.removeAttribute("customize-entering");
+      }
+      this.dispatchToolboxEvent("customization-transitionend", aEntering);
 
-        deferred.resolve();
-      }.bind(this), 0);
+      deferred.resolve();
     }.bind(this);
     deck.addEventListener("transitionend", customizeTransitionEnd);
 
