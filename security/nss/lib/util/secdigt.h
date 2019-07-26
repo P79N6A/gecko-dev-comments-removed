@@ -23,6 +23,4 @@ struct SGNDigestInfoStr {
 };
 typedef struct SGNDigestInfoStr SGNDigestInfo;
 
-
-
 #endif 

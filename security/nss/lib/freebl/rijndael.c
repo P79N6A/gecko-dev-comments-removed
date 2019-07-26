@@ -973,12 +973,23 @@ AESContext * AES_AllocateContext(void)
 
 
 
+
+
+
 static PRBool
 check_xcr0_ymm()
 {
     PRUint32 xcr0;
 #if defined(_MSC_VER)
+#if defined(_M_IX86)
+    __asm {
+        mov ecx, 0
+        xgetbv
+        mov xcr0, eax
+    }
+#else
     xcr0 = (PRUint32)_xgetbv(0);  
+#endif
 #else
     __asm__ ("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx");
 #endif
