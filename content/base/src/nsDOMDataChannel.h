@@ -10,6 +10,7 @@
 
 
 
+#include "nsCOMPtr.h"
 #include "nsIDOMDataChannel.h"
 
 namespace mozilla {
@@ -19,7 +20,7 @@ namespace mozilla {
 class nsPIDOMWindow;
 
 nsresult
-NS_NewDOMDataChannel(mozilla::DataChannel* dataChannel,
+NS_NewDOMDataChannel(already_AddRefed<mozilla::DataChannel> dataChannel,
                      nsPIDOMWindow* aWindow,
                      nsIDOMDataChannel** domDataChannel);
 
