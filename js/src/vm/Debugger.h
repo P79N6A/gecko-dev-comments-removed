@@ -204,9 +204,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    typedef HashMap<TaggedFramePtr,
+    typedef HashMap<AbstractFramePtr,
                     RelocatablePtrObject,
-                    DefaultHasher<TaggedFramePtr>,
+                    DefaultHasher<AbstractFramePtr>,
                     RuntimeAllocPolicy> FrameMap;
     FrameMap frames;
 
@@ -403,7 +403,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     inline bool observesNewScript() const;
     inline bool observesNewGlobalObject() const;
     inline bool observesGlobal(GlobalObject *global) const;
-    inline bool observesFrame(TaggedFramePtr frame) const;
+    inline bool observesFrame(AbstractFramePtr frame) const;
     bool observesScript(JSScript *script) const;
 
     
@@ -633,7 +633,7 @@ Debugger::observesGlobal(GlobalObject *global) const
 }
 
 bool
-Debugger::observesFrame(TaggedFramePtr frame) const
+Debugger::observesFrame(AbstractFramePtr frame) const
 {
     return observesGlobal(&frame.script()->global());
 }
