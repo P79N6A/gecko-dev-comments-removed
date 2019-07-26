@@ -309,7 +309,7 @@ class SnapshotIterator
         
         if (moreFrames())
             return false;
-        return snapshot_.resumeAfter();
+        return recover_.resumeAfter();
     }
     inline BailoutKind bailoutKind() const {
         return snapshot_.bailoutKind();

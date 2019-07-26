@@ -302,6 +302,8 @@ class RValueAllocation
     };
 };
 
+typedef uint32_t RecoverOffset;
+
 class RecoverWriter;
 
 
@@ -327,7 +329,7 @@ class SnapshotWriter
   public:
     bool init();
 
-    SnapshotOffset startSnapshot(uint32_t frameCount, BailoutKind kind, bool resumeAfter);
+    SnapshotOffset startSnapshot(RecoverOffset recoverOffset, BailoutKind kind);
 #ifdef TRACK_SNAPSHOTS
     void trackSnapshot(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId,
                        uint32_t lirOpcode, uint32_t lirId);
@@ -358,6 +360,7 @@ class SnapshotWriter
 
 class RecoverWriter
 {
+    CompactBufferWriter writer_;
     SnapshotWriter &snapshot_;
 
     uint32_t nallocs_;
@@ -374,6 +377,17 @@ class RecoverWriter
     void endFrame();
 
     void endRecover();
+
+    size_t size() const {
+        return writer_.length();
+    }
+    const uint8_t *buffer() const {
+        return writer_.buffer();
+    }
+
+    bool oom() const {
+        return writer_.oom() || writer_.length() >= MAX_BUFFER_SIZE;
+    }
 };
 
 class RecoverReader;
@@ -390,10 +404,9 @@ class SnapshotReader
     CompactBufferReader allocReader_;
     const uint8_t* allocTable_;
 
-    uint32_t frameCount_;
     BailoutKind bailoutKind_;
     uint32_t allocRead_;          
-    bool resumeAfter_;
+    RecoverOffset recoverOffset_; 
 
 #ifdef TRACK_SNAPSHOTS
   private:
@@ -404,6 +417,7 @@ class SnapshotReader
     uint32_t lirId_;
 
   public:
+    void readTrackSnapshot();
     void spewBailingFrom() const;
 #endif
 
@@ -420,23 +434,27 @@ class SnapshotReader
     BailoutKind bailoutKind() const {
         return bailoutKind_;
     }
-    bool resumeAfter() const {
-        return resumeAfter_;
+    RecoverOffset recoverOffset() const {
+        return recoverOffset_;
     }
 };
 
 class RecoverReader
 {
+    CompactBufferReader reader_;
+
     uint32_t frameCount_;
     uint32_t framesRead_;         
     uint32_t pcOffset_;           
     uint32_t allocCount_;         
+    bool resumeAfter_;
 
   private:
+    void readRecoverHeader();
     void readFrame(SnapshotReader &snapshot);
 
   public:
-    RecoverReader(SnapshotReader &snapshot);
+    RecoverReader(SnapshotReader &snapshot, const uint8_t *recovers, uint32_t size);
 
     bool moreFrames() const {
         return framesRead_ < frameCount_;
@@ -450,6 +468,9 @@ class RecoverReader
 
     uint32_t pcOffset() const {
         return pcOffset_;
+    }
+    bool resumeAfter() const {
+        return resumeAfter_;
     }
 
     uint32_t allocations() const {
