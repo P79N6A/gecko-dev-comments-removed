@@ -291,6 +291,14 @@ class IonBuilder : public MIRGenerator
 
     
     
+    
+    
+    
+    
+    MTest *newTest(MDefinition *ins, MBasicBlock *ifTrue, MBasicBlock *ifFalse);
+
+    
+    
     MBasicBlock *createBreakCatchBlock(DeferredEdge *edge, jsbytecode *pc);
 
     
