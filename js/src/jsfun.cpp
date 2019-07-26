@@ -618,7 +618,15 @@ const Class JSFunction::class_ = {
     nullptr,                 
     fun_hasInstance,
     nullptr,                 
-    fun_trace
+    fun_trace,
+    {
+        CreateFunctionConstructor,
+        CreateFunctionPrototype,
+        nullptr,
+        function_methods,
+        nullptr,
+        FinishFunctionClassInit
+    }
 };
 
 const Class* const js::FunctionClassPtr = &JSFunction::class_;

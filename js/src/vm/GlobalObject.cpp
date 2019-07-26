@@ -80,22 +80,6 @@ js::GlobalObject::getTypedObjectModule() const {
     return v.toObject().as<TypedObjectModuleObject>();
 }
 
-JSObject *
-js_InitObjectClass(JSContext *cx, HandleObject obj)
-{
-    JS_ASSERT(obj->isNative());
-
-    return obj->as<GlobalObject>().getOrCreateObjectPrototype(cx);
-}
-
-JSObject *
-js_InitFunctionClass(JSContext *cx, HandleObject obj)
-{
-    JS_ASSERT(obj->isNative());
-
-    return obj->as<GlobalObject>().getOrCreateFunctionPrototype(cx);
-}
-
 static bool
 ThrowTypeError(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -210,6 +194,8 @@ JSObject *
 js::CreateObjectConstructor(JSContext *cx, JSProtoKey key)
 {
     Rooted<GlobalObject*> self(cx, cx->global());
+    if (!GlobalObject::ensureConstructor(cx, self, JSProto_Function))
+        return nullptr;
     RootedObject functionProto(cx, &self->getPrototype(JSProto_Function).toObject());
 
     
@@ -240,65 +226,6 @@ js::CreateFunctionConstructor(JSContext *cx, JSProtoKey key)
         return nullptr;
     JS_ASSERT(ctor == functionCtor);
     return functionCtor;
-}
-
-JSObject *
-GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
-{
-    Rooted<GlobalObject*> self(cx, cx->global());
-
-    RootedObject objectProto(cx, CreateObjectPrototype(cx, JSProto_Object));
-    if (!objectProto)
-        return nullptr;
-    self->setPrototype(JSProto_Object, ObjectValue(*objectProto));
-
-    RootedObject functionProto(cx, CreateFunctionPrototype(cx, JSProto_Function));
-    if (!functionProto)
-        return nullptr;
-    self->setPrototype(JSProto_Function, ObjectValue(*functionProto));
-
-    RootedObject objectCtor(cx, CreateObjectConstructor(cx, JSProto_Object));
-    if (!objectCtor)
-        return nullptr;
-    self->setConstructor(JSProto_Object, ObjectValue(*objectCtor));
-    self->setConstructorPropertySlot(JSProto_Object, ObjectValue(*objectCtor));
-
-    RootedObject functionCtor(cx, CreateFunctionConstructor(cx, JSProto_Function));
-    if (!functionCtor)
-        return nullptr;
-    self->setConstructor(JSProto_Function, ObjectValue(*functionCtor));
-    self->setConstructorPropertySlot(JSProto_Function, ObjectValue(*functionCtor));
-
-    
-
-
-
-    if (!LinkConstructorAndPrototype(cx, objectCtor, objectProto) ||
-        !DefinePropertiesAndBrand(cx, objectProto, object_properties, object_methods))
-    {
-        return nullptr;
-    }
-
-    if (!DefinePropertiesAndBrand(cx, objectCtor, nullptr, object_static_methods) ||
-        !LinkConstructorAndPrototype(cx, functionCtor, functionProto) ||
-        !DefinePropertiesAndBrand(cx, functionProto, nullptr, function_methods) ||
-        !DefinePropertiesAndBrand(cx, functionCtor, nullptr, nullptr))
-    {
-        return nullptr;
-    }
-
-    
-    if (!self->addDataProperty(cx, cx->names().Object, constructorPropertySlot(JSProto_Object), 0))
-        return nullptr;
-    if (!self->addDataProperty(cx, cx->names().Function, constructorPropertySlot(JSProto_Function), 0))
-        return nullptr;
-
-    if (!FinishObjectClassInit(cx, objectCtor, objectProto))
-        return nullptr;
-    if (!FinishFunctionClassInit(cx, functionCtor, functionProto))
-        return nullptr;
-
-    return functionProto;
 }
 
 bool
@@ -418,6 +345,14 @@ GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JS
     
     
     
+    
+    
+    
+    
+    
+    if (key == JSProto_Function && global->getPrototype(JSProto_Object).isUndefined())
+        return resolveConstructor(cx, global, JSProto_Object);
+
     
     
     
