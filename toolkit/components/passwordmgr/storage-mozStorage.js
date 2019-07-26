@@ -14,9 +14,6 @@ const DB_VERSION = 5;
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
-
 
 
 
@@ -56,11 +53,6 @@ LoginManagerStorage_mozStorage.prototype = {
     QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
                                             Ci.nsIInterfaceRequestor]),
     getInterface : function(aIID) {
-        if (aIID.equals(Ci.nsIVariant)) {
-            
-            return this;
-        }
-
         if (aIID.equals(Ci.mozIStorageConnection)) {
             return this._dbConnection;
         }
@@ -175,11 +167,13 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
+
+
     initWithFile : function(aDBFile) {
         if (aDBFile)
             this._signonsFile = aDBFile;
 
-        this.initialize();
+        this.init();
     },
 
 
@@ -187,7 +181,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-    initialize : function () {
+    init : function () {
         this._dbStmts = {};
 
         
@@ -212,8 +206,6 @@ LoginManagerStorage_mozStorage.prototype = {
             isFirstRun = this._dbInit();
 
             this._initialized = true;
-
-            return Promise.resolve();
         } catch (e) {
             this.log("Initialization failed: " + e);
             
@@ -221,17 +213,6 @@ LoginManagerStorage_mozStorage.prototype = {
                 this._dbCleanup(false);
             throw "Initialization failed";
         }
-    },
-
-
-    
-
-
-
-
-
-    terminate : function () {
-        return Promise.resolve();
     },
 
 
@@ -503,6 +484,19 @@ LoginManagerStorage_mozStorage.prototype = {
         if (count)
             count.value = logins.length; 
         return logins;
+    },
+
+
+    
+
+
+
+
+
+
+
+    getAllEncryptedLogins : function (count) {
+        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
     },
 
 
