@@ -631,12 +631,18 @@ WrapperOwner::ok(JSContext *cx, const ReturnStatus &status)
 }
 
 bool
-WrapperOwner::toObjectVariant(JSContext *cx, JSObject *obj, ObjectVariant *objVarp)
+WrapperOwner::toObjectVariant(JSContext *cx, JSObject *objArg, ObjectVariant *objVarp)
 {
+    RootedObject obj(cx, objArg);
     JS_ASSERT(obj);
-    JSObject *unwrapped = js::CheckedUnwrap(obj, false);
-    if (unwrapped && IsCPOW(unwrapped) && OwnerOf(unwrapped) == this) {
-        *objVarp = LocalObject(idOf(unwrapped));
+
+    
+    
+    
+    
+    obj = js::CheckedUnwrap(obj, false);
+    if (obj && IsCPOW(obj) && OwnerOf(obj) == this) {
+        *objVarp = LocalObject(idOf(obj));
         return true;
     }
 
@@ -645,6 +651,11 @@ WrapperOwner::toObjectVariant(JSContext *cx, JSObject *obj, ObjectVariant *objVa
         *objVarp = RemoteObject(id);
         return true;
     }
+
+    
+    
+    if (mozilla::dom::IsDOMObject(obj))
+        mozilla::dom::TryPreserveWrapper(obj);
 
     id = ++lastId_;
     if (id > MAX_CPOW_IDS) {
