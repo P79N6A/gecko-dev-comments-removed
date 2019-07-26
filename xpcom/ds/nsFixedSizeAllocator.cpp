@@ -3,13 +3,7 @@
 
 
 
-
-
-
-
-
-
-#include "nsCRT.h"
+#include "nsDebug.h"
 #include "nsFixedSizeAllocator.h"
 
 nsFixedSizeAllocator::Bucket *
@@ -33,7 +27,7 @@ nsresult
 nsFixedSizeAllocator::Init(const char* aName,
                            const size_t* aBucketSizes,
                            int32_t aNumBuckets,
-                           int32_t aInitialSize,
+                           int32_t aChunkSize,
                            int32_t aAlign)
 {
     NS_PRECONDITION(aNumBuckets > 0, "no buckets");
@@ -44,8 +38,7 @@ nsFixedSizeAllocator::Init(const char* aName,
     if (mBuckets)
         PL_FinishArenaPool(&mPool);
 
-    int32_t bucketspace = aNumBuckets * sizeof(Bucket);
-    PL_InitArenaPool(&mPool, aName, bucketspace + aInitialSize, aAlign);
+    PL_InitArenaPool(&mPool, aName, aChunkSize, aAlign);
 
     mBuckets = nullptr;
     for (int32_t i = 0; i < aNumBuckets; ++i)

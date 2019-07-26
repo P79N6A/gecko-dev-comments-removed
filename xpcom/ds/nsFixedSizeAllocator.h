@@ -91,6 +91,28 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFixedSizeAllocator_h__
 #define nsFixedSizeAllocator_h__
 
@@ -142,11 +164,17 @@ public:
 
 
 
+
+
+
+
+
+
     nsresult
     Init(const char* aName,
          const size_t* aBucketSizes,
          int32_t aNumBuckets,
-         int32_t aInitialSize,
+         int32_t aChunkSize,
          int32_t aAlign = 0);
 
     
