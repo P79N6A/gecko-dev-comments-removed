@@ -29,9 +29,6 @@ public:
     nsStreamConverterService();
     virtual ~nsStreamConverterService();
 
-    
-    nsresult Init();
-
 private:
     
     nsresult FindConverter(const char *aContractID, nsTArray<nsCString> **aEdgeList);
