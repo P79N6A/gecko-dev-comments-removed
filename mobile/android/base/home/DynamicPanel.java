@@ -56,8 +56,7 @@ import android.widget.FrameLayout;
 
 
 
-public class DynamicPanel extends HomeFragment
-                          implements GeckoEventListener {
+public class DynamicPanel extends HomeFragment {
     private static final String LOGTAG = "GeckoDynamicPanel";
 
     
@@ -154,7 +153,6 @@ public class DynamicPanel extends HomeFragment
         }
 
         mPanelAuthCache.setOnChangeListener(new PanelAuthChangeListener());
-        GeckoAppShell.registerEventListener("HomePanels:RefreshDataset", this);
     }
 
     @Override
@@ -165,7 +163,6 @@ public class DynamicPanel extends HomeFragment
         mPanelAuthLayout = null;
 
         mPanelAuthCache.setOnChangeListener(null);
-        GeckoAppShell.unregisterEventListener("HomePanels:RefreshDataset", this);
 
         if (mAuthStateTask != null) {
             mAuthStateTask.cancel(true);
@@ -287,42 +284,6 @@ public class DynamicPanel extends HomeFragment
         }
 
         mUIMode = mode;
-    }
-
-    @Override
-    public void handleMessage(String event, final JSONObject message) {
-        if (event.equals("HomePanels:RefreshDataset")) {
-            ThreadUtils.postToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    handleDatasetRefreshRequest(message);
-                }
-            });
-        }
-    }
-
-    
-
-
-
-    private void handleDatasetRefreshRequest(JSONObject message) {
-        final String datasetId;
-        try {
-            datasetId = message.getString("datasetId");
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Failed to handle dataset refresh", e);
-            return;
-        }
-
-        final Activity activity = getActivity();
-        if (activity == null) {
-            return;
-        }
-
-        Log.d(LOGTAG, "Refresh request for dataset: " + datasetId);
-
-        final ContentResolver cr = activity.getContentResolver();
-        cr.notifyChange(HomeProvider.getDatasetNotificationUri(datasetId), null);
     }
 
     
