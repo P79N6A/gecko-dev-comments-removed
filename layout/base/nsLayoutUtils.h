@@ -64,7 +64,8 @@ class nsLayoutUtils
   typedef gfxPattern::GraphicsFilter GraphicsFilter;
 
 public:
-  typedef mozilla::layers::FrameMetrics::ViewID ViewID;
+  typedef mozilla::layers::FrameMetrics FrameMetrics;
+  typedef FrameMetrics::ViewID ViewID;
 
   
 
@@ -76,7 +77,8 @@ public:
 
 
 
-  static ViewID FindOrCreateIDFor(nsIContent* aContent);
+
+  static ViewID FindOrCreateIDFor(nsIContent* aContent, bool aRoot = false);
 
   
 

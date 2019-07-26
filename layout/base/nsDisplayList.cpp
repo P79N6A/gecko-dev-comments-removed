@@ -1156,6 +1156,13 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
       usingDisplayport = nsLayoutUtils::GetDisplayPort(content, &displayport);
       usingCriticalDisplayport =
         nsLayoutUtils::GetCriticalDisplayPort(content, &criticalDisplayport);
+
+      if (id == FrameMetrics::ROOT_SCROLL_ID) {
+        
+        
+        
+        nsLayoutUtils::FindOrCreateIDFor(content, true);
+      }
     }
   }
 
