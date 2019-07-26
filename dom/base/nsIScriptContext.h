@@ -28,8 +28,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x76d14525, 0x68ff, 0x4f43, \
-  { 0xb1, 0x92, 0x9e, 0x67, 0x28, 0xaa, 0xaf, 0x19 } }
+{ 0x9173717f, 0x0722, 0x44bc, \
+  { 0x99, 0x6c, 0x69, 0xa9, 0xf9, 0x6d, 0x73, 0xac } }
 
 
 
@@ -63,31 +63,6 @@ public:
                                   JS::CompileOptions& aOptions,
                                   bool aCoerceToString,
                                   JS::Value* aRetValue) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult CompileScript(const PRUnichar* aText,
-                                 int32_t aTextLength,
-                                 nsIPrincipal* aPrincipal,
-                                 const char* aURL,
-                                 uint32_t aLineNo,
-                                 uint32_t aVersion,
-                                 JS::MutableHandle<JSScript*> aScriptObject,
-                                 bool aSaveSource = false) = 0;
 
   
 
