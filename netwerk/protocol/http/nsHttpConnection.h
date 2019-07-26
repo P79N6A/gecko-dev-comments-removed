@@ -175,6 +175,10 @@ public:
     
     bool    IsExperienced() { return mExperienced; }
 
+    static nsresult MakeConnectString(nsAHttpTransaction *trans,
+                                      nsHttpRequestHead *request,
+                                      nsACString &result);
+
 private:
     
     enum TCPKeepaliveConfig {
