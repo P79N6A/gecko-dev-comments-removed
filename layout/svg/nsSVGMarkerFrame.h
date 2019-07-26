@@ -115,14 +115,16 @@ private:
   
   
   
-  class AutoMarkerReferencer
+  class MOZ_STACK_CLASS AutoMarkerReferencer
   {
   public:
     AutoMarkerReferencer(nsSVGMarkerFrame *aFrame,
-                         nsSVGPathGeometryFrame *aMarkedFrame);
+                         nsSVGPathGeometryFrame *aMarkedFrame
+                         MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~AutoMarkerReferencer();
   private:
     nsSVGMarkerFrame *mFrame;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   };
 
   
