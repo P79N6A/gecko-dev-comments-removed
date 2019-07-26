@@ -1701,10 +1701,8 @@ nsEventStateManager::HandleCrossProcessEvent(WidgetEvent* aEvent,
       aEvent->message == NS_TOUCH_START) {
     
     
-    nsIContent* target = mCurrentTargetContent;
-    if (!target && aTargetFrame) {
-      target = aTargetFrame->GetContent();
-    }
+    nsIFrame* frame = GetEventTarget();
+    nsIContent* target = frame ? frame->GetContent() : nullptr;
     if (IsRemoteTarget(target)) {
       targets.AppendElement(target);
     }
