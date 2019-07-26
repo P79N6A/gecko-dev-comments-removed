@@ -7494,15 +7494,9 @@ nsFrame::DoGetParentStyleContextFrame() const
 
   
   
-  const nsIFrame* oofFrame = this;
-  if ((oofFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-      GetPrevInFlow()) {
-    
-    
-    oofFrame = oofFrame->FirstInFlow();
-  }
-  nsIFrame* placeholder = oofFrame->PresContext()->FrameManager()->
-                            GetPlaceholderFrameFor(oofFrame);
+  
+  nsIFrame* placeholder = PresContext()->FrameManager()->
+                            GetPlaceholderFrameFor(FirstInFlow());
   if (!placeholder) {
     NS_NOTREACHED("no placeholder frame for out-of-flow frame");
     return GetCorrectedParent(this);
