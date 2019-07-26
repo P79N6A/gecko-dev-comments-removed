@@ -715,6 +715,25 @@ IsDuckTypedErrorObject(JSContext *cx, HandleObject exnObject, const char **filen
     return true;
 }
 
+JS_FRIEND_API(JSString *)
+js::ErrorReportToString(JSContext *cx, JSErrorReport *reportp)
+{
+    JSExnType type = static_cast<JSExnType>(reportp->exnType);
+    RootedString str(cx, cx->runtime()->emptyString);
+    if (type != JSEXN_NONE)
+        str = ClassName(GetExceptionProtoKey(type), cx);
+    RootedString toAppend(cx, JS_NewUCStringCopyN(cx, MOZ_UTF16(": "), 2));
+    if (!str || !toAppend)
+        return nullptr;
+    str = ConcatStrings<CanGC>(cx, str, toAppend);
+    if (!str)
+        return nullptr;
+    toAppend = JS_NewUCStringCopyZ(cx, reportp->ucmessage);
+    if (toAppend)
+        str = ConcatStrings<CanGC>(cx, str, toAppend);
+    return str;
+}
+
 bool
 js_ReportUncaughtException(JSContext *cx)
 {
@@ -747,7 +766,13 @@ js_ReportUncaughtException(JSContext *cx)
                                        : nullptr;
 
     
-    RootedString str(cx, ToString<CanGC>(cx, exn));
+    
+    
+    RootedString str(cx);
+    if (reportp)
+        str = ErrorReportToString(cx, reportp);
+    else
+        str = ToString<CanGC>(cx, exn);
     if (str)
         roots[1] = StringValue(str);
 
@@ -768,6 +793,13 @@ js_ReportUncaughtException(JSContext *cx)
         if (JS_GetProperty(cx, exnObject, js_message_str, roots.handleAt(3)) && roots[3].isString())
             msg = roots[3].toString();
 
+        
+        
+        
+        
+        
+        
+        
         if (name && msg) {
             RootedString colon(cx, JS_NewStringCopyZ(cx, ": "));
             if (!colon)
@@ -811,6 +843,13 @@ js_ReportUncaughtException(JSContext *cx)
         report.exnType = int16_t(JSEXN_NONE);
         report.column = (unsigned) column;
         if (str) {
+            
+            
+            
+            
+            
+            
+            
             if (JSStableString *stable = str->ensureStable(cx))
                 report.ucmessage = stable->chars().get();
         }

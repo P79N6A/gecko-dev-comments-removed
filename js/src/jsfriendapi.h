@@ -1103,6 +1103,16 @@ typedef enum JSErrNum {
 extern JS_FRIEND_API(const JSErrorFormatString *)
 js_GetErrorMessage(void *userRef, const char *locale, const unsigned errorNumber);
 
+namespace js {
+
+
+
+extern JS_FRIEND_API(JSString *)
+ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
+
+} 
+
+
 
 
 extern JS_FRIEND_API(uint64_t)
