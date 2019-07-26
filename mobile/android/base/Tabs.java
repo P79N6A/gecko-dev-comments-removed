@@ -33,6 +33,10 @@ public class Tabs implements GeckoEventListener {
     
     private volatile int mScore = 0;
 
+    public static final int LOADURL_NONE = 0;
+    public static final int LOADURL_NEW_TAB = 1;
+    public static final int LOADURL_USER_ENTERED = 2;
+
     private static final int SCORE_INCREMENT_TAB_LOCATION_CHANGE = 5;
     private static final int SCORE_INCREMENT_TAB_SELECTED = 10;
     private static final int SCORE_THRESHOLD = 30;
@@ -40,7 +44,6 @@ public class Tabs implements GeckoEventListener {
     private GeckoApp mActivity;
 
     private Tabs() {
-
         registerEventListener("SessionHistory:New");
         registerEventListener("SessionHistory:Back");
         registerEventListener("SessionHistory:Forward");
@@ -65,7 +68,7 @@ public class Tabs implements GeckoEventListener {
         return mTabs.size();
     }
 
-    public Tab addTab(JSONObject params) throws JSONException {
+    private Tab addTab(JSONObject params) throws JSONException {
         int id = params.getInt("tabID");
         if (mTabs.containsKey(id))
            return mTabs.get(id);
@@ -411,5 +414,70 @@ public class Tabs implements GeckoEventListener {
 
     private void registerEventListener(String event) {
         GeckoAppShell.getEventDispatcher().registerEventListener(event, this);
+    }
+
+    
+
+
+
+
+    public void loadUrl(String url) {
+        loadUrl(url, LOADURL_NONE);
+    }
+
+    
+
+
+
+
+
+    public void loadUrl(String url, int flags) {
+        loadUrl(url, null, -1, flags);
+    }
+
+    
+
+
+
+
+
+
+
+
+    public void loadUrl(String url, String searchEngine, int parentId, int flags) {
+        JSONObject args = new JSONObject();
+        try {
+            args.put("url", url);
+            args.put("engine", searchEngine);
+            args.put("parentId", parentId);
+            args.put("userEntered", (flags & LOADURL_USER_ENTERED) != 0);
+            args.put("newTab", (flags & LOADURL_NEW_TAB) != 0);
+        } catch (Exception e) {
+            Log.e(LOGTAG, "error building JSON arguments");
+        }
+
+        Log.d(LOGTAG, "Sending message to Gecko: " + SystemClock.uptimeMillis() + " - Tab:Load");
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Load", args.toString()));
+    }
+
+    
+
+
+
+
+
+
+
+
+    public void loadUrlInTab(String url) {
+        Iterable<Tab> tabs = getTabsInOrder();
+        for (Tab tab : tabs) {
+            if (url.equals(tab.getURL())) {
+                selectTab(tab.getId());
+                return;
+            }
+        }
+
+        loadUrl(url, null, getSelectedTab().getId(), LOADURL_NEW_TAB);
     }
 }
