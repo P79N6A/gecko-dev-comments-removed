@@ -46,6 +46,7 @@ IsJSXraySupported(JSProtoKey key)
     switch (key) {
       case JSProto_Date:
       case JSProto_Object:
+      case JSProto_Array:
         return true;
       default:
         return false;
@@ -472,7 +473,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
             
             
             JSProtoKey key = IdentifyStandardInstanceOrPrototype(propObj);
-            if (key != JSProto_Array && key != JSProto_Uint8ClampedArray &&
+            if (key != JSProto_Uint8ClampedArray &&
                 key != JSProto_Int8Array && key != JSProto_Uint8Array &&
                 key != JSProto_Int16Array && key != JSProto_Uint16Array &&
                 key != JSProto_Int32Array && key != JSProto_Uint32Array &&
@@ -521,8 +522,16 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     if (!isPrototype(holder)) {
         
         
+        
+        
+        
+        
+        
+        
+        
         switch (getProtoKey(holder)) {
           case JSProto_Object:
+          case JSProto_Array:
             {
                 JSAutoCompartment ac(cx, target);
                 if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc))
@@ -669,8 +678,10 @@ JSXrayTraits::delete_(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp
     
     
     
-    bool isObjectInstance = getProtoKey(holder) == JSProto_Object && !isPrototype(holder);
-    if (isObjectInstance) {
+    JSProtoKey key = getProtoKey(holder);
+    bool isObjectOrArrayInstance = (key == JSProto_Object || key == JSProto_Array) &&
+                                   !isPrototype(holder);
+    if (isObjectOrArrayInstance) {
         RootedObject target(cx, getTargetObject(wrapper));
         JSAutoCompartment ac(cx, target);
         Rooted<JSPropertyDescriptor> desc(cx);
@@ -704,25 +715,27 @@ JSXrayTraits::defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
     
     
     
-    bool isObjectInstance = getProtoKey(holder) == JSProto_Object && !isPrototype(holder);
-    if (isObjectInstance) {
+    JSProtoKey key = getProtoKey(holder);
+    bool isObjectOrArrayInstance = (key == JSProto_Object || key == JSProto_Array) &&
+                                   !isPrototype(holder);
+    if (isObjectOrArrayInstance) {
         RootedObject target(cx, getTargetObject(wrapper));
         if (desc.hasGetterOrSetter()) {
-            JS_ReportError(cx, "Not allowed to define accessor property on [Object] XrayWrapper");
+            JS_ReportError(cx, "Not allowed to define accessor property on [Object] or [Array] XrayWrapper");
             return false;
         }
         if (desc.value().isObject() &&
             !AccessCheck::subsumes(target, js::UncheckedUnwrap(&desc.value().toObject())))
         {
-            JS_ReportError(cx, "Not allowed to define cross-origin object as property on [Object] XrayWrapper");
+            JS_ReportError(cx, "Not allowed to define cross-origin object as property on [Object] or [Array] XrayWrapper");
             return false;
         }
         if (existingDesc.hasGetterOrSetter()) {
-            JS_ReportError(cx, "Not allowed to overwrite accessor property on [Object] XrayWrapper");
+            JS_ReportError(cx, "Not allowed to overwrite accessor property on [Object] or [Array] XrayWrapper");
             return false;
         }
         if (existingDesc.object() && existingDesc.object() != wrapper) {
-            JS_ReportError(cx, "Not allowed to shadow non-own Xray-resolved property on [Object] XrayWrapper");
+            JS_ReportError(cx, "Not allowed to shadow non-own Xray-resolved property on [Object] or [Array] XrayWrapper");
             return false;
         }
 
@@ -754,6 +767,7 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         
         switch (getProtoKey(holder)) {
           case JSProto_Object:
+          case JSProto_Array:
             MOZ_ASSERT(props.empty());
             {
                 JSAutoCompartment ac(cx, target);
