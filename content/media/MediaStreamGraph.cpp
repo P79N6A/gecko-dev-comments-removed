@@ -1245,10 +1245,17 @@ private:
 class CreateMessage : public ControlMessage {
 public:
   CreateMessage(MediaStream* aStream) : ControlMessage(aStream) {}
-  virtual void Run()
+  virtual void Run() MOZ_OVERRIDE
   {
     mStream->GraphImpl()->AddStream(mStream);
     mStream->Init();
+  }
+  virtual void RunDuringShutdown() MOZ_OVERRIDE
+  {
+    
+    
+    
+    Run();
   }
 };
 
