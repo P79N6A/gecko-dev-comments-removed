@@ -40,6 +40,20 @@ function Number_toLocaleString() {
 }
 
 
+function Number_isFinite(num) {
+    if (typeof num !== "number")
+        return false;
+    return num - num === 0;
+}
+
+
+function Number_isNaN(num) {
+    if (typeof num !== "number")
+        return false;
+    return num !== num;
+}
+
+
 function Number_isSafeInteger(number) {
     
     if (typeof number !== 'number')
