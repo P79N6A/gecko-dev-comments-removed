@@ -196,16 +196,6 @@ TextDecoder::FeedBytes(const char* aBytes, nsAString* aOutString)
 void
 TextDecoder::GetEncoding(nsAString& aEncoding)
 {
-  
-  
-  
-  
-  
-  if (mEncoding.EqualsLiteral("UTF-16LE")) {
-    aEncoding.AssignLiteral("utf-16");
-    return;
-  }
-
   CopyASCIItoUTF16(mEncoding, aEncoding);
   nsContentUtils::ASCIIToLower(aEncoding);
 }
