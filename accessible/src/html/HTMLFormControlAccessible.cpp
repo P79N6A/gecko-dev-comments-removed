@@ -306,6 +306,21 @@ HTMLTextFieldAccessible::NativeRole()
   return roles::ENTRY;
 }
 
+already_AddRefed<nsIPersistentProperties>
+HTMLTextFieldAccessible::NativeAttributes()
+{
+  nsCOMPtr<nsIPersistentProperties> attributes =
+    HyperTextAccessibleWrap::NativeAttributes();
+
+  
+  
+  nsAutoString type;
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type))
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textInputType, type);
+
+  return attributes.forget();
+}
+
 ENameValueFlag
 HTMLTextFieldAccessible::NativeName(nsString& aName)
 {
