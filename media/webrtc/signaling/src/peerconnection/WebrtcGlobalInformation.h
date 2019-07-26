@@ -1,0 +1,41 @@
+
+
+
+
+#ifndef _WEBRTC_GLOBAL_INFORMATION_H_
+#define _WEBRTC_GLOBAL_INFORMATION_H_
+
+#include "nsString.h"
+
+namespace mozilla {
+class ErrorResult;
+
+namespace dom {
+class GlobalObject;
+class WebrtcGlobalStatisticsCallback;
+class WebrtcGlobalLoggingCallback;
+
+class WebrtcGlobalInformation
+{
+public:
+  static void GetAllStats(const GlobalObject& aGlobal,
+                          WebrtcGlobalStatisticsCallback& aStatsCallback,
+                          ErrorResult& aRv);
+
+  static void GetLogging(const GlobalObject& aGlobal,
+                         const nsAString& aPattern,
+                         WebrtcGlobalLoggingCallback& aLoggingCallback,
+                         ErrorResult& aRv);
+
+private:
+  WebrtcGlobalInformation() MOZ_DELETE;
+  WebrtcGlobalInformation(const WebrtcGlobalInformation& aOrig) MOZ_DELETE;
+  WebrtcGlobalInformation& operator=(
+    const WebrtcGlobalInformation& aRhs) MOZ_DELETE;
+};
+
+} 
+} 
+
+#endif  
+

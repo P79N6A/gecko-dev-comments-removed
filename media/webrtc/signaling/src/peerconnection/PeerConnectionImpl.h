@@ -160,14 +160,20 @@ private:
 
 class RTCStatsQuery {
   public:
+    explicit RTCStatsQuery(bool internalStats);
+    ~RTCStatsQuery();
+
+    mozilla::dom::RTCStatsReportInternal report;
+    std::string error;
+
+  private:
+    friend class PeerConnectionImpl;
     std::string pcName;
     bool internalStats;
-    std::vector<mozilla::RefPtr<mozilla::MediaPipeline>> pipelines;
+    nsTArray<mozilla::RefPtr<mozilla::MediaPipeline>> pipelines;
     mozilla::RefPtr<NrIceCtx> iceCtx;
-    std::vector<mozilla::RefPtr<NrIceMediaStream>> streams;
+    nsTArray<mozilla::RefPtr<NrIceMediaStream>> streams;
     DOMHighResTimeStamp now;
-    mozilla::dom::RTCStatsReportInternal report;
-    nsCOMPtr<nsIThread> mainThread;
 };
 #endif 
 
@@ -330,16 +336,9 @@ public:
   }
 
   NS_IMETHODIMP_TO_ERRORRESULT(GetStats, ErrorResult &rv,
-                               mozilla::dom::MediaStreamTrack *aSelector,
-                               bool internalStats)
+                               mozilla::dom::MediaStreamTrack *aSelector)
   {
-    rv = GetStats(aSelector, internalStats);
-  }
-
-  NS_IMETHODIMP_TO_ERRORRESULT(GetLogging, ErrorResult &rv,
-                               const nsAString& pattern)
-  {
-    rv = GetLogging(pattern);
+    rv = GetStats(aSelector);
   }
 
   NS_IMETHODIMP AddIceCandidate(const char* aCandidate, const char* aMid,
@@ -507,15 +506,14 @@ public:
   
   void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState);
 
+  bool IsClosed() const;
+
 #ifdef MOZILLA_INTERNAL_API
   
   void startCallTelem();
 
-  
-  
   nsresult BuildStatsQuery_m(
       mozilla::dom::MediaStreamTrack *aSelector,
-      bool internalStats,
       RTCStatsQuery *query);
 
   static nsresult ExecuteStatsQuery_s(RTCStatsQuery *query);
@@ -579,16 +577,6 @@ private:
       const std::string& pcHandle,
       nsresult result,
       nsAutoPtr<RTCStatsQuery> query);
-
-  
-  static void GetLogging_s(const std::string& pcHandle,
-                           nsCOMPtr<nsIThread> callbackThread,
-                           const std::string& pattern);
-
-  
-  static void OnGetLogging_m(const std::string& pcHandle,
-                             const std::string& pattern,
-                             nsAutoPtr<std::deque<std::string>> logging);
 #endif
 
   

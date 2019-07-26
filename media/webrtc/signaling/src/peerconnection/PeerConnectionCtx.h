@@ -25,6 +25,10 @@
 namespace mozilla {
 class PeerConnectionCtxShutdown;
 
+namespace dom {
+class WebrtcGlobalInformation;
+}
+
 
 
 class MediaConstraintsExternal {
@@ -76,6 +80,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   
   friend class PeerConnectionImpl;
   friend class PeerConnectionWrapper;
+  friend class mozilla::dom::WebrtcGlobalInformation;
 
  private:
   
