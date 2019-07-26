@@ -1315,9 +1315,10 @@ XrayResolveNativeProperty(JSContext* cx, JSObject* wrapper, JSObject* obj,
 
 
 
+
 bool
 XrayEnumerateProperties(JSContext* cx, JSObject* wrapper, JSObject* obj,
-                        bool ownOnly, JS::AutoIdVector& props);
+                        unsigned flags, JS::AutoIdVector& props);
 
 extern NativePropertyHooks sWorkerNativePropertyHooks;
 
