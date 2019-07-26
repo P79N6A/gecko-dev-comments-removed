@@ -94,6 +94,20 @@ function callGetOwnPropertyDescriptor(obj, name) {
 
 
 function doApply(fun, invocant, args) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  args = args.map(x => (Object(x) === x &&
+                        Cu.getClassName(x, true) == 'Object')
+                  ? Cu.waiveXrays(x) : x);
   return Function.prototype.apply.call(fun, invocant, args);
 }
 
@@ -212,8 +226,17 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   
-  var obj = name == 'toString' ? XPCNativeWrapper.unwrap(this.wrappedObject)
-                               : this.wrappedObject;
+  
+  
+  
+  
+  
+  
+  
+  
+  var obj = this.wrappedObject;
+  if (name == 'toString' || Cu.getClassName(obj, true) == 'Object')
+    obj = XPCNativeWrapper.unwrap(obj);
 
   
   
@@ -416,6 +439,7 @@ function wrapCallback(cb) {
 }
 
 function wrapCallbackObject(obj) {
+  obj = Cu.waiveXrays(obj);
   var wrapper = { __exposedProps__: ExposedPropsWaiver };
   for (var i in obj) {
     if (typeof obj[i] == 'function')
@@ -703,27 +727,30 @@ SpecialPowersAPI.prototype = {
 
 
   pushPermissions: function(inPermissions, callback) {
+    inPermissions = Cu.waiveXrays(inPermissions);
     var pendingPermissions = [];
     var cleanupPermissions = [];
 
     for (var p in inPermissions) {
         var permission = inPermissions[p];
         var originalValue = Ci.nsIPermissionManager.UNKNOWN_ACTION;
-        if (this.testPermission(permission.type, Ci.nsIPermissionManager.ALLOW_ACTION, permission.context)) {
+        var context = Cu.unwaiveXrays(permission.context); 
+                                                           
+        if (this.testPermission(permission.type, Ci.nsIPermissionManager.ALLOW_ACTION, context)) {
           originalValue = Ci.nsIPermissionManager.ALLOW_ACTION;
-        } else if (this.testPermission(permission.type, Ci.nsIPermissionManager.DENY_ACTION, permission.context)) {
+        } else if (this.testPermission(permission.type, Ci.nsIPermissionManager.DENY_ACTION, context)) {
           originalValue = Ci.nsIPermissionManager.DENY_ACTION;
-        } else if (this.testPermission(permission.type, Ci.nsIPermissionManager.PROMPT_ACTION, permission.context)) {
+        } else if (this.testPermission(permission.type, Ci.nsIPermissionManager.PROMPT_ACTION, context)) {
           originalValue = Ci.nsIPermissionManager.PROMPT_ACTION;
-        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_SESSION, permission.context)) {
+        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_SESSION, context)) {
           originalValue = Ci.nsICookiePermission.ACCESS_SESSION;
-        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_ALLOW_FIRST_PARTY_ONLY, permission.context)) {
+        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_ALLOW_FIRST_PARTY_ONLY, context)) {
           originalValue = Ci.nsICookiePermission.ACCESS_ALLOW_FIRST_PARTY_ONLY;
-        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_LIMIT_THIRD_PARTY, permission.context)) {
+        } else if (this.testPermission(permission.type, Ci.nsICookiePermission.ACCESS_LIMIT_THIRD_PARTY, context)) {
           originalValue = Ci.nsICookiePermission.ACCESS_LIMIT_THIRD_PARTY;
         }
 
-        let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(permission.context);
+        let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(context);
 
         let perm;
         if (typeof permission.allow !== 'boolean') {
@@ -1064,13 +1091,14 @@ SpecialPowersAPI.prototype = {
 
   addObserver: function(obs, notification, weak) {
     this._addObserverProxy(notification);
+    obs = Cu.waiveXrays(obs);
     if (typeof obs == 'object' && obs.observe.name != 'SpecialPowersCallbackWrapper')
       obs.observe = wrapCallback(obs.observe);
     Services.obs.addObserver(obs, notification, weak);
   },
   removeObserver: function(obs, notification) {
     this._removeObserverProxy(notification);
-    Services.obs.removeObserver(obs, notification);
+    Services.obs.removeObserver(Cu.waiveXrays(obs), notification);
   },
   notifyObservers: function(subject, topic, data) {
     Services.obs.notifyObservers(subject, topic, data);
@@ -1489,8 +1517,10 @@ SpecialPowersAPI.prototype = {
     return this._fm;
   },
 
-  getFocusedElementForWindow: function(targetWindow, aDeep, childTargetWindow) {
-    return this.focusManager.getFocusedElementForWindow(targetWindow, aDeep, childTargetWindow);
+  getFocusedElementForWindow: function(targetWindow, aDeep) {
+    var outParam = {};
+    this.focusManager.getFocusedElementForWindow(targetWindow, aDeep, outParam);
+    return outParam.value;
   },
 
   activeWindow: function() {
@@ -1548,6 +1578,9 @@ SpecialPowersAPI.prototype = {
   },
 
   swapFactoryRegistration: function(cid, contractID, newFactory, oldFactory) {
+    newFactory = Cu.waiveXrays(newFactory);
+    oldFactory = Cu.waiveXrays(oldFactory);
+
     var componentRegistrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
 
     var unregisterFactory = newFactory;

@@ -697,9 +697,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     SimpleTest.waitForFocus_started = false;
     expectBlankPage = !!expectBlankPage;
 
-    var childTargetWindow = {};
-    SpecialPowers.getFocusedElementForWindow(targetWindow, true, childTargetWindow);
-    childTargetWindow = childTargetWindow.value;
+    var childTargetWindow = SpecialPowers.getFocusedElementForWindow(targetWindow, true);
 
     function info(msg) {
         SimpleTest.info(msg);
@@ -750,10 +748,9 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     }
 
     
-    var focusedChildWindow = { };
+    var focusedChildWindow = null;
     if (SpecialPowers.activeWindow()) {
-        SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true, focusedChildWindow);
-        focusedChildWindow = focusedChildWindow.value;
+        focusedChildWindow = SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true);
     }
 
     
