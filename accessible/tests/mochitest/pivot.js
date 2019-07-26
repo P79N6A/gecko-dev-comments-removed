@@ -9,6 +9,7 @@ const FILTER_IGNORE = nsIAccessibleTraversalRule.FILTER_IGNORE;
 const FILTER_IGNORE_SUBTREE = nsIAccessibleTraversalRule.FILTER_IGNORE_SUBTREE;
 
 const NS_ERROR_NOT_IN_TREE = 0x80780026;
+const NS_ERROR_INVALID_ARG = 0x80070057;
 
 
 
@@ -267,12 +268,52 @@ function moveVCCoordInvoker(aDocAcc, aX, aY, aIgnoreNoMatch,
 
 
 
+function setModalRootInvoker(aDocAcc, aModalRootAcc, aExpectedResult)
+{
+  this.invoke = function setModalRootInvoker_invoke()
+  {
+    var errorResult = 0;
+    try {
+      aDocAcc.virtualCursor.modalRoot = aModalRootAcc;
+    } catch (x) {
+      SimpleTest.ok(
+        x.result, "Unexpected exception when changing modal root: " + x);
+      errorResult = x.result;
+    }
+
+    SimpleTest.is(errorResult, aExpectedResult,
+                  "Did not get expected result when changing modalRoot");
+  };
+
+  this.getID = function setModalRootInvoker_getID()
+  {
+    return "Set modalRoot to " + prettyName(aModalRootAcc);
+  };
+
+  this.eventSeq = [];
+  this.unexpectedEventSeq = [
+    new invokerChecker(EVENT_VIRTUALCURSOR_CHANGED, aDocAcc)
+  ];
+}
 
 
 
-function queueTraversalSequence(aQueue, aDocAcc, aRule, aSequence)
+
+
+
+
+
+
+
+
+
+
+function queueTraversalSequence(aQueue, aDocAcc, aRule, aModalRoot, aSequence)
 {
   aDocAcc.virtualCursor.position = null;
+
+  
+  aQueue.push(new setModalRootInvoker(aDocAcc, aModalRoot, 0));
 
   for (var i = 0; i < aSequence.length; i++) {
     var invoker =
@@ -302,6 +343,9 @@ function queueTraversalSequence(aQueue, aDocAcc, aRule, aSequence)
 
   
   aQueue.push(new setVCPosInvoker(aDocAcc, "movePrevious", aRule, false));
+
+  
+  aQueue.push(new setModalRootInvoker(aDocAcc, null, 0));
 }
 
 
