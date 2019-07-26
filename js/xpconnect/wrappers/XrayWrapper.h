@@ -5,6 +5,9 @@
 
 
 
+#ifndef XrayWrapper_h
+#define XrayWrapper_h
+
 #include "mozilla/Attributes.h"
 
 #include "jswrapper.h"
@@ -190,3 +193,4 @@ private:
 
 }
 
+#endif
