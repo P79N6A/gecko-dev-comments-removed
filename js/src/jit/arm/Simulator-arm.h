@@ -152,6 +152,7 @@ class Simulator
     bool overRecursedWithExtra(uint32_t extra) const;
 
     
+    template<bool EnableStopSimAt>
     void execute();
 
     
@@ -267,6 +268,8 @@ class Simulator
   public:
     static bool ICacheCheckingEnabled;
     static void FlushICache(void *start, size_t size);
+
+    static int StopSimAt;
 
     
     static void *RedirectNativeFunction(void *nativeFunction, ABIFunctionType type);
