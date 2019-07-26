@@ -12,6 +12,7 @@ const { isWindowPrivate } = require('sdk/window/utils');
 const { setTimeout } = require('sdk/timers');
 const { openWebpage } = require('./private-browsing/helper');
 const { isTabPBSupported, isWindowPBSupported } = require('sdk/private-browsing/utils');
+const app = require("sdk/system/xul-app");
 
 const URL = 'data:text/html;charset=utf-8,<html><head><title>#title#</title></head></html>';
 
@@ -354,20 +355,32 @@ exports.testPrivateAreNotListed = function (test) {
 
 exports.testImmediateClosing = function (test) {
   test.waitUntilDone();
+
+  let tabURL = 'data:text/html,foo';
+
   let { loader, messages } = LoaderWithHookedConsole(module, onMessage);
   let concurrentTabs = loader.require("sdk/tabs");
-  concurrentTabs.on("open", function () {
-    test.fail("Concurrent loader manager receive a tabs `open` event");
+  concurrentTabs.on("open", function (tab) {
     
     
     
+    if (app.is("Firefox")) {
+      test.fail("Concurrent loader received a tabs `open` event");
+    }
+    else {
+      
+      
+      tab.on("ready", function () {
+        test.fail("Concurrent loader received a tabs `ready` event");
+      });
+    }
   });
   function onMessage(type, msg) {
     test.fail("Unexpected mesage on concurrent loader: " + msg);
   }
 
   tabs.open({
-    url: 'about:blank',
+    url: tabURL,
     onOpen: function(tab) {
       tab.close(function () {
         test.pass("Tab succesfully removed");

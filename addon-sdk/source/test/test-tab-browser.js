@@ -1,9 +1,10 @@
 
 
 
+"use strict";
 
 var timer = require("sdk/timers");
-var {Cc,Ci} = require("chrome");
+var { Cc, Ci } = require("chrome");
 
 function onBrowserLoad(callback, event) {
   if (event.target && event.target.defaultView == this) {
