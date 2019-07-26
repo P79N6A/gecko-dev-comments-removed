@@ -375,11 +375,28 @@ public:
   static bool IsAncestorFrameCrossDoc(const nsIFrame* aAncestorFrame, const nsIFrame* aFrame,
                                         const nsIFrame* aCommonAncestor = nullptr);
 
+  
+
+
+
+
+
+
+
+
+
   static void SetFixedPositionLayerData(Layer* aLayer, const nsIFrame* aViewportFrame,
-                                        nsSize aViewportSize,
+                                        const nsRect& aAnchorRect,
                                         const nsIFrame* aFixedPosFrame,
                                         nsPresContext* aPresContext,
                                         const ContainerLayerParameters& aContainerParameters);
+
+  
+
+
+
+  static bool ViewportHasDisplayPort(nsPresContext* aPresContext,
+                                     nsRect* aDisplayPort = nullptr);
 
   
 

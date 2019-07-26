@@ -1203,7 +1203,7 @@ nsLayoutUtils::GetScrollableFrameFor(const nsIFrame *aScrolledFrame)
  void
 nsLayoutUtils::SetFixedPositionLayerData(Layer* aLayer,
                                          const nsIFrame* aViewportFrame,
-                                         nsSize aViewportSize,
+                                         const nsRect& aAnchorRect,
                                          const nsIFrame* aFixedPosFrame,
                                          nsPresContext* aPresContext,
                                          const ContainerLayerParameters& aContainerParameters) {
@@ -1211,40 +1211,30 @@ nsLayoutUtils::SetFixedPositionLayerData(Layer* aLayer,
   
   
   float factor = aPresContext->AppUnitsPerDevPixel();
-  nsPoint origin = aViewportFrame->GetOffsetToCrossDoc(aFixedPosFrame);
-  LayerRect anchorRect(NSAppUnitsToFloatPixels(origin.x, factor) *
-                         aContainerParameters.mXScale,
-                       NSAppUnitsToFloatPixels(origin.y, factor) *
-                         aContainerParameters.mYScale,
-                       NSAppUnitsToFloatPixels(aViewportSize.width, factor) *
-                         aContainerParameters.mXScale,
-                       NSAppUnitsToFloatPixels(aViewportSize.height, factor) *
-                         aContainerParameters.mYScale);
-
+  Rect anchorRect(NSAppUnitsToFloatPixels(aAnchorRect.x, factor) *
+                    aContainerParameters.mXScale,
+                  NSAppUnitsToFloatPixels(aAnchorRect.y, factor) *
+                    aContainerParameters.mYScale,
+                  NSAppUnitsToFloatPixels(aAnchorRect.width, factor) *
+                    aContainerParameters.mXScale,
+                  NSAppUnitsToFloatPixels(aAnchorRect.height, factor) *
+                    aContainerParameters.mYScale);
   
   
-  
-  
-  LayerPoint anchor = anchorRect.TopLeft();
-
-  const nsStylePosition* position = aFixedPosFrame->StylePosition();
-  if (position->mOffset.GetRightUnit() != eStyleUnit_Auto) {
-    if (position->mOffset.GetLeftUnit() != eStyleUnit_Auto) {
-      anchor.x = anchorRect.x + anchorRect.width / 2.f;
-    } else {
-      anchor.x = anchorRect.XMost();
-    }
-  }
-  if (position->mOffset.GetBottomUnit() != eStyleUnit_Auto) {
-    if (position->mOffset.GetTopUnit() != eStyleUnit_Auto) {
-      anchor.y = anchorRect.y + anchorRect.height / 2.f;
-    } else {
-      anchor.y = anchorRect.YMost();
-    }
+  Matrix transform2d;
+  if (aLayer->GetTransform().Is2D(&transform2d)) {
+    transform2d.Invert();
+    anchorRect = transform2d.TransformBounds(anchorRect);
+  } else {
+    NS_ERROR("3D transform found between fixedpos content and its viewport (should never happen)");
+    anchorRect = Rect(0,0,0,0);
   }
 
-  aLayer->SetFixedPositionAnchor(anchor);
-
+  
+  
+  
+  
+  LayerPoint anchor(anchorRect.x, anchorRect.y);
   
   
   nsMargin fixedMargins = aPresContext->PresShell()->GetContentDocumentFixedPositionMargins();
@@ -1257,19 +1247,47 @@ nsLayoutUtils::SetFixedPositionLayerData(Layer* aLayer,
                                 NSAppUnitsToFloatPixels(fixedMargins.left, factor) *
                                   aContainerParameters.mXScale);
 
-  
-  
-  
-  if (position->mOffset.GetLeftUnit() == eStyleUnit_Auto &&
-      position->mOffset.GetRightUnit() == eStyleUnit_Auto) {
-    fixedLayerMargins.left = -1;
-  }
-  if (position->mOffset.GetTopUnit() == eStyleUnit_Auto &&
-      position->mOffset.GetBottomUnit() == eStyleUnit_Auto) {
-    fixedLayerMargins.top = -1;
+  if (aFixedPosFrame != aViewportFrame) {
+    const nsStylePosition* position = aFixedPosFrame->StylePosition();
+    if (position->mOffset.GetRightUnit() != eStyleUnit_Auto) {
+      if (position->mOffset.GetLeftUnit() != eStyleUnit_Auto) {
+        anchor.x = anchorRect.x + anchorRect.width / 2.f;
+      } else {
+        anchor.x = anchorRect.XMost();
+      }
+    }
+    if (position->mOffset.GetBottomUnit() != eStyleUnit_Auto) {
+      if (position->mOffset.GetTopUnit() != eStyleUnit_Auto) {
+        anchor.y = anchorRect.y + anchorRect.height / 2.f;
+      } else {
+        anchor.y = anchorRect.YMost();
+      }
+    }
+
+    
+    
+    
+    if (position->mOffset.GetLeftUnit() == eStyleUnit_Auto &&
+        position->mOffset.GetRightUnit() == eStyleUnit_Auto) {
+      fixedLayerMargins.left = -1;
+    }
+    if (position->mOffset.GetTopUnit() == eStyleUnit_Auto &&
+        position->mOffset.GetBottomUnit() == eStyleUnit_Auto) {
+      fixedLayerMargins.top = -1;
+    }
   }
 
+  aLayer->SetFixedPositionAnchor(anchor);
   aLayer->SetFixedPositionMargins(fixedLayerMargins);
+}
+
+bool
+nsLayoutUtils::ViewportHasDisplayPort(nsPresContext* aPresContext, nsRect* aDisplayPort)
+{
+  nsIFrame* rootScrollFrame =
+    aPresContext->PresShell()->GetRootScrollFrame();
+  return rootScrollFrame &&
+    nsLayoutUtils::GetDisplayPort(rootScrollFrame->GetContent(), aDisplayPort);
 }
 
 bool
@@ -1283,12 +1301,7 @@ nsLayoutUtils::IsFixedPosFrameInDisplayPort(const nsIFrame* aFrame, nsRect* aDis
       aFrame->StyleDisplay()->mPosition != NS_STYLE_POSITION_FIXED) {
     return false;
   }
-  nsIFrame* rootScrollFrame =
-    aFrame->PresContext()->PresShell()->GetRootScrollFrame();
-  
-  
-  return rootScrollFrame &&
-    nsLayoutUtils::GetDisplayPort(rootScrollFrame->GetContent(), aDisplayPort);
+  return ViewportHasDisplayPort(aFrame->PresContext(), aDisplayPort);
 }
 
 nsIFrame*

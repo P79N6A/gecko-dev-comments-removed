@@ -608,6 +608,8 @@ protected:
 
 
 
+
+
   const nsIFrame* FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryRoot,
                                                 const nsIntRegion& aDrawRegion,
                                                 nsIntRegion* aVisibleRegion,
@@ -1661,31 +1663,44 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
                                               nsIntRegion* aVisibleRegion,
                                               bool* aIsSolidColorInVisibleRegion)
 {
-  nsIFrame *viewport = mContainerFrame->PresContext()->PresShell()->GetRootFrame();
-
-  
-  if (!viewport->GetFirstChild(nsIFrame::kFixedList)) {
-    return nullptr;
-  }
+  nsPresContext* presContext = mContainerFrame->PresContext();
+  nsIFrame* viewport = presContext->PresShell()->GetRootFrame();
+  const nsIFrame* result = nullptr;
   nsRect displayPort;
-  for (const nsIFrame* f = aAnimatedGeometryRoot; f; f = f->GetParent()) {
-    if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f, &displayPort)) {
-      
-      
-      displayPort += viewport->GetOffsetToCrossDoc(mContainerReferenceFrame);
-      nsIntRegion newVisibleRegion;
-      newVisibleRegion.And(ScaleToOutsidePixels(displayPort, false),
-                           aDrawRegion);
-      if (!aVisibleRegion->Contains(newVisibleRegion)) {
-        if (aIsSolidColorInVisibleRegion) {
-          *aIsSolidColorInVisibleRegion = false;
-        }
-        *aVisibleRegion = newVisibleRegion;
+
+  if (viewport == aAnimatedGeometryRoot &&
+      nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort)) {
+    
+    result = viewport;
+  } else {
+    
+    if (!viewport->GetFirstChild(nsIFrame::kFixedList)) {
+      return nullptr;
+    }
+    for (const nsIFrame* f = aAnimatedGeometryRoot; f; f = f->GetParent()) {
+      if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f, &displayPort)) {
+        result = f;
+        break;
       }
-      return f;
+    }
+    if (!result) {
+      return nullptr;
     }
   }
-  return nullptr;
+
+  
+  
+  displayPort += viewport->GetOffsetToCrossDoc(mContainerReferenceFrame);
+  nsIntRegion newVisibleRegion;
+  newVisibleRegion.And(ScaleToOutsidePixels(displayPort, false),
+                       aDrawRegion);
+  if (!aVisibleRegion->Contains(newVisibleRegion)) {
+    if (aIsSolidColorInVisibleRegion) {
+      *aIsSolidColorInVisibleRegion = false;
+    }
+    *aVisibleRegion = newVisibleRegion;
+  }
+  return result;
 }
 
 void
@@ -1697,19 +1712,31 @@ ContainerState::SetFixedPositionLayerData(Layer* aLayer,
     return;
   }
 
-  nsIFrame* viewportFrame = aFixedPosFrame->GetParent();
   nsPresContext* presContext = aFixedPosFrame->PresContext();
 
+  const nsIFrame* viewportFrame = aFixedPosFrame->GetParent();
   
   
-  nsSize viewportSize = viewportFrame->GetSize();
-  if (presContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
-    viewportSize = presContext->PresShell()->
-      GetScrollPositionClampingScrollPortSize();
+  nsRect anchorRect;
+  if (viewportFrame) {
+    
+    
+    if (presContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
+      anchorRect.SizeTo(presContext->PresShell()->GetScrollPositionClampingScrollPortSize());
+    } else {
+      anchorRect.SizeTo(viewportFrame->GetSize());
+    }
+  } else {
+    
+    
+    
+    viewportFrame = aFixedPosFrame;
   }
+  
+  anchorRect.MoveTo(viewportFrame->GetOffsetToCrossDoc(mContainerReferenceFrame));
 
   nsLayoutUtils::SetFixedPositionLayerData(aLayer,
-      viewportFrame, viewportSize, aFixedPosFrame, presContext, mParameters);
+      viewportFrame, anchorRect, aFixedPosFrame, presContext, mParameters);
 }
 
 static gfx3DMatrix
@@ -2131,6 +2158,14 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData->mLayer = layer;
     thebesLayerData->mAnimatedGeometryRoot = aActiveScrolledRoot;
     thebesLayerData->mReferenceFrame = aItem->ReferenceFrame();
+    if (!aActiveScrolledRoot->GetParent() &&
+        nsLayoutUtils::ViewportHasDisplayPort(aActiveScrolledRoot->PresContext())) {
+      
+      
+      
+      
+      thebesLayerData->SetAllDrawingAbove();
+    }
 
     NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
     *mNewChildLayers.AppendElement() = layer.forget();
