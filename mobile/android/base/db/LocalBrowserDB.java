@@ -692,8 +692,8 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         bumpParents(cr, Bookmarks.URL, uri);
 
         
-        final String[] urlArgs = new String[] { uri, String.valueOf(Bookmarks.FIXED_READING_LIST_ID) };
-        final String urlEquals = Bookmarks.URL + " = ? AND " + Bookmarks.PARENT + " != ?";
+        final String[] urlArgs = new String[] { uri, String.valueOf(Bookmarks.FIXED_READING_LIST_ID), String.valueOf(Bookmarks.FIXED_PINNED_LIST_ID) };
+        final String urlEquals = Bookmarks.URL + " = ? AND " + Bookmarks.PARENT + " != ? AND " + Bookmarks.PARENT + " != ? ";
 
         cr.delete(contentUri, urlEquals, urlArgs);
     }
