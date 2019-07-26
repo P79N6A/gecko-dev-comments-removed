@@ -30,7 +30,7 @@ var Bookmarks = {
                                                       aURI,
                                                       bookmarkService.DEFAULT_INDEX,
                                                       bookmarkTitle);
-  
+
       
       let event = document.createEvent("Events");
       event.initEvent("BookmarkCreated", true, false);
@@ -77,6 +77,7 @@ var Bookmarks = {
 function BookmarksView(aSet, aLimit, aRoot, aFilterUnpinned) {
   this._set = aSet;
   this._set.controller = this;
+  this._inBatch = false; 
 
   this._limit = aLimit;
   this._filterUnpinned = aFilterUnpinned;
@@ -152,6 +153,8 @@ BookmarksView.prototype = {
     rootNode.containerOpen = true;
     let childCount = rootNode.childCount;
 
+    this._inBatch = true; 
+
     for (let i = 0, addedCount = 0; i < childCount && addedCount < limit; i++) {
       let node = rootNode.getChild(i);
 
@@ -188,9 +191,10 @@ BookmarksView.prototype = {
     
     if (aRefresh) {
       while (this._set.itemCount > limit)
-        this._set.removeItemAt(this._set.itemCount - 1);
+        this._set.removeItemAt(this._set.itemCount - 1, true);
     }
-
+    this._set.arrangeItems();
+    this._inBatch = false;
     rootNode.containerOpen = false;
   },
 
@@ -203,14 +207,15 @@ BookmarksView.prototype = {
 
   clearBookmarks: function bv_clearBookmarks() {
     while (this._set.itemCount > 0)
-      this._set.removeItemAt(0);
+      this._set.removeItemAt(0, true);
+    this._set.arrangeItems();
   },
 
   addBookmark: function bv_addBookmark(aBookmarkId, aPos) {
     let index = this._bookmarkService.getItemIndex(aBookmarkId);
     let uri = this._bookmarkService.getBookmarkURI(aBookmarkId);
     let title = this._bookmarkService.getItemTitle(aBookmarkId) || uri.spec;
-    let item = this._set.insertItemAt(aPos || index, title, uri.spec);
+    let item = this._set.insertItemAt(aPos || index, title, uri.spec, this._inBatch);
     item.setAttribute("bookmarkId", aBookmarkId);
     this._setContextActions(item);
     this._updateFavicon(aBookmarkId, item, uri);
@@ -252,7 +257,7 @@ BookmarksView.prototype = {
 
     if (!item)
       return;
-    
+
     let oldIndex = this._set.getIndexOfItem(item);
     let index = this._bookmarkService.getItemIndex(aBookmarkId);
 
@@ -274,7 +279,7 @@ BookmarksView.prototype = {
   removeBookmark: function bv_removeBookmark(aBookmarkId) {
     let item = this._getItemForBookmarkId(aBookmarkId);
     let index = this._set.getIndexOfItem(item);
-    this._set.removeItemAt(index);
+    this._set.removeItemAt(index, this._inBatch);
   },
 
   destruct: function bv_destruct() {
@@ -426,7 +431,7 @@ BookmarkChangeListener.prototype = {
     let itemIndex = PlacesUtils.bookmarks.getItemIndex(aItemId);
     if (!this._view.inCurrentView(aParentId, aItemId))
       return;
-    
+
     this._view.updateBookmark(aItemId);
   },
 
