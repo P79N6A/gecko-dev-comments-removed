@@ -13,7 +13,6 @@
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsProxyRelease.h"
 #include "MediaCache.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
@@ -205,11 +204,15 @@ class RtspMediaResource;
 
 
 
-class MediaResource
+class MediaResource : public nsISupports
 {
 public:
-
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaResource)
+  
+  
+  
+  
+  
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   
   
@@ -392,11 +395,14 @@ public:
 
 protected:
   virtual ~MediaResource() {};
+
+private:
+  void Destroy();
 };
 
 class BaseMediaResource : public MediaResource {
 public:
-  virtual nsIURI* URI() const { return const_cast<nsIURI*>(mURI.get()); }
+  virtual nsIURI* URI() const { return mURI; }
   virtual void MoveLoadsToBackground();
 
 protected:
@@ -405,8 +411,8 @@ protected:
                     nsIURI* aURI,
                     const nsACString& aContentType) :
     mDecoder(aDecoder),
-    mChannel(new nsMainThreadPtrHolder<nsIChannel>(aChannel)),
-    mURI(new nsMainThreadPtrHolder<nsIURI>(aURI)),
+    mChannel(aChannel),
+    mURI(aURI),
     mContentType(aContentType),
     mLoadInBackground(false)
   {
@@ -439,11 +445,11 @@ protected:
 
   
   
-  nsMainThreadPtrHandle<nsIChannel> mChannel;
+  nsCOMPtr<nsIChannel> mChannel;
 
   
   
-  nsMainThreadPtrHandle<nsIURI> mURI;
+  nsCOMPtr<nsIURI> mURI;
 
   
   

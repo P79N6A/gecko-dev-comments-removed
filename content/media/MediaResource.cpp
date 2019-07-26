@@ -30,6 +30,7 @@
 #include "nsContentUtils.h"
 #include "nsHostObjectProtocolHandler.h"
 #include <algorithm>
+#include "nsProxyRelease.h"
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gMediaResourceLog;
@@ -47,6 +48,29 @@ static const uint32_t HTTP_OK_CODE = 200;
 static const uint32_t HTTP_PARTIAL_RESPONSE_CODE = 206;
 
 namespace mozilla {
+
+void
+MediaResource::Destroy()
+{
+  
+  
+  
+  
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    NS_ENSURE_TRUE_VOID(mainThread);
+    nsRefPtr<MediaResource> doomed(this);
+    if (NS_FAILED(NS_ProxyRelease(mainThread, doomed, true))) {
+      NS_WARNING("Failed to proxy release to main thread!");
+    }
+  } else {
+    delete this;
+  }
+}
+
+NS_IMPL_ADDREF(MediaResource)
+NS_IMPL_RELEASE_WITH_DESTROY(MediaResource, Destroy())
+NS_IMPL_QUERY_INTERFACE0(MediaResource)
 
 ChannelMediaResource::ChannelMediaResource(MediaDecoder* aDecoder,
                                            nsIChannel* aChannel,
@@ -462,7 +486,7 @@ nsresult
 ChannelMediaResource::OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew,
                                         uint32_t aFlags)
 {
-  mChannel = new nsMainThreadPtrHolder<nsIChannel>(aNew);
+  mChannel = aNew;
   SetupChannelHeaders();
   return NS_OK;
 }
@@ -511,7 +535,7 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
 
   CopySegmentClosure closure;
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  if (secMan && mChannel.get()) {
+  if (secMan && mChannel) {
     secMan->GetChannelPrincipal(mChannel, getter_AddRefs(closure.mPrincipal));
   }
   closure.mResource = this;
@@ -543,7 +567,7 @@ nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
     return rv;
   NS_ASSERTION(mOffset == 0, "Who set mOffset already?");
 
-  if (!mChannel.get()) {
+  if (!mChannel) {
     
     
     NS_ASSERTION(!aStreamListener,
@@ -557,7 +581,7 @@ nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
 nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-  NS_ENSURE_TRUE(mChannel.get(), NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(mChannel, NS_ERROR_NULL_POINTER);
   NS_ASSERTION(!mListener, "Listener should have been removed by now");
 
   if (aStreamListener) {
@@ -723,7 +747,7 @@ void ChannelMediaResource::CloseChannel()
     mListener = nullptr;
   }
 
-  if (mChannel.get()) {
+  if (mChannel) {
     if (mSuspendCount > 0) {
       
       PossiblyResume();
@@ -821,7 +845,7 @@ void ChannelMediaResource::Suspend(bool aCloseImmediately)
     return;
   }
 
-  if (mChannel.get()) {
+  if (mChannel) {
     if (aCloseImmediately && mCacheStream.IsTransportSeekable()) {
       
       mIgnoreClose = true;
@@ -859,7 +883,7 @@ void ChannelMediaResource::Resume()
   NS_ASSERTION(mSuspendCount > 0, "Resume without previous Suspend!");
   --mSuspendCount;
   if (mSuspendCount == 0) {
-    if (mChannel.get()) {
+    if (mChannel) {
       
       {
         MutexAutoLock lock(mLock);
@@ -907,14 +931,12 @@ ChannelMediaResource::RecreateChannel()
   nsCOMPtr<nsILoadGroup> loadGroup = element->GetDocumentLoadGroup();
   NS_ENSURE_TRUE(loadGroup, NS_ERROR_NULL_POINTER);
 
-  nsCOMPtr<nsIChannel> channel;
-  nsresult rv = NS_NewChannel(getter_AddRefs(channel),
+  nsresult rv = NS_NewChannel(getter_AddRefs(mChannel),
                               mURI,
                               nullptr,
                               loadGroup,
                               nullptr,
                               loadFlags);
-  mChannel = new nsMainThreadPtrHolder<nsIChannel>(channel);
 
   
   
@@ -1002,7 +1024,7 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
   if (mSuspendCount > 0) {
     
     
-    if (mChannel.get()) {
+    if (mChannel) {
       mIgnoreClose = true;
       CloseChannel();
     }
@@ -1352,7 +1374,7 @@ nsresult FileMediaResource::Close()
 
   
   
-  if (mChannel.get()) {
+  if (mChannel) {
     mChannel->Cancel(NS_ERROR_PARSED_DATA_CACHED);
     mChannel = nullptr;
   }
@@ -1366,7 +1388,7 @@ already_AddRefed<nsIPrincipal> FileMediaResource::GetCurrentPrincipal()
 
   nsCOMPtr<nsIPrincipal> principal;
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  if (!secMan || !mChannel.get())
+  if (!secMan || !mChannel)
     return nullptr;
   secMan->GetChannelPrincipal(mChannel, getter_AddRefs(principal));
   return principal.forget();
@@ -1535,7 +1557,7 @@ MediaResource::Create(MediaDecoder* aDecoder, nsIChannel* aChannel)
 void BaseMediaResource::MoveLoadsToBackground() {
   NS_ASSERTION(!mLoadInBackground, "Why are you calling this more than once?");
   mLoadInBackground = true;
-  if (!mChannel.get()) {
+  if (!mChannel) {
     
     return;
   }
