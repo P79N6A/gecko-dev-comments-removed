@@ -1365,9 +1365,10 @@ Engine.prototype = {
 
 
 
-  _getURLOfType: function SRCH_ENG__getURLOfType(aType) {
+
+  _getURLOfType: function SRCH_ENG__getURLOfType(aType, aRel) {
     for (var i = 0; i < this._urls.length; ++i) {
-      if (this._urls[i].type == aType)
+      if (this._urls[i].type == aType && (!aRel || this._urls[i]._hasRelation(aRel)))
         return this._urls[i];
     }
 
@@ -1535,11 +1536,11 @@ Engine.prototype = {
       if (engineToUpdate._isInAppDir) {
         let oldUpdateURL = engineToUpdate._updateURL;
         let newUpdateURL = aEngine._updateURL;
-        let oldSelfURL = engineToUpdate._getURLOfType(URLTYPE_OPENSEARCH);
-        if (oldSelfURL && oldSelfURL._hasRelation("self")) {
+        let oldSelfURL = engineToUpdate._getURLOfType(URLTYPE_OPENSEARCH, "self");
+        if (oldSelfURL) {
           oldUpdateURL = oldSelfURL.template;
-          let newSelfURL = aEngine._getURLOfType(URLTYPE_OPENSEARCH);
-          if (!newSelfURL || !newSelfURL._hasRelation("self")) {
+          let newSelfURL = aEngine._getURLOfType(URLTYPE_OPENSEARCH, "self");
+          if (!newSelfURL) {
             LOG("_onLoad: updateURL missing in updated engine for " +
                 aEngine.name + " aborted");
             onError();
@@ -1758,7 +1759,7 @@ Engine.prototype = {
                 "Can't call _initFromMetaData on a readonly engine!",
                 Cr.NS_ERROR_FAILURE);
 
-    this._urls.push(new EngineURL("text/html", aMethod, aTemplate));
+    this._urls.push(new EngineURL(URLTYPE_SEARCH_HTML, aMethod, aTemplate));
 
     this._name = aName;
     this.alias = aAlias;
@@ -2240,11 +2241,11 @@ Engine.prototype = {
         } else if (name != "")
           template += "&" + name + "=" + value;
       }
-      url = new EngineURL("text/html", method, template);
+      url = new EngineURL(URLTYPE_SEARCH_HTML, method, template);
 
     } else if (method == "POST") {
       
-      url = new EngineURL("text/html", method, template);
+      url = new EngineURL(URLTYPE_SEARCH_HTML, method, template);
       for (var i = 0; i < inputs.length; i++) {
         var name  = inputs[i][0];
         var value = inputs[i][1];
@@ -2623,9 +2624,8 @@ Engine.prototype = {
 
   get _hasUpdates() {
     
-    let selfURL = this._getURLOfType(URLTYPE_OPENSEARCH);
-    return !!(this._updateURL || this._iconUpdateURL || (selfURL &&
-              selfURL._hasRelation("self")));
+    let selfURL = this._getURLOfType(URLTYPE_OPENSEARCH, "self");
+    return !!(this._updateURL || this._iconUpdateURL || selfURL);
   },
 
   get name() {
@@ -2637,6 +2637,17 @@ Engine.prototype = {
   },
 
   get searchForm() {
+    
+    var searchFormURL = this._getURLOfType(URLTYPE_SEARCH_HTML, "searchform");
+    if (searchFormURL) {
+      let submission = searchFormURL.getSubmission("", this);
+
+      
+      
+      if (!submission.postData)
+        return submission.uri.spec;
+    }
+
     if (!this._searchForm) {
       
       
