@@ -20,10 +20,15 @@
 
 
 class MetroWidget;
-class nsIDOMTouch;
 enum nsEventStatus;
 class nsGUIEvent;
 struct nsIntPoint;
+
+namespace mozilla {
+namespace dom {
+class Touch;
+}
+}
 
 
 namespace ABI {
@@ -235,8 +240,8 @@ private:
   void DispatchPendingTouchEvent();
   void DispatchPendingTouchEvent(nsEventStatus& status);
   nsBaseHashtable<nsUint32HashKey,
-                  nsCOMPtr<nsIDOMTouch>,
-                  nsCOMPtr<nsIDOMTouch> > mTouches;
+                  nsRefPtr<mozilla::dom::Touch>,
+                  nsRefPtr<mozilla::dom::Touch> > mTouches;
 
   
   

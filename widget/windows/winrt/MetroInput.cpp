@@ -145,11 +145,11 @@ namespace {
 
   PLDHashOperator
   AppendToTouchList(const unsigned int& aKey,
-                    nsCOMPtr<nsIDOMTouch>& aData,
+                    nsRefPtr<Touch>& aData,
                     void *aTouchList)
   {
-    nsTArray<nsCOMPtr<nsIDOMTouch> > *touches =
-              static_cast<nsTArray<nsCOMPtr<nsIDOMTouch> > *>(aTouchList);
+    nsTArray<nsRefPtr<Touch> > *touches =
+              static_cast<nsTArray<nsRefPtr<Touch> > *>(aTouchList);
     touches->AppendElement(aData);
     aData->mChanged = false;
     return PL_DHASH_NEXT;
@@ -805,7 +805,7 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
-  nsCOMPtr<nsIDOMTouch> touch = CreateDOMTouch(currentPoint.Get());
+  nsRefPtr<Touch> touch = CreateDOMTouch(currentPoint.Get());
   touch->mChanged = true;
   mTouches.Put(pointerId, touch);
   mTouchEvent.message = NS_TOUCH_START;
@@ -864,7 +864,7 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
-  nsCOMPtr<nsIDOMTouch> touch = mTouches.Get(pointerId);
+  nsRefPtr<Touch> touch = mTouches.Get(pointerId);
 
   
   
@@ -933,7 +933,7 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
-  nsCOMPtr<nsIDOMTouch> touch = mTouches.Get(pointerId);
+  nsRefPtr<Touch> touch = mTouches.Get(pointerId);
 
   
   
