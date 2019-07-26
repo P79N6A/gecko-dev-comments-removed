@@ -1323,6 +1323,8 @@ private:
     
     ElementIsInStyleScope,
     
+    ElementIsScopedStyleRoot,
+    
     BooleanFlagCount
   };
 
@@ -1452,6 +1454,10 @@ public:
     ClearBoolFlag(ElementIsInStyleScope);
   }
   bool IsElementInStyleScope() const { return GetBoolFlag(ElementIsInStyleScope); }
+
+  void SetIsScopedStyleRoot() { SetBoolFlag(ElementIsScopedStyleRoot); }
+  void ClearIsScopedStyleRoot() { ClearBoolFlag(ElementIsScopedStyleRoot); }
+  bool IsScopedStyleRoot() { return GetBoolFlag(ElementIsScopedStyleRoot); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }
