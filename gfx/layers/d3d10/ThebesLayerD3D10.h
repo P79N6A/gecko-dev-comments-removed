@@ -63,7 +63,7 @@ private:
   void DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode);
 
   
-  void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
+  void CreateNewTextures(const gfx::IntSize &aSize, SurfaceMode aMode);
 
   
   void FillTexturesBlackWhite(const nsIntRegion& aRegion, const nsIntPoint& aOffset);
