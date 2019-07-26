@@ -33,7 +33,7 @@ function run_test() {
   dates.sort();
 
   
-  var bookmarksBackupDir = PlacesUtils.backups.folder;
+  var bookmarksBackupDir = PlacesBackups.folder;
 
   
   
@@ -58,7 +58,7 @@ function run_test() {
   }
 
   Task.spawn(function() {
-    yield PlacesUtils.backups.create(Math.floor(dates.length/2));
+    yield PlacesBackups.create(Math.floor(dates.length/2));
     
     dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
 
@@ -84,7 +84,7 @@ function run_test() {
     bookmarksBackupDir.remove(true);
     do_check_false(bookmarksBackupDir.exists());
     
-    PlacesUtils.backups.folder;
+    PlacesBackups.folder;
 
     do_test_finished();
   });
