@@ -179,9 +179,33 @@ Object.defineProperty(OS.Shared, "DEBUG", {
 });
 
 
+const WEB_WORKERS_SHUTDOWN_TOPIC = "web-workers-shutdown";
+const TEST_WEB_WORKERS_SHUTDOWN_TOPIC = "test.osfile.web-workers-shutdown";
 
 
-let webWorkersShutdownObserver = function webWorkersShutdownObserver() {
+const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
+  "toolkit.osfile.test.shutdown.observer";
+
+
+
+
+let removeTestObserver = function removeTestObserver() {
+  try {
+    Services.obs.removeObserver(webWorkersShutdownObserver,
+      TEST_WEB_WORKERS_SHUTDOWN_TOPIC);
+  } catch (ex) {
+    
+  }
+};
+
+
+
+
+let webWorkersShutdownObserver = function webWorkersShutdownObserver(aSubject, aTopic) {
+  if (aTopic == WEB_WORKERS_SHUTDOWN_TOPIC) {
+    Services.obs.removeObserver(webWorkersShutdownObserver, WEB_WORKERS_SHUTDOWN_TOPIC);
+    removeTestObserver();
+  }
   
   Scheduler.post("System_shutdown").then(function onSuccess(opened) {
     let msg = "";
@@ -200,14 +224,32 @@ let webWorkersShutdownObserver = function webWorkersShutdownObserver() {
   });
 };
 
-
-Services.obs.addObserver(webWorkersShutdownObserver, "web-workers-shutdown",
-  false);
-
-
-
 Services.obs.addObserver(webWorkersShutdownObserver,
-  "test.osfile.web-workers-shutdown", false);
+  WEB_WORKERS_SHUTDOWN_TOPIC, false);
+
+
+
+
+
+Services.prefs.addObserver(PREF_OSFILE_TEST_SHUTDOWN_OBSERVER,
+  function prefObserver() {
+    let addObserver;
+    try {
+      addObserver = Services.prefs.getBoolPref(
+        PREF_OSFILE_TEST_SHUTDOWN_OBSERVER);
+    } catch (x) {
+      
+      addObserver = false;
+    }
+    if (addObserver) {
+      
+      Services.obs.addObserver(webWorkersShutdownObserver,
+        TEST_WEB_WORKERS_SHUTDOWN_TOPIC, false);
+    } else {
+      
+      removeTestObserver();
+    }
+  }, false);
 
 
 
