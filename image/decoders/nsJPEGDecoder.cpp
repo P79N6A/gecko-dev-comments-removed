@@ -241,8 +241,17 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
       return; 
     }
 
+    int sampleSize = mImage.GetRequestedSampleSize();
+    if (sampleSize > 0) {
+      mInfo.scale_num = 1;
+      mInfo.scale_denom = sampleSize;
+    }
+
     
-    PostSize(mInfo.image_width, mInfo.image_height, ReadOrientationFromEXIF());
+    jpeg_calc_output_dimensions(&mInfo);
+
+    
+    PostSize(mInfo.output_width, mInfo.output_height, ReadOrientationFromEXIF());
     if (HasError()) {
       
       mState = JPEG_ERROR;
@@ -375,9 +384,6 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
     mInfo.buffered_image = mDecodeStyle == PROGRESSIVE && jpeg_has_multiple_scans(&mInfo);
 
-    
-    jpeg_calc_output_dimensions(&mInfo);
-
     if (!mImageData) {
       mState = JPEG_ERROR;
       PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
@@ -388,7 +394,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
     PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
            ("        JPEGDecoderAccounting: nsJPEGDecoder::Write -- created image frame with %ux%u pixels",
-            mInfo.image_width, mInfo.image_height));
+            mInfo.output_width, mInfo.output_height));
 
     mState = JPEG_START_DECOMPRESS;
   }

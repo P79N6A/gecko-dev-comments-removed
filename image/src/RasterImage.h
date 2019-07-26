@@ -276,6 +276,16 @@ public:
   nsIntSize GetRequestedResolution() {
     return mRequestedResolution;
   }
+  
+  void SetRequestedSampleSize(int requestedSampleSize) {
+    mRequestedSampleSize = requestedSampleSize;
+  }
+
+  int GetRequestedSampleSize() {
+    return mRequestedSampleSize;
+  }
+
+
 
  nsCString GetURIString() {
     nsCString spec;
@@ -642,6 +652,9 @@ private:
 
   
   nsIntSize                  mRequestedResolution;
+
+  
+  int                        mRequestedSampleSize;
 
   
   nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;

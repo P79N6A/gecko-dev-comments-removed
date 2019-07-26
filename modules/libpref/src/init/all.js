@@ -4336,3 +4336,6 @@ pref("dom.wakelock.enabled", false);
 
 
 pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
+
+
+pref("image.mozsamplesize.enabled", false);
