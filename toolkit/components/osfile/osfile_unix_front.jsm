@@ -848,17 +848,31 @@
      
 
 
+     File.getCurrentDirectory = function getCurrentDirectory() {
+       let path = UnixFile.get_current_dir_name?UnixFile.get_current_dir_name():
+         UnixFile.getwd_auto(null);
+       throw_on_null("getCurrentDirectory",path);
+       return path.readString();
+     };
+
+     
+
+
+     File.setCurrentDirectory = function setCurrentDirectory(path) {
+       throw_on_negative("setCurrentDirectory",
+         UnixFile.chdir(path)
+       );
+     };
+
+     
+
+
      Object.defineProperty(File, "curDir", {
          set: function(path) {
-           throw_on_negative("curDir",
-             UnixFile.chdir(path)
-           );
+           this.setCurrentDirectory(path);
          },
          get: function() {
-           let path = UnixFile.get_current_dir_name?UnixFile.get_current_dir_name():
-             UnixFile.getwd_auto(null);
-           throw_on_null("curDir",path);
-           return path.readString();
+           return this.getCurrentDirectory();
          }
        }
      );

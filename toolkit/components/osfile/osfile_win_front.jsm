@@ -844,12 +844,7 @@
      
 
 
-     Object.defineProperty(File, "curDir", {
-         set: function(path) {
-           throw_on_zero("set curDir",
-             WinFile.SetCurrentDirectory(path));
-         },
-         get: function() {
+     File.getCurrentDirectory = function getCurrentDirectory() {
            
            
            
@@ -862,11 +857,10 @@
            
            
            
-
            let buffer_size = 4096;
            while (true) {
              let array = new (ctypes.ArrayType(ctypes.jschar, buffer_size))();
-             let expected_size = throw_on_zero("get curDir",
+         let expected_size = throw_on_zero("getCurrentDirectory",
                WinFile.GetCurrentDirectory(buffer_size, array)
              );
              if (expected_size <= buffer_size) {
@@ -880,6 +874,25 @@
              
              buffer_size = expected_size;
            }
+     };
+
+     
+
+
+     File.setCurrentDirectory = function setCurrentDirectory(path) {
+       throw_on_zero("setCurrentDirectory",
+         WinFile.SetCurrentDirectory(path));
+     };
+
+     
+
+
+     Object.defineProperty(File, "curDir", {
+         set: function(path) {
+           this.setCurrentDirectory(path);
+         },
+         get: function() {
+           return this.getCurrentDirectory();
          }
        }
      );
