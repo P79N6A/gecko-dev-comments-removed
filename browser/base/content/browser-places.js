@@ -480,9 +480,6 @@ function HistoryMenu(aPopupShowingEvent) {
   
   
   this.__proto__.__proto__ = PlacesMenu.prototype;
-  XPCOMUtils.defineLazyServiceGetter(this, "_ss",
-                                     "@mozilla.org/browser/sessionstore;1",
-                                     "nsISessionStore");
   PlacesMenu.call(this, aPopupShowingEvent,
                   "place:sort=4&maxResults=15");
 }
@@ -493,7 +490,7 @@ HistoryMenu.prototype = {
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
 
     
-    if (this._ss.getClosedTabCount(window) == 0)
+    if (SessionStore.getClosedTabCount(window) == 0)
       undoMenu.setAttribute("disabled", true);
     else
       undoMenu.removeAttribute("disabled");
@@ -525,7 +522,7 @@ HistoryMenu.prototype = {
       undoPopup.removeChild(undoPopup.firstChild);
 
     
-    if (this._ss.getClosedTabCount(window) == 0) {
+    if (SessionStore.getClosedTabCount(window) == 0) {
       undoMenu.setAttribute("disabled", true);
       return;
     }
@@ -534,7 +531,7 @@ HistoryMenu.prototype = {
     undoMenu.removeAttribute("disabled");
 
     
-    var undoItems = JSON.parse(this._ss.getClosedTabData(window));
+    var undoItems = JSON.parse(SessionStore.getClosedTabData(window));
     for (var i = 0; i < undoItems.length; i++) {
       var m = document.createElement("menuitem");
       m.setAttribute("label", undoItems[i].title);
@@ -580,7 +577,7 @@ HistoryMenu.prototype = {
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedWindowsMenu")[0];
 
     
-    if (this._ss.getClosedWindowCount() == 0)
+    if (SessionStore.getClosedWindowCount() == 0)
       undoMenu.setAttribute("disabled", true);
     else
       undoMenu.removeAttribute("disabled");
@@ -601,7 +598,7 @@ HistoryMenu.prototype = {
       undoPopup.removeChild(undoPopup.firstChild);
 
     
-    if (this._ss.getClosedWindowCount() == 0) {
+    if (SessionStore.getClosedWindowCount() == 0) {
       undoMenu.setAttribute("disabled", true);
       return;
     }
@@ -610,7 +607,7 @@ HistoryMenu.prototype = {
     undoMenu.removeAttribute("disabled");
 
     
-    let undoItems = JSON.parse(this._ss.getClosedWindowData());
+    let undoItems = JSON.parse(SessionStore.getClosedWindowData());
     for (let i = 0; i < undoItems.length; i++) {
       let undoItem = undoItems[i];
       let otherTabsCount = undoItem.tabs.length - 1;
