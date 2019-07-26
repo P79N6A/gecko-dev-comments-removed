@@ -225,9 +225,6 @@ public:
     bool     SupportsPipelining(nsHttpConnectionInfo *);
 
     bool GetConnectionData(nsTArray<mozilla::net::HttpRetParams> *);
-
-    void ResetIPFamillyPreference(nsHttpConnectionInfo *);
-
 private:
     virtual ~nsHttpConnectionMgr();
 
@@ -346,20 +343,6 @@ private:
         bool mTestedSpdy;
 
         bool mSpdyPreferred;
-
-        
-        
-        
-        
-        bool mPreferIPv4 : 1;
-        
-        
-        bool mPreferIPv6 : 1;
-
-        
-        void RecordIPFamilyPreference(uint16_t family);
-        
-        void ResetIPFamilyPreference();
     };
 
     
