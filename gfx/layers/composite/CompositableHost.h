@@ -111,12 +111,6 @@ public:
   }
 
   
-
-
-
-  virtual void OnActorDestroy() = 0;
-
-  
   virtual void SetCompositor(Compositor* aCompositor);
 
   
@@ -247,7 +241,6 @@ public:
   static const AttachFlags NO_FLAGS = 0;
   static const AttachFlags ALLOW_REATTACH = 1;
   static const AttachFlags KEEP_ATTACHED = 2;
-  static const AttachFlags FORCE_DETACH = 2;
 
   virtual void Attach(Layer* aLayer,
                       Compositor* aCompositor,
@@ -268,12 +261,10 @@ public:
   
   
   
-  
-  void Detach(Layer* aLayer = nullptr, AttachFlags aFlags = NO_FLAGS)
+  void Detach(Layer* aLayer = nullptr)
   {
     if (!mKeepAttached ||
-        aLayer == mLayer ||
-        aFlags & FORCE_DETACH) {
+        aLayer == mLayer) {
       SetLayer(nullptr);
       SetCompositor(nullptr);
       mAttached = false;
