@@ -6,7 +6,6 @@
 #ifndef mozilla_dom_SVGPathElement_h
 #define mozilla_dom_SVGPathElement_h
 
-#include "nsIDOMSVGPathElement.h"
 #include "nsSVGNumber2.h"
 #include "nsSVGPathGeometryElement.h"
 #include "SVGAnimatedPathSegList.h"
@@ -26,7 +25,7 @@ class nsISVGPoint;
 namespace dom {
 
 class SVGPathElement MOZ_FINAL : public SVGPathElementBase,
-                                 public nsIDOMSVGPathElement
+                                 public nsIDOMSVGElement
 {
 friend class nsSVGPathFrame;
 
@@ -41,7 +40,6 @@ public:
   
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMSVGPATHELEMENT
 
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
@@ -64,8 +62,6 @@ public:
 
   
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-  virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
