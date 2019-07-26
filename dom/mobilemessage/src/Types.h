@@ -56,14 +56,6 @@ enum MessageClass {
   eMessageClass_EndGuard
 };
 
-
-enum MessageType {
-  eMessageType_SMS = 0,
-  eMessageType_MMS,
-  
-  eMessageType_EndGuard
-};
-
 } 
 } 
 } 
@@ -108,16 +100,6 @@ struct ParamTraits<mozilla::dom::mobilemessage::MessageClass>
   : public EnumSerializer<mozilla::dom::mobilemessage::MessageClass,
                           mozilla::dom::mobilemessage::eMessageClass_Normal,
                           mozilla::dom::mobilemessage::eMessageClass_EndGuard>
-{};
-
-
-
-
-template <>
-struct ParamTraits<mozilla::dom::mobilemessage::MessageType>
-  : public EnumSerializer<mozilla::dom::mobilemessage::MessageType,
-                          mozilla::dom::mobilemessage::eMessageType_SMS,
-                          mozilla::dom::mobilemessage::eMessageType_EndGuard>
 {};
 
 } 
