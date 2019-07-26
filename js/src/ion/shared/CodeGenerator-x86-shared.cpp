@@ -22,8 +22,7 @@ namespace js {
 namespace ion {
 
 CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
-  : CodeGeneratorShared(gen, graph, masm),
-    deoptLabel_(NULL)
+  : CodeGeneratorShared(gen, graph, masm)
 {
 }
 
@@ -39,17 +38,13 @@ CodeGeneratorX86Shared::generatePrologue()
     
     masm.reserveStack(frameSize());
 
-    
-    
-    returnLabel_ = new HeapLabel();
-
     return true;
 }
 
 bool
 CodeGeneratorX86Shared::generateEpilogue()
 {
-    masm.bind(returnLabel_);
+    masm.bind(&returnLabel_);
 
     
     masm.freeStack(frameSize());
@@ -228,9 +223,9 @@ CodeGeneratorX86Shared::generateOutOfLineCode()
     if (!CodeGeneratorShared::generateOutOfLineCode())
         return false;
 
-    if (deoptLabel_) {
+    if (deoptLabel_.used()) {
         
-        masm.bind(deoptLabel_);
+        masm.bind(&deoptLabel_);
 
         
         masm.push(Imm32(frameSize()));
@@ -349,11 +344,8 @@ CodeGeneratorX86Shared::bailout(LSnapshot *snapshot)
 bool
 CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
 {
-    if (!deoptLabel_)
-        deoptLabel_ = new HeapLabel();
-
     masm.push(Imm32(ool->snapshot()->snapshotOffset()));
-    masm.jmp(deoptLabel_);
+    masm.jmp(&deoptLabel_);
     return true;
 }
 

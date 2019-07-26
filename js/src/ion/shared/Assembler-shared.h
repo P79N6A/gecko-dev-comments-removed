@@ -279,10 +279,18 @@ class Label : public LabelBase
 };
 
 
-struct HeapLabel
-  : public TempObject,
-    public Label
+
+
+class NonAssertingLabel : public Label
 {
+  public:
+    ~NonAssertingLabel()
+    {
+#ifdef DEBUG
+        if (used())
+            bind(0);
+#endif
+    }
 };
 
 class RepatchLabel
