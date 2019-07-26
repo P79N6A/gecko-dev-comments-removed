@@ -544,7 +544,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 #endif
 
   DrainOverflowColumns();
-  
+
   if (mLastBalanceHeight != aConfig.mColMaxHeight) {
     mLastBalanceHeight = aConfig.mColMaxHeight;
     

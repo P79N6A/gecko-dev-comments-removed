@@ -470,6 +470,33 @@ public:
   static void RecoverFloatsFor(nsIFrame*       aFrame,
                                nsFloatManager& aFloatManager);
 
+  
+
+
+
+
+
+  bool HasPushedFloatsFromPrevContinuation() const {
+    if (!mFloats.IsEmpty()) {
+      
+      
+      if (mFloats.FrameAt(0)->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT) {
+        return true;
+      }
+    }
+
+#ifdef DEBUG
+    
+    
+    for (int32_t i = 0; i < mFloats.GetLength(); i++) {
+      NS_ASSERTION(!(mFloats.FrameAt(i)->GetStateBits() &
+        NS_FRAME_IS_PUSHED_FLOAT),
+        "pushed floats must be at the beginning of the float list");
+    }
+#endif
+    return false;
+  }
+
 protected:
 
   
