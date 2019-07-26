@@ -74,7 +74,7 @@ struct gfxFontStyle {
     gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
                  gfxFloat aSize, nsIAtom *aLanguage,
                  float aSizeAdjust, bool aSystemFont,
-                 bool aPrinterFont,
+                 bool aPrinterFont, bool aSmallCaps,
                  const nsString& aLanguageOverride);
     gfxFontStyle(const gfxFontStyle& aStyle);
 
@@ -140,6 +140,10 @@ struct gfxFontStyle {
     bool useGrayscaleAntialiasing : 1;
 
     
+    
+    bool smallCaps : 1;
+
+    
     uint8_t style : 2;
 
     
@@ -163,6 +167,7 @@ struct gfxFontStyle {
             (*reinterpret_cast<const uint64_t*>(&size) ==
              *reinterpret_cast<const uint64_t*>(&other.size)) &&
             (style == other.style) &&
+            (smallCaps == other.smallCaps) &&
             (systemFont == other.systemFont) &&
             (printerFont == other.printerFont) &&
             (useGrayscaleAntialiasing == other.useGrayscaleAntialiasing) &&
