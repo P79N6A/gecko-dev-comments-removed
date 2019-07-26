@@ -6660,6 +6660,15 @@ nsBlockFrame::RenumberListsInBlock(nsPresContext* aPresContext,
     }
   } while (bifLineIter.Next());
 
+  
+  
+  
+  
+  
+  if (renumberedABullet && aDepth != 0) {
+    aBlockFrame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+  }
+
   return renumberedABullet;
 }
 
@@ -6705,7 +6714,17 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
           kidRenumberedABullet = true;
 
           
-          listItem->ChildIsDirty(bullet);
+          
+          
+          
+          
+          bullet->AddStateBits(NS_FRAME_IS_DIRTY);
+          nsIFrame *f = bullet;
+          do {
+            nsIFrame *parent = f->GetParent();
+            parent->ChildIsDirty(f);
+            f = parent;
+          } while (f != listItem);
         }
       }
 
