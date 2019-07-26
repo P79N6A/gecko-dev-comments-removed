@@ -18,13 +18,7 @@ class WrapperFactory {
     enum { WAIVE_XRAY_WRAPPER_FLAG = js::Wrapper::LAST_USED_FLAG << 1,
            IS_XRAY_WRAPPER_FLAG    = WAIVE_XRAY_WRAPPER_FLAG << 1,
            SCRIPT_ACCESS_ONLY_FLAG = IS_XRAY_WRAPPER_FLAG << 1,
-           SOW_FLAG                = SCRIPT_ACCESS_ONLY_FLAG << 1,
-
-           
-           
-           
-           
-           SHADOWING_FORBIDDEN     = SOW_FLAG << 1 };
+           SOW_FLAG                = SCRIPT_ACCESS_ONLY_FLAG << 1 };
 
     
     static bool HasWrapperFlag(JSObject *wrapper, unsigned flag) {
@@ -39,10 +33,6 @@ class WrapperFactory {
 
     static bool HasWaiveXrayFlag(JSObject *wrapper) {
         return HasWrapperFlag(wrapper, WAIVE_XRAY_WRAPPER_FLAG);
-    }
-
-    static bool IsShadowingForbidden(JSObject *wrapper) {
-        return HasWrapperFlag(wrapper, SHADOWING_FORBIDDEN);
     }
 
     static JSObject *GetXrayWaiver(JSObject *obj);
