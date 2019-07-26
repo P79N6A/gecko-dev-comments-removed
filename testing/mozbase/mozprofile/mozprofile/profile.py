@@ -2,10 +2,7 @@
 
 
 
-__all__ = ['Profile',
-           'FirefoxProfile',
-           'MetroFirefoxProfile',
-           'ThunderbirdProfile']
+__all__ = ['Profile', 'FirefoxProfile', 'ThunderbirdProfile']
 
 import os
 import time
@@ -257,7 +254,6 @@ class Profile(object):
 
 class FirefoxProfile(Profile):
     """Specialized Profile subclass for Firefox"""
-
     preferences = {
                    'app.update.enabled' : False,
                    
@@ -294,47 +290,8 @@ class FirefoxProfile(Profile):
                    'toolkit.telemetry.enabledPreRelease' : False,
                    }
 
-class MetroFirefoxProfile(Profile):
-    """Specialized Profile subclass for Firefox Metro"""
-
-    preferences = {
-                   'app.update.enabled' : False,
-                   'app.update.metro.enabled' : False,
-                   
-                   'browser.sessionstore.resume_from_crash': False,
-                   
-                   'browser.shell.checkDefaultBrowser' : False,
-                   
-                   'datareporting.healthreport.documentServerURI' : 'http://%(server)s/healthreport/',
-                   
-                   
-                   
-                   'extensions.enabledScopes' : 5,
-                   'extensions.autoDisableScopes' : 10,
-                   
-                   'extensions.installDistroAddons' : False,
-                   
-                   'extensions.showMismatchUI' : False,
-                   
-                   'extensions.strictCompatibility' : False,
-                   
-                   'extensions.update.enabled'    : False,
-                   
-                   'extensions.update.notifyUser' : False,
-                   
-                   'focusmanager.testmode' : True,
-                   
-                   'security.notification_enable_delay' : 0,
-                   
-                   'toolkit.startup.max_resumed_crashes' : -1,
-                   
-                   'toolkit.telemetry.enabled' : False,
-                   'toolkit.telemetry.enabledPreRelease' : False,
-                   }
-
 class ThunderbirdProfile(Profile):
     """Specialized Profile subclass for Thunderbird"""
-
     preferences = {'extensions.update.enabled'    : False,
                    'extensions.update.notifyUser' : False,
                    'browser.shell.checkDefaultBrowser' : False,

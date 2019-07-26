@@ -61,8 +61,7 @@ def get_binary(path, app_name):
     
     if mozinfo.isMac:
         plist = '%s/Contents/Info.plist' % path
-        if not os.path.isfile(plist):
-            raise InvalidBinary('%s/Contents/Info.plist not found' % path)
+        assert os.path.isfile(plist), '"%s" has not been found.' % plist
 
         binary = os.path.join(path, 'Contents/MacOS/',
                               readPlist(plist)['CFBundleExecutable'])
@@ -206,7 +205,7 @@ def uninstall(install_folder):
 
     
     
-    mozfile.rmtree(install_folder)
+    shutil.rmtree(install_folder)
 
 
 def _install_dmg(src, dest):
