@@ -424,8 +424,9 @@ public:
       return NS_OK;
     }
 
-    ProcessGetUserMedia(mAudio ? mAudioDevice->GetSource() : nullptr,
-                        mVideo ? mVideoDevice->GetSource() : nullptr);
+    
+    ProcessGetUserMedia((mAudio && mAudioDevice) ? mAudioDevice->GetSource() : nullptr,
+                        (mVideo && mVideoDevice) ? mVideoDevice->GetSource() : nullptr);
     return NS_OK;
   }
 
@@ -729,7 +730,6 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   rv = aParams->GetVideoDevice(getter_AddRefs(videodevice));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
   
   if (audiodevice) {
     nsString type;
