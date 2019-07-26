@@ -224,19 +224,6 @@ nsXPConnect::ReleaseXPConnectSingleton()
 }
 
 
-nsresult
-nsXPConnect::GetInterfaceInfoManager(nsIInterfaceInfoManager** iim,
-                                     nsXPConnect* xpc )
-{
-    if (!xpc && !(xpc = GetXPConnect()))
-        return NS_ERROR_FAILURE;
-
-    *iim = xpc->mInterfaceInfoManager;
-    NS_IF_ADDREF(*iim);
-    return NS_OK;
-}
-
-
 XPCJSRuntime*
 nsXPConnect::GetRuntimeInstance()
 {

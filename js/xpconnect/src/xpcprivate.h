@@ -491,10 +491,6 @@ public:
     void AssertNoObjectsToTrace(void* aPossibleJSHolder);
 #endif
 
-    
-    static nsresult GetInterfaceInfoManager(nsIInterfaceInfoManager** iim,
-                                            nsXPConnect* xpc = nullptr);
-
     static JSBool IsISupportsDescendant(nsIInterfaceInfo* info);
 
     nsIXPCSecurityManager* GetDefaultSecurityManager() const
