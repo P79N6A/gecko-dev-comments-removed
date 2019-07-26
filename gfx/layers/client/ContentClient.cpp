@@ -53,7 +53,7 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
   
   
   
-#if !defined(MOZ_WIDGET_GONK) && !defined(XP_WIN)
+#if !defined(XP_WIN)
   useDeprecatedTextures = gfxPlatform::GetPlatform()->UseDeprecatedTextures();
 #endif
 

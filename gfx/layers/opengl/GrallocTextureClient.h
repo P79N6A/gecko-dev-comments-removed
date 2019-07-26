@@ -55,6 +55,8 @@ public:
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
 
+  virtual bool UpdateSurface(gfxASurface* aSurface) MOZ_OVERRIDE;
+
   virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
 
   void InitWith(GrallocBufferActor* aActor, gfx::IntSize aSize);
@@ -73,17 +75,11 @@ public:
     return mGraphicBuffer->getPixelFormat();
   }
 
-  
-
-
-
-
-  void SetGrallocOpenFlags(uint32_t aFlags)
-  {
-    mGrallocFlags = aFlags;
-  }
-
   virtual uint8_t* GetBuffer() const MOZ_OVERRIDE;
+
+  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
 
   virtual bool AllocateForSurface(gfx::IntSize aSize,
                                   TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;
@@ -119,12 +115,11 @@ protected:
   
 
 
-  uint32_t mGrallocFlags;
-  
-
-
 
   uint8_t* mMappedBuffer;
+
+  RefPtr<gfx::DrawTarget> mDrawTarget;
+
   
 
 
