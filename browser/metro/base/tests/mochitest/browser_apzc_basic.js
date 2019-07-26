@@ -69,30 +69,32 @@ gTests.push({
   }
 });
 
-gTests.push({
-  desc: "double tap transforms",
-  setUp: setUp,
-  run: function() {
-    let beginPromise = waitForObserver("apzc-transform-begin", kTransformTimeout);
-    let endPromise = waitForObserver("apzc-transform-end", kTransformTimeout);
 
-    sendNativeDoubleTap(Browser.selectedBrowser.contentDocument.getElementById("second"));
 
-    yield beginPromise;
-    yield endPromise;
 
-    beginPromise = waitForObserver("apzc-transform-begin", kTransformTimeout);
-    endPromise = waitForObserver("apzc-transform-end", kTransformTimeout);
 
-    sendNativeDoubleTap(Browser.selectedBrowser.contentDocument.getElementById("second"));
 
-    yield beginPromise;
-    yield endPromise;
-  },
-  tearDown: function () {
-    clearNativeTouchSequence();
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 gTests.push({
   desc: "scroll transforms",
