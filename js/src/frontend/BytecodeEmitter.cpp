@@ -1175,7 +1175,7 @@ TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 
 
 static bool
-BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+BindNameToSlotHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(pn->isKind(PNK_NAME));
 
@@ -1408,6 +1408,25 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         return false;
 
     pn->pn_dflags |= PND_BOUND;
+    return true;
+}
+
+
+
+
+
+
+static bool
+BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    if (!BindNameToSlotHelper(cx, bce, pn))
+        return false;
+
+    if (bce->selfHostingMode && !pn->isBound()) {
+        bce->reportError(pn, JSMSG_SELFHOSTED_UNBOUND_NAME);
+        return false;
+    }
+
     return true;
 }
 
