@@ -178,6 +178,14 @@ void flex_string_sprintf(flex_string *fs, const char *format, ...) {
   vsnprintf_result = vsnprintf(fs->buffer + fs->string_length, fs->buffer_length - fs->string_length, format, ap);
   va_end(ap);
 
+  
+
+  if (vsnprintf_result < 0) {
+    va_start(ap, format);
+    vsnprintf_result = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+  }
+
   if (fs->string_length + vsnprintf_result >= fs->buffer_length) {
     
     flex_string_check_alloc(fs, fs->string_length + vsnprintf_result + 1);
