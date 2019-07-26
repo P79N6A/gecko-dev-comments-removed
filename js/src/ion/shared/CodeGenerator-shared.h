@@ -209,6 +209,15 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
   public:
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void saveVolatile(Register output) {
         RegisterSet regs = RegisterSet::Volatile();
         regs.maybeTake(output);
