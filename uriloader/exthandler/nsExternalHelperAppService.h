@@ -237,6 +237,11 @@ public:
 
   ~nsExternalAppHandler();
 
+  
+
+
+  void DidDivertRequest(nsIRequest *request);
+
 protected:
   nsCOMPtr<nsIFile> mTempFile;
   nsCOMPtr<nsIURI> mSourceUrl;
