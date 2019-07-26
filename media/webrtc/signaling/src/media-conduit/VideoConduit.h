@@ -60,7 +60,8 @@ public:
 
 
 
-   MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer);
+  virtual MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer);
+  virtual void DetachRenderer();
 
   
 
@@ -150,7 +151,6 @@ public:
                       mRenderer(NULL),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
-                      mEngineRendererStarted(false),
                       mChannel(-1),
                       mCapId(-1),
                       mCurSendCodecConfig(NULL)
@@ -207,7 +207,6 @@ private:
   
   bool mEngineTransmitting; 
   bool mEngineReceiving;    
-  bool mEngineRendererStarted; 
 
   int mChannel; 
   int mCapId;   

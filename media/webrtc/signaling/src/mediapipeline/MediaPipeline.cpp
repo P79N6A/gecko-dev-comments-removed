@@ -114,8 +114,10 @@ nsresult MediaPipeline::Init_s() {
 
 
 
+
 void MediaPipeline::ShutdownTransport_s() {
   ASSERT_ON_THREAD(sts_thread_);
+  MOZ_ASSERT(!stream_); 
 
   disconnect_all();
   transport_->Detach();
@@ -1020,6 +1022,7 @@ nsresult MediaPipelineReceiveVideo::Init() {
   listener_->AddSelf(new VideoSegment());
 #endif
 
+  
   static_cast<VideoSessionConduit *>(conduit_.get())->
       AttachRenderer(renderer_);
 

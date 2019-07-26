@@ -83,7 +83,7 @@ GlobalPCList.prototype = {
         this._list[winID].forEach(function(pcref) {
           let pc = pcref.get();
           if (pc !== null) {
-            pc._pc.close(false);
+            pc._pc.close();
             delete pc._observer;
             pc._pc = null;
           }
@@ -96,12 +96,14 @@ GlobalPCList.prototype = {
       
       
       
+      
+      
       let array;
       while ((array = this._list.pop()) != undefined) {
         array.forEach(function(pcref) {
           let pc = pcref.get();
           if (pc !== null) {
-            pc._pc.close(true);
+            pc._pc.close();
             delete pc._observer;
             pc._pc = null;
           }

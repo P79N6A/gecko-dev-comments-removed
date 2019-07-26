@@ -101,18 +101,12 @@ class MediaPipeline : public sigslot::has_slots<> {
     MOZ_ASSERT(!stream_);  
   }
 
-
-
-  
   
   void ShutdownTransport_s();
 
   
   void ShutdownMedia_m() {
     ASSERT_ON_THREAD(main_thread_);
-
-    MOZ_ASSERT(!rtp_transport_);
-    MOZ_ASSERT(!rtcp_transport_);
 
     if (stream_) {
       DetachMediaStream();
@@ -319,8 +313,6 @@ class MediaPipelineTransmit : public MediaPipeline {
     ASSERT_ON_THREAD(main_thread_);
     stream_->RemoveListener(listener_);
     
-    
-    listener_ = nullptr;
     stream_ = nullptr;
   }
 
@@ -434,9 +426,6 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
     ASSERT_ON_THREAD(main_thread_);
     listener_->EndTrack();
     stream_->RemoveListener(listener_);
-    
-    
-    listener_ = nullptr;
     stream_ = nullptr;
   }
 
@@ -500,15 +489,12 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
     ASSERT_ON_THREAD(main_thread_);
 
     listener_->EndTrack();
-
-    conduit_ = nullptr;  
-                         
-
+    
+    
+    
+    
+    static_cast<VideoSessionConduit*>(conduit_.get())->DetachRenderer();
     stream_->RemoveListener(listener_);
-    
-    
-    listener_ = nullptr;
-
     stream_ = nullptr;
   }
 

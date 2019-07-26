@@ -281,7 +281,7 @@ private:
   NS_IMETHODIMP CreateAnswerInt(MediaConstraints& constraints);
   NS_IMETHODIMP EnsureDataConnection(uint16_t aNumstreams);
 
-  nsresult CloseInt(bool aIsSynchronous);
+  nsresult CloseInt();
   void ChangeReadyState(ReadyState aReadyState);
   nsresult CheckApiState(bool assert_ice_ready) const;
   void CheckThread() const {
@@ -304,7 +304,7 @@ private:
 #endif
 
   
-  void ShutdownMedia(bool isSynchronous);
+  void ShutdownMedia();
 
   
   nsresult IceStateChange_m(IceState aState);

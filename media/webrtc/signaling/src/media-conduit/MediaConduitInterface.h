@@ -167,6 +167,7 @@ public:
 
 
   virtual MediaConduitErrorCode AttachRenderer(RefPtr<VideoRenderer> aRenderer) = 0;
+  virtual void DetachRenderer() = 0;
 
   
 

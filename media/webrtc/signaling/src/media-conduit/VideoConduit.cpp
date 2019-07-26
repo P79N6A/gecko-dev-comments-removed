@@ -29,7 +29,7 @@ mozilla::RefPtr<VideoSessionConduit> VideoSessionConduit::Create()
   {
     CSFLogError(logTag,  "%s VideoConduit Init Failed ", __FUNCTION__);
     delete obj;
-    return NULL;
+    return nullptr;
   }
   CSFLogDebug(logTag,  "%s Successfully created VideoConduit ", __FUNCTION__);
   return obj;
@@ -51,14 +51,16 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
   {
     mPtrViECapture->DisconnectCaptureDevice(mCapId);
     mPtrViECapture->ReleaseCaptureDevice(mCapId);
-    mPtrExtCapture = NULL;
+    mPtrExtCapture = nullptr;
     mPtrViECapture->Release();
   }
 
   
   if(mPtrViERender)
   {
-    mPtrViERender->StopRender(mChannel);
+    if(mRenderer) {
+      mPtrViERender->StopRender(mChannel);
+    }
     mPtrViERender->RemoveRenderer(mChannel);
     mPtrViERender->Release();
   }
@@ -113,7 +115,7 @@ MediaConduitErrorCode WebrtcVideoConduit::Init()
       CSFLogError(logTag,  "%s: could not get Java environment", __FUNCTION__);
       return kMediaConduitSessionNotInited;
   }
-  jvm->AttachCurrentThread(&env, NULL);
+  jvm->AttachCurrentThread(&env, nullptr);
 
   webrtc::VideoEngine::SetAndroidObjects(jvm, (void*)context);
 
@@ -289,23 +291,35 @@ WebrtcVideoConduit::AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer
     MOZ_ASSERT(PR_FALSE);
     return kMediaConduitInvalidRenderer;
   }
-  
-  mRenderer = aVideoRenderer;
 
   
-  if(!mEngineRendererStarted)
+  if(!mRenderer)
   {
+    mRenderer = aVideoRenderer; 
+
     if(mPtrViERender->StartRender(mChannel) == -1)
     {
       CSFLogError(logTag, "%s Starting the Renderer Failed %d ", __FUNCTION__,
                                                       mPtrViEBase->LastError());
-      mRenderer = NULL;
+      mRenderer = nullptr;
       return kMediaConduitRendererFail;
     }
-    mEngineRendererStarted = true;
+  } else {
+    
+    mRenderer = aVideoRenderer;
   }
 
   return kMediaConduitNoError;
+}
+
+void
+WebrtcVideoConduit::DetachRenderer()
+{
+  if(mRenderer)
+  {
+    mPtrViERender->StopRender(mChannel);
+    mRenderer = nullptr;
+  }
 }
 
 MediaConduitErrorCode
