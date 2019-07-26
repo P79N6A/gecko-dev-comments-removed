@@ -113,18 +113,20 @@ public class LightweightTheme implements GeckoEventListener {
     }
 
     public void resetLightweightTheme() {
-        
-        mBitmap = null;
+        if (mBitmap != null) {
+            
+            mBitmap = null;
 
-        
-        for (OnChangeListener listener : mListeners) {
-             final OnChangeListener oneListener = listener;
-             oneListener.post(new Runnable() {
-                 @Override
-                 public void run() {
-                     oneListener.onLightweightThemeReset();
-                 }
-             });
+            
+            for (OnChangeListener listener : mListeners) {
+                 final OnChangeListener oneListener = listener;
+                 oneListener.post(new Runnable() {
+                     @Override
+                     public void run() {
+                         oneListener.onLightweightThemeReset();
+                     }
+                 });
+            }
         }
     }
 
@@ -161,6 +163,21 @@ public class LightweightTheme implements GeckoEventListener {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
         }
     }
+
+
+    
+
+
+
+
+    public boolean isEnabled() {
+        return (mBitmap != null);
+    }
+
+    
+
+
+
 
     public boolean isLightTheme() {
         return mIsLight;
