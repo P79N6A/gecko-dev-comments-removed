@@ -4632,6 +4632,15 @@ RIL[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
   options.rilMessageType = "iccimsi";
   options.imsi = this.iccInfoPrivate.imsi;
   this.sendDOMMessage(options);
+
+  if (this._isCdma) {
+    let mccMnc = ICCUtilsHelper.parseMccMncFromImsi(this.iccInfoPrivate.imsi);
+    if (mccMnc) {
+      this.iccInfo.mcc = mccMnc.mcc;
+      this.iccInfo.mnc = mccMnc.mnc;
+      ICCUtilsHelper.handleICCInfoChange();
+    }
+  }
 };
 RIL[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
   if (options.rilRequestError) {
@@ -10343,20 +10352,12 @@ let ICCRecordHelper = {
         debug("AD: " + str);
       }
 
-      let imsi = RIL.iccInfoPrivate.imsi;
-      if (imsi) {
-        
-        RIL.iccInfo.mcc = imsi.substr(0,3);
-        
-        let mncLength = ad && ad[3];
-        if (!mncLength) {
-          
-          
-          let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(RIL.iccInfo.mcc);
-          mncLength = (index !== -1) ? 3 : 2;
-        }
-        RIL.iccInfo.mnc = imsi.substr(3, mncLength);
-        if (DEBUG) debug("MCC: " + RIL.iccInfo.mcc + " MNC: " + RIL.iccInfo.mnc);
+      
+      let mccMnc = ICCUtilsHelper.parseMccMncFromImsi(RIL.iccInfoPrivate.imsi,
+                                                      ad && ad[3]);
+      if (mccMnc) {
+        RIL.iccInfo.mcc = mccMnc.mcc;
+        RIL.iccInfo.mnc = mccMnc.mnc;
         ICCUtilsHelper.handleICCInfoChange();
       }
     }
@@ -11632,6 +11633,36 @@ let ICCUtilsHelper = {
     }
 
     return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  parseMccMncFromImsi: function parseMccMncFromImsi(imsi, mncLength) {
+    if (!imsi) {
+      return;
+    }
+
+    
+    let mcc = imsi.substr(0,3);
+    if (!mncLength) {
+      
+      let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(mcc);
+      mncLength = (index !== -1) ? 3 : 2;
+    }
+    let mnc = imsi.substr(3, mncLength);
+    if (DEBUG) debug("IMSI: " + imsi + " MCC: " + mcc + " MNC: " + mnc);
+
+    return { mcc: mcc, mnc: mnc};
   },
 };
 
