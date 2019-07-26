@@ -353,9 +353,19 @@ JSObject::getChildPropertyOnDictionary(ThreadSafeContext *cx, JS::HandleObject o
             child.setSlot(slot);
         } else {
             
+
+
+
+
+
+
+
+
             JS_ASSERT(obj->inDictionaryMode() ||
                       parent->hasMissingSlot() ||
-                      child.slot() == parent->maybeSlot() + 1);
+                      child.slot() == parent->maybeSlot() + 1 ||
+                      (parent->maybeSlot() + 1 < JSSLOT_FREE(obj->getClass()) &&
+                       child.slot() == JSSLOT_FREE(obj->getClass())));
         }
     }
 
