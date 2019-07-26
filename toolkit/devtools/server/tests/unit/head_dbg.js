@@ -7,16 +7,15 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-Cu.import("resource://gre/modules/Services.jsm");
+const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
+const Services = devtools.require("Services");
 
 
 
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
-
-const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 
 function tryImport(url) {
   try {

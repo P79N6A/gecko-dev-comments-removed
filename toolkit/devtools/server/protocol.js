@@ -5,15 +5,12 @@
 "use strict";
 
 let {Cu} = require("chrome");
-
+let Services = require("Services");
 let promise = require("sdk/core/promise");
 let {Class} = require("sdk/core/heritage");
 let {EventTarget} = require("sdk/event/target");
 let events = require("sdk/event/core");
 let object = require("sdk/util/object");
-
-
-Cu.import("resource://gre/modules/Services.jsm");
 
 
 function promiseDone(err) {
