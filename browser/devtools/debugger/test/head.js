@@ -51,10 +51,7 @@ registerCleanupFunction(function() {
 
 
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
-testDir = testDir.replace(/\/\//g, '/');
-testDir = testDir.replace("chrome:/mochitest", "chrome://mochitest");
-let helpersjs = testDir + "/../../commandline/test/helpers.js";
-Services.scriptloader.loadSubScript(helpersjs, this);
+Services.scriptloader.loadSubScript(testDir + "../../../commandline/test/helpers.js", this);
 
 
 function dbg_assert(cond, e) {
