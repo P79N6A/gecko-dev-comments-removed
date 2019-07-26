@@ -1954,11 +1954,20 @@ class MCallDOMNative : public MCall
     MCallDOMNative(JSFunction *target, uint32_t numActualArgs)
         : MCall(target, numActualArgs, false)
     {
+        
+        
+        
+        
+        
+        
+        if (!getJitInfo()->isMovable)
+            setGuard();
     }
 
     friend MCall *MCall::New(TempAllocator &alloc, JSFunction *target, size_t maxArgc,
                              size_t numActualArgs, bool construct, bool isDOMCall);
 
+    const JSJitInfo *getJitInfo() const;
   public:
     virtual AliasSet getAliasSet() const MOZ_OVERRIDE;
 
@@ -8032,6 +8041,11 @@ class MGetDOMProperty
         if (isDomMovable()) {
             JS_ASSERT(jitinfo->aliasSet() != JSJitInfo::AliasEverything);
             setMovable();
+        } else {
+            
+            
+            
+            setGuard();
         }
 
         setResultType(MIRType_Value);

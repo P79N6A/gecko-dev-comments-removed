@@ -672,10 +672,7 @@ MCall::New(TempAllocator &alloc, JSFunction *target, size_t maxArgc, size_t numA
 AliasSet
 MCallDOMNative::getAliasSet() const
 {
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
-
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
+    const JSJitInfo *jitInfo = getJitInfo();
 
     JS_ASSERT(jitInfo->aliasSet() != JSJitInfo::AliasNone);
     
@@ -723,10 +720,7 @@ MCallDOMNative::computeMovable()
     
     
     
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
-
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
+    const JSJitInfo *jitInfo = getJitInfo();
 
     JS_ASSERT_IF(jitInfo->isMovable,
                  jitInfo->aliasSet() != JSJitInfo::AliasEverything);
@@ -768,6 +762,17 @@ MCallDOMNative::congruentTo(MDefinition *ins) const
     JS_ASSERT(call->isMovable());
 
     return true;
+}
+
+const JSJitInfo *
+MCallDOMNative::getJitInfo() const
+{
+    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+
+    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
+    JS_ASSERT(jitInfo);
+
+    return jitInfo;
 }
 
 MApplyArgs *
