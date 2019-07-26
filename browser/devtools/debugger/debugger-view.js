@@ -2585,9 +2585,16 @@ PropertiesView.prototype = {
     
     aId = aId || (aScope.id + "->" + aName + "-variable");
 
+    let parent;
+    if (aFlags && !aFlags.enumerable) {
+      parent = aScope.childNodes[2];
+    }
+    else {
+      parent = aScope.childNodes[1];
+    }
+
     
-    let element = this._createPropertyElement(aName, aId, "variable",
-                                              aScope.getElementsByClassName("details")[0]);
+    let element = this._createPropertyElement(aName, aId, "variable", parent);
 
     
     if (!element) {
@@ -2789,6 +2796,7 @@ PropertiesView.prototype = {
         if (value !== undefined) {
           this._addProperty(aVar, [i, value], desc);
         }
+
         if (getter !== undefined || setter !== undefined) {
           let prop = this._addProperty(aVar, [i]).expand();
           prop.getter = this._addProperty(prop, ["get", getter], desc);
@@ -2834,9 +2842,16 @@ PropertiesView.prototype = {
     
     aId = aId || (aVar.id + "->" + aProperty[0] + "-property");
 
+    let parent;
+    if (aFlags && !aFlags.enumerable) {
+      parent = aVar.childNodes[2];
+    }
+    else {
+      parent = aVar.childNodes[1];
+    }
+
     
-    let element = this._createPropertyElement(aName, aId, "property",
-                                              aVar.getElementsByClassName("details")[0]);
+    let element = this._createPropertyElement(aName, aId, "property", parent);
 
     
     if (!element) {
@@ -3112,6 +3127,7 @@ PropertiesView.prototype = {
 
     let title = document.createElement("box");
     let details = document.createElement("vbox");
+    let nonEnum = document.createElement("vbox");
 
     
     element.id = aId;
@@ -3131,6 +3147,7 @@ PropertiesView.prototype = {
 
     
     details.className = "details";
+    nonEnum.className = "details nonenum";
 
     
     if (aClass === "scope") {
@@ -3146,6 +3163,7 @@ PropertiesView.prototype = {
 
     element.appendChild(title);
     element.appendChild(details);
+    element.appendChild(nonEnum);
 
     aParent.appendChild(element);
 
@@ -3192,12 +3210,19 @@ PropertiesView.prototype = {
       arrow.setAttribute("open", "");
       details.setAttribute("open", "");
 
+      if (Prefs.nonEnumVisible) {
+        nonEnum.setAttribute("open", "");
+      }
+
       if (!aSkipAnimationFlag) {
         details.setAttribute("animated", "");
+        nonEnum.setAttribute("animated", "");
       }
+
       if ("function" === typeof element.onexpand) {
         element.onexpand(element);
       }
+
       return element;
     };
 
@@ -3210,9 +3235,12 @@ PropertiesView.prototype = {
       if (element._preventCollapse) {
         return;
       }
+
       arrow.removeAttribute("open");
       details.removeAttribute("open");
       details.removeAttribute("animated");
+      nonEnum.removeAttribute("open");
+      nonEnum.removeAttribute("animated");
 
       if ("function" === typeof element.oncollapse) {
         element.oncollapse(element);
@@ -3240,9 +3268,12 @@ PropertiesView.prototype = {
 
 
     element.showArrow = function DVP_element_showArrow() {
-      if (element._forceShowArrow || details.childNodes.length) {
+      let len = details.childNodes.length + nonEnum.childNodes.length;
+
+      if (element._forceShowArrow || len) {
         arrow.style.visibility = "visible";
       }
+
       return element;
     };
 
@@ -3327,13 +3358,19 @@ PropertiesView.prototype = {
     element.empty = function DVP_element_empty() {
       
       arrow.style.visibility = "hidden";
+
       while (details.firstChild) {
         details.removeChild(details.firstChild);
+      }
+
+      while (nonEnum.firstChild) {
+        nonEnum.removeChild(nonEnum.firstChild);
       }
 
       if ("function" === typeof element.onempty) {
         element.onempty(element);
       }
+
       return element;
     };
 
@@ -3431,7 +3468,7 @@ PropertiesView.prototype = {
 
       let node = aParent.parentNode;
       let arrow = node.getElementsByClassName("arrow")[0];
-      let children = node.getElementsByClassName("details")[0].childNodes.length;
+      let children = node.querySelectorAll(".details > vbox").length;
 
       
       
@@ -3549,10 +3586,31 @@ PropertiesView.prototype = {
 
   _vars: null,
 
+  _onShowNonEnums: function DVP__onShowNonEnums() {
+    let option = document.getElementById("show-nonenum");
+    Prefs.nonEnumVisible = option.checked;
+
+    let els = document.getElementsByClassName("nonenum").iterator();
+    for (let el of els) {
+      if (el.parentNode.expanded) {
+        if (Prefs.nonEnumVisible) {
+          el.setAttribute("open", "");
+        } else {
+          el.removeAttribute("open");
+          el.removeAttribute("animated");
+        }
+      }
+    }
+  },
+
   
 
 
   initialize: function DVP_initialize() {
+    let showNonEnums = document.getElementById("show-nonenum");
+    showNonEnums.addEventListener("click", this._onShowNonEnums, false);
+    showNonEnums.checked = Prefs.nonEnumVisible;
+
     this._vars = DebuggerView._variables;
 
     this.emptyText();

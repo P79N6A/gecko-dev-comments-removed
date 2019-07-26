@@ -1733,6 +1733,7 @@ const REMOTE_HOST = "devtools.debugger.remote-host";
 const REMOTE_PORT = "devtools.debugger.remote-port";
 const REMOTE_CONNECTION_RETRIES = "devtools.debugger.remote-connection-retries";
 const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
+const NON_ENUM_VISIBLE = "devtools.debugger.ui.non-enum-visible";
 
 
 
@@ -1839,6 +1840,28 @@ let Prefs = {
   set remoteAutoConnect(value) {
     Services.prefs.setBoolPref(REMOTE_AUTO_CONNECT, value);
     this._autoConnect = value;
+  },
+
+  
+
+
+
+
+  get nonEnumVisible() {
+    if (this._nonEnumVisible === undefined) {
+      this._nonEnumVisible = Services.prefs.getBoolPref(NON_ENUM_VISIBLE);
+    }
+    return this._nonEnumVisible;
+  },
+
+  
+
+
+
+
+  set nonEnumVisible(value) {
+    Services.prefs.setBoolPref(NON_ENUM_VISIBLE, value);
+    this._nonEnumVisible = value;
   }
 };
 
