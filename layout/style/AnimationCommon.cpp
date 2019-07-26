@@ -448,6 +448,14 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
                                       const AnimationTiming& aTiming)
 {
   
+  
+  
+  
+  
+  MOZ_ASSERT(aTiming.mIterationDuration >= TimeDuration(0),
+             "Expecting iteration duration >= 0");
+
+  
   ComputedTiming result;
 
   TimeDuration activeDuration = ActiveDuration(aTiming);
