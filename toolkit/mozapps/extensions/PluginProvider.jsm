@@ -422,18 +422,23 @@ function PluginWrapper(aId, aName, aDescription, aTags) {
     let path = aTags[0].fullpath;
     
     let dir = Services.dirsvc.get("APlugns", Ci.nsIFile);
-    if (path.substring(0, dir.path.length) == dir.path)
+    if (path.startsWith(dir.path))
       return AddonManager.SCOPE_APPLICATION;
 
     
     dir = Services.dirsvc.get("ProfD", Ci.nsIFile);
-    if (path.substring(0, dir.path.length) == dir.path)
+    if (path.startsWith(dir.path))
       return AddonManager.SCOPE_PROFILE;
 
     
-    dir = Services.dirsvc.get("Home", Ci.nsIFile);
-    if (path.substring(0, dir.path.length) == dir.path)
-      return AddonManager.SCOPE_USER;
+    
+    try {
+      dir = Services.dirsvc.get("Home", Ci.nsIFile);
+      if (path.startsWith(dir.path))
+        return AddonManager.SCOPE_USER;
+    } catch (e if (e.result && e.result == Components.results.NS_ERROR_FAILURE)) {
+      
+    }
 
     
     return AddonManager.SCOPE_SYSTEM;
