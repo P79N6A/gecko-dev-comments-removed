@@ -188,38 +188,20 @@ ThreadPoolWorker::terminate()
 ThreadPool::ThreadPool(JSRuntime *rt)
   :
 #if defined(JS_THREADSAFE) || defined(DEBUG)
-    runtime_(rt),
+    runtime_(rt)
 #endif
-    numWorkers_(0) 
 {
-}
-
-bool
-ThreadPool::init()
-{
-    
-    
-    
-    
-
-#ifdef JS_THREADSAFE
-    if (runtime_->useHelperThreads())
-        numWorkers_ = GetCPUCount() - 1;
-    else
-        numWorkers_ = 0;
-
-# ifdef DEBUG
-    if (char *jsthreads = getenv("JS_THREADPOOL_SIZE"))
-        numWorkers_ = strtol(jsthreads, nullptr, 10);
-# endif
-#endif
-
-    return true;
 }
 
 ThreadPool::~ThreadPool()
 {
     terminateWorkers();
+}
+
+size_t
+ThreadPool::numWorkers() const
+{
+    return runtime_->helperThreadCount();
 }
 
 bool

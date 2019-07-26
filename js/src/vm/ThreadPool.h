@@ -66,9 +66,6 @@ class ThreadPool
 #endif
     js::Vector<ThreadPoolWorker*, 8, SystemAllocPolicy> workers_;
 
-    
-    size_t numWorkers_;
-
     bool lazyStartWorkers(JSContext *cx);
     void terminateWorkers();
     void terminateWorkersAndReportOOM(JSContext *cx);
@@ -77,10 +74,8 @@ class ThreadPool
     ThreadPool(JSRuntime *rt);
     ~ThreadPool();
 
-    bool init();
-
     
-    size_t numWorkers() { return numWorkers_; }
+    size_t numWorkers() const;
 
     
     bool submitAll(JSContext *cx, TaskExecutor *executor);
