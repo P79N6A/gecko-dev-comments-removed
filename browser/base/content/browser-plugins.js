@@ -116,7 +116,7 @@ var gPluginHandler = {
   
   _getBindingType : function(plugin) {
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
-      return;
+      return null;
 
     switch (plugin.pluginFallbackType) {
       case Ci.nsIObjectLoadingContent.PLUGIN_UNSUPPORTED:
@@ -137,7 +137,7 @@ var gPluginHandler = {
         return "PluginPlayPreview";
       default:
         
-        return;
+        return null;
     }
   },
 
