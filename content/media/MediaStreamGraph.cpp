@@ -832,14 +832,13 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
         }
 
         
-        
-        
         MediaStream::AudioOutputStream* audioOutputStream =
           aStream->mAudioOutputStreams.AppendElement();
         audioOutputStream->mAudioPlaybackStartTime = aAudioOutputStartTime;
         audioOutputStream->mBlockedAudioTime = 0;
         audioOutputStream->mLastTickWritten = 0;
         audioOutputStream->mStream = new AudioStream();
+        
         
         
         audioOutputStream->mStream->Init(2, IdealAudioRate(),

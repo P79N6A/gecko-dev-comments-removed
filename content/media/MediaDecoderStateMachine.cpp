@@ -783,7 +783,7 @@ void MediaDecoderStateMachine::AudioLoop()
     
     
     
-    nsAutoPtr<AudioStream> audioStream(new AudioStream());
+    RefPtr<AudioStream> audioStream(new AudioStream());
     audioStream->Init(channels, rate, audioChannel, AudioStream::HighLatency);
     audioStream->SetVolume(volume);
     if (audioStream->SetPreservesPitch(preservesPitch) != NS_OK) {
@@ -799,7 +799,7 @@ void MediaDecoderStateMachine::AudioLoop()
 
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mAudioStream = audioStream;
+      mAudioStream = audioStream.forget();
     }
   }
 

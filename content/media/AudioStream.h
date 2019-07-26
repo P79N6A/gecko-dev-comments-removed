@@ -10,9 +10,11 @@
 #include "nsAutoPtr.h"
 #include "nsAutoRef.h"
 #include "nsCOMPtr.h"
+#include "nsThreadUtils.h"
 #include "Latency.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/StaticMutex.h"
+#include "mozilla/RefPtr.h"
 
 #include "cubeb/cubeb.h"
 
@@ -154,12 +156,27 @@ public:
     mStart %= mCapacity;
   }
 
+  
+  
+  uint32_t ContractTo(uint32_t aSize) {
+    NS_ABORT_IF_FALSE(mBuffer && mCapacity, "Buffer not initialized.");
+    if (aSize >= mCount) {
+      return mCount;
+    }
+    mStart += (mCount - aSize);
+    mCount = aSize;
+    mStart %= mCapacity;
+    return mCount;
+  }
+
 private:
   nsAutoArrayPtr<uint8_t> mBuffer;
   uint32_t mCapacity;
   uint32_t mStart;
   uint32_t mCount;
 };
+
+class AudioInitTask;
 
 
 
@@ -186,8 +203,9 @@ public:
   
   static int PreferredSampleRate();
 
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioStream)
   AudioStream();
-  ~AudioStream();
+  virtual ~AudioStream();
 
   enum LatencyRequest {
     HighLatency,
@@ -263,6 +281,14 @@ public:
   nsresult SetPreservesPitch(bool aPreservesPitch);
 
 private:
+  friend class AudioInitTask;
+
+  
+  nsresult OpenCubeb(cubeb_stream_params &aParams,
+                     LatencyRequest aLatencyRequest);
+
+  void CheckForStart();
+
   static void PrefChanged(const char* aPref, void* aClosure);
   static double GetVolumeScale();
   static cubeb* GetCubebContext();
@@ -367,16 +393,19 @@ private:
   enum StreamState {
     INITIALIZED, 
     STARTED,     
+    RUNNING,     
     STOPPED,     
     DRAINING,    
                  
                  
                  
     DRAINED,     
-    ERRORED      
+    ERRORED,     
+    SHUTDOWN     
   };
 
   StreamState mState;
+  bool mNeedsStart; 
 
   
   static StaticMutex sMutex;
@@ -389,6 +418,35 @@ private:
   static double sVolumeScale;
   static uint32_t sCubebLatency;
   static bool sCubebLatencyPrefSet;
+};
+
+class AudioInitTask : public nsRunnable
+{
+public:
+  AudioInitTask(AudioStream *aStream,
+                AudioStream::LatencyRequest aLatencyRequest,
+                const cubeb_stream_params &aParams)
+    : mAudioStream(aStream)
+    , mLatencyRequest(aLatencyRequest)
+    , mParams(aParams)
+  {}
+
+  nsresult Dispatch()
+  {
+    return NS_NewNamedThread("CubebInit", getter_AddRefs(mThread), this);
+  }
+
+protected:
+  virtual ~AudioInitTask() {};
+
+private:
+  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
+
+  RefPtr<AudioStream> mAudioStream;
+  AudioStream::LatencyRequest mLatencyRequest;
+  cubeb_stream_params mParams;
+
+  nsCOMPtr<nsIThread> mThread;
 };
 
 } 

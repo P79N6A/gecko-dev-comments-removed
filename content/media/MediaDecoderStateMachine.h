@@ -731,7 +731,7 @@ private:
   
   
   
-  nsAutoPtr<AudioStream> mAudioStream;
+  RefPtr<AudioStream> mAudioStream;
 
   
   
