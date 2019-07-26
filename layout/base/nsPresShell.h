@@ -593,10 +593,14 @@ protected:
       : mPresShell(aPresShell), mFromScroll(aFromScroll) {
       NS_ASSERTION(mPresShell, "null parameter");
     }
+
+  private:
+  
     ~nsSynthMouseMoveEvent() {
       Revoke();
     }
 
+  public:
     NS_INLINE_DECL_REFCOUNTING(nsSynthMouseMoveEvent)
 
     void Revoke() {

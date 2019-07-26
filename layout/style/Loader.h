@@ -131,8 +131,12 @@ class Loader MOZ_FINAL {
 public:
   Loader();
   Loader(nsIDocument*);
+
+ private:
+  
   ~Loader();
 
+ public:
   NS_INLINE_DECL_REFCOUNTING(Loader)
 
   void DropDocumentReference(); 

@@ -629,7 +629,7 @@ protected:
   } mValue;
 };
 
-struct nsCSSValue::Array {
+struct nsCSSValue::Array MOZ_FINAL {
 
   
   static Array* Create(size_t aItemCount) {
@@ -763,17 +763,23 @@ private:
 
 
 
-struct nsCSSValueList_heap : public nsCSSValueList {
+struct nsCSSValueList_heap MOZ_FINAL : public nsCSSValueList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueList_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  
+  ~nsCSSValueList_heap()
+  {
+  }
 };
 
 
 
 
 
-struct nsCSSValueSharedList {
+struct nsCSSValueSharedList MOZ_FINAL {
   nsCSSValueSharedList()
     : mHead(nullptr)
   {
@@ -787,8 +793,11 @@ struct nsCSSValueSharedList {
     MOZ_COUNT_CTOR(nsCSSValueSharedList);
   }
 
+private:
+  
   ~nsCSSValueSharedList();
 
+public:
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueSharedList)
 
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,
@@ -885,10 +894,16 @@ struct nsCSSRect {
 
 
 
-struct nsCSSRect_heap : public nsCSSRect {
+struct nsCSSRect_heap MOZ_FINAL : public nsCSSRect {
   NS_INLINE_DECL_REFCOUNTING(nsCSSRect_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  
+  ~nsCSSRect_heap()
+  {
+  }
 };
 
 
@@ -974,7 +989,7 @@ struct nsCSSValuePair {
 
 
 
-struct nsCSSValuePair_heap : public nsCSSValuePair {
+struct nsCSSValuePair_heap MOZ_FINAL : public nsCSSValuePair {
   
   nsCSSValuePair_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue)
       : nsCSSValuePair(aXValue, aYValue)
@@ -983,6 +998,12 @@ struct nsCSSValuePair_heap : public nsCSSValuePair {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePair_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  
+  ~nsCSSValuePair_heap()
+  {
+  }
 };
 
 struct nsCSSValueTriplet {
@@ -1059,7 +1080,7 @@ struct nsCSSValueTriplet {
 
 
 
-struct nsCSSValueTriplet_heap : public nsCSSValueTriplet {
+struct nsCSSValueTriplet_heap MOZ_FINAL : public nsCSSValueTriplet {
   
   nsCSSValueTriplet_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue, const nsCSSValue& aZValue)
     : nsCSSValueTriplet(aXValue, aYValue, aZValue)
@@ -1068,6 +1089,12 @@ struct nsCSSValueTriplet_heap : public nsCSSValueTriplet {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueTriplet_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  
+  ~nsCSSValueTriplet_heap()
+  {
+  }
 };
 
 
@@ -1130,10 +1157,16 @@ private:
 
 
 
-struct nsCSSValuePairList_heap : public nsCSSValuePairList {
+struct nsCSSValuePairList_heap MOZ_FINAL : public nsCSSValuePairList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePairList_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  
+  ~nsCSSValuePairList_heap()
+  {
+  }
 };
 
 
@@ -1201,7 +1234,7 @@ public:
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
-struct nsCSSValueGradient {
+struct nsCSSValueGradient MOZ_FINAL {
   nsCSSValueGradient(bool aIsRadial, bool aIsRepeating);
 
   
@@ -1293,14 +1326,23 @@ public:
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
+  
+  ~nsCSSValueGradient()
+  {
+  }
+
   nsCSSValueGradient(const nsCSSValueGradient& aOther) MOZ_DELETE;
   nsCSSValueGradient& operator=(const nsCSSValueGradient& aOther) MOZ_DELETE;
 };
 
-struct nsCSSValueTokenStream {
+struct nsCSSValueTokenStream MOZ_FINAL {
   nsCSSValueTokenStream();
+
+private:
+  
   ~nsCSSValueTokenStream();
 
+public:
   bool operator==(const nsCSSValueTokenStream& aOther) const
   {
     bool eq;
@@ -1372,7 +1414,7 @@ private:
   nsCSSValueTokenStream& operator=(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
 };
 
-class nsCSSValueFloatColor {
+class nsCSSValueFloatColor MOZ_FINAL {
 public:
   nsCSSValueFloatColor(float aComponent1, float aComponent2, float aComponent3,
                        float aAlpha)
@@ -1384,11 +1426,14 @@ public:
     MOZ_COUNT_CTOR(nsCSSValueFloatColor);
   }
 
+private:
+  
   ~nsCSSValueFloatColor()
   {
     MOZ_COUNT_DTOR(nsCSSValueFloatColor);
   }
 
+public:
   bool operator==(nsCSSValueFloatColor& aOther) const;
 
   nscolor GetColorValue(nsCSSUnit aUnit) const;

@@ -1249,10 +1249,13 @@ public:
     , mCallee(nullptr)
   {}
 
+private:
+  
   ~AsyncScroll() {
     RemoveObserver();
   }
 
+public:
   nsPoint PositionAt(TimeStamp aTime);
   nsSize VelocityAt(TimeStamp aTime); 
 

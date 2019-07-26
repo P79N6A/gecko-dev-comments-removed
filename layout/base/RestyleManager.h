@@ -35,6 +35,13 @@ public:
 
   RestyleManager(nsPresContext* aPresContext);
 
+private:
+  
+  ~RestyleManager()
+  {
+  }
+
+public:
   NS_INLINE_DECL_REFCOUNTING(mozilla::RestyleManager)
 
   void Disconnect() {
