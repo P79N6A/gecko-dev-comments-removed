@@ -8,10 +8,12 @@
 
 let { Ci, Cu } = require("chrome");
 let Services = require("Services");
-let { createExtraActors, appendExtraActors } = require("devtools/server/actors/common");
+let { ActorPool, createExtraActors, appendExtraActors } = require("devtools/server/actors/common");
 let { RootActor } = require("devtools/server/actors/root");
 let { AddonThreadActor, ThreadActor } = require("devtools/server/actors/script");
+let { DebuggerServer } = require("devtools/server/main");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+let { dbg_assert, dumpn } = DevToolsUtils;
 
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -22,7 +24,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/
 
 
 XPCOMUtils.defineLazyGetter(this, "events", () => {
-  return devtools.require("sdk/event/core");
+  return require("sdk/event/core");
 });
 
 
@@ -489,6 +491,8 @@ BrowserTabList.prototype.onCloseWindow = DevToolsUtils.makeInfallible(function(a
     }
   }, "BrowserTabList.prototype.onCloseWindow's delayed body"), 0);
 }, "BrowserTabList.prototype.onCloseWindow");
+
+exports.BrowserTabList = BrowserTabList;
 
 
 
@@ -1075,6 +1079,8 @@ TabActor.prototype.requestTypes = {
   "reconfigure": TabActor.prototype.onReconfigure
 };
 
+exports.TabActor = TabActor;
+
 
 
 
@@ -1453,4 +1459,12 @@ DebuggerProgressListener.prototype = {
       this._tabActor._navigate(window);
     }
   }, "DebuggerProgressListener.prototype.onStateChange")
+};
+
+exports.register = function(handle) {
+  handle.setRootActor(createRootActor);
+};
+
+exports.unregister = function(handle) {
+  handle.setRootActor(null);
 };
