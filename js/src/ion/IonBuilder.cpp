@@ -6896,10 +6896,7 @@ IonBuilder::getPropTryPolymorphic(bool *emitted, HandlePropertyName name, Handle
     
     
     
-    if (unary.ival == MIRType_Object &&
-        (cx->methodJitEnabled || js_IonOptions.eagerCompilation) &&
-        !invalidatedIdempotentCache())
-    {
+    if (unary.ival == MIRType_Object && !invalidatedIdempotentCache()) {
         RootedScript scriptRoot(cx, script());
         if (oracle->propertyReadIdempotent(scriptRoot, pc, id))
             load->setIdempotent();
