@@ -5,7 +5,9 @@
 
 
 #include <stdint.h>
+
 #include "mozilla/Mutex.h"
+#include "nsString.h"
 
 namespace mozilla {
 
@@ -57,6 +59,9 @@ public:
   
   uint32_t GetSampleRate();
 
+  
+  uint32_t GetSamplesPerFrame();
+
 private:
   uint32_t mCurrentChar;
   union {
@@ -102,7 +107,7 @@ public:
     return mIsMP3 != NOT_MP3;
   }
 
-  void Parse(const char* aBuffer, uint32_t aLength, int64_t aStreamOffset);
+  void Parse(const char* aBuffer, uint32_t aLength, uint64_t aStreamOffset);
 
   
   
@@ -112,6 +117,18 @@ public:
   
   
   int64_t GetMP3Offset();
+
+  
+  
+  
+  bool ParsedHeaders();
+
+  
+  
+  bool HasExactDuration();
+
+  
+  bool NeedsData();
 
 private:
 
@@ -136,23 +153,46 @@ private:
   MP3Parser mMP3Parser;
 
   
+  
+  
+  
+  uint32_t mTotalID3Size;
+
+  
+
+  
+  
   uint64_t mTotalFrameSize;
-  uint64_t mNumFrames;
+  uint64_t mFrameCount;
 
   
   
   
-  int64_t  mOffset;
+  uint64_t mOffset;
 
   
-  int64_t  mLength;
+  int64_t mLength;
 
   
   
   int64_t mMP3Offset;
 
   
-  uint16_t mSampleRate;
+  int64_t mNumFrames;
+
+  
+  
+  
+  uint16_t mSamplesPerSecond;
+  uint16_t mSamplesPerFrame;
+
+  
+  
+  nsAutoCString mFirstFrame;
+
+  
+  
+  int64_t mFirstFrameEnd;
 
   enum eIsMP3 {
     MAYBE_MP3, 
