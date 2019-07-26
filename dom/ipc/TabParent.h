@@ -304,8 +304,6 @@ private:
     
     
     bool mIsDestroyed;
-    
-    bool mAppPackageFileDescriptorSent;
 };
 
 } 

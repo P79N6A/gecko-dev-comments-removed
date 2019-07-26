@@ -4,15 +4,10 @@
 
 
 
-#include "mozilla/net/RemoteOpenFileChild.h"
-
-#include "mozilla/ipc/FileDescriptor.h"
-#include "mozilla/ipc/FileDescriptorUtils.h"
-#include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/NeckoChild.h"
-#include "nsThreadUtils.h"
-#include "nsJARProtocolHandler.h"
+#include "mozilla/net/RemoteOpenFileChild.h"
 #include "nsIRemoteOpenFileListener.h"
+#include "mozilla/ipc/URIUtils.h"
 
 
 #include "private/pprio.h"
@@ -22,54 +17,13 @@ using namespace mozilla::ipc;
 namespace mozilla {
 namespace net {
 
-
-
-
-
-class CallsListenerInNewEvent : public nsRunnable
-{
-public:
-    CallsListenerInNewEvent(nsIRemoteOpenFileListener *aListener, nsresult aRv)
-      : mListener(aListener), mRV(aRv)
-    {
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(aListener);
-    }
-
-    void Dispatch()
-    {
-        MOZ_ASSERT(NS_IsMainThread());
-
-        nsresult rv = NS_DispatchToCurrentThread(this);
-        NS_ENSURE_SUCCESS_VOID(rv);
-    }
-
-private:
-    NS_IMETHOD Run()
-    {
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(mListener);
-
-        mListener->OnRemoteFileOpenComplete(mRV);
-        return NS_OK;
-    }
-
-    nsCOMPtr<nsIRemoteOpenFileListener> mListener;
-    nsresult mRV;
-};
-
-
-
-
-
-NS_IMPL_THREADSAFE_ISUPPORTS3(RemoteOpenFileChild,
+NS_IMPL_THREADSAFE_ISUPPORTS2(RemoteOpenFileChild,
                               nsIFile,
-                              nsIHashable,
-                              nsICachedFileDescriptorListener)
+                              nsIHashable)
+
 
 RemoteOpenFileChild::RemoteOpenFileChild(const RemoteOpenFileChild& other)
-  : mTabChild(other.mTabChild)
-  , mNSPRFileDesc(other.mNSPRFileDesc)
+  : mNSPRFileDesc(other.mNSPRFileDesc)
   , mAsyncOpenCalled(other.mAsyncOpenCalled)
   , mNSPROpenCalled(other.mNSPROpenCalled)
 {
@@ -80,10 +34,6 @@ RemoteOpenFileChild::RemoteOpenFileChild(const RemoteOpenFileChild& other)
 
 RemoteOpenFileChild::~RemoteOpenFileChild()
 {
-  if (mListener) {
-    NotifyListener(NS_ERROR_UNEXPECTED);
-  }
-
   if (mNSPRFileDesc) {
     
     MOZ_ASSERT(!mNSPROpenCalled);
@@ -152,39 +102,25 @@ RemoteOpenFileChild::AsyncRemoteFileOpen(int32_t aFlags,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mTabChild = static_cast<TabChild*>(aTabChild);
-
-  if (MissingRequiredTabChild(mTabChild, "remoteopenfile")) {
+  mozilla::dom::TabChild* tabChild = nullptr;
+  if (aTabChild) {
+    tabChild = static_cast<mozilla::dom::TabChild*>(aTabChild);
+  }
+  if (MissingRequiredTabChild(tabChild, "remoteopenfile")) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
   
   
-  nsRefPtr<CallsListenerInNewEvent> runnable =
-    new CallsListenerInNewEvent(aListener, NS_OK);
-  runnable->Dispatch();
-
+  aListener->OnRemoteFileOpenComplete(NS_OK);
   mAsyncOpenCalled = true;
   return NS_OK;
 #else
-  nsString path;
-  if (NS_FAILED(mFile->GetPath(path))) {
-    MOZ_NOT_REACHED("Couldn't get path from file!");
-  }
-
-  if (mTabChild) {
-    if (mTabChild->GetCachedFileDescriptor(path, this)) {
-      
-      
-      return NS_OK;
-    }
-  }
-
   URIParams uri;
   SerializeURI(mURI, uri);
 
-  gNeckoChild->SendPRemoteOpenFileConstructor(this, uri, mTabChild);
+  gNeckoChild->SendPRemoteOpenFileConstructor(this, uri, tabChild);
 
   
   
@@ -199,86 +135,6 @@ RemoteOpenFileChild::AsyncRemoteFileOpen(int32_t aFlags,
 #endif
 }
 
-void
-RemoteOpenFileChild::OnCachedFileDescriptor(const nsAString& aPath,
-                                            const FileDescriptor& aFD)
-{
-#ifdef DEBUG
-  if (!aPath.IsEmpty()) {
-    MOZ_ASSERT(mFile);
-
-    nsString path;
-    if (NS_FAILED(mFile->GetPath(path))) {
-      MOZ_NOT_REACHED("Couldn't get path from file!");
-    }
-
-    MOZ_ASSERT(path == aPath, "Paths don't match!");
-  }
-#endif
-
-  HandleFileDescriptorAndNotifyListener(aFD,  false);
-}
-
-void
-RemoteOpenFileChild::HandleFileDescriptorAndNotifyListener(
-                                                      const FileDescriptor& aFD,
-                                                      bool aFromRecvFileOpened)
-{
-#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
-  MOZ_NOT_REACHED("OS X and Windows shouldn't be doing IPDL here");
-#else
-  if (!mListener) {
-    
-    
-    
-    if (aFD.IsValid()) {
-      nsRefPtr<CloseFileRunnable> runnable = new CloseFileRunnable(aFD);
-      runnable->Dispatch();
-    }
-    return;
-  }
-
-  MOZ_ASSERT(!mNSPRFileDesc);
-
-  nsRefPtr<TabChild> tabChild;
-  mTabChild.swap(tabChild);
-
-  
-  
-  if (tabChild && aFromRecvFileOpened) {
-    nsString path;
-    if (NS_FAILED(mFile->GetPath(path))) {
-      MOZ_NOT_REACHED("Couldn't get path from file!");
-    }
-
-    tabChild->CancelCachedFileDescriptorCallback(path, this);
-  }
-
-  if (aFD.IsValid()) {
-    mNSPRFileDesc = PR_ImportFile(aFD.PlatformHandle());
-    if (!mNSPRFileDesc) {
-      NS_WARNING("Failed to import file handle!");
-    }
-  }
-
-  NotifyListener(mNSPRFileDesc ? NS_OK : NS_ERROR_FILE_NOT_FOUND);
-#endif
-}
-
-void
-RemoteOpenFileChild::NotifyListener(nsresult aResult)
-{
-  MOZ_ASSERT(mListener);
-  mListener->OnRemoteFileOpenComplete(aResult);
-  mListener = nullptr;     
-
-  nsRefPtr<nsJARProtocolHandler> handler(gJarHandler);
-  NS_WARN_IF_FALSE(handler, "nsJARProtocolHandler is already gone!");
-
-  if (handler) {
-    handler->RemoteOpenFileComplete(this, aResult);
-  }
-}
 
 
 
@@ -288,9 +144,18 @@ bool
 RemoteOpenFileChild::RecvFileOpened(const FileDescriptor& aFD)
 {
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
-  NS_NOTREACHED("OS X and Windows shouldn't be doing IPDL here");
+  NS_NOTREACHED("osX and Windows shouldn't be doing IPDL here");
 #else
-  HandleFileDescriptorAndNotifyListener(aFD,  true);
+  if (!aFD.IsValid()) {
+    return RecvFileDidNotOpen();
+  }
+
+  MOZ_ASSERT(!mNSPRFileDesc);
+  mNSPRFileDesc = PR_AllocFileDesc(aFD.PlatformHandle(), PR_GetFileMethods());
+
+  MOZ_ASSERT(mListener);
+  mListener->OnRemoteFileOpenComplete(NS_OK);
+  mListener = nullptr;     
 
   
   
@@ -304,10 +169,14 @@ bool
 RemoteOpenFileChild::RecvFileDidNotOpen()
 {
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
-  NS_NOTREACHED("OS X and Windows shouldn't be doing IPDL here");
+  NS_NOTREACHED("osX and Windows shouldn't be doing IPDL here");
 #else
-  HandleFileDescriptorAndNotifyListener(FileDescriptor(),
-                                         true);
+  MOZ_ASSERT(!mNSPRFileDesc);
+  printf_stderr("RemoteOpenFileChild: file was not opened!\n");
+
+  MOZ_ASSERT(mListener);
+  mListener->OnRemoteFileOpenComplete(NS_ERROR_FILE_NOT_FOUND);
+  mListener = nullptr;     
 
   
   
@@ -315,6 +184,24 @@ RemoteOpenFileChild::RecvFileDidNotOpen()
 #endif
 
   return true;
+}
+
+void
+RemoteOpenFileChild::AddIPDLReference()
+{
+  AddRef();
+}
+
+void
+RemoteOpenFileChild::ReleaseIPDLReference()
+{
+  
+  if (mListener) {
+    mListener->OnRemoteFileOpenComplete(NS_ERROR_UNEXPECTED);
+    mListener = nullptr;
+  }
+
+  Release();
 }
 
 
@@ -775,3 +662,4 @@ RemoteOpenFileChild::GetHashCode(uint32_t *aResult)
 
 } 
 } 
+
