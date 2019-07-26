@@ -28,6 +28,16 @@ struct ExtensionGroupInfo
 
 static const ExtensionGroupInfo sExtensionGroupInfoArr[] = {
     {
+        "XXX_bind_buffer_offset",
+        0,   
+        0,   
+        {
+            GLContext::EXT_transform_feedback,
+            GLContext::NV_transform_feedback,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "XXX_depth_texture",
         200, 
         300, 
