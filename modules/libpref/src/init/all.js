@@ -1796,6 +1796,9 @@ pref("layout.css.filters.enabled", false);
 pref("layout.css.flexbox.enabled", true);
 
 
+pref("layout.css.image-orientation.enabled", true);
+
+
 
 
 
@@ -4089,14 +4092,19 @@ pref("layers.frame-counter", false);
 
 pref("layers.max-active", -1);
 
+
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
-
 pref("layers.use-deprecated-textures", false);
+#else
+#ifdef MOZ_WIDGET_GONK
+pref("layers.use-deprecated-textures", true);
 #else
 pref("layers.offmainthreadcomposition.enabled", false);
 pref("layers.use-deprecated-textures", true);
 #endif
+#endif
+
 
 
 pref("layers.offmainthreadcomposition.testing.enabled", false);
