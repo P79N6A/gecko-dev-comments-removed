@@ -292,6 +292,7 @@ protected:
   nsRefPtr<nsContentList> mFormControls;
 
   nsRefPtr<mozilla::dom::HTMLAllCollection> mAll;
+  nsRefPtrHashtable<nsStringHashKey, nsContentList> mAllMap;
 
   
   int32_t mNumForms;
