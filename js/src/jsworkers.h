@@ -34,12 +34,65 @@ namespace jit {
 #ifdef JS_THREADSAFE
 
 
-class WorkerThreadState
+class GlobalWorkerThreadState
 {
   public:
     
+    
+    size_t cpuCount;
+
+    
+    size_t threadCount;
+
+    typedef Vector<jit::IonBuilder*, 0, SystemAllocPolicy> IonBuilderVector;
+    typedef Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> AsmJSParallelTaskVector;
+    typedef Vector<ParseTask*, 0, SystemAllocPolicy> ParseTaskVector;
+    typedef Vector<SourceCompressionTask*, 0, SystemAllocPolicy> SourceCompressionTaskVector;
+
+    
     WorkerThread *threads;
-    size_t numThreads;
+
+  private:
+    
+
+    
+    IonBuilderVector ionWorklist_, ionFinishedList_;
+
+    
+    
+    
+    
+    
+    
+    AsmJSParallelTaskVector asmJSWorklist_, asmJSFinishedList_;
+
+  public:
+    
+    
+    mozilla::Atomic<uint32_t> asmJSCompilationInProgress;
+
+  private:
+    
+    ParseTaskVector parseWorklist_, parseFinishedList_;
+
+    
+    ParseTaskVector parseWaitingOnGC_;
+
+    
+    SourceCompressionTaskVector compressionWorklist_;
+
+  public:
+    GlobalWorkerThreadState();
+
+    bool ensureInitialized();
+    void finish();
+
+    void lock();
+    void unlock();
+
+# ifdef DEBUG
+    bool isLocked();
+# endif
 
     enum CondVar {
         
@@ -49,53 +102,53 @@ class WorkerThreadState
         PRODUCER
     };
 
-    
-    Vector<jit::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
-
-    
-    Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSWorklist;
-
-    
-
-
-
-
-    Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSFinishedList;
-
-    
-
-
-
-    mozilla::Atomic<uint32_t> asmJSCompilationInProgress;
-
-    
-    Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
-
-    
-    Vector<ParseTask*, 0, SystemAllocPolicy> parseWaitingOnGC;
-
-    
-    Vector<SourceCompressionTask *, 0, SystemAllocPolicy> compressionWorklist;
-
-    WorkerThreadState(JSRuntime *rt) {
-        mozilla::PodZero(this);
-        runtime = rt;
-    }
-    ~WorkerThreadState();
-
-    bool init();
-    void cleanup();
-
-    void lock();
-    void unlock();
-
-# ifdef DEBUG
-    bool isLocked();
-# endif
-
     void wait(CondVar which, uint32_t timeoutMillis = 0);
     void notifyAll(CondVar which);
     void notifyOne(CondVar which);
+
+    
+    template <typename T>
+    void remove(T &vector, size_t *index)
+    {
+        vector[(*index)--] = vector.back();
+        vector.popBack();
+    }
+
+    IonBuilderVector &ionWorklist() {
+        JS_ASSERT(isLocked());
+        return ionWorklist_;
+    }
+    IonBuilderVector &ionFinishedList() {
+        JS_ASSERT(isLocked());
+        return ionFinishedList_;
+    }
+
+    AsmJSParallelTaskVector &asmJSWorklist() {
+        JS_ASSERT(isLocked());
+        return asmJSWorklist_;
+    }
+    AsmJSParallelTaskVector &asmJSFinishedList() {
+        JS_ASSERT(isLocked());
+        return asmJSFinishedList_;
+    }
+
+    ParseTaskVector &parseWorklist() {
+        JS_ASSERT(isLocked());
+        return parseWorklist_;
+    }
+    ParseTaskVector &parseFinishedList() {
+        JS_ASSERT(isLocked());
+        return parseFinishedList_;
+    }
+    ParseTaskVector &parseWaitingOnGC() {
+        JS_ASSERT(isLocked());
+        return parseWaitingOnGC_;
+    }
+
+    SourceCompressionTaskVector &compressionWorklist() {
+        JS_ASSERT(isLocked());
+        return compressionWorklist_;
+    }
 
     bool canStartAsmJSCompile();
     bool canStartIonCompile();
@@ -132,8 +185,6 @@ class WorkerThreadState
 
   private:
 
-    JSRuntime *runtime;
-
     
 
 
@@ -161,11 +212,16 @@ class WorkerThreadState
     void *asmJSFailedFunction;
 };
 
+static inline GlobalWorkerThreadState &
+WorkerThreadState()
+{
+    extern GlobalWorkerThreadState gWorkerThreadState;
+    return gWorkerThreadState;
+}
+
 
 struct WorkerThread
 {
-    JSRuntime *runtime;
-
     mozilla::Maybe<PerThreadData> threadData;
     PRThread *thread;
 
@@ -190,10 +246,10 @@ struct WorkerThread
 
     void destroy();
 
-    void handleAsmJSWorkload(WorkerThreadState &state);
-    void handleIonWorkload(WorkerThreadState &state);
-    void handleParseWorkload(WorkerThreadState &state);
-    void handleCompressionWorkload(WorkerThreadState &state);
+    void handleAsmJSWorkload();
+    void handleIonWorkload();
+    void handleParseWorkload();
+    void handleCompressionWorkload();
 
     static void ThreadMain(void *arg);
     void threadLoop();
@@ -206,6 +262,11 @@ struct WorkerThread
 
 bool
 EnsureWorkerThreadsInitialized(ExclusiveContext *cx);
+
+
+
+void
+SetFakeCPUCount(size_t count);
 
 #ifdef JS_ION
 
@@ -230,6 +291,10 @@ void
 CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
 
 
+void
+CancelOffThreadParses(JSRuntime *runtime);
+
+
 
 
 
@@ -246,10 +311,6 @@ void
 EnqueuePendingParseTasksAfterGC(JSRuntime *rt);
 
 
-void
-WaitForOffThreadParsingToFinish(JSRuntime *rt);
-
-
 bool
 StartOffThreadCompression(ExclusiveContext *cx, SourceCompressionTask *task);
 
@@ -258,24 +319,19 @@ class AutoLockWorkerThreadState
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
 #ifdef JS_THREADSAFE
-    WorkerThreadState &state;
-
   public:
-    AutoLockWorkerThreadState(WorkerThreadState &state
-                              MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : state(state)
+    AutoLockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        state.lock();
+        WorkerThreadState().lock();
     }
 
     ~AutoLockWorkerThreadState() {
-        state.unlock();
+        WorkerThreadState().unlock();
     }
 #else
   public:
-    AutoLockWorkerThreadState(WorkerThreadState &state
-                              MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    AutoLockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -284,28 +340,22 @@ class AutoLockWorkerThreadState
 
 class AutoUnlockWorkerThreadState
 {
-    JSRuntime *rt;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
 
-    AutoUnlockWorkerThreadState(JSRuntime *rt
-                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : rt(rt)
+    AutoUnlockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 #ifdef JS_THREADSAFE
-        JS_ASSERT(rt->workerThreadState);
-        rt->workerThreadState->unlock();
-#else
-        (void)this->rt;
+        WorkerThreadState().unlock();
 #endif
     }
 
     ~AutoUnlockWorkerThreadState()
     {
 #ifdef JS_THREADSAFE
-        rt->workerThreadState->lock();
+        WorkerThreadState().lock();
 #endif
     }
 };
@@ -313,6 +363,7 @@ class AutoUnlockWorkerThreadState
 #ifdef JS_ION
 struct AsmJSParallelTask
 {
+    JSRuntime *runtime;     
     LifoAlloc lifo;         
     void *func;             
     jit::MIRGenerator *mir; 
@@ -320,10 +371,11 @@ struct AsmJSParallelTask
     unsigned compileTime;
 
     AsmJSParallelTask(size_t defaultChunkSize)
-      : lifo(defaultChunkSize), func(nullptr), mir(nullptr), lir(nullptr), compileTime(0)
+      : runtime(nullptr), lifo(defaultChunkSize), func(nullptr), mir(nullptr), lir(nullptr), compileTime(0)
     { }
 
-    void init(void *func, jit::MIRGenerator *mir) {
+    void init(JSRuntime *rt, void *func, jit::MIRGenerator *mir) {
+        this->runtime = rt;
         this->func = func;
         this->mir = mir;
         this->lir = nullptr;
@@ -375,6 +427,10 @@ struct ParseTask
 
     void activate(JSRuntime *rt);
     void finish();
+
+    bool runtimeMatches(JSRuntime *rt) {
+        return exclusiveContextGlobal->runtimeFromAnyThread() == rt;
+    }
 
     ~ParseTask();
 };

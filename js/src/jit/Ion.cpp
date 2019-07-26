@@ -512,15 +512,20 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
 }
 
 static inline void
-FinishAllOffThreadCompilations(JitCompartment *ion)
+FinishAllOffThreadCompilations(JSCompartment *comp)
 {
-    OffThreadCompilationVector &compilations = ion->finishedOffThreadCompilations();
+#ifdef JS_THREADSAFE
+    AutoLockWorkerThreadState lock;
+    GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
 
-    for (size_t i = 0; i < compilations.length(); i++) {
-        IonBuilder *builder = compilations[i];
-        FinishOffThreadBuilder(builder);
+    for (size_t i = 0; i < finished.length(); i++) {
+        IonBuilder *builder = finished[i];
+        if (builder->compartment == CompileCompartment::get(comp)) {
+            FinishOffThreadBuilder(builder);
+            WorkerThreadState().remove(finished, &i);
+        }
     }
-    compilations.clear();
+#endif
 }
 
  void
@@ -542,7 +547,7 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
     CancelOffThreadIonCompile(compartment, nullptr);
-    FinishAllOffThreadCompilations(this);
+    FinishAllOffThreadCompilations(compartment);
 
     
     rt->freeOsrTempData();
@@ -1511,18 +1516,30 @@ AttachFinishedCompilations(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
     JitCompartment *ion = cx->compartment()->jitCompartment();
-    if (!ion || !cx->runtime()->workerThreadState)
+    if (!ion)
         return;
 
     types::AutoEnterAnalysis enterTypes(cx);
-    AutoLockWorkerThreadState lock(*cx->runtime()->workerThreadState);
+    AutoLockWorkerThreadState lock;
 
-    OffThreadCompilationVector &compilations = ion->finishedOffThreadCompilations();
+    GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
 
     
     
-    while (!compilations.empty()) {
-        IonBuilder *builder = compilations.popCopy();
+    while (true) {
+        IonBuilder *builder = nullptr;
+
+        
+        for (size_t i = 0; i < finished.length(); i++) {
+            IonBuilder *testBuilder = finished[i];
+            if (testBuilder->compartment == CompileCompartment::get(cx->compartment())) {
+                builder = testBuilder;
+                WorkerThreadState().remove(finished, &i);
+                break;
+            }
+        }
+        if (!builder)
+            break;
 
         if (CodeGenerator *codegen = builder->backgroundCodegen()) {
             RootedScript script(cx, builder->script());
@@ -1537,7 +1554,7 @@ AttachFinishedCompilations(JSContext *cx)
             {
                 
                 AutoTempAllocatorRooter root(cx, &builder->alloc());
-                AutoUnlockWorkerThreadState unlock(cx->runtime());
+                AutoUnlockWorkerThreadState unlock;
                 AutoFlushCache afc("AttachFinishedCompilations", cx->runtime()->jitRuntime());
                 success = codegen->link(cx, builder->constraints());
             }
@@ -1554,8 +1571,6 @@ AttachFinishedCompilations(JSContext *cx)
 
         FinishOffThreadBuilder(builder);
     }
-
-    compilations.clear();
 #endif
 }
 
@@ -1564,6 +1579,10 @@ static const size_t BUILDER_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
 static inline bool
 OffThreadCompilationAvailable(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
+    
+    
+    
     
     
     
@@ -1572,8 +1591,12 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     return cx->runtime()->canUseParallelIonCompilation()
+        && WorkerThreadState().cpuCount > 1
         && cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL
         && !cx->runtime()->profilingScripts;
+#else
+    return false;
+#endif
 }
 
 static void
@@ -1831,7 +1854,12 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     if (script->length() > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
-        if (cx->runtime()->canUseParallelIonCompilation()) {
+#ifdef JS_THREADSAFE
+        size_t cpuCount = WorkerThreadState().cpuCount;
+#else
+        size_t cpuCount = 1;
+#endif
+        if (cx->runtime()->canUseParallelIonCompilation() && cpuCount > 1) {
             
             
             
@@ -2488,7 +2516,7 @@ jit::StopAllOffThreadCompilations(JSCompartment *comp)
     if (!comp->jitCompartment())
         return;
     CancelOffThreadIonCompile(comp, nullptr);
-    FinishAllOffThreadCompilations(comp->jitCompartment());
+    FinishAllOffThreadCompilations(comp);
 }
 
 void
