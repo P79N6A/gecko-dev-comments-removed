@@ -3811,37 +3811,39 @@ let RIL = {
       debug("handle supp svc notification: " + JSON.stringify(info));
     }
 
+    if (info.notificationType !== 1) {
+      
+      
+      
+      
+      return;
+    }
+
     let notification = null;
     let callIndex = -1;
 
-    if (info.notificationType === 0) {
-      
-      
-    } else if (info.notificationType === 1) {
-      
-      switch (info.code) {
-        case SUPP_SVC_NOTIFICATION_CODE2_PUT_ON_HOLD:
-        case SUPP_SVC_NOTIFICATION_CODE2_RETRIEVED:
-          notification = GECKO_SUPP_SVC_NOTIFICATION_FROM_CODE2[info.code];
-          break;
-        default:
-          
-          return;
-      }
+    switch (info.code) {
+      case SUPP_SVC_NOTIFICATION_CODE2_PUT_ON_HOLD:
+      case SUPP_SVC_NOTIFICATION_CODE2_RETRIEVED:
+        notification = GECKO_SUPP_SVC_NOTIFICATION_FROM_CODE2[info.code];
+        break;
+      default:
+        
+        return;
+    }
 
+    
+    let currentCallIndexes = Object.keys(this.currentCalls);
+    if (currentCallIndexes.length === 1) {
       
-      let currentCallIndexes = Object.keys(this.currentCalls);
-      if (currentCallIndexes.length === 1) {
-        
-        callIndex = currentCallIndexes[0];
-      } else {
-        
-        if (info.number) {
-          for each (let currentCall in this.currentCalls) {
-            if (currentCall.number == info.number) {
-              callIndex = currentCall.callIndex;
-              break;
-            }
+      callIndex = currentCallIndexes[0];
+    } else {
+      
+      if (info.number) {
+        for each (let currentCall in this.currentCalls) {
+          if (currentCall.number == info.number) {
+            callIndex = currentCall.callIndex;
+            break;
           }
         }
       }
