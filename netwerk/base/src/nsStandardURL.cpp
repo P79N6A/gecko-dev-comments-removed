@@ -378,19 +378,6 @@ nsStandardURL::InvalidateCache(bool invalidateCachedFile)
 }
 
 bool
-nsStandardURL::EscapeIPv6(const char *host, nsCString &result)
-{
-    
-    if (host && (host[0] != '[') && PL_strchr(host, ':')) {
-        result.Assign('[');
-        result.Append(host);
-        result.Append(']');
-        return true;
-    }
-    return false;
-}
-
-bool
 nsStandardURL::NormalizeIDN(const nsCSubstring &host, nsCString &result)
 {
     
@@ -424,6 +411,36 @@ nsStandardURL::NormalizeIDN(const nsCSubstring &host, nsCString &result)
 
     result.Truncate();
     return false;
+}
+
+bool
+nsStandardURL::ValidIPv6orHostname(const char *host)
+{
+    if (!host || !*host) {
+        
+        return false;
+    }
+
+    int32_t length = strlen(host);
+
+    bool openBracket = host[0] == '[';
+    bool closeBracket = host[length - 1] == ']';
+
+    if (openBracket && closeBracket) {
+        return net_IsValidIPv6Addr(host + 1, length - 2);
+    }
+
+    if (openBracket || closeBracket) {
+        
+        return false;
+    }
+
+    if (PL_strchr(host, ':')) {
+        
+        return false;
+    }
+
+    return true;
 }
 
 void
@@ -1411,35 +1428,67 @@ nsStandardURL::SetHostPort(const nsACString &aValue)
 {
     ENSURE_MUTABLE();
 
-  
-  
-  
+    
+    
+    
 
-  
-  nsACString::const_iterator start, end;
-  aValue.BeginReading(start);
-  aValue.EndReading(end);
-  nsACString::const_iterator iter(start);
-  FindCharInReadable(':', iter, end);
+    nsACString::const_iterator start, end;
+    aValue.BeginReading(start);
+    aValue.EndReading(end);
+    nsACString::const_iterator iter(start);
+    bool isIPv6 = false;
 
-  nsresult rv = SetHost(Substring(start, iter));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (iter != end) {
-    iter++;
-    if (iter != end) {
-      nsCString portStr(Substring(iter, end));
-      nsresult rv;
-      int32_t port = portStr.ToInteger(&rv);
-      if (NS_SUCCEEDED(rv)) {
-        rv = SetPort(port);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+    if (*start == '[') { 
+        if (!FindCharInReadable(']', iter, end)) {
+            
+            return NS_ERROR_MALFORMED_URI;
+        }
+        
+        isIPv6 = true;
+    } else {
+        nsACString::const_iterator iter2(start);
+        if (FindCharInReadable(']', iter2, end)) {
+            
+            return NS_ERROR_MALFORMED_URI;
+        }
     }
-  }
 
-  return NS_OK;
+    FindCharInReadable(':', iter, end);
+
+    if (!isIPv6 && iter != end) {
+        nsACString::const_iterator iter2(iter);
+        iter2++; 
+        if (FindCharInReadable(':', iter2, end)) {
+            
+            
+            return NS_ERROR_MALFORMED_URI;
+        }
+    }
+
+    nsresult rv = SetHost(Substring(start, iter));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    if (iter != end) {
+        iter++;
+        if (iter != end) {
+            nsCString portStr(Substring(iter, end));
+            nsresult rv;
+            int32_t port = portStr.ToInteger(&rv);
+            if (NS_SUCCEEDED(rv)) {
+                rv = SetPort(port);
+                NS_ENSURE_SUCCESS(rv, rv);
+            } else {
+                
+                return NS_ERROR_MALFORMED_URI;
+            }
+        } else {
+            
+            return NS_ERROR_MALFORMED_URI;
+        }
+    }
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1473,32 +1522,16 @@ nsStandardURL::SetHost(const nsACString &input)
     if (strchr(host, ' '))
         return NS_ERROR_MALFORMED_URI;
 
+    if (!ValidIPv6orHostname(host)) {
+        return NS_ERROR_MALFORMED_URI;
+    }
+
     InvalidateCache();
     mHostEncoding = eEncoding_ASCII;
 
-    if (!*host) {
-        
-        if (mHost.mLen > 0) {
-            
-            mSpec.Cut(mAuthority.mPos, mAuthority.mLen);
-            ShiftFromPath(-mAuthority.mLen);
-            mAuthority.mLen = 0;
-            mUsername.mLen = -1;
-            mPassword.mLen = -1;
-            mHost.mLen = -1;
-            mPort = -1;
-        }
-        return NS_OK;
-    }
-
-    
     int32_t len;
     nsAutoCString hostBuf;
-    if (EscapeIPv6(host, hostBuf)) {
-        host = hostBuf.get();
-        len = hostBuf.Length();
-    }
-    else if (NormalizeIDN(flat, hostBuf)) {
+    if (NormalizeIDN(flat, hostBuf)) {
         host = hostBuf.get();
         len = hostBuf.Length();
     }
