@@ -640,6 +640,36 @@ this.SocialService = {
     }
   },
 
+  
+
+
+
+
+  updateProvider: function(aDOMDocument, aManifest, aCallback) {
+    let installOrigin = aDOMDocument.nodePrincipal.origin;
+    let installType = this.getOriginActivationType(installOrigin);
+    
+    let manifest = this._manifestFromData(installType, aManifest, aDOMDocument.nodePrincipal);
+    if (!manifest)
+      throw new Error("SocialService.installProvider: service configuration is invalid from " + installOrigin);
+
+    
+    let string = Cc["@mozilla.org/supports-string;1"].
+                 createInstance(Ci.nsISupportsString);
+    string.data = JSON.stringify(manifest);
+    Services.prefs.setComplexValue(getPrefnameFromOrigin(manifest.origin), Ci.nsISupportsString, string);
+
+    
+    
+    if (ActiveProviders.has(manifest.origin)) {
+      let provider = new SocialProvider(manifest);
+      SocialServiceInternal.providers[provider.origin] = provider;
+      
+      this._notifyProviderListeners("provider-update", provider);
+    }
+
+  },
+
   uninstallProvider: function(origin) {
     let manifest = SocialServiceInternal.getManifestByOrigin(origin);
     let addon = new AddonWrapper(manifest);
@@ -710,6 +740,10 @@ SocialProvider.prototype = {
     } else {
       this._terminate();
     }
+  },
+
+  get manifest() {
+    return SocialServiceInternal.getManifestByOrigin(this.origin);
   },
 
   
