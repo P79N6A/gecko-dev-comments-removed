@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/TimeStamp.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
 #include "nsISupportsImpl.h"
@@ -623,7 +624,7 @@ protected:
   WidgetEvent(bool aIsTrusted, uint32_t aMessage,
               nsEventStructType aStructType) :
     eventStructType(aStructType), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), userType(0)
+    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -640,7 +641,7 @@ protected:
 public:
   WidgetEvent(bool aIsTrusted, uint32_t aMessage) :
     eventStructType(NS_EVENT), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), userType(0)
+    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -683,6 +684,9 @@ public:
   
   uint64_t time;
   
+  
+  mozilla::TimeStamp timeStamp;
+  
   BaseEventFlags mFlags;
 
   
@@ -705,6 +709,7 @@ public:
     refPoint = aEvent.refPoint;
     
     time = aEvent.time;
+    timeStamp = aEvent.timeStamp;
     
     userType = aEvent.userType;
     
