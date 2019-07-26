@@ -735,7 +735,10 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       }
 
       if (columnCount >= aConfig.mBalanceColCount) {
-        if (contentBottom >= aReflowState.availableHeight) {
+        if (contentBottom > aReflowState.mComputedMaxHeight ||
+            contentBottom > aReflowState.ComputedHeight()) {
+            aColData.mShouldRevertToAuto = true;
+        } else {
           
           aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
           kidNextInFlow->AddStateBits(NS_FRAME_IS_DIRTY);
@@ -747,12 +750,6 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
           }
           child = nullptr;
           break;
-        } else if (contentBottom > aReflowState.mComputedMaxHeight ||
-                   contentBottom > aReflowState.ComputedHeight()) {
-          aColData.mShouldRevertToAuto = true;
-        } else {
-          
-          allFit = false;
         }
       }
     }
