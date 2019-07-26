@@ -9,6 +9,7 @@
 
 
 
+
 #ifndef nsNodeInfo_h___
 #define nsNodeInfo_h___
 
@@ -19,8 +20,6 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMNode.h"
 #include "nsGkAtoms.h"
-
-class nsFixedSizeAllocator;
 
 class nsNodeInfo : public nsINodeInfo
 {
@@ -33,37 +32,25 @@ public:
   virtual bool NamespaceEquals(const nsAString& aNamespaceURI) const;
 
   
-  
 public:
   
 
 
-  static nsNodeInfo *Create(nsIAtom *aName, nsIAtom *aPrefix,
-                            int32_t aNamespaceID, uint16_t aNodeType,
-                            nsIAtom *aExtraName,
-                            nsNodeInfoManager *aOwnerManager);
-private:
-  nsNodeInfo(); 
-  nsNodeInfo(const nsNodeInfo& aOther); 
   nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, int32_t aNamespaceID,
              uint16_t aNodeType, nsIAtom *aExtraName,
              nsNodeInfoManager *aOwnerManager);
+
+private:
+  nsNodeInfo(); 
+  nsNodeInfo(const nsNodeInfo& aOther); 
 protected:
   virtual ~nsNodeInfo();
 
 public:
-  
-
-
-  static void ClearCache();
-
   bool CanSkip();
 
 private:
-  static nsFixedSizeAllocator* sNodeInfoPool;
-
   
-
 
 
 

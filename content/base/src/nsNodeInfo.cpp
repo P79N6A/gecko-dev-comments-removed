@@ -9,6 +9,7 @@
 
 
 
+
 #include "mozilla/Util.h"
 #include "mozilla/Likely.h"
 
@@ -24,50 +25,12 @@
 #include "nsReadableUtils.h"
 #include "nsAutoPtr.h"
 #include NEW_H
-#include "nsFixedSizeAllocator.h"
 #include "prprf.h"
 #include "nsIDocument.h"
 #include "nsGkAtoms.h"
 #include "nsCCUncollectableMarker.h"
 
 using namespace mozilla;
-
-static const size_t kNodeInfoPoolSizes[] = {
-  sizeof(nsNodeInfo)
-};
-
-static const int32_t kNodeInfoPoolInitialSize = sizeof(nsNodeInfo) * 64;
-
-
-nsFixedSizeAllocator* nsNodeInfo::sNodeInfoPool = nullptr;
-
-
-nsNodeInfo*
-nsNodeInfo::Create(nsIAtom *aName, nsIAtom *aPrefix, int32_t aNamespaceID,
-                   uint16_t aNodeType, nsIAtom *aExtraName,
-                   nsNodeInfoManager *aOwnerManager)
-{
-  if (!sNodeInfoPool) {
-    sNodeInfoPool = new nsFixedSizeAllocator();
-    if (!sNodeInfoPool)
-      return nullptr;
-
-    nsresult rv = sNodeInfoPool->Init("NodeInfo Pool", kNodeInfoPoolSizes,
-                                      1, kNodeInfoPoolInitialSize);
-    if (NS_FAILED(rv)) {
-      delete sNodeInfoPool;
-      sNodeInfoPool = nullptr;
-      return nullptr;
-    }
-  }
-
-  
-  void* place = sNodeInfoPool->Alloc(sizeof(nsNodeInfo));
-  return place ?
-    new (place) nsNodeInfo(aName, aPrefix, aNamespaceID, aNodeType, aExtraName,
-                           aOwnerManager) :
-    nullptr;
-}
 
 nsNodeInfo::~nsNodeInfo()
 {
@@ -234,28 +197,11 @@ nsNodeInfo::NamespaceEquals(const nsAString& aNamespaceURI) const
   return nsINodeInfo::NamespaceEquals(nsid);
 }
 
-
-void
-nsNodeInfo::ClearCache()
-{
-  
-  delete sNodeInfoPool;
-  sNodeInfoPool = nullptr;
-}
-
 void
 nsNodeInfo::LastRelease()
 {
   nsRefPtr<nsNodeInfoManager> kungFuDeathGrip = mOwnerManager;
-  this->~nsNodeInfo();
-
-  
-  
-  
-  mRefCnt = 0;
-
-  NS_ASSERTION(sNodeInfoPool, "No NodeInfoPool when deleting NodeInfo!!!");
-  sNodeInfoPool->Free(this, sizeof(nsNodeInfo));
+  delete this;
 }
 
 bool
