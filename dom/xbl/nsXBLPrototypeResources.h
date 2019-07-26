@@ -10,11 +10,14 @@
 #include "nsICSSLoaderObserver.h"
 
 class nsCSSRuleProcessor;
-class nsCSSStyleSheet;
 class nsIAtom;
 class nsIContent;
 class nsXBLPrototypeBinding;
 class nsXBLResourceLoader;
+
+namespace mozilla {
+class CSSStyleSheet;
+} 
 
 
 
@@ -36,13 +39,13 @@ public:
 
   void ClearLoader();
 
-  void AppendStyleSheet(nsCSSStyleSheet* aSheet);
-  void RemoveStyleSheet(nsCSSStyleSheet* aSheet);
-  void InsertStyleSheetAt(size_t aIndex, nsCSSStyleSheet* aSheet);
-  nsCSSStyleSheet* StyleSheetAt(size_t aIndex) const;
+  void AppendStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void RemoveStyleSheet(mozilla::CSSStyleSheet* aSheet);
+  void InsertStyleSheetAt(size_t aIndex, mozilla::CSSStyleSheet* aSheet);
+  mozilla::CSSStyleSheet* StyleSheetAt(size_t aIndex) const;
   size_t SheetCount() const;
   bool HasStyleSheets() const;
-  void AppendStyleSheetsTo(nsTArray<nsCSSStyleSheet*>& aResult) const;
+  void AppendStyleSheetsTo(nsTArray<mozilla::CSSStyleSheet*>& aResult) const;
 
   
 
@@ -58,7 +61,7 @@ private:
   nsRefPtr<nsXBLResourceLoader> mLoader;
 
   
-  nsTArray<nsRefPtr<nsCSSStyleSheet>> mStyleSheetList;
+  nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> mStyleSheetList;
 
   
   nsRefPtr<nsCSSRuleProcessor> mRuleProcessor;

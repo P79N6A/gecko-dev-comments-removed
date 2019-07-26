@@ -4,16 +4,16 @@
 
 
 
-#include "mozilla/ArrayUtils.h"
-
 #include "nsTreeSanitizer.h"
-#include "nsCSSParser.h"
-#include "nsCSSProperty.h"
+
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/CSSStyleSheet.h"
 #include "mozilla/css/Declaration.h"
 #include "mozilla/css/StyleRule.h"
 #include "mozilla/css/Rule.h"
+#include "nsCSSParser.h"
+#include "nsCSSProperty.h"
 #include "nsUnicharInputStream.h"
-#include "nsCSSStyleSheet.h"
 #include "nsIDOMCSSRule.h"
 #include "nsAttrName.h"
 #include "nsIScriptSecurityManager.h"
@@ -1098,7 +1098,7 @@ nsTreeSanitizer::SanitizeStyleSheet(const nsAString& aOriginal,
   
   bool didSanitize = false;
   
-  nsRefPtr<nsCSSStyleSheet> sheet = new nsCSSStyleSheet(CORS_NONE);
+  nsRefPtr<CSSStyleSheet> sheet = new CSSStyleSheet(CORS_NONE);
   sheet->SetURIs(aDocument->GetDocumentURI(), nullptr, aBaseURI);
   sheet->SetPrincipal(aDocument->NodePrincipal());
   

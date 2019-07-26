@@ -14,7 +14,9 @@
 { 0x7eb90c74, 0xea0c, 0x4df5,       \
 {0xa1, 0x5f, 0x95, 0xf0, 0x6a, 0x98, 0xb9, 0x40} }
 
-class nsCSSStyleSheet;
+namespace mozilla {
+class CSSStyleSheet;
+} 
 
 class nsICSSLoaderObserver : public nsISupports {
 public:
@@ -35,7 +37,8 @@ public:
 
 
 
-  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
+  NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
+                              bool aWasAlternate,
                               nsresult aStatus) = 0;
 };
 

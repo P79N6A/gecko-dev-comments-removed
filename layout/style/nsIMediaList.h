@@ -21,9 +21,12 @@
 #include "mozilla/ErrorResult.h"
 
 class nsPresContext;
-class nsCSSStyleSheet;
 class nsAString;
 struct nsMediaFeature;
+
+namespace mozilla {
+class CSSStyleSheet;
+} 
 
 struct nsMediaExpression {
   enum Range { eMin, eMax, eEqual };
@@ -173,7 +176,7 @@ public:
   bool Matches(nsPresContext* aPresContext,
                  nsMediaQueryResultCacheKey* aKey);
 
-  nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
+  nsresult SetStyleSheet(mozilla::CSSStyleSheet* aSheet);
   void AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
     
     mArray.AppendElement(aQuery.forget());
@@ -208,6 +211,6 @@ protected:
   
   
   
-  nsCSSStyleSheet*         mStyleSheet;
+  mozilla::CSSStyleSheet* mStyleSheet;
 };
 #endif 

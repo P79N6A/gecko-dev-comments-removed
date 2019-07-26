@@ -61,7 +61,7 @@ public:
 #endif
 
   
-  virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); 
+  virtual void SetStyleSheet(mozilla::CSSStyleSheet* aSheet); 
   virtual int32_t GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
