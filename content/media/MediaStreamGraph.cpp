@@ -1139,6 +1139,8 @@ public:
     NS_ASSERTION(mGraph->mDetectedNotRunning,
                  "We should know the graph thread control loop isn't running!");
 
+    mGraph->ShutdownThreads();
+
     
     if (mGraph->IsEmpty()) {
       
