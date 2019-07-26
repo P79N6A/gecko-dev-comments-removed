@@ -7,6 +7,7 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/TypedEnum.h"          
 #include "nsAutoPtr.h"                  
 #include "nsCOMArray.h"                 
 #include "nsCOMPtr.h"                   
