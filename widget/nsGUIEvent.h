@@ -87,6 +87,7 @@ enum nsEventStructType {
   NS_MUTATION_EVENT,                 
   NS_FORM_EVENT,                     
   NS_FOCUS_EVENT,                    
+  NS_CLIPBOARD_EVENT,                
 
   
   NS_SVG_EVENT,                      
@@ -1647,6 +1648,20 @@ public:
   }
 
   nsCOMPtr<nsIAtom> command;
+};
+
+
+
+
+class nsClipboardEvent : public nsEvent
+{
+public:
+  nsClipboardEvent(bool isTrusted, uint32_t msg)
+    : nsEvent(isTrusted, msg, NS_CLIPBOARD_EVENT)
+  {
+  }
+
+  nsCOMPtr<nsIDOMDataTransfer> clipboardData;
 };
 
 

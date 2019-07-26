@@ -20,6 +20,7 @@
 #include "nsIPresShell.h"
 #include "nsFocusManager.h"
 #include "nsEventDispatcher.h"
+#include "nsDOMDataTransfer.h"
 
 #include "nsIDocShell.h"
 #include "nsIContentViewerEdit.h"
@@ -678,6 +679,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
     content = GetSelectionForCopy(doc, getter_AddRefs(sel));
 
   
+  nsresult rv;
   if (sel) {
     
     if (aType == NS_CUT || aType == NS_COPY) {
@@ -688,7 +690,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
     }
 
     nsCOMPtr<nsIDOMRange> range;
-    nsresult rv = sel->GetRangeAt(0, getter_AddRefs(range));
+    rv = sel->GetRangeAt(0, getter_AddRefs(range));
     if (NS_SUCCEEDED(rv) && range) {
       nsCOMPtr<nsIDOMNode> startContainer;
       range->GetStartContainer(getter_AddRefs(startContainer));
@@ -709,24 +711,31 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
     return false;
 
   
+  
+  bool doDefault = true;
+  nsRefPtr<nsDOMDataTransfer> clipboardData;
   if (Preferences::GetBool("dom.event.clipboardevents.enabled", true)) {
+    clipboardData = new nsDOMDataTransfer(aType, aType == NS_PASTE);
+
     nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(true, aType);
+    nsClipboardEvent evt(true, aType);
+    evt.clipboardData = clipboardData;
     nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nullptr,
                                 &status);
     
-    if (status == nsEventStatus_eConsumeNoDefault)
-      return false;
+    doDefault = (status != nsEventStatus_eConsumeNoDefault);
   }
   
-  if (presShell->IsDestroying())
-    return false;
-
   
   
   
-  if (aType == NS_PASTE)
-    return true;
+  if (aType == NS_PASTE) {
+    
+    
+    clipboardData->ClearAll();
+    clipboardData->SetReadOnly();
+    return doDefault;
+  }
 
   
   
@@ -735,12 +744,45 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
     return false;
 
   
-  if (NS_FAILED(nsCopySupport::HTMLCopy(sel, doc, nsIClipboard::kGlobalClipboard)))
-    return false;
+  
+  uint32_t count = 0;
+  if (doDefault) {
+    
+    bool isCollapsed;
+    sel->GetIsCollapsed(&isCollapsed);
+    if (isCollapsed) {
+      return false;
+    }
+    
+    rv = HTMLCopy(sel, doc, nsIClipboard::kGlobalClipboard);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+  } else {
+    
+    clipboardData->GetMozItemCount(&count);
+    if (count) {
+      nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1"));
+      NS_ENSURE_TRUE(clipboard, false);
+
+      nsCOMPtr<nsITransferable> transferable =
+        clipboardData->GetTransferable(0, doc->GetLoadContext());
+
+      NS_ENSURE_TRUE(transferable, false);
+
+      
+      rv = clipboard->SetData(transferable, nullptr, nsIClipboard::kGlobalClipboard);
+      if (NS_FAILED(rv)) {
+        return false;
+      }
+    }
+  }
 
   
   
-  piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"));
+  if (doDefault || count) {
+    piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"));
+  }
 
-  return true;
+  return doDefault;
 }

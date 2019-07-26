@@ -43,23 +43,12 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMDataTransfer, nsIDOMDataTransfer)
 
-  friend class nsDOMDragEvent;
   friend class nsEventStateManager;
-  friend class nsContentUtils;
 
 protected:
 
   
-
-  
-  
   nsDOMDataTransfer();
-
-  
-  
-  
-  
-  nsDOMDataTransfer(uint32_t aEventType);
 
   
   
@@ -85,6 +74,17 @@ protected:
 
 public:
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsDOMDataTransfer(uint32_t aEventType, bool aIsExternal);
+
   void GetDragTarget(nsIDOMElement** aDragTarget)
   {
     *aDragTarget = mDragTarget;
@@ -97,8 +97,11 @@ public:
 
   
   
-  void GetTransferables(nsISupportsArray** transferables,
-                        nsIDOMNode* aDragTarget);
+  already_AddRefed<nsISupportsArray> GetTransferables(nsIDOMNode* aDragTarget);
+
+  
+  already_AddRefed<nsITransferable> GetTransferable(uint32_t aIndex,
+                                                    nsILoadContext* aLoadContext);
 
   
   
@@ -109,6 +112,7 @@ public:
   
   void ClearAll();
 
+  
   
   
   nsresult SetDataWithPrincipal(const nsAString& aFormat,
@@ -135,11 +139,18 @@ protected:
 
   
   
-  void CacheExternalFormats();
+  void CacheExternalData(const char* aFormat, uint32_t aIndex, nsIPrincipal* aPrincipal);
 
   
   
-  void FillInExternalDragData(TransferItem& aItem, uint32_t aIndex);
+  void CacheExternalDragFormats();
+
+  
+  void CacheExternalClipboardFormats();
+
+  
+  
+  void FillInExternalData(TransferItem& aItem, uint32_t aIndex);
 
   
   
