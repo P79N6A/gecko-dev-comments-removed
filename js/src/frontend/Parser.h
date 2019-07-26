@@ -252,9 +252,6 @@ class CompExprTransplanter;
 template <typename ParseHandler>
 class GenexpGuard;
 
-
-bool EmitElemOp(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce);
-
 enum LetContext { LetExpresion, LetStatement };
 enum VarContext { HoistVars, DontHoistVars };
 
