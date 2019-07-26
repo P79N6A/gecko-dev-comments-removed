@@ -163,6 +163,12 @@ textarea::-moz-placeholder {
 
   overflow: hidden !important;
 
+  
+
+
+
+  pointer-events: none !important;
+
   color: GrayText;
 }
 
