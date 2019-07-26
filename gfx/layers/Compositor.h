@@ -420,6 +420,14 @@ protected:
   uint32_t mCompositorID;
   static LayersBackend sBackend;
   DiagnosticTypes mDiagnosticTypes;
+
+  
+
+
+
+
+  size_t mPixelsPerFrame;
+  size_t mPixelsFilled;
 };
 
 } 
