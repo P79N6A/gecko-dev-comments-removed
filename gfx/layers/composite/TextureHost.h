@@ -25,6 +25,7 @@ class Compositor;
 class SurfaceDescriptor;
 class ISurfaceAllocator;
 class TextureSourceOGL;
+class TextureSourceD3D11;
 class TextureSourceBasic;
 class TextureParent;
 
@@ -77,6 +78,11 @@ public:
 
 
   virtual TextureSourceOGL* AsSourceOGL() { return nullptr; }
+
+  
+
+
+  virtual TextureSourceD3D11* AsSourceD3D11() { return nullptr; }
 
   virtual TextureSourceBasic* AsSourceBasic() { return nullptr; }
 
