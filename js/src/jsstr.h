@@ -252,6 +252,16 @@ InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
 
 
 
+extern bool
+InflateUTF8StringToBufferReplaceInvalid(JSContext *cx, const char *bytes,
+                                        size_t length, jschar *chars,
+                                        size_t *charsLength);
+
+
+
+
+
+
 
 extern bool
 DeflateStringToBuffer(JSContext *cx, const jschar *chars,
