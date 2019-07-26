@@ -245,6 +245,7 @@ pref("browser.search.log", false);
 
 pref("browser.search.order.1", "chrome://browser/locale/region.properties");
 pref("browser.search.order.2", "chrome://browser/locale/region.properties");
+pref("browser.search.order.3", "chrome://browser/locale/region.properties");
 
 
 pref("browser.search.update", false);
