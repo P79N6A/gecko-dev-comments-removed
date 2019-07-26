@@ -142,13 +142,14 @@ protected:
       return false;
     }
 
+    
+    
+    
+    js::SetReservedSlot(obj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
+
     nsRefPtr<WorkerPrivate> worker =
       WorkerPrivate::Create(aCx, obj, parent, scriptURL, aIsChromeWorker);
     if (!worker) {
-      
-      
-      
-      js::SetReservedSlot(obj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
       return false;
     }
 
