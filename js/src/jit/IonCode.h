@@ -148,6 +148,7 @@ class SafepointIndex;
 class OsiIndex;
 class IonCache;
 struct PatchableBackedgeInfo;
+struct CacheLocation;
 
 
 
@@ -495,6 +496,10 @@ struct IonScript
     }
     size_t runtimeSize() const {
         return runtimeSize_;
+    }
+    CacheLocation *getCacheLocs(uint32_t locIndex) {
+        JS_ASSERT(locIndex < runtimeSize_);
+        return (CacheLocation *) &runtimeData()[locIndex];
     }
     void toggleBarriers(bool enabled);
     void purgeCaches(JS::Zone *zone);
