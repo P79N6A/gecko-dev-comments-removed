@@ -67,23 +67,6 @@ enum eStreamState {eNone,eOnStart,eOnDataAvail,eOnStop};
 
 
 
-class nsIDebugDumpContent : public nsISupports {
-public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDEBUG_DUMP_CONTENT_IID)
-  NS_IMETHOD DumpContentModel()=0;
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIDebugDumpContent, NS_IDEBUG_DUMP_CONTENT_IID)
-
-
-
-
-
-
-
-
-
-
 
 class nsIParser : public nsParserBase {
   public:
