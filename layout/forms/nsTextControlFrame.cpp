@@ -171,7 +171,7 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
   
   
   
-  if (std::abs(charWidth - charMaxAdvance) > nsPresContext::CSSPixelsToAppUnits(1)) {
+  if (mozilla::Abs(charWidth - charMaxAdvance) > (unsigned)nsPresContext::CSSPixelsToAppUnits(1)) {
     nscoord internalPadding =
       std::max(0, charMaxAdvance - nsPresContext::CSSPixelsToAppUnits(4));
     nscoord t = nsPresContext::CSSPixelsToAppUnits(1); 
