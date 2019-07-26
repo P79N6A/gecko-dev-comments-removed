@@ -36,6 +36,7 @@ public class GLController {
     private static GLController sInstance;
 
     private LayerView mView;
+    private boolean mServerSurfaceValid;
     private int mWidth, mHeight;
 
     
@@ -81,6 +82,8 @@ public class GLController {
         ThreadUtils.assertOnUiThread();
         Log.w(LOGTAG, "GLController::serverSurfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
+        mServerSurfaceValid = false;
+
         
         
         
@@ -101,6 +104,7 @@ public class GLController {
 
         mWidth = newWidth;
         mHeight = newHeight;
+        mServerSurfaceValid = true;
 
         
         
@@ -143,6 +147,10 @@ public class GLController {
         
         
         mCompositorCreated = true;
+    }
+
+    public boolean isServerSurfaceValid() {
+        return mServerSurfaceValid;
     }
 
     private void initEGL() {
