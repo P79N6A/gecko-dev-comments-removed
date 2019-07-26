@@ -41,8 +41,7 @@ function test() {
     ok(contextMenu, "Got context menu XUL");
 
     doOnloadOnce(testContextMenu);
-    var tab = gBrowser.addTab("data:text/plain;charset=utf8,test%20search");
-    gBrowser.selectedTab = tab;
+    gBrowser.selectedTab = gBrowser.addTab("data:text/plain;charset=utf8,test%20search");
   }
 
   function testContextMenu() {
@@ -85,10 +84,14 @@ function test() {
     };
 
     
-    content.window.getSelection().QueryInterface(Ci.nsISelectionPrivate).
-                                  addSelectionListener(selectionListener);
-    
-    goDoCommand('cmd_selectAll');
+    setTimeout(function delaySelectAll() {
+      info("delaySelectAll: " + content.window.location.toString());
+      
+      content.window.getSelection().QueryInterface(Ci.nsISelectionPrivate).
+                                    addSelectionListener(selectionListener);
+      
+      goDoCommand('cmd_selectAll');
+    }, 500);
   }
 
   function finalize() {
