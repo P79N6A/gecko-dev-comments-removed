@@ -25,22 +25,15 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
+const NS_XPCOM_SHUTDOWN_OBSERVER_ID = "xpcom-shutdown";
 
-var DEBUG = RIL.DEBUG_CONTENT_HELPER;
+const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
 
+const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
 
-try {
-  let debugPref = Services.prefs.getBoolPref("ril.debugging.enabled");
-  DEBUG = RIL.DEBUG_CONTENT_HELPER || debugPref;
-} catch (e) {}
-
-let debug;
-if (DEBUG) {
-  debug = function (s) {
-    dump("-*- RILContentHelper: " + s + "\n");
-  };
-} else {
-  debug = function (s) {};
+let DEBUG;
+function debug(s) {
+  dump("-*- RILContentHelper: " + s + "\n");
 }
 
 const RILCONTENTHELPER_CID =
@@ -449,6 +442,8 @@ IccCardLockError.prototype = {
 };
 
 function RILContentHelper() {
+  this.updateDebugFlag();
+
   this.rilContext = {
     cardState:            RIL.GECKO_CARDSTATE_UNKNOWN,
     networkSelectionMode: RIL.GECKO_NETWORK_SELECTION_UNKNOWN,
@@ -460,7 +455,10 @@ function RILContentHelper() {
 
   this.initDOMRequestHelper( null, RIL_IPC_MSG_NAMES);
   this._windowsMap = [];
-  Services.obs.addObserver(this, "xpcom-shutdown", false);
+
+  Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+
+  Services.prefs.addObserver(kPrefRilDebuggingEnabled, this, false);
 }
 
 RILContentHelper.prototype = {
@@ -479,6 +477,13 @@ RILContentHelper.prototype = {
                                                  Ci.nsICellBroadcastProvider,
                                                  Ci.nsIVoicemailProvider,
                                                  Ci.nsIIccProvider]}),
+
+  updateDebugFlag: function updateDebugFlag() {
+    try {
+      DEBUG = RIL.DEBUG_CONTENT_HELPER ||
+              Services.prefs.getBoolPref(kPrefRilDebuggingEnabled);
+    } catch (e) {}
+  },
 
   
   updateInfo: function updateInfo(srcInfo, destInfo) {
@@ -1404,9 +1409,17 @@ RILContentHelper.prototype = {
   
 
   observe: function observe(subject, topic, data) {
-    if (topic == "xpcom-shutdown") {
-      this.destroyDOMRequestHelper();
-      Services.obs.removeObserver(this, "xpcom-shutdown");
+    switch (topic) {
+      case NS_PREFBRANCH_PREFCHANGE_TOPIC_ID:
+        if (data == kPrefRilDebuggingEnabled) {
+          this.updateDebugFlag();
+        }
+        break;
+
+      case NS_XPCOM_SHUTDOWN_OBSERVER_ID:
+        this.destroyDOMRequestHelper();
+        Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+        break;
     }
   },
 
