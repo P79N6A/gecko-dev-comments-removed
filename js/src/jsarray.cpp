@@ -1095,10 +1095,13 @@ ArrayJoin(JSContext *cx, CallArgs &args)
             return false;
         seplen = sepstr->length();
     } else {
-        static const jschar comma = ',';
-        sepchars = &comma;
-        seplen = 1;
+        HandlePropertyName comma = cx->names().comma;
+        sepstr = comma;
+        sepchars = comma->chars();
+        seplen = comma->length();
     }
+
+    JS::Anchor<JSString*> anchor(sepstr);
 
     
 
@@ -1123,9 +1126,6 @@ ArrayJoin(JSContext *cx, CallArgs &args)
         if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
             return false;
     }
-
-    
-    JS_AnchorPtr(sepstr);
 
     
     JSString *str = sb.finishString();

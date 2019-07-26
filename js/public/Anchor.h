@@ -93,14 +93,31 @@ class Anchor : AnchorPermitted<T>
     Anchor() { }
     explicit Anchor(T t) { hold = t; }
     inline ~Anchor();
-    T &get() { return hold; }
-    const T &get() const { return hold; }
-    void set(const T &t) { hold = t; }
-    void operator=(const T &t) { hold = t; }
-    void clear() { hold = 0; }
 
   private:
     T hold;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void operator=(const T &t) MOZ_DELETE;
+
     Anchor(const Anchor &other) MOZ_DELETE;
     void operator=(const Anchor &other) MOZ_DELETE;
 };

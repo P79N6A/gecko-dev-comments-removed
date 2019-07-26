@@ -1991,13 +1991,6 @@ JS_RemoveScriptRootRT(JSRuntime *rt, JSScript **rp);
 
 
 
-extern JS_NEVER_INLINE JS_PUBLIC_API(void)
-JS_AnchorPtr(void *p);
-
-
-
-
-
 
 
 
