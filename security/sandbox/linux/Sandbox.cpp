@@ -57,8 +57,6 @@ static PRLogModuleInfo* gSeccompSandboxLog;
 #define LOG_ERROR(args...)
 #endif
 
-
-#ifdef MOZ_CONTENT_SANDBOX
 struct sock_filter seccomp_filter[] = {
   VALIDATE_ARCHITECTURE,
   EXAMINE_SYSCALL,
@@ -242,34 +240,19 @@ InstallSyscallFilter(void)
   }
   return 0;
 }
-#endif
 
-#if defined(ANDROID) || defined(MOZ_CONTENT_SANDBOX)
 
-static base::ChildPrivileges sSetPrivilegesTo;
 
 static mozilla::Atomic<int> sSetSandboxDone;
 
 
 static const int sSetSandboxSignum = SIGRTMIN + 3;
-#endif
 
 static bool
-SetThreadSandbox(base::ChildPrivileges aPrivs, bool aIsMainThread)
+SetThreadSandbox()
 {
   bool didAnything = false;
-  bool shouldSetPrivs = aIsMainThread;
-#if defined(ANDROID)
-  shouldSetPrivs = true;
-#endif
 
-  if (shouldSetPrivs && (aIsMainThread || geteuid() == 0)) {
-    SetCurrentProcessPrivileges(aPrivs);
-    if (aPrivs != base::PRIVILEGES_INHERIT) {
-      didAnything = true;
-    }
-  }
-#if defined(MOZ_CONTENT_SANDBOX)
   if (PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX") == nullptr &&
       prctl(PR_GET_SECCOMP, 0, 0, 0, 0) == 0) {
     if (InstallSyscallFilter() == 0) {
@@ -281,17 +264,15 @@ SetThreadSandbox(base::ChildPrivileges aPrivs, bool aIsMainThread)
 
 
   }
-#endif
   return didAnything;
 }
 
-#if defined(ANDROID) || defined(MOZ_CONTENT_SANDBOX)
 static void
 SetThreadSandboxHandler(int signum)
 {
   
   
-  if (SetThreadSandbox(sSetPrivilegesTo,  false)) {
+  if (SetThreadSandbox()) {
     sSetSandboxDone = 2;
   } else {
     sSetSandboxDone = 1;
@@ -303,7 +284,7 @@ SetThreadSandboxHandler(int signum)
 }
 
 static void
-BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
+BroadcastSetThreadSandbox()
 {
   pid_t pid, tid;
   DIR *taskdp;
@@ -326,7 +307,6 @@ BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
   
   
   
-  sSetPrivilegesTo = aPrivs;
   bool sandboxProgress;
   do {
     sandboxProgress = false;
@@ -417,16 +397,8 @@ BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
   unused << signal(sSetSandboxSignum, SIG_DFL);
   unused << closedir(taskdp);
   
-  SetThreadSandbox(aPrivs,  true);
+  SetThreadSandbox();
 }
-#else
-static void
-BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  SetThreadSandbox(aPrivs,  true);
-}
-#endif
 
 
 
@@ -435,7 +407,7 @@ BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
 
 
 void
-SetCurrentProcessSandbox(base::ChildPrivileges aPrivs)
+SetCurrentProcessSandbox()
 {
 #if !defined(ANDROID) && defined(PR_LOGGING)
   if (!gSeccompSandboxLog) {
@@ -444,13 +416,13 @@ SetCurrentProcessSandbox(base::ChildPrivileges aPrivs)
   PR_ASSERT(gSeccompSandboxLog);
 #endif
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_CONTENT_SANDBOX_REPORTER)
+#if defined(MOZ_CONTENT_SANDBOX_REPORTER)
   if (InstallSyscallReporter()) {
     LOG_ERROR("install_syscall_reporter() failed\n");
   }
 #endif
 
-  BroadcastSetThreadSandbox(aPrivs);
+  BroadcastSetThreadSandbox();
 }
 
 } 

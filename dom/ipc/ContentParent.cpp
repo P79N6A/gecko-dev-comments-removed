@@ -431,9 +431,6 @@ ContentParent::RunNuwaProcess()
         new ContentParent( nullptr,
                            false,
                            true,
-                          
-                          
-                          base::PRIVILEGES_INHERIT,
                           PROCESS_PRIORITY_BACKGROUND,
                            true);
     nuwaProcess->Init();
@@ -450,9 +447,6 @@ ContentParent::PreallocateAppProcess()
         new ContentParent( nullptr,
                            false,
                            true,
-                          
-                          
-                          base::PRIVILEGES_INHERIT,
                           PROCESS_PRIORITY_BACKGROUND);
     process->Init();
     return process.forget();
@@ -460,7 +454,6 @@ ContentParent::PreallocateAppProcess()
 
  already_AddRefed<ContentParent>
 ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
-                                               ChildPrivileges aPrivs,
                                                ProcessPriority aInitialPriority)
 {
     nsRefPtr<ContentParent> process = PreallocatedProcessManager::Take();
@@ -468,13 +461,13 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
         return nullptr;
     }
 
-    if (!process->SetPriorityAndCheckIsAlive(aInitialPriority) ||
-        !process->TransformPreallocatedIntoApp(aAppManifestURL, aPrivs)) {
+    if (!process->SetPriorityAndCheckIsAlive(aInitialPriority)) {
         
         
         process->KillHard();
         return nullptr;
     }
+    process->TransformPreallocatedIntoApp(aAppManifestURL);
 
     return process.forget();
 }
@@ -580,7 +573,6 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
         new ContentParent( nullptr,
                           aForBrowserElement,
                            false,
-                          base::PRIVILEGES_DEFAULT,
                           PROCESS_PRIORITY_FOREGROUND);
     p->Init();
     sNonAppContentParents->AppendElement(p);
@@ -705,8 +697,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     }
 
     if (!p) {
-        ChildPrivileges privs = base::PRIVILEGES_DEFAULT;
-        p = MaybeTakePreallocatedAppProcess(manifestURL, privs,
+        p = MaybeTakePreallocatedAppProcess(manifestURL,
                                             initialPriority);
         if (!p) {
 #ifdef MOZ_NUWA_PROCESS
@@ -721,7 +712,6 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
             p = new ContentParent(ownApp,
                                    false,
                                    false,
-                                  privs,
                                   initialPriority);
             p->Init();
         }
@@ -961,15 +951,12 @@ TryGetNameFromManifestURL(const nsAString& aManifestURL,
     app->GetName(aName);
 }
 
-bool
-ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
-                                            ChildPrivileges aPrivs)
+void
+ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL)
 {
     MOZ_ASSERT(IsPreallocated());
     mAppManifestURL = aAppManifestURL;
     TryGetNameFromManifestURL(aAppManifestURL, mAppName);
-
-    return SendSetProcessPrivileges(aPrivs);
 }
 
 void
@@ -1343,11 +1330,9 @@ ContentParent::InitializeMembers()
 ContentParent::ContentParent(mozIApplication* aApp,
                              bool aIsForBrowser,
                              bool aIsForPreallocated,
-                             ChildPrivileges aOSPrivileges,
                              ProcessPriority aInitialPriority ,
                              bool aIsNuwaProcess )
-    : mOSPrivileges(aOSPrivileges)
-    , mIsForBrowser(aIsForBrowser)
+    : mIsForBrowser(aIsForBrowser)
     , mIsNuwaProcess(aIsNuwaProcess)
 {
     InitializeMembers();  
@@ -1379,8 +1364,10 @@ ContentParent::ContentParent(mozIApplication* aApp,
     nsDebugImpl::SetMultiprocessMode("Parent");
 
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content,
-                                            aOSPrivileges);
+    ChildPrivileges privs = aIsNuwaProcess
+        ? base::PRIVILEGES_INHERIT
+        : base::PRIVILEGES_DEFAULT;
+    mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content, privs);
     mSubprocess->SetSandboxEnabled(ShouldSandboxContentProcesses());
 
     IToplevelProtocol::SetTransport(mSubprocess->GetChannel());
@@ -1428,10 +1415,8 @@ FindFdProtocolFdMapping(const nsTArray<ProtocolFdMapping>& aFds,
 ContentParent::ContentParent(ContentParent* aTemplate,
                              const nsAString& aAppManifestURL,
                              base::ProcessHandle aPid,
-                             const nsTArray<ProtocolFdMapping>& aFds,
-                             ChildPrivileges aOSPrivileges)
-    : mOSPrivileges(aOSPrivileges)
-    , mAppManifestURL(aAppManifestURL)
+                             const nsTArray<ProtocolFdMapping>& aFds)
+    : mAppManifestURL(aAppManifestURL)
     , mIsForBrowser(false)
     , mIsNuwaProcess(false)
 {
@@ -1450,8 +1435,7 @@ ContentParent::ContentParent(ContentParent* aTemplate,
     NS_ASSERTION(fd != nullptr, "IPC Channel for PContent is necessary!");
     mSubprocess = new GeckoExistingProcessHost(GeckoProcessType_Content,
                                                aPid,
-                                               *fd,
-                                               aOSPrivileges);
+                                               *fd);
 
     
     nsRefPtr<nsMemoryReporterManager> mgr =
@@ -1595,16 +1579,14 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
     }
 
 #ifdef MOZ_CONTENT_SANDBOX
-    
-    
-    
-    
-    
-    
-    if (mOSPrivileges != base::PRIVILEGES_INHERIT) {
-        if (!SendSetProcessPrivileges(base::PRIVILEGES_INHERIT)) {
-            KillHard();
-        }
+    bool shouldSandbox = true;
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        shouldSandbox = false;
+    }
+#endif
+    if (shouldSandbox && !SendSetProcessSandbox()) {
+        KillHard();
     }
 #endif
 }
@@ -1966,8 +1948,7 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
     content = new ContentParent(this,
                                 MAGIC_PREALLOCATED_APP_MANIFEST_URL,
                                 aPid,
-                                aFds,
-                                base::PRIVILEGES_INHERIT);
+                                aFds);
     content->Init();
     PreallocatedProcessManager::PublishSpareProcess(content);
     return true;
