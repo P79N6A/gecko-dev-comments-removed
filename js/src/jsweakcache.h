@@ -5,41 +5,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifndef jscache_h___
-#define jscache_h___
+#ifndef jsweakcache_h___
+#define jsweakcache_h___
 
 #include "jsapi.h"
 #include "jscntxt.h"
@@ -103,6 +70,6 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
     }
 };
 
-}
+} 
 
-#endif
+#endif 

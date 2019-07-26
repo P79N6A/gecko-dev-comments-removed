@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jsion_ion_assembler_buffer_with_constant_pools_h__
 #define jsion_ion_assembler_buffer_with_constant_pools_h__
 #include "ion/shared/IonAssemblerBuffer.h"

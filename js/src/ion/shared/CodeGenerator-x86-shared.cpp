@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "CodeGenerator-x86-shared.h"

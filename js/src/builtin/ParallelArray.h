@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef ParallelArray_h__
 #define ParallelArray_h__
 
@@ -46,4 +13,4 @@
 extern JSObject *
 js_InitParallelArrayClass(JSContext *cx, JSObject *obj);
 
-#endif
+#endif 
