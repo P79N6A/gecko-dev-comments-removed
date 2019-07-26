@@ -237,7 +237,7 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
     trackX += aReflowState.mComputedBorderPadding.left;
     trackY += aReflowState.mComputedBorderPadding.top;
 
-    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsReflowStatus frameStatus;
     nsHTMLReflowMetrics trackDesiredSize;
     nsresult rv = ReflowChild(trackFrame, aPresContext, trackDesiredSize,
                               trackReflowState, trackX, trackY, 0, frameStatus);
@@ -259,7 +259,7 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
     
     
 
-    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsReflowStatus frameStatus;
     nsHTMLReflowMetrics thumbDesiredSize;
     nsresult rv = ReflowChild(thumbFrame, aPresContext, thumbDesiredSize,
                               thumbReflowState, 0, 0, 0, frameStatus);
@@ -286,7 +286,7 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
     
     
 
-    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsReflowStatus frameStatus;
     nsHTMLReflowMetrics progressDesiredSize;
     nsresult rv = ReflowChild(rangeProgressFrame, aPresContext,
                               progressDesiredSize, progressReflowState, 0, 0,
