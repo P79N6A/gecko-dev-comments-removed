@@ -610,7 +610,7 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 
 
 
-pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
+pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 14);
 
 
 
