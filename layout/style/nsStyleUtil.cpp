@@ -55,37 +55,45 @@ bool nsStyleUtil::DashMatchCompare(const nsAString& aAttributeValue,
   return result;
 }
 
-void nsStyleUtil::AppendEscapedCSSString(const nsAString& aString,
-                                         nsAString& aReturn,
-                                         PRUnichar quoteChar)
+void nsStyleUtil::AppendEscapedCSSString(const nsString& aString,
+                                         nsAString& aReturn)
 {
-  NS_PRECONDITION(quoteChar == '\'' || quoteChar == '"',
-                  "CSS strings must be quoted with ' or \"");
-  aReturn.Append(quoteChar);
+  aReturn.Append(PRUnichar('"'));
 
-  const PRUnichar* in = aString.BeginReading();
-  const PRUnichar* const end = aString.EndReading();
-  for (; in != end; in++) {
-    if (*in < 0x20 || (*in >= 0x7F && *in < 0xA0)) {
+  const nsString::char_type* in = aString.get();
+  const nsString::char_type* const end = in + aString.Length();
+  for (; in != end; in++)
+  {
+    if (*in < 0x20)
+    {
+     
+   
+     
+
+
+
+
+     PRUnichar buf[5];
+     nsTextFormatter::snprintf(buf, ArrayLength(buf), NS_LITERAL_STRING("\\%hX ").get(), *in);
+     aReturn.Append(buf);
+   
+    } else switch (*in) {
       
-      aReturn.AppendPrintf("\\%hX ", *in);
-    } else {
-      if (*in == '"' || *in == '\'' || *in == '\\') {
-        
-        
-        
-        
-        aReturn.Append(PRUnichar('\\'));
-      }
-      aReturn.Append(*in);
+      case '\\':
+      case '\"':
+      case '\'':
+       aReturn.Append(PRUnichar('\\'));
+      
+      default:
+       aReturn.Append(PRUnichar(*in));
     }
   }
 
-  aReturn.Append(quoteChar);
+  aReturn.Append(PRUnichar('"'));
 }
 
  void
-nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
+nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
 {
   
   
@@ -96,48 +104,44 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   
   
 
-  const PRUnichar* in = aIdent.BeginReading();
-  const PRUnichar* const end = aIdent.EndReading();
-
-  if (in == end)
-    return;
+  const nsString::char_type* in = aIdent.get();
+  const nsString::char_type* const end = in + aIdent.Length();
 
   
   
-  if (in + 1 != end && *in == '-') {
+  if (in != end && *in == '-') {
     aReturn.Append(PRUnichar('-'));
     ++in;
   }
 
-  
-  
-  
-  
-  
-  if (in != end && (*in == '-' ||
-                    ('0' <= *in && *in <= '9'))) {
-    if (*in == '-') {
-      aReturn.Append(PRUnichar('\\'));
-      aReturn.Append(PRUnichar('-'));
-    } else {
-      aReturn.AppendPrintf("\\%hX ", *in);
-    }
-    ++in;
-  }
+  bool first = true;
+  for (; in != end; ++in, first = false)
+  {
+    if (*in < 0x20 || (first && '0' <= *in && *in <= '9'))
+    {
+      
+      
+      
+      
 
-  for (; in != end; ++in) {
-    PRUnichar ch = *in;
-    if (ch < 0x20 || (0x7F <= ch && ch < 0xA0)) {
       
-      aReturn.AppendPrintf("\\%hX ", *in);
+
+
+
+
+      PRUnichar buf[5];
+      nsTextFormatter::snprintf(buf, ArrayLength(buf),
+                                NS_LITERAL_STRING("\\%hX ").get(), *in);
+      aReturn.Append(buf);
     } else {
-      
-      
-      if (ch < 0x7F &&
-          ch != '_' && ch != '-' &&
-          (ch < '0' || '9' < ch) &&
-          (ch < 'A' || 'Z' < ch) &&
-          (ch < 'a' || 'z' < ch)) {
+      PRUnichar ch = *in;
+      if (!((ch == PRUnichar('_')) ||
+            (PRUnichar('A') <= ch && ch <= PRUnichar('Z')) ||
+            (PRUnichar('a') <= ch && ch <= PRUnichar('z')) ||
+            PRUnichar(0x80) <= ch ||
+            (!first && ch == PRUnichar('-')) ||
+            (PRUnichar('0') <= ch && ch <= PRUnichar('9')))) {
+        
         aReturn.Append(PRUnichar('\\'));
       }
       aReturn.Append(ch);
