@@ -306,7 +306,7 @@ CodeGenerator::visitLambda(LLambda *lir)
         uint32_t word;
     } u;
     u.s.nargs = fun->nargs;
-    u.s.flags = fun->flags & ~JSFUN_EXTENDED;
+    u.s.flags = fun->flags & ~JSFunction::EXTENDED;
 
     JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
     masm.store32(Imm32(u.word), Address(output, offsetof(JSFunction, nargs)));
@@ -830,8 +830,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     
     Address flags(calleereg, offsetof(JSFunction, flags));
-    masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_INTERPRETED), nargsreg);
-    masm.branch32(Assembler::NotEqual, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
+    masm.load16ZeroExtend_mask(flags, Imm32(JSFunction::INTERPRETED), nargsreg);
+    masm.branch32(Assembler::NotEqual, nargsreg, Imm32(JSFunction::INTERPRETED), &invoke);
 
     
     masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
@@ -1134,8 +1134,8 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     if (!apply->hasSingleTarget()) {
         Register kind = objreg;
         Address flags(calleereg, offsetof(JSFunction, flags));
-        masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_INTERPRETED), kind);
-        masm.branch32(Assembler::NotEqual, kind, Imm32(JSFUN_INTERPRETED), &invoke);
+        masm.load16ZeroExtend_mask(flags, Imm32(JSFunction::INTERPRETED), kind);
+        masm.branch32(Assembler::NotEqual, kind, Imm32(JSFunction::INTERPRETED), &invoke);
     } else {
         
         JS_ASSERT(!apply->getSingleTarget()->isNative());

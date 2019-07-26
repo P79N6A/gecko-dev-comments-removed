@@ -2440,6 +2440,8 @@ class AutoIdRooter : private AutoGCRooter
                                            JSPROP_GETTER nor JSPROP_SETTER is
                                            set. */
 #define JSPROP_PERMANENT        0x04    /* property cannot be deleted */
+#define JSPROP_NATIVE_ACCESSORS 0x08    /* set in JSPropertyDescriptor.flags
+                                           if getters/setters are JSNatives */
 #define JSPROP_GETTER           0x10    /* property holds getter function */
 #define JSPROP_SETTER           0x20    /* property holds setter function */
 #define JSPROP_SHARED           0x40    /* don't allocate a value slot for this
@@ -2448,40 +2450,14 @@ class AutoIdRooter : private AutoGCRooter
                                            object that delegates to a prototype
                                            containing this property */
 #define JSPROP_INDEX            0x80    /* name is actually (int) index */
-#define JSPROP_SHORTID          0x100   /* set in JS_DefineProperty attrs
+#define JSPROP_SHORTID         0x100    /* set in JS_DefineProperty attrs
                                            if getters/setters use a shortid */
-#define JSPROP_NATIVE_ACCESSORS 0x08    /* set in JSPropertyDescriptor.flags
-                                           if getters/setters are JSNatives */
 
-
-#define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
-
-#define JSFUN_SELF_HOSTED       0x20    /* function is self-hosted builtin and
-                                           must not be decompilable nor
-                                           constructible. */
-
-#define JSFUN_SELF_HOSTED_CTOR  0x40    /* function is self-hosted builtin
-                                           constructor and must be constructible
-                                           but not decompilable. */
-
-#define JSFUN_HEAVYWEIGHT       0x80    /* activation requires a Call object */
-
-#define JSFUN_HEAVYWEIGHT_TEST(f)  ((f) & JSFUN_HEAVYWEIGHT)
-
-#define JSFUN_HAS_REST          0x0100  /* function has a rest (...) parameter */
-#define JSFUN_CONSTRUCTOR       0x0200  /* native that can be called as a ctor
-                                           without creating a this object */
-#define JSFUN_HAS_DEFAULTS      0x0400  /* function has at least one default
-                                           parameter */
-
-#define JSFUN_FLAGS_MASK        0x07f8  /* overlay JSFUN_* attributes --
-                                           bits 12-15 are used internally to
-                                           flag interpreted functions */
-
-#define JSFUN_STUB_GSOPS        0x1000  /* use JS_PropertyStub getter/setter
+#define JSFUN_STUB_GSOPS       0x200    /* use JS_PropertyStub getter/setter
                                            instead of defaulting to class gsops
                                            for property holding function */
 
+#define JSFUN_CONSTRUCTOR      0x400    /* native that can be called as a ctor */
 
 
 
@@ -2493,7 +2469,10 @@ class AutoIdRooter : private AutoGCRooter
 
 
 
-#define JSFUN_GENERIC_NATIVE    JSFUN_LAMBDA
+
+#define JSFUN_GENERIC_NATIVE   0x800
+
+#define JSFUN_FLAGS_MASK       0xe00    /* | of all the JSFUN_* flags */
 
 
 
@@ -4794,12 +4773,6 @@ JS_GetFunctionDisplayId(JSFunction *fun);
 
 
 
-extern JS_PUBLIC_API(unsigned)
-JS_GetFunctionFlags(JSFunction *fun);
-
-
-
-
 extern JS_PUBLIC_API(uint16_t)
 JS_GetFunctionArity(JSFunction *fun);
 
@@ -4817,6 +4790,10 @@ JS_ObjectIsCallable(JSContext *cx, JSRawObject obj);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsNativeFunction(JSRawObject funobj, JSNative call);
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsConstructor(JSFunction *fun);
 
 
 
@@ -5969,7 +5946,7 @@ JS_IsConstructing(JSContext *cx, const jsval *vp)
     JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
     if (JS_ObjectIsFunction(cx, callee)) {
         JSFunction *fun = JS_ValueToFunction(cx, JS_CALLEE(cx, vp));
-        JS_ASSERT((JS_GetFunctionFlags(fun) & JSFUN_CONSTRUCTOR) != 0);
+        JS_ASSERT(JS_IsConstructor(fun));
     } else {
         JS_ASSERT(JS_GetClass(callee)->construct != NULL);
     }

@@ -18,40 +18,39 @@
 
 #include "gc/Barrier.h"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JSFUN_PROTOTYPE     0x0800  /* function is Function.prototype for some
-                                       global object */
-
-#define JSFUN_EXPR_CLOSURE  0x1000  /* expression closure: function(x) x*x */
-#define JSFUN_EXTENDED      0x2000  /* structure is FunctionExtended */
-
-
-
-
-#define JSFUN_INTERPRETED   0x4000  /* use u.i if kind >= this value else u.native */
-
-#define JSFUN_HAS_GUESSED_ATOM  0x8000  /* function had no explicit name, but a
-                                           name was guessed for it anyway */
-
 namespace js { class FunctionExtended; }
 
 struct JSFunction : public JSObject
 {
+    enum Flags {
+        INTERPRETED      = 0x0001,  
+        NATIVE_CTOR      = 0x0002,  
+        EXTENDED         = 0x0004,  
+        HEAVYWEIGHT      = 0x0008,  
+        IS_FUN_PROTO     = 0x0010,  
+        EXPR_CLOSURE     = 0x0020,  
+        HAS_GUESSED_ATOM = 0x0040,  
+
+        LAMBDA           = 0x0080,  
+
+        SELF_HOSTED      = 0x0100,  
+
+        SELF_HOSTED_CTOR = 0x0200,  
+
+        HAS_REST         = 0x0400,  
+        HAS_DEFAULTS     = 0x0800,  
+
+        
+        NATIVE_FUN = 0,
+        INTERPRETED_LAMBDA = INTERPRETED | LAMBDA
+    };
+
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(INTERPRETED == JS_FUNCTION_INTERPRETED_BIT);
+        MOZ_STATIC_ASSERT(sizeof(JSFunction) == sizeof(js::shadow::Function),
+                          "shadow interface must match actual interface");
+    }
+
     uint16_t        nargs;        
 
     uint16_t        flags;        
@@ -75,23 +74,34 @@ struct JSFunction : public JSObject
     js::HeapPtrAtom  atom_;       
   public:
 
-    bool hasDefaults()       const { return flags & JSFUN_HAS_DEFAULTS; }
-    bool hasRest()           const { return flags & JSFUN_HAS_REST; }
-    bool hasGuessedAtom()    const { return flags & JSFUN_HAS_GUESSED_ATOM; }
-    bool isInterpreted()     const { return flags & JSFUN_INTERPRETED; }
-    bool isNative()          const { return !isInterpreted(); }
-    bool isSelfHostedBuiltin() const { return flags & JSFUN_SELF_HOSTED; }
-    bool isBuiltin()         const { return isNative() || isSelfHostedBuiltin(); }
-    bool isSelfHostedConstructor() const { return flags & JSFUN_SELF_HOSTED_CTOR; }
-    bool isNativeConstructor() const { return flags & JSFUN_CONSTRUCTOR; }
-    bool isHeavyweight()     const { return JSFUN_HEAVYWEIGHT_TEST(flags); }
-    bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
+    
+    bool isInterpreted()            const { return flags & INTERPRETED; }
+    bool isNative()                 const { return !(flags & INTERPRETED); }
+
+    
+    bool isNativeConstructor()      const { return flags & NATIVE_CTOR; }
+
+    
+    bool isHeavyweight()            const { return flags & HEAVYWEIGHT; }
+    bool isFunctionPrototype()      const { return flags & IS_FUN_PROTO; }
+    bool isExprClosure()            const { return flags & EXPR_CLOSURE; }
+    bool hasGuessedAtom()           const { return flags & HAS_GUESSED_ATOM; }
+    bool isLambda()                 const { return flags & LAMBDA; }
+    bool isSelfHostedBuiltin()      const { return flags & SELF_HOSTED; }
+    bool isSelfHostedConstructor()  const { return flags & SELF_HOSTED_CTOR; }
+    bool hasRest()                  const { return flags & HAS_REST; }
+    bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
+
+    
+    bool isBuiltin() const {
+        return isNative() || isSelfHostedBuiltin();
+    }
     bool isInterpretedConstructor() const {
         return isInterpreted() && !isFunctionPrototype() &&
                (!isSelfHostedBuiltin() || isSelfHostedConstructor());
     }
     bool isNamedLambda()     const {
-        return (flags & JSFUN_LAMBDA) && atom_ && !hasGuessedAtom();
+        return isLambda() && atom_ && !hasGuessedAtom();
     }
 
     
@@ -104,12 +114,36 @@ struct JSFunction : public JSObject
 
     void setHasRest() {
         JS_ASSERT(!hasRest());
-        this->flags |= JSFUN_HAS_REST;
+        flags |= HAS_REST;
     }
 
     void setHasDefaults() {
         JS_ASSERT(!hasDefaults());
-        this->flags |= JSFUN_HAS_DEFAULTS;
+        flags |= HAS_DEFAULTS;
+    }
+
+    void setIsSelfHostedBuiltin() {
+        JS_ASSERT(!isSelfHostedBuiltin());
+        flags |= SELF_HOSTED;
+    }
+
+    void setIsSelfHostedConstructor() {
+        JS_ASSERT(!isSelfHostedConstructor());
+        flags |= SELF_HOSTED_CTOR;
+    }
+
+    void setIsFunctionPrototype() {
+        JS_ASSERT(!isFunctionPrototype());
+        flags |= IS_FUN_PROTO;
+    }
+
+    void setIsHeavyweight() {
+        flags |= HEAVYWEIGHT;
+    }
+
+    void setIsExprClosure() {
+        JS_ASSERT(!isExprClosure());
+        flags |= EXPR_CLOSURE;
     }
 
     JSAtom *atom() const { return hasGuessedAtom() ? NULL : atom_.get(); }
@@ -194,8 +228,8 @@ struct JSFunction : public JSObject
 
     inline bool isExtended() const {
         JS_STATIC_ASSERT(FinalizeKind != ExtendedFinalizeKind);
-        JS_ASSERT(!!(flags & JSFUN_EXTENDED) == (getAllocKind() == ExtendedFinalizeKind));
-        return !!(flags & JSFUN_EXTENDED);
+        JS_ASSERT(!!(flags & EXTENDED) == (getAllocKind() == ExtendedFinalizeKind));
+        return !!(flags & EXTENDED);
     }
 
   public:
@@ -209,10 +243,6 @@ struct JSFunction : public JSObject
                                            bool singleton = false);
 
   private:
-    static void staticAsserts() {
-        MOZ_STATIC_ASSERT(sizeof(JSFunction) == sizeof(js::shadow::Function),
-                          "shadow interface must match actual interface");
-    }
     
 
 
@@ -238,9 +268,17 @@ JSObject::toFunction() const
 extern JSString *
 fun_toStringHelper(JSContext *cx, js::HandleObject obj, unsigned indent);
 
+inline JSFunction::Flags
+JSAPIToJSFunctionFlags(unsigned flags)
+{
+    return (flags & JSFUN_CONSTRUCTOR)
+           ? JSFunction::NATIVE_CTOR
+           : JSFunction::NATIVE_FUN;
+}
+
 extern JSFunction *
 js_NewFunction(JSContext *cx, js::HandleObject funobj, JSNative native, unsigned nargs,
-               unsigned flags, js::HandleObject parent, js::HandleAtom atom,
+               JSFunction::Flags flags, js::HandleObject parent, js::HandleAtom atom,
                js::gc::AllocKind kind = JSFunction::FinalizeKind);
 
 extern JSFunction * JS_FASTCALL
