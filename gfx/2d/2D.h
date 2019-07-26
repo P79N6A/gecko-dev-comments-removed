@@ -456,6 +456,8 @@ class ScaledFont : public RefCounted<ScaledFont>
 public:
   virtual ~ScaledFont() {}
 
+  typedef void (*FontFileDataOutput)(const uint8_t *aData, uint32_t aLength, uint32_t aIndex, Float aGlyphSize, void *aBaton);
+
   virtual FontType GetType() const = 0;
 
   
@@ -471,6 +473,8 @@ public:
 
 
   virtual void CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder) = 0;
+
+  virtual bool GetFontFileData(FontFileDataOutput, void *) { return false; }
 
 protected:
   ScaledFont() {}
@@ -835,6 +839,18 @@ public:
 
   static TemporaryRef<ScaledFont>
     CreateScaledFontForNativeFont(const NativeFont &aNativeFont, Float aSize);
+
+  
+
+
+
+
+
+
+
+
+  static TemporaryRef<ScaledFont>
+    CreateScaledFontForTrueTypeData(uint8_t *aData, uint32_t aSize, uint32_t aFaceIndex, Float aGlyphSize, FontType aType);
 
   
 
