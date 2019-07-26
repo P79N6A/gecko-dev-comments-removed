@@ -2338,18 +2338,17 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
   
   nsCString temp;
   uint64_t len;
-  aBlob->Available(&len);
-  nsresult rv = NS_ReadInputStreamToString(aBlob, temp, len);
-  if (NS_FAILED(rv)) {
+  nsCOMPtr<nsIThread> mainThread;
+  NS_GetMainThread(getter_AddRefs(mainThread));
+
+  if (NS_FAILED(aBlob->Available(&len)) ||
+      NS_FAILED(NS_ReadInputStreamToString(aBlob, temp, len))) {
     
     
-    
-    nsRefPtr<DataChannelConnection> self(aThis);
+    NS_ProxyRelease(mainThread, aThis.take());
     return;
   }
   aBlob->Close();
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
   RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(aThis),
                                &DataChannelConnection::SendBinaryMsg,
                                aStream, temp),
