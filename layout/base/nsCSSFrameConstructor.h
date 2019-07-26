@@ -1179,14 +1179,13 @@ private:
   
 
 protected:
-  static nsresult CreatePlaceholderFrameFor(nsIPresShell*    aPresShell, 
-                                            nsIContent*      aContent,
-                                            nsIFrame*        aFrame,
-                                            nsStyleContext*  aStyleContext,
-                                            nsIFrame*        aParentFrame,
-                                            nsIFrame*        aPrevInFlow,
-                                            nsFrameState     aTypeBit,
-                                            nsIFrame**       aPlaceholderFrame);
+  static nsIFrame* CreatePlaceholderFrameFor(nsIPresShell*    aPresShell, 
+                                             nsIContent*      aContent,
+                                             nsIFrame*        aFrame,
+                                             nsStyleContext*  aStyleContext,
+                                             nsIFrame*        aParentFrame,
+                                             nsIFrame*        aPrevInFlow,
+                                             nsFrameState     aTypeBit);
 
 private:
   
