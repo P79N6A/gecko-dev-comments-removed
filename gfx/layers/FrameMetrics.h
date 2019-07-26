@@ -71,7 +71,6 @@ public:
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mViewport(0, 0, 0, 0)
-    , mScrollId(NULL_SCROLL_ID)
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1)
     , mCumulativeResolution(1)
@@ -81,6 +80,7 @@ public:
     , mMayHaveTouchListeners(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
+    , mScrollId(NULL_SCROLL_ID)
     , mScrollOffset(0, 0)
     , mZoom(1)
     , mUpdateScrollOffset(false)
@@ -97,7 +97,6 @@ public:
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
-           mScrollId == aOther.mScrollId &&
            mScrollableRect.IsEqualEdges(aOther.mScrollableRect) &&
            mResolution == aOther.mResolution &&
            mCumulativeResolution == aOther.mCumulativeResolution &&
@@ -105,6 +104,7 @@ public:
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
+           mScrollId == aOther.mScrollId &&
            mScrollOffset == aOther.mScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
@@ -266,9 +266,6 @@ public:
   CSSRect mViewport;
 
   
-  ViewID mScrollId;
-
-  
   
   
   
@@ -370,9 +367,22 @@ public:
     mContentDescription = aContentDescription;
   }
 
+  ViewID GetScrollId() const
+  {
+    return mScrollId;
+  }
+  
+  void SetScrollId(ViewID scrollId) 
+  {
+    mScrollId = scrollId;
+  }
+  
 private:
   
   
+
+  
+  ViewID mScrollId;
 
   
   
@@ -441,7 +451,7 @@ struct ScrollableLayerGuid {
   ScrollableLayerGuid(uint64_t aLayersId, const FrameMetrics& aMetrics)
     : mLayersId(aLayersId)
     , mPresShellId(aMetrics.mPresShellId)
-    , mScrollId(aMetrics.mScrollId)
+    , mScrollId(aMetrics.GetScrollId())
   {
     MOZ_COUNT_CTOR(ScrollableLayerGuid);
   }

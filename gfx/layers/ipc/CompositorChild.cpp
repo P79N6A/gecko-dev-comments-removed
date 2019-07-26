@@ -211,7 +211,7 @@ CompositorChild::SharedFrameMetricsData::GetViewID()
   MOZ_ASSERT(frame);
   
   
-  return frame->mScrollId;
+  return frame->GetScrollId();
 }
 
 uint32_t
