@@ -1108,19 +1108,6 @@ extern JS_PUBLIC_API(uint32_t)
 JS_DoubleToUint32(double d);
 
 
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ValueToInt64(JSContext *cx, jsval v, int64_t *ip);
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ValueToUint64(JSContext *cx, jsval v, uint64_t *ip);
-
 namespace js {
 
 extern JS_PUBLIC_API(bool)
@@ -1215,20 +1202,6 @@ ToUint64(JSContext *cx, JS::Handle<JS::Value> v, uint64_t *out)
 
 
 } 
-
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ValueToInt32(JSContext *cx, jsval v, int32_t *ip);
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ValueToUint16(JSContext *cx, jsval v, uint16_t *ip);
 
 extern JS_PUBLIC_API(bool)
 JS_ValueToBoolean(JSContext *cx, jsval v, bool *bp);
