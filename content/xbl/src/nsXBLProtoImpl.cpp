@@ -107,8 +107,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
     if (NS_FAILED(rv))
       return rv;
 
-    if (!mClassObject)
-      return NS_OK; 
+    MOZ_ASSERT(mClassObject);
   }
 
   nsIDocument *ownerDoc = aBoundElement->OwnerDoc();
