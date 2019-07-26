@@ -871,6 +871,12 @@ public:
 
 
 
+
+
+
+
+
+
   void MovePositionBy(const nsPoint& aTranslation);
 
   
