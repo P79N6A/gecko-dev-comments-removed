@@ -839,6 +839,19 @@ GrallocTextureHostOGL::Unlock()
 
 
 
+  if (mGL->Renderer() == GLContext::RendererAdrenoTM205) {
+    
+
+
+
+    if (mGLTexture) {
+      mGL->MakeCurrent();
+      mGL->fDeleteTextures(1, &mGLTexture);
+      mGLTexture = 0;
+    }
+    return;
+  }
+
   mGL->MakeCurrent();
   mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
   mGL->fBindTexture(mTextureTarget, mGLTexture);
