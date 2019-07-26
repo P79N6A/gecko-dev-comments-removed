@@ -203,8 +203,11 @@ Loop::isInLoop(MDefinition *ins)
 bool
 Loop::isLoopInvariant(MInstruction *ins)
 {
-    if (!isHoistable(ins))
+    if (!isHoistable(ins)) {
+        if (IonSpewEnabled(IonSpew_LICM))
+            fprintf(IonSpewFile, "not hoistable\n");
         return false;
+    }
 
     
     if (ins->dependency() && isInLoop(ins->dependency())) {
