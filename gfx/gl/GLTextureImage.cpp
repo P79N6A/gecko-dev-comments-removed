@@ -72,9 +72,8 @@ BasicTextureImage::~BasicTextureImage()
     
     
     
-    if (ctx && !ctx->IsDestroyed()) {
-        mGLContext->MakeCurrent();
-        mGLContext->fDeleteTextures(1, &mTexture);
+    if (ctx && ctx->MakeCurrent()) {
+        ctx->fDeleteTextures(1, &mTexture);
     }
 }
 
@@ -698,7 +697,9 @@ CreateBasicTextureImage(GLContext* aGL,
                         TextureImage::ImageFormat aImageFormat)
 {
     bool useNearestFilter = aFlags & TextureImage::UseNearestFilter;
-    aGL->MakeCurrent();
+    if (!aGL->MakeCurrent()) {
+      return nullptr;
+    }
 
     GLuint texture = 0;
     aGL->fGenTextures(1, &texture);
