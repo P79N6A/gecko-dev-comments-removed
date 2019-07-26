@@ -293,6 +293,10 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
     } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
         
         
+    } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
+        
+        
+        
     } else {
         
         MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
@@ -361,6 +365,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
     bool targetSubsumesOrigin = AccessCheck::subsumes(target, origin);
     bool sameOrigin = targetSubsumesOrigin && originSubsumesTarget;
     XrayType xrayType = GetXrayType(obj);
+    bool waiveXrayFlag = flags & WAIVE_XRAY_WRAPPER_FLAG;
 
     
     
@@ -401,6 +406,20 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
     
     
     
+    
+    else if (targetSubsumesOrigin && !originSubsumesTarget &&
+             !waiveXrayFlag && xrayType == NotXray &&
+             IsXBLScope(target))
+    {
+        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton;
+    }
+
+    
+    
+    
+    
+    
+    
     else {
 
         
@@ -417,8 +436,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
 
         
         
-        bool waiveXrays = wantXrays && !securityWrapper &&
-                          (flags & WAIVE_XRAY_WRAPPER_FLAG);
+        bool waiveXrays = wantXrays && !securityWrapper && waiveXrayFlag;
 
         wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays);
     }
