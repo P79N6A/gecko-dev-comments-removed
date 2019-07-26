@@ -842,17 +842,10 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           {
             prop = nsCSSProps::OtherNameFor(prop);
           }
-          nsIAtom* ep = et->mElementProperty;
-          NS_NAMED_LITERAL_STRING(before, "::before");
-          NS_NAMED_LITERAL_STRING(after, "::after");
           events.AppendElement(
             TransitionEventInfo(et->mElement, prop,
                                 anim->mTiming.mIterationDuration,
-                                ep == nsGkAtoms::transitionsProperty ?
-                                  EmptyString() :
-                                  ep == nsGkAtoms::transitionsOfBeforeProperty ?
-                                    before :
-                                    after));
+                                et->PseudoElement()));
 
           
           
