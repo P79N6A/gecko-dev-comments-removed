@@ -1039,6 +1039,10 @@ var gBrowserInit = {
     OfflineApps.init();
     IndexedDBPromptHelper.init();
     gFormSubmitObserver.init();
+    
+    
+    
+    FullZoom.init();
     PanelUI.init();
     SocialUI.init();
     LightweightThemeListener.init();
@@ -1087,11 +1091,6 @@ var gBrowserInit = {
     
     if (!getBoolPref("ui.click_hold_context_menus", false))
       SetClickAndHoldHandlers();
-
-    
-    
-    
-    FullZoom.init();
 
     
     if (!gMultiProcessBrowser) {
