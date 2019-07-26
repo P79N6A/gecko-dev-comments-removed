@@ -10,6 +10,7 @@
 #include <stddef.h>
 
 #include "js/TypeDecls.h"
+#include "vm/ObjectImpl.h"
 
 namespace js {
 
@@ -91,7 +92,29 @@ IsValidAsmJSHeapLength(uint32_t length);
 
 
 static const size_t AsmJSBufferProtectedSize = 4 * 1024ULL * 1024ULL * 1024ULL;
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const size_t AsmJSMappedSize = AsmJSPageSize + AsmJSBufferProtectedSize;
+#endif 
 
 #ifdef JS_ION
 

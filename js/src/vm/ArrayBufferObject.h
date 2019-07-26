@@ -35,6 +35,7 @@ class ArrayBufferViewObject;
 
 
 
+
 typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
 
 
@@ -185,9 +186,7 @@ class ArrayBufferObject : public JSObject
 
     static bool neuterViews(JSContext *cx, Handle<ArrayBufferObject*> buffer);
 
-    inline uint8_t * dataPointer() const {
-        return (uint8_t *) elements;
-    }
+    uint8_t * dataPointer() const;
 
     
 
@@ -201,6 +200,10 @@ class ArrayBufferObject : public JSObject
 
     bool hasData() const {
         return getClass() == &class_;
+    }
+
+    bool isSharedArrayBuffer() const {
+        return getElementsHeader()->isSharedArrayBuffer();
     }
 
     bool isAsmJSArrayBuffer() const {
@@ -292,11 +295,15 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
     PostBarrierTypedArrayObject(obj);
 }
 
-MOZ_ALWAYS_INLINE bool
-IsArrayBuffer(HandleValue v)
-{
-    return v.isObject() && v.toObject().is<ArrayBufferObject>();
-}
+
+
+
+
+bool IsArrayBuffer(HandleValue v);
+bool IsArrayBuffer(HandleObject obj);
+bool IsArrayBuffer(JSObject *obj);
+ArrayBufferObject &AsArrayBuffer(HandleObject obj);
+ArrayBufferObject &AsArrayBuffer(JSObject *obj);
 
 inline void
 ArrayBufferViewObject::setBufferLink(ArrayBufferObject *buffer)
