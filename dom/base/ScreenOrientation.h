@@ -10,7 +10,6 @@ namespace dom {
 
 
 
-
 typedef uint32_t ScreenOrientation;
 
 static const ScreenOrientation eScreenOrientation_None               = 0;
