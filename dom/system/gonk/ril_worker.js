@@ -60,6 +60,9 @@ const TLV_EVENT_LIST_SIZE = 3;
 const TLV_LOCATION_STATUS_SIZE = 3;
 const TLV_LOCATION_INFO_GSM_SIZE = 9;
 const TLV_LOCATION_INFO_UMTS_SIZE = 11;
+const TLV_IMEI_SIZE = 10;
+const TLV_DATE_TIME_ZONE_SIZE = 9;
+const TLV_LANGUAGE_SIZE = 4;
 
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
@@ -3124,6 +3127,8 @@ let RIL = {
 
 
 
+
+
   sendStkTerminalResponse: function sendStkTerminalResponse(response) {
     if (response.hasConfirmed !== undefined) {
       this.stkHandleCallSetup(response);
@@ -3154,6 +3159,18 @@ let RIL = {
                 TLV_RESULT_SIZE +
                 (response.itemIdentifier ? TLV_ITEM_ID_SIZE : 0) +
                 (textLen ? textLen + 3 : 0)) * 2;
+    if (response.localInfo) {
+      let localInfo = response.localInfo;
+      size = size +
+             (((localInfo.locationInfo ?
+               (localInfo.locationInfo.gsmCellId > 0xffff ?
+                 TLV_LOCATION_INFO_UMTS_SIZE :
+                 TLV_LOCATION_INFO_GSM_SIZE) :
+               0) +
+             (localInfo.imei ? TLV_IMEI_SIZE : 0) +
+             (localInfo.date ? TLV_DATE_TIME_ZONE_SIZE : 0) +
+             (localInfo.language ? TLV_LANGUAGE_SIZE : 0)) * 2);
+    }
     Buf.writeUint32(size);
 
     
@@ -3235,6 +3252,40 @@ let RIL = {
             }
             break;
         }
+      }
+    }
+
+    
+    if (response.localInfo) {
+      let localInfo = response.localInfo;
+
+      
+      if (localInfo.locationInfo) {
+        ComprehensionTlvHelper.writeLocationInfoTlv(localInfo.locationInfo);
+      }
+
+      
+      if (localInfo.imei) {
+        let imei = localInfo.imei;
+        if(imei.length == 15) {
+          imei = imei + "0";
+        }
+
+        GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_IMEI);
+        GsmPDUHelper.writeHexOctet(8);
+        for (let i = 0; i < imei.length / 2; i++) {
+          GsmPDUHelper.writeHexOctet(parseInt(imei.substr(i * 2, 2), 16));
+        }
+      }
+
+      
+      if (localInfo.date) {
+        ComprehensionTlvHelper.writeDateTimeZoneTlv(localInfo.date);
+      }
+
+      
+      if (localInfo.language) {
+        ComprehensionTlvHelper.writeLanguageTlv(localInfo.language);
       }
     }
 
@@ -6123,6 +6174,20 @@ let GsmPDUHelper = {
   
 
 
+
+
+
+
+
+
+  BCDToOctet: function BCDToOctet(bcd) {
+    bcd = Math.abs(bcd);
+    return ((bcd % 10) << 4) + (Math.floor(bcd / 10) % 10);
+  },
+
+  
+
+
   bcdChars: "0123456789*#,;",
   semiOctetToBcdChar: function semiOctetToBcdChar(semiOctet) {
     if (semiOctet >= 14) {
@@ -6197,6 +6262,24 @@ let GsmPDUHelper = {
     data = data.toString();
     if (data.length % 2) {
       data += "F";
+    }
+    for (let i = 0; i < data.length; i += 2) {
+      Buf.writeUint16(data.charCodeAt(i + 1));
+      Buf.writeUint16(data.charCodeAt(i));
+    }
+  },
+
+  
+
+
+
+
+
+
+  writeSwappedNibbleBCDNum: function writeSwappedNibbleBCDNum(data) {
+    data = data.toString();
+    if (data.length % 2) {
+      data = "0" + data;
     }
     for (let i = 0; i < data.length; i += 2) {
       Buf.writeUint16(data.charCodeAt(i + 1));
@@ -7033,6 +7116,43 @@ let GsmPDUHelper = {
 
 
 
+  writeTimestamp: function writeTimestamp(date) {
+    this.writeSwappedNibbleBCDNum(date.getFullYear() - PDU_TIMESTAMP_YEAR_OFFSET);
+
+    
+    
+    this.writeSwappedNibbleBCDNum(date.getMonth() + 1);
+    this.writeSwappedNibbleBCDNum(date.getDate());
+    this.writeSwappedNibbleBCDNum(date.getHours());
+    this.writeSwappedNibbleBCDNum(date.getMinutes());
+    this.writeSwappedNibbleBCDNum(date.getSeconds());
+
+    
+    
+    
+    
+    
+    
+    
+    let zone = date.getTimezoneOffset() / 15;
+    let octet = this.BCDToOctet(zone);
+
+    
+    
+    
+    
+    
+    if (zone > 0) {
+      octet = octet | 0x08;
+    }
+    this.writeHexOctet(octet);
+  },
+
+  
+
+
+
+
 
 
 
@@ -7738,6 +7858,9 @@ let StkCommandParamsFactory = {
       case STK_CMD_POLL_OFF:
         param = this.processPollOff(cmdDetails, ctlvs);
         break;
+      case STK_CMD_PROVIDE_LOCAL_INFO:
+        param = this.processProvideLocalInfo(cmdDetails, ctlvs);
+        break;
       case STK_CMD_SET_UP_EVENT_LIST:
         param = this.processSetUpEventList(cmdDetails, ctlvs);
         break;
@@ -8145,6 +8268,21 @@ let StkCommandParamsFactory = {
     playTone.isVibrate = (cmdDetails.commandQualifier & 0x01) != 0x00;
 
     return playTone;
+  },
+
+  
+
+
+
+
+
+
+
+  processProvideLocalInfo: function processProvideLocalInfo(cmdDetails, ctlvs) {
+    let provideLocalInfo = {
+      localInfoType: cmdDetails.commandQualifier
+    };
+    return provideLocalInfo;
   }
 };
 
@@ -8662,6 +8800,24 @@ let ComprehensionTlvHelper = {
     
     
     GsmPDUHelper.writeHexOctet(0x80 | cause);
+  },
+
+  writeDateTimeZoneTlv: function writeDataTimeZoneTlv(date) {
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DATE_TIME_ZONE);
+    GsmPDUHelper.writeHexOctet(7);
+    GsmPDUHelper.writeTimestamp(date);
+  },
+
+  writeLanguageTlv: function writeLanguageTlv(language) {
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_LANGUAGE);
+    GsmPDUHelper.writeHexOctet(2);
+
+    
+    
+    GsmPDUHelper.writeHexOctet(
+      PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT].indexOf(language[0]));
+    GsmPDUHelper.writeHexOctet(
+      PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT].indexOf(language[1]));
   },
 
   getSizeOfLengthOctets: function getSizeOfLengthOctets(length) {
