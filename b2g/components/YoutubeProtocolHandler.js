@@ -16,17 +16,6 @@ XPCOMUtils.defineLazyGetter(this, "cpmm", function() {
            .getService(Ci.nsIMessageSender);
 });
 
-
-function extractParameters(aQuery) {
-  let params = aQuery.split("&");
-  let res = {};
-  params.forEach(function(aParam) {
-    let obj = aParam.split("=");
-    res[obj[0]] = decodeURIComponent(obj[1]);
-  });
-  return res;
-}
-
 function YoutubeProtocolHandler() {
 }
 
@@ -61,24 +50,95 @@ YoutubeProtocolHandler.prototype = {
                 .createInstance(Ci.nsIXMLHttpRequest);
     xhr.open("GET", infoURI, true);
     xhr.addEventListener("load", function() {
-      
-      
-      
-      
-      let key = "url_encoded_fmt_stream_map=";
-      let pos = xhr.responseText.indexOf(key);
-      if (pos == -1) {
-        return;
+      try {
+        let info = parseYoutubeVideoInfo(xhr.responseText);
+        cpmm.sendAsyncMessage("content-handler", info);
       }
-      let streams = decodeURIComponent(xhr.responseText
-                                       .substring(pos + key.length)).split(",");
-      let uri;
-      let mimeType;
+      catch(e) {
+        
+        
+        
+        
+        log(e.message);
+      }
+    });
+    xhr.send(null);
+
+    function log(msg) {
+      msg = "YoutubeProtocolHandler.js: " + (msg.join ? msg.join(" ") : msg);
+      Cc["@mozilla.org/consoleservice;1"]
+        .getService(Ci.nsIConsoleService)
+        .logStringMessage(msg);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    function parseYoutubeVideoInfo(response) {
+      
+      function extractParameters(q) {
+        let params = q.split("&");
+        let result = {};
+        for(let i = 0, n = params.length; i < n; i++) {
+          let param = params[i];
+          let pos = param.indexOf('=');
+          if (pos === -1) 
+            continue;
+          let name = param.substring(0, pos);
+          let value = param.substring(pos+1);
+          result[name] = decodeURIComponent(value);
+        }
+        return result;
+      }
+
+      let params = extractParameters(response);
+      
+      
+      
+      if (params.status === 'fail') {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return {
+          status: params.status,
+          errorcode: params.errorcode,
+          reason:  (params.reason || '').replace(/\+/g, ' '),
+          type: 'video/3gpp',
+          url: 'https://m.youtube.com'
+        }
+      }
+
+      
+      let result = {
+        status: params.status,
+      };
+
+      
+      let streamsText = params.url_encoded_fmt_stream_map;
+      if (!streamsText)
+        throw Error("No url_encoded_fmt_stream_map parameter");
+      let streams = streamsText.split(',');
+      for(let i = 0, n = streams.length; i < n; i++) {
+        streams[i] = extractParameters(streams[i]);
+      }
 
       
       
       
-      let recognizedItags = [
+      
+      let formats = [
         "17", 
         "36", 
         "43", 
@@ -87,39 +147,39 @@ YoutubeProtocolHandler.prototype = {
 #endif
       ];
 
-      let bestItag = -1;
-
-      let extras = { }
-
-      streams.forEach(function(aStream) {
-        let params = extractParameters(aStream);
-        let url = params["url"];
-        let type = params["type"] ? params["type"].split(";")[0] : null;
-        let itag = params["itag"];
-
-        let index;
-        if (url && type && ((index = recognizedItags.indexOf(itag)) != -1) &&
-            index > bestItag) {
-          uri = url + '&signature=' + (params["sig"] ? params['sig'] : '');
-          mimeType = type;
-          bestItag = index;
-        }
-        for (let param in params) {
-          if (["thumbnail_url", "length_seconds", "title"].indexOf(param) != -1) {
-            extras[param] = decodeURIComponent(params[param]);
-          }
-        }
+      
+      
+      streams.sort(function(a, b) {
+        let x = a.itag ? formats.indexOf(a.itag) : -1;
+        let y = b.itag ? formats.indexOf(b.itag) : -1;
+        return y - x;
       });
 
-      if (uri && mimeType) {
-        cpmm.sendAsyncMessage("content-handler", {
-          url: uri,
-          type: mimeType,
-          extras: extras
-        });
+      let bestStream = streams[0];
+
+      
+      if (formats.indexOf(bestStream.itag) === -1) 
+        throw Error("No supported video formats");
+
+      result.url = bestStream.url + '&signature=' + (bestStream.sig || '');
+      result.type = bestStream.type;
+      
+      if (result.type && result.type.indexOf(';') !== -1) {
+        result.type = result.type.split(';',1)[0];
       }
-    });
-    xhr.send(null);
+
+      if (params.title) {
+        result.title = params.title.replace(/\+/g, ' ');
+      }
+      if (params.length_seconds) {
+        result.duration = params.length_seconds;
+      }
+      if (params.thumbnail_url) {
+        result.poster = params.thumbnail_url;
+      }
+
+      return result;
+    }
 
     throw Components.results.NS_ERROR_ILLEGAL_VALUE;
   },
