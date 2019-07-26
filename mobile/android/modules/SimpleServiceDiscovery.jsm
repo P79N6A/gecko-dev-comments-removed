@@ -50,6 +50,15 @@ var SimpleServiceDiscovery = {
   _searchTimeout: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
   _searchRepeat: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
 
+  _forceTrailingSlash: function(aURL) {
+    
+    
+    if (!aURL.endsWith("/")) {
+      aURL += "/";
+    }
+    return aURL;
+  },
+
   
   onPacketReceived: function(aSocket, aMessage) {
     
@@ -70,13 +79,19 @@ var SimpleServiceDiscovery = {
       }
 
       if (location && valid) {
+        location = this._forceTrailingSlash(location);
+
         
         
         let service = {
           location: location,
           target: target
         };
-        this._found(service);
+
+        try {
+          this._processService(service);
+        } catch (e) {}
+
         return true;
       }
       return false;
@@ -120,6 +135,14 @@ var SimpleServiceDiscovery = {
     }
 
     
+    
+    this._searchTimestamp = Date.now();
+
+    
+    
+    this._searchFixedTargets();
+
+    
     let socket = Cc["@mozilla.org/network/udp-socket;1"].createInstance(Ci.nsIUDPSocket);
     try {
       socket.init(SSDP_PORT, false);
@@ -130,10 +153,6 @@ var SimpleServiceDiscovery = {
       log("failed to start socket: " + e);
       return;
     }
-
-    
-    
-    this._searchTimestamp = Date.now();
 
     this._searchSocket = socket;
     this._searchTimeout.initWithCallback(this._searchShutdown.bind(this), SSDP_DISCOVER_TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
@@ -147,6 +166,37 @@ var SimpleServiceDiscovery = {
       } catch (e) {
         log("failed to convert to byte array: " + e);
       }
+    }
+  },
+
+  _searchFixedTargets: function _searchFixedTargets() {
+    let fixedTargets = null;
+    try {
+      fixedTargets = Services.prefs.getCharPref("browser.casting.fixedTargets");
+    } catch (e) {}
+
+    if (!fixedTargets) {
+      return;
+    }
+
+    fixedTargets = JSON.parse(fixedTargets);
+    for (let fixedTarget of fixedTargets) {
+      
+      if (!"location" in fixedTarget || !"target" in fixedTarget) {
+        continue;
+      }
+
+      fixedTarget.location = this._forceTrailingSlash(fixedTarget.location);
+
+      let service = {
+        location: fixedTarget.location,
+        target: fixedTarget.target
+      };
+
+      
+      try {
+        this._processService(service);
+      } catch (e) {}
     }
   },
 
@@ -202,7 +252,7 @@ var SimpleServiceDiscovery = {
     return array;
   },
 
-  _found: function _found(aService) {
+  _processService: function _processService(aService) {
     
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
     xhr.open("GET", aService.location, true);
