@@ -2799,6 +2799,7 @@ RadioInterface.prototype = {
     
     
     gSystemMessenger.broadcastMessage(aName, {
+      iccId:             aDomMessage.iccId,
       type:              aDomMessage.type,
       id:                aDomMessage.id,
       threadId:          aDomMessage.threadId,
