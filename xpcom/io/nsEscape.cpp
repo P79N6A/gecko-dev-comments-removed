@@ -181,7 +181,15 @@ int32_t nsUnescapeCount(char * str)
         }
     }
 
-    *dst = 0;
+    
+
+
+
+
+
+    if (*dst) {
+        *dst = 0;
+    }
     return (int)(dst - str);
 
 } 
