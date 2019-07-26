@@ -330,7 +330,13 @@ protected:
 
 
 
-  nsresult TrackImage(imgIRequest* aImage);
+
+
+
+  enum {
+    SKIP_FRAME_CHECK = 0x1
+  };
+  nsresult TrackImage(imgIRequest* aImage, uint32_t aFlags = 0);
   enum {
     REQUEST_DISCARD = 0x1
   };

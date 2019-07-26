@@ -377,22 +377,12 @@ nsImageLoadingContent::FrameCreated(nsIFrame* aFrame)
 
   
   
-  nsPresContext* presContext = aFrame->PresContext();
+  TrackImage(mCurrentRequest, SKIP_FRAME_CHECK);
+  TrackImage(mPendingRequest, SKIP_FRAME_CHECK);
 
-  if (mCurrentRequest && !(mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
-    nsIDocument* doc = GetOurCurrentDoc();
-    if (doc) {
-      mCurrentRequestFlags |= REQUEST_IS_TRACKED;
-      doc->AddImage(mCurrentRequest);
-    }
-  }
-  if (mPendingRequest && !(mPendingRequestFlags & REQUEST_IS_TRACKED)) {
-    nsIDocument* doc = GetOurCurrentDoc();
-    if (doc) {
-      mPendingRequestFlags |= REQUEST_IS_TRACKED;
-      doc->AddImage(mPendingRequest);
-    }
-  }
+  
+  
+  nsPresContext* presContext = aFrame->PresContext();
 
   if (mCurrentRequest) {
     nsLayoutUtils::RegisterImageRequestIfAnimated(presContext, mCurrentRequest,
@@ -1171,16 +1161,8 @@ nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   nsCxPusher pusher;
   pusher.PushNull();
 
-  if (GetOurPrimaryFrame()) {
-    if (mCurrentRequest && !(mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
-      mCurrentRequestFlags |= REQUEST_IS_TRACKED;
-      aDocument->AddImage(mCurrentRequest);
-    }
-    if (mPendingRequest && !(mPendingRequestFlags & REQUEST_IS_TRACKED)) {
-      mPendingRequestFlags |= REQUEST_IS_TRACKED;
-      aDocument->AddImage(mPendingRequest);
-    }
-  }
+  TrackImage(mCurrentRequest);
+  TrackImage(mPendingRequest);
 
   if (mCurrentRequestFlags & REQUEST_BLOCKS_ONLOAD)
     aDocument->BlockOnload();
@@ -1207,7 +1189,7 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsresult
-nsImageLoadingContent::TrackImage(imgIRequest* aImage)
+nsImageLoadingContent::TrackImage(imgIRequest* aImage, uint32_t aFlags )
 {
   if (!aImage)
     return NS_OK;
@@ -1216,7 +1198,7 @@ nsImageLoadingContent::TrackImage(imgIRequest* aImage)
              "Why haven't we heard of this request?");
 
   nsIDocument* doc = GetOurCurrentDoc();
-  if (doc && GetOurPrimaryFrame()) {
+  if (doc && ((aFlags & SKIP_FRAME_CHECK) || GetOurPrimaryFrame())) {
     if (aImage == mCurrentRequest && !(mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
       mCurrentRequestFlags |= REQUEST_IS_TRACKED;
       doc->AddImage(mCurrentRequest);
