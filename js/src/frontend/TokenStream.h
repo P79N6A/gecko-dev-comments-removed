@@ -28,6 +28,8 @@
 namespace js {
 namespace frontend {
 
+
+
 enum TokenKind {
     TOK_ERROR = 0,                 
     TOK_EOF,                       
@@ -617,6 +619,10 @@ class MOZ_STACK_CLASS TokenStream
         return false;
     }
 
+    bool nextTokenEndsExpr() {
+        return isExprEnding[peekToken()];
+    }
+
     class MOZ_STACK_CLASS Position {
       public:
         
@@ -913,6 +919,7 @@ class MOZ_STACK_CLASS TokenStream
     int8_t              oneCharTokens[128];  
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
+    uint8_t             isExprEnding[TOK_LIMIT]; 
     ExclusiveContext    *const cx;
     JSPrincipals        *const originPrincipals;
     StrictModeGetter    *strictModeGetter; 

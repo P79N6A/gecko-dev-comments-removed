@@ -5161,10 +5161,32 @@ Parser<ParseHandler>::assignExpr()
 {
     JS_CHECK_RECURSION(context, return null());
 
-    if (tokenStream.matchToken(TOK_YIELD, TSF_OPERAND))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    TokenKind tt = tokenStream.getToken(TSF_OPERAND);
+
+    if (tt == TOK_NAME && tokenStream.nextTokenEndsExpr())
+        return identifierName();
+
+    if (tt == TOK_NUMBER && tokenStream.nextTokenEndsExpr())
+        return newNumber(tokenStream.currentToken());
+
+    if (tt == TOK_STRING && tokenStream.nextTokenEndsExpr())
+        return stringLiteral();
+
+    if (tt == TOK_YIELD)
         return returnStatementOrYieldExpression();
-    if (tokenStream.hadError())
-        return null();
+
+    tokenStream.ungetToken();
 
     
     
