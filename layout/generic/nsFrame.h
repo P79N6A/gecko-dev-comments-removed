@@ -591,8 +591,8 @@ public:
   
 
 
-  static bool ApplyOverflowClipping(const nsIFrame* aFrame,
-                                    const nsStyleDisplay* aDisp)
+  static bool ShouldApplyOverflowClipping(const nsIFrame* aFrame,
+                                          const nsStyleDisplay* aDisp)
   {
     
     if (MOZ_UNLIKELY(aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP)) {

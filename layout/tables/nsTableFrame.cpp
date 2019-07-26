@@ -1786,7 +1786,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*           aPresContext,
   
   nsRect tableRect(0, 0, aDesiredSize.width, aDesiredSize.height) ;
 
-  if (!ApplyOverflowClipping(this, aReflowState.mStyleDisplay)) {
+  if (!ShouldApplyOverflowClipping(this, aReflowState.mStyleDisplay)) {
     
     nsMargin bcMargin = GetExcludedOuterBCBorder();
     tableRect.Inflate(bcMargin);
@@ -1810,7 +1810,7 @@ nsTableFrame::UpdateOverflow()
 
   
   
-  if (!ApplyOverflowClipping(this, StyleDisplay())) {
+  if (!ShouldApplyOverflowClipping(this, StyleDisplay())) {
     nsMargin bcMargin = GetExcludedOuterBCBorder();
     bounds.Inflate(bcMargin);
   }

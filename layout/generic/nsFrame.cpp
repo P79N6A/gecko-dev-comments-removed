@@ -1606,7 +1606,7 @@ static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!nsFrame::ApplyOverflowClipping(aFrame, aDisp)) {
+  if (!nsFrame::ShouldApplyOverflowClipping(aFrame, aDisp)) {
     return false;
   }
   *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition();
@@ -6932,7 +6932,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   NS_ASSERTION((disp->mOverflowY == NS_STYLE_OVERFLOW_CLIP) ==
                (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP),
                "If one overflow is clip, the other should be too");
-  if (nsFrame::ApplyOverflowClipping(this, disp)) {
+  if (nsFrame::ShouldApplyOverflowClipping(this, disp)) {
     
     aOverflowAreas.SetAllTo(bounds);
   }
