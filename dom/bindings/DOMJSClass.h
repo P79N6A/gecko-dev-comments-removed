@@ -204,6 +204,10 @@ struct DOMIfaceAndProtoJSClass
 
   const NativePropertyHooks* mNativeHooks;
 
+  
+  
+  const char* mToString;
+
   static const DOMIfaceAndProtoJSClass* FromJSClass(const JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS);
     return reinterpret_cast<const DOMIfaceAndProtoJSClass*>(base);
