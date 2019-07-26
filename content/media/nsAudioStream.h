@@ -59,7 +59,7 @@ public:
   
   
   
-  virtual nsresult Write(const void* aBuf, uint32_t aFrames) = 0;
+  virtual nsresult Write(const mozilla::AudioDataValue* aBuf, uint32_t aFrames) = 0;
 
   
   virtual uint32_t Available() = 0;
