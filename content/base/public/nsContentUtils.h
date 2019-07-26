@@ -426,7 +426,7 @@ public:
 
 
 
-  static nsIDocument* GetDocumentFromCaller();
+  static nsIDOMDocument *GetDocumentFromCaller();
 
   
 
@@ -435,7 +435,7 @@ public:
 
 
 
-  static nsIDocument* GetDocumentFromContext();
+  static nsIDOMDocument *GetDocumentFromContext();
 
   
   

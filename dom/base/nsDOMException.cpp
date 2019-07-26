@@ -183,7 +183,8 @@ nsDOMException::GetCode(uint16_t* aCode)
   
   
   if (NS_ERROR_GET_MODULE(mResult) != NS_ERROR_MODULE_DOM || !mCode) {
-    nsCOMPtr<nsIDocument> doc = nsContentUtils::GetDocumentFromCaller();
+    nsCOMPtr<nsIDocument> doc =
+      do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
     if (doc) {
       doc->WarnOnceAbout(nsIDocument::eDOMExceptionCode);
     }

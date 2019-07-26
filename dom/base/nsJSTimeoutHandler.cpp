@@ -241,7 +241,7 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
   if (expr) {
     
     
-    nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(aWindow->GetExtantDocument());
 
     if (doc) {
       nsCOMPtr<nsIContentSecurityPolicy> csp;

@@ -787,7 +787,7 @@ nsLocation::Reload(bool aForceget)
     
     
 
-    nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
+    nsCOMPtr<nsIDocument> doc(do_QueryInterface(window->GetExtantDocument()));
 
     nsIPresShell *shell;
     nsPresContext *pcx;
