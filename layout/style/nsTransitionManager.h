@@ -220,12 +220,14 @@ private:
   
   
   void UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                       nsStyleContext* aParentStyle);
+                                       nsStyleContext* aParentStyle,
+                                       nsStyleChangeList &aChangeList);
   
   
   
   nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
-                                       nsStyleContext* aParentStyle);
+                                       nsStyleContext* aParentStyle,
+                                       nsStyleChangeList &aChangeList);
 };
 
 #endif 
