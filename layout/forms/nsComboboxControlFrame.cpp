@@ -830,40 +830,24 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
   nsRect buttonRect = mButtonFrame->GetRect();
-  
-  
-  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
-    
-    
-    nsRect displayRect = mDisplayFrame->GetRect();
-    buttonRect.height = displayRect.height;
-    buttonRect.y = displayRect.y;
-  }
-#ifdef DEBUG
-  else {
-    nscoord buttonHeight = mButtonFrame->GetSize().height;
-    nscoord displayHeight = mDisplayFrame->GetSize().height;
-
-    
-    
-    NS_ASSERTION(buttonHeight == displayHeight ||
-                 (aReflowState.ComputedHeight() < buttonHeight &&
-                  buttonHeight ==
-                    mButtonFrame->GetUsedBorderAndPadding().TopBottom()) ||
-                 (aReflowState.ComputedHeight() < displayHeight &&
-                  displayHeight ==
-                    mDisplayFrame->GetUsedBorderAndPadding().TopBottom()),
-                 "Different heights?");
-  }
-#endif
 
   if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    
-    buttonRect.x -= buttonWidth - buttonRect.width;
+    buttonRect.x = aReflowState.ComputedPhysicalBorderPadding().left -
+                   aReflowState.ComputedPhysicalPadding().left;
+  }
+  else {
+    buttonRect.x = aReflowState.ComputedPhysicalBorderPadding().LeftRight() +
+                   mDisplayWidth -
+                   (aReflowState.ComputedPhysicalBorderPadding().right -
+                    aReflowState.ComputedPhysicalPadding().right);
   }
   buttonRect.width = buttonWidth;
+
+  buttonRect.y = this->GetUsedBorder().top;
+  buttonRect.height = mDisplayFrame->GetRect().height +
+                      this->GetUsedPadding().TopBottom();
+
   mButtonFrame->SetRect(buttonRect);
 
   if (!NS_INLINE_IS_BREAK_BEFORE(aStatus) &&
