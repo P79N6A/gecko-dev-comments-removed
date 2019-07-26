@@ -13,7 +13,7 @@ const PASS = "pwd-" + Math.random();
 
 
 
-add_task(function test_dont_save_passwords() {
+add_task(function* test_dont_save_passwords() {
   
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
 
@@ -40,13 +40,12 @@ add_task(function test_dont_save_passwords() {
   is(passwd, "", "password wasn't saved/restored");
 
   
-  yield SessionSaver.run();
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js");
-  let data = yield OS.File.read(path);
-  let state = new TextDecoder().decode(data);
+  yield forceSaveState();
+  yield promiseForEachSessionRestoreFile((state, key) =>
+    
+    ok(!state.contains(PASS), "password has not been written to file " + key)
+  );
 
-  
-  is(state.indexOf(PASS), -1, "password has not been written to disk");
 
   
   gBrowser.removeTab(tab);
