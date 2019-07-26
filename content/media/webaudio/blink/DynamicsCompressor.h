@@ -1,0 +1,118 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef DynamicsCompressor_h
+#define DynamicsCompressor_h
+
+#include "AudioArray.h"
+#include "DynamicsCompressorKernel.h"
+#include "ZeroPole.h"
+
+#include <wtf/OwnArrayPtr.h>
+
+namespace WebCore {
+
+class AudioBus;
+
+
+
+
+
+
+class DynamicsCompressor {
+public:
+    enum {
+        ParamThreshold,
+        ParamKnee,
+        ParamRatio,
+        ParamAttack,
+        ParamRelease,
+        ParamPreDelay,
+        ParamReleaseZone1,
+        ParamReleaseZone2,
+        ParamReleaseZone3,
+        ParamReleaseZone4,
+        ParamPostGain,
+        ParamFilterStageGain,
+        ParamFilterStageRatio,
+        ParamFilterAnchor,
+        ParamEffectBlend,
+        ParamReduction,
+        ParamLast
+    };
+
+    DynamicsCompressor(float sampleRate, unsigned numberOfChannels);
+
+    void process(const AudioBus* sourceBus, AudioBus* destinationBus, unsigned framesToProcess);
+    void reset();
+    void setNumberOfChannels(unsigned);
+
+    void setParameterValue(unsigned parameterID, float value);
+    float parameterValue(unsigned parameterID);
+
+    float sampleRate() const { return m_sampleRate; }
+    float nyquist() const { return m_sampleRate / 2; }
+
+    double tailTime() const { return 0; }
+    double latencyTime() const { return m_compressor.latencyFrames() / static_cast<double>(sampleRate()); }
+
+protected:
+    unsigned m_numberOfChannels;
+
+    
+    float m_parameters[ParamLast];
+    void initializeParameters();
+
+    float m_sampleRate;
+
+    
+    float m_lastFilterStageRatio;
+    float m_lastAnchor;
+    float m_lastFilterStageGain;
+
+    typedef struct {
+        ZeroPole filters[4];
+    } ZeroPoleFilterPack4;
+
+    
+    Vector<OwnPtr<ZeroPoleFilterPack4> > m_preFilterPacks;
+    Vector<OwnPtr<ZeroPoleFilterPack4> > m_postFilterPacks;
+
+    OwnArrayPtr<const float*> m_sourceChannels;
+    OwnArrayPtr<float*> m_destinationChannels;
+
+    void setEmphasisStageParameters(unsigned stageIndex, float gain, float normalizedFrequency );
+    void setEmphasisParameters(float gain, float anchorFreq, float filterStageRatio);
+
+    
+    DynamicsCompressorKernel m_compressor;
+};
+
+} 
+
+#endif
