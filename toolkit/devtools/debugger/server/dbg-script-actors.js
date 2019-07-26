@@ -578,13 +578,21 @@ ThreadActor.prototype = {
             inner.setBreakpoint(lines[line][i], bpActor);
             codeFound = true;
           }
+          bpActor.addScript(inner, this);
           actualLocation = {
             url: aLocation.url,
             line: line,
             column: aLocation.column
           };
-          bpActor.location = actualLocation;
           
+          
+          if (scriptBreakpoints[line] && scriptBreakpoints[line].actor) {
+            let existing = scriptBreakpoints[line].actor;
+            bpActor.onDelete();
+            delete scriptBreakpoints[oldLine];
+            return { actor: existing.actorID, actualLocation: actualLocation };
+          }
+          bpActor.location = actualLocation;
           scriptBreakpoints[line] = scriptBreakpoints[oldLine];
           scriptBreakpoints[line].line = line;
           delete scriptBreakpoints[oldLine];

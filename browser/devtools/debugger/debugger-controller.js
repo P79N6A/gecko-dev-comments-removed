@@ -1330,7 +1330,6 @@ Breakpoints.prototype = {
       
       if (this.getBreakpoint(url, line)) {
         this._hideBreakpoint(aBreakpointClient);
-        aBreakpointClient.remove();
         return;
       }
 
