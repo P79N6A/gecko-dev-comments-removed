@@ -256,6 +256,13 @@ bool OmxDecoder::Init() {
     
     
     int flags = kHardwareCodecsOnly;
+
+    char propQemu[PROPERTY_VALUE_MAX];
+    property_get("ro.kernel.qemu", propQemu, "");
+    if (!strncmp(propQemu, "1", 1)) {
+      
+      flags = 0;
+    }
     videoSource = OMXCodec::Create(omx,
                                    videoTrack->getFormat(),
                                    false, 
