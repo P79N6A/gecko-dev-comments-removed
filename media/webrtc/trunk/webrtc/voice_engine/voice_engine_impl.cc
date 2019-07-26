@@ -8,7 +8,7 @@
 
 
 
-#ifdef ANDROID
+#if defined(ANDROID) && !defined(MOZ_WIDGET_GONK)
 #include "modules/audio_device/android/audio_device_jni_android.h"
 #endif
 
