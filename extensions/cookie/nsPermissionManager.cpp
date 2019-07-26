@@ -133,6 +133,20 @@ GetHostForPrincipal(nsIPrincipal* aPrincipal, nsACString& aHost)
   }
 
   
+  
+  bool isMailTo = false;
+  if (NS_SUCCEEDED(uri->SchemeIs("mailto", &isMailTo)) && isMailTo) {
+    rv = uri->GetPath(aHost);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    int32_t spart = aHost.FindChar('?', 0);
+    if (spart >= 0) {
+      aHost.Cut(spart, aHost.Length() - spart);
+    }
+    return NS_OK;
+  }
+
+  
   rv = aPrincipal->GetOrigin(getter_Copies(aHost));
   if (NS_SUCCEEDED(rv) && !aHost.IsEmpty()) {
     return NS_OK;
