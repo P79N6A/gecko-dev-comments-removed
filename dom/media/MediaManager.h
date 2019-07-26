@@ -128,6 +128,15 @@ public:
     return mStream->AsSourceStream();
   }
 
+  bool CapturingVideo()
+  {
+    return mVideoSource && mLastEndTimeVideo > 0 && !mFinished;
+  }
+  bool CapturingAudio()
+  {
+    return mAudioSource && mLastEndTimeAudio > 0 && !mFinished;
+  }
+
   
   
   void Invalidate();
@@ -424,6 +433,9 @@ private:
   ~MediaManager() {
     delete mBackend;
   }
+
+  nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
+                                           bool* aAudio);
 
   
   WindowTable mActiveWindows;
