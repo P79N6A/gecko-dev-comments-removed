@@ -519,42 +519,38 @@ private:
 
 
 
-  nsresult ConstructTable(nsFrameConstructorState& aState,
-                          FrameConstructionItem&   aItem,
-                          nsIFrame*                aParentFrame,
-                          const nsStyleDisplay*    aDisplay,
-                          nsFrameItems&            aFrameItems,
-                          nsIFrame**               aNewFrame);
+  nsIFrame* ConstructTable(nsFrameConstructorState& aState,
+                           FrameConstructionItem&   aItem,
+                           nsIFrame*                aParentFrame,
+                           const nsStyleDisplay*    aDisplay,
+                           nsFrameItems&            aFrameItems);
 
   
 
 
-  nsresult ConstructTableRow(nsFrameConstructorState& aState,
-                             FrameConstructionItem&   aItem,
-                             nsIFrame*                aParentFrame,
-                             const nsStyleDisplay*    aStyleDisplay,
-                             nsFrameItems&            aFrameItems,
-                             nsIFrame**               aNewFrame);
-
-  
-
-
-  nsresult ConstructTableCol(nsFrameConstructorState& aState,
-                             FrameConstructionItem&   aItem,
-                             nsIFrame*                aParentFrame,
-                             const nsStyleDisplay*    aStyleDisplay,
-                             nsFrameItems&            aFrameItems,
-                             nsIFrame**               aNewFrame);
-
-  
-
-
-  nsresult ConstructTableCell(nsFrameConstructorState& aState,
+  nsIFrame* ConstructTableRow(nsFrameConstructorState& aState,
                               FrameConstructionItem&   aItem,
                               nsIFrame*                aParentFrame,
                               const nsStyleDisplay*    aStyleDisplay,
-                              nsFrameItems&            aFrameItems,
-                              nsIFrame**               aNewFrame);
+                              nsFrameItems&            aFrameItems);
+
+  
+
+
+  nsIFrame* ConstructTableCol(nsFrameConstructorState& aState,
+                              FrameConstructionItem&   aItem,
+                              nsIFrame*                aParentFrame,
+                              const nsStyleDisplay*    aStyleDisplay,
+                              nsFrameItems&            aFrameItems);
+
+  
+
+
+  nsIFrame* ConstructTableCell(nsFrameConstructorState& aState,
+                               FrameConstructionItem&   aItem,
+                               nsIFrame*                aParentFrame,
+                               const nsStyleDisplay*    aStyleDisplay,
+                               nsFrameItems&            aFrameItems);
 
 private:
   
@@ -623,13 +619,13 @@ private:
 
 
 
-  typedef nsresult
+
+  typedef nsIFrame*
     (nsCSSFrameConstructor::* FrameFullConstructor)(nsFrameConstructorState& aState,
                                                     FrameConstructionItem& aItem,
                                                     nsIFrame* aParentFrame,
                                                     const nsStyleDisplay* aStyleDisplay,
-                                                    nsFrameItems& aFrameItems,
-                                                    nsIFrame** aFrame);
+                                                    nsFrameItems& aFrameItems);
 
   
 
@@ -1188,21 +1184,19 @@ protected:
 private:
   
   
-  nsresult ConstructSelectFrame(nsFrameConstructorState& aState,
-                                FrameConstructionItem&   aItem,
-                                nsIFrame*                aParentFrame,
-                                const nsStyleDisplay*    aStyleDisplay,
-                                nsFrameItems&            aFrameItems,
-                                nsIFrame**               aNewFrame);
+  nsIFrame* ConstructSelectFrame(nsFrameConstructorState& aState,
+                                 FrameConstructionItem&   aItem,
+                                 nsIFrame*                aParentFrame,
+                                 const nsStyleDisplay*    aStyleDisplay,
+                                 nsFrameItems&            aFrameItems);
 
   
   
-  nsresult ConstructFieldSetFrame(nsFrameConstructorState& aState,
-                                  FrameConstructionItem&   aItem,
-                                  nsIFrame*                aParentFrame,
-                                  const nsStyleDisplay*    aStyleDisplay,
-                                  nsFrameItems&            aFrameItems,
-                                  nsIFrame**               aNewFrame);
+  nsIFrame* ConstructFieldSetFrame(nsFrameConstructorState& aState,
+                                   FrameConstructionItem&   aItem,
+                                   nsIFrame*                aParentFrame,
+                                   const nsStyleDisplay*    aStyleDisplay,
+                                   nsFrameItems&            aFrameItems);
 
   
   
@@ -1378,12 +1372,11 @@ private:
 
 
 
-  nsresult ConstructOuterSVG(nsFrameConstructorState& aState,
-                             FrameConstructionItem&   aItem,
-                             nsIFrame*                aParentFrame,
-                             const nsStyleDisplay*    aDisplay,
-                             nsFrameItems&            aFrameItems,
-                             nsIFrame**               aNewFrame);
+  nsIFrame* ConstructOuterSVG(nsFrameConstructorState& aState,
+                              FrameConstructionItem&   aItem,
+                              nsIFrame*                aParentFrame,
+                              const nsStyleDisplay*    aDisplay,
+                              nsFrameItems&            aFrameItems);
 
   static const FrameConstructionData* FindSVGData(Element* aElement,
                                                   nsIAtom* aTag,
@@ -1402,22 +1395,20 @@ private:
   
 
 
-  nsresult ConstructScrollableBlock(nsFrameConstructorState& aState,
-                                    FrameConstructionItem&   aItem,
-                                    nsIFrame*                aParentFrame,
-                                    const nsStyleDisplay*    aDisplay,
-                                    nsFrameItems&            aFrameItems,
-                                    nsIFrame**               aNewFrame);
+  nsIFrame* ConstructScrollableBlock(nsFrameConstructorState& aState,
+                                     FrameConstructionItem&   aItem,
+                                     nsIFrame*                aParentFrame,
+                                     const nsStyleDisplay*    aDisplay,
+                                     nsFrameItems&            aFrameItems);
 
   
 
 
-  nsresult ConstructNonScrollableBlock(nsFrameConstructorState& aState,
-                                       FrameConstructionItem&   aItem,
-                                       nsIFrame*                aParentFrame,
-                                       const nsStyleDisplay*    aDisplay,
-                                       nsFrameItems&            aFrameItems,
-                                       nsIFrame**               aNewFrame);
+  nsIFrame* ConstructNonScrollableBlock(nsFrameConstructorState& aState,
+                                        FrameConstructionItem&   aItem,
+                                        nsIFrame*                aParentFrame,
+                                        const nsStyleDisplay*    aDisplay,
+                                        nsFrameItems&            aFrameItems);
 
   
 
@@ -1606,12 +1597,11 @@ private:
                       bool                     aAbsPosContainer,
                       PendingBinding*          aPendingBinding);
 
-  nsresult ConstructInline(nsFrameConstructorState& aState,
-                           FrameConstructionItem&   aItem,
-                           nsIFrame*                aParentFrame,
-                           const nsStyleDisplay*    aDisplay,
-                           nsFrameItems&            aFrameItems,
-                           nsIFrame**               aNewFrame);
+  nsIFrame* ConstructInline(nsFrameConstructorState& aState,
+                            FrameConstructionItem&   aItem,
+                            nsIFrame*                aParentFrame,
+                            const nsStyleDisplay*    aDisplay,
+                            nsFrameItems&            aFrameItems);
 
   
 
