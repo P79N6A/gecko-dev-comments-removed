@@ -7,6 +7,7 @@
 #define FORCE_PR_LOG
 #endif
 
+#include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -335,6 +336,8 @@ gfxPlatform::Init()
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
+    AsyncTransactionTracker::Initialize();
+
     
 
 
@@ -504,6 +507,8 @@ gfxPlatform::Shutdown()
     SharedBufferManagerChild::ShutDown();
 #endif
     CompositorParent::ShutDown();
+
+    AsyncTransactionTracker::Finalize();
 
     delete gGfxPlatformPrefsLock;
 

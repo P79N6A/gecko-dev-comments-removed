@@ -53,6 +53,14 @@ ClientLayerManager::ClientLayerManager(nsIWidget* aWidget)
 
 ClientLayerManager::~ClientLayerManager()
 {
+  ClearCachedResources();
+  
+  
+  
+  
+  
+  
+  mForwarder->StopReceiveAsyncParentMessge();
   mRoot = nullptr;
 
   MOZ_COUNT_DTOR(ClientLayerManager);
@@ -266,9 +274,7 @@ ClientLayerManager::GetRemoteRenderer()
 void
 ClientLayerManager::Composite()
 {
-  if (LayerTransactionChild* manager = mForwarder->GetShadowManager()) {
-    manager->SendForceComposite();
-  }
+  mForwarder->Composite();
 }
 
 void
@@ -428,6 +434,7 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
   }
 
   mForwarder->RemoveTexturesIfNecessary();
+  mForwarder->SendPendingAsyncMessge();
   mPhase = PHASE_NONE;
 
   
@@ -498,9 +505,7 @@ void
 ClientLayerManager::ClearCachedResources(Layer* aSubtree)
 {
   MOZ_ASSERT(!HasShadowManager() || !aSubtree);
-  if (LayerTransactionChild* manager = mForwarder->GetShadowManager()) {
-    manager->SendClearCachedResources();
-  }
+  mForwarder->ClearCachedResources();
   if (aSubtree) {
     ClearLayer(aSubtree);
   } else if (mRoot) {

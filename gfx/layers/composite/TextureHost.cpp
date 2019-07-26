@@ -9,6 +9,8 @@
 #include "gfx2DGlue.h"                  
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/ipc/Shmem.h"          
+#include "mozilla/layers/AsyncTransactionTracker.h" 
+#include "mozilla/layers/CompositableTransactionParent.h" 
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/ISurfaceAllocator.h"  
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -36,6 +38,36 @@ struct nsIntPoint;
 namespace mozilla {
 namespace layers {
 
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+
+class FenceDeliveryTracker : public AsyncTransactionTracker {
+public:
+  FenceDeliveryTracker(const android::sp<android::Fence>& aFence)
+    : mFence(aFence)
+  {
+    MOZ_COUNT_CTOR(FenceDeliveryTracker);
+  }
+
+  ~FenceDeliveryTracker()
+  {
+    MOZ_COUNT_DTOR(FenceDeliveryTracker);
+  }
+
+  virtual void Complete() MOZ_OVERRIDE
+  {
+    mFence = nullptr;
+  }
+
+  virtual void Cancel() MOZ_OVERRIDE
+  {
+    mFence = nullptr;
+  }
+
+private:
+  android::sp<android::Fence> mFence;
+};
+#endif
+
 
 
 
@@ -43,7 +75,7 @@ namespace layers {
 class TextureParent : public PTextureParent
 {
 public:
-  TextureParent(ISurfaceAllocator* aAllocator);
+  TextureParent(CompositableParentManager* aManager);
 
   ~TextureParent();
 
@@ -61,24 +93,24 @@ public:
 
   void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
-  ISurfaceAllocator* mAllocator;
+  CompositableParentManager* mCompositableManager;
   RefPtr<TextureHost> mWaitForClientRecycle;
   RefPtr<TextureHost> mTextureHost;
 };
 
 
 PTextureParent*
-TextureHost::CreateIPDLActor(ISurfaceAllocator* aAllocator,
+TextureHost::CreateIPDLActor(CompositableParentManager* aManager,
                              const SurfaceDescriptor& aSharedData,
                              TextureFlags aFlags)
 {
   if (aSharedData.type() == SurfaceDescriptor::TSurfaceDescriptorMemory &&
-      !aAllocator->IsSameProcess())
+      !aManager->IsSameProcess())
   {
     NS_ERROR("A client process is trying to peek at our address space using a MemoryTexture!");
     return nullptr;
   }
-  TextureParent* actor = new TextureParent(aAllocator);
+  TextureParent* actor = new TextureParent(aManager);
   if (!actor->Init(aSharedData, aFlags)) {
     delete actor;
     return nullptr;
@@ -604,8 +636,8 @@ size_t MemoryTextureHost::GetBufferSize()
   return std::numeric_limits<size_t>::max();
 }
 
-TextureParent::TextureParent(ISurfaceAllocator* aAllocator)
-: mAllocator(aAllocator)
+TextureParent::TextureParent(CompositableParentManager* aCompositableManager)
+: mCompositableManager(aCompositableManager)
 {
   MOZ_COUNT_CTOR(TextureParent);
 }
@@ -628,23 +660,25 @@ TextureParent::CompositorRecycle()
 {
   mTextureHost->ClearRecycleCallback();
 
-  MaybeFenceHandle handle = null_t();
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
   if (mTextureHost) {
     TextureHostOGL* hostOGL = mTextureHost->AsHostOGL();
     android::sp<android::Fence> fence = hostOGL->GetAndResetReleaseFence();
     if (fence.get() && fence->isValid()) {
-      handle = FenceHandle(fence);
       
       
+
+      FenceHandle handle = FenceHandle(fence);
+      RefPtr<FenceDeliveryTracker> tracker = new FenceDeliveryTracker(fence);
+      mCompositableManager->SendFenceHandle(tracker, this, handle);
     }
   }
 #endif
-  mozilla::unused << SendCompositorRecycle(handle);
 
-  
-  
   if (mTextureHost->GetFlags() & TextureFlags::RECYCLE) {
+    mozilla::unused << SendCompositorRecycle();
+    
+    
     mWaitForClientRecycle = mTextureHost;
   }
 }
@@ -667,7 +701,7 @@ TextureParent::Init(const SurfaceDescriptor& aSharedData,
                     const TextureFlags& aFlags)
 {
   mTextureHost = TextureHost::Create(aSharedData,
-                                     mAllocator,
+                                     mCompositableManager,
                                      aFlags);
   if (mTextureHost) {
     mTextureHost->mActor = this;

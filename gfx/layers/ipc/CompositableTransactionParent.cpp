@@ -24,6 +24,7 @@
 #include "mozilla/layers/TextureHostOGL.h"  
 #include "mozilla/layers/ThebesLayerComposite.h"
 #include "mozilla/mozalloc.h"           
+#include "mozilla/unused.h"
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
 
