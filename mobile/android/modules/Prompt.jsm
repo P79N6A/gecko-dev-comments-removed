@@ -1,6 +1,7 @@
 
 
 
+
 "use strict"
 
 let Cc = Components.classes;
@@ -36,7 +37,7 @@ function Prompt(aOptions) {
   if ("hint" in aOptions && aOptions.hint != null)
     this.msg.hint = aOptions.hint;
 
-  let idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator); 
+  let idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 }
 
 Prompt.prototype = {
@@ -177,6 +178,9 @@ Prompt.prototype = {
       let obj = { id: item.id };
 
       obj.label = item.label;
+
+      if (item.icon)
+        obj.icon = item.icon;
 
       if (item.disabled)
         obj.disabled = true;

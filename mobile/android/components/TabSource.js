@@ -1,3 +1,9 @@
+
+
+
+
+"use strict"
+
 const { classes: Cc, interfaces: Ci, manager: Cm, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -38,7 +44,8 @@ TabSource.prototype = {
         label = tab.browser.contentURI.spec;
       else
         label = tab.originalURI;
-      return { label: label }
+      return { label: label,
+               icon: "thumbnail:" + tab.id }
     }));
 
     let result = null;
