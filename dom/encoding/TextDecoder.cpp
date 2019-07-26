@@ -240,13 +240,6 @@ TextDecoder::GetEncoding(nsAString& aEncoding)
     return;
   }
 
-  
-  
-  if (!strcmp(mEncoding, "x-windows-949")) {
-    aEncoding.AssignLiteral("euc-kr");
-    return;
-  }
-
   aEncoding.AssignASCII(mEncoding);
 }
 
