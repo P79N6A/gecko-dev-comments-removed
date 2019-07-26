@@ -1581,14 +1581,7 @@ ParallelGetPropertyIC::canAttachReadSlot(LockedJSContext &cx, JSObject *obj,
                                          MutableHandleObject holder, MutableHandleShape shape)
 {
     
-    if (!obj->isNative())
-        return false;
-
-    if (IsIdempotentAndMaybeHasHooks(*this, obj))
-        return false;
-
-    
-    if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric)
+    if (!obj->hasIdempotentProtoChain())
         return false;
 
     if (!js::LookupPropertyPure(obj, NameToId(name()), holder.address(), shape.address()))
@@ -1603,9 +1596,6 @@ ParallelGetPropertyIC::canAttachReadSlot(LockedJSContext &cx, JSObject *obj,
     {
         return false;
     }
-
-    if (IsIdempotentAndHasSingletonHolder(*this, holder, shape))
-        return false;
 
     return true;
 }
@@ -1626,11 +1616,7 @@ ParallelGetPropertyIC::attachReadSlot(LockedJSContext &cx, IonScript *ion,
     MacroAssembler masm(cx);
     GenerateReadSlot(cx, ion, masm, attacher, obj, name(), holder, shape, object(), output());
 
-    const char *attachKind = "parallel non-idempotent reading";
-    if (idempotent())
-        attachKind = "parallel idempotent reading";
-
-    if (!linkAndAttachStub(cx, masm, attacher, ion, attachKind))
+    if (!linkAndAttachStub(cx, masm, attacher, ion, "parallel reading"))
         return false;
 
     *attachedStub = true;
@@ -1651,17 +1637,13 @@ ParallelGetPropertyIC::update(ForkJoinSlice *slice, size_t cacheIndex,
 
     ParallelGetPropertyIC &cache = ion->getCache(cacheIndex).toParallelGetProperty();
 
-    RootedScript script(pt);
-    jsbytecode *pc;
-    cache.getScriptedLocation(&script, &pc);
-
     
     
     if (!GetPropertyPure(obj, NameToId(cache.name()), vp.address()))
         return TP_RETRY_SEQUENTIALLY;
 
     
-    if (cache.idempotent() && !cache.canAttachStub())
+    if (!cache.canAttachStub())
         return TP_SUCCESS;
 
     {
@@ -1687,24 +1669,10 @@ ParallelGetPropertyIC::update(ForkJoinSlice *slice, size_t cacheIndex,
                 return TP_FATAL;
 
             if (!attachedStub) {
-                if (cache.idempotent())
-                    topScript->invalidatedIdempotentCache = true;
-
                 
                 
                 return TP_RETRY_SEQUENTIALLY;
             }
-        }
-
-        if (!cache.idempotent()) {
-#if JS_HAS_NO_SUCH_METHOD
-            
-            if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp.isPrimitive()))
-                return TP_RETRY_SEQUENTIALLY;
-#endif
-
-            
-            types::TypeScript::Monitor(cx, script, pc, vp);
         }
     }
 

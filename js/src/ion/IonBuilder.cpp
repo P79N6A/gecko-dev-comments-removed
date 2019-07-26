@@ -7848,7 +7848,14 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
     
     
     
-    if (obj->type() == MIRType_Object && !invalidatedIdempotentCache()) {
+    
+    
+    
+    
+    
+    if (obj->type() == MIRType_Object && !invalidatedIdempotentCache() &&
+        info().executionMode() != ParallelExecution)
+    {
         if (PropertyReadIsIdempotent(cx, obj, name))
             load->setIdempotent();
     }
