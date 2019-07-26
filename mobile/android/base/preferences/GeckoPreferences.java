@@ -95,6 +95,9 @@ public class GeckoPreferences
     private static final String PREFS_DISPLAY_REFLOW_ON_ZOOM = "browser.zoom.reflowOnZoom";
     private static final String PREFS_SYNC = NON_PREF_PREFIX + "sync";
 
+    
+    private static final String PREFS_BROWSER_LOCALE = "locale";
+
     public static final String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession3";
 
     
@@ -452,6 +455,10 @@ public class GeckoPreferences
         }
 
         if (key.startsWith(NON_PREF_PREFIX)) {
+            return false;
+        }
+
+        if (key.equals(PREFS_BROWSER_LOCALE)) {
             return false;
         }
 
