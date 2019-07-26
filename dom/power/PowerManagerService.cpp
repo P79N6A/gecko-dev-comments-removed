@@ -22,6 +22,23 @@
 #include <unistd.h>
 #endif
 
+#ifdef ANDROID
+#include <android/log.h>
+extern "C" char* PrintJSStack();
+static void LogFunctionAndJSStack(const char* funcname) {
+  char *jsstack = PrintJSStack();
+  __android_log_print(ANDROID_LOG_INFO, "PowerManagerService", \
+                      "Call to %s. The JS stack is:\n%s\n",
+                      funcname,
+                      jsstack ? jsstack : "<no JS stack>");
+}
+
+#define LOG_FUNCTION_AND_JS_STACK() \
+  LogFunctionAndJSStack(__PRETTY_FUNCTION__);
+#else
+#define LOG_FUNCTION_AND_JS_STACK()
+#endif
+
 namespace mozilla {
 namespace dom {
 namespace power {
@@ -115,6 +132,8 @@ PowerManagerService::SyncProfile()
 NS_IMETHODIMP
 PowerManagerService::Reboot()
 {
+  LOG_FUNCTION_AND_JS_STACK() 
+
   StartForceQuitWatchdog(eHalShutdownMode_Reboot, mWatchdogTimeoutSecs);
   
   SyncProfile();
@@ -125,6 +144,8 @@ PowerManagerService::Reboot()
 NS_IMETHODIMP
 PowerManagerService::PowerOff()
 {
+  LOG_FUNCTION_AND_JS_STACK() 
+
   StartForceQuitWatchdog(eHalShutdownMode_PowerOff, mWatchdogTimeoutSecs);
   
   SyncProfile();
@@ -135,6 +156,8 @@ PowerManagerService::PowerOff()
 NS_IMETHODIMP
 PowerManagerService::Restart()
 {
+  LOG_FUNCTION_AND_JS_STACK() 
+
   
   
   
