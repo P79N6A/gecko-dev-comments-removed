@@ -8,16 +8,50 @@ function test() {
   waitForExplicitFinish();
   requestLongerTimeout(2);
   gTests = runTest();
-  moveAlong();
+  gTests.next();
 }
 
-function moveAlong() {
+
+
+
+
+
+
+function moveAlong(aResult) {
   try {
-    gTests.next();
+    gTests.send(aResult);
   } catch (x if x instanceof StopIteration) {
     finish();
   }
 }
+
+function createWindow(aOptions) {
+  whenNewWindowLoaded(aOptions, function(win) {
+    moveAlong(win);
+  });
+}
+
+function getFile(downloadLastDir, aURI) {
+  downloadLastDir.getFileAsync(aURI, function(result) {
+    moveAlong(result);
+  });
+}
+
+function setFile(downloadLastDir, aURI, aValue) {
+  downloadLastDir.setFile(aURI, aValue);
+  executeSoon(moveAlong);
+}
+
+function clearHistoryAndWait() {
+  clearHistory();
+  executeSoon(function() executeSoon(moveAlong));
+}
+
+
+
+
+
+
 
 function runTest() {
   let FileUtils =
@@ -40,219 +74,206 @@ function runTest() {
     Services.prefs.clearUserPref("browser.download.lastDir.savePerSite");
     Services.prefs.clearUserPref("browser.download.lastDir");
     [dir1, dir2, dir3].forEach(function(dir) dir.remove(true));
+    win.close();
+    pbWin.close();
   });
 
-  function testOnWindow(aPrivate, aCallback) {
-    whenNewWindowLoaded({private: aPrivate}, function(win) {
-      let gDownloadLastDir = new DownloadLastDir(win);
-      aCallback(win, gDownloadLastDir);
-      gDownloadLastDir.cleanupPrivateFile();
-      win.close();
-      executeSoon(moveAlong);
-    });
-  }
-
-  function checkInit(aWin, gDownloadLastDir) {
-    is(typeof gDownloadLastDir, "object",
-       "gDownloadLastDir should be a valid object");
-    is(gDownloadLastDir.file, null,
-       "LastDir pref should be null to start with");
-
-    
-    gDownloadLastDir.setFile(null, tmpDir);
-    is(gDownloadLastDir.file.path, tmpDir.path,
-       "LastDir should point to the tmpDir");
-    isnot(gDownloadLastDir.file, tmpDir,
-          "gDownloadLastDir.file should not be pointing to tmpDir");
-
-    
-    
-    gDownloadLastDir.setFile(uri1, dir1);
-    is(gDownloadLastDir.file.path, dir1.path,
-       "gDownloadLastDir should return dir1");
-    isnot(gDownloadLastDir.file, dir1,
-          "gDownloadLastDir.file should not return dir1");
-    is(gDownloadLastDir.getFile(uri1).path, dir1.path,
-       "uri1 should return dir1"); 
-    isnot(gDownloadLastDir.getFile(uri1), dir1,
-          "getFile on uri1 should not return dir1");
-    is(gDownloadLastDir.getFile(uri2).path, dir1.path,
-       "uri2 should return dir1"); 
-    isnot(gDownloadLastDir.getFile(uri2), dir1,
-          "getFile on uri2 should not return dir1");
-    is(gDownloadLastDir.getFile(uri3).path, dir1.path,
-       "uri3 should return dir1"); 
-    isnot(gDownloadLastDir.getFile(uri3), dir1,
-          "getFile on uri3 should not return dir1");
-    is(gDownloadLastDir.getFile(uri4).path, dir1.path,
-       "uri4 should return dir1"); 
-    isnot(gDownloadLastDir.getFile(uri4), dir1,
-          "getFile on uri4 should not return dir1");
-
-    
-    gDownloadLastDir.setFile(uri2, dir2);
-    is(gDownloadLastDir.file.path, dir2.path,
-       "gDownloadLastDir should point to dir2");
-    is(gDownloadLastDir.getFile(uri1).path, dir1.path,
-       "uri1 should return dir1"); 
-    is(gDownloadLastDir.getFile(uri2).path, dir2.path,
-       "uri2 should return dir2"); 
-    is(gDownloadLastDir.getFile(uri3).path, dir2.path,
-       "uri3 should return dir2"); 
-    is(gDownloadLastDir.getFile(uri4).path, dir2.path,
-       "uri4 should return dir2"); 
-
-    
-    gDownloadLastDir.setFile(uri3, dir3);
-    is(gDownloadLastDir.file.path, dir3.path,
-       "gDownloadLastDir should point to dir3");
-    is(gDownloadLastDir.getFile(uri1).path, dir1.path,
-       "uri1 should return dir1"); 
-    is(gDownloadLastDir.getFile(uri2).path, dir2.path,
-       "uri2 should return dir2"); 
-    is(gDownloadLastDir.getFile(uri3).path, dir3.path,
-       "uri3 should return dir3"); 
-    is(gDownloadLastDir.getFile(uri4).path, dir3.path,
-       "uri4 should return dir4"); 
-
-    
-    gDownloadLastDir.setFile(uri1, dir2);
-    is(gDownloadLastDir.file.path, dir2.path,
-       "gDownloadLastDir should point to dir2");
-    is(gDownloadLastDir.getFile(uri1).path, dir2.path,
-       "uri1 should return dir2"); 
-    is(gDownloadLastDir.getFile(uri2).path, dir2.path,
-       "uri2 should return dir2"); 
-    is(gDownloadLastDir.getFile(uri3).path, dir3.path,
-       "uri3 should return dir3"); 
-    is(gDownloadLastDir.getFile(uri4).path, dir2.path,
-       "uri4 should return dir2"); 
-  }
-
-  function checkDownloadLastDir(aWin, gDownloadLastDir, aLastDir) {
+  function checkDownloadLastDir(gDownloadLastDir, aLastDir) {
     is(gDownloadLastDir.file.path, aLastDir.path,
        "gDownloadLastDir should point to the expected last directory");
-    is(gDownloadLastDir.getFile(uri1).path, aLastDir.path,
-       "uri1 should return the expected last directory");
+    getFile(gDownloadLastDir, uri1);
   }
 
-  function checkDownloadLastDirNull(aWin, gDownloadLastDir) {
+  function checkDownloadLastDirNull(gDownloadLastDir) {
     is(gDownloadLastDir.file, null, "gDownloadLastDir should be null");
-    is(gDownloadLastDir.getFile(uri1), null, "uri1 should return null");
+    getFile(gDownloadLastDir, uri1);
   }
 
-  function checkSetFile(gDownloadLastDir, aDir1, aDir2, aDir3) {
-    
-    Services.prefs.setBoolPref("browser.download.lastDir.savePerSite", false);
+  
 
-    gDownloadLastDir.setFile(uri1, aDir1);
-    is(gDownloadLastDir.file.path, aDir1.path, "LastDir should be set to dir1");
-    is(gDownloadLastDir.getFile(uri1).path, aDir1.path, "uri1 should return dir1");
-    is(gDownloadLastDir.getFile(uri2).path, aDir1.path, "uri2 should return dir1");
-    is(gDownloadLastDir.getFile(uri3).path, aDir1.path, "uri3 should return dir1");
-    is(gDownloadLastDir.getFile(uri4).path, aDir1.path, "uri4 should return dir1");
 
-    gDownloadLastDir.setFile(uri2, aDir2);
-    is(gDownloadLastDir.file.path, aDir2.path, "LastDir should be set to dir2");
-    is(gDownloadLastDir.getFile(uri1).path, aDir2.path, "uri1 should return dir2");
-    is(gDownloadLastDir.getFile(uri2).path, aDir2.path, "uri2 should return dir2");
-    is(gDownloadLastDir.getFile(uri3).path, aDir2.path, "uri3 should return dir2");
-    is(gDownloadLastDir.getFile(uri4).path, aDir2.path, "uri4 should return dir2");
 
-    Services.prefs.clearUserPref("browser.download.lastDir.savePerSite");
 
-    
-    gDownloadLastDir.setFile(uri3, aDir3);
-    is(gDownloadLastDir.getFile(uri3).path, aDir3.path, "LastDir should be set to dir3");
-    gDownloadLastDir.setFile(uri3, null);
-    is(gDownloadLastDir.getFile(uri3), null, "uri3 should return null");
-  }
 
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkInit(win, downloadDir);
-    clearHistory();
-  });
+  let win = yield createWindow({private: false});
+  let pbWin = yield createWindow({private: true});
 
-  yield testOnWindow(false, function(win, downloadDir) {
-    
-    is(downloadDir.file, null, "clearHistory removes all data");
-    is(Services.contentPrefs.hasPref(uri1, "browser.download.lastDir", null),
-       false, "LastDir preference should be absent");
-    is(downloadDir.getFile(uri1), null, "uri1 should point to null");
-    is(downloadDir.getFile(uri2), null, "uri2 should point to null");
-    is(downloadDir.getFile(uri3), null, "uri3 should point to null");
-    is(downloadDir.getFile(uri4), null, "uri4 should point to null");
-
-    downloadDir.setFile(null, tmpDir);
-  });
+  let downloadLastDir = new DownloadLastDir(win);
+  let pbDownloadLastDir = new DownloadLastDir(pbWin);
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, tmpDir);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, tmpDir);
-    clearHistory();
-    downloadDir.setFile(uri1, dir1);
-  });
+
+
+
+
+
+  is(typeof downloadLastDir, "object",
+     "downloadLastDir should be a valid object");
+  is(downloadLastDir.file, null,
+     "LastDir pref should be null to start with");
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, dir1);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, dir1);
-    clearHistory();
-  });
+  yield setFile(downloadLastDir, null, tmpDir);
+  is(downloadLastDir.file.path, tmpDir.path,
+     "LastDir should point to the tmpDir");
+  isnot(downloadLastDir.file, tmpDir,
+        "downloadLastDir.file should not be pointing to tmpDir");
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    downloadDir.setFile(null, tmpDir);
-    checkDownloadLastDir(win, downloadDir, tmpDir);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDirNull(win, downloadDir);
-    clearHistory();
-  });
+  
+  yield setFile(downloadLastDir, uri1, dir1);
+  is(downloadLastDir.file.path, dir1.path,
+     "downloadLastDir should return dir1");
+  isnot(downloadLastDir.file, dir1,
+        "downloadLastDir.file should not return dir1");
+  is((yield getFile(downloadLastDir, uri1)).path, dir1.path,
+     "uri1 should return dir1"); 
+  isnot((yield getFile(downloadLastDir, uri1)), dir1,
+        "getFile on uri1 should not return dir1");
+  is((yield getFile(downloadLastDir, uri2)).path, dir1.path,
+     "uri2 should return dir1"); 
+  isnot((yield getFile(downloadLastDir, uri2)), dir1,
+        "getFile on uri2 should not return dir1");
+  is((yield getFile(downloadLastDir, uri3)).path, dir1.path,
+     "uri3 should return dir1"); 
+  isnot((yield getFile(downloadLastDir, uri3)), dir1,
+        "getFile on uri3 should not return dir1");
+  is((yield getFile(downloadLastDir, uri4)).path, dir1.path,
+     "uri4 should return dir1"); 
+  isnot((yield getFile(downloadLastDir, uri4)), dir1,
+        "getFile on uri4 should not return dir1");
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    downloadDir.setFile(uri1, dir1);
-    checkDownloadLastDir(win, downloadDir, dir1);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDirNull(win, downloadDir);
-    clearHistory();
-    downloadDir.setFile(uri1, dir1);
-  });
+  yield setFile(downloadLastDir, uri2, dir2);
+  is(downloadLastDir.file.path, dir2.path,
+     "downloadLastDir should point to dir2");
+  is((yield getFile(downloadLastDir, uri1)).path, dir1.path,
+     "uri1 should return dir1"); 
+  is((yield getFile(downloadLastDir, uri2)).path, dir2.path,
+     "uri2 should return dir2"); 
+  is((yield getFile(downloadLastDir, uri3)).path, dir2.path,
+     "uri3 should return dir2"); 
+  is((yield getFile(downloadLastDir, uri4)).path, dir2.path,
+     "uri4 should return dir2"); 
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    downloadDir.setFile(uri1, dir2);
-    checkDownloadLastDir(win, downloadDir, dir2);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, dir1);
-  });
+  yield setFile(downloadLastDir, uri3, dir3);
+  is(downloadLastDir.file.path, dir3.path,
+     "downloadLastDir should point to dir3");
+  is((yield getFile(downloadLastDir, uri1)).path, dir1.path,
+     "uri1 should return dir1"); 
+  is((yield getFile(downloadLastDir, uri2)).path, dir2.path,
+     "uri2 should return dir2"); 
+  is((yield getFile(downloadLastDir, uri3)).path, dir3.path,
+     "uri3 should return dir3"); 
+  is((yield getFile(downloadLastDir, uri4)).path, dir3.path,
+     "uri4 should return dir4"); 
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    checkDownloadLastDir(win, downloadDir, dir1);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    clearHistory();
-  });
+  yield setFile(downloadLastDir, uri1, dir2);
+  is(downloadLastDir.file.path, dir2.path,
+     "downloadLastDir should point to dir2");
+  is((yield getFile(downloadLastDir, uri1)).path, dir2.path,
+     "uri1 should return dir2"); 
+  is((yield getFile(downloadLastDir, uri2)).path, dir2.path,
+     "uri2 should return dir2"); 
+  is((yield getFile(downloadLastDir, uri3)).path, dir3.path,
+     "uri3 should return dir3"); 
+  is((yield getFile(downloadLastDir, uri4)).path, dir2.path,
+     "uri4 should return dir2"); 
+
+  yield clearHistoryAndWait();
 
   
-  yield testOnWindow(true, function(win, downloadDir) {
-    downloadDir.setFile(uri1, dir2);
-    clearHistory();
-  });
-  yield testOnWindow(true, function(win, downloadDir) {
-    checkDownloadLastDirNull(win, downloadDir);
-  });
-  yield testOnWindow(false, function(win, downloadDir) {
-    checkDownloadLastDirNull(win, downloadDir);
-    checkSetFile(downloadDir, dir1, dir2, dir3);
-  });
+  is(downloadLastDir.file, null, "clearHistory removes all data");
+  
+  
+  is((yield getFile(downloadLastDir, uri1)), null, "uri1 should point to null");
+  is((yield getFile(downloadLastDir, uri2)), null, "uri2 should point to null");
+  is((yield getFile(downloadLastDir, uri3)), null, "uri3 should point to null");
+  is((yield getFile(downloadLastDir, uri4)), null, "uri4 should point to null");
+
+  yield setFile(downloadLastDir, null, tmpDir);
+
+  
+  is((yield checkDownloadLastDir(pbDownloadLastDir, tmpDir)).path, tmpDir.path, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDir(downloadLastDir, tmpDir)).path, tmpDir.path, "uri1 should return the expected last directory");
+  yield clearHistoryAndWait();
+
+  yield setFile(downloadLastDir, uri1, dir1);
+
+  
+  is((yield checkDownloadLastDir(pbDownloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDir(downloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
+  yield clearHistoryAndWait();
+
+  
+  yield setFile(pbDownloadLastDir, null, tmpDir);
+
+  is((yield checkDownloadLastDir(pbDownloadLastDir, tmpDir)).path, tmpDir.path, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDirNull(downloadLastDir)), null, "uri1 should return the expected last directory");
+
+  yield clearHistoryAndWait();
+
+  
+  yield setFile(pbDownloadLastDir, uri1, dir1);
+
+  is((yield checkDownloadLastDir(pbDownloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDirNull(downloadLastDir)), null, "uri1 should return the expected last directory");
+
+  
+  yield setFile(downloadLastDir, uri1, dir1);
+  yield setFile(pbDownloadLastDir, uri1, dir2);
+  is((yield checkDownloadLastDir(pbDownloadLastDir, dir2)).path, dir2.path, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDir(downloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
+
+  
+
+
+
+
+
+  
+  pbWin.close();
+  let pbWin = yield createWindow({private: true});
+  let pbDownloadLastDir = new DownloadLastDir(pbWin);
+
+  is((yield checkDownloadLastDir(pbDownloadLastDir, dir1)).path, dir1.path, "uri1 should return the expected last directory");
+
+  yield clearHistoryAndWait();
+
+  
+  yield setFile(pbDownloadLastDir, uri1, dir2);
+
+  yield clearHistoryAndWait();
+
+  is((yield checkDownloadLastDirNull(downloadLastDir)), null, "uri1 should return the expected last directory");
+  is((yield checkDownloadLastDirNull(pbDownloadLastDir)), null, "uri1 should return the expected last directory");
+
+  
+  Services.prefs.setBoolPref("browser.download.lastDir.savePerSite", false);
+
+  yield setFile(downloadLastDir, uri1, dir1);
+  is(downloadLastDir.file.path, dir1.path, "LastDir should be set to dir1");
+  is((yield getFile(downloadLastDir, uri1)).path, dir1.path, "uri1 should return dir1");
+  is((yield getFile(downloadLastDir, uri2)).path, dir1.path, "uri2 should return dir1");
+  is((yield getFile(downloadLastDir, uri3)).path, dir1.path, "uri3 should return dir1");
+  is((yield getFile(downloadLastDir, uri4)).path, dir1.path, "uri4 should return dir1");
+
+  downloadLastDir.setFile(uri2, dir2);
+  is(downloadLastDir.file.path, dir2.path, "LastDir should be set to dir2");
+  is((yield getFile(downloadLastDir, uri1)).path, dir2.path, "uri1 should return dir2");
+  is((yield getFile(downloadLastDir, uri2)).path, dir2.path, "uri2 should return dir2");
+  is((yield getFile(downloadLastDir, uri3)).path, dir2.path, "uri3 should return dir2");
+  is((yield getFile(downloadLastDir, uri4)).path, dir2.path, "uri4 should return dir2");
+
+  Services.prefs.clearUserPref("browser.download.lastDir.savePerSite");
+
+  
+  yield setFile(downloadLastDir, uri3, dir3);
+  is((yield getFile(downloadLastDir, uri3)).path, dir3.path, "LastDir should be set to dir3");
+  yield setFile(downloadLastDir, uri3, null);
+  is((yield getFile(downloadLastDir, uri3)), null, "uri3 should return null");
+
+  yield clearHistoryAndWait();
 }
