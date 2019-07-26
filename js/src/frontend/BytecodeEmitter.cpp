@@ -6888,47 +6888,18 @@ CGConstList::finish(ConstArray *array)
 
 
 
-
-
 const JSSrcNoteSpec js_SrcNoteSpec[] = {
- {"null",           0},
-
- {"if",             0},
- {"if-else",        1},
- {"cond",           1},
-
- {"for",            3},
-
- {"while",          1},
- {"for-in",         1},
- {"for-of",         1},
- {"continue",       0},
- {"break",          0},
- {"break2label",    0},
- {"switchbreak",    0},
-
- {"tableswitch",    1},
- {"condswitch",     2},
-
- {"nextcase",       1},
-
- {"assignop",       0},
-
- {"hidden",         0},
-
- {"catch",          0},
-
- {"try",            1},
-
- {"colspan",        1},
- {"newline",        0},
- {"setline",        1},
-
- {"unused22",       0},
- {"unused23",       0},
-
- {"xdelta",         0},
+#define DEFINE_SRC_NOTE_SPEC(sym, name, arity) { name, arity },
+    FOR_EACH_SRC_NOTE_TYPE(DEFINE_SRC_NOTE_SPEC)
+#undef DEFINE_SRC_NOTE_SPEC
 };
+
+static int
+SrcNoteArity(jssrcnote *sn)
+{
+    JS_ASSERT(SN_TYPE(sn) < SRC_LAST);
+    return js_SrcNoteSpec[SN_TYPE(sn)].arity;
+}
 
 JS_FRIEND_API(unsigned)
 js_SrcNoteLength(jssrcnote *sn)
@@ -6936,7 +6907,7 @@ js_SrcNoteLength(jssrcnote *sn)
     unsigned arity;
     jssrcnote *base;
 
-    arity = (int)js_SrcNoteSpec[SN_TYPE(sn)].arity;
+    arity = SrcNoteArity(sn);
     for (base = sn++; arity; sn++, arity--) {
         if (*sn & SN_3BYTE_OFFSET_FLAG)
             sn += 2;
@@ -6949,7 +6920,7 @@ js_GetSrcNoteOffset(jssrcnote *sn, unsigned which)
 {
     
     JS_ASSERT(SN_TYPE(sn) != SRC_XDELTA);
-    JS_ASSERT((int) which < js_SrcNoteSpec[SN_TYPE(sn)].arity);
+    JS_ASSERT((int) which < SrcNoteArity(sn));
     for (sn++; which; sn++, which--) {
         if (*sn & SN_3BYTE_OFFSET_FLAG)
             sn += 2;
