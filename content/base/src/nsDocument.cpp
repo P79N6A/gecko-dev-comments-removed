@@ -5665,10 +5665,6 @@ already_AddRefed<nsINode>
 nsIDocument::ImportNode(nsINode& aNode, bool aDeep, ErrorResult& rv) const
 {
   nsINode* imported = &aNode;
-  rv = nsContentUtils::CheckSameOrigin(this, imported);
-  if (rv.Failed()) {
-    return nullptr;
-  }
 
   switch (imported->NodeType()) {
     case nsIDOMNode::ATTRIBUTE_NODE:
@@ -5925,12 +5921,6 @@ nsIDocument::CreateNodeIterator(nsINode& aRoot, uint32_t aWhatToShow,
                                 ErrorResult& rv) const
 {
   nsINode* root = &aRoot;
-  nsresult res = nsContentUtils::CheckSameOrigin(this, root);
-  if (NS_FAILED(res)) {
-    rv.Throw(res);
-    return nullptr;
-  }
-
   nsRefPtr<NodeIterator> iterator = new NodeIterator(root, aWhatToShow,
                                                      aFilter);
   return iterator.forget();
@@ -5974,12 +5964,6 @@ nsIDocument::CreateTreeWalker(nsINode& aRoot, uint32_t aWhatToShow,
                               ErrorResult& rv) const
 {
   nsINode* root = &aRoot;
-  nsresult res = nsContentUtils::CheckSameOrigin(this, root);
-  if (NS_FAILED(res)) {
-    rv.Throw(res);
-    return nullptr;
-  }
-
   nsRefPtr<TreeWalker> walker = new TreeWalker(root, aWhatToShow, aFilter);
   return walker.forget();
 }
@@ -6688,10 +6672,6 @@ nsINode*
 nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 {
   nsINode* adoptedNode = &aAdoptedNode;
-  rv = nsContentUtils::CheckSameOrigin(this, adoptedNode);
-  if (rv.Failed()) {
-    return nullptr;
-  }
 
   
   
@@ -11117,10 +11097,6 @@ nsIDocument::GetMozPointerLockElement()
   nsCOMPtr<nsIDocument> pointerLockedDoc =
     do_QueryReferent(nsEventStateManager::sPointerLockedDoc);
   if (pointerLockedDoc != this) {
-    return nullptr;
-  }
-  nsresult rv = nsContentUtils::CheckSameOrigin(this, pointerLockedElement);
-  if (NS_FAILED(rv)) {
     return nullptr;
   }
 
