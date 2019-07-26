@@ -24,15 +24,9 @@ MARIONETTE_HEAD_JS = 'head.js';
 startBluetoothTest(true, function testCaseMain(aAdapter) {
   log("Testing the discovery process of BluetoothAdapter ...");
 
-  
-  let theProperties = {
-    "name": REMOTE_DEVICE_NAME,
-    "discoverable": true
-  };
-
   return Promise.resolve()
     .then(() => removeEmulatorRemoteDevice(BDADDR_ALL))
-    .then(() => addEmulatorRemoteDevice( null))
+    .then(() => addEmulatorRemoteDevice(null))
     .then(function(aRemoteAddress) {
       let promises = [];
       promises.push(waitForAdapterEvent(aAdapter, "devicefound"));
