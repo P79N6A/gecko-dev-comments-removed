@@ -413,11 +413,16 @@ function sizeSocialPanelToContent(panel, iframe) {
     let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
     width = Math.max(computedWidth, width);
   }
-  iframe.style.width = width + "px";
-  iframe.style.height = height + "px";
   
-  if (panel.state == "open")
-    panel.adjustArrowPosition();
+  width += panel.boxObject.width - iframe.boxObject.width;
+  height += panel.boxObject.height - iframe.boxObject.height;
+
+  
+  
+  
+  if (Math.abs(panel.boxObject.width - width) > 2 || Math.abs(panel.boxObject.height - height) > 2) {
+    panel.sizeTo(width, height);
+  }
 }
 
 function DynamicResizeWatcher() {
@@ -468,7 +473,10 @@ this.OpenGraphBuilder = {
           
           query[name] = value;
         } else if (pageData[p[1]]) {
-          query[name] = pageData[p[1]];
+          if (p[1] == "previews")
+            query[name] = pageData[p[1]][0];
+          else
+            query[name] = pageData[p[1]];
         } else if (p[1] == "body") {
           
           let body = "";

@@ -792,6 +792,13 @@ SocialProvider.prototype = {
     return SocialService.getManifestByOrigin(this.origin);
   },
 
+  getPageSize: function(name) {
+    let manifest = this.manifest;
+    if (manifest && manifest.pageSize)
+      return manifest.pageSize[name];
+    return undefined;
+  },
+
   
   
   workerAPI: null,

@@ -615,7 +615,20 @@ SocialShare = {
 
     let shareEndpoint = OpenGraphBuilder.generateEndpointURL(provider.shareURL, pageData);
 
-    this._dynamicResizer = new DynamicResizeWatcher();
+    let size = provider.getPageSize("share");
+    if (size) {
+      if (this._dynamicResizer) {
+        this._dynamicResizer.stop();
+        this._dynamicResizer = null;
+      }
+      let {width, height} = size;
+      width += this.panel.boxObject.width - iframe.boxObject.width;
+      height += this.panel.boxObject.height - iframe.boxObject.height;
+      this.panel.sizeTo(width, height);
+    } else {
+      this._dynamicResizer = new DynamicResizeWatcher();
+    }
+
     
     
     let reload = true;
@@ -625,7 +638,8 @@ SocialShare = {
       reload = shareEndpoint != iframe.contentDocument.location.spec;
     }
     if (!reload) {
-      this._dynamicResizer.start(this.panel, iframe);
+      if (this._dynamicResizer)
+        this._dynamicResizer.start(this.panel, iframe);
       iframe.docShell.isActive = true;
       iframe.docShell.isAppTab = true;
       let evt = iframe.contentDocument.createEvent("CustomEvent");
@@ -637,6 +651,10 @@ SocialShare = {
         iframe.removeEventListener("load", panelBrowserOnload, true);
         iframe.docShell.isActive = true;
         iframe.docShell.isAppTab = true;
+        
+        
+        
+        iframe.contentWindow.opener = iframe.contentWindow;
         setTimeout(function() {
           if (SocialShare._dynamicResizer) { 
             SocialShare._dynamicResizer.start(iframe.parentNode, iframe);
@@ -1130,6 +1148,9 @@ SocialStatus = {
     }
 
     if (!frame) {
+      let size = provider.getPageSize("status");
+      let {width, height} = size ? size : {width: PANEL_MIN_WIDTH, height: PANEL_MIN_HEIGHT};
+
       frame = SharedFrame.createFrame(
         notificationFrameId, 
         aParent, 
@@ -1144,7 +1165,8 @@ SocialStatus = {
 
           
           
-          "style": "width: " + PANEL_MIN_WIDTH + "px;",
+          "style": "width: " + width + "px; height: " + height + "px;",
+          "dynamicresizer": !size,
 
           "origin": provider.origin,
           "src": provider.statusURL
@@ -1246,7 +1268,10 @@ SocialStatus = {
     }
 
     
-    let dynamicResizer = inMenuPanel ? null : this._dynamicResizer;
+    let dynamicResizer;
+    if (!inMenuPanel && notificationFrame.getAttribute("dynamicresizer") == "true") {
+      dynamicResizer = this._dynamicResizer;
+    }
     panel.addEventListener(hidingEvent, function onpopuphiding() {
       panel.removeEventListener(hidingEvent, onpopuphiding);
       aToolbarButton.removeAttribute("open");
