@@ -152,7 +152,7 @@ class MemoryMonitor extends BroadcastReceiver {
         if (level >= MEMORY_PRESSURE_MEDIUM) {
             
             if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createLowMemoryEvent(level));
+                GeckoAppShell.dispatchMemoryPressure();
             }
 
             Favicons.clearMemCache();
