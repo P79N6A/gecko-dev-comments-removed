@@ -2050,9 +2050,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         ? static_cast<ClientLayerManager*>(GetLayerManager())
         : nullptr;
 
-    if (clientLayers && mCompositorParent &&
-        !gdk_screen_is_composited(gdk_window_get_screen(mGdkWindow)))
-    {
+    if (clientLayers && mCompositorParent) {
         
         
         clientLayers->SetNeedsComposite(true);
