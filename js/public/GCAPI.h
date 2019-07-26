@@ -215,15 +215,18 @@ GetGCNumber();
 class JS_PUBLIC_API(AutoAssertNoGC)
 {
 #ifdef DEBUG
+    JSRuntime *runtime;
     size_t gcNumber;
 
   public:
     AutoAssertNoGC();
+    AutoAssertNoGC(JSRuntime *rt);
     ~AutoAssertNoGC();
 #else
   public:
     
     AutoAssertNoGC() {}
+    AutoAssertNoGC(JSRuntime *) {}
 #endif
 };
 

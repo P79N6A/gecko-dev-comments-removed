@@ -390,6 +390,10 @@ class ForkJoinSlice : public ThreadSafeContext
     ForkJoinShared *const shared;
 
     bool acquiredContext_;
+
+    
+    
+    JS::AutoAssertNoGC nogc_;
 };
 
 
