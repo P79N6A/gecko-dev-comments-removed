@@ -1111,7 +1111,7 @@ class LazyScript : public js::gc::Cell
     HeapPtrScript script_;
 
     
-    HeapPtrFunction parentFunction_;
+    HeapPtrObject enclosingScope_;
 
     
     
@@ -1157,8 +1157,8 @@ class LazyScript : public js::gc::Cell
         return script_;
     }
 
-    JSFunction *parentFunction() const {
-        return parentFunction_;
+    JSObject *enclosingScope() const {
+        return enclosingScope_;
     }
     ScriptSourceObject *sourceObject() const;
     JSPrincipals *originPrincipals() const {
@@ -1169,7 +1169,7 @@ class LazyScript : public js::gc::Cell
         return (version_ == JS_BIT(8) - 1) ? JSVERSION_UNKNOWN : JSVersion(version_);
     }
 
-    void setParent(JSFunction *parentFunction, ScriptSourceObject *sourceObject,
+    void setParent(JSObject *enclosingScope, ScriptSourceObject *sourceObject,
                    JSPrincipals *originPrincipals);
 
     uint32_t numFreeVariables() const {
@@ -1244,7 +1244,7 @@ class LazyScript : public js::gc::Cell
         return column_;
     }
 
-    uint32_t staticLevel() const;
+    uint32_t staticLevel(JSContext *cx) const;
 
     Zone *zone() const {
         return Cell::tenuredZone();

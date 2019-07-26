@@ -2066,11 +2066,6 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
         return false;
 
     
-    
-    if (pc->topScopeStmt)
-        handler.disableSyntaxParser();
-
-    
     do {
         Parser<SyntaxParseHandler> *parser = handler.syntaxParser;
         if (!parser)
@@ -2150,11 +2145,6 @@ Parser<SyntaxParseHandler>::functionArgsAndBody(Node pn, HandleFunction fun,
     if (becameStrict)
         *becameStrict = false;
     ParseContext<SyntaxParseHandler> *outerpc = pc;
-
-    
-    
-    if (pc->topScopeStmt)
-        return abortIfSyntaxParser();
 
     
     FunctionBox *funbox = newFunctionBox(fun, pc, strict);
