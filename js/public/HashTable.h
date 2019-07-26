@@ -86,6 +86,10 @@ class HashMap
     Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
 
     
+    
+    Ptr readonlyThreadsafeLookup(const Lookup &l) const { return impl.readonlyThreadsafeLookup(l); }
+
+    
     void remove(Ptr p)                                { impl.remove(p); }
 
     
@@ -1339,6 +1343,12 @@ class HashTable : private AllocPolicy
     Ptr lookup(const Lookup &l) const
     {
         ReentrancyGuard g(*this);
+        HashNumber keyHash = prepareHash(l);
+        return Ptr(lookup(l, keyHash, 0));
+    }
+
+    Ptr readonlyThreadsafeLookup(const Lookup &l) const
+    {
         HashNumber keyHash = prepareHash(l);
         return Ptr(lookup(l, keyHash, 0));
     }
