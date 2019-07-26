@@ -60,7 +60,14 @@ public:
   virtual nsresult OnNewSourceData() MOZ_OVERRIDE;
 
   
-  void InvalidateObserver();
+
+
+
+
+
+
+
+  void InvalidateObserversOnNextRefreshDriverTick();
 
   
   void OnSVGDocumentParsed();
@@ -88,6 +95,8 @@ private:
   bool           mIsFullyLoaded;          
   bool           mIsDrawing;              
   bool           mHaveAnimations;         
+                                          
+  bool           mHasPendingInvalidation; 
                                           
 
   friend class ImageFactory;

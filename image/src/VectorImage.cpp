@@ -90,7 +90,7 @@ protected:
       
       mHonoringInvalidations = false;
 
-      mVectorImage->InvalidateObserver();
+      mVectorImage->InvalidateObserversOnNextRefreshDriverTick();
     }
 
     
@@ -314,7 +314,8 @@ VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
   mIsInitialized(false),
   mIsFullyLoaded(false),
   mIsDrawing(false),
-  mHaveAnimations(false)
+  mHaveAnimations(false),
+  mHasPendingInvalidation(false)
 {
 }
 
@@ -485,6 +486,18 @@ VectorImage::RequestRefresh(const mozilla::TimeStamp& aTime)
 {
   
   EvaluateAnimation();
+
+  if (mHasPendingInvalidation && mStatusTracker) {
+    
+    
+    
+    
+    
+    mStatusTracker->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
+    mStatusTracker->OnStopFrame();
+  }
+
+  mHasPendingInvalidation = false;
 }
 
 
@@ -1006,12 +1019,9 @@ VectorImage::OnDataAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
 
 
 void
-VectorImage::InvalidateObserver()
+VectorImage::InvalidateObserversOnNextRefreshDriverTick()
 {
-  if (mStatusTracker) {
-    mStatusTracker->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
-    mStatusTracker->OnStopFrame();
-  }
+  mHasPendingInvalidation = true;
 }
 
 } 
