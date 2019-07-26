@@ -83,6 +83,8 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
 
     virtual ~CrossCompartmentWrapper();
 
+    virtual bool finalizeInBackground(HandleValue priv) MOZ_OVERRIDE;
+
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
                                        PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
