@@ -30,11 +30,12 @@ public:
 
     JSContext* GetContext() { return mContext; }
 
-    PObjectWrapperChild* GetOrCreateWrapper(JSObject* obj,
+    PObjectWrapperChild* GetOrCreateWrapper(JSObject* obj_,
                                             bool makeGlobal = false)
     {
-        if (!obj) 
+        if (!obj_) 
             return NULL;
+        JS::RootedObject obj(mContext, obj_);
         PObjectWrapperChild* wrapper;
         while (!mResidentObjectTable.Get(obj, &wrapper)) {
             wrapper = SendPObjectWrapperConstructor(AllocPObjectWrapper(obj),
