@@ -329,7 +329,9 @@ this.LayoutHelpers = LayoutHelpers = {
 
 
 
-  prettyKey: function LH_prettyKey(aElemKey)
+
+
+  prettyKey: function LH_prettyKey(aElemKey, aAllowCloverleaf)
   {
     let elemString = "";
     let elemMod = aElemKey.getAttribute("modifiers");
@@ -338,9 +340,12 @@ this.LayoutHelpers = LayoutHelpers = {
       if (Services.appinfo.OS == "Darwin") {
         
         
-        
-        
-        elemString += "Cmd-";
+        if (!aAllowCloverleaf) {
+          elemString += "Cmd-";
+        } else {
+          elemString += PlatformKeys.GetStringFromName("VK_META") +
+                        PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+        }
       } else {
         elemString += PlatformKeys.GetStringFromName("VK_CONTROL") +
                       PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
