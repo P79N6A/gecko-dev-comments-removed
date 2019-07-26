@@ -361,13 +361,13 @@ main(int argc, char **argv)
     if (absfwurl) {
       CFURLRef xulurl =
         CFURLCreateCopyAppendingPathComponent(nullptr, absfwurl,
-                                              CFSTR("XUL.framework"),
+                                              CFSTR("XUL.framework/Versions/Current"),
                                               true);
 
       if (xulurl) {
         CFURLRef xpcomurl =
           CFURLCreateCopyAppendingPathComponent(nullptr, xulurl,
-                                                CFSTR("libxpcom.dylib"),
+                                                CFSTR("libmozglue.dylib"),
                                                 false);
 
         if (xpcomurl) {
