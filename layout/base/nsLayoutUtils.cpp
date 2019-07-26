@@ -111,6 +111,7 @@ typedef FrameMetrics::ViewID ViewID;
  int32_t  nsLayoutUtils::sFontSizeInflationMappingIntercept;
  uint32_t nsLayoutUtils::sFontSizeInflationMaxRatio;
  bool nsLayoutUtils::sFontSizeInflationForceEnabled;
+ bool nsLayoutUtils::sFontSizeInflationDisabledInMasterProcess;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
@@ -4773,6 +4774,8 @@ nsLayoutUtils::Initialize()
                               "font.size.inflation.mappingIntercept");
   Preferences::AddBoolVarCache(&sFontSizeInflationForceEnabled,
                                "font.size.inflation.forceEnabled");
+  Preferences::AddBoolVarCache(&sFontSizeInflationDisabledInMasterProcess,
+                               "font.size.inflation.disabledInMasterProcess");
 
 #ifdef MOZ_FLEXBOX
   Preferences::RegisterCallback(FlexboxEnabledPrefChangeCallback,
@@ -5157,10 +5160,20 @@ nsLayoutUtils::FontSizeInflationEnabled(nsPresContext *aPresContext)
        aPresContext->IsChrome()) {
     return false;
   }
-  if (TabChild* tab = GetTabChildFrom(presShell)) {
-    if (!presShell->FontSizeInflationForceEnabled() &&
-        !tab->IsAsyncPanZoomEnabled()) {
-      return false;
+  
+  if (!presShell->FontSizeInflationForceEnabled()) {
+    if (TabChild* tab = GetTabChildFrom(presShell)) {
+      
+      
+      if (!tab->IsAsyncPanZoomEnabled()) {
+        return false;
+      }
+    } else if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      
+      
+      if (presShell->FontSizeInflationDisabledInMasterProcess()) {
+        return false;
+      }
     }
   }
 

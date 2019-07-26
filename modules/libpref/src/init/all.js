@@ -1805,6 +1805,16 @@ pref("font.size.inflation.forceEnabled", false);
 
 
 
+pref("font.size.inflation.disabledInMasterProcess", false);
+
+
+
+
+
+
+
+
+
 
 
 

@@ -586,6 +586,8 @@ pref("jsloader.reuseGlobal", true);
 
 pref("font.size.inflation.minTwips", 120);
 
+pref("font.size.inflation.disabledInMasterProcess", true);
+
 
 
 pref("memory.free_dirty_pages", true);
