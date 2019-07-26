@@ -90,7 +90,7 @@ void SetDirectionFromChangedTextNode(nsIContent* aTextNode, uint32_t aOffset,
 
 
 
-void SetDirectionFromNewTextNode(nsTextNode* aTextNode);
+void SetDirectionFromNewTextNode(nsIContent* aTextNode);
 
 
 
