@@ -479,21 +479,13 @@ ContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
 
   nsIntRegion updateRegion = mFrontUpdatedRegion;
 
-  int32_t xBoundary = mBufferRect.XMost() - mBufferRotation.x;
-  int32_t yBoundary = mBufferRect.YMost() - mBufferRotation.y;
-
-  
-  bool needFullCopy = (xBoundary < updateRegion.GetBounds().XMost() &&
-                       xBoundary > updateRegion.GetBounds().x) ||
-                      (yBoundary < updateRegion.GetBounds().YMost() &&
-                       yBoundary > updateRegion.GetBounds().y);
-  
   
   
   
   
 
-  if (needFullCopy) {
+  if (mDidSelfCopy) {
+    mDidSelfCopy = false;
     
     
     
