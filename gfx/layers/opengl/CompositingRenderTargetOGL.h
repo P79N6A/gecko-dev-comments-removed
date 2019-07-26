@@ -22,7 +22,6 @@
 #include "nsDebug.h"                    
 #include "nsString.h"                   
 
-class gfxImageSurface;
 
 namespace mozilla {
 namespace gl {

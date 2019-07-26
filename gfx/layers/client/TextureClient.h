@@ -29,7 +29,6 @@
 #include "nsISupportsImpl.h"            
 
 class gfxReusableSurfaceWrapper;
-class gfxASurface;
 class gfxImageSurface;
 
 namespace mozilla {

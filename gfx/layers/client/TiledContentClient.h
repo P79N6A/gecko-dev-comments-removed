@@ -36,8 +36,6 @@
 #include "pratom.h"                     
 #include "gfxPrefs.h"
 
-class gfxImageSurface;
-
 namespace mozilla {
 namespace layers {
 

@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include "GLContextTypes.h"             
 #include "Layers.h"                     
-#include "gfxASurface.h"                
 #include "gfxContext.h"                 
 #include "gfxTypes.h"
 #include "gfxPlatform.h"                

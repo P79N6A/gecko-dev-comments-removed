@@ -8,7 +8,6 @@
 #include "ISurfaceAllocator.h"
 #include <sys/types.h>                  
 #include "gfx2DGlue.h"                  
-#include "gfxASurface.h"                
 #include "gfxPlatform.h"                
 #include "gfxSharedImageSurface.h"      
 #include "mozilla/Assertions.h"         

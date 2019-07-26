@@ -9,7 +9,6 @@
 #include "ImageTypes.h"                 
 #include "SharedTextureImage.h"         
 #include "gfx2DGlue.h"                  
-#include "gfxASurface.h"                
 #include "gfxPlatform.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             

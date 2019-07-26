@@ -47,7 +47,6 @@
 #include "prlog.h"                      
 #include "gfx2DGlue.h"
 
-class gfxASurface;
 class gfxContext;
 
 extern uint8_t gLayerManagerLayerBuilder;

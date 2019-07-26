@@ -6,8 +6,8 @@
 #ifndef ROTATEDBUFFER_H_
 #define ROTATEDBUFFER_H_
 
+#include "gfxTypes.h"
 #include <stdint.h>                     
-#include "gfxASurface.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/2D.h"             

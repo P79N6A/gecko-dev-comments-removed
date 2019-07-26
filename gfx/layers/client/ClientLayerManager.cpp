@@ -6,7 +6,6 @@
 #include "ClientLayerManager.h"
 #include "CompositorChild.h"            
 #include "GeckoProfiler.h"              
-#include "gfxASurface.h"                
 #include "gfxPrefs.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Hal.h"

@@ -9,7 +9,6 @@
 #include "ImageTypes.h"                 
 #include "cairo.h"                      
 #include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
 #include "mozilla/mozalloc.h"           

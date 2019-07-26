@@ -10,7 +10,6 @@
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/TextureClientOGL.h"
 #include "mozilla/mozalloc.h"           
-#include "gfxASurface.h"                
 #ifdef XP_WIN
 #include "gfxWindowsPlatform.h"         
 #include "mozilla/layers/TextureD3D11.h"

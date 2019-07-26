@@ -9,7 +9,6 @@
 #include "BasicImplData.h"              
 #include "BasicLayers.h"                
 #include "ReadbackLayer.h"              
-#include "gfxASurface.h"                
 #include "gfxContext.h"                 
 #include "mozilla/Attributes.h"         
 #include "mozilla/Maybe.h"              

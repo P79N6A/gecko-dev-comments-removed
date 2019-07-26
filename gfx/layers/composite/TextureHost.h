@@ -26,7 +26,6 @@
 #include "nscore.h"                     
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
-class gfxImageSurface;
 class gfxReusableSurfaceWrapper;
 struct nsIntPoint;
 struct nsIntSize;

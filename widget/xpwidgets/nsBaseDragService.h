@@ -12,10 +12,9 @@
 #include "nsIDOMDocument.h"
 #include "nsIDOMDataTransfer.h"
 #include "nsCOMPtr.h"
+#include "nsRect.h"
 #include "nsPoint.h"
 #include "mozilla/RefPtr.h"
-
-#include "gfxImageSurface.h"
 
 
 #define DRAG_TRANSLUCENCY 0.65

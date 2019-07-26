@@ -4,7 +4,6 @@
 
 
 #include "GLContext.h"
-#include "gfxImageSurface.h"
 #include "gfx2DGlue.h"
 #include <ui/GraphicBuffer.h>
 #include "GrallocImages.h"  

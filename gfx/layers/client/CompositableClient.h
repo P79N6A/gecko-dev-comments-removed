@@ -16,7 +16,6 @@
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/PCompositableChild.h"  
 #include "nsISupportsImpl.h"            
-#include "gfxASurface.h"                
 
 namespace mozilla {
 namespace layers {

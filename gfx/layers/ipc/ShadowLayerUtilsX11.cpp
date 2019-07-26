@@ -13,7 +13,6 @@
 #include "cairo-xlib.h"
 #include <stdint.h>                     
 #include "GLDefs.h"                     
-#include "gfxASurface.h"                
 #include "gfxPlatform.h"                
 #include "gfxXlibSurface.h"             
 #include "gfx2DGlue.h"                  

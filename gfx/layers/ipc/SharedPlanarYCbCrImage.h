@@ -12,8 +12,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 
-class gfxASurface;
-
 #ifndef MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
 #define MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
 

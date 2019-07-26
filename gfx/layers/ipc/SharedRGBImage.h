@@ -15,8 +15,6 @@
 #include "mozilla/gfx/Types.h"          
 #include "nsCOMPtr.h"                   
 
-class gfxASurface;
-
 namespace mozilla {
 namespace ipc {
 class Shmem;

@@ -11,8 +11,6 @@
 #include "nsISupportsImpl.h"            
 #include "mozilla/gfx/Types.h"
 
-class gfxASurface;
-
 namespace mozilla {
 namespace layers {
 

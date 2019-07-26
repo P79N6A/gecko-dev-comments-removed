@@ -6,12 +6,10 @@
 #ifndef GFX_AUTOMASKDATA_H_
 #define GFX_AUTOMASKDATA_H_
 
-#include "gfxASurface.h"
 #include "mozilla/layers/LayersSurfaces.h"  
 
 namespace mozilla {
 namespace layers {
-
 
 
 

@@ -14,7 +14,6 @@
 #include "RenderTrace.h"                
 #include "ShadowLayerChild.h"           
 #include "gfx2DGlue.h"                  
-#include "gfxImageSurface.h"            
 #include "gfxPlatform.h"                
 #include "gfxSharedImageSurface.h"      
 #include "ipc/IPCMessageUtils.h"        

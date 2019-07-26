@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include "GeckoProfiler.h"              
 #include "client/ClientLayerManager.h"  
-#include "gfxASurface.h"                
 #include "gfxContext.h"                 
 #include "gfxRect.h"                    
 #include "gfxPrefs.h"                   

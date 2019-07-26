@@ -10,7 +10,6 @@
 #include "ReadbackProcessor.h"          
 #include "RenderTrace.h"                
 #include "BasicLayersImpl.h"            
-#include "gfxASurface.h"                
 #include "gfxContext.h"                 
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   

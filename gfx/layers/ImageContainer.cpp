@@ -8,7 +8,6 @@
 #include <string.h>                     
 #include "SharedTextureImage.h"         
 #include "gfx2DGlue.h"
-#include "gfxImageSurface.h"            
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
 #include "mozilla/RefPtr.h"             

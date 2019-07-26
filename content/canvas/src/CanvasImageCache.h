@@ -6,6 +6,8 @@
 #ifndef CANVASIMAGECACHE_H_
 #define CANVASIMAGECACHE_H_
 
+#include "nsSize.h"
+
 namespace mozilla {
 namespace dom {
 class Element;
@@ -16,9 +18,6 @@ class SourceSurface;
 } 
 } 
 class imgIRequest;
-class gfxASurface;
-
-#include "gfxPoint.h"
 
 namespace mozilla {
 

@@ -12,8 +12,6 @@
 #include "nsCOMPtr.h"                   
 #include "mozilla/gfx/Point.h"          
 
-class gfxASurface;
-
 
 
 

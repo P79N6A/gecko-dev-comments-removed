@@ -4,7 +4,6 @@
 
 
 #include "D3D9SurfaceImage.h"
-#include "gfxImageSurface.h"
 #include "gfx2DGlue.h"
 #include "mozilla/layers/TextureD3D9.h"
 #include "mozilla/gfx/Types.h"

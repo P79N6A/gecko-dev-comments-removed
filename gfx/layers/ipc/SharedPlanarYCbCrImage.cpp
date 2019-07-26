@@ -20,8 +20,6 @@
 #include "nsISupportsImpl.h"            
 #include "mozilla/ipc/Shmem.h"
 
-class gfxASurface;
-
 namespace mozilla {
 namespace layers {
 

@@ -5,7 +5,6 @@
 
 #include "ImageDataSerializer.h"
 #include "gfx2DGlue.h"                  
-#include "gfxASurface.h"                
 #include "gfxImageSurface.h"            
 #include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         

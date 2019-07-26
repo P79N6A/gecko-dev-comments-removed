@@ -29,7 +29,6 @@
 #include "nscore.h"                     
 #include "LayerTreeInvalidation.h"
 
-class gfxASurface;
 class gfxContext;
 struct nsIntPoint;
 struct nsIntSize;

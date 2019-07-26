@@ -6,7 +6,6 @@
 #include "ClientLayerManager.h"         
 #include "ImageContainer.h"             
 #include "ImageLayers.h"                
-#include "gfxASurface.h"                
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/CompositorTypes.h"

@@ -8,8 +8,8 @@
 
 #include <stdint.h>                     
 #include <sys/types.h>                  
+#include "gfxTypes.h"
 #include "ImageTypes.h"                 
-#include "gfxASurface.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/Mutex.h"              
 #include "mozilla/ReentrantMonitor.h"   
