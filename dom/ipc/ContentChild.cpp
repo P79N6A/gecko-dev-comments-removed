@@ -268,6 +268,16 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage)
         NS_ENSURE_SUCCESS(rv, rv);
         rv = scriptError->GetSourceLine(sourceLine);
         NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        
+        
+        
+        
+        if (sourceLine.Length() > 1000) {
+            sourceLine.Truncate(1000);
+        }
+
         rv = scriptError->GetCategory(getter_Copies(category));
         NS_ENSURE_SUCCESS(rv, rv);
         rv = scriptError->GetLineNumber(&lineNum);
