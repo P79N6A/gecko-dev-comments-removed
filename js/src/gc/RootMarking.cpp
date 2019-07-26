@@ -757,18 +757,24 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 
         for (CompartmentsIter c(rt); !c.done(); c.next())
             c->mark(trc);
-    }
 
-    
-    for (size_t i = 0; i < rt->gcBlackRootTracers.length(); i++) {
-        const JSRuntime::ExtraTracer &e = rt->gcBlackRootTracers[i];
-        (*e.op)(trc, e.data);
-    }
+        
 
-    
-    if (JSTraceDataOp op = rt->gcGrayRootTracer.op) {
-        if (!IS_GC_MARKING_TRACER(trc) && !trc->runtime->isHeapMinorCollecting())
-            (*op)(trc, rt->gcGrayRootTracer.data);
+
+
+
+
+
+        for (size_t i = 0; i < rt->gcBlackRootTracers.length(); i++) {
+            const JSRuntime::ExtraTracer &e = rt->gcBlackRootTracers[i];
+            (*e.op)(trc, e.data);
+        }
+
+        
+        if (JSTraceDataOp op = rt->gcGrayRootTracer.op) {
+            if (!IS_GC_MARKING_TRACER(trc))
+                (*op)(trc, rt->gcGrayRootTracer.data);
+        }
     }
 }
 
