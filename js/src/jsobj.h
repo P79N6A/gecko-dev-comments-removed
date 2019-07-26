@@ -354,6 +354,13 @@ class JSObject : public js::ObjectImpl
     inline bool hasUncacheableProto() const;
     inline bool setUncacheableProto(JSContext *cx);
 
+    
+
+
+
+    inline bool hadElementsAccess() const;
+    inline bool setHadElementsAccess(JSContext *cx);
+
   public:
     inline bool nativeEmpty() const;
 

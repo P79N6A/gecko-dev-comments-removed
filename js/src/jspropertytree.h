@@ -79,7 +79,15 @@ class PropertyTree
     PropertyTree();
 
   public:
-    enum { MAX_HEIGHT = 128 };
+    
+
+
+
+
+    enum {
+        MAX_HEIGHT = 512,
+        MAX_HEIGHT_WITH_ELEMENTS_ACCESS = 128
+    };
 
     PropertyTree(JSCompartment *comp)
         : compartment(comp)
