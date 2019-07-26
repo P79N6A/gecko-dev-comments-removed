@@ -9,6 +9,7 @@
 #include "RasterImage.h"
 #include "imgDecoderObserver.h"
 #include "mozilla/RefPtr.h"
+#include "DecodeStrategy.h"
 #include "ImageMetadata.h"
 #include "Orientation.h"
 #include "mozilla/Telemetry.h"
@@ -50,7 +51,7 @@ public:
 
 
 
-  void Write(const char* aBuffer, uint32_t aCount);
+  void Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
 
   
 
@@ -92,11 +93,6 @@ public:
   {
     NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
     mSizeDecode = aSizeDecode;
-  }
-
-  bool IsSynchronous() const
-  {
-    return mSynchronous;
   }
 
   void SetObserver(imgDecoderObserver* aObserver)
@@ -177,7 +173,7 @@ protected:
 
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
   virtual void FinishInternal();
 
   
@@ -241,17 +237,6 @@ protected:
   bool mDataError;
 
 private:
-  
-  
-  
-  
-  void SetSynchronous(bool aSynchronous)
-  {
-    mSynchronous = aSynchronous;
-  }
-
-  friend class AutoSetSyncDecode;
-
   uint32_t mFrameCount; 
 
   nsIntRect mInvalidRect; 
@@ -288,35 +273,6 @@ private:
   bool mSizeDecode;
   bool mInFrame;
   bool mIsAnimated;
-  bool mSynchronous;
-};
-
-
-
-
-
-
-class AutoSetSyncDecode
-{
-public:
-  AutoSetSyncDecode(Decoder* aDecoder)
-    : mDecoder(aDecoder)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(mDecoder);
-
-    mOriginalValue = mDecoder->IsSynchronous();
-    mDecoder->SetSynchronous(true);
-  }
-
-  ~AutoSetSyncDecode()
-  {
-    mDecoder->SetSynchronous(mOriginalValue);
-  }
-
-private:
-  nsRefPtr<Decoder> mDecoder;
-  bool              mOriginalValue;
 };
 
 } 

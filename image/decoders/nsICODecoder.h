@@ -37,7 +37,7 @@ public:
     return mDirEntry.mHeight == 0 ? 256 : mDirEntry.mHeight; 
   }
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
   virtual void FinishInternal();
   virtual bool NeedsNewFrame() const;
   virtual nsresult AllocateFrame();
@@ -45,7 +45,7 @@ public:
 private:
   
   
-  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount);
+  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
 
   
   void ProcessDirEntry(IconDirEntry& aTarget);

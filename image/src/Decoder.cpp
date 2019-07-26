@@ -29,7 +29,6 @@ Decoder::Decoder(RasterImage &aImage)
   , mSizeDecode(false)
   , mInFrame(false)
   , mIsAnimated(false)
-  , mSynchronous(false)
 {
 }
 
@@ -86,9 +85,10 @@ Decoder::InitSharedDecoder(uint8_t* imageData, uint32_t imageDataLength,
 }
 
 void
-Decoder::Write(const char* aBuffer, uint32_t aCount)
+Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
 {
   PROFILER_LABEL("ImageDecoder", "Write");
+  MOZ_ASSERT(NS_IsMainThread() || aStrategy == DECODE_ASYNC);
 
   
   NS_ABORT_IF_FALSE(!HasDecoderError(),
@@ -104,16 +104,16 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   }
 
   
-  WriteInternal(aBuffer, aCount);
+  WriteInternal(aBuffer, aCount, aStrategy);
 
   
   
-  while (mSynchronous && NeedsNewFrame() && !HasDataError()) {
+  while (aStrategy == DECODE_SYNC && NeedsNewFrame() && !HasDataError()) {
     nsresult rv = AllocateFrame();
 
     if (NS_SUCCEEDED(rv)) {
       
-      WriteInternal(nullptr, 0);
+      WriteInternal(nullptr, 0, aStrategy);
     }
   }
 }
@@ -121,6 +121,8 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 void
 Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   if (!HasError())
     FinishInternal();
@@ -186,6 +188,8 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
 void
 Decoder::FinishSharedDecoder()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!HasError()) {
     FinishInternal();
   }
@@ -280,7 +284,7 @@ Decoder::SetSizeOnImage()
 
 
 void Decoder::InitInternal() { }
-void Decoder::WriteInternal(const char* aBuffer, uint32_t aCount) { }
+void Decoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy) { }
 void Decoder::FinishInternal() { }
 
 

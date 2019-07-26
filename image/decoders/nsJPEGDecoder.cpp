@@ -182,14 +182,19 @@ nsJPEGDecoder::FinishInternal()
 
 
 
+
+
+
+
+
   if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
       (mState != JPEG_ERROR) &&
       !IsSizeDecode())
-    this->Write(nullptr, 0);
+    this->Write(nullptr, 0, DECODE_SYNC);
 }
 
 void
-nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
+nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrategy)
 {
   mSegment = (const JOCTET *)aBuffer;
   mSegmentLen = aCount;
