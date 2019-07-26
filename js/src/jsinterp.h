@@ -64,6 +64,25 @@ ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, bool ok);
 
 
 
+
+
+
+
+
+
+
+
+
+
+extern JSTrapStatus
+DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
+
+
+
+
+
+
+
 extern bool
 BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 

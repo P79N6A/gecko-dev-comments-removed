@@ -3577,27 +3577,22 @@ END_CASE(JSOP_ARRAYPUSH)
 
     if (cx->isExceptionPending()) {
         
-        if (cx->runtime->debugHooks.throwHook || !cx->compartment->getDebuggees().empty()) {
-            Value rval;
-            JSTrapStatus st = Debugger::onExceptionUnwind(cx, &rval);
-            if (st == JSTRAP_CONTINUE) {
-                if (JSThrowHook handler = cx->runtime->debugHooks.throwHook)
-                    st = handler(cx, script, regs.pc, &rval, cx->runtime->debugHooks.throwHookData);
-            }
-
-            switch (st) {
+        if (cx->compartment->debugMode()) {
+            JSTrapStatus status = DebugExceptionUnwind(cx, regs.fp(), regs.pc);
+            switch (status) {
               case JSTRAP_ERROR:
-                cx->clearPendingException();
                 goto error;
+
+              case JSTRAP_CONTINUE:
+              case JSTRAP_THROW:
+                break;
+
               case JSTRAP_RETURN:
-                cx->clearPendingException();
-                regs.fp()->setReturnValue(rval);
                 interpReturnOK = true;
                 goto forced_return;
-              case JSTRAP_THROW:
-                cx->setPendingException(rval);
-              case JSTRAP_CONTINUE:
-              default:;
+
+              default:
+                JS_NOT_REACHED("Invalid trap status");
             }
         }
 
