@@ -74,14 +74,16 @@ class StackwalkerX86 : public Stackwalker {
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack* stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack,
+                                     bool stack_scan_allowed);
 
   
   
   
   StackFrameX86* GetCallerByWindowsFrameInfo(
       const vector<StackFrame*> &frames,
-      WindowsFrameInfo* windows_frame_info);
+      WindowsFrameInfo* windows_frame_info,
+      bool stack_scan_allowed);
 
   
   
@@ -94,7 +96,8 @@ class StackwalkerX86 : public Stackwalker {
   
   
   
-  StackFrameX86* GetCallerByEBPAtBase(const vector<StackFrame*> &frames);
+  StackFrameX86* GetCallerByEBPAtBase(const vector<StackFrame*> &frames,
+                                      bool stack_scan_allowed);
 
   
   

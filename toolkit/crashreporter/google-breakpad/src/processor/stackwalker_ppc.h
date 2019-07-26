@@ -64,7 +64,8 @@ class StackwalkerPPC : public Stackwalker {
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack* stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack,
+                                     bool stack_scan_allowed);
 
   
   

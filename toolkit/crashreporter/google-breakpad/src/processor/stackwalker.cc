@@ -56,8 +56,11 @@
 namespace google_breakpad {
 
 const int Stackwalker::kRASearchWords = 30;
+
 uint32_t Stackwalker::max_frames_ = 1024;
 bool Stackwalker::max_frames_set_ = false;
+
+uint32_t Stackwalker::max_frames_scanned_ = 1024;
 
 Stackwalker::Stackwalker(const SystemInfo* system_info,
                          MemoryRegion* memory,
@@ -83,6 +86,10 @@ bool Stackwalker::Walk(CallStack* stack,
 
   
   
+
+  
+  
+  uint32_t n_scanned_frames = 0;
 
   
   scoped_ptr<StackFrame> frame(GetContextFrame());
@@ -123,6 +130,17 @@ bool Stackwalker::Walk(CallStack* stack,
     }
 
     
+    switch (frame.get()->trust) {
+       case StackFrame::FRAME_TRUST_NONE:
+       case StackFrame::FRAME_TRUST_SCAN:
+       case StackFrame::FRAME_TRUST_CFI_SCAN:
+         n_scanned_frames++;
+         break;
+      default:
+        break;
+    }
+
+    
     
     stack->frames_.push_back(frame.release());
     if (stack->frames_.size() > max_frames_) {
@@ -134,7 +152,8 @@ bool Stackwalker::Walk(CallStack* stack,
     }
 
     
-    frame.reset(GetCallerFrame(stack));
+    bool stack_scan_allowed = n_scanned_frames < max_frames_scanned_;
+    frame.reset(GetCallerFrame(stack, stack_scan_allowed));
   }
 
   return true;

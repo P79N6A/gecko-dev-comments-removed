@@ -94,6 +94,10 @@ class Stackwalker {
   }
   static uint32_t max_frames() { return max_frames_; }
 
+  static void set_max_frames_scanned(uint32_t max_frames_scanned) {
+    max_frames_scanned_ = max_frames_scanned;
+  }
+
  protected:
   
   
@@ -194,7 +198,10 @@ class Stackwalker {
   
   
   
-  virtual StackFrame* GetCallerFrame(const CallStack* stack) = 0;
+  
+  
+  virtual StackFrame* GetCallerFrame(const CallStack* stack,
+                                     bool stack_scan_allowed) = 0;
 
   
   
@@ -204,6 +211,12 @@ class Stackwalker {
   
   
   static bool max_frames_set_;
+
+  
+  
+  
+  
+  static uint32_t max_frames_scanned_;
 };
 
 }  
