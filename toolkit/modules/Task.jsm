@@ -100,6 +100,31 @@ const ERRORS_TO_REPORT = ["EvalError", "RangeError", "ReferenceError", "TypeErro
 
 
 
+let gCurrentTask = null;
+
+
+
+
+
+let gMaintainStack = false;
+
+
+
+
+
+
+
+function* linesOf(string) {
+  let reLine = /([^\r\n])+/g;
+  let match;
+  while ((match = reLine.exec(string))) {
+    yield [match[0], match.index];
+  }
+};
+
+
+
+
 
 
 
@@ -241,7 +266,7 @@ function createAsyncFunction(aTask) {
 
 
 function TaskImpl(iterator) {
-  if (Task.Debugging.maintainStack) {
+  if (gMaintainStack) {
     this._stack = (new Error()).stack;
   }
   this.deferred = Promise.defer();
@@ -280,37 +305,64 @@ TaskImpl.prototype = {
 
 
   _run: function TaskImpl_run(aSendResolved, aSendValue) {
-    if (this._isStarGenerator) {
-      try {
-        let result = aSendResolved ? this._iterator.next(aSendValue)
-                                   : this._iterator.throw(aSendValue);
 
-        if (result.done) {
+    try {
+      gCurrentTask = this;
+
+      if (this._isStarGenerator) {
+        try {
+          let result = aSendResolved ? this._iterator.next(aSendValue)
+                                     : this._iterator.throw(aSendValue);
+
+          if (result.done) {
+            
+            this.deferred.resolve(result.value);
+          } else {
+            
+            this._handleResultValue(result.value);
+          }
+        } catch (ex) {
           
-          this.deferred.resolve(result.value);
-        } else {
-          
-          this._handleResultValue(result.value);
+          this._handleException(ex);
         }
-      } catch (ex) {
-        
-        this._handleException(ex);
+      } else {
+        try {
+          let yielded = aSendResolved ? this._iterator.send(aSendValue)
+                                      : this._iterator.throw(aSendValue);
+          this._handleResultValue(yielded);
+        } catch (ex if ex instanceof Task.Result) {
+          
+          
+          this.deferred.resolve(ex.value);
+        } catch (ex if ex instanceof StopIteration) {
+          
+          this.deferred.resolve(undefined);
+        } catch (ex) {
+          
+          this._handleException(ex);
+        }
       }
-    } else {
-      try {
-        let yielded = aSendResolved ? this._iterator.send(aSendValue)
-                                    : this._iterator.throw(aSendValue);
-        this._handleResultValue(yielded);
-      } catch (ex if ex instanceof Task.Result) {
-        
-        
-        this.deferred.resolve(ex.value);
-      } catch (ex if ex instanceof StopIteration) {
-        
-        this.deferred.resolve();
-      } catch (ex) {
-        
-        this._handleException(ex);
+    } finally {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (gCurrentTask == this) {
+        gCurrentTask = null;
       }
     }
   },
@@ -349,43 +401,23 @@ TaskImpl.prototype = {
 
 
   _handleException: function TaskImpl_handleException(aException) {
+
+    gCurrentTask = this;
+
     if (aException && typeof aException == "object" && "stack" in aException) {
 
       let stack = aException.stack;
 
-      if (Task.Debugging.maintainStack &&
+      if (gMaintainStack &&
           aException._capturedTaskStack != this._stack &&
           typeof stack == "string") {
 
         
 
         let bottomStack = this._stack;
-        let topStack = aException.stack;
+        let topStack = stack;
 
-        
-        let reLine = /([^\r\n])+/g;
-        let match;
-        let lines = [];
-        while ((match = reLine.exec(topStack))) {
-          let line = match[0];
-          if (line.indexOf("/Task.jsm:") != -1) {
-            break;
-          }
-          lines.push(line);
-        }
-
-        
-        reLine = /([^\r\n])+/g;
-        while ((match = reLine.exec(bottomStack))) {
-          let line = match[0];
-          if (line.indexOf("/Task.jsm:") == -1) {
-            let tail = bottomStack.substring(match.index);
-            lines.push(tail);
-            break;
-          }
-        }
-
-        stack = lines.join("\n");
+        stack = Task.Debugging.generateReadableStack(stack);
 
         aException.stack = stack;
 
@@ -414,9 +446,74 @@ TaskImpl.prototype = {
     }
 
     this.deferred.reject(aException);
+  },
+
+  get callerStack() {
+    
+    
+    for (let [line, index] of linesOf(this._stack || "")) {
+      if (line.indexOf("/Task.jsm:") == -1) {
+        return this._stack.substring(index);
+      }
+    }
+    return "";
   }
 };
 
+
 Task.Debugging = {
-  maintainStack: false
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  get maintainStack() {
+    return gMaintainStack;
+  },
+  set maintainStack(x) {
+    if (!x) {
+      gCurrentTask = null;
+    }
+    return gMaintainStack = x;
+  },
+
+  
+
+
+
+
+
+
+  generateReadableStack: function(topStack, prefix = "") {
+    if (!gCurrentTask) {
+      return topStack;
+    }
+
+    
+    let lines = [];
+    for (let [line] of linesOf(topStack)) {
+      if (line.indexOf("/Task.jsm:") != -1) {
+        break;
+      }
+      lines.push(prefix + line);
+    }
+    if (!prefix) {
+      lines.push(gCurrentTask.callerStack);
+    } else {
+      for (let [line] of linesOf(gCurrentTask.callerStack)) {
+        lines.push(prefix + line);
+      }
+    }
+
+    return lines.join("\n");
+  }
 };
