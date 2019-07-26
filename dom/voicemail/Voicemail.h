@@ -10,10 +10,9 @@
 #include "nsDOMEvent.h"
 #include "nsDOMEventTargetHelper.h"
 #include "nsIDOMMozVoicemail.h"
-#include "nsIRadioInterfaceLayer.h"
+#include "nsIVoicemailProvider.h"
 
 class nsPIDOMWindow;
-class nsIRILContentHelper;
 class nsIDOMMozVoicemailStatus;
 
 namespace mozilla {
@@ -22,34 +21,28 @@ namespace dom {
 class Voicemail : public nsDOMEventTargetHelper,
                   public nsIDOMMozVoicemail
 {
+  
+
+
+
+
+
+
+  class Listener;
+
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMMOZVOICEMAIL
-  NS_DECL_NSIRILVOICEMAILCALLBACK
+  NS_DECL_NSIVOICEMAILLISTENER
 
   NS_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper::)
 
-  Voicemail(nsPIDOMWindow* aWindow, nsIRILContentHelper* aRIL);
+  Voicemail(nsPIDOMWindow* aWindow, nsIVoicemailProvider* aProvider);
   virtual ~Voicemail();
 
 private:
-  nsCOMPtr<nsIRILContentHelper> mRIL;
-  nsCOMPtr<nsIRILVoicemailCallback> mRILVoicemailCallback;
-
-  class RILVoicemailCallback : public nsIRILVoicemailCallback
-  {
-    Voicemail* mVoicemail;
-
-  public:
-    NS_DECL_ISUPPORTS
-    NS_FORWARD_NSIRILVOICEMAILCALLBACK(mVoicemail->)
-
-    RILVoicemailCallback(Voicemail* aVoicemail)
-    : mVoicemail(aVoicemail)
-    {
-      NS_ASSERTION(mVoicemail, "Null pointer!");
-    }
-  };
+  nsCOMPtr<nsIVoicemailProvider> mProvider;
+  nsRefPtr<Listener> mListener;
 };
 
 } 
