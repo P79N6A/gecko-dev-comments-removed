@@ -57,7 +57,7 @@ public:
 
   
   nsresult Init() {
-    return nsHashPropertyBag::Init();
+    return NS_OK;
   }
 
 protected:

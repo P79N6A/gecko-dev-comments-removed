@@ -331,9 +331,8 @@ nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList)
   
   
   
-  nsTHashtable<nsPtrHashKey<nsIFrame> > frameSet;
+  nsTHashtable<nsPtrHashKey<nsIFrame> > frameSet(1);
 
-  frameSet.Init(1);
   for (nsIFrame* f = aFrameList; f; f = f->GetNextSibling()) {
     frameSet.PutEntry(f);
   }

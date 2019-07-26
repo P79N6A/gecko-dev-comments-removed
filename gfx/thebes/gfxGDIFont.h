@@ -93,7 +93,7 @@ protected:
     bool                  mNeedsBold;
 
     
-    nsDataHashtable<nsUint32HashKey,int32_t>    mGlyphWidths;
+    nsAutoPtr<nsDataHashtable<nsUint32HashKey,int32_t> > mGlyphWidths;
 };
 
 #endif 

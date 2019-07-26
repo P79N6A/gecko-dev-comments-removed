@@ -21,9 +21,6 @@ nsresult
 Row::initialize(sqlite3_stmt *aStatement)
 {
   
-  mNameHashtable.Init();
-
-  
   mNumCols = ::sqlite3_column_count(aStatement);
 
   

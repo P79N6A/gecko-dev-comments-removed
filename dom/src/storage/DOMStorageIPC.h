@@ -49,7 +49,11 @@ public:
   virtual nsresult AsyncClear(DOMStorageCacheBridge* aCache);
 
   virtual void AsyncClearAll()
-    { mScopesHavingData.Clear();  }
+  {
+    if (mScopesHavingData) {
+      mScopesHavingData->Clear(); 
+    }
+  }
 
   virtual void AsyncClearMatchingScope(const nsACString& aScope)
     {  }
@@ -83,7 +87,7 @@ private:
   nsRefPtr<DOMLocalStorageManager> mManager;
 
   
-  nsTHashtable<nsCStringHashKey> mScopesHavingData;
+  nsAutoPtr<nsTHashtable<nsCStringHashKey> > mScopesHavingData;
 
   
   

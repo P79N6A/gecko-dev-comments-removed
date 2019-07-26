@@ -13,6 +13,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/fallible.h"
+#include "mozilla/PodOperations.h"
 
 #include <new>
 
@@ -83,9 +84,15 @@ class nsTHashtable
 
 public:
   
-
-
-  nsTHashtable();
+  
+  nsTHashtable()
+  {
+    Init(PL_DHASH_MIN_SIZE);
+  }
+  explicit nsTHashtable(uint32_t aInitSize)
+  {
+    Init(aInitSize);
+  }
 
   
 
@@ -93,27 +100,6 @@ public:
   ~nsTHashtable();
 
   nsTHashtable(nsTHashtable<EntryType>&& aOther);
-
-  
-
-
-
-
-
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE)
-  {
-    if (!Init(initSize, fallible_t()))
-      NS_RUNTIMEABORT("OOM");
-  }
-  bool Init(const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return Init(PL_DHASH_MIN_SIZE, fallible_t()); }
-  bool Init(uint32_t initSize, const fallible_t&) NS_WARN_UNUSED_RESULT;
-
-  
-
-
-
-  bool IsInitialized() const { return !!mTable.entrySize; }
 
   
 
@@ -281,9 +267,6 @@ public:
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
                              mozilla::MallocSizeOf mallocSizeOf, void *userArg = NULL) const
   {
-    if (!IsInitialized()) {
-      return 0;
-    }
     if (sizeOfEntryExcludingThis) {
       s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
       return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub, mallocSizeOf, &args);
@@ -367,23 +350,21 @@ protected:
 
 private:
   
-  nsTHashtable(nsTHashtable<EntryType>& toCopy);
+  nsTHashtable(nsTHashtable<EntryType>& toCopy) MOZ_DELETE;
 
   
-  nsTHashtable<EntryType>& operator= (nsTHashtable<EntryType>& toEqual);
+
+
+
+  void Init(uint32_t aInitSize);
+
+  
+  nsTHashtable<EntryType>& operator= (nsTHashtable<EntryType>& toEqual) MOZ_DELETE;
 };
 
 
 
 
-
-template<class EntryType>
-nsTHashtable<EntryType>::nsTHashtable()
-{
-  
-  
-  mTable.entrySize = 0;
-}
 
 template<class EntryType>
 nsTHashtable<EntryType>::nsTHashtable(
@@ -407,15 +388,9 @@ nsTHashtable<EntryType>::~nsTHashtable()
 }
 
 template<class EntryType>
-bool
-nsTHashtable<EntryType>::Init(uint32_t initSize, const fallible_t&)
+void
+nsTHashtable<EntryType>::Init(uint32_t aInitSize)
 {
-  if (mTable.entrySize)
-  {
-    NS_ERROR("nsTHashtable::Init() should not be called twice.");
-    return true;
-  }
-
   static PLDHashTableOps sOps = 
   {
     ::PL_DHashAllocTable,
@@ -428,19 +403,13 @@ nsTHashtable<EntryType>::Init(uint32_t initSize, const fallible_t&)
     s_InitEntry
   };
 
-  if (!EntryType::ALLOW_MEMMOVE)
-  {
+  if (!EntryType::ALLOW_MEMMOVE) {
     sOps.moveEntry = s_CopyEntry;
   }
   
-  if (!PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), initSize))
-  {
-    
-    mTable.entrySize = 0;
-    return false;
+  if (!PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), aInitSize)) {
+    NS_RUNTIMEABORT("OOM");
   }
-
-  return true;
 }
 
 

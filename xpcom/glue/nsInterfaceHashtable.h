@@ -28,6 +28,14 @@ public:
   typedef nsBaseHashtable< KeyClass, nsCOMPtr<Interface> , Interface* >
           base_type;
 
+  nsInterfaceHashtable()
+  {
+  }
+  explicit nsInterfaceHashtable(uint32_t aInitSize)
+    : nsBaseHashtable<KeyClass,nsCOMPtr<Interface>,Interface*>(aInitSize)
+  {
+  }
+
   
 
 
@@ -68,35 +76,6 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
   aField.EnumerateRead(ImplCycleCollectionTraverse_EnumFunc<typename K::KeyType,T*>,
                        &userData);
 }
-
-
-
-
-
-
-
-template<class KeyClass,class Interface>
-class nsInterfaceHashtableMT :
-  public nsBaseHashtableMT< KeyClass, nsCOMPtr<Interface> , Interface* >
-{
-public:
-  typedef typename KeyClass::KeyType KeyType;
-  typedef Interface* UserDataType;
-  typedef nsBaseHashtableMT< KeyClass, nsCOMPtr<Interface> , Interface* >
-          base_type;
-
-  
-
-
-
-
-  bool Get(KeyType aKey, UserDataType* pData) const;
-
-  
-  
-  
-};
-
 
 
 
@@ -160,43 +139,6 @@ nsInterfaceHashtable<KeyClass,Interface>::GetWeak
   if (aFound)
     *aFound = false;
   return nullptr;
-}
-
-
-
-
-
-template<class KeyClass,class Interface>
-bool
-nsInterfaceHashtableMT<KeyClass,Interface>::Get
-  (KeyType aKey, UserDataType* pInterface) const
-{
-  PR_Lock(this->mLock);
-
-  typename base_type::EntryType* ent = this->GetEntry(aKey);
-
-  if (ent)
-  {
-    if (pInterface)
-    {
-      *pInterface = ent->mData;
-
-      NS_IF_ADDREF(*pInterface);
-    }
-
-    PR_Unlock(this->mLock);
-
-    return true;
-  }
-
-  
-  
-  if (pInterface)
-    *pInterface = nullptr;
-
-  PR_Unlock(this->mLock);
-
-  return false;
 }
 
 #endif 

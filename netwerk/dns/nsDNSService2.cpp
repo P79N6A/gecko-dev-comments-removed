@@ -418,8 +418,6 @@ nsDNSService::Init()
     if (mFirstTime) {
         mFirstTime = false;
 
-        mLocalDomains.Init();
-
         
         if (prefs) {
             prefs->AddObserver(kPrefDnsCacheEntries, this, false);

@@ -42,7 +42,6 @@ nsHtml5Parser::nsHtml5Parser()
   , mTokenizer(new nsHtml5Tokenizer(mTreeBuilder, false))
   , mRootContextLineNumber(1)
 {
-  mAtomTable.Init(); 
   mTokenizer->setInterner(&mAtomTable);
   
 }

@@ -33,7 +33,6 @@ nsDOMAttributeMap::nsDOMAttributeMap(Element* aContent)
 {
   
   
-  mAttributeCache.Init();
   SetIsDOMBinding();
 }
 

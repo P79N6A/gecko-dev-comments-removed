@@ -141,7 +141,7 @@ public:
 
     void AddPostscriptName(gfxFontEntry *aFontEntry, nsAString& aPostscriptName);
 
-    bool NeedFullnamePostscriptNames() { return mNeedFullnamePostscriptNames; }
+    bool NeedFullnamePostscriptNames() { return mExtraNames != nullptr; }
 
     
 
@@ -269,14 +269,14 @@ protected:
     
     bool mFaceNamesInitialized;
 
-    
-    bool mNeedFullnamePostscriptNames;
-
-    
-    nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mFullnames;
-
-    
-    nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mPostscriptNames;
+    struct ExtraNames {
+      ExtraNames() : mFullnames(100), mPostscriptNames(100) {}
+      
+      nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mFullnames;
+      
+      nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mPostscriptNames;
+    };
+    nsAutoPtr<ExtraNames> mExtraNames;
 
     
     

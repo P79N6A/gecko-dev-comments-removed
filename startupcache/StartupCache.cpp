@@ -165,10 +165,6 @@ StartupCache::Init()
   nsCOMPtr<nsIProtocolHandler> jarInitializer(do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "jar"));
 
   nsresult rv;
-  mTable.Init();
-#ifdef DEBUG
-  mWriteObjectMap.Init();
-#endif
 
   
   
@@ -445,7 +441,7 @@ StartupCache::WriteToDisk()
   nsresult rv;
   mStartupWriteInitiated = true;
 
-  if (!mTable.IsInitialized() || mTable.Count() == 0)
+  if (mTable.Count() == 0)
     return;
 
   nsCOMPtr<nsIZipWriter> zipW = do_CreateInstance("@mozilla.org/zipwriter;1");

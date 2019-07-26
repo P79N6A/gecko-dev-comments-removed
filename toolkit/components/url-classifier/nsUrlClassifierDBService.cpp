@@ -1179,8 +1179,6 @@ nsUrlClassifierDBService::Init()
   
   mWorkerProxy = new UrlClassifierDBServiceWorkerProxy(mWorker);
 
-  mCompleters.Init();
-
   
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();

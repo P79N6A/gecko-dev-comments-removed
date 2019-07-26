@@ -160,7 +160,7 @@ protected:
 
 protected: 
   
-  nsTHashtable<nsRefPtrHashKey<nsIContent> > mBoundContentSet;
+  nsAutoPtr<nsTHashtable<nsRefPtrHashKey<nsIContent> > > mBoundContentSet;
 
   
   
@@ -174,12 +174,12 @@ protected:
   
   
   
-  nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo> mDocumentTable;
+  nsAutoPtr<nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo> > mDocumentTable;
 
   
   
   
-  nsInterfaceHashtable<nsURIHashKey,nsIStreamListener> mLoadingDocTable;
+  nsAutoPtr<nsInterfaceHashtable<nsURIHashKey,nsIStreamListener> > mLoadingDocTable;
 
   
   nsBindingList mAttachedStack;

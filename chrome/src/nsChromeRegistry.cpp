@@ -140,8 +140,6 @@ nsChromeRegistry::GetService()
 nsresult
 nsChromeRegistry::Init()
 {
-  mOverrideTable.Init();
-
   
   
   

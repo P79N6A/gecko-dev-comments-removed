@@ -58,32 +58,13 @@ public:
   typedef typename KeyClass::KeyType KeyType;
   typedef nsBaseHashtableET<KeyClass,DataType> EntryType;
 
-  
-
-  
-
-
-
-
-
-
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE)
-  { nsTHashtable<EntryType>::Init(initSize); }
-
-  bool Init(const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return Init(PL_DHASH_MIN_SIZE, fallible_t()); }
-
-  bool Init(uint32_t initSize, const fallible_t&) NS_WARN_UNUSED_RESULT
-  { return nsTHashtable<EntryType>::Init(initSize, fallible_t()); }
-
-
-
-  
-
-
-
-
-  bool IsInitialized() const { return !!this->mTable.entrySize; }
+  nsBaseHashtable()
+  {
+  }
+  explicit nsBaseHashtable(uint32_t aInitSize)
+    : nsTHashtable<EntryType>(aInitSize)
+  {
+  }
 
   
 
@@ -279,9 +260,6 @@ public:
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
                              mozilla::MallocSizeOf mallocSizeOf, void *userArg = nullptr) const
   {
-    if (!IsInitialized()) {
-      return 0;
-    }
     if (sizeOfEntryExcludingThis) {
       s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
       return PL_DHashTableSizeOfExcludingThis(&this->mTable, s_SizeOfStub,
@@ -368,43 +346,6 @@ ImplCycleCollectionTraverse_EnumFunc(K aKey,
 
 
 
-template<class KeyClass,class DataType,class UserDataType>
-class nsBaseHashtableMT :
-  protected nsBaseHashtable<KeyClass,DataType,UserDataType>
-{
-public:
-  typedef typename
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::EntryType EntryType;
-  typedef typename
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::KeyType KeyType;
-  typedef typename
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumFunction EnumFunction;
-  typedef typename
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumReadFunction EnumReadFunction;
-
-  nsBaseHashtableMT() : mLock(nullptr) { }
-  ~nsBaseHashtableMT();
-
-  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE);
-  bool IsInitialized() const { return mLock != nullptr; }
-  uint32_t Count() const;
-  bool Get(KeyType aKey, UserDataType* pData) const;
-  void Put(KeyType aKey, UserDataType aData);
-  void Remove(KeyType aKey);
-
-  uint32_t EnumerateRead(EnumReadFunction enumFunc, void* userArg) const;
-  uint32_t Enumerate(EnumFunction enumFunc, void* userArg);
-  void Clear();
-
-protected:
-  PRLock* mLock;
-};
-  
-
-
-
-
-
 template<class KeyClass,class DataType>
 nsBaseHashtableET<KeyClass,DataType>::nsBaseHashtableET(KeyTypePointer aKey) :
   KeyClass(aKey)
@@ -465,107 +406,6 @@ nsBaseHashtable<KeyClass,DataType,UserDataType>::s_SizeOfStub
   s_SizeOfArgs* eargs = static_cast<s_SizeOfArgs*>(arg);
 
   return (eargs->func)(ent->GetKey(), ent->mData, mallocSizeOf, eargs->userArg);
-}
-
-
-
-
-
-template<class KeyClass,class DataType,class UserDataType>
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::~nsBaseHashtableMT()
-{
-  if (this->mLock)
-    PR_DestroyLock(this->mLock);
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-void
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Init(uint32_t initSize)
-{
-  if (!nsTHashtable<EntryType>::IsInitialized())
-    nsTHashtable<EntryType>::Init(initSize);
-
-  this->mLock = PR_NewLock();
-  if (!this->mLock)
-    NS_RUNTIMEABORT("OOM");
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-uint32_t
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Count() const
-{
-  PR_Lock(this->mLock);
-  uint32_t count = nsTHashtable<EntryType>::Count();
-  PR_Unlock(this->mLock);
-
-  return count;
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-bool
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Get(KeyType       aKey,
-                                                           UserDataType* pData) const
-{
-  PR_Lock(this->mLock);
-  bool res =
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::Get(aKey, pData);
-  PR_Unlock(this->mLock);
-
-  return res;
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-void
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Put(KeyType      aKey,
-                                                           UserDataType aData)
-{
-  PR_Lock(this->mLock);
-  nsBaseHashtable<KeyClass,DataType,UserDataType>::Put(aKey, aData);
-  PR_Unlock(this->mLock);
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-void
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Remove(KeyType aKey)
-{
-  PR_Lock(this->mLock);
-  nsBaseHashtable<KeyClass,DataType,UserDataType>::Remove(aKey);
-  PR_Unlock(this->mLock);
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-uint32_t
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::EnumerateRead
-  (EnumReadFunction fEnumCall, void* userArg) const
-{
-  PR_Lock(this->mLock);
-  uint32_t count =
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumerateRead(fEnumCall, userArg);
-  PR_Unlock(this->mLock);
-
-  return count;
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-uint32_t
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Enumerate
-  (EnumFunction fEnumCall, void* userArg)
-{
-  PR_Lock(this->mLock);
-  uint32_t count =
-    nsBaseHashtable<KeyClass,DataType,UserDataType>::Enumerate(fEnumCall, userArg);
-  PR_Unlock(this->mLock);
-
-  return count;
-}
-
-template<class KeyClass,class DataType,class UserDataType>
-void
-nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Clear()
-{
-  PR_Lock(this->mLock);
-  nsBaseHashtable<KeyClass,DataType,UserDataType>::Clear();
-  PR_Unlock(this->mLock);
 }
 
 #endif 

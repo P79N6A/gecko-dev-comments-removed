@@ -85,8 +85,7 @@ protected:
 
 
 
-  static WindowTable sActiveWindows;
-  static bool sActiveWindowsInitialized;
+  static WindowTable* sActiveWindows;
 };
 
 class GetCameraTask : public nsRunnable

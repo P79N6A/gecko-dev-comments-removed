@@ -475,12 +475,15 @@ private:
   void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
                        LoadDataArray& aDatasToNotify);
 
-  nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, nsCSSStyleSheet>
-                    mCompleteSheets;
-  nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
-                    mLoadingDatas; 
-  nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
-                    mPendingDatas; 
+  struct Sheets {
+    nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, nsCSSStyleSheet>
+                      mCompleteSheets;
+    nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+                      mLoadingDatas; 
+    nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
+                      mPendingDatas; 
+  };
+  nsAutoPtr<Sheets> mSheets;
 
   
   

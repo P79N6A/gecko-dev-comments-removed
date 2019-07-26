@@ -255,7 +255,6 @@ Preferences::GetInstanceForService()
   gCacheData = new nsTArray<nsAutoPtr<CacheData> >();
 
   gObserverTable = new nsRefPtrHashtable<ValueObserverHashKey, ValueObserver>();
-  gObserverTable->Init();
 
   
   

@@ -351,7 +351,7 @@ gfxGraphiteShaper::SetGlyphsFromSegment(gfxContext      *aContext,
 
 #include "gfxLanguageTagList.cpp"
 
-nsTHashtable<nsUint32HashKey> gfxGraphiteShaper::sLanguageTags;
+nsTHashtable<nsUint32HashKey> *gfxGraphiteShaper::sLanguageTags;
 
  uint32_t
 gfxGraphiteShaper::GetGraphiteTagForLang(const nsCString& aLang)
@@ -386,16 +386,16 @@ gfxGraphiteShaper::GetGraphiteTagForLang(const nsCString& aLang)
         return 0;
     }
 
-    if (!sLanguageTags.IsInitialized()) {
+    if (!sLanguageTags) {
         
-        sLanguageTags.Init(ArrayLength(sLanguageTagList));
+        sLanguageTags = new nsTHashtable<nsUint32HashKey>(ArrayLength(sLanguageTagList));
         for (const uint32_t *tag = sLanguageTagList; *tag != 0; ++tag) {
-            sLanguageTags.PutEntry(*tag);
+            sLanguageTags->PutEntry(*tag);
         }
     }
 
     
-    if (sLanguageTags.GetEntry(grLang)) {
+    if (sLanguageTags->GetEntry(grLang)) {
         return grLang;
     }
 
@@ -406,8 +406,10 @@ gfxGraphiteShaper::GetGraphiteTagForLang(const nsCString& aLang)
 gfxGraphiteShaper::Shutdown()
 {
 #ifdef NS_FREE_PERMANENT_DATA
-    if (sLanguageTags.IsInitialized()) {
-        sLanguageTags.Clear();
+    if (sLanguageTags) {
+        sLanguageTags->Clear();
+        delete sLanguageTags;
+        sLanguageTags = nullptr;
     }
 #endif
 }

@@ -1581,11 +1581,11 @@ class NotifyRemoveVisits : public nsRunnable
 public:
 
   NotifyRemoveVisits(nsTHashtable<PlaceHashKey>& aPlaces)
-  : mHistory(History::GetService())
+    : mPlaces(VISITS_REMOVAL_INITIAL_HASH_SIZE)
+    , mHistory(History::GetService())
   {
     MOZ_ASSERT(!NS_IsMainThread(),
                "This should not be called on the main thread");
-    mPlaces.Init(VISITS_REMOVAL_INITIAL_HASH_SIZE);
     aPlaces.EnumerateEntries(TransferHashEntries, &mPlaces);
   }
 
@@ -1686,8 +1686,7 @@ public:
 
     
     
-    nsTHashtable<PlaceHashKey> places;
-    places.Init(VISITS_REMOVAL_INITIAL_HASH_SIZE);
+    nsTHashtable<PlaceHashKey> places(VISITS_REMOVAL_INITIAL_HASH_SIZE);
     nsresult rv = FindRemovableVisits(places);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1936,6 +1935,7 @@ History* History::gService = NULL;
 History::History()
   : mShuttingDown(false)
   , mShutdownMutex("History::mShutdownMutex")
+  , mObservers(VISIT_OBSERVERS_INITIAL_CACHE_SIZE)
   , mRecentlyVisitedURIsNextIndex(0)
 {
   NS_ASSERTION(!gService, "Ruh-roh!  This service has already been created!");
@@ -1957,12 +1957,8 @@ History::~History()
 
   gService = nullptr;
 
-#ifdef DEBUG
-  if (mObservers.IsInitialized()) {
-    NS_ASSERTION(mObservers.Count() == 0,
-                 "Not all Links were removed before we disappear!");
-  }
-#endif
+  NS_ASSERTION(mObservers.Count() == 0,
+               "Not all Links were removed before we disappear!");
 }
 
 NS_IMETHODIMP
@@ -1985,13 +1981,6 @@ History::NotifyVisited(nsIURI* aURI)
     }
   }
 
-  
-  
-  if (!mObservers.IsInitialized()) {
-    return NS_OK;
-  }
-
-  
   
   KeyClass* key = mObservers.GetEntry(aURI);
   if (!key) {
@@ -2463,11 +2452,6 @@ History::RegisterVisitedCallback(nsIURI* aURI,
   NS_ASSERTION(aURI, "Must pass a non-null URI!");
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     NS_PRECONDITION(aLink, "Must pass a non-null Link!");
-  }
-
-  
-  if (!mObservers.IsInitialized()) {
-    mObservers.Init(VISIT_OBSERVERS_INITIAL_CACHE_SIZE);
   }
 
   

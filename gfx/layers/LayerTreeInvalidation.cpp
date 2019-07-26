@@ -231,8 +231,7 @@ struct ContainerLayerProperties : public LayerPropertiesBase
     
     
 
-    nsDataHashtable<nsPtrHashKey<Layer>, uint32_t> oldIndexMap;
-    oldIndexMap.Init(mChildren.Length());
+    nsDataHashtable<nsPtrHashKey<Layer>, uint32_t> oldIndexMap(mChildren.Length());
     for (uint32_t i = 0; i < mChildren.Length(); ++i) {
       oldIndexMap.Put(mChildren[i]->mLayer, i);
     }

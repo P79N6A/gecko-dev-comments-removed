@@ -53,7 +53,7 @@ protected:
 
     
     static uint32_t GetGraphiteTagForLang(const nsCString& aLang);
-    static nsTHashtable<nsUint32HashKey> sLanguageTags;
+    static nsTHashtable<nsUint32HashKey> *sLanguageTags;
 };
 
 #endif 

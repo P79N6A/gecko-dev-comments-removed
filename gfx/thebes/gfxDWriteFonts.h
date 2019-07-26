@@ -94,7 +94,7 @@ protected:
     gfxFont::Metrics          *mMetrics;
 
     
-    nsDataHashtable<nsUint32HashKey,int32_t>    mGlyphWidths;
+    nsAutoPtr<nsDataHashtable<nsUint32HashKey,int32_t> > mGlyphWidths;
 
     bool mNeedsOblique;
     bool mNeedsBold;

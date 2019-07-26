@@ -1100,7 +1100,6 @@ nsCacheService::nsCacheService()
 
     
     PR_INIT_CLIST(&mDoomedEntries);
-    mCustomOfflineDevices.Init();
 }
 
 nsCacheService::~nsCacheService()

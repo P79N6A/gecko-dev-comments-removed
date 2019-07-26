@@ -79,13 +79,6 @@ class nsHtml5AtomTable
     
 
 
-    inline void Init() {
-      mTable.Init();
-    }
-    
-    
-
-
     nsIAtom* GetAtom(const nsAString& aKey);
     
     

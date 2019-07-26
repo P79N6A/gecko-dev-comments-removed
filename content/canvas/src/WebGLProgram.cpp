@@ -136,7 +136,6 @@ WebGLProgram::MapIdentifier(const nsACString& name, nsCString *mappedName) {
     if (!mIdentifierMap) {
         
         mIdentifierMap = new CStringMap;
-        mIdentifierMap->Init();
         for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
             for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
                 const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
@@ -182,7 +181,6 @@ WebGLProgram::ReverseMapIdentifier(const nsACString& name, nsCString *reverseMap
     if (!mIdentifierReverseMap) {
         
         mIdentifierReverseMap = new CStringMap;
-        mIdentifierReverseMap->Init();
         for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
             for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
                 const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];

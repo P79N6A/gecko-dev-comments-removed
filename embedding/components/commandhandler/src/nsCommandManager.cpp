@@ -83,7 +83,6 @@ nsCommandManager::Init(nsIDOMWindow *aWindow)
   
   NS_ASSERTION(aWindow, "Need non-null window here");
   mWindow = aWindow;      
-  mObserversTable.Init();
   return NS_OK;
 }
 

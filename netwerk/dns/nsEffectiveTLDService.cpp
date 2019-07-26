@@ -77,16 +77,19 @@ private:
   }
 };
 
+nsEffectiveTLDService::nsEffectiveTLDService()
+  
+  
+  
+  
+  : mHash(ArrayLength(nsDomainEntry::entries))
+{
+}
+
 nsresult
 nsEffectiveTLDService::Init()
 {
   const ETLDEntry *entries = nsDomainEntry::entries;
-
-  
-  
-  
-  
-  mHash.Init(ArrayLength(nsDomainEntry::entries));
 
   nsresult rv;
   mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);

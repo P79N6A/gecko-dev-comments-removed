@@ -578,7 +578,6 @@ gfxDWriteFontEntry::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
 gfxDWriteFontList::gfxDWriteFontList()
     : mInitialized(false), mForceGDIClassicMaxFontSize(0.0)
 {
-    mFontSubstitutes.Init();
 }
 
 
@@ -622,8 +621,8 @@ gfxDWriteFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     }
 
     
-    if (!(lookup = mPostscriptNames.GetWeak(aFullname)) &&
-        !(lookup = mFullnames.GetWeak(aFullname))) 
+    if (!(lookup = mExtraNames->mPostscriptNames.GetWeak(aFullname)) &&
+        !(lookup = mExtraNames->mFullnames.GetWeak(aFullname)))
     {
         return nullptr;
     }

@@ -78,7 +78,7 @@ public:
 
 
 
-  static nsRefPtrHashtable<nsPtrHashKey<void>, DocAccessible> sHWNDCache;
+  static nsRefPtrHashtable<nsPtrHashKey<void>, DocAccessible>* sHWNDCache;
 };
 
 } 

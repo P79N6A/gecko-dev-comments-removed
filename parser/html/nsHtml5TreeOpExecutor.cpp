@@ -67,9 +67,9 @@ static mozilla::LinkedList<nsHtml5TreeOpExecutor>* gBackgroundFlushList = nullpt
 static nsITimer* gFlushTimer = nullptr;
 
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor(bool aRunsToCompletion)
+  : mPreloadedURLs(23)  
 {
   mRunsToCompletion = aRunsToCompletion;
-  mPreloadedURLs.Init(23); 
   
 }
 

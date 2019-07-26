@@ -2061,7 +2061,6 @@ nsCookieService::Read()
   
   
   
-  mDefaultDBState->readSet.Init();
   mDefaultDBState->hostArray.SetCapacity(kMaxNumberOfCookies);
 
   mDefaultDBState->readListener = new ReadCookieDBListener(mDefaultDBState);
