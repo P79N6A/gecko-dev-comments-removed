@@ -42,6 +42,9 @@ var WebAppRT = {
       
       let uri = Services.io.newURI(url, null, null);
       Services.perms.add(uri, "native-intent", Ci.nsIPermissionManager.DENY_ACTION);
+      Services.perms.add(uri, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
+      Services.perms.add(uri, "indexedDB", Ci.nsIPermissionManager.ALLOW_ACTION);
+      Services.perms.add(uri, "indexedDB-unlimited", Ci.nsIPermissionManager.ALLOW_ACTION);
 
       
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
