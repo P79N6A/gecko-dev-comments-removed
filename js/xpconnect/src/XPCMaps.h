@@ -650,14 +650,15 @@ public:
         }
     }
 
-    void Reparent(JSContext *aCx, JSObject *aNewInner) {
+    void Reparent(JSContext *aCx, JSObject *aNewInnerArg) {
+        JS::RootedObject aNewInner(aCx, aNewInnerArg);
         for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
             
 
 
 
-            JSObject *parent = JS_GetParent(e.front().value);
-            JSObject *outer = JS_ObjectToOuterObject(aCx, parent);
+            JS::RootedObject parent(aCx, JS_GetParent(e.front().value));
+            JS::RootedObject outer(aCx, JS_ObjectToOuterObject(aCx, parent));
             if (outer) {
                 JSObject *inner = JS_ObjectToInnerObject(aCx, outer);
                 if (inner == aNewInner && inner != parent)
