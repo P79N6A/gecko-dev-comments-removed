@@ -177,5 +177,5 @@ function runTests(testAry, asyncCleanup) {
     
     ok(false, "Unexpected exception: " + ex + " With stack: " + ex.stack);
     finish();
-  });
+  }).then(null, ERROR);
 }

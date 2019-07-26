@@ -166,7 +166,7 @@ CustomizeMode.prototype = {
       this._customizing = true;
       this._transitioning = false;
       this.dispatchToolboxEvent("customizationready");
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   exit: function() {
@@ -267,7 +267,7 @@ CustomizeMode.prototype = {
       this._changed = false;
       this._transitioning = false;
       this.dispatchToolboxEvent("aftercustomization");
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   _doTransition: function(aEntering) {
@@ -325,7 +325,7 @@ CustomizeMode.prototype = {
       this.visiblePalette.appendChild(fragment);
       this._stowedPalette = this.window.gNavToolbox.palette;
       this.window.gNavToolbox.palette = this.visiblePalette;
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   
@@ -366,7 +366,7 @@ CustomizeMode.prototype = {
       }
       this.visiblePalette.hidden = false;
       this.window.gNavToolbox.palette = this._stowedPalette;
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   isCustomizableItem: function(aNode) {
@@ -509,7 +509,7 @@ CustomizeMode.prototype = {
         }
         this.areas.push(target);
       }
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   
@@ -536,7 +536,7 @@ CustomizeMode.prototype = {
   _unwrapToolbarItems: function() {
     return Task.spawn(function() {
       this._unwrapToolbarItemsSync();
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   
@@ -587,7 +587,7 @@ CustomizeMode.prototype = {
 
       this._updateResetButton();
       this._showPanelCustomizationPlaceholders();
-    }.bind(this));
+    }.bind(this)).then(null, ERROR);
   },
 
   _onToolbarVisibilityChange: function(aEvent) {
