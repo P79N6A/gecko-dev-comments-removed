@@ -58,7 +58,7 @@ private:
     
     nsHttpPipeline *QueryPipeline();
 
-    nsRefPtr<nsAHttpConnection>   mConnection;
+    nsAHttpConnection            *mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  
     nsTArray<nsAHttpTransaction*> mResponseQ; 
     nsresult                      mStatus;
