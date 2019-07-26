@@ -39,6 +39,7 @@
 #include "common/dwarf_cu_to_module.h"
 
 #include <assert.h>
+#include <cxxabi.h>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -74,6 +75,9 @@ using std::vector;
 
 struct DwarfCUToModule::Specification {
   
+  string qualified_name;
+
+  
   string enclosing_name;
 
   
@@ -94,6 +98,14 @@ typedef map<uint64, AbstractOrigin> AbstractOriginByOffset;
 
 
 struct DwarfCUToModule::FilePrivate {
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -220,6 +232,14 @@ class DwarfCUToModule::GenericDIEHandler: public dwarf2reader::DIEHandler {
 
   
   
+  
+  
+  
+  
+  string AddStringToPool(const string &str);
+
+  
+  
   bool declaration_;
 
   
@@ -230,6 +250,11 @@ class DwarfCUToModule::GenericDIEHandler: public dwarf2reader::DIEHandler {
   
   
   string name_attribute_;
+
+  
+  
+  
+  string demangled_name_;
 };
 
 void DwarfCUToModule::GenericDIEHandler::ProcessAttributeUnsigned(
@@ -273,20 +298,26 @@ void DwarfCUToModule::GenericDIEHandler::ProcessAttributeReference(
   }
 }
 
+string DwarfCUToModule::GenericDIEHandler::AddStringToPool(const string &str) {
+  pair<set<string>::iterator, bool> result =
+    cu_context_->file_context->file_private->common_strings.insert(str);
+  return *result.first;
+}
+
 void DwarfCUToModule::GenericDIEHandler::ProcessAttributeString(
     enum DwarfAttribute attr,
     enum DwarfForm form,
     const string &data) {
   switch (attr) {
-    case dwarf2reader::DW_AT_name: {
-      
-      
-      
-      
-      
-      pair<set<string>::iterator, bool> result =
-          cu_context_->file_context->file_private->common_strings.insert(data);
-      name_attribute_ = *result.first; 
+    case dwarf2reader::DW_AT_name:
+      name_attribute_ = AddStringToPool(data);
+      break;
+    case dwarf2reader::DW_AT_MIPS_linkage_name: {
+      char* demangled = abi::__cxa_demangle(data.c_str(), NULL, NULL, NULL);
+      if (demangled) {
+        demangled_name_ = AddStringToPool(demangled);
+        free(reinterpret_cast<void*>(demangled));
+      }
       break;
     }
     default: break;
@@ -296,30 +327,51 @@ void DwarfCUToModule::GenericDIEHandler::ProcessAttributeString(
 string DwarfCUToModule::GenericDIEHandler::ComputeQualifiedName() {
   
   
-  const string *unqualified_name;
-  if (name_attribute_.empty() && specification_)
-    unqualified_name = &specification_->unqualified_name;
-  else
-    unqualified_name = &name_attribute_;
+  
+  const string *qualified_name = NULL;
+  if (!demangled_name_.empty()) {
+    
+    qualified_name = &demangled_name_;
+  } else if (specification_ && !specification_->qualified_name.empty()) {
+    
+    qualified_name = &specification_->qualified_name;
+  }
 
-  
-  
-  
+  const string *unqualified_name;
   const string *enclosing_name;
-  if (specification_)
-    enclosing_name = &specification_->enclosing_name;
-  else
-    enclosing_name = &parent_context_->name;
+  if (!qualified_name) {
+    
+    
+    if (name_attribute_.empty() && specification_)
+      unqualified_name = &specification_->unqualified_name;
+    else
+      unqualified_name = &name_attribute_;
+
+    
+    
+    
+    if (specification_)
+      enclosing_name = &specification_->enclosing_name;
+    else
+      enclosing_name = &parent_context_->name;
+  }
 
   
   
   if (declaration_) {
     FileContext *file_context = cu_context_->file_context;
     Specification spec;
-    spec.enclosing_name = *enclosing_name;
-    spec.unqualified_name = *unqualified_name;
+    if (qualified_name)
+      spec.qualified_name = *qualified_name;
+    else {
+      spec.enclosing_name = *enclosing_name;
+      spec.unqualified_name = *unqualified_name;
+    }
     file_context->file_private->specifications[offset_] = spec;
   }
+
+  if (qualified_name)
+    return *qualified_name;
 
   
   
@@ -474,7 +526,7 @@ bool DwarfCUToModule::NamedScopeHandler::EndAttributes() {
 dwarf2reader::DIEHandler *DwarfCUToModule::NamedScopeHandler::FindChildHandler(
     uint64 offset,
     enum DwarfTag tag,
-    const AttributeList &attrs) {
+    const AttributeList &) {
   switch (tag) {
     case dwarf2reader::DW_TAG_subprogram:
       return new FuncHandler(cu_context_, &child_context_, offset);
@@ -616,7 +668,7 @@ bool DwarfCUToModule::EndAttributes() {
 dwarf2reader::DIEHandler *DwarfCUToModule::FindChildHandler(
     uint64 offset,
     enum DwarfTag tag,
-    const AttributeList &attrs) {
+    const AttributeList &) {
   switch (tag) {
     case dwarf2reader::DW_TAG_subprogram:
       return new FuncHandler(cu_context_, child_context_, offset);
@@ -927,7 +979,7 @@ bool DwarfCUToModule::StartCompilationUnit(uint64 offset,
 }
 
 bool DwarfCUToModule::StartRootDIE(uint64 offset, enum DwarfTag tag,
-                                   const AttributeList& attrs) {
+                                   const AttributeList& ) {
   
   
   return tag == dwarf2reader::DW_TAG_compile_unit;

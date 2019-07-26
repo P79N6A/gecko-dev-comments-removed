@@ -475,8 +475,6 @@ void ReadImageInfo(DynamicImages& images,
                          mach_header_bytes) != KERN_SUCCESS)
         continue;
 
-      header = reinterpret_cast<mach_header_type*>(&mach_header_bytes[0]);
-
       
       string file_path;
       if (info.file_path_) {

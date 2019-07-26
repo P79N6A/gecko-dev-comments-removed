@@ -35,6 +35,7 @@
 #define COMMON_MAC_MACHO_ID_H__
 
 #include <limits.h>
+#include <mach/machine.h>
 #include <mach-o/loader.h>
 
 #include "common/mac/macho_walker.h"
@@ -50,20 +51,30 @@ class MachoID {
 
   
   
-  bool UUIDCommand(int cpu_type, unsigned char identifier[16]);
+  
+  bool UUIDCommand(cpu_type_t cpu_type,
+                   cpu_subtype_t cpu_subtype,
+                   unsigned char identifier[16]);
 
   
   
-  bool IDCommand(int cpu_type, unsigned char identifier[16]);
+  
+  bool IDCommand(cpu_type_t cpu_type,
+                 cpu_subtype_t cpu_subtype,
+                 unsigned char identifier[16]);
 
   
   
   
-  uint32_t Adler32(int cpu_type);
+  uint32_t Adler32(cpu_type_t cpu_type,
+                   cpu_subtype_t cpu_subtype);
 
   
   
-  bool MD5(int cpu_type, unsigned char identifier[16]);
+  
+  bool MD5(cpu_type_t cpu_type,
+           cpu_subtype_t cpu_subtype,
+           unsigned char identifier[16]);
 
  private:
   
@@ -81,8 +92,8 @@ class MachoID {
   void Update(MachoWalker *walker, off_t offset, size_t size);
 
   
-  bool WalkHeader(int cpu_type, MachoWalker::LoadCommandCallback callback,
-                  void *context);
+  bool WalkHeader(cpu_type_t cpu_type, cpu_subtype_t cpu_subtype,
+                  MachoWalker::LoadCommandCallback callback, void *context);
 
   
   static bool WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,

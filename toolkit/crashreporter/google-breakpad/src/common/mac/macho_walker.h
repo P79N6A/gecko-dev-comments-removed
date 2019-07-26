@@ -34,6 +34,7 @@
 #ifndef COMMON_MAC_MACHO_WALKER_H__
 #define COMMON_MAC_MACHO_WALKER_H__
 
+#include <mach/machine.h>
 #include <mach-o/loader.h>
 #include <sys/types.h>
 
@@ -61,11 +62,9 @@ class MachoWalker {
   
   
   
-  bool WalkHeader(int cpu_type);
-
   
   
-  bool FindHeader(int cpu_type, off_t &offset);
+  bool WalkHeader(cpu_type_t cpu_type, cpu_subtype_t cpu_subtype);
 
   
   bool ReadBytes(void *buffer, size_t size, off_t offset);
@@ -75,7 +74,10 @@ class MachoWalker {
 
  private:
   
-  int ValidateCPUType(int cpu_type);
+  
+  bool FindHeader(cpu_type_t cpu_type,
+                  cpu_subtype_t cpu_subtype,
+                  off_t &offset);
 
   
   
