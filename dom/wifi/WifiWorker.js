@@ -2038,6 +2038,10 @@ function WifiWorker() {
               flags = match[4];
 
           
+          if (flags.indexOf("[IBSS]") >= 0)
+            continue;
+
+          
           
           
           let network = new ScanResult(ssid, bssid, flags, signalLevel);
