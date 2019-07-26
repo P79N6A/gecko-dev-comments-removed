@@ -272,7 +272,7 @@ public:
 
 
 
-  nsZipCursor(nsZipItem *aItem, nsZipArchive *aZip, uint8_t* aBuf = NULL, uint32_t aBufSize = 0, bool doCRC = false);
+  nsZipCursor(nsZipItem *aItem, nsZipArchive *aZip, uint8_t* aBuf = nullptr, uint32_t aBufSize = 0, bool doCRC = false);
 
   ~nsZipCursor();
 
@@ -360,15 +360,15 @@ public:
 
   T* Forget() {
     if (!mReturnBuf)
-      return NULL;
+      return nullptr;
     
     if (mAutoBuf.get() == mReturnBuf) {
-      mReturnBuf = NULL;
+      mReturnBuf = nullptr;
       return (T*) mAutoBuf.forget();
     }
     T *ret = (T*) malloc(Length());
     memcpy(ret, mReturnBuf, Length());
-    mReturnBuf = NULL;
+    mReturnBuf = nullptr;
     return ret;
   }
 };
