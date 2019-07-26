@@ -337,30 +337,6 @@ public:
   }
 };
 
-class nsDOMMutationObserverSH : public nsDOMGenericSH
-{
-protected:
-  nsDOMMutationObserverSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
-  {
-  }
-
-  virtual ~nsDOMMutationObserverSH()
-  {
-  }
-public:
-  NS_IMETHOD PreCreate(nsISupports* aNativeObj, JSContext* aCx,
-                       JSObject* aGlobalObj, JSObject** aParentObj);
-  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative* aWrapper, JSContext* aCx,
-                         JSObject* aObj, jsid aId, jsval* aVp, bool* aRetval);
-
-  virtual void PreserveWrapper(nsISupports* aNative);
-
-  static nsIClassInfo* doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsDOMMutationObserverSH(aData);
-  }
-};
-
 
 
 class nsWindowSH : public nsDOMGenericSH
@@ -1222,24 +1198,6 @@ public:
   }
 
   virtual ~nsEventListenerThisTranslator()
-  {
-  }
-
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSIXPCFUNCTIONTHISTRANSLATOR
-};
-
-class nsMutationCallbackThisTranslator : public nsIXPCFunctionThisTranslator
-{
-public:
-  nsMutationCallbackThisTranslator()
-  {
-  }
-
-  virtual ~nsMutationCallbackThisTranslator()
   {
   }
 
