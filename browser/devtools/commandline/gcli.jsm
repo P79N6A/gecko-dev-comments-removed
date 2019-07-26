@@ -5469,7 +5469,7 @@ function Requisition(environment, doc) {
   
   
   this.commandAssignment = new CommandAssignment();
-  this._setAssignment(this.commandAssignment, null, true);
+  this.setAssignment(this.commandAssignment, null);
 
   
   
@@ -5556,7 +5556,7 @@ Requisition.prototype._commandAssignmentChanged = function(ev) {
     for (var i = 0; i < command.params.length; i++) {
       var param = command.params[i];
       var assignment = new Assignment(param, i);
-      this._setAssignment(assignment, null, true);
+      this.setAssignment(assignment, null);
       assignment.onAssignmentChange.add(this._assignmentChanged, this);
       this._assignments[param.name] = assignment;
     }
@@ -5684,9 +5684,6 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 
-Requisition.prototype.setAssignment = function(assignment, arg) {
-  this._setAssignment(assignment, arg, false);
-};
 
 
 
@@ -5695,10 +5692,9 @@ Requisition.prototype.setAssignment = function(assignment, arg) {
 
 
 
-
-
-Requisition.prototype._setAssignment = function(assignment, arg, skipArgUpdate) {
-  if (!skipArgUpdate) {
+Requisition.prototype.setAssignment = function(assignment, arg, options) {
+  options = options || {};
+  if (options.argUpdate) {
     var originalArgs = assignment.arg.getArgs();
 
     
@@ -5724,6 +5720,16 @@ Requisition.prototype._setAssignment = function(assignment, arg, skipArgUpdate) 
         this._args.splice(index, 1);
       }
       else {
+        if (options.matchPadding) {
+          if (replacementArgs[i].prefix.length === 0 &&
+              this._args[index].prefix.length !== 0) {
+            replacementArgs[i].prefix = this._args[index].prefix;
+          }
+          if (replacementArgs[i].suffix.length === 0 &&
+              this._args[index].suffix.length !== 0) {
+            replacementArgs[i].suffix = this._args[index].suffix;
+          }
+        }
         this._args[index] = replacementArgs[i];
       }
     }
@@ -5761,7 +5767,7 @@ Requisition.prototype._setAssignment = function(assignment, arg, skipArgUpdate) 
 
 Requisition.prototype.setBlankArguments = function() {
   this.getAssignments().forEach(function(assignment) {
-    this._setAssignment(assignment, null, true);
+    this.setAssignment(assignment, null);
   }, this);
 };
 
@@ -5801,13 +5807,13 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
     
     if (assignment.isInName()) {
       var newArg = assignment.conversion.arg.beget({ prefixPostSpace: true });
-      this.setAssignment(assignment, newArg);
+      this.setAssignment(assignment, newArg, { argUpdate: true });
     }
   }
   else {
     
     var arg = assignment.arg.beget({ text: prediction.name });
-    this.setAssignment(assignment, arg);
+    this.setAssignment(assignment, arg, { argUpdate: true });
 
     if (!prediction.incomplete) {
       
@@ -5832,7 +5838,7 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
 Requisition.prototype._addSpace = function(assignment) {
   var arg = assignment.conversion.arg.beget({ suffixSpace: true });
   if (arg !== assignment.conversion.arg) {
-    this.setAssignment(assignment, arg);
+    this.setAssignment(assignment, arg, { argUpdate: true });
   }
 };
 
@@ -5844,7 +5850,7 @@ Requisition.prototype.decrement = function(assignment) {
   if (replacement != null) {
     var str = assignment.param.type.stringify(replacement);
     var arg = assignment.conversion.arg.beget({ text: str });
-    this.setAssignment(assignment, arg);
+    this.setAssignment(assignment, arg, { argUpdate: true });
   }
 };
 
@@ -5856,7 +5862,7 @@ Requisition.prototype.increment = function(assignment) {
   if (replacement != null) {
     var str = assignment.param.type.stringify(replacement);
     var arg = assignment.conversion.arg.beget({ text: str });
-    this.setAssignment(assignment, arg);
+    this.setAssignment(assignment, arg, { argUpdate: true });
   }
 };
 
@@ -6514,7 +6520,7 @@ Requisition.prototype._split = function(args) {
     
     
     conversion = new Conversion(evalCommand, new ScriptArgument());
-    this._setAssignment(this.commandAssignment, conversion, true);
+    this.setAssignment(this.commandAssignment, conversion);
     return;
   }
 
@@ -6541,7 +6547,7 @@ Requisition.prototype._split = function(args) {
     argsUsed++;
   }
 
-  this._setAssignment(this.commandAssignment, conversion, true);
+  this.setAssignment(this.commandAssignment, conversion);
 
   for (var i = 0; i < argsUsed; i++) {
     args.shift();
@@ -6588,7 +6594,7 @@ Requisition.prototype._assign = function(args) {
     var assignment = this.getAssignment(0);
     if (assignment.param.type instanceof StringType) {
       var arg = (args.length === 1) ? args[0] : new MergedArgument(args);
-      this._setAssignment(assignment, arg, true);
+      this.setAssignment(assignment, arg);
       return;
     }
   }
@@ -6633,7 +6639,7 @@ Requisition.prototype._assign = function(args) {
           arrayArg.addArgument(arg);
         }
         else {
-          this._setAssignment(assignment, arg, true);
+          this.setAssignment(assignment, arg);
         }
       }
       else {
@@ -6650,7 +6656,7 @@ Requisition.prototype._assign = function(args) {
     
     
     if (!assignment.param.isPositionalAllowed) {
-      this._setAssignment(assignment, null, true);
+      this.setAssignment(assignment, null);
       return;
     }
 
@@ -6667,7 +6673,7 @@ Requisition.prototype._assign = function(args) {
     }
     else {
       if (args.length === 0) {
-        this._setAssignment(assignment, null, true);
+        this.setAssignment(assignment, null);
       }
       else {
         var arg = args.splice(0, 1)[0];
@@ -6681,7 +6687,7 @@ Requisition.prototype._assign = function(args) {
           this._unassigned.push(new UnassignedAssignment(this, arg));
         }
         else {
-          this._setAssignment(assignment, arg, true);
+          this.setAssignment(assignment, arg);
         }
       }
     }
@@ -6690,7 +6696,7 @@ Requisition.prototype._assign = function(args) {
   
   Object.keys(arrayArgs).forEach(function(name) {
     var assignment = this.getAssignment(name);
-    this._setAssignment(assignment, arrayArgs[name], true);
+    this.setAssignment(assignment, arrayArgs[name]);
   }, this);
 
   
@@ -8066,8 +8072,10 @@ JavascriptField.prototype.setConversion = function(conversion) {
 };
 
 JavascriptField.prototype.itemClicked = function(ev) {
-  this.onFieldChange(ev);
-  this.setMessage(ev.conversion.message);
+  var conversion = this.type.parse(ev.arg);
+
+  this.onFieldChange({ conversion: conversion });
+  this.setMessage(conversion.message);
 };
 
 JavascriptField.prototype.onInputChange = function(ev) {
@@ -8180,12 +8188,11 @@ Menu.prototype.destroy = function() {
 
 
 Menu.prototype.onItemClickInternal = function(ev) {
-  var name = ev.currentTarget.querySelector('.gcli-menu-name').innerHTML;
+  var name = ev.currentTarget.querySelector('.gcli-menu-name').textContent;
   var arg = new Argument(name);
   arg.suffix = ' ';
 
-  var conversion = this.type.parse(arg);
-  this.onItemClick({ conversion: conversion });
+  this.onItemClick({ arg: arg });
 };
 
 
@@ -8201,7 +8208,7 @@ Menu.prototype.show = function(items, match) {
 
   if (match) {
     this.items = this.items.map(function(item) {
-      return gethighlightingProxy(item, match, this.template.ownerDocument);
+      return getHighlightingProxy(item, match, this.template.ownerDocument);
     }.bind(this));
   }
 
@@ -8227,7 +8234,7 @@ Menu.prototype.show = function(items, match) {
 
 
 
-function gethighlightingProxy(item, match, document) {
+function getHighlightingProxy(item, match, document) {
   if (typeof Proxy === 'undefined') {
     return item;
   }
@@ -8289,12 +8296,12 @@ Menu.prototype.selectChoice = function() {
     return false;
   }
 
-  var name = selected.innerHTML;
+  var name = selected.textContent;
   var arg = new Argument(name);
   arg.suffix = ' ';
+  arg.prefix = ' ';
 
-  var conversion = this.type.parse(arg);
-  this.onItemClick({ conversion: conversion });
+  this.onItemClick({ arg: arg });
   return true;
 };
 
@@ -8498,8 +8505,10 @@ SelectionTooltipField.prototype.setConversion = function(conversion) {
 };
 
 SelectionTooltipField.prototype.itemClicked = function(ev) {
-  this.onFieldChange(ev);
-  this.setMessage(ev.conversion.message);
+  var conversion = this.type.parse(ev.arg);
+
+  this.onFieldChange({ conversion: conversion });
+  this.setMessage(conversion.message);
 };
 
 SelectionTooltipField.prototype.onInputChange = function(ev) {
@@ -10340,7 +10349,8 @@ Tooltip.prototype.selectChoice = function(ev) {
 
 
 Tooltip.prototype.fieldChanged = function(ev) {
-  this.requisition.setAssignment(this.assignment, ev.conversion.arg);
+  var options = { argUpdate: true, matchPadding: true };
+  this.requisition.setAssignment(this.assignment, ev.conversion.arg, options);
 
   var isError = ev.conversion.message != null && ev.conversion.message !== '';
   this.focusManager.setError(isError);
