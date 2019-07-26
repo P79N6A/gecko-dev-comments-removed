@@ -144,6 +144,8 @@ static nsAutoPtr<RawDBusConnection> gThreadConnection;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sPairingReqTable;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sAuthorizeReqTable;
 static PRInt32 sIsPairing = 0;
+static nsString sAdapterPath;
+
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
 
 class RemoveDeviceTask : public nsRunnable {
@@ -778,6 +780,22 @@ BluetoothDBusService::AddReservedServicesInternal(const nsAString& aAdapterPath,
 
   ExtractHandles(reply, aServiceHandlesContainer);
   return true;
+}
+
+void
+BluetoothDBusService::DisconnectAllAcls(const nsAString& aAdapterPath)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  DBusMessage* reply =
+    dbus_func_args(gThreadConnection->GetConnection(),
+                   NS_ConvertUTF16toUTF8(aAdapterPath).get(),
+                   DBUS_ADAPTER_IFACE, "DisconnectAllConnections",
+                   DBUS_TYPE_INVALID);
+
+  if (reply) {
+    dbus_message_unref(reply);
+  }
 }
 
 class PrepareProfileManagersRunnable : public nsRunnable
@@ -1653,7 +1671,10 @@ BluetoothDBusService::StopInternal()
   
   MOZ_ASSERT(!NS_IsMainThread());
 
-  NS_DispatchToMainThread(new ShutdownProfileManagersRunnable());
+  
+  
+  
+  DisconnectAllAcls(sAdapterPath);
 
   if (!mConnection) {
     StopDBus();
@@ -2408,6 +2429,9 @@ BluetoothDBusService::PrepareAdapterInternal(const nsAString& aPath)
     NS_ERROR("Bluetooth service not started yet!");
     return NS_ERROR_FAILURE;
   }
+
+  
+  sAdapterPath = aPath;
 
   nsRefPtr<nsRunnable> func(new PrepareAdapterRunnable(aPath));
   if (NS_FAILED(mBluetoothCommandThread->Dispatch(func, NS_DISPATCH_NORMAL))) {
