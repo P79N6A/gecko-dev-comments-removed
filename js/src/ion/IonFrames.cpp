@@ -509,7 +509,7 @@ MarkIonExitFrame(JSTracer *trc, const IonFrameIterator &frame)
     
     
     if (footer->ionCode() == NULL) {
-        size_t len = frame.numActualArgs();
+        size_t len = frame.numActualArgs() + 2;
         Value *vp = frame.exitFrame()->nativeVp();
         gc::MarkValueRootRange(trc, len, vp, "ion-native-args");
         return;
