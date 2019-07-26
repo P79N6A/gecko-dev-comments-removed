@@ -8,12 +8,10 @@
 
 #include "nsDOMEventTargetHelper.h"
 #include "nsIDOMMozCellBroadcast.h"
-#include "nsIRadioInterfaceLayer.h"
+#include "nsICellBroadcastProvider.h"
 #include "mozilla/Attributes.h"
 
 class nsPIDOMWindow;
-
-class nsIRILContentHelper;
 
 namespace mozilla {
 namespace dom {
@@ -21,31 +19,30 @@ namespace dom {
 class CellBroadcast MOZ_FINAL : public nsDOMEventTargetHelper
                               , public nsIDOMMozCellBroadcast
 {
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMMOZCELLBROADCAST
-
   
 
 
 
 
 
-  NS_DECL_NSIRILCELLBROADCASTCALLBACK
+
+  class Listener;
+
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIDOMMOZCELLBROADCAST
+  NS_DECL_NSICELLBROADCASTLISTENER
 
   NS_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper::)
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CellBroadcast,
-                                           nsDOMEventTargetHelper)
-
   CellBroadcast() MOZ_DELETE;
   CellBroadcast(nsPIDOMWindow *aWindow,
-                nsIRILContentHelper* aRIL);
+                nsICellBroadcastProvider* aProvider);
   ~CellBroadcast();
 
 private:
-  nsCOMPtr<nsIRILContentHelper> mRIL;
-  nsCOMPtr<nsIRILCellBroadcastCallback> mCallback;
+  nsCOMPtr<nsICellBroadcastProvider> mProvider;
+  nsRefPtr<Listener> mListener;
 };
 
 } 
