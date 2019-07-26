@@ -1332,6 +1332,8 @@ MediaManager::GetUserMedia(bool aPrivileged,
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> onSuccess(aOnSuccess);
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> onError(aOnError);
 
+  MediaStreamConstraints c(aConstraints); 
+
   
 
 
@@ -1391,8 +1393,6 @@ MediaManager::GetUserMedia(bool aPrivileged,
 
   
   listeners->AppendElement(listener);
-
-  MediaStreamConstraints c(aConstraints); 
 
   
   if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
