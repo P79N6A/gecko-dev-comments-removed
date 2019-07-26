@@ -502,6 +502,20 @@ Promise::Constructor(const GlobalObject& aGlobal,
 Promise::Resolve(const GlobalObject& aGlobal, JSContext* aCx,
                  const Optional<JS::Handle<JS::Value>>& aValue, ErrorResult& aRv)
 {
+  
+  JS::Rooted<JS::Value> value(aCx, aValue.WasPassed() ? aValue.Value() :
+                                                        JS::UndefinedValue());
+  if (value.isObject()) {
+    JS::Rooted<JSObject*> valueObj(aCx, &value.toObject());
+    Promise* nextPromise;
+    nsresult rv = UNWRAP_OBJECT(Promise, valueObj, nextPromise);
+
+    if (NS_SUCCEEDED(rv)) {
+      nsRefPtr<Promise> addRefed = nextPromise;
+      return addRefed.forget();
+    }
+  }
+
   nsCOMPtr<nsPIDOMWindow> window;
   if (MOZ_LIKELY(NS_IsMainThread())) {
     window = do_QueryInterface(aGlobal.GetAsSupports());
@@ -511,14 +525,12 @@ Promise::Resolve(const GlobalObject& aGlobal, JSContext* aCx,
     }
   }
 
-  return Resolve(window, aCx,
-                 aValue.WasPassed() ? aValue.Value() : JS::UndefinedHandleValue,
-                 aRv);
+  return Resolve(window, aCx, value, aRv);
 }
 
  already_AddRefed<Promise>
 Promise::Resolve(nsPIDOMWindow* aWindow, JSContext* aCx,
-                JS::Handle<JS::Value> aValue, ErrorResult& aRv)
+                 JS::Handle<JS::Value> aValue, ErrorResult& aRv)
 {
   
   nsRefPtr<Promise> promise = new Promise(aWindow);
@@ -736,7 +748,7 @@ Promise::All(const GlobalObject& aGlobal, JSContext* aCx,
 
   for (uint32_t i = 0; i < aIterable.Length(); ++i) {
     Optional<JS::Handle<JS::Value>> optValue(aCx, aIterable.ElementAt(i));
-    nsRefPtr<Promise> nextPromise = Promise::Cast(aGlobal, aCx, optValue, aRv);
+    nsRefPtr<Promise> nextPromise = Promise::Resolve(aGlobal, aCx, optValue, aRv);
 
     MOZ_ASSERT(!aRv.Failed());
 
@@ -751,27 +763,6 @@ Promise::All(const GlobalObject& aGlobal, JSContext* aCx,
   }
 
   return promise.forget();
-}
-
- already_AddRefed<Promise>
-Promise::Cast(const GlobalObject& aGlobal, JSContext* aCx,
-              const Optional<JS::Handle<JS::Value>>& aValue, ErrorResult& aRv)
-{
-  
-  JS::Rooted<JS::Value> value(aCx, aValue.WasPassed() ? aValue.Value() :
-                                                        JS::UndefinedValue());
-  if (value.isObject()) {
-    JS::Rooted<JSObject*> valueObj(aCx, &value.toObject());
-    Promise* nextPromise;
-    nsresult rv = UNWRAP_OBJECT(Promise, valueObj, nextPromise);
-
-    if (NS_SUCCEEDED(rv)) {
-      nsRefPtr<Promise> addRefed = nextPromise;
-      return addRefed.forget();
-    }
-  }
-
-  return Promise::Resolve(aGlobal, aCx, aValue, aRv);
 }
 
  already_AddRefed<Promise>
@@ -793,7 +784,9 @@ Promise::Race(const GlobalObject& aGlobal, JSContext* aCx,
 
   for (uint32_t i = 0; i < aIterable.Length(); ++i) {
     Optional<JS::Handle<JS::Value>> optValue(aCx, aIterable.ElementAt(i));
-    nsRefPtr<Promise> nextPromise = Promise::Cast(aGlobal, aCx, optValue, aRv);
+    nsRefPtr<Promise> nextPromise = Promise::Resolve(aGlobal, aCx, optValue, aRv);
+    
+    
     
     
     MOZ_ASSERT(!aRv.Failed());
