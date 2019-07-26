@@ -29,7 +29,7 @@ WebGLContext::DrawInstanced_check(const char* info)
 {
     
     if (!IsWebGL2() &&
-        IsExtensionEnabled(ANGLE_instanced_arrays) &&
+        IsExtensionEnabled(WebGLExtensionID::ANGLE_instanced_arrays) &&
         !mBufferFetchingHasPerVertex)
     {
         
@@ -194,7 +194,7 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type,
         checked_byteCount = count;
         first = byteOffset;
     }
-    else if (type == LOCAL_GL_UNSIGNED_INT && IsExtensionEnabled(OES_element_index_uint)) {
+    else if (type == LOCAL_GL_UNSIGNED_INT && IsExtensionEnabled(WebGLExtensionID::OES_element_index_uint)) {
         checked_byteCount = 4 * CheckedUint32(count);
         if (byteOffset % 4 != 0) {
             ErrorInvalidOperation("%s: invalid byteOffset for UNSIGNED_INT (must be a multiple of 4)", info);
