@@ -816,7 +816,9 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
     
     case gif_netscape_extension_block:
       if (*q)
-        GETN(*q, gif_consume_netscape_extension);
+        
+        
+        GETN(std::max(3, static_cast<int>(*q)), gif_consume_netscape_extension);
       else
         GETN(1, gif_image_start);
       break;
@@ -830,7 +832,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
           mGIFStruct.loop_count = GETINT16(q + 1);
           GETN(1, gif_netscape_extension_block);
           break;
-        
+
         case 2:
           
           
@@ -838,7 +840,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
           
           GETN(1, gif_netscape_extension_block);
           break;
-  
+
         default:
           
           mGIFStruct.state = gif_error;
