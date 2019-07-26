@@ -1,6 +1,6 @@
-/* vim: set ts=2 et sw=2 tw=80: */
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+
+
+
 
 "use strict";
 
@@ -8,6 +8,7 @@ const HOST = 'mochi.test:8888';
 const URI  = "http://" + HOST + "/browser/browser/devtools/sourceeditor/test/codemirror.html";
 
 function test() {
+  requestLongerTimeout(2);
   waitForExplicitFinish();
 
   let tab = gBrowser.addTab();
