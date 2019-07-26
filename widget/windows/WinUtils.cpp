@@ -770,12 +770,15 @@ AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
 
     dataSurface->Unmap();
   } else {
-    size.width = GetSystemMetrics(SM_CXSMICON);
-    size.height = GetSystemMetrics(SM_CYSMICON);
-    if (!size.width || !size.height) {
-      size.width = 16;
-      size.height = 16;
-    }
+    
+    
+    
+    
+    
+    
+    
+    size.width = surface->GetSize().width;
+    size.height = surface->GetSize().height;
     dataSurface = surface->GetDataSurface();
   }
 
@@ -823,11 +826,6 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run()
 {
   NS_PRECONDITION(!NS_IsMainThread(), "Should not be called on the main thread.");
 
-  
-  
-  
-  
-  
   nsCOMPtr<nsIInputStream> iconStream;
   nsRefPtr<imgIEncoder> encoder =
     do_CreateInstance("@mozilla.org/image/encoder;2?"
