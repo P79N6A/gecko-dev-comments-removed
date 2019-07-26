@@ -110,9 +110,11 @@ SVGFEImageFrame::Init(nsIContent* aContent,
     do_QueryInterface(SVGFEImageFrameBase::mContent);
 
   if (imageLoader) {
-    imageLoader->FrameCreated(this);
+    
+    
     
     imageLoader->IncrementVisibleCount();
+    imageLoader->FrameCreated(this);
   }
 }
 
