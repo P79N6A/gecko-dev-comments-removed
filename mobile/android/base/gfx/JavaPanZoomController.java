@@ -66,6 +66,9 @@ class JavaPanZoomController
     
     private static final float MAX_SCROLL = 0.075f * GeckoAppShell.getDpi();
 
+    
+    private static final float MAX_ZOOM_DELTA = 0.125f;
+
     private enum PanZoomState {
         NOTHING,        
         FLING,          
@@ -104,6 +107,8 @@ class JavaPanZoomController
     private long mLastEventTime;
     
     private PanZoomState mState;
+    
+    private float mAutonavZoomDelta;
 
     public JavaPanZoomController(PanZoomTarget target, View view, EventDispatcher eventDispatcher) {
         mTarget = target;
@@ -252,7 +257,7 @@ class JavaPanZoomController
             break;
         case InputDevice.SOURCE_CLASS_JOYSTICK:
             switch (event.getAction() & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_MOVE: return handleJoystickScroll(event);
+            case MotionEvent.ACTION_MOVE: return handleJoystickNav(event);
             }
             break;
         }
@@ -502,24 +507,36 @@ class JavaPanZoomController
         return false;
     }
 
-    private float normalizeJoystick(float value, InputDevice.MotionRange range) {
+    private float filterDeadZone(float value, InputDevice.MotionRange range) {
         
         
         
         if (Math.abs(value) < 1e-2) {
             return 0;
         }
+        return value;
+    }
+
+    private float normalizeJoystickScroll(float value, InputDevice.MotionRange range) {
+        return filterDeadZone(value, range) * MAX_SCROLL;
+    }
+
+    private float normalizeJoystickZoom(float value, InputDevice.MotionRange range) {
         
-        return value * MAX_SCROLL;
+        return filterDeadZone(value, range) * -MAX_ZOOM_DELTA;
     }
 
     
     
-    private boolean handleJoystickScroll(MotionEvent event) {
-        float velocityX = normalizeJoystick(event.getX(0), event.getDevice().getMotionRange(MotionEvent.AXIS_X));
-        float velocityY = normalizeJoystick(event.getY(0), event.getDevice().getMotionRange(MotionEvent.AXIS_Y));
+    private boolean handleJoystickNav(MotionEvent event) {
+        float velocityX = normalizeJoystickScroll(event.getAxisValue(MotionEvent.AXIS_X),
+                                                  event.getDevice().getMotionRange(MotionEvent.AXIS_X));
+        float velocityY = normalizeJoystickScroll(event.getAxisValue(MotionEvent.AXIS_Y),
+                                                  event.getDevice().getMotionRange(MotionEvent.AXIS_Y));
+        float zoomDelta = normalizeJoystickZoom(event.getAxisValue(MotionEvent.AXIS_RZ),
+                                                event.getDevice().getMotionRange(MotionEvent.AXIS_RZ));
 
-        if (velocityX == 0 && velocityY == 0) {
+        if (velocityX == 0 && velocityY == 0 && zoomDelta == 0) {
             if (mState == PanZoomState.AUTONAV) {
                 bounce(); 
                 return true;
@@ -534,6 +551,7 @@ class JavaPanZoomController
         if (mState == PanZoomState.AUTONAV) {
             mX.setAutoscrollVelocity(velocityX);
             mY.setAutoscrollVelocity(velocityY);
+            mAutonavZoomDelta = zoomDelta;
             return true;
         }
         return false;
@@ -755,6 +773,9 @@ class JavaPanZoomController
             }
 
             updatePosition();
+            synchronized (mTarget.getLock()) {
+                mTarget.setViewportMetrics(applyZoomDelta(getMetrics(), mAutonavZoomDelta));
+            }
         }
     }
 
@@ -1031,17 +1052,22 @@ class JavaPanZoomController
         return true;
     }
 
+    private ImmutableViewportMetrics applyZoomDelta(ImmutableViewportMetrics metrics, float zoomDelta) {
+        float oldZoom = metrics.zoomFactor;
+        float newZoom = oldZoom + zoomDelta;
+        float adjustedZoom = getAdjustedZoomFactor(newZoom / oldZoom);
+        
+        PointF center = new PointF(metrics.getWidth() / 2.0f, metrics.getHeight() / 2.0f);
+        metrics = metrics.scaleTo(adjustedZoom, center);
+        return metrics;
+    }
+
     private boolean animatedScale(float zoomDelta) {
         if (mState != PanZoomState.NOTHING && mState != PanZoomState.BOUNCE) {
             return false;
         }
         synchronized (mTarget.getLock()) {
-            ImmutableViewportMetrics metrics = getMetrics();
-            float oldZoom = metrics.zoomFactor;
-            float newZoom = oldZoom + zoomDelta;
-            float adjustedZoom = getAdjustedZoomFactor(newZoom / oldZoom);
-            PointF center = new PointF(metrics.getWidth() / 2.0f, metrics.getHeight() / 2.0f);
-            metrics = metrics.scaleTo(adjustedZoom, center);
+            ImmutableViewportMetrics metrics = applyZoomDelta(getMetrics(), zoomDelta);
             bounce(getValidViewportMetrics(metrics), PanZoomState.BOUNCE);
         }
         return true;
