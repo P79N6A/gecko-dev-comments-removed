@@ -72,6 +72,16 @@ function PromiseWorker(url, log) {
 
 
   this._id = 0;
+
+  
+
+
+  this.launchTimeStamp = null;
+
+  
+
+
+  this.workerTimeStamps = null;
 }
 PromiseWorker.prototype = {
   
@@ -84,6 +94,10 @@ PromiseWorker.prototype = {
     Object.defineProperty(this, "_worker", {value:
       worker
     });
+
+    
+    
+    this.launchTimeStamp = Date.now();
 
     
 
@@ -128,6 +142,9 @@ PromiseWorker.prototype = {
       if (data.id != handler.id) {
         throw new Error("Internal error: expecting msg " + handler.id + ", " +
                         " got " + data.id + ": " + JSON.stringify(msg.data));
+      }
+      if ("timeStamps" in data) {
+        self.workerTimeStamps = data.timeStamps;
       }
       if ("ok" in data) {
         
