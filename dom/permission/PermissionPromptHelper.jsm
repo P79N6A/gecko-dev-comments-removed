@@ -49,13 +49,13 @@ var secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].getService(Ci.nsIScriptS
 var appsService = Cc["@mozilla.org/AppsService;1"].getService(Ci.nsIAppsService);
 
 this.PermissionPromptHelper = {
-  init: function() {
+  init: function init() {
     debug("Init");
     ppmm.addMessageListener("PermissionPromptHelper:AskPermission", this);
     Services.obs.addObserver(this, "profile-before-change", false);
   },
 
-  askPermission: function(aMessage, aCallbacks) {
+  askPermission: function askPermission(aMessage, aCallbacks) {
     let msg = aMessage.json;
 
     let access;
@@ -63,33 +63,33 @@ this.PermissionPromptHelper = {
       access = "readwrite"; 
     }
     
-    var expandedPerms = expandPermissions(msg.type, access);
-    let installedPerms = [];
+    var expandedPermNames = expandPermissions(msg.type, access);
+    let installedPermValues = [];
     let principal;
 
-    for (let idx in expandedPerms) {
+    for (let idx in expandedPermNames) {
       let uri = Services.io.newURI(msg.origin, null, null);
       principal =
         secMan.getAppCodebasePrincipal(uri, msg.appID, msg.browserFlag);
       let access = msg.access ? msg.type + "-" + msg.access : msg.type;
-      let perm =
+      let permValue =
         permissionManager.testExactPermissionFromPrincipal(principal, access);
-      installedPerms.push(perm);
+      installedPermValues.push(permValue);
     }
 
     
     
-    for (let idx in installedPerms) {
+    for (let idx in installedPermValues) {
       
-      if (installedPerms[idx] == Ci.nsIPermissionManager.DENY_ACTION ||
-          installedPerms[idx] == Ci.nsIPermissionManager.UNKNOWN_ACTION) {
+      if (installedPermValues[idx] == Ci.nsIPermissionManager.DENY_ACTION ||
+          installedPermValues[idx] == Ci.nsIPermissionManager.UNKNOWN_ACTION) {
         aCallbacks.cancel();
         return;
       }
     }
 
-    for (let idx in installedPerms) {
-      if (installedPerms[idx] == Ci.nsIPermissionManager.PROMPT_ACTION) {
+    for (let idx in installedPermValues) {
+      if (installedPermValues[idx] == Ci.nsIPermissionManager.PROMPT_ACTION) {
         
         let request = {
           type: msg.type,
@@ -105,21 +105,21 @@ this.PermissionPromptHelper = {
       }
     }
 
-    for (let idx in installedPerms) {
-      if (installedPerms[idx] == Ci.nsIPermissionManager.ALLOW_ACTION) {
+    for (let idx in installedPermValues) {
+      if (installedPermValues[idx] == Ci.nsIPermissionManager.ALLOW_ACTION) {
         aCallbacks.allow();
         return;
       }
     }
   },
 
-  observe: function(aSubject, aTopic, aData) {
+  observe: function observe(aSubject, aTopic, aData) {
     ppmm.removeMessageListener("PermissionPromptHelper:AskPermission", this);
     Services.obs.removeObserver(this, "profile-before-change");
     ppmm = null;
   },
 
-  receiveMessage: function(aMessage) {
+  receiveMessage: function receiveMessage(aMessage) {
     debug("PermissionPromptHelper::receiveMessage " + aMessage.name);
     let mm = aMessage.target;
     let msg = aMessage.data;
@@ -128,10 +128,14 @@ this.PermissionPromptHelper = {
     if (aMessage.name == "PermissionPromptHelper:AskPermission") {
       this.askPermission(aMessage, {
         cancel: function() {
-          mm.sendAsyncMessage("PermissionPromptHelper:AskPermission:OK", {result: Ci.nsIPermissionManager.DENY_ACTION, requestID: msg.requestID});
+          mm.sendAsyncMessage("PermissionPromptHelper:AskPermission:OK",
+                              { result: Ci.nsIPermissionManager.DENY_ACTION,
+                                requestID: msg.requestID });
         },
         allow: function() {
-          mm.sendAsyncMessage("PermissionPromptHelper:AskPermission:OK", {result: Ci.nsIPermissionManager.ALLOW_ACTION, requestID: msg.requestID});
+          mm.sendAsyncMessage("PermissionPromptHelper:AskPermission:OK",
+                              { result: Ci.nsIPermissionManager.ALLOW_ACTION,
+                                requestID: msg.requestID });
         }
       });
     }
