@@ -963,6 +963,8 @@ protected:
 };
 
 
+
+
 class MOZ_STACK_CLASS MainAxisPositionTracker : public PositionTracker {
 public:
   MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
@@ -993,11 +995,14 @@ private:
 
 
 
+
+
 class MOZ_STACK_CLASS CrossAxisPositionTracker : public PositionTracker {
 public:
   CrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                            const FlexboxAxisTracker& aAxisTracker,
-                           const nsHTMLReflowState& aReflowState);
+                           const nsHTMLReflowState& aReflowState)
+    : PositionTracker(aAxisTracker.GetCrossAxis()) {}
 
   
   
@@ -1464,10 +1469,6 @@ MainAxisPositionTracker::
 
   
   
-  EnterMargin(aReflowState.mComputedBorderPadding);
-
-  
-  
   
   
   
@@ -1605,16 +1606,6 @@ MainAxisPositionTracker::TraversePackingSpace()
     mNumPackingSpacesRemaining--;
     mPackingSpaceRemaining -= curPackingSpace;
   }
-}
-
-CrossAxisPositionTracker::
-  CrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
-                           const FlexboxAxisTracker& aAxisTracker,
-                           const nsHTMLReflowState& aReflowState)
-    : PositionTracker(aAxisTracker.GetCrossAxis())
-{
-  
-  EnterMargin(aReflowState.mComputedBorderPadding);
 }
 
 SingleLineCrossAxisPositionTracker::
@@ -2189,10 +2180,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   ResolveFlexibleLengths(axisTracker, contentBoxMainSize, items);
 
   
-  const nscoord frameMainSize = contentBoxMainSize +
-    axisTracker.GetMarginSizeInMainAxis(aReflowState.mComputedBorderPadding);
-
-  
   
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
@@ -2261,9 +2248,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     lineCrossAxisPosnTracker.SetLineCrossSize(contentBoxCrossSize);
   }
 
-  const nscoord frameCrossSize = contentBoxCrossSize +
-    axisTracker.GetMarginSizeInCrossAxis(aReflowState.mComputedBorderPadding);
-
   
   
   
@@ -2288,6 +2272,14 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     PositionItemInCrossAxis(crossAxisPosnTracker.GetPosition(),
                             lineCrossAxisPosnTracker, items[i]);
   }
+
+  
+  
+  
+  nsMargin containerBorderPadding(aReflowState.mComputedBorderPadding);
+  ApplySkipSides(containerBorderPadding, &aReflowState);
+  const nsPoint containerContentBoxOrigin(containerBorderPadding.left,
+                                          containerBorderPadding.top);
 
   
   
@@ -2353,14 +2345,15 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     nscoord mainPosn = curItem.GetMainPosition();
     nscoord crossPosn = curItem.GetCrossPosition();
     if (!AxisGrowsInPositiveDirection(axisTracker.GetMainAxis())) {
-      mainPosn = frameMainSize - mainPosn;
+      mainPosn = contentBoxMainSize - mainPosn;
     }
     if (!AxisGrowsInPositiveDirection(axisTracker.GetCrossAxis())) {
-      crossPosn = frameCrossSize - crossPosn;
+      crossPosn = contentBoxCrossSize - crossPosn;
     }
 
     nsPoint physicalPosn =
       axisTracker.PhysicalPositionFromLogicalPosition(mainPosn, crossPosn);
+    physicalPosn += containerContentBoxOrigin;
 
     nsHTMLReflowMetrics childDesiredSize;
     nsReflowStatus childReflowStatus;
@@ -2399,13 +2392,14 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  
-  aDesiredSize.width =
-    IsAxisHorizontal(axisTracker.GetMainAxis()) ?
-    frameMainSize : frameCrossSize;
-  aDesiredSize.height =
-    IsAxisHorizontal(axisTracker.GetCrossAxis()) ?
-    frameMainSize : frameCrossSize;
+  nsSize desiredContentBoxSize =
+    axisTracker.PhysicalSizeFromLogicalSizes(contentBoxMainSize,
+                                             contentBoxCrossSize);
+
+  aDesiredSize.width = desiredContentBoxSize.width +
+    containerBorderPadding.LeftRight();
+  aDesiredSize.height = desiredContentBoxSize.height +
+    containerBorderPadding.TopBottom();
 
   if (flexContainerAscent == nscoord_MIN) {
     
