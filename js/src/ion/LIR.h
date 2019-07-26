@@ -234,7 +234,14 @@ class LUse : public LAllocation
         
         
         
-        KEEPALIVE
+        KEEPALIVE,
+
+        
+        
+        
+        
+        
+        RECOVERED_INPUT
     };
 
     void set(Policy policy, uint32 reg, bool usedAtStart) {
@@ -641,6 +648,12 @@ class LInstruction
     void assignSnapshot(LSnapshot *snapshot);
     void initSafepoint();
 
+    
+    
+    virtual bool recoversInput() const {
+        return false;
+    }
+
     virtual void print(FILE *fp);
     static void printName(FILE *fp, Opcode op);
     virtual void printName(FILE *fp);
@@ -898,6 +911,7 @@ class LSnapshot : public TempObject
     void setBailoutKind(BailoutKind kind) {
         bailoutKind_ = kind;
     }
+    void rewriteRecoveredInput(LUse input);
 };
 
 struct SafepointNunboxEntry {
