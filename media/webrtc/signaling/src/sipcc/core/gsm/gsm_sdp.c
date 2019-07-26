@@ -3247,15 +3247,15 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
 
 
                 found_codec = TRUE;
-                if(media->num_payloads >= payload_types_count) {
-                    
-                    return codec;
-                }
 
                 
 
 
                 media->num_payloads++;
+                if(media->num_payloads >= payload_types_count) {
+                    
+                    return codec;
+                }
 
                 if(offer) {
                     
