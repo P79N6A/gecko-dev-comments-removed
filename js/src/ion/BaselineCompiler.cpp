@@ -561,6 +561,42 @@ BaselineCompiler::emitBinaryArith()
 }
 
 bool
+BaselineCompiler::emitUnaryArith()
+{
+    
+    ICUnaryArith_Fallback::Compiler stubCompiler(cx);
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    if (!entry)
+        return false;
+
+    
+    frame.popRegsAndSync(1);
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_BITNOT()
+{
+    return emitUnaryArith();
+}
+
+bool
+BaselineCompiler::emit_JSOP_NEG()
+{
+    return emitUnaryArith();
+}
+
+bool
 BaselineCompiler::emit_JSOP_LT()
 {
     return emitCompare();
