@@ -632,11 +632,6 @@ public:
   
 
 
-  bool IsLinkSelected();
-
-  
-
-
   virtual uint32_t AnchorCount();
 
   
