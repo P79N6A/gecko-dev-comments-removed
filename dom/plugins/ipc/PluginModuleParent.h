@@ -314,6 +314,17 @@ private:
     PluginHangUIParent *mHangUIParent;
     bool mHangUIEnabled;
     bool mIsTimerReset;
+#ifdef MOZ_CRASHREPORTER
+    
+
+
+
+
+
+    mozilla::Mutex mCrashReporterMutex;
+    CrashReporterParent* mCrashReporter;
+#endif 
+
 
     void
     EvaluateHangUIState(const bool aReset);
