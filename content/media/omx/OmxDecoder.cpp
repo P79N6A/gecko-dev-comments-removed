@@ -332,7 +332,12 @@ bool OmxDecoder::Init() {
   
   
   if (mAudioSource.get()) {
-    if (mAudioSource->read(&mAudioBuffer) != INFO_FORMAT_CHANGED) {
+    status_t err = mAudioSource->read(&mAudioBuffer);
+    if (err != INFO_FORMAT_CHANGED) {
+      if (err != OK) {
+        NS_WARNING("Couldn't read audio buffer from OMX decoder");
+        return false;
+      }
       sp<MetaData> meta = mAudioSource->getFormat();
       if (!meta->findInt32(kKeyChannelCount, &mAudioChannels) ||
           !meta->findInt32(kKeySampleRate, &mAudioSampleRate)) {
