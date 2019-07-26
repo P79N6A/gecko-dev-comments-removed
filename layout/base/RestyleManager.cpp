@@ -1730,8 +1730,7 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
   
   
   nsStyleContext* oldContext = aFrame->StyleContext();
-  
-  if (oldContext) {
+
     nsRefPtr<nsStyleContext> newContext;
     nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
     bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
@@ -1905,7 +1904,7 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
 #endif
       }
     }
-  }
+
   return NS_OK;
 }
 
@@ -2049,14 +2048,8 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   
 
   nsChangeHint assumeDifferenceHint = NS_STYLE_HINT_NONE;
-  
-  nsStyleContext* oldContext = mFrame->StyleContext();
+  nsRefPtr<nsStyleContext> oldContext = mFrame->StyleContext();
   nsStyleSet* styleSet = mPresContext->StyleSet();
-
-  
-  
-  if (oldContext) {
-    oldContext->AddRef();
 
 #ifdef ACCESSIBILITY
     bool wasFrameVisible = nsIPresShell::IsAccessibilityActive() ?
@@ -2259,8 +2252,10 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       }
     }
 
-    NS_ASSERTION(newContext, "failed to get new style context");
-    if (newContext) {
+    if (!newContext) {
+      NS_RUNTIMEABORT("couldn't allocate new style context");
+    }
+
       if (!parentContext) {
         if (oldContext->RuleNode() == newContext->RuleNode() &&
             oldContext->IsLinkContext() == newContext->IsLinkContext() &&
@@ -2287,12 +2282,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
           mFrame->SetStyleContext(newContext);
         }
       }
-      oldContext->Release();
-    }
-    else {
-      NS_ERROR("resolve style context failed");
-      newContext = oldContext;  
-    }
+      oldContext = nullptr;
 
     
     
@@ -2620,7 +2610,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       }
 #endif
     }
-  }
 }
 
 void
