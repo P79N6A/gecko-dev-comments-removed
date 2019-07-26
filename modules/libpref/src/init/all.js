@@ -232,9 +232,7 @@ pref("gfx.filter.nearest.force-enabled", false);
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
-#ifdef MOZ_GRAPHITE
 pref("gfx.font_rendering.graphite.enabled", false);
-#endif
 
 
 
@@ -1290,7 +1288,13 @@ pref("network.proxy.socks_remote_dns",      false);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
+pref("network.cookie.cookieBehavior",       3); 
+#ifdef ANDROID
 pref("network.cookie.cookieBehavior",       0); 
+#endif
+#ifdef MOZ_WIDGET_GONK
+pref("network.cookie.cookieBehavior",       0); 
+#endif
 pref("network.cookie.thirdparty.sessionOnly", false);
 pref("network.cookie.lifetimePolicy",       0); 
 pref("network.cookie.alwaysAcceptSessionCookies", false);
@@ -3861,13 +3865,13 @@ pref("image.mem.max_ms_before_yield", 5);
 pref("image.mem.max_decoded_image_kb", 51200);
 
 
+pref("gl.msaa-level", 2);
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);
 pref("webgl.shader_validator", true);
 pref("webgl.prefer-native-gl", false);
 pref("webgl.min_capability_mode", false);
 pref("webgl.disable-extensions", false);
-pref("webgl.msaa-level", 2);
 pref("webgl.msaa-force", false);
 pref("webgl.prefer-16bpp", false);
 pref("webgl.default-no-alpha", false);

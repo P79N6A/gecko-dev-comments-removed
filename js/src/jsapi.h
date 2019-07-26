@@ -4449,6 +4449,12 @@ JS_EncodeString(JSContext *cx, JSRawString str);
 
 
 
+JS_PUBLIC_API(char *)
+JS_EncodeStringToUTF8(JSContext *cx, JSRawString str);
+
+
+
+
 
 
 JS_PUBLIC_API(size_t)
@@ -4492,10 +4498,17 @@ class JSAutoByteString
         mBytes = bytes;
     }
 
-    char *encode(JSContext *cx, JSString *str) {
+    char *encodeLatin1(JSContext *cx, JSString *str) {
         JS_ASSERT(!mBytes);
         JS_ASSERT(cx);
         mBytes = JS_EncodeString(cx, str);
+        return mBytes;
+    }
+
+    char *encodeUtf8(JSContext *cx, JSString *str) {
+        JS_ASSERT(!mBytes);
+        JS_ASSERT(cx);
+        mBytes = JS_EncodeStringToUTF8(cx, str);
         return mBytes;
     }
 
@@ -4510,6 +4523,12 @@ class JSAutoByteString
 
     bool operator!() const {
         return !mBytes;
+    }
+
+    size_t length() const {
+        if (!mBytes)
+            return 0;
+        return strlen(mBytes);
     }
 
   private:
