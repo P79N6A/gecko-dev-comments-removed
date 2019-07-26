@@ -274,7 +274,7 @@ typedef NSInteger NSEventGestureAxis;
 #ifdef __LP64__
   
   BOOL* mCancelSwipeAnimation;
-  PRUint32 mCurrentSwipeDir;
+  uint32_t mCurrentSwipeDir;
 #endif
 
   

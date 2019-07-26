@@ -220,7 +220,7 @@ public:
   Type type() const { return type_; }
 
   
-  PRInt32 id() const { return id_; }
+  int32_t id() const { return id_; }
 
   
   void set_thread_name(const std::string& thread_name) {
@@ -377,7 +377,7 @@ public:
   virtual bool DoIdleWork();
 
   Type type_;
-  PRInt32 id_;
+  int32_t id_;
 
   
   
