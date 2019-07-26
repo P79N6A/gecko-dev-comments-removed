@@ -80,3 +80,28 @@ function read(url) {
 
   return data;
 }
+
+
+
+
+
+
+function codeMirror_setStatus(statusMsg, type, customMsg) {
+  switch (type) {
+    case "expected":
+    case "ok":
+      ok(1, statusMsg);
+      break;
+    case "error":
+    case "fail":
+      ok(0, statusMsg);
+      break;
+    default:
+      info(statusMsg);
+      break;
+  }
+
+  if (customMsg && typeof customMsg == "string" && customMsg != statusMsg) {
+    info(customMsg);
+  }
+}
