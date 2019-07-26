@@ -294,6 +294,13 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
+  
+  
+  
+  
+  if (aSize.width < 64) {
+    return false;
+  }
   SAMPLE_LABEL("ShadowLayerForwarder", "PlatformAllocBuffer");
   
   
