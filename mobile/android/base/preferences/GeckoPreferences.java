@@ -122,6 +122,9 @@ public class GeckoPreferences
         
         
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            
+            getPreferenceManager().setSharedPreferencesName(GeckoSharedPrefs.APP_PREFS_NAME);
+
             int res = 0;
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
                 
