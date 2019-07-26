@@ -6039,7 +6039,7 @@ var WebappsUI = {
     let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
 
-    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name)) {
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name + "\n" + aData.app.origin)) {
       
       let profilePath = sendMessageToJava({
         type: "WebApps:PreInstall",
