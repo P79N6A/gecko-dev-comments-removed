@@ -38,38 +38,38 @@ namespace mozilla {
 namespace net {
 
 SpdyStream3::SpdyStream3(nsAHttpTransaction *httpTransaction,
-                       SpdySession3 *spdySession,
-                       int32_t priority)
-  : mStreamID(0),
-    mSession(spdySession),
-    mUpstreamState(GENERATING_SYN_STREAM),
-    mSynFrameComplete(0),
-    mSentFinOnData(0),
-    mTransaction(httpTransaction),
-    mSocketTransport(spdySession->SocketTransport()),
-    mSegmentReader(nullptr),
-    mSegmentWriter(nullptr),
-    mChunkSize(spdySession->SendingChunkSize()),
-    mRequestBlockedOnRead(0),
-    mRecvdFin(0),
-    mFullyOpen(0),
-    mSentWaitingFor(0),
-    mReceivedData(0),
-    mSetTCPSocketBuffer(0),
-    mTxInlineFrameSize(SpdySession3::kDefaultBufferSize),
-    mTxInlineFrameUsed(0),
-    mTxStreamFrameSize(0),
-    mZlib(spdySession->UpstreamZlib()),
-    mDecompressBufferSize(SpdySession3::kDefaultBufferSize),
-    mDecompressBufferUsed(0),
-    mDecompressedBytes(0),
-    mRequestBodyLenRemaining(0),
-    mPriority(priority),
-    mLocalUnacked(0),
-    mBlockedOnRwin(false),
-    mTotalSent(0),
-    mTotalRead(0),
-    mPushSource(nullptr)
+                         SpdySession3 *spdySession,
+                         int32_t priority)
+  : mStreamID(0)
+  , mSession(spdySession)
+  , mUpstreamState(GENERATING_SYN_STREAM)
+  , mSynFrameComplete(0)
+  , mSentFinOnData(0)
+  , mTransaction(httpTransaction)
+  , mSocketTransport(spdySession->SocketTransport())
+  , mSegmentReader(nullptr)
+  , mSegmentWriter(nullptr)
+  , mChunkSize(spdySession->SendingChunkSize())
+  , mRequestBlockedOnRead(0)
+  , mRecvdFin(0)
+  , mFullyOpen(0)
+  , mSentWaitingFor(0)
+  , mReceivedData(0)
+  , mSetTCPSocketBuffer(0)
+  , mTxInlineFrameSize(SpdySession3::kDefaultBufferSize)
+  , mTxInlineFrameUsed(0)
+  , mTxStreamFrameSize(0)
+  , mZlib(spdySession->UpstreamZlib())
+  , mDecompressBufferSize(SpdySession3::kDefaultBufferSize)
+  , mDecompressBufferUsed(0)
+  , mDecompressedBytes(0)
+  , mRequestBodyLenRemaining(0)
+  , mPriority(priority)
+  , mLocalUnacked(0)
+  , mBlockedOnRwin(false)
+  , mTotalSent(0)
+  , mTotalRead(0)
+  , mPushSource(nullptr)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -187,7 +187,6 @@ SpdyStream3::ReadSegments(nsAHttpSegmentReader *reader,
 
   return rv;
 }
-
 
 
 
@@ -1343,8 +1342,8 @@ SpdyStream3::UpdateRemoteWindow(int32_t delta)
 
 nsresult
 SpdyStream3::OnReadSegment(const char *buf,
-                          uint32_t count,
-                          uint32_t *countRead)
+                           uint32_t count,
+                           uint32_t *countRead)
 {
   LOG3(("SpdyStream3::OnReadSegment %p count=%d state=%x",
         this, count, mUpstreamState));
