@@ -104,13 +104,13 @@ static inline void profiler_stop() {}
 static inline bool profiler_is_active() { return false; }
 
 
-static inline void profiler_responsinveness(const TimeStamp& aTime) {}
+static inline void profiler_responsiveness(const mozilla::TimeStamp& aTime) {}
 
 
 static inline double* profiler_get_responsiveness() { return nullptr; }
 
 
-static inline void profile_set_frame_number(int frameNumber) {}
+static inline void profiler_set_frame_number(int frameNumber) {}
 
 
 static inline char* profiler_get_profile() { return nullptr; }
