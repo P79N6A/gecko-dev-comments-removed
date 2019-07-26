@@ -2971,8 +2971,10 @@ BluetoothDBusService::SendFile(const nsAString& aDeviceAddress,
   
   
   BluetoothOppManager* opp = BluetoothOppManager::Get();
+  NS_ENSURE_TRUE_VOID(opp);
+
   nsAutoString errorStr;
-  if (!opp || !opp->SendFile(aDeviceAddress, aBlobParent)) {
+  if (!opp->SendFile(aDeviceAddress, aBlobParent)) {
     errorStr.AssignLiteral("Calling SendFile() failed");
   }
 
@@ -2990,8 +2992,10 @@ BluetoothDBusService::StopSendingFile(const nsAString& aDeviceAddress,
   
   
   BluetoothOppManager* opp = BluetoothOppManager::Get();
+  NS_ENSURE_TRUE_VOID(opp);
+
   nsAutoString errorStr;
-  if (!opp || !opp->StopSendingFile()) {
+  if (!opp->StopSendingFile()) {
     errorStr.AssignLiteral("Calling StopSendingFile() failed");
   }
 
@@ -3003,15 +3007,17 @@ BluetoothDBusService::ConfirmReceivingFile(const nsAString& aDeviceAddress,
                                            bool aConfirm,
                                            BluetoothReplyRunnable* aRunnable)
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Must be called from main thread!");
+  NS_ASSERTION(NS_IsMainThread(), "Must be called from main thread!");
 
   
   
   
   
   BluetoothOppManager* opp = BluetoothOppManager::Get();
+  NS_ENSURE_TRUE_VOID(opp);
+
   nsAutoString errorStr;
-  if (!opp || !opp->ConfirmReceivingFile(aConfirm)) {
+  if (!opp->ConfirmReceivingFile(aConfirm)) {
     errorStr.AssignLiteral("Calling ConfirmReceivingFile() failed");
   }
 

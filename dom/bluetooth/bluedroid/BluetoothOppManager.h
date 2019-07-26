@@ -122,7 +122,7 @@ private:
 
 
   bool mConnected;
-  nsString mDeviceAddress;
+  nsString mConnectedDeviceAddress;
 
   
 
@@ -213,12 +213,14 @@ private:
   
   
   
+  
   nsRefPtr<BluetoothSocket> mSocket;
 
   
   
   
-  nsRefPtr<BluetoothSocket> mServerSocket;
+  nsRefPtr<BluetoothSocket> mRfcommSocket;
+  nsRefPtr<BluetoothSocket> mL2capSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
