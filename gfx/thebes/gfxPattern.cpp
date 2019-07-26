@@ -80,7 +80,9 @@ gfxPattern::AddColorStop(gfxFloat offset, const gfxRGBA& c)
     mStops = NULL;
     if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
         gfxRGBA cms;
-        gfxPlatform::TransformPixel(c, cms, gfxPlatform::GetCMSRGBTransform());
+        qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+        if (transform)
+          gfxPlatform::TransformPixel(c, cms, transform);
 
         
         
