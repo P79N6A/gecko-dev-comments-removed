@@ -175,6 +175,7 @@ class IonFrameIterator
 
     
     size_t numBaselineStackValues() const;
+    Value baselineStackValue(size_t index) const;
 
     
     
