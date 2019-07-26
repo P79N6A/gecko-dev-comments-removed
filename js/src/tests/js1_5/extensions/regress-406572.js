@@ -14,19 +14,26 @@ printStatus (summary);
 
 if (typeof window != 'undefined')
 {
-  var s = self;
+  try {
+    actual = "FAIL: Unexpected exception thrown";
 
-  document.writeln(uneval(self));
-  self = 1;
-  document.writeln(uneval(self));
+    var win = window;
+    var windowString = String(window);
+    window = 1;
+    reportCompare(windowString, String(window), "window should be readonly");
 
-  if (1)
-    function self() { return 1; }
+    actual = ""; 
 
-  document.writeln(uneval(self));
+    if (1)
+      function window() { return 1; }
 
-  
-  self = s;
+    actual = "FAIL: this line should never be reached";
+
+    
+    
+    window = win;
+  } catch (e) {
+  }
 }
 else
 {
