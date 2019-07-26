@@ -55,6 +55,7 @@ const static OCSPResponseName kOCSPResponseNameList[] = {
   { "resp-unsigned",   ORTNeedsSig},       
   { "unauthorized",    ORTUnauthorized},   
                                            
+  { "bad-signature",   ORTBadSignature},   
 };
 
 
