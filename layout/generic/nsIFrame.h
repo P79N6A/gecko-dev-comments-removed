@@ -30,6 +30,7 @@
 #include "FramePropertyTable.h"
 #include "mozilla/TypedEnum.h"
 #include "nsDirection.h"
+#include "WritingModes.h"
 #include <algorithm>
 #include "nsITheme.h"
 #include "gfx3DMatrix.h"
@@ -872,6 +873,13 @@ public:
 
 
   virtual void SetParent(nsIFrame* aParent) = 0;
+
+  
+
+
+  mozilla::WritingMode GetWritingMode() const {
+    return mozilla::WritingMode(StyleVisibility());
+  }
 
   
 
