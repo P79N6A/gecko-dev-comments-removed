@@ -187,7 +187,9 @@ public:
   
   CSSToScreenScale CalculateIntrinsicScale() const
   {
-    return CSSToScreenScale(float(mCompositionBounds.width) / float(mViewport.width));
+    return CSSToScreenScale(
+        std::max(float(mCompositionBounds.width) / mViewport.width,
+                 float(mCompositionBounds.height) / mViewport.height));
   }
 
   
