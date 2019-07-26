@@ -32,6 +32,9 @@ const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
 const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
 const DEFAULT_SYMBOL_SERVER_URI = "http://symbolapi.mozilla.org";
 
+
+const FILTER_IDLE_TIMEOUT = 500;
+
 #ifdef XP_WIN
 const EOL = "\r\n";
 #else
@@ -133,9 +136,10 @@ let SlowSQL = {
     let mainThreadCount = Object.keys(mainThread).length;
     let otherThreadCount = Object.keys(otherThreads).length;
     if (mainThreadCount == 0 && otherThreadCount == 0) {
-      showEmptySectionMessage("slow-sql-section");
       return;
     }
+
+    setHasData("slow-sql-section", true);
 
     if (debugSlowSql) {
       document.getElementById("sql-warning").classList.remove("hidden");
@@ -282,9 +286,10 @@ let StackRenderer = {
     }
 
     if (aStacks.length == 0) {
-      showEmptySectionMessage(aPrefix + '-section');
       return;
     }
+
+    setHasData(aPrefix + '-section', true);
 
     this.renderMemoryMap(div, aMemoryMap);
 
@@ -556,6 +561,72 @@ let Histogram = {
     }
 
     return text.substr(EOL.length); 
+  },
+
+  
+
+
+
+
+
+
+  filterHistograms: function _filterHistograms(aContainerNode, aFilterText) {
+    let filter = aFilterText.toString();
+
+    
+    function isPassText(subject, filter) {
+      for (let item of filter) {
+        if (item.length && subject.indexOf(item) < 0) {
+          return false; 
+        }
+      }
+      return true;
+    }
+
+    function isPassRegex(subject, filter) {
+      return filter.test(subject);
+    }
+
+    
+    let isPassFunc; 
+    filter = filter.trim();
+    if (filter[0] != "/") { 
+      isPassFunc = isPassText;
+      filter = filter.toLowerCase().split(" ");
+    } else {
+      isPassFunc = isPassRegex;
+      var r = filter.match(/^\/(.*)\/(i?)$/);
+      try {
+        filter = RegExp(r[1], r[2]);
+      }
+      catch (e) { 
+        isPassFunc = function() {
+          return false;
+        };
+      }
+    }
+
+    let needLower = (isPassFunc === isPassText);
+
+    let histograms = aContainerNode.getElementsByClassName("histogram");
+    for (let hist of histograms) {
+      hist.classList[isPassFunc((needLower ? hist.id.toLowerCase() : hist.id), filter) ? "remove" : "add"]("filter-blocked");
+    }
+  },
+
+  
+
+
+
+
+  histogramFilterChanged: function _histogramFilterChanged() {
+    if (this.idleTimeout) {
+      clearTimeout(this.idleTimeout);
+    }
+
+    this.idleTimeout = setTimeout( () => {
+      Histogram.filterHistograms(document.getElementById(this.getAttribute("target_id")), this.value);
+    }, FILTER_IDLE_TIMEOUT);
   }
 };
 
@@ -678,30 +749,10 @@ let AddonDetails = {
 
 
 
-function showEmptySectionMessage(aSectionID) {
+
+function setHasData(aSectionID, aHasData) {
   let sectionElement = document.getElementById(aSectionID);
-
-  
-  let toggleElements = sectionElement.getElementsByClassName("toggle-caption");
-  toggleElements[0].classList.add("hidden");
-  toggleElements[1].classList.add("hidden");
-
-  
-  let messageElement = sectionElement.getElementsByClassName("empty-caption")[0];
-  messageElement.classList.remove("hidden");
-
-  
-  let sectionHeaders = sectionElement.getElementsByClassName("section-name");
-  for (let sectionHeader of sectionHeaders) {
-    sectionHeader.removeEventListener("click", toggleSection);
-    sectionHeader.style.cursor = "auto";
-  }
-
-  
-  let toggleLinks = sectionElement.getElementsByClassName("toggle-caption");
-  for (let toggleLink of toggleLinks) {
-    toggleLink.removeEventListener("click", toggleSection);
-  }
+  sectionElement.classList[aHasData ? "add" : "remove"]("has-data");
 }
 
 
@@ -710,12 +761,15 @@ function showEmptySectionMessage(aSectionID) {
 
 function toggleSection(aEvent) {
   let parentElement = aEvent.target.parentElement;
-  let sectionDiv = parentElement.getElementsByTagName("div")[0];
-  sectionDiv.classList.toggle("hidden");
+  if (!parentElement.classList.contains("has-data")) {
+    return; 
+  }
 
-  let toggleLinks = parentElement.getElementsByClassName("toggle-caption");
-  toggleLinks[0].classList.toggle("hidden");
-  toggleLinks[1].classList.toggle("hidden");
+  parentElement.classList.toggle("expanded");
+
+  
+  let statebox = parentElement.getElementsByClassName("statebox")[0];
+  statebox.checked = parentElement.classList.contains("expanded");
 }
 
 
@@ -796,6 +850,7 @@ function setupListeners() {
   }
 }
 
+
 function onLoad() {
   window.removeEventListener("load", onLoad);
 
@@ -818,8 +873,14 @@ function onLoad() {
     for (let [name, hgram] of Iterator(histograms)) {
       Histogram.render(hgramDiv, name, hgram);
     }
-  } else {
-    showEmptySectionMessage("histograms-section");
+
+    let filterBox = document.getElementById("histograms-filter");
+    filterBox.addEventListener("input", Histogram.histogramFilterChanged, false);
+    if (filterBox.value.trim() != "") { 
+      Histogram.filterHistograms(hgramDiv, filterBox.value);
+    }
+
+    setHasData("histograms-section", true);
   }
 
   
@@ -833,13 +894,21 @@ function onLoad() {
     }
   }
 
-  if (!addonHistogramsRendered) {
-    showEmptySectionMessage("addon-histograms-section");
+  if (addonHistogramsRendered) {
+   setHasData("addon-histograms-section", true);
   }
 
   
   Telemetry.asyncFetchTelemetryData(displayPingData);
-};
+
+  
+  let stateboxes = document.getElementsByClassName("statebox");
+  for (let box of stateboxes) {
+    if (box.checked) { 
+        box.parentElement.classList.add("expanded");
+    }
+  }
+}
 
 let LateWritesSingleton = {
   renderHeader: function LateWritesSingleton_renderHeader(aIndex) {
@@ -911,8 +980,7 @@ function displayPingData() {
     let simpleSection = document.getElementById("simple-measurements");
     simpleSection.appendChild(KeyValueTable.render(simpleMeasurements,
                                                    keysHeader, valuesHeader));
-  } else {
-    showEmptySectionMessage("simple-measurements-section");
+    setHasData("simple-measurements-section", true);
   }
 
   LateWritesSingleton.renderLateWrites(ping.lateWrites);
@@ -922,15 +990,13 @@ function displayPingData() {
     let infoSection = document.getElementById("system-info");
     infoSection.appendChild(KeyValueTable.render(ping.info,
                                                  keysHeader, valuesHeader));
-  } else {
-    showEmptySectionMessage("system-info-section");
+    setHasData("system-info-section", true);
   }
 
   let addonDetails = ping.addonDetails;
   if (Object.keys(addonDetails).length) {
     AddonDetails.render(addonDetails);
-  } else {
-    showEmptySectionMessage("addon-details-section");
+    setHasData("addon-details-section", true);
   }
 }
 
