@@ -195,7 +195,7 @@ IsDOMObject(JSObject* obj)
 
 #define UNWRAP_OBJECT(Interface, cx, obj, value)                             \
   mozilla::dom::UnwrapObject<mozilla::dom::prototypes::id::Interface,        \
-    mozilla::dom::Interface##Binding::NativeType>(cx, obj, value)
+    mozilla::dom::Interface##Binding::NativeType>(obj, value)
 
 
 
@@ -203,7 +203,7 @@ IsDOMObject(JSObject* obj)
 
 template <prototypes::ID PrototypeID, class T, typename U>
 MOZ_ALWAYS_INLINE nsresult
-UnwrapObject(JSContext* cx, JSObject* obj, U& value)
+UnwrapObject(JSObject* obj, U& value)
 {
   
   const DOMClass* domClass = GetDOMClass(obj);
