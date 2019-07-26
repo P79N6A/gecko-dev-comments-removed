@@ -4,7 +4,6 @@
 
 from __future__ import unicode_literals
 
-import logging
 import mozpack.path
 import os
 import platform
@@ -20,14 +19,6 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
-
-from mach.logging import StructuredHumanFormatter
-
-
-class UnexpectedFilter(logging.Filter):
-    def filter(self, record):
-        return 'TEST-UNEXPECTED-' in record.message
-
 
 
 class MochitestRunner(MozbuildObject):
@@ -79,7 +70,6 @@ class MochitestRunner(MozbuildObject):
             print('No failure file present. Did you run mochitests before?')
             return 1
 
-        from StringIO import StringIO
         from automation import Automation
 
         
@@ -154,28 +144,7 @@ class MochitestRunner(MozbuildObject):
         if debugger:
             options.debugger = debugger
 
-        
-        self.log_manager.enable_unstructured()
-
-        
-        
-        
-        
-        
-        
-        
-        test_output = StringIO()
-        handler = logging.StreamHandler(test_output)
-        handler.addFilter(UnexpectedFilter())
-        handler.setFormatter(StructuredHumanFormatter(0, write_times=False))
-        logging.getLogger().addHandler(handler)
-
-        result = runner.runTests(options)
-
-        if test_output.getvalue():
-            print(test_output.getvalue())
-
-        return result
+        return runner.runTests(options)
 
 
 def MochitestCommand(func):
