@@ -27,10 +27,32 @@ const USB_FUNCTION_RETRY_TIMES = 20;
 const USB_FUNCTION_RETRY_INTERVAL = 100;
 
 
-const NETD_COMMAND_OKAY  = 200;
-const NETD_COMMAND_ERROR = 300;
+const NETD_COMMAND_PROCEEDING   = 100;
+
+const NETD_COMMAND_OKAY         = 200;
+
+
+const NETD_COMMAND_FAIL         = 400;
+
+const NETD_COMMAND_ERROR        = 500;
+
+const NETD_COMMAND_UNSOLICITED  = 600;
 
 importScripts("systemlibs.js");
+
+function netdResponseType(code) {
+  return Math.floor(code/100)*100;
+}
+
+function isError(code) {
+  let type = netdResponseType(code);
+  return (type != NETD_COMMAND_PROCEEDING && type != NETD_COMMAND_OKAY);
+}
+
+function isComplete(code) {
+  let type = netdResponseType(code);
+  return (type != NETD_COMMAND_PROCEEDING);
+}
 
 let gWifiFailChain = [stopSoftAP,
                       setIpForwardingEnabled,
@@ -224,17 +246,22 @@ function onNetdMessage(data) {
   }
 
   
-  gPending = false;
   debug("Receiving '" + gCurrentCommand + "' command response from netd.");
   debug("          ==> Code: " + code + "  Reason: " + reason);
+
+  
+  
+  if (isComplete(code)) {
+    gPending = false;
+  }
   if (gCurrentCallback) {
-    let error;
-    (code >= NETD_COMMAND_OKAY && code < NETD_COMMAND_ERROR) ? (error = false) : (error = true);
-    gCurrentCallback(error, {code: code, reason: reason});
+    gCurrentCallback(isError(code), {code: code, reason: reason});
   }
 
   
-  nextNetdCommand();
+  if (isComplete(code)) {
+    nextNetdCommand();
+  }
 }
 
 
