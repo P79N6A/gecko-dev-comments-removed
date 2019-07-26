@@ -3,6 +3,8 @@ function test()
   const kPrefName_AutoScroll = "general.autoScroll";
   Services.prefs.setBoolPref(kPrefName_AutoScroll, false);
 
+  gBrowser.selectedTab = gBrowser.addTab();
+
   var doc;
 
   function startLoad(dataUri) {
@@ -26,7 +28,6 @@ function test()
       Services.prefs.clearUserPref(kPrefName_AutoScroll);
 
     
-    gBrowser.addTab("about:blank");
     gBrowser.removeCurrentTab();
 
     
