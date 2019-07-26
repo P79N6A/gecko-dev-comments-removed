@@ -22,7 +22,7 @@ namespace dom {
 
 class EventListener;
 class EventHandlerNonNull;
-template <class T> class Nullable;
+template <class T> struct Nullable;
 
 
 #define NS_EVENTTARGET_IID \
