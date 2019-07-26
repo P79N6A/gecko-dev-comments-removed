@@ -22,6 +22,7 @@
 
 #include "nsIMemoryReporter.h"
 
+#include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "gfx2DGlue.h"
 #include "GLContext.h"
@@ -365,6 +366,9 @@ ShadowLayerForwarder::AllocGrallocBuffer(const gfx::IntSize& aSize,
                                          uint32_t aUsage,
                                          MaybeMagicGrallocBufferHandle* aHandle)
 {
+  if (!mShadowManager->IPCOpen()) {
+    return nullptr;
+  }
   return mShadowManager->SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
 }
 
