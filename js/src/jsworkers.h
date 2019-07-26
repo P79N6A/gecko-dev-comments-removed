@@ -373,6 +373,11 @@ struct ParseTask
 
 
 
+extern bool
+OffThreadParsingMustWaitForGC(JSRuntime *rt);
+
+
+
 
 struct SourceCompressionTask
 {
