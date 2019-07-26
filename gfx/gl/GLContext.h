@@ -38,6 +38,7 @@
 #include "SurfaceTypes.h"
 #include "GLScreenBuffer.h"
 #include "GLContextSymbols.h"
+#include "base/platform_thread.h"       
 #include "mozilla/GenericRefCounted.h"
 #include "mozilla/Scoped.h"
 #include "gfx2DGlue.h"
@@ -2569,7 +2570,6 @@ public:
 
 
     bool IsOwningThreadCurrent();
-    void DispatchToOwningThread(nsIRunnable *event);
 
     static void PlatformStartup();
 
@@ -2734,7 +2734,7 @@ protected:
     nsRefPtr<GLContext> mSharedContext;
 
     
-    nsCOMPtr<nsIThread> mOwningThread;
+    PlatformThreadId mOwningThreadId;
 
     GLContextSymbols mSymbols;
 

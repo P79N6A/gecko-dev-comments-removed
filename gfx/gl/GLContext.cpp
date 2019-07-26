@@ -285,7 +285,7 @@ GLContext::GLContext(const SurfaceCaps& caps,
     mNeedsTextureSizeChecks(false),
     mWorkAroundDriverBugs(true)
 {
-    mOwningThread = NS_GetCurrentThread();
+    mOwningThreadId = PlatformThread::CurrentId();
 }
 
 GLContext::~GLContext() {
@@ -2108,20 +2108,7 @@ GLContext::IsOffscreenSizeAllowed(const IntSize& aSize) const {
 bool
 GLContext::IsOwningThreadCurrent()
 {
-  return NS_GetCurrentThread() == mOwningThread;
-}
-
-void
-GLContext::DispatchToOwningThread(nsIRunnable *event)
-{
-    
-    
-    
-    
-    nsCOMPtr<nsIThread> mainThread;
-    if (NS_SUCCEEDED(NS_GetMainThread(getter_AddRefs(mainThread)))) {
-        mOwningThread->Dispatch(event, NS_DISPATCH_NORMAL);
-    }
+  return PlatformThread::CurrentId() == mOwningThreadId;
 }
 
 GLBlitHelper*
