@@ -4041,15 +4041,14 @@ nsDocumentViewer::ShouldAttachToTopLevel()
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   
   
-  int32_t docType;
   nsWindowType winType;
-  containerItem->GetItemType(&docType);
   mParentWidget->GetWindowType(winType);
   if ((winType == eWindowType_toplevel ||
        winType == eWindowType_dialog ||
        winType == eWindowType_invisible) &&
-      docType == nsIDocShellTreeItem::typeChrome)
+      containerItem->ItemType() == nsIDocShellTreeItem::typeChrome) {
     return true;
+  }
 #endif
 
   return false;

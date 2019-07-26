@@ -148,10 +148,9 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   }
 
   nsCOMPtr<nsIDocShellTreeItem> dsti = PresContext()->GetDocShell();
-  int32_t type = -1;
-  if (dsti && NS_SUCCEEDED(dsti->GetItemType(&type)) &&
-      type == nsIDocShellTreeItem::typeChrome)
+  if (dsti && dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
     mInContentShell = false;
+  }
 
   
   

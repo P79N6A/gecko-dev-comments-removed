@@ -1956,12 +1956,9 @@ nsGlobalWindow::SetInitialPrincipalToSubject()
 
   
   
-  if (newWindowPrincipal == systemPrincipal) {
-    int32_t itemType;
-    nsresult rv = GetDocShell()->GetItemType(&itemType);
-    if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
-      newWindowPrincipal = nullptr;
-    }
+  if (newWindowPrincipal == systemPrincipal &&
+      GetDocShell()->ItemType() != nsIDocShellTreeItem::typeChrome) {
+    newWindowPrincipal = nullptr;
   }
 
   
@@ -2586,12 +2583,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    int32_t itemType = nsIDocShellTreeItem::typeContent;
-    if (mDocShell) {
-      mDocShell->GetItemType(&itemType);
-    }
-
-    if (itemType != nsIDocShellTreeItem::typeChrome ||
+    if (!mDocShell ||
+        mDocShell->ItemType() != nsIDocShellTreeItem::typeChrome ||
         nsContentUtils::IsSystemPrincipal(mDoc->NodePrincipal())) {
       newInnerWindow->mHasNotifiedGlobalCreated = true;
       nsContentUtils::AddScriptRunner(
@@ -3157,15 +3150,8 @@ nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
     nsCOMPtr<Element> element = GetFrameElementInternal();
     nsIDocShell* docShell = GetDocShell();
-
-    int32_t itemType = nsIDocShellTreeItem::typeChrome;
-
-    if (docShell) {
-      docShell->GetItemType(&itemType);
-    }
-
     if (element && GetParentInternal() &&
-        itemType != nsIDocShellTreeItem::typeChrome) {
+        docShell && docShell->ItemType() != nsIDocShellTreeItem::typeChrome) {
       
       
 
@@ -5656,9 +5642,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
 
   
   
-  int32_t itemType;
-  mDocShell->GetItemType(&itemType);
-  if (itemType != nsIDocShellTreeItem::typeChrome)
+  if (mDocShell->ItemType() != nsIDocShellTreeItem::typeChrome)
     return NS_ERROR_FAILURE;
 
   
@@ -6289,9 +6273,7 @@ nsGlobalWindow::Focus(ErrorResult& aError)
   
   
   bool lookForPresShell = true;
-  int32_t itemType = nsIDocShellTreeItem::typeContent;
-  mDocShell->GetItemType(&itemType);
-  if (itemType == nsIDocShellTreeItem::typeChrome &&
+  if (mDocShell->ItemType() == nsIDocShellTreeItem::typeChrome &&
       GetPrivateRoot() == static_cast<nsIDOMWindow*>(this) &&
       mDoc) {
     nsIURI* ourURI = mDoc->GetDocumentURI();
@@ -7154,10 +7136,9 @@ nsGlobalWindow::RevisePopupAbuseLevel(PopupControlState aControl)
 
   NS_ASSERTION(mDocShell, "Must have docshell");
   
-  int32_t type = nsIDocShellTreeItem::typeChrome;
-  mDocShell->GetItemType(&type);
-  if (type != nsIDocShellTreeItem::typeContent)
+  if (mDocShell->ItemType() != nsIDocShellTreeItem::typeContent) {
     return openAllowed;
+  }
 
   PopupControlState abuse = aControl;
   switch (abuse) {

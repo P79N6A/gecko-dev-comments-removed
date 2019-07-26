@@ -4258,10 +4258,7 @@ nsIDocument::SetContainer(nsDocShell* aContainer)
   }
 
   
-  int32_t itemType;
-  aContainer->GetItemType(&itemType);
-  
-  if (itemType == nsIDocShellTreeItem::typeContent) {
+  if (aContainer->ItemType() == nsIDocShellTreeItem::typeContent) {
     
     nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
     aContainer->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));

@@ -74,9 +74,7 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
          
          nsCOMPtr<nsIDocShellTreeItem> dsti = aPresContext->GetDocShell();
          if (dsti) {
-           int32_t type = -1;
-           if (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
-               type == nsIDocShellTreeItem::typeChrome) {
+           if (dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
              
              mTrackingMouseMove = true;
 
