@@ -1649,7 +1649,7 @@ CodeGenerator::visitCallGetIntrinsicValue(LCallGetIntrinsicValue *lir)
     return callVM(GetIntrinsicValueInfo, lir);
 }
 
-typedef bool (*InvokeFunctionFn)(JSContext *, HandleFunction, uint32_t, Value *, Value *);
+typedef bool (*InvokeFunctionFn)(JSContext *, HandleObject, uint32_t, Value *, Value *);
 static const VMFunction InvokeFunctionInfo = FunctionInfo<InvokeFunctionFn>(InvokeFunction);
 
 bool
@@ -1680,7 +1680,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     Register nargsreg  = ToRegister(call->getNargsReg());
     uint32_t unusedStack = StackOffsetOfPassedArg(call->argslot());
     ExecutionMode executionMode = gen->info().executionMode();
-    Label uncompiled, thunk, makeCall, end;
+    Label invoke, thunk, makeCall, end;
 
     
     JS_ASSERT(!call->hasSingleTarget());
@@ -1692,18 +1692,16 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     masm.loadObjClass(calleereg, nargsreg);
-    masm.cmpPtr(nargsreg, ImmWord(&JSFunction::class_));
-    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
-        return false;
+    masm.branchPtr(Assembler::NotEqual, nargsreg, ImmWord(&JSFunction::class_), &invoke);
 
     
-    masm.branchIfFunctionHasNoScript(calleereg, &uncompiled);
+    masm.branchIfFunctionHasNoScript(calleereg, &invoke);
 
     
     masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
 
     
-    masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &uncompiled);
+    masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &invoke);
 
     
     masm.freeStack(unusedStack);
@@ -1743,7 +1741,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.jump(&end);
 
     
-    masm.bind(&uncompiled);
+    masm.bind(&invoke);
     switch (executionMode) {
       case SequentialExecution:
         if (!emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack))
