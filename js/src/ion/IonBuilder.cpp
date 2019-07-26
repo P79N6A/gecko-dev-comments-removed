@@ -2868,6 +2868,14 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
     }
 
     
+    if (callInfo.constructing()) {
+        MDefinition *thisDefn = createThis(target, callInfo.fun());
+        if (!thisDefn)
+            return false;
+        callInfo.setThis(thisDefn);
+    }
+
+    
     callInfo.pushFormals(current);
 
     MResumePoint *resumePoint =
@@ -2897,14 +2905,6 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
 
     IonBuilder inlineBuilder(cx, &temp(), &graph(), &oracle,
                              info, inliningDepth + 1, loopDepth_);
-
-    
-    if (callInfo.constructing()) {
-        MDefinition *thisDefn = createThis(target, callInfo.fun());
-        if (!thisDefn)
-            return false;
-        callInfo.setThis(thisDefn);
-    }
 
     
     if (!inlineBuilder.buildInline(this, resumePoint, callInfo)) {
