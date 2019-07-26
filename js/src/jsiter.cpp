@@ -1472,8 +1472,8 @@ FinalizeGenerator(FreeOp *fop, JSObject *obj)
               gen->state == JSGEN_OPEN);
     
     if (gen->fp)
-        JS_POISON(gen->fp, JS_FREE_PATTERN, sizeof(InterpreterFrame));
-    JS_POISON(gen, JS_FREE_PATTERN, sizeof(JSGenerator));
+        JS_POISON(gen->fp, JS_SWEPT_FRAME_PATTERN, sizeof(InterpreterFrame));
+    JS_POISON(gen, JS_SWEPT_FRAME_PATTERN, sizeof(JSGenerator));
     fop->free_(gen);
 }
 

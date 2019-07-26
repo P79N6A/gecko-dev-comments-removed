@@ -742,7 +742,7 @@ JitCode::finalize(FreeOp *fop)
     
     
     if (fop->runtime()->jitRuntime() && !fop->runtime()->jitRuntime()->ionCodeProtected())
-        memset(code_, JS_FREE_PATTERN, bufferSize_);
+        memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
     code_ = nullptr;
 
     
