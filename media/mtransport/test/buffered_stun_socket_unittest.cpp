@@ -274,6 +274,39 @@ TEST_F(BufferedStunSocketTest, TestSendToBuffered) {
   dummy_->CheckWriteBuffer(kStunMessage, kStunMessageLen);
 }
 
+TEST_F(BufferedStunSocketTest, TestSendFullThenDrain) {
+  dummy_->SetWritable(0);
+
+  for (;;) {
+    int r = nr_socket_sendto(test_socket_,
+                             kStunMessage,
+                             kStunMessageLen,
+                             0, &remote_addr_);
+    if (r == R_WOULDBLOCK)
+      break;
+
+    ASSERT_EQ(0, r);
+  }
+
+  
+  dummy_->CheckWriteBuffer(nullptr, 0);
+
+  
+  dummy_->SetWritable(kStunMessageLen);
+  dummy_->FireWritableCb();
+  dummy_->ClearWriteBuffer();
+
+  
+  int r = nr_socket_sendto(test_socket_,
+                             kStunMessage,
+                             kStunMessageLen,
+                             0, &remote_addr_);
+  ASSERT_EQ(0, r);
+
+  
+  dummy_->CheckWriteBuffer(kStunMessage, kStunMessageLen);
+}
+
 TEST_F(BufferedStunSocketTest, TestSendToPartialBuffered) {
   dummy_->SetWritable(10);
 
