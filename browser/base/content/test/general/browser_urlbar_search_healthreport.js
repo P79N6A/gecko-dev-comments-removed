@@ -3,15 +3,13 @@
 
 "use strict";
 
-function test() {
-  waitForExplicitFinish();
+add_task(function* test_healthreport_search_recording() {
   try {
     let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
     cm.getCategoryEntry("healthreport-js-provider-default", "SearchesProvider");
   } catch (ex) {
     
     ok(true, "Firefox Health Report is not enabled.");
-    finish();
     return;
   }
 
@@ -20,72 +18,47 @@ function test() {
                    .wrappedJSObject
                    .healthReporter;
   ok(reporter, "Health Reporter available.");
-  reporter.onInit().then(function onInit() {
-    let provider = reporter.getProvider("org.mozilla.searches");
-    ok(provider, "Searches provider is available.");
-    let m = provider.getMeasurement("counts", 3);
+  yield reporter.onInit();
+  let provider = reporter.getProvider("org.mozilla.searches");
+  ok(provider, "Searches provider is available.");
+  let m = provider.getMeasurement("counts", 3);
 
-    m.getValues().then(function onData(data) {
-      let now = new Date();
-      let oldCount = 0;
+  let data = yield m.getValues();
+  let now = new Date();
+  let oldCount = 0;
 
-      
-      let field = "google.urlbar";
+  
+  let field = "google.urlbar";
 
-      if (data.days.hasDay(now)) {
-        let day = data.days.getDay(now);
-        if (day.has(field)) {
-          oldCount = day.get(field);
-        }
-      }
+  if (data.days.hasDay(now)) {
+    let day = data.days.getDay(now);
+    if (day.has(field)) {
+      oldCount = day.get(field);
+    }
+  }
 
-      let tab = gBrowser.addTab();
-      gBrowser.selectedTab = tab;
+  let tab = gBrowser.addTab();
+  gBrowser.selectedTab = tab;
 
-      let searchStr = "firefox health report";
-      let expectedURL = Services.search.currentEngine.
-                        getSubmission(searchStr, "", "keyword").uri.spec;
+  let searchStr = "firefox health report";
+  let expectedURL = Services.search.currentEngine.
+                    getSubmission(searchStr, "", "keyword").uri.spec;
 
-      
-      let loadPromise = waitForDocLoadAndStopIt(expectedURL);
+  
+  let docLoadPromise = waitForDocLoadAndStopIt(expectedURL);
 
-      
-      let count = 0;
-      let measurementDeferred = Promise.defer();
-      function getNewMeasurement() {
-        if (count++ >= 10) {
-          ok(false, "Timed out waiting for new measurement");
-          measurementDeferred.resolve();
-          return;
-        }
-        m.getValues().then(function onData(data) {
-          if (data.days.hasDay(now)) {
-            let day = data.days.getDay(now);
-            if (day.has(field)) {
-              let newCount = day.get(field);
-              if (newCount > oldCount) {
-                is(newCount, oldCount + 1,
-                   "Exactly one search has been recorded.");
-                measurementDeferred.resolve();
-                return;
-              }
-            }
-          }
-          executeSoon(getNewMeasurement);
-        });
-      }
-      executeSoon(getNewMeasurement);
+  
+  gURLBar.value = searchStr;
+  gURLBar.handleCommand();
 
-      
-      gURLBar.value = searchStr;
-      gURLBar.handleCommand();
+  yield docLoadPromise;
 
-      
-      Promise.all([loadPromise, measurementDeferred.promise]).then(() => {
-        gBrowser.removeTab(tab);
-        finish();
-      });
-    });
-  });
-}
+  data = yield m.getValues();
+  ok(data.days.hasDay(now), "We have a search measurement for today.");
+  let day = data.days.getDay(now);
+  ok(day.has(field), "Have a search count for the urlbar.");
+  let newCount = day.get(field);
+  is(newCount, oldCount + 1, "We recorded one new search.");
 
+  gBrowser.removeTab(tab);
+});
