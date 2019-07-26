@@ -26,15 +26,13 @@
 
 
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "event2/event-config.h"
+
+#define _GNU_SOURCE
 
 #include <sys/types.h>
-#ifdef HAVE_SYS_TIME_H
+#ifdef _EVENT_HAVE_SYS_TIME_H
 #include <sys/time.h>
-#else
-#include <sys/_time.h>
 #endif
 #include <sys/queue.h>
 #include <sys/event.h>
@@ -44,75 +42,86 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <assert.h>
-#ifdef HAVE_INTTYPES_H
+#ifdef _EVENT_HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif
 
 
 
 
-#if defined(HAVE_INTTYPES_H) && !defined(__OpenBSD__) && !defined(__FreeBSD__) && !defined(__darwin__) && !defined(__APPLE__)
+#if defined(_EVENT_HAVE_INTTYPES_H) && !defined(__OpenBSD__) && !defined(__FreeBSD__) && !defined(__darwin__) && !defined(__APPLE__)
 #define PTR_TO_UDATA(x)	((intptr_t)(x))
+#define INT_TO_UDATA(x) ((intptr_t)(x))
 #else
 #define PTR_TO_UDATA(x)	(x)
+#define INT_TO_UDATA(x) ((void*)(x))
 #endif
 
-#include "event.h"
 #include "event-internal.h"
-#include "log.h"
-#include "event-internal.h"
-
-#define EVLIST_X_KQINKERNEL	0x1000
+#include "log-internal.h"
+#include "evmap-internal.h"
+#include "event2/thread.h"
+#include "evthread-internal.h"
+#include "changelist-internal.h"
 
 #define NEVENT		64
 
 struct kqop {
 	struct kevent *changes;
-	int nchanges;
+	int changes_size;
+
 	struct kevent *events;
-	struct event_list evsigevents[NSIG];
-	int nevents;
+	int events_size;
 	int kq;
 	pid_t pid;
 };
 
-static void *kq_init	(struct event_base *);
-static int kq_add	(void *, struct event *);
-static int kq_del	(void *, struct event *);
-static int kq_dispatch	(struct event_base *, void *, struct timeval *);
-static int kq_insert	(struct kqop *, struct kevent *);
-static void kq_dealloc (struct event_base *, void *);
+static void kqop_free(struct kqop *kqop);
+
+static void *kq_init(struct event_base *);
+static int kq_sig_add(struct event_base *, int, short, short, void *);
+static int kq_sig_del(struct event_base *, int, short, short, void *);
+static int kq_dispatch(struct event_base *, struct timeval *);
+static void kq_dealloc(struct event_base *);
 
 const struct eventop kqops = {
 	"kqueue",
 	kq_init,
-	kq_add,
-	kq_del,
+	event_changelist_add,
+	event_changelist_del,
 	kq_dispatch,
 	kq_dealloc,
-	1 
+	1 ,
+    EV_FEATURE_ET|EV_FEATURE_O1|EV_FEATURE_FDS,
+	EVENT_CHANGELIST_FDINFO_SIZE
+};
+
+static const struct eventop kqsigops = {
+	"kqueue_signal",
+	NULL,
+	kq_sig_add,
+	kq_sig_del,
+	NULL,
+	NULL,
+	1 ,
+	0,
+	0
 };
 
 static void *
 kq_init(struct event_base *base)
 {
-	int i, kq;
-	struct kqop *kqueueop;
+	int kq = -1;
+	struct kqop *kqueueop = NULL;
 
-	
-	if (getenv("EVENT_NOKQUEUE"))
+	if (!(kqueueop = mm_calloc(1, sizeof(struct kqop))))
 		return (NULL);
 
-	if (!(kqueueop = calloc(1, sizeof(struct kqop))))
-		return (NULL);
 
-	
-	
+
 	if ((kq = kqueue()) == -1) {
 		event_warn("kqueue");
-		free (kqueueop);
-		return (NULL);
+		goto err;
 	}
 
 	kqueueop->kq = kq;
@@ -120,25 +129,16 @@ kq_init(struct event_base *base)
 	kqueueop->pid = getpid();
 
 	
-	kqueueop->changes = malloc(NEVENT * sizeof(struct kevent));
-	if (kqueueop->changes == NULL) {
-		free (kqueueop);
-		return (NULL);
-	}
-	kqueueop->events = malloc(NEVENT * sizeof(struct kevent));
-	if (kqueueop->events == NULL) {
-		free (kqueueop->changes);
-		free (kqueueop);
-		return (NULL);
-	}
-	kqueueop->nevents = NEVENT;
+	kqueueop->changes = mm_calloc(NEVENT, sizeof(struct kevent));
+	if (kqueueop->changes == NULL)
+		goto err;
+	kqueueop->events = mm_calloc(NEVENT, sizeof(struct kevent));
+	if (kqueueop->events == NULL)
+		goto err;
+	kqueueop->events_size = kqueueop->changes_size = NEVENT;
 
 	
-	for (i = 0; i < NSIG; ++i) {
-		TAILQ_INIT(&kqueueop->evsigevents[i]);
-	}
-
-	
+	memset(&kqueueop->changes[0], 0, sizeof kqueueop->changes[0]);
 	kqueueop->changes[0].ident = -1;
 	kqueueop->changes[0].filter = EVFILT_READ;
 	kqueueop->changes[0].flags = EV_ADD;
@@ -149,62 +149,20 @@ kq_init(struct event_base *base)
 
 	if (kevent(kq,
 		kqueueop->changes, 1, kqueueop->events, NEVENT, NULL) != 1 ||
-	    kqueueop->events[0].ident != -1 ||
+	    (int)kqueueop->events[0].ident != -1 ||
 	    kqueueop->events[0].flags != EV_ERROR) {
 		event_warn("%s: detected broken kqueue; not using.", __func__);
-		free(kqueueop->changes);
-		free(kqueueop->events);
-		free(kqueueop);
-		close(kq);
-		return (NULL);
+		goto err;
 	}
+
+	base->evsigsel = &kqsigops;
 
 	return (kqueueop);
-}
+err:
+	if (kqueueop)
+		kqop_free(kqueueop);
 
-static int
-kq_insert(struct kqop *kqop, struct kevent *kev)
-{
-	int nevents = kqop->nevents;
-
-	if (kqop->nchanges == nevents) {
-		struct kevent *newchange;
-		struct kevent *newresult;
-
-		nevents *= 2;
-
-		newchange = realloc(kqop->changes,
-				    nevents * sizeof(struct kevent));
-		if (newchange == NULL) {
-			event_warn("%s: malloc", __func__);
-			return (-1);
-		}
-		kqop->changes = newchange;
-
-		newresult = realloc(kqop->events,
-				    nevents * sizeof(struct kevent));
-
-		
-
-
-
-		if (newresult == NULL) {
-			event_warn("%s: malloc", __func__);
-			return (-1);
-		}
-		kqop->events = newresult;
-
-		kqop->nevents = nevents;
-	}
-
-	memcpy(&kqop->changes[kqop->nchanges++], kev, sizeof(struct kevent));
-
-	event_debug(("%s: fd %d %s%s",
-		__func__, (int)kev->ident, 
-		kev->filter == EVFILT_READ ? "EVFILT_READ" : "EVFILT_WRITE",
-		kev->flags == EV_DELETE ? " (del)" : ""));
-
-	return (0);
+	return (NULL);
 }
 
 static void
@@ -213,27 +171,146 @@ kq_sighandler(int sig)
 	
 }
 
-static int
-kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
+#define ADD_UDATA 0x30303
+
+static void
+kq_setup_kevent(struct kevent *out, evutil_socket_t fd, int filter, short change)
 {
-	struct kqop *kqop = arg;
-	struct kevent *changes = kqop->changes;
+	memset(out, 0, sizeof(struct kevent));
+	out->ident = fd;
+	out->filter = filter;
+
+	if (change & EV_CHANGE_ADD) {
+		out->flags = EV_ADD;
+		
+
+		out->udata = INT_TO_UDATA(ADD_UDATA);
+		if (change & EV_ET)
+			out->flags |= EV_CLEAR;
+#ifdef NOTE_EOF
+		
+		if (filter == EVFILT_READ)
+			out->fflags = NOTE_EOF;
+#endif
+	} else {
+		EVUTIL_ASSERT(change & EV_CHANGE_DEL);
+		out->flags = EV_DELETE;
+	}
+}
+
+static int
+kq_build_changes_list(const struct event_changelist *changelist,
+    struct kqop *kqop)
+{
+	int i;
+	int n_changes = 0;
+
+	for (i = 0; i < changelist->n_changes; ++i) {
+		struct event_change *in_ch = &changelist->changes[i];
+		struct kevent *out_ch;
+		if (n_changes >= kqop->changes_size - 1) {
+			int newsize = kqop->changes_size * 2;
+			struct kevent *newchanges;
+
+			newchanges = mm_realloc(kqop->changes,
+			    newsize * sizeof(struct kevent));
+			if (newchanges == NULL) {
+				event_warn("%s: realloc", __func__);
+				return (-1);
+			}
+			kqop->changes = newchanges;
+			kqop->changes_size = newsize;
+		}
+		if (in_ch->read_change) {
+			out_ch = &kqop->changes[n_changes++];
+			kq_setup_kevent(out_ch, in_ch->fd, EVFILT_READ,
+			    in_ch->read_change);
+		}
+		if (in_ch->write_change) {
+			out_ch = &kqop->changes[n_changes++];
+			kq_setup_kevent(out_ch, in_ch->fd, EVFILT_WRITE,
+			    in_ch->write_change);
+		}
+	}
+	return n_changes;
+}
+
+static int
+kq_grow_events(struct kqop *kqop, size_t new_size)
+{
+	struct kevent *newresult;
+
+	newresult = mm_realloc(kqop->events,
+	    new_size * sizeof(struct kevent));
+
+	if (newresult) {
+		kqop->events = newresult;
+		kqop->events_size = new_size;
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+static int
+kq_dispatch(struct event_base *base, struct timeval *tv)
+{
+	struct kqop *kqop = base->evbase;
 	struct kevent *events = kqop->events;
-	struct event *ev;
+	struct kevent *changes;
 	struct timespec ts, *ts_p = NULL;
-	int i, res;
+	int i, n_changes, res;
 
 	if (tv != NULL) {
 		TIMEVAL_TO_TIMESPEC(tv, &ts);
 		ts_p = &ts;
 	}
 
-	res = kevent(kqop->kq, changes, kqop->nchanges,
-	    events, kqop->nevents, ts_p);
-	kqop->nchanges = 0;
+	
+	EVUTIL_ASSERT(kqop->changes);
+	n_changes = kq_build_changes_list(&base->changelist, kqop);
+	if (n_changes < 0)
+		return -1;
+
+	event_changelist_remove_all(&base->changelist, base);
+
+	
+
+	changes = kqop->changes;
+	kqop->changes = NULL;
+
+	
+
+
+
+
+
+
+
+
+	if (kqop->events_size < n_changes) {
+		int new_size = kqop->events_size;
+		do {
+			new_size *= 2;
+		} while (new_size < n_changes);
+
+		kq_grow_events(kqop, new_size);
+		events = kqop->events;
+	}
+
+	EVBASE_RELEASE_LOCK(base, th_base_lock);
+
+	res = kevent(kqop->kq, changes, n_changes,
+	    events, kqop->events_size, ts_p);
+
+	EVBASE_ACQUIRE_LOCK(base, th_base_lock);
+
+	EVUTIL_ASSERT(kqop->changes == NULL);
+	kqop->changes = changes;
+
 	if (res == -1) {
 		if (errno != EINTR) {
-                        event_warn("kevent");
+			event_warn("kevent");
 			return (-1);
 		}
 
@@ -246,27 +323,52 @@ kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
 		int which = 0;
 
 		if (events[i].flags & EV_ERROR) {
+			switch (events[i].data) {
+
 			
 
 
 
+			case ENOENT:
+			
 
-
-
-
-
-
-
-
-			if (events[i].data == EBADF ||
-			    events[i].data == EINVAL ||
-			    events[i].data == ENOENT)
+			case EINVAL:
 				continue;
-			errno = events[i].data;
-			return (-1);
-		}
 
-		if (events[i].filter == EVFILT_READ) {
+			
+			case EBADF:
+				
+
+
+
+
+
+				continue;
+			
+
+			case EPERM:
+			case EPIPE:
+				
+
+
+
+				if (events[i].udata) {
+					
+
+					which |= EV_READ;
+					break;
+				} else {
+					
+
+					continue;
+				}
+
+			
+			default:
+				errno = events[i].data;
+				return (-1);
+			}
+		} else if (events[i].filter == EVFILT_READ) {
 			which |= EV_READ;
 		} else if (events[i].filter == EVFILT_WRITE) {
 			which |= EV_WRITE;
@@ -278,172 +380,96 @@ kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
 			continue;
 
 		if (events[i].filter == EVFILT_SIGNAL) {
-			struct event_list *head =
-			    (struct event_list *)events[i].udata;
-			TAILQ_FOREACH(ev, head, ev_signal_next) {
-				event_active(ev, which, events[i].data);
-			}
+			evmap_signal_active(base, events[i].ident, 1);
 		} else {
-			ev = (struct event *)events[i].udata;
-
-			if (!(ev->ev_events & EV_PERSIST))
-				ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
-
-			event_active(ev, which, 1);
+			evmap_io_active(base, events[i].ident, which | EV_ET);
 		}
 	}
 
-	return (0);
-}
-
-
-static int
-kq_add(void *arg, struct event *ev)
-{
-	struct kqop *kqop = arg;
-	struct kevent kev;
-
-	if (ev->ev_events & EV_SIGNAL) {
-		int nsignal = EVENT_SIGNAL(ev);
-
-		assert(nsignal >= 0 && nsignal < NSIG);
-		if (TAILQ_EMPTY(&kqop->evsigevents[nsignal])) {
-			struct timespec timeout = { 0, 0 };
-			
-			memset(&kev, 0, sizeof(kev));
-			kev.ident = nsignal;
-			kev.filter = EVFILT_SIGNAL;
-			kev.flags = EV_ADD;
-			kev.udata = PTR_TO_UDATA(&kqop->evsigevents[nsignal]);
-			
-			
-
-
-			if (kevent(kqop->kq, &kev, 1, NULL, 0, &timeout) == -1)
-				return (-1);
-			
-			if (_evsignal_set_handler(ev->ev_base, nsignal,
-				kq_sighandler) == -1)
-				return (-1);
-		}
-
-		TAILQ_INSERT_TAIL(&kqop->evsigevents[nsignal], ev,
-		    ev_signal_next);
-		ev->ev_flags |= EVLIST_X_KQINKERNEL;
-		return (0);
-	}
-
-	if (ev->ev_events & EV_READ) {
- 		memset(&kev, 0, sizeof(kev));
-		kev.ident = ev->ev_fd;
-		kev.filter = EVFILT_READ;
-#ifdef NOTE_EOF
+	if (res == kqop->events_size) {
 		
-		kev.fflags = NOTE_EOF;
-#endif
-		kev.flags = EV_ADD;
-		if (!(ev->ev_events & EV_PERSIST))
-			kev.flags |= EV_ONESHOT;
-		kev.udata = PTR_TO_UDATA(ev);
-		
-		if (kq_insert(kqop, &kev) == -1)
-			return (-1);
 
-		ev->ev_flags |= EVLIST_X_KQINKERNEL;
-	}
-
-	if (ev->ev_events & EV_WRITE) {
- 		memset(&kev, 0, sizeof(kev));
-		kev.ident = ev->ev_fd;
-		kev.filter = EVFILT_WRITE;
-		kev.flags = EV_ADD;
-		if (!(ev->ev_events & EV_PERSIST))
-			kev.flags |= EV_ONESHOT;
-		kev.udata = PTR_TO_UDATA(ev);
-		
-		if (kq_insert(kqop, &kev) == -1)
-			return (-1);
-
-		ev->ev_flags |= EVLIST_X_KQINKERNEL;
-	}
-
-	return (0);
-}
-
-static int
-kq_del(void *arg, struct event *ev)
-{
-	struct kqop *kqop = arg;
-	struct kevent kev;
-
-	if (!(ev->ev_flags & EVLIST_X_KQINKERNEL))
-		return (0);
-
-	if (ev->ev_events & EV_SIGNAL) {
-		int nsignal = EVENT_SIGNAL(ev);
-		struct timespec timeout = { 0, 0 };
-
-		assert(nsignal >= 0 && nsignal < NSIG);
-		TAILQ_REMOVE(&kqop->evsigevents[nsignal], ev, ev_signal_next);
-		if (TAILQ_EMPTY(&kqop->evsigevents[nsignal])) {
-			memset(&kev, 0, sizeof(kev));
-			kev.ident = nsignal;
-			kev.filter = EVFILT_SIGNAL;
-			kev.flags = EV_DELETE;
-		
-			
-
-
-			if (kevent(kqop->kq, &kev, 1, NULL, 0, &timeout) == -1)
-				return (-1);
-
-			if (_evsignal_restore_handler(ev->ev_base,
-				nsignal) == -1)
-				return (-1);
-		}
-
-		ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
-		return (0);
-	}
-
-	if (ev->ev_events & EV_READ) {
- 		memset(&kev, 0, sizeof(kev));
-		kev.ident = ev->ev_fd;
-		kev.filter = EVFILT_READ;
-		kev.flags = EV_DELETE;
-		
-		if (kq_insert(kqop, &kev) == -1)
-			return (-1);
-
-		ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
-	}
-
-	if (ev->ev_events & EV_WRITE) {
- 		memset(&kev, 0, sizeof(kev));
-		kev.ident = ev->ev_fd;
-		kev.filter = EVFILT_WRITE;
-		kev.flags = EV_DELETE;
-		
-		if (kq_insert(kqop, &kev) == -1)
-			return (-1);
-
-		ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
+		kq_grow_events(kqop, kqop->events_size * 2);
 	}
 
 	return (0);
 }
 
 static void
-kq_dealloc(struct event_base *base, void *arg)
+kqop_free(struct kqop *kqop)
 {
-	struct kqop *kqop = arg;
-
 	if (kqop->changes)
-		free(kqop->changes);
+		mm_free(kqop->changes);
 	if (kqop->events)
-		free(kqop->events);
+		mm_free(kqop->events);
 	if (kqop->kq >= 0 && kqop->pid == getpid())
 		close(kqop->kq);
 	memset(kqop, 0, sizeof(struct kqop));
-	free(kqop);
+	mm_free(kqop);
+}
+
+static void
+kq_dealloc(struct event_base *base)
+{
+	struct kqop *kqop = base->evbase;
+	evsig_dealloc(base);
+	kqop_free(kqop);
+}
+
+
+static int
+kq_sig_add(struct event_base *base, int nsignal, short old, short events, void *p)
+{
+	struct kqop *kqop = base->evbase;
+	struct kevent kev;
+	struct timespec timeout = { 0, 0 };
+	(void)p;
+
+	EVUTIL_ASSERT(nsignal >= 0 && nsignal < NSIG);
+
+	memset(&kev, 0, sizeof(kev));
+	kev.ident = nsignal;
+	kev.filter = EVFILT_SIGNAL;
+	kev.flags = EV_ADD;
+
+	
+
+
+	if (kevent(kqop->kq, &kev, 1, NULL, 0, &timeout) == -1)
+		return (-1);
+
+	
+
+	if (_evsig_set_handler(base, nsignal, kq_sighandler) == -1)
+		return (-1);
+
+	return (0);
+}
+
+static int
+kq_sig_del(struct event_base *base, int nsignal, short old, short events, void *p)
+{
+	struct kqop *kqop = base->evbase;
+	struct kevent kev;
+
+	struct timespec timeout = { 0, 0 };
+	(void)p;
+
+	EVUTIL_ASSERT(nsignal >= 0 && nsignal < NSIG);
+
+	memset(&kev, 0, sizeof(kev));
+	kev.ident = nsignal;
+	kev.filter = EVFILT_SIGNAL;
+	kev.flags = EV_DELETE;
+
+	
+
+
+	if (kevent(kqop->kq, &kev, 1, NULL, 0, &timeout) == -1)
+		return (-1);
+
+	if (_evsig_restore_handler(base, nsignal) == -1)
+		return (-1);
+
+	return (0);
 }

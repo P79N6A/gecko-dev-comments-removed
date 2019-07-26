@@ -3,9 +3,12 @@
 
 
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+
+
+
+
+
+#include <event2/event-config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,6 +17,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #else
+#include <winsock2.h>
 #include <windows.h>
 #endif
 #include <fcntl.h>
@@ -25,7 +29,7 @@
 #include <event.h>
 
 static void
-fifo_read(int fd, short event, void *arg)
+fifo_read(evutil_socket_t fd, short event, void *arg)
 {
 	char buf[255];
 	int len;
@@ -38,12 +42,12 @@ fifo_read(int fd, short event, void *arg)
 	event_add(ev, NULL);
 
 	fprintf(stderr, "fifo_read called with fd: %d, event: %d, arg: %p\n",
-		fd, event, arg);
+	    (int)fd, event, arg);
 #ifdef WIN32
 	len = ReadFile((HANDLE)fd, buf, sizeof(buf) - 1, &dwBytesRead, NULL);
 
 	
-	if(len && dwBytesRead == 0) {
+	if (len && dwBytesRead == 0) {
 		fprintf(stderr, "End Of File");
 		event_del(ev);
 		return;
@@ -67,52 +71,52 @@ fifo_read(int fd, short event, void *arg)
 }
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
 	struct event evfifo;
 #ifdef WIN32
 	HANDLE socket;
 	
-	socket = CreateFile("test.txt",     
-			GENERIC_READ,                 
-			0,                            
-			NULL,                         
-			OPEN_EXISTING,                
-			FILE_ATTRIBUTE_NORMAL,        
-			NULL);                        
+	socket = CreateFileA("test.txt",	
+			GENERIC_READ,		
+			0,			
+			NULL,			
+			OPEN_EXISTING,		
+			FILE_ATTRIBUTE_NORMAL,	
+			NULL);			
 
-	if(socket == INVALID_HANDLE_VALUE)
+	if (socket == INVALID_HANDLE_VALUE)
 		return 1;
 
 #else
 	struct stat st;
 	const char *fifo = "event.fifo";
 	int socket;
- 
-	if (lstat (fifo, &st) == 0) {
+
+	if (lstat(fifo, &st) == 0) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
 			errno = EEXIST;
 			perror("lstat");
-			exit (1);
+			exit(1);
 		}
 	}
 
-	unlink (fifo);
-	if (mkfifo (fifo, 0600) == -1) {
+	unlink(fifo);
+	if (mkfifo(fifo, 0600) == -1) {
 		perror("mkfifo");
-		exit (1);
+		exit(1);
 	}
 
 	
 #ifdef __linux
-	socket = open (fifo, O_RDWR | O_NONBLOCK, 0);
+	socket = open(fifo, O_RDWR | O_NONBLOCK, 0);
 #else
-	socket = open (fifo, O_RDONLY | O_NONBLOCK, 0);
+	socket = open(fifo, O_RDONLY | O_NONBLOCK, 0);
 #endif
 
 	if (socket == -1) {
 		perror("open");
-		exit (1);
+		exit(1);
 	}
 
 	fprintf(stderr, "Write data to %s\n", fifo);
@@ -122,14 +126,14 @@ main (int argc, char **argv)
 
 	
 #ifdef WIN32
-	event_set(&evfifo, (int)socket, EV_READ, fifo_read, &evfifo);
+	event_set(&evfifo, (evutil_socket_t)socket, EV_READ, fifo_read, &evfifo);
 #else
 	event_set(&evfifo, socket, EV_READ, fifo_read, &evfifo);
 #endif
 
 	
 	event_add(&evfifo, NULL);
-	
+
 	event_dispatch();
 #ifdef WIN32
 	CloseHandle(socket);

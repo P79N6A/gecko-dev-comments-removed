@@ -2,22 +2,45 @@
 
 
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "event2/event-config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef WIN32
 #include <unistd.h>
+#include <sys/time.h>
+#endif
 #include <errno.h>
 
-#include <event.h>
+#include "event2/event.h"
+#include "event2/event_compat.h"
+#include "event2/event_struct.h"
 
 int called = 0;
 
@@ -29,14 +52,14 @@ static int
 rand_int(int n)
 {
 #ifdef WIN32
-	return (int)(rand() * n);
+	return (int)(rand() % n);
 #else
 	return (int)(random() % n);
 #endif
 }
 
 static void
-time_cb(int fd, short event, void *arg)
+time_cb(evutil_socket_t fd, short event, void *arg)
 {
 	struct timeval tv;
 	int i, j;
@@ -57,10 +80,18 @@ time_cb(int fd, short event, void *arg)
 }
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
 	struct timeval tv;
 	int i;
+#ifdef WIN32
+	WORD wVersionRequested;
+	WSADATA wsaData;
+
+	wVersionRequested = MAKEWORD(2, 2);
+
+	(void) WSAStartup(wVersionRequested, &wsaData);
+#endif
 
 	
 	event_init();
