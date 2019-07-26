@@ -550,8 +550,14 @@ nsXULElement::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
 
 #ifdef XP_MACOSX
   
-  if (aWithMouse && IsNonList(mNodeInfo))
+  
+  
+  if (aWithMouse &&
+      IsNonList(mNodeInfo) && 
+      !nsEventStateManager::IsRemoteTarget(this))
+  {
     return false;
+  }
 #endif
 
   nsCOMPtr<nsIDOMXULControlElement> xulControl = do_QueryObject(this);
