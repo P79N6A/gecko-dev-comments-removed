@@ -999,7 +999,8 @@ public:
   MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                           const FlexboxAxisTracker& aAxisTracker,
                           const nsHTMLReflowState& aReflowState,
-                          const nsTArray<FlexItem>& aItems);
+                          const nsTArray<FlexItem>& aItems,
+                          nscoord aContentBoxMainSize);
 
   ~MainAxisPositionTracker() {
     MOZ_ASSERT(mNumPackingSpacesRemaining == 0,
@@ -1488,8 +1489,10 @@ MainAxisPositionTracker::
   MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                           const FlexboxAxisTracker& aAxisTracker,
                           const nsHTMLReflowState& aReflowState,
-                          const nsTArray<FlexItem>& aItems)
+                          const nsTArray<FlexItem>& aItems,
+                          nscoord aContentBoxMainSize)
   : PositionTracker(aAxisTracker.GetMainAxis()),
+    mPackingSpaceRemaining(aContentBoxMainSize), 
     mNumAutoMarginsInMainAxis(0),
     mNumPackingSpacesRemaining(0)
 {
@@ -1499,20 +1502,11 @@ MainAxisPositionTracker::
   
   
   
-  
-  
-  mPackingSpaceRemaining = GET_MAIN_COMPONENT(aAxisTracker,
-                                              aReflowState.ComputedWidth(),
-                                              aReflowState.ComputedHeight());
-  if (mPackingSpaceRemaining == NS_UNCONSTRAINEDSIZE) {
-    mPackingSpaceRemaining = 0;
-  } else {
-    for (uint32_t i = 0; i < aItems.Length(); i++) {
-      nscoord itemMarginBoxMainSize =
-        aItems[i].GetMainSize() +
-        aItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
-      mPackingSpaceRemaining -= itemMarginBoxMainSize;
-    }
+  for (uint32_t i = 0; i < aItems.Length(); i++) {
+    nscoord itemMarginBoxMainSize =
+      aItems[i].GetMainSize() +
+      aItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
+    mPackingSpaceRemaining -= itemMarginBoxMainSize;
   }
 
   if (mPackingSpaceRemaining > 0) {
@@ -2291,7 +2285,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   MainAxisPositionTracker mainAxisPosnTracker(this, axisTracker,
-                                              aReflowState, items);
+                                              aReflowState, items,
+                                              contentBoxMainSize);
   for (uint32_t i = 0; i < items.Length(); ++i) {
     PositionItemInMainAxis(mainAxisPosnTracker, items[i]);
   }
