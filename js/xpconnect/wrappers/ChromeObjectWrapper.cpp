@@ -25,15 +25,15 @@ PropIsFromStandardPrototype(JSContext *cx, JSPropertyDescriptor *desc)
 
 bool
 ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
-                                           jsid id, bool set,
-                                           js::PropertyDescriptor *desc)
+                                           jsid id, js::PropertyDescriptor *desc,
+                                           unsigned flags)
 {
     
     
     
     desc->obj = NULL;
     if (!ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
-                                                        set, desc)) {
+                                                        desc, flags)) {
         return false;
     }
 
@@ -46,8 +46,8 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
     
     JSObject *wrapperProto;
     if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
-	return false;
-    if (desc->obj || set || !wrapperProto)
+      return false;
+    if (desc->obj || (flags & JSRESOLVE_ASSIGNING) || !wrapperProto)
         return true;
 
     
@@ -86,8 +86,8 @@ ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
     
     
     JSPropertyDescriptor desc;
-    if (!ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id, false,
-                                                        &desc)) {
+    if (!ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id, &desc,
+                                                        0)) {
         return false;
     }
 

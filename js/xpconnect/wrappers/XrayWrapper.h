@@ -5,9 +5,11 @@
 
 
 
+#include "mozilla/Attributes.h"
+#include "mozilla/GuardObjects.h"
+
 #include "jsapi.h"
 #include "jswrapper.h"
-#include "mozilla/GuardObjects.h"
 
 
 
@@ -62,9 +64,10 @@ class XrayWrapper : public Base {
 
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
-                                       bool set, js::PropertyDescriptor *desc);
+                                       js::PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
-                                          bool set, js::PropertyDescriptor *desc);
+                                          js::PropertyDescriptor *desc,
+                                          unsigned flags) MOZ_OVERRIDE;
     virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
                                 js::PropertyDescriptor *desc);
     virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
@@ -108,10 +111,10 @@ public:
     }
 
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
-                                       bool set, js::PropertyDescriptor *desc) MOZ_OVERRIDE;
+                                       js::PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
-                                          jsid id, bool set,
-                                          js::PropertyDescriptor *desc) MOZ_OVERRIDE;
+                                          jsid id, js::PropertyDescriptor *desc,
+                                          unsigned flags) MOZ_OVERRIDE;
 
     
     
