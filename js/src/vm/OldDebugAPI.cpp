@@ -172,7 +172,7 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug)
 {
     AutoDebugModeGC dmgc(cx->runtime());
 
-    for (CompartmentsIter c(cx->runtime()); !c.done(); c.next()) {
+    for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
         
         if (c->principals) {
             if (!c->setDebugModeFromC(cx, !!debug, dmgc))

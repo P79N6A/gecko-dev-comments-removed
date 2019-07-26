@@ -260,7 +260,7 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
 
 
 
-        for (CompartmentsIter c(rt); !c.done(); c.next())
+        for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
             c->types.print(cx, false);
     }
     if (mode == DCM_FORCE_GC) {
