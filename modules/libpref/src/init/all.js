@@ -230,6 +230,7 @@ pref("media.navigator.video.default_minfps",10);
 pref("media.peerconnection.enabled", true);
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:23.21.150.121\"}]");
+pref("media.peerconnection.trickle_ice", true);
 pref("media.peerconnection.use_document_iceservers", true);
 
 
