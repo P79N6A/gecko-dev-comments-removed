@@ -963,8 +963,6 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   
   nsStyleContext *sc = mChar->mStyleContext;
   nsFont font = sc->StyleFont()->mFont;
-  
-  font.name.Truncate();
 
   bool isVertical = (mDirection == NS_STRETCH_DIRECTION_VERTICAL);
   bool largeop = (NS_STRETCH_LARGEOP & mStretchHint) != 0;
@@ -1064,8 +1062,6 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
 
   
   nsFont font = mChar->mStyleContext->StyleFont()->mFont;
-  
-  font.name.Truncate();
 
   
   nsAutoPtr<gfxTextRun> textRun[4];
