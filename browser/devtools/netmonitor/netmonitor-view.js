@@ -686,7 +686,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   refreshZebra: function() {
-    let visibleItems = this.orderedVisibleItems;
+    let visibleItems = this.visibleItems;
 
     for (let i = 0, len = visibleItems.length; i < len; i++) {
       let requestItem = visibleItems[i];

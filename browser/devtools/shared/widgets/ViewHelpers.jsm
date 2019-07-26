@@ -812,7 +812,7 @@ this.WidgetMethods = {
 
 
   sortContents: function(aPredicate = this._currentSortPredicate) {
-    let sortedItems = this.orderedItems.sort(this._currentSortPredicate = aPredicate);
+    let sortedItems = this.items.sort(this._currentSortPredicate = aPredicate);
 
     for (let i = 0, len = sortedItems.length; i < len; i++) {
       this.swapItems(this.getItemAtIndex(i), sortedItems[i]);
@@ -1318,11 +1318,12 @@ this.WidgetMethods = {
 
 
   get items() {
-    let items = [];
-    for (let [, item] of this._itemsByElement) {
-      items.push(item);
+    let store = [];
+    let itemCount = this.itemCount;
+    for (let i = 0; i < itemCount; i++) {
+      store.push(this.getItemAtIndex(i));
     }
-    return items;
+    return store;
   },
 
   
@@ -1330,11 +1331,7 @@ this.WidgetMethods = {
 
 
   get labels() {
-    let labels = [];
-    for (let [label] of this._itemsByLabel) {
-      labels.push(label);
-    }
-    return labels;
+    return this.items.map(e => e._label);
   },
 
   
@@ -1342,11 +1339,7 @@ this.WidgetMethods = {
 
 
   get values() {
-    let values = [];
-    for (let [value] of this._itemsByValue) {
-      values.push(value);
-    }
-    return values;
+    return this.items.map(e => e._value);
   },
 
   
@@ -1355,43 +1348,7 @@ this.WidgetMethods = {
 
 
   get visibleItems() {
-    let items = [];
-    for (let [element, item] of this._itemsByElement) {
-      if (!element.hidden) {
-        items.push(item);
-      }
-    }
-    return items;
-  },
-
-  
-
-
-
-  get orderedItems() {
-    let items = [];
-    let itemCount = this.itemCount;
-    for (let i = 0; i < itemCount; i++) {
-      items.push(this.getItemAtIndex(i));
-    }
-    return items;
-  },
-
-  
-
-
-
-
-  get orderedVisibleItems() {
-    let items = [];
-    let itemCount = this.itemCount;
-    for (let i = 0; i < itemCount; i++) {
-      let item = this.getItemAtIndex(i);
-      if (!item._target.hidden) {
-        items.push(item);
-      }
-    }
-    return items;
+    return this.items.filter(e => !e._target.hidden);
   },
 
   
