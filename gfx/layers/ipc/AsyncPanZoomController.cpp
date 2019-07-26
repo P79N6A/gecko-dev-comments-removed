@@ -853,17 +853,15 @@ const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
   
   
   
-  if (enlargedX || enlargedY) {
-    if (scrollOffset.x + compositionBounds.width > scrollableRect.width) {
-      scrollOffset.x -= compositionBounds.width + scrollOffset.x - scrollableRect.width;
-    } else if (scrollOffset.x < scrollableRect.x) {
-      scrollOffset.x = scrollableRect.x;
-    }
-    if (scrollOffset.y + compositionBounds.height > scrollableRect.height) {
-      scrollOffset.y -= compositionBounds.height + scrollOffset.y - scrollableRect.height;
-    } else if (scrollOffset.y < scrollableRect.y) {
-      scrollOffset.y = scrollableRect.y;
-    }
+  if (scrollOffset.x + compositionBounds.width > scrollableRect.width) {
+    scrollOffset.x -= compositionBounds.width + scrollOffset.x - scrollableRect.width;
+  } else if (scrollOffset.x < scrollableRect.x) {
+    scrollOffset.x = scrollableRect.x;
+  }
+  if (scrollOffset.y + compositionBounds.height > scrollableRect.height) {
+    scrollOffset.y -= compositionBounds.height + scrollOffset.y - scrollableRect.height;
+  } else if (scrollOffset.y < scrollableRect.y) {
+    scrollOffset.y = scrollableRect.y;
   }
 
   gfx::Rect shiftedDisplayPort = displayPort;
