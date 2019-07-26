@@ -429,6 +429,8 @@ DenseRangeWriteBarrierPost(JSRuntime *rt, JSObject *obj, uint32_t start, uint32_
 
 
 
+
+
 template <class Map, class Key>
 inline void
 HashTableWriteBarrierPost(JSRuntime *rt, Map *map, const Key &key)
@@ -438,6 +440,7 @@ HashTableWriteBarrierPost(JSRuntime *rt, Map *map, const Key &key)
         rt->gcStoreBuffer.putGeneric(gc::HashKeyRef<Map, Key>(map, key));
 #endif
 }
+
 
 inline
 EncapsulatedId::~EncapsulatedId()

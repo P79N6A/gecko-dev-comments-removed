@@ -40,15 +40,11 @@ class BufferableRef
 
 
 
-
 template <typename Map, typename Key>
 class HashKeyRef : public BufferableRef
 {
     Map *map;
     Key key;
-
-    typedef typename Map::Entry::ValueType ValueType;
-    typedef typename Map::Ptr Ptr;
 
   public:
     HashKeyRef(Map *m, const Key &k) : map(m), key(k) {}
@@ -58,13 +54,9 @@ class HashKeyRef : public BufferableRef
         typename Map::Ptr p = map->lookup(key);
         if (!p)
             return;
-        ValueType value = p->value;
-        JS_SET_TRACING_LOCATION(trc, (void*)&p->key);
+        JS_SET_TRACING_LOCATION(trc, (void*)&*p);
         Mark(trc, &key, "HashKeyRef");
-        if (prior != key) {
-            map->remove(prior);
-            map->put(key, value);
-        }
+        map->rekey(prior, key);
     }
 };
 
