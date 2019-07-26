@@ -75,33 +75,15 @@ struct GMPVideoCodecVP8
   int32_t mKeyFrameInterval;
 };
 
-
-struct GMPVideoCodecH264
-{
-  uint8_t        mProfile;
-  uint8_t        mConstraints;
-  uint8_t        mLevel;
-  uint8_t        mPacketizationMode; 
-  bool           mFrameDroppingOn;
-  int32_t        mKeyFrameInterval;
-  
-  const uint8_t* mSPSData;
-  size_t         mSPSLen;
-  const uint8_t* mPPSData;
-  size_t         mPPSLen;
-};
-
 enum GMPVideoCodecType
 {
   kGMPVideoCodecVP8,
-  kGMPVideoCodecH264,
   kGMPVideoCodecInvalid 
 };
 
 union GMPVideoCodecUnion
 {
   GMPVideoCodecVP8 mVP8;
-  GMPVideoCodecH264 mH264;
 };
 
 
@@ -146,23 +128,7 @@ struct GMPVideoCodec
   GMPVideoCodecMode mMode;
 };
 
-
-
-
-
-enum GMPBufferType {
-  GMP_BufferSingle = 0,
-  GMP_BufferLength8,
-  GMP_BufferLength16,
-  GMP_BufferLength24,
-  GMP_BufferLength32,
-};
-
 struct GMPCodecSpecificInfoGeneric {
-  uint8_t mSimulcastIdx;
-};
-
-struct GMPCodecSpecificInfoH264 {
   uint8_t mSimulcastIdx;
 };
 
@@ -195,7 +161,6 @@ union GMPCodecSpecificInfoUnion
 struct GMPCodecSpecificInfo
 {
   GMPVideoCodecType mCodecType;
-  GMPBufferType mBufferType;
   GMPCodecSpecificInfoUnion mCodecSpecific;
 };
 
