@@ -401,19 +401,6 @@ inline void
 JSContext::setDefaultCompartmentObject(JSObject *obj)
 {
     defaultCompartmentObject_ = obj;
-
-    if (!hasEnteredCompartment()) {
-        
-
-
-
-
-
-        JS_ASSERT(!currentlyRunning());
-        setCompartment(obj ? obj->compartment() : NULL);
-        if (throwing)
-            wrapPendingException();
-    }
 }
 
 inline void
@@ -440,21 +427,9 @@ JSContext::leaveCompartment(JSCompartment *oldCompartment)
     enterCompartmentDepth_--;
 
     compartment()->leave();
+    setCompartment(oldCompartment);
 
-    
-
-
-
-
-
-
-
-    if (hasEnteredCompartment() || !defaultCompartmentObject_)
-        setCompartment(oldCompartment);
-    else
-        setCompartment(defaultCompartmentObject_->compartment());
-
-    if (throwing)
+    if (throwing && oldCompartment)
         wrapPendingException();
 }
 

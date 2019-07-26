@@ -2083,7 +2083,6 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JS::Handle<JSObject*> aOuterObjec
   JSAutoCompartment ac(aCx, aOuterObject);
 
   
-  
   JS_SetGlobalObject(aCx, aOuterObject);
 
   
