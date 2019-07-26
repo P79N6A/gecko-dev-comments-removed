@@ -6,6 +6,9 @@
 
 
 
+#ifndef mozilla_android_signal_defs_h__
+#define mozilla_android_signal_defs_h__
+
 #include <android/api-level.h>
 
 
@@ -29,3 +32,4 @@ typedef struct ucontext {
 } ucontext_t;
 #endif
 
+#endif
