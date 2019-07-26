@@ -1107,16 +1107,13 @@ HyperTextAccessible::SetSelectionRange(int32_t aStartPos, int32_t aEndPos)
   if (isFocusable)
     TakeFocus();
 
-  
-  SetSelectionBoundsAt(0, aStartPos, aEndPos);
-
-  
-  
   Selection* domSel = DOMSelection();
   NS_ENSURE_STATE(domSel);
 
+  
   for (int32_t idx = domSel->GetRangeCount() - 1; idx > 0; idx--)
     domSel->RemoveRange(domSel->GetRangeAt(idx));
+  SetSelectionBoundsAt(0, aStartPos, aEndPos);
 
   
   
