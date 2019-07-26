@@ -4477,6 +4477,9 @@ pref("dom.mms.defaultServiceId", 0);
 pref("mms.debugging.enabled", false);
 
 
+pref("dom.mms.requestReadReport", true);
+
+
 pref("ril.numRadioInterfaces", 0);
 
 
