@@ -58,6 +58,8 @@ function BrowserElementChild() {
   this._forcedVisible = true;
   this._ownerVisible = true;
 
+  this._nextPaintHandler = null;
+
   this._init();
 };
 
@@ -109,11 +111,10 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    this._afterPaintHandlerClosure = this._afterPaintHandler.bind(this);
-    addEventListener('MozAfterPaint',
-                     this._afterPaintHandlerClosure,
-                      true,
-                      false);
+    
+    this._addMozAfterPaintHandler(function () {
+      sendAsyncMsg('firstpaint');
+    });
 
     var self = this;
     function addMsgListener(msg, handler) {
@@ -135,6 +136,8 @@ BrowserElementChild.prototype = {
     addMsgListener("fire-ctx-callback", this._recvFireCtxCallback);
     addMsgListener("owner-visibility-change", this._recvOwnerVisibilityChange);
     addMsgListener("exit-fullscreen", this._recvExitFullscreen.bind(this));
+    addMsgListener("activate-next-paint-listener", this._activateNextPaintListener.bind(this));
+    addMsgListener("deactivate-next-paint-listener", this._deactivateNextPaintListener.bind(this));
 
     let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
@@ -361,16 +364,39 @@ BrowserElementChild.prototype = {
     }
   },
 
-  _afterPaintHandler: function(e) {
-    let uri = docShell.QueryInterface(Ci.nsIWebNavigation).currentURI;
-    debug("Got afterpaint event: " + uri.spec);
-    if (uri.spec != "about:blank") {
-      
+  _addMozAfterPaintHandler: function(callback) {
+    function onMozAfterPaint() {
+      let uri = docShell.QueryInterface(Ci.nsIWebNavigation).currentURI;
+      debug("Got afterpaint event: " + uri.spec);
+      if (uri.spec != "about:blank") {
+        removeEventListener('MozAfterPaint', onMozAfterPaint,
+                             true);
+        callback();
+      }
+    }
 
-      removeEventListener('MozAfterPaint', this._afterPaintHandlerClosure,
-                           true);
+    addEventListener('MozAfterPaint', onMozAfterPaint,  true);
+    return onMozAfterPaint;
+  },
 
-      sendAsyncMsg('firstpaint');
+  _removeMozAfterPaintHandler: function(listener) {
+    removeEventListener('MozAfterPaint', listener,
+                         true);
+  },
+
+  _activateNextPaintListener: function(e) {
+    if (!this._nextPaintHandler) {
+      this._nextPaintHandler = this._addMozAfterPaintHandler(function () {
+        this._nextPaintHandler = null;
+        sendAsyncMsg('nextpaint');
+      }.bind(this));
+    }
+  },
+
+  _deactivateNextPaintListener: function(e) {
+    if (this._nextPaintHandler) {
+      this._removeMozAfterPaintHandler(this._nextPaintHandler);
+      this._nextPaintHandler = null;
     }
   },
 
