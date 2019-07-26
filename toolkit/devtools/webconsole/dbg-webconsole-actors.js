@@ -103,7 +103,7 @@ WebConsoleActor.prototype =
 
 
 
-  _sandboxLocation: null,
+  _sandboxWindowId: 0,
 
   
 
@@ -201,7 +201,8 @@ WebConsoleActor.prototype =
     }
     this.conn.removeActorPool(this.actorPool);
     this._actorPool = null;
-    this._sandboxLocation = this.sandbox = null;
+    this.sandbox = null;
+    this._sandboxWindowId = 0;
     this.conn = this._window = null;
   },
 
@@ -565,7 +566,7 @@ WebConsoleActor.prototype =
 
   _createSandbox: function WCA__createSandbox()
   {
-    this._sandboxLocation = this.window.location;
+    this._sandboxWindowId = WebConsoleUtils.getInnerWindowId(this.window);
     this.sandbox = new Cu.Sandbox(this.window, {
       sandboxPrototype: this.window,
       wantXrays: false,
@@ -588,7 +589,7 @@ WebConsoleActor.prototype =
   {
     
     
-    if (this._sandboxLocation !== this.window.location) {
+    if (this._sandboxWindowId !== WebConsoleUtils.getInnerWindowId(this.window)) {
       this._createSandbox();
     }
 
