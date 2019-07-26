@@ -4,17 +4,16 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
-
-let Promise = require("sdk/core/promise");
-let EventEmitter = require("devtools/shared/event-emitter");
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource:///modules/devtools/EventEmitter.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 
-loader.lazyGetter(this, "Hosts", () => require("devtools/framework/toolbox-hosts").Hosts);
-
+XPCOMUtils.defineLazyModuleGetter(this, "Hosts",
+                                  "resource:///modules/devtools/ToolboxHosts.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CommandUtils",
                                   "resource:///modules/devtools/DeveloperToolbar.jsm");
 
@@ -35,14 +34,74 @@ XPCOMUtils.defineLazyGetter(this, "toolboxStrings", function() {
 });
 
 XPCOMUtils.defineLazyGetter(this, "Requisition", function() {
-  let scope = {};
-  Cu.import("resource://gre/modules/devtools/Require.jsm", scope);
-  Cu.import("resource:///modules/devtools/gcli.jsm", scope);
+  Cu.import("resource://gre/modules/devtools/Require.jsm");
+  Cu.import("resource:///modules/devtools/gcli.jsm");
 
-  let req = scope.require;
-  return req('gcli/cli').Requisition;
+  return require('gcli/cli').Requisition;
 });
 
+this.EXPORTED_SYMBOLS = [ "Toolbox" ];
+
+
+
+
+
+
+
+
+
+Promise.promised = (function() {
+  
+  
+  
+
+  var call = Function.call;
+  var concat = Array.prototype.concat;
+
+  
+  
+  function execute(args) { return call.apply(call, args); }
+
+  
+  
+  function promisedConcat(promises, unknown) {
+    return promises.then(function(values) {
+      return Promise.resolve(unknown).then(function(value) {
+        return values.concat([ value ]);
+      });
+    });
+  }
+
+  return function promised(f, prototype) {
+    
+
+
+
+
+
+
+
+
+
+
+
+    return function promised() {
+      
+      return concat.apply([ f, this ], arguments).
+          
+          reduce(promisedConcat, Promise.resolve([], prototype)).
+          
+          then(execute);
+    };
+  };
+})();
+
+
+
+
+
+
+Promise.all = Promise.promised(Array);
 
 
 
@@ -55,7 +114,11 @@ XPCOMUtils.defineLazyGetter(this, "Requisition", function() {
 
 
 
-function Toolbox(target, selectedTool, hostType) {
+
+
+
+
+this.Toolbox = function Toolbox(target, selectedTool, hostType) {
   this._target = target;
   this._toolPanels = new Map();
 
@@ -89,7 +152,6 @@ function Toolbox(target, selectedTool, hostType) {
   gDevTools.on("tool-registered", this._toolRegistered);
   gDevTools.on("tool-unregistered", this._toolUnregistered);
 }
-exports.Toolbox = Toolbox;
 
 
 

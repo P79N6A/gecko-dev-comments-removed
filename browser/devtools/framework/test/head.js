@@ -2,16 +2,13 @@
 
 
 
-let TargetFactory = gDevTools.TargetFactory;
-
 let tempScope = {};
+Components.utils.import("resource:///modules/devtools/Target.jsm", tempScope);
+let TargetFactory = tempScope.TargetFactory;
 Components.utils.import("resource://gre/modules/devtools/Console.jsm", tempScope);
 let console = tempScope.console;
 Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", tempScope);
 let Promise = tempScope.Promise;
-
-let {devtools} = Components.utils.import("resource:///modules/devtools/gDevTools.jsm", {});
-let TargetFactory = devtools.TargetFactory;
 
 
 

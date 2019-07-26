@@ -24,7 +24,8 @@
 
 "use strict";
 
-const {Ci, Cu} = require("chrome");
+const Ci = Components.interfaces;
+const Cu = Components.utils;
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -33,6 +34,11 @@ const FOCUS_BACKWARD = Ci.nsIFocusManager.MOVEFOCUS_BACKWARD;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+this.EXPORTED_SYMBOLS = ["editableItem",
+                         "editableField",
+                         "getInplaceEditorForSpan",
+                         "InplaceEditor"];
 
 
 
@@ -75,7 +81,6 @@ function editableField(aOptions)
   });
 }
 
-exports.editableField = editableField;
 
 
 
@@ -89,8 +94,7 @@ exports.editableField = editableField;
 
 
 
-
-function editableItem(aOptions, aCallback)
+this.editableItem = function editableItem(aOptions, aCallback)
 {
   let trigger = aOptions.trigger || "click"
   let element = aOptions.element;
@@ -132,20 +136,16 @@ function editableItem(aOptions, aCallback)
   element._editable = true;
 }
 
-exports.editableItem = this.editableItem;
 
 
 
 
 
 
-
-
-function getInplaceEditorForSpan(aSpan)
+this.getInplaceEditorForSpan = function getInplaceEditorForSpan(aSpan)
 {
   return aSpan.inplaceEditor;
 };
-exports.getInplaceEditorForSpan = getInplaceEditorForSpan;
 
 function InplaceEditor(aOptions, aEvent)
 {
@@ -205,8 +205,6 @@ function InplaceEditor(aOptions, aEvent)
     aOptions.start(this, aEvent);
   }
 }
-
-exports.InplaceEditor = InplaceEditor;
 
 InplaceEditor.prototype = {
   _createInput: function InplaceEditor_createEditor()

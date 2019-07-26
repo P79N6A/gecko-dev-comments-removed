@@ -1,6 +1,9 @@
 
 
 
+let tempScope = {};
+Cu.import("resource:///modules/devtools/Target.jsm", tempScope);
+let TargetFactory = tempScope.TargetFactory;
 let doc = null, toolbox = null, panelWin = null, index = 0, prefValues = [], prefNodes = [];
 
 function test() {

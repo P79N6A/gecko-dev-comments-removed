@@ -5,6 +5,11 @@
 
 
 
+let tempScope = {};
+Cu.import("resource:///modules/devtools/CssRuleView.jsm", tempScope);
+let CssRuleView = tempScope.CssRuleView;
+let _ElementStyle = tempScope._ElementStyle;
+
 let doc;
 let ruleDialog;
 let ruleView;
