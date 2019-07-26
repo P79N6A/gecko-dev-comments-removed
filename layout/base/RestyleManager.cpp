@@ -1923,14 +1923,16 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
 
       
       
-      DebugOnly<nsChangeHint> styleChange =
-        oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
-      
-      
-      
-      
-      NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
-                   "Our frame tree is likely to be bogus!");
+      if (!copyFromContinuation) {
+        DebugOnly<nsChangeHint> styleChange =
+          oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
+        
+        
+        
+        
+        NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                     "Our frame tree is likely to be bogus!");
+      }
 
       aFrame->SetStyleContext(newContext);
 
@@ -1986,7 +1988,7 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
             
             
             
-            styleChange =
+            DebugOnly<nsChangeHint> styleChange =
               oldExtraContext->CalcStyleDifference(newExtraContext,
                                                    nsChangeHint(0));
             
@@ -2112,7 +2114,6 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
 void
 ElementRestyler::CaptureChange(nsStyleContext* aOldContext,
                                nsStyleContext* aNewContext,
-                               nsIFrame* aContinuation, 
                                nsChangeHint aChangeToAssume)
 {
   
@@ -2138,7 +2139,7 @@ ElementRestyler::CaptureChange(nsStyleContext* aOldContext,
   NS_UpdateHint(ourChange, aChangeToAssume);
   if (NS_UpdateHint(mHintsHandled, ourChange)) {
     if (!(ourChange & nsChangeHint_ReconstructFrame) || mContent) {
-      mChangeList->AppendChange(aContinuation, mContent, ourChange);
+      mChangeList->AppendChange(mFrame, mContent, ourChange);
     }
   }
   NS_UpdateHint(mHintsNotHandledForDescendants,
@@ -2197,15 +2198,9 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
 
     
     
-    nsChangeHint hintsHandled = mHintsHandled;
 
     for (nsIFrame* f = mFrame; f;
          f = GetNextContinuationWithSameStyle(f, oldContext)) {
-      
-      
-      
-      mHintsHandled = hintsHandled;
-
       RestyleSelf(f, aRestyleHint);
     }
   }
@@ -2380,10 +2375,17 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     if (!copyFromContinuation) {
       TryStartingTransition(mPresContext, aSelf->GetContent(),
                             oldContext, &newContext);
+
+      CaptureChange(oldContext, newContext, assumeDifferenceHint);
     }
 
-    CaptureChange(oldContext, newContext, aSelf, assumeDifferenceHint);
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
+      
+      
+      
+      
+      
+      
       
       aSelf->SetStyleContext(newContext);
     }
@@ -2422,8 +2424,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     MOZ_ASSERT(newExtraContext);
 
     if (oldExtraContext != newExtraContext) {
-      CaptureChange(oldExtraContext, newExtraContext, aSelf,
-                    assumeDifferenceHint);
+      CaptureChange(oldExtraContext, newExtraContext, assumeDifferenceHint);
       if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
         aSelf->SetAdditionalStyleContext(contextIndex, newExtraContext);
       }
