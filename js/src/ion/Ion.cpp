@@ -1084,6 +1084,7 @@ AttachFinishedCompilations(JSContext *cx)
                 
                 AutoTempAllocatorRooter root(cx, &builder->temp());
                 AutoUnlockWorkerThreadState unlock(cx->runtime);
+                AutoFlushCache afc("AttachFinishedCompilations");
                 success = codegen->link();
             }
 
