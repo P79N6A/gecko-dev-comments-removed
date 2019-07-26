@@ -626,8 +626,19 @@ this.PushService = {
   
   _setAlarm: function(delay) {
     
+    
+    if (this._settingAlarm) {
+        
+        
+        this._queuedAlarmDelay = delay;
+        this._waitingForAlarmSet = true;
+        return;
+    }
+
+    
     this._stopAlarm();
 
+    this._settingAlarm = true;
     AlarmService.add(
       {
         date: new Date(Date.now() + delay),
@@ -637,6 +648,12 @@ this.PushService = {
       function onSuccess(alarmID) {
         this._alarmID = alarmID;
         debug("Set alarm " + delay + " in the future " + this._alarmID);
+        this._settingAlarm = false;
+
+        if (this._waitingForAlarmSet) {
+          this._waitingForAlarmSet = false;
+          this._setAlarm(this._queuedAlarmDelay);
+        }
       }.bind(this)
     )
   },
