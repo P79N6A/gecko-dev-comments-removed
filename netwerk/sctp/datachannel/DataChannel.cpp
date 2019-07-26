@@ -1614,6 +1614,7 @@ DataChannelConnection::HandleStreamResetEvent(const struct sctp_stream_reset_eve
           if (channel->mState == DataChannel::OPEN ||
               channel->mState == DataChannel::WAITING_TO_OPEN) {
             ResetOutgoingStream(channel->mStreamOut);
+            SendOutgoingStreamReset();
             NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
                                       DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
                                       channel));
@@ -2122,9 +2123,23 @@ DataChannelConnection::Close(DataChannel *aChannel)
   channel->mBufferedData.Clear();
   if (channel->mStreamOut != INVALID_STREAM) {
     ResetOutgoingStream(channel->mStreamOut);
-    SendOutgoingStreamReset();
+    if (mState == CLOSED) { 
+      
+      
+      mStreamsOut[channel->mStreamOut] = nullptr;
+    } else {
+      SendOutgoingStreamReset();
+    }
   }
   channel->mState = CLOSING;
+  if (mState == CLOSED) {
+    
+    if (channel->mStreamOut != INVALID_STREAM) {
+      mStreamsIn[channel->mStreamIn] = nullptr;
+    }
+    channel->Destroy();
+  }
+  
 }
 
 void DataChannelConnection::CloseAll()
@@ -2138,9 +2153,11 @@ void DataChannelConnection::CloseAll()
   
   
   
+  bool closed_some = false;
   for (uint32_t i = 0; i < mStreamsOut.Length(); ++i) {
     if (mStreamsOut[i]) {
       mStreamsOut[i]->Close();
+      closed_some = true;
     }
   }
 
@@ -2149,6 +2166,13 @@ void DataChannelConnection::CloseAll()
   while (nullptr != (channel = dont_AddRef(static_cast<DataChannel *>(mPending.PopFront())))) {
     LOG(("closing pending channel %p, stream %d", channel.get(), channel->mStreamOut));
     channel->Close(); 
+    closed_some = true;
+  }
+  
+  
+  if (closed_some) {
+    MutexAutoLock lock(mLock);
+    SendOutgoingStreamReset();
   }
 }
 
