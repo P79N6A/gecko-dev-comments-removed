@@ -1450,9 +1450,12 @@ types::UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
-    if (JSOp(*pc) != JSOP_NEW)
+    if (JSOp(*pc) == JSOP_NEW)
+        pc += JSOP_NEW_LENGTH;
+    else if (JSOp(*pc) == JSOP_SPREADNEW)
+        pc += JSOP_SPREADNEW_LENGTH;
+    else
         return false;
-    pc += JSOP_NEW_LENGTH;
     if (JSOp(*pc) == JSOP_SETPROP) {
         jsid id = GetAtomId(cx, script, pc, 0);
         if (id == id_prototype(cx))
