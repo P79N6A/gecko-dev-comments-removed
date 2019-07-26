@@ -52,12 +52,13 @@ Volume::SetMediaPresent(bool aMediaPresent)
   
   
 
-  if (mMediaPresent != aMediaPresent) {
-    LOG("Volume: %s media %s", NameStr(), aMediaPresent ? "inserted" : "removed");
-    mMediaPresent = aMediaPresent;
-    
-    
+  if (mMediaPresent == aMediaPresent) {
+    return;
   }
+
+  LOG("Volume: %s media %s", NameStr(), aMediaPresent ? "inserted" : "removed");
+  mMediaPresent = aMediaPresent;
+  mEventObserverList.Broadcast(this);
 }
 
 void
