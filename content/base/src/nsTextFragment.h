@@ -125,10 +125,27 @@ public:
 
 
   void AppendTo(nsAString& aString) const {
+    if (!AppendTo(aString, mozilla::fallible_t())) {
+      NS_ABORT_OOM(GetLength());
+    }
+  }
+
+  
+
+
+
+  bool AppendTo(nsAString& aString,
+                const mozilla::fallible_t&) const NS_WARN_UNUSED_RESULT {
     if (mState.mIs2b) {
-      aString.Append(m2b, mState.mLength);
+      bool ok = aString.Append(m2b, mState.mLength, mozilla::fallible_t());
+      if (!ok) {
+        return false;
+      }
+
+      return true;
     } else {
-      AppendASCIItoUTF16(Substring(m1b, mState.mLength), aString);
+      return AppendASCIItoUTF16(Substring(m1b, mState.mLength), aString,
+                                mozilla::fallible_t());
     }
   }
 
@@ -138,10 +155,31 @@ public:
 
 
   void AppendTo(nsAString& aString, int32_t aOffset, int32_t aLength) const {
+    if (!AppendTo(aString, aOffset, aLength, mozilla::fallible_t())) {
+      NS_ABORT_OOM(aLength);
+    }
+  }
+
+  
+
+
+
+
+
+
+  bool AppendTo(nsAString& aString, int32_t aOffset, int32_t aLength,
+                const mozilla::fallible_t&) const NS_WARN_UNUSED_RESULT
+  {
     if (mState.mIs2b) {
-      aString.Append(m2b + aOffset, aLength);
+      bool ok = aString.Append(m2b + aOffset, aLength, mozilla::fallible_t());
+      if (!ok) {
+        return false;
+      }
+
+      return true;
     } else {
-      AppendASCIItoUTF16(Substring(m1b + aOffset, aLength), aString);
+      return AppendASCIItoUTF16(Substring(m1b + aOffset, aLength), aString,
+                                mozilla::fallible_t());
     }
   }
 

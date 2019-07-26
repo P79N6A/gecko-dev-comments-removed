@@ -543,6 +543,13 @@ public:
 
 
 
+  virtual bool AppendTextTo(nsAString& aResult,
+                            const mozilla::fallible_t&) NS_WARN_UNUSED_RESULT = 0;
+
+  
+
+
+
 
 
 
