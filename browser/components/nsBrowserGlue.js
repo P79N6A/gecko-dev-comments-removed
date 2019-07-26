@@ -522,11 +522,6 @@ BrowserGlue.prototype = {
   
   _onWindowsRestored: function BG__onWindowsRestored() {
     
-    if (this._shouldShowRights()) {
-      this._showRightsNotification();
-    }
-
-    
     if (Services.prefs.prefHasUserValue("app.update.postupdate"))
       this._showUpdateNotification();
 
@@ -749,78 +744,6 @@ BrowserGlue.prototype = {
       }
       break;
     }
-  },
-
-  
-
-
-
-
-
-
-
-  _shouldShowRights: function BG__shouldShowRights() {
-    
-    
-    try {
-      return !Services.prefs.getBoolPref("browser.rights.override");
-    } catch (e) { }
-    
-    try {
-      return !Services.prefs.getBoolPref("browser.EULA.override");
-    } catch (e) { }
-
-#ifndef OFFICIAL_BUILD
-    
-    return false;
-#endif
-
-    
-    var currentVersion = Services.prefs.getIntPref("browser.rights.version");
-    try {
-      return !Services.prefs.getBoolPref("browser.rights." + currentVersion + ".shown");
-    } catch (e) { }
-
-    
-    
-    try {
-      return !Services.prefs.getBoolPref("browser.EULA." + currentVersion + ".accepted");
-    } catch (e) { }
-
-    
-    return true;
-  },
-
-  _showRightsNotification: function BG__showRightsNotification() {
-    
-    var win = this.getMostRecentBrowserWindow();
-    var notifyBox = win.gBrowser.getNotificationBox();
-
-    var brandBundle  = Services.strings.createBundle("chrome://branding/locale/brand.properties");
-    var rightsBundle = Services.strings.createBundle("chrome://global/locale/aboutRights.properties");
-
-    var buttonLabel      = rightsBundle.GetStringFromName("buttonLabel");
-    var buttonAccessKey  = rightsBundle.GetStringFromName("buttonAccessKey");
-    var productName      = brandBundle.GetStringFromName("brandFullName");
-    var notifyRightsText = rightsBundle.formatStringFromName("notifyRightsText", [productName], 1);
-
-    var buttons = [
-                    {
-                      label:     buttonLabel,
-                      accessKey: buttonAccessKey,
-                      popup:     null,
-                      callback: function(aNotificationBar, aButton) {
-                        win.openUILinkIn("about:rights", "tab");
-                      }
-                    }
-                  ];
-
-    
-    var currentVersion = Services.prefs.getIntPref("browser.rights.version");
-    Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
-
-    var notification = notifyBox.appendNotification(notifyRightsText, "about-rights", null, notifyBox.PRIORITY_INFO_LOW, buttons);
-    notification.persistence = -1; 
   },
 
   _showUpdateNotification: function BG__showUpdateNotification() {

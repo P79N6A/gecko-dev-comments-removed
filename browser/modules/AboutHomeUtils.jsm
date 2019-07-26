@@ -33,6 +33,46 @@ this.AboutHomeUtils = {
       name: defaultEngine.name,
       searchURL: submission.uri.spec
     });
+  },
+
+  
+
+
+
+
+
+
+
+  get showKnowYourRights() {
+    
+    
+    try {
+      return !Services.prefs.getBoolPref("browser.rights.override");
+    } catch (e) { }
+    
+    try {
+      return !Services.prefs.getBoolPref("browser.EULA.override");
+    } catch (e) { }
+
+#ifndef MOZILLA_OFFICIAL
+    
+    return false;
+#endif
+
+    
+    var currentVersion = Services.prefs.getIntPref("browser.rights.version");
+    try {
+      return !Services.prefs.getBoolPref("browser.rights." + currentVersion + ".shown");
+    } catch (e) { }
+
+    
+    
+    try {
+      return !Services.prefs.getBoolPref("browser.EULA." + currentVersion + ".accepted");
+    } catch (e) { }
+
+    
+    return true;
   }
 };
 
