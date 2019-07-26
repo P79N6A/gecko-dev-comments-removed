@@ -416,14 +416,31 @@ function setDataEnabledAndWait(aEnabled) {
 
 
 
+
+
+function setEmulatorVoiceDataStateAndWait(aWhich, aState) {
+  let promises = [];
+  promises.push(waitForManagerEvent(aWhich + "change"));
+
+  let cmd = "gsm " + aWhich + " " + aState;
+  promises.push(runEmulatorCmdSafe(cmd));
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+
 function setEmulatorRoamingAndWait(aRoaming) {
   function doSetAndWait(aWhich, aRoaming) {
-    let promises = [];
-    promises.push(waitForManagerEvent(aWhich + "change"));
-
-    let cmd = "gsm " + aWhich + " " + (aRoaming ? "roaming" : "home");
-    promises.push(runEmulatorCmdSafe(cmd));
-    return Promise.all(promises)
+    let state = (aRoaming ? "roaming" : "home");
+    return setEmulatorVoiceDataStateAndWait(aWhich, state)
       .then(() => is(mobileConnection[aWhich].roaming, aRoaming,
                      aWhich + ".roaming"));
   }
