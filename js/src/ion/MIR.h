@@ -441,6 +441,10 @@ class MDefinition : public MNode
     
     size_t useCount() const;
 
+    
+    
+    size_t defUseCount() const;
+
     bool hasUses() const {
         return !uses_.empty();
     }
