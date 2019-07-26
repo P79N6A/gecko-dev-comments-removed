@@ -18,7 +18,34 @@
 namespace js {
 namespace ion {
 
-class StackValue {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class StackValue
+{
   public:
     enum Kind {
         Constant,
@@ -26,9 +53,9 @@ class StackValue {
         Stack,
         LocalSlot
 #ifdef DEBUG
+        
         , Uninitialized
 #endif
-
     };
 
   private:
@@ -39,9 +66,7 @@ class StackValue {
             Value v;
         } constant;
         struct {
-            
-            struct Register r1;
-            struct Register r2;
+            AlignedStorage2<ValueOperand> reg;
         } reg;
         struct {
             uint32_t local;
@@ -67,7 +92,7 @@ class StackValue {
     }
     ValueOperand reg() const {
         JS_ASSERT(kind_ == Register);
-        return ValueOperand(data.reg.r1, data.reg.r2);
+        return *data.reg.reg.addr();
     }
     uint32_t localSlot() const {
         JS_ASSERT(kind_ == LocalSlot);
@@ -80,8 +105,7 @@ class StackValue {
     }
     void setRegister(const ValueOperand &val) {
         kind_ = Register;
-        data.reg.r1 = val.typeReg();
-        data.reg.r2 = val.payloadReg();
+        *data.reg.reg.addr() = val;
     }
     void setLocalSlot(uint32_t local) {
         kind_ = LocalSlot;
@@ -131,7 +155,15 @@ class FrameInfo
 
     bool init();
 
-    size_t stackDepth() const {
+  private:
+    inline StackValue *rawPush() {
+        StackValue *val = &stack[spIndex++];
+        val->reset();
+        return val;
+    }
+
+  public:
+    inline size_t stackDepth() const {
         return spIndex;
     }
     inline StackValue *peek(int32_t index) const {
@@ -149,11 +181,6 @@ class FrameInfo
     inline void popn(uint32_t n) {
         for (uint32_t i = 0; i < n; i++)
             pop();
-    }
-    inline StackValue *rawPush() {
-        StackValue *val = &stack[spIndex++];
-        val->reset();
-        return val;
     }
     inline void push(const Value &val) {
         StackValue *sv = rawPush();
@@ -177,6 +204,13 @@ class FrameInfo
     void sync(StackValue *val);
     void syncStack(uint32_t uses);
     void popRegsAndSync(uint32_t uses);
+
+#ifdef DEBUG
+    
+    void assertValidState(jsbytecode *pc);
+#else
+    inline void assertValidState(jsbytecode *pc) {}
+#endif
 };
 
 } 

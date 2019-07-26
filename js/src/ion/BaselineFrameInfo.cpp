@@ -113,3 +113,44 @@ FrameInfo::popRegsAndSync(uint32_t uses)
 
     spIndex -= uses;
 }
+
+void
+FrameInfo::assertValidState(jsbytecode *pc)
+{
+    
+    analyze::Bytecode *code = script->analysis()->maybeCode(pc);
+    JS_ASSERT_IF(code, stackDepth() == code->stackDepth);
+
+    
+    uint32_t i = 0;
+    for (; i < stackDepth(); i++) {
+        if (stack[i].kind() != StackValue::Stack)
+            break;
+    }
+
+    
+    for (; i < stackDepth(); i++) {
+        JS_ASSERT(stack[i].kind() != StackValue::Stack);
+    }
+
+    
+    bool usedR0 = false, usedR1 = false, usedR2 = false;
+
+    for (i = 0; i < stackDepth(); i++) {
+        if (stack[i].kind() == StackValue::Register) {
+            ValueOperand reg = stack[i].reg();
+            if (reg == R0) {
+                JS_ASSERT(!usedR0);
+                usedR0 = true;
+            } else if (reg == R1) {
+                JS_ASSERT(!usedR1);
+                usedR1 = true;
+            } else if (reg == R2) {
+                JS_ASSERT(!usedR2);
+                usedR2 = true;
+            } else {
+                JS_NOT_REACHED("Invalid register");
+            }
+        }
+    }
+}
