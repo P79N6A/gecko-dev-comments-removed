@@ -1047,8 +1047,18 @@ DownloadsPlacesView.prototype = {
       }
     }
 
-    this._richlistbox.appendChild(elementsToAppendFragment);
+    this._appendDownloadsFragment(elementsToAppendFragment);
     this._ensureVisibleElementsAreActive();
+  },
+
+  _appendDownloadsFragment: function DPV__appendDownloadsFragment(aDOMFragment) {
+    
+    
+    let parentNode = this._richlistbox.parentNode;
+    let nextSibling = this._richlistbox.nextSibling;
+    parentNode.removeChild(this._richlistbox);
+    this._richlistbox.appendChild(aDOMFragment);
+    parentNode.insertBefore(this._richlistbox, nextSibling);
   },
 
   nodeInserted: function DPV_nodeInserted(aParent, aPlacesNode) {
