@@ -243,6 +243,7 @@ private:
   void StartDefer();
   bool SendDeferredMessages();
   void ProcessQueuedOpens();
+  void ClearResets();
   void SendOutgoingStreamReset();
   void ResetOutgoingStream(uint16_t streamOut);
   void HandleOpenRequestMessage(const struct rtcweb_datachannel_open_request *req,
@@ -524,9 +525,12 @@ public:
           }
           break;
         }
+      case ON_DISCONNECTED:
+        
+        mConnection->CloseAll();
+        
       case ON_CHANNEL_CREATED:
       case ON_CONNECTION:
-      case ON_DISCONNECTED:
         
         if (!mConnection->mListener) {
           DATACHANNEL_LOG(("DataChannelOnMessageAvailable (%d) with null Listener",mType));
