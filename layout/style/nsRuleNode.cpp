@@ -3109,6 +3109,8 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
       allowZoom = true;
     }
     aFont->EnableZoom(aPresContext, allowZoom);
+  } else {
+    allowZoom = true;
   }
 
   
@@ -3573,12 +3575,16 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 
   
   
+  
+  
+  
+  
   if (fontSize > 0) {
     nscoord minFontSize = aPresContext->MinFontSize(aFont->mLanguage);
     if (minFontSize < 0) {
       minFontSize = 0;
     }
-    if (fontSize < minFontSize && !aPresContext->IsChrome()) {
+    if (fontSize < minFontSize && !aPresContext->IsChrome() && allowZoom) {
       
       fontSize = minFontSize;
     }
