@@ -368,7 +368,7 @@ MemoryTextureClient::MemoryTextureClient(CompositableClient* aCompositable,
 MemoryTextureClient::~MemoryTextureClient()
 {
   MOZ_COUNT_DTOR(MemoryTextureClient);
-  if (ShouldDeallocateInDestructor() && mBuffer) {
+  if (mBuffer && ShouldDeallocateInDestructor()) {
     
     
     GfxMemoryImageReporter::WillFree(mBuffer);
