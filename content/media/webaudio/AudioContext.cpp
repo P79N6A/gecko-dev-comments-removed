@@ -607,6 +607,18 @@ AudioContext::GetJSContext() const
   return scriptContext->GetNativeContext();
 }
 
+JSObject*
+AudioContext::GetGlobalJSObject() const
+{
+  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryInterface(GetParentObject());
+  if (!parentObject) {
+    return nullptr;
+  }
+
+  
+  return parentObject->GetGlobalJSObject();
+}
+
 void
 AudioContext::StartRendering(ErrorResult& aRv)
 {

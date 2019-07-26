@@ -6,6 +6,7 @@
 
 #include "AudioDestinationNode.h"
 #include "mozilla/dom/AudioDestinationNodeBinding.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "AudioChannelAgent.h"
@@ -125,11 +126,15 @@ public:
     
     
 
-    AutoPushJSContext cx(context->GetJSContext());
-    if (!cx) {
+    
+    JSObject* global = context->GetGlobalJSObject();
+    if (NS_WARN_IF(!global)) {
       return;
     }
-    JSAutoRequest ar(cx);
+
+    AutoJSAPI jsapi;
+    JSContext* cx = jsapi.cx();
+    JSAutoCompartment ac(cx, global);
 
     
     nsRefPtr<AudioBuffer> renderedBuffer = new AudioBuffer(context,
