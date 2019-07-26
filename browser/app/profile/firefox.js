@@ -851,6 +851,10 @@ pref("browser.zoom.updateBackgroundTabs", true);
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
+pref("toolkit.crashreporter.pluginHangSubmitURL",
+     "https://hang-reports.mozilla.org/submit");
+
+
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
