@@ -3,7 +3,6 @@
 
 
 
-
 #include "necko-config.h"
 
 #define ALLOW_LATE_HTTPLOG_H_INCLUDE 1
@@ -58,9 +57,8 @@ NS_HIDDEN_(ContentSnifferCache*) gDataSniffers = nullptr;
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIOService, nsIOService::GetInstance)
 
 #include "nsDNSService2.h"
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIDNSService,
-  nsDNSService::GetXPCOMSingleton)
-
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsDNSService, Init)
+  
 #include "nsProtocolProxyService.h"
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsProtocolProxyService, Init)
 
@@ -827,7 +825,7 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     { &kNS_SERVERSOCKET_CID, false, nullptr, nsServerSocketConstructor },
     { &kNS_UDPSOCKET_CID, false, nullptr, nsUDPSocketConstructor },
     { &kNS_SOCKETPROVIDERSERVICE_CID, false, nullptr, nsSocketProviderService::Create },
-    { &kNS_DNSSERVICE_CID, false, nullptr, nsIDNSServiceConstructor },
+    { &kNS_DNSSERVICE_CID, false, nullptr, nsDNSServiceConstructor },
     { &kNS_IDNSERVICE_CID, false, nullptr, nsIDNServiceConstructor },
     { &kNS_EFFECTIVETLDSERVICE_CID, false, nullptr, nsEffectiveTLDServiceConstructor },
     { &kNS_SIMPLEURI_CID, false, nullptr, nsSimpleURIConstructor },

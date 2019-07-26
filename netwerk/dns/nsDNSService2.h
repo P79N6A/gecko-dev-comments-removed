@@ -2,8 +2,6 @@
 
 
 
-
-
 #ifndef nsDNSService2_h__
 #define nsDNSService2_h__
 
@@ -32,8 +30,6 @@ public:
     nsDNSService();
     ~nsDNSService();
 
-    static nsIDNSService* GetXPCOMSingleton();
-
     int64_t Amount() MOZ_OVERRIDE
     {
         return SizeOfIncludingThis(MallocSizeOf);
@@ -41,8 +37,6 @@ public:
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
 private:
-    static nsDNSService* GetSingleton();
-
     uint16_t GetAFForLookup(const nsACString &host, uint32_t flags);
 
     nsRefPtr<nsHostResolver>  mResolver;
