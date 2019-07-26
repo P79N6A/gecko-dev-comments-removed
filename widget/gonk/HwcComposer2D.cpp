@@ -166,7 +166,7 @@ PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
 
     
     crop.IntersectRect(crop, aBufferRect);
-    crop.RoundOut();
+    crop.Round();
 
     if (crop.IsEmpty()) {
         LOGD("Skip layer");
@@ -175,7 +175,7 @@ PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
 
     
     visibleRectScreen = aTransform.TransformBounds(crop);
-    visibleRectScreen.RoundOut();
+    visibleRectScreen.Round();
 
     
     crop -= aBufferRect.TopLeft();
@@ -224,7 +224,7 @@ PrepareVisibleRegion(const nsIntRegion& aVisible,
         screenRect.IntersectRect(gfxRect(*visibleRect), aBufferRect);
         screenRect = aTransform.TransformBounds(screenRect);
         screenRect.IntersectRect(screenRect, aClip);
-        screenRect.RoundIn();
+        screenRect.Round();
         if (screenRect.IsEmpty()) {
             continue;
         }
