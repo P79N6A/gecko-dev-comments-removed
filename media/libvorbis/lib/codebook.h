@@ -34,12 +34,12 @@
 
 
 typedef struct static_codebook{
-  long   dim;            
-  long   entries;        
-  long  *lengthlist;     
+  long   dim;           
+  long   entries;       
+  char  *lengthlist;    
 
   
-  int    maptype;        
+  int    maptype;       
 
 
 
