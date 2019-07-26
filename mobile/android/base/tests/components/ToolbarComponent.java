@@ -86,6 +86,13 @@ public class ToolbarComponent extends BaseComponent {
         return (ImageButton) getToolbarView().findViewById(R.id.forward);
     }
 
+    
+
+
+    private ImageButton getEditCancelButton() {
+        return (ImageButton) getToolbarView().findViewById(R.id.edit_cancel);
+    }
+
     private CharSequence getTitle() {
         return getTitleHelper(true);
     }
@@ -145,14 +152,19 @@ public class ToolbarComponent extends BaseComponent {
     public ToolbarComponent dismissEditingMode() {
         assertIsEditing();
 
-        if (getUrlEditText().isInputMethodTarget()) {
-            
-            
-            
-            mSolo.goBack();
-        }
+        
+        if (DeviceHelper.isTablet()) {
+            if (getUrlEditText().isInputMethodTarget()) {
+                
+                
+                
+                mSolo.goBack();
+            }
 
-        mSolo.goBack();
+            mSolo.goBack();
+        } else {
+            mSolo.clickOnView(getEditCancelButton());
+        }
 
         waitForNotEditing();
 
