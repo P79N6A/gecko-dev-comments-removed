@@ -132,10 +132,12 @@
 #define NS_IMETHODIMP_(type) type __stdcall
 #define NS_METHOD_(type) type __stdcall
 #define NS_CALLBACK_(_type, _name) _type (__stdcall * _name)
-#define NS_STDCALL __stdcall
 #ifndef _WIN64
 
+#define NS_STDCALL __stdcall
 #define NS_HAVE_STDCALL
+#else
+#define NS_STDCALL
 #endif
 #define NS_FROZENCALL __cdecl
 
