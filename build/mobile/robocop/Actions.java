@@ -15,6 +15,7 @@ public interface Actions {
     public interface EventExpecter {
         
         public void blockForEvent();
+        public void blockForEvent(long millis, boolean failOnTimeout);
 
         
         public String blockForEventData();
