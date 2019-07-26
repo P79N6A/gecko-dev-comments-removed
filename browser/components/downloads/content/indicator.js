@@ -302,6 +302,19 @@ const DownloadsIndicatorView = {
 
 
 
+  _isAncestorPanelOpen: function DIV_isAncestorPanelOpen(aNode)
+  {
+    while (aNode && aNode.localName != "panel") {
+      aNode = aNode.parentNode;
+    }
+    return aNode && aNode.state == "open";
+  },
+
+  
+
+
+
+
 
 
   showEventNotification: function DIV_showEventNotification(aType)
@@ -323,7 +336,7 @@ const DownloadsIndicatorView = {
     let widgetGroup = CustomizableUI.getWidget("downloads-button");
     let widgetInWindow = widgetGroup.forWindow(window);
     if (widgetInWindow.overflowed || widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
-      if (anchor && isElementVisible(anchor.parentNode)) {
+      if (anchor && this._isAncestorPanelOpen(anchor)) {
         
         return;
       }
