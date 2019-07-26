@@ -75,7 +75,7 @@ ParseHeaders(uint8_t* buf, int totalLength, ObexHeaderSet* retHandlerSet)
 
   while (ptr - buf < totalLength) {
     ObexHeaderId headerId = (ObexHeaderId)*ptr++;
-    int headerLength = 0;
+    int contentLength = 0;
     uint8_t highByte, lowByte;
 
     
@@ -87,26 +87,31 @@ ParseHeaders(uint8_t* buf, int totalLength, ObexHeaderSet* retHandlerSet)
         
         highByte = *ptr++;
         lowByte = *ptr++;
-        headerLength = ((int)highByte << 8) | lowByte;
+        contentLength = (((int)highByte << 8) | lowByte) - 3;
         break;
 
       case 0x02:
         
-        headerLength = 1;
+        contentLength = 1;
         break;
 
       case 0x03:
         
-        headerLength = 4;
+        contentLength = 4;
         break;
     }
 
     
-    uint8_t* headerContent = new uint8_t[headerLength];
-    memcpy(headerContent, ptr, headerLength);
-    retHandlerSet->AddHeader(new ObexHeader(headerId, headerLength, headerContent));
+    
+    if (contentLength + (ptr - buf) > totalLength) {
+      break;
+    }
 
-    ptr += headerLength;
+    uint8_t* content = new uint8_t[contentLength];
+    memcpy(content, ptr, contentLength);
+    retHandlerSet->AddHeader(new ObexHeader(headerId, contentLength, content));
+
+    ptr += contentLength;
   }
 }
 
