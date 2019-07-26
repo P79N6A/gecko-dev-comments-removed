@@ -891,7 +891,7 @@ CloneObject(JSContext *cx, HandleObject srcObj, CloneMemory &clonedObjects)
             clone = CloneFunctionObject(cx, fun, cx->global(), kind, TenuredObject);
             
             
-            if (hasName)
+            if (clone && hasName)
                 clone->as<JSFunction>().setExtendedSlot(0, StringValue(fun->atom()));
         }
     } else if (srcObj->is<RegExpObject>()) {
