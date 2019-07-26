@@ -56,12 +56,7 @@ tests.testConsole = function(options) {
         }
       }
     ]).then(function() {
-      
-      
-      
-      executeSoon(function() {
-        deferred.resolve();
-      });
+      deferred.resolve();
     });
   };
 
