@@ -966,8 +966,9 @@ let PlacesToolbarHelper = {
     
     
     
+    
     let toolbar = viewElt.parentNode.parentNode;
-    if (toolbar.collapsed ||
+    if (toolbar.localName != "toolbar" || toolbar.collapsed ||
         getComputedStyle(toolbar, "").display == "none" ||
         this._isCustomizing)
       return;
@@ -976,16 +977,27 @@ let PlacesToolbarHelper = {
   },
 
   customizeStart: function PTH_customizeStart() {
-    let viewElt = this._viewElt;
-    if (viewElt && viewElt._placesView)
-      viewElt._placesView.uninit();
-
-    this._isCustomizing = true;
+    try {
+      let viewElt = this._viewElt;
+      if (viewElt && viewElt._placesView)
+        viewElt._placesView.uninit();
+    } finally {
+      this._isCustomizing = true;
+    }
   },
 
   customizeDone: function PTH_customizeDone() {
     this._isCustomizing = false;
     this.init();
+  },
+
+  onPlaceholderCommand: function () {
+    let widgetGroup = CustomizableUI.getWidget("personal-bookmarks");
+    let widget = widgetGroup.forWindow(window);
+    if (widget.overflowed ||
+        widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+      PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
+    }
   }
 };
 
