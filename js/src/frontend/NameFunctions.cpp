@@ -69,28 +69,28 @@ class NameResolver
 
     bool nameExpression(ParseNode *n) {
         switch (n->getKind()) {
-            case PNK_DOT:
-                return nameExpression(n->expr()) && appendPropertyReference(n->pn_atom);
+          case PNK_DOT:
+            return nameExpression(n->expr()) && appendPropertyReference(n->pn_atom);
 
-            case PNK_NAME:
-                return buf->append(n->pn_atom);
+          case PNK_NAME:
+            return buf->append(n->pn_atom);
 
-            case PNK_ELEM:
-                return nameExpression(n->pn_left) &&
-                       buf->append("[") &&
-                       nameExpression(n->pn_right) &&
-                       buf->append("]");
+          case PNK_ELEM:
+            return nameExpression(n->pn_left) &&
+                   buf->append("[") &&
+                   nameExpression(n->pn_right) &&
+                   buf->append("]");
 
-            case PNK_NUMBER:
-                return appendNumber(n->pn_dval);
+          case PNK_NUMBER:
+            return appendNumber(n->pn_dval);
 
+          default:
             
 
 
 
 
-            default:
-                return false;
+            return false;
         }
     }
 
@@ -116,53 +116,52 @@ class NameResolver
                 return cur;
 
             switch (cur->getKind()) {
-                case PNK_NAME:     return cur;  
-                case PNK_FUNCTION: return NULL; 
+              case PNK_NAME:     return cur;  
+              case PNK_FUNCTION: return NULL; 
 
-                case PNK_RETURN:
-                    
-
-
-
-
-
-
-
-
-
-
-
-                    for (int tmp = pos - 1; tmp > 0; tmp--) {
-                        if (isDirectCall(tmp, cur)) {
-                            pos = tmp;
-                            break;
-                        } else if (call(cur)) {
-                            
-                            break;
-                        }
-                        cur = parents[tmp];
-                    }
-                    break;
-
-                case PNK_COLON:
-                    
-
-
-
-
-
-                    if (pos == 0 || !parents[pos - 1]->isKind(PNK_OBJECT))
-                        return NULL;
-                    pos--;
-                    
-
+              case PNK_RETURN:
                 
-                default:
-                    JS_ASSERT(*size < MaxParents);
-                    nameable[(*size)++] = cur;
-                    break;
-            }
 
+
+
+
+
+
+
+
+
+
+
+                for (int tmp = pos - 1; tmp > 0; tmp--) {
+                    if (isDirectCall(tmp, cur)) {
+                        pos = tmp;
+                        break;
+                    } else if (call(cur)) {
+                        
+                        break;
+                    }
+                    cur = parents[tmp];
+                }
+                break;
+
+              case PNK_COLON:
+                
+
+
+
+
+
+                if (pos == 0 || !parents[pos - 1]->isKind(PNK_OBJECT))
+                    return NULL;
+                pos--;
+                
+
+              default:
+                
+                JS_ASSERT(*size < MaxParents);
+                nameable[(*size)++] = cur;
+                break;
+            }
         }
 
         return NULL;
@@ -290,38 +289,39 @@ class NameResolver
         parents[nparents++] = cur;
 
         switch (cur->getArity()) {
-            case PN_NULLARY:
-                break;
-            case PN_NAME:
-                resolve(cur->maybeExpr(), prefix);
-                break;
-            case PN_UNARY:
-                resolve(cur->pn_kid, prefix);
-                break;
-            case PN_BINARY:
-                resolve(cur->pn_left, prefix);
-                
+          case PN_NULLARY:
+            break;
+          case PN_NAME:
+            resolve(cur->maybeExpr(), prefix);
+            break;
+          case PN_UNARY:
+            resolve(cur->pn_kid, prefix);
+            break;
+          case PN_BINARY:
+            resolve(cur->pn_left, prefix);
+
+            
 
 
 
 
 
-                if (cur->pn_left != cur->pn_right)
-                    resolve(cur->pn_right, prefix);
-                break;
-            case PN_TERNARY:
-                resolve(cur->pn_kid1, prefix);
-                resolve(cur->pn_kid2, prefix);
-                resolve(cur->pn_kid3, prefix);
-                break;
-            case PN_FUNC:
-                JS_ASSERT(cur->isKind(PNK_FUNCTION));
-                resolve(cur->pn_body, prefix);
-                break;
-            case PN_LIST:
-                for (ParseNode *nxt = cur->pn_head; nxt; nxt = nxt->pn_next)
-                    resolve(nxt, prefix);
-                break;
+            if (cur->pn_left != cur->pn_right)
+                resolve(cur->pn_right, prefix);
+            break;
+          case PN_TERNARY:
+            resolve(cur->pn_kid1, prefix);
+            resolve(cur->pn_kid2, prefix);
+            resolve(cur->pn_kid3, prefix);
+            break;
+          case PN_FUNC:
+            JS_ASSERT(cur->isKind(PNK_FUNCTION));
+            resolve(cur->pn_body, prefix);
+            break;
+          case PN_LIST:
+            for (ParseNode *nxt = cur->pn_head; nxt; nxt = nxt->pn_next)
+                resolve(nxt, prefix);
+            break;
         }
         nparents--;
     }
