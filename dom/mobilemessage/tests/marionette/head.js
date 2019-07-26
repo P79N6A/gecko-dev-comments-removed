@@ -379,6 +379,33 @@ function sendRawSmsToEmulator(aPdu) {
 
 
 
+
+
+
+
+
+
+
+
+
+function sendMultipleRawSmsToEmulatorAndWait(aPdus) {
+  let promises = [];
+
+  promises.push(waitForManagerEvent("received"));
+  for (let pdu of aPdus) {
+    promises.push(sendRawSmsToEmulator(pdu));
+  }
+
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
 function messagesToIds(aMessages) {
   let ids = [];
   for (let message of aMessages) {
