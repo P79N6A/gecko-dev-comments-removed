@@ -1775,9 +1775,6 @@ pref("layout.css.masking.enabled", true);
 pref("layout.css.supports-rule.enabled", true);
 
 
-pref("layout.css.filters.enabled", false);
-
-
 pref("layout.css.flexbox.enabled", true);
 
 

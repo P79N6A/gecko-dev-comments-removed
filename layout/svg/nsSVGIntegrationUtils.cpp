@@ -150,7 +150,7 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
   
   
   const nsStyleSVGReset *style = aFrame->StyleSVGReset();
-  return (style->SingleFilter() || style->mClipPath || style->mMask);
+  return (style->mFilter || style->mClipPath || style->mMask);
 }
 
  nsPoint
