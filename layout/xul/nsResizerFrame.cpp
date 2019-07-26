@@ -224,7 +224,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsIFrame* rootFrame = aPresContext->PresShell()->FrameManager()->GetRootFrame();
         nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
 
-        nsRect screenRect = menuPopupFrame->GetConstraintRect(frameRect, rootScreenRect);
+        nsPopupLevel popupLevel = menuPopupFrame->PopupLevel();
+        nsRect screenRect = menuPopupFrame->GetConstraintRect(frameRect, rootScreenRect, popupLevel);
         
         
         

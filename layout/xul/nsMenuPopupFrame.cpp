@@ -1198,6 +1198,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   nsDeviceContext* devContext = presContext->DeviceContext();
   nscoord offsetForContextMenu = 0;
 
+  bool isNoAutoHide = IsNoAutoHide();
+  nsPopupLevel popupLevel = PopupLevel(isNoAutoHide);
+
   if (IsAnchored()) {
     
     
@@ -1238,7 +1241,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     
     
     
-    if (IsNoAutoHide() && PopupLevel(true) != ePopupLevelParent) {
+    if (isNoAutoHide && popupLevel != ePopupLevelParent) {
       
       
       mScreenXPos = presContext->AppUnitsToIntCSSPixels(screenPoint.x - margin.left);
@@ -1279,7 +1282,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   
   
   if (mInContentShell || (mFlip != FlipType_None && (!aIsMove || mPopupType != ePopupTypePanel))) {
-    nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
+    nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect, popupLevel);
 
     
     anchorRect = anchorRect.Intersect(screenRect);
@@ -1378,7 +1381,8 @@ nsMenuPopupFrame::GetCurrentMenuItem()
 
 nsRect
 nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
-                                    const nsRect& aRootScreenRect)
+                                    const nsRect& aRootScreenRect,
+                                    nsPopupLevel aPopupLevel)
 {
   nsIntRect screenRectPixels;
   nsPresContext* presContext = PresContext();
@@ -1402,7 +1406,10 @@ nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
                       width, height, getter_AddRefs(screen));
     if (screen) {
       
-      if (mMenuCanOverlapOSBar && !mInContentShell)
+      
+      bool dontOverlapOSBar = aPopupLevel != ePopupLevelTop;
+      
+      if (!dontOverlapOSBar && mMenuCanOverlapOSBar && !mInContentShell)
         screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
                         &screenRectPixels.width, &screenRectPixels.height);
       else

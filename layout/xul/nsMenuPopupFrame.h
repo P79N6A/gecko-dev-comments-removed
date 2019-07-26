@@ -310,7 +310,11 @@ public:
   
   
   
-  nsRect GetConstraintRect(const nsRect& aAnchorRect, const nsRect& aRootScreenRect);
+  
+  
+  
+  nsRect GetConstraintRect(const nsRect& aAnchorRect, const nsRect& aRootScreenRect,
+                           nsPopupLevel aPopupLevel);
 
   
   
