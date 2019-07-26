@@ -6,15 +6,12 @@ package org.mozilla.gecko.preferences;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
-import android.preference.Preference;
 import android.text.SpannableString;
 import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.Iterator;
@@ -32,66 +29,21 @@ import org.mozilla.gecko.widget.FaviconView;
 
 
 
-public class SearchEnginePreference extends Preference implements View.OnLongClickListener {
-    private static final String LOGTAG = "SearchEnginePreference";
+public class SearchEnginePreference extends CustomListPreference {
+    protected String LOGTAG = "SearchEnginePreference";
 
-    
-    public static final int INDEX_SET_DEFAULT_BUTTON = 0;
-    public static final int INDEX_REMOVE_BUTTON = 1;
-
-    
-    public final String LABEL_IS_DEFAULT;
-
-    
-    private boolean mIsDefaultEngine;
-
-    
-    private String[] mDialogItems;
-
-    
-    private AlertDialog mDialog;
-
-    private final SearchPreferenceCategory mParentCategory;
+    protected static final int INDEX_REMOVE_BUTTON = 1;
 
     
     private BitmapDrawable mPromptIcon;
+
     
     private Bitmap mIconBitmap;
 
     private FaviconView mFaviconView;
 
-    
-
-
-
-
-
-
     public SearchEnginePreference(Context context, SearchPreferenceCategory parentCategory) {
-        super(context);
-        mParentCategory = parentCategory;
-
-        Resources res = getContext().getResources();
-
-        
-        setLayoutResource(R.layout.preference_search_engine);
-
-        setOnPreferenceClickListener(new OnPreferenceClickListener() {
-            @Override
-            public boolean onPreferenceClick(Preference preference) {
-                SearchEnginePreference sPref = (SearchEnginePreference) preference;
-                sPref.showDialog();
-
-                return true;
-            }
-        });
-
-        
-        LABEL_IS_DEFAULT = res.getString(R.string.pref_search_default);
-
-        
-        mDialogItems = new String[] { res.getString(R.string.pref_search_set_default),
-                                      res.getString(R.string.pref_search_remove) };
+        super(context, parentCategory);
     }
 
     
@@ -103,17 +55,71 @@ public class SearchEnginePreference extends Preference implements View.OnLongCli
     @Override
     protected void onBindView(View view) {
         super.onBindView(view);
+
         
         mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
         mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
     }
 
     @Override
-    public boolean onLongClick(View view) {
-        
-        showDialog();
-        return true;
+    protected int getPreferenceLayoutResource() {
+        return R.layout.preference_search_engine;
     }
+
+    
+
+
+    @Override
+    protected String[] getDialogStrings() {
+        Resources res = getContext().getResources();
+        return new String[] { res.getString(R.string.pref_search_set_default),
+                              res.getString(R.string.pref_search_remove) };
+    }
+
+    @Override
+    public void showDialog() {
+        
+        
+        if (mParentCategory.getPreferenceCount() == 1) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(), R.string.pref_search_last_toast, Toast.LENGTH_SHORT).show();
+                }
+            });
+            return;
+        }
+
+        super.showDialog();
+    }
+
+    @Override
+    protected void configureDialogBuilder(AlertDialog.Builder builder) {
+        
+        
+        if (mPromptIcon == null && mIconBitmap != null) {
+            mPromptIcon = new BitmapDrawable(getContext().getResources(), mFaviconView.getBitmap());
+        }
+
+        builder.setIcon(mPromptIcon);
+    }
+
+    @Override
+    protected void onDialogIndexClicked(int index) {
+        switch (index) {
+            case INDEX_SET_DEFAULT_BUTTON:
+                mParentCategory.setDefault(this);
+                break;
+
+            case INDEX_REMOVE_BUTTON:
+                mParentCategory.uninstall(this);
+                break;
+
+            default:
+                Log.w(LOGTAG, "Selected index out of range.");
+                break;
+        }
+     }
 
     
 
@@ -182,123 +188,6 @@ public class SearchEnginePreference extends Preference implements View.OnLongCli
             Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);
         } catch (NullPointerException e) {
             Log.e(LOGTAG, "NullPointerException creating Bitmap. Most likely a zero-length bitmap.", e);
-        }
-    }
-
-    
-
-
-
-
-    public void setIsDefaultEngine(boolean isDefault) {
-        mIsDefaultEngine = isDefault;
-        if (isDefault) {
-            setOrder(0);
-            setSummary(LABEL_IS_DEFAULT);
-        } else {
-            setOrder(1);
-            setSummary("");
-        }
-    }
-
-    
-
-
-
-
-
-
-    public void showDialog() {
-        
-        
-        if (mParentCategory.getPreferenceCount() == 1) {
-            ThreadUtils.postToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getContext(), R.string.pref_search_last_toast, Toast.LENGTH_SHORT).show();
-                }
-            });
-            return;
-        }
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle(getTitle().toString());
-        builder.setItems(mDialogItems, new DialogInterface.OnClickListener() {
-            
-            @Override
-            public void onClick(DialogInterface dialog, int indexClicked) {
-                hideDialog();
-                switch (indexClicked) {
-                    case INDEX_SET_DEFAULT_BUTTON:
-                        mParentCategory.setDefault(SearchEnginePreference.this);
-                        break;
-                    case INDEX_REMOVE_BUTTON:
-                        mParentCategory.uninstall(SearchEnginePreference.this);
-                        break;
-                    default:
-                        Log.w(LOGTAG, "Selected index out of range.");
-                        break;
-                }
-            }
-        });
-
-        
-        
-        if (mPromptIcon == null && mIconBitmap != null) {
-            mPromptIcon = new BitmapDrawable(getContext().getResources(), mFaviconView.getBitmap());
-        }
-        builder.setIcon(mPromptIcon);
-
-        
-        
-
-        
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mDialog = builder.create();
-                mDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-                    
-                    @Override
-                    public void onShow(DialogInterface dialog) {
-                        configureShownDialog();
-                    }
-                });
-                mDialog.show();
-            }
-        });
-    }
-
-    
-
-
-    public void hideDialog() {
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                
-                
-                if (mDialog != null && mDialog.isShowing()) {
-                    mDialog.dismiss();
-                }
-            }
-        });
-    }
-
-    
-
-
-
-
-    private void configureShownDialog() {
-        
-        final TextView defaultButton = (TextView) mDialog.getListView().getChildAt(INDEX_SET_DEFAULT_BUTTON);
-        
-        if (mIsDefaultEngine) {
-            defaultButton.setEnabled(false);
-            
-            
-            defaultButton.setOnClickListener(null);
         }
     }
 }

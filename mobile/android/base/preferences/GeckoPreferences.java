@@ -154,7 +154,7 @@ public class GeckoPreferences
                 final Object listItem = listAdapter.getItem(position);
 
                 
-                if (listItem instanceof SearchEnginePreference && listItem instanceof View.OnLongClickListener) {
+                if (listItem instanceof CustomListPreference && listItem instanceof View.OnLongClickListener) {
                     final View.OnLongClickListener longClickListener = (View.OnLongClickListener) listItem;
                     return longClickListener.onLongClick(view);
                 }

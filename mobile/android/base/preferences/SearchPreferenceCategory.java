@@ -6,42 +6,35 @@ package org.mozilla.gecko.preferences;
 
 import android.content.Context;
 import android.preference.Preference;
-import android.preference.PreferenceCategory;
 import android.util.AttributeSet;
 import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.util.GeckoEventListener;
 
-public class SearchPreferenceCategory extends PreferenceCategory implements GeckoEventListener {
+public class SearchPreferenceCategory extends CustomListCategory implements GeckoEventListener {
     public static final String LOGTAG = "SearchPrefCategory";
 
-    private SearchEnginePreference mDefaultEngineReference;
-
-    
-    
-
-    public SearchPreferenceCategory(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
+    public SearchPreferenceCategory(Context context) {
+        super(context);
     }
 
     public SearchPreferenceCategory(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public SearchPreferenceCategory(Context context) {
-        super(context);
+    public SearchPreferenceCategory(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
     }
 
     @Override
     protected void onAttachedToActivity() {
         super.onAttachedToActivity();
-
-        
-        setOrderingAsAdded(true);
 
         
         GeckoAppShell.registerEventListener("SearchEngines:Data", this);
@@ -51,6 +44,20 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
     @Override
     protected void onPrepareForRemoval() {
         GeckoAppShell.unregisterEventListener("SearchEngines:Data", this);
+    }
+
+    @Override
+    public void setDefault(CustomListPreference item) {
+        super.setDefault(item);
+
+        sendGeckoEngineEvent("SearchEngines:SetDefault", item.getTitle().toString());
+    }
+
+    @Override
+    public void uninstall(CustomListPreference item) {
+        super.uninstall(item);
+
+        sendGeckoEngineEvent("SearchEngines:Remove", item.getTitle().toString());
     }
 
     @Override
@@ -93,8 +100,8 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
                         
                         
                         
-                        enginePreference.setIsDefaultEngine(true);
-                        mDefaultEngineReference = enginePreference;
+                        enginePreference.setIsDefault(true);
+                        mDefaultReference = enginePreference;
                     }
                 } catch (JSONException e) {
                     Log.e(LOGTAG, "JSONException parsing engine at index " + i, e);
@@ -107,54 +114,15 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
 
 
 
-    private void setFallbackDefaultEngine() {
-        if (getPreferenceCount() > 0) {
-            SearchEnginePreference aEngine = (SearchEnginePreference) getPreference(0);
-            setDefault(aEngine);
-        }
-    }
 
-    
-
-
-
-
-    private void sendGeckoEngineEvent(String event, SearchEnginePreference engine) {
+    private void sendGeckoEngineEvent(String event, String engineName) {
         JSONObject json = new JSONObject();
         try {
-            json.put("engine", engine.getTitle());
+            json.put("engine", engineName);
         } catch (JSONException e) {
             Log.e(LOGTAG, "JSONException creating search engine configuration change message for Gecko.", e);
             return;
         }
         GeckoAppShell.notifyGeckoOfEvent(GeckoEvent.createBroadcastEvent(event, json.toString()));
-    }
-
-    
-
-    
-
-
-
-    public void uninstall(SearchEnginePreference engine) {
-        removePreference(engine);
-        if (engine == mDefaultEngineReference) {
-            
-            setFallbackDefaultEngine();
-        }
-
-        sendGeckoEngineEvent("SearchEngines:Remove", engine);
-    }
-
-    
-
-
-
-    public void setDefault(SearchEnginePreference engine) {
-        engine.setIsDefaultEngine(true);
-        mDefaultEngineReference.setIsDefaultEngine(false);
-        mDefaultEngineReference = engine;
-
-        sendGeckoEngineEvent("SearchEngines:SetDefault", engine);
     }
 }
