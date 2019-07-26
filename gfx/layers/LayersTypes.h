@@ -11,6 +11,7 @@
 #include "nsRegion.h"
 
 #include "mozilla/TypedEnum.h"
+#include "mozilla/TypedEnumBits.h"
 
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
@@ -75,42 +76,47 @@ MOZ_END_ENUM_CLASS(SurfaceMode)
 
 
 
-enum LayerRenderStateFlags {
-  LAYER_RENDER_STATE_Y_FLIPPED = 1 << 0,
-  LAYER_RENDER_STATE_BUFFER_ROTATION = 1 << 1,
+MOZ_BEGIN_ENUM_CLASS(LayerRenderStateFlags, int8_t)
+  LAYER_RENDER_STATE_DEFAULT = 0,
+  Y_FLIPPED = 1 << 0,
+  BUFFER_ROTATION = 1 << 1,
   
-  LAYER_RENDER_STATE_FORMAT_RB_SWAP = 1 << 2
-};
+  FORMAT_RB_SWAP = 1 << 2
+MOZ_END_ENUM_CLASS(LayerRenderStateFlags)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LayerRenderStateFlags)
 
 
 
 struct LayerRenderState {
   LayerRenderState()
 #ifdef MOZ_WIDGET_GONK
-    : mSurface(nullptr), mTexture(nullptr), mFlags(0), mHasOwnOffset(false)
+    : mFlags(LayerRenderStateFlags::LAYER_RENDER_STATE_DEFAULT)
+    , mHasOwnOffset(false)
+    , mSurface(nullptr)
+    , mTexture(nullptr)
 #endif
   {}
 
 #ifdef MOZ_WIDGET_GONK
   LayerRenderState(android::GraphicBuffer* aSurface,
                    const nsIntSize& aSize,
-                   uint32_t aFlags,
+                   LayerRenderStateFlags aFlags,
                    TextureHost* aTexture)
-    : mSurface(aSurface)
+    : mFlags(aFlags)
+    , mHasOwnOffset(false)
+    , mSurface(aSurface)
     , mSize(aSize)
     , mTexture(aTexture)
-    , mFlags(aFlags)
-    , mHasOwnOffset(false)
   {}
 
   bool YFlipped() const
-  { return mFlags & LAYER_RENDER_STATE_Y_FLIPPED; }
+  { return bool(mFlags & LayerRenderStateFlags::Y_FLIPPED); }
 
   bool BufferRotated() const
-  { return mFlags & LAYER_RENDER_STATE_BUFFER_ROTATION; }
+  { return bool(mFlags & LayerRenderStateFlags::BUFFER_ROTATION); }
 
   bool FormatRBSwapped() const
-  { return mFlags & LAYER_RENDER_STATE_FORMAT_RB_SWAP; }
+  { return bool(mFlags & LayerRenderStateFlags::FORMAT_RB_SWAP); }
 #endif
 
   void SetOffset(const nsIntPoint& aOffset)
@@ -119,6 +125,12 @@ struct LayerRenderState {
     mHasOwnOffset = true;
   }
 
+  
+  LayerRenderStateFlags mFlags;
+  
+  bool mHasOwnOffset;
+  
+  nsIntPoint mOffset;
 #ifdef MOZ_WIDGET_GONK
   
   android::sp<android::GraphicBuffer> mSurface;
@@ -126,12 +138,6 @@ struct LayerRenderState {
   nsIntSize mSize;
   TextureHost* mTexture;
 #endif
-  
-  uint32_t mFlags;
-  
-  nsIntPoint mOffset;
-  
-  bool mHasOwnOffset;
 };
 
 MOZ_BEGIN_ENUM_CLASS(ScaleMode, int8_t)
