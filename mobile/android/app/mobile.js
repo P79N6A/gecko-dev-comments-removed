@@ -363,6 +363,9 @@ pref("gfx.displayport.strategy_pb.threshold", -1);
 pref("gfx.font_rendering.graphite.enabled", false);
 
 
+pref("gfx.android.rgb16.force", false);
+
+
 pref("dom.disable_window_move_resize", true);
 
 
