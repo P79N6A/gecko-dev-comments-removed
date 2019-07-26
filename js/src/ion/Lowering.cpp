@@ -340,6 +340,24 @@ LIRGenerator::visitTest(MTest *test)
         return add(new LGoto(ifTrue));
 
     
+    if (opd->type() == MIRType_Double && opd->isConstant()) {
+        double dbl = opd->toConstant()->value().toDouble();
+        return add(new LGoto(dbl ? ifTrue : ifFalse));
+    }
+
+    
+    if (opd->type() == MIRType_Int32 && opd->isConstant()) {
+        int32 num = opd->toConstant()->value().toInt32();
+        return add(new LGoto(num ? ifTrue : ifFalse));
+    }
+
+    
+    if (opd->type() == MIRType_Boolean && opd->isConstant()) {
+        bool result = opd->toConstant()->value().toBoolean();
+        return add(new LGoto(result ? ifTrue : ifFalse));
+    }
+
+    
     
     
     if (opd->isCompare() && opd->isEmittedAtUses()) {
