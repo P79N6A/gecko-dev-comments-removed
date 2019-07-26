@@ -130,10 +130,7 @@ ThebesLayerComposite::RenderLayer(const nsIntPoint& aOffset,
     
     
     tiledLayerProps.mVisibleRegion = visibleRegion;
-    tiledLayerProps.mDisplayPort = GetDisplayPort();
     tiledLayerProps.mEffectiveResolution = GetEffectiveResolution();
-    tiledLayerProps.mCompositionBounds = GetCompositionBounds();
-    tiledLayerProps.mRetainTiles = !(mIsFixedPosition || mStickyPositionData);
     tiledLayerProps.mValidRegion = mValidRegion;
   }
 
@@ -192,102 +189,6 @@ ThebesLayerComposite::GetEffectiveResolution()
   }
 
   return resolution;
-}
-
-gfxRect
-ThebesLayerComposite::GetDisplayPort()
-{
-  
-  
-  
-  
-  gfx3DMatrix transform = GetTransform();
-
-  
-  
-  gfxRect displayPort;
-  gfxSize parentResolution = GetEffectiveResolution();
-  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-    const FrameMetrics& metrics = parent->GetFrameMetrics();
-    if (displayPort.IsEmpty()) {
-      if (!metrics.mDisplayPort.IsEmpty()) {
-          
-          
-          
-          
-          displayPort = gfxRect(metrics.mDisplayPort.x,
-                                metrics.mDisplayPort.y,
-                                metrics.mDisplayPort.width,
-                                metrics.mDisplayPort.height);
-          displayPort.ScaleRoundOut(parentResolution.width, parentResolution.height);
-      }
-      parentResolution.width /= metrics.mResolution.scale;
-      parentResolution.height /= metrics.mResolution.scale;
-    }
-    if (parent->UseIntermediateSurface()) {
-      transform.PreMultiply(parent->GetTransform());
-    }
-  }
-
-  
-  if (displayPort.IsEmpty()) {
-    LayerManagerComposite* manager = static_cast<LayerManagerComposite*>(Manager());
-    const nsIntSize& widgetSize = manager->GetWidgetSize();
-    displayPort.width = widgetSize.width;
-    displayPort.height = widgetSize.height;
-  }
-
-  
-  displayPort = transform.Inverse().TransformBounds(displayPort);
-
-  return displayPort;
-}
-
-gfxRect
-ThebesLayerComposite::GetCompositionBounds()
-{
-  
-  
-  
-  
-  
-  gfxRect compositionBounds;
-  ContainerLayer* scrollableLayer = nullptr;
-  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-    const FrameMetrics& parentMetrics = parent->GetFrameMetrics();
-    if (parentMetrics.IsScrollable())
-      scrollableLayer = parent;
-    if (!parentMetrics.mDisplayPort.IsEmpty() && scrollableLayer) {
-      
-      compositionBounds = gfxRect(parentMetrics.mCompositionBounds.x,
-                                  parentMetrics.mCompositionBounds.y,
-                                  parentMetrics.mCompositionBounds.width,
-                                  parentMetrics.mCompositionBounds.height);
-
-      const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
-      LayerToCSSScale scale(1 / metrics.mResolution.scale);
-
-      
-      const LayerIntRect content = RoundedToInt(metrics.mScrollableRect / scale);
-      
-      gfx::Point scrollOffset =
-        gfx::Point((metrics.mScrollOffset.x * metrics.LayersPixelsPerCSSPixel().scale) / scale.scale,
-                   (metrics.mScrollOffset.y * metrics.LayersPixelsPerCSSPixel().scale) / scale.scale);
-      const nsIntPoint contentOrigin(
-        content.x - NS_lround(scrollOffset.x),
-        content.y - NS_lround(scrollOffset.y));
-      gfxRect contentRect = gfxRect(contentOrigin.x, contentOrigin.y,
-                                    content.width, content.height);
-      gfxRect contentBounds = scrollableLayer->GetEffectiveTransform().
-        TransformBounds(contentRect);
-
-      
-      compositionBounds.IntersectRect(compositionBounds, contentBounds);
-      break;
-    }
-  }
-
-  return compositionBounds;
 }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
