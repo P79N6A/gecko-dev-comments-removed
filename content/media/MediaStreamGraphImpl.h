@@ -356,13 +356,6 @@ public:
 
 
   void DestroyPort(MediaInputPort* aPort);
-  
-
-
-  void SetStreamOrderDirty()
-  {
-    mStreamOrderDirty = true;
-  }
 
   
 
@@ -543,11 +536,6 @@ public:
 
 
   bool mNonRealtimeProcessing;
-  
-
-
-
-  bool mStreamOrderDirty;
 };
 
 }
