@@ -14,6 +14,7 @@ Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/commonjs/promise/core.js");
+Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/services/healthreport/policy.jsm");
 Cu.import("resource://gre/modules/services/metrics/collector.jsm");
 
@@ -154,9 +155,20 @@ HealthReporter.prototype = {
 
 
 
+
+
+
+
   start: function start() {
-    this._policy.startPolling();
-    this._log.info("HealthReporter started.");
+    let onExists = function onExists() {
+      this._policy.startPolling();
+      this._log.info("HealthReporter started.");
+
+      return Promise.resolve();
+    }.bind(this);
+
+    return this._ensureDirectoryExists(this._stateDir)
+               .then(onExists);
   },
 
   
@@ -370,12 +382,13 @@ HealthReporter.prototype = {
 
     let payload = this.getJSONPayload();
 
-    let promise = client.uploadJSON(this.serverNamespace,
-                                    id,
-                                    payload,
-                                    this.lastSubmitID);
-
-    return promise.then(this._onBagheeraResult.bind(this, request, false));
+    return this._saveLastPayload(payload)
+               .then(client.uploadJSON.bind(client,
+                                            this.serverNamespace,
+                                            id,
+                                            payload,
+                                            this.lastSubmitID))
+               .then(this._onBagheeraResult.bind(this, request, false));
   },
 
   _deleteRemoteData: function _deleteRemoteData(request) {
@@ -392,6 +405,77 @@ HealthReporter.prototype = {
                  .then(this._onBagheeraResult.bind(this, request, true),
                        this._onSubmitDataRequestFailure.bind(this));
 
+  },
+
+  get _stateDir() {
+    let profD = OS.Constants.Path.profileDir;
+
+    
+    if (!profD || !profD.length) {
+      throw new Error("Could not obtain profile directory. OS.File not " +
+                      "initialized properly?");
+    }
+
+    return OS.Path.join(profD, "healthreport");
+  },
+
+  _ensureDirectoryExists: function _ensureDirectoryExists(path) {
+    let deferred = Promise.defer();
+
+    OS.File.makeDir(path).then(
+      function onResult() {
+        deferred.resolve(true);
+      },
+      function onError(error) {
+        if (error.becauseExists) {
+          deferred.resolve(true);
+          return;
+        }
+
+        deferred.reject(error);
+      }
+    );
+
+    return deferred.promise;
+  },
+
+  get _lastPayloadPath() {
+    return OS.Path.join(this._stateDir, "lastpayload.json");
+  },
+
+  _saveLastPayload: function _saveLastPayload(payload) {
+    let path = this._lastPayloadPath;
+    let pathTmp = path + ".tmp";
+
+    let encoder = new TextEncoder();
+    let buffer = encoder.encode(payload);
+
+    return OS.File.writeAtomic(path, buffer, {tmpPath: pathTmp});
+  },
+
+  
+
+
+
+
+
+
+
+
+  getLastPayload: function getLoadPayload() {
+    let path = this._lastPayloadPath;
+
+    return OS.File.read(path).then(
+      function onData(buffer) {
+        let decoder = new TextDecoder();
+        let json = JSON.parse(decoder.decode(buffer));
+
+        return Promise.resolve(json);
+      },
+      function onError(error) {
+        return Promise.reject(error);
+      }
+    );
   },
 
   _now: function _now() {
