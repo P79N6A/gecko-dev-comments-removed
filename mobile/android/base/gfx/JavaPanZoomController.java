@@ -828,6 +828,10 @@ class JavaPanZoomController
 
 
         protected long mCurrentFrameStartTime;
+        
+
+
+        protected long mLastFrameTimeDelta;
 
         private final Runnable mRunnable = new Runnable() {
             @Override
@@ -848,6 +852,7 @@ class JavaPanZoomController
         protected final boolean internalRun(long timeDelta, long currentFrameStartTime) {
 
             mCurrentFrameStartTime = currentFrameStartTime;
+            mLastFrameTimeDelta = timeDelta;
 
             mTarget.post(mRunnable);
             return mContinueAnimation;
@@ -965,8 +970,8 @@ class JavaPanZoomController
             }
 
             
-            boolean flingingX = mX.advanceFling();
-            boolean flingingY = mY.advanceFling();
+            boolean flingingX = mX.advanceFling(mLastFrameTimeDelta);
+            boolean flingingY = mY.advanceFling(mLastFrameTimeDelta);
 
             boolean overscrolled = (mX.overscrolled() || mY.overscrolled());
 
