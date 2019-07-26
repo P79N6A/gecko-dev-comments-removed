@@ -7,6 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
+#include "nsIFrameInlines.h" 
 
 class nsColumnSetFrame : public nsContainerFrame {
 public:
@@ -51,8 +52,11 @@ public:
   }
 
   virtual nsresult StealFrame(nsIFrame* aChild, bool aForceNormal) MOZ_OVERRIDE
-  { 
-    return nsContainerFrame::StealFrame(aChild, true);
+  {
+    
+    
+    return nsContainerFrame::StealFrame(aChild,
+                                        IS_TRUE_OVERFLOW_CONTAINER(aChild));
   }
 
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
