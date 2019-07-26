@@ -2154,8 +2154,8 @@ RadioInterface.prototype = {
     }
     
     
-    gMessageManager.sendMobileConnectionMessage("RIL:IccInfoChanged",
-                                                this.clientId, message);
+    gMessageManager.sendIccMessage("RIL:IccInfoChanged",
+                                   this.clientId, message);
 
     
     if (message.mcc && message.mnc) {
