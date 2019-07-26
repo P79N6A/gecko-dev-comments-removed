@@ -5,11 +5,10 @@
 
 
 
+
+
 #ifndef jsapi_h___
 #define jsapi_h___
-
-
-
 
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
@@ -26,12 +25,12 @@
 #include "jsalloc.h"
 #include "jspubtd.h"
 #include "jsutil.h"
-#include "jsval.h"
 
 #include "gc/Root.h"
 #include "js/CharacterEncoding.h"
 #include "js/HashTable.h"
 #include "js/Utility.h"
+#include "js/Value.h"
 #include "js/Vector.h"
 
 

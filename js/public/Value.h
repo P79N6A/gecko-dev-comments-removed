@@ -5,12 +5,10 @@
 
 
 
-#ifndef jsvalimpl_h__
-#define jsvalimpl_h__
 
 
-
-
+#ifndef js_Value_h___
+#define js_Value_h___
 
 #include "js/Utility.h"
 
