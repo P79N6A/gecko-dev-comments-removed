@@ -750,7 +750,7 @@ public:
 
   static nsresult ReportToConsoleNonLocalized(const nsAString& aErrorText,
                                               uint32_t aErrorFlags,
-                                              const char *aCategory,
+                                              const nsACString& aCategory,
                                               nsIDocument* aDocument,
                                               nsIURI* aURI = nullptr,
                                               const nsAFlatString& aSourceLine
@@ -794,7 +794,7 @@ public:
     PropertiesFile_COUNT
   };
   static nsresult ReportToConsole(uint32_t aErrorFlags,
-                                  const char *aCategory,
+                                  const nsACString& aCategory,
                                   nsIDocument* aDocument,
                                   PropertiesFile aFile,
                                   const char *aMessageName,
@@ -805,6 +805,26 @@ public:
                                     = EmptyString(),
                                   uint32_t aLineNumber = 0,
                                   uint32_t aColumnNumber = 0);
+  
+  template<uint32_t N>
+  static nsresult ReportToConsole(uint32_t aErrorFlags,
+                                  const char (&aCategory)[N],
+                                  nsIDocument* aDocument,
+                                  PropertiesFile aFile,
+                                  const char *aMessageName,
+                                  const PRUnichar **aParams = nullptr,
+                                  uint32_t aParamsLength = 0,
+                                  nsIURI* aURI = nullptr,
+                                  const nsAFlatString& aSourceLine
+                                    = EmptyString(),
+                                  uint32_t aLineNumber = 0,
+                                  uint32_t aColumnNumber = 0)
+  {
+      nsDependentCString category(aCategory, N - 1);
+      return ReportToConsole(aErrorFlags, category, aDocument, aFile,
+                             aMessageName, aParams, aParamsLength, aURI,
+                             aSourceLine, aLineNumber, aColumnNumber);
+  }
 
   
 
