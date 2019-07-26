@@ -661,6 +661,74 @@ OptionalVersion(Input& input,  Version& version)
   return Success;
 }
 
+template <typename ExtensionHandler>
+inline Result
+OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
+{
+  if (!input.Peek(tag)) {
+    return Success;
+  }
+
+  Input extensions;
+  {
+    Input tagged;
+    if (ExpectTagAndGetValue(input, tag, tagged) != Success) {
+      return Failure;
+    }
+    if (ExpectTagAndGetValue(tagged, SEQUENCE, extensions) != Success) {
+      return Failure;
+    }
+    if (End(tagged) != Success) {
+      return Failure;
+    }
+  }
+
+  
+  
+  
+  
+  
+  while (!extensions.AtEnd()) {
+    Input extension;
+    if (ExpectTagAndGetValue(extensions, SEQUENCE, extension)
+          != Success) {
+      return Failure;
+    }
+
+    
+    
+    
+    
+    
+    Input extnID;
+    if (ExpectTagAndGetValue(extension, OIDTag, extnID) != Success) {
+      return Failure;
+    }
+    bool critical;
+    if (OptionalBoolean(extension, false, critical) != Success) {
+      return Failure;
+    }
+    SECItem extnValue;
+    if (ExpectTagAndGetValue(extension, OCTET_STRING, extnValue)
+          != Success) {
+      return Failure;
+    }
+    if (End(extension) != Success) {
+      return Failure;
+    }
+
+    bool understood = false;
+    if (extensionHandler(extnID, extnValue, understood) != Success) {
+      return Failure;
+    }
+    if (critical && !understood) {
+      return Fail(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
+    }
+  }
+
+  return Success;
+}
+
 
 
 

@@ -179,7 +179,9 @@ static inline der::Result ResponseData(
                                SECItem* certs, size_t numCerts);
 static inline der::Result SingleResponse(der::Input& input,
                                           Context& context);
-static inline der::Result CheckExtensionsForCriticality(der::Input&);
+static der::Result ExtensionNotUnderstood(der::Input& extnID,
+                                          const SECItem& extnValue,
+                                           bool& understood);
 static inline der::Result CertID(der::Input& input,
                                   const Context& context,
                                    bool& match);
@@ -531,14 +533,9 @@ ResponseData(der::Input& input, Context& context,
     return der::Failure;
   }
 
-  if (!input.AtEnd()) {
-    if (der::Nested(input, der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 1,
-                    CheckExtensionsForCriticality) != der::Success) {
-      return der::Failure;
-    }
-  }
-
-  return der::Success;
+  return der::OptionalExtensions(input,
+                                 der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 1,
+                                 ExtensionNotUnderstood);
 }
 
 
@@ -656,11 +653,11 @@ SingleResponse(der::Input& input, Context& context)
     context.expired = true;
   }
 
-  if (!input.AtEnd()) {
-    if (der::Nested(input, der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 1,
-                    CheckExtensionsForCriticality) != der::Success) {
-      return der::Failure;
-    }
+  if (der::OptionalExtensions(input,
+                              der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 1,
+                              ExtensionNotUnderstood)
+        != der::Success) {
+    return der::Failure;
   }
 
   if (context.thisUpdate) {
@@ -836,39 +833,12 @@ KeyHash(const SECItem& subjectPublicKeyInfo,  uint8_t* hashBuf,
   return Success;
 }
 
-
-
-
-
-
-static der::Result
-CheckExtensionForCriticality(der::Input& input)
+der::Result
+ExtensionNotUnderstood(der::Input& , const SECItem& ,
+                        bool& understood)
 {
-  
-  if (ExpectTagAndSkipValue(input, der::OIDTag) != der::Success) {
-    return der::Failure;
-  }
-
-  
-  
-  if (input.Peek(der::BOOLEAN)) {
-    return der::Fail(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
-  }
-
-  input.SkipToEnd();
-
+  understood = false;
   return der::Success;
-}
-
-
-static der::Result
-CheckExtensionsForCriticality(der::Input& input)
-{
-  
-  
-  
-  return der::NestedOf(input, der::SEQUENCE, der::SEQUENCE,
-                       der::EmptyAllowed::Yes, CheckExtensionForCriticality);
 }
 
 
