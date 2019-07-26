@@ -157,11 +157,6 @@ public:
   }
 
   
-  
-  void SetContentLength64(int64_t len);
-  int64_t ContentLength64();
-
-  
   template <class T> void GetCallback(nsCOMPtr<T> &result) {
     GetInterface(NS_GET_TEMPLATE_IID(T), getter_AddRefs(result));
   }
@@ -262,6 +257,7 @@ private:
   bool                                mWaitingOnAsyncRedirect;
   bool                                mOpenRedirectChannel;
   uint32_t                            mRedirectFlags;
+  int64_t                             mContentLength;
 
 protected:
   nsCOMPtr<nsIURI>                    mURI;

@@ -71,7 +71,7 @@ private:
     
 
     uint32_t                        mContentDisposition;
-    int32_t                         mContentLength;
+    int64_t                         mContentLength;
     uint32_t                        mLoadFlags;
     nsresult                        mStatus;
     bool                            mIsPending;
