@@ -3576,6 +3576,8 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 %include ../shared/devtools/commandline.inc.css
 %include ../shared/plugin-doorhanger.inc.css
 
+%include downloads/indicator.css
+
 
 
 

@@ -4050,6 +4050,9 @@ pref("image.mem.discardable", true);
 pref("image.mem.decodeondraw", true);
 
 
+pref("image.mem.allow_locking_in_content_processes", true);
+
+
 
 
 
