@@ -535,22 +535,46 @@ void CacheStorageService::DropPrivateBrowsingEntries()
 }
 
 
-void CacheStorageService::WipeCacheDirectory(uint32_t aVersion)
+void CacheStorageService::CleaupCacheDirectories(uint32_t aVersion, uint32_t aActive)
 {
-  nsCOMPtr<nsIFile> cacheDir;
-  switch (aVersion) {
-  case 0:
-    nsCacheService::GetDiskCacheDirectory(getter_AddRefs(cacheDir));
-    break;
-  case 1:
-    CacheFileIOManager::GetCacheDirectory(getter_AddRefs(cacheDir));
-    break;
+  
+  
+  
+  nsCOMPtr<nsICacheService> service = do_GetService(NS_CACHESERVICE_CONTRACTID);
+
+  
+  nsCOMPtr<nsIFile> cache1Dir, cache2Dir;
+  nsCacheService::GetDiskCacheDirectory(getter_AddRefs(cache1Dir));
+  CacheFileIOManager::GetCacheDirectory(getter_AddRefs(cache2Dir));
+
+  
+  
+  static bool runOnce = (
+    cache1Dir && NS_SUCCEEDED(nsDeleteDir::RemoveOldTrashes(cache1Dir)),
+    cache2Dir && NS_SUCCEEDED(nsDeleteDir::RemoveOldTrashes(cache2Dir))
+  );
+
+  if (!runOnce) {
+    NS_WARNING("Could not start deletion of some of the old cache trashes");
   }
 
-  if (!cacheDir)
+  
+  if (aVersion == aActive) {
     return;
+  }
 
-  nsDeleteDir::DeleteDir(cacheDir, true, 30000);
+  switch (aVersion) {
+  case 0:
+    if (cache1Dir) {
+      nsDeleteDir::DeleteDir(cache1Dir, true, 30000);
+    }
+    break;
+  case 1:
+    if (cache2Dir) {
+      nsDeleteDir::DeleteDir(cache2Dir, true, 30000);
+    }
+    break;
+  }
 }
 
 

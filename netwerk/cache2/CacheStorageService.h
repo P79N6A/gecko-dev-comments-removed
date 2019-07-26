@@ -78,7 +78,8 @@ public:
   void DropPrivateBrowsingEntries();
 
   
-  static void WipeCacheDirectory(uint32_t aVersion);
+  
+  static void CleaupCacheDirectories(uint32_t aVersion, uint32_t aActive);
 
   static CacheStorageService* Self() { return sSelf; }
   static nsISupports* SelfISupports() { return static_cast<nsICacheStorageService*>(Self()); }

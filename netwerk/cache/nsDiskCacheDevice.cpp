@@ -394,8 +394,6 @@ nsDiskCacheDevice::Init()
     if (NS_FAILED(rv))
         return rv;
 
-    nsDeleteDir::RemoveOldTrashes(mCacheDirectory);
-
     
     rv = OpenDiskCache();
     if (NS_FAILED(rv)) {
