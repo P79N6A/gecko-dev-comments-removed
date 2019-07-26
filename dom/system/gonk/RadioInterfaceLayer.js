@@ -256,7 +256,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
 
     ril: null,
 
-    targetsByRequestId: {},
     
     
     targetsByTopic: {},
@@ -544,27 +543,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         clientId: clientId,
         data: data
       });
-    },
-
-    saveRequestTarget: function saveRequestTarget(msg) {
-      let requestId = msg.json.data.requestId;
-      if (!requestId) {
-        
-        return;
-      }
-
-      this.targetsByRequestId[requestId] = msg.target;
-    },
-
-    sendRequestResults: function sendRequestResults(requestType, options) {
-      let target = this.targetsByRequestId[options.requestId];
-      delete this.targetsByRequestId[options.requestId];
-
-      if (!target) {
-        return;
-      }
-
-      target.sendAsyncMessage(requestType, options);
     }
   };
 });
@@ -631,8 +609,135 @@ XPCOMUtils.defineLazyGetter(RadioInterfaceLayer.prototype,
   }
 });
 
+function WorkerMessenger(radioInterface, options) {
+  
+  this.radioInterface = radioInterface;
+  this.tokenCallbackMap = {};
+
+  
+  this.debug = radioInterface.debug.bind(radioInterface);
+
+  if (DEBUG) this.debug("Starting RIL Worker[" + options.clientId + "]");
+  this.worker = new ChromeWorker("resource://gre/modules/ril_worker.js");
+  this.worker.onerror = this.onerror.bind(this);
+  this.worker.onmessage = this.onmessage.bind(this);
+
+  this.send("setInitialOptions", options);
+
+  gSystemWorkerManager.registerRilWorker(options.clientId, this.worker);
+}
+WorkerMessenger.prototype = {
+  radioInterface: null,
+  worker: null,
+
+  
+  token: 1,
+
+  
+  tokenCallbackMap: null,
+
+  onerror: function onerror(event) {
+    if (DEBUG) {
+      this.debug("Got an error: " + event.filename + ":" +
+                 event.lineno + ": " + event.message + "\n");
+    }
+    event.preventDefault();
+  },
+
+  
+
+
+  onmessage: function onmessage(event) {
+    let message = event.data;
+    if (DEBUG) {
+      this.debug("Received message from worker: " + JSON.stringify(message));
+    }
+
+    let token = message.rilMessageToken;
+    if (token == null) {
+      
+      this.radioInterface.handleUnsolicitedWorkerMessage(message);
+      return;
+    }
+
+    let callback = this.tokenCallbackMap[message.rilMessageToken];
+    if (!callback) {
+      if (DEBUG) this.debug("Ignore orphan token: " + message.rilMessageToken);
+      return;
+    }
+
+    let keep = false;
+    try {
+      keep = callback(message);
+    } catch(e) {
+      if (DEBUG) this.debug("callback throws an exception: " + e);
+    }
+
+    if (!keep) {
+      delete this.tokenCallbackMap[message.rilMessageToken];
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  send: function send(rilMessageType, message, callback) {
+    message = message || {};
+
+    message.rilMessageToken = this.token;
+    this.token++;
+
+    if (callback) {
+      
+      
+      
+      
+      
+      
+      
+      this.tokenCallbackMap[message.rilMessageToken] = callback;
+    }
+
+    message.rilMessageType = rilMessageType;
+    this.worker.postMessage(message);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  sendWithIPCMessage: function sendWithIPCMessage(msg, rilMessageType, ipcType) {
+    this.send(rilMessageType, msg.json.data, function(reply) {
+      ipcType = ipcType || msg.name;
+      msg.target.sendAsyncMessage(ipcType, reply);
+      return false;
+    });
+  }
+};
+
 function RadioInterface(options) {
   this.clientId = options.clientId;
+  this.workerMessenger = new WorkerMessenger(this, options);
 
   this.dataCallSettings = {
     oldEnabled: false,
@@ -648,15 +753,6 @@ function RadioInterface(options) {
       byType: {},
       byAPN: {}
   };
-
-  if (DEBUG) this.debug("Starting RIL Worker[" + this.clientId + "]");
-  this.worker = new ChromeWorker("resource://gre/modules/ril_worker.js");
-  this.worker.onerror = this.onerror.bind(this);
-  this.worker.onmessage = this.onmessage.bind(this);
-
-  
-  options.rilMessageType = "setInitialOptions";
-  this.worker.postMessage(options);
 
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
@@ -730,8 +826,6 @@ function RadioInterface(options) {
 
   this.portAddressedSmsApps = {};
   this.portAddressedSmsApps[WAP.WDP_PORT_PUSH] = this.handleSmsWdpPortPush.bind(this);
-
-  gSystemWorkerManager.registerRilWorker(this.clientId, this.worker);
 }
 RadioInterface.prototype = {
 
@@ -743,6 +837,9 @@ RadioInterface.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIRadioInterface,
                                          Ci.nsIObserver,
                                          Ci.nsISettingsServiceCallback]),
+
+  
+  workerMessenger: null,
 
   debug: function debug(s) {
     dump("-*- RadioInterface[" + this.clientId + "]: " + s + "\n");
@@ -926,26 +1023,7 @@ RadioInterface.prototype = {
     }
   },
 
-  onerror: function onerror(event) {
-    if (DEBUG) {
-      this.debug("Got an error: " + event.filename + ":" +
-                 event.lineno + ": " + event.message + "\n");
-    }
-    event.preventDefault();
-  },
-
-  
-
-
-
-
-
-
-  onmessage: function onmessage(event) {
-    let message = event.data;
-    if (DEBUG) {
-      this.debug("Received message from worker: " + JSON.stringify(message));
-    }
+  handleUnsolicitedWorkerMessage: function handleUnsolicitedWorkerMessage(message) {
     switch (message.rilMessageType) {
       case "callRing":
         this.handleCallRing();
@@ -2590,10 +2668,6 @@ RadioInterface.prototype = {
       byAPN: {},
     };
   },
-
-  
-
-  worker: null,
 
   
 
