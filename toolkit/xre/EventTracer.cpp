@@ -58,7 +58,6 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/WidgetTraceEvent.h"
 #include "nsDebug.h"
-#include "MainThreadUtils.h"
 #include <limits.h>
 #include <prenv.h>
 #include <prinrval.h>
@@ -76,16 +75,13 @@ using mozilla::TimeStamp;
 using mozilla::FireAndWaitForTracerEvent;
 
 namespace {
-  struct TracerStartClosure {
-    mozilla::Atomic<int> mLogTracing;
-  };
-}
 
-static PRThread* sTracerThread = nullptr;
-static mozilla::Atomic<int> sExit(0);
-static int sStartCount = 0;
-static bool sLogging = false;
-static TracerStartClosure *sTracerStartClosure = nullptr;
+PRThread* sTracerThread = nullptr;
+bool sExit = false;
+
+struct TracerStartClosure {
+  bool mLogTracing;
+};
 
 #ifdef MOZ_WIDGET_GONK
 class EventLoopLagDispatcher : public nsRunnable
@@ -122,7 +118,7 @@ class EventLoopLagDispatcher : public nsRunnable
 
 
 
-static void TracerThread(void *arg)
+void TracerThread(void *arg)
 {
   PR_SetCurrentThreadName("Event Tracer");
 
@@ -213,39 +209,29 @@ static void TracerThread(void *arg)
   delete threadArgs;
 }
 
+} 
 
 namespace mozilla {
 
 bool InitEventTracing(bool aLog)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  sStartCount++;
-
-  
-  
-  if (sTracerThread) {
-    if (aLog)
-      sTracerStartClosure->mLogTracing = 1;
+  if (sTracerThread)
     return true;
-  }
 
   
   if (!InitWidgetTracing())
     return false;
 
   
-  sTracerStartClosure = new TracerStartClosure();
-  sTracerStartClosure->mLogTracing = aLog;
+  TracerStartClosure* args = new TracerStartClosure();
+  args->mLogTracing = aLog;
 
   
   
   NS_ABORT_IF_FALSE(!sTracerThread, "Event tracing already initialized!");
   sTracerThread = PR_CreateThread(PR_USER_THREAD,
                                   TracerThread,
-                                  sTracerStartClosure,
+                                  args,
                                   PR_PRIORITY_NORMAL,
                                   PR_GLOBAL_THREAD,
                                   PR_JOINABLE_THREAD,
@@ -255,24 +241,16 @@ bool InitEventTracing(bool aLog)
 
 void ShutdownEventTracing()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  sStartCount--;
-  if (sStartCount > 0)
-    return;
-
   if (!sTracerThread)
     return;
 
-  sExit = 1;
+  sExit = true;
   
   SignalTracerThread();
 
   if (sTracerThread)
     PR_JoinThread(sTracerThread);
   sTracerThread = nullptr;
-  sTracerStartClosure = nullptr;
 
   
   CleanUpWidgetTracing();
