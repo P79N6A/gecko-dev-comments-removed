@@ -348,16 +348,6 @@ let SessionStoreInternal = {
   _disabledForMultiProcess: false,
 
   
-  
-  
-  
-  
-  
-  
-  
-  _resume_session_once_on_shutdown: null,
-
-  
 
 
   get promiseInitialized() {
@@ -1055,15 +1045,6 @@ let SessionStoreInternal = {
       
       Services.obs.removeObserver(this, "browser:purge-session-history");
     }
-    else if (this._resume_session_once_on_shutdown != null) {
-      
-      
-      
-      
-      
-      this._prefBranch.setBoolPref("sessionstore.resume_session_once",
-                                   this._resume_session_once_on_shutdown);
-    }
 
     if (aData != "restart") {
       
@@ -1212,12 +1193,6 @@ let SessionStoreInternal = {
         break;
       case "sessionstore.resume_from_crash":
         this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
-        
-        if (this._resume_session_once_on_shutdown != null) {
-          this._prefBranch.setBoolPref("sessionstore.resume_session_once",
-                                       this._resume_session_once_on_shutdown);
-          this._resume_session_once_on_shutdown = null;
-        }
         
         
         if (!this._resume_from_crash)
@@ -3838,19 +3813,6 @@ let SessionStoreInternal = {
       }
     }
 #endif
-
-    if (pinnedOnly) {
-      
-      
-      
-      if (this._resume_session_once_on_shutdown == null) {
-        this._resume_session_once_on_shutdown =
-          this._prefBranch.getBoolPref("sessionstore.resume_session_once");
-        this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
-        
-        Services.prefs.savePrefFile(null);
-      }
-    }
 
     
     if (this._lastSessionState)
