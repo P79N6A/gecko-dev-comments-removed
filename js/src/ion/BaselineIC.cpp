@@ -2083,10 +2083,24 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestMagic(Assembler::Equal, element, &failure);
 
     
-    masm.loadValue(Address(BaselineStackReg, ICStackValueOffset), R0);
+    
+    
+    Label convertDoubles, convertDoublesDone;
+    Address convertDoublesAddr(scratchReg, ObjectElements::offsetOfConvertDoubleElements());
+    masm.branch32(Assembler::NotEqual, convertDoublesAddr, Imm32(0), &convertDoubles);
+    masm.bind(&convertDoublesDone);
+
+    
+    Address valueAddr(BaselineStackReg, ICStackValueOffset);
+    masm.loadValue(valueAddr, R0);
     masm.patchableCallPreBarrier(element, MIRType_Value);
     masm.storeValue(R0, element);
     EmitReturnFromIC(masm);
+
+    
+    masm.bind(&convertDoubles);
+    masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    masm.jump(&convertDoublesDone);
 
     
     masm.bind(&failureUnstow);
@@ -2183,10 +2197,24 @@ ICSetElem_DenseAdd::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
+    
+    Label convertDoubles, convertDoublesDone;
+    Address convertDoublesAddr(scratchReg, ObjectElements::offsetOfConvertDoubleElements());
+    masm.branch32(Assembler::NotEqual, convertDoublesAddr, Imm32(0), &convertDoubles);
+    masm.bind(&convertDoublesDone);
+
+    
+    
     BaseIndex element(scratchReg, key, TimesEight);
-    masm.loadValue(Address(BaselineStackReg, ICStackValueOffset), R0);
+    Address valueAddr(BaselineStackReg, ICStackValueOffset);
+    masm.loadValue(valueAddr, R0);
     masm.storeValue(R0, element);
     EmitReturnFromIC(masm);
+
+    
+    masm.bind(&convertDoubles);
+    masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    masm.jump(&convertDoublesDone);
 
     
     masm.bind(&failureUnstow);
