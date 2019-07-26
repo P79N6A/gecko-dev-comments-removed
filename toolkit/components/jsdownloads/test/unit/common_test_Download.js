@@ -1623,3 +1623,47 @@ add_task(function test_contentType() {
 
   do_check_eq("text/plain", download.contentType);
 });
+
+
+
+
+
+
+add_task(function test_platform_integration()
+{
+  for (let isPrivate of [false, true]) {
+    DownloadIntegration.downloadDoneCalled = false;
+
+    
+    
+    
+    
+    let targetFile = yield DownloadIntegration.getSystemDownloadsDirectory();
+    targetFile = targetFile.clone();
+    targetFile.append("test" + (Math.floor(Math.random() * 1000000)));
+
+    let download;
+    if (gUseLegacySaver) {
+      download = yield promiseStartLegacyDownload(httpUrl("source.txt"),
+                                                  { targetFile: targetFile });
+    }
+    else {
+      download = yield Downloads.createDownload({
+        source: httpUrl("source.txt"),
+        target: targetFile,
+      });
+      download.start();
+    }
+
+    
+    
+    yield download.whenSucceeded().then(function () {
+      do_check_true(DownloadIntegration.downloadDoneCalled);
+    });
+
+    
+    yield promiseDownloadStopped(download);
+
+    yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  }
+});
