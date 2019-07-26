@@ -383,7 +383,7 @@ nsXMLHttpRequest::InitParameters(bool aAnon, bool aSystem)
 
   
   
-  if (!IsSystemXHR() && aSystem) {
+  if (!IsSystemXHR()) {
     nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
     if (!doc) {
       return;
