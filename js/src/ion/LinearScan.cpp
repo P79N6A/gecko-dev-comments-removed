@@ -456,6 +456,20 @@ IsTraceable(VirtualRegister *reg)
     return false;
 }
 
+#ifdef DEBUG
+static inline bool
+NextInstructionHasFixedUses(LBlock *block, LInstruction *ins)
+{
+    LInstructionIterator iter(block->begin(ins));
+    iter++;
+    for (LInstruction::InputIterator alloc(**iter); alloc.more(); alloc.next()) {
+        if (alloc->isUse() && alloc->toUse()->isFixedRegister())
+            return true;
+    }
+    return false;
+}
+#endif
+
 
 
 
@@ -545,6 +559,11 @@ LinearScanAllocator::buildLivenessInfo()
                         
                         
                         
+                        
+                        
+                        
+                        
+                        JS_ASSERT(!NextInstructionHasFixedUses(block, *ins));
                         AnyRegister reg = def->output()->toRegister();
                         if (!addFixedRangeAtHead(reg, inputOf(*ins), outputOf(*ins).next()))
                             return false;
