@@ -123,6 +123,14 @@
 #  define MOZ_END_NESTED_ENUM_CLASS(Name) \
      };
 #  define MOZ_FINISH_NESTED_ENUM_CLASS(Name)
+
+
+
+
+
+
+
+#  define MOZ_ENUM_CLASS_ENUM_TYPE(Name) Name
 #else
    
 
@@ -238,6 +246,13 @@
      inline int& operator^=(int&, const Name::Enum&) MOZ_DELETE; \
      inline int& operator<<=(int&, const Name::Enum&) MOZ_DELETE; \
      inline int& operator>>=(int&, const Name::Enum&) MOZ_DELETE;
+
+  
+
+
+
+
+#  define MOZ_ENUM_CLASS_ENUM_TYPE(Name) Name::Enum
 #endif
 
    
