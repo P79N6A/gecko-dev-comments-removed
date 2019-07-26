@@ -41,6 +41,9 @@ LightweightThemeConsumer.prototype = {
   _lastData: null,
   _lastScreenWidth: null,
   _lastScreenHeight: null,
+#ifdef XP_MACOSX
+  _chromemarginDefault: undefined,
+#endif
 
   observe: function (aSubject, aTopic, aData) {
     if (aTopic != "lightweight-theme-styling-update")
@@ -73,13 +76,11 @@ LightweightThemeConsumer.prototype = {
   },
 
   _update: function (aData) {
-    if (!aData) {
+    if (!aData)
       aData = { headerURL: "", footerURL: "", textcolor: "", accentcolor: "" };
-      this._lastData = aData;
-    } else {
-      this._lastData = aData;
-      aData = LightweightThemeImageOptimizer.optimize(aData, this._win.screen);
-    }
+
+    this._lastData = aData;
+    aData = LightweightThemeImageOptimizer.optimize(aData, this._win.screen);
 
     var root = this._doc.documentElement;
     var active = !!aData.headerURL;
@@ -110,10 +111,21 @@ LightweightThemeConsumer.prototype = {
     }
 
 #ifdef XP_MACOSX
-    if (active)
-      root.setAttribute("drawintitlebar", "true");
-    else
-      root.removeAttribute("drawintitlebar");
+    
+    
+    
+    if (this._chromemarginDefault === undefined)
+      this._chromemarginDefault = root.getAttribute("chromemargin");
+
+    if (active) {
+      root.setAttribute("chromemargin", "0,-1,-1,-1");
+    }
+    else {
+      if (this._chromemarginDefault)
+        root.setAttribute("chromemargin", this._chromemarginDefault);
+      else
+        root.removeAttribute("chromemargin");
+    }
 #endif
   }
 }
