@@ -131,6 +131,9 @@ extern bool
 GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base,
                  const jschar **endp, double *dp);
 
+extern bool
+StringToNumber(JSContext *cx, JSString *str, double *result);
+
 
 JS_ALWAYS_INLINE bool
 ToNumber(JSContext *cx, JS::MutableHandleValue vp)

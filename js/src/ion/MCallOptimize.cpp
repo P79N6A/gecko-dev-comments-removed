@@ -656,7 +656,8 @@ IonBuilder::inlineMathPow(CallInfo &callInfo)
     
     if (callInfo.getArg(1)->isConstant()) {
         double pow;
-        if (!ToNumber(GetIonContext()->cx, callInfo.getArg(1)->toConstant()->value(), &pow))
+        RootedValue v(GetIonContext()->cx, callInfo.getArg(1)->toConstant()->value());
+        if (!ToNumber(GetIonContext()->cx, v, &pow))
             return InliningStatus_Error;
 
         

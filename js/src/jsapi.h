@@ -1515,7 +1515,7 @@ namespace JS {
 
 
 JS_ALWAYS_INLINE bool
-ToNumber(JSContext *cx, const Value &v, double *out)
+ToNumber(JSContext *cx, HandleValue v, double *out)
 {
     AssertArgumentsAreSane(cx, v);
     {
