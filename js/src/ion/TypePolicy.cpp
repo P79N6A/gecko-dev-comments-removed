@@ -386,12 +386,6 @@ InstanceOfPolicy::adjustInputs(MInstruction *def)
        BoxPolicy<0>::staticAdjustInputs(def);
     }
 
-    if (def->numOperands() == 2) {
-        
-        
-        ObjectPolicy<1>::staticAdjustInputs(def);
-    }
-
     return true;
 }
 
