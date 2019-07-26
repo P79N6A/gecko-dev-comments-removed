@@ -223,12 +223,12 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
         
         
         
+        LOG(("nsHttpConnection::StartSpdy moves single transaction %p "
+             "into SpdySession %p\n", mTransaction.get(), mSpdySession.get()));
         rv = AddTransaction(mTransaction, mPriority);
         if (NS_FAILED(rv)) {
             return;
         }
-        LOG(("nsHttpConnection::StartSpdy moves single transaction %p "
-             "into SpdySession %p\n", mTransaction.get(), mSpdySession.get()));
     } else {
         int32_t count = list.Length();
 
@@ -261,7 +261,7 @@ nsHttpConnection::StartSpdy(uint8_t spdyVersion)
     if (!mTLSFilter) {
         mTransaction = mSpdySession;
     } else {
-        mTLSFilter->AddTransaction(mSpdySession);
+        mTLSFilter->SetProxiedTransaction(mSpdySession);
     }
 }
 
@@ -428,7 +428,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     }
 
     if (mTLSFilter) {
-        mTLSFilter->AddTransaction(trans);
+        mTLSFilter->SetProxiedTransaction(trans);
         mTransaction = mTLSFilter;
     }
 
