@@ -464,23 +464,6 @@ nsFrameLoader::ReallyStartLoadingInternal()
 
   
   
-  uint32_t sandboxFlags = 0;
-  uint32_t parentSandboxFlags = mOwnerContent->OwnerDoc()->GetSandboxFlags();
-
-  HTMLIFrameElement* iframe = HTMLIFrameElement::FromContent(mOwnerContent);
-
-  if (iframe) {
-    sandboxFlags = iframe->GetSandboxFlags();
-  }
-
-  if (sandboxFlags || parentSandboxFlags) {
-    
-    sandboxFlags |= parentSandboxFlags;
-    mDocShell->SetSandboxFlags(sandboxFlags);
-  }
-
-  
-  
   
   
   
@@ -1569,6 +1552,15 @@ nsFrameLoader::MaybeCreateDocShell()
   mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
+  
+  
+  uint32_t sandboxFlags = 0;
+  HTMLIFrameElement* iframe = HTMLIFrameElement::FromContent(mOwnerContent);
+  if (iframe) {
+    sandboxFlags = iframe->GetSandboxFlags();
+  }
+  ApplySandboxFlags(sandboxFlags);
+
   if (!mNetworkCreated) {
     if (mDocShell) {
       mDocShell->SetCreatedDynamically(true);
@@ -2469,6 +2461,18 @@ nsFrameLoader::GetDetachedSubdocView(nsIDocument** aContainerDoc) const
 {
   NS_IF_ADDREF(*aContainerDoc = mContainerDocWhileDetached);
   return mDetachedSubdocViews;
+}
+
+void
+nsFrameLoader::ApplySandboxFlags(uint32_t sandboxFlags)
+{
+  if (mDocShell) {
+    uint32_t parentSandboxFlags = mOwnerContent->OwnerDoc()->GetSandboxFlags();
+
+    
+    sandboxFlags |= parentSandboxFlags;
+    mDocShell->SetSandboxFlags(sandboxFlags);
+  }
 }
 
  void

@@ -225,20 +225,15 @@ HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     
     
     if (mFrameLoader) {
-      nsCOMPtr<nsIDocShell> docshell = mFrameLoader->GetExistingDocShell();
-
-      if (docshell) {
-        uint32_t newFlags = 0;
-        
-        
-        if (aValue) {
-          nsAutoString strValue;
-          aValue->ToString(strValue);
-          newFlags = nsContentUtils::ParseSandboxAttributeToFlags(
-            strValue);
-        }   
-        docshell->SetSandboxFlags(newFlags);
-      }
+      
+      
+      uint32_t newFlags = 0;
+      if (aValue) {
+        nsAutoString strValue;
+        aValue->ToString(strValue);
+        newFlags = nsContentUtils::ParseSandboxAttributeToFlags(strValue);
+      }   
+      mFrameLoader->ApplySandboxFlags(newFlags);
     }
   }
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,

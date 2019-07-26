@@ -303,6 +303,13 @@ public:
 
   nsView* GetDetachedSubdocView(nsIDocument** aContainerDoc) const;
 
+  
+
+
+
+
+  void ApplySandboxFlags(uint32_t sandboxFlags);
+
 private:
 
   void SetOwnerContent(mozilla::dom::Element* aContent);
