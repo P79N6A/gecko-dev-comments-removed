@@ -79,11 +79,11 @@ public:
 
 
   class Track {
-  public:
-    Track(TrackID aID, TrackRate aRate, TrackTicks aStart, MediaSegment* aSegment)
+    Track(TrackID aID, TrackRate aRate, TrackTicks aStart, MediaSegment* aSegment, TrackRate aGraphRate)
       : mStart(aStart),
         mSegment(aSegment),
         mRate(aRate),
+        mGraphRate(aGraphRate),
         mID(aID),
         mEnded(false)
     {
@@ -93,6 +93,7 @@ public:
       NS_ASSERTION(0 < aRate && aRate <= TRACK_RATE_MAX, "Invalid rate");
       NS_ASSERTION(0 <= aStart && aStart <= aSegment->GetDuration(), "Bad start position");
     }
+  public:
     ~Track()
     {
       MOZ_COUNT_DTOR(Track);
@@ -167,6 +168,7 @@ public:
     
     nsAutoPtr<MediaSegment> mSegment;
     TrackRate mRate; 
+    TrackRate mGraphRate; 
     
     TrackID mID;
     
@@ -185,6 +187,9 @@ public:
 
   StreamBuffer()
     : mTracksKnownTime(0), mForgottenTime(0)
+#ifdef DEBUG
+    , mGraphRateIsSet(false)
+#endif
   {
     MOZ_COUNT_CTOR(StreamBuffer);
   }
@@ -207,6 +212,25 @@ public:
 
 
 
+  void InitGraphRate(TrackRate aGraphRate)
+  {
+    mGraphRate = aGraphRate;
+#if DEBUG
+    MOZ_ASSERT(!mGraphRateIsSet);
+    mGraphRateIsSet = true;
+#endif
+  }
+
+  TrackRate GraphRate() const
+  {
+    MOZ_ASSERT(mGraphRateIsSet);
+    return mGraphRate;
+  }
+
+  
+
+
+
 
   Track& AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart, MediaSegment* aSegment)
   {
@@ -220,8 +244,8 @@ public:
     }
     NS_ASSERTION(!FindTrack(aID), "Track with this ID already exists");
 
-    return **mTracks.InsertElementSorted(new Track(aID, aRate, aStart, aSegment),
-                                         CompareTracksByID());
+    Track* track = new Track(aID, aRate, aStart, aSegment, GraphRate());
+    return **mTracks.InsertElementSorted(track, CompareTracksByID());
   }
   void AdvanceKnownTracksTime(StreamTime aKnownTime)
   {
@@ -302,12 +326,16 @@ public:
   }
 
 protected:
+  TrackRate mGraphRate; 
   
   
   StreamTime mTracksKnownTime;
   StreamTime mForgottenTime;
   
   nsTArray<nsAutoPtr<Track> > mTracks;
+#ifdef DEBUG
+  bool mGraphRateIsSet;
+#endif
 };
 
 }
