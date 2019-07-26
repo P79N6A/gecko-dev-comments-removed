@@ -473,6 +473,13 @@ js::ecmaPow(double x, double y)
 
 
 
+    if (int32_t(y) == y)
+        return powi(x, int32_t(y));
+
+    
+
+
+
     if (!MOZ_DOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0))
         return js_NaN;
     
@@ -491,7 +498,7 @@ js::ecmaPow(double x, double y)
 JSBool
 js_math_pow(JSContext *cx, unsigned argc, Value *vp)
 {
-    double x, y, z;
+    double x, y;
 
     if (argc <= 1) {
         vp->setDouble(js_NaN);
@@ -519,15 +526,7 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
         return JS_TRUE;
     }
 
-    
-
-
-
-
-    if (int32_t(y) == y)
-        z = powi(x, int32_t(y));
-    else
-        z = ecmaPow(x, y);
+    double z = ecmaPow(x, y);
 
     vp->setNumber(z);
     return JS_TRUE;
