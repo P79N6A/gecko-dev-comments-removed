@@ -3,6 +3,8 @@
 
 
 
+Cu.import("resource://gre/modules/PageThumbs.jsm");
+
 
 
 
@@ -83,6 +85,7 @@ var BrowserUI = {
 
     messageManager.addMessageListener("Browser:OpenURI", this);
     messageManager.addMessageListener("Browser:SaveAs:Return", this);
+    messageManager.addMessageListener("Content:StateChange", this);
 
     
     window.addEventListener("keypress", this, true);
@@ -102,6 +105,7 @@ var BrowserUI = {
       StartUI.show();
     }
     FlyoutPanelsUI.init();
+    PageThumbs.init();
 
     
     BrowserUI._adjustDOMforViewState();
@@ -195,6 +199,8 @@ var BrowserUI = {
     StartUI.uninit();
     Downloads.uninit();
     SettingsCharm.uninit();
+    messageManager.removeMessageListener("Content:StateChange", this);
+    PageThumbs.uninit();
   },
 
 
@@ -805,9 +811,87 @@ var BrowserUI = {
         
         this.goToURI(json.uri);
         break;
+      case "Content:StateChange":
+        let currBrowser = Browser.selectedBrowser;
+        if (this.shouldCaptureThumbnails(currBrowser)) {
+          PageThumbs.captureAndStore(currBrowser);
+          let currPage = currBrowser.currentURI.spec;
+          Services.obs.notifyObservers(null, "Metro:RefreshTopsiteThumbnail", currPage);
+        }
+        break;
     }
 
     return {};
+  },
+
+  
+  
+  shouldCaptureThumbnails: function shouldCaptureThumbnails(aBrowser) {
+    
+    if (aBrowser != Browser.selectedBrowser) {
+      return false;
+    }
+    
+    
+    let doc = aBrowser.contentDocument;
+    if (doc instanceof SVGDocument || doc instanceof XMLDocument) {
+      return false;
+    }
+
+    
+    if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE) {
+      return false;
+    }
+
+    
+    if (aBrowser.currentURI.schemeIs("about")) {
+      return false;
+    }
+
+    
+    let channel = aBrowser.docShell.currentDocumentChannel;
+    if (!channel) {
+      return false;
+    }
+
+    
+    
+    let uri = channel.originalURI;
+    if (uri.schemeIs("about")) {
+      return false;
+    }
+
+    
+    let httpChannel;
+    try {
+      httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (e) {  }
+
+    if (httpChannel) {
+      
+      try {
+        if (Math.floor(httpChannel.responseStatus / 100) != 2) {
+          return false;
+        }
+      } catch (e) {
+        
+        
+        return false;
+      }
+
+      
+      if (httpChannel.isNoStoreResponse()) {
+        return false;
+      }
+
+      
+      
+      if (uri.schemeIs("https")) {
+        return false;
+      }
+    }
+
+    return true;
   },
 
   supportsCommand : function(cmd) {

@@ -2,10 +2,11 @@
 
 
 
-
 'use strict';
  let prefs = Components.classes["@mozilla.org/preferences-service;1"].
       getService(Components.interfaces.nsIPrefBranch);
+
+Cu.import("resource://gre/modules/PageThumbs.jsm");
 
 
 let TopSites = {
@@ -31,10 +32,13 @@ let TopSites = {
   }
 };
 
-function TopSitesView(aGrid, maxSites) {
+
+
+function TopSitesView(aGrid, aMaxSites, aUseThumbnails) {
   this._set = aGrid;
   this._set.controller = this;
-  this._topSitesMax = maxSites;
+  this._topSitesMax = aMaxSites;
+  this._useThumbs = aUseThumbnails;
 
   
   this._set.addEventListener("context-action", this, false);
@@ -42,6 +46,10 @@ function TopSitesView(aGrid, maxSites) {
   let history = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
   history.addObserver(this, false);
+  if (this._useThumbs) {
+    PageThumbs.addExpirationFilter(this);
+    Services.obs.addObserver(this, "Metro:RefreshTopsiteThumbnail", false);
+  }
 }
 
 TopSitesView.prototype = {
@@ -147,8 +155,24 @@ TopSitesView.prototype = {
       item.setAttribute("data-itemid", node[identifier]);
       
       item.setAttribute("data-contextactions", supportedActions.join(','));
+
+      if (this._useThumbs) {
+        let thumbnail = PageThumbs.getThumbnailURL(uri);
+        let cssthumbnail = 'url("'+thumbnail+'")';
+        item.backgroundImage = cssthumbnail;
+      }
     }
     rootNode.containerOpen = false;
+  },
+
+  forceReloadOfThumbnail: function forceReloadOfThumbnail(url) {
+      let nodes = this._set.querySelectorAll('richgriditem[value="'+url+'"]');
+      for (let item of nodes) {
+        item.refreshBackgroundImage();
+      }
+  },
+  filterForThumbnailExpiration: function filterForThumbnailExpiration(aCallback) {
+    aCallback([item.getAttribute("value") for (item of this._set.children)]);
   },
 
   isFirstRun: function isFirstRun() {
@@ -156,9 +180,20 @@ TopSitesView.prototype = {
   },
 
   destruct: function destruct() {
-    
+    if (this._useThumbs) {
+      Services.obs.removeObserver(this, "Metro:RefreshTopsiteThumbnail");
+      PageThumbs.removeExpirationFilter(this);
+    }
   },
 
+  
+  observe: function (aSubject, aTopic, aState) {
+    switch(aTopic) {
+      case "Metro:RefreshTopsiteThumbnail":
+        this.forceReloadOfThumbnail(aState);
+        break;
+    }
+  },
   
 
   onBeginUpdateBatch: function() {
@@ -202,7 +237,7 @@ let TopSitesStartView = {
   get _grid() { return document.getElementById("start-topsites-grid"); },
 
   init: function init() {
-    this._view = new TopSitesView(this._grid, 9);
+    this._view = new TopSitesView(this._grid, 9, true);
     if (this._view.isFirstRun()) {
       let topsitesVbox = document.getElementById("start-topsites");
       topsitesVbox.setAttribute("hidden", "true");
