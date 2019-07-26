@@ -78,6 +78,8 @@
 #include "mozilla/Services.h"
 #include "nsIPrivateBrowsingChannel.h"
 
+#include <limits>
+
 #ifdef MOZILLA_INTERNAL_API
 
 inline already_AddRefed<nsIIOService>
@@ -1308,8 +1310,7 @@ NS_UsePrivateBrowsing(nsIChannel *channel)
 
 
 #define NECKO_NO_APP_ID 0
-
-#define NECKO_UNKNOWN_APP_ID 4294967295
+#define NECKO_UNKNOWN_APP_ID std::numeric_limits<uint32_t>::max()
 
 
 
