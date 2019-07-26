@@ -733,6 +733,7 @@ BrowserTabActor.prototype = {
 
 
 
+
   onWindowCreated:
   makeInfallible(function BTA_onWindowCreated(evt) {
     if (evt.target === this.browser.contentDocument) {
@@ -745,6 +746,7 @@ BrowserTabActor.prototype = {
         this.threadActor.clearDebuggees();
         if (this.threadActor.dbg) {
           this.threadActor.dbg.enabled = true;
+          this.threadActor.maybePauseOnExceptions();
         }
       }
     }

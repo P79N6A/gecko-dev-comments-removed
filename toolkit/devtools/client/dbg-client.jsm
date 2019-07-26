@@ -497,11 +497,11 @@ DebuggerClient.prototype = {
 
 
 
-  reconfigureThread: function DC_reconfigureThread(aUseSourceMaps, aOnResponse) {
+  reconfigureThread: function(aOptions, aOnResponse) {
     let packet = {
       to: this.activeThread._actor,
       type: "reconfigure",
-      options: { useSourceMaps: aUseSourceMaps }
+      options: aOptions
     };
     this.request(packet, aOnResponse);
   },
@@ -1110,17 +1110,19 @@ ThreadClient.prototype = {
     this._pauseOnExceptions = aFlag;
     
     
-    
-    if (!this.paused) {
-      this.interrupt(function(aResponse) {
-        if (aResponse.error) {
-          
-          aOnResponse(aResponse);
-          return;
-        }
-        this.resume(aOnResponse);
-      }.bind(this));
+    if (this.paused) {
+      this._client.reconfigureThread({ pauseOnExceptions: aFlag }, aOnResponse);
+      return;
     }
+    
+    this.interrupt(aResponse => {
+      if (aResponse.error) {
+        
+        aOnResponse(aResponse);
+        return;
+      }
+      this.resume(aOnResponse);
+    });
   },
 
   
