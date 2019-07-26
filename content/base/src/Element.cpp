@@ -1159,7 +1159,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
     if (GetCustomElementData()) {
       
-      aDocument->EnqueueLifecycleCallback(nsIDocument::eEnteredView, this);
+      aDocument->EnqueueLifecycleCallback(nsIDocument::eAttached, this);
     }
 
     
@@ -1322,7 +1322,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
 
     if (GetCustomElementData()) {
       
-      document->EnqueueLifecycleCallback(nsIDocument::eLeftView, this);
+      document->EnqueueLifecycleCallback(nsIDocument::eDetached, this);
     }
   }
 
