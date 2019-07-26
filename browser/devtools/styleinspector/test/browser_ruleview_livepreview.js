@@ -17,7 +17,14 @@ let inspector;
 
 let testData = [
   {value: "inline", expected: "inline"},
-  {value: "something", expected: "inline"}
+  {value: "inline-block", expected: "inline-block"},
+
+  
+  {value: "red", expected: "block"},
+  {value: "something", expected: "block"},
+
+  {escape: true, value: "inline", expected: "block"},
+  {escape: true, value: "block", expected: "block"}
 ];
 
 function startTest()
@@ -49,9 +56,16 @@ function loopTestData(index)
   waitForEditorFocus(propEditor.element, function(aEditor) {
     is(inplaceEditor(propEditor.valueSpan), aEditor, "Focused editor should be the value.");
 
+    let thisTest = testData[index];
+
     
-    for (let ch of testData[index].value) {
+    for (let ch of thisTest.value) {
       EventUtils.sendChar(ch, ruleWindow);
+    }
+    if (thisTest.escape) {
+      EventUtils.synthesizeKey("VK_ESCAPE", {});
+    } else {
+      EventUtils.synthesizeKey("VK_RETURN", {});
     }
 
     
@@ -60,7 +74,6 @@ function loopTestData(index)
         testData[index].expected,
         "Element should be previewed as " + testData[index].expected);
 
-      EventUtils.synthesizeKey("VK_RETURN", {});
       loopTestData(index + 1);
     });
   });

@@ -205,10 +205,9 @@ function InplaceEditor(aOptions, aEvent)
                                              aEvt.stopPropagation();
                                            }, false);
 
-  this.warning = aOptions.warning;
   this.validate = aOptions.validate;
 
-  if (this.warning && this.validate) {
+  if (this.validate) {
     this.input.addEventListener("keyup", this._onKeyup, false);
   }
 
@@ -254,15 +253,15 @@ InplaceEditor.prototype = {
     this.elt.style.display = this.originalDisplay;
     this.elt.focus();
 
-    if (this.destroy) {
-      this.destroy();
-    }
-
     this.elt.parentNode.removeChild(this.input);
     this.input = null;
 
     delete this.elt.inplaceEditor;
     delete this.elt;
+
+    if (this.destroy) {
+      this.destroy();
+    }
   },
 
   
@@ -352,7 +351,7 @@ InplaceEditor.prototype = {
 
     this.input.value = newValue.value;
     this.input.setSelectionRange(newValue.start, newValue.end);
-    this.warning.hidden = this.validate(this.input.value);
+    this._doValidation();
 
     return true;
   },
@@ -768,8 +767,10 @@ InplaceEditor.prototype = {
       input.value = pre + toComplete + post;
       input.setSelectionRange(pre.length, pre.length + toComplete.length);
       this._updateSize();
+
       
       this.emit("after-suggest");
+      this._doValidation();
     }
 
     if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_BACK_SPACE ||
@@ -855,8 +856,6 @@ InplaceEditor.prototype = {
 
 
   _onKeyup: function(aEvent) {
-    
-    this.warning.hidden = this.validate(this.input.value);
     this._applied = false;
   },
 
@@ -866,9 +865,7 @@ InplaceEditor.prototype = {
   _onInput: function InplaceEditor_onInput(aEvent)
   {
     
-    if (this.warning && this.validate) {
-      this.warning.hidden = this.validate(this.input.value);
-    }
+    this._doValidation();
 
     
     if (this._measurement) {
@@ -878,6 +875,16 @@ InplaceEditor.prototype = {
     
     if (this.change) {
       this.change(this.input.value.trim());
+    }
+  },
+
+  
+
+
+  _doValidation: function()
+  {
+    if (this.validate && this.input) {
+      this.validate(this.input.value);
     }
   },
 
@@ -980,6 +987,7 @@ InplaceEditor.prototype = {
       }
       
       this.emit("after-suggest");
+      this._doValidation();
     }, 0);
   }
 };

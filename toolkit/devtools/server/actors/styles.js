@@ -11,6 +11,7 @@ const events = require("sdk/event/core");
 const object = require("sdk/util/object");
 const { Class } = require("sdk/core/heritage");
 
+loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
 loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-logic").CssLogic);
 loader.lazyGetter(this, "DOMUtils", () => Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils));
 
@@ -710,13 +711,23 @@ var StyleRuleActor = protocol.ActorClass({
 
 
   modifyProperties: method(function(modifications) {
+    let validProps = new Map();
+
+    
+    
+    let tempElement = Services.appShell.hiddenDOMWindow.
+      document.createElement("div");
+
     for (let mod of modifications) {
       if (mod.type === "set") {
-        this.rawStyle.setProperty(mod.name, mod.value, mod.priority || "");
+        tempElement.style.setProperty(mod.name, mod.value, mod.priority || "");
+        this.rawStyle.setProperty(mod.name,
+          tempElement.style.getPropertyValue(mod.name), mod.priority || "");
       } else if (mod.type === "remove") {
         this.rawStyle.removeProperty(mod.name);
       }
     }
+
     return this;
   }, {
     request: { modifications: Arg(0, "array:json") },
