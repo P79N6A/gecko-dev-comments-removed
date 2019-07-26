@@ -113,6 +113,12 @@ MetroAppShell::Run(void)
       sFrameworkView->ActivateView();
       rv = nsBaseAppShell::Run();
       mozilla::widget::StopAudioSession();
+      
+      
+      sMetroApp->ShutdownXPCOM();
+      
+      
+      sMetroApp->CoreExit();
     break;
   }
 
@@ -164,39 +170,11 @@ MetroAppShell::ProcessNextNativeEvent(bool mayWait)
   return ProcessOneNativeEventIfPresent();
 }
 
-
-
-
-
-NS_IMETHODIMP
-MetroAppShell::Exit(void)
-{
-  LogFunction();
-  mExiting = true;
-  return NS_OK;
-}
-
 void
 MetroAppShell::NativeCallback()
 {
   NS_ASSERTION(NS_IsMainThread(), "Native callbacks must be on the metro main thread");
   NativeEventCallback();
-
-  
-  if (mExiting) {
-    
-    static bool sShutdown = false;
-    if (sShutdown)
-      return;
-    sShutdown = true;
-    if (sMetroApp) {
-      
-      sMetroApp->ShutdownXPCOM();
-      
-      
-      sMetroApp->CoreExit();
-    }
-  }
 }
 
 

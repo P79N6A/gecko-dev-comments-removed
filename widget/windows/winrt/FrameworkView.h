@@ -82,8 +82,6 @@ public:
 
   
   void ShutdownXPCOM();
-  bool Render();
-  bool Render(const nsIntRegion& aInvalidRegion);
   float GetDPI() { return mDPI; }
   ICoreWindow* GetCoreWindow() { return mWindow.Get(); }
   void SetWidget(MetroWidget* aWidget);

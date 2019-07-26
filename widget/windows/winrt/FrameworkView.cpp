@@ -77,26 +77,6 @@ FrameworkView::Initialize(ICoreApplicationView* aAppView)
 HRESULT
 FrameworkView::Uninitialize()
 {
-  LogFunction();
-  mShuttingDown = true;
-
-  if (mAutomationProvider) {
-    ComPtr<IUIABridge> provider;
-    mAutomationProvider.As(&provider);
-    if (provider) {
-      provider->Disconnect();
-    }
-  }
-  mAutomationProvider = nullptr;
-
-  mMetroInput = nullptr;
-  mD2DWindowSurface = nullptr;
-  delete sSettingsArray;
-  sSettingsArray = nullptr;
-  mWidget = nullptr;
-  mMetroApp = nullptr;
-  mWindow = nullptr;
-
   return S_OK;
 }
 
@@ -117,6 +97,7 @@ FrameworkView::Run()
   
   mMetroApp->Run();
 
+  
   Log("Exiting FrameworkView::Run()");
 
   return S_OK;
@@ -203,7 +184,25 @@ FrameworkView::AddEventHandlers() {
 void
 FrameworkView::ShutdownXPCOM()
 {
-  Uninitialize();
+  LogFunction();
+  mShuttingDown = true;
+
+  if (mAutomationProvider) {
+    ComPtr<IUIABridge> provider;
+    mAutomationProvider.As(&provider);
+    if (provider) {
+      provider->Disconnect();
+    }
+  }
+  mAutomationProvider = nullptr;
+
+  mMetroInput = nullptr;
+  mD2DWindowSurface = nullptr;
+  delete sSettingsArray;
+  sSettingsArray = nullptr;
+  mWidget = nullptr;
+  mMetroApp = nullptr;
+  mWindow = nullptr;
 }
 
 void
