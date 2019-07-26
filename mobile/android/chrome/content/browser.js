@@ -5136,10 +5136,16 @@ var FormAssistant = {
 
       
       case "pageshow":
-        let target = aEvent.originalTarget;
-        let selectedDocument = BrowserApp.selectedBrowser.contentDocument;
-        if (target == selectedDocument || target.ownerDocument == selectedDocument)
-          this._invalidSubmit = false;
+        if (!this._invalidSubmit)
+          return;
+
+        let selectedBrowser = BrowserApp.selectedBrowser;
+        if (selectedBrowser) {
+          let selectedDocument = selectedBrowser.contentDocument;
+          let target = aEvent.originalTarget;
+          if (target == selectedDocument || target.ownerDocument == selectedDocument)
+            this._invalidSubmit = false;
+        }
     }
   },
 
