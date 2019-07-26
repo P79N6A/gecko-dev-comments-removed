@@ -1244,32 +1244,20 @@ nsJSContext::EvaluateString(const nsAString& aScript,
     return NS_OK;
   }
 
+  nsCxPusher pusher;
+  if (!pusher.Push(mContext))
+    return NS_ERROR_FAILURE;
+
   xpc_UnmarkGrayObject(&aScopeObject);
   nsAutoMicroTask mt;
 
-  nsCOMPtr<nsIPrincipal> principal;
-  nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal = do_QueryInterface(GetGlobalObject());
-  if (!objPrincipal)
-    return NS_ERROR_FAILURE;
-  principal = objPrincipal->GetPrincipal();
-  if (!principal)
-    return NS_ERROR_FAILURE;
-  aOptions.setPrincipals(nsJSPrincipals::get(principal));
+  JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetObjectCompartment(&aScopeObject));
+  aOptions.setPrincipals(p);
 
   bool ok = false;
 
-  nsresult rv = sSecurityManager->CanExecuteScripts(mContext, principal, &ok);
+  nsresult rv = sSecurityManager->CanExecuteScripts(mContext, nsJSPrincipals::get(p), &ok);
   if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  
-  nsCOMPtr<nsIJSContextStack> stack =
-           do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
-  if (NS_FAILED(rv) || NS_FAILED(stack->Push(mContext))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1306,10 +1294,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   
-  if (NS_FAILED(stack->Pop(nullptr)))
-    rv = NS_ERROR_FAILURE;
-
-  
+  pusher.Pop();
   ScriptEvaluated(true);
 
   return rv;
