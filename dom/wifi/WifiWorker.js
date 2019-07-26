@@ -822,11 +822,10 @@ var WifiManager = (function() {
 
       
       
-      var match = /Trying to associate with ([^ ]+) \(SSID='([^']+)' freq=\d+ MHz\)/.exec(event);
+      var match = /Trying to associate with.*SSID[ =]'(.*)'/.exec(event);
       if (match) {
-        debug("Matched: " + match[1] + " and " + match[2]);
-        manager.connectionInfo.bssid = match[1];
-        manager.connectionInfo.ssid = match[2];
+        debug("Matched: " + match[1] + "\n");
+        manager.connectionInfo.ssid = match[1];
       }
       return true;
     }
@@ -904,6 +903,11 @@ var WifiManager = (function() {
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-CONNECTED") === 0) {
+      
+      var bssid = event.split(" ")[4];
+      var id = event.substr(event.indexOf("id=")).split(" ")[0];
+      
+      manager.connectionInfo.bssid = bssid;
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-SCAN-RESULTS") === 0) {
@@ -1837,6 +1841,8 @@ function WifiWorker() {
         self._fireEvent("onassociate", { network: netToDOM(self.currentNetwork) });
         break;
       case "CONNECTED":
+        
+        self.currentNetwork.bssid = WifiManager.connectionInfo.bssid;
         break;
       case "DISCONNECTED":
         self._fireEvent("ondisconnect", {});
