@@ -240,8 +240,25 @@ private:
             unsigned int word0 = addend & 0xffff,
                          word1 = addend >> 16;
 
-            if (((word0 & 0xf800) != 0xf000) || ((word1 & 0x9000) != 0x9000))
+            
+            unsigned int type = (word1 & 0xd000) >> 12;
+            if (((word0 & 0xf800) != 0xf000) || ((type & 0x9) != 0x9))
                 throw std::runtime_error("R_ARM_THM_JUMP24/R_ARM_THM_CALL relocation only supported for B.W <label> and BL <label>");
+
+            
+
+
+            if ((addr & 0x1) == 0) {
+                if (type == 0x9)
+                    throw std::runtime_error("R_ARM_THM_JUMP24/R_ARM_THM_CALL relocation only supported for BL <label> when label points to ARM code");
+                
+
+
+                if ((base_addr + offset) & 0x2)
+                    tmp += 2;
+                
+                type = 0xc;
+            }
 
             unsigned int s = (word0 & (1 << 10)) >> 10;
             unsigned int j1 = (word1 & (1 << 13)) >> 13;
@@ -256,7 +273,7 @@ private:
             j2 = ((tmp & (1 << 22)) >> 22) ^ !s;
 
             return 0xf000 | (s << 10) | ((tmp & (0x3ff << 12)) >> 12) |
-                   ((word1 & 0xd000) << 16) | (j1 << 29) | (j2 << 27) | ((tmp & 0xffe) << 15);
+                   (type << 28) | (j1 << 29) | (j2 << 27) | ((tmp & 0xffe) << 15);
         }
     };
 
