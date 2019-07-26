@@ -114,12 +114,6 @@ struct Cell
 
 
 
-const static uint32_t FreeCommittedArenasThreshold = (32 << 20) / ArenaSize;
-
-
-
-
-
 
 
 const size_t ArenaCellCount = size_t(1) << (ArenaShift - CellShift);
