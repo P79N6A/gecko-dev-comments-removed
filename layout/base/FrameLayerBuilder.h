@@ -309,14 +309,6 @@ public:
 
 
 
-
-  nscolor FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
-                                  ThebesLayer* aLayer, const nsRect& aRect);
-
-  
-
-
-
   static void DestroyDisplayItemDataFor(nsIFrame* aFrame);
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
