@@ -149,6 +149,12 @@ PRLogModuleInfo *signalingLogInfo() {
 }
 
 
+template<>
+struct nsISupportsWeakReference::COMTypeInfo<nsSupportsWeakReference, void> {
+  static const nsIID kIID NS_HIDDEN;
+};
+const nsIID nsISupportsWeakReference::COMTypeInfo<nsSupportsWeakReference, void>::kIID = NS_ISUPPORTSWEAKREFERENCE_IID;
+
 namespace sipcc {
 
 #ifdef MOZILLA_INTERNAL_API
