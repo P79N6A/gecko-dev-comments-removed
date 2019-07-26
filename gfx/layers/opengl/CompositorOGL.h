@@ -29,7 +29,7 @@ class CompositorOGL : public Compositor
 
 public:
   CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
-                bool aIsRenderingToEGLSurface = false);
+                bool aUseExternalSurfaceSize = false);
 
   virtual ~CompositorOGL();
 
@@ -189,7 +189,7 @@ private:
 
 
 
-  bool mIsRenderingToEGLSurface;
+  bool mUseExternalSurfaceSize;
 
   
 

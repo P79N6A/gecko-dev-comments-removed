@@ -864,8 +864,6 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
 CompositorParent* nsBaseWidget::NewCompositorParent(int aSurfaceWidth,
                                                     int aSurfaceHeight)
 {
-  
-  
   return new CompositorParent(this, false, aSurfaceWidth, aSurfaceHeight);
 }
 
