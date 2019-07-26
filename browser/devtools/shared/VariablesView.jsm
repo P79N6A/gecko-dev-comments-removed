@@ -1592,6 +1592,8 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this.hideArrow();
     }
     if (!isUndefined && (descriptor.get || descriptor.set)) {
+      
+      this.eval = null;
       this.addProperty("get", { value: descriptor.get });
       this.addProperty("set", { value: descriptor.set });
       this.expand();
