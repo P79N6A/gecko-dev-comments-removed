@@ -86,7 +86,7 @@
 #include "sampler.h"
 
 #include "jsapi.h"
-#include "nsHTMLIFrameElement.h"
+#include "mozilla/dom/HTMLIFrameElement.h"
 #include "nsSandboxFlags.h"
 
 #include "mozilla/dom/StructuredCloneUtils.h"
@@ -450,8 +450,8 @@ nsFrameLoader::ReallyStartLoadingInternal()
 
   
   
-  nsHTMLIFrameElement* iframe =
-    nsHTMLIFrameElement::FromContent(mOwnerContent);
+  HTMLIFrameElement* iframe =
+    HTMLIFrameElement::FromContent(mOwnerContent);
 
   uint32_t sandboxFlags = 0;
 
