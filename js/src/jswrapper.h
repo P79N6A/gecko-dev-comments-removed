@@ -92,14 +92,6 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 
     virtual ~Wrapper();
 
-    virtual BaseProxyHandler* toBaseProxyHandler() {
-        return this;
-    }
-
-    virtual Wrapper *toWrapper() {
-        return this;
-    }
-
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
                                        jsid id, bool set,

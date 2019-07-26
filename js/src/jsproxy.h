@@ -72,20 +72,6 @@ class JS_FRIEND_API(BaseProxyHandler) {
     }
 
     
-
-
-
-
-
-
-
-
-
-    virtual Wrapper *toWrapper() {
-        return NULL;
-    }
-
-    
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
                                        bool set, PropertyDescriptor *desc) = 0;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
