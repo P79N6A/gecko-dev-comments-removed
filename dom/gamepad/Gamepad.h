@@ -9,7 +9,6 @@
 #include "mozilla/dom/GamepadButton.h"
 #include <stdint.h>
 #include "nsCOMPtr.h"
-#include "nsIVariant.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
@@ -78,25 +77,18 @@ public:
     return mIndex;
   }
 
-  already_AddRefed<nsIVariant> GetButtons(mozilla::ErrorResult& aRv)
+  void GetButtons(nsTArray<nsRefPtr<GamepadButton>>& aButtons) const
   {
-    nsCOMPtr<nsIVariant> buttons;
-    aRv = GetButtons(getter_AddRefs(buttons));
-    return buttons.forget();
+    aButtons = mButtons;
   }
 
-  already_AddRefed<nsIVariant> GetAxes(mozilla::ErrorResult& aRv)
+  void GetAxes(nsTArray<double>& aAxes) const
   {
-    nsCOMPtr<nsIVariant> axes;
-    aRv = GetAxes(getter_AddRefs(axes));
-    return axes.forget();
+    aAxes = mAxes;
   }
 
 private:
   virtual ~Gamepad() {}
-
-  nsresult GetButtons(nsIVariant** aButtons);
-  nsresult GetAxes(nsIVariant** aAxes);
 
 protected:
   nsCOMPtr<nsISupports> mParent;
@@ -112,9 +104,6 @@ protected:
   
   nsTArray<nsRefPtr<GamepadButton>> mButtons;
   nsTArray<double> mAxes;
-
-  
-  nsCOMPtr<nsIVariant> mButtonsVariant;
 };
 
 } 
