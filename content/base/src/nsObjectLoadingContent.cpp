@@ -787,11 +787,9 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
     
     if ((mURI && !mChannelLoaded) || (mChannelLoaded && !aIsLoading)) {
       NS_ASSERTION(!mChannel, "should not have an existing channel here");
-      if (MakePluginListener()) {
-        
-        
-        OpenChannel();
-      }
+      
+      
+      OpenChannel();
     }
   }
 
@@ -831,12 +829,17 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
   
   
   if (mType == eType_Plugin) {
-    if (!mInstanceOwner || !mFinalListener) {
+    if (!mInstanceOwner) {
       
       NS_NOTREACHED("Opened a channel in plugin mode, but don't have a plugin");
       return NS_BINDING_ABORTED;
     }
-    return mFinalListener->OnStartRequest(aRequest, nullptr);
+    if (MakePluginListener()) {
+      return mFinalListener->OnStartRequest(aRequest, nullptr);
+    } else {
+      NS_NOTREACHED("Failed to create PluginStreamListener, aborting channel");
+      return NS_BINDING_ABORTED;
+    }
   }
 
   
@@ -2006,6 +2009,7 @@ nsObjectLoadingContent::CloseChannel()
     mFinalListener = nullptr;
     channelGrip->Cancel(NS_BINDING_ABORTED);
     if (listenerGrip) {
+      
       
       listenerGrip->OnStopRequest(channelGrip, nullptr, NS_BINDING_ABORTED);
     }
