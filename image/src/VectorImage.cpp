@@ -438,6 +438,12 @@ VectorImage::ShouldAnimate()
   return ImageResource::ShouldAnimate() && mIsFullyLoaded && mHaveAnimations;
 }
 
+NS_IMETHODIMP_(void)
+VectorImage::SetAnimationStartTime(const mozilla::TimeStamp& aTime)
+{
+  
+}
+
 
 
 

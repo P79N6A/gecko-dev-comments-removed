@@ -1560,7 +1560,9 @@ RasterImage::StartAnimation()
 
     
     
-    mAnim->currentAnimationFrameTime = TimeStamp::Now();
+    if (mAnim->currentAnimationFrameTime.IsNull()) {
+      mAnim->currentAnimationFrameTime = TimeStamp::Now();
+    }
   }
 
   return NS_OK;
@@ -1617,6 +1619,17 @@ RasterImage::ResetAnimation()
   }
 
   return NS_OK;
+}
+
+
+
+NS_IMETHODIMP_(void)
+RasterImage::SetAnimationStartTime(const mozilla::TimeStamp& aTime)
+{
+  if (mError || mAnimating || !mAnim)
+    return;
+
+  mAnim->currentAnimationFrameTime = aTime;
 }
 
 NS_IMETHODIMP_(float)
