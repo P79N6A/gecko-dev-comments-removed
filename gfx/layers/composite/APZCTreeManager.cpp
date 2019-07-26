@@ -241,6 +241,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         mApzcTreeLog << "APZC " << guid
                      << "\tcb=" << visible
                      << "\tsr=" << container->GetFrameMetrics().mScrollableRect
+                     << (aLayer->GetVisibleRegion().IsEmpty() ? "\tscrollinfo" : "")
                      << "\t" << container->GetFrameMetrics().GetContentDescription();
 
         
