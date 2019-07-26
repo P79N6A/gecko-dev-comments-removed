@@ -5579,13 +5579,13 @@ class ParallelCompilationGuard
     ParallelCompilationGuard() : parallelState_(false) {}
     ~ParallelCompilationGuard() {
         if (parallelState_) {
-            JS_ASSERT(WorkerThreadState().asmJSCompilationInProgress == true);
-            WorkerThreadState().asmJSCompilationInProgress = false;
+            JS_ASSERT(HelperThreadState().asmJSCompilationInProgress == true);
+            HelperThreadState().asmJSCompilationInProgress = false;
         }
     }
     bool claim() {
         JS_ASSERT(!parallelState_);
-        if (!WorkerThreadState().asmJSCompilationInProgress.compareExchange(false, true))
+        if (!HelperThreadState().asmJSCompilationInProgress.compareExchange(false, true))
             return false;
         parallelState_ = true;
         return true;
@@ -5601,7 +5601,7 @@ ParallelCompilationEnabled(ExclusiveContext *cx)
     
     
     
-    if (WorkerThreadState().threadCount <= 1)
+    if (HelperThreadState().threadCount <= 1)
         return false;
 
     if (!cx->isJSContext())
@@ -5625,14 +5625,14 @@ struct ParallelGroupState
 static AsmJSParallelTask *
 GetFinishedCompilation(ModuleCompiler &m, ParallelGroupState &group)
 {
-    AutoLockWorkerThreadState lock;
+    AutoLockHelperThreadState lock;
 
-    while (!WorkerThreadState().asmJSWorkerFailed()) {
-        if (!WorkerThreadState().asmJSFinishedList().empty()) {
+    while (!HelperThreadState().asmJSFailed()) {
+        if (!HelperThreadState().asmJSFinishedList().empty()) {
             group.outstandingJobs--;
-            return WorkerThreadState().asmJSFinishedList().popCopy();
+            return HelperThreadState().asmJSFinishedList().popCopy();
         }
-        WorkerThreadState().wait(GlobalWorkerThreadState::CONSUMER);
+        HelperThreadState().wait(GlobalHelperThreadState::CONSUMER);
     }
 
     return nullptr;
@@ -5684,12 +5684,12 @@ CheckFunctionsParallelImpl(ModuleCompiler &m, ParallelGroupState &group)
 {
 #ifdef DEBUG
     {
-        AutoLockWorkerThreadState lock;
-        JS_ASSERT(WorkerThreadState().asmJSWorklist().empty());
-        JS_ASSERT(WorkerThreadState().asmJSFinishedList().empty());
+        AutoLockHelperThreadState lock;
+        JS_ASSERT(HelperThreadState().asmJSWorklist().empty());
+        JS_ASSERT(HelperThreadState().asmJSFinishedList().empty());
     }
 #endif
-    WorkerThreadState().resetAsmJSFailureState();
+    HelperThreadState().resetAsmJSFailureState();
 
     for (unsigned i = 0; PeekToken(m.parser()) == TOK_FUNCTION; i++) {
         
@@ -5725,12 +5725,12 @@ CheckFunctionsParallelImpl(ModuleCompiler &m, ParallelGroupState &group)
     JS_ASSERT(group.compiledJobs == m.numFunctions());
 #ifdef DEBUG
     {
-        AutoLockWorkerThreadState lock;
-        JS_ASSERT(WorkerThreadState().asmJSWorklist().empty());
-        JS_ASSERT(WorkerThreadState().asmJSFinishedList().empty());
+        AutoLockHelperThreadState lock;
+        JS_ASSERT(HelperThreadState().asmJSWorklist().empty());
+        JS_ASSERT(HelperThreadState().asmJSFinishedList().empty());
     }
 #endif
-    JS_ASSERT(!WorkerThreadState().asmJSWorkerFailed());
+    JS_ASSERT(!HelperThreadState().asmJSFailed());
     return true;
 }
 
@@ -5747,32 +5747,32 @@ CancelOutstandingJobs(ModuleCompiler &m, ParallelGroupState &group)
     if (!group.outstandingJobs)
         return;
 
-    AutoLockWorkerThreadState lock;
+    AutoLockHelperThreadState lock;
 
     
-    group.outstandingJobs -= WorkerThreadState().asmJSWorklist().length();
-    WorkerThreadState().asmJSWorklist().clear();
+    group.outstandingJobs -= HelperThreadState().asmJSWorklist().length();
+    HelperThreadState().asmJSWorklist().clear();
 
     
-    group.outstandingJobs -= WorkerThreadState().asmJSFinishedList().length();
-    WorkerThreadState().asmJSFinishedList().clear();
+    group.outstandingJobs -= HelperThreadState().asmJSFinishedList().length();
+    HelperThreadState().asmJSFinishedList().clear();
 
     
-    group.outstandingJobs -= WorkerThreadState().harvestFailedAsmJSJobs();
+    group.outstandingJobs -= HelperThreadState().harvestFailedAsmJSJobs();
 
     
     JS_ASSERT(group.outstandingJobs >= 0);
     while (group.outstandingJobs > 0) {
-        WorkerThreadState().wait(GlobalWorkerThreadState::CONSUMER);
+        HelperThreadState().wait(GlobalHelperThreadState::CONSUMER);
 
-        group.outstandingJobs -= WorkerThreadState().harvestFailedAsmJSJobs();
-        group.outstandingJobs -= WorkerThreadState().asmJSFinishedList().length();
-        WorkerThreadState().asmJSFinishedList().clear();
+        group.outstandingJobs -= HelperThreadState().harvestFailedAsmJSJobs();
+        group.outstandingJobs -= HelperThreadState().asmJSFinishedList().length();
+        HelperThreadState().asmJSFinishedList().clear();
     }
 
     JS_ASSERT(group.outstandingJobs == 0);
-    JS_ASSERT(WorkerThreadState().asmJSWorklist().empty());
-    JS_ASSERT(WorkerThreadState().asmJSFinishedList().empty());
+    JS_ASSERT(HelperThreadState().asmJSWorklist().empty());
+    JS_ASSERT(HelperThreadState().asmJSFinishedList().empty());
 }
 
 static const size_t LIFO_ALLOC_PARALLEL_CHUNK_SIZE = 1 << 12;
@@ -5792,7 +5792,7 @@ CheckFunctionsParallel(ModuleCompiler &m)
     IonSpew(IonSpew_Logs, "Can't log asm.js script. (Compiled on background thread.)");
 
     
-    size_t numParallelJobs = WorkerThreadState().threadCount + 1;
+    size_t numParallelJobs = HelperThreadState().threadCount + 1;
 
     
     
@@ -5809,7 +5809,7 @@ CheckFunctionsParallel(ModuleCompiler &m)
         CancelOutstandingJobs(m, group);
 
         
-        if (void *maybeFunc = WorkerThreadState().maybeAsmJSFailedFunction()) {
+        if (void *maybeFunc = HelperThreadState().maybeAsmJSFailedFunction()) {
             ModuleCompiler::Func *func = reinterpret_cast<ModuleCompiler::Func *>(maybeFunc);
             return m.failOffset(func->srcOffset(), "allocation failure during compilation");
         }
@@ -7073,7 +7073,7 @@ EstablishPreconditions(ExclusiveContext *cx, AsmJSParser &parser)
 
 #ifdef JS_THREADSAFE
     if (ParallelCompilationEnabled(cx))
-        EnsureWorkerThreadsInitialized(cx);
+        EnsureHelperThreadsInitialized(cx);
 #endif
 
     return true;

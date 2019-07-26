@@ -432,7 +432,7 @@ AtomStateOffsetToName(const JSAtomState &atomState, size_t offset)
 
 enum RuntimeLock {
     ExclusiveAccessLock,
-    WorkerThreadStateLock,
+    HelperThreadStateLock,
     InterruptLock,
     GCLock
 };

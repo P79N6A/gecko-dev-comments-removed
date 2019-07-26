@@ -564,14 +564,14 @@ static inline void
 FinishAllOffThreadCompilations(JSCompartment *comp)
 {
 #ifdef JS_THREADSAFE
-    AutoLockWorkerThreadState lock;
-    GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
+    AutoLockHelperThreadState lock;
+    GlobalHelperThreadState::IonBuilderVector &finished = HelperThreadState().ionFinishedList();
 
     for (size_t i = 0; i < finished.length(); i++) {
         IonBuilder *builder = finished[i];
         if (builder->compartment == CompileCompartment::get(comp)) {
             FinishOffThreadBuilder(builder);
-            WorkerThreadState().remove(finished, &i);
+            HelperThreadState().remove(finished, &i);
         }
     }
 #endif
@@ -1678,9 +1678,9 @@ AttachFinishedCompilations(JSContext *cx)
         return;
 
     types::AutoEnterAnalysis enterTypes(cx);
-    AutoLockWorkerThreadState lock;
+    AutoLockHelperThreadState lock;
 
-    GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
+    GlobalHelperThreadState::IonBuilderVector &finished = HelperThreadState().ionFinishedList();
 
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
 
@@ -1694,7 +1694,7 @@ AttachFinishedCompilations(JSContext *cx)
             IonBuilder *testBuilder = finished[i];
             if (testBuilder->compartment == CompileCompartment::get(cx->compartment())) {
                 builder = testBuilder;
-                WorkerThreadState().remove(finished, &i);
+                HelperThreadState().remove(finished, &i);
                 break;
             }
         }
@@ -1716,7 +1716,7 @@ AttachFinishedCompilations(JSContext *cx)
             {
                 
                 AutoTempAllocatorRooter root(cx, &builder->alloc());
-                AutoUnlockWorkerThreadState unlock;
+                AutoUnlockHelperThreadState unlock;
                 success = codegen->link(cx, builder->constraints());
             }
 
@@ -1751,7 +1751,7 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     return cx->runtime()->canUseParallelIonCompilation()
-        && WorkerThreadState().cpuCount > 1
+        && HelperThreadState().cpuCount > 1
         && cx->runtime()->gc.incrementalState == gc::NO_INCREMENTAL
         && !cx->runtime()->profilingScripts;
 #else
@@ -1981,7 +1981,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
 #ifdef JS_THREADSAFE
-        size_t cpuCount = WorkerThreadState().cpuCount;
+        size_t cpuCount = HelperThreadState().cpuCount;
 #else
         size_t cpuCount = 1;
 #endif

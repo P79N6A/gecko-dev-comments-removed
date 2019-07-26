@@ -1,6 +1,6 @@
 
 
-if (workerThreadCount() === 0)
+if (helperThreadCount() === 0)
   quit(0);
 
 var g = newGlobal();

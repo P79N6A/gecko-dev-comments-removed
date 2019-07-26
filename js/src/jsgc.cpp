@@ -984,7 +984,7 @@ class js::gc::AutoMaybeStartBackgroundAllocation
 
     ~AutoMaybeStartBackgroundAllocation() {
         if (runtime && !runtime->currentThreadOwnsInterruptLock()) {
-            AutoLockWorkerThreadState workerLock;
+            AutoLockHelperThreadState helperLock;
             AutoLockGC lock(runtime);
             runtime->gc.startBackgroundAllocationIfIdle();
         }
@@ -1925,12 +1925,12 @@ ArenaLists::refillFreeList(ThreadSafeContext *cx, AllocKind thingKind)
 
 
 
-            mozilla::Maybe<AutoLockWorkerThreadState> lock;
+            mozilla::Maybe<AutoLockHelperThreadState> lock;
             JSRuntime *rt = zone->runtimeFromAnyThread();
             if (rt->exclusiveThreadsPresent()) {
                 lock.construct();
                 while (rt->isHeapBusy())
-                    WorkerThreadState().wait(GlobalWorkerThreadState::PRODUCER);
+                    HelperThreadState().wait(GlobalHelperThreadState::PRODUCER);
             }
 
             void *thing = cx->allocator()->arenas.allocateFromArenaInline(zone, thingKind,
@@ -2354,7 +2354,7 @@ GCHelperState::init()
 
     backgroundAllocation = (GetCPUCount() >= 2);
 
-    WorkerThreadState().ensureInitialized();
+    HelperThreadState().ensureInitialized();
 #else
     backgroundAllocation = false;
 #endif 
@@ -2402,9 +2402,9 @@ GCHelperState::startBackgroundThread(State newState)
     JS_ASSERT(!thread && state() == IDLE && newState != IDLE);
     setState(newState);
 
-    if (!WorkerThreadState().gcHelperWorklist().append(this))
+    if (!HelperThreadState().gcHelperWorklist().append(this))
         CrashAtUnhandlableOOM("Could not add to pending GC helpers list");
-    WorkerThreadState().notifyAll(GlobalWorkerThreadState::PRODUCER);
+    HelperThreadState().notifyAll(GlobalHelperThreadState::PRODUCER);
 #else
     MOZ_CRASH();
 #endif
@@ -2493,7 +2493,7 @@ void
 GCHelperState::startBackgroundSweep(bool shouldShrink)
 {
 #ifdef JS_THREADSAFE
-    AutoLockWorkerThreadState workerLock;
+    AutoLockHelperThreadState helperLock;
     AutoLockGC lock(rt);
     JS_ASSERT(state() == IDLE);
     JS_ASSERT(!sweepFlag);
@@ -4271,7 +4271,7 @@ AutoTraceSession::AutoTraceSession(JSRuntime *rt, js::HeapState heapState)
         
         
 #ifdef JS_THREADSAFE
-        AutoLockWorkerThreadState lock;
+        AutoLockHelperThreadState lock;
         rt->gc.heapState = heapState;
 #else
         MOZ_CRASH();
@@ -4287,11 +4287,11 @@ AutoTraceSession::~AutoTraceSession()
 
     if (runtime->exclusiveThreadsPresent()) {
 #ifdef JS_THREADSAFE
-        AutoLockWorkerThreadState lock;
+        AutoLockHelperThreadState lock;
         runtime->gc.heapState = prevState;
 
         
-        WorkerThreadState().notifyAll(GlobalWorkerThreadState::PRODUCER);
+        HelperThreadState().notifyAll(GlobalHelperThreadState::PRODUCER);
 #else
         MOZ_CRASH();
 #endif
@@ -4968,7 +4968,7 @@ js::PrepareForDebugGC(JSRuntime *rt)
 JS_FRIEND_API(void)
 JS::ShrinkGCBuffers(JSRuntime *rt)
 {
-    AutoLockWorkerThreadState workerLock;
+    AutoLockHelperThreadState helperLock;
     AutoLockGC lock(rt);
     JS_ASSERT(!rt->isHeapBusy());
 

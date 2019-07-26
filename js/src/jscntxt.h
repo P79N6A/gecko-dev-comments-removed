@@ -298,7 +298,7 @@ struct ThreadSafeContext : ContextFriendFields,
     }
 };
 
-struct WorkerThread;
+struct HelperThread;
 
 class ExclusiveContext : public ThreadSafeContext
 {
@@ -310,13 +310,13 @@ class ExclusiveContext : public ThreadSafeContext
     friend class jit::IonContext;
 
     
-    WorkerThread *workerThread_;
+    HelperThread *helperThread_;
 
   public:
 
     ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
       : ThreadSafeContext(rt, pt, kind),
-        workerThread_(nullptr),
+        helperThread_(nullptr),
         enterCompartmentDepth_(0)
     {}
 
@@ -352,8 +352,8 @@ class ExclusiveContext : public ThreadSafeContext
     inline void enterNullCompartment();
     inline void leaveCompartment(JSCompartment *oldCompartment);
 
-    void setWorkerThread(WorkerThread *workerThread);
-    WorkerThread *workerThread() const { return workerThread_; }
+    void setHelperThread(HelperThread *helperThread);
+    HelperThread *helperThread() const { return helperThread_; }
 
     
     

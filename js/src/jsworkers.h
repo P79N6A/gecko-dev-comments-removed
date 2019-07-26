@@ -24,7 +24,7 @@
 
 namespace js {
 
-struct WorkerThread;
+struct HelperThread;
 struct AsmJSParallelTask;
 struct ParseTask;
 namespace jit {
@@ -34,7 +34,7 @@ namespace jit {
 #ifdef JS_THREADSAFE
 
 
-class GlobalWorkerThreadState
+class GlobalHelperThreadState
 {
   public:
     
@@ -51,7 +51,7 @@ class GlobalWorkerThreadState
     typedef Vector<GCHelperState *, 0, SystemAllocPolicy> GCHelperStateVector;
 
     
-    WorkerThread *threads;
+    HelperThread *threads;
 
   private:
     
@@ -86,7 +86,7 @@ class GlobalWorkerThreadState
     GCHelperStateVector gcHelperWorklist_;
 
   public:
-    GlobalWorkerThreadState();
+    GlobalHelperThreadState();
 
     void ensureInitialized();
     void finish();
@@ -178,7 +178,7 @@ class GlobalWorkerThreadState
             asmJSFailedFunction = func;
         numAsmJSFailedJobs++;
     }
-    bool asmJSWorkerFailed() const {
+    bool asmJSFailed() const {
         return bool(numAsmJSFailedJobs);
     }
     void resetAsmJSFailureState() {
@@ -199,8 +199,7 @@ class GlobalWorkerThreadState
 
 
 
-    PRLock *workerLock;
-
+    PRLock *helperLock;
 # ifdef DEBUG
     PRThread *lockOwner;
 # endif
@@ -222,15 +221,15 @@ class GlobalWorkerThreadState
     void *asmJSFailedFunction;
 };
 
-static inline GlobalWorkerThreadState &
-WorkerThreadState()
+static inline GlobalHelperThreadState &
+HelperThreadState()
 {
-    extern GlobalWorkerThreadState gWorkerThreadState;
-    return gWorkerThreadState;
+    extern GlobalHelperThreadState gHelperThreadState;
+    return gHelperThreadState;
 }
 
 
-struct WorkerThread
+struct HelperThread
 {
     mozilla::Maybe<PerThreadData> threadData;
     PRThread *thread;
@@ -275,7 +274,7 @@ struct WorkerThread
 
 
 void
-EnsureWorkerThreadsInitialized(ExclusiveContext *cx);
+EnsureHelperThreadsInitialized(ExclusiveContext *cx);
 
 
 
@@ -328,48 +327,48 @@ EnqueuePendingParseTasksAfterGC(JSRuntime *rt);
 bool
 StartOffThreadCompression(ExclusiveContext *cx, SourceCompressionTask *task);
 
-class AutoLockWorkerThreadState
+class AutoLockHelperThreadState
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
 #ifdef JS_THREADSAFE
   public:
-    AutoLockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+    AutoLockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        WorkerThreadState().lock();
+        HelperThreadState().lock();
     }
 
-    ~AutoLockWorkerThreadState() {
-        WorkerThreadState().unlock();
+    ~AutoLockHelperThreadState() {
+        HelperThreadState().unlock();
     }
 #else
   public:
-    AutoLockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+    AutoLockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
 #endif
 };
 
-class AutoUnlockWorkerThreadState
+class AutoUnlockHelperThreadState
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
 
-    AutoUnlockWorkerThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
+    AutoUnlockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 #ifdef JS_THREADSAFE
-        WorkerThreadState().unlock();
+        HelperThreadState().unlock();
 #endif
     }
 
-    ~AutoUnlockWorkerThreadState()
+    ~AutoUnlockHelperThreadState()
     {
 #ifdef JS_THREADSAFE
-        WorkerThreadState().lock();
+        HelperThreadState().lock();
 #endif
     }
 };
@@ -458,11 +457,11 @@ OffThreadParsingMustWaitForGC(JSRuntime *rt);
 struct SourceCompressionTask
 {
     friend class ScriptSource;
-    friend class WorkerThread;
+    friend class HelperThread;
 
 #ifdef JS_THREADSAFE
     
-    WorkerThread *workerThread;
+    HelperThread *helperThread;
 #endif
 
   private:
@@ -490,7 +489,7 @@ struct SourceCompressionTask
         result(OOM), compressed(nullptr), compressedBytes(0)
     {
 #ifdef JS_THREADSAFE
-        workerThread = nullptr;
+        helperThread = nullptr;
 #endif
     }
 
