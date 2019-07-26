@@ -184,7 +184,7 @@ RemoteOpenFileChild::AsyncRemoteFileOpen(int32_t aFlags,
   URIParams uri;
   SerializeURI(mURI, uri);
 
-  gNeckoChild->SendPRemoteOpenFileConstructor(this, uri, mTabChild);
+  gNeckoChild->SendPRemoteOpenFileConstructor(this, uri);
 
   
   AddIPDLReference();
