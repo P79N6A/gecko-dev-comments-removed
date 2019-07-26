@@ -1152,7 +1152,8 @@ public:
       keyCode(0), charCode(0),
       location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD), isChar(0),
       mKeyNameIndex(mozilla::widget::KEY_NAME_INDEX_Unidentified),
-      mNativeKeyEvent(nullptr)
+      mNativeKeyEvent(nullptr),
+      mUniqueId(0)
   {
   }
 
@@ -1171,6 +1172,11 @@ public:
   mozilla::widget::KeyNameIndex mKeyNameIndex;
   
   void*           mNativeKeyEvent;
+  
+  
+  
+  
+  uint32_t        mUniqueId;
 
   void GetDOMKeyName(nsAString& aKeyName)
   {
@@ -1205,6 +1211,7 @@ public:
     
     
     mNativeKeyEvent = nullptr;
+    mUniqueId = aEvent.mUniqueId;
   }
 };
 

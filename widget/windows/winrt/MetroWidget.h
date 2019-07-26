@@ -75,6 +75,8 @@ public:
 
   
   virtual bool DispatchWindowEvent(nsGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual bool DispatchKeyboardEvent(nsGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual bool DispatchPluginEvent(const MSG &aMsg) MOZ_OVERRIDE { return false; }
   virtual bool IsTopLevelWidget() MOZ_OVERRIDE { return true; }
   virtual nsWindowBase* GetParentWindowBase(bool aIncludeOwner) MOZ_OVERRIDE { return nullptr; }
   
@@ -253,9 +255,11 @@ protected:
   
   void DispatchAsyncScrollEvent(DispatchMsg* aEvent);
   void DeliverNextScrollEvent();
+  void DeliverNextKeyboardEvent();
   DispatchMsg* CreateDispatchMsg(UINT aMsg, WPARAM aWParam, LPARAM aLParam);
 
   nsDeque mMsgEventQueue;
+  nsDeque mKeyEventQueue;
 
 public:
   static nsRefPtr<mozilla::layers::APZCTreeManager> sAPZC;

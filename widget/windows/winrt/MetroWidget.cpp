@@ -626,6 +626,61 @@ MetroWidget::DeliverNextScrollEvent()
 }
 
 
+bool
+MetroWidget::DispatchKeyboardEvent(nsGUIEvent* aEvent)
+{
+  MOZ_ASSERT(aEvent);
+  nsKeyEvent* oldKeyEvent = static_cast<nsKeyEvent*>(aEvent);
+  nsKeyEvent* keyEvent =
+    new nsKeyEvent(oldKeyEvent->mFlags.mIsTrusted, oldKeyEvent->message, oldKeyEvent->widget);
+  
+  keyEvent->AssignKeyEventData(*oldKeyEvent, true);
+  mKeyEventQueue.Push(keyEvent);
+  nsCOMPtr<nsIRunnable> runnable =
+    NS_NewRunnableMethod(this, &MetroWidget::DeliverNextKeyboardEvent);
+  NS_DispatchToCurrentThread(runnable);
+  return false;
+}
+
+
+
+
+class KeyQueryIdAndCancel : public nsDequeFunctor {
+public:
+  KeyQueryIdAndCancel(uint32_t aIdToCancel) :
+    mId(aIdToCancel) {
+  }
+  virtual void* operator() (void* aObject) {
+    nsKeyEvent* event = static_cast<nsKeyEvent*>(aObject);
+    if (event->mUniqueId == mId) {
+      event->mFlags.mPropagationStopped = true;
+    }
+    return nullptr;
+  }
+protected:
+  uint32_t mId;
+};
+
+void
+MetroWidget::DeliverNextKeyboardEvent()
+{
+  nsKeyEvent* event = static_cast<nsKeyEvent*>(mKeyEventQueue.PopFront());
+  if (event->mFlags.mPropagationStopped) {
+    
+    delete event;
+    return;
+  }
+  
+  if (DispatchWindowEvent(event) && event->message == NS_KEY_DOWN) {
+    
+    
+    KeyQueryIdAndCancel query(event->mUniqueId);
+    mKeyEventQueue.ForEach(query);
+  }
+  delete event;
+}
+
+
 LRESULT CALLBACK
 MetroWidget::StaticWindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLParam)
 {
@@ -690,6 +745,9 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
       }
       break;
     }
+
+    
+    
 
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
