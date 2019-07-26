@@ -805,8 +805,8 @@ nsFrameMessageManager::AssertAppHasPermission(const nsAString& aPermission,
 }
 
 NS_IMETHODIMP
-nsFrameMessageManager::AssertAppHasStatus(unsigned short aStatus,
-                                          bool* aHasStatus)
+nsFrameMessageManager::CheckAppHasStatus(unsigned short aStatus,
+                                         bool* aHasStatus)
 {
   *aHasStatus = false;
 
@@ -1588,12 +1588,6 @@ public:
   }
 
   bool CheckAppHasPermission(const nsAString& aPermission)
-  {
-    
-    return true;
-  }
-
-  virtual bool CheckAppHasStatus(unsigned short aStatus)
   {
     
     return true;

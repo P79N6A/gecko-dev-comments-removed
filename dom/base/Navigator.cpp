@@ -50,8 +50,6 @@
 #include "TimeManager.h"
 #include "DeviceStorage.h"
 #include "nsIDOMNavigatorSystemMessages.h"
-#include "nsIAppsService.h"
-#include "mozIApplication.h"
 
 #ifdef MOZ_MEDIA_NAVIGATOR
 #include "MediaManager.h"
@@ -1849,38 +1847,6 @@ bool Navigator::HasInputMethodSupport(JSContext* ,
   return Preferences::GetBool("dom.mozInputMethod.testing", false) ||
          (Preferences::GetBool("dom.mozInputMethod.enabled", false) &&
           win && CheckPermission(win, "input"));
-}
-
-
-bool
-Navigator::HasDataStoreSupport(JSContext* , JSObject* aGlobal)
-{
-  
-  bool enabled = false;
-  Preferences::GetBool("dom.datastore.enabled", &enabled);
-  NS_ENSURE_TRUE(enabled, false);
-
-  
-  if (Preferences::GetBool("dom.testing.datastore_enabled_for_hosted_apps", false)) {
-    return true;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  if (!win) {
-    return false;
-  }
-
-  nsIDocument* doc = win->GetExtantDoc();
-  if (!doc || !doc->NodePrincipal()) {
-    return false;
-  }
-
-  uint16_t status;
-  if (NS_FAILED(doc->NodePrincipal()->GetAppStatus(&status))) {
-    return false;
-  }
-
-  return status == nsIPrincipal::APP_STATUS_CERTIFIED;
 }
 
 
