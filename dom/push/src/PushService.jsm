@@ -295,6 +295,8 @@ this.PushService = {
         
         if (this._udpServer) {
           this._udpServer.close();
+          
+          this._udpServer = null;
         }
 
         this._shutdownWS();
@@ -504,6 +506,7 @@ this.PushService = {
 
     if (this._udpServer) {
       this._udpServer.close();
+      this._udpServer = null;
     }
 
     
