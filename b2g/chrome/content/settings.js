@@ -651,10 +651,3 @@ SettingsListener.observe("accessibility.screenreader", false, function(value) {
     });
   });
 })();
-
-
-
-SettingsListener.observe('apz.force-enable', true, function(value) {
-  Services.prefs.setBoolPref('dom.browser_frames.useAsyncPanZoom', value);
-});
-
