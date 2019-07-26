@@ -967,7 +967,8 @@ private:
     void ShutdownCollect(nsICycleCollectorListener *aListener);
 
 public:
-    void Collect(ccType aCCType,
+    bool Collect(ccType aCCType,
+                 nsTArray<PtrInfo*> *aWhiteNodes,
                  nsCycleCollectorResults *aResults,
                  nsICycleCollectorListener *aListener);
 
@@ -2682,25 +2683,24 @@ nsCycleCollector::ShutdownCollect(nsICycleCollectorListener *aListener)
     CleanupAfterCollection();
 }
 
-void
+bool
 nsCycleCollector::Collect(ccType aCCType,
+                          nsTArray<PtrInfo*> *aWhiteNodes,
                           nsCycleCollectorResults *aResults,
                           nsICycleCollectorListener *aListener)
 {
     CheckThreadSafety();
 
-    
-    
-    bool wantAllTraces = false;
-    if (aListener) {
-        aListener->GetWantAllTraces(&wantAllTraces);
+    bool forceGC = (aCCType == ShutdownCC);
+    if (!forceGC && aListener) {
+        
+        
+        aListener->GetWantAllTraces(&forceGC);
     }
+    FixGrayBits(forceGC);
 
-    FixGrayBits(wantAllTraces);
-
-    nsAutoTArray<PtrInfo*, 4000> whiteNodes;
-    if (!PrepareForCollection(aResults, &whiteNodes)) {
-        return;
+    if (!PrepareForCollection(aResults, aWhiteNodes)) {
+        return false;
     }
 
     FreeSnowWhite(true);
@@ -2710,8 +2710,9 @@ nsCycleCollector::Collect(ccType aCCType,
     }
 
     BeginCollection(aCCType, aListener);
-    FinishCollection(aListener);
+    bool collectedAny = FinishCollection(aListener);
     CleanupAfterCollection();
+    return collectedAny;
 }
 
 
@@ -3184,7 +3185,9 @@ nsCycleCollector_collect(bool aManuallyTriggered,
         listener = new nsCycleCollectorLogger();
     }
 
-    data->mCollector->Collect(aManuallyTriggered ? ManualCC : ScheduledCC, aResults, listener);
+    nsAutoTArray<PtrInfo*, 4000> whiteNodes;
+    data->mCollector->Collect(aManuallyTriggered ? ManualCC : ScheduledCC,
+                              &whiteNodes, aResults, listener);
 }
 
 void
