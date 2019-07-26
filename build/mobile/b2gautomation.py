@@ -169,10 +169,10 @@ class B2GRemoteAutomation(Automation):
     def restartB2G(self):
         
         time.sleep(5)
-        self._devicemanager.checkCmd(['shell', 'stop', 'b2g'])
+        self._devicemanager._checkCmd(['shell', 'stop', 'b2g'])
         
         time.sleep(10)
-        self._devicemanager.checkCmd(['shell', 'start', 'b2g'])
+        self._devicemanager._checkCmd(['shell', 'start', 'b2g'])
         if self._is_emulator:
             self.marionette.emulator.wait_for_port()
 
@@ -232,9 +232,9 @@ class B2GRemoteAutomation(Automation):
         
         
         if not self._is_emulator:
-            self._devicemanager.checkCmd(['forward',
-                                          'tcp:%s' % self.marionette.port,
-                                          'tcp:%s' % self.marionette.port])
+            self._devicemanager._checkCmd(['forward',
+                                           'tcp:%s' % self.marionette.port,
+                                           'tcp:%s' % self.marionette.port])
 
         if self._is_emulator:
             self.marionette.emulator.wait_for_port()
