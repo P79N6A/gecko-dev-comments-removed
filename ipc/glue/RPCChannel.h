@@ -97,35 +97,9 @@ public:
     virtual bool Send(Message* msg, Message* reply) MOZ_OVERRIDE;
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool BlockChild();
-
-    
-    
-    
-    
-    
-    
-    
-    bool UnblockChild();
-
-    
     bool IsOnCxxStack() const {
         return !mCxxStackFrames.empty();
     }
-
-    virtual bool OnSpecialMessage(uint16_t id, const Message& msg) MOZ_OVERRIDE;
-
 
     
 
@@ -184,9 +158,6 @@ private:
 
     void Incall(const Message& call, size_t stackDepth);
     void DispatchIncall(const Message& call);
-
-    void BlockOnParent();
-    void UnblockFromParent();
 
     
     
@@ -390,9 +361,6 @@ private:
     
     
     size_t mRemoteStackDepthGuess;
-
-    
-    bool mBlockedOnParent;
 
     
     
