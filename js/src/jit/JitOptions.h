@@ -4,10 +4,11 @@
 
 
 
-#ifndef jit_IonOptions_h
-#define jit_IonOptions_h
+#ifndef jit_JitOptions_h
+#define jit_JitOptions_h
 
 #include "jit/IonTypes.h"
+#include "js/TypeDecls.h"
 
 #ifdef JS_ION
 
@@ -26,7 +27,7 @@ enum IonGvnKind {
     GVN_Pessimistic
 };
 
-struct IonOptions
+struct JitOptions
 {
     bool checkGraphConsistency;
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -59,14 +60,14 @@ struct IonOptions
     uint32_t smallFunctionMaxBytecodeLength_;
     uint32_t usesBeforeCompilePar;
 
-    IonOptions();
+    JitOptions();
     bool isSmallFunction(JSScript *script) const;
     void setEagerCompilation();
     void setUsesBeforeCompile(uint32_t useCount);
     void resetUsesBeforeCompile();
 };
 
-extern IonOptions js_IonOptions;
+extern JitOptions js_JitOptions;
 
 } 
 } 

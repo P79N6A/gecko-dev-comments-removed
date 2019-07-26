@@ -4,7 +4,9 @@
 
 
 
-#include "jit/IonOptions.h"
+#include "jit/JitOptions.h"
+
+#include "jsscript.h"
 
 using namespace js;
 using namespace js::jit;
@@ -12,9 +14,9 @@ using namespace js::jit;
 namespace js {
 namespace jit {
 
-IonOptions js_IonOptions;
+JitOptions js_JitOptions;
 
-IonOptions::IonOptions()
+JitOptions::JitOptions()
 {
     
     
@@ -115,13 +117,13 @@ IonOptions::IonOptions()
 }
 
 bool
-IonOptions::isSmallFunction(JSScript *script) const
+JitOptions::isSmallFunction(JSScript *script) const
 {
     return script->length() <= smallFunctionMaxBytecodeLength_;
 }
 
 void
-IonOptions::setEagerCompilation()
+JitOptions::setEagerCompilation()
 {
     eagerCompilation = true;
     baselineUsesBeforeCompile = 0;
@@ -130,27 +132,27 @@ IonOptions::setEagerCompilation()
 }
 
 void
-IonOptions::setUsesBeforeCompile(uint32_t useCount)
+JitOptions::setUsesBeforeCompile(uint32_t useCount)
 {
     forceDefaultIonUsesBeforeCompile = true;
     forcedDefaultIonUsesBeforeCompile = useCount;
 
     
     if (eagerCompilation && useCount != 0) {
-        jit::IonOptions defaultValues;
+        jit::JitOptions defaultValues;
         eagerCompilation = false;
         baselineUsesBeforeCompile = defaultValues.baselineUsesBeforeCompile;
     }
 }
 
 void
-IonOptions::resetUsesBeforeCompile()
+JitOptions::resetUsesBeforeCompile()
 {
     forceDefaultIonUsesBeforeCompile = false;
 
     
     if (eagerCompilation) {
-        jit::IonOptions defaultValues;
+        jit::JitOptions defaultValues;
         eagerCompilation = false;
         baselineUsesBeforeCompile = defaultValues.baselineUsesBeforeCompile;
     }
