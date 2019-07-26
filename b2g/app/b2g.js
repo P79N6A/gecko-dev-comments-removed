@@ -717,3 +717,6 @@ pref("captivedetect.canonicalContent", "success\n");
 
 
 pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
+
+
+pref("disk_space_watcher.enabled", true);

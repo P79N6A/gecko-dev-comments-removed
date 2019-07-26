@@ -577,6 +577,20 @@ void StartMonitoringGamepadStatus();
 
 void StopMonitoringGamepadStatus();
 
+
+
+
+
+
+void StartDiskSpaceWatcher();
+
+
+
+
+
+
+void StopDiskSpaceWatcher();
+
 } 
 } 
 
