@@ -371,8 +371,8 @@ public abstract class GeckoApp
     @Override
     public void showMenu(View menu) {
         
-        if (!HardwareUtils.hasMenuButton())
-            closeMenu();
+        
+        closeMenu();
 
         mMenuPanel.removeAllViews();
         mMenuPanel.addView(menu);
