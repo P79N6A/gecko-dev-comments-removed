@@ -77,14 +77,15 @@ public:
 
   const DOMClass& mClass;
 
-protected:
   
   
   
-  bool AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
-                              nsTArray<nsString>& names,
-                              bool shadowPrototypeProperties,
-                              JS::AutoIdVector& props);
+  
+  static bool AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
+                                     nsTArray<nsString>& names,
+                                     bool shadowPrototypeProperties,
+                                     DOMProxyHandler* handler,
+                                     JS::AutoIdVector& props);
 };
 
 extern jsid s_length_id;
