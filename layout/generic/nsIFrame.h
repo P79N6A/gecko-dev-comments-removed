@@ -439,6 +439,19 @@ public:
 
 
   void Destroy() { DestroyFrom(this); }
+ 
+  
+
+  enum FrameSearchResult {
+    
+    FOUND = 0x00,
+    
+    CONTINUE = 0x1,
+    
+    CONTINUE_EMPTY = 0x2 | CONTINUE,
+    
+    CONTINUE_UNSELECTABLE = 0x4 | CONTINUE,
+  };
 
 protected:
   
@@ -3044,7 +3057,8 @@ protected:
 
 
 
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset) = 0;
+
+  virtual FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) = 0;
   
   
 
@@ -3058,7 +3072,8 @@ protected:
 
 
 
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+
+  virtual FrameSearchResult PeekOffsetCharacter(bool aForward, int32_t* aOffset,
                                      bool aRespectClusters = true) = 0;
   
   
@@ -3112,7 +3127,7 @@ protected:
       mAtStart = false;
     }
   };
-  virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
+  virtual FrameSearchResult PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
                                 int32_t* aOffset, PeekWordState* aState) = 0;
 
   

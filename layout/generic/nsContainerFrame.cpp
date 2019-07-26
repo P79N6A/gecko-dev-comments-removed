@@ -361,21 +361,21 @@ nsContainerFrame::IsLeaf() const
   return false;
 }
 
-bool
+nsIFrame::FrameSearchResult
 nsContainerFrame::PeekOffsetNoAmount(bool aForward, int32_t* aOffset)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   
-  return false;
+  return CONTINUE_EMPTY;
 }
 
-bool
+nsIFrame::FrameSearchResult
 nsContainerFrame::PeekOffsetCharacter(bool aForward, int32_t* aOffset,
                                       bool aRespectClusters)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   
-  return false;
+  return CONTINUE_EMPTY;
 }
 
 
