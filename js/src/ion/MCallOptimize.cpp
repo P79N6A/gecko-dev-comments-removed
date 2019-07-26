@@ -222,7 +222,8 @@ IonBuilder::inlineArray(uint32_t argc, bool constructing)
             id = MConstant::New(Int32Value(i));
             current->add(id);
 
-            MStoreElement *store = MStoreElement::New(elements, id, argv[i + 1]);
+            MStoreElement *store = MStoreElement::New(elements, id, argv[i + 1],
+                                                       false);
             current->add(store);
         }
 

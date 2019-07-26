@@ -593,6 +593,9 @@ class StackTypeSet : public TypeSet
     Class *getKnownClass();
 
     
+    JSObject *getCommonPrototype();
+
+    
     int getTypedArrayType();
 
     
@@ -1100,6 +1103,10 @@ UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProt
 
 bool
 ArrayPrototypeHasIndexedProperty(JSContext *cx, HandleScript script);
+
+
+bool
+TypeCanHaveExtraIndexedProperties(JSContext *cx, StackTypeSet *types);
 
 
 

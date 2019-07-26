@@ -253,6 +253,9 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     void testObjectTruthy(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch,
                           OutOfLineTestObject *ool);
+
+    
+    bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
 };
 
 } 

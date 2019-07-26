@@ -4324,7 +4324,7 @@ IonBuilder::jsop_initelem_array()
     current->add(elements);
 
     
-    MStoreElement *store = MStoreElement::New(elements, id, value);
+    MStoreElement *store = MStoreElement::New(elements, id, value,  false);
     current->add(store);
 
     
@@ -5214,7 +5214,7 @@ IonBuilder::jsop_getelem()
 {
     RootedScript script(cx, this->script());
 
-    if (oracle->elementReadIsDenseArray(script, pc))
+    if (oracle->elementReadIsDenseNative(script, pc))
         return jsop_getelem_dense();
 
     int arrayType = TypedArray::TYPE_MAX;
@@ -5266,14 +5266,17 @@ IonBuilder::jsop_getelem()
 bool
 IonBuilder::jsop_getelem_dense()
 {
-    if (oracle->arrayPrototypeHasIndexedProperty())
-        return abort("GETELEM Array proto has indexed properties");
-
     RootedScript scriptRoot(cx, script());
     types::StackTypeSet *barrier = oracle->propertyReadBarrier(scriptRoot, pc);
     types::StackTypeSet *types = oracle->propertyRead(script(), pc);
     bool needsHoleCheck = !oracle->elementReadIsPacked(script(), pc);
-    bool maybeUndefined = types->hasType(types::Type::UndefinedType());
+
+    
+    
+    
+    bool readOutOfBounds =
+        types->hasType(types::Type::UndefinedType()) &&
+        !oracle->elementReadHasExtraIndexedProperty(script(), pc);
 
     MDefinition *id = current->pop();
     MDefinition *obj = current->pop();
@@ -5310,7 +5313,7 @@ IonBuilder::jsop_getelem_dense()
 
     MInstruction *load;
 
-    if (!maybeUndefined) {
+    if (!readOutOfBounds) {
         
         
         
@@ -5483,7 +5486,7 @@ IonBuilder::jsop_setelem()
     RootedScript script(cx, this->script());
 
     if (oracle->propertyWriteCanSpecialize(script, pc)) {
-        if (oracle->elementWriteIsDenseArray(script, pc))
+        if (oracle->elementWriteIsDenseNative(script, pc))
             return jsop_setelem_dense();
 
         int arrayType = TypedArray::TYPE_MAX;
@@ -5511,11 +5514,12 @@ IonBuilder::jsop_setelem()
 bool
 IonBuilder::jsop_setelem_dense()
 {
-    if (oracle->arrayPrototypeHasIndexedProperty())
-        return abort("SETELEM Array proto has indexed properties");
-
     MIRType elementType = oracle->elementWrite(script(), pc);
     bool packed = oracle->elementWriteIsPacked(script(), pc);
+
+    
+    
+    bool writeOutOfBounds = !oracle->elementWriteHasExtraIndexedProperty(script(), pc);
 
     MDefinition *value = current->pop();
     MDefinition *id = current->pop();
@@ -5534,7 +5538,7 @@ IonBuilder::jsop_setelem_dense()
     
     
     MStoreElementCommon *store;
-    if (oracle->setElementHasWrittenHoles(script(), pc)) {
+    if (oracle->setElementHasWrittenHoles(script(), pc) && writeOutOfBounds) {
         MStoreElementHole *ins = MStoreElementHole::New(obj, elements, id, value);
         store = ins;
 
@@ -5549,7 +5553,9 @@ IonBuilder::jsop_setelem_dense()
 
         id = addBoundsCheck(id, initLength);
 
-        MStoreElement *ins = MStoreElement::New(elements, id, value);
+        bool needsHoleCheck = !packed && !writeOutOfBounds;
+
+        MStoreElement *ins = MStoreElement::New(elements, id, value, needsHoleCheck);
         store = ins;
 
         current->add(ins);
@@ -6794,7 +6800,7 @@ bool
 IonBuilder::jsop_in()
 {
     RootedScript scriptRoot(cx, script());
-    if (oracle->inObjectIsDenseArray(scriptRoot, pc))
+    if (oracle->inObjectIsDenseNativeWithoutExtraIndexedProperties(scriptRoot, pc))
         return jsop_in_dense();
 
     MDefinition *obj = current->pop();
@@ -6810,9 +6816,6 @@ IonBuilder::jsop_in()
 bool
 IonBuilder::jsop_in_dense()
 {
-    if (oracle->arrayPrototypeHasIndexedProperty())
-        return abort("JSOP_IN Array proto has indexed properties");
-
     bool needsHoleCheck = !oracle->inArrayIsPacked(script(), pc);
 
     MDefinition *obj = current->pop();
