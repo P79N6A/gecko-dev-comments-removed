@@ -8,6 +8,7 @@ import os
 from mozpack.errors import errors
 from mozpack.chrome.manifest import (
     Manifest,
+    ManifestChrome,
     ManifestInterfaces,
     is_manifest,
     parse_manifest,
@@ -129,6 +130,8 @@ class SimplePackager(object):
         
         self._queue = CallDeque()
         
+        self._chrome_queue = CallDeque()
+        
         self._file_queue = CallDeque()
         
         self._manifests = set()
@@ -160,8 +163,13 @@ class SimplePackager(object):
             if b.endswith('/' + path) or b == path:
                 base = os.path.normpath(b[:-len(path)])
         for e in parse_manifest(base, path, file.open()):
-            if not isinstance(e, (Manifest, ManifestInterfaces)):
+            
+            
+            if isinstance(e, ManifestChrome):
                 
+                self._chrome_queue.append(self.formatter.add_manifest,
+                                          e.move(e.base))
+            elif not isinstance(e, (Manifest, ManifestInterfaces)):
                 self._queue.append(self.formatter.add_manifest, e.move(e.base))
             if isinstance(e, Manifest):
                 if e.flags:
@@ -185,6 +193,7 @@ class SimplePackager(object):
         for base in self.get_bases():
             if base:
                 self.formatter.add_base(base)
+        self._chrome_queue.execute()
         self._queue.execute()
         self._file_queue.execute()
 
