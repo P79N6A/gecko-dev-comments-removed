@@ -908,6 +908,53 @@ WebConsole.prototype = {
 
 
 
+  viewSource: function WC_viewSource(aSourceURL, aSourceLine)
+  {
+    this.gViewSourceUtils.viewSource(aSourceURL, null,
+                                     this.iframeWindow.document, aSourceLine);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  viewSourceInStyleEditor:
+  function WC_viewSourceInStyleEditor(aSourceURL, aSourceLine)
+  {
+    let styleSheets = this.tab.linkedBrowser.contentWindow.document.styleSheets;
+    for each (let style in styleSheets) {
+      if (style.href == aSourceURL) {
+        let SEM = this.chromeWindow.StyleEditor.StyleEditorManager;
+        let win = SEM.getEditorForWindow(this.chromeWindow.content.window);
+        if (win) {
+          SEM.selectEditor(win, style, aSourceLine);
+        }
+        else {
+          this.chromeWindow.StyleEditor.openChrome(style, aSourceLine);
+        }
+        return;
+      }
+    }
+    
+    this.viewSource(aSourceURL, aSourceLine);
+  },
+
+  
+
+
+
+
+
+
+
   destroy: function WC_destroy(aOnDestroy)
   {
     
