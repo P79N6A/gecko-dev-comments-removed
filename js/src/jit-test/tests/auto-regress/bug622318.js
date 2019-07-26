@@ -1,0 +1,11 @@
+
+
+
+try {
+    for (window = (0
+    for (x in V)); f;) {}
+} catch(e) {}
+for each(let z in [0, 0, 0, 0, 0, 0, 0, 0, 0]) {
+    for (v in window) {}
+}
+var e, V

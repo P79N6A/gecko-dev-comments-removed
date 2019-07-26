@@ -1,0 +1,6 @@
+
+
+
+
+
+"".replace(RegExp(), Array.reduce)
