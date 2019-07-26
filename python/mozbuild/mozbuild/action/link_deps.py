@@ -95,6 +95,8 @@ class DependencyLinker(Makefile):
             '$(topsrcdir)': '$(topsrcdir)',
             '$(DEPTH)': '$(DEPTH)',
             '$(DIST)': '$(DIST)',
+            '$(depth)': '$(DEPTH)', 
+            '$(dist)': '$(DIST)',   
             mozpath.relpath(topsrcdir, os.curdir): '$(topsrcdir)',
             mozpath.relpath(topobjdir, os.curdir): '$(DEPTH)',
             mozpath.relpath(dist, os.curdir): '$(DIST)',
