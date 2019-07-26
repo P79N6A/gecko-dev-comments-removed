@@ -1994,7 +1994,7 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     do {
         
         nsIntRect dstSubRect;
-        nsIntRect dstTextureRect = aDst->GetTileRect();
+        nsIntRect dstTextureRect = ThebesIntRect(aDst->GetTileRect());
         dstSubRect.IntersectRect(aDstRect, dstTextureRect);
 
         
@@ -2016,7 +2016,7 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
         do {
             
             nsIntRect srcSubRect;
-            nsIntRect srcTextureRect = aSrc->GetTileRect();
+            nsIntRect srcTextureRect = ThebesIntRect(aSrc->GetTileRect());
             srcSubRect.IntersectRect(aSrcRect, srcTextureRect);
 
             
