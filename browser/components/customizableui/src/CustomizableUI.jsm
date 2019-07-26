@@ -2147,8 +2147,6 @@ this.CustomizableUI = {
 
   get SOURCE_EXTERNAL() "external",
 
-  get TYPE_BUTTON() "button",
-
   
 
 
@@ -2729,6 +2727,8 @@ this.CustomizableUI = {
     return CustomizableUIInternal.canWidgetMoveToArea(aWidgetId, aArea);
   },
   
+
+
 
 
 
