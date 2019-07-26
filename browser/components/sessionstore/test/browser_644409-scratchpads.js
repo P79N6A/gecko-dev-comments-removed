@@ -1,20 +1,16 @@
  
 
 
-const scratchpads = [
-  { text: "text1", executionContext: 1 },
-  { text: "", executionContext: 2, filename: "test.js" }
-];
-
 const testState = {
   windows: [{
     tabs: [
       { entries: [{ url: "about:blank" }] },
     ]
   }],
-  global: {
-    scratchpads: JSON.stringify(scratchpads)
-  }
+  scratchpads: [
+    { text: "text1", executionContext: 1 },
+    { text: "", executionContext: 2, filename: "test.js" }
+  ]
 };
 
 
@@ -22,8 +18,8 @@ var restored = [];
 function addState(state) {
   restored.push(state);
 
-  if (restored.length == scratchpads.length) {
-    ok(statesMatch(restored, scratchpads),
+  if (restored.length == testState.scratchpads.length) {
+    ok(statesMatch(restored, testState.scratchpads),
       "Two scratchpad windows restored");
 
     Services.ww.unregisterNotification(windowObserver);

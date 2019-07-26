@@ -256,18 +256,6 @@ this.SessionStore = {
     SessionStoreInternal.deleteTabValue(aTab, aKey);
   },
 
-  getGlobalValue: function ss_getGlobalValue(aKey) {
-    return SessionStoreInternal.getGlobalValue(aKey);
-  },
-
-  setGlobalValue: function ss_setGlobalValue(aKey, aStringValue) {
-    SessionStoreInternal.setGlobalValue(aKey, aStringValue);
-  },
-
-  deleteGlobalValue: function ss_deleteGlobalValue(aKey) {
-    SessionStoreInternal.deleteGlobalValue(aKey);
-  },
-
   persistTabAttribute: function ss_persistTabAttribute(aName) {
     SessionStoreInternal.persistTabAttribute(aName);
   },
@@ -325,9 +313,6 @@ let SessionStoreInternal = {
 
   
   _closedWindows: [],
-
-  
-  _globalValues: {},
 
   
   _statesToRestore: {},
@@ -1716,20 +1701,6 @@ let SessionStoreInternal = {
     this.saveStateDelayed(aTab.ownerDocument.defaultView);
   },
 
-  getGlobalValue: function ssi_getGlobalValue(aKey) {
-    return this._globalValues[aKey] || "";
-  },
-
-  setGlobalValue: function ssi_setGlobalValue(aKey, aStringValue) {
-    this._globalValues[aKey] = aStringValue;
-    this.saveStateDelayed();
-  },
-
-  deleteGlobalValue: function ssi_deleteGlobalValue(aKey) {
-    delete this._globalValues[aKey];
-    this.saveStateDelayed();
-  },
-
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
     if (TabAttributes.persist(aName)) {
       TabStateCache.clear();
@@ -1824,8 +1795,9 @@ let SessionStoreInternal = {
       this._capClosedWindows();
     }
 
-    this._setGlobalValuesFromState(aState);
-    this._restoreScratchPads();
+    if (lastSessionState.scratchpads) {
+      ScratchpadManager.restoreSession(lastSessionState.scratchpads);
+    }
 
     
     this._recentCrashes = lastSessionState.session &&
@@ -1835,26 +1807,6 @@ let SessionStoreInternal = {
     this._updateSessionStartTime(lastSessionState);
 
     this._lastSessionState = null;
-  },
-
-  _setGlobalValuesFromState: function ssi_setGlobalValuesFromState(aState) {
-    if (aState && aState.global) {
-      this._globalValues = aState.global;
-    }
-  },
-
-  _restoreScratchPads: function ssi_restoreScratchPads() {
-    let scratchpads;
-    try {
-      scratchpads = JSON.parse(this.getGlobalValue('scratchpads'));
-    } catch (ex) {
-      
-      Cu.reportError(ex);
-    }
-
-    if (scratchpads) {
-      ScratchpadManager.restoreSession(scratchpads);
-    }
   },
 
   
@@ -2487,14 +2439,14 @@ let SessionStoreInternal = {
     };
 
     
-    this.setGlobalValue('scratchpads', JSON.stringify(ScratchpadManager.getSessionState()));
+    var scratchpads = ScratchpadManager.getSessionState();
 
     let state = {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
       session: session,
-      global: this._globalValues
+      scratchpads: scratchpads
     };
 
     
@@ -2738,8 +2690,9 @@ let SessionStoreInternal = {
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
       (overwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
 
-    this._setGlobalValuesFromState(aState);
-    this._restoreScratchPads();
+    if (aState.scratchpads) {
+      ScratchpadManager.restoreSession(aState.scratchpads);
+    }
 
     
     tabstrip.smoothScroll = smoothScroll;
