@@ -691,7 +691,7 @@ function checkVisible(el) {
   if (!elementInViewport(el)) {
     
     if (el.scrollIntoView) {
-      el.scrollIntoView(true);
+      el.scrollIntoView(false);
       if (!elementInViewport(el)) {
         return false;
       }
