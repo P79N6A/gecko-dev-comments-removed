@@ -81,7 +81,10 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   nsIGlobalObject* globalObject = nullptr;
 
   {
-    JS::AutoAssertNoGC nogc;
+    
+    
+    
+    JS::AutoSuppressGCAnalysis nogc;
     if (mIsMainThread) {
       
       nsGlobalWindow* win = xpc::WindowGlobalOrNull(realCallback);

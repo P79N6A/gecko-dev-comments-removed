@@ -1503,14 +1503,14 @@ ForkJoinShared::executePortion(PerThreadData *perThread, ThreadPoolWorker *worke
     
     
 
-    
-    
-    
-    JS::AutoAssertNoGC nogc(runtime());
-
     Allocator *allocator = allocators_[worker->id()];
     ForkJoinContext cx(perThread, worker, allocator, this, &records_[worker->id()]);
     AutoSetForkJoinContext autoContext(&cx);
+
+    
+    
+    
+    JS::AutoSuppressGCAnalysis nogc;
 
 #ifdef DEBUG
     
@@ -1622,7 +1622,7 @@ ForkJoinContext::ForkJoinContext(PerThreadData *perThreadData, ThreadPoolWorker 
     shared_(shared),
     worker_(worker),
     acquiredJSContext_(false),
-    nogc_(shared->runtime())
+    nogc_()
 {
     
 
