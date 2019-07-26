@@ -42,9 +42,14 @@ this.DataStoreServiceInternal = {
 
     let msg = aMessage.data;
 
-    
-    msg.stores = dataStoreService.getDataStoresInfo(msg.name, msg.appId);
-    aMessage.target.sendAsyncMessage("DataStore:Get:Return", msg);
+    if (!aMessage.principal ||
+        aMessage.principal.appId == Ci.nsIScriptSecurityManager.UNKNOWN_APP_ID) {
+      aMessage.target.sendAsyncMessage("DataStore:Get:Return:KO");
+      return;
+    }
+
+    msg.stores = dataStoreService.getDataStoresInfo(msg.name, aMessage.principal.appId);
+    aMessage.target.sendAsyncMessage("DataStore:Get:Return:OK", msg);
   }
 }
 
