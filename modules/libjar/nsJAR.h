@@ -3,9 +3,8 @@
 
 
 
-
-#ifndef nsJAR_h__
-#define nsJAR_h__
+#ifndef nsJAR_h_
+#define nsJAR_h_
 
 #include "nscore.h"
 #include "prio.h"
