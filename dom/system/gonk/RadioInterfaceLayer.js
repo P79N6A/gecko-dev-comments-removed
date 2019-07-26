@@ -1327,9 +1327,6 @@ RadioInterfaceLayer.prototype = {
     if (value == this.microphoneMuted) {
       return;
     }
-    gAudioManager.phoneState = value ?
-      nsIAudioManager.PHONE_STATE_IN_COMMUNICATION :
-      nsIAudioManager.PHONE_STATE_IN_CALL;  
     gAudioManager.microphoneMuted = value;
 
     if (!this._activeCall) {
@@ -1345,7 +1342,6 @@ RadioInterfaceLayer.prototype = {
     if (value == this.speakerEnabled) {
       return;
     }
-    gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL; 
     let force = value ? nsIAudioManager.FORCE_SPEAKER :
                         nsIAudioManager.FORCE_NONE;
     gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION, force);
