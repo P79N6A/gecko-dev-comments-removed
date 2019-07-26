@@ -243,6 +243,7 @@ var PrintUtils = {
     document.documentElement.setAttribute("onclose", "PrintUtils.exitPrintPreview(); return false;");
 
     
+    window.addEventListener("keydown", this.onKeyDownPP, true);
     window.addEventListener("keypress", this.onKeyPressPP, true);
 
     var browser = this._callback.getPrintPreviewBrowser();
@@ -255,6 +256,7 @@ var PrintUtils = {
 
   exitPrintPreview: function ()
   {
+    window.removeEventListener("keydown", this.onKeyDownPP, true);
     window.removeEventListener("keypress", this.onKeyPressPP, true);
 
     
@@ -279,6 +281,14 @@ var PrintUtils = {
     this._callback.onExit();
   },
 
+  onKeyDownPP: function (aEvent)
+  {
+    
+    if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
+      PrintUtils.exitPrintPreview();
+    }
+  },
+
   onKeyPressPP: function (aEvent)
   {
     var closeKey;
@@ -289,7 +299,7 @@ var PrintUtils = {
     } catch (e) {}
     var isModif = aEvent.ctrlKey || aEvent.metaKey;
     
-    if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE || isModif &&
+    if (isModif &&
         (aEvent.charCode == closeKey || aEvent.charCode == closeKey + 32)) {
       PrintUtils.exitPrintPreview();
     }
