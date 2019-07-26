@@ -66,6 +66,7 @@ final public class InputMethods {
     @RobocopTarget
     public static boolean shouldDisableUrlBarUpdate(Context context) {
         String inputMethod = getCurrentInputMethod(context);
+        
         return METHOD_HTC_TOUCH_INPUT.equals(inputMethod);
     }
 

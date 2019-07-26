@@ -47,7 +47,10 @@ public class ToolbarEditText extends CustomEditText
 
     private final Context mContext;
 
-    private TextType mTextType;
+    
+    private TextType mToolbarTextType;
+    
+    private TextType mKeyboardTextType;
 
     private OnCommitListener mCommitListener;
     private OnDismissListener mDismissListener;
@@ -66,7 +69,8 @@ public class ToolbarEditText extends CustomEditText
         super(context, attrs);
         mContext = context;
 
-        mTextType = TextType.EMPTY;
+        mToolbarTextType = TextType.EMPTY;
+        mKeyboardTextType = TextType.URL;
     }
 
     void setOnCommitListener(OnCommitListener listener) {
@@ -172,10 +176,13 @@ public class ToolbarEditText extends CustomEditText
     }
 
     private void setTextType(TextType textType) {
-        mTextType = textType;
+        mToolbarTextType = textType;
 
+        if (textType != TextType.EMPTY) {
+            mKeyboardTextType = textType;
+        }
         if (mTextTypeListener != null) {
-            mTextTypeListener.onTextTypeChange(this, mTextType);
+            mTextTypeListener.onTextTypeChange(this, textType);
         }
     }
 
@@ -186,6 +193,8 @@ public class ToolbarEditText extends CustomEditText
         }
 
         if (InputMethods.shouldDisableUrlBarUpdate(mContext)) {
+            
+            setTextType(mKeyboardTextType);
             return;
         }
 
@@ -222,10 +231,16 @@ public class ToolbarEditText extends CustomEditText
             restartInput = true;
         }
 
-        if (restartInput) {
-            updateKeyboardInputType();
-            imm.restartInput(ToolbarEditText.this);
+        if (!restartInput) {
+            
+            
+            
+            
+            setTextType(mKeyboardTextType);
+            return;
         }
+        updateKeyboardInputType();
+        imm.restartInput(ToolbarEditText.this);
 
         setTextType(imeAction == EditorInfo.IME_ACTION_GO ?
                     TextType.URL : TextType.SEARCH_QUERY);
