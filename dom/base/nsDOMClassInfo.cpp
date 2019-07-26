@@ -3505,13 +3505,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  
-  
-  
-  if (sConstructor_id == id) {
-    return ResolveConstructor(cx, obj, objp);
-  }
-
   if (!my_context || !my_context->IsContextInitialized()) {
     
     
