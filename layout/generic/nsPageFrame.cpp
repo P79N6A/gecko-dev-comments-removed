@@ -400,7 +400,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
         
         nsDisplayClip* clip = static_cast<nsDisplayClip*>(i);
         clip->SetClipRect(clip->GetClipRect() + nsPoint(0, aY) -
-                aExtraPage->GetOffsetTo(aBuilder->FindReferenceFrameFor(aPage)));
+                aExtraPage->GetOffsetToCrossDoc(aBuilder->FindReferenceFrameFor(aPage)));
       }
       newList.AppendToTop(i);
     } else {
@@ -487,7 +487,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayList content;
   nsIFrame *child = mFrames.FirstChild();
-  rv = child->BuildDisplayListForStackingContext(aBuilder, aDirtyRect - child->GetOffsetTo(this), &content);
+  rv = child->BuildDisplayListForStackingContext(aBuilder,
+      child->GetVisualOverflowRectRelativeToSelf(), &content);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
