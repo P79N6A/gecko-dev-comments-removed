@@ -177,7 +177,9 @@ const PanelUI = {
 
 
 
-  showSubView: function(aViewId, aAnchor) {
+
+
+  showSubView: function(aViewId, aAnchor, aPlacementArea) {
     let viewNode = document.getElementById(aViewId);
     if (!viewNode) {
       Cu.reportError("Could not show panel subview with id: " + aViewId);
@@ -189,39 +191,66 @@ const PanelUI = {
       return;
     }
 
-    let oldHeight = this.mainView.clientHeight;
-    viewNode.setAttribute("current", true);
-    this._currentSubView = viewNode;
+    if (aPlacementArea == CustomizableUI.AREA_PANEL) {
+      
+      
+      
+      if (viewNode.parentElement != this.subViews) {
+        this.subViews.appendChild(viewNode);
+      }
 
-    
-    
-    let evt = document.createEvent("CustomEvent");
-    evt.initCustomEvent("ViewShowing", true, true, viewNode);
-    viewNode.dispatchEvent(evt);
+      let oldHeight = this.mainView.clientHeight;
+      viewNode.setAttribute("current", true);
+      this._currentSubView = viewNode;
 
-    this.viewStack.setAttribute("view", "subview");
-    this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
-    this.container.style.height = this.subViews.scrollHeight + "px";
+      
+      
+      let evt = document.createEvent("CustomEvent");
+      evt.initCustomEvent("ViewShowing", true, true, viewNode);
+      viewNode.dispatchEvent(evt);
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this._shiftMainView(aAnchor);
-    this._subViewObserver.observe(viewNode, {
-      attributes: true,
-      characterData: true,
-      childList: true,
-      subtree: true
-    });
+      this.viewStack.setAttribute("view", "subview");
+      this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
+      this.container.style.height = this.subViews.scrollHeight + "px";
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      this._shiftMainView(aAnchor);
+      this._subViewObserver.observe(viewNode, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true
+      });
+    } else {
+      
+      
+      let evt = document.createEvent("CustomEvent");
+      evt.initCustomEvent("ViewShowing", true, true, viewNode);
+      viewNode.dispatchEvent(evt);
+
+      let panel = document.createElement("panel");
+      panel.appendChild(viewNode);
+      panel.setAttribute("type", "arrow");
+      panel.setAttribute("id", "customizationui-widget-panel");
+      document.getElementById(CustomizableUI.AREA_NAVBAR).appendChild(panel);
+      panel.addEventListener("popuphidden", function() {
+        this.subViews.appendChild(viewNode);
+        panel.parentElement.removeChild(panel);
+      });
+
+      panel.openPopup(aAnchor, "bottomcenter topright");
+    }
   },
 
   
