@@ -874,6 +874,10 @@ pref("apz.pan_repaint_interval", 40);
 
 
 
+pref("apz.max_velocity_pixels_per_ms", "6.0");
+
+
+
 
 
 
