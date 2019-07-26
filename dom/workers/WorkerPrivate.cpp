@@ -1000,64 +1000,68 @@ public:
     }
 
     
-    if (aTarget) {
-      JSObject* event = 
-        CreateErrorEvent(aCx, message, filename, aLineNumber, !aWorkerPrivate);
-      if (!event) {
-        return false;
-      }
-
-      bool preventDefaultCalled;
-      if (!DispatchEventToTarget(aCx, aTarget, event, &preventDefaultCalled)) {
-        return false;
-      }
-
-      if (preventDefaultCalled) {
-        return true;
-      }
-    }
-
     
-    
-    if (aFireAtScope && (aTarget || aErrorNumber != JSMSG_OVER_RECURSED)) {
-      aTarget = JS_GetGlobalForScopeChain(aCx);
-      NS_ASSERTION(aTarget, "This should never be null!");
-
-      bool preventDefaultCalled;
-      nsIScriptGlobalObject* sgo;
-
-      if (aWorkerPrivate ||
-          !(sgo = nsJSUtils::GetStaticScriptGlobal(aTarget))) {
-        
+    if (!JSREPORT_IS_WARNING(aFlags)) {
+      
+      if (aTarget) {
         JSObject* event =
-          CreateErrorEvent(aCx, message, filename, aLineNumber, false);
+          CreateErrorEvent(aCx, message, filename, aLineNumber, !aWorkerPrivate);
         if (!event) {
           return false;
         }
 
-        if (!DispatchEventToTarget(aCx, aTarget, event,
-                                   &preventDefaultCalled)) {
+        bool preventDefaultCalled;
+        if (!DispatchEventToTarget(aCx, aTarget, event, &preventDefaultCalled)) {
           return false;
         }
-      }
-      else {
-        
-        nsScriptErrorEvent event(true, NS_LOAD_ERROR);
-        event.lineNr = aLineNumber;
-        event.errorMsg = aMessage.get();
-        event.fileName = aFilename.get();
 
-        nsEventStatus status = nsEventStatus_eIgnore;
-        if (NS_FAILED(sgo->HandleScriptError(&event, &status))) {
-          NS_WARNING("Failed to dispatch main thread error event!");
-          status = nsEventStatus_eIgnore;
+        if (preventDefaultCalled) {
+          return true;
+        }
+      }
+
+      
+      
+      if (aFireAtScope && (aTarget || aErrorNumber != JSMSG_OVER_RECURSED)) {
+        aTarget = JS_GetGlobalForScopeChain(aCx);
+        NS_ASSERTION(aTarget, "This should never be null!");
+
+        bool preventDefaultCalled;
+        nsIScriptGlobalObject* sgo;
+
+        if (aWorkerPrivate ||
+            !(sgo = nsJSUtils::GetStaticScriptGlobal(aTarget))) {
+          
+          JSObject* event =
+            CreateErrorEvent(aCx, message, filename, aLineNumber, false);
+          if (!event) {
+            return false;
+          }
+
+          if (!DispatchEventToTarget(aCx, aTarget, event,
+                                     &preventDefaultCalled)) {
+            return false;
+          }
+        }
+        else {
+          
+          nsScriptErrorEvent event(true, NS_LOAD_ERROR);
+          event.lineNr = aLineNumber;
+          event.errorMsg = aMessage.get();
+          event.fileName = aFilename.get();
+
+          nsEventStatus status = nsEventStatus_eIgnore;
+          if (NS_FAILED(sgo->HandleScriptError(&event, &status))) {
+            NS_WARNING("Failed to dispatch main thread error event!");
+            status = nsEventStatus_eIgnore;
+          }
+
+          preventDefaultCalled = status == nsEventStatus_eConsumeNoDefault;
         }
 
-        preventDefaultCalled = status == nsEventStatus_eConsumeNoDefault;
-      }
-
-      if (preventDefaultCalled) {
-        return true;
+        if (preventDefaultCalled) {
+          return true;
+        }
       }
     }
 
@@ -1485,7 +1489,7 @@ struct WorkerJSRuntimeStats : public JS::RuntimeStats
   {
     MOZ_ASSERT(!cstats->extra1);
     MOZ_ASSERT(!cstats->extra2);
-    
+
     
     
 
@@ -1505,7 +1509,7 @@ struct WorkerJSRuntimeStats : public JS::RuntimeStats
 private:
   nsCString mRtPath;
 };
-  
+
 BEGIN_WORKERS_NAMESPACE
 
 class WorkerMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
