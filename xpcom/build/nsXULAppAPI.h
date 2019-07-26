@@ -472,4 +472,7 @@ XRE_API(WindowsEnvironmentType,
         XRE_GetWindowsEnvironment, ())
 #endif 
 
+XRE_API(int,
+        XRE_XPCShellMain, (int argc, char** argv, char** envp))
+
 #endif 
