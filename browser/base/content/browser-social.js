@@ -12,7 +12,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SharedFrame",
 let SocialUI = {
   
   init: function SocialUI_init() {
-    Services.obs.addObserver(this, "social:pref-changed", false);
     Services.obs.addObserver(this, "social:ambient-notification-changed", false);
     Services.obs.addObserver(this, "social:profile-changed", false);
     Services.obs.addObserver(this, "social:recommend-info-changed", false);
@@ -37,19 +36,18 @@ let SocialUI = {
     SocialToolbar.init();
     SocialSidebar.init();
 
-    Social.init();
-    
-    
-    
-    if (Social.provider) {
-      this.observe(null, "social:provider-set", Social.provider.origin);
+    if (!Social.initialized) {
+      Social.init();
+    } else {
+      
+      
       this.observe(null, "social:providers-changed", null);
+      this.observe(null, "social:provider-set", Social.provider ? Social.provider.origin : null);
     }
   },
 
   
   uninit: function SocialUI_uninit() {
-    Services.obs.removeObserver(this, "social:pref-changed");
     Services.obs.removeObserver(this, "social:ambient-notification-changed");
     Services.obs.removeObserver(this, "social:profile-changed");
     Services.obs.removeObserver(this, "social:recommend-info-changed");
@@ -59,32 +57,6 @@ let SocialUI = {
 
     Services.prefs.removeObserver("social.sidebar.open", this);
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
-  },
-
-  
-  
-  
-  _updateProvider: function () {
-    
-    this._updateActiveUI();
-    this._updateMenuItems();
-
-    SocialChatBar.update();
-    SocialShareButton.updateProvider();
-    SocialMenu.populate();
-    SocialToolbar.updateProvider();
-    SocialSidebar.update();
-  },
-
-  
-  _updateEnabledState: function () {
-    this._updateActiveUI();
-    SocialChatBar.update();
-    SocialSidebar.update();
-    SocialShareButton.updateButtonHiddenState();
-    SocialMenu.populate();
-    SocialToolbar.updateButtonHiddenState();
-    SocialToolbar.populateProviderMenus();
   },
 
   _matchesCurrentProvider: function (origin) {
@@ -97,16 +69,22 @@ let SocialUI = {
     try {
       switch (topic) {
         case "social:provider-set":
-          this._updateProvider();
+          
+          
+          this._updateActiveUI();
+          this._updateMenuItems();
+
+          SocialChatBar.update();
+          SocialSidebar.update();
+          SocialShareButton.update();
+          SocialToolbar.update();
+          SocialMenu.populate();
           break;
         case "social:providers-changed":
           
           this._updateActiveUI();
           
           SocialToolbar.populateProviderMenus();
-          break;
-        case "social:pref-changed":
-          this._updateEnabledState();
           break;
 
         
@@ -119,7 +97,7 @@ let SocialUI = {
         case "social:profile-changed":
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateProfile();
-            SocialShareButton.updateProfileInfo();
+            SocialShareButton.update();
             SocialChatBar.update();
           }
           break;
@@ -595,16 +573,8 @@ let SocialShareButton = {
   },
 
   
-  updateProvider: function () {
-    this.updateButtonHiddenState();
-    if (!Social.provider)
-      return;
-    this.updateProfileInfo();
-  },
-
-  
-  
-  updateProfileInfo: function SSB_updateProfileInfo() {
+  update: function() {
+    this._updateButtonHiddenState();
     let profileRow = document.getElementById("unsharePopupHeader");
     let profile = SocialUI.enabled ? Social.provider.profile : null;
     if (profile && profile.displayName) {
@@ -619,7 +589,6 @@ let SocialShareButton = {
       displayName.setAttribute("label", profile.displayName);
     } else {
       profileRow.hidden = true;
-      this.updateButtonHiddenState();
     }
   },
 
@@ -639,7 +608,7 @@ let SocialShareButton = {
     return aURI && (aURI.schemeIs('http') || aURI.schemeIs('https'));
   },
 
-  updateButtonHiddenState: function SSB_updateButtonHiddenState() {
+  _updateButtonHiddenState: function SSB_updateButtonHiddenState() {
     let shareButton = this.shareButton;
     if (shareButton)
       shareButton.hidden = !SocialUI.enabled || Social.provider.recommendInfo == null ||
@@ -703,7 +672,7 @@ let SocialShareButton = {
   },
 
   updateShareState: function SSB_updateShareState() {
-    this.updateButtonHiddenState();
+    this._updateButtonHiddenState();
 
     let shareButton = this.shareButton;
     let currentPageShared = shareButton && !shareButton.hidden && Social.isPageShared(gBrowser.currentURI);
@@ -782,6 +751,12 @@ var SocialToolbar = {
     this._dynamicResizer = new DynamicResizeWatcher();
   },
 
+  update: function() {
+    this._updateButtonHiddenState();
+    this.updateProvider();
+    this.populateProviderMenus();
+  },
+
   
   updateProvider: function () {
     let provider = Social.provider || Social.defaultProvider;
@@ -793,7 +768,6 @@ var SocialToolbar = {
       this.updateProfile();
     }
     this.updateButton();
-    this.populateProviderMenus();
   },
 
   get button() {
@@ -802,8 +776,7 @@ var SocialToolbar = {
 
   
   
-  updateButtonHiddenState: function SocialToolbar_updateButtonHiddenState() {
-    let tbi = document.getElementById("social-toolbar-item");
+  _updateButtonHiddenState: function SocialToolbar_updateButtonHiddenState() {
     let socialEnabled = SocialUI.enabled;
     for (let className of ["social-statusarea-separator", "social-statusarea-user"]) {
       for (let element of document.getElementsByClassName(className))
@@ -820,8 +793,11 @@ var SocialToolbar = {
         parent.removeChild(frame);
       }
 
-      while (tbi.lastChild != tbi.firstChild)
-        tbi.removeChild(tbi.lastChild);
+      let tbi = document.getElementById("social-toolbar-item");
+      if (tbi) {
+        while (tbi.lastChild != tbi.firstChild)
+          tbi.removeChild(tbi.lastChild);
+      }
     }
   },
 
@@ -854,7 +830,7 @@ var SocialToolbar = {
 
   
   updateButton: function SocialToolbar_updateButton() {
-    this.updateButtonHiddenState();
+    this._updateButtonHiddenState();
     let panel = document.getElementById("social-notification-panel");
     panel.hidden = !SocialUI.enabled;
 

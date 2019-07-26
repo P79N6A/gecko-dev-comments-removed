@@ -33,6 +33,7 @@ Services.obs.addObserver(function xpcomShutdown() {
 }, "xpcom-shutdown", false);
 
 this.Social = {
+  initialized: false,
   lastEventReceived: 0,
   providers: null,
   _disabledForSafeMode: false,
@@ -97,9 +98,10 @@ this.Social = {
   init: function Social_init() {
     this._disabledForSafeMode = Services.appinfo.inSafeMode && this.enabled;
 
-    if (this.providers) {
+    if (this.initialized) {
       return;
     }
+    this.initialized = true;
 
     
     SocialService.getProviderList(function (providers) {
@@ -121,8 +123,11 @@ this.Social = {
     this.providers = providers;
 
     
-    if (!SocialService.enabled)
+    
+    if (!SocialService.enabled) {
+      Services.obs.notifyObservers(null, "social:provider-set", null);
       return;
+    }
     
     this._setProvider(this.defaultProvider);
   },
