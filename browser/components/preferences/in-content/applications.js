@@ -287,6 +287,14 @@ HandlerInfoWrapper.prototype = {
     
     
     
+    if ((aNewValue == kActionUsePlugin) &&
+        (this.preferredAction != Ci.nsIHandlerInfo.saveToDisk)) {
+      aNewValue = Ci.nsIHandlerInfo.saveToDisk;
+    }
+
+    
+    
+    
     
 
     if (aNewValue != kActionUsePlugin)
@@ -1636,33 +1644,31 @@ var gApplicationsPane = {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
-    if (aActionItem.hasAttribute("alwaysAsk")) {
+    let action = parseInt(aActionItem.getAttribute("action"));
+
+    
+    if (action == kActionUsePlugin)
+      handlerInfo.enablePluginType();
+    else if (handlerInfo.pluginName && !handlerInfo.isDisabledPluginType)
+      handlerInfo.disablePluginType();
+
+    
+    
+    
+    
+    
+    
+    if (action == Ci.nsIHandlerInfo.useHelperApp)
+      handlerInfo.preferredApplicationHandler = aActionItem.handlerApp;
+
+    
+    if (action == Ci.nsIHandlerInfo.alwaysAsk)
       handlerInfo.alwaysAskBeforeHandling = true;
-    }
-    else if (aActionItem.hasAttribute("action")) {
-      let action = parseInt(aActionItem.getAttribute("action"));
-
-      
-      if (action == kActionUsePlugin)
-        handlerInfo.enablePluginType();
-      else if (handlerInfo.pluginName && !handlerInfo.isDisabledPluginType)
-        handlerInfo.disablePluginType();
-
-      
-      
-      
-      
-      
-      
-      if (action == Ci.nsIHandlerInfo.useHelperApp)
-        handlerInfo.preferredApplicationHandler = aActionItem.handlerApp;
-
-      
+    else
       handlerInfo.alwaysAskBeforeHandling = false;
 
-      
-      handlerInfo.preferredAction = action;
-    }
+    
+    handlerInfo.preferredAction = action;
 
     handlerInfo.store();
 
