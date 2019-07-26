@@ -15,7 +15,6 @@
 #include "gfxPoint3D.h"                 
 #include "CompositableTransactionParent.h"  
 #include "ShadowLayersManager.h"        
-#include "mozilla/Assertions.h"         
 #include "mozilla/gfx/BasePoint3D.h"    
 #include "mozilla/layers/CanvasLayerComposite.h"
 #include "mozilla/layers/ColorLayerComposite.h"
@@ -519,7 +518,10 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     case Edit::TOpAttachAsyncCompositable: {
       const OpAttachAsyncCompositable& op = edit.get_OpAttachAsyncCompositable();
       CompositableParent* compositableParent = CompositableMap::Get(op.containerID());
-      MOZ_ASSERT(compositableParent, "CompositableParent not found in the map");
+      if (!compositableParent) {
+        NS_ERROR("CompositableParent not found in the map");
+        return false;
+      }
       if (!Attach(cast(op.layerParent()), compositableParent, true)) {
         return false;
       }
@@ -708,7 +710,9 @@ LayerTransactionParent::Attach(ShadowLayerParent* aLayerParent,
     = static_cast<LayerManagerComposite*>(aLayerParent->AsLayer()->Manager())->GetCompositor();
 
   CompositableHost* compositable = aCompositable->GetCompositableHost();
-  MOZ_ASSERT(compositable);
+  if (!compositable) {
+    return false;
+  }
   if (!layer->SetCompositableHost(compositable)) {
     
     return false;
