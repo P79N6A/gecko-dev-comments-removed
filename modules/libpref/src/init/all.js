@@ -2577,6 +2577,10 @@ pref("intl.tsf.support_imm", true);
 
 
 
+pref("intl.tsf.on_layout_change_interval", 100);
+
+
+
 
 pref("intl.tsf.hack.atok.create_native_caret", true);
 #endif
