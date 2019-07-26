@@ -19,7 +19,7 @@ class nsXBLProtoImpl MOZ_FINAL
 {
 public:
   nsXBLProtoImpl()
-    : mClassObject(nullptr),
+    : mPrecompiledMemberHolder(nullptr),
       mMembers(nullptr),
       mFields(nullptr),
       mConstructor(nullptr),
@@ -78,7 +78,7 @@ public:
   void UndefineFields(JSContext* cx, JS::Handle<JSObject*> obj) const;
 
   bool CompiledMembers() const {
-    return mClassObject != nullptr;
+    return mPrecompiledMemberHolder != nullptr;
   }
 
   nsresult Read(nsIObjectInputStream* aStream,
@@ -104,7 +104,7 @@ public:
   nsCString mClassName; 
 
 protected:
-  JSObject* mClassObject; 
+  JSObject* mPrecompiledMemberHolder; 
                           
 
   nsXBLProtoImplMember* mMembers; 
