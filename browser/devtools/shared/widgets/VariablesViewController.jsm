@@ -352,13 +352,19 @@ VariablesViewController.prototype = {
       aTarget.showArrow();
     }
 
-    
-    aTarget.onexpand = () => this.expand(aTarget, aSource);
+    if (aSource.type == "block" || aSource.type == "function") {
+      
+      
+      this.populate(aTarget, aSource);
+    } else {
+      
+      aTarget.onexpand = () => this.populate(aTarget, aSource);
 
-    
-    
-    if (aTarget.shouldPrefetch) {
-      aTarget.addEventListener("mouseover", aTarget.onexpand, false);
+      
+      
+      if (aTarget.shouldPrefetch) {
+        aTarget.addEventListener("mouseover", aTarget.onexpand, false);
+      }
     }
 
     
@@ -380,7 +386,9 @@ VariablesViewController.prototype = {
 
 
 
-  expand: function(aTarget, aSource) {
+
+
+  populate: function(aTarget, aSource) {
     
     if (aTarget._fetched) {
       return aTarget._fetched;
@@ -510,16 +518,17 @@ VariablesViewController.prototype = {
     scope.locked = true; 
 
     let variable = scope.addItem("", { enumerable: true });
-    let expanded;
+    let populated;
 
     if (aOptions.objectActor) {
-      expanded = this.expand(variable, aOptions.objectActor);
+      populated = this.populate(variable, aOptions.objectActor);
+      variable.expand();
     } else if (aOptions.rawObject) {
       variable.populate(aOptions.rawObject, { expanded: true });
-      expanded = promise.resolve();
+      populated = promise.resolve();
     }
 
-    return { variable: variable, expanded: expanded };
+    return { variable: variable, expanded: populated };
   },
 };
 

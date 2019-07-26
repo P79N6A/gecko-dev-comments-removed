@@ -16,6 +16,7 @@ const LAZY_APPEND_BATCH = 100;
 const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
 const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 300; 
+const ITEM_FLASH_DURATION = 300 
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -122,6 +123,9 @@ VariablesView.prototype = {
 
 
 
+
+
+
   addScope: function(aName = "") {
     this._removeEmptyNotice();
     this._toggleSearchVisibility(true);
@@ -131,6 +135,7 @@ VariablesView.prototype = {
     this._itemsByElement.set(scope._target, scope);
     this._currHierarchy.set(aName, scope);
     scope.header = !!aName;
+
     return scope;
   },
 
@@ -612,11 +617,30 @@ VariablesView.prototype = {
 
 
 
-  getScopeForNode: function(aNode) {
-    let item = this._itemsByElement.get(aNode);
+
+  getItemForNode: function(aNode) {
+    return this._itemsByElement.get(aNode);
+  },
+
+  
+
+
+
+
+
+
+
+  getOwnerScopeForVariableOrProperty: function(aItem) {
+    if (!aItem) {
+      return null;
+    }
     
-    if (item && !(item instanceof Variable)) {
-      return item;
+    if (!(aItem instanceof Variable)) {
+      return aItem;
+    }
+    
+    if (aItem instanceof Variable && aItem.ownerView) {
+      return this.getOwnerScopeForVariableOrProperty(aItem.ownerView);
     }
     return null;
   },
@@ -630,8 +654,9 @@ VariablesView.prototype = {
 
 
 
-  getItemForNode: function(aNode) {
-    return this._itemsByElement.get(aNode);
+  getParentScopesForVariableOrProperty: function(aItem) {
+    let scope = this.getOwnerScopeForVariableOrProperty(aItem);
+    return this._store.slice(0, Math.max(this._store.indexOf(scope), 0));
   },
 
   
@@ -976,12 +1001,15 @@ VariablesView.prototype = {
   _window: null,
 
   _store: null,
+  _itemsByElement: null,
   _prevHierarchy: null,
   _currHierarchy: null,
+
   _enumVisible: true,
   _nonEnumVisible: true,
   _alignedValues: false,
   _actionsFirst: false,
+
   _parent: null,
   _list: null,
   _searchboxNode: null,
@@ -1244,6 +1272,7 @@ Scope.prototype = {
     this._variablesView._itemsByElement.set(child._target, child);
     this._variablesView._currHierarchy.set(child._absoluteName, child);
     child.header = !!aName;
+
     return child;
   },
 
@@ -1294,7 +1323,9 @@ Scope.prototype = {
     view._store.splice(view._store.indexOf(this), 1);
     view._itemsByElement.delete(this._target);
     view._currHierarchy.delete(this._nameString);
+
     this._target.remove();
+
     for (let variable of this._store.values()) {
       variable.remove();
     }
@@ -1725,7 +1756,8 @@ Scope.prototype = {
   _onClick: function(e) {
     if (e.button != 0 ||
         e.target == this._editNode ||
-        e.target == this._deleteNode) {
+        e.target == this._deleteNode ||
+        e.target == this._addPropertyNode) {
       return;
     }
     this.toggle();
@@ -1939,25 +1971,6 @@ Scope.prototype = {
 
 
 
-  get _firstMatch() {
-    for (let [, variable] of this._store) {
-      let match;
-      if (variable._isMatch) {
-        match = variable;
-      } else {
-        match = variable._firstMatch;
-      }
-      if (match) {
-        return match;
-      }
-    }
-    return null;
-  },
-
-  
-
-
-
 
 
 
@@ -2078,11 +2091,12 @@ Scope.prototype = {
   switch: null,
   delete: null,
   new: null,
-  editableValueTooltip: "",
+  preventDisableOnChange: false,
+  preventDescriptorModifiers: false,
   editableNameTooltip: "",
+  editableValueTooltip: "",
   editButtonTooltip: "",
   deleteButtonTooltip: "",
-  preventDescriptorModifiers: false,
   contextMenuId: "",
   separatorStr: "",
 
@@ -2178,7 +2192,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     this.ownerView._store.delete(this._nameString);
     this._variablesView._itemsByElement.delete(this._target);
     this._variablesView._currHierarchy.delete(this._absoluteName);
+
     this._target.remove();
+
     for (let property of this._store.values()) {
       property.remove();
     }
@@ -2361,6 +2377,37 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
 
+  setOverridden: function(aFlag) {
+    if (aFlag) {
+      this._target.setAttribute("overridden", "");
+    } else {
+      this._target.removeAttribute("overridden");
+    }
+  },
+
+  
+
+
+
+
+
+  flash: function(aDuration = ITEM_FLASH_DURATION) {
+    let fadeInDelay = this._variablesView.lazyEmptyDelay + 1;
+    let fadeOutDelay = fadeInDelay + aDuration;
+
+    setNamedTimeout("vview-flash-in" + this._absoluteName,
+      fadeInDelay, () => this._target.setAttribute("changed", ""));
+
+    setNamedTimeout("vview-flash-out" + this._absoluteName,
+      fadeOutDelay, () => this._target.removeAttribute("changed"));
+  },
+
+  
+
+
+
+
+
 
 
   _init: function(aName, aDescriptor) {
@@ -2405,7 +2452,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     let separatorLabel = this._separatorLabel = document.createElement("label");
     separatorLabel.className = "plain separator";
-    separatorLabel.setAttribute("value", this.ownerView.separatorStr);
+    separatorLabel.setAttribute("value", this.ownerView.separatorStr + " ");
 
     let valueLabel = this._valueLabel = document.createElement("label");
     valueLabel.className = "plain value";
@@ -2428,6 +2475,8 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
       separatorLabel.hidden = true;
     }
 
+    
+    
     if (descriptor.get || descriptor.set) {
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
@@ -2480,15 +2529,16 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
       this._title.appendChild(deleteNode);
     }
 
-    let { actionsFirst } = this._variablesView;
-    if (ownerView.new || actionsFirst) {
+    if (ownerView.new) {
       let addPropertyNode = this._addPropertyNode = this.document.createElement("toolbarbutton");
       addPropertyNode.className = "plain variables-view-add-property";
       addPropertyNode.addEventListener("mousedown", this._onAddProperty.bind(this), false);
-      if (actionsFirst && VariablesView.isPrimitive(descriptor)) {
+      this._title.appendChild(addPropertyNode);
+
+      
+      if (VariablesView.isPrimitive(descriptor)) {
         addPropertyNode.setAttribute("invisible", "");
       }
-      this._title.appendChild(addPropertyNode);
     }
 
     if (ownerView.contextMenuId) {
@@ -2554,11 +2604,12 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     let labels = [
       "configurable", "enumerable", "writable",
-      "frozen", "sealed", "extensible", "WebIDL"];
+      "frozen", "sealed", "extensible", "overridden", "WebIDL"];
 
-    for (let label of labels) {
+    for (let type of labels) {
       let labelElement = this.document.createElement("label");
-      labelElement.setAttribute("value", label);
+      labelElement.className = type;
+      labelElement.setAttribute("value", STR.GetStringFromName(type + "Tooltip"));
       tooltip.appendChild(labelElement);
     }
 
@@ -2623,6 +2674,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     if (descriptor && "getterValue" in descriptor) {
       target.setAttribute("safe-getter", "");
     }
+
     if (name == "this") {
       target.setAttribute("self", "");
     }
@@ -2774,8 +2826,8 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   _absoluteName: "",
   _initialDescriptor: null,
   _separatorLabel: null,
-  _spacer: null,
   _valueLabel: null,
+  _spacer: null,
   _editNode: null,
   _deleteNode: null,
   _addPropertyNode: null,
@@ -2877,68 +2929,100 @@ VariablesView.prototype.createHierarchy = function() {
 
 
 VariablesView.prototype.commitHierarchy = function() {
-  let prevHierarchy = this._prevHierarchy;
-  let currHierarchy = this._currHierarchy;
-
-  for (let [absoluteName, currVariable] of currHierarchy) {
+  for (let [, currItem] of this._currHierarchy) {
     
-    if (currVariable._committed) {
+    if (this.commitHierarchyIgnoredItems[currItem._nameString]) {
       continue;
     }
-    
-    if (this.commitHierarchyIgnoredItems[currVariable._nameString]) {
-      continue;
+    let overridden = this.isOverridden(currItem);
+    if (overridden) {
+      currItem.setOverridden(true);
     }
-
-    
-    
-    let prevVariable = prevHierarchy.get(absoluteName);
-    let expanded = false;
-    let changed = false;
-
-    
-    
-    
-    if (prevVariable) {
-      expanded = prevVariable._isExpanded;
-
-      
-      if (currVariable instanceof Variable) {
-        changed = prevVariable._valueString != currVariable._valueString;
-      }
-    }
-
-    
-    
-    currVariable._committed = true;
-
-    
+    let expanded = !currItem._committed && this.wasExpanded(currItem);
     if (expanded) {
-      currVariable.expand();
+      currItem.expand();
     }
-    
-    if (!changed) {
-      continue;
+    let changed = !currItem._committed && this.hasChanged(currItem);
+    if (changed) {
+      currItem.flash();
     }
-
-    
-    
-    
-    this.window.setTimeout(function(aTarget) {
-      aTarget.addEventListener("transitionend", function onEvent() {
-        aTarget.removeEventListener("transitionend", onEvent, false);
-        aTarget.removeAttribute("changed");
-      }, false);
-      aTarget.setAttribute("changed", "");
-    }.bind(this, currVariable.target), this.lazyEmptyDelay + 1);
+    currItem._committed = true;
+  }
+  if (this.oncommit) {
+    this.oncommit(this);
   }
 };
 
 
 
-VariablesView.prototype.commitHierarchyIgnoredItems = Object.create(null, {
-  "window": { value: true }
+VariablesView.prototype.commitHierarchyIgnoredItems = Heritage.extend(null, {
+  "window": true,
+  "this": true
 });
+
+
+
+
+
+
+
+
+
+
+VariablesView.prototype.wasExpanded = function(aItem) {
+  if (!(aItem instanceof Scope)) {
+    return false;
+  }
+  let prevItem = this._prevHierarchy.get(aItem._absoluteName || aItem._nameString);
+  return prevItem ? prevItem._isExpanded : false;
+};
+
+
+
+
+
+
+
+
+
+
+VariablesView.prototype.hasChanged = function(aItem) {
+  
+  
+  
+  if (!(aItem instanceof Variable)) {
+    return false;
+  }
+  let prevItem = this._prevHierarchy.get(aItem._absoluteName);
+  return prevItem ? prevItem._valueString != aItem._valueString : false;
+};
+
+
+
+
+
+
+
+
+
+
+VariablesView.prototype.isOverridden = function(aItem) {
+  
+  if (!(aItem instanceof Variable) || aItem instanceof Property) {
+    return false;
+  }
+  let currVariableName = aItem._nameString;
+  let parentScopes = this.getParentScopesForVariableOrProperty(aItem);
+
+  for (let otherScope of parentScopes) {
+    for (let [otherVariableName] of otherScope) {
+      if (otherVariableName == currVariableName) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
 
 
 
@@ -3247,9 +3331,6 @@ Editable.prototype = {
     let input = this._input = this._variable.document.createElement("textbox");
     input.className = "plain " + this.className;
     input.setAttribute("value", initialString);
-    if (!this._variable._variablesView.alignedValues) {
-      input.setAttribute("flex", "1");
-    }
 
     
     label.parentNode.replaceChild(input, label);

@@ -52,7 +52,7 @@
 }
 
 .theme-bg-contrast,
-.variable-or-property[changed] { 
+.variable-or-property:not([overridden])[changed] { 
   background: #a18650;
 }
 
