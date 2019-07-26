@@ -27,6 +27,10 @@ this.FxAccountsClient = function(host = HOST) {
   
   
   this.hawk = new HawkClient(host);
+
+  
+  
+  this.backoffError = null;
 };
 
 this.FxAccountsClient.prototype = {
@@ -306,6 +310,10 @@ this.FxAccountsClient.prototype = {
     };
   },
 
+  _clearBackoff: function() {
+      this.backoffError = null;
+  },
+
   
 
 
@@ -332,6 +340,13 @@ this.FxAccountsClient.prototype = {
   _request: function hawkRequest(path, method, credentials, jsonPayload) {
     let deferred = Promise.defer();
 
+    
+    if (this.backoffError) {
+      log.debug("Received new request during backoff, re-rejecting.");
+      deferred.reject(this.backoffError);
+      return deferred.promise;
+    }
+
     this.hawk.request(path, method, credentials, jsonPayload).then(
       (responseText) => {
         try {
@@ -345,6 +360,17 @@ this.FxAccountsClient.prototype = {
 
       (error) => {
         log.error("error " + method + "ing " + path + ": " + JSON.stringify(error));
+        if (error.retryAfter) {
+          log.debug("Received backoff response; caching error as flag.");
+          this.backoffError = error;
+          
+          CommonUtils.namedTimer(
+            this._clearBackoff,
+            error.retryAfter * 1000,
+            this,
+            "fxaBackoffTimer"
+           );
+	}
         deferred.reject(error);
       }
     );
