@@ -4,9 +4,13 @@
 
 
 
+#ifndef mozJSComponentLoader_h
+#define mozJSComponentLoader_h
+
 #include "mozilla/ModuleLoader.h"
 #include "nsISupports.h"
 #include "nsIObserver.h"
+#include "nsIURI.h"
 #include "xpcIJSModuleLoader.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -142,3 +146,5 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     bool mInitialized;
     bool mReuseLoaderGlobal;
 };
+
+#endif 
