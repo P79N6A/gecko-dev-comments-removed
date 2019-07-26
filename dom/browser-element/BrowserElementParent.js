@@ -262,7 +262,7 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
 
   
   
-  this._window.addEventListener('mozvisibilitychange',
+  this._window.addEventListener('visibilitychange',
                                 this._ownerVisibilityChange.bind(this),
                                  false,
                                  false);
