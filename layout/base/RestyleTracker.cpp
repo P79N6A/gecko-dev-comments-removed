@@ -139,7 +139,7 @@ RestyleTracker::DoProcessRestyles()
   
   mRestyleManager->PresContext()->FrameConstructor()->BeginUpdate();
 
-  mRestyleManager->mInStyleRefresh = true;
+  mRestyleManager->SetInStyleRefresh(true);
 
   
   while (mPendingRestyles.Count()) {
@@ -243,7 +243,7 @@ RestyleTracker::DoProcessRestyles()
 
   
   
-  mRestyleManager->mInStyleRefresh = false;
+  mRestyleManager->SetInStyleRefresh(false);
 
   mRestyleManager->PresContext()->FrameConstructor()->EndUpdate();
 

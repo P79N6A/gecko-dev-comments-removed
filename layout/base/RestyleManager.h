@@ -179,6 +179,11 @@ public:
     PostRestyleEventInternal(true);
   }
 
+  void SetInStyleRefresh(bool aInStyleRefresh)
+  {
+    mInStyleRefresh = aInStyleRefresh;
+  }
+
   void FlushOverflowChangedTracker()
   {
     mOverflowChangedTracker.Flush();
@@ -255,7 +260,7 @@ public:
 private:
   
   
-  void RestyleElement(Element* aElement,
+  void RestyleElement(Element*        aElement,
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint,
                       RestyleTracker& aRestyleTracker,
