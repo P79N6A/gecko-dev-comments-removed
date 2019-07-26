@@ -25,6 +25,7 @@ import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.os.SystemClock;
 import android.util.Log;
+import org.mozilla.gecko.mozglue.JNITarget;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -489,6 +490,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         }
 
         
+        @JNITarget
         public void beginDrawing() {
             mFrameStartTime = System.nanoTime();
 
@@ -578,6 +580,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         }
 
         
+        @JNITarget
         public void drawBackground() {
             
             
@@ -612,7 +615,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             rootLayer.draw(mPageContext);
         }
 
-        
+        @JNITarget
         public void drawForeground() {
             
             
@@ -666,6 +669,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         }
 
         
+        @JNITarget
         public void endDrawing() {
             
             if (!mUpdated)
