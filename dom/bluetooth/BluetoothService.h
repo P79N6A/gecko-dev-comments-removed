@@ -172,20 +172,6 @@ public:
 
 
 
-
-
-  virtual nsresult
-  GetProperties(BluetoothObjectType aType,
-                const nsAString& aPath,
-                BluetoothReplyRunnable* aRunnable) = 0;
-
-  
-
-
-
-
-
-
   virtual nsresult
   GetDevicePropertiesInternal(const BluetoothSignal& aSignal) = 0;
 
@@ -312,9 +298,6 @@ public:
 protected:
   BluetoothService()
   : mEnabled(false)
-#ifdef DEBUG
-  , mLastRequestedEnable(false)
-#endif
   {
     mBluetoothSignalObserverTable.Init();
   }
@@ -403,10 +386,6 @@ protected:
   BluetoothManagerList mLiveManagers;
 
   bool mEnabled;
-
-#ifdef DEBUG
-  bool mLastRequestedEnable;
-#endif
 };
 
 END_BLUETOOTH_NAMESPACE
