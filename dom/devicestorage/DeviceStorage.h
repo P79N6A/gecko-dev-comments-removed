@@ -53,6 +53,7 @@ public:
   
   
   
+  
   DeviceStorageFile(const nsAString& aStorageType,
                     const nsAString& aStorageName,
                     const nsAString& aRootDir,
@@ -61,9 +62,10 @@ public:
   void SetPath(const nsAString& aPath);
   void SetEditable(bool aEditable);
 
-  static already_AddRefed<DeviceStorageFile> CreateUnique(nsAString& aFileName,
-                                                          uint32_t aFileType,
-                                                          uint32_t aFileAttributes);
+  static already_AddRefed<DeviceStorageFile>
+  CreateUnique(nsAString& aFileName,
+               uint32_t aFileType,
+               uint32_t aFileAttributes);
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -151,11 +153,14 @@ public:
 
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTTARGET
-  virtual void AddEventListener(const nsAString& aType,
-                                nsIDOMEventListener* aListener,
-                                bool aUseCapture,
-                                const mozilla::dom::Nullable<bool>& aWantsUntrusted,
-                                ErrorResult& aRv) MOZ_OVERRIDE;
+
+  virtual void
+  AddEventListener(const nsAString& aType,
+                   nsIDOMEventListener* aListener,
+                   bool aUseCapture,
+                   const mozilla::dom::Nullable<bool>& aWantsUntrusted,
+                   ErrorResult& aRv) MOZ_OVERRIDE;
+
   virtual void RemoveEventListener(const nsAString& aType,
                                    nsIDOMEventListener* aListener,
                                    bool aUseCapture,
@@ -167,9 +172,13 @@ public:
                 const nsAString& aVolName);
 
   bool IsAvailable();
-  bool IsFullPath(const nsAString& aPath) { return aPath.Length() > 0 && aPath.CharAt(0) == '/'; }
+  bool IsFullPath(const nsAString& aPath)
+  {
+    return aPath.Length() > 0 && aPath.CharAt(0) == '/';
+  }
 
-  void SetRootDirectoryForType(const nsAString& aType, const nsAString& aVolName);
+  void SetRootDirectoryForType(const nsAString& aType,
+                               const nsAString& aVolName);
 
   
   nsPIDOMWindow*
@@ -225,13 +234,16 @@ public:
 
   
 
-  static void CreateDeviceStorageFor(nsPIDOMWindow* aWin,
-                                     const nsAString& aType,
-                                     nsDOMDeviceStorage** aStore);
+  static void
+  CreateDeviceStorageFor(nsPIDOMWindow* aWin,
+                         const nsAString& aType,
+                         nsDOMDeviceStorage** aStore);
 
-  static void CreateDeviceStoragesFor(nsPIDOMWindow* aWin,
-                                      const nsAString& aType,
-                                      nsTArray<nsRefPtr<nsDOMDeviceStorage> >& aStores);
+  static void
+  CreateDeviceStoragesFor(nsPIDOMWindow* aWin,
+                          const nsAString& aType,
+                          nsTArray<nsRefPtr<nsDOMDeviceStorage> >& aStores);
+
   void Shutdown();
 
   static void GetOrderedVolumeNames(nsTArray<nsString>& aVolumeNames);
@@ -267,7 +279,8 @@ private:
 
   already_AddRefed<nsDOMDeviceStorage> GetStorage(const nsAString& aFullPath,
                                                   nsAString& aOutStoragePath);
-  already_AddRefed<nsDOMDeviceStorage> GetStorageByName(const nsAString &aStorageName);
+  already_AddRefed<nsDOMDeviceStorage>
+    GetStorageByName(const nsAString &aStorageName);
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
