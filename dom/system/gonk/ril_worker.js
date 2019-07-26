@@ -143,6 +143,55 @@ let Buf = {
 
     
     this.lastSolicitedToken = 0;
+
+    
+    this.outgoingBufferCalSizeQueue = [];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  startCalOutgoingSize: function startCalOutgoingSize(writeFunction) {
+    let sizeInfo = {index: this.outgoingIndex,
+                    write: writeFunction};
+
+    
+    writeFunction.call(0);
+
+    
+    sizeInfo.size = this.outgoingIndex - sizeInfo.index;
+
+    
+    this.outgoingBufferCalSizeQueue.push(sizeInfo);
+  },
+
+  
+
+
+  stopCalOutgoingSize: function stopCalOutgoingSize() {
+    let sizeInfo = this.outgoingBufferCalSizeQueue.pop();
+
+    
+    let currentOutgoingIndex = this.outgoingIndex;
+    
+    let writeSize = this.outgoingIndex - sizeInfo.index - sizeInfo.size;
+
+    
+    
+    this.outgoingIndex = sizeInfo.index;
+    sizeInfo.write(writeSize);
+
+    
+    this.outgoingIndex = currentOutgoingIndex;
   },
 
   
@@ -332,7 +381,7 @@ let Buf = {
     }
     return strings;
   },
-  
+
   readStringDelimiter: function readStringDelimiter(length) {
     let delimiter = this.readUint16();
     if (!(length & 1)) {
@@ -409,7 +458,7 @@ let Buf = {
       this.writeString(strings[i]);
     }
   },
-  
+
   writeStringDelimiter: function writeStringDelimiter(length) {
     this.writeUint16(0);
     if (!(length & 1)) {
@@ -756,7 +805,7 @@ let RIL = {
 
 
     this.aid = null;
-  
+
     
 
 
@@ -830,7 +879,7 @@ let RIL = {
       MMI: cbmmi || null
     };
   },
-  
+
   get muted() {
     return this._muted;
   },
@@ -1608,7 +1657,7 @@ let RIL = {
     if (!call) {
       return;
     }
-    
+
     switch (call.state) {
       case CALL_STATE_INCOMING:
         Buf.simpleRequest(REQUEST_ANSWER);
@@ -1635,7 +1684,7 @@ let RIL = {
     if (!call) {
       return;
     }
-    
+
     switch (call.state) {
       case CALL_STATE_INCOMING:
         Buf.simpleRequest(REQUEST_UDUB);
@@ -1646,7 +1695,7 @@ let RIL = {
         break;
     }
   },
-  
+
   holdCall: function holdCall(options) {
     let call = this.currentCalls[options.callIndex];
     if (call && call.state == CALL_STATE_ACTIVE) {
@@ -2547,6 +2596,7 @@ let RIL = {
       debug("Stk Envelope " + JSON.stringify(options));
     }
     let token = Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_COMMAND);
+
     let berLen = TLV_DEVICE_ID_SIZE + 
                  (options.itemIdentifier ? TLV_ITEM_ID_SIZE : 0) +
                  (options.helpRequested ? TLV_HELP_REQUESTED_SIZE : 0) +
@@ -4224,12 +4274,12 @@ RIL[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
   }
 
   this.getCurrentCalls();
-}; 
+};
 RIL[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
   if (options.rilRequestError) {
     return;
   }
-  
+
   this.getCurrentCalls();
 };
 RIL[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
@@ -4999,7 +5049,7 @@ RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() 
   
   
   
-  
+
   debug("DateTimeZone string " + dateString);
 
   let now = Date.now();
