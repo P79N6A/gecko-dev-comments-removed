@@ -155,21 +155,6 @@ Loop::optimize()
             if (!invariantInstructions.append(ins))
                 return false;
 
-            
-            for (MUseDefIterator iter(ins->toDefinition()); iter; iter++) {
-                MDefinition *consumer = iter.def();
-
-                if (consumer->isInWorklist())
-                    continue;
-
-                
-                
-                if (isInLoop(consumer) && isHoistable(consumer)) {
-                    if (!insertInWorklist(consumer->toInstruction()))
-                        return false;
-                }
-            }
-
             if (IonSpewEnabled(IonSpew_LICM))
                 fprintf(IonSpewFile, " Loop Invariant!\n");
         }
@@ -184,6 +169,27 @@ bool
 Loop::hoistInstructions(InstructionQueue &toHoist)
 {
     
+    for (int32_t i = toHoist.length() - 1; i >= 0; i--) {
+        MInstruction *ins = toHoist[i];
+
+        
+        
+        
+        if (ins->isConstantElements() || ins->isConstant() || ins->isBox()) {
+            bool loopInvariantUse = false;
+            for (MUseDefIterator use(ins); use; use++) {
+                if (use.def()->isLoopInvariant()) {
+                    loopInvariantUse = true;
+                    break;
+                }
+            }
+
+            if (!loopInvariantUse)
+                ins->setNotLoopInvariant();
+        }
+    }
+
+    
     for (size_t i = 0; i < toHoist.length(); i++) {
         MInstruction *ins = toHoist[i];
 
@@ -192,6 +198,9 @@ Loop::hoistInstructions(InstructionQueue &toHoist)
         JS_ASSERT(!ins->isControlInstruction());
         JS_ASSERT(!ins->isEffectful());
         JS_ASSERT(ins->isMovable());
+
+        if (!ins->isLoopInvariant())
+            continue;
 
         if (checkHotness(ins->block())) {
             ins->block()->moveBefore(preLoop_->lastIns(), ins);
@@ -250,6 +259,7 @@ Loop::isLoopInvariant(MInstruction *ins)
             return false;
         }
     }
+
     return true;
 }
 
