@@ -33,6 +33,66 @@ class IonBuilder;
 
 typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
 
+
+
+
+
+
+
+
+struct ICStubSpace
+{
+  protected:
+    LifoAlloc allocator_;
+
+    explicit ICStubSpace(size_t chunkSize)
+      : allocator_(chunkSize)
+    {}
+
+  public:
+    inline void *alloc(size_t size) {
+        return allocator_.alloc(size);
+    }
+
+    JS_DECLARE_NEW_METHODS(allocate, alloc, inline)
+
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return allocator_.sizeOfExcludingThis(mallocSizeOf);
+    }
+};
+
+
+
+struct OptimizedICStubSpace : public ICStubSpace
+{
+    const static size_t STUB_DEFAULT_CHUNK_SIZE = 4 * 1024;
+
+  public:
+    OptimizedICStubSpace()
+      : ICStubSpace(STUB_DEFAULT_CHUNK_SIZE)
+    {}
+
+    void free() {
+        allocator_.freeAll();
+    }
+};
+
+
+
+struct FallbackICStubSpace : public ICStubSpace
+{
+    const static size_t STUB_DEFAULT_CHUNK_SIZE = 256;
+
+  public:
+    FallbackICStubSpace()
+      : ICStubSpace(STUB_DEFAULT_CHUNK_SIZE)
+    {}
+
+    inline void adoptFrom(FallbackICStubSpace *other) {
+        allocator_.steal(&(other->allocator_));
+    }
+};
+
 class IonRuntime
 {
     friend class IonCompartment;
@@ -131,6 +191,9 @@ class IonCompartment
     
     void *baselineCallReturnAddr_;
 
+    
+    OptimizedICStubSpace optimizedStubSpace_;
+
   public:
     IonCode *getVMWrapper(const VMFunction &f);
 
@@ -220,6 +283,9 @@ class IonCompartment
     void setFlusher(AutoFlushCache *fl) {
         if (!flusher_ || !fl)
             flusher_ = fl;
+    }
+    OptimizedICStubSpace *optimizedStubSpace() {
+        return &optimizedStubSpace_;
     }
 };
 
