@@ -711,7 +711,7 @@ Sync11Service.prototype = {
 
           
           
-          if (this._remoteSetup()) {
+          if (this._remoteSetup(test)) {
             
             this.status.login = LOGIN_SUCCEEDED;
             return true;
