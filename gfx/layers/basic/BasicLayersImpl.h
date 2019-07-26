@@ -11,6 +11,7 @@
 #include "ReadbackLayer.h"              
 #include "gfxASurface.h"                
 #include "gfxContext.h"                 
+#include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Attributes.h"         
 #include "mozilla/Maybe.h"              
 #include "nsAutoPtr.h"                  

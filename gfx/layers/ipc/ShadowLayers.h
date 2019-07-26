@@ -48,6 +48,7 @@ class PLayerTransactionParent;
 class LayerTransactionChild;
 class RefLayerComposite;
 class ShadowableLayer;
+class Shmem;
 class ShmemTextureClient;
 class SurfaceDescriptor;
 class TextureClient;
@@ -133,6 +134,7 @@ class Transaction;
 
 class ShadowLayerForwarder : public CompositableForwarder
 {
+  friend class AutoOpenSurface;
   friend class ContentClientIncremental;
   friend class ClientLayerManager;
 
@@ -197,6 +199,16 @@ public:
   void CreatedColorLayer(ShadowableLayer* aColor);
   void CreatedCanvasLayer(ShadowableLayer* aCanvas);
   void CreatedRefLayer(ShadowableLayer* aRef);
+
+  
+
+
+
+
+
+
+
+  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) MOZ_OVERRIDE;
 
   
 
@@ -366,6 +378,9 @@ public:
 
   static void PlatformSyncBeforeUpdate();
 
+  static already_AddRefed<gfxASurface>
+  OpenDescriptor(OpenMode aMode, const SurfaceDescriptor& aSurface);
+
 protected:
   ShadowLayerForwarder();
 
@@ -388,6 +403,61 @@ protected:
 #endif
 
 private:
+  
+
+
+
+  static gfxContentType
+  GetDescriptorSurfaceContentType(const SurfaceDescriptor& aDescriptor,
+                                  OpenMode aMode,
+                                  gfxASurface** aSurface);
+  
+
+
+
+
+  static bool
+  PlatformGetDescriptorSurfaceContentType(const SurfaceDescriptor& aDescriptor,
+                                          OpenMode aMode,
+                                          gfxContentType* aContent,
+                                          gfxASurface** aSurface);
+  
+  static gfx::IntSize
+  GetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
+                           OpenMode aMode,
+                           gfxASurface** aSurface);
+  static bool
+  PlatformGetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
+                                   OpenMode aMode,
+                                   gfx::IntSize* aSize,
+                                   gfxASurface** aSurface);
+  
+  
+  
+  static gfxImageFormat
+  GetDescriptorSurfaceImageFormat(const SurfaceDescriptor& aDescriptor,
+                                  OpenMode aMode,
+                                  gfxASurface** aSurface);
+  static bool
+  PlatformGetDescriptorSurfaceImageFormat(const SurfaceDescriptor& aDescriptor,
+                                          OpenMode aMode,
+                                          gfxImageFormat* aContent,
+                                          gfxASurface** aSurface);
+
+  static already_AddRefed<gfxASurface>
+  PlatformOpenDescriptor(OpenMode aMode, const SurfaceDescriptor& aDescriptor);
+
+  
+
+
+
+  static void
+  CloseDescriptor(const SurfaceDescriptor& aDescriptor);
+
+  static bool
+  PlatformCloseDescriptor(const SurfaceDescriptor& aDescriptor);
+
+  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
   Transaction* mTxn;
   DiagnosticTypes mDiagnosticTypes;

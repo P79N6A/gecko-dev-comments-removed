@@ -42,6 +42,7 @@ class PTextureChild;
 
 class CompositableForwarder : public ISurfaceAllocator
 {
+  friend class AutoOpenSurface;
 public:
 
   CompositableForwarder()
@@ -104,6 +105,16 @@ public:
 
   virtual void UpdatePictureRect(CompositableClient* aCompositable,
                                  const nsIntRect& aRect) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) = 0;
 
   
 

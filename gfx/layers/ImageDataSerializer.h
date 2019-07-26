@@ -89,7 +89,6 @@ public:
   {
     Validate();
   }
-
 };
 
 } 

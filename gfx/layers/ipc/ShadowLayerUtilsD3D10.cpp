@@ -19,9 +19,74 @@ namespace mozilla {
 namespace layers {
 
 
+
+bool
+ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize&,
+                                                  gfxContentType,
+                                                  uint32_t,
+                                                  SurfaceDescriptor*)
+{
+  return false;
+}
+
+ already_AddRefed<gfxASurface>
+ShadowLayerForwarder::PlatformOpenDescriptor(OpenMode,
+                                             const SurfaceDescriptor&)
+{
+  return nullptr;
+}
+
+ bool
+ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor&)
+{
+  return false;
+}
+
+ bool
+ShadowLayerForwarder::PlatformGetDescriptorSurfaceContentType(
+  const SurfaceDescriptor&,
+  OpenMode,
+  gfxContentType*,
+  gfxASurface**)
+{
+  return false;
+}
+
+ bool
+ShadowLayerForwarder::PlatformGetDescriptorSurfaceSize(
+  const SurfaceDescriptor&,
+  OpenMode,
+  gfx::IntSize*,
+  gfxASurface**)
+{
+  return false;
+}
+
+ bool
+ShadowLayerForwarder::PlatformGetDescriptorSurfaceImageFormat(
+  const SurfaceDescriptor&,
+  OpenMode,
+  gfxImageFormat*,
+  gfxASurface**)
+{
+  return false;
+}
+
+bool
+ShadowLayerForwarder::PlatformDestroySharedSurface(SurfaceDescriptor*)
+{
+  return false;
+}
+
  void
 ShadowLayerForwarder::PlatformSyncBeforeUpdate()
 {
+}
+
+bool
+ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor*)
+{
+  return false;
 }
 
  bool

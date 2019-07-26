@@ -4,6 +4,7 @@
 
 
 
+#include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/PLayerTransaction.h"
 
 #include "gfxImageSurface.h"

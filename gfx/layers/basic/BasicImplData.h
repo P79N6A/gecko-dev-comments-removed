@@ -117,7 +117,8 @@ public:
 
 
 
-  virtual bool GetAsSurface(gfxASurface** aSurface)
+  virtual bool GetAsSurface(gfxASurface** aSurface,
+                            SurfaceDescriptor* aDescriptor)
   { return false; }
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
 

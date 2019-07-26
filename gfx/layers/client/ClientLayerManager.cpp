@@ -7,6 +7,7 @@
 #include "CompositorChild.h"            
 #include "GeckoProfiler.h"              
 #include "gfxASurface.h"                
+#include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Assertions.h"         
 #include "mozilla/Hal.h"
 #include "mozilla/dom/ScreenOrientation.h"  
@@ -288,10 +289,10 @@ ClientLayerManager::MakeSnapshotIfRequired()
           
           
           remoteRenderer->SendMakeSnapshot(inSnapshot, &snapshot)) {
-        RefPtr<DataSourceSurface> surf = GetSurfaceForDescriptor(snapshot);
-        mShadowTarget->GetDrawTarget()->CopySurface(surf,
-                                                    IntRect(0, 0, bounds.Size().width, bounds.Size().height),
-                                                    IntPoint(0, 0));
+        AutoOpenSurface opener(OPEN_READ_ONLY, snapshot);
+        gfxASurface* source = opener.Get();
+
+        mShadowTarget->DrawSurface(source, source->GetSize());
       }
       if (IsSurfaceDescriptorValid(snapshot)) {
         mForwarder->DestroySharedSurface(&snapshot);
