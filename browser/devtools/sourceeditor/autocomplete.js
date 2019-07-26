@@ -190,5 +190,19 @@ function getPopup({ ed }) {
 }
 
 
+
+
+
+function getInfoAt({ ed }, caret) {
+  let completer = privates.get(ed).completer;
+  if (completer && completer.getInfoAt)
+    return completer.getInfoAt(ed.getText(), caret);
+
+  return null;
+}
+
+
+
 module.exports.setupAutoCompletion = setupAutoCompletion;
 module.exports.getAutocompletionPopup = getPopup;
+module.exports.getInfoAt = getInfoAt;
