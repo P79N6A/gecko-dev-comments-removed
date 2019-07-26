@@ -20,8 +20,6 @@ namespace js {
 class PreserveRegExpStatics;
 class RegExpStatics;
 
-size_t SizeOfRegExpStaticsData(const JSObject *obj, mozilla::MallocSizeOf mallocSizeOf);
-
 } 
 
 #endif 
