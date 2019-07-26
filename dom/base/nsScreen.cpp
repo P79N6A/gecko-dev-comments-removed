@@ -73,7 +73,7 @@ nsScreen::Reset()
     nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
     if (target) {
       target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
-                                        mEventListener, true);
+                                        mEventListener,  true);
     }
 
     mEventListener = nullptr;
@@ -328,6 +328,39 @@ nsScreen::GetMozOrientation(nsAString& aOrientation)
   return NS_OK;
 }
 
+nsScreen::LockPermission
+nsScreen::GetLockOrientationPermission() const
+{
+  nsCOMPtr<nsPIDOMWindow> owner = GetOwner();
+  if (!owner) {
+    return LOCK_DENIED;
+  }
+
+  
+  if (IsChromeType(owner->GetDocShell())) {
+    return LOCK_ALLOWED;
+  }
+
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  owner->GetDocument(getter_AddRefs(domDoc));
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+  if (!doc) {
+    return LOCK_DENIED;
+  }
+
+  
+  if (doc->NodePrincipal()->GetAppStatus() >=
+        nsIPrincipal::APP_STATUS_INSTALLED) {
+    return LOCK_ALLOWED;
+  }
+
+  
+  bool fullscreen;
+  domDoc->GetMozFullScreen(&fullscreen);
+
+  return fullscreen ? FULLSCREEN_LOCK_ALLOWED : LOCK_DENIED;
+}
+
 NS_IMETHODIMP
 nsScreen::MozLockOrientation(const jsval& aOrientation, JSContext* aCx, bool* aReturn)
 {
@@ -391,61 +424,37 @@ nsScreen::MozLockOrientation(const jsval& aOrientation, JSContext* aCx, bool* aR
     }
   }
 
-  
-  bool canLockOrientation = false;
-  do {
-    nsCOMPtr<nsPIDOMWindow> owner = GetOwner();
-    if (!owner) {
-      break;
-    }
+  switch (GetLockOrientationPermission()) {
+    case LOCK_DENIED:
+      return NS_OK;
+    case LOCK_ALLOWED:
+      *aReturn = hal::LockScreenOrientation(orientation);
+      return NS_OK;
+    case FULLSCREEN_LOCK_ALLOWED:
+      *aReturn = hal::LockScreenOrientation(orientation);
+      if (!*aReturn) {
+        return NS_OK;
+      }
 
-    
-    if (IsChromeType(owner->GetDocShell())) {
-      canLockOrientation = true;
-      break;
-    }
+      
+      
+      
+      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
+      if (!target) {
+        return NS_OK;
+      }
 
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    owner->GetDocument(getter_AddRefs(domDoc));
-    nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-    if (!doc) {
-      break;
-    }
+      if (!mEventListener) {
+        mEventListener = new FullScreenEventListener();
+      }
 
-    
-    if (doc->NodePrincipal()->GetAppStatus() >=
-          nsIPrincipal::APP_STATUS_INSTALLED) {
-      canLockOrientation = true;
-      break;
-    }
-
-    
-    bool fullscreen;
-    domDoc->GetMozFullScreen(&fullscreen);
-    if (!fullscreen) {
-      break;
-    }
-
-    
-    
-    nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(owner);
-    if (!target) {
-      break;
-    }
-
-    if (!mEventListener) {
-      mEventListener = new FullScreenEventListener();
-    }
-
-    target->AddSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
-                                   mEventListener,  true);
-    canLockOrientation = true;
-  } while(0);
-
-  if (canLockOrientation) {
-    *aReturn = hal::LockScreenOrientation(orientation);
+      return target->AddSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
+                                            mEventListener,  true);
   }
 
+  
+  
+  MOZ_NOT_REACHED();
   return NS_OK;
 }
 
