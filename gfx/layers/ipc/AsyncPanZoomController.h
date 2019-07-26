@@ -298,22 +298,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-  void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
-                     uint32_t aOverscrollHandoffChainIndex = 0);
-
-  
-
-
-
   void TakeOverFling(ScreenPoint aVelocity);
 
   
@@ -338,17 +322,7 @@ public:
 
 
 
-
-  void CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
-                          uint32_t aOverscrollHandoffChainIndex);
-
-  
-
-
-
   bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
-
-  void FlushRepaintForOverscrollHandoff();
 
   
 
@@ -774,6 +748,7 @@ private:
 
 
 
+
 public:
   void SetLastChild(AsyncPanZoomController* child) {
     mLastChild = child;
@@ -821,6 +796,7 @@ private:
 
 
 
+
 public:
   void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId) {
     mScrollParentId = aScrollParentId;
@@ -830,11 +806,38 @@ public:
     return mScrollParentId;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+                     uint32_t aOverscrollHandoffChainIndex = 0);
+
+  void FlushRepaintForOverscrollHandoff();
+
 private:
   FrameMetrics::ViewID mScrollParentId;
 
+  
+
+
+
+
+  void CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+                          uint32_t aOverscrollHandoffChainIndex);
+
 
   
+
 
 
 
@@ -872,6 +875,7 @@ private:
 
 
   
+
 
 
 private:
