@@ -1185,26 +1185,26 @@ this.DOMApplicationRegistry = {
     
     
     aApp.downloading = true;
-    let cacheUpdate = aProfileDir
-      ? updateSvc.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
-      : updateSvc.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
-
-    
     aApp.progress = 0;
+    DOMApplicationRegistry._saveApps((function() {
+      let cacheUpdate = aProfileDir
+        ? updateSvc.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
+        : updateSvc.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
 
-    
-    
-    let download = {
-      cacheUpdate: cacheUpdate,
-      appId: this._appIdForManifestURL(aApp.manifestURL),
-      previousState: aIsUpdate ? "installed" : "pending"
-    };
-    AppDownloadManager.add(aApp.manifestURL, download);
+      
+      
+      let download = {
+        cacheUpdate: cacheUpdate,
+        appId: this._appIdForManifestURL(aApp.manifestURL),
+        previousState: aIsUpdate ? "installed" : "pending"
+      };
+      AppDownloadManager.add(aApp.manifestURL, download);
 
-    cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
-    if (aOfflineCacheObserver) {
-      cacheUpdate.addObserver(aOfflineCacheObserver, false);
-    }
+      cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
+      if (aOfflineCacheObserver) {
+        cacheUpdate.addObserver(aOfflineCacheObserver, false);
+      }
+    }).bind(this));
   },
 
   
@@ -1289,18 +1289,6 @@ this.DOMApplicationRegistry = {
     let id = this._appIdForManifestURL(aData.manifestURL);
     let app = this.webapps[id];
 
-    if (!app) {
-      sendError("NO_SUCH_APP");
-      return;
-    }
-
-    
-    
-    if (app.downloading) {
-      sendError("APP_IS_DOWNLOADING");
-      return;
-    }
-
     function updatePackagedApp(aManifest) {
       debug("updatePackagedApp");
 
@@ -1349,6 +1337,8 @@ this.DOMApplicationRegistry = {
         delete this._manifestCache[id];
       }
 
+      app.manifest = aNewManifest || aOldManifest;
+
       let manifest;
       if (aNewManifest) {
         
@@ -1367,27 +1357,25 @@ this.DOMApplicationRegistry = {
         manFile.append("manifest.webapp");
         this._writeFile(manFile, JSON.stringify(aNewManifest), function() { });
         manifest = new ManifestHelper(aNewManifest, app.origin);
+
+        
+        PermissionsInstaller.installPermissions({
+          manifest: app.manifest,
+          origin: app.origin,
+          manifestURL: aData.manifestURL
+        }, true);
+
+        app.name = manifest.name;
+        app.csp = manifest.csp || "";
       } else {
         manifest = new ManifestHelper(aOldManifest, app.origin);
       }
 
-      app.installState = "installed";
-      app.downloading = false;
-      app.downloadSize = 0;
-      app.readyToApplyDownload = false;
-      app.downloadAvailable = !!manifest.appcache_path;
-
-      app.name = manifest.name;
-      app.csp = manifest.csp || "";
-      app.updateTime = Date.now();
-
       
       this.webapps[id] = app;
-
       this._saveApps(function() {
         let reg = DOMApplicationRegistry;
         aData.app = app;
-        app.manifest = aNewManifest || aOldManifest;
         if (!manifest.appcache_path) {
           aData.event = "downloadapplied";
           reg.broadcastMessage("Webapps:CheckForUpdate:Return:OK", aData);
@@ -1413,12 +1401,25 @@ this.DOMApplicationRegistry = {
         }
         delete app.manifest;
       });
+    }
 
-      
-      PermissionsInstaller.installPermissions({ manifest: aNewManifest || aOldManifest,
-                                                origin: app.origin,
-                                                manifestURL: aData.manifestURL },
-                                              true);
+
+    
+    if (!app) {
+      sendError("NO_SUCH_APP");
+      return;
+    }
+
+    
+    if (app.installState !== "installed") {
+      sendError("PENDING_APP_NOT_UPDATABLE");
+      return;
+    }
+
+    
+    if (app.downloading) {
+      sendError("APP_IS_DOWNLOADING");
+      return;
     }
 
     
@@ -1448,12 +1449,6 @@ this.DOMApplicationRegistry = {
           return;
         }
 
-        app.installState = "installed";
-        app.downloading = false;
-        app.downloadSize = 0;
-        app.readyToApplyDownload = false;
-        app.updateTime = Date.now();
-
         debug("Checking only appcache for " + aData.manifestURL);
         
         
@@ -1465,8 +1460,10 @@ this.DOMApplicationRegistry = {
               aData.event = "downloadavailable";
               app.downloadAvailable = true;
               aData.app = app;
-              DOMApplicationRegistry.broadcastMessage("Webapps:CheckForUpdate:Return:OK",
-                                                      aData);
+              this._saveApps(function() {
+                DOMApplicationRegistry.broadcastMessage(
+                  "Webapps:CheckForUpdate:Return:OK", aData);
+              });
             } else {
               aData.error = "NOT_UPDATABLE";
               aMm.sendAsyncMessage("Webapps:CheckForUpdate:Return:KO", aData);
@@ -2895,6 +2892,7 @@ AppcacheObserver.prototype = {
       app.installState = aStatus;
       app.progress = aProgress;
       if (aStatus == "installed") {
+        app.updateTime = Date.now();
         app.downloading = false;
         app.downloadAvailable = false;
       }
