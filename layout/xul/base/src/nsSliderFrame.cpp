@@ -493,10 +493,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
     case NS_TOUCH_END:
     case NS_MOUSE_BUTTON_UP:
-      if (aEvent->message == NS_TOUCH_END ||
-          static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton ||
-          (static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eMiddleButton &&
-           gMiddlePref)) {
+      if (ShouldScrollForEvent(aEvent)) {
         
         AddListener();
         DragThumb(false);
@@ -511,19 +508,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
     
     return NS_OK;
-  } else if ((aEvent->message == NS_MOUSE_BUTTON_DOWN &&
-              static_cast<nsMouseEvent*>(aEvent)->button ==
-                nsMouseEvent::eLeftButton &&
-#ifdef XP_MACOSX
-              
-              (static_cast<nsMouseEvent*>(aEvent)->IsAlt() != GetScrollToClick())) ||
-#else
-              (static_cast<nsMouseEvent*>(aEvent)->IsShift() != GetScrollToClick())) ||
-#endif
-             (gMiddlePref && aEvent->message == NS_MOUSE_BUTTON_DOWN &&
-              static_cast<nsMouseEvent*>(aEvent)->button ==
-                nsMouseEvent::eMiddleButton) ||
-             (aEvent->message == NS_TOUCH_START && GetScrollToClick())) {
+  } else if (ShouldScrollToClickForEvent(aEvent)) {
     nsPoint eventPoint;
     if (!GetEventPoint(aEvent, eventPoint)) {
       return NS_OK;
@@ -573,26 +558,22 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 bool
 nsSliderFrame::GetScrollToClick()
 {
-  
-  
-  
-  if (GetScrollbar() == this)
-#ifdef XP_MACOSX
-    return !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
-                                   nsGkAtoms::_false, eCaseMatters);
- 
-  
-  bool scrollToClick = false;
-  int32_t scrollToClickMetric;
-  nsresult rv = LookAndFeel::GetInt(LookAndFeel::eIntID_ScrollToClick,
-                                    &scrollToClickMetric);
-  if (NS_SUCCEEDED(rv) && scrollToClickMetric == 1)
-    scrollToClick = true;
-  return scrollToClick;
+  if (GetScrollbar() != this) {
+    return LookAndFeel::GetInt(LookAndFeel::eIntID_ScrollToClick, false);
+  }
 
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
+                            nsGkAtoms::_true, eCaseMatters)) {
+    return true;
+  }
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
+                            nsGkAtoms::_false, eCaseMatters)) {
+    return false;
+  }
+
+#ifdef XP_MACOSX
+  return true;
 #else
-    return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::movetoclick,
-                                  nsGkAtoms::_true, eCaseMatters);
   return false;
 #endif
 }
@@ -842,37 +823,24 @@ nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
                             nsGkAtoms::_true, eCaseMatters))
     return NS_OK;
 
-  bool isHorizontal = IsHorizontal();
-  bool scrollToClick = false;
-
-  nsCOMPtr<nsIDOMMouseEvent> mouseEvent(do_QueryInterface(aEvent));
-  if (mouseEvent) {
-    uint16_t button = 0;
-    mouseEvent->GetButton(&button);
-    if (!(button == 0 || (button == 1 && gMiddlePref)))
-      return NS_OK;
-  
-#ifndef XP_MACOSX
-    
-    mouseEvent->GetShiftKey(&scrollToClick);
-    if (button != 0) {
-      scrollToClick = true;
-    }
-#endif
-  }
-
   nsGUIEvent *event = static_cast<nsGUIEvent*>(aEvent->GetInternalNSEvent());
+
+  if (!ShouldScrollForEvent(event)) {
+    return NS_OK;
+  }
 
   nsPoint pt;
   if (!GetEventPoint(event, pt)) {
     return NS_OK;
   }
+  bool isHorizontal = IsHorizontal();
   nscoord pos = isHorizontal ? pt.x : pt.y;
 
   
   
   nsCOMPtr<nsIContent> scrollbar;
   nscoord newpos = pos;
+  bool scrollToClick = ShouldScrollToClickForEvent(event);
   if (scrollToClick) {
     
     nsIFrame* thumbFrame = mFrames.FirstChild();
@@ -969,24 +937,92 @@ nsSliderFrame::RemoveListener()
     RemoveSystemEventListener(NS_LITERAL_STRING("mousedown"), mMediator, false);
 }
 
+bool
+nsSliderFrame::ShouldScrollForEvent(nsGUIEvent* aEvent)
+{
+  switch (aEvent->message) {
+    case NS_TOUCH_START:
+    case NS_TOUCH_END:
+      return true;
+    case NS_MOUSE_BUTTON_DOWN:
+    case NS_MOUSE_BUTTON_UP: {
+      uint16_t button = static_cast<nsMouseEvent*>(aEvent)->button;
+      return (button == nsMouseEvent::eLeftButton) ||
+             (button == nsMouseEvent::eMiddleButton && gMiddlePref);
+    }
+    default:
+      return false;
+  }
+}
+
+bool
+nsSliderFrame::ShouldScrollToClickForEvent(nsGUIEvent* aEvent)
+{
+  if (!ShouldScrollForEvent(aEvent)) {
+    return false;
+  }
+
+  if (aEvent->message == NS_TOUCH_START) {
+    return GetScrollToClick();
+  }
+
+  if (aEvent->message != NS_MOUSE_BUTTON_DOWN) {
+    return false;
+  }
+
+#ifdef XP_MACOSX
+  
+  if (IsEventOverThumb(aEvent)) {
+    return false;
+  }
+#endif
+
+  nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
+  if (mouseEvent->button == nsMouseEvent::eLeftButton) {
+#ifdef XP_MACOSX
+    bool invertPref = mouseEvent->IsAlt();
+#else
+    bool invertPref = mouseEvent->IsShift();
+#endif
+    return GetScrollToClick() != invertPref;
+  }
+
+  return true;
+}
+
+bool
+nsSliderFrame::IsEventOverThumb(nsGUIEvent* aEvent)
+{
+  nsIFrame* thumbFrame = mFrames.FirstChild();
+  if (!thumbFrame) {
+    return false;
+  }
+
+  nsPoint eventPoint;
+  if (!GetEventPoint(aEvent, eventPoint)) {
+    return false;
+  }
+
+  bool isHorizontal = IsHorizontal();
+  nsRect thumbRect = thumbFrame->GetRect();
+  nscoord eventPos = isHorizontal ? eventPoint.x : eventPoint.y;
+  nscoord thumbStart = isHorizontal ? thumbRect.x : thumbRect.y;
+  nscoord thumbEnd = isHorizontal ? thumbRect.XMost() : thumbRect.YMost();
+
+  return eventPos >= thumbStart && eventPos < thumbEnd;
+}
+
 NS_IMETHODIMP
 nsSliderFrame::HandlePress(nsPresContext* aPresContext,
                            nsGUIEvent*     aEvent,
                            nsEventStatus*  aEventStatus)
 {
-  if (aEvent->message == NS_TOUCH_START && GetScrollToClick()) {
+  if (!ShouldScrollForEvent(aEvent) || ShouldScrollToClickForEvent(aEvent)) {
     return NS_OK;
   }
 
-  if (aEvent->message == NS_MOUSE_BUTTON_DOWN) {
-#ifdef XP_MACOSX
-    
-    if (((nsMouseEvent *)aEvent)->IsAlt() != GetScrollToClick()) {
-#else
-    if (((nsMouseEvent *)aEvent)->IsShift() != GetScrollToClick()) {
-#endif
-      return NS_OK;
-    }
+  if (IsEventOverThumb(aEvent)) {
+    return NS_OK;
   }
 
   nsIFrame* thumbFrame = mFrames.FirstChild();
