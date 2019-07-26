@@ -2164,6 +2164,15 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
         event = &gestureEvent;
       }
 
+      nsCOMPtr<nsIObserverService> observerService =
+        mozilla::services::GetObserverService();
+      
+      if (observerService) {
+        observerService->NotifyObservers(dataTransfer,
+                                         "on-datatransfer-available",
+                                         nullptr);
+      }
+
       
       
       
