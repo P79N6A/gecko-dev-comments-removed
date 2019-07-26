@@ -302,6 +302,7 @@ typedef union jsval_layout
             uint32_t       boo;     
             JSString       *str;
             JSObject       *obj;
+            js::gc::Cell   *cell;
             void           *ptr;
             JSWhyMagic     why;
             size_t         word;
