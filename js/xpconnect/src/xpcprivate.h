@@ -3567,6 +3567,14 @@ xpc_GetSafeJSContext()
 namespace xpc {
 
 
+bool
+Atob(JSContext *cx, unsigned argc, jsval *vp);
+
+bool
+Btoa(JSContext *cx, unsigned argc, jsval *vp);
+
+
+
 
 
 bool
