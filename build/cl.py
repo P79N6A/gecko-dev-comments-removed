@@ -6,6 +6,7 @@ import ctypes
 import os, os.path
 import subprocess
 import sys
+from mozbuild.makeutil import Makefile
 
 CL_INCLUDES_PREFIX = os.environ.get("CL_INCLUDES_PREFIX", "Note: including file:")
 
@@ -63,7 +64,9 @@ def InvokeClWithDependencyGeneration(cmdline):
     cmdline += ['-showIncludes']
     cl = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
 
-    deps = set([normcase(source).replace(os.sep, '/')])
+    mk = Makefile()
+    rule = mk.create_rule(target)
+    rule.add_dependencies([normcase(source)])
     for line in cl.stdout:
         
         
@@ -73,7 +76,7 @@ def InvokeClWithDependencyGeneration(cmdline):
             
             
             if ' ' not in dep:
-                deps.add(normcase(dep).replace(os.sep, '/'))
+                rule.add_dependencies([normcase(dep)])
         else:
             sys.stdout.write(line) 
                                    
@@ -93,12 +96,7 @@ def InvokeClWithDependencyGeneration(cmdline):
                  
 
     with open(depstarget, "w") as f:
-        f.write("%s: %s" % (target, source))
-        for dep in sorted(deps):
-            f.write(" \\\n%s" % dep)
-        f.write('\n')
-        for dep in sorted(deps):
-            f.write("%s:\n" % dep)
+        mk.dump(f)
 
 if __name__ == "__main__":
     InvokeClWithDependencyGeneration(sys.argv[1:])
