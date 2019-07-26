@@ -68,14 +68,14 @@ public:
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
 
   
-  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
+  NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
 
   
   NS_DECL_NSIDOMHTMLBODYELEMENT
 
   
   
-#define EVENT(name_, id_, type_, struct_) 
+#define EVENT(name_, id_, type_, struct_)
 #define FORWARDED_EVENT(name_, id_, type_, struct_)               \
     NS_IMETHOD GetOn##name_(JSContext *cx, jsval *vp);            \
     NS_IMETHOD SetOn##name_(JSContext *cx, const jsval &v);
