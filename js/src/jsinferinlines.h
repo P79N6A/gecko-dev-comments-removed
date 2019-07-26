@@ -94,7 +94,8 @@ namespace types {
 inline
 CompilerOutput::CompilerOutput()
   : script(NULL),
-    kindInt(Ion)
+    kindInt(Ion),
+    pendingRecompilation(false)
 {
 }
 
@@ -399,13 +400,6 @@ struct AutoEnterCompilation
         co.script = script;
         co.setKind(kind);
 
-        
-        
-        
-        
-        
-        co.pendingRecompilation = true;
-
         JS_ASSERT(!co.isValid());
         TypeCompartment &types = cx->compartment()->types;
         if (!types.constrainedOutputs) {
@@ -443,7 +437,6 @@ struct AutoEnterCompilation
 
         JS_ASSERT(info.outputIndex < cx->compartment()->types.constrainedOutputs->length());
         CompilerOutput *co = info.compilerOutput(cx);
-        co->pendingRecompilation = false;
         if (!co->isValid())
             co->invalidate();
 
