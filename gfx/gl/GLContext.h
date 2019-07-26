@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef GLCONTEXT_H_
 #define GLCONTEXT_H_
 
@@ -40,6 +41,7 @@
 #include "nsHashKeys.h"
 #include "nsRegion.h"
 #include "nsAutoPtr.h"
+#include "nsIMemoryReporter.h"
 #include "nsThreadUtils.h"
 #include "GLContextTypes.h"
 #include "GLTextureImage.h"
@@ -3444,8 +3446,24 @@ public:
     nsTArray<NamedResource> mTrackedBuffers;
     nsTArray<NamedResource> mTrackedQueries;
 #endif
+};
 
+class GfxTexturesReporter MOZ_FINAL : public MemoryReporterBase
+{
 public:
+    GfxTexturesReporter()
+      : MemoryReporterBase("gfx-textures", KIND_OTHER, UNITS_BYTES,
+                           "Memory used for storing GL textures.")
+    {
+#ifdef DEBUG
+        
+        
+        static bool hasRun = false;
+        MOZ_ASSERT(!hasRun);
+        hasRun = true;
+#endif
+    }
+
     enum MemoryUse {
         
         MemoryAllocated,
@@ -3455,10 +3473,13 @@ public:
 
     
     
-    static void UpdateTextureMemoryUsage(MemoryUse action,
-                                         GLenum format,
-                                         GLenum type,
-                                         uint16_t tileSize);
+    static void UpdateAmount(MemoryUse action, GLenum format, GLenum type,
+                             uint16_t tileSize);
+
+private:
+    int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+
+    static int64_t sAmount;
 };
 
 inline bool
