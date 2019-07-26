@@ -35,8 +35,13 @@ registerCleanupFunction(() => {
 });
 
 
+
+
+
+
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
+  Services.prefs.clearUserPref("devtools.defaultColorUnit");
 });
 
 
@@ -477,7 +482,7 @@ function hasSideBarTab(inspector, id) {
 function getRuleViewRule(view, selectorText) {
   let rule;
   for (let r of view.doc.querySelectorAll(".ruleview-rule")) {
-    let selector = r.querySelector(".ruleview-selector-matched");
+    let selector = r.querySelector(".ruleview-selector, .ruleview-selector-matched");
     if (selector && selector.textContent === selectorText) {
       rule = r;
       break;
@@ -513,6 +518,20 @@ function getRuleViewProperty(view, selectorText, propertyName) {
     }
   }
   return prop;
+}
+
+
+
+
+
+
+
+
+
+
+function getRuleViewPropertyValue(view, selectorText, propertyName) {
+  return getRuleViewProperty(view, selectorText, propertyName)
+    .valueSpan.textContent;
 }
 
 
@@ -653,6 +672,18 @@ function getComputedViewProperty(view, name) {
     }
   }
   return prop;
+}
+
+
+
+
+
+
+
+
+function getComputedViewPropertyValue(view, selectorText, propertyName) {
+  return getComputedViewProperty(view, selectorText, propertyName)
+    .valueSpan.textContent;
 }
 
 
