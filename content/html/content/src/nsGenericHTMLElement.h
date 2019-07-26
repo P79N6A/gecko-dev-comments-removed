@@ -40,6 +40,7 @@ class nsIDOMHTMLCollection;
 class nsDOMSettableTokenList;
 
 namespace mozilla {
+class EventChainVisitor;
 class EventListenerManager;
 namespace dom {
 class HTMLFormElement;
@@ -588,7 +589,8 @@ public:
 
 
 
-  bool CheckHandleEventForAnchorsPreconditions(nsEventChainVisitor& aVisitor);
+  bool CheckHandleEventForAnchorsPreconditions(
+         mozilla::EventChainVisitor& aVisitor);
   nsresult PreHandleEventForAnchors(nsEventChainPreVisitor& aVisitor);
   nsresult PostHandleEventForAnchors(nsEventChainPostVisitor& aVisitor);
   bool IsHTMLLink(nsIURI** aURI) const;

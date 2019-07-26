@@ -102,6 +102,7 @@ enum {
 ASSERT_NODE_FLAGS_SPACE(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET);
 
 namespace mozilla {
+class EventChainVisitor;
 class EventListenerManager;
 
 namespace dom {
@@ -1105,8 +1106,8 @@ protected:
 
 
 
-  bool CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
-                                              nsIURI** aURI) const;
+  bool CheckHandleEventForLinksPrecondition(EventChainVisitor& aVisitor,
+                                            nsIURI** aURI) const;
 
   
 

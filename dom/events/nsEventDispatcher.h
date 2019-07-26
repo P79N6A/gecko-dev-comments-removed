@@ -23,8 +23,7 @@ template<class E> class nsCOMArray;
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
 
 
 
@@ -46,15 +45,20 @@ class EventTarget;
 
 
 
-class nsEventChainVisitor {
+class EventChainVisitor
+{
 public:
-  nsEventChainVisitor(nsPresContext* aPresContext,
-                      mozilla::WidgetEvent* aEvent,
-                      nsIDOMEvent* aDOMEvent,
-                      nsEventStatus aEventStatus = nsEventStatus_eIgnore)
-  : mPresContext(aPresContext), mEvent(aEvent), mDOMEvent(aDOMEvent),
-    mEventStatus(aEventStatus), mItemFlags(0)
-  {}
+  EventChainVisitor(nsPresContext* aPresContext,
+                    WidgetEvent* aEvent,
+                    nsIDOMEvent* aDOMEvent,
+                    nsEventStatus aEventStatus = nsEventStatus_eIgnore)
+    : mPresContext(aPresContext)
+    , mEvent(aEvent)
+    , mDOMEvent(aDOMEvent)
+    , mEventStatus(aEventStatus)
+    , mItemFlags(0)
+  {
+  }
 
   
 
@@ -64,7 +68,7 @@ public:
   
 
 
-  mozilla::WidgetEvent* const mEvent;
+  WidgetEvent* const mEvent;
 
   
 
@@ -101,14 +105,17 @@ public:
   nsCOMPtr<nsISupports> mItemData;
 };
 
-class nsEventChainPreVisitor : public nsEventChainVisitor {
+} 
+
+class nsEventChainPreVisitor : public mozilla::EventChainVisitor
+{
 public:
   nsEventChainPreVisitor(nsPresContext* aPresContext,
                          mozilla::WidgetEvent* aEvent,
                          nsIDOMEvent* aDOMEvent,
                          nsEventStatus aEventStatus,
                          bool aIsInAnon)
-  : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
+  : mozilla::EventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
     mCanHandle(true), mAutomaticChromeDispatch(true),
     mForceContentDispatch(false), mRelatedTargetIsInAnon(false),
     mOriginalTargetIsInAnon(aIsInAnon), mWantsWillHandleEvent(false),
@@ -184,12 +191,14 @@ public:
   mozilla::dom::EventTarget* mEventTargetAtParent;
 };
 
-class nsEventChainPostVisitor : public nsEventChainVisitor {
+class nsEventChainPostVisitor : public mozilla::EventChainVisitor
+{
 public:
-  nsEventChainPostVisitor(nsEventChainVisitor& aOther)
-  : nsEventChainVisitor(aOther.mPresContext, aOther.mEvent, aOther.mDOMEvent,
-                        aOther.mEventStatus)
-  {}
+  nsEventChainPostVisitor(mozilla::EventChainVisitor& aOther)
+  : mozilla::EventChainVisitor(aOther.mPresContext, aOther.mEvent,
+                               aOther.mDOMEvent, aOther.mEventStatus)
+  {
+  }
 };
 
 
