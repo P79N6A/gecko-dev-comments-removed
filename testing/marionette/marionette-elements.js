@@ -41,7 +41,6 @@ function ElementException(msg, num, stack) {
   this.stack = stack;
 }
 
-
 this.ElementManager = function ElementManager(notSupported) {
   this.searchTimeout = 0;
   this.seenItems = {};
@@ -72,8 +71,15 @@ ElementManager.prototype = {
 
   addToKnownElements: function EM_addToKnownElements(element) {
     for (let i in this.seenItems) {
-      if (XPCNativeWrapper(this.seenItems[i].get()) == XPCNativeWrapper(element)) {
-        return i;
+      let foundEl = this.seenItems[i].get();
+      if (foundEl) {
+        if (XPCNativeWrapper(foundEl) == XPCNativeWrapper(element)) {
+          return i;
+        }
+      }
+      else {
+        
+        delete this.seenItems[i];
       }
     }
     var id = uuidGen.generateUUID().toString();
@@ -99,7 +105,7 @@ ElementManager.prototype = {
     }
     el = el.get();
     
-    if (!(XPCNativeWrapper(el).ownerDocument == XPCNativeWrapper(win).document)) {
+    if (!el || !(XPCNativeWrapper(el).ownerDocument == XPCNativeWrapper(win).document)) {
       throw new ElementException("Stale element reference", 10, null);
     }
     return el;
@@ -137,11 +143,6 @@ ElementManager.prototype = {
           result = null;
         }
         else if (val.nodeType == 1) {
-          for(let i in this.seenItems) {
-            if (this.seenItems[i].get() == val) {
-              result = {'ELEMENT': i};
-            }
-          }
           result = {'ELEMENT': this.addToKnownElements(val)};
         }
         else {
