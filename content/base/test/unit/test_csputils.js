@@ -590,6 +590,79 @@ test(function test_CSP_ReportURI_parsing() {
     });
 
 test(
+     function test_bug634778_duplicateDirective_Detection() {
+      var cspr;
+      var SD = CSPRep.SRC_DIRECTIVES;
+      var self = "http://self.com:34";
+      var firstDomain = "http://first.com";
+      var secondDomain = "http://second.com";
+      var thirdDomain = "http://third.com";
+
+      
+      cspr = CSPRep.fromString("default-src " + self + "; default-src " +
+                              firstDomain, URI(self));
+      do_check_true(cspr.permits(self, SD.DEFAULT_SRC));
+      do_check_false(cspr.permits(firstDomain, SD.DEFAULT_SRC));
+
+      
+      cspr = CSPRep.fromString("allow " + self + "; allow " + firstDomain,
+                              URI(self));
+      do_check_true(cspr.permits(self, SD.DEFAULT_SRC));
+      do_check_false(cspr.permits(firstDomain, SD.DEFAULT_SRC));
+
+      
+      cspr = CSPRep.fromString("allow " + self + "; default-src " + firstDomain,
+                              URI(self));
+      do_check_true(cspr.permits(self, SD.DEFAULT_SRC));
+      do_check_false(cspr.permits(firstDomain, SD.DEFAULT_SRC));
+
+      
+      cspr = CSPRep.fromString("allow *; report-uri " + self + "/report.py; report-uri "
+                              + firstDomain + "/report.py", URI(self));
+      parsedURIs = cspr.getReportURIs().split(/\s+/);
+      do_check_in_array(parsedURIs, self + "/report.py");
+      do_check_eq(parsedURIs.length, 1);
+
+      
+      cspr = CSPRep.fromString("img-src " + firstDomain + "; default-src " + self
+                               + "; img-src " + secondDomain, URI(self));
+      do_check_true(cspr.permits(firstDomain, SD.IMG_SRC));
+      do_check_false(cspr.permits(secondDomain, SD.IMG_SRC));
+      do_check_true(cspr.permits(self, SD.DEFAULT_SRC));
+
+      
+      cspr = CSPRep.fromString("img-src " + firstDomain + "; default-src " + self
+                              + "; img-src " + secondDomain, URI(self));
+      do_check_true(cspr.permits(firstDomain, SD.IMG_SRC));
+      do_check_false(cspr.permits(secondDomain, SD.IMG_SRC));
+
+      
+      cspr = CSPRep.fromString("default-src " + self + "; img-src " + firstDomain
+                              + "; img-src " + secondDomain, URI(self));
+      do_check_true(cspr.permits(firstDomain, SD.IMG_SRC));
+      do_check_false(cspr.permits(secondDomain, SD.IMG_SRC));
+
+      
+      cspr = CSPRep.fromString("default-src " + self + "; img-src " + firstDomain
+                              + "; img-src " + secondDomain + "; img-src "
+                              + thirdDomain, URI(self));
+      do_check_true(cspr.permits(firstDomain, SD.IMG_SRC));
+      do_check_false(cspr.permits(secondDomain, SD.IMG_SRC));
+      do_check_false(cspr.permits(thirdDomain, SD.IMG_SRC));
+
+      
+      cspr = CSPRep.fromString("default-src " + self + "; style-src "
+                               + firstDomain + "; media-src " + firstDomain
+                               + "; media-src " + secondDomain + "; style-src "
+                               + thirdDomain, URI(self));
+      do_check_true(cspr.permits(self, SD.DEFAULT_SRC));
+      do_check_true(cspr.permits(firstDomain, SD.STYLE_SRC));
+      do_check_true(cspr.permits(firstDomain, SD.MEDIA_SRC));
+      do_check_false(cspr.permits(secondDomain, SD.MEDIA_SRC));
+      do_check_false(cspr.permits(thirdDomain, SD.STYLE_SRC));
+    });
+
+test(
     function test_bug672961_withNonstandardSelfPort() {
       
 
