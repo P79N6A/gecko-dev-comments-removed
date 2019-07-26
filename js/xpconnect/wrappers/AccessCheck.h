@@ -41,6 +41,21 @@ struct Policy {
 };
 
 
+struct Opaque : public Policy {
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
+        return act == js::Wrapper::CALL;
+    }
+    static bool deny(JSContext *cx, jsid id, js::Wrapper::Action act) {
+        AccessCheck::deny(cx, id);
+        return false;
+    }
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    {
+        return false;
+    }
+};
+
+
 
 struct OnlyIfSubjectIsSystem : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
