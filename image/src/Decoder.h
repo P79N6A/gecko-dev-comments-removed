@@ -132,6 +132,8 @@ public:
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
 
+  ImageMetadata& GetImageMetadata() { return mImageMetadata; }
+
 protected:
 
   

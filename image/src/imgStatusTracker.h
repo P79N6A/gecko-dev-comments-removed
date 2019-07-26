@@ -92,6 +92,11 @@ public:
   
   
   
+  void SyncNotifyDecodeState();
+
+  
+  
+  
   void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus);
 
   
@@ -161,6 +166,8 @@ public:
   void OnDataAvailable();
   void OnStopRequest(bool aLastPart, nsresult aStatus);
   void OnDiscard();
+  void FrameChanged(const nsIntRect* aDirtyRect);
+  void OnUnlockedDraw();
 
   
   
@@ -181,6 +188,9 @@ public:
   inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
   imgStatusTracker* CloneForRecording();
+  void SyncAndSyncNotifyDifference(imgStatusTracker* other);
+
+  nsIntRect GetInvalidRect() const { return mInvalidRect; }
 
 private:
   friend class imgStatusNotifyRunnable;
@@ -191,11 +201,9 @@ private:
 
   void FireFailureNotification();
 
-  static void SyncNotifyState(imgRequestProxy* proxy, bool hasImage,
-                              uint32_t state, nsIntRect& dirtyRect,
-                              bool hadLastPart);
-
-  void SyncAndSyncNotifyDifference(imgStatusTracker* other);
+  static void SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
+                              bool hasImage, uint32_t state,
+                              nsIntRect& dirtyRect, bool hadLastPart);
 
   nsCOMPtr<nsIRunnable> mRequestRunnable;
 

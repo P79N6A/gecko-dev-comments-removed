@@ -334,6 +334,15 @@ public:
   };
 
 private:
+  imgStatusTracker& CurrentStatusTracker()
+  {
+    if (mDecodeRequest) {
+      return *mDecodeRequest->mStatusTracker;
+    } else {
+      return *mStatusTracker;
+    }
+  }
+
   struct Anim
   {
     
@@ -381,15 +390,27 @@ private:
   {
     DecodeRequest(RasterImage* aImage)
       : mImage(aImage)
+      , mBytesToDecode(0)
+      , mChunkCount(0)
       , mIsASAP(false)
     {
+      mStatusTracker = aImage->mStatusTracker->CloneForRecording();
     }
 
+    
+    
+    nsRefPtr<imgStatusTracker> mStatusTracker;
+
     RasterImage* mImage;
+
+    uint32_t mBytesToDecode;
 
     
 
     TimeDuration mDecodeTime;
+
+    
+    int32_t mChunkCount;
 
     
     bool mIsASAP;
@@ -459,6 +480,8 @@ private:
 
     NS_IMETHOD Run();
 
+    virtual ~DecodeWorker();
+
   private: 
     static StaticRefPtr<DecodeWorker> sSingleton;
 
@@ -472,7 +495,7 @@ private:
 
     
 
-    void AddDecodeRequest(DecodeRequest* aRequest);
+    void AddDecodeRequest(DecodeRequest* aRequest, uint32_t bytesToDecode);
 
     enum DecodeType {
       DECODE_TYPE_NORMAL,
@@ -481,8 +504,10 @@ private:
 
     
 
+
     nsresult DecodeSomeOfImage(RasterImage* aImg,
-                               DecodeType aDecodeType = DECODE_TYPE_NORMAL);
+                               DecodeType aDecodeType = DECODE_TYPE_NORMAL,
+                               uint32_t bytesToDecode = 0);
 
     
 
@@ -497,6 +522,33 @@ private:
 
     bool mPendingInEventLoop;
   };
+
+  class DecodeDoneWorker : public nsRunnable
+  {
+  public:
+    
+
+
+
+
+
+
+    static void DidSomeDecoding(RasterImage* image, DecodeRequest* request);
+
+    NS_IMETHOD Run();
+
+  private: 
+    DecodeDoneWorker(RasterImage* image, DecodeRequest* request);
+
+  private: 
+
+    nsRefPtr<RasterImage> mImage;
+    nsRefPtr<DecodeRequest> mRequest;
+  };
+
+  static void FinishedSomeDecoding(RasterImage* image,
+                                   eShutdownIntent intent = eShutdownIntent_Done,
+                                   DecodeRequest* request = nullptr);
 
   void DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                     gfxContext *aContext,
@@ -567,7 +619,7 @@ private:
       LockImage();
 
       
-      mStatusTracker->RecordImageIsAnimated();
+      CurrentStatusTracker().RecordImageIsAnimated();
     }
   }
 

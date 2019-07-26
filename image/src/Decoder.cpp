@@ -135,6 +135,13 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
       }
     }
   }
+
+  
+  mImageMetadata.SetOnImage(&mImage);
+
+  if (mDecodeDone) {
+    mImage.DecodingComplete();
+  }
 }
 
 void
@@ -154,9 +161,6 @@ Decoder::FlushInvalidations()
   
   if (mInvalidRect.IsEmpty())
     return;
-
-  
-  mImage.FrameUpdated(mFrameCount - 1, mInvalidRect);
 
   if (mObserver) {
 #ifdef XP_MACOSX
@@ -285,15 +289,9 @@ Decoder::PostDecodeDone(int32_t aLoopCount )
   NS_ABORT_IF_FALSE(!mDecodeDone, "Decode already done!");
   mDecodeDone = true;
 
-  
   mImageMetadata.SetLoopCount(aLoopCount);
   mImageMetadata.SetIsNonPremultiplied(GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA);
 
-  
-  mImageMetadata.SetOnImage(&mImage);
-
-  
-  mImage.DecodingComplete();
   if (mObserver) {
     mObserver->OnStopDecode(NS_OK);
   }
