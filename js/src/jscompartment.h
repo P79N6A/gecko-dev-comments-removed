@@ -606,6 +606,84 @@ class CompartmentsIter {
     JSCompartment *operator->() const { return get(); }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct WrapperValue
+{
+    
+
+
+
+
+
+    explicit WrapperValue(const WrapperMap::Ptr &ptr)
+      : value(*ptr->value.unsafeGet())
+    {}
+
+    explicit WrapperValue(const WrapperMap::Enum &e)
+      : value(*e.front().value.unsafeGet())
+    {}
+
+    Value &get() { return value; }
+    Value get() const { return value; }
+    operator const Value &() const { return value; }
+    JSObject &toObject() const { return value.toObject(); }
+
+  private:
+    Value value;
+};
+
+class AutoWrapperVector : public AutoVectorRooter<WrapperValue>
+{
+  public:
+    explicit AutoWrapperVector(JSContext *cx
+                               JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : AutoVectorRooter<WrapperValue>(cx, WRAPVECTOR)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoWrapperRooter : private AutoGCRooter {
+  public:
+    AutoWrapperRooter(JSContext *cx, WrapperValue v
+                      JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, WRAPPER), value(v)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    operator JSObject *() const {
+        return value.get().toObjectOrNull();
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+  private:
+    WrapperValue value;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 } 
 
-#endif 
+#endif
