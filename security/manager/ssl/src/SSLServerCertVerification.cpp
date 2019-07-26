@@ -909,9 +909,20 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert,
       
       PRErrorCode ocspErrorCode = PR_GetError();
       if (ocspErrorCode != SEC_ERROR_OCSP_OLD_RESPONSE) {
+        
+        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 4);
         return rv;
+      } else {
+        
+        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
       }
+    } else {
+      
+      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 1);
     }
+  } else {
+    
+    Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 2);
   }
 
   CERTCertList *verifyCertChain = nullptr;
