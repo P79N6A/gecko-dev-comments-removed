@@ -8,6 +8,7 @@
 #include "nsISupports.h"
 #include "nsCoord.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/StandardInteger.h"
 
 class nsTableCellFrame;
 class nsCellMap;
@@ -136,10 +137,9 @@ protected:
   
   
   
-  
   union {
     nsTableCellFrame* mOrigCell;
-    unsigned long     mBits;
+    uintptr_t         mBits;
   };
 };
 
