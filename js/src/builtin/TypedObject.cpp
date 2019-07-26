@@ -1484,16 +1484,6 @@ TypedObject::createUnattachedWithClass(JSContext *cx,
     obj->initReservedSlot(JS_TYPEDOBJ_SLOT_NEXT_VIEW, PrivateValue(nullptr));
     obj->initReservedSlot(JS_TYPEDOBJ_SLOT_LENGTH, Int32Value(length));
 
-    
-    
-    if (!type->is<SimpleTypeDescr>()) { 
-        RootedTypeObject typeObj(cx, obj->getType(cx));
-        if (typeObj) {
-            if (!typeObj->addTypedObjectAddendum(cx, type))
-                return nullptr;
-        }
-    }
-
     return static_cast<TypedObject*>(&*obj);
 }
 
