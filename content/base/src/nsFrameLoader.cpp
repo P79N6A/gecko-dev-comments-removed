@@ -28,6 +28,8 @@
 #include "nsIWebNavigation.h"
 #include "nsIWebProgress.h"
 #include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
+#include "nsIDocShellTreeNode.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIDOMApplicationRegistry.h"
@@ -1029,9 +1031,12 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   
   
   
+  nsCOMPtr<nsIDocShellTreeItem> ourTreeItem = do_QueryInterface(ourDocshell);
+  nsCOMPtr<nsIDocShellTreeItem> otherTreeItem =
+    do_QueryInterface(otherDocshell);
   nsCOMPtr<nsIDocShellTreeItem> ourRootTreeItem, otherRootTreeItem;
-  ourDocshell->GetSameTypeRootTreeItem(getter_AddRefs(ourRootTreeItem));
-  otherDocshell->GetSameTypeRootTreeItem(getter_AddRefs(otherRootTreeItem));
+  ourTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(ourRootTreeItem));
+  otherTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(otherRootTreeItem));
   nsCOMPtr<nsIWebNavigation> ourRootWebnav =
     do_QueryInterface(ourRootTreeItem);
   nsCOMPtr<nsIWebNavigation> otherRootWebnav =
@@ -1046,7 +1051,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   ourRootWebnav->GetSessionHistory(getter_AddRefs(ourHistory));
   otherRootWebnav->GetSessionHistory(getter_AddRefs(otherHistory));
 
-  if ((ourRootTreeItem != ourDocshell || otherRootTreeItem != otherDocshell) &&
+  if ((ourRootTreeItem != ourTreeItem || otherRootTreeItem != otherTreeItem) &&
       (ourHistory || otherHistory)) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1056,8 +1061,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   
   int32_t ourType = nsIDocShellTreeItem::typeChrome;
   int32_t otherType = nsIDocShellTreeItem::typeChrome;
-  ourDocshell->GetItemType(&ourType);
-  otherDocshell->GetItemType(&otherType);
+  ourTreeItem->GetItemType(&ourType);
+  otherTreeItem->GetItemType(&otherType);
   if (ourType != otherType) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1067,21 +1072,21 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   
   
   if (ourType != nsIDocShellTreeItem::typeContent &&
-      (!AllDescendantsOfType(ourDocshell, ourType) ||
-       !AllDescendantsOfType(otherDocshell, otherType))) {
+      (!AllDescendantsOfType(ourTreeItem, ourType) ||
+       !AllDescendantsOfType(otherTreeItem, otherType))) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   
   
   
   nsCOMPtr<nsIDocShellTreeOwner> ourOwner, otherOwner;
-  ourDocshell->GetTreeOwner(getter_AddRefs(ourOwner));
-  otherDocshell->GetTreeOwner(getter_AddRefs(otherOwner));
+  ourTreeItem->GetTreeOwner(getter_AddRefs(ourOwner));
+  otherTreeItem->GetTreeOwner(getter_AddRefs(otherOwner));
   
 
   nsCOMPtr<nsIDocShellTreeItem> ourParentItem, otherParentItem;
-  ourDocshell->GetParent(getter_AddRefs(ourParentItem));
-  otherDocshell->GetParent(getter_AddRefs(otherParentItem));
+  ourTreeItem->GetParent(getter_AddRefs(ourParentItem));
+  otherTreeItem->GetParent(getter_AddRefs(otherParentItem));
   if (!ourParentItem || !otherParentItem) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1159,25 +1164,25 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   
   
   
-  FirePageShowEvent(ourDocshell, ourChromeEventHandler, false);
-  FirePageShowEvent(otherDocshell, otherChromeEventHandler, false);
-  FirePageHideEvent(ourDocshell, ourChromeEventHandler);
-  FirePageHideEvent(otherDocshell, otherChromeEventHandler);
+  FirePageShowEvent(ourTreeItem, ourChromeEventHandler, false);
+  FirePageShowEvent(otherTreeItem, otherChromeEventHandler, false);
+  FirePageHideEvent(ourTreeItem, ourChromeEventHandler);
+  FirePageHideEvent(otherTreeItem, otherChromeEventHandler);
   
   nsIFrame* ourFrame = ourContent->GetPrimaryFrame();
   nsIFrame* otherFrame = otherContent->GetPrimaryFrame();
   if (!ourFrame || !otherFrame) {
     mInSwap = aOther->mInSwap = false;
-    FirePageShowEvent(ourDocshell, ourChromeEventHandler, true);
-    FirePageShowEvent(otherDocshell, otherChromeEventHandler, true);
+    FirePageShowEvent(ourTreeItem, ourChromeEventHandler, true);
+    FirePageShowEvent(otherTreeItem, otherChromeEventHandler, true);
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   nsSubDocumentFrame* ourFrameFrame = do_QueryFrame(ourFrame);
   if (!ourFrameFrame) {
     mInSwap = aOther->mInSwap = false;
-    FirePageShowEvent(ourDocshell, ourChromeEventHandler, true);
-    FirePageShowEvent(otherDocshell, otherChromeEventHandler, true);
+    FirePageShowEvent(ourTreeItem, ourChromeEventHandler, true);
+    FirePageShowEvent(otherTreeItem, otherChromeEventHandler, true);
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1185,31 +1190,31 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   rv = ourFrameFrame->BeginSwapDocShells(otherFrame);
   if (NS_FAILED(rv)) {
     mInSwap = aOther->mInSwap = false;
-    FirePageShowEvent(ourDocshell, ourChromeEventHandler, true);
-    FirePageShowEvent(otherDocshell, otherChromeEventHandler, true);
+    FirePageShowEvent(ourTreeItem, ourChromeEventHandler, true);
+    FirePageShowEvent(otherTreeItem, otherChromeEventHandler, true);
     return rv;
   }
 
   
   
-  ourParentItem->RemoveChild(ourDocshell);
-  otherParentItem->RemoveChild(otherDocshell);
+  ourParentItem->RemoveChild(ourTreeItem);
+  otherParentItem->RemoveChild(otherTreeItem);
   if (ourType == nsIDocShellTreeItem::typeContent) {
-    ourOwner->ContentShellRemoved(ourDocshell);
-    otherOwner->ContentShellRemoved(otherDocshell);
+    ourOwner->ContentShellRemoved(ourTreeItem);
+    otherOwner->ContentShellRemoved(otherTreeItem);
   }
   
-  ourParentItem->AddChild(otherDocshell);
-  otherParentItem->AddChild(ourDocshell);
+  ourParentItem->AddChild(otherTreeItem);
+  otherParentItem->AddChild(ourTreeItem);
 
   
   ourDocshell->SetChromeEventHandler(otherChromeEventHandler);
   otherDocshell->SetChromeEventHandler(ourChromeEventHandler);
   
   
-  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(ourDocshell, otherOwner,
+  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(ourTreeItem, otherOwner,
     ourType == nsIDocShellTreeItem::typeContent ? otherChromeEventHandler : nullptr);
-  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(otherDocshell, ourOwner,
+  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(otherTreeItem, ourOwner,
     ourType == nsIDocShellTreeItem::typeContent ? ourChromeEventHandler : nullptr);
 
   
@@ -1218,8 +1223,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   SetOwnerContent(otherContent);
   aOther->SetOwnerContent(ourContent);
 
-  AddTreeItemToTreeOwner(ourDocshell, otherOwner, otherParentType, nullptr);
-  aOther->AddTreeItemToTreeOwner(otherDocshell, ourOwner, ourParentType,
+  AddTreeItemToTreeOwner(ourTreeItem, otherOwner, otherParentType, nullptr);
+  aOther->AddTreeItemToTreeOwner(otherTreeItem, ourOwner, ourParentType,
                                  nullptr);
 
   
@@ -1303,8 +1308,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   ourParentDocument->FlushPendingNotifications(Flush_Layout);
   otherParentDocument->FlushPendingNotifications(Flush_Layout);
 
-  FirePageShowEvent(ourDocshell, otherChromeEventHandler, true);
-  FirePageShowEvent(otherDocshell, ourChromeEventHandler, true);
+  FirePageShowEvent(ourTreeItem, otherChromeEventHandler, true);
+  FirePageShowEvent(otherTreeItem, ourChromeEventHandler, true);
 
   mInSwap = aOther->mInSwap = false;
   return NS_OK;
@@ -1356,12 +1361,13 @@ nsFrameLoader::Destroy()
 
   
   if (mIsTopLevelContent) {
-    if (mDocShell) {
+    nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(mDocShell);
+    if (ourItem) {
       nsCOMPtr<nsIDocShellTreeItem> parentItem;
-      mDocShell->GetParent(getter_AddRefs(parentItem));
+      ourItem->GetParent(getter_AddRefs(parentItem));
       nsCOMPtr<nsIDocShellTreeOwner> owner = do_GetInterface(parentItem);
       if (owner) {
-        owner->ContentShellRemoved(mDocShell);
+        owner->ContentShellRemoved(ourItem);
       }
     }
   }
@@ -1564,7 +1570,8 @@ nsFrameLoader::MaybeCreateDocShell()
   }
 
   
-  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
+  NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
   nsAutoString frameName;
 
   int32_t namespaceID = mOwnerContent->GetNameSpaceID();
@@ -1580,7 +1587,7 @@ nsFrameLoader::MaybeCreateDocShell()
   }
 
   if (!frameName.IsEmpty()) {
-    mDocShell->SetName(frameName.get());
+    docShellAsItem->SetName(frameName.get());
   }
 
   
@@ -1604,7 +1611,7 @@ nsFrameLoader::MaybeCreateDocShell()
     parentAsItem->GetTreeOwner(getter_AddRefs(parentTreeOwner));
     NS_ENSURE_STATE(parentTreeOwner);
     mIsTopLevelContent =
-      AddTreeItemToTreeOwner(mDocShell, parentTreeOwner, parentType,
+      AddTreeItemToTreeOwner(docShellAsItem, parentTreeOwner, parentType,
                              parentAsNode);
 
     
@@ -1728,16 +1735,19 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
     return NS_ERROR_FAILURE;
   }
 
+  nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
+  NS_ASSERTION(treeItem, "docshell must be a treeitem!");
+
   
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  mDocShell->GetTreeOwner(getter_AddRefs(treeOwner));
+  treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
   NS_WARN_IF_FALSE(treeOwner,
                    "Trying to load a new url to a docshell without owner!");
   NS_ENSURE_STATE(treeOwner);
   
   
   int32_t ourType;
-  rv = mDocShell->GetItemType(&ourType);
+  rv = treeItem->GetItemType(&ourType);
   if (NS_SUCCEEDED(rv) && ourType != nsIDocShellTreeItem::typeContent) {
     
     
@@ -1747,7 +1757,7 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   
   
   nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-  mDocShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
+  treeItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
   int32_t depth = 0;
   while (parentAsItem) {
     ++depth;
@@ -1766,7 +1776,7 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
   
   
   int32_t matchCount = 0;
-  mDocShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
+  treeItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
   while (parentAsItem) {
     
     nsCOMPtr<nsIWebNavigation> parentAsNav(do_QueryInterface(parentAsItem));
@@ -2462,12 +2472,14 @@ nsFrameLoader::AttributeChanged(nsIDocument* aDocument,
   
   
   
-  if (!mDocShell) {
+
+  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
+  if (!docShellAsItem) {
     return;
   }
 
   nsCOMPtr<nsIDocShellTreeItem> parentItem;
-  mDocShell->GetParent(getter_AddRefs(parentItem));
+  docShellAsItem->GetParent(getter_AddRefs(parentItem));
   if (!parentItem) {
     return;
   }
@@ -2495,18 +2507,18 @@ nsFrameLoader::AttributeChanged(nsIDocument* aDocument,
   if (!is_primary) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
-      pm->HidePopupsInDocShell(mDocShell);
+      pm->HidePopupsInDocShell(docShellAsItem);
   }
 #endif
 
-  parentTreeOwner->ContentShellRemoved(mDocShell);
+  parentTreeOwner->ContentShellRemoved(docShellAsItem);
   if (value.LowerCaseEqualsLiteral("content") ||
       StringBeginsWith(value, NS_LITERAL_STRING("content-"),
                        nsCaseInsensitiveStringComparator())) {
     bool is_targetable = is_primary ||
       value.LowerCaseEqualsLiteral("content-targetable");
 
-    parentTreeOwner->ContentShellAdded(mDocShell, is_primary,
+    parentTreeOwner->ContentShellAdded(docShellAsItem, is_primary,
                                        is_targetable, value);
   }
 }
