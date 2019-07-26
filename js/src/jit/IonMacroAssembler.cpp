@@ -591,14 +591,14 @@ MacroAssembler::newGCThing(Register result, Register temp, JSObject *templateObj
 
 void
 MacroAssembler::createGCObject(Register obj, Register temp, JSObject *templateObj,
-                               gc::InitialHeap initialHeap, Label *fail)
+                               gc::InitialHeap initialHeap, Label *fail, bool initFixedSlots)
 {
     uint32_t nDynamicSlots = templateObj->numDynamicSlots();
     gc::AllocKind allocKind = templateObj->tenuredGetAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
 
     allocateObject(obj, temp, allocKind, nDynamicSlots, initialHeap, fail);
-    initGCThing(obj, temp, templateObj);
+    initGCThing(obj, temp, templateObj, initFixedSlots);
 }
 
 
@@ -742,7 +742,8 @@ FindStartOfUndefinedSlots(JSObject *templateObj, uint32_t nslots)
 }
 
 void
-MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj)
+MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj,
+                            bool initFixedSlots)
 {
     
     
@@ -750,7 +751,7 @@ MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj)
     if (nslots == 0)
         return;
 
-    uint32_t nfixed = Min(templateObj->numFixedSlots(), nslots);
+    uint32_t nfixed = templateObj->numUsedFixedSlots();
     uint32_t ndynamic = templateObj->numDynamicSlots();
 
     
@@ -767,8 +768,10 @@ MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj)
     copySlotsFromTemplate(obj, templateObj, 0, startOfUndefined);
 
     
-    fillSlotsWithUndefined(Address(obj, JSObject::getFixedSlotOffset(startOfUndefined)), slots,
-                           startOfUndefined, nfixed);
+    if (initFixedSlots) {
+        fillSlotsWithUndefined(Address(obj, JSObject::getFixedSlotOffset(startOfUndefined)), slots,
+                               startOfUndefined, nfixed);
+    }
 
     if (ndynamic) {
         
@@ -781,7 +784,8 @@ MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj)
 }
 
 void
-MacroAssembler::initGCThing(Register obj, Register slots, JSObject *templateObj)
+MacroAssembler::initGCThing(Register obj, Register slots, JSObject *templateObj,
+                            bool initFixedSlots)
 {
     
 
@@ -818,7 +822,7 @@ MacroAssembler::initGCThing(Register obj, Register slots, JSObject *templateObj)
     } else {
         storePtr(ImmPtr(emptyObjectElements), Address(obj, JSObject::offsetOfElements()));
 
-        initGCSlots(obj, slots, templateObj);
+        initGCSlots(obj, slots, templateObj, initFixedSlots);
 
         if (templateObj->hasPrivate()) {
             uint32_t nfixed = templateObj->numFixedSlots();

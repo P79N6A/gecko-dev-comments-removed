@@ -9,6 +9,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/MathAlgorithms.h"
 
 #include "jslibmath.h"
 #include "jsmath.h"
@@ -3612,6 +3613,90 @@ CodeGenerator::visitNewObjectVMCall(LNewObject *lir)
     return true;
 }
 
+static bool
+ShouldInitFixedSlots(LInstruction *lir, JSObject *templateObj)
+{
+    
+    
+    
+    
+
+    uint32_t nfixed = templateObj->numUsedFixedSlots();
+    if (nfixed == 0)
+        return false;
+
+    
+    
+    
+    for (uint32_t slot = 0; slot < nfixed; slot++) {
+        if (!templateObj->getSlot(slot).isUndefined())
+            return true;
+    }
+
+    
+    
+    MOZ_ASSERT(nfixed <= JSObject::MAX_FIXED_SLOTS);
+    static_assert(JSObject::MAX_FIXED_SLOTS <= 32, "Slot bits must fit in 32 bits");
+    uint32_t initializedSlots = 0;
+    uint32_t numInitialized = 0;
+
+    MInstruction *allocMir = lir->mirRaw()->toInstruction();
+    MBasicBlock *block = allocMir->block();
+
+    
+    MInstructionIterator iter = block->begin(allocMir);
+    MOZ_ASSERT(*iter == allocMir);
+    iter++;
+
+    while (true) {
+        for (; iter != block->end(); iter++) {
+            if (iter->isNop() || iter->isConstant() || iter->isPostWriteBarrier()) {
+                
+                continue;
+            }
+
+            if (iter->isStoreFixedSlot()) {
+                MStoreFixedSlot *store = iter->toStoreFixedSlot();
+                if (store->object() != allocMir)
+                    return true;
+
+                
+                
+                
+                
+                store->setNeedsBarrier(false);
+
+                uint32_t slot = store->slot();
+                MOZ_ASSERT(slot < nfixed);
+                if ((initializedSlots & (1 << slot)) == 0) {
+                    numInitialized++;
+                    initializedSlots |= (1 << slot);
+
+                    if (numInitialized == nfixed) {
+                        
+                        MOZ_ASSERT(mozilla::CountPopulation32(initializedSlots) == nfixed);
+                        return false;
+                    }
+                }
+                continue;
+            }
+
+            if (iter->isGoto()) {
+                block = iter->toGoto()->target();
+                if (block->numPredecessors() != 1)
+                    return true;
+                break;
+            }
+
+            
+            return true;
+        }
+        iter = block->begin();
+    }
+
+    MOZ_ASSUME_UNREACHABLE("Shouldn't get here");
+}
+
 bool
 CodeGenerator::visitNewObject(LNewObject *lir)
 {
@@ -3627,7 +3712,9 @@ CodeGenerator::visitNewObject(LNewObject *lir)
     if (!addOutOfLineCode(ool))
         return false;
 
-    masm.createGCObject(objReg, tempReg, templateObject, lir->mir()->initialHeap(), ool->entry());
+    bool initFixedSlots = ShouldInitFixedSlots(lir, templateObject);
+    masm.createGCObject(objReg, tempReg, templateObject, lir->mir()->initialHeap(), ool->entry(),
+                        initFixedSlots);
 
     masm.bind(ool->rejoin());
     return true;
@@ -3662,7 +3749,9 @@ CodeGenerator::visitNewDeclEnvObject(LNewDeclEnvObject *lir)
     if (!ool)
         return false;
 
-    masm.createGCObject(objReg, tempReg, templateObj, gc::DefaultHeap, ool->entry());
+    bool initFixedSlots = ShouldInitFixedSlots(lir, templateObj);
+    masm.createGCObject(objReg, tempReg, templateObj, gc::DefaultHeap, ool->entry(),
+                        initFixedSlots);
 
     masm.bind(ool->rejoin());
     return true;
@@ -3688,7 +3777,9 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
         return false;
 
     
-    masm.createGCObject(objReg, tempReg, templateObj, gc::DefaultHeap, ool->entry());
+    bool initFixedSlots = ShouldInitFixedSlots(lir, templateObj);
+    masm.createGCObject(objReg, tempReg, templateObj, gc::DefaultHeap, ool->entry(),
+                        initFixedSlots);
 
     masm.bind(ool->rejoin());
     return true;
@@ -4038,7 +4129,9 @@ CodeGenerator::visitCreateThisWithTemplate(LCreateThisWithTemplate *lir)
 
     
     masm.bind(ool->rejoin());
-    masm.initGCThing(objReg, tempReg, templateObject);
+
+    bool initFixedSlots = ShouldInitFixedSlots(lir, templateObject);
+    masm.initGCThing(objReg, tempReg, templateObject, initFixedSlots);
 
     return true;
 }
