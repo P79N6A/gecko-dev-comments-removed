@@ -41,6 +41,7 @@ BackCert::Init()
   const SECItem* dummyEncodedSubjectKeyIdentifier = nullptr;
   const SECItem* dummyEncodedAuthorityKeyIdentifier = nullptr;
   const SECItem* dummyEncodedAuthorityInfoAccess = nullptr;
+  const SECItem* dummyEncodedSubjectAltName = nullptr;
 
   for (const CERTCertExtension* ext = *exts; ext; ext = *++exts) {
     const SECItem** out = nullptr;
@@ -51,7 +52,9 @@ BackCert::Init()
       switch (ext->id.data[2]) {
         case 14: out = &dummyEncodedSubjectKeyIdentifier; break; 
         case 15: out = &encodedKeyUsage; break;
+        case 17: out = &dummyEncodedSubjectAltName; break; 
         case 19: out = &encodedBasicConstraints; break;
+        case 30: out = &encodedNameConstraints; break;
         case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
         case 37: out = &encodedExtendedKeyUsage; break;
       }
@@ -109,7 +112,8 @@ BuildForwardInner(TrustDomain& trustDomain,
 {
   PORT_Assert(potentialIssuerCertToDup);
 
-  BackCert potentialIssuer(potentialIssuerCertToDup, &subject);
+  BackCert potentialIssuer(potentialIssuerCertToDup, &subject,
+                           BackCert::ExcludeCN);
   Result rv = potentialIssuer.Init();
   if (rv != Success) {
     return rv;
@@ -133,6 +137,11 @@ BuildForwardInner(TrustDomain& trustDomain,
   }
 
   rv = CheckTimes(potentialIssuer.GetNSSCert(), time);
+  if (rv != Success) {
+    return rv;
+  }
+
+  rv = CheckNameConstraints(potentialIssuer);
   if (rv != Success) {
     return rv;
   }
@@ -260,7 +269,15 @@ BuildCertChain(TrustDomain& trustDomain,
   
   
 
-  BackCert cert(certToDup, nullptr);
+  
+  
+  BackCert::ConstrainedNameOptions cnOptions
+    = endEntityOrCA == MustBeEndEntity &&
+      requiredEKUIfPresent == SEC_OID_EXT_KEY_USAGE_SERVER_AUTH
+    ? BackCert::IncludeCN
+    : BackCert::ExcludeCN;
+
+  BackCert cert(certToDup, nullptr, cnOptions);
   Result rv = cert.Init();
   if (rv != Success) {
     return SECFailure;

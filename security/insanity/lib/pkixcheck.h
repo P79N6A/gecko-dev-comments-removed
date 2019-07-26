@@ -32,6 +32,8 @@ Result CheckExtensions(BackCert& certExt,
                        SECOidTag requiredEKUIfPresent,
                        unsigned int depth);
 
+Result CheckNameConstraints(BackCert& cert);
+
 } } 
 
 #endif 

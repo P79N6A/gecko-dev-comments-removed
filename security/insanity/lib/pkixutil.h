@@ -82,12 +82,21 @@ class BackCert
 {
 public:
   
-  BackCert(CERTCertificate* nssCert, BackCert* childCert)
+  
+  
+  enum ConstrainedNameOptions { ExcludeCN = 0, IncludeCN = 1 };
+
+  
+  BackCert(CERTCertificate* nssCert, BackCert* childCert,
+           ConstrainedNameOptions cnOptions)
     : encodedBasicConstraints(nullptr)
     , encodedExtendedKeyUsage(nullptr)
     , encodedKeyUsage(nullptr)
+    , encodedNameConstraints(nullptr)
     , childCert(childCert)
     , nssCert(nssCert)
+    , constrainedNames(nullptr)
+    , cnOptions(cnOptions)
   {
   }
 
@@ -96,10 +105,17 @@ public:
   const SECItem* encodedBasicConstraints;
   const SECItem* encodedExtendedKeyUsage;
   const SECItem* encodedKeyUsage;
+  const SECItem* encodedNameConstraints;
 
   BackCert* const childCert;
 
   const CERTCertificate* GetNSSCert() const { return nssCert; }
+
+  
+  
+  
+  
+  Result GetConstrainedNames( const CERTGeneralName** result);
 
   
   
@@ -111,6 +127,8 @@ private:
   CERTCertificate* nssCert;
 
   ScopedPLArenaPool arena;
+  CERTGeneralName* constrainedNames;
+  ConstrainedNameOptions cnOptions;
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;
@@ -118,4 +136,4 @@ private:
 
 } } 
 
-#endif 
+#endif
