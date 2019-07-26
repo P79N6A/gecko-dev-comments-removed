@@ -9,7 +9,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/RangedPtr.h"
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
@@ -49,7 +48,6 @@ using mozilla::CeilingLog2;
 using mozilla::DebugOnly;
 using mozilla::IsNaN;
 using mozilla::PointerRangeSize;
-using mozilla::RangedPtr;
 
 bool
 js::GetLengthProperty(JSContext *cx, HandleObject obj, uint32_t *lengthp)
@@ -303,50 +301,6 @@ SetArrayElement(JSContext *cx, HandleObject obj, double index, HandleValue v)
 
     RootedValue tmp(cx, v);
     return JSObject::setGeneric(cx, obj, obj, id, &tmp, true);
-}
-
-
-
-
-
-
-static bool
-DefineElementNoConflict(JSContext *cx, HandleObject obj, double index, HandleValue v)
-{
-    JS_ASSERT(index >= 0);
-
-    if (obj->is<ArrayObject>() && !obj->isIndexed()) {
-        Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
-        
-        JSObject::EnsureDenseResult result = JSObject::ED_SPARSE;
-        do {
-            if (index > uint32_t(-1))
-                break;
-            uint32_t idx = uint32_t(index);
-            if (idx >= arr->length() && !arr->lengthIsWritable()) {
-                JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
-                                             JSMSG_CANT_REDEFINE_ARRAY_LENGTH);
-                return false;
-            }
-            result = arr->ensureDenseElements(cx, idx, 1);
-            if (result != JSObject::ED_OK)
-                break;
-            if (idx >= arr->length())
-                arr->setLengthInt32(idx + 1);
-            JSObject::setDenseElementWithType(cx, arr, idx, v);
-            return true;
-        } while (false);
-
-        if (result == JSObject::ED_FAILED)
-            return false;
-        JS_ASSERT(result == JSObject::ED_SPARSE);
-    }
-
-    RootedId id(cx);
-    if (!DoubleIndexToId(cx, index, &id))
-        return false;
-
-    return JSObject::defineGeneric(cx, obj, id, v);
 }
 
 
@@ -2640,88 +2594,79 @@ js::array_concat_dense(JSContext *cx, Handle<ArrayObject*> arr1, Handle<ArrayObj
 #endif 
 
 
+
+
 bool
 js::array_concat(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
-    RootedObject obj(cx, ToObject(cx, args.thisv()));
-    if (!obj)
+    Value *p = args.array() - 1;
+
+    
+    RootedObject aobj(cx, ToObject(cx, args.thisv()));
+    if (!aobj)
         return false;
 
-    
-    double n = 0;
-    size_t nitems = args.length() + 1;
-    RangedPtr<const Value> items = args.thisAndArgs();
-
-    
-    args.setThis(ObjectValue(*obj));
-
-    
-
-
-
-    Rooted<ArrayObject*> arr(cx);
-    if (obj->is<ArrayObject>() && !ObjectMayHaveExtraIndexedProperties(obj)) {
-        uint32_t initlen = obj->getDenseInitializedLength();
-        arr = NewDenseCopiedArray(cx, initlen, obj, 0);
-        if (!arr)
+    Rooted<ArrayObject*> narr(cx);
+    uint32_t length;
+    if (aobj->is<ArrayObject>() && !aobj->isIndexed()) {
+        length = aobj->as<ArrayObject>().length();
+        uint32_t initlen = aobj->getDenseInitializedLength();
+        narr = NewDenseCopiedArray(cx, initlen, aobj, 0);
+        if (!narr)
             return false;
-        TryReuseArrayType(obj, arr);
-        n = obj->as<ArrayObject>().length();
-        items++;
-        nitems--;
+        TryReuseArrayType(aobj, narr);
+        ArrayObject::setLength(cx, narr, length);
+        args.rval().setObject(*narr);
+        if (argc == 0)
+            return true;
+        argc--;
+        p++;
     } else {
-        arr = NewDenseEmptyArray(cx);
-        if (!arr)
+        narr = NewDenseEmptyArray(cx);
+        if (!narr)
             return false;
+        args.rval().setObject(*narr);
+        length = 0;
     }
 
     
-    RootedObject elemObj(cx);
-    RootedValue subElement(cx);
-    for (; nitems > 0; --nitems, ++items) {
-        HandleValue elem = HandleValue::fromMarkedLocation(&*items);
-
+    for (unsigned i = 0; i <= argc; i++) {
         if (!JS_CHECK_OPERATION_LIMIT(cx))
             return false;
-
-        
-        if (IsObjectWithClass(elem, ESClass_Array, cx)) {
-            elemObj = &elem.toObject();
-
-            
-            uint32_t len;
-            if (!GetLengthProperty(cx, elemObj, &len))
-                return false;
-
-            
-            for (uint32_t k = 0; k < len; ++k) {
-                if (!JS_CHECK_OPERATION_LIMIT(cx))
+        HandleValue v = HandleValue::fromMarkedLocation(&p[i]);
+        if (v.isObject()) {
+            RootedObject obj(cx, &v.toObject());
+            if (ObjectClassIs(obj, ESClass_Array, cx)) {
+                uint32_t alength;
+                if (!GetLengthProperty(cx, obj, &alength))
                     return false;
+                RootedValue tmp(cx);
+                for (uint32_t slot = 0; slot < alength; slot++) {
+                    bool hole;
+                    if (!JS_CHECK_OPERATION_LIMIT(cx) || !GetElement(cx, obj, slot, &hole, &tmp))
+                        return false;
 
-                bool exists;
-                if (!JSObject::getElementIfPresent(cx, elemObj, elemObj, k, &subElement, &exists))
-                    return false;
+                    
 
-                if (exists && !DefineElementNoConflict(cx, arr, n + k, subElement))
-                    return false;
+
+
+                    if (!hole && !SetArrayElement(cx, narr, length + slot, tmp))
+                        return false;
+                }
+                length += alength;
+                continue;
             }
-            n += len;
-        } else {
-            
-            if (!DefineElementNoConflict(cx, arr, n, elem))
-                return false;
-
-            
-            n++;
         }
+
+        if (!SetArrayElement(cx, narr, length, v))
+            return false;
+        length++;
     }
 
-    
-    args.rval().setObject(*arr);
-    return true;
+    return SetLengthProperty(cx, narr, length);
 }
 
 static bool
