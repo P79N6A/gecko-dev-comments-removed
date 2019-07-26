@@ -92,20 +92,20 @@ var SelectionHandler = {
       case "after-viewport-change": {
         if (this._activeType == this.TYPE_SELECTION) {
           
-          this.updateCacheForSelection();
+          this._updateCacheForSelection();
         }
         break;
       }
       case "TextSelection:Move": {
         let data = JSON.parse(aData);
         if (this._activeType == this.TYPE_SELECTION)
-          this.moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
+          this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
         else if (this._activeType == this.TYPE_CURSOR) {
           
           this._sendMouseEvents(data.x, data.y);
 
           
-          this.positionHandles();
+          this._positionHandles();
         }
         break;
       }
@@ -114,7 +114,7 @@ var SelectionHandler = {
           let data = JSON.parse(aData);
 
           
-          let selectionReversed = this.updateCacheForSelection(data.handleType == this.HANDLE_TYPE_START);
+          let selectionReversed = this._updateCacheForSelection(data.handleType == this.HANDLE_TYPE_START);
           if (selectionReversed) {
             
             if (this._isRTL) {
@@ -127,9 +127,9 @@ var SelectionHandler = {
           }
 
           
-          this.positionHandles();
+          this._positionHandles();
         } else if (this._activeType == this.TYPE_CURSOR) {
-          this.positionHandles();
+          this._positionHandles();
         }
         break;
       }
@@ -198,14 +198,14 @@ var SelectionHandler = {
 
     
     
-    let selection = this.getSelection();
+    let selection = this._getSelection();
     selection.removeAllRanges();
 
     
     this._sendMouseEvents(aX, aY, false);
 
     try {
-      let selectionController = this.getSelectionController();
+      let selectionController = this._getSelectionController();
 
       
       selectionController.wordMove(false, false);
@@ -230,10 +230,10 @@ var SelectionHandler = {
 
     
     this._cache = { start: {}, end: {}};
-    this.updateCacheForSelection();
+    this._updateCacheForSelection();
 
     this._activeType = this.TYPE_SELECTION;
-    this.positionHandles();
+    this._positionHandles();
 
     sendMessageToJava({
       type: "TextSelection:ShowHandles",
@@ -244,7 +244,7 @@ var SelectionHandler = {
       aElement.focus();
   },
 
-  getSelection: function sh_getSelection() {
+  _getSelection: function sh_getSelection() {
     if (this._targetElement instanceof Ci.nsIDOMNSEditableElement)
       return this._targetElement.QueryInterface(Ci.nsIDOMNSEditableElement).editor.selection;
     else
@@ -252,13 +252,13 @@ var SelectionHandler = {
   },
 
   _getSelectedText: function sh_getSelectedText() {
-    let selection = this.getSelection();
+    let selection = this._getSelection();
     if (selection)
       return selection.toString().trim();
     return "";
   },
 
-  getSelectionController: function sh_getSelectionController() {
+  _getSelectionController: function sh_getSelectionController() {
     if (this._targetElement instanceof Ci.nsIDOMNSEditableElement)
       return this._targetElement.QueryInterface(Ci.nsIDOMNSEditableElement).editor.selectionController;
     else
@@ -278,15 +278,15 @@ var SelectionHandler = {
     if (this._activeType != this.TYPE_SELECTION)
       this.startSelection(aElement, aX, aY);
 
-    let selectionController = this.getSelectionController();
+    let selectionController = this._getSelectionController();
     selectionController.selectAll();
-    this.updateCacheForSelection();
-    this.positionHandles();
+    this._updateCacheForSelection();
+    this._positionHandles();
   },
 
   
   
-  moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
+  _moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
     
     if (aIsStartHandle) {
       this._cache.start.x = aX;
@@ -338,19 +338,19 @@ var SelectionHandler = {
       
       if (aY < rect.y + 1) {
         aY = rect.y + 1;
-        this.getSelectionController().scrollLine(false);
+        this._getSelectionController().scrollLine(false);
       } else if (aY > rect.y + rect.height - 1) {
         aY = rect.y + rect.height - 1;
-        this.getSelectionController().scrollLine(true);
+        this._getSelectionController().scrollLine(true);
       }
 
       
       if (aX < rect.x) {
         aX = rect.x;
-        this.getSelectionController().scrollCharacter(false);
+        this._getSelectionController().scrollCharacter(false);
       } else if (aX > rect.x + rect.width) {
         aX = rect.x + rect.width;
-        this.getSelectionController().scrollCharacter(true);
+        this._getSelectionController().scrollCharacter(true);
       }
     } else if (this._activeType == this.TYPE_SELECTION) {
       
@@ -391,7 +391,7 @@ var SelectionHandler = {
       return;
 
     if (this._activeType == this.TYPE_SELECTION) {
-      let selection = this.getSelection();
+      let selection = this._getSelection();
       if (selection) {
         
         
@@ -432,7 +432,7 @@ var SelectionHandler = {
 
   _pointInSelection: function sh_pointInSelection(aX, aY) {
     let offset = this._getViewOffset();
-    let rangeRect = this.getSelection().getRangeAt(0).getBoundingClientRect();
+    let rangeRect = this._getSelection().getRangeAt(0).getBoundingClientRect();
     let radius = ElementTouchHelper.getTouchRadius();
     return (aX - offset.x > rangeRect.left - radius.left &&
             aX - offset.x < rangeRect.right + radius.right &&
@@ -442,8 +442,8 @@ var SelectionHandler = {
 
   
   
-  updateCacheForSelection: function sh_updateCacheForSelection(aIsStartHandle) {
-    let selection = this.getSelection();
+  _updateCacheForSelection: function sh_updateCacheForSelection(aIsStartHandle) {
+    let selection = this._getSelection();
     let rects = selection.getRangeAt(0).getClientRects();
     let start = { x: this._isRTL ? rects[0].right : rects[0].left, y: rects[0].bottom };
     let end = { x: this._isRTL ? rects[rects.length - 1].left : rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
@@ -475,7 +475,7 @@ var SelectionHandler = {
     this._contentWindow.addEventListener("blur", this, true);
 
     this._activeType = this.TYPE_CURSOR;
-    this.positionHandles();
+    this._positionHandles();
 
     sendMessageToJava({
       type: "TextSelection:ShowHandles",
@@ -483,7 +483,7 @@ var SelectionHandler = {
     });
   },
 
-  positionHandles: function sh_positionHandles() {
+  _positionHandles: function sh_positionHandles() {
     let scrollX = {}, scrollY = {};
     this._contentWindow.top.QueryInterface(Ci.nsIInterfaceRequestor).
                             getInterface(Ci.nsIDOMWindowUtils).getScrollXY(false, scrollX, scrollY);
@@ -551,9 +551,9 @@ var SelectionHandler = {
         
         
         if (this._activeType == this.TYPE_SELECTION) {
-          this.updateCacheForSelection();
+          this._updateCacheForSelection();
         }
-        this.positionHandles();
+        this._positionHandles();
         break;
       }
       if (view == view.parent) {
