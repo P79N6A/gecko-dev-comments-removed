@@ -70,6 +70,13 @@ private:
 JSObject *
 TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target);
 
+bool IsXBLScope(JSCompartment *compartment);
+bool IsInXBLScope(JSObject *obj);
+
+
+
+
+
 
 
 
@@ -81,6 +88,13 @@ TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject targe
 
 JSObject *
 GetXBLScope(JSContext *cx, JSObject *contentScope);
+
+inline JSObject *
+GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj) {
+    if (IsInXBLScope(obj))
+        return js::GetGlobalForObjectCrossCompartment(obj);
+    return GetXBLScope(cx, obj);
+}
 
 
 
@@ -344,9 +358,6 @@ bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 }
 
 nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
-
-bool IsXBLScope(JSCompartment *compartment);
-bool IsInXBLScope(JSObject *obj);
 
 void SetLocationForGlobal(JSObject *global, const nsACString& location);
 void SetLocationForGlobal(JSObject *global, nsIURI *locationURI);

@@ -1125,8 +1125,15 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::Handle<jsid> aId,
 
   
   
+  
+  
+  
+  
+  
+  
   JS::Rooted<JSObject*> boundScope(aCx,
     js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper()));
+  MOZ_RELEASE_ASSERT(!xpc::IsInXBLScope(boundScope));
   JS::Rooted<JSObject*> xblScope(aCx, xpc::GetXBLScope(aCx, boundScope));
   NS_ENSURE_TRUE(xblScope, false);
   MOZ_ASSERT(boundScope != xblScope);
