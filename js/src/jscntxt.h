@@ -446,9 +446,6 @@ struct JSContext : public js::ExclusiveContext,
     JSErrorReporter     errorReporter;
 
     
-    JSOperationCallback operationCallback;
-
-    
     void                *data;
     void                *data2;
 

@@ -997,16 +997,16 @@ void MetroWidget::UserActivity()
   }
 }
 
+
+
 void
 MetroWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
 {
   if (!aPoint) {
     event.refPoint.x = event.refPoint.y = 0;
   } else {
-    CSSIntPoint cssPoint(aPoint->x, aPoint->y);
-    LayoutDeviceIntPoint layoutDeviceIntPoint = CSSIntPointToLayoutDeviceIntPoint(cssPoint);
-    event.refPoint.x = layoutDeviceIntPoint.x;
-    event.refPoint.y = layoutDeviceIntPoint.y;
+    event.refPoint.x = aPoint->x;
+    event.refPoint.y = aPoint->y;
   }
   event.time = ::GetMessageTime();
 }
