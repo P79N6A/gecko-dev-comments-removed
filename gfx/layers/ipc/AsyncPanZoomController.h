@@ -757,6 +757,7 @@ private:
   friend class Axis;
   friend class FlingAnimation;
 
+
   
 
 
@@ -804,6 +805,7 @@ private:
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
   nsRefPtr<AsyncPanZoomController> mParent;
 
+
   
 
 
@@ -832,9 +834,6 @@ public:
 private:
   
 
-  const uint32_t mAPZCId;
-  
-
 
   ParentLayerRect mVisibleRect;
   
@@ -842,6 +841,15 @@ private:
   gfx3DMatrix mAncestorTransform;
   
   gfx3DMatrix mCSSTransform;
+
+
+  
+
+
+private:
+  
+
+  const uint32_t mAPZCId;
 
   ipc::SharedMemoryBasic* mSharedFrameMetricsBuffer;
   CrossProcessMutex* mSharedLock;
