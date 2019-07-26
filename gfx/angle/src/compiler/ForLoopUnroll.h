@@ -4,6 +4,9 @@
 
 
 
+#ifndef ForLoopUnroll_h
+#define ForLoopUnroll_h
+
 #include "compiler/intermediate.h"
 
 struct TLoopIndexInfo {
@@ -46,3 +49,4 @@ private:
     TVector<TLoopIndexInfo> mLoopIndexStack;
 };
 
+#endif
