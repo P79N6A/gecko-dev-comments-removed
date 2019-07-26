@@ -127,7 +127,11 @@ private:
 class MediaResource;
 } 
 
-class nsTimeRanges;
+namespace mozilla {
+namespace dom {
+class TimeRanges;
+}
+}
 
 
 
@@ -137,7 +141,7 @@ class nsTimeRanges;
 
 void GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStream,
                                     int64_t aDurationUsecs,
-                                    nsTimeRanges* aOutBuffered);
+                                    mozilla::dom::TimeRanges* aOutBuffered);
 
 
 

@@ -111,7 +111,7 @@ public:
                 int64_t aCurrentTime) MOZ_OVERRIDE;
 
   
-  nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime) MOZ_OVERRIDE;
+  nsresult GetBuffered(mozilla::dom::TimeRanges* aBuffered, int64_t aStartTime) MOZ_OVERRIDE;
 
   
   VideoData* FindStartTime(int64_t& aOutStartTime) MOZ_OVERRIDE;

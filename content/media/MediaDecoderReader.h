@@ -448,7 +448,7 @@ public:
   
   
   
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
+  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
                                int64_t aStartTime) = 0;
 
   class VideoQueueMemoryFunctor : public nsDequeFunctor {

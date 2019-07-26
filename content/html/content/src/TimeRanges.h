@@ -4,23 +4,26 @@
 
 
 
-#ifndef nsTimeRanges_h__
-#define nsTimeRanges_h__
+#ifndef mozilla_dom_TimeRanges_h_
+#define mozilla_dom_TimeRanges_h_
 
 #include "nsIDOMTimeRanges.h"
 #include "nsISupports.h"
 #include "nsTArray.h"
 
+namespace mozilla {
+namespace dom {
 
 
-class nsTimeRanges MOZ_FINAL : public nsIDOMTimeRanges
+
+class TimeRanges MOZ_FINAL : public nsIDOMTimeRanges
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMTIMERANGES
 
-  nsTimeRanges();
-  ~nsTimeRanges();
+  TimeRanges();
+  ~TimeRanges();
 
   void Add(double aStart, double aEnd);
 
@@ -55,5 +58,8 @@ private:
 
   nsAutoTArray<TimeRange,4> mRanges;
 };
+
+} 
+} 
 
 #endif 

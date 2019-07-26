@@ -196,10 +196,15 @@
 #include "AbstractMediaDecoder.h"
 
 class nsIStreamListener;
-class nsTimeRanges;
 class nsIMemoryReporter;
 class nsIPrincipal;
 class nsITimer;
+
+namespace mozilla {
+namespace dom {
+class TimeRanges;
+}
+}
 
 using namespace mozilla::dom;
 
@@ -500,7 +505,7 @@ public:
   virtual bool IsTransportSeekable();
 
   
-  virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
+  virtual nsresult GetSeekable(TimeRanges* aSeekable);
 
   
   
@@ -560,7 +565,7 @@ public:
 
   
   
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered);
+  virtual nsresult GetBuffered(TimeRanges* aBuffered);
 
   
   
