@@ -72,5 +72,5 @@ function run_test() {
   };
 
   
-  do_check_eq(run_tests(tests), 5);
+  do_check_eq(run_tests(tests), Object.keys(tests).length - 1);
 }
