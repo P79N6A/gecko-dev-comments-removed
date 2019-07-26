@@ -66,6 +66,10 @@ CSS_ANON_BOX(viewportScroll, ":-moz-viewport-scroll")
 
 CSS_ANON_BOX(anonymousFlexItem, ":-moz-anonymous-flex-item")
 
+
+
+CSS_ANON_BOX(anonymousGridItem, ":-moz-anonymous-grid-item")
+
 #ifdef MOZ_XUL
 CSS_ANON_BOX(moztreecolumn, ":-moz-tree-column")
 CSS_ANON_BOX(moztreerow, ":-moz-tree-row")

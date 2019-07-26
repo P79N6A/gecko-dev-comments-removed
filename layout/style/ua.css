@@ -181,7 +181,8 @@
   height: 100%;
 }
 
-*|*::-moz-anonymous-flex-item {
+*|*::-moz-anonymous-flex-item,
+*|*::-moz-anonymous-grid-item {
   
 
   display: block;
