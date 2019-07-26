@@ -4294,6 +4294,9 @@ pref("memory.free_dirty_pages", false);
 pref("memory.system_memory_reporter", false);
 #endif
 
+
+pref("memory.blob_report.stack_frames", 0);
+
 pref("social.enabled", false);
 
 
