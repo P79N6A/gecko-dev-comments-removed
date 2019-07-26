@@ -120,6 +120,7 @@ class WeakMapBase {
     
     
     
+    
     WeakMapBase *next;
 };
 
@@ -132,7 +133,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
     typedef typename Base::Enum Enum;
     typedef typename Base::Range Range;
 
-    explicit WeakMap(JSContext *cx, JSObject *memOf=NULL)
+    explicit WeakMap(JSContext *cx, JSObject *memOf = nullptr)
         : Base(cx->runtime()), WeakMapBase(memOf, cx->compartment()) { }
 
   private:
@@ -192,7 +193,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
                 gc::Mark(trc, &e.front().value, "WeakMap entry value");
                 markedAny = true;
             }
-            key.unsafeSet(NULL);
+            key.unsafeSet(nullptr);
         }
         return markedAny;
     }
