@@ -529,8 +529,11 @@ DebuggerServerConnection.prototype = {
                     "': " + safeErrorString(e))
         });
       }
+      
+      
+      
+      instance.actorID = actor.actorID;
       actor.registeredPool.addActor(instance);
-      actor.registeredPool.removeActor(actor);
       actor = instance;
     }
 
