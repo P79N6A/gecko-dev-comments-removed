@@ -4577,9 +4577,52 @@ JS_IsIdentifier(JSContext *cx, JS::HandleString str, bool *isIdentifier);
 
 
 
+
+
+
 extern JS_PUBLIC_API(bool)
 JS_DescribeScriptedCaller(JSContext *cx, JS::MutableHandleScript script, unsigned *lineno);
 
+namespace JS {
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+HideScriptedCaller(JSContext *cx);
+
+extern JS_PUBLIC_API(void)
+UnhideScriptedCaller(JSContext *cx);
+
+class AutoHideScriptedCaller
+{
+  public:
+    AutoHideScriptedCaller(JSContext *cx
+                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mContext(cx)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        HideScriptedCaller(mContext);
+    }
+    ~AutoHideScriptedCaller() {
+        UnhideScriptedCaller(mContext);
+    }
+
+  protected:
+    JSContext *mContext;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+} 
 
 
 
