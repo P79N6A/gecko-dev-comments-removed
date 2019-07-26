@@ -563,21 +563,25 @@ class ScopedICUObject
 
 static const size_t STACK_STRING_SIZE = 50;
 
-static const uint32_t ICU_OBJECT_SLOT = 0;
 
 
 
+static void collator_finalize(FreeOp *fop, JSObject *obj);
+
+static const uint32_t UCOLLATOR_SLOT = 0;
+static const uint32_t COLLATOR_SLOTS_COUNT = 1;
 
 static Class CollatorClass = {
     js_Object_str,
-    0,
+    JSCLASS_HAS_RESERVED_SLOTS(COLLATOR_SLOTS_COUNT),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub
+    JS_ConvertStub,
+    collator_finalize
 };
 
 #if JS_HAS_TOSOURCE
@@ -625,6 +629,7 @@ Collator(JSContext *cx, unsigned argc, Value *vp)
             obj = ToObject(cx, self);
             if (!obj)
                 return false;
+
             
             if (!obj->isExtensible())
                 return Throw(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE);
@@ -641,11 +646,14 @@ Collator(JSContext *cx, unsigned argc, Value *vp)
         obj = NewObjectWithGivenProto(cx, &CollatorClass, proto, cx->global());
         if (!obj)
             return false;
+
+        obj->setReservedSlot(UCOLLATOR_SLOT, PrivateValue(NULL));
     }
 
     
     RootedValue locales(cx, args.length() > 0 ? args[0] : UndefinedValue());
     RootedValue options(cx, args.length() > 1 ? args[1] : UndefinedValue());
+
     
     if (!IntlInitialize(cx, obj, cx->names().InitializeCollator, locales, options))
         return false;
@@ -653,6 +661,14 @@ Collator(JSContext *cx, unsigned argc, Value *vp)
     
     args.rval().setObject(*obj);
     return true;
+}
+
+static void
+collator_finalize(FreeOp *fop, JSObject *obj)
+{
+    UCollator *coll = static_cast<UCollator *>(obj->getReservedSlot(UCOLLATOR_SLOT).toPrivate());
+    if (coll)
+        ucol_close(coll);
 }
 
 static JSObject *
@@ -687,7 +703,8 @@ InitCollatorClass(JSContext *cx, HandleObject Intl, Handle<GlobalObject*> global
     RootedValue undefinedValue(cx, UndefinedValue());
     if (!JSObject::defineProperty(cx, proto, cx->names().compare, undefinedValue,
                                   JS_DATA_TO_FUNC_PTR(JSPropertyOp, &getter.toObject()),
-                                  NULL, JSPROP_GETTER)) {
+                                  NULL, JSPROP_GETTER))
+    {
         return NULL;
     }
 
@@ -700,7 +717,8 @@ InitCollatorClass(JSContext *cx, HandleObject Intl, Handle<GlobalObject*> global
     
     RootedValue ctorValue(cx, ObjectValue(*ctor));
     if (!JSObject::defineProperty(cx, Intl, cx->names().Collator, ctorValue,
-                                  JS_PropertyStub, JS_StrictPropertyStub, 0)) {
+                                  JS_PropertyStub, JS_StrictPropertyStub, 0))
+    {
         return NULL;
     }
 
@@ -713,10 +731,89 @@ GlobalObject::initCollatorProto(JSContext *cx, Handle<GlobalObject*> global)
     RootedObject proto(cx, global->createBlankPrototype(cx, &CollatorClass));
     if (!proto)
         return false;
+    proto->setReservedSlot(UCOLLATOR_SLOT, PrivateValue(NULL));
     global->setReservedSlot(COLLATOR_PROTO, ObjectValue(*proto));
     return true;
 }
 
+JSBool
+js::intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 0);
+
+    RootedValue result(cx);
+    if (!intl_availableLocales(cx, ucol_countAvailable, ucol_getAvailable, &result))
+        return false;
+    args.rval().set(result);
+    return true;
+}
+
+JSBool
+js::intl_availableCollations(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 1);
+    JS_ASSERT(args[0].isString());
+
+    JSAutoByteString locale(cx, args[0].toString());
+    if (!locale)
+        return false;
+    UErrorCode status = U_ZERO_ERROR;
+    UEnumeration *values = ucol_getKeywordValuesForLocale("co", locale.ptr(), false, &status);
+    if (U_FAILURE(status)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+        return false;
+    }
+    ScopedICUObject<UEnumeration> toClose(values, uenum_close);
+
+    uint32_t count = uenum_count(values, &status);
+    if (U_FAILURE(status)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+        return false;
+    }
+
+    RootedObject collations(cx, NewDenseEmptyArray(cx));
+    if (!collations)
+        return false;
+
+    uint32_t index = 0;
+    for (uint32_t i = 0; i < count; i++) {
+        const char *collation = uenum_next(values, NULL, &status);
+        if (U_FAILURE(status)) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+            return false;
+        }
+
+        
+        
+        
+        
+        if (equal(collation, "standard") || equal(collation, "search"))
+            continue;
+
+        
+        
+        if (equal(collation, "dictionary"))
+            collation = "dict";
+        else if (equal(collation, "gb2312han"))
+            collation = "gb2312";
+        else if (equal(collation, "phonebook"))
+            collation = "phonebk";
+        else if (equal(collation, "traditional"))
+            collation = "trad";
+
+        RootedString jscollation(cx, JS_NewStringCopyZ(cx, collation));
+        if (!jscollation)
+            return false;
+        RootedValue element(cx, StringValue(jscollation));
+        if (!JSObject::defineElement(cx, collations, index++, element))
+            return false;
+    }
+
+    args.rval().setObject(*collations);
+    return true;
+}
 
 
 

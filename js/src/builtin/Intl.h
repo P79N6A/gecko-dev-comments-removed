@@ -24,4 +24,38 @@ class JSObject;
 extern JSObject *
 js_InitIntlClass(JSContext *cx, js::HandleObject obj);
 
+
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSBool
+intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
+
+extern JSBool
+intl_availableCollations(JSContext *cx, unsigned argc, Value *vp);
+
+} 
+
 #endif 
