@@ -71,7 +71,8 @@ namespace plugins {
 PluginHangUIParent::PluginHangUIParent(PluginModuleParent* aModule,
                                        const int32_t aHangUITimeoutPref,
                                        const int32_t aChildTimeoutPref)
-  : mModule(aModule),
+  : mMutex("mozilla::plugins::PluginHangUIParent::mMutex"),
+    mModule(aModule),
     mTimeoutPrefMs(static_cast<uint32_t>(aHangUITimeoutPref) * 1000U),
     mIPCTimeoutMs(static_cast<uint32_t>(aChildTimeoutPref) * 1000U),
     mMainThreadMessageLoop(MessageLoop::current()),
@@ -88,8 +89,9 @@ PluginHangUIParent::PluginHangUIParent(PluginModuleParent* aModule,
 
 PluginHangUIParent::~PluginHangUIParent()
 {
-  if (mRegWait) {
-    ::UnregisterWaitEx(mRegWait, INVALID_HANDLE_VALUE);
+  { 
+    MutexAutoLock lock(mMutex);
+    UnwatchHangUIChildProcess(true);
   }
   if (mShowEvent) {
     ::CloseHandle(mShowEvent);
@@ -227,6 +229,7 @@ PluginHangUIParent::Init(const nsString& aPluginName)
   }
   mShowEvent = showEvent.Get();
 
+  MutexAutoLock lock(mMutex);
   STARTUPINFO startupInfo = { sizeof(STARTUPINFO) };
   PROCESS_INFORMATION processInfo = { NULL };
   BOOL isProcessCreated = ::CreateProcess(exePath.value().c_str(),
@@ -266,6 +269,7 @@ VOID CALLBACK PluginHangUIParent::SOnHangUIProcessExit(PVOID aContext,
                                                        BOOLEAN aIsTimer)
 {
   PluginHangUIParent* object = static_cast<PluginHangUIParent*>(aContext);
+  MutexAutoLock lock(object->mMutex);
   
   if (object->IsShowing()) {
     object->RecvUserResponse(HANGUI_USER_RESPONSE_CANCEL);
@@ -275,9 +279,44 @@ VOID CALLBACK PluginHangUIParent::SOnHangUIProcessExit(PVOID aContext,
   }
 }
 
+
+bool
+PluginHangUIParent::UnwatchHangUIChildProcess(bool aWait)
+{
+  mMutex.AssertCurrentThreadOwns();
+  if (mRegWait) {
+    
+    
+    ScopedHandle completionEvent;
+    if (aWait) {
+      completionEvent.Set(::CreateEvent(NULL, FALSE, FALSE, NULL));
+      if (!completionEvent.IsValid()) {
+        return false;
+      }
+    }
+
+    
+    
+    
+    if (::UnregisterWaitEx(mRegWait, completionEvent) ||
+        !aWait && ::GetLastError() == ERROR_IO_PENDING) {
+      mRegWait = NULL;
+      if (aWait) {
+        
+        
+        MutexAutoUnlock unlock(mMutex);
+        ::WaitForSingleObject(completionEvent, INFINITE);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 bool
 PluginHangUIParent::Cancel()
 {
+  MutexAutoLock lock(mMutex);
   bool result = mIsShowing && SendCancel();
   if (result) {
     mIsShowing = false;
@@ -297,15 +336,17 @@ PluginHangUIParent::SendCancel()
   return NS_SUCCEEDED(mMiniShm.Send());
 }
 
+
 bool
 PluginHangUIParent::RecvUserResponse(const unsigned int& aResponse)
 {
+  mMutex.AssertCurrentThreadOwns();
   if (!mIsShowing && !(aResponse & HANGUI_USER_RESPONSE_CANCEL)) {
     
     return true;
   }
   mLastUserResponse = aResponse;
-  mResponseTicks = GetTickCount();
+  mResponseTicks = ::GetTickCount();
   mIsShowing = false;
   
   int responseCode;
@@ -370,10 +411,8 @@ PluginHangUIParent::OnMiniShmEvent(MiniShmBase *aMiniShmObj)
   if (NS_SUCCEEDED(rv)) {
     
     
-    if (::UnregisterWaitEx(mRegWait, NULL)) {
-      mRegWait = NULL;
-    }
-
+    MutexAutoLock lock(mMutex);
+    UnwatchHangUIChildProcess(false);
     RecvUserResponse(response->mResponseBits);
   }
 }
@@ -390,7 +429,7 @@ PluginHangUIParent::OnMiniShmConnect(MiniShmBase* aMiniShmObj)
   }
   cmd->mCode = PluginHangUICommand::HANGUI_CMD_SHOW;
   if (NS_SUCCEEDED(aMiniShmObj->Send())) {
-    mShowTicks = GetTickCount();
+    mShowTicks = ::GetTickCount();
   }
   ::SetEvent(mShowEvent);
 }
