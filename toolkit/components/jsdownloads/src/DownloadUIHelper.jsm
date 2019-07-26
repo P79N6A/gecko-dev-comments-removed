@@ -108,7 +108,7 @@ XPCOMUtils.defineLazyGetter(DownloadUIHelper, "strings", function () {
 
 this.DownloadPrompter = function (aParent)
 {
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
   
   this._prompter = null;
 #else
