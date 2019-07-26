@@ -312,35 +312,37 @@ struct RuntimeSizes
 
 struct ZoneStats : js::ZoneStatsPod
 {
-    ZoneStats() {
-        strings.init();
-    }
+    ZoneStats()
+      : strings(nullptr)
+    {}
 
     ZoneStats(ZoneStats &&other)
       : ZoneStatsPod(mozilla::Move(other)),
-        strings(mozilla::Move(other.strings)),
+        strings(other.strings),
         notableStrings(mozilla::Move(other.notableStrings))
-    {}
+    {
+        other.strings = nullptr;
+    }
+
+    bool initStrings(JSRuntime *rt);
 
     
     
-    
-    
-    
-    void add(const ZoneStats &other) {
+    void addIgnoringStrings(const ZoneStats &other) {
         ZoneStatsPod::add(other);
+    }
 
-        MOZ_ASSERT(notableStrings.empty());
-        MOZ_ASSERT(other.notableStrings.empty());
-
-        for (StringsHashMap::Range r = other.strings.all(); !r.empty(); r.popFront()) {
-            StringsHashMap::AddPtr p = strings.lookupForAdd(r.front().key());
+    
+    
+    void addStrings(const ZoneStats &other) {
+        for (StringsHashMap::Range r = other.strings->all(); !r.empty(); r.popFront()) {
+            StringsHashMap::AddPtr p = strings->lookupForAdd(r.front().key());
             if (p) {
                 
                 p->value().add(r.front().value());
             } else {
                 
-                strings.add(p, r.front().key(), r.front().value());
+                strings->add(p, r.front().key(), r.front().value());
             }
         }
     }
@@ -359,7 +361,11 @@ struct ZoneStats : js::ZoneStatsPod
                         js::InefficientNonFlatteningStringHashPolicy,
                         js::SystemAllocPolicy> StringsHashMap;
 
-    StringsHashMap strings;
+    
+    
+    
+    
+    StringsHashMap *strings;
     js::Vector<NotableStringInfo, 0, js::SystemAllocPolicy> notableStrings;
 };
 
@@ -435,6 +441,9 @@ struct CompartmentStats
 #undef FOR_EACH_SIZE
 };
 
+typedef js::Vector<CompartmentStats, 0, js::SystemAllocPolicy> CompartmentStatsVector;
+typedef js::Vector<ZoneStats, 0, js::SystemAllocPolicy> ZoneStatsVector;
+
 struct RuntimeStats
 {
 #define FOR_EACH_SIZE(macro) \
@@ -483,8 +492,8 @@ struct RuntimeStats
     CompartmentStats cTotals;   
     ZoneStats zTotals;          
 
-    js::Vector<CompartmentStats, 0, js::SystemAllocPolicy> compartmentStatsVector;
-    js::Vector<ZoneStats, 0, js::SystemAllocPolicy> zoneStatsVector;
+    CompartmentStatsVector compartmentStatsVector;
+    ZoneStatsVector zoneStatsVector;
 
     ZoneStats *currZoneStats;
 

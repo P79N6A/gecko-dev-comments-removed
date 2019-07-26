@@ -193,6 +193,7 @@ StatsZoneCallback(JSRuntime *rt, void *data, Zone *zone)
     
     MOZ_ALWAYS_TRUE(rtStats->zoneStatsVector.growBy(1));
     ZoneStats &zStats = rtStats->zoneStatsVector.back();
+    zStats.initStrings(rt);
     rtStats->initExtraZoneStats(zone, &zStats);
     rtStats->currZoneStats = &zStats;
 
@@ -305,10 +306,10 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         
         
         if (granularity == FineGrained) {
-            ZoneStats::StringsHashMap::AddPtr p = zStats->strings.lookupForAdd(str);
+            ZoneStats::StringsHashMap::AddPtr p = zStats->strings->lookupForAdd(str);
             if (!p) {
                 JS::StringInfo info(isShort, thingSize, strCharsSize);
-                zStats->strings.add(p, str, info);
+                zStats->strings->add(p, str, info);
             } else {
                 p->value().add(isShort, thingSize, strCharsSize);
             }
@@ -408,7 +409,7 @@ FindNotableStrings(ZoneStats &zStats)
     
     MOZ_ASSERT(zStats.notableStrings.empty());
 
-    for (ZoneStats::StringsHashMap::Range r = zStats.strings.all(); !r.empty(); r.popFront()) {
+    for (ZoneStats::StringsHashMap::Range r = zStats.strings->all(); !r.empty(); r.popFront()) {
 
         JSString *str = r.front().key();
         StringInfo &info = r.front().value();
@@ -434,10 +435,20 @@ FindNotableStrings(ZoneStats &zStats)
             zStats.stringsNormalMallocHeap -= info.mallocHeap;
         }
     }
+}
 
-    
-    
-    zStats.strings.clear();
+bool
+ZoneStats::initStrings(JSRuntime *rt)
+{
+    strings = rt->new_<StringsHashMap>();
+    if (!strings)
+        return false;
+    if (!strings->init()) {
+        js_delete(strings);
+        strings = nullptr;
+        return false;
+    }
+    return true;
 }
 
 JS_PUBLIC_API(bool)
@@ -468,17 +479,44 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
     
     rt->addSizeOfIncludingThis(rtStats->mallocSizeOf_, &rtStats->runtime);
 
-    for (size_t i = 0; i < rtStats->zoneStatsVector.length(); i++) {
-        ZoneStats &zStats = rtStats->zoneStatsVector[i];
+    ZoneStatsVector &zs = rtStats->zoneStatsVector;
+    ZoneStats &zTotals = rtStats->zTotals;
 
-        rtStats->zTotals.add(zStats);
-
-        
-        
-        FindNotableStrings(zStats);
+    
+    
+    
+    
+    
+    
+    size_t iMax = 0;
+    for (size_t i = 0; i < zs.length(); i++) {
+        zTotals.addIgnoringStrings(zs[i]);
+        FindNotableStrings(zs[i]);
+        if (zs[i].strings->count() > zs[iMax].strings->count())
+            iMax = i;
     }
 
-    FindNotableStrings(rtStats->zTotals);
+    
+    
+    
+    
+    
+    MOZ_ASSERT(!zTotals.strings);
+    zTotals.strings = zs[iMax].strings;
+    zs[iMax].strings = nullptr;
+
+    
+    
+    for (size_t i = 0; i < zs.length(); i++) {
+        if (i != iMax) {
+            zTotals.addStrings(zs[i]);
+            js_delete(zs[i].strings);
+            zs[i].strings = nullptr;
+        }
+    }
+    FindNotableStrings(zTotals);
+    js_delete(zTotals.strings);
+    zTotals.strings = nullptr;
 
     for (size_t i = 0; i < rtStats->compartmentStatsVector.length(); i++) {
         CompartmentStats &cStats = rtStats->compartmentStatsVector[i];
