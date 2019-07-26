@@ -146,6 +146,7 @@ class ArrayBufferObject : public JSObject
     void addView(RawObject view);
 
     bool allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = NULL);
+    void changeContents(ObjectElements *newHeader);
 
     
 
