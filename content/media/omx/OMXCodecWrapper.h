@@ -267,8 +267,10 @@ public:
   nsresult Encode(const mozilla::layers::Image* aImage, int aWidth, int aHeight,
                   int64_t aTimestamp, int aInputFlags = 0);
 
+#if ANDROID_VERSION >= 18
   
   nsresult SetBitrate(int32_t aKbps);
+#endif
 
   
 

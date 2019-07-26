@@ -37,7 +37,7 @@
 #include <sslproto.h>
 #include <algorithm>
 
-#ifdef MOZ_OMX_ENCODER
+#ifdef MOZ_WEBRTC_OMX
 #include "OMXVideoCodec.h"
 #endif
 
@@ -2120,7 +2120,7 @@ static int vcmEnsureExternalCodec(
     mozilla::VideoCodecConfig* config,
     bool send)
 {
-#ifdef MOZ_OMX_ENCODER
+#ifdef MOZ_WEBRTC_OMX
   
   
   
