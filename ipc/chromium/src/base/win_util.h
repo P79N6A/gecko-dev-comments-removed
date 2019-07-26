@@ -43,9 +43,6 @@ bool AddAccessToKernelObject(HANDLE handle, WELL_KNOWN_SID_TYPE known_sid,
                              ACCESS_MASK access);
 
 
-bool GetUserSidString(std::wstring* user_sid);
-
-
 bool IsShiftPressed();
 
 
