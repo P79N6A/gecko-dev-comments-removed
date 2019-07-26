@@ -1198,6 +1198,25 @@ nsLayoutUtils::GetScrollableFrameFor(const nsIFrame *aScrolledFrame)
   return sf;
 }
 
+bool
+nsLayoutUtils::IsFixedPosFrameInDisplayPort(const nsIFrame* aFrame, nsRect* aDisplayPort)
+{
+  
+  
+  
+  nsIFrame* parent = aFrame->GetParent();
+  if (!parent || parent->GetParent() ||
+      aFrame->StyleDisplay()->mPosition != NS_STYLE_POSITION_FIXED) {
+    return false;
+  }
+  nsIFrame* rootScrollFrame =
+    aFrame->PresContext()->PresShell()->GetRootScrollFrame();
+  
+  
+  return rootScrollFrame &&
+    nsLayoutUtils::GetDisplayPort(rootScrollFrame->GetContent(), aDisplayPort);
+}
+
 nsIFrame*
 nsLayoutUtils::GetAnimatedGeometryRootFor(nsIFrame* aFrame,
                                           const nsIFrame* aStopAtAncestor)
