@@ -336,13 +336,11 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
     
     
     
-    if (aIsEndOffset) {
-      
-      
     
     
-    addTextOffset = addTextOffset > 0;
-    } else
+    if (aIsEndOffset)
+      addTextOffset = (addTextOffset > 0 || descendantAcc->IndexInParent() > 0) ? 1 : 0;
+    else
       addTextOffset = 0;
 
     descendantAcc = parentAcc;
