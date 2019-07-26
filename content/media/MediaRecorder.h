@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/MediaRecorderBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "nsIDocumentActivity.h"
 
 
 #define MAX_ALLOW_MEMORY_BUFFER 1024000
@@ -35,7 +36,8 @@ namespace dom {
 
 
 
-class MediaRecorder : public DOMEventTargetHelper
+class MediaRecorder : public DOMEventTargetHelper,
+                      public nsIDocumentActivity
 {
   class Session;
   friend class CreateAndDispatchBlobEventRunnable;
@@ -85,6 +87,8 @@ public:
   IMPL_EVENT_HANDLER(stop)
   IMPL_EVENT_HANDLER(warning)
 
+  NS_DECL_NSIDOCUMENTACTIVITY
+
 protected:
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
@@ -106,11 +110,17 @@ protected:
   
   RecordingState mState;
   
+  
   nsTArray<Session*> mSessions;
   
   Mutex mMutex;
   
   nsString mMimeType;
+
+private:
+  
+  void RegisterActivityObserver();
+  void UnRegisterActivityObserver();
 };
 
 }

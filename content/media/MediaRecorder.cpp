@@ -37,10 +37,16 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(MediaRecorder, DOMEventTargetHelper,
                                    mStream)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaRecorder)
+  NS_INTERFACE_MAP_ENTRY(nsIDocumentActivity)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(MediaRecorder, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MediaRecorder, DOMEventTargetHelper)
+
+
+
+
+
 
 
 
@@ -93,7 +99,7 @@ class MediaRecorder::Session: public nsIObserver
 
       nsRefPtr<MediaRecorder> recorder = mSession->mRecorder;
       if (!recorder) {
-	 return NS_OK;
+        return NS_OK;
       }
       recorder->SetMimeType(mSession->mMimeType);
       if (mSession->IsEncoderError()) {
@@ -291,11 +297,7 @@ public:
     }
     return false;
   }
-  void ForgetMediaRecorder()
-  {
-    LOG(PR_LOG_DEBUG, ("Session.ForgetMediaRecorder (%p)", mRecorder));
-    mRecorder = nullptr;
-  }
+
 private:
 
   
@@ -340,7 +342,7 @@ private:
     mInputPort = mTrackUnionStream->AllocateInputPort(mRecorder->mStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
 
     
-    TracksAvailableCallback* tracksAvailableCallback = new TracksAvailableCallback(mRecorder->mSessions.LastElement());
+    TracksAvailableCallback* tracksAvailableCallback = new TracksAvailableCallback(this);
     mRecorder->mStream->OnTracksAvailable(tracksAvailableCallback);
   }
 
@@ -442,7 +444,8 @@ private:
 
 private:
   
-  MediaRecorder* mRecorder;
+  
+  nsRefPtr<MediaRecorder> mRecorder;
 
   
   
@@ -473,12 +476,7 @@ NS_IMPL_ISUPPORTS(MediaRecorder::Session, nsIObserver)
 MediaRecorder::~MediaRecorder()
 {
   LOG(PR_LOG_DEBUG, ("~MediaRecorder (%p)", this));
-  for (uint32_t i = 0; i < mSessions.Length(); i ++) {
-    if (mSessions[i]) {
-      mSessions[i]->ForgetMediaRecorder();
-      mSessions[i]->Stop();
-    }
-  }
+  UnRegisterActivityObserver();
 }
 
 MediaRecorder::MediaRecorder(DOMMediaStream& aStream, nsPIDOMWindow* aOwnerWindow)
@@ -494,6 +492,33 @@ MediaRecorder::MediaRecorder(DOMMediaStream& aStream, nsPIDOMWindow* aOwnerWindo
     gMediaRecorderLog = PR_NewLogModule("MediaRecorder");
   }
 #endif
+  RegisterActivityObserver();
+}
+
+void
+MediaRecorder::RegisterActivityObserver()
+{
+  nsPIDOMWindow* window = GetOwner();
+  if (window) {
+    nsIDocument* doc = window->GetExtantDoc();
+    if (doc) {
+      doc->RegisterActivityObserver(
+        NS_ISUPPORTS_CAST(nsIDocumentActivity*, this));
+    }
+  }
+}
+
+void
+MediaRecorder::UnRegisterActivityObserver()
+{
+  nsPIDOMWindow* window = GetOwner();
+  if (window) {
+    nsIDocument* doc = window->GetExtantDoc();
+    if (doc) {
+      doc->UnregisterActivityObserver(
+        NS_ISUPPORTS_CAST(nsIDocumentActivity*, this));
+    }
+  }
 }
 
 void
@@ -561,9 +586,8 @@ MediaRecorder::Stop(ErrorResult& aResult)
     return;
   }
   mState = RecordingState::Inactive;
-  if (mSessions.Length() > 0) {
-    mSessions.LastElement()->Stop();
-  }
+  MOZ_ASSERT(mSessions.Length() > 0);
+  mSessions.LastElement()->Stop();
 }
 
 void
@@ -628,7 +652,7 @@ MediaRecorder::RequestData(ErrorResult& aResult)
     aResult.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
-
+  MOZ_ASSERT(mSessions.Length() > 0);
   NS_DispatchToMainThread(
     new CreateAndDispatchBlobEventRunnable(mSessions.LastElement()->GetEncodedData(),
                                            this));
@@ -776,6 +800,23 @@ MediaRecorder::RemoveSession(Session* aSession)
 {
   LOG(PR_LOG_DEBUG, ("MediaRecorder.RemoveSession (%p)", aSession));
   mSessions.RemoveElement(aSession);
+}
+
+void
+MediaRecorder::NotifyOwnerDocumentActivityChanged()
+{
+  nsPIDOMWindow* window = GetOwner();
+  NS_ENSURE_TRUE_VOID(window);
+  nsIDocument* doc = window->GetExtantDoc();
+  NS_ENSURE_TRUE_VOID(doc);
+
+  LOG(PR_LOG_DEBUG, ("MediaRecorder %p document IsActive %d isVisible %d\n",
+                     this, doc->IsActive(), doc->IsVisible()));
+  if (!doc->IsActive() || !doc->IsVisible()) {
+    
+    ErrorResult result;
+    Stop(result);
+  }
 }
 
 }
