@@ -1551,10 +1551,18 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
     
     if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, flags))
         return false;
+
+    
+    if (!desc->obj && !JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
+        return false;
     if (desc->obj) {
         desc->obj = wrapper;
         return true;
     }
+
+    
+    if (!Traits::singleton.resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
+        return false;
 
     
     
@@ -1563,7 +1571,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
     
     
     nsGlobalWindow *win;
-    if (Traits::Type == XrayForWrappedNative && JSID_IS_STRING(id) &&
+    if (!desc->obj && Traits::Type == XrayForWrappedNative && JSID_IS_STRING(id) &&
         (win = static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper))))
     {
         nsCOMPtr<nsIDOMWindow> childDOMWin = win->GetChildWindow(id);
@@ -1578,18 +1586,6 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
             return JS_WrapPropertyDescriptor(cx, desc);
         }
     }
-
-    
-    if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
-        return false;
-    if (desc->obj) {
-        desc->obj = wrapper;
-        return true;
-    }
-
-    
-    if (!Traits::singleton.resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
-        return false;
 
     if (!desc->obj &&
         id == nsXPConnect::GetRuntimeInstance()->GetStringID(XPCJSRuntime::IDX_TO_STRING))
