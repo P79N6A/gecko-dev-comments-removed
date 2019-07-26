@@ -17,13 +17,13 @@ function run_test()
   gClient.connect(function () {
     attachTestTabAndResume(gClient, "test-stack", function (aResponse, aTabClient, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_simple_breakpoint();
+      test_same_breakpoint();
     });
   });
   do_test_pending();
 }
 
-function test_simple_breakpoint()
+function test_same_breakpoint()
 {
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
     let path = getFilePath('test_breakpoint-01.js');
@@ -32,28 +32,22 @@ function test_simple_breakpoint()
       line: gDebuggee.line0 + 3
     };
     gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
-      gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-        
-        do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.url, path);
-        do_check_eq(aPacket.frame.where.line, location.line);
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.why.actors[0], bpClient.actor);
-        
-        do_check_eq(gDebuggee.a, 1);
-        do_check_eq(gDebuggee.b, undefined);
-
-        
-        bpClient.remove(function (aResponse) {
-          gThreadClient.resume(function () {
+      gThreadClient.setBreakpoint(location, function (aResponse, secondBpClient) {
+        do_check_eq(bpClient.actor, secondBpClient.actor,
+                    "Should get the same actor w/ whole line breakpoints");
+        let location = {
+          url: path,
+          line: gDebuggee.line0 + 2,
+          column: 6
+        };
+        gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+          gThreadClient.setBreakpoint(location, function (aResponse, secondBpClient) {
+            do_check_eq(bpClient.actor, secondBpClient.actor,
+                        "Should get the same actor column breakpoints");
             finishClient(gClient);
           });
         });
-
       });
-      
-      gThreadClient.resume();
-
     });
 
   });

@@ -17,7 +17,12 @@ function run_test()
   gClient.connect(function () {
     attachTestTabAndResume(gClient, "test-stack", function (aResponse, aTabClient, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_simple_stepping();
+      
+      
+      
+      Services.tm.mainThread.dispatch({
+        run: test_simple_stepping
+      }, Ci.nsIThread.DISPATCH_NORMAL);
     });
   });
   do_test_pending();

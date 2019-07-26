@@ -17,7 +17,12 @@ function run_test()
   gClient.connect(function() {
     attachTestTabAndResume(gClient, "test-black-box", function(aResponse, aTabClient, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_black_box();
+      
+      
+      
+      Services.tm.mainThread.dispatch({
+        run: test_black_box
+      }, Ci.nsIThread.DISPATCH_NORMAL);
     });
   });
   do_test_pending();
