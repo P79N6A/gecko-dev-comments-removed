@@ -507,6 +507,7 @@ SetShadowProperties(Layer* aLayer)
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
   
   layerComposite->SetShadowTransform(aLayer->GetBaseTransform());
+  layerComposite->SetShadowTransformSetByAnimation(false);
   layerComposite->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
   layerComposite->SetShadowClipRect(aLayer->GetClipRect());
   layerComposite->SetShadowOpacity(aLayer->GetOpacity());

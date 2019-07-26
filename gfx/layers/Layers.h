@@ -914,6 +914,12 @@ public:
 
 
 
+  const gfx3DMatrix GetLocalTransform();
+
+  
+
+
+
 
 
   void ApplyPendingUpdatesToSubtree();
@@ -1163,12 +1169,6 @@ protected:
   
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
-
-  
-
-
-
-  const gfx3DMatrix GetLocalTransform();
 
   
 

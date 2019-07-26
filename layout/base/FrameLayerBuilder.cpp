@@ -2147,12 +2147,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                                mParameters.mYScale);
       }
 
-      
-      
-      
-      
-      ownLayer->SetIsFixedPosition(
-        isFixed && item->GetType() != nsDisplayItem::TYPE_TRANSFORM);
+      ownLayer->SetIsFixedPosition(isFixed);
 
       
       NS_ASSERTION(ownLayer->Manager() == mManager, "Wrong manager");
