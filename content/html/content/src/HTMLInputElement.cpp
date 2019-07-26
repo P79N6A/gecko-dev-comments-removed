@@ -2696,6 +2696,14 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
           SetValueChanged(true);
         }
         OnValueChanged(!mParserCreating);
+
+        if (mType == NS_FORM_INPUT_NUMBER) {
+          nsNumberControlFrame* numberControlFrame =
+            do_QueryFrame(GetPrimaryFrame());
+          if (numberControlFrame) {
+            numberControlFrame->UpdateForValueChange(value);
+          }
+        }
       }
 
       

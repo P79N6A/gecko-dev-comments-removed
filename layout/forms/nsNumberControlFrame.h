@@ -65,6 +65,12 @@ public:
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
+  
+
+
+
+  void UpdateForValueChange(const nsAString& aValue);
+
   HTMLInputElement* GetAnonTextControl();
 
 private:

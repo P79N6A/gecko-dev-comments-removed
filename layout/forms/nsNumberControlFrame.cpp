@@ -223,6 +223,11 @@ nsNumberControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
                       NS_LITERAL_STRING("text"), PR_FALSE);
 
+  
+  nsAutoString value;
+  HTMLInputElement::FromContent(mContent)->GetValue(value);
+  mTextField->SetAttr(kNameSpaceID_None, nsGkAtoms::value, value, false);
+
   if (mContent->AsElement()->State().HasState(NS_EVENT_STATE_FOCUS)) {
     
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -276,4 +281,14 @@ nsNumberControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 {
   
   aElements.MaybeAppendElement(mOuterWrapper);
+}
+
+void
+nsNumberControlFrame::UpdateForValueChange(const nsAString& aValue)
+{
+  
+  
+  
+  
+  HTMLInputElement::FromContent(mTextField)->SetValue(aValue);
 }
