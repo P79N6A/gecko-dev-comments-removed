@@ -923,7 +923,10 @@ FormHistory.prototype = {
             stmt.finalize();
         }
         this.dbStmts = {};
-        if (this.dbConnection === undefined)
+
+        let connectionDescriptor = Object.getOwnPropertyDescriptor(FormHistory.prototype, "dbConnection");
+        
+        if (!connectionDescriptor || connectionDescriptor.value === undefined)
             return;
 
         let completed = false;
