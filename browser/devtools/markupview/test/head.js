@@ -4,12 +4,6 @@
 
 const Cu = Components.utils;
 
-let TargetFactory = (function() {
-  let tempScope = {};
-  Components.utils.import("resource:///modules/devtools/Target.jsm", tempScope);
-  return tempScope.TargetFactory;
-})();
-
 
 function clearUserPrefs()
 {

@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [ "DeveloperToolbar", "CommandUtils" ];
+this.EXPORTED_SYMBOLS = [ "DeveloperToolbar" ];
 
 const NS_XHTML = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -26,92 +26,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "CmdCommands",
 
 XPCOMUtils.defineLazyModuleGetter(this, "PageErrorListener",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
-
-XPCOMUtils.defineLazyGetter(this, "prefBranch", function() {
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"]
-          .getService(Components.interfaces.nsIPrefService);
-  return prefService.getBranch(null)
-          .QueryInterface(Components.interfaces.nsIPrefBranch2);
-});
-
-
-
-
-this.CommandUtils = {
-  
-
-
-
-  getCommandbarSpec: function CU_getCommandbarSpec(aPref) {
-    let value = prefBranch.getComplexValue(aPref,
-                               Components.interfaces.nsISupportsString).data;
-    return JSON.parse(value);
-  },
-
-  
-
-
-
-  createButtons: function CU_createButtons(toolbarSpec, document, requisition) {
-    var reply = [];
-
-    toolbarSpec.forEach(function(buttonSpec) {
-      var button = document.createElement("toolbarbutton");
-      reply.push(button);
-
-      if (typeof buttonSpec == "string") {
-        buttonSpec = { typed: buttonSpec };
-      }
-      
-      requisition.update(buttonSpec.typed);
-
-      
-      var command = requisition.commandAssignment.value;
-      if (command == null) {
-        
-        
-        button.setAttribute("label", "X");
-        button.setAttribute("tooltip", "Unknown command: " + buttonSpec.typed);
-        button.setAttribute("disabled", "true");
-      }
-      else {
-        if (command.buttonId != null) {
-          button.id = command.buttonId;
-        }
-        if (command.buttonClass != null) {
-          button.className = command.buttonClass;
-        }
-
-        button.addEventListener("click", function() {
-          requisition.update(buttonSpec.typed);
-          
-            requisition.exec();
-          
-
-
-
-
-
-        }, false);
-
-        
-        
-
-
-
-
-
-
-
-
-      }
-    });
-
-    requisition.update('');
-
-    return reply;
-  }
-};
 
 
 
@@ -143,10 +57,10 @@ this.DeveloperToolbar = function DeveloperToolbar(aChromeWindow, aToolbarElement
   this._lastState = NOTIFICATIONS.HIDE;
   this._pendingShowCallback = undefined;
   this._pendingHide = false;
-  this._errorsCount = {};
-  this._errorListeners = {};
-  this._errorCounterButton = this._doc
-                             .getElementById("developer-toolbar-toolbox-button");
+  this._errorsCount = Object.create(null);
+  this._errorListeners = Object.create(null);
+  this._webConsoleButton = this._doc
+                           .getElementById("developer-toolbar-webconsole");
 
   try {
     CmdCommands.refreshAutoCommands(aChromeWindow);
@@ -583,9 +497,9 @@ function DT__updateErrorsCount(aChangedTabId)
   let errors = this._errorsCount[tabId];
 
   if (errors) {
-    this._errorCounterButton.setAttribute("error-count", errors);
+    this._webConsoleButton.setAttribute("error-count", errors);
   } else {
-    this._errorCounterButton.removeAttribute("error-count");
+    this._webConsoleButton.removeAttribute("error-count");
   }
 };
 

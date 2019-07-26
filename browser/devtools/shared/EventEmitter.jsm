@@ -1,23 +1,8 @@
 
 
-
-
 this.EXPORTED_SYMBOLS = ["EventEmitter"];
 
-
-
-
-
-
-
-
-this.EventEmitter = function EventEmitter(aObjectToExtend) {
-  if (aObjectToExtend) {
-    aObjectToExtend.on = this.on.bind(this);
-    aObjectToExtend.off = this.off.bind(this);
-    aObjectToExtend.once = this.once.bind(this);
-    aObjectToExtend.emit = this.emit.bind(this);
-  }
+this.EventEmitter = function EventEmitter() {
 }
 
 EventEmitter.prototype = {
@@ -49,7 +34,7 @@ EventEmitter.prototype = {
   once: function EventEmitter_once(aEvent, aListener) {
     let handler = function() {
       this.off(aEvent, handler);
-      aListener.apply(null, arguments);
+      aListener();
     }.bind(this);
     this.on(aEvent, handler);
   },
@@ -67,9 +52,7 @@ EventEmitter.prototype = {
     if (!this._eventEmitterListeners)
       return;
     let listeners = this._eventEmitterListeners.get(aEvent);
-    if (listeners) {
-      this._eventEmitterListeners.set(aEvent, listeners.filter(function(l) aListener != l));
-    }
+    this._eventEmitterListeners.set(aEvent, listeners.filter(function(l) aListener != l));
   },
 
   

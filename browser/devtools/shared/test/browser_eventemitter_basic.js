@@ -1,24 +1,10 @@
 
 
 
+
 function test() {
-  testEmitter();
-  testEmitter({});
-}
-
-
-function testEmitter(aObject) {
   Cu.import("resource:///modules/devtools/EventEmitter.jsm", this);
-
-  let emitter;
-
-  if (aObject) {
-    emitter = aObject;
-    new EventEmitter(emitter);
-  } else {
-    emitter = new EventEmitter();
-  }
-
+  let emitter = new EventEmitter();
   ok(emitter, "We have an event emitter");
 
   emitter.on("next", next);

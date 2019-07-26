@@ -115,8 +115,27 @@ XPCOMUtils.defineLazyGetter(this, "DeveloperToolbar", function() {
   return new tmp.DeveloperToolbar(window, document.getElementById("developer-toolbar"));
 });
 
+XPCOMUtils.defineLazyGetter(this, "InspectorUI", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/inspector.jsm", tmp);
+  return new tmp.InspectorUI(window);
+});
+
+XPCOMUtils.defineLazyGetter(this, "DebuggerUI", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/DebuggerUI.jsm", tmp);
+  return new tmp.DebuggerUI(window);
+});
+
+XPCOMUtils.defineLazyGetter(this, "Tilt", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/Tilt.jsm", tmp);
+  return new tmp.Tilt(window);
+});
+
 XPCOMUtils.defineLazyModuleGetter(this, "Social",
   "resource:///modules/Social.jsm");
+
 
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
   "resource:///modules/PageThumbs.jsm");
@@ -1410,6 +1429,36 @@ var gBrowserInit = {
     }
 
     
+    let enabled = gPrefService.getBoolPref("devtools.debugger.enabled");
+    if (enabled) {
+      let cmd = document.getElementById("Tools:Debugger");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+    }
+
+    
+    let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+    if (enabled) {
+      let cmd = document.getElementById("Tools:RemoteDebugger");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+
+      cmd = document.getElementById("Tools:RemoteWebConsole");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+    }
+
+    
+    let enabled = gPrefService.getBoolPref("devtools.chrome.enabled") &&
+                  gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
+                  gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+    if (enabled) {
+      let cmd = document.getElementById("Tools:ChromeDebugger");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+    }
+
+    
     
     let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled") ||
                          gPrefService.getBoolPref("devtools.chrome.enabled");
@@ -1423,6 +1472,14 @@ var gBrowserInit = {
     let scratchpadEnabled = gPrefService.getBoolPref(Scratchpad.prefEnabledName);
     if (scratchpadEnabled) {
       let cmd = document.getElementById("Tools:Scratchpad");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+    }
+
+    
+    let styleEditorEnabled = gPrefService.getBoolPref(StyleEditor.prefEnabledName);
+    if (styleEditorEnabled) {
+      let cmd = document.getElementById("Tools:StyleEditor");
       cmd.removeAttribute("disabled");
       cmd.removeAttribute("hidden");
     }
@@ -1443,9 +1500,6 @@ var gBrowserInit = {
       cmd.removeAttribute("disabled");
       cmd.removeAttribute("hidden");
     }
-
-    
-    gDevTools.registerBrowserWindow(window);
 
     let appMenuButton = document.getElementById("appmenu-button");
     let appMenuPopup = document.getElementById("appmenu-popup");
@@ -1489,7 +1543,8 @@ var gBrowserInit = {
     if (!gStartupRan)
       return;
 
-    gDevTools.forgetBrowserWindow(window);
+    if (!__lookupGetter__("InspectorUI"))
+      InspectorUI.destroy();
 
     
     
@@ -1587,7 +1642,7 @@ var gBrowserInit = {
                          'viewToolbarsMenu', 'viewSidebarMenuMenu', 'Browser:Reload',
                          'viewFullZoomMenu', 'pageStyleMenu', 'charsetMenu', 'View:PageSource', 'View:FullScreen',
                          'viewHistorySidebar', 'Browser:AddBookmarkAs', 'Browser:BookmarkAllTabs',
-                         'View:PageInfo', 'Browser:ToggleTabView', 'Browser:ToggleAddonBar'];
+                         'View:PageInfo', 'Tasks:InspectPage', 'Browser:ToggleTabView', 'Browser:ToggleAddonBar'];
     var element;
 
     for (let disabledItem of disabledItems) {
@@ -7393,12 +7448,6 @@ var TabContextMenu = {
   }
 };
 
-XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
-                                  "resource:///modules/devtools/gDevTools.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "DevToolsXULCommands",
-                                  "resource:///modules/devtools/gDevTools.jsm");
-
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
   let tempScope = {};
   Cu.import("resource:///modules/HUDService.jsm", tempScope);
@@ -7494,6 +7543,41 @@ XPCOMUtils.defineLazyGetter(ResponsiveUI, "ResponsiveUIManager", function() {
   Cu.import("resource:///modules/devtools/responsivedesign.jsm", tmp);
   return tmp.ResponsiveUIManager;
 });
+
+var StyleEditor = {
+  prefEnabledName: "devtools.styleeditor.enabled",
+  
+
+
+
+
+
+
+  openChrome: function SE_openChrome(aSelectedStyleSheet, aLine, aCol)
+  {
+    let contentWindow = gBrowser.selectedBrowser.contentWindow;
+    let win = this.StyleEditorManager.getEditorForWindow(contentWindow);
+    if (win) {
+      this.StyleEditorManager.selectEditor(win);
+      return win;
+    } else {
+      return this.StyleEditorManager.newEditor(contentWindow, window,
+                                               aSelectedStyleSheet, aLine, aCol);
+    }
+  },
+
+  toggle: function SE_toggle()
+  {
+    this.StyleEditorManager.toggleEditor(gBrowser.contentWindow, window);
+  }
+};
+
+XPCOMUtils.defineLazyGetter(StyleEditor, "StyleEditorManager", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/StyleEditor.jsm", tmp);
+  return new tmp.StyleEditorManager(window);
+});
+
 
 XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
 #ifdef XP_WIN
