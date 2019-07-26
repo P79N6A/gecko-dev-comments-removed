@@ -1536,6 +1536,9 @@ JS_WrapValue(JSContext *cx, jsval *vp)
 
 
 
+
+
+
 JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 {
@@ -1568,7 +1571,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         
         
         if (!origobj->swap(cx, target))
-            return NULL;
+            MOZ_CRASH();
         newIdentity = origobj;
     } else if (WrapperMap::Ptr p = map.lookup(origv)) {
         
@@ -1582,7 +1585,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         NukeCrossCompartmentWrapper(cx, newIdentity);
 
         if (!newIdentity->swap(cx, target))
-            return NULL;
+            MOZ_CRASH();
     } else {
         
         newIdentity = target;
@@ -1591,16 +1594,16 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
     
     
     if (!RemapAllWrappersForObject(cx, origobj, newIdentity))
-        return NULL;
+        MOZ_CRASH();
 
     
     if (origobj->compartment() != destination) {
         RootedObject newIdentityWrapper(cx, newIdentity);
         AutoCompartment ac(cx, origobj);
         if (!JS_WrapObject(cx, newIdentityWrapper.address()))
-            return NULL;
+            MOZ_CRASH();
         if (!origobj->swap(cx, newIdentityWrapper))
-            return NULL;
+            MOZ_CRASH();
         origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity), origv);
     }
 
@@ -1655,7 +1658,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         NukeCrossCompartmentWrapper(cx, newWrapper);
 
         if (!newWrapper->swap(cx, targetwrapper))
-            return NULL;
+            MOZ_CRASH();
     } else {
         
         newWrapper = targetwrapper;
@@ -1665,7 +1668,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     
     
     if (!RemapAllWrappersForObject(cx, origobj, targetobj))
-        return NULL;
+        MOZ_CRASH();
 
     
     
@@ -1682,14 +1685,14 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         
         RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
         if (!reflectorGuts || !origobj->swap(cx, reflectorGuts))
-            return NULL;
+            MOZ_CRASH();
 
         
         RootedObject wrapperGuts(cx, targetobj);
         if (!JS_WrapObject(cx, wrapperGuts.address()))
-            return NULL;
+            MOZ_CRASH();
         if (!origwrapper->swap(cx, wrapperGuts))
-            return NULL;
+            MOZ_CRASH();
         origwrapper->compartment()->crossCompartmentWrappers.put(ObjectValue(*targetobj),
                                                                  ObjectValue(*origwrapper));
     }
