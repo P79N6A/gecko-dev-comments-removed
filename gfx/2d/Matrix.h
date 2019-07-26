@@ -508,6 +508,10 @@ public:
          + _11 * _22 * _33 * _44;
   }
 
+  bool Invert();
+
+  
+  void SetNAN();
 };
 
 class Matrix5x4

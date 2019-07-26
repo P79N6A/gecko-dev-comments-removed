@@ -1890,6 +1890,9 @@ pref("layout.css.DOMPoint.enabled", true);
 pref("layout.css.DOMQuad.enabled", true);
 
 
+pref("layout.css.DOMMatrix.enabled", true);
+
+
 #ifdef RELEASE_BUILD
 pref("layout.css.getBoxQuads.enabled", false);
 #else
