@@ -87,6 +87,11 @@ public:
   
 
 
+  void UpdateCaretForCaretBrowsingMode();
+
+  
+
+
 
 
 
