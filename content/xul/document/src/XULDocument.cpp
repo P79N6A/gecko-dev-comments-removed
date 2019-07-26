@@ -3493,7 +3493,7 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
     
     
     
-    nsresult rv;
+    nsresult rv = aStatus;
 
     NS_ASSERTION(mCurrentScriptProto && mCurrentScriptProto->mSrcLoading,
                  "script source not loading on unichar stream complete?");
