@@ -130,13 +130,13 @@ const WorkerSandbox = EventEmitter.compose({
     
     
     let principals  = window;
-    let wantXHRConstructor = false;
+    let wantDOMConstructors = []
     if (EXPANDED_PRINCIPALS.length > 0 && !worker._injectInDocument) {
       principals = EXPANDED_PRINCIPALS.concat(window);
       
       
       delete proto.XMLHttpRequest;
-      wantXHRConstructor = true;
+      wantDOMConstructors.push("XMLHttpRequest");
     }
 
     
@@ -149,7 +149,7 @@ const WorkerSandbox = EventEmitter.compose({
     let content = this._sandbox = sandbox(principals, {
       sandboxPrototype: proto,
       wantXrays: true,
-      wantXHRConstructor: wantXHRConstructor,
+      wantDOMConstructors: wantDOMConstructors,
       sameZoneAs: window
     });
     
