@@ -2715,15 +2715,9 @@ public abstract class GeckoApp
 
 
 
-    private void setLocale(final String locale) {
-        if (locale == null) {
-            return;
-        }
-        final String resultant = BrowserLocaleManager.getInstance().setSelectedLocale(this, locale);
-        if (resultant == null) {
-            return;
-        }
 
+
+    protected void onLocaleChanged(final String locale) {
         final boolean startNewSession = true;
         final boolean shouldRestart = false;
 
@@ -2732,7 +2726,7 @@ public abstract class GeckoApp
         
         final HealthRecorder rec = mHealthRecorder;
         if (rec != null) {
-            rec.onAppLocaleChanged(resultant);
+            rec.onAppLocaleChanged(locale);
             rec.onEnvironmentChanged(startNewSession, SESSION_END_LOCALE_CHANGED);
         }
 
@@ -2740,7 +2734,7 @@ public abstract class GeckoApp
             ThreadUtils.postToUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    GeckoApp.this.onLocaleReady(resultant);
+                    GeckoApp.this.onLocaleReady(locale);
                 }
             });
             return;
@@ -2755,6 +2749,24 @@ public abstract class GeckoApp
                 GeckoApp.this.finish();
             }
         });
+    }
+
+    
+
+
+
+    protected void setLocale(final String locale) {
+        Log.d(LOGTAG, "setLocale: " + locale);
+        if (locale == null) {
+            return;
+        }
+
+        final String resultant = BrowserLocaleManager.getInstance().setSelectedLocale(this, locale);
+        if (resultant == null) {
+            return;
+        }
+
+        onLocaleChanged(resultant);
     }
 
     private void setSystemUiVisible(final boolean visible) {

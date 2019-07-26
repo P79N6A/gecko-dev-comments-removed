@@ -7,18 +7,21 @@ package org.mozilla.gecko.preferences;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.BrowserApp;
+import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.DataReportingNotification;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoActivityStatus;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoApplication;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoSharedPrefs;
+import org.mozilla.gecko.LocaleManager;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.announcements.AnnouncementsConstants;
@@ -28,6 +31,7 @@ import org.mozilla.gecko.home.HomePanelPicker;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -104,8 +108,79 @@ public class GeckoPreferences
     private static final int REQUEST_CODE_PREF_SCREEN = 5;
     private static final int RESULT_CODE_EXIT_SETTINGS = 6;
 
+    
+    
+    
+    public static final int RESULT_CODE_LOCALE_DID_CHANGE = 7;
+
+    
+
+
+    private Locale lastLocale = Locale.getDefault();
+
+    private void updateTitle(int title) {
+        
+        
+
+        final String newTitle = getString(title);
+        if (newTitle != null) {
+            Log.v(LOGTAG, "Setting activity title to " + newTitle);
+            setTitle(newTitle);
+
+            if (Build.VERSION.SDK_INT >= 14) {
+                final ActionBar actionBar = getActionBar();
+                actionBar.setTitle(newTitle);
+            }
+        }
+    }
+
+    private void updateTitleForPrefsResource(int res) {
+        
+        
+        
+        
+        if (res == R.xml.preferences) {
+            updateTitle(R.string.settings_title);
+            return;
+        }
+
+        if (res == R.xml.preferences_locale) {
+            updateTitle(R.string.pref_category_language);
+            return;
+        }
+    }
+
+    private void onLocaleChanged(Locale newLocale) {
+        Log.d(LOGTAG, "onLocaleChanged: " + newLocale);
+
+        BrowserLocaleManager.getInstance().updateConfiguration(getApplicationContext(), newLocale);
+        this.lastLocale = newLocale;
+
+        
+        
+        
+        
+        final Intent intent = (Intent) getIntent().clone();
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        startActivityForResult(intent, REQUEST_CODE_PREF_SCREEN);
+
+        setResult(RESULT_CODE_LOCALE_DID_CHANGE);
+        finish();
+    }
+
+    private void checkLocale() {
+        final Locale currentLocale = Locale.getDefault();
+        if (currentLocale.equals(lastLocale)) {
+            return;
+        }
+
+        onLocaleChanged(currentLocale);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        
+        checkLocale();
 
         
         
@@ -146,6 +221,9 @@ public class GeckoPreferences
                 Log.e(LOGTAG, "Displaying default settings.");
                 res = R.xml.preferences;
             }
+
+            
+            updateTitleForPrefsResource(res);
             addPreferencesFromResource(res);
         }
 
@@ -171,8 +249,14 @@ public class GeckoPreferences
             }
         });
 
-        if (Build.VERSION.SDK_INT >= 14)
-            getActionBar().setHomeButtonEnabled(true);
+        if (Build.VERSION.SDK_INT >= 14) {
+            final ActionBar actionBar = getActionBar();
+            actionBar.setHomeButtonEnabled(true);
+        }
+
+        
+        
+        
 
         
         if (intentExtras != null && intentExtras.containsKey(DataReportingNotification.ALERT_NAME_DATAREPORTING_NOTIFICATION)) {
@@ -182,6 +266,7 @@ public class GeckoPreferences
     }
 
     
+
 
 
     private void setupTopLevelFragmentIntent() {
@@ -205,6 +290,9 @@ public class GeckoPreferences
         
         intent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, GeckoPreferenceFragment.class.getName());
         intent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, fragmentArgs);
+
+        
+        updateTitle(R.string.settings_title);
     }
 
     @Override
@@ -267,6 +355,8 @@ public class GeckoPreferences
     @Override
     public void startWithFragment(String fragmentName, Bundle args,
             Fragment resultTo, int resultRequestCode, int titleRes, int shortTitleRes) {
+        Log.v(LOGTAG, "Starting with fragment: " + fragmentName + ", title " + titleRes);
+
         
         Intent intent = onBuildStartFragmentIntent(fragmentName, args, titleRes, shortTitleRes);
         if (resultTo == null) {
@@ -278,6 +368,10 @@ public class GeckoPreferences
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        
+        
+        checkLocale();
+
         switch (requestCode) {
           case REQUEST_CODE_PREF_SCREEN:
               if (resultCode == RESULT_CODE_EXIT_SETTINGS) {
@@ -290,8 +384,8 @@ public class GeckoPreferences
           case HomePanelPicker.REQUEST_CODE_ADD_PANEL:
               switch (resultCode) {
                   case Activity.RESULT_OK:
-                     
-                     mPanelsPreferenceCategory.refresh();
+                      
+                      mPanelsPreferenceCategory.refresh();
                       break;
                   case Activity.RESULT_CANCELED:
                       
@@ -403,7 +497,8 @@ public class GeckoPreferences
                             return true;
                         }
                     });
-                } else if (PREFS_RESTORE_SESSION.equals(key)) {
+                } else if (PREFS_RESTORE_SESSION.equals(key) ||
+                           PREFS_BROWSER_LOCALE.equals(key)) {
                     
                     
                     
@@ -602,16 +697,74 @@ public class GeckoPreferences
         return prefs.getBoolean(name, def);
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private boolean onLocaleSelected(final String newValue) {
+        if (newValue.equals("")) {
+            
+            return false;
+        }
+
+        final Context context = getApplicationContext();
+
+        
+        
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                final LocaleManager localeManager = BrowserLocaleManager.getInstance();
+                if (null == localeManager.setSelectedLocale(context, newValue)) {
+                    localeManager.updateConfiguration(context, Locale.getDefault());
+                }
+
+                ThreadUtils.postToUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onLocaleChanged(Locale.getDefault());
+                    }
+                });
+            }
+        });
+
+        return true;
+    }
+
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
-        String prefName = preference.getKey();
+        final String prefName = preference.getKey();
         if (PREFS_MP_ENABLED.equals(prefName)) {
             showDialog((Boolean) newValue ? DIALOG_CREATE_MASTER_PASSWORD : DIALOG_REMOVE_MASTER_PASSWORD);
 
             
             
             return false;
-        } else if (PREFS_MENU_CHAR_ENCODING.equals(prefName)) {
+        }
+
+        if (PREFS_BROWSER_LOCALE.equals(prefName)) {
+            
+            
+            return onLocaleSelected((String) newValue);
+        }
+
+        if (PREFS_MENU_CHAR_ENCODING.equals(prefName)) {
             setCharEncodingState(((String) newValue).equals("true"));
         } else if (PREFS_ANNOUNCEMENTS_ENABLED.equals(prefName)) {
             

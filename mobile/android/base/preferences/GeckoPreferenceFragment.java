@@ -6,12 +6,18 @@
 package org.mozilla.gecko.preferences;
 
 import java.lang.reflect.Field;
+import java.util.Locale;
 
+import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
 
+import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Context;
+import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
@@ -29,6 +35,7 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
 
     private static final String LOGTAG = "GeckoPreferenceFragment";
     private int mPrefsRequestId = 0;
+    private Locale lastLocale = Locale.getDefault();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,22 +63,82 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
 
 
 
+
+
+    protected String getTitle() {
+        final int res = getResource();
+        if (res == R.xml.preferences_locale) {
+            return getString(R.string.pref_category_language);
+        }
+
+        if (res == R.xml.preferences) {
+            return getString(R.string.settings_title);
+        }
+
+        return null;
+    }
+
+    private void updateTitle() {
+        final String newTitle = getTitle();
+        if (newTitle != null) {
+            final Activity activity = getActivity();
+
+            Log.v(LOGTAG, "Setting activity title to " + newTitle);
+            activity.setTitle(newTitle);
+
+            if (Build.VERSION.SDK_INT >= 14) {
+                final ActionBar actionBar = activity.getActionBar();
+                actionBar.setTitle(newTitle);
+            }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        final Locale currentLocale = Locale.getDefault();
+        final Context context = getActivity().getApplicationContext();
+
+        BrowserLocaleManager.getInstance().updateConfiguration(context, currentLocale);
+
+        if (!currentLocale.equals(lastLocale)) {
+            
+            Log.d(LOGTAG, "Locale changed: " + currentLocale);
+            this.lastLocale = currentLocale;
+
+            
+            getPreferenceScreen().removeAll();
+            addPreferencesFromResource(getResource());
+        }
+
+        
+        updateTitle();
+
+        super.onResume();
+    }
+
+    
+
+
+
+
     private int getResource() {
         int resid = 0;
 
-        String resourceName = getArguments().getString("resource");
+        final String resourceName = getArguments().getString("resource");
+        final Activity activity = getActivity();
+
         if (resourceName != null) {
             
-            resid = getActivity().getResources().getIdentifier(resourceName,
-                                                             "xml",
-                                                             getActivity().getPackageName());
+            final Resources resources = activity.getResources();
+            final String packageName = activity.getPackageName();
+            resid = resources.getIdentifier(resourceName, "xml", packageName);
         }
 
         if (resid == 0) {
             
             Log.e(LOGTAG, "Failed to find resource: " + resourceName + ". Displaying default settings.");
 
-            boolean isMultiPane = ((PreferenceActivity) getActivity()).onIsMultiPane();
+            boolean isMultiPane = ((PreferenceActivity) activity).onIsMultiPane();
             resid = isMultiPane ? R.xml.preferences_customize_tablet : R.xml.preferences;
         }
 

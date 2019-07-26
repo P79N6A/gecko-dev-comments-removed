@@ -14,9 +14,18 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.util.Log;
 
+import java.io.File;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.mozilla.gecko.util.GeckoJarReader;
 
 
 
@@ -38,6 +47,8 @@ public class BrowserLocaleManager implements LocaleManager {
 
     private static final String EVENT_LOCALE_CHANGED = "Locale:Changed";
     private static final String PREF_LOCALE = "locale";
+
+    private static final String FALLBACK_LOCALE_TAG = "en-US";
 
     
     
@@ -92,7 +103,7 @@ public class BrowserLocaleManager implements LocaleManager {
         return language + "-" + country;
     }
 
-    private static Locale parseLocaleCode(final String localeCode) {
+    public static Locale parseLocaleCode(final String localeCode) {
         int index;
         if ((index = localeCode.indexOf('-')) != -1 ||
             (index = localeCode.indexOf('_')) != -1) {
@@ -244,7 +255,8 @@ public class BrowserLocaleManager implements LocaleManager {
         settings.edit().putString(PREF_LOCALE, localeCode).commit();
     }
 
-    private Locale getCurrentLocale(Context context) {
+    @Override
+    public Locale getCurrentLocale(Context context) {
         if (currentLocale != null) {
             return currentLocale;
         }
@@ -284,5 +296,68 @@ public class BrowserLocaleManager implements LocaleManager {
         updateConfiguration(context, locale);
 
         return locale.toString();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static Collection<String> getPackagedLocaleTags(final Context context) {
+        final String resPath = "res/multilocale.json";
+        final String apkPath = context.getPackageResourcePath();
+
+        final String jarURL = "jar:jar:" + new File(apkPath).toURI() + "!/" +
+                              AppConstants.OMNIJAR_NAME + "!/" +
+                              resPath;
+
+        final String contents = GeckoJarReader.getText(jarURL);
+        if (contents == null) {
+            
+            return null;
+        }
+
+        try {
+            final JSONObject multilocale = new JSONObject(contents);
+            final JSONArray locales = multilocale.getJSONArray("locales");
+            if (locales == null) {
+                Log.e(LOG_TAG, "No 'locales' array in multilocales.json!");
+                return null;
+            }
+
+            final Set<String> out = new HashSet<String>(locales.length());
+            for (int i = 0; i < locales.length(); ++i) {
+                
+                
+                
+                out.add(locales.getString(i));
+            }
+
+            return out;
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "Unable to parse multilocale.json.", e);
+            return null;
+        }
+    }
+
+    
+
+
+
+    public static String getFallbackLocaleTag() {
+        return FALLBACK_LOCALE_TAG;
     }
 }
