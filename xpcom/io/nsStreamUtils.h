@@ -5,6 +5,7 @@
 #ifndef nsStreamUtils_h__
 #define nsStreamUtils_h__
 
+#include "nsCOMPtr.h"
 #include "nsStringFwd.h"
 #include "nsIInputStream.h"
 
@@ -23,9 +24,8 @@ class nsIEventTarget;
 
 
 
-extern nsresult
-NS_NewInputStreamReadyEvent(nsIInputStreamCallback **aEvent,
-                            nsIInputStreamCallback  *aNotify,
+extern already_AddRefed<nsIInputStreamCallback>
+NS_NewInputStreamReadyEvent(nsIInputStreamCallback  *aNotify,
                             nsIEventTarget          *aTarget);
 
 
@@ -38,9 +38,8 @@ NS_NewInputStreamReadyEvent(nsIInputStreamCallback **aEvent,
 
 
 
-extern nsresult
-NS_NewOutputStreamReadyEvent(nsIOutputStreamCallback **aEvent,
-                             nsIOutputStreamCallback  *aNotify,
+extern already_AddRefed<nsIOutputStreamCallback>
+NS_NewOutputStreamReadyEvent(nsIOutputStreamCallback  *aNotify,
                              nsIEventTarget           *aTarget);
 
 

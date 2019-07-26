@@ -420,14 +420,7 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
             
             
             
-            
-            
-            
-            nsCOMPtr<nsIInputStreamCallback> temp;
-            nsresult rv = NS_NewInputStreamReadyEvent(getter_AddRefs(temp),
-                                                      callback, target);
-            if (NS_FAILED(rv)) return rv;
-            mCallback = temp;
+            mCallback = NS_NewInputStreamReadyEvent(callback, target);
         }
         else
             mCallback = callback;
@@ -657,14 +650,7 @@ nsSocketOutputStream::AsyncWait(nsIOutputStreamCallback *callback,
             
             
             
-            
-            
-            
-            nsCOMPtr<nsIOutputStreamCallback> temp;
-            nsresult rv = NS_NewOutputStreamReadyEvent(getter_AddRefs(temp),
-                                                       callback, target);
-            if (NS_FAILED(rv)) return rv;
-            mCallback = temp;
+            mCallback = NS_NewOutputStreamReadyEvent(callback, target);
         }
         else
             mCallback = callback;
