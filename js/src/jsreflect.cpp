@@ -1475,6 +1475,8 @@ NodeBuilder::function(ASTType type, TokenPos *pos,
                    dst);
 }
 
+namespace {
+
 
 
 
@@ -1585,6 +1587,8 @@ class ASTSerializer
 
     bool program(ParseNode *pn, MutableHandleValue dst);
 };
+
+} 
 
 AssignmentOperator
 ASTSerializer::aop(JSOp op)
