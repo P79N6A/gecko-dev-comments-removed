@@ -1315,7 +1315,7 @@ pref("browser.newtabpage.rows", 3);
 
 pref("browser.newtabpage.columns", 3);
 
-pref("browser.newtabpage.directorySource", "chrome://global/content/directoryLinks.json");
+pref("browser.newtabpage.directorySource", "data:application/json,{}");
 
 
 pref("full-screen-api.enabled", true);
