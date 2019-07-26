@@ -173,7 +173,7 @@ public:
 
 #ifdef DEBUG
     static void StaticInit() {
-        PR_NewThreadPrivateIndex(&sCurrentGLContextTLS, NULL);
+        PR_NewThreadPrivateIndex(&sCurrentGLContextTLS, nullptr);
     }
 #endif
 
@@ -229,7 +229,7 @@ public:
       NativeDataTypeMax
     };
 
-    virtual void *GetNativeData(NativeDataType aType) { return NULL; }
+    virtual void *GetNativeData(NativeDataType aType) { return nullptr; }
     GLContext *GetSharedContext() { return mSharedContext; }
 
     bool IsGlobalSharedContext() { return mIsGlobalSharedContext; }
@@ -1500,7 +1500,7 @@ public:
     void BeforeGLCall(const char* glFunction) {
         MOZ_ASSERT(IsCurrent());
         if (DebugMode()) {
-            GLContext *currentGLContext = NULL;
+            GLContext *currentGLContext = nullptr;
 
             currentGLContext = (GLContext*)PR_GetThreadPrivate(sCurrentGLContextTLS);
 

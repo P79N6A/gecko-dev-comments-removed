@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "GLLibraryEGL.h"
 
@@ -15,7 +15,7 @@
 namespace mozilla {
 namespace gl {
 
-// should match the order of EGLExtensions, and be null-terminated.
+
 static const char *sExtensionNames[] = {
     "EGL_KHR_image_base",
     "EGL_KHR_image_pixmap",
@@ -32,7 +32,7 @@ static const char *sExtensionNames[] = {
 
 static PRLibrary* LoadApitraceLibrary()
 {
-    static PRLibrary* sApitraceLibrary = NULL;
+    static PRLibrary* sApitraceLibrary = nullptr;
 
     if (sApitraceLibrary)
         return sApitraceLibrary;
@@ -43,13 +43,13 @@ static PRLibrary* LoadApitraceLibrary()
         logFile = "firefox.trace";
     }
 
-    // The firefox process can't write to /data/local, but it can write
-    // to $GRE_HOME/
+    
+    
     nsAutoCString logPath;
     logPath.AppendPrintf("%s/%s", getenv("GRE_HOME"), logFile.get());
 
-    // apitrace uses the TRACE_FILE environment variable to determine where
-    // to log trace output to
+    
+    
     printf_stderr("Logging GL tracing output to %s", logPath.get());
     setenv("TRACE_FILE", logPath.get(), false);
 
@@ -60,10 +60,10 @@ static PRLibrary* LoadApitraceLibrary()
     return sApitraceLibrary;
 }
 
-#endif // ANDROID
+#endif 
 
 #ifdef XP_WIN
-// see the comment in GLLibraryEGL::EnsureInitialized() for the rationale here.
+
 static PRLibrary*
 LoadLibraryForEGLOnWindows(const nsAString& filename)
 {
@@ -82,7 +82,7 @@ LoadLibraryForEGLOnWindows(const nsAString& filename)
     }
     return lib;
 }
-#endif // XP_WIN
+#endif 
 
 bool
 GLLibraryEGL::EnsureInitialized()
@@ -96,31 +96,31 @@ GLLibraryEGL::EnsureInitialized()
 #ifdef XP_WIN
 #ifdef MOZ_WEBGL
     if (!mEGLLibrary) {
-        // On Windows, the GLESv2, EGL and DXSDK libraries are shipped with libxul and
-        // we should look for them there. We have to load the libs in this
-        // order, because libEGL.dll depends on libGLESv2.dll which depends on the DXSDK
-        // libraries. This matters especially for WebRT apps which are in a different directory.
-        // See bug 760323 and bug 749459
+        
+        
+        
+        
+        
 
 #ifndef MOZ_D3DCOMPILER_DLL
 #error MOZ_D3DCOMPILER_DLL should have been defined by the Makefile
 #endif
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_DLL)));
-        // intentionally leak the D3DCOMPILER_DLL library
+        
 
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libGLESv2.dll"));
-        // intentionally leak the libGLESv2.dll library
+        
 
         mEGLLibrary = LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libEGL.dll"));
 
         if (!mEGLLibrary)
             return false;
     }
-#endif // MOZ_WEBGL
-#else // !Windows
+#endif 
+#else 
 
-    // On non-Windows (Android) we use system copies of libEGL. We look for
-    // the APITrace lib, libEGL.so, and libEGL.so.1 in that order.
+    
+    
 
 #if defined(ANDROID)
     if (!mEGLLibrary)
@@ -142,10 +142,10 @@ GLLibraryEGL::EnsureInitialized()
         return false;
     }
 
-#endif // !Windows
+#endif 
 
 #define SYMBOL(name) \
-{ (PRFuncPtr*) &mSymbols.f##name, { "egl" #name, NULL } }
+{ (PRFuncPtr*) &mSymbols.f##name, { "egl" #name, nullptr } }
 
     GLLibraryLoader::SymLoadStruct earlySymbols[] = {
         SYMBOL(GetDisplay),
@@ -173,7 +173,7 @@ GLLibraryEGL::EnsureInitialized()
         SYMBOL(BindTexImage),
         SYMBOL(ReleaseTexImage),
         SYMBOL(QuerySurface),
-        { NULL, { NULL } }
+        { nullptr, { nullptr } }
     };
 
     if (!GLLibraryLoader::LoadSymbols(mEGLLibrary, &earlySymbols[0])) {
@@ -182,7 +182,7 @@ GLLibraryEGL::EnsureInitialized()
     }
 
     mEGLDisplay = fGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (!fInitialize(mEGLDisplay, NULL, NULL))
+    if (!fInitialize(mEGLDisplay, nullptr, nullptr))
         return false;
 
     const char *vendor = (const char*) fQueryString(mEGLDisplay, LOCAL_EGL_VENDOR);
@@ -303,7 +303,7 @@ GLLibraryEGL::InitExtensions()
 
     static bool firstRun = true;
 #else
-    // Non-DEBUG, so never spew.
+    
     const bool firstRun = false;
 #endif
 
@@ -372,7 +372,7 @@ void
 GLLibraryEGL::DumpEGLConfigs()
 {
     int nc = 0;
-    fGetConfigs(mEGLDisplay, NULL, 0, &nc);
+    fGetConfigs(mEGLDisplay, nullptr, 0, &nc);
     EGLConfig *ec = new EGLConfig[nc];
     fGetConfigs(mEGLDisplay, ec, nc, &nc);
 
@@ -384,6 +384,6 @@ GLLibraryEGL::DumpEGLConfigs()
     delete [] ec;
 }
 
-} /* namespace gl */
-} /* namespace mozilla */
+} 
+} 
 
