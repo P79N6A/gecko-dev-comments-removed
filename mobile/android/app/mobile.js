@@ -751,3 +751,6 @@ pref("dom.payment.provider.0.requestMethod", "GET");
 
 
 pref("media.useAudioChannelService", true);
+
+
+pref("security.csp.speccompliant", true);
