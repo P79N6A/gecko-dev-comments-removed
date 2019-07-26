@@ -17,27 +17,12 @@ using mozilla::dom::EventTarget;
 using mozilla::DebugOnly;
 
 NS_EXPORT
-nsCxPusher::nsCxPusher()
-    : mScriptIsRunning(false),
-      mPushedSomething(false)
-{
-}
-
-NS_EXPORT
-nsCxPusher::~nsCxPusher()
-{
-  Pop();
-}
+nsCxPusher::~nsCxPusher() {}
 
 bool
 nsCxPusher::Push(EventTarget *aCurrentTarget)
 {
-  if (mPushedSomething) {
-    NS_ERROR("Whaaa! No double pushing with nsCxPusher::Push()!");
-
-    return false;
-  }
-
+  MOZ_ASSERT(mPusher.empty());
   NS_ENSURE_TRUE(aCurrentTarget, false);
   nsresult rv;
   nsIScriptContext* scx =
@@ -54,7 +39,7 @@ nsCxPusher::Push(EventTarget *aCurrentTarget)
     
     JSContext* cx = aCurrentTarget->GetJSContextForEventHandlers();
     if (cx) {
-      DoPush(cx);
+      mPusher.construct(cx);
     }
 
     
@@ -62,20 +47,14 @@ nsCxPusher::Push(EventTarget *aCurrentTarget)
     return true;
   }
 
-  JSContext* cx = scx ? scx->GetNativeContext() : nullptr;
-
-  
-  
-  
-  
-  Push(cx);
+  mPusher.construct(scx->GetNativeContext());
   return true;
 }
 
 bool
 nsCxPusher::RePush(EventTarget *aCurrentTarget)
 {
-  if (!mPushedSomething) {
+  if (mPusher.empty()) {
     return Push(aCurrentTarget);
   }
 
@@ -84,34 +63,49 @@ nsCxPusher::RePush(EventTarget *aCurrentTarget)
     nsIScriptContext* scx =
       aCurrentTarget->GetContextForEventHandlers(&rv);
     if (NS_FAILED(rv)) {
-      Pop();
+      mPusher.destroy();
       return false;
     }
 
     
     
-    if (scx && scx == mScx &&
+    if (scx && scx == mPusher.ref().GetScriptContext() &&
         scx->GetNativeContext()) {
       return true;
     }
   }
 
-  Pop();
+  mPusher.destroy();
   return Push(aCurrentTarget);
 }
 
 NS_EXPORT_(void)
 nsCxPusher::Push(JSContext *cx)
 {
-  MOZ_ASSERT(!mPushedSomething, "No double pushing with nsCxPusher::Push()!");
-  MOZ_ASSERT(cx);
-
-  DoPush(cx);
+  mPusher.construct(cx);
 }
 
 void
-nsCxPusher::DoPush(JSContext* cx)
+nsCxPusher::PushNull()
 {
+  
+  
+  mPusher.construct(static_cast<JSContext*>(nullptr),  true);
+}
+
+NS_EXPORT_(void)
+nsCxPusher::Pop()
+{
+  if (!mPusher.empty())
+    mPusher.destroy();
+}
+
+namespace mozilla {
+
+AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull) : mScriptIsRunning(false)
+{
+  MOZ_ASSERT_IF(!allowNull, cx);
+
   
   
   
@@ -139,33 +133,14 @@ nsCxPusher::DoPush(JSContext* cx)
     xpc_UnmarkGrayContext(cx);
   }
 
-  mPushedSomething = true;
 #ifdef DEBUG
   mPushedContext = cx;
-  if (cx)
-    mCompartmentDepthOnEntry = js::GetEnterCompartmentDepth(cx);
+  mCompartmentDepthOnEntry = cx ? js::GetEnterCompartmentDepth(cx) : 0;
 #endif
 }
 
-void
-nsCxPusher::PushNull()
+AutoCxPusher::~AutoCxPusher()
 {
-  DoPush(nullptr);
-}
-
-NS_EXPORT_(void)
-nsCxPusher::Pop()
-{
-  if (!mPushedSomething) {
-    mScx = nullptr;
-    mPushedSomething = false;
-
-    NS_ASSERTION(!mScriptIsRunning, "Huh, this can't be happening, "
-                 "mScriptIsRunning can't be set here!");
-
-    return;
-  }
-
   
   mAutoRequest.destroyIfConstructed();
 
@@ -189,10 +164,7 @@ nsCxPusher::Pop()
 
   mScx = nullptr;
   mScriptIsRunning = false;
-  mPushedSomething = false;
 }
-
-namespace mozilla {
 
 AutoJSContext::AutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL)
   : mCx(nullptr)

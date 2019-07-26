@@ -16,11 +16,54 @@ class EventTarget;
 
 class nsIScriptContext;
 
+namespace mozilla {
+
+
+
+
+
+class MOZ_STACK_CLASS AutoCxPusher
+{
+public:
+  AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
+  ~AutoCxPusher();
+
+  nsIScriptContext* GetScriptContext() { return mScx; }
+
+private:
+  mozilla::Maybe<JSAutoRequest> mAutoRequest;
+  nsCOMPtr<nsIScriptContext> mScx;
+  bool mScriptIsRunning;
+#ifdef DEBUG
+  JSContext* mPushedContext;
+  unsigned mCompartmentDepthOnEntry;
+#endif
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MOZ_STACK_CLASS nsCxPusher
 {
 public:
-  NS_EXPORT nsCxPusher();
-  NS_EXPORT ~nsCxPusher(); 
+  
+  
+  
+  
+  
+  
+  NS_EXPORT ~nsCxPusher();
 
   
   bool Push(mozilla::dom::EventTarget *aCurrentTarget);
@@ -36,19 +79,12 @@ public:
   
   NS_EXPORT_(void) Pop();
 
-  nsIScriptContext* GetCurrentScriptContext() { return mScx; }
-private:
-  
-  void DoPush(JSContext* cx);
+  nsIScriptContext* GetCurrentScriptContext() {
+    return mPusher.empty() ? nullptr : mPusher.ref().GetScriptContext();
+  }
 
-  mozilla::Maybe<JSAutoRequest> mAutoRequest;
-  nsCOMPtr<nsIScriptContext> mScx;
-  bool mScriptIsRunning;
-  bool mPushedSomething;
-#ifdef DEBUG
-  JSContext* mPushedContext;
-  unsigned mCompartmentDepthOnEntry;
-#endif
+private:
+  mozilla::Maybe<mozilla::AutoCxPusher> mPusher;
 };
 
 namespace mozilla {
