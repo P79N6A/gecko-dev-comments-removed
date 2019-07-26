@@ -173,6 +173,84 @@ private:
     };
 
     
+    class MOZ_STACK_CLASS PRFileDescAutoLock
+    {
+    public:
+      typedef mozilla::MutexAutoLock MutexAutoLock;
+
+      PRFileDescAutoLock(nsSocketTransport *aSocketTransport,
+                         nsresult *aConditionWhileLocked = nullptr)
+        : mSocketTransport(aSocketTransport)
+        , mFd(nullptr)
+      {
+        MOZ_ASSERT(aSocketTransport);
+        MutexAutoLock lock(mSocketTransport->mLock);
+        if (aConditionWhileLocked) {
+          *aConditionWhileLocked = mSocketTransport->mCondition;
+          if (NS_FAILED(mSocketTransport->mCondition)) {
+            return;
+          }
+        }
+        mFd = mSocketTransport->GetFD_Locked();
+        NS_WARN_IF_FALSE(mFd, "PRFileDescAutoLock cannot get fd!");
+      }
+      ~PRFileDescAutoLock() {
+        MutexAutoLock lock(mSocketTransport->mLock);
+        if (mFd) {
+          mSocketTransport->ReleaseFD_Locked(mFd);
+        }
+      }
+      bool IsInitialized() {
+        return mFd;
+      }
+      operator PRFileDesc*() {
+        return mFd;
+      }
+    private:
+      operator PRFileDescAutoLock*() { return nullptr; }
+      
+      nsSocketTransport *mSocketTransport;
+      PRFileDesc        *mFd;
+    };
+    friend class PRFileDescAutoLock;
+
+    class LockedPRFileDesc
+    {
+    public:
+      LockedPRFileDesc(nsSocketTransport *aSocketTransport)
+        : mSocketTransport(aSocketTransport)
+        , mFd(nullptr)
+      {
+        MOZ_ASSERT(aSocketTransport);
+      }
+      ~LockedPRFileDesc() {}
+      bool IsInitialized() {
+        return mFd;
+      }
+      LockedPRFileDesc& operator=(PRFileDesc *aFd) {
+        mSocketTransport->mLock.AssertCurrentThreadOwns();
+        mFd = aFd;
+        return *this;
+      }
+      operator PRFileDesc*() {
+        if (mSocketTransport->mAttached) {
+          mSocketTransport->mLock.AssertCurrentThreadOwns();
+        }
+        return mFd;
+      }
+      bool operator==(PRFileDesc *aFd) {
+        mSocketTransport->mLock.AssertCurrentThreadOwns();
+        return mFd == aFd;
+      }
+    private:
+      operator LockedPRFileDesc*() { return nullptr; }
+      
+      nsSocketTransport *mSocketTransport;
+      PRFileDesc        *mFd;
+    };
+    friend class LockedPRFileDesc;
+
+    
     
     
     
@@ -242,10 +320,10 @@ private:
     
     
 
-    Mutex       mLock;  
-    PRFileDesc *mFD;
-    nsrefcnt    mFDref;       
-    bool        mFDconnected; 
+    Mutex            mLock;  
+    LockedPRFileDesc mFD;
+    nsrefcnt         mFDref;       
+    bool             mFDconnected; 
 
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsITransportEventSink> mEventSink;
