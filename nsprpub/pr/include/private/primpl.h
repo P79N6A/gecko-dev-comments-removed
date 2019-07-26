@@ -1446,9 +1446,27 @@ struct PRCondVar {
 struct PRMonitor {
     const char* name;           
 #if defined(_PR_PTHREADS)
-    PRLock lock;                
+    PRIntn notifyTimes;         
+
+
+
+    pthread_mutex_t lock;       
+
+
+
+
     pthread_t owner;            
-    PRCondVar *cvar;            
+    pthread_cond_t entryCV;     
+
+    pthread_cond_t waitCV;      
+    PRInt32 refCount;           
+
+
+
+
+
+
+
 #else  
     PRCondVar *cvar;            
 #endif 
@@ -1555,6 +1573,8 @@ struct PRThread {
 
 #if defined(_PR_PTHREADS)
     pthread_t id;                   
+    PRBool idSet;                   
+
 #ifdef _PR_NICE_PRIORITY_SCHEDULING
     pid_t tid;                      
 #endif
