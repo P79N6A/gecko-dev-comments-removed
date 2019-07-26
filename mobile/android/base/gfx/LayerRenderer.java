@@ -711,8 +711,12 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         
         
         if (msg == Tabs.TabEvents.SELECTED) {
-            mView.getChildAt(0).setBackgroundColor(tab.getBackgroundColor());
-            mView.setPaintState(LayerView.PAINT_START);
+            if (mView != null) {
+                if (mView.getChildAt(0) != null) {
+                    mView.getChildAt(0).setBackgroundColor(tab.getBackgroundColor());
+                }
+                mView.setPaintState(LayerView.PAINT_START);
+            }
         }
     }
 }
