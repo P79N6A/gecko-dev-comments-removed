@@ -917,7 +917,7 @@ class Mochitest(MochitestUtilsMixin):
     log.info("INFO | runtests.py | Application pid: %d", proc.pid)
 
     
-    outputHandler.setProcess(proc, timeout)
+    outputHandler.setProcess(proc if interactive else proc.proc, timeout)
 
     if onLaunch is not None:
       
@@ -934,11 +934,16 @@ class Mochitest(MochitestUtilsMixin):
     status = proc.wait()
     runner.process_handler = None
 
-    
-    outputHandler.finish(proc.didTimeout)
+    if timeout is None:
+      didTimeout = False
+    else:
+      didTimeout = proc.didTimeout
 
     
-    if proc.didTimeout:
+    outputHandler.finish(didTimeout)
+
+    
+    if didTimeout:
       browserProcessId = outputHandler.browserProcessId
       self.handleTimeout(timeout, proc, utilityPath, debuggerInfo, browserProcessId)
 
@@ -1153,10 +1158,9 @@ class Mochitest(MochitestUtilsMixin):
       return (stackFixerFunction, stackFixerCommand)
 
     def setProcess(self, proc, outputTimeout=None):
-      self.proc = proc
       if self.stackFixerCommand:
         self.stackFixerProcess = mozprocess.ProcessHandler(self.stackFixerCommand,
-                                                           stdin=proc.proc.stdout,
+                                                           stdin=proc.stdout,
                                                            processOutputLine=[self],
           )
         self.stackFixerProcess.run(outputTimeout=outputTimeout)
