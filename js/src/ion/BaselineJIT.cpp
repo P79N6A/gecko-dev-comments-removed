@@ -274,6 +274,8 @@ BaselineScript::trace(JSTracer *trc)
     
     for (size_t i = 0; i < numICEntries(); i++) {
         ICEntry &ent = icEntry(i);
+        if (!ent.hasStub())
+            continue;
         for (ICStub *stub = ent.firstStub(); stub; stub = stub->next())
             stub->trace(trc);
     }
@@ -323,6 +325,11 @@ BaselineScript::copyICEntries(const ICEntry *entries, MacroAssembler &masm)
         ICEntry &realEntry = icEntry(i);
         realEntry = entries[i];
         realEntry.fixupReturnOffset(masm);
+
+        if (!realEntry.hasStub()) {
+            
+            continue;
+        }
 
         
         

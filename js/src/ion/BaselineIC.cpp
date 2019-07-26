@@ -502,29 +502,6 @@ ICThis_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 
-typedef bool (*DefVarOrConstFn)(JSContext *, HandlePropertyName, unsigned, HandleObject);
-static const VMFunction DefVarOrConstInfo = FunctionInfo<DefVarOrConstFn>(DefVarOrConst);
-
-bool
-ICDefVar_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
-{
-    EmitRestoreTailCallReg(masm);
-
-    
-    masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfScopeChain()),
-                 BaselineStubReg);
-    masm.push(BaselineStubReg);
-
-    masm.push(R1.scratchReg()); 
-    masm.push(R0.scratchReg()); 
-
-    return tailCallVM(DefVarOrConstInfo, masm);
-}
-
-
-
-
-
 static bool
 DoNewArray(JSContext *cx, uint32_t length, HandleTypeObject type, MutableHandleValue res)
 {
