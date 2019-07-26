@@ -150,7 +150,8 @@ public:
   
   
 
-  bool UpdateAnimation(const TimeStamp& aSampleTime);
+  bool UpdateAnimation(const TimeStamp& aSampleTime,
+                       Vector<Task*>* aOutDeferredTasks);
 
   
 
