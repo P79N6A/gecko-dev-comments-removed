@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsXBLResourceLoader_h
+#define nsXBLResourceLoader_h
+
 #include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "nsICSSLoaderObserver.h"
@@ -62,3 +65,4 @@ public:
   nsCOMArray<nsIContent> mBoundElements;
 };
 
+#endif
