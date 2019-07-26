@@ -56,9 +56,6 @@ function LOG(aMsg) {
 let gTestDir = do_get_cwd();
 
 
-Services.prefs.setBoolPref("places.history.enabled", true);
-
-
 let gProfD = do_get_profile();
 
 
