@@ -414,7 +414,10 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     childItems.AppendToTop(zoomItem);
   }
 
-  if (!addedLayer && presContext->IsRootContentDocument()) {
+  nsIScrollableFrame *sf = presShell->GetRootScrollFrameAsScrollable();
+  if (!addedLayer &&
+      (presContext->IsRootContentDocument() ||
+       (sf && sf->IsScrollingActive()))) {
     
     nsDisplayOwnLayer* layerItem = new (aBuilder) nsDisplayOwnLayer(
       aBuilder, subdocRootFrame ? subdocRootFrame : this, 
