@@ -1392,6 +1392,26 @@ public:
   
 
 
+
+  void Painted() { mDirty = false; }
+
+  
+
+
+
+  bool IsDirty() 
+  { 
+    
+    
+    if (!mManager || !mManager->IsWidgetLayerManager()) {
+      return true;
+    }
+    return mDirty; 
+  }
+
+  
+
+
   typedef void (* DidTransactionCallback)(void* aClosureData);
   void SetDidTransactionCallback(DidTransactionCallback aCallback, void* aClosureData)
   {
@@ -1443,6 +1463,8 @@ protected:
   DidTransactionCallback mCallback;
   void* mCallbackData;
   gfxPattern::GraphicsFilter mFilter;
+
+private:
   
 
 
