@@ -18,17 +18,6 @@ CryptoTask::~CryptoTask()
   }
 }
 
-nsresult
-CryptoTask::Dispatch(const nsACString & taskThreadName)
-{
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_NewThread(getter_AddRefs(thread), this);
-  if (thread) {
-    NS_SetThreadName(thread, taskThreadName);
-  }
-  return rv;
-}
-
 NS_IMETHODIMP
 CryptoTask::Run()
 {
@@ -52,6 +41,13 @@ CryptoTask::Run()
     }
 
     CallCallback(mRv);
+
+    
+    if (mThread) {
+      
+      mThread->Shutdown(); 
+      mThread = nullptr;
+    }
   }
 
   return NS_OK;
