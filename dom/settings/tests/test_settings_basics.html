@@ -21,7 +21,7 @@
 
 "use strict";
 
-var comp = SpecialPowers.wrap(Components);
+var comp = SpecialPowers.wrap(SpecialPowers.Components);
 comp.utils.import("resource://gre/modules/SettingsChangeNotifier.jsm");
 SpecialPowers.setBoolPref("dom.mozSettings.enabled", true);
 SpecialPowers.addPermission("settings", true, document);
