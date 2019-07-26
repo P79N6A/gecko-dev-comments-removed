@@ -48,10 +48,3 @@ function wait(time) {
 
   return deferred.promise;
 }
-
-
-function getFile() {
-  let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-  file.initWithPath(OS.Path.join.apply(OS.Path, arguments));
-  return file;
-}
