@@ -301,7 +301,12 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTime
 
   
   
-  while (mProcessState < PROCESS_CONNECTED) {
+  while (mProcessState != PROCESS_CONNECTED) {
+    
+    if (mProcessState == PROCESS_ERROR) {
+      break;
+    }
+
     lock.Wait(timeoutTicks);
 
     if (timeoutTicks != PR_INTERVAL_NO_TIMEOUT) {
@@ -843,6 +848,15 @@ GeckoChildProcessHost::OnMessageReceived(const IPC::Message& aMsg)
 void
 GeckoChildProcessHost::OnChannelError()
 {
+  
+  
+  
+  
+  MonitorAutoLock lock(mMonitor);
+  if (mProcessState < PROCESS_CONNECTED) {
+    mProcessState = PROCESS_ERROR;
+    lock.Notify();
+  }
   
 }
 
