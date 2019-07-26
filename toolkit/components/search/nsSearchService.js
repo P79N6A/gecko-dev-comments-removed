@@ -8,21 +8,9 @@ const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
   "resource://gre/modules/DeferredTask.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-  "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
-
-
-
-XPCOMUtils.defineLazyGetter(this, "gEncoder",
-                            function() {
-                              return new TextEncoder();
-                            });
 
 const PERMS_FILE      = 0644;
 const PERMS_DIRECTORY = 0755;
@@ -276,71 +264,6 @@ function FAIL(message, resultCode) {
   LOG(message);
   throw Components.Exception(message, resultCode || Cr.NS_ERROR_INVALID_ARG);
 }
-
-
-
-
-const TaskUtils = {
-  
-
-
-
-
-
-
-  captureErrors: function captureErrors(promise) {
-    return promise.then(
-      null,
-      function onError(reason) {
-        LOG("Uncaught asynchronous error: " + reason + " at\n" + reason.stack);
-        throw reason;
-      }
-    );
-  },
-  
-
-
-
-
-
-
-
-
-
-
-  spawn: function spawn(gen) {
-    return this.captureErrors(Task.spawn(gen));
-  },
-  
-
-
-
-
-
-
-
-
-
-
-  executeStatement: function executeStatement(statement, onResult) {
-    let deferred = Promise.defer();
-    onResult = onResult || function() {};
-    statement.executeAsync({
-      handleResult: onResult,
-      handleError: function handleError(aError) {
-        deferred.reject(aError);
-      },
-      handleCompletion: function handleCompletion(aReason) {
-        statement.finalize();
-        
-        
-        
-        deferred.resolve(aReason);
-      }
-    });
-    return deferred.promise;
-  }
-};
 
 
 
@@ -2497,7 +2420,13 @@ function SearchService() {
   if (getBoolPref(BROWSER_SEARCH_PREF + "log", false))
     LOG = DO_LOG;
 
-  this._initObservers = Promise.defer();
+  
+
+
+
+
+
+  this._initObservers = [];
 }
 
 SearchService.prototype = {
@@ -2513,9 +2442,15 @@ SearchService.prototype = {
   _ensureInitialized: function  SRCH_SVC__ensureInitialized() {
     if (gInitialized) {
       if (!Components.isSuccessCode(this._initRV)) {
-        LOG("_ensureInitialized: failure");
         throw this._initRV;
       }
+
+      
+      
+      
+      
+      delete this._ensureInitialized;
+      this._ensureInitialized = function SRCH_SVC__ensureInitializedDone() { };
       return;
     }
 
@@ -2529,7 +2464,6 @@ SearchService.prototype = {
     
     LOG(warning);
 
-    engineMetadataService.syncInit();
     this._syncInit();
     if (!Components.isSuccessCode(this._initRV)) {
       throw this._initRV;
@@ -2541,7 +2475,7 @@ SearchService.prototype = {
   
   _syncInit: function SRCH_SVC__syncInit() {
     try {
-      this._syncLoadEngines();
+      this._loadEngines();
     } catch (ex) {
       this._initRV = Cr.NS_ERROR_FAILURE;
       LOG("_syncInit: failure loading engines: " + ex);
@@ -2549,8 +2483,16 @@ SearchService.prototype = {
     this._addObservers();
 
     gInitialized = true;
-    this._initObservers.resolve(this._initRV);
-    LOG("_syncInit: Completed _syncInit");
+
+    
+    this._initObservers.forEach(function (observer) {
+      try {
+        observer.onInitComplete(this._initRV);
+      } catch (x) {
+        LOG("nsIBrowserInitObserver failed with error " + x);
+      }
+    }, this);
+    this._initObservers = null;
   },
 
   _engines: { },
@@ -2652,8 +2594,8 @@ SearchService.prototype = {
     }
   },
 
-  _syncLoadEngines: function SRCH_SVC__syncLoadEngines() {
-    LOG("_syncLoadEngines: start");
+  _loadEngines: function SRCH_SVC__loadEngines() {
+    LOG("_loadEngines: start");
     
     let cache = {};
     let cacheEnabled = getBoolPref(BROWSER_SEARCH_PREF + "cache.enabled", true);
@@ -3222,37 +3164,26 @@ SearchService.prototype = {
 
   
   init: function SRCH_SVC_init(observer) {
-    let self = this;
-    if (!this._initStarted) {
-      this._initStarted = true;
-      TaskUtils.spawn(function task() {
-        try {
-          yield engineMetadataService.init();
-          if (gInitialized) {
-            
-            
-            return;
-          }
-          
-          
-          
-          
-          self._syncInit();
-        } catch (ex) {
-          self._initObservers.reject(ex);
-        }
-      });
+    if (gInitialized) {
+      if (observer) {
+        executeSoon(function () {
+          observer.onInitComplete(this._initRV);
+        });
+      }
+      return;
     }
-    if (observer) {
-      TaskUtils.captureErrors(this._initObservers.promise.then(
-        function onSuccess() {
-          observer.onInitComplete(self._initRV);
-        },
-        function onError(aReason) {
-          Components.utils.reportError("Internal error while initializing SearchService: " + aReason);
-          observer.onInitComplete(Components.results.NS_ERROR_UNEXPECTED);
-        }
-      ));
+
+    if (observer)
+      this._initObservers.push(observer);
+
+    if (!this._initStarted) {
+      executeSoon((function () {
+        
+        
+        if (!gInitialized)
+          this._syncInit();
+      }).bind(this));
+      this._initStarted = true;
     }
   },
 
@@ -3637,183 +3568,48 @@ SearchService.prototype = {
 };
 
 var engineMetadataService = {
-  _jsonFile: OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json"),
-
   
 
 
-
-
-
-
-
-
-
-  _InitStates: {
-    NOT_STARTED: "NOT_STARTED"
-      ,
-    JSON_LOADING_ATTEMPTED: "JSON_LOADING_ATTEMPTED"
-      ,
-    FINISHED_SUCCESS: "FINISHED_SUCCESS"
-      
+  get _jsonFile() {
+    delete this._jsonFile;
+    return this._jsonFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
+                                              ["search-metadata.json"]);
   },
 
   
 
 
-
-
-  _initState: null,
-
-  
-  _initializer: null,
-
-  
-
-
-
-
-  init: function epsInit() {
-    if (!this._initializer) {
-      
-      let initializer = this._initializer = Promise.defer();
-      TaskUtils.spawn((function task_init() {
-        LOG("metadata init: starting");
-        switch (this._initState) {
-          case engineMetadataService._InitStates.NOT_STARTED:
-            
-            try {
-              let contents = yield OS.File.read(this._jsonFile);
-              if (this._initState == engineMetadataService._InitStates.FINISHED_SUCCESS) {
-                
-                
-                return;
-              }
-              this._store = JSON.parse(new TextDecoder().decode(contents));
-              this._initState = engineMetadataService._InitStates.FINISHED_SUCCESS;
-            } catch (ex) {
-              if (this._initState == engineMetadataService._InitStates.FINISHED_SUCCESS) {
-                
-                
-                return;
-              }
-              if (ex.becauseNoSuchFile) {
-                
-                this._initState = engineMetadataService._InitStates.JSON_LOADING_ATTEMPTED;
-              } else {
-                
-                LOG("metadata init: could not load JSON file " + ex);
-                this._store = {};
-                this._initState = engineMetadataService._InitStates.FINISHED_SUCCESS;
-                return;
-              }
-            }
-            
-
-          case engineMetadataService._InitStates.JSON_LOADING_ATTEMPTED:
-              
-            try {
-              let store = yield this._asyncMigrateOldDB();
-              if (this._initState == engineMetadataService._InitStates.FINISHED_SUCCESS) {
-                
-                
-                return;
-              }
-              if (!store) {
-                LOG("metadata init: No store to migrate to disk");
-                this._store = {};
-              } else {
-                
-                LOG("metadata init: Committing the migrated store to disk");
-                this._store = store;
-                this._commit(store);
-              }
-            } catch (ex) {
-              if (this._initState == engineMetadataService._InitStates.FINISHED_SUCCESS) {
-                
-                
-                return;
-              }
-              LOG("metadata init: Error migrating store, using an empty store: " + ex);
-              this._store = {};
-            }
-            this._initState = engineMetadataService._InitStates.FINISHED_SUCCESS;
-            break;
-
-          default:
-            throw new Error("Internal error: invalid state " + this._initState);
-        }
-      }).bind(this)).then(
-        
-        function onSuccess() {
-          initializer.resolve();
-        },
-        function onError() {
-          initializer.reject();
-        }
-      );
-    }
-    return TaskUtils.captureErrors(this._initializer.promise);
+  get _store() {
+    delete this._store;
+    return this._store = this._loadStore();
   },
 
   
+  _loadStore: function() {
+    let jsonFile = this._jsonFile;
+    if (!jsonFile.exists()) {
+      LOG("loadStore: search-metadata.json does not exist");
 
-
-
-
-
-
-
-  syncInit: function epsSyncInit() {
-    LOG("metadata syncInit: starting");
-    switch (this._initState) {
-      case engineMetadataService._InitStates.NOT_STARTED:
-        let jsonFile = new FileUtils.File(this._jsonFile);
+      
+      let store = this._migrateOldDB();
+      if (store) {
         
-        if (jsonFile.exists()) {
-          try {
-            let uri = Services.io.newFileURI(jsonFile);
-            let stream = Services.io.newChannelFromURI(uri).open();
-            this._store = parseJsonFromStream(stream);
-          } catch (x) {
-            LOG("metadata syncInit: could not load JSON file " + x);
-            this._store = {};
-          }
-          this._initState = this._InitStates.FINISHED_SUCCESS;
-          break;
-        }
-        this._initState = this._InitStates.JSON_LOADING_ATTEMPTED;
-        
+        LOG("Committing the migrated store to disk");
+        this._commit(store);
+        return store;
+      }
 
-      case engineMetadataService._InitStates.JSON_LOADING_ATTEMPTED:
-        
-        try {
-          let store = this._syncMigrateOldDB();
-          if (!store) {
-            LOG("metadata syncInit: No store to migrate to disk");
-            this._store = {};
-          } else {
-            
-            LOG("metadata syncInit: Committing the migrated store to disk");
-            this._store = store;
-            this._commit(store);
-          }
-        } catch (ex) {
-          LOG("metadata syncInit: Error migrating store, using an empty store: " + ex);
-          this._store = {};
-        }
-        this._initState = engineMetadataService._InitStates.FINISHED_SUCCESS;
-        break;
-
-      default:
-        throw new Error("Internal error: invalid state " + this._initState);
+       
+      return {};
     }
 
-    
-    if (this._initializer) {
-      this._initializer.resolve();
-    } else {
-      this._initializer = Promise.resolve();
+    LOG("loadStore: attempting to load store from JSON file");
+    try {
+      return parseJsonFromStream(NetUtil.newChannel(jsonFile).open());
+    } catch (x) {
+      LOG("loadStore failed to load file: "+x);
+      return {};
     }
   },
 
@@ -3893,38 +3689,6 @@ var engineMetadataService = {
     }
   },
 
-   _syncMigrateOldDB: function SRCH_SVC_EMS_migrate() {
-     LOG("SRCH_SVC_EMS_migrate start");
-     let sqliteFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
-                                        ["search.sqlite"]);
-     if (!sqliteFile.exists()) {
-       LOG("SRCH_SVC_EMS_migrate search.sqlite does not exist");
-       return null;
-     }
-     let store = {};
-     try {
-       LOG("SRCH_SVC_EMS_migrate Migrating data from SQL");
-       const sqliteDb = Services.storage.openDatabase(sqliteFile);
-       const statement = sqliteDb.createStatement("SELECT * from engine_data");
-       while (statement.executeStep()) {
-         let row = statement.row;
-         let engine = row.engineid;
-         let name   = row.name;
-         let value  = row.value;
-         if (!store[engine]) {
-           store[engine] = {};
-         }
-        store[engine][name] = value;
-      }
-      statement.finalize();
-      sqliteDb.close();
-     } catch (ex) {
-       LOG("SRCH_SVC_EMS_migrate failed: " + ex);
-       return null;
-     }
-     return store;
-   },
-
   
 
 
@@ -3932,47 +3696,37 @@ var engineMetadataService = {
 
 
 
-   _asyncMigrateOldDB: function SRCH_SVC_EMS_asyncMigrate() {
-     LOG("SRCH_SVC_EMS_asyncMigrate start");
-     return TaskUtils.spawn(function task() {
-       let sqliteFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
-           ["search.sqlite"]);
-       if (!(yield OS.File.exists(sqliteFile.path))) {
-         LOG("SRCH_SVC_EMS_migrate search.sqlite does not exist");
-         throw new Task.Result(); 
-       }
-       let store = {};
-       LOG("SRCH_SVC_EMS_migrate Migrating data from SQL");
-       const sqliteDb = Services.storage.openDatabase(sqliteFile);
-       const statement = sqliteDb.createStatement("SELECT * from engine_data");
-       try {
-         yield TaskUtils.executeStatement(
-           statement,
-           function onResult(aResultSet) {
-             while (true) {
-               let row = aResultSet.getNextRow();
-               if (!row) {
-                 break;
-               }
-               let engine = row.engineid;
-               let name   = row.name;
-               let value  = row.value;
-               if (!store[engine]) {
-                 store[engine] = {};
-               }
-               store[engine][name] = value;
-             }
-           }
-         );
-       } catch(ex) {
-         
-         throw new Task.Result(); 
-       } finally {
-         sqliteDb.asyncClose();
-       }
-       throw new Task.Result(store);
-     });
-   },
+  _migrateOldDB: function SRCH_SVC_EMS_migrate() {
+    LOG("SRCH_SVC_EMS_migrate start");
+    let sqliteFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
+                                       ["search.sqlite"]);
+    if (!sqliteFile.exists()) {
+      LOG("SRCH_SVC_EMS_migrate search.sqlite does not exist");
+      return null;
+    }
+    let store = {};
+    try {
+      LOG("SRCH_SVC_EMS_migrate Migrating data from SQL");
+      const sqliteDb = Services.storage.openDatabase(sqliteFile);
+      const statement = sqliteDb.createStatement("SELECT * from engine_data");
+      while (statement.executeStep()) {
+        let row = statement.row;
+        let engine = row.engineid;
+        let name   = row.name;
+        let value  = row.value;
+        if (!store[engine]) {
+          store[engine] = {};
+        }
+        store[engine][name] = value;
+      }
+      statement.finalize();
+      sqliteDb.close();
+    } catch (ex) {
+      LOG("SRCH_SVC_EMS_migrate failed: " + ex);
+      return null;
+    }
+    return store;
+  },
 
   
 
@@ -3987,6 +3741,7 @@ var engineMetadataService = {
 
   _commit: function epsCommit(aStore) {
     LOG("epsCommit: start");
+
     let store = aStore || this._store;
     if (!store) {
       LOG("epsCommit: nothing to do");
@@ -3995,31 +3750,38 @@ var engineMetadataService = {
 
     if (!this._lazyWriter) {
       LOG("epsCommit: initializing lazy writer");
+      let jsonFile = this._jsonFile;
       function writeCommit() {
         LOG("epsWriteCommit: start");
-        let data = gEncoder.encode(JSON.stringify(store));
-        let path = engineMetadataService._jsonFile;
-        LOG("epsCommit path " + path);
-        let promise = OS.File.writeAtomic(path, data, { tmpPath: path + ".tmp" });
-        promise = promise.then(
-          function onSuccess() {
+        let ostream = FileUtils.
+          openSafeFileOutputStream(jsonFile,
+                                   MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE);
+
+        
+        let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+          createInstance(Ci.nsIScriptableUnicodeConverter);
+        converter.charset = "UTF-8";
+
+        let callback = function(result) {
+          if (Components.isSuccessCode(result)) {
+            ostream.close();
             Services.obs.notifyObservers(null,
-              SEARCH_SERVICE_TOPIC,
-              SEARCH_SERVICE_METADATA_WRITTEN);
-            LOG("epsWriteCommit: done " + result);
+                                         SEARCH_SERVICE_TOPIC,
+                                         SEARCH_SERVICE_METADATA_WRITTEN);
           }
-        );
-        TaskUtils.captureErrors(promise);
+          LOG("epsWriteCommit: done " + result);
+        };
+        
+        let istream = converter.convertToInputStream(JSON.stringify(store));
+        NetUtil.asyncCopy(istream, ostream, callback);
       }
       this._lazyWriter = new DeferredTask(writeCommit, LAZY_SERIALIZE_DELAY);
     }
     LOG("epsCommit: (re)setting timer");
     this._lazyWriter.start();
   },
-  _lazyWriter: null
+  _lazyWriter: null,
 };
-
-engineMetadataService._initState = engineMetadataService._InitStates.NOT_STARTED;
 
 const SEARCH_UPDATE_LOG_PREFIX = "*** Search update: ";
 
