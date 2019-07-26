@@ -58,6 +58,11 @@
 #include "vm/ScopeObject-inl.h"
 #include "vm/Stack-inl.h"
 
+#ifdef JS_ION
+#include "ion/IonFrameIterator.h"
+#include "ion/IonFrameIterator-inl.h"
+#endif
+
 using namespace mozilla;
 using namespace js;
 using namespace js::gc;
@@ -698,18 +703,48 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
 
 
         
-        unsigned length = cx->fp()->numActualArgs();
-        JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+        StackFrame *fp = cx->fp();
 
-        if (!cx->stack.pushInvokeArgs(cx, length, &args))
-            return false;
-
+#ifdef JS_ION
         
-        args.calleev() = fval;
-        args.thisv() = vp[2];
-
         
-        cx->fp()->forEachUnaliasedActual(CopyTo(args.array()));
+        
+        if (fp->runningInIon()) {
+            ion::IonActivationIterator activations(cx);
+            ion::IonFrameIterator frame(activations);
+            JS_ASSERT(frame.isNative());
+            
+            ++frame;
+            ion::InlineFrameIterator iter(&frame);
+
+            unsigned length = iter.numActualArgs();
+            JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+
+            if (!cx->stack.pushInvokeArgs(cx, length, &args))
+                return false;
+
+            
+            args.calleev() = fval;
+            args.thisv() = vp[2];
+
+            
+            iter.forEachCanonicalActualArg(CopyTo(args.array()), 0, -1);
+        } else
+#endif
+        {
+            unsigned length = fp->numActualArgs();
+            JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+
+            if (!cx->stack.pushInvokeArgs(cx, length, &args))
+                return false;
+
+            
+            args.calleev() = fval;
+            args.thisv() = vp[2];
+
+            
+            fp->forEachUnaliasedActual(CopyTo(args.array()));
+        }
     } else {
         
         if (!vp[3].isObject()) {
