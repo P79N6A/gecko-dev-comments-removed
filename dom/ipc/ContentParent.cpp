@@ -540,6 +540,16 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
     
     
     const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+
+    
+    
+    
+    
+    if (Preferences::GetBool("dom.ipc.processPriorityManager.enabled")) {
+        SetProcessPriority(base::GetProcId(mSubprocess->GetChildProcessHandle()),
+                           PROCESS_PRIORITY_FOREGROUND);
+    }
+
     
     unused << SendSetProcessPrivileges(aPrivs);
 }
