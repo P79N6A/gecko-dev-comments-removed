@@ -1284,7 +1284,12 @@ nsWindow::DispatchMultitouchEvent(nsTouchEvent &event, AndroidGeckoEvent *ae)
 
     nsEventStatus status;
     DispatchEvent(&event, status);
-    return (status == nsEventStatus_eConsumeNoDefault);
+    
+    
+    
+    
+    return (status == nsEventStatus_eConsumeNoDefault ||
+            event.mFlags.mMultipleActionsPrevented);
 }
 
 void
