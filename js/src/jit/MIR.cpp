@@ -1888,6 +1888,14 @@ MTypeOf::foldsTo(bool useValueNumbers)
       case MIRType_Boolean:
         type = JSTYPE_BOOLEAN;
         break;
+      case MIRType_Object:
+        if (!inputMaybeCallableOrEmulatesUndefined()) {
+            
+            
+            type = JSTYPE_OBJECT;
+            break;
+        }
+        
       default:
         return this;
     }
