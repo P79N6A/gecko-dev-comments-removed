@@ -1336,7 +1336,7 @@ nsParser::ParseFragment(const nsAString& aSourceBuffer,
   if (theCount == 0) {
     
     
-    theContext.AssignLiteral(" ");
+    theContext.Assign(' ');
   }
 
   

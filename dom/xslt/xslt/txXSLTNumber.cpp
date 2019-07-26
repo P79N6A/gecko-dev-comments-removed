@@ -324,7 +324,7 @@ txXSLTNumber::getCounters(Expr* aGroupSize, Expr* aGroupSeparator,
                                                groupSeparator, defaultCounter);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        defaultCounter->mSeparator.AssignLiteral(".");
+        defaultCounter->mSeparator.Assign('.');
         rv = aCounters.add(defaultCounter);
         if (NS_FAILED(rv)) {
             
@@ -343,7 +343,7 @@ txXSLTNumber::getCounters(Expr* aGroupSize, Expr* aGroupSeparator,
             
             
             
-            sepToken.AssignLiteral(".");
+            sepToken.Assign('.');
         }
         else {
             while (formatPos < formatLen &&

@@ -81,7 +81,7 @@ nsresult nsCollationUnix::Initialize(nsILocale* locale)
   if (NS_SUCCEEDED(res)) {
     
     if (localeStr.LowerCaseEqualsLiteral("en_us")) { 
-      localeStr.AssignLiteral("C");
+      localeStr.Assign('C');
     }
 
     nsPosixLocale::GetPlatformLocale(localeStr, mLocale);

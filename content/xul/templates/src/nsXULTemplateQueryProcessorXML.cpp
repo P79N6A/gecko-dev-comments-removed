@@ -251,7 +251,7 @@ nsXULTemplateQueryProcessorXML::CompileQuery(nsIXULTemplateBuilder* aBuilder,
     
     
     if (expr.IsEmpty())
-        expr.AssignLiteral("*");
+        expr.Assign('*');
 
     nsCOMPtr<nsIDOMXPathExpression> compiledexpr;
     rv = CreateExpression(expr, aQueryNode, getter_AddRefs(compiledexpr));
