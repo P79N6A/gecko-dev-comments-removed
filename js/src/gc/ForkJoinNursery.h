@@ -119,6 +119,9 @@ class ForkJoinNursery
     ~ForkJoinNursery();
 
     
+    bool initialize();
+
+    
     
     void minorGC();
 
@@ -220,7 +223,8 @@ class ForkJoinNursery
 
     
     
-    void setCurrentChunk(int index);
+    
+    bool setCurrentChunk(int index);
 
     enum PJSCollectionOp {
         Evacuate = 1,
@@ -230,7 +234,7 @@ class ForkJoinNursery
 
     
     void pjsCollection(int op );
-    void initNewspace();
+    bool initNewspace();
     void flip();
     void forwardFromRoots(ForkJoinNurseryCollectionTracer *trc);
     void forwardFromUpdatable(ForkJoinNurseryCollectionTracer *trc);
@@ -244,6 +248,7 @@ class ForkJoinNursery
     AllocKind getObjectAllocKind(JSObject *src);
     void *allocateInTospace(AllocKind thingKind);
     void *allocateInTospace(size_t nelem, size_t elemSize);
+    void *allocateInTospaceInfallible(size_t thingSize);
     MOZ_ALWAYS_INLINE bool shouldMoveObject(void **thingp);
     void *moveObjectToTospace(JSObject *src);
     size_t copyObjectToTospace(JSObject *dst, JSObject *src, gc::AllocKind dstKind);

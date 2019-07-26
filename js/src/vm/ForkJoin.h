@@ -398,6 +398,8 @@ class ForkJoinContext : public ThreadSafeContext
                     Allocator *allocator, ForkJoinShared *shared,
                     ParallelBailoutRecord *bailoutRecord);
 
+    bool initialize();
+
     
     
     uint32_t workerId() const { return worker_->id(); }
@@ -458,7 +460,7 @@ class ForkJoinContext : public ThreadSafeContext
     static inline ForkJoinContext *current();
 
     
-    static bool initialize();
+    static bool initializeTls();
 
     
     static size_t offsetOfWorker() {
