@@ -454,12 +454,12 @@ public:
 
   
   
-  nsTArray(const self_type& other) {
+  explicit nsTArray(const self_type& other) {
     AppendElements(other);
   }
 
   template<typename Allocator>
-  nsTArray(const nsTArray<E, Allocator>& other) {
+  explicit nsTArray(const nsTArray<E, Allocator>& other) {
     AppendElements(other);
   }
 
@@ -473,7 +473,8 @@ public:
 
   
   
-  bool operator==(const self_type& other) const {
+  template<typename Allocator>
+  bool operator==(const nsTArray<E, Allocator>& other) const {
     size_type len = Length();
     if (len != other.Length())
       return false;
