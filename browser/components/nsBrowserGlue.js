@@ -1,4 +1,3 @@
-#filter substitution
 # -*- indent-tabs-mode: nil -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1128,7 +1127,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 9;
+    const UI_VERSION = 8;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1229,17 +1228,12 @@ BrowserGlue.prototype = {
     
     
     
-
-    if (currentUIVersion < 8) {
-      
-      let uri = Services.prefs.getComplexValue("browser.startup.homepage",
-                                               Ci.nsIPrefLocalizedString).data;
-      if (uri && /^https?:\/\/(www\.)?google(\.\w{2,3}){1,2}\/firefox\/?$/.test(uri)) {
-        Services.prefs.clearUserPref("browser.startup.homepage");
-      }
-    }
-
-    if (currentUIVersion < 9) {
+    
+    
+    
+    
+    if (currentUIVersion < 7 &&
+        !Services.prefs.getBoolPref("browser.download.useToolkitUI")) {
       
       let currentsetResource = this._rdf.GetResource("currentset");
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
@@ -1266,9 +1260,15 @@ BrowserGlue.prototype = {
         }
         this._setPersist(toolbarResource, currentsetResource, currentset);
       }
+    }
 
-      Services.prefs.clearUserPref("browser.download.useToolkitUI");
-      Services.prefs.clearUserPref("browser.library.useNewDownloadsView");
+    if (currentUIVersion < 8) {
+      
+      let uri = Services.prefs.getComplexValue("browser.startup.homepage",
+                                               Ci.nsIPrefLocalizedString).data;
+      if (uri && /^https?:\/\/(www\.)?google(\.\w{2,3}){1,2}\/firefox\/?$/.test(uri)) {
+        Services.prefs.clearUserPref("browser.startup.homepage");
+      }
     }
 
     if (this._dirty)

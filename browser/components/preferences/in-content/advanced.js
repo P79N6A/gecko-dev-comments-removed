@@ -1,4 +1,3 @@
-#filter substitution
 
 
 
@@ -185,39 +184,11 @@ var gAdvancedPane = {
 
 
 
-
-
-
-
   initTelemetry: function ()
   {
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-    const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
-    let enabled = Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED);
-    let rejected = false;
-    try {
-      rejected = Services.prefs.getBoolPref("toolkit.telemetry.rejected");
-    } catch (e) {}
-    if (enabled && rejected) {
-      Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, false);
-    }
-#endif
 #ifdef MOZ_TELEMETRY_REPORTING
     this._setupLearnMoreLink("toolkit.telemetry.infoURL", "telemetryLearnMore");
 #endif
-  },
-
-
-  
-
-
-
-  telemetryEnabledChanged: function (event)
-  {
-    let rejected = document.getElementById("toolkit.telemetry.rejected");
-    rejected.value = !event.target.value;
-    let displayed = document.getElementById("toolkit.telemetry.prompted");
-    displayed.value = @MOZ_TELEMETRY_DISPLAY_REV@;
   },
 
 #ifdef MOZ_SERVICES_HEALTHREPORT

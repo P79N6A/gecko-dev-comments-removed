@@ -24,16 +24,6 @@ DataNotificationInfoBar.prototype = {
 
   _DATA_REPORTING_NOTIFICATION: "data-reporting",
 
-#ifdef MOZ_TELEMETRY_REPORTING
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.notifiedOptOut",
-#else
-  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.prompted",
-#endif
-
-  _TELEMETRY_DISPLAY_REV: 2,
-#endif
-
   init: function() {
     window.addEventListener("unload", function onUnload() {
       window.removeEventListener("unload", onUnload, false);
@@ -130,12 +120,6 @@ DataNotificationInfoBar.prototype = {
 
     
     notification.persistence = -1;
-
-    
-    
-    
-    Services.prefs.setIntPref(this._PREF_TELEMETRY_DISPLAYED,
-                              this._TELEMETRY_DISPLAY_REV);
 
     
     request.onUserNotifyComplete();
