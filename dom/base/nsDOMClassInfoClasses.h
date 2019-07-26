@@ -77,8 +77,6 @@ DOMCI_CLASS(File)
 
 DOMCI_CLASS(ModalContentWindow)
 
-DOMCI_CLASS(MozWakeLock)
-
 DOMCI_CLASS(MozMobileMessageManager)
 DOMCI_CLASS(MozSmsMessage)
 DOMCI_CLASS(MozMmsMessage)

@@ -13,6 +13,7 @@
 #include "mozilla/Observer.h"
 #include "Types.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/dom/WakeLock.h"
 
 namespace mozilla {
 namespace dom {
@@ -48,9 +49,13 @@ public:
 
 
 
-  already_AddRefed<nsIDOMMozWakeLock>
+  already_AddRefed<WakeLock>
   NewWakeLockOnBehalfOfProcess(const nsAString& aTopic,
                                ContentParent* aContentParent);
+
+  already_AddRefed<WakeLock>
+  NewWakeLock(const nsAString& aTopic, nsIDOMWindow* aWindow,
+              mozilla::ErrorResult& aRv);
 
 private:
 
