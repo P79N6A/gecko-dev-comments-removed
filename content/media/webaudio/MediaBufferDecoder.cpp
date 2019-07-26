@@ -413,15 +413,11 @@ WebAudioDecodeJob::AllocateBuffer()
   MOZ_ASSERT(!mOutput);
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-  JSObject* global = mContext->GetGlobalJSObject();
-  if (NS_WARN_IF(!global)) {
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.InitUsingWin(mContext->GetOwner()))) {
     return false;
   }
-
-  AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-  JSAutoCompartment ac(cx, global);
 
   
   ErrorResult rv;

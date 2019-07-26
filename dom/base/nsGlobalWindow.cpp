@@ -2359,6 +2359,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 #endif
 
   AutoJSAPI jsapi;
+  jsapi.Init();
   JSContext *cx = jsapi.cx();
 
   if (!mDoc) {
@@ -8005,6 +8006,7 @@ PostMessageEvent::Run()
                     "should have been passed an outer window!");
 
   AutoJSAPI jsapi;
+  jsapi.Init();
   JSContext* cx = jsapi.cx();
 
   

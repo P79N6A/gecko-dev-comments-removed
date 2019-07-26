@@ -16,7 +16,7 @@
 
 #include "mozilla/Maybe.h"
 
-class nsIGlobalObject;
+class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
@@ -119,39 +119,68 @@ private:
 
 
 
+
+
 class AutoJSAPI {
 public:
   
   
-  
   AutoJSAPI();
-  JSContext* cx() const { return mCx; }
+
+  
+  
+  
+  void Init();
+
+  
+  
+  
+  
+  bool Init(nsIGlobalObject* aGlobalObject);
+
+  
+  
+  
+  
+  bool Init(nsIGlobalObject* aGlobalObject, JSContext* aCx);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  bool InitWithLegacyErrorReporting(nsIGlobalObject* aGlobalObject);
+
+  
+  
+  bool InitUsingWin(nsPIDOMWindow* aWindow);
+  bool InitUsingWin(nsPIDOMWindow* aWindow, JSContext* aCx);
+  bool InitWithLegacyErrorReportingUsingWin(nsPIDOMWindow* aWindow);
+
+  JSContext* cx() const {
+    MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
+    return mCx;
+  }
 
   bool CxPusherIsStackTop() { return mCxPusher.ref().IsStackTop(); }
 
 protected:
   
   
-  AutoJSAPI(JSContext *aCx, bool aIsMainThread, bool aSkipNullAC = false);
+  
+  
+  
+  AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread, JSContext* aCx);
 
 private:
   mozilla::Maybe<AutoCxPusher> mCxPusher;
-  mozilla::Maybe<JSAutoNullCompartment> mNullAc;
+  mozilla::Maybe<JSAutoNullableCompartment> mAutoNullableCompartment;
   JSContext *mCx;
-};
 
-
-
-
-
-
-
-
-class AutoJSAPIWithErrorsReportedToWindow : public AutoJSAPI {
-  public:
-    AutoJSAPIWithErrorsReportedToWindow(nsIScriptContext* aScx);
-    
-    AutoJSAPIWithErrorsReportedToWindow(nsIGlobalObject* aGlobalObject);
+  void InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread);
 };
 
 
@@ -170,7 +199,6 @@ public:
   }
 
 private:
-  JSAutoCompartment mAc;
   
   
   

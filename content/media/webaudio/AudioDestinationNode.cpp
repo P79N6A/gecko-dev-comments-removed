@@ -126,15 +126,11 @@ public:
     
     
 
-    
-    JSObject* global = context->GetGlobalJSObject();
-    if (NS_WARN_IF(!global)) {
+    AutoJSAPI jsapi;
+    if (NS_WARN_IF(!jsapi.InitUsingWin(aNode->GetOwner()))) {
       return;
     }
-
-    AutoJSAPI jsapi;
     JSContext* cx = jsapi.cx();
-    JSAutoCompartment ac(cx, global);
 
     
     ErrorResult rv;
