@@ -1,33 +1,33 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TextureHostOGL.h"
-#include "GLContext.h"                  
-#include "SharedSurface.h"              
-#include "SharedSurfaceEGL.h"           
-#include "SharedSurfaceGL.h"            
-#include "SurfaceStream.h"              
-#include "SurfaceTypes.h"               
-#include "TiledLayerBuffer.h"           
-#include "gfx2DGlue.h"                  
-#include "gfxImageSurface.h"            
-#include "gfxPoint.h"                   
-#include "gfxReusableSurfaceWrapper.h"  
-#include "ipc/AutoOpenSurface.h"        
-#include "mozilla/gfx/2D.h"             
-#include "mozilla/gfx/BaseSize.h"       
-#include "mozilla/layers/CompositorOGL.h"  
+#include "GLContext.h"                  // for GLContext, etc
+#include "SharedSurface.h"              // for SharedSurface
+#include "SharedSurfaceEGL.h"           // for SharedSurface_EGLImage
+#include "SharedSurfaceGL.h"            // for SharedSurface_GLTexture, etc
+#include "SurfaceStream.h"              // for SurfaceStream
+#include "SurfaceTypes.h"               // for SharedSurfaceType, etc
+#include "TiledLayerBuffer.h"           // for TILEDLAYERBUFFER_TILE_SIZE
+#include "gfx2DGlue.h"                  // for ContentForFormat, etc
+#include "gfxImageSurface.h"            // for gfxImageSurface
+#include "gfxPoint.h"                   // for gfxIntSize
+#include "gfxReusableSurfaceWrapper.h"  // for gfxReusableSurfaceWrapper
+#include "ipc/AutoOpenSurface.h"        // for AutoOpenSurface
+#include "mozilla/gfx/2D.h"             // for DataSourceSurface
+#include "mozilla/gfx/BaseSize.h"       // for BaseSize
+#include "mozilla/layers/CompositorOGL.h"  // for CompositorOGL
 #ifdef MOZ_WIDGET_GONK
-# include "GrallocImages.h"  
+# include "GrallocImages.h"  // for GrallocImage
 #endif
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include "mozilla/layers/GrallocTextureHost.h"
-#include "nsPoint.h"                    
-#include "nsRegion.h"                   
-#include "GfxTexturesReporter.h"        
+#include "nsPoint.h"                    // for nsIntPoint
+#include "nsRegion.h"                   // for nsIntRegion
+#include "GfxTexturesReporter.h"        // for GfxTexturesReporter
 #ifdef XP_MACOSX
 #include "SharedSurfaceIO.h"
 #endif
@@ -100,7 +100,7 @@ CreateTextureHostOGL(uint64_t aID,
       result = new SharedTextureHostOGL(aID, aFlags,
                                         desc.shareType(),
                                         desc.handle(),
-                                        gfx::ToIntSize(desc.size()),
+                                        desc.size(),
                                         desc.inverted());
       break;
     }
@@ -124,8 +124,8 @@ MakeTextureIfNeeded(gl::GLContext* gl, GLenum aTarget, GLuint& aTexture)
     return;
 
   GLenum target = aTarget;
-  
-  
+  // GL_TEXTURE_EXTERNAL requires us to initialize the texture
+  // using the GL_TEXTURE_2D attachment.
   if (target == LOCAL_GL_TEXTURE_EXTERNAL) {
     target = LOCAL_GL_TEXTURE_2D;
   }
@@ -227,10 +227,10 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
       mTexImage->GetSize() != size ||
       mTexImage->GetContentType() != gfx::ContentForFormat(aSurface->GetFormat())) {
     if (mAllowBigImage) {
-      
-      
-      
-      
+      // XXX - clarify which size we want to use. IncrementalContentHost will
+      // require the size of the destination surface to be different from
+      // the size of aSurface.
+      // See bug 893300 (tracks the implementation of ContentHost for new textures).
       mTexImage = mGL->CreateTextureImage(size,
                                           gfx::ContentForFormat(aSurface->GetFormat()),
                                           WrapMode(mGL, aFlags & TEXTURE_ALLOW_REPEAT),
@@ -364,8 +364,8 @@ SharedTextureHostOGL::SharedTextureHostOGL(uint64_t aID,
 
 SharedTextureHostOGL::~SharedTextureHostOGL()
 {
-  
-  
+  // If need to deallocate textures, call DeallocateSharedData() before
+  // the destructor
 }
 
 gl::GLContext*
@@ -382,8 +382,8 @@ SharedTextureHostOGL::Lock()
   }
 
   if (!mTextureSource) {
-    
-    
+    // XXX on android GetSharedHandleDetails can call into Java which we'd
+    // rather not do from the compositor
     GLContext::SharedHandleDetails handleDetails;
     if (!gl()->GetSharedHandleDetails(mShareType, mSharedHandle, handleDetails)) {
       NS_WARNING("Could not get shared handle details");
@@ -462,9 +462,9 @@ TextureImageDeprecatedTextureHostOGL::SetCompositor(Compositor* aCompositor)
   if (mGL != newGL) {
     mGL = newGL;
     mTexture = nullptr;
-    
-    
-    
+    // if we have a buffer we reupload it with the new gl context
+    // Post landing TODO: the new DeprecatedTextureClient/Host model will make this
+    // go away.
     if (newGL && mBuffer && IsSurfaceDescriptorValid(*mBuffer)) {
       UpdateImpl(*mBuffer);
     }
@@ -513,13 +513,13 @@ TextureImageDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage
 
 #ifdef MOZ_WIDGET_GONK
   if (mCompositableBackendData) {
-    
-    
-    
-    
-    
-    
-    
+    // on gonk, this class is used as a fallback from gralloc buffer.
+    // There is a case this class is used with GrallocDeprecatedTextureHostOGL
+    // under same CompositableHost. if it happens, a gralloc buffer of
+    // GrallocDeprecatedTextureHostOGL needs to be unbounded from a texture,
+    // when the gralloc buffer is not rendered.
+    // Establish the unbound by deleting the texture.
+    // See Bug 916264.
     static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->DeleteTextureIfPresent();
   }
 #endif
@@ -541,7 +541,7 @@ TextureImageDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage
                                        format);
   }
 
-  
+  // XXX this is always just ridiculously slow
   nsIntRegion updateRegion;
 
   if (!aRegion) {
@@ -617,8 +617,7 @@ SharedDeprecatedTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage
   SharedTextureDescriptor texture = aImage.get_SharedTextureDescriptor();
 
   SharedTextureHandle newHandle = texture.handle();
-  nsIntSize size = texture.size();
-  mSize = gfx::IntSize(size.width, size.height);
+  mSize = texture.size();
   if (texture.inverted()) {
     mFlags |= TEXTURE_NEEDS_Y_FLIP;
   }
@@ -664,8 +663,8 @@ gfx3DMatrix
 SharedDeprecatedTextureHostOGL::GetTextureTransform()
 {
   GLContext::SharedHandleDetails handleDetails;
-  
-  
+  // GetSharedHandleDetails can call into Java which we'd
+  // rather not do from the compositor
   if (mSharedHandle) {
     mGL->GetSharedHandleDetails(mShareType, mSharedHandle, handleDetails);
   }
@@ -703,10 +702,10 @@ SurfaceStreamHostOGL::UpdateImpl(const SurfaceDescriptor& aImage,
   MOZ_ASSERT(aImage.type() == SurfaceDescriptor::TSurfaceStreamDescriptor,
              "Invalid descriptor");
 
-  
-  
-  
-  
+  // Bug 894405
+  //
+  // The SurfaceStream's GLContext was refed before being passed up to us, so
+  // we need to ensure it gets unrefed when we are finished.
   const SurfaceStreamDescriptor& streamDesc =
       aImage.get_SurfaceStreamDescriptor();
 
@@ -719,7 +718,7 @@ SurfaceStreamHostOGL::UpdateImpl(const SurfaceDescriptor& aImage,
 void
 SurfaceStreamHostOGL::Unlock()
 {
-  
+  // We don't know what this is unless we're locked
   mFormat = gfx::FORMAT_UNKNOWN;
 }
 
@@ -730,7 +729,7 @@ SurfaceStreamHostOGL::Lock()
 
   SharedSurface* sharedSurf = mStream->SwapConsumer();
   if (!sharedSurf) {
-    
+    // We don't have a valid surf to show yet.
     return false;
   }
 
@@ -786,7 +785,7 @@ SurfaceStreamHostOGL::Lock()
   }
 
   if (toUpload) {
-    
+    // mBounds seems to end up as (0,0,0,0) a lot, so don't use it?
     nsIntSize size(toUpload->GetSize());
     nsIntRect rect(nsIntPoint(0,0), size);
     nsIntRegion bounds(rect);
@@ -828,7 +827,7 @@ YCbCrDeprecatedTextureHostOGL::SetCompositor(Compositor* aCompositor)
     mYTexture->mTexImage = nullptr;
     mCbTexture->mTexImage = nullptr;
     mCrTexture->mTexImage = nullptr;
-    
+    // if we have a buffer we reupload it with the new gl context
     if (newGL && mBuffer && mBuffer->type() == SurfaceDescriptor::TYCbCrImage) {
       UpdateImpl(*mBuffer);
     }
@@ -962,8 +961,8 @@ TiledDeprecatedTextureHostOGL::Update(gfxReusableSurfaceWrapper* aReusableSurfac
     mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
   } else {
     mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mTextureHandle);
-    
-    
+    // We're re-using a texture, but the format may change. Update the memory
+    // reporter with a free and alloc (below) using the old and new formats.
     gl::GfxTexturesReporter::UpdateAmount(gl::GfxTexturesReporter::MemoryFreed,
                                           mGLFormat, GetTileType(),
                                           TILEDLAYERBUFFER_TILE_SIZE);
@@ -1024,17 +1023,17 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
   case HAL_PIXEL_FORMAT_YV12:
-    return FORMAT_B8G8R8A8; 
+    return FORMAT_B8G8R8A8; // yup, use FORMAT_B8G8R8A8 even though it's a YUV texture. This is an external texture.
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
-      
+      // Reserved range for HAL specific formats.
       return FORMAT_B8G8R8A8;
     } else {
-      
-      
-      
-      
-      
+      // This is not super-unreachable, there's a bunch of hypothetical pixel
+      // formats we don't deal with.
+      // We only want to abort in debug builds here, since if we crash here
+      // we'll take down the compositor process and thus the phone. This seems
+      // like undesirable behaviour. We'd rather have a subtle artifact.
       MOZ_ASSERT(false, "Unknown Android pixel format.");
       return FORMAT_UNKNOWN;
     }
@@ -1059,14 +1058,14 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
     return LOCAL_GL_TEXTURE_2D;
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
-      
+      // Reserved range for HAL specific formats.
       return LOCAL_GL_TEXTURE_EXTERNAL;
     } else {
-      
-      
-      
-      
-      
+      // This is not super-unreachable, there's a bunch of hypothetical pixel
+      // formats we don't deal with.
+      // We only want to abort in debug builds here, since if we crash here
+      // we'll take down the compositor process and thus the phone. This seems
+      // like undesirable behaviour. We'd rather have a subtle artifact.
       MOZ_ASSERT(false, "Unknown Android pixel format.");
       return LOCAL_GL_TEXTURE_EXTERNAL;
     }
@@ -1110,7 +1109,7 @@ GrallocDeprecatedTextureHostOGL::DeleteTextures()
   }
 }
 
-
+// only used for hacky fix in gecko 23 for bug 862324
 static void
 AddDeprecatedTextureHostToGrallocBufferActor(DeprecatedTextureHost* aDeprecatedTextureHost, const SurfaceDescriptor* aSurfaceDescriptor)
 {
@@ -1151,15 +1150,15 @@ GrallocDeprecatedTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImag
 
   mTextureTarget = TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
   GLuint tex = GetGLTexture();
-  
+  // delete old EGLImage
   DeleteTextures();
 
   gl()->MakeCurrent();
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   gl()->fBindTexture(mTextureTarget, tex);
-  
-  
-  
+  // create new EGLImage
+  // create EGLImage during buffer swap could reduce the graphic driver's task
+  // during rendering.
   mEGLImage = gl()->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
   gl()->fEGLImageTargetTexture2D(mTextureTarget, mEGLImage);
 
@@ -1174,17 +1173,17 @@ GrallocDeprecatedTextureHostOGL::gl() const
 void GrallocDeprecatedTextureHostOGL::BindTexture(GLenum aTextureUnit)
 {
   PROFILER_LABEL("Gralloc", "BindTexture");
-  
-
-
-
-
-
-
-
-
-
-
+  /*
+   * The job of this function is to ensure that the texture is tied to the
+   * android::GraphicBuffer, so that texturing will source the GraphicBuffer.
+   *
+   * To this effect we create an EGLImage wrapping this GraphicBuffer,
+   * using CreateEGLImageForNativeBuffer, and then we tie this EGLImage to our
+   * texture using fEGLImageTargetTexture2D.
+   *
+   * We try to avoid re-creating the EGLImage everytime, by keeping it around
+   * as the mEGLImage member of this class.
+   */
   MOZ_ASSERT(gl());
   gl()->MakeCurrent();
 
@@ -1205,23 +1204,23 @@ GrallocDeprecatedTextureHostOGL::~GrallocDeprecatedTextureHostOGL()
 {
   DeleteTextures();
 
-  
-  
-  
+  // only done for hacky fix in gecko 23 for bug 862324.
+  // make sure that if the GrallocBufferActor survives us, it doesn't keep a dangling
+  // pointer to us.
   RemoveDeprecatedTextureHostFromGrallocBufferActor(this, mBuffer);
 }
 
 bool
 GrallocDeprecatedTextureHostOGL::Lock()
 {
-  
+  // Lock/Unlock is done internally when binding the gralloc buffer to a gl texture
   return IsValid();
 }
 
 void
 GrallocDeprecatedTextureHostOGL::Unlock()
 {
-  
+  // Lock/Unlock is done internally when binding the gralloc buffer to a gl texture
 }
 
 void
@@ -1230,8 +1229,8 @@ GrallocDeprecatedTextureHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceA
   MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
 
   if (aBuffer != mBuffer) {
-    
-    
+    // only done for hacky fix in gecko 23 for bug 862324.
+    // Doing this in SwapTextures is not enough, as the crash could occur right after SetBuffer.
     RemoveDeprecatedTextureHostFromGrallocBufferActor(this, mBuffer);
     AddDeprecatedTextureHostToGrallocBufferActor(this, aBuffer);
   }
@@ -1247,14 +1246,14 @@ GrallocDeprecatedTextureHostOGL::GetRenderState()
 
     uint32_t flags = mFlags & TEXTURE_NEEDS_Y_FLIP ? LAYER_RENDER_STATE_Y_FLIPPED : 0;
 
-    
-
-
-
-
-
-
-
+    /*
+     * The 32 bit format of gralloc buffer is created as RGBA8888 or RGBX888 by default.
+     * For software rendering (non-GL rendering), the content is drawn with BGRA
+     * or BGRX. Therefore, we need to pass the RBSwapped flag for HW composer to swap format.
+     *
+     * For GL rendering content, the content format is RGBA or RGBX which is the same as
+     * the pixel format of gralloc buffer and no need for the RBSwapped flag.
+     */
 
     if (mIsRBSwapped) {
       flags |= LAYER_RENDER_STATE_FORMAT_RB_SWAP;
@@ -1277,7 +1276,7 @@ GrallocDeprecatedTextureHostOGL::GetGLTexture()
   return static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->GetTexture();
 }
 
-#endif 
+#endif // MOZ_WIDGET_GONK
 
 already_AddRefed<gfxImageSurface>
 TextureImageDeprecatedTextureHostOGL::GetAsSurface() {
@@ -1349,7 +1348,7 @@ GrallocDeprecatedTextureHostOGL::GetAsSurface() {
     : nullptr;
   return surf.forget();
 }
-#endif 
+#endif // MOZ_WIDGET_GONK
 
-} 
-} 
+} // namespace
+} // namespace

@@ -184,10 +184,10 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ImageContainer> container = element->GetImageContainer();
   if (!container)
     return nullptr;
+
   
   
-  
-  gfxIntSize frameSize = container->GetCurrentSize();
+  gfx::IntSize frameSize = container->GetCurrentSize();
   if (frameSize.width == 0 || frameSize.height == 0) {
     
     return nullptr;

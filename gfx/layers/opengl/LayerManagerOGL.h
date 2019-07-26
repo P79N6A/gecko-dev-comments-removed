@@ -493,7 +493,7 @@ public:
 
 
 
-  virtual bool LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
+  virtual bool LoadAsTexture(GLuint aTextureUnit, gfx::IntSize* aSize)
   {
     NS_WARNING("LoadAsTexture called without being overriden");
     return false;
