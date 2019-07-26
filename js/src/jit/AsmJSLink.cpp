@@ -36,48 +36,61 @@ using mozilla::BinarySearch;
 using mozilla::IsNaN;
 using mozilla::PodZero;
 
-AsmJSFrameIterator::AsmJSFrameIterator(const AsmJSActivation *activation)
+static uint8_t *
+ReturnAddressForExitCall(uint8_t **psp)
 {
-    if (!activation || activation->isInterruptedSP()) {
-        PodZero(this);
-        JS_ASSERT(done());
-        return;
-    }
-
-    module_ = &activation->module();
-    sp_ = activation->exitSP();
-
+    uint8_t *sp = *psp;
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     
     
     
-    returnAddress_ = *(uint8_t**)(sp_ - sizeof(void*));
+    return *(uint8_t**)(sp - sizeof(void*));
 #elif defined(JS_CODEGEN_ARM)
     
     
     
     
     
-    returnAddress_ = *(uint8_t**)sp_;
+    return *(uint8_t**)sp;
 #elif defined(JS_CODEGEN_MIPS)
     
     
     
-
     
-    if (uint32_t(sp_) & 0x1) {
-        
-        sp_ -= 0x1;
-        returnAddress_ = *(uint8_t**)sp_;
-    } else {
-        
-        returnAddress_ = *(uint8_t**)(sp_ + ShadowStackSpace);
+    if (uintptr_t(sp) & 0x1) {
+        sp = *psp -= 0x1;  
+        return *(uint8_t**)sp;
     }
+    return *(uint8_t**)(sp + ShadowStackSpace);
 #else
 # error "Unknown architecture!"
 #endif
+}
 
-    settle();
+static uint8_t *
+ReturnAddressForJitCall(uint8_t *sp)
+{
+    
+    
+    return *(uint8_t**)(sp - sizeof(void*));
+}
+
+AsmJSFrameIterator::AsmJSFrameIterator(const AsmJSActivation *activation)
+  : module_(nullptr)
+{
+    if (!activation || activation->isInterruptedSP())
+        return;
+
+    module_ = &activation->module();
+    sp_ = activation->exitSP();
+
+    settle(ReturnAddressForExitCall(&sp_));
+}
+
+void
+AsmJSFrameIterator::operator++()
+{
+    settle(ReturnAddressForJitCall(sp_));
 }
 
 struct GetCallSite
@@ -90,43 +103,31 @@ struct GetCallSite
 };
 
 void
-AsmJSFrameIterator::popFrame()
+AsmJSFrameIterator::settle(uint8_t *returnAddress)
 {
-    
-    
-    sp_ += callsite_->stackDepth();
-    returnAddress_ = *(uint8_t**)(sp_ - sizeof(void*));
-}
+    uint32_t target = returnAddress - module_->codeBase();
+    size_t lowerBound = 0;
+    size_t upperBound = module_->numCallSites();
 
-void
-AsmJSFrameIterator::settle()
-{
-    while (true) {
-        uint32_t target = returnAddress_ - module_->codeBase();
-        size_t lowerBound = 0;
-        size_t upperBound = module_->numCallSites();
-
-        size_t match;
-        if (!BinarySearch(GetCallSite(*module_), lowerBound, upperBound, target, &match)) {
-            callsite_ = nullptr;
-            return;
-        }
-
-        callsite_ = &module_->callSite(match);
-
-        if (callsite_->isExit()) {
-            popFrame();
-            continue;
-        }
-
-        if (callsite_->isEntry()) {
-            callsite_ = nullptr;
-            return;
-        }
-
-        JS_ASSERT(callsite_->isNormal());
+    size_t match;
+    if (!BinarySearch(GetCallSite(*module_), lowerBound, upperBound, target, &match)) {
+        module_ = nullptr;
         return;
     }
+
+    callsite_ = &module_->callSite(match);
+
+    if (callsite_->isEntry()) {
+        module_ = nullptr;
+        return;
+    }
+
+    sp_ += callsite_->stackDepth();
+
+    if (callsite_->isExit())
+        return settle(ReturnAddressForJitCall(sp_));
+
+    JS_ASSERT(callsite_->isNormal());
 }
 
 JSAtom *
