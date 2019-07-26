@@ -39,6 +39,9 @@
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
 
+struct SpeexResamplerState_;
+typedef struct SpeexResamplerState_ SpeexResamplerState;
+
 namespace WebCore {
 
 
@@ -64,15 +67,6 @@ public:
     void getKernelsFromAzimuth(double azimuthBlend, unsigned azimuthIndex, HRTFKernel* &kernelL, HRTFKernel* &kernelR, double& frameDelayL, double& frameDelayR);
     
     
-    static const unsigned AzimuthSpacing;
-    
-    
-    static const unsigned NumberOfRawAzimuths;
-
-    
-    static const unsigned InterpolationFactor;
-    
-    
     static const unsigned NumberOfTotalAzimuths;
 
     void reportMemoryUsage(MemoryObjectInfo*) const;
@@ -92,7 +86,8 @@ private:
     
     
     
-    static bool calculateKernelForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
+    
+    static bool calculateKernelForAzimuthElevation(int azimuth, int elevation, SpeexResamplerState* resampler, float sampleRate,
                                                    RefPtr<HRTFKernel>& kernelL);
 
     OwnPtr<HRTFKernelList> m_kernelListL;
