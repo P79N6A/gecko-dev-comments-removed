@@ -100,6 +100,7 @@ DownloadLegacyTransfer.prototype = {
         
         
         
+        
         return download.saver.deferCanceled.promise.then(() => {
           
           if (this._cancelable && !this._componentFailed) {
@@ -225,10 +226,7 @@ DownloadLegacyTransfer.prototype = {
       }
 
       
-      aDownload.start().then(null, function () {
-        
-        aDownload.saver.deferCanceled.resolve();
-      });
+      aDownload.start().then(null, () => {});
 
       
       this._deferDownload.resolve(aDownload);
