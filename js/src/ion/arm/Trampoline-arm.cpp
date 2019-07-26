@@ -19,10 +19,14 @@
 using namespace js;
 using namespace js::ion;
 
+static const FloatRegisterSet NonVolatileFloatRegs =
+    FloatRegisterSet(FloatRegisters::NonVolatileMask);  
+
 static void
 GenerateReturn(MacroAssembler &masm, int returnCode)
 {
     
+    masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
     masm.ma_mov(Imm32(returnCode), r0);
     masm.startDataTransferM(IsLoad, sp, IA, WriteBack);
     masm.transferReg(r4);
@@ -41,6 +45,15 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
 
 struct EnterJITStack
 {
+    double d8;
+    double d9;
+    double d10;
+    double d11;
+    double d12;
+    double d13;
+    double d14;
+    double d15;
+
     void *r0; 
 
     
@@ -108,6 +121,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.transferReg(lr);  
     
     masm.finishDataTransfer();
+    masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);
 
     
     masm.movePtr(sp, r8);
