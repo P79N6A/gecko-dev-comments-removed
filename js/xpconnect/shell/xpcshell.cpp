@@ -1944,24 +1944,26 @@ XPCShellDirProvider::GetFiles(const char *prop, nsISimpleEnumerator* *result)
         }
         return NS_ERROR_FAILURE;
     } else if (!strcmp(prop, NS_APP_PLUGINS_DIR_LIST)) {
-        nsCOMPtr<nsIFile> file;
         nsCOMArray<nsIFile> dirs;
-        bool exists;
-        
-        
-        if (mGREDir) {
-            mGREDir->Clone(getter_AddRefs(file));
-            if (NS_SUCCEEDED(mGREDir->Clone(getter_AddRefs(file)))) {
-                file->AppendNative(NS_LITERAL_CSTRING("plugins"));
-                if (NS_SUCCEEDED(file->Exists(&exists)) && exists) {
-                    dirs.AppendObject(file);
-                }
-            }
-        }
         
         
         if (mPluginDir) {
             dirs.AppendObject(mPluginDir);
+        
+        } else {
+            nsCOMPtr<nsIFile> file;
+            bool exists;
+            
+            
+            if (mGREDir) {
+                mGREDir->Clone(getter_AddRefs(file));
+                if (NS_SUCCEEDED(mGREDir->Clone(getter_AddRefs(file)))) {
+                    file->AppendNative(NS_LITERAL_CSTRING("plugins"));
+                    if (NS_SUCCEEDED(file->Exists(&exists)) && exists) {
+                        dirs.AppendObject(file);
+                    }
+                }
+            }
         }
         return NS_NewArrayEnumerator(result, dirs);
     }
