@@ -170,12 +170,31 @@
 
 
 
-#if defined(MOZ_ASAN)
-#  define MOZ_ASAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_address_safety_analysis))
-# else
+#if defined(__has_feature)
+#  if __has_feature(address_sanitizer)
+#    define MOZ_ASAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_sanitize_address))
+#  else
+#    define MOZ_ASAN_BLACKLIST
+#  endif
+#else
 #  define MOZ_ASAN_BLACKLIST
 #endif
 
+
+
+
+
+
+
+#if defined(__has_feature)
+#  if __has_feature(thread_sanitizer)
+#    define MOZ_TSAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_sanitize_thread))
+#  else
+#    define MOZ_TSAN_BLACKLIST
+#  endif
+#else
+#  define MOZ_TSAN_BLACKLIST
+#endif
 
 #ifdef __cplusplus
 
