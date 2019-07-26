@@ -5,7 +5,7 @@
 
 
 #include "DOMWheelEvent.h"
-#include "nsGUIEvent.h"
+#include "mozilla/MouseEvents.h"
 #include "prtime.h"
 
 namespace mozilla {

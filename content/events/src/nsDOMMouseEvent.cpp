@@ -4,10 +4,10 @@
 
 
 #include "nsDOMMouseEvent.h"
-#include "nsGUIEvent.h"
 #include "nsIContent.h"
 #include "nsContentUtils.h"
 #include "prtime.h"
+#include "mozilla/MouseEvents.h"
 
 using namespace mozilla;
 

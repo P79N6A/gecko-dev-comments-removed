@@ -13,6 +13,7 @@
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/AsyncPanZoomController.h"
+#include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TouchEvents.h"
 #include "nsGUIEvent.h"                 

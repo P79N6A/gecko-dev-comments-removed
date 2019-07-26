@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MouseEvents.h"
 #include "mozilla/Util.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"

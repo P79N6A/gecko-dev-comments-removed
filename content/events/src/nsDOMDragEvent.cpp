@@ -4,10 +4,10 @@
 
 
 #include "nsDOMDragEvent.h"
-#include "nsGUIEvent.h"
 #include "nsContentUtils.h"
 #include "nsIDOMDataTransfer.h"
 #include "prtime.h"
+#include "mozilla/MouseEvents.h"
 
 nsDOMDragEvent::nsDOMDragEvent(mozilla::dom::EventTarget* aOwner,
                                nsPresContext* aPresContext,

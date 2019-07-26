@@ -14,6 +14,7 @@
 #include <winuser.h>
 #include <tpcshrd.h>
 #include "nsPoint.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/TouchEvents.h"
 
 
