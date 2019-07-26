@@ -634,11 +634,6 @@ TabChild::HandlePossibleViewportChange()
     metrics.mScrollId = viewId;
   }
 
-  metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
-    
-    
-    
-    metrics, ScreenPoint(0.0f, 0.0f), 0.0);
   metrics.mCumulativeResolution = metrics.mZoom / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
@@ -658,6 +653,14 @@ TabChild::HandlePossibleViewportChange()
     return;
   }
   metrics.mScrollableRect = CSSRect(CSSPoint(), pageSize);
+
+  
+  
+  metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
+    
+    
+    
+    metrics, ScreenPoint(0.0f, 0.0f), 0.0);
 
   
   
