@@ -327,13 +327,11 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
     
     
     
-    bool iidIsClassInfo = Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
     uint32_t classInfoFlags;
     bool isClassInfoSingleton = helper.GetClassInfo() == helper.Object() &&
                                 NS_SUCCEEDED(helper.GetClassInfo()
                                                    ->GetFlags(&classInfoFlags)) &&
                                 (classInfoFlags & nsIClassInfo::SINGLETON_CLASSINFO);
-    bool isClassInfo = iidIsClassInfo || isClassInfoSingleton;
 
     nsIClassInfo *info = helper.GetClassInfo();
 
@@ -348,7 +346,7 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
     
     
     const XPCNativeScriptableCreateInfo& sciWrapper =
-        isClassInfo ? sci :
+        isClassInfoSingleton ? sci :
         GatherScriptableCreateInfo(identity, info, sciProto, sci);
 
     RootedObject parent(cx, Scope->GetGlobalJSObject());
@@ -413,7 +411,7 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
     
     
 
-    if (info && !isClassInfo) {
+    if (info && !isClassInfoSingleton) {
         proto = XPCWrappedNativeProto::GetNewOrUsed(Scope, info, &sciProto);
         if (!proto)
             return NS_ERROR_FAILURE;
