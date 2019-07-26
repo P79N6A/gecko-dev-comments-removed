@@ -206,7 +206,8 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
                                           functionUri.get(),
                                           uncompiledMethod->mBodyText.GetLineNumber(),
                                           JSVERSION_LATEST,
-                                          true,
+                                           true,
+                                           true,
                                           &methodObject);
 
   
