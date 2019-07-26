@@ -129,6 +129,8 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/SystemMemoryReporter.h"
 
+#include "mozilla/ipc/GeckoChildProcessHost.h"
+
 #ifdef MOZ_VISUAL_EVENT_TRACER
 #include "mozilla/VisualEventTracer.h"
 #endif
@@ -700,6 +702,10 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 #ifdef MOZ_VISUAL_EVENT_TRACER
     mozilla::eventtracer::Init();
 #endif
+
+    
+    
+    mozilla::ipc::GeckoChildProcessHost::CacheGreDir();
 
     return NS_OK;
 }
