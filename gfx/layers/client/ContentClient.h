@@ -64,8 +64,7 @@ public:
 
 
 
-  static TemporaryRef<ContentClient> CreateContentClient(LayersBackend aBackendType,
-                                                         CompositableForwarder* aFwd);
+  static TemporaryRef<ContentClient> CreateContentClient(CompositableForwarder* aFwd);
 
   ContentClient(CompositableForwarder* aForwarder)
   : CompositableClient(aForwarder)

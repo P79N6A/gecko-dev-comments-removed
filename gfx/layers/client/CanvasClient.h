@@ -26,8 +26,7 @@ public:
 
 
 
-  static TemporaryRef<CanvasClient> CreateCanvasClient(LayersBackend aBackendType,
-                                                       CompositableType aImageHostType,
+  static TemporaryRef<CanvasClient> CreateCanvasClient(CompositableType aImageHostType,
                                                        CompositableForwarder* aFwd,
                                                        TextureFlags aFlags);
 
