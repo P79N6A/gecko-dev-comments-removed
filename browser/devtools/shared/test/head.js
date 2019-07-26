@@ -2,7 +2,7 @@
 
 
 
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let {devtools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let TargetFactory = devtools.TargetFactory;
 
 

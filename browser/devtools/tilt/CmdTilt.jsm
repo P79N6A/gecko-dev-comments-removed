@@ -7,7 +7,7 @@ this.EXPORTED_SYMBOLS = [ ];
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
-Components.utils.import("resource://gre/modules/devtools/Loader.jsm");
+Components.utils.import("resource:///modules/devtools/gDevTools.jsm");
 
 
 
