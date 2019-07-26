@@ -138,7 +138,14 @@ public class FaviconsForURL {
 
     public int ensureDominantColor() {
         if (mDominantColor == -1) {
-            mDominantColor = BitmapUtils.getDominantColor(getNextPrimary(0).mFaviconPayload);
+            
+            for (FaviconCacheElement element : mFavicons) {
+                if (!element.mInvalidated) {
+                    mDominantColor = BitmapUtils.getDominantColor(element.mFaviconPayload);
+                    return mDominantColor;
+                }
+            }
+            mDominantColor = 0xFFFFFF;
         }
 
         return mDominantColor;
