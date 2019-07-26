@@ -33,151 +33,8 @@ PRLogModuleInfo* gKeymapWrapperLog = nullptr;
 namespace mozilla {
 namespace widget {
 
-struct KeyPair {
-    uint32_t DOMKeyCode;
-    guint GDKKeyval;
-};
-
 #define IS_ASCII_ALPHABETICAL(key) \
     ((('a' <= key) && (key <= 'z')) || (('A' <= key) && (key <= 'Z')))
-
-
-
-
-
-static const KeyPair kKeyPairs[] = {
-    { NS_VK_CANCEL,     GDK_Cancel },
-    { NS_VK_BACK,       GDK_BackSpace },
-    { NS_VK_TAB,        GDK_Tab },
-    { NS_VK_TAB,        GDK_ISO_Left_Tab },
-    { NS_VK_CLEAR,      GDK_Clear },
-    { NS_VK_RETURN,     GDK_Return },
-    { NS_VK_SHIFT,      GDK_Shift_L },
-    { NS_VK_SHIFT,      GDK_Shift_R },
-    { NS_VK_SHIFT,      GDK_Shift_Lock },
-    { NS_VK_CONTROL,    GDK_Control_L },
-    { NS_VK_CONTROL,    GDK_Control_R },
-    { NS_VK_ALT,        GDK_Alt_L },
-    { NS_VK_ALT,        GDK_Alt_R },
-    { NS_VK_META,       GDK_Meta_L },
-    { NS_VK_META,       GDK_Meta_R },
-
-    
-    { NS_VK_WIN,        GDK_Super_L },
-    { NS_VK_WIN,        GDK_Super_R },
-    { NS_VK_WIN,        GDK_Hyper_L },
-    { NS_VK_WIN,        GDK_Hyper_R },
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    { NS_VK_ALTGR,      GDK_ISO_Level3_Shift },
-    { NS_VK_ALTGR,      GDK_ISO_Level5_Shift },
-    
-    { NS_VK_ALTGR,      GDK_Mode_switch },
-
-    { NS_VK_PAUSE,      GDK_Pause },
-    { NS_VK_CAPS_LOCK,  GDK_Caps_Lock },
-    { NS_VK_KANA,       GDK_Kana_Lock },
-    { NS_VK_KANA,       GDK_Kana_Shift },
-    { NS_VK_HANGUL,     GDK_Hangul },
-    
-    
-    { NS_VK_HANJA,      GDK_Hangul_Hanja },
-    { NS_VK_KANJI,      GDK_Kanji },
-    { NS_VK_ESCAPE,     GDK_Escape },
-    { NS_VK_CONVERT,    GDK_Henkan },
-    { NS_VK_NONCONVERT, GDK_Muhenkan },
-    
-    
-    { NS_VK_SPACE,      GDK_space },
-    { NS_VK_PAGE_UP,    GDK_Page_Up },
-    { NS_VK_PAGE_DOWN,  GDK_Page_Down },
-    { NS_VK_END,        GDK_End },
-    { NS_VK_HOME,       GDK_Home },
-    { NS_VK_LEFT,       GDK_Left },
-    { NS_VK_UP,         GDK_Up },
-    { NS_VK_RIGHT,      GDK_Right },
-    { NS_VK_DOWN,       GDK_Down },
-    { NS_VK_SELECT,     GDK_Select },
-    { NS_VK_PRINT,      GDK_Print },
-    { NS_VK_EXECUTE,    GDK_Execute },
-    { NS_VK_PRINTSCREEN, GDK_Print },
-    { NS_VK_INSERT,     GDK_Insert },
-    { NS_VK_DELETE,     GDK_Delete },
-    { NS_VK_HELP,       GDK_Help },
-
-    
-    { NS_VK_LEFT,       GDK_KP_Left },
-    { NS_VK_RIGHT,      GDK_KP_Right },
-    { NS_VK_UP,         GDK_KP_Up },
-    { NS_VK_DOWN,       GDK_KP_Down },
-    { NS_VK_PAGE_UP,    GDK_KP_Page_Up },
-    
-    
-    
-    { NS_VK_CLEAR,      GDK_KP_Begin }, 
-    { NS_VK_PAGE_DOWN,  GDK_KP_Page_Down },
-    { NS_VK_HOME,       GDK_KP_Home },
-    { NS_VK_END,        GDK_KP_End },
-    { NS_VK_INSERT,     GDK_KP_Insert },
-    { NS_VK_DELETE,     GDK_KP_Delete },
-    { NS_VK_RETURN,     GDK_KP_Enter },
-
-    { NS_VK_NUM_LOCK,   GDK_Num_Lock },
-    { NS_VK_SCROLL_LOCK,GDK_Scroll_Lock },
-
-    
-    { NS_VK_F1,         GDK_F1 },
-    { NS_VK_F2,         GDK_F2 },
-    { NS_VK_F3,         GDK_F3 },
-    { NS_VK_F4,         GDK_F4 },
-    { NS_VK_F5,         GDK_F5 },
-    { NS_VK_F6,         GDK_F6 },
-    { NS_VK_F7,         GDK_F7 },
-    { NS_VK_F8,         GDK_F8 },
-    { NS_VK_F9,         GDK_F9 },
-    { NS_VK_F10,        GDK_F10 },
-    { NS_VK_F11,        GDK_F11 },
-    { NS_VK_F12,        GDK_F12 },
-    { NS_VK_F13,        GDK_F13 },
-    { NS_VK_F14,        GDK_F14 },
-    { NS_VK_F15,        GDK_F15 },
-    { NS_VK_F16,        GDK_F16 },
-    { NS_VK_F17,        GDK_F17 },
-    { NS_VK_F18,        GDK_F18 },
-    { NS_VK_F19,        GDK_F19 },
-    { NS_VK_F20,        GDK_F20 },
-    { NS_VK_F21,        GDK_F21 },
-    { NS_VK_F22,        GDK_F22 },
-    { NS_VK_F23,        GDK_F23 },
-    { NS_VK_F24,        GDK_F24 },
-
-    
-    
-    { NS_VK_CONTEXT_MENU, GDK_Menu },
-    { NS_VK_SLEEP,      GDK_Sleep },
-
-    { NS_VK_ATTN,       GDK_3270_Attn },
-    { NS_VK_CRSEL,      GDK_3270_CursorSelect },
-    { NS_VK_EXSEL,      GDK_3270_ExSelect },
-    { NS_VK_EREOF,      GDK_3270_EraseEOF },
-    { NS_VK_PLAY,       GDK_3270_Play },
-    
-    { NS_VK_PA1,        GDK_3270_PA1 },
-};
-
-
-static const KeyPair kSunKeyPairs[] = {
-    {NS_VK_F11, 0x1005ff10 }, 
-    {NS_VK_F12, 0x1005ff11 }  
-};
 
 #define MOZ_MODIFIER_KEYS "MozKeymapWrapper"
 
@@ -1124,21 +981,141 @@ KeymapWrapper::GetGDKKeyvalWithoutModifier(const GdkEventKey *aGdkKeyEvent)
  uint32_t
 KeymapWrapper::GetDOMKeyCodeFromKeyPairs(guint aGdkKeyval)
 {
-    
-    for (uint32_t i = 0; i < ArrayLength(kSunKeyPairs); i++) {
-        if (kSunKeyPairs[i].GDKKeyval == aGdkKeyval) {
-            return kSunKeyPairs[i].DOMKeyCode;
-        }
-    }
+    switch (aGdkKeyval) {
+        case GDK_Cancel:                return NS_VK_CANCEL;
+        case GDK_BackSpace:             return NS_VK_BACK;
+        case GDK_Tab:
+        case GDK_ISO_Left_Tab:          return NS_VK_TAB;
+        case GDK_Clear:                 return NS_VK_CLEAR;
+        case GDK_Return:                return NS_VK_RETURN;
+        case GDK_Shift_L:
+        case GDK_Shift_R:
+        case GDK_Shift_Lock:            return NS_VK_SHIFT;
+        case GDK_Control_L:
+        case GDK_Control_R:             return NS_VK_CONTROL;
+        case GDK_Alt_L:
+        case GDK_Alt_R:                 return NS_VK_ALT;
+        case GDK_Meta_L:
+        case GDK_Meta_R:                return NS_VK_META;
 
-    
-    for (uint32_t i = 0; i < ArrayLength(kKeyPairs); i++) {
-        if (kKeyPairs[i].GDKKeyval == aGdkKeyval) {
-            return kKeyPairs[i].DOMKeyCode;
-        }
-    }
+        
+        case GDK_Super_L:
+        case GDK_Super_R:
+        case GDK_Hyper_L:
+        case GDK_Hyper_R:               return NS_VK_WIN;
 
-    return 0;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        case GDK_ISO_Level3_Shift:
+        case GDK_ISO_Level5_Shift:
+        
+        case GDK_Mode_switch:           return NS_VK_ALTGR;
+
+        case GDK_Pause:                 return NS_VK_PAUSE;
+        case GDK_Caps_Lock:             return NS_VK_CAPS_LOCK;
+        case GDK_Kana_Lock:
+        case GDK_Kana_Shift:            return NS_VK_KANA;
+        case GDK_Hangul:                return NS_VK_HANGUL;
+        
+        
+        case GDK_Hangul_Hanja:          return NS_VK_HANJA;
+        case GDK_Kanji:                 return NS_VK_KANJI;
+        case GDK_Escape:                return NS_VK_ESCAPE;
+        case GDK_Henkan:                return NS_VK_CONVERT;
+        case GDK_Muhenkan:              return NS_VK_NONCONVERT;
+        
+        
+        case GDK_space:                 return NS_VK_SPACE;
+        case GDK_Page_Up:               return NS_VK_PAGE_UP;
+        case GDK_Page_Down:             return NS_VK_PAGE_DOWN;
+        case GDK_End:                   return NS_VK_END;
+        case GDK_Home:                  return NS_VK_HOME;
+        case GDK_Left:                  return NS_VK_LEFT;
+        case GDK_Up:                    return NS_VK_UP;
+        case GDK_Right:                 return NS_VK_RIGHT;
+        case GDK_Down:                  return NS_VK_DOWN;
+        case GDK_Select:                return NS_VK_SELECT;
+        case GDK_Print:                 return NS_VK_PRINT;
+        case GDK_Execute:               return NS_VK_EXECUTE;
+        case GDK_Insert:                return NS_VK_INSERT;
+        case GDK_Delete:                return NS_VK_DELETE;
+        case GDK_Help:                  return NS_VK_HELP;
+
+        
+        case GDK_KP_Left:               return NS_VK_LEFT;
+        case GDK_KP_Right:              return NS_VK_RIGHT;
+        case GDK_KP_Up:                 return NS_VK_UP;
+        case GDK_KP_Down:               return NS_VK_DOWN;
+        case GDK_KP_Page_Up:            return NS_VK_PAGE_UP;
+        
+        
+        
+        case GDK_KP_Begin:              return NS_VK_CLEAR; 
+        case GDK_KP_Page_Down:          return NS_VK_PAGE_DOWN;
+        case GDK_KP_Home:               return NS_VK_HOME;
+        case GDK_KP_End:                return NS_VK_END;
+        case GDK_KP_Insert:             return NS_VK_INSERT;
+        case GDK_KP_Delete:             return NS_VK_DELETE;
+        case GDK_KP_Enter:              return NS_VK_RETURN;
+
+        case GDK_Num_Lock:              return NS_VK_NUM_LOCK;
+        case GDK_Scroll_Lock:           return NS_VK_SCROLL_LOCK;
+
+        
+        case GDK_F1:                    return NS_VK_F1;
+        case GDK_F2:                    return NS_VK_F2;
+        case GDK_F3:                    return NS_VK_F3;
+        case GDK_F4:                    return NS_VK_F4;
+        case GDK_F5:                    return NS_VK_F5;
+        case GDK_F6:                    return NS_VK_F6;
+        case GDK_F7:                    return NS_VK_F7;
+        case GDK_F8:                    return NS_VK_F8;
+        case GDK_F9:                    return NS_VK_F9;
+        case GDK_F10:                   return NS_VK_F10;
+        case GDK_F11:                   return NS_VK_F11;
+        case GDK_F12:                   return NS_VK_F12;
+        case GDK_F13:                   return NS_VK_F13;
+        case GDK_F14:                   return NS_VK_F14;
+        case GDK_F15:                   return NS_VK_F15;
+        case GDK_F16:                   return NS_VK_F16;
+        case GDK_F17:                   return NS_VK_F17;
+        case GDK_F18:                   return NS_VK_F18;
+        case GDK_F19:                   return NS_VK_F19;
+        case GDK_F20:                   return NS_VK_F20;
+        case GDK_F21:                   return NS_VK_F21;
+        case GDK_F22:                   return NS_VK_F22;
+        case GDK_F23:                   return NS_VK_F23;
+        case GDK_F24:                   return NS_VK_F24;
+
+        
+        
+        
+        case GDK_Menu:                  return NS_VK_CONTEXT_MENU;
+        case GDK_Sleep:                 return NS_VK_SLEEP;
+
+        case GDK_3270_Attn:             return NS_VK_ATTN;
+        case GDK_3270_CursorSelect:     return NS_VK_CRSEL;
+        case GDK_3270_ExSelect:         return NS_VK_EXSEL;
+        case GDK_3270_EraseEOF:         return NS_VK_EREOF;
+        case GDK_3270_Play:             return NS_VK_PLAY;
+        
+        case GDK_3270_PA1:              return NS_VK_PA1;
+
+        
+
+        
+        case 0x1005ff10:                return NS_VK_F11;
+        
+        case 0x1005ff11:                return NS_VK_F12;
+        default:                        return 0;
+    }
 }
 
 void
