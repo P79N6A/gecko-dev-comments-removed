@@ -82,15 +82,15 @@ public:
 
 
 
-  nsresult Reflow(nsContainerFrame*        aDelegatingFrame,
-                  nsPresContext*           aPresContext,
-                  const nsHTMLReflowState& aReflowState,
-                  nsReflowStatus&          aReflowStatus,
-                  const nsRect&            aContainingBlock,
-                  bool                     aConstrainHeight,
-                  bool                     aCBWidthChanged,
-                  bool                     aCBHeightChanged,
-                  nsOverflowAreas*         aOverflowAreas);
+  void Reflow(nsContainerFrame*        aDelegatingFrame,
+              nsPresContext*           aPresContext,
+              const nsHTMLReflowState& aReflowState,
+              nsReflowStatus&          aReflowStatus,
+              const nsRect&            aContainingBlock,
+              bool                     aConstrainHeight,
+              bool                     aCBWidthChanged,
+              bool                     aCBHeightChanged,
+              nsOverflowAreas*         aOverflowAreas);
 
   void DestroyFrames(nsIFrame* aDelegatingFrame,
                      nsIFrame* aDestructRoot);
