@@ -176,7 +176,10 @@ RootActor.prototype = {
       testConnectionPrefix: this.conn.prefix,
       traits: {
         sources: true,
-        editOuterHTML: true
+        editOuterHTML: true,
+        
+        
+        highlightable: true
       }
     };
   },

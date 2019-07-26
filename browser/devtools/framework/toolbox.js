@@ -46,6 +46,9 @@ loader.lazyGetter(this, "Requisition", () => {
   return require("gcli/cli").Requisition;
 });
 
+loader.lazyGetter(this, "Selection", () => require("devtools/framework/selection").Selection);
+loader.lazyGetter(this, "InspectorFront", () => require("devtools/server/actors/inspector").InspectorFront);
+
 
 
 
@@ -186,6 +189,42 @@ Toolbox.prototype = {
   
 
 
+
+  get highlighter() {
+    if (this.isRemoteHighlightable) {
+      return this._highlighter;
+    } else {
+      return null;
+    }
+  },
+
+  
+
+
+
+  get inspector() {
+    return this._inspector;
+  },
+
+  
+
+
+
+  get walker() {
+    return this._walker;
+  },
+
+  
+
+
+
+  get selection() {
+    return this._selection;
+  },
+
+  
+
+
   get splitConsole() {
     return this._splitConsole;
   },
@@ -214,11 +253,14 @@ Toolbox.prototype = {
         this._addZoomKeys();
         this._loadInitialZoom();
 
-        this._telemetry.toolOpened("toolbox");
+        
+        this._target.makeRemote().then(() => {
+          this._telemetry.toolOpened("toolbox");
 
-        this.selectTool(this._defaultToolId).then(panel => {
-          this.emit("ready");
-          deferred.resolve();
+          this.selectTool(this._defaultToolId).then(panel => {
+            this.emit("ready");
+            deferred.resolve();
+          });
         });
       };
 
@@ -415,7 +457,6 @@ Toolbox.prototype = {
     }
   },
 
-
   
 
 
@@ -487,6 +528,8 @@ Toolbox.prototype = {
 
 
   _buildButtons: function() {
+    this._buildPickerButton();
+
     if (!this.target.isLocalTab) {
       return;
     }
@@ -498,6 +541,23 @@ Toolbox.prototype = {
     let buttons = CommandUtils.createButtons(spec, this._target, this.doc, req);
     let container = this.doc.getElementById("toolbox-buttons");
     buttons.forEach(container.appendChild.bind(container));
+  },
+
+  
+
+
+
+  _buildPickerButton: function() {
+    this._pickerButton = this.doc.createElement("toolbarbutton");
+    this._pickerButton.id = "command-button-pick";
+    this._pickerButton.className = "command-button";
+    this._pickerButton.setAttribute("tooltiptext", toolboxStrings("pickButton.tooltip"));
+
+    let container = this.doc.querySelector("#toolbox-buttons");
+    container.appendChild(this._pickerButton);
+
+    this.togglePicker = this.togglePicker.bind(this);
+    this._pickerButton.addEventListener("command", this.togglePicker, false);
   },
 
   
@@ -600,6 +660,12 @@ Toolbox.prototype = {
 
 
   loadTool: function(id) {
+    if (id === "inspector" && !this._inspector) {
+      return this.initInspector().then(() => {
+        return this.loadTool(id);
+      });
+    }
+
     let deferred = promise.defer();
     let iframe = this.doc.getElementById("toolbox-panel-iframe-" + id);
 
@@ -961,6 +1027,154 @@ Toolbox.prototype = {
 
 
 
+  initInspector: function() {
+    let deferred = promise.defer();
+
+    if (!this._inspector) {
+      this._inspector = InspectorFront(this._target.client, this._target.form);
+      this._inspector.getWalker().then(walker => {
+        this._walker = walker;
+        this._selection = new Selection(this._walker);
+        if (this.isRemoteHighlightable) {
+          this._inspector.getHighlighter().then(highlighter => {
+            this._highlighter = highlighter;
+            deferred.resolve();
+          });
+        } else {
+          deferred.resolve();
+        }
+      });
+    } else {
+      deferred.resolve();
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+  destroyInspector: function() {
+    let deferred = promise.defer();
+
+    if (this._inspector) {
+      this._selection.destroy();
+      this._selection = null;
+      this._walker.release().then(
+        () => {
+          this._inspector.destroy();
+          this._highlighter.destroy();
+        },
+        (e) => {
+          console.error("Walker.release() failed: " + e);
+          this._inspector.destroy();
+          return this._highlighter.destroy();
+        }
+      ).then(() => {
+        this._inspector = null;
+        this._highlighter = null;
+        this._walker = null;
+        deferred.resolve();
+      });
+    } else {
+      deferred.resolve();
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+  togglePicker: function() {
+    if (this._isPicking) {
+      return this.stopPicker();
+    } else {
+      return this.startPicker();
+    }
+  },
+
+  get isRemoteHighlightable() {
+    return this._target.client.traits.highlightable;
+  },
+
+  
+
+
+
+
+
+
+
+  startPicker: function() {
+    let deferred = promise.defer();
+
+    let done = () => {
+      this.emit("picker-started");
+      deferred.resolve();
+    };
+
+    this.initInspector().then(() => {
+      this._isPicking = true;
+      this._pickerButton.setAttribute("checked", "true");
+
+      if (this.isRemoteHighlightable) {
+        this.highlighter.pick().then(done);
+
+        this._onPickerNodeHovered = res => {
+          this.emit("picker-node-hovered", res.node);
+        };
+        this.walker.on("picker-node-hovered", this._onPickerNodeHovered);
+
+        this._onPickerNodePicked = res => {
+          this.selection.setNodeFront(res.node, "picker-node-picked");
+          this.stopPicker();
+        };
+        this.walker.on("picker-node-picked", this._onPickerNodePicked);
+      } else {
+        this.walker.pick().then(node => {
+          this.selection.setNodeFront(node, "picker-node-picked");
+          this.stopPicker();
+        });
+        done();
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+  stopPicker: function() {
+    let deferred = promise.defer();
+
+    let done = () => {
+      this.emit("picker-stopped");
+      deferred.resolve();
+    };
+
+    this.initInspector().then(() => {
+      this._isPicking = false;
+      this._pickerButton.removeAttribute("checked");
+      if (this.isRemoteHighlightable) {
+        this.highlighter.cancelPick().then(done);
+        this.walker.off("picker-node-hovered", this._onPickerNodeHovered);
+        this.walker.off("picker-node-picked", this._onPickerNodePicked);
+      } else {
+        this.walker.cancelPick().then(done);
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
 
   getNotificationBox: function() {
     return this.doc.getElementById("toolbox-notificationbox");
@@ -1004,6 +1218,12 @@ Toolbox.prototype = {
       }
     }
 
+    
+    outstanding.push(this.destroyInspector());
+
+    
+    this._pickerButton.removeEventListener("command", this.togglePicker, false);
+    this._pickerButton = null;
     let container = this.doc.getElementById("toolbox-buttons");
     while (container.firstChild) {
       container.removeChild(container.firstChild);
