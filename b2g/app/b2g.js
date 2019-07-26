@@ -553,3 +553,9 @@ pref("ui.mouse.radius.enabled", true);
 
 
 pref("browser.prompt.allowNative", false);
+
+
+
+
+
+pref("network.activity.blipIntervalMilliseconds", 250);
