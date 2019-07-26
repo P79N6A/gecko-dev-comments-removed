@@ -1123,6 +1123,9 @@ pref("network.dns.ipv4OnlyDomains", "");
 pref("network.dns.disableIPv6", false);
 
 
+pref("network.dns.disablePrefetch", false);
+
+
 
 pref("network.standard-url.escape-utf8", true);
 
