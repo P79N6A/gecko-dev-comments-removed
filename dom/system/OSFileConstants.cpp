@@ -601,7 +601,7 @@ static dom::ConstantSpec gWinProperties[] =
 
 
 
-JSObject *GetOrCreateObjectProperty(JSContext *cx, JSObject *aObject,
+JSObject *GetOrCreateObjectProperty(JSContext *cx, JS::Handle<JSObject*> aObject,
                                     const char *aProperty)
 {
   JS::Rooted<JS::Value> val(cx);
@@ -625,7 +625,7 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JSObject *aObject,
 
 
 
-bool SetStringProperty(JSContext *cx, JSObject *aObject, const char *aProperty,
+bool SetStringProperty(JSContext *cx, JS::Handle<JSObject*> aObject, const char *aProperty,
                        const nsString aValue)
 {
   if (aValue.IsVoid()) {
@@ -643,7 +643,7 @@ bool SetStringProperty(JSContext *cx, JSObject *aObject, const char *aProperty,
 
 
 
-bool DefineOSFileConstants(JSContext *cx, JSObject *global)
+bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
 {
   MOZ_ASSERT(gInitialized);
 

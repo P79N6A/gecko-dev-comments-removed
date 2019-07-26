@@ -15,7 +15,8 @@ bool
 InitClass(JSContext* aCx, JSObject* aGlobal);
 
 JSObject*
-Create(JSContext* aCx, uint32_t aWidth, uint32_t aHeight, JSObject* aData);
+Create(JSContext* aCx, uint32_t aWidth,
+       uint32_t aHeight, JS::Handle<JSObject*> aData);
 
 
 

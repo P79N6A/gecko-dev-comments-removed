@@ -39,7 +39,7 @@ void CleanupOSFileConstants();
 
 
 
-bool DefineOSFileConstants(JSContext *cx, JSObject *global);
+bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global);
 
 
 
