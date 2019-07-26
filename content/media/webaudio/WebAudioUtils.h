@@ -21,6 +21,10 @@ class AudioNodeStream;
 namespace dom {
 
 struct WebAudioUtils {
+  
+  
+  static const uint32_t MaxChannelCount = 10000;
+
   static bool FuzzyEqual(float v1, float v2)
   {
     using namespace std;
