@@ -1093,71 +1093,78 @@ this.DOMApplicationRegistry = {
     }
 
     
-    if (id in this._manifestCache) {
-      delete this._manifestCache[id];
-    }
+    this.getManifestFor(app.origin, (function(aOldManifest) {
+      debug("Old manifest: " + JSON.stringify(aOldManifest));
+      
+      let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
+      let manFile = tmpDir.clone();
+      manFile.append("manifest.webapp");
+      let appFile = tmpDir.clone();
+      appFile.append("application.zip");
 
-    
-    let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
-    let manFile = tmpDir.clone();
-    manFile.append("manifest.webapp");
-    let appFile = tmpDir.clone();
-    appFile.append("application.zip");
-
-    let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
-    appFile.moveTo(dir, "application.zip");
-    manFile.moveTo(dir, "manifest.webapp");
-
-    
-    let staged = dir.clone();
-    staged.append("staged-update.webapp");
-
-    
-    
-    if (staged.exists()) {
-      staged.moveTo(dir, "update.webapp");
-    }
-
-    try {
-      tmpDir.remove(true);
-    } catch(e) { }
-
-    
-    
-    let zipFile = dir.clone();
-    zipFile.append("application.zip");
-    Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
-
-    
-    this.getManifestFor(app.origin, (function(aData) {
-      app.downloading = false;
-      app.downloadAvailable = false;
-      app.downloadSize = 0;
-      app.installState = "installed";
-      app.readyToApplyDownload = false;
+      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
+      appFile.moveTo(dir, "application.zip");
+      manFile.moveTo(dir, "manifest.webapp");
 
       
-      if (app.staged) {
-        for (let prop in app.staged) {
-          app[prop] = app.staged[prop];
-        }
-        delete app.staged;
+      let staged = dir.clone();
+      staged.append("staged-update.webapp");
+
+      
+      
+      if (staged.exists()) {
+        staged.moveTo(dir, "update.webapp");
       }
 
-      delete app.retryingDownload;
+      try {
+        tmpDir.remove(true);
+      } catch(e) { }
 
-      DOMApplicationRegistry._saveApps(function() {
-        DOMApplicationRegistry.broadcastMessage("Webapps:PackageEvent",
-                                                { type: "applied",
-                                                  manifestURL: app.manifestURL,
-                                                  app: app,
-                                                  manifest: aData });
+      
+      if (id in this._manifestCache) {
+        delete this._manifestCache[id];
+      }
+
+      
+      
+      let zipFile = dir.clone();
+      zipFile.append("application.zip");
+      Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
+
+      
+      this.getManifestFor(app.origin, (function(aData) {
+        debug("New manifest: " + JSON.stringify(aData));
+        app.downloading = false;
+        app.downloadAvailable = false;
+        app.downloadSize = 0;
+        app.installState = "installed";
+        app.readyToApplyDownload = false;
+
         
-        PermissionsInstaller.installPermissions({ manifest: aData,
-                                                  origin: app.origin,
-                                                  manifestURL: app.manifestURL },
-                                                true);
-      });
+        if (app.staged) {
+          for (let prop in app.staged) {
+            app[prop] = app.staged[prop];
+          }
+          delete app.staged;
+        }
+
+        delete app.retryingDownload;
+
+        this._saveApps((function() {
+          
+          this.updateAppHandlers(aOldManifest, aData, app);
+          PermissionsInstaller.installPermissions(
+            { manifest: aData,
+              origin: app.origin,
+              manifestURL: app.manifestURL },
+            true);
+          this.broadcastMessage("Webapps:PackageEvent",
+                                { type: "applied",
+                                  manifestURL: app.manifestURL,
+                                  app: app,
+                                  manifest: aData });
+        }).bind(this));
+      }).bind(this));
     }).bind(this));
   },
 
@@ -1278,6 +1285,23 @@ this.DOMApplicationRegistry = {
     return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
   },
 
+  
+  
+  updateAppHandlers: function(aOldManifest, aNewManifest, aApp) {
+    debug("updateAppHandlers: old=" + aOldManifest + " new=" + aNewManifest);
+    this.notifyAppsRegistryStart();
+#ifdef MOZ_SYS_MSG
+    if (aOldManifest) {
+      this._unregisterActivities(aOldManifest, aApp);
+    }
+    this._registerSystemMessages(aNewManifest, aApp);
+    this._registerActivities(aNewManifest, aApp, true);
+#else
+    
+    this.notifyAppsRegistryReady();
+#endif
+  },
+
   checkForUpdate: function(aData, aMm) {
     debug("checkForUpdate for " + aData.manifestURL);
 
@@ -1341,16 +1365,8 @@ this.DOMApplicationRegistry = {
 
       let manifest;
       if (aNewManifest) {
-        
-        this.notifyAppsRegistryStart();
-#ifdef MOZ_SYS_MSG
-        this._unregisterActivities(aOldManifest, app);
-        this._registerSystemMessages(aNewManifest, app);
-        this._registerActivities(aNewManifest, app, true);
-#else
-        
-        this.notifyAppsRegistryReady();
-#endif
+        this.updateAppHandlers(aOldManifest, aNewManifest, app);
+
         
         let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
         let manFile = dir.clone();
@@ -1906,21 +1922,14 @@ this.DOMApplicationRegistry = {
       }).bind(this));
 
     if (!aData.isPackage) {
-      this.notifyAppsRegistryStart();
-#ifdef MOZ_SYS_MSG
-      this._registerSystemMessages(app.manifest, app);
-      this._registerActivities(app.manifest, app, true);
-#else
-      
-      this.notifyAppsRegistryReady();
-#endif
+      this.updateAppHandlers(null, app.manifest, app);
     }
 
     if (manifest.package_path) {
       
       
       manifest = new ManifestHelper(jsonManifest, app.manifestURL);
-      this.downloadPackage(manifest, appObject, false, function(aId, aManifest) {
+      this.downloadPackage(manifest, appObject, false, (function(aId, aManifest) {
         
         let app = DOMApplicationRegistry.webapps[id];
         let zipFile = FileUtils.getFile("TmpD", ["webapps", aId, "application.zip"], true);
@@ -1934,27 +1943,27 @@ this.DOMApplicationRegistry = {
         
         let manFile = dir.clone();
         manFile.append("manifest.webapp");
-        DOMApplicationRegistry._writeFile(manFile,
-                                          JSON.stringify(aManifest),
-                                          function() { });
+        this._writeFile(manFile, JSON.stringify(aManifest), function() { });
         
         app.installState = "installed";
         app.downloading = false;
         app.downloadAvailable = false;
-        DOMApplicationRegistry._saveApps(function() {
+        this._saveApps((function() {
+          this.updateAppHandlers(null, aManifest, appObject);
+
           
           PermissionsInstaller.installPermissions({ manifest: aManifest,
                                                     origin: appObject.origin,
                                                     manifestURL: appObject.manifestURL },
                                                   true);
           debug("About to fire Webapps:PackageEvent 'installed'");
-          DOMApplicationRegistry.broadcastMessage("Webapps:PackageEvent",
-                                                  { type: "installed",
-                                                    manifestURL: appObject.manifestURL,
-                                                    app: app,
-                                                    manifest: aManifest });
-        });
-      });
+          this.broadcastMessage("Webapps:PackageEvent",
+                                { type: "installed",
+                                  manifestURL: appObject.manifestURL,
+                                  app: app,
+                                  manifest: aManifest });
+        }).bind(this));
+      }).bind(this));
     }
   },
 
