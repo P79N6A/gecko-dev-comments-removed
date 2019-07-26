@@ -4,7 +4,6 @@
 
 
 #include "ThebesLayerComposite.h"
-#include "mozilla-config.h"             
 #include "CompositableHost.h"           
 #include "FrameMetrics.h"               
 #include "Units.h"                      

@@ -6,7 +6,6 @@
 #ifndef MOZILLA_GFX_COMPOSITOROGL_H
 #define MOZILLA_GFX_COMPOSITOROGL_H
 
-#include "./../mozilla-config.h"        
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
 #include "LayerManagerOGLProgram.h"     

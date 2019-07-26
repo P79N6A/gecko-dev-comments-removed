@@ -5,7 +5,6 @@
 
 #include "ContainerLayerComposite.h"
 #include <algorithm>                    
-#include "mozilla-config.h"             
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfx2DGlue.h"                  

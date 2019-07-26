@@ -6,7 +6,6 @@
 #include "ContainerLayerOGL.h"
 #include <stdint.h>                     
 #include <algorithm>                    
-#include "mozilla-config.h"             
 #include "GLContext.h"
 #include "gfx3DMatrix.h"                
 #include "gfxMatrix.h"                  

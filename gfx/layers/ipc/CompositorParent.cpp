@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include <map>                          
 #include <utility>                      
-#include "mozilla-config.h"             
 #include "AutoOpenSurface.h"            
 #include "LayerTransactionParent.h"     
 #include "RenderTrace.h"                

@@ -7,7 +7,6 @@
 #define MOZILLA_GFX_IMAGEHOST_H
 
 #include <stdio.h>                      
-#include "mozilla-config.h"             
 #include "CompositableHost.h"           
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             

@@ -8,7 +8,6 @@
 
 #include <stdint.h>                     
 #include <stdio.h>                      
-#include "mozilla-config.h"             
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Assertions.h"         

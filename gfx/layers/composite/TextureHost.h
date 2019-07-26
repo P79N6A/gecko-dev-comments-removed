@@ -8,7 +8,6 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "./../mozilla-config.h"        
 #include "gfxASurface.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         

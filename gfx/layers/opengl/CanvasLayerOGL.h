@@ -19,7 +19,6 @@
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "opengl/LayerManagerOGLProgram.h"  
-#include "./../mozilla-config.h"        
 #if defined(GL_PROVIDER_GLX)
 #include "GLXLibrary.h"
 #include "mozilla/X11Util.h"

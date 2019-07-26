@@ -4,7 +4,6 @@
 
 
 #include "ImageLayerComposite.h"
-#include "mozilla-config.h"             
 #include "CompositableHost.h"           
 #include "Layers.h"                     
 #include "gfx2DGlue.h"                  

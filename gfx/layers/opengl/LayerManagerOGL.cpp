@@ -6,7 +6,6 @@
 #include "LayerManagerOGL.h"
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "mozilla-config.h"             
 #include "CanvasLayerOGL.h"             
 #include "ColorLayerOGL.h"              
 #include "Composer2D.h"                 

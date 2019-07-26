@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include <stdio.h>                      
 #include <sys/types.h>                  
-#include "mozilla-config.h"             
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfx3DMatrix.h"                
