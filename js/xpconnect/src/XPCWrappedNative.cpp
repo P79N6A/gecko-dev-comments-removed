@@ -2210,6 +2210,11 @@ XPCWrappedNative::CallMethod(XPCCallContext& ccx,
 
     nsresult rv = ccx.CanCallNow();
     if (NS_FAILED(rv)) {
+        
+        
+        NS_ASSERTION(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
+                     "hmm? CanCallNow failed in XPCWrappedNative::CallMethod. "
+                     "We are finding out about this late!");
         return Throw(rv, ccx);
     }
 
