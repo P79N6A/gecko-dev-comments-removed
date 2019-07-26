@@ -71,7 +71,7 @@ const BackgroundFileSaverStreamListener = Components.Constructor(
 
 function Download()
 {
-  this._deferDone = Promise.defer();
+  this._deferStopped = Promise.defer();
 }
 
 Download.prototype = {
@@ -95,8 +95,13 @@ Download.prototype = {
 
 
 
+  stopped: false,
 
-  done: false,
+  
+
+
+
+  canceled: false,
 
   
 
@@ -162,7 +167,7 @@ Download.prototype = {
 
 
 
-  _deferDone: null,
+  _deferStopped: null,
 
   
 
@@ -173,31 +178,36 @@ Download.prototype = {
 
   start: function D_start()
   {
-    this._deferDone.resolve(Task.spawn(function task_D_start() {
+    this._deferStopped.resolve(Task.spawn(function task_D_start() {
       try {
         yield this.saver.execute();
         this.progress = 100;
       } catch (ex) {
+        if (this.canceled) {
+          throw new DownloadError(Cr.NS_ERROR_FAILURE, "Download canceled.");
+        }
         this.error = ex;
         throw ex;
       } finally {
-        this.done = true;
+        this.stopped = true;
         this._notifyChange();
       }
     }.bind(this)));
 
-    return this.whenDone();
+    return this._deferStopped.promise;
   },
 
   
 
 
+  cancel: function D_cancel()
+  {
+    if (this.stopped || this.canceled) {
+      return;
+    }
 
-
-
-
-  whenDone: function D_whenDone() {
-    return this._deferDone.promise;
+    this.canceled = true;
+    this.saver.cancel();
   },
 
   
@@ -334,7 +344,15 @@ DownloadSaver.prototype = {
   execute: function DS_execute()
   {
     throw new Error("Not implemented.");
-  }
+  },
+
+  
+
+
+  cancel: function DS_cancel()
+  {
+    throw new Error("Not implemented.");
+  },
 };
 
 
@@ -347,6 +365,11 @@ function DownloadCopySaver() { }
 
 DownloadCopySaver.prototype = {
   __proto__: DownloadSaver.prototype,
+
+  
+
+
+  _backgroundFileSaver: null,
 
   
 
@@ -424,6 +447,9 @@ DownloadCopySaver.prototype = {
                                               aOffset, aCount);
         },
       }, null);
+
+      
+      this._backgroundFileSaver = backgroundFileSaver;
     } catch (ex) {
       
       
@@ -431,5 +457,16 @@ DownloadCopySaver.prototype = {
       backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
     }
     return deferred.promise;
+  },
+
+  
+
+
+  cancel: function DCS_cancel()
+  {
+    if (this._backgroundFileSaver) {
+      this._backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
+      this._backgroundFileSaver = null;
+    }
   },
 };
