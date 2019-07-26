@@ -181,8 +181,6 @@ private:
 
   WidgetTextEvent()
     : mSeqno(kLatestSeqno)
-    , rangeCount(0)
-    , rangeArray(nullptr)
     , isChar(false)
   {
   }
@@ -196,8 +194,6 @@ public:
   WidgetTextEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
     : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_TEXT_EVENT)
     , mSeqno(kLatestSeqno)
-    , rangeCount(0)
-    , rangeArray(nullptr)
     , isChar(false)
   {
   }
@@ -216,13 +212,6 @@ public:
   
   nsString theText;
   
-  uint32_t rangeCount;
-  
-  
-  
-  
-  TextRange* rangeArray;
-  
   
   
   bool isChar;
@@ -239,34 +228,18 @@ public:
     
   }
 
-  
-  
-  void EnsureRanges()
-  {
-    if (mRanges || !rangeCount) {
-      return;
-    }
-    mRanges = new TextRangeArray();
-    for (uint32_t i = 0; i < rangeCount; i++) {
-      mRanges->AppendElement(rangeArray[i]);
-    }
-  }
-
   bool IsComposing() const
   {
-    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
     return mRanges && mRanges->IsComposing();
   }
 
   uint32_t TargetClauseOffset() const
   {
-    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
     return mRanges ? mRanges->TargetClauseOffset() : 0;
   }
 
   uint32_t RangeCount() const
   {
-    const_cast<WidgetTextEvent*>(this)->EnsureRanges();
     return mRanges ? mRanges->Length() : 0;
   }
 };

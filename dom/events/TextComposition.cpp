@@ -60,9 +60,6 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
 {
   if (aEvent->message == NS_COMPOSITION_UPDATE) {
     mLastData = aEvent->AsCompositionEvent()->data;
-  } else if (aEvent->message == NS_TEXT_TEXT) {
-    
-    aEvent->AsTextEvent()->EnsureRanges();
   }
 
   nsEventDispatcher::Dispatch(mNode, mPresContext,
