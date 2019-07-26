@@ -198,18 +198,18 @@ DecodeBasicConstraints(der::Input& input,  bool& isCA,
 
 
 Result
-CheckBasicConstraints(const BackCert& cert,
-                      EndEntityOrCA endEntityOrCA,
-                      bool isTrustAnchor,
+CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
+                      const SECItem* encodedBasicConstraints,
+                      const der::Version version, TrustLevel trustLevel,
                       unsigned int subCACount)
 {
   bool isCA = false;
   long pathLenConstraint = UNLIMITED_PATH_LEN;
 
-  if (cert.encodedBasicConstraints) {
+  if (encodedBasicConstraints) {
     der::Input input;
-    if (input.Init(cert.encodedBasicConstraints->data,
-                   cert.encodedBasicConstraints->len) != der::Success) {
+    if (input.Init(encodedBasicConstraints->data,
+                   encodedBasicConstraints->len) != der::Success) {
       return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
     }
     if (der::Nested(input, der::SEQUENCE,
@@ -230,14 +230,9 @@ CheckBasicConstraints(const BackCert& cert,
     
     
     
-    if (endEntityOrCA == EndEntityOrCA::MustBeCA && isTrustAnchor) {
-      const CERTCertificate* nssCert = cert.GetNSSCert();
-      
-      
-      
-      if (!nssCert->version.data && !nssCert->version.len) {
-        isCA = true;
-      }
+    if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
+        trustLevel == TrustLevel::TrustAnchor && version == der::Version::v1) {
+      isCA = true;
     }
   }
 
@@ -468,6 +463,14 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   bool isTrustAnchor = endEntityOrCA == EndEntityOrCA::MustBeCA &&
                        trustLevel == TrustLevel::TrustAnchor;
 
+  
+  
+  
+  
+  der::Version version = (!cert.GetNSSCert()->version.data &&
+                          !cert.GetNSSCert()->version.len) ? der::Version::v1
+                                                           : der::Version::v3;
+
   PLArenaPool* arena = cert.GetArena();
   if (!arena) {
     return FatalError;
@@ -503,7 +506,8 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   
 
   
-  rv = CheckBasicConstraints(cert, endEntityOrCA, isTrustAnchor, subCACount);
+  rv = CheckBasicConstraints(endEntityOrCA, cert.encodedBasicConstraints,
+                             version, trustLevel, subCACount);
   if (rv != Success) {
     return rv;
   }
