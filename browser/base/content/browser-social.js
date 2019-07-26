@@ -45,7 +45,7 @@ SocialUI = {
 
     if (!Social.initialized) {
       Social.init();
-    } else if (Social.enabled) {
+    } else if (Social.providers.length > 0) {
       
       
       this.observe(null, "social:providers-changed", null);
@@ -322,7 +322,10 @@ SocialUI = {
     let containerParent = container.parentNode;
     if (containerParent.classList.contains("social-panel") &&
         containerParent instanceof Ci.nsIDOMXULPopupElement) {
-      containerParent.hidePopup();
+      
+      setTimeout(() => {
+        containerParent.hidePopup();
+      }, 0);
     }
   },
 
@@ -693,7 +696,7 @@ SocialShare = {
 
   onHidden: function() {
     this.shareButton.removeAttribute("open");
-    this.iframe.setAttribute("src", "data:text/plain;charset=utf8,")
+    this.iframe.setAttribute("src", "data:text/plain;charset=utf8,");
     this.currentShare = null;
   },
 
