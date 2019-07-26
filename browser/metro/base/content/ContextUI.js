@@ -3,10 +3,6 @@
 
 
 
-const kContextUIShowEvent = "MozContextUIShow";
-
-const kContextUIDismissEvent = "MozContextUIDismiss";
-
 const kContextUITabsShowEvent = "MozContextUITabsShow";
 
 
@@ -113,7 +109,6 @@ var ContextUI = {
 
     if (shown) {
       ContentAreaObserver.update(window.innerWidth, window.innerHeight);
-      this._fire(kContextUIShowEvent);
     }
 
     return shown;
@@ -145,7 +140,6 @@ var ContextUI = {
 
     if (dismissed) {
       ContentAreaObserver.update(window.innerWidth, window.innerHeight);
-      this._fire(kContextUIDismissEvent);
     }
 
     return dismissed;
