@@ -2372,12 +2372,21 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     if (usingDisplayport) {
       DisplayListClipState::AutoSaveRestore clipState(aBuilder);
-      nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-      if (mClipAllDescendants) {
-        clipState.ClipContentDescendants(clip);
-      } else {
-        clipState.ClipContainingBlockDescendants(clip);
+
+      
+      
+      
+      
+      
+      if (!(mIsRoot && mOuter->PresContext()->PresShell()->GetIsViewportOverridden())) {
+        nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+        if (mClipAllDescendants) {
+          clipState.ClipContentDescendants(clip);
+        } else {
+          clipState.ClipContainingBlockDescendants(clip);
+        }
       }
+
       
       
       
