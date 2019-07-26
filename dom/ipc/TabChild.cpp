@@ -590,7 +590,6 @@ TabChild::HandlePossibleViewportChange()
   
   bool isFirstPaint;
   nsresult rv = utils->GetIsFirstPaint(&isFirstPaint);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (NS_FAILED(rv) || isFirstPaint) {
     
     
