@@ -822,7 +822,7 @@ nsresult MediaPipelineReceiveAudio::Init() {
 }
 
 void MediaPipelineReceiveAudio::PipelineListener::
-NotifyPull(MediaStreamGraph* graph, StreamTime total) {
+NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
   MOZ_ASSERT(source_);
   if (!source_) {
     MOZ_MTLOG(PR_LOG_ERROR, "NotifyPull() called from a non-SourceMediaStream");
@@ -830,23 +830,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime total) {
   }
 
   
-  
-  played_ = total;
-  
-
-  
-  
-
-  
-  int num_samples = 1;
-
-  MOZ_MTLOG(PR_LOG_DEBUG, "Asking for " << num_samples << "sample from Audio Conduit");
-
-  if (num_samples <= 0) {
-    return;
-  }
-
-  while (num_samples--) {
+  while (MillisecondsToMediaTime(played_) < desired_time) {
     
     nsRefPtr<SharedBuffer> samples = SharedBuffer::Create(1000);
     int samples_length;
@@ -870,6 +854,8 @@ NotifyPull(MediaStreamGraph* graph, StreamTime total) {
 
     source_->AppendToTrack(1,  
                            &segment);
+
+    played_ += 10;
   }
 }
 

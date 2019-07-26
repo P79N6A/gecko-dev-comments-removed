@@ -371,7 +371,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
    private:
     SourceMediaStream *source_;
     RefPtr<MediaSessionConduit> conduit_;
-    StreamTime played_;
+    uint64_t played_;  
   };
 
   RefPtr<PipelineListener> listener_;
