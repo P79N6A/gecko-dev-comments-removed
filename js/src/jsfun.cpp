@@ -545,11 +545,6 @@ fun_trace(JSTracer *trc, RawObject obj)
     obj->toFunction()->trace(trc);
 }
 
-
-
-
-
-
 JS_FRIEND_DATA(Class) js::FunctionClass = {
     js_Function_str,
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
