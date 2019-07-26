@@ -835,7 +835,7 @@ StackFrames.prototype = {
       
       
       
-      if (innermost) {
+      if (innermost || DebuggerView.Variables.wasExpanded(scope)) {
         scope.expand();
       }
     } while ((environment = environment.parent));
