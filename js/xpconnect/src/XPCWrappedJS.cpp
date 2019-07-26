@@ -610,7 +610,11 @@ nsXPCWrappedJS::SystemIsBeingShutDown()
 
     
     
-    mJSObj = nullptr;
+
+    
+    
+    
+    *mJSObj.unsafeGet() = nullptr;
 
     
     if (mNext)
