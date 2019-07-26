@@ -1774,7 +1774,9 @@ MacroAssemblerMIPSCompat::movePtr(ImmPtr imm, Register dest)
 void
 MacroAssemblerMIPSCompat::movePtr(AsmJSImmPtr imm, Register dest)
 {
-    MOZ_ASSUME_UNREACHABLE("NYI");
+    enoughMemory_ &= append(AsmJSAbsoluteLink(CodeOffsetLabel(nextOffset().getOffset()),
+                                              imm.kind()));
+    ma_liPatchable(dest, Imm32(-1));
 }
 
 void
@@ -2907,6 +2909,14 @@ MacroAssemblerMIPSCompat::storeTypeTag(ImmTag tag, Register base, Register index
     as_sw(ScratchRegister, SecondScratchReg, TAG_OFFSET);
 }
 
+void
+MacroAssemblerMIPS::ma_callIonNoPush(const Register r)
+{
+    
+    as_jalr(r);
+    as_sw(ra, StackPointer, 0);
+}
+
 
 
 void
@@ -2927,6 +2937,21 @@ MacroAssemblerMIPS::ma_callIonHalfPush(const Register r)
     as_addiu(StackPointer, StackPointer, -sizeof(intptr_t));
     as_jalr(r);
     as_sw(ra, StackPointer, 0);
+}
+
+void
+MacroAssemblerMIPS::ma_callAndStoreRet(const Register r, uint32_t stackArgBytes)
+{
+    
+    
+    
+    
+    
+    JS_ASSERT(stackArgBytes == 4 * sizeof(uintptr_t));
+
+    
+    as_jalr(r);
+    as_sw(ra, StackPointer, 4 * sizeof(uintptr_t));
 }
 
 void

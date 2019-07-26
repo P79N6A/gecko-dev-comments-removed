@@ -30,8 +30,39 @@ ABIArgGenerator::ABIArgGenerator()
 ABIArg
 ABIArgGenerator::next(MIRType type)
 {
-    MOZ_ASSUME_UNREACHABLE("NYI");
-    return ABIArg();
+    switch (type) {
+      case MIRType_Int32:
+      case MIRType_Pointer:
+        Register destReg;
+        if (GetIntArgReg(usedArgSlots_, &destReg))
+            current_ = ABIArg(destReg);
+        else
+            current_ = ABIArg(usedArgSlots_ * sizeof(intptr_t));
+        usedArgSlots_++;
+        break;
+      case MIRType_Float32:
+      case MIRType_Double:
+        if (!usedArgSlots_) {
+            current_ = ABIArg(f12);
+            usedArgSlots_ += 2;
+            firstArgFloat = true;
+        } else if (usedArgSlots_ <= 2) {
+            
+            
+            
+            current_ = ABIArg(f14);
+            usedArgSlots_ = 4;
+        } else {
+            usedArgSlots_ += usedArgSlots_ % 2;
+            current_ = ABIArg(usedArgSlots_ * sizeof(intptr_t));
+            usedArgSlots_ += 2;
+        }
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected argument type");
+    }
+    return current_;
+
 }
 const Register ABIArgGenerator::NonArgReturnVolatileReg0 = t0;
 const Register ABIArgGenerator::NonArgReturnVolatileReg1 = t1;
@@ -1078,6 +1109,12 @@ Assembler::as_absd(FloatRegister fd, FloatRegister fs)
 }
 
 BufferOffset
+Assembler::as_negs(FloatRegister fd, FloatRegister fs)
+{
+    return writeInst(InstReg(op_cop1, rs_s, zero, fs, fd, ff_neg_fmt).encode());
+}
+
+BufferOffset
 Assembler::as_negd(FloatRegister fd, FloatRegister fs)
 {
     return writeInst(InstReg(op_cop1, rs_d, zero, fs, fd, ff_neg_fmt).encode());
@@ -1215,6 +1252,17 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
         inst[1].makeNop();
         return;
     }
+
+    
+    
+    if (inst[0].encode() == inst_bgezal.encode()) {
+        addLongJump(BufferOffset(branch));
+        writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
+        inst[2] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr).encode();
+        
+        return;
+    }
+
     if (BOffImm16::isInRange(offset)) {
         bool conditional = (inst[0].encode() != inst_bgezal.encode() &&
                             inst[0].encode() != inst_beq.encode());
@@ -1230,13 +1278,7 @@ Assembler::bind(InstImm *inst, uint32_t branch, uint32_t target)
         return;
     }
 
-    if (inst[0].encode() == inst_bgezal.encode()) {
-        
-        addLongJump(BufferOffset(branch));
-        writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
-        inst[2] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr).encode();
-        
-    } else if (inst[0].encode() == inst_beq.encode()) {
+    if (inst[0].encode() == inst_beq.encode()) {
         
         addLongJump(BufferOffset(branch));
         writeLuiOriInstructions(inst, &inst[1], ScratchRegister, target);
@@ -1525,5 +1567,9 @@ Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
 
 void Assembler::updateBoundsCheck(uint32_t heapSize, Instruction *inst)
 {
-    MOZ_ASSUME_UNREACHABLE("NYI");
+    InstImm *i0 = (InstImm *) inst;
+    InstImm *i1 = (InstImm *) i0->next();
+
+    
+    Assembler::updateLuiOriValue(i0, i1, heapSize);
 }

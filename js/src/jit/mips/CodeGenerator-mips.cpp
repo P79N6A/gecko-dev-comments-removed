@@ -40,16 +40,33 @@ CodeGeneratorMIPS::CodeGeneratorMIPS(MIRGenerator *gen, LIRGraph *graph, MacroAs
 bool
 CodeGeneratorMIPS::generatePrologue()
 {
-    if (gen->compilingAsmJS()) {
-        masm.Push(ra);
-        
-        masm.reserveStack(frameDepth_);
-    } else {
-        
-        masm.reserveStack(frameSize());
-        masm.checkStackAlignment();
+    MOZ_ASSERT(!gen->compilingAsmJS());
+    
+    masm.reserveStack(frameSize());
+    masm.checkStackAlignment();
+    return true;
+}
+
+bool
+CodeGeneratorMIPS::generateAsmJSPrologue(Label *stackOverflowLabel)
+{
+    JS_ASSERT(gen->compilingAsmJS());
+
+    masm.Push(ra);
+
+    
+    
+    
+    if (!omitOverRecursedCheck()) {
+        masm.branchPtr(Assembler::AboveOrEqual,
+                       AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
+                       StackPointer,
+                       stackOverflowLabel);
     }
 
+    
+    masm.reserveStack(frameDepth_);
+    masm.checkStackAlignment();
     return true;
 }
 
@@ -1994,7 +2011,7 @@ CodeGeneratorMIPS::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
     }
     masm.bind(&done);
 
-    return gen->noteHeapAccess(AsmJSHeapAccess(bo.getOffset()));
+    return masm.append(AsmJSHeapAccess(bo.getOffset()));
 }
 
 bool
@@ -2070,7 +2087,7 @@ CodeGeneratorMIPS::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
     }
     masm.bind(&rejoin);
 
-    return gen->noteHeapAccess(AsmJSHeapAccess(bo.getOffset()));
+    return masm.append(AsmJSHeapAccess(bo.getOffset()));
 }
 
 bool
