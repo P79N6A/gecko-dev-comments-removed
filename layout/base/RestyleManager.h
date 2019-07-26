@@ -273,6 +273,7 @@ public:
   
   ElementRestyler(nsPresContext* aPresContext,
                   nsIFrame* aFrame,
+                  nsStyleChangeList* aChangeList,
                   nsChangeHint aHintsHandledByAncestors);
 
   
@@ -313,8 +314,7 @@ public:
 
 
 
-  void Restyle(nsStyleChangeList *aChangeList,
-               nsChangeHint       aParentFrameHintsNotHandledForDescendants,
+  void Restyle(nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                nsRestyleHint      aRestyleHint,
                RestyleTracker&    aRestyleTracker,
                DesiredA11yNotifications aDesiredA11yNotifications,
@@ -333,7 +333,6 @@ public:
 private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
-                     nsStyleChangeList* aChangeList,
                      nsChangeHint aParentHintsNotHandledForDescendants,
                      nsChangeHint &aHintsNotHandledForDescendants,
                      nsChangeHint aChangeToAssume);
@@ -346,6 +345,7 @@ private:
   
   
   nsIContent* const mContent;
+  nsStyleChangeList* const mChangeList;
   
   
   
