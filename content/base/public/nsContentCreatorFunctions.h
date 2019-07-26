@@ -34,12 +34,6 @@ NS_NewXMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo);
 
 
 nsresult
-NS_NewTextNode(nsIContent **aResult, nsNodeInfoManager *aNodeInfoManager);
-
-
-
-
-nsresult
 NS_NewCommentNode(nsIContent **aResult, nsNodeInfoManager *aNodeInfoManager);
 
 

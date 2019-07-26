@@ -27,6 +27,7 @@
 #include "nsEventStates.h"
 #include "nsContentCreatorFunctions.h"
 #include "mozAutoDocUpdate.h"
+#include "nsTextNode.h"
 
 
 
@@ -384,12 +385,8 @@ HTMLOptionElement::Option(const GlobalObject& aGlobal,
 
   if (aText.WasPassed()) {
     
-    nsCOMPtr<nsIContent> textContent;
-    aError = NS_NewTextNode(getter_AddRefs(textContent),
-                            option->NodeInfo()->NodeInfoManager());
-    if (aError.Failed()) {
-      return nullptr;
-    }
+    nsRefPtr<nsTextNode> textContent =
+      new nsTextNode(option->NodeInfo()->NodeInfoManager());
 
     textContent->SetText(aText.Value(), false);
 
