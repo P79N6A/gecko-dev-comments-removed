@@ -1104,12 +1104,6 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
 
 function Focus()
 {
-    
-    
-    if (gBrowserIsRemote) {
-        return false;
-    }
-
     var fm = CC["@mozilla.org/focus-manager;1"].getService(CI.nsIFocusManager);
     fm.focusedWindow = gContainingWindow;
 #ifdef XP_MACOSX
