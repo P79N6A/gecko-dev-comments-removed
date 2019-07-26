@@ -24,6 +24,7 @@
 #endif
 
 #include "khrplatform.h"
+#include <stddef.h>
 
 
 
@@ -36,7 +37,7 @@ extern "C" {
 
 
 
-#define SH_VERSION 107
+#define ANGLE_SH_VERSION 110
 
 
 
@@ -156,8 +157,19 @@ typedef enum {
   
   
   
+  
+  
   SH_CLAMP_INDIRECT_ARRAY_BOUNDS = 0x1000
 } ShCompileOptions;
+
+
+typedef enum {
+  
+  SH_CLAMP_WITH_CLAMP_INTRINSIC = 1,
+
+  
+  SH_CLAMP_WITH_USER_DEFINED_INT_CLAMP_FUNCTION
+} ShArrayIndexClampingStrategy;
 
 
 
@@ -173,7 +185,7 @@ COMPILER_EXPORT int ShFinalize();
 
 
 
-typedef khronos_uint64_t (*ShHashFunction64)(const char*, unsigned int);
+typedef khronos_uint64_t (*ShHashFunction64)(const char*, size_t);
 
 
 
@@ -196,11 +208,20 @@ typedef struct
     int OES_standard_derivatives;
     int OES_EGL_image_external;
     int ARB_texture_rectangle;
+    int EXT_draw_buffers;
+
+    
+    
+    int FragmentPrecisionHigh;
 
     
     
     
     ShHashFunction64 HashFunction;
+
+    
+    
+    ShArrayIndexClampingStrategy ArrayIndexClampingStrategy;
 } ShBuiltInResources;
 
 
@@ -264,7 +285,7 @@ COMPILER_EXPORT void ShDestruct(ShHandle handle);
 COMPILER_EXPORT int ShCompile(
     const ShHandle handle,
     const char* const shaderStrings[],
-    const int numStrings,
+    size_t numStrings,
     int compileOptions
     );
 
@@ -296,7 +317,7 @@ COMPILER_EXPORT int ShCompile(
 
 COMPILER_EXPORT void ShGetInfo(const ShHandle handle,
                                ShShaderInfo pname,
-                               int* params);
+                               size_t* params);
 
 
 
@@ -339,7 +360,7 @@ COMPILER_EXPORT void ShGetObjectCode(const ShHandle handle, char* objCode);
 
 COMPILER_EXPORT void ShGetActiveAttrib(const ShHandle handle,
                                        int index,
-                                       int* length,
+                                       size_t* length,
                                        int* size,
                                        ShDataType* type,
                                        char* name,
@@ -366,7 +387,7 @@ COMPILER_EXPORT void ShGetActiveAttrib(const ShHandle handle,
 
 COMPILER_EXPORT void ShGetActiveUniform(const ShHandle handle,
                                         int index,
-                                        int* length,
+                                        size_t* length,
                                         int* size,
                                         ShDataType* type,
                                         char* name,

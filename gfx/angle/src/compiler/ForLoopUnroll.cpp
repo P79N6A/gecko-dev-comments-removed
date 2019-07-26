@@ -210,6 +210,6 @@ int ForLoopUnroll::getLoopIncrement(TIntermLoop* node)
 int ForLoopUnroll::evaluateIntConstant(TIntermConstantUnion* node)
 {
     ASSERT((node != NULL) && (node->getUnionArrayPointer() != NULL));
-    return node->getUnionArrayPointer()->getIConst();
+    return node->getIConst(0);
 }
 
