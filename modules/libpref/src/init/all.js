@@ -4092,6 +4092,10 @@ pref("layers.offmainthreadcomposition.enabled", false);
 
 pref("layers.offmainthreadcomposition.testing.enabled", false);
 
+
+pref("layers.offmainthreadcomposition.force-basic", false);
+
+
 pref("layers.offmainthreadcomposition.async-animations", false);
 
 pref("layers.prefer-memory-over-shmem", true);
