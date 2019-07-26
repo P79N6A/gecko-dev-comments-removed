@@ -209,7 +209,7 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
     --i;
 
     
-    if (!listeners[i]->IsCurrentInnerWindow() ||
+    if (!listeners[i]->GetOuterWindow() ||
         listeners[i]->GetOuterWindow()->IsBackground()) {
       continue;
     }
@@ -274,7 +274,7 @@ GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
     --i;
 
     
-    if (!listeners[i]->IsCurrentInnerWindow() ||
+    if (!listeners[i]->GetOuterWindow() ||
         listeners[i]->GetOuterWindow()->IsBackground()) {
       continue;
     }
@@ -340,7 +340,7 @@ GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
       --i;
 
       
-      if (!listeners[i]->IsCurrentInnerWindow() ||
+      if (!listeners[i]->GetOuterWindow() ||
           listeners[i]->GetOuterWindow()->IsBackground()) {
         continue;
       }
@@ -525,7 +525,6 @@ GamepadServiceTest::CreateService()
 GamepadServiceTest::GamepadServiceTest()
 {
   
-  nsRefPtr<GamepadService> service = GamepadService::GetService();
 }
 
 

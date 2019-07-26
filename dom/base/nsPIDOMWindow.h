@@ -327,15 +327,6 @@ public:
     return mIsInnerWindow;
   }
 
-  
-  
-  bool IsCurrentInnerWindow() const
-  {
-    MOZ_ASSERT(IsInnerWindow(),
-               "It doesn't make sense to call this on outer windows.");
-    return mOuterWindow && mOuterWindow->GetCurrentInnerWindow() == this;
-  }
-
   bool IsOuterWindow() const
   {
     return !IsInnerWindow();
