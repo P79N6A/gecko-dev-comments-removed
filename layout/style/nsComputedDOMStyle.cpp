@@ -356,7 +356,7 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   if (aStyleType == eDefaultOnly) {
     
     nsTArray< nsCOMPtr<nsIStyleRule> > rules;
-    for (nsRuleNode* ruleNode = sc->GetRuleNode();
+    for (nsRuleNode* ruleNode = sc->RuleNode();
          !ruleNode->IsRoot();
          ruleNode = ruleNode->GetParent()) {
       if (ruleNode->GetLevel() == nsStyleSet::eAgentSheet ||

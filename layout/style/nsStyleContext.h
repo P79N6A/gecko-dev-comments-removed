@@ -205,7 +205,7 @@ public:
   #undef STYLE_STRUCT_RESET
   #undef STYLE_STRUCT_INHERITED
 
-  nsRuleNode* GetRuleNode() { return mRuleNode; }
+  nsRuleNode* RuleNode() { return mRuleNode; }
   void AddStyleBit(const uint32_t& aBit) { mBits |= aBit; }
 
   

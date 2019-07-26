@@ -66,7 +66,7 @@ nsFirstLetterFrame::Init(nsIContent*      aContent,
     
     nsStyleContext* parentStyleContext = mStyleContext->GetParent();
     if (parentStyleContext) {
-      newSC = mStyleContext->GetRuleNode()->GetPresContext()->StyleSet()->
+      newSC = mStyleContext->RuleNode()->GetPresContext()->StyleSet()->
         ResolveStyleForNonElement(parentStyleContext);
       if (newSC)
         SetStyleContextWithoutNotification(newSC);

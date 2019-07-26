@@ -2329,7 +2329,7 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
     
     
     *aIsContextSensitive =
-      !tmpStyleContext->GetRuleNode()->NodeHasCachedData(sid);
+      !tmpStyleContext->RuleNode()->NodeHasCachedData(sid);
   }
 
   

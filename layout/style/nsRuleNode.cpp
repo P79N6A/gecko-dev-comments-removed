@@ -3427,7 +3427,7 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     
     
     
-    for (nsRuleNode* ruleNode = context->GetRuleNode(); ruleNode;
+    for (nsRuleNode* ruleNode = context->RuleNode(); ruleNode;
          ruleNode = ruleNode->GetParent()) {
       if (ruleNode->mNoneBits & fontBit)
         
@@ -7942,7 +7942,7 @@ nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
   bool haveExplicitUAInherit;
   do {
     haveExplicitUAInherit = false;
-    for (nsRuleNode* ruleNode = styleContext->GetRuleNode(); ruleNode;
+    for (nsRuleNode* ruleNode = styleContext->RuleNode(); ruleNode;
          ruleNode = ruleNode->GetParent()) {
       nsIStyleRule *rule = ruleNode->GetRule();
       if (rule) {

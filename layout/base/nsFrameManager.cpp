@@ -619,7 +619,7 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
   
   
   if (childStyleIfVisited &&
-      !((childStyleIfVisited->GetRuleNode() != aContext->GetRuleNode() &&
+      !((childStyleIfVisited->RuleNode() != aContext->RuleNode() &&
          childStyleIfVisited->GetParent() == aContext->GetParent()) ||
         childStyleIfVisited->GetParent() ==
           aContext->GetParent()->GetStyleIfVisited())) {
@@ -1278,7 +1278,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     NS_ASSERTION(newContext, "failed to get new style context");
     if (newContext) {
       if (!parentContext) {
-        if (oldContext->GetRuleNode() == newContext->GetRuleNode() &&
+        if (oldContext->RuleNode() == newContext->RuleNode() &&
             oldContext->IsLinkContext() == newContext->IsLinkContext() &&
             oldContext->RelevantLinkVisited() ==
               newContext->RelevantLinkVisited()) {

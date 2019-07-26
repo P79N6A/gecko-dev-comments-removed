@@ -39,7 +39,7 @@ nsNativeTheme::GetPresShell(nsIFrame* aFrame)
 
   
   
-  nsPresContext *context = aFrame->StyleContext()->GetRuleNode()->GetPresContext();
+  nsPresContext *context = aFrame->StyleContext()->RuleNode()->GetPresContext();
   return context ? context->GetPresShell() : nullptr;
 }
 
