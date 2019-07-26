@@ -56,7 +56,6 @@ public:
   bool             mHasBeenPrinted;
   bool             mDontPrint;
   bool             mPrintAsIs;
-  bool             mSharedPresShell;
   bool             mInvisible;        
   bool             mPrintPreview;
   bool             mDidCreateDocShell;
