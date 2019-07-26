@@ -234,11 +234,6 @@ WebGLProgram::GetUniformInfoForMappedIdentifier(const nsACString& name) {
     mUniformInfoMap->Get(mutableName, &info);
     
 
-    
-    if (hadBracketPart && !bracketPart.EqualsLiteral("[0]")) {
-        info.isArray = false;
-        info.arraySize = 1;
-    }
     return info;
 }
 
