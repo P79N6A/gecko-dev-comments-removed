@@ -1333,10 +1333,15 @@ struct nsStyleText {
   }
 
   
-  inline bool HasTextShadow(const nsIFrame* aFrame) const;
-  inline nsCSSShadowArray* GetTextShadow(const nsIFrame* aFrame) const;
-  inline bool WhiteSpaceCanWrap(const nsIFrame* aFrame) const;
-  inline bool WordCanWrap(const nsIFrame* aFrame) const;
+
+  
+  
+  
+  
+  inline bool HasTextShadow(const nsIFrame* aContextFrame) const;
+  inline nsCSSShadowArray* GetTextShadow(const nsIFrame* aContextFrame) const;
+  inline bool WhiteSpaceCanWrap(const nsIFrame* aContextFrame) const;
+  inline bool WordCanWrap(const nsIFrame* aContextFrame) const;
 };
 
 struct nsStyleVisibility {
@@ -1686,18 +1691,24 @@ struct nsStyleDisplay {
   }
 
   
-  inline bool IsBlockInside(const nsIFrame* aFrame) const;
-  inline bool IsBlockOutside(const nsIFrame* aFrame) const;
-  inline bool IsInlineOutside(const nsIFrame* aFrame) const;
-  inline bool IsOriginalDisplayInlineOutside(const nsIFrame* aFrame) const;
-  inline uint8_t GetDisplay(const nsIFrame* aFrame) const;
-  inline bool IsFloating(const nsIFrame* aFrame) const;
-  inline bool IsPositioned(const nsIFrame* aFrame) const;
-  inline bool IsRelativelyPositioned(const nsIFrame* aFrame) const;
-  inline bool IsAbsolutelyPositioned(const nsIFrame* aFrame) const;
+
+  
+  
+  
+  
+  inline bool IsBlockInside(const nsIFrame* aContextFrame) const;
+  inline bool IsBlockOutside(const nsIFrame* aContextFrame) const;
+  inline bool IsInlineOutside(const nsIFrame* aContextFrame) const;
+  inline bool IsOriginalDisplayInlineOutside(const nsIFrame* aContextFrame) const;
+  inline uint8_t GetDisplay(const nsIFrame* aContextFrame) const;
+  inline bool IsFloating(const nsIFrame* aContextFrame) const;
+  inline bool IsPositioned(const nsIFrame* aContextFrame) const;
+  inline bool IsRelativelyPositioned(const nsIFrame* aContextFrame) const;
+  inline bool IsAbsolutelyPositioned(const nsIFrame* aContextFrame) const;
+
   
 
-  inline bool HasTransform(const nsIFrame* aFrame) const;
+  inline bool HasTransform(const nsIFrame* aContextFrame) const;
 };
 
 struct nsStyleTable {
