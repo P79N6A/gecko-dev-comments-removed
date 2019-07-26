@@ -4201,6 +4201,14 @@ GetPropertyHelperInline(JSContext *cx,
                 return true;
 
             
+
+
+
+
+            if (script->selfHosted())
+                return true;
+
+            
             if (JSID_IS_ATOM(id, cx->names().iteratorIntrinsic))
                 return true;
 
