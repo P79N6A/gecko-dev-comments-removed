@@ -46,7 +46,6 @@
 #include "nsRect.h"
 #include "mozFlushType.h"
 #include "prclist.h"
-#include "nsIDOMStorageObsolete.h"
 #include "nsIDOMStorageEvent.h"
 #include "nsIDOMStorageIndexedDB.h"
 #include "nsIDOMOfflineResourceList.h"
@@ -1021,6 +1020,8 @@ protected:
                                   const nsAString& aPseudoElt,
                                   bool aDefaultStylesOnly,
                                   nsIDOMCSSStyleDeclaration** aReturn);
+
+  void PreloadLocalStorage();
 
   
   
