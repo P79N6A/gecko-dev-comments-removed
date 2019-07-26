@@ -51,27 +51,21 @@ class BufferOffset
 };
 
 template<int SliceSize>
-struct BufferSlice {
+struct BufferSlice : public InlineForwardListNode<BufferSlice<SliceSize> > {
   protected:
-    BufferSlice<SliceSize> *prev;
-    BufferSlice<SliceSize> *next;
     
     uint32_t nodeSize;
   public:
-    BufferSlice *getNext() { return this->next; }
-    BufferSlice *getPrev() { return this->prev; }
+    BufferSlice *getNext() { return static_cast<BufferSlice *>(this->next); }
     void setNext(BufferSlice<SliceSize> *next_) {
         JS_ASSERT(this->next == NULL);
-        JS_ASSERT(next_->prev == NULL);
         this->next = next_;
-        next_->prev = this;
     }
-
     uint8_t instructions [SliceSize];
     unsigned int size() {
         return nodeSize;
     }
-    BufferSlice() : next(NULL), prev(NULL), nodeSize(0) {}
+    BufferSlice() : InlineForwardListNode<BufferSlice<SliceSize> >(NULL), nodeSize(0) {}
     void putBlob(uint32_t instSize, uint8_t* inst) {
         if (inst != NULL)
             memcpy(&instructions[size()], inst, instSize);
@@ -120,11 +114,8 @@ struct AssemblerBuffer
             tail->setNext(tmp);
         }
         tail = tmp;
-        if (head == NULL) {
-            finger = tmp;
-            finger_offset = 0;
+        if (head == NULL)
             head = tmp;
-        }
         return true;
     }
 
@@ -169,63 +160,19 @@ struct AssemblerBuffer
     void fail_bail() {
         m_bail = true;
     }
-    
-    Slice *finger;
-    unsigned int finger_offset;
     Inst *getInst(BufferOffset off) {
-        int local_off = off.getOffset();
-        
-        
+        unsigned int local_off = off.getOffset();
         Slice *cur = NULL;
-        int cur_off;
-        
-        int end_off = bufferSize - local_off;
-        
-        
-        if (end_off <= 0) {
-            return (Inst*)&tail->instructions[-end_off];
-        }
-        bool used_finger = false;
-        int finger_off = abs(local_off - finger_offset);
-        if (finger_off < Min(local_off, end_off)) {
-            
-            cur = finger;
-            cur_off = finger_offset;
-            used_finger = true;
-        } else if (local_off < end_off) {
-            
-            cur = head;
-            cur_off = 0;
-        } else {
-            
+        if (local_off > bufferSize) {
+            local_off -= bufferSize;
             cur = tail;
-            cur_off = bufferSize;
-        }
-        int count = 0;
-        char sigil;
-        if (local_off < cur_off) {
-            for (; cur != NULL; cur = cur->getPrev(), cur_off -= cur->size()) {
-                if (local_off >= cur_off) {
-                    local_off -= cur_off;
-                    break;
-                }
-                count++;
-            }
-            JS_ASSERT(cur != NULL);
         } else {
-            for (; cur != NULL; cur = cur->getNext()) {
-                if (local_off < cur_off + cur->size()) {
-                    local_off -= cur_off;
+            for (cur = head; cur != NULL; cur = cur->getNext()) {
+                if (local_off < cur->size())
                     break;
-                }
-                cur_off += cur->size();
-                count++;
+                local_off -= cur->size();
             }
             JS_ASSERT(cur != NULL);
-        }
-        if (count > 2 || used_finger) {
-            finger = cur;
-            finger_offset = cur_off;
         }
         
         JS_ASSERT(local_off < cur->size());
