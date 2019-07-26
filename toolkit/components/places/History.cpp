@@ -316,13 +316,13 @@ GetJSValueAsString(JSContext* aCtx,
                    const JS::Value& aValue,
                    nsString& _string) {
   if (JSVAL_IS_VOID(aValue) ||
-      !(JSVAL_IS_NULL(aValue) || JSVAL_IS_STRING(aValue))) {
+      !(aValue.isNull() || JSVAL_IS_STRING(aValue))) {
     _string.SetIsVoid(true);
     return;
   }
 
   
-  if (JSVAL_IS_NULL(aValue)) {
+  if (aValue.isNull()) {
     _string.Truncate();
     return;
   }

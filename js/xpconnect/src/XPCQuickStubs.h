@@ -237,7 +237,7 @@ protected:
             s = JSVAL_TO_STRING(v);
         } else {
             StringificationBehavior behavior = eStringify;
-            if (JSVAL_IS_NULL(v)) {
+            if (v.isNull()) {
                 behavior = nullBehavior;
             } else if (JSVAL_IS_VOID(v)) {
                 behavior = undefinedBehavior;

@@ -141,7 +141,7 @@ JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
             
             return NS_ERROR_ILLEGAL_VALUE;
         }
-    } else if (!(JSVAL_IS_VOID(patternArray) || JSVAL_IS_NULL(patternArray))) {
+    } else if (!(JSVAL_IS_VOID(patternArray) || patternArray.isNull())) {
         
         
         return NS_ERROR_INVALID_ARG;
