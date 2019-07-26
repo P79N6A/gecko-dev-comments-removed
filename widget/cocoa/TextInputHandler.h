@@ -855,7 +855,10 @@ public:
 
 
 
-  NSAttributedString* GetAttributedSubstringFromRange(NSRange& aRange);
+
+  NSAttributedString* GetAttributedSubstringFromRange(
+                        NSRange& aRange,
+                        NSRange* aActualRange = nullptr);
 
   
 
