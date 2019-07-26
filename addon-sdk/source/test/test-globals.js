@@ -7,17 +7,24 @@ Object.defineProperty(this, 'global', { value: this });
 
 exports.testGlobals = function(assert) {
   
-  assert.equal(typeof module, 'object', 'have "module" global');
-  assert.equal(typeof exports, 'object', 'have "exports" global');
-  assert.equal(typeof require, 'function', 'have "require" global');
-  assert.equal(typeof dump, 'function', 'have "dump" global');
-  assert.equal(typeof console, 'object', 'have "console" global');
+  
+  assert.equal(typeof module, 'object', 'have "module", good');
+  assert.equal(typeof exports, 'object', 'have "exports", good');
+  assert.equal(typeof require, 'function', 'have "require", good');
+  assert.equal(typeof dump, 'function', 'have "dump", good');
+  assert.equal(typeof console, 'object', 'have "console", good');
 
   
-  assert.ok(!('packaging' in global), 'no "packaging" global was found');
-  assert.ok(!('memory' in global), 'no "memory" global was found');
-
-  assert.ok(/test-globals\.js$/.test(module.uri), 'should contain filename');
+  assert.ok(!('packaging' in global), "no 'packaging', good");
+  assert.ok(!('memory' in global), "no 'memory', good");
+  assert.ok(/test-globals\.js$/.test(module.uri),
+     'should contain filename');
 };
 
-require("test").run(exports);
+exports.testComponent = function (assert) {
+  assert.throws(() => {
+    Components;
+  }, /`Components` is not available/, 'using `Components` throws');
+};
+
+require('test').run(exports);

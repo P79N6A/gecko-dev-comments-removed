@@ -49,6 +49,20 @@ const create = Object.create;
 const keys = Object.keys;
 
 
+const COMPONENT_ERROR = '`Components` is not available in this context.\n' +
+  'Functionality provided by Components may be available in an SDK\n' +
+  'module: https://jetpack.mozillalabs.com/sdk/latest/docs/ \n\n' +
+  'However, if you still need to import Components, you may use the\n' +
+  '`chrome` module\'s properties for shortcuts to Component properties:\n\n' +
+  'Shortcuts: \n' +
+  '    Cc = Components' + '.classes \n' +
+  '    Ci = Components' + '.interfaces \n' +
+  '    Cu = Components' + '.utils \n' +
+  '    CC = Components' + '.Constructor \n' +
+  'Example: \n' +
+  '    let { Cc, Ci } = require(\'chrome\');\n';
+
+
 
 function freeze(object) {
   if (prototypeOf(object) === null) {
@@ -216,19 +230,26 @@ const load = iced(function load(loader, module) {
   let { sandboxes, globals } = loader;
   let require = Require(loader, module);
 
+  
+  
+  
+  let descriptors = descriptor({
+    require: require,
+    module: module,
+    exports: module.exports,
+    get Components() {
+      
+      
+      throw new ReferenceError(COMPONENT_ERROR);
+    }
+  });
+
   let sandbox = sandboxes[module.uri] = Sandbox({
     name: module.uri,
     
     
     sandbox: sandboxes[keys(sandboxes).shift()],
-    
-    
-    
-    prototype: create(globals, descriptor({
-      require: require,
-      module: module,
-      exports: module.exports
-    })),
+    prototype: create(globals, descriptors),
     wantXrays: false
   });
 
