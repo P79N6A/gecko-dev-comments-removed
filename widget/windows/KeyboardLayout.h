@@ -267,6 +267,7 @@ private:
 
   uint32_t mDOMKeyCode;
   KeyNameIndex mKeyNameIndex;
+  CodeNameIndex mCodeNameIndex;
 
   ModifierKeyState mModKeyState;
 
@@ -559,6 +560,18 @@ public:
 
 
   KeyNameIndex ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const;
+
+  
+
+
+
+
+
+
+
+
+  static CodeNameIndex ConvertScanCodeToCodeNameIndex(UINT aScanCode,
+                                                      UINT aVirtualKeyCode);
 
   HKL GetLayout() const
   {
