@@ -1,12 +1,11 @@
-/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
+
+
+
 
 package org.mozilla.gecko.updater;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.util.GeckoJarReader;
 
 import android.content.Context;
@@ -22,47 +21,55 @@ import android.util.Log;
 import java.net.URL;
 
 public class UpdateServiceHelper {
-    public static final String ACTION_REGISTER_FOR_UPDATES = "@ANDROID_PACKAGE_NAME@.REGISTER_FOR_UPDATES";
-    public static final String ACTION_UNREGISTER_FOR_UPDATES = "@ANDROID_PACKAGE_NAME@.UNREGISTER_FOR_UPDATES";
-    public static final String ACTION_CHECK_FOR_UPDATE = "@ANDROID_PACKAGE_NAME@.CHECK_FOR_UPDATE";
-    public static final String ACTION_CHECK_UPDATE_RESULT = "@ANDROID_PACKAGE_NAME@.CHECK_UPDATE_RESULT";
-    public static final String ACTION_DOWNLOAD_UPDATE = "@ANDROID_PACKAGE_NAME@.DOWNLOAD_UPDATE";
-    public static final String ACTION_APPLY_UPDATE = "@ANDROID_PACKAGE_NAME@.APPLY_UPDATE";
+    public static final String ACTION_REGISTER_FOR_UPDATES = AppConstants.ANDROID_PACKAGE_NAME + ".REGISTER_FOR_UPDATES";
+    public static final String ACTION_UNREGISTER_FOR_UPDATES = AppConstants.ANDROID_PACKAGE_NAME + ".UNREGISTER_FOR_UPDATES";
+    public static final String ACTION_CHECK_FOR_UPDATE = AppConstants.ANDROID_PACKAGE_NAME + ".CHECK_FOR_UPDATE";
+    public static final String ACTION_CHECK_UPDATE_RESULT = AppConstants.ANDROID_PACKAGE_NAME + ".CHECK_UPDATE_RESULT";
+    public static final String ACTION_DOWNLOAD_UPDATE = AppConstants.ANDROID_PACKAGE_NAME + ".DOWNLOAD_UPDATE";
+    public static final String ACTION_APPLY_UPDATE = AppConstants.ANDROID_PACKAGE_NAME + ".APPLY_UPDATE";
 
-    // Flags for ACTION_CHECK_FOR_UPDATE
+    
     public static final int FLAG_FORCE_DOWNLOAD = 1;
     public static final int FLAG_OVERWRITE_EXISTING = 1 << 1;
     public static final int FLAG_REINSTALL = 1 << 2;
     public static final int FLAG_RETRY = 1 << 3;
 
-    // Name of the Intent extra for the autodownload policy, used with ACTION_REGISTER_FOR_UPDATES
+    
     public static final String EXTRA_AUTODOWNLOAD_NAME = "autodownload";
 
-    // Values for EXTRA_AUTODOWNLOAD_NAME
+    
     public static final int AUTODOWNLOAD_WIFI = 0;
     public static final int AUTODOWNLOAD_DISABLED = 1;
     public static final int AUTODOWNLOAD_ENABLED = 2;
 
-    // Name of the Intent extra that holds the flags for ACTION_CHECK_FOR_UPDATE
+    
     public static final String EXTRA_UPDATE_FLAGS_NAME = "updateFlags";
 
-    // Name of the Intent extra that holds the APK path, used with ACTION_APPLY_UPDATE
+    
     public static final String EXTRA_PACKAGE_PATH_NAME = "packagePath";
 
-    public static final String UPDATE_CHANNEL = "@MOZ_UPDATE_CHANNEL@";
-
     private static final String LOGTAG = "UpdateServiceHelper";
-    private static final String BUILDID = "@MOZ_APP_BUILDID@";
     private static final String DEFAULT_UPDATE_LOCALE = "en-US";
 
-#ifdef MOZ_PKG_SPECIAL
-    private static final String UPDATE_URL = "https://aus2.mozilla.org/update/4/@MOZ_APP_BASENAME@/@MOZ_APP_VERSION@/%BUILDID%/Android_@MOZ_APP_ABI@-@MOZ_PKG_SPECIAL@/%LOCALE%/@MOZ_UPDATE_CHANNEL@/%OS_VERSION%/default/default/@MOZ_APP_VERSION@/update.xml";
-#else
-    private static final String UPDATE_URL = "https://aus2.mozilla.org/update/4/@MOZ_APP_BASENAME@/@MOZ_APP_VERSION@/%BUILDID%/Android_@MOZ_APP_ABI@/%LOCALE%/@MOZ_UPDATE_CHANNEL@/%OS_VERSION%/default/default/@MOZ_APP_VERSION@/update.xml";  
-#endif
-    
+    private static final String UPDATE_URL;
+
+    static {
+        final String pkgSpecial;
+        if (AppConstants.MOZ_PKG_SPECIAL != null) {
+            pkgSpecial = "-" + AppConstants.MOZ_PKG_SPECIAL;
+        } else {
+            pkgSpecial = "";
+        }
+        UPDATE_URL = "https://aus2.mozilla.org/update/4/" + AppConstants.MOZ_APP_BASENAME + "/" +
+                     AppConstants.MOZ_APP_VERSION         +
+                     "/%BUILDID%/Android_ "               + AppConstants.MOZ_APP_ABI + pkgSpecial +
+                     "/%LOCALE%/"                         + AppConstants.MOZ_UPDATE_CHANNEL +
+                     "/%OS_VERSION%/default/default/"     + AppConstants.MOZ_APP_VERSION +
+                     "/update.xml";
+    }
+
     public enum CheckUpdateResult {
-        // Keep these in sync with mobile/android/chrome/content/about.xhtml
+        
         NOT_AVAILABLE,
         AVAILABLE,
         DOWNLOADING,
@@ -74,7 +81,7 @@ public class UpdateServiceHelper {
 
         String locale = null;
         try {
-            ApplicationInfo info = pm.getApplicationInfo("@ANDROID_PACKAGE_NAME@", 0);
+            ApplicationInfo info = pm.getApplicationInfo(AppConstants.ANDROID_PACKAGE_NAME, 0);
             String updateLocaleUrl = "jar:jar:file://" + info.sourceDir + "!/omni.ja!/update.locale";
 
             locale = GeckoJarReader.getText(updateLocaleUrl);
@@ -84,14 +91,14 @@ public class UpdateServiceHelper {
             else
                 locale = DEFAULT_UPDATE_LOCALE;
         } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-            // Shouldn't really be possible, but fallback to default locale
+            
             Log.i(LOGTAG, "Failed to read update locale file, falling back to " + DEFAULT_UPDATE_LOCALE);
             locale = DEFAULT_UPDATE_LOCALE;
         }
 
         String url = UPDATE_URL.replace("%LOCALE%", locale).
             replace("%OS_VERSION%", Build.VERSION.RELEASE).
-            replace("%BUILDID%", force ? "0" : BUILDID);
+            replace("%BUILDID%", force ? "0" : AppConstants.MOZ_APP_BUILDID);
 
         try {
             return new URL(url);
@@ -102,11 +109,7 @@ public class UpdateServiceHelper {
     }
 
     public static boolean isUpdaterEnabled() {
-#ifdef MOZ_UPDATER
-        return true;
-#else
-        return false;
-#endif
+        return AppConstants.MOZ_UPDATER;
     }
 
     public static void registerForUpdates(Context context, String policy) {
@@ -128,7 +131,7 @@ public class UpdateServiceHelper {
         registerForUpdates(context, intPolicy);
     }
 
-    // 'policy' should one of AUTODOWNLOAD_WIFI, AUTODOWNLOAD_DISABLED, AUTODOWNLOAD_ENABLED
+    
     public static void registerForUpdates(Context context, int policy) {
         if (!isUpdaterEnabled())
             return;

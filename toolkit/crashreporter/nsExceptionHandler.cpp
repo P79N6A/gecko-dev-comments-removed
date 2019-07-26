@@ -837,7 +837,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 #else
     
     
-    nsCString package(ANDROID_PACKAGE_NAME "/.CrashReporter");
+    nsCString package(ANDROID_PACKAGE_NAME "/org.mozilla.gecko.CrashReporter");
     crashReporterPath = ToNewCString(package);
 #endif
   }

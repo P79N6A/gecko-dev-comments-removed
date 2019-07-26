@@ -1,10 +1,9 @@
-/* -*- Mode: Java; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@;
+
+
+
+
+package org.mozilla.gecko;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,10 +33,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.R;
-
-
 public class CrashReporter extends Activity
 {
     private static final String LOGTAG = "GeckoCrashReporter";
@@ -65,7 +60,7 @@ public class CrashReporter extends Activity
         try {
             outFile.createNewFile();
             Log.i(LOGTAG, "couldn't rename minidump file");
-            // so copy it instead
+            
             FileChannel inChannel = new FileInputStream(inFile).getChannel();
             FileChannel outChannel = new FileOutputStream(outFile).getChannel();
             long transferred = inChannel.transferTo(0, inChannel.size(), outChannel);
@@ -107,7 +102,7 @@ public class CrashReporter extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // mHandler is created here so runnables can be run on the main thread
+        
         mHandler = new Handler();
         setContentView(R.layout.crash_reporter);
         mProgressDialog = new ProgressDialog(this);
@@ -129,8 +124,8 @@ public class CrashReporter extends Activity
         mExtrasStringMap = new HashMap<String, String>();
         readStringsFromFile(mPendingExtrasFile.getPath(), mExtrasStringMap);
 
-        // Set the flag that indicates we were stopped as expected, as
-        // we will send a crash report, so it is not a silent OOM crash.
+        
+        
         SharedPreferences prefs =
             getSharedPreferences(GeckoApp.PREFS_NAME, 0);
         SharedPreferences.Editor editor = prefs.edit();
@@ -155,11 +150,11 @@ public class CrashReporter extends Activity
         }, "CrashReporter Thread").start();
     }
 
-    public void onCloseClick(View v) {  // bound via crash_reporter.xml
+    public void onCloseClick(View v) {  
         backgroundSendReport();
     }
 
-    public void onRestartClick(View v) {  // bound via crash_reporter.xml
+    public void onRestartClick(View v) {  
         doRestart();
         backgroundSendReport();
     }
@@ -189,7 +184,7 @@ public class CrashReporter extends Activity
     }
 
     private String generateBoundary() {
-        // Generate some random numbers to fill out the boundary
+        
         int r0 = (int)((double)Integer.MAX_VALUE * Math.random());
         int r1 = (int)((double)Integer.MAX_VALUE * Math.random());
         return String.format("---------------------------%08X%08X", r0, r1);
@@ -222,7 +217,7 @@ public class CrashReporter extends Activity
     private String readLogcat() {
         BufferedReader br = null;
         try {
-            // get the last 200 lines of logcat
+            
             Process proc = Runtime.getRuntime().exec(new String[] {
                 "logcat", "-v", "threadtime", "-t", "200", "-d", "*:D"
             });
@@ -239,7 +234,7 @@ public class CrashReporter extends Activity
                 try {
                     br.close();
                 } catch (Exception e) {
-                    // ignore
+                    
                 }
             }
         }
@@ -275,18 +270,19 @@ public class CrashReporter extends Activity
                 }
             }
 
-            // Add some extra information to notes so its displayed by
-            // crash-stats.mozilla.org. Remove this when bug 607942 is fixed.
+            
+            
             StringBuffer sb = new StringBuffer();
             sb.append(extras.containsKey(NOTES_KEY) ? extras.get(NOTES_KEY) + "\n" : "");
-            if (@MOZ_MIN_CPU_VERSION@ < 7)
+            if (AppConstants.MOZ_MIN_CPU_VERSION < 7) {
                 sb.append("nothumb Build\n");
+            }
             sb.append(Build.MANUFACTURER).append(' ')
               .append(Build.MODEL).append('\n')
               .append(Build.FINGERPRINT);
             sendPart(os, boundary, NOTES_KEY, sb.toString());
 
-            sendPart(os, boundary, "Min_ARM_Version", "@MOZ_MIN_CPU_VERSION@");
+            sendPart(os, boundary, "Min_ARM_Version", Integer.toString(AppConstants.MOZ_MIN_CPU_VERSION));
             sendPart(os, boundary, "Android_Manufacturer", Build.MANUFACTURER);
             sendPart(os, boundary, "Android_Model", Build.MODEL);
             sendPart(os, boundary, "Android_Board", Build.BOARD);
@@ -343,8 +339,8 @@ public class CrashReporter extends Activity
         try {
             String action = "android.intent.action.MAIN";
             Intent intent = new Intent(action);
-            intent.setClassName("@ANDROID_PACKAGE_NAME@",
-                                "@ANDROID_PACKAGE_NAME@.App");
+            intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
+                                AppConstants.BROWSER_INTENT_CLASS);
             Log.i(LOGTAG, intent.toString());
             startActivity(intent);
         } catch (Exception e) {
