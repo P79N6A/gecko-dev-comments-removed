@@ -37,6 +37,41 @@ add_task(function() {
 
 
 
+
+add_task(function() {
+  let contextMenu = document.getElementById("toolbar-context-menu");
+  let shownPromise = contextMenuShown(contextMenu);
+  let toolbar = createToolbarWithPlacements("880164_empty_toolbar", []);
+  toolbar.setAttribute("context", "toolbar-context-menu");
+  toolbar.setAttribute("toolbarname", "Fancy Toolbar for Context Menu");
+  EventUtils.synthesizeMouseAtCenter(toolbar, {type: "contextmenu", button: 2 });
+  yield shownPromise;
+
+  let expectedEntries = [
+    [".customize-context-moveToPanel", false],
+    [".customize-context-removeFromToolbar", false],
+    ["---"]
+  ];
+  if (!isOSX) {
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
+  }
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["#toggle_880164_empty_toolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
+  );
+  checkContextMenu(contextMenu, expectedEntries);
+
+  let hiddenPromise = contextMenuHidden(contextMenu);
+  contextMenu.hidePopup();
+  yield hiddenPromise;
+  removeCustomToolbars();
+});
+
+
+
+
 add_task(function() {
   let contextMenu = document.getElementById("toolbar-context-menu");
   let shownPromise = contextMenuShown(contextMenu);
