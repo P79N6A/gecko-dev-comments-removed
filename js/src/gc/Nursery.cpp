@@ -16,6 +16,9 @@
 
 #include "gc/GCInternals.h"
 #include "gc/Memory.h"
+#ifdef JS_ION
+#include "jit/IonFrames.h"
+#endif
 #include "vm/ArrayObject.h"
 #include "vm/Debugger.h"
 #if defined(DEBUG)
@@ -348,6 +351,15 @@ js::Nursery::setElementsForwardingPointer(ObjectElements *oldHeader, ObjectEleme
     *reinterpret_cast<HeapSlot **>(oldHeader->elements()) = newHeader->elements();
 }
 
+#ifdef DEBUG
+static bool IsWriteableAddress(void *ptr)
+{
+    volatile uint64_t *vPtr = reinterpret_cast<volatile uint64_t *>(ptr);
+    *vPtr = *vPtr;
+    return true;
+}
+#endif
+
 void
 js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
 {
@@ -366,6 +378,7 @@ js::Nursery::forwardBufferPointer(HeapSlot **pSlotsElems)
 
     *pSlotsElems = *reinterpret_cast<HeapSlot **>(old);
     JS_ASSERT(!isInside(*pSlotsElems));
+    JS_ASSERT(IsWriteableAddress(*pSlotsElems));
 }
 
 
@@ -645,6 +658,11 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
     TenureCountCache tenureCounts;
     collectToFixedPoint(&trc, tenureCounts);
+
+#ifdef JS_ION
+    
+    js::jit::UpdateJitActivationsForMinorGC(rt, &trc);
+#endif
 
     
     double promotionRate = trc.tenuredSize / double(allocationEnd() - start());

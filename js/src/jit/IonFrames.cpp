@@ -887,27 +887,54 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
         }
     }
 #endif
+}
 
 #ifdef JSGC_GENERATIONAL
-    if (trc->runtime->isHeapMinorCollecting()) {
+static void
+UpdateIonJSFrameForMinorGC(JSTracer *trc, const IonFrameIterator &frame)
+{
+    
+    
+
+    IonJSFrameLayout *layout = (IonJSFrameLayout *)frame.fp();
+
+    IonScript *ionScript = nullptr;
+    if (frame.checkInvalidation(&ionScript)) {
         
         
-
-        GeneralRegisterSet slotsRegs = safepoint.slotsOrElementsSpills();
-        spill = frame.spillBase();
-        for (GeneralRegisterBackwardIterator iter(safepoint.allGprSpills()); iter.more(); iter++) {
-            --spill;
-            if (slotsRegs.has(*iter))
-                trc->runtime->gcNursery.forwardBufferPointer(reinterpret_cast<HeapSlot **>(spill));
-        }
-
-        while (safepoint.getSlotsOrElementsSlot(&slot)) {
-            HeapSlot **slots = reinterpret_cast<HeapSlot **>(layout->slotRef(slot));
-            trc->runtime->gcNursery.forwardBufferPointer(slots);
-        }
+        
+    } else if (CalleeTokenIsFunction(layout->calleeToken())) {
+        ionScript = CalleeTokenToFunction(layout->calleeToken())->nonLazyScript()->ionScript();
+    } else {
+        ionScript = CalleeTokenToScript(layout->calleeToken())->ionScript();
     }
+
+    const SafepointIndex *si = ionScript->getSafepointIndex(frame.returnAddressToFp());
+    SafepointReader safepoint(ionScript, si);
+
+    GeneralRegisterSet slotsRegs = safepoint.slotsOrElementsSpills();
+    uintptr_t *spill = frame.spillBase();
+    for (GeneralRegisterBackwardIterator iter(safepoint.allGprSpills()); iter.more(); iter++) {
+        --spill;
+        if (slotsRegs.has(*iter))
+            trc->runtime->gcNursery.forwardBufferPointer(reinterpret_cast<HeapSlot **>(spill));
+    }
+
+    
+    uint32_t slot;
+    while (safepoint.getGcSlot(&slot));
+    while (safepoint.getValueSlot(&slot));
+#ifdef JS_NUNBOX32
+    LAllocation type, payload;
+    while (safepoint.getNunboxSlot(&type, &payload));
 #endif
+
+    while (safepoint.getSlotsOrElementsSlot(&slot)) {
+        HeapSlot **slots = reinterpret_cast<HeapSlot **>(layout->slotRef(slot));
+        trc->runtime->gcNursery.forwardBufferPointer(slots);
+    }
 }
+#endif
 
 static void
 MarkBaselineStubFrame(JSTracer *trc, const IonFrameIterator &frame)
@@ -1164,6 +1191,20 @@ MarkJitActivations(JSRuntime *rt, JSTracer *trc)
     for (JitActivationIterator activations(rt); !activations.done(); ++activations)
         MarkJitActivation(trc, activations);
 }
+
+#ifdef JSGC_GENERATIONAL
+void
+UpdateJitActivationsForMinorGC(JSRuntime *rt, JSTracer *trc)
+{
+    JS_ASSERT(trc->runtime->isHeapMinorCollecting());
+    for (JitActivationIterator activations(rt); !activations.done(); ++activations) {
+        for (IonFrameIterator frames(activations); !frames.done(); ++frames) {
+            if (frames.type() == IonFrame_OptimizedJS)
+                UpdateIonJSFrameForMinorGC(trc, frames);
+        }
+    }
+}
+#endif
 
 void
 AutoTempAllocatorRooter::trace(JSTracer *trc)
