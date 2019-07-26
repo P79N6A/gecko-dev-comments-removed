@@ -1156,13 +1156,8 @@ SourceScripts.prototype = {
 
 
   prettyPrint: function(aSource) {
-    
-    if (!SourceUtils.isJavaScript(aSource.url, aSource.contentType)) {
-      return promise.reject([aSource, "Can't prettify non-javascript files."]);
-    }
-
-    
     let textPromise = this._cache.get(aSource.url);
+    
     if (textPromise && textPromise.pretty) {
       return textPromise;
     }
@@ -1171,17 +1166,12 @@ SourceScripts.prototype = {
     this._cache.set(aSource.url, deferred.promise);
 
     this.activeThread.source(aSource)
-      .prettyPrint(Prefs.editorTabSize, ({ error, message, source: text }) => {
+      .prettyPrint(Prefs.editorTabSize, ({ error, message, source }) => {
         if (error) {
-          
-          
-          this._cache.set(aSource.url, textPromise);
           deferred.reject([aSource, message || error]);
           return;
         }
 
-        
-        
         DebuggerController.Parser.clearSource(aSource.url);
 
         if (this.activeThread.paused) {
@@ -1190,7 +1180,7 @@ SourceScripts.prototype = {
           this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
         }
 
-        deferred.resolve([aSource, text]);
+        deferred.resolve([aSource, source]);
       });
 
     deferred.promise.pretty = true;
@@ -1228,14 +1218,14 @@ SourceScripts.prototype = {
     }
 
     
-    this.activeThread.source(aSource).source(({ error, message, source: text }) => {
+    this.activeThread.source(aSource).source(aResponse => {
       if (aOnTimeout) {
         window.clearTimeout(fetchTimeout);
       }
-      if (error) {
-        deferred.reject([aSource, message || error]);
+      if (aResponse.error) {
+        deferred.reject([aSource, aResponse.message || aResponse.error]);
       } else {
-        deferred.resolve([aSource, text]);
+        deferred.resolve([aSource, aResponse.source]);
       }
     });
 

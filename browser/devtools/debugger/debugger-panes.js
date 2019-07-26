@@ -379,23 +379,19 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   prettyPrint: function() {
-    const resetEditor = ([{ url }]) => {
+    const resetEditor = () => {
       
-      if (url == this.selectedValue) {
-        DebuggerView.setEditorLocation(url, 0, { force: true });
+      if (this.selectedValue === source.url) {
+        DebuggerView.setEditorLocation(source.url, 0, { force: true });
       }
     };
-    const printError = ([{ url }, error]) => {
-      let err = DevToolsUtils.safeErrorString(error);
-      let msg = "Couldn't prettify source: " + url + "\n" + err;
-      Cu.reportError(msg);
-      dumpn(msg);
-      return;
-    }
 
     let { source } = this.selectedItem.attachment;
-    let prettyPrinted = DebuggerController.SourceScripts.prettyPrint(source);
-    prettyPrinted.then(resetEditor, printError);
+    
+    
+    DebuggerController.SourceScripts.prettyPrint(source)
+      .then(resetEditor,
+            resetEditor);
   },
 
   
@@ -998,18 +994,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 let SourceUtils = {
   _labelsCache: new Map(), 
   _groupsCache: new Map(),
-
-  
-
-
-
-
-
-
-  isJavaScript: function(aUrl, aContentType = "") {
-    return /\.jsm?$/.test(this.trimUrlQuery(aUrl)) ||
-           aContentType.contains("javascript");
-  },
 
   
 
