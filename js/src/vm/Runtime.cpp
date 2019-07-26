@@ -99,6 +99,7 @@ PerThreadData::removeFromThreadList()
 JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
   : mainThread(this),
     interrupt(0),
+    handlingSignal(false),
     operationCallback(NULL),
 #ifdef JS_THREADSAFE
     operationCallbackLock(NULL),
@@ -499,6 +500,16 @@ JSRuntime::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSi
     if (execAlloc_)
         execAlloc_->sizeOfCode(&rtSizes->code);
 
+#ifdef JS_ION
+    {
+        AutoLockForOperationCallback lock(this);
+        if (ionRuntime()) {
+            if (JSC::ExecutableAllocator *ionAlloc = ionRuntime()->ionAlloc(this))
+                ionAlloc->sizeOfCode(&rtSizes->code);
+        }
+    }
+#endif
+
     rtSizes->regexpData = bumpAlloc_ ? bumpAlloc_->sizeOfNonHeapData() : 0;
 
     rtSizes->interpreterStack = interpreterStack_.sizeOfExcludingThis(mallocSizeOf);
@@ -513,7 +524,7 @@ JSRuntime::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSi
 }
 
 void
-JSRuntime::triggerOperationCallback()
+JSRuntime::triggerOperationCallback(OperationCallbackTrigger trigger)
 {
     AutoLockForOperationCallback lock(this);
 
@@ -529,7 +540,11 @@ JSRuntime::triggerOperationCallback()
 
 #ifdef JS_ION
     
+
+
+
     TriggerOperationCallbackForAsmJSCode(this);
+    ion::TriggerOperationCallbackForIonCode(this, trigger);
 #endif
 }
 

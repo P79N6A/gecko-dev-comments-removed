@@ -678,5 +678,72 @@ CodeGeneratorShared::callTraceLIR(uint32_t blockIndex, LInstruction *lir,
     return true;
 }
 
+typedef bool (*InterruptCheckFn)(JSContext *);
+const VMFunction InterruptCheckInfo = FunctionInfo<InterruptCheckFn>(InterruptCheck);
+
+Label *
+CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
+{
+    
+    
+    
+    
+    
+    if (!gen->compilingAsmJS() && mir->isLoopHeader() && mir->id() <= current->mir()->id()) {
+        for (LInstructionIterator iter = mir->lir()->begin(); iter != mir->lir()->end(); iter++) {
+            if (iter->isLabel() || iter->isMoveGroup()) {
+                
+            } else if (iter->isInterruptCheckImplicit()) {
+                return iter->toInterruptCheckImplicit()->oolEntry();
+            } else {
+                
+                
+                JS_ASSERT(iter->isInterruptCheck() || iter->isCheckInterruptPar());
+                return NULL;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void
+CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
+{
+    
+    if (isNextBlock(mir->lir()))
+        return;
+
+    if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
+        
+        
+        RepatchLabel rejoin;
+        CodeOffsetJump backedge = masm.jumpWithPatch(&rejoin);
+        masm.bind(&rejoin);
+
+        if (!patchableBackedges_.append(PatchableBackedgeInfo(backedge, mir->lir()->label(), oolEntry)))
+            MOZ_CRASH();
+    } else {
+        masm.jump(mir->lir()->label());
+    }
+}
+
+void
+CodeGeneratorShared::jumpToBlock(MBasicBlock *mir, Assembler::Condition cond)
+{
+    if (Label *oolEntry = labelForBackedgeWithImplicitCheck(mir)) {
+        
+        
+        RepatchLabel rejoin;
+        CodeOffsetJump backedge = masm.jumpWithPatch(&rejoin, cond);
+        masm.bind(&rejoin);
+
+        if (!patchableBackedges_.append(PatchableBackedgeInfo(backedge, mir->lir()->label(), oolEntry)))
+            MOZ_CRASH();
+    } else {
+        masm.j(cond, mir->lir()->label());
+    }
+}
+
 } 
 } 

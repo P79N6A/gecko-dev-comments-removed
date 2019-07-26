@@ -29,6 +29,7 @@ class OutOfLineNewObject;
 class CheckOverRecursedFailure;
 class CheckOverRecursedFailurePar;
 class OutOfLineCheckInterruptPar;
+class OutOfLineInterruptCheckImplicit;
 class OutOfLineUnboxDouble;
 class OutOfLineStoreElementHole;
 class OutOfLineTypeOfV;
@@ -264,6 +265,9 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitCheckInterruptPar(LCheckInterruptPar *lir);
     bool visitOutOfLineCheckInterruptPar(OutOfLineCheckInterruptPar *ool);
 
+    bool visitInterruptCheckImplicit(LInterruptCheckImplicit *ins);
+    bool visitOutOfLineInterruptCheckImplicit(OutOfLineInterruptCheckImplicit *ins);
+
     bool visitUnboxDouble(LUnboxDouble *lir);
     bool visitOutOfLineUnboxDouble(OutOfLineUnboxDouble *ool);
     bool visitOutOfLineStoreElementHole(OutOfLineStoreElementHole *ool);
@@ -342,6 +346,10 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     void testObjectTruthy(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch,
                           OutOfLineTestObject *ool);
+
+    
+    
+    Label *getJumpLabelForBranch(MBasicBlock *block);
 
     
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);

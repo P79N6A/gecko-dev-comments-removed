@@ -424,6 +424,16 @@ InterruptCheck(JSContext *cx)
 {
     gc::MaybeVerifyBarriers(cx);
 
+    
+    
+    
+    
+    
+    
+    
+    cx->runtime()->ionRuntime()->patchIonBackedges(cx->runtime(),
+                                                   IonRuntime::BackedgeLoopHeader);
+
     return !!js_HandleExecutionInterrupt(cx);
 }
 

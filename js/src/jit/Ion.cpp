@@ -17,6 +17,7 @@
 #include "gc/Marking.h"
 #include "jit/AliasAnalysis.h"
 #include "jit/AsmJSModule.h"
+#include "jit/AsmJSSignalHandlers.h"
 #include "jit/BacktrackingAllocator.h"
 #include "jit/BaselineCompiler.h"
 #include "jit/BaselineInspector.h"
@@ -169,6 +170,7 @@ ion::InitializeIon()
 
 IonRuntime::IonRuntime()
   : execAlloc_(NULL),
+    ionAlloc_(NULL),
     exceptionTail_(NULL),
     bailoutTail_(NULL),
     enterJIT_(NULL),
@@ -180,7 +182,9 @@ IonRuntime::IonRuntime()
     debugTrapHandler_(NULL),
     functionWrappers_(NULL),
     osrTempData_(NULL),
-    flusher_(NULL)
+    flusher_(NULL),
+    signalHandlersInstalled_(false),
+    ionCodeProtected_(false)
 {
 }
 
@@ -188,11 +192,17 @@ IonRuntime::~IonRuntime()
 {
     js_delete(functionWrappers_);
     freeOsrTempData();
+
+    
+    
+    js_delete(ionAlloc_);
 }
 
 bool
 IonRuntime::initialize(JSContext *cx)
 {
+    JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+
     AutoLockForExclusiveAccess lock(cx);
     AutoCompartment ac(cx, cx->atomsCompartment());
 
@@ -273,6 +283,8 @@ IonRuntime::initialize(JSContext *cx)
             return false;
     }
 
+    signalHandlersInstalled_ = EnsureAsmJSSignalHandlersInstalled(cx->runtime());
+
     return true;
 }
 
@@ -301,6 +313,148 @@ IonRuntime::freeOsrTempData()
 {
     js_free(osrTempData_);
     osrTempData_ = NULL;
+}
+
+JSC::ExecutableAllocator *
+IonRuntime::createIonAlloc(JSContext *cx)
+{
+    JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+
+    JSC::AllocationBehavior randomize =
+        cx->runtime()->jitHardening ? JSC::AllocationCanRandomize : JSC::AllocationDeterministic;
+    ionAlloc_ = js_new<JSC::ExecutableAllocator>(randomize);
+    if (!ionAlloc_)
+        js_ReportOutOfMemory(cx);
+    return ionAlloc_;
+}
+
+void
+IonRuntime::ensureIonCodeProtected(JSRuntime *rt)
+{
+    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+
+    if (!signalHandlersInstalled_ || ionCodeProtected_ || !ionAlloc_)
+        return;
+
+    
+    
+    ionAlloc_->toggleAllCodeAsAccessible(false);
+    ionCodeProtected_ = true;
+}
+
+bool
+IonRuntime::handleAccessViolation(JSRuntime *rt, void *faultingAddress)
+{
+    if (!signalHandlersInstalled_ || !ionAlloc_ || !ionAlloc_->codeContains((char *) faultingAddress))
+        return false;
+
+#ifdef JS_THREADSAFE
+    
+    
+    
+    
+    JS_ASSERT(!rt->currentThreadOwnsOperationCallbackLock());
+#endif
+
+    
+    
+    
+    JSRuntime::AutoLockForOperationCallback lock(rt);
+
+    ensureIonCodeAccessible(rt);
+    return true;
+}
+
+void
+IonRuntime::ensureIonCodeAccessible(JSRuntime *rt)
+{
+    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+
+    
+    
+#ifndef XP_MACOSX
+    JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
+#endif
+
+    if (!ionCodeProtected_)
+        return;
+
+    
+    
+    
+    ionAlloc_->toggleAllCodeAsAccessible(true);
+    ionCodeProtected_ = false;
+
+    if (rt->interrupt) {
+        
+        
+        
+        
+        
+        
+        patchIonBackedges(rt, BackedgeInterruptCheck);
+    }
+}
+
+void
+IonRuntime::patchIonBackedges(JSRuntime *rt, BackedgeTarget target)
+{
+#ifndef XP_MACOSX
+    JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
+#endif
+
+    
+    
+    for (InlineListIterator<PatchableBackedge> iter(backedgeList_.begin());
+         iter != backedgeList_.end();
+         iter++)
+    {
+        PatchableBackedge *patchableBackedge = *iter;
+        PatchJump(patchableBackedge->backedge, target == BackedgeLoopHeader
+                                               ? patchableBackedge->loopHeader
+                                               : patchableBackedge->interruptCheck);
+    }
+}
+
+void
+ion::TriggerOperationCallbackForIonCode(JSRuntime *rt,
+                                        JSRuntime::OperationCallbackTrigger trigger)
+{
+    IonRuntime *ion = rt->ionRuntime();
+    if (!ion)
+        return;
+
+    JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+
+    
+    
+    switch (trigger) {
+      case JSRuntime::TriggerCallbackMainThread:
+        
+        
+        
+        
+        JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
+        ion->ensureIonCodeAccessible(rt);
+        break;
+
+      case JSRuntime::TriggerCallbackAnyThread:
+        
+        
+        
+        
+        
+        ion->ensureIonCodeProtected(rt);
+        break;
+
+      case JSRuntime::TriggerCallbackAnyThreadDontStopIon:
+        
+        
+        break;
+
+      default:
+        MOZ_ASSUME_UNREACHABLE("Bad trigger");
+    }
 }
 
 IonCompartment::IonCompartment(IonRuntime *rt)
@@ -504,7 +658,16 @@ void
 IonCode::finalize(FreeOp *fop)
 {
     
-    JS_POISON(code_, JS_FREE_PATTERN, bufferSize_);
+    
+    JS_ASSERT(fop->runtime()->currentThreadOwnsOperationCallbackLock());
+
+#ifdef DEBUG
+    
+    
+    
+    if (!fop->runtime()->ionRuntime()->ionCodeProtected())
+        JS_POISON(code_, JS_FREE_PATTERN, bufferSize_);
+#endif
 
     
     
@@ -593,6 +756,8 @@ IonScript::IonScript()
     scriptEntries_(0),
     callTargetList_(0),
     callTargetEntries_(0),
+    backedgeList_(0),
+    backedgeEntries_(0),
     refcount_(0),
     recompileInfo_(),
     osrPcMismatchCounter_(0),
@@ -607,7 +772,7 @@ IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t sn
                size_t bailoutEntries, size_t constants, size_t safepointIndices,
                size_t osiIndices, size_t cacheEntries, size_t runtimeSize,
                size_t safepointsSize, size_t scriptEntries,
-               size_t callTargetEntries)
+               size_t callTargetEntries, size_t backedgeEntries)
 {
     if (snapshotsSize >= MAX_BUFFER_SIZE ||
         (bailoutEntries >= MAX_BUFFER_SIZE / sizeof(uint32_t)))
@@ -629,6 +794,7 @@ IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t sn
     size_t paddedSafepointSize = AlignBytes(safepointsSize, DataAlignment);
     size_t paddedScriptSize = AlignBytes(scriptEntries * sizeof(JSScript *), DataAlignment);
     size_t paddedCallTargetSize = AlignBytes(callTargetEntries * sizeof(JSScript *), DataAlignment);
+    size_t paddedBackedgeSize = AlignBytes(backedgeEntries * sizeof(PatchableBackedge), DataAlignment);
     size_t bytes = paddedSnapshotsSize +
                    paddedBailoutSize +
                    paddedConstantsSize +
@@ -638,7 +804,8 @@ IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t sn
                    paddedRuntimeSize +
                    paddedSafepointSize +
                    paddedScriptSize +
-                   paddedCallTargetSize;
+                   paddedCallTargetSize +
+                   paddedBackedgeSize;
     uint8_t *buffer = (uint8_t *)cx->malloc_(sizeof(IonScript) + bytes);
     if (!buffer)
         return NULL;
@@ -687,6 +854,10 @@ IonScript::New(JSContext *cx, uint32_t frameSlots, uint32_t frameSize, size_t sn
     script->callTargetList_ = offsetCursor;
     script->callTargetEntries_ = callTargetEntries;
     offsetCursor += paddedCallTargetSize;
+
+    script->backedgeList_ = offsetCursor;
+    script->backedgeEntries_ = backedgeEntries;
+    offsetCursor += paddedBackedgeSize;
 
     script->frameSlots_ = frameSlots;
     script->frameSize_ = frameSize;
@@ -762,6 +933,29 @@ IonScript::copyCallTargetEntries(JSScript **callTargets)
 {
     for (size_t i = 0; i < callTargetEntries_; i++)
         callTargetList()[i] = callTargets[i];
+}
+
+void
+IonScript::copyPatchableBackedges(JSContext *cx, IonCode *code,
+                                  PatchableBackedgeInfo *backedges)
+{
+    for (size_t i = 0; i < backedgeEntries_; i++) {
+        const PatchableBackedgeInfo &info = backedges[i];
+        PatchableBackedge *patchableBackedge = &backedgeList()[i];
+
+        CodeLocationJump backedge(code, info.backedge);
+        CodeLocationLabel loopHeader(code, CodeOffsetLabel(info.loopHeader->offset()));
+        CodeLocationLabel interruptCheck(code, CodeOffsetLabel(info.interruptCheck->offset()));
+        new(patchableBackedge) PatchableBackedge(backedge, loopHeader, interruptCheck);
+
+        
+        
+        
+        
+        PatchJump(backedge, cx->runtime()->interrupt ? interruptCheck : loopHeader);
+
+        cx->runtime()->ionRuntime()->addPatchableBackedge(patchableBackedge);
+    }
 }
 
 void
@@ -887,6 +1081,7 @@ void
 IonScript::Destroy(FreeOp *fop, IonScript *script)
 {
     script->destroyCaches();
+    script->destroyBackedges(fop->runtime());
     script->detachDependentAsmJSModules(fop);
     fop->free_(script);
 }
@@ -943,6 +1138,20 @@ IonScript::detachDependentAsmJSModules(FreeOp *fop) {
     }
     fop->delete_(dependentAsmJSModules);
     dependentAsmJSModules = NULL;
+}
+
+void
+IonScript::destroyBackedges(JSRuntime *rt)
+{
+    for (size_t i = 0; i < backedgeEntries_; i++) {
+        PatchableBackedge *backedge = &backedgeList()[i];
+        rt->ionRuntime()->removePatchableBackedge(backedge);
+    }
+
+    
+    
+    
+    backedgeEntries_ = 0;
 }
 
 void
@@ -2068,6 +2277,12 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
         
         
         ionScript->purgeCaches(script->zone());
+
+        
+        
+        
+        
+        ionScript->destroyBackedges(fop->runtime());
 
         
         

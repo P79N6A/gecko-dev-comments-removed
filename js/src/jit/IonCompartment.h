@@ -16,6 +16,7 @@
 #include "jit/CompileInfo.h"
 #include "jit/IonCode.h"
 #include "jit/IonFrames.h"
+#include "jit/shared/Assembler-shared.h"
 #include "js/Value.h"
 #include "vm/Stack.h"
 
@@ -120,12 +121,39 @@ struct FallbackICStubSpace : public ICStubSpace
     }
 };
 
+
+
+
+class PatchableBackedge : public InlineListNode<PatchableBackedge>
+{
+    friend class IonRuntime;
+
+    CodeLocationJump backedge;
+    CodeLocationLabel loopHeader;
+    CodeLocationLabel interruptCheck;
+
+  public:
+    PatchableBackedge(CodeLocationJump backedge,
+                      CodeLocationLabel loopHeader,
+                      CodeLocationLabel interruptCheck)
+      : backedge(backedge), loopHeader(loopHeader), interruptCheck(interruptCheck)
+    {}
+};
+
 class IonRuntime
 {
     friend class IonCompartment;
 
     
+    
     JSC::ExecutableAllocator *execAlloc_;
+
+    
+    
+    
+    
+    
+    JSC::ExecutableAllocator *ionAlloc_;
 
     
     IonCode *exceptionTail_;
@@ -175,6 +203,18 @@ class IonRuntime
     
     AutoFlushCache *flusher_;
 
+    
+    
+    bool signalHandlersInstalled_;
+
+    
+    
+    bool ionCodeProtected_;
+
+    
+    
+    InlineList<PatchableBackedge> backedgeList_;
+
   private:
     IonCode *generateExceptionTailStub(JSContext *cx);
     IonCode *generateBailoutTailStub(JSContext *cx);
@@ -186,6 +226,8 @@ class IonRuntime
     IonCode *generatePreBarrier(JSContext *cx, MIRType type);
     IonCode *generateDebugTrapHandler(JSContext *cx);
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
+
+    JSC::ExecutableAllocator *createIonAlloc(JSContext *cx);
 
   public:
     IonRuntime();
@@ -204,6 +246,41 @@ class IonRuntime
         if (!flusher_ || !fl)
             flusher_ = fl;
     }
+
+    JSC::ExecutableAllocator *getIonAlloc(JSContext *cx) {
+        JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+        return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
+    }
+
+    JSC::ExecutableAllocator *ionAlloc(JSRuntime *rt) {
+        JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+        return ionAlloc_;
+    }
+
+    bool signalHandlersInstalled() {
+        return signalHandlersInstalled_;
+    }
+    bool ionCodeProtected() {
+        return ionCodeProtected_;
+    }
+
+    void addPatchableBackedge(PatchableBackedge *backedge) {
+        backedgeList_.pushFront(backedge);
+    }
+    void removePatchableBackedge(PatchableBackedge *backedge) {
+        backedgeList_.remove(backedge);
+    }
+
+    enum BackedgeTarget {
+        BackedgeLoopHeader,
+        BackedgeInterruptCheck
+    };
+
+    void ensureIonCodeProtected(JSRuntime *rt);
+    void ensureIonCodeAccessible(JSRuntime *rt);
+    void patchIonBackedges(JSRuntime *rt, BackedgeTarget target);
+
+    bool handleAccessViolation(JSRuntime *rt, void *faultingAddress);
 
     IonCode *getVMWrapper(const VMFunction &f);
     IonCode *debugTrapHandler(JSContext *cx);
@@ -335,6 +412,8 @@ class IonCompartment
     }
 
     void toggleBaselineStubBarriers(bool enabled);
+
+    JSC::ExecutableAllocator *createIonAlloc();
 
   public:
     IonCompartment(IonRuntime *rt);

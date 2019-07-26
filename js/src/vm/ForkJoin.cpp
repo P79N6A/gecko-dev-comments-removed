@@ -1609,7 +1609,9 @@ ForkJoinShared::setAbortFlag(bool fatal)
     abort_ = true;
     fatal_ = fatal_ || fatal;
 
-    cx_->runtime()->triggerOperationCallback();
+    
+    
+    cx_->runtime()->triggerOperationCallback(JSRuntime::TriggerCallbackAnyThreadDontStopIon);
 }
 
 void

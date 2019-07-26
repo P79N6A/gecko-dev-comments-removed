@@ -35,6 +35,17 @@ class OutOfLineCallVM;
 
 class OutOfLineTruncateSlow;
 
+struct PatchableBackedgeInfo
+{
+    CodeOffsetJump backedge;
+    Label *loopHeader;
+    Label *interruptCheck;
+
+    PatchableBackedgeInfo(CodeOffsetJump backedge, Label *loopHeader, Label *interruptCheck)
+      : backedge(backedge), loopHeader(loopHeader), interruptCheck(interruptCheck)
+    {}
+};
+
 class CodeGeneratorShared : public LInstructionVisitor
 {
     js::Vector<OutOfLineCode *, 0, SystemAllocPolicy> outOfLineCode_;
@@ -74,6 +85,9 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     
     js::Vector<uint32_t, 0, SystemAllocPolicy> pushedArgumentSlots_;
+
+    
+    Vector<PatchableBackedgeInfo, 0, SystemAllocPolicy> patchableBackedges_;
 
     
     
@@ -347,6 +361,15 @@ class CodeGeneratorShared : public LInstructionVisitor
     bool addOutOfLineCode(OutOfLineCode *code);
     bool hasOutOfLineCode() { return !outOfLineCode_.empty(); }
     bool generateOutOfLineCode();
+
+    Label *labelForBackedgeWithImplicitCheck(MBasicBlock *mir);
+
+    
+    
+    
+    
+    void jumpToBlock(MBasicBlock *mir);
+    void jumpToBlock(MBasicBlock *mir, Assembler::Condition cond);
 
   private:
     void generateInvalidateEpilogue();
@@ -688,6 +711,8 @@ class OutOfLinePropagateAbortPar : public OutOfLineCode
 
     bool generate(CodeGeneratorShared *codegen);
 };
+
+extern const VMFunction InterruptCheckInfo;
 
 } 
 } 

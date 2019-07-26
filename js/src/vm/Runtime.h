@@ -698,6 +698,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
 
     
+    bool handlingSignal;
+
+    
     JSOperationCallback operationCallback;
 
 #ifdef JS_THREADSAFE
@@ -1534,7 +1537,15 @@ struct JSRuntime : public JS::shadow::Runtime,
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes);
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes, JSContext *cx);
 
-    void triggerOperationCallback();
+    
+    
+    enum OperationCallbackTrigger {
+        TriggerCallbackMainThread,
+        TriggerCallbackAnyThread,
+        TriggerCallbackAnyThreadDontStopIon
+    };
+
+    void triggerOperationCallback(OperationCallbackTrigger trigger);
 
     void setJitHardening(bool enabled);
     bool getJitHardening() const {

@@ -532,7 +532,9 @@ WorkerThread::handleIonWorkload(WorkerThreadState &state)
 
     
     
-    runtime->triggerOperationCallback();
+    
+    
+    runtime->triggerOperationCallback(JSRuntime::TriggerCallbackAnyThreadDontStopIon);
 }
 
 void
