@@ -3,7 +3,7 @@
 
 
 
-#include "XPathEvaluator.h"
+#include "mozilla/dom/XPathEvaluator.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
 #include "nsXPathExpression.h"
@@ -58,15 +58,11 @@ private:
     bool mIsCaseSensitive;
 };
 
-NS_IMPL_AGGREGATED(XPathEvaluator)
-NS_INTERFACE_MAP_BEGIN_AGGREGATED(XPathEvaluator)
-    NS_INTERFACE_MAP_ENTRY(nsIDOMXPathEvaluator)
-NS_INTERFACE_MAP_END
+NS_IMPL_ISUPPORTS1(XPathEvaluator, nsIDOMXPathEvaluator)
 
-XPathEvaluator::XPathEvaluator(nsISupports *aOuter)
-    : mDocument(do_GetWeakReference(aOuter))
+XPathEvaluator::XPathEvaluator(nsIDocument* aDocument)
+    : mDocument(do_GetWeakReference(aDocument))
 {
-    NS_INIT_AGGREGATED(aOuter);
 }
 
 NS_IMETHODIMP
