@@ -15,6 +15,9 @@ function test() {
 
 
 
+const URL = "data:text/html,<h1>first</h1>";
+const URL2 = "data:text/html,<h1>second</h1>";
+
 function runTests() {
   
   
@@ -24,8 +27,8 @@ function runTests() {
 
   
   let tab = gBrowser.selectedTab = gBrowser.addTab("about:blank");
-  yield loadURI("about:robots");
-  yield loadURI("about:mozilla");
+  yield loadURI(URL);
+  yield loadURI(URL2);
 
   
   
@@ -35,7 +38,7 @@ function runTests() {
   
   waitForPageShow();
   yield gBrowser.selectedBrowser.goBack();
-  is(tab.linkedBrowser.currentURI.spec, "about:robots", "url is about:robots");
+  is(tab.linkedBrowser.currentURI.spec, URL, "correct url after going back");
 
   
   
