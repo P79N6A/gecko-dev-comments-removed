@@ -200,8 +200,7 @@ ContainerRender(Container* aContainer,
     
     
     
-    GLint maxTexSize;
-    aContainer->gl()->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &maxTexSize);
+    GLint maxTexSize = aContainer->gl()->GetMaxTextureSize();
     framebufferRect.width = std::min(framebufferRect.width, maxTexSize);
     framebufferRect.height = std::min(framebufferRect.height, maxTexSize);
 

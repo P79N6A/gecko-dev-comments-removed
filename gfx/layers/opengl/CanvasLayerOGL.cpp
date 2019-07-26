@@ -169,8 +169,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
       
   
   
-  GLint texSize;
-  gl()->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &texSize);
+  GLint texSize = gl()->GetMaxTextureSize();
   if (mBounds.width > (2 + texSize) || mBounds.height > (2 + texSize)) {
     mDelayedUpdates = true;
     MakeTextureIfNeeded(gl(), mUploadTexture);
