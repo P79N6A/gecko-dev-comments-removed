@@ -17,7 +17,7 @@ var observer1 = {
       timer.cancel();
 
       
-      do_check_eq(Math.floor((Date.now() - gStartTime1) / 1000),
+      do_check_eq(Math.round((Date.now() - gStartTime1) / 1000),
                   kExpectedDelay1);
 
       timer = null;
@@ -35,7 +35,7 @@ var observer2 = {
       timer.cancel();
 
       
-      do_check_eq(Math.floor((Date.now() - gStartTime2) / 1000),
+      do_check_eq(Math.round((Date.now() - gStartTime2) / 1000),
                   kExpectedDelay2);
 
       timer = null;
