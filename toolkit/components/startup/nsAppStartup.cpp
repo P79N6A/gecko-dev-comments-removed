@@ -107,8 +107,6 @@ public:
     
     mService->mAppShell->Exit();
 
-    
-    mService->mShuttingDown = false;
     mService->mRunning = false;
     return NS_OK;
   }
