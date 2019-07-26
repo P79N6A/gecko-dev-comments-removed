@@ -65,6 +65,10 @@ class B2GMochitest(MochitestUtilsMixin):
             test_url += "?" + "&".join(self.urlOpts)
         self.test_script_args.append(test_url)
 
+    def buildTestPath(self, options):
+        
+        return self.buildTestURL(options)
+
     def build_profile(self, options):
         
         prefs = {}
