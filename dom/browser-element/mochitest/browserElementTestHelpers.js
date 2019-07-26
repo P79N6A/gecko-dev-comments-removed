@@ -170,7 +170,7 @@ function expectPriorityChange(childID, expectedPriority,
         return;
       }
 
-      [id, priority, cpuPriority] = data.split(":");
+      var [id, priority, cpuPriority] = data.split(":");
       if (id != childID) {
         return;
       }
@@ -212,8 +212,10 @@ function expectPriorityWithBackgroundLRUSet(childID, expectedBackgroundLRU) {
     'process-priority-with-background-LRU-set',
     function(subject, topic, data) {
 
-      [id, priority, cpuPriority, backgroundLRU] = data.split(":");
+      dump("browserElementTestHelpers got notify: topic "+ topic + ", data " + data +"\n");
+      var [id, priority, cpuPriority, backgroundLRU] = data.split(":");
       if (id != childID) {
+        dump("id(" + id + ") != childID(" + childID + ")\n");
         return;
       }
 
