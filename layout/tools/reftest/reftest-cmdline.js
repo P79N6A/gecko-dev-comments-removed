@@ -92,6 +92,8 @@ RefTestCmdLineHandler.prototype =
     branch.setBoolPref("extensions.update.enabled", false);
     branch.setBoolPref("extensions.getAddons.cache.enabled", false);
     
+    branch.setBoolPref("extensions.blocklist.enabled", false);
+    
     branch.setIntPref("urlclassifier.updateinterval", 172800);
     
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
