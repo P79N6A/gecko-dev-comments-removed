@@ -7053,6 +7053,11 @@ let gPrivateBrowsingUI = {
       docElement.setAttribute("privatebrowsingmode", "temporary");
       gBrowser.updateTitlebar();
     }
+
+    if (gURLBar) {
+      
+      gURLBar.setAttribute("autocompletesearchparam", "");
+    }
   }
 };
 
@@ -7310,6 +7315,15 @@ let gPrivateBrowsingUI = {
 function switchToTabHavingURI(aURI, aOpenNew) {
   
   function switchIfURIInWindow(aWindow) {
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+    
+    
+    if (PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
+      return false;
+    }
+#endif
+
     let browsers = aWindow.gBrowser.browsers;
     for (let i = 0; i < browsers.length; i++) {
       let browser = browsers[i];
