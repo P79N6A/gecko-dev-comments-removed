@@ -321,7 +321,7 @@ WantsSmallTiles(GLContext* gl)
 
     
     if (gl->WorkAroundDriverBugs() &&
-        gl->Renderer() == GLContext::RendererSGX540)
+        gl->Renderer() == GLRenderer::SGX540)
         return false;
 
     

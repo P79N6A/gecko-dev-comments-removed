@@ -378,7 +378,7 @@ ReadPixelsIntoImageSurface(GLContext* gl, gfxImageSurface* dest) {
     
 #ifdef XP_MACOSX
     if (gl->WorkAroundDriverBugs() &&
-        gl->Vendor() == gl::GLContext::VendorNVIDIA &&
+        gl->Vendor() == gl::GLVendor::NVIDIA &&
         dest->Format() == gfxImageFormatARGB32 &&
         width && height)
     {

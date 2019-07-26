@@ -106,16 +106,16 @@ CanUploadSubTextures(GLContext* gl)
 
     
     
-    if (gl->Renderer() == GLContext::RendererAdreno200 ||
-        gl->Renderer() == GLContext::RendererAdreno205)
+    if (gl->Renderer() == GLRenderer::Adreno200 ||
+        gl->Renderer() == GLRenderer::Adreno205)
     {
         return false;
     }
 
     
     
-    if (gl->Renderer() == GLContext::RendererSGX540 ||
-        gl->Renderer() == GLContext::RendererSGX530)
+    if (gl->Renderer() == GLRenderer::SGX540 ||
+        gl->Renderer() == GLRenderer::SGX530)
     {
         return false;
     }
@@ -594,8 +594,8 @@ CanUploadNonPowerOfTwo(GLContext* gl)
         return true;
 
     
-    return gl->Renderer() != GLContext::RendererAdreno200 &&
-           gl->Renderer() != GLContext::RendererAdreno205;
+    return gl->Renderer() != GLRenderer::Adreno200 &&
+           gl->Renderer() != GLRenderer::Adreno205;
 }
 
 }
