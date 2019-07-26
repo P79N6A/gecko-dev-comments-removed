@@ -23,15 +23,20 @@ function test() {
     Task.spawn(function* () {
       try {
 
-        yield ensureSourceIs(gPanel, CODE_URL, true);
+        
+        
+        
+        
+        
+        const [paused, ] = yield promise.all([
+          waitForThreadEvents(gPanel, "paused"),
+          reloadActiveTab(gPanel, gEvents.SOURCE_SHOWN),
+        ]);
+
+        is(paused.why.type, "debuggerStatement");
 
         
-        yield doInterrupt();
         const [bp1, bp2, bp3] = yield promise.all([
-          setBreakpoint({
-            url: CODE_URL,
-            line: 2
-          }),
           setBreakpoint({
             url: CODE_URL,
             line: 3
@@ -39,23 +44,31 @@ function test() {
           setBreakpoint({
             url: CODE_URL,
             line: 4
+          }),
+          setBreakpoint({
+            url: CODE_URL,
+            line: 5
           })
         ]);
 
         
         yield promise.all([
           reloadActiveTab(gPanel, gEvents.SOURCE_SHOWN),
-          waitForCaretUpdated(gPanel, 2)
+          waitForCaretAndScopes(gPanel, 1)
         ]);
 
         
         yield promise.all([
           doResume(),
-          waitForCaretUpdated(gPanel, 3)
+          waitForCaretAndScopes(gPanel, 3)
         ]);
         yield promise.all([
           doResume(),
-          waitForCaretUpdated(gPanel, 4)
+          waitForCaretAndScopes(gPanel, 4)
+        ]);
+        yield promise.all([
+          doResume(),
+          waitForCaretAndScopes(gPanel, 5)
         ]);
 
         
