@@ -949,13 +949,6 @@ public:
   
   
   
-  
-  
-  double mRequestedSeekTime;
-
-  
-  
-  
   int64_t mDuration;
 
   
@@ -1054,6 +1047,15 @@ public:
   
   
   PlayState mNextState;
+
+  
+  
+  
+  
+  
+  
+  
+  double mRequestedSeekTime;
 
   
   
