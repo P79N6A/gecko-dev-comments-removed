@@ -29,14 +29,47 @@ XPCOMUtils.defineLazyGetter(this, "gInterval", function () {
   Services.prefs.addObserver(PREF, () => {
     this.gInterval = Services.prefs.getIntPref(PREF);
 
-    
-    
-    SessionSaverInternal.cancel();
-    SessionSaverInternal.runDelayed(0);
+    if (isBatteryCharging()) {
+      
+      
+      SessionSaverInternal.cancel();
+      SessionSaverInternal.runDelayed(0);
+    }
   }, false);
 
   return Services.prefs.getIntPref(PREF);
 });
+
+XPCOMUtils.defineLazyGetter(this, "gIntervalBattery", function () {
+  const PREF = "browser.sessionstore.interval_battery";
+
+  
+  Services.prefs.addObserver(PREF, () => {
+    this.gIntervalBattery = Services.prefs.getIntPref(PREF);
+
+    if (!isBatteryCharging()) {
+      
+      
+      SessionSaverInternal.cancel();
+      SessionSaverInternal.runDelayed(0);
+    }
+  }, false);
+
+  return Services.prefs.getIntPref(PREF);
+});
+
+
+function isBatteryCharging() {
+   return Services.appShell.hiddenDOMWindow.navigator.battery.charging;
+}
+
+
+function getInterval() {
+  if (isBatteryCharging()) {
+    return gInterval;
+  }
+  return gIntervalBattery;
+}
 
 
 function createSupportsString(data) {
@@ -148,7 +181,7 @@ let SessionSaverInternal = {
     }
 
     
-    delay = Math.max(this._lastSaveTime + gInterval - Date.now(), delay, 0);
+    delay = Math.max(this._lastSaveTime + getInterval() - Date.now(), delay, 0);
 
     
     this._timeoutID = setTimeout(() => this._saveState(), delay);
