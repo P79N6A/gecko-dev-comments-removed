@@ -82,7 +82,7 @@ typedef struct NR_stats_memory_ {
         UINT8                current_size;
         UINT8                max_size;
         UINT8                in_use;
-        UINT8                in_use_max;         
+        UINT8                in_use_max;
 } NR_stats_memory;
 
 extern NR_stats_type *NR_stats_type_memory;
@@ -113,6 +113,6 @@ extern char *NR_prefix_to_stats_module(char *prefix);
      } while (0)
 #define NR_UPDATE_STAT(stat,newval) do { \
        stat=newval; if(stat>stat##_max) stat##_max=stat; \
-     } while (0)       
+     } while (0)
 
 #endif

@@ -46,9 +46,9 @@ static char *RCSSTRING __UNUSED__="$Id: r_memory.c,v 1.2 2006/08/16 19:39:17 ada
 #include "r_memory.h"
 
 typedef struct r_malloc_chunk_ {
-#ifdef SANITY_CHECKS     
+#ifdef SANITY_CHECKS
      UINT4 hdr;
-#endif     
+#endif
      UCHAR type;
      UINT4 size;
      UCHAR memory[1];
@@ -70,21 +70,21 @@ void *r_malloc(type,size)
   {
     size_t total;
     r_malloc_chunk *chunk;
-    
+
     total=size+sizeof(r_malloc_chunk);
 
     if(!(chunk=malloc(total)))
       return(0);
 
-#ifdef SANITY_CHECKS    
+#ifdef SANITY_CHECKS
     chunk->hdr=HDR_FLAG;
-#endif    
+#endif
     chunk->type=type;
     chunk->size=size;
 
     mem_usage+=CHUNK_SIZE(size);
     mem_stats[type]+=size;
-    
+
     return(chunk->memory);
   }
 
@@ -105,7 +105,7 @@ void *r_calloc(type,number,size)
 
     return(ret);
   }
-     
+
 void r_free(ptr)
   void *ptr;
   {
@@ -116,11 +116,11 @@ void r_free(ptr)
     chunk=(r_malloc_chunk *)GET_CHUNK_ADDR_FROM_MEM_ADDR(ptr);
 #ifdef SANITY_CHECKS
     assert(chunk->hdr==HDR_FLAG);
-#endif    
+#endif
 
     mem_usage-=CHUNK_SIZE(chunk->size);
     mem_stats[chunk->type]-=chunk->size;
-    
+
     free(chunk);
   }
 
@@ -130,13 +130,13 @@ void *r_realloc(ptr,size)
   {
     r_malloc_chunk *chunk,*nchunk;
     size_t total;
-    
+
     if(!ptr) return(r_malloc(255,size));
 
     chunk=(r_malloc_chunk *)GET_CHUNK_ADDR_FROM_MEM_ADDR(ptr);
 #ifdef SANITY_CHECKS
     assert(chunk->hdr==HDR_FLAG);
-#endif    
+#endif
 
     total=size + sizeof(r_malloc_chunk);
 
@@ -145,20 +145,20 @@ void *r_realloc(ptr,size)
 
     mem_usage-=CHUNK_SIZE(nchunk->size);
     mem_stats[nchunk->type]-=nchunk->size;
-    
+
     nchunk->size=size;
     mem_usage+=CHUNK_SIZE(nchunk->size);
     mem_stats[nchunk->type]+=nchunk->size;
-    
+
     return(nchunk->memory);
   }
-      
+
 char *r_strdup(str)
   char *str;
   {
     int len;
     char *nstr;
-    
+
     if(!str)
       return(0);
 
@@ -171,7 +171,7 @@ char *r_strdup(str)
 
     return(nstr);
   }
-    
+
 int r_mem_get_usage(usagep)
   UINT4 *usagep;
   {

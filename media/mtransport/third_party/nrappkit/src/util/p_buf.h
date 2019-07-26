@@ -55,10 +55,10 @@ typedef STAILQ_HEAD(nr_p_buf_head_,nr_p_buf_) nr_p_buf_head;
 
 typedef struct nr_p_buf_ctx_ {
      int buf_size;
-     
+
      nr_p_buf_head free_list;
 } nr_p_buf_ctx;
-     
+
 int nr_p_buf_ctx_create(int size,nr_p_buf_ctx **ctxp);
 int nr_p_buf_ctx_destroy(nr_p_buf_ctx **ctxp);
 int nr_p_buf_alloc(nr_p_buf_ctx *ctx,nr_p_buf **bufp);

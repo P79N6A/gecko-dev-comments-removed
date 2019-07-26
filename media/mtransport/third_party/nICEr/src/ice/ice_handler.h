@@ -47,7 +47,7 @@ typedef struct nr_ice_handler_vtbl_ {
 
 
 
-  int (*select_pair)(void *obj,nr_ice_media_stream *stream, 
+  int (*select_pair)(void *obj,nr_ice_media_stream *stream,
 int component_id, nr_ice_cand_pair **potentials,int potential_ct);
 
   

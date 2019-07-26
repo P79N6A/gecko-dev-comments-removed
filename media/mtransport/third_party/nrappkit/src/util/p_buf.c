@@ -95,7 +95,7 @@ int nr_p_buf_alloc(ctx,bufp)
   {
     int _status;
     nr_p_buf *buf=0;
-    
+
     if(!STAILQ_EMPTY(&ctx->free_list)){
       buf=STAILQ_FIRST(&ctx->free_list);
       STAILQ_REMOVE_HEAD(&ctx->free_list,entry);
@@ -112,7 +112,7 @@ int nr_p_buf_alloc(ctx,bufp)
   ok:
      buf->r_offset=0;
      buf->length=0;
-     
+
      *bufp=buf;
     _status=0;
   abort:
@@ -142,14 +142,14 @@ int nr_p_buf_free_chain(ctx,head)
       n2=STAILQ_NEXT(n1,entry);
 
       nr_p_buf_free(ctx,n1);
-      
+
       n1=n2;
     }
 
     return(0);
   }
 
-    
+
 int nr_p_buf_write_to_chain(ctx,chain,data,len)
   nr_p_buf_ctx *ctx;
   nr_p_buf_head *chain;
@@ -184,7 +184,7 @@ int nr_p_buf_write_to_chain(ctx,chain,data,len)
   abort:
     return(_status);
   }
-  
+
 static int nr_p_buf_destroy_chain(head)
   nr_p_buf_head *head;
   {
@@ -195,7 +195,7 @@ static int nr_p_buf_destroy_chain(head)
       n2=STAILQ_NEXT(n1,entry);
 
       nr_p_buf_destroy(n1);
-      
+
       n1=n2;
     }
 
@@ -207,11 +207,11 @@ static int nr_p_buf_destroy(buf)
   {
     if(!buf)
       return(0);
-    
+
     RFREE(buf->data);
     RFREE(buf);
 
     return(0);
   }
 
-  
+

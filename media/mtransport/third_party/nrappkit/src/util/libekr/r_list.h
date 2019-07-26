@@ -96,7 +96,7 @@ int r_list_destroy(r_list **listp);
 int r_list_copy(r_list **out,r_list *in);
 int r_list_insert(r_list *list,void *value,
   int (*copy)(void **knew,void *old),
-  int (*destroy)(void **ptr));  
+  int (*destroy)(void **ptr));
 int r_list_append(r_list *list,void *value,
   int (*copy)(void **knew,void *old),
   int (*destroy)(void **ptr));

@@ -91,7 +91,7 @@ int nr_reg_get_client(CLIENT **client);
 #endif
 
 #define CALLBACK_SERVER_ADDR     "127.0.0.1"
-#define CALLBACK_SERVER_PORT     8082 
+#define CALLBACK_SERVER_PORT     8082
 #define CALLBACK_SERVER_BACKLOG  32
 
 #endif

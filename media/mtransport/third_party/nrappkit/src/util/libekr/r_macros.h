@@ -102,7 +102,7 @@
 #endif
 #else
 #define REPORT_ERROR_(caller,a)
-#endif  
+#endif
 
 #ifndef ERETURN
 #define ERETURN(a) do {int _r=a; if(!_r) _r=-1; REPORT_ERROR_("ERETURN",_r); return(_r);} while(0)
@@ -134,4 +134,4 @@ int debug(int cls, char *format,...);
 
 #include "r_memory.h"
 
-#endif 
+#endif

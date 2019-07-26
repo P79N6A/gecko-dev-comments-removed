@@ -65,13 +65,13 @@ struct nr_ice_candidate_ {
   char *foundation;                   
   UINT4 priority;                     
   nr_ice_stun_server *stun_server;
-  
+
   void *delay_timer;
 
   
   union {
     struct {
-      nr_stun_client_ctx *stun;      
+      nr_stun_client_ctx *stun;
       void *stun_handle;
     } srvrflx;
     struct {
@@ -83,14 +83,14 @@ struct nr_ice_candidate_ {
     } relayed;
   } u;
 
-  NR_async_cb done_cb;              
+  NR_async_cb done_cb;
   void *cb_arg;
 
   NR_async_cb ready_cb;
   void *ready_cb_arg;
   void *ready_cb_timer;
 
-  TAILQ_ENTRY(nr_ice_candidate_) entry_sock;  
+  TAILQ_ENTRY(nr_ice_candidate_) entry_sock;
   TAILQ_ENTRY(nr_ice_candidate_) entry_comp;
 };
 

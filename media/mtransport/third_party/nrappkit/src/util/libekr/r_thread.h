@@ -56,7 +56,7 @@ int r_rwlock_create (r_rwlock **lockp);
 int r_rwlock_destroy (r_rwlock **lock);
 int r_rwlock_lock (r_rwlock *lock,int action);
 
-int r_cond_init (r_cond *cond);  
+int r_cond_init (r_cond *cond);
 int r_cond_wait (r_cond cond);
 int r_cond_signal (r_cond cond);
 

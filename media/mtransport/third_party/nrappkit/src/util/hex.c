@@ -60,8 +60,8 @@ nr_nbin2hex(UCHAR *bin, int binlen, char hex[], size_t size, int *len)
         ABORT(R_BAD_ARGS);
 
     for (i = 0; i < binlen; ++i) {
-        *hex++ = bin2hex_map[bin[i]][0]; 
-        *hex++ = bin2hex_map[bin[i]][1]; 
+        *hex++ = bin2hex_map[bin[i]][0];
+        *hex++ = bin2hex_map[bin[i]][1];
     }
 
     if (size >= (2*binlen)+1)
@@ -84,11 +84,11 @@ nr_nhex2bin(char *hex, int hexlen, UCHAR bin[], size_t size, int *len)
     int h2;
     int i;
 
-    if (hexlen % 2) 
+    if (hexlen % 2)
         ABORT(R_BAD_ARGS);
 
     binlen = hexlen/2;
- 
+
     if (size < binlen)
         ABORT(R_BAD_ARGS);
 
@@ -99,7 +99,7 @@ nr_nhex2bin(char *hex, int hexlen, UCHAR bin[], size_t size, int *len)
         if (h1 == -1 || h2 == -1)
             ABORT(R_BAD_ARGS);
 
-        bin[i] = (h1 << 4) | h2; 
+        bin[i] = (h1 << 4) | h2;
     }
 
     *len = binlen;

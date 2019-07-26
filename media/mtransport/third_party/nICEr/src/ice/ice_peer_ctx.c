@@ -66,7 +66,7 @@ int nr_ice_peer_ctx_create(nr_ice_ctx *ctx, nr_ice_handler *handler,char *label,
         r_log(LOG_ICE,LOG_ERR,"Both sides are ICE-Lite");
         ABORT(R_BAD_DATA);
       }
-        
+
       pctx->controlling=0;
     }
     else{
@@ -77,7 +77,7 @@ int nr_ice_peer_ctx_create(nr_ice_ctx *ctx, nr_ice_handler *handler,char *label,
     }
     if(r=nr_crypto_random_bytes((UCHAR *)&pctx->tiebreaker,8))
       ABORT(r);
-    
+
     STAILQ_INIT(&pctx->peer_streams);
 
     STAILQ_INSERT_TAIL(&ctx->peers,pctx,entry);
@@ -211,7 +211,7 @@ int nr_ice_peer_ctx_parse_trickle_candidate(nr_ice_peer_ctx *pctx, nr_ice_media_
     while(pstream) {
       if (pstream->local_stream == stream)
         break;
-      
+
       pstream = STAILQ_NEXT(pstream, entry);
     }
     if (!pstream) {
@@ -286,12 +286,12 @@ int nr_ice_peer_ctx_pair_candidates(nr_ice_peer_ctx *pctx)
 
     stream=STAILQ_FIRST(&pctx->peer_streams);
     while(stream){
-      if(r=nr_ice_media_stream_pair_candidates(pctx, stream->local_stream, 
+      if(r=nr_ice_media_stream_pair_candidates(pctx, stream->local_stream,
         stream))
         ABORT(r);
 
       stream=STAILQ_NEXT(stream,entry);
-    }   
+    }
 
     _status=0;
   abort:
@@ -446,13 +446,13 @@ int nr_ice_peer_ctx_stream_done(nr_ice_peer_ctx *pctx, nr_ice_media_stream *stre
       }
       str=STAILQ_NEXT(str,entry);
     }
- 
+
     if(str)
       goto done;  
 
     
     r_log(LOG_ICE,LOG_INFO,"ICE-PEER(%s): all checks completed success=%d fail=%d",pctx->label,succeeded,failed);
-    
+
     
 
 

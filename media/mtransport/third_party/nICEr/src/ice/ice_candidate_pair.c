@@ -63,11 +63,11 @@ int nr_ice_candidate_pair_create(nr_ice_peer_ctx *pctx, nr_ice_candidate *lcand,
 
     if(!(pair=RCALLOC(sizeof(nr_ice_cand_pair))))
       ABORT(R_NO_MEMORY);
-    
+
     pair->pctx=pctx;
-    
+
     nr_ice_candidate_pair_compute_codeword(pair,lcand,rcand);
-    
+
     if(r=nr_concat_strings(&pair->as_string,pair->codeword,"|",lcand->addr.as_string,"|",
         rcand->addr.as_string,"(",lcand->label,"|",rcand->label,")", NULL))
       ABORT(r);
@@ -80,7 +80,7 @@ int nr_ice_candidate_pair_create(nr_ice_peer_ctx *pctx, nr_ice_candidate *lcand,
     if(pctx->ctx->flags & NR_ICE_CTX_FLAGS_OFFERER)
     {
       assert(!(pctx->ctx->flags & NR_ICE_CTX_FLAGS_ANSWERER));
-      
+
       o_priority=lcand->priority;
       a_priority=rcand->priority;
     }
@@ -88,9 +88,9 @@ int nr_ice_candidate_pair_create(nr_ice_peer_ctx *pctx, nr_ice_candidate *lcand,
       o_priority=rcand->priority;
       a_priority=lcand->priority;
     }
-    pair->priority=(MIN(o_priority, a_priority))<<32 | 
+    pair->priority=(MIN(o_priority, a_priority))<<32 |
       (MAX(o_priority, a_priority))<<1 | (o_priority > a_priority?0:1);
-    
+
     r_log(LOG_ICE,LOG_DEBUG,"ICE(%s): Pairing candidate %s (%x):%s (%x) priority=%llu (%llx) codeword=%s",pctx->ctx->label,lcand->addr.as_string,lcand->priority,rcand->addr.as_string,rcand->priority,pair->priority,pair->priority,pair->codeword);
 
     
@@ -144,7 +144,7 @@ int nr_ice_candidate_pair_create(nr_ice_peer_ctx *pctx, nr_ice_candidate *lcand,
     if(!(r2lpass=r_strdup(lpwd)))
       ABORT(R_NO_MEMORY);
     INIT_DATA(pair->r2l_pwd,(UCHAR *)r2lpass,strlen(r2lpass));
-    
+
     *pairp=pair;
 
     _status=0;
@@ -172,7 +172,7 @@ int nr_ice_candidate_pair_destroy(nr_ice_cand_pair **pairp)
     RFREE(pair->stun_client->params.ice_binding_request.username);
     RFREE(pair->stun_client->params.ice_binding_request.password.data);
     nr_stun_client_ctx_destroy(&pair->stun_client);
-    
+
     RFREE(pair->r2l_user);
     RFREE(pair->r2l_pwd.data);
 
@@ -187,9 +187,9 @@ int nr_ice_candidate_pair_destroy(nr_ice_cand_pair **pairp)
 int nr_ice_candidate_pair_unfreeze(nr_ice_peer_ctx *pctx, nr_ice_cand_pair *pair)
   {
     assert(pair->state==NR_ICE_PAIR_STATE_FROZEN);
-    
+
     nr_ice_candidate_pair_set_state(pctx,pair,NR_ICE_PAIR_STATE_WAITING);
-    
+
     return(0);
   }
 
@@ -221,13 +221,13 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
         sres=pair->stun_client->response;
         if(sres && nr_stun_message_has_attribute(sres,NR_STUN_ATTR_ERROR_CODE,&attr)&&attr->u.error_code.number==487){
           r_log(LOG_ICE,LOG_ERR,"ICE-PEER(%s): detected role conflict. Switching to controlled",pair->pctx->label);
-          
+
           pair->pctx->controlling=0;
-	  
-	  
-	  if(!pair->restart_controlled_cb_timer)
-	    NR_ASYNC_TIMER_SET(0,nr_ice_candidate_pair_restart_stun_controlled_cb,pair,&pair->restart_controlled_cb_timer);
+
           
+          if(!pair->restart_controlled_cb_timer)
+            NR_ASYNC_TIMER_SET(0,nr_ice_candidate_pair_restart_stun_controlled_cb,pair,&pair->restart_controlled_cb_timer);
+
           return;
         }
         
@@ -250,7 +250,7 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
           nr_ice_candidate_pair_set_state(pair->pctx,pair,NR_ICE_PAIR_STATE_FAILED);
           break;
         }
- 
+
         if(strlen(pair->stun_client->results.ice_binding_response.mapped_addr.as_string)==0){
           
 
@@ -274,10 +274,10 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
           while(cand){
             if(!nr_transport_addr_cmp(&cand->addr,&pair->stun_client->results.ice_binding_response.mapped_addr,NR_TRANSPORT_ADDR_CMP_MODE_ALL))
               break;
- 
+
             cand=TAILQ_NEXT(cand,entry_comp);
           }
- 
+
           
           if(!cand){
             if(r=nr_ice_candidate_create(pair->pctx->ctx,"prflx",
@@ -300,18 +300,18 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
 
           if(r=nr_ice_candidate_pair_insert(&pair->remote->stream->check_list,pair))
             ABORT(r);
-          
+
           
 
           if(orig_pair->peer_nominated)
             pair->peer_nominated=1;
 
+
           
-          
-          nr_ice_candidate_pair_set_state(orig_pair->pctx,orig_pair,NR_ICE_PAIR_STATE_FAILED); 
-          
+          nr_ice_candidate_pair_set_state(orig_pair->pctx,orig_pair,NR_ICE_PAIR_STATE_FAILED);
+
         }
-        
+
         
         if(pair->pctx->controlling){
           if(pair->pctx->ctx->flags & NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION)
@@ -321,16 +321,16 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
           if(pair->peer_nominated)
             pair->nominated=1;
         }
-        
-        
+
+
         
         
         pair->remote->component->valid_pairs++;
-        
+
         
         if(r=nr_ice_media_stream_unfreeze_pairs_foundation(pair->remote->stream,pair->foundation))
           ABORT(r);
-        
+
         
         if(pair->nominated){
           if(r=nr_ice_component_nominated_pair(pair->remote->component, pair))
@@ -341,11 +341,11 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
       default:
         ABORT(R_INTERNAL);
     }
-    
+
     
 
     if(pair->pctx->controlling && !(pair->pctx->ctx->flags & NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION)){
-      
+
       if(r=nr_ice_component_select_pair(pair->pctx,pair->remote->component)){
         if(r!=R_NOT_FOUND)
           ABORT(r);
@@ -368,7 +368,7 @@ int nr_ice_candidate_pair_start(nr_ice_peer_ctx *pctx, nr_ice_cand_pair *pair)
     
     if(r=nr_ice_socket_register_stun_client(pair->local->isock,pair->stun_client,&pair->stun_client_handle))
       ABORT(r);
-    
+
     
     if(pair->pctx->controlling && (pair->pctx->ctx->flags & NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION))
       mode=NR_ICE_CLIENT_MODE_USE_CANDIDATE;
@@ -419,7 +419,7 @@ int nr_ice_candidate_pair_do_triggered_check(nr_ice_peer_ctx *pctx, nr_ice_cand_
       default:
         break;
     }
-    
+
     
     if(pair->remote->stream->ice_state==NR_ICE_MEDIA_STREAM_CHECKS_FROZEN){
       if(r=nr_ice_media_stream_start_checks(pair->pctx,pair->remote->stream))
@@ -447,7 +447,7 @@ int nr_ice_candidate_pair_cancel(nr_ice_peer_ctx *pctx,nr_ice_cand_pair *pair)
 int nr_ice_candidate_pair_select(nr_ice_cand_pair *pair)
   {
     int r,_status;
-   
+
     if(!pair){
       r_log(LOG_ICE,LOG_ERR,"ICE-PAIR: No pair chosen");
       ABORT(R_BAD_ARGS);
@@ -521,7 +521,7 @@ int nr_ice_candidate_pair_set_state(nr_ice_peer_ctx *pctx, nr_ice_cand_pair *pai
 int nr_ice_candidate_pair_dump_state(nr_ice_cand_pair *pair, FILE *out)
   {
     
-    
+
     return(0);
   }
 
@@ -536,7 +536,7 @@ int nr_ice_candidate_pair_insert(nr_ice_cand_pair_head *head,nr_ice_cand_pair *p
         TAILQ_INSERT_BEFORE(c1,pair,entry);
         break;
       }
-        
+
       c1=TAILQ_NEXT(c1,entry);
     }
     if(!c1) TAILQ_INSERT_TAIL(head,pair,entry);

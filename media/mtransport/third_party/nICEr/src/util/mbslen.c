@@ -112,14 +112,14 @@ mbslen(const char *s, size_t *ncharsp)
 #endif 
     {
         if (nbytes == (size_t)-1)    {
-	    assert(0);
+            assert(0);
             ABORT(R_INTERNAL);
-	}
+        }
         if (nbytes == (size_t)-2)    {
-	    assert(0);
+            assert(0);
             ABORT(R_BAD_DATA);
-	}
- 
+        }
+
         s += nbytes;
         ++nchars;
     }

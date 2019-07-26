@@ -59,19 +59,19 @@ int r_bitfield_create(setp,size)
     r_bitfield *set=0;
     int _status;
     int num_words=size/32+!!(size%32);
-    
+
     if(!(set=(r_bitfield *)RMALLOC(sizeof(r_bitfield))))
       ABORT(R_NO_MEMORY);
 
     if(!(set->data=(UINT4 *)RMALLOC(num_words*4)))
       ABORT(R_NO_MEMORY);
     memset(set->data,0,4*num_words);
-    
+
     set->base=0;
     set->len=num_words;
 
     *setp=set;
-    
+
     _status=0;
   abort:
     if(_status){
@@ -84,7 +84,7 @@ int r_bitfield_destroy(setp)
   r_bitfield **setp;
   {
     r_bitfield *set;
-    
+
     if(!setp || !*setp)
       return(0);
 
@@ -109,13 +109,13 @@ int r_bitfield_set(set,bit)
     if(word>set->len){
       UINT4 newlen=set->len;
       UINT4 *tmp;
-      
+
       while(newlen<word)
 	newlen*=2;
-      
+
       if(!(tmp=(UINT4 *)RMALLOC(newlen)))
 	ABORT(R_NO_MEMORY);
-      
+
       memcpy(tmp,set->data,set->len*4);
       memset(tmp+set->len*4,0,(newlen-set->len)*4);
 

@@ -267,7 +267,7 @@ nr_reg_local_find_children(void *ptr, r_assoc_iterator *iter, char *prefix, char
   }
 
   _status = 0;
- abort: 
+ abort:
   return _status;
 }
 
@@ -351,14 +351,14 @@ nr_reg_fetch_node(char *name, unsigned char type, nr_registry_node **node, int *
   abort:
     if (_status) {
         if (*node)
-            r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Couldn't fetch node '%s' ('%s'), found '%s' instead", 
+            r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Couldn't fetch node '%s' ('%s'), found '%s' instead",
               name, nr_reg_type_name(type), nr_reg_type_name((*node)->type));
-        else 
-            r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Couldn't fetch node '%s' ('%s')", 
+        else
+            r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Couldn't fetch node '%s' ('%s')",
               name, nr_reg_type_name(type));
     }
     else {
-        r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Fetched node '%s' ('%s')", 
+        r_log(NR_LOG_REGISTRY, LOG_DEBUG, "Fetched node '%s' ('%s')",
               name, nr_reg_type_name(type));
     }
     return(_status);
@@ -507,7 +507,7 @@ nr_reg_alloc_node_data(char *name, nr_registry_node *node, int *freeit)
       }
       break;
     case NR_REG_TYPE_STRING:
-      s = (char*)((nr_array_registry_node*)node)->array.data; 
+      s = (char*)((nr_array_registry_node*)node)->array.data;
       break;
     default:
       assert(0); 
@@ -800,7 +800,7 @@ nr_reg_is_valid(NR_registry name)
       if (isspace(name[i]) || ! (isprint(name[i]) || name[i] == '/'))
         ABORT(R_BAD_ARGS);
     }
- 
+
     _status=0;
   abort:
     if (_status) {

@@ -70,7 +70,7 @@ extern int NR_LOG_REASSD;
 
 #include "registry.h"
 #include "nrstats.h"
- 
+
 typedef struct nr_captured_packet_ {
      UCHAR cap_interface;       
      struct timeval ts;     

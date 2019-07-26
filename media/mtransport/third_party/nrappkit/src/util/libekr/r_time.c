@@ -101,7 +101,7 @@ int r_timeval_diff(t1,t0,diff)
     
     if(t0->tv_usec <= t1->tv_usec){
       diff->tv_sec=t1->tv_sec - t0->tv_sec;
-      diff->tv_usec=t1->tv_usec - t0->tv_usec;      
+      diff->tv_usec=t1->tv_usec - t0->tv_usec;
       return(0);
     }
 
@@ -135,7 +135,7 @@ int r_timeval_add(t1,t2,sum)
 
     sum->tv_sec=tv_sec;
     sum->tv_usec=tv_usec;
-    
+
     return(0);
   }
 
@@ -154,16 +154,16 @@ int r_timeval_cmp(t1,t2)
     return(0);
   }
 
-    
+
 UINT8 r_timeval2int(tv)
   struct timeval *tv;
   {
     UINT8 r=0;
-    
+
     r=(tv->tv_sec);
     r*=1000000;
     r+=tv->tv_usec;
-        
+
     return r;
   }
 
@@ -210,7 +210,7 @@ int r_timeval_diff_usec(struct timeval *t1, struct timeval *t0, INT8 *diff)
 
 
     *diff = ((tmp.tv_sec * (1000*1000)) + tmp.tv_usec) * sign;
-    
+
     _status = 0;
   abort:
     return(_status);
@@ -236,7 +236,7 @@ int r_timeval_diff_ms(struct timeval *t1, struct timeval *t0, INT8 *diff)
 
 
     *diff = ((tmp.tv_sec * 1000) + (tmp.tv_usec / 1000)) * sign;
-    
+
     _status = 0;
   abort:
     return(_status);

@@ -115,9 +115,9 @@ int nr_xdump(name,data,len)
       printf("%s[%d]=\n",name,len);
     }
     for(i=0;i<len;i++){
-      
+
       if((len>8) && i && !(i%12)){
-        printf("\n"); 
+        printf("\n");
       }
       printf("%.2x ",data[i]&255);
     }
@@ -126,6 +126,6 @@ int nr_xdump(name,data,len)
     return(0);
   }
 
-  
-  
-  
+
+
+

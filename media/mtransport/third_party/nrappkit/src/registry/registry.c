@@ -67,7 +67,7 @@
 static nr_registry_module *reg_vtbl = 0;
 
 
-static char *typenames[] = { "char", "UCHAR", "INT2", "UINT2", "INT4", "UINT4", "INT8", "UINT8", "double", "Data", "string", "registry" }; 
+static char *typenames[] = { "char", "UCHAR", "INT2", "UINT2", "INT4", "UINT4", "INT8", "UINT8", "double", "Data", "string", "registry" };
 
 int NR_LOG_REGISTRY=0;
 
@@ -410,35 +410,35 @@ NR_reg_get2_bytes(NR_registry parent, char *child, UCHAR *out, size_t size, size
 {
     int r, _status;
     NR_registry registry;
-  
+
     if ((r=NR_reg_make_registry(parent, child, registry)))
       ABORT(r);
-  
+
     if ((r=NR_reg_get_bytes(registry, out, size, length)))
       ABORT(r);
-  
+
     _status = 0;
-abort:                                                               
+abort:
     return (_status);
 }
- 
+
 int
 NR_reg_get2_string(NR_registry parent, char *child, char *out, size_t size)
 {
     int r, _status;
     NR_registry registry;
-  
+
     if ((r=NR_reg_make_registry(parent, child, registry)))
       ABORT(r);
-  
+
     if ((r=NR_reg_get_string(registry, out, size)))
       ABORT(r);
-  
+
     _status = 0;
-abort:                                                               
+abort:
     return (_status);
 }
- 
+
 
 
 #define NRSET2(func, type, set) \
@@ -524,12 +524,12 @@ NR_reg_make_child_registry(NR_registry parent, NR_registry descendant, unsigned 
 int
 NR_reg_get2_child_count(NR_registry base, NR_registry name, unsigned int *count)
   {
-    int r, _status;                                                    
-    NR_registry registry;                                              
-    
+    int r, _status;
+    NR_registry registry;
+
     if ((r=nr_c2ru_make_registry(base, name, registry)))
       ABORT(r);
-    
+
     if (r=NR_reg_get_child_count(registry,count))
       ABORT(r);
 
@@ -546,7 +546,7 @@ NR_reg_get2_child_registry(NR_registry base, NR_registry name, unsigned int i, N
 
     if ((r=nr_c2ru_make_registry(base, name, registry)))
       ABORT(r);
-    
+
     if (r=NR_reg_get_child_registry(registry, i, child))
       ABORT(r);
 
@@ -579,7 +579,7 @@ NR_reg_make_registry(NR_registry parent, char *child, NR_registry out)
 
     if (out != parent)
         strcpy(out, parent);
- 
+
     c = &(out[plen]);
 
     if (parent[0] != '\0') {
@@ -594,7 +594,7 @@ NR_reg_make_registry(NR_registry parent, char *child, NR_registry out)
     }
     if (i == 0 || child[i-1] == '.')
         ABORT(R_BAD_ARGS);
- 
+
     *c = '\0';
 
     _status = 0;

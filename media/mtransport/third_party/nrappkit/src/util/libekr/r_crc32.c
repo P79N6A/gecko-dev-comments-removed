@@ -164,14 +164,14 @@ r_crc32(buf, dlen, cval)
     u_int32_t crc32_total = 0 ;
 
     p=buf;
-    
+
     for(i=0;i<dlen;i++){
       CRC(crc, *p) ;
       CRC(crc32_total, *p) ;
       p++;
     }
-    
+
     *cval = ~crc ;
-    
+
     return 0 ;
 }

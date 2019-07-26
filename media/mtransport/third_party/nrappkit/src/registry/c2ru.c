@@ -263,7 +263,7 @@ abort:
 }
 
 int
-nr_c2ru_set_children(NR_registry parent, char *child, void *ptr, int (*set)(NR_registry, void*), int (*label)(NR_registry, void*, char[NR_REG_MAX_NR_REGISTRY_LEN])) 
+nr_c2ru_set_children(NR_registry parent, char *child, void *ptr, int (*set)(NR_registry, void*), int (*label)(NR_registry, void*, char[NR_REG_MAX_NR_REGISTRY_LEN]))
 {
   int r, _status;
   NR_registry registry;

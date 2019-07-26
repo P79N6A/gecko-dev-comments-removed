@@ -92,7 +92,7 @@ static char *RCSSTRING __UNUSED__ ="$Id: r_errors.c,v 1.5 2008/11/26 03:22:02 ad
 static struct {
     int    errnum;
     char  *str;
-} errors[] = NR_ERROR_MAPPING;  
+} errors[] = NR_ERROR_MAPPING;
 
 int nr_verr_exit(char *fmt,...)
   {

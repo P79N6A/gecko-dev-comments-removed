@@ -92,7 +92,7 @@ char *strdup(str)
   {
     int len=strlen(str);
     char *n;
-    
+
     if(!(n=(char *)malloc(len+1)))
       return(0);
 
@@ -100,8 +100,8 @@ char *strdup(str)
 
     return(n);
   }
-#endif  
-  
+#endif
+
 
 #ifdef SUPPLY_ATEXIT
 int atexit(void (*func)(void)){

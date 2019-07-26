@@ -94,7 +94,7 @@ int r_data_create(dp,d,l)
   {
     Data *d_=0;
     int _status;
-    
+
     if(!(d_=(Data *)RCALLOC(sizeof(Data))))
       ABORT(R_NO_MEMORY);
     if(!(d_->data=(UCHAR *)RMALLOC(l)))
@@ -119,11 +119,11 @@ int r_data_alloc_mem(d,l)
   int l;
   {
     int _status;
-    
+
     if(!(d->data=(UCHAR *)RMALLOC(l)))
       ABORT(R_NO_MEMORY);
     d->len=l;
-    
+
     _status=0;
   abort:
     return(_status);
@@ -135,14 +135,14 @@ int r_data_alloc(dp,l)
   {
     Data *d_=0;
     int _status;
-    
+
     if(!(d_=(Data *)RCALLOC(sizeof(Data))))
       ABORT(R_NO_MEMORY);
     if(!(d_->data=(UCHAR *)RCALLOC(l)))
       ABORT(R_NO_MEMORY);
 
     d_->len=l;
-    
+
     *dp=d_;
     _status=0;
   abort:
@@ -165,7 +165,7 @@ int r_data_make(dp,d,l)
 
     return(0);
   }
-  
+
 int r_data_destroy(dp)
   Data **dp;
   {
@@ -185,7 +185,7 @@ int r_data_destroy_v(v)
   void *v;
   {
     Data *d;
-    
+
     if(!v)
       return(0);
 
@@ -201,7 +201,7 @@ int r_data_destroy_vp(v)
   void **v;
   {
     Data *d;
-    
+
     if(!v || !*v)
       return(0);
 
@@ -246,4 +246,4 @@ int r_data_compare(d1,d2)
       return(-1);
     return(memcmp(d1->data,d2->data,d1->len));
   }
-  
+
