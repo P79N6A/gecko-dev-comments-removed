@@ -490,18 +490,37 @@ class TreeMetadataEmitter(LoggingMixin):
                         else:
                             full = mozpath.normpath(mozpath.join(manifest_dir,
                                 pattern))
+
+                            dest_path = mozpath.join(out_dir, pattern)
+
+                            
                             
                             
                             if not full.startswith(manifest_dir):
-                                continue
+                                
+                                
+                                
+                                
+                                
+                                
+                                if thing == 'support-files':
+                                    dest_path = mozpath.join(out_dir,
+                                        os.path.basename(pattern))
+                                
+                                
+                                
+                                
+                                else:
+                                    continue
 
-                            obj.installs[full] = mozpath.join(out_dir, pattern)
+                            obj.installs[full] = (mozpath.normpath(dest_path),
+                                False)
 
             for test in filtered:
                 obj.tests.append(test)
 
                 obj.installs[mozpath.normpath(test['path'])] = \
-                    mozpath.join(out_dir, test['relpath'])
+                    (mozpath.join(out_dir, test['relpath']), True)
 
                 process_support_files(test)
 
@@ -511,7 +530,7 @@ class TreeMetadataEmitter(LoggingMixin):
 
             
             out_path = mozpath.join(out_dir, mozpath.basename(manifest_path))
-            obj.installs[path] = out_path
+            obj.installs[path] = (out_path, False)
 
             
             

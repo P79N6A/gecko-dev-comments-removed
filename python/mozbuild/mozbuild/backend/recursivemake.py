@@ -1043,11 +1043,13 @@ class RecursiveMakeBackend(CommonBackend):
             obj.manifest_relpath))
 
         
-        for source, dest in obj.installs.items():
+        
+        
+        for source, (dest, is_test) in obj.installs.items():
             try:
                 self._install_manifests['tests'].add_symlink(source, dest)
             except ValueError:
-                if not obj.dupe_manifest:
+                if not obj.dupe_manifest and is_test:
                     raise
 
         for base, pattern, dest in obj.pattern_installs:
