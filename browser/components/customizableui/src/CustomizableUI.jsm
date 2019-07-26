@@ -1923,8 +1923,8 @@ this.CustomizableUI = {
     CustomizableUIInternal.registerArea(aName, aProperties);
   },
   
-  registerToolbar: function(aToolbar) {
-    CustomizableUIInternal.registerToolbar(aToolbar);
+  registerToolbar: function(aToolbar, aIsOverlayed) {
+    CustomizableUIInternal.registerToolbar(aToolbar, aIsOverlayed);
   },
   registerMenuPanel: function(aPanel) {
     CustomizableUIInternal.registerMenuPanel(aPanel);
