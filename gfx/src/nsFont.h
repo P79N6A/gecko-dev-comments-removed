@@ -13,7 +13,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsCoord.h"                    
 #include "nsStringFwd.h"                
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "nsTArray.h"                   
 
 struct gfxFontStyle;

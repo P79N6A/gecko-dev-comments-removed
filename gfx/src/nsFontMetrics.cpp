@@ -16,7 +16,7 @@
 #include "nsIAtom.h"                    
 #include "nsMathUtils.h"                
 #include "nsRenderingContext.h"         
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "nsStyleConsts.h"              
 
 class gfxUserFontSet;

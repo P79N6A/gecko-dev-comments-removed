@@ -25,7 +25,7 @@
 #include "nsIObserverService.h"         
 #include "nsIRunnable.h"                
 #include "nsISupports.h"
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "nscore.h"                     

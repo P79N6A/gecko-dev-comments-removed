@@ -13,7 +13,7 @@
 #include "nsIAtom.h"                    
 #include "nsID.h"
 #include "nsMemory.h"                   
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "nsTArray.h"                   
 #include "nscore.h"                     
 

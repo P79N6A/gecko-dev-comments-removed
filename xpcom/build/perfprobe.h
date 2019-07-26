@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_perfprobe_h
 #define mozilla_perfprobe_h
 
@@ -49,7 +16,7 @@
 #endif
 
 #include "nsError.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "prlog.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
@@ -85,7 +52,7 @@ protected:
   Probe(const nsCID &aGUID,
         const nsACString &aName,
          ProbeManager *aManager);
-  friend ProbeManager;
+  friend class ProbeManager;
 
 protected:
 
@@ -222,15 +189,15 @@ protected:
 
   bool mInitialized;
 
-  friend Probe;
+  friend class Probe;
   friend ULONG WINAPI ControlCallback(
-                                      __in  WMIDPREQUESTCODE RequestCode,
-                                      __in  PVOID Context,
-                                      __in  ULONG *Reserved,
-                                      __in  PVOID Buffer
+                                      WMIDPREQUESTCODE RequestCode,
+                                      PVOID Context,
+                                      ULONG *Reserved,
+                                      PVOID Buffer
                                       );
 };
 }
-};
+}
 
 #endif 

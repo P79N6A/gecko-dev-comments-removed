@@ -30,7 +30,7 @@
 #include "nsRect.h"                     
 #include "nsRenderingContext.h"         
 #include "nsServiceManagerUtils.h"      
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "nsTraceRefcnt.h"              

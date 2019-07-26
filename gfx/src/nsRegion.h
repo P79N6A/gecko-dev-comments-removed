@@ -14,7 +14,7 @@
 #include "nsError.h"                    
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "xpcom-config.h"               
 
 class nsIntRegion;

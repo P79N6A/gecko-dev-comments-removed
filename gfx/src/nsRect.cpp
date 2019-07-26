@@ -6,7 +6,7 @@
 #include "nsRect.h"
 #include "mozilla/gfx/Types.h"          
 #include "nsDeviceContext.h"            
-#include "nsStringGlue.h"               
+#include "nsString.h"               
 #include "prtypes.h"                    
 #include "nsMargin.h"                   
 

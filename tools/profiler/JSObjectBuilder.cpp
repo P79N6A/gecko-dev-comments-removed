@@ -4,7 +4,7 @@
 
 
 #include "jsapi.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "JSObjectBuilder.h"
 
 JSObjectBuilder::JSObjectBuilder(JSContext *aCx) : mCx(aCx), mOk(true)

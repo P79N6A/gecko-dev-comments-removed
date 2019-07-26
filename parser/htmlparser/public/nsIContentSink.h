@@ -17,7 +17,7 @@
 
 
 #include "nsISupports.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "mozFlushType.h"
 #include "nsIDTD.h"
 
