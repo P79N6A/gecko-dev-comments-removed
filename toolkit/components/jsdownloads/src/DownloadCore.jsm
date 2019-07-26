@@ -56,6 +56,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
                                   "resource://gre/modules/DownloadIntegration.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
@@ -68,6 +70,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 const BackgroundFileSaverStreamListener = Components.Constructor(
       "@mozilla.org/network/background-file-saver;1?mode=streamlistener",
       "nsIBackgroundFileSaver");
+
+
+
+
+function isString(aValue) {
+  
+  return (typeof aValue == "string") ||
+         (typeof aValue == "object" && "charAt" in aValue);
+}
 
 
 
@@ -422,6 +433,71 @@ Download.prototype = {
     }
     this._notifyChange();
   },
+
+  
+
+
+
+
+  toSerializable: function ()
+  {
+    let serializable = {
+      source: this.source.toSerializable(),
+      target: this.target.toSerializable(),
+    };
+
+    
+    
+    
+    
+    let saver = this.saver.toSerializable();
+    if (saver !== "copy") {
+      serializable.saver = saver;
+    }
+
+    return serializable;
+  },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Download.fromSerializable = function (aSerializable) {
+  let download = new Download();
+  if (aSerializable.source instanceof DownloadSource) {
+    download.source = aSerializable.source;
+  } else {
+    download.source = DownloadSource.fromSerializable(aSerializable.source);
+  }
+  if (aSerializable.target instanceof DownloadTarget) {
+    download.target = aSerializable.target;
+  } else {
+    download.target = DownloadTarget.fromSerializable(aSerializable.target);
+  }
+  if ("saver" in aSerializable) {
+    download.saver = DownloadSaver.fromSerializable(aSerializable.saver);
+  } else {
+    download.saver = DownloadSaver.fromSerializable("copy");
+  }
+  download.saver.download = download;
+  return download;
 };
 
 
@@ -436,7 +512,7 @@ DownloadSource.prototype = {
   
 
 
-  uri: null,
+  url: null,
 
   
 
@@ -456,17 +532,58 @@ DownloadSource.prototype = {
 
 
 
-  serialize: function DS_serialize()
+  toSerializable: function ()
   {
-    let serialized = { uri: this.uri.spec };
+    
+    if (!this.isPrivate && !this.referrer) {
+      return this.url;
+    }
+
+    let serializable = { url: this.url };
     if (this.isPrivate) {
-      serialized.isPrivate = true;
+      serializable.isPrivate = true;
     }
     if (this.referrer) {
-      serialized.referrer = this.referrer.spec;
+      serializable.referrer = this.referrer;
     }
-    return serialized;
+    return serializable;
   },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DownloadSource.fromSerializable = function (aSerializable) {
+  let source = new DownloadSource();
+  if (isString(aSerializable)) {
+    source.url = aSerializable;
+  } else if (aSerializable instanceof Ci.nsIURI) {
+    source.url = aSerializable.spec;
+  } else {
+    source.url = aSerializable.url;
+    if ("isPrivate" in aSerializable) {
+      source.isPrivate = aSerializable.isPrivate;
+    }
+    if ("referrer" in aSerializable) {
+      source.referrer = aSerializable.referrer;
+    }
+  }
+  return source;
 };
 
 
@@ -482,17 +599,46 @@ DownloadTarget.prototype = {
   
 
 
-  file: null,
+  path: null,
 
   
 
 
 
 
-  serialize: function DT_serialize()
+  toSerializable: function ()
   {
-    return { file: this.file.path };
+    
+    return this.path;
   },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DownloadTarget.fromSerializable = function (aSerializable) {
+  let target = new DownloadTarget();
+  if (isString(aSerializable)) {
+    target.path = aSerializable;
+  } else if (aSerializable instanceof Ci.nsIFile) {
+    
+    target.path = aSerializable.path;
+  } else {
+    
+    
+    target.path = aSerializable.path;
+  }
+  return target;
 };
 
 
@@ -610,10 +756,37 @@ DownloadSaver.prototype = {
 
 
 
-  serialize: function DS_serialize()
+  toSerializable: function ()
   {
     throw new Error("Not implemented.");
   },
+};
+
+
+
+
+
+
+
+
+
+
+
+DownloadSaver.fromSerializable = function (aSerializable) {
+  let serializable = isString(aSerializable) ? { type: aSerializable }
+                                             : aSerializable;
+  let saver;
+  switch (serializable.type) {
+    case "copy":
+      saver = DownloadCopySaver.fromSerializable(serializable);
+      break;
+    case "legacy":
+      saver = DownloadLegacySaver.fromSerializable(serializable);
+      break;
+    default:
+      throw new Error("Unrecoginzed download saver type.");
+  }
+  return saver;
 };
 
 
@@ -665,15 +838,16 @@ DownloadCopySaver.prototype = {
       };
 
       
-      backgroundFileSaver.setTarget(download.target.file, false);
+      backgroundFileSaver.setTarget(new FileUtils.File(download.target.path),
+                                    false);
 
       
-      let channel = NetUtil.newChannel(download.source.uri);
+      let channel = NetUtil.newChannel(NetUtil.newURI(download.source.url));
       if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
         channel.setPrivate(download.source.isPrivate);
       }
-      if (channel instanceof Ci.nsIHttpChannel) {
-        channel.referrer = download.source.referrer;
+      if (channel instanceof Ci.nsIHttpChannel && download.source.referrer) {
+        channel.referrer = NetUtil.newURI(download.source.referrer);
       }
 
       channel.notificationCallbacks = {
@@ -749,10 +923,25 @@ DownloadCopySaver.prototype = {
   
 
 
-  serialize: function DCS_serialize()
+  toSerializable: function ()
   {
-    return { type: "copy" };
+    
+    return "copy";
   },
+};
+
+
+
+
+
+
+
+
+
+
+DownloadCopySaver.fromSerializable = function (aSerializable) {
+  
+  return new DownloadCopySaver();
 };
 
 
@@ -872,7 +1061,7 @@ DownloadLegacySaver.prototype = {
         
         try {
           
-          let file = yield OS.File.open(this.download.target.file.path,
+          let file = yield OS.File.open(this.download.target.path,
                                         { create: true });
           yield file.close();
         } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
@@ -897,4 +1086,13 @@ DownloadLegacySaver.prototype = {
     this.deferExecuted.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
                                                 "Download canceled."));
   },
+};
+
+
+
+
+
+
+DownloadLegacySaver.fromSerializable = function () {
+  return new DownloadLegacySaver();
 };

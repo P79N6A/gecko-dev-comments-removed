@@ -9,6 +9,25 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
@@ -27,15 +46,10 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-
-const LocalFile = Components.Constructor("@mozilla.org/file/local;1",
-                                         "nsIFile", "initWithPath");
 
 XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function () {
   return new TextDecoder();
@@ -95,19 +109,9 @@ DownloadStore.prototype = {
       let storeData = JSON.parse(gTextDecoder.decode(bytes));
 
       
-      for (let downloadData of storeData) {
+      for (let downloadData of storeData.list) {
         try {
-          let source = { uri: NetUtil.newURI(downloadData.source.uri) };
-          if ("referrer" in downloadData.source) {
-            source.referrer = NetUtil.newURI(downloadData.source.referrer);
-          }
-          let download = yield Downloads.createDownload({
-            source: source,
-            target: { file: new LocalFile(downloadData.target.file) },
-            saver: downloadData.saver,
-          });
-
-          this.list.add(download);
+          this.list.add(yield Downloads.createDownload(downloadData));
         } catch (ex) {
           
           Cu.reportError(ex);
@@ -131,15 +135,11 @@ DownloadStore.prototype = {
       let downloads = yield this.list.getAll();
 
       
-      let storeData = [];
+      let storeData = { list: [] };
       let atLeastOneDownload = false;
       for (let download of downloads) {
         try {
-          storeData.push({
-            source: download.source.serialize(),
-            target: download.target.serialize(),
-            saver: download.saver.serialize(),
-          });
+          storeData.list.push(download.toSerializable());
           atLeastOneDownload = true;
         } catch (ex) {
           

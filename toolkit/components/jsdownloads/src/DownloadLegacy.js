@@ -161,9 +161,9 @@ DownloadLegacyTransfer.prototype = {
     
     
     Downloads.createDownload({
-      source: { uri: aSource, isPrivate: aIsPrivate },
-      target: { file: aTarget.QueryInterface(Ci.nsIFileURL).file },
-      saver: { type: "legacy" },
+      source: { url: aSource.spec, isPrivate: aIsPrivate },
+      target: aTarget.QueryInterface(Ci.nsIFileURL).file,
+      saver: "legacy",
     }).then(function DLT_I_onDownload(aDownload) {
       
       aDownload.saver.deferCanceled.promise.then(() => {
