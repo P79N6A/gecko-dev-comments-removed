@@ -2462,11 +2462,18 @@ let SessionStoreInternal = {
       delete this._statesToRestore[aWindow.__SS_restoreID];
       delete aWindow.__SS_restoreID;
       delete this._windows[aWindow.__SSi]._restoring;
-
-      
-      
-      DirtyWindows.add(aWindow);
     }
+
+    
+    
+    DirtyWindows.add(aWindow);
+
+    
+    
+    
+    
+    this._windows[aWindow.__SSi].tabs = aTabData.slice();
+    this._windows[aWindow.__SSi].selected = aSelectTab;
 
     if (aTabs.length == 0) {
       
