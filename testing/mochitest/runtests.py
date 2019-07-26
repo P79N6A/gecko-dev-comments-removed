@@ -835,7 +835,9 @@ class Mochitest(MochitestUtilsMixin):
     
     args.append('-foreground')
     if testUrl:
-       args.append(testUrl)
+      if debuggerInfo and debuggerInfo['requiresEscapedArgs']:
+        testUrl = testUrl.replace("&", "\\&")
+      args.append(testUrl)
 
     if mozinfo.info["debug"] and not webapprtChrome:
       shutdownLeaks = ShutdownLeaks(log.info)
