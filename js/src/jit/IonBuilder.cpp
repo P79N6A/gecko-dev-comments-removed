@@ -1112,10 +1112,68 @@ IonBuilder::traverseBytecode()
                 return maybeAddOsrTypeBarriers();
         }
 
+#ifdef DEBUG
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Vector<MDefinition *> popped(cx);
+        Vector<size_t> poppedUses(cx);
+        unsigned nuses = GetUseCount(script_, pc - script_->code);
+
+        for (unsigned i = 0; i < nuses; i++) {
+            MDefinition *def = current->peek(-int32_t(i + 1));
+            if (!popped.append(def) || !poppedUses.append(def->defUseCount()))
+                return false;
+        }
+#endif
+
         
         JSOp op = JSOp(*pc);
         if (!inspectOpcode(op))
             return false;
+
+#ifdef DEBUG
+        for (size_t i = 0; i < popped.length(); i++) {
+            
+            if (popped[i]->isPassArg() && popped[i]->useCount() == 0)
+                continue;
+
+            switch (op) {
+              case JSOP_POP:
+              case JSOP_POPN:
+              case JSOP_DUP:
+              case JSOP_DUP2:
+              case JSOP_PICK:
+              case JSOP_SWAP:
+              case JSOP_SETARG:
+              case JSOP_SETLOCAL:
+              case JSOP_VOID:
+                
+                break;
+
+              case JSOP_POS:
+              case JSOP_TOID:
+                
+                
+                
+                
+                JS_ASSERT(i == 0);
+                if (current->peek(-1) == popped[0])
+                    break;
+                
+
+              default:
+                JS_ASSERT(popped[i]->isFolded() || popped[i]->defUseCount() > poppedUses[i]);
+                break;
+            }
+        }
+#endif
 
         pc += js_CodeSpec[op].length;
         current->updateTrackedPc(pc);
