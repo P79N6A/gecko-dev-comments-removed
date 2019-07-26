@@ -52,12 +52,47 @@ LocalUTCDifferenceSeconds()
     _tzset();
 #endif
 
-    time_t t = time(NULL);
-    struct tm local, utc;
-
-    if (!ComputeLocalTime(t, &local) || !ComputeUTCTime(t, &utc))
+    
+    time_t currentMaybeWithDST = time(NULL);
+    if (currentMaybeWithDST == time_t(-1))
         return 0;
 
+    
+    
+    struct tm local;
+    if (!ComputeLocalTime(currentMaybeWithDST, &local))
+        return 0;
+
+    
+    time_t currentNoDST;
+    if (local.tm_isdst == 0) {
+        
+        currentNoDST = currentMaybeWithDST;
+    } else {
+        
+        
+        local.tm_isdst = 0;
+
+        
+        
+        
+        
+        
+        
+        currentNoDST = mktime(&local);
+        if (currentNoDST == time_t(-1))
+            return 0;
+    }
+
+    
+    
+    struct tm utc;
+    if (!ComputeUTCTime(currentNoDST, &utc))
+        return 0;
+
+    
+    
+    
     int utc_secs = utc.tm_hour * SecondsPerHour + utc.tm_min * SecondsPerMinute;
     int local_secs = local.tm_hour * SecondsPerHour + local.tm_min * SecondsPerMinute;
 
