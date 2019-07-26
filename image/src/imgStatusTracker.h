@@ -124,9 +124,6 @@ public:
     return mConsumers.SafeElementAt(0, nullptr) == aConsumer;
   }
 
-  
-  const nsTObserverArray<imgRequestProxy*>& GetConsumers() { return mConsumers; };
-
   void AdoptConsumers(imgStatusTracker* aTracker) { mConsumers = aTracker->mConsumers; }
 
   
@@ -182,6 +179,10 @@ public:
   void SendStartRequest(imgRequestProxy* aProxy);
   void RecordStopRequest(bool aLastPart, nsresult aStatus);
   void SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus);
+
+  void OnStartRequest();
+  void OnDataAvailable();
+  void OnStopRequest(bool aLastPart, nsresult aStatus);
 
   
   
