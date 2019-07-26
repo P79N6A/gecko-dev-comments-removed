@@ -252,36 +252,8 @@ FieldGetterImpl(JSContext *cx, JS::CallArgs args)
 static JSBool
 FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  return xpc::WrapperFactory::WaiveXrayAndWrap(cx, args.mutableThisv().address()) &&
-         JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldGetterImpl>
+  return JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldGetterImpl>
                                  (cx, args);
 }
 
@@ -320,12 +292,7 @@ static JSBool
 FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
 {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  
-  
-  
-  
-  return xpc::WrapperFactory::WaiveXrayAndWrap(cx, args.mutableThisv().address()) &&
-         JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldSetterImpl>
+  return JS::CallNonGenericMethod<ValueHasISupportsPrivate, FieldSetterImpl>
                                  (cx, args);
 }
 

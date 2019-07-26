@@ -184,8 +184,6 @@ public:
 
   static bool LookupBindingMember(JSContext* aCx, nsIContent *aContent,
                                   JS::HandleId aId, JSPropertyDescriptor* aDesc);
-  static bool IsBindingField(JSContext* aCx, nsIContent* aContent,
-                             JS::HandleId aId);
 
   
 
