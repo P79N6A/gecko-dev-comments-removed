@@ -291,11 +291,11 @@ public:
 
 
 
-  nsresult ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
-                                           const nsHTMLReflowState& aReflowState,
-                                           nsOverflowAreas&         aOverflowRects,
-                                           uint32_t                 aFlags,
-                                           nsReflowStatus&          aStatus);
+  void ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
+                                       const nsHTMLReflowState& aReflowState,
+                                       nsOverflowAreas&         aOverflowRects,
+                                       uint32_t                 aFlags,
+                                       nsReflowStatus&          aStatus);
 
   
 
