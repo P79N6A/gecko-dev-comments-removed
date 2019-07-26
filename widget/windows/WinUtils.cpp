@@ -780,6 +780,7 @@ AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
     size.width = surface->GetSize().width;
     size.height = surface->GetSize().height;
     dataSurface = surface->GetDataSurface();
+    NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
   }
 
   
