@@ -28,6 +28,8 @@
 
 
 #include "nsThreadUtils.h"
+#include "nsIObserverService.h"
+#include "nsIObserver.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsIXULRuntime.h"
 #include "nsXPCOMCIDInternal.h"
@@ -91,6 +93,7 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
   nsCOMPtr<nsIFile> file;
   nsresult rv = NS_GetSpecialDirectory(aKey, getter_AddRefs(file));
   if (NS_FAILED(rv) || !file) {
+    aOutPath.SetIsVoid(true);
     return rv;
   }
 
@@ -99,6 +102,46 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
     aOutPath.SetIsVoid(true);
   }
   return rv;
+}
+
+
+
+
+
+
+
+
+
+
+
+class DelayedPathSetter MOZ_FINAL: public nsIObserver
+{
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  DelayedPathSetter() {}
+};
+
+NS_IMPL_ISUPPORTS1(DelayedPathSetter, nsIObserver)
+
+NS_IMETHODIMP
+DelayedPathSetter::Observe(nsISupports*, const char * aTopic, const PRUnichar*)
+{
+  if (gPaths == nullptr) {
+    
+    
+    return NS_OK;
+  }
+  nsresult rv = GetPathToSpecialDir(NS_APP_USER_PROFILE_50_DIR, gPaths->profileDir);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  rv = GetPathToSpecialDir(NS_APP_USER_PROFILE_LOCAL_50_DIR, gPaths->localProfileDir);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  return NS_OK;
 }
 
 
@@ -136,10 +179,30 @@ nsresult InitOSFileConstants()
 
   
   
+  
+  rv = GetPathToSpecialDir(NS_APP_USER_PROFILE_50_DIR, paths->profileDir);
+  if (NS_SUCCEEDED(rv)) {
+    rv = GetPathToSpecialDir(NS_APP_USER_PROFILE_LOCAL_50_DIR, paths->localProfileDir);
+  }
+
+  
+  
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsIObserverService> obsService = do_GetService(NS_OBSERVERSERVICE_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    nsRefPtr<DelayedPathSetter> pathSetter = new DelayedPathSetter();
+    rv = obsService->AddObserver(pathSetter, "profile-do-change", false);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+
+  
+  
 
   GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
-  GetPathToSpecialDir(NS_APP_USER_PROFILE_50_DIR, paths->profileDir);
-  GetPathToSpecialDir(NS_APP_USER_PROFILE_LOCAL_50_DIR, paths->localProfileDir);
 
   gPaths = paths.forget();
   return NS_OK;
@@ -679,11 +742,15 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
     return false;
   }
 
-  if (!SetStringProperty(cx, objPath, "profileDir", gPaths->profileDir)) {
+  
+  if (!gPaths->profileDir.IsVoid()
+    && !SetStringProperty(cx, objPath, "profileDir", gPaths->profileDir)) {
     return false;
   }
 
-  if (!SetStringProperty(cx, objPath, "localProfileDir", gPaths->localProfileDir)) {
+  
+  if (!gPaths->localProfileDir.IsVoid()
+    && !SetStringProperty(cx, objPath, "localProfileDir", gPaths->localProfileDir)) {
     return false;
   }
 
