@@ -2830,8 +2830,15 @@ UpdateService.prototype = {
 
 
   pauseDownload: function AUS_pauseDownload() {
-    if (this.isDownloading)
+    if (this.isDownloading) {
       this._downloader.cancel();
+    } else if (this._retryTimer) {
+      
+      
+      this._retryTimer.cancel();
+      this._retryTimer = null;
+      this._downloader.cancel();
+    }
   },
 
   
