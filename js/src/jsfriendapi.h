@@ -1248,8 +1248,8 @@ JS_GetArrayBufferViewBuffer(JSObject *obj);
 
 
 
-extern JS_FRIEND_API(void)
-JS_NeuterArrayBuffer(JSObject *obj, JSContext *cx);
+extern JS_FRIEND_API(bool)
+JS_NeuterArrayBuffer(JSContext *cx, JS::HandleObject obj);
 
 
 
