@@ -38,25 +38,4 @@ typedef struct PRLock PRLock;
 
 #endif 
 
-namespace js {
-
-class AutoAtomicIncrement
-{
-    int32_t *p;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-  public:
-    AutoAtomicIncrement(int32_t *p JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : p(p) {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        JS_ATOMIC_INCREMENT(p);
-    }
-
-    ~AutoAtomicIncrement() {
-        JS_ATOMIC_DECREMENT(p);
-    }
-};
-
-}  
-
 #endif 

@@ -326,11 +326,6 @@ PRMJ_Now(void)
 
 
 
-
-
-
-int CALIBRATION_DELAY_COUNT = 10;
-
 int64_t
 PRMJ_Now(void)
 {
@@ -342,16 +337,6 @@ PRMJ_Now(void)
     bool needsCalibration = false;
     int64_t returnedTime;
     long double cachedOffset = 0.0;
-
-    
-
-
-
-    int thiscall = JS_ATOMIC_INCREMENT(&nCalls);
-    if (thiscall <= CALIBRATION_DELAY_COUNT) {
-        GetSystemTimeAsFileTime(&ft);
-        return (FILETIME2INT64(ft)-win2un)/10L;
-    }
 
     
 #ifdef JS_THREADSAFE
