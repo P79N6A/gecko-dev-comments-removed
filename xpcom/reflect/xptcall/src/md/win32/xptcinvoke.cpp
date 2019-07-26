@@ -67,8 +67,14 @@ noparams:
         push    ecx                 
         mov     edx,[ecx]           
         mov     eax,methodIndex
-        call    [edx][eax*4]        
+        call    dword ptr[edx+eax*4] 
         mov     esp,ebp
+        
+        
+        
+        
+        pop     ebp
+        ret
     }
 }
 #pragma warning(default : 4035) // restore default
