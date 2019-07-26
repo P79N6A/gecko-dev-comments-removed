@@ -33,6 +33,7 @@ class ArrayBufferViewObject;
 class SharedArrayBufferObject;
 class BaseShape;
 class DebugScopeObject;
+class GCHelperThread;
 class GlobalObject;
 class LazyScript;
 class Nursery;
@@ -353,12 +354,6 @@ GetGCKindSlots(AllocKind thingKind, const Class *clasp)
 
     return nslots;
 }
-
-
-
-
-
-class AutoMaybeStartBackgroundAllocation;
 
 
 
@@ -776,8 +771,7 @@ class ArenaLists
     inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
 
     void *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
-    inline void *allocateFromArenaInline(JS::Zone *zone, AllocKind thingKind,
-                                         AutoMaybeStartBackgroundAllocation &maybeStartBackgroundAllocation);
+    inline void *allocateFromArenaInline(JS::Zone *zone, AllocKind thingKind);
 
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
@@ -927,13 +921,13 @@ NotifyGCPostSwap(JSObject *a, JSObject *b, unsigned preResult);
 
 
 
-class GCHelperState
-{
+class GCHelperThread {
     enum State {
         IDLE,
         SWEEPING,
         ALLOCATING,
-        CANCEL_ALLOCATION
+        CANCEL_ALLOCATION,
+        SHUTDOWN
     };
 
     
@@ -949,25 +943,13 @@ class GCHelperState
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
     static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
 
-    
-    JSRuntime *const rt;
+    JSRuntime         *const rt;
+    PRThread          *thread;
+    PRCondVar         *wakeup;
+    PRCondVar         *done;
+    volatile State    state;
 
-    
-    
-    
-    PRCondVar *done;
-
-    
-    State state_;
-
-    
-    PRThread *thread;
-
-    void startBackgroundThread(State newState);
-    void waitForBackgroundThread();
-
-    State state();
-    void setState(State state);
+    void wait(PRCondVar *which);
 
     bool              sweepFlag;
     bool              shrinkFlag;
@@ -990,15 +972,19 @@ class GCHelperState
         js_free(array);
     }
 
+    static void threadMain(void* arg);
+    void threadLoop();
+
     
     void doSweep();
 
   public:
-    GCHelperState(JSRuntime *rt)
+    GCHelperThread(JSRuntime *rt)
       : rt(rt),
-        done(nullptr),
-        state_(IDLE),
         thread(nullptr),
+        wakeup(nullptr),
+        done(nullptr),
+        state(IDLE),
         sweepFlag(false),
         shrinkFlag(false),
         freeCursor(nullptr),
@@ -1008,8 +994,6 @@ class GCHelperState
 
     bool init();
     void finish();
-
-    void work();
 
     
     void startBackgroundSweep(bool shouldShrink);
@@ -1024,7 +1008,7 @@ class GCHelperState
     void waitBackgroundSweepOrAllocEnd();
 
     
-    void startBackgroundAllocationIfIdle();
+    inline void startBackgroundAllocationIfIdle();
 
     bool canBackgroundAllocate() const {
         return backgroundAllocation;
@@ -1034,23 +1018,27 @@ class GCHelperState
         backgroundAllocation = false;
     }
 
+    PRThread *getThread() const {
+        return thread;
+    }
+
     bool onBackgroundThread();
 
     
 
 
 
-    bool isBackgroundSweeping() const {
-        return state_ == SWEEPING;
+    bool sweeping() const {
+        return state == SWEEPING;
     }
 
     bool shouldShrink() const {
-        JS_ASSERT(isBackgroundSweeping());
+        JS_ASSERT(sweeping());
         return shrinkFlag;
     }
 
     void freeLater(void *ptr) {
-        JS_ASSERT(!isBackgroundSweeping());
+        JS_ASSERT(!sweeping());
         if (freeCursor != freeCursorEnd)
             *freeCursor++ = ptr;
         else
