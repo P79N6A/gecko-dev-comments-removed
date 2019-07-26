@@ -146,6 +146,9 @@ const HISTORY_FORWARD = 1;
 const GROUP_INDENT = 12;
 
 
+const GROUP_INDENT_DEFAULT = 6;
+
+
 
 const MESSAGES_IN_INTERVAL = DEFAULT_LOG_LIMIT;
 
@@ -2439,6 +2442,10 @@ WebConsoleFrame.prototype = {
     iconContainer.className = "icon";
 
     
+    let iconMarginLeft = this.groupDepth * GROUP_INDENT + GROUP_INDENT_DEFAULT;
+    iconContainer.style.marginLeft = iconMarginLeft + "px";
+
+    
     let bodyNode = this.document.createElementNS(XHTML_NS, "span");
     bodyNode.className = "body devtools-monospace";
 
@@ -2495,8 +2502,6 @@ WebConsoleFrame.prototype = {
     
     let timestampNode = this.document.createElementNS(XHTML_NS, "span");
     timestampNode.className = "timestamp devtools-monospace";
-    
-    timestampNode.style.marginRight = this.groupDepth * GROUP_INDENT + "px";
 
     let timestampString = l10n.timestampString(timestamp);
     timestampNode.textContent = timestampString + " ";

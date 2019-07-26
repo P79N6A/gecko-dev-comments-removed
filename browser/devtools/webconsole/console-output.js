@@ -65,6 +65,9 @@ const COMPAT = {
 
   
   GROUP_INDENT: 12,
+
+  
+  GROUP_INDENT_DEFAULT: 6,
 };
 
 
@@ -776,6 +779,12 @@ Messages.Simple.prototype = Heritage.extend(Messages.BaseMessage.prototype,
     let icon = this.document.createElementNS(XHTML_NS, "span");
     icon.className = "icon";
 
+    
+    
+    let iconMarginLeft = this._groupDepthCompat * COMPAT.GROUP_INDENT +
+                         COMPAT.GROUP_INDENT_DEFAULT;
+    icon.style.marginLeft = iconMarginLeft + "px";
+
     let body = this._renderBody();
     this._repeatID.textContent += "|" + body.textContent;
 
@@ -1318,11 +1327,6 @@ Widgets.MessageTimestamp.prototype = Heritage.extend(Widgets.BaseWidget.prototyp
     this.element = this.document.createElementNS(XHTML_NS, "span");
     this.element.className = "timestamp devtools-monospace";
     this.element.textContent = l10n.timestampString(this.timestamp) + " ";
-
-    
-    
-    this.element.style.marginRight = this.message._groupDepthCompat *
-                                     COMPAT.GROUP_INDENT + "px";
 
     return this;
   },
