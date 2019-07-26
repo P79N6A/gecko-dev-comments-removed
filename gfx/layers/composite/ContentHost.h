@@ -33,8 +33,6 @@
 #include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 
-class gfxImageSurface;
-
 namespace mozilla {
 namespace gfx {
 class Matrix4x4;
@@ -112,7 +110,7 @@ public:
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual already_AddRefed<gfxImageSurface> GetAsSurface();
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface();
 
   virtual void Dump(FILE* aFile=nullptr,
                     const char* aPrefix="",
