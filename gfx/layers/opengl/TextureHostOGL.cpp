@@ -6,6 +6,7 @@
 #include "TextureHostOGL.h"
 #include "GLContext.h"                  
 #include "GLSharedHandleHelpers.h"
+#include "GLUploadHelpers.h"
 #include "GLContextUtils.h"             
 #include "SharedSurface.h"              
 #include "SharedSurfaceEGL.h"           
@@ -823,10 +824,11 @@ SurfaceStreamHostOGL::Lock()
     nsIntSize size(toUpload->GetSize());
     nsIntRect rect(nsIntPoint(0,0), size);
     nsIntRegion bounds(rect);
-    mFormat = mGL->UploadSurfaceToTexture(toUpload,
-                                          bounds,
-                                          mUploadTexture,
-                                          true);
+    mFormat = UploadSurfaceToTexture(mGL,
+                                     toUpload,
+                                     bounds,
+                                     mUploadTexture,
+                                     true);
     mTextureHandle = mUploadTexture;
     mTextureTarget = LOCAL_GL_TEXTURE_2D;
   }
