@@ -428,12 +428,22 @@ function Barrier(name) {
 			" has already begun, it is too late to register" +
 			" completion condition '" + name + "'.");
       }
+
+      
+      let leaf = Components.stack;
+      let frame;
+      for (frame = leaf; frame != null && frame.filename == leaf.filename; frame = frame.caller) {
+        
+      }
       let set = this._conditions.get(condition);
       if (!set) {
         set = [];
         this._conditions.set(condition, set);
       }
-      set.push({name: name, fetchState: fetchState});
+      set.push({name: name,
+                fetchState: fetchState,
+                filename: frame ? frame.filename : "?",
+                lineNumber: frame ? frame.lineNumber : -1});
     }.bind(this),
 
     
@@ -480,9 +490,12 @@ Barrier.prototype = Object.freeze({
       return "Complete";
     }
     let frozen = [];
-    for (let {name, isComplete, fetchState} of this._monitors) {
+    for (let {name, isComplete, fetchState, filename, lineNumber} of this._monitors) {
       if (!isComplete) {
-        frozen.push({name: name, state: safeGetState(fetchState)});
+        frozen.push({name: name,
+                     state: safeGetState(fetchState),
+                     filename: filename,
+                     lineNumber: lineNumber});
       }
     }
     return frozen;
@@ -536,7 +549,7 @@ Barrier.prototype = Object.freeze({
     for (let _condition of conditions.keys()) {
       for (let current of conditions.get(_condition)) {
         let condition = _condition; 
-        let {name, fetchState} = current;
+        let {name, fetchState, filename, lineNumber} = current;
 
         
         
@@ -565,7 +578,9 @@ Barrier.prototype = Object.freeze({
           let monitor = {
             isComplete: false,
             name: name,
-            fetchState: fetchState
+            fetchState: fetchState,
+            filename: filename,
+            lineNumber: lineNumber
           };
 
 	  condition = condition.then(null, function onError(error) {
@@ -669,12 +684,16 @@ Barrier.prototype = Object.freeze({
 	  
 	  let state = this.state;
 
-	  let msg = "At least one completion condition failed to complete" +
+          
+          
+          
+          
+          let msg = "AsyncShutdown timeout in " + topic +
+            " Conditions: " + JSON.stringify(state) +
+            " At least one completion condition failed to complete" +
 	    " within a reasonable amount of time. Causing a crash to" +
 	    " ensure that we do not leave the user with an unresponsive" +
 	    " process draining resources." +
-	    " Conditions: " + JSON.stringify(state) +
-	    " Barrier: " + topic;
 	  err(msg);
 	  if (gCrashReporter && gCrashReporter.enabled) {
             let data = {
@@ -682,13 +701,27 @@ Barrier.prototype = Object.freeze({
               conditions: state
 	    };
             gCrashReporter.annotateCrashReport("AsyncShutdownTimeout",
-            JSON.stringify(data));
+              JSON.stringify(data));
 	  } else {
             warn("No crash reporter available");
 	  }
 
-	  let error = new Error();
-	  gDebug.abort(error.fileName, error.lineNumber + 1);
+          
+          
+          
+          
+          
+          
+          let filename = "?";
+          let lineNumber = -1;
+          for (let monitor of this._monitors) {
+            if (monitor.isComplete) {
+              continue;
+            }
+            filename = monitor.filename;
+            lineNumber = monitor.lineNumber;
+          }
+	  gDebug.abort(filename, lineNumber);
         }.bind(this),
 	  function onSatisfied() {
             
@@ -697,7 +730,7 @@ Barrier.prototype = Object.freeze({
 
       promise = promise.then(function() {
         timeToCrash.reject();
-      }.bind(this));
+      });
     }
 
     return promise;
