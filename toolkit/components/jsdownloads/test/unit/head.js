@@ -476,31 +476,6 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
 
 
 
-function promiseDownloadStopped(aDownload) {
-  if (!aDownload.stopped) {
-    
-    
-    return aDownload.start();
-  }
-
-  if (aDownload.succeeded) {
-    return Promise.resolve();
-  }
-
-  
-  return Promise.reject(aDownload.error || new Error("Download canceled."));
-}
-
-
-
-
-
-
-
-
-
-
-
 
 function promiseDownloadMidway(aDownload) {
   let deferred = Promise.defer();
@@ -826,6 +801,10 @@ add_task(function test_common_initialize()
   DownloadIntegration.dontOpenFileAndFolder = true;
   DownloadIntegration._deferTestOpenFile = Promise.defer();
   DownloadIntegration._deferTestShowDir = Promise.defer();
+
+  
+  DownloadIntegration._deferTestOpenFile.promise.then(null, () => undefined);
+  DownloadIntegration._deferTestShowDir.promise.then(null, () => undefined);
 
   
   
