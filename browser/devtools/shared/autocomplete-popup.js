@@ -261,22 +261,28 @@ AutocompletePopup.prototype = {
 
   _updateSize: function AP__updateSize()
   {
+    if (!this._panel) {
+      return;
+    }
+    
+    this._panel.boxObject.height;
+    let height = {};
+    this._list.scrollBoxObject.getScrolledSize({}, height);
+    
+    if (height.value > this._panel.clientHeight) {
+       this._list.width = this._panel.clientWidth + this._scrollbarWidth;
+    }
     
     
-    Services.tm.currentThread.dispatch({ run: () => {
-      if (!this._panel) {
-        return;
-      }
-      this._list.width = this._panel.clientWidth + this._scrollbarWidth;
-      
-      
-      this._list.height = this._list.clientHeight;
-      
-      this._list.top = 0;
-      
-      
-      this._list.ensureIndexIsVisible(this._list.selectedIndex);
-    }}, 0);
+    this._list.height = this._list.clientHeight;
+    
+    this._list.top = 0;
+    
+    
+    this._panel.moveTo(-1, -1);
+    
+    
+    this._list.ensureIndexIsVisible(this._list.selectedIndex);
   },
 
   
