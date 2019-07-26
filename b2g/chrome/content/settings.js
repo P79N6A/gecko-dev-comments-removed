@@ -378,8 +378,7 @@ let AdbController = {
 
     
     
-    let isDebugging = DebuggerServer._connections &&
-                      Object.keys(DebuggerServer._connections).length > 0;
+    let isDebugging = RemoteDebugger.isDebugging;
     if (this.DEBUG) {
       this.debug("isDebugging=" + isDebugging);
     }
@@ -460,6 +459,8 @@ SettingsListener.observe("lockscreen.enabled", false,
                          AdbController.setLockscreenEnabled.bind(AdbController));
 #endif
 
+
+
 SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
   Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
   
@@ -474,6 +475,30 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
   AdbController.setRemoteDebuggerState(value);
 #endif
 });
+
+SettingsListener.observe('debugger.remote-mode', false, function(value) {
+  if (['disabled', 'adb-only', 'adb-devtools'].indexOf(value) == -1) {
+    dump('Illegal value for debugger.remote-mode: ' + value + '\n');
+    return;
+  }
+
+  Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
+                             value == 'adb-devtools');
+  
+  Services.prefs.savePrefFile(null);
+
+  try {
+    (value == 'adb-devtools') ? RemoteDebugger.start()
+                              : RemoteDebugger.stop();
+  } catch(e) {
+    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
+  }
+
+#ifdef MOZ_WIDGET_GONK
+  AdbController.setRemoteDebuggerState(value != 'disabled');
+#endif
+});
+
 
 SettingsListener.observe('debug.log-animations.enabled', false, function(value) {
   Services.prefs.setBoolPref('layers.offmainthreadcomposition.log-animations', value);
