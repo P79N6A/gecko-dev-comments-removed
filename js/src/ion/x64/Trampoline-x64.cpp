@@ -143,11 +143,14 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     if (type == EnterJitBaseline) {
         
         GeneralRegisterSet regs(GeneralRegisterSet::All());
-        regs.take(JSReturnOperand);
         regs.takeUnchecked(OsrFrameReg);
         regs.take(rbp);
         regs.take(reg_code);
 
+        
+        
+        
+        regs.takeUnchecked(JSReturnOperand);
         Register scratch = regs.takeAny();
 
         Label notOsr;
