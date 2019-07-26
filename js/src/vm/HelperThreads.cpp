@@ -4,7 +4,7 @@
 
 
 
-#include "jsworkers.h"
+#include "vm/HelperThreads.h"
 
 #ifdef JS_THREADSAFE
 
