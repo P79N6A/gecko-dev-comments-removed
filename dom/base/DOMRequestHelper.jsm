@@ -6,9 +6,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cr = Components.results;
 
 this.EXPORTED_SYMBOLS = ["DOMRequestIpcHelper"];
 
@@ -19,90 +30,20 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageListenerManager");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.DOMRequestIpcHelperMessageListener = function(aHelper, aWindow, aMessages) {
-  this._weakHelper = Cu.getWeakReference(aHelper);
-
-  this._messages = aMessages;
-  this._messages.forEach(function(msgName) {
-    cpmm.addWeakMessageListener(msgName, this);
-  }, this);
-
-  Services.obs.addObserver(this, "inner-window-destroyed",  true);
-
-  
-  
-  if (aWindow) {
-    let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-    this._innerWindowID = util.currentInnerWindowID;
-  }
-}
-
-DOMRequestIpcHelperMessageListener.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIMessageListener,
-                                         Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference]),
-
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic !== "inner-window-destroyed") {
-      return;
-    }
-
-    let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
-    if (wId != this._innerWindowID) {
-      return;
-    }
-
-    this.destroy();
-  },
-
-  receiveMessage: function(aMsg) {
-    let helper = this._weakHelper.get();
-    if (helper) {
-      helper.receiveMessage(aMsg);
-    } else {
-      this.destroy();
-    }
-  },
-
-  destroy: function() {
-    
-    if (this._destroyed) {
-      return;
-    }
-    this._destroyed = true;
-
-    Services.obs.removeObserver(this, "inner-window-destroyed");
-
-    this._messages.forEach(function(msgName) {
-      cpmm.removeWeakMessageListener(msgName, this);
-    }, this);
-    this._messages = null;
-
-    let helper = this._weakHelper.get();
-    if (helper) {
-      helper.destroyDOMRequestHelper();
-    }
-  }
-}
-
 this.DOMRequestIpcHelper = function DOMRequestIpcHelper() {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this._listeners = null;
+  this._requests = null;
+  this._window = null;
 }
 
 DOMRequestIpcHelper.prototype = {
@@ -110,25 +51,146 @@ DOMRequestIpcHelper.prototype = {
 
 
 
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference]),
 
-  initDOMRequestHelper: function(aWindow, aMessages) {
-    this._DOMRequestIpcHelperMessageListener =
-      new DOMRequestIpcHelperMessageListener(this, aWindow, aMessages);
+   
 
-    this._window = aWindow;
-    this._requests = {};
+
+
+
+
+
+
+
+
+
+
+
+  addMessageListeners: function(aMessages) {
+    if (!aMessages) {
+      return;
+    }
+
+    if (!this._listeners) {
+      this._listeners = {};
+    }
+
+    if (!Array.isArray(aMessages)) {
+      aMessages = [aMessages];
+    }
+
+    aMessages.forEach((aMsg) => {
+      let name = aMsg.name || aMsg;
+      
+      
+      if (this._listeners[name] != undefined) {
+        if (!!aMsg.strongRef == this._listeners[name]) {
+          return;
+        } else {
+          throw Cr.NS_ERROR_FAILURE;
+        }
+      }
+
+      aMsg.strongRef ? cpmm.addMessageListener(name, this)
+                     : cpmm.addWeakMessageListener(name, this);
+      this._listeners[name] = !!aMsg.strongRef;
+    });
+  },
+
+  
+
+
+
+  removeMessageListeners: function(aMessages) {
+    if (!this._listeners || !aMessages) {
+      return;
+    }
+
+    if (!Array.isArray(aMessages)) {
+      aMessages = [aMessages];
+    }
+
+    aMessages.forEach((aName) => {
+      if (this._listeners[aName] == undefined) {
+        return;
+      }
+
+      this._listeners[aName] ? cpmm.removeMessageListener(aName, this)
+                             : cpmm.removeWeakMessageListener(aName, this);
+      delete this._listeners[aName];
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  initDOMRequestHelper: function(aWindow, aMessages) {
+    if (aMessages) {
+      this.addMessageListeners(aMessages);
+    }
+
     this._id = this._getRandomId();
 
+    this._window = aWindow;
     if (this._window) {
       
       let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
                              .getInterface(Ci.nsIDOMWindowUtils);
       this.innerWindowID = util.currentInnerWindowID;
     }
+
+    Services.obs.addObserver(this, "inner-window-destroyed", false);
+  },
+
+  destroyDOMRequestHelper: function() {
+    Services.obs.removeObserver(this, "inner-window-destroyed");
+
+    if (this._listeners) {
+      Object.keys(this._listeners).forEach((aName) => {
+        this._listeners[aName] ? cpmm.removeMessageListener(aName, this)
+                               : cpmm.removeWeakMessageListener(aName, this);
+        delete this._listeners[aName];
+      });
+    }
+
+    this._listeners = null;
+    this._requests = null;
+    this._window = null;
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic !== "inner-window-destroyed") {
+      return;
+    }
+
+    let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    if (wId != this.innerWindowID) {
+      return;
+    }
+
+    this.destroyDOMRequestHelper();
   },
 
   getRequestId: function(aRequest) {
+    if (!this._requests) {
+      this._requests = {};
+    }
+
     let id = "id" + this._getRandomId();
     this._requests[id] = aRequest;
     return id;
@@ -141,8 +203,9 @@ DOMRequestIpcHelper.prototype = {
   },
 
   getRequest: function(aId) {
-    if (this._requests[aId])
+    if (this._requests && this._requests[aId]) {
       return this._requests[aId];
+    }
   },
 
   getPromiseResolver: function(aId) {
@@ -152,8 +215,9 @@ DOMRequestIpcHelper.prototype = {
   },
 
   removeRequest: function(aId) {
-    if (this._requests[aId])
+    if (this._requests && this._requests[aId]) {
       delete this._requests[aId];
+    }
   },
 
   removePromiseResolver: function(aId) {
@@ -163,8 +227,9 @@ DOMRequestIpcHelper.prototype = {
   },
 
   takeRequest: function(aId) {
-    if (!this._requests[aId])
+    if (!this._requests || !this._requests[aId]) {
       return null;
+    }
     let request = this._requests[aId];
     delete this._requests[aId];
     return request;
@@ -177,25 +242,8 @@ DOMRequestIpcHelper.prototype = {
   },
 
   _getRandomId: function() {
-    return Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
-  },
-
-  destroyDOMRequestHelper: function() {
-    
-    
-    
-    if (this._destroyed) {
-      return;
-    }
-    this._destroyed = true;
-
-    this._DOMRequestIpcHelperMessageListener.destroy();
-    this._requests = {};
-    this._window = null;
-
-    if(this.uninit) {
-      this.uninit();
-    }
+    return Cc["@mozilla.org/uuid-generator;1"]
+             .getService(Ci.nsIUUIDGenerator).generateUUID().toString();
   },
 
   createRequest: function() {
@@ -212,19 +260,27 @@ DOMRequestIpcHelper.prototype = {
   },
 
   forEachRequest: function(aCallback) {
-    Object.keys(this._requests).forEach(function(k) {
-      if (this.getRequest(k) instanceof this._window.DOMRequest) {
-        aCallback(k);
+    if (!this._requests) {
+      return;
+    }
+
+    Object.keys(this._requests).forEach((aKey) => {
+      if (this.getRequest(aKey) instanceof this._window.DOMRequest) {
+        aCallback(aKey);
       }
-    }, this);
+    });
   },
 
   forEachPromiseResolver: function(aCallback) {
-    Object.keys(this._requests).forEach(function(k) {
-      if ("resolve" in this.getPromiseResolver(k) &&
-          "reject" in this.getPromiseResolver(k)) {
-        aCallback(k);
+    if (!this._requests) {
+      return;
+    }
+
+    Object.keys(this._requests).forEach((aKey) => {
+      if ("resolve" in this.getPromiseResolver(aKey) &&
+          "reject" in this.getPromiseResolver(aKey)) {
+        aCallback(aKey);
       }
-    }, this);
+    });
   },
 }
