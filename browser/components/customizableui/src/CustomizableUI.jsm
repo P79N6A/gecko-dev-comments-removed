@@ -1002,11 +1002,20 @@ let CustomizableUIInternal = {
     if (!aWidget) {
       throw new Error("getLocalizedProperty was passed a non-widget to work with.");
     }
-    if (typeof aWidget[aProp] == "string") {
-      return aWidget[aProp];
+    let def, name;
+    
+    
+    
+    if (aWidget[aProp]) {
+      name = aWidget[aProp];
+      
+      
+      
+      def = aDef || name;
+    } else {
+      name = aWidget.id + "." + aProp;
+      def = aDef || "";
     }
-    let def = aDef || "";
-    let name = aWidget.id + "." + aProp;
     try {
       if (Array.isArray(aFormatArgs) && aFormatArgs.length) {
         return gWidgetsBundle.formatStringFromName(name, aFormatArgs,
