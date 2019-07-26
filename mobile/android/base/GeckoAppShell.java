@@ -287,12 +287,8 @@ public class GeckoAppShell
         
         GeckoAppShell.nativeInit();
 
-        
-        if (getGeckoInterface() != null)
-           sLayerView  = getGeckoInterface().getLayerView();
         if (sLayerView != null)
             GeckoAppShell.setLayerClient(sLayerView.getLayerClient());
-
 
         
         String combinedArgs = apkPath + " -greomni " + apkPath;
@@ -2048,7 +2044,6 @@ public class GeckoAppShell
 
     public interface GeckoInterface {
         public GeckoProfile getProfile();
-        public LayerView getLayerView();
         public PromptService getPromptService();
         public Activity getActivity();
         public String getDefaultUAString();

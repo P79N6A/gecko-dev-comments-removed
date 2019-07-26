@@ -153,7 +153,7 @@ public class GeckoAccessibility {
         } else {
             
             
-            final LayerView view = GeckoAppShell.getGeckoInterface().getLayerView();
+            final LayerView view = GeckoAppShell.getLayerView();
             if (view == null)
                 return;
 
