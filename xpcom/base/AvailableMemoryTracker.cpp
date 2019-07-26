@@ -517,9 +517,14 @@ public:
   NS_DECL_NSIOBSERVER
 
   void Init();
+
+private:
+  static bool sFreeDirtyPages;
 };
 
 NS_IMPL_ISUPPORTS1(nsMemoryPressureWatcher, nsIObserver)
+
+bool nsMemoryPressureWatcher::sFreeDirtyPages = false;
 
 
 
@@ -534,8 +539,10 @@ nsMemoryPressureWatcher::Init()
   if (os) {
     os->AddObserver(this, "memory-pressure",  false);
   }
-}
 
+  Preferences::AddBoolVarCache(&sFreeDirtyPages, "memory.free_dirty_pages",
+                               false);
+}
 
 
 
@@ -547,9 +554,11 @@ nsMemoryPressureWatcher::Observe(nsISupports *subject, const char *topic,
 {
   MOZ_ASSERT(!strcmp(topic, "memory-pressure"), "Unknown topic");
 
-  nsRefPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
+  if (sFreeDirtyPages) {
+    nsRefPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
 
-  NS_DispatchToMainThread(runnable);
+    NS_DispatchToMainThread(runnable);
+  }
 
   return NS_OK;
 }
@@ -590,11 +599,9 @@ void Activate()
   sHooksActive = true;
 #endif
 
-  if (Preferences::GetBool("memory.free_dirty_pages", false)) {
-    
-    nsRefPtr<nsMemoryPressureWatcher> watcher = new nsMemoryPressureWatcher();
-    watcher->Init();
-  }
+  
+  nsRefPtr<nsMemoryPressureWatcher> watcher = new nsMemoryPressureWatcher();
+  watcher->Init();
 }
 
 void Init()
