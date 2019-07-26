@@ -221,7 +221,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
                                  const gfxRect& aSubimage,
                                  const gfxImageSurface::gfxImageFormat aFormat)
 {
-    SAMPLE_LABEL("gfxUtils", "CreateSamplingRestricedDrawable");
+    PROFILER_LABEL("gfxUtils", "CreateSamplingRestricedDrawable");
     gfxRect userSpaceClipExtents = aContext->GetClipExtents();
     
     
@@ -418,7 +418,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            gfxPattern::GraphicsFilter aFilter,
                            uint32_t         aImageFlags)
 {
-    SAMPLE_LABEL("gfxUtils", "DrawPixelSnapped");
+    PROFILER_LABEL("gfxUtils", "DrawPixelSnapped");
     bool doTile = !aImageRect.Contains(aSourceRect) &&
                   !(aImageFlags & imgIContainer::FLAG_CLAMP);
 

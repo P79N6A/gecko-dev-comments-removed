@@ -453,7 +453,7 @@ class nsHtml5FlushLoopGuard
 void
 nsHtml5TreeOpExecutor::RunFlushLoop()
 {
-  SAMPLE_LABEL("html5", "RunFlushLoop");
+  PROFILER_LABEL("html5", "RunFlushLoop");
   if (mRunFlushLoopOnStack) {
     
     return;

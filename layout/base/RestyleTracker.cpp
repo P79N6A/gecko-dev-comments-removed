@@ -135,7 +135,7 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
 void
 RestyleTracker::DoProcessRestyles()
 {
-  SAMPLE_LABEL("CSS", "ProcessRestyles");
+  PROFILER_LABEL("CSS", "ProcessRestyles");
   
   
   mFrameConstructor->BeginUpdate();
