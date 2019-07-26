@@ -117,10 +117,11 @@ DownloadLegacyTransfer.prototype = {
       
       
       this._deferDownload.promise.then(download => {
-	
-	
-	if (Components.isSuccessCode(aStatus)) {
+        
+        
+        if (Components.isSuccessCode(aStatus)) {
           download.saver.setSha256Hash(this._sha256Hash);
+          download.saver.setSignatureInfo(this._signatureInfo);
         }
         download.saver.onTransferFinished(aRequest, aStatus);
       }).then(null, Cu.reportError);
@@ -242,6 +243,11 @@ DownloadLegacyTransfer.prototype = {
     this._sha256Hash = hash;
   },
 
+  setSignatureInfo: function (signatureInfo)
+  {
+    this._signatureInfo = signatureInfo;
+  },
+
   
   
 
@@ -268,6 +274,11 @@ DownloadLegacyTransfer.prototype = {
 
 
   _sha256Hash: null,
+
+  
+
+
+  _signatureInfo: null,
 };
 
 

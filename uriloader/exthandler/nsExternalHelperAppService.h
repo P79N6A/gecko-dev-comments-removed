@@ -326,7 +326,12 @@ protected:
 
 
   nsAutoCString mHash;
+  
 
+
+
+
+  nsCOMPtr<nsIArray> mSignatureInfo;
   
 
 
