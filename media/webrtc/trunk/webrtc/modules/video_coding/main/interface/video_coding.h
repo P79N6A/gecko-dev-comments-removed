@@ -419,6 +419,19 @@ public:
     
     
     
+    
+    
+    
+    
+    virtual int32_t RegisterReceiveStateCallback(
+                                  VCMReceiveStateCallback* callback) = 0;
+
+    
+    
+    
+    
+    
+    
     virtual int32_t Decode(uint16_t maxWaitTimeMs = 200) = 0;
 
     

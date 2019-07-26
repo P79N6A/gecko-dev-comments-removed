@@ -177,6 +177,17 @@ class VCMPacketRequestCallback {
 
 
 
+class VCMReceiveStateCallback {
+ public:
+  virtual void ReceiveStateChange(VideoReceiveState state) = 0;
+
+ protected:
+  virtual ~VCMReceiveStateCallback() {
+  }
+};
+
+
+
 class VCMQMSettingsCallback {
  public:
   virtual int32_t SetVideoQMSettings(const uint32_t frameRate,

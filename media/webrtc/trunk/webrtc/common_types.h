@@ -553,6 +553,16 @@ enum RawVideoType
     kVideoUnknown  = 99
 };
 
+enum VideoReceiveState
+{
+  kReceiveStateInitial,            
+  kReceiveStateNormal,
+  kReceiveStatePreemptiveNACK,     
+  kReceiveStateWaitingKey,         
+  kReceiveStateDecodingWithErrors, 
+  kReceiveStateNoIncoming,         
+};
+
 
 enum { kConfigParameterSize = 128};
 enum { kPayloadNameSize = 32};
