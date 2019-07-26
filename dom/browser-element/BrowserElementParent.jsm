@@ -65,10 +65,6 @@ this.BrowserElementParentBuilder = {
   }
 }
 
-
-
-let activeInputFrame = null;
-
 function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   debug("Creating new BrowserElementParent object for " + frameLoader);
   this._domRequestCounter = 0;
@@ -113,12 +109,7 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
 
   let defineDOMRequestMethod = function(domName, msgName) {
     XPCNativeWrapper.unwrap(self._frameElement)[domName] = function() {
-      if (!self._mm) {
-        return self._queueDOMRequest;
-      }
-      if (self._isAlive()) {
-        return self._sendDOMRequest(msgName);
-      }
+      return self._sendDOMRequest(msgName);
     };
   }
 
@@ -342,13 +333,6 @@ BrowserElementParent.prototype = {
   _recvHello: function() {
     debug("recvHello");
 
-    this._ready = true;
-
-    
-    while (this._pendingSetInputMethodActive.length > 0) {
-      this._setInputMethodActive(this._pendingSetInputMethodActive.shift());
-    }
-
     
     
     
@@ -487,32 +471,6 @@ BrowserElementParent.prototype = {
 
 
 
-  _queueDOMRequest: function(msgName, args) {
-    if (!this._pendingAPICalls) {
-      return;
-    }
-
-    let req = Services.DOMRequest.createRequest(this._window);
-    let self = this;
-    let getRealDOMRequest = function() {
-      let realReq = self._sendDOMRequest(msgName, args);
-      realReq.onsuccess = function(v) {
-        Services.DOMRequest.fireSuccess(req, v);
-      };
-      realReq.onerror = function(v) {
-        Services.DOMRequest.fireError(req, v);
-      };
-    };
-    this._pendingAPICalls.push(getRealDOMRequest);
-    return req;
-  },
-
-  
-
-
-
-
-
 
 
 
@@ -522,10 +480,22 @@ BrowserElementParent.prototype = {
   _sendDOMRequest: function(msgName, args) {
     let id = 'req_' + this._domRequestCounter++;
     let req = Services.DOMRequest.createRequest(this._window);
-    if (this._sendAsyncMsg(msgName, {id: id, args: args})) {
-      this._pendingDOMRequests[id] = req;
+    let self = this;
+    let send = function() {
+      if (!self._isAlive()) {
+        return;
+      }
+      if (self._sendAsyncMsg(msgName, {id: id, args: args})) {
+        self._pendingDOMRequests[id] = req;
+      } else {
+        Services.DOMRequest.fireErrorAsync(req, "fail");
+      }
+    };
+    if (this._mm) {
+      send();
     } else {
-      Services.DOMRequest.fireErrorAsync(req, "fail");
+      
+      this._pendingAPICalls.push(send);
     }
     return req;
   },
@@ -670,12 +640,12 @@ BrowserElementParent.prototype = {
         if (aStatusCode == Cr.NS_OK) {
           
           debug('DownloadListener - Download Successful.');
-          Services.DOMRequest.fireSuccess(req, aStatusCode);
+          this.services.DOMRequest.fireSuccess(this.req, aStatusCode);
         }
         else {
           
           debug('DownloadListener - Download Failed!');
-          Services.DOMRequest.fireError(req, aStatusCode);
+          this.services.DOMRequest.fireError(this.req, aStatusCode);
         }
 
         if (this.extListener) {
@@ -729,13 +699,6 @@ BrowserElementParent.prototype = {
     if (isNaN(width) || isNaN(height) || width < 0 || height < 0) {
       throw Components.Exception("Invalid argument",
                                  Cr.NS_ERROR_INVALID_ARG);
-    }
-
-    if (!this._mm) {
-      
-      return this._queueDOMRequest('get-screenshot',
-                                   {width: width, height: height,
-                                    mimeType: mimeType});
     }
 
     return this._sendDOMRequest('get-screenshot',
@@ -800,50 +763,8 @@ BrowserElementParent.prototype = {
                                  Cr.NS_ERROR_INVALID_ARG);
     }
 
-    
-    if (!this._ready) {
-      this._pendingSetInputMethodActive.push(isActive);
-      return;
-    }
-
-    let req = Services.DOMRequest.createRequest(this._window);
-
-    
-    if (activeInputFrame && isActive) {
-      if (Cu.isDeadWrapper(activeInputFrame)) {
-        
-        
-        activeInputFrame = null;
-        this._sendSetInputMethodActiveDOMRequest(req, isActive);
-        return req;
-      }
-
-      let reqOld = XPCNativeWrapper.unwrap(activeInputFrame)
-                                   .setInputMethodActive(false);
-
-      
-      reqOld.onsuccess = reqOld.onerror = function() {
-        activeInputFrame = null;
-        this._sendSetInputMethodActiveDOMRequest(req, isActive);
-      }.bind(this);
-    } else {
-      this._sendSetInputMethodActiveDOMRequest(req, isActive);
-    }
-    return req;
-  },
-
-  _sendSetInputMethodActiveDOMRequest: function(req, isActive) {
-    let id = 'req_' + this._domRequestCounter++;
-    let data = {
-      id : id,
-      args: { isActive: isActive }
-    };
-    if (this._sendAsyncMsg('set-input-method-active', data)) {
-      activeInputFrame = this._frameElement;
-      this._pendingDOMRequests[id] = req;
-    } else {
-      Services.DOMRequest.fireErrorAsync(req, 'fail');
-    }
+    return this._sendDOMRequest('set-input-method-active',
+                                {isActive: isActive});
   },
 
   _fireKeyEvent: function(data) {
