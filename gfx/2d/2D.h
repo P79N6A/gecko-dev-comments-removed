@@ -369,12 +369,6 @@ public:
 
   virtual int32_t Stride() = 0;
 
-  
-
-
-
-  virtual void MarkDirty() {}
-
   virtual bool Map(MapType, MappedSurface *aMappedSurface)
   {
     aMappedSurface->mData = GetData();
