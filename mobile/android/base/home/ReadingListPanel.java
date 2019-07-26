@@ -42,6 +42,9 @@ public class ReadingListPanel extends HomeFragment {
     private static final int LOADER_ID_READING_LIST = 0;
 
     
+    private final String MATCH_STRING = "%I";
+
+    
     private ReadingListAdapter mAdapter;
 
     
@@ -171,17 +174,17 @@ public class ReadingListPanel extends HomeFragment {
             String readingListHint = emptyHint.getText().toString();
 
             
-            int imageSpanIndex = readingListHint.indexOf("%I");
+            int imageSpanIndex = readingListHint.indexOf(MATCH_STRING);
             if (imageSpanIndex != -1) {
                 final ImageSpan readingListIcon = new ImageSpan(getActivity(), R.drawable.reader_cropped, ImageSpan.ALIGN_BOTTOM);
                 final SpannableStringBuilder hintBuilder = new SpannableStringBuilder(readingListHint);
 
                 
-                hintBuilder.insert(imageSpanIndex + 2, " ");
+                hintBuilder.insert(imageSpanIndex + MATCH_STRING.length(), " ");
                 hintBuilder.insert(imageSpanIndex, " ");
 
                 
-                hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + 3, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + MATCH_STRING.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
 
                 emptyHint.setText(hintBuilder, TextView.BufferType.SPANNABLE);
             }
