@@ -247,8 +247,9 @@ let tests = [
   
   function noCookiesStored() {
     let url = testPageURL({ setRedCookie: true });
-    yield capture(url);
     let file = fileForURL(url);
+    ok(!file.exists(), "Thumbnail file should not exist before capture.");
+    yield capture(url);
     ok(file.exists(), "Thumbnail file should exist after capture.");
     file.remove(false);
     
