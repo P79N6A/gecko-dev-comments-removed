@@ -808,7 +808,7 @@ GLContextEGL::UpdateSharedHandle(SharedTextureShareType shareType,
     
     
     gfxIntSize size = OffscreenSize();
-    BlitFramebufferToTexture(0, mTemporaryEGLImageTexture, size, size);
+    BlitHelper()->BlitFramebufferToTexture(0, mTemporaryEGLImageTexture, size, size);
 
     
     
