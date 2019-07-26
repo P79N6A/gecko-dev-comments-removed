@@ -349,8 +349,9 @@ TabChild::Observe(nsISupports *aSubject,
         mLastMetrics.mZoom = gfxSize(1.0, 1.0);
         mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
         mLastMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
-        mLastMetrics.mResolution =
+        CSSToScreenScale resolution =
           AsyncPanZoomController::CalculateResolution(mLastMetrics);
+        mLastMetrics.mResolution = gfxSize(resolution.scale, resolution.scale);
         mLastMetrics.mScrollOffset = CSSPoint(0, 0);
         utils->SetResolution(mLastMetrics.mResolution.width,
                              mLastMetrics.mResolution.height);
@@ -619,14 +620,13 @@ TabChild::HandlePossibleViewportChange()
     
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
-  gfxSize resolution = AsyncPanZoomController::CalculateResolution(metrics);
+  CSSToScreenScale resolution = AsyncPanZoomController::CalculateResolution(metrics);
   
   
   gfxFloat hysteresis =
     gfxFloat(oldBrowserWidth) / gfxFloat(oldScreenWidth);
-  resolution.width *= hysteresis;
-  resolution.height *= hysteresis;
-  metrics.mResolution = resolution;
+  metrics.mResolution = gfxSize(resolution.scale * hysteresis,
+                                resolution.scale * hysteresis);
   utils->SetResolution(metrics.mResolution.width, metrics.mResolution.height);
 
   
@@ -1527,9 +1527,9 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     utils->SetScrollPositionClampingScrollPortSize(
       cssCompositedRect.width, cssCompositedRect.height);
     ScrollWindowTo(window, aFrameMetrics.mScrollOffset);
-    gfxSize resolution = AsyncPanZoomController::CalculateResolution(
+    CSSToScreenScale resolution = AsyncPanZoomController::CalculateResolution(
       aFrameMetrics);
-    utils->SetResolution(resolution.width, resolution.height);
+    utils->SetResolution(resolution.scale, resolution.scale);
 
     nsCOMPtr<nsIDOMDocument> domDoc;
     nsCOMPtr<nsIDOMElement> docElement;
