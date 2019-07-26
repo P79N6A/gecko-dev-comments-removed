@@ -1163,27 +1163,27 @@ InitTypeClasses(JSContext* cx, HandleObject parent)
   if (!InitTypeConstructor(cx, parent, CTypeProto, CDataProto,
          sPointerFunction, nullptr, sPointerProps,
          sPointerInstanceFunctions, sPointerInstanceProps,
-         protos.handleAt(SLOT_POINTERPROTO), protos.handleAt(SLOT_POINTERDATAPROTO)))
+         protos[SLOT_POINTERPROTO], protos[SLOT_POINTERDATAPROTO]))
     return false;
 
   if (!InitTypeConstructor(cx, parent, CTypeProto, CDataProto,
          sArrayFunction, nullptr, sArrayProps,
          sArrayInstanceFunctions, sArrayInstanceProps,
-         protos.handleAt(SLOT_ARRAYPROTO), protos.handleAt(SLOT_ARRAYDATAPROTO)))
+         protos[SLOT_ARRAYPROTO], protos[SLOT_ARRAYDATAPROTO]))
     return false;
 
   if (!InitTypeConstructor(cx, parent, CTypeProto, CDataProto,
          sStructFunction, sStructFunctions, sStructProps,
          sStructInstanceFunctions, nullptr,
-         protos.handleAt(SLOT_STRUCTPROTO), protos.handleAt(SLOT_STRUCTDATAPROTO)))
+         protos[SLOT_STRUCTPROTO], protos[SLOT_STRUCTDATAPROTO]))
     return false;
 
-  if (!InitTypeConstructor(cx, parent, CTypeProto, protos.handleAt(SLOT_POINTERDATAPROTO),
+  if (!InitTypeConstructor(cx, parent, CTypeProto, protos[SLOT_POINTERDATAPROTO],
          sFunctionFunction, nullptr, sFunctionProps, sFunctionInstanceFunctions, nullptr,
-         protos.handleAt(SLOT_FUNCTIONPROTO), protos.handleAt(SLOT_FUNCTIONDATAPROTO)))
+         protos[SLOT_FUNCTIONPROTO], protos[SLOT_FUNCTIONDATAPROTO]))
     return false;
 
-  protos[SLOT_CDATAPROTO] = CDataProto;
+  protos[SLOT_CDATAPROTO].set(CDataProto);
 
   
   
@@ -1193,18 +1193,18 @@ InitTypeClasses(JSContext* cx, HandleObject parent)
   
   
   
-  protos[SLOT_INT64PROTO] = InitInt64Class(cx, parent, &sInt64ProtoClass,
-    Int64::Construct, sInt64Functions, sInt64StaticFunctions);
+  protos[SLOT_INT64PROTO].set(InitInt64Class(cx, parent, &sInt64ProtoClass,
+    Int64::Construct, sInt64Functions, sInt64StaticFunctions));
   if (!protos[SLOT_INT64PROTO])
     return false;
-  protos[SLOT_UINT64PROTO] = InitInt64Class(cx, parent, &sUInt64ProtoClass,
-    UInt64::Construct, sUInt64Functions, sUInt64StaticFunctions);
+  protos[SLOT_UINT64PROTO].set(InitInt64Class(cx, parent, &sUInt64ProtoClass,
+    UInt64::Construct, sUInt64Functions, sUInt64StaticFunctions));
   if (!protos[SLOT_UINT64PROTO])
     return false;
 
   
   
-  protos[SLOT_CTYPES] = parent;
+  protos[SLOT_CTYPES].set(parent);
 
   
   
@@ -4827,7 +4827,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
       Rooted<JSFlatString*> name(cx, ExtractStructField(cx, item, fieldType.address()));
       if (!name)
         return false;
-      fieldRoots[i] = JS::ObjectValue(*fieldType);
+      fieldRoots[i].setObject(*fieldType);
 
       
       FieldInfoHash::AddPtr entryPtr = fields->lookupForAdd(name);
@@ -5135,7 +5135,7 @@ StructType::BuildFieldsArray(JSContext* cx, JSObject* obj)
   for (FieldInfoHash::Range r = fields->all(); !r.empty(); r.popFront()) {
     const FieldInfoHash::Entry& entry = r.front();
     
-    if (!AddFieldToArray(cx, &fieldsVec[entry.value().mIndex],
+    if (!AddFieldToArray(cx, fieldsVec[entry.value().mIndex].address(),
                          entry.key(), entry.value().mType))
       return nullptr;
   }
@@ -5620,7 +5620,7 @@ FunctionType::Create(JSContext* cx, unsigned argc, jsval* vp)
   
   JS_ASSERT_IF(argTypes.length(), arrayObj);
   for (uint32_t i = 0; i < argTypes.length(); ++i) {
-    if (!JS_GetElement(cx, arrayObj, i, argTypes.handleAt(i)))
+    if (!JS_GetElement(cx, arrayObj, i, argTypes[i]))
       return false;
   }
 
@@ -5946,7 +5946,7 @@ FunctionType::ArgTypesGetter(JSContext* cx, JS::CallArgs args)
         return false;
 
       for (size_t i = 0; i < len; ++i)
-        vec[i] = JS::ObjectValue(*fninfo->mArgTypes[i]);
+        vec[i].setObject(*fninfo->mArgTypes[i]);
 
       argTypes = JS_NewArrayObject(cx, vec);
       if (!argTypes)
@@ -6182,7 +6182,7 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
     
     
     RootedObject argType(cx, fninfo->mArgTypes[i]);
-    if (!ConvertToJS(cx, argType, NullPtr(), args[i], false, false, &argv[i]))
+    if (!ConvertToJS(cx, argType, NullPtr(), args[i], false, false, argv[i].address()))
       return;
   }
 
