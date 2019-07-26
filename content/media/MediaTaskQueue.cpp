@@ -126,6 +126,13 @@ MediaTaskQueue::Runner::Run()
   
   event->Run();
 
+  
+  
+  
+  
+  
+  event = nullptr;
+
   {
     MonitorAutoLock mon(mQueue->mQueueMonitor);
     if (mQueue->mTasks.size() == 0) {

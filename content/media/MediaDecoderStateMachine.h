@@ -91,6 +91,8 @@ namespace mozilla {
 
 class AudioSegment;
 class VideoSegment;
+class MediaTaskQueue;
+class SharedThreadPool;
 
 
 
@@ -176,9 +178,7 @@ public:
 
   
   
-  bool OnDecodeThread() const {
-    return IsCurrentThread(mDecodeThread);
-  }
+  bool OnDecodeThread() const;
   bool OnStateMachineThread() const;
   bool OnAudioThread() const {
     return IsCurrentThread(mAudioThread);
@@ -313,12 +313,6 @@ public:
   
   
   nsresult ScheduleStateMachine(int64_t aUsecs = 0);
-
-  
-  
-  
-  
-  nsresult StartDecodeThread();
 
   
   void TimeoutExpired();
@@ -618,7 +612,9 @@ private:
   nsCOMPtr<nsIThread> mAudioThread;
 
   
-  nsCOMPtr<nsIThread> mDecodeThread;
+  
+  
+  RefPtr<MediaTaskQueue> mDecodeTaskQueue;
 
   
   
@@ -783,9 +779,7 @@ private:
   
   
   
-  
-  
-  bool mDecodeThreadIdle;
+  bool mDispatchedEventToDecode;
 
   
   
@@ -826,10 +820,6 @@ private:
   
   bool mDidThrottleAudioDecoding;
   bool mDidThrottleVideoDecoding;
-
-  
-  
-  bool mRequestedNewDecodeThread;
 
   
   
