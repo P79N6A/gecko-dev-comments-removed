@@ -302,7 +302,12 @@ class JSFunction : public JSObject
     }
 
     
+
+
+
+
     inline void initializeExtended();
+    inline void initExtendedSlot(size_t which, const js::Value &val);
     inline void setExtendedSlot(size_t which, const js::Value &val);
     inline const js::Value &getExtendedSlot(size_t which) const;
 
