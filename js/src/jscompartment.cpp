@@ -645,8 +645,6 @@ JSCompartment::clearTables()
 {
     global_ = nullptr;
 
-    regExps.clearTables();
-
     
     
     
@@ -658,6 +656,7 @@ JSCompartment::clearTables()
     JS_ASSERT(!debugScopes);
     JS_ASSERT(!gcWeakMapList);
     JS_ASSERT(enumerators->next() == enumerators);
+    JS_ASSERT(regExps.empty());
 
     types.clearTables();
     if (baseShapes.initialized())
