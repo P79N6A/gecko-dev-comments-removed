@@ -560,6 +560,7 @@ class IonBuilder : public MIRGenerator
     
     InliningStatus inlineForceSequentialOrInParallelSection(CallInfo &callInfo);
     InliningStatus inlineBailout(CallInfo &callInfo);
+    InliningStatus inlineAssertFloat32(CallInfo &callInfo);
 
     
     InliningStatus inlineNativeCall(CallInfo &callInfo, JSNative native);
