@@ -11,6 +11,7 @@
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/dom/TabParent.h"
+#include "mozilla/dom/UIEvent.h"
 
 #include "nsCOMPtr.h"
 #include "nsEventStateManager.h"
@@ -50,7 +51,6 @@
 #include "nsIDOMWheelEvent.h"
 #include "nsIDOMDragEvent.h"
 #include "nsIDOMUIEvent.h"
-#include "nsDOMUIEvent.h"
 #include "nsIMozBrowserFrame.h"
 
 #include "nsSubDocumentFrame.h"
@@ -1030,9 +1030,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
        aEvent->eventStructType == NS_WHEEL_EVENT) &&
       !sIsPointerLocked) {
     sLastScreenPoint =
-      nsDOMUIEvent::CalculateScreenPoint(aPresContext, aEvent);
+      UIEvent::CalculateScreenPoint(aPresContext, aEvent);
     sLastClientPoint =
-      nsDOMUIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
+      UIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
   }
 
   
