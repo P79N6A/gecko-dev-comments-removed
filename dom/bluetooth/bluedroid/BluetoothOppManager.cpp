@@ -1464,7 +1464,7 @@ BluetoothOppManager::OnSocketDisconnect(BluetoothSocket* aSocket)
     
     return;
   }
-  BT_LOGR("[%s]", (mIsServer) ? "client" : "server");
+  BT_LOGR("[%s]", (mIsServer) ? "server" : "client");
 
   
 
