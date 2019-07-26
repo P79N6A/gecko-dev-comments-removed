@@ -4,6 +4,7 @@
 
 
 #include "mozilla/Preferences.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/dom/TimeRanges.h"
 #include "MediaResource.h"
 #include "mozilla/dom/HTMLMediaElement.h"

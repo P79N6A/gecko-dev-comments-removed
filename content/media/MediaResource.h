@@ -18,7 +18,6 @@
 #include "nsIInterfaceRequestor.h"
 #include "MediaCache.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/TimeStamp.h"
 
 
 

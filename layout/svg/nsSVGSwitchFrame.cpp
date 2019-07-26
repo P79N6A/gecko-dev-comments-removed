@@ -177,6 +177,8 @@ nsSVGSwitchFrame::ReflowSVG()
   
   
 
+  bool isFirstReflow = (mState & NS_FRAME_FIRST_REFLOW);
+
   bool outerSVGHasHadFirstReflow =
     (GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) == 0;
 
@@ -201,7 +203,7 @@ nsSVGSwitchFrame::ReflowSVG()
     }
   }
 
-  if (mState & NS_FRAME_FIRST_REFLOW) {
+  if (isFirstReflow) {
     
     
     

@@ -17,10 +17,12 @@
 #include "nsICharsetConverterManager.h"
 #include "nsPluginLogging.h"
 #include "nsNPAPIPlugin.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/Preferences.h"
 #include <cctype>
 
 using namespace mozilla;
+using mozilla::TimeStamp;
 
 
 

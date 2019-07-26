@@ -4,6 +4,7 @@
 
 
 #include "nsPerformance.h"
+#include "TimeStamp.h"
 #include "nsCOMPtr.h"
 #include "nsITimedChannel.h"
 #include "nsDOMNavigationTiming.h"
@@ -12,7 +13,6 @@
 #include "mozilla/dom/PerformanceBinding.h"
 #include "mozilla/dom/PerformanceTimingBinding.h"
 #include "mozilla/dom/PerformanceNavigationBinding.h"
-#include "mozilla/TimeStamp.h"
 
 using namespace mozilla;
 
