@@ -24,9 +24,7 @@ var gPrivacyPane = {
     this.initializeHistoryMode();
     this.updateHistoryModePane();
     this.updatePrivacyMicroControls();
-    this.initAutoStartPrivateBrowsingObserver();
-
-    window.addEventListener("unload", this.removeASPBObserver.bind(this), false);
+    this.initAutoStartPrivateBrowsingReverter();
   },
 
   
@@ -234,42 +232,35 @@ var gPrivacyPane = {
   
 
 
-  initAutoStartPrivateBrowsingObserver: function PPP_initAutoStartPrivateBrowsingObserver()
+  initAutoStartPrivateBrowsingReverter: function PPP_initAutoStartPrivateBrowsingReverter()
   {
-    let prefService = document.getElementById("privacyPreferences")
-                              .service
-                              .QueryInterface(Components.interfaces.nsIPrefBranch);
-    prefService.addObserver("browser.privatebrowsing.autostart",
-                            this.autoStartPrivateBrowsingObserver,
-                            false);
+    let mode = document.getElementById("historyMode");
+    let autoStart = document.getElementById("privateBrowsingAutoStart");
+    this._lastMode = mode.selectedIndex;
+    this._lastCheckState = autoStart.hasAttribute('checked');
   },
 
-  
+  _lastMode: null,
+  _lasCheckState: null,
+  updateAutostart: function PPP_updateAutostart() {
+      let mode = document.getElementById("historyMode");
+      let autoStart = document.getElementById("privateBrowsingAutoStart");
+      let pref = document.getElementById("browser.privatebrowsing.autostart");
+      if ((mode.value == "custom" && this._lastCheckState == autoStart.checked) ||
+          (mode.value == "remember" && !this._lastCheckState) ||
+          (mode.value == "dontremember" && this._lastCheckState)) {
+          
+          this._lastMode = mode.selectedIndex;
+          this._lastCheckState = autoStart.hasAttribute('checked');
+          return;
+      }
 
-
-  removeASPBObserver: function PPP_removeASPBObserver()
-  {
-    let prefService = document.getElementById("privacyPreferences")
-                              .service
-                              .QueryInterface(Components.interfaces.nsIPrefBranch);
-    prefService.removeObserver("browser.privatebrowsing.autostart",
-                               this.autoStartPrivateBrowsingObserver);
-  },
-
-  autoStartPrivateBrowsingObserver:
-  {
-    QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIObserver]),
-
-    observe: function PPP_observe(aSubject, aTopic, aData)
-    {
-      if (!gPrivacyPane._shouldPromptForRestart) {
+      if (!this._shouldPromptForRestart) {
         
-        gPrivacyPane._shouldPromptForRestart = true;
         return;
       }
 
       const Cc = Components.classes, Ci = Components.interfaces;
-      let pref = document.getElementById("browser.privatebrowsing.autostart");
       let brandName = document.getElementById("bundleBrand").getString("brandShortName");
       let bundle = document.getElementById("bundlePreferences");
       let msg = bundle.getFormattedString(pref.value ?
@@ -286,24 +277,25 @@ var gPrivacyPane = {
         shouldProceed = !cancelQuit.data;
 
         if (shouldProceed) {
+          document.documentElement.acceptDialog();
           let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
                              .getService(Ci.nsIAppStartup);
           appStartup.quit(Ci.nsIAppStartup.eAttemptQuit |  Ci.nsIAppStartup.eRestart);
           return;
         }
       }
-      gPrivacyPane._shouldPromptForRestart = false;
-      pref.value = !pref.value;
 
-      let mode = document.getElementById("historyMode");
-      if (mode.value != "custom") {
-        mode.selectedIndex = pref.value ? 1 : 0;
-        mode.doCommand();
+      this._shouldPromptForRestart = false;
+
+      if (this._lastCheckState) {
+        autoStart.checked = "checked";
       } else {
-        let rememberHistoryCheckbox = document.getElementById("rememberHistory");
-        rememberHistory.checked = pref.value;
+        autoStart.removeAttribute('checked');
       }
-    }
+      mode.selectedIndex = this._lastMode;
+      mode.doCommand();
+
+      this._shouldPromptForRestart = true;
   },
 
   
