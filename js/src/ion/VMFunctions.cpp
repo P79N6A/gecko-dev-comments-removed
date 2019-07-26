@@ -50,6 +50,12 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
 {
     Value fval = ObjectValue(*fun);
 
+    if (fun->isInterpretedLazy()) {
+        Rooted<JSFunction*> rootedFun(cx, fun);
+        if (!InitializeLazyFunctionScript(cx, rootedFun))
+            return false;
+    }
+
     
     
     
@@ -89,7 +95,18 @@ InvokeConstructor(JSContext *cx, JSObject *obj, uint32 argc, Value *argv, Value 
     Value fval = ObjectValue(*obj);
 
     
-    bool needsMonitor = !obj->isFunction() || ShouldMonitorReturnType(obj->toFunction());
+    bool needsMonitor;
+
+    if (obj->isFunction()) {
+        if (obj->toFunction()->isInterpretedLazy()) {
+            Rooted<JSFunction*> rootedFun(cx, obj->toFunction());
+            if (!InitializeLazyFunctionScript(cx, rootedFun))
+                return false;
+        }
+        needsMonitor = ShouldMonitorReturnType(obj->toFunction());
+    } else {
+        needsMonitor = true;
+    }
 
     
     Value *argvWithoutThis = argv + 1;

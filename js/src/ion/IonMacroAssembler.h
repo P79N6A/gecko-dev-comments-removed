@@ -275,7 +275,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void branchTestValueTruthy(const ValueOperand &value, Label *ifTrue, FloatRegister fr);
 
-    void branchIfFunctionIsNative(Register fun, Label *label) {
+    void branchIfFunctionHasNoScript(Register fun, Label *label) {
         
         
         JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);

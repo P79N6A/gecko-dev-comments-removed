@@ -847,7 +847,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         return false;
 
     
-    masm.branchIfFunctionIsNative(calleereg, &invoke);
+    masm.branchIfFunctionHasNoScript(calleereg, &invoke);
 
     
     masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
@@ -1151,7 +1151,7 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
 
     
     if (!apply->hasSingleTarget()) {
-        masm.branchIfFunctionIsNative(calleereg, &invoke);
+        masm.branchIfFunctionHasNoScript(calleereg, &invoke);
     } else {
         
         JS_ASSERT(!apply->getSingleTarget()->isNative());
