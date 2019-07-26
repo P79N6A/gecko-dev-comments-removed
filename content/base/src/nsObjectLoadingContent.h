@@ -381,6 +381,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
+    bool CheckJavaCodebase();
+
+    
+
+
 
 
 

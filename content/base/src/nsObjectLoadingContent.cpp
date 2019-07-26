@@ -28,6 +28,7 @@
 #include "nsJSNPRuntime.h"
 #include "nsIPresShell.h"
 #include "nsIScriptGlobalObject.h"
+#include "nsScriptSecurityManager.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIStreamConverterService.h"
 #include "nsIURILoader.h"
@@ -1190,6 +1191,46 @@ nsObjectLoadingContent::ObjectState() const
   return NS_EVENT_STATE_LOADING;
 }
 
+
+bool
+nsObjectLoadingContent::CheckJavaCodebase()
+{
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsCOMPtr<nsIScriptSecurityManager> secMan =
+    nsContentUtils::GetSecurityManager();
+  nsCOMPtr<nsINetUtil> netutil = do_GetNetUtil();
+  NS_ASSERTION(thisContent && secMan && netutil, "expected interfaces");
+
+
+  
+  
+  nsresult rv = secMan->CheckLoadURIWithPrincipal(thisContent->NodePrincipal(),
+                                                  mBaseURI, 0);
+  if (NS_FAILED(rv)) {
+    LOG(("OBJLC [%p]: Java codebase check failed", this));
+    return false;
+  }
+
+  nsCOMPtr<nsIURI> principalBaseURI;
+  rv = thisContent->NodePrincipal()->GetURI(getter_AddRefs(principalBaseURI));
+  if (NS_FAILED(rv)) {
+    NS_NOTREACHED("Failed to URI from node principal?");
+    return false;
+  }
+  
+  
+  if (NS_URIIsLocalFile(mBaseURI) &&
+      nsScriptSecurityManager::GetStrictFileOriginPolicy() &&
+      !NS_RelaxStrictFileOriginPolicy(mBaseURI, principalBaseURI)) {
+    LOG(("OBJLC [%p]: Java failed RelaxStrictFileOriginPolicy for file URI",
+         this));
+    return false;
+  }
+
+  return true;
+}
+
 bool
 nsObjectLoadingContent::CheckLoadPolicy(int16_t *aContentPolicy)
 {
@@ -1870,14 +1911,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   if (mType != eType_Null) {
     bool allowLoad = true;
     if (nsPluginHost::IsJavaMIMEType(mContentType.get())) {
-      nsCOMPtr<nsIScriptSecurityManager> secMan =
-        nsContentUtils::GetSecurityManager();
-      rv = secMan->CheckLoadURIWithPrincipal(thisContent->NodePrincipal(),
-                                             mBaseURI, 0);
-      if (NS_FAILED(rv)) {
-        LOG(("OBJLC [%p]: Java codebase check failed", this));
-        allowLoad = false;
-      }
+      allowLoad = CheckJavaCodebase();
     }
     int16_t contentPolicy = nsIContentPolicy::ACCEPT;
     
