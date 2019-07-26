@@ -992,7 +992,7 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET(&rt->interrupt, 0);
+    rt->interrupt = 0;
 
     
     rt->resetIonStackLimit();

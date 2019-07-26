@@ -13,11 +13,13 @@ ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     sOriginPrincipalsInErrorReporter = report->originPrincipals;
 }
 
-JSPrincipals prin1 = { 1 };
-JSPrincipals prin2 = { 1 };
+JSPrincipals prin1;
+JSPrincipals prin2;
 
 BEGIN_TEST(testOriginPrincipals)
 {
+    prin1.refcount = 1;
+    prin2.refcount = 2;
     
 
 

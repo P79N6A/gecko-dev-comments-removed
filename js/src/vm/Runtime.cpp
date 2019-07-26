@@ -88,11 +88,7 @@ JSRuntime::triggerOperationCallback()
 
     mainThread.setIonStackLimit(-1);
 
-    
-
-
-
-    JS_ATOMIC_SET(&interrupt, 1);
+    interrupt = 1;
 
 #ifdef JS_ION
     
