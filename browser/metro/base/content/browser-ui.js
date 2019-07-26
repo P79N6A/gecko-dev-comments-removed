@@ -160,8 +160,6 @@ var BrowserUI = {
       Util.dumpLn("* delay load started...");
       window.removeEventListener("UIReadyDelayed",  delayedInit, false);
 
-      
-      Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
       messageManager.addMessageListener("Browser:MozApplicationManifest", OfflineApps);
 
       try {

@@ -1061,9 +1061,6 @@ var gBrowserInit = {
     LightweightThemeListener.init();
     WebrtcIndicator.init();
 
-    
-    Services.logins;
-
 #ifdef MOZ_CRASHREPORTER
     if (gMultiProcessBrowser)
       TabCrashReporter.init();

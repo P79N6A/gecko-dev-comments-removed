@@ -134,12 +134,6 @@ LoginManager.prototype = {
 
         
         Services.obs.addObserver(this._observer, "xpcom-shutdown", false);
-
-        
-        var progress = Cc["@mozilla.org/docloaderservice;1"].
-                       getService(Ci.nsIWebProgress);
-        progress.addProgressListener(this._webProgressListener,
-                                     Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
     },
 
 
@@ -186,16 +180,6 @@ LoginManager.prototype = {
         }
     },
 
-
-    _webProgressListener : {
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                                Ci.nsISupportsWeakReference]),
-        onStateChange    : function() {  },
-        onProgressChange : function() { throw "Unexpected onProgressChange"; },
-        onLocationChange : function() { throw "Unexpected onLocationChange"; },
-        onStatusChange   : function() { throw "Unexpected onStatusChange";   },
-        onSecurityChange : function() { throw "Unexpected onSecurityChange"; }
-    },
 
 
 
