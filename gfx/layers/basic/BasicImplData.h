@@ -59,7 +59,9 @@ public:
 
 
 
-  virtual void Paint(gfx::DrawTarget* aDT, Layer* aMaskLayer) {}
+  virtual void Paint(gfx::DrawTarget* aDT,
+                     const gfx::Point& aDeviceOffset,
+                     Layer* aMaskLayer) {}
 
   
 
