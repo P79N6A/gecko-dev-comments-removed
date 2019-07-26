@@ -498,8 +498,17 @@ int64_t MP3FrameParser::GetDuration()
 {
   MutexAutoLock mon(mLock);
 
-  if (mMP3Offset < 0) {
-    return -1; 
+  if (!ParsedHeaders() || !mSamplesPerSecond) {
+    
+    return -1;
+  }
+
+  MOZ_ASSERT(mFrameCount > 0 && mTotalFrameSize > 0,
+             "Frame parser should have seen at least one MP3 frame of positive length.");
+
+  if (!mFrameCount || !mTotalFrameSize) {
+    
+    return -1;
   }
 
   double frames;
