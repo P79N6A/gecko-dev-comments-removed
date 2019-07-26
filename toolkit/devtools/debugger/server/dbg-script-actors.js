@@ -743,6 +743,22 @@ ThreadActor.prototype = {
   
 
 
+
+
+
+
+  disableAllBreakpoints: function () {
+    for (let url in this._breakpointStore) {
+      for (let line in this._breakpointStore[url]) {
+        let bp = this._breakpointStore[url][line];
+        bp.actor.removeScripts();
+      }
+    }
+  },
+
+  
+
+
   onInterrupt: function TA_onInterrupt(aRequest) {
     if (this.state == "exited") {
       return { type: "exited" };
@@ -1269,7 +1285,10 @@ ThreadActor.prototype = {
         for (let line = existing.length - 1; line >= 0; line--) {
           let bp = existing[line];
           
-          if (bp && line >= aScript.startLine && line <= endLine) {
+          
+          
+          if (bp && !bp.actor.scripts.length &&
+              line >= aScript.startLine && line <= endLine) {
             this._setBreakpoint(bp);
           }
         }
@@ -2053,6 +2072,16 @@ BreakpointActor.prototype = {
   
 
 
+  removeScripts: function () {
+    for (let script of this.scripts) {
+      script.clearBreakpoint(this);
+    }
+    this.scripts = [];
+  },
+
+  
+
+
 
 
 
@@ -2079,12 +2108,9 @@ BreakpointActor.prototype = {
     
     let scriptBreakpoints = this.threadActor._breakpointStore[this.location.url];
     delete scriptBreakpoints[this.location.line];
-    
     this.threadActor._hooks.removeFromParentPool(this);
-    for (let script of this.scripts) {
-      script.clearBreakpoint(this);
-    }
-    this.scripts = null;
+    
+    this.removeScripts();
 
     return { from: this.actorID };
   }

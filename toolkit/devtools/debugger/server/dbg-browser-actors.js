@@ -669,9 +669,6 @@ DebuggerProgressListener.prototype = {
 
     if (isStart && aRequest instanceof Ci.nsIChannel) {
       
-      
-
-      
       if (this._tabActor.threadActor.state == "paused") {
         aRequest.suspend();
         this._tabActor.threadActor.onResume();
@@ -679,6 +676,7 @@ DebuggerProgressListener.prototype = {
         this._tabActor._pendingNavigation = aRequest;
       }
 
+      this._tabActor.threadActor.disableAllBreakpoints();
       this._tabActor.conn.send({
         from: this._tabActor.actorID,
         type: "tabNavigated",
