@@ -33,8 +33,8 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
     *patchOffset = offset;
 
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
-              BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
+                 BaselineStubReg);
 
     
     
@@ -47,7 +47,7 @@ EmitEnterTypeMonitorIC(MacroAssembler &masm,
 {
     
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
 
     
     masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
@@ -78,7 +78,7 @@ EmitTailCallVM(IonCode *target, MacroAssembler &masm, uint32_t argSize)
     
     masm.movl(eax, ebx);
     masm.subl(Imm32(argSize), ebx);
-    masm.store32(ebx, Operand(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(ebx, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     masm.makeFrameDescriptor(eax, IonFrame_BaselineJS);
@@ -123,7 +123,7 @@ EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
     masm.addl(Imm32(BaselineFrame::FramePointerOffset), scratch);
     masm.subl(BaselineStackReg, scratch);
 
-    masm.store32(scratch, Operand(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(scratch, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     
@@ -220,8 +220,8 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code, uint32_t objectOffset)
 
     
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
-              BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 BaselineStubReg);
 
     
     masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
@@ -271,7 +271,7 @@ EmitStubGuardFailure(MacroAssembler &masm)
     
 
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICStub::offsetOfNext()), BaselineStubReg);
 
     
     masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));

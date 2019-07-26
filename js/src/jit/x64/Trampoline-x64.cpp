@@ -363,13 +363,13 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.movq(Operand(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
+    masm.loadPtr(Address(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
     masm.clearCalleeTag(rax, mode);
     masm.movzwl(Operand(rax, offsetof(JSFunction, nargs)), rcx);
     masm.subq(r8, rcx);
 
     
-    masm.movq(Operand(rsp, IonRectifierFrameLayout::offsetOfNumActualArgs()), rdx);
+    masm.loadPtr(Address(rsp, IonRectifierFrameLayout::offsetOfNumActualArgs()), rdx);
 
     masm.moveValue(UndefinedValue(), r10);
 
@@ -412,7 +412,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     
-    masm.movq(Operand(rax, JSFunction::offsetOfNativeOrScript()), rax);
+    masm.loadPtr(Address(rax, JSFunction::offsetOfNativeOrScript()), rax);
     masm.loadBaselineOrIonRaw(rax, rax, mode, NULL);
     masm.call(rax);
     uint32_t returnOffset = masm.currentOffset();

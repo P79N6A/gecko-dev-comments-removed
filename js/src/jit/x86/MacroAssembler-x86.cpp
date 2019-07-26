@@ -311,15 +311,15 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
     
     bind(&entryFrame);
     moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-    movl(Operand(esp, offsetof(ResumeFromException, stackPointer)), esp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
     ret();
 
     
     
     bind(&catch_);
-    movl(Operand(esp, offsetof(ResumeFromException, target)), eax);
-    movl(Operand(esp, offsetof(ResumeFromException, framePointer)), ebp);
-    movl(Operand(esp, offsetof(ResumeFromException, stackPointer)), esp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, target)), eax);
+    loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
     jmp(Operand(eax));
 
     
@@ -327,11 +327,11 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
     
     bind(&finally);
     ValueOperand exception = ValueOperand(ecx, edx);
-    loadValue(Operand(esp, offsetof(ResumeFromException, exception)), exception);
+    loadValue(Address(esp, offsetof(ResumeFromException, exception)), exception);
 
-    movl(Operand(esp, offsetof(ResumeFromException, target)), eax);
-    movl(Operand(esp, offsetof(ResumeFromException, framePointer)), ebp);
-    movl(Operand(esp, offsetof(ResumeFromException, stackPointer)), esp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, target)), eax);
+    loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
 
     pushValue(BooleanValue(true));
     pushValue(exception);
@@ -339,8 +339,8 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
 
     
     bind(&return_);
-    movl(Operand(esp, offsetof(ResumeFromException, framePointer)), ebp);
-    movl(Operand(esp, offsetof(ResumeFromException, stackPointer)), esp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, framePointer)), ebp);
+    loadPtr(Address(esp, offsetof(ResumeFromException, stackPointer)), esp);
     loadValue(Address(ebp, BaselineFrame::reverseOffsetOfReturnValue()), JSReturnOperand);
     movl(ebp, esp);
     pop(ebp);
@@ -349,7 +349,7 @@ MacroAssemblerX86::handleFailureWithHandlerTail()
     
     
     bind(&bailout);
-    movl(Operand(esp, offsetof(ResumeFromException, bailoutInfo)), ecx);
+    loadPtr(Address(esp, offsetof(ResumeFromException, bailoutInfo)), ecx);
     movl(Imm32(BAILOUT_RETURN_OK), eax);
     jmp(Operand(esp, offsetof(ResumeFromException, target)));
 }

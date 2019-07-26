@@ -65,7 +65,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.movl(esp, esi);
 
     
-    masm.movl(Operand(ebp, ARG_ARGC), eax);
+    masm.loadPtr(Address(ebp, ARG_ARGC), eax);
     masm.shll(Imm32(3), eax);
 
     
@@ -89,7 +89,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
 
     
-    masm.movl(Operand(ebp, ARG_ARGV), ebx);
+    masm.loadPtr(Address(ebp, ARG_ARGV), ebx);
 
     
     masm.addl(ebx, eax);
@@ -126,7 +126,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     
     
-    masm.movl(Operand(ebp, ARG_STACKFRAME), OsrFrameReg);
+    masm.loadPtr(Address(ebp, ARG_STACKFRAME), OsrFrameReg);
 
     
 
@@ -151,10 +151,10 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.branchTestPtr(Assembler::Zero, OsrFrameReg, OsrFrameReg, &notOsr);
 
         Register numStackValues = regs.takeAny();
-        masm.movl(Operand(ebp, ARG_STACKVALUES), numStackValues);
+        masm.loadPtr(Address(ebp, ARG_STACKVALUES), numStackValues);
 
         Register jitcode = regs.takeAny();
-        masm.movl(Operand(ebp, ARG_JITCODE), jitcode);
+        masm.loadPtr(Address(ebp, ARG_JITCODE), jitcode);
 
         
         masm.mov(returnLabel.dest(), scratch);
@@ -230,7 +230,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.jump(scratch);
 
         masm.bind(&notOsr);
-        masm.movl(Operand(ebp, ARG_SCOPECHAIN), R1.scratchReg());
+        masm.loadPtr(Address(ebp, ARG_SCOPECHAIN), R1.scratchReg());
     }
 
     
@@ -260,7 +260,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     
-    masm.movl(Operand(esp, ARG_RESULT + 3 * sizeof(void *)), eax);
+    masm.loadPtr(Address(esp, ARG_RESULT + 3 * sizeof(void *)), eax);
     masm.storeValue(JSReturnOperand, Operand(eax, 0));
 
     
@@ -353,13 +353,13 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     JS_ASSERT(ArgumentsRectifierReg == esi);
 
     
-    masm.movl(Operand(esp, IonRectifierFrameLayout::offsetOfCalleeToken()), eax);
+    masm.loadPtr(Address(esp, IonRectifierFrameLayout::offsetOfCalleeToken()), eax);
     masm.clearCalleeTag(eax, mode);
     masm.movzwl(Operand(eax, offsetof(JSFunction, nargs)), ecx);
     masm.subl(esi, ecx);
 
     
-    masm.movl(Operand(esp, IonRectifierFrameLayout::offsetOfNumActualArgs()), edx);
+    masm.loadPtr(Address(esp, IonRectifierFrameLayout::offsetOfNumActualArgs()), edx);
 
     masm.moveValue(UndefinedValue(), ebx, edi);
 
@@ -412,7 +412,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     
-    masm.movl(Operand(eax, JSFunction::offsetOfNativeOrScript()), eax);
+    masm.loadPtr(Address(eax, JSFunction::offsetOfNativeOrScript()), eax);
     masm.loadBaselineOrIonRaw(eax, eax, mode, NULL);
     masm.call(eax);
     uint32_t returnOffset = masm.currentOffset();

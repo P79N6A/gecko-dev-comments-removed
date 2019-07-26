@@ -33,8 +33,8 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
     *patchOffset = offset;
 
     
-    masm.movq(Operand(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
-              BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICEntry::offsetOfFirstStub()),
+                 BaselineStubReg);
 
     
     masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
@@ -46,7 +46,7 @@ EmitEnterTypeMonitorIC(MacroAssembler &masm,
 {
     
     
-    masm.movq(Operand(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
 
     
     masm.jmp(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()));
@@ -214,8 +214,8 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code, uint32_t objectOffset)
 
     
     
-    masm.movq(Operand(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
-              BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (int32_t) ICUpdatedStub::offsetOfFirstUpdateStub()),
+                 BaselineStubReg);
 
     
     masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
@@ -265,7 +265,7 @@ EmitStubGuardFailure(MacroAssembler &masm)
     
 
     
-    masm.movq(Operand(BaselineStubReg, ICStub::offsetOfNext()), BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfNext()), BaselineStubReg);
 
     
     masm.jmp(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
