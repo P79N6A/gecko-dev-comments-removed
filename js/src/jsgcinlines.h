@@ -485,6 +485,19 @@ class GCCompartmentGroupIter {
 
 
 
+template<typename T>
+static inline void
+UnpoisonThing(T *thing)
+{
+#ifdef DEBUG
+    
+    JS_STATIC_ASSERT(sizeof(T) >= sizeof(FreeSpan) + sizeof(uint8_t));
+    uint8_t *p =
+        reinterpret_cast<uint8_t *>(reinterpret_cast<FreeSpan *>(thing) + 1);
+    *p = 0;
+#endif
+}
+
 template <typename T>
 inline T *
 NewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
@@ -509,18 +522,21 @@ NewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
     MaybeCheckStackRoots(cx,  false);
 
     JSCompartment *comp = cx->compartment;
-    void *t = comp->arenas.allocateFromFreeList(kind, thingSize);
+    T *t = static_cast<T *>(comp->arenas.allocateFromFreeList(kind, thingSize));
     if (!t)
-        t = js::gc::ArenaLists::refillFreeList(cx, kind);
+        t = static_cast<T *>(js::gc::ArenaLists::refillFreeList(cx, kind));
 
     JS_ASSERT_IF(t && comp->wasGCStarted() && (comp->isGCMarking() || comp->isGCSweeping()),
-                 static_cast<T *>(t)->arenaHeader()->allocatedDuringIncremental);
+                 t->arenaHeader()->allocatedDuringIncremental);
 
 #if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
     if (cx->runtime->gcVerifyPostData && IsNurseryAllocable(kind) && !IsAtomsCompartment(comp))
         comp->gcNursery.insertPointer(t);
 #endif
-    return static_cast<T *>(t);
+
+    if (t)
+        UnpoisonThing(t);
+    return t;
 }
 
 
@@ -541,16 +557,19 @@ TryNewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
 #endif
 
     JSCompartment *comp = cx->compartment;
-    void *t = comp->arenas.allocateFromFreeList(kind, thingSize);
+    T *t = static_cast<T *>(comp->arenas.allocateFromFreeList(kind, thingSize));
     JS_ASSERT_IF(t && comp->wasGCStarted() && (comp->isGCMarking() || comp->isGCSweeping()),
-                 static_cast<T *>(t)->arenaHeader()->allocatedDuringIncremental);
+                 t->arenaHeader()->allocatedDuringIncremental);
 
 #if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
     JSCompartment *comp = cx->compartment;
     if (cx->runtime->gcVerifyPostData && IsNurseryAllocable(kind) && !IsAtomsCompartment(comp))
         comp->gcNursery.insertPointer(t);
 #endif
-    return static_cast<T *>(t);
+
+    if (t)
+        UnpoisonThing(t);
+    return t;
 }
 
 } 
