@@ -371,4 +371,16 @@ public class AndroidFxAccount {
       FxAccountConstants.pii(LOG_TAG, key + ": " + o.get(key));
     }
   }
+
+  
+
+
+
+
+
+
+
+  public String getEmail() {
+    return account.name;
+  }
 }
