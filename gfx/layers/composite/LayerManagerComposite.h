@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef GFX_LayerManagerComposite_H
 #define GFX_LayerManagerComposite_H
@@ -29,26 +29,26 @@ class ShadowCanvasLayer;
 class ShadowColorLayer;
 class CompositableHost;
 
-/**
- * Composite layers are for use with OMTC on the compositor thread only. There
- * must be corresponding Basic layers on the content thread. For composite
- * layers, the layer manager only maintains the layer tree, all rendering is
- * done by a Compositor (see Compositor.h). As such, composite layers are
- * platform-independent and can be used on any platform for which there is a
- * Compositor implementation.
- *
- * The composite layer tree reflects exactly the basic layer tree. To
- * composite to screen, the layer manager walks the layer tree calling render
- * methods which in turn call into their CompositableHosts' Composite methods.
- * These call Compositor::DrawQuad to do the rendering.
- *
- * Mostly, layers are updated during the layers transaction. This is done from
- * CompositableClient to CompositableHost without interacting with the layer.
- *
- * mCompositor is stored in ShadowLayerManager.
- *
- * Post-landing TODO: merge LayerComposite with ShadowLayer
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class THEBES_API LayerManagerComposite : public ShadowLayerManager
 {
 public:
@@ -60,28 +60,28 @@ public:
 
   virtual void Destroy();
 
-  /**
-   * return True if initialization was succesful, false when it was not.
-   */
+  
+
+
   bool Initialize();
 
-  /**
-   * Sets the clipping region for this layer manager. This is important on
-   * windows because using OGL we no longer have GDI's native clipping. Therefor
-   * widget must tell us what part of the screen is being invalidated,
-   * and we should clip to this.
-   *
-   * \param aClippingRegion Region to clip to. Setting an empty region
-   * will disable clipping.
-   */
+  
+
+
+
+
+
+
+
+
   void SetClippingRegion(const nsIntRegion& aClippingRegion)
   {
     mClippingRegion = aClippingRegion;
   }
 
-  /**
-   * LayerManager implementation.
-   */
+  
+
+
   virtual ShadowLayerManager* AsShadowManager() MOZ_OVERRIDE
   {
     return this;
@@ -135,7 +135,6 @@ public:
 
   virtual LayersBackend GetBackendType() MOZ_OVERRIDE
   {
-    MOZ_ASSERT(false, "Shouldn't be called for composited layer manager");
     return LAYERS_NONE;
   }
   virtual void GetBackendName(nsAString& name) MOZ_OVERRIDE
@@ -154,9 +153,9 @@ public:
   void* GetThebesLayerCallbackData() const
   { return mThebesLayerCallbackData; }
 
-  /*
-   * Helper functions for our layers
-   */
+  
+
+
   void CallThebesLayerDrawCallback(ThebesLayer* aLayer,
                                    gfxContext* aContext,
                                    const nsIntRegion& aRegionToDraw)
@@ -170,18 +169,18 @@ public:
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
-#endif // MOZ_LAYERS_HAVE_LOG
+#endif 
 
   enum WorldTransforPolicy {
     ApplyWorldTransform,
     DontApplyWorldTransform
   };
 
-  /**
-   * Setup World transform matrix.
-   * Transform will be ignored if it is not PreservesAxisAlignedRectangles
-   * or has non integer scale
-   */
+  
+
+
+
+
   void SetWorldTransform(const gfxMatrix& aMatrix);
   gfxMatrix& GetWorldTransform(void);
 
@@ -189,10 +188,10 @@ public:
                             EffectChain& aEffect,
                             bool aIs3D = false);
 
-  /**
-   * Creates a DrawTarget which is optimized for inter-operating with this
-   * layermanager.
-   */
+  
+
+
+
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat) MOZ_OVERRIDE;
@@ -202,46 +201,46 @@ public:
     return mCompositor->GetWidgetSize();
   }
 
-  /**
-   * Calculates the 'completeness' of the rendering that intersected with the
-   * screen on the last render. This is only useful when progressive tile
-   * drawing is enabled, otherwise this will always return 1.0.
-   * This function's expense scales with the size of the layer tree and the
-   * complexity of individual layers' valid regions.
-   */
+  
+
+
+
+
+
+
   float ComputeRenderIntegrity();
 
 private:
-  /** Region we're clipping our current drawing to. */
+  
   nsIntRegion mClippingRegion;
   nsIntRect mRenderBounds;
 
-  /** Current root layer. */
+  
   LayerComposite *RootLayer() const;
 
-  /**
-   * Recursive helper method for use by ComputeRenderIntegrity. Subtracts
-   * any incomplete rendering on aLayer from aScreenRegion. Any low-precision
-   * rendering is included in aLowPrecisionScreenRegion. aTransform is the
-   * accumulated transform of intermediate surfaces beneath aLayer.
-   */
+  
+
+
+
+
+
   static void ComputeRenderIntegrityInternal(Layer* aLayer,
                                              nsIntRegion& aScreenRegion,
                                              nsIntRegion& aLowPrecisionScreenRegion,
                                              const gfx3DMatrix& aTransform);
 
-  /**
-   * Render the current layer tree to the active target.
-   */
+  
+
+
   void Render();
 
   void WorldTransformRect(nsIntRect& aRect);
 
-  /** Our more efficient but less powerful alter ego, if one is available. */
+  
   nsRefPtr<Composer2D> mComposer2D;
 
-  /* Thebes layer callbacks; valid at the end of a transaciton,
-   * while rendering */
+  
+
   DrawThebesLayerCallback mThebesLayerCallback;
   void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
@@ -251,9 +250,9 @@ private:
 
 
 
-/**
- * General information and tree management for layers.
- */
+
+
+
 class LayerComposite
 {
 public:
@@ -270,9 +269,9 @@ public:
     return nullptr;
   }
 
-  /* Do NOT call this from the generic LayerComposite destructor.  Only from the
-   * concrete class destructor
-   */
+  
+
+
   virtual void Destroy();
 
   virtual Layer* GetLayer() = 0;
@@ -302,7 +301,7 @@ protected:
 };
 
 
-} /* layers */
-} /* mozilla */
+} 
+} 
 
-#endif /* GFX_LayerManagerComposite_H */
+#endif 
