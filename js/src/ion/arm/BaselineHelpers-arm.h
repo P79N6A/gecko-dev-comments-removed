@@ -140,10 +140,20 @@ EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
 }
 
 inline void
-EmitLeaveStubFrame(MacroAssembler &masm)
+EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 {
     
-    masm.mov(BaselineFrameReg, BaselineStackReg);
+    
+    
+    
+    if (calledIntoIon) {
+        masm.pop(ScratchRegister);
+        masm.ma_lsr(Imm32(FRAMESIZE_SHIFT), ScratchRegister, ScratchRegister);
+        masm.ma_add(ScratchRegister, BaselineStackReg);
+    } else {
+        masm.mov(BaselineFrameReg, BaselineStackReg);
+    }
+
     masm.pop(BaselineFrameReg);
     masm.pop(BaselineStubReg);
 

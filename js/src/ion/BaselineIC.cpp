@@ -887,6 +887,49 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
+DoGetNameFallback(JSContext *cx, ICGetName_Fallback *stub, HandleObject scopeChain, MutableHandleValue res)
+{
+    RootedScript script(cx, GetTopIonJSScript(cx));
+    jsbytecode *pc = stub->icEntry()->pc(script);
+
+    JS_ASSERT(JSOp(*pc) == JSOP_GETGNAME || JSOp(*pc) == JSOP_CALLGNAME);
+
+    RootedPropertyName name(cx, script->getName(pc));
+
+    if (JSOp(pc[JSOP_GETGNAME_LENGTH]) == JSOP_TYPEOF) {
+        if (!GetScopeNameForTypeOf(cx, scopeChain, name, res))
+            return false;
+    } else {
+        if (!GetScopeName(cx, scopeChain, name, res))
+            return false;
+    }
+
+    types::TypeScript::Monitor(cx, script, pc, res);
+
+    return true;
+}
+
+typedef bool (*DoGetNameFallbackFn)(JSContext *, ICGetName_Fallback *, HandleObject, MutableHandleValue);
+static const VMFunction DoGetNameFallbackInfo = FunctionInfo<DoGetNameFallbackFn>(DoGetNameFallback);
+
+bool
+ICGetName_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    EmitRestoreTailCallReg(masm);
+
+    masm.push(R0.scratchReg());
+    masm.push(BaselineStubReg);
+
+    return tailCallVM(DoGetNameFallbackInfo, masm);
+}
+
+
+
+
+
+static bool
 DoCallFallback(JSContext *cx, ICCall_Fallback *stub, uint32_t argc, Value *vp, MutableHandleValue res)
 {
     RootedValue callee(cx, vp[0]);
@@ -1088,7 +1131,7 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
     masm.bind(&noUnderflow);
     masm.callIon(code);
 
-    EmitLeaveStubFrame(masm);
+    EmitLeaveStubFrame(masm, true);
 
     
     EmitEnterTypeMonitorIC(masm);
