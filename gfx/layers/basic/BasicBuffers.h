@@ -72,13 +72,13 @@ public:
 
 
 
-  void MapBuffer(gfxASurface* aBuffer)
+  void ProvideBuffer(AutoOpenSurface* aProvider)
   {
-    SetBuffer(aBuffer);
+    SetBufferProvider(aProvider);
   }
-  void UnmapBuffer()
+  void RevokeBuffer()
   {
-    SetBuffer(nullptr);
+    SetBufferProvider(nullptr);
   }
 
 private:

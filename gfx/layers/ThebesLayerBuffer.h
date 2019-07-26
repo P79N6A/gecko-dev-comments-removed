@@ -13,6 +13,7 @@
 namespace mozilla {
 namespace layers {
 
+class AutoOpenSurface;
 class ThebesLayer;
 
 
@@ -50,7 +51,8 @@ public:
   };
 
   ThebesLayerBuffer(BufferSizePolicy aBufferSizePolicy)
-    : mBufferRotation(0,0)
+    : mBufferProvider(nullptr)
+    , mBufferRotation(0,0)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
     MOZ_COUNT_CTOR(ThebesLayerBuffer);
@@ -67,6 +69,7 @@ public:
   void Clear()
   {
     mBuffer = nullptr;
+    mBufferProvider = nullptr;
     mBufferRect.SetEmpty();
   }
 
@@ -176,9 +179,18 @@ protected:
 
 
 
-  void SetBuffer(gfxASurface* aBuffer)
+
+
+
+
+
+
+  void SetBufferProvider(AutoOpenSurface* aProvider)
   {
-    mBuffer = aBuffer;
+    mBufferProvider = aProvider;
+    if (!mBufferProvider) {
+      mBuffer = nullptr;
+    }
   }
 
   
@@ -189,14 +201,31 @@ protected:
   GetContextForQuadrantUpdate(const nsIntRect& aBounds);
 
 private:
-  bool BufferSizeOkFor(const nsIntSize& aSize)
-  {
-    return (aSize == mBufferRect.Size() ||
-            (SizedToVisibleBounds != mBufferSizePolicy &&
-             aSize < mBufferRect.Size()));
-  }
+  
+  
+
+  
+
+
+
+  gfxASurface::gfxContentType BufferContentType();
+  bool BufferSizeOkFor(const nsIntSize& aSize);
+  
+
+
+  gfxASurface* EnsureBuffer();
+  
+
+
+
+  bool HaveBuffer();
 
   nsRefPtr<gfxASurface> mBuffer;
+  
+
+
+
+  AutoOpenSurface* mBufferProvider;
   
   nsIntRect             mBufferRect;
   
