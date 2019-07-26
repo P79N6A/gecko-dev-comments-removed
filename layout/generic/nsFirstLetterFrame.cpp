@@ -317,6 +317,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
     nsRefPtr<nsStyleContext> newSC;
     newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);
     continuation->SetStyleContext(newSC);
+    nsLayoutUtils::MarkDescendantsDirty(continuation);
   }
 
   
@@ -370,6 +371,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
                                               mStyleContext;
       sc = aPresContext->StyleSet()->ResolveStyleForNonElement(parentSC);
       kid->SetStyleContext(sc);
+      nsLayoutUtils::MarkDescendantsDirty(kid);
     }
   }
 }
