@@ -13,6 +13,7 @@
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
+#include "mozilla/IOInterposer.h"
 #include "mozilla/SQLiteInterposer.h"
 
 
@@ -73,12 +74,11 @@ public:
 
 
 
-
   IOThreadAutoTimer(Telemetry::ID id,
-                    SQLiteInterposer::EventHandlerFn evtFn = nullptr)
+    IOInterposeObserver::Operation aOp = IOInterposeObserver::OpNone)
     : start(TimeStamp::Now()),
       id(id),
-      evtFn(evtFn)
+      op(aOp)
   {
   }
 
@@ -87,16 +87,22 @@ public:
     uint32_t mainThread = NS_IsMainThread() ? 1 : 0;
     Telemetry::AccumulateTimeDelta(static_cast<Telemetry::ID>(id + mainThread),
                                    start, end);
-    if (evtFn && mainThread) {
-      double duration = (end - start).ToMilliseconds();
-      evtFn(duration);
+    if (IOInterposer::IsObservedOperation(op)) {
+      const char* main_ref  = "sqlite-mainthread";
+      const char* other_ref = "sqlite-otherthread";
+
+      
+      IOInterposeObserver::Observation ob(op, start, end,
+                                          (mainThread ? main_ref : other_ref));
+      
+      IOInterposer::Report(ob);
     }
   }
 
 private:
   const TimeStamp start;
   const Telemetry::ID id;
-  SQLiteInterposer::EventHandlerFn evtFn;
+  IOInterposeObserver::Operation op;
 };
 
 struct telemetry_file {
@@ -137,7 +143,7 @@ int
 xRead(sqlite3_file *pFile, void *zBuf, int iAmt, sqlite_int64 iOfst)
 {
   telemetry_file *p = (telemetry_file *)pFile;
-  IOThreadAutoTimer ioTimer(p->histograms->readMS, &SQLiteInterposer::OnRead);
+  IOThreadAutoTimer ioTimer(p->histograms->readMS, IOInterposeObserver::OpRead);
   int rc;
   rc = p->pReal->pMethods->xRead(p->pReal, zBuf, iAmt, iOfst);
   
@@ -156,7 +162,7 @@ xWrite(sqlite3_file *pFile, const void *zBuf, int iAmt, sqlite_int64 iOfst)
   if (p->quotaObject && !p->quotaObject->MaybeAllocateMoreSpace(iOfst, iAmt)) {
     return SQLITE_FULL;
   }
-  IOThreadAutoTimer ioTimer(p->histograms->writeMS, &SQLiteInterposer::OnWrite);
+  IOThreadAutoTimer ioTimer(p->histograms->writeMS, IOInterposeObserver::OpWrite);
   int rc;
   rc = p->pReal->pMethods->xWrite(p->pReal, zBuf, iAmt, iOfst);
   Telemetry::Accumulate(p->histograms->writeB, rc == SQLITE_OK ? iAmt : 0);
@@ -187,7 +193,7 @@ int
 xSync(sqlite3_file *pFile, int flags)
 {
   telemetry_file *p = (telemetry_file *)pFile;
-  IOThreadAutoTimer ioTimer(p->histograms->syncMS, &SQLiteInterposer::OnFSync);
+  IOThreadAutoTimer ioTimer(p->histograms->syncMS, IOInterposeObserver::OpFSync);
   return p->pReal->pMethods->xSync(p->pReal, flags);
 }
 

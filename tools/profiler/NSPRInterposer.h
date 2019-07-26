@@ -7,11 +7,6 @@
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
 
-#include "IOInterposer.h"
-#include "mozilla/Atomics.h"
-#include "mozilla/TimeStamp.h"
-#include "prio.h"
-
 namespace mozilla {
 
 
@@ -19,82 +14,17 @@ namespace mozilla {
 
 
 
-
-
-
-class NSPRInterposer MOZ_FINAL : public IOInterposerModule
-{
-public:
-  static IOInterposerModule* GetInstance(IOInterposeObserver* aObserver, 
-      IOInterposeObserver::Operation aOpsToInterpose);
-
-  
+void InitNSPRIOInterposing();
 
 
 
 
 
-  static void ClearInstance();
 
-  ~NSPRInterposer();
-  void Enable(bool aEnable);
-
-private:
-  NSPRInterposer();
-  bool Init(IOInterposeObserver* aObserver,
-            IOInterposeObserver::Operation aOpsToInterpose);
-
-  static int32_t PR_CALLBACK Read(PRFileDesc* aFd, void* aBuf, int32_t aAmt);
-  static int32_t PR_CALLBACK Write(PRFileDesc* aFd, const void* aBuf,
-                                   int32_t aAmt);
-  static PRStatus PR_CALLBACK FSync(PRFileDesc* aFd);
-  static StaticAutoPtr<NSPRInterposer> sSingleton;
-
-  friend class NSPRAutoTimer;
-
-  IOInterposeObserver*  mObserver;
-  PRIOMethods*          mFileIOMethods;
-  Atomic<uint32_t,ReleaseAcquire> mEnabled;
-  PRReadFN              mOrigReadFn;
-  PRWriteFN             mOrigWriteFn;
-  PRFsyncFN             mOrigFSyncFn;
-};
-
-
-
-
-
-class NSPRAutoTimer
-{
-public:
-  NSPRAutoTimer(IOInterposeObserver::Operation aOp)
-    :mOp(aOp),
-     mShouldObserve(NSPRInterposer::sSingleton->mEnabled && NS_IsMainThread())
-  {
-    if (mShouldObserve) {
-      mStart = mozilla::TimeStamp::Now();
-    }
-  }
-
-  ~NSPRAutoTimer()
-  {
-    if (mShouldObserve) {
-      double duration = (mozilla::TimeStamp::Now() - mStart).ToMilliseconds();
-      NSPRInterposer::sSingleton->mObserver->Observe(mOp, duration,
-                                                     sModuleInfo);
-    }
-  }
-
-private:
-  IOInterposeObserver::Operation  mOp;
-  bool                            mShouldObserve;
-  mozilla::TimeStamp              mStart;
-  static const char*              sModuleInfo;
-};
+void ClearNSPRIOInterposing();
 
 } 
 
 #endif 
 
 #endif 
-

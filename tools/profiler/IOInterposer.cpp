@@ -2,153 +2,255 @@
 
 
 
+#include <algorithm>
+#include <vector>
+
 #include "IOInterposer.h"
-#include "NSPRInterposer.h"
-#include "SQLiteInterposer.h"
+
+#include "mozilla/Mutex.h"
+#include "mozilla/StaticPtr.h"
 
 using namespace mozilla;
 
-static StaticAutoPtr<IOInterposer> sSingleton;
+namespace {
 
- IOInterposer*
-IOInterposer::GetInstance()
-{
-  if (!sSingleton) {
+
+struct ObserverLists {
+  ObserverLists()
+  {
+    mObserverListsLock = PR_NewLock();
     
     
     
-    sSingleton = new IOInterposer();
-    sSingleton->Init();
   }
 
-  return sSingleton.get();
+  
+  
+  
+  
+  
+  
+  PRLock* mObserverListsLock;
+
+  ~ObserverLists()
+  {
+    PR_DestroyLock(mObserverListsLock);
+    mObserverListsLock = nullptr;
+  }
+
+  
+  
+  
+  
+  std::vector<IOInterposeObserver*>  mReadObservers;
+  std::vector<IOInterposeObserver*>  mWriteObservers;
+  std::vector<IOInterposeObserver*>  mFSyncObservers;
+};
+
+
+
+
+class AutoPRLock
+{
+  PRLock* mLock;
+public:
+  AutoPRLock(PRLock* aLock)
+   : mLock(aLock)
+  {
+    PR_Lock(aLock);
+  }
+  ~AutoPRLock()
+  {
+    PR_Unlock(mLock);
+  }
+};
+
+
+static StaticAutoPtr<ObserverLists> sObserverLists;
+
+
+template<class T>
+bool VectorContains(const std::vector<T>& vector, const T& element)
+{
+  return std::find(vector.begin(), vector.end(), element) != vector.end();
 }
 
- void
-IOInterposer::ClearInstance()
+
+template<class T>
+void VectorRemove(std::vector<T>& vector, const T& element)
 {
-  
-  
-  
-  sSingleton = nullptr;
+  typename std::vector<T>::iterator newEnd = std::remove(vector.begin(),
+                                                         vector.end(), element);
+  vector.erase(newEnd, vector.end());
 }
 
-IOInterposer::IOInterposer()
-  :mMutex("IOInterposer::mMutex")
+} 
+
+
+
+const char* IOInterposeObserver::Observation::Filename()
 {
-  
-  
-  
+  return nullptr;
 }
 
-IOInterposer::~IOInterposer()
+IOInterposeObserver::~IOInterposeObserver()
 {
-  
-  
-  
-  Enable(false);
-  NSPRInterposer::ClearInstance();
-  SQLiteInterposer::ClearInstance();
 }
 
-bool
-IOInterposer::Init()
+
+IOInterposeObserver::Observation::~Observation()
 {
-  
-  
-  
-  mozilla::MutexAutoLock lock(mMutex);
-  IOInterposerModule* nsprModule = NSPRInterposer::GetInstance(this,
-      IOInterposeObserver::OpAll);
-  if (!nsprModule) {
-    return false;
-  }
-
-  IOInterposerModule* sqlModule = SQLiteInterposer::GetInstance(this,
-      IOInterposeObserver::OpAll);
-  if (!sqlModule) {
-    return false;
-  }
-
-  mModules.AppendElement(nsprModule);
-  mModules.AppendElement(sqlModule);
-  return true;
 }
 
-void
-IOInterposer::Enable(bool aEnable)
+
+IOInterposeObserver::Operation IOInterposer::sObservedOperations =
+                                                  IOInterposeObserver::OpNone;
+
+ void IOInterposer::Init()
 {
-  mozilla::MutexAutoLock lock(mMutex);
-  for (uint32_t i = 0; i < mModules.Length(); ++i ) {
-    mModules[i]->Enable(aEnable);
+  
+  if (sObserverLists) {
+    return;
   }
+  sObserverLists = new ObserverLists();
+  sObservedOperations = IOInterposeObserver::OpNone;
 }
 
-void
-IOInterposer::Register(IOInterposeObserver::Operation aOp,
-                       IOInterposeObserver* aObserver)
+ void IOInterposer::Clear()
 {
   
-  
-  
-  if (aOp & IOInterposeObserver::OpRead) {
-    mReadObservers.AppendElement(aObserver);
-  }
-  if (aOp & IOInterposeObserver::OpWrite) {
-    mWriteObservers.AppendElement(aObserver);
-  }
-  if (aOp & IOInterposeObserver::OpFSync) {
-    mFSyncObservers.AppendElement(aObserver);
+  MOZ_ASSERT(sObserverLists);
+  if (sObserverLists) {
+    
+    
+    
+    MOZ_ASSERT(sObserverLists->mReadObservers.empty());
+    MOZ_ASSERT(sObserverLists->mWriteObservers.empty());
+    MOZ_ASSERT(sObserverLists->mFSyncObservers.empty());
+
+    sObserverLists = nullptr;
+    sObservedOperations = IOInterposeObserver::OpNone;
   }
 }
 
-void
-IOInterposer::Deregister(IOInterposeObserver::Operation aOp,
-                         IOInterposeObserver* aObserver)
+ void IOInterposer::Report(
+  IOInterposeObserver::Observation& aObservation)
 {
   
-  
-  
-  if (aOp & IOInterposeObserver::OpRead) {
-    mReadObservers.RemoveElement(aObserver);
+  MOZ_ASSERT(sObserverLists);
+  if (!sObserverLists) {
+    return;
   }
-  if (aOp & IOInterposeObserver::OpWrite) {
-    mWriteObservers.RemoveElement(aObserver);
-  }
-  if (aOp & IOInterposeObserver::OpFSync) {
-    mFSyncObservers.RemoveElement(aObserver);
-  }
-}
 
-void
-IOInterposer::Observe(IOInterposeObserver::Operation aOp, double& aDuration,
-                      const char* aModuleInfo)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  switch (aOp) {
+  
+  
+  
+  AutoPRLock listLock(sObserverLists->mObserverListsLock);
+
+  
+  if (!IOInterposer::IsObservedOperation(aObservation.ObservedOperation())) {
+    return;
+  }
+
+  
+  std::vector<IOInterposeObserver*>* observers = nullptr;
+  switch (aObservation.ObservedOperation()) {
     case IOInterposeObserver::OpRead:
       {
-        for (uint32_t i = 0; i < mReadObservers.Length(); ++i) {
-          mReadObservers[i]->Observe(aOp, aDuration, aModuleInfo);
-        }
+        observers = &sObserverLists->mReadObservers;
       }
       break;
     case IOInterposeObserver::OpWrite:
       {
-        for (uint32_t i = 0; i < mWriteObservers.Length(); ++i) {
-          mWriteObservers[i]->Observe(aOp, aDuration, aModuleInfo);
-        }
+        observers = &sObserverLists->mWriteObservers;
       }
       break;
     case IOInterposeObserver::OpFSync:
       {
-        for (uint32_t i = 0; i < mFSyncObservers.Length(); ++i) {
-          mFSyncObservers[i]->Observe(aOp, aDuration, aModuleInfo);
-        }
+        observers = &sObserverLists->mFSyncObservers;
       }
       break;
     default:
-      break;
+      {
+        
+        MOZ_ASSERT(false);
+        
+        return;
+      }
+  }
+  MOZ_ASSERT(observers);
+
+  
+  uint32_t nObservers = observers->size();
+  for (uint32_t i = 0; i < nObservers; ++i) {
+    (*observers)[i]->Observe(aObservation);
   }
 }
 
+ void IOInterposer::Register(IOInterposeObserver::Operation aOp,
+                                         IOInterposeObserver* aObserver)
+{
+  
+  MOZ_ASSERT(sObserverLists);
+  
+  MOZ_ASSERT(aObserver);
+  if (!sObserverLists || !aObserver) {
+    return;
+  }
+
+  AutoPRLock listLock(sObserverLists->mObserverListsLock);
+
+  
+  
+  if (aOp & IOInterposeObserver::OpRead &&
+      !VectorContains(sObserverLists->mReadObservers, aObserver)) {
+    sObserverLists->mReadObservers.push_back(aObserver);
+  }
+  if (aOp & IOInterposeObserver::OpWrite &&
+      !VectorContains(sObserverLists->mWriteObservers, aObserver)) {
+    sObserverLists->mWriteObservers.push_back(aObserver);
+  }
+  if (aOp & IOInterposeObserver::OpFSync &&
+      !VectorContains(sObserverLists->mFSyncObservers, aObserver)) {
+    sObserverLists->mFSyncObservers.push_back(aObserver);
+  }
+
+  
+  
+  sObservedOperations = (IOInterposeObserver::Operation)
+                        (sObservedOperations | aOp);
+}
+
+ void IOInterposer::Unregister(IOInterposeObserver::Operation aOp,
+                                           IOInterposeObserver* aObserver)
+{
+  
+  MOZ_ASSERT(sObserverLists);
+  if (!sObserverLists) {
+    return;
+  }
+
+  AutoPRLock listLock(sObserverLists->mObserverListsLock);
+
+  if (aOp & IOInterposeObserver::OpRead) {
+    VectorRemove(sObserverLists->mReadObservers, aObserver);
+    if (sObserverLists->mReadObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations & ~IOInterposeObserver::OpRead);
+    }
+  }
+  if (aOp & IOInterposeObserver::OpWrite) {
+    VectorRemove(sObserverLists->mWriteObservers, aObserver);
+    if (sObserverLists->mWriteObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations & ~IOInterposeObserver::OpWrite);
+    }
+  }
+  if (aOp & IOInterposeObserver::OpFSync) {
+    VectorRemove(sObserverLists->mFSyncObservers, aObserver);
+    if (sObserverLists->mFSyncObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations & ~IOInterposeObserver::OpFSync);
+    }
+  }
+}

@@ -18,11 +18,7 @@ namespace mozilla {
 class ProfilerIOInterposeObserver MOZ_FINAL : public IOInterposeObserver
 {
 public:
-  ProfilerIOInterposeObserver();
-  ~ProfilerIOInterposeObserver();
-
-  virtual void Observe(Operation aOp, double& aDuration,
-                       const char* aModuleInfo);
+  virtual void Observe(Observation& aObservation);
 };
 
 } 
@@ -30,4 +26,3 @@ public:
 #endif 
 
 #endif 
-

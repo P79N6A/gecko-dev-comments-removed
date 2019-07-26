@@ -2,138 +2,142 @@
 
 
 
+#include "IOInterposer.h"
 #include "NSPRInterposer.h"
 
+#include "prio.h"
 #include "private/pprio.h"
+
+namespace {
 
 using namespace mozilla;
 
-StaticAutoPtr<NSPRInterposer> NSPRInterposer::sSingleton;
-const char* NSPRAutoTimer::sModuleInfo = "NSPR";
 
- IOInterposerModule*
-NSPRInterposer::GetInstance(IOInterposeObserver* aObserver,
-                            IOInterposeObserver::Operation aOpsToInterpose)
+PRReadFN  sReadFn  = nullptr;
+PRWriteFN sWriteFn = nullptr;
+PRFsyncFN sFSyncFn = nullptr;
+
+
+
+
+
+class NSPRIOAutoObservation : public IOInterposeObserver::Observation
 {
-  
-  
-  
-  if (!sSingleton) {
-    nsAutoPtr<NSPRInterposer> newObj(new NSPRInterposer());
-    if (!newObj->Init(aObserver, aOpsToInterpose)) {
-      return nullptr;
+public:
+  NSPRIOAutoObservation(IOInterposeObserver::Operation aOp)
+    : mShouldObserve(IOInterposer::IsObservedOperation(aOp))
+  {
+    if (mShouldObserve) {
+      mOperation = aOp;
+      mStart = TimeStamp::Now(); 
     }
-    sSingleton = newObj.forget();
   }
-  return sSingleton;
-}
 
- void
-NSPRInterposer::ClearInstance()
-{
-  
-  
-  
-  sSingleton = nullptr;
-}
+  ~NSPRIOAutoObservation()
+  {
+    if (mShouldObserve) {
+      mEnd  = TimeStamp::Now();
+      const char* ref = "NSPRIOInterposing";
+      mReference = ref;
 
-NSPRInterposer::NSPRInterposer()
-  :mObserver(nullptr),
-   mFileIOMethods(nullptr),
-   mEnabled(false),
-   mOrigReadFn(nullptr),
-   mOrigWriteFn(nullptr),
-   mOrigFSyncFn(nullptr)
-{
-}
-
-NSPRInterposer::~NSPRInterposer()
-{
-  
-  
-  
-  Enable(false);
-  mFileIOMethods->read = mOrigReadFn;
-  mFileIOMethods->write = mOrigWriteFn;
-  mFileIOMethods->fsync = mOrigFSyncFn;
-  sSingleton = nullptr;
-}
-
-bool
-NSPRInterposer::Init(IOInterposeObserver* aObserver,
-                     IOInterposeObserver::Operation aOpsToInterpose)
-{
-  
-  
-  
-  if (!aObserver || !(aOpsToInterpose & IOInterposeObserver::OpAll)) {
-    return false;
+      
+      IOInterposer::Report(*this);
+    }
   }
-  mObserver = aObserver;
-  
-  
-  mFileIOMethods = const_cast<PRIOMethods*>(PR_GetFileMethods());
-  if (!mFileIOMethods) {
-    return false;
-  }
-  mOrigReadFn = mFileIOMethods->read;
-  mOrigWriteFn = mFileIOMethods->write;
-  mOrigFSyncFn = mFileIOMethods->fsync;
-  if (!mOrigReadFn || !mOrigWriteFn || !mOrigFSyncFn) {
-    return false;
-  }
-  if (aOpsToInterpose & IOInterposeObserver::OpRead) {
-    mFileIOMethods->read = &NSPRInterposer::Read;
-  }
-  if (aOpsToInterpose & IOInterposeObserver::OpWrite) {
-    mFileIOMethods->write = &NSPRInterposer::Write;
-  }
-  if (aOpsToInterpose & IOInterposeObserver::OpFSync) {
-    mFileIOMethods->fsync = &NSPRInterposer::FSync;
-  }
-  return true;
-}
 
-void
-NSPRInterposer::Enable(bool aEnable)
-{
-  mEnabled = aEnable ? 1 : 0;
-}
+private:
+  bool mShouldObserve;
+};
 
-int32_t PR_CALLBACK
-NSPRInterposer::Read(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
+int32_t PR_CALLBACK interposedRead(PRFileDesc* aFd, void* aBuf, int32_t aAmt)
 {
   
-  NS_ASSERTION(sSingleton, "NSPRInterposer::sSingleton not available!");
-  NS_ASSERTION(sSingleton->mOrigReadFn, "mOrigReadFn not available!");
-  NS_ASSERTION(sSingleton->mObserver, "NSPRInterposer not initialized!");
+  NS_ASSERTION(sReadFn, "NSPR IO Interposing: sReadFn is NULL");
 
-  NSPRAutoTimer timer(IOInterposeObserver::OpRead);
-  return sSingleton->mOrigReadFn(aFd, aBuf, aAmt);
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpRead);
+  return sReadFn(aFd, aBuf, aAmt);
 }
 
-
-int32_t PR_CALLBACK
-NSPRInterposer::Write(PRFileDesc* aFd, const void* aBuf, int32_t aAmt)
+int32_t PR_CALLBACK interposedWrite(PRFileDesc* aFd, const void* aBuf,
+                                    int32_t aAmt)
 {
   
-  NS_ASSERTION(sSingleton, "NSPRInterposer::sSingleton not available!");
-  NS_ASSERTION(sSingleton->mOrigWriteFn, "mOrigWriteFn not available!");
-  NS_ASSERTION(sSingleton->mObserver, "NSPRInterposer not initialized!");
+  NS_ASSERTION(sWriteFn, "NSPR IO Interposing: sWriteFn is NULL");
 
-  NSPRAutoTimer timer(IOInterposeObserver::OpWrite);
-  return sSingleton->mOrigWriteFn(aFd, aBuf, aAmt);
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpWrite);
+  return sWriteFn(aFd, aBuf, aAmt);
 }
 
-PRStatus PR_CALLBACK
-NSPRInterposer::FSync(PRFileDesc* aFd)
+PRStatus PR_CALLBACK interposedFSync(PRFileDesc* aFd)
 {
   
-  NS_ASSERTION(sSingleton, "NSPRInterposer::sSingleton not available!");
-  NS_ASSERTION(sSingleton->mOrigFSyncFn, "mOrigFSyncFn not available!");
-  NS_ASSERTION(sSingleton->mObserver, "NSPRInterposer not initialized!");
+  NS_ASSERTION(sFSyncFn, "NSPR IO Interposing: sFSyncFn is NULL");
 
-  NSPRAutoTimer timer(IOInterposeObserver::OpFSync);
-  return sSingleton->mOrigFSyncFn(aFd);
+  NSPRIOAutoObservation timer(IOInterposeObserver::OpFSync);
+  return sFSyncFn(aFd);
 }
 
+} 
+
+namespace mozilla {
+
+void InitNSPRIOInterposing()
+{
+  
+  MOZ_ASSERT(!sReadFn && !sWriteFn && !sFSyncFn);
+
+  
+  
+  
+
+  
+  PRIOMethods* methods = const_cast<PRIOMethods*>(PR_GetFileMethods());
+
+  
+  
+  
+  MOZ_ASSERT(methods);
+  if (!methods) {
+    return;
+  }
+
+  
+  sReadFn   = methods->read;
+  sWriteFn  = methods->write;
+  sFSyncFn  = methods->fsync;
+
+  
+  methods->read   = &interposedRead;
+  methods->write  = &interposedWrite;
+  methods->fsync  = &interposedFSync;
+}
+
+void ClearNSPRIOInterposing()
+{
+  
+  
+  MOZ_ASSERT(sReadFn && sWriteFn && sFSyncFn);
+
+  
+  PRIOMethods* methods = const_cast<PRIOMethods*>(PR_GetFileMethods());
+
+  
+  
+  
+  MOZ_ASSERT(methods);
+  if (!methods) {
+    return;
+  }
+
+  
+  methods->read   = sReadFn;
+  methods->write  = sWriteFn;
+  methods->fsync  = sFSyncFn;
+
+  
+  sReadFn   = nullptr;
+  sWriteFn  = nullptr;
+  sFSyncFn  = nullptr;
+}
+
+} 
