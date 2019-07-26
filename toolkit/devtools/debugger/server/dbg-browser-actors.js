@@ -240,26 +240,14 @@ BrowserRootActor.prototype = {
 
 
   preNest: function BRA_preNest() {
-    let top = windowMediator.getMostRecentWindow("navigator:browser");
-    let browser = top.gBrowser.selectedBrowser;
-    let windowUtils = browser.contentWindow
-                             .QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
-    windowUtils.suppressEventHandling(true);
-    windowUtils.suspendTimeouts();
+    
   },
 
   
 
 
   postNest: function BRA_postNest(aNestData) {
-    let top = windowMediator.getMostRecentWindow("navigator:browser");
-    let browser = top.gBrowser.selectedBrowser;
-    let windowUtils = browser.contentWindow
-                             .QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
-    windowUtils.resumeTimeouts();
-    windowUtils.suppressEventHandling(false);
+    
   },
 
   
