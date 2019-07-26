@@ -756,6 +756,8 @@ protected:
   
   DOMHighResTimeStamp       mLastReflowStart;
 
+  mozilla::TimeStamp        mLoadBegin;  
+
   
   
   
