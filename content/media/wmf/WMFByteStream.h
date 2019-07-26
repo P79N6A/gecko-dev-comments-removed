@@ -136,15 +136,6 @@ private:
   RefPtr<WMFSourceReaderCallback> mSourceReaderCallback;
 
   
-  
-  
-  
-  ReentrantMonitor mResourceMonitor;
-
-  
-  
-  
-  
   nsRefPtr<MediaResource> mResource;
 
   
