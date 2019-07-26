@@ -28,6 +28,7 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/Attributes.h"
 #include <algorithm>
+#include "nsUnicodeProperties.h"
 
 typedef struct _cairo_scaled_font cairo_scaled_font_t;
 
@@ -215,15 +216,21 @@ public:
         mIgnoreGDEF(false),
         mIgnoreGSUB(false),
         mSVGInitialized(false),
-        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mHasSpaceFeaturesInitialized(false),
+        mHasSpaceFeatures(false),
+        mHasSpaceFeaturesKerning(false),
+        mHasSpaceFeaturesNonKerning(false),
+        mHasSpaceFeaturesSubDefault(false),
+        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
         mSVGGlyphs(nullptr),
         mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE)
-    { }
+    {
+        memset(&mHasSpaceFeaturesSub, 0, sizeof(mHasSpaceFeaturesSub));
+    }
 
     virtual ~gfxFontEntry();
 
@@ -345,12 +352,17 @@ public:
     bool             mIgnoreGDEF  : 1;
     bool             mIgnoreGSUB  : 1;
     bool             mSVGInitialized : 1;
+    bool             mHasSpaceFeaturesInitialized : 1;
+    bool             mHasSpaceFeatures : 1;
+    bool             mHasSpaceFeaturesKerning : 1;
+    bool             mHasSpaceFeaturesNonKerning : 1;
+    bool             mHasSpaceFeaturesSubDefault : 1;
+
+    
+    uint32_t         mHasSpaceFeaturesSub[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
 
     uint16_t         mWeight;
     int16_t          mStretch;
-
-    bool             mHasSpaceFeatures;
-    bool             mHasSpaceFeaturesInitialized;
 
     bool             mHasGraphiteTables;
     bool             mCheckedForGraphiteTables;
@@ -382,8 +394,12 @@ protected:
         mIgnoreGDEF(false),
         mIgnoreGSUB(false),
         mSVGInitialized(false),
-        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mHasSpaceFeaturesInitialized(false),
+        mHasSpaceFeatures(false),
+        mHasSpaceFeaturesKerning(false),
+        mHasSpaceFeaturesNonKerning(false),
+        mHasSpaceFeaturesSubDefault(false),
+        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
@@ -1566,24 +1582,49 @@ public:
     { return gfxPlatform::GetPlatform()->GetScaledFontForFont(aTarget, this); }
 
 protected:
-    bool BypassShapedWordCache(uint32_t aRunFlags) {
-        
-        
-        
-        if (aRunFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED) {
+
+    bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript) {
+        NS_ASSERTION(GetFontEntry()->mHasSpaceFeaturesInitialized,
+                     "need to initialize space lookup flags");
+        NS_ASSERTION(aRunScript < MOZ_NUM_SCRIPT_CODES, "weird script code");
+        if (aRunScript == MOZ_SCRIPT_INVALID ||
+            aRunScript >= MOZ_NUM_SCRIPT_CODES) {
             return false;
         }
+        uint32_t index = aRunScript >> 5;
+        uint32_t bit = aRunScript & 0x1f;
+        return (mFontEntry->mHasSpaceFeaturesSub[index] & (1 << bit)) != 0;
+    }
+
+    bool BypassShapedWordCache(int32_t aRunScript) {
         
         
         
         
         
-        gfxFontEntry *fe = GetFontEntry();
-        if (!fe->mHasSpaceFeaturesInitialized) {
-            fe->mHasSpaceFeaturesInitialized = true;
-            fe->mHasSpaceFeatures = CheckForFeaturesInvolvingSpace();
+        if (!mFontEntry->mHasSpaceFeaturesInitialized) {
+            CheckForFeaturesInvolvingSpace();
         }
-        return fe->mHasSpaceFeatures;
+
+        if (!mFontEntry->mHasSpaceFeatures) {
+            return false;
+        }
+
+        
+        
+        if (HasSubstitutionRulesWithSpaceLookups(aRunScript) ||
+            mFontEntry->mHasSpaceFeaturesNonKerning ||
+            mFontEntry->mHasSpaceFeaturesSubDefault) {
+            return true;
+        }
+
+        
+        
+        if (mKerningSet && mFontEntry->mHasSpaceFeaturesKerning) {
+            return mKerningEnabled;
+        }
+
+        return false;
     }
 
     
@@ -1642,7 +1683,13 @@ protected:
                                        int32_t     aScript,
                                        gfxTextRun *aTextRun);
 
-    bool CheckForFeaturesInvolvingSpace();
+    void CheckForFeaturesInvolvingSpace();
+
+    
+    
+    bool HasFeatureSet(uint32_t aFeature, bool& aFeatureOn);
+
+    static nsDataHashtable<nsUint32HashKey, int32_t> sScriptTagToCode;
 
     nsRefPtr<gfxFontEntry> mFontEntry;
 
@@ -1734,6 +1781,9 @@ protected:
     
     
     bool                       mApplySyntheticBold;
+
+    bool                       mKerningSet;     
+    bool                       mKerningEnabled; 
 
     nsExpirationState          mExpirationState;
     gfxFontStyle               mStyle;
