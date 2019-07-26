@@ -2671,9 +2671,12 @@ nsCycleCollector::ShutdownCollect(nsICycleCollectorListener *aListener)
 
         
         FixGrayBits(true);
+
+        FreeSnowWhite(true);
+
         if (aListener && NS_FAILED(aListener->Begin()))
             aListener = nullptr;
-        FreeSnowWhite(true);
+
         BeginCollection(ShutdownCC, aListener);
         if (!FinishCollection(aListener)) {
             break;
@@ -2691,6 +2694,10 @@ nsCycleCollector::Collect(ccType aCCType,
 {
     CheckThreadSafety();
 
+    if (!PrepareForCollection(aResults, aWhiteNodes)) {
+        return false;
+    }
+
     bool forceGC = (aCCType == ShutdownCC);
     if (!forceGC && aListener) {
         
@@ -2698,10 +2705,6 @@ nsCycleCollector::Collect(ccType aCCType,
         aListener->GetWantAllTraces(&forceGC);
     }
     FixGrayBits(forceGC);
-
-    if (!PrepareForCollection(aResults, aWhiteNodes)) {
-        return false;
-    }
 
     FreeSnowWhite(true);
 
