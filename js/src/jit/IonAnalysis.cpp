@@ -140,17 +140,15 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             for (MUseIterator uses(ins->usesBegin()); uses != ins->usesEnd(); ) {
-                if (uses->consumer()->isDefinition()) {
-                    uses++;
+                MUse *use = *uses++;
+                if (use->consumer()->isDefinition())
                     continue;
-                }
-                MResumePoint *mrp = uses->consumer()->toResumePoint();
+                MResumePoint *mrp = use->consumer()->toResumePoint();
                 if (mrp->block() != *block ||
                     !mrp->instruction() ||
                     mrp->instruction() == *ins ||
                     mrp->instruction()->id() <= maxDefinition)
                 {
-                    uses++;
                     continue;
                 }
 
@@ -164,7 +162,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
                 
                 MConstant *constant = MConstant::New(graph.alloc(), MagicValue(JS_OPTIMIZED_OUT));
                 block->insertBefore(*(block->begin()), constant);
-                uses = mrp->replaceOperand(uses, constant);
+                use->replaceProducer(constant);
             }
         }
     }
