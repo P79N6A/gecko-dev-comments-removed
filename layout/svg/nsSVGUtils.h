@@ -289,21 +289,6 @@ public:
 
 
 
-  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false,
-                               const nsRect *aBoundsSubArea = nullptr,
-                               uint32_t aFlags = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -400,12 +385,6 @@ public:
   static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, uint32_t aFor);
 
   
-
-
-
-
-
-
 
 
 
