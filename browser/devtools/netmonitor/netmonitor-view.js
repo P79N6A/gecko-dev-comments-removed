@@ -262,7 +262,6 @@ function RequestsMenuView() {
   this._cache = new Map(); 
   this._flushRequests = this._flushRequests.bind(this);
   this._onRequestItemRemoved = this._onRequestItemRemoved.bind(this);
-  this._onMouseDown = this._onMouseDown.bind(this);
   this._onSelect = this._onSelect.bind(this);
   this._onResize = this._onResize.bind(this);
   this._byFile = this._byFile.bind(this);
@@ -281,7 +280,6 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     this.node.maintainSelectionVisible = false;
     this.node.autoscrollWithAppendedItems = true;
 
-    this.node.addEventListener("mousedown", this._onMouseDown, false);
     this.node.addEventListener("select", this._onSelect, false);
     window.addEventListener("resize", this._onResize, false);
   },
@@ -292,7 +290,6 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   destroy: function() {
     dumpn("Destroying the SourcesView");
 
-    this.node.removeEventListener("mousedown", this._onMouseDown, false);
     this.node.removeEventListener("select", this._onSelect, false);
     window.removeEventListener("resize", this._onResize, false);
   },
@@ -1041,17 +1038,6 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onMouseDown: function({ target }) {
-    let item = this.getItemForElement(target);
-    if (item) {
-      
-      this.selectedItem = item;
-    }
-  },
-
-  
-
-
   _onSelect: function({ detail: item }) {
     if (item) {
       NetMonitorView.NetworkDetails.populate(item.attachment);
@@ -1165,7 +1151,7 @@ function NetworkDetailsView() {
   this._onTabSelect = this._onTabSelect.bind(this);
 };
 
-create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
+NetworkDetailsView.prototype = {
   
 
 
@@ -1669,7 +1655,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
   _responseHeaders: "",
   _requestCookies: "",
   _responseCookies: ""
-});
+};
 
 
 

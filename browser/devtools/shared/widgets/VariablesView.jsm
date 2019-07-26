@@ -580,32 +580,6 @@ VariablesView.prototype = {
   
 
 
-  focusFirstVisibleNode: function() {
-    let focusableItem = this._findInVisibleItems(item => item.focusable);
-
-    if (focusableItem) {
-      this._focusItem(focusableItem);
-    }
-    this._parent.scrollTop = 0;
-    this._parent.scrollLeft = 0;
-  },
-
-  
-
-
-  focusLastVisibleNode: function() {
-    let focusableItem = this._findInVisibleItemsReverse(item => item.focusable);
-
-    if (focusableItem) {
-      this._focusItem(focusableItem);
-    }
-    this._parent.scrollTop = this._parent.scrollHeight;
-    this._parent.scrollLeft = 0;
-  },
-
-  
-
-
 
 
 
@@ -646,17 +620,56 @@ VariablesView.prototype = {
   
 
 
+  focusFirstVisibleItem: function() {
+    let focusableItem = this._findInVisibleItems(item => item.focusable);
+    if (focusableItem) {
+      this._focusItem(focusableItem);
+    }
+    this._parent.scrollTop = 0;
+    this._parent.scrollLeft = 0;
+  },
 
-  focusNextItem: function(aMaintainViewFocusedFlag) {
-    this._focusChange("advanceFocus", aMaintainViewFocusedFlag)
+  
+
+
+  focusLastVisibleItem: function() {
+    let focusableItem = this._findInVisibleItemsReverse(item => item.focusable);
+    if (focusableItem) {
+      this._focusItem(focusableItem);
+    }
+    this._parent.scrollTop = this._parent.scrollHeight;
+    this._parent.scrollLeft = 0;
+  },
+
+  
+
+
+  focusNextItem: function() {
+    this.focusItemAtDelta(+1);
+  },
+
+  
+
+
+  focusPrevItem: function() {
+    this.focusItemAtDelta(-1);
   },
 
   
 
 
 
-  focusPrevItem: function(aMaintainViewFocusedFlag) {
-    this._focusChange("rewindFocus", aMaintainViewFocusedFlag)
+
+
+
+  focusItemAtDelta: function(aDelta) {
+    let direction = aDelta > 0 ? "advanceFocus" : "rewindFocus";
+    let distance = Math.abs(Math[aDelta > 0 ? "ceil" : "floor"](aDelta));
+    while (distance--) {
+      if (!this._focusChange(direction)) {
+        break; 
+      }
+    }
   },
 
   
@@ -668,37 +681,25 @@ VariablesView.prototype = {
 
 
 
-
-
-  _focusChange: function(aDirection, aMaintainViewFocusedFlag) {
+  _focusChange: function(aDirection) {
     let commandDispatcher = this.document.commandDispatcher;
-    let item;
+    let prevFocusedElement = commandDispatcher.focusedElement;
+    let currFocusedItem = null;
 
     do {
+      commandDispatcher.suppressFocusScroll = true;
       commandDispatcher[aDirection]();
 
       
       
-      if (!aMaintainViewFocusedFlag) {
+      if (!(currFocusedItem = this.getFocusedItem())) {
+        prevFocusedElement.focus();
         return false;
       }
-
-      
-      item = this.getFocusedItem();
-      if (!item) {
-        if (aDirection == "advanceFocus") {
-          this.focusLastVisibleNode();
-        } else {
-          this.focusFirstVisibleNode();
-        }
-        
-        
-        return true;
-      }
-    } while (!item.focusable);
+    } while (!currFocusedItem.focusable);
 
     
-    return false;
+    return true;
   },
 
   
@@ -729,19 +730,8 @@ VariablesView.prototype = {
   _onViewKeyPress: function(e) {
     let item = this.getFocusedItem();
 
-    switch (e.keyCode) {
-      case e.DOM_VK_UP:
-      case e.DOM_VK_DOWN:
-      case e.DOM_VK_LEFT:
-      case e.DOM_VK_RIGHT:
-      case e.DOM_VK_PAGE_UP:
-      case e.DOM_VK_PAGE_DOWN:
-      case e.DOM_VK_HOME:
-      case e.DOM_VK_END:
-        
-        e.preventDefault();
-        e.stopPropagation();
-    }
+    
+    ViewHelpers.preventScrolling(e);
 
     switch (e.keyCode) {
       case e.DOM_VK_UP:
@@ -778,36 +768,24 @@ VariablesView.prototype = {
 
       case e.DOM_VK_PAGE_UP:
         
-        var jumps = this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+        this.focusItemAtDelta(-(this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
           PAGE_SIZE_SCROLL_HEIGHT_RATIO),
-          PAGE_SIZE_MAX_JUMPS);
-
-        while (jumps--) {
-          if (this.focusPrevItem(true)) {
-            return;
-          }
-        }
+          PAGE_SIZE_MAX_JUMPS)));
         return;
 
       case e.DOM_VK_PAGE_DOWN:
         
-        var jumps = this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+        this.focusItemAtDelta(+(this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
           PAGE_SIZE_SCROLL_HEIGHT_RATIO),
-          PAGE_SIZE_MAX_JUMPS);
-
-        while (jumps--) {
-          if (this.focusNextItem(true)) {
-            return;
-          }
-        }
+          PAGE_SIZE_MAX_JUMPS)));
         return;
 
       case e.DOM_VK_HOME:
-        this.focusFirstVisibleNode();
+        this.focusFirstVisibleItem();
         return;
 
       case e.DOM_VK_END:
-        this.focusLastVisibleNode();
+        this.focusLastVisibleItem();
         return;
 
       case e.DOM_VK_RETURN:

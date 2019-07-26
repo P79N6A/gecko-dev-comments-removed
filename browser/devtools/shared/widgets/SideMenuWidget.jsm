@@ -11,6 +11,7 @@ const Cu = Components.utils;
 const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
 
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 
 this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
 
@@ -48,6 +49,9 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aShowArrows = true) {
   this._list.setAttribute("flex", "1");
   this._list.setAttribute("orient", "vertical");
   this._list.setAttribute("with-arrow", aShowArrows);
+  this._list.setAttribute("tabindex", "0");
+  this._list.addEventListener("keypress", e => this.emit("keyPress", e), true);
+  this._list.addEventListener("mousedown", e => this.emit("mousePress", e), true);
   this._parent.appendChild(this._list);
   this._boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
 
@@ -55,6 +59,9 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aShowArrows = true) {
   this._groupsByName = new Map(); 
   this._orderedGroupElementsArray = [];
   this._orderedMenuElementsArray = [];
+
+  
+  EventEmitter.decorate(this);
 
   
   
@@ -66,6 +73,14 @@ SideMenuWidget.prototype = {
 
 
   sortedGroups: true,
+
+  
+
+
+
+
+
+  preventFocusOnSelection: false,
 
   
 
@@ -119,6 +134,9 @@ SideMenuWidget.prototype = {
 
     if (this.maintainSelectionVisible) {
       this.ensureSelectionIsVisible({ withGroup: true, delayed: true });
+    }
+    if (this._orderedMenuElementsArray.length == 1) {
+      this._list.focus();
     }
     if (maintainScrollAtBottom) {
       this._list.scrollTop = this._list.scrollHeight;
@@ -201,6 +219,7 @@ SideMenuWidget.prototype = {
         node.classList.add("selected");
         node.parentNode.classList.add("selected");
         this._selectedItem = node;
+        !this.preventFocusOnSelection && node.focus();
       } else {
         node.classList.remove("selected");
         node.parentNode.classList.remove("selected");
