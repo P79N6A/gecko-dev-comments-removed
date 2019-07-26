@@ -98,6 +98,42 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
     curr->InstallMember(cx, targetClassObject);
 
   
+  
+  
+  JSObject* globalObject = JS_GetGlobalForObject(cx, targetClassObject);
+  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
+  if (scopeObject != globalObject) {
+    JSAutoCompartment ac2(cx, scopeObject);
+
+    
+    
+    JSObject *shadowProto = JS_NewObjectWithGivenProto(cx, nullptr, nullptr,
+                                                       scopeObject);
+    NS_ENSURE_TRUE(shadowProto, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    
+    bool ok = JS_DefineProperty(cx, scopeObject,
+                                js::GetObjectClass(targetClassObject)->name,
+                                JS::ObjectValue(*shadowProto), JS_PropertyStub,
+                                JS_StrictPropertyStub,
+                                JSPROP_PERMANENT | JSPROP_READONLY);
+    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+
+    
+    
+    
+    
+    ok = JS_CopyPropertiesFrom(cx, shadowProto, targetClassObject);
+    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+
+    
+    
+    ok = JS_FreezeObject(cx, shadowProto);
+    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+  }
+
+  
   for (nsXBLProtoImplField* curr = mFields;
        curr;
        curr = curr->GetNext())
