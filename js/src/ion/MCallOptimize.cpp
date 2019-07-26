@@ -90,8 +90,8 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
         return inlineRegExpTest(callInfo);
 
     
-    if (native == intrinsic_UnsafeSetElement)
-        return inlineUnsafeSetElement(callInfo);
+    if (native == intrinsic_UnsafePutElements)
+        return inlineUnsafePutElements(callInfo);
     if (native == intrinsic_NewDenseArray)
         return inlineNewDenseArray(callInfo);
 
@@ -954,7 +954,7 @@ IonBuilder::inlineRegExpTest(CallInfo &callInfo)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineUnsafeSetElement(CallInfo &callInfo)
+IonBuilder::inlineUnsafePutElements(CallInfo &callInfo)
 {
     uint32_t argc = callInfo.argc();
     if (argc < 3 || (argc % 3) != 0 || callInfo.constructing())

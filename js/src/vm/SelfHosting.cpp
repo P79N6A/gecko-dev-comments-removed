@@ -424,9 +424,8 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
 JSBool
-js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
+js::intrinsic_UnsafePutElements(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -605,7 +604,7 @@ const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("DecompileArg",            intrinsic_DecompileArg,            2,0),
     JS_FN("RuntimeDefaultLocale",    intrinsic_RuntimeDefaultLocale,    0,0),
 
-    JS_FN("UnsafeSetElement",        intrinsic_UnsafeSetElement,        3,0),
+    JS_FN("UnsafePutElements",               intrinsic_UnsafePutElements,               3,0),
     JS_FN("UnsafeSetReservedSlot",   intrinsic_UnsafeSetReservedSlot,   3,0),
     JS_FN("UnsafeGetReservedSlot",   intrinsic_UnsafeGetReservedSlot,   2,0),
 

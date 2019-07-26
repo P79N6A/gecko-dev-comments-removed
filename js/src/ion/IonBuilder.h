@@ -485,7 +485,7 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineRegExpTest(CallInfo &callInfo);
 
     
-    InliningStatus inlineUnsafeSetElement(CallInfo &callInfo);
+    InliningStatus inlineUnsafePutElements(CallInfo &callInfo);
     bool inlineUnsafeSetDenseArrayElement(CallInfo &callInfo, uint32_t base);
     bool inlineUnsafeSetTypedArrayElement(CallInfo &callInfo, uint32_t base, int arrayType);
     InliningStatus inlineNewDenseArray(CallInfo &callInfo);

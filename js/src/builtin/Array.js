@@ -240,7 +240,7 @@ function ArrayMap(callbackfn) {
             
             var mappedValue = callFunction(callbackfn, T, O[k], k, O);
             
-            UnsafeSetElement(A, k, mappedValue);
+            UnsafePutElements(A, k, mappedValue);
         }
     }
 

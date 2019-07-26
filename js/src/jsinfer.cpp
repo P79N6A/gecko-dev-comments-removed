@@ -1418,7 +1418,7 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, Type type)
                 }
             }
 
-            if (native == intrinsic_UnsafeSetElement) {
+            if (native == intrinsic_UnsafePutElements) {
                 
                 
                 JS_ASSERT((callsite->argumentCount % 3) == 0);
