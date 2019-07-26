@@ -162,7 +162,7 @@ static bool
 CanTrustView(nsISupports* aValue)
 {
   
-  if (nsContentUtils::IsCallerTrustedForWrite())
+  if (nsContentUtils::IsCallerChrome())
     return true;
   nsCOMPtr<nsINativeTreeView> nativeTreeView = do_QueryInterface(aValue);
   if (!nativeTreeView || NS_FAILED(nativeTreeView->EnsureNative())) {

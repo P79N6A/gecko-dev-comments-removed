@@ -1705,7 +1705,7 @@ nsCSSStyleSheet::SubjectSubsumesInnerPrincipal()
     return NS_OK;
   }
   
-  if (!nsContentUtils::IsCallerTrustedForWrite()) {
+  if (!nsContentUtils::IsCallerChrome()) {
     
     if (GetCORSMode() == CORS_NONE) {
       return NS_ERROR_DOM_SECURITY_ERR;
