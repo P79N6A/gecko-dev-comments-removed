@@ -6,6 +6,8 @@
 package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.Tab;
+import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.gfx.Layer.RenderContext;
 import org.mozilla.gecko.mozglue.DirectBufferAllocator;
 
@@ -32,7 +34,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 
 
 
-public class LayerRenderer {
+public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoLayerRenderer";
     private static final String PROFTAG = "GeckoLayerRendererProf";
 
@@ -166,6 +168,8 @@ public class LayerRenderer {
         mCoordByteBuffer = DirectBufferAllocator.allocate(COORD_BUFFER_SIZE * 4);
         mCoordByteBuffer.order(ByteOrder.nativeOrder());
         mCoordBuffer = mCoordByteBuffer.asFloatBuffer();
+
+        Tabs.registerOnTabsChangedListener(this);
     }
 
     @Override
@@ -684,6 +688,8 @@ public class LayerRenderer {
             }
 
             
+            
+            
             if (mView.getPaintState() == LayerView.PAINT_BEFORE_FIRST) {
                 mView.post(new Runnable() {
                     public void run() {
@@ -692,6 +698,18 @@ public class LayerRenderer {
                 });
                 mView.setPaintState(LayerView.PAINT_AFTER_FIRST);
             }
+        }
+    }
+
+    @Override
+    public void onTabChanged(final Tab tab, Tabs.TabEvents msg, Object data) {
+        
+        
+        
+        
+        if (msg == Tabs.TabEvents.SELECTED) {
+            mView.getChildAt(0).setBackgroundColor(tab.getCheckerboardColor());
+            mView.setPaintState(LayerView.PAINT_START);
         }
     }
 }
