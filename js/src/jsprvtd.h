@@ -298,7 +298,7 @@ typedef void
 
 typedef void
 (* JSDestroyScriptHook)(JSFreeOp *fop,
-                        JSScript  *script,
+                        JSRawScript script,
                         void      *callerdata);
 
 typedef void
