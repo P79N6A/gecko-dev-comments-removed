@@ -4090,6 +4090,19 @@ nsGlobalWindow::GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
   }
 }
 
+ bool
+nsGlobalWindow::IsChromeWindow(JSContext* aCx, JSObject* aObj)
+{
+  
+  nsGlobalWindow* win;
+  nsresult rv = UNWRAP_OBJECT(Window, aObj, win);
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsPIDOMWindow> piWin = do_QueryWrapper(aCx, aObj);
+    win = static_cast<nsGlobalWindow*>(piWin.get());
+  }
+  return win->IsChromeWindow();
+}
+
 nsIDOMOfflineResourceList*
 nsGlobalWindow::GetApplicationCache(ErrorResult& aError)
 {
