@@ -145,6 +145,11 @@ const DEFAULT_SNIPPETS_URLS = [
 const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; 
 
 
+const DATABASE_NAME = "abouthome";
+const DATABASE_VERSION = 1;
+const SNIPPETS_OBJECTSTORE_NAME = "snippets";
+
+
 let gInitialized = false;
 let gObserver = new MutationObserver(function (mutations) {
   for (let mutation of mutations) {
@@ -200,40 +205,87 @@ function ensureSnippetsMapThen(aCallback)
     return;
   }
 
-  
-  
-  setTimeout(function() {
-    
-    let cache = new Map();
-    for (let key of [ "snippets-last-update",
-                      "snippets-cached-version",
-                      "snippets" ]) {
-      cache.set(key, localStorage[key]);
+  let invokeCallbacks = function () {
+    if (!gSnippetsMap) {
+      gSnippetsMap = Object.freeze(new Map());
     }
-
-    gSnippetsMap = Object.freeze({
-      get: function (aKey) cache.get(aKey),
-      set: function (aKey, aValue) {
-        localStorage[aKey] = aValue;
-        return cache.set(aKey, aValue);
-      },
-      has: function(aKey) cache.has(aKey),
-      delete: function(aKey) {
-        delete localStorage[aKey];
-        return cache.delete(aKey);
-      },
-      clear: function() {
-        localStorage.clear();
-        return cache.clear();
-      },
-      get size() cache.size
-    });
 
     for (let callback of gSnippetsMapCallbacks) {
       callback(gSnippetsMap);
     }
     gSnippetsMapCallbacks.length = 0;
-  }, 0);
+  }
+
+  let openRequest = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+
+  openRequest.onerror = function (event) {
+    
+    
+    indexedDB.deleteDatabase(DATABASE_NAME);
+    invokeCallbacks();
+  };
+
+  openRequest.onupgradeneeded = function (event) {
+    let db = event.target.result;
+    if (!db.objectStoreNames.contains(SNIPPETS_OBJECTSTORE_NAME)) {
+      db.createObjectStore(SNIPPETS_OBJECTSTORE_NAME);
+    }
+  }
+
+  openRequest.onsuccess = function (event) {
+    let db = event.target.result;
+
+    db.onerror = function (event) {
+      invokeCallbacks();
+    }
+
+    db.onversionchange = function (event) {
+      event.target.close();
+      invokeCallbacks();
+    }
+
+    let cache = new Map();
+    let cursorRequest = db.transaction(SNIPPETS_OBJECTSTORE_NAME)
+                          .objectStore(SNIPPETS_OBJECTSTORE_NAME).openCursor();
+    cursorRequest.onerror = function (event) {
+      invokeCallbacks();
+    }
+
+    cursorRequest.onsuccess = function(event) {
+      let cursor = event.target.result;
+
+      
+      if (cursor) {
+        cache.set(cursor.key, cursor.value);
+        cursor.continue();
+        return;
+      }
+
+      
+      gSnippetsMap = Object.freeze({
+        get: function (aKey) cache.get(aKey),
+        set: function (aKey, aValue) {
+          db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
+            .objectStore(SNIPPETS_OBJECTSTORE_NAME).put(aValue, aKey);
+          return cache.set(aKey, aValue);
+        },
+        has: function (aKey) cache.has(aKey),
+        delete: function (aKey) {
+          db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
+            .objectStore(SNIPPETS_OBJECTSTORE_NAME).delete(aKey);
+          return cache.delete(aKey);
+        },
+        clear: function () {
+          db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
+            .objectStore(SNIPPETS_OBJECTSTORE_NAME).clear();
+          return cache.clear();
+        },
+        get size() cache.size
+      });
+
+      setTimeout(invokeCallbacks, 0);
+    }
+  }
 }
 
 function onSearchSubmit(aEvent)
