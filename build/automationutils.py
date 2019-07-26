@@ -73,9 +73,16 @@ DEBUGGER_INFO = {
 
   
   
+  
+  
+  
+  
   "valgrind": {
     "interactive": False,
-    "args": "--leak-check=full"
+    "args": " ".join(["--leak-check=full",
+                      "--show-possibly-lost=no",
+                      "--smc-check=all-non-file,"
+                      "--vex-iropt-register-updates=allregs-at-mem-access"])
   }
 }
 
