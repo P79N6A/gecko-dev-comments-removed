@@ -54,13 +54,6 @@ public:
         DRAW_SUPPORTS_ALTERNATE_SCREEN = 0x20
     };
 
-    struct DrawOutput {
-        nsRefPtr<gfxASurface> mSurface;
-        bool mUniformAlpha;
-        bool mUniformColor;
-        gfxRGBA      mColor;
-    };
-
     
 
 
@@ -72,8 +65,7 @@ public:
 
 
     nsresult Draw(gfxContext* ctx, nsIntSize size,
-                  uint32_t flags, Screen* screen, Visual* visual,
-                  DrawOutput* output);
+                  uint32_t flags, Screen* screen, Visual* visual);
 };
 
 #endif 
