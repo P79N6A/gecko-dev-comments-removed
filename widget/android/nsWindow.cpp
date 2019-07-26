@@ -1425,6 +1425,8 @@ static unsigned int ConvertAndroidKeyCodeToDOMKeyCode(int androidKeyCode)
         case AndroidKeyEvent::KEYCODE_DPAD_LEFT:          return NS_VK_LEFT;
         case AndroidKeyEvent::KEYCODE_DPAD_RIGHT:         return NS_VK_RIGHT;
         case AndroidKeyEvent::KEYCODE_DPAD_CENTER:        return NS_VK_RETURN;
+        case AndroidKeyEvent::KEYCODE_VOLUME_UP:          return NS_VK_VOLUME_UP;
+        case AndroidKeyEvent::KEYCODE_VOLUME_DOWN:        return NS_VK_VOLUME_DOWN;
         
         case AndroidKeyEvent::KEYCODE_COMMA:              return NS_VK_COMMA;
         case AndroidKeyEvent::KEYCODE_PERIOD:             return NS_VK_PERIOD;
@@ -1447,6 +1449,7 @@ static unsigned int ConvertAndroidKeyCodeToDOMKeyCode(int androidKeyCode)
         
         case AndroidKeyEvent::KEYCODE_SLASH:              return NS_VK_SLASH;
         
+        case AndroidKeyEvent::KEYCODE_MUTE:               return NS_VK_VOLUME_MUTE;
         case AndroidKeyEvent::KEYCODE_PAGE_UP:            return NS_VK_PAGE_UP;
         case AndroidKeyEvent::KEYCODE_PAGE_DOWN:          return NS_VK_PAGE_DOWN;
         
@@ -1586,14 +1589,6 @@ nsWindow::HandleSpecialKey(AndroidGeckoEvent *ae)
                     doCommand = true;
                 }
                 break;
-            case AndroidKeyEvent::KEYCODE_VOLUME_UP:
-                command = nsGkAtoms::VolumeUp;
-                doCommand = true;
-                break;
-            case AndroidKeyEvent::KEYCODE_VOLUME_DOWN:
-                command = nsGkAtoms::VolumeDown;
-                doCommand = true;
-                break;
             case AndroidKeyEvent::KEYCODE_MENU:
                 gMenu = true;
                 gMenuConsumed = isLongPress;
@@ -1667,8 +1662,6 @@ nsWindow::OnKeyEvent(AndroidGeckoEvent *ae)
     case AndroidKeyEvent::KEYCODE_BACK:
     case AndroidKeyEvent::KEYCODE_MENU:
     case AndroidKeyEvent::KEYCODE_SEARCH:
-    case AndroidKeyEvent::KEYCODE_VOLUME_UP:
-    case AndroidKeyEvent::KEYCODE_VOLUME_DOWN:
         HandleSpecialKey(ae);
         return;
     }
