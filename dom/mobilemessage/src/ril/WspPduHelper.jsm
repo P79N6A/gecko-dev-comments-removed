@@ -2292,18 +2292,40 @@ this.PduHelper = {
         let octetArray = Octet.decodeMultiple(data, contentEnd);
         let content = null;
         if (octetArray) {
-          
-          
-          if (headers["content-type"].media == "application/smil") {
-            let charset = headers["content-type"].params &&
-                          headers["content-type"].params.charset
-                        ? headers["content-type"].params.charset["charset"]
-                        : null;
-            content = this.decodeStringContent(octetArray, charset);
+          let charset = headers["content-type"].params &&
+                        headers["content-type"].params.charset
+                      ? headers["content-type"].params.charset.charset
+                      : null;
+
+          let mimeType = headers["content-type"].media;
+
+          if (mimeType) {
+            if (mimeType == "application/smil") {
+              
+              
+              content = this.decodeStringContent(octetArray, charset);
+            } else if (mimeType.indexOf("text/") == 0 && charset != "utf-8") {
+              
+              
+              let tmpStr = this.decodeStringContent(octetArray, charset);
+              let encoder = new TextEncoder("UTF-8");
+              content = new Blob([encoder.encode(tmpStr)], {type : mimeType});
+
+              
+              if (!headers["content-type"].params) {
+                headers["content-type"].params = {};
+              }
+              if (!headers["content-type"].params.charset) {
+                headers["content-type"].params.charset = {};
+              }
+              if (!headers["content-type"].params.charset.charset) {
+                headers["content-type"].params.charset.charset = "utf-8";
+              }
+            }
           }
+
           if (!content) {
-            content = new Blob([octetArray],
-                               {type : headers["content-type"].media});
+            content = new Blob([octetArray], {type : mimeType});
           }
         }
 
