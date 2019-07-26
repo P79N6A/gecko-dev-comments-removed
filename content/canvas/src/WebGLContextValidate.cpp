@@ -1773,6 +1773,11 @@ WebGLContext::InitAndValidateGL()
         return false;
     }
 
+    
+    for (int32_t index = 0; index < mGLMaxVertexAttribs; ++index) {
+        VertexAttrib4f(index, 0, 0, 0, 1);
+    }
+
     mMemoryPressureObserver
         = new WebGLMemoryPressureObserver(this);
     nsCOMPtr<nsIObserverService> observerService
