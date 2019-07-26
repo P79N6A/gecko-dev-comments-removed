@@ -29,6 +29,42 @@ add_task(function test_createDownload()
 
 
 
+add_task(function test_createDownload_private()
+{
+  let download = yield Downloads.createDownload({
+    source: { uri: NetUtil.newURI("about:blank"),
+              isPrivate: true },
+    target: { file: getTempFile(TEST_TARGET_FILE_NAME) },
+    saver: { type: "copy" }
+  });
+  do_check_true(download.source.isPrivate);
+});
+
+
+
+
+add_task(function test_createDownload_public()
+{
+  let uri = NetUtil.newURI("about:blank");
+  let tempFile = getTempFile(TEST_TARGET_FILE_NAME);
+  let download = yield Downloads.createDownload({
+    source: { uri: uri, isPrivate: false },
+    target: { file: tempFile },
+    saver: { type: "copy" }
+  });
+  do_check_false(download.source.isPrivate);
+
+  download = yield Downloads.createDownload({
+    source: { uri: uri },
+    target: { file: tempFile },
+    saver: { type: "copy" }
+  });
+  do_check_true(!download.source.isPrivate);
+});
+
+
+
+
 add_task(function test_simpleDownload_uri_file_arguments()
 {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
@@ -58,4 +94,30 @@ add_task(function test_getPublicDownloadList()
   let downloadListTwo = yield Downloads.getPublicDownloadList();
 
   do_check_eq(downloadListOne, downloadListTwo);
+});
+
+
+
+
+
+
+add_task(function test_getPrivateDownloadList()
+{
+  let downloadListOne = yield Downloads.getPrivateDownloadList();
+  let downloadListTwo = yield Downloads.getPrivateDownloadList();
+
+  do_check_eq(downloadListOne, downloadListTwo);
+});
+
+
+
+
+
+
+add_task(function test_public_and_private_lists_differ()
+{
+  let publicDownloadList = yield Downloads.getPublicDownloadList();
+  let privateDownloadList = yield Downloads.getPrivateDownloadList();
+
+  do_check_neq(publicDownloadList, privateDownloadList);
 });

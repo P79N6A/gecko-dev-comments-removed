@@ -155,7 +155,7 @@ DownloadLegacyTransfer.prototype = {
     
     
     Downloads.createDownload({
-      source: { uri: aSource },
+      source: { uri: aSource, isPrivate: aIsPrivate },
       target: { file: aTarget.QueryInterface(Ci.nsIFileURL).file },
       saver: { type: "legacy" },
     }).then(function DLT_I_onDownload(aDownload) {
@@ -171,8 +171,13 @@ DownloadLegacyTransfer.prototype = {
       this._deferDownload.resolve(aDownload);
 
       
-      return Downloads.getPublicDownloadList()
-                      .then(function (aList) aList.add(aDownload));
+      let list;
+      if (aIsPrivate) {
+        list = Downloads.getPrivateDownloadList();
+      } else {
+        list = Downloads.getPublicDownloadList();
+      }
+      return list.then(function (aList) aList.add(aDownload));
     }.bind(this)).then(null, Cu.reportError);
   },
 

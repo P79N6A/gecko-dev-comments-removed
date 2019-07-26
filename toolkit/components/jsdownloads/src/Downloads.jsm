@@ -70,6 +70,8 @@ this.Downloads = {
 
 
 
+
+
   createDownload: function D_createDownload(aProperties)
   {
     return Task.spawn(function task_D_createDownload() {
@@ -77,6 +79,7 @@ this.Downloads = {
 
       download.source = new DownloadSource();
       download.source.uri = aProperties.source.uri;
+      download.source.isPrivate = aProperties.source.isPrivate;
       download.target = new DownloadTarget();
       download.target.file = aProperties.target.file;
 
@@ -150,6 +153,25 @@ this.Downloads = {
     return Promise.resolve(this._publicDownloadList);
   },
   _publicDownloadList: null,
+
+  
+
+
+
+
+
+
+
+
+
+  getPrivateDownloadList: function D_getPrivateDownloadList()
+  {
+    if (!this._privateDownloadList) {
+      this._privateDownloadList = new DownloadList();
+    }
+    return Promise.resolve(this._privateDownloadList);
+  },
+  _privateDownloadList: null,
 
   
 

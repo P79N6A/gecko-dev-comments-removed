@@ -31,12 +31,29 @@ function promiseNewDownloadList() {
 
 
 
+
+function promiseNewPrivateDownloadList() {
+  
+  Downloads._privateDownloadList = null;
+  return Downloads.getPrivateDownloadList();
+}
+
+
+
+
+
+
+
 add_task(function test_construction()
 {
   let downloadListOne = yield promiseNewDownloadList();
   let downloadListTwo = yield promiseNewDownloadList();
+  let privateDownloadListOne = yield promiseNewPrivateDownloadList();
+  let privateDownloadListTwo = yield promiseNewPrivateDownloadList();
 
   do_check_neq(downloadListOne, downloadListTwo);
+  do_check_neq(privateDownloadListOne, privateDownloadListTwo);
+  do_check_neq(downloadListOne, privateDownloadListOne);
 });
 
 

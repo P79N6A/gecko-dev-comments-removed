@@ -427,6 +427,13 @@ DownloadSource.prototype = {
 
 
   uri: null,
+
+  
+
+
+
+
+  isPrivate: false,
 };
 
 
@@ -596,8 +603,11 @@ DownloadCopySaver.prototype = {
       backgroundFileSaver.setTarget(download.target.file, false);
 
       
-      
       let channel = NetUtil.newChannel(download.source.uri);
+      if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
+        channel.setPrivate(download.source.isPrivate);
+      }
+
       channel.notificationCallbacks = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor]),
         getInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink]),
