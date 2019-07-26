@@ -7,6 +7,7 @@
 #define MOZILLA_SVGANIMATEDPATHSEGLIST_H__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
 #include "nsAutoPtr.h"
 #include "nsISMILAttr.h"
 #include "SVGPathData.h"
@@ -35,7 +36,7 @@ class SVGAnimationElement;
 
 
 
-class SVGAnimatedPathSegList
+class SVGAnimatedPathSegList MOZ_FINAL
 {
   
   friend class DOMSVGPathSeg;
@@ -87,6 +88,8 @@ public:
 
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aElement);
+
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const;
 
 private:
 

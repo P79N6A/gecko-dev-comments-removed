@@ -40,6 +40,9 @@ protected:
 
 public:
   
+  NS_DECL_SIZEOF_EXCLUDING_THIS
+
+  
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* name) const MOZ_OVERRIDE;
 
   

@@ -49,6 +49,16 @@ SVGPathElement::SVGPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
 
 
 
+size_t
+SVGPathElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  return SVGPathElementBase::SizeOfExcludingThis(aMallocSizeOf) +
+         mD.SizeOfExcludingThis(aMallocSizeOf);
+}
+
+
+
+
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGPathElement)
 
 already_AddRefed<SVGAnimatedNumber>

@@ -13,6 +13,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "nsSVGElement.h"
 #include "nsTArray.h"
@@ -174,6 +175,10 @@ public:
   const_iterator end() const { return mData.Elements() + mData.Length(); }
 
   
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+  
   
   
   
@@ -232,7 +237,7 @@ protected:
 
 
 
-class SVGPathDataAndInfo : public SVGPathData
+class SVGPathDataAndInfo MOZ_FINAL : public SVGPathData
 {
 public:
   SVGPathDataAndInfo(nsSVGElement *aElement = nullptr)
