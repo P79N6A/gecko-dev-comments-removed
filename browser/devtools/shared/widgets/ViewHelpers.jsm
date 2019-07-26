@@ -370,7 +370,10 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-function Item(aAttachment, aContents = []) {
+
+
+function Item(aOwnerView, aAttachment, aContents = []) {
+  this.ownerView = aOwnerView;
   this.attachment = aAttachment;
 
   let [aLabel, aValue, aDescription] = aContents;
@@ -407,7 +410,7 @@ Item.prototype = {
 
 
   append: function(aElement, aOptions = {}) {
-    let item = new Item(aOptions.attachment);
+    let item = new Item(this, aOptions.attachment);
 
     
     this._entangleItem(item, this._target.appendChild(aElement));
@@ -608,7 +611,7 @@ this.WidgetMethods = {
 
 
   push: function(aContents, aOptions = {}) {
-    let item = new Item(aOptions.attachment, aContents);
+    let item = new Item(this, aOptions.attachment, aContents);
 
     
     if (aOptions.staged) {
