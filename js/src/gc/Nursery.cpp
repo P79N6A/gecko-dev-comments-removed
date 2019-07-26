@@ -584,8 +584,12 @@ js::Nursery::moveObjectToTenured(JSObject *dst, JSObject *src, AllocKind dstKind
 
 
 
+
+
+
+
     if (src->is<ArrayObject>())
-        srcSize = sizeof(ObjectImpl);
+        tenuredSize = srcSize = sizeof(ObjectImpl);
 
     js_memcpy(dst, src, srcSize);
     tenuredSize += moveSlotsToTenured(dst, src, dstKind);
