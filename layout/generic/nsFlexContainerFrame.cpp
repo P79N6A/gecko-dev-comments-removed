@@ -164,6 +164,20 @@ MarginComponentForSide(nsMargin& aMargin, Side aSide)
 }
 
 
+
+
+
+
+
+
+
+#define GET_MAIN_COMPONENT(axisTracker_, width_, height_)  \
+  IsAxisHorizontal((axisTracker_).GetMainAxis()) ? (width_) : (height_)
+
+#define GET_CROSS_COMPONENT(axisTracker_, width_, height_)  \
+  IsAxisHorizontal((axisTracker_).GetCrossAxis()) ? (width_) : (height_)
+
+
 class MOZ_STACK_CLASS FlexboxAxisTracker {
 public:
   FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame);
@@ -173,29 +187,17 @@ public:
   AxisOrientationType GetCrossAxis() const { return mCrossAxis; }
 
   nscoord GetMainComponent(const nsSize& aSize) const {
-    return IsAxisHorizontal(mMainAxis) ?
-      aSize.width : aSize.height;
+    return GET_MAIN_COMPONENT(*this, aSize.width, aSize.height);
   }
   int32_t GetMainComponent(const nsIntSize& aIntSize) const {
-    return IsAxisHorizontal(mMainAxis) ?
-      aIntSize.width : aIntSize.height;
-  }
-  nscoord GetMainComponent(const nsHTMLReflowMetrics& aMetrics) const {
-    return IsAxisHorizontal(mMainAxis) ?
-      aMetrics.width : aMetrics.height;
+    return GET_MAIN_COMPONENT(*this, aIntSize.width, aIntSize.height);
   }
 
   nscoord GetCrossComponent(const nsSize& aSize) const {
-    return IsAxisHorizontal(mCrossAxis) ?
-      aSize.width : aSize.height;
+    return GET_CROSS_COMPONENT(*this, aSize.width, aSize.height);
   }
   int32_t GetCrossComponent(const nsIntSize& aIntSize) const {
-    return IsAxisHorizontal(mCrossAxis) ?
-      aIntSize.width : aIntSize.height;
-  }
-  nscoord GetCrossComponent(const nsHTMLReflowMetrics& aMetrics) const {
-    return IsAxisHorizontal(mCrossAxis) ?
-      aMetrics.width : aMetrics.height;
+    return GET_CROSS_COMPONENT(*this, aIntSize.width, aIntSize.height);
   }
 
   nscoord GetMarginSizeInMainAxis(const nsMargin& aMargin) const {
