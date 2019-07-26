@@ -52,7 +52,7 @@ public:
   bool HasAlpha() { return mHasAlpha; }
   
   
-  CGLError CGLTexImageIOSurface2D(void *ctxt);
+  CGLError CGLTexImageIOSurface2D(CGLContextObj ctxt);
   mozilla::TemporaryRef<SourceSurface> GetAsSurface();
   CGContextRef CreateIOSurfaceContext();
 
