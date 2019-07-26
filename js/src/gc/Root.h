@@ -401,6 +401,12 @@ class SkipRoot
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+
+
+
+
+typedef JSObject *RawObject;
+
 #ifdef DEBUG
 JS_FRIEND_API(bool) IsRootingUnnecessaryForContext(JSContext *cx);
 JS_FRIEND_API(void) SetRootingUnnecessaryForContext(JSContext *cx, bool value);

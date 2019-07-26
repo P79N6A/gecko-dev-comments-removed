@@ -41,6 +41,7 @@ namespace js {
 
 class GCHelperThread;
 struct Shape;
+struct SliceBudget;
 
 namespace ion {
     class IonCode;
@@ -52,6 +53,7 @@ enum State {
     NO_INCREMENTAL,
     MARK_ROOTS,
     MARK,
+    SWEEP,
     INVALID
 };
 
@@ -151,32 +153,34 @@ IsNurseryAllocable(AllocKind kind)
 inline JSGCTraceKind
 GetGCThingTraceKind(const void *thing);
 
+
+
+
+
+
+
+
+
+
+
+
+struct ArenaList {
+    ArenaHeader     *head;
+    ArenaHeader     **cursor;
+
+    ArenaList() {
+        clear();
+    }
+
+    void clear() {
+        head = NULL;
+        cursor = &head;
+    }
+
+    void insert(ArenaHeader *arena);
+};
+
 struct ArenaLists {
-
-    
-
-
-
-
-
-
-
-
-
-
-    struct ArenaList {
-        ArenaHeader     *head;
-        ArenaHeader     **cursor;
-
-        ArenaList() {
-            clear();
-        }
-
-        void clear() {
-            head = NULL;
-            cursor = &head;
-        }
-    };
 
   private:
     
@@ -217,11 +221,17 @@ struct ArenaLists {
     volatile uintptr_t backgroundFinalizeState[FINALIZE_LIMIT];
 
   public:
+    
+    ArenaHeader *arenaListsToSweep[FINALIZE_LIMIT];
+
+  public:
     ArenaLists() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
             freeLists[i].initAsEmpty();
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
             backgroundFinalizeState[i] = BFS_DONE;
+        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
+            arenaListsToSweep[i] = NULL;
     }
 
     ~ArenaLists() {
@@ -259,6 +269,10 @@ struct ArenaLists {
                 return false;
         }
         return true;
+    }
+
+    bool arenasAreFull(AllocKind thingKind) const {
+        return !*arenaLists[thingKind].cursor;
     }
 
     void unmarkAll() {
@@ -369,17 +383,19 @@ struct ArenaLists {
         JS_ASSERT(freeLists[kind].isEmpty());
     }
 
-    void finalizeObjects(FreeOp *fop);
-    void finalizeStrings(FreeOp *fop);
-    void finalizeShapes(FreeOp *fop);
-    void finalizeScripts(FreeOp *fop);
-    void finalizeIonCode(FreeOp *fop);
+    void queueObjectsForSweep(FreeOp *fop);
+    void queueStringsForSweep(FreeOp *fop);
+    void queueShapesForSweep(FreeOp *fop);
+    void queueScriptsForSweep(FreeOp *fop);
+    void queueIonCodeForSweep(FreeOp *fop);
 
+    bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead);
 
   private:
     inline void finalizeNow(FreeOp *fop, AllocKind thingKind);
-    inline void finalizeLater(FreeOp *fop, AllocKind thingKind);
+    inline void queueForForegroundSweep(FreeOp *fop, AllocKind thingKind);
+    inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
 
     inline void *allocateFromArena(JSCompartment *comp, AllocKind thingKind);
 };

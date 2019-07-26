@@ -494,4 +494,25 @@ private:
   void operator=(const nsThreadPoolNaming &) MOZ_DELETE;
 };
 
+
+
+
+
+
+
+class NS_STACK_CLASS nsAutoLowPriorityIO
+{
+public:
+  nsAutoLowPriorityIO();
+  ~nsAutoLowPriorityIO();
+
+private:
+  bool lowIOPrioritySet;
+#if defined(XP_MACOSX)
+  int oldPriority;
+#endif
+};
+
+
+
 #endif  

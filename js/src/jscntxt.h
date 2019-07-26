@@ -452,6 +452,9 @@ struct JSRuntime : js::RuntimeFriendFields
     
     JSDestroyCompartmentCallback destroyCompartmentCallback;
 
+    
+    JSCompartmentNameCallback compartmentNameCallback;
+
     js::ActivityCallback  activityCallback;
     void                 *activityCallbackArg;
 
@@ -565,6 +568,21 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     bool                gcLastMarkSlice;
+
+    
+    bool                gcSweepOnBackgroundThread;
+
+    
+
+
+    int                gcSweepPhase;
+    ptrdiff_t          gcSweepCompartmentIndex;
+    int                gcSweepKindIndex;
+
+    
+
+
+    js::gc::ArenaHeader *gcArenasAllocatedDuringSweep;
 
     
 

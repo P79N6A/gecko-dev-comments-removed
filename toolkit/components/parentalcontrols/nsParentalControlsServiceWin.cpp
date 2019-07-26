@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode:nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsParentalControlsServiceWin.h"
 #include "nsString.h"
@@ -43,7 +43,7 @@ MyEventUnregister gEventUnregister = NULL;
 nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
   mPC(nsnull)
 , mEnabled(false)
-, mProvider(nsnull)
+, mProvider(NULL)
 {
   HRESULT hr;
   CoInitialize(NULL);
@@ -54,7 +54,7 @@ nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
 
   nsRefPtr<IWPCSettings> wpcs;
   if (FAILED(mPC->GetUserSettings(NULL, getter_AddRefs(wpcs)))) {
-    // Not available on this os or not enabled for this user account or we're running as admin
+    
     mPC->Release();
     mPC = nsnull;
     return;
@@ -63,7 +63,7 @@ nsParentalControlsServiceWin::nsParentalControlsServiceWin() :
   DWORD settings = 0;
   wpcs->GetRestrictions(&settings);
   
-  if (settings) { // WPCFLAG_NO_RESTRICTION = 0
+  if (settings) { 
     gAdvAPIDLLInst = ::LoadLibrary("Advapi32.dll");
     if(gAdvAPIDLLInst)
     {
@@ -87,7 +87,7 @@ nsParentalControlsServiceWin::~nsParentalControlsServiceWin()
     ::FreeLibrary(gAdvAPIDLLInst);
 }
 
-//------------------------------------------------------------------------
+
 
 NS_IMETHODIMP
 nsParentalControlsServiceWin::GetParentalControlsEnabled(bool *aResult)
@@ -127,7 +127,7 @@ nsParentalControlsServiceWin::GetLoggingEnabled(bool *aResult)
   if (!mEnabled)
     return NS_ERROR_NOT_AVAILABLE;
 
-  // Check the general purpose logging flag
+  
   nsRefPtr<IWPCSettings> wpcs;
   if (SUCCEEDED(mPC->GetUserSettings(NULL, getter_AddRefs(wpcs)))) {
     BOOL enabled = FALSE;
@@ -139,7 +139,7 @@ nsParentalControlsServiceWin::GetLoggingEnabled(bool *aResult)
   return NS_OK;
 }
 
-// Post a log event to the system
+
 NS_IMETHODIMP
 nsParentalControlsServiceWin::Log(PRInt16 aEntryType, bool blocked, nsIURI *aSource, nsIFile *aTarget)
 {
@@ -148,13 +148,13 @@ nsParentalControlsServiceWin::Log(PRInt16 aEntryType, bool blocked, nsIURI *aSou
 
   NS_ENSURE_ARG_POINTER(aSource);
 
-  // Confirm we should be logging
+  
   bool enabled;
   GetLoggingEnabled(&enabled);
   if (!enabled)
     return NS_ERROR_NOT_AVAILABLE;
 
-  // Register a Vista log event provider associated with the parental controls channel.
+  
   if (!mProvider) {
     if (!gEventRegister)
       return NS_ERROR_NOT_AVAILABLE;
@@ -164,7 +164,7 @@ nsParentalControlsServiceWin::Log(PRInt16 aEntryType, bool blocked, nsIURI *aSou
 
   switch(aEntryType) {
     case ePCLog_URIVisit:
-      // Not needed, Vista's web content filter handles this for us
+      
       break;
     case ePCLog_FileDownload:
       LogFileDownload(blocked, aSource, aTarget);
@@ -176,7 +176,7 @@ nsParentalControlsServiceWin::Log(PRInt16 aEntryType, bool blocked, nsIURI *aSou
   return NS_OK;
 }
 
-// Override a single URI
+
 NS_IMETHODIMP
 nsParentalControlsServiceWin::RequestURIOverride(nsIURI *aTarget, nsIInterfaceRequestor *aWindowContext, bool *_retval)
 {
@@ -193,7 +193,7 @@ nsParentalControlsServiceWin::RequestURIOverride(nsIURI *aTarget, nsIInterfaceRe
     return NS_ERROR_INVALID_ARG;
 
   HWND hWnd = nsnull;
-  // If we have a native window, use its handle instead
+  
   nsCOMPtr<nsIWidget> widget(do_GetInterface(aWindowContext));
   if (widget)
     hWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
@@ -212,7 +212,7 @@ nsParentalControlsServiceWin::RequestURIOverride(nsIURI *aTarget, nsIInterfaceRe
   return NS_OK;
 }
 
-// Override a web page
+
 NS_IMETHODIMP
 nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfaceRequestor *aWindowContext, bool *_retval)
 {
@@ -236,14 +236,14 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
   }
 
   HWND hWnd = nsnull;
-  // If we have a native window, use its handle instead
+  
   nsCOMPtr<nsIWidget> widget(do_GetInterface(aWindowContext));
   if (widget)
     hWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
   if (hWnd == nsnull)
     hWnd = GetDesktopWindow();
 
-  // The first entry should be the root uri
+  
   nsCAutoString rootSpec;
   nsCOMPtr<nsIURI> rootURI = do_QueryElementAt(aTargets, 0);
   if (!rootURI)
@@ -253,7 +253,7 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
   if (rootSpec.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
-  // Allocate an array of sub uri
+  
   PRInt32 count = arrayLength - 1;
   nsAutoArrayPtr<LPCWSTR> arrUrls(new LPCWSTR[count]);
   if (!arrUrls)
@@ -270,7 +270,7 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
     if (NS_FAILED(uri->GetSpec(subURI)))
       continue;
 
-    arrUrls[uriIdx] = (LPCWSTR)UTF8ToNewUnicode(subURI); // allocation
+    arrUrls[uriIdx] = (LPCWSTR)UTF8ToNewUnicode(subURI); 
     if (!arrUrls[uriIdx])
       continue;
 
@@ -288,16 +288,16 @@ nsParentalControlsServiceWin::RequestURIOverrides(nsIArray *aTargets, nsIInterfa
    *_retval = ret;
   }
 
-  // Free up the allocated strings in our array
+  
   for (idx = 0; idx < uriIdx; idx++)
     NS_Free((void*)arrUrls[idx]);
 
   return NS_OK;
 }
 
-//------------------------------------------------------------------------
 
-// Sends a file download event to the Vista Event Log 
+
+
 void
 nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsIFile *aTarget)
 {
@@ -306,12 +306,12 @@ nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsI
   if (!gEventWrite)
     return;
 
-  // Note, EventDataDescCreate is a macro defined in the headers, not a function
+  
 
   aSource->GetSpec(curi);
   nsAutoString uri = NS_ConvertUTF8toUTF16(curi);
 
-  // Get the name of the currently running process
+  
   nsCOMPtr<nsIXULAppInfo> appInfo = do_GetService("@mozilla.org/xre/app-info;1");
   nsCAutoString asciiAppName;
   if (appInfo)
@@ -320,7 +320,7 @@ nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsI
 
   static const WCHAR fill[] = L"";
   
-  // See wpcevent.h and msdn for event formats
+  
   EVENT_DATA_DESCRIPTOR eventData[WPC_ARGS_FILEDOWNLOADEVENT_CARGS];
   DWORD dwBlocked = blocked;
 
@@ -332,7 +332,7 @@ nsParentalControlsServiceWin::LogFileDownload(bool blocked, nsIURI *aSource, nsI
   EventDataDescCreate(&eventData[WPC_ARGS_FILEDOWNLOADEVENT_BLOCKED], (const void*)&dwBlocked,
                       sizeof(dwBlocked));
 
-  nsCOMPtr<nsILocalFileWin> local(do_QueryInterface(aTarget)); // May be null
+  nsCOMPtr<nsILocalFileWin> local(do_QueryInterface(aTarget)); 
   if (local) {
     nsAutoString path;
     local->GetCanonicalPath(path);

@@ -294,6 +294,9 @@ bool Display::initialize()
         return false;
     }
 
+    mVertexShaderCache.initialize(mDevice);
+    mPixelShaderCache.initialize(mDevice);
+
     return true;
 }
 
@@ -314,6 +317,9 @@ void Display::terminate()
         mEventQueryPool.back()->Release();
         mEventQueryPool.pop_back();
     }
+
+    mVertexShaderCache.clear();
+    mPixelShaderCache.clear();
 
     if (mDevice)
     {
@@ -473,6 +479,15 @@ void Display::initializeDevice()
     
     mDevice->SetRenderState(D3DRS_POINTSPRITEENABLE, TRUE);
     mDevice->SetRenderState(D3DRS_LASTPIXEL, FALSE);
+
+    if (mDeviceCaps.PixelShaderVersion >= D3DPS_VERSION(3, 0))
+    {
+        mDevice->SetRenderState(D3DRS_POINTSIZE_MAX, (DWORD&)mDeviceCaps.MaxPointSize);
+    }
+    else
+    {
+        mDevice->SetRenderState(D3DRS_POINTSIZE_MAX, 0x3F800000);   
+    }
 
     mSceneStarted = false;
 }
@@ -742,6 +757,9 @@ bool Display::restoreLostDevice()
         mEventQueryPool.pop_back();
     }
 
+    mVertexShaderCache.clear();
+    mPixelShaderCache.clear();
+
     if (!resetDevice())
     {
         return false;
@@ -992,6 +1010,22 @@ bool Display::getDXT5TextureSupport()
     return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_DXT5));
 }
 
+
+
+
+bool Display::getDepthTextureSupport() const
+{
+    D3DDISPLAYMODE currentDisplayMode;
+    mD3d9->GetAdapterDisplayMode(mAdapter, &currentDisplayMode);
+
+    bool intz = SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format,
+                                                   D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, D3DFMT_INTZ));
+    bool null = SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format,
+                                                   D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, D3DFMT_NULL));
+
+    return intz && null;
+}
+
 bool Display::getFloat32TextureSupport(bool *filtering, bool *renderable)
 {
     D3DDISPLAYMODE currentDisplayMode;
@@ -1064,6 +1098,16 @@ bool Display::getLuminanceAlphaTextureSupport()
     return SUCCEEDED(mD3d9->CheckDeviceFormat(mAdapter, mDeviceType, currentDisplayMode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_A8L8));
 }
 
+float Display::getTextureFilterAnisotropySupport() const
+{
+    
+    if ((mDeviceCaps.RasterCaps & D3DPRASTERCAPS_ANISOTROPY) && (mDeviceCaps.MaxAnisotropy >= 2))
+    {
+        return mDeviceCaps.MaxAnisotropy;
+    }
+    return 1.0f;
+}
+
 D3DPOOL Display::getBufferPool(DWORD usage) const
 {
     if (mD3d9Ex != NULL)
@@ -1081,7 +1125,7 @@ D3DPOOL Display::getBufferPool(DWORD usage) const
     return D3DPOOL_DEFAULT;
 }
 
-D3DPOOL Display::getTexturePool(bool renderable) const
+D3DPOOL Display::getTexturePool(DWORD usage) const
 {
     if (mD3d9Ex != NULL)
     {
@@ -1089,7 +1133,7 @@ D3DPOOL Display::getTexturePool(bool renderable) const
     }
     else
     {
-        if (!renderable)
+        if (!(usage & (D3DUSAGE_DEPTHSTENCIL | D3DUSAGE_RENDERTARGET)))
         {
             return D3DPOOL_MANAGED;
         }
@@ -1179,6 +1223,16 @@ bool Display::shareHandleSupported() const
 {
     
     return isD3d9ExDevice() && !gl::perfActive();
+}
+
+IDirect3DVertexShader9 *Display::createVertexShader(const DWORD *function, size_t length)
+{
+    return mVertexShaderCache.create(function, length);
+}
+
+IDirect3DPixelShader9 *Display::createPixelShader(const DWORD *function, size_t length)
+{
+    return mPixelShaderCache.create(function, length);
 }
 
 

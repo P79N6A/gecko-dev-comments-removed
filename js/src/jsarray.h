@@ -50,30 +50,22 @@ namespace js {
 
 
 extern JSObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext *cx, JSObject *proto=NULL);
+NewDenseEmptyArray(JSContext *cx, RawObject proto = NULL);
 
 
 extern JSObject * JS_FASTCALL
-NewDenseAllocatedArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
-
-
-
-
-
-
-extern JSObject * JS_FASTCALL
-NewDenseAllocatedEmptyArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
+NewDenseAllocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
 
 
 
 
 
 extern JSObject * JS_FASTCALL
-NewDenseUnallocatedArray(JSContext *cx, uint32_t length, JSObject *proto=NULL);
+NewDenseUnallocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *vp, JSObject *proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *vp, RawObject proto = NULL);
 
 
 extern JSObject *
@@ -85,7 +77,7 @@ extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, uint32_t *lengthp);
 
 extern JSBool
-js_SetLengthProperty(JSContext *cx, JSObject *obj, double length);
+js_SetLengthProperty(JSContext *cx, js::HandleObject obj, double length);
 
 namespace js {
 
@@ -129,7 +121,7 @@ array_shift(JSContext *cx, unsigned argc, js::Value *vp);
 
 #ifdef DEBUG
 extern JSBool
-js_ArrayInfo(JSContext *cx, unsigned argc, jsval *vp);
+js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
 #endif
 
 
@@ -149,7 +141,7 @@ js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
 
 JSBool
-js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
+js_GetDenseArrayElementValue(JSContext *cx, js::HandleObject obj, jsid id,
                              js::Value *vp);
 
 

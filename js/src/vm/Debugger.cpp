@@ -1757,7 +1757,7 @@ JSBool
 Debugger::getDebuggees(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_DEBUGGER(cx, argc, vp, "getDebuggees", args, dbg);
-    RootedObject arrobj(cx, NewDenseAllocatedArray(cx, dbg->debuggees.count(), NULL));
+    RootedObject arrobj(cx, NewDenseAllocatedArray(cx, dbg->debuggees.count()));
     if (!arrobj)
         return false;
     arrobj->ensureDenseArrayInitializedLength(cx, 0, dbg->debuggees.count());
@@ -2330,7 +2330,7 @@ Debugger::findScripts(JSContext *cx, unsigned argc, Value *vp)
     if (!query.findScripts(&scripts))
         return false;
 
-    RootedObject result(cx, NewDenseAllocatedArray(cx, scripts.length(), NULL));
+    RootedObject result(cx, NewDenseAllocatedArray(cx, scripts.length()));
     if (!result)
         return false;
 
@@ -3407,13 +3407,13 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar 
 
 
 
-    JSPrincipals *prin = fp->scopeChain()->principals(cx);
-    bool compileAndGo = true;
-    bool noScriptRval = false;
-    JSScript *script = frontend::CompileScript(cx, env, fp, prin, prin,
-                                               compileAndGo, noScriptRval,
-                                               chars, length, filename, lineno,
-                                               cx->findVersion(), NULL,  1);
+    CompileOptions options(cx);
+    options.setPrincipals(fp->scopeChain()->principals(cx))
+           .setCompileAndGo(true)
+           .setNoScriptRval(false)
+           .setFileAndLine(filename, lineno);
+    JSScript *script = frontend::CompileScript(cx, env, fp, options, chars, length,
+                                                NULL,  1);
     if (!script)
         return false;
 
@@ -3688,7 +3688,7 @@ DebuggerObject_getParameterNames(JSContext *cx, unsigned argc, Value *vp)
     }
 
     RootedFunction fun(cx, obj->toFunction());
-    JSObject *result = NewDenseAllocatedArray(cx, fun->nargs, NULL);
+    JSObject *result = NewDenseAllocatedArray(cx, fun->nargs);
     if (!result)
         return false;
     result->ensureDenseArrayInitializedLength(cx, 0, fun->nargs);

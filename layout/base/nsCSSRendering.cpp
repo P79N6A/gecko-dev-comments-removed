@@ -2009,6 +2009,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
   
   nsRefPtr<gfxPattern> gradientPattern;
+  bool forceRepeatToCoverTiles = false;
   if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
     
     
@@ -2027,6 +2028,16 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
     gradientPattern = new gfxPattern(gradientStart.x, gradientStart.y,
                                      gradientEnd.x, gradientEnd.y);
+
+    
+    
+    
+    if ((gradientStart.y == gradientEnd.y && gradientStart.x == 0 &&
+         gradientEnd.x == oneCellArea.width) ||
+        (gradientStart.x == gradientEnd.x && gradientStart.y == 0 &&
+         gradientEnd.y == oneCellArea.height)) {
+      forceRepeatToCoverTiles = true;
+    }
   } else {
     NS_ASSERTION(firstStop >= 0.0,
                  "Negative stops not allowed for radial gradients");
@@ -2077,7 +2088,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   }
 
   
-  if (aGradient->mRepeating) {
+  if (aGradient->mRepeating || forceRepeatToCoverTiles) {
     gradientPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
   }
 
@@ -2096,8 +2107,9 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   
   nscoord xStart = FindTileStart(dirty.x, aOneCellArea.x, aOneCellArea.width);
   nscoord yStart = FindTileStart(dirty.y, aOneCellArea.y, aOneCellArea.height);
-  nscoord xEnd = dirty.XMost();
-  nscoord yEnd = dirty.YMost();
+  nscoord xEnd = forceRepeatToCoverTiles ? xStart + aOneCellArea.width : dirty.XMost();
+  nscoord yEnd = forceRepeatToCoverTiles ? yStart + aOneCellArea.height : dirty.YMost();
+
   
   for (nscoord y = yStart; y < yEnd; y += aOneCellArea.height) {
     for (nscoord x = xStart; x < xEnd; x += aOneCellArea.width) {
@@ -2107,7 +2119,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
                       appUnitsPerPixel);
       
       
-      gfxRect fillRect = tileRect.Intersect(areaToFill);
+      gfxRect fillRect =
+        forceRepeatToCoverTiles ? areaToFill : tileRect.Intersect(areaToFill);
       ctx->NewPath();
       ctx->Translate(tileRect.TopLeft());
       ctx->SetPattern(gradientPattern);

@@ -179,8 +179,16 @@ nsDeleteDir::TimerCallback(nsITimer *aTimer, void *arg)
   dirList = static_cast<nsCOMArray<nsIFile> *>(arg);
 
   bool shuttingDown = false;
-  for (PRInt32 i = 0; i < dirList->Count() && !shuttingDown; i++) {
-    gInstance->RemoveDir((*dirList)[i], &shuttingDown);
+
+  
+  {
+    
+    
+    
+    nsAutoLowPriorityIO autoLowPriority;
+    for (PRInt32 i = 0; i < dirList->Count() && !shuttingDown; i++) {
+      gInstance->RemoveDir((*dirList)[i], &shuttingDown);
+    }
   }
 
   {

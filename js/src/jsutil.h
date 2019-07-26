@@ -376,26 +376,6 @@ bool DecompressString(const unsigned char *inp, size_t inplen,
 #endif  
 
 
-
-
-
-
-
-
-
-
-
-
-#if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_AMD64) || \
-    defined(_M_X64))
-#include <stdlib.h>
-#pragma intrinsic(_rotl)
-#define JS_ROTATE_LEFT32(a, bits) _rotl(a, bits)
-#else
-#define JS_ROTATE_LEFT32(a, bits) (((a) << (bits)) | ((a) >> (32 - (bits))))
-#endif
-
-
 #ifdef DEBUG
 # define JS_CRASH_DIAGNOSTICS 1
 #endif

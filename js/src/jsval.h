@@ -223,6 +223,7 @@ typedef enum JSWhyMagic
     JS_OVERWRITTEN_CALLEE,       
     JS_FORWARD_TO_CALL_OBJECT,   
     JS_BLOCK_NEEDS_CLONE,        
+    JS_HASH_KEY_EMPTY,           
     JS_ION_ERROR,                
     JS_ION_BAILOUT,              
     JS_GENERIC_MAGIC             

@@ -344,7 +344,18 @@ ShadowContainerLayerOGL::ShadowContainerLayerOGL(LayerManagerOGL *aManager)
  
 ShadowContainerLayerOGL::~ShadowContainerLayerOGL()
 {
-  Destroy();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  while (mFirstChild) {
+    ContainerRemoveChild(this, mFirstChild);
+  }
 }
 
 void

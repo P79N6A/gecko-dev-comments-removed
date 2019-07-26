@@ -91,50 +91,6 @@ InitSSPI()
 
 
 
-static nsresult
-MakeSN(const char *principal, nsCString &result)
-{
-    nsresult rv;
-
-    nsCAutoString buf(principal);
-
-    
-    
-    
-    PRInt32 index = buf.FindChar('@');
-    if (index == kNotFound)
-        return NS_ERROR_UNEXPECTED;
-    
-    nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
-    if (NS_FAILED(rv))
-        return rv;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIDNSRecord> record;
-    rv = dns->Resolve(Substring(buf, index + 1),
-                      nsIDNSService::RESOLVE_CANONICAL_NAME,
-                      getter_AddRefs(record));
-    if (NS_FAILED(rv))
-        return rv;
-
-    nsCAutoString cname;
-    rv = record->GetCanonicalName(cname);
-    if (NS_SUCCEEDED(rv)) {
-        result = StringHead(buf, index) + NS_LITERAL_CSTRING("/") + cname;
-        LOG(("Using SPN of [%s]\n", result.get()));
-    }
-    return rv;
-}
-
-
-
 nsAuthSSPI::nsAuthSSPI(pType package)
     : mServiceFlags(REQ_DEFAULT)
     , mMaxTokenLen(0)
@@ -208,23 +164,13 @@ nsAuthSSPI::Init(const char *serviceName,
 
     package = (SEC_WCHAR *) pTypeName[(int)mPackage];
 
-    if (mPackage == PACKAGE_TYPE_NTLM) {
-        
-        
-        
-        mServiceName.Assign(serviceName);
-        PRInt32 index = mServiceName.FindChar('@');
-        if (index == kNotFound)
-            return NS_ERROR_UNEXPECTED;
-        mServiceName.Replace(index, 1, '/');
-    }
-    else {
-        
-        
-        rv = MakeSN(serviceName, mServiceName);
-        if (NS_FAILED(rv))
-            return rv;
-    }
+    
+    
+    mServiceName.Assign(serviceName);
+    PRInt32 index = mServiceName.FindChar('@');
+    if (index == kNotFound)
+        return NS_ERROR_UNEXPECTED;
+    mServiceName.Replace(index, 1, '/');
 
     mServiceFlags = serviceFlags;
 
@@ -652,4 +598,17 @@ nsAuthSSPI::Wrap(const void *inToken,
     }
 
     return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsAuthSSPI::GetModuleProperties(PRUint32 *flags)
+{
+    *flags = 0;
+
+    
+    
+    if (mPackage != PACKAGE_TYPE_NTLM)
+        *flags |= CANONICAL_NAME_REQUIRED;
+
+    return NS_OK;
 }

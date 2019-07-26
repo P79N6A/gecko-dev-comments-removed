@@ -314,6 +314,13 @@ public class GeckoAppShell
         
         try {
             String[] dirs = context.getPluginDirectories();
+            
+            if (dirs == null) {
+                GeckoAppShell.putenv("MOZ_PLUGINS_BLOCKED=1");
+                GeckoAppShell.putenv("MOZ_PLUGIN_PATH=");
+                return;
+            }
+
             StringBuffer pluginSearchPath = new StringBuffer();
             for (int i = 0; i < dirs.length; i++) {
                 Log.i(LOGTAG, "dir: " + dirs[i]);
