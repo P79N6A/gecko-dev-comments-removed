@@ -38,6 +38,7 @@ SECStatus VerifySignedData(const CERTSignedData* sd,
                            const CERTCertificate* cert,
                            void* pkcs11PinArg);
 
+
 SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena,
                                   const CERTCertificate* cert,
                                   const CERTCertificate* issuerCert);

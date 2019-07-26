@@ -840,4 +840,110 @@ CheckExtensionsForCriticality(der::Input& input)
 
 
 
+SECItem*
+CreateEncodedOCSPRequest(PLArenaPool* arena,
+                         const CERTCertificate* cert,
+                         const CERTCertificate* issuerCert)
+{
+  if (!arena || !cert || !issuerCert) {
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+    return nullptr;
+  }
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+  static const uint8_t hashAlgorithm[11] = {
+    0x30, 0x09,                               
+    0x06, 0x05, 0x2B, 0x0E, 0x03, 0x02, 0x1A, 
+    0x05, 0x00,                               
+  };
+  static const uint8_t hashLen = SHA1_LENGTH;
+
+  static const unsigned int totalLenWithoutSerialNumberData
+    = 2                             
+    + 2                             
+    + 2                             
+    + 2                             
+    + 2                             
+    + PR_ARRAY_SIZE(hashAlgorithm)  
+    + 2 + hashLen                   
+    + 2 + hashLen                   
+    + 2;                            
+
+  
+  
+  
+  
+  
+  
+  if (issuerCert->serialNumber.len > 127u - totalLenWithoutSerialNumberData) {
+    PR_SetError(SEC_ERROR_BAD_DATA, 0);
+    return nullptr;
+  }
+
+  uint8_t totalLen = static_cast<uint8_t>(totalLenWithoutSerialNumberData +
+    cert->serialNumber.len);
+
+  SECItem* encodedRequest = SECITEM_AllocItem(arena, nullptr, totalLen);
+  if (!encodedRequest) {
+    return nullptr;
+  }
+
+  uint8_t* d = encodedRequest->data;
+  *d++ = 0x30; *d++ = totalLen - 2;  
+  *d++ = 0x30; *d++ = totalLen - 4;  
+  *d++ = 0x30; *d++ = totalLen - 6;  
+  *d++ = 0x30; *d++ = totalLen - 8;  
+  *d++ = 0x30; *d++ = totalLen - 10; 
+
+  
+  for (size_t i = 0; i < PR_ARRAY_SIZE(hashAlgorithm); ++i) {
+    *d++ = hashAlgorithm[i];
+  }
+
+  
+  *d++ = 0x04;
+  *d++ = hashLen;
+  if (PK11_HashBuf(SEC_OID_SHA1, d, issuerCert->derSubject.data,
+                   issuerCert->derSubject.len) != SECSuccess) {
+    return nullptr;
+  }
+  d += hashLen;
+
+  
+  *d++ = 0x04;
+  *d++ = hashLen;
+  SECItem key = issuerCert->subjectPublicKeyInfo.subjectPublicKey;
+  DER_ConvertBitString(&key);
+  if (PK11_HashBuf(SEC_OID_SHA1, d, key.data, key.len) != SECSuccess) {
+    return nullptr;
+  }
+  d += hashLen;
+
+  
+  *d++ = 0x02; 
+  *d++ = static_cast<uint8_t>(cert->serialNumber.len);
+  for (size_t i = 0; i < cert->serialNumber.len; ++i) {
+    *d++ = cert->serialNumber.data[i];
+  }
+
+  PR_ASSERT(d == encodedRequest->data + totalLen);
+
+  return encodedRequest;
+}
+
 } } 
