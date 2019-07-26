@@ -23,6 +23,7 @@
 #include "nsIDocument.h"
 
 namespace mozilla {
+class EventChainPreVisitor;
 namespace dom {
 
 
@@ -51,7 +52,7 @@ public:
   
   NS_DECL_NSIDOMATTR
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   
   void SetMap(nsDOMAttributeMap *aMap) MOZ_OVERRIDE;

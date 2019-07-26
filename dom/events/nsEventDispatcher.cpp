@@ -164,7 +164,7 @@ public:
 
 
 
-  void PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  void PreHandleEvent(EventChainPreVisitor& aVisitor);
 
   
 
@@ -219,7 +219,7 @@ nsEventTargetChainItem::nsEventTargetChainItem(EventTarget* aTarget)
 }
 
 void
-nsEventTargetChainItem::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+nsEventTargetChainItem::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.Reset();
   unused << mTarget->PreHandleEvent(aVisitor);
@@ -515,8 +515,8 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   
   
   nsEventStatus status = aEventStatus ? *aEventStatus : nsEventStatus_eIgnore;
-  nsEventChainPreVisitor preVisitor(aPresContext, aEvent, aDOMEvent, status,
-                                    isInAnon);
+  EventChainPreVisitor preVisitor(aPresContext, aEvent, aDOMEvent, status,
+                                  isInAnon);
   targetEtci->PreHandleEvent(preVisitor);
 
   if (!preVisitor.mCanHandle && preVisitor.mAutomaticChromeDispatch && content) {

@@ -13,6 +13,9 @@
 
 #include "FileCommon.h"
 
+namespace mozilla {
+class EventChainPreVisitor;
+} 
 
 BEGIN_FILE_NAMESPACE
 
@@ -36,7 +39,7 @@ public:
                  ArchiveReader* aReader);
 
   
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
 public:
   

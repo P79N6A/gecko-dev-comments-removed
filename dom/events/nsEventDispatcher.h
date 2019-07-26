@@ -105,24 +105,29 @@ public:
   nsCOMPtr<nsISupports> mItemData;
 };
 
-} 
-
-class nsEventChainPreVisitor : public mozilla::EventChainVisitor
+class EventChainPreVisitor : public EventChainVisitor
 {
 public:
-  nsEventChainPreVisitor(nsPresContext* aPresContext,
-                         mozilla::WidgetEvent* aEvent,
-                         nsIDOMEvent* aDOMEvent,
-                         nsEventStatus aEventStatus,
-                         bool aIsInAnon)
-  : mozilla::EventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
-    mCanHandle(true), mAutomaticChromeDispatch(true),
-    mForceContentDispatch(false), mRelatedTargetIsInAnon(false),
-    mOriginalTargetIsInAnon(aIsInAnon), mWantsWillHandleEvent(false),
-    mMayHaveListenerManager(true), mParentTarget(nullptr),
-    mEventTargetAtParent(nullptr) {}
+  EventChainPreVisitor(nsPresContext* aPresContext,
+                       WidgetEvent* aEvent,
+                       nsIDOMEvent* aDOMEvent,
+                       nsEventStatus aEventStatus,
+                       bool aIsInAnon)
+    : EventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus)
+    , mCanHandle(true)
+    , mAutomaticChromeDispatch(true)
+    , mForceContentDispatch(false)
+    , mRelatedTargetIsInAnon(false)
+    , mOriginalTargetIsInAnon(aIsInAnon)
+    , mWantsWillHandleEvent(false)
+    , mMayHaveListenerManager(true)
+    , mParentTarget(nullptr)
+    , mEventTargetAtParent(nullptr)
+  {
+  }
 
-  void Reset() {
+  void Reset()
+  {
     mItemFlags = 0;
     mItemData = nullptr;
     mCanHandle = true;
@@ -182,14 +187,16 @@ public:
   
 
 
-  mozilla::dom::EventTarget* mParentTarget;
+  dom::EventTarget* mParentTarget;
 
   
 
 
 
-  mozilla::dom::EventTarget* mEventTargetAtParent;
+  dom::EventTarget* mEventTargetAtParent;
 };
+
+} 
 
 class nsEventChainPostVisitor : public mozilla::EventChainVisitor
 {

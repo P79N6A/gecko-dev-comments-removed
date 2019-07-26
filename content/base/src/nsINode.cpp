@@ -1133,7 +1133,7 @@ nsINode::RemoveEventListener(const nsAString& aType,
 NS_IMPL_REMOVE_SYSTEM_EVENT_LISTENER(nsINode)
 
 nsresult
-nsINode::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+nsINode::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   
   NS_ABORT();

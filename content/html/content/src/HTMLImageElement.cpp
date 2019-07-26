@@ -341,7 +341,7 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
 
 nsresult
-HTMLImageElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLImageElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   
   

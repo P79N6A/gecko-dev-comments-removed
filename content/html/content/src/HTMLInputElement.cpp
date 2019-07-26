@@ -3222,7 +3222,8 @@ HTMLInputElement::SelectAll(nsPresContext* aPresContext)
 }
 
 bool
-HTMLInputElement::NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisitor) const
+HTMLInputElement::NeedToInitializeEditorForEvent(
+                    EventChainPreVisitor& aVisitor) const
 {
   
   
@@ -3253,7 +3254,7 @@ HTMLInputElement::IsDisabledForEvents(uint32_t aMessage)
 }
 
 nsresult
-HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = false;

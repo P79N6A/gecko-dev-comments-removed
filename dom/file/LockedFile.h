@@ -17,6 +17,10 @@
 
 class nsIInputStream;
 
+namespace mozilla {
+class EventChainPreVisitor;
+} 
+
 BEGIN_FILE_NAMESPACE
 
 class FileHandle;
@@ -60,7 +64,7 @@ public:
 
   
   virtual nsresult
-  PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   nsresult
   CreateParallelStream(nsISupports** aStream);

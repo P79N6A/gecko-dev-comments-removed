@@ -67,7 +67,7 @@ HTMLFieldSetElement::IsDisabledForEvents(uint32_t aMessage)
 
 
 nsresult
-HTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLFieldSetElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   
   aVisitor.mCanHandle = false;
