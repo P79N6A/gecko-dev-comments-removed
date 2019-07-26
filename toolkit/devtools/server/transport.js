@@ -269,7 +269,7 @@ LocalDebuggerTransport.prototype = {
       
       
       let other = this.other;
-      delete this.other;
+      this.other = null;
       other.close();
     }
     if (this.hooks) {
