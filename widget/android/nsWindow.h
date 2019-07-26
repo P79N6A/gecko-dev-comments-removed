@@ -166,7 +166,7 @@ protected:
     bool DrawTo(gfxASurface *targetSurface);
     bool DrawTo(gfxASurface *targetSurface, const nsIntRect &aRect);
     bool IsTopLevel();
-    void RemoveIMEComposition();
+    void OnIMEAddRange(mozilla::AndroidGeckoEvent *ae);
 
     
     
@@ -183,8 +183,8 @@ protected:
     nsCOMPtr<nsIIdleServiceInternal> mIdleService;
 
     bool mIMEComposing;
-    bool mIMEMaskSelectionUpdate, mIMEMaskTextUpdate;
     nsString mIMEComposingText;
+    nsString mIMELastDispatchedComposingText;
     nsAutoTArray<nsTextRange, 4> mIMERanges;
 
     InputContext mInputContext;
