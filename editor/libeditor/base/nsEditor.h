@@ -58,7 +58,6 @@ class nsIEditorObserver;
 class nsIInlineSpellChecker;
 class nsINode;
 class nsIPresShell;
-class nsIPrivateTextRangeList;
 class nsISelection;
 class nsISupports;
 class nsITransaction;
@@ -833,7 +832,6 @@ protected:
 
   nsRefPtr<nsTransactionManager> mTxnMgr;
   nsCOMPtr<mozilla::dom::Element> mRootElement; 
-  nsCOMPtr<nsIPrivateTextRangeList> mIMETextRangeList; 
   nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      
   nsCOMPtr<mozilla::dom::EventTarget> mEventTarget; 
   nsCOMPtr<nsIDOMEventListener> mEventListener;

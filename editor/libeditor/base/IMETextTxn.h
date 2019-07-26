@@ -11,9 +11,9 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsID.h"
 #include "nsIDOMCharacterData.h"
-#include "nsIPrivateTextRange.h"
 #include "nsString.h"
 #include "nscore.h"
+#include "mozilla/TextRange.h"
 
 class nsITransaction;
 
@@ -41,10 +41,11 @@ public:
 
 
 
+
   NS_IMETHOD Init(nsIDOMCharacterData *aElement,
                   uint32_t aOffset,
                   uint32_t aReplaceLength,
-                  nsIPrivateTextRangeList* aTextRangeList,
+                  mozilla::TextRangeArray* aTextRangeArray,
                   const nsAString& aString,
                   nsIEditor* aEditor);
 
@@ -63,12 +64,9 @@ public:
   
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
-  
-  NS_IMETHOD GetData(nsString& aResult, nsIPrivateTextRangeList** aTextRangeList);
-
 protected:
 
-  NS_IMETHOD CollapseTextSelection(void);
+  nsresult SetSelectionForRanges();
 
   
   nsCOMPtr<nsIDOMCharacterData> mElement;
@@ -82,7 +80,7 @@ protected:
   nsString mStringToInsert;
 
   
-  nsCOMPtr<nsIPrivateTextRangeList>	mRangeList;
+  nsRefPtr<mozilla::TextRangeArray> mRanges;
 
   
   nsIEditor *mEditor;

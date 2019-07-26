@@ -16,6 +16,7 @@
 #include "nsPresContext.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextRange.h"
 
 class nsDispatchingCallback;
 class nsIEditor;
@@ -57,6 +58,12 @@ public:
   
   
   const nsString& String() const { return mString; }
+  
+  
+  
+  
+  
+  TextRangeArray* GetRanges() const { return mRanges; }
   
   
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
@@ -142,6 +149,10 @@ private:
   
   nsPresContext* mPresContext;
   nsCOMPtr<nsINode> mNode;
+
+  
+  
+  nsRefPtr<TextRangeArray> mRanges;
 
   
   
