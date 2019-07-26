@@ -213,20 +213,12 @@ var gPluginHandler = {
   },
 
   handleEvent : function(event) {
-    let plugin;
-    let doc;
-
     let eventType = event.type;
-    if (eventType === "PluginRemoved") {
-      doc = event.target;
-    }
-    else {
-      plugin = event.target;
-      doc = plugin.ownerDocument;
+    let plugin = event.target;
+    let doc = plugin.ownerDocument;
 
-      if (!(plugin instanceof Ci.nsIObjectLoadingContent))
-        return;
-    }
+    if (!(plugin instanceof Ci.nsIObjectLoadingContent))
+      return;
 
     if (eventType == "PluginBindingAttached") {
       
@@ -308,13 +300,12 @@ var gPluginHandler = {
         break;
 
       case "PluginInstantiated":
-      case "PluginRemoved":
         shouldShowNotification = true;
         break;
     }
 
     
-    if (eventType != "PluginCrashed" && eventType != "PluginRemoved") {
+    if (eventType != "PluginCrashed") {
       let overlay = this.getPluginUI(plugin, "main");
       if (overlay != null) {
         if (!this.isTooSmall(plugin, overlay))
@@ -336,7 +327,7 @@ var gPluginHandler = {
     
     
     if (shouldShowNotification) {
-      this._showClickToPlayNotification(browser);
+      this._showClickToPlayNotification(browser, plugin, false);
     }
   },
 
@@ -562,7 +553,7 @@ var gPluginHandler = {
       if (!(aEvent.originalTarget instanceof HTMLAnchorElement) &&
           (aEvent.originalTarget.getAttribute('anonid') != 'closeIcon') &&
           aEvent.button == 0 && aEvent.isTrusted) {
-        gPluginHandler._showClickToPlayNotification(browser, plugin);
+        gPluginHandler._showClickToPlayNotification(browser, plugin, true);
         aEvent.stopPropagation();
         aEvent.preventDefault();
       }
@@ -607,7 +598,7 @@ var gPluginHandler = {
     }, true);
 
     if (!playPreviewInfo.ignoreCTP) {
-      gPluginHandler._showClickToPlayNotification(browser);
+      gPluginHandler._showClickToPlayNotification(browser, aPlugin, false);
     }
   },
 
@@ -625,14 +616,20 @@ var gPluginHandler = {
       if (gPluginHandler.canActivatePlugin(objLoadingContent))
         gPluginHandler._handleClickToPlayEvent(plugin);
     }
-    gPluginHandler._showClickToPlayNotification(browser);
+    gPluginHandler._showClickToPlayNotification(browser, null, false);
   },
 
   _clickToPlayNotificationEventCallback: function PH_ctpEventCallback(event) {
     if (event == "showing") {
-      gPluginHandler._makeCenterActions(this);
       Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_SHOWN")
         .add(!this.options.primaryPlugin);
+      
+      let histogramCount = this.options.centerActions.size - 1;
+      if (histogramCount > 4) {
+        histogramCount = 4;
+      }
+      Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_PLUGIN_COUNT")
+        .add(histogramCount);
     }
     else if (event == "dismissed") {
       
@@ -653,86 +650,6 @@ var gPluginHandler = {
     } catch (e) {}
 
     return principal.origin;
-  },
-
-  _makeCenterActions: function PH_makeCenterActions(notification) {
-    let contentWindow = notification.browser.contentWindow;
-    let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
-
-    let principal = contentWindow.document.nodePrincipal;
-    
-    let principalHost = this._getHostFromPrincipal(principal);
-
-    let centerActions = [];
-    let pluginsFound = new Set();
-    for (let plugin of cwu.plugins) {
-      plugin.QueryInterface(Ci.nsIObjectLoadingContent);
-      if (plugin.getContentTypeForMIMEType(plugin.actualType) != Ci.nsIObjectLoadingContent.TYPE_PLUGIN) {
-        continue;
-      }
-
-      let pluginInfo = this._getPluginInfo(plugin);
-      if (pluginInfo.permissionString === null) {
-        Components.utils.reportError("No permission string for active plugin.");
-        continue;
-      }
-      if (pluginsFound.has(pluginInfo.permissionString)) {
-        continue;
-      }
-      pluginsFound.add(pluginInfo.permissionString);
-
-      
-      
-      
-      let permissionObj = Services.perms.
-        getPermissionObject(principal, pluginInfo.permissionString, false);
-      if (permissionObj) {
-        pluginInfo.pluginPermissionHost = permissionObj.host;
-        pluginInfo.pluginPermissionType = permissionObj.expireType;
-      }
-      else {
-        pluginInfo.pluginPermissionHost = principalHost;
-        pluginInfo.pluginPermissionType = undefined;
-      }
-
-      let url;
-      
-      if (pluginInfo.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE) {
-        url = Services.urlFormatter.formatURLPref("plugins.update.url");
-      }
-      else if (pluginInfo.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-        url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
-      }
-      else {
-        url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "clicktoplay";
-      }
-      pluginInfo.detailsLink = url;
-
-      centerActions.push(pluginInfo);
-    }
-
-    if (centerActions.length == 0) {
-      
-      
-      notification.options.centerActions = [];
-      setTimeout(() => PopupNotifications.remove(notification), 0);
-      return;
-    }
-
-    centerActions.sort(function(a, b) {
-      return a.pluginName.localeCompare(b.pluginName);
-    });
-
-    notification.options.centerActions = centerActions;
-
-    
-    let histogramCount = centerActions.length - 1;
-    if (histogramCount > 4) {
-      histogramCount = 4;
-    }
-    Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_PLUGIN_COUNT")
-      .add(histogramCount);
   },
 
   
@@ -813,56 +730,130 @@ var gPluginHandler = {
     }
   },
 
-  _showClickToPlayNotification: function PH_showClickToPlayNotification(aBrowser, aPrimaryPlugin) {
+  _showClickToPlayNotification: function PH_showClickToPlayNotification(aBrowser, aPlugin, aShowNow) {
     let notification = PopupNotifications.getNotification("click-to-play-plugins", aBrowser);
+    let plugins = [];
 
-    let contentWindow = aBrowser.contentWindow;
-    let contentDoc = aBrowser.contentDocument;
-    let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
     
-    let plugins = cwu.plugins.filter((plugin) =>
-      plugin.getContentTypeForMIMEType(plugin.actualType) == Ci.nsIObjectLoadingContent.TYPE_PLUGIN);
-    if (plugins.length == 0) {
-      if (notification) {
-        PopupNotifications.remove(notification);
+    
+    if (aPlugin === null) {
+      let contentWindow = aBrowser.contentWindow;
+      let contentDoc = aBrowser.contentDocument;
+      let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+      
+      plugins = cwu.plugins.filter((plugin) =>
+        plugin.getContentTypeForMIMEType(plugin.actualType) == Ci.nsIObjectLoadingContent.TYPE_PLUGIN);
+
+      if (plugins.length == 0) {
+        if (notification) {
+          PopupNotifications.remove(notification);
+        }
+        return;
+      }
+    } else {
+      plugins = [aPlugin];
+    }
+
+    
+    let centerActions;
+    if (notification) {
+      centerActions = notification.options.centerActions;
+    } else {
+      centerActions = new Map();
+    }
+
+    let principal = aBrowser.contentDocument.nodePrincipal;
+    let principalHost = this._getHostFromPrincipal(principal);
+
+    for (var plugin of plugins) {
+      let pluginInfo = this._getPluginInfo(plugin);
+      if (pluginInfo.permissionString === null) {
+        Cu.reportError("No permission string for active plugin.");
+        continue;
+      }
+      if (centerActions.has(pluginInfo.permissionString)) {
+        continue;
+      }
+
+      
+      pluginInfo.hidden = true;
+
+      let overlay = this.getPluginUI(plugin, "main");
+      if (overlay && overlay.style.visibility != "hidden" && overlay.style.visibility != "") {
+        pluginInfo.hidden = false;
+      }
+
+      let permissionObj = Services.perms.
+        getPermissionObject(principal, pluginInfo.permissionString, false);
+      if (permissionObj) {
+        pluginInfo.pluginPermissionHost = permissionObj.host;
+        pluginInfo.pluginPermissionType = permissionObj.expireType;
+      }
+      else {
+        pluginInfo.pluginPermissionHost = principalHost;
+        pluginInfo.pluginPermissionType = undefined;
+      }
+
+      let url;
+      
+      if (pluginInfo.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE) {
+        url = Services.urlFormatter.formatURLPref("plugins.update.url");
+      }
+      else if (pluginInfo.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
+        url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
+      }
+      else {
+        url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "clicktoplay";
+      }
+      pluginInfo.detailsLink = url;
+      
+      centerActions.set(pluginInfo.permissionString, pluginInfo);
+    }
+
+    let pluginBlocked = false;
+    let pluginHidden = false;
+    for (let pluginInfo of centerActions.values()) {
+      let fallbackType = pluginInfo.fallbackType;
+      if (fallbackType == Ci.nsIObjectLoadingContent.PLUGIN_VULNERABLE_UPDATABLE ||
+          fallbackType == Ci.nsIObjectLoadingContent.PLUGIN_VULNERABLE_NO_UPDATE ||
+          fallbackType == Ci.nsIObjectLoadingContent.PLUGIN_BLOCKLISTED) {
+        pluginBlocked = true;
+        pluginHidden = false;
+        break;
+      }
+      if (fallbackType == Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY && pluginInfo.hidden) {
+        pluginHidden = true;
+      }
+    }
+
+    let iconClasses = document.getElementById("plugins-notification-icon").classList;
+    iconClasses.toggle("plugin-blocked", pluginBlocked);
+    iconClasses.toggle("plugin-hidden", pluginHidden);
+
+    let primaryPluginPermission = null;
+    if (aShowNow) {
+      primaryPluginPermission = this._getPluginInfo(aPlugin).permissionString;
+    }
+
+    if (notification) {
+      
+      
+      if (aShowNow) {
+        notification.options.primaryPlugin = primaryPluginPermission;
+        notification.reshow();
       }
       return;
     }
 
-    let icon = 'plugins-notification-icon';
-    for (let plugin of plugins) {
-      let fallbackType = plugin.pluginFallbackType;
-      if (fallbackType == plugin.PLUGIN_VULNERABLE_UPDATABLE ||
-          fallbackType == plugin.PLUGIN_VULNERABLE_NO_UPDATE ||
-          fallbackType == plugin.PLUGIN_BLOCKLISTED) {
-        icon = 'blocked-plugins-notification-icon';
-        break;
-      }
-      if (fallbackType == plugin.PLUGIN_CLICK_TO_PLAY) {
-        let overlay = this.getPluginUI(plugin, "main");
-        if (!overlay || overlay.style.visibility == 'hidden') {
-          icon = 'alert-plugins-notification-icon';
-        }
-      }
-    }
-
-    let dismissed = notification ? notification.dismissed : true;
-    if (aPrimaryPlugin)
-      dismissed = false;
-
-    let primaryPluginPermission = null;
-    if (aPrimaryPlugin) {
-      primaryPluginPermission = this._getPluginInfo(aPrimaryPlugin).permissionString;
-    }
-
     let options = {
-      dismissed: dismissed,
+      dismissed: !aShowNow,
       eventCallback: this._clickToPlayNotificationEventCallback,
-      primaryPlugin: primaryPluginPermission
+      primaryPlugin: primaryPluginPermission,
+      centerActions: centerActions
     };
     PopupNotifications.show(aBrowser, "click-to-play-plugins",
-                            "", icon,
+                            "", "plugins-notification-icon",
                             null, null, options);
   },
 
