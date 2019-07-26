@@ -34,6 +34,25 @@ class nsIMemoryReporterCallback;
 #endif
 
 namespace xpc {
+
+class Scriptability {
+public:
+    Scriptability();
+    bool Allowed();
+
+    void Block();
+    void Unblock();
+
+    static Scriptability& Get(JSObject *aScope);
+
+private:
+    
+    
+    
+    
+    uint32_t mScriptBlocks;
+};
+
 JSObject *
 TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target);
 

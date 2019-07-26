@@ -3783,6 +3783,9 @@ public:
     bool donatedNode;
 
     
+    Scriptability scriptability;
+
+    
     
     XPCWrappedNativeScope *scope;
 

@@ -139,6 +139,7 @@
 #endif
 #include "nsIDOMCustomEvent.h"
 #include "nsIFrameRequestCallback.h"
+#include "nsIJARChannel.h"
 
 #include "xpcprivate.h"
 
@@ -2539,6 +2540,14 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       JS::Rooted<JSObject*> obj(cx, newInnerWindow->mJSObject);
       rv = mContext->InitClasses(obj);
       NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    
+    
+    
+    nsCOMPtr<nsIJARChannel> jarChannel = do_QueryInterface(aDocument->GetChannel());
+    if (jarChannel && jarChannel->GetIsUnsafe()) {
+      xpc::Scriptability::Get(newInnerWindow->mJSObject).Block();
     }
 
     if (mArguments) {
@@ -7961,10 +7970,7 @@ nsGlobalWindow::Close(ErrorResult& aError)
 
   
   
-  nsAutoString url;
-  mDoc->GetURL(url);
   if (!mDocShell->GetIsApp() &&
-      !StringBeginsWith(url, NS_LITERAL_STRING("about:neterror")) &&
       !mHadOriginalOpener && !nsContentUtils::IsCallerChrome()) {
     bool allowClose = mAllowScriptsToClose ||
       Preferences::GetBool("dom.allow_scripts_to_close_windows", true);
