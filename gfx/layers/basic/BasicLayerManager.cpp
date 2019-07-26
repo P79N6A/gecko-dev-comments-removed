@@ -910,7 +910,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
 
     if (clipRect) {
       aTarget->NewPath();
-      aTarget->Rectangle(gfxRect(clipRect->x, clipRect->y, clipRect->width, clipRect->height), true);
+      aTarget->SnappedRectangle(gfxRect(clipRect->x, clipRect->y, clipRect->width, clipRect->height));
       aTarget->Clip();
     }
   }
@@ -988,7 +988,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       
       
       aTarget->NewPath();
-      aTarget->Rectangle(destRect, true);
+      aTarget->SnappedRectangle(destRect);
       aTarget->Clip();
       FlushGroup(paintLayerContext, needsClipToVisibleRegion);
     }

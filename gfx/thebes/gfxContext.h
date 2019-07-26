@@ -204,6 +204,7 @@ public:
 
 
     void Rectangle(const gfxRect& rect, bool snapToPixels = false);
+    void SnappedRectangle(const gfxRect& rect) { return Rectangle(rect, true); }
 
     
 
