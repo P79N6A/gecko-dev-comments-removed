@@ -42,13 +42,13 @@
             audioStream.stop();
             videoStream.stop();
             SimpleTest.finish();
-          }, unexpectedCallbackAndFinish());
+          }, generateErrorCallback());
 
-        }, unexpectedCallbackAndFinish());
+        }, generateErrorCallback());
 
-      }, unexpectedCallbackAndFinish());
+      }, generateErrorCallback());
 
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   });
 
 </script>
