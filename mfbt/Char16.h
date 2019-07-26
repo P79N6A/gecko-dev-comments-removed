@@ -24,9 +24,20 @@
 
 
 
+
+
+
+
+
+
 #  define MOZ_UTF16_HELPER(s) L##s
-#  include <yvals.h>
-#  define char16_t wchar_t
+#  define _CHAR16T
+#  ifdef __cplusplus
+     typedef wchar_t char16_t;
+#  else
+     typedef unsigned short char16_t;
+#  endif
+   typedef unsigned int char32_t;
 #elif defined(__cplusplus) && \
       (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__))
    
