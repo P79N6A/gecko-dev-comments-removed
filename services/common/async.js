@@ -64,6 +64,12 @@ this.Async = {
 
 
 
+
+
+
+
+
+
   makeSyncCallback: function makeSyncCallback() {
     
     let onComplete = function onComplete(data) {
@@ -79,9 +85,6 @@ this.Async = {
     onComplete.throw = function onComplete_throw(data) {
       onComplete.state = CB_FAIL;
       onComplete.value = data;
-
-      
-      throw data;
     };
 
     return onComplete;
@@ -136,7 +139,8 @@ this.Async = {
     function callback(error, ret) {
       if (error)
         cb.throw(error);
-      cb(ret);
+      else
+        cb(ret);
     }
     callback.wait = function() Async.waitForSyncCallback(cb);
     return callback;
