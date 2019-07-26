@@ -3366,10 +3366,6 @@ nsDownload::Cancel()
     return NS_OK;
 
   
-  if (IsPaused() && !IsResumable())
-    (void)Resume();
-
-  
   (void)CancelTransfer();
 
   
