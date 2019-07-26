@@ -413,89 +413,76 @@ SmsDatabaseService.prototype = {
     }
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  keyIntersection: function keyIntersection(keys, filter) {
-    
-    
-    let result = keys[FILTER_TIMESTAMP];
-    if (keys[FILTER_NUMBERS].length || filter.numbers) {
-      result = result.filter(function(i) {
-        return keys[FILTER_NUMBERS].indexOf(i) != -1;
-      });
-    }
-    if (keys[FILTER_DELIVERY].length || filter.delivery) {
-      result = result.filter(function(i) {
-        return keys[FILTER_DELIVERY].indexOf(i) != -1;
-      });
-    }
-    if (keys[FILTER_READ].length || filter.read) {
-      result = result.filter(function(i) {
-        return keys[FILTER_READ].indexOf(i) != -1;
-      });
-    }
-    return result;
+  createMessageFromRecord: function createMessageFromRecord(record) {
+    if (DEBUG) debug("createMessageFromRecord: " + JSON.stringify(record));
+    return gSmsService.createSmsMessage(record.id,
+                                        record.delivery,
+                                        record.deliveryStatus,
+                                        record.sender,
+                                        record.receiver,
+                                        record.body,
+                                        record.messageClass,
+                                        record.timestamp,
+                                        record.read);
   },
 
   
 
 
 
+  onNextMessageInListGot: function onNextMessageInListGot(
+      aRequest, aObjectStore, aMessageList, aMessageId) {
 
+    if (DEBUG) debug("onNextMessageInListGot - " + aMessageId);
+    if (aMessageId) {
+      
+      aMessageList.results.push(aMessageId);
+    }
+    if (aMessageId <= 0) {
+      
+      aMessageList.processing = false;
+    }
 
+    if (!aMessageList.waitCount) {
+      if (DEBUG) debug("Cursor.continue() not called yet");
+      return;
+    }
 
-
-
-
-
-
-  onMessageListCreated: function onMessageListCreated(messageList, aRequest) {
-    if (DEBUG) debug("Message list created: " + messageList);
-    let self = this;
-    self.newTxn(READ_ONLY, function (error, txn, store) {
-      if (error) {
-        aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
-        return;
+    aMessageList.waitCount -= 1;
+    if (!aMessageList.results.length) {
+      if (!aMessageList.processing) {
+        if (DEBUG) debug("No messages matching the filter criteria");
+        aRequest.notifyNoMessageInList();
       }
+      return;
+    }
 
-      let messageId = messageList.shift();
-      if (DEBUG) debug ("Fetching message " + messageId);
-      let request = store.get(messageId);
-      let message;
-      request.onsuccess = function (event) {
-        message = request.result;
-      };
+    if (aMessageList.results[0] < 0) {
+      aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
+      return;
+    }
 
-      txn.oncomplete = function oncomplete(event) {
-        if (DEBUG) debug("Transaction " + txn + " completed.");
-        if (!message) {
-          aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
-          return;
-        }
+    let firstMessageId = aMessageList.results.shift();
+    if (DEBUG) debug ("Fetching message " + firstMessageId);
+    let request = aObjectStore.get(aMessageId);
+    let self = this;
+    request.onsuccess = function onsuccess(event) {
+      let sms = self.createMessageFromRecord(event.target.result);
+      if (aMessageList.listId >= 0) {
+        if (DEBUG) debug("notifyNextMessageInListGot " + firstMessageId);
+        aRequest.notifyNextMessageInListGot(sms);
+      } else {
         self.lastMessageListId += 1;
-        self.messageLists[self.lastMessageListId] = messageList;
-        let sms = gSmsService.createSmsMessage(message.id,
-                                               message.delivery,
-                                               message.deliveryStatus,
-                                               message.sender,
-                                               message.receiver,
-                                               message.body,
-                                               message.messageClass,
-                                               message.timestamp,
-                                               message.read);
-        aRequest.notifyMessageListCreated(self.lastMessageListId, sms);
-      };
-    });
+        aMessageList.listId = self.lastMessageListId;
+        self.messageLists[self.lastMessageListId] = aMessageList;
+        if (DEBUG) debug("notifyMessageListCreated " + firstMessageId);
+        aRequest.notifyMessageListCreated(aMessageList.listId, sms);
+      }
+    }
+    request.onerror = function onerror(event) {
+      if (DEBUG) debug("notifyReadMessageListFailed " + firstMessageId);
+      aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
+    }
   },
 
   saveMessage: function saveMessage(message) {
@@ -683,6 +670,7 @@ SmsDatabaseService.prototype = {
 
   getMessage: function getMessage(messageId, aRequest) {
     if (DEBUG) debug("Retrieving message with ID " + messageId);
+    let self = this;
     this.newTxn(READ_ONLY, function (error, txn, store) {
       if (error) {
         if (DEBUG) debug(error);
@@ -712,16 +700,8 @@ SmsDatabaseService.prototype = {
           aRequest.notifyGetMessageFailed(Ci.nsISmsRequest.UNKNOWN_ERROR);
           return;
         }
-        let message = gSmsService.createSmsMessage(data.id,
-                                                   data.delivery,
-                                                   data.deliveryStatus,
-                                                   data.sender,
-                                                   data.receiver,
-                                                   data.body,
-                                                   data.messageClass,
-                                                   data.timestamp,
-                                                   data.read);
-        aRequest.notifyMessageGot(message);
+        let sms = self.createMessageFromRecord(data);
+        aRequest.notifyMessageGot(sms);
       };
 
       txn.onerror = function onerror(event) {
@@ -832,131 +812,148 @@ SmsDatabaseService.prototype = {
             " read: " + filter.read +
             " reverse: " + reverse);
     }
-    
-    
-    
-    
-    let filteredKeys = {};
-    filteredKeys[FILTER_TIMESTAMP] = [];
-    filteredKeys[FILTER_NUMBERS] = [];
-    filteredKeys[FILTER_DELIVERY] = [];
-    filteredKeys[FILTER_READ] = [];
-
-    
-    let successCb = function onsuccess(result, filter) {
-      
-      
-      if (!result) {
-        if (DEBUG) {
-          debug("These messages match the " + filter + " filter: " +
-                filteredKeys[filter]);
-        }
-        return;
-      }
-      
-      
-      let primaryKey = result.primaryKey;
-      filteredKeys[filter].push(primaryKey);
-      result.continue();
-    };
-
-    let errorCb = function onerror(event) {
-      
-      if (DEBUG) debug("IDBRequest error " + event.target.errorCode);
-      aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
-      return;
-    };
 
     let self = this;
     this.newTxn(READ_ONLY, function (error, txn, store) {
       if (error) {
-        errorCb(error);
+        
+        if (DEBUG) debug("IDBRequest error " + error.target.errorCode);
+        aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
         return;
       }
 
-      
-      
-      let timeKeyRange = null;
-      if (filter.startDate != null && filter.endDate != null) {
-        timeKeyRange = IDBKeyRange.bound(filter.startDate.getTime(),
-                                         filter.endDate.getTime());
-      } else if (filter.startDate != null) {
-        timeKeyRange = IDBKeyRange.lowerBound(filter.startDate.getTime());
-      } else if (filter.endDate != null) {
-        timeKeyRange = IDBKeyRange.upperBound(filter.endDate.getTime());
-      }
-      let direction = reverse ? PREV : NEXT;
-      let timeRequest = store.index("timestamp").openKeyCursor(timeKeyRange,
-                                                               direction);
-
-      timeRequest.onsuccess = function onsuccess(event) {
-        successCb(event.target.result, FILTER_TIMESTAMP);
+      let messageList = {
+        listId: -1,
+        processing: true,
+        stop: false,
+        
+        contexts: [],
+        
+        
+        waitCount: 1,
+        results: []
       };
-      timeRequest.onerror = errorCb;
 
-      
-      
-      if (filter.delivery) {
-        let deliveryKeyRange = IDBKeyRange.bound([filter.delivery, 0],
-                                                 [filter.delivery, ""]);
-        let deliveryRequest = store.index("delivery")
-                                   .openKeyCursor(deliveryKeyRange);
-        deliveryRequest.onsuccess = function onsuccess(event) {
-          successCb(event.target.result, FILTER_DELIVERY);
-        };
-        deliveryRequest.onerror = errorCb;
-      }
+      let onNextMessageInListGotCb =
+        self.onNextMessageInListGot.bind(self, aRequest, store, messageList);
 
-      
-      
-      if (filter.numbers) {
-        for (let i = 0; i < filter.numbers.length; i++) {
-          let numberKeyRange = IDBKeyRange.bound([filter.numbers[i], 0],
-                                                 [filter.numbers[i], ""]);
-          let numberRequest = store.index("number")
-                                   .openKeyCursor(numberKeyRange);
-          numberRequest.onsuccess = function onsuccess(event) {
-            successCb(event.target.result, FILTER_NUMBERS);
-          };
-          numberRequest.onerror = errorCb;
+      let singleFilterSuccessCb = function onSingleFilterSuccess(event) {
+        if (messageList.stop) {
+          return;
         }
-      }
+
+        let cursor = event.target.result;
+        
+        
+        if (cursor) {
+          onNextMessageInListGotCb(cursor.primaryKey);
+          cursor.continue();
+        } else {
+          onNextMessageInListGotCb(0);
+        }
+      };
+
+      let singleFilterErrorCb = function onSingleFilterError(event) {
+        if (messageList.stop) {
+          return;
+        }
+
+        if (DEBUG) debug("IDBRequest error " + event.target.errorCode);
+        onNextMessageInListGotCb(-1);
+      };
+
+      let direction = reverse ? PREV : NEXT;
 
       
       
-      if (filter.read != undefined) {
-        let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
-        if (DEBUG) debug("filter.read " + read);
-        let readKeyRange = IDBKeyRange.bound([read, 0], [read, ""]);
-        let readRequest = store.index("read")
-                               .openKeyCursor(readKeyRange);
-        readRequest.onsuccess = function onsuccess(event) {
-          successCb(event.target.result, FILTER_READ);
-        };
-        readRequest.onerror = errorCb;
-      }
+      if (filter.delivery || filter.numbers || filter.read != undefined) {
+        
+        
+        let startDate = 0, endDate = "";
+        if (filter.startDate != null) {
+          startDate = filter.startDate.getTime();
+        }
+        if (filter.endDate != null) {
+          endDate = filter.endDate.getTime();
+        }
 
-      txn.oncomplete = function oncomplete(event) {
-        if (DEBUG) debug("Transaction " + txn + " completed.");
-        
-        
-        let result =  self.keyIntersection(filteredKeys, filter);
-        if (!result.length) {
-          if (DEBUG) debug("No messages matching the filter criteria");
-          aRequest.notifyNoMessageInList();
+        let singleFilter;
+        {
+          let numFilterTargets = 0;
+          if (filter.delivery) numFilterTargets++;
+          if (filter.numbers) numFilterTargets++;
+          if (filter.read != undefined) numFilterTargets++;
+          singleFilter = numFilterTargets == 1;
+        }
+        if (!singleFilter) {
+          
+          aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
           return;
         }
 
         
         
-        
-        
-        self.onMessageListCreated(result, aRequest);
-      };
+        if (filter.delivery) {
+          if (DEBUG) debug("filter.delivery " + filter.delivery);
+          let range = IDBKeyRange.bound([filter.delivery, startDate],
+                                        [filter.delivery, endDate]);
+          let request = store.index("delivery").openKeyCursor(range, direction);
+          request.onsuccess = singleFilterSuccessCb;
+          request.onerror = singleFilterErrorCb;
+        }
 
-      txn.onerror = function onerror(event) {
-        errorCb(event);
-      };
+        
+        
+        if (filter.numbers) {
+          if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
+          for (let i = 0; i < filter.numbers.length; i++) {
+            let range = IDBKeyRange.bound([filter.numbers[i], startDate],
+                                          [filter.numbers[i], endDate]);
+            let request = store.index("number").openKeyCursor(range, direction);
+            request.onsuccess = singleFilterSuccessCb;
+            request.onerror = singleFilterErrorCb;
+          }
+        }
+
+        
+        
+        if (filter.read != undefined) {
+          let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
+          if (DEBUG) debug("filter.read " + read);
+          let range = IDBKeyRange.bound([read, startDate],
+                                        [read, endDate]);
+          let request = store.index("read").openKeyCursor(range, direction);
+          request.onsuccess = singleFilterSuccessCb;
+          request.onerror = singleFilterErrorCb;
+        }
+      } else {
+        
+        if (DEBUG) {
+          debug("filter.timestamp " + filter.startDate + ", " + filter.endDate);
+        }
+
+        let range = null;
+        if (filter.startDate != null && filter.endDate != null) {
+          range = IDBKeyRange.bound(filter.startDate.getTime(),
+                                    filter.endDate.getTime());
+        } else if (filter.startDate != null) {
+          range = IDBKeyRange.lowerBound(filter.startDate.getTime());
+        } else if (filter.endDate != null) {
+          range = IDBKeyRange.upperBound(filter.endDate.getTime());
+        }
+
+        let request = store.index("timestamp").openKeyCursor(range, direction);
+        request.onsuccess = singleFilterSuccessCb;
+        request.onerror = singleFilterErrorCb;
+      }
+
+      if (DEBUG) {
+        txn.oncomplete = function oncomplete(event) {
+          debug("Transaction " + txn + " completed.");
+        };
+      }
+
+      txn.onerror = singleFilterErrorCb;
     });
   },
 
@@ -969,12 +966,23 @@ SmsDatabaseService.prototype = {
       aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.NOT_FOUND_ERROR);
       return;
     }
-    messageId = list.shift();
-    if (messageId == null) {
+    if (list.processing) {
+      
+      
+      list.waitCount++;
+      return;
+    }
+    if (!list.results.length) {
       if (DEBUG) debug("Reached the end of the list!");
       aRequest.notifyNoMessageInList();
       return;
     }
+    if (list.results[0] < 0) {
+      aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
+      return;
+    }
+    messageId = list.results.shift();
+    let self = this;
     this.newTxn(READ_ONLY, function (error, txn, store) {
       if (DEBUG) debug("Fetching message " + messageId);
       let request = store.get(messageId);
@@ -989,15 +997,7 @@ SmsDatabaseService.prototype = {
           if (DEBUG) debug("Could not get message id " + messageId);
           aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.NOT_FOUND_ERROR);
         }
-        let sms = gSmsService.createSmsMessage(message.id,
-                                               message.delivery,
-                                               message.deliveryStatus,
-                                               message.sender,
-                                               message.receiver,
-                                               message.body,
-                                               message.messageClass,
-                                               message.timestamp,
-                                               message.read);
+        let sms = self.createMessageFromRecord(message);
         aRequest.notifyNextMessageInListGot(sms);
       };
 
@@ -1014,7 +1014,10 @@ SmsDatabaseService.prototype = {
 
   clearMessageList: function clearMessageList(listId) {
     if (DEBUG) debug("Clearing message list: " + listId);
-    delete this.messageLists[listId];
+    if (this.messageLists[listId]) {
+      this.messageLists[listId].stop = true;
+      delete this.messageLists[listId];
+    }
   },
 
   markMessageRead: function markMessageRead(messageId, value, aRequest) {
