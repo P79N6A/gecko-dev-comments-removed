@@ -1055,7 +1055,6 @@ SourceCompressorThread::compress(SourceCompressionToken *sct)
     if (tok)
         
         
-        
         waitOnCompression(tok);
     JS_ASSERT(state == IDLE);
     JS_ASSERT(!tok);
