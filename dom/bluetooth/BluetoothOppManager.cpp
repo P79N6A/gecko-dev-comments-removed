@@ -230,6 +230,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mSendTransferCompleteFlag(false)
                                            , mSuccessFlag(false)
                                            , mWaitingForConfirmationFlag(false)
+                                           , mCurrentBlobIndex(-1)
 {
   mConnectedDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
   Listen();
@@ -275,10 +276,7 @@ BluetoothOppManager::Connect(const nsAString& aDeviceObjectPath,
   }
 
   BluetoothService* bs = BluetoothService::Get();
-  if (!bs) {
-    NS_WARNING("BluetoothService not available!");
-    return false;
-  }
+  NS_ENSURE_TRUE(bs, false);
 
   nsString uuid;
   BluetoothUuidHelper::GetString(BluetoothServiceClass::OBJECT_PUSH, uuid);
@@ -354,69 +352,50 @@ BluetoothOppManager::Listen()
   return true;
 }
 
-bool
-BluetoothOppManager::SendFile(BlobParent* aActor)
+void
+BluetoothOppManager::StartSendingNextFile()
 {
-  if (mBlob) {
-    
-    return false;
-  }
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!IsTransferring());
+  MOZ_ASSERT(mBlobs.Length() > mCurrentBlobIndex + 1);
+
+  mBlob = mBlobs[++mCurrentBlobIndex];
 
   
-
-
-
-
-
-
-  mBlob = aActor->GetBlob();
-
-  sFileName.Truncate();
-
-  nsCOMPtr<nsIDOMFile> file = do_QueryInterface(mBlob);
-  if (file) {
-    file->GetName(sFileName);
-  }
-
   
-
-
-
-
-
-  if (sFileName.IsEmpty()) {
-    sFileName.AssignLiteral("Unknown");
-  }
-
-  int32_t offset = sFileName.RFindChar('/');
-  if (offset != kNotFound) {
-    sFileName = Substring(sFileName, offset + 1);
-  }
-
-  offset = sFileName.RFindChar('.');
-  if (offset == kNotFound) {
-    nsCOMPtr<nsIMIMEService> mimeSvc = do_GetService(NS_MIMESERVICE_CONTRACTID);
-
-    if (mimeSvc) {
-      nsString mimeType;
-      mBlob->GetType(mimeType);
-
-      nsCString extension;
-      nsresult rv =
-        mimeSvc->GetPrimaryExtension(NS_LossyConvertUTF16toASCII(mimeType),
-                                     EmptyCString(),
-                                     extension);
-      if (NS_SUCCEEDED(rv)) {
-        sFileName.AppendLiteral(".");
-        AppendUTF8toUTF16(extension, sFileName);
-      }
-    }
-  }
-
-  SendConnectRequest();
-  mTransferMode = false;
+  ExtractBlobHeaders();
   StartFileTransfer();
 
+  if (mCurrentBlobIndex == 0) {
+    
+    
+    
+    SendConnectRequest();
+  } else {
+    SendPutHeaderRequest(sFileName, sFileLength);
+    AfterFirstPut();
+  }
+
+  mTransferMode = false;
+}
+
+bool
+BluetoothOppManager::SendFile(const nsAString& aDeviceAddress,
+                              BlobParent* aActor)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mCurrentBlobIndex >= 0) {
+    if (mConnectedDeviceAddress != aDeviceAddress) {
+      return false;
+    }
+
+    mBlobs.AppendElement(aActor->GetBlob().get());
+    return true;
+  }
+
+  mBlobs.AppendElement(aActor->GetBlob().get());
+  StartSendingNextFile();
   return true;
 }
 
@@ -431,16 +410,12 @@ BluetoothOppManager::StopSendingFile()
 bool
 BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
 {
-  if (!mConnected) return false;
+  NS_ENSURE_TRUE(mConnected, false);
+  NS_ENSURE_TRUE(mWaitingForConfirmationFlag, false);
 
-  if (!mWaitingForConfirmationFlag) {
-    NS_WARNING("We are not waiting for a confirmation now.");
-    return false;
-  }
+  MOZ_ASSERT(mPacketLeftLength == 0);
+
   mWaitingForConfirmationFlag = false;
-
-  NS_ASSERTION(mPacketLeftLength == 0,
-               "Should not be in the middle of receiving a PUT packet.");
 
   
   bool success = false;
@@ -490,8 +465,9 @@ BluetoothOppManager::AfterOppDisconnected()
 
   mConnected = false;
   mLastCommand = 0;
-  mBlob = nullptr;
   mPacketLeftLength = 0;
+
+  ClearQueue();
 
   
   
@@ -537,10 +513,10 @@ BluetoothOppManager::DeleteReceivedFile()
 bool
 BluetoothOppManager::CreateFile()
 {
+  MOZ_ASSERT(mPacketLeftLength == 0);
+
   nsString path;
   path.AssignLiteral(TARGET_FOLDER);
-
-  MOZ_ASSERT(mPacketLeftLength == 0);
 
   nsCOMPtr<nsIFile> f;
   nsresult rv;
@@ -600,17 +576,11 @@ BluetoothOppManager::CreateFile()
 bool
 BluetoothOppManager::WriteToFile(const uint8_t* aData, int aDataLength)
 {
-  if (!mOutputStream) {
-    NS_WARNING("No available output stream");
-    return false;
-  }
+  NS_ENSURE_TRUE(mOutputStream, false);
 
   uint32_t wrote = 0;
   mOutputStream->Write((const char*)aData, aDataLength, &wrote);
-  if (aDataLength != wrote) {
-    NS_WARNING("Writing to the file failed");
-    return false;
-  }
+  NS_ENSURE_TRUE(aDataLength == wrote, false);
 
   return true;
 }
@@ -644,6 +614,8 @@ BluetoothOppManager::ExtractPacketHeaders(const ObexHeaderSet& aHeader)
 bool
 BluetoothOppManager::ExtractBlobHeaders()
 {
+  RetrieveSentFileName();
+
   nsresult rv = mBlob->GetType(sContentType);
   if (NS_FAILED(rv)) {
     NS_WARNING("Can't get content type");
@@ -679,6 +651,52 @@ BluetoothOppManager::ExtractBlobHeaders()
   }
 
   return true;
+}
+
+void
+BluetoothOppManager::RetrieveSentFileName()
+{
+  sFileName.Truncate();
+
+  nsCOMPtr<nsIDOMFile> file = do_QueryInterface(mBlob);
+  if (file) {
+    file->GetName(sFileName);
+  }
+
+  
+
+
+
+
+
+  if (sFileName.IsEmpty()) {
+    sFileName.AssignLiteral("Unknown");
+  }
+
+  int32_t offset = sFileName.RFindChar('/');
+  if (offset != kNotFound) {
+    sFileName = Substring(sFileName, offset + 1);
+  }
+
+  offset = sFileName.RFindChar('.');
+  if (offset == kNotFound) {
+    nsCOMPtr<nsIMIMEService> mimeSvc = do_GetService(NS_MIMESERVICE_CONTRACTID);
+
+    if (mimeSvc) {
+      nsString mimeType;
+      mBlob->GetType(mimeType);
+
+      nsCString extension;
+      nsresult rv =
+        mimeSvc->GetPrimaryExtension(NS_LossyConvertUTF16toASCII(mimeType),
+                                     EmptyCString(),
+                                     extension);
+      if (NS_SUCCEEDED(rv)) {
+        sFileName.AppendLiteral(".");
+        AppendUTF8toUTF16(extension, sFileName);
+      }
+    }
+  }
 }
 
 bool
@@ -846,6 +864,17 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
 }
 
 void
+BluetoothOppManager::ClearQueue()
+{
+  mCurrentBlobIndex = -1;
+  mBlob = nullptr;
+
+  while (!mBlobs.IsEmpty()) {
+    mBlobs.RemoveElement(mBlobs[0]);
+  }
+}
+
+void
 BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
 {
   uint8_t opCode;
@@ -884,7 +913,17 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
   if (mLastCommand == ObexRequestCode::PutFinal) {
     mSuccessFlag = true;
     FileTransferComplete();
-    SendDisconnectRequest();
+
+    if (mInputStream) {
+      mInputStream->Close();
+      mInputStream = nullptr;
+    }
+
+    if (mCurrentBlobIndex + 1 == mBlobs.Length()) {
+      SendDisconnectRequest();
+    } else {
+      StartSendingNextFile();
+    }
   } else if (mLastCommand == ObexRequestCode::Abort) {
     SendDisconnectRequest();
     FileTransferComplete();
@@ -909,16 +948,8 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
     mRemoteMaxPacketLength =
       (((int)(aMessage->mData[5]) << 8) | aMessage->mData[6]);
 
-    
-
-
-
-    if (ExtractBlobHeaders()) {
-      sInstance->SendPutHeaderRequest(sFileName, sFileLength);
-    }
+    sInstance->SendPutHeaderRequest(sFileName, sFileLength);
   } else if (mLastCommand == ObexRequestCode::Put) {
-
-    
     if (sWaitingToSendPutFinal) {
       SendPutFinalRequest();
       return;
@@ -997,6 +1028,8 @@ void
 BluetoothOppManager::SendPutHeaderRequest(const nsAString& aFileName,
                                           int aFileSize)
 {
+  if (!mConnected) return;
+
   uint8_t* req = new uint8_t[mRemoteMaxPacketLength];
 
   int len = aFileName.Length();
@@ -1086,6 +1119,8 @@ BluetoothOppManager::SendPutFinalRequest()
 void
 BluetoothOppManager::SendDisconnectRequest()
 {
+  if (!mConnected) return;
+
   
   
   uint8_t req[255];
@@ -1102,6 +1137,8 @@ BluetoothOppManager::SendDisconnectRequest()
 void
 BluetoothOppManager::SendAbortRequest()
 {
+  if (!mConnected) return;
+
   
   
   uint8_t req[255];
@@ -1125,7 +1162,6 @@ void
 BluetoothOppManager::ReplyToConnect()
 {
   if (mConnected) return;
-  mConnected = true;
 
   
   
@@ -1149,7 +1185,6 @@ void
 BluetoothOppManager::ReplyToDisconnect()
 {
   if (!mConnected) return;
-  mConnected = false;
 
   
   
