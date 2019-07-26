@@ -65,13 +65,17 @@ struct AsmJSStaticLinkData
 
     typedef Vector<AbsoluteLink> AbsoluteLinkVector;
 
-    size_t operationCallbackExitOffset;
+    uint32_t operationCallbackExitOffset;
     RelativeLinkVector relativeLinks;
     AbsoluteLinkVector absoluteLinks;
 
     AsmJSStaticLinkData(ExclusiveContext *cx)
       : relativeLinks(cx), absoluteLinks(cx)
     {}
+
+    size_t serializedSize() const;
+    uint8_t *serialize(uint8_t *cursor) const;
+    const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
 };
 
 
@@ -114,6 +118,7 @@ class AsmJSModule
         PropertyName *name_;
 
         friend class AsmJSModule;
+
         Global(Which which, PropertyName *name) {
             pod.which_ = which;
             name_ = name;
@@ -128,6 +133,7 @@ class AsmJSModule
         }
 
       public:
+        Global() {}
         Which which() const {
             return pod.which_;
         }
@@ -186,6 +192,10 @@ class AsmJSModule
             JS_ASSERT(pod.which_ == Constant);
             return pod.u.constantValue_;
         }
+
+        size_t serializedSize() const;
+        uint8_t *serialize(uint8_t *cursor) const;
+        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
     };
 
     class Exit
@@ -198,6 +208,7 @@ class AsmJSModule
         friend class AsmJSModule;
 
       public:
+        Exit() {}
         Exit(unsigned ffiIndex, unsigned globalDataOffset)
           : ffiIndex_(ffiIndex), globalDataOffset_(globalDataOffset),
             interpCodeOffset_(0), ionCodeOffset_(0)
@@ -216,6 +227,10 @@ class AsmJSModule
             JS_ASSERT(!ionCodeOffset_);
             ionCodeOffset_ = off;
         }
+
+        size_t serializedSize() const;
+        uint8_t *serialize(uint8_t *cursor) const;
+        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
     };
     typedef int32_t (*CodePtr)(uint64_t *args, uint8_t *global);
 
@@ -255,6 +270,7 @@ class AsmJSModule
         }
 
       public:
+        ExportedFunction() {}
         ExportedFunction(mozilla::MoveRef<ExportedFunction> rhs) {
             name_ = rhs->name_;
             maybeFieldName_ = rhs->maybeFieldName_;
@@ -282,6 +298,10 @@ class AsmJSModule
         ReturnType returnType() const {
             return pod.returnType_;
         }
+
+        size_t serializedSize() const;
+        uint8_t *serialize(uint8_t *cursor) const;
+        const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
     };
 
 #if defined(MOZ_VTUNE) or defined(JS_ION_PERF)
@@ -354,7 +374,6 @@ class AsmJSModule
     ExitVector                            exits_;
     ExportedFunctionVector                exports_;
     HeapAccessVector                      heapAccesses_;
-    uint32_t                              minHeapLength_;
 #if defined(MOZ_VTUNE) or defined(JS_ION_PERF)
     ProfiledFunctionVector                profiledFunctions_;
 #endif
@@ -371,12 +390,14 @@ class AsmJSModule
         size_t                            functionBytes_; 
         size_t                            codeBytes_;     
         size_t                            totalBytes_;    
+        uint32_t                          minHeapLength_;
     } pod;
 
     uint8_t *                             code_;
     uint8_t *                             operationCallbackExit_;
 
     bool                                  linked_;
+    bool                                  loadedFromCache_;
     HeapPtr<ArrayBufferObject>            maybeHeap_;
 
     uint32_t                              charsBegin_;
@@ -677,11 +698,11 @@ class AsmJSModule
     void initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx);
 
     void requireHeapLengthToBeAtLeast(uint32_t len) {
-        if (len > minHeapLength_)
-            minHeapLength_ = len;
+        if (len > pod.minHeapLength_)
+            pod.minHeapLength_ = len;
     }
     uint32_t minHeapLength() const {
-        return minHeapLength_;
+        return pod.minHeapLength_;
     }
 
     bool allocateAndCopyCode(ExclusiveContext *cx, jit::MacroAssembler &masm);
@@ -742,7 +763,29 @@ class AsmJSModule
 
     void addSizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
                        size_t *asmJSModuleData);
+
+    size_t serializedSize() const;
+    uint8_t *serialize(uint8_t *cursor) const;
+    const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor);
+    bool loadedFromCache() const { return loadedFromCache_; }
 };
+
+
+extern void
+StoreAsmJSModuleInCache(AsmJSParser &parser,
+                        const AsmJSModule &module,
+                        const AsmJSStaticLinkData &linkData,
+                        ExclusiveContext *cx);
+
+
+
+
+
+extern bool
+LookupAsmJSModuleInCache(ExclusiveContext *cx,
+                         AsmJSParser &parser,
+                         ScopedJSDeletePtr<AsmJSModule> *module,
+                         ScopedJSFreePtr<char> *compilationTimeReport);
 
 
 
@@ -771,6 +814,6 @@ class AsmJSModuleObject : public JSObject
 
 }  
 
-#endif  
+#endif
 
-#endif 
+#endif
