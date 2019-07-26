@@ -326,6 +326,9 @@ public:
     return mSrcStream->GetStream();
   }
 
+  
+   nsresult NotifyAudioChannelStateChanged();
+
 protected:
   class MediaLoadListener;
   class StreamListener;
@@ -609,6 +612,12 @@ protected:
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
   
+  nsresult UpdateChannelMuteState();
+
+  
+  void UpdateAudioChannelPlayingState();
+
+  
   
   nsRefPtr<MediaDecoder> mDecoder;
 
@@ -882,6 +891,12 @@ protected:
 
   
   mozilla::dom::AudioChannelType mAudioChannelType;
+
+  
+  bool mChannelMuted;
+
+  
+  bool mPlayingThroughTheAudioChannel;
 };
 
 #endif

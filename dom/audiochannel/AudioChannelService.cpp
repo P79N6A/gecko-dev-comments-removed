@@ -154,8 +154,7 @@ NotifyEnumerator(nsHTMLMediaElement* aElement,
                  AudioChannelType aType, void* aData)
 {
   if (aElement) {
-    
-    
+    aElement->NotifyAudioChannelStateChanged();
   }
   return PL_DHASH_NEXT;
 }
