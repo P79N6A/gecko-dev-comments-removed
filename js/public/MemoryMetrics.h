@@ -77,6 +77,13 @@ struct InefficientNonFlatteningStringHashPolicy
     static bool match(const JSString *const &k, const Lookup &l);
 };
 
+struct CStringHashPolicy
+{
+    typedef const char *Lookup;
+    static HashNumber hash(const Lookup &l);
+    static bool match(const char *const &k, const Lookup &l);
+};
+
 
 
 
@@ -270,6 +277,67 @@ struct NotableStringInfo : public StringInfo
 
 
 
+struct ScriptSourceInfo
+{
+#define FOR_EACH_SIZE(macro) \
+    macro(_, _, compressed) \
+    macro(_, _, uncompressed) \
+    macro(_, _, misc)
+
+    ScriptSourceInfo()
+      : FOR_EACH_SIZE(ZERO_SIZE)
+        numScripts(0)
+    {}
+
+    void add(const ScriptSourceInfo &other) {
+        FOR_EACH_SIZE(ADD_OTHER_SIZE)
+        numScripts++;
+    }
+
+    void subtract(const ScriptSourceInfo &other) {
+        FOR_EACH_SIZE(SUB_OTHER_SIZE)
+        numScripts--;
+    }
+
+    bool isNotable() const {
+        static const size_t NotabilityThreshold = 16 * 1024;
+        size_t n = 0;
+        FOR_EACH_SIZE(ADD_SIZE_TO_N)
+        return n >= NotabilityThreshold;
+    }
+
+    FOR_EACH_SIZE(DECL_SIZE)
+    uint32_t numScripts;    
+                            
+                            
+#undef FOR_EACH_SIZE
+};
+
+
+
+
+
+
+
+struct NotableScriptSourceInfo : public ScriptSourceInfo
+{
+    NotableScriptSourceInfo();
+    NotableScriptSourceInfo(const char *filename, const ScriptSourceInfo &info);
+    NotableScriptSourceInfo(NotableScriptSourceInfo &&info);
+    NotableScriptSourceInfo &operator=(NotableScriptSourceInfo &&info);
+
+    ~NotableScriptSourceInfo() {
+        js_free(filename_);
+    }
+
+    char *filename_;
+
+  private:
+    NotableScriptSourceInfo(const NotableScriptSourceInfo& info) MOZ_DELETE;
+};
+
+
+
 struct RuntimeSizes
 {
 #define FOR_EACH_SIZE(macro) \
@@ -283,17 +351,45 @@ struct RuntimeSizes
     macro(_, _, mathCache) \
     macro(_, _, sourceDataCache) \
     macro(_, _, scriptData) \
-    macro(_, _, scriptSources)
 
     RuntimeSizes()
       : FOR_EACH_SIZE(ZERO_SIZE)
+        scriptSourceInfo(),
         code(),
-        gc()
-    {}
+        gc(),
+        notableScriptSources()
+    {
+        allScriptSources = js_new<ScriptSourcesHashMap>();
+        if (!allScriptSources || !allScriptSources->init())
+            MOZ_CRASH("oom");
+    }
 
+    ~RuntimeSizes() {
+        
+        
+        
+        js_delete(allScriptSources);
+    }
+
+    
+    
+    
+    
     FOR_EACH_SIZE(DECL_SIZE)
-    CodeSizes code;
-    GCSizes   gc;
+    ScriptSourceInfo    scriptSourceInfo;
+    CodeSizes           code;
+    GCSizes             gc;
+
+    typedef js::HashMap<const char*, ScriptSourceInfo,
+                        js::CStringHashPolicy,
+                        js::SystemAllocPolicy> ScriptSourcesHashMap;
+
+    
+    
+    
+    
+    ScriptSourcesHashMap *allScriptSources;
+    js::Vector<NotableScriptSourceInfo, 0, js::SystemAllocPolicy> notableScriptSources;
 
 #undef FOR_EACH_SIZE
 };
