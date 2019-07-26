@@ -223,6 +223,8 @@ var DebuggerServer = {
     this._initialized = true;
   },
 
+  protocol: require("devtools/server/protocol"),
+
   
 
 
