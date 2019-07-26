@@ -24,8 +24,8 @@ import android.widget.TextView;
 
 
 
-public class TopBookmarkItemView extends RelativeLayout {
-    private static final String LOGTAG = "GeckoTopBookmarkItemView";
+public class TopSitesGridItemView extends LinearLayout {
+    private static final String LOGTAG = "GeckoTopSitesGridItemView";
 
     
     private static final int[] STATE_EMPTY = { android.R.attr.state_empty };
@@ -44,18 +44,18 @@ public class TopBookmarkItemView extends RelativeLayout {
     
     private boolean mIsEmpty = true;
 
-    public TopBookmarkItemView(Context context) {
+    public TopSitesGridItemView(Context context) {
         this(context, null);
     }
 
-    public TopBookmarkItemView(Context context, AttributeSet attrs) {
-        this(context, attrs, R.attr.topBookmarkItemViewStyle);
+    public TopSitesGridItemView(Context context, AttributeSet attrs) {
+        this(context, attrs, R.attr.topSitesGridItemViewStyle);
     }
 
-    public TopBookmarkItemView(Context context, AttributeSet attrs, int defStyle) {
+    public TopSitesGridItemView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
-        LayoutInflater.from(context).inflate(R.layout.top_bookmark_item_view, this);
+        LayoutInflater.from(context).inflate(R.layout.top_sites_grid_item_view, this);
 
         mTitleView = (TextView) findViewById(R.id.title);
         mThumbnailView = (ImageView) findViewById(R.id.thumbnail);

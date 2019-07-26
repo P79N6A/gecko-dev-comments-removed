@@ -10,7 +10,6 @@ import org.mozilla.gecko.ThumbnailHelper;
 import org.mozilla.gecko.db.BrowserDB.TopSitesCursorWrapper;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -29,16 +28,16 @@ import java.util.EnumSet;
 
 
 
-public class TopBookmarksView extends GridView {
-    private static final String LOGTAG = "GeckoTopBookmarksView";
+public class TopSitesGridView extends GridView {
+    private static final String LOGTAG = "GeckoTopSitesGridView";
 
     
-    public static interface OnPinBookmarkListener {
-        public void onPinBookmark(int position);
+    public static interface OnPinSiteListener {
+        public void onPinSite(int position);
     }
 
     
-    private final int mMaxBookmarks;
+    private final int mMaxSites;
 
     
     private final int mNumColumns;
@@ -59,28 +58,28 @@ public class TopBookmarksView extends GridView {
     private OnUrlOpenListener mUrlOpenListener;
 
     
-    private OnPinBookmarkListener mPinBookmarkListener;
+    private OnPinSiteListener mPinSiteListener;
 
     
-    private TopBookmarksContextMenuInfo mContextMenuInfo;
+    private TopSitesGridContextMenuInfo mContextMenuInfo;
 
-    public TopBookmarksView(Context context) {
+    public TopSitesGridView(Context context) {
         this(context, null);
     }
 
-    public TopBookmarksView(Context context, AttributeSet attrs) {
-        this(context, attrs, R.attr.topBookmarksViewStyle);
+    public TopSitesGridView(Context context, AttributeSet attrs) {
+        this(context, attrs, R.attr.topSitesGridViewStyle);
     }
 
-    public TopBookmarksView(Context context, AttributeSet attrs, int defStyle) {
+    public TopSitesGridView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mMaxBookmarks = getResources().getInteger(R.integer.number_of_top_sites);
+        mMaxSites = getResources().getInteger(R.integer.number_of_top_sites);
         mNumColumns = getResources().getInteger(R.integer.number_of_top_sites_cols);
         setNumColumns(mNumColumns);
 
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TopBookmarksView, defStyle, 0);
-        mHorizontalSpacing = a.getDimensionPixelOffset(R.styleable.TopBookmarksView_android_horizontalSpacing, 0x00);
-        mVerticalSpacing = a.getDimensionPixelOffset(R.styleable.TopBookmarksView_android_verticalSpacing, 0x00);
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TopSitesGridView, defStyle, 0);
+        mHorizontalSpacing = a.getDimensionPixelOffset(R.styleable.TopSitesGridView_android_horizontalSpacing, 0x00);
+        mVerticalSpacing = a.getDimensionPixelOffset(R.styleable.TopSitesGridView_android_verticalSpacing, 0x00);
         a.recycle();
     }
 
@@ -94,7 +93,7 @@ public class TopBookmarksView extends GridView {
         setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TopBookmarkItemView row = (TopBookmarkItemView) view;
+                TopSitesGridItemView row = (TopSitesGridItemView) view;
                 String url = row.getUrl();
 
                 
@@ -104,8 +103,8 @@ public class TopBookmarksView extends GridView {
                         mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
                     }
                 } else {
-                    if (mPinBookmarkListener != null) {
-                        mPinBookmarkListener.onPinBookmark(position);
+                    if (mPinSiteListener != null) {
+                        mPinSiteListener.onPinSite(position);
                     }
                 }
             }
@@ -115,8 +114,8 @@ public class TopBookmarksView extends GridView {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 Cursor cursor = (Cursor) parent.getItemAtPosition(position);
-                mContextMenuInfo = new TopBookmarksContextMenuInfo(view, position, id, cursor);
-                return showContextMenuForChild(TopBookmarksView.this);
+                mContextMenuInfo = new TopSitesGridContextMenuInfo(view, position, id, cursor);
+                return showContextMenuForChild(TopSitesGridView.this);
             }
         });
     }
@@ -126,7 +125,7 @@ public class TopBookmarksView extends GridView {
         super.onDetachedFromWindow();
 
         mUrlOpenListener = null;
-        mPinBookmarkListener = null;
+        mPinSiteListener = null;
     }
 
     
@@ -161,7 +160,7 @@ public class TopBookmarksView extends GridView {
         ThumbnailHelper.getInstance().setThumbnailWidth(childWidth);
 
         
-        final View child = new TopBookmarkItemView(getContext());
+        final View child = new TopSitesGridItemView(getContext());
 
         
         AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
@@ -179,7 +178,7 @@ public class TopBookmarksView extends GridView {
         final int childHeight = child.getMeasuredHeight();
 
         
-        final int rows = (int) Math.ceil((double) mMaxBookmarks / mNumColumns);
+        final int rows = (int) Math.ceil((double) mMaxSites / mNumColumns);
         final int childrenHeight = childHeight * rows;
         final int totalVerticalSpacing = rows > 0 ? (rows - 1) * mVerticalSpacing : 0;
 
@@ -209,20 +208,23 @@ public class TopBookmarksView extends GridView {
 
 
 
-    public void setOnPinBookmarkListener(OnPinBookmarkListener listener) {
-        mPinBookmarkListener = listener;
+    public void setOnPinSiteListener(OnPinSiteListener listener) {
+        mPinSiteListener = listener;
     }
 
     
 
 
-    public static class TopBookmarksContextMenuInfo extends AdapterContextMenuInfo {
+    public static class TopSitesGridContextMenuInfo extends AdapterContextMenuInfo {
+
+        
+        private static final String REGEX_URL_TO_TITLE = "^([a-z]+://)?(www\\.)?";
 
         public String url;
         public String title;
         public boolean isPinned;
 
-        public TopBookmarksContextMenuInfo(View targetView, int position, long id, Cursor cursor) {
+        public TopSitesGridContextMenuInfo(View targetView, int position, long id, Cursor cursor) {
             super(targetView, position, id);
 
             if (cursor == null) {
@@ -235,8 +237,7 @@ public class TopBookmarksView extends GridView {
         }
 
         public String getDisplayTitle() {
-            return TextUtils.isEmpty(title) ?
-                StringUtils.stripCommonSubdomains(StringUtils.stripScheme(url, StringUtils.UrlFlags.STRIP_HTTPS)) : title;
+            return TextUtils.isEmpty(title) ? url.replaceAll(REGEX_URL_TO_TITLE, "") : title;
         }
     }
 }

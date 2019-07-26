@@ -19,8 +19,8 @@ import android.widget.ImageView;
 
 
 
-public class BookmarkThumbnailView extends ImageView {
-    private static final String LOGTAG = "GeckoBookmarkThumbnailView";
+public class TopSitesThumbnailView extends ImageView {
+    private static final String LOGTAG = "GeckoTopSitesThumbnailView";
 
     
     private static final int COLOR_FILTER = 0x46FFFFFF;
@@ -41,18 +41,18 @@ public class BookmarkThumbnailView extends ImageView {
         sBorderPaint.setStyle(Paint.Style.STROKE);
     }
 
-    public BookmarkThumbnailView(Context context) {
+    public TopSitesThumbnailView(Context context) {
         this(context, null);
 
         
         setWillNotDraw(false);
     }
 
-    public BookmarkThumbnailView(Context context, AttributeSet attrs) {
-        this(context, attrs, R.attr.bookmarkThumbnailViewStyle);
+    public TopSitesThumbnailView(Context context, AttributeSet attrs) {
+        this(context, attrs, R.attr.topSitesThumbnailViewStyle);
     }
 
-    public BookmarkThumbnailView(Context context, AttributeSet attrs, int defStyle) {
+    public TopSitesThumbnailView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
 
@@ -95,7 +95,7 @@ public class BookmarkThumbnailView extends ImageView {
     @Override
     public void setBackgroundColor(int color) {
         int colorFilter = color == 0 ? DEFAULT_COLOR : color & COLOR_FILTER;
-        Drawable drawable = getResources().getDrawable(R.drawable.bookmark_thumbnail_bg);
+        Drawable drawable = getResources().getDrawable(R.drawable.top_sites_thumbnail_bg);
         drawable.setColorFilter(colorFilter, Mode.SRC_ATOP);
         setBackgroundDrawable(drawable);
     }

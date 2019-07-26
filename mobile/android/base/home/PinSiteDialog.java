@@ -14,7 +14,6 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.CursorAdapter;
 import android.text.Editable;
@@ -30,14 +29,17 @@ import android.widget.ListView;
 
 
 
-class PinBookmarkDialog extends DialogFragment {
+class PinSiteDialog extends DialogFragment {
     
-    public static interface OnBookmarkSelectedListener {
-        public void onBookmarkSelected(String url, String title);
+    public static interface OnSiteSelectedListener {
+        public void onSiteSelected(String url, String title);
     }
 
     
     private static final int LOADER_ID_SEARCH = 0;
+
+    
+    private static final int LOADER_ID_FAVICONS = 1;
 
     
     private String mSearchTerm;
@@ -55,13 +57,13 @@ class PinBookmarkDialog extends DialogFragment {
     private CursorLoaderCallbacks mLoaderCallbacks;
 
     
-    private OnBookmarkSelectedListener mOnBookmarkSelectedListener;
+    private OnSiteSelectedListener mOnSiteSelectedListener;
 
-    public static PinBookmarkDialog newInstance() {
-        return new PinBookmarkDialog();
+    public static PinSiteDialog newInstance() {
+        return new PinSiteDialog();
     }
 
-    private PinBookmarkDialog() {
+    private PinSiteDialog() {
     }
 
     @Override
@@ -75,7 +77,7 @@ class PinBookmarkDialog extends DialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         
         
-        return inflater.inflate(R.layout.pin_bookmark_dialog, container, false);
+        return inflater.inflate(R.layout.pin_site_dialog, container, false);
     }
 
     @Override
@@ -102,7 +104,7 @@ class PinBookmarkDialog extends DialogFragment {
         mList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (mOnBookmarkSelectedListener != null) {
+                if (mOnSiteSelectedListener != null) {
                     final Cursor c = mAdapter.getCursor();
                     if (c == null || !c.moveToPosition(position)) {
                         return;
@@ -110,7 +112,7 @@ class PinBookmarkDialog extends DialogFragment {
 
                     final String url = c.getString(c.getColumnIndexOrThrow(URLColumns.URL));
                     final String title = c.getString(c.getColumnIndexOrThrow(URLColumns.TITLE));
-                    mOnBookmarkSelectedListener.onBookmarkSelected(url, title);
+                    mOnSiteSelectedListener.onSiteSelected(url, title);
                 }
 
                 
@@ -123,14 +125,15 @@ class PinBookmarkDialog extends DialogFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        final Activity activity = getActivity();
         final LoaderManager manager = getLoaderManager();
 
         
-        mAdapter = new SearchAdapter(getActivity());
+        mAdapter = new SearchAdapter(activity);
         mList.setAdapter(mAdapter);
 
         
-        mLoaderCallbacks = new CursorLoaderCallbacks();
+        mLoaderCallbacks = new CursorLoaderCallbacks(activity, manager);
 
         
         manager.initLoader(LOADER_ID_SEARCH, null, mLoaderCallbacks);
@@ -151,8 +154,8 @@ class PinBookmarkDialog extends DialogFragment {
         SearchLoader.restart(getLoaderManager(), LOADER_ID_SEARCH, mLoaderCallbacks, mSearchTerm);
     }
 
-    public void setOnBookmarkSelectedListener(OnBookmarkSelectedListener listener) {
-        mOnBookmarkSelectedListener = listener;
+    public void setOnSiteSelectedListener(OnSiteSelectedListener listener) {
+        mOnSiteSelectedListener = listener;
     }
 
     private static class SearchAdapter extends CursorAdapter {
@@ -176,20 +179,42 @@ class PinBookmarkDialog extends DialogFragment {
         }
     }
 
-    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+    private class CursorLoaderCallbacks extends HomeCursorLoaderCallbacks {
+        public CursorLoaderCallbacks(Context context, LoaderManager loaderManager) {
+            super(context, loaderManager);
+        }
+
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            return SearchLoader.createInstance(getActivity(), args);
+            if (id == LOADER_ID_SEARCH) {
+                return SearchLoader.createInstance(getActivity(), args);
+            } else {
+                return super.onCreateLoader(id, args);
+            }
         }
 
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
-            mAdapter.swapCursor(c);
+            if (loader.getId() == LOADER_ID_SEARCH) {
+                mAdapter.swapCursor(c);
+                loadFavicons(c);
+            } else {
+                super.onLoadFinished(loader, c);
+            }
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
-            mAdapter.swapCursor(null);
+            if (loader.getId() == LOADER_ID_SEARCH) {
+                mAdapter.swapCursor(null);
+            } else {
+                super.onLoaderReset(loader);
+            }
+        }
+
+        @Override
+        public void onFaviconsLoaded() {
+            mAdapter.notifyDataSetChanged();
         }
     }
 }
