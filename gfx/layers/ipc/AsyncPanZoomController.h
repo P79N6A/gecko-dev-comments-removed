@@ -251,6 +251,13 @@ public:
 
   nsEventStatus HandleInputEvent(const InputData& aEvent);
 
+  
+
+
+
+
+  static void SetFrameTime(const TimeStamp& aMilliseconds);
+
 protected:
   
 
