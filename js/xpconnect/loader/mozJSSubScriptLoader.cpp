@@ -24,12 +24,36 @@
 #include "js/OldDebugAPI.h"
 #include "nsJSPrincipals.h"
 #include "xpcpublic.h" 
+#include "xpcprivate.h" 
 
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
 
 using namespace mozilla::scache;
 using namespace JS;
+using namespace xpc;
+
+class MOZ_STACK_CLASS LoadSubScriptOptions : public OptionsBase {
+public:
+    LoadSubScriptOptions(JSContext *cx = xpc_GetSafeJSContext(),
+                         JSObject *options = nullptr)
+        : OptionsBase(cx, options)
+        , target(cx)
+        , charset(NullString())
+        , ignoreCache(false)
+    { }
+
+    virtual bool Parse() {
+      return ParseObject("target", &target) &&
+             ParseString("charset", charset) &&
+             ParseBoolean("ignoreCache", &ignoreCache);
+    }
+
+    RootedObject target;
+    nsString charset;
+    bool ignoreCache;
+};
+
 
 
 #define LOAD_ERROR_NOSERVICE "Error creating IO Service."
@@ -176,6 +200,30 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
 
 
 
+    LoadSubScriptOptions options(cx);
+    options.charset = charset;
+    options.target = targetArg.isObject() ? &targetArg.toObject() : nullptr;
+    return DoLoadSubScriptWithOptions(url, options, cx, retval);
+}
+
+
+NS_IMETHODIMP
+mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString& url, const Value& optionsVal,
+                                               JSContext* cx, Value* retval)
+{
+    if (!optionsVal.isObject())
+        return NS_ERROR_INVALID_ARG;
+    LoadSubScriptOptions options(cx, &optionsVal.toObject());
+    if (!options.Parse())
+        return NS_ERROR_INVALID_ARG;
+    return DoLoadSubScriptWithOptions(url, options, cx, retval);
+}
+
+nsresult
+mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString& url,
+                                                 LoadSubScriptOptions& options,
+                                                 JSContext* cx, Value* retval)
+{
     nsresult rv = NS_OK;
 
     
@@ -195,17 +243,12 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
     rv = loader->FindTargetObject(cx, &targetObj);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    
     bool reusingGlobal = !JS_IsGlobalObject(targetObj);
 
-    
-    
-    RootedValue target(cx, targetArg);
-    RootedObject passedObj(cx);
-    if (!JS_ValueToObject(cx, target, &passedObj))
-        return NS_ERROR_ILLEGAL_VALUE;
-
-    if (passedObj)
-        targetObj = passedObj;
+    if (options.target)
+        targetObj = options.target;
 
     
     
@@ -292,10 +335,10 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
 
     RootedFunction function(cx);
     script = nullptr;
-    if (cache)
+    if (cache && !options.ignoreCache)
         rv = ReadCachedScript(cache, cachePath, cx, mSystemPrincipal, &script);
     if (!script) {
-        rv = ReadScript(uri, cx, targetObj, charset,
+        rv = ReadScript(uri, cx, targetObj, options.charset,
                         static_cast<const char*>(uriStr.get()), serv,
                         principal, reusingGlobal, script.address(), function.address());
         writeScript = !!script;

@@ -1370,6 +1370,31 @@ OptionsBase::ParseString(const char *name, nsCString &prop)
 
 
 bool
+OptionsBase::ParseString(const char *name, nsString &prop)
+{
+    RootedValue value(mCx);
+    bool found;
+    bool ok = ParseValue(name, &value, &found);
+    NS_ENSURE_TRUE(ok, false);
+
+    if (!found)
+        return true;
+
+    if (!value.isString()) {
+        JS_ReportError(mCx, "Expected a string value for property %s", name);
+        return false;
+    }
+
+    nsDependentJSString strVal;
+    strVal.init(mCx, value.toString());
+    prop = strVal;
+    return true;
+}
+
+
+
+
+bool
 OptionsBase::ParseId(const char *name, MutableHandleId prop)
 {
     RootedValue value(mCx);
