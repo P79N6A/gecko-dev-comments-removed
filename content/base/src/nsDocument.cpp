@@ -7541,15 +7541,30 @@ nsDocument::UnblockOnload(bool aFireSync)
 
   --mOnloadBlockCount;
 
-  
-  
-  if (mOnloadBlockCount == 0 && mScriptGlobalObject) {
-    if (aFireSync && mAsyncOnloadBlockCount == 0) {
+  if (mOnloadBlockCount == 0) {
+    if (mScriptGlobalObject) {
       
-      ++mOnloadBlockCount;
-      DoUnblockOnload();
-    } else {
-      PostUnblockOnloadEvent();
+      
+      if (aFireSync && mAsyncOnloadBlockCount == 0) {
+        
+        ++mOnloadBlockCount;
+        DoUnblockOnload();
+      } else {
+        PostUnblockOnloadEvent();
+      }
+    } else if (mIsBeingUsedAsImage) {
+      
+      
+      
+      
+      
+      
+      nsRefPtr<nsAsyncDOMEvent> e =
+        new nsAsyncDOMEvent(this,
+                            NS_LITERAL_STRING("MozSVGAsImageDocumentLoad"),
+                            false,
+                            false);
+      e->PostDOMEvent();
     }
   }
 }
