@@ -67,13 +67,22 @@ function defineAndExpose(obj, name, value) {
   obj.__exposedProps__[name] = 'r';
 }
 
-function visibilityChangeHandler(weakBEP, win) {
-  let bep = weakBEP.get();
-  if (bep) {
-    bep._ownerVisibilityChange();
-  } else {
-    win.removeEventListener('visibilitychange', visibilityChangeHandler,
-                             false);
+function visibilityChangeHandler(e) {
+  
+  let win = e.target.defaultView;
+
+  if (!win._browserElementParents) {
+    return;
+  }
+
+  let beps = Cu.nondeterministicGetWeakMapKeys(win._browserElementParents);
+  if (beps.length == 0) {
+    win.removeEventListener('visibilitychange', visibilityChangeHandler);
+    return;
+  }
+
+  for (let i = 0; i < beps.length; i++) {
+    beps[i]._ownerVisibilityChange();
   }
 }
 
@@ -181,12 +190,22 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  if (!this._window._browserElementParents) {
+    this._window._browserElementParents = new WeakMap();
+    this._window.addEventListener('visibilitychange',
+                                  visibilityChangeHandler,
+                                   false,
+                                   false);
+  }
 
-  var weakSelf = Cu.getWeakReference(this);
-  this._window.addEventListener('visibilitychange',
-                                visibilityChangeHandler.bind(null, weakSelf, this._window),
-                                 false,
-                                 false);
+  this._window._browserElementParents.set(this, null);
 
   
   BrowserElementPromptService.mapFrameToBrowserElementParent(this._frameElement, this);
