@@ -31,8 +31,9 @@ NS_IMPL_ISUPPORTS1(MediaEngineDefaultVideoSource, nsITimerCallback)
 
 
 MediaEngineDefaultVideoSource::MediaEngineDefaultVideoSource()
-  : mTimer(nullptr)
+  : mTimer(nullptr), mMonitor("Fake video")
 {
+  mImageContainer = layers::LayerManager::CreateImageContainer();
   mState = kReleased;
 }
 
@@ -120,32 +121,8 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  mSource = aStream;
-
-  
-  ImageFormat format = PLANAR_YCBCR;
-  mImageContainer = layers::LayerManager::CreateImageContainer();
-
-  nsRefPtr<layers::Image> image = mImageContainer->CreateImage(&format, 1);
-  mImage = static_cast<layers::PlanarYCbCrImage*>(image.get());
-
-  layers::PlanarYCbCrImage::Data data;
-  
-  mCb = 16;
-  mCr = 16;
-  AllocateSolidColorFrame(data, mOpts.mWidth, mOpts.mHeight, 0x80, mCb, mCr);
-  
-  mImage->SetData(data);
-  ReleaseFrame(data);
-
-  
-  VideoSegment *segment = new VideoSegment();
-  segment->AppendFrame(image.forget(), USECS_PER_S / mOpts.mFPS,
-                       gfxIntSize(mOpts.mWidth, mOpts.mHeight));
-  mSource->AddTrack(aID, VIDEO_RATE, 0, segment);
-
-  
-  mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);
+  aStream->AddTrack(aID, VIDEO_RATE, 0, new VideoSegment());
+  aStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
   
   mTrackID = aID;
@@ -238,20 +215,47 @@ MediaEngineDefaultVideoSource::Notify(nsITimer* aTimer)
   
   ReleaseFrame(data);
 
+  MonitorAutoLock lock(mMonitor);
+
   
-  VideoSegment segment;
-  segment.AppendFrame(ycbcr_image.forget(), USECS_PER_S / mOpts.mFPS,
-                      gfxIntSize(mOpts.mWidth, mOpts.mHeight));
-  mSource->AppendToTrack(mTrackID, &segment);
+  mImage = ycbcr_image.forget();
 
   return NS_OK;
 }
 
 void
 MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
-                                          StreamTime aDesiredTime)
+                                          SourceMediaStream *aSource,
+                                          TrackID aID,
+                                          StreamTime aDesiredTime,
+                                          TrackTicks &aLastEndTime)
 {
   
+  VideoSegment segment;
+  MonitorAutoLock lock(mMonitor);
+  if (mState != kStarted) {
+    return;
+  }
+
+  
+  nsRefPtr<layers::Image> image = mImage;
+  TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
+  TrackTicks delta = target - aLastEndTime;
+
+  if (delta > 0) {
+    
+    if (image) {
+      segment.AppendFrame(image.forget(), delta,
+                          gfxIntSize(mOpts.mWidth, mOpts.mHeight));
+    } else {
+      segment.AppendFrame(nullptr, delta, gfxIntSize(0,0));
+    }
+    
+    
+    if (aSource->AppendToTrack(aID, &segment)) {
+      aLastEndTime = target;
+    }
+  }
 }
 
 
@@ -268,13 +272,6 @@ MediaEngineDefaultAudioSource::MediaEngineDefaultAudioSource()
 
 MediaEngineDefaultAudioSource::~MediaEngineDefaultAudioSource()
 {}
-
-void
-MediaEngineDefaultAudioSource::NotifyPull(MediaStreamGraph* aGraph,
-                                          StreamTime aDesiredTime)
-{
-  
-}
 
 void
 MediaEngineDefaultAudioSource::GetName(nsAString& aName)
