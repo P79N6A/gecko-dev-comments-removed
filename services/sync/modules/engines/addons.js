@@ -347,22 +347,10 @@ AddonsStore.prototype = {
     
     
     
-    
-    
     if (!addon) {
-      this.create(record);
+      this._log.warn("Requested to update record but add-on not found: " +
+                     record.addonID);
       return;
-    }
-
-    
-    
-    
-    
-    
-    if (addon.pendingOperations & AddonManager.PENDING_UNINSTALL) {
-      addon.cancelUninstall();
-
-      
     }
 
     let cb = Async.makeSpinningCallback();
@@ -669,6 +657,10 @@ function AddonsTracker(name) {
 AddonsTracker.prototype = {
   __proto__: Tracker.prototype,
 
+  get engine() {
+    return Engines.get("addons");
+  },
+
   get reconciler() {
     return Engines.get("addons")._reconciler;
   },
@@ -701,11 +693,16 @@ AddonsTracker.prototype = {
   observe: function(subject, topic, data) {
     switch (topic) {
       case "weave:engine:start-tracking":
+        if (this.engine.enabled) {
+          this.reconciler.startListening();
+        }
+
         this.reconciler.addChangeListener(this);
         break;
 
       case "weave:engine:stop-tracking":
         this.reconciler.removeChangeListener(this);
+        this.reconciler.stopListening();
         break;
     }
   }
