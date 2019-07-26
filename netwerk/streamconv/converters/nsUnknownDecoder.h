@@ -60,7 +60,6 @@ protected:
   
   
   
-  bool TryContentSniffers(nsIRequest* aRequest);
   bool SniffForHTML(nsIRequest* aRequest);
   bool SniffForXML(nsIRequest* aRequest);
 
