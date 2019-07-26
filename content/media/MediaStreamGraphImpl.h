@@ -189,7 +189,7 @@ public:
 
 
 
-  void PrepareUpdatesToMainThreadState();
+  void PrepareUpdatesToMainThreadState(bool aFinalUpdate);
   
   
 

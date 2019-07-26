@@ -889,7 +889,7 @@ MediaStreamGraphImpl::PlayVideo(MediaStream* aStream)
 }
 
 void
-MediaStreamGraphImpl::PrepareUpdatesToMainThreadState()
+MediaStreamGraphImpl::PrepareUpdatesToMainThreadState(bool aFinalUpdate)
 {
   mMonitor.AssertCurrentThreadOwns();
 
@@ -906,7 +906,14 @@ MediaStreamGraphImpl::PrepareUpdatesToMainThreadState()
   }
   mUpdateRunnables.MoveElementsFrom(mPendingUpdateRunnables);
 
-  EnsureStableStateEventPosted();
+  
+  
+  if (aFinalUpdate ||
+      !mUpdateRunnables.IsEmpty() ||
+      !mCurrentTaskMessageQueue.IsEmpty() ||
+      !mStreamUpdates.IsEmpty()) {
+    EnsureStableStateEventPosted();
+  }
 }
 
 void
@@ -1099,7 +1106,7 @@ MediaStreamGraphImpl::RunThread()
         
         
         MonitorAutoLock lock(mMonitor);
-        PrepareUpdatesToMainThreadState();
+        PrepareUpdatesToMainThreadState(true);
         mWaitState = WAITSTATE_WAITING_INDEFINITELY;
         mMonitor.Wait(PR_INTERVAL_NO_TIMEOUT);
       }
@@ -1112,8 +1119,10 @@ MediaStreamGraphImpl::RunThread()
     
     {
       MonitorAutoLock lock(mMonitor);
-      PrepareUpdatesToMainThreadState();
-      if (mForceShutDown || (IsEmpty() && mMessageQueue.IsEmpty())) {
+      bool finalUpdate = (mForceShutDown ||
+                          (IsEmpty() && mMessageQueue.IsEmpty()));
+      PrepareUpdatesToMainThreadState(finalUpdate);
+      if (finalUpdate) {
         
         
         LOG(PR_LOG_DEBUG, ("MediaStreamGraph %p waiting for main thread cleanup", this));
