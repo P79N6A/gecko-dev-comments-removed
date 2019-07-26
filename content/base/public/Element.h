@@ -17,7 +17,6 @@
 #include "nsChangeHint.h"                  
 #include "nsEventStates.h"                 
 #include "mozilla/dom/DirectionalityUtils.h"
-#include "nsIDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsILinkHandler.h"
@@ -634,10 +633,7 @@ public:
     }
   }
   void MozRequestFullScreen();
-  void MozRequestPointerLock()
-  {
-    OwnerDoc()->RequestPointerLock(this);
-  }
+  inline void MozRequestPointerLock();
   Attr* GetAttributeNode(const nsAString& aName);
   already_AddRefed<Attr> SetAttributeNode(Attr& aNewAttr,
                                           ErrorResult& aError);
@@ -1071,37 +1067,14 @@ protected:
   Attr* GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
                                    const nsAString& aLocalName);
 
-  void RegisterFreezableElement() {
-    OwnerDoc()->RegisterFreezableElement(this);
-  }
-  void UnregisterFreezableElement() {
-    OwnerDoc()->UnregisterFreezableElement(this);
-  }
+  inline void RegisterFreezableElement();
+  inline void UnregisterFreezableElement();
 
   
 
 
-  void AddToIdTable(nsIAtom* aId) {
-    NS_ASSERTION(HasID(), "Node doesn't have an ID?");
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
-      doc->AddToIdTable(this, aId);
-    }
-  }
-  void RemoveFromIdTable() {
-    if (HasID()) {
-      nsIDocument* doc = GetCurrentDoc();
-      if (doc) {
-        nsIAtom* id = DoGetID();
-        
-        
-        
-        if (id) {
-          doc->RemoveFromIdTable(this, DoGetID());
-        }
-      }
-    }
-  }
+  inline void AddToIdTable(nsIAtom* aId);
+  inline void RemoveFromIdTable();
 
   
 

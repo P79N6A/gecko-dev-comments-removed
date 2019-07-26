@@ -17,6 +17,8 @@
 #include "nsDOMString.h"
 #include "nsContentUtils.h" 
 #include "mozilla/dom/DocumentFragmentBinding.h"
+#include "nsPIDOMWindow.h"
+#include "nsIDocument.h"
 
 namespace mozilla {
 namespace dom {
