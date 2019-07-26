@@ -145,9 +145,9 @@ public:
   }
 
   
-  virtual void Init(nsIContent*     aContent,
-                    nsIFrame*       aParent,
-                    nsIFrame*       aPrevInFlow) MOZ_OVERRIDE;
+  virtual void Init(nsIContent*       aContent,
+                    nsContainerFrame* aParent,
+                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
 
   virtual nsresult GetCursor(const nsPoint& aPoint,

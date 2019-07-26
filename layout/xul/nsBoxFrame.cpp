@@ -170,9 +170,9 @@ nsBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
 
 void
-nsBoxFrame::Init(nsIContent*      aContent,
-                 nsIFrame*        aParent,
-                 nsIFrame*        aPrevInFlow)
+nsBoxFrame::Init(nsIContent*       aContent,
+                 nsContainerFrame* aParent,
+                 nsIFrame*         aPrevInFlow)
 {
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
