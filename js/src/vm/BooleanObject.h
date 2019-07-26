@@ -19,6 +19,8 @@ class BooleanObject : public JSObject
   public:
     static const unsigned RESERVED_SLOTS = 1;
 
+    static Class class_;
+
     
 
 
