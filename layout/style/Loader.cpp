@@ -66,6 +66,8 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsCycleCollectionParticipant.h"
 
+#include "mozilla/dom/EncodingUtils.h"
+using mozilla::dom::EncodingUtils;
 
 
 
@@ -610,89 +612,36 @@ Loader::SetPreferredSheet(const nsAString& aTitle)
 
 static const char kCharsetSym[] = "@charset \"";
 
-static nsresult GetCharsetFromData(const unsigned char* aStyleSheetData,
-                                   uint32_t aDataLength,
-                                   nsACString& aCharset)
+static bool GetCharsetFromData(const char* aStyleSheetData,
+                               uint32_t aDataLength,
+                               nsACString& aCharset)
 {
   aCharset.Truncate();
   if (aDataLength <= sizeof(kCharsetSym) - 1)
-    return NS_ERROR_NOT_AVAILABLE;
-  uint32_t step = 1;
-  uint32_t pos = 0;
-  bool bigEndian = false;
-  
-  
-  
-  
-  
-  if (*aStyleSheetData == 0x40 && *(aStyleSheetData+1) == 0x63  ) {
-    
-    step = 1;
-    pos = 0;
-  }
-  else if (nsContentUtils::CheckForBOM(aStyleSheetData,
-                                       aDataLength, aCharset, &bigEndian)) {
-    if (aCharset.Equals("UTF-8")) {
-      step = 1;
-      pos = 3;
-    }
-    else if (aCharset.Equals("UTF-16")) {
-      step = 2;
-      pos = bigEndian ? 3 : 2;
-    }
-  }
-  else if (aStyleSheetData[0] == 0x00 &&
-           aStyleSheetData[1] == 0x40 &&
-           aStyleSheetData[2] == 0x00 &&
-           aStyleSheetData[3] == 0x63) {
-    
-    step = 2;
-    pos = 1;
-  }
-  else if (aStyleSheetData[0] == 0x40 &&
-           aStyleSheetData[1] == 0x00 &&
-           aStyleSheetData[2] == 0x63 &&
-           aStyleSheetData[3] == 0x00) {
-    
-    step = 2;
-    pos = 0;
-  }
-  else {
-    
-    return NS_ERROR_UNEXPECTED;
+    return false;
+
+  if (strncmp(aStyleSheetData,
+              kCharsetSym,
+              sizeof(kCharsetSym) - 1)) {
+    return false;
   }
 
-  uint32_t index = 0;
-  while (pos < aDataLength && index < sizeof(kCharsetSym) - 1) {
-    if (aStyleSheetData[pos] != kCharsetSym[index]) {
+  for (uint32_t i = sizeof(kCharsetSym) - 1; i < aDataLength; ++i) {
+    char c = aStyleSheetData[i];
+    if (c == '"') {
+      ++i;
+      if (i < aDataLength && aStyleSheetData[i] == ';') {
+        return true;
+      }
       
-      
-      
-      return aCharset.IsEmpty() ? NS_ERROR_NOT_AVAILABLE : NS_OK;
-    }
-    ++index;
-    pos += step;
-  }
-
-  nsAutoCString charset;
-  while (pos < aDataLength) {
-    if (aStyleSheetData[pos] == '"') {
       break;
     }
-
-    
-    charset.Append(char(aStyleSheetData[pos]));
-    pos += step;
+    aCharset.Append(c);
   }
 
   
-  pos += step;
-  if (pos >= aDataLength || aStyleSheetData[pos] != ';') {
-    return aCharset.IsEmpty() ? NS_ERROR_NOT_AVAILABLE : NS_OK;
-  }
-
-  aCharset = charset;
-  return NS_OK;
+  aCharset.Truncate();
+  return false;
 }
 
 NS_IMETHODIMP
@@ -705,93 +654,123 @@ SheetLoadData::OnDetermineCharset(nsIUnicharStreamLoader* aLoader,
                   "Can't have element _and_ charset hint");
 
   LOG_URI("SheetLoadData::OnDetermineCharset for '%s'", mURI);
-  nsCOMPtr<nsIChannel> channel;
-  nsresult result = aLoader->GetChannel(getter_AddRefs(channel));
-  if (NS_FAILED(result))
-    channel = nullptr;
+
+  
+  
+  
+  
+  
+  
+  
 
   aCharset.Truncate();
 
-  
+  if (nsContentUtils::CheckForBOM((const unsigned char*)aSegment.BeginReading(),
+                                  aSegment.Length(),
+                                  aCharset)) {
+    
+    
+    
+    mCharset.Assign(aCharset);
+#ifdef PR_LOGGING
+    LOG(("  Setting from BOM to: %s", PromiseFlatCString(aCharset).get()));
+#endif
+    return NS_OK;
+  }
 
-
-
-
-
-
-
-
+  nsCOMPtr<nsIChannel> channel;
+  nsAutoCString specified;
+  aLoader->GetChannel(getter_AddRefs(channel));
   if (channel) {
-    channel->GetContentCharset(aCharset);
-  }
-
-  result = NS_ERROR_NOT_AVAILABLE;
-
+    channel->GetContentCharset(specified);
+    if (EncodingUtils::FindEncodingForLabel(specified, aCharset)) {
+      mCharset.Assign(aCharset);
 #ifdef PR_LOGGING
-  if (! aCharset.IsEmpty()) {
-    LOG(("  Setting from HTTP to: %s", PromiseFlatCString(aCharset).get()));
-  }
+      LOG(("  Setting from HTTP to: %s", PromiseFlatCString(aCharset).get()));
 #endif
-
-  if (aCharset.IsEmpty()) {
-    
-    
-    result = GetCharsetFromData((const unsigned char*)aSegment.BeginReading(),
-                                aSegment.Length(), aCharset);
-#ifdef PR_LOGGING
-    if (NS_SUCCEEDED(result)) {
-      LOG(("  Setting from @charset rule or BOM: %s",
-           PromiseFlatCString(aCharset).get()));
+      return NS_OK;
     }
-#endif
   }
 
-  if (aCharset.IsEmpty()) {
-    
-    
-    if (mOwningElement) {
-      nsAutoString elementCharset;
-      mOwningElement->GetCharset(elementCharset);
-      LossyCopyUTF16toASCII(elementCharset, aCharset);
-#ifdef PR_LOGGING
-      if (! aCharset.IsEmpty()) {
-        LOG(("  Setting from property on element: %s",
-             PromiseFlatCString(aCharset).get()));
-      }
-#endif
-    } else {
+  if (GetCharsetFromData(aSegment.BeginReading(),
+                         aSegment.Length(),
+                         specified)) {
+    if (EncodingUtils::FindEncodingForLabel(specified, aCharset)) {
       
-      aCharset = mCharsetHint;
-    }
-  }
-
-  if (aCharset.IsEmpty() && mParentData) {
-    aCharset = mParentData->mCharset;
+      
+      
+      if (aCharset.EqualsLiteral("UTF-16") ||
+          aCharset.EqualsLiteral("UTF-16BE") ||
+          aCharset.EqualsLiteral("UTF-16LE")) {
+        
+        
+        
+        aCharset.AssignLiteral("UTF-8");
+      }
+      mCharset.Assign(aCharset);
 #ifdef PR_LOGGING
-    if (! aCharset.IsEmpty()) {
-      LOG(("  Setting from parent sheet: %s",
-           PromiseFlatCString(aCharset).get()));
-    }
+      LOG(("  Setting from @charset rule to: %s",
+          PromiseFlatCString(aCharset).get()));
 #endif
+      return NS_OK;
+    }
   }
 
-  if (aCharset.IsEmpty() && mLoader->mDocument) {
+  
+  
+  if (mOwningElement) {
+    nsAutoString specified16;
+    mOwningElement->GetCharset(specified16);
+    if (EncodingUtils::FindEncodingForLabel(specified16, aCharset)) {
+      mCharset.Assign(aCharset);
+#ifdef PR_LOGGING
+      LOG(("  Setting from charset attribute to: %s",
+          PromiseFlatCString(aCharset).get()));
+#endif
+      return NS_OK;
+    }
+  }
+
+  
+  
+  if (EncodingUtils::FindEncodingForLabel(mCharsetHint, aCharset)) {
+    mCharset.Assign(aCharset);
+#ifdef PR_LOGGING
+      LOG(("  Setting from charset attribute (preload case) to: %s",
+          PromiseFlatCString(aCharset).get()));
+#endif
+    return NS_OK;
+  }
+
+  
+  if (mParentData) {
+    aCharset = mParentData->mCharset;
+    if (!aCharset.IsEmpty()) {
+      mCharset.Assign(aCharset);
+#ifdef PR_LOGGING
+      LOG(("  Setting from parent sheet to: %s",
+          PromiseFlatCString(aCharset).get()));
+#endif
+      return NS_OK;
+    }
+  }
+
+  if (mLoader->mDocument) {
     
     aCharset = mLoader->mDocument->GetDocumentCharacterSet();
+    MOZ_ASSERT(!aCharset.IsEmpty());
+    mCharset.Assign(aCharset);
 #ifdef PR_LOGGING
-    LOG(("  Set from document: %s", PromiseFlatCString(aCharset).get()));
+    LOG(("  Setting from document to: %s", PromiseFlatCString(aCharset).get()));
 #endif
+    return NS_OK;
   }
 
-  if (aCharset.IsEmpty()) {
-    NS_WARNING("Unable to determine charset for sheet, using ISO-8859-1!");
-#ifdef PR_LOGGING
-    LOG_WARN(("  Falling back to ISO-8859-1"));
-#endif
-    aCharset.AssignLiteral("ISO-8859-1");
-  }
-
+  aCharset.AssignLiteral("UTF-8");
   mCharset = aCharset;
+#ifdef PR_LOGGING
+  LOG(("  Setting from default to: %s", PromiseFlatCString(aCharset).get()));
+#endif
   return NS_OK;
 }
 
