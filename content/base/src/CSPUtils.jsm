@@ -13,6 +13,9 @@
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
+const WARN_FLAG = Ci.nsIScriptError.warningFlag;
+const ERROR_FLAG = Ci.nsIScriptError.ERROR_FLAG;
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -842,7 +845,7 @@ CSPRep.prototype = {
     
     
     if (!defaultSrcDir && !this._specCompliant) {
-      this.warn(CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
+      this.log(WARN_FLAG, CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
       return false;
     }
 
@@ -898,50 +901,27 @@ CSPRep.prototype = {
 
 
 
-  warn:
-  function cspd_warn(aMsg, aSource, aScriptLine, aLineNum) {
-    var textMessage = 'CSP WARN:  ' + aMsg + "\n";
 
+
+  log:
+  function cspd_log(aFlag, aMsg, aSource, aScriptLine, aLineNum) {
+    var textMessage = "Content Security Policy: " + aMsg;
     var consoleMsg = Components.classes["@mozilla.org/scripterror;1"]
                                .createInstance(Ci.nsIScriptError);
     if (this._innerWindowID) {
       consoleMsg.initWithWindowID(textMessage, aSource, aScriptLine, aLineNum,
-                                  0, Ci.nsIScriptError.warningFlag,
-                                  "Content Security Policy",
+                                  0, aFlag,
+                                  "CSP",
                                   this._innerWindowID);
     } else {
       consoleMsg.init(textMessage, aSource, aScriptLine, aLineNum, 0,
-                      Ci.nsIScriptError.warningFlag,
-                      "Content Security Policy");
+                      aFlag,
+                      "CSP");
     }
     Components.classes["@mozilla.org/consoleservice;1"]
               .getService(Ci.nsIConsoleService).logMessage(consoleMsg);
   },
 
-  
-
-
-
-
-  error:
-  function cspsd_error(aMsg) {
-    var textMessage = 'CSP ERROR:  ' + aMsg + "\n";
-
-    var consoleMsg = Components.classes["@mozilla.org/scripterror;1"]
-                               .createInstance(Ci.nsIScriptError);
-    if (this._innerWindowID) {
-      consoleMsg.initWithWindowID(textMessage, null, null, 0, 0,
-                                  Ci.nsIScriptError.errorFlag,
-                                  "Content Security Policy",
-                                  this._innerWindowID);
-    }
-    else {
-      consoleMsg.init(textMessage, null, null, 0, 0,
-                      Ci.nsIScriptError.errorFlag, "Content Security Policy");
-    }
-    Components.classes["@mozilla.org/consoleservice;1"]
-              .getService(Ci.nsIConsoleService).logMessage(consoleMsg);
-  },
 };
 
 
@@ -1967,17 +1947,17 @@ function innerWindowFromRequest(docRequest) {
 
 function cspError(aCSPRep, aMessage) {
   if (aCSPRep) {
-    aCSPRep.error(aMessage);
+    aCSPRep.log(ERROR_FLAG, aMessage);
   } else {
-    (new CSPRep()).error(aMessage);
+    (new CSPRep()).log(ERROR_FLAG, aMessage);
   }
 }
 
 function cspWarn(aCSPRep, aMessage) {
   if (aCSPRep) {
-    aCSPRep.warn(aMessage);
+    aCSPRep.log(WARN_FLAG, aMessage);
   } else {
-    (new CSPRep()).warn(aMessage);
+    (new CSPRep()).log(WARN_FLAG, aMessage);
   }
 }
 
