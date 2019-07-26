@@ -152,9 +152,6 @@ struct AutoStopVerifyingBarriers
 };
 #endif
 
-void
-CrashAtUnhandlableOOM(const char *reason);
-
 } 
 } 
 
