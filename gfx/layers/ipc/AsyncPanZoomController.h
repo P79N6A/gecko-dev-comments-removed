@@ -205,7 +205,9 @@ public:
 
   static const gfx::Rect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
-    const gfx::Point& aVelocity);
+    const gfx::Point& aVelocity,
+    const gfx::Point& aAcceleration,
+    double aEstimatedPaintDuration);
 
 protected:
   
@@ -336,6 +338,11 @@ protected:
   
 
 
+  const gfx::Point GetAccelerationVector();
+
+  
+
+
 
 
   SingleTouchData& GetFirstSingleTouch(const MultiTouchInput& aEvent);
@@ -365,8 +372,11 @@ protected:
 
 
 
-  static bool EnlargeDisplayPortAlongAxis(float aCompositionBounds,
+  static bool EnlargeDisplayPortAlongAxis(float aSkateSizeMultiplier,
+                                          double aEstimatedPaintDuration,
+                                          float aCompositionBounds,
                                           float aVelocity,
+                                          float aAcceleration,
                                           float* aDisplayPortOffset,
                                           float* aDisplayPortLength);
 
@@ -495,6 +505,13 @@ private:
   
   
   PanZoomState mState;
+
+  
+  nsTArray<TimeDuration> mPreviousPaintDurations;
+
+  
+  
+  TimeStamp mPreviousPaintStartTime;
 
   int mDPI;
 

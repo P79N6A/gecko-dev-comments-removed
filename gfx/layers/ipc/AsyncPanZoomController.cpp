@@ -44,7 +44,7 @@ static const int32_t FLING_REPAINT_INTERVAL = 75;
 
 
 
-static const float MIN_SKATE_SPEED = 0.5f;
+static const float MIN_SKATE_SPEED = 0.7f;
 
 
 
@@ -78,6 +78,12 @@ static const double MIN_ZOOM = 0.125;
 
 
 static const int TOUCH_LISTENER_TIMEOUT = 300;
+
+
+
+
+
+static const int NUM_PAINT_DURATION_SAMPLES = 3;
 
 AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
@@ -587,6 +593,10 @@ const gfx::Point AsyncPanZoomController::GetVelocityVector() {
   return gfx::Point(mX.GetVelocity(), mY.GetVelocity());
 }
 
+const gfx::Point AsyncPanZoomController::GetAccelerationVector() {
+  return gfx::Point(mX.GetAccelerationFactor(), mY.GetAccelerationFactor());
+}
+
 void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
   float dx = mX.PanDistance(),
         dy = mY.PanDistance();
@@ -661,6 +671,9 @@ bool AsyncPanZoomController::DoFling(const TimeDuration& aDelta) {
        shouldContinueFlingY = mY.FlingApplyFrictionOrCancel(aDelta);
   
   if (!shouldContinueFlingX && !shouldContinueFlingY) {
+    
+    
+    SetZoomAndResolution(mFrameMetrics.mZoom.width);
     RequestContentRepaint();
     mState = NOTHING;
     return false;
@@ -712,8 +725,7 @@ void AsyncPanZoomController::SetPageRect(const gfx::Rect& aCSSPageRect) {
 }
 
 void AsyncPanZoomController::ScaleWithFocus(float aScale, const nsIntPoint& aFocus) {
-  float scaleFactor = aScale / mFrameMetrics.mZoom.width,
-        oldScale = mFrameMetrics.mZoom.width;
+  float scaleFactor = aScale / mFrameMetrics.mZoom.width;
 
   SetZoomAndResolution(aScale);
 
@@ -721,22 +733,43 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale, const nsIntPoint& aFoc
   
   SetPageRect(mFrameMetrics.mScrollableRect);
 
-  mFrameMetrics.mScrollOffset.x += float(aFocus.x) * (scaleFactor - 1.0f) / oldScale;
-  mFrameMetrics.mScrollOffset.y += float(aFocus.y) * (scaleFactor - 1.0f) / oldScale;
+  
+  
+  if (aScale >= 0.01f) {
+    mFrameMetrics.mScrollOffset.x += float(aFocus.x) * (scaleFactor - 1.0f) / aScale;
+    mFrameMetrics.mScrollOffset.y += float(aFocus.y) * (scaleFactor - 1.0f) / aScale;
+  }
 }
 
-bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aCompositionBounds,
+bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aSkateSizeMultiplier,
+                                                         double aEstimatedPaintDuration,
+                                                         float aCompositionBounds,
                                                          float aVelocity,
+                                                         float aAcceleration,
                                                          float* aDisplayPortOffset,
                                                          float* aDisplayPortLength)
 {
-  const float MIN_SKATE_SIZE_MULTIPLIER = 2.0f;
-  const float MAX_SKATE_SIZE_MULTIPLIER = 4.0f;
-
   if (fabsf(aVelocity) > MIN_SKATE_SPEED) {
-    *aDisplayPortLength = aCompositionBounds * clamped(fabsf(aVelocity),
-      MIN_SKATE_SIZE_MULTIPLIER, MAX_SKATE_SIZE_MULTIPLIER);
+    
+    *aDisplayPortLength = aCompositionBounds * aSkateSizeMultiplier;
+    
+    
     *aDisplayPortOffset = aVelocity > 0 ? 0 : aCompositionBounds - *aDisplayPortLength;
+
+    
+    
+    if (aAcceleration > 1.01f) {
+      
+      
+      *aDisplayPortOffset +=
+        fabsf(aAcceleration) * aVelocity * aCompositionBounds * aEstimatedPaintDuration;
+      
+      
+      
+      
+      
+      *aDisplayPortOffset -= aVelocity < 0 ? aCompositionBounds : 0;
+    }
     return true;
   }
   return false;
@@ -744,34 +777,83 @@ bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aCompositionBound
 
 const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
-  const gfx::Point& aVelocity)
+  const gfx::Point& aVelocity,
+  const gfx::Point& aAcceleration,
+  double aEstimatedPaintDuration)
 {
+  
+  
+  
+  
+  
+  const float X_SKATE_SIZE_MULTIPLIER = 3.0f;
+  const float Y_SKATE_SIZE_MULTIPLIER = 3.5f;
+
+  
+  
+  
+  
+  const float X_STATIONARY_SIZE_MULTIPLIER = 1.5f;
+  const float Y_STATIONARY_SIZE_MULTIPLIER = 2.5f;
+
+  
+  
+  
+  
+  
+  double estimatedPaintDuration =
+    aEstimatedPaintDuration > EPSILON ? aEstimatedPaintDuration : 1.0;
+
   float scale = aFrameMetrics.mZoom.width;
   nsIntRect compositionBounds = aFrameMetrics.mCompositionBounds;
   compositionBounds.ScaleInverseRoundIn(scale);
+  const gfx::Rect& scrollableRect = aFrameMetrics.mScrollableRect;
 
   gfx::Point scrollOffset = aFrameMetrics.mScrollOffset;
 
-  const float STATIONARY_SIZE_MULTIPLIER = 2.0f;
   gfx::Rect displayPort(0, 0,
-                        compositionBounds.width * STATIONARY_SIZE_MULTIPLIER,
-                        compositionBounds.height * STATIONARY_SIZE_MULTIPLIER);
+                        compositionBounds.width * X_STATIONARY_SIZE_MULTIPLIER,
+                        compositionBounds.height * Y_STATIONARY_SIZE_MULTIPLIER);
 
   
   
   
   bool enlargedX = EnlargeDisplayPortAlongAxis(
-    compositionBounds.width, aVelocity.x, &displayPort.x, &displayPort.width);
+    X_SKATE_SIZE_MULTIPLIER, estimatedPaintDuration,
+    compositionBounds.width, aVelocity.x, aAcceleration.x,
+    &displayPort.x, &displayPort.width);
   bool enlargedY = EnlargeDisplayPortAlongAxis(
-    compositionBounds.height, aVelocity.y, &displayPort.y, &displayPort.height);
+    Y_SKATE_SIZE_MULTIPLIER, estimatedPaintDuration,
+    compositionBounds.height, aVelocity.y, aAcceleration.y,
+    &displayPort.y, &displayPort.height);
 
   if (!enlargedX && !enlargedY) {
-    displayPort.x = -displayPort.width / 4;
-    displayPort.y = -displayPort.height / 4;
+    
+    displayPort.x = -(displayPort.width - compositionBounds.width) / 2;
+    displayPort.y = -(displayPort.height - compositionBounds.height) / 2;
   } else if (!enlargedX) {
     displayPort.width = compositionBounds.width;
   } else if (!enlargedY) {
     displayPort.height = compositionBounds.height;
+  }
+
+  
+  
+  
+  
+  
+  
+  if (enlargedX || enlargedY) {
+    if (scrollOffset.x + compositionBounds.width > scrollableRect.width) {
+      scrollOffset.x -= compositionBounds.width + scrollOffset.x - scrollableRect.width;
+    } else if (scrollOffset.x < scrollableRect.x) {
+      scrollOffset.x = scrollableRect.x;
+    }
+    if (scrollOffset.y + compositionBounds.height > scrollableRect.height) {
+      scrollOffset.y -= compositionBounds.height + scrollOffset.y - scrollableRect.height;
+    } else if (scrollOffset.y < scrollableRect.y) {
+      scrollOffset.y = scrollableRect.y;
+    }
   }
 
   gfx::Rect shiftedDisplayPort = displayPort;
@@ -797,8 +879,23 @@ void AsyncPanZoomController::ScheduleComposite() {
 }
 
 void AsyncPanZoomController::RequestContentRepaint() {
+  mPreviousPaintStartTime = TimeStamp::Now();
+
+  double estimatedPaintSum = 0.0;
+  for (uint32_t i = 0; i < mPreviousPaintDurations.Length(); i++) {
+    estimatedPaintSum += mPreviousPaintDurations[i].ToSeconds();
+  }
+
+  double estimatedPaintDuration = 0.0;
+  if (estimatedPaintSum > EPSILON) {
+    estimatedPaintDuration = estimatedPaintSum / mPreviousPaintDurations.Length();
+  }
+
   mFrameMetrics.mDisplayPort =
-    CalculatePendingDisplayPort(mFrameMetrics, GetVelocityVector());
+    CalculatePendingDisplayPort(mFrameMetrics,
+                                GetVelocityVector(),
+                                GetAccelerationVector(),
+                                estimatedPaintDuration);
 
   gfx::Point oldScrollOffset = mLastPaintRequestMetrics.mScrollOffset,
              newScrollOffset = mFrameMetrics.mScrollOffset;
@@ -821,10 +918,25 @@ void AsyncPanZoomController::RequestContentRepaint() {
 
   
   
+  float actualResolution = mFrameMetrics.mResolution.width;
+  
+  float accelerationFactor =
+    clamped(NS_MAX(mX.GetAccelerationFactor(), mY.GetAccelerationFactor()),
+            float(MIN_ZOOM) / 2.0f, float(MAX_ZOOM));
+  
+  mFrameMetrics.mResolution.width = mFrameMetrics.mResolution.height =
+    actualResolution / accelerationFactor;
+
+  
+  
   
   mGeckoContentController->RequestContentRepaint(mFrameMetrics);
   mLastPaintRequestMetrics = mFrameMetrics;
   mWaitingForContentToPaint = true;
+
+  
+  mFrameMetrics.mResolution.width = mFrameMetrics.mResolution.height =
+    actualResolution;
 }
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
@@ -931,7 +1043,16 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
 
   mLastContentPaintMetrics = aViewportFrame;
 
-  if (!mWaitingForContentToPaint) {
+  if (mWaitingForContentToPaint) {
+    
+    
+    if (mPreviousPaintDurations.Length() >= NUM_PAINT_DURATION_SAMPLES) {
+      mPreviousPaintDurations.RemoveElementAt(0);
+    }
+
+    mPreviousPaintDurations.AppendElement(
+      TimeStamp::Now() - mPreviousPaintStartTime);
+  } else {
     
     
     
@@ -954,6 +1075,8 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
   mWaitingForContentToPaint = false;
 
   if (aIsFirstPaint || mFrameMetrics.IsDefault()) {
+    mPreviousPaintDurations.Clear();
+
     mX.CancelTouch();
     mY.CancelTouch();
 

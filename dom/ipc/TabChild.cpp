@@ -459,8 +459,10 @@ TabChild::HandlePossibleMetaViewportChange()
   metrics.mZoom.width = metrics.mZoom.height =
     metrics.mResolution.width = metrics.mResolution.height = zoom;
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
-    metrics,
-    gfx::Point(0.0f, 0.0f));
+    
+    
+    
+    metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
   
   
   RecvUpdateFrame(metrics);

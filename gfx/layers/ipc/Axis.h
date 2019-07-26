@@ -119,6 +119,12 @@ public:
   
 
 
+
+  float GetAccelerationFactor();
+
+  
+
+
   float GetVelocity();
 
   
