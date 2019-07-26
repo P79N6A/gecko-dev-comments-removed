@@ -1605,7 +1605,7 @@ void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
   
   
   
-  TimeRanges buffered;
+  dom::TimeRanges buffered;
   if (mDecoder->IsInfinite() &&
       NS_SUCCEEDED(mDecoder->GetBuffered(&buffered)))
   {
@@ -1851,7 +1851,7 @@ int64_t MediaDecoderStateMachine::GetUndecodedData() const
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
                "Must have loaded metadata for GetBuffered() to work");
-  TimeRanges buffered;
+  dom::TimeRanges buffered;
 
   nsresult res = mDecoder->GetBuffered(&buffered);
   NS_ENSURE_SUCCESS(res, 0);
@@ -2713,7 +2713,7 @@ void MediaDecoderStateMachine::StartBuffering()
     stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)"));
 }
 
-nsresult MediaDecoderStateMachine::GetBuffered(TimeRanges* aBuffered) {
+nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
   resource->Pin();
