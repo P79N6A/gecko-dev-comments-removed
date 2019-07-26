@@ -551,7 +551,6 @@ ArrayBufferObject::sweepAll(JSRuntime *rt)
         JSObject **views = GetViewList(&buffer->asArrayBuffer());
         JS_ASSERT(*views);
         JSObject *nextBuffer = BufferLink(*views);
-        SetBufferLink(*views, UNSET_BUFFER_LINK);
 
         
         JSObject *prevLiveView = NULL;
@@ -566,6 +565,8 @@ ArrayBufferObject::sweepAll(JSRuntime *rt)
             view = nextView;
         }
         *views = prevLiveView;
+        if (*views)
+            SetBufferLink(*views, UNSET_BUFFER_LINK);
 
         buffer = nextBuffer;
     }
