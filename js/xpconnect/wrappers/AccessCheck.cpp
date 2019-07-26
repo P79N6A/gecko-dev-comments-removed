@@ -379,7 +379,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         {
             
             nsCOMPtr<nsPIDOMWindow> win =
-                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, wrapper));
+                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(wrapper));
             if (win) {
                 nsCOMPtr<nsIDocument> doc =
                     do_QueryInterface(win->GetExtantDocument());

@@ -1172,7 +1172,7 @@ nsEventListenerManager::SetEventHandlerToJsval(nsIAtom* aEventName,
 
   
   
-  nsIScriptContext *context = nsJSUtils::GetStaticScriptContext(cx, aScope);
+  nsIScriptContext *context = nsJSUtils::GetStaticScriptContext(aScope);
   NS_ENSURE_TRUE(context || !aExpectScriptContext, NS_ERROR_FAILURE);
 
   JSObject *scope = ::JS_GetGlobalForObject(cx, aScope);

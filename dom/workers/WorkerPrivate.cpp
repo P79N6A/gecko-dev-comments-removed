@@ -1027,7 +1027,7 @@ public:
       nsIScriptGlobalObject* sgo;
 
       if (aWorkerPrivate ||
-          !(sgo = nsJSUtils::GetStaticScriptGlobal(aCx, aTarget))) {
+          !(sgo = nsJSUtils::GetStaticScriptGlobal(aTarget))) {
         
         JSObject* event =
           CreateErrorEvent(aCx, message, filename, aLineNumber, false);
@@ -2536,7 +2536,7 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
 
     
     nsCOMPtr<nsIScriptGlobalObject> scriptGlobal =
-      nsJSUtils::GetStaticScriptGlobal(aCx, JS_GetGlobalForScopeChain(aCx));
+      nsJSUtils::GetStaticScriptGlobal(JS_GetGlobalForScopeChain(aCx));
     if (scriptGlobal) {
       
       nsCOMPtr<nsPIDOMWindow> globalWindow = do_QueryInterface(scriptGlobal);
