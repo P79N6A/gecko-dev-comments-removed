@@ -99,7 +99,7 @@ class OrderedHashTable
 
   public:
     OrderedHashTable(AllocPolicy &ap)
-        : hashTable(NULL), data(NULL), dataLength(0), ranges(NULL), alloc(ap) {}
+        : hashTable(nullptr), data(nullptr), dataLength(0), ranges(nullptr), alloc(ap) {}
 
     bool init() {
         MOZ_ASSERT(!hashTable, "init must be called at most once");
@@ -109,7 +109,7 @@ class OrderedHashTable
         if (!tableAlloc)
             return false;
         for (uint32_t i = 0; i < buckets; i++)
-            tableAlloc[i] = NULL;
+            tableAlloc[i] = nullptr;
 
         uint32_t capacity = uint32_t(buckets * fillFactor());
         Data *dataAlloc = static_cast<Data *>(alloc.malloc_(capacity * sizeof(Data)));
@@ -144,13 +144,13 @@ class OrderedHashTable
 
     
     bool has(const Lookup &l) const {
-        return lookup(l) != NULL;
+        return lookup(l) != nullptr;
     }
 
     
     T *get(const Lookup &l) {
         Data *e = lookup(l, prepareHash(l));
-        return e ? &e->element : NULL;
+        return e ? &e->element : nullptr;
     }
 
     
@@ -205,7 +205,7 @@ class OrderedHashTable
 
         
         Data *e = lookup(l, prepareHash(l));
-        if (e == NULL) {
+        if (e == nullptr) {
             *foundp = false;
             return true;
         }
@@ -243,7 +243,7 @@ class OrderedHashTable
             Data *oldData = data;
             uint32_t oldDataLength = dataLength;
 
-            hashTable = NULL;
+            hashTable = nullptr;
             if (!init()) {
                 
                 hashTable = oldHashTable;
@@ -585,7 +585,7 @@ class OrderedHashTable
             if (Ops::match(Ops::getKey(e->element), l))
                 return e;
         }
-        return NULL;
+        return nullptr;
     }
 
     const Data *lookup(const Lookup &l) const {
@@ -603,7 +603,7 @@ class OrderedHashTable
     
     void rehashInPlace() {
         for (uint32_t i = 0, N = hashBuckets(); i < N; i++)
-            hashTable[i] = NULL;
+            hashTable[i] = nullptr;
         Data *wp = data, *end = data + dataLength;
         for (Data *rp = data; rp != end; rp++) {
             if (!Ops::isEmpty(Ops::getKey(rp->element))) {
@@ -643,7 +643,7 @@ class OrderedHashTable
         if (!newHashTable)
             return false;
         for (uint32_t i = 0; i < newHashBuckets; i++)
-            newHashTable[i] = NULL;
+            newHashTable[i] = nullptr;
 
         uint32_t newCapacity = uint32_t(newHashBuckets * fillFactor());
         Data *newData = static_cast<Data *>(alloc.malloc_(newCapacity * sizeof(Data)));
@@ -833,7 +833,7 @@ HashableValue::operator==(const HashableValue &other) const
 
 #ifdef DEBUG
     bool same;
-    JS_ASSERT(SameValue(NULL, value, other.value, &same));
+    JS_ASSERT(SameValue(nullptr, value, other.value, &same));
     JS_ASSERT(same == b);
 #endif
     return b;
@@ -917,7 +917,7 @@ GlobalObject::initMapIteratorProto(JSContext *cx, Handle<GlobalObject *> global)
         NewObjectWithGivenProto(cx, &MapIteratorObject::class_, base, global));
     if (!proto)
         return false;
-    proto->setSlot(MapIteratorObject::RangeSlot, PrivateValue(NULL));
+    proto->setSlot(MapIteratorObject::RangeSlot, PrivateValue(nullptr));
     if (!JS_DefineFunctions(cx, proto, MapIteratorObject::methods))
         return false;
     global->setReservedSlot(MAP_ITERATOR_PROTO, ObjectValue(*proto));
@@ -931,16 +931,16 @@ MapIteratorObject::create(JSContext *cx, HandleObject mapobj, ValueMap *data,
     Rooted<GlobalObject *> global(cx, &mapobj->global());
     Rooted<JSObject*> proto(cx, global->getOrCreateMapIteratorPrototype(cx));
     if (!proto)
-        return NULL;
+        return nullptr;
 
     ValueMap::Range *range = cx->new_<ValueMap::Range>(data->all());
     if (!range)
-        return NULL;
+        return nullptr;
 
     JSObject *iterobj = NewObjectWithGivenProto(cx, &class_, proto, global);
     if (!iterobj) {
         js_delete(range);
-        return NULL;
+        return nullptr;
     }
     iterobj->setSlot(TargetSlot, ObjectValue(*mapobj));
     iterobj->setSlot(KindSlot, Int32Value(int32_t(kind)));
@@ -969,7 +969,7 @@ MapIteratorObject::next_impl(JSContext *cx, CallArgs args)
         return js_ThrowStopIteration(cx);
     if (range->empty()) {
         js_delete(range);
-        thisobj.setReservedSlot(RangeSlot, PrivateValue(NULL));
+        thisobj.setReservedSlot(RangeSlot, PrivateValue(nullptr));
         return js_ThrowStopIteration(cx);
     }
 
@@ -1019,10 +1019,10 @@ const Class MapObject::class_ = {
     JS_ResolveStub,
     JS_ConvertStub,
     finalize,
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    NULL,                    
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     mark
 };
 
@@ -1039,7 +1039,7 @@ const JSFunctionSpec MapObject::methods[] = {
     JS_FN("keys", keys, 0, 0),
     JS_FN("values", values, 0, 0),
     JS_FN("clear", clear, 0, 0),
-    {"forEach", {NULL, NULL}, 2, 0, "MapForEach"},
+    {"forEach", {nullptr, nullptr}, 2, 0, "MapForEach"},
     JS_FS_END
 };
 
@@ -1049,8 +1049,8 @@ InitClass(JSContext *cx, Handle<GlobalObject*> global, const Class *clasp, JSPro
 {
     Rooted<JSObject*> proto(cx, global->createBlankPrototype(cx, clasp));
     if (!proto)
-        return NULL;
-    proto->setPrivate(NULL);
+        return nullptr;
+    proto->setPrivate(nullptr);
 
     Rooted<JSFunction*> ctor(cx, global->createConstructor(cx, construct, ClassName(key, cx), 1));
     if (!ctor ||
@@ -1058,7 +1058,7 @@ InitClass(JSContext *cx, Handle<GlobalObject*> global, const Class *clasp, JSPro
         !DefinePropertiesAndBrand(cx, proto, properties, methods) ||
         !DefineConstructorAndPrototype(cx, global, key, ctor, proto))
     {
-        return NULL;
+        return nullptr;
     }
     return proto;
 }
@@ -1073,12 +1073,12 @@ MapObject::initClass(JSContext *cx, JSObject *obj)
         
         JSFunction *fun = JS_DefineFunction(cx, proto, "entries", entries, 0, 0);
         if (!fun)
-            return NULL;
+            return nullptr;
 
         
         RootedValue funval(cx, ObjectValue(*fun));
-        if (!JS_DefineProperty(cx, proto, "iterator", funval, NULL, NULL, 0))
-            return NULL;
+        if (!JS_DefineProperty(cx, proto, "iterator", funval, nullptr, nullptr, 0))
+            return nullptr;
     }
     return proto;
 }
@@ -1483,7 +1483,7 @@ GlobalObject::initSetIteratorProto(JSContext *cx, Handle<GlobalObject*> global)
     RootedObject proto(cx, NewObjectWithGivenProto(cx, &SetIteratorObject::class_, base, global));
     if (!proto)
         return false;
-    proto->setSlot(SetIteratorObject::RangeSlot, PrivateValue(NULL));
+    proto->setSlot(SetIteratorObject::RangeSlot, PrivateValue(nullptr));
     if (!JS_DefineFunctions(cx, proto, SetIteratorObject::methods))
         return false;
     global->setReservedSlot(SET_ITERATOR_PROTO, ObjectValue(*proto));
@@ -1497,16 +1497,16 @@ SetIteratorObject::create(JSContext *cx, HandleObject setobj, ValueSet *data,
     Rooted<GlobalObject *> global(cx, &setobj->global());
     Rooted<JSObject*> proto(cx, global->getOrCreateSetIteratorPrototype(cx));
     if (!proto)
-        return NULL;
+        return nullptr;
 
     ValueSet::Range *range = cx->new_<ValueSet::Range>(data->all());
     if (!range)
-        return NULL;
+        return nullptr;
 
     JSObject *iterobj = NewObjectWithGivenProto(cx, &class_, proto, global);
     if (!iterobj) {
         js_delete(range);
-        return NULL;
+        return nullptr;
     }
     iterobj->setSlot(TargetSlot, ObjectValue(*setobj));
     iterobj->setSlot(KindSlot, Int32Value(int32_t(kind)));
@@ -1535,7 +1535,7 @@ SetIteratorObject::next_impl(JSContext *cx, CallArgs args)
         return js_ThrowStopIteration(cx);
     if (range->empty()) {
         js_delete(range);
-        thisobj.setReservedSlot(RangeSlot, PrivateValue(NULL));
+        thisobj.setReservedSlot(RangeSlot, PrivateValue(nullptr));
         return js_ThrowStopIteration(cx);
     }
 
@@ -1582,10 +1582,10 @@ const Class SetObject::class_ = {
     JS_ResolveStub,
     JS_ConvertStub,
     finalize,
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    NULL,                    
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     mark
 };
 
@@ -1600,7 +1600,7 @@ const JSFunctionSpec SetObject::methods[] = {
     JS_FN("delete", delete_, 1, 0),
     JS_FN("entries", entries, 0, 0),
     JS_FN("clear", clear, 0, 0),
-    {"forEach", {NULL, NULL}, 2, 0, "SetForEach"},
+    {"forEach", {nullptr, nullptr}, 2, 0, "SetForEach"},
     JS_FS_END
 };
 
@@ -1614,14 +1614,14 @@ SetObject::initClass(JSContext *cx, JSObject *obj)
         
         JSFunction *fun = JS_DefineFunction(cx, proto, "values", values, 0, 0);
         if (!fun)
-            return NULL;
+            return nullptr;
 
         
         RootedValue funval(cx, ObjectValue(*fun));
-        if (!JS_DefineProperty(cx, proto, "keys", funval, NULL, NULL, 0))
-            return NULL;
-        if (!JS_DefineProperty(cx, proto, "iterator", funval, NULL, NULL, 0))
-            return NULL;
+        if (!JS_DefineProperty(cx, proto, "keys", funval, nullptr, nullptr, 0))
+            return nullptr;
+        if (!JS_DefineProperty(cx, proto, "iterator", funval, nullptr, nullptr, 0))
+            return nullptr;
     }
     return proto;
 }
