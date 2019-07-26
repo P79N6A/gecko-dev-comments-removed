@@ -9506,7 +9506,10 @@ class CGForwardDeclarations(CGWrapper):
             elif t.isCallbackInterface():
                 builder.addInMozillaDom(t.inner.identifier.name)
             elif t.isUnion():
-                builder.addInMozillaDom(str(t))
+                
+                
+                builder.addInMozillaDom(CGUnionStruct.unionTypeName(t, False))
+                builder.addInMozillaDom(CGUnionStruct.unionTypeName(t, True))
             
             
 
@@ -9961,9 +9964,9 @@ class CGNativeMember(ClassMethod):
             return decl.define(), True, True
 
         if type.isUnion():
-            if type.nullable():
-                type = type.inner
-            return str(type), True, True
+            
+            
+            return CGUnionStruct.unionTypeDecl(type, isMember), True, False
 
         if type.isGeckoInterface() and not type.isCallbackInterface():
             iface = type.unroll().inner
