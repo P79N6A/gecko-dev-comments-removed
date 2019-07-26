@@ -3,6 +3,7 @@
 
 
 function test() {
+  requestLongerTimeout(2);
   waitForExplicitFinish();
 
   const page1 = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/' +
