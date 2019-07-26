@@ -170,7 +170,7 @@ public:
 
   void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint);
   bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
-                   bool aSentWillPaint, bool aWillSendDidPaint);
+                   uint32_t aFlags);
   void DidPaintWindow();
 
   
