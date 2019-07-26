@@ -23,11 +23,12 @@
 #include "nsAutoPtr.h"
 #include "nsIStyleRule.h"
 #include "nsCSSPseudoElements.h"
-#include "mozilla/Attributes.h"
+#include "gfxFontFeatures.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
 class nsCSSKeyframesRule;
+class nsCSSFontFeatureValuesRule;
 class nsCSSPageRule;
 class nsRuleWalker;
 struct ElementDependentRuleProcessorData;
@@ -137,7 +138,7 @@ class nsStyleSet
                           nsCSSPseudoElements::Type aType,
                           nsStyleContext* aParentContext,
                           TreeMatchContext& aTreeMatchContext);
-  
+
   
   
   already_AddRefed<nsStyleContext>
@@ -163,6 +164,14 @@ class nsStyleSet
   
   bool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
+
+  
+  already_AddRefed<gfxFontFeatureValueSet> GetFontFeatureValuesLookup();
+
+  
+  
+  bool AppendFontFeatureValuesRules(nsPresContext* aPresContext,
+                              nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
 
   
   
@@ -406,6 +415,7 @@ class nsStyleSet
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
+  unsigned mInitFontFeatureValuesLookup : 1;
   unsigned mDirty : 9;  
 
   uint32_t mUnusedRuleNodeCount; 
@@ -423,6 +433,9 @@ class nsStyleSet
   
   
   nsTArray<nsRuleNode*> mOldRuleTrees;
+
+  
+  nsRefPtr<gfxFontFeatureValueSet> mFontFeatureValuesLookup;
 };
 
 #ifdef _IMPL_NS_LAYOUT

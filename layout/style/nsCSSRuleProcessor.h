@@ -128,6 +128,9 @@ public:
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);
 
+  bool AppendFontFeatureValuesRules(nsPresContext* aPresContext,
+                              nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
+
   
 
 

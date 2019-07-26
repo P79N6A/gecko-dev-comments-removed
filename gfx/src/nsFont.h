@@ -12,6 +12,7 @@
 #include "nsTArray.h"
 #include "gfxFontConstants.h"
 #include "gfxFontFeatures.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -52,6 +53,22 @@ struct NS_GFX nsFont {
 
   
   
+  uint8_t variantCaps;
+  uint8_t variantLigatures;
+  uint8_t variantNumeric;
+  uint8_t variantPosition;
+
+  uint16_t variantEastAsian;
+
+  
+  
+  
+
+  
+  uint16_t variantAlternates;
+
+  
+  
   uint8_t decorations;
 
   
@@ -71,6 +88,12 @@ struct NS_GFX nsFont {
   float sizeAdjust;
 
   
+  nsTArray<gfxAlternateValue> alternateValues;
+
+  
+  nsRefPtr<gfxFontFeatureValueSet> featureValueLookup;
+
+  
   nsTArray<gfxFontFeature> fontFeatureSettings;
 
   
@@ -79,16 +102,20 @@ struct NS_GFX nsFont {
   nsString languageOverride;
 
   
-  nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
-         uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
-         nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nullptr);
+  uint8_t kerning;
 
   
-  nsFont(const nsString& aName, uint8_t aStyle, uint8_t aVariant,
+  uint8_t synthesis;
+
+  
+  nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
          uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
-         nscoord aSize, float aSizeAdjust=0.0f,
-         const nsString* aLanguageOverride = nullptr);
+         nscoord aSize);
+
+  
+  nsFont(const nsSubstring& aName, uint8_t aStyle, uint8_t aVariant,
+         uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
+         nscoord aSize);
 
   
   nsFont(const nsFont& aFont);
@@ -105,6 +132,8 @@ struct NS_GFX nsFont {
   bool BaseEquals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
+
+  void CopyAlternates(const nsFont& aOther);
 
   
   void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;

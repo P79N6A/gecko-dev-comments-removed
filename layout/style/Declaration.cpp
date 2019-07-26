@@ -537,6 +537,22 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
         *data->ValueFor(eCSSProperty_font_feature_settings);
       const nsCSSValue &languageOverride =
         *data->ValueFor(eCSSProperty_font_language_override);
+      const nsCSSValue &fontKerning =
+        *data->ValueFor(eCSSProperty_font_kerning);
+      const nsCSSValue &fontSynthesis =
+        *data->ValueFor(eCSSProperty_font_synthesis);
+      const nsCSSValue &fontVariantAlternates =
+        *data->ValueFor(eCSSProperty_font_variant_alternates);
+      const nsCSSValue &fontVariantCaps =
+        *data->ValueFor(eCSSProperty_font_variant_caps);
+      const nsCSSValue &fontVariantEastAsian =
+        *data->ValueFor(eCSSProperty_font_variant_east_asian);
+      const nsCSSValue &fontVariantLigatures =
+        *data->ValueFor(eCSSProperty_font_variant_ligatures);
+      const nsCSSValue &fontVariantNumeric =
+        *data->ValueFor(eCSSProperty_font_variant_numeric);
+      const nsCSSValue &fontVariantPosition =
+        *data->ValueFor(eCSSProperty_font_variant_position);
 
       if (systemFont &&
           systemFont->GetUnit() != eCSSUnit_None &&
@@ -550,7 +566,15 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
             stretch.GetUnit() != eCSSUnit_System_Font ||
             sizeAdjust.GetUnit() != eCSSUnit_System_Font ||
             featureSettings.GetUnit() != eCSSUnit_System_Font ||
-            languageOverride.GetUnit() != eCSSUnit_System_Font) {
+            languageOverride.GetUnit() != eCSSUnit_System_Font ||
+            fontKerning.GetUnit() != eCSSUnit_System_Font ||
+            fontSynthesis.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantAlternates.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantCaps.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantEastAsian.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantLigatures.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantNumeric.GetUnit() != eCSSUnit_System_Font ||
+            fontVariantPosition.GetUnit() != eCSSUnit_System_Font) {
           
           return;
         }
@@ -560,11 +584,21 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
         
         
         
+        
         if (stretch.GetUnit() != eCSSUnit_Enumerated ||
             stretch.GetIntValue() != NS_STYLE_FONT_STRETCH_NORMAL ||
             sizeAdjust.GetUnit() != eCSSUnit_None ||
             featureSettings.GetUnit() != eCSSUnit_Normal ||
-            languageOverride.GetUnit() != eCSSUnit_Normal) {
+            languageOverride.GetUnit() != eCSSUnit_Normal ||
+            fontKerning.GetIntValue() != NS_FONT_KERNING_AUTO ||
+            fontSynthesis.GetIntValue() !=
+              (NS_FONT_SYNTHESIS_WEIGHT | NS_FONT_SYNTHESIS_STYLE) ||
+            fontVariantAlternates.GetUnit() != eCSSUnit_Normal ||
+            fontVariantCaps.GetUnit() != eCSSUnit_Normal ||
+            fontVariantEastAsian.GetUnit() != eCSSUnit_Normal ||
+            fontVariantLigatures.GetUnit() != eCSSUnit_Normal ||
+            fontVariantNumeric.GetUnit() != eCSSUnit_Normal ||
+            fontVariantPosition.GetUnit() != eCSSUnit_Normal) {
           return;
         }
 
