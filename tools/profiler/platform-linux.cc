@@ -69,6 +69,11 @@
 #include "nsThreadUtils.h"
 #include "TableTicker.h"
 #include "UnwinderThread2.h"
+#if defined(__ARM_EABI__) && defined(MOZ_WIDGET_GONK)
+ 
+#define USE_EHABI_STACKWALK
+#include "EHABIStackWalk.h"
+#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -309,6 +314,9 @@ Sampler::~Sampler() {
 void Sampler::Start() {
   LOG("Sampler started");
 
+#ifdef USE_EHABI_STACKWALK
+  mozilla::EHABIStackWalkInit();
+#endif
   SamplerRegistry::AddActiveSampler(this);
 
   
