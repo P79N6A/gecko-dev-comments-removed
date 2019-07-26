@@ -52,6 +52,40 @@ const HSL_BOX_WIDTH = 158;
 
 
 
+let EyedropperManager = {
+  _instances: new WeakMap(),
+
+  getInstance: function(chromeWindow) {
+    return this._instances.get(chromeWindow);
+  },
+
+  createInstance: function(chromeWindow) {
+    let dropper = this.getInstance(chromeWindow);
+    if (dropper) {
+      return dropper;
+    }
+
+    dropper = new Eyedropper(chromeWindow);
+    this._instances.set(chromeWindow, dropper);
+
+    dropper.on("destroy", () => {
+      this.deleteInstance(chromeWindow);
+    });
+
+    return dropper;
+  },
+
+  deleteInstance: function(chromeWindow) {
+    this._instances.delete(chromeWindow);
+  }
+}
+
+exports.EyedropperManager = EyedropperManager;
+
+
+
+
+
 
 
 
