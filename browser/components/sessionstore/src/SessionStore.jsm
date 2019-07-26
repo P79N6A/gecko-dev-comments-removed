@@ -1499,34 +1499,12 @@ let SessionStoreInternal = {
     throw Components.Exception("Window is not tracked", Cr.NS_ERROR_INVALID_ARG);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
   setWindowState: function ssi_setWindowState(aWindow, aState, aOverwrite) {
     if (!aWindow.__SSi) {
       throw Components.Exception("Window is not tracked", Cr.NS_ERROR_INVALID_ARG);
     }
 
-    let winState = JSON.parse(aState);
-    if (!winState) {
-      throw Components.Exception("Invalid state string: not JSON", Cr.NS_ERROR_INVALID_ARG);
-    }
-
-    if (!winState.windows || !winState.windows[0]) {
-      throw Components.Exception("Invalid window state passed", Cr.NS_ERROR_INVALID_ARG);
-    }
-
-    let state = {windows: [winState.windows[0]]};
-    this.restoreWindow(aWindow, state, {overwriteTabs: aOverwrite});
+    this.restoreWindow(aWindow, aState, {overwriteTabs: aOverwrite});
   },
 
   getTabState: function ssi_getTabState(aTab) {
@@ -2284,10 +2262,17 @@ let SessionStoreInternal = {
     if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
       this.onLoad(aWindow);
 
-    var root = aState;
-    if (!root.windows[0]) {
+    try {
+      var root = typeof aState == "string" ? JSON.parse(aState) : aState;
+      if (!root.windows[0]) {
+        this._sendRestoreCompletedNotifications();
+        return; 
+      }
+    }
+    catch (ex) { 
+      debug(ex);
       this._sendRestoreCompletedNotifications();
-      return; 
+      return;
     }
 
     TelemetryStopwatch.start("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
