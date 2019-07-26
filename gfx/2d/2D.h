@@ -997,12 +997,6 @@ class GFX2D_API Factory
 public:
   static bool HasSSE2();
 
-  
-
-
-
-  static bool CheckSurfaceSize(const IntSize &sz, int32_t limit = 0);
-
   static TemporaryRef<DrawTarget> CreateDrawTargetForCairoSurface(cairo_surface_t* aSurface, const IntSize& aSize);
 
   static TemporaryRef<SourceSurface>
