@@ -54,6 +54,48 @@ function checkContextUIMenuItemVisibility(aVisibleList)
 
 
 
+
+
+function showNotification()
+{
+  return Task.spawn(function() {
+    try {
+      let strings = Strings.browser;
+      var buttons = [
+        {
+          isDefault: false,
+          label: strings.GetStringFromName("popupButtonAllowOnce2"),
+          accessKey: "",
+          callback: function() { }
+        },
+        {
+          label: strings.GetStringFromName("popupButtonAlwaysAllow3"),
+          accessKey: "",
+          callback: function() { }
+        },
+        {
+          label: strings.GetStringFromName("popupButtonNeverWarn3"),
+          accessKey: "",
+          callback: function() { }
+        }
+      ];
+      let notificationBox = Browser.getNotificationBox();
+      const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+      notificationBox.appendNotification("test notification", "popup-blocked",
+                                          "chrome://browser/skin/images/infobar-popup.png",
+                                          priority, buttons);
+      yield waitForEvent(notificationBox, "transitionend");
+      return;
+    } catch (ex) {
+      throw new Task.Result(ex);
+    }
+  });
+}
+
+
+
+
+
 function hideContextUI()
 {
   purgeEventQueue();
@@ -369,7 +411,28 @@ function synthesizeNativeMouseMUp(aElement, aOffsetX, aOffsetY) {
 
 
 
-function sendContextMenuClick(aWindow, aX, aY) {
+
+
+
+
+function sendContextMenuClick(aX, aY) {
+  let mediator = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                            .getService(Components.interfaces.nsIWindowMediator);
+  let mainwin = mediator.getMostRecentWindow("navigator:browser");
+  let utils = mainwin.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+  utils.sendMouseEvent("contextmenu", aX, aY, 2, 1, 0, true,
+                        1, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+}
+
+
+
+
+
+
+
+
+function sendContextMenuClickToWindow(aWindow, aX, aY) {
   let utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
 
