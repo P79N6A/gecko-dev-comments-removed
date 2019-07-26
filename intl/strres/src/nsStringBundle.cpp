@@ -489,8 +489,7 @@ nsresult nsExtensibleStringBundle::GetSimpleEnumeration(nsISimpleEnumerator ** a
 
 struct bundleCacheEntry_t : public LinkedListElement<bundleCacheEntry_t> {
   nsAutoPtr<nsCStringKey> mHashKey;
-  
-  nsIStringBundle* mBundle;
+  nsCOMPtr<nsIStringBundle> mBundle;
 };
 
 
@@ -561,9 +560,7 @@ nsStringBundleService::flushBundleCache()
   mBundleMap.Reset();
 
   while (!mBundleCache.isEmpty()) {
-    bundleCacheEntry_t *cacheEntry = mBundleCache.popFirst();
-    recycleEntry(cacheEntry);
-    delete cacheEntry;
+    delete mBundleCache.popFirst();
   }
 }
 
@@ -637,28 +634,17 @@ nsStringBundleService::insertIntoCache(nsIStringBundle* aBundle,
 #endif
     mBundleMap.Remove(cacheEntry->mHashKey);
     cacheEntry->remove();
-
-    
-    recycleEntry(cacheEntry);
   }
 
   
   
-  cacheEntry->mBundle = aBundle;
-  NS_ADDREF(cacheEntry->mBundle);
-
   cacheEntry->mHashKey = (nsCStringKey*)aHashKey->Clone();
+  cacheEntry->mBundle = aBundle;
 
   
   mBundleMap.Put(cacheEntry->mHashKey, cacheEntry);
 
   return cacheEntry;
-}
-
-void
-nsStringBundleService::recycleEntry(bundleCacheEntry_t *aEntry)
-{
-  NS_RELEASE(aEntry->mBundle);
 }
 
 NS_IMETHODIMP
