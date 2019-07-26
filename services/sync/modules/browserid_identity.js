@@ -634,7 +634,28 @@ BrowserIDClusterManager.prototype = {
     let cb = Async.makeSpinningCallback();
     promiseClusterURL().then(function (clusterURL) {
       cb(null, clusterURL);
-    }).then(null, cb);
+    }).then(
+      null, err => {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (err instanceof AuthenticationError) {
+        
+        cb(null, null);
+      } else {
+        
+        cb(err);
+      }
+    });
     return cb.wait();
   },
 
