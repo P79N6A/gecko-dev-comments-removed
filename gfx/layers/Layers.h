@@ -884,8 +884,6 @@ public:
 
 
 
-
-
   void SetBaseTransform(const gfx3DMatrix& aMatrix)
   {
     NS_ASSERTION(!aMatrix.IsSingular(),
