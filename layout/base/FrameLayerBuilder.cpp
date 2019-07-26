@@ -2668,8 +2668,16 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     
     
     transform.NudgeToIntegers();
-  } 
-  if (aContainerFrame && aState == LAYER_INACTIVE) {
+  }
+  gfxMatrix transform2d;
+  if (aContainerFrame &&
+      aState == LAYER_INACTIVE &&
+      (!aTransform || (aTransform->Is2D(&transform2d) &&
+                       !transform2d.HasNonTranslation()))) {
+    
+    
+    
+    
     
     
     
@@ -2679,9 +2687,11 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
         int32_t(NSAppUnitsToDoublePixels(appUnitOffset.x, appUnitsPerDevPixel)*aIncomingScale.mXScale),
         int32_t(NSAppUnitsToDoublePixels(appUnitOffset.y, appUnitsPerDevPixel)*aIncomingScale.mYScale));
   }
-  transform = transform * gfx3DMatrix::Translation(offset.x + aIncomingScale.mOffset.x, offset.y + aIncomingScale.mOffset.y, 0);
+  transform = gfx3DMatrix::Translation(aIncomingScale.mOffset.x, aIncomingScale.mOffset.y, 0) * 
+              transform * 
+              gfx3DMatrix::Translation(offset.x, offset.y, 0);
 
-  gfxMatrix transform2d;
+
   bool canDraw2D = transform.CanDraw2D(&transform2d);
   gfxSize scale;
   bool isRetained = aLayer->Manager()->IsWidgetLayerManager();
