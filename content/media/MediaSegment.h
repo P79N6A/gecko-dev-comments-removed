@@ -40,6 +40,11 @@ inline double MediaTimeToSeconds(MediaTime aTime)
   return aTime*(1.0/(1 << MEDIA_TIME_FRAC_BITS));
 }
 
+inline int64_t MediaTimeToMicroseconds(MediaTime aTime)
+{
+  return aTime*(1000000.0/(1 << MEDIA_TIME_FRAC_BITS));
+}
+
 
 
 
