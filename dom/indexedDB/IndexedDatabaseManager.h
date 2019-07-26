@@ -96,6 +96,18 @@ public:
   AsyncDeleteFile(FileManager* aFileManager,
                   int64_t aFileId);
 
+  
+  
+  
+  nsresult
+  BlockAndGetFileReferences(const nsACString& aOrigin,
+                            const nsAString& aDatabaseName,
+                            int64_t aFileId,
+                            int32_t* aRefCnt,
+                            int32_t* aDBRefCnt,
+                            int32_t* aSliceRefCnt,
+                            bool* aResult);
+
   static mozilla::Mutex&
   FileMutex()
   {
