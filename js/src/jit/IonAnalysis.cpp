@@ -2143,10 +2143,9 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     
     
 
-    if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
+    RootedScript script(cx, fun->getOrCreateScript(cx));
+    if (!script)
         return false;
-
-    RootedScript script(cx, fun->nonLazyScript());
 
     if (!script->compileAndGo() || !script->canBaselineCompile())
         return true;
