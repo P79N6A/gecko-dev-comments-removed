@@ -162,17 +162,29 @@ JSDependentString::init(JSLinearString *base, const jschar *chars, size_t length
 }
 
 JS_ALWAYS_INLINE JSLinearString *
-JSDependentString::new_(JSContext *cx, JSLinearString *base_, const jschar *chars, size_t length)
+JSDependentString::new_(JSContext *cx, JSLinearString *baseArg, const jschar *chars, size_t length)
 {
-    js::Rooted<JSLinearString*> base(cx, base_);
+    js::Rooted<JSLinearString*> base(cx, baseArg);
 
     
     while (base->isDependent())
         base = base->asDependent().base();
 
     JS_ASSERT(base->isFlat());
-    JS_ASSERT(chars >= base->chars() && chars < base->chars() + base->length());
-    JS_ASSERT(length <= base->length() - (chars - base->chars()));
+
+    
+
+
+
+#ifdef DEBUG
+    for (JSLinearString *b = base; ; b = b->base()) {
+        if (chars >= b->chars() && chars < b->chars() + b->length() &&
+            length <= b->length() - (chars - b->chars()))
+        {
+            break;
+        }
+    }
+#endif
 
     
 
