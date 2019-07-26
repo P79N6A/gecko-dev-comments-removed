@@ -85,13 +85,17 @@ public:
 static bool sPrefsInitialized = false;
 static int32_t sCanvasImageCacheLimit = 0;
 
-class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
+class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4>,
+                             public nsIObserver {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
   
   enum { GENERATION_MS = 1000 };
   ImageCache()
     : nsExpirationTracker<ImageCacheEntryData,4>(GENERATION_MS)
-    , mTotal(0)
+    , mSize(0)
   {
     if (!sPrefsInitialized) {
       sPrefsInitialized = true;
@@ -103,19 +107,43 @@ public:
     AgeAllGenerations();
   }
 
+  void AddObject(ImageCacheEntryData* aObject)
+  {
+    nsExpirationTracker<ImageCacheEntryData,4>::AddObject(aObject);
+    mSize += aObject->SizeInBytes();
+  }
+
+  void RemoveObject(ImageCacheEntryData* aObject)
+  {
+    nsExpirationTracker<ImageCacheEntryData,4>::RemoveObject(aObject);
+    mSize -= aObject->SizeInBytes();
+  }
+
   virtual void NotifyExpired(ImageCacheEntryData* aObject)
   {
-    mTotal -= aObject->SizeInBytes();
     RemoveObject(aObject);
     
     mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas));
   }
 
   nsTHashtable<ImageCacheEntry> mCache;
-  size_t mTotal;
+  size_t mSize;
 };
 
 static ImageCache* gImageCache = nullptr;
+
+NS_IMPL_ISUPPORTS1(ImageCache, nsIObserver)
+
+NS_IMETHODIMP
+ImageCache::Observe(nsISupports *aSubject,
+                    const char *aTopic,
+                    const PRUnichar *aData)
+{
+  if (strcmp(aTopic, "memory-pressure") == 0) {
+    AgeAllGenerations();
+  }
+  return NS_OK;
+}
 
 class CanvasImageCacheShutdownObserver MOZ_FINAL : public nsIObserver
 {
@@ -133,6 +161,9 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
 {
   if (!gImageCache) {
     gImageCache = new ImageCache();
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os)
+      os->AddObserver(gImageCache, "memory-pressure", false);
     nsContentUtils::RegisterShutdownObserver(new CanvasImageCacheShutdownObserver());
   }
 
@@ -140,7 +171,6 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
   if (entry) {
     if (entry->mData->mSurface) {
       
-      gImageCache->mTotal -= entry->mData->SizeInBytes();
       gImageCache->RemoveObject(entry->mData);
     }
     gImageCache->AddObject(entry->mData);
@@ -153,15 +183,13 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
     entry->mData->mILC = ilc;
     entry->mData->mSurface = aSurface;
     entry->mData->mSize = aSize;
-
-    gImageCache->mTotal += entry->mData->SizeInBytes();
   }
 
   if (!sCanvasImageCacheLimit)
     return;
 
   
-  while (gImageCache->mTotal > size_t(sCanvasImageCacheLimit))
+  while (gImageCache->mSize > size_t(sCanvasImageCacheLimit))
     gImageCache->AgeOneGeneration();
 }
 
