@@ -622,9 +622,9 @@ void
 gfxUserFontSet::IncrementGeneration()
 {
     
-    LL_ADD(sFontSetGeneration, sFontSetGeneration, 1);
+    ++sFontSetGeneration;
     if (sFontSetGeneration == 0)
-        LL_ADD(sFontSetGeneration, sFontSetGeneration, 1);
+       ++sFontSetGeneration;
     mGeneration = sFontSetGeneration;
 }
 
