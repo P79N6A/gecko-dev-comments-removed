@@ -77,6 +77,30 @@ BlockMightReach(MBasicBlock *src, MBasicBlock *dest)
     return false;
 }
 
+static void
+IonSpewDependency(MDefinition *load, MDefinition *store, const char *verb, const char *reason)
+{
+    if (!IonSpewEnabled(IonSpew_Alias))
+        return;
+
+    fprintf(IonSpewFile, "Load ");
+    load->printName(IonSpewFile);
+    fprintf(IonSpewFile, " %s on store ", verb);
+    store->printName(IonSpewFile);
+    fprintf(IonSpewFile, " (%s)\n", reason);
+}
+
+static void
+IonSpewAliasInfo(const char *pre, MDefinition *ins, const char *post)
+{
+    if (!IonSpewEnabled(IonSpew_Alias))
+        return;
+
+    fprintf(IonSpewFile, "%s ", pre);
+    ins->printName(IonSpewFile);
+    fprintf(IonSpewFile, " %s\n", post);
+}
+
 
 
 
@@ -130,7 +154,11 @@ AliasAnalysis::analyze()
                         return false;
                 }
 
-                IonSpew(IonSpew_Alias, "Processing store %d (flags %x)", def->id(), set.flags());
+                if (IonSpewEnabled(IonSpew_Alias)) {
+                    fprintf(IonSpewFile, "Processing store ");
+                    def->printName(IonSpewFile);
+                    fprintf(IonSpewFile, " (flags %x)\n", set.flags());
+                }
             } else {
                 
                 MDefinition *lastStore = firstIns;
@@ -148,7 +176,7 @@ AliasAnalysis::analyze()
                 }
 
                 def->setDependency(lastStore);
-                IonSpew(IonSpew_Alias, "Load %d depends on store %d", def->id(), lastStore->id());
+                IonSpewDependency(*def, lastStore, "depends", "");
 
                 
                 
@@ -183,6 +211,7 @@ AliasAnalysis::analyze()
                             break;
                         if (ins->mightAlias(store)) {
                             hasAlias = true;
+                            IonSpewDependency(ins, store, "aliases", "store in loop body");
                             break;
                         }
                     }
@@ -195,15 +224,13 @@ AliasAnalysis::analyze()
                     
                     
                     MControlInstruction *controlIns = loop_->loopHeader()->lastIns();
-                    IonSpew(IonSpew_Alias, "Load %d depends on %d (due to stores in loop body)",
-                            ins->id(), controlIns->id());
+                    IonSpewDependency(ins, controlIns, "depends", "due to stores in loop body");
                     ins->setDependency(controlIns);
                 } else {
-                    IonSpew(IonSpew_Alias, "Load %d does not depend on any stores in this loop",
-                            ins->id());
+                    IonSpewAliasInfo("Load", ins, "does not depend on any stores in this loop");
 
                     if (outerLoop && ins->dependency()->id() < outerLoop->firstInstruction()->id()) {
-                        IonSpew(IonSpew_Alias, "Load %d may be invariant in outer loop", ins->id());
+                        IonSpewAliasInfo("Load", ins, "may be invariant in outer loop");
                         if (!outerLoop->addInvariantLoad(ins))
                             return false;
                     }
