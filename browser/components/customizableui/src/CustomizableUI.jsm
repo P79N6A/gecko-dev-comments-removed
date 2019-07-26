@@ -1695,7 +1695,10 @@ let CustomizableUIInternal = {
 
       
       
-      if (autoAdd && !widget.currentArea && !gSeenWidgets.has(widget.id)) {
+      
+      
+      let canBeAutoAdded = autoAdd && !gSeenWidgets.has(widget.id);
+      if (!widget.currentArea && (!widget.removable || canBeAutoAdded)) {
         this.beginBatchUpdate();
         try {
           gSeenWidgets.add(widget.id);
