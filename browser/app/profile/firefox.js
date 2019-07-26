@@ -58,7 +58,7 @@ pref("extensions.update.autoUpdateDefault", true);
 
 pref("extensions.hotfix.id", "firefox-hotfix@mozilla.org");
 pref("extensions.hotfix.cert.checkAttributes", true);
-pref("extensions.hotfix.certs.1.sha1Fingerprint", "CA:C4:7D:BF:63:4D:24:E9:DC:93:07:2F:E3:C8:EA:6D:C3:94:6E:89");
+pref("extensions.hotfix.certs.1.sha1Fingerprint", "91:53:98:0C:C1:86:DF:47:8F:35:22:9E:11:C9:A7:31:04:49:A1:AA");
 
 
 
@@ -860,8 +860,6 @@ pref("browser.sessionstore.restore_pinned_tabs_on_demand", false);
 pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
 
 pref("browser.sessionstore.debug", false);
-
-pref("browser.sessionstore.async", true);
 
 
 pref("accessibility.blockautorefresh", false);
