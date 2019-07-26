@@ -464,7 +464,7 @@ TypedObjectPointer.prototype.set = function(fromValue) {
   
   if (IsObject(fromValue) && ObjectIsTypedObject(fromValue)) {
     var typeRepr = DESCR_TYPE_REPR(this.descr);
-    if (!typeRepr.variable && TYPEDOBJ_TYPE_REPR(fromValue) === typeRepr) {
+    if (!this.descr.variable && TYPEDOBJ_TYPE_REPR(fromValue) === typeRepr) {
       if (!TypedObjectIsAttached(fromValue))
         ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
