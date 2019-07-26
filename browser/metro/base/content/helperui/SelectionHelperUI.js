@@ -344,9 +344,9 @@ var SelectionHelperUI = {
   observe: function (aSubject, aTopic, aData) {
     switch (aTopic) {
       case "attach_edit_session_to_content":
-        let event = aSubject;
-        this.attachEditSession(Browser.selectedTab.browser,
-                               event.clientX, event.clientY);
+        
+        
+        this.chromeTextboxClick(aSubject);
         break;
 
       case "apzc-transform-begin":
@@ -512,6 +512,40 @@ var SelectionHelperUI = {
     this._sendAsyncMessage("Browser:SelectionClose", {
       clearSelection: clearSelection
     });
+  },
+
+  
+
+
+
+  urlbarTextboxClick: function(aEdit) {
+    
+    
+    
+    Browser.selectedTab.browser.messageManager.sendAsyncMessage("Browser:ResetLastPos", {
+      xPos: null,
+      yPos: null
+    });
+
+    if (InputSourceHelper.isPrecise || !aEdit.textLength) {
+      return;
+    }
+
+    
+    let innerRect = aEdit.inputField.getBoundingClientRect();
+    this.attachEditSession(ChromeSelectionHandler,
+                           innerRect.left,
+                           innerRect.top);
+  },
+
+  
+
+
+
+
+  chromeTextboxClick: function (aEvent) {
+    this.attachEditSession(Browser.selectedTab.browser,
+                           aEvent.clientX, aEvent.clientY);
   },
 
   
@@ -834,16 +868,6 @@ var SelectionHelperUI = {
   
 
 
-
-   urlbarClick: function() {
-    
-    
-    
-    Browser.selectedTab.browser.messageManager.sendAsyncMessage("Browser:ResetLastPos", {
-      xPos: null,
-      yPos: null
-    });
-   },
 
   
 
