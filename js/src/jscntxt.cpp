@@ -593,7 +593,7 @@ checkReportFlags(JSContext *cx, unsigned *flags)
 
 
 
-        UnrootedScript script = cx->stack.currentScript();
+        RawScript script = cx->stack.currentScript();
         if (script && script->strict)
             *flags &= ~JSREPORT_WARNING;
         else if (cx->hasStrictOption())

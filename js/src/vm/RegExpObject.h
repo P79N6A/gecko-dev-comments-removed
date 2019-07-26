@@ -354,7 +354,7 @@ class RegExpObject : public JSObject
 
 
 
-    UnrootedShape assignInitialShape(JSContext *cx);
+    RawShape assignInitialShape(JSContext *cx);
 
     bool init(JSContext *cx, HandleAtom source, RegExpFlag flags);
 

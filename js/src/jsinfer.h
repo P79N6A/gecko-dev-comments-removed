@@ -1153,7 +1153,7 @@ struct TypeCallsite
     
     StackTypeSet *returnTypes;
 
-    inline TypeCallsite(JSContext *cx, UnrootedScript script, jsbytecode *pc,
+    inline TypeCallsite(JSContext *cx, RawScript script, jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
 };
 
@@ -1179,7 +1179,7 @@ class TypeScript
     
     TypeSet *typeArray() { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
 
-    static inline unsigned NumTypeSets(UnrootedScript script);
+    static inline unsigned NumTypeSets(RawScript script);
 
     static inline HeapTypeSet  *ReturnTypes(RawScript script);
     static inline StackTypeSet *ThisTypes(RawScript script);
@@ -1428,7 +1428,7 @@ struct TypeCompartment
 
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
-    void addPendingRecompile(JSContext *cx, UnrootedScript script, jsbytecode *pc);
+    void addPendingRecompile(JSContext *cx, RawScript script, jsbytecode *pc);
 
     
     void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,

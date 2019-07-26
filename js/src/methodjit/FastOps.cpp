@@ -1474,7 +1474,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     ic.slowPathStart = stubcc.syncExit(Uses(3));
 
     
-    UnrootedShape shape = GetDenseArrayShape(cx, globalObj);
+    RawShape shape = GetDenseArrayShape(cx, globalObj);
     if (!shape)
         return false;
     ic.shapeGuard = masm.guardShape(ic.objReg, shape);
@@ -2054,7 +2054,7 @@ mjit::Compiler::jsop_getelem()
         }
 
         
-        UnrootedShape shape = GetDenseArrayShape(cx, globalObj);
+        RawShape shape = GetDenseArrayShape(cx, globalObj);
         if (!shape)
             return false;
         ic.shapeGuard = masm.guardShape(ic.objReg, shape);

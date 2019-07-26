@@ -1,15 +1,15 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "Ion.h"
 #include "IonCompartment.h"
 #include "jsinterp.h"
 #include "ion/IonFrames.h"
-#include "ion/IonFrames-inl.h" // for GetTopIonJSScript
+#include "ion/IonFrames-inl.h" 
 
 #include "vm/StringObject-inl.h"
 
@@ -26,9 +26,9 @@ using namespace js::ion;
 namespace js {
 namespace ion {
 
-// Don't explicitly initialize, it's not guaranteed that this initializer will
-// run before the constructors for static VMFunctions.
-/* static */ VMFunction *VMFunction::functions;
+
+
+ VMFunction *VMFunction::functions;
 
 void
 VMFunction::addToFunctions()
@@ -60,7 +60,7 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
         if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
             return false;
 
-        // Clone function at call site if needed.
+        
         if (fun->nonLazyScript()->shouldCloneAtCallsite) {
             RootedScript script(cx);
             jsbytecode *pc;
@@ -70,41 +70,41 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
                 return false;
         }
 
-        // In order to prevent massive bouncing between Ion and JM, see if we keep
-        // hitting functions that are uncompilable.
+        
+        
         if (cx->methodJitEnabled && !fun->nonLazyScript()->canIonCompile()) {
-            UnrootedScript script = GetTopIonJSScript(cx);
+            RawScript script = GetTopIonJSScript(cx);
             if (script->hasIonScript() &&
                 ++script->ion->slowCallCount >= js_IonOptions.slowCallLimit)
             {
                 AutoFlushCache afc("InvokeFunction");
 
-                // Poison the script so we don't try to run it again. This will
-                // trigger invalidation.
+                
+                
                 ForbidCompilation(cx, script);
             }
         }
 
-        // When caller runs in IM, but callee not, we take a slow path to the interpreter.
-        // This has a significant overhead. In order to decrease the number of times this happens,
-        // the useCount gets incremented faster to compile this function in IM and use the fastpath.
+        
+        
+        
         fun->nonLazyScript()->incUseCount(js_IonOptions.slowCallIncUseCount);
     }
 
-    // TI will return false for monitorReturnTypes, meaning there is no
-    // TypeBarrier or Monitor instruction following this. However, we need to
-    // explicitly monitor if the callee has not been analyzed yet. We special
-    // case this to avoid the cost of ion::GetPcScript if we must take this
-    // path frequently.
+    
+    
+    
+    
+    
     bool needsMonitor = ShouldMonitorReturnType(fun);
 
-    // Data in the argument vector is arranged for a JIT -> JIT call.
+    
     Value thisv = argv[0];
     Value *argvWithoutThis = argv + 1;
 
-    // For constructing functions, |this| is constructed at caller side and we can just call Invoke.
-    // When creating this failed / is impossible at caller site, i.e. MagicValue(JS_IS_CONSTRUCTING),
-    // we use InvokeConstructor that creates it at the callee side.
+    
+    
+    
     bool ok;
     if (thisv.isMagic(JS_IS_CONSTRUCTING))
         ok = InvokeConstructor(cx, ObjectValue(*fun), argc, argvWithoutThis, rval);
@@ -126,18 +126,18 @@ NewGCThing(JSContext *cx, gc::AllocKind allocKind, size_t thingSize)
 bool
 CheckOverRecursed(JSContext *cx)
 {
-    // IonMonkey's stackLimit is equal to nativeStackLimit by default. When we
-    // want to trigger an operation callback, we set the ionStackLimit to NULL,
-    // which causes the stack limit check to fail.
-    //
-    // There are two states we're concerned about here:
-    //   (1) The interrupt bit is set, and we need to fire the interrupt callback.
-    //   (2) The stack limit has been exceeded, and we need to throw an error.
-    //
-    // Note that we can reach here if ionStackLimit is MAXADDR, but interrupt
-    // has not yet been set to 1. That's okay; it will be set to 1 very shortly,
-    // and in the interim we might just fire a few useless calls to
-    // CheckOverRecursed.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     JS_CHECK_RECURSION(cx, return false);
 
     if (cx->runtime->interrupt)
@@ -149,7 +149,7 @@ CheckOverRecursed(JSContext *cx)
 bool
 DefVarOrConst(JSContext *cx, HandlePropertyName dn, unsigned attrs, HandleObject scopeChain)
 {
-    // Given the ScopeChain, extract the VarObj.
+    
     RootedObject obj(cx, scopeChain);
     while (!obj->isVarObj())
         obj = obj->enclosingScope();
@@ -160,7 +160,7 @@ DefVarOrConst(JSContext *cx, HandlePropertyName dn, unsigned attrs, HandleObject
 bool
 InitProp(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue value)
 {
-    // Copy the incoming value. This may be overwritten; the return value is discarded.
+    
     RootedValue rval(cx, value);
     RootedId id(cx, NameToId(name));
 
@@ -315,8 +315,8 @@ ArrayPopDense(JSContext *cx, HandleObject obj, MutableHandleValue rval)
     if (!js::array_pop(cx, 0, argv))
         return false;
 
-    // If the result is |undefined|, the array was probably empty and we
-    // have to monitor the return value.
+    
+    
     rval.set(argv[0]);
     if (rval.isUndefined())
         types::TypeScript::Monitor(cx, rval);
@@ -349,8 +349,8 @@ ArrayShiftDense(JSContext *cx, HandleObject obj, MutableHandleValue rval)
     if (!js::array_shift(cx, 0, argv))
         return false;
 
-    // If the result is |undefined|, the array was probably empty and we
-    // have to monitor the return value.
+    
+    
     rval.set(argv[0]);
     if (rval.isUndefined())
         types::TypeScript::Monitor(cx, rval);
@@ -365,7 +365,7 @@ ArrayConcatDense(JSContext *cx, HandleObject obj1, HandleObject obj2, HandleObje
     JS_ASSERT_IF(res, res->isArray());
 
     if (res) {
-        // Fast path if we managed to allocate an object inline.
+        
         if (!js::array_concat_dense(cx, obj1, obj2, res))
             return NULL;
         return res;
@@ -469,7 +469,7 @@ SPSExit(JSContext *cx, HandleScript script)
 bool
 OperatorIn(JSContext *cx, HandleValue key, HandleObject obj, JSBool *out)
 {
-    RootedValue dummy(cx); // Disregards atomization changes: no way to propagate.
+    RootedValue dummy(cx); 
     RootedId id(cx);
     if (!FetchElementId(cx, obj, key, &id, &dummy))
         return false;
@@ -506,9 +506,9 @@ CreateThis(JSContext *cx, HandleObject callee, MutableHandleValue rval)
 void
 GetDynamicName(JSContext *cx, JSObject *scopeChain, JSString *str, Value *vp)
 {
-    // Lookup a string on the scope chain, returning either the value found or
-    // undefined through rval. This function is infallible, and cannot GC or
-    // invalidate.
+    
+    
+    
 
     JSAtom *atom;
     if (str->isAtom()) {
@@ -539,10 +539,10 @@ GetDynamicName(JSContext *cx, JSObject *scopeChain, JSString *str, Value *vp)
 JSBool
 FilterArguments(JSContext *cx, JSString *str)
 {
-    // getChars() is fallible, but cannot GC: it can only allocate a character
-    // for the flattened string. If this call fails then the calling Ion code
-    // will bailout, resume in the interpreter and likely fail again when
-    // trying to flatten the string and unwind the stack.
+    
+    
+    
+    
     const jschar *chars = str->getChars(cx);
     if (!chars)
         return false;
@@ -551,5 +551,5 @@ FilterArguments(JSContext *cx, JSString *str)
     return !StringHasPattern(chars, str->length(), arguments, mozilla::ArrayLength(arguments));
 }
 
-} // namespace ion
-} // namespace js
+} 
+} 

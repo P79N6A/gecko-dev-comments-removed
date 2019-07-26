@@ -60,7 +60,7 @@ class StringObject : public JSObject
 
 
 
-    UnrootedShape assignInitialShape(JSContext *cx);
+    RawShape assignInitialShape(JSContext *cx);
 };
 
 } 

@@ -327,7 +327,7 @@ obj_toString(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    UnrootedString str = js::obj_toStringHelper(cx, obj);
+    RawString str = js::obj_toStringHelper(cx, obj);
     if (!str)
         return false;
     args.rval().setString(str);

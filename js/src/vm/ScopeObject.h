@@ -67,13 +67,13 @@ class StaticScopeIter
 
     
     bool hasDynamicScopeObject() const;
-    UnrootedShape scopeShape() const;
+    RawShape scopeShape() const;
 
     enum Type { BLOCK, FUNCTION, NAMED_LAMBDA };
     Type type() const;
 
     StaticBlockObject &block() const;
-    UnrootedScript funScript() const;
+    RawScript funScript() const;
 };
 
 
@@ -100,7 +100,7 @@ struct ScopeCoordinate
 
 
 
-extern UnrootedShape
+extern RawShape
 ScopeCoordinateToStaticScopeShape(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
@@ -348,8 +348,8 @@ class StaticBlockObject : public BlockObject
     void initPrevBlockChainFromParser(StaticBlockObject *prev);
     void resetPrevBlockChainFromParser();
 
-    static UnrootedShape addVar(JSContext *cx, Handle<StaticBlockObject*> block, HandleId id,
-                                int index, bool *redeclared);
+    static RawShape addVar(JSContext *cx, Handle<StaticBlockObject*> block, HandleId id,
+                           int index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject

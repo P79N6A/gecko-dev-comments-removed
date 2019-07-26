@@ -89,10 +89,10 @@ class StringBuffer
 
 
 
-    js::UnrootedFlatString finishString();
+    js::RawFlatString finishString();
 
     
-    js::UnrootedAtom finishAtom();
+    js::RawAtom finishAtom();
 
     
 

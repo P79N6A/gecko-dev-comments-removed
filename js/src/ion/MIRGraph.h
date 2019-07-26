@@ -600,7 +600,7 @@ class MIRGraph
     MStart *osrStart() {
         return osrStart_;
     }
-    bool addScript(UnrootedScript script) {
+    bool addScript(RawScript script) {
         
         for (size_t i = 0; i < scripts_.length(); i++) {
             if (scripts_[i] == script)

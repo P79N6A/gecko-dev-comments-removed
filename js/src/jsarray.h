@@ -72,7 +72,7 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, RawObje
                     NewObjectKind newKind = GenericObject);
 
 
-extern UnrootedShape
+extern RawShape
 GetDenseArrayShape(JSContext *cx, HandleObject globalObj);
 
 extern JSBool

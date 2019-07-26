@@ -81,7 +81,7 @@ IonFrameIterator::frameSize() const
 }
 
 
-inline UnrootedScript
+inline RawScript
 GetTopIonJSScript(JSContext *cx, const SafepointIndex **safepointIndexOut, void **returnAddrOut)
 {
     AutoAssertNoGC nogc;

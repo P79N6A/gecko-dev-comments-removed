@@ -138,7 +138,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         
         
         
-        UnrootedScript script = iter.script();
+        RawScript script = iter.script();
         ion::ForbidCompilation(cx, script);
 #endif
 
@@ -1123,7 +1123,7 @@ fun_isGenerator(JSContext *cx, unsigned argc, Value *vp)
 
     bool result = false;
     if (fun->hasScript()) {
-        UnrootedScript script = fun->nonLazyScript();
+        RawScript script = fun->nonLazyScript();
         JS_ASSERT(script->length != 0);
         result = script->isGenerator;
     }

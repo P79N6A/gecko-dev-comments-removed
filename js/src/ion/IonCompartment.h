@@ -225,7 +225,7 @@ class IonActivation
 
 
 void InvalidateAll(FreeOp *fop, JSCompartment *comp);
-void FinishInvalidation(FreeOp *fop, UnrootedScript script);
+void FinishInvalidation(FreeOp *fop, RawScript script);
 
 } 
 } 
