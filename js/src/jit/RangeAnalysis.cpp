@@ -1330,13 +1330,6 @@ MDiv::computeRange(TempAllocator &alloc)
     
     if (lhs.lower() >= 0 && rhs.lower() >= 1) {
         setRange(new(alloc) Range(0, lhs.upper(), true, lhs.exponent()));
-
-        
-        if (specialization() == MIRType_Int32 &&
-            !lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart())
-        {
-            unsigned_ = true;
-        }
     } else if (unsigned_ && rhs.lower() >= 1) {
         
         

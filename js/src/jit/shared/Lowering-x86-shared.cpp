@@ -148,7 +148,7 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
             LDivPowTwoI *lir;
             if (!div->canBeNegativeDividend()) {
                 
-                lir = new LDivPowTwoI(lhs, shift);
+                lir = new LDivPowTwoI(lhs, lhs, shift);
             } else {
                 
                 
