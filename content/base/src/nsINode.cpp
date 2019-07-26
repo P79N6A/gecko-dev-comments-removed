@@ -774,10 +774,10 @@ nsINode::CompareDocumentPosition(nsINode& aOtherNode) const
   const nsINode *node1 = &aOtherNode, *node2 = this;
 
   
-  const Attr* attr1 = nullptr;
+  const nsIAttribute* attr1 = nullptr;
   if (node1->IsNodeOfType(nsINode::eATTRIBUTE)) {
-    attr1 = static_cast<const Attr*>(node1);
-    const nsIContent* elem = attr1->GetElement();
+    attr1 = static_cast<const nsIAttribute*>(node1);
+    const nsIContent* elem = attr1->GetContent();
     
     
     if (elem) {
@@ -786,8 +786,8 @@ nsINode::CompareDocumentPosition(nsINode& aOtherNode) const
     }
   }
   if (node2->IsNodeOfType(nsINode::eATTRIBUTE)) {
-    const Attr* attr2 = static_cast<const Attr*>(node2);
-    const nsIContent* elem = attr2->GetElement();
+    const nsIAttribute* attr2 = static_cast<const nsIAttribute*>(node2);
+    const nsIContent* elem = attr2->GetContent();
     if (elem == node1 && attr1) {
       
       
