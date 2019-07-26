@@ -3,7 +3,6 @@
 
 
 
-#include "ipc/AutoOpenSurface.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/RefPtr.h"

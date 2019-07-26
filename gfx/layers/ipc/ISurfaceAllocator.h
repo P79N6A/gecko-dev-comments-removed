@@ -40,6 +40,9 @@ namespace mozilla {
 namespace ipc {
 class Shmem;
 }
+namespace gfx {
+class DataSourceSurface;
+}
 
 namespace layers {
 
@@ -68,6 +71,9 @@ mozilla::ipc::SharedMemory::SharedMemoryType OptimalShmemType();
 bool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
 bool IsSurfaceDescriptorOwned(const SurfaceDescriptor& aDescriptor);
 bool ReleaseOwnedSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
+
+TemporaryRef<gfx::DrawTarget> GetDrawTargetForDescriptor(const SurfaceDescriptor& aDescriptor);
+TemporaryRef<gfx::DataSourceSurface> GetSurfaceForDescriptor(const SurfaceDescriptor& aDescriptor);
 
 
 

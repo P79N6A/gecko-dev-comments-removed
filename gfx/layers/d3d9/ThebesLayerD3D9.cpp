@@ -9,8 +9,6 @@
 
 #include "mozilla/ArrayUtils.h"
 
-#include "ipc/AutoOpenSurface.h"
-
 #include "ThebesLayerD3D9.h"
 #include "gfxPlatform.h"
 
