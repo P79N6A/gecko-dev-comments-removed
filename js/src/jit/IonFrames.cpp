@@ -1555,6 +1555,7 @@ InlineFrameIteratorMaybeGC<allowGC>::resetOn(const IonFrameIterator *iter)
 {
     frame_ = iter;
     framesRead_ = 0;
+    frameCount_ = UINT32_MAX;
 
     if (iter) {
         start_ = SnapshotIterator(*iter);
@@ -1582,8 +1583,15 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
 
     
     
-    unsigned remaining = start_.frameCount() - framesRead_ - 1;
-    for (unsigned i = 0; i < remaining; i++) {
+
+    
+    
+    
+    
+    size_t remaining = (frameCount_ != UINT32_MAX) ? frameNo() - 1 : SIZE_MAX;
+
+    size_t i = 1;
+    for (; i <= remaining && si_.moreFrames(); i++) {
         JS_ASSERT(IsIonInlinablePC(pc_));
 
         
@@ -1621,6 +1629,14 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         script_ = callee_->existingScript();
 
         pc_ = script_->offsetToPC(si_.pcOffset());
+    }
+
+    
+    
+    
+    if (frameCount_ == UINT32_MAX) {
+        MOZ_ASSERT(!si_.moreFrames());
+        frameCount_ = i;
     }
 
     framesRead_++;

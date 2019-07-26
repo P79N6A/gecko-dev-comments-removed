@@ -413,7 +413,14 @@ class InlineFrameIteratorMaybeGC
     const IonFrameIterator *frame_;
     SnapshotIterator start_;
     SnapshotIterator si_;
-    unsigned framesRead_;
+    uint32_t framesRead_;
+
+    
+    
+    
+    
+    uint32_t frameCount_;
+
     typename MaybeRooted<JSFunction*, allowGC>::RootType callee_;
     typename MaybeRooted<JSScript*, allowGC>::RootType script_;
     jsbytecode *pc_;
@@ -446,6 +453,7 @@ class InlineFrameIteratorMaybeGC
     InlineFrameIteratorMaybeGC(JSContext *cx, const InlineFrameIteratorMaybeGC *iter)
       : frame_(iter ? iter->frame_ : nullptr),
         framesRead_(0),
+        frameCount_(iter ? iter->frameCount_ : UINT32_MAX),
         callee_(cx),
         script_(cx)
     {
@@ -459,7 +467,7 @@ class InlineFrameIteratorMaybeGC
     }
 
     bool more() const {
-        return frame_ && framesRead_ < start_.frameCount();
+        return frame_ && framesRead_ < frameCount_;
     }
     JSFunction *callee() const {
         JS_ASSERT(callee_);
@@ -601,7 +609,8 @@ class InlineFrameIteratorMaybeGC
 
     
     size_t frameNo() const {
-        return start_.frameCount() - framesRead_;
+        MOZ_ASSERT(frameCount_ != UINT32_MAX);
+        return frameCount_ - framesRead_;
     }
 
   private:
