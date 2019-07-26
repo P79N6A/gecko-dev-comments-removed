@@ -44,6 +44,9 @@
 #endif
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
+
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 #ifdef XP_UNIX
 #include <ctype.h>
@@ -131,6 +134,30 @@ nsXREDirProvider::SetProfile(nsIFile* aDir, nsIFile* aLocalDir)
   rv = EnsureDirectoryExists(aLocalDir);
   if (NS_FAILED(rv))
     return rv;
+
+#ifdef XP_MACOSX
+  bool same;
+  if (NS_SUCCEEDED(aDir->Equals(aLocalDir, &same)) && !same) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsAutoCString cacheDir;
+    if (NS_SUCCEEDED(aLocalDir->GetNativePath(cacheDir))) {
+      if (chflags(cacheDir.get(), UF_HIDDEN)) {
+        NS_WARNING("Failed to set Cache directory to HIDDEN.");
+      }
+    }
+  }
+#endif
 
   mProfileDir = aDir;
   mProfileLocalDir = aLocalDir;
