@@ -4742,8 +4742,8 @@ var BrowserEventHandler = {
         let rect = rects[0];
         
         if (rect.width != 0 && rect.height != 0) {
-          aX = Math.min(Math.floor(rect.left + rect.width), Math.max(Math.ceil(rect.left), aX));
-          aY = Math.min(Math.floor(rect.top + rect.height), Math.max(Math.ceil(rect.top),  aY));
+          aX = Math.min(Math.ceil(rect.left + rect.width) - 1, Math.max(Math.ceil(rect.left), aX));
+          aY = Math.min(Math.ceil(rect.top + rect.height) - 1, Math.max(Math.ceil(rect.top),  aY));
         }
       }
     }
