@@ -5,6 +5,9 @@
 
 
 
+#ifndef nsGenericHTMLFrameElement_h
+#define nsGenericHTMLFrameElement_h
+
 #include "nsGenericHTMLElement.h"
 #include "nsIFrameLoader.h"
 #include "nsIMozBrowserFrame.h"
@@ -109,3 +112,5 @@ protected:
   bool                    mBrowserFrameListenersRegistered;
   bool                    mFrameLoaderCreationDisallowed;
 };
+
+#endif 
