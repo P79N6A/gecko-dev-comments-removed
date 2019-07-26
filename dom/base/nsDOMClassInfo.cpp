@@ -2652,7 +2652,7 @@ static JSClass sGlobalScopePolluterClass = {
 
 JSBool
 nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
-                                           JSHandleId id, JSMutableHandleValue vp)
+                                           JSHandleId id, JS::MutableHandle<JS::Value> vp)
 {
   
   
@@ -2675,7 +2675,7 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
 
 static JSBool
 ChildWindowGetter(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                  JSMutableHandleValue vp)
+                  JS::MutableHandle<JS::Value> vp)
 {
   MOZ_ASSERT(JSID_IS_STRING(id));
   
@@ -3158,7 +3158,7 @@ static const IDBConstant sIDBConstants[] = {
 };
 
 static JSBool
-IDBConstantGetter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
+IDBConstantGetter(JSContext *cx, JSHandleObject obj, JSHandleId id, JS::MutableHandle<JS::Value> vp)
 {
   JSString *idstr = JSID_TO_STRING(id);
   unsigned index;
@@ -4295,7 +4295,7 @@ LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
 template<class Interface>
 static JSBool
 LocationSetter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
-               JSMutableHandleValue vp)
+               JS::MutableHandle<JS::Value> vp)
 {
   nsresult rv = LocationSetterGuts<Interface>(cx, obj, vp.address());
   if (NS_FAILED(rv)) {
@@ -4308,7 +4308,7 @@ LocationSetter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
 
 static JSBool
 LocationSetterUnwrapper(JSContext *cx, JSHandleObject obj_, JSHandleId id, JSBool strict,
-                        JSMutableHandleValue vp)
+                        JS::MutableHandle<JS::Value> vp)
 {
   JS::RootedObject obj(cx, obj_);
 
@@ -5701,7 +5701,7 @@ nsHTMLDocumentSH::GetDocumentAllNodeList(JSContext *cx,
 
 JSBool
 nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSHandleObject obj_,
-                                         JSHandleId id, JSMutableHandleValue vp)
+                                         JSHandleId id, JS::MutableHandle<JS::Value> vp)
 {
   JS::Rooted<JSObject*> obj(cx, obj_);
 
