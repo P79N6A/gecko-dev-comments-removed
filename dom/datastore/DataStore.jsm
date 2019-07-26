@@ -19,10 +19,6 @@ const REVISION_UPDATED = "updated";
 const REVISION_REMOVED = "removed";
 const REVISION_VOID = "void";
 
-
-
-const MAX_REQUESTS = 25;
-
 Cu.import("resource://gre/modules/DataStoreDB.jsm");
 Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 Cu.import('resource://gre/modules/Services.jsm');
@@ -74,42 +70,14 @@ DataStore.prototype = {
     });
   },
 
-  getInternal: function(aStore, aIds, aCallback) {
-    debug("GetInternal: " + aIds.toSource());
+  getInternal: function(aWindow, aResolve, aStore, aId) {
+    debug("GetInternal " + aId);
 
-    
-    let results = new Array(aIds.length);
-
-    
-    let pendingIds = aIds.length;
-    let indexPos = 0;
-
-    function getInternalSuccess(aEvent, aPos) {
+    let request = aStore.get(aId);
+    request.onsuccess = function(aEvent) {
       debug("GetInternal success. Record: " + aEvent.target.result);
-      results[aPos] = aEvent.target.result;
-      if (!--pendingIds) {
-        aCallback(results);
-        return;
-      }
-
-      if (indexPos < aIds.length) {
-        
-        let count = 0;
-        while (indexPos < aIds.length && ++count < MAX_REQUESTS) {
-          getInternalRequest();
-        }
-      }
-    }
-
-    function getInternalRequest() {
-      let currentPos = indexPos++;
-      let request = aStore.get(aIds[currentPos]);
-      request.onsuccess = function(aEvent) {
-        getInternalSuccess(aEvent, currentPos);
-      }
-    }
-
-    getInternalRequest();
+      aResolve(ObjectWrapper.wrap(aEvent.target.result, aWindow));
+    };
   },
 
   updateInternal: function(aResolve, aStore, aRevisionStore, aId, aObj) {
@@ -193,17 +161,6 @@ DataStore.prototype = {
     };
   },
 
-  getLengthInternal: function(aResolve, aStore) {
-    debug("GetLengthInternal");
-
-    let request = aStore.count();
-    request.onsuccess = function(aEvent) {
-      debug("GetLengthInternal success: " + aEvent.target.result);
-      
-      aResolve(aEvent.target.result);
-    };
-  },
-
   addRevision: function(aRevisionStore, aId, aType, aSuccessCb) {
     let self = this;
     this.db.addRevision(aRevisionStore, aId, aType,
@@ -248,6 +205,16 @@ DataStore.prototype = {
     );
   },
 
+  throwInvalidArg: function(aWindow) {
+    return aWindow.Promise.reject(
+      new aWindow.DOMError("SyntaxError", "Non-numeric or invalid id"));
+  },
+
+  throwReadOnly: function(aWindow) {
+    return aWindow.Promise.reject(
+      new aWindow.DOMError("ReadOnlyError", "DataStore in readonly mode"));
+  },
+
   exposeObject: function(aWindow, aReadOnly) {
     let self = this;
     let object = {
@@ -268,18 +235,15 @@ DataStore.prototype = {
       },
 
       get: function DS_get(aId) {
-        aId = this.parseIds(aId);
-        if (aId === null) {
-          return this.throwInvalidArg(aWindow);
+        aId = parseInt(aId);
+        if (isNaN(aId) || aId <= 0) {
+          return self.throwInvalidArg(aWindow);
         }
 
         
         return self.newDBPromise(aWindow, "readonly",
           function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-            self.getInternal(aStore, Array.isArray(aId) ?  aId : [ aId ],
-                             function(aResults) {
-              aResolve(Array.isArray(aId) ? aResults : aResults[0]);
-            });
+            self.getInternal(aWindow, aResolve, aStore, aId);
           }
         );
       },
@@ -287,11 +251,11 @@ DataStore.prototype = {
       update: function DS_update(aId, aObj) {
         aId = parseInt(aId);
         if (isNaN(aId) || aId <= 0) {
-          return this.throwInvalidArg(aWindow);
+          return self.throwInvalidArg(aWindow);
         }
 
         if (aReadOnly) {
-          return this.throwReadOnly(aWindow);
+          return self.throwReadOnly(aWindow);
         }
 
         
@@ -304,7 +268,7 @@ DataStore.prototype = {
 
       add: function DS_add(aObj) {
         if (aReadOnly) {
-          return this.throwReadOnly(aWindow);
+          return self.throwReadOnly(aWindow);
         }
 
         
@@ -318,11 +282,11 @@ DataStore.prototype = {
       remove: function DS_remove(aId) {
         aId = parseInt(aId);
         if (isNaN(aId) || aId <= 0) {
-          return this.throwInvalidArg(aWindow);
+          return self.throwInvalidArg(aWindow);
         }
 
         if (aReadOnly) {
-          return this.throwReadOnly(aWindow);
+          return self.throwReadOnly(aWindow);
         }
 
         
@@ -335,7 +299,7 @@ DataStore.prototype = {
 
       clear: function DS_clear() {
         if (aReadOnly) {
-          return this.throwReadOnly(aWindow);
+          return self.throwReadOnly(aWindow);
         }
 
         
@@ -446,15 +410,6 @@ DataStore.prototype = {
         });
       },
 
-      getLength: function DS_getLength() {
-        
-        return self.newDBPromise(aWindow, "readonly",
-          function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-            self.getLengthInternal(aResolve, aStore);
-          }
-        );
-      },
-
       set onchange(aCallback) {
         debug("Set OnChange");
         this.onchangeCb = aCallback;
@@ -482,6 +437,10 @@ DataStore.prototype = {
         }
       },
 
+      
+
+
+
       __exposedProps__: {
         name: 'r',
         owner: 'r',
@@ -493,42 +452,10 @@ DataStore.prototype = {
         clear: 'r',
         revisionId: 'r',
         getChanges: 'r',
-        getLength: 'r',
         onchange: 'rw',
         addEventListener: 'r',
         removeEventListener: 'r'
       },
-
-      throwInvalidArg: function(aWindow) {
-        return aWindow.Promise.reject(
-          new aWindow.DOMError("SyntaxError", "Non-numeric or invalid id"));
-      },
-
-      throwReadOnly: function(aWindow) {
-        return aWindow.Promise.reject(
-          new aWindow.DOMError("ReadOnlyError", "DataStore in readonly mode"));
-      },
-
-      parseIds: function(aId) {
-        function parseId(aId) {
-          aId = parseInt(aId);
-          return (isNaN(aId) || aId <= 0) ? null : aId;
-        }
-
-        if (!Array.isArray(aId)) {
-          return parseId(aId);
-        }
-
-        for (let i = 0; i < aId.length; ++i) {
-          aId[i] = parseId(aId[i]);
-          if (aId[i] === null) {
-            return null;
-          }
-        }
-
-        return aId;
-      },
-
 
       receiveMessage: function(aMessage) {
         debug("receiveMessage");
