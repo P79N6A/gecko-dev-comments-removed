@@ -308,5 +308,52 @@ FloatRegisters::FromName(const char *name)
     return Invalid;
 }
 
+FloatRegisterSet
+VFPRegister::ReduceSetForPush(const FloatRegisterSet &s)
+{
+    FloatRegisterSet mod;
+    for (TypedRegisterIterator<FloatRegister> iter(s); iter.more(); iter++) {
+        if ((*iter).isSingle()) {
+            
+            mod.addUnchecked(*iter);
+        } else if ((*iter).id() < 16) {
+            
+            mod.addUnchecked((*iter).singleOverlay(0));
+            mod.addUnchecked((*iter).singleOverlay(1));
+        } else {
+            
+            mod.addUnchecked(*iter);
+        }
+    }
+    return mod;
+}
+
+uint32_t
+VFPRegister::GetSizeInBytes(const FloatRegisterSet &s)
+{
+    uint64_t bits = s.bits();
+    uint32_t ret = mozilla::CountPopulation32(bits&0xffffffff) * sizeof(float);
+    ret +=  mozilla::CountPopulation32(bits >> 32) * sizeof(double);
+    return ret;
+}
+uint32_t
+VFPRegister::GetPushSizeInBytes(const FloatRegisterSet &s)
+{
+    FloatRegisterSet ss = s.reduceSetForPush();
+    uint64_t bits = ss.bits();
+    uint32_t ret = mozilla::CountPopulation32(bits&0xffffffff) * sizeof(float);
+    ret +=  mozilla::CountPopulation32(bits >> 32) * sizeof(double);
+    return ret;
+}
+uint32_t
+VFPRegister::getRegisterDumpOffsetInBytes()
+{
+    if (isSingle())
+        return id() * sizeof(float);
+    if (isDouble())
+        return id() * sizeof(double);
+    MOZ_ASSUME_UNREACHABLE();
+}
+
 } 
 } 
