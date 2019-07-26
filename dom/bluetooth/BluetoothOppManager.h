@@ -104,7 +104,6 @@ private:
 
 
   bool mConnected;
-  int mConnectionId;
   nsString mConnectedDeviceAddress;
 
   
