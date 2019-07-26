@@ -130,7 +130,7 @@ void nsSupportsArray::GrowArrayBy(int32_t aGrowBy)
     
     
     if (newSize & (newSize - 1))
-      newSize = PR_BIT(PR_CeilingLog2(newSize));
+      newSize = 1u << PR_CeilingLog2(newSize);
 
     newCount = newSize / sizeof(mArray[0]);
   }

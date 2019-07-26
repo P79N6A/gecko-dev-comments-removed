@@ -170,13 +170,13 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                         bool aForceLoad = false);
 
     enum Capabilities {
-      eSupportImages       = PR_BIT(0), 
-      eSupportPlugins      = PR_BIT(1), 
-      eSupportDocuments    = PR_BIT(2), 
+      eSupportImages       = 1u << 0, 
+      eSupportPlugins      = 1u << 1, 
+      eSupportDocuments    = 1u << 2, 
                                         
                                         
-      eSupportSVG          = PR_BIT(3), 
-      eSupportClassID      = PR_BIT(4), 
+      eSupportSVG          = 1u << 3, 
+      eSupportClassID      = 1u << 4, 
 
       
       
@@ -184,7 +184,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       
       
-      eAllowPluginSkipChannel  = PR_BIT(5)
+      eAllowPluginSkipChannel  = 1u << 5
     };
 
     
@@ -221,17 +221,17 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eParamNoChange           = 0,
       
       
-      eParamChannelChanged     = PR_BIT(0),
+      eParamChannelChanged     = 1u << 0,
       
       
-      eParamStateChanged       = PR_BIT(1),
-      
-      
-      
+      eParamStateChanged       = 1u << 1,
       
       
       
-      eParamContentTypeChanged = PR_BIT(2)
+      
+      
+      
+      eParamContentTypeChanged = 1u << 2
     };
 
     
