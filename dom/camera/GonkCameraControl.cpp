@@ -29,6 +29,7 @@
 #include "nsThread.h"
 #include <media/MediaProfiles.h>
 #include "mozilla/FileUtils.h"
+#include "nsAlgorithm.h"
 #include <media/mediaplayer.h>
 #include "nsDirectoryServiceDefs.h" 
 #include "nsPrintfCString.h"
@@ -72,6 +73,13 @@ static const char* getKeyText(uint32_t aKey)
       return CameraParameters::KEY_FOCUS_DISTANCES;
     case CAMERA_PARAM_EXPOSURECOMPENSATION:
       return CameraParameters::KEY_EXPOSURE_COMPENSATION;
+    case CAMERA_PARAM_THUMBNAILWIDTH:
+      return CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH;
+    case CAMERA_PARAM_THUMBNAILHEIGHT:
+      return CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT;
+    case CAMERA_PARAM_THUMBNAILQUALITY:
+      return CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY;
+
     case CAMERA_PARAM_SUPPORTED_PREVIEWSIZES:
       return CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES;
     case CAMERA_PARAM_SUPPORTED_VIDEOSIZES:
@@ -104,6 +112,8 @@ static const char* getKeyText(uint32_t aKey)
       return CameraParameters::KEY_ZOOM_SUPPORTED;
     case CAMERA_PARAM_SUPPORTED_ZOOMRATIOS:
       return CameraParameters::KEY_ZOOM_RATIOS;
+    case CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES:
+      return CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES;
     default:
       return nullptr;
   }
@@ -174,6 +184,8 @@ nsGonkCameraControl::nsGonkCameraControl(uint32_t aCameraId, nsIThread* aCameraT
   , mDeferConfigUpdate(false)
   , mWidth(0)
   , mHeight(0)
+  , mLastPictureWidth(0)
+  , mLastPictureHeight(0)
   , mFormat(PREVIEW_FORMAT_UNKNOWN)
   , mFps(30)
   , mDiscardedFrameCount(0)
@@ -208,6 +220,7 @@ nsGonkCameraControl::Init()
   const char* const BAD_PREVIEW_FORMAT = "yuv420sp";
   mParams.setPreviewFormat(PREVIEW_FORMAT);
   mParams.setPreviewFrameRate(mFps);
+  PushParametersImpl();
 
   
   PullParametersImpl();
@@ -402,14 +415,50 @@ nsGonkCameraControl::GetParameter(uint32_t aKey, nsTArray<CameraRegion>& aRegion
     r = aRegions.AppendElement();
     if (sscanf(p, "(%d,%d,%d,%d,%u)", &r->top, &r->left, &r->bottom, &r->right, &r->weight) != 5) {
       DOM_CAMERA_LOGE("%s:%d : region tuple has bad format: '%s'\n", __func__, __LINE__, p);
-      goto GetParameter_error;
+      aRegions.Clear();
+      return;
     }
   }
 
   return;
+}
 
-GetParameter_error:
-  aRegions.Clear();
+void
+nsGonkCameraControl::GetParameter(uint32_t aKey, nsTArray<CameraSize>& aSizes)
+{
+  const char* key = getKeyText(aKey);
+  if (!key) {
+    return;
+  }
+
+  RwAutoLockRead lock(mRwLock);
+
+  const char* value = mParams.get(key);
+  DOM_CAMERA_LOGI("key='%s' --> value='%s'\n", key, value);
+  if (!value) {
+    return;
+  }
+
+  const char* p = value;
+  CameraSize* s;
+
+  
+  while (p) {
+    s = aSizes.AppendElement();
+    if (sscanf(p, "%dx%d", &s->width, &s->height) != 2) {
+      DOM_CAMERA_LOGE("%s:%d : size tuple has bad format: '%s'\n", __func__, __LINE__, p);
+      aSizes.Clear();
+      return;
+    }
+    
+    p = strchr(p, ',');
+    if (p) {
+      
+      ++p;
+    }
+  }
+
+  return;
 }
 
 nsresult
@@ -524,6 +573,20 @@ nsGonkCameraControl::SetParameter(uint32_t aKey, const nsTArray<CameraRegion>& a
   PushParameters();
 }
 
+void
+nsGonkCameraControl::SetParameter(uint32_t aKey, int aValue)
+{
+  const char* key = getKeyText(aKey);
+  if (!key) {
+    return;
+  }
+  {
+    RwAutoLockWrite lock(mRwLock);
+    mParams.set(key, aValue);
+  }
+  PushParameters();
+}
+
 nsresult
 nsGonkCameraControl::GetPreviewStreamImpl(GetPreviewStreamTask* aGetPreviewStream)
 {
@@ -615,6 +678,45 @@ nsGonkCameraControl::AutoFocusImpl(AutoFocusTask* aAutoFocus)
   return NS_OK;
 }
 
+void
+nsGonkCameraControl::SetupThumbnail(uint32_t aPictureWidth, uint32_t aPictureHeight, uint32_t aPercentQuality)
+{
+  
+
+
+
+  uint32_t smallestArea = UINT_MAX;
+  uint32_t smallestIndex = UINT_MAX;
+  nsAutoTArray<CameraSize, 8> thumbnailSizes;
+  GetParameter(CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES, thumbnailSizes);
+
+  for (uint32_t i = 0; i < thumbnailSizes.Length(); ++i) {
+    uint32_t area = thumbnailSizes[i].width * thumbnailSizes[i].height;
+    if (area != 0
+      && area < smallestArea
+      && thumbnailSizes[i].width * aPictureHeight / thumbnailSizes[i].height == aPictureWidth
+    ) {
+      smallestArea = area;
+      smallestIndex = i;
+    }
+  }
+
+  aPercentQuality = clamped<uint32_t>(aPercentQuality, 1, 100);
+  SetParameter(CAMERA_PARAM_THUMBNAILQUALITY, static_cast<int>(aPercentQuality));
+
+  if (smallestIndex != UINT_MAX) {
+    uint32_t w = thumbnailSizes[smallestIndex].width;
+    uint32_t h = thumbnailSizes[smallestIndex].height;
+    DOM_CAMERA_LOGI("Using thumbnail size: %ux%u, quality: %u %%\n", w, h, aPercentQuality);
+    if (w > INT_MAX || h > INT_MAX) {
+      DOM_CAMERA_LOGE("Thumbnail dimension is too big, will use defaults\n");
+      return;
+    }
+    SetParameter(CAMERA_PARAM_THUMBNAILWIDTH, static_cast<int>(w));
+    SetParameter(CAMERA_PARAM_THUMBNAILHEIGHT, static_cast<int>(h));
+  }
+}
+
 nsresult
 nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
 {
@@ -641,16 +743,24 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
   
   mDeferConfigUpdate = true;
 
-  
+  if (aTakePicture->mSize.width != mLastPictureWidth || aTakePicture->mSize.height != mLastPictureHeight) {
+    
 
 
 
 
-  if (aTakePicture->mSize.width && aTakePicture->mSize.height) {
-    nsCString s;
-    s.AppendPrintf("%dx%d", aTakePicture->mSize.width, aTakePicture->mSize.height);
-    DOM_CAMERA_LOGI("setting picture size to '%s'\n", s.get());
-    SetParameter(CameraParameters::KEY_PICTURE_SIZE, s.get());
+    if (aTakePicture->mSize.width && aTakePicture->mSize.height) {
+      nsCString s;
+      s.AppendPrintf("%ux%u", aTakePicture->mSize.width, aTakePicture->mSize.height);
+      DOM_CAMERA_LOGI("setting picture size to '%s'\n", s.get());
+      SetParameter(CameraParameters::KEY_PICTURE_SIZE, s.get());
+
+      
+      SetupThumbnail(aTakePicture->mSize.width, aTakePicture->mSize.height, 60);
+    }
+
+    mLastPictureWidth = aTakePicture->mSize.width;
+    mLastPictureHeight = aTakePicture->mSize.height;
   }
 
   
