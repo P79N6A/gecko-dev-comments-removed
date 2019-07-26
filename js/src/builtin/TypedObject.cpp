@@ -1389,62 +1389,6 @@ js_InitTypedObjectDummy(JSContext *cx, HandleObject obj)
 
 
 
-
-
-
-
-
-
-
-
-
- bool
-TypedObjectModuleObject::getSuitableClaspAndProto(JSContext *cx,
-                                                  TypeDescr::Kind kind,
-                                                  const Class **clasp,
-                                                  MutableHandleObject proto)
-{
-    Rooted<GlobalObject *> global(cx, cx->global());
-    JS_ASSERT(global);
-    switch (kind) {
-      case TypeDescr::Scalar:
-        *clasp = &ScalarTypeDescr::class_;
-        proto.set(global->getOrCreateFunctionPrototype(cx));
-        break;
-
-      case TypeDescr::Reference:
-        *clasp = &ReferenceTypeDescr::class_;
-        proto.set(global->getOrCreateFunctionPrototype(cx));
-        break;
-
-      case TypeDescr::X4:
-        *clasp = &X4TypeDescr::class_;
-        proto.set(global->getOrCreateFunctionPrototype(cx));
-        break;
-
-      case TypeDescr::Struct:
-        *clasp = &StructTypeDescr::class_;
-        proto.set(&global->getTypedObjectModule().getSlot(StructTypePrototype).toObject());
-        break;
-
-      case TypeDescr::SizedArray:
-        *clasp = &SizedArrayTypeDescr::class_;
-        proto.set(&global->getTypedObjectModule().getSlot(ArrayTypePrototype).toObject());
-        break;
-
-      case TypeDescr::UnsizedArray:
-        *clasp = &UnsizedArrayTypeDescr::class_;
-        proto.set(&global->getTypedObjectModule().getSlot(ArrayTypePrototype).toObject());
-        break;
-    }
-
-    return !!proto;
-}
-
-
-
-
-
  TypedObject *
 TypedObject::createUnattached(JSContext *cx,
                              HandleTypeDescr descr,
