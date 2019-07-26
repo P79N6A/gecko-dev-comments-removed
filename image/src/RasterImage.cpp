@@ -617,7 +617,8 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
       NS_WARNING("RasterImage::AdvanceFrame(): Compositing of frame failed");
       nextFrame->SetCompositingFailed(true);
       mAnim->currentAnimationFrameIndex = nextFrameIndex;
-      mAnim->currentAnimationFrameTime = aTime;
+      mAnim->currentAnimationFrameTime = mAnim->currentAnimationFrameTime +
+                                         TimeDuration::FromMilliseconds(timeout);
       return false;
     }
 
@@ -626,7 +627,8 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
 
   
   mAnim->currentAnimationFrameIndex = nextFrameIndex;
-  mAnim->currentAnimationFrameTime = aTime;
+  mAnim->currentAnimationFrameTime = mAnim->currentAnimationFrameTime +
+                                     TimeDuration::FromMilliseconds(timeout);
 
   return true;
 }
