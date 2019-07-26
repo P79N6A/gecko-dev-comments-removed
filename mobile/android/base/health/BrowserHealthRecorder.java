@@ -84,9 +84,10 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
     private final AtomicBoolean orphanChecked = new AtomicBoolean(false);
     private volatile int env = -1;
+
+    private ContentProviderClient client;
     private volatile HealthReportDatabaseStorage storage;
     private final ProfileInformationCache profileCache;
-    private ContentProviderClient client;
     private final EventDispatcher dispatcher;
 
     public static class SessionInformation {
@@ -238,7 +239,12 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
         this.storage = EnvironmentBuilder.getStorage(this.client, profilePath);
         if (this.storage == null) {
-            throw new IllegalStateException("No storage in health recorder!");
+            
+            
+            
+            
+            this.client.release();
+            this.client = null;
         }
 
         this.profileCache = new ProfileInformationCache(profilePath);
@@ -333,6 +339,10 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
         if (this.env != -1) {
             return this.env;
+        }
+        if (this.storage == null) {
+            
+            return -1;
         }
         return this.env = EnvironmentBuilder.registerCurrentEnvironment(this.storage,
                                                                         this.profileCache);
@@ -467,6 +477,9 @@ public class BrowserHealthRecorder implements GeckoEventListener {
                     
                     if (storage == null) {
                         Log.w(LOG_TAG, "Storage is null during init; shutting down?");
+                        if (state == State.INITIALIZING) {
+                            state = State.INITIALIZATION_FAILED;
+                        }
                         return;
                     }
 
