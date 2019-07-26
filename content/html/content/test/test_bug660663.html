@@ -21,8 +21,9 @@
 reflectLimitedEnumerated({
   element: document.createElement("div"),
   attribute: "dir",
-  validValues: ["ltr", "rtl", "auto"],
-  invalidValues: ["cheesecake", ""]
+  validValues: ["ltr", "rtl"],
+  invalidValues: ["cheesecake", ""],
+  unsupportedValues: ["auto"]
 });
 </script>
 </pre>

@@ -130,6 +130,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::directionality;
 
 nsEventStates
 Element::IntrinsicState() const
@@ -1162,21 +1163,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   
   if (IsHTML()) {
-    if (aParent && aParent->NodeOrAncestorHasDirAuto()) {
-      SetAncestorHasDirAuto();
-      
-      
-      
-      if (GetFirstChild()) {
-        WalkAncestorsResetAutoDirection(this);
-      }
-    }
-
-    if (!HasDirAuto()) {
-      
-      
-      RecomputeDirectionality(this, false);
-    }
+    RecomputeDirectionality(this, false);
   }
 
   
@@ -1367,7 +1354,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   
-  if (IsHTML() && !HasDirAuto()) {
+  if (IsHTML()) {
     RecomputeDirectionality(this, false);
   }
 
@@ -1840,13 +1827,7 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
     aValueForAfterSetAttr.SetTo(aParsedValue);
   }
 
-  bool hadValidDir = false;
-
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::dir) {
-      hadValidDir = HasValidDir() || NodeInfo()->Equals(nsGkAtoms::bdi);
-    }
-
     
     
     if (!IsAttributeMapped(aName) ||
@@ -1882,10 +1863,6 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
   if (aCallAfterSetAttr) {
     rv = AfterSetAttr(aNamespaceID, aName, &aValueForAfterSetAttr, aNotify);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-      OnSetDirAttr(this, &aValueForAfterSetAttr, hadValidDir, aNotify);
-    }
   }
 
   if (aFireMutation) {
@@ -2088,12 +2065,6 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   
   nsMutationGuard::DidMutate();
 
-  bool hadValidDir = false;
-
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-    hadValidDir = HasValidDir() || NodeInfo()->Equals(nsGkAtoms::bdi);
-  }
-
   nsAttrValue oldValue;
   rv = mAttrsAndChildren.RemoveAttrAt(index, oldValue);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2115,10 +2086,6 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
   rv = AfterSetAttr(aNameSpaceID, aName, nullptr, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-    OnSetDirAttr(this, nullptr, hadValidDir, aNotify);
-  }
 
   if (hasMutationListeners) {
     nsCOMPtr<nsIDOMEventTarget> node = do_QueryObject(this);
