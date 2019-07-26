@@ -188,7 +188,7 @@ nsTableOuterFrame::GetChildLists(nsTArray<ChildList>* aLists) const
   mCaptionFrames.AppendIfNonempty(aLists, kCaptionList);
 }
 
-nsresult 
+void 
 nsTableOuterFrame::SetInitialChildList(ChildListID     aListID,
                                        nsFrameList&    aChildList)
 {
@@ -204,40 +204,28 @@ nsTableOuterFrame::SetInitialChildList(ChildListID     aListID,
                  "expected a table frame");
     mFrames.SetFrames(aChildList);
   }
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsTableOuterFrame::AppendFrames(ChildListID     aListID,
                                 nsFrameList&    aFrameList)
 {
-  nsresult rv;
+  
+  
+  MOZ_ASSERT(kCaptionList == aListID, "unexpected child list");
+  NS_ASSERTION(aFrameList.IsEmpty() ||
+               aFrameList.FirstChild()->GetType() == nsGkAtoms::tableCaptionFrame,
+               "appending non-caption frame to captionList");
+  mCaptionFrames.AppendFrames(this, aFrameList);
 
   
   
-  if (kCaptionList == aListID) {
-    NS_ASSERTION(aFrameList.IsEmpty() ||
-                 aFrameList.FirstChild()->GetType() == nsGkAtoms::tableCaptionFrame,
-                 "appending non-caption frame to captionList");
-    mCaptionFrames.AppendFrames(this, aFrameList);
-    rv = NS_OK;
-
-    
-    
-    PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                       NS_FRAME_HAS_DIRTY_CHILDREN);
-  }
-  else {
-    NS_PRECONDITION(false, "unexpected child list");
-    rv = NS_ERROR_UNEXPECTED;
-  }
-
-  return rv;
+  PresContext()->PresShell()->
+    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                     NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
-nsresult
+void
 nsTableOuterFrame::InsertFrames(ChildListID     aListID,
                                 nsIFrame*       aPrevFrame,
                                 nsFrameList&    aFrameList)
@@ -255,15 +243,15 @@ nsTableOuterFrame::InsertFrames(ChildListID     aListID,
     PresContext()->PresShell()->
       FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                        NS_FRAME_HAS_DIRTY_CHILDREN);
-    return NS_OK;
   }
   else {
+    
     NS_PRECONDITION(!aPrevFrame, "invalid previous frame");
-    return AppendFrames(aListID, aFrameList);
+    AppendFrames(aListID, aFrameList);
   }
 }
 
-nsresult
+void
 nsTableOuterFrame::RemoveFrame(ChildListID     aListID,
                                nsIFrame*       aOldFrame)
 {
@@ -283,8 +271,6 @@ nsTableOuterFrame::RemoveFrame(ChildListID     aListID,
   PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                      NS_FRAME_HAS_DIRTY_CHILDREN); 
-
-  return NS_OK;
 }
 
 void

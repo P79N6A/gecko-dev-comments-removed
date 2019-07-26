@@ -94,7 +94,7 @@ public:
 
 
 
-  virtual nsresult SetInitialChildList(ChildListID aListID,
+  virtual void SetInitialChildList(ChildListID aListID,
                                        nsFrameList& aChildList);
 
   
@@ -112,7 +112,7 @@ public:
 
 
 
-  virtual nsresult AppendFrames(ChildListID aListID, nsFrameList& aFrameList);
+  virtual void AppendFrames(ChildListID aListID, nsFrameList& aFrameList);
 
   
 
@@ -130,7 +130,7 @@ public:
 
 
 
-  virtual nsresult InsertFrames(ChildListID  aListID,
+  virtual void InsertFrames(ChildListID  aListID,
                                 nsIFrame*    aPrevFrame,
                                 nsFrameList& aFrameList);
 
@@ -149,7 +149,7 @@ public:
 
 
 
-  virtual nsresult RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
+  virtual void RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
 
   
 

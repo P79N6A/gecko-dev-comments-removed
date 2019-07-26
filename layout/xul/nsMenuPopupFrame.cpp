@@ -351,14 +351,14 @@ private:
   nsRefPtr<nsPresContext> mPresContext;
 };
 
-nsresult
+void
 nsMenuPopupFrame::SetInitialChildList(ChildListID  aListID,
                                       nsFrameList& aChildList)
 {
   
   if (aChildList.NotEmpty())
     mGeneratedChildren = true;
-  return nsBoxFrame::SetInitialChildList(aListID, aChildList);
+  nsBoxFrame::SetInitialChildList(aListID, aChildList);
 }
 
 bool

@@ -40,13 +40,12 @@ nsMathMLmfencedFrame::InheritAutomaticData(nsIFrame* aParent)
   return NS_OK;
 }
 
-nsresult
+void
 nsMathMLmfencedFrame::SetInitialChildList(ChildListID     aListID,
                                           nsFrameList&    aChildList)
 {
   
-  nsresult rv = nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
-  if (NS_FAILED(rv)) return rv;
+  nsMathMLContainerFrame::SetInitialChildList(aListID, aChildList);
 
   
   
@@ -56,7 +55,6 @@ nsMathMLmfencedFrame::SetInitialChildList(ChildListID     aListID,
   
   
   CreateFencesAndSeparators(PresContext());
-  return NS_OK;
 }
 
 nsresult

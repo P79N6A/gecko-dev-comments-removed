@@ -82,17 +82,17 @@ nsCanvasFrame::SetHasFocus(bool aHasFocus)
   return NS_OK;
 }
 
-nsresult
+void
 nsCanvasFrame::SetInitialChildList(ChildListID     aListID,
                                    nsFrameList&    aChildList)
 {
   NS_ASSERTION(aListID != kPrincipalList ||
                aChildList.IsEmpty() || aChildList.OnlyChild(),
                "Primary child list can have at most one frame in it");
-  return nsContainerFrame::SetInitialChildList(aListID, aChildList);
+  nsContainerFrame::SetInitialChildList(aListID, aChildList);
 }
 
-nsresult
+void
 nsCanvasFrame::AppendFrames(ChildListID     aListID,
                             nsFrameList&    aFrameList)
 {
@@ -102,12 +102,12 @@ nsCanvasFrame::AppendFrames(ChildListID     aListID,
                   mFrames.IsEmpty(), "already have a child frame");
   if (aListID != kPrincipalList) {
     
-    return NS_ERROR_INVALID_ARG;
+    return;  
   }
 
   if (!mFrames.IsEmpty()) {
     
-    return NS_ERROR_INVALID_ARG;
+    return; 
   }
 
   
@@ -121,37 +121,27 @@ nsCanvasFrame::AppendFrames(ChildListID     aListID,
   PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                      NS_FRAME_HAS_DIRTY_CHILDREN);
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsCanvasFrame::InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
                             nsFrameList&    aFrameList)
 {
   
   
-  NS_PRECONDITION(!aPrevFrame, "unexpected previous sibling frame");
-  if (aPrevFrame)
-    return NS_ERROR_UNEXPECTED;
-
-  return AppendFrames(aListID, aFrameList);
+  MOZ_ASSERT(!aPrevFrame, "unexpected previous sibling frame");
+  AppendFrames(aListID, aFrameList);
 }
 
-nsresult
+void
 nsCanvasFrame::RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame)
 {
-  NS_ASSERTION(aListID == kPrincipalList ||
-               aListID == kAbsoluteList, "unexpected child list ID");
-  if (aListID != kPrincipalList && aListID != kAbsoluteList) {
-    
-    return NS_ERROR_INVALID_ARG;
-  }
-
+  MOZ_ASSERT(aListID == kPrincipalList || aListID == kAbsoluteList,
+             "unexpected child list");
   if (aOldFrame != mFrames.FirstChild())
-    return NS_ERROR_FAILURE;
+    return; 
 
   
   mFrames.DestroyFrame(aOldFrame);
@@ -159,7 +149,6 @@ nsCanvasFrame::RemoveFrame(ChildListID     aListID,
   PresContext()->PresShell()->
     FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                      NS_FRAME_HAS_DIRTY_CHILDREN);
-  return NS_OK;
 }
 
 nsRect nsCanvasFrame::CanvasArea() const

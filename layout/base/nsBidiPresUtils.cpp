@@ -452,17 +452,11 @@ SplitInlineAncestors(nsContainerFrame* aParent,
       }
 
       
-      rv = newParent->InsertFrames(nsIFrame::kNoReflowPrincipalList, nullptr, tail);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
+      newParent->InsertFrames(nsIFrame::kNoReflowPrincipalList, nullptr, tail);
     
       
       nsFrameList temp(newParent, newParent);
-      rv = grandparent->InsertFrames(nsIFrame::kNoReflowPrincipalList, parent, temp);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
+      grandparent->InsertFrames(nsIFrame::kNoReflowPrincipalList, parent, temp);
     }
     
     frame = parent;
@@ -561,10 +555,7 @@ CreateContinuation(nsIFrame*  aFrame,
   
   
   nsFrameList temp(*aNewFrame, *aNewFrame);
-  rv = parent->InsertFrames(nsIFrame::kNoReflowPrincipalList, aFrame, temp);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  parent->InsertFrames(nsIFrame::kNoReflowPrincipalList, aFrame, temp);
 
   if (!aIsFluid) {  
     
