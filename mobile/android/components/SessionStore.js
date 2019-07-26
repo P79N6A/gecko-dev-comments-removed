@@ -99,18 +99,20 @@ SessionStore.prototype = {
         observerService.addObserver(this, "quit-application-requested", true);
         observerService.addObserver(this, "quit-application-granted", true);
         observerService.addObserver(this, "quit-application", true);
+        observerService.addObserver(this, "Session:Restore", true);
         break;
       case "final-ui-startup":
         observerService.removeObserver(this, "final-ui-startup");
         this.init();
         break;
-      case "domwindowopened":
+      case "domwindowopened": {
         let window = aSubject;
         window.addEventListener("load", function() {
           self.onWindowOpen(window);
           window.removeEventListener("load", arguments.callee, false);
         }, false);
         break;
+      }
       case "domwindowclosed": 
         this.onWindowClose(aSubject);
         break;
@@ -164,6 +166,7 @@ SessionStore.prototype = {
         observerService.removeObserver(this, "quit-application-requested");
         observerService.removeObserver(this, "quit-application-granted");
         observerService.removeObserver(this, "quit-application");
+        observerService.removeObserver(this, "Session:Restore");
 
         
         if (this._saveTimer) {
@@ -197,6 +200,44 @@ SessionStore.prototype = {
         this._saveTimer = null;
         this.saveState();
         break;
+      case "Session:Restore": {
+        if (aData) {
+          
+          let window = Services.wm.getMostRecentWindow("navigator:browser");
+          let restoreCleanup = {
+            observe: function (aSubject, aTopic, aData) {
+              Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
+
+              if (window.BrowserApp.tabs.length == 0) {
+                window.BrowserApp.addTab("about:home", {
+                  showProgress: false,
+                  selected: true
+                });
+              }
+
+              
+              this._sendMessageToJava({
+                type: "Session:RestoreEnd"
+              });
+            }.bind(this)
+          };
+          Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
+
+          
+          let data = JSON.parse(aData);
+          this.restoreLastSession(data.restoringOOM, data.sessionString);
+        } else if (this._shouldRestore) {
+          
+          
+          
+          
+          this.restoreLastSession(false, null);
+        } else {
+          
+          Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
+        }
+        break;
+      }
     }
   },
 
