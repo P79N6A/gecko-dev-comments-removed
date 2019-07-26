@@ -3911,10 +3911,6 @@ pref("image.mem.max_decoded_image_kb", 51200);
 
 
 
-pref("image.mem.hard_limit_decoded_image_kb", 0);
-
-
-
 pref("image.mem.surfacecache.min_expiration_ms", 60000); 
 
 

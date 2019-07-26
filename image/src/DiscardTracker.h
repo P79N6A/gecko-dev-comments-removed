@@ -87,15 +87,7 @@ class DiscardTracker
 
 
 
-
-    static bool TryAllocation(uint64_t aBytes);
-
-    
-
-
-
-
-    static void InformDeallocation(uint64_t aBytes);
+    static void InformAllocation(int64_t bytes);
 
   private:
     
@@ -124,10 +116,9 @@ class DiscardTracker
     static bool sInitialized;
     static bool sTimerOn;
     static mozilla::Atomic<bool> sDiscardRunnablePending;
-    static uint64_t sCurrentDecodedImageBytes;
+    static int64_t sCurrentDecodedImageBytes;
     static uint32_t sMinDiscardTimeoutMs;
     static uint32_t sMaxDecodedImageKB;
-    static uint32_t sHardLimitDecodedImageKB;
     
     static PRLock *sAllocationLock;
     static mozilla::Mutex* sNodeListMutex;

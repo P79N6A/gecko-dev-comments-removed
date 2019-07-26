@@ -19,10 +19,9 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  bool DiscardTracker::sInitialized = false;
  bool DiscardTracker::sTimerOn = false;
  Atomic<bool> DiscardTracker::sDiscardRunnablePending(false);
- uint64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
+ int64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
  uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
  uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
- uint32_t DiscardTracker::sHardLimitDecodedImageKB = 0;
  PRLock * DiscardTracker::sAllocationLock = nullptr;
  mozilla::Mutex* DiscardTracker::sNodeListMutex = nullptr;
  Atomic<bool> DiscardTracker::sShutdown(false);
@@ -139,39 +138,21 @@ DiscardTracker::DiscardAll()
   DisableTimer();
 }
 
- bool
-DiscardTracker::TryAllocation(uint64_t aBytes)
+void
+DiscardTracker::InformAllocation(int64_t bytes)
 {
+  
+
   MOZ_ASSERT(sInitialized);
 
   PR_Lock(sAllocationLock);
-  bool enoughSpace =
-    !sHardLimitDecodedImageKB ||
-    (sHardLimitDecodedImageKB * 1024) - sCurrentDecodedImageBytes >= aBytes;
-
-  if (enoughSpace) {
-    sCurrentDecodedImageBytes += aBytes;
-  }
+  sCurrentDecodedImageBytes += bytes;
+  MOZ_ASSERT(sCurrentDecodedImageBytes >= 0);
   PR_Unlock(sAllocationLock);
 
   
   
   MaybeDiscardSoon();
-
-  return enoughSpace;
-}
-
- void
-DiscardTracker::InformDeallocation(uint64_t aBytes)
-{
-  
-
-  MOZ_ASSERT(sInitialized);
-
-  PR_Lock(sAllocationLock);
-  MOZ_ASSERT(aBytes <= sCurrentDecodedImageBytes);
-  sCurrentDecodedImageBytes -= aBytes;
-  PR_Unlock(sAllocationLock);
 }
 
 
@@ -188,9 +169,6 @@ DiscardTracker::Initialize()
                               "image.mem.max_decoded_image_kb",
                               50 * 1024);
 
-  Preferences::AddUintVarCache(&sHardLimitDecodedImageKB,
-                               "image.mem.hard_limit_decoded_image_kb",
-                               0);
   
   sTimer = do_CreateInstance("@mozilla.org/timer;1");
 

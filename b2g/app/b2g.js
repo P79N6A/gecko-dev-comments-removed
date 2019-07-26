@@ -305,8 +305,6 @@ pref("image.mem.decodeondraw", true);
 pref("image.mem.allow_locking_in_content_processes", false); 
 pref("image.mem.min_discard_timeout_ms", 86400000); 
 pref("image.mem.max_decoded_image_kb", 30000); 
-
-pref("image.mem.hard_limit_decoded_image_kb", 66560);
 pref("image.onload.decode.limit", 24); 
 
 
