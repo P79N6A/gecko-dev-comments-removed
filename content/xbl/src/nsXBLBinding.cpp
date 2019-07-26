@@ -1437,7 +1437,7 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
   
   {
     JSAutoCompartment ac(aCx, xblScope);
-    js::RootedId id(aCx, aId);
+    JS::RootedId id(aCx, aId);
     if (!JS_WrapId(aCx, id.address()) ||
         !LookupMemberInternal(aCx, name, id, aDesc, xblScope))
     {
@@ -1467,7 +1467,7 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
 
   
   
-  js::RootedValue classObject(aCx);
+  JS::RootedValue classObject(aCx);
   if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, classObject.address())) {
     return false;
   }
