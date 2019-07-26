@@ -471,7 +471,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value, Value *result);
+    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value,
+                            MutableHandleValue result);
 
     
 
@@ -485,7 +486,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
+    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val,
+                                MutableHandleValue vp);
 
     
 
