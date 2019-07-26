@@ -29,7 +29,8 @@ let WebAppRT = {
     pref("xpinstall.enabled", false),
     
     pref("toolkit.telemetry.prompted", 999),
-    pref("toolkit.telemetry.notifiedOptOut", 999)
+    pref("toolkit.telemetry.notifiedOptOut", 999),
+    pref("media.useAudioChannelService", true);
   ],
 
   init: function(aStatus, aUrl, aCallback) {
