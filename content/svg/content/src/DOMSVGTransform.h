@@ -69,7 +69,19 @@ public:
 
   explicit DOMSVGTransform(const SVGTransform &aMatrix);
 
-  ~DOMSVGTransform();
+  ~DOMSVGTransform() {
+    
+    
+    
+    NS_ABORT_IF_FALSE(!mMatrixTearoff, "Matrix tear-off pointer not cleared."
+        " Transform being destroyed before matrix?");
+    
+    
+    
+    if (mList) {
+      mList->mItems[mListIndex] = nullptr;
+    }
+  }
 
   
 
@@ -133,7 +145,7 @@ public:
   uint16_t Type() const;
   already_AddRefed<DOMSVGMatrix> Matrix();
   float Angle() const;
-  void SetMatrix(DOMSVGMatrix& matrix, ErrorResult& rv);
+  void SetMatrix(mozilla::DOMSVGMatrix& matrix, ErrorResult& rv);
   void SetTranslate(float tx, float ty, ErrorResult& rv);
   void SetScale(float sx, float sy, ErrorResult& rv);
   void SetRotate(float angle, float cx, float cy, ErrorResult& rv);
@@ -150,6 +162,7 @@ protected:
     return Transform().Matrix();
   }
   void SetMatrix(const gfxMatrix& aMatrix);
+  void ClearMatrixTearoff(DOMSVGMatrix* aMatrix);
 
 private:
   nsSVGElement* Element() {
@@ -191,6 +204,14 @@ private:
   
   
   nsAutoPtr<SVGTransform> mTransform;
+
+  
+  
+  
+  
+  
+  
+  DOMSVGMatrix* mMatrixTearoff;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGTransform, MOZILLA_DOMSVGTRANSFORM_IID)
