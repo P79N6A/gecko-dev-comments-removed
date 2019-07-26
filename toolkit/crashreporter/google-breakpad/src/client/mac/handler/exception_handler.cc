@@ -281,9 +281,13 @@ bool ExceptionHandler::WriteMinidump(bool write_exception_stream) {
   if (pthread_mutex_lock(&minidump_write_mutex_) == 0) {
     
     
-    SendMessageToHandlerThread(write_exception_stream ?
-                                   kWriteDumpWithExceptionMessage :
-                                   kWriteDumpMessage);
+    bool result = SendMessageToHandlerThread(write_exception_stream ?
+                                             kWriteDumpWithExceptionMessage :
+                                             kWriteDumpMessage);
+    if (!result) {
+      pthread_mutex_unlock(&minidump_write_mutex_);
+      return false;
+    }
 
     
     
