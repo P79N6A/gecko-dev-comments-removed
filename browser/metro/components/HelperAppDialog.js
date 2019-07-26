@@ -18,6 +18,12 @@ XPCOMUtils.defineLazyGetter(this, "ContentUtil", function() {
   Cu.import("resource:///modules/ContentUtil.jsm");
   return ContentUtil;
 });
+XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
+                                  "resource://gre/modules/Downloads.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -133,98 +139,109 @@ HelperAppLauncherDialog.prototype = {
   },
 
   promptForSaveToFile: function hald_promptForSaveToFile(aLauncher, aContext, aDefaultFile, aSuggestedFileExt, aForcePrompt) {
+    throw new Components.Exception("Async version must be used", Cr.NS_ERROR_NOT_AVAILABLE);
+  },
+
+  promptForSaveToFileAsync: function hald_promptForSaveToFileAsync(aLauncher, aContext, aDefaultFile, aSuggestedFileExt, aForcePrompt) {
     let file = null;
     let prefs = Services.prefs;
 
-    if (!aForcePrompt) {
-      
-      
-      let autodownload = true;
-      try {
-        autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
-      } catch (e) { }
-
-      if (autodownload) {
+    Task.spawn(function() {
+      if (!aForcePrompt) {
         
-        let dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
-        let defaultFolder = dnldMgr.userDownloadsDirectory;
-
+        
+        let autodownload = true;
         try {
-          file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
-        }
-        catch (e) {
-        }
+          autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
+        } catch (e) { }
 
-        
-        if (file)
-          return file;
+        if (autodownload) {
+          
+          let preferredDir = yield Downloads.getPreferredDownloadsDirectory();
+          let defaultFolder = new FileUtils.File(preferredDir);
+
+          try {
+            file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
+          }
+          catch (e) {
+          }
+
+          
+          if (file) {
+            aLauncher.saveDestinationAvailable(file);
+            return;
+          }
+        }
       }
-    }
 
-    
-    let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    let windowTitle = "";
-    let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-    picker.init(parent, windowTitle, Ci.nsIFilePicker.modeSave);
-    picker.defaultString = aDefaultFile;
-
-    if (aSuggestedFileExt) {
       
-      picker.defaultExtension = aSuggestedFileExt.substring(1);
-    }
-    else {
+      let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+      let windowTitle = "";
+      let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+      picker.init(parent, windowTitle, Ci.nsIFilePicker.modeSave);
+      picker.defaultString = aDefaultFile;
+
+      if (aSuggestedFileExt) {
+        
+        picker.defaultExtension = aSuggestedFileExt.substring(1);
+      }
+      else {
+        try {
+          picker.defaultExtension = aLauncher.MIMEInfo.primaryExtension;
+        }
+        catch (e) { }
+      }
+
+      let wildCardExtension = "*";
+      if (aSuggestedFileExt) {
+        wildCardExtension += aSuggestedFileExt;
+        picker.appendFilter(aLauncher.MIMEInfo.description, wildCardExtension);
+      }
+
+      picker.appendFilters(Ci.nsIFilePicker.filterAll);
+
+      
+      
+      
+      let preferredDir = yield Downloads.getPreferredDownloadsDirectory();
+      picker.displayDirectory = new FileUtils.File(preferredDir);
+
+      
       try {
-        picker.defaultExtension = aLauncher.MIMEInfo.primaryExtension;
+        let lastDir = prefs.getComplexValue("browser.download.lastDir", Ci.nsILocalFile);
+        if (isUsableDirectory(lastDir))
+          picker.displayDirectory = lastDir;
       }
       catch (e) { }
-    }
 
-    var wildCardExtension = "*";
-    if (aSuggestedFileExt) {
-      wildCardExtension += aSuggestedFileExt;
-      picker.appendFilter(aLauncher.MIMEInfo.description, wildCardExtension);
-    }
+      picker.open(function(aResult) {
+        if (aResult == Ci.nsIFilePicker.returnCancel) {
+          
+          aLauncher.saveDestinationAvailable(null);
+          return;
+        }
 
-    picker.appendFilters(Ci.nsIFilePicker.filterAll);
-
-    
-    
-    
-    var dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
-    picker.displayDirectory = dnldMgr.userDownloadsDirectory;
-
-    
-    try {
-      let lastDir = prefs.getComplexValue("browser.download.lastDir", Ci.nsILocalFile);
-      if (isUsableDirectory(lastDir))
-        picker.displayDirectory = lastDir;
-    }
-    catch (e) { }
-
-    if (picker.show() == Ci.nsIFilePicker.returnCancel) {
-      
-      return null;
-    }
-
-    
-    
-    
-    file = picker.file;
-
-    if (file) {
-      try {
         
         
         
-        if (file.exists())
-          file.remove(false);
-      }
-      catch (e) { }
-      var newDir = file.parent.QueryInterface(Ci.nsILocalFile);
-      prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
-      file = this.validateLeafName(newDir, file.leafName, null);
-    }
-    return file;
+        file = picker.file;
+
+        if (file) {
+          try {
+            
+            
+            
+            if (file.exists())
+              file.remove(false);
+          }
+          catch (e) { }
+          let newDir = file.parent.QueryInterface(Ci.nsILocalFile);
+          prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
+          file = this.validateLeafName(newDir, file.leafName, null);
+        }
+        aLauncher.saveDestinationAvailable(file);
+      }.bind(this));
+    }.bind(this));
   },
 
   validateLeafName: function hald_validateLeafName(aLocalFile, aLeafName, aFileExt) {
