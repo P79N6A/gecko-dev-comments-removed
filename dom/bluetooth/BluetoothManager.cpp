@@ -52,6 +52,15 @@ public:
       return false;
     }
 
+    if (!mManagerPtr->GetOwner()) {
+      BT_WARNING("Bluetooth manager was disconnected from owner window.");
+
+      
+      
+      
+      return false;
+    }
+
     const InfallibleTArray<BluetoothNamedValue>& values =
       v.get_ArrayOfBluetoothNamedValue();
     nsRefPtr<BluetoothAdapter> adapter =
