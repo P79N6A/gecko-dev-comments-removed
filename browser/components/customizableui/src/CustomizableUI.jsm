@@ -283,6 +283,7 @@ let CustomizableUIInternal = {
     gAreas.delete(aName);
     gPlacements.delete(aName);
     gFuturePlacements.delete(aName);
+    gBuildAreas.delete(aName);
     this.endBatchUpdate(true);
   },
 
@@ -353,6 +354,7 @@ let CustomizableUIInternal = {
     this.beginBatchUpdate();
 
     let currentNode = container.firstChild;
+    let placementsToRemove = new Set();
     for (let id of aPlacements) {
       while (currentNode && currentNode.getAttribute("skipintoolbarset") == "true") {
         currentNode = currentNode.nextSibling;
@@ -366,6 +368,13 @@ let CustomizableUIInternal = {
       let [provider, node] = this.getWidgetNode(id, window);
       if (!node) {
         LOG("Unknown widget: " + id);
+        continue;
+      }
+
+      
+      
+      if (node.parentNode != container && !this.isWidgetRemovable(node)) {
+        placementsToRemove.add(id);
         continue;
       }
 
@@ -386,8 +395,9 @@ let CustomizableUIInternal = {
 
       this.insertWidgetBefore(node, currentNode, container, aArea);
       this._addParentFlex(node);
-      if (gResetting)
+      if (gResetting) {
         this.notifyListeners("onWidgetReset", id);
+      }
     }
 
     if (currentNode) {
@@ -421,6 +431,17 @@ let CustomizableUIInternal = {
           }
         }
         node = previousSibling;
+      }
+    }
+
+    
+    
+    
+    if (placementsToRemove.size) {
+      let placementAry = gPlacements.get(aArea);
+      for (let id of placementsToRemove) {
+        let index = placementAry.indexOf(id);
+        placementAry.splice(index, 1);
       }
     }
 
