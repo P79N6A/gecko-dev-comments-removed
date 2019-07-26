@@ -32,6 +32,10 @@ dump("### SelectionHandler.js loaded\n");
 
 
 
+
+const kSelectionNodeAnchor = 1;
+const kSelectionNodeFocus = 2;
+
 var SelectionHandler = {
   _debugEvents: false,
   _cache: {},
@@ -205,7 +209,7 @@ var SelectionHandler = {
     
     
     
-    this.clearTimers();
+    this._clearTimers();
 
     
     this._updateSelectionUI(true, true);
@@ -368,7 +372,7 @@ var SelectionHandler = {
 
 
   _clearSelection: function _clearSelection() {
-    this.clearTimers();
+    this._clearTimers();
     if (this._contentWindow) {
       let selection = this._getSelection();
       if (selection)
@@ -387,7 +391,7 @@ var SelectionHandler = {
 
 
   _closeSelection: function _closeSelection() {
-    this.clearTimers();
+    this._clearTimers();
     this._cache = null;
     this._contentWindow = null;
     this.selectedText = "";
@@ -596,7 +600,7 @@ var SelectionHandler = {
     this._lastMarker = aMarker;
 
     
-    this.clearTimers();
+    this._clearTimers();
 
     
     this._adjustSelection(aMarker, clientPoint, aEndOfSelection);
@@ -757,12 +761,12 @@ var SelectionHandler = {
     let result = { speed: 1, trigger: false, start: false, end: false };
 
     if (orientation.left || orientation.top) {
-      this._addEditStartSelection();
+      this._addEditSelection(kSelectionNodeAnchor);
       result.speed = orientation.left + orientation.top;
       result.trigger = true;
       result.end = true;
     } else if (orientation.right || orientation.bottom) {
-      this._addEditEndSelection();
+      this._addEditSelection(kSelectionNodeFocus);
       result.speed = orientation.right + orientation.bottom;
       result.trigger = true;
       result.start = true;
@@ -783,43 +787,34 @@ var SelectionHandler = {
     this._scrollTimer.interval(timeout, this.scrollTimerCallback);
   },
 
-  
-
-
-  _addEditStartSelection: function _addEditStartSelection() {
-    let selCtrl = this._getSelectController();
-    let selection = this._getSelection();
-    try {
-      this._backupRangeList();
-      selection.collapseToStart();
-      
-      
-      if (selection.getRangeAt(0).startOffset > 0) {
-        selCtrl.characterMove(false, true);
-      }
-      
-      selection.collapseToStart();
-      
-      selCtrl.characterMove(true, true);
-      
-      
-      this._restoreRangeList();
-      selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
-                                      Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
-                                      Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
-    } catch (ex) { Util.dumpLn(ex.message);}
+  _clearTimers: function _clearTimers() {
+    if (this._scrollTimer) {
+      this._scrollTimer.clear();
+    }
   },
 
   
 
 
-  _addEditEndSelection: function _addEditEndSelection() {
+
+
+
+
+
+  _addEditSelection: function _addEditSelection(aLocation) {
+    let selCtrl = this._getSelectController();
     try {
-      let selCtrl = this._getSelectController();
-      selCtrl.characterMove(true, true);
-      selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
-                                      Ci.nsISelectionController.SELECTION_FOCUS_REGION,
-                                      Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+      if (aLocation == kSelectionNodeAnchor) {
+        this._targetElement.selectionStart = this._targetElement.selectionStart - 1;
+        selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
+                                        Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
+                                        Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+      } else {
+        this._targetElement.selectionEnd = this._targetElement.selectionEnd + 1;
+        selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
+                                        Ci.nsISelectionController.SELECTION_FOCUS_REGION,
+                                        Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+      }
     } catch (ex) {}
   },
 
@@ -850,15 +845,6 @@ var SelectionHandler = {
       height = rects[len].bottom - rects[len].top;
     }
     return height / 2;
-  },
-
-  _findBetterLowerTextRangePoint: function _findBetterLowerTextRangePoint(aClientPoint, aHalfLineHeight) {
-    let range = this._getSelection().getRangeAt(0);
-    let clientRect = range.getBoundingClientRect();
-    if (aClientPoint.y > clientRect.bottom && clientRect.right < aClientPoint.x) {
-      aClientPoint.y = (clientRect.bottom - aHalfLineHeight);
-      this._setDebugPoint(aClientPoint, "red");
-    }
   },
 
   
@@ -987,6 +973,10 @@ var SelectionHandler = {
 
 
 
+  
+
+
+
   scrollTimerCallback: function scrollTimerCallback() {
     let result = SelectionHandler.updateTextEditSelection();
     
@@ -997,16 +987,6 @@ var SelectionHandler = {
         SelectionHandler._updateSelectionUI(false, true);
     }
   },
-
-  clearTimers: function clearTimers() {
-    if (this._scrollTimer) {
-      this._scrollTimer.clear();
-    }
-  },
-
-  
-
-
 
   receiveMessage: function sh_receiveMessage(aMessage) {
     if (this._debugEvents && aMessage.name != "Browser:SelectionMove") {
