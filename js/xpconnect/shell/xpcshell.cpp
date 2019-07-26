@@ -1657,11 +1657,6 @@ main(int argc, char **argv, char **envp)
             return 1;
         }
 
-        
-        
-        
-        xpc->GetSafeJSContext();
-
         nsCOMPtr<nsIPrincipal> systemprincipal;
         
         
