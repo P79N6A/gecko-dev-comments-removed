@@ -153,6 +153,13 @@ int32_t nsUnescapeCount(char * str)
     char* const pc1 = c1;
     char* const pc2 = c2;
 
+    if (!*src) {
+      
+      
+      
+      return 0;
+    }
+
     while (*src)
     {
         c1[0] = *(src+1);
