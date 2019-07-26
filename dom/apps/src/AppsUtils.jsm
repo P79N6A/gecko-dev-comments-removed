@@ -469,7 +469,7 @@ ManifestHelper.prototype = {
 
   resolveFromOrigin: function(aURI) {
     
-    if (!isAbsoluteURI(aURI)) {
+    if (isAbsoluteURI(aURI)) {
       throw new Error("Webapps.jsm: non-relative URI passed to resolveFromOrigin");
     }
     return this._origin.resolve(aURI);
