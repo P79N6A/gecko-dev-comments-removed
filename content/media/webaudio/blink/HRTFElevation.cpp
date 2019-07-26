@@ -50,75 +50,7 @@ const unsigned HRTFElevation::InterpolationFactor = 8;
 const unsigned HRTFElevation::NumberOfTotalAzimuths = NumberOfRawAzimuths * InterpolationFactor;
 
 
-const size_t TotalNumberOfResponses = 240;
-
-
 const size_t ResponseFrameSize = 256;
-
-
-
-const float ResponseSampleRate = 44100;
-
-#if USE(CONCATENATED_IMPULSE_RESPONSES)
-
-
-static PassRefPtr<AudioBus> getConcatenatedImpulseResponsesForSubject(const String& subjectName)
-{
-    typedef HashMap<String, RefPtr<AudioBus> > AudioBusMap;
-    DEFINE_STATIC_LOCAL(AudioBusMap, audioBusMap, ());
-
-    RefPtr<AudioBus> bus;
-    AudioBusMap::iterator iterator = audioBusMap.find(subjectName);
-    if (iterator == audioBusMap.end()) {
-        RefPtr<AudioBus> concatenatedImpulseResponses(AudioBus::loadPlatformResource(subjectName.utf8().data(), ResponseSampleRate));
-        ASSERT(concatenatedImpulseResponses);
-        if (!concatenatedImpulseResponses)
-            return 0;
-
-        bus = concatenatedImpulseResponses;
-        audioBusMap.set(subjectName, bus);
-    } else
-        bus = iterator->value;
-
-    size_t responseLength = bus->length();
-    size_t expectedLength = static_cast<size_t>(TotalNumberOfResponses * ResponseFrameSize);
-
-    
-    bool isBusGood = responseLength == expectedLength && bus->numberOfChannels() == 2;
-    ASSERT(isBusGood);
-    if (!isBusGood)
-        return 0;
-
-    return bus;
-}
-#endif
-
-
-
-bool HRTFElevation::calculateSymmetricKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
-                                                                 RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR)
-{
-    RefPtr<HRTFKernel> kernelL1;
-    RefPtr<HRTFKernel> kernelR1;
-    bool success = calculateKernelsForAzimuthElevation(azimuth, elevation, sampleRate, subjectName, kernelL1, kernelR1);
-    if (!success)
-        return false;
-        
-    
-    int symmetricAzimuth = !azimuth ? 0 : 360 - azimuth;
-                                                              
-    RefPtr<HRTFKernel> kernelL2;
-    RefPtr<HRTFKernel> kernelR2;
-    success = calculateKernelsForAzimuthElevation(symmetricAzimuth, elevation, sampleRate, subjectName, kernelL2, kernelR2);
-    if (!success)
-        return false;
-        
-    
-    kernelL = HRTFKernel::createInterpolatedKernel(kernelL1.get(), kernelR2.get(), 0.5f);
-    kernelR = HRTFKernel::createInterpolatedKernel(kernelR1.get(), kernelL2.get(), 0.5f);
-    
-    return true;
-}
 
 bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
                                                         RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR)
@@ -142,36 +74,6 @@ bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevati
     
     int positiveElevation = elevation < 0 ? elevation + 360 : elevation;
 
-#if USE(CONCATENATED_IMPULSE_RESPONSES)
-    RefPtr<AudioBus> bus(getConcatenatedImpulseResponsesForSubject(subjectName));
-
-    if (!bus)
-        return false;
-
-    int elevationIndex = positiveElevation / AzimuthSpacing;
-    if (positiveElevation > 90)
-        elevationIndex -= AzimuthSpacing;
-
-    
-    
-    
-    
-    unsigned index = ((azimuth / AzimuthSpacing) * HRTFDatabase::NumberOfRawElevations) + elevationIndex;
-    bool isIndexGood = index < TotalNumberOfResponses;
-    ASSERT(isIndexGood);
-    if (!isIndexGood)
-        return false;
-
-    
-    
-    
-    unsigned startFrame = index * ResponseFrameSize;
-    unsigned stopFrame = startFrame + ResponseFrameSize;
-    RefPtr<AudioBus> preSampleRateConvertedResponse(AudioBus::createBufferFromRange(bus.get(), startFrame, stopFrame));
-    RefPtr<AudioBus> response(AudioBus::createBySampleRateConverting(preSampleRateConvertedResponse.get(), false, sampleRate));
-    AudioChannel* leftEarImpulseResponse = response->channel(AudioBus::ChannelLeft);
-    AudioChannel* rightEarImpulseResponse = response->channel(AudioBus::ChannelRight);
-#else
     String resourceName = String::format("IRC_%s_C_R0195_T%03d_P%03d", subjectName.utf8().data(), azimuth, positiveElevation);
 
     RefPtr<AudioBus> impulseResponse(AudioBus::loadPlatformResource(resourceName.utf8().data(), sampleRate));
@@ -191,7 +93,6 @@ bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevati
     
     AudioChannel* leftEarImpulseResponse = impulseResponse->channelByType(AudioBus::ChannelLeft);
     AudioChannel* rightEarImpulseResponse = impulseResponse->channelByType(AudioBus::ChannelRight);
-#endif
 
     
     const size_t fftSize = HRTFPanner::fftSizeForSampleRate(sampleRate);

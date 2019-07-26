@@ -86,12 +86,6 @@ public:
     static bool calculateKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
                                                     RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR);
 
-    
-    
-    
-    static bool calculateSymmetricKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
-                                                             RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR);
-
     void reportMemoryUsage(MemoryObjectInfo*) const;
 
 private:

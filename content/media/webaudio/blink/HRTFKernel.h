@@ -72,9 +72,6 @@ public:
     float sampleRate() const { return m_sampleRate; }
     double nyquist() const { return 0.5 * sampleRate(); }
 
-    
-    PassOwnPtr<AudioChannel> createImpulseResponse();
-
     void reportMemoryUsage(MemoryObjectInfo*) const;
 
 private:
