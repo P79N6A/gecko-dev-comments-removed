@@ -660,9 +660,9 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
         NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
 
         JS::Value targetv;
-        nsContentUtils::WrapNative(ctx,
-                                   JS_GetGlobalForObject(ctx, object),
-                                   aTarget, &targetv, nullptr, true);
+
+        JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
+        nsContentUtils::WrapNative(ctx, global, aTarget, &targetv, nullptr, true);
 
         
         
@@ -714,9 +714,9 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
           } else {
             defaultThisValue = aTarget;
           }
-          nsContentUtils::WrapNative(ctx,
-                                     JS_GetGlobalForObject(ctx, object),
-                                     defaultThisValue, thisValue.address(), nullptr, true);
+          JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
+          nsContentUtils::WrapNative(ctx, global, defaultThisValue,
+                                     thisValue.address(), nullptr, true);
         } else {
           
           if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||

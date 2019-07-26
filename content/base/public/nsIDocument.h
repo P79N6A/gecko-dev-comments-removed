@@ -2142,7 +2142,7 @@ protected:
 
   
   
-  bool PostCreateWrapper(JSContext* aCx, JSObject *aNewObject);
+  bool PostCreateWrapper(JSContext* aCx, JSHandleObject aNewObject);
 
   nsCString mReferrer;
   nsString mLastModified;

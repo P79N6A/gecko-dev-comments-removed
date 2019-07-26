@@ -163,7 +163,7 @@ protected:
 
   
   nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
-                                   JSObject *aScope,
+                                   JS::HandleObject aScope,
                                    uint32_t *aArgc,
                                    JS::Value **aArgv,
                                    mozilla::Maybe<nsRootedJSValueArray> &aPoolRelease);
@@ -172,7 +172,7 @@ protected:
 
   
   
-  nsresult JSObjectFromInterface(nsISupports *aSup, JSObject *aScript,
+  nsresult JSObjectFromInterface(nsISupports *aSup, JS::HandleObject aScript,
                                  JSObject **aRet);
 
   

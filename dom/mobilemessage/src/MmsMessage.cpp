@@ -377,6 +377,11 @@ MmsMessage::GetSender(nsAString& aSender)
 NS_IMETHODIMP
 MmsMessage::GetReceivers(JSContext* aCx, JS::Value* aReceivers)
 {
+  uint32_t length = mReceivers.Length();
+  if (length == 0) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   JSObject* reveiversObj = nullptr;
   nsresult rv = nsTArrayToJSArray(aCx, mReceivers, &reveiversObj);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -464,8 +469,9 @@ MmsMessage::GetAttachments(JSContext* aCx, JS::Value* aAttachments)
     }
 
     
+    JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
     nsresult rv = nsContentUtils::WrapNative(aCx,
-                                             JS_GetGlobalForScopeChain(aCx),
+                                             global,
                                              attachment.content,
                                              &NS_GET_IID(nsIDOMBlob),
                                              &tmpJsVal);
