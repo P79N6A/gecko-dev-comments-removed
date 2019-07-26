@@ -157,14 +157,12 @@ let UI = {
   unbusy: function() {
     document.querySelector("window").classList.remove("busy")
     this.updateCommands();
-    this._busyPromise = null;
   },
 
   busyUntil: function(promise, operationDescription) {
     
     
     
-    this._busyPromise = promise;
     let timeout = setTimeout(() => {
       this.unbusy();
       UI.reportError("error_operationTimeout", operationDescription);
