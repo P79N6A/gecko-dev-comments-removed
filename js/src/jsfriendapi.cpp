@@ -96,9 +96,7 @@ JS_FindCompilationScope(JSContext *cx, HandleObject objArg)
 
 
 
-    if (JSObjectOp op = obj->getClass()->ext.innerObject)
-        obj = op(cx, obj);
-    return obj;
+    return GetInnerObject(obj);
 }
 
 JS_FRIEND_API(JSFunction *)

@@ -180,11 +180,6 @@ typedef void
 
 
 typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JS::HandleObject obj);
-
-
-
-typedef JSObject *
 (* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, bool keysonly);
 
 typedef JSObject *
@@ -252,8 +247,15 @@ typedef bool
 (* SliceOp)(JSContext *cx, JS::HandleObject obj, uint32_t begin, uint32_t end,
             JS::HandleObject result); 
 
+
+
 typedef JSObject *
 (* ObjectOp)(JSContext *cx, JS::HandleObject obj);
+
+
+typedef JSObject *
+(* InnerObjectOp)(JSObject *obj);
+
 typedef void
 (* FinalizeOp)(FreeOp *fop, JSObject *obj);
 
@@ -296,8 +298,8 @@ struct ClassSpec
 
 struct ClassExtension
 {
-    JSObjectOp          outerObject;
-    JSObjectOp          innerObject;
+    ObjectOp            outerObject;
+    InnerObjectOp       innerObject;
     JSIteratorOp        iteratorObject;
 
     
