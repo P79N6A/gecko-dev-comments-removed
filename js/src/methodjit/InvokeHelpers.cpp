@@ -272,7 +272,7 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
         return false;
 
     
-    CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct, CompileRequest_Interpreter);
+    CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct, CompileRequest_JIT);
     if (status == Compile_Error) {
         
         return false;
