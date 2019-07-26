@@ -188,11 +188,6 @@ documenttab[selected] .documenttab-selection {
 
 
 #start-container {
-  display: none;
-}
-
-#start-container[startpage],
-#start-container[filtering] {
   display: -moz-box;
 }
 
@@ -201,25 +196,22 @@ documenttab[selected] .documenttab-selection {
 }
 
 
-
-#start-container[filtering] > .start-page,
-#start-container:not([filtering]) > #start-autocomplete {
-  visibility: collapse;
-}
-
 #start-scrollbox > .meta-section {
   
   min-width: @grid_double_column_width@;
   
   margin-bottom: 30px;
 }
+
 #start-scrollbox[input="precise"] > .meta-section {
   margin-bottom: 5px;
 }
+
 #start-topsites {
   
   min-width: calc(3 * @grid_double_column_width@);
 }
+
 #start-scrollbox {
   -moz-box-orient: horizontal;
   
