@@ -58,6 +58,7 @@ class DebugOnly
     operator const T&() const { return value; }
 
     T& operator->() { return value; }
+    const T& operator->() const { return value; }
 
 #else
     DebugOnly() { }
@@ -68,7 +69,7 @@ class DebugOnly
     void operator--(int) { }
 #endif
 
-
+    
 
 
 
