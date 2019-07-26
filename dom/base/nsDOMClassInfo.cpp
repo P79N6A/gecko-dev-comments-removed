@@ -7451,8 +7451,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
       nsIScriptContext *script_cx = win->GetContext();
       if (script_cx) {
-        JSAutoSuspendRequest asr(cx);
-
         
         
         rv = script_cx->SetProperty(obj, "dialogArguments", args);

@@ -44,19 +44,11 @@ XPCJSContextStack::Pop()
     --idx; 
 
     XPCJSContextInfo &e = mStack[idx];
-    NS_ASSERTION(!e.suspendDepth || e.cx, "Shouldn't have suspendDepth without a cx!");
-    if (e.cx) {
-        if (e.suspendDepth) {
-            JS_ResumeRequest(e.cx, e.suspendDepth);
-            e.suspendDepth = 0;
-        }
-
-        if (e.savedFrameChain) {
-            
-            JSAutoRequest ar(e.cx);
-            JS_RestoreFrameChain(e.cx);
-            e.savedFrameChain = false;
-        }
+    if (e.cx && e.savedFrameChain) {
+        
+        JSAutoRequest ar(e.cx);
+        JS_RestoreFrameChain(e.cx);
+        e.savedFrameChain = false;
     }
     return cx;
 }
@@ -105,9 +97,6 @@ XPCJSContextStack::Push(JSContext *cx)
                 return false;
             e.savedFrameChain = true;
         }
-
-        if (!cx)
-            e.suspendDepth = JS_SuspendRequest(e.cx);
     }
 
     mStack.AppendElement(cx);

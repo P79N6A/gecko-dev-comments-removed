@@ -3643,16 +3643,12 @@ private:
 struct XPCJSContextInfo {
     XPCJSContextInfo(JSContext* aCx) :
         cx(aCx),
-        savedFrameChain(false),
-        suspendDepth(0)
+        savedFrameChain(false)
     {}
     JSContext* cx;
 
     
     bool savedFrameChain;
-
-    
-    unsigned suspendDepth;
 };
 
 class XPCJSContextStack
