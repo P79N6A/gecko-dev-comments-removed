@@ -155,12 +155,19 @@ struct CookieDomainTuple
 
 
 
-struct DBState
+struct DBState MOZ_FINAL
 {
   DBState() : cookieCount(0), cookieOldestTime(INT64_MAX), corruptFlag(OK)
   {
   }
 
+private:
+  
+  ~DBState()
+  {
+  }
+
+public:
   NS_INLINE_DECL_REFCOUNTING(DBState)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
