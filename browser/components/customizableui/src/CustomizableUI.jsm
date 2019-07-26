@@ -867,24 +867,27 @@ let CustomizableUIInternal = {
     if (node) {
       let parent = node.parentNode;
       while (parent && !(parent.customizationTarget ||
-                         parent.localName == "toolbarpaletteitem")) {
+                         parent == aWindow.gNavToolbox.palette)) {
         parent = parent.parentNode;
       }
 
-      if (parent && ((parent.customizationTarget == node.parentNode &&
-                      gBuildWindows.get(aWindow).has(parent.toolbox)) ||
-                     parent.localName == "toolbarpaletteitem")) {
+      if (parent) {
+        let nodeInArea = node.parentNode.localName == "toolbarpaletteitem" ?
+                         node.parentNode : node;
         
-        
-        
-        if (!node.hasAttribute("removable")) {
-          parent = parent.localName == "toolbarpaletteitem" ? parent.parentNode : parent;
+        if ((parent.customizationTarget == nodeInArea.parentNode &&
+             gBuildWindows.get(aWindow).has(parent.toolbox)) ||
+            aWindow.gNavToolbox.palette == nodeInArea.parentNode) {
           
           
-          node.setAttribute("removable", !parent.customizationTarget);
+          
+          if (!node.hasAttribute("removable")) {
+            
+            
+            node.setAttribute("removable", !parent.customizationTarget);
+          }
+          return node;
         }
-
-        return node;
       }
     }
 
