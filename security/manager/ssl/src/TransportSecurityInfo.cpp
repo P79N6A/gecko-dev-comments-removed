@@ -707,13 +707,7 @@ AppendErrorTextMismatch(const nsString &host,
     useSAN = GetSubjectAltNames(nssCert.get(), component, allNames, nameCount);
 
   if (!useSAN) {
-    char *certName = nullptr;
-    
-    
-    
-    
-    if (!certName)
-      certName = CERT_GetCommonName(&nssCert->subject);
+    char *certName = CERT_GetCommonName(&nssCert->subject);
     if (certName) {
       ++nameCount;
       allNames.Assign(NS_ConvertUTF8toUTF16(certName));
