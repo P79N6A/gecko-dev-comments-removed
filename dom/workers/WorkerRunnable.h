@@ -12,6 +12,7 @@
 
 #include "mozilla/Atomics.h"
 #include "nsISupportsImpl.h"
+#include "nsThreadUtils.h" 
 
 class JSContext;
 class nsIEventTarget;
@@ -340,6 +341,28 @@ protected:
   virtual void
   PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
           bool aRunResult) MOZ_OVERRIDE;
+};
+
+
+
+
+
+class WorkerMainThreadRunnable : public nsRunnable
+{
+protected:
+  WorkerPrivate* mWorkerPrivate;
+  nsCOMPtr<nsIEventTarget> mSyncLoopTarget;
+
+  WorkerMainThreadRunnable(WorkerPrivate* aWorkerPrivate);
+  ~WorkerMainThreadRunnable() {}
+
+  virtual bool MainThreadRun() = 0;
+
+public:
+  bool Dispatch(JSContext* aCx);
+
+private:
+  NS_IMETHOD Run() MOZ_OVERRIDE;  
 };
 
 END_WORKERS_NAMESPACE
