@@ -817,6 +817,28 @@ ShadowImageLayerOGL::GetLayer()
   return this;
 }
 
+LayerRenderState
+ShadowImageLayerOGL::GetRenderState()
+{
+  if (!mImageContainerID) {
+    return LayerRenderState();
+  }
+
+  
+  
+  ImageContainerParent::SetCompositorIDForImage(
+    mImageContainerID, mOGLManager->GetCompositorID());
+  
+  
+  
+
+  SharedImage* img = ImageContainerParent::GetSharedImage(mImageContainerID);
+  if (img && img->type() == SharedImage::TSurfaceDescriptor) {
+    return LayerRenderState(&img->get_SurfaceDescriptor());
+  }
+  return LayerRenderState();
+}
+
 void ShadowImageLayerOGL::UploadSharedYUVToTexture(const YUVImage& yuv)
 {
   AutoOpenSurface asurfY(OPEN_READ_ONLY, yuv.Ydata());
@@ -927,6 +949,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
         ShmemYCbCrImage shmemImage(img->get_YCbCrImage().data(),
                                    img->get_YCbCrImage().offset());
         UploadSharedYCbCrToTexture(shmemImage, img->get_YCbCrImage().picture());
+
+        mImageVersion = imgVersion;
 #ifdef MOZ_WIDGET_GONK
       } else if (img
                  && (img->type() == SharedImage::TSurfaceDescriptor)

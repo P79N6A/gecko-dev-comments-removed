@@ -900,6 +900,12 @@ public:
 
   virtual RefLayer* AsRefLayer() { return nullptr; }
 
+   
+
+
+
+  virtual ColorLayer* AsColorLayer() { return nullptr; }
+
   
 
 
@@ -1363,6 +1369,8 @@ protected:
 
 class THEBES_API ColorLayer : public Layer {
 public:
+  virtual ColorLayer* AsColorLayer() { return this; }
+
   
 
 

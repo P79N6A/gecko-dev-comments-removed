@@ -131,6 +131,7 @@ public:
   
   void Destroy();
   Layer* GetLayer();
+  virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
   virtual bool IsEmpty();
   virtual void RenderLayer(int aPreviousFrameBuffer,
                            const nsIntPoint& aOffset);

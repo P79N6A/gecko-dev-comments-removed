@@ -38,7 +38,7 @@ public:
     
     status_t swapBuffers(hwc_display_t dpy, hwc_surface_t surf) const;
 
-private:
+protected:
     struct cb_context {
         hwc_procs_t procs;
         HWComposer* hwc;
