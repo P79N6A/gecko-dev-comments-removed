@@ -1192,7 +1192,11 @@ abstract public class GeckoApp
         ThreadUtils.setUiThread(Thread.currentThread(), new Handler());
 
         Tabs.getInstance().attachToContext(this);
-        Favicons.attachToContext(this);
+        try {
+            Favicons.attachToContext(this);
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Exception starting favicon cache. Corrupt resources?", e);
+        }
 
         
         

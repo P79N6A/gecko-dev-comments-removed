@@ -5,24 +5,20 @@
 
 package org.mozilla.gecko.home;
 
+import android.util.Log;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.db.BrowserContract.Combined;
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
-import org.mozilla.gecko.gfx.BitmapUtils;
+import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.util.UiAsyncTask;
 import org.mozilla.gecko.widget.FaviconView;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -41,11 +37,18 @@ public class TwoLinePageRow extends LinearLayout
     private int mUrlIconId;
     private int mBookmarkIconId;
     private boolean mShowIcons;
+    private int mLoadFaviconJobId = Favicons.NOT_LOADING;
+
+    
+    private final OnFaviconLoadedListener mFaviconListener = new OnFaviconLoadedListener() {
+        @Override
+        public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
+            setFaviconWithUrl(favicon, faviconURL);
+        }
+    };
 
     
     private String mPageUrl;
-
-    private LoadFaviconTask mLoadFaviconTask;
 
     public TwoLinePageRow(Context context) {
         this(context, null);
@@ -81,8 +84,6 @@ public class TwoLinePageRow extends LinearLayout
                 Tabs.unregisterOnTabsChangedListener(TwoLinePageRow.this);
             }
         });
-
-        cancelLoadFaviconTask();
     }
 
     @Override
@@ -118,7 +119,11 @@ public class TwoLinePageRow extends LinearLayout
     }
 
     private void setFaviconWithUrl(Bitmap favicon, String url) {
-        mFavicon.updateImage(favicon, url);
+        if (favicon == null) {
+            mFavicon.showDefaultFavicon();
+        } else {
+            mFavicon.updateImage(favicon, url);
+        }
     }
 
     private void setBookmarkIcon(int bookmarkIconId) {
@@ -137,16 +142,6 @@ public class TwoLinePageRow extends LinearLayout
     private void updateDisplayedUrl(String url) {
         mPageUrl = url;
         updateDisplayedUrl();
-    }
-
-    
-
-
-    private void cancelLoadFaviconTask() {
-        if (mLoadFaviconTask != null) {
-            mLoadFaviconTask.cancel(true);
-            mLoadFaviconTask = null;
-        }
     }
 
     
@@ -181,106 +176,46 @@ public class TwoLinePageRow extends LinearLayout
         int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
         final String url = cursor.getString(urlIndex);
 
+        if (mShowIcons) {
+            final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
+            if (bookmarkIdIndex != -1) {
+                final long bookmarkId = cursor.getLong(bookmarkIdIndex);
+                final int displayIndex = cursor.getColumnIndex(Combined.DISPLAY);
+
+                final int display;
+                if (displayIndex != -1) {
+                    display = cursor.getInt(displayIndex);
+                } else {
+                    display = Combined.DISPLAY_NORMAL;
+                }
+
+                
+                
+                if (bookmarkId == 0) {
+                    setBookmarkIcon(NO_ICON);
+                } else if (display == Combined.DISPLAY_READER) {
+                    setBookmarkIcon(R.drawable.ic_url_bar_reader);
+                } else {
+                    setBookmarkIcon(R.drawable.ic_url_bar_star);
+                }
+            } else {
+                setBookmarkIcon(NO_ICON);
+            }
+        }
+
+        
+        if (url.equals(mPageUrl)) {
+            return;
+        }
+
         
         
         setTitle(TextUtils.isEmpty(title) ? url : title);
 
         
-        
-        if (TextUtils.equals(mPageUrl, url)) {
-            return;
-        }
+        mFavicon.clearImage();
+        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(url, mFaviconListener);
 
         updateDisplayedUrl(url);
-        cancelLoadFaviconTask();
-
-        
-        
-        final Bitmap favicon = Favicons.getFaviconFromMemCache(url);
-        if (favicon != null) {
-            setFaviconWithUrl(favicon, url);
-        } else {
-            
-            mFavicon.clearImage();
-
-            mLoadFaviconTask = new LoadFaviconTask(TwoLinePageRow.this, url);
-
-            
-            
-            if (Build.VERSION.SDK_INT >= 11) {
-                mLoadFaviconTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-            } else {
-                mLoadFaviconTask.execute();
-            }
-        }
-
-        
-        if (!mShowIcons) {
-            return;
-        }
-
-        final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
-        if (bookmarkIdIndex != -1) {
-            final long bookmarkId = cursor.getLong(bookmarkIdIndex);
-            final int displayIndex = cursor.getColumnIndex(Combined.DISPLAY);
-
-            final int display;
-            if (displayIndex != -1) {
-                display = cursor.getInt(displayIndex);
-            } else {
-                display = Combined.DISPLAY_NORMAL;
-            }
-
-            
-            
-            if (bookmarkId == 0) {
-                setBookmarkIcon(NO_ICON);
-            } else if (display == Combined.DISPLAY_READER) {
-                setBookmarkIcon(R.drawable.ic_url_bar_reader);
-            } else {
-                setBookmarkIcon(R.drawable.ic_url_bar_star);
-            }
-        } else {
-            setBookmarkIcon(NO_ICON);
-        }
-    }
-
-    void onFaviconLoaded(Bitmap favicon, String url) {
-        if (TextUtils.equals(mPageUrl, url)) {
-            setFaviconWithUrl(favicon, url);
-        }
-
-        mLoadFaviconTask = null;
-    }
-
-    private static class LoadFaviconTask extends AsyncTask<Void, Void, Bitmap> {
-        private final TwoLinePageRow mRow;
-        private final String mUrl;
-
-        public LoadFaviconTask(TwoLinePageRow row, String url) {
-            mRow = row;
-            mUrl = url;
-        }
-
-        @Override
-        public Bitmap doInBackground(Void... params) {
-            Bitmap favicon = Favicons.getFaviconFromMemCache(mUrl);
-            if (favicon == null) {
-                final ContentResolver cr = mRow.getContext().getContentResolver();
-
-                final Bitmap faviconFromDb = BrowserDB.getFaviconForUrl(cr, mUrl);
-                if (faviconFromDb != null) {
-                    favicon = Favicons.scaleImage(faviconFromDb);
-                    Favicons.putFaviconInMemCache(mUrl, favicon);
-                }
-            }
-
-            return favicon;
-        }
-
-        @Override
-        public void onPostExecute(Bitmap favicon) {
-            mRow.onFaviconLoaded(favicon, mUrl);
-        }
     }
 }

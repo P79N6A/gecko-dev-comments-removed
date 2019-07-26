@@ -10,5 +10,5 @@ import android.graphics.Bitmap;
 
 
 public interface OnFaviconLoadedListener {
-    void onFaviconLoaded(String url, Bitmap favicon);
+    void onFaviconLoaded(String url, String faviconURL, Bitmap favicon);
 }
