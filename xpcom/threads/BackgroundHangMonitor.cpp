@@ -7,6 +7,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/ThreadHangStats.h"
 #include "mozilla/ThreadLocal.h"
 
 #include "prinrval.h"
@@ -104,8 +105,6 @@ public:
   }
 
   
-  const nsAutoCString mThreadName;
-  
   const PRIntervalTime mTimeout;
   
   const PRIntervalTime mMaxTimeout;
@@ -117,6 +116,8 @@ public:
   bool mHanging;
   
   bool mWaiting;
+  
+  Telemetry::ThreadHangStats mStats;
 
   BackgroundHangThread(const char* aName,
                        uint32_t aTimeoutMs,
@@ -292,13 +293,13 @@ BackgroundHangThread::BackgroundHangThread(const char* aName,
                                            uint32_t aMaxTimeoutMs)
   : mManager(BackgroundHangManager::sInstance)
   , mThreadID(PR_GetCurrentThread())
-  , mThreadName(aName)
   , mTimeout(PR_MillisecondsToInterval(aTimeoutMs))
   , mMaxTimeout(PR_MillisecondsToInterval(aMaxTimeoutMs))
   , mInterval(mManager->mIntervalNow)
   , mHangStart(mInterval)
   , mHanging(false)
   , mWaiting(true)
+  , mStats(aName)
 {
   if (sTlsKey.initialized()) {
     sTlsKey.set(this);
@@ -438,6 +439,27 @@ void
 BackgroundHangMonitor::NotifyWait()
 {
   mThread->NotifyWait();
+}
+
+
+
+
+
+BackgroundHangMonitor::ThreadHangStatsIterator::ThreadHangStatsIterator()
+  : MonitorAutoLock(BackgroundHangManager::sInstance->mLock)
+  , mThread(BackgroundHangManager::sInstance->mHangThreads.getFirst())
+{
+}
+
+Telemetry::ThreadHangStats*
+BackgroundHangMonitor::ThreadHangStatsIterator::GetNext()
+{
+  if (!mThread) {
+    return nullptr;
+  }
+  Telemetry::ThreadHangStats* stats = &mThread->mStats;
+  mThread = mThread->getNext();
+  return stats;
 }
 
 } 

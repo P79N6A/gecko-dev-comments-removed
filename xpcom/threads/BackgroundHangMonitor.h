@@ -7,10 +7,15 @@
 #define mozilla_BackgroundHangMonitor_h
 
 #include "mozilla/RefPtr.h"
+#include "mozilla/Monitor.h"
 
 #include <stdint.h>
 
 namespace mozilla {
+
+namespace Telemetry {
+class ThreadHangStats;
+};
 
 class BackgroundHangThread;
 
@@ -101,6 +106,44 @@ private:
   RefPtr<BackgroundHangThread> mThread;
 
 public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  class ThreadHangStatsIterator : public MonitorAutoLock
+  {
+  private:
+    BackgroundHangThread* mThread;
+
+    ThreadHangStatsIterator(const ThreadHangStatsIterator&);
+    ThreadHangStatsIterator& operator=(const ThreadHangStatsIterator&);
+
+  public:
+    
+
+
+
+    ThreadHangStatsIterator();
+
+    
+
+
+
+    Telemetry::ThreadHangStats* GetNext();
+  };
+
   
 
 
