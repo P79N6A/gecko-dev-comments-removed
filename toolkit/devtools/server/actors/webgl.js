@@ -143,24 +143,6 @@ let ProgramActor = protocol.ActorClass({
   
 
 
-  blackbox: method(function() {
-    this.observer.cache.blackboxedPrograms.add(this.program);
-  }, {
-    oneway: true
-  }),
-
-  
-
-
-  unblackbox: method(function() {
-    this.observer.cache.blackboxedPrograms.delete(this.program);
-  }, {
-    oneway: true
-  }),
-
-  
-
-
 
 
 
@@ -510,15 +492,6 @@ let WebGLInstrumenter = {
       "uniform1fv", "uniform2fv", "uniform3fv", "uniform4fv",
       "uniformMatrix2fv", "uniformMatrix3fv", "uniformMatrix4fv"
     ]
-  }, {
-    timing: "after",
-    functions: ["useProgram"]
-  }, {
-    timing: "before",
-    callback: "draw_",
-    functions: [
-      "drawArrays", "drawElements"
-    ]
   }]
   
   
@@ -604,7 +577,7 @@ WebGLObserver.prototype = {
 
   toggleVertexAttribArray: function(gl, glArgs) {
     glArgs[0] = this.cache.call("getCurrentAttributeLocation", glArgs[0]);
-    return glArgs[0] < 0; 
+    return glArgs[0] < 0;
   },
 
   
@@ -617,7 +590,7 @@ WebGLObserver.prototype = {
 
   attribute_: function(gl, glArgs) {
     glArgs[0] = this.cache.call("getCurrentAttributeLocation", glArgs[0]);
-    return glArgs[0] < 0; 
+    return glArgs[0] < 0;
   },
 
   
@@ -630,38 +603,7 @@ WebGLObserver.prototype = {
 
   uniform_: function(gl, glArgs) {
     glArgs[0] = this.cache.call("getCurrentUniformLocation", glArgs[0]);
-    return !glArgs[0]; 
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  useProgram: function(gl, glArgs, glResult) {
-    
-    
-    this.cache.currentProgram = glArgs[0];
-  },
-
-  
-
-
-
-
-
-
-
-
-  draw_: function(gl, glArgs) {
-    if (this.cache.blackboxedPrograms.has(this.cache.currentProgram)) {
-      return true; 
-    }
+    return !glArgs[0];
   },
 
   
@@ -692,9 +634,6 @@ WebGLObserver.prototype = {
 function WebGLCache(observer) {
   this._observer = observer;
 
-  this.currentProgram = null;
-  this.blackboxedPrograms = new Set();
-
   this._shaders = new Map();
   this._attributes = [];
   this._uniforms = [];
@@ -703,16 +642,6 @@ function WebGLCache(observer) {
 }
 
 WebGLCache.prototype = {
-  
-
-
-  currentProgram: null,
-
-  
-
-
-  blackboxedPrograms: null,
-
   
 
 
