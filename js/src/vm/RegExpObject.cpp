@@ -599,7 +599,6 @@ RegExpShared::executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length
         start = 0;
     }
 
-#ifndef _WIN64 
 #if ENABLE_YARR_JIT
     if (!codeBlock.isFallBack()) {
         MatchResult result = codeBlock.execute(chars.get(), start, length);
@@ -612,7 +611,6 @@ RegExpShared::executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length
         return RegExpRunStatus_Success;
     }
 #endif
-#endif 
 
     
 
