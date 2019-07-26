@@ -6,9 +6,8 @@
 #if !defined(nsMediaFragmentURIParser_h__)
 #define nsMediaFragmentURIParser_h__
 
-#include "nsIURI.h"
 #include "nsString.h"
-#include "nsRect.h"
+#include "nsTArray.h"
 
 
 
@@ -17,58 +16,45 @@
 
 
 
-
-
-enum ClipUnit
-{
-  eClipUnit_Pixel,
-  eClipUnit_Percent,
-};
 
 class nsMediaFragmentURIParser
 {
+  struct Pair
+  {
+    Pair(const nsAString& aName, const nsAString& aValue) :
+      mName(aName), mValue(aValue) { }
+
+    nsString mName;
+    nsString mValue;
+  };
+
 public:
   
-  nsMediaFragmentURIParser(nsIURI* aURI);
-
   
-  bool HasStartTime() const { return mHasStart; }
-
-  
-  
-  double GetStartTime() const { return mStart; }
-
-  
-  bool HasEndTime() const { return mHasEnd; }
+  nsMediaFragmentURIParser(const nsCString& aSpec);
 
   
   
-  double GetEndTime() const { return mEnd; }
-
-  
-  bool HasClip() const { return mHasClip; }
+  void Parse();
 
   
   
   
-  nsIntRect GetClip() const { return mClip; }
+  double GetStartTime();
 
   
   
-  ClipUnit GetClipUnit() const { return mClipUnit; }
+  
+  double GetEndTime();
 
 private:
   
   
-  void Parse(nsACString& aRef);
-
   
   
   
   
-  
-  
-  bool ParseNPT(nsDependentSubstring& aString);
+  bool ParseNPT(nsDependentSubstring& aString, double& aStart, double& aEnd);
   bool ParseNPTTime(nsDependentSubstring& aString, double& aTime);
   bool ParseNPTSec(nsDependentSubstring& aString, double& aSec);
   bool ParseNPTFraction(nsDependentSubstring& aString, double& aFraction);
@@ -77,18 +63,13 @@ private:
   bool ParseNPTHH(nsDependentSubstring& aString, uint32_t& aHour);
   bool ParseNPTMM(nsDependentSubstring& aString, uint32_t& aMinute);
   bool ParseNPTSS(nsDependentSubstring& aString, uint32_t& aSecond);
-  bool ParseXYWH(nsDependentSubstring& aString);
 
   
-  double    mStart;
-  double    mEnd;
-  nsIntRect mClip;
-  ClipUnit  mClipUnit;
+  nsAutoCString mHash;
 
   
-  bool mHasStart : 1;
-  bool mHasEnd   : 1;
-  bool mHasClip  : 1;
+  
+  nsTArray<Pair> mFragments;
 };
 
 #endif
