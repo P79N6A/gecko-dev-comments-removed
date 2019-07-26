@@ -192,15 +192,17 @@ let gGestureSupport = {
                                           aEvent.DIRECTION_LEFT;
 
     let isVerticalSwipe = false;
-    if (aEvent.direction == aEvent.DIRECTION_UP) {
-      isVerticalSwipe = true;
-      
-      content.scrollTo(content.scrollX, 0);
-    }
-    else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
-      isVerticalSwipe = true;
-      
-      content.scrollTo(content.scrollX, content.scrollMaxY);
+    if (gHistorySwipeAnimation.active) {
+      if (aEvent.direction == aEvent.DIRECTION_UP) {
+        isVerticalSwipe = true;
+        
+        content.scrollTo(content.scrollX, 0);
+      }
+      else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
+        isVerticalSwipe = true;
+        
+        content.scrollTo(content.scrollX, content.scrollMaxY);
+      }
     }
 
     gHistorySwipeAnimation.startAnimation(isVerticalSwipe);
