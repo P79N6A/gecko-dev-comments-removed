@@ -26,10 +26,6 @@ struct ElementDependentRuleProcessorData;
 
 struct ElementPropertyTransition : public ElementAnimation
 {
-  ElementPropertyTransition() 
-    : mIsRunningOnCompositor(false)
-  {}
-
   
   
   
@@ -46,10 +42,6 @@ struct ElementPropertyTransition : public ElementAnimation
   
   
   double mReversePortion;
-  
-  
-  
-  bool mIsRunningOnCompositor;
 
   
   
@@ -58,6 +50,8 @@ struct ElementPropertyTransition : public ElementAnimation
 
   bool IsRemovedSentinel() const
   {
+    
+    
     return mStartTime.IsNull();
   }
 
@@ -66,8 +60,6 @@ struct ElementPropertyTransition : public ElementAnimation
     
     mStartTime = mozilla::TimeStamp();
   }
-
-  bool IsRunningAt(mozilla::TimeStamp aTime) const;
 };
 
 struct ElementTransitions MOZ_FINAL
