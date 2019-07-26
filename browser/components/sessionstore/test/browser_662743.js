@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 
 
 
@@ -13,13 +15,6 @@ function test() {
   let formData = [
   
     { },
-  
-    { "#select_id" : 0 },
-    { "#select_id" : 2 },
-    
-    { "#select_id" : 8 },
-    { "/xhtml:html/xhtml:body/xhtml:select" : 5},
-    { "/xhtml:html/xhtml:body/xhtml:select[@name='select_name']" : 6},
 
   
     
@@ -36,32 +31,17 @@ function test() {
     { xpath: { "/xhtml:html/xhtml:body/xhtml:select[@name='select_name']" : {"selectedIndex":3,"value":"val3"} } },
     
     { id:{ "select_id": {"selectedIndex":3,"value":"val4"} } },
-
-  
-    { "#select_id" : 3, id:{ "select_id": {"selectedIndex":1,"value":"val1"} } },
-    { "#select_id" : 5, xpath: { "/xhtml:html/xhtml:body/xhtml:select[@name='select_name']" : {"selectedIndex":4,"value":"val4"} } },
-    { "/xhtml:html/xhtml:body/xhtml:select" : 5, id:{ "select_id": {"selectedIndex":1,"value":"val1"} }},
-    { "/xhtml:html/xhtml:body/xhtml:select[@name='select_name']" : 2, xpath: { "/xhtml:html/xhtml:body/xhtml:select[@name='select_name']" : {"selectedIndex":7,"value":"val7"} } }
   ];
 
   let expectedValues = [
-    [ "val3"], 
-    [ "val0"],
-    [ "val2"],
-    [ "val3"], 
-    [ "val5"],
-    [ "val6"],
-    [ "val2"],
-    [ "val3"], 
-    [ "val5"], 
-    [ "val0"],
-    [ "val7"],
-    [ "val3"],
-    [ "val4"],
-    [ "val1"],
-    [ "val4"],
-    [ "val1"],
-    [ "val7"]
+    null,   
+    "val2",
+    null,   
+    "val5", 
+    "val0",
+    "val7",
+    null,
+    "val4",
   ];
   let callback = function() {
     testTabCount--;
@@ -76,7 +56,7 @@ function test() {
   }
 }
 
-function testTabRestoreData(aFormData, aExpectedValues, aCallback) {
+function testTabRestoreData(aFormData, aExpectedValue, aCallback) {
   let testURL =
     getRootDirectory(gTestPath) + "browser_662743_sample.html";
   let tab = gBrowser.addTab(testURL);
@@ -91,37 +71,39 @@ function testTabRestoreData(aFormData, aExpectedValues, aCallback) {
       let value = select.options[select.selectedIndex].value;
 
       
-      is(value, aExpectedValues[0],
+      SyncHandlers.get(tab.linkedBrowser).flush();
+      let restoredTabState = JSON.parse(ss.getTabState(tab));
+
+      
+      if (!aExpectedValue) {
+        ok(!restoredTabState.hasOwnProperty("formdata"), "no formdata collected");
+        gBrowser.removeTab(tab);
+        aCallback();
+        return;
+      }
+
+      
+      is(value, aExpectedValue,
         "Select Option by selectedIndex &/or value has been restored correctly");
+
+      let restoredFormData = restoredTabState.formdata;
+      let selectIdFormData = restoredFormData.id.select_id;
+      let value = restoredFormData.id.select_id.value;
+
+      
+      ok("id" in restoredFormData || "xpath" in restoredFormData,
+        "FormData format is valid");
+      
+      ok("selectedIndex" in selectIdFormData && "value" in selectIdFormData,
+        "select format is valid");
+       
+      is(value, aExpectedValue,
+        "Collection has been saved correctly");
 
       
       gBrowser.removeTab(tab);
 
       aCallback();
-    });
-
-    tab.addEventListener("TabClose", function(aEvent) {
-      tab.removeEventListener("TabClose", arguments.callee);
-      let restoredTabState = JSON.parse(ss.getTabState(tab));
-      let restoredFormData = restoredTabState.entries[0].formdata;
-      let selectIdFormData = restoredFormData.id.select_id;
-      let value = restoredFormData.id.select_id.value;
-
-      
-      ok("id" in restoredFormData && "xpath" in restoredFormData,
-        "FormData format is valid");
-      
-      is(Object.keys(restoredFormData).length, 2,
-        "FormData key length is valid");
-      
-      ok("selectedIndex" in selectIdFormData && "value" in selectIdFormData,
-        "select format is valid");
-      
-      is(Object.keys(selectIdFormData).length, 2,
-        "select_id length is valid");
-       
-      is(value, aExpectedValues[0],
-        "Collection has been saved correctly");
     });
   });
 }

@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 
 
@@ -16,76 +17,61 @@
 
 
 
-function test() {
-  waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
 
-  let blankState = { windows: [{ tabs: [{ entries: [{ url: "about:blank" }] }]}]};
-  let crashState = { windows: [{ tabs: [{ entries: [{ url: "about:mozilla" }] }]}]};
+const CRASH_STATE = {windows: [{tabs: [{entries: [{url: "about:mozilla" }]}]}]};
+const STATE = {entries: [createEntry(CRASH_STATE)]};
+const STATE2 = {entries: [createEntry({windows: [{tabs: [STATE]}]})]};
+const STATE3 = {entries: [createEntry(JSON.stringify(CRASH_STATE))]};
 
-  let pagedata = { url: "about:sessionrestore",
-                   formdata: { id: {"sessionData": crashState } } };
-  let state = { windows: [{ tabs: [{ entries: [pagedata] }] }] };
-
-  
-  test1(state);
-
-
-  function test1(aState) {
-    waitForBrowserState(aState, function() {
-      checkState("test1", test2);
-    });
-  }
-
-  function test2(aState) {
-    let pagedata2 = { url: "about:sessionrestore",
-                      formdata: { id: { "sessionData": aState } } };
-    let state2 = { windows: [{ tabs: [{ entries: [pagedata2] }] }] };
-
-    waitForBrowserState(state2, function() {
-      checkState("test2", test3);
-    });
-  }
-
-  function test3(aState) {
-    let pagedata3 = { url: "about:sessionrestore",
-                      formdata: { id: { "sessionData": JSON.stringify(crashState) } } };
-    let state3 = { windows: [{ tabs: [{ entries: [pagedata3] }] }] };
-    waitForBrowserState(state3, function() {
-      
-      
-      
-      checkState("test3", function() waitForBrowserState(blankState, finish));
-    });
-  }
-
-  function checkState(testName, callback) {
-    let curState = JSON.parse(ss.getBrowserState());
-    let formdata = curState.windows[0].tabs[0].entries[0].formdata;
-
-    ok(formdata.id["sessionData"], testName + ": we have form data for about:sessionrestore");
-
-    let sessionData_raw = JSON.stringify(formdata.id["sessionData"]);
-    ok(!/\\/.test(sessionData_raw), testName + ": #sessionData contains no backslashes");
-    info(sessionData_raw);
-
-    let gotError = false;
-    try {
-      JSON.parse(formdata.id["sessionData"]);
-    }
-    catch (e) {
-      info(testName + ": got error: " + e);
-      gotError = true;
-    }
-    ok(gotError, testName + ": attempting to JSON.parse form data threw error");
-
-    
-    
-    
-    delete curState.windows[0].extData;
-    delete curState.windows[0].tabs[0].extData;
-    callback(curState);
-  }
-
+function createEntry(sessionData) {
+  return {
+    url: "about:sessionrestore",
+    formdata: {id: {sessionData: sessionData}}
+  };
 }
 
+add_task(function test_nested_about_sessionrestore() {
+  
+  let tab = gBrowser.addTab("about:blank");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+
+  
+  ss.setTabState(tab, JSON.stringify(STATE));
+  yield promiseTabRestored(tab);
+  checkState("test1", tab);
+
+  
+  ss.setTabState(tab, JSON.stringify(STATE2));
+  yield promiseTabRestored(tab);
+  checkState("test2", tab);
+
+  
+  ss.setTabState(tab, JSON.stringify(STATE3));
+  yield promiseTabRestored(tab);
+  checkState("test3", tab);
+
+  
+  gBrowser.removeTab(tab);
+});
+
+function checkState(prefix, tab) {
+  
+  SyncHandlers.get(tab.linkedBrowser).flush();
+  let {formdata} = JSON.parse(ss.getTabState(tab));
+
+  ok(formdata.id["sessionData"], prefix + ": we have form data for about:sessionrestore");
+
+  let sessionData_raw = JSON.stringify(formdata.id["sessionData"]);
+  ok(!/\\/.test(sessionData_raw), prefix + ": #sessionData contains no backslashes");
+  info(sessionData_raw);
+
+  let gotError = false;
+  try {
+    JSON.parse(formdata.id["sessionData"]);
+  } catch (e) {
+    info(prefix + ": got error: " + e);
+    gotError = true;
+  }
+  ok(gotError, prefix + ": attempting to JSON.parse form data threw error");
+}

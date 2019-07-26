@@ -1,43 +1,42 @@
 
 
 
+"use strict";
 
-function test() {
+const URL = ROOT + "browser_466937_sample.html";
+
+
+
+
+add_task(function test_prevent_file_stealing() {
   
+  let tab = gBrowser.addTab(URL);
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
 
-  waitForExplicitFinish();
-
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-             .getService(Components.interfaces.nsIProperties)
-             .get("TmpD", Components.interfaces.nsILocalFile);
+  
+  let file = Services.dirsvc.get("TmpD", Ci.nsIFile);
   file.append("466937_test.file");
-  file.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0666);
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("666", 8));
   let testPath = file.path;
 
-  let testURL = "http://mochi.test:8888/browser/" +
-    "browser/components/sessionstore/test/browser_466937_sample.html";
+  
+  yield setInputValue(browser, {id: "reverse_thief", value: "/home/user/secret2"});
+  yield setInputValue(browser, {id: "bystander", value: testPath});
 
-  let tab = gBrowser.addTab(testURL);
-  whenBrowserLoaded(tab.linkedBrowser, function() {
-    let doc = tab.linkedBrowser.contentDocument;
-    doc.getElementById("reverse_thief").value = "/home/user/secret2";
-    doc.getElementById("bystander").value = testPath;
+  
+  let tab2 = gBrowser.duplicateTab(tab);
+  let browser2 = tab2.linkedBrowser;
+  yield promiseTabRestored(tab2);
 
-    let tab2 = gBrowser.duplicateTab(tab);
-    whenTabRestored(tab2, function() {
-      doc = tab2.linkedBrowser.contentDocument;
-      is(doc.getElementById("thief").value, "",
-         "file path wasn't set to text field value");
-      is(doc.getElementById("reverse_thief").value, "",
-         "text field value wasn't set to full file path");
-      is(doc.getElementById("bystander").value, testPath,
-         "normal case: file path was correctly preserved");
+  let thief = yield getInputValue(browser2, {id: "thief"});
+  is(thief, "", "file path wasn't set to text field value");
+  let reverse_thief = yield getInputValue(browser2, {id: "reverse_thief"});
+  is(reverse_thief, "", "text field value wasn't set to full file path");
+  let bystander = yield getInputValue(browser2, {id: "bystander"});
+  is(bystander, testPath, "normal case: file path was correctly preserved");
 
-      
-      gBrowser.removeTab(tab2);
-      gBrowser.removeTab(tab);
-
-      finish();
-    });
-  });
-}
+  
+  gBrowser.removeTab(tab);
+  gBrowser.removeTab(tab2);
+});

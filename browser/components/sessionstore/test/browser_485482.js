@@ -1,34 +1,37 @@
 
 
 
+"use strict";
 
-function test() {
+const URL = ROOT + "browser_485482_sample.html";
+
+
+
+
+
+add_task(function test_xpath_exp_for_strange_documents() {
   
+  let tab = gBrowser.addTab(URL);
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
 
-  waitForExplicitFinish();
-
+  
   let uniqueValue = Math.random();
+  yield setInputValue(browser, {selector: "input[type=text]", value: uniqueValue});
+  yield setInputChecked(browser, {selector: "input[type=checkbox]", checked: true});
 
-  let rootDir = getRootDirectory(gTestPath);
-  let testURL = rootDir + "browser_485482_sample.html";
-  let tab = gBrowser.addTab(testURL);
-  whenBrowserLoaded(tab.linkedBrowser, function() {
-    let doc = tab.linkedBrowser.contentDocument;
-    doc.querySelector("input[type=text]").value = uniqueValue;
-    doc.querySelector("input[type=checkbox]").checked = true;
+  
+  let tab2 = gBrowser.duplicateTab(tab);
+  let browser2 = tab2.linkedBrowser;
+  yield promiseTabRestored(tab2);
 
-    let tab2 = gBrowser.duplicateTab(tab);
-    whenTabRestored(tab2, function() {
-      doc = tab2.linkedBrowser.contentDocument;
-      is(doc.querySelector("input[type=text]").value, uniqueValue,
-         "generated XPath expression was valid");
-      ok(doc.querySelector("input[type=checkbox]").checked,
-         "generated XPath expression was valid");
+  
+  let text = yield getInputValue(browser2, {selector: "input[type=text]"});
+  is(text, uniqueValue, "generated XPath expression was valid");
+  let checkbox = yield getInputChecked(browser2, {selector: "input[type=checkbox]"});
+  ok(checkbox, "generated XPath expression was valid");
 
-      
-      gBrowser.removeTab(tab2);
-      gBrowser.removeTab(tab);
-      finish();
-    });
-  });
-}
+  
+  gBrowser.removeTab(tab2);
+  gBrowser.removeTab(tab);
+});

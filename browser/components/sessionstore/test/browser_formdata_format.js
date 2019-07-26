@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 function test() {
   
   waitForExplicitFinish();
@@ -66,50 +68,46 @@ function test() {
 }
 
 function testTabRestoreData(aFormData, aExpectedValue, aCallback) {
-  let testURL =
-    getRootDirectory(gTestPath) + "browser_formdata_format_sample.html";
-  let tab = gBrowser.addTab(testURL);
-  let tabState = { entries: [{ url: testURL, formdata: aFormData}] };
+  let URL = ROOT + "browser_formdata_format_sample.html";
+  let tab = gBrowser.addTab("about:blank");
+  let browser = tab.linkedBrowser;
+  let tabState = { entries: [{ url: URL, formdata: aFormData}] };
 
-  let browserLoadedCallback = function(aEvent) {
-    let tabStateCallback = function(aEvent) {
+  Task.spawn(function () {
+    yield promiseBrowserLoaded(tab.linkedBrowser);
+
+    ss.setTabState(tab, JSON.stringify(tabState));
+    yield promiseTabRestored(tab);
+
+    SyncHandlers.get(tab.linkedBrowser).flush();
+    let restoredTabState = JSON.parse(ss.getTabState(tab));
+    let restoredFormData = restoredTabState.formdata;
+
+    if (restoredFormData) {
       let doc = tab.linkedBrowser.contentDocument;
       let input1 = doc.getElementById("input1");
       let input2 = doc.querySelector("input[name=input2]");
-      let saveStateCallback = function(aEvent) {
-        let restoredTabState = JSON.parse(ss.getTabState(tab));
-        let restoredFormData = restoredTabState.entries[0].formdata;
-
-        if (restoredFormData) {
-          
-          ok("id" in restoredFormData && "xpath" in restoredFormData,
-            "FormData format is valid: " + restoredFormData);
-          
-          is(Object.keys(restoredFormData).length, 2,
-            "FormData key length is valid");
-          
-          is(input1.value, aExpectedValue[0],
-            "FormData by 'id' has been restored correctly");
-          
-          is(input2.value, aExpectedValue[1],
-            "FormData by 'xpath' has been restored correctly");
-        }
-
-        
-        gBrowser.removeTab(tab);
-        aCallback();
-      };
-
-      waitForSaveState(saveStateCallback);
 
       
-      let changeEvent = document.createEvent("Events");
-      changeEvent.initEvent("change", true, true);
-      input1.dispatchEvent(changeEvent);
-    };
+      ok("id" in restoredFormData || "xpath" in restoredFormData,
+        "FormData format is valid: " + restoredFormData);
+      
+      for (let key of Object.keys(restoredFormData)) {
+        if (["id", "xpath", "url"].indexOf(key) === -1) {
+          ok(false, "FormData format is invalid.");
+        }
+      }
+      
+      is(input1.value, aExpectedValue[0],
+        "FormData by 'id' has been restored correctly");
+      
+      is(input2.value, aExpectedValue[1],
+        "FormData by 'xpath' has been restored correctly");
+    }
 
-    waitForTabState(tab, tabState, tabStateCallback);
-  };
+    
+    gBrowser.removeTab(tab);
 
-  whenBrowserLoaded(tab.linkedBrowser, browserLoadedCallback);
+  
+  }).then(aCallback);
 }

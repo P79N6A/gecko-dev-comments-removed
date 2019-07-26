@@ -1,50 +1,53 @@
 
 
 
+"use strict";
 
-function test() {
+let tmp = {};
+Cu.import("resource:///modules/sessionstore/SessionSaver.jsm", tmp);
+let {SessionSaver} = tmp;
+
+const URL = ROOT + "browser_454908_sample.html";
+const PASS = "pwd-" + Math.random();
+
+
+
+
+add_task(function test_dont_save_passwords() {
   
-
-  waitForExplicitFinish();
-
-  let fieldValues = {
-    username: "User " + Math.random(),
-    passwd:   "pwd" + Date.now()
-  };
+  Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
 
   
-  gPrefService.setIntPref("browser.sessionstore.privacy_level", 0);
+  let tab = gBrowser.addTab(URL);
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
 
-  let rootDir = getRootDirectory(gTestPath);
-  let testURL = rootDir + "browser_454908_sample.html";
-  let tab = gBrowser.addTab(testURL);
-  whenBrowserLoaded(tab.linkedBrowser, function() {
-    let doc = tab.linkedBrowser.contentDocument;
-    for (let id in fieldValues)
-      doc.getElementById(id).value = fieldValues[id];
+  
+  let usernameValue = "User " + Math.random();
+  yield setInputValue(browser, {id: "username", value: usernameValue});
+  yield setInputValue(browser, {id: "passwd", value: PASS});
 
-    gBrowser.removeTab(tab);
+  
+  gBrowser.removeTab(tab);
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
+  yield promiseTabRestored(tab);
 
-    tab = undoCloseTab();
-    whenTabRestored(tab, function() {
-      let doc = tab.linkedBrowser.contentDocument;
-      for (let id in fieldValues) {
-        let node = doc.getElementById(id);
-        if (node.type == "password")
-          is(node.value, "", "password wasn't saved/restored");
-        else
-          is(node.value, fieldValues[id], "username was saved/restored");
-      }
+  
+  let username = yield getInputValue(browser, {id: "username"});
+  is(username, usernameValue, "username was saved/restored");
+  let passwd = yield getInputValue(browser, {id: "passwd"});
+  is(passwd, "", "password wasn't saved/restored");
 
-      
-      if (gPrefService.prefHasUserValue("browser.sessionstore.privacy_level"))
-        gPrefService.clearUserPref("browser.sessionstore.privacy_level");
-      
-      
-      if (gBrowser.tabs.length == 1)
-        gBrowser.addTab();
-      gBrowser.removeTab(tab);
-      finish();
-    });
-  });
-}
+  
+  yield SessionSaver.run();
+  let path = OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js");
+  let data = yield OS.File.read(path);
+  let state = new TextDecoder().decode(data);
+
+  
+  is(state.indexOf(PASS), -1, "password has not been written to disk");
+
+  
+  gBrowser.removeTab(tab);
+});
