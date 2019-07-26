@@ -280,30 +280,3 @@ registerCleanupFunction(tearDown);
 
 waitForExplicitFinish();
 
-
-
-
-function assertTooltipShownOn(tooltip, element) {
-  return Task.spawn(function*() {
-    let isTarget = yield isHoverTooltipTarget(tooltip, element);
-    ok(isTarget, "The element is a tooltip target");
-  });
-}
-
-
-
-
-
-
-
-
-
-
-function isHoverTooltipTarget(tooltip, target) {
-  if (!tooltip._basedNode || !tooltip.panel) {
-    return promise.reject(new Error("The tooltip passed isn't set to toggle on hover or is not a tooltip"));
-  }
-  
-  
-  return tooltip.isValidHoverTarget(target);
-}

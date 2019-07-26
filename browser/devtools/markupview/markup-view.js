@@ -110,7 +110,7 @@ MarkupView.prototype = {
   _initTooltips: function() {
     this.tooltip = new Tooltip(this._inspector.panelDoc);
     this.tooltip.startTogglingOnHover(this._elt,
-      this._isImagePreviewTarget.bind(this));
+      this._buildTooltipContent.bind(this));
   },
 
   _initHighlighter: function() {
@@ -232,15 +232,7 @@ MarkupView.prototype = {
     updateChildren(documentElement);
   },
 
-  
-
-
-
-
-
-
-
-  _isImagePreviewTarget: function(target) {
+  _buildTooltipContent: function(target) {
     
     
     let parent = target, container;
@@ -255,7 +247,7 @@ MarkupView.prototype = {
     if (container) {
       
       
-      return container._isImagePreviewTarget(target, this.tooltip);
+      return container._buildTooltipContent(target, this.tooltip);
     }
   },
 
@@ -1273,13 +1265,6 @@ MarkupContainer.prototype = {
     }
   },
 
-  
-
-
-
-
-
-
   _prepareImagePreview: function() {
     if (this.isPreviewable()) {
       
@@ -1306,27 +1291,6 @@ MarkupContainer.prototype = {
     }
   },
 
-  
-
-
-
-
-
-
-
-
-  _isImagePreviewTarget: function(target, tooltip) {
-    if (!this.tooltipData || this.tooltipData.target !== target) {
-      return promise.reject();
-    }
-
-    return this.tooltipData.data.then(({data, size}) => {
-      tooltip.setImageContent(data, size);
-    }, () => {
-      tooltip.setBrokenImageContent();
-    });
-  },
-
   copyImageDataUri: function() {
     
     
@@ -1335,6 +1299,17 @@ MarkupContainer.prototype = {
         clipboardHelper.copyString(str, this.markup.doc);
       });
     });
+  },
+
+  _buildTooltipContent: function(target, tooltip) {
+    if (this.tooltipData && target === this.tooltipData.target) {
+      this.tooltipData.data.then(({data, size}) => {
+        tooltip.setImageContent(data, size);
+      }, () => {
+        tooltip.setBrokenImageContent();
+      });
+      return true;
+    }
   },
 
   

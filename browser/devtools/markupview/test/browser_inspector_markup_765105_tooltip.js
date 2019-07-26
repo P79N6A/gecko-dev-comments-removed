@@ -88,7 +88,7 @@ function testImageTooltip(index) {
     target = container.editor.getAttributeElement("src");
   }
 
-  assertTooltipShownOn(target).then(() => {
+  assertTooltipShownOn(target, () => {
     let images = markup.tooltip.panel.getElementsByTagName("image");
     is(images.length, 1,
       "Tooltip for [" + TEST_NODES[index].selector + "] contains an image");
@@ -97,6 +97,7 @@ function testImageTooltip(index) {
     is(label.textContent, TEST_NODES[index].size,
       "Tooltip label for [" + TEST_NODES[index].selector + "] displays the right image size")
 
+    markup.tooltip.hide();
     testImageTooltip(index + 1);
   });
 }
@@ -116,10 +117,22 @@ function compareImageData(img, imgData) {
 }
 
 function assertTooltipShownOn(element, cb) {
-  return Task.spawn(function*() {
-    info("Is the element a valid hover target");
+  
+  markup.tooltip.panel.addEventListener("popupshown", function shown() {
+    markup.tooltip.panel.removeEventListener("popupshown", shown, true);
 
-    let isValid = yield markup.tooltip.isValidHoverTarget(element);
-    ok(isValid, "The element is a valid hover target for the image tooltip");
-  });
+    
+    
+    
+    
+    
+    let hasImage = () => markup.tooltip.panel.getElementsByTagName("image").length;
+    let poll = setInterval(() => {
+      if (hasImage()) {
+        clearInterval(poll);
+        cb();
+      }
+    }, 200);
+  }, true);
+  markup.tooltip._showOnHover(element);
 }
