@@ -330,9 +330,9 @@
                 #define SK_OVERRIDE override
             #endif
         #endif
-    #else
-        
-        #define SK_OVERRIDE
+    #endif
+    #ifndef SK_OVERRIDE
+	#define SK_OVERRIDE
     #endif
 #endif
 
