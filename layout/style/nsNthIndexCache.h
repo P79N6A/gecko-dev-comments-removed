@@ -5,7 +5,15 @@
 #ifndef nsContentIndexCache_h__
 #define nsContentIndexCache_h__
 
-#include "mozilla/dom/Element.h"
+#include "js/HashTable.h"
+
+class nsIContent;
+
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
 
 
 

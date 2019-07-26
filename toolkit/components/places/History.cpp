@@ -35,6 +35,7 @@
 #include "mozilla/ipc/URIUtils.h"
 #include "nsPrintfCString.h"
 #include "nsTHashtable.h"
+#include "jsapi.h"
 
 
 #define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
