@@ -1161,7 +1161,7 @@ public:
   
   
   
-  TimeStamp mPrevStartTime[3];
+  TimeStamp mPrevEventTime[3];
   bool mIsFirstIteration;
 
   
@@ -1200,7 +1200,7 @@ protected:
                           nscoord aCurrentPos, nscoord aCurrentVelocity,
                           nscoord aDestination);
 
-  void InitDuration(nsIAtom *aOrigin);
+  TimeDuration CalcDurationForEventTime(TimeStamp aTime, nsIAtom *aOrigin);
 
 
 
@@ -1269,8 +1269,9 @@ nsGfxScrollFrameInner::AsyncScroll::VelocityAt(TimeStamp aTime) {
 
 
 
-void
-nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aOrigin) {
+TimeDuration
+nsGfxScrollFrameInner::
+AsyncScroll::CalcDurationForEventTime(TimeStamp aTime, nsIAtom *aOrigin) {
   if (!aOrigin){
     aOrigin = nsGkAtoms::other;
   }
@@ -1317,17 +1318,17 @@ nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aOrigin) {
 
       
       TimeDuration maxDelta = TimeDuration::FromMilliseconds(mOriginMaxMS / mIntervalRatio);
-      mPrevStartTime[0] = mStartTime         - maxDelta;
-      mPrevStartTime[1] = mPrevStartTime[0]  - maxDelta;
-      mPrevStartTime[2] = mPrevStartTime[1]  - maxDelta;
+      mPrevEventTime[0] = aTime              - maxDelta;
+      mPrevEventTime[1] = mPrevEventTime[0]  - maxDelta;
+      mPrevEventTime[2] = mPrevEventTime[1]  - maxDelta;
     }
   }
 
   
-  int32_t eventsDeltaMs = (mStartTime - mPrevStartTime[2]).ToMilliseconds() / 3;
-  mPrevStartTime[2] = mPrevStartTime[1];
-  mPrevStartTime[1] = mPrevStartTime[0];
-  mPrevStartTime[0] = mStartTime;
+  int32_t eventsDeltaMs = (aTime - mPrevEventTime[2]).ToMilliseconds() / 3;
+  mPrevEventTime[2] = mPrevEventTime[1];
+  mPrevEventTime[1] = mPrevEventTime[0];
+  mPrevEventTime[0] = aTime;
 
   
   
@@ -1336,7 +1337,7 @@ nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aOrigin) {
   
   int32_t durationMS = clamped<int32_t>(eventsDeltaMs * mIntervalRatio, mOriginMinMS, mOriginMaxMS);
 
-  mDuration = TimeDuration::FromMilliseconds(durationMS);
+  return TimeDuration::FromMilliseconds(durationMS);
 }
 
 void
@@ -1350,9 +1351,9 @@ nsGfxScrollFrameInner::AsyncScroll::InitSmoothScroll(TimeStamp aTime,
     mStartPos = PositionAt(aTime);
   }
   mStartTime = aTime;
+  mDuration = CalcDurationForEventTime(aTime, aOrigin);
   mDestination = aDestination;
   mRange = aRange;
-  InitDuration(aOrigin);
   InitTimingFunction(mTimingFunctionX, mStartPos.x, currentVelocity.width,
                      aDestination.x);
   InitTimingFunction(mTimingFunctionY, mStartPos.y, currentVelocity.height,
