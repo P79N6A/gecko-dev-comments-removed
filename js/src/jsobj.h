@@ -1286,6 +1286,7 @@ DenseRangeRef::mark(JSTracer *trc)
 }
 #endif
 
+
 bool
 HasOwnProperty(JSContext *cx, HandleObject obj, HandleId id, bool *resultp);
 
