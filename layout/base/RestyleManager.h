@@ -274,7 +274,8 @@ public:
   ElementRestyler(nsPresContext* aPresContext,
                   nsIFrame* aFrame,
                   nsStyleChangeList* aChangeList,
-                  nsChangeHint aHintsHandledByAncestors);
+                  nsChangeHint aHintsHandledByAncestors,
+                  RestyleTracker& aRestyleTracker);
 
   
   ElementRestyler(const ElementRestyler& aParentRestyler,
@@ -315,7 +316,6 @@ public:
 
 
   void Restyle(nsRestyleHint aRestyleHint,
-               RestyleTracker&    aRestyleTracker,
                DesiredA11yNotifications aDesiredA11yNotifications,
                nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
                TreeMatchContext &aTreeMatchContext);
@@ -352,6 +352,7 @@ private:
   
   nsChangeHint mParentFrameHintsNotHandledForDescendants;
   nsChangeHint mHintsNotHandledForDescendants;
+  RestyleTracker& mRestyleTracker;
 };
 
 } 
