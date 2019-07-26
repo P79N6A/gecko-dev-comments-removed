@@ -52,8 +52,7 @@ DOMRequestIpcHelper.prototype = {
 
 
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference,
-                                         Ci.nsIObserver]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference]),
 
    
 

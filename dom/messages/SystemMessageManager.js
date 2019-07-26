@@ -284,9 +284,6 @@ SystemMessageManager.prototype = {
     if (aTopic === kSystemMessageInternalReady) {
       this._registerManifest();
     }
-
-    
-    this.__proto__.__proto__.observe.call(this, aSubject, aTopic, aData);
   },
 
   _registerManifest: function sysMessMgr_registerManifest() {
