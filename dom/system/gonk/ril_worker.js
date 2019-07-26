@@ -75,6 +75,8 @@ const MMI_MAX_LENGTH_SHORT_CODE = 2;
 
 const MMI_END_OF_USSD = "#";
 
+const GET_CURRENT_CALLS_RETRY_MAX = 3;
+
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32;
 
 
@@ -347,6 +349,7 @@ function RilObject(aContext) {
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
   this._receivedSmsCbPagesMap = {};
+  this._getCurrentCallsRetryCount = 0;
 
   
   this.v5Legacy = RILQUIRKS_V5_LEGACY;
@@ -5483,9 +5486,15 @@ RilObject.prototype[REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE] =
   this._processEnterAndChangeICCResponses(length, options);
 };
 RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, options) {
-  if (options.rilRequestError) {
+  
+  if (options.rilRequestError &&
+      this._getCurrentCallsRetryCount < GET_CURRENT_CALLS_RETRY_MAX) {
+    this._getCurrentCallsRetryCount++;
+    this.getCurrentCalls();
     return;
   }
+
+  this._getCurrentCallsRetryCount = 0;
 
   let Buf = this.context.Buf;
   let calls_length = 0;
