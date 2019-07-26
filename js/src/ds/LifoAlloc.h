@@ -141,12 +141,6 @@ class BumpChunk
         return aligned;
     }
 
-    void *peek(size_t n) {
-        if (bump - bumpBase() < ptrdiff_t(n))
-            return nullptr;
-        return bump - n;
-    }
-
     static BumpChunk *new_(size_t chunkSize);
     static void delete_(BumpChunk *chunk);
 };
@@ -461,16 +455,6 @@ class LifoAlloc
             return Mark(chunk_, position_);
         }
     };
-
-    
-    
-    
-    template <typename T>
-    T *peek() {
-        if (!latest)
-            return nullptr;
-        return static_cast<T *>(latest->peek(sizeof(T)));
-    }
 };
 
 class LifoAllocScope
