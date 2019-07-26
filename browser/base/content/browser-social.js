@@ -18,11 +18,12 @@ let SocialUI = {
     Services.obs.addObserver(this, "social:recommend-info-changed", false);
     Services.obs.addObserver(this, "social:frameworker-error", false);
     Services.obs.addObserver(this, "social:provider-set", false);
+    Services.obs.addObserver(this, "social:providers-changed", false);
 
     Services.prefs.addObserver("social.sidebar.open", this, false);
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
-    gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler, true, true);
+    gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
 
     
     window.addEventListener("mozfullscreenchange", function () {
@@ -41,6 +42,7 @@ let SocialUI = {
     Services.obs.removeObserver(this, "social:recommend-info-changed");
     Services.obs.removeObserver(this, "social:frameworker-error");
     Services.obs.removeObserver(this, "social:provider-set");
+    Services.obs.removeObserver(this, "social:providers-changed");
 
     Services.prefs.removeObserver("social.sidebar.open", this);
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
@@ -95,6 +97,12 @@ let SocialUI = {
       switch (topic) {
         case "social:provider-set":
           this._updateProvider();
+          break;
+        case "social:providers-changed":
+          
+          this._updateActiveUI();
+          
+          SocialToolbar.populateProviderMenus();
           break;
         case "social:pref-changed":
           this._updateEnabledState();
@@ -157,7 +165,7 @@ let SocialUI = {
   _updateActiveUI: function SocialUI_updateActiveUI() {
     
     
-    let enabled = Social.active && !this._chromeless &&
+    let enabled = Social.providers.length > 0 && !this._chromeless &&
                   !PrivateBrowsingUtils.isWindowPrivate(window);
     let broadcaster = document.getElementById("socialActiveBroadcaster");
     broadcaster.hidden = !enabled;
@@ -167,11 +175,13 @@ let SocialUI = {
 
     if (enabled) {
       
-      let label = gNavigatorBundle.getFormattedString(Social.provider.enabled ?
+      let provider = Social.provider || Social.defaultProvider;
+      
+      let label = gNavigatorBundle.getFormattedString(Social.provider ?
                                                         "social.turnOff.label" :
                                                         "social.turnOn.label",
-                                                      [Social.provider.name]);
-      let accesskey = gNavigatorBundle.getString(Social.provider.enabled ?
+                                                      [provider.name]);
+      let accesskey = gNavigatorBundle.getString(Social.provider ?
                                                    "social.turnOff.accesskey" :
                                                    "social.turnOn.accesskey");
       toggleCommand.setAttribute("label", label);
@@ -203,8 +213,7 @@ let SocialUI = {
 
     
     let providerOrigin = targetDoc.nodePrincipal.origin;
-    let whitelist = Services.prefs.getCharPref("social.activation.whitelist");
-    if (whitelist.split(",").indexOf(providerOrigin) == -1)
+    if (!Social.canActivateOrigin(providerOrigin))
       return;
 
     
@@ -222,29 +231,29 @@ let SocialUI = {
     let oldOrigin = Social.provider ? Social.provider.origin : "";
 
     
-    let provider = Social.activateFromOrigin(providerOrigin);
+    Social.activateFromOrigin(providerOrigin, function(provider) {
+      
+      if (!provider)
+        return;
 
-    
-    if (!provider)
-      return;
+      
+      let description = document.getElementById("social-activation-message");
+      let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
+      let message = gNavigatorBundle.getFormattedString("social.activated.description",
+                                                        [provider.name, brandShortName]);
+      description.value = message;
 
-    
-    let description = document.getElementById("social-activation-message");
-    let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
-    let message = gNavigatorBundle.getFormattedString("social.activated.description",
-                                                      [provider.name, brandShortName]);
-    description.value = message;
+      let notificationPanel = SocialUI.notificationPanel;
+      
+      notificationPanel.setAttribute("origin", provider.origin);
+      notificationPanel.setAttribute("oldorigin", oldOrigin);
 
-    let notificationPanel = SocialUI.notificationPanel;
-    
-    notificationPanel.setAttribute("origin", provider.origin);
-    notificationPanel.setAttribute("oldorigin", oldOrigin);
-
-    
-    notificationPanel.hidden = false;
-    setTimeout(function () {
-      notificationPanel.openPopup(SocialToolbar.button, "bottomcenter topright");
-    }, 0);
+      
+      notificationPanel.hidden = false;
+      setTimeout(function () {
+        notificationPanel.openPopup(SocialToolbar.button, "bottomcenter topright");
+      }, 0);
+    });
   },
 
   undoActivation: function SocialUI_undoActivation() {
@@ -311,7 +320,7 @@ let SocialUI = {
     
     if (this._chromeless || PrivateBrowsingUtils.isWindowPrivate(window))
       return false;
-    return !!(Social.active && Social.provider && Social.provider.enabled);
+    return !!Social.provider;
   },
 
 }
@@ -729,14 +738,15 @@ var SocialToolbar = {
 
   
   updateProvider: function () {
-    if (Social.provider) {
+    let provider = Social.provider || Social.defaultProvider;
+    if (provider) {
       let label = gNavigatorBundle.getFormattedString("social.removeProvider.label",
-                                                      [Social.provider.name]);
+                                                      [provider.name]);
       let removeCommand = document.getElementById("Social:Remove");
       removeCommand.setAttribute("label", label);
-      this.button.setAttribute("label", Social.provider.name);
-      this.button.setAttribute("tooltiptext", Social.provider.name);
-      this.button.style.listStyleImage = "url(" + Social.provider.iconURL + ")";
+      this.button.setAttribute("label", provider.name);
+      this.button.setAttribute("tooltiptext", provider.name);
+      this.button.style.listStyleImage = "url(" + provider.iconURL + ")";
 
       this.updateProfile();
     }
@@ -777,6 +787,8 @@ var SocialToolbar = {
     
     
     
+    if (!Social.provider)
+      return;
     let profile = Social.provider.profile || {};
     let userPortrait = profile.portrait || "chrome://global/skin/icons/information-32.png";
 
@@ -796,7 +808,6 @@ var SocialToolbar = {
   
   updateButton: function SocialToolbar_updateButton() {
     this.updateButtonHiddenState();
-    let provider = Social.provider;
     let panel = document.getElementById("social-notification-panel");
     panel.hidden = !SocialUI.enabled;
 
@@ -807,7 +818,7 @@ var SocialToolbar = {
     
     
     if (!SocialUI.enabled ||
-        (!Social.haveLoggedInUser() && provider.profile !== undefined)) {
+        (!Social.haveLoggedInUser() && Social.provider.profile !== undefined)) {
       
       
       
@@ -815,8 +826,9 @@ var SocialToolbar = {
       Services.prefs.clearUserPref(CACHE_PREF_NAME);
       return;
     }
-    let icons = provider.ambientNotificationIcons;
+    let icons = Social.provider.ambientNotificationIcons;
     let iconNames = Object.keys(icons);
+
     if (Social.provider.profile === undefined) {
       
       
@@ -867,14 +879,14 @@ var SocialToolbar = {
             
             "style": "width: " + PANEL_MIN_WIDTH + "px;",
 
-            "origin": provider.origin,
+            "origin": Social.provider.origin,
             "src": icon.contentPanel
           }
         );
 
         createdFrames.push(notificationFrame);
       } else {
-        notificationFrame.setAttribute("origin", provider.origin);
+        notificationFrame.setAttribute("origin", Social.provider.origin);
         SharedFrame.updateURL(notificationFrameId, icon.contentPanel);
       }
 
@@ -1007,12 +1019,11 @@ var SocialToolbar = {
 
   populateProviderMenus: function SocialToolbar_renderProviderMenus() {
     let providerMenuSeps = document.getElementsByClassName("social-provider-menu");
-    let activeProviders = [p for (p of Social.providers) if (p.active)];
     for (let providerMenuSep of providerMenuSeps)
-      this._populateProviderMenu(providerMenuSep, activeProviders);
+      this._populateProviderMenu(providerMenuSep);
   },
 
-  _populateProviderMenu: function SocialToolbar_renderProviderMenu(providerMenuSep, providers) {
+  _populateProviderMenu: function SocialToolbar_renderProviderMenu(providerMenuSep) {
     let menu = providerMenuSep.parentNode;
     
     
@@ -1020,11 +1031,11 @@ var SocialToolbar = {
       menu.removeChild(providerMenuSep.previousSibling);
     }
     
-    if (!SocialUI.enabled || providers.length < 2) {
+    if (!SocialUI.enabled || Social.providers.length < 2) {
       providerMenuSep.hidden = true;
       return;
     }
-    for (let provider of providers) {
+    for (let provider of Social.providers) {
       let menuitem = document.createElement("menuitem");
       menuitem.className = "menuitem-iconic social-provider-menuitem";
       menuitem.setAttribute("image", provider.iconURL);
