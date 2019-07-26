@@ -84,7 +84,10 @@ enum BailoutKind
     Bailout_RecompileCheck,
 
     
-    Bailout_BoundsCheck
+    Bailout_BoundsCheck,
+
+    
+    Bailout_Invalidate
 };
 
 #ifdef DEBUG

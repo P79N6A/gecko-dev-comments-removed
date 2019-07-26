@@ -202,7 +202,9 @@ GenerateBailoutTail(MacroAssembler &masm)
     Label exception;
     Label osr;
     Label recompile;
+    Label boundscheck;
 
+    
     
     
     
@@ -220,7 +222,21 @@ GenerateBailoutTail(MacroAssembler &masm)
     masm.j(Assembler::LessThan, &reflow);
     masm.j(Assembler::Equal, &recompile);
 
+    masm.cmpl(eax, Imm32(BAILOUT_RETURN_INVALIDATE));
+    masm.j(Assembler::LessThan, &boundscheck);
+
     
+    {
+        masm.setupUnalignedABICall(0, edx);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ForceInvalidation));
+
+        masm.testl(eax, eax);
+        masm.j(Assembler::Zero, &exception);
+        masm.jmp(&interpret);
+    }
+
+    
+    masm.bind(&boundscheck);
     {
         masm.setupUnalignedABICall(0, edx);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, BoundsCheckFailure));
