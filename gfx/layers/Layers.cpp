@@ -14,7 +14,6 @@
 #include "LayerSorter.h"                
 #include "LayersLogging.h"              
 #include "ReadbackLayer.h"              
-#include "gfxImageSurface.h"
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
 #include "gfx2DGlue.h"
