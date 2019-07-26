@@ -37,6 +37,6 @@
                              BTA_AG_FEAT_EXTERR)
 
 
-#define BTA_AG_CHLD_VAL    "(0,1,2)"
+#define BTA_AG_CHLD_VAL    "(0,1,2,3)"
 
 #endif 
