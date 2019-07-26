@@ -162,6 +162,7 @@ var ignoreFunctions = {
 
     
     "PrefHashEntry* pref_HashTableLookup(void*)": true,
+    "uint8 mozilla::Preferences::InitStaticMembers()": true, 
 
     
     
