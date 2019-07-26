@@ -2293,6 +2293,10 @@ let GroupItems = {
   
   
   groupItem: function GroupItems_groupItem(a) {
+    if (!this.groupItems) {
+      
+      return null;
+    }
     var result = null;
     this.groupItems.forEach(function(candidate) {
       if (candidate.id == a)
