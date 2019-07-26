@@ -88,13 +88,6 @@ BottomHost.prototype = {
   
 
 
-  setTitle: function BH_setTitle(title) {
-    
-  },
-
-  
-
-
   destroy: function BH_destroy() {
     if (!this._destroyed) {
       this._destroyed = true;
@@ -163,13 +156,6 @@ SidebarHost.prototype = {
 
   raise: function SH_raise() {
     focusTab(this.hostTab);
-  },
-
-  
-
-
-  setTitle: function SH_setTitle(title) {
-    
   },
 
   
@@ -247,13 +233,6 @@ WindowHost.prototype = {
 
   raise: function RH_raise() {
     this._window.focus();
-  },
-
-  
-
-
-  setTitle: function WH_setTitle(title) {
-    this._window.document.title = title;
   },
 
   
