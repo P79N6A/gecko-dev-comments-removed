@@ -14,17 +14,19 @@
 #include "mozilla/Attributes.h"
 #include "nsAutoPtr.h"
 
+class nsIThreadPool;
+
 namespace mozilla {
 
 class MediaResource;
+class AsyncReadRequestState;
 
 
 
 
 
 
-class WMFByteStream MOZ_FINAL : public IMFByteStream,
-                                public IMFAsyncCallback
+class WMFByteStream MOZ_FINAL : public IMFByteStream
 {
 public:
   WMFByteStream(MediaResource* aResource);
@@ -64,43 +66,13 @@ public:
   STDMETHODIMP Write(const BYTE *, ULONG, ULONG *);
 
   
-  
-  STDMETHODIMP GetParameters(DWORD*, DWORD*);
-  STDMETHODIMP Invoke(IMFAsyncResult* aResult);
+  void PerformRead(IMFAsyncResult* aResult, AsyncReadRequestState* aRequestState);
 
 private:
 
   
   
-  
-  
-  
-  DWORD mWorkQueueId;
-
-  
-  class AsyncReadRequestState MOZ_FINAL : public IUnknown {
-  public:
-    AsyncReadRequestState(int64_t aOffset, BYTE* aBuffer, ULONG aLength)
-      : mOffset(aOffset),
-        mBuffer(aBuffer),
-        mBufferLength(aLength),
-        mBytesRead(0)
-    {}
-
-    
-    STDMETHODIMP QueryInterface(REFIID aRIID, LPVOID *aOutObject);
-    STDMETHODIMP_(ULONG) AddRef();
-    STDMETHODIMP_(ULONG) Release();
-
-    int64_t mOffset;
-    BYTE* mBuffer;
-    ULONG mBufferLength;
-    ULONG mBytesRead;
-
-    
-    nsAutoRefCnt mRefCnt;
-    NS_DECL_OWNINGTHREAD
-  };
+  nsCOMPtr<nsIThreadPool> mThreadPool;
 
   
   
@@ -115,6 +87,10 @@ private:
   
   
   int64_t mOffset;
+
+  
+  
+  bool mIsShutdown;
 
   
   nsAutoRefCnt mRefCnt;
