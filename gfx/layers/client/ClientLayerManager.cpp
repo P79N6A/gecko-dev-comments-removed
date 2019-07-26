@@ -47,6 +47,7 @@ ClientLayerManager::ClientLayerManager(nsIWidget* aWidget)
   , mTransactionIncomplete(false)
   , mCompositorMightResample(false)
   , mNeedsComposite(false)
+  , mPaintSequenceNumber(0)
   , mForwarder(new ShadowLayerForwarder)
 {
   MOZ_COUNT_CTOR(ClientLayerManager);
@@ -158,6 +159,11 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   if (aTarget && XRE_GetProcessType() == GeckoProcessType_Default) {
     mShadowTarget = aTarget;
+  }
+
+  
+  if (!mIsRepeatTransaction) {
+    ++mPaintSequenceNumber;
   }
 }
 
@@ -405,7 +411,8 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
   
   bool sent;
   AutoInfallibleTArray<EditReply, 10> replies;
-  if (HasShadowManager() && mForwarder->EndTransaction(&replies, mRegionToClear, aScheduleComposite, &sent)) {
+  if (HasShadowManager() && mForwarder->EndTransaction(&replies, mRegionToClear,
+        aScheduleComposite, mPaintSequenceNumber, &sent)) {
     for (nsTArray<EditReply>::size_type i = 0; i < replies.Length(); ++i) {
       const EditReply& reply = replies[i];
 

@@ -811,7 +811,8 @@ void
 RenderFrameParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
                                        const TargetConfig& aTargetConfig,
                                        bool aIsFirstPaint,
-                                       bool aScheduleComposite)
+                                       bool aScheduleComposite,
+                                       uint32_t aPaintSequenceNumber)
 {
   
   

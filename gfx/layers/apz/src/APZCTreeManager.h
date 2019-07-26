@@ -105,8 +105,15 @@ public:
 
 
 
-  void UpdatePanZoomControllerTree(CompositorParent* aCompositor, Layer* aRoot,
-                                   bool aIsFirstPaint, uint64_t aFirstPaintLayersId);
+
+
+
+
+  void UpdatePanZoomControllerTree(CompositorParent* aCompositor,
+                                   Layer* aRoot,
+                                   bool aIsFirstPaint,
+                                   uint64_t aFirstPaintLayersId,
+                                   uint32_t aPaintSequenceNumber);
 
   
 
