@@ -397,61 +397,20 @@ nsNavHistory::GetOrCreateIdForPage(nsIURI* aURI,
   nsresult rv = GetIdForPage(aURI, _pageId, _GUID);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (*_pageId == 0) {
-    
-    nsAutoString voidString;
-    voidString.SetIsVoid(true);
-    rv = InternalAddNewPage(aURI, voidString, true, false, 0, true,
-                            _pageId, _GUID);
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (*_pageId != 0) {
+    return NS_OK;
   }
 
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::InternalAddNewPage(nsIURI* aURI,
-                                 const nsAString& aTitle,
-                                 bool aHidden,
-                                 bool aTyped,
-                                 int32_t aVisitCount,
-                                 bool aCalculateFrecency,
-                                 int64_t* aPageID,
-                                 nsACString& guid)
-{
+  
   nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-    "INSERT OR IGNORE INTO moz_places "
-      "(url, title, rev_host, hidden, typed, frecency, guid) "
-    "VALUES (:page_url, :page_title, :rev_host, :hidden, :typed, :frecency, "
-             "GENERATE_GUID()) "
+    "INSERT OR IGNORE INTO moz_places (url, rev_host, hidden, frecency, guid) "
+    "VALUES (:page_url, :rev_host, :hidden, :frecency, GENERATE_GUID()) "
   );
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoper(stmt);
 
-  nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
+  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aTitle.IsVoid()) {
-    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_title"));
-  }
-  else {
-    rv = stmt->BindStringByName(
-      NS_LITERAL_CSTRING("page_title"), StringHead(aTitle, TITLE_LENGTH_MAX)
-    );
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   nsAutoString revHost;
   rv = GetReversedHostname(aURI, revHost);
@@ -462,10 +421,7 @@ nsNavHistory::InternalAddNewPage(nsIURI* aURI,
     rv = stmt->BindNullByName(NS_LITERAL_CSTRING("rev_host"));
   }
   NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), aHidden);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), aTyped);
+  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), 1);
   NS_ENSURE_SUCCESS(rv, rv);
   nsAutoCString spec;
   rv = aURI->GetSpec(spec);
@@ -477,12 +433,9 @@ nsNavHistory::InternalAddNewPage(nsIURI* aURI,
   rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int64_t pageId = 0;
   {
     nsCOMPtr<mozIStorageStatement> getIdStmt = mDB->GetStatement(
-      "SELECT id, url, title, rev_host, visit_count, guid "
-      "FROM moz_places "
-      "WHERE url = :page_url "
+      "SELECT id, guid FROM moz_places WHERE url = :page_url "
     );
     NS_ENSURE_STATE(getIdStmt);
     mozStorageStatementScoper getIdScoper(getIdStmt);
@@ -494,127 +447,12 @@ nsNavHistory::InternalAddNewPage(nsIURI* aURI,
     rv = getIdStmt->ExecuteStep(&hasResult);
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ASSERTION(hasResult, "hasResult is false but the call succeeded?");
-    pageId = getIdStmt->AsInt64(0);
-    rv = getIdStmt->GetUTF8String(5, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  if (aCalculateFrecency) {
-    rv = UpdateFrecency(pageId);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  if (aPageID) {
-    *aPageID = pageId;
-  }
-
-  return NS_OK;
-}
-
-
-
-
-
-nsresult
-nsNavHistory::InternalAddVisit(int64_t aPageID, int64_t aReferringVisit,
-                               int64_t aSessionID, PRTime aTime,
-                               int32_t aTransitionType, int64_t* visitID)
-{
-  nsresult rv;
-
-  {
-    nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-      "INSERT INTO moz_historyvisits "
-        "(from_visit, place_id, visit_date, visit_type, session) "
-      "VALUES (:from_visit, :page_id, :visit_date, :visit_type, :session) "
-    );
-    NS_ENSURE_STATE(stmt);
-    mozStorageStatementScoper scoper (stmt);
-  
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("from_visit"), aReferringVisit);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), aPageID);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"), aTime);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("visit_type"), aTransitionType);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("session"), aSessionID);
-    NS_ENSURE_SUCCESS(rv, rv);
-  
-    rv = stmt->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  {
-    nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-      "SELECT id FROM moz_historyvisits "
-      "WHERE place_id = :page_id "
-        "AND visit_date = :visit_date "
-        "AND session = :session "
-    );
-    NS_ENSURE_STATE(stmt);
-    mozStorageStatementScoper scoper(stmt);
-
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), aPageID);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"), aTime);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("session"), aSessionID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool hasResult;
-    rv = stmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ASSERTION(hasResult, "hasResult is false but the call succeeded?");
-
-    rv = stmt->GetInt64(0, visitID);
+    *_pageId = getIdStmt->AsInt64(0);
+    rv = getIdStmt->GetUTF8String(1, _GUID);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-bool
-nsNavHistory::FindLastVisit(nsIURI* aURI,
-                            int64_t* aVisitID,
-                            PRTime* aTime,
-                            int64_t* aSessionID)
-{
-  nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-    "SELECT id, session, visit_date "
-    "FROM moz_historyvisits "
-    "WHERE place_id = (SELECT id FROM moz_places WHERE url = :page_url) "
-    "ORDER BY visit_date DESC "
-  );
-  NS_ENSURE_TRUE(stmt, false);
-  mozStorageStatementScoper scoper(stmt);
-  nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  bool hasMore;
-  rv = stmt->ExecuteStep(&hasMore);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (hasMore) {
-    rv = stmt->GetInt64(0, aVisitID);
-    NS_ENSURE_SUCCESS(rv, false);
-    rv = stmt->GetInt64(1, aSessionID);
-    NS_ENSURE_SUCCESS(rv, false);
-    rv = stmt->GetInt64(2, reinterpret_cast<int64_t*>(aTime));
-    NS_ENSURE_SUCCESS(rv, false);
-    return true;
-  }
-  return false;
 }
 
 
@@ -1243,194 +1081,6 @@ nsNavHistory::CanAddURI(nsIURI* aURI, bool* canAdd)
   *canAdd = true;
   return NS_OK;
 }
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
-                       int32_t aTransitionType, bool aIsRedirect,
-                       int64_t aSessionID, int64_t* aVisitID)
-{
-  PLACES_WARN_DEPRECATED();
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-  NS_ENSURE_ARG_POINTER(aVisitID);
-
-  
-  bool canAdd = false;
-  nsresult rv = CanAddURI(aURI, &canAdd);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!canAdd) {
-    *aVisitID = 0;
-    return NS_OK;
-  }
-
-  
-  
-  if (aTransitionType == TRANSITION_EMBED) {
-    registerEmbedVisit(aURI, GetNow());
-    *aVisitID = 0;
-    return NS_OK;
-  }
-
-  
-  
-  mozStorageTransaction transaction(mDB->MainConn(), false);
-
-  
-  nsCOMPtr<mozIStorageStatement> stmt = mDB->GetStatement(
-    "SELECT id, visit_count, typed, hidden, guid "
-    "FROM moz_places "
-    "WHERE url = :page_url "
-  );
-  NS_ENSURE_STATE(stmt);
-  mozStorageStatementScoper scoper(stmt);
-
-  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-  bool alreadyVisited = false;
-  rv = stmt->ExecuteStep(&alreadyVisited);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoCString guid;
-  int64_t pageID = 0;
-  int32_t hidden;
-  int32_t typed;
-  bool newItem = false; 
-  if (alreadyVisited) {
-    
-    rv = stmt->GetInt64(0, &pageID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    int32_t oldVisitCount = 0;
-    rv = stmt->GetInt32(1, &oldVisitCount);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    int32_t oldTypedState = 0;
-    rv = stmt->GetInt32(2, &oldTypedState);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    int32_t oldHiddenState = 0;
-    rv = stmt->GetInt32(3, &oldHiddenState);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = stmt->GetUTF8String(4, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    stmt->Reset();
-    scoper.Abandon();
-
-    
-    
-    
-    
-    hidden = oldHiddenState;
-    if (hidden == 1 &&
-        (!GetHiddenState(aIsRedirect, aTransitionType) ||
-         aTransitionType == TRANSITION_TYPED)) {
-      hidden = 0; 
-    }
-
-    typed = (int32_t)(oldTypedState == 1 || (aTransitionType == TRANSITION_TYPED));
-
-    
-    
-    if (oldVisitCount == 0)
-      newItem = true;
-
-    
-    nsCOMPtr<mozIStorageStatement> updateStmt = mDB->GetStatement(
-      "UPDATE moz_places "
-      "SET hidden = :hidden, typed = :typed "
-      "WHERE id = :page_id "
-    );
-    NS_ENSURE_STATE(updateStmt);
-    mozStorageStatementScoper upsateScoper(updateStmt);
-
-    rv = updateStmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = updateStmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), hidden);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), typed);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = updateStmt->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    
-    newItem = true;
-
-    
-    stmt->Reset();
-    scoper.Abandon();
-
-    
-    hidden = (int32_t)GetHiddenState(aIsRedirect, aTransitionType);
-    typed = (int32_t)(aTransitionType == TRANSITION_TYPED);
-
-    
-    nsString voidString;
-    voidString.SetIsVoid(true);
-    rv = InternalAddNewPage(aURI, voidString, hidden == 1, typed == 1, 1,
-                            true, &pageID, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  int64_t referringVisitID = 0;
-  int64_t referringSessionID;
-  PRTime referringTime;
-  bool referrerIsSame;
-  if (aReferringURI &&
-      NS_SUCCEEDED(aReferringURI->Equals(aURI, &referrerIsSame)) &&
-      !referrerIsSame &&
-      !FindLastVisit(aReferringURI, &referringVisitID, &referringTime, &referringSessionID)) {
-    
-    
-    rv = AddVisit(aReferringURI, aTime - 1, nullptr, TRANSITION_LINK, false,
-                  aSessionID, &referringVisitID);
-    if (NS_FAILED(rv))
-      referringVisitID = 0;
-  }
-
-  rv = InternalAddVisit(pageID, referringVisitID, aSessionID, aTime,
-                        aTransitionType, aVisitID);
-  transaction.Commit();
-
-  
-  
-  
-  (void)UpdateFrecency(pageID);
-
-  
-  
-  NotifyOnVisit(aURI, *aVisitID, aTime, aSessionID, referringVisitID,
-                aTransitionType, guid, hidden);
-
-  
-  
-  
-  
-  if (newItem && (aIsRedirect || aTransitionType == TRANSITION_DOWNLOAD)) {
-    nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
-    if (obsService)
-      obsService->NotifyObservers(aURI, NS_LINK_VISITED_EVENT_TOPIC, nullptr);
-  }
-
-  
-  History::GetService()->NotifyVisited(aURI);
-
-  return NS_OK;
-}
-
 
 
 

@@ -151,6 +151,7 @@ public:
 
 
 
+
   nsresult GetOrCreateIdForPage(nsIURI* aURI,
                                 int64_t* _pageId, nsCString& _GUID);
 
@@ -446,18 +447,6 @@ protected:
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
   nsresult CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString);
-
-  nsresult InternalAddNewPage(nsIURI* aURI, const nsAString& aTitle,
-                              bool aHidden, bool aTyped,
-                              int32_t aVisitCount, bool aCalculateFrecency,
-                              int64_t* aPageID, nsACString& guid);
-  nsresult InternalAddVisit(int64_t aPageID, int64_t aReferringVisit,
-                            int64_t aSessionID, PRTime aTime,
-                            int32_t aTransitionType, int64_t* aVisitID);
-  bool FindLastVisit(nsIURI* aURI,
-                       int64_t* aVisitID,
-                       PRTime* aTime,
-                       int64_t* aSessionID);
 
   
 
