@@ -332,20 +332,36 @@ AreaPositionManager.prototype = {
   _lazyStoreGet: function(aNode) {
     let rect = this._nodePositionStore.get(aNode);
     if (!rect) {
-      rect = aNode.getBoundingClientRect();
+      
+      
+      
+      
+      let clientRect = aNode.getBoundingClientRect();
+      rect = {
+        left: clientRect.left,
+        right: clientRect.right,
+        width: clientRect.width,
+        height: clientRect.height,
+        top: clientRect.top,
+        bottom: clientRect.bottom,
+      };
       rect.x = rect.left + rect.width / 2;
       rect.y = rect.top + rect.height / 2;
+      Object.freeze(rect);
       this._nodePositionStore.set(aNode, rect);
     }
     return rect;
   },
 
   _firstInRow: function(aNode) {
-    let bound = this._lazyStoreGet(aNode).top;
+    
+    
+    
+    let bound = Math.floor(this._lazyStoreGet(aNode).top);
     let rv = aNode;
     let prev;
     while (rv && (prev = this._getVisibleSiblingForDirection(rv, "previous"))) {
-      if (this._lazyStoreGet(prev).bottom <= bound) {
+      if (Math.floor(this._lazyStoreGet(prev).bottom) <= bound) {
         return rv;
       }
       rv = prev;
