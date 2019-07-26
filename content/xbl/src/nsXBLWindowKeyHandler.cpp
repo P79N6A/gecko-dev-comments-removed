@@ -344,6 +344,14 @@ nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventTy
 
   WalkHandlersInternal(aKeyEvent, aEventType, mHandler);
 
+  aKeyEvent->GetDefaultPrevented(&prevent);
+  if (prevent) {
+    return NS_OK;
+  }
+
+  
+  
+  
   if (isEditor && GetEditorKeyBindings()) {
     
     nsCOMPtr<nsIControllers> controllers;
