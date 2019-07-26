@@ -1929,22 +1929,16 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       if (overflow.IsEmpty() && !Preserves3DChildren()) {
         return;
       }
-      
-      
-      
 
-      
       nsPoint offset = aBuilder->ToReferenceFrame(this);
-      nsRect trans = nsDisplayTransform::TransformRect(overflow + offset, this, offset);
       dirtyRect += offset;
-      if (dirtyRect.Intersects(trans)) {
-        
-        
-        dirtyRect = overflow;
+
+      nsRect untransformedDirtyRect;
+      if (nsDisplayTransform::UntransformRect(dirtyRect, overflow, this, offset, &untransformedDirtyRect)) {
+        dirtyRect = untransformedDirtyRect;
       } else {
-        if (!Preserves3DChildren()) {
-          return;
-        }
+        NS_WARNING("Unable to untransform dirty rect!");
+        
         dirtyRect.SetEmpty();
       }
     }

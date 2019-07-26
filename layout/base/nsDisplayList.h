@@ -3258,6 +3258,12 @@ public:
   
 
 
+  static bool UntransformRect(const nsRect &aTransformedBounds,
+                              const nsRect &aChildBounds,
+                              const nsIFrame* aFrame,
+                              const nsPoint &aOrigin,
+                              nsRect *aOutRect);
+
   bool UntransformVisibleRect(nsDisplayListBuilder* aBuilder,
                               nsRect* aOutRect);
 
