@@ -425,8 +425,11 @@ class CompileInfo
 
         
         
-        if (!script()->strict() && firstArgSlot() <= slot && slot - firstArgSlot() < nargs())
+        if ((hasArguments() || !script()->strict()) &&
+            firstArgSlot() <= slot && slot - firstArgSlot() < nargs())
+        {
             return true;
+        }
 
         return false;
     }
