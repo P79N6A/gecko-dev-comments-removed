@@ -564,8 +564,6 @@ AudioContext::Shutdown()
     Mute();
   }
 
-  mDecoder.Shutdown();
-
   
   
   
