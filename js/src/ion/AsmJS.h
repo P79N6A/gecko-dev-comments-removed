@@ -16,7 +16,6 @@
 
 
 #if defined(JS_ION) && \
-    !defined(ANDROID) && \
     (defined(JS_CPU_X86) || defined(JS_CPU_X64))
 # define JS_ASMJS
 #endif
