@@ -44,7 +44,6 @@ const kEncodings = new Set([
   "ISO-8859-2",
   
   "gbk",
-  "gb18030",
   
   "Big5",
   
@@ -217,12 +216,20 @@ let CharsetMenu = {
   },
 
   _getCharsetLabel: function(charset) {
+    if (charset == "gbk") {
+      
+      charset = "gbk.bis";
+    }
     try {
       return gBundle.GetStringFromName(charset);
     } catch (ex) {}
     return charset;
   },
   _getCharsetAccessKey: function(charset) {
+    if (charset == "gbk") {
+      
+      charset = "gbk.bis";
+    }
     try {
       return gBundle.GetStringFromName(charset + ".key");
     } catch (ex) {}
