@@ -13,6 +13,8 @@
 
 struct nsIntPoint;
 
+
+
 struct nsPoint : public mozilla::gfx::BasePoint<nscoord, nsPoint> {
   typedef mozilla::gfx::BasePoint<nscoord, nsPoint> Super;
 
@@ -27,6 +29,10 @@ struct nsPoint : public mozilla::gfx::BasePoint<nscoord, nsPoint> {
   
   inline nsPoint ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
 };
+
+
+
+
 
 struct nsIntPoint : public mozilla::gfx::BasePoint<int32_t, nsIntPoint> {
   typedef mozilla::gfx::BasePoint<int32_t, nsIntPoint> Super;
