@@ -375,6 +375,9 @@ protected:
                         void* aProcessData);
 
   bool ParseFontFaceRule(RuleAppendFunc aAppendFunc, void* aProcessData);
+  bool ParseFontFeatureValuesRule(RuleAppendFunc aAppendFunc,
+                                  void* aProcessData);
+  bool ParseFontFeatureValueSet(nsCSSFontFeatureValuesRule *aRule);
   bool ParseFontDescriptor(nsCSSFontFaceRule* aRule);
   bool ParseFontDescriptorValue(nsCSSFontDesc aDescID,
                                 nsCSSValue& aValue);
@@ -1635,6 +1638,11 @@ CSSParserImpl::ParseAtRule(RuleAppendFunc aAppendFunc,
     parseFunc = &CSSParserImpl::ParseFontFaceRule;
     newSection = eCSSSection_General;
 
+  } else if (mToken.mIdent.LowerCaseEqualsLiteral("font-feature-values") &&
+             nsCSSFontFeatureValuesRule::PrefEnabled()) {
+    parseFunc = &CSSParserImpl::ParseFontFeatureValuesRule;
+    newSection = eCSSSection_General;
+
   } else if (mToken.mIdent.LowerCaseEqualsLiteral("page")) {
     parseFunc = &CSSParserImpl::ParsePageRule;
     newSection = eCSSSection_General;
@@ -2360,6 +2368,233 @@ CSSParserImpl::ParseFontDescriptor(nsCSSFontFaceRule* aRule)
   return true;
 }
 
+
+
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseFontFeatureValuesRule(RuleAppendFunc aAppendFunc,
+                                          void* aData)
+{
+  nsRefPtr<nsCSSFontFeatureValuesRule>
+               valuesRule(new nsCSSFontFeatureValuesRule());
+
+  
+  nsCSSValue familyValue;
+
+  if (!ParseFamily(familyValue) ||
+      familyValue.GetUnit() != eCSSUnit_Families)
+  {
+    REPORT_UNEXPECTED_TOKEN(PEFFVNoFamily);
+    return false;
+  }
+
+  
+  nsAutoString familyList;
+  bool hasGeneric;
+  familyValue.GetStringValue(familyList);
+  valuesRule->SetFamilyList(familyList, hasGeneric);
+
+  
+  if (hasGeneric) {
+    REPORT_UNEXPECTED_TOKEN(PEFFVGenericInFamilyList);
+    return false;
+  }
+
+  
+  if (!ExpectSymbol('{', true)) {
+    REPORT_UNEXPECTED_TOKEN(PEFFVBlockStart);
+    return false;
+  }
+
+  
+  
+  for (;;) {
+    if (!GetToken(true)) {
+      REPORT_UNEXPECTED_EOF(PEFFVUnexpectedEOF);
+      break;
+    }
+    if (mToken.IsSymbol('}')) { 
+      UngetToken();
+      break;
+    }
+
+    if (!ParseFontFeatureValueSet(valuesRule)) {
+      if (!SkipAtRule(false)) {
+        break;
+      }
+    }
+  }
+  if (!ExpectSymbol('}', true)) {
+    REPORT_UNEXPECTED_TOKEN(PEFFVUnexpectedBlockEnd);
+    SkipUntil('}');
+    return false;
+  }
+
+  (*aAppendFunc)(valuesRule, aData);
+  return true;
+}
+
+#define NUMVALUES_NO_LIMIT  0xFFFF
+
+
+
+
+bool
+CSSParserImpl::ParseFontFeatureValueSet(nsCSSFontFeatureValuesRule
+                                                            *aFeatureValuesRule)
+{
+  
+  if (eCSSToken_AtKeyword != mToken.mType) {
+    REPORT_UNEXPECTED_TOKEN(PEFontFeatureValuesNoAt);
+    OUTPUT_ERROR();
+    UngetToken();
+    return false;
+  }
+
+  
+  int32_t whichVariant;
+  nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
+  if (keyword == eCSSKeyword_UNKNOWN ||
+      !nsCSSProps::FindKeyword(keyword,
+                               nsCSSProps::kFontVariantAlternatesFuncsKTable,
+                               whichVariant))
+  {
+    if (!NonMozillaVendorIdentifier(mToken.mIdent)) {
+      REPORT_UNEXPECTED_TOKEN(PEFFVUnknownFontVariantPropValue);
+      OUTPUT_ERROR();
+    }
+    UngetToken();
+    return false;
+  }
+
+  nsAutoString featureType(mToken.mIdent);
+
+  
+  if (!ExpectSymbol('{', true)) {
+    REPORT_UNEXPECTED_TOKEN(PEFFVValueSetStart);
+    return false;
+  }
+
+  
+  int32_t limitNumValues;
+
+  switch (keyword) {
+    case eCSSKeyword_styleset:
+      limitNumValues = NUMVALUES_NO_LIMIT;
+      break;
+    case eCSSKeyword_character_variant:
+      limitNumValues = 2;
+      break;
+    default:
+      limitNumValues = 1;
+      break;
+  }
+
+  
+  nsAutoTArray<gfxFontFeatureValueSet::ValueList, 5> values;
+
+  
+  for (;;) {
+    nsAutoString valueId;
+
+    if (!GetToken(true)) {
+      REPORT_UNEXPECTED_EOF(PEFFVUnexpectedEOF);
+      break;
+    }
+
+    
+    if (mToken.IsSymbol(';')) {
+      continue;
+    }
+
+    
+    if (mToken.IsSymbol('}')) {
+      break;
+    }
+
+    
+    if (eCSSToken_Ident != mToken.mType) {
+      REPORT_UNEXPECTED_TOKEN(PEFFVExpectedIdent);
+      if (!SkipDeclaration(true)) {
+        break;
+      }
+      continue;
+    }
+
+    valueId.Assign(mToken.mIdent);
+
+    
+    if (!ExpectSymbol(':', true)) {
+      REPORT_UNEXPECTED_TOKEN(PEParseDeclarationNoColon);
+      OUTPUT_ERROR();
+      if (!SkipDeclaration(true)) {
+        break;
+      }
+      continue;
+    }
+
+    
+    nsAutoTArray<uint32_t,4>   featureSelectors;
+
+    nsCSSValue intValue;
+    while (ParseNonNegativeVariant(intValue, VARIANT_INTEGER, nullptr)) {
+      featureSelectors.AppendElement(uint32_t(intValue.GetIntValue()));
+    }
+
+    int32_t numValues = featureSelectors.Length();
+
+    if (numValues == 0) {
+      REPORT_UNEXPECTED_TOKEN(PEFFVExpectedValue);
+      OUTPUT_ERROR();
+      if (!SkipDeclaration(true)) {
+        break;
+      }
+      continue;
+    }
+
+    if (numValues > limitNumValues) {
+      REPORT_UNEXPECTED_P(PEFFVTooManyValues, featureType);
+      OUTPUT_ERROR();
+      if (!SkipDeclaration(true)) {
+        break;
+      }
+      continue;
+    }
+
+    if (!GetToken(true)) {
+      REPORT_UNEXPECTED_EOF(PEFFVUnexpectedEOF);
+      gfxFontFeatureValueSet::ValueList v(valueId, featureSelectors);
+      values.AppendElement(v);
+      break;
+    }
+
+    
+    if (!mToken.IsSymbol(';') && !mToken.IsSymbol('}')) {
+      REPORT_UNEXPECTED_TOKEN(PEFFVValueDefinitionTrailing);
+      OUTPUT_ERROR();
+      if (!SkipDeclaration(true)) {
+        break;
+      }
+      continue;
+    }
+
+    gfxFontFeatureValueSet::ValueList v(valueId, featureSelectors);
+    values.AppendElement(v);
+
+    if (mToken.IsSymbol('}')) {
+      break;
+    }
+ }
+
+  aFeatureValuesRule->AddValueList(whichVariant, values);
+  return true;
+}
 
 bool
 CSSParserImpl::ParseKeyframesRule(RuleAppendFunc aAppendFunc, void* aData)
