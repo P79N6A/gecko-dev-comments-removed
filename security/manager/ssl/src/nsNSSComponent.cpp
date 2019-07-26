@@ -9,8 +9,6 @@
 #endif
 
 #include "nsNSSComponent.h"
-
-#include "CertVerifier.h"
 #include "nsNSSCallbacks.h"
 #include "nsNSSIOLayer.h"
 #include "nsCertVerificationThread.h"
@@ -69,6 +67,7 @@
 #include "nsNSSShutDown.h"
 #include "GeneratedEvents.h"
 #include "nsIKeyModule.h"
+#include "ScopedNSSTypes.h"
 #include "SharedSSLState.h"
 
 #include "nss.h"
@@ -1099,18 +1098,23 @@ void nsNSSComponent::setValidationOptions(nsIPrefBranch * pref)
                            ocspMode_FailureIsVerificationFailure
                            : ocspMode_FailureIsNotAVerificationFailure);
 
-  mDefaultCertVerifier = new CertVerifier(
+  RefPtr<nsCERTValInParamWrapper> newCVIN(new nsCERTValInParamWrapper);
+  if (NS_SUCCEEDED(newCVIN->Construct(
       aiaDownloadEnabled ? 
-        CertVerifier::missing_cert_download_on : CertVerifier::missing_cert_download_off,
+        nsCERTValInParamWrapper::missing_cert_download_on : nsCERTValInParamWrapper::missing_cert_download_off,
       crlDownloading ?
-        CertVerifier::crl_download_allowed : CertVerifier::crl_local_only,
+        nsCERTValInParamWrapper::crl_download_allowed : nsCERTValInParamWrapper::crl_local_only,
       ocspEnabled ? 
-        CertVerifier::ocsp_on : CertVerifier::ocsp_off,
+        nsCERTValInParamWrapper::ocsp_on : nsCERTValInParamWrapper::ocsp_off,
       ocspRequired ? 
-        CertVerifier::ocsp_strict : CertVerifier::ocsp_relaxed,
+        nsCERTValInParamWrapper::ocsp_strict : nsCERTValInParamWrapper::ocsp_relaxed,
       anyFreshRequired ?
-        CertVerifier::any_revo_strict : CertVerifier::any_revo_relaxed,
-      firstNetworkRevo.get());
+        nsCERTValInParamWrapper::any_revo_strict : nsCERTValInParamWrapper::any_revo_relaxed,
+      firstNetworkRevo.get()))) {
+    
+    
+    mDefaultCERTValInParam = newCVIN;
+  }
 
   
 
@@ -1822,6 +1826,20 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
       
       setValidationOptions(mPrefBranch);
 
+      
+      mDefaultCERTValInParamLocalOnly = new nsCERTValInParamWrapper;
+      rv = mDefaultCERTValInParamLocalOnly->Construct(
+          nsCERTValInParamWrapper::missing_cert_download_off,
+          nsCERTValInParamWrapper::crl_local_only,
+          nsCERTValInParamWrapper::ocsp_off,
+          nsCERTValInParamWrapper::ocsp_relaxed,
+          nsCERTValInParamWrapper::any_revo_relaxed,
+          FIRST_REVO_METHOD_DEFAULT);
+      if (NS_FAILED(rv)) {
+        nsPSMInitPanic::SetPanic();
+        return rv;
+      }
+      
       RegisterMyOCSPAIAInfoCallback();
 
       mHttpForNSS.initTable();
@@ -2035,7 +2053,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
   *aPrincipal = nullptr;
 
   nsNSSShutDownPreventionLock locker;
-  ScopedSEC_PKCS7ContentInfo p7_info;
+  ScopedSEC_PKCS7ContentInfo p7_info; 
   unsigned char hash[SHA1_LENGTH]; 
 
   SECItem item;
@@ -2047,6 +2065,10 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
                                 GetPasswordKeyCallback, nullptr,
                                 GetDecryptKeyCallback, nullptr,
                                 DecryptionAllowedCallback);
+
+  if (!p7_info) {
+    return NS_ERROR_FAILURE;
+  }
 
   
   
@@ -2504,12 +2526,22 @@ nsNSSComponent::IsNSSInitialized(bool *initialized)
 }
 
 NS_IMETHODIMP
-nsNSSComponent::GetDefaultCertVerifier(RefPtr<CertVerifier> &out)
+nsNSSComponent::GetDefaultCERTValInParam(RefPtr<nsCERTValInParamWrapper> &out)
 {
   MutexAutoLock lock(mutex);
   if (!mNSSInitialized)
       return NS_ERROR_NOT_INITIALIZED;
-  out = mDefaultCertVerifier;
+  out = mDefaultCERTValInParam;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSComponent::GetDefaultCERTValInParamLocalOnly(RefPtr<nsCERTValInParamWrapper> &out)
+{
+  MutexAutoLock lock(mutex);
+  if (!mNSSInitialized)
+      return NS_ERROR_NOT_INITIALIZED;
+  out = mDefaultCERTValInParamLocalOnly;
   return NS_OK;
 }
 
