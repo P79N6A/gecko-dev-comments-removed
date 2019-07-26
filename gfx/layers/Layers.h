@@ -291,6 +291,12 @@ public:
 
 
 
+  void GetScrollableLayers(nsTArray<Layer*>& aArray);
+
+  
+
+
+
 
 
 #ifdef DEBUG
