@@ -708,10 +708,10 @@ WNProtoSecPolicyClearer(JSDHashTable *table, JSDHashEntryHdr *hdr,
 
 
 nsresult
-XPCWrappedNativeScope::ClearAllWrappedNativeSecurityPolicies(XPCCallContext& ccx)
+XPCWrappedNativeScope::ClearAllWrappedNativeSecurityPolicies()
 {
     
-    XPCAutoLock lock(ccx.GetRuntime()->GetMapLock());
+    XPCAutoLock lock(XPCJSRuntime::Get()->GetMapLock());
 
     for (XPCWrappedNativeScope* cur = gScopes; cur; cur = cur->mNext) {
         cur->mWrappedNativeProtoMap->Enumerate(WNProtoSecPolicyClearer, nullptr);
