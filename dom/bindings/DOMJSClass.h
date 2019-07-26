@@ -62,10 +62,22 @@ struct ConstantSpec
   JS::Value value;
 };
 
+typedef bool (*PropertyEnabled)(JSContext* cx, JSObject* global);
+
 template<typename T>
 struct Prefable {
+  inline bool isEnabled(JSContext* cx, JSObject* obj) {
+    return enabled &&
+      (!enabledFunc ||
+       enabledFunc(cx, js::GetGlobalForObjectCrossCompartment(obj)));
+  }
+
   
   bool enabled;
+  
+  
+  
+  PropertyEnabled enabledFunc;
   
   
   
