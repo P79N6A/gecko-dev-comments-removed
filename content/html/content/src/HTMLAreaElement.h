@@ -31,6 +31,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLAreaElement,
+                                           nsGenericHTMLElement)
+
+  
   NS_DECL_SIZEOF_EXCLUDING_THIS
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
@@ -108,33 +112,19 @@ public:
     SetHTMLAttr(nsGkAtoms::ping, aPing, aError);
   }
 
-  void GetOrigin(nsAString &aOrigin)
-  {
-    Link::GetOrigin(aOrigin);
-  }
+  
 
   
   
 
-  void GetUsername(nsAString& aUsername)
-  {
-    Link::GetUsername(aUsername);
-  }
+  
+  
 
-  void SetUsername(const nsAString& aUsername)
-  {
-    Link::SetUsername(aUsername);
-  }
+  
+  
 
-  void GetPassword(nsAString& aPassword)
-  {
-    Link::GetPassword(aPassword);
-  }
-
-  void SetPassword(const nsAString& aPassword)
-  {
-    Link::SetPassword(aPassword);
-  }
+  
+  
 
   
   

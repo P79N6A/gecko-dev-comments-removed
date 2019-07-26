@@ -33,6 +33,10 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
+  
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLAnchorElement,
+                                           nsGenericHTMLElement)
+
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
   virtual bool Draggable() const MOZ_OVERRIDE;
 
@@ -135,30 +139,14 @@ public:
     rv = SetText(aValue);
   }
 
-  void GetOrigin(nsAString& aOrigin)
-  {
-    Link::GetOrigin(aOrigin);
-  }
+  
 
-  void GetUsername(nsAString& aUsername)
-  {
-    Link::GetUsername(aUsername);
-  }
+  
+  
 
-  void SetUsername(const nsAString& aUsername)
-  {
-    Link::SetUsername(aUsername);
-  }
+  
+  
 
-  void GetPassword(nsAString& aPassword)
-  {
-    Link::GetPassword(aPassword);
-  }
-
-  void SetPassword(const nsAString& aPassword)
-  {
-    Link::SetPassword(aPassword);
-  }
   
   void GetCoords(nsString& aValue)
   {
