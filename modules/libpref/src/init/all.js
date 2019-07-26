@@ -172,6 +172,9 @@ pref("browser.chrome.image_icons.max_size", 1024);
 pref("browser.triple_click_selects_paragraph", true);
 
 
+pref("print.shrink-to-fit.scale-limit-percent", 20);
+
+
 pref("media.cache_size", 512000);
 
 
