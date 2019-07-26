@@ -92,23 +92,14 @@ public:
                       uint32_t aFlags = 0);
 
   bool IsAdjacentWithTop() const {
-    return mY ==
-      ((mFlags & BRS_ISFIRSTINFLOW) ? mReflowState.ComputedPhysicalBorderPadding().top : 0);
+    return mY == mBorderPadding.top;
   }
 
   
 
 
-
-  nsMargin BorderPadding() const {
-    nsMargin result = mReflowState.ComputedPhysicalBorderPadding();
-    if (!(mFlags & BRS_ISFIRSTINFLOW)) {
-      result.top = 0;
-      if (mFlags & BRS_ISOVERFLOWCONTAINER) {
-        result.bottom = 0;
-      }
-    }
-    return result;
+  const nsMargin& BorderPadding() const {
+    return mBorderPadding;
   }
 
   
@@ -221,6 +212,9 @@ public:
 
   
   nscoord mY;
+
+  
+  nsMargin mBorderPadding;
 
   
   nsOverflowAreas mFloatOverflowAreas;
