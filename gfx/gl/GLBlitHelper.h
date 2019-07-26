@@ -18,49 +18,6 @@ namespace gl {
 
 class GLContext;
 
-
-
-
-
-
-
-GLuint CreateTextureForOffscreen(GLContext* aGL, const GLFormats& aFormats,
-                                 const gfxIntSize& aSize);
-
-
-
-
-
-
-
-
-
-
-
-GLuint CreateTexture(GLContext* aGL, GLenum aInternalFormat, GLenum aFormat,
-                     GLenum aType, const gfxIntSize& aSize);
-
-
-
-
-
-
-GLuint CreateRenderbuffer(GLContext* aGL, GLenum aFormat, GLsizei aSamples,
-                          const gfxIntSize& aSize);
-
-
-
-
-
-
-
-void CreateRenderbuffersForOffscreen(GLContext* aGL, const GLFormats& aFormats,
-                                     const gfxIntSize& aSize, bool aMultisample,
-                                     GLuint* aColorMSRB, GLuint* aDepthRB,
-                                     GLuint* aStencilRB);
-
-
-
 class GLBlitHelper MOZ_FINAL
 {
     
