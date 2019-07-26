@@ -82,6 +82,20 @@ class TypeRepresentationSet {
 
     
     
+    bool allOfArrayKind();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    bool allHaveSameSize(size_t *out);
+
+    
+    
 
     TypeRepresentation::Kind kind();
 
