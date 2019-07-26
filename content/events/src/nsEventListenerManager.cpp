@@ -951,7 +951,9 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
   }
 
   if (NS_SUCCEEDED(result)) {
-    nsAutoMicroTask mt;
+    if (mIsMainThreadELM) {
+      nsContentUtils::EnterMicroTask();
+    }
     
     if (aListener.HasWebIDLCallback()) {
       ErrorResult rv;
@@ -960,6 +962,9 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
       result = rv.ErrorCode();
     } else {
       result = aListener.GetXPCOMCallback()->HandleEvent(aDOMEvent);
+    }
+    if (mIsMainThreadELM) {
+      nsContentUtils::LeaveMicroTask();
     }
   }
 
