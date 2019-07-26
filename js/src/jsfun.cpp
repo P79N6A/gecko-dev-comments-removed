@@ -110,6 +110,16 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, Value *vp)
         if (!argsobj)
             return false;
 
+#ifdef JS_ION
+        
+        
+        
+        
+        JSScript *script = iter.script();
+        if (!script->hasIonScript())
+            script->ion = ION_DISABLED_SCRIPT;
+#endif
+
         *vp = ObjectValue(*argsobj);
         return true;
     }
