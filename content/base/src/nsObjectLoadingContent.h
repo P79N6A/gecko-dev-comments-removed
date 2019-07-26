@@ -462,7 +462,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                                          nsNPAPIPluginInstance** aResult);
 
     
-    static nsresult GetPluginJSObject(JSContext *cx, JSObject *obj,
+    static nsresult GetPluginJSObject(JSContext *cx,
+                                      JS::Handle<JSObject*> obj,
                                       nsNPAPIPluginInstance *plugin_inst,
                                       JSObject **plugin_obj,
                                       JSObject **plugin_proto);
