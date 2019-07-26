@@ -2146,6 +2146,18 @@ public:
   static bool GetSVGGlyphExtents(Element *aElement, const gfxMatrix& aSVGToAppSpace,
                                  gfxRect *aResult);
 
+  
+
+
+
+
+
+
+
+  static bool InternalIsSupported(nsISupports* aObject,
+                                  const nsAString& aFeature,
+                                  const nsAString& aVersion);
+
 private:
   static bool InitializeEventTable();
 
