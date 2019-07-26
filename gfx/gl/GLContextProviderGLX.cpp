@@ -401,45 +401,56 @@ GLXLibrary::CreatePixmap(gfxASurface* aSurface)
 }
 
 void
-GLXLibrary::DestroyPixmap(GLXPixmap aPixmap)
+GLXLibrary::DestroyPixmap(Display* aDisplay, GLXPixmap aPixmap)
 {
     if (!mUseTextureFromPixmap) {
         return;
     }
 
-    Display *display = DefaultXDisplay();
-    xDestroyPixmap(display, aPixmap);
+    xDestroyPixmap(aDisplay, aPixmap);
 }
 
 void
-GLXLibrary::BindTexImage(GLXPixmap aPixmap)
+GLXLibrary::BindTexImage(Display* aDisplay, GLXPixmap aPixmap)
 {
     if (!mUseTextureFromPixmap) {
         return;
     }
 
-    Display *display = DefaultXDisplay();
     
     if (mClientIsMesa) {
         
         
         
-        FinishX(display);
+        FinishX(aDisplay);
     } else {
         xWaitX();
     }
-    xBindTexImage(display, aPixmap, LOCAL_GLX_FRONT_LEFT_EXT, nullptr);
+    xBindTexImage(aDisplay, aPixmap, LOCAL_GLX_FRONT_LEFT_EXT, nullptr);
 }
 
 void
-GLXLibrary::ReleaseTexImage(GLXPixmap aPixmap)
+GLXLibrary::ReleaseTexImage(Display* aDisplay, GLXPixmap aPixmap)
 {
     if (!mUseTextureFromPixmap) {
         return;
     }
 
-    Display *display = DefaultXDisplay();
-    xReleaseTexImage(display, aPixmap, LOCAL_GLX_FRONT_LEFT_EXT);
+    xReleaseTexImage(aDisplay, aPixmap, LOCAL_GLX_FRONT_LEFT_EXT);
+}
+
+void
+GLXLibrary::UpdateTexImage(Display* aDisplay, GLXPixmap aPixmap)
+{
+    
+    
+    if (mIsNVIDIA) {
+        xWaitX();
+        return;
+    }
+
+    ReleaseTexImage(aDisplay, aPixmap);
+    BindTexImage(aDisplay, aPixmap);
 }
 
 #ifdef DEBUG
