@@ -264,10 +264,20 @@ function get_expected_results(aSortBy, aLocalExpected) {
 
 
 function check_results(aQuery, aSortBy, aReverseOrder, aShowLocal) {
-  var localFilterSelected = gManagerWindow.document.getElementById("search-filter-local").selected;
-  var remoteFilterSelected = gManagerWindow.document.getElementById("search-filter-remote").selected;
-  is(localFilterSelected, aShowLocal, "Local filter should be selected if showing local items");
-  is(remoteFilterSelected, !aShowLocal, "Remote filter should be selected if showing remote items");
+
+  var xpinstall_enabled = true;
+  try {
+    xpinstall_enabled = Services.prefs.getBoolPref(PREF_XPI_ENABLED);
+  }
+  catch (e) {};
+
+  
+  if (xpinstall_enabled) {
+    var localFilterSelected = gManagerWindow.document.getElementById("search-filter-local").selected;
+    var remoteFilterSelected = gManagerWindow.document.getElementById("search-filter-remote").selected;
+    is(localFilterSelected, aShowLocal, "Local filter should be selected if showing local items");
+    is(remoteFilterSelected, !aShowLocal, "Remote filter should be selected if showing remote items");
+  }
 
   
   var expectedOrder = [], unknownOrder = [];
@@ -336,7 +346,9 @@ function check_results(aQuery, aSortBy, aReverseOrder, aShowLocal) {
 
 
 
-function check_filtered_results(aQuery, aSortBy, aReverseOrder) {
+
+
+function check_filtered_results(aQuery, aSortBy, aReverseOrder, aLocalOnly) {
   var localFilter = gManagerWindow.document.getElementById("search-filter-local");
   var remoteFilter = gManagerWindow.document.getElementById("search-filter-remote");
 
@@ -348,8 +360,9 @@ function check_filtered_results(aQuery, aSortBy, aReverseOrder) {
   check_results(aQuery, aSortBy, aReverseOrder, true);
 
   
+  aLocalOnly = aLocalOnly || false;
   EventUtils.synthesizeMouseAtCenter(remoteFilter, { }, gManagerWindow);
-  check_results(aQuery, aSortBy, aReverseOrder, false);
+  check_results(aQuery, aSortBy, aReverseOrder, aLocalOnly);
 }
 
 
@@ -645,5 +658,38 @@ add_test(function() {
       run_next_test();
     });
   });
+});
+
+function bug_815120_test_search(aLocalOnly) {
+  restart_manager(gManagerWindow, "addons://list/extension", function(aWindow) {
+    gManagerWindow = aWindow;
+    gCategoryUtilities = new CategoryUtilities(gManagerWindow);
+
+    
+    gAddonInstalled = true;
+
+    
+    var localFilterButton = aWindow.document.getElementById("search-filter-local");
+    is(aLocalOnly, is_hidden(localFilterButton), "Local filter button visibility does not match, aLocalOnly = " + aLocalOnly);
+
+    var remoteFilterButton = aWindow.document.getElementById("search-filter-remote");
+    is(aLocalOnly, is_hidden(remoteFilterButton), "Remote filter button visibility does not match, aLocalOnly = " + aLocalOnly);
+
+    search(QUERY, false, function() {
+      check_filtered_results(QUERY, "relevancescore", false, aLocalOnly);
+      run_next_test();
+    });
+  });
+}
+
+
+add_test(function() {
+  Services.prefs.setBoolPref(PREF_XPI_ENABLED, false);
+  bug_815120_test_search(true);
+});
+
+add_test(function() {
+  Services.prefs.setBoolPref(PREF_XPI_ENABLED, true);
+  bug_815120_test_search(false);
 });
 
