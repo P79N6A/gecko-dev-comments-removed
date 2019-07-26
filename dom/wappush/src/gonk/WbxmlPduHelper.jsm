@@ -68,7 +68,7 @@ this.readStringTable = function decode_wbxml_read_string_table(start, stringTabl
   }
 
   
-  return WSP.PduHelper.decodeStringContent(stringTable.slice(start, end),
+  return WSP.PduHelper.decodeStringContent(stringTable.subarray(start, end),
                                            charset);
 };
 
