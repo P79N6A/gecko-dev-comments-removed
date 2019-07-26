@@ -96,15 +96,17 @@ this.ThirdPartyCookieProbe.prototype = {
   
 
 
-  flush: function(aUptime) {
-    let now = Date.now();
-    let updays = (now - this._latestFlush) / MILLISECONDS_PER_DAY;
+
+
+
+  flush: function(aNow = Date.now()) {
+    let updays = (aNow - this._latestFlush) / MILLISECONDS_PER_DAY;
     if (updays <= 0) {
       
       
       return;
     }
-    this._latestFlush = now;
+    this._latestFlush = aNow;
     let acceptedSites = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_SITES_ACCEPTED");
     let rejectedSites = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_SITES_BLOCKED");
     let acceptedRequests = Services.telemetry.getHistogramById("COOKIES_3RDPARTY_NUM_ATTEMPTS_ACCEPTED");
