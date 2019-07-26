@@ -1362,7 +1362,7 @@ OptimizeMIR(MIRGenerator *mir)
     
     
 
-    if (js_IonOptions.edgeCaseAnalysis) {
+    if (js_IonOptions.edgeCaseAnalysis && !mir->compilingAsmJS()) {
         EdgeCaseAnalysis edgeCaseAnalysis(mir, graph);
         if (!edgeCaseAnalysis.analyzeLate())
             return false;
@@ -1373,14 +1373,16 @@ OptimizeMIR(MIRGenerator *mir)
             return false;
     }
 
-    
-    
-    
-    
-    if (!EliminateRedundantChecks(graph))
-        return false;
-    IonSpewPass("Bounds Check Elimination");
-    AssertGraphCoherency(graph);
+    if (!mir->compilingAsmJS()) {
+        
+        
+        
+        
+        if (!EliminateRedundantChecks(graph))
+            return false;
+        IonSpewPass("Bounds Check Elimination");
+        AssertGraphCoherency(graph);
+    }
 
     return true;
 }
