@@ -74,20 +74,11 @@ class FunctionContextFlags
     friend class FunctionBox;
 
     
-    bool            isGenerator:1;
+    bool isGenerator:1;
 
     
     
-    bool            mightAliasLocals:1;
-
-    
-    
-    
-    
-    
-    
-    
-    bool            hasExtensibleScope:1;
+    bool mightAliasLocals:1;
 
     
     
@@ -96,21 +87,11 @@ class FunctionContextFlags
     
     
     
+    bool hasExtensibleScope:1;
+
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool            argumentsHasLocalBinding:1;
+    bool needsDeclEnvObject:1;
 
     
     
@@ -121,13 +102,37 @@ class FunctionContextFlags
     
     
     
-    bool            definitelyNeedsArgsObj:1;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool argumentsHasLocalBinding:1;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool definitelyNeedsArgsObj:1;
 
   public:
     FunctionContextFlags()
      :  isGenerator(false),
         mightAliasLocals(false),
         hasExtensibleScope(false),
+        needsDeclEnvObject(false),
         argumentsHasLocalBinding(false),
         definitelyNeedsArgsObj(false)
     { }
@@ -226,12 +231,14 @@ class FunctionBox : public ObjectBox, public SharedContext
     bool isGenerator()              const { return funCxFlags.isGenerator; }
     bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }
     bool hasExtensibleScope()       const { return funCxFlags.hasExtensibleScope; }
+    bool needsDeclEnvObject()       const { return funCxFlags.needsDeclEnvObject; }
     bool argumentsHasLocalBinding() const { return funCxFlags.argumentsHasLocalBinding; }
     bool definitelyNeedsArgsObj()   const { return funCxFlags.definitelyNeedsArgsObj; }
 
     void setIsGenerator()                  { funCxFlags.isGenerator              = true; }
     void setMightAliasLocals()             { funCxFlags.mightAliasLocals         = true; }
     void setHasExtensibleScope()           { funCxFlags.hasExtensibleScope       = true; }
+    void setNeedsDeclEnvObject()           { funCxFlags.needsDeclEnvObject       = true; }
     void setArgumentsHasLocalBinding()     { funCxFlags.argumentsHasLocalBinding = true; }
     void setDefinitelyNeedsArgsObj()       { JS_ASSERT(funCxFlags.argumentsHasLocalBinding);
                                              funCxFlags.definitelyNeedsArgsObj   = true; }
@@ -246,6 +253,14 @@ class FunctionBox : public ObjectBox, public SharedContext
         bufStart = tokenStream.currentToken().pos.begin;
         startLine = tokenStream.getLineno();
         startColumn = tokenStream.getColumn();
+    }
+
+    bool isHeavyweight()
+    {
+        
+        return bindings.hasAnyAliasedBindings() ||
+               hasExtensibleScope() ||
+               needsDeclEnvObject();
     }
 };
 

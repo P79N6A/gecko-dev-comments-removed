@@ -1063,14 +1063,6 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
 
         if (JSScript *script = lazy->maybeScript()) {
             fun->initScript(script);
-
-            
-
-
-
-            if (script->function()->isHeavyweight())
-                fun->setIsHeavyweight();
-            fun->nargs = script->function()->nargs;
             return true;
         }
 

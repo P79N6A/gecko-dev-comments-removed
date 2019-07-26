@@ -23,7 +23,6 @@ class JSFunction : public JSObject
         INTERPRETED      = 0x0001,  
         NATIVE_CTOR      = 0x0002,  
         EXTENDED         = 0x0004,  
-        HEAVYWEIGHT      = 0x0008,  
         IS_FUN_PROTO     = 0x0010,  
         EXPR_CLOSURE     = 0x0020,  
         HAS_GUESSED_ATOM = 0x0040,  
@@ -80,11 +79,8 @@ class JSFunction : public JSObject
 
   public:
 
-    bool isHeavyweight() {
-        
-        JS_ASSERT(!isInterpretedLazy());
-        return flags & HEAVYWEIGHT;
-    }
+    
+    inline bool isHeavyweight() const;
 
     
     bool isInterpreted()            const { return flags & (INTERPRETED | INTERPRETED_LAZY); }
@@ -171,10 +167,6 @@ class JSFunction : public JSObject
     void setIsFunctionPrototype() {
         JS_ASSERT(!isFunctionPrototype());
         flags |= IS_FUN_PROTO;
-    }
-
-    void setIsHeavyweight() {
-        flags |= HEAVYWEIGHT;
     }
 
     

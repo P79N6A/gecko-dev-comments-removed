@@ -205,7 +205,7 @@ class Bindings
     bool bindingIsAliased(unsigned bindingIndex);
 
     
-    bool hasAnyAliasedBindings() const { return !callObjShape_->isEmptyShape(); }
+    bool hasAnyAliasedBindings() const { return callObjShape_ && !callObjShape_->isEmptyShape(); }
 
     void trace(JSTracer *trc);
 };
@@ -527,6 +527,7 @@ class JSScript : public js::gc::Cell
     bool            selfHosted:1;     
     bool            bindingsAccessedDynamically:1; 
     bool            funHasExtensibleScope:1;       
+    bool            funNeedsDeclEnvObject:1;       
     bool            funHasAnyAliasedFormal:1;      
     bool            warnedAboutTwoArgumentEval:1; 
 
