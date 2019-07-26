@@ -327,6 +327,13 @@ CodeGeneratorX86Shared::bailoutIf(Assembler::Condition condition, LSnapshot *sna
 }
 
 bool
+CodeGeneratorX86Shared::bailoutIf(Assembler::DoubleCondition condition, LSnapshot *snapshot)
+{
+    JS_ASSERT(Assembler::NaNCondFromDoubleCondition(condition) == Assembler::NaN_HandledByCond);
+    return bailoutIf(Assembler::ConditionFromDoubleCondition(condition), snapshot);
+}
+
+bool
 CodeGeneratorX86Shared::bailoutFrom(Label *label, LSnapshot *snapshot)
 {
     JS_ASSERT(label->used() && !label->bound());
@@ -1289,8 +1296,12 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
         masm.addsd(input, temp);
 
         
-        Label testZero;
         {
+            
+            masm.compareDouble(Assembler::DoubleGreaterThanOrEqual, temp, scratch);
+            if (!bailoutIf(Assembler::DoubleGreaterThanOrEqual, lir->snapshot()))
+                return false;
+
             
             
             masm.cvttsd2si(temp, output);
@@ -1300,19 +1311,13 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
             
             masm.cvtsi2sd(output, scratch);
-            masm.branchDouble(Assembler::DoubleEqualOrUnordered, temp, scratch, &testZero);
+            masm.branchDouble(Assembler::DoubleEqualOrUnordered, temp, scratch, &end);
 
             
             
             masm.subl(Imm32(1), output);
             
-
-            
         }
-
-        masm.bind(&testZero);
-        if (!bailoutIf(Assembler::Zero, lir->snapshot()))
-            return false;
     }
 
     masm.bind(&end);
