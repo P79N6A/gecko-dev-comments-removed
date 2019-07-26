@@ -389,7 +389,7 @@ function promiseNewDownloadList() {
 
 function promiseNewPrivateDownloadList() {
   
-  Downloads._privateDownloadList = null;
+  Downloads._promisePrivateDownloadList = null;
   return Downloads.getPrivateDownloadList();
 }
 
