@@ -211,7 +211,7 @@ public:
   #undef STYLE_STRUCT_INHERITED
 
   nsRuleNode* RuleNode() { return mRuleNode; }
-  void AddStyleBit(const uint32_t& aBit) { mBits |= aBit; }
+  void AddStyleBit(const uint64_t& aBit) { mBits |= aBit; }
 
   
 
@@ -430,7 +430,7 @@ protected:
   
   nsResetStyleData*       mCachedResetData; 
   nsInheritedStyleData    mCachedInheritedData; 
-  uint32_t                mBits; 
+  uint64_t                mBits; 
                                  
   uint32_t                mRefCnt;
 };
