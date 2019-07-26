@@ -533,8 +533,6 @@ Class js::NormalArgumentsObjectClass = {
         NULL,       
         NULL,       
         NULL,       
-        NULL,       
-        NULL,       
         false,      
     }
 };
@@ -563,8 +561,6 @@ Class js::StrictArgumentsObjectClass = {
     NULL,                    
     ArgumentsObject::trace,
     {
-        NULL,       
-        NULL,       
         NULL,       
         NULL,       
         NULL,       

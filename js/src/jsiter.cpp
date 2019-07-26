@@ -857,9 +857,7 @@ Class PropertyIteratorObject::class_ = {
     {
         NULL,                
         NULL,                
-        NULL,                
         iterator_iteratorObject,
-        NULL                 
     }
 };
 
@@ -1417,9 +1415,7 @@ Class js::GeneratorClass = {
     {
         NULL,                
         NULL,                
-        NULL,                
         iterator_iteratorObject,
-        NULL                 
     }
 };
 

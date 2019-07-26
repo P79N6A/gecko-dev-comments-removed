@@ -583,8 +583,6 @@ Class js::ArrayClass = {
         NULL,       
         NULL,       
         NULL,       
-        NULL,       
-        NULL,       
         false,      
     }
 };

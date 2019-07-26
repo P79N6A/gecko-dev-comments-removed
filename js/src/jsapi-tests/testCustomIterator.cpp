@@ -45,11 +45,10 @@ js::Class HasCustomIterClass = {
     NULL, 
     NULL, 
     {
-        NULL,
-        NULL,
-        NULL,
+        NULL,       
+        NULL,       
         IterHook,
-        NULL
+        false        
     }
 };
 
