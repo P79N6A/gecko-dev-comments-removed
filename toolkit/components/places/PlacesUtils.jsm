@@ -1172,6 +1172,121 @@ this.PlacesUtils = {
 
 
 
+  restoreBookmarksFromJSONString:
+  function PU_restoreBookmarksFromJSONString(aString, aReplace) {
+    
+    var nodes = this.unwrapNodes(aString, this.TYPE_X_MOZ_PLACE_CONTAINER);
+
+    if (nodes.length == 0 || !nodes[0].children ||
+        nodes[0].children.length == 0)
+      return; 
+
+    
+    nodes[0].children.sort(function sortRoots(aNode, bNode) {
+      return (aNode.root && aNode.root == "tagsFolder") ? 1 :
+              (bNode.root && bNode.root == "tagsFolder") ? -1 : 0;
+    });
+
+    var batch = {
+      nodes: nodes[0].children,
+      runBatched: function restore_runBatched() {
+        if (aReplace) {
+          
+          
+          var excludeItems = PlacesUtils.annotations.getItemsWithAnnotation(
+            PlacesUtils.EXCLUDE_FROM_BACKUP_ANNO
+          );
+          
+          
+          
+          var query = PlacesUtils.history.getNewQuery();
+          query.setFolders([PlacesUtils.placesRootId], 1);
+          var options = PlacesUtils.history.getNewQueryOptions();
+          options.expandQueries = false;
+          var root = PlacesUtils.history.executeQuery(query, options).root;
+          root.containerOpen = true;
+          var childIds = [];
+          for (var i = 0; i < root.childCount; i++) {
+            var childId = root.getChild(i).itemId;
+            if (excludeItems.indexOf(childId) == -1 &&
+                childId != PlacesUtils.tagsFolderId)
+              childIds.push(childId);
+          }
+          root.containerOpen = false;
+
+          for (var i = 0; i < childIds.length; i++) {
+            var rootItemId = childIds[i];
+            if (PlacesUtils.isRootItem(rootItemId))
+              PlacesUtils.bookmarks.removeFolderChildren(rootItemId);
+            else
+              PlacesUtils.bookmarks.removeItem(rootItemId);
+          }
+        }
+
+        var searchIds = [];
+        var folderIdMap = [];
+
+        this.nodes.forEach(function(node) {
+          if (!node.children || node.children.length == 0)
+            return; 
+
+          if (node.root) {
+            var container = this.placesRootId; 
+            switch (node.root) {
+              case "bookmarksMenuFolder":
+                container = this.bookmarksMenuFolderId;
+                break;
+              case "tagsFolder":
+                container = this.tagsFolderId;
+                break;
+              case "unfiledBookmarksFolder":
+                container = this.unfiledBookmarksFolderId;
+                break;
+              case "toolbarFolder":
+                container = this.toolbarFolderId;
+                break;
+            }
+ 
+            
+            node.children.forEach(function(child) {
+              var index = child.index;
+              var [folders, searches] = this.importJSONNode(child, container, index, 0);
+              for (var i = 0; i < folders.length; i++) {
+                if (folders[i])
+                  folderIdMap[i] = folders[i];
+              }
+              searchIds = searchIds.concat(searches);
+            }, this);
+          }
+          else {
+            this.importJSONNode(node, this.placesRootId, node.index, 0);
+          }
+        }, PlacesUtils);
+
+        
+        searchIds.forEach(function(aId) {
+          var oldURI = this.bookmarks.getBookmarkURI(aId);
+          var uri = this._fixupQuery(this.bookmarks.getBookmarkURI(aId),
+                                     folderIdMap);
+          if (!uri.equals(oldURI))
+            this.bookmarks.changeBookmarkURI(aId, uri);
+        }, PlacesUtils);
+      }
+    };
+
+    this.bookmarks.runInBatchMode(batch, null);
+  },
+
+  
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1305,6 +1420,25 @@ this.PlacesUtils = {
     }
 
     return [folderIdMap, searchIds];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _fixupQuery: function PU__fixupQuery(aQueryURI, aFolderIdMap) {
+    function convert(str, p1, offset, s) {
+      return "folder=" + aFolderIdMap[p1];
+    }
+    var stringURI = aQueryURI.spec.replace(/folder=([0-9]+)/g, convert);
+    return this._uri(stringURI);
   },
 
   
@@ -1522,6 +1656,13 @@ this.PlacesUtils = {
   
 
 
+  toJSONString: function PU_toJSONString(aObj) {
+    return JSON.stringify(aObj);
+  },
+
+  
+
+
 
 
 
@@ -1529,11 +1670,50 @@ this.PlacesUtils = {
 
   restoreBookmarksFromJSONFile:
   function PU_restoreBookmarksFromJSONFile(aFile) {
-    Deprecated.warning(
-      "restoreBookmarksFromJSONFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=854388");
+    const RESTORE_NSIOBSERVER_DATA = "json";
 
-    BookmarkJSONUtils.importFromFile(aFile, true);
+    let failed = false;
+    Services.obs.notifyObservers(null,
+                                 this.TOPIC_BOOKMARKS_RESTORE_BEGIN,
+                                 RESTORE_NSIOBSERVER_DATA);
+
+    try {
+      
+      var stream = Cc["@mozilla.org/network/file-input-stream;1"].
+                   createInstance(Ci.nsIFileInputStream);
+      stream.init(aFile, 0x01, 0, 0);
+      var converted = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                      createInstance(Ci.nsIConverterInputStream);
+      converted.init(stream, "UTF-8", 8192,
+                     Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+
+      
+      var str = {};
+      var jsonStr = "";
+      while (converted.readString(8192, str) != 0)
+        jsonStr += str.value;
+      converted.close();
+
+      if (jsonStr.length == 0)
+        return; 
+
+      this.restoreBookmarksFromJSONString(jsonStr, true);
+    }
+    catch (exc) {
+      failed = true;
+      Services.obs.notifyObservers(null,
+                                   this.TOPIC_BOOKMARKS_RESTORE_FAILED,
+                                   RESTORE_NSIOBSERVER_DATA);
+      Cu.reportError("Bookmarks JSON restore failed: " + exc);
+      throw exc;
+    }
+    finally {
+      if (!failed) {
+        Services.obs.notifyObservers(null,
+                                     this.TOPIC_BOOKMARKS_RESTORE_SUCCESS,
+                                     RESTORE_NSIOBSERVER_DATA);
+      }
+    }
   },
 
   
