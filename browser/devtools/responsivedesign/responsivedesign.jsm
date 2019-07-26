@@ -146,7 +146,7 @@ function ResponsiveUI(aWindow, aTab)
     this.customPreset.width = bbox.width - 40; 
     this.customPreset.height = bbox.height - 80; 
 
-    this.currentPresetKey = this.customPreset.key;
+    this.currentPresetKey = this.presets[1].key; 
   }
 
   this.container.setAttribute("responsivemode", "true");
