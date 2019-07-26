@@ -1431,9 +1431,9 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
 
   
   
-  JSObject* boundScope =
-    js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper());
-  JSObject* xblScope = xpc::GetXBLScope(aCx, boundScope);
+  JS::Rooted<JSObject*> boundScope(aCx,
+    js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper()));
+  JS::Rooted<JSObject*> xblScope(aCx, xpc::GetXBLScope(aCx, boundScope));
   MOZ_ASSERT(boundScope != xblScope);
 
   
@@ -1455,7 +1455,7 @@ bool
 nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
                                    JS::HandleId aNameAsId,
                                    JSPropertyDescriptor* aDesc,
-                                   JSObject* aXBLScope)
+                                   JS::Handle<JSObject*> aXBLScope)
 {
   
   

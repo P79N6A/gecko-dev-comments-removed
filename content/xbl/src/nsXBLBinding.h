@@ -89,7 +89,7 @@ protected:
 
 
   bool LookupMemberInternal(JSContext* aCx, nsString& aName, JS::HandleId aNameAsId,
-                            JSPropertyDescriptor* aDesc, JSObject* aXBLScope);
+                            JSPropertyDescriptor* aDesc, JS::Handle<JSObject*> aXBLScope);
 
 public:
 
