@@ -1332,6 +1332,10 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsGlobalModalWindow, nsGlobalWindow)
 
+  virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
+                                              nsISupports *aState,
+                                              bool aForceReuseInnerWindow);
+
 protected:
   
   nsRefPtr<DialogValueHolder> mReturnValue;

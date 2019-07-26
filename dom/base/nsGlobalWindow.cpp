@@ -11630,6 +11630,21 @@ nsGlobalModalWindow::SetReturnValue(nsIVariant *aRetVal)
   return NS_OK;
 }
 
+nsresult
+nsGlobalModalWindow::SetNewDocument(nsIDocument *aDocument,
+                                    nsISupports *aState,
+                                    bool aForceReuseInnerWindow)
+{
+  MOZ_ASSERT(aDocument);
+
+  
+  
+  mReturnValue = nullptr;
+
+  return nsGlobalWindow::SetNewDocument(aDocument, aState,
+                                        aForceReuseInnerWindow);
+}
+
 void
 nsGlobalWindow::SetHasAudioAvailableEventListeners()
 {
