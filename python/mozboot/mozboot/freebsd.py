@@ -2,12 +2,6 @@
 
 
 
-from __future__ import print_function
-
-import os
-import subprocess
-import sys
-
 from mozboot.base import BaseBootstrapper
 
 class FreeBSDBootstrapper(BaseBootstrapper):
@@ -16,33 +10,31 @@ class FreeBSDBootstrapper(BaseBootstrapper):
         self.version = int(version.split('.')[0])
 
         self.packages = [
-            ('autoconf-2.13', 'autoconf213'),
-            ('dbus-glib',),
-            ('gmake',),
-            ('gstreamer-plugins',),
-            ('gtk-2', 'gtk20'),
-            ('libGL',),
-            ('libIDL',),
-            ('libv4l',),
-            ('mercurial',),
-            ('pulseaudio',),
-            ('yasm',),
-            ('zip',),
+            'autoconf213',
+            'dbus-glib',
+            'gmake',
+            'gstreamer-plugins',
+            'gtk2',
+            'libGL',
+            'mercurial',
+            'pkgconf',
+            'pulseaudio',
+            'v4l_compat',
+            'yasm',
+            'zip',
         ]
 
         
         if self.version < 9:
-            self.packages.append(('gcc',))
-
+            self.packages.append('gcc')
 
     def pkg_install(self, *packages):
         if self.which('pkg'):
-            command = ['pkg', 'install', '-x']
-            command.extend([i[0] for i in packages])
+            command = ['pkg', 'install']
         else:
             command = ['pkg_add', '-Fr']
-            command.extend([i[-1] for i in packages])
 
+        command.extend(packages)
         self.run_as_root(command)
 
     def install_system_packages(self):
