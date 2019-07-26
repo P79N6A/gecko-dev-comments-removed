@@ -133,6 +133,17 @@ var ContentAreaObserver = {
     let newWidth = width || this.width;
     let newHeight = height || this.contentHeight;
 
+    if (Browser.selectedBrowser) {
+      let notificationBox = Browser.getNotificationBox();
+
+      
+      
+      if (ContextUI.navbarVisible && !notificationBox.notificationsHidden &&
+          notificationBox.allNotifications.length != 0) {
+        newHeight -= Elements.navbar.getBoundingClientRect().height;
+      }
+    }
+
     if (newHeight == oldHeight && newWidth == oldWidth)
       return;
 
