@@ -136,6 +136,11 @@ pref("browser.search.suggest.enabled", true);
 pref("browser.search.noCurrentEngine", true);
 
 
+pref("chrome.override_package.global", "b2g-l10n");
+pref("chrome.override_package.mozapps", "b2g-l10n");
+pref("chrome.override_package.passwordmgr", "b2g-l10n");
+
+
 pref("browser.xul.error_pages.enabled", true);
 
 
