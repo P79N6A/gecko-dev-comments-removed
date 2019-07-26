@@ -83,14 +83,14 @@ bool nsNSSComponent::globalConstFlagUsePKIXVerification = false;
 #endif
 
 
-extern char* pk11PasswordPrompt(PK11SlotInfo *slot, PRBool retry, void *arg);
+extern char* pk11PasswordPrompt(PK11SlotInfo* slot, PRBool retry, void* arg);
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 
 
 class nsTokenEventRunnable : public nsIRunnable {
 public:
-  nsTokenEventRunnable(const nsAString &aType, const nsAString &aTokenName);
+  nsTokenEventRunnable(const nsAString& aType, const nsAString& aTokenName);
   virtual ~nsTokenEventRunnable();
 
   NS_IMETHOD Run ();
@@ -103,8 +103,12 @@ private:
 
 NS_IMPL_ISUPPORTS1(nsTokenEventRunnable, nsIRunnable)
 
-nsTokenEventRunnable::nsTokenEventRunnable(const nsAString &aType, 
-   const nsAString &aTokenName): mType(aType), mTokenName(aTokenName) { }
+nsTokenEventRunnable::nsTokenEventRunnable(const nsAString& aType,
+                                           const nsAString& aTokenName)
+  : mType(aType)
+  , mTokenName(aTokenName)
+{
+}
 
 nsTokenEventRunnable::~nsTokenEventRunnable() { }
 
@@ -112,7 +116,7 @@ nsTokenEventRunnable::~nsTokenEventRunnable() { }
 
 NS_IMETHODIMP
 nsTokenEventRunnable::Run()
-{ 
+{
   static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
   nsresult rv;
@@ -233,7 +237,7 @@ nsNSSComponent::nsNSSComponent()
   mIsNetworkDown = false;
 }
 
-void 
+void
 nsNSSComponent::deleteBackgroundThreads()
 {
   if (mCertVerificationThread)
@@ -283,10 +287,10 @@ nsNSSComponent::~nsNSSComponent()
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
 NS_IMETHODIMP
-nsNSSComponent::PostEvent(const nsAString &eventType, 
-                                                  const nsAString &tokenName)
+nsNSSComponent::PostEvent(const nsAString& eventType,
+                          const nsAString& tokenName)
 {
-  nsCOMPtr<nsIRunnable> runnable = 
+  nsCOMPtr<nsIRunnable> runnable =
                                new nsTokenEventRunnable(eventType, tokenName);
 
   return NS_DispatchToMainThread(runnable);
@@ -294,8 +298,8 @@ nsNSSComponent::PostEvent(const nsAString &eventType,
 
 
 NS_IMETHODIMP
-nsNSSComponent::DispatchEvent(const nsAString &eventType,
-                                                 const nsAString &tokenName)
+nsNSSComponent::DispatchEvent(const nsAString& eventType,
+                              const nsAString& tokenName)
 {
   
   
@@ -333,9 +337,9 @@ nsNSSComponent::DispatchEvent(const nsAString &eventType,
 }
 
 nsresult
-nsNSSComponent::DispatchEventToWindow(nsIDOMWindow *domWin,
-                                      const nsAString &eventType,
-                                      const nsAString &tokenName)
+nsNSSComponent::DispatchEventToWindow(nsIDOMWindow* domWin,
+                                      const nsAString& eventType,
+                                      const nsAString& tokenName)
 {
   if (!domWin) {
     return NS_OK;
@@ -403,10 +407,10 @@ nsNSSComponent::DispatchEventToWindow(nsIDOMWindow *domWin,
 #endif 
 
 NS_IMETHODIMP
-nsNSSComponent::PIPBundleFormatStringFromName(const char *name,
-                                              const char16_t **params,
+nsNSSComponent::PIPBundleFormatStringFromName(const char* name,
+                                              const char16_t** params,
                                               uint32_t numParams,
-                                              nsAString &outString)
+                                              nsAString& outString)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -423,8 +427,7 @@ nsNSSComponent::PIPBundleFormatStringFromName(const char *name,
 }
 
 NS_IMETHODIMP
-nsNSSComponent::GetPIPNSSBundleString(const char *name,
-                                      nsAString &outString)
+nsNSSComponent::GetPIPNSSBundleString(const char* name, nsAString& outString)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -443,10 +446,10 @@ nsNSSComponent::GetPIPNSSBundleString(const char *name,
 }
 
 NS_IMETHODIMP
-nsNSSComponent::NSSBundleFormatStringFromName(const char *name,
-                                              const char16_t **params,
+nsNSSComponent::NSSBundleFormatStringFromName(const char* name,
+                                              const char16_t** params,
                                               uint32_t numParams,
-                                              nsAString &outString)
+                                              nsAString& outString)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -463,8 +466,7 @@ nsNSSComponent::NSSBundleFormatStringFromName(const char *name,
 }
 
 NS_IMETHODIMP
-nsNSSComponent::GetNSSBundleString(const char *name,
-                                   nsAString &outString)
+nsNSSComponent::GetNSSBundleString(const char* name, nsAString& outString)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -488,8 +490,8 @@ nsNSSComponent::LaunchSmartCardThreads()
 {
   nsNSSShutDownPreventionLock locker;
   {
-    SECMODModuleList *list;
-    SECMODListLock *lock = SECMOD_GetDefaultModuleListLock();
+    SECMODModuleList* list;
+    SECMODListLock* lock = SECMOD_GetDefaultModuleListLock();
     if (!lock) {
         PR_LOG(gPIPNSSLog, PR_LOG_ERROR,
                ("Couldn't get the module list lock, can't launch smart card threads\n"));
@@ -499,7 +501,7 @@ nsNSSComponent::LaunchSmartCardThreads()
     list = SECMOD_GetDefaultModuleList();
 
     while (list) {
-      SECMODModule *module = list->module;
+      SECMODModule* module = list->module;
       LaunchSmartCardThread(module);
       list = list->next;
     }
@@ -508,9 +510,9 @@ nsNSSComponent::LaunchSmartCardThreads()
 }
 
 NS_IMETHODIMP
-nsNSSComponent::LaunchSmartCardThread(SECMODModule *module)
+nsNSSComponent::LaunchSmartCardThread(SECMODModule* module)
 {
-  SmartCardMonitoringThread *newThread;
+  SmartCardMonitoringThread* newThread;
   if (SECMOD_HasRemovableSlots(module)) {
     if (!mThreadList) {
       mThreadList = new SmartCardThreadList();
@@ -523,7 +525,7 @@ nsNSSComponent::LaunchSmartCardThread(SECMODModule *module)
 }
 
 NS_IMETHODIMP
-nsNSSComponent::ShutdownSmartCardThread(SECMODModule *module)
+nsNSSComponent::ShutdownSmartCardThread(SECMODModule* module)
 {
   if (!mThreadList) {
     return NS_OK;
@@ -540,13 +542,13 @@ nsNSSComponent::ShutdownSmartCardThreads()
 }
 #endif 
 
-static char *
-nss_addEscape(const char *string, char quote)
+static char*
+nss_addEscape(const char* string, char quote)
 {
-    char *newString = 0;
+    char* newString = 0;
     int escapes = 0, size = 0;
-    const char *src;
-    char *dest;
+    const char* src;
+    char* dest;
 
     for (src=string; *src ; src++) {
         if ((*src == quote) || (*src == '\\')) {
@@ -574,7 +576,7 @@ void
 nsNSSComponent::InstallLoadableRoots()
 {
   nsNSSShutDownPreventionLock locker;
-  SECMODModule *RootsModule = nullptr;
+  SECMODModule* RootsModule = nullptr;
 
   
   
@@ -586,8 +588,8 @@ nsNSSComponent::InstallLoadableRoots()
   {
     
 
-    SECMODModuleList *list;
-    SECMODListLock *lock = SECMOD_GetDefaultModuleListLock();
+    SECMODModuleList* list;
+    SECMODListLock* lock = SECMOD_GetDefaultModuleListLock();
     if (!lock) {
         PR_LOG(gPIPNSSLog, PR_LOG_ERROR,
                ("Couldn't get the module list lock, can't install loadable roots\n"));
@@ -597,10 +599,10 @@ nsNSSComponent::InstallLoadableRoots()
     list = SECMOD_GetDefaultModuleList();
 
     while (!RootsModule && list) {
-      SECMODModule *module = list->module;
+      SECMODModule* module = list->module;
 
       for (int i=0; i < module->slotCount; i++) {
-        PK11SlotInfo *slot = module->slots[i];
+        PK11SlotInfo* slot = module->slots[i];
         if (PK11_IsPresent(slot)) {
           if (PK11_HasRootCerts(slot)) {
             RootsModule = SECMOD_ReferenceModule(module);
@@ -635,7 +637,7 @@ nsNSSComponent::InstallLoadableRoots()
     return;
 
   static const char nss_lib[] = "nss3";
-  const char *possible_ckbi_locations[] = {
+  const char* possible_ckbi_locations[] = {
     nss_lib, 
              
     NS_XPCOM_CURRENT_PROCESS_DIR,
@@ -647,7 +649,7 @@ nsNSSComponent::InstallLoadableRoots()
 
   for (size_t il = 0; il < sizeof(possible_ckbi_locations)/sizeof(const char*); ++il) {
     nsCOMPtr<nsIFile> mozFile;
-    char *fullLibraryPath = nullptr;
+    char* fullLibraryPath = nullptr;
 
     if (!possible_ckbi_locations[il])
     {
@@ -657,7 +659,7 @@ nsNSSComponent::InstallLoadableRoots()
     {
       if (possible_ckbi_locations[il] == nss_lib) {
         
-        char *nss_path = PR_GetLibraryFilePathname(DLL_PREFIX "nss3" DLL_SUFFIX,
+        char* nss_path = PR_GetLibraryFilePathname(DLL_PREFIX "nss3" DLL_SUFFIX,
                                                    (PRFuncPtr) NSS_Initialize);
         if (!nss_path) {
           continue;
@@ -676,10 +678,10 @@ nsNSSComponent::InstallLoadableRoots()
         }
       } else {
         directoryService->Get( possible_ckbi_locations[il],
-                               NS_GET_IID(nsIFile), 
+                               NS_GET_IID(nsIFile),
                                getter_AddRefs(mozFile));
       }
-  
+
       if (!mozFile) {
         continue;
       }
@@ -693,7 +695,7 @@ nsNSSComponent::InstallLoadableRoots()
       continue;
     }
 
-    char *escaped_fullLibraryPath = nss_addEscape(fullLibraryPath, '\"');
+    char* escaped_fullLibraryPath = nss_addEscape(fullLibraryPath, '\"');
     if (!escaped_fullLibraryPath) {
       PR_FreeLibraryName(fullLibraryPath); 
       continue;
@@ -715,7 +717,7 @@ nsNSSComponent::InstallLoadableRoots()
     PORT_Free(escaped_fullLibraryPath);
 
     RootsModule =
-      SECMOD_LoadUserModule(const_cast<char*>(pkcs11moduleSpec.get()), 
+      SECMOD_LoadUserModule(const_cast<char*>(pkcs11moduleSpec.get()),
                             nullptr, 
                             false); 
 
@@ -732,7 +734,7 @@ nsNSSComponent::InstallLoadableRoots()
   }
 }
 
-void 
+void
 nsNSSComponent::UnloadLoadableRoots()
 {
   nsresult rv;
@@ -741,7 +743,7 @@ nsNSSComponent::UnloadLoadableRoots()
   if (NS_FAILED(rv)) return;
 
   NS_ConvertUTF16toUTF8 modNameUTF8(modName);
-  SECMODModule *RootsModule = SECMOD_FindModule(modNameUTF8.get());
+  SECMODModule* RootsModule = SECMOD_FindModule(modNameUTF8.get());
 
   if (RootsModule) {
     SECMOD_UnloadUserModule(RootsModule);
@@ -806,7 +808,7 @@ nsNSSComponent::InitializePIPNSSBundle()
 
   nsresult rv;
   nsCOMPtr<nsIStringBundleService> bundleService(do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv));
-  if (NS_FAILED(rv) || !bundleService) 
+  if (NS_FAILED(rv) || !bundleService)
     return NS_ERROR_FAILURE;
 
   bundleService->CreateBundle("chrome://pipnss/locale/pipnss.properties",
@@ -890,11 +892,16 @@ static const CipherPref sCipherPrefs[] = {
 
  
 
- {"security.ssl3.rsa_fips_des_ede3_sha", SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA},
- {"security.ssl3.dhe_dss_camellia_256_sha", TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA}, 
- {"security.ssl3.dhe_dss_camellia_128_sha", TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA}, 
- {"security.ssl3.rsa_seed_sha", TLS_RSA_WITH_SEED_CBC_SHA}, 
- {nullptr, 0} 
+ { "security.ssl3.rsa_fips_des_ede3_sha",
+   SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA, false },
+ { "security.ssl3.dhe_dss_camellia_256_sha",
+   TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA, false },
+ { "security.ssl3.dhe_dss_camellia_128_sha",
+   TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA, false },
+ { "security.ssl3.rsa_seed_sha",
+   TLS_RSA_WITH_SEED_CBC_SHA, false },
+
+ { nullptr, 0 } 
 };
 
 static void
@@ -973,9 +980,9 @@ CipherSuiteChangeObserver::StopObserve()
 }
 
 nsresult
-CipherSuiteChangeObserver::Observe(nsISupports *aSubject,
-                                   const char *aTopic,
-                                   const char16_t *someData)
+CipherSuiteChangeObserver::Observe(nsISupports* aSubject,
+                                   const char* aTopic,
+                                   const char16_t* someData)
 {
   NS_ASSERTION(NS_IsMainThread(), "CipherSuiteChangeObserver::Observe can only be accessed in main thread");
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
@@ -1045,13 +1052,13 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting)
   CERT_ForcePostMethodForOCSP(!ocspGetEnabled);
 
   mDefaultCertVerifier = new CertVerifier(
-      aiaDownloadEnabled ? 
+      aiaDownloadEnabled ?
         CertVerifier::missing_cert_download_on : CertVerifier::missing_cert_download_off,
       crlDownloading ?
         CertVerifier::crl_download_allowed : CertVerifier::crl_local_only,
-      ocspEnabled ? 
+      ocspEnabled ?
         CertVerifier::ocsp_on : CertVerifier::ocsp_off,
-      ocspRequired ? 
+      ocspRequired ?
         CertVerifier::ocsp_strict : CertVerifier::ocsp_relaxed,
       ocspGetEnabled ?
         CertVerifier::ocsp_get_enabled : CertVerifier::ocsp_get_disabled);
@@ -1096,7 +1103,7 @@ NS_IMETHODIMP
 nsNSSComponent::SkipOcsp()
 {
   nsNSSShutDownPreventionLock locker;
-  CERTCertDBHandle *certdb = CERT_GetDefaultCertDB();
+  CERTCertDBHandle* certdb = CERT_GetDefaultCertDB();
 
   SECStatus rv = CERT_DisableOCSPChecking(certdb);
   return (rv == SECSuccess) ? NS_OK : NS_ERROR_FAILURE;
@@ -1143,7 +1150,7 @@ nsNSSComponent::InitializeNSS()
                                                     
       return NS_ERROR_FAILURE;
     }
-    
+
     nsresult rv;
     nsAutoCString profileStr;
     nsCOMPtr<nsIFile> profilePath;
@@ -1161,7 +1168,7 @@ nsNSSComponent::InitializeNSS()
     }
     else
     {
-    const char *dbdir_override = getenv("MOZPSM_NSSDBDIR_OVERRIDE");
+    const char* dbdir_override = getenv("MOZPSM_NSSDBDIR_OVERRIDE");
     if (dbdir_override && strlen(dbdir_override)) {
       profileStr = dbdir_override;
     }
@@ -1269,9 +1276,9 @@ nsNSSComponent::InitializeNSS()
                                               FALSE_START_ENABLED_DEFAULT));
 
     
-
-
-
+    
+    
+    
     SSL_OptionSetDefault(SSL_ENABLE_NPN,
                          Preferences::GetBool("security.ssl.enable_npn",
                                               NPN_ENABLED_DEFAULT));
@@ -1306,7 +1313,7 @@ nsNSSComponent::ShutdownNSS()
 {
   
   
-  
+
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::ShutdownNSS\n"));
 
   MutexAutoLock lock(mutex);
@@ -1364,7 +1371,7 @@ nsNSSComponent::Init()
   if (NS_FAILED(rv)) {
     PR_LOG(gPIPNSSLog, PR_LOG_ERROR, ("Unable to create pipnss bundle.\n"));
     return rv;
-  }      
+  }
 
   
   
@@ -1396,7 +1403,7 @@ nsNSSComponent::Init()
   }
 
   RememberCertErrorsTable::Init();
-  
+
   createBackgroundThreads();
   if (!mCertVerificationThread)
   {
@@ -1435,25 +1442,25 @@ NS_IMPL_ISUPPORTS5(nsNSSComponent,
 
 
 
-static void ContentCallback(void *arg, 
-                                           const char *buf,
-                                           unsigned long len)
+static void
+ContentCallback(void* arg, const char* buf, unsigned long len)
 {
 }
 
-static PK11SymKey * GetDecryptKeyCallback(void *arg, 
-                                                 SECAlgorithmID *algid)
+static PK11SymKey*
+GetDecryptKeyCallback(void* arg, SECAlgorithmID* algid)
 {
   return nullptr;
 }
 
-static PRBool DecryptionAllowedCallback(SECAlgorithmID *algid,  
-                                               PK11SymKey *bulkkey)
+static PRBool
+DecryptionAllowedCallback(SECAlgorithmID* algid, PK11SymKey* bulkkey)
 {
   return SECMIME_DecryptionAllowed(algid, bulkkey);
 }
 
-static void * GetPasswordKeyCallback(void *arg, void *handle)
+static void*
+GetPasswordKeyCallback(void* arg, void* handle)
 {
   return nullptr;
 }
@@ -1473,7 +1480,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
 
   nsNSSShutDownPreventionLock locker;
   ScopedSEC_PKCS7ContentInfo p7_info;
-  unsigned char hash[SHA1_LENGTH]; 
+  unsigned char hash[SHA1_LENGTH];
 
   SECItem item;
   item.type = siEncodedCertBuffer;
@@ -1504,7 +1511,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
     hash_ctxt = HASH_Create(HASH_AlgSHA1);
     HASH_Begin(hash_ctxt);
     HASH_Update(hash_ctxt,(const unsigned char*)aPlaintext, aPlaintextLen);
-    HASH_End(hash_ctxt, hash, &hashLen, SHA1_LENGTH); 
+    HASH_End(hash_ctxt, hash, &hashLen, SHA1_LENGTH);
     HASH_Destroy(hash_ctxt);
 
     digest.data = hash;
@@ -1519,7 +1526,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
   }
 
   
-  CERTCertificate *cert = p7_info->content.signedData->signerInfos[0]->cert;
+  CERTCertificate* cert = p7_info->content.signedData->signerInfos[0]->cert;
   nsresult rv2 = NS_OK;
   if (cert) {
     
@@ -1548,7 +1555,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
       if (NS_FAILED(rv2)) {
         break;
       }
-    
+
       nsCOMPtr<nsICertificatePrincipal> certPrincipal =
         new nsCertificatePrincipal(NS_ConvertUTF16toUTF8(fingerprint),
                                    NS_ConvertUTF16toUTF8(subjectName),
@@ -1563,13 +1570,13 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, uint32_t aRSABufLen,
 }
 
 NS_IMETHODIMP
-nsNSSComponent::RandomUpdate(void *entropy, int32_t bufLen)
+nsNSSComponent::RandomUpdate(void* entropy, int32_t bufLen)
 {
   nsNSSShutDownPreventionLock locker;
 
   
   
-  
+
   MutexAutoLock lock(mutex);
 
   if (!mNSSInitialized)
@@ -1589,8 +1596,8 @@ static const char* const PROFILE_BEFORE_CHANGE_TOPIC = "profile-before-change";
 static const char* const PROFILE_DO_CHANGE_TOPIC = "profile-do-change";
 
 NS_IMETHODIMP
-nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic, 
-                        const char16_t *someData)
+nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
+                        const char16_t* someData)
 {
   if (nsCRT::strcmp(aTopic, PROFILE_CHANGE_TEARDOWN_TOPIC) == 0) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("in PSM code, receiving change-teardown\n"));
@@ -1614,7 +1621,7 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
       DoProfileBeforeChange(aSubject);
       DoProfileChangeNetRestore();
     }
-  
+
     bool needsInit = true;
 
     {
@@ -1650,7 +1657,7 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
       }
     }
   }
-  else if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) { 
+  else if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     nsNSSShutDownPreventionLock locker;
     bool clearSessionCache = true;
     NS_ConvertUTF16toUTF8  prefName(someData);
@@ -1716,7 +1723,7 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
 }
 
  nsresult
-nsNSSComponent::GetNewPrompter(nsIPrompt ** result)
+nsNSSComponent::GetNewPrompter(nsIPrompt** result)
 {
   NS_ENSURE_ARG_POINTER(result);
   *result = nullptr;
@@ -1737,7 +1744,7 @@ nsNSSComponent::GetNewPrompter(nsIPrompt ** result)
 }
 
  nsresult
-nsNSSComponent::ShowAlertWithConstructedString(const nsString & message)
+nsNSSComponent::ShowAlertWithConstructedString(const nsString& message)
 {
   nsCOMPtr<nsIPrompt> prompter;
   nsresult rv = GetNewPrompter(getter_AddRefs(prompter));
@@ -1754,7 +1761,7 @@ nsNSSComponent::ShowAlertWithConstructedString(const nsString & message)
 }
 
 NS_IMETHODIMP
-nsNSSComponent::ShowAlertFromStringBundle(const char * messageID)
+nsNSSComponent::ShowAlertFromStringBundle(const char* messageID)
 {
   nsString message;
   nsresult rv;
@@ -1866,7 +1873,7 @@ nsNSSComponent::DoProfileBeforeChange(nsISupports* aSubject)
       needsCleanup = false;
     }
   }
-    
+
   if (needsCleanup) {
     ShutdownNSS();
   }
@@ -1883,7 +1890,7 @@ nsNSSComponent::DoProfileChangeNetRestore()
 }
 
 NS_IMETHODIMP
-nsNSSComponent::IsNSSInitialized(bool *initialized)
+nsNSSComponent::IsNSSInitialized(bool* initialized)
 {
   MutexAutoLock lock(mutex);
   *initialized = mNSSInitialized;
@@ -1892,7 +1899,7 @@ nsNSSComponent::IsNSSInitialized(bool *initialized)
 
 
 NS_IMETHODIMP
-nsNSSComponent::GetDefaultCertVerifier(RefPtr<CertVerifier> &out)
+nsNSSComponent::GetDefaultCertVerifier(RefPtr<CertVerifier>& out)
 {
   MutexAutoLock lock(mutex);
   if (!mNSSInitialized)
@@ -1911,8 +1918,8 @@ PipUIContext::~PipUIContext()
 {
 }
 
-
-NS_IMETHODIMP PipUIContext::GetInterface(const nsIID & uuid, void * *result)
+NS_IMETHODIMP
+PipUIContext::GetInterface(const nsIID& uuid, void** result)
 {
   NS_ENSURE_ARG_POINTER(result);
   *result = nullptr;
@@ -1925,14 +1932,14 @@ NS_IMETHODIMP PipUIContext::GetInterface(const nsIID & uuid, void * *result)
   if (!uuid.Equals(NS_GET_IID(nsIPrompt)))
     return NS_ERROR_NO_INTERFACE;
 
-  nsIPrompt * prompt = nullptr;
+  nsIPrompt* prompt = nullptr;
   nsresult rv = nsNSSComponent::GetNewPrompter(&prompt);
   *result = prompt;
   return rv;
 }
 
-nsresult 
-getNSSDialogs(void **_result, REFNSIID aIID, const char *contract)
+nsresult
+getNSSDialogs(void** _result, REFNSIID aIID, const char* contract)
 {
   if (!NS_IsMainThread()) {
     NS_ERROR("getNSSDialogs called off the main thread");
@@ -1942,8 +1949,9 @@ getNSSDialogs(void **_result, REFNSIID aIID, const char *contract)
   nsresult rv;
 
   nsCOMPtr<nsISupports> svc = do_GetService(contract, &rv);
-  if (NS_FAILED(rv)) 
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   rv = svc->QueryInterface(aIID, _result);
 
@@ -1951,13 +1959,13 @@ getNSSDialogs(void **_result, REFNSIID aIID, const char *contract)
 }
 
 nsresult
-setPassword(PK11SlotInfo *slot, nsIInterfaceRequestor *ctx)
+setPassword(PK11SlotInfo* slot, nsIInterfaceRequestor* ctx)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
-  
+
   if (PK11_NeedUserInit(slot)) {
-    nsITokenPasswordDialogs *dialogs;
+    nsITokenPasswordDialogs* dialogs;
     bool canceled;
     NS_ConvertUTF8toUTF16 tokenName(PK11_GetTokenName(slot));
 
@@ -1990,7 +1998,8 @@ setPassword(PK11SlotInfo *slot, nsIInterfaceRequestor *ctx)
 namespace mozilla {
 namespace psm {
 
-void DisableMD5()
+void
+DisableMD5()
 {
   NSS_SetAlgorithmPolicy(SEC_OID_MD5,
       0, NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE);
@@ -2000,7 +2009,8 @@ void DisableMD5()
       0, NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE);
 }
 
-nsresult InitializeCipherSuite()
+nsresult
+InitializeCipherSuite()
 {
   NS_ASSERTION(NS_IsMainThread(), "InitializeCipherSuite() can only be accessed in main thread");
 

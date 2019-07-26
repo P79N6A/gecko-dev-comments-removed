@@ -28,14 +28,14 @@ public:
 
   
   
-  SECStatus VerifyCert(CERTCertificate * cert,
+  SECStatus VerifyCert(CERTCertificate* cert,
                        const SECCertificateUsage usage,
                        const PRTime time,
-                       nsIInterfaceRequestor * pinArg,
+                       nsIInterfaceRequestor* pinArg,
                        const Flags flags = 0,
-                        CERTCertList **validationChain = nullptr,
-                        SECOidTag *evOidPolicy = nullptr ,
-                        CERTVerifyLog *verifyLog = nullptr);
+                        CERTCertList** validationChain = nullptr,
+                        SECOidTag* evOidPolicy = nullptr ,
+                        CERTVerifyLog* verifyLog = nullptr);
 
   enum missing_cert_download_config { missing_cert_download_off = 0, missing_cert_download_on };
   enum crl_download_config { crl_local_only = 0, crl_download_allowed };

@@ -92,8 +92,6 @@
 
 
 
-
-
 #include "SSLServerCertVerification.h"
 
 #include <cstring>
@@ -140,15 +138,15 @@ NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 NSSCleanupAutoPtrClass_WithParam(PLArenaPool, PORT_FreeArena, FalseParam, false)
 
 
-nsIThreadPool * gCertVerificationThreadPool = nullptr;
+nsIThreadPool* gCertVerificationThreadPool = nullptr;
 
 
 
 
-Mutex *gSSLVerificationTelemetryMutex = nullptr;
+Mutex* gSSLVerificationTelemetryMutex = nullptr;
 
 
-Mutex *gSSLVerificationPK11Mutex = nullptr;
+Mutex* gSSLVerificationPK11Mutex = nullptr;
 
 } 
 
@@ -212,7 +210,7 @@ void StopSSLServerCertVerificationThreads()
 namespace {
 
 void
-LogInvalidCertError(TransportSecurityInfo *socketInfo,
+LogInvalidCertError(TransportSecurityInfo* socketInfo,
                     PRErrorCode errorCode,
                     ::mozilla::psm::SSLErrorMessageType errorMessageType)
 {
@@ -234,7 +232,7 @@ class SSLServerCertVerificationResult : public nsRunnable
 public:
   NS_DECL_NSIRUNNABLE
 
-  SSLServerCertVerificationResult(TransportSecurityInfo * infoObject,
+  SSLServerCertVerificationResult(TransportSecurityInfo* infoObject,
                                   PRErrorCode errorCode,
                                   Telemetry::ID telemetryID = Telemetry::HistogramCount,
                                   uint32_t telemetryValue = -1,
@@ -254,9 +252,9 @@ public:
 class CertErrorRunnable : public SyncRunnableBase
 {
  public:
-  CertErrorRunnable(const void * fdForLogging,
-                    nsIX509Cert * cert,
-                    TransportSecurityInfo * infoObject,
+  CertErrorRunnable(const void* fdForLogging,
+                    nsIX509Cert* cert,
+                    TransportSecurityInfo* infoObject,
                     PRErrorCode defaultErrorCodeToReport,
                     uint32_t collectedErrors,
                     PRErrorCode errorCodeTrust,
@@ -276,9 +274,9 @@ class CertErrorRunnable : public SyncRunnableBase
   virtual void RunOnTargetThread();
   RefPtr<SSLServerCertVerificationResult> mResult; 
 private:
-  SSLServerCertVerificationResult *CheckCertOverrides();
-  
-  const void * const mFdForLogging; 
+  SSLServerCertVerificationResult* CheckCertOverrides();
+
+  const void* const mFdForLogging; 
   const nsCOMPtr<nsIX509Cert> mCert;
   const RefPtr<TransportSecurityInfo> mInfoObject;
   const PRErrorCode mDefaultErrorCodeToReport;
@@ -289,7 +287,7 @@ private:
   const uint32_t mProviderFlags;
 };
 
-SSLServerCertVerificationResult *
+SSLServerCertVerificationResult*
 CertErrorRunnable::CheckCertOverrides()
 {
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p][%p] top of CheckCertOverrides\n",
@@ -345,9 +343,9 @@ CertErrorRunnable::CheckCertOverrides()
       nsrv = overrideService->HasMatchingOverride(hostString, port,
                                                   mCert,
                                                   &overrideBits,
-                                                  &isTemporaryOverride, 
+                                                  &isTemporaryOverride,
                                                   &haveOverride);
-      if (NS_SUCCEEDED(nsrv) && haveOverride) 
+      if (NS_SUCCEEDED(nsrv) && haveOverride)
       {
        
         remaining_display_errors &= ~overrideBits;
@@ -383,7 +381,7 @@ CertErrorRunnable::CheckCertOverrides()
     if (cb) {
       nsCOMPtr<nsIBadCertListener2> bcl = do_GetInterface(cb);
       if (bcl) {
-        nsIInterfaceRequestor *csi
+        nsIInterfaceRequestor* csi
           = static_cast<nsIInterfaceRequestor*>(mInfoObject);
         bool suppressMessage = false; 
         nsrv = bcl->NotifyCertProblem(csi, mInfoObject->SSLStatus(),
@@ -398,7 +396,7 @@ CertErrorRunnable::CheckCertOverrides()
     bool isPrivate = mProviderFlags & nsISocketProvider::NO_PERMANENT_STORAGE;
     certdb->GetRecentBadCerts(isPrivate, getter_AddRefs(recentBadCertsService));
   }
- 
+
   if (recentBadCertsService) {
     NS_ConvertUTF8toUTF16 hostWithPortStringUTF16(hostWithPortString);
     recentBadCertsService->AddBadCert(hostWithPortStringUTF16,
@@ -410,9 +408,9 @@ CertErrorRunnable::CheckCertOverrides()
                                 : mErrorCodeMismatch ? mErrorCodeMismatch
                                 : mErrorCodeExpired  ? mErrorCodeExpired
                                 : mDefaultErrorCodeToReport;
-                                
-  SSLServerCertVerificationResult *result = 
-    new SSLServerCertVerificationResult(mInfoObject, 
+
+  SSLServerCertVerificationResult* result =
+    new SSLServerCertVerificationResult(mInfoObject,
                                         errorCodeToReport,
                                         Telemetry::HistogramCount,
                                         -1,
@@ -425,13 +423,13 @@ CertErrorRunnable::CheckCertOverrides()
   return result;
 }
 
-void 
+void
 CertErrorRunnable::RunOnTargetThread()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   mResult = CheckCertOverrides();
-  
+
   MOZ_ASSERT(mResult);
 }
 
@@ -466,17 +464,17 @@ PRErrorCodeToOverrideType(PRErrorCode errorCode)
 
 
 
-CertErrorRunnable *
+CertErrorRunnable*
 CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
-                        TransportSecurityInfo * infoObject,
-                        CERTCertificate * cert,
-                        const void * fdForLogging,
+                        TransportSecurityInfo* infoObject,
+                        CERTCertificate* cert,
+                        const void* fdForLogging,
                         uint32_t providerFlags,
                         PRTime now)
 {
   MOZ_ASSERT(infoObject);
   MOZ_ASSERT(cert);
-  
+
   
   
   
@@ -506,15 +504,15 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
     PR_SetError(defaultErrorCodeToReport, 0);
     return nullptr;
   }
-  
-  PLArenaPool *log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+
+  PLArenaPool* log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
   PLArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
   if (!log_arena) {
     NS_ERROR("PORT_NewArena failed");
     return nullptr; 
   }
 
-  CERTVerifyLog * verify_log = PORT_ArenaZNew(log_arena, CERTVerifyLog);
+  CERTVerifyLog* verify_log = PORT_ArenaZNew(log_arena, CERTVerifyLog);
   if (!verify_log) {
     NS_ERROR("PORT_ArenaZNew failed");
     return nullptr; 
@@ -548,7 +546,7 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
     errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
   }
 
-  CERTVerifyLogNode *i_node;
+  CERTVerifyLogNode* i_node;
   for (i_node = verify_log->head; i_node; i_node = i_node->next)
   {
     uint32_t overrideType = PRErrorCodeToOverrideType(i_node->error);
@@ -583,10 +581,10 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
 
   infoObject->SetStatusErrorBits(*nssCert, collected_errors);
 
-  return new CertErrorRunnable(fdForLogging, 
+  return new CertErrorRunnable(fdForLogging,
                                static_cast<nsIX509Cert*>(nssCert.get()),
-                               infoObject, defaultErrorCodeToReport, 
-                               collected_errors, errorCodeTrust, 
+                               infoObject, defaultErrorCodeToReport,
+                               collected_errors, errorCodeTrust,
                                errorCodeMismatch, errorCodeExpired,
                                providerFlags);
 }
@@ -603,7 +601,7 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
 class CertErrorRunnableRunnable : public nsRunnable
 {
 public:
-  CertErrorRunnableRunnable(CertErrorRunnable * certErrorRunnable)
+  CertErrorRunnableRunnable(CertErrorRunnable* certErrorRunnable)
     : mCertErrorRunnable(certErrorRunnable)
   {
   }
@@ -626,21 +624,21 @@ class SSLServerCertVerificationJob : public nsRunnable
 {
 public:
   
-  static SECStatus Dispatch(const void * fdForLogging,
-                            nsNSSSocketInfo * infoObject,
-                            CERTCertificate * serverCert,
-                            SECItem * stapledOCSPResponse,
+  static SECStatus Dispatch(const void* fdForLogging,
+                            nsNSSSocketInfo* infoObject,
+                            CERTCertificate* serverCert,
+                            SECItem* stapledOCSPResponse,
                             uint32_t providerFlags);
 private:
   NS_DECL_NSIRUNNABLE
 
   
-  SSLServerCertVerificationJob(const void * fdForLogging,
-                               nsNSSSocketInfo * infoObject,
-                               CERTCertificate * cert,
-                               SECItem * stapledOCSPResponse,
+  SSLServerCertVerificationJob(const void* fdForLogging,
+                               nsNSSSocketInfo* infoObject,
+                               CERTCertificate* cert,
+                               SECItem* stapledOCSPResponse,
                                uint32_t providerFlags);
-  const void * const mFdForLogging;
+  const void* const mFdForLogging;
   const RefPtr<nsNSSSocketInfo> mInfoObject;
   const ScopedCERTCertificate mCert;
   const uint32_t mProviderFlags;
@@ -649,8 +647,8 @@ private:
 };
 
 SSLServerCertVerificationJob::SSLServerCertVerificationJob(
-    const void * fdForLogging, nsNSSSocketInfo * infoObject,
-    CERTCertificate * cert, SECItem * stapledOCSPResponse,
+    const void* fdForLogging, nsNSSSocketInfo* infoObject,
+    CERTCertificate* cert, SECItem* stapledOCSPResponse,
     uint32_t providerFlags)
   : mFdForLogging(fdForLogging)
   , mInfoObject(infoObject)
@@ -662,11 +660,11 @@ SSLServerCertVerificationJob::SSLServerCertVerificationJob(
 }
 
 SECStatus
-PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert,
-                             nsIInterfaceRequestor * pinarg,
-                             const char * hostname,
-                             CERTCertList **validationChain,
-                             SECOidTag *evOidPolicy)
+PSM_SSL_PKIX_AuthCertificate(CERTCertificate* peerCert,
+                             nsIInterfaceRequestor* pinarg,
+                             const char* hostname,
+                             CERTCertList** validationChain,
+                             SECOidTag* evOidPolicy)
 {
     RefPtr<CertVerifier> certVerifier(GetDefaultCertVerifier());
     if (!certVerifier) {
@@ -680,9 +678,8 @@ PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert,
 
     if (rv == SECSuccess) {
         
-
-
-
+        
+        
         if (hostname && hostname[0])
             rv = CERT_VerifyCertName(peerCert, hostname);
         else
@@ -690,14 +687,14 @@ PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert,
         if (rv != SECSuccess)
             PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
     }
-        
+
     return rv;
 }
 
 struct nsSerialBinaryBlacklistEntry
 {
   unsigned int len;
-  const char *binary_serial;
+  const char* binary_serial;
 };
 
 
@@ -718,13 +715,13 @@ static struct nsSerialBinaryBlacklistEntry myUTNBlacklistEntries[] = {
 
 
 PRErrorCode
-PSM_SSL_DigiNotarTreatAsRevoked(CERTCertificate * serverCert,
-                                CERTCertList * serverCertChain)
+PSM_SSL_DigiNotarTreatAsRevoked(CERTCertificate* serverCert,
+                                CERTCertList* serverCertChain)
 {
   
   
   
-  
+
   PRTime cutoff = 0;
   PRStatus status = PR_ParseTimeString("01-JUL-2011 00:00", true, &cutoff);
   if (status != PR_SUCCESS) {
@@ -738,8 +735,8 @@ PSM_SSL_DigiNotarTreatAsRevoked(CERTCertificate * serverCert,
       return 0;
     }
   }
-  
-  for (CERTCertListNode *node = CERT_LIST_HEAD(serverCertChain);
+
+  for (CERTCertListNode* node = CERT_LIST_HEAD(serverCertChain);
        !CERT_LIST_END(node, serverCertChain);
        node = CERT_LIST_NEXT(node)) {
     if (node->cert->issuerName &&
@@ -747,18 +744,18 @@ PSM_SSL_DigiNotarTreatAsRevoked(CERTCertificate * serverCert,
       return SEC_ERROR_REVOKED_CERTIFICATE;
     }
   }
-  
+
   return 0;
 }
 
 
 PRErrorCode
-PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
-                           CERTCertList * serverCertChain)
+PSM_SSL_BlacklistDigiNotar(CERTCertificate* serverCert,
+                           CERTCertList* serverCertChain)
 {
   bool isDigiNotarIssuedCert = false;
 
-  for (CERTCertListNode *node = CERT_LIST_HEAD(serverCertChain);
+  for (CERTCertListNode* node = CERT_LIST_HEAD(serverCertChain);
        !CERT_LIST_END(node, serverCertChain);
        node = CERT_LIST_NEXT(node)) {
     if (!node->cert->issuerName)
@@ -790,10 +787,9 @@ PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
 
 
 
-
 static SECStatus
-BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
-                             CERTCertificate *serverCert)
+BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
+                             CERTCertificate* serverCert)
 {
   
   
@@ -807,7 +803,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
     
     return SECSuccess;
   }
-  
+
   status->GetServerCert(getter_AddRefs(cert));
   cert2 = do_QueryInterface(cert);
   if (!cert2) {
@@ -849,15 +845,15 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
 }
 
 SECStatus
-AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
-                SECItem * stapledOCSPResponse, uint32_t providerFlags)
+AuthCertificate(nsNSSSocketInfo* infoObject, CERTCertificate* cert,
+                SECItem* stapledOCSPResponse, uint32_t providerFlags)
 {
   if (cert->serialNumber.data &&
       cert->issuerName &&
-      !strcmp(cert->issuerName, 
+      !strcmp(cert->issuerName,
         "CN=UTN-USERFirst-Hardware,OU=http://www.usertrust.com,O=The USERTRUST Network,L=Salt Lake City,ST=UT,C=US")) {
 
-    unsigned char *server_cert_comparison_start = cert->serialNumber.data;
+    unsigned char* server_cert_comparison_start = cert->serialNumber.data;
     unsigned int server_cert_comparison_len = cert->serialNumber.len;
 
     while (server_cert_comparison_len) {
@@ -868,16 +864,16 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
       --server_cert_comparison_len;
     }
 
-    nsSerialBinaryBlacklistEntry *walk = myUTNBlacklistEntries;
+    nsSerialBinaryBlacklistEntry* walk = myUTNBlacklistEntries;
     for ( ; walk && walk->len; ++walk) {
 
-      unsigned char *locked_cert_comparison_start = (unsigned char*)walk->binary_serial;
+      unsigned char* locked_cert_comparison_start = (unsigned char*)walk->binary_serial;
       unsigned int locked_cert_comparison_len = walk->len;
-      
+
       while (locked_cert_comparison_len) {
         if (*locked_cert_comparison_start != 0)
           break;
-        
+
         ++locked_cert_comparison_start;
         --locked_cert_comparison_len;
       }
@@ -892,7 +888,7 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
 
   SECStatus rv;
   if (stapledOCSPResponse) {
-    CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
+    CERTCertDBHandle* handle = CERT_GetDefaultCertDB();
     rv = CERT_CacheOCSPResponseFromSideChannel(handle, cert, PR_Now(),
                                                stapledOCSPResponse,
                                                infoObject);
@@ -938,7 +934,7 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
                           reasonsForNotFetching);
   }
 
-  CERTCertList *verifyCertChain = nullptr;
+  CERTCertList* verifyCertChain = nullptr;
   SECOidTag evOidPolicy;
   rv = PSM_SSL_PKIX_AuthCertificate(cert, infoObject, infoObject->GetHostNameRaw(),
                                     &verifyCertChain, &evOidPolicy);
@@ -976,7 +972,7 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
         PORT_SetError(savedErrorCode);
       }
     }
-      
+
     if (blacklistErrorCode != 0) {
       infoObject->SetCertIssuerBlacklisted();
       PORT_SetError(blacklistErrorCode);
@@ -988,7 +984,7 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
     
     
     if (!(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE)) {
-      for (CERTCertListNode *node = CERT_LIST_HEAD(certList);
+      for (CERTCertListNode* node = CERT_LIST_HEAD(certList);
            !CERT_LIST_END(node, certList);
            node = CERT_LIST_NEXT(node)) {
 
@@ -1017,7 +1013,7 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
           MutexAutoLock PK11Mutex(*gSSLVerificationPK11Mutex);
           ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
           if (slot) {
-            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
+            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE,
                             nickname, false);
           }
         }
@@ -1056,10 +1052,10 @@ AuthCertificate(nsNSSSocketInfo * infoObject, CERTCertificate * cert,
 }
 
  SECStatus
-SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
-                                       nsNSSSocketInfo * infoObject,
-                                       CERTCertificate * serverCert,
-                                       SECItem * stapledOCSPResponse,
+SSLServerCertVerificationJob::Dispatch(const void* fdForLogging,
+                                       nsNSSSocketInfo* infoObject,
+                                       CERTCertificate* serverCert,
+                                       SECItem* stapledOCSPResponse,
                                        uint32_t providerFlags)
 {
   
@@ -1068,7 +1064,7 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
     PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
     return SECFailure;
   }
-  
+
   RefPtr<SSLServerCertVerificationJob> job(
     new SSLServerCertVerificationJob(fdForLogging, infoObject, serverCert,
                                      stapledOCSPResponse, providerFlags));
@@ -1095,7 +1091,7 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
   }
 
   PORT_SetError(PR_WOULD_BLOCK_ERROR);
-  return SECWouldBlock;    
+  return SECWouldBlock;
 }
 
 NS_IMETHODIMP
@@ -1144,10 +1140,10 @@ SSLServerCertVerificationJob::Run()
       TimeStamp now = TimeStamp::Now();
       Telemetry::ID telemetryID;
 #ifndef NSS_NO_LIBPKIX
-      if(nsNSSComponent::globalConstFlagUsePKIXVerification){
+      if(nsNSSComponent::globalConstFlagUsePKIXVerification) {
         telemetryID = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_LIBPKIX;
       }
-      else{
+      else {
 #endif
         telemetryID = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_CLASSIC;
 #ifndef NSS_NO_LIBPKIX
@@ -1163,7 +1159,7 @@ SSLServerCertVerificationJob::Run()
         error, mInfoObject, mCert, mFdForLogging, mProviderFlags, PR_Now()));
       if (!runnable) {
         
-        error = PR_GetError(); 
+        error = PR_GetError();
       } else {
         
         
@@ -1208,7 +1204,7 @@ SSLServerCertVerificationJob::Run()
 
 
 SECStatus
-AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
+AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
 {
   
 
@@ -1223,8 +1219,8 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   
   NS_ASSERTION(!isServer, "AuthCertificateHook: isServer unexpectedly true");
 
-  nsNSSSocketInfo *socketInfo = static_cast<nsNSSSocketInfo*>(arg);
-  
+  nsNSSSocketInfo* socketInfo = static_cast<nsNSSSocketInfo*>(arg);
+
   ScopedCERTCertificate serverCert(SSL_PeerCertificate(fd));
 
   if (!checkSig || isServer || !socketInfo || !serverCert) {
@@ -1255,8 +1251,8 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   
   
   
-  const SECItemArray *csa = SSL_PeerStapledOCSPResponses(fd);
-  SECItem *stapledOCSPResponse = nullptr;
+  const SECItemArray* csa = SSL_PeerStapledOCSPResponses(fd);
+  SECItem* stapledOCSPResponse = nullptr;
   
   if (csa && csa->len == 1) {
     stapledOCSPResponse = &csa->items[0];
@@ -1273,11 +1269,11 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     
     socketInfo->SetCertVerificationWaiting();
     SECStatus rv = SSLServerCertVerificationJob::Dispatch(
-                     static_cast<const void *>(fd), socketInfo, serverCert,
+                     static_cast<const void*>(fd), socketInfo, serverCert,
                      stapledOCSPResponse, providerFlags);
     return rv;
   }
-  
+
   
   
   
@@ -1293,7 +1289,7 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   if (error != 0) {
     RefPtr<CertErrorRunnable> runnable(CreateCertErrorRunnable(
                     error, socketInfo, serverCert,
-                    static_cast<const void *>(fd), providerFlags, PR_Now()));
+                    static_cast<const void*>(fd), providerFlags, PR_Now()));
     if (!runnable) {
       
       error = PR_GetError();
@@ -1388,7 +1384,7 @@ void EnsureServerVerificationInitialized()
 }
 
 SSLServerCertVerificationResult::SSLServerCertVerificationResult(
-        TransportSecurityInfo * infoObject, PRErrorCode errorCode,
+        TransportSecurityInfo* infoObject, PRErrorCode errorCode,
         Telemetry::ID telemetryID, uint32_t telemetryValue,
         SSLErrorMessageType errorMessageType)
   : mInfoObject(infoObject)
@@ -1413,7 +1409,7 @@ SSLServerCertVerificationResult::Dispatch()
   NS_ASSERTION(stsTarget,
                "Failed to get socket transport service event target");
   rv = stsTarget->Dispatch(this, NS_DISPATCH_NORMAL);
-  NS_ASSERTION(NS_SUCCEEDED(rv), 
+  NS_ASSERTION(NS_SUCCEEDED(rv),
                "Failed to dispatch SSLServerCertVerificationResult");
 }
 
@@ -1425,7 +1421,7 @@ SSLServerCertVerificationResult::Run()
      Telemetry::Accumulate(mTelemetryID, mTelemetryValue);
   }
   
-  ((nsNSSSocketInfo *) mInfoObject.get())
+  ((nsNSSSocketInfo*) mInfoObject.get())
     ->SetCertVerificationResult(mErrorCode, mErrorMessageType);
   return NS_OK;
 }
