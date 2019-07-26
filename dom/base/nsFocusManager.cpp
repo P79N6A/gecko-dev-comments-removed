@@ -1739,9 +1739,14 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
   
   
   if (aIsNewDocument) {
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nullptr,
-                                     GetFocusMoveActionCause(aFlags));
     nsIDocument* doc = aWindow->GetExtantDoc();
+    
+    
+    
+    if (doc && doc->HasFlag(NODE_IS_EDITABLE)) {
+      nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nullptr,
+                                       GetFocusMoveActionCause(aFlags));
+    }
     if (doc)
       SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
                            doc, aFlags & FOCUSMETHOD_MASK, aWindowRaised);
