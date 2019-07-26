@@ -144,6 +144,100 @@ TEST_F(pkixder_universal_types_tests, BooleanInvalidZeroLength)
   ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
 }
 
+
+
+
+
+
+
+TEST_F(pkixder_universal_types_tests, OptionalBooleanValidEncodings)
+{
+  const uint8_t DER_OPTIONAL_BOOLEAN_PRESENT_TRUE[] = {
+    0x01,                       
+    0x01,                       
+    0xff                        
+  };
+
+  Input input1;
+  ASSERT_EQ(Success, input1.Init(DER_OPTIONAL_BOOLEAN_PRESENT_TRUE,
+                                 sizeof DER_OPTIONAL_BOOLEAN_PRESENT_TRUE));
+  bool value = false;
+  ASSERT_EQ(Success, OptionalBoolean(input1, false, value)) <<
+    "Should accept the only valid encoding of a present OPTIONAL BOOLEAN";
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(input1.AtEnd());
+
+  
+  const uint8_t DER_INTEGER_05[] = {
+    0x02,                       
+    0x01,                       
+    0x05
+  };
+
+  Input input2;
+  ASSERT_EQ(Success, input2.Init(DER_INTEGER_05, sizeof DER_INTEGER_05));
+  value = true;
+  ASSERT_EQ(Success, OptionalBoolean(input2, false, value)) <<
+    "Should accept a valid encoding of an omitted OPTIONAL BOOLEAN";
+  ASSERT_FALSE(value);
+  ASSERT_FALSE(input2.AtEnd());
+
+  Input input3;
+  ASSERT_EQ(Success, input3.Init(reinterpret_cast<const uint8_t*>(""), 0));
+  value = true;
+  ASSERT_EQ(Success, OptionalBoolean(input3, false, value)) <<
+    "Should accept another valid encoding of an omitted OPTIONAL BOOLEAN";
+  ASSERT_FALSE(value);
+  ASSERT_TRUE(input3.AtEnd());
+}
+
+TEST_F(pkixder_universal_types_tests, OptionalBooleanInvalidEncodings)
+{
+  const uint8_t DER_OPTIONAL_BOOLEAN_PRESENT_FALSE[] = {
+    0x01,                       
+    0x01,                       
+    0x00                        
+  };
+
+  Input input1;
+  ASSERT_EQ(Success, input1.Init(DER_OPTIONAL_BOOLEAN_PRESENT_FALSE,
+                                 sizeof DER_OPTIONAL_BOOLEAN_PRESENT_FALSE));
+  bool value;
+  
+  
+  bool allowInvalidEncodings = false;
+  ASSERT_EQ(Failure, OptionalBoolean(input1, allowInvalidEncodings, value)) <<
+    "Should reject an invalid encoding of present OPTIONAL BOOLEAN";
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
+
+  Input input2;
+  ASSERT_EQ(Success, input2.Init(DER_OPTIONAL_BOOLEAN_PRESENT_FALSE,
+                                 sizeof DER_OPTIONAL_BOOLEAN_PRESENT_FALSE));
+  value = true;
+  
+  
+  allowInvalidEncodings = true;
+  ASSERT_EQ(Success, OptionalBoolean(input2, allowInvalidEncodings, value)) <<
+    "Should now accept an invalid encoding of present OPTIONAL BOOLEAN";
+  ASSERT_FALSE(value);
+  ASSERT_TRUE(input2.AtEnd());
+
+  const uint8_t DER_OPTIONAL_BOOLEAN_PRESENT_42[] = {
+    0x01,                       
+    0x01,                       
+    0x42                        
+  };
+
+  Input input3;
+  ASSERT_EQ(Success, input3.Init(DER_OPTIONAL_BOOLEAN_PRESENT_42,
+                                 sizeof DER_OPTIONAL_BOOLEAN_PRESENT_42));
+  
+  
+  ASSERT_EQ(Failure, OptionalBoolean(input3, allowInvalidEncodings, value)) <<
+    "Should reject another invalid encoding of present OPTIONAL BOOLEAN";
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
+}
+
 TEST_F(pkixder_universal_types_tests, Enumerated)
 {
   const uint8_t DER_ENUMERATED[] = {
