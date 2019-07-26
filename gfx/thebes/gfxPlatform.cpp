@@ -115,16 +115,6 @@ static bool sDrawFrameCounter = false;
 using namespace mozilla::gfx;
 
 
-#ifdef PR_LOGGING
-static PRLogModuleInfo *sFontlistLog = nullptr;
-static PRLogModuleInfo *sFontInitLog = nullptr;
-static PRLogModuleInfo *sTextrunLog = nullptr;
-static PRLogModuleInfo *sTextrunuiLog = nullptr;
-static PRLogModuleInfo *sCmapDataLog = nullptr;
-static PRLogModuleInfo *sTextPerfLog = nullptr;
-#endif
-
-
 
 class SRGBOverrideObserver MOZ_FINAL : public nsIObserver,
                                        public nsSupportsWeakReference
@@ -379,15 +369,6 @@ gfxPlatform::Init()
     
     
     gfxPrefs::One();
-
-#ifdef PR_LOGGING
-    sFontlistLog = PR_NewLogModule("fontlist");
-    sFontInitLog = PR_NewLogModule("fontinit");
-    sTextrunLog = PR_NewLogModule("textrun");
-    sTextrunuiLog = PR_NewLogModule("textrunui");
-    sCmapDataLog = PR_NewLogModule("cmapdata");
-    sTextPerfLog = PR_NewLogModule("textperf");
-#endif
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
@@ -1968,7 +1949,25 @@ gfxPlatform::FontsPrefsChanged(const char *aPref)
 PRLogModuleInfo*
 gfxPlatform::GetLog(eGfxLog aWhichLog)
 {
+    
 #ifdef PR_LOGGING
+    static PRLogModuleInfo *sFontlistLog = nullptr;
+    static PRLogModuleInfo *sFontInitLog = nullptr;
+    static PRLogModuleInfo *sTextrunLog = nullptr;
+    static PRLogModuleInfo *sTextrunuiLog = nullptr;
+    static PRLogModuleInfo *sCmapDataLog = nullptr;
+    static PRLogModuleInfo *sTextPerfLog = nullptr;
+
+    
+    if (!sFontlistLog) {
+        sFontlistLog = PR_NewLogModule("fontlist");
+        sFontInitLog = PR_NewLogModule("fontinit");
+        sTextrunLog = PR_NewLogModule("textrun");
+        sTextrunuiLog = PR_NewLogModule("textrunui");
+        sCmapDataLog = PR_NewLogModule("cmapdata");
+        sTextPerfLog = PR_NewLogModule("textperf");
+    }
+
     switch (aWhichLog) {
     case eGfxLog_fontlist:
         return sFontlistLog;
