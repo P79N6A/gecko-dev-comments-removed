@@ -1316,8 +1316,6 @@ private:
   friend class nsUnblockOnloadEvent;
   
   mozilla::dom::VisibilityState GetVisibilityState() const;
-  void NotifyStyleSheetAdded(nsIStyleSheet* aSheet, bool aDocumentSheet);
-  void NotifyStyleSheetRemoved(nsIStyleSheet* aSheet, bool aDocumentSheet);
 
   void PostUnblockOnloadEvent();
   void DoUnblockOnload();
