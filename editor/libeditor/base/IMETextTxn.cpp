@@ -4,6 +4,7 @@
 
 
 #include "IMETextTxn.h"
+#include "mozilla/DebugOnly.h"          
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TextEvents.h"         
 #include "nsAString.h"                  

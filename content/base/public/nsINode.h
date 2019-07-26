@@ -15,7 +15,6 @@
 #include "nsNodeInfoManager.h"      
 #include "nsPropertyTable.h"        
 #include "nsTObserverArray.h"       
-#include "nsWindowMemoryReporter.h" 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/EventTarget.h" 
@@ -244,12 +243,20 @@ private:
   
   enum { eMaxMutations = 300 };
 
-  
+
   
   
   
   static uint32_t sMutationCount;
 };
+
+
+
+
+
+
+#define NS_DECL_SIZEOF_EXCLUDING_THIS \
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 
 
