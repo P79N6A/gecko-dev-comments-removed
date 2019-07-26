@@ -50,8 +50,6 @@ using safe_browsing::ClientDownloadRequest_SignatureInfo;
 using safe_browsing::ClientDownloadRequest_CertificateChain;
 
 
-
-
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
 #define PREF_SB_MALWARE_ENABLED "browser.safebrowsing.malware.enabled"
 #define PREF_GENERAL_LOCALE "general.useragent.locale"
@@ -127,6 +125,9 @@ private:
   
   
   nsCString mResponse;
+
+  
+  bool IsBinaryFile();
 
   
   
@@ -333,6 +334,34 @@ PendingLookup::~PendingLookup()
   LOG(("Destroying pending lookup [this = %p]", this));
 }
 
+bool
+PendingLookup::IsBinaryFile()
+{
+  nsString fileName;
+  nsresult rv = mQuery->GetSuggestedFileName(fileName);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  return
+    
+    
+    StringEndsWith(fileName, NS_LITERAL_STRING(".apk")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".bas")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".bat")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".cab")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".cmd")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".com")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".exe")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".hta")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".msi")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".pif")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".reg")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".scr")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".vb")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".vbs")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".zip"));
+}
+
 nsresult
 PendingLookup::LookupNext()
 {
@@ -359,10 +388,14 @@ PendingLookup::LookupNext()
     nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
     return lookup->LookupSpec(spec, allowlistOnly);
   }
+#ifdef XP_WIN
   
   
+  if (!IsBinaryFile()) {
+    LOG(("Not eligible for remote lookups [this=%x]", this));
+    return OnComplete(false, NS_OK);
+  }
   
-#if 0
   nsresult rv = SendRemoteQuery();
   if (NS_FAILED(rv)) {
     return OnComplete(false, rv);

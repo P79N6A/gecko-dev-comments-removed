@@ -205,6 +205,7 @@ add_task(function test_setup()
   });
 
   gHttpServer.registerPathHandler("/download", function(request, response) {
+    do_print("Querying remote server for verdict");
     response.setHeader("Content-Type", "application/octet-stream", false);
     let buf = NetUtil.readInputStreamToString(
       request.bodyInputStream,
@@ -215,10 +216,10 @@ add_task(function test_setup()
     let blob = "this is not a serialized protocol buffer";
     
     
-    if (buf.length == 35) {
+    if (buf.length == 45) {
       
       blob = createVerdict(true);
-    } else if (buf.length == 38) {
+    } else if (buf.length == 48) {
       
       blob = createVerdict(false);
     }
@@ -294,13 +295,17 @@ function promiseQueryReputation(query, expectedShouldBlock) {
   return deferred.promise;
 }
 
+add_task(function()
+{
+  
+  yield waitForUpdates();
+});
+
 add_task(function test_signature_whitelists()
 {
   
   Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
                              "http://localhost:4444/throw");
-  
-  yield waitForUpdates();
 
   
   let destFile = getTempFile(TEST_FILE_NAME_1);
@@ -322,6 +327,38 @@ add_task(function test_signature_whitelists()
   
   yield promiseQueryReputation({sourceURI: createURI("http://evil.com"),
                                 signatureInfo: saver.signatureInfo,
+                                fileSize: 12}, false);
+});
+
+add_task(function test_blocked_binary()
+{
+  
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  
+  yield promiseQueryReputation({sourceURI: createURI("http://evil.com"),
+                                suggestedFileName: "noop.bat",
+                                fileSize: 12}, true);
+});
+
+add_task(function test_non_binary()
+{
+  
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/throw");
+  yield promiseQueryReputation({sourceURI: createURI("http://evil.com"),
+                                suggestedFileName: "noop.txt",
+                                fileSize: 12}, false);
+});
+
+add_task(function test_good_binary()
+{
+  
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  
+  yield promiseQueryReputation({sourceURI: createURI("http://mozilla.com"),
+                                suggestedFileName: "noop.bat",
                                 fileSize: 12}, false);
 });
 
