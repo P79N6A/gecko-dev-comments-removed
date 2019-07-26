@@ -255,7 +255,6 @@ AsyncPanZoomController::Destroy()
   }
   mPrevSibling = nullptr;
   mLastChild = nullptr;
-  mParent = nullptr;
 }
 
 float
@@ -1146,30 +1145,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
   bool isDefault = mFrameMetrics.IsDefault();
   mFrameMetrics.mMayHaveTouchListeners = aLayerMetrics.mMayHaveTouchListeners;
-
-  
-  
-#ifdef MOZ_METRO
-  if (!mPaintThrottler.IsOutstanding()) {
-    
-    
-    
-    
-    
-    
-    switch (mState) {
-    case NOTHING:
-    case FLING:
-    case TOUCHING:
-    case WAITING_LISTENERS:
-      mFrameMetrics.mScrollOffset = aLayerMetrics.mScrollOffset;
-      break;
-    
-    default:
-      break;
-    }
-  }
-#endif
 
   mPaintThrottler.TaskComplete(GetFrameTime());
   bool needContentRepaint = false;
