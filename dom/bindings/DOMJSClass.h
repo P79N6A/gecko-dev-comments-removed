@@ -70,7 +70,7 @@ typedef bool (*PropertyEnabled)(JSContext* cx, JSObject* global);
 
 template<typename T>
 struct Prefable {
-  inline bool isEnabled(JSContext* cx, JSObject* obj) {
+  inline bool isEnabled(JSContext* cx, JSObject* obj) const {
     return enabled &&
       (!enabledFunc ||
        enabledFunc(cx, js::GetGlobalForObjectCrossCompartment(obj)));
@@ -85,29 +85,29 @@ struct Prefable {
   
   
   
-  T* specs;
+  const T* specs;
 };
 
 struct NativeProperties
 {
-  Prefable<JSFunctionSpec>* staticMethods;
+  const Prefable<const JSFunctionSpec>* staticMethods;
   jsid* staticMethodIds;
-  JSFunctionSpec* staticMethodsSpecs;
-  Prefable<JSPropertySpec>* staticAttributes;
+  const JSFunctionSpec* staticMethodsSpecs;
+  const Prefable<const JSPropertySpec>* staticAttributes;
   jsid* staticAttributeIds;
-  JSPropertySpec* staticAttributeSpecs;
-  Prefable<JSFunctionSpec>* methods;
+  const JSPropertySpec* staticAttributeSpecs;
+  const Prefable<const JSFunctionSpec>* methods;
   jsid* methodIds;
-  JSFunctionSpec* methodsSpecs;
-  Prefable<JSPropertySpec>* attributes;
+  const JSFunctionSpec* methodsSpecs;
+  const Prefable<const JSPropertySpec>* attributes;
   jsid* attributeIds;
-  JSPropertySpec* attributeSpecs;
-  Prefable<JSPropertySpec>* unforgeableAttributes;
+  const JSPropertySpec* attributeSpecs;
+  const Prefable<const JSPropertySpec>* unforgeableAttributes;
   jsid* unforgeableAttributeIds;
-  JSPropertySpec* unforgeableAttributeSpecs;
-  Prefable<ConstantSpec>* constants;
+  const JSPropertySpec* unforgeableAttributeSpecs;
+  const Prefable<const ConstantSpec>* constants;
   jsid* constantIds;
-  ConstantSpec* constantSpecs;
+  const ConstantSpec* constantSpecs;
 };
 
 struct NativePropertiesHolder
