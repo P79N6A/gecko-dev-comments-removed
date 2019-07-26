@@ -70,46 +70,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#ifndef PNG_ARM_NEON_OPT
-   
-
-
-
-
-
-#  ifdef __ARM_NEON__
-#     define PNG_ARM_NEON_OPT 2
-#  else
-#     define PNG_ARM_NEON_OPT 0
-#  endif
-#endif
-
-#if PNG_ARM_NEON_OPT > 0
-   
-
-
-#  define PNG_FILTER_OPTIMIZATIONS png_init_filter_functions_neon
-#endif
-
-
-
-
-
-
-
-
-
 #ifndef PNG_BUILD_DLL
 #  ifdef DLL_EXPORT
       
@@ -1821,21 +1781,13 @@ PNG_EXTERN void png_set_rgb_to_gray_fixed PNGARG((png_structp png_ptr,
 #endif
 #endif 
 
-
-
-
-
-
 #ifdef PNG_FILTER_OPTIMIZATIONS
 PNG_EXTERN void PNG_FILTER_OPTIMIZATIONS(png_structp png_ptr, unsigned int bpp);
    
-#else
-   
 
 
 
-PNG_EXTERN void png_init_filter_functions_neon(png_structp png_ptr,
-    unsigned int bpp);
+
 #endif
 
 

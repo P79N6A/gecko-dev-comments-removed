@@ -385,9 +385,6 @@
 
 
 
-
-
-
 #ifndef PNG_H
 #define PNG_H
 
@@ -401,9 +398,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.5.17"
+#define PNG_LIBPNG_VER_STRING "1.5.16"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.5.17 - June 27, 2013\n"
+     " libpng version 1.5.16 - May 23, 2013\n"
 
 #define PNG_LIBPNG_VER_SONUM   15
 #define PNG_LIBPNG_VER_DLLNUM  15
@@ -411,7 +408,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   5
-#define PNG_LIBPNG_VER_RELEASE 17
+#define PNG_LIBPNG_VER_RELEASE 16
 
 
 
@@ -442,7 +439,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10517 /* 1.5.17 */
+#define PNG_LIBPNG_VER 10516 /* 1.5.16 */
 
 #ifndef MOZPNGCONF_H
 #   include "mozpngconf.h"
@@ -555,21 +552,10 @@ extern "C" {
 
 
 
-#ifdef PNG_APNG_SUPPORTED
-
-#define PNG_DISPOSE_OP_NONE        0x00
-#define PNG_DISPOSE_OP_BACKGROUND  0x01
-#define PNG_DISPOSE_OP_PREVIOUS    0x02
-
-
-#define PNG_BLEND_OP_SOURCE        0x00
-#define PNG_BLEND_OP_OVER          0x01
-#endif 
 
 
 
-
-typedef char* png_libpng_version_1_5_17;
+typedef char* png_libpng_version_1_5_16;
 
 
 
@@ -2681,46 +2667,16 @@ PNG_EXPORT(235, int, png_get_palette_max, (png_const_structp png_ptr,
 #  endif
 #endif 
 
+#ifdef PNG_APNG_SUPPORTED
+
+#define PNG_DISPOSE_OP_NONE        0x00
+#define PNG_DISPOSE_OP_BACKGROUND  0x01
+#define PNG_DISPOSE_OP_PREVIOUS    0x02
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef PNG_SET_OPTION_SUPPORTED
-#ifdef PNG_ARM_NEON_API_SUPPORTED
-#  define PNG_ARM_NEON   0 /* HARDWARE: ARM Neon SIMD instructions supported */
-#endif
-#define PNG_OPTION_NEXT  2 /* Next option - numbers must be even */
-
-
-#define PNG_OPTION_UNSET   0 /* Unset - defaults to off */
-#define PNG_OPTION_INVALID 1 /* Option number out of range */
-#define PNG_OPTION_OFF     2
-#define PNG_OPTION_ON      3
-
-PNG_EXPORT(236, int, png_set_option, (png_structp png_ptr, int option,
-   int onoff));
-#endif
-
-
-
-
+#define PNG_BLEND_OP_SOURCE        0x00
+#define PNG_BLEND_OP_OVER          0x01
+#endif 
 
 #ifdef PNG_APNG_SUPPORTED
 PNG_EXPORT(237, png_uint_32, png_get_acTL, (png_structp png_ptr,
@@ -2790,6 +2746,47 @@ PNG_EXPORT(256, void, png_write_frame_tail, (png_structp png_ptr,
    png_infop info_ptr));
 #endif 
 #endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef PNG_SET_OPTION_SUPPORTED
+#ifdef PNG_ARM_NEON_API_SUPPORTED
+#  define PNG_ARM_NEON   0 /* HARDWARE: ARM Neon SIMD instructions supported */
+#endif
+#define PNG_OPTION_NEXT  2 /* Next option - numbers must be even */
+
+
+#define PNG_OPTION_UNSET   0 /* Unset - defaults to off */
+#define PNG_OPTION_INVALID 1 /* Option number out of range */
+#define PNG_OPTION_OFF     2
+#define PNG_OPTION_ON      3
+
+PNG_EXPORT(236, int, png_set_option, (png_structp png_ptr, int option,
+   int onoff));
+#endif
+
+
+
+
 
 
 
