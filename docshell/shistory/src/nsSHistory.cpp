@@ -9,8 +9,6 @@
 #include <algorithm>
 
 
-#include "nsXPIDLString.h"
-#include "nsReadableUtils.h"
 #include "mozilla/Preferences.h"
 
 
@@ -20,8 +18,6 @@
 #include "nsISHContainer.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeNode.h"
-#include "nsIDocShellLoadInfo.h"
-#include "nsIServiceManager.h"
 #include "nsIURI.h"
 #include "nsIContentViewer.h"
 #include "nsICacheService.h"
@@ -32,9 +28,13 @@
 #include "nsCOMArray.h"
 #include "nsDocShell.h"
 #include "mozilla/Attributes.h"
+#include "nsISHEntry.h"
+#include "nsISHTransaction.h"
+#include "nsISHistoryListener.h"
+#include "nsComponentManagerUtils.h"
 
 
-#include "nspr.h"
+#include "prsystem.h"
 #include "mozilla/MathAlgorithms.h"
 
 using namespace mozilla;

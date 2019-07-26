@@ -12,7 +12,8 @@
 
 
 #include "nsISHTransaction.h"
-#include "nsISHEntry.h"
+
+class nsISHEntry;
 
 class nsSHTransaction: public nsISHTransaction
 {

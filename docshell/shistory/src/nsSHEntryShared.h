@@ -8,7 +8,6 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
-#include "nsISupportsArray.h"
 #include "nsIBFCacheEntry.h"
 #include "nsIMutationObserver.h"
 #include "nsExpirationTracker.h"
@@ -23,6 +22,7 @@ class nsIContentViewer;
 class nsIDocShellTreeItem;
 class nsILayoutHistoryState;
 class nsDocShellEditorData;
+class nsISupportsArray;
 
 
 

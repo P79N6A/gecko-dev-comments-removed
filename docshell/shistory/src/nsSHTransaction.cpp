@@ -6,6 +6,7 @@
 
 
 #include "nsSHTransaction.h"
+#include "nsISHEntry.h"
 
 
 

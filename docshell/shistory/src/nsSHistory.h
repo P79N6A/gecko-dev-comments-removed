@@ -13,13 +13,10 @@
 
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
-#include "nsISHTransaction.h"
 #include "nsIWebNavigation.h"
-#include "nsIWeakReference.h"
 #include "nsISimpleEnumerator.h"
-#include "nsISHistoryListener.h"
-#include "nsISHEntry.h"
 #include "nsTObserverArray.h"
+#include "nsWeakPtr.h"
 
 
 #include "prclist.h"
@@ -27,6 +24,9 @@
 class nsIDocShell;
 class nsSHEnumerator;
 class nsSHistoryObserver;
+class nsISHEntry;
+class nsISHTransaction;
+
 class nsSHistory: public PRCList,
                   public nsISHistory,
                   public nsISHistoryInternal,
