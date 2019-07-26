@@ -820,10 +820,6 @@ textbox[type="number"] {
 
 
 %ifdef MOZ_SUITE
-%define AUTOCOMPLETE_OLD_STYLE
-%endif
-
-%ifdef AUTOCOMPLETE_OLD_STYLE
 
 textbox[type="autocomplete"] {
   -moz-binding: url("chrome://global/content/autocomplete.xml#autocomplete");
