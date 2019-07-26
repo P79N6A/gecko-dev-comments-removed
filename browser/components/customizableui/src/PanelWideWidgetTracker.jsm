@@ -23,6 +23,13 @@ let gWideWidgets = new Set();
 
 let gSeenWidgets = new Set();
 
+
+const kWidePanelItemClass = "panel-wide-item";
+
+
+
+const kColumnsInMenuPanel = 3;
+
 let PanelWideWidgetTracker = {
   
   onWidgetAdded: function(aWidgetId, aArea, aPosition) {
@@ -54,7 +61,7 @@ let PanelWideWidgetTracker = {
   
   onWidgetAfterDOMChange: function(aNode, aNextNode, aContainer) {
     if (!gSeenWidgets.has(aNode.id)) {
-      if (aNode.classList.contains(CustomizableUI.WIDE_PANEL_CLASS)) {
+      if (aNode.classList.contains(kWidePanelItemClass)) {
         gWideWidgets.add(aNode.id);
       }
       gSeenWidgets.add(aNode.id);
@@ -130,12 +137,12 @@ let PanelWideWidgetTracker = {
       }
     }
 
-    if (fixedPos !== null || prevSiblingCount % CustomizableUI.PANEL_COLUMN_COUNT) {
+    if (fixedPos !== null || prevSiblingCount % kColumnsInMenuPanel) {
       let desiredPos = (fixedPos !== null) ? fixedPos : gPanelPlacements.indexOf(aWidgetId);
-      let desiredChange = -(prevSiblingCount % CustomizableUI.PANEL_COLUMN_COUNT);
+      let desiredChange = -(prevSiblingCount % kColumnsInMenuPanel);
       if (aMoveForwards && fixedPos == null) {
         
-        desiredChange = CustomizableUI.PANEL_COLUMN_COUNT + desiredChange + 1;
+        desiredChange = kColumnsInMenuPanel + desiredChange + 1;
       }
       desiredPos += desiredChange;
       CustomizableUI.moveWidgetWithinArea(aWidgetId, desiredPos);
