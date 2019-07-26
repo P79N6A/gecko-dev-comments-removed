@@ -31,7 +31,10 @@ public:
   void Add(double aStart, double aEnd);
 
   
-  double GetFinalEndTime();
+  double GetStartTime();
+
+  
+  double GetEndTime();
 
   
   void Normalize();
