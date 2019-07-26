@@ -336,8 +336,6 @@ public class TabsTray extends TwoWayView
             public void onPropertyAnimationStart() { }
             @Override
             public void onPropertyAnimationEnd() {
-                
-                
                 AnimatorProxy proxy = AnimatorProxy.create(view);
                 proxy.setAlpha(1);
 
