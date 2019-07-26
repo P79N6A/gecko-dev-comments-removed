@@ -629,6 +629,30 @@ let SessionStoreInternal = {
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
           
           let tab = this._getTabForBrowser(browser);
+          let tabData = browser.__SS_data;
+
+          
+          
+          let activePageData = tabData.entries[tabData.index - 1] || null;
+          let uri = activePageData ? activePageData.url || null : null;
+          browser.userTypedValue = uri;
+
+          
+          if (activePageData) {
+            if (activePageData.title) {
+              tab.label = activePageData.title;
+              tab.crop = "end";
+            } else if (activePageData.url != "about:blank") {
+              tab.label = activePageData.url;
+              tab.crop = "center";
+            }
+          }
+
+          
+          if ("image" in tabData) {
+            win.gBrowser.setIcon(tab, tabData.image);
+          }
+
           let event = win.document.createEvent("Events");
           event.initEvent("SSTabRestoring", true, false);
           tab.dispatchEvent(event);
@@ -2723,30 +2747,8 @@ let SessionStoreInternal = {
                                               {tabData: tabData, epoch: epoch});
 
       
-      
-      let activePageData = tabData.entries[activeIndex] || null;
-      let uri = activePageData ? activePageData.url || null : null;
-      browser.userTypedValue = uri;
-
-      
-      if (activePageData) {
-        if (activePageData.title) {
-          tab.label = activePageData.title;
-          tab.crop = "end";
-        } else if (activePageData.url != "about:blank") {
-          tab.label = activePageData.url;
-          tab.crop = "center";
-        }
-      }
-
-      
       if ("attributes" in tabData) {
         TabAttributes.set(tab, tabData.attributes);
-      }
-
-      
-      if ("image" in tabData) {
-        tabbrowser.setIcon(tab, tabData.image);
       }
 
       
