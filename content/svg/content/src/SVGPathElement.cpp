@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsGkAtoms.h"
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
@@ -12,9 +10,10 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/SVGPathElement.h"
 #include "DOMSVGPoint.h"
-#include "gfxContext.h"
 #include <algorithm>
 #include "mozilla/dom/SVGPathElementBinding.h"
+
+class gfxContext;
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Path)
 

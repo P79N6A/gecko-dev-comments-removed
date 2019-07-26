@@ -3,7 +3,6 @@
 
 
 
-#include "mozilla/dom/SVGAnimatedLength.h"
 #include "mozilla/dom/SVGEllipseElement.h"
 #include "mozilla/dom/SVGEllipseElementBinding.h"
 #include "gfxContext.h"

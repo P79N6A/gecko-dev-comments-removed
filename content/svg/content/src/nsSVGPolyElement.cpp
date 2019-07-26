@@ -3,8 +3,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsSVGPolyElement.h"
 #include "DOMSVGPointList.h"
 #include "gfxContext.h"

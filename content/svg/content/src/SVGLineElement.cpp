@@ -3,7 +3,6 @@
 
 
 
-#include "mozilla/dom/SVGAnimatedLength.h"
 #include "mozilla/dom/SVGLineElement.h"
 #include "mozilla/dom/SVGLineElementBinding.h"
 #include "gfxContext.h"

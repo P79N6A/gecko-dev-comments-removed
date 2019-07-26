@@ -3,13 +3,12 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/SVGSwitchElement.h"
-#include "nsIFrame.h"
 #include "nsSVGUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/SVGSwitchElementBinding.h"
+
+class nsIFrame;
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Switch)
 

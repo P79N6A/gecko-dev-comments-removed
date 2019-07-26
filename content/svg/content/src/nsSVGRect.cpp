@@ -4,7 +4,6 @@
 
 
 #include "nsSVGRect.h"
-#include "nsTextFormatter.h"
 #include "nsContentUtils.h"
 #include "nsDOMClassInfoID.h"
 

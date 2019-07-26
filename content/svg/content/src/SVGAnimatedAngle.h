@@ -3,17 +3,19 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SVGAnimatedAngle_h
+#define mozilla_dom_SVGAnimatedAngle_h
 
 #include "nsWrapperCache.h"
 #include "nsSVGElement.h"
-#include "SVGAngle.h"
 #include "mozilla/Attributes.h"
 
 class nsSVGAngle;
 
 namespace mozilla {
 namespace dom {
+
+class SVGAngle;
 
 class SVGAnimatedAngle MOZ_FINAL : public nsISupports,
                                    public nsWrapperCache
@@ -43,3 +45,4 @@ protected:
 } 
 } 
 
+#endif 

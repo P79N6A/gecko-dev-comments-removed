@@ -4,7 +4,6 @@
 
 
 #include "nsDOMSVGZoomEvent.h"
-#include "nsSVGRect.h"
 #include "DOMSVGPoint.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "nsIPresShell.h"
