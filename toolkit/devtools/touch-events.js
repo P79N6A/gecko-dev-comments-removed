@@ -178,6 +178,26 @@ function TouchEventHandler (window) {
       return timeout;
     },
     sendTouchEvent: function teh_sendTouchEvent(evt, target, name) {
+      
+      
+      if (target.localName == "iframe" && target.mozbrowser === true) {
+        if (name == "touchstart") {
+          this.touchstartTime = Date.now();
+        } else if (name == "touchend") {
+          
+          
+          if (Date.now() - this.touchstartTime < delay) {
+            this.cancelClick = true;
+          }
+        }
+        let unwraped = XPCNativeWrapper.unwrap(target);
+        unwraped.sendTouchEvent(name, [0],                    
+                                [evt.clientX], [evt.clientY], 
+                                [1], [1],                     
+                                [0], [0],                     
+                                1);                           
+        return;
+      }
       let document = target.ownerDocument;
       let content = this.getContent(target);
 
