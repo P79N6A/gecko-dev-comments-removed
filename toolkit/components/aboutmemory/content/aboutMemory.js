@@ -48,17 +48,20 @@ let gUnnamedProcessStr = "Main Process";
 
 
 
-let gVerbose;
+let gVerbose = false;
+let gIsDiff = false;
 {
   let split = document.location.href.split('?');
   document.title = split[0].toLowerCase();
 
-  gVerbose = false;
-  if (split.length == 2) {
+  if (split.length === 2) {
     let searchSplit = split[1].split('&');
     for (let i = 0; i < searchSplit.length; i++) {
-      if (searchSplit[i].toLowerCase() == 'verbose') {
+      if (searchSplit[i].toLowerCase() === 'verbose') {
         gVerbose = true;
+      }
+      if (searchSplit[i].toLowerCase() === 'diff') {
+        gIsDiff = true;
       }
     }
   }
@@ -886,19 +889,27 @@ TreeNode.prototype = {
 
 
 
-TreeNode.compareAmounts = function(a, b) {
-  if (a._amount > b._amount) {
+TreeNode.compareAmounts = function(aA, aB) {
+  let a, b;
+  if (gIsDiff) {
+    a = Math.abs(aA._amount);
+    b = Math.abs(aB._amount);
+  } else {
+    a = aA._amount;
+    b = aB._amount;
+  }
+  if (a > b) {
     return -1;
   }
-  if (a._amount < b._amount) {
+  if (a < b) {
     return 1;
   }
-  return TreeNode.compareUnsafeNames(a, b);
+  return TreeNode.compareUnsafeNames(aA, aB);
 };
 
-TreeNode.compareUnsafeNames = function(a, b) {
-  return a._unsafeName < b._unsafeName ? -1 :
-         a._unsafeName > b._unsafeName ?  1 :
+TreeNode.compareUnsafeNames = function(aA, aB) {
+  return aA._unsafeName < aB._unsafeName ? -1 :
+         aA._unsafeName > aB._unsafeName ?  1 :
          0;
 };
 
@@ -1517,10 +1528,11 @@ function appendTreeElements(aP, aRoot, aProcess, aPadText)
     appendElementWithText(aP, "span", "treeline", treelineText);
 
     
+    
     assertInput(aRoot._units === aT._units,
                 "units within a tree are inconsistent");
     let tIsInvalid = false;
-    if (!(0 <= aT._amount && aT._amount <= aRoot._amount)) {
+    if (!gIsDiff && !(0 <= aT._amount && aT._amount <= aRoot._amount)) {
       tIsInvalid = true;
       let unsafePath = aUnsafeNames.join("/");
       gUnsafePathsWithInvalidValuesForThisProcess.push(unsafePath);
