@@ -210,6 +210,12 @@ enum nsCSSUnit {
 
   
   
+  eCSSUnit_ViewportWidth  = 700,    
+  eCSSUnit_ViewportHeight = 701,    
+  eCSSUnit_ViewportMin    = 702,    
+  eCSSUnit_ViewportMax    = 703,    
+
+  
   eCSSUnit_EM           = 800,    
   eCSSUnit_XHeight      = 801,    
   eCSSUnit_Char         = 802,    

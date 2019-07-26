@@ -414,8 +414,10 @@ public:
     if (!r.IsEqualEdges(mVisibleArea)) {
       mVisibleArea = r;
       
-      if (!IsPaginated() && HasCachedStyleData())
+      if (!IsPaginated() && HasCachedStyleData()) {
+        mPendingViewportChange = true;
         PostMediaFeatureValuesChangedEvent();
+      }
     }
   }
 
@@ -943,6 +945,14 @@ public:
     mIsGlyph = aValue;
   }
 
+  bool UsesViewportUnits() const {
+    return mUsesViewportUnits;
+  }
+
+  void SetUsesViewportUnits(bool aValue) {
+    mUsesViewportUnits = aValue;
+  }
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -1194,6 +1204,12 @@ protected:
 
   
   unsigned              mIsGlyph : 1;
+
+  
+  unsigned              mUsesViewportUnits : 1;
+
+  
+  unsigned              mPendingViewportChange : 1;
 
   
   unsigned              mUserFontSetDirty : 1;
