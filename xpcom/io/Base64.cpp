@@ -243,6 +243,12 @@ Base64Encode(const nsACString &aBinaryData, nsACString &aString)
     return NS_ERROR_FAILURE;
   }
 
+  
+  if (aBinaryData.IsEmpty()) {
+    aString.Truncate();
+    return NS_OK;
+  }
+
   uint32_t stringLen = ((aBinaryData.Length() + 2) / 3) * 4;
 
   char *buffer;
@@ -285,6 +291,12 @@ Base64Decode(const nsACString &aString, nsACString &aBinaryData)
   
   if (aString.Length() > UINT32_MAX / 3) {
     return NS_ERROR_FAILURE;
+  }
+
+  
+  if (aString.IsEmpty()) {
+    aBinaryData.Truncate();
+    return NS_OK;
   }
 
   uint32_t binaryDataLen = ((aString.Length() * 3) / 4);
