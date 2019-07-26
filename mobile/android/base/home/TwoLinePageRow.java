@@ -197,6 +197,9 @@ public class TwoLinePageRow extends LinearLayout
         if (favicon != null) {
             setFaviconWithUrl(favicon, url);
         } else {
+            
+            mFavicon.clearImage();
+
             mLoadFaviconTask = new LoadFaviconTask(url);
 
             

@@ -157,6 +157,14 @@ public class FaviconView extends ImageView {
     
 
 
+    public void clearImage() {
+        setImageResource(0);
+        hideBackground();
+    }
+
+    
+
+
 
 
 
