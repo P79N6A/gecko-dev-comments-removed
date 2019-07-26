@@ -204,9 +204,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    typedef HashMap<StackFrame *,
+    typedef HashMap<TaggedFramePtr,
                     RelocatablePtrObject,
-                    DefaultHasher<StackFrame *>,
+                    DefaultHasher<TaggedFramePtr>,
                     RuntimeAllocPolicy> FrameMap;
     FrameMap frames;
 
@@ -403,7 +403,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     inline bool observesNewScript() const;
     inline bool observesNewGlobalObject() const;
     inline bool observesGlobal(GlobalObject *global) const;
-    inline bool observesFrame(StackFrame *fp) const;
+    inline bool observesFrame(TaggedFramePtr frame) const;
     bool observesScript(JSScript *script) const;
 
     
@@ -411,7 +411,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue vp);
+    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, Value *vp);
 
     
 
@@ -422,7 +422,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
+    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
 
@@ -451,10 +451,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
+    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
-    bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
+    bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, Value *vp);
 
     
 
@@ -464,15 +464,14 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     static void resultToCompletion(JSContext *cx, bool ok, const Value &rv,
-                                   JSTrapStatus *status, MutableHandleValue value);
+                                   JSTrapStatus *status, Value *value);
 
     
 
 
 
 
-    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value,
-                            MutableHandleValue result);
+    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value, Value *result);
 
     
 
@@ -486,8 +485,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val,
-                                MutableHandleValue vp);
+    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
 
     
 
@@ -633,9 +631,9 @@ Debugger::observesGlobal(GlobalObject *global) const
 }
 
 bool
-Debugger::observesFrame(StackFrame *fp) const
+Debugger::observesFrame(TaggedFramePtr frame) const
 {
-    return observesGlobal(&fp->global());
+    return observesGlobal(&frame.script()->global());
 }
 
 JSTrapStatus
