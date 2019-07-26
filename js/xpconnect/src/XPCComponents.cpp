@@ -3059,9 +3059,76 @@ NS_IMPL_ISUPPORTS0(Identity)
 
 xpc::SandboxProxyHandler xpc::sandboxProxyHandler;
 
+
+
+
+class SandboxCallableProxyHandler : public js::DirectWrapper {
+public:
+    SandboxCallableProxyHandler() : js::DirectWrapper(0)
+    {
+    }
+
+    virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc,
+                      Value *vp);
+};
+
+bool
+SandboxCallableProxyHandler::call(JSContext *cx, JSObject *proxy, unsigned argc,
+                                  Value *vp)
+{
+    
+    
+
+    
+    JSObject *sandboxProxy = JS_GetParent(proxy);
+    MOZ_ASSERT(js::IsProxy(sandboxProxy) &&
+               js::GetProxyHandler(sandboxProxy) == &xpc::sandboxProxyHandler);
+
+    
+    
+    JSObject *sandboxGlobal = JS_GetParent(sandboxProxy);
+    MOZ_ASSERT(js::GetObjectJSClass(sandboxGlobal) == &SandboxClass);
+
+    
+    
+    
+    
+    
+    
+    JS::Value thisVal = JS_THIS_VALUE(cx, vp);
+    if (thisVal == ObjectValue(*sandboxGlobal)) {
+        thisVal = ObjectValue(*js::GetProxyTargetObject(sandboxProxy));
+    }
+
+    return JS::Call(cx, thisVal, js::GetProxyCall(proxy), argc,
+                    JS_ARGV(cx, vp), vp);
+}
+
+static SandboxCallableProxyHandler sandboxCallableProxyHandler;
+
+
+
+static JSObject*
+WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
+{
+    MOZ_ASSERT(JS_ObjectIsCallable(cx, callable));
+    
+    
+    
+    MOZ_ASSERT(js::IsProxy(sandboxProtoProxy) &&
+               js::GetProxyHandler(sandboxProtoProxy) ==
+                 &xpc::sandboxProxyHandler);
+
+    
+    
+    return js::NewProxyObject(cx, &sandboxCallableProxyHandler,
+                              ObjectValue(*callable), nsnull,
+                              sandboxProtoProxy, callable, callable);
+}
+
 template<typename Op>
-bool BindPropertyOp(JSContext *cx, JSObject *targetObj, Op& op,
-                    PropertyDescriptor *desc, jsid id, unsigned attrFlag)
+bool BindPropertyOp(JSContext *cx, Op& op, PropertyDescriptor *desc, jsid id,
+                    unsigned attrFlag, JSObject *sandboxProtoProxy)
 {
     if (!op) {
         return true;
@@ -3079,7 +3146,7 @@ bool BindPropertyOp(JSContext *cx, JSObject *targetObj, Op& op,
         if (!func)
             return false;
     }
-    func = JS_BindCallable(cx, func, targetObj);
+    func = WrapCallable(cx, func, sandboxProtoProxy);
     if (!func)
         return false;
     op = JS_DATA_TO_FUNC_PTR(Op, func);
@@ -3123,16 +3190,16 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *proxy,
     
     if (desc->getter != xpc::holder_get &&
         desc->getter != XPC_WN_Helper_GetProperty &&
-        !BindPropertyOp(cx, obj, desc->getter, desc, id, JSPROP_GETTER))
+        !BindPropertyOp(cx, desc->getter, desc, id, JSPROP_GETTER, proxy))
         return false;
     if (desc->setter != xpc::holder_set &&
         desc->setter != XPC_WN_Helper_SetProperty &&
-        !BindPropertyOp(cx, obj, desc->setter, desc, id, JSPROP_SETTER))
+        !BindPropertyOp(cx, desc->setter, desc, id, JSPROP_SETTER, proxy))
         return false;
     if (desc->value.isObject()) {
         JSObject* val = &desc->value.toObject();
         if (JS_ObjectIsCallable(cx, val)) {
-            val = JS_BindCallable(cx, val, obj);
+            val = WrapCallable(cx, val, proxy);
             if (!val)
                 return false;
             desc->value = ObjectValue(*val);
@@ -4320,6 +4387,20 @@ nsXPCComponents_Utils::SetGCZeal(PRInt32 aValue, JSContext* cx)
 #ifdef JS_GC_ZEAL
     JS_SetGCZeal(cx, PRUint8(aValue), JS_DEFAULT_ZEAL_FREQ);
 #endif
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::NukeSandbox(const JS::Value &obj, JSContext *cx)
+{
+    NS_ENSURE_TRUE(obj.isObject(), NS_ERROR_INVALID_ARG);
+    JSObject *wrapper = &obj.toObject();
+    NS_ENSURE_TRUE(IsWrapper(wrapper), NS_ERROR_INVALID_ARG);
+    JSObject *sb = UnwrapObject(wrapper);
+    NS_ENSURE_TRUE(GetObjectJSClass(sb) == &SandboxClass, NS_ERROR_INVALID_ARG);
+    NukeCrossCompartmentWrappers(cx, AllCompartments(), 
+                                 SingleCompartment(GetObjectCompartment(sb)),
+                                 NukeWindowReferences);
     return NS_OK;
 }
 

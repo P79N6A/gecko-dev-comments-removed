@@ -159,6 +159,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "PanZoom:PanZoom", false);
     Services.obs.addObserver(this, "FullScreen:Exit", false);
     Services.obs.addObserver(this, "Viewport:Change", false);
+    Services.obs.addObserver(this, "Viewport:Flush", false);
     Services.obs.addObserver(this, "Passwords:Init", false);
     Services.obs.addObserver(this, "FormHistory:Init", false);
     Services.obs.addObserver(this, "ToggleProfiling", false);
@@ -931,6 +932,8 @@ var BrowserApp = {
     } else if (aTopic == "Viewport:Change") {
       if (this.isBrowserContentDocumentDisplayed())
         this.selectedTab.setViewport(JSON.parse(aData));
+    } else if (aTopic == "Viewport:Flush") {
+      this.displayedDocumentChanged();
     } else if (aTopic == "Passwords:Init") {
       let storage = Components.classes["@mozilla.org/login-manager/storage/mozStorage;1"].
         getService(Components.interfaces.nsILoginManagerStorage);
@@ -1456,7 +1459,6 @@ var SelectionHandler = {
   HANDLE_WIDTH: 45,
   HANDLE_HEIGHT: 66,
   HANDLE_PADDING: 20,
-  HANDLE_HORIZONTAL_OFFSET: 5,
 
   init: function sh_init() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
@@ -1494,7 +1496,8 @@ var SelectionHandler = {
         if (zoom != this._viewOffset.zoom) {
           this._viewOffset.zoom = zoom;
           this.updateCacheForSelection();
-          this.positionHandles();
+          this.updateViewOffsetScroll();
+          this.positionHandles(true);
         }
         break;
       }
@@ -1528,6 +1531,7 @@ var SelectionHandler = {
     this._viewOffset = { top: parseInt(computedStyle.getPropertyValue("margin-top").replace("px", "")),
                          left: parseInt(computedStyle.getPropertyValue("margin-left").replace("px", "")),
                          zoom: BrowserApp.selectedTab.getViewport().zoom };
+    this.updateViewOffsetScroll();
 
     
     
@@ -1568,7 +1572,7 @@ var SelectionHandler = {
     selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
 
     
-    this.cache = {};
+    this.cache = { start: {}, end: {}};
     this.updateCacheForSelection();
 
     this.showHandles();
@@ -1601,7 +1605,7 @@ var SelectionHandler = {
                                              QueryInterface(Ci.nsISelectionController);
         selectionController.selectAll();
         this.updateCacheForSelection();
-        this.positionHandles();
+        this.positionHandles(false);
         break;
       }
       case COPY: {
@@ -1625,29 +1629,16 @@ var SelectionHandler = {
   
   moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
     
     if (aIsStartHandle) {
-      this._start.style.left = aX + this._view.scrollX - this._viewOffset.left + "px";
-      this._start.style.top = aY + this._view.scrollY - this._viewOffset.top + "px";
+      this.cache.start.x = aX + this.HANDLE_PADDING + this.HANDLE_WIDTH / this._viewOffset.zoom;
+      this.cache.start.y = aY;
+      this.positionStartHandle();
     } else {
-      this._end.style.left = aX + this._view.scrollX - this._viewOffset.left + "px";
-      this._end.style.top = aY + this._view.scrollY - this._viewOffset.top + "px";
+      this.cache.end.x = aX + this.HANDLE_PADDING;
+      this.cache.end.y = aY;
+      this.positionEndHandle();
     }
 
     let cwu = this._view.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
@@ -1696,29 +1687,23 @@ var SelectionHandler = {
   },
 
   _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu, useShift) {
-    let start = this._start.getBoundingClientRect();
-    let x = start.right - this.HANDLE_PADDING;
+    let x = this.cache.start.x;
     
-    let y = start.top - 1;
+    let y = this.cache.start.y - 1;
 
     this._sendMouseEvents(cwu, useShift, x, y);
   },
 
   _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu, useShift) {
-    let end = this._end.getBoundingClientRect();
-    let x = end.left + this.HANDLE_PADDING;
+    let x = this.cache.end.x;
     
-    let y = end.top - 1;
+    let y = this.cache.end.y - 1;
 
     this._sendMouseEvents(cwu, useShift, x, y);
   },
 
   _sendMouseEvents: function sh_sendMouseEvents(cwu, useShift, x, y) {
-    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
-    let element = ElementTouchHelper.elementFromPoint(contentWindow, x, y);
-    if (!element)
-      element = ElementTouchHelper.anyElementFromPoint(contentWindow, x, y);
-
+    let element = cwu.elementFromPoint(x, y, false, true);
     
     if (element instanceof Ci.nsIDOMHTMLHtmlElement)
       return;
@@ -1739,21 +1724,20 @@ var SelectionHandler = {
     if (this._view) {
       let selection = this._view.getSelection();
       if (selection) {
-        selectedText = selection.toString().trim();
+        
+        if (arguments.length == 2 && this._pointInSelection(aX, aY))
+          selectedText = selection.toString().trim();
+
         selection.removeAllRanges();
         selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
       }
     }
 
     
-    if (arguments.length == 2 && selectedText.length) {
-      let contentWindow = BrowserApp.selectedBrowser.contentWindow;
-      let element = ElementTouchHelper.elementFromPoint(contentWindow, aX, aY);
-      if (!element)
-        element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
-
+    if (selectedText.length) {
+      let element = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY);
       
-      if (element.ownerDocument.defaultView == this._view && this._pointInSelection(aX, aY)) {
+      if (element.ownerDocument.defaultView == this._view) {
         let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
         clipboard.copyString(selectedText, element.ownerDocument);
         NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
@@ -1781,20 +1765,18 @@ var SelectionHandler = {
       win = win.parent;
     }
 
+    let rangeRect = this._view.getSelection().getRangeAt(0).getBoundingClientRect();
     let radius = ElementTouchHelper.getTouchRadius();
-    return (aX - offset.x > this.cache.rect.left - radius.left &&
-            aX - offset.x < this.cache.rect.right + radius.right &&
-            aY - offset.y > this.cache.rect.top - radius.top &&
-            aY - offset.y < this.cache.rect.bottom + radius.bottom);
+    return (aX - offset.x > rangeRect.left - radius.left &&
+            aX - offset.x < rangeRect.right + radius.right &&
+            aY - offset.y > rangeRect.top - radius.top &&
+            aY - offset.y < rangeRect.bottom + radius.bottom);
   },
 
   
   
   updateCacheForSelection: function sh_updateCacheForSelection(aIsStartHandle) {
-    let range = this._view.getSelection().getRangeAt(0);
-    this.cache.rect = range.getBoundingClientRect();
-
-    let rects = range.getClientRects();
+    let rects = this._view.getSelection().getRangeAt(0).getClientRects();
     let start = { x: rects[0].left, y: rects[0].bottom };
     let end = { x: rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
 
@@ -1805,30 +1787,56 @@ var SelectionHandler = {
                           (!aIsStartHandle && (start.y < this.cache.start.y || (start.y == this.cache.start.y && start.x < this.cache.start.x)));
     }
 
-    this.cache.start = start;
-    this.cache.end = end;
+    this.cache.start.x = start.x;
+    this.cache.start.y = start.y;
+    this.cache.end.x = end.x;
+    this.cache.end.y = end.y;
 
     return selectionReversed;
   },
 
+  updateViewOffsetScroll: function sh_updateViewOffsetScroll() {
+    let cwu = this._view.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let scrollX = {}, scrollY = {};
+    cwu.getScrollXY(false, scrollX, scrollY);
+
+    this._viewOffset.scrollX = scrollX.value;
+    this._viewOffset.scrollY = scrollY.value;
+  },
+
   
   
-  positionHandles: function sh_positionHandles() {
-    let height = this.HANDLE_HEIGHT / this._viewOffset.zoom;
-    this._start.style.height = height + "px";
-    this._end.style.height = height + "px";
+  positionHandles: function sh_positionHandles(adjustScale) {
+    if (adjustScale) { 
+      let heightWidth = "height:" + this.HANDLE_HEIGHT / this._viewOffset.zoom + "px;" + 
+                        "width:" + this.HANDLE_WIDTH / this._viewOffset.zoom + "px;";
+      this.positionStartHandle(this._start.style.cssText + heightWidth);
+      this.positionEndHandle(this._end.style.cssText + heightWidth);
+    } else {
+      this.positionStartHandle();
+      this.positionEndHandle();
+    }
+  },
 
-    let width = this.HANDLE_WIDTH/ this._viewOffset.zoom;
-    this._start.style.width = width + "px";
-    this._end.style.width = width + "px";
+  positionStartHandle: function sh_positionStartHandle(startCss) {
+    if (!startCss)
+      startCss = this._start.style.cssText;
 
-    this._start.style.left = (this.cache.start.x + this._view.scrollX - this._viewOffset.left -
-                              this.HANDLE_PADDING - this.HANDLE_HORIZONTAL_OFFSET - width) + "px";
-    this._start.style.top = (this.cache.start.y + this._view.scrollY - this._viewOffset.top) + "px";
+    let left = this.cache.start.x + this._viewOffset.scrollX - this._viewOffset.left -
+               this.HANDLE_PADDING - this.HANDLE_WIDTH / this._viewOffset.zoom;
+    let top = this.cache.start.y + this._viewOffset.scrollY - this._viewOffset.top;
 
-    this._end.style.left = (this.cache.end.x + this._view.scrollX - this._viewOffset.left -
-                            this.HANDLE_PADDING + this.HANDLE_HORIZONTAL_OFFSET) + "px";
-    this._end.style.top = (this.cache.end.y + this._view.scrollY - this._viewOffset.top) + "px";
+    this._start.style.cssText = startCss + "left:" + left + "px;" + "top:" + top + "px;";
+  },
+
+  positionEndHandle: function sh_positionEndHandle(endCss) {
+    if (!endCss)
+      endCss = this._end.style.cssText;
+
+    let left = this.cache.end.x + this._viewOffset.scrollX - this._viewOffset.left - this.HANDLE_PADDING;
+    let top = this.cache.end.y + this._viewOffset.scrollY - this._viewOffset.top;
+
+    this._end.style.cssText = endCss + "left:" + left + "px;" + "top:" + top + "px;";
   },
 
   showHandles: function sh_showHandles() {
@@ -1842,7 +1850,7 @@ var SelectionHandler = {
       return;
     }
 
-    this.positionHandles();
+    this.positionHandles(true);
 
     this._start.setAttribute("showing", "true");
     this._end.setAttribute("showing", "true");
@@ -1893,6 +1901,10 @@ var SelectionHandler = {
         this._touchDelta = { x: touch.clientX - rect.left,
                              y: touch.clientY - rect.top };
 
+        
+        this.updateCacheForSelection();
+        this.updateViewOffsetScroll();
+
         aEvent.target.addEventListener("touchmove", this, false);
         break;
 
@@ -1903,7 +1915,7 @@ var SelectionHandler = {
         this._touchDelta = null;
 
         
-        this.positionHandles();
+        this.positionHandles(false);
         break;
 
       case "touchmove":
@@ -1988,7 +2000,7 @@ var UserAgent = {
         }
 
         
-        if (tab.desktopMode && (channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
+        if (tab.desktopMode)
           channel.setRequestHeader("User-Agent", this.DESKTOP_UA, false);
 
         break;
@@ -2636,20 +2648,6 @@ Tab.prototype = {
 
         
         
-        Reader.checkTabReadability(this.id, function(isReadable) {
-          if (!isReadable)
-            return;
-
-          sendMessageToJava({
-            gecko: {
-              type: "Content:ReaderEnabled",
-              tabID: this.id
-            }
-          });
-        }.bind(this));
-
-        
-        
         
         
         if (/^about:/.test(target.documentURI)) {
@@ -2846,6 +2844,20 @@ Tab.prototype = {
             tabID: this.id
           }
         });
+
+        
+        
+        Reader.checkTabReadability(this.id, function(isReadable) {
+          if (!isReadable)
+            return;
+
+          sendMessageToJava({
+            gecko: {
+              type: "Content:ReaderEnabled",
+              tabID: this.id
+            }
+          });
+        }.bind(this));
       }
     }
   },
@@ -3318,8 +3330,9 @@ var BrowserEventHandler = {
       
       
       
-      data.x = Math.round(data.x);
-      data.y = Math.round(data.y);
+      let zoom = BrowserApp.selectedTab._zoom;
+      data.x = Math.round(data.x / zoom);
+      data.y = Math.round(data.y / zoom);
 
       if (this._firstScrollEvent) {
         while (this._scrollableElement != null && !this._elementCanScroll(this._scrollableElement, data.x, data.y))
@@ -3729,7 +3742,7 @@ const ElementTouchHelper = {
   },
 
   isElementClickable: function isElementClickable(aElement, aUnclickableCache, aAllowBodyListeners) {
-    const selector = "a,:link,:visited,[role=button],button,input,select,textarea,label";
+    const selector = "a,:link,:visited,[role=button],button,input,select,textarea";
 
     let stopNode = null;
     if (!aAllowBodyListeners && aElement && aElement.ownerDocument)
@@ -3741,6 +3754,8 @@ const ElementTouchHelper = {
       if (this._hasMouseListener(elem))
         return true;
       if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
+        return true;
+      if (elem instanceof HTMLLabelElement && elem.control != null)
         return true;
       if (aUnclickableCache)
         aUnclickableCache.push(elem);
@@ -4442,6 +4457,8 @@ var ViewportHandler = {
     switch (aTopic) {
       case "Window:Resize":
         if (window.outerWidth == gScreenWidth && window.outerHeight == gScreenHeight)
+          break;
+        if (window.outerWidth == 0 || window.outerHeight == 0)
           break;
 
         let oldScreenWidth = gScreenWidth;
@@ -5856,6 +5873,7 @@ var ActivityObserver = {
 var WebappsUI = {
   init: function init() {
     Cu.import("resource://gre/modules/Webapps.jsm");
+    DOMApplicationRegistry.allAppsLaunchable = true;
 
     Services.obs.addObserver(this, "webapps-ask-install", false);
     Services.obs.addObserver(this, "webapps-launch", false);
@@ -6297,6 +6315,13 @@ let Reader = {
 
       let tab = BrowserApp.getTabForId(tabId);
       let url = tab.browser.contentWindow.location.href;
+      let uri = Services.io.newURI(url, null, null);
+
+      if (!(uri.schemeIs("http") || uri.schemeIs("https") || uri.schemeIs("file"))) {
+        this.log("Not parsing URI scheme: " + uri.scheme);
+        callback(null);
+        return;
+      }
 
       
       this.getArticleFromCache(url, function(article) {
@@ -6310,7 +6335,6 @@ let Reader = {
         
         
         let doc = tab.browser.contentWindow.document.cloneNode(true);
-        let uri = Services.io.newURI(url, null, null);
 
         let readability = new Readability(uri, doc);
         article = readability.parse();
@@ -6347,10 +6371,8 @@ let Reader = {
           return;
         }
 
-        
-        
-        let doc = tab.browser.contentWindow.document.cloneNode(true);
         let uri = Services.io.newURI(url, null, null);
+        let doc = tab.browser.contentWindow.document;
 
         let readability = new Readability(uri, doc);
         callback(readability.check());
@@ -6466,7 +6488,7 @@ let Reader = {
     });
   },
 
-  _dowloadDocument: function Reader_downloadDocument(url, callback) {
+  _downloadDocument: function Reader_downloadDocument(url, callback) {
     
     
     
@@ -6511,7 +6533,7 @@ let Reader = {
     try {
       this.log("Needs to fetch page, creating request: " + url);
 
-      request.browser = this._dowloadDocument(url, function(doc) {
+      request.browser = this._downloadDocument(url, function(doc) {
         this.log("Finished loading page: " + doc);
 
         

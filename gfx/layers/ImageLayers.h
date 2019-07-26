@@ -27,6 +27,9 @@ struct ID3D10ShaderResourceView;
 
 typedef void* HANDLE;
 #endif
+#ifdef MOZ_WIDGET_GONK
+# include <ui/GraphicBuffer.h>
+#endif
 
 namespace mozilla {
 
@@ -36,6 +39,9 @@ class Shmem;
 }
 
 namespace layers {
+
+class ImageContainerChild;
+class ImageBridgeChild;
 
 enum StereoMode {
   STEREO_MODE_MONO,
@@ -102,6 +108,13 @@ public:
 
 
     MAC_IO_SURFACE,
+
+    
+
+
+
+
+    GONK_IO_SURFACE,
 
     
 
@@ -286,18 +299,11 @@ struct RemoteImageData {
 
 class THEBES_API ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
-
 public:
-  ImageContainer() :
-    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
-    mPaintCount(0),
-    mPreviousImagePainted(false),
-    mImageFactory(new ImageFactory()),
-    mRecycleBin(new BufferRecycleBin()),
-    mRemoteData(nsnull),
-    mRemoteDataMutex(nsnull),
-    mCompositionNotifySink(nsnull)
-  {}
+
+  enum { DISABLE_ASYNC = 0x0, ENABLE_ASYNC = 0x01 };
+
+  ImageContainer(int flag = 0);
 
   ~ImageContainer();
 
@@ -324,7 +330,46 @@ public:
 
 
 
+
+
+
+
+
   void SetCurrentImage(Image* aImage);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetCurrentImageInTransaction(Image* aImage);
+
+  
+
+
+
+
+  bool IsAsync() const;
+
+  
+
+
+
+
+
+
+
+  PRUint64 GetAsyncContainerID() const;
 
   
 
@@ -477,6 +522,8 @@ public:
 protected:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
+  void SetCurrentImageInternal(Image* aImage);
+
   
   
   
@@ -530,6 +577,15 @@ protected:
   CrossProcessMutex *mRemoteDataMutex;
 
   CompositionNotifySink *mCompositionNotifySink;
+
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<ImageContainerChild> mImageContainerChild;
 };
  
 class AutoLockImage
@@ -878,6 +934,82 @@ private:
 };
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+
+
+
+
+
+
+
+
+
+class GraphicBufferLocked {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GraphicBufferLocked)
+
+public:
+  GraphicBufferLocked(android::GraphicBuffer* aGraphicBuffer)
+    : mGraphicBuffer(aGraphicBuffer)
+  {}
+
+  virtual ~GraphicBufferLocked() {}
+
+  virtual void Unlock() {}
+
+  virtual void* GetNativeBuffer()
+  {
+    return mGraphicBuffer->getNativeBuffer();
+  }   
+
+protected:
+  android::GraphicBuffer* mGraphicBuffer;
+};
+
+class THEBES_API GonkIOSurfaceImage : public Image {
+public:
+  struct Data {
+    nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
+    gfxIntSize mPicSize;
+  };
+
+  GonkIOSurfaceImage()
+    : Image(NULL, GONK_IO_SURFACE)
+    , mSize(0, 0)
+    {}
+
+  virtual ~GonkIOSurfaceImage()
+  {
+    mGraphicBuffer->Unlock();
+  }
+
+  virtual void SetData(const Data& aData)
+  {
+    mGraphicBuffer = aData.mGraphicBuffer;
+    mSize = aData.mPicSize;
+  }
+
+  virtual gfxIntSize GetSize()
+  {
+    return mSize;
+  }
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface()
+  {
+    
+    return nsnull;
+  }
+
+  void* GetNativeBuffer()
+  {
+    return mGraphicBuffer->GetNativeBuffer();
+  }
+
+private:
+  nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
+  gfxIntSize mSize;
+};
+#endif
+
 class RemoteBitmapImage : public Image {
 public:
   RemoteBitmapImage() : Image(NULL, REMOTE_IMAGE_BITMAP) {}
@@ -895,4 +1027,4 @@ public:
 }
 }
 
-#endif 
+#endif

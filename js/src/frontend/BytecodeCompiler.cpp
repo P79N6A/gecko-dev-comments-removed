@@ -189,7 +189,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
             }
         }
         
-        JS_ASSERT(sc.bindings.lookup(cx, arguments, NULL) == NONE);
+        JS_ASSERT(!sc.bindings.hasBinding(cx, arguments));
     }
 
     
@@ -270,12 +270,12 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun,
 
 
 
-        BindingNames names(cx);
-        if (!funsc.bindings.getLocalNameArray(cx, &names))
+        BindingVector names(cx);
+        if (!GetOrderedBindings(cx, funsc.bindings, &names))
             return false;
 
         for (unsigned i = 0; i < nargs; i++) {
-            if (!DefineArg(fn, names[i].maybeAtom, i, &parser))
+            if (!DefineArg(fn, names[i].maybeName, i, &parser))
                 return false;
         }
     }

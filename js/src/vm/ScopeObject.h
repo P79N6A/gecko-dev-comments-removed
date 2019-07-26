@@ -212,10 +212,6 @@ class CallObject : public ScopeObject
     inline void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
-    static JSBool setArgOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
-    static JSBool setVarOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
-
-    
     void copyUnaliasedValues(StackFrame *fp);
 
     

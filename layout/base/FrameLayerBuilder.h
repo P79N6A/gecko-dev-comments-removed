@@ -21,6 +21,8 @@ class nsRootPresContext;
 
 namespace mozilla {
 
+class FrameLayerBuilder;
+
 enum LayerState {
   LAYER_NONE,
   LAYER_INACTIVE,
@@ -29,7 +31,43 @@ enum LayerState {
   
   LAYER_ACTIVE_FORCE,
   
-  LAYER_ACTIVE_EMPTY
+  LAYER_ACTIVE_EMPTY,
+  
+  LAYER_SVG_EFFECTS
+};
+
+class LayerManagerLayerBuilder : public layers::LayerUserData {
+public:
+  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
+    : mLayerBuilder(aBuilder)
+    , mDelete(aDelete)
+  {
+    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
+  }
+  ~LayerManagerLayerBuilder();
+
+  FrameLayerBuilder* mLayerBuilder;
+  bool mDelete;
+};
+
+extern PRUint8 gLayerManagerLayerBuilder;
+
+class ContainerLayerPresContext : public layers::LayerUserData {
+public:
+  nsPresContext* mPresContext;
+};
+
+extern PRUint8 gContainerLayerPresContext;
+
+static inline FrameLayerBuilder *GetLayerBuilderForManager(layers::LayerManager* aManager)
+{
+  LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(aManager->GetUserData(&gLayerManagerLayerBuilder));
+  return data ? data->mLayerBuilder : nsnull;
+}
+
+class RefCountedRegion : public RefCounted<RefCountedRegion> {
+public:
+  nsRegion mRegion;
 };
 
 
@@ -83,8 +121,13 @@ public:
     mDetectedDOMModification(false),
     mInvalidateAllLayers(false)
   {
+    MOZ_COUNT_CTOR(FrameLayerBuilder);
     mNewDisplayItemData.Init();
     mThebesLayerItems.Init();
+  }
+  ~FrameLayerBuilder()
+  {
+    MOZ_COUNT_DTOR(FrameLayerBuilder);
   }
 
   static void Shutdown();
@@ -232,7 +275,7 @@ public:
 
 
 
-  void DumpRetainedLayerTree(FILE* aFile = stdout);
+  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout);
 #endif
 
   
@@ -269,6 +312,7 @@ public:
 
   Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
+  static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
   
 
 
@@ -446,11 +490,13 @@ protected:
       
       
       mData.SwapElements(toCopy.mData);
+      mInvalidRegion.swap(toCopy.mInvalidRegion);
     }
 
     bool HasNonEmptyContainerLayer();
 
     nsAutoTArray<DisplayItemData, 1> mData;
+    nsRefPtr<RefCountedRegion> mInvalidRegion;
     bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
@@ -547,6 +593,7 @@ public:
 protected:
   void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
 
+  static void SetAndClearInvalidRegion(DisplayItemDataEntry* aEntry);
   static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
                                                        void* aUserArg);
   static PLDHashOperator StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,

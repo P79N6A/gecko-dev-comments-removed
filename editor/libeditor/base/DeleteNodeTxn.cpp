@@ -4,8 +4,11 @@
 
 
 #include "DeleteNodeTxn.h"
-#include "nsSelectionState.h" 
+#include "nsDebug.h"
 #include "nsEditor.h"
+#include "nsError.h"
+#include "nsSelectionState.h" 
+#include "nsAString.h"
 
 
 DeleteNodeTxn::DeleteNodeTxn()

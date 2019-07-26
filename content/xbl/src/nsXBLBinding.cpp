@@ -104,9 +104,13 @@ static const uint32_t XBLPROTO_SLOT = 0;
 static const uint32_t FIELD_SLOT = 1;
 
 static bool
-ObjectHasISupportsPrivate(JS::Handle<JSObject*> obj)
+ValueHasISupportsPrivate(const JS::Value &v)
 {
-  JSClass* clasp = ::JS_GetClass(obj);
+  if (!v.isObject()) {
+    return false;
+  }
+
+  JSClass* clasp = ::JS_GetClass(&v.toObject());
   const uint32_t HAS_PRIVATE_NSISUPPORTS =
     JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS;
   return (clasp->flags & HAS_PRIVATE_NSISUPPORTS) == HAS_PRIVATE_NSISUPPORTS;
@@ -127,7 +131,7 @@ InstallXBLField(JSContext* cx,
   
   
   
-  MOZ_ASSERT(ObjectHasISupportsPrivate(thisObj));
+  MOZ_ASSERT(ValueHasISupportsPrivate(JS::ObjectValue(*thisObj)));
 
   
   
@@ -210,91 +214,23 @@ InstallXBLField(JSContext* cx,
   return false;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline bool
-FieldAccessorGuard(JSContext *cx, unsigned argc, JS::Value *vp, JSNative native, JSObject **thisObj)
+static bool
+FieldGetterImpl(JSContext *cx, JS::CallArgs args)
 {
-  JS::Rooted<JSObject*> obj(cx, JS_THIS_OBJECT(cx, vp));
-  if (!obj) {
-    xpc::Throw(cx, NS_ERROR_UNEXPECTED);
-    return false;
-  }
+  const JS::Value &thisv = args.thisv();
+  MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
 
-  if (ObjectHasISupportsPrivate(obj)) {
-    *thisObj = obj;
-    return true;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  JSClass* protoClass;
-  {
-    JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
-    JS::Rooted<JSObject*> xblProto(cx);
-    xblProto = &js::GetFunctionNativeReserved(callee, XBLPROTO_SLOT).toObject();
-
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(cx, xblProto)) {
-      return false;
-    }
-
-    protoClass = ::JS_GetClass(xblProto);
-  }
-
-  *thisObj = NULL;
-  return JS_CallNonGenericMethodOnProxy(cx, argc, vp, native, protoClass);
-}
-
-static JSBool
-FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
-{
-  JS::Rooted<JSObject*> thisObj(cx);
-  if (!FieldAccessorGuard(cx, argc, vp, FieldGetter, thisObj.address())) {
-    return false;
-  }
-  if (!thisObj) {
-    return true; 
-  }
+  JS::Rooted<JSObject*> thisObj(cx, &thisv.toObject());
 
   bool installed = false;
-  JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
+  JS::Rooted<JSObject*> callee(cx, &args.calleev().toObject());
   JS::Rooted<jsid> id(cx);
   if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
     return false;
   }
 
   if (!installed) {
-    JS_SET_RVAL(cx, vp, JS::UndefinedValue());
+    args.rval() = JS::UndefinedValue();
     return true;
   }
 
@@ -302,31 +238,44 @@ FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
   if (!JS_GetPropertyById(cx, thisObj, id, v.address())) {
     return false;
   }
-  JS_SET_RVAL(cx, vp, v);
+  args.rval() = v;
   return true;
 }
 
 static JSBool
-FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
+FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
 {
-  JS::Rooted<JSObject*> thisObj(cx);
-  if (!FieldAccessorGuard(cx, argc, vp, FieldSetter, thisObj.address())) {
-    return false;
-  }
-  if (!thisObj) {
-    return true; 
-  }
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  return JS::CallNonGenericMethod(cx, ValueHasISupportsPrivate, FieldGetterImpl,
+                                  args);
+}
+
+static bool
+FieldSetterImpl(JSContext *cx, JS::CallArgs args)
+{
+  const JS::Value &thisv = args.thisv();
+  MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
+
+  JS::Rooted<JSObject*> thisObj(cx, &thisv.toObject());
 
   bool installed = false;
-  JS::Rooted<JSObject*> callee(cx, &JS_CALLEE(cx, vp).toObject());
+  JS::Rooted<JSObject*> callee(cx, &args.calleev().toObject());
   JS::Rooted<jsid> id(cx);
   if (!InstallXBLField(cx, callee, thisObj, id.address(), &installed)) {
     return false;
   }
 
   JS::Rooted<JS::Value> v(cx,
-                          argc > 0 ? JS_ARGV(cx, vp)[0] : JS::UndefinedValue());
+                          args.length() > 0 ? args[0] : JS::UndefinedValue());
   return JS_SetPropertyById(cx, thisObj, id, v.address());
+}
+
+static JSBool
+FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  return JS::CallNonGenericMethod(cx, ValueHasISupportsPrivate, FieldSetterImpl,
+                                  args);
 }
 
 static JSBool

@@ -181,13 +181,10 @@ public:
 
   NS_STACK_CLASS class ValueSetter {
   public:
-    ValueSetter(nsTextControlFrame* aFrame,
-                nsIEditor* aEditor)
-      : mFrame(aFrame)
-      , mEditor(aEditor)
+    ValueSetter(nsIEditor* aEditor)
+      : mEditor(aEditor)
       , mCanceled(false)
     {
-      MOZ_ASSERT(aFrame);
       MOZ_ASSERT(aEditor);
 
       
@@ -210,7 +207,6 @@ public:
     }
 
   private:
-    nsTextControlFrame* mFrame;
     nsCOMPtr<nsIEditor> mEditor;
     bool mOuterTransaction;
     bool mCanceled;

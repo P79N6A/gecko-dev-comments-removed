@@ -1,8 +1,8 @@
-/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 2; -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_dom_TabChild_h
 #define mozilla_dom_TabChild_h
@@ -93,7 +93,7 @@ public:
                               nsIDOMEventListener* aListener,
                               bool aUseCapture)
   {
-    // By default add listeners only for trusted events!
+    
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
                                                     aUseCapture, false, 2);
   }
@@ -140,12 +140,12 @@ class TabChild : public PBrowserChild,
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
 
 public:
-    /**
-     * Create a new TabChild object.
-     *
-     * |aIsBrowserFrame| indicates whether the TabChild is inside an
-     * <iframe mozbrowser>.
-     */
+    
+
+
+
+
+
     TabChild(PRUint32 aChromeFlags, bool aIsBrowserFrame);
     virtual ~TabChild();
     nsresult Init();
@@ -175,6 +175,7 @@ public:
     virtual bool RecvRealMouseEvent(const nsMouseEvent& event);
     virtual bool RecvRealKeyEvent(const nsKeyEvent& event);
     virtual bool RecvMouseScrollEvent(const nsMouseScrollEvent& event);
+    virtual bool RecvRealTouchEvent(const nsTouchEvent& event);
     virtual bool RecvKeyEvent(const nsString& aType,
                               const PRInt32&  aKeyCode,
                               const PRInt32&  aCharCode,
@@ -231,29 +232,35 @@ public:
     nsIPrincipal* GetPrincipal() { return mPrincipal; }
 
     void SetBackgroundColor(const nscolor& aColor);
+
+    void NotifyPainted();
 protected:
     NS_OVERRIDE
-    virtual PRenderFrameChild* AllocPRenderFrame();
+    virtual PRenderFrameChild* AllocPRenderFrame(LayersBackend* aBackend,
+                                                 int32_t* aMaxTextureSize,
+                                                 uint64_t* aLayersId);
     NS_OVERRIDE
     virtual bool DeallocPRenderFrame(PRenderFrameChild* aFrame);
     NS_OVERRIDE
     virtual bool RecvDestroy();
 
-    bool DispatchWidgetEvent(nsGUIEvent& event);
+    nsEventStatus DispatchWidgetEvent(nsGUIEvent& event);
 
     virtual PIndexedDBChild* AllocPIndexedDB(const nsCString& aASCIIOrigin,
-                                             bool* /* aAllowed */);
+                                             bool* );
 
-    virtual bool DeallocPIndexedDB(PIndexedDBChild* actor);
+    virtual bool DeallocPIndexedDB(PIndexedDBChild* aActor);
 
 private:
+    bool UseDirectCompositor();
+
     void ActorDestroy(ActorDestroyReason why);
 
     bool InitTabChildGlobal();
     bool InitWidget(const nsIntSize& size);
     void DestroyWindow();
 
-    // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
+    
     void DoFakeShow();
 
     nsresult
@@ -307,4 +314,4 @@ GetTabChildFrom(nsIDOMWindow* aWindow)
 }
 }
 
-#endif // mozilla_dom_TabChild_h
+#endif 

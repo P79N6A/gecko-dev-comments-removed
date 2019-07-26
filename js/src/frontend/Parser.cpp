@@ -516,15 +516,10 @@ CheckStrictParameters(JSContext *cx, Parser *parser)
         return false;
 
     
-    Shape::Range r = sc->bindings.lastVariable();
-    Shape::Range::AutoRooter root(cx, &r);
-
-    for (; !r.empty(); r.popFront()) {
-        jsid id = r.front().propid();
-        if (!JSID_IS_ATOM(id))
+    for (BindingIter bi(cx, sc->bindings); bi; bi++) {
+        PropertyName *name = bi->maybeName;
+        if (!name)
             continue;
-
-        JSAtom *name = JSID_TO_ATOM(id);
 
         if (name == argumentsAtom || name == evalAtom) {
             if (!ReportBadParameter(cx, parser, name, JSMSG_BAD_BINDING))
@@ -681,36 +676,32 @@ Parser::functionBody(FunctionBodyType type)
         }
     }
 
+    BindingIter maybeArgBinding(context, tc->sc->bindings.lookup(context, arguments));
+
+    
     bool hasRest = tc->sc->fun()->hasRest();
-    BindingKind bindKind = tc->sc->bindings.lookup(context, arguments, NULL);
-    switch (bindKind) {
-      case NONE:
-        
-        if (hasRest)
-            break;
+    if (hasRest && maybeArgBinding && maybeArgBinding->kind != ARGUMENT) {
+        reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
+        return NULL;
+    }
 
-        
+    
 
 
 
-        if (!tc->sc->bindingsAccessedDynamically())
-            break;
+
+    if (!maybeArgBinding && tc->sc->bindingsAccessedDynamically() && !hasRest) {
         if (!tc->sc->bindings.addVariable(context, arguments))
             return NULL;
+        maybeArgBinding = tc->sc->bindings.lookup(context, arguments);
+    }
 
-        
-      case VARIABLE:
-      case CONSTANT:
-        if (hasRest) {
-            reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
-            return NULL;
-        }
-
-        
+    
 
 
 
 
+    if (maybeArgBinding && maybeArgBinding->kind != ARGUMENT) {
         tc->sc->setFunArgumentsHasLocalBinding();
 
         
@@ -737,9 +728,6 @@ Parser::functionBody(FunctionBodyType type)
             }
           exitLoop: ;
         }
-        break;
-      case ARGUMENT:
-        break;
     }
 
     return pn;
@@ -1146,7 +1134,7 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
 
 
-            if (funtc->sc->bindingsAccessedDynamically() ||
+            if (funtc->sc->funHasExtensibleScope() ||
                 (outer_dn && tc->innermostWith &&
                  outer_dn->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
@@ -1531,22 +1519,21 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
 
 
-            unsigned index;
-            switch (tc->sc->bindings.lookup(context, funName, &index)) {
-              case NONE:
-              case ARGUMENT:
-                index = tc->sc->bindings.numVars();
-                if (!tc->sc->bindings.addVariable(context, funName))
-                    return NULL;
-                
+            BindingIter bi(context, tc->sc->bindings.lookup(context, funName));
+            if (!bi || bi->kind != CONSTANT) {
+                unsigned varIndex;
+                if (!bi || bi->kind == ARGUMENT) {
+                    varIndex = tc->sc->bindings.numVars();
+                    if (!tc->sc->bindings.addVariable(context, funName))
+                        return NULL;
+                } else {
+                    JS_ASSERT(bi->kind == VARIABLE);
+                    varIndex = bi.frameIndex();
+                }
 
-              case VARIABLE:
-                if (!pn->pn_cookie.set(context, tc->staticLevel, index))
+                if (!pn->pn_cookie.set(context, tc->staticLevel, varIndex))
                     return NULL;
                 pn->pn_dflags |= PND_BOUND;
-                break;
-
-              default:;
             }
         }
     }
@@ -2168,12 +2155,10 @@ static bool
 BindFunctionLocal(JSContext *cx, BindData *data, DefinitionList::Range &defs, TreeContext *tc)
 {
     JS_ASSERT(tc->sc->inFunction());
-
     ParseNode *pn = data->pn;
-    JSAtom *name = pn->pn_atom;
 
-    BindingKind kind = tc->sc->bindings.lookup(cx, name, NULL);
-    if (kind == NONE) {
+    BindingIter bi(cx, tc->sc->bindings.lookup(cx, pn->pn_atom->asPropertyName()));
+    if (!bi) {
         
 
 
@@ -2181,7 +2166,7 @@ BindFunctionLocal(JSContext *cx, BindData *data, DefinitionList::Range &defs, Tr
 
 
 
-        kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
+        BindingKind kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
 
         if (!BindLocalVariable(cx, tc, pn, kind))
             return false;
@@ -2189,11 +2174,11 @@ BindFunctionLocal(JSContext *cx, BindData *data, DefinitionList::Range &defs, Tr
         return true;
     }
 
-    if (kind == ARGUMENT) {
+    if (bi->kind == ARGUMENT) {
         JS_ASSERT(tc->sc->inFunction());
         JS_ASSERT(!defs.empty() && defs.front()->kind() == Definition::ARG);
     } else {
-        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+        JS_ASSERT(bi->kind == VARIABLE || bi->kind == CONSTANT);
     }
 
     return true;
@@ -2225,9 +2210,10 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom_, Parser *parser)
     DefinitionList::Range defs = tc->decls.lookupMulti(atom);
     JSOp op = data->op;
 
-    if (stmt || !defs.empty()) {
-        Definition *dn = defs.empty() ? NULL : defs.front();
-        Definition::Kind dn_kind = dn ? dn->kind() : Definition::VAR;
+    JS_ASSERT_IF(stmt, !defs.empty());
+    if (!defs.empty()) {
+        Definition *dn = defs.front();
+        Definition::Kind dn_kind = dn->kind();
 
         if (dn_kind == Definition::ARG) {
             JSAutoByteString name;
@@ -5191,6 +5177,8 @@ CompExprTransplanter::transplant(ParseNode *pn)
                     *pnup = NULL;
                     if (!tc->lexdeps->put(atom, dn2))
                         return false;
+                    if (dn->isClosed())
+                        dn2->pn_dflags |= PND_CLOSED;
                 } else if (dn->isPlaceholder()) {
                     
 
@@ -5304,7 +5292,7 @@ Parser::comprehensionTail(ParseNode *kid, unsigned blockid, bool isGenexp,
         return NULL;
 
     if (!transplanter.transplant(kid))
-        return false;
+        return NULL;
 
     JS_ASSERT(tc->blockChain && tc->blockChain == pn->pn_objbox->object);
     data.initLet(HoistVars, *tc->blockChain, JSMSG_ARRAY_INIT_TOO_BIG);

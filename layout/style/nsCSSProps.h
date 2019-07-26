@@ -93,6 +93,10 @@ MOZ_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 #define CSS_PROPERTY_VALUE_AT_LEAST_ONE           (2<<13)
 
 
+#define CSS_PROPERTY_HASHLESS_COLOR_QUIRK         (1<<15)
+
+
+#define CSS_PROPERTY_UNITLESS_LENGTH_QUIRK        (1<<16)
 
 
 
@@ -150,8 +154,14 @@ public:
   static void ReleaseTable(void);
 
   
-  static nsCSSProperty LookupProperty(const nsAString& aProperty);
-  static nsCSSProperty LookupProperty(const nsACString& aProperty);
+  enum EnabledState {
+    eEnabled,
+    eAny
+  };
+  static nsCSSProperty LookupProperty(const nsAString& aProperty,
+                                      EnabledState aEnabled);
+  static nsCSSProperty LookupProperty(const nsACString& aProperty,
+                                      EnabledState aEnabled);
 
   static inline bool IsShorthand(nsCSSProperty aProperty) {
     NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
@@ -293,6 +303,17 @@ public:
                          aProperty < eCSSProperty_COUNT_no_shorthands,
                       "out of range");
     return gPropertyIndexInStruct[aProperty];
+  }
+
+private:
+  static bool gPropertyEnabled[eCSSProperty_COUNT];
+
+public:
+
+  static bool IsEnabled(nsCSSProperty aProperty) {
+    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+                      "out of range");
+    return gPropertyEnabled[aProperty];
   }
 
 public:

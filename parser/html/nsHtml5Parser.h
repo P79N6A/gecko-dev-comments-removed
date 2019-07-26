@@ -276,11 +276,6 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    bool                          mFragmentMode;
-
-    
-
-
     bool                          mBlocked;
 
     
@@ -299,9 +294,6 @@ class nsHtml5Parser : public nsIParser,
     bool                          mDocumentClosed;
 
     bool                          mInDocumentWrite;
-
-    
-    void*                         mRootContextKey;
 
     
     

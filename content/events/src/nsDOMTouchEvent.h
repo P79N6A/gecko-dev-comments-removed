@@ -1,7 +1,7 @@
-
-
-
-
+/* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef nsDOMTouchEvent_h_
 #define nsDOMTouchEvent_h_
 
@@ -87,8 +87,7 @@ public:
     mTarget = aTarget;
   }
   bool Equals(nsIDOMTouch* aTouch);
-protected:
-  bool mPointsInitialized;
+
   PRInt32 mIdentifier;
   nsIntPoint mPagePoint;
   nsIntPoint mClientPoint;
@@ -96,6 +95,8 @@ protected:
   nsIntPoint mRadius;
   float mRotationAngle;
   float mForce;
+protected:
+  bool mPointsInitialized;
 };
 
 class nsDOMTouchList MOZ_FINAL : public nsIDOMTouchList,
@@ -160,4 +161,4 @@ protected:
   nsCOMPtr<nsIDOMTouchList> mChangedTouches;
 };
 
-#endif 
+#endif /* !defined(nsDOMTouchEvent_h_) */

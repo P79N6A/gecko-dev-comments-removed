@@ -25,17 +25,23 @@
 class gfxASurface;
 
 namespace mozilla {
+
+namespace dom {
+class TabChild;
+}
+
 namespace widget {
 
 class PuppetWidget : public nsBaseWidget, public nsSupportsWeakReference
 {
+  typedef mozilla::dom::TabChild TabChild;
   typedef nsBaseWidget Base;
 
   
   static const size_t kMaxDimension;
 
 public:
-  PuppetWidget(PBrowserChild *aTabChild);
+  PuppetWidget(TabChild* aTabChild);
   virtual ~PuppetWidget();
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -181,7 +187,7 @@ private:
   
   
   
-  PBrowserChild *mTabChild;
+  TabChild* mTabChild;
   
   
   nsRefPtr<PuppetWidget> mChild;

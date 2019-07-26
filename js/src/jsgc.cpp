@@ -1285,6 +1285,15 @@ js_AddGCThingRoot(JSContext *cx, void **rp, const char *name)
 JS_FRIEND_API(JSBool)
 js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name)
 {
+    
+
+
+
+
+
+    if (rt->gcIncrementalState == MARK)
+        IncrementalValueBarrier(*vp);
+
     return !!rt->gcRootsHash.put((void *)vp,
                                  RootInfo(name, JS_GC_ROOT_VALUE_PTR));
 }
@@ -1292,6 +1301,15 @@ js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name)
 JS_FRIEND_API(JSBool)
 js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name)
 {
+    
+
+
+
+
+
+    if (rt->gcIncrementalState == MARK)
+        IncrementalReferenceBarrier(*rp);
+
     return !!rt->gcRootsHash.put((void *)rp,
                                  RootInfo(name, JS_GC_ROOT_GCTHING_PTR));
 }
@@ -1785,6 +1803,15 @@ js_LockGCThingRT(JSRuntime *rt, void *thing)
 {
     if (!thing)
         return true;
+
+    
+
+
+
+
+
+    if (rt->gcIncrementalState == MARK)
+        IncrementalReferenceBarrier(thing);
 
     if (GCLocks::Ptr p = rt->gcLocksHash.lookupWithDefault(thing, 0)) {
         p->value++;
@@ -3141,6 +3168,18 @@ static void
 BeginMarkPhase(JSRuntime *rt, bool isIncremental)
 {
     int64_t currentTime = PRMJ_Now();
+
+    
+
+
+
+
+
+
+    if (isIncremental) {
+        for (GCCompartmentsIter c(rt); !c.done(); c.next())
+            c->arenas.purge();
+    }
 
     rt->gcIsFull = true;
     for (CompartmentsIter c(rt); !c.done(); c.next()) {

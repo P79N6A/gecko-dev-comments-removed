@@ -4,7 +4,12 @@
 
 
 #include "ChangeAttributeTxn.h"
-#include "nsIDOMElement.h"
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIDOMElement.h"              
+#include "nsIEditor.h"                  
+#include "nsString.h"                   
 
 ChangeAttributeTxn::ChangeAttributeTxn()
   : EditTxn()

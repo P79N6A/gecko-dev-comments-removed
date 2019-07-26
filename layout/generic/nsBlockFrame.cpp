@@ -4930,7 +4930,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       
       
       
-      MarkLineDirty(prevSibLine);
+      MarkLineDirty(prevSibLine, lineList);
       
       
       line->MarkDirty();
@@ -4987,7 +4987,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       
       
       
-      MarkLineDirty(prevSibLine);
+      MarkLineDirty(prevSibLine, lineList);
     }
 
     aPrevSibling = newFrame;

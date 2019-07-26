@@ -3,11 +3,18 @@
 
 
 
+#include <stdio.h>                      
+
 #include "SplitElementTxn.h"
-#include "nsEditor.h"
-#include "nsIDOMNode.h"
-#include "nsISelection.h"
-#include "nsIDOMCharacterData.h"
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsEditor.h"                   
+#include "nsError.h"                    
+#include "nsIDOMCharacterData.h"        
+#include "nsIDOMNode.h"                 
+#include "nsIEditor.h"                  
+#include "nsISelection.h"               
+#include "nsISupportsUtils.h"           
 
 #ifdef DEBUG
 static bool gNoisy = false;

@@ -8,8 +8,14 @@
 
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsID.h"
 #include "nsIDOMElement.h"
-#include "nsIEditor.h"
+#include "nsString.h"
+#include "nscore.h"
+
+class nsIAtom;
+class nsIEditor;
 
 
 

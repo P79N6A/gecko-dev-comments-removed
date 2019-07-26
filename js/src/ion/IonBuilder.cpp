@@ -2969,7 +2969,7 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
 
         
         RootedFunction target(cx, func);
-        if(!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
+        if (!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
             return false;
     } else {
         
@@ -3009,19 +3009,18 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
 
     graph_.moveBlockToEnd(bottom);
 
-    if (!bottom->inheritNonPredecessor(top, true))
-        return false;
+    bottom->inheritSlots(top);
 
     
     
     
     if (targets.length() > 1) {
         for (uint32_t i = 0; i < argc + 1; i++)
-            (void) bottom->pop();
+            bottom->pop();
     }
 
     
-    (void) bottom->pop();
+    bottom->pop();
 
     MDefinition *retvalDefn;
     if (retvalDefns.length() > 1) {
@@ -3039,10 +3038,8 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     }
 
     bottom->push(retvalDefn);
-
-    
-    uint32 retvalSlot = bottom->stackDepth() - 1;
-    bottom->entryResumePoint()->replaceOperand(retvalSlot, retvalDefn);
+    if (!bottom->initEntrySlots())
+        return false;
 
     
     

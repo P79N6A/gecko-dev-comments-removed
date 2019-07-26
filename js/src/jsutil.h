@@ -381,19 +381,6 @@ ClearAllBitArrayElements(size_t *array, size_t length)
 #endif
 
 
-#ifdef NS_STATIC_CHECKING
-
-inline __attribute__ ((unused)) void MUST_FLOW_THROUGH(const char *label) {}
-
-
-# define MUST_FLOW_LABEL(label) goto label; label:
-
-#else
-# define MUST_FLOW_THROUGH(label)            ((void) 0)
-# define MUST_FLOW_LABEL(label)
-#endif
-
-
 #ifdef DEBUG
 # define JS_CRASH_DIAGNOSTICS 1
 #endif

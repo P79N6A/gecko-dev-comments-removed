@@ -54,6 +54,7 @@ class ImageContainer;
 class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
+class RefLayer;
 class ShadowLayer;
 class ShadowableLayer;
 class ShadowLayerForwarder;
@@ -167,60 +168,10 @@ public:
 
 
 
-
-
-
-class THEBES_API LayerUserDataSet {
-public:
-  LayerUserDataSet() : mKey(nsnull) {}
-
-  void Set(void* aKey, LayerUserData* aValue)
-  {
-    NS_ASSERTION(!mKey || mKey == aKey,
-                 "Multiple LayerUserData objects not supported");
-    mKey = aKey;
-    mValue = aValue;
-  }
-  
-
-
-  LayerUserData* Remove(void* aKey)
-  {
-    if (mKey == aKey) {
-      mKey = nsnull;
-      LayerUserData* d = mValue.forget();
-      return d;
-    }
-    return nsnull;
-  }
-  
-
-
-  bool Has(void* aKey)
-  {
-    return mKey == aKey;
-  }
-  
-
-
-  LayerUserData* Get(void* aKey)
-  {
-    return mKey == aKey ? mValue.get() : nsnull;
-  }
-
-  
-
-
-  void Clear()
-  {
-    mKey = nsnull;
-    mValue = nsnull;
-  }
-
-private:
-  void* mKey;
-  nsAutoPtr<LayerUserData> mValue;
-};
+static void LayerManagerUserDataDestroy(void *data)
+{
+  delete static_cast<LayerUserData*>(data);
+}
 
 
 
@@ -258,7 +209,7 @@ public:
     LAYERS_LAST
   };
 
-  LayerManager() : mDestroyed(false), mSnapEffectiveTransforms(true)
+  LayerManager() : mDestroyed(false), mSnapEffectiveTransforms(true), mId(0)
   {
     InitLog();
   }
@@ -270,7 +221,7 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = true; mUserData.Clear(); }
+  virtual void Destroy() { mDestroyed = true; mUserData.Destroy(); }
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
@@ -278,6 +229,12 @@ public:
 
   virtual ShadowLayerManager* AsShadowManager()
   { return nsnull; }
+
+  
+
+
+
+  virtual bool IsWidgetLayerManager() { return true; }
 
   
 
@@ -408,11 +365,30 @@ public:
 
 
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nsnull; }
+  
+
+
+
+  virtual already_AddRefed<RefLayer> CreateRefLayer() { return nsnull; }
+
 
   
 
 
+
+
+
   static already_AddRefed<ImageContainer> CreateImageContainer();
+  
+  
+
+
+
+
+
+
+
+  static already_AddRefed<ImageContainer> CreateAsynchronousImageContainer();
 
   
 
@@ -464,23 +440,32 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { mUserData.Set(aKey, aData); }
+  {
+    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
+  }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  { 
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+    return d;
+  }
   
 
 
   bool HasUserData(void* aKey)
-  { return mUserData.Has(aKey); }
+  {
+    return GetUserData(aKey);
+  }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { return mUserData.Get(aKey); }
+  { 
+    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
+  }
 
   
 
@@ -530,7 +515,7 @@ public:
 
 protected:
   nsRefPtr<Layer> mRoot;
-  LayerUserDataSet mUserData;
+  gfx::UserData mUserData;
   bool mDestroyed;
   bool mSnapEffectiveTransforms;
 
@@ -540,6 +525,7 @@ protected:
 
   static void InitLog();
   static PRLogModuleInfo* sLog;
+  uint64_t mId;
 private:
   TimeStamp mLastFrameTime;
   nsTArray<float> mFrameTimes;
@@ -562,6 +548,7 @@ public:
     TYPE_CONTAINER,
     TYPE_IMAGE,
     TYPE_READBACK,
+    TYPE_REF,
     TYPE_SHADOW,
     TYPE_THEBES
   };
@@ -789,23 +776,32 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { mUserData.Set(aKey, aData); }
+  { 
+    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
+  }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  { 
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+    return d;
+  }
   
 
 
   bool HasUserData(void* aKey)
-  { return mUserData.Has(aKey); }
+  {
+    return GetUserData(aKey);
+  }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { return mUserData.Get(aKey); }
+  { 
+    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
+  }
 
   
 
@@ -829,6 +825,12 @@ public:
 
 
   virtual ContainerLayer* AsContainerLayer() { return nsnull; }
+
+   
+
+
+
+  virtual RefLayer* AsRefLayer() { return nsnull; }
 
   
 
@@ -991,7 +993,7 @@ protected:
   Layer* mPrevSibling;
   void* mImplData;
   nsRefPtr<Layer> mMaskLayer;
-  LayerUserDataSet mUserData;
+  gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
   gfx3DMatrix mEffectiveTransform;
@@ -1380,6 +1382,96 @@ protected:
 
 
   bool mDirty;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API RefLayer : public ContainerLayer {
+  friend class LayerManager;
+
+private:
+  virtual void InsertAfter(Layer* aChild, Layer* aAfter)
+  { MOZ_NOT_REACHED("no"); }
+
+  virtual void RemoveChild(Layer* aChild)
+  { MOZ_NOT_REACHED("no"); }
+
+  using ContainerLayer::SetFrameMetrics;
+
+public:
+  
+
+
+
+  void SetReferentId(uint64_t aId)
+  {
+    MOZ_ASSERT(aId != 0);
+    mId = aId;
+  }
+  
+
+
+
+
+  void ConnectReferentLayer(Layer* aLayer)
+  {
+    MOZ_ASSERT(!mFirstChild && !mLastChild);
+    MOZ_ASSERT(!aLayer->GetParent());
+
+    mFirstChild = mLastChild = aLayer;
+    aLayer->SetParent(this);
+  }
+
+  
+
+
+
+  void DetachReferentLayer(Layer* aLayer)
+  {
+    MOZ_ASSERT(aLayer == mFirstChild && mFirstChild == mLastChild);
+    MOZ_ASSERT(aLayer->GetParent() == this);
+
+    mFirstChild = mLastChild = nsnull;
+    aLayer->SetParent(nsnull);
+  }
+
+  
+  virtual RefLayer* AsRefLayer() { return this; }
+
+  virtual int64_t GetReferentId() { return mId; }
+
+  
+
+
+  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
+
+  MOZ_LAYER_DECL_NAME("RefLayer", TYPE_REF)
+
+protected:
+  RefLayer(LayerManager* aManager, void* aImplData)
+    : ContainerLayer(aManager, aImplData) , mId(0)
+  {}
+
+  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
+  Layer* mTempReferent;
+  
+  uint64_t mId;
 };
 
 #ifdef MOZ_DUMP_PAINTING

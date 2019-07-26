@@ -4,49 +4,53 @@
 
 
 
-#include "nsPIDOMWindow.h"
-#include "nsIDOMWindowUtils.h"
-#include "nsIDOMHTMLDocument.h"
-#include "nsIDocument.h"
-#include "nsIHTMLDocument.h"
-#include "nsIDOMDocument.h"
-#include "nsIURI.h"
-#include "nsISelectionPrivate.h"
-#include "nsITransactionManager.h"
+#include <string.h>                     
 
-#include "nsIEditorDocShell.h"
-#include "nsIDocShell.h"
-
-#include "nsIChannel.h"
-#include "nsIWebProgress.h"
-#include "nsIWebNavigation.h"
-#include "nsIRefreshURI.h"
-
-#include "nsIControllers.h"
-#include "nsIController.h"
-#include "nsIControllerContext.h"
-#include "nsICommandManager.h"
-#include "nsPICommandUpdater.h"
-
-#include "nsIPresShell.h"
-
-#include "nsComposerCommandsUpdater.h"
+#include "imgIContainer.h"              
+#include "mozFlushType.h"               
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"
+#include "nsComponentManagerUtils.h"    
+#include "nsComposerCommandsUpdater.h"  
+#include "nsDebug.h"                    
 #include "nsEditingSession.h"
+#include "nsError.h"                    
+#include "nsIChannel.h"                 
+#include "nsICommandManager.h"          
+#include "nsIContentViewer.h"           
+#include "nsIController.h"              
+#include "nsIControllerContext.h"       
+#include "nsIControllers.h"             
+#include "nsID.h"                       
+#include "nsIDOMDocument.h"             
+#include "nsIDOMHTMLDocument.h"         
+#include "nsIDOMWindow.h"               
+#include "nsIDOMWindowUtils.h"          
+#include "nsIDocShell.h"                
+#include "nsIDocument.h"                
+#include "nsIDocumentStateListener.h"
+#include "nsIEditor.h"                  
+#include "nsIEditorDocShell.h"          
+#include "nsIHTMLDocument.h"            
+#include "nsIInterfaceRequestorUtils.h"  
+#include "nsIPlaintextEditor.h"         
+#include "nsIRefreshURI.h"              
+#include "nsIRequest.h"                 
+#include "nsISelection.h"               
+#include "nsISelectionPrivate.h"        
+#include "nsITimer.h"                   
+#include "nsITransactionManager.h"      
+#include "nsIWeakReference.h"           
+#include "nsIWebNavigation.h"           
+#include "nsIWebProgress.h"             
+#include "nsLiteralString.h"            
+#include "nsPICommandUpdater.h"         
+#include "nsPIDOMWindow.h"              
+#include "nsReadableUtils.h"            
+#include "nsStringFwd.h"                
 
-#include "nsComponentManagerUtils.h"
-#include "nsIInterfaceRequestorUtils.h"
-
-#include "nsIContentViewer.h"
-#include "nsISelectionController.h"
-#include "nsIPlaintextEditor.h"
-#include "nsIEditor.h"
-
-#include "nsIScriptContext.h"
-#include "imgIContainer.h"
-
-#if DEBUG
-
-#endif
+class nsISupports;
+class nsIURI;
 
 
 

@@ -1131,7 +1131,8 @@ MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
 
   
   nsCSSProperty propertyID =
-    nsCSSProps::LookupProperty(nsDependentAtomString(aMappedAttrName));
+    nsCSSProps::LookupProperty(nsDependentAtomString(aMappedAttrName),
+                               nsCSSProps::eEnabled);
   if (propertyID != eCSSProperty_UNKNOWN) {
     bool changed; 
     mParser.ParseProperty(propertyID, aMappedAttrValue, mDocURI, mBaseURI,
@@ -2453,7 +2454,8 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
     
     if (IsAttributeMapped(aName)) {
       nsCSSProperty prop =
-        nsCSSProps::LookupProperty(nsDependentAtomString(aName));
+        nsCSSProps::LookupProperty(nsDependentAtomString(aName),
+                                   nsCSSProps::eEnabled);
       
       
       

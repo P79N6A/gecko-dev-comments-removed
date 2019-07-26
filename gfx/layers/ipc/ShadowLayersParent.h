@@ -31,13 +31,16 @@ class ShadowLayersParent : public PLayersParent,
   typedef InfallibleTArray<EditReply> EditReplyArray;
 
 public:
-  ShadowLayersParent(ShadowLayerManager* aManager, ShadowLayersManager* aLayersManager);
+  ShadowLayersParent(ShadowLayerManager* aManager,
+                     ShadowLayersManager* aLayersManager,
+                     uint64_t aId);
   ~ShadowLayersParent();
 
   void Destroy();
 
   ShadowLayerManager* layer_manager() const { return mLayerManager; }
 
+  uint64_t GetId() const { return mId; }
   ContainerLayer* GetRoot() const { return mRoot; }
 
   virtual void DestroySharedSurface(gfxSharedImageSurface* aSurface);
@@ -69,6 +72,11 @@ private:
   
   
   nsRefPtr<ContainerLayer> mRoot;
+  
+  
+  
+  
+  uint64_t mId;
   
   
   

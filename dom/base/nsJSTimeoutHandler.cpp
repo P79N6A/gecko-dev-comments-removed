@@ -61,7 +61,6 @@ private:
   
   nsCString mFileName;
   PRUint32 mLineNo;
-  PRUint32 mVersion;
   nsCOMPtr<nsIJSArgArray> mArgv;
 
   
@@ -129,7 +128,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsJSScriptTimeoutHandler)
 
 nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler() :
   mLineNo(0),
-  mVersion(nsnull),
   mExpr(nsnull),
   mFunObj(nsnull)
 {

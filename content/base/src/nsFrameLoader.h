@@ -278,7 +278,20 @@ private:
 
 
 
+
   bool OwnerIsBrowserFrame();
+
+  
+
+
+
+  bool OwnerIsAppFrame();
+
+  
+
+
+
+  void GetOwnerAppManifestURL(nsAString& aOut);
 
   
 

@@ -124,7 +124,7 @@ public:
   
 
 
-  virtual void ContinueInterruptedParsingAsync() {};
+  virtual void ContinueInterruptedParsingAsync() {}
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentSink, NS_ICONTENT_SINK_IID)

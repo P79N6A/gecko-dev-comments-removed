@@ -8,34 +8,42 @@
 
 
 #ifndef nsWeakReference_h__
-#include "nsWeakReference.h"
+#include "nsWeakReference.h"            
 #endif
 
-#include "nsITimer.h"
-#include "nsAutoPtr.h"
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsIWeakReferenceUtils.h"      
+#include "nsWeakReference.h"            
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
 #ifndef __gen_nsIWebProgressListener_h__
 #include "nsIWebProgressListener.h"
 #endif
 
 #ifndef __gen_nsIEditingSession_h__
-#include "nsIEditingSession.h"
+#include "nsIEditingSession.h"          
 #endif
 
-#include "nsString.h"
+#include "nsString.h"                   
+
+class nsIDOMWindow;
+class nsISupports;
+class nsITimer;
 
 #define NS_EDITINGSESSION_CID                            \
 { 0xbc26ff01, 0xf2bd, 0x11d4, { 0xa7, 0x3c, 0xe5, 0xa4, 0xb5, 0xa8, 0xbd, 0xfc } }
 
 
-class nsIWebProgress;
-class nsIDocShell;
-class nsIEditorDocShell;
-class nsIChannel;
-class nsIEditor;
-class nsIControllers;
-
 class nsComposerCommandsUpdater;
+class nsIChannel;
+class nsIControllers;
+class nsIDocShell;
+class nsIEditor;
+class nsIEditorDocShell;
+class nsIWebProgress;
 
 class nsEditingSession : public nsIEditingSession,
                          public nsIWebProgressListener,

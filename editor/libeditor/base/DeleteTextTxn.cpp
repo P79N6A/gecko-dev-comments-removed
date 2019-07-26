@@ -4,9 +4,17 @@
 
 
 #include "DeleteTextTxn.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Selection.h"
-#include "nsSelectionState.h"
+#include "nsAutoPtr.h"
+#include "nsDebug.h"
 #include "nsEditor.h"
+#include "nsError.h"
+#include "nsIEditor.h"
+#include "nsISelection.h"
+#include "nsISupportsImpl.h"
+#include "nsSelectionState.h"
+#include "nsAString.h"
 
 using namespace mozilla;
 

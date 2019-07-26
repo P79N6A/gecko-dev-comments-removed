@@ -178,7 +178,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     bool addPredecessorWithoutPhis(MBasicBlock *pred);
-    bool inheritNonPredecessor(MBasicBlock *parent, bool inheritStack=false);
+    void inheritSlots(MBasicBlock *parent);
+    bool initEntrySlots();
 
     
     

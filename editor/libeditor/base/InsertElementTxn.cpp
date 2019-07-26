@@ -3,11 +3,19 @@
 
 
 
+#include <stdio.h>                      
+
 #include "InsertElementTxn.h"
-#include "nsISelection.h"
-#include "nsIContent.h"
-#include "nsIDOMNodeList.h"
-#include "nsReadableUtils.h"
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIContent.h"                 
+#include "nsIEditor.h"                  
+#include "nsINode.h"                    
+#include "nsISelection.h"               
+#include "nsMemory.h"                   
+#include "nsReadableUtils.h"            
+#include "nsString.h"                   
 
 #ifdef DEBUG
 static bool gNoisy = false;

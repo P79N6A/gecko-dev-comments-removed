@@ -10,6 +10,7 @@
 #include "gfxPattern.h"
 #include "gfxRect.h"
 #include "nsRect.h"
+#include "Layers.h"
 
 class nsDisplayList;
 class nsDisplayListBuilder;
@@ -134,7 +135,7 @@ public:
   PaintFramesWithEffects(nsRenderingContext* aCtx,
                          nsIFrame* aFrame, const nsRect& aDirtyRect,
                          nsDisplayListBuilder* aBuilder,
-                         nsDisplayList* aInnerList);
+                         mozilla::layers::LayerManager* aManager);
 
   
 

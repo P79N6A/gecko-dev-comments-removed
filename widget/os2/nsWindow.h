@@ -271,6 +271,7 @@ protected:
   nsCOMPtr<imgIContainer> mCssCursorImg;
   nsRefPtr<gfxOS2Surface> mThebesSurface;
   bool          mIsComposing;
+  nsString      mLastDispatchedCompositionString;
 #ifdef DEBUG_FOCUS
   int           mWindowIdentifier;  
 #endif

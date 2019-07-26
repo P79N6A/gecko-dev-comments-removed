@@ -649,7 +649,47 @@ nsRange::ComparePoint(nsIDOMNode* aParent, PRInt32 aOffset, PRInt16* aResult)
   
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsRange::IntersectsNode(nsIDOMNode* aNode, bool* aResult)
+{
+  *aResult = false;
+
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
   
+  NS_ENSURE_ARG(node);
+
+  NS_ENSURE_TRUE(mIsPositioned, NS_ERROR_NOT_INITIALIZED);
+
+  
+  nsINode* parent = node->GetNodeParent();
+  if (!parent) {
+    
+    
+    *aResult = (GetRoot() == node);
+    return NS_OK;
+  }
+
+  
+  PRInt32 nodeIndex = parent->IndexOf(node);
+
+  
+  
+  bool disconnected = false;
+  *aResult = nsContentUtils::ComparePoints(mStartParent, mStartOffset,
+                                           parent, nodeIndex + 1,
+                                           &disconnected) < 0 &&
+             nsContentUtils::ComparePoints(parent, nodeIndex,
+                                           mEndParent, mEndOffset,
+                                           &disconnected) < 0;
+
+  
+  if (disconnected) {
+    *aResult = false;
+  }
+  return NS_OK;
+}
+
 
 
 

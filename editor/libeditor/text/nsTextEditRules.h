@@ -1,30 +1,41 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsTextEditRules_h__
 #define nsTextEditRules_h__
 
 #include "nsCOMPtr.h"
-
-#include "nsPlaintextEditor.h"
-#include "nsIDOMNode.h"
-
+#include "nsCycleCollectionParticipant.h"
 #include "nsEditRules.h"
+#include "nsEditor.h"
+#include "nsIEditor.h"
+#include "nsISupportsImpl.h"
 #include "nsITimer.h"
+#include "nsPlaintextEditor.h"
+#include "nsString.h"
+#include "nscore.h"
+#include "prtypes.h"
 
-/** Object that encapsulates HTML text-specific editing rules.
-  *  
-  * To be a good citizen, edit rules must live by these restrictions:
-  * 1. All data manipulation is through the editor.  
-  *    Content nodes in the document tree must <B>not</B> be manipulated directly.
-  *    Content nodes in document fragments that are not part of the document itself
-  *    may be manipulated at will.  Operations on document fragments must <B>not</B>
-  *    go through the editor.
-  * 2. Selection must not be explicitly set by the rule method.  
-  *    Any manipulation of Selection must be done by the editor.
-  */
+class nsIDOMElement;
+class nsIDOMNode;
+class nsISelection;
+namespace mozilla {
+class Selection;
+}  
+
+
+
+
+
+
+
+
+
+
+
+
 class nsTextEditRules : public nsIEditRules, public nsITimerCallback
 {
 public:
@@ -35,7 +46,7 @@ public:
               nsTextEditRules();
   virtual     ~nsTextEditRules();
 
-  // nsIEditRules methods
+  
   NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
   NS_IMETHOD BeforeEdit(nsEditor::OperationID action,
@@ -51,45 +62,45 @@ public:
 public:
   void ResetIMETextPWBuf();
 
-  /**
-   * Handles the newline characters either according to aNewLineHandling
-   * or to the default system prefs if aNewLineHandling is negative.
-   *
-   * @param aString the string to be modified in place.
-   * @param aNewLineHandling determine the desired type of newline handling:
-   *        * negative values:
-   *          handle newlines according to platform defaults.
-   *        * nsIPlaintextEditor::eNewlinesReplaceWithSpaces:
-   *          replace newlines with spaces.
-   *        * nsIPlaintextEditor::eNewlinesStrip:
-   *          remove newlines from the string.
-   *        * nsIPlaintextEditor::eNewlinesReplaceWithCommas:
-   *          replace newlines with commas.
-   *        * nsIPlaintextEditor::eNewlinesStripSurroundingWhitespace:
-   *          collapse newlines and surrounding whitespace characters and
-   *          remove them from the string.
-   *        * nsIPlaintextEditor::eNewlinesPasteIntact:
-   *          only remove the leading and trailing newlines.
-   *        * nsIPlaintextEditor::eNewlinesPasteToFirst or any other value:
-   *          remove the first newline and all characters following it.
-   */
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static void HandleNewLines(nsString &aString, PRInt32 aNewLineHandling);
 
-  /**
-   * Prepare a string buffer for being displayed as the contents of a password
-   * field.  This function uses the platform-specific character for representing
-   * characters entered into password fields.
-   *
-   * @param aOutString the output string.  When this function returns,
-   *        aOutString will contain aLength password characters.
-   * @param aLength the number of password characters that aOutString should
-   *        contain.
-   */
+  
+
+
+
+
+
+
+
+
+
   static void FillBufWithPWChars(nsAString *aOutString, PRInt32 aLength);
 
 protected:
 
-  // nsTextEditRules implementation methods
+  
   nsresult WillInsertText(  nsEditor::OperationID aAction,
                             mozilla::Selection* aSelection,
                             bool            *aCancel,
@@ -127,13 +138,13 @@ protected:
   nsresult WillRedo(nsISelection *aSelection, bool *aCancel, bool *aHandled);
   nsresult DidRedo(nsISelection *aSelection, nsresult aResult);
 
-  /** called prior to nsIEditor::OutputToString
-    * @param aSelection
-    * @param aInFormat  the format requested for the output, a MIME type
-    * @param aOutText   the string to use for output, if aCancel is set to true
-    * @param aOutCancel if set to true, the caller should cancel the operation
-    *                   and use aOutText as the result.
-    */
+  
+
+
+
+
+
+
   nsresult WillOutputText(nsISelection *aSelection,
                           const nsAString  *aInFormat,
                           nsAString *aOutText, 
@@ -143,26 +154,26 @@ protected:
   nsresult DidOutputText(nsISelection *aSelection, nsresult aResult);
 
 
-  // helper functions
+  
 
-  /** check for and replace a redundant trailing break */
+  
   nsresult RemoveRedundantTrailingBR();
   
-  /** creates a trailing break in the text doc if there is not one already */
+  
   nsresult CreateTrailingBRIfNeeded();
   
- /** creates a bogus text node if the document has no editable content */
+ 
   nsresult CreateBogusNodeIfNeeded(nsISelection *aSelection);
 
-  /** returns a truncated insertion string if insertion would place us
-      over aMaxLength */
+  
+
   nsresult TruncateInsertionIfNeeded(mozilla::Selection*       aSelection,
                                      const nsAString          *aInString,
                                      nsAString                *aOutString,
                                      PRInt32                   aMaxLength,
                                      bool                     *aTruncated);
 
-  /** Remove IME composition text from password buffer */
+  
   void RemoveIMETextFromPWBuf(PRInt32 &aStart, nsAString *aIMEString);
 
   nsresult CreateMozBR(nsIDOMNode* inParent, PRInt32 inOffset,
@@ -207,26 +218,26 @@ protected:
     return mEditor ? mEditor->DontEchoPassword() : false;
   }
 
-  // data members
-  nsPlaintextEditor   *mEditor;        // note that we do not refcount the editor
-  nsString             mPasswordText;  // a buffer we use to store the real value of password editors
-  nsString             mPasswordIMEText;  // a buffer we use to track the IME composition string
+  
+  nsPlaintextEditor   *mEditor;        
+  nsString             mPasswordText;  
+  nsString             mPasswordIMEText;  
   PRUint32             mPasswordIMEIndex;
-  nsCOMPtr<nsIDOMNode> mBogusNode;     // magic node acts as placeholder in empty doc
-  nsCOMPtr<nsIDOMNode> mCachedSelectionNode;    // cached selected node
-  PRInt32              mCachedSelectionOffset;  // cached selected offset
+  nsCOMPtr<nsIDOMNode> mBogusNode;     
+  nsCOMPtr<nsIDOMNode> mCachedSelectionNode;    
+  PRInt32              mCachedSelectionOffset;  
   PRUint32             mActionNesting;
   bool                 mLockRulesSniffing;
   bool                 mDidExplicitlySetInterline;
-  bool                 mDeleteBidiImmediately; // in bidirectional text, delete
-                                               // characters not visually 
-                                               // adjacent to the caret without
-                                               // moving the caret first.
-  nsEditor::OperationID mTheAction;     // the top level editor action
+  bool                 mDeleteBidiImmediately; 
+                                               
+                                               
+                                               
+  nsEditor::OperationID mTheAction;     
   nsCOMPtr<nsITimer>   mTimer;
   PRUint32             mLastStart, mLastLength;
 
-  // friends
+  
   friend class nsAutoLockRulesSniffing;
 
 };
@@ -255,37 +266,37 @@ class nsTextRulesInfo : public nsRulesInfo
 
   virtual ~nsTextRulesInfo() {}
   
-  // kInsertText
+  
   const nsAString *inString;
   nsAString *outString;
   const nsAString *outputFormat;
   PRInt32 maxLength;
   
-  // kDeleteSelection
+  
   nsIEditor::EDirection collapsedAction;
   nsIEditor::EStripWrappers stripWrappers;
   
-  // kMakeList
+  
   bool bOrdered;
   bool entireList;
   const nsAString *bulletType;
 
-  // kAlign
+  
   const nsAString *alignType;
   
-  // kMakeBasicBlock
+  
   const nsAString *blockType;
   
-  // kInsertElement
+  
   const nsIDOMElement* insertElement;
 };
 
 
-/***************************************************************************
- * stack based helper class for StartOperation()/EndOperation() sandwich.
- * this class sets a bool letting us know to ignore any rules sniffing
- * that tries to occur reentrantly. 
- */
+
+
+
+
+
 class nsAutoLockRulesSniffing
 {
   public:
@@ -301,9 +312,9 @@ class nsAutoLockRulesSniffing
 
 
 
-/***************************************************************************
- * stack based helper class for turning on/off the edit listener.
- */
+
+
+
 class nsAutoLockListener
 {
   public:
@@ -318,4 +329,4 @@ class nsAutoLockListener
   bool mOldState;
 };
 
-#endif //nsTextEditRules_h__
+#endif 

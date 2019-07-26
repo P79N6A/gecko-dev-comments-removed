@@ -1,31 +1,34 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
+
+
+
+#include "./../../mozilla-config.h"     
+#include "mozilla/Assertions.h"         
+#include "mozilla/Util.h"               
+#include "mozilla/dom/Element.h"        
+#include "nsAString.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsCaseTreatment.h"
+#include "nsDebug.h"                    
+#include "nsEditProperty.h"             
+#include "nsEditor.h"                   
+#include "nsError.h"                    
+#include "nsGkAtoms.h"                  
 #include "nsHTMLEditUtils.h"
-
-#include "mozilla/Assertions.h"
-#include "mozilla/Util.h"
-#include "mozilla/dom/Element.h"
-
-#include "nsTextEditUtils.h"
-
-#include "nsString.h"
-#include "nsUnicharUtils.h"
-#include "nsEditor.h"
-#include "nsEditProperty.h"
-#include "nsIAtom.h"
-#include "nsIDOMNode.h"
-#include "nsIContent.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMHTMLAnchorElement.h"
 #include "nsHTMLTags.h"
+#include "nsIAtom.h"                    
+#include "nsIDOMHTMLAnchorElement.h"    
+#include "nsIDOMNode.h"                 
+#include "nsINameSpaceManager.h"        
+#include "nsLiteralString.h"            
+#include "nsString.h"                   
+#include "nsTextEditUtils.h"            
 
 using namespace mozilla;
 
-///////////////////////////////////////////////////////////////////////////
-//                  
+
+
 bool 
 nsHTMLEditUtils::IsBig(nsIDOMNode *node)
 {
@@ -33,9 +36,9 @@ nsHTMLEditUtils::IsBig(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsInlineStyle true if node is an inline style
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsInlineStyle(nsIDOMNode *node)
 {
@@ -63,9 +66,9 @@ nsHTMLEditUtils::IsInlineStyle(dom::Element* aElement)
       || (nodeAtom == nsEditProperty::font);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// IsFormatNode true if node is a format node
-// 
+
+
+
 bool
 nsHTMLEditUtils::IsFormatNode(nsIDOMNode *node)
 {
@@ -90,9 +93,9 @@ nsHTMLEditUtils::IsFormatNode(dom::Element* aElement)
       || (nodeAtom == nsEditProperty::address);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// IsNodeThatCanOutdent true if node is a list, list item, or blockquote      
-//
+
+
+
 bool
 nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode *node)
 {
@@ -107,8 +110,8 @@ nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode *node)
       || (nodeAtom == nsEditProperty::blockquote);
 }
 
-///////////////////////////////////////////////////////////////////////////
-//                  
+
+
 bool 
 nsHTMLEditUtils::IsSmall(nsIDOMNode *node)
 {
@@ -116,13 +119,13 @@ nsHTMLEditUtils::IsSmall(nsIDOMNode *node)
 }
 
 
-/********************************************************
- *  helper methods from nsHTMLEditRules
- ********************************************************/
+
+
+
  
-///////////////////////////////////////////////////////////////////////////
-// IsHeader: true if node an html header
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsHeader(nsIDOMNode *node)
 {
@@ -137,9 +140,9 @@ nsHTMLEditUtils::IsHeader(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsParagraph: true if node an html paragraph
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsParagraph(nsIDOMNode *node)
 {
@@ -147,9 +150,9 @@ nsHTMLEditUtils::IsParagraph(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsHR: true if node an horizontal rule
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsHR(nsIDOMNode *node)
 {
@@ -157,9 +160,9 @@ nsHTMLEditUtils::IsHR(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsListItem: true if node an html list item
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsListItem(nsIDOMNode *node)
 {
@@ -179,9 +182,9 @@ nsHTMLEditUtils::IsListItem(dom::Element* node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsTableElement: true if node an html table, td, tr, ...
-//                  
+
+
+
 bool
 nsHTMLEditUtils::IsTableElement(nsIDOMNode *node)
 {
@@ -205,9 +208,9 @@ nsHTMLEditUtils::IsTableElement(dom::Element* node)
       || (nodeAtom == nsEditProperty::caption);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// IsTableElementButNotTable: true if node an html td, tr, ... (doesn't include table)
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsTableElementButNotTable(nsIDOMNode *node)
 {
@@ -230,18 +233,18 @@ nsHTMLEditUtils::IsTableElementButNotTable(dom::Element* aNode)
       || (nodeAtom == nsEditProperty::caption);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// IsTable: true if node an html table
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsTable(nsIDOMNode *node)
 {
   return nsEditor::NodeIsType(node, nsEditProperty::table);
 }
 
-///////////////////////////////////////////////////////////////////////////
-// IsTableRow: true if node an html tr
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsTableRow(nsIDOMNode *node)
 {
@@ -249,9 +252,9 @@ nsHTMLEditUtils::IsTableRow(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsTableCell: true if node an html td or th
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsTableCell(nsIDOMNode *node)
 {
@@ -270,9 +273,9 @@ nsHTMLEditUtils::IsTableCell(dom::Element* node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsTableCell: true if node an html td or th
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsTableCellOrCaption(nsIDOMNode *node)
 {
@@ -284,9 +287,9 @@ nsHTMLEditUtils::IsTableCellOrCaption(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsList: true if node an html list
-//                  
+
+
+
 bool
 nsHTMLEditUtils::IsList(nsIDOMNode *node)
 {
@@ -306,9 +309,9 @@ nsHTMLEditUtils::IsList(dom::Element* node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsOrderedList: true if node an html ordered list
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsOrderedList(nsIDOMNode *node)
 {
@@ -316,9 +319,9 @@ nsHTMLEditUtils::IsOrderedList(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsUnorderedList: true if node an html unordered list
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsUnorderedList(nsIDOMNode *node)
 {
@@ -326,9 +329,9 @@ nsHTMLEditUtils::IsUnorderedList(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsBlockquote: true if node an html blockquote node
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsBlockquote(nsIDOMNode *node)
 {
@@ -336,9 +339,9 @@ nsHTMLEditUtils::IsBlockquote(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsPre: true if node an html pre node
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsPre(nsIDOMNode *node)
 {
@@ -346,9 +349,9 @@ nsHTMLEditUtils::IsPre(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsImage: true if node an html image node
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsImage(nsIDOMNode *node)
 {
@@ -390,9 +393,9 @@ nsHTMLEditUtils::IsNamedAnchor(dom::Element* aNode)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsDiv: true if node an html div node
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsDiv(nsIDOMNode *node)
 {
@@ -400,9 +403,9 @@ nsHTMLEditUtils::IsDiv(nsIDOMNode *node)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsMozDiv: true if node an html div node with type = _moz
-//                  
+
+
+
 bool 
 nsHTMLEditUtils::IsMozDiv(nsIDOMNode *node)
 {
@@ -412,9 +415,9 @@ nsHTMLEditUtils::IsMozDiv(nsIDOMNode *node)
 
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsMailCite: true if node an html blockquote with type=cite
-//                  
+
+
+
 bool
 nsHTMLEditUtils::IsMailCite(nsIDOMNode* aNode)
 {
@@ -428,13 +431,13 @@ nsHTMLEditUtils::IsMailCite(dom::Element* aElement)
 {
   MOZ_ASSERT(aElement);
 
-  // don't ask me why, but our html mailcites are id'd by "type=cite"...
+  
   if (aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                             NS_LITERAL_STRING("cite"), eIgnoreCase)) {
     return true;
   }
 
-  // ... but our plaintext mailcites by "_moz_quote=true".  go figure.
+  
   if (aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozquote,
                             NS_LITERAL_STRING("true"), eIgnoreCase)) {
     return true;
@@ -444,9 +447,9 @@ nsHTMLEditUtils::IsMailCite(dom::Element* aElement)
 }
 
 
-///////////////////////////////////////////////////////////////////////////
-// IsFormWidget: true if node is a form widget of some kind
-//                  
+
+
+
 bool
 nsHTMLEditUtils::IsFormWidget(nsIDOMNode *node)
 {
@@ -493,91 +496,91 @@ nsHTMLEditUtils::SupportsAlignAttr(nsIDOMNode * aNode)
       || (nodeAtom == nsEditProperty::h6);
 }
 
-// We use bitmasks to test containment of elements. Elements are marked to be
-// in certain groups by setting the mGroup member of the nsElementInfo struct
-// to the corresponding GROUP_ values (OR'ed together). Similarly, elements are
-// marked to allow containment of certain groups by setting the
-// mCanContainGroups member of the nsElementInfo struct to the corresponding
-// GROUP_ values (OR'ed together).
-// Testing containment then simply consists of checking whether the
-// mCanContainGroups bitmask of an element and the mGroup bitmask of a
-// potential child overlap.
+
+
+
+
+
+
+
+
+
 
 #define GROUP_NONE             0
 
-// body, head, html
+
 #define GROUP_TOPLEVEL         (1 << 1)  
 
-// base, link, meta, script, style, title
+
 #define GROUP_HEAD_CONTENT     (1 << 2)
 
-// b, big, i, s, small, strike, tt, u
+
 #define GROUP_FONTSTYLE        (1 << 3)
 
-// abbr, acronym, cite, code, datalist, del, dfn, em, ins, kbd, mark, samp,
-// strong, var
+
+
 #define GROUP_PHRASE           (1 << 4)
 
-// a, applet, basefont, bdo, br, font, iframe, img, map, meter, object, output,
-// progress, q, script, span, sub, sup
+
+
 #define GROUP_SPECIAL          (1 << 5)
 
-// button, form, input, label, select, textarea
+
 #define GROUP_FORMCONTROL      (1 << 6)
 
-// address, applet, article, aside, blockquote, button, center, del, dir, div,
-// dl, fieldset, figure, footer, form, h1, h2, h3, h4, h5, h6, header, hgroup,
-// hr, iframe, ins, map, menu, nav, noframes, noscript, object, ol, p,
-// pre, table, section, ul
+
+
+
+
 #define GROUP_BLOCK            (1 << 7)
 
-// frame, frameset
+
 #define GROUP_FRAME            (1 << 8)
 
-// col, tbody
+
 #define GROUP_TABLE_CONTENT    (1 << 9)
 
-// tr
+
 #define GROUP_TBODY_CONTENT    (1 << 10)
 
-// td, th
+
 #define GROUP_TR_CONTENT       (1 << 11)
 
-// col
+
 #define GROUP_COLGROUP_CONTENT (1 << 12)
 
-// param
+
 #define GROUP_OBJECT_CONTENT   (1 << 13)
 
-// li
+
 #define GROUP_LI               (1 << 14)
 
-// area
+
 #define GROUP_MAP_CONTENT      (1 << 15)
 
-// optgroup, option
+
 #define GROUP_SELECT_CONTENT   (1 << 16)
 
-// option
+
 #define GROUP_OPTIONS          (1 << 17)
 
-// dd, dt
+
 #define GROUP_DL_CONTENT       (1 << 18)
 
-// p
+
 #define GROUP_P                (1 << 19)
 
-// text, whitespace, newline, comment
+
 #define GROUP_LEAF             (1 << 20)
 
-// XXX This is because the editor does sublists illegally. 
-// ol, ul
+
+
 #define GROUP_OL_UL            (1 << 21)
 
-// h1, h2, h3, h4, h5, h6
+
 #define GROUP_HEADING          (1 << 22)
 
-// figcaption
+
 #define GROUP_FIGCAPTION       (1 << 23)
 
 #define GROUP_INLINE_ELEMENT \
@@ -705,7 +708,7 @@ static const nsElementInfo kElements[eHTMLTag_userdefined] = {
   ELEM(noscript, true, true, GROUP_BLOCK, GROUP_FLOW_ELEMENT),
   ELEM(object, true, true, GROUP_SPECIAL | GROUP_BLOCK,
        GROUP_FLOW_ELEMENT | GROUP_OBJECT_CONTENT),
-  // XXX Can contain self and ul because editor does sublists illegally.
+  
   ELEM(ol, true, true, GROUP_BLOCK | GROUP_OL_UL,
        GROUP_LI | GROUP_OL_UL),
   ELEM(optgroup, true, false, GROUP_SELECT_CONTENT,
@@ -746,7 +749,7 @@ static const nsElementInfo kElements[eHTMLTag_userdefined] = {
   ELEM(tr, true, false, GROUP_TBODY_CONTENT, GROUP_TR_CONTENT),
   ELEM(tt, true, true, GROUP_FONTSTYLE, GROUP_INLINE_ELEMENT),
   ELEM(u, true, true, GROUP_FONTSTYLE, GROUP_INLINE_ELEMENT),
-  // XXX Can contain self and ol because editor does sublists illegally.
+  
   ELEM(ul, true, true, GROUP_BLOCK | GROUP_OL_UL,
        GROUP_LI | GROUP_OL_UL),
   ELEM(var, true, true, GROUP_PHRASE, GROUP_INLINE_ELEMENT),
@@ -756,7 +759,7 @@ static const nsElementInfo kElements[eHTMLTag_userdefined] = {
   ELEM(wbr, false, false, GROUP_NONE, GROUP_NONE),
   ELEM(xmp, false, false, GROUP_NONE, GROUP_NONE),
 
-  // These aren't elements.
+  
   ELEM(text, false, false, GROUP_LEAF, GROUP_NONE),
   ELEM(whitespace, false, false, GROUP_LEAF, GROUP_NONE),
   ELEM(newline, false, false, GROUP_LEAF, GROUP_NONE),
@@ -789,7 +792,7 @@ nsHTMLEditUtils::CanContain(PRInt32 aParent, PRInt32 aChild)
   }
 #endif
 
-  // Special-case button.
+  
   if (aParent == eHTMLTag_button) {
     static const eHTMLTags kButtonExcludeKids[] = {
       eHTMLTag_a,
@@ -809,12 +812,12 @@ nsHTMLEditUtils::CanContain(PRInt32 aParent, PRInt32 aChild)
     }
   }
 
-  // Deprecated elements.
+  
   if (aChild == eHTMLTag_bgsound) {
     return false;
   }
 
-  // Bug #67007, dont strip userdefined tags.
+  
   if (aChild == eHTMLTag_userdefined) {
     return true;
   }

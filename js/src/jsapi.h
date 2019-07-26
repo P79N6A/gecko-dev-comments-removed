@@ -920,12 +920,12 @@ class HandleBase<Value> : public ValueOperations<Handle<Value> >
 template <>
 class MutableHandleBase<Value> : public MutableValueOperations<MutableHandle<Value> >
 {
-    friend class ValueOperations<Handle<Value> >;
+    friend class ValueOperations<MutableHandle<Value> >;
     const Value * extract() const {
         return static_cast<const MutableHandle<Value>*>(this)->address();
     }
 
-    friend class MutableValueOperations<Handle<Value> >;
+    friend class MutableValueOperations<MutableHandle<Value> >;
     Value * extractMutable() {
         return static_cast<MutableHandle<Value>*>(this)->address();
     }
@@ -1442,6 +1442,93 @@ JS_ALWAYS_INLINE CallArgs
 CallArgsFromSp(unsigned argc, Value *sp)
 {
     return CallArgsFromArgv(argc, sp - argc);
+}
+
+
+typedef bool (*IsAcceptableThis)(const Value &v);
+
+
+
+
+
+typedef bool (*NativeImpl)(JSContext *cx, CallArgs args);
+
+namespace detail {
+
+
+extern JS_PUBLIC_API(bool)
+CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args);
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+CallNonGenericMethod(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args)
+{
+    const Value &thisv = args.thisv();
+    if (test(thisv))
+        return impl(cx, args);
+
+    return detail::CallMethodIfWrapped(cx, test, impl, args);
 }
 
 }  
@@ -3958,7 +4045,7 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 8)
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 20)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
@@ -4706,66 +4793,6 @@ JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
 
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_CallNonGenericMethodOnProxy(JSContext *cx, unsigned argc, jsval *vp, JSNative native, JSClass *clasp);
 
 
 
@@ -5626,6 +5653,12 @@ extern JS_PUBLIC_API(void)
 JS_ReportErrorNumber(JSContext *cx, JSErrorCallback errorCallback,
                      void *userRef, const unsigned errorNumber, ...);
 
+#ifdef va_start
+extern JS_PUBLIC_API(void)
+JS_ReportErrorNumberVA(JSContext *cx, JSErrorCallback errorCallback,
+                       void *userRef, const unsigned errorNumber, va_list ap);
+#endif
+
 
 
 
@@ -5676,6 +5709,7 @@ struct JSErrorReport {
     unsigned           errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
+    int16_t         exnType;        
 };
 
 
@@ -5730,6 +5764,13 @@ JS_NewDateObjectMsec(JSContext *cx, double msec);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ObjectIsDate(JSContext *cx, JSObject *obj);
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_ClearDateCaches(JSContext *cx);
 
 
 

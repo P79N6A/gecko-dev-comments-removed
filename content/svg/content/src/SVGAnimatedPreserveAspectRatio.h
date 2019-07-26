@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 #define MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
@@ -32,13 +32,13 @@ public:
     : mAlign(aAlign)
     , mMeetOrSlice(aMeetOrSlice)
     , mDefer(aDefer)
-  {};
+  {}
 
   SVGPreserveAspectRatio()
     : mAlign(0)
     , mMeetOrSlice(0)
     , mDefer(false)
-  {};
+  {}
 
   bool operator==(const SVGPreserveAspectRatio& aOther) const;
 
@@ -48,11 +48,11 @@ public:
       return NS_ERROR_FAILURE;
     mAlign = static_cast<PRUint8>(aAlign);
     return NS_OK;
-  };
+  }
 
   PRUint16 GetAlign() const {
     return mAlign;
-  };
+  }
 
   nsresult SetMeetOrSlice(PRUint16 aMeetOrSlice) {
     if (aMeetOrSlice < nsIDOMSVGPreserveAspectRatio::SVG_MEETORSLICE_MEET ||
@@ -60,19 +60,19 @@ public:
       return NS_ERROR_FAILURE;
     mMeetOrSlice = static_cast<PRUint8>(aMeetOrSlice);
     return NS_OK;
-  };
+  }
 
   PRUint16 GetMeetOrSlice() const {
     return mMeetOrSlice;
-  };
+  }
 
   void SetDefer(bool aDefer) {
     mDefer = aDefer;
-  };
+  }
 
   bool GetDefer() const {
     return mDefer;
-  };
+  }
 
 private:
   PRUint8 mAlign;
@@ -132,7 +132,7 @@ public:
   nsresult ToDOMAnimatedPreserveAspectRatio(
     nsIDOMSVGAnimatedPreserveAspectRatio **aResult,
     nsSVGElement* aSVGElement);
-  // Returns a new nsISMILAttr object that the caller must delete
+  
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
 private:
@@ -156,7 +156,7 @@ public:
     DOMBaseVal(SVGAnimatedPreserveAspectRatio* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    SVGAnimatedPreserveAspectRatio* mVal; // kept alive because it belongs to mSVGElement
+    SVGAnimatedPreserveAspectRatio* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
     
     NS_IMETHOD GetAlign(PRUint16* aAlign)
@@ -178,11 +178,11 @@ public:
     DOMAnimVal(SVGAnimatedPreserveAspectRatio* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
     
-    SVGAnimatedPreserveAspectRatio* mVal; // kept alive because it belongs to mSVGElement
+    SVGAnimatedPreserveAspectRatio* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
     
-    // Script may have modified animation parameters or timeline -- DOM getters
-    // need to flush any resample requests to reflect these modifications.
+    
+    
     NS_IMETHOD GetAlign(PRUint16* aAlign)
     {
       mSVGElement->FlushAnimations();
@@ -211,7 +211,7 @@ public:
                         nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    // kept alive because it belongs to content:
+    
     SVGAnimatedPreserveAspectRatio* mVal;
 
     nsRefPtr<nsSVGElement> mSVGElement;
@@ -230,13 +230,13 @@ public:
                             nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    // These will stay alive because a nsISMILAttr only lives as long
-    // as the Compositing step, and DOM elements don't get a chance to
-    // die during that.
+    
+    
+    
     SVGAnimatedPreserveAspectRatio* mVal;
     nsSVGElement* mSVGElement;
 
-    // nsISMILAttr methods
+    
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -247,6 +247,6 @@ public:
   };
 };
 
-} // namespace mozilla
+} 
 
-#endif // MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
+#endif 

@@ -4,12 +4,22 @@
 
 
 #include "SetDocTitleTxn.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMDocument.h"
-#include "nsIDOMText.h"
-#include "nsIDOMElement.h"
-#include "mozilla/dom/Element.h"
+#include "mozilla/dom/Element.h"        
+#include "nsAString.h"
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIDOMCharacterData.h"        
+#include "nsIDOMDocument.h"             
+#include "nsIDOMElement.h"              
+#include "nsIDOMNode.h"                 
+#include "nsIDOMNodeList.h"             
+#include "nsIDOMText.h"                 
+#include "nsIDocument.h"                
+#include "nsIEditor.h"                  
+#include "nsIHTMLEditor.h"              
+#include "nsLiteralString.h"            
+#include "prtypes.h"                    
 
 using namespace mozilla;
 

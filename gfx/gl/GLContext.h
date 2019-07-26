@@ -47,6 +47,7 @@ namespace mozilla {
 namespace gl {
 class GLContext;
 
+typedef uintptr_t SharedTextureHandle;
 
 enum ShaderProgramType {
     RGBALayerProgramType,
@@ -54,6 +55,7 @@ enum ShaderProgramType {
     RGBXLayerProgramType,
     BGRXLayerProgramType,
     RGBARectLayerProgramType,
+    RGBAExternalLayerProgramType,
     ColorLayerProgramType,
     YCbCrLayerProgramType,
     ComponentAlphaPass1ProgramType,
@@ -98,6 +100,11 @@ public:
         ForceSingleTile  = 0x4
     };
 
+    enum TextureShareType {
+        ThreadShared     = 0x0,
+        ProcessShared    = 0x1
+    };
+
     typedef gfxASurface::gfxContentType ContentType;
 
     virtual ~TextureImage() {}
@@ -132,7 +139,7 @@ public:
 
 
     virtual void GetUpdateRegion(nsIntRegion& aForRegion) {
-    };
+    }
     
 
 
@@ -147,11 +154,11 @@ public:
 
 
     virtual void BeginTileIteration() {
-    };
+    }
 
     virtual bool NextTile() {
         return false;
-    };
+    }
 
     
     
@@ -163,17 +170,17 @@ public:
     
     virtual void SetIterationCallback(TileIterationCallback aCallback,
                                       void* aCallbackData) {
-    };
+    }
 
     virtual nsIntRect GetTileRect() {
         return nsIntRect(nsIntPoint(0,0), mSize);
-    };
+    }
 
     virtual GLuint GetTextureID() = 0;
 
     virtual PRUint32 GetTileCount() {
         return 1;
-    };
+    }
 
     
 
@@ -204,7 +211,7 @@ public:
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
 
     virtual void BindTexture(GLenum aTextureUnit) = 0;
-    virtual void ReleaseTexture() {};
+    virtual void ReleaseTexture() {}
 
     void BindTextureAndApplyFilter(GLenum aTextureUnit) {
         BindTexture(aTextureUnit);
@@ -299,7 +306,7 @@ protected:
 
     virtual nsIntRect GetSrcTileRect() {
         return nsIntRect(nsIntPoint(0,0), mSize);
-    };
+    }
 
     nsIntSize mSize;
     GLenum mWrapMode;
@@ -344,7 +351,7 @@ public:
     virtual void GetUpdateRegion(nsIntRegion& aForRegion);
     virtual void EndUpdate();
     virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
-    virtual GLuint GetTextureID() { return mTexture; };
+    virtual GLuint GetTextureID() { return mTexture; }
     
     virtual already_AddRefed<gfxASurface>
       GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
@@ -401,9 +408,9 @@ public:
     virtual nsIntRect GetTileRect();
     virtual GLuint GetTextureID() {
         return mImages[mCurrentImage]->GetTextureID();
-    };
+    }
     virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
-    virtual bool InUpdate() const { return mInUpdate; };
+    virtual bool InUpdate() const { return mInUpdate; }
     virtual void BindTexture(GLenum);
     virtual void ApplyFilter();
 
@@ -734,6 +741,7 @@ public:
 
     void ApplyFilterToBoundTexture(gfxPattern::GraphicsFilter aFilter);
 
+    virtual bool BindExternalBuffer(GLuint texture, void* buffer) { return false; }
 
     
 
@@ -847,7 +855,43 @@ public:
         return IsExtensionSupported(EXT_framebuffer_blit) || IsExtensionSupported(ANGLE_framebuffer_blit);
     }
 
+    
 
+
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return nsnull; }
+    
+
+
+
+
+    virtual void UpdateSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
+                                     SharedTextureHandle aSharedHandle) { }
+    
+
+
+
+    virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return false; }
+    
+
+
+    virtual void DetachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return; }
 
 private:
     GLuint mUserBoundDrawFBO;
@@ -1264,7 +1308,7 @@ public:
                 TextureImage::Flags aFlags = TextureImage::NoFlags)
     {
         return nsnull;
-    };
+    }
 
     
 
@@ -1408,15 +1452,15 @@ public:
 
         float* vertexPointer() {
             return &vertexCoords[0].x;
-        };
+        }
 
         float* texCoordPointer() {
             return &texCoords[0].u;
-        };
+        }
 
         unsigned int elements() {
             return vertexCoords.Length();
-        };
+        }
 
         typedef struct { GLfloat x,y; } vert_coord;
         typedef struct { GLfloat u,v; } tex_coord;
@@ -1684,7 +1728,12 @@ protected:
         GLsizei samples;
     };
 
-    GLFormats ChooseGLFormats(ContextFormat& aCF);
+    enum ColorByteOrder {
+      ForceRGBA,
+      DefaultByteOrder
+    };
+
+    GLFormats ChooseGLFormats(ContextFormat& aCF, GLContext::ColorByteOrder aByteOrder = GLContext::DefaultByteOrder);
     void CreateTextureForOffscreen(const GLFormats& aFormats, const gfxIntSize& aSize,
                                    GLuint& texture);
     void CreateRenderbuffersForOffscreen(const GLContext::GLFormats& aFormats, const gfxIntSize& aSize,
@@ -2319,7 +2368,7 @@ public:
         BEFORE_GL_CALL;
         mSymbols.fGetTexImage(target, level, format, type, img);
         AFTER_GL_CALL;
-    };
+    }
 
     void fGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
     {  

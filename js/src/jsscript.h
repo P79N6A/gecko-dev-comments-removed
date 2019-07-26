@@ -20,8 +20,26 @@
 
 #include "gc/Barrier.h"
 
-namespace js { namespace ion { struct IonScript; }}
+namespace js {
+
+namespace ion {
+    class IonScript;
+}
+
 # define ION_DISABLED_SCRIPT ((js::ion::IonScript *)0x1)
+
+struct Shape;
+
+namespace mjit {
+    struct JITScript;
+    class CallCompiler;
+}
+
+namespace analyze {
+    class ScriptAnalysis;
+}
+
+}
 
 
 
@@ -67,16 +85,68 @@ struct ClosedSlotArray {
     uint32_t        length;     
 };
 
-struct Shape;
 
-enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
 
-struct BindingName {
-    JSAtom *maybeAtom;
+
+
+
+enum BindingKind { ARGUMENT, VARIABLE, CONSTANT };
+
+struct Binding
+{
+    PropertyName *maybeName;  
     BindingKind kind;
 };
 
-typedef Vector<BindingName, 32> BindingNames;
+
+
+
+
+
+class BindingIter
+{
+    friend class Bindings;
+    BindingIter(JSContext *cx, const Bindings &bindings, Shape *shape);
+    void settle();
+
+    struct Init
+    {
+        Init(const Bindings *b, Shape::Range s) : bindings(b), shape(s) {}
+        const Bindings *bindings;
+        Shape::Range shape;
+    };
+
+  public:
+    BindingIter(JSContext *cx, Bindings &bindings);
+    BindingIter(JSContext *cx, Init init);
+
+    void operator=(Init init);
+
+    bool done() const { return shape_.empty(); }
+    operator bool() const { return !done(); }
+    void operator++(int) { shape_.popFront(); settle(); }
+
+    const Binding &operator*() const { JS_ASSERT(!done()); return binding_; }
+    const Binding *operator->() const { JS_ASSERT(!done()); return &binding_; }
+    unsigned frameIndex() const { JS_ASSERT(!done()); return shape_.front().shortid(); }
+
+  private:
+    const Bindings *bindings_;
+    Binding binding_;
+    Shape::Range shape_;
+    Shape::Range::AutoRooter rooter_;
+};
+
+
+
+
+
+
+
+typedef Vector<Binding, 32> BindingVector;
+
+extern bool
+GetOrderedBindings(JSContext *cx, Bindings &bindings, BindingVector *vec);
 
 
 
@@ -86,6 +156,9 @@ typedef Vector<BindingName, 32> BindingNames;
 
 class Bindings
 {
+    friend class BindingIter;
+    friend class StaticScopeIter;
+
     HeapPtr<Shape> lastBinding;
     uint16_t nargs;
     uint16_t nvars;
@@ -107,9 +180,6 @@ class Bindings
     unsigned count() const { return nargs + nvars; }
 
     
-    inline BindingKind slotToFrameIndex(unsigned slot, unsigned *index);
-
-    
 
 
 
@@ -120,9 +190,6 @@ class Bindings
 
     
     inline bool ensureShape(JSContext *cx);
-
-    
-    inline Shape *lastShape() const;
 
     
 
@@ -183,37 +250,16 @@ class Bindings
 
 
 
-    BindingKind lookup(JSContext *cx, JSAtom *name, unsigned *indexp) const;
+    BindingIter::Init lookup(JSContext *cx, PropertyName *name) const;
 
     
-    bool hasBinding(JSContext *cx, JSAtom *name) const {
-        return lookup(cx, name, NULL) != NONE;
+    bool hasBinding(JSContext *cx, PropertyName *name) const {
+        Shape **_;
+        return lastBinding && Shape::search(cx, lastBinding, NameToId(name), &_) != NULL;
     }
 
     
-    inline unsigned argumentsVarIndex(JSContext *cx) const;
-
-    
-
-
-
-
-
-
-
-
-    bool getLocalNameArray(JSContext *cx, BindingNames *namesp);
-
-    
-
-
-
-
-
-
-
-
-    js::Shape *lastVariable() const;
+    unsigned argumentsVarIndex(JSContext *cx) const;
 
     void trace(JSTracer *trc);
 
@@ -236,32 +282,6 @@ class Bindings
         JS_DECL_USE_GUARD_OBJECT_NOTIFIER
     };
 };
-
-} 
-
-#ifdef JS_METHODJIT
-namespace JSC {
-    class ExecutablePool;
-}
-
-namespace js {
-namespace mjit {
-    struct JITScript;
-    class CallCompiler;
-}
-}
-
-#endif
-
-namespace js {
-namespace ion {
-    struct IonScript;
-}
-}
-
-namespace js {
-
-namespace analyze { class ScriptAnalysis; }
 
 class ScriptCounts
 {

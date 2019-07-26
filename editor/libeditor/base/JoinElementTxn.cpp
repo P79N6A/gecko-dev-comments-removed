@@ -3,10 +3,17 @@
 
 
 
+#include <stdio.h>                      
+
 #include "JoinElementTxn.h"
-#include "nsEditor.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMCharacterData.h"
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsEditor.h"                   
+#include "nsError.h"                    
+#include "nsIDOMCharacterData.h"        
+#include "nsIEditor.h"                  
+#include "nsINode.h"                    
+#include "nsISupportsImpl.h"            
 
 #ifdef DEBUG
 static bool gNoisy = false;

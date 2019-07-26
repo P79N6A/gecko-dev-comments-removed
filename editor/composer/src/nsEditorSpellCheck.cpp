@@ -3,29 +3,43 @@
 
 
 
+#include <stdlib.h>                     
+
+#include "mozilla/Attributes.h"         
+#include "mozilla/Preferences.h"        
+#include "mozilla/Services.h"           
+#include "mozilla/dom/Element.h"        
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"                  
+#include "nsComponentManagerUtils.h"    
+#include "nsDebug.h"                    
+#include "nsDependentSubstring.h"       
 #include "nsEditorSpellCheck.h"
-
-#include "nsStyleUtil.h"
-#include "nsIContent.h"
-#include "nsIDOMElement.h"
-#include "nsITextServicesDocument.h"
-#include "nsISpellChecker.h"
-#include "nsISelection.h"
-#include "nsIDOMRange.h"
-#include "nsIEditor.h"
-#include "nsIHTMLEditor.h"
-
-#include "nsIComponentManager.h"
-#include "nsIContentPrefService.h"
-#include "nsServiceManagerUtils.h"
-#include "nsIChromeRegistry.h"
-#include "nsString.h"
-#include "nsReadableUtils.h"
-#include "nsITextServicesFilter.h"
-#include "nsUnicharUtils.h"
-#include "mozilla/Services.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/dom/Element.h"
+#include "nsError.h"                    
+#include "nsIChromeRegistry.h"          
+#include "nsIContent.h"                 
+#include "nsIContentPrefService.h"      
+#include "nsIDOMDocument.h"             
+#include "nsIDOMElement.h"              
+#include "nsIDOMRange.h"                
+#include "nsIDocument.h"                
+#include "nsIEditor.h"                  
+#include "nsIHTMLEditor.h"              
+#include "nsISelection.h"               
+#include "nsISpellChecker.h"            
+#include "nsISupportsBase.h"            
+#include "nsISupportsUtils.h"           
+#include "nsITextServicesDocument.h"    
+#include "nsITextServicesFilter.h"      
+#include "nsIURI.h"                     
+#include "nsIVariant.h"                 
+#include "nsLiteralString.h"            
+#include "nsMemory.h"                   
+#include "nsReadableUtils.h"            
+#include "nsServiceManagerUtils.h"      
+#include "nsString.h"                   
+#include "nsStringFwd.h"                
+#include "nsStyleUtil.h"                
 
 using namespace mozilla;
 
@@ -494,6 +508,8 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
+  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
+
   if (!mUpdateDictionaryRunning) {
 
     nsDefaultStringComparator comparator;
@@ -581,6 +597,8 @@ NS_IMETHODIMP
 nsEditorSpellCheck::UpdateCurrentDictionary()
 {
   nsresult rv;
+
+  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
   UpdateDictionnaryHolder holder(this);
 

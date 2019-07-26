@@ -14,9 +14,8 @@
 
 
 
-SpanningCellSorter::SpanningCellSorter(nsIPresShell *aPresShell)
-  : mPresShell(aPresShell)
-  , mState(ADDING)
+SpanningCellSorter::SpanningCellSorter()
+  : mState(ADDING)
   , mSortedHashTable(nsnull)
 {
     memset(mArray, 0, sizeof(mArray));

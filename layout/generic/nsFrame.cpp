@@ -1331,15 +1331,22 @@ nsFrame::DisplaySelectionOverlay(nsDisplayListBuilder*   aBuilder,
   SelectionDetails *details;
   
   details = frameSelection->LookUpSelection(newContent, offset, 1, false);
-  
-  
   if (!details)
     return NS_OK;
   
+  bool normal = false;
   while (details) {
+    if (details->mType == nsISelectionController::SELECTION_NORMAL) {
+      normal = true;
+    }
     SelectionDetails *next = details->mNext;
     delete details;
     details = next;
+  }
+
+  if (!normal && aContentType == nsISelectionDisplay::DISPLAY_IMAGES) {
+    
+    return NS_OK;
   }
 
   return aList->AppendNewToTop(new (aBuilder)

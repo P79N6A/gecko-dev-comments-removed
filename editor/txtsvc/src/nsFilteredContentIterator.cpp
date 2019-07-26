@@ -3,16 +3,23 @@
 
 
 
-#include "nsFilteredContentIterator.h"
-#include "nsIContentIterator.h"
+#include "mozilla/mozalloc.h"
 #include "nsComponentManagerUtils.h"
-#include "nsIContent.h"
-#include "nsString.h"
-#include "nsIEnumerator.h"
-
 #include "nsContentUtils.h"
-
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsFilteredContentIterator.h"
+#include "nsIAtom.h"
+#include "nsIContent.h"
+#include "nsIContentIterator.h"
 #include "nsIDOMNode.h"
+#include "nsIDOMRange.h"
+#include "nsINode.h"
+#include "nsISupportsBase.h"
+#include "nsISupportsUtils.h"
+#include "nsITextServicesFilter.h"
+#include "nsRange.h"
+#include "prtypes.h"
 
 
 nsFilteredContentIterator::nsFilteredContentIterator(nsITextServicesFilter* aFilter) :
