@@ -13,7 +13,7 @@
 #include "mozilla/TimeStamp.h"
 #include <windows.h>
 
-class nsWindow;
+class nsWindowBase;
 class nsGUIEvent;
 struct nsIntPoint;
 
@@ -32,7 +32,7 @@ public:
   static void Initialize();
   static void Shutdown();
 
-  static bool ProcessMessage(nsWindow* aWindow,
+  static bool ProcessMessage(nsWindowBase* aWidget,
                              UINT msg,
                              WPARAM wParam,
                              LPARAM lParam,
@@ -42,7 +42,7 @@ public:
 
 
 
-  static nsresult SynthesizeNativeMouseScrollEvent(nsWindow* aWindow,
+  static nsresult SynthesizeNativeMouseScrollEvent(nsWindowBase* aWidget,
                                                    const nsIntPoint& aPoint,
                                                    uint32_t aNativeMessage,
                                                    int32_t aDelta,
@@ -72,13 +72,13 @@ private:
 
 
 
-  static bool DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent);
+  static bool DispatchEvent(nsWindowBase* aWidget, nsGUIEvent& aEvent);
 
   
 
 
 
-  static void InitEvent(nsWindow* aWindow,
+  static void InitEvent(nsWindowBase* aWidget,
                         nsGUIEvent& aEvent,
                         nsIntPoint* aPoint = nullptr);
 
@@ -113,7 +113,7 @@ private:
 
 
 
-  void ProcessNativeMouseWheelMessage(nsWindow* aWindow,
+  void ProcessNativeMouseWheelMessage(nsWindowBase* aWidget,
                                       UINT aMessage,
                                       WPARAM aWParam,
                                       LPARAM aLParam);
@@ -130,7 +130,7 @@ private:
 
 
 
-  bool ProcessNativeScrollMessage(nsWindow* aWindow,
+  bool ProcessNativeScrollMessage(nsWindowBase* aWidget,
                                   UINT aMessage,
                                   WPARAM aWParam,
                                   LPARAM aLParam);
@@ -145,7 +145,7 @@ private:
 
 
 
-  void HandleMouseWheelMessage(nsWindow* aWindow,
+  void HandleMouseWheelMessage(nsWindowBase* aWidget,
                                UINT aMessage,
                                WPARAM aWParam,
                                LPARAM aLParam);
@@ -161,7 +161,7 @@ private:
 
 
 
-  void HandleScrollMessageAsMouseWheelMessage(nsWindow* aWindow,
+  void HandleScrollMessageAsMouseWheelMessage(nsWindowBase* aWidget,
                                               UINT aMessage,
                                               WPARAM aWParam,
                                               LPARAM aLParam);
@@ -187,7 +187,7 @@ private:
 
 
 
-    EventInfo(nsWindow* aWindow, UINT aMessage, WPARAM aWParam, LPARAM aLParam);
+    EventInfo(nsWindowBase* aWidget, UINT aMessage, WPARAM aWParam, LPARAM aLParam);
 
     bool CanDispatchWheelEvent() const;
 
@@ -259,7 +259,7 @@ private:
 
 
 
-    bool InitWheelEvent(nsWindow* aWindow,
+    bool InitWheelEvent(nsWindowBase* aWidget,
                         WheelEvent& aWheelEvent,
                         const ModifierKeyState& aModKeyState);
 
@@ -365,7 +365,7 @@ private:
                         UINT aMessage, WPARAM aWParam, LPARAM aLParam,
                         const BYTE (&aKeyStates)[256]);
 
-    void NativeMessageReceived(nsWindow* aWindow, UINT aMessage,
+    void NativeMessageReceived(nsWindowBase* aWidget, UINT aMessage,
                                WPARAM aWParam, LPARAM aLParam);
 
     void NotifyNativeMessageHandlingFinished();
@@ -435,7 +435,7 @@ public:
 
 
 
-      static bool HandleKeyMessage(nsWindow* aWindow,
+      static bool HandleKeyMessage(nsWindowBase* aWidget,
                                    UINT aMsg,
                                    WPARAM aWParam);
 
