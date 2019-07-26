@@ -922,6 +922,28 @@ SurfaceStreamHostOGL::GetAsSurface() {
   return surf.forget();
 }
 
+void
+SurfaceStreamHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
+{
+  MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
+  mBuffer = aBuffer;
+  mDeAllocator = aAllocator;
+
+  if (mBuffer && mBuffer->type() == SurfaceDescriptor::TSurfaceStreamDescriptor) {
+    
+    
+    
+    
+    const SurfaceStreamDescriptor& streamDesc =
+        mBuffer->get_SurfaceStreamDescriptor();
+
+    SurfaceStream* surfStream = SurfaceStream::FromHandle(streamDesc.handle());
+    if (surfStream) {
+      mStreamGL = dont_AddRef(surfStream->GLContext());
+    }
+  } 
+}
+
 already_AddRefed<gfxImageSurface>
 TiledDeprecatedTextureHostOGL::GetAsSurface() {
   nsRefPtr<gfxImageSurface> surf = IsValid() ?

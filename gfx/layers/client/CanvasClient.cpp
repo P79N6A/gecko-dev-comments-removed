@@ -125,6 +125,12 @@ CanvasClientWebGL::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   } else {
     SurfaceStreamHandle handle = stream->GetShareHandle();
     mDeprecatedTextureClient->SetDescriptor(SurfaceStreamDescriptor(handle, false));
+
+    
+    
+    
+    
+    aLayer->mGLContext->AddRef();
   }
 
   aLayer->Painted();

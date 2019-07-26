@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "gfxPoint.h"
 #include "SurfaceTypes.h"
+#include "GLContext.h"
 
 namespace mozilla {
 namespace gfx {
@@ -31,6 +32,7 @@ public:
                                                 bool preserveBuffer);
 
     static SurfaceStream* CreateForType(SurfaceStreamType type,
+                                        mozilla::gl::GLContext* glContext,
                                         SurfaceStream* prevStream = nullptr);
 
     SurfaceStreamHandle GetShareHandle() {
@@ -42,6 +44,8 @@ public:
     }
 
     const SurfaceStreamType mType;
+
+    mozilla::gl::GLContext* GLContext() const { return mGLContext; }
 protected:
     
     
@@ -50,6 +54,10 @@ protected:
     std::stack<SharedSurface*> mScraps;
     mutable Monitor mMonitor;
     bool mIsAlive;
+
+    
+    
+    mozilla::gl::GLContext* mGLContext;
 
     
     
