@@ -445,20 +445,20 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
   }
 
   nsPresContext* pc = PresContext();
+  nsIView* view = GetView();
+
+  if (sizeChanged) {
+    
+    nsIWidget* widget = view->GetWidget();
+    if (widget) {
+      SetSizeConstraints(pc, widget, minSize, maxSize);
+    }
+  }
+
   if (isOpen) {
-    nsIView* view = GetView();
     nsIViewManager* viewManager = view->GetViewManager();
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
-
-    if (sizeChanged) {
-      
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        SetSizeConstraints(pc, widget, minSize, maxSize);
-      }
-    }
-
     viewManager->ResizeView(view, rect);
 
     viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
