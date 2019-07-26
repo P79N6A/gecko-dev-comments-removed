@@ -1241,23 +1241,67 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
     
     
     nsIFrame* firstNewFrame = aFrameItems.FirstChild();  
+
+    
+    nsAutoTArray<nsIFrame*, 20> firstNewFrameAncestors;
+    nsIFrame* notCommonAncestor = nullptr;
+    if (lastChild) {
+      notCommonAncestor = nsLayoutUtils::FillAncestors(firstNewFrame,
+                                                       containingBlock,
+                                                       &firstNewFrameAncestors);
+    }
+
     if (!lastChild ||
-        nsLayoutUtils::CompareTreePosition(lastChild, firstNewFrame, containingBlock) < 0) {
+        nsLayoutUtils::CompareTreePosition(lastChild, firstNewFrame,
+                                           firstNewFrameAncestors,
+                                           notCommonAncestor ?
+                                             containingBlock : nullptr) < 0) {
       
       rv = mFrameManager->AppendFrames(containingBlock, aChildListID, aFrameItems);
     } else {
       
-      nsIFrame* insertionPoint = nullptr;
+      
+      nsAutoTArray<nsIFrame*, 128> children;
       for (nsIFrame* f = childList.FirstChild(); f != lastChild;
            f = f->GetNextSibling()) {
+        children.AppendElement(f);
+      }
+
+      nsIFrame* insertionPoint = nullptr;
+      int32_t imin = 0;
+      int32_t max = children.Length();
+      while (max > imin) {
+        int32_t imid = imin + ((max - imin) / 2);
+        nsIFrame* f = children[imid];
         int32_t compare =
-          nsLayoutUtils::CompareTreePosition(f, firstNewFrame, containingBlock);
+          nsLayoutUtils::CompareTreePosition(f, firstNewFrame, firstNewFrameAncestors,
+                                             notCommonAncestor ? containingBlock : nullptr);
         if (compare > 0) {
           
+          max = imid;
+          insertionPoint = imid > 0 ? children[imid - 1] : nullptr;
+        } else if (compare < 0) {
           
+          imin = imid + 1;
+          insertionPoint = f;
+        } else {
+          
+          
+          
+          NS_WARNING("Something odd happening???");
+          insertionPoint = nullptr;
+          for (uint32_t i = 0; i < children.Length(); ++i) {
+            nsIFrame* f = children[i];
+            if (nsLayoutUtils::CompareTreePosition(f, firstNewFrame,
+                                                   firstNewFrameAncestors,
+                                                   notCommonAncestor ?
+                                                     containingBlock : nullptr) > 0) {
+              break;
+            }
+            insertionPoint = f;
+          }
           break;
         }
-        insertionPoint = f;
       }
       rv = mFrameManager->InsertFrames(containingBlock, aChildListID,
                                        insertionPoint, aFrameItems);
