@@ -107,7 +107,8 @@ WebVTTListener::OnStopRequest(nsIRequest* aRequest,
                               nsresult aStatus)
 {
   if (mElement->ReadyState() != HTMLTrackElement::ERROR) {
-    mElement->mTrack->SetReadyState(HTMLTrackElement::LOADED);
+    TextTrack* track = mElement->Track();
+    track->SetReadyState(HTMLTrackElement::LOADED);
   }
   
   mParserWrapper->Flush();
