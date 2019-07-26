@@ -240,6 +240,11 @@ public:
     return style;
   }
 
+  
+
+
+
+
   virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
 
 #define EVENT(name_, id_, type_, struct_)
@@ -773,13 +778,6 @@ private:
   void RegUnRegAccessKey(bool aDoReg);
 
 protected:
-  
-
-
-
-
-  bool IsEventName(nsIAtom* aName);
-
   virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify);
