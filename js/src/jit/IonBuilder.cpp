@@ -813,26 +813,11 @@ IonBuilder::rewriteParameter(uint32_t slotIdx, MDefinition *param, int32_t argIn
 
     types::TemporaryTypeSet *types = param->resultTypeSet();
     JSValueType definiteType = types->getKnownTypeTag();
-    if (definiteType == JSVAL_TYPE_UNKNOWN)
+
+    MDefinition *actual = EnsureDefiniteType(param, definiteType);
+    if (actual == param)
         return;
 
-    MInstruction *actual = nullptr;
-    switch (definiteType) {
-      case JSVAL_TYPE_UNDEFINED:
-        param->setFoldedUnchecked();
-        actual = MConstant::New(UndefinedValue());
-        break;
-
-      case JSVAL_TYPE_NULL:
-        param->setFoldedUnchecked();
-        actual = MConstant::New(NullValue());
-        break;
-
-      default:
-        actual = MUnbox::New(param, MIRTypeFromValueType(definiteType), MUnbox::Infallible);
-        break;
-    }
-
     
     
     
@@ -842,7 +827,6 @@ IonBuilder::rewriteParameter(uint32_t slotIdx, MDefinition *param, int32_t argIn
     
     
     
-    current->add(actual);
     current->rewriteSlot(slotIdx, actual);
 }
 
@@ -5261,13 +5245,20 @@ IonBuilder::makeCall(JSFunction *target, CallInfo &callInfo, bool cloneAtCallsit
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
 
     bool barrier = true;
+    MDefinition *replace = call;
     if (call->isDOMFunction()) {
         JSFunction* target = call->getSingleTarget();
         JS_ASSERT(target && target->isNative() && target->jitInfo());
-        barrier = DOMCallNeedsBarrier(target->jitInfo(), types);
+        const JSJitInfo *jitinfo = target->jitInfo();
+        barrier = DOMCallNeedsBarrier(jitinfo, types);
+        replace = EnsureDefiniteType(call, jitinfo->returnType);
+        if (replace != call) {
+            current->pop();
+            current->push(replace);
+        }
     }
 
-    return pushTypeBarrier(call, types, barrier);
+    return pushTypeBarrier(replace, types, barrier);
 }
 
 bool
@@ -6102,7 +6093,7 @@ IonBuilder::testSingletonPropertyTypes(MDefinition *obj, JSObject *singleton, Pr
 
 
 bool
-IonBuilder::pushTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed, bool needsBarrier)
+IonBuilder::pushTypeBarrier(MDefinition *def, types::TemporaryTypeSet *observed, bool needsBarrier)
 {
     
     if (BytecodeIsPopped(pc))
@@ -6116,35 +6107,12 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed
 
     if (!needsBarrier) {
         JSValueType type = observed->getKnownTypeTag();
-        MInstruction *replace = nullptr;
-        switch (type) {
-          case JSVAL_TYPE_UNDEFINED:
-            ins->setFoldedUnchecked();
-            replace = MConstant::New(UndefinedValue());
-            break;
-          case JSVAL_TYPE_NULL:
-            ins->setFoldedUnchecked();
-            replace = MConstant::New(NullValue());
-            break;
-          case JSVAL_TYPE_UNKNOWN:
-            break;
-          default: {
-            MIRType replaceType = MIRTypeFromValueType(type);
-            if (ins->type() == MIRType_Value)
-                replace = MUnbox::New(ins, replaceType, MUnbox::Infallible);
-            else
-                JS_ASSERT(ins->type() == replaceType);
-            break;
-          }
-        }
-        if (replace) {
+        MDefinition *replace = EnsureDefiniteType(def, type);
+        if (replace != def) {
             current->pop();
-            current->add(replace);
             current->push(replace);
-            replace->setResultTypeSet(observed);
-        } else {
-            ins->setResultTypeSet(observed);
         }
+        replace->setResultTypeSet(observed);
         return true;
     }
 
@@ -6153,7 +6121,7 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed
 
     current->pop();
 
-    MInstruction *barrier = MTypeBarrier::New(ins, observed);
+    MInstruction *barrier = MTypeBarrier::New(def, observed);
     current->add(barrier);
 
     if (barrier->type() == MIRType_Undefined)
@@ -6163,6 +6131,39 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed
 
     current->push(barrier);
     return true;
+}
+
+MDefinition *
+IonBuilder::EnsureDefiniteType(MDefinition *def, JSValueType definiteType)
+{
+    MInstruction *replace;
+    switch (definiteType) {
+      case JSVAL_TYPE_UNDEFINED:
+        def->setFoldedUnchecked();
+        replace = MConstant::New(UndefinedValue());
+        break;
+
+      case JSVAL_TYPE_NULL:
+        def->setFoldedUnchecked();
+        replace = MConstant::New(NullValue());
+        break;
+
+      case JSVAL_TYPE_UNKNOWN:
+        return def;
+
+      default: {
+        MIRType replaceType = MIRTypeFromValueType(definiteType);
+        if (def->type() != MIRType_Value) {
+            JS_ASSERT(def->type() == replaceType);
+            return def;
+        }
+        replace = MUnbox::New(def, replaceType, MUnbox::Infallible);
+        break;
+      }
+    }
+
+    current->add(replace);
+    return replace;
 }
 
 static size_t
@@ -8320,7 +8321,12 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
         if (get->isEffectful() && !resumeAfter(get))
             return false;
         bool barrier = DOMCallNeedsBarrier(jitinfo, types);
-        if (!pushTypeBarrier(get, types, barrier))
+        MDefinition *replace = EnsureDefiniteType(get, jitinfo->returnType);
+        if (replace != get) {
+            current->pop();
+            current->push(replace);
+        }
+        if (!pushTypeBarrier(replace, types, barrier))
             return false;
 
         *emitted = true;
