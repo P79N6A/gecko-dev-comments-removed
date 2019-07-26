@@ -97,7 +97,7 @@ TextureImage::UpdateFromDataSource(gfx::DataSourceSurface *aSurface,
                               ThebesIntSize(aSurface->GetSize()),
                               aSurface->Stride(),
                               SurfaceFormatToImageFormat(aSurface->GetFormat()));
-    return DirectUpdate(thebesSurf, destRegion, thebesSrcPoint);
+    return DeprecatedDirectUpdate(thebesSurf, destRegion, thebesSrcPoint);
 }
 
 gfx::IntRect TextureImage::GetTileRect() {
@@ -225,7 +225,7 @@ BasicTextureImage::FinishedSurfaceUpload()
 }
 
 bool
-BasicTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+BasicTextureImage::DeprecatedDirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
 {
     nsIntRect bounds = aRegion.GetBounds();
     nsIntRegion region;
@@ -360,7 +360,7 @@ TiledTextureImage::~TiledTextureImage()
 }
 
 bool
-TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+TiledTextureImage::DeprecatedDirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
 {
     if (mSize.width == 0 || mSize.height == 0) {
         return true;
@@ -398,7 +398,7 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
         }
 
         result &= mImages[mCurrentImage]->
-          DirectUpdate(aSurf, tileRegion, aFrom + nsIntPoint(xPos, yPos));
+          DeprecatedDirectUpdate(aSurf, tileRegion, aFrom + nsIntPoint(xPos, yPos));
 
         if (mCurrentImage == mImages.Length() - 1) {
             
