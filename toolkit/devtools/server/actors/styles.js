@@ -715,8 +715,15 @@ var StyleRuleActor = protocol.ActorClass({
 
     
     
-    let tempElement = Services.appShell.hiddenDOMWindow.
-      document.createElement("div");
+
+    let document;
+    if (this.rawNode) {
+      document = this.rawNode.ownerDocument;
+    } else {
+      document = this.rawRule.parentStyleSheet.ownerNode.ownerDocument;
+    }
+
+    let tempElement = document.createElement("div");
 
     for (let mod of modifications) {
       if (mod.type === "set") {
