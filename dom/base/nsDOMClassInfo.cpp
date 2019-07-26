@@ -3607,8 +3607,13 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
   }
 
   
+  
+  nsIXPConnect *xpc = XPConnect();
+  NS_ENSURE_TRUE(xpc, true);
+
+  
   JSObject *global = JS_GetGlobalForObject(cx, obj);
-  nsISupports *globalNative = XPConnect()->GetNativeOfWrapper(cx, global);
+  nsISupports *globalNative = xpc->GetNativeOfWrapper(cx, global);
   nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(globalNative);
   MOZ_ASSERT(piWin);
   nsGlobalWindow* win = static_cast<nsGlobalWindow*>(piWin.get());
