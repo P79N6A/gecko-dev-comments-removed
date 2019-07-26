@@ -1437,10 +1437,11 @@ ThreadClient.prototype = {
             location,
             root.traits.conditionalBreakpoints ? condition : undefined
           );
-          aOnResponse(aResponse, bpClient);
-        }
-        if (aCallback) {
-          aCallback();
+          if (aCallback) {
+            aCallback(aOnResponse(aResponse, bpClient));
+          } else {
+            aOnResponse(aResponse, bpClient);
+          }
         }
       }.bind(this));
     }.bind(this);
@@ -2257,35 +2258,19 @@ BreakpointClient.prototype = {
       let info = {
         url: this.location.url,
         line: this.location.line,
-        column: this.location.column,
         condition: aCondition
       };
-
-      
-      
-      this.remove(aResponse => {
-        if (aResponse && aResponse.error) {
+      gThreadClient.setBreakpoint(info, (aResponse, ignoredBreakpoint) => {
+        if(aResponse && aResponse.error) {
           deferred.reject(aResponse);
-          return;
+        } else {
+          this.condition = aCondition;
+          deferred.resolve(null);
         }
-
-        gThreadClient.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
-          if (aResponse && aResponse.error) {
-            deferred.reject(aResponse);
-          } else {
-            deferred.resolve(aNewBreakpoint);
-          }
-        });
       });
     } else {
-      
-      if(aCondition === "") {
-        delete this.conditionalExpression;
-      }
-      else {
-        this.conditionalExpression = aCondition;
-      }
-      deferred.resolve(this);
+      this.conditionalExpression = aCondition;
+      deferred.resolve(null);
     }
 
     return deferred.promise;

@@ -90,7 +90,6 @@ const FRAME_TYPE = {
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/devtools/SimpleListWidget.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
@@ -610,12 +609,12 @@ StackFrames.prototype = {
         
         let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
         if (breakpointPromise) {
-          waitForNextPause = true;
           breakpointPromise.then(({ conditionalExpression: e }) => { if (e) {
             
             
             
             this.evaluate(e, { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL });
+            waitForNextPause = true;
           }});
         }
       }
@@ -1836,23 +1835,24 @@ Breakpoints.prototype = {
 
 
 
-  addBreakpoint: Task.async(function*(aLocation, aOptions = {}) {
+  addBreakpoint: function(aLocation, aOptions = {}) {
     
     if (!aLocation) {
-      throw new Error("Invalid breakpoint location.");
+      return promise.reject(new Error("Invalid breakpoint location."));
     }
-    let addedPromise, removingPromise;
 
     
     
-    if ((addedPromise = this._getAdded(aLocation))) {
+    let addedPromise = this._getAdded(aLocation);
+    if (addedPromise) {
       return addedPromise;
     }
 
     
     
-    if ((removingPromise = this._getRemoving(aLocation))) {
-      yield removingPromise;
+    let removingPromise = this._getRemoving(aLocation);
+    if (removingPromise) {
+      return removingPromise.then(() => this.addBreakpoint(aLocation, aOptions));
     }
 
     let deferred = promise.defer();
@@ -1862,7 +1862,7 @@ Breakpoints.prototype = {
     this._added.set(identifier, deferred.promise);
 
     
-    gThreadClient.setBreakpoint(aLocation, Task.async(function*(aResponse, aBreakpointClient) {
+    gThreadClient.setBreakpoint(aLocation, (aResponse, aBreakpointClient) => {
       
       
       if (aResponse.actualLocation) {
@@ -1871,6 +1871,11 @@ Breakpoints.prototype = {
         let newIdentifier = identifier = this.getIdentifier(aResponse.actualLocation);
         this._added.delete(oldIdentifier);
         this._added.set(newIdentifier, deferred.promise);
+
+        
+        
+        aBreakpointClient.requestedLocation = aLocation;
+        aBreakpointClient.location = aResponse.actualLocation;
       }
 
       
@@ -1878,23 +1883,13 @@ Breakpoints.prototype = {
       
       let disabledPromise = this._disabled.get(identifier);
       if (disabledPromise) {
-        let aPrevBreakpointClient = yield disabledPromise;
-        let condition = aPrevBreakpointClient.getCondition();
+        disabledPromise.then((aPrevBreakpointClient) => {
+          let condition = aPrevBreakpointClient.getCondition();
+          if (condition) {
+            aBreakpointClient.setCondition(gThreadClient, condition);
+          }
+        });
         this._disabled.delete(identifier);
-
-        if (condition) {
-          aBreakpointClient = yield aBreakpointClient.setCondition(
-            gThreadClient,
-            condition
-          );
-        }
-      }
-
-      if (aResponse.actualLocation) {
-        
-        
-        aBreakpointClient.requestedLocation = aLocation;
-        aBreakpointClient.location = aResponse.actualLocation;
       }
 
       
@@ -1910,10 +1905,10 @@ Breakpoints.prototype = {
       
       window.emit(EVENTS.BREAKPOINT_ADDED, aBreakpointClient);
       deferred.resolve(aBreakpointClient);
-    }.bind(this)));
+    });
 
     return deferred.promise;
-  }),
+  },
 
   
 
@@ -2037,14 +2032,12 @@ Breakpoints.prototype = {
                                       'in specified location'));
     }
 
-    var promise = addedPromise.then(aBreakpointClient => {
+    return addedPromise.then(aBreakpointClient => {
       return aBreakpointClient.setCondition(gThreadClient, aCondition);
+    }, err => {
+      DevToolsUtils.reportException("Breakpoints.prototype.updateCondition",
+                                    err);
     });
-
-    
-    
-    this._added.set(this.getIdentifier(aLocation), promise);
-    return promise;
   },
 
   
