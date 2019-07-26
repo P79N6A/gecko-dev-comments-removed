@@ -711,12 +711,15 @@ int64_t GStreamerReader::QueryDuration()
     }
   }
 
-  
-
-
-
-
-
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    int64_t media_duration = mDecoder->GetMediaDuration();
+    if (media_duration != -1 && media_duration > duration) {
+      
+      LOG(PR_LOG_DEBUG, ("decoded duration > estimated duration"));
+      duration = media_duration;
+    }
+  }
 
   return duration;
 }
