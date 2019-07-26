@@ -173,8 +173,22 @@ extern JS_FRIEND_API(void)
 js_DumpChars(const jschar *s, size_t n);
 #endif
 
+
+
+
+
+
+
 extern JS_FRIEND_API(bool)
 JS_CopyPropertiesFrom(JSContext *cx, JSObject *target, JSObject *obj);
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+JS_CopyPropertyFrom(JSContext *cx, JS::HandleId id, JS::HandleObject target,
+                    JS::HandleObject obj);
 
 extern JS_FRIEND_API(bool)
 JS_WrapPropertyDescriptor(JSContext *cx, JS::MutableHandle<JSPropertyDescriptor> desc);
