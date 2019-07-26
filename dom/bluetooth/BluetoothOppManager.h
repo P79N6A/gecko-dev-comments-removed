@@ -45,20 +45,6 @@ public:
   void ClientDataHandler(mozilla::ipc::UnixSocketRawData* aMessage);
   void ServerDataHandler(mozilla::ipc::UnixSocketRawData* aMessage);
 
-  
-
-
-
-
-
-
-
-
-
-
-  void Connect(const nsAString& aDeviceAddress,
-               BluetoothReplyRunnable* aRunnable);
-  void Disconnect();
   bool Listen();
 
   bool SendFile(const nsAString& aDeviceAddress, BlobParent* aBlob);
@@ -80,16 +66,34 @@ public:
   void ReceiveSocketData(
     BluetoothSocket* aSocket,
     nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
+  virtual void OnSocketConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
+  virtual void OnSocketConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
+  virtual void OnSocketDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
 
-  virtual void OnConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
+  
   virtual void OnGetServiceChannel(const nsAString& aDeviceAddress,
                                    const nsAString& aServiceUuid,
                                    int aChannel) MOZ_OVERRIDE;
   virtual void OnUpdateSdpRecords(const nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual void GetAddress(nsAString& aDeviceAddress) MOZ_OVERRIDE;
   virtual bool IsConnected() MOZ_OVERRIDE;
+
+  
+
+
+
+
+
+
+
+
+
+
+  virtual void Connect(const nsAString& aDeviceAddress,
+                       BluetoothProfileController* aController) MOZ_OVERRIDE;
+  virtual void Disconnect(BluetoothProfileController* aController) MOZ_OVERRIDE;
+  virtual void OnConnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
+  virtual void OnDisconnect(const nsAString& aErrorStr) MOZ_OVERRIDE;
 
 private:
   BluetoothOppManager();
@@ -211,6 +215,7 @@ private:
   nsCOMPtr<nsIInputStream> mInputStream;
   nsCOMPtr<nsIVolumeMountLock> mMountLock;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+  BluetoothProfileController* mController;
   nsRefPtr<DeviceStorageFile> mDsFile;
 
   
