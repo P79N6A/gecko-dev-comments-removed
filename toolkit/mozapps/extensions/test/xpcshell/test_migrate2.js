@@ -177,7 +177,7 @@ function run_test() {
   stmt.finalize();
 
   db.schemaVersion = 10000;
-  Services.prefs.setIntPref("extensions.databaseSchema", 100);
+  Services.prefs.setIntPref("extensions.databaseSchema", 14);
   db.close();
 
   startupManager();
