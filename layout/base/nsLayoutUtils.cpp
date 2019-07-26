@@ -149,10 +149,10 @@ FlexboxEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
     
     
     sIndexOfFlexInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword__moz_flex,
+      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_flex,
                                      nsCSSProps::kDisplayKTable);
     sIndexOfInlineFlexInDisplayTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword__moz_inline_flex,
+      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_inline_flex,
                                      nsCSSProps::kDisplayKTable);
 
     sAreFlexKeywordIndicesInitialized = true;
@@ -162,11 +162,11 @@ FlexboxEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
   
   if (sIndexOfFlexInDisplayTable >= 0) {
     nsCSSProps::kDisplayKTable[sIndexOfFlexInDisplayTable] =
-      isFlexboxEnabled ? eCSSKeyword__moz_flex : eCSSKeyword_UNKNOWN;
+      isFlexboxEnabled ? eCSSKeyword_flex : eCSSKeyword_UNKNOWN;
   }
   if (sIndexOfInlineFlexInDisplayTable >= 0) {
     nsCSSProps::kDisplayKTable[sIndexOfInlineFlexInDisplayTable] =
-      isFlexboxEnabled ? eCSSKeyword__moz_inline_flex : eCSSKeyword_UNKNOWN;
+      isFlexboxEnabled ? eCSSKeyword_inline_flex : eCSSKeyword_UNKNOWN;
   }
 
   return 0;

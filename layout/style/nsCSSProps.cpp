@@ -961,8 +961,8 @@ int32_t nsCSSProps::kDisplayKTable[] = {
   
   
   
-  eCSSKeyword__moz_flex,          NS_STYLE_DISPLAY_FLEX,
-  eCSSKeyword__moz_inline_flex,   NS_STYLE_DISPLAY_INLINE_FLEX,
+  eCSSKeyword_flex,               NS_STYLE_DISPLAY_FLEX,
+  eCSSKeyword_inline_flex,        NS_STYLE_DISPLAY_INLINE_FLEX,
 #endif 
   eCSSKeyword_UNKNOWN,-1
 };

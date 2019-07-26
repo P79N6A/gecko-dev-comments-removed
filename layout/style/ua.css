@@ -41,8 +41,8 @@
   page-break-after: inherit;
   vertical-align: inherit; 
   line-height: inherit; 
-  -moz-align-self: inherit; 
-  -moz-order: inherit; 
+  align-self: inherit; 
+  order: inherit;   
   
   -moz-transform: inherit;
   -moz-transform-origin: inherit;
