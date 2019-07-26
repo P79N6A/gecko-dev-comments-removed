@@ -1517,8 +1517,10 @@ DocAccessible::DoInitialUpdate()
   
   
   nsIContent* contentElm = nsCoreUtils::GetRoleContent(mDocumentNode);
-  if (mContent != contentElm)
+  if (mContent != contentElm) {
     mContent = contentElm;
+    SetRoleMapEntry(aria::GetRoleMap(mContent));
+  }
 
   
   CacheChildrenInSubtree(this);
@@ -1739,8 +1741,10 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
       if (aContainer == this) {
         
         nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocumentNode);
-        if (rootContent != mContent)
+        if (rootContent != mContent) {
           mContent = rootContent;
+          SetRoleMapEntry(aria::GetRoleMap(mContent));
+        }
 
         
         
