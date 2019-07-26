@@ -8,6 +8,7 @@
 #include "mozilla/Attributes.h"
 
 #include "MediaConduitInterface.h"
+#include "MediaEngineWrapper.h"
 
 
 #include "webrtc/common_types.h"
@@ -185,13 +186,7 @@ public:
                       mVideoEngine(nullptr),
                       mTransport(nullptr),
                       mRenderer(nullptr),
-                      mPtrViEBase(nullptr),
-                      mPtrViECapture(nullptr),
-                      mPtrViECodec(nullptr),
-                      mPtrViENetwork(nullptr),
-                      mPtrViERender(nullptr),
                       mPtrExtCapture(nullptr),
-                      mPtrRTP(nullptr),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
@@ -260,13 +255,14 @@ private:
   mozilla::RefPtr<TransportInterface> mTransport;
   mozilla::RefPtr<VideoRenderer> mRenderer;
 
-  webrtc::ViEBase* mPtrViEBase;
-  webrtc::ViECapture* mPtrViECapture;
-  webrtc::ViECodec* mPtrViECodec;
-  webrtc::ViENetwork* mPtrViENetwork;
-  webrtc::ViERender* mPtrViERender;
-  webrtc::ViEExternalCapture*  mPtrExtCapture; 
-  webrtc::ViERTP_RTCP* mPtrRTP;
+  ScopedCustomReleasePtr<webrtc::ViEBase> mPtrViEBase;
+  ScopedCustomReleasePtr<webrtc::ViECapture> mPtrViECapture;
+  ScopedCustomReleasePtr<webrtc::ViECodec> mPtrViECodec;
+  ScopedCustomReleasePtr<webrtc::ViENetwork> mPtrViENetwork;
+  ScopedCustomReleasePtr<webrtc::ViERender> mPtrViERender;
+  ScopedCustomReleasePtr<webrtc::ViERTP_RTCP> mPtrRTP;
+
+  webrtc::ViEExternalCapture* mPtrExtCapture; 
 
   
   bool mEngineTransmitting; 

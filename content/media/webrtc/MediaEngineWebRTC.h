@@ -28,6 +28,8 @@
 #include "MediaStreamGraph.h"
 #include "LoadMonitor.h"
 
+#include "MediaEngineWrapper.h"
+
 
 
 
@@ -308,10 +310,10 @@ private:
   void Shutdown();
 
   webrtc::VoiceEngine* mVoiceEngine;
-  webrtc::VoEBase* mVoEBase;
-  webrtc::VoEExternalMedia* mVoERender;
-  webrtc::VoENetwork*  mVoENetwork;
-  webrtc::VoEAudioProcessing *mVoEProcessing;
+  ScopedCustomReleasePtr<webrtc::VoEBase> mVoEBase;
+  ScopedCustomReleasePtr<webrtc::VoEExternalMedia> mVoERender;
+  ScopedCustomReleasePtr<webrtc::VoENetwork> mVoENetwork;
+  ScopedCustomReleasePtr<webrtc::VoEAudioProcessing> mVoEProcessing;
 
   
   
