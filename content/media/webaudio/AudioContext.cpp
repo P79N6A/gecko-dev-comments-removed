@@ -64,8 +64,6 @@ NS_IMPL_RELEASE_INHERITED(AudioContext, nsDOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(AudioContext)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
 
-static uint8_t gWebAudioOutputKey;
-
 static float GetSampleRateForAudioContext(bool aIsOffline, float aSampleRate)
 {
   if (aIsOffline) {
@@ -95,7 +93,6 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
   
   mDestination = new AudioDestinationNode(this, aIsOffline, aNumberOfChannels,
                                           aLength, aSampleRate);
-  mDestination->Stream()->AddAudioOutput(&gWebAudioOutputKey);
   
   
   
