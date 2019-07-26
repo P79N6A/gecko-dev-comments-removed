@@ -3,9 +3,10 @@
 
 
 
-#include "mozilla/Util.h"
 
 #include "nsMathMLElement.h"
+#include "base/compiler_specific.h"
+#include "mozilla/Util.h"
 #include "nsGkAtoms.h"
 #include "nsCRT.h"
 #include "nsRuleData.h"
@@ -74,6 +75,14 @@ ReportParseErrorNoTag(const nsString& aValue,
          ReportToConsole(nsIScriptError::errorFlag, "MathML", aDocument,
                          nsContentUtils::eMATHML_PROPERTIES,
                          "AttributeParsingErrorNoTag", argv, 2);
+}
+
+nsMathMLElement::nsMathMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+: nsMathMLElementBase(aNodeInfo),
+  ALLOW_THIS_IN_INITIALIZER_LIST(Link(this)),
+  mIncrementScriptLevel(false)
+{
+  SetIsDOMBinding();
 }
 
 nsresult
