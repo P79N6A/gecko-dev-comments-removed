@@ -304,12 +304,14 @@ TabTracker.prototype = {
 
     switch (topic) {
       case "domwindowopened":
-        
-        subject.addEventListener("load", (event) => {
+        let onLoad = () => {
           subject.removeEventListener("load", onLoad, false);
           
           this._registerListenersForWindow(subject);
-        }, false);
+        };
+
+        
+        subject.addEventListener("load", onLoad, false);
         break;
     }
   },
