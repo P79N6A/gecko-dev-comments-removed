@@ -21,7 +21,6 @@
 }
 
 #define NS_BINARYOUTPUTSTREAM_CONTRACTID "@mozilla.org/binaryoutputstream;1"
-#define NS_BINARYOUTPUTSTREAM_CLASSNAME "Binary Output Stream"
 
 
 
@@ -61,7 +60,6 @@ protected:
 }
 
 #define NS_BINARYINPUTSTREAM_CONTRACTID "@mozilla.org/binaryinputstream;1"
-#define NS_BINARYINPUTSTREAM_CLASSNAME "Binary Input Stream"
 
 
 

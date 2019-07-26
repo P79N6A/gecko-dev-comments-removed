@@ -28,8 +28,6 @@ NS_NewWindowsRegKey(nsIWindowsRegKey **result);
 
 #ifdef _IMPL_NS_COM
 
-#define NS_WINDOWSREGKEY_CLASSNAME "nsWindowsRegKey"
-
 
 #define NS_WINDOWSREGKEY_CID \
   { 0xa53bc624, 0xd577, 0x4839, \
