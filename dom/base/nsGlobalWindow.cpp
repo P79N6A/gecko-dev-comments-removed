@@ -226,6 +226,7 @@
 #include "TimeChangeObserver.h"
 #include "nsPISocketTransportService.h"
 #include "mozilla/dom/AudioContext.h"
+#include "mozilla/dom/FunctionBinding.h"
 
 
 #ifdef check
@@ -1386,8 +1387,12 @@ nsGlobalWindow::UnmarkGrayTimers()
        timeout;
        timeout = timeout->getNext()) {
     if (timeout->mScriptHandler) {
-      JSObject* o = timeout->mScriptHandler->GetScriptObject();
-      xpc_UnmarkGrayObject(o);
+      Function* f = timeout->mScriptHandler->GetCallback();
+      if (f) {
+        
+        JSObject* o = f->Callable();
+        MOZ_ASSERT(!xpc_IsGrayGCThing(o), "Should have been unmarked");
+      }
     }
   }
 }
@@ -9746,8 +9751,8 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
   }
 
   nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
-  JSObject* scriptObject = handler->GetScriptObject();
-  if (!scriptObject) {
+  nsRefPtr<Function> callback = handler->GetCallback();
+  if (!callback) {
     
     const PRUnichar* script = handler->GetHandlerText();
     NS_ASSERTION(script, "timeout has no script nor handler text!");
@@ -9762,14 +9767,13 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
                          filename, lineNo, JSVERSION_DEFAULT, nullptr,
                          &is_undefined);
   } else {
-    nsCOMPtr<nsIVariant> dummy;
+    
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
-    aScx->CallEventHandler(me, FastGetGlobalJSObject(),
-                           scriptObject, handler->GetArgv(),
-                           
-                           
-                           getter_AddRefs(dummy));
-
+    ErrorResult ignored;
+    
+    
+    
+    callback->Call(me.get(), handler->GetArgs(), ignored);
   }
 
   
