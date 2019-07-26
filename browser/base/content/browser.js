@@ -4149,6 +4149,14 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
     }
   }
 
+
+  let addToPanel = popup.querySelector(".customize-context-addToPanel");
+  let removeFromToolbar = popup.querySelector(".customize-context-removeFromToolbar");
+  
+  if (!addToPanel || !removeFromToolbar) {
+    return;
+  }
+
   
   let toolbarItem = aEvent.explicitOriginalTarget;
 
@@ -4167,17 +4175,10 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
 
   
   
-  if (!toolbarItem.parentNode) {
-    return;
-  }
-
-  let addToPanel = popup.querySelector(".customize-context-addToPanel");
-  let removeFromToolbar = popup.querySelector(".customize-context-removeFromToolbar");
   
-  if (!addToPanel || !removeFromToolbar) {
-    return;
-  }
-  let movable = toolbarItem && CustomizableUI.isWidgetRemovable(toolbarItem);
+  
+  let movable = toolbarItem && toolbarItem.parentNode &&
+                CustomizableUI.isWidgetRemovable(toolbarItem);
   if (movable) {
     addToPanel.removeAttribute("disabled");
     removeFromToolbar.removeAttribute("disabled");
