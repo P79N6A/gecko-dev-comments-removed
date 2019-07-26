@@ -342,31 +342,6 @@ ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, Parse
     return handler->new_<BinaryNode>(kind, op, left, right);
 }
 
-inline void
-NameNode::initCommon(ParseContext<FullParseHandler> *pc)
-{
-    pn_expr = NULL;
-    pn_cookie.makeFree();
-    pn_dflags = (!pc->topStmt || pc->topStmt->type == STMT_BLOCK)
-                ? PND_BLOCKCHILD
-                : 0;
-    pn_blockid = pc->blockid();
-}
-
-
-
-NameNode *
-NameNode::create(ParseNodeKind kind, JSAtom *atom, FullParseHandler *handler,
-                 ParseContext<FullParseHandler> *pc)
-{
-    ParseNode *pn = ParseNode::create(kind, PN_NAME, handler);
-    if (pn) {
-        pn->pn_atom = atom;
-        ((NameNode *)pn)->initCommon(pc);
-    }
-    return (NameNode *)pn;
-}
-
 const char *
 Definition::kindString(Kind kind)
 {

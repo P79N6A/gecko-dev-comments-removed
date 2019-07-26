@@ -224,6 +224,7 @@ struct ParseContext : public GenericParseContext
 
     inline bool init();
 
+    bool inBlock() const { return !topStmt || topStmt->type == STMT_BLOCK; }
     unsigned blockid();
 
     
@@ -362,6 +363,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
     Parser *thisForCtor() { return this; }
 
     Node stringLiteral();
+    inline Node newName(PropertyName *name);
 
     inline bool abortIfSyntaxParser();
 
