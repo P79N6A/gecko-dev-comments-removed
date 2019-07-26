@@ -1032,16 +1032,25 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   
   
   bool isResumedSession = !(infoObject->GetFirstServerHelloReceived());
-
   
   
   
   PreliminaryHandshakeDone(fd);
 
+  nsSSLIOLayerHelpers& ioLayerHelpers
+    = infoObject->SharedState().IOLayerHelpers();
+
+  SSLVersionRange versions(infoObject->GetTLSVersionRange());
+
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+         ("[%p] HandshakeCallback: succeeded using TLS version range (0x%04x,0x%04x)\n",
+          fd, static_cast<unsigned int>(versions.min),
+              static_cast<unsigned int>(versions.max)));
+
   
-  
-  nsSSLIOLayerHelpers& ioLayerHelpers = infoObject->SharedState().IOLayerHelpers();
-  ioLayerHelpers.rememberTolerantSite(infoObject);
+  ioLayerHelpers.rememberTolerantAtVersion(infoObject->GetHostName(),
+                                           infoObject->GetPort(),
+                                           versions.max);
 
   PRBool siteSupportsSafeRenego;
   rv = SSL_HandshakeNegotiatedExtension(fd, ssl_renegotiation_info_xtn,
