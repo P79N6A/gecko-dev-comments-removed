@@ -13,6 +13,8 @@
 
 #include "mozilla/PodOperations.h"
 
+#include "jsanalyze.h"
+
 #include "vm/ArrayObject.h"
 #include "vm/BooleanObject.h"
 #include "vm/NumberObject.h"
@@ -541,16 +543,13 @@ extern void TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc,
  inline unsigned
 TypeScript::NumTypeSets(JSScript *script)
 {
-    size_t num = script->nTypeSets() + 1 ;
-    if (JSFunction *fun = script->functionNonDelazifying())
-        num += fun->nargs();
-    return num;
+    return script->nTypeSets() + analyze::LocalSlot(script, 0);
 }
 
  inline StackTypeSet *
 TypeScript::ThisTypes(JSScript *script)
 {
-    return script->types->typeArray() + script->nTypeSets();
+    return script->types->typeArray() + script->nTypeSets() + analyze::ThisSlot();
 }
 
 
@@ -563,7 +562,7 @@ TypeScript::ThisTypes(JSScript *script)
 TypeScript::ArgTypes(JSScript *script, unsigned i)
 {
     JS_ASSERT(i < script->functionNonDelazifying()->nargs());
-    return script->types->typeArray() + script->nTypeSets() + 1 + i;
+    return script->types->typeArray() + script->nTypeSets() + analyze::ArgSlot(i);
 }
 
 template <typename TYPESET>
