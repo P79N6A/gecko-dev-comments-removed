@@ -538,17 +538,23 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
   
   
   if ("default-src" in dirs) {
-    aCSPR._allowInlineScripts = false;
-    aCSPR._allowInlineStyles = false;
-    aCSPR._allowEval = false;
-  } else {
-    if ("script-src" in dirs) {
+    
+    
+    var defaultSrcValue = CSPSourceList.fromString(dirs["default-src"], null, self);
+    if (!defaultSrcValue._allowUnsafeInline) {
       aCSPR._allowInlineScripts = false;
-      aCSPR._allowEval = false;
-    }
-    if ("style-src" in dirs) {
       aCSPR._allowInlineStyles = false;
     }
+    if (!defaultSrcValue._allowUnsafeEval) {
+      aCSPR._allowEval = false;
+    }
+  }
+  if ("script-src" in dirs) {
+    aCSPR._allowInlineScripts = false;
+    aCSPR._allowEval = false;
+  }
+  if ("style-src" in dirs) {
+    aCSPR._allowInlineStyles = false;
   }
 
   directive:
