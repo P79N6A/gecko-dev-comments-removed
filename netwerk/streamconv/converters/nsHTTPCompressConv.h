@@ -51,9 +51,10 @@ public:
 
 
     nsHTTPCompressConv ();
-    virtual ~nsHTTPCompressConv ();
 
 private:
+
+    virtual ~nsHTTPCompressConv ();
 
     nsIStreamListener   *mListener; 
 	CompressMode        mMode;

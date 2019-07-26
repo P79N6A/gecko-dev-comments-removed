@@ -16,12 +16,12 @@ public:
     NS_DECL_NSIABOUTMODULE
 
     nsAboutBlank() {}
-    virtual ~nsAboutBlank() {}
 
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
-protected:
+private:
+    virtual ~nsAboutBlank() {}
 };
 
 #define NS_ABOUT_BLANK_MODULE_CID                    \
@@ -32,4 +32,4 @@ protected:
     {0x8c, 0xd0, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3} \
 }
 
-#endif
+#endif 

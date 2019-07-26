@@ -69,13 +69,14 @@ class TokenBucketCancelable;
 
 class EventTokenBucket : public nsITimerCallback
 {
+  virtual ~EventTokenBucket();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
 
   
   EventTokenBucket(uint32_t eventsPerSecond, uint32_t burstSize);
-  virtual ~EventTokenBucket();
 
   
   void ClearCredits();

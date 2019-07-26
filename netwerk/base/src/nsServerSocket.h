@@ -29,10 +29,9 @@ public:
   virtual uint64_t ByteCountReceived() { return 0; }
   nsServerSocket();
 
-  
+private:
   virtual ~nsServerSocket();
 
-private:
   void OnMsgClose();
   void OnMsgAttach();
   

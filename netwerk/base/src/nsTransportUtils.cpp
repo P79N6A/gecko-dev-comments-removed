@@ -34,6 +34,7 @@ public:
         NS_ADDREF(mSink);
     }
 
+private:
     virtual ~nsTransportEventSinkProxy()
     {
         
@@ -41,6 +42,7 @@ public:
         NS_ProxyRelease(mTarget, mSink);
     }
 
+public:
     nsITransportEventSink           *mSink;
     nsCOMPtr<nsIEventTarget>         mTarget;
     Mutex                            mLock;

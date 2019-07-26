@@ -48,11 +48,11 @@ public:
     {
     }
 
+private:
     virtual ~nsInputStreamTransport()
     {
     }
 
-private:
     nsCOMPtr<nsIAsyncInputStream>   mPipeIn;
 
     
@@ -248,11 +248,11 @@ public:
     {
     }
 
+private:
     virtual ~nsOutputStreamTransport()
     {
     }
 
-private:
     nsCOMPtr<nsIAsyncOutputStream>  mPipeOut;
  
     

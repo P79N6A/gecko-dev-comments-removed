@@ -29,9 +29,10 @@ public:
     
     
     nsStreamConverterService();
-    virtual ~nsStreamConverterService();
 
 private:
+    virtual ~nsStreamConverterService();
+
     
     nsresult FindConverter(const char *aContractID, nsTArray<nsCString> **aEdgeList);
     nsresult BuildGraph(void);

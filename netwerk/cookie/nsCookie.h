@@ -76,8 +76,6 @@ class nsCookie : public nsICookie2
                              bool              aIsSecure,
                              bool              aIsHttpOnly);
 
-    virtual ~nsCookie() {}
-
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
     
@@ -103,6 +101,8 @@ class nsCookie : public nsICookie2
     inline void SetCreationTime(int64_t aTime)    { mCreationTime = aTime; }
 
   protected:
+    virtual ~nsCookie() {}
+
     
     
     

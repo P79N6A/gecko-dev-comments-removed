@@ -398,12 +398,13 @@ public:
   NS_DECL_NSIOUTPUTSTREAM
   
   DigestOutputStream(nsIOutputStream* outputStream, PK11Context* aContext);
-  ~DigestOutputStream();
 
   
   void virtualDestroyNSSReference() { }
 
 private:
+  ~DigestOutputStream();
+
   
   nsCOMPtr<nsIOutputStream> mOutputStream;
   

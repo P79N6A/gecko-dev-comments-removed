@@ -57,7 +57,6 @@ public:
     NS_DECL_NSISPECULATIVECONNECT
 
     nsHttpHandler();
-    virtual ~nsHttpHandler();
 
     nsresult Init();
     nsresult AddStandardRequestHeaders(nsHttpHeaderArray *);
@@ -312,6 +311,7 @@ public:
     void ClearCacheSkippedUntil() { mCacheSkippedUntil = TimeStamp(); }
 
 private:
+    virtual ~nsHttpHandler();
 
     
     
@@ -545,6 +545,7 @@ class nsHttpsHandler : public nsIHttpProtocolHandler
                      , public nsSupportsWeakReference
                      , public nsISpeculativeConnect
 {
+    virtual ~nsHttpsHandler() { }
 public:
     
     
@@ -556,7 +557,6 @@ public:
     NS_FORWARD_NSISPECULATIVECONNECT     (gHttpHandler->)
 
     nsHttpsHandler() { }
-    virtual ~nsHttpsHandler() { }
 
     nsresult Init();
 };

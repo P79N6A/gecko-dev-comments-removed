@@ -26,7 +26,6 @@ public:
     NS_DECL_NSICACHESTORAGEVISITOR
 
     nsAboutCache() {}
-    virtual ~nsAboutCache() {}
 
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
@@ -36,6 +35,8 @@ public:
                nsICacheStorage **storage);
 
 protected:
+    virtual ~nsAboutCache() {}
+
     nsresult ParseURI(nsIURI * uri, nsACString & storage);
 
     

@@ -17,8 +17,6 @@ public:
 
     nsViewSourceHandler();
 
-    ~nsViewSourceHandler();
-
     
     
     nsresult NewSrcdocChannel(nsIURI* uri, const nsAString &srcdoc,
@@ -27,8 +25,9 @@ public:
     static nsViewSourceHandler* GetInstance();
 
 private:
-    static nsViewSourceHandler* gInstance;
+    ~nsViewSourceHandler();
 
+    static nsViewSourceHandler* gInstance;
 };
 
 #endif 

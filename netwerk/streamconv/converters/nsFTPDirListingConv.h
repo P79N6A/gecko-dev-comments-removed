@@ -34,10 +34,11 @@ public:
 
     
     nsFTPDirListingConv();
-    virtual ~nsFTPDirListingConv();
     nsresult Init();
 
 private:
+    virtual ~nsFTPDirListingConv();
+
     
     nsresult GetHeaders(nsACString& str, nsIURI* uri);
     char*    DigestBufferLines(char *aBuffer, nsCString &aString);

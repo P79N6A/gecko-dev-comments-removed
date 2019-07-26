@@ -33,7 +33,6 @@ public:
                     bool aCloseSink);
 
     nsAsyncStreamCopier();
-    virtual ~nsAsyncStreamCopier();
 
     
     
@@ -42,6 +41,8 @@ public:
     void   Complete(nsresult status);
 
 private:
+    virtual ~nsAsyncStreamCopier();
+
     nsresult InitInternal(nsIInputStream *source,
                           nsIOutputStream *sink,
                           nsIEventTarget *target,

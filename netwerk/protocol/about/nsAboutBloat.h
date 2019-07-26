@@ -16,12 +16,12 @@ public:
     NS_DECL_NSIABOUTMODULE
 
     nsAboutBloat() {}
-    virtual ~nsAboutBloat() {}
 
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
-protected:
+private:
+    virtual ~nsAboutBloat() {}
 };
 
 #define NS_ABOUT_BLOAT_MODULE_CID                    \
@@ -32,4 +32,4 @@ protected:
     {0x93, 0x99, 0x00, 0x10, 0x4b, 0xa0, 0xfd, 0x40} \
 }
 
-#endif
+#endif 

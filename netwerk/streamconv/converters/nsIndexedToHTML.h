@@ -29,7 +29,6 @@ public:
     NS_DECL_NSIDIRINDEXLISTENER
 
     nsIndexedToHTML();
-    virtual ~nsIndexedToHTML();
 
     nsresult Init(nsIStreamListener *aListener);
 
@@ -56,6 +55,8 @@ protected:
 private:
     
     bool mExpectAbsLoc;
+
+    virtual ~nsIndexedToHTML();
 };
 
 #endif

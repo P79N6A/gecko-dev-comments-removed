@@ -31,9 +31,10 @@ public:
     NS_DECL_NSIFILEMETADATA
 
     nsFileStreamBase();
-    virtual ~nsFileStreamBase();
 
 protected:
+    virtual ~nsFileStreamBase();
+
     nsresult Close();
     nsresult Available(uint64_t* _retval);
     nsresult Read(char* aBuf, uint32_t aCount, uint32_t* _retval);

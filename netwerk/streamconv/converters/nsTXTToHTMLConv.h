@@ -28,6 +28,16 @@ typedef struct convToken {
 
 template<class T> class nsAutoPtr;
 
+class nsTXTToHTMLConv;
+
+namespace mozilla {
+template<>
+struct HasDangerousPublicDestructor<nsTXTToHTMLConv>
+{
+  static const bool value = true;
+};
+}
+
 
 
 
@@ -91,6 +101,7 @@ public:
 
 
 protected:
+
     
     int32_t FindToken(int32_t cursor, convToken* *_retval);
 

@@ -10,6 +10,8 @@
 
 class nsDataHandler : public nsIProtocolHandler
 {
+    virtual ~nsDataHandler();
+
 public:
     NS_DECL_ISUPPORTS
 
@@ -18,7 +20,6 @@ public:
 
     
     nsDataHandler();
-    virtual ~nsDataHandler();
 
     
     static nsresult

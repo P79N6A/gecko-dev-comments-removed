@@ -28,7 +28,6 @@ public:
     NS_DECL_NSIOBSERVER
     
     nsFtpProtocolHandler();
-    virtual ~nsFtpProtocolHandler();
     
     nsresult Init();
 
@@ -41,6 +40,8 @@ public:
     uint8_t GetControlQoSBits() { return mControlQoSBits; }
 
 private:
+    virtual ~nsFtpProtocolHandler();
+
     
     struct timerStruct {
         nsCOMPtr<nsITimer>      timer;

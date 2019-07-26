@@ -23,6 +23,9 @@
 class nsSimpleNestedURI : public nsSimpleURI,
                           public nsINestedURI
 {
+protected:
+    ~nsSimpleNestedURI() {}
+
 public:
     
     

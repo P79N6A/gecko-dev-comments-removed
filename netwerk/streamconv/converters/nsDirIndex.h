@@ -10,9 +10,12 @@
 
 
 class nsDirIndex MOZ_FINAL : public nsIDirIndex {
+
+private:
+    ~nsDirIndex();
+
 public:
     nsDirIndex();
-    ~nsDirIndex();
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIDIRINDEX

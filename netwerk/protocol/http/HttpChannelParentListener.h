@@ -33,13 +33,14 @@ public:
   NS_DECL_NSISTREAMLISTENER
 
   HttpChannelParentListener(HttpChannelParent* aInitialChannel);
-  virtual ~HttpChannelParentListener();
 
   
   nsresult DivertTo(nsIStreamListener *aListener);
   nsresult SuspendForDiversion();
 
 private:
+  virtual ~HttpChannelParentListener();
+
   
   nsresult ResumeForDiversion();
 
