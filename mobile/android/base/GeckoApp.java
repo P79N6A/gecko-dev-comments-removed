@@ -1416,7 +1416,7 @@ abstract public class GeckoApp
             enableStrictMode();
         }
 
-        GeckoAppShell.loadMozGlue();
+        GeckoAppShell.loadMozGlue(this);
         if (sGeckoThread != null) {
             
             

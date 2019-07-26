@@ -418,18 +418,6 @@ public class GeckoAppShell
         
         GeckoAppShell.putenv("HOME=" + profile.getFilesDir().getPath());
 
-        Intent i = null;
-        i = ((Activity)context).getIntent();
-
-        
-        
-        String env = i.getStringExtra("env0");
-        Log.d(LOGTAG, "Gecko environment env0: "+ env);
-        for (int c = 1; env != null; c++) {
-            GeckoAppShell.putenv(env);
-            env = i.getStringExtra("env" + c);
-            Log.d(LOGTAG, "env" + c + ": " + env);
-        }
         
         File f = context.getDir("tmp", Context.MODE_WORLD_READABLE |
                                  Context.MODE_WORLD_WRITEABLE );
@@ -484,7 +472,7 @@ public class GeckoAppShell
         synchronized(sSQLiteLibsLoaded) {
             if (sSQLiteLibsLoaded)
                 return;
-            loadMozGlue();
+            loadMozGlue(context);
             
             loadLibsSetup(context);
             loadSQLiteLibsNative(apkName, false);
@@ -498,15 +486,33 @@ public class GeckoAppShell
         synchronized(sNSSLibsLoaded) {
             if (sNSSLibsLoaded)
                 return;
-            loadMozGlue();
+            loadMozGlue(context);
             loadLibsSetup(context);
             loadNSSLibsNative(apkName, false);
             sNSSLibsLoaded = true;
         }
     }
 
-    public static void loadMozGlue() {
+    public static void loadMozGlue(Context context) {
         System.loadLibrary("mozglue");
+
+        
+        
+        if (!(context instanceof Activity))
+            return;
+
+        Intent i = null;
+        i = ((Activity)context).getIntent();
+
+        
+        
+        String env = i.getStringExtra("env0");
+        Log.d(LOGTAG, "Gecko environment env0: "+ env);
+        for (int c = 1; env != null; c++) {
+            GeckoAppShell.putenv(env);
+            env = i.getStringExtra("env" + c);
+            Log.d(LOGTAG, "env" + c + ": " + env);
+        }
     }
 
     public static void loadGeckoLibs(String apkName) {
