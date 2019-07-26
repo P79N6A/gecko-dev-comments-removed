@@ -38,7 +38,8 @@ class Transaction
 {
 public:
   Transaction()
-    : mSwapRequired(false)
+    : mTargetRotation(ROTATION_0)
+    , mSwapRequired(false)
     , mOpen(false)
     , mRotationChanged(false)
   {}
@@ -49,7 +50,11 @@ public:
     mOpen = true;
     mTargetBounds = aTargetBounds;
     if (aRotation != mTargetRotation) {
-        mRotationChanged = true;
+      
+      
+      
+      
+      mRotationChanged = true;
     }
     mTargetRotation = aRotation;
     mClientBounds = aClientBounds;
