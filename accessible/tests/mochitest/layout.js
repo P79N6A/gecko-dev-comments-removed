@@ -49,6 +49,18 @@ function hitTest(aContainerID, aChildID, aGrandChildID)
 
 
 
+function testOffsetAtPoint(aHyperTextID, aX, aY, aCoordType, aExpectedOffset)
+{
+  var hyperText = getAccessible(aHyperTextID, [nsIAccessibleText]);
+  var offset = hyperText.getOffsetAtPoint(aX, aY, aCoordType);
+  is(offset, aExpectedOffset,
+     "Wrong offset at given point (" + aX + ", " + aY + ") for " +
+     prettyName(aHyperTextID));
+}
+
+
+
+
 function zoomDocument(aDocument, aZoom)
 {
   var docShell = aDocument.defaultView.

@@ -1234,23 +1234,22 @@ HyperTextAccessible::GetOffsetAtPoint(int32_t aX, int32_t aY,
   if (!hyperFrame) {
     return NS_ERROR_FAILURE;
   }
-  nsIntRect frameScreenRect = hyperFrame->GetScreenRectExternal();
 
   nsIntPoint coords;
   nsresult rv = nsAccUtils::ConvertToScreenCoords(aX, aY, aCoordType,
                                                   this, &coords);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  if (!frameScreenRect.Contains(coords.x, coords.y)) {
+  nsPresContext* presContext = mDoc->PresContext();
+  nsPoint coordsInAppUnits =
+    coords.ToAppUnits(presContext->AppUnitsPerDevPixel());
+
+  nsRect frameScreenRect = hyperFrame->GetScreenRectInAppUnits();
+  if (!frameScreenRect.Contains(coordsInAppUnits.x, coordsInAppUnits.y))
     return NS_OK;   
-  }
-  nsIntPoint pxInHyperText(coords.x - frameScreenRect.x,
-                           coords.y - frameScreenRect.y);
-  nsPresContext* context = mDoc->PresContext();
-  nsPoint pointInHyperText(context->DevPixelsToAppUnits(pxInHyperText.x),
-                           context->DevPixelsToAppUnits(pxInHyperText.y));
+
+  nsPoint pointInHyperText(coordsInAppUnits.x - frameScreenRect.x,
+                           coordsInAppUnits.y - frameScreenRect.y);
 
   
   
@@ -1269,7 +1268,7 @@ HyperTextAccessible::GetOffsetAtPoint(int32_t aX, int32_t aY,
     while (frame) {
       nsIContent *content = frame->GetContent();
       NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
-      nsPoint pointInFrame = pointInHyperText - frame->GetOffsetToExternal(hyperFrame);
+      nsPoint pointInFrame = pointInHyperText - frame->GetOffsetTo(hyperFrame);
       nsSize frameSize = frame->GetSize();
       if (pointInFrame.x < frameSize.width && pointInFrame.y < frameSize.height) {
         
