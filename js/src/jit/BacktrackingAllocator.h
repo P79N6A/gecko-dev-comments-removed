@@ -36,7 +36,7 @@ struct VirtualRegisterGroup : public TempObject
     
     LAllocation spill;
 
-    VirtualRegisterGroup(TempAllocator &alloc)
+    explicit VirtualRegisterGroup(TempAllocator &alloc)
       : registers(alloc), allocation(LUse(0, LUse::ANY)), spill(LUse(0, LUse::ANY))
     {}
 
@@ -67,7 +67,7 @@ class BacktrackingVirtualRegister : public VirtualRegister
     VirtualRegisterGroup *group_;
 
   public:
-    BacktrackingVirtualRegister(TempAllocator &alloc)
+    explicit BacktrackingVirtualRegister(TempAllocator &alloc)
       : VirtualRegister(alloc)
     {}
     void setMustCopyInput() {
@@ -108,7 +108,7 @@ class BacktrackingVirtualRegister : public VirtualRegister
 
 typedef js::Vector<CodePosition, 4, SystemAllocPolicy> SplitPositionVector;
 
-class BacktrackingAllocator : public LiveRangeAllocator<BacktrackingVirtualRegister>
+class BacktrackingAllocator : private LiveRangeAllocator<BacktrackingVirtualRegister>
 {
     
     
