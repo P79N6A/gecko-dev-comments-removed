@@ -177,6 +177,13 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       return mURI;
     }
+  
+    
+
+
+
+    uint32_t DefaultFallbackType();
+
     uint32_t PluginFallbackType() const
     {
       return mFallbackType;
@@ -364,7 +371,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    bool ShouldPlay(FallbackType &aReason);
+
+    bool ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentType);
 
     
 

@@ -1830,8 +1830,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   FallbackType clickToPlayReason;
-  if ((mType == eType_Null || mType == eType_Plugin) &&
-      !ShouldPlay(clickToPlayReason)) {
+  if (!mActivated && (mType == eType_Null || mType == eType_Plugin) &&
+      !ShouldPlay(clickToPlayReason, false)) {
     LOG(("OBJLC [%p]: Marking plugin as click-to-play", this));
     mType = eType_Null;
     fallbackType = clickToPlayReason;
@@ -2718,6 +2718,17 @@ nsObjectLoadingContent::GetPluginFallbackType(uint32_t* aPluginFallbackType)
   return NS_OK;
 }
 
+uint32_t
+nsObjectLoadingContent::DefaultFallbackType()
+{
+  FallbackType reason;
+  bool go = ShouldPlay(reason, true);
+  if (go) {
+    return PLUGIN_ACTIVE;
+  }
+  return reason;
+}
+
 NS_IMETHODIMP
 nsObjectLoadingContent::GetHasRunningPlugin(bool *aHasPlugin)
 {
@@ -2743,7 +2754,7 @@ nsObjectLoadingContent::CancelPlayPreview()
 }
 
 bool
-nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
+nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentType)
 {
   nsresult rv;
 
@@ -2756,7 +2767,7 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
   if (isPlayPreviewSpecified) {
     playPreviewInfo->GetIgnoreCTP(&ignoreCTP);
   }
-  if (isPlayPreviewSpecified && !mPlayPreviewCanceled && !mActivated &&
+  if (isPlayPreviewSpecified && !mPlayPreviewCanceled &&
       ignoreCTP) {
     
     
@@ -2764,7 +2775,7 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
     return false;
   }
   
-  if (mType != eType_Plugin) {
+  if (!aIgnoreCurrentType && mType != eType_Plugin) {
     return true;
   }
 
@@ -2777,11 +2788,6 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason)
   
   
   
-  
-
-  if (mActivated) {
-    return true;
-  }
 
   
   
