@@ -343,7 +343,7 @@ pref("gfx.displayport.strategy_vb.danger_y_incr", -1);
 
 pref("gfx.displayport.strategy_pb.threshold", -1); 
 
-pref("gfx.java.screenshot.enabled", true);
+pref("gfx.java.screenshot.enabled", false);
 
 
 pref("dom.disable_window_move_resize", true);
