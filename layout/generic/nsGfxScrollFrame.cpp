@@ -2252,6 +2252,19 @@ ScrollFrameHelper::ExpandRect(const nsRect& aRect) const
   return rect;
 }
 
+static bool IsFocused(nsIContent* aContent)
+{
+  
+  
+  
+  
+  while (aContent && aContent->IsInAnonymousSubtree()) {
+    aContent = aContent->GetParent();
+  }
+
+  return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
+}
+
 void
 ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
@@ -2394,12 +2407,16 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   } else {
     nsRect scrollRange = GetScrollRange();
     ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+    bool isFocused = IsFocused(mOuter->GetContent());
     bool isVScrollable = (scrollRange.height > 0)
                       && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
     bool isHScrollable = (scrollRange.width > 0)
                       && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
-    bool wantLayerV = isVScrollable && mVScrollbarBox;
-    bool wantLayerH = isHScrollable && mHScrollbarBox;
+    
+    
+    
+    bool wantLayerV = isVScrollable && (mVScrollbarBox || isFocused);
+    bool wantLayerH = isHScrollable && (mHScrollbarBox || isFocused);
     
     bool wantSubAPZC = (XRE_GetProcessType() == GeckoProcessType_Content);
 #ifdef XP_WIN
