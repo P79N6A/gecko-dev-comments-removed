@@ -2,6 +2,13 @@
 
 
 
+
+
+
+
+
+
+
 const EXPORTED_SYMBOLS = [
   "BackgroundPageThumbs",
 ];
@@ -9,6 +16,11 @@ const EXPORTED_SYMBOLS = [
 const DEFAULT_CAPTURE_TIMEOUT = 30000; 
 const DESTROY_BROWSER_TIMEOUT = 60000; 
 const FRAME_SCRIPT_URL = "chrome://global/content/backgroundPageThumbsContent.js";
+
+
+
+
+const MAX_THUMBNAIL_AGE_SECS = 172800; 
 
 const TELEMETRY_HISTOGRAM_ID_PREFIX = "FX_THUMBNAILS_BG_";
 
@@ -28,6 +40,11 @@ Cu.import("resource://gre/modules/Services.jsm");
 const BackgroundPageThumbs = {
 
   
+
+
+
+
+
 
 
 
@@ -91,6 +108,37 @@ const BackgroundPageThumbs = {
         
       }
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  captureIfStale: function PageThumbs_captureIfStale(url, options={}) {
+    PageThumbsStorage.isFileRecentForURL(url, MAX_THUMBNAIL_AGE_SECS).then(
+      result => {
+        if (result.ok) {
+          if (options.onDone)
+            options.onDone(url);
+          return;
+        }
+        this.capture(url, options);
+      }, err => {
+        if (options.onDone)
+          options.onDone(url);
+      });
   },
 
   

@@ -131,10 +131,12 @@ Site.prototype = {
 
     if (this.isPinned())
       this._updateAttributes(true);
+#ifndef RELEASE_BUILD
     
     
-    PageThumbs.captureIfStale(this.url);
+    BackgroundPageThumbs.captureIfStale(this.url);
     
+#endif
     this.refreshThumbnail();
   },
 

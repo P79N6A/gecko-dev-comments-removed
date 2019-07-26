@@ -20,11 +20,6 @@ const EXPIRATION_INTERVAL_SECS = 3600;
 
 
 
-const MAX_THUMBNAIL_AGE_SECS = 172800; 
-
-
-
-
 const THUMBNAIL_DIRECTORY = "thumbnails";
 
 
@@ -196,32 +191,6 @@ this.PageThumbs = {
    getThumbnailPath: function PageThumbs_getThumbnailPath(aUrl) {
      return PageThumbsStorage.getFilePathForURL(aUrl);
    },
-
-  
-
-
-
-
-
-
-
-
-  captureIfStale: function PageThumbs_captureIfStale(aUrl) {
-    let deferredResult = Promise.defer();
-    let filePath = PageThumbsStorage.getFilePathForURL(aUrl);
-    PageThumbsWorker.post(
-      "isFileRecent",
-      [filePath, MAX_THUMBNAIL_AGE_SECS]
-    ).then(result => {
-      if (!result.ok) {
-        
-        
-        let BPT = Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", {}).BackgroundPageThumbs;
-        BPT.capture(aUrl, {onDone: deferredResult.resolve});
-      }
-    });
-    return deferredResult.promise;
-  },
 
   
 
@@ -624,6 +593,11 @@ this.PageThumbsStorage = {
 
   touchIfExists: function Storage_touchIfExists(aURL) {
     return PageThumbsWorker.post("touchIfExists", [this.getFilePathForURL(aURL)]);
+  },
+
+  isFileRecentForURL: function Storage_isFileRecentForURL(aURL, aMaxSecs) {
+    return PageThumbsWorker.post("isFileRecent",
+                                 [this.getFilePathForURL(aURL), aMaxSecs]);
   },
 
   _calculateMD5Hash: function Storage_calculateMD5Hash(aValue) {
