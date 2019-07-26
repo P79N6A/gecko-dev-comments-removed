@@ -104,6 +104,9 @@ pref("dom.workers.enabled", true);
 pref("dom.workers.maxPerDomain", 20);
 
 
+pref("dom.workers.sharedWorkers.enabled", false);
+
+
 pref("dom.enable_performance", true);
 
 
