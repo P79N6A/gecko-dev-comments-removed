@@ -365,19 +365,6 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
     JSCompartment *comp = cx->compartment();
 
     
-    
-    
-    
-    RootedObject proto(cx);
-    const Class *clasp;
-    if (!TypedObjectModuleObject::getSuitableClaspAndProto(cx, kind(), &clasp, &proto)) {
-        return nullptr;
-    }
-    RootedTypeObject typeObject(cx, comp->types.newTypeObject(cx, clasp, proto));
-    if (!typeObject)
-        return nullptr;
-
-    
     if (!comp->typeReprs.relookupOrAdd(p, this, this)) {
         js_ReportOutOfMemory(cx);
         js_free(this); 
@@ -442,7 +429,6 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
     }
 
     ownerObject_.init(ownerObject);
-    typeObject_.init(typeObject);
     return &*ownerObject;
 }
 
@@ -617,7 +603,6 @@ TypeRepresentation::mark(JSTracer *trace)
     
     
     gc::MarkObject(trace, &ownerObject_, "typeRepresentation_ownerObject");
-    gc::MarkTypeObject(trace, &typeObject_, "typeRepresentation_typeObject");
 }
 
  void
