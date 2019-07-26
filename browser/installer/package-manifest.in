@@ -374,8 +374,6 @@
 @BINPATH@/components/nsDownloadManagerUI.js
 @BINPATH@/components/NetworkGeolocationProvider.manifest
 @BINPATH@/components/NetworkGeolocationProvider.js
-@BINPATH@/components/GPSDGeolocationProvider.manifest
-@BINPATH@/components/GPSDGeolocationProvider.js
 @BINPATH@/components/nsSidebar.manifest
 @BINPATH@/components/nsSidebar.js
 @BINPATH@/components/extensions.manifest
@@ -472,9 +470,6 @@
 #ifdef MOZ_DATA_REPORTING
 @BINPATH@/components/DataReporting.manifest
 @BINPATH@/components/DataReportingService.js
-#endif
-#ifdef MOZ_SERVICES_HEALTHREPORT
-@BINPATH@/components/HealthReportComponents.manifest
 #endif
 #ifdef MOZ_SERVICES_SYNC
 @BINPATH@/components/SyncComponents.manifest
