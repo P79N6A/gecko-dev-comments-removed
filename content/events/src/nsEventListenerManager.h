@@ -30,6 +30,122 @@ class nsPIDOMWindow;
 class nsCxPusher;
 class nsIEventListenerInfo;
 
+struct nsListenerStruct;
+class nsEventListenerManager;
+
+namespace mozilla {
+namespace dom {
+
+struct EventListenerFlags
+{
+  friend struct ::nsListenerStruct;
+  friend class  ::nsEventListenerManager;
+private:
+  
+  
+  bool mListenerIsJSListener : 1;
+
+public:
+  
+  
+  bool mCapture : 1;
+  
+  
+  bool mInSystemGroup : 1;
+  
+  
+  bool mAllowUntrustedEvents : 1;
+
+  EventListenerFlags() :
+    mListenerIsJSListener(false),
+    mCapture(false), mInSystemGroup(false), mAllowUntrustedEvents(false)
+  {
+  }
+
+  bool Equals(const EventListenerFlags& aOther) const
+  {
+    return (mCapture == aOther.mCapture &&
+            mInSystemGroup == aOther.mInSystemGroup &&
+            mListenerIsJSListener == aOther.mListenerIsJSListener &&
+            mAllowUntrustedEvents == aOther.mAllowUntrustedEvents);
+  }
+
+  bool EqualsIgnoringTrustness(const EventListenerFlags& aOther) const
+  {
+    return (mCapture == aOther.mCapture &&
+            mInSystemGroup == aOther.mInSystemGroup &&
+            mListenerIsJSListener == aOther.mListenerIsJSListener);
+  }
+
+  bool operator==(const EventListenerFlags& aOther) const
+  {
+    return Equals(aOther);
+  }
+};
+
+inline EventListenerFlags TrustedEventsAtBubble()
+{
+  EventListenerFlags flags;
+  return flags;
+}
+
+inline EventListenerFlags TrustedEventsAtCapture()
+{
+  EventListenerFlags flags;
+  flags.mCapture = true;
+  return flags;
+}
+
+inline EventListenerFlags AllEventsAtBubbe()
+{
+  EventListenerFlags flags;
+  flags.mAllowUntrustedEvents = true;
+  return flags;
+}
+
+inline EventListenerFlags AllEventsAtCapture()
+{
+  EventListenerFlags flags;
+  flags.mCapture = true;
+  flags.mAllowUntrustedEvents = true;
+  return flags;
+}
+
+inline EventListenerFlags TrustedEventsAtSystemGroupBubble()
+{
+  EventListenerFlags flags;
+  flags.mInSystemGroup = true;
+  return flags;
+}
+
+inline EventListenerFlags TrustedEventsAtSystemGroupCapture()
+{
+  EventListenerFlags flags;
+  flags.mCapture = true;
+  flags.mInSystemGroup = true;
+  return flags;
+}
+
+inline EventListenerFlags AllEventsAtSystemGroupBubble()
+{
+  EventListenerFlags flags;
+  flags.mInSystemGroup = true;
+  flags.mAllowUntrustedEvents = true;
+  return flags;
+}
+
+inline EventListenerFlags AllEventsAtSystemGroupCapture()
+{
+  EventListenerFlags flags;
+  flags.mCapture = true;
+  flags.mInSystemGroup = true;
+  flags.mAllowUntrustedEvents = true;
+  return flags;
+}
+
+} 
+} 
+
 typedef enum
 {
     eNativeListener = 0,
@@ -42,11 +158,12 @@ struct nsListenerStruct
   nsRefPtr<nsIDOMEventListener> mListener;
   nsCOMPtr<nsIAtom>             mTypeAtom;
   uint32_t                      mEventType;
-  uint16_t                      mFlags;
   uint8_t                       mListenerType;
   bool                          mListenerIsHandler : 1;
   bool                          mHandlerIsString : 1;
   bool                          mAllEvents : 1;
+
+  mozilla::dom::EventListenerFlags mFlags;
 
   nsIJSEventListener* GetJSListener() const {
     return (mListenerType == eJSEventListener) ?
@@ -62,17 +179,14 @@ struct nsListenerStruct
 
   MOZ_ALWAYS_INLINE bool IsListening(const nsEvent* aEvent) const
   {
-    if (((mFlags & NS_EVENT_FLAG_SYSTEM_EVENT) != 0) !=
-          aEvent->mFlags.mInSystemGroup) {
+    if (mFlags.mInSystemGroup != aEvent->mFlags.mInSystemGroup) {
       return false;
     }
     
     
     
-    return ((mFlags & NS_EVENT_FLAG_CAPTURE) &&
-            aEvent->mFlags.mInCapturePhase) ||
-           ((mFlags & NS_EVENT_FLAG_BUBBLE) &&
-            aEvent->mFlags.mInBubblingPhase);
+    return ((mFlags.mCapture && aEvent->mFlags.mInCapturePhase) ||
+            (!mFlags.mCapture && aEvent->mFlags.mInBubblingPhase));
   }
 };
 
@@ -113,10 +227,10 @@ public:
 
   void AddEventListenerByType(nsIDOMEventListener *aListener,
                               const nsAString& type,
-                              int32_t aFlags);
+                              const mozilla::dom::EventListenerFlags& aFlags);
   void RemoveEventListenerByType(nsIDOMEventListener *aListener,
                                  const nsAString& type,
-                                 int32_t aFlags);
+                                 const mozilla::dom::EventListenerFlags& aFlags);
 
   
 
@@ -332,17 +446,19 @@ protected:
 
   const nsEventHandler* GetEventHandlerInternal(nsIAtom* aEventName);
 
-  void AddEventListener(nsIDOMEventListener *aListener, 
-                        uint32_t aType,
-                        nsIAtom* aTypeAtom,
-                        int32_t aFlags,
-                        bool aHandler = false,
-                        bool aAllEvents = false);
-  void RemoveEventListener(nsIDOMEventListener *aListener,
-                           uint32_t aType,
-                           nsIAtom* aUserType,
-                           int32_t aFlags,
-                           bool aAllEvents = false);
+  void AddEventListenerInternal(
+         nsIDOMEventListener* aListener,
+         uint32_t aType,
+         nsIAtom* aTypeAtom,
+         const mozilla::dom::EventListenerFlags& aFlags,
+         bool aHandler = false,
+         bool aAllEvents = false);
+  void RemoveEventListenerInternal(
+         nsIDOMEventListener* aListener,
+         uint32_t aType,
+         nsIAtom* aUserType,
+         const mozilla::dom::EventListenerFlags& aFlags,
+         bool aAllEvents = false);
   void RemoveAllListeners();
   const EventTypeData* GetTypeDataForIID(const nsIID& aIID);
   const EventTypeData* GetTypeDataForEventName(nsIAtom* aName);
@@ -383,11 +499,10 @@ NS_AddSystemEventListener(nsIDOMEventTarget* aTarget,
 {
   nsEventListenerManager* listenerManager = aTarget->GetListenerManager(true);
   NS_ENSURE_STATE(listenerManager);
-  uint32_t flags = NS_EVENT_FLAG_SYSTEM_EVENT;
-  flags |= aUseCapture ? NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
-  if (aWantsUntrusted) {
-    flags |= NS_PRIV_EVENT_UNTRUSTED_PERMITTED;
-  }
+  mozilla::dom::EventListenerFlags flags;
+  flags.mInSystemGroup = true;
+  flags.mCapture = aUseCapture;
+  flags.mAllowUntrustedEvents = aWantsUntrusted;
   listenerManager->AddEventListenerByType(aListener, aType, flags);
   return NS_OK;
 }

@@ -61,6 +61,8 @@
 
 #include "mozilla/dom/Element.h"
 
+using namespace mozilla;
+
 
 
 
@@ -989,20 +991,20 @@ nsXBLBinding::InstallEventHandlers()
         nsXBLEventHandler* handler = curr->GetEventHandler();
         if (handler) {
           
-          int32_t flags = (curr->GetPhase() == NS_PHASE_CAPTURING) ?
-            NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
+          dom::EventListenerFlags flags;
+          flags.mCapture = (curr->GetPhase() == NS_PHASE_CAPTURING);
 
           
           if ((curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND |
                                   NS_HANDLER_TYPE_SYSTEM)) &&
               (isChromeBinding || mBoundElement->IsInNativeAnonymousSubtree())) {
-            flags |= NS_EVENT_FLAG_SYSTEM_EVENT;
+            flags.mInSystemGroup = true;
           }
 
           bool hasAllowUntrustedAttr = curr->HasAllowUntrustedAttr();
           if ((hasAllowUntrustedAttr && curr->AllowUntrustedEvents()) ||
               (!hasAllowUntrustedAttr && !isChromeDoc)) {
-            flags |= NS_PRIV_EVENT_UNTRUSTED_PERMITTED;
+            flags.mAllowUntrustedEvents = true;
           }
 
           manager->AddEventListenerByType(handler,
@@ -1025,19 +1027,19 @@ nsXBLBinding::InstallEventHandlers()
         
 
         
-        int32_t flags = (handler->GetPhase() == NS_PHASE_CAPTURING) ?
-          NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
+        dom::EventListenerFlags flags;
+        flags.mCapture = (handler->GetPhase() == NS_PHASE_CAPTURING);
 
         if ((handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND |
                                    NS_HANDLER_TYPE_SYSTEM)) &&
             (isChromeBinding || mBoundElement->IsInNativeAnonymousSubtree())) {
-          flags |= NS_EVENT_FLAG_SYSTEM_EVENT;
+          flags.mInSystemGroup = true;
         }
 
         
         
         
-        flags |= NS_PRIV_EVENT_UNTRUSTED_PERMITTED;
+        flags.mAllowUntrustedEvents = true;
 
         manager->AddEventListenerByType(handler, type, flags);
       }
@@ -1139,8 +1141,8 @@ nsXBLBinding::UnhookEventHandlers()
         continue;
 
       
-      int32_t flags = (curr->GetPhase() == NS_PHASE_CAPTURING) ?
-        NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
+      dom::EventListenerFlags flags;
+      flags.mCapture = (curr->GetPhase() == NS_PHASE_CAPTURING);
 
       
       
@@ -1148,7 +1150,7 @@ nsXBLBinding::UnhookEventHandlers()
       if ((curr->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND |
                               NS_HANDLER_TYPE_SYSTEM)) &&
           (isChromeBinding || mBoundElement->IsInNativeAnonymousSubtree())) {
-        flags |= NS_EVENT_FLAG_SYSTEM_EVENT;
+        flags.mInSystemGroup = true;
       }
 
       manager->RemoveEventListenerByType(handler,
@@ -1166,15 +1168,15 @@ nsXBLBinding::UnhookEventHandlers()
       handler->GetEventName(type);
 
       
-      int32_t flags = (handler->GetPhase() == NS_PHASE_CAPTURING) ?
-        NS_EVENT_FLAG_CAPTURE : NS_EVENT_FLAG_BUBBLE;
+      dom::EventListenerFlags flags;
+      flags.mCapture = (handler->GetPhase() == NS_PHASE_CAPTURING);
 
       
       
 
       if ((handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND | NS_HANDLER_TYPE_SYSTEM)) &&
           (isChromeBinding || mBoundElement->IsInNativeAnonymousSubtree())) {
-        flags |= NS_EVENT_FLAG_SYSTEM_EVENT;
+        flags.mInSystemGroup = true;
       }
 
       manager->RemoveEventListenerByType(handler, type, flags);
