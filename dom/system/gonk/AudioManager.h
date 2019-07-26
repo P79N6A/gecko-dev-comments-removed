@@ -39,6 +39,7 @@ typedef Observer<SwitchEvent> SwitchObserver;
 namespace dom {
 namespace gonk {
 class RecoverTask;
+class AudioChannelVolInitCallback;
 class AudioManager : public nsIAudioManager
                    , public nsIObserver
 {
@@ -53,6 +54,7 @@ public:
   
   
   friend class RecoverTask;
+  friend class AudioChannelVolInitCallback;
 
 protected:
   int32_t mPhoneState;
