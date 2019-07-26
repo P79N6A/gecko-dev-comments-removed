@@ -1747,17 +1747,17 @@ nsMenuPopupFrame::AttachedDismissalListener()
   mConsumeRollupEvent = nsIPopupBoxObject::ROLLUP_DEFAULT;
 }
 
-void
+nsresult
 nsMenuPopupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                    const nsRect&           aDirtyRect,
                                    const nsDisplayListSet& aLists)
 {
   
   if (aBuilder->IsForEventDelivery() && mIsDragPopup) {
-    return;
+    return NS_OK;
   }
 
-  nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  return nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
 }
 
 

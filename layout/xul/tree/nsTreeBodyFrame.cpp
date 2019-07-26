@@ -2773,26 +2773,27 @@ PaintTreeBody(nsIFrame* aFrame, nsRenderingContext* aCtx,
 }
 
 
-void
+NS_IMETHODIMP
 nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                   const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
   
   if (!IsVisibleForPainting(aBuilder))
-    return; 
+    return NS_OK; 
 
   
-  nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsresult rv = nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   if (!mView || !GetContent()->GetCurrentDoc()->GetScriptGlobalObject())
-    return;
+    return NS_OK;
 
-  aLists.Content()->AppendNewToTop(new (aBuilder)
-    nsDisplayGeneric(aBuilder, this, ::PaintTreeBody, "XULTreeBody",
-                     nsDisplayItem::TYPE_XUL_TREE_BODY));
+  return aLists.Content()->AppendNewToTop(new (aBuilder)
+      nsDisplayGeneric(aBuilder, this, ::PaintTreeBody, "XULTreeBody",
+                       nsDisplayItem::TYPE_XUL_TREE_BODY));
 }
 
 void

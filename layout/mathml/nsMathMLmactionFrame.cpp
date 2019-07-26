@@ -271,7 +271,7 @@ nsMathMLmactionFrame::AttributeChanged(int32_t  aNameSpaceID,
 }
 
 
-void
+NS_IMETHODIMP
 nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
                                        const nsDisplayListSet& aLists)
@@ -281,7 +281,7 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags)) {
     nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-    return;
+    return NS_OK;
   }
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
@@ -298,6 +298,7 @@ nsMathMLmactionFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
 #endif
+  return NS_OK;
 }
 
 
