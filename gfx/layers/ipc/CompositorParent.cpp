@@ -846,6 +846,14 @@ CompositorParent::LeaveTestMode(LayerTransactionParent* aLayerTree)
   mIsTesting = false;
 }
 
+bool
+CompositorParent::RecvRequestOverfill()
+{
+  uint32_t overfillRatio = mCompositor->GetFillRatio();
+  unused << SendOverfill(overfillRatio);
+  return true;
+}
+
 void
 CompositorParent::InitializeLayerManager(const nsTArray<LayersBackend>& aBackendHints)
 {
@@ -1095,6 +1103,7 @@ public:
   virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
   
+  virtual bool RecvRequestOverfill() MOZ_OVERRIDE { return true; }
   virtual bool RecvWillStop() MOZ_OVERRIDE { return true; }
   virtual bool RecvStop() MOZ_OVERRIDE { return true; }
   virtual bool RecvPause() MOZ_OVERRIDE { return true; }
@@ -1159,6 +1168,7 @@ CompositorParent::Create(Transport* aTransport, ProcessId aOtherProcess)
     
     return nullptr;
   }
+
   cpcp->mSelfRef = cpcp;
   CompositorLoop()->PostTask(
     FROM_HERE,
