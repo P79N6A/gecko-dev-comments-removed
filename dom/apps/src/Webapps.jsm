@@ -1759,7 +1759,8 @@ this.DOMApplicationRegistry = {
       let requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
                                   .QueryInterface(Ci.nsIHttpChannel);
       if (app.packageEtag) {
-        requestChannel.setRequestHeader("If-None-Match", app.packageEtag);
+        debug('Add If-None-Match header: ' + app.packageEtag);
+        requestChannel.setRequestHeader("If-None-Match", app.packageEtag, false);
       }
 
       AppDownloadManager.add(aApp.manifestURL,
@@ -1834,7 +1835,17 @@ this.DOMApplicationRegistry = {
       let listener = Cc["@mozilla.org/network/simple-stream-listener;1"]
                        .createInstance(Ci.nsISimpleStreamListener);
       listener.init(bufferedOutputStream, {
-        onStartRequest: function(aRequest, aContext) { },
+        onStartRequest: function(aRequest, aContext) {
+          
+          try {
+            requestChannel.getResponseHeader("Etag");
+          } catch (e) {
+            
+            
+            debug("We found no ETag Header, canceling the request");
+            requestChannel.cancel(Cr.NS_BINDING_ABORTED);
+          }
+        },
         onStopRequest: function(aRequest, aContext, aStatusCode) {
           debug("onStopRequest " + aStatusCode);
           bufferedOutputStream.close();
@@ -1862,8 +1873,18 @@ this.DOMApplicationRegistry = {
           }
 
           
-          app.packageEtag = requestChannel.getResponseHeader("Etag");
-          debug("Package etag=" + app.packageEtag);
+          
+          
+          try {
+            app.packageEtag = requestChannel.getResponseHeader("Etag");
+            debug("Package etag=" + app.packageEtag);
+          } catch (e) {
+            
+            
+            
+            app.packageEtag = null;
+            debug("Can't find an etag, this should not happen");
+          }
 
           if (!Components.isSuccessCode(aStatusCode)) {
             cleanup("NETWORK_ERROR");
