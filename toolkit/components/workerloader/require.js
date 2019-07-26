@@ -168,9 +168,9 @@
       
       
       if (modules.has(path)) {
-        return modules.get(path);
+        return modules.get(path).exports;
       }
-      modules.set(path, exports);
+      modules.set(path, module);
 
 
       
@@ -216,6 +216,7 @@
       }
 
       Object.freeze(module.exports);
+      Object.freeze(module);
       return module.exports;
     };
   })();
