@@ -11,7 +11,6 @@
 #include <X11/X.h>                      
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/GfxMessageUtils.h"
-#include "gfxPoint.h"                   
 #include "nsCOMPtr.h"                   
 
 #define MOZ_HAVE_SURFACEDESCRIPTORX11
@@ -33,7 +32,7 @@ struct SurfaceDescriptorX11 {
   SurfaceDescriptorX11(gfxXlibSurface* aSurf);
 
   SurfaceDescriptorX11(Drawable aDrawable, XID aFormatID,
-                       const gfxIntSize& aSize);
+                       const gfx::IntSize& aSize);
 
   
 
@@ -50,7 +49,7 @@ struct SurfaceDescriptorX11 {
 
   Drawable mId;
   XID mFormat; 
-  gfxIntSize mSize;
+  gfx::IntSize mSize;
 };
 
 } 

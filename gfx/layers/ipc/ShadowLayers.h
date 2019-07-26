@@ -11,7 +11,6 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "gfxTypes.h"
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/WidgetUtils.h"        
 #include "mozilla/dom/ScreenOrientation.h"  
@@ -441,14 +440,14 @@ private:
                                           gfxContentType* aContent,
                                           gfxASurface** aSurface);
   
-  static gfxIntSize
+  static gfx::IntSize
   GetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
                            OpenMode aMode,
                            gfxASurface** aSurface);
   static bool
   PlatformGetDescriptorSurfaceSize(const SurfaceDescriptor& aDescriptor,
                                    OpenMode aMode,
-                                   gfxIntSize* aSize,
+                                   gfx::IntSize* aSize,
                                    gfxASurface** aSurface);
   
   

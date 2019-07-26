@@ -20,6 +20,7 @@
 #include "gfxSharedImageSurface.h"      
 #include "ipc/IPCMessageUtils.h"        
 #include "mozilla/Assertions.h"         
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
@@ -656,12 +657,12 @@ ShadowLayerForwarder::GetDescriptorSurfaceContentType(
   return content;
 }
 
- gfxIntSize
+ gfx::IntSize
 ShadowLayerForwarder::GetDescriptorSurfaceSize(
   const SurfaceDescriptor& aDescriptor, OpenMode aMode,
   gfxASurface** aSurface)
 {
-  gfxIntSize size;
+  gfx::IntSize size;
   if (PlatformGetDescriptorSurfaceSize(aDescriptor, aMode, &size, aSurface)) {
     return size;
   }
@@ -744,7 +745,7 @@ ShadowLayerForwarder::PlatformGetDescriptorSurfaceContentType(
 ShadowLayerForwarder::PlatformGetDescriptorSurfaceSize(
   const SurfaceDescriptor&,
   OpenMode,
-  gfxIntSize*,
+  gfx::IntSize*,
   gfxASurface**)
 {
   return false;

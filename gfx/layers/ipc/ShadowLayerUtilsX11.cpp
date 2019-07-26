@@ -15,9 +15,9 @@
 #include "GLDefs.h"                     
 #include "gfxASurface.h"                
 #include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
 #include "gfxXlibSurface.h"             
 #include "mozilla/X11Util.h"            
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/ISurfaceAllocator.h"  
@@ -86,7 +86,7 @@ SurfaceDescriptorX11::SurfaceDescriptorX11(gfxXlibSurface* aSurf)
 }
 
 SurfaceDescriptorX11::SurfaceDescriptorX11(Drawable aDrawable, XID aFormatID,
-                                           const gfxIntSize& aSize)
+                                           const gfx::IntSize& aSize)
   : mId(aDrawable)
   , mFormat(aFormatID)
   , mSize(aSize)
@@ -115,7 +115,7 @@ SurfaceDescriptorX11::OpenForeign() const
 }
 
 bool
-ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfxIntSize& aSize,
+ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                                   gfxContentType aContent,
                                                   uint32_t aCaps,
                                                   SurfaceDescriptor* aBuffer)
@@ -177,7 +177,7 @@ ShadowLayerForwarder::PlatformGetDescriptorSurfaceContentType(
  bool
 ShadowLayerForwarder::PlatformGetDescriptorSurfaceSize(
   const SurfaceDescriptor& aDescriptor, OpenMode aMode,
-  gfxIntSize* aSize,
+  gfx::IntSize* aSize,
   gfxASurface** aSurface)
 {
   return false;
