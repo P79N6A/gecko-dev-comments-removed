@@ -102,7 +102,7 @@ NS_ProxyRelease
 
 
 template<class T>
-class nsMainThreadPtrHolder
+class nsMainThreadPtrHolder MOZ_FINAL
 {
 public:
   
