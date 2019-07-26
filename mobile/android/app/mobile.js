@@ -268,6 +268,11 @@ pref("browser.search.official", true);
 #endif
 
 
+pref("chrome.override_package.global", "browser");
+pref("chrome.override_package.mozapps", "browser");
+pref("chrome.override_package.passwordmgr", "browser");
+
+
 pref("browser.xul.error_pages.enabled", true);
 
 
