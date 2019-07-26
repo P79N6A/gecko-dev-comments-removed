@@ -2493,7 +2493,15 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
                                        nsChangeHint_RepaintFrame));
 
   if (mOpacity != aOther.mOpacity) {
-    NS_UpdateHint(hint, nsChangeHint_UpdateOpacityLayer);
+    
+    
+    
+    if ((mOpacity >= 0.99f && mOpacity < 1.0f && aOther.mOpacity == 1.0f) ||
+        (aOther.mOpacity >= 0.99f && aOther.mOpacity < 1.0f && mOpacity == 1.0f)) {
+      NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    } else {
+      NS_UpdateHint(hint, nsChangeHint_UpdateOpacityLayer);
+    }
   }
 
   
