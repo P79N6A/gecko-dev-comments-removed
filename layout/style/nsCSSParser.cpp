@@ -4043,6 +4043,8 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
                                               nsCSSPseudoClasses::Type aType)
 {
   int32_t numbers[2] = { 0, 0 };
+  int32_t sign[2] = { 1, 1 };
+  bool hasSign[2] = { false, false };
   bool lookForB = true;
 
   
@@ -4051,6 +4053,17 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
   if (! GetToken(true)) {
     REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
     return eSelectorParsingStatus_Error;
+  }
+
+  if (mToken.IsSymbol('+') || mToken.IsSymbol('-')) {
+    hasSign[0] = true;
+    if (mToken.IsSymbol('-')) {
+      sign[0] = -1;
+    }
+    if (! GetToken(false)) {
+      REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
+      return eSelectorParsingStatus_Error;
+    }
   }
 
   if (eCSSToken_Ident == mToken.mType || eCSSToken_Dimension == mToken.mType) {
@@ -4062,7 +4075,7 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
     uint32_t truncAt = 0;
     if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("n-"))) {
       truncAt = 1;
-    } else if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("-n-"))) {
+    } else if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("-n-")) && !hasSign[0]) {
       truncAt = 2;
     }
     if (truncAt != 0) {
@@ -4072,20 +4085,20 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
   }
 
   if (eCSSToken_Ident == mToken.mType) {
-    if (mToken.mIdent.LowerCaseEqualsLiteral("odd")) {
+    if (mToken.mIdent.LowerCaseEqualsLiteral("odd") && !hasSign[0]) {
       numbers[0] = 2;
       numbers[1] = 1;
       lookForB = false;
     }
-    else if (mToken.mIdent.LowerCaseEqualsLiteral("even")) {
+    else if (mToken.mIdent.LowerCaseEqualsLiteral("even") && !hasSign[0]) {
       numbers[0] = 2;
       numbers[1] = 0;
       lookForB = false;
     }
     else if (mToken.mIdent.LowerCaseEqualsLiteral("n")) {
-      numbers[0] = 1;
+      numbers[0] = sign[0];
     }
-    else if (mToken.mIdent.LowerCaseEqualsLiteral("-n")) {
+    else if (mToken.mIdent.LowerCaseEqualsLiteral("-n") && !hasSign[0]) {
       numbers[0] = -1;
     }
     else {
@@ -4098,15 +4111,43 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
       REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
       return eSelectorParsingStatus_Error; 
     }
-    numbers[1] = mToken.mInteger;
-    lookForB = false;
+    
+    if (mToken.mHasSign && hasSign[0]) {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      return eSelectorParsingStatus_Error; 
+    }
+    int32_t intValue = mToken.mInteger * sign[0];
+    
+    if (! GetToken(false)) {
+      numbers[1] = intValue;
+      lookForB = false;
+    }
+    else {
+      if (eCSSToken_Ident == mToken.mType && mToken.mIdent.LowerCaseEqualsLiteral("n")) {
+        numbers[0] = intValue;
+      }
+      else if (eCSSToken_Ident == mToken.mType && StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("n-"))) {
+        numbers[0] = intValue;
+        mScanner->Backup(mToken.mIdent.Length() - 1);
+      }
+      else {
+        UngetToken();
+        numbers[1] = intValue;
+        lookForB = false;
+      }
+    }
   }
   else if (eCSSToken_Dimension == mToken.mType) {
     if (!mToken.mIntegerValid || !mToken.mIdent.LowerCaseEqualsLiteral("n")) {
       REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
       return eSelectorParsingStatus_Error; 
     }
-    numbers[0] = mToken.mInteger;
+    
+    if ( mToken.mHasSign && hasSign[0] ) {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      return eSelectorParsingStatus_Error; 
+    }
+    numbers[0] = mToken.mInteger * sign[0];
   }
   
   else {
@@ -4123,12 +4164,10 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
     
     
     
-    bool haveSign = false;
-    int32_t sign = 1;
     if (mToken.IsSymbol('+') || mToken.IsSymbol('-')) {
-      haveSign = true;
+      hasSign[1] = true;
       if (mToken.IsSymbol('-')) {
-        sign = -1;
+        sign[1] = -1;
       }
       if (! GetToken(true)) {
         REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
@@ -4136,11 +4175,11 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
       }
     }
     if (eCSSToken_Number != mToken.mType ||
-        !mToken.mIntegerValid || mToken.mHasSign == haveSign) {
+        !mToken.mIntegerValid || mToken.mHasSign == hasSign[1]) {
       REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
       return eSelectorParsingStatus_Error; 
     }
-    numbers[1] = mToken.mInteger * sign;
+    numbers[1] = mToken.mInteger * sign[1];
     if (! GetToken(true)) {
       REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
       return eSelectorParsingStatus_Error;
