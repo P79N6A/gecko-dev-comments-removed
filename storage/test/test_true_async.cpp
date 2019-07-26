@@ -31,7 +31,7 @@ sqlite3_mutex_methods orig_mutex_methods;
 sqlite3_mutex_methods wrapped_mutex_methods;
 
 bool mutex_used_on_watched_thread = false;
-PRThread *watched_thread = NULL;
+PRThread *watched_thread = nullptr;
 
 
 
@@ -41,7 +41,7 @@ PRThread *watched_thread = NULL;
 
 
 
-PRThread *last_non_watched_thread = NULL;
+PRThread *last_non_watched_thread = nullptr;
 
 
 

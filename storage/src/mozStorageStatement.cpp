@@ -124,7 +124,7 @@ static StatementClassInfo sStatementClassInfo;
 
 Statement::Statement()
 : StorageBaseStatementInternal()
-, mDBStatement(NULL)
+, mDBStatement(nullptr)
 , mColumnNames()
 , mExecuting(false)
 {
@@ -280,7 +280,7 @@ int
 Statement::getAsyncStatement(sqlite3_stmt **_stmt)
 {
   
-  NS_ASSERTION(mDBStatement != NULL, "We have no statement to clone!");
+  NS_ASSERTION(mDBStatement != nullptr, "We have no statement to clone!");
 
   
   if (!mAsyncStatement) {
@@ -363,7 +363,7 @@ Statement::internalFinalize(bool aDestructing)
 #endif
 
   int srv = ::sqlite3_finalize(mDBStatement);
-  mDBStatement = NULL;
+  mDBStatement = nullptr;
 
   if (mAsyncStatement) {
     
@@ -419,7 +419,7 @@ Statement::GetParameterName(uint32_t aParamIndex,
 
   const char *name = ::sqlite3_bind_parameter_name(mDBStatement,
                                                    aParamIndex + 1);
-  if (name == NULL) {
+  if (name == nullptr) {
     
     nsAutoCString name(":");
     name.AppendInt(aParamIndex);

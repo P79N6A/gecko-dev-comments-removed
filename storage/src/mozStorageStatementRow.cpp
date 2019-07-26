@@ -137,7 +137,7 @@ StatementRow::NewResolve(nsIXPConnectWrappedNative *aWrapper,
       
       
       
-      *_objp = NULL;
+      *_objp = nullptr;
       return NS_OK;
     }
 

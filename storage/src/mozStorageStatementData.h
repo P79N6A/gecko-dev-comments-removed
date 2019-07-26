@@ -99,7 +99,7 @@ public:
     if (mStatement) {
       (void)::sqlite3_reset(mStatement);
       (void)::sqlite3_clear_bindings(mStatement);
-      mStatement = NULL;
+      mStatement = nullptr;
     }
   }
 

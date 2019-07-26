@@ -60,7 +60,7 @@ check_transaction(mozIStorageConnection *aDB,
   asyncSpin->SpinUntilCompleted();
 
   
-  ::sqlite3_commit_hook(*static_cast<Connection *>(aDB), NULL, NULL);
+  ::sqlite3_commit_hook(*static_cast<Connection *>(aDB), nullptr, nullptr);
 
   
   do_check_eq(aTransactionExpected, !!commit);

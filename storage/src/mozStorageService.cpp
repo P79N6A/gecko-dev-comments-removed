@@ -482,7 +482,7 @@ const sqlite3_mem_methods memMethods = {
   &sqliteMemRoundup,
   &sqliteMemInit,
   &sqliteMemShutdown,
-  NULL
+  nullptr
 };
 
 } 

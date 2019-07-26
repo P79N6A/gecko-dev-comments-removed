@@ -346,7 +346,7 @@ registerFunctions(sqlite3 *aDB)
   for (size_t i = 0; SQLITE_OK == rv && i < ArrayLength(functions); ++i) {
     struct Functions *p = &functions[i];
     rv = ::sqlite3_create_function(aDB, p->zName, p->nArg, p->enc, p->pContext,
-                                   p->xFunc, NULL, NULL);
+                                   p->xFunc, nullptr, nullptr);
   }
 
   return rv;

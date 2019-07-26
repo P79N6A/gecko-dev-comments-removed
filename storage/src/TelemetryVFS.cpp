@@ -51,7 +51,7 @@ Histograms gHistograms[] = {
   SQLITE_TELEMETRY("places.sqlite", PLACES),
   SQLITE_TELEMETRY("cookies.sqlite", COOKIES),
   SQLITE_TELEMETRY("webappsstore.sqlite", WEBAPPS),
-  SQLITE_TELEMETRY(NULL, OTHER)
+  SQLITE_TELEMETRY(nullptr, OTHER)
 };
 #undef SQLITE_TELEMETRY
 
@@ -123,7 +123,7 @@ xClose(sqlite3_file *pFile)
   rc = p->pReal->pMethods->xClose(p->pReal);
   if( rc==SQLITE_OK ){
     delete p->base.pMethods;
-    p->base.pMethods = NULL;
+    p->base.pMethods = nullptr;
     p->quotaObject = nullptr;
   }
   return rc;
@@ -330,7 +330,7 @@ xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
   sqlite3_vfs *orig_vfs = static_cast<sqlite3_vfs*>(vfs->pAppData);
   int rc;
   telemetry_file *p = (telemetry_file *)pFile;
-  Histograms *h = NULL;
+  Histograms *h = nullptr;
   
   for(size_t i = 0;i < sizeof(gHistograms)/sizeof(gHistograms[0]);i++) {
     h = &gHistograms[i];
@@ -530,11 +530,11 @@ sqlite3_vfs* ConstructTelemetryVFS()
     expected_vfs = (vfs != nullptr);
   }
   else {
-    vfs = sqlite3_vfs_find(NULL);
+    vfs = sqlite3_vfs_find(nullptr);
     expected_vfs = vfs->zName && !strcmp(vfs->zName, EXPECTED_VFS);
   }
   if (!expected_vfs) {
-    return NULL;
+    return nullptr;
   }
 
   sqlite3_vfs *tvfs = new ::sqlite3_vfs;
