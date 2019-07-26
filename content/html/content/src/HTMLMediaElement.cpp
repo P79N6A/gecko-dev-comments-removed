@@ -3067,7 +3067,8 @@ bool HTMLMediaElement::CanActivateAutoplay()
   
   
   
-  return mAutoplaying &&
+  return !mPausedForInactiveDocumentOrChannel &&
+         mAutoplaying &&
          mPaused &&
          (mDownloadSuspendedByCache ||
           (mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
