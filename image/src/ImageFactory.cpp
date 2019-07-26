@@ -10,6 +10,8 @@
 #include "mozilla/Likely.h"
 
 #include "nsIHttpChannel.h"
+#include "nsIFileChannel.h"
+#include "nsIFile.h"
 #include "nsSimpleURI.h"
 #include "nsMimeTypes.h"
 #include "nsIURI.h"
@@ -128,6 +130,49 @@ ImageFactory::CreateAnonymousImage(const nsCString& aMimeType)
   return newImage.forget();
 }
 
+int32_t
+SaturateToInt32(int64_t val)
+{
+  if (val > INT_MAX)
+    return INT_MAX;
+  if (val < INT_MIN)
+    return INT_MIN;
+
+  return static_cast<int32_t>(val);
+}
+
+uint32_t
+GetContentSize(nsIRequest* aRequest)
+{
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
+  if (httpChannel) {
+    nsAutoCString contentLength;
+    nsresult rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
+                                                 contentLength);
+    if (NS_SUCCEEDED(rv)) {
+      return std::max(contentLength.ToInteger(&rv), 0);
+    }
+  }
+
+  
+  nsCOMPtr<nsIFileChannel> fileChannel(do_QueryInterface(aRequest));
+  if (fileChannel) {
+    nsCOMPtr<nsIFile> file;
+    nsresult rv = fileChannel->GetFile(getter_AddRefs(file));
+    if (NS_SUCCEEDED(rv)) {
+      int64_t filesize;
+      rv = file->GetFileSize(&filesize);
+      if (NS_SUCCEEDED(rv)) {
+        return std::max(SaturateToInt32(filesize), 0);
+      }
+    }
+  }
+
+  
+  return 0;
+}
+
  already_AddRefed<Image>
 ImageFactory::CreateRasterImage(nsIRequest* aRequest,
                                 imgStatusTracker* aStatusTracker,
@@ -145,30 +190,20 @@ ImageFactory::CreateRasterImage(nsIRequest* aRequest,
 
   newImage->SetInnerWindowID(aInnerWindowId);
 
-  
-  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
-  if (httpChannel) {
-    nsAutoCString contentLength;
-    rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
-                                        contentLength);
-    if (NS_SUCCEEDED(rv)) {
-      int32_t len = contentLength.ToInteger(&rv);
+  uint32_t len = GetContentSize(aRequest);
 
+  
+  
+  if (len > 0) {
+    uint32_t sizeHint = std::min<uint32_t>(len, 20000000); 
+    rv = newImage->SetSourceSizeHint(sizeHint);
+    if (NS_FAILED(rv)) {
       
+      rv = nsMemory::HeapMinimize(true);
+      nsresult rv2 = newImage->SetSourceSizeHint(sizeHint);
       
-      if (len > 0) {
-        uint32_t sizeHint = (uint32_t) len;
-        sizeHint = std::min<uint32_t>(sizeHint, 20000000); 
-        rv = newImage->SetSourceSizeHint(sizeHint);
-        if (NS_FAILED(rv)) {
-          
-          rv = nsMemory::HeapMinimize(true);
-          nsresult rv2 = newImage->SetSourceSizeHint(sizeHint);
-          
-          if (NS_FAILED(rv) || NS_FAILED(rv2)) {
-            NS_WARNING("About to hit OOM in imagelib!");
-          }
-        }
+      if (NS_FAILED(rv) || NS_FAILED(rv2)) {
+        NS_WARNING("About to hit OOM in imagelib!");
       }
     }
   }
