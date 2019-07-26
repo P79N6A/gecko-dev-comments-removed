@@ -55,9 +55,6 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
 
   NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
   provider.swap(gExceptionProvider);
-
-  
-  NS_CreateJSRuntime(getter_AddRefs(mJSRuntime));
 }
 
 NS_INTERFACE_MAP_BEGIN(nsDOMScriptObjectFactory)

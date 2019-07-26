@@ -1773,8 +1773,6 @@ nsGlobalWindow::UnmarkGrayTimers()
 
 
 
-static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
-
 nsresult
 nsGlobalWindow::EnsureScriptEnvironment()
 {
@@ -1788,9 +1786,8 @@ nsGlobalWindow::EnsureScriptEnvironment()
                "mJSObject is null, but we have an inner window?");
 
   
-  
-  nsCOMPtr<nsIDOMScriptObjectFactory> factory = do_GetService(kDOMScriptObjectFactoryCID);
-  NS_ENSURE_TRUE(factory, NS_ERROR_FAILURE);
+  nsresult rv = nsJSRuntime::Init();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -1802,7 +1799,7 @@ nsGlobalWindow::EnsureScriptEnvironment()
   
   context->WillInitializeContext();
 
-  nsresult rv = context->InitContext();
+  rv = context->InitContext();
   NS_ENSURE_SUCCESS(rv, rv);
 
   mContext = context;

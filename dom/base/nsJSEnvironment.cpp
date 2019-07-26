@@ -2561,20 +2561,6 @@ nsJSContext::LikelyShortLivingObjectCreated()
   ++sLikelyShortLivingObjectsNeedingGC;
 }
 
-
-
-
-
-
-NS_INTERFACE_MAP_BEGIN(nsJSRuntime)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-
-NS_IMPL_ADDREF(nsJSRuntime)
-NS_IMPL_RELEASE(nsJSRuntime)
-
-
 void
 nsJSRuntime::Startup()
 {
@@ -2750,7 +2736,6 @@ NS_DOMStructuredCloneError(JSContext* cx,
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
-
 nsresult
 nsJSRuntime::Init()
 {
@@ -2873,7 +2858,6 @@ nsJSRuntime::Init()
   return NS_OK;
 }
 
-
 nsScriptNameSpaceManager*
 nsJSRuntime::GetNameSpaceManager()
 {
@@ -2890,7 +2874,6 @@ nsJSRuntime::GetNameSpaceManager()
 
   return gNameSpaceManager;
 }
-
 
 void
 nsJSRuntime::Shutdown()
@@ -2909,19 +2892,6 @@ nsJSRuntime::Shutdown()
 
   sShuttingDown = true;
   sDidShutdown = true;
-}
-
-
-nsresult NS_CreateJSRuntime(nsJSRuntime **aRuntime)
-{
-  nsresult rv = nsJSRuntime::Init();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aRuntime = new nsJSRuntime();
-  if (*aRuntime == nullptr)
-    return NS_ERROR_OUT_OF_MEMORY;
-  NS_IF_ADDREF(*aRuntime);
-  return NS_OK;
 }
 
 
