@@ -125,10 +125,14 @@ VcmSIPCCBinding::~VcmSIPCCBinding ()
 {
     assert(gSelf);
     gSelf = NULL;
-    SyncRunnable::DispatchToThread(gSTSThread,
-                                   WrapRunnable(this,
-                                                &VcmSIPCCBinding::disconnect_all));
-    disconnect_all();
+    
+    
+    
+    
+    SyncRunnable::DispatchToThread(
+      gSTSThread,
+      WrapRunnable(this, &VcmSIPCCBinding::disconnect_all),
+      true);
 }
 
 void VcmSIPCCBinding::CandidateReady(NrIceMediaStream* stream,
