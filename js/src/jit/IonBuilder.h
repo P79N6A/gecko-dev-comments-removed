@@ -650,10 +650,6 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineMathFunction(CallInfo &callInfo, MMathFunction::Function function);
 
     
-    InliningStatus checkSIMDArgs(CallInfo &callInfo, const MIRType *argumentTypes);
-    InliningStatus inlineSIMDFunction(CallInfo &callInfo, uint32_t id, uint32_t argumentCount);
-
-    
     InliningStatus inlineStringObject(CallInfo &callInfo);
     InliningStatus inlineStringSplit(CallInfo &callInfo);
     InliningStatus inlineStrCharCodeAt(CallInfo &callInfo);
