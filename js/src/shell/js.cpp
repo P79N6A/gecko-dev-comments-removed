@@ -2840,26 +2840,34 @@ WatchdogMain(void *arg)
 
     PR_Lock(gWatchdogLock);
     while (gWatchdogThread) {
-         int64_t now = PRMJ_Now();
-         if (gWatchdogHasTimeout && !IsBefore(now, gWatchdogTimeout)) {
-             
+        int64_t now = PRMJ_Now();
+        if (gWatchdogHasTimeout && !IsBefore(now, gWatchdogTimeout)) {
+            
 
 
 
-             gWatchdogHasTimeout = false;
-             PR_Unlock(gWatchdogLock);
-             CancelExecution(rt);
-             PR_Lock(gWatchdogLock);
+            gWatchdogHasTimeout = false;
+            PR_Unlock(gWatchdogLock);
+            CancelExecution(rt);
+            PR_Lock(gWatchdogLock);
 
-             
-             PR_NotifyAllCondVar(gSleepWakeup);
+            
+            PR_NotifyAllCondVar(gSleepWakeup);
         } else {
-             uint64_t sleepDuration = PR_INTERVAL_NO_TIMEOUT;
-             if (gWatchdogHasTimeout)
-                 sleepDuration = (gWatchdogTimeout - now) / PRMJ_USEC_PER_SEC * PR_TicksPerSecond();
-             mozilla::DebugOnly<PRStatus> status =
-               PR_WaitCondVar(gWatchdogWakeup, sleepDuration);
-             JS_ASSERT(status == PR_SUCCESS);
+            if (gWatchdogHasTimeout) {
+                
+
+
+
+                JS_TriggerOperationCallback(rt);
+            }
+
+            uint64_t sleepDuration = PR_INTERVAL_NO_TIMEOUT;
+            if (gWatchdogHasTimeout)
+                sleepDuration = PR_TicksPerSecond() / 10;
+            mozilla::DebugOnly<PRStatus> status =
+              PR_WaitCondVar(gWatchdogWakeup, sleepDuration);
+            JS_ASSERT(status == PR_SUCCESS);
         }
     }
     PR_Unlock(gWatchdogLock);
