@@ -26,6 +26,7 @@ const COMPLEX_CONTEXT_URL = EXAMPLE_URL + "doc_complex-context.html";
 const SIMPLE_NODES_URL = EXAMPLE_URL + "doc_simple-node-creation.html";
 const MEDIA_NODES_URL = EXAMPLE_URL + "doc_media-node-creation.html";
 const BUFFER_AND_ARRAY_URL = EXAMPLE_URL + "doc_buffer-and-array.html";
+const DESTROY_NODES_URL = EXAMPLE_URL + "doc_destroy-nodes.html";
 
 
 waitForExplicitFinish();
@@ -370,6 +371,15 @@ function countGraphObjects (win) {
     nodes: win.document.querySelectorAll(".nodes > .audionode").length,
     edges: win.document.querySelectorAll(".edgePaths > .edgePath").length
   }
+}
+
+
+
+
+function forceCC () {
+  SpecialPowers.DOMWindowUtils.cycleCollect();
+  SpecialPowers.DOMWindowUtils.garbageCollect();
+  SpecialPowers.DOMWindowUtils.garbageCollect();
 }
 
 
