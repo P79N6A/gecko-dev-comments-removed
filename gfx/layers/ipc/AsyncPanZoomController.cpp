@@ -136,6 +136,7 @@ typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
 
 
 
+static bool gTouchActionPropertyEnabled = false;
 
 
 
@@ -143,90 +144,7 @@ typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+static float gTouchStartTolerance = 1.0f/4.5f;
 
 
 
@@ -262,6 +180,43 @@ static const double ALLOWED_DIRECT_PAN_ANGLE = M_PI / 3.0;
 
 
 
+static int32_t gAxisLockMode = 0;
+
+
+
+
+
+static int32_t gPanRepaintInterval = 250;
+
+
+
+
+
+static int32_t gFlingRepaintInterval = 75;
+
+
+
+
+
+static float gMinSkateSpeed = 1.0f;
+
+
+
+
+
+
+
+static bool gUsePaintDuration = true;
+
+
+
+
+
+static float gVelocityBias = 1.0f;
+
+
+
+
 static const TimeDuration ZOOM_TO_DURATION = TimeDuration::FromSeconds(0.25);
 
 
@@ -278,6 +233,71 @@ static const CSSToScreenScale MAX_ZOOM(8.0f);
 
 
 static const CSSToScreenScale MIN_ZOOM(0.125f);
+
+
+
+
+
+
+
+static int gContentResponseTimeout = 300;
+
+
+
+
+
+static int gNumPaintDurationSamples = 3;
+
+
+
+
+
+
+
+
+
+
+
+
+static float gXSkateSizeMultiplier = 1.5f;
+static float gYSkateSizeMultiplier = 2.5f;
+
+
+
+
+
+static float gXStationarySizeMultiplier = 3.0f;
+static float gYStationarySizeMultiplier = 3.5f;
+
+
+
+
+
+
+static int gAsyncScrollThrottleTime = 100;
+
+
+
+
+
+static int gAsyncScrollTimeout = 300;
+
+
+
+
+static bool gCrossSlideEnabled = false;
+
+
+
+
+static bool gAllowCheckerboarding = true;
+
+
+
+
+
+
+static bool gEnlargeDisplayPortWhenClipped = false;
 
 
 
@@ -330,7 +350,7 @@ GetFrameTime() {
 class FlingAnimation: public AsyncPanZoomAnimation {
 public:
   FlingAnimation(AsyncPanZoomController& aApzc)
-    : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gfxPrefs::APZFlingRepaintInterval()))
+    : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gFlingRepaintInterval))
     , mApzc(aApzc)
   {}
   
@@ -391,6 +411,27 @@ AsyncPanZoomController::InitializeGlobalState()
     return;
   sInitialized = true;
 
+  Preferences::AddBoolVarCache(&gTouchActionPropertyEnabled, "layout.css.touch_action.enabled", gTouchActionPropertyEnabled);
+  Preferences::AddIntVarCache(&gPanRepaintInterval, "apz.pan_repaint_interval", gPanRepaintInterval);
+  Preferences::AddIntVarCache(&gFlingRepaintInterval, "apz.fling_repaint_interval", gFlingRepaintInterval);
+  Preferences::AddFloatVarCache(&gMinSkateSpeed, "apz.min_skate_speed", gMinSkateSpeed);
+  Preferences::AddBoolVarCache(&gUsePaintDuration, "apz.use_paint_duration", gUsePaintDuration);
+  Preferences::AddFloatVarCache(&gVelocityBias, "apz.velocity_bias", gVelocityBias);
+  Preferences::AddIntVarCache(&gContentResponseTimeout, "apz.content_response_timeout", gContentResponseTimeout);
+  Preferences::AddIntVarCache(&gNumPaintDurationSamples, "apz.num_paint_duration_samples", gNumPaintDurationSamples);
+  Preferences::AddFloatVarCache(&gTouchStartTolerance, "apz.touch_start_tolerance", gTouchStartTolerance);
+  Preferences::AddFloatVarCache(&gXSkateSizeMultiplier, "apz.x_skate_size_multiplier", gXSkateSizeMultiplier);
+  Preferences::AddFloatVarCache(&gYSkateSizeMultiplier, "apz.y_skate_size_multiplier", gYSkateSizeMultiplier);
+  Preferences::AddFloatVarCache(&gXStationarySizeMultiplier, "apz.x_stationary_size_multiplier", gXStationarySizeMultiplier);
+  Preferences::AddFloatVarCache(&gYStationarySizeMultiplier, "apz.y_stationary_size_multiplier", gYStationarySizeMultiplier);
+  Preferences::AddIntVarCache(&gAsyncScrollThrottleTime, "apz.asyncscroll.throttle", gAsyncScrollThrottleTime);
+  Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apz.asyncscroll.timeout", gAsyncScrollTimeout);
+  Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apz.cross_slide.enabled", gCrossSlideEnabled);
+  Preferences::AddIntVarCache(&gAxisLockMode, "apz.axis_lock_mode", gAxisLockMode);
+  Preferences::AddBoolVarCache(&gAllowCheckerboarding, "apz.allow-checkerboarding", gAllowCheckerboarding);
+  Preferences::AddBoolVarCache(&gEnlargeDisplayPortWhenClipped, "apz.enlarge_displayport_when_clipped",
+    gEnlargeDisplayPortWhenClipped);
+
   gComputedTimingFunction = new ComputedTimingFunction();
   gComputedTimingFunction->Init(
     nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
@@ -407,7 +448,7 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mGeckoContentController(aGeckoContentController),
      mRefPtrMonitor("RefPtrMonitor"),
      mMonitor("AsyncPanZoomController"),
-     mTouchActionPropertyEnabled(gfxPrefs::TouchActionEnabled()),
+     mTouchActionPropertyEnabled(gTouchActionPropertyEnabled),
      mContentResponseTimeoutTask(nullptr),
      mX(MOZ_THIS_IN_INITIALIZER_LIST()),
      mY(MOZ_THIS_IN_INITIALIZER_LIST()),
@@ -488,12 +529,12 @@ AsyncPanZoomController::IsDestroyed()
 float
 AsyncPanZoomController::GetTouchStartTolerance()
 {
-  return (gfxPrefs::APZTouchStartTolerance() * APZCTreeManager::GetDPI());
+  return (gTouchStartTolerance * APZCTreeManager::GetDPI());
 }
 
 AsyncPanZoomController::AxisLockMode AsyncPanZoomController::GetAxisLockMode()
 {
-  return static_cast<AxisLockMode>(gfxPrefs::APZAxisLockMode());
+  return static_cast<AxisLockMode>(gAxisLockMode);
 }
 
 nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent) {
@@ -1047,7 +1088,7 @@ void AsyncPanZoomController::HandlePanningWithTouchAction(double aAngle, TouchBe
 }
 
 void AsyncPanZoomController::HandlePanning(double aAngle) {
-  if (!gfxPrefs::APZCrossSlideEnabled() && (!mX.Scrollable() || !mY.Scrollable())) {
+  if (!gCrossSlideEnabled && (!mX.Scrollable() || !mY.Scrollable())) {
     SetState(PANNING);
   } else if (IsCloseToHorizontal(aAngle, AXIS_LOCK_ANGLE)) {
     mY.SetAxisLocked(true);
@@ -1146,7 +1187,7 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
       ScheduleComposite();
 
       TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
-      if (timePaintDelta.ToMilliseconds() > gfxPrefs::APZPanRepaintInterval()) {
+      if (timePaintDelta.ToMilliseconds() > gPanRepaintInterval) {
         RequestContentRepaint();
       }
       UpdateSharedCompositorFrameMetrics();
@@ -1345,12 +1386,12 @@ static CSSSize
 CalculateDisplayPortSize(const CSSSize& aCompositionSize,
                          const CSSPoint& aVelocity)
 {
-  float xMultiplier = fabsf(aVelocity.x) < gfxPrefs::APZMinSkateSpeed()
-                        ? gfxPrefs::APZXStationarySizeMultiplier()
-                        : gfxPrefs::APZXSkateSizeMultiplier();
-  float yMultiplier = fabsf(aVelocity.y) < gfxPrefs::APZMinSkateSpeed()
-                        ? gfxPrefs::APZYStationarySizeMultiplier()
-                        : gfxPrefs::APZYSkateSizeMultiplier();
+  float xMultiplier = fabsf(aVelocity.x) < gMinSkateSpeed
+                        ? gXStationarySizeMultiplier
+                        : gXSkateSizeMultiplier;
+  float yMultiplier = fabsf(aVelocity.y) < gMinSkateSpeed
+                        ? gYStationarySizeMultiplier
+                        : gYSkateSizeMultiplier;
   return CSSSize(aCompositionSize.width * xMultiplier,
                  aCompositionSize.height * yMultiplier);
 }
@@ -1398,15 +1439,15 @@ const LayerMargin AsyncPanZoomController::CalculatePendingDisplayPort(
   
   CSSSize displayPortSize = CalculateDisplayPortSize(compositionSize, velocity);
 
-  if (gfxPrefs::APZEnlargeDisplayPortWhenClipped()) {
+  if (gEnlargeDisplayPortWhenClipped) {
     RedistributeDisplayPortExcess(displayPortSize, scrollableRect);
   }
 
   
   
   float estimatedPaintDurationMillis = (float)(aEstimatedPaintDuration * 1000.0);
-  float paintFactor = (gfxPrefs::APZUsePaintDuration() ? estimatedPaintDurationMillis : 50.0f);
-  CSSRect displayPort = CSSRect(scrollOffset + (velocity * paintFactor * gfxPrefs::APZVelocityBias()),
+  float paintFactor = (gUsePaintDuration ? estimatedPaintDurationMillis : 50.0f);
+  CSSRect displayPort = CSSRect(scrollOffset + (velocity * paintFactor * gVelocityBias),
                                 displayPortSize);
 
   
@@ -1605,7 +1646,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   
   
   TimeDuration delta = aSampleTime - mLastAsyncScrollTime;
-  if (delta.ToMilliseconds() > gfxPrefs::APZAsyncScrollThrottleTime() &&
+  if (delta.ToMilliseconds() > gAsyncScrollThrottleTime &&
       mCurrentAsyncScrollOffset != mLastAsyncScrollOffset) {
     ReentrantMonitorAutoEnter lock(mMonitor);
     mLastAsyncScrollTime = aSampleTime;
@@ -1617,7 +1658,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
       NewRunnableMethod(this, &AsyncPanZoomController::FireAsyncScrollOnTimeout);
     MessageLoop::current()->PostDelayedTask(FROM_HERE,
                                             mAsyncScrollTimeoutTask,
-                                            gfxPrefs::APZAsyncScrollTimeout());
+                                            gAsyncScrollTimeout);
   }
 
   return requestAnimationFrame;
@@ -1636,7 +1677,7 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
 
   
   
-  if (!gfxPrefs::APZAllowCheckerboarding() &&
+  if (!gAllowCheckerboarding &&
       !mLastContentPaintMetrics.mDisplayPort.IsEmpty()) {
     CSSSize compositedSize = mLastContentPaintMetrics.CalculateCompositedSizeInCssPixels();
     CSSPoint maxScrollOffset = lastPaintScrollOffset +
@@ -1715,7 +1756,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     
     
     mPaintThrottler.ClearHistory();
-    mPaintThrottler.SetMaxDurations(gfxPrefs::APZNumPaintDurationSamples());
+    mPaintThrottler.SetMaxDurations(gNumPaintDurationSamples);
 
     mX.CancelTouch();
     mY.CancelTouch();
@@ -2004,7 +2045,7 @@ void AsyncPanZoomController::SetContentResponseTimer() {
     mContentResponseTimeoutTask =
       NewRunnableMethod(this, &AsyncPanZoomController::TimeoutContentResponse);
 
-    PostDelayedTask(mContentResponseTimeoutTask, gfxPrefs::APZContentResponseTimeout());
+    PostDelayedTask(mContentResponseTimeoutTask, gContentResponseTimeout);
   }
 }
 
