@@ -93,33 +93,14 @@ extern sctp_zone_t zone_ext_refcnt;
 #define	mtod(m, t)	((t)((m)->m_data))
 #define	dtom(x)		((struct mbuf *)((intptr_t)(x) & ~(MSIZE-1)))
 
-
-
 struct mb_args {
 	int	flags;	
 	short	type;	
 };
 
 struct clust_args {
-  struct mbuf * parent_mbuf;
+	struct mbuf * parent_mbuf;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-extern struct mb_args mbuf_mb_args;
-
-
-
-extern struct clust_args clust_mb_args;
 
 struct mbuf *    m_split(struct mbuf *, int, int);
 void             m_cat(struct mbuf *m, struct mbuf *n);
@@ -143,7 +124,6 @@ void		 m_copydata(const struct mbuf *, int, int, caddr_t);
 
 #define	MT_NOINIT	255	/* Not a type but a flag to allocate
 				   a non-initialized mbuf */
-#define MB_NOTAGS	0x1UL	/* no tags attached to mbuf */
 
 
 
@@ -343,10 +323,6 @@ struct mbuf {
 
 #define	MT_NOINIT	255	/* Not a type but a flag to allocate
 				   a non-initialized mbuf */
-
-#define MB_NOTAGS	0x1UL	/* no tags attached to mbuf */
-
-
 
 
 

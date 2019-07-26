@@ -185,7 +185,11 @@ struct sctp_init {
 } SCTP_PACKED;
 #define SCTP_IDENTIFICATION_SIZE 16
 #define SCTP_ADDRESS_SIZE 4
+#if defined(__Userspace__)
+#define SCTP_RESERVE_SPACE 5
+#else
 #define SCTP_RESERVE_SPACE 6
+#endif
 
 struct sctp_state_cookie {	
 	uint8_t identification[SCTP_IDENTIFICATION_SIZE];
@@ -207,6 +211,9 @@ struct sctp_state_cookie {
 	uint16_t myport;	
 	uint8_t ipv4_addr_legal;
 	uint8_t ipv6_addr_legal;
+#if defined(__Userspace__)
+	uint8_t conn_addr_legal;
+#endif
 	uint8_t local_scope;	
 	uint8_t site_scope;	
 
