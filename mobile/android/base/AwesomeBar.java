@@ -69,7 +69,6 @@ public class AwesomeBar extends GeckoActivity
     private CustomEditText mText;
     private ImageButton mGoButton;
     private ContextMenuSubject mContextMenuSubject;
-    private boolean mIsUsingGestureKeyboard;
     private boolean mDelayRestartInput;
     
     private String mAutoCompleteResult = "";
@@ -276,26 +275,6 @@ public class AwesomeBar extends GeckoActivity
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-
-        
-        
-        
-        
-        
-
-        if (!hasFocus)
-            return;
-
-        boolean wasUsingGestureKeyboard = mIsUsingGestureKeyboard;
-        mIsUsingGestureKeyboard = InputMethods.isGestureKeyboard(this);
-        if (mIsUsingGestureKeyboard != wasUsingGestureKeyboard) {
-            updateKeyboardInputType();
-        }
-    }
-
-    @Override
     public void onConfigurationChanged(Configuration newConfiguration) {
         super.onConfigurationChanged(newConfiguration);
     }
@@ -358,9 +337,10 @@ public class AwesomeBar extends GeckoActivity
         
         
         
+        
         String text = mText.getText().toString();
         int currentInputType = mText.getInputType();
-        int newInputType = mIsUsingGestureKeyboard && StringUtils.isSearchQuery(text, false)
+        int newInputType = StringUtils.isSearchQuery(text, false)
                            ? (currentInputType & ~InputType.TYPE_TEXT_VARIATION_URI) 
                            : (currentInputType | InputType.TYPE_TEXT_VARIATION_URI); 
         if (newInputType != currentInputType) {
