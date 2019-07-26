@@ -71,6 +71,8 @@
 using google_breakpad::ustr__pc;
 using google_breakpad::ustr__lr;
 using google_breakpad::ustr__sp;
+using google_breakpad::ustr__ZDra;
+using google_breakpad::ustr__ZDcfa;
 using google_breakpad::Module;
 using google_breakpad::ToUniqueString;
 using google_breakpad::UniqueString;
@@ -79,7 +81,8 @@ namespace arm_ex_to_module {
 
 
 int ARMExToModule::TranslateCmd(const struct extab_data* edata,
-                                Module::StackFrameEntry* entry, string& vsp) {
+                                Module::StackFrameEntry* entry,
+                                Module::Expr& vsp) {
   int ret = 0;
   switch (edata->cmd) {
     case ARM_EXIDX_CMD_FINISH:
@@ -88,44 +91,29 @@ int ARMExToModule::TranslateCmd(const struct extab_data* edata,
           == entry->initial_rules.end()) {
         if (entry->initial_rules.find(ustr__lr())
             == entry->initial_rules.end()) {
-          entry->initial_rules[ustr__pc()] = Module::Expr("lr");
+          entry->initial_rules[ustr__pc()] = Module::Expr(ustr__lr(),
+                                                          0, false); 
         } else {
           entry->initial_rules[ustr__pc()] = entry->initial_rules[ustr__lr()];
         }
       }
       break;
     case ARM_EXIDX_CMD_SUB_FROM_VSP:
-      {
-        char c[16];
-        sprintf(c, " %d -", edata->data);
-        vsp += c;
-      }
+      vsp = vsp.add_delta(- static_cast<long>(edata->data));
       break;
     case ARM_EXIDX_CMD_ADD_TO_VSP:
-      {
-        char c[16];
-        sprintf(c, " %d +", edata->data);
-        vsp += c;
-      }
+      vsp = vsp.add_delta(static_cast<long>(edata->data));
       break;
     case ARM_EXIDX_CMD_REG_POP:
       for (unsigned int i = 0; i < 16; i++) {
         if (edata->data & (1 << i)) {
-          entry->initial_rules[ToUniqueString(regnames[i])]
-            = Module::Expr(vsp + " ^");
-          vsp += " 4 +";
+          entry->initial_rules[ToUniqueString(regnames[i])] = vsp.deref();
+          vsp = vsp.add_delta(4);
         }
       }
       
       if (edata->data & (1 << 13)) {
-        Module::Expr& vsp_expr = entry->initial_rules[ustr__sp()];
-        
-        
-        if (!vsp_expr.isExprPostfix()) {
-          ret = -1;
-          break;
-        };
-        vsp = vsp_expr.getExprPostfix();
+        vsp = entry->initial_rules[ustr__sp()];
       }
       break;
     case ARM_EXIDX_CMD_REG_TO_SP: {
@@ -133,16 +121,12 @@ int ARMExToModule::TranslateCmd(const struct extab_data* edata,
       const char* const regname = regnames[edata->data];
       const UniqueString* regname_us = ToUniqueString(regname);
       if (entry->initial_rules.find(regname_us) == entry->initial_rules.end()) {
-        entry->initial_rules[ustr__sp()] = Module::Expr(regname);
+        entry->initial_rules[ustr__sp()] = Module::Expr(regname_us,
+                                                        0, false); 
       } else {
         entry->initial_rules[ustr__sp()] = entry->initial_rules[regname_us];
       }
-      Module::Expr& vsp_expr = entry->initial_rules[ustr__sp()];
-      if (!vsp_expr.isExprPostfix()) {
-        ret = -1;
-        break;
-      };
-      vsp = vsp_expr.getExprPostfix();
+      vsp = entry->initial_rules[ustr__sp()];
       break;
     }
     case ARM_EXIDX_CMD_VFP_POP:
@@ -150,23 +134,23 @@ int ARMExToModule::TranslateCmd(const struct extab_data* edata,
 
       for (unsigned int i = ARM_EXBUF_START(edata->data);
            i <= ARM_EXBUF_END(edata->data); i++) {
-        vsp += " 8 +";
+        vsp = vsp.add_delta(8);
       }
       if (!(edata->data & ARM_EXIDX_VFP_FSTMD)) {
-        vsp += " 4 +";
+        vsp = vsp.add_delta(4);
       }
       break;
     case ARM_EXIDX_CMD_WREG_POP:
       for (unsigned int i = ARM_EXBUF_START(edata->data);
            i <= ARM_EXBUF_END(edata->data); i++) {
-        vsp += " 8 +";
+        vsp = vsp.add_delta(8);
       }
       break;
     case ARM_EXIDX_CMD_WCGR_POP:
       
       for (unsigned int i = 0; i < 4; i++) {
         if (edata->data & (1 << i)) {
-          vsp += " 4 +";
+          vsp = vsp.add_delta(4);
         }
       }
       break;
@@ -182,8 +166,9 @@ void ARMExToModule::AddStackFrame(uintptr_t addr, size_t size) {
   stack_frame_entry_ = new Module::StackFrameEntry;
   stack_frame_entry_->address = addr;
   stack_frame_entry_->size = size;
-  stack_frame_entry_->initial_rules[ToUniqueString(kCFA)] = Module::Expr("sp");
-  vsp_ = "sp";
+  Module::Expr sp_expr = Module::Expr(ustr__sp(), 0, false); 
+  stack_frame_entry_->initial_rules[ustr__ZDcfa()] = sp_expr; 
+  vsp_ = sp_expr;
 }
 
 int ARMExToModule::ImproveStackFrame(const struct extab_data* edata) {
@@ -196,7 +181,7 @@ void ARMExToModule::DeleteStackFrame() {
 
 void ARMExToModule::SubmitStackFrame() {
   
-  stack_frame_entry_->initial_rules[ToUniqueString(kRA)]
+  stack_frame_entry_->initial_rules[ustr__ZDra()] 
     = stack_frame_entry_->initial_rules[ustr__pc()];
   
   stack_frame_entry_->initial_rules[ustr__sp()] = vsp_;

@@ -44,6 +44,10 @@
 #include <string>
 #include <vector>
 
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "common/symbol_data.h"
 #include "common/using_std_string.h"
 #include "common/unique_string.h"
@@ -166,18 +170,86 @@ class Module {
       how_ = kExprInvalid;
     }
     bool isExprInvalid() const { return how_ == kExprInvalid; }
-    bool isExprPostfix() const { return how_ == kExprPostfix; }
 
     
     
     
-    string getExprPostfix() const { return postfix_; }
+    string getExprPostfix() const {
+      switch (how_) {
+        case kExprPostfix:
+          return postfix_;
+        case kExprSimple:
+        case kExprSimpleMem: {
+          char buf[40];
+          sprintf(buf, " %ld %c%s", labs(offset_), offset_ < 0 ? '-' : '+',
+                                    how_ == kExprSimple ? "" : " ^");
+          return string(FromUniqueString(ident_)) + string(buf);
+        }
+        case kExprInvalid:
+        default:
+          assert(0 && "getExprPostfix: invalid Module::Expr type");
+          return "Expr::genExprPostfix: kExprInvalid";
+      }
+    }
 
     bool operator==(const Expr& other) const {
       return how_ == other.how_ &&
           ident_ == other.ident_ &&
           offset_ == other.offset_ &&
           postfix_ == other.postfix_;
+    }
+
+    
+    Expr add_delta(long delta) {
+      if (delta == 0) {
+        return *this;
+      }
+      
+      
+      
+      
+      
+      
+      
+      
+      switch (how_) {
+        case kExprSimpleMem:
+        case kExprPostfix: {
+          char buf[40];
+          sprintf(buf, " %ld %c", labs(delta), delta < 0 ? '-' : '+');
+          return Expr(getExprPostfix() + string(buf));
+        }
+        case kExprSimple:
+          return Expr(ident_, offset_ + delta, false);
+        case kExprInvalid:
+        default:
+          assert(0 && "add_delta: invalid Module::Expr type");
+          
+          return Expr();
+      }
+    }
+
+    
+    Expr deref() {
+      
+      
+      
+      switch (how_) {
+        case kExprSimple: {
+          Expr t = *this;
+          t.how_ = kExprSimpleMem;
+          return t;
+        }
+        case kExprSimpleMem:
+        case kExprPostfix: {
+          return Expr(getExprPostfix() + " ^");
+        }
+        case kExprInvalid:
+        default:
+          assert(0 && "deref: invalid Module::Expr type");
+          
+          return Expr();
+      }
     }
 
     
