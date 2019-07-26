@@ -1112,13 +1112,6 @@ JS_DoubleToUint32(double d);
 
 
 extern JS_PUBLIC_API(bool)
-JS_ValueToECMAInt32(JSContext *cx, jsval v, int32_t *ip);
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
 JS_ValueToInt64(JSContext *cx, jsval v, int64_t *ip);
 
 
@@ -1222,13 +1215,6 @@ ToUint64(JSContext *cx, JS::Handle<JS::Value> v, uint64_t *out)
 
 
 } 
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ValueToECMAUint32(JSContext *cx, jsval v, uint32_t *ip);
 
 
 
