@@ -114,12 +114,16 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   nsRefPtr<layers::Image> image = mImage;
   TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
   TrackTicks delta = target - aLastEndTime;
-  LOGFRAME(("NotifyPull, target = %lu, delta = %lu %s", (uint64_t) target, (uint64_t) delta,
-            image ? "" : "<null>"));
+  LOGFRAME(("NotifyPull, desired = %ld, target = %ld, delta = %ld %s", (int64_t) aDesiredTime, 
+            (int64_t) target, (int64_t) delta, image ? "" : "<null>"));
   
-  segment.AppendFrame(image ? image.forget() : nullptr, delta, gfxIntSize(mWidth, mHeight));
-  aSource->AppendToTrack(aID, &(segment));
-  aLastEndTime = target;
+  
+  if (delta > 0) {
+    
+    segment.AppendFrame(image ? image.forget() : nullptr, delta, gfxIntSize(mWidth, mHeight));
+    aSource->AppendToTrack(aID, &(segment));
+    aLastEndTime = target;
+  }
 }
 
 void
