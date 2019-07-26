@@ -140,6 +140,15 @@ VARIABLES = {
         like @foo@ will be substituted with the values of the AC_SUBST
         variables declared during configure.
         """),
+
+    
+    'XPIDL_SOURCES': (list, [],
+        """XPCOM Interface Definition Files (xpidl).
+
+        This is a list of files that define XPCOM interface definitions.
+        Entries must be files that exist. Entries are almost certainly .idl
+        files.
+        """),
 }
 
 
