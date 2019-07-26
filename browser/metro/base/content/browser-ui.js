@@ -154,12 +154,6 @@ var BrowserUI = {
         Util.dumpLn("Exception in delay load module:", ex.message);
       }
 
-#ifdef MOZ_UPDATER
-      
-      let updatePrompt = Cc["@mozilla.org/updates/update-prompt;1"].createInstance(Ci.nsIUpdatePrompt);
-      updatePrompt.checkForUpdates();
-#endif
-
       
       if (BrowserUI.startupCrashCheck()) {
         Browser.selectedTab = BrowserUI.newOrSelectTab("about:crash");

@@ -395,20 +395,110 @@ pref("security.warn_viewing_mixed", false);
 
 
 
-pref("app.update.timer", 60000); 
 
 #ifdef MOZ_UPDATER
 
-pref("app.update.enabled", false);
-pref("app.update.timerFirstInterval", 20000); 
-pref("app.update.auto", false);
-pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
-pref("app.update.mode", 1);
-pref("app.update.silent", false);
-pref("app.update.url", "https://aus2.mozilla.org/update/4/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%-xul/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PLATFORM_VERSION%/update.xml");
+
+pref("app.update.enabled", true);
+
+
+
+
+pref("app.update.auto", true);
+
+
+
+
+
+
+
+
+
+pref("app.update.mode", 0);
+
+
+pref("app.update.silent", true);
+
+
+
+pref("app.update.staging.enabled", true);
+
+
+pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+
+
 pref("app.update.idletime", 60);
+
+
+
+
+
+
 pref("app.update.showInstalledUI", false);
+
+
+
+
+
+
 pref("app.update.incompatible.mode", 0);
+
+
+#ifdef MOZ_MAINTENANCE_SERVICE
+pref("app.update.service.enabled", true);
+#endif
+
+
+
+pref("app.update.timerMinimumDelay", 120);
+
+
+pref("app.update.log", false);
+
+
+
+
+pref("app.update.backgroundMaxErrors", 10);
+
+
+
+
+
+pref("app.update.cert.requireBuiltIn", true);
+
+
+
+
+
+pref("app.update.cert.checkAttributes", true);
+
+
+
+
+pref("app.update.cert.maxErrors", 5);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
+pref("app.update.certs.1.commonName", "aus3.mozilla.org");
+pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
+pref("app.update.certs.2.commonName", "aus3.mozilla.org");
+
+
+
 
 
 pref("editor.singleLine.pasteNewlines", 2);

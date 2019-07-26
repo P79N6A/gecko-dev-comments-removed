@@ -120,6 +120,7 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
+
 pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
 pref("app.update.certs.1.commonName", "aus3.mozilla.org");
 
