@@ -157,9 +157,6 @@ private:
   int32_t      mTimeout; 
   int32_t      mDisposalMethod;
 
-  
-  int32_t mLockCount;
-
   gfxASurface::gfxImageFormat mFormat;
   uint8_t      mPaletteDepth;
   int8_t       mBlendMethod;
@@ -168,6 +165,8 @@ private:
   bool mFormatChanged;
   bool mCompositingFailed;
   bool mNonPremult;
+  
+  bool mLocked;
 
   
   bool mInformedDiscardTracker;
@@ -176,34 +175,5 @@ private:
   bool mIsDDBSurface;
 #endif
 };
-
-namespace mozilla {
-namespace image {
-  
-  
-  class AutoFrameLocker
-  {
-  public:
-    AutoFrameLocker(imgFrame* frame)
-      : mFrame(frame)
-      , mSucceeded(NS_SUCCEEDED(frame->LockImageData()))
-    {}
-
-    ~AutoFrameLocker()
-    {
-      if (mSucceeded) {
-        mFrame->UnlockImageData();
-      }
-    }
-
-    
-    bool Succeeded() { return mSucceeded; }
-
-  private:
-    imgFrame* mFrame;
-    bool mSucceeded;
-  };
-}
-}
 
 #endif 

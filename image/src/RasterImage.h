@@ -17,7 +17,6 @@
 #ifndef mozilla_imagelib_RasterImage_h_
 #define mozilla_imagelib_RasterImage_h_
 
-#include "mozilla/Mutex.h"
 #include "Image.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
@@ -309,9 +308,6 @@ public:
 
   const char* GetURIString() { return mURIString.get();}
 
-  
-  static void Initialize();
-
 private:
   struct Anim
   {
@@ -470,109 +466,6 @@ private:
 
     bool mPendingInEventLoop;
   };
-
-  struct ScaleRequest : public LinkedListElement<ScaleRequest>
-  {
-    ScaleRequest(RasterImage* aImage)
-      : image(aImage)
-      , srcFrame(nullptr)
-      , dstFrame(nullptr)
-      , scale(0, 0)
-      , done(false)
-      , stopped(false)
-      , srcDataLocked(false)
-    {};
-
-    bool LockSourceData()
-    {
-      if (!srcDataLocked) {
-        bool success = true;
-        success = success && NS_SUCCEEDED(image->LockImage());
-        success = success && NS_SUCCEEDED(srcFrame->LockImageData());
-        srcDataLocked = success;
-      }
-      return srcDataLocked;
-    }
-
-    bool UnlockSourceData()
-    {
-      bool success = true;
-      if (srcDataLocked) {
-        success = success && NS_SUCCEEDED(image->UnlockImage());
-        success = success && NS_SUCCEEDED(srcFrame->UnlockImageData());
-
-        
-        
-        srcDataLocked = false;
-      }
-      return success;
-    }
-
-    static void Stop(RasterImage* aImg);
-
-    RasterImage* const image;
-    imgFrame *srcFrame;
-    nsAutoPtr<imgFrame> dstFrame;
-    gfxSize scale;
-    bool done;
-    bool stopped;
-    bool srcDataLocked;
-  };
-
-  class ScaleWorker : public nsRunnable
-  {
-  public:
-    static ScaleWorker* Singleton();
-
-    NS_IMETHOD Run();
-
-  
-    static nsRefPtr<ScaleWorker> sSingleton;
-
-  private: 
-    ScaleWorker()
-      : mRequestsMutex("RasterImage.ScaleWorker.mRequestsMutex")
-      , mInitialized(false)
-    {};
-
-    
-    void RequestScale(RasterImage* aImg);
-
-  private: 
-
-    friend class RasterImage;
-    LinkedList<ScaleRequest> mScaleRequests;
-    Mutex mRequestsMutex;
-    bool mInitialized;
-  };
-
-  class DrawWorker : public nsRunnable
-  {
-  public:
-    static DrawWorker* Singleton();
-
-    NS_IMETHOD Run();
-
-  
-    static nsRefPtr<DrawWorker> sSingleton;
-
-  private: 
-    DrawWorker() {};
-
-    void RequestDraw(RasterImage* aImg);
-
-  private: 
-
-    friend class RasterImage;
-    LinkedList<ScaleRequest> mDrawRequests;
-  };
-
-  void DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
-                                    gfxContext *aContext,
-                                    gfxPattern::GraphicsFilter aFilter,
-                                    const gfxMatrix &aUserSpaceToImageSpace,
-                                    const gfxRect &aFill,
-                                    const nsIntRect &aSubimage);
 
   
 
@@ -778,9 +671,6 @@ private:
   nsresult DecodeSomeData(uint32_t aMaxBytes);
   bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
-
-  inline bool CanScale(gfxPattern::GraphicsFilter aFilter, gfxSize aScale);
-  ScaleRequest mScaleRequest;
 
   
   enum eShutdownIntent {
