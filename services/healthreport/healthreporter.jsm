@@ -1146,7 +1146,7 @@ HealthReporter.prototype = Object.freeze({
 
     request.onSubmissionSuccess(this._now());
 
-#ifdef PRERELEASE_BUILD
+#ifndef RELEASE_BUILD
     
     
     try {
