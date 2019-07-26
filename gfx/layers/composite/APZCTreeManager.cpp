@@ -400,9 +400,6 @@ APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
     
     BuildOverscrollHandoffChain(apzc);
   }
-  gfx3DMatrix transformToApzc, transformToGecko;
-  
-  mCachedTransformToApzcForInputBlock = transformToApzc;
   if (!apzc) {
     return apzc.forget();
   }
@@ -416,10 +413,6 @@ APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
     
     apzc = RootAPZCForLayersId(apzc);
     APZC_LOG("Using APZC %p as the root APZC for multi-touch\n", apzc.get());
-  }
-  if (apzc) {
-    
-    GetInputTransforms(apzc, mCachedTransformToApzcForInputBlock, transformToGecko);
   }
   return apzc.forget();
 }
@@ -439,6 +432,14 @@ APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
     mTouchCount++;
     ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
     mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent, point);
+    if (mApzcForInputBlock) {
+      
+      gfx3DMatrix transformToGecko;
+      GetInputTransforms(mApzcForInputBlock, mCachedTransformToApzcForInputBlock, transformToGecko);
+    } else {
+      
+      mCachedTransformToApzcForInputBlock = gfx3DMatrix();
+    }
   }
 
   if (mApzcForInputBlock) {
