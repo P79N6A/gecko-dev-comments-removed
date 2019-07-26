@@ -283,28 +283,6 @@ MmsConnection.prototype = {
     Services.obs.addObserver(this, kNetworkConnStateChangedTopic,
                              false);
     Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
-
-    this.connected = this.radioInterface.getDataCallStateByType("mms") ==
-      Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
-    
-    
-    
-    
-    if (this.connected) {
-      let networkManager =
-        Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
-      let activeNetwork = networkManager.active;
-
-      let rilNetwork = activeNetwork.QueryInterface(Ci.nsIRilNetworkInterface);
-      if (rilNetwork.serviceId != this.serviceId) {
-        if (DEBUG) debug("Sevice ID between active/MMS network doesn't match.");
-        return;
-      }
-
-      
-      
-      this.setApnSetting(rilNetwork);
-    }
   },
 
   
@@ -473,15 +451,13 @@ MmsConnection.prototype = {
 
         
         let network = subject.QueryInterface(Ci.nsIRilNetworkInterface);
-        if (network.serviceId != this.serviceId) {
+        if (network.serviceId != this.serviceId ||
+            network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
           return;
         }
 
-        
-        
         let connected =
-          this.radioInterface.getDataCallStateByType("mms") ==
-            Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
+          network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
 
         
         
