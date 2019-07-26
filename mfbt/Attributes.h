@@ -118,10 +118,17 @@
 
 
 
+
+
+
+
+
 #ifdef MOZ_HAVE_CXX11_CONSTEXPR
 #  define MOZ_CONSTEXPR         constexpr
+#  define MOZ_CONSTEXPR_VAR     constexpr
 #else
 #  define MOZ_CONSTEXPR
+#  define MOZ_CONSTEXPR_VAR     const
 #endif
 
 
@@ -403,20 +410,6 @@
 # define MOZ_STACK_CLASS
 # define MOZ_NONHEAP_CLASS
 #endif 
-
-
-
-
-
-#ifdef _MSC_VER
-#  define MOZ_THIS_IN_INITIALIZER_LIST() \
-     __pragma(warning(push)) \
-     __pragma(warning(disable:4355)) \
-     this \
-     __pragma(warning(pop))
-#else
-#  define MOZ_THIS_IN_INITIALIZER_LIST() this
-#endif
 
 #endif 
 

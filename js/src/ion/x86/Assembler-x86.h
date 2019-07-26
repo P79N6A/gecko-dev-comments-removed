@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef ion_x86_Assembler_x86_h
 #define ion_x86_Assembler_x86_h
@@ -18,46 +18,46 @@
 namespace js {
 namespace ion {
 
-static const MOZ_CONSTEXPR Register eax = { JSC::X86Registers::eax };
-static const MOZ_CONSTEXPR Register ecx = { JSC::X86Registers::ecx };
-static const MOZ_CONSTEXPR Register edx = { JSC::X86Registers::edx };
-static const MOZ_CONSTEXPR Register ebx = { JSC::X86Registers::ebx };
-static const MOZ_CONSTEXPR Register esp = { JSC::X86Registers::esp };
-static const MOZ_CONSTEXPR Register ebp = { JSC::X86Registers::ebp };
-static const MOZ_CONSTEXPR Register esi = { JSC::X86Registers::esi };
-static const MOZ_CONSTEXPR Register edi = { JSC::X86Registers::edi };
+static MOZ_CONSTEXPR_VAR Register eax = { JSC::X86Registers::eax };
+static MOZ_CONSTEXPR_VAR Register ecx = { JSC::X86Registers::ecx };
+static MOZ_CONSTEXPR_VAR Register edx = { JSC::X86Registers::edx };
+static MOZ_CONSTEXPR_VAR Register ebx = { JSC::X86Registers::ebx };
+static MOZ_CONSTEXPR_VAR Register esp = { JSC::X86Registers::esp };
+static MOZ_CONSTEXPR_VAR Register ebp = { JSC::X86Registers::ebp };
+static MOZ_CONSTEXPR_VAR Register esi = { JSC::X86Registers::esi };
+static MOZ_CONSTEXPR_VAR Register edi = { JSC::X86Registers::edi };
 
-static const MOZ_CONSTEXPR FloatRegister xmm0 = { JSC::X86Registers::xmm0 };
-static const MOZ_CONSTEXPR FloatRegister xmm1 = { JSC::X86Registers::xmm1 };
-static const MOZ_CONSTEXPR FloatRegister xmm2 = { JSC::X86Registers::xmm2 };
-static const MOZ_CONSTEXPR FloatRegister xmm3 = { JSC::X86Registers::xmm3 };
-static const MOZ_CONSTEXPR FloatRegister xmm4 = { JSC::X86Registers::xmm4 };
-static const MOZ_CONSTEXPR FloatRegister xmm5 = { JSC::X86Registers::xmm5 };
-static const MOZ_CONSTEXPR FloatRegister xmm6 = { JSC::X86Registers::xmm6 };
-static const MOZ_CONSTEXPR FloatRegister xmm7 = { JSC::X86Registers::xmm7 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm0 = { JSC::X86Registers::xmm0 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm1 = { JSC::X86Registers::xmm1 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm2 = { JSC::X86Registers::xmm2 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm3 = { JSC::X86Registers::xmm3 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm4 = { JSC::X86Registers::xmm4 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm5 = { JSC::X86Registers::xmm5 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm6 = { JSC::X86Registers::xmm6 };
+static MOZ_CONSTEXPR_VAR FloatRegister xmm7 = { JSC::X86Registers::xmm7 };
 
-static const MOZ_CONSTEXPR Register InvalidReg = { JSC::X86Registers::invalid_reg };
-static const MOZ_CONSTEXPR FloatRegister InvalidFloatReg = { JSC::X86Registers::invalid_xmm };
+static MOZ_CONSTEXPR_VAR Register InvalidReg = { JSC::X86Registers::invalid_reg };
+static MOZ_CONSTEXPR_VAR FloatRegister InvalidFloatReg = { JSC::X86Registers::invalid_xmm };
 
-static const MOZ_CONSTEXPR Register JSReturnReg_Type = ecx;
-static const MOZ_CONSTEXPR Register JSReturnReg_Data = edx;
-static const MOZ_CONSTEXPR Register StackPointer = esp;
-static const MOZ_CONSTEXPR Register FramePointer = ebp;
-static const MOZ_CONSTEXPR Register ReturnReg = eax;
-static const MOZ_CONSTEXPR FloatRegister ReturnFloatReg = xmm0;
-static const MOZ_CONSTEXPR FloatRegister ScratchFloatReg = xmm7;
+static MOZ_CONSTEXPR_VAR Register JSReturnReg_Type = ecx;
+static MOZ_CONSTEXPR_VAR Register JSReturnReg_Data = edx;
+static MOZ_CONSTEXPR_VAR Register StackPointer = esp;
+static MOZ_CONSTEXPR_VAR Register FramePointer = ebp;
+static MOZ_CONSTEXPR_VAR Register ReturnReg = eax;
+static MOZ_CONSTEXPR_VAR FloatRegister ReturnFloatReg = xmm0;
+static MOZ_CONSTEXPR_VAR FloatRegister ScratchFloatReg = xmm7;
 
-static const MOZ_CONSTEXPR Register ArgumentsRectifierReg = esi;
-static const MOZ_CONSTEXPR Register CallTempReg0 = edi;
-static const MOZ_CONSTEXPR Register CallTempReg1 = eax;
-static const MOZ_CONSTEXPR Register CallTempReg2 = ebx;
-static const MOZ_CONSTEXPR Register CallTempReg3 = ecx;
-static const MOZ_CONSTEXPR Register CallTempReg4 = esi;
-static const MOZ_CONSTEXPR Register CallTempReg5 = edx;
-static const MOZ_CONSTEXPR Register CallTempReg6 = ebp;
+static MOZ_CONSTEXPR_VAR Register ArgumentsRectifierReg = esi;
+static MOZ_CONSTEXPR_VAR Register CallTempReg0 = edi;
+static MOZ_CONSTEXPR_VAR Register CallTempReg1 = eax;
+static MOZ_CONSTEXPR_VAR Register CallTempReg2 = ebx;
+static MOZ_CONSTEXPR_VAR Register CallTempReg3 = ecx;
+static MOZ_CONSTEXPR_VAR Register CallTempReg4 = esi;
+static MOZ_CONSTEXPR_VAR Register CallTempReg5 = edx;
+static MOZ_CONSTEXPR_VAR Register CallTempReg6 = ebp;
 
-// We have no arg regs, so our NonArgRegs are just our CallTempReg*
-static const MOZ_CONSTEXPR Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
+
+static MOZ_CONSTEXPR_VAR Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
 static const uint32_t NumCallTempNonArgRegs =
     mozilla::ArrayLength(CallTempNonArgRegs);
 
@@ -72,17 +72,17 @@ class ABIArgGenerator
     ABIArg &current() { return current_; }
     uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
 
-    // Note: these registers are all guaranteed to be different
+    
     static const Register NonArgReturnVolatileReg0;
     static const Register NonArgReturnVolatileReg1;
     static const Register NonVolatileReg;
 };
 
-static const MOZ_CONSTEXPR Register OsrFrameReg = edx;
-static const MOZ_CONSTEXPR Register PreBarrierReg = edx;
+static MOZ_CONSTEXPR_VAR Register OsrFrameReg = edx;
+static MOZ_CONSTEXPR_VAR Register PreBarrierReg = edx;
 
-// GCC stack is aligned on 16 bytes, but we don't maintain the invariant in
-// jitted code.
+
+
 #if defined(__GNUC__)
 static const uint32_t StackAlignment = 16;
 #else
@@ -211,8 +211,8 @@ class Operand
     }
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
 #include "ion/shared/Assembler-x86-shared.h"
 
@@ -223,9 +223,9 @@ static inline void
 PatchJump(CodeLocationJump jump, CodeLocationLabel label)
 {
 #ifdef DEBUG
-    // Assert that we're overwriting a jump instruction, either:
-    //   0F 80+cc <imm32>, or
-    //   E9 <imm32>
+    
+    
+    
     unsigned char *x = (unsigned char *)jump.raw() - 5;
     JS_ASSERT(((*x >= 0x80 && *x <= 0x8F) && *(x - 1) == 0x0F) ||
               (*x == 0xE9));
@@ -233,7 +233,7 @@ PatchJump(CodeLocationJump jump, CodeLocationLabel label)
     JSC::X86Assembler::setRel32(jump.raw(), label.raw());
 }
 
-// Return operand from a JS -> JS call.
+
 static const ValueOperand JSReturnOperand = ValueOperand(JSReturnReg_Type, JSReturnReg_Data);
 
 class Assembler : public AssemblerX86Shared
@@ -260,11 +260,11 @@ class Assembler : public AssemblerX86Shared
 
     static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
 
-    // Copy the assembly code to the given buffer, and perform any pending
-    // relocations relying on the target address.
+    
+    
     void executableCopy(uint8_t *buffer);
 
-    // Actual assembly emitting functions.
+    
 
     void push(const ImmGCPtr &ptr) {
         push(Imm32(ptr.value));
@@ -335,8 +335,8 @@ class Assembler : public AssemblerX86Shared
     }
     void mov(AbsoluteLabel *label, const Register &dest) {
         JS_ASSERT(!label->bound());
-        // Thread the patch list through the unpatched address word in the
-        // instruction stream.
+        
+        
         masm.movl_i32r(label->prev(), dest.code());
         label->setPrev(masm.size());
     }
@@ -408,8 +408,8 @@ class Assembler : public AssemblerX86Shared
         addPendingJump(src, target.asPointer(), Relocation::HARDCODED);
     }
 
-    // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
-    // this instruction.
+    
+    
     CodeOffsetLabel toggledCall(IonCode *target, bool enabled) {
         CodeOffsetLabel offset(size());
         JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
@@ -419,12 +419,12 @@ class Assembler : public AssemblerX86Shared
     }
 
     static size_t ToggledCallSize() {
-        // Size of a call instruction.
+        
         return 5;
     }
 
-    // Re-routes pending jumps to an external target, flushing the label in the
-    // process.
+    
+    
     void retarget(Label *label, void *target, Relocation::Kind reloc) {
         JSC::MacroAssembler::Label jsclabel;
         if (label->used()) {
@@ -445,14 +445,14 @@ class Assembler : public AssemblerX86Shared
         masm.movsd_mr((const void *)dp, dest.code());
     }
 
-    // Move a 32-bit immediate into a register where the immediate can be
-    // patched.
+    
+    
     CodeOffsetLabel movlWithPatch(Imm32 imm, Register dest) {
         masm.movl_i32r(imm.value, dest.code());
         return masm.currentOffset();
     }
 
-    // Load from *addr where addr can be patched.
+    
     CodeOffsetLabel movlWithPatch(void *addr, Register dest) {
         masm.movl_mr(addr, dest.code());
         return masm.currentOffset();
@@ -463,7 +463,7 @@ class Assembler : public AssemblerX86Shared
         return masm.currentOffset();
     }
 
-    // Store to *addr where addr can be patched
+    
     CodeOffsetLabel movlWithPatch(Register src, void *addr) {
         masm.movl_rm(src.code(), addr);
         return masm.currentOffset();
@@ -474,7 +474,7 @@ class Assembler : public AssemblerX86Shared
         return masm.currentOffset();
     }
 
-    // Load from *(base + disp32) where disp32 can be patched.
+    
     CodeOffsetLabel movsblWithPatch(Address src, Register dest) {
         masm.movsbl_mr_disp32(src.offset, src.base.code(), dest.code());
         return masm.currentOffset();
@@ -506,7 +506,7 @@ class Assembler : public AssemblerX86Shared
         return masm.currentOffset();
     }
 
-    // Store to *(base + disp32) where disp32 can be patched.
+    
     CodeOffsetLabel movbWithPatch(Register src, Address dest) {
         masm.movb_rm_disp32(src.code(), dest.offset, dest.base.code());
         return masm.currentOffset();
@@ -530,18 +530,18 @@ class Assembler : public AssemblerX86Shared
         return masm.currentOffset();
     }
 
-    // Load from *(addr + index*scale) where addr can be patched.
+    
     CodeOffsetLabel movlWithPatch(void *addr, Register index, Scale scale, Register dest) {
         masm.movl_mr(addr, index.code(), scale, dest.code());
         return masm.currentOffset();
     }
 };
 
-// Get a register in which we plan to put a quantity that will be used as an
-// integer argument.  This differs from GetIntArgReg in that if we have no more
-// actual argument registers to use we will fall back on using whatever
-// CallTempReg* don't overlap the argument registers, and only fail once those
-// run out too.
+
+
+
+
+
 static inline bool
 GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
 {
@@ -551,7 +551,7 @@ GetTempRegForIntArg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
     return true;
 }
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif /* ion_x86_Assembler_x86_h */
+#endif 
