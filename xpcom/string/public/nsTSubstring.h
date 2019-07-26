@@ -280,6 +280,7 @@ class nsTSubstring_CharT
     
     
     
+    
 #ifdef NS_DISABLE_LITERAL_TEMPLATE
       inline bool EqualsLiteral( const char* str ) const
         {
@@ -308,6 +309,7 @@ class nsTSubstring_CharT
       bool NS_FASTCALL LowerCaseEqualsASCII( const char* data, size_type len ) const;
       bool NS_FASTCALL LowerCaseEqualsASCII( const char* data ) const;
 
+    
     
     
     
@@ -360,6 +362,7 @@ class nsTSubstring_CharT
           return AssignASCII(data, strlen(data), fallible_t());
         }
 
+    
     
     
     
@@ -482,6 +485,9 @@ class nsTSubstring_CharT
 
 
         
+
+
+
 
 
 
