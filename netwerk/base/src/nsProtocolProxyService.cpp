@@ -61,6 +61,9 @@ struct nsProtocolInfo {
 
 
 
+
+
+
 class nsAsyncResolveRequest MOZ_FINAL : public nsIRunnable
                                       , public nsPACManCallback
                                       , public nsICancelable
@@ -214,7 +217,7 @@ private:
                 
                 nsRefPtr<nsAsyncResolveRequest> newRequest =
                     new nsAsyncResolveRequest(mPPS, mURI, mResolveFlags, mCallback);
-                rv = mPPS->mPACMan->AsyncGetProxyForURI(mURI, newRequest, false);
+                rv = mPPS->mPACMan->AsyncGetProxyForURI(mURI, newRequest, true);
             }
 
             if (NS_FAILED(rv))
@@ -952,6 +955,11 @@ nsProtocolProxyService::ReloadPAC()
         ConfigureFromPAC(pacSpec, true);
     return NS_OK;
 }
+
+
+
+
+
 
 
 class nsAsyncBridgeRequest MOZ_FINAL  : public nsPACManCallback
