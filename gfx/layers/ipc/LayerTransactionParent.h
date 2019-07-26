@@ -44,7 +44,7 @@ public:
   LayerManagerComposite* layer_manager() const { return mLayerManager; }
 
   uint64_t GetId() const { return mId; }
-  ContainerLayer* GetRoot() const { return mRoot; }
+  Layer* GetRoot() const { return mRoot; }
 
   
   virtual bool AllocShmem(size_t aSize,
@@ -101,7 +101,7 @@ private:
   ShadowLayersManager* mShadowLayersManager;
   
   
-  nsRefPtr<ContainerLayer> mRoot;
+  nsRefPtr<Layer> mRoot;
   
   
   

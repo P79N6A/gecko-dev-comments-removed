@@ -122,7 +122,7 @@ private:
 
   LayerTransactionParent* GetShadowLayers() const;
   uint64_t GetLayerTreeId() const;
-  ContainerLayer* GetRootLayer() const;
+  Layer* GetRootLayer() const;
 
   
   
