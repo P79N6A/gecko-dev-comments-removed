@@ -634,9 +634,6 @@ AppendErrorTextUntrusted(PRErrorCode errTrust,
           errorID = "certErrorTrust_UnknownIssuer";
         break;
       }
-      case SEC_ERROR_INADEQUATE_KEY_USAGE:
-        
-        
       case SEC_ERROR_CA_CERT_INVALID:
         errorID = "certErrorTrust_CaInvalid";
         break;
