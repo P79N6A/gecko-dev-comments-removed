@@ -418,12 +418,41 @@ WebappsActor.prototype = {
           zipFile.moveTo(installDir, "application.zip");
 
           let origin = "app://" + id;
+          let manifestURL = origin + "/manifest.webapp";
+
+          
+          
+          
+          let jar = installDir.clone();
+          jar.append("application.zip");
+          Services.obs.notifyObservers(jar, "flush-cache-entry", null);
+
+          
+          
+          
+          
+          let FlushFrameScript = function (path) {
+            let jar = Components.classes["@mozilla.org/file/local;1"]
+                                .createInstance(Components.interfaces.nsILocalFile);
+            jar.initWithPath(path);
+            let obs = Components.classes["@mozilla.org/observer-service;1"]
+                                .getService(Components.interfaces.nsIObserverService);
+            obs.notifyObservers(jar, "flush-cache-entry", null);
+          };
+          for each (let frame in self._appFrames()) {
+            if (frame.getAttribute("mozapp") == manifestURL) {
+              let mm = frame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
+              mm.loadFrameScript("data:," +
+                encodeURIComponent("(" + FlushFrameScript.toString() + ")" +
+                                   "('" + jar.path + "')"), false);
+            }
+          }
 
           
           let app = {
             origin: origin,
             installOrigin: origin,
-            manifestURL: origin + "/manifest.webapp",
+            manifestURL: manifestURL,
             appStatus: appType,
             receipts: aReceipts,
           }
