@@ -360,6 +360,7 @@ pref("browser.dom.window.dump.enabled", false);
 
 
 pref("security.apps.privileged.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
+
 pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self'");
 
 
