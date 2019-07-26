@@ -444,7 +444,7 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
   nsDOMTokenList* classList = mImageContent->AsElement()->GetClassList();
   mozilla::ErrorResult rv;
   if (aType == imgINotificationObserver::DECODE_COMPLETE) {
-    if (mImageContent) {
+    if (mImageContent && !nsContentUtils::IsChildOfSameType(this)) {
       
       
       
@@ -455,7 +455,7 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
 
   if (aType == imgINotificationObserver::DISCARD) {
     
-    if (mImageContent) {
+    if (mImageContent && !nsContentUtils::IsChildOfSameType(this)) {
       
       classList->Remove(NS_LITERAL_STRING("decoded"), rv);
       NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
