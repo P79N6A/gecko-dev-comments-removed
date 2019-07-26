@@ -151,6 +151,12 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
     mCurrentCallbackInfo.Callback = aCallback;
     mCurrentCallbackInfo.CallbackData = aCallbackData;
 
+    if (aFlags & END_NO_COMPOSITE) {
+      
+      
+      mRoot->ApplyPendingUpdatesToSubtree();
+    }
+
     
     
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());

@@ -641,6 +641,12 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
   }
 
   if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
+    if (aFlags & END_NO_COMPOSITE) {
+      
+      
+      mRoot->ApplyPendingUpdatesToSubtree();
+    }
+
     
     
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());

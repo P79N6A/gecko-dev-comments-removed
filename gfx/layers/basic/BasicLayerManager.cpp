@@ -552,6 +552,12 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       clipRect = ToOutsideIntRect(mTarget->GetClipExtents());
     }
 
+    if (aFlags & END_NO_COMPOSITE) {
+      
+      
+      aLayer->ApplyPendingUpdatesToSubtree();
+    }
+
     
     
     mSnapEffectiveTransforms =

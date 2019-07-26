@@ -701,11 +701,25 @@ public:
 
   void SetBaseTransform(const gfx3DMatrix& aMatrix)
   {
+    mPendingTransform = nullptr;
     if (mTransform == aMatrix) {
       return;
     }
     mTransform = aMatrix;
     Mutated();
+  }
+
+  
+
+
+
+
+
+
+
+  void SetBaseTransformForNextTransaction(const gfx3DMatrix& aMatrix)
+  {
+    mPendingTransform = new gfx3DMatrix(aMatrix);
   }
 
   void SetPostScale(float aXScale, float aYScale)
@@ -763,6 +777,15 @@ public:
 
   AnimationArray& GetAnimations() { return mAnimations; }
   InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
+
+  
+
+
+
+
+
+  void ApplyPendingUpdatesToSubtree();
+
   
 
 
@@ -979,6 +1002,7 @@ public:
 
   void ClearInvalidRect() { mInvalidRegion.SetEmpty(); }
 
+  void ApplyPendingUpdatesForThisTransaction();
 
 #ifdef DEBUG
   void SetDebugColorIndex(uint32_t aIndex) { mDebugColorIndex = aIndex; }
@@ -1033,6 +1057,10 @@ protected:
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
+  
+  
+  
+  nsAutoPtr<gfx3DMatrix> mPendingTransform;
   float mPostXScale;
   float mPostYScale;
   gfx3DMatrix mEffectiveTransform;
