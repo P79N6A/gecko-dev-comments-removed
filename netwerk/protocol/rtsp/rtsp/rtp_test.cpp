@@ -14,7 +14,6 @@
 
 
 
-
 #define LOG_TAG "rtp_test"
 #include <utils/Log.h>
 

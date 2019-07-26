@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "AAVCAssembler"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "AAVCAssembler.h"
 

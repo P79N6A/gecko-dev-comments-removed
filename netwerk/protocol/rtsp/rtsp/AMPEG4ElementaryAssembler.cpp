@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "AMPEG4ElementaryAssembler"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "AMPEG4ElementaryAssembler.h"
 

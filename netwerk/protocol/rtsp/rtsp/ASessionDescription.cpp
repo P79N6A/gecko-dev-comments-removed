@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "ASessionDescription"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "ASessionDescription.h"
 

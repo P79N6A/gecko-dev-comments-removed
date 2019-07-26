@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "ARTPConnection"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "ARTPConnection.h"
 

@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "ARawAudioAssembler"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "ARawAudioAssembler.h"
 

@@ -14,7 +14,6 @@
 
 
 
-
 #define LOG_TAG "ARTPSession"
 #include <utils/Log.h>
 

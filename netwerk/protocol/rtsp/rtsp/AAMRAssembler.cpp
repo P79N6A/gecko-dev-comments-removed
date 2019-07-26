@@ -14,9 +14,8 @@
 
 
 
-
 #define LOG_TAG "AAMRAssembler"
-#include <utils/Log.h>
+#include "RtspPrlog.h"
 
 #include "AAMRAssembler.h"
 
