@@ -473,6 +473,13 @@ SettingsListener.observe('debugger.remote-mode', false, function(value) {
 });
 
 
+
+let forbidCertified =
+  Services.prefs.getBoolPref('devtools.debugger.forbid-certified-apps');
+Services.prefs.setBoolPref('javascript.options.discardSystemSource',
+                           forbidCertified);
+
+
 SettingsListener.observe('device.storage.writable.name', 'sdcard', function(value) {
   if (Services.prefs.getPrefType('device.storage.writable.name') != Ci.nsIPrefBranch.PREF_STRING) {
     
