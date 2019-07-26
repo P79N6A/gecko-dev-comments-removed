@@ -4401,4 +4401,7 @@ pref("dom.forms.inputmode", true);
 #endif
 
 
+pref("dom.telephony.enabled", false);
+
+
 pref("dom.inter-app-communication-api.enabled", false);
