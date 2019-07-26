@@ -15,7 +15,6 @@
 #include "InputData.h"
 #include "Axis.h"
 #include "TaskThrottler.h"
-#include "mozilla/layers/APZCTreeManager.h"
 #include "gfx3DMatrix.h"
 
 #include "base/message_loop.h"
@@ -28,6 +27,7 @@ class CompositorParent;
 class GestureEventListener;
 class ContainerLayer;
 class ViewTransform;
+class APZCTreeManager;
 
 
 
@@ -73,6 +73,7 @@ public:
   static float GetTouchStartTolerance();
 
   AsyncPanZoomController(uint64_t aLayersId,
+                         APZCTreeManager* aTreeManager,
                          GeckoContentController* aController,
                          GestureBehavior aGestures = DEFAULT_GESTURES);
   ~AsyncPanZoomController();
@@ -630,6 +631,13 @@ public:
   }
 
 private:
+  
+  
+  
+  
+  
+  APZCTreeManager* mTreeManager;
+
   nsRefPtr<AsyncPanZoomController> mLastChild;
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
   nsRefPtr<AsyncPanZoomController> mParent;
