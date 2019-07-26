@@ -611,11 +611,11 @@ public:
   
   
   
-  void StopProgressUpdates();
+  virtual void StopProgressUpdates();
 
   
   
-  void StartProgressUpdates();
+  virtual void StartProgressUpdates();
 
   
   
@@ -682,6 +682,10 @@ public:
   
   
   void FirstFrameLoaded();
+
+  
+  
+  virtual bool IsDataCachedToEndOfResource();
 
   
   
@@ -1012,7 +1016,7 @@ public:
   
   
   
-  bool mResourceLoaded;
+  bool mCalledResourceLoaded;
 
   
   

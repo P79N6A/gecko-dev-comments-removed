@@ -159,20 +159,29 @@ public:
   void PrepareForSwitch();
 
   
-  bool OnStateMachineThread() const;
+  bool OnStateMachineThread() const MOZ_OVERRIDE;
 
   
-  bool OnDecodeThread() const;
+  bool OnDecodeThread() const MOZ_OVERRIDE;
 
   
   ReentrantMonitor& GetReentrantMonitor() MOZ_OVERRIDE;
 
   
-  ImageContainer* GetImageContainer();
+  ImageContainer* GetImageContainer() MOZ_OVERRIDE;
 
   
   
   void OnReadMetadataCompleted() MOZ_OVERRIDE;
+
+  
+  
+  
+  void StopProgressUpdates() MOZ_OVERRIDE;
+
+  
+  
+  void StartProgressUpdates() MOZ_OVERRIDE;
 
   
   void Shutdown() {

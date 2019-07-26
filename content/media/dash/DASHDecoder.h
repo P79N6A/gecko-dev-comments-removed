@@ -93,6 +93,10 @@ public:
 
   
   
+  bool IsDataCachedToEndOfResource() MOZ_OVERRIDE;
+
+  
+  
   
   
   bool IsDecoderAllowedToDownloadData(DASHRepDecoder* aRepDecoder);
@@ -214,6 +218,15 @@ public:
   
   
   void UpdatePlaybackRate() MOZ_OVERRIDE;
+
+  
+  
+  
+  void StopProgressUpdates() MOZ_OVERRIDE;
+
+  
+  
+  void StartProgressUpdates() MOZ_OVERRIDE;
 
   
   

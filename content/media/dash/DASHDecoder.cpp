@@ -715,6 +715,15 @@ DASHDecoder::NotifyDownloadEnded(DASHRepDecoder* aRepDecoder,
     }
 
     
+    if (!decoder || (decoder != AudioRepDecoder() &&
+                     decoder != VideoRepDecoder())) {
+      LOG("Invalid decoder [%p]: video idx [%d] audio idx [%d]",
+          decoder.get(), AudioRepDecoder(), VideoRepDecoder());
+      DecodeError();
+      return;
+    }
+
+    
     
     if (decoder == VideoRepDecoder()) {
       if (mVideoSubsegmentLoads.IsEmpty() ||
@@ -738,20 +747,22 @@ DASHDecoder::NotifyDownloadEnded(DASHRepDecoder* aRepDecoder,
     
     
     
-#ifdef PR_LOGGING
+    bool resourceLoaded = false;
     if (decoder.get() == AudioRepDecoder()) {
       LOG("Requesting load for audio decoder [%p] subsegment [%d].",
         decoder.get(), mAudioSubsegmentIdx);
+      if (mAudioSubsegmentIdx >= decoder->GetNumDataByteRanges()) {
+        resourceLoaded = true;
+      }
     } else if (decoder.get() == VideoRepDecoder()) {
       LOG("Requesting load for video decoder [%p] subsegment [%d].",
         decoder.get(), mVideoSubsegmentIdx);
+      if (mVideoSubsegmentIdx >= decoder->GetNumDataByteRanges()) {
+        resourceLoaded = true;
+      }
     }
-#endif
-    if (!decoder || (decoder != AudioRepDecoder() &&
-                     decoder != VideoRepDecoder())) {
-      LOG("Invalid decoder [%p]: video idx [%d] audio idx [%d]",
-          decoder.get(), AudioRepDecoder(), VideoRepDecoder());
-      DecodeError();
+    if (resourceLoaded) {
+      ResourceLoaded();
       return;
     }
     decoder->LoadNextByteRange();
@@ -1302,6 +1313,61 @@ DASHDecoder::GetStatistics()
   }
 
   return result;
+}
+
+bool
+DASHDecoder::IsDataCachedToEndOfResource()
+{
+  NS_ASSERTION(!mShuttingDown, "Don't call during shutdown!");
+  GetReentrantMonitor().AssertCurrentThreadIn();
+
+  if (!mMPDManager || !mResource) {
+    return false;
+  }
+
+  bool resourceIsLoaded = false;
+  if (VideoRepDecoder()) {
+    resourceIsLoaded = VideoRepDecoder()->IsDataCachedToEndOfResource();
+    LOG("IsDataCachedToEndOfResource for VideoRepDecoder %p = %s",
+       VideoRepDecoder(), resourceIsLoaded ? "yes" : "no");
+  }
+  if (AudioRepDecoder()) {
+    bool isAudioResourceLoaded =
+      AudioRepDecoder()->IsDataCachedToEndOfResource();
+    LOG("IsDataCachedToEndOfResource for AudioRepDecoder %p = %s",
+       AudioRepDecoder(), isAudioResourceLoaded ? "yes" : "no");
+    resourceIsLoaded = resourceIsLoaded && isAudioResourceLoaded;
+  }
+
+  return resourceIsLoaded;
+}
+
+void
+DASHDecoder::StopProgressUpdates()
+{
+  MOZ_ASSERT(OnStateMachineThread() || OnDecodeThread());
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  mIgnoreProgressData = true;
+  for (uint32_t i = 0; i < mVideoRepDecoders.Length(); i++) {
+    mVideoRepDecoders[i]->StopProgressUpdates();
+  }
+  for (uint32_t i = 0; i < mAudioRepDecoders.Length(); i++) {
+    mAudioRepDecoders[i]->StopProgressUpdates();
+  }
+}
+
+void
+DASHDecoder::StartProgressUpdates()
+{
+  MOZ_ASSERT(OnStateMachineThread() || OnDecodeThread());
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  mIgnoreProgressData = false;
+  for (uint32_t i = 0; i < mVideoRepDecoders.Length(); i++) {
+    mVideoRepDecoders[i]->StartProgressUpdates();
+  }
+  for (uint32_t i = 0; i < mAudioRepDecoders.Length(); i++) {
+    mAudioRepDecoders[i]->StartProgressUpdates();
+  }
 }
 
 } 
