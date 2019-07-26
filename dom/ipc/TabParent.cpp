@@ -1926,6 +1926,11 @@ TabParent::GetLoadContext()
   return loadContext.forget();
 }
 
+
+
+
+
+
 NS_IMETHODIMP
 TabParent::InjectTouchEvent(const nsAString& aType,
                             uint32_t* aIdentifiers,
@@ -1967,6 +1972,11 @@ TabParent::InjectTouchEvent(const nsAString& aType,
     
     t->mChanged = true;
     event.touches.AppendElement(t);
+  }
+
+  if ((msg == NS_TOUCH_END || msg == NS_TOUCH_CANCEL) && sEventCapturer) {
+    WidgetGUIEvent* guiEvent = event.AsGUIEvent();
+    TryCapture(*guiEvent);
   }
 
   SendRealTouchEvent(event);
