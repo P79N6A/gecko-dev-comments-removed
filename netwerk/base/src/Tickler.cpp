@@ -31,14 +31,39 @@ Tickler::Tickler()
   MOZ_ASSERT(NS_IsMainThread());
 }
 
+class TicklerThreadDestructor  : public nsRunnable
+{
+public:
+  explicit TicklerThreadDestructor(nsIThread *aThread)
+    : mThread(aThread) { }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mThread)
+      mThread->Shutdown();
+    return NS_OK;
+  }
+
+private:
+  ~TicklerThreadDestructor() { }
+  nsCOMPtr<nsIThread> mThread;
+};
+
 Tickler::~Tickler()
 {
   
   
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mThread)
+  
+  
+  nsRefPtr<nsIRunnable> event = new TicklerThreadDestructor(mThread);
+  if (NS_FAILED(NS_DispatchToCurrentThread(event))) {
     mThread->Shutdown();
+  }
+  mThread = nullptr;
+
   if (mTimer)
     mTimer->Cancel();
   if (mFD)
