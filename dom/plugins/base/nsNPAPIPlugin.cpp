@@ -612,7 +612,7 @@ public:
     return (mFunc != nullptr);
   }
 
-private:  
+private:
   NPP mInstance;
   PluginThreadCallback mFunc;
   void *mUserData;
@@ -1067,7 +1067,7 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
     
     
     
-    NS_ASSERTION((char*)streamWrapper <= (char*)pstream && 
+    NS_ASSERTION((char*)streamWrapper <= (char*)pstream &&
                  ((char*)pstream) + sizeof(*pstream)
                      <= ((char*)streamWrapper) + sizeof(*streamWrapper),
                  "pstream is not a subobject of wrapper");
@@ -2250,10 +2250,10 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       uint32_t* bits = reinterpret_cast<uint32_t*>(result);
       *bits = kBitmap_ANPDrawingModel && kSurface_ANPDrawingModel;
       return NPERR_NO_ERROR;
-    }  
+    }
 
     case kJavaContext_ANPGetValue: {
-      jobject ret = GeckoAppShell::GetContext();
+      jobject ret = mozilla::widget::android::GeckoAppShell::GetContext();
       if (!ret)
         return NPERR_GENERIC_ERROR;
 

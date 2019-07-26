@@ -267,7 +267,7 @@ nsSystemInfo::Init()
         android_sdk_version = version;
         if (version >= 8 && mozilla::AndroidBridge::Bridge()->GetStaticStringField("android/os/Build", "HARDWARE", str))
             SetPropertyAsAString(NS_LITERAL_STRING("hardware"), str);
-        bool isTablet = GeckoAppShell::IsTablet();
+        bool isTablet = mozilla::widget::android::GeckoAppShell::IsTablet();
         SetPropertyAsBool(NS_LITERAL_STRING("tablet"), isTablet);
         
         
