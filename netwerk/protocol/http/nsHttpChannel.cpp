@@ -373,10 +373,10 @@ nsHttpChannel::Connect()
 
         
         
-        
-        NS_ENSURE_SUCCESS(rv, rv);
+        NS_ASSERTION(NS_SUCCEEDED(rv),
+                     "Something is wrong with STS: IsStsURI failed.");
 
-        if (isStsHost) {
+        if (NS_SUCCEEDED(rv) && isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
