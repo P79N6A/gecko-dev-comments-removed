@@ -352,11 +352,18 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
     if (display->mPosition == NS_STYLE_POSITION_STICKY) {
       
       
-      StickyScrollContainer::ComputeStickyOffsets(aFrame);
+      
+      
+      
+      
+      nsIFrame *firstContinuation =
+        nsLayoutUtils::FirstContinuationOrIBSplitSibling(aFrame);
+
+      StickyScrollContainer::ComputeStickyOffsets(firstContinuation);
       StickyScrollContainer* ssc =
-        StickyScrollContainer::GetStickyScrollContainerForFrame(aFrame);
+        StickyScrollContainer::GetStickyScrollContainerForFrame(firstContinuation);
       if (ssc) {
-        ssc->PositionContinuations(aFrame);
+        ssc->PositionContinuations(firstContinuation);
       }
     } else {
       MOZ_ASSERT(NS_STYLE_POSITION_RELATIVE == display->mPosition,
