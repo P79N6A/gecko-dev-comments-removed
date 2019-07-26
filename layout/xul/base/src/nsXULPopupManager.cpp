@@ -180,7 +180,7 @@ nsXULPopupManager::GetInstance()
 }
 
 bool
-nsXULPopupManager::Rollup(uint32_t aCount, nsIContent** aLastRolledUp)
+nsXULPopupManager::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** aLastRolledUp)
 {
   bool consume = false;
 
@@ -202,6 +202,20 @@ nsXULPopupManager::Rollup(uint32_t aCount, nsIContent** aLastRolledUp)
     }
 
     consume = item->Frame()->ConsumeOutsideClicks();
+    
+    
+    if (!consume && pos) {
+      nsCOMPtr<nsIContent> anchor = item->Frame()->GetAnchor();
+      if (anchor && anchor->GetPrimaryFrame()) {
+        
+        
+        
+        
+        if (anchor->GetPrimaryFrame()->GetScreenRect().Contains(*pos)) {
+          consume = true;
+        }
+      }
+    }
 
     
     
@@ -2005,7 +2019,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
 #endif
       
       if (aTopVisibleMenuItem) {
-        Rollup(0, nullptr);
+        Rollup(0, nullptr, nullptr);
       } else if (mActiveMenuBar) {
         mActiveMenuBar->MenuClosed();
       }
@@ -2240,7 +2254,7 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
         
         
         if (mPopups)
-          Rollup(0, nullptr);
+          Rollup(0, nullptr, nullptr);
         else if (mActiveMenuBar)
           mActiveMenuBar->MenuClosed();
       }

@@ -11,6 +11,7 @@
 
 class nsIContent;
 class nsIWidget;
+class nsIntPoint;
 
 class nsIRollupListener {
  public: 
@@ -26,7 +27,10 @@ class nsIRollupListener {
 
 
 
-  virtual bool Rollup(uint32_t aCount, nsIContent** aLastRolledUp) = 0;
+
+
+
+  virtual bool Rollup(uint32_t aCount, const nsIntPoint* aPoint, nsIContent** aLastRolledUp) = 0;
 
   
 
