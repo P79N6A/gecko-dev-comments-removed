@@ -242,6 +242,26 @@ function add_connection_test(aHost, aExpectedResult,
   });
 }
 
+function _getBinaryUtil(binaryUtilName) {
+  let directoryService = Cc["@mozilla.org/file/directory_service;1"]
+                           .getService(Ci.nsIProperties);
+
+  let utilBin = directoryService.get("CurProcD", Ci.nsILocalFile);
+  utilBin.append(binaryUtilName + (gIsWindows ? ".exe" : ""));
+  
+  
+  if (!utilBin.exists()) {
+    utilBin = directoryService.get("CurWorkD", Ci.nsILocalFile);
+    while (utilBin.path.indexOf("xpcshell") != -1) {
+      utilBin = utilBin.parent;
+    }
+    utilBin.append("bin");
+    utilBin.append(binaryUtilName + (gIsWindows ? ".exe" : ""));
+  }
+  do_check_true(utilBin.exists());
+  return utilBin;
+}
+
 
 function _setupTLSServerTest(serverBinName)
 {
@@ -275,19 +295,7 @@ function _setupTLSServerTest(serverBinName)
       });
   httpServer.start(CALLBACK_PORT);
 
-  let serverBin = directoryService.get("CurProcD", Ci.nsILocalFile);
-  serverBin.append(serverBinName + (gIsWindows ? ".exe" : ""));
-  
-  
-  if (!serverBin.exists()) {
-    serverBin = directoryService.get("CurWorkD", Ci.nsILocalFile);
-    while (serverBin.path.indexOf("xpcshell") != -1) {
-      serverBin = serverBin.parent;
-    }
-    serverBin.append("bin");
-    serverBin.append(serverBinName + (gIsWindows ? ".exe" : ""));
-  }
-  do_check_true(serverBin.exists());
+  let serverBin = _getBinaryUtil(serverBinName);
   let process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
   process.init(serverBin);
   let certDir = directoryService.get("CurWorkD", Ci.nsILocalFile);
@@ -298,4 +306,37 @@ function _setupTLSServerTest(serverBinName)
   do_register_cleanup(function() {
     process.kill();
   });
+}
+
+
+
+
+
+function generateOCSPResponses(ocspRespArray, nssDBlocation)
+{
+  let utilBinName =  "GenerateOCSPResponse";
+  let ocspGenBin = _getBinaryUtil(utilBinName);
+  let retArray = new Array();
+
+  for (let i = 0; i < ocspRespArray.length; i++) {
+    let argArray = new Array();
+    let ocspFilepre = do_get_file(i.toString() + ".ocsp", true);
+    let filename = ocspFilepre.path;
+    argArray.push(nssDBlocation);
+    argArray.push(ocspRespArray[i][0]); 
+    argArray.push(ocspRespArray[i][1]); 
+    argArray.push(ocspRespArray[i][2]); 
+    argArray.push(filename);
+    do_print("arg_array ="+argArray);
+
+    let process = Cc["@mozilla.org/process/util;1"]
+                    .createInstance(Ci.nsIProcess);
+    process.init(ocspGenBin);
+    process.run(true, argArray, 5);
+    do_check_eq(0, process.exitValue);
+    let ocspFile = do_get_file(i.toString() + ".ocsp", false);
+    retArray.push(readFile(ocspFile));
+    ocspFile.remove(false);
+  }
+  return retArray;
 }
