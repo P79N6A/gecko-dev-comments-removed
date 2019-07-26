@@ -15,14 +15,14 @@
 
 
 
-#ifndef insanity_test__pkixtestutils_h
-#define insanity_test__pkixtestutils_h
+#ifndef mozilla_pkix_test__pkixtestutils_h
+#define mozilla_pkix_test__pkixtestutils_h
 
-#include "insanity/ScopedPtr.h"
-#include "insanity/pkixtypes.h"
+#include "pkix/ScopedPtr.h"
+#include "pkix/pkixtypes.h"
 #include "seccomon.h"
 
-namespace insanity { namespace test {
+namespace mozilla { namespace pkix { namespace test {
 
 class OCSPResponseContext
 {
@@ -62,6 +62,6 @@ public:
 
 SECItem* CreateEncodedOCSPResponse(OCSPResponseContext& context);
 
-} } 
+} } } 
 
 #endif 

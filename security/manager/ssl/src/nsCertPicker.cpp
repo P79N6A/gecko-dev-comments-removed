@@ -4,7 +4,7 @@
 
 
 #include "nsCertPicker.h"
-#include "insanity/pkixtypes.h"
+#include "pkix/pkixtypes.h"
 #include "nsMemory.h"
 #include "nsCOMPtr.h"
 #include "nsXPIDLString.h"
@@ -50,14 +50,14 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
   {
     
     nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
-    insanity::pkix::ScopedCERTCertList allcerts(
+    mozilla::pkix::ScopedCERTCertList allcerts(
       PK11_ListCerts(PK11CertListUnique, ctx));
   }
 
   
   
 
-  insanity::pkix::ScopedCERTCertList certList( 
+  mozilla::pkix::ScopedCERTCertList certList(
     CERT_FindUserCertsByUsage(CERT_GetDefaultCertDB(), 
                               (SECCertUsage)certUsage,
                               !allowDuplicateNicknames,

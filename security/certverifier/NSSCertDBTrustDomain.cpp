@@ -10,7 +10,7 @@
 
 #include "ExtendedValidation.h"
 #include "certdb.h"
-#include "insanity/pkix.h"
+#include "pkix/pkix.h"
 #include "mozilla/Telemetry.h"
 #include "nss.h"
 #include "ocsp.h"
@@ -21,7 +21,7 @@
 #include "secerr.h"
 #include "secmod.h"
 
-using namespace insanity::pkix;
+using namespace mozilla::pkix;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gCertVerifierLog;
@@ -53,7 +53,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
 SECStatus
 NSSCertDBTrustDomain::FindPotentialIssuers(
   const SECItem* encodedIssuerName, PRTime time,
-   insanity::pkix::ScopedCERTCertList& results)
+   mozilla::pkix::ScopedCERTCertList& results)
 {
   
   
@@ -131,12 +131,12 @@ SECStatus
 NSSCertDBTrustDomain::VerifySignedData(const CERTSignedData* signedData,
                                        const CERTCertificate* cert)
 {
-  return ::insanity::pkix::VerifySignedData(signedData, cert, mPinArg);
+  return ::mozilla::pkix::VerifySignedData(signedData, cert, mPinArg);
 }
 
 SECStatus
 NSSCertDBTrustDomain::CheckRevocation(
-  insanity::pkix::EndEntityOrCA endEntityOrCA,
+  mozilla::pkix::EndEntityOrCA endEntityOrCA,
   const CERTCertificate* cert,
    CERTCertificate* issuerCert,
   PRTime time,

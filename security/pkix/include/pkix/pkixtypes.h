@@ -15,15 +15,15 @@
 
 
 
-#ifndef insanity_pkix__pkixtypes_h
-#define insanity_pkix__pkixtypes_h
+#ifndef mozilla_pkix__pkixtypes_h
+#define mozilla_pkix__pkixtypes_h
 
-#include "insanity/ScopedPtr.h"
+#include "pkix/ScopedPtr.h"
 #include "plarena.h"
 #include "cert.h"
 #include "keyhi.h"
 
-namespace insanity { namespace pkix {
+namespace mozilla { namespace pkix {
 
 typedef ScopedPtr<PLArenaPool, PL_FreeArenaPool> ScopedPLArenaPool;
 

@@ -21,10 +21,10 @@ function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
     });
 }
 
-function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
+function add_tests_in_mode(useMozillaPKIX, certDB, otherTestCA) {
   add_test(function () {
-    Services.prefs.setBoolPref("security.use_insanity_verification",
-                               useInsanity);
+    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
+                               useMozillaPKIX);
     run_next_test();
   });
 
@@ -113,7 +113,7 @@ function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
 
   
-  if (useInsanity) {
+  if (useMozillaPKIX) {
     add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com",
                   getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
   }

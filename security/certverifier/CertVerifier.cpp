@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "insanity/pkix.h"
+#include "pkix/pkix.h"
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
 #include "cert.h"
@@ -19,7 +19,7 @@
 
 
 
-using namespace insanity::pkix;
+using namespace mozilla::pkix;
 using namespace mozilla::psm;
 
 #ifdef PR_LOGGING
@@ -223,17 +223,17 @@ BuildCertChainForOneKeyUsage(TrustDomain& trustDomain, CERTCertificate* cert,
 }
 
 SECStatus
-CertVerifier::InsanityVerifyCert(
+CertVerifier::MozillaPKIXVerifyCert(
                    CERTCertificate* cert,
                    const SECCertificateUsage usage,
                    const PRTime time,
                    void* pinArg,
                    const Flags flags,
        const SECItem* stapledOCSPResponse,
-   insanity::pkix::ScopedCERTCertList* validationChain,
+   mozilla::pkix::ScopedCERTCertList* validationChain,
    SECOidTag* evOidPolicy)
 {
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, ("Top of InsanityVerifyCert\n"));
+  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, ("Top of MozillaPKIXVerifyCert\n"));
 
   PR_ASSERT(cert);
   PR_ASSERT(usage == certificateUsageSSLServer || !(flags & FLAG_MUST_BE_EV));
@@ -267,7 +267,7 @@ CertVerifier::InsanityVerifyCert(
   
   
 
-  insanity::pkix::ScopedCERTCertList builtChain;
+  mozilla::pkix::ScopedCERTCertList builtChain;
   switch (usage) {
     case certificateUsageSSLClient: {
       
@@ -389,8 +389,8 @@ CertVerifier::InsanityVerifyCert(
       
       
       
-      insanity::pkix::EndEntityOrCA endEntityOrCA;
-      insanity::pkix::KeyUsages keyUsage;
+      mozilla::pkix::EndEntityOrCA endEntityOrCA;
+      mozilla::pkix::KeyUsages keyUsage;
       SECOidTag eku;
       if (usage == certificateUsageVerifyCA) {
         endEntityOrCA = MustBeCA;
@@ -449,10 +449,10 @@ CertVerifier::VerifyCert(CERTCertificate* cert,
                           SECOidTag* evOidPolicy,
                           CERTVerifyLog* verifyLog)
 {
-  if (mImplementation == insanity) {
-    return InsanityVerifyCert(cert, usage, time, pinArg, flags,
-                              stapledOCSPResponse, validationChain,
-                              evOidPolicy);
+  if (mImplementation == mozillapkix) {
+    return MozillaPKIXVerifyCert(cert, usage, time, pinArg, flags,
+                                 stapledOCSPResponse, validationChain,
+                                 evOidPolicy);
   }
 
   if (!cert)
@@ -799,7 +799,7 @@ CertVerifier::VerifySSLServerCert(CERTCertificate* peerCert,
                       void* pinarg,
                                   const char* hostname,
                                   bool saveIntermediatesInPermanentDatabase,
-                  insanity::pkix::ScopedCERTCertList* certChainOut,
+                  mozilla::pkix::ScopedCERTCertList* certChainOut,
                   SECOidTag* evOidPolicy)
 {
   PR_ASSERT(peerCert);

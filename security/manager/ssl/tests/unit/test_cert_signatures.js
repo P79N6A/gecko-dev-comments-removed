@@ -49,8 +49,8 @@ function run_test() {
   run_test_in_mode(false);
 }
 
-function run_test_in_mode(useInsanity) {
-  Services.prefs.setBoolPref("security.use_insanity_verification", useInsanity);
+function run_test_in_mode(useMozillaPKIX) {
+  Services.prefs.setBoolPref("security.use_mozillapkix_verification", useMozillaPKIX);
   clearOCSPCache();
   clearSessionCache();
 
@@ -60,12 +60,12 @@ function run_test_in_mode(useInsanity) {
 
   
   
-  let int_usage = useInsanity
+  let int_usage = useMozillaPKIX
                 ? 'SSL CA'
                 : 'Client,Server,Sign,Encrypt,SSL CA,Status Responder';
 
   
-  const ee_usage = useInsanity
+  const ee_usage = useMozillaPKIX
                  ? 'Client,Server,Sign,Encrypt,Object Signer'
                  : 'Client,Server,Sign,Encrypt';
 

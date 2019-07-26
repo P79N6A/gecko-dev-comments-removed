@@ -15,13 +15,13 @@
 
 
 
-#ifndef insanity__pkixcheck_h
-#define insanity__pkixcheck_h
+#ifndef mozilla_pkix__pkixcheck_h
+#define mozilla_pkix__pkixcheck_h
 
 #include "pkixutil.h"
 #include "certt.h"
 
-namespace insanity { namespace pkix {
+namespace mozilla { namespace pkix {
 
 Result CheckIssuerIndependentProperties(
           TrustDomain& trustDomain,

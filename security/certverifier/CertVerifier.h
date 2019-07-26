@@ -7,7 +7,7 @@
 #ifndef mozilla_psm__CertVerifier_h
 #define mozilla_psm__CertVerifier_h
 
-#include "insanity/pkixtypes.h"
+#include "pkix/pkixtypes.h"
 #include "OCSPCache.h"
 
 namespace mozilla { namespace psm {
@@ -29,7 +29,7 @@ public:
                        const PRTime time,
                        void* pinArg,
                        const Flags flags = 0,
-       insanity::pkix::ScopedCERTCertList* validationChain = nullptr,
+       mozilla::pkix::ScopedCERTCertList* validationChain = nullptr,
        SECOidTag* evOidPolicy = nullptr ,
        CERTVerifyLog* verifyLog = nullptr);
 
@@ -40,7 +40,7 @@ public:
         void* pinarg,
                     const char* hostname,
                     bool saveIntermediatesInPermanentDatabase = false,
-    insanity::pkix::ScopedCERTCertList* certChainOut = nullptr,
+    mozilla::pkix::ScopedCERTCertList* certChainOut = nullptr,
     SECOidTag* evOidPolicy = nullptr);
 
 
@@ -49,7 +49,7 @@ public:
 #ifndef NSS_NO_LIBPKIX
     libpkix = 1,
 #endif
-    insanity = 2
+    mozillapkix = 2
   };
 
   enum missing_cert_download_config { missing_cert_download_off = 0, missing_cert_download_on };
@@ -80,13 +80,13 @@ public:
   const bool mOCSPGETEnabled;
 
 private:
-  SECStatus InsanityVerifyCert(CERTCertificate* cert,
+  SECStatus MozillaPKIXVerifyCert(CERTCertificate* cert,
       const SECCertificateUsage usage,
       const PRTime time,
       void* pinArg,
       const Flags flags,
        const SECItem* stapledOCSPResponse,
-       insanity::pkix::ScopedCERTCertList* validationChain,
+       mozilla::pkix::ScopedCERTCertList* validationChain,
        SECOidTag* evOidPolicy);
 
   OCSPCache mOCSPCache;

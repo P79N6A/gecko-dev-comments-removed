@@ -15,8 +15,8 @@
 
 
 
-#ifndef insanity_pkix__nullptr_h
-#define insanity_pkix__nullptr_h
+#ifndef mozilla_pkix__nullptr_h
+#define mozilla_pkix__nullptr_h
 
 
 #if defined(__GNUC__) && !defined(__clang__)

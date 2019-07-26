@@ -15,10 +15,10 @@
 
 
 
-#ifndef insanity_pkix__pkixder_h
-#define insanity_pkix__pkixder_h
+#ifndef mozilla_pkix__pkixder_h
+#define mozilla_pkix__pkixder_h
 
-#include "insanity/nullptr.h"
+#include "pkix/nullptr.h"
 
 #include "prerror.h"
 #include "prlog.h"
@@ -27,7 +27,7 @@
 #include "secoidt.h"
 #include "stdint.h"
 
-namespace insanity { namespace der {
+namespace mozilla { namespace pkix { namespace der {
 
 enum Class
 {
@@ -519,6 +519,6 @@ OptionalVersion(Input& input,  uint8_t& version)
   return Success;
 }
 
-} } 
+} } } 
 
 #endif 

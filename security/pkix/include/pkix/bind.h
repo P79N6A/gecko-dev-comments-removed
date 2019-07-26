@@ -19,8 +19,8 @@
 
 
 
-#ifndef insanity_pkix__bind_h
-#define insanity_pkix__bind_h
+#ifndef mozilla_pkix__bind_h
+#define mozilla_pkix__bind_h
 
 #ifdef _MSC_VER
 #pragma warning(disable:4275) //Suppress spurious MSVC warning
@@ -30,7 +30,7 @@
 #pragma warning(default:4275)
 #endif
 
-namespace insanity {
+namespace mozilla { namespace pkix {
 
 #ifdef _MSC_VER
 
@@ -92,6 +92,6 @@ bind(R (*f)(P1&, B1&, B2&), Placeholder1 &, B1 & b1, B2 & b2)
 
 #endif 
 
-} 
+} } 
 
 #endif 

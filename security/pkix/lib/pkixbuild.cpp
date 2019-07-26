@@ -15,14 +15,14 @@
 
 
 
-#include "insanity/pkix.h"
+#include "pkix/pkix.h"
 
 #include <limits>
 
 #include "pkixcheck.h"
 #include "pkixder.h"
 
-namespace insanity { namespace pkix {
+namespace mozilla { namespace pkix {
 
 
 

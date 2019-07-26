@@ -40,11 +40,11 @@ function run_test() {
   run_next_test();
 }
 
-function add_tests_in_mode(useInsanity)
+function add_tests_in_mode(useMozillaPKIX)
 {
   add_test(function () {
-    Services.prefs.setBoolPref("security.use_insanity_verification",
-                               useInsanity);
+    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
+                               useMozillaPKIX);
     run_next_test();
   });
 
@@ -55,7 +55,7 @@ function add_tests_in_mode(useInsanity)
   add_test(function () {
     
     
-    do_check_eq(gOCSPRequestCount, useInsanity ? 2 : 1);
+    do_check_eq(gOCSPRequestCount, useMozillaPKIX ? 2 : 1);
     gOCSPRequestCount = 0;
     run_next_test();
   });

@@ -47,10 +47,10 @@ function run_test() {
   run_next_test();
 }
 
-function add_tests_in_mode(useInsanity) {
+function add_tests_in_mode(useMozillaPKIX) {
   add_test(function () {
-    Services.prefs.setBoolPref("security.use_insanity_verification",
-                               useInsanity);
+    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
+                               useMozillaPKIX);
     run_next_test();
   });
 
@@ -108,7 +108,7 @@ function add_tests_in_mode(useInsanity) {
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
   
-  if (!useInsanity) {
+  if (!useMozillaPKIX) {
     
     add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
                         clearSessionCache);

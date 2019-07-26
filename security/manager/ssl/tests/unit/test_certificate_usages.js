@@ -35,13 +35,13 @@ function run_test() {
   run_test_in_mode(false);
 }
 
-function run_test_in_mode(useInsanity) {
-  Services.prefs.setBoolPref("security.use_insanity_verification", useInsanity);
+function run_test_in_mode(useMozillaPKIX) {
+  Services.prefs.setBoolPref("security.use_mozillapkix_verification", useMozillaPKIX);
   clearOCSPCache();
   clearSessionCache();
 
   
-  var allCAUsages = useInsanity
+  var allCAUsages = useMozillaPKIX
                   ? 'SSL CA'
                   : 'Client,Server,Sign,Encrypt,SSL CA,Status Responder';
 
@@ -50,21 +50,21 @@ function run_test_in_mode(useInsanity) {
   var ca_usages = [allCAUsages,
                    'SSL CA',
                    allCAUsages,
-                   useInsanity ? ''
-                               : 'Client,Server,Sign,Encrypt,Status Responder'];
+                   useMozillaPKIX ? ''
+                                  : 'Client,Server,Sign,Encrypt,Status Responder'];
 
   
-  var basicEndEntityUsages = useInsanity
+  var basicEndEntityUsages = useMozillaPKIX
                            ? 'Client,Server,Sign,Encrypt,Object Signer'
                            : 'Client,Server,Sign,Encrypt';
   var basicEndEntityUsagesWithObjectSigner = basicEndEntityUsages + ",Object Signer"
 
   
   
-  var statusResponderUsages = (useInsanity ? "" : "Server,") + "Status Responder";
+  var statusResponderUsages = (useMozillaPKIX ? "" : "Server,") + "Status Responder";
   var statusResponderUsagesFull
-      = useInsanity ? statusResponderUsages
-                    : basicEndEntityUsages + ',Object Signer,Status Responder';
+      = useMozillaPKIX ? statusResponderUsages
+                       : basicEndEntityUsages + ',Object Signer,Status Responder';
 
   var ee_usages = [
     [ basicEndEntityUsages,
@@ -103,14 +103,14 @@ function run_test_in_mode(useInsanity) {
     
     
     
-    [ useInsanity ? '' : basicEndEntityUsages,
-      useInsanity ? '' : basicEndEntityUsages,
-      useInsanity ? '' : basicEndEntityUsages,
+    [ useMozillaPKIX ? '' : basicEndEntityUsages,
+      useMozillaPKIX ? '' : basicEndEntityUsages,
+      useMozillaPKIX ? '' : basicEndEntityUsages,
       '',
-      useInsanity ? '' : statusResponderUsagesFull,
-      useInsanity ? '' : 'Client,Server',
-      useInsanity ? '' : 'Sign,Encrypt,Object Signer',
-      useInsanity ? '' : 'Server,Status Responder'
+      useMozillaPKIX ? '' : statusResponderUsagesFull,
+      useMozillaPKIX ? '' : 'Client,Server',
+      useMozillaPKIX ? '' : 'Sign,Encrypt,Object Signer',
+      useMozillaPKIX ? '' : 'Server,Status Responder'
      ]
   ];
 

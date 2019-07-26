@@ -96,7 +96,7 @@
 
 #include <cstring>
 
-#include "insanity/pkixtypes.h"
+#include "pkix/pkixtypes.h"
 #include "CertVerifier.h"
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
@@ -314,13 +314,13 @@ MapCertErrorToProbeValue(PRErrorCode errorCode)
 }
 
 SECStatus
-InsanityDetermineCertOverrideErrors(CERTCertificate* cert,
-                                    const char* hostName, PRTime now,
-                                    PRErrorCode defaultErrorCodeToReport,
-                                     uint32_t& collectedErrors,
-                                     PRErrorCode& errorCodeTrust,
-                                     PRErrorCode& errorCodeMismatch,
-                                     PRErrorCode& errorCodeExpired)
+MozillaPKIXDetermineCertOverrideErrors(CERTCertificate* cert,
+                                       const char* hostName, PRTime now,
+                                       PRErrorCode defaultErrorCodeToReport,
+                                        uint32_t& collectedErrors,
+                                        PRErrorCode& errorCodeTrust,
+                                        PRErrorCode& errorCodeMismatch,
+                                        PRErrorCode& errorCodeExpired)
 {
   MOZ_ASSERT(cert);
   MOZ_ASSERT(hostName);
@@ -707,14 +707,14 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
                                           errorCodeMismatch, errorCodeExpired);
       break;
 
-    case CertVerifier::insanity:
-      rv = InsanityDetermineCertOverrideErrors(cert,
-                                               infoObject->GetHostNameRaw(),
-                                               now, defaultErrorCodeToReport,
-                                               collected_errors,
-                                               errorCodeTrust,
-                                               errorCodeMismatch,
-                                               errorCodeExpired);
+    case CertVerifier::mozillapkix:
+      rv = MozillaPKIXDetermineCertOverrideErrors(cert,
+                                                  infoObject->GetHostNameRaw(),
+                                                  now, defaultErrorCodeToReport,
+                                                  collected_errors,
+                                                  errorCodeTrust,
+                                                  errorCodeMismatch,
+                                                  errorCodeExpired);
       break;
 
     default:
@@ -809,7 +809,7 @@ private:
   const RefPtr<SharedCertVerifier> mCertVerifier;
   const void* const mFdForLogging;
   const RefPtr<TransportSecurityInfo> mInfoObject;
-  const insanity::pkix::ScopedCERTCertificate mCert;
+  const mozilla::pkix::ScopedCERTCertificate mCert;
   const uint32_t mProviderFlags;
   const PRTime mTime;
   const TimeStamp mJobStartTime;
@@ -965,7 +965,7 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
   bool saveIntermediates =
     !(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE);
 
-  insanity::pkix::ScopedCERTCertList certList;
+  mozilla::pkix::ScopedCERTCertList certList;
   SECOidTag evOidPolicy;
   rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
                                         time, infoObject,
@@ -1090,11 +1090,11 @@ SSLServerCertVerificationJob::Run()
         failureTelemetry
           = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_CLASSIC;
         break;
-      case CertVerifier::insanity:
+      case CertVerifier::mozillapkix:
         successTelemetry
-          = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_INSANITY;
+          = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX;
         failureTelemetry
-          = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_INSANITY;
+          = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX;
         break;
 #ifndef NSS_NO_LIBPKIX
       case CertVerifier::libpkix:

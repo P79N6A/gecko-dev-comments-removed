@@ -15,7 +15,7 @@
 
 
 
-#include "insanity/pkix.h"
+#include "pkix/pkix.h"
 
 #include <limits>
 #include <stdint.h>
@@ -25,7 +25,7 @@
 #include "prerror.h"
 #include "secerr.h"
 
-namespace insanity { namespace pkix {
+namespace mozilla { namespace pkix {
 
 SECStatus
 VerifySignedData(const CERTSignedData* sd, const CERTCertificate* cert,
