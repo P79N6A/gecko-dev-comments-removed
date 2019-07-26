@@ -2532,7 +2532,7 @@ PreserveWrapper(JSContext *cx, JSObject *objArg)
 
     
     if (nsCOMPtr<nsINode> node = do_QueryInterface(supports)) {
-        nsContentUtils::PreserveWrapper(supports, node);
+        node->PreserveWrapper(supports);
         return true;
     }
     return false;
