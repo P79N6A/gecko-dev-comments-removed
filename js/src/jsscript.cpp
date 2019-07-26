@@ -2894,6 +2894,58 @@ LazyScript::finalize(FreeOp *fop)
         fop->free_(table_);
 }
 
+StaticBlockObject *
+JSScript::getBlockScope(jsbytecode *pc)
+{
+    JS_ASSERT(containsPC(pc));
+
+    if (!hasBlockScopes())
+        return nullptr;
+
+    ptrdiff_t offset = pc - main();
+
+    if (offset < 0)
+        return nullptr;
+
+    BlockScopeArray *scopes = blockScopes();
+    StaticBlockObject *blockChain = nullptr;
+
+    
+    size_t bottom = 0;
+    size_t top = scopes->length;
+
+    while (bottom < top) {
+        size_t mid = bottom + (top - bottom) / 2;
+        const BlockScopeNote *note = &scopes->vector[mid];
+        if (note->start <= offset) {
+            
+            
+            
+            
+            
+            size_t check = mid;
+            while (check >= bottom) {
+                const BlockScopeNote *checkNote = &scopes->vector[check];
+                JS_ASSERT(checkNote->start <= offset);
+                if (offset < checkNote->start + checkNote->length) {
+                    
+                    
+                    blockChain = &getObject(checkNote->index)->as<StaticBlockObject>();
+                    break;
+                }
+                if (checkNote->parent == UINT32_MAX)
+                    break;
+                check = checkNote->parent;
+            }
+            bottom = mid + 1;
+        } else {
+            top = mid;
+        }
+    }
+
+    return blockChain;
+}
+
 void
 JSScript::setArgumentsHasVarBinding()
 {

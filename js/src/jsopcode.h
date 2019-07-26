@@ -777,11 +777,6 @@ GetNextPc(jsbytecode *pc)
     return pc + GetBytecodeLength(pc);
 }
 
-class StaticBlockObject;
-
-StaticBlockObject *
-GetBlockChainAtPC(JSScript *script, jsbytecode *pc);
-
 } 
 
 #if defined(DEBUG)
