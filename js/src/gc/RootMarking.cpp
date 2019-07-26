@@ -581,36 +581,6 @@ AutoGCRooter::traceAllWrappers(JSTracer *trc)
     }
 }
 
- void
-JS::CustomAutoRooter::traceObject(JSTracer *trc, JSObject **thingp, const char *name)
-{
-    MarkObjectRoot(trc, thingp, name);
-}
-
- void
-JS::CustomAutoRooter::traceScript(JSTracer *trc, JSScript **thingp, const char *name)
-{
-    MarkScriptRoot(trc, thingp, name);
-}
-
- void
-JS::CustomAutoRooter::traceString(JSTracer *trc, JSString **thingp, const char *name)
-{
-    MarkStringRoot(trc, thingp, name);
-}
-
- void
-JS::CustomAutoRooter::traceId(JSTracer *trc, jsid *thingp, const char *name)
-{
-    MarkIdRoot(trc, thingp, name);
-}
-
- void
-JS::CustomAutoRooter::traceValue(JSTracer *trc, JS::Value *thingp, const char *name)
-{
-    MarkValueRoot(trc, thingp, name);
-}
-
 void
 AutoHashableValueRooter::trace(JSTracer *trc)
 {

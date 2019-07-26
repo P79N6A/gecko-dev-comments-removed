@@ -608,13 +608,6 @@ class JS_PUBLIC_API(CustomAutoRooter) : private AutoGCRooter
     
     virtual void trace(JSTracer *trc) = 0;
 
-    
-    static void traceObject(JSTracer *trc, JSObject **thingp, const char *name);
-    static void traceScript(JSTracer *trc, JSScript **thingp, const char *name);
-    static void traceString(JSTracer *trc, JSString **thingp, const char *name);
-    static void traceId(JSTracer *trc, jsid *thingp, const char *name);
-    static void traceValue(JSTracer *trc, JS::Value *thingp, const char *name);
-
   private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
