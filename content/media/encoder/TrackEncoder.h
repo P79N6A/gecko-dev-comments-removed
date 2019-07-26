@@ -130,12 +130,7 @@ protected:
 
 
 
-  void NotifyEndOfStream()
-  {
-    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    mEndOfStream = true;
-    mReentrantMonitor.NotifyAll();
-  }
+  void NotifyEndOfStream();
 
   
 
