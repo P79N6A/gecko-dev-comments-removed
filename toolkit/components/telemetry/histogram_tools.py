@@ -2,16 +2,10 @@
 
 
 
+import json
 import math
 
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from simplejson import OrderedDict
-    import simplejson as json
-else:
-    import json
+from collections import OrderedDict
 
 def table_dispatch(kind, table, body):
     """Call body with table[kind] if it exists.  Raise an error otherwise."""

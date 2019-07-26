@@ -2,6 +2,7 @@
 
 
 
+import json
 import os
 import posixpath
 import shutil
@@ -9,11 +10,6 @@ import sys
 import tempfile
 import threading
 import traceback
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, here)

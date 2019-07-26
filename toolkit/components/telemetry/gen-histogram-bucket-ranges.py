@@ -11,11 +11,7 @@ import re
 import histogram_tools
 import json
 
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from simplejson import OrderedDict
+from collections import OrderedDict
 
 
 startup_histogram_re = re.compile("SQLITE|HTTP|SPDY|CACHE|DNS")
