@@ -780,8 +780,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.j(Assembler::Above, &thunk);
 
     
-    masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
-    masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+    masm.movePtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
+    masm.movePtr(Address(objreg, IonCode::offsetOfCode()), objreg);
     masm.jump(&makeCall);
 
     
@@ -789,7 +789,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     {
         JS_ASSERT(ArgumentsRectifierReg != objreg);
         masm.movePtr(ImmGCPtr(argumentsRectifier), objreg); 
-        masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+        masm.movePtr(Address(objreg, IonCode::offsetOfCode()), objreg);
         masm.move32(Imm32(call->numStackArgs()), ArgumentsRectifierReg);
     }
 
@@ -855,8 +855,8 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_COMPILING_SCRIPT), &invoke);
 
     
-    masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
-    masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+    masm.movePtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
+    masm.movePtr(Address(objreg, IonCode::offsetOfCode()), objreg);
 
     
     masm.freeStack(unusedStack);
@@ -1098,8 +1098,8 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
 
         
         {
-            masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
-            masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+            masm.movePtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
+            masm.movePtr(Address(objreg, IonCode::offsetOfCode()), objreg);
 
             
             
@@ -1118,7 +1118,7 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
 
             JS_ASSERT(ArgumentsRectifierReg != objreg);
             masm.movePtr(ImmGCPtr(argumentsRectifier), objreg); 
-            masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+            masm.movePtr(Address(objreg, IonCode::offsetOfCode()), objreg);
             masm.movePtr(argcreg, ArgumentsRectifierReg);
         }
 
