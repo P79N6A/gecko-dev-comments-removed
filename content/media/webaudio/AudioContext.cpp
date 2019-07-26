@@ -297,20 +297,19 @@ AudioContext::CurrentTime() const
   return MediaTimeToSeconds(Destination()->Stream()->GetCurrentTime());
 }
 
-template <class T>
 static PLDHashOperator
-GetHashtableEntry(nsPtrHashKey<T>* aEntry, void* aData)
+StopAudioBufferSourceNode(nsPtrHashKey<AudioBufferSourceNode>* aEntry, void* aData)
 {
-  nsTArray<T*>* array = static_cast<nsTArray<T*>*>(aData);
-  array->AppendElement(aEntry->GetKey());
+  ErrorResult rv;
+  aEntry->GetKey()->Stop(0.0, rv);
   return PL_DHASH_NEXT;
 }
 
-template <class T>
-static void
-GetHashtableElements(nsTHashtable<nsPtrHashKey<T> >& aHashtable, nsTArray<T*>& aArray)
+static PLDHashOperator
+StopScriptProcessorNode(nsPtrHashKey<ScriptProcessorNode>* aEntry, void* aData)
 {
-  aHashtable.EnumerateEntries(&GetHashtableEntry<T>, &aArray);
+  aEntry->GetKey()->Stop();
+  return PL_DHASH_NEXT;
 }
 
 void
@@ -321,23 +320,10 @@ AudioContext::Shutdown()
 
   
   
+  mAudioBufferSourceNodes.EnumerateEntries(StopAudioBufferSourceNode, nullptr);
   
   
-  
-  
-  nsTArray<AudioBufferSourceNode*> sourceNodes;
-  GetHashtableElements(mAudioBufferSourceNodes, sourceNodes);
-  for (uint32_t i = 0; i < sourceNodes.Length(); ++i) {
-    ErrorResult rv;
-    sourceNodes[i]->Stop(0.0, rv);
-  }
-  
-  
-  nsTArray<ScriptProcessorNode*> spNodes;
-  GetHashtableElements(mScriptProcessorNodes, spNodes);
-  for (uint32_t i = 0; i < spNodes.Length(); ++i) {
-    spNodes[i]->Stop();
-  }
+  mScriptProcessorNodes.EnumerateEntries(StopScriptProcessorNode, nullptr);
 }
 
 void
