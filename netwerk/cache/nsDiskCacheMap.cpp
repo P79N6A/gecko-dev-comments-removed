@@ -1034,7 +1034,10 @@ nsDiskCacheMap::WriteDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer
     int32_t   startBlock = 0;
 
     if (size > 0) {
-        while (1) {
+        
+        
+        MOZ_ASSERT(fileIndex);
+        while (fileIndex) {
             uint32_t  blockSize  = GetBlockSizeForIndex(fileIndex);
             blockCount = ((size - 1) / blockSize) + 1;
 
