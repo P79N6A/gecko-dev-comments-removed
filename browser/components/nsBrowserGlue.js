@@ -2030,6 +2030,13 @@ ContentPermissionPrompt.prototype = {
       }
     }
 
+    var browser = this._getBrowserForRequest(request);
+    var chromeWin = browser.ownerDocument.defaultView;
+    if (!chromeWin.PopupNotifications)
+      
+      
+      return;
+
     
     switch (request.type) {
     case "geolocation":
