@@ -158,9 +158,6 @@
 #define NS_THEME_SCROLLBAR_THUMB_VERTICAL                  89
 
 
-#define NS_THEME_SCROLLBAR_NON_DISAPPEARING                90
-
-
 #define NS_THEME_TEXTFIELD                                 95
 
 
