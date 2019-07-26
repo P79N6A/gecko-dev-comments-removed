@@ -237,7 +237,7 @@ nsHttpNegotiateAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChanne
         
         
         
-        if (PL_Base64Decode(challenge, len, (char *) inToken) == NULL) {
+        if (PL_Base64Decode(challenge, len, (char *) inToken) == nullptr) {
             free(inToken);
             return(NS_ERROR_UNEXPECTED);
         }

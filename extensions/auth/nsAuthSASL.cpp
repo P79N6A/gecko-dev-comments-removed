@@ -82,7 +82,7 @@ nsAuthSASL::GetNextToken(const void *inToken,
         
         
         if (inTokenLen == 0) {
-            *outToken = NULL;
+            *outToken = nullptr;
             *outTokenLen = 0;
             return NS_OK;
         }

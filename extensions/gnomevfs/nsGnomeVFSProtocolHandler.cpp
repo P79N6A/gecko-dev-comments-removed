@@ -378,7 +378,7 @@ nsGnomeVFSInputStream::DoOpen()
   
 
   gnome_vfs_module_callback_push(GNOME_VFS_MODULE_CALLBACK_AUTHENTICATION,
-                                 AuthCallback, mChannel, NULL);
+                                 AuthCallback, mChannel, nullptr);
 
   
   
@@ -962,13 +962,13 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsGnomeVFSProtocolHandler, Init)
 NS_DEFINE_NAMED_CID(NS_GNOMEVFSPROTOCOLHANDLER_CID);
 
 static const mozilla::Module::CIDEntry kVFSCIDs[] = {
-  { &kNS_GNOMEVFSPROTOCOLHANDLER_CID, false, NULL, nsGnomeVFSProtocolHandlerConstructor },
-  { NULL }
+  { &kNS_GNOMEVFSPROTOCOLHANDLER_CID, false, nullptr, nsGnomeVFSProtocolHandlerConstructor },
+  { nullptr }
 };
 
 static const mozilla::Module::ContractIDEntry kVFSContracts[] = {
   { NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX MOZ_GNOMEVFS_SCHEME, &kNS_GNOMEVFSPROTOCOLHANDLER_CID },
-  { NULL }
+  { nullptr }
 };
 
 static const mozilla::Module kVFSModule = {
