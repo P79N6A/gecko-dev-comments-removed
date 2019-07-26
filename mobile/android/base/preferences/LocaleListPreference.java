@@ -4,6 +4,7 @@
 
 package org.mozilla.gecko.preferences;
 
+import java.nio.ByteBuffer;
 import java.text.Collator;
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,6 +16,9 @@ import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.R;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.preference.ListPreference;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -23,7 +27,51 @@ import android.util.Log;
 public class LocaleListPreference extends ListPreference {
     private static final String LOG_TAG = "GeckoLocaleList";
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private static class CharacterValidator {
+        private static final int BITMAP_WIDTH = 32;
+        private static final int BITMAP_HEIGHT = 48;
+
+        private final Paint paint = new Paint();
+        private final byte[] missingCharacter;
+
+        public CharacterValidator(String missing) {
+            this.missingCharacter = getPixels(drawBitmap(missing));
+        }
+
+        private Bitmap drawBitmap(String text){
+            Bitmap b = Bitmap.createBitmap(BITMAP_WIDTH, BITMAP_HEIGHT, Bitmap.Config.ALPHA_8);
+            Canvas c = new Canvas(b);
+            c.drawText(text, 0, BITMAP_HEIGHT / 2, this.paint);
+            return b;
+        }
+        private static byte[] getPixels(Bitmap b) {
+            ByteBuffer buffer = ByteBuffer.allocate(b.getByteCount());
+            b.copyPixelsToBuffer(buffer);
+            return buffer.array();
+        }
+
+        public boolean characterIsMissingInFont(String ch) {
+            byte[] rendered = getPixels(drawBitmap(ch));
+            return Arrays.equals(rendered, missingCharacter);
+        }
+    }
+
     private volatile Locale entriesLocale;
+    private final CharacterValidator characterValidator;
 
     public LocaleListPreference(Context context) {
         this(context, null);
@@ -31,6 +79,10 @@ public class LocaleListPreference extends ListPreference {
 
     public LocaleListPreference(Context context, AttributeSet attributes) {
         super(context, attributes);
+
+        
+        
+        this.characterValidator = new CharacterValidator(" ");
         buildList();
     }
 
@@ -93,7 +145,38 @@ public class LocaleListPreference extends ListPreference {
 
 
 
-        public boolean isUsable() {
+
+
+
+        public boolean isUsable(CharacterValidator validator) {
+            
+            if (this.tag.equals("bn-IN")) {
+                
+                
+                
+                
+                
+                
+                if (!this.nativeName.startsWith("বাংলা")) {
+                    
+                    
+                    return false;
+                }
+            }
+
+            
+            
+            
+            
+            if (this.tag.equals("or") ||
+                this.tag.equals("pa-IN") ||
+                this.tag.equals("gu-IN") ||
+                this.tag.equals("bn-IN")) {
+                if (validator.characterIsMissingInFont(this.nativeName.substring(0, 1))) {
+                    return false;
+                }
+            }
+
             return true;
         }
     }
@@ -118,7 +201,7 @@ public class LocaleListPreference extends ListPreference {
         for (String tag : shippingLocales) {
             final LocaleDescriptor descriptor = new LocaleDescriptor(tag);
 
-            if (!descriptor.isUsable()) {
+            if (!descriptor.isUsable(this.characterValidator)) {
                 Log.w(LOG_TAG, "Skipping locale " + tag + " on this device.");
                 continue;
             }
