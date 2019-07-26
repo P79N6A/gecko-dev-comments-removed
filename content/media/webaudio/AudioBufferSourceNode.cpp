@@ -572,16 +572,6 @@ AudioBufferSourceNode::SendOffsetAndDurationParametersToStream(AudioNodeStream* 
   int32_t bufferEnd = mBuffer->Length();
   int32_t offsetSamples = std::max(0, NS_lround(mOffset * rate));
 
-  if (offsetSamples >= bufferEnd) {
-    
-    
-    
-    
-    if (mStartCalled) {
-      aStream->SetBuffer(nullptr);
-    }
-    return;
-  }
   
   if (offsetSamples > 0) {
     aStream->SetInt32Parameter(BUFFERSTART, offsetSamples);
