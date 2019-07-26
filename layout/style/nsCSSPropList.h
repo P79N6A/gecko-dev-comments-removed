@@ -89,6 +89,11 @@
 
 
 
+
+
+
+
+
 #ifdef CSS_PROP
 
 #define USED_CSS_PROP
@@ -343,6 +348,7 @@ CSS_PROP_TEXT(
     nullptr,
     offsetof(nsStyleText, mTabSize),
     eStyleAnimType_None)
+#ifndef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 CSS_PROP_FONT(
     -x-system-font,
@@ -356,7 +362,14 @@ CSS_PROP_FONT(
     kFontKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
-#endif
+#endif 
+#endif 
+CSS_PROP_SHORTHAND(
+    all,
+    all,
+    All,
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "layout.css.all-shorthand.enabled")
 CSS_PROP_SHORTHAND(
     animation,
     animation,
@@ -1534,6 +1547,7 @@ CSS_PROP_USERINTERFACE(
     kCursorKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#ifndef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
 CSS_PROP_VISIBILITY(
     direction,
     direction,
@@ -1544,6 +1558,7 @@ CSS_PROP_VISIBILITY(
     kDirectionKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#endif 
 CSS_PROP_DISPLAY(
     display,
     display,
@@ -3023,6 +3038,7 @@ CSS_PROP_DISPLAY(
     kTransitionTimingFunctionKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#ifndef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
 CSS_PROP_TEXTRESET(
     unicode-bidi,
     unicode_bidi,
@@ -3033,6 +3049,7 @@ CSS_PROP_TEXTRESET(
     kUnicodeBidiKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#endif 
 CSS_PROP_USERINTERFACE(
     -moz-user-focus,
     user_focus,
@@ -3281,6 +3298,7 @@ CSS_PROP_XUL(
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 
+#ifndef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 CSS_PROP_FONT(
     -moz-script-level,
@@ -3319,7 +3337,8 @@ CSS_PROP_FONT(
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
-#endif
+#endif 
+#endif 
 
 CSS_PROP_SVGRESET(
     clip-path,
@@ -3662,6 +3681,7 @@ CSS_PROP_SHORTHAND(
         CSS_PROPERTY_IS_ALIAS,
     "layout.css.prefixes.transforms")
 
+#ifndef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 
 
@@ -3703,6 +3723,7 @@ CSS_PROP_FONT(
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#endif 
 #endif 
 #endif 
 
