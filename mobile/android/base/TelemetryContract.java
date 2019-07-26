@@ -8,30 +8,36 @@ package org.mozilla.gecko;
 
 
 
+
+
 public interface TelemetryContract {
 
     
 
 
 
+
+
     public interface Event {
         
-        public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
+        public static final String ACTION = "action.1";
 
         
-        public static final String TOP_SITES_PIN = "pin.1";
+        
+        public static final String LAUNCH = "launch.1";
 
         
-        public static final String TOP_SITES_UNPIN = "unpin.1";
+        public static final String LOAD_URL = "loadurl.1";
 
-        
-        public static final String TOP_SITES_EDIT = "edit.1";
+        public static final String LOCALE_BROWSER_RESET = "locale.browser.reset.1";
+        public static final String LOCALE_BROWSER_SELECTED = "locale.browser.selected.1";
+        public static final String LOCALE_BROWSER_UNSELECTED = "locale.browser.unselected.1";
 
         
         public static final String PANEL_SET_DEFAULT = "setdefault.1";
 
         
-        public static final String SHARE = "share.1";
+        public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
 
         
         public static final String SANITIZE = "sanitize.1";
@@ -41,18 +47,20 @@ public interface TelemetryContract {
         public static final String SAVE = "save.1";
 
         
+        public static final String SHARE = "share.1";
+
+        
+        public static final String TOP_SITES_EDIT = "edit.1";
+
+        
+        public static final String TOP_SITES_PIN = "pin.1";
+
+        
+        public static final String TOP_SITES_UNPIN = "unpin.1";
+
+        
         
         public static final String UNSAVE = "unsave.1";
-
-        
-        public static final String LOAD_URL = "loadurl.1";
-
-        
-        public static final String ACTION = "action.1";
-
-        
-        
-        public static final String LAUNCH = "launch.1";
     }
 
     
