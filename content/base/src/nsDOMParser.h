@@ -20,8 +20,6 @@
 class nsIInputStream;
 
 class nsDOMParser MOZ_FINAL : public nsIDOMParser,
-                              public nsIDOMParserJS,
-                              public nsIJSNativeInitializer,
                               public nsSupportsWeakReference,
                               public nsWrapperCache
 {
@@ -37,23 +35,8 @@ public:
   NS_DECL_NSIDOMPARSER
 
   
-  NS_DECL_NSIDOMPARSERJS
-
-  
-  NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
-                        uint32_t argc, jsval *argv);
-
-  
   static already_AddRefed<nsDOMParser>
-  Constructor(nsISupports* aOwner, mozilla::ErrorResult& rv)
-  {
-    nsRefPtr<nsDOMParser> domParser = new nsDOMParser(aOwner);
-    rv = domParser->Initialize(aOwner, nullptr, nullptr, 0, nullptr);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-    return domParser.forget();
-  }
+  Constructor(nsISupports* aOwner, mozilla::ErrorResult& rv);
 
   static already_AddRefed<nsDOMParser>
   Constructor(nsISupports* aOwner, nsIPrincipal* aPrincipal,
@@ -80,10 +63,7 @@ public:
                   mozilla::ErrorResult& rv);
 
   void Init(nsIPrincipal* aPrincipal, nsIURI* aDocumentURI,
-            nsIURI* aBaseURI, mozilla::ErrorResult& rv)
-  {
-    rv = Init(aPrincipal, aDocumentURI, aBaseURI);
-  }
+            nsIURI* aBaseURI, mozilla::ErrorResult& rv);
 
   nsISupports* GetParentObject() const
   {
