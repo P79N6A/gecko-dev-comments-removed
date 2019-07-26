@@ -2,7 +2,7 @@
 
 
 #ifndef _SECMOD_H_
-#define _SEDMOD_H_
+#define _SECMOD_H_
 #include "seccomon.h"
 #include "secmodt.h"
 #include "prinrval.h"

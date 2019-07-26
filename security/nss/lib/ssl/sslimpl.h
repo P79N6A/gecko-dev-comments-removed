@@ -487,7 +487,9 @@ typedef PRUint16 DTLSEpoch;
 
 typedef void (*DTLSTimerCb)(sslSocket *);
 
-#define MAX_MAC_CONTEXT_BYTES 400
+#define MAX_MAC_CONTEXT_BYTES 400  /* 400 is large enough for MD5, SHA-1, and
+                                    * SHA-256. For SHA-384 support, increase
+                                    * it to 712. */
 #define MAX_MAC_CONTEXT_LLONGS (MAX_MAC_CONTEXT_BYTES / 8)
 
 #define MAX_CIPHER_CONTEXT_BYTES 2080
@@ -766,6 +768,12 @@ typedef struct DTLSQueuedMessageStr {
     PRUint16 len;         
 } DTLSQueuedMessage;
 
+typedef enum {
+    handshake_hash_unknown = 0,
+    handshake_hash_combo = 1,  
+    handshake_hash_single = 2  
+} SSL3HandshakeHashType;
+
 
 
 
@@ -774,11 +782,31 @@ typedef struct SSL3HandshakeStateStr {
     SSL3Random            server_random;
     SSL3Random            client_random;
     SSL3WaitState         ws;
+
+    
+    SSL3HandshakeHashType hashType;
+    sslBuffer             messages;    
+#ifndef NO_PKCS11_BYPASS
+    
+
+
+
+
     PRUint64              md5_cx[MAX_MAC_CONTEXT_LLONGS];
     PRUint64              sha_cx[MAX_MAC_CONTEXT_LLONGS];
-    PK11Context *         md5;            
+    const SECHashObject * sha_obj;
+    
+
+
+    void (*sha_clone)(void *dest, void *src);
+#endif
+    
+
+
+
+    PK11Context *         md5;
     PK11Context *         sha;
-    PK11Context *         tls12_handshake_hash;
+
 const ssl3KEADef *        kea_def;
     ssl3CipherSuite       cipher_suite;
 const ssl3CipherSuiteDef *suite_def;
@@ -796,7 +824,6 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                sendingSCSV; 
     sslBuffer             msgState;    
                                        
-    sslBuffer             messages;    
     PRUint16              finishedBytes; 
     union {
 	TLSFinished       tFinished[2]; 
