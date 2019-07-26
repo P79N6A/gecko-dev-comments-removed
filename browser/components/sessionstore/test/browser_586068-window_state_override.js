@@ -36,7 +36,7 @@ function runTests() {
   gProgressListener.setCallback(function (aBrowser, aNeedRestore, aRestoring, aRestored) {
     
     if (++loadCount == 2) {
-      ss.setWindowState(window, JSON.stringify(state2), true);
+      executeSoon(() => ss.setWindowState(window, JSON.stringify(state2), true));
     }
 
     if (loadCount < numTabs) {
@@ -46,10 +46,6 @@ function runTests() {
     
     
     is(loadCount, numTabs, "all tabs were restored");
-    
-    
-    
-    is(window.__SS_tabsToRestore, 1, "window doesn't think there are more tabs to restore");
     is(aNeedRestore, 0, "there are no tabs left needing restore");
 
     gProgressListener.unsetCallback();

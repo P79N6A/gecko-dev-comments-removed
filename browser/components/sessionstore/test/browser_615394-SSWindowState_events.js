@@ -132,9 +132,8 @@ function test_duplicateTab() {
     busyEventCount++;
   }
 
-  
-  
   function onSSWindowStateReady(aEvent) {
+    newTab = gBrowser.tabs[2];
     readyEventCount++;
     is(ss.getTabValue(newTab, "foo"), "bar");
     ss.setTabValue(newTab, "baz", "qux");
@@ -173,9 +172,8 @@ function test_undoCloseTab() {
     busyEventCount++;
   }
 
-  
-  
   function onSSWindowStateReady(aEvent) {
+    reopenedTab = gBrowser.tabs[1];
     readyEventCount++;
     is(ss.getTabValue(reopenedTab, "foo"), "bar");
     ss.setTabValue(reopenedTab, "baz", "qux");

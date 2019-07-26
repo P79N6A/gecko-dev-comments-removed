@@ -46,10 +46,6 @@ function runTests() {
     
     
     is(loadCount, numTabs, "test_setWindowStateNoOverwrite: all tabs were restored");
-    
-    
-    
-    is(window.__SS_tabsToRestore, 1, "window doesn't think there are more tabs to restore");
     is(aNeedRestore, 0, "there are no tabs left needing restore");
 
     gProgressListener.unsetCallback();

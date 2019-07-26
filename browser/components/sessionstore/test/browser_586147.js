@@ -12,7 +12,13 @@ function observeOneRestore(callback) {
 
 function test() {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
+
+  
+  let tabview = document.getElementById("tab-view");
+  if (tabview) {
+    document.getElementById("tab-view").contentWindow.UI.uninit();
+    TabView.uninit();
+  }
 
   
   let [origTab] = gBrowser.visibleTabs;
@@ -46,6 +52,12 @@ function test() {
     
     gBrowser.removeTab(hiddenTab);
     gBrowser.removeTab(extraTab);
+
+    
+    if (tabview) {
+      TabView.init();
+    }
+
     finish();
   });
   ss.setBrowserState(JSON.stringify(stateObj));

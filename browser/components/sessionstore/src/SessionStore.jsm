@@ -25,6 +25,8 @@ const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const NOTIFY_BROWSER_STATE_RESTORED = "sessionstore-browser-state-restored";
 const NOTIFY_LAST_SESSION_CLEARED = "sessionstore-last-session-cleared";
 
+const NOTIFY_TAB_RESTORED = "sessionstore-debug-tab-restored"; 
+
 
 
 const MAX_CONCURRENT_TAB_RESTORES = 3;
@@ -71,6 +73,28 @@ const MESSAGES = [
   
   
   "SessionStore:update",
+
+  
+  "SessionStore:load",
+
+  
+  "SessionStore:restoreHistoryComplete",
+
+  
+  
+  "SessionStore:restoreTabContentStarted",
+
+  
+  
+  "SessionStore:restoreTabContentComplete",
+
+  
+  
+  "SessionStore:restoreDocumentComplete",
+
+  
+  
+  "SessionStore:reloadPendingTab",
 ];
 
 
@@ -81,7 +105,7 @@ const TAB_EVENTS = [
 
 
 const BROWSER_EVENTS = [
-  "load", "SwapDocShells", "UserTypedValueChanged"
+  "SwapDocShells", "UserTypedValueChanged"
 ];
 
 
@@ -105,30 +129,18 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DocShellCapabilities",
-  "resource:///modules/sessionstore/DocShellCapabilities.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
   "resource:///modules/sessionstore/Messenger.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PageStyle",
-  "resource:///modules/sessionstore/PageStyle.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
   "resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ScrollPosition",
-  "resource:///modules/sessionstore/ScrollPosition.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionSaver",
   "resource:///modules/sessionstore/SessionSaver.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
-  "resource:///modules/sessionstore/SessionStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
   "resource:///modules/sessionstore/SessionCookies.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
-  "resource:///modules/sessionstore/TextAndScrollData.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
-  "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabAttributes",
   "resource:///modules/sessionstore/TabAttributes.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabState",
@@ -312,6 +324,12 @@ let SessionStoreInternal = {
   
   
   _restoreCount: -1,
+
+  
+  _nextRestoreEpoch: 1,
+
+  
+  _browserEpochs: new WeakMap(),
 
   
   _browserSetState: false,
@@ -620,6 +638,68 @@ let SessionStoreInternal = {
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
         break;
+      case "SessionStore:load":
+        TabStateCache.delete(browser);
+        this.onTabLoad(win, browser);
+        break;
+      case "SessionStore:restoreHistoryComplete":
+        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
+          
+          let tab = this._getTabForBrowser(browser);
+          let event = win.document.createEvent("Events");
+          event.initEvent("SSTabRestoring", true, false);
+          tab.dispatchEvent(event);
+        }
+        break;
+      case "SessionStore:restoreTabContentStarted":
+        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
+          
+          
+          
+          
+          let tabData = browser.__SS_data;
+          if (tabData.userTypedValue && !tabData.userTypedClear) {
+            browser.userTypedValue = tabData.userTypedValue;
+            win.URLBarSetURI();
+          }
+        }
+        break;
+      case "SessionStore:restoreTabContentComplete":
+        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
+          
+          
+          if (gDebuggingEnabled) {
+            Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
+          }
+
+          let tab = this._getTabForBrowser(browser);
+          if (tab) {
+            SessionStoreInternal._resetLocalTabRestoringState(tab);
+            SessionStoreInternal.restoreNextTab();
+          }
+        }
+        break;
+      case "SessionStore:restoreDocumentComplete":
+        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
+          
+          
+          let tab = browser.__SS_restore_tab;
+
+          delete browser.__SS_restore_data;
+          delete browser.__SS_restore_tab;
+          delete browser.__SS_data;
+
+          this._sendTabRestoredNotification(tab);
+        }
+        break;
+      case "SessionStore:reloadPendingTab":
+        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
+          let tab = this._getTabForBrowser(browser);
+          if (tab && browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+            this.restoreTabContent(tab);
+          }
+        }
+        break;
       default:
         debug("received unknown message '" + aMessage.name + "'");
         break;
@@ -652,19 +732,6 @@ let SessionStoreInternal = {
     var win = aEvent.currentTarget.ownerDocument.defaultView;
     let browser;
     switch (aEvent.type) {
-      case "load":
-        browser = aEvent.currentTarget;
-        
-        if (aEvent.target == browser.contentDocument) {
-          
-          
-          
-          TabStateCache.delete(browser);
-          if (browser.__SS_restore_data)
-            this.restoreDocument(win, browser, aEvent);
-          this.onTabLoad(win, browser);
-        }
-        break;
       case "SwapDocShells":
         browser = aEvent.currentTarget;
         let otherBrowser = aEvent.detail;
@@ -1012,9 +1079,6 @@ let SessionStoreInternal = {
     TAB_EVENTS.forEach(function(aEvent) {
       tabbrowser.tabContainer.removeEventListener(aEvent, this, true);
     }, this);
-
-    
-    tabbrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
 
     let winData = this._windows[aWindow.__SSi];
 
@@ -2434,18 +2498,6 @@ let SessionStoreInternal = {
     
     
     
-    
-    
-    if (!aWindow.__SS_tabsToRestore)
-      aWindow.__SS_tabsToRestore = 0;
-    if (overwriteTabs)
-      aWindow.__SS_tabsToRestore = newTabCount;
-    else
-      aWindow.__SS_tabsToRestore += newTabCount;
-
-    
-    
-    
     delete aWindow.__SS_lastSessionWindowID;
     if (winData.__lastSessionWindowID)
       aWindow.__SS_lastSessionWindowID = winData.__lastSessionWindowID;
@@ -2492,7 +2544,7 @@ let SessionStoreInternal = {
     }
 
     this.restoreTabs(aWindow, tabs, winData.tabs,
-      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0));
+      (overwriteTabs ? (parseInt(winData.selected || "1")) : 0));
 
     if (aState.scratchpads) {
       ScratchpadManager.restoreSession(aState.scratchpads);
@@ -2689,6 +2741,12 @@ let SessionStoreInternal = {
 
       
       
+      
+      let epoch = this._nextRestoreEpoch++;
+      this._browserEpochs.set(browser, epoch);
+
+      
+      
       browser.__SS_data = tabData;
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
       browser.setAttribute("pending", "true");
@@ -2702,20 +2760,14 @@ let SessionStoreInternal = {
         pageStyle: tabData.pageStyle || null
       });
 
-      browser.stop(); 
+      browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",
+                                              {tabData: tabData, epoch: epoch});
 
       
       
       let activePageData = tabData.entries[activeIndex] || null;
       let uri = activePageData ? activePageData.url || null : null;
       browser.userTypedValue = uri;
-
-      
-      
-      
-      if (uri) {
-        browser.docShell.setCurrentURI(Utils.makeURI(uri));
-      }
 
       
       if (activePageData) {
@@ -2737,77 +2789,18 @@ let SessionStoreInternal = {
       if ("image" in tabData) {
         tabbrowser.setIcon(tab, tabData.image);
       }
-    }
-
-    function restoreNextHistory() {
-      if (aWindow.closed) {
-        return;
-      }
 
       
-      while (aTabs.length > 0 && !this._canRestoreTabHistory(aTabs[0])) {
-        aTabs.shift();
-        aTabData.shift();
-      }
-      if (aTabs.length == 0) {
-        
-        
-        this._setWindowStateReady(aWindow);
-        return; 
-      }
-
-      let tab = aTabs.shift();
-      let tabData = aTabData.shift();
-      this.restoreHistory(aWindow, tab, tabData, aRestoreImmediately);
-
       
-      aWindow.setTimeout(restoreNextHistory.bind(this), 0);
+      if (aRestoreImmediately || tabbrowser.selectedBrowser == browser) {
+        this.restoreTabContent(tab);
+      } else {
+        TabRestoreQueue.add(tab);
+        this.restoreNextTab();
+      }
     }
 
-    restoreNextHistory.call(this);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  restoreHistory: function (window, tab, tabData, restoreImmediately) {
-    let browser = tab.linkedBrowser;
-    let history = browser.webNavigation.sessionHistory;
-
-    browser.__SS_shistoryListener = new SessionStoreSHistoryListener(tab);
-    history.addSHistoryListener(browser.__SS_shistoryListener);
-
-    SessionHistory.restore(browser.docShell, tabData);
-
-    
-    let disallow = new Set(tabData.disallow && tabData.disallow.split(","));
-    DocShellCapabilities.restore(browser.docShell, disallow);
-
-    if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
-      SessionStorage.restore(browser.docShell, tabData.storage);
-
-    
-    var event = window.document.createEvent("Events");
-    event.initEvent("SSTabRestoring", true, false);
-    tab.dispatchEvent(event);
-
-    
-    
-    if (restoreImmediately || window.gBrowser.selectedBrowser == browser) {
-      this.restoreTabContent(tab);
-    } else {
-      TabRestoreQueue.add(tab);
-      this.restoreNextTab();
-    }
+    this._setWindowStateReady(aWindow);
   },
 
   
@@ -2833,14 +2826,6 @@ let SessionStoreInternal = {
     let tabData = browser.__SS_data;
 
     
-    
-    
-    let didStartLoad = false;
-
-    
-    this._ensureTabsProgressListener(window);
-
-    
     TabRestoreQueue.remove(aTab);
 
     
@@ -2851,76 +2836,20 @@ let SessionStoreInternal = {
     browser.removeAttribute("pending");
     aTab.removeAttribute("pending");
 
-    
-    this._removeSHistoryListener(aTab);
-
     let activeIndex = tabData.index - 1;
-    
-    
-    
-    browser.webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
+
     
     if (tabData.entries.length) {
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
-      browser.__SS_restore_tab = aTab;
-
-      if (tabData.pageStyle) {
-        RestoreData.set(browser, "pageStyle", tabData.pageStyle);
-      }
-      if (tabData.scroll) {
-        RestoreData.set(browser, "scroll", tabData.scroll);
-      }
-
-      didStartLoad = true;
-      try {
-        
-        
-        
-        browser.webNavigation.sessionHistory.getEntryAtIndex(activeIndex, true);
-        browser.webNavigation.sessionHistory.reloadCurrentEntry();
-      }
-      catch (ex) {
-        
-        didStartLoad = false;
-      }
     } else {
       browser.__SS_restore_data = {};
-      browser.__SS_restore_tab = aTab;
-      browser.loadURIWithFlags("about:blank",
-                               Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
-                               null, null, null);
-      didStartLoad = true;
     }
 
-    
-    
-    if (tabData.userTypedValue) {
-      browser.userTypedValue = tabData.userTypedValue;
-      if (tabData.userTypedClear) {
-        
-        
-        
-        browser.__SS_restore_data = { url: null };
-        browser.__SS_restore_tab = aTab;
-        if (didStartLoad)
-          browser.stop();
-        didStartLoad = true;
-        browser.loadURIWithFlags(tabData.userTypedValue,
-                                 Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP);
-      }
-    }
+    browser.__SS_restore_tab = aTab;
 
-    
-    
-    
-    if (!didStartLoad) {
-      this._resetTabRestoringState(aTab);
-      this._sendTabRestoredNotification(aTab);
-    }
-
-    return didStartLoad;
+    browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent");
   },
 
   
@@ -2942,88 +2871,8 @@ let SessionStoreInternal = {
 
     let tab = TabRestoreQueue.shift();
     if (tab) {
-      let didStartLoad = this.restoreTabContent(tab);
-      
-      
-      if (!didStartLoad)
-        this.restoreNextTab();
+      this.restoreTabContent(tab);
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-  getFramesToRestore: function (browser) {
-    function hasExpectedURL(aDocument, aURL) {
-      return !aURL || aURL.replace(/#.*/, "") == aDocument.location.href.replace(/#.*/, "");
-    }
-
-    let frameList = [];
-
-    function enumerateFrame(content, data) {
-      
-      
-      if (!hasExpectedURL(content.document, data.url)) {
-        return;
-      }
-
-      frameList.push([content, data]);
-
-      for (let i = 0; i < content.frames.length; i++) {
-        if (data.children && data.children[i]) {
-          enumerateFrame(content.frames[i], data.children[i]);
-        }
-      }
-    }
-
-    enumerateFrame(browser.contentWindow, browser.__SS_restore_data);
-
-    return frameList;
-  },
-
-  
-
-
-  restoreDocument: function ssi_restoreDocument(aWindow, aBrowser, aEvent) {
-    
-    if (!aEvent || !aEvent.originalTarget || !aEvent.originalTarget.defaultView ||
-        aEvent.originalTarget.defaultView != aEvent.originalTarget.defaultView.top) {
-      return;
-    }
-
-    let frameList = this.getFramesToRestore(aBrowser);
-    let pageStyle = RestoreData.get(aBrowser, "pageStyle") || {};
-    let scrollPositions = RestoreData.get(aBrowser, "scroll") || {};
-
-    
-    if (typeof(pageStyle) === "string") {
-      PageStyle.restore(aBrowser.docShell, frameList, pageStyle);
-    } else {
-      PageStyle.restoreTree(aBrowser.docShell, pageStyle);
-    }
-
-    ScrollPosition.restoreTree(aBrowser.contentWindow, scrollPositions);
-    TextAndScrollData.restore(frameList);
-
-    let tab = aBrowser.__SS_restore_tab;
-
-    
-    
-    delete aBrowser.__SS_data;
-    delete aBrowser.__SS_restore_data;
-    delete aBrowser.__SS_restore_tab;
-    RestoreData.clear(aBrowser);
-
-    
-    
-    
-    this._sendTabRestoredNotification(tab);
   },
 
   
@@ -3484,20 +3333,6 @@ let SessionStoreInternal = {
 
 
 
-  _canRestoreTabHistory: function ssi_canRestoreTabHistory(aTab) {
-    return aTab.parentNode && aTab.linkedBrowser &&
-           aTab.linkedBrowser.__SS_data;
-  },
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -3779,7 +3614,7 @@ let SessionStoreInternal = {
 
 
 
-  _resetTabRestoringState: function ssi_resetTabRestoringState(aTab) {
+  _resetLocalTabRestoringState: function (aTab) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
 
@@ -3788,26 +3623,15 @@ let SessionStoreInternal = {
 
     
     delete browser.__SS_restoreState;
+    this._browserEpochs.delete(browser);
 
     aTab.removeAttribute("pending");
     browser.removeAttribute("pending");
 
-    
-    
-    window.__SS_tabsToRestore--;
-
-    
-    this._removeTabsProgressListener(window);
-
     if (previousState == TAB_STATE_RESTORING) {
       if (this._tabsRestoringCount)
         this._tabsRestoringCount--;
-    }
-    else if (previousState == TAB_STATE_NEEDS_RESTORE) {
-      
-      
-      this._removeSHistoryListener(aTab);
-
+    } else if (previousState == TAB_STATE_NEEDS_RESTORE) {
       
       
       
@@ -3815,45 +3639,25 @@ let SessionStoreInternal = {
     }
   },
 
-  
-
-
-
-
-
-  _ensureTabsProgressListener: function ssi_ensureTabsProgressListener(aWindow) {
-    let tabbrowser = aWindow.gBrowser;
-    if (tabbrowser.mTabsProgressListeners.indexOf(gRestoreTabsProgressListener) == -1)
-      tabbrowser.addTabsProgressListener(gRestoreTabsProgressListener);
-  },
-
-  
-
-
-
-
-
-  _removeTabsProgressListener: function ssi_removeTabsProgressListener(aWindow) {
-    
-    
-    if (!aWindow.__SS_tabsToRestore)
-      aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
-  },
-
-  
-
-
-
-
-
-  _removeSHistoryListener: function ssi_removeSHistoryListener(aTab) {
-    let browser = aTab.linkedBrowser;
-    if (browser.__SS_shistoryListener) {
-      browser.webNavigation.sessionHistory.
-                            removeSHistoryListener(browser.__SS_shistoryListener);
-      delete browser.__SS_shistoryListener;
+  _resetTabRestoringState: function (tab) {
+    let browser = tab.linkedBrowser;
+    if (browser.__SS_restoreState) {
+      browser.messageManager.sendAsyncMessage("SessionStore:resetRestore", {});
     }
-  }
+    this._resetLocalTabRestoringState(tab);
+  },
+
+  
+
+
+
+
+
+
+  isCurrentEpoch: function (browser, epoch) {
+    return this._browserEpochs.get(browser, 0) == epoch;
+  },
+
 };
 
 
@@ -4044,67 +3848,6 @@ let DirtyWindows = {
 
 
 
-let gRestoreTabsProgressListener = {
-  onStateChange: function(aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-    
-    
-    if (aBrowser.__SS_restoreState &&
-        aBrowser.__SS_restoreState == TAB_STATE_RESTORING &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
-      
-      let tab = SessionStoreInternal._getTabForBrowser(aBrowser);
-      SessionStoreInternal._resetTabRestoringState(tab);
-      SessionStoreInternal.restoreNextTab();
-    }
-  }
-};
-
-
-
-
-function SessionStoreSHistoryListener(aTab) {
-  this.tab = aTab;
-}
-SessionStoreSHistoryListener.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsISHistoryListener,
-    Ci.nsISupportsWeakReference
-  ]),
-  browser: null,
-
-
-
-  OnHistoryNewEntry: function(aNewURI) {
-
-  },
-  OnHistoryGoBack: function(aBackURI) {
-    return true;
-  },
-  OnHistoryGoForward: function(aForwardURI) {
-    return true;
-  },
-  OnHistoryGotoIndex: function(aIndex, aGotoURI) {
-    return true;
-  },
-  OnHistoryPurge: function(aNumEntries) {
-    TabStateCache.delete(this.tab);
-    return true;
-  },
-  OnHistoryReload: function(aReloadURI, aReloadFlags) {
-    
-    
-    
-    SessionStoreInternal.restoreTabContent(this.tab);
-    
-    return false;
-  }
-}
-
-
-
-
 
 let LastSession = {
   _state: null,
@@ -4185,33 +3928,5 @@ let GlobalState = {
 
   setFromState: function (aState) {
     this.state = (aState && aState.global) || {};
-  }
-};
-
-
-
-
-
-let RestoreData = {
-  _data: new WeakMap(),
-
-  get: function (browser, key) {
-    if (!this._data.has(browser)) {
-      return null;
-    }
-
-    return this._data.get(browser).get(key);
-  },
-
-  set: function (browser, key, value) {
-    if (!this._data.has(browser)) {
-      this._data.set(browser, new Map());
-    }
-
-    this._data.get(browser).set(key, value);
-  },
-
-  clear: function (browser) {
-    this._data.delete(browser);
   }
 };

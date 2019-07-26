@@ -32,6 +32,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
 Cu.import("resource:///modules/sessionstore/FrameTree.jsm", this);
 let gFrameTree = new FrameTree(this);
 
+Cu.import("resource:///modules/sessionstore/ContentRestore.jsm", this);
+XPCOMUtils.defineLazyGetter(this, 'gContentRestore',
+                            () => { return new ContentRestore(this) });
+
 
 
 
@@ -71,7 +75,7 @@ function isSessionStorageEvent(event) {
 let EventListener = {
 
   DOM_EVENTS: [
-    "pageshow", "change", "input"
+    "load", "pageshow", "change", "input"
   ],
 
   init: function () {
@@ -80,6 +84,24 @@ let EventListener = {
 
   handleEvent: function (event) {
     switch (event.type) {
+      case "load":
+        
+        if (event.target == content.document) {
+          
+          
+          let epoch = gContentRestore.getRestoreEpoch();
+          if (epoch) {
+            
+            gContentRestore.restoreDocument();
+
+            
+            sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
+          }
+
+          
+          sendAsyncMessage("SessionStore:load");
+        }
+        break;
       case "pageshow":
         if (event.persisted && event.target == content.document)
           sendAsyncMessage("SessionStore:pageshow");
@@ -101,14 +123,19 @@ let EventListener = {
 let MessageListener = {
 
   MESSAGES: [
-    "SessionStore:collectSessionHistory"
+    "SessionStore:collectSessionHistory",
+
+    "SessionStore:restoreHistory",
+    "SessionStore:restoreTabContent",
+    "SessionStore:resetRestore",
   ],
 
   init: function () {
     this.MESSAGES.forEach(m => addMessageListener(m, this));
   },
 
-  receiveMessage: function ({name, data: {id}}) {
+  receiveMessage: function ({name, data}) {
+    let id = data ? data.id : 0;
     switch (name) {
       case "SessionStore:collectSessionHistory":
         let history = SessionHistory.collect(docShell);
@@ -121,6 +148,44 @@ let MessageListener = {
                                         docShell.isAppTab);
         }
         sendAsyncMessage(name, {id: id, data: history});
+        break;
+      case "SessionStore:restoreHistory":
+        let reloadCallback = () => {
+          
+          
+          sendAsyncMessage("SessionStore:reloadPendingTab", {epoch: data.epoch});
+        };
+        gContentRestore.restoreHistory(data.epoch, data.tabData, reloadCallback);
+
+        
+        
+        
+        
+        
+        
+        sendSyncMessage("SessionStore:restoreHistoryComplete", {epoch: data.epoch});
+        break;
+      case "SessionStore:restoreTabContent":
+        let epoch = gContentRestore.getRestoreEpoch();
+        let finishCallback = () => {
+          
+          
+          sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch: epoch});
+        };
+
+        
+        let didStartLoad = gContentRestore.restoreTabContent(finishCallback);
+
+        sendAsyncMessage("SessionStore:restoreTabContentStarted", {epoch: epoch});
+
+        if (!didStartLoad) {
+          
+          sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch: epoch});
+          sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
+        }
+        break;
+      case "SessionStore:resetRestore":
+        gContentRestore.resetRestore();
         break;
       default:
         debug("received unknown message '" + name + "'");
