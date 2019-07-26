@@ -344,12 +344,6 @@ class BaselineFrame
     }
 
     
-    static BaselineFrame *FromIonJSFrame(IonJSFrameLayout *frame) {
-        size_t adjust = FramePointerOffset + BaselineFrame::Size();
-        return reinterpret_cast<BaselineFrame *>(reinterpret_cast<uint8_t *>(frame) - adjust);
-    }
-
-    
     
     
     static size_t reverseOffsetOfFrameSize() {

@@ -174,6 +174,9 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode)
     if (!result.isMagic() && fp->isConstructing() && fp->returnValue().isPrimitive())
         fp->setReturnValue(ObjectValue(fp->constructorThis()));
 
+    
+    cx->runtime->getIonRuntime(cx)->freeOsrTempData();
+
     JS_ASSERT_IF(result.isMagic(), result.isMagic(JS_ION_ERROR));
     return result.isMagic() ? IonExec_Error : IonExec_Ok;
 }

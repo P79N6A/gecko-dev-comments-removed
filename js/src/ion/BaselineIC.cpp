@@ -354,7 +354,7 @@ ICStackCheck_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *frame,
+EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame,
                   HandleScript script, jsbytecode *pc, void **jitcodePtr)
 {
     JS_ASSERT(jitcodePtr);
@@ -379,9 +379,8 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *fr
         return true;
     }
 
-    AbstractFramePtr abstractFp(BaselineFrame::FromIonJSFrame(frame));
     bool isConstructing = ScriptFrameIter(cx).isConstructing();
-    MethodStatus stat = CanEnterAtBranch(cx, script, abstractFp, pc, isConstructing);
+    MethodStatus stat = CanEnterAtBranch(cx, script, frame, pc, isConstructing);
     if (stat == Method_Error) {
         IonSpew(IonSpew_BaselineOSR, "  Compile with Ion errored!");
         return false;
@@ -414,82 +413,44 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *fr
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct IonOsrTempData
 {
-    
     void *jitcode;
-
-    
-    uint8_t *stackFrameStart;
-    uint8_t *stackFrameEnd;
     uint8_t *stackFrame;
-    size_t stackFrameSize;
-
-    
-    uint8_t *actualArgsStart;
-    uint8_t *actualArgsEnd;
-    size_t actualArgsSize;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static IonOsrTempData *
-PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *frame,
+PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame,
                    HandleScript script, jsbytecode *pc, void *jitcode)
 {
-    size_t blFrameHeaderSize = BaselineFrame::FramePointerOffset + BaselineFrame::Size();
-
     
-    CalleeToken calleeTok = frame->calleeToken();
-    BaselineFrame *baselineFrame = BaselineFrame::FromIonJSFrame(frame);
-
-    
-    
-    size_t numActualArgs = frame->numActualArgs();
-    size_t numLocalsAndStackVals = (baselineFrame->frameSize() - blFrameHeaderSize) / sizeof(Value);
-    size_t numFormalArgs = CalleeTokenIsFunction(calleeTok) ?
-                                    CalleeTokenToFunction(calleeTok)->nargs : 0;
-    size_t numPushedArgs = (numActualArgs > numFormalArgs) ? numActualArgs : numFormalArgs;
+    size_t numLocalsAndStackVals = frame->numValueSlots();
+    size_t numFormalArgs = frame->isFunctionFrame() ? frame->numFormalArgs() : 0;
 
     
     
@@ -499,54 +460,41 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *f
     
     
     
-    
-    
-    
-    
 
-    size_t actualArgsSpace = (sizeof(Value) * (numPushedArgs + 1)) + (sizeof(void *) * 4);
     size_t stackFrameSpace = (sizeof(Value) * numLocalsAndStackVals) + sizeof(StackFrame)
-                                + (sizeof(Value) * (numFormalArgs + 1));
+                           + (sizeof(Value) * (numFormalArgs + 1));
     size_t ionOsrTempDataSpace = sizeof(IonOsrTempData);
 
-    size_t totalSpace = AlignBytes(actualArgsSpace, sizeof(Value)) +
-                        AlignBytes(stackFrameSpace, sizeof(Value)) +
+    size_t totalSpace = AlignBytes(stackFrameSpace, sizeof(Value)) +
                         AlignBytes(ionOsrTempDataSpace, sizeof(Value));
 
-    uint8_t *tempInfo = (uint8_t *) js_calloc(totalSpace);
-    if (!tempInfo)
+    IonOsrTempData *info = (IonOsrTempData *)cx->runtime->getIonRuntime(cx)->allocateOsrTempData(totalSpace);
+    if (!info)
         return NULL;
 
-    IonOsrTempData *info = (IonOsrTempData *) tempInfo;
+    memset(info, 0, totalSpace);
+
     info->jitcode = jitcode;
 
-    info->stackFrameStart = tempInfo + AlignBytes(ionOsrTempDataSpace, sizeof(Value));
-    info->stackFrameEnd = info->stackFrameStart + stackFrameSpace;
-    info->stackFrame = info->stackFrameStart + (numFormalArgs * sizeof(Value)) + sizeof(Value);
-    info->stackFrameSize = stackFrameSpace;
-
-    info->actualArgsStart = info->stackFrameStart + AlignBytes(stackFrameSpace, sizeof(Value));
-    info->actualArgsEnd = info->actualArgsStart + actualArgsSpace;
-    info->actualArgsSize = actualArgsSpace;
+    uint8_t *stackFrameStart = (uint8_t *)info + AlignBytes(ionOsrTempDataSpace, sizeof(Value));
+    info->stackFrame = stackFrameStart + (numFormalArgs * sizeof(Value)) + sizeof(Value);
 
     
     
     
 
     
-    memcpy(info->stackFrameStart, frame->argv(), (numFormalArgs + 1) * sizeof(Value));
+    memcpy(stackFrameStart, frame->formals() - 1, (numFormalArgs + 1) * sizeof(Value));
 
     
     uint8_t *stackFrame = info->stackFrame;
-    *((JSObject **) (stackFrame + StackFrame::offsetOfScopeChain())) = baselineFrame->scopeChain();
-    if (CalleeTokenIsFunction(calleeTok)) {
+    *((JSObject **) (stackFrame + StackFrame::offsetOfScopeChain())) = frame->scopeChain();
+    if (frame->isFunctionFrame()) {
         
-        *((JSFunction **) (stackFrame + StackFrame::offsetOfExec())) =
-            CalleeTokenToFunction(calleeTok);
+        *((JSFunction **) (stackFrame + StackFrame::offsetOfExec())) = frame->fun();
         *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) = StackFrame::FUNCTION;
     } else {
-        *((RawScript *) (stackFrame + StackFrame::offsetOfExec())) =
-            CalleeTokenToScript(calleeTok);
+        *((RawScript *) (stackFrame + StackFrame::offsetOfExec())) = frame->script();
         *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) = 0;
     }
 
@@ -555,12 +503,7 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *f
     
     Value *stackFrameLocalsStart = (Value *) (stackFrame + sizeof(StackFrame));
     for (size_t i = 0; i < numLocalsAndStackVals; i++)
-        stackFrameLocalsStart[i] = *(baselineFrame->valueSlot(i));
-
-    
-    
-    
-    memcpy(info->actualArgsStart, frame, actualArgsSpace);
+        stackFrameLocalsStart[i] = *(frame->valueSlot(i));
 
     IonSpew(IonSpew_BaselineOSR, "Allocated IonOsrTempData at %p", (void *) info);
     IonSpew(IonSpew_BaselineOSR, "Jitcode is %p", info->jitcode);
@@ -570,7 +513,7 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *f
 }
 
 static bool
-DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *frame,
+DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame,
                    IonOsrTempData **infoPtr)
 {
     
@@ -578,7 +521,7 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *f
     JS_ASSERT(infoPtr);
     *infoPtr = NULL;
 
-    RootedScript script(cx, GetTopIonJSScript(cx));
+    RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
 
     
@@ -602,86 +545,10 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, IonJSFrameLayout *f
     return true;
 }
 
-typedef bool (*DoUseCountFallbackFn)(JSContext *, ICUseCount_Fallback *, IonJSFrameLayout *frame,
+typedef bool (*DoUseCountFallbackFn)(JSContext *, ICUseCount_Fallback *, BaselineFrame *frame,
                                      IonOsrTempData **infoPtr);
 static const VMFunction DoUseCountFallbackInfo =
     FunctionInfo<DoUseCountFallbackFn>(DoUseCountFallback);
-
-static bool
-GenerateReplaceStack(MacroAssembler &masm, GeneralRegisterSet regs, Register osrDataReg)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    Register reg0 = regs.takeAny();
-    Register reg1 = regs.takeAny();
-    Register reg2 = regs.takeAny();
-    Register reg3 = regs.takeAny();
-
-    Register copyFrom = reg0;
-    Register copyEnd = reg1;
-    Register copyTo = reg2;
-    Register tempReg = reg3;
-
-    
-    
-    masm.movePtr(BaselineFrameReg, BaselineStackReg);
-    masm.loadPtr(Address(BaselineFrameReg, 0), BaselineFrameReg);
-
-    
-    
-    masm.addPtr(Imm32(BaselineFrame::FramePointerOffset), BaselineStackReg);
-    masm.addPtr(Address(osrDataReg, offsetof(IonOsrTempData, actualArgsSize)), BaselineStackReg);
-
-    
-    masm.subPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrameSize)), BaselineStackReg);
-
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrameStart)), copyFrom);
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrameEnd)), copyEnd);
-    masm.movePtr(BaselineStackReg, copyTo);
-    masm.copyMem(copyFrom, copyEnd, copyTo, tempReg);
-
-    
-    masm.subPtr(Address(osrDataReg, offsetof(IonOsrTempData, actualArgsSize)), BaselineStackReg);
-
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, actualArgsStart)), copyFrom);
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, actualArgsEnd)), copyEnd);
-    masm.movePtr(BaselineStackReg, copyTo);
-    masm.copyMem(copyFrom, copyEnd, copyTo, tempReg);
-
-    
-    
-    
-    
-    
-    
-    Address descriptorAddr(BaselineStackReg, sizeof(void *));
-    masm.loadPtr(descriptorAddr, reg0);
-    masm.movePtr(reg0, reg1);
-    masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), reg1);
-    masm.addPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrameSize)), reg1);
-    masm.lshiftPtr(Imm32(FRAMESIZE_SHIFT), reg1);
-    masm.andPtr(Imm32(FRAMETYPE_MASK), reg0);
-    masm.orPtr(reg1, reg0);
-    masm.storePtr(reg0, descriptorAddr);
-
-    return true;
-}
 
 bool
 ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
@@ -701,7 +568,7 @@ ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
         masm.push(BaselineStackReg);
 
         
-        masm.addPtr(Imm32(BaselineFrame::FramePointerOffset), R0.scratchReg());
+        masm.loadBaselineFramePtr(R0.scratchReg(), R0.scratchReg());
         masm.push(R0.scratchReg());
 
         
@@ -713,50 +580,19 @@ ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
         
         masm.pop(R0.scratchReg());
 
+        EmitLeaveStubFrame(masm);
+
         
         masm.branchPtr(Assembler::Equal, R0.scratchReg(), ImmWord((void*) NULL), &noCompiledCode);
     }
 
     
-    
     GeneralRegisterSet regs(availableGeneralRegs(0));
-    regs.add(BaselineStubReg);
-    regs.addUnchecked(BaselineTailCallReg);
     Register osrDataReg = R0.scratchReg();
     regs.take(osrDataReg);
-
-    
-    masm.loadPtr(Address(BaselineFrameReg, 0), BaselineFrameReg);
-
-    
-    if (!GenerateReplaceStack(masm, regs, osrDataReg))
-        return false;
-
     regs.takeUnchecked(OsrFrameReg);
+
     Register scratchReg = regs.takeAny();
-    Register scratchReg2 = regs.takeAny();
-    
-    
-    
-
-    
-    
-    
-    masm.movePtr(BaselineStackReg, scratchReg);
-    masm.addPtr(Address(osrDataReg, offsetof(IonOsrTempData, actualArgsSize)), scratchReg);
-
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrame)), scratchReg2);
-    masm.subPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrameStart)), scratchReg2);
-    masm.addPtr(scratchReg2, scratchReg);
-    masm.push(scratchReg);
-
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, jitcode)), scratchReg);
-    masm.push(scratchReg);
-
-    
-    masm.setupUnalignedABICall(1, scratchReg);
-    masm.passABIArg(osrDataReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, js_free));
 
     
     
@@ -765,21 +601,22 @@ ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     
+
     
-    
-    
+    masm.movePtr(BaselineFrameReg, BaselineStackReg);
+
     
     
     masm.pop(scratchReg);
-    masm.pop(OsrFrameReg);
+
+    
+    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, jitcode)), scratchReg);
+    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrame)), OsrFrameReg);
     masm.jump(scratchReg);
 
     
     masm.bind(&noCompiledCode);
-
-    EmitLeaveStubFrame(masm);
     EmitReturnFromIC(masm);
-
     return true;
 }
 

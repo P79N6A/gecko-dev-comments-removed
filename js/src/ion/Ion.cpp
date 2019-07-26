@@ -142,13 +142,15 @@ IonRuntime::IonRuntime()
     argumentsRectifierReturnAddr_(NULL),
     invalidator_(NULL),
     debugTrapHandler_(NULL),
-    functionWrappers_(NULL)
+    functionWrappers_(NULL),
+    osrTempData_(NULL)
 {
 }
 
 IonRuntime::~IonRuntime()
 {
     js_delete(functionWrappers_);
+    freeOsrTempData();
 }
 
 bool
@@ -217,6 +219,20 @@ IonRuntime::initialize(JSContext *cx)
     }
 
     return true;
+}
+
+uint8_t *
+IonRuntime::allocateOsrTempData(size_t size)
+{
+    osrTempData_ = (uint8_t *)js_realloc(osrTempData_, size);
+    return osrTempData_;
+}
+
+void
+IonRuntime::freeOsrTempData()
+{
+    js_free(osrTempData_);
+    osrTempData_ = NULL;
 }
 
 IonCompartment::IonCompartment(IonRuntime *rt)
@@ -289,6 +305,9 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     CancelOffThreadIonCompile(compartment, NULL);
     FinishAllOffThreadCompilations(this);
+
+    
+    rt->freeOsrTempData();
 }
 
 void
@@ -1824,14 +1843,6 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
             continue;
 
         
-        if (it.checkInvalidation())
-            continue;
-
-        RawScript script = it.script();
-        if (!script->hasIonScript())
-            continue;
-
-        
         
         
         if (invalidateAll && it.script()->hasBaselineScript()) {
@@ -1848,6 +1859,14 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
                 ++inlineIter;
             }
         }
+
+        
+        if (it.checkInvalidation())
+            continue;
+
+        RawScript script = it.script();
+        if (!script->hasIonScript())
+            continue;
 
         if (!invalidateAll && !script->ion->invalidated())
             continue;
