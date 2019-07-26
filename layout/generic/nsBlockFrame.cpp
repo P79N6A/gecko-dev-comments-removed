@@ -3167,7 +3167,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
             
             if (!madeContinuation &&
                 (NS_FRAME_IS_OVERFLOW_CONTAINER & nextFrame->GetStateBits())) {
-              aState.mOverflowTracker->Finish(frame);
+              nsOverflowContinuationTracker::AutoFinish fini(aState.mOverflowTracker, frame);
               nsContainerFrame* parent =
                 static_cast<nsContainerFrame*>(nextFrame->GetParent());
               rv = parent->StealFrame(aState.mPresContext, nextFrame);

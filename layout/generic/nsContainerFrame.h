@@ -607,7 +607,26 @@ public:
 
 
 
-  void Finish(nsIFrame* aChild);
+
+
+
+
+
+  class MOZ_STACK_CLASS AutoFinish {
+  public:
+    AutoFinish(nsOverflowContinuationTracker* aTracker, nsIFrame* aChild)
+      : mTracker(aTracker), mChild(aChild)
+    {
+      if (mTracker) mTracker->BeginFinish(mChild);
+    }
+    ~AutoFinish() 
+    {
+      if (mTracker) mTracker->EndFinish(mChild);
+    }
+  private:
+    nsOverflowContinuationTracker* mTracker;
+    nsIFrame* mChild;
+  };
 
   
 
@@ -629,6 +648,13 @@ public:
 
 private:
 
+  
+
+
+  void BeginFinish(nsIFrame* aChild);
+  void EndFinish(nsIFrame* aChild);
+
+  void SetupOverflowContList();
   void SetUpListWalker();
   void StepForward();
 
