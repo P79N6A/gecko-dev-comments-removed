@@ -1,0 +1,87 @@
+
+
+
+
+#include "CodecStatistics.h"
+
+#include "CSFLog.h"
+
+using namespace mozilla;
+using namespace webrtc;
+
+
+static const char* logTag ="WebrtcVideoSessionConduit";
+
+VideoCodecStatistics::VideoCodecStatistics(int channel, ViECodec* codec) :
+  mChannel(channel),
+  mSentRawFrames(0),
+  mPtrViECodec(codec),
+  mEncoderDroppedFrames(0),
+  mDecoderDiscardedPackets(0)
+{
+  MOZ_ASSERT(mPtrViECodec);
+  mPtrViECodec->RegisterEncoderObserver(mChannel, *this);
+  mPtrViECodec->RegisterDecoderObserver(mChannel, *this);
+}
+
+VideoCodecStatistics::~VideoCodecStatistics()
+{
+  mPtrViECodec->DeregisterEncoderObserver(mChannel);
+  mPtrViECodec->DeregisterDecoderObserver(mChannel);
+}
+
+void VideoCodecStatistics::OutgoingRate(const int video_channel,
+                                        const uint32_t framerate,
+                                        const uint32_t bitrate)
+{
+  unsigned int keyFrames, deltaFrames;
+  mPtrViECodec->GetSendCodecStatistics(video_channel, keyFrames, deltaFrames);
+  uint32_t dropped = mSentRawFrames - (keyFrames + deltaFrames);
+  CSFLogDebug(logTag,
+              "encoder statistics - framerate: %u, bitrate: %u, dropped frames: %u",
+              framerate, bitrate, dropped);
+  mEncoderBitRate.Push(bitrate);
+  mEncoderFps.Push(framerate);
+  mEncoderDroppedFrames += dropped;
+}
+
+void VideoCodecStatistics::IncomingCodecChanged(const int video_channel,
+                                                const VideoCodec& video_codec)
+{
+  CSFLogDebug(logTag,
+              "channel %d change codec to \"%s\" ",
+              video_channel, video_codec.plName);
+}
+
+void VideoCodecStatistics::IncomingRate(const int video_channel,
+                                        const unsigned int framerate,
+                                        const unsigned int bitrate)
+{
+  unsigned int discarded = mPtrViECodec->GetDiscardedPackets(video_channel);
+  CSFLogDebug(logTag,
+      "decoder statistics - framerate: %u, bitrate: %u, discarded packets %u",
+      framerate, bitrate, discarded);
+  mDecoderBitRate.Push(bitrate);
+  mDecoderFps.Push(framerate);
+  mDecoderDiscardedPackets += discarded;
+}
+
+void VideoCodecStatistics::SentFrame()
+{
+  mSentRawFrames++;
+}
+
+void VideoCodecStatistics::Dump()
+{
+  Dump(mEncoderBitRate, "encoder bitrate");
+  Dump(mEncoderFps, "encoder fps");
+  Dump(mDecoderBitRate, "decoder bitrate");
+  Dump(mDecoderFps, "decoder fps");
+}
+
+void VideoCodecStatistics::Dump(RunningStat& s, const char *name)
+{
+  CSFLogDebug(logTag,
+              "%s, mean: %f, variance: %f, standard deviation: %f",
+              name, s.Mean(), s.Variance(), s.StandardDeviation());
+}

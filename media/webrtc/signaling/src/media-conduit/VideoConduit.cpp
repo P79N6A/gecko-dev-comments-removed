@@ -118,6 +118,8 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
     mVideoEngine = nullptr;
   } else {
     
+    mVideoCodecStat = nullptr;
+    
     
     mPtrViEBase = nullptr;
     mPtrViECapture = nullptr;
@@ -568,6 +570,9 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
                 mPtrViEBase->LastError());
     return kMediaConduitUnknownError;
   }
+
+  mVideoCodecStat = new VideoCodecStatistics(mChannel, mPtrViECodec);
+
   mSendingWidth = 0;
   mSendingHeight = 0;
 
@@ -1010,6 +1015,7 @@ WebrtcVideoConduit::SendVideoFrame(unsigned char* video_frame,
     return kMediaConduitCaptureError;
   }
 
+  mVideoCodecStat->SentFrame();
   CSFLogDebug(logTag, "%s Inserted a frame", __FUNCTION__);
   return kMediaConduitNoError;
 }
