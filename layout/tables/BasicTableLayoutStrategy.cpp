@@ -140,7 +140,8 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     
     
     
-    if (unit == eStyleUnit_Coord) {
+    
+    if (width.ConvertsToLength()) {
         hasSpecifiedWidth = true;
         
         
@@ -192,7 +193,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     unit = maxWidth.GetUnit();
     
     
-    if (unit == eStyleUnit_Coord || unit == eStyleUnit_Enumerated) {
+    if (maxWidth.ConvertsToLength() || unit == eStyleUnit_Enumerated) {
         nscoord w =
             nsLayoutUtils::ComputeWidthValue(aRenderingContext, aFrame,
                                              0, 0, 0, maxWidth);
@@ -218,7 +219,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
                                  eStyleUnit_Enumerated);
     }
     unit = minWidth.GetUnit();
-    if (unit == eStyleUnit_Coord || unit == eStyleUnit_Enumerated) {
+    if (minWidth.ConvertsToLength() || unit == eStyleUnit_Enumerated) {
         nscoord w =
             nsLayoutUtils::ComputeWidthValue(aRenderingContext, aFrame,
                                              0, 0, 0, minWidth);
