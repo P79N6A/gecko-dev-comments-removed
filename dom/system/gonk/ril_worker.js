@@ -1688,6 +1688,18 @@ let RIL = {
       } else {
         if (DEBUG) debug("PLMN: Both PLMNSEL/SPDI not available");
       }
+
+      if (this.isICCServiceAvailable("CBMI")) {
+        this.getCBMI();
+      } else {
+        this.cellBroadcastConfigs.CBMI = null;
+      }
+      if (this.isICCServiceAvailable("CBMIR")) {
+        this.getCBMIR();
+      } else {
+        this.cellBroadcastConfigs.CBMIR = null;
+      }
+      this._mergeAllCellBroadcastConfigs();
     }
 
     
@@ -1702,6 +1714,116 @@ let RIL = {
       pin2:      null,
       type:      EF_TYPE_TRANSPARENT,
       callback:  callback,
+    });
+  },
+
+  
+
+
+
+
+  getCBMI: function getCBMI() {
+    function callback() {
+      let strLength = Buf.readUint32();
+
+      
+      
+      let numIds = strLength / 4, list = null;
+      if (numIds) {
+        list = [];
+        for (let i = 0, id; i < numIds; i++) {
+          id = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          
+          if (id != 0xFFFF) {
+            list.push(id);
+            list.push(id + 1);
+          }
+        }
+      }
+      if (DEBUG) {
+        debug("CBMI: " + JSON.stringify(list));
+      }
+
+      Buf.readStringDelimiter(strLength);
+
+      this.cellBroadcastConfigs.CBMI = list;
+      this._mergeAllCellBroadcastConfigs();
+    }
+
+    function onerror() {
+      this.cellBroadcastConfigs.CBMI = null;
+      this._mergeAllCellBroadcastConfigs();
+    }
+
+    this.iccIO({
+      command:   ICC_COMMAND_GET_RESPONSE,
+      fileId:    ICC_EF_CBMI,
+      pathId:    this._getPathIdForICCRecord(ICC_EF_CBMI),
+      p1:        0, 
+      p2:        0, 
+      p3:        GET_RESPONSE_EF_SIZE_BYTES,
+      data:      null,
+      pin2:      null,
+      type:      EF_TYPE_TRANSPARENT,
+      callback:  callback,
+      onerror:   onerror
+    });
+  },
+
+  
+
+
+
+
+  getCBMIR: function getCBMIR() {
+    function callback() {
+      let strLength = Buf.readUint32();
+
+      
+      
+      let numIds = strLength / 8, list = null;
+      if (numIds) {
+        list = [];
+        for (let i = 0, from, to; i < numIds; i++) {
+          
+          
+          
+          from = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          to = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          
+          if ((from != 0xFFFF) && (to != 0xFFFF)) {
+            list.push(from);
+            list.push(to + 1);
+          }
+        }
+      }
+      if (DEBUG) {
+        debug("CBMIR: " + JSON.stringify(list));
+      }
+
+      Buf.readStringDelimiter(strLength);
+
+      this.cellBroadcastConfigs.CBMIR = list;
+      this._mergeAllCellBroadcastConfigs();
+    }
+
+    function onerror() {
+      this.cellBroadcastConfigs.CBMIR = null;
+      this._mergeAllCellBroadcastConfigs();
+    }
+
+    this.iccIO({
+      command:   ICC_COMMAND_GET_RESPONSE,
+      fileId:    ICC_EF_CBMIR,
+      pathId:    this._getPathIdForICCRecord(ICC_EF_CBMIR),
+      p1:        0, 
+      p2:        0, 
+      p3:        GET_RESPONSE_EF_SIZE_BYTES,
+      data:      null,
+      pin2:      null,
+      type:      EF_TYPE_TRANSPARENT,
+      callback:  callback,
+      onerror:   onerror
     });
   },
 
@@ -3442,6 +3564,8 @@ let RIL = {
           case ICC_EF_PLMNsel:
           case ICC_EF_SPN:
           case ICC_EF_SST:
+          case ICC_EF_CBMI:
+          case ICC_EF_CBMIR:
             return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
         }
       case CARD_APPTYPE_USIM:
@@ -3453,6 +3577,8 @@ let RIL = {
           case ICC_EF_MSISDN:
           case ICC_EF_SPN:
           case ICC_EF_SPDI:
+          case ICC_EF_CBMI:
+          case ICC_EF_CBMIR:
             return EF_PATH_MF_SIM + EF_PATH_ADF_USIM;
 
           default:
@@ -4694,6 +4820,14 @@ let RIL = {
 
 
   _mergeAllCellBroadcastConfigs: function _mergeAllCellBroadcastConfigs() {
+    if (!("CBMI" in this.cellBroadcastConfigs)
+        || !("CBMIR" in this.cellBroadcastConfigs)
+        || !("MMI" in this.cellBroadcastConfigs)) {
+      if (DEBUG) {
+        debug("cell broadcast configs not ready, waiting ...");
+      }
+      return;
+    }
     if (DEBUG) {
       debug("Cell Broadcast search lists: " + JSON.stringify(this.cellBroadcastConfigs));
     }
