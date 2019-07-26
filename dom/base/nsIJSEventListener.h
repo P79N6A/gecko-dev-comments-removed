@@ -14,8 +14,8 @@
 #include "mozilla/dom/EventHandlerBinding.h"
 
 #define NS_IJSEVENTLISTENER_IID \
-{ 0x92f9212b, 0xa6aa, 0x4867, \
-  { 0x93, 0x8a, 0x56, 0xbe, 0x17, 0x67, 0x4f, 0xd4 } }
+{ 0x5077b12a, 0x5a1f, 0x4583, \
+  { 0xbb, 0xa7, 0x78, 0x84, 0x94, 0x0e, 0x5e, 0xff } }
 
 class nsEventHandler
 {
@@ -172,20 +172,13 @@ class nsIJSEventListener : public nsIDOMEventListener
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IJSEVENTLISTENER_IID)
 
-  nsIJSEventListener(nsIScriptContext* aContext, JSObject* aScopeObject,
+  nsIJSEventListener(JSObject* aScopeObject,
                      nsISupports *aTarget, nsIAtom* aType,
                      const nsEventHandler& aHandler)
-  : mContext(aContext), mScopeObject(aScopeObject), mEventName(aType),
-    mHandler(aHandler)
+  : mScopeObject(aScopeObject), mEventName(aType), mHandler(aHandler)
   {
     nsCOMPtr<nsISupports> base = do_QueryInterface(aTarget);
     mTarget = base.get();
-  }
-
-  
-  nsIScriptContext *GetEventContext() const
-  {
-    return mContext;
   }
 
   nsISupports *GetEventTarget() const
@@ -226,11 +219,10 @@ public:
 
   
   
-  void SetHandler(const nsEventHandler& aHandler, nsIScriptContext* aContext,
+  void SetHandler(const nsEventHandler& aHandler,
                   JS::Handle<JSObject*> aScopeObject)
   {
     mHandler.SetHandler(aHandler);
-    mContext = aContext;
     UpdateScopeObject(aScopeObject);
   }
   void SetHandler(mozilla::dom::EventHandlerNonNull* aHandler)
@@ -259,7 +251,6 @@ public:
     
     
     
-    
   }
 
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
@@ -277,7 +268,6 @@ protected:
   
   virtual void UpdateScopeObject(JS::Handle<JSObject*> aScopeObject) = 0;
 
-  nsCOMPtr<nsIScriptContext> mContext;
   JS::Heap<JSObject*> mScopeObject;
   nsISupports* mTarget;
   nsCOMPtr<nsIAtom> mEventName;
@@ -289,8 +279,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIJSEventListener, NS_IJSEVENTLISTENER_IID)
 
 
 
-nsresult NS_NewJSEventListener(nsIScriptContext *aContext,
-                               JSObject* aScopeObject, nsISupports* aTarget,
+nsresult NS_NewJSEventListener(JSObject* aScopeObject, nsISupports* aTarget,
                                nsIAtom* aType, const nsEventHandler& aHandler,
                                nsIJSEventListener **aReturn);
 
