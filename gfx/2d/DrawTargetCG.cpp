@@ -646,22 +646,7 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
 
   CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(mTransform));
 
-  
-  
-  switch (aStrokeOptions.mLineJoin)
-  {
-    case JOIN_BEVEL:
-      CGContextSetLineJoin(cg, kCGLineJoinBevel);
-      break;
-    case JOIN_ROUND:
-      CGContextSetLineJoin(cg, kCGLineJoinRound);
-      break;
-    case JOIN_MITER:
-    case JOIN_MITER_OR_BEVEL:
-      CGContextSetLineJoin(cg, kCGLineJoinMiter);
-      break;
-  }
-  CGContextSetLineWidth(cg, aStrokeOptions.mLineWidth);
+  SetStrokeOptions(cg, aStrokeOptions);
 
   if (isGradient(aPattern)) {
     
