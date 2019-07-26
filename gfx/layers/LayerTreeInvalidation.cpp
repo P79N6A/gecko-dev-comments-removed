@@ -7,6 +7,7 @@
 #include "Layers.h"
 #include "ImageLayers.h"
 #include "gfxUtils.h"
+#include "nsDataHashtable.h"
 
 namespace mozilla {
 namespace layers {
@@ -203,27 +204,61 @@ struct ContainerLayerProperties : public LayerPropertiesBase
     ContainerLayer* container = mLayer->AsContainerLayer();
     nsIntRegion result;
 
-    uint32_t i = 0;
+    
+    
+    
+    
+    
+    
+    
+    
+
+    nsDataHashtable<nsPtrHashKey<Layer>, uint32_t> oldIndexMap;
+    oldIndexMap.Init(mChildren.Length());
+    for (uint32_t i = 0; i < mChildren.Length(); ++i) {
+      oldIndexMap.Put(mChildren[i]->mLayer, i);
+    }
+
+    uint32_t i = 0; 
     for (Layer* child = container->GetFirstChild(); child; child = child->GetNextSibling()) {
-      if (i >= mChildren.Length() || child != mChildren[i]->mLayer) {
-        
-        
-        
-        AddTransformedRegion(result, child->GetVisibleRegion(), child->GetTransform());
-        if (i < mChildren.Length()) {
-          AddRegion(result, mChildren[i]->OldTransformedBounds());
+      bool invalidateChildsCurrentArea = false;
+      if (i < mChildren.Length()) {
+        uint32_t childsOldIndex;
+        if (oldIndexMap.Get(child, &childsOldIndex)) {
+          if (childsOldIndex >= i) {
+            
+            
+            
+            
+            
+            for (uint32_t j = i; j < childsOldIndex; ++j) {
+              AddRegion(result, mChildren[j]->OldTransformedBounds());
+            }
+            
+            AddRegion(result, mChildren[childsOldIndex]->ComputeChange(aCallback));
+            i = childsOldIndex + 1;
+          } else {
+            
+            
+            
+            invalidateChildsCurrentArea = true;
+          }
+        } else {
+          
+          invalidateChildsCurrentArea = true;
         }
+      } else {
+        
+        invalidateChildsCurrentArea = true;
+      }
+      if (invalidateChildsCurrentArea) {
+        AddTransformedRegion(result, child->GetVisibleRegion(), child->GetTransform());
         if (aCallback) {
           NotifySubdocumentInvalidationRecursive(child, aCallback);
         } else {
           ClearInvalidations(child);
         }
-      } else {
-        
-        AddRegion(result, mChildren[i]->ComputeChange(aCallback));
       }
-
-      i++;
     }
 
     
@@ -239,6 +274,7 @@ struct ContainerLayerProperties : public LayerPropertiesBase
     return TransformRegion(result, mLayer->GetTransform());
   }
 
+  
   nsAutoTArray<nsAutoPtr<LayerPropertiesBase>,1> mChildren;
 };
 
