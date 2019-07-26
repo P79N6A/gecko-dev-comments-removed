@@ -1702,11 +1702,7 @@ pref("layout.css.masking.enabled", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.supports-rule.enabled", false);
-#else
 pref("layout.css.supports-rule.enabled", true);
-#endif
 
 
 pref("layout.css.flexbox.enabled", true);
