@@ -521,18 +521,9 @@ public:
 
   
   
-  
-  
-  
-  
-  
-  
-  
   void EnableDialogs();
   void DisableDialogs();
   bool AreDialogsEnabled();
-  void LimitDialogs();
-  bool CanDialogCurrentlyBeShown();
 
   virtual void SetHasAudioAvailableEventListeners();
 
@@ -1266,13 +1257,7 @@ protected:
 
   
   
-  
-  bool                          mStopAbuseDialogs;
-
-  
-  
-  
-  bool                          mDialogsPermanentlyDisabled;
+  bool                          mAreDialogsEnabled;
 
   nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
 
