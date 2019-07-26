@@ -1152,6 +1152,8 @@ bool TransmitMixer::IsRecordingMic()
 }
 
 
+
+
 int TransmitMixer::GenerateAudioFrame(const int16_t audio[],
                                       int samples_per_channel,
                                       int num_channels,
@@ -1179,7 +1181,7 @@ int TransmitMixer::GenerateAudioFrame(const int16_t audio[],
     }
 
     ResamplerType resampler_type = (num_channels == 1) ?
-            kResamplerSynchronous : kResamplerSynchronousStereo;
+            kResamplerFixedSynchronous : kResamplerFixedSynchronousStereo;
 
     if (_audioResampler.ResetIfNeeded(sample_rate_hz,
                                       destination_rate,
