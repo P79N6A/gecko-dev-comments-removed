@@ -748,11 +748,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     masm.bind(&makeCall);
-    masm.leaveBeforeCall();
-    masm.callIon(objreg);
-    if (!markSafepoint(call))
+    uint32 callOffset = masm.callIon(objreg);
+    if (!markSafepointAt(callOffset, call))
         return false;
-    masm.reenterAfterCall();
 
     
     
@@ -821,13 +819,11 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     masm.Push(Imm32(call->numActualArgs()));
     masm.Push(calleereg);
     masm.Push(Imm32(descriptor));
-    masm.leaveBeforeCall();
 
     
-    masm.callIon(objreg);
-    if (!markSafepoint(call))
+    uint32 callOffset = masm.callIon(objreg);
+    if (!markSafepointAt(callOffset, call))
         return false;
-    masm.reenterAfterCall();
 
     
     
@@ -1079,13 +1075,11 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
         }
 
         masm.bind(&rejoin);
-        masm.leaveBeforeCall();
 
         
-        masm.callIon(objreg);
-        if (!markSafepoint(apply))
+        uint32 callOffset = masm.callIon(objreg);
+        if (!markSafepointAt(callOffset, apply))
             return false;
-        masm.reenterAfterCall();
 
         
         masm.movePtr(Address(StackPointer, 0), copyreg);
@@ -4062,19 +4056,19 @@ CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
             
             
             
-            if (sps.inliningDepth() == lir->inlineLevel()) {
-                sps.leaveInlineFrame();
-                sps.skipNextReenter();
-                sps.reenter(masm, temp);
+            if (sps_.inliningDepth() == lir->inlineLevel()) {
+                sps_.leaveInlineFrame();
+                sps_.skipNextReenter();
+                sps_.reenter(masm, temp);
             }
 
-            sps.leave(lastPC, masm, temp);
-            if (!sps.enterInlineFrame())
+            sps_.leave(masm, temp);
+            if (!sps_.enterInlineFrame())
                 return false;
             
 
         case MFunctionBoundary::Enter:
-            if (sps.slowAssertions()) {
+            if (sps_.slowAssertions()) {
                 typedef bool(*pf)(JSContext *, HandleScript);
                 static const VMFunction SPSEnterInfo = FunctionInfo<pf>(SPSEnter);
 
@@ -4083,22 +4077,22 @@ CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
                 if (!callVM(SPSEnterInfo, lir))
                     return false;
                 restoreLive(lir);
-                sps.pushManual(lir->script(), masm, temp);
+                sps_.pushManual(lir->script(), masm, temp);
                 return true;
             }
 
-            return sps.push(GetIonContext()->cx, lir->script(), masm, temp);
+            return sps_.push(GetIonContext()->cx, lir->script(), masm, temp);
 
         case MFunctionBoundary::Inline_Exit:
             
             
             
-            sps.leaveInlineFrame();
-            sps.reenter(masm, temp);
+            sps_.leaveInlineFrame();
+            sps_.reenter(masm, temp);
             return true;
 
         case MFunctionBoundary::Exit:
-            if (sps.slowAssertions()) {
+            if (sps_.slowAssertions()) {
                 typedef bool(*pf)(JSContext *, HandleScript);
                 static const VMFunction SPSExitInfo = FunctionInfo<pf>(SPSExit);
 
@@ -4107,14 +4101,14 @@ CodeGenerator::visitFunctionBoundary(LFunctionBoundary *lir)
                 
                 
                 
-                sps.skipNextReenter();
+                sps_.skipNextReenter();
                 if (!callVM(SPSExitInfo, lir))
                     return false;
                 restoreLive(lir);
                 return true;
             }
 
-            sps.pop(masm, temp);
+            sps_.pop(masm, temp);
             return true;
 
         default:

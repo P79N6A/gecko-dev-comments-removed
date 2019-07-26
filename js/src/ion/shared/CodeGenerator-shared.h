@@ -65,7 +65,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     js::Vector<uint32, 0, SystemAllocPolicy> pushedArgumentSlots_;
 
-    IonInstrumentation sps;
+    
+    
+    
+    IonInstrumentation sps_;
 
   protected:
     
