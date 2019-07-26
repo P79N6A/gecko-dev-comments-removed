@@ -82,7 +82,7 @@ public:
   virtual void OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType) { }
   virtual void OnFacesDetected(const nsTArray<ICameraControl::Face>& aFaces) { }
 
-  enum CameraErrorContext
+  enum UserContext
   {
     kInStartCamera,
     kInStopCamera,
@@ -95,20 +95,21 @@ public:
     kInSetConfiguration,
     kInStartPreview,
     kInStopPreview,
+    kInSetPictureSize,
+    kInSetThumbnailSize,
     kInResumeContinuousFocus,
     kInUnspecified
   };
-  enum CameraError
+  
+  virtual void OnUserError(UserContext aContext, nsresult aError) { }
+
+  enum SystemContext
   {
-    kErrorApiFailed,
-    kErrorInitFailed,
-    kErrorInvalidConfiguration,
-    kErrorServiceFailed,
-    kErrorSetPictureSizeFailed,
-    kErrorSetThumbnailSizeFailed,
-    kErrorUnknown
+    kSystemService
   };
-  virtual void OnError(CameraErrorContext aContext, CameraError aError) { }
+  
+  
+  virtual void OnSystemError(SystemContext aContext, nsresult aError) { }
 };
 
 } 
