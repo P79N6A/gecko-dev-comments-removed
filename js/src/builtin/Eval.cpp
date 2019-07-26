@@ -263,7 +263,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
     RootedValue thisv(cx);
     if (evalType == DIRECT_EVAL) {
         JS_ASSERT_IF(caller.isStackFrame(), !caller.asStackFrame()->runningInJit());
-        staticLevel = caller.script()->staticLevel + 1;
+        staticLevel = caller.script()->staticLevel() + 1;
 
         
         
@@ -347,7 +347,7 @@ js::DirectEvalStringFromIon(JSContext *cx,
 
     
 
-    unsigned staticLevel = callerScript->staticLevel + 1;
+    unsigned staticLevel = callerScript->staticLevel() + 1;
 
     Rooted<JSStableString*> stableStr(cx, str->ensureStable(cx));
     if (!stableStr)
