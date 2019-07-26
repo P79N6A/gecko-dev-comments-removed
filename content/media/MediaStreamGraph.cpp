@@ -1484,22 +1484,10 @@ MediaStreamGraphImpl::RunInStableState()
     }
     mStreamUpdates.Clear();
 
-    if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP && mForceShutDown) {
-      
-      for (uint32_t i = 0; i < mMessageQueue.Length(); ++i) {
-        MessageBlock& mb = mMessageQueue[i];
-        controlMessagesToRunDuringShutdown.MoveElementsFrom(mb.mMessages);
-      }
-      mMessageQueue.Clear();
-      controlMessagesToRunDuringShutdown.MoveElementsFrom(mCurrentTaskMessageQueue);
-      
-      
-      mLifecycleState = LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN;
-      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphShutDownRunnable(this);
-      NS_DispatchToMainThread(event);
-    }
-
-    if (mLifecycleState == LIFECYCLE_THREAD_NOT_STARTED) {
+    
+    
+    if (mLifecycleState == LIFECYCLE_THREAD_NOT_STARTED &&
+        (mRealtime || mNonRealtimeProcessing)) {
       mLifecycleState = LIFECYCLE_RUNNING;
       
       
@@ -1533,7 +1521,12 @@ MediaStreamGraphImpl::RunInStableState()
         EnsureNextIterationLocked(lock);
       }
 
-      if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
+      
+      
+      
+      
+      if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP &&
+          mRealtime && !mForceShutDown) {
         mLifecycleState = LIFECYCLE_RUNNING;
         
         
@@ -1541,6 +1534,21 @@ MediaStreamGraphImpl::RunInStableState()
         nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable(this);
         mThread->Dispatch(event, 0);
       }
+    }
+
+    if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
+      
+      for (uint32_t i = 0; i < mMessageQueue.Length(); ++i) {
+        MessageBlock& mb = mMessageQueue[i];
+        controlMessagesToRunDuringShutdown.MoveElementsFrom(mb.mMessages);
+      }
+      mMessageQueue.Clear();
+      controlMessagesToRunDuringShutdown.MoveElementsFrom(mCurrentTaskMessageQueue);
+      
+      
+      mLifecycleState = LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN;
+      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphShutDownRunnable(this);
+      NS_DispatchToMainThread(event);
     }
 
     mDetectedNotRunning = mLifecycleState > LIFECYCLE_RUNNING;
@@ -1621,11 +1629,7 @@ MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
   }
 
   mCurrentTaskMessageQueue.AppendElement(aMessage);
-  
-  
-  if (mRealtime || mNonRealtimeProcessing) {
-    EnsureRunInStableState();
-  }
+  EnsureRunInStableState();
 }
 
 MediaStream::MediaStream(DOMMediaStream* aWrapper)
