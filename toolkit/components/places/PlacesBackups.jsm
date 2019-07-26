@@ -28,12 +28,71 @@ XPCOMUtils.defineLazyGetter(this, "localFileCtor",
   () => Components.Constructor("@mozilla.org/file/local;1",
                                "nsILocalFile", "initWithPath"));
 
+XPCOMUtils.defineLazyGetter(this, "filenamesRegex",
+  () => new RegExp("^bookmarks-([0-9\-]+)(?:_([0-9]+)){0,1}(?:_([a-z0-9=\+\-]{24})){0,1}\.(json|html)", "i")
+);
+
+
+
+
+function appendMetaDataToFilename(aFilename, aMetaData) {
+  let matches = aFilename.match(filenamesRegex);
+  return "bookmarks-" + matches[1] +
+                  "_" + aMetaData.count +
+                  "_" + aMetaData.hash +
+                  "." + matches[4];
+}
+
+
+
+
+
+
+function getHashFromFilename(aFilename) {
+  let matches = aFilename.match(filenamesRegex);
+  if (matches && matches[3])
+    return matches[3];
+  return null;
+}
+
+
+
+
+function isFilenameWithSameDate(aSourceName, aTargetName) {
+  let sourceMatches = aSourceName.match(filenamesRegex);
+  let targetMatches = aTargetName.match(filenamesRegex);
+
+  return sourceMatches && targetMatches &&
+         sourceMatches[1] == targetMatches[1] &&
+         sourceMatches[4] == targetMatches[4];
+}
+
+
+
+
+
+
+function getBackupFileForSameDate(aFilename) {
+  return Task.spawn(function* () {
+    let backupFiles = yield PlacesBackups.getBackupFiles();
+    for (let backupFile of backupFiles) {
+      if (isFilenameWithSameDate(OS.Path.basename(backupFile), aFilename))
+        return backupFile;
+    }
+    return null;
+  });
+}
+
 this.PlacesBackups = {
-  get _filenamesRegex() {
-    delete this._filenamesRegex;
-    return this._filenamesRegex =
-      new RegExp("^(bookmarks)-([0-9-]+)(_[0-9]+)*\.(json|html)");
-  },
+  
+
+
+
+
+
+
+
+  get filenamesRegex() filenamesRegex,
 
   get folder() {
     Deprecated.warning(
@@ -99,8 +158,7 @@ this.PlacesBackups = {
       let entry = files.getNext().QueryInterface(Ci.nsIFile);
       
       
-      let matches = entry.leafName.match(this._filenamesRegex);
-      if (!entry.isHidden() && matches) {
+      if (!entry.isHidden() && filenamesRegex.test(entry.leafName)) {
         
         if (this.getDateForFile(entry) > new Date()) {
           entry.remove(false);
@@ -139,8 +197,7 @@ this.PlacesBackups = {
           return;
         }
 
-        let matches = aEntry.name.match(this._filenamesRegex);
-        if (matches) {
+        if (filenamesRegex.test(aEntry.name)) {
           
           let filePath = aEntry.path;
           if (this.getDateForFile(filePath) > new Date()) {
@@ -188,10 +245,10 @@ this.PlacesBackups = {
   getDateForFile: function PB_getDateForFile(aBackupFile) {
     let filename = (aBackupFile instanceof Ci.nsIFile) ? aBackupFile.leafName
                                                        : OS.Path.basename(aBackupFile);
-    let matches = filename.match(this._filenamesRegex);
+    let matches = filename.match(filenamesRegex);
     if (!matches)
       throw("Invalid backup file name: " + filename);
-    return new Date(matches[2].replace(/-/g, "/"));
+    return new Date(matches[1].replace(/-/g, "/"));
   },
 
   
@@ -258,7 +315,8 @@ this.PlacesBackups = {
       aFilePath = aFilePath.path;
     }
     return Task.spawn(function* () {
-      let nodeCount = yield BookmarkJSONUtils.exportToFile(aFilePath);
+      let { count: nodeCount, hash: hash } =
+        yield BookmarkJSONUtils.exportToFile(aFilePath);
 
       let backupFolderPath = yield this.getBackupFolder();
       if (OS.Path.dirname(aFilePath) == backupFolderPath) {
@@ -274,22 +332,33 @@ this.PlacesBackups = {
         
         
         
-        let name = this.getFilenameForDate();
-        let newFilename = this._appendMetaDataToFilename(name,
-                                                         { nodeCount: nodeCount });
-        let newFilePath = OS.Path.join(backupFolderPath, newFilename);
-        let backupFile = yield this._getBackupFileForSameDate(name);
-        if (!backupFile) {
-          
-          
-          this._entries.unshift(new localFileCtor(newFilePath));
-          if (!this._backupFiles) {
-            yield this.getBackupFiles();
+        let mostRecentBackupFile = yield this.getMostRecentBackup("json");
+        if (!mostRecentBackupFile ||
+            hash != getHashFromFilename(OS.Path.basename(mostRecentBackupFile))) {
+          let name = this.getFilenameForDate();
+          let newFilename = appendMetaDataToFilename(name,
+                                                     { count: nodeCount,
+                                                       hash: hash });
+          let newFilePath = OS.Path.join(backupFolderPath, newFilename);
+          let backupFile = yield getBackupFileForSameDate(name);
+          if (backupFile) {
+            
+            yield OS.File.remove(backupFile, { ignoreAbsent: true });
+            if (!this._backupFiles)
+              yield this.getBackupFiles();
+            else
+              this._backupFiles.shift();
+            this._backupFiles.unshift(newFilePath);
+          } else {
+            
+            this._entries.unshift(new localFileCtor(newFilePath));
+            if (!this._backupFiles)
+              yield this.getBackupFiles();
+            this._backupFiles.unshift(newFilePath);
           }
-          this._backupFiles.unshift(newFilePath);
-        }
 
-        yield OS.File.copy(aFilePath, newFilePath);
+          yield OS.File.copy(aFilePath, newFilePath);
+        }
       }
 
       return nodeCount;
@@ -309,77 +378,84 @@ this.PlacesBackups = {
 
 
 
+
+
   create: function PB_create(aMaxBackups, aForceBackup) {
     return Task.spawn(function* () {
-      
-      let newBackupFilename = this.getFilenameForDate();
-      let mostRecentBackupFile = yield this.getMostRecentBackup();
-
-      if (!aForceBackup) {
+      let limitBackups = function* () {
         let backupFiles = yield this.getBackupFiles();
-        
-        if (backupFiles.length > 0 && typeof aMaxBackups == "number" &&
-            aMaxBackups > -1 && backupFiles.length >= aMaxBackups) {
+        if (typeof aMaxBackups == "number" && aMaxBackups > -1 &&
+            backupFiles.length >= aMaxBackups) {
           let numberOfBackupsToDelete = backupFiles.length - aMaxBackups;
-
-          
-          
-          
-          if (!this._isFilenameWithSameDate(OS.Path.basename(mostRecentBackupFile),
-                                            newBackupFilename)) {
-            numberOfBackupsToDelete++;
-          }
-
           while (numberOfBackupsToDelete--) {
             this._entries.pop();
             let oldestBackup = this._backupFiles.pop();
             yield OS.File.remove(oldestBackup);
           }
         }
+      }.bind(this);
 
+      if (aMaxBackups === 0) {
         
-        if (aMaxBackups === 0 ||
-            (mostRecentBackupFile &&
-             this._isFilenameWithSameDate(OS.Path.basename(mostRecentBackupFile),
-                                          newBackupFilename)))
-          return;
+        yield limitBackups(0);
+        return;
       }
 
-      let backupFile = yield this._getBackupFileForSameDate(newBackupFilename);
+      
+      if (!this._backupFiles)
+        yield this.getBackupFiles();
+      let newBackupFilename = this.getFilenameForDate();
+      
+      
+      let backupFile = yield getBackupFileForSameDate(newBackupFilename);
+      if (backupFile && !aForceBackup)
+        return;
+
       if (backupFile) {
-        if (aForceBackup) {
-          yield OS.File.remove(backupFile, { ignoreAbsent: true });
-        } else {
-          return;
-        }
+        
+        this._backupFiles.shift();
+        this._entries.shift();
+        yield OS.File.remove(backupFile, { ignoreAbsent: true });
       }
+
+      
+      
+      let mostRecentBackupFile = yield this.getMostRecentBackup();
+      let mostRecentHash = mostRecentBackupFile &&
+                           getHashFromFilename(OS.Path.basename(mostRecentBackupFile));
 
       
       let backupFolder = yield this.getBackupFolder();
       let newBackupFile = OS.Path.join(backupFolder, newBackupFilename);
-      let nodeCount = yield this.saveBookmarksToJSONFile(newBackupFile);
+      let newFilenameWithMetaData;
+      try {
+        let { count: nodeCount, hash: hash } =
+          yield BookmarkJSONUtils.exportToFile(newBackupFile,
+                                               { failIfHashIs: mostRecentHash });
+        newFilenameWithMetaData = appendMetaDataToFilename(newBackupFilename,
+                                                           { count: nodeCount,
+                                                             hash: hash });
+      } catch (ex if ex.becauseSameHash) {
+        
+        
+        this._backupFiles.shift();
+        this._entries.shift();
+        newBackupFile = mostRecentBackupFile;
+        newFilenameWithMetaData = appendMetaDataToFilename(
+          newBackupFilename,
+          { count: this.getBookmarkCountForFile(mostRecentBackupFile),
+          hash: mostRecentHash });
+      }
+
       
-      let newFilenameWithMetaData = this._appendMetaDataToFilename(
-                                      newBackupFilename,
-                                      { nodeCount: nodeCount });
       let newBackupFileWithMetadata = OS.Path.join(backupFolder, newFilenameWithMetaData);
       yield OS.File.move(newBackupFile, newBackupFileWithMetadata);
+      this._entries.unshift(new localFileCtor(newBackupFileWithMetadata));
+      this._backupFiles.unshift(newBackupFileWithMetadata);
 
       
-      let newFileWithMetaData = new localFileCtor(newBackupFileWithMetadata);
-      this._entries.pop();
-      this._entries.unshift(newFileWithMetaData);
-      this._backupFiles.pop();
-      this._backupFiles.unshift(newBackupFileWithMetadata);
+      yield limitBackups(aMaxBackups);
     }.bind(this));
-  },
-
-  _appendMetaDataToFilename:
-  function PB__appendMetaDataToFilename(aFilename, aMetaData) {
-    let matches = aFilename.match(this._filenamesRegex);
-    let newFilename = matches[1] + "-" + matches[2] + "_" +
-                      aMetaData.nodeCount + "." + matches[4];
-    return newFilename;
   },
 
   
@@ -393,41 +469,10 @@ this.PlacesBackups = {
   getBookmarkCountForFile: function PB_getBookmarkCountForFile(aFilePath) {
     let count = null;
     let filename = OS.Path.basename(aFilePath);
-    let matches = filename.match(this._filenamesRegex);
-
-    if (matches && matches[3])
-      count = matches[3].replace(/_/g, "");
+    let matches = filename.match(filenamesRegex);
+    if (matches && matches[2])
+      count = matches[2];
     return count;
-  },
-
-  _isFilenameWithSameDate:
-  function PB__isFilenameWithSameDate(aSourceName, aTargetName) {
-    let sourceMatches = aSourceName.match(this._filenamesRegex);
-    let targetMatches = aTargetName.match(this._filenamesRegex);
-
-    return (sourceMatches && targetMatches &&
-            sourceMatches[1] == targetMatches[1] &&
-            sourceMatches[2] == targetMatches[2] &&
-            sourceMatches[4] == targetMatches[4]);
-    },
-
-  _getBackupFileForSameDate:
-  function PB__getBackupFileForSameDate(aFilename) {
-    return Task.spawn(function* () {
-      let backupFolderPath = yield this.getBackupFolder();
-      let iterator = new OS.File.DirectoryIterator(backupFolderPath);
-      let backupFile;
-
-      yield iterator.forEach(function(aEntry) {
-        if (this._isFilenameWithSameDate(aEntry.name, aFilename)) {
-          backupFile = aEntry.path;
-          return iterator.close();
-        }
-      }.bind(this));
-      yield iterator.close();
-
-      return backupFile;
-    }.bind(this));
   },
 
   
