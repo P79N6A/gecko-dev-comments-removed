@@ -460,13 +460,6 @@
      
 
 
-
-     let gFindData = new OS.Shared.Type.FindData.implementation();
-     let gFindDataPtr = gFindData.address();
-
-     
-
-
      let gSystemTime = new OS.Shared.Type.SystemTime.implementation();
      let gSystemTimePtr = gSystemTime.address();
 
@@ -510,55 +503,74 @@
        } else {
          this._pattern = path + "\\*";
        }
-       this._handle = null;
        this._path = path;
-       this._started = false;
-       this._closed = false;
-     };
-     File.DirectoryIterator.prototype = Object.create(exports.OS.Shared.AbstractFile.AbstractIterator.prototype);
 
        
+       this._first = true;
+       this._findData = new OS.Shared.Type.FindData.implementation();
+       this._findDataPtr = this._findData.address();
+       this._handle = WinFile.FindFirstFile(this._pattern, this._findDataPtr);
+       if (this._handle == Const.INVALID_HANDLE_VALUE) {
+         let error = ctypes.winLastError;
+         this._findData = null;
+         this._findDataPtr = null;
+         if (error == Const.ERROR_FILE_NOT_FOUND) {
+           
+           LOG("Directory is empty");
+           this._closed = true;
+           this._exists = true;
+         } else if (error == Const.ERROR_PATH_NOT_FOUND) {
+           
+           LOG("Directory does not exist");
+           this._closed = true;
+           this._exists = false;
+         } else {
+           throw new File.Error("DirectoryIterator", error);
+         }
+       } else {
+         this._closed = false;
+         this._exists = true;
+       }
+     };
+
+     File.DirectoryIterator.prototype = Object.create(exports.OS.Shared.AbstractFile.AbstractIterator.prototype);
+
+
+     
 
 
 
 
      File.DirectoryIterator.prototype._next = function _next() {
-        
-        
-        if (this._closed) {
-          return null;
-        }
-
-         
-         
-         if (!this._started) {
-            this._started = true;
-            this._handle = WinFile.FindFirstFile(this._pattern, gFindDataPtr);
-            if (this._handle == null) {
-              let error = ctypes.winLastError;
-              if (error == Const.ERROR_FILE_NOT_FOUND) {
-                this.close();
-                return null;
-              } else {
-                throw new File.Error("iter (FindFirstFile)", error);
-              }
-            }
-            return gFindData;
-         }
-
-         if (WinFile.FindNextFile(this._handle, gFindDataPtr)) {
-           return gFindData;
-         } else {
-           let error = ctypes.winLastError;
-           this.close();
-           if (error == Const.ERROR_NO_MORE_FILES) {
-              return null;
-           } else {
-              throw new File.Error("iter (FindNextFile)", error);
-           }
-         }
-       },
        
+       if (!this._exists) {
+         throw File.Error.noSuchFile("DirectoryIterator.prototype.next");
+       }
+       
+       if (this._closed) {
+         return null;
+       }
+       
+       
+       if (this._first) {
+         this._first = false;
+         return this._findData;
+       }
+
+       if (WinFile.FindNextFile(this._handle, this._findDataPtr)) {
+         return this._findData;
+       } else {
+         let error = ctypes.winLastError;
+         this.close();
+         if (error == Const.ERROR_NO_MORE_FILES) {
+            return null;
+         } else {
+            throw new File.Error("iter (FindNextFile)", error);
+         }
+       }
+     },
+
+     
 
 
 
@@ -594,6 +606,15 @@
            WinFile.FindClose(this._handle));
          this._handle = null;
        }
+     };
+
+    
+
+
+
+
+     File.DirectoryIterator.prototype.exists = function exists() {
+       return this._exists;
      };
 
      File.DirectoryIterator.Entry = function Entry(win_entry, parent) {
