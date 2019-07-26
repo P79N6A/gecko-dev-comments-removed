@@ -6,11 +6,14 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.widget.GeckoPopupMenu;
 
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 class ActionModeCompat implements GeckoPopupMenu.OnMenuItemClickListener,
+                                  GeckoPopupMenu.OnMenuItemLongClickListener,
                                   View.OnClickListener {
     private final String LOGTAG = "GeckoActionModeCompat";
 
@@ -95,7 +98,29 @@ class ActionModeCompat implements GeckoPopupMenu.OnMenuItemClickListener,
 
     
     @Override
+    public boolean onMenuItemLongClick(MenuItem item) {
+        showTooltip(item);
+        return true;
+    }
+
+    
+    @Override
     public void onClick(View v) {
         mPresenter.endActionModeCompat();
+    }
+
+    private void showTooltip(MenuItem item) {
+        
+        
+        int[] location = new int[2];
+        final View view = item.getActionView();
+        view.getLocationOnScreen(location);
+
+        int xOffset = location[0] - view.getWidth();
+        int yOffset = location[1] + view.getHeight() / 2;
+
+        Toast toast = Toast.makeText(view.getContext(), item.getTitle(), Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.TOP|Gravity.LEFT, xOffset, yOffset);
+        toast.show();
     }
 }

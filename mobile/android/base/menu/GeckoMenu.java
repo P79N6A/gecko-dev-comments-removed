@@ -15,7 +15,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.ActionProvider;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -50,7 +49,10 @@ public class GeckoMenu extends ListView
 
     public static interface Callback {
         
-        public boolean onMenuItemSelected(MenuItem item);
+        public boolean onMenuItemClick(MenuItem item);
+
+        
+        public boolean onMenuItemLongClick(MenuItem item);
     }
 
     
@@ -222,11 +224,25 @@ public class GeckoMenu extends ListView
                     handleMenuItemClick(menuItem);
                 }
             });
+            ((MenuItemActionBar) actionView).setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    handleMenuItemLongClick(menuItem);
+                    return true;
+                }
+            });
         } else if (actionView instanceof MenuItemActionView) {
             ((MenuItemActionView) actionView).setMenuItemClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     handleMenuItemClick(menuItem);
+                }
+            });
+            ((MenuItemActionView) actionView).setMenuItemLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    handleMenuItemLongClick(menuItem);
+                    return true;
                 }
             });
         }
@@ -556,7 +572,17 @@ public class GeckoMenu extends ListView
             showMenu(subMenu);
         } else {
             close();
-            mCallback.onMenuItemSelected(item);
+            mCallback.onMenuItemClick(item);
+        }
+    }
+
+    private void handleMenuItemLongClick(GeckoMenuItem item) {
+        if(!item.isEnabled()) {
+            return;
+        }
+
+        if(mCallback != null) {
+            mCallback.onMenuItemLongClick(item);
         }
     }
 
