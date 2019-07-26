@@ -8,6 +8,7 @@
 
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/unused.h"
 #include "mozilla/dom/ContentParent.h"
@@ -28,16 +29,27 @@
 
 #ifdef XP_LINUX
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 #ifdef ANDROID
-#include <sys/stat.h>
+#include "android/log.h"
+#endif
+
+#ifdef LOG
+#undef LOG
+#endif
+
+#ifdef ANDROID
+#define LOG(...) __android_log_print(ANDROID_LOG_INFO, "Gecko:MemoryInfoDumper", ## __VA_ARGS__)
+#else
+#define LOG(...)
 #endif
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-namespace mozilla {
 namespace {
 
 class DumpMemoryReportsRunnable : public nsRunnable
@@ -125,7 +137,7 @@ static int sGCAndCCDumpSignum;
 
 
 
-static int sDumpAboutMemoryPipeWriteFd;
+static int sDumpAboutMemoryPipeWriteFd = -1;
 
 void
 DumpAboutMemorySignalHandler(int aSignum)
@@ -133,36 +145,132 @@ DumpAboutMemorySignalHandler(int aSignum)
   
   
 
-  if (sDumpAboutMemoryPipeWriteFd != 0) {
+  if (sDumpAboutMemoryPipeWriteFd != -1) {
     uint8_t signum = static_cast<int>(aSignum);
     write(sDumpAboutMemoryPipeWriteFd, &signum, sizeof(signum));
   }
 }
 
-class SignalPipeWatcher : public MessageLoopForIO::Watcher
+
+
+
+
+class FdWatcher : public MessageLoopForIO::Watcher
+                , public nsIObserver
 {
+protected:
+  MessageLoopForIO::FileDescriptorWatcher mReadWatcher;
+  int mFd;
+
 public:
-  SignalPipeWatcher()
-  {}
-
-  ~SignalPipeWatcher()
+  FdWatcher()
+    : mFd(-1)
   {
-    
-    
-    
-    int pipeWriteFd = sDumpAboutMemoryPipeWriteFd;
-    PR_ATOMIC_SET(&sDumpAboutMemoryPipeWriteFd, 0);
-
-    
-    mReadWatcher.StopWatchingFileDescriptor();
-
-    close(pipeWriteFd);
-    close(mPipeReadFd);
+    MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SignalPipeWatcher)
+  virtual ~FdWatcher()
+  {
+    
+    MOZ_ASSERT(mFd == -1);
+  }
 
-  bool Start()
+  
+
+
+  virtual int OpenFd() = 0;
+
+  
+
+
+
+  virtual void OnFileCanReadWithoutBlocking(int aFd) = 0;
+  virtual void OnFileCanWriteWithoutBlocking(int Afd) {};
+
+  NS_DECL_ISUPPORTS
+
+  
+
+
+
+
+
+  void Init()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    os->AddObserver(this, "xpcom-shutdown",  false);
+
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &FdWatcher::StartWatching));
+  }
+
+  
+  
+  
+  virtual void StartWatching()
+  {
+    MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+    MOZ_ASSERT(mFd == -1);
+
+    mFd = OpenFd();
+    if (mFd == -1) {
+      LOG("FdWatcher: OpenFd failed.");
+      return;
+    }
+
+    MessageLoopForIO::current()->WatchFileDescriptor(
+      mFd,  true,
+      MessageLoopForIO::WATCH_READ,
+      &mReadWatcher, this);
+  }
+
+  
+  
+  virtual void StopWatching()
+  {
+    MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+
+    mReadWatcher.StopWatchingFileDescriptor();
+    if (mFd != -1) {
+      close(mFd);
+      mFd = -1;
+    }
+  }
+
+  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
+                     const PRUnichar* aData)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!strcmp(aTopic, "xpcom-shutdown"));
+
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &FdWatcher::StopWatching));
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(FdWatcher, nsIObserver);
+
+class SignalPipeWatcher : public FdWatcher
+{
+public:
+  static void Create()
+  {
+    nsRefPtr<SignalPipeWatcher> sw = new SignalPipeWatcher();
+    sw->Init();
+  }
+
+  virtual ~SignalPipeWatcher()
+  {
+    MOZ_ASSERT(sDumpAboutMemoryPipeWriteFd == -1);
+  }
+
+  virtual int OpenFd()
   {
     MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
 
@@ -174,15 +282,15 @@ public:
     
     int pipeFds[2];
     if (pipe(pipeFds)) {
-      NS_WARNING("Failed to create pipe.");
-      return false;
+      LOG("SignalPipeWatcher failed to create pipe.");
+      return -1;
     }
 
     
     fcntl(pipeFds[0], F_SETFD, FD_CLOEXEC);
     fcntl(pipeFds[1], F_SETFD, FD_CLOEXEC);
 
-    mPipeReadFd = pipeFds[0];
+    int readFd = pipeFds[0];
     sDumpAboutMemoryPipeWriteFd = pipeFds[1];
 
     struct sigaction action;
@@ -191,20 +299,36 @@ public:
     action.sa_handler = DumpAboutMemorySignalHandler;
 
     if (sigaction(sDumpAboutMemorySignum, &action, nullptr)) {
-      NS_WARNING("Failed to register about:memory dump signal handler.");
+      LOG("SignalPipeWatcher failed to register about:memory "
+          "dump signal handler.");
     }
     if (sigaction(sDumpAboutMemoryAfterMMUSignum, &action, nullptr)) {
-      NS_WARNING("Failed to register about:memory dump after MMU signal handler.");
+      LOG("SignalPipeWatcher failed to register about:memory "
+          "dump after MMU signal handler.");
     }
     if (sigaction(sGCAndCCDumpSignum, &action, nullptr)) {
-      NS_WARNING("Failed to register GC+CC dump signal handler.");
+      LOG("Failed to register GC+CC dump signal handler.");
     }
 
+    return readFd;
+  }
+
+  virtual void StopWatching()
+  {
+    MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+
     
-    return MessageLoopForIO::current()->WatchFileDescriptor(
-      mPipeReadFd,  true,
-      MessageLoopForIO::WATCH_READ,
-      &mReadWatcher, this);
+    
+    
+    
+    
+    
+    
+    int pipeWriteFd = sDumpAboutMemoryPipeWriteFd;
+    PR_ATOMIC_SET(&sDumpAboutMemoryPipeWriteFd, -1);
+    close(pipeWriteFd);
+
+    FdWatcher::StopWatching();
   }
 
   virtual void OnFileCanReadWithoutBlocking(int aFd)
@@ -214,8 +338,8 @@ public:
     uint8_t signum;
     ssize_t numReceived = read(aFd, &signum, sizeof(signum));
     if (numReceived != sizeof(signum)) {
-      NS_WARNING("Error reading from buffer in "
-                 "SignalPipeWatcher::OnFileCanReadWithoutBlocking.");
+      LOG("Error reading from buffer in "
+          "SignalPipeWatcher::OnFileCanReadWithoutBlocking.");
       return;
     }
 
@@ -239,39 +363,170 @@ public:
       NS_DispatchToMainThread(runnable);
     }
     else {
-      NS_WARNING("Got unexpected signum.");
+      LOG("SignalPipeWatcher got unexpected signum.");
     }
   }
-
-  virtual void OnFileCanWriteWithoutBlocking(int aFd)
-  {}
-
-private:
-  int mPipeReadFd;
-  MessageLoopForIO::FileDescriptorWatcher mReadWatcher;
 };
 
-StaticRefPtr<SignalPipeWatcher> sSignalPipeWatcher;
-
-void
-InitializeSignalWatcher()
+class FifoWatcher : public FdWatcher
 {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!sSignalPipeWatcher);
+public:
+  static void MaybeCreate()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
 
-  sSignalPipeWatcher = new SignalPipeWatcher();
-  ClearOnShutdown(&sSignalPipeWatcher);
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+      
+      
+      return;
+    }
 
-  XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableMethod(sSignalPipeWatcher.get(),
-                        &SignalPipeWatcher::Start));
-}
+    if (!Preferences::GetBool("memory_info_dumper.watch_fifo.enabled", false)) {
+      LOG("Fifo watcher disabled via pref.");
+      return;
+    }
+
+    
+    nsRefPtr<FifoWatcher> fw = new FifoWatcher();
+    fw->Init();
+  }
+
+  virtual int OpenFd()
+  {
+    
+    
+
+    nsCOMPtr<nsIFile> file;
+    nsAutoCString dirPath;
+    nsresult rv = Preferences::GetCString(
+      "memory_info_dumper.watch_fifo.directory", &dirPath);
+
+    if (NS_SUCCEEDED(rv)) {
+      rv = XRE_GetFileFromPath(dirPath.get(), getter_AddRefs(file));
+      if (NS_FAILED(rv)) {
+        LOG("FifoWatcher failed to open file \"%s\"", dirPath.get());
+        return -1;
+      }
+    } else {
+      rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file));
+      NS_ENSURE_SUCCESS(rv, -1);
+    }
+
+    rv = file->AppendNative(NS_LITERAL_CSTRING("debug_info_trigger"));
+    NS_ENSURE_SUCCESS(rv, -1);
+
+    nsAutoCString path;
+    rv = file->GetNativePath(path);
+    NS_ENSURE_SUCCESS(rv, -1);
+
+    
+    
+    
+    if (unlink(path.get())) {
+      LOG("FifoWatcher::OpenFifo unlink failed; errno=%d.  "
+          "Continuing despite error.", errno);
+    }
+
+    if (mkfifo(path.get(), 0766)) {
+      LOG("FifoWatcher::OpenFifo mkfifo failed; errno=%d", errno);
+      return -1;
+    }
+
+#ifdef ANDROID
+    
+    
+    chmod(path.get(), 0666);
+#endif
+
+    int fd;
+    do {
+      
+      
+      
+      
+      fd = open(path.get(), O_RDONLY | O_NONBLOCK);
+    } while (fd == -1 && errno == EINTR);
+
+    if (fd == -1) {
+      LOG("FifoWatcher::OpenFifo open failed; errno=%d", errno);
+      return -1;
+    }
+
+    
+    if (fcntl(fd, F_SETFL, 0)) {
+      close(fd);
+      return -1;
+    }
+
+    return fd;
+  }
+
+  virtual void OnFileCanReadWithoutBlocking(int aFd)
+  {
+    MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+
+    char buf[1024];
+    int nread;
+    do {
+      
+      nread = read(aFd, buf, sizeof(buf));
+    } while(nread == -1 && errno == EINTR);
+
+    if (nread == -1) {
+      
+      
+      
+      LOG("FifoWatcher hit an error (%d) and is quitting.", errno);
+      StopWatching();
+      return;
+    }
+
+    if (nread == 0) {
+      
+      
+      
+
+      LOG("FifoWatcher closing and re-opening fifo.");
+      StopWatching();
+      StartWatching();
+      return;
+    }
+
+    nsAutoCString inputStr;
+    inputStr.Append(buf, nread);
+
+    
+    
+    
+    inputStr.Trim("\b\t\r\n");
+
+    bool doMemoryReport = inputStr == NS_LITERAL_CSTRING("memory report");
+    bool doMMUMemoryReport = inputStr == NS_LITERAL_CSTRING("minimize memory report");
+    bool doGCCCDump = inputStr == NS_LITERAL_CSTRING("gc log");
+
+    if (doMemoryReport || doMMUMemoryReport) {
+      LOG("FifoWatcher dispatching memory report runnable.");
+      nsRefPtr<DumpMemoryReportsRunnable> runnable =
+        new DumpMemoryReportsRunnable(
+           EmptyString(),
+          doMMUMemoryReport,
+           true);
+      NS_DispatchToMainThread(runnable);
+    } else if (doGCCCDump) {
+      LOG("FifoWatcher dispatching GC/CC log runnable.");
+      nsRefPtr<GCAndCCLogDumpRunnable> runnable =
+        new GCAndCCLogDumpRunnable(
+             EmptyString(),
+             true);
+      NS_DispatchToMainThread(runnable);
+    } else {
+      LOG("Got unexpected value from fifo; ignoring it.");
+    }
+  }
+};
 
 } 
 #endif 
-
-} 
 
 NS_IMPL_ISUPPORTS1(nsMemoryInfoDumper, nsIMemoryInfoDumper)
 
@@ -287,7 +542,8 @@ nsMemoryInfoDumper::~nsMemoryInfoDumper()
 nsMemoryInfoDumper::Initialize()
 {
 #ifdef XP_LINUX
-  InitializeSignalWatcher();
+  SignalPipeWatcher::Create();
+  FifoWatcher::MaybeCreate();
 #endif
 }
 

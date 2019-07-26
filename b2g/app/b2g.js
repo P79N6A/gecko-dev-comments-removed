@@ -628,3 +628,8 @@ pref("layers.orientation.sync.timeout", 1000);
 
 
 pref("webgl.can-lose-context-in-foreground", false);
+
+
+
+pref("memory_info_dumper.watch_fifo.enabled", true);
+pref("memory_info_dumper.watch_fifo.directory", "/data/local");
