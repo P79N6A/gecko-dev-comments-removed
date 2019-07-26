@@ -72,8 +72,7 @@ xpcJSWeakReference::Get(JSContext* aCx, JS::Value* aRetval)
     if (!wrappedObj) {
         
         
-        JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
-        return nsContentUtils::WrapNative(aCx, global,
+        return nsContentUtils::WrapNative(aCx, JS_GetGlobalForScopeChain(aCx),
                                           supports, &NS_GET_IID(nsISupports),
                                           aRetval);
     }
