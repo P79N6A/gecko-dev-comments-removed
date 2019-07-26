@@ -319,29 +319,7 @@ DOMStorage::PrincipalEquals(nsIPrincipal* aPrincipal)
 bool
 DOMStorage::CanAccess(nsIPrincipal* aPrincipal)
 {
-  
-  if (!aPrincipal) {
-    return true;
-  }
-
-  
-  
-  
-
-  bool subsumes;
-  nsresult rv = aPrincipal->SubsumesIgnoringDomain(mPrincipal, &subsumes);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  if (!subsumes) {
-    nsresult rv = aPrincipal->Subsumes(mPrincipal, &subsumes);
-    if (NS_FAILED(rv)) {
-      return false;
-    }
-  }
-
-  return subsumes;
+  return !aPrincipal || aPrincipal->Subsumes(mPrincipal);
 }
 
 nsTArray<nsString>*

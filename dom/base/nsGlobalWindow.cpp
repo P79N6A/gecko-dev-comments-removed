@@ -7720,7 +7720,7 @@ PostMessageEvent::Run()
     
     
     
-    if (!targetPrin->EqualsIgnoringDomain(mProvidedPrincipal)) {
+    if (!targetPrin->Equals(mProvidedPrincipal)) {
       return NS_OK;
     }
   }

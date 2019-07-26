@@ -295,11 +295,7 @@ SVGFEImageElement::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
     return false;
   }
 
-  
-  bool subsumes;
-  rv = aReferencePrincipal->SubsumesIgnoringDomain(principal, &subsumes);
-
-  if (NS_SUCCEEDED(rv) && subsumes) {
+  if (aReferencePrincipal->Subsumes(principal)) {
     
     return false;
   }

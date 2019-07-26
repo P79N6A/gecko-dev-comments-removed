@@ -350,7 +350,6 @@ XrayTraits::expandoObjectMatchesConsumer(JSContext *cx,
 
     
     nsIPrincipal *o = GetExpandoObjectPrincipal(expandoObject);
-    bool equal;
     
     
     
@@ -358,9 +357,8 @@ XrayTraits::expandoObjectMatchesConsumer(JSContext *cx,
     
     
     
-    nsresult rv = consumerOrigin->EqualsIgnoringDomain(o, &equal);
-    if (NS_FAILED(rv) || !equal)
-        return false;
+    if (!consumerOrigin->Equals(o))
+      return false;
 
     
     JSObject *owner = JS_GetReservedSlot(expandoObject,
