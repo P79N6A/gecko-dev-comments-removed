@@ -7,7 +7,7 @@
 #define MOZ_UNWINDER_THREAD_2_H
 
 #include "GeckoProfilerImpl.h"
-#include "ProfileEntry2.h"
+#include "ProfileEntry.h"
 
 
 
@@ -22,7 +22,7 @@ typedef
 
 
 void utb__addEntry(UnwinderThreadBuffer* utb,
-                   ProfileEntry2 ent);
+                   ProfileEntry ent);
 
 
 void uwt__init();
@@ -53,7 +53,7 @@ UnwinderThreadBuffer* uwt__acquire_empty_buffer();
 
 
 
-void uwt__release_full_buffer(ThreadProfile2* aProfile,
+void uwt__release_full_buffer(ThreadProfile* aProfile,
                               UnwinderThreadBuffer* utb,
                               void*  ucV);
 

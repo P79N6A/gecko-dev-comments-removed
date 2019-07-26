@@ -28,7 +28,7 @@
 #include "platform.h"
 #include <iostream>
 
-#include "ProfileEntry2.h"
+#include "ProfileEntry.h"
 #include "UnwinderThread2.h"
 
 #if !defined(SPS_OS_windows)
@@ -90,7 +90,7 @@ UnwinderThreadBuffer* uwt__acquire_empty_buffer()
 
 
 void
-uwt__release_full_buffer(ThreadProfile2* aProfile,
+uwt__release_full_buffer(ThreadProfile* aProfile,
                          UnwinderThreadBuffer* utb,
                          void*  ucV )
 {
@@ -98,7 +98,7 @@ uwt__release_full_buffer(ThreadProfile2* aProfile,
 
 
 void
-utb__addEntry(UnwinderThreadBuffer* utb, ProfileEntry2 ent)
+utb__addEntry(UnwinderThreadBuffer* utb, ProfileEntry ent)
 {
 }
 
@@ -133,12 +133,12 @@ static UnwinderThreadBuffer* acquire_empty_buffer();
 
 
 
-static void release_full_buffer(ThreadProfile2* aProfile,
+static void release_full_buffer(ThreadProfile* aProfile,
                                 UnwinderThreadBuffer* utb,
                                 void*  ucV );
 
 
-static void utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry2 ent);
+static void utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry ent);
 
 
 static void do_MBAR();
@@ -175,7 +175,7 @@ UnwinderThreadBuffer* uwt__acquire_empty_buffer()
 
 
 void
-uwt__release_full_buffer(ThreadProfile2* aProfile,
+uwt__release_full_buffer(ThreadProfile* aProfile,
                          UnwinderThreadBuffer* utb,
                          void*  ucV )
 {
@@ -184,7 +184,7 @@ uwt__release_full_buffer(ThreadProfile2* aProfile,
 
 
 void
-utb__addEntry(UnwinderThreadBuffer* utb, ProfileEntry2 ent)
+utb__addEntry(UnwinderThreadBuffer* utb, ProfileEntry ent)
 {
   utb_add_prof_ent(utb, ent);
 }
@@ -264,13 +264,13 @@ typedef  struct { uintptr_t val; }  SpinLock;
 #define N_PROF_ENT_PAGES 100
 
 
-#define N_PROF_ENTS_PER_PAGE (SPS_PAGE_SIZE / sizeof(ProfileEntry2))
+#define N_PROF_ENTS_PER_PAGE (SPS_PAGE_SIZE / sizeof(ProfileEntry))
 
 
 
 
 typedef
-  struct { ProfileEntry2 ents[N_PROF_ENTS_PER_PAGE]; }
+  struct { ProfileEntry ents[N_PROF_ENTS_PER_PAGE]; }
   ProfEntsPage;
 
 #define ProfEntsPage_INVALID ((ProfEntsPage*)1)
@@ -291,9 +291,9 @@ struct _UnwinderThreadBuffer {
   uint64_t       seqNo;
   
 
-  ThreadProfile2* aProfile;
+  ThreadProfile* aProfile;
   
-  ProfileEntry2   entsFixed[N_FIXED_PROF_ENTS];
+  ProfileEntry   entsFixed[N_FIXED_PROF_ENTS];
   ProfEntsPage*  entsPages[N_PROF_ENT_PAGES];
   uintptr_t      entsUsed;
   
@@ -605,7 +605,7 @@ static UnwinderThreadBuffer* acquire_empty_buffer()
 
 
 
-static void release_full_buffer(ThreadProfile2* aProfile,
+static void release_full_buffer(ThreadProfile* aProfile,
                                 UnwinderThreadBuffer* buff,
                                 void*  ucV )
 {
@@ -745,13 +745,13 @@ static void munmap_ProfEntsPage(ProfEntsPage* pep)
 
 
 void
-utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry2 ent)
+utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry ent)
 {
   uintptr_t limit
     = N_FIXED_PROF_ENTS + (N_PROF_ENTS_PER_PAGE * N_PROF_ENT_PAGES);
   if (utb->entsUsed == limit) {
     
-    LOG("BPUnw: utb__addEntry: NO SPACE for ProfileEntry2; ignoring.");
+    LOG("BPUnw: utb__addEntry: NO SPACE for ProfileEntry; ignoring.");
     return;
   }
   MOZ_ASSERT(utb->entsUsed < limit);
@@ -773,7 +773,7 @@ utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry2 ent)
     pep = mmap_anon_ProfEntsPage();
     if (pep == ProfEntsPage_INVALID) {
       
-      LOG("BPUnw: utb__addEntry: MMAP FAILED for ProfileEntry2; ignoring.");
+      LOG("BPUnw: utb__addEntry: MMAP FAILED for ProfileEntry; ignoring.");
       return;
     }
     utb->entsPages[j_div] = pep;
@@ -784,7 +784,7 @@ utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry2 ent)
 
 
 
-static ProfileEntry2 utb_get_profent(UnwinderThreadBuffer* buff, uintptr_t i)
+static ProfileEntry utb_get_profent(UnwinderThreadBuffer* buff, uintptr_t i)
 {
   MOZ_ASSERT(i < buff->entsUsed);
   if (i < N_FIXED_PROF_ENTS) {
@@ -949,7 +949,7 @@ static void* unwind_thr_fn(void* exit_nowV)
 
     uintptr_t k;
     for (k = 0; k < buff->entsUsed; k++) {
-      ProfileEntry2 ent = utb_get_profent(buff, k);
+      ProfileEntry ent = utb_get_profent(buff, k);
       if (ent.is_ent_hint('N')) {
         need_native_unw = true;
       }
@@ -981,7 +981,7 @@ static void* unwind_thr_fn(void* exit_nowV)
 
     if (!need_native_unw && !have_P) {
       for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry2 ent = utb_get_profent(buff, k);
+        ProfileEntry ent = utb_get_profent(buff, k);
         
         if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
         
@@ -993,17 +993,17 @@ static void* unwind_thr_fn(void* exit_nowV)
     else 
     if (need_native_unw && !have_P) {
       for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry2 ent = utb_get_profent(buff, k);
+        ProfileEntry ent = utb_get_profent(buff, k);
         
         if (ent.is_ent_hint('N')) {
           MOZ_ASSERT(buff->haveNativeInfo);
           PCandSP* pairs = NULL;
           unsigned int nPairs = 0;
           do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
-          buff->aProfile->addTag( ProfileEntry2('s', "(root)") );
+          buff->aProfile->addTag( ProfileEntry('s', "(root)") );
           for (unsigned int i = 0; i < nPairs; i++) {
             buff->aProfile
-                ->addTag( ProfileEntry2('l', reinterpret_cast<void*>(pairs[i].pc)) );
+                ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
           }
           if (pairs)
             free(pairs);
@@ -1025,10 +1025,10 @@ static void* unwind_thr_fn(void* exit_nowV)
 
 
       for (k = 0; k < buff->entsUsed; k++) {
-        ProfileEntry2 ent = utb_get_profent(buff, k);
+        ProfileEntry ent = utb_get_profent(buff, k);
         
         if (k == ix_first_hP) {
-          buff->aProfile->addTag( ProfileEntry2('s', "(root)") );
+          buff->aProfile->addTag( ProfileEntry('s', "(root)") );
         }
         
         if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
@@ -1056,7 +1056,7 @@ static void* unwind_thr_fn(void* exit_nowV)
 
       
       for (k = 0; k < ix_first_hP; k++) {
-        ProfileEntry2 ent = utb_get_profent(buff, k);
+        ProfileEntry ent = utb_get_profent(buff, k);
         
         if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
         
@@ -1066,7 +1066,7 @@ static void* unwind_thr_fn(void* exit_nowV)
       }
 
       
-      buff->aProfile->addTag( ProfileEntry2('s', "(root)") );
+      buff->aProfile->addTag( ProfileEntry('s', "(root)") );
       unsigned int next_N = 0; 
       unsigned int next_P = ix_first_hP; 
       bool last_was_P = false;
@@ -1111,7 +1111,7 @@ static void* unwind_thr_fn(void* exit_nowV)
 
 
             MOZ_ASSERT(m < buff->entsUsed);
-            ProfileEntry2 ent = utb_get_profent(buff, m);
+            ProfileEntry ent = utb_get_profent(buff, m);
             if (ent.is_ent_hint('Q'))
               break;
             if (ent.is_ent('S')) {
@@ -1136,7 +1136,7 @@ static void* unwind_thr_fn(void* exit_nowV)
           unsigned int m = next_P + 1;
           while (true) {
             MOZ_ASSERT(m < buff->entsUsed);
-            ProfileEntry2 ent = utb_get_profent(buff, m);
+            ProfileEntry ent = utb_get_profent(buff, m);
             if (ent.is_ent_hint('Q')) {
               next_P = m + 1;
               break;
@@ -1151,7 +1151,7 @@ static void* unwind_thr_fn(void* exit_nowV)
           }
         } else {
           buff->aProfile
-              ->addTag( ProfileEntry2('l', reinterpret_cast<void*>(pairs[next_N].pc)) );
+              ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[next_N].pc)) );
           next_N++;
         }
         
@@ -1164,7 +1164,7 @@ static void* unwind_thr_fn(void* exit_nowV)
 
       
       for (k = ix_last_hQ+1; k < buff->entsUsed; k++) {
-        ProfileEntry2 ent = utb_get_profent(buff, k);
+        ProfileEntry ent = utb_get_profent(buff, k);
         
         if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
         
@@ -1182,7 +1182,7 @@ static void* unwind_thr_fn(void* exit_nowV)
     bool show = true;
     if (show) LOG("----------------");
     for (k = 0; k < buff->entsUsed; k++) {
-      ProfileEntry2 ent = utb_get_profent(buff, k);
+      ProfileEntry ent = utb_get_profent(buff, k);
       if (show) ent.log();
       if (ent.is_ent_hint('F')) {
         
@@ -1194,10 +1194,10 @@ static void* unwind_thr_fn(void* exit_nowV)
         PCandSP* pairs = NULL;
         unsigned int nPairs = 0;
         do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
-        buff->aProfile->addTag( ProfileEntry2('s', "(root)") );
+        buff->aProfile->addTag( ProfileEntry('s', "(root)") );
         for (unsigned int i = 0; i < nPairs; i++) {
           buff->aProfile
-              ->addTag( ProfileEntry2('l', reinterpret_cast<void*>(pairs[i].pc)) );
+              ->addTag( ProfileEntry('l', reinterpret_cast<void*>(pairs[i].pc)) );
         }
         if (pairs)
           free(pairs);

@@ -42,6 +42,7 @@
 #include "mozilla/Util.h"
 #include "mozilla/unused.h"
 #include "mozilla/TimeStamp.h"
+#include "PlatformMacros.h"
 #include "v8-support.h"
 #include <vector>
 #define ASSERT(a) MOZ_ASSERT(a)
@@ -191,6 +192,21 @@ class Thread {
 };
 
 
+
+
+
+
+
+
+
+
+
+#undef HAVE_NATIVE_UNWIND
+#if defined(MOZ_PROFILING) \
+    && (defined(SPS_PLAT_amd64_linux) || defined(SPS_PLAT_arm_android) \
+        || defined(SPS_PLAT_x86_linux))
+# define HAVE_NATIVE_UNWIND
+#endif
 
 
 
