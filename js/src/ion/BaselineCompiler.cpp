@@ -87,11 +87,6 @@ BaselineCompiler::compile()
     IonSpew(IonSpew_BaselineScripts, "Baseline compiling script %s:%d (%p)",
             script->filename, script->lineno, script.get());
 
-    if (function() && function()->isHeavyweight()) {
-        IonSpew(IonSpew_BaselineAbort, "FIXME compile heavy weight functions");
-        return Method_CantCompile;
-    }
-
     if (!script->ensureRanAnalysis(cx))
         return Method_Error;
 
@@ -302,6 +297,10 @@ typedef bool (*StrictEvalPrologueFn)(JSContext *, BaselineFrame *);
 static const VMFunction StrictEvalPrologueInfo =
     FunctionInfo<StrictEvalPrologueFn>(ion::StrictEvalPrologue);
 
+typedef bool (*HeavyweightFunPrologueFn)(JSContext *, BaselineFrame *);
+static const VMFunction HeavyweightFunPrologueInfo =
+    FunctionInfo<HeavyweightFunPrologueFn>(ion::HeavyweightFunPrologue);
+
 bool
 BaselineCompiler::initScopeChain()
 {
@@ -316,9 +315,16 @@ BaselineCompiler::initScopeChain()
         masm.loadPtr(Address(callee, JSFunction::offsetOfEnvironment()), scope);
         masm.storePtr(scope, frame.addressOfScopeChain());
 
-        
-        
-        JS_ASSERT(!fun->isHeavyweight());
+        if (fun->isHeavyweight()) {
+            
+            prepareVMCall();
+
+            masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+            pushArg(R0.scratchReg());
+
+            if (!callVM(HeavyweightFunPrologueInfo))
+                return false;
+        }
     } else if (script->isForEval()) {
         
         masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
