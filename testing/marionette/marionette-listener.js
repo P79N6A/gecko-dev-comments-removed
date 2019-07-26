@@ -1162,9 +1162,16 @@ function switchToFrame(msg) {
   }
   if (msg.json.element != undefined) {
     if (elementManager.seenItems[msg.json.element] != undefined) {
-      let wantedFrame = elementManager.getKnownElement(msg.json.element, curWindow); 
+      let wantedFrame;
+      try {
+        wantedFrame = elementManager.getKnownElement(msg.json.element, curWindow); 
+      }
+      catch(e) {
+        sendError(e.message, e.code, e.stack, command_id);
+      }
       for (let i = 0; i < frames.length; i++) {
-        if (frames[i].isEqualNode(wantedFrame)) {
+        
+        if (XPCNativeWrapper(frames[i]) == XPCNativeWrapper(wantedFrame)) {
           curWindow = frames[i]; 
           foundFrame = i;
         }
