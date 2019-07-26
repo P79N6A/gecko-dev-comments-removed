@@ -52,6 +52,8 @@ let asyncTestRunning = false;
 let asyncTestCommandId;
 let asyncTestTimeoutId;
 
+let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
 
 
 
@@ -797,6 +799,18 @@ function clearElement(msg) {
 
 
 function switchToFrame(msg) {
+  function checkLoad() { 
+    let errorRegex = /about:.+(error)|(blocked)\?/;
+    if (curWindow.document.readyState == "complete") {
+      sendOk();
+      return;
+    } 
+    else if (curWindow.document.readyState == "interactive" && errorRegex.exec(curWindow.document.baseURI)) {
+      sendError("Error loading page", 13, null);
+      return;
+    }
+    checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
   let foundFrame = null;
   let frames = curWindow.document.getElementsByTagName("iframe");
   
@@ -806,7 +820,7 @@ function switchToFrame(msg) {
   if ((msg.json.value == null) && (msg.json.element == null)) {
     curWindow = content;
     curWindow.focus();
-    sendOk();
+    checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
     return;
   }
   if (msg.json.element != undefined) {
@@ -865,7 +879,7 @@ function switchToFrame(msg) {
   else {
     curWindow = curWindow.contentWindow;
     curWindow.focus();
-    sendOk();
+    checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   }
 }
 
