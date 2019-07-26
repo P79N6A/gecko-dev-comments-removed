@@ -72,6 +72,22 @@ function addTab(url) {
   return def.promise;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+function loadHelperScript(filePath) {
+  let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+  Services.scriptloader.loadSubScript(testDir + "/" + filePath, this);
+}
+
 function addProjectEditorTabForTempDirectory() {
   TEMP_PATH = buildTempDirectoryStructure();
   let CUSTOM_OPTS = {
@@ -173,7 +189,10 @@ function buildTempDirectoryStructure() {
 
 
 function writeToFile(file, data) {
-  console.log("Writing to file: " + file.path, file.exists());
+  if (typeof file === "string") {
+    file = new FileUtils.File(file);
+  }
+  info("Writing to file: " + file.path + " (exists? " + file.exists() + ")");
   let defer = promise.defer();
   var ostream = FileUtils.openSafeFileOutputStream(file);
 
@@ -188,7 +207,9 @@ function writeToFile(file, data) {
       
       info("ERROR WRITING TEMP FILE", status);
     }
+    defer.resolve();
   });
+  return defer.promise;
 }
 
 
@@ -221,8 +242,10 @@ function getTempFile(path) {
 }
 
 
-function* getFileData(path) {
-  let file = new FileUtils.File(path);
+function* getFileData(file) {
+  if (typeof file === "string") {
+    file = new FileUtils.File(file);
+  }
   let def = promise.defer();
 
   NetUtil.asyncFetch(file, function(inputStream, status) {
