@@ -8998,7 +8998,7 @@ class MNewDenseArrayPar : public MBinaryInstruction
 
 
 
-class MResumePoint : public MNode, public InlineForwardListNode<MResumePoint>
+class MResumePoint MOZ_FINAL : public MNode, public InlineForwardListNode<MResumePoint>
 {
   public:
     enum Mode {
