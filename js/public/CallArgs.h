@@ -59,6 +59,8 @@ JS_ComputeThis(JSContext *cx, JS::Value *vp);
 
 namespace JS {
 
+extern JS_PUBLIC_DATA(const HandleValue) UndefinedHandleValue;
+
 
 
 
@@ -296,6 +298,16 @@ class MOZ_STACK_CLASS CallArgsBase :
 
     Value get(unsigned i) const {
         return i < length() ? this->argv_[i] : UndefinedValue();
+    }
+
+    
+
+
+
+    HandleValue handleOrUndefinedAt(unsigned i) const {
+        return i < length()
+               ? HandleValue::fromMarkedLocation(&this->argv_[i])
+               : UndefinedHandleValue;
     }
 
     
