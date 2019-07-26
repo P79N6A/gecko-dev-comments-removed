@@ -881,7 +881,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
 
         nsReflowStatus status;
         rv = ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
-                         x, 0, 0, status);
+                         x, 0, NS_FRAME_INVALIDATE_ON_MOVE, status);
 
         
         
