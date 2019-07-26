@@ -69,52 +69,9 @@ this.CommonUtils = {
     return true;
   },
 
-  exceptionStr: function exceptionStr(e) {
-    if (!e) {
-      return "" + e;
-    }
-    let message = e.message ? e.message : e;
-    return message + " " + CommonUtils.stackTrace(e);
-  },
-
-  stackTrace: function stackTrace(e) {
-    
-    if (e.location) {
-      let frame = e.location;
-      let output = [];
-      while (frame) {
-        
-        
-        
-        let str = "<file:unknown>";
-
-        let file = frame.filename || frame.fileName;
-        if (file){
-          str = file.replace(/^(?:chrome|file):.*?([^\/\.]+\.\w+)$/, "$1");
-        }
-
-        if (frame.lineNumber){
-          str += ":" + frame.lineNumber;
-        }
-        if (frame.name){
-          str = frame.name + "()@" + str;
-        }
-
-        if (str){
-          output.push(str);
-        }
-        frame = frame.caller;
-      }
-      return "Stack trace: " + output.join(" < ");
-    }
-    
-    if (e.stack){
-      return "JS Stack trace: " + e.stack.trim().replace(/\n/g, " < ").
-        replace(/@[^@]*?([^\/\.]+\.\w+:)/g, "@$1");
-    }
-
-    return "No traceback available";
-  },
+  
+  exceptionStr: Log.exceptionStr,
+  stackTrace: Log.stackTrace,
 
   
 
