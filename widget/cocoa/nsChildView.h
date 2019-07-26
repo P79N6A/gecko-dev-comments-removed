@@ -103,6 +103,19 @@ class GLManager;
 
 @end
 
+@interface NSView (Undocumented)
+
+
+
+
+
+
+
+
+- (NSRect)_dirtyRect;
+
+@end
+
 
 
 @interface NSEvent (DeviceDelta)
@@ -297,6 +310,8 @@ typedef NSInteger NSEventGestureAxis;
 - (void)handleMouseMoved:(NSEvent*)aEvent;
 
 - (void)updateWindowDraggableStateOnMouseMove:(NSEvent*)theEvent;
+
+- (void)maybeDrawInTitlebar;
 
 - (void)drawRect:(NSRect)aRect inTitlebarContext:(CGContextRef)aContext;
 
@@ -531,6 +546,8 @@ public:
   nsCocoaWindow*    GetXULWindowWidget();
 
   NS_IMETHOD        ReparentNativeWidget(nsIWidget* aNewParent);
+
+  CGContextRef      GetCGContextForTitlebarDrawing(NSSize aSize);
 
   virtual void      WillPaint() MOZ_OVERRIDE;
 
