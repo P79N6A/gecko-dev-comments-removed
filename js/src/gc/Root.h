@@ -113,30 +113,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 namespace js {
 
 class Module;
 
 template <typename T> class Rooted;
-template <typename T> class Unrooted;
 
 template <typename T>
 struct RootMethods {};
@@ -394,184 +375,19 @@ class InternalHandle<T*>
     {}
 };
 
-#ifdef DEBUG
 
 
 
-
-template <typename T>
-class Unrooted
-{
-  public:
-    Unrooted() : ptr_(UninitializedTag()) {}
-
-    
-
-
-
-
-
-
-
-
-    template <typename S>
-    inline Unrooted(const Rooted<S> &root,
-                    typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
-
-    template <typename S>
-    Unrooted(const JS::Handle<S> &root,
-             typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
-      : ptr_(root.get())
-    {
-        JS_ASSERT(ptr_ != UninitializedTag());
-        JS::EnterAssertNoGCScope();
-    }
-
-    
-
-
-
-
-
-
-    template <typename S>
-    Unrooted(const Unrooted<S> &other)
-        
-      : ptr_(static_cast<T>(static_cast<S>(other)))
-    {
-        if (ptr_ != UninitializedTag())
-            JS::EnterAssertNoGCScope();
-    }
-
-    Unrooted(const Unrooted &other) : ptr_(other.ptr_) {
-        if (ptr_ != UninitializedTag())
-            JS::EnterAssertNoGCScope();
-    }
-
-    Unrooted(const T &p) : ptr_(p) {
-        JS_ASSERT(ptr_ != UninitializedTag());
-        JS::EnterAssertNoGCScope();
-    }
-
-    Unrooted(const JS::NullPtr &) : ptr_(NULL) {
-        JS::EnterAssertNoGCScope();
-    }
-
-    ~Unrooted() {
-        if (ptr_ != UninitializedTag())
-            JS::LeaveAssertNoGCScope();
-    }
-
-    void drop() {
-        if (ptr_ != UninitializedTag())
-            JS::LeaveAssertNoGCScope();
-        ptr_ = UninitializedTag();
-    }
-
-    
-    Unrooted &operator=(T other) {
-        JS_ASSERT(other != UninitializedTag());
-        if (ptr_ == UninitializedTag())
-            JS::EnterAssertNoGCScope();
-        ptr_ = other;
-        return *this;
-    }
-    Unrooted &operator=(Unrooted other) {
-        JS_ASSERT(other.ptr_ != UninitializedTag());
-        if (ptr_ == UninitializedTag())
-            JS::EnterAssertNoGCScope();
-        ptr_ = other.ptr_;
-        return *this;
-    }
-
-    operator T() const { return (ptr_ == UninitializedTag()) ? NULL : ptr_; }
-    T *operator&() { return &ptr_; }
-    const T operator->() const { JS_ASSERT(ptr_ != UninitializedTag()); return ptr_; }
-    bool operator==(const T &other) { return ptr_ == other; }
-    bool operator!=(const T &other) { return ptr_ != other; }
-
-  private:
-    
-
-
-
-
-
-
-
-
-
-
-    static inline T UninitializedTag() { return reinterpret_cast<T>(2); };
-
-    T ptr_;
-};
-
-
-
-
-
-# define ForwardDeclare(type)                        \
-    class type;                                      \
-    typedef Unrooted<type*> Unrooted##type;          \
+# define ForwardDeclare(type)              \
+    class type;                            \
     typedef type * Raw##type
 
-# define ForwardDeclareJS(type)                      \
-    class JS##type;                                  \
-    namespace js {                                   \
-        typedef js::Unrooted<JS##type*> Unrooted##type; \
-        typedef JS##type * Raw##type;                \
-    }                                                \
+# define ForwardDeclareJS(type)            \
+    class JS##type;                        \
+    namespace js {                         \
+        typedef JS##type * Raw##type;      \
+    }                                      \
     class JS##type
-
-template <typename T>
-T DropUnrooted(Unrooted<T> &unrooted)
-{
-    T rv = unrooted;
-    unrooted.drop();
-    return rv;
-}
-
-template <typename T>
-T DropUnrooted(T &unrooted)
-{
-    T rv = unrooted;
-    JS::PoisonPtr(&unrooted);
-    return rv;
-}
-
-template <>
-inline RawId DropUnrooted(RawId &id) { return id; }
-
-#else 
-
-
-# define ForwardDeclare(type)        \
-    class type;                      \
-    typedef type * Unrooted##type;   \
-    typedef type * Raw##type
-
-# define ForwardDeclareJS(type)                                               \
-    class JS##type;                                                           \
-    namespace js {                                                            \
-        typedef JS##type * Unrooted##type;                                    \
-        typedef JS##type * Raw##type;                                         \
-    }                                                                         \
-    class JS##type
-
-template <typename T>
-class Unrooted
-{
-  private:
-    Unrooted() MOZ_DELETE;
-    Unrooted(const Unrooted &) MOZ_DELETE;
-    ~Unrooted() MOZ_DELETE;
-};
-
-template <typename T>
-T DropUnrooted(T &unrooted) { return unrooted; }
-
-#endif 
 
 
 
@@ -634,15 +450,6 @@ class Rooted : public RootedBase<T>
         init(cx);
     }
 
-    template <typename S>
-    Rooted(JSContext *cx, const Unrooted<S> &initial
-           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(static_cast<S>(initial))
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(cx);
-    }
-
     Rooted(PerThreadData *pt
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(RootMethods<T>::initial())
@@ -654,15 +461,6 @@ class Rooted : public RootedBase<T>
     Rooted(PerThreadData *pt, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(pt);
-    }
-
-    template <typename S>
-    Rooted(PerThreadData *pt, const Unrooted<S> &initial
-           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(static_cast<S>(initial))
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
         init(pt);
@@ -738,18 +536,6 @@ class Rooted : public RootedBase<T>
 template <>
 class Rooted<JSStableString *>;
 #endif
-
-#ifdef DEBUG
-template <typename T> template <typename S>
-inline
-Unrooted<T>::Unrooted(const Rooted<S> &root,
-                      typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
-  : ptr_(root.get())
-{
-    JS_ASSERT(ptr_ != UninitializedTag());
-    JS::EnterAssertNoGCScope();
-}
-#endif 
 
 typedef Rooted<JSObject*>    RootedObject;
 typedef Rooted<js::Module*>  RootedModule;
@@ -848,14 +634,6 @@ class FakeRooted : public RootedBase<T>
     FakeRooted(JSContext *cx, T initial
                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    template <typename S>
-    FakeRooted(JSContext *cx, const Unrooted<S> &initial
-                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : ptr(static_cast<S>(initial))
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
