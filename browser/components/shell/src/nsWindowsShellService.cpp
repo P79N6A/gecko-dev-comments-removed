@@ -990,7 +990,7 @@ nsWindowsShellService::OpenApplication(int32_t aApplication)
   ::RegCloseKey(theKey);
 
   
-  application.AppendLiteral("\\");
+  application.Append('\\');
   application.Append(buf);
   application.AppendLiteral("\\shell\\open\\command");
 

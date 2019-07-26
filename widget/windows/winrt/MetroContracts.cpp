@@ -301,10 +301,10 @@ FrameworkView::PerformSearch(HString& aQuery)
   }
 
   nsAutoCString parameter;
-  parameter.AppendLiteral("\"");
+  parameter.Append('"');
   unsigned int length;
   parameter.Append(NS_ConvertUTF16toUTF8(aQuery.GetRawBuffer(&length)));
-  parameter.AppendLiteral("\"");
+  parameter.Append('"');
 
   
   
