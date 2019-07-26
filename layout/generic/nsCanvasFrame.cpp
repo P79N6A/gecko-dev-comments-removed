@@ -52,37 +52,63 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 nsresult
 nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
-  
-  if (!PresShell::TouchCaretPrefEnabled()) {
+  if (!mContent) {
     return NS_OK;
   }
 
   nsCOMPtr<nsIDocument> doc = mContent->OwnerDoc();
-  nsCOMPtr<nsINodeInfo> nodeInfo;
-
-  
-  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
-                                                 kNameSpaceID_XHTML,
-                                                 nsIDOMNode::ELEMENT_NODE);
-  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mTouchCaretElement), nodeInfo.forget(),
-                                mozilla::dom::NOT_FROM_PARSER);
-  NS_ENSURE_SUCCESS(rv, rv);
-  aElements.AppendElement(mTouchCaretElement);
-
-  
+  nsresult rv = NS_OK;
   ErrorResult er;
-  mTouchCaretElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
-                                   NS_LITERAL_STRING("mozTouchCaret"), er);
-  NS_ENSURE_SUCCESS(er.ErrorCode(), er.ErrorCode());
-
   
-  nsAutoString classValue;
-  classValue.AppendLiteral("moz-touchcaret hidden");
-  rv = mTouchCaretElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                                   classValue, true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (PresShell::TouchCaretPrefEnabled()) {
+    nsCOMPtr<nsINodeInfo> nodeInfo;
+
+    
+    nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
+                                                   kNameSpaceID_XHTML,
+                                                   nsIDOMNode::ELEMENT_NODE);
+    NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
+
+    rv = NS_NewHTMLElement(getter_AddRefs(mTouchCaretElement), nodeInfo.forget(),
+                           mozilla::dom::NOT_FROM_PARSER);
+    NS_ENSURE_SUCCESS(rv, rv);
+    aElements.AppendElement(mTouchCaretElement);
+
+    
+    mTouchCaretElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
+                                     NS_LITERAL_STRING("mozTouchCaret"), er);
+    NS_ENSURE_SUCCESS(er.ErrorCode(), er.ErrorCode());
+
+    
+    nsAutoString classValue;
+    classValue.AppendLiteral("moz-touchcaret hidden");
+    rv = mTouchCaretElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                     classValue, true);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (PresShell::SelectionCaretPrefEnabled()) {
+    
+    mSelectionCaretsStartElement = doc->CreateHTMLElement(nsGkAtoms::div);
+    aElements.AppendElement(mSelectionCaretsStartElement);
+
+    mSelectionCaretsEndElement = doc->CreateHTMLElement(nsGkAtoms::div);
+    aElements.AppendElement(mSelectionCaretsEndElement);
+
+    mSelectionCaretsStartElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
+                                               NS_LITERAL_STRING("mozTouchCaret"), er);
+    rv = mSelectionCaretsStartElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                               NS_LITERAL_STRING("moz-selectioncaret-left hidden"),
+                                               true);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mSelectionCaretsEndElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
+                                             NS_LITERAL_STRING("mozTouchCaret"), er);
+    rv = mSelectionCaretsEndElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                             NS_LITERAL_STRING("moz-selectioncaret-right hidden"),
+                                             true);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
@@ -91,6 +117,8 @@ void
 nsCanvasFrame::AppendAnonymousContentTo(nsBaseContentList& aElements, uint32_t aFilter)
 {
   aElements.MaybeAppendElement(mTouchCaretElement);
+  aElements.MaybeAppendElement(mSelectionCaretsStartElement);
+  aElements.MaybeAppendElement(mSelectionCaretsEndElement);
 }
 
 void
@@ -103,6 +131,8 @@ nsCanvasFrame::DestroyFrom(nsIFrame* aDestructRoot)
   }
 
   nsContentUtils::DestroyAnonymousContent(&mTouchCaretElement);
+  nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsStartElement);
+  nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsEndElement);
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 

@@ -77,6 +77,17 @@ public:
   }
 
   
+  mozilla::dom::Element* GetSelectionCaretsStartElement() const
+  {
+    return mSelectionCaretsStartElement;
+  }
+
+  mozilla::dom::Element* GetSelectionCaretsEndElement() const
+  {
+    return mSelectionCaretsEndElement;
+  }
+
+  
 
 
   NS_IMETHOD SetHasFocus(bool aHasFocus);
@@ -125,6 +136,8 @@ protected:
   bool                      mAddedScrollPositionListener;
 
   nsCOMPtr<mozilla::dom::Element> mTouchCaretElement;
+  nsCOMPtr<mozilla::dom::Element> mSelectionCaretsStartElement;
+  nsCOMPtr<mozilla::dom::Element> mSelectionCaretsEndElement;
 };
 
 

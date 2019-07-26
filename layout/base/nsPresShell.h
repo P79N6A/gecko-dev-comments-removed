@@ -70,6 +70,9 @@ public:
   
   static bool TouchCaretPrefEnabled();
 
+  
+  static bool SelectionCaretPrefEnabled();
+
   void Init(nsIDocument* aDocument, nsPresContext* aPresContext,
             nsViewManager* aViewManager, nsStyleSet* aStyleSet,
             nsCompatibility aCompatMode);
@@ -216,6 +219,10 @@ public:
   virtual mozilla::dom::Element* GetTouchCaretElement() const MOZ_OVERRIDE;
   virtual void SetMayHaveTouchCaret(bool aSet) MOZ_OVERRIDE;
   virtual bool MayHaveTouchCaret() MOZ_OVERRIDE;
+  
+  virtual NS_HIDDEN_(already_AddRefed<mozilla::SelectionCarets>) GetSelectionCarets() const MOZ_OVERRIDE;
+  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsStartElement() const MOZ_OVERRIDE;
+  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsEndElement() const MOZ_OVERRIDE;
   
   virtual already_AddRefed<nsCaret> GetCaret() const MOZ_OVERRIDE;
   virtual void MaybeInvalidateCaretPosition() MOZ_OVERRIDE;
@@ -771,6 +778,7 @@ protected:
 
   
   nsRefPtr<mozilla::TouchCaret> mTouchCaret;
+  nsRefPtr<mozilla::SelectionCarets> mSelectionCarets;
 
   
   

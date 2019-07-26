@@ -4170,6 +4170,13 @@ pref("touchcaret.distance.threshold", 1500);
 pref("touchcaret.expiration.time", 3000);
 
 
+pref("selectioncaret.enabled", false);
+
+
+
+pref("selectioncaret.inflatesize.threshold", 40);
+
+
 pref("dom.wakelock.enabled", false);
 
 

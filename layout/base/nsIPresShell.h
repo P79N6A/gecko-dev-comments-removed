@@ -58,6 +58,7 @@ class nsAString;
 class nsCaret;
 namespace mozilla {
 class TouchCaret;
+class SelectionCarets;
 } 
 class nsFrameSelection;
 class nsFrameManager;
@@ -765,6 +766,21 @@ public:
 
 
   virtual bool MayHaveTouchCaret() = 0;
+
+  
+
+
+  virtual NS_HIDDEN_(already_AddRefed<mozilla::SelectionCarets>) GetSelectionCarets() const = 0;
+
+  
+
+
+  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsStartElement() const = 0;
+
+  
+
+
+  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsEndElement() const = 0;
 
   
 
