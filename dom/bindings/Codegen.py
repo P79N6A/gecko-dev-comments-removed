@@ -6,6 +6,7 @@
 
 import os
 import string
+import operator
 
 from WebIDL import *
 from Configuration import NoSuchDescriptorError
@@ -310,6 +311,22 @@ class CGIncludeGuard(CGWrapper):
                            declarePre='#ifndef %s\n#define %s\n\n' % (define, define),
                            declarePost='\n#endif // %s\n' % define)
 
+def getTypes(descriptor):
+    """
+    Get all argument and return types for all members of the descriptor
+    """
+    members = [m for m in descriptor.interface.members]
+    signatures = [s for m in members if m.isMethod() for s in m.signatures()]
+    types = []
+    for s in signatures:
+        assert len(s) == 2
+        (returnType, arguments) = s
+        types.append(returnType)
+        types.extend([a.type for a in arguments])
+
+    types.extend(a.type for a in members if a.isAttr())
+    return types
+
 class CGHeaders(CGWrapper):
     """
     Generates the appropriate include statements.
@@ -340,18 +357,7 @@ class CGHeaders(CGWrapper):
         
         bindingHeaders = set()
         for d in descriptors:
-            members = [m for m in d.interface.members]
-            signatures = [s for m in members if m.isMethod() for s in m.signatures()]
-            types = []
-            for s in signatures:
-                assert len(s) == 2
-                (returnType, arguments) = s
-                types.append(returnType)
-                types.extend([a.type for a in arguments])
-
-            attrs = [a for a in members if a.isAttr()]
-            types.extend([a.type for a in attrs])
-
+            types = getTypes(d)
             for dictionary in dictionaries:
                 curDict = dictionary
                 while curDict:
@@ -359,7 +365,10 @@ class CGHeaders(CGWrapper):
                     curDict = curDict.parent
 
             for t in types:
-                if t.unroll().isInterface():
+                if t.unroll().isUnion():
+                    
+                    bindingHeaders.add("mozilla/dom/UnionConversions.h")
+                elif t.unroll().isInterface():
                     if t.unroll().isSpiderMonkeyInterface():
                         bindingHeaders.add("jsfriendapi.h")
                         bindingHeaders.add("mozilla/dom/TypedArray.h")
@@ -392,6 +401,92 @@ class CGHeaders(CGWrapper):
         
         basename = os.path.basename(decl.filename())
         return basename.replace('.webidl', 'Binding.h')
+
+def SortedTuples(l):
+    """
+    Sort a list of tuples based on the first item in the tuple
+    """
+    return sorted(l, key=operator.itemgetter(0))
+
+def SortedDictValues(d):
+    """
+    Returns a list of values from the dict sorted by key.
+    """
+    
+    d = SortedTuples(d.items())
+    
+    return (i[1] for i in d)
+
+def UnionTypes(descriptors):
+    """
+    Returns a tuple containing a set of header filenames to include, a set of
+    tuples containing a type declaration and a boolean if the type is a struct
+    for member types of the unions and a CGList containing CGUnionStructs for
+    every union.
+    """
+
+    
+    
+    headers = set()
+    declarations = set()
+    unionStructs = dict()
+    for d in descriptors:
+        if d.interface.isExternal():
+            continue
+
+        for t in getTypes(d):
+            t = t.unroll()
+            if t.isUnion():
+                name = str(t)
+                if not name in unionStructs:
+                    unionStructs[name] = CGUnionStruct(t, d)
+                    for f in t.flatMemberTypes:
+                        f = f.unroll()
+                        if f.isInterface():
+                            if f.isSpiderMonkeyInterface():
+                                headers.add("jsfriendapi.h")
+                                headers.add("mozilla/dom/TypedArray.h")
+                            else:
+                                typeDesc = d.getDescriptor(f.inner.identifier.name)
+                                if typeDesc is not None:
+                                    declarations.add((typeDesc.nativeType, False))
+                        elif f.isDictionary():
+                            declarations.add((f.inner.identifier.name, True))
+
+    return (headers, declarations, CGList(SortedDictValues(unionStructs), "\n"))
+
+def UnionConversions(descriptors):
+    """
+    Returns a CGThing to declare all union argument conversion helper structs.
+    """
+    
+    
+    unionConversions = dict()
+    for d in descriptors:
+        if d.interface.isExternal():
+            continue
+
+        def addUnionTypes(type):
+            if type.isUnion():
+                type = type.unroll()
+                name = str(type)
+                if not name in unionConversions:
+                    unionConversions[name] = CGUnionConversionStruct(type, d)
+
+        members = [m for m in d.interface.members]
+        signatures = [s for m in members if m.isMethod() for s in m.signatures()]
+        for s in signatures:
+            assert len(s) == 2
+            (_, arguments) = s
+            for a in arguments:
+                addUnionTypes(a.type)
+
+        for m in members:
+            if m.isAttr() and not m.readonly:
+                addUnionTypes(m.type)
+
+    return CGWrapper(CGList(SortedDictValues(unionConversions), "\n"),
+                     post="\n\n")
 
 class Argument():
     """
@@ -1272,14 +1367,14 @@ class CastableObjectUnwrapper():
                               "protoID" : "prototypes::id::" + descriptor.name,
                               "source" : source,
                               "target" : target,
-                              "codeOnFailure" : codeOnFailure }
+                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure), 4).define() }
 
     def __str__(self):
         return string.Template(
 """{
   nsresult rv = UnwrapObject<${protoID}, ${type}>(cx, ${source}, ${target});
   if (NS_FAILED(rv)) {
-    ${codeOnFailure}
+${codeOnFailure}
   }
 }""").substitute(self.substitution)
 
@@ -1307,7 +1402,7 @@ class CallbackObjectUnwrapper:
         self.substitution = { "nativeType" : descriptor.nativeType,
                               "source" : source,
                               "target" : target,
-                              "codeOnFailure" :  codeOnFailure }
+                              "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure)).define() }
 
     def __str__(self):
         if self.descriptor.workers:
@@ -1320,7 +1415,7 @@ class CallbackObjectUnwrapper:
 XPCCallContext ccx(JS_CALLER, cx);
 if (!ccx.IsValid()) {
   rv = NS_ERROR_XPC_BAD_CONVERT_JS;
-  ${codeOnFailure}
+${codeOnFailure}
 }
 
 const nsIID& iid = NS_GET_IID(${nativeType});
@@ -1328,14 +1423,14 @@ nsRefPtr<nsXPCWrappedJS> wrappedJS;
 rv = nsXPCWrappedJS::GetNewOrUsed(ccx, ${source}, iid,
                                   NULL, getter_AddRefs(wrappedJS));
 if (NS_FAILED(rv) || !wrappedJS) {
-  ${codeOnFailure}
+${codeOnFailure}
 }
 
 // Use a temp nsCOMPtr for the null-check, because ${target} might be
 // OwningNonNull, not an nsCOMPtr.
 nsCOMPtr<${nativeType}> tmp = do_QueryObject(wrappedJS.get());
 if (!tmp) {
-  ${codeOnFailure}
+${codeOnFailure}
 }
 ${target} = tmp.forget();""").substitute(self.substitution)
 
@@ -1501,6 +1596,205 @@ for (uint32_t i = 0; i < length; ++i) {
                                           descriptorProvider.workers)
         return (templateBody, typeName, None, isOptional)
 
+    if type.isUnion():
+        if isMember:
+            raise TypeError("Can't handle unions as members, we have a "
+                            "holderType")
+
+        nullable = type.nullable();
+        if nullable:
+            type = type.inner
+
+        unionArgumentObj = "${holderName}"
+        if isOptional or nullable:
+            unionArgumentObj += ".ref()"
+
+        memberTypes = type.flatMemberTypes
+
+        interfaceMemberTypes = filter(lambda t: t.isNonCallbackInterface(), memberTypes)
+        if len(interfaceMemberTypes) > 0:
+            interfaceObject = []
+            for memberType in interfaceMemberTypes:
+                if type.isGeckoInterface():
+                    name = memberType.inner.identifier.name
+                else:
+                    name = memberType.name
+                interfaceObject.append(CGGeneric("(failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext" % (unionArgumentObj, name)))
+            interfaceObject = CGWrapper(CGList(interfaceObject, " ||\n"), pre="done = ", post=";\n", reindent=True)
+        else:
+            interfaceObject = None
+
+        arrayObjectMemberTypes = filter(lambda t: t.isArray() or t.isSequence(), memberTypes)
+        if len(arrayObjectMemberTypes) > 0:
+            assert len(arrayObjectMemberTypes) == 1
+            memberType = arrayObjectMemberTypes[0]
+            name = memberType.name
+            arrayObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            
+            
+            
+            arrayObject = CGWrapper(CGIndenter(arrayObject),
+                                    pre="if (IsArrayLike(cx, &argObj)) {\n",
+                                    post="}")
+        else:
+            arrayObject = None
+
+        dateObjectMemberTypes = filter(lambda t: t.isDate(), memberTypes)
+        if len(dateObjectMemberTypes) > 0:
+            assert len(dateObjectMemberTypes) == 1
+            memberType = dateObjectMemberTypes[0]
+            name = memberType.name
+            dateObject = CGGeneric("%s.SetTo%s(cx, ${val}, ${valPtr});\n"
+                                   "done = true;" % (unionArgumentObj, name))
+            dateObject = CGWrapper(CGIndenter(dateObject),
+                                   pre="if (JS_ObjectIsDate(cx, &argObj)) {\n",
+                                   post="\n}")
+        else:
+            dateObject = None
+
+        callbackMemberTypes = filter(lambda t: t.isCallback() or t.isCallbackInterface(), memberTypes)
+        if len(callbackMemberTypes) > 0:
+            assert len(callbackMemberTypes) == 1
+            memberType = callbackMemberTypes[0]
+            name = memberType.name
+            callbackObject = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+        else:
+            callbackObject = None
+
+        dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
+        if len(dictionaryMemberTypes) > 0:
+            raise TypeError("No support for unwrapping dictionaries as member "
+                            "of a union")
+        else:
+            dictionaryObject = None
+
+        if callbackObject or dictionaryObject:
+            nonPlatformObject = CGList([callbackObject, dictionaryObject], "\n")
+            nonPlatformObject = CGWrapper(CGIndenter(nonPlatformObject),
+                                          pre="if (!IsPlatformObject(cx, &argObj)) {\n",
+                                          post="\n}")
+        else:
+            nonPlatformObject = None
+
+        objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
+        if len(objectMemberTypes) > 0:
+            object = CGGeneric("%s.SetToObject(&argObj);\n"
+                               "done = true;" % unionArgumentObj)
+        else:
+            object = None
+
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        if hasObjectTypes:
+            
+            
+            if object and (interfaceObject or arrayObject or dateObject or nonPlatformObject):
+                object = CGWrapper(CGIndenter(object), pre="if (!done) {\n",
+                                   post=("\n}"))
+
+            if arrayObject or dateObject or nonPlatformObject:
+                
+                
+                
+                assert not (arrayObject and nonPlatformObject)
+                templateBody = CGList([arrayObject, dateObject, nonPlatformObject], " else ")
+            else:
+                templateBody = None
+            if interfaceObject:
+                if templateBody:
+                    templateBody = CGList([templateBody, object], "\n")
+                    templateBody = CGWrapper(CGIndenter(templateBody),
+                                             pre="if (!done) {\n", post=("\n}"))
+                templateBody = CGList([interfaceObject, templateBody], "\n")
+            else:
+                templateBody = CGList([templateBody, object], "\n")
+
+            if any([arrayObject, dateObject, nonPlatformObject, object]):
+                templateBody.prepend(CGGeneric("JSObject& argObj = ${val}.toObject();"))
+            templateBody = CGWrapper(CGIndenter(templateBody),
+                                     pre="if (${val}.isObject()) {\n",
+                                     post="\n}")
+        else:
+            templateBody = CGGeneric()
+
+        otherMemberTypes = filter(lambda t: t.isString() or t.isEnum(),
+                                  memberTypes)
+        otherMemberTypes.extend(t for t in memberTypes if t.isPrimitive())
+        if len(otherMemberTypes) > 0:
+            assert len(otherMemberTypes) == 1
+            memberType = otherMemberTypes[0]
+            if memberType.isEnum():
+                name = memberType.inner.identifier.name
+            else:
+                name = memberType.name
+            other = CGGeneric("done = (failed = !%s.TrySetTo%s(cx, ${val}, ${valPtr}, tryNext)) || !tryNext;" % (unionArgumentObj, name))
+            if hasObjectTypes:
+                other = CGWrapper(CGIndenter(other), "{\n", post="\n}")
+                if object:
+                    join = " else "
+                else:
+                    other = CGWrapper(other, pre="if (!done) ")
+                    join = "\n"
+                templateBody = CGList([templateBody, other], join)
+        else:
+            other = None
+
+        templateBody = CGWrapper(templateBody, pre="bool done = false, failed = false, tryNext;\n")
+        throw = CGGeneric("if (failed) {\n"
+                          "  return false;\n"
+                          "}\n"
+                          "if (!done) {\n"
+                          "  return Throw<%s>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);\n"
+                          "}" % toStringBool(descriptorProvider.workers))
+        templateBody = CGWrapper(CGIndenter(CGList([templateBody, throw], "\n")), pre="{\n", post="\n}")
+
+        typeName = type.name
+        argumentTypeName = typeName + "Argument"
+        if nullable:
+            typeName = "Nullable<" + typeName + " >"
+        if isOptional:
+            nonConstDecl = "const_cast<Optional<" + typeName + " >& >(${declName})"
+        else:
+            nonConstDecl = "const_cast<" + typeName + "& >(${declName})"
+            typeName = "const " + typeName
+
+        def handleNull(templateBody, setToNullVar):
+            null = CGGeneric("if (${val}.isNullOrUndefined()) {\n"
+                             "  %s.SetNull();\n"
+                             "}" % setToNullVar)
+            templateBody = CGWrapper(CGIndenter(templateBody), pre="{\n", post="\n}")
+            return CGList([null, templateBody], " else ")
+
+        if type.hasNullableType:
+            templateBody = handleNull(templateBody, unionArgumentObj)
+
+        declType = CGGeneric(typeName)
+        holderType = CGGeneric(argumentTypeName)
+        if isOptional:
+            mutableDecl = nonConstDecl + ".Value()"
+            declType = CGWrapper(declType, pre="const Optional<", post=" >")
+            holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
+            constructDecl = CGGeneric(nonConstDecl + ".Construct();")
+            if nullable:
+                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+            else:
+                constructHolder = CGGeneric("${holderName}.construct(${declName}.Value());")
+        else:
+            mutableDecl = nonConstDecl
+            constructDecl = None
+            if nullable:
+                holderType = CGWrapper(holderType, pre="Maybe<", post=" >")
+                constructHolder = CGGeneric("${holderName}.construct(%s.SetValue());" % mutableDecl)
+            else:
+                constructHolder = CGWrapper(holderType, post=" ${holderName}(${declName});")
+                holderType = None
+
+        templateBody = CGList([constructHolder, templateBody], "\n")
+        if nullable:
+            templateBody = handleNull(templateBody, mutableDecl)
+        templateBody = CGList([constructDecl, templateBody], "\n")
+
+        return templateBody.define(), declType, holderType, False
+
     if type.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
             type.unroll().inner.identifier.name)
@@ -1641,10 +1935,10 @@ for (uint32_t i = 0; i < length; ++i) {
                 declType = "NonNull<" + name + ">"
         template = (
             "if (!JS_Is%s(&${val}.toObject(), cx)) {\n"
-            "  %s" 
+            "%s" 
             "}\n"
             "%s.%s(cx, &${val}.toObject());\n" %
-            (jsname, onFailure(failureCode, descriptorProvider.workers).define(),
+            (jsname, CGIndenter(onFailure(failureCode, descriptorProvider.workers)).define(),
              constructLoc, constructMethod))
         nullableTarget = ""
         if type.nullable():
@@ -2203,7 +2497,9 @@ def wrapForType(type, descriptorProvider, templateValues):
 
 def typeNeedsCx(type):
     return (type is not None and
-            (type.isCallback() or type.isAny() or type.isObject()))
+            (type.isCallback() or type.isAny() or type.isObject() or
+             (type.isUnion() and
+              any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes))))
 
 
 
@@ -2483,6 +2779,29 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
+        def maxSigLength(signatures):
+            return max([len(s[1]) for s in signatures])
+
+        def signaturesForArgCount(i, signatures):
+            return filter(
+                lambda s: len(s[1]) == i or (len(s[1]) > i and
+                                             s[1][i].optional),
+                    signatures)
+
+        def findDistinguishingIndex(argCount, signatures):
+            def isValidDistinguishingIndex(idx, signatures):
+                for firstSigIndex in range(0, len(signatures)):
+                    for secondSigIndex in range(0, firstSigIndex):
+                        firstType = signatures[firstSigIndex][1][idx].type
+                        secondType = signatures[secondSigIndex][1][idx].type
+                        if not firstType.isDistinguishableFrom(secondType):
+                            return False
+                return True
+            for idx in range(0, argCount):
+                if isValidDistinguishingIndex(idx, signatures):
+                    return idx
+            return -1
+
         def getPerSignatureCall(signature, argConversionStartsAt=0):
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       nativeMethodName, static, descriptor,
@@ -2512,12 +2831,13 @@ class CGMethodCall(CGThing):
             return
 
         
-        maxArgCount = method.maxArgCount
-        allowedArgCounts = method.allowedArgCounts
+        maxSigArgs = maxSigLength(signatures)
+        allowedArgCounts = [ i for i in range(0, maxSigArgs+1)
+                             if len(signaturesForArgCount(i, signatures)) != 0 ]
 
         argCountCases = []
         for argCount in allowedArgCounts:
-            possibleSignatures = method.signaturesForArgCount(argCount)
+            possibleSignatures = signaturesForArgCount(argCount, signatures)
             if len(possibleSignatures) == 1:
                 
                 signature = possibleSignatures[0]
@@ -2530,7 +2850,7 @@ class CGMethodCall(CGThing):
                 if (len(signature[1]) > argCount and
                     signature[1][argCount].optional and
                     (argCount+1) in allowedArgCounts and
-                    len(method.signaturesForArgCount(argCount+1)) == 1):
+                    len(signaturesForArgCount(argCount+1, signatures)) == 1):
                     argCountCases.append(
                         CGCase(str(argCount), None, True))
                 else:
@@ -2538,7 +2858,28 @@ class CGMethodCall(CGThing):
                         CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
-            distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
+            distinguishingIndex = findDistinguishingIndex(argCount,
+                                                          possibleSignatures)
+            if distinguishingIndex == -1:
+                raise TypeError(("Signatures with %s arguments for " +
+                                 descriptor.interface.identifier.name + "." +
+                                 method.identifier.name +
+                                 " are not distinguishable") % argCount)
+
+            for idx in range(0, distinguishingIndex):
+                firstSigType = possibleSignatures[0][1][idx].type
+                for sigIdx in range(1, len(possibleSignatures)):
+                    if possibleSignatures[sigIdx][1][idx].type != firstSigType:
+                        raise TypeError(("Signatures with %d arguments for " +
+                                         descriptor.interface.identifier.name +
+                                         "." + method.identifier.name +
+                                         " have different types at index %d" +
+                                         " which is before distinguishing" +
+                                         " index %d.  Types are %s and %s") %
+                                        (argCount, idx,
+                                         distinguishingIndex,
+                                         str(possibleSignatures[sigIdx][1][idx].type),
+                                         str(firstSigType)))
 
             
             
@@ -2678,7 +3019,7 @@ class CGMethodCall(CGThing):
         overloadCGThings = []
         overloadCGThings.append(
             CGGeneric("unsigned argcount = NS_MIN(argc, %du);" %
-                      maxArgCount))
+                      maxSigArgs))
         overloadCGThings.append(
             CGSwitch("argcount",
                      argCountCases,
@@ -2905,6 +3246,309 @@ class CGEnum(CGThing):
   };
 """ % (len(self.enum.values()) + 1,
        ",\n    ".join(['{"' + val + '", ' + str(len(val)) + '}' for val in self.enum.values()]))
+
+def getUnionAccessorSignatureType(type, descriptorProvider):
+    """
+    Returns the types that are used in the getter and setter signatures for
+    union types
+    """
+    if type.isArray():
+        raise TypeError("Can't handle array arguments yet")
+
+    if type.isSequence():
+        nullable = type.nullable();
+        if nullable:
+            type = type.inner.inner
+        else:
+            type = type.inner
+        (elementTemplate, elementDeclType,
+         elementHolderType, dealWithOptional) = getJSToNativeConversionTemplate(
+            type, descriptorProvider, isSequenceMember=True)
+        typeName = CGWrapper(elementDeclType, pre="Sequence< ", post=" >&")
+        if nullable:
+            typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+
+        return typeName
+
+    if type.isUnion():
+        typeName = CGGeneric(type.name)
+        if type.nullable():
+            typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+
+        return typeName
+
+    if type.isGeckoInterface():
+        descriptor = descriptorProvider.getDescriptor(
+            type.unroll().inner.identifier.name)
+        typeName = CGGeneric(descriptor.nativeType)
+        
+        if type.nullable() or type.unroll().inner.isExternal():
+            typeName = CGWrapper(typeName, post="*")
+        else:
+            typeName = CGWrapper(typeName, post="&")
+        return typeName
+
+    if type.isSpiderMonkeyInterface():
+        typeName = CGGeneric(type.name)
+        if type.nullable():
+            typeName = CGWrapper(typeName, post="*")
+        else:
+            typeName = CGWrapper(typeName, post="&")
+        return typeName
+
+    if type.isString():
+        return CGGeneric("const nsAString&")
+
+    if type.isEnum():
+        if type.nullable():
+            raise TypeError("We don't support nullable enumerated arguments or "
+                            "union members yet")
+        return CGGeneric(type.inner.identifier.name)
+
+    if type.isCallback():
+        return CGGeneric("JSObject*")
+
+    if type.isAny():
+        return CGGeneric("JS::Value")
+
+    if type.isObject():
+        typeName = CGGeneric("JSObject")
+        if type.nullable():
+            typeName = CGWrapper(typeName, post="*")
+        else:
+            typeName = CGWrapper(typeName, post="&")
+        return typeName
+
+    if not type.isPrimitive():
+        raise TypeError("Need native type for argument type '%s'" % str(type))
+
+    typeName = CGGeneric(builtinNames[type.tag()])
+    if type.nullable():
+        typeName = CGWrapper(typeName, pre="Nullable< ", post=" >&")
+    return typeName
+
+def getUnionTypeTemplateVars(type, descriptorProvider):
+    
+    
+    if type.isDictionary() or type.isSequence():
+        raise TypeError("Can't handle dictionaries or sequences in unions")
+
+    if type.isGeckoInterface():
+        name = type.inner.identifier.name
+    elif type.isEnum():
+        name = type.inner.identifier.name
+    elif type.isArray() or type.isSequence():
+        name = str(type)
+    else:
+        name = type.name
+
+    tryNextCode = """tryNext = true;
+return true;"""
+    if type.isGeckoInterface():
+         tryNextCode = ("""if (mUnion.mType != mUnion.eUninitialized) {
+  mUnion.Destroy%s();
+}""" % name) + tryNextCode
+    (template, declType, holderType,
+     dealWithOptional) = getJSToNativeConversionTemplate(
+        type, descriptorProvider, failureCode=tryNextCode,
+        isDefinitelyObject=True)
+
+    
+    
+    structType = declType.define()
+    if structType.startswith("const "):
+        structType = structType[6:]
+    externalType = getUnionAccessorSignatureType(type, descriptorProvider).define()
+
+    if type.isObject():
+        setter = CGGeneric("void SetToObject(JSObject* obj)\n"
+                           "{\n"
+                           "  mUnion.mValue.mObject.SetValue() = obj;\n"
+                           "  mUnion.mType = mUnion.eObject;\n"
+                           "}")
+    else:
+        jsConversion = string.Template(template).substitute(
+            {
+                "val": "value",
+                "valPtr": "pvalue",
+                "declName": "SetAs" + name + "()",
+                "holderName": "m" + name + "Holder"
+                }
+            )
+        jsConversion = CGWrapper(CGGeneric(jsConversion),
+                                 post="\n"
+                                      "return true;")
+        setter = CGWrapper(CGIndenter(jsConversion),
+                           pre="bool TrySetTo" + name + "(JSContext* cx, const JS::Value& value, JS::Value* pvalue, bool& tryNext)\n"
+                               "{\n"
+                               "  tryNext = false;\n",
+                           post="\n"
+                                "}")
+
+    return {
+                "name": name,
+                "structType": structType,
+                "externalType": externalType,
+                "setter": CGIndenter(setter).define(),
+                "holderType": holderType.define() if holderType else None
+                }
+
+def mapTemplate(template, templateVarArray):
+    return map(lambda v: string.Template(template).substitute(v),
+               templateVarArray)
+
+class CGUnionStruct(CGThing):
+    def __init__(self, type, descriptorProvider):
+        CGThing.__init__(self)
+        self.type = type.unroll()
+        self.descriptorProvider = descriptorProvider
+
+    def declare(self):
+        templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
+                           self.type.flatMemberTypes)
+
+        callDestructors = []
+        enumValues = []
+        methods = []
+        if self.type.hasNullableType:
+            callDestructors.append("      case eNull:\n"
+                                   "        break;")
+            enumValues.append("eNull")
+            methods.append("""  bool IsNull() const
+  {
+    return mType == eNull;
+  }""")
+
+        destructorTemplate = """  void Destroy${name}()
+  {
+    MOZ_ASSERT(Is${name}(), "Wrong type!");
+    mValue.m${name}.Destroy();
+    mType = eUninitialized;
+  }"""
+        destructors = mapTemplate(destructorTemplate, templateVars)
+        callDestructors.extend(mapTemplate("      case e${name}:\n"
+                                           "         Destroy${name}();\n"
+                                           "         break;", templateVars))
+        enumValues.extend(mapTemplate("e${name}", templateVars))
+        methodTemplate = """  bool Is${name}() const
+  {
+    return mType == e${name};
+  }
+  ${externalType} GetAs${name}() const
+  {
+    MOZ_ASSERT(Is${name}(), "Wrong type!");
+    // The cast to ${externalType} is needed to work around a bug in Apple's
+    // clang compiler, for some reason it doesn't call |S::operator T&| when
+    // casting S<T> to T& and T is forward declared.
+    return (${externalType})mValue.m${name}.Value();
+  }
+  ${structType}& SetAs${name}()
+  {
+    mType = e${name};
+    return mValue.m${name}.SetValue();
+  }"""
+        methods.extend(mapTemplate(methodTemplate, templateVars))
+        values = mapTemplate("UnionMember<${structType} > m${name};", templateVars)
+        return string.Template("""
+class ${structName} {
+public:
+  ${structName}() : mType(eUninitialized)
+  {
+  }
+  ~${structName}()
+  {
+    switch (mType) {
+${callDestructors}
+      case eUninitialized:
+        break;
+    }
+  }
+
+${methods}
+
+private:
+  friend class ${structName}Argument;
+
+${destructors}
+
+  enum Type {
+    eUninitialized,
+    ${enumValues}
+  };
+  union Value {
+    ${values}
+  };
+
+  Type mType;
+  Value mValue;
+};
+
+""").substitute(
+    {
+       "structName": self.type.__str__(),
+       "callDestructors": "\n".join(callDestructors),
+       "destructors": "\n".join(destructors),
+       "methods": "\n\n".join(methods),
+       "enumValues": ",\n    ".join(enumValues),
+       "values": "\n    ".join(values),
+       })
+
+    def define(self):
+        return """
+"""
+
+class CGUnionConversionStruct(CGThing):
+    def __init__(self, type, descriptorProvider):
+        CGThing.__init__(self)
+        self.type = type.unroll()
+        self.descriptorProvider = descriptorProvider
+
+    def declare(self):
+        setters = []
+
+        if self.type.hasNullableType:
+            setters.append("""  bool SetNull()
+  {
+    mUnion.mType = mUnion.eNull;
+    return true;
+  }""")
+
+        templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
+                           self.type.flatMemberTypes)
+        structName = self.type.__str__()
+
+        setters.extend(mapTemplate("${setter}", templateVars))
+        private = "\n".join(mapTemplate("""  ${structType}& SetAs${name}()
+  {
+    mUnion.mType = mUnion.e${name};
+    return mUnion.mValue.m${name}.SetValue();
+  }""", templateVars))
+        private += "\n\n"
+        holders = filter(lambda v: v["holderType"] is not None, templateVars)
+        if len(holders) > 0:
+            private += "\n".join(mapTemplate("  ${holderType} m${name}Holder;", holders))
+            private += "\n\n"
+        private += "  " + structName + "& mUnion;"
+        return string.Template("""
+class ${structName}Argument {
+public:
+  ${structName}Argument(const ${structName}& aUnion) : mUnion(const_cast<${structName}&>(aUnion))
+  {
+  }
+
+${setters}
+
+private:
+${private}
+};
+""").substitute({"structName": structName,
+       "setters": "\n\n".join(setters),
+       "private": private
+       })
+
+    def define(self):
+        return """
+"""
 
 class ClassItem:
     """ Use with CGClass """
@@ -3912,6 +4556,72 @@ struct PrototypeIDMap;
 
         
         curr = CGIncludeGuard('RegisterBindings', curr)
+
+        
+        return curr
+
+    @staticmethod
+    def UnionTypes(config):
+
+        (includes, declarations, unions) = UnionTypes(config.getDescriptors())
+        includes.add("mozilla/dom/BindingUtils.h")
+
+        
+        curr = CGNamespace.build(['mozilla', 'dom'], unions)
+
+        curr = CGWrapper(curr, post='\n')
+
+        namespaces = []
+        stack = [CGList([])]
+        for (clazz, isStruct) in SortedTuples(declarations):
+            elements = clazz.split("::")
+            clazz = CGClassForwardDeclare(elements.pop(), isStruct=isStruct)
+            i = 0
+            if len(elements) > 0:
+                common = min(len(namespaces), len(elements))
+                while i < common and namespaces[i] == elements[i]:
+                    i += 1
+
+            
+            namespaces = namespaces[:i]
+
+            
+            for j, namespace in enumerate(elements[i:]):
+                namespaces.append(namespace)
+                
+                list = CGList([])
+                
+                stack[i + j].append(CGNamespace(namespace, list))
+                
+                
+                stack[i + j + 1:] = [list]
+
+            stack[len(elements)].append(clazz)
+
+        curr = CGList([stack[0], curr], "\n")
+
+        curr = CGHeaders([], [], includes, [], curr)
+
+        
+        curr = CGIncludeGuard('UnionTypes', curr)
+
+        
+        return curr
+
+    @staticmethod
+    def UnionConversions(config):
+
+        unions = UnionConversions(config.getDescriptors())
+
+        
+        curr = CGNamespace.build(['mozilla', 'dom'], unions)
+
+        curr = CGWrapper(curr, post='\n')
+
+        curr = CGHeaders([], [], ["nsDebug.h", "mozilla/dom/UnionTypes.h", "nsDOMQS.h"], [], curr)
+
+        
+        curr = CGIncludeGuard('UnionConversions', curr)
 
         
         return curr
