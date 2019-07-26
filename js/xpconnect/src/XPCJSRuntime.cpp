@@ -1566,11 +1566,11 @@ GetCompartmentName(JSCompartment *c, nsCString &name, bool replaceSlashes)
 
 
 
-class JSGCHeapReporter MOZ_FINAL : public MemoryReporterBase
+class JSGCHeapReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     JSGCHeapReporter()
-      : MemoryReporterBase("js-gc-heap", KIND_OTHER, UNITS_BYTES,
+      : MemoryUniReporter("js-gc-heap", KIND_OTHER, UNITS_BYTES,
 "Memory used by the garbage-collected JavaScript heap.")
     {}
 private:
@@ -1588,13 +1588,11 @@ private:
 
 
 
-
-
-class JSCompartmentsSystemReporter MOZ_FINAL : public MemoryReporterBase
+class JSCompartmentsSystemReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     JSCompartmentsSystemReporter()
-      : MemoryReporterBase("js-compartments/system", KIND_OTHER, UNITS_COUNT,
+      : MemoryUniReporter("js-compartments/system", KIND_OTHER, UNITS_COUNT,
 "The number of JavaScript compartments for system code.  The sum of this and "
 "'js-compartments/user' might not match the number of compartments listed "
 "in the 'explicit' tree if a garbage collection occurs at an inopportune "
@@ -1608,11 +1606,11 @@ private:
     }
 };
 
-class JSCompartmentsUserReporter MOZ_FINAL : public MemoryReporterBase
+class JSCompartmentsUserReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     JSCompartmentsUserReporter()
-      : MemoryReporterBase("js-compartments/user", KIND_OTHER, UNITS_COUNT,
+      : MemoryUniReporter("js-compartments/user", KIND_OTHER, UNITS_COUNT,
 "The number of JavaScript compartments for user code.  The sum of this and "
 "'js-compartments/system' might not match the number of compartments listed "
 "under 'js' if a garbage collection occurs at an inopportune time, but such "
@@ -1627,11 +1625,11 @@ private:
 };
 
 
-class JSMainRuntimeTemporaryPeakReporter MOZ_FINAL : public MemoryReporterBase
+class JSMainRuntimeTemporaryPeakReporter MOZ_FINAL : public MemoryUniReporter
 {
 public:
     JSMainRuntimeTemporaryPeakReporter()
-      : MemoryReporterBase("js-main-runtime-temporary-peak",
+      : MemoryUniReporter("js-main-runtime-temporary-peak",
                            KIND_OTHER, UNITS_BYTES,
 "The peak size of the transient storage in the main JSRuntime (the current "
 "size of which is reported as 'explicit/js-non-window/runtime/temporary').")
@@ -1762,7 +1760,7 @@ namespace xpc {
 static nsresult
 ReportZoneStats(const JS::ZoneStats &zStats,
                 const xpc::ZoneStatsExtras &extras,
-                nsIMemoryMultiReporterCallback *cb,
+                nsIMemoryReporterCallback *cb,
                 nsISupports *closure, size_t *gcTotalOut = NULL)
 {
     const nsAutoCString& pathPrefix = extras.pathPrefix;
@@ -1946,7 +1944,7 @@ static nsresult
 ReportCompartmentStats(const JS::CompartmentStats &cStats,
                        const xpc::CompartmentStatsExtras &extras,
                        amIAddonManager *addonManager,
-                       nsIMemoryMultiReporterCallback *cb,
+                       nsIMemoryReporterCallback *cb,
                        nsISupports *closure, size_t *gcTotalOut = NULL)
 {
     static const nsDependentCString addonPrefix("explicit/add-ons/");
@@ -2211,7 +2209,7 @@ static nsresult
 ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  const nsACString &rtPath,
                                  amIAddonManager* addonManager,
-                                 nsIMemoryMultiReporterCallback *cb,
+                                 nsIMemoryReporterCallback *cb,
                                  nsISupports *closure, size_t *rtTotalOut)
 {
     nsresult rv;
@@ -2353,7 +2351,7 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
 nsresult
 ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  const nsACString &rtPath,
-                                 nsIMemoryMultiReporterCallback *cb,
+                                 nsIMemoryReporterCallback *cb,
                                  nsISupports *closure, size_t *rtTotalOut)
 {
     nsCOMPtr<amIAddonManager> am =
@@ -2365,7 +2363,7 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
 
 } 
 
-class JSCompartmentsMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
+class JSCompartmentsReporter MOZ_FINAL : public nsIMemoryReporter
 {
   public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -2389,7 +2387,7 @@ class JSCompartmentsMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
         paths->append(path);
     }
 
-    NS_IMETHOD CollectReports(nsIMemoryMultiReporterCallback *cb,
+    NS_IMETHOD CollectReports(nsIMemoryReporterCallback *cb,
                               nsISupports *closure)
     {
         
@@ -2411,9 +2409,7 @@ class JSCompartmentsMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
     }
 };
 
-NS_IMPL_ISUPPORTS1(JSCompartmentsMultiReporter
-                              , nsIMemoryMultiReporter
-                              )
+NS_IMPL_ISUPPORTS1(JSCompartmentsReporter, nsIMemoryReporter)
 
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(OrphanMallocSizeOf)
 
@@ -2582,10 +2578,10 @@ class XPCJSRuntimeStats : public JS::RuntimeStats
 };
 
 nsresult
-JSMemoryMultiReporter::CollectReports(WindowPaths *windowPaths,
-                                      WindowPaths *topWindowPaths,
-                                      nsIMemoryMultiReporterCallback *cb,
-                                      nsISupports *closure)
+JSReporter::CollectReports(WindowPaths *windowPaths,
+                           WindowPaths *topWindowPaths,
+                           nsIMemoryReporterCallback *cb,
+                           nsISupports *closure)
 {
     XPCJSRuntime *xpcrt = nsXPConnect::GetRuntimeInstance();
 
@@ -3055,7 +3051,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     NS_RegisterMemoryReporter(new JSCompartmentsSystemReporter());
     NS_RegisterMemoryReporter(new JSCompartmentsUserReporter());
     NS_RegisterMemoryReporter(new JSMainRuntimeTemporaryPeakReporter());
-    NS_RegisterMemoryMultiReporter(new JSCompartmentsMultiReporter);
+    NS_RegisterMemoryReporter(new JSCompartmentsReporter);
 
     
 #ifdef DEBUG

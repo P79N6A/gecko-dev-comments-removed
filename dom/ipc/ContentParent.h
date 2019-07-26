@@ -143,8 +143,9 @@ public:
     bool IsAlive();
     bool IsForApp();
 
-    void SetChildMemoryReporters(const InfallibleTArray<MemoryReport>& report);
-    void ClearChildMemoryReporters();
+    void SetChildMemoryReports(const InfallibleTArray<MemoryReport>&
+                               childReports);
+    void UnregisterChildMemoryReporter();
 
     GeckoChildProcessHost* Process() {
         return mSubprocess;
@@ -453,7 +454,9 @@ private:
     
     
     
-    nsCOMArray<nsIMemoryReporter> mMemoryReporters;
+    
+    
+    nsCOMPtr<nsIMemoryReporter> mChildReporter;
 
     nsString mAppManifestURL;
 
