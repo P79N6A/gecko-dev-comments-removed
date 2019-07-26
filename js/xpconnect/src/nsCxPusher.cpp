@@ -147,6 +147,15 @@ NS_EXPORT
 AutoCxPusher::~AutoCxPusher()
 {
   
+  
+  
+  
+  
+  
+  if (mScx && !mAutoCompartment.empty())
+    JS_MaybeGC(nsXPConnect::XPConnect()->GetCurrentJSContext());
+
+  
   mAutoCompartment.destroyIfConstructed();
   mAutoRequest.destroyIfConstructed();
 
