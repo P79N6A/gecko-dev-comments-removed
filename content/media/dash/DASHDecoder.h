@@ -117,6 +117,21 @@ public:
   
   void SetSubsegmentIndex(DASHRepDecoder* aRepDecoder,
                           int32_t aSubsegmentIdx);
+
+  
+  
+  
+  
+  void Suspend() MOZ_OVERRIDE;
+
+  
+  
+  
+  
+  
+  
+  
+  void Resume(bool aForceBuffering) MOZ_OVERRIDE;
 private:
   
   
