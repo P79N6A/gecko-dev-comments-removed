@@ -15,13 +15,6 @@ const TOOLBARSTATE_LOADING  = 1;
 const TOOLBARSTATE_LOADED   = 2;
 
 
-const kHideContextAndTrayDelayMsec = 3000;
-
-
-const kNewTabAnimationDelayMsec = 500;
-
-
-
 const kStartOverlayURI = "about:start";
 
 
@@ -448,7 +441,7 @@ var BrowserUI = {
   animateClosingTab: function animateClosingTab(tabToClose) {
     tabToClose.chromeTab.setAttribute("closing", "true");
 
-    let wasCollapsed = !ContextUI.isExpanded;
+    let wasCollapsed = !ContextUI.tabbarVisible;
     if (wasCollapsed) {
       ContextUI.displayTabs();
     }
@@ -1254,7 +1247,7 @@ var BrowserUI = {
         this._editURI(true);
         break;
       case "cmd_addBookmark":
-        Elements.navbar.show();
+        ContextUI.displayNavbar();
         Appbar.onStarButton(true);
         break;
       case "cmd_bookmarks":

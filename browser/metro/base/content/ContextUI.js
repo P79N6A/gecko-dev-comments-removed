@@ -3,6 +3,20 @@
 
 
 
+const kContextUIShowEvent = "MozContextUIShow";
+
+const kContextUIDismissEvent = "MozContextUIDismiss";
+
+const kContextUITabsShowEvent = "MozContextUITabsShow";
+
+
+
+const kHideContextAndTrayDelayMsec = 3000;
+
+
+const kNewTabAnimationDelayMsec = 1000;
+
+
 
 
 
@@ -18,6 +32,12 @@ var ContextUI = {
     Elements.browsers.addEventListener("mousedown", this, true);
     Elements.browsers.addEventListener("touchstart", this, true);
     Elements.browsers.addEventListener("AlertActive", this, true);
+
+    Elements.browsers.addEventListener('URLChanged', this, true);
+    Elements.tabList.addEventListener('TabSelect', this, true);
+    Elements.panelUI.addEventListener('ToolPanelShown', this, false);
+    Elements.panelUI.addEventListener('ToolPanelHidden', this, false);
+
     window.addEventListener("MozEdgeUIStarted", this, true);
     window.addEventListener("MozEdgeUICanceled", this, true);
     window.addEventListener("MozEdgeUICompleted", this, true);
@@ -33,13 +53,29 @@ var ContextUI = {
 
 
 
+  
   get isVisible() {
+    return this.navbarVisible || this.tabbarVisible || this.contextAppbarVisible;
+  },
+
+  
+  get navbarVisible() {
     return (Elements.navbar.hasAttribute("visible") ||
             Elements.navbar.hasAttribute("startpage"));
   },
-  get isExpanded() { return Elements.tray.hasAttribute("expanded"); },
-  get isExpandable() { return this._expandable; },
 
+  
+  get tabbarVisible() {
+    return Elements.tray.hasAttribute("expanded");
+  },
+
+  
+  get contextAppbarVisible() {
+    return Elements.contextappbar.isShowing;
+  },
+
+  
+  get isExpandable() { return this._expandable; },
   set isExpandable(aFlag) {
     this._expandable = aFlag;
     if (!this._expandable)
@@ -50,56 +86,82 @@ var ContextUI = {
 
 
 
-  toggle: function toggle() {
-    if (!this._expandable) {
-      
-      
-      return;
-    }
+  
+
+
+  toggleNavUI: function () {
     
-    if (!this.dismiss()) {
-      dump("* ContextUI is hidden, show it\n");
-      this.show();
+    
+    
+    if (this.tabbarVisible) {
+      this.dismiss();
+    } else {
+      this.displayNavUI();
     }
   },
 
   
-  
-  show: function() {
+
+
+
+  displayNavUI: function () {
     let shown = false;
-    if (!this.isExpanded) {
-      
-      this._setIsExpanded(true);
-      shown = true;
-    }
-    if (!Elements.navbar.isShowing) {
-      
-      Elements.navbar.show();
+
+    if (!this.navbarVisible) {
+      this.displayNavbar();
       shown = true;
     }
 
-    this._clearDelayedTimeout();
+    if (!this.tabbarVisible) {
+      this.displayTabs();
+      shown = true;
+    }
+
     if (shown) {
       ContentAreaObserver.update(window.innerWidth, window.innerHeight);
+      this._fire(kContextUIShowEvent);
     }
+
     return shown;
   },
 
   
-  displayNavbar: function displayNavbar() {
+
+
+
+  dismiss: function () {
+    let dismissed = false;
+
     this._clearDelayedTimeout();
-    Elements.navbar.show();
+
+    
+    
+    if (this.navbarVisible) {
+      this.dismissNavbar();
+      dismissed = true;
+    }
+    if (this.tabbarVisible) {
+      this.dismissTabs();
+      dismissed = true;
+    }
+    if (Elements.contextappbar.isShowing) {
+      this.dismissContextAppbar();
+      dismissed = true;
+    }
+
+    if (dismissed) {
+      ContentAreaObserver.update(window.innerWidth, window.innerHeight);
+      this._fire(kContextUIDismissEvent);
+    }
+
+    return dismissed;
   },
 
   
-  displayTabs: function displayTabs() {
-    this._clearDelayedTimeout();
-    this._setIsExpanded(true, true);
-  },
 
-  
+
   peekTabs: function peekTabs() {
-    if (this.isExpanded) {
+    if (this.tabbarVisible) {
       setTimeout(function () {
         ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
       }, 0);
@@ -107,31 +169,14 @@ var ContextUI = {
       BrowserUI.setOnTabAnimationEnd(function () {
         ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
       });
-
       this.displayTabs();
     }
   },
 
-  
-  
-  dismiss: function dismiss() {
-    let dismissed = false;
-    if (this.isExpanded) {
-      this._setIsExpanded(false);
-      dismissed = true;
-    }
-    if (Elements.navbar.isShowing) {
-      this.dismissAppbar();
-      dismissed = true;
-    }
-    this._clearDelayedTimeout();
-    if (dismissed) {
-      ContentAreaObserver.update(window.innerWidth, window.innerHeight);
-    }
-    return dismissed;
-  },
 
   
+
+
   dismissWithDelay: function dismissWithDelay(aDelay) {
     aDelay = aDelay || kHideContextAndTrayDelayMsec;
     this._clearDelayedTimeout();
@@ -145,13 +190,38 @@ var ContextUI = {
     this._clearDelayedTimeout();
   },
 
-  dismissTabs: function dimissTabs() {
+  
+  displayNavbar: function () {
     this._clearDelayedTimeout();
-    this._setIsExpanded(false, true);
+    Elements.navbar.show();
   },
 
-  dismissAppbar: function dismissAppbar() {
-    this._fire("MozAppbarDismiss");
+  
+  displayTabs: function () {
+    this._clearDelayedTimeout();
+    this._setIsExpanded(true);
+  },
+
+  
+  displayContextAppbar: function () {
+    this._clearDelayedTimeout();
+    Elements.contextappbar.show();
+  },
+
+  
+  dismissNavbar: function dismissNavbar() {
+    Elements.navbar.dismiss();
+  },
+
+  
+  dismissTabs: function dimissTabs() {
+    this._clearDelayedTimeout();
+    this._setIsExpanded(false);
+  },
+
+  
+  dismissContextAppbar: function dismissContextAppbar() {
+    Elements.contextappbar.dismiss();
   },
 
   
@@ -161,7 +231,7 @@ var ContextUI = {
   
   _setIsExpanded: function _setIsExpanded(aFlag, setSilently) {
     
-    if (!this.isExpandable || this.isExpanded == aFlag)
+    if (!this.isExpandable || this.tabbarVisible == aFlag)
       return;
 
     if (aFlag)
@@ -170,12 +240,8 @@ var ContextUI = {
       Elements.tray.removeAttribute("expanded");
 
     if (!setSilently)
-      this._fire("MozContextUIExpand");
+      this._fire(kContextUITabsShowEvent);
   },
-
-  
-
-
 
   _clearDelayedTimeout: function _clearDelayedTimeout() {
     if (this._hidingId) {
@@ -196,7 +262,7 @@ var ContextUI = {
       this.dismiss();
       return;
     }
-    this.toggle();
+    this.toggleNavUI();
   },
 
   _onEdgeUICanceled: function(aEvent) {
@@ -216,7 +282,7 @@ var ContextUI = {
       this.dismiss();
       return;
     }
-    this.toggle();
+    this.toggleNavUI();
   },
 
   handleEvent: function handleEvent(aEvent) {
@@ -230,19 +296,10 @@ var ContextUI = {
       case "MozEdgeUICompleted":
         this._onEdgeUICompleted(aEvent);
         break;
-      case "mousedown":
-        if (aEvent.button == 0 && this.isVisible)
-          this.dismiss();
-        break;
-      case "touchstart":
-      
-      case "AlertActive":
-        this.dismiss();
-        break;
       case "keypress":
         if (String.fromCharCode(aEvent.which) == "z" &&
             aEvent.getModifierState("Win"))
-          this.toggle();
+          this.toggleNavUI();
         break;
       case "transitionend":
         setTimeout(function () {
@@ -251,6 +308,20 @@ var ContextUI = {
         break;
       case "KeyboardChanged":
         this.dismissTabs();
+        break;
+      case "mousedown":
+        if (aEvent.button == 0 && this.isVisible)
+          this.dismiss();
+        break;
+      case 'URLChanged':
+        this.dismissTabs();
+        break;
+      case 'TabSelect':
+      case 'ToolPanelShown':
+      case 'ToolPanelHidden':
+      case "touchstart":
+      case "AlertActive":
+        this.dismiss();
         break;
     }
   },
