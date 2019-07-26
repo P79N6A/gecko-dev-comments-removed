@@ -813,6 +813,7 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
 
 
 
+
   close: function () {
     return Task.spawn(function doClose() {
       
