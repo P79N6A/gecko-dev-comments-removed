@@ -912,7 +912,7 @@ var gBrowserInit = {
           defaultHeight = screen.availHeight * .75;
         }
 
-#ifdef MOZ_WIDGET_GTK2
+#if MOZ_WIDGET_GTK == 2
         
         
         defaultHeight -= 28;
