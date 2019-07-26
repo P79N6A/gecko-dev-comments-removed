@@ -316,7 +316,8 @@ private:
             const nsCString& aContentDisposition,
             const bool& aForceSave,
             const int64_t& aContentLength,
-            const OptionalURIParams& aReferrer);
+            const OptionalURIParams& aReferrer,
+            PBrowserParent* aBrowser);
     virtual bool DeallocPExternalHelperAppParent(PExternalHelperAppParent* aService);
 
     virtual PSmsParent* AllocPSmsParent();
@@ -424,9 +425,6 @@ private:
                                                 const bool& aElementHidden);
 
     virtual bool RecvAudioChannelChangedNotification();
-
-    virtual bool RecvAudioChannelChangeDefVolChannel(
-      const AudioChannelType& aType, const bool& aHidden);
 
     virtual bool RecvBroadcastVolume(const nsString& aVolumeName);
 
