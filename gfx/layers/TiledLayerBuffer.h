@@ -165,7 +165,7 @@ public:
 
 
 
-static int floor_div(int a, int b)
+static inline int floor_div(int a, int b)
 {
   int rem = a % b;
   int div = a/b;
