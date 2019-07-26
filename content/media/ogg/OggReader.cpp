@@ -1315,9 +1315,9 @@ nsresult OggReader::SeekInUnbuffered(int64_t aTarget,
 }
 
 nsresult OggReader::Seek(int64_t aTarget,
-                           int64_t aStartTime,
-                           int64_t aEndTime,
-                           int64_t aCurrentTime)
+                         int64_t aStartTime,
+                         int64_t aEndTime,
+                         int64_t aCurrentTime)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
   if (mIsChained)
@@ -1379,10 +1379,7 @@ nsresult OggReader::Seek(int64_t aTarget,
     }
   }
 
-  
-  
-  
-  return DecodeToTarget(aTarget);
+  return NS_OK;
 }
 
 

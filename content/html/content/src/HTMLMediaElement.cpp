@@ -1324,9 +1324,62 @@ NS_IMETHODIMP HTMLMediaElement::GetCurrentTime(double* aCurrentTime)
 }
 
 void
+HTMLMediaElement::FastSeek(double aTime, ErrorResult& aRv)
+{
+  Seek(aTime, SeekTarget::PrevSyncPoint, aRv);
+}
+
+void
 HTMLMediaElement::SetCurrentTime(double aCurrentTime, ErrorResult& aRv)
 {
-  MOZ_ASSERT(aCurrentTime == aCurrentTime);
+  Seek(aCurrentTime, SeekTarget::Accurate, aRv);
+}
+
+
+
+
+
+
+
+
+
+static nsresult
+IsInRanges(dom::TimeRanges& aRanges,
+           double aValue,
+           bool& aIsInRanges,
+           int32_t& aIntervalIndex)
+{
+  aIsInRanges = false;
+  uint32_t length;
+  nsresult rv = aRanges.GetLength(&length);
+  NS_ENSURE_SUCCESS(rv, rv);
+  for (uint32_t i = 0; i < length; i++) {
+    double start, end;
+    rv = aRanges.Start(i, &start);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (start > aValue) {
+      aIntervalIndex = i - 1;
+      return NS_OK;
+    }
+    rv = aRanges.End(i, &end);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (aValue <= end) {
+      aIntervalIndex = i;
+      aIsInRanges = true;
+      return NS_OK;
+    }
+  }
+  aIntervalIndex = length - 1;
+  return NS_OK;
+}
+
+void
+HTMLMediaElement::Seek(double aTime,
+                       SeekTarget::Type aSeekType,
+                       ErrorResult& aRv)
+{
+  
+  MOZ_ASSERT(aTime == aTime);
 
   StopSuspendingAfterFirstFrame();
 
@@ -1350,34 +1403,98 @@ HTMLMediaElement::SetCurrentTime(double aCurrentTime, ErrorResult& aRv)
     if (mCurrentPlayRangeStart != rangeEndTime) {
       mPlayed->Add(mCurrentPlayRangeStart, rangeEndTime);
     }
+    
+    
+    mCurrentPlayRangeStart = -1.0;
   }
 
   if (!mDecoder) {
-    LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no decoder", this, aCurrentTime));
+    LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no decoder", this, aTime));
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
   if (mReadyState == nsIDOMHTMLMediaElement::HAVE_NOTHING) {
-    LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no source", this, aCurrentTime));
+    LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no source", this, aTime));
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
   
-  double clampedTime = std::max(0.0, aCurrentTime);
-  double duration = mDecoder->GetDuration();
-  if (duration >= 0) {
-    clampedTime = std::min(clampedTime, duration);
+  dom::TimeRanges seekable;
+  if (NS_FAILED(mDecoder->GetSeekable(&seekable))) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
   }
+  uint32_t length = 0;
+  seekable.GetLength(&length);
+  if (!length) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  int32_t range = 0;
+  bool isInRange = false;
+  if (NS_FAILED(IsInRanges(seekable, aTime, isInRange, range))) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+  if (!isInRange) {
+    if (range != -1) {
+      
+      
+      if (uint32_t(range + 1) < length) {
+        double leftBound, rightBound;
+        if (NS_FAILED(seekable.End(range, &leftBound))) {
+          aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+          return;
+        }
+        if (NS_FAILED(seekable.Start(range + 1, &rightBound))) {
+          aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+          return;
+        }
+        double distanceLeft = Abs(leftBound - aTime);
+        double distanceRight = Abs(rightBound - aTime);
+        if (distanceLeft == distanceRight) {
+          double currentTime = CurrentTime();
+          distanceLeft = Abs(leftBound - currentTime);
+          distanceRight = Abs(rightBound - currentTime);
+        }
+        aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
+      } else {
+        
+        
+        if (NS_FAILED(seekable.End(length - 1, &aTime))) {
+          aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+          return;
+        }
+      }
+    } else {
+      
+      
+      seekable.Start(0, &aTime);
+    }
+  }
+
+  
+  
+  
+  
+  
+  
 
   mPlayingBeforeSeek = IsPotentiallyPlaying();
   
   
-  LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) starting seek", this, aCurrentTime));
-  aRv = mDecoder->Seek(clampedTime);
-  
-  mCurrentPlayRangeStart = mDecoder->GetCurrentTime();
+  LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) starting seek", this, aTime));
+  nsresult rv = mDecoder->Seek(aTime, aSeekType);
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+  }
 
   
   AddRemoveSelfReference();
@@ -3047,6 +3164,9 @@ void HTMLMediaElement::SeekCompleted()
   AddRemoveSelfReference();
   if (mTextTrackManager) {
     mTextTrackManager->DidSeek();
+  }
+  if (mCurrentPlayRangeStart == -1.0) {
+    mCurrentPlayRangeStart = CurrentTime();
   }
 }
 
