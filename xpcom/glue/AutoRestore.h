@@ -9,6 +9,7 @@
 #define mozilla_AutoRestore_h_
 
 #include "mozilla/GuardObjects.h"
+#include "nscore.h" 
 
 namespace mozilla {
 
