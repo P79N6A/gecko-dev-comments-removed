@@ -218,9 +218,9 @@ var PrintUtils = {
 
     
     
-    var docShell = originalWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIWebNavigation)
-                                 .QueryInterface(Ci.nsIDocShell);
+    var docShell = originalWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                 .getInterface(Components.interfaces.nsIWebNavigation)
+                                 .QueryInterface(Components.interfaces.nsIDocShell);
     docShell.isActive = true;
 
     
