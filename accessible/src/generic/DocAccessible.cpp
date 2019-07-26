@@ -1587,6 +1587,11 @@ DocAccessible::ProcessLoad()
 {
   mLoadState |= eCompletelyLoaded;
 
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eDocLoad))
+    logging::DocCompleteLoad(this, IsLoadEventTarget());
+#endif
+
   
   
   
@@ -2072,25 +2077,31 @@ bool
 DocAccessible::IsLoadEventTarget() const
 {
   nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
-    do_QueryInterface(container);
-  NS_ASSERTION(docShellTreeItem, "No document shell for document!");
+  nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(container);
+  NS_ASSERTION(treeItem, "No document shell for document!");
 
   nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-  docShellTreeItem->GetParent(getter_AddRefs(parentTreeItem));
+  treeItem->GetParent(getter_AddRefs(parentTreeItem));
 
   
-  
-  
-  
   if (parentTreeItem) {
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
+    treeItem->GetRootTreeItem(getter_AddRefs(rootTreeItem));
+    if (parentTreeItem == rootTreeItem)
+      return true;
+
+    
+    
+    
     DocAccessible* parentDoc = ParentDocument();
     return parentDoc && parentDoc->HasLoadState(eCompletelyLoaded);
   }
 
   
   int32_t contentType;
-  docShellTreeItem->GetItemType(&contentType);
+  treeItem->GetItemType(&contentType);
   return (contentType == nsIDocShellTreeItem::typeContent);
 }
 
