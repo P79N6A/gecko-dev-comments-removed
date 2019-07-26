@@ -728,8 +728,10 @@ nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void*
   }
 
   
+  
+  
   if (!endOfData || startOfData >= endOfData || 
-      endOfData > *outDataLen) {
+      static_cast<uint32_t>(endOfData) > *outDataLen) {
     return false;
   }
   
