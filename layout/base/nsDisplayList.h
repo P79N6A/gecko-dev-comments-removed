@@ -2601,43 +2601,7 @@ public:
 
 
 
-class nsDisplayFixedPosition : public nsDisplayOwnLayer {
-public:
-  nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                         nsIFrame* aFixedPosFrame, nsDisplayList* aList);
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayFixedPosition();
-#endif
-
-  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager,
-                                             const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE;
-  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager,
-                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
-  {
-    return mozilla::LAYER_ACTIVE;
-  }
-  virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) MOZ_OVERRIDE;
-
-  NS_DISPLAY_DECL_NAME("FixedPosition", TYPE_FIXED_POSITION)
-
-  static void SetFixedPositionLayerData(Layer* aLayer, const nsIFrame* aViewportFrame,
-                                        nsSize aViewportSize,
-                                        const nsIFrame* aFixedPosFrame,
-                                        const nsIFrame* aReferenceFrame,
-                                        nsPresContext* aPresContext,
-                                        const ContainerLayerParameters& aContainerParameters);
-protected:
-  nsIFrame* mFixedPosFrame;
-};
-
-
-
-
-
-
-class nsDisplayStickyPosition : public nsDisplayFixedPosition {
+class nsDisplayStickyPosition : public nsDisplayOwnLayer {
 public:
   nsDisplayStickyPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                           nsIFrame* aStickyPosFrame, nsDisplayList* aList);
@@ -2648,6 +2612,17 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE;
+  NS_DISPLAY_DECL_NAME("StickyPosition", TYPE_STICKY_POSITION)
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager,
+                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
+  {
+    return mozilla::LAYER_ACTIVE;
+  }
+  virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) MOZ_OVERRIDE;
+
+protected:
+  nsIFrame* mStickyPosFrame;
 };
 
 
