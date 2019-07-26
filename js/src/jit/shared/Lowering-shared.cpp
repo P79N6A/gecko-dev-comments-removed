@@ -74,49 +74,51 @@ LIRGeneratorShared::getRecoverInfo(MResumePoint *rp)
 LSnapshot *
 LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind)
 {
-    LRecoverInfo *recover = getRecoverInfo(rp);
-    if (!recover)
+    LRecoverInfo *recoverInfo = getRecoverInfo(rp);
+    if (!recoverInfo)
         return nullptr;
 
-    LSnapshot *snapshot = LSnapshot::New(gen, recover, kind);
+    LSnapshot *snapshot = LSnapshot::New(gen, recoverInfo, kind);
     if (!snapshot)
         return nullptr;
 
-    size_t i = 0;
-    for (MResumePoint **it = recover->begin(), **end = recover->end(); it != end; ++it) {
-        MResumePoint *mir = *it;
-        for (size_t j = 0, e = mir->numOperands(); j < e; ++i, ++j) {
-            MDefinition *ins = mir->getOperand(j);
+    size_t index = 0;
+    LRecoverInfo::OperandIter it(recoverInfo->begin());
+    LRecoverInfo::OperandIter end(recoverInfo->end());
+    for (; it != end; ++it) {
+        MDefinition *ins = *it;
+        if (ins->isRecoveredOnBailout())
+            continue;
 
-            LAllocation *type = snapshot->typeOfSlot(i);
-            LAllocation *payload = snapshot->payloadOfSlot(i);
+        LAllocation *type = snapshot->typeOfSlot(index);
+        LAllocation *payload = snapshot->payloadOfSlot(index);
+        ++index;
 
-            if (ins->isBox())
-                ins = ins->toBox()->getOperand(0);
+        if (ins->isBox())
+            ins = ins->toBox()->getOperand(0);
 
-            
-            JS_ASSERT_IF(ins->isUnused(), !ins->isGuard());
+        
+        JS_ASSERT_IF(ins->isUnused(), !ins->isGuard());
 
-            
-            
-            
-            JS_ASSERT_IF(!ins->isConstant(), !ins->isEmittedAtUses());
+        
+        
+        
+        JS_ASSERT_IF(!ins->isConstant(), !ins->isEmittedAtUses());
 
-            
-            
-            
-            
-            
-            if (ins->isConstant() || ins->isUnused()) {
-                *type = LConstantIndex::Bogus();
-                *payload = LConstantIndex::Bogus();
-            } else if (ins->type() != MIRType_Value) {
-                *type = LConstantIndex::Bogus();
-                *payload = use(ins, LUse::KEEPALIVE);
-            } else {
-                *type = useType(ins, LUse::KEEPALIVE);
-                *payload = usePayload(ins, LUse::KEEPALIVE);
-            }
+        
+        
+        
+        
+        
+        if (ins->isConstant() || ins->isUnused()) {
+            *type = LConstantIndex::Bogus();
+            *payload = LConstantIndex::Bogus();
+        } else if (ins->type() != MIRType_Value) {
+            *type = LConstantIndex::Bogus();
+            *payload = use(ins, LUse::KEEPALIVE);
+        } else {
+            *type = useType(ins, LUse::KEEPALIVE);
+            *payload = usePayload(ins, LUse::KEEPALIVE);
         }
     }
 
@@ -128,40 +130,42 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
 LSnapshot *
 LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind)
 {
-    LRecoverInfo *recover = getRecoverInfo(rp);
-    if (!recover)
+    LRecoverInfo *recoverInfo = getRecoverInfo(rp);
+    if (!recoverInfo)
         return nullptr;
 
-    LSnapshot *snapshot = LSnapshot::New(gen, recover, kind);
+    LSnapshot *snapshot = LSnapshot::New(gen, recoverInfo, kind);
     if (!snapshot)
         return nullptr;
 
-    size_t i = 0;
-    for (MResumePoint **it = recover->begin(), **end = recover->end(); it != end; ++it) {
-        MResumePoint *mir = *it;
-        for (size_t j = 0, e = mir->numOperands(); j < e; ++i, ++j) {
-            MDefinition *def = mir->getOperand(j);
+    size_t index = 0;
+    LRecoverInfo::OperandIter it(recoverInfo->begin());
+    LRecoverInfo::OperandIter end(recoverInfo->end());
+    for (; it != end; ++it) {
+        MDefinition *def = *it;
 
-            if (def->isBox())
-                def = def->toBox()->getOperand(0);
+        if (def->isRecoveredOnBailout())
+            continue;
 
-            
-            JS_ASSERT_IF(def->isUnused(), !def->isGuard());
+        if (def->isBox())
+            def = def->toBox()->getOperand(0);
 
-            
-            
-            
-            JS_ASSERT_IF(!def->isConstant(), !def->isEmittedAtUses());
+        
+        JS_ASSERT_IF(def->isUnused(), !def->isGuard());
 
-            LAllocation *a = snapshot->getEntry(i);
+        
+        
+        
+        JS_ASSERT_IF(!def->isConstant(), !def->isEmittedAtUses());
 
-            if (def->isUnused()) {
-                *a = LConstantIndex::Bogus();
-                continue;
-            }
+        LAllocation *a = snapshot->getEntry(index++);
 
-            *a = useKeepaliveOrConstant(def);
+        if (def->isUnused()) {
+            *a = LConstantIndex::Bogus();
+            continue;
         }
+
+        *a = useKeepaliveOrConstant(def);
     }
 
     return snapshot;

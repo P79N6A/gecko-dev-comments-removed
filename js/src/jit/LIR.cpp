@@ -111,11 +111,16 @@ LBlock::getExitMoveGroup(TempAllocator &alloc)
 }
 
 static size_t
-TotalOperandCount(MResumePoint *mir)
+TotalOperandCount(LRecoverInfo *recoverInfo)
 {
-    size_t accum = mir->numOperands();
-    while ((mir = mir->caller()))
-        accum += mir->numOperands();
+    LRecoverInfo::OperandIter it(recoverInfo->begin());
+    LRecoverInfo::OperandIter end(recoverInfo->end());
+    size_t accum = 0;
+
+    for (; it != end; ++it) {
+        if (!it->isRecoveredOnBailout())
+            accum++;
+    }
     return accum;
 }
 
@@ -138,27 +143,70 @@ LRecoverInfo::New(MIRGenerator *gen, MResumePoint *mir)
 }
 
 bool
+LRecoverInfo::appendOperands(MNode *ins)
+{
+    for (size_t i = 0, end = ins->numOperands(); i < end; i++) {
+        MDefinition *def = ins->getOperand(i);
+
+        
+        
+        
+        
+        if (def->isRecoveredOnBailout() && !def->isInWorklist()) {
+            if (!appendDefinition(def))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+LRecoverInfo::appendDefinition(MDefinition *def)
+{
+    MOZ_ASSERT(def->isRecoveredOnBailout());
+    def->setInWorklist();
+    if (!appendOperands(def))
+        return false;
+    return instructions_.append(def);
+}
+
+bool
+LRecoverInfo::appendResumePoint(MResumePoint *rp)
+{
+    if (rp->caller() && !appendResumePoint(rp->caller()))
+        return false;
+
+    if (!appendOperands(rp))
+        return false;
+
+    return instructions_.append(rp);
+}
+
+bool
 LRecoverInfo::init(MResumePoint *rp)
 {
-    MResumePoint *it = rp;
+    
+    
+    
+    
+    if (!appendResumePoint(rp))
+        return false;
 
     
-    
-    
-    
-    do {
-        if (!instructions_.append(it))
-            return false;
-        it = it->caller();
-    } while (it);
+    for (MNode **it = begin(); it != end(); it++) {
+        if (!(*it)->isDefinition())
+            continue;
 
-    Reverse(instructions_.begin(), instructions_.end());
+        (*it)->toDefinition()->setNotInWorklist();
+    }
+
     MOZ_ASSERT(mir() == rp);
     return true;
 }
 
 LSnapshot::LSnapshot(LRecoverInfo *recoverInfo, BailoutKind kind)
-  : numSlots_(TotalOperandCount(recoverInfo->mir()) * BOX_PIECES),
+  : numSlots_(TotalOperandCount(recoverInfo) * BOX_PIECES),
     slots_(nullptr),
     recoverInfo_(recoverInfo),
     snapshotOffset_(INVALID_SNAPSHOT_OFFSET),

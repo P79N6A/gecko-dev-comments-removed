@@ -879,7 +879,7 @@ class LCallInstructionHelper : public LInstructionHelper<Defs, Operands, Temps>
 class LRecoverInfo : public TempObject
 {
   public:
-    typedef Vector<MResumePoint *, 2, IonAllocPolicy> Instructions;
+    typedef Vector<MNode *, 2, IonAllocPolicy> Instructions;
 
   private:
     
@@ -892,12 +892,17 @@ class LRecoverInfo : public TempObject
     LRecoverInfo(TempAllocator &alloc);
     bool init(MResumePoint *mir);
 
+    
+    
+    bool appendOperands(MNode *ins);
+    bool appendDefinition(MDefinition *def);
+    bool appendResumePoint(MResumePoint *rp);
   public:
     static LRecoverInfo *New(MIRGenerator *gen, MResumePoint *mir);
 
     
     MResumePoint *mir() const {
-        return instructions_.back();
+        return instructions_.back()->toResumePoint();
     }
     RecoverOffset recoverOffset() const {
         return recoverOffset_;
@@ -907,12 +912,47 @@ class LRecoverInfo : public TempObject
         recoverOffset_ = offset;
     }
 
-    MResumePoint **begin() {
+    MNode **begin() {
         return instructions_.begin();
     }
-    MResumePoint **end() {
+    MNode **end() {
         return instructions_.end();
     }
+    size_t numInstructions() const {
+        return instructions_.length();
+    }
+
+    class OperandIter
+    {
+      private:
+        MNode **it_;
+        size_t op_;
+
+      public:
+        OperandIter(MNode **it)
+          : it_(it), op_(0)
+        { }
+
+        MDefinition *operator *() {
+            return (*it_)->getOperand(op_);
+        }
+        MDefinition *operator ->() {
+            return (*it_)->getOperand(op_);
+        }
+
+        OperandIter &operator ++() {
+            ++op_;
+            if (op_ == (*it_)->numOperands()) {
+                op_ = 0;
+                ++it_;
+            }
+            return *this;
+        }
+
+        bool operator !=(const OperandIter &where) const {
+            return it_ != where.it_ || op_ != where.op_;
+        }
+    };
 };
 
 

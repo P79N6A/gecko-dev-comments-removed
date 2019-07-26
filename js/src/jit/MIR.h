@@ -89,7 +89,14 @@ MIRType MIRTypeFromValue(const js::Value &vp)
 
 
                                                                          \
-    _(UseRemoved)
+    _(UseRemoved)                                                               \
+                                                                                \
+    
+
+
+
+                                                                         \
+    _(RecoveredOnBailout)
 
 class MDefinition;
 class MInstruction;
