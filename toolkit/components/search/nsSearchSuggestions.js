@@ -189,6 +189,14 @@ SuggestAutoComplete.prototype = {
   
 
 
+
+
+
+  _historyLimit: 7,
+
+  
+
+
   _reset: function SAC_reset() {
     
     
@@ -319,7 +327,8 @@ SuggestAutoComplete.prototype = {
     if (this._includeFormHistory && this._formHistoryResult &&
         (this._formHistoryResult.searchResult ==
          Ci.nsIAutoCompleteResult.RESULT_SUCCESS)) {
-      for (var i = 0; i < this._formHistoryResult.matchCount; ++i) {
+      var maxHistoryItems = Math.min(this._formHistoryResult.matchCount, this._historyLimit);
+      for (var i = 0; i < maxHistoryItems; ++i) {
         var term = this._formHistoryResult.getValueAt(i);
 
         
