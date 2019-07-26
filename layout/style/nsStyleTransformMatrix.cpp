@@ -180,12 +180,14 @@ ProcessInterpolateMatrix(gfx3DMatrix& aMatrix,
   }
   double progress = aData->Item(3).GetPercentValue();
 
-  aMatrix = nsStyleAnimation::InterpolateTransformMatrix(matrix1, matrix2, progress) * aMatrix;
+  aMatrix =
+    StyleAnimationValue::InterpolateTransformMatrix(matrix1, matrix2, progress)
+    * aMatrix;
 }
 
 
 static void
-ProcessTranslateX(gfx3DMatrix& aMatrix, 
+ProcessTranslateX(gfx3DMatrix& aMatrix,
                   const nsCSSValue::Array* aData,
                   nsStyleContext* aContext,
                   nsPresContext* aPresContext,

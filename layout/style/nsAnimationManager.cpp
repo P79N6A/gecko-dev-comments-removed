@@ -602,14 +602,14 @@ nsAnimationManager::BuildSegment(InfallibleTArray<AnimationPropertySegment>&
                                  mozilla::css::Declaration* aFromDeclaration,
                                  float aToKey, nsStyleContext* aToContext)
 {
-  nsStyleAnimation::Value fromValue, toValue, dummyValue;
+  StyleAnimationValue fromValue, toValue, dummyValue;
   if (!ExtractComputedValueForTransition(aProperty, aFromContext, fromValue) ||
       !ExtractComputedValueForTransition(aProperty, aToContext, toValue) ||
       
       
       
-      !nsStyleAnimation::Interpolate(aProperty, fromValue, toValue,
-                                    0.5, dummyValue)) {
+      !StyleAnimationValue::Interpolate(aProperty, fromValue, toValue,
+                                        0.5, dummyValue)) {
     return false;
   }
 

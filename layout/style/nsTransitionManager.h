@@ -33,7 +33,7 @@ struct ElementPropertyTransition : public mozilla::ElementAnimation
   
   
   
-  nsStyleAnimation::Value mStartForReversingTest;
+  mozilla::StyleAnimationValue mStartForReversingTest;
   
   
   
