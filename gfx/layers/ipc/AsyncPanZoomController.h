@@ -361,10 +361,8 @@ protected:
 
 
 
-
-
-  void ScaleWithFocus(const mozilla::CSSToScreenScale& aScale,
-                      const ScreenPoint& aFocus);
+  void ScaleWithFocus(float aScale,
+                      const CSSPoint& aFocus);
 
   
 

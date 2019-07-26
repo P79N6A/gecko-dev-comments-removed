@@ -155,7 +155,7 @@ public:
 
 
 
-  Overscroll ScaleWillOverscroll(ScreenToScreenScale aScale, float aFocus);
+  Overscroll ScaleWillOverscroll(float aScale, float aFocus);
 
   
 
@@ -165,7 +165,7 @@ public:
 
 
 
-  float ScaleWillOverscrollAmount(ScreenToScreenScale aScale, float aFocus);
+  float ScaleWillOverscrollAmount(float aScale, float aFocus);
 
   
 
@@ -174,7 +174,7 @@ public:
 
 
 
-  bool ScaleWillOverscrollBothSides(ScreenToScreenScale aScale);
+  bool ScaleWillOverscrollBothSides(float aScale);
 
   float GetOrigin();
   float GetCompositionLength();

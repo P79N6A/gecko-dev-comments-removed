@@ -602,7 +602,7 @@ nsEventStatus AsyncPanZoomController::OnScaleBegin(const PinchGestureInput& aEve
   }
 
   SetState(PINCHING);
-  mLastZoomFocus = aEvent.mFocusPoint;
+  mLastZoomFocus = aEvent.mFocusPoint - mFrameMetrics.mCompositionBounds.TopLeft();
 
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -619,13 +619,14 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     return nsEventStatus_eConsumeNoDefault;
   }
 
-  ScreenToScreenScale spanRatio(aEvent.mCurrentSpan / aEvent.mPreviousSpan);
+  float spanRatio = aEvent.mCurrentSpan / aEvent.mPreviousSpan;
 
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
 
     CSSToScreenScale userZoom = mFrameMetrics.mZoom;
-    ScreenPoint focusPoint = aEvent.mFocusPoint;
+    ScreenPoint focusPoint = aEvent.mFocusPoint - mFrameMetrics.mCompositionBounds.TopLeft();
+    CSSPoint cssFocusPoint = focusPoint / userZoom;
 
     CSSPoint focusChange = (mLastZoomFocus - focusPoint) / userZoom;
     
@@ -641,23 +642,23 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     
     
     
-    gfx::Point neededDisplacement;
+    CSSPoint neededDisplacement;
 
-    bool doScale = (spanRatio > ScreenToScreenScale(1.0) && userZoom < mMaxZoom) ||
-                   (spanRatio < ScreenToScreenScale(1.0) && userZoom > mMinZoom);
+    bool doScale = (spanRatio > 1.0 && userZoom < mMaxZoom) ||
+                   (spanRatio < 1.0 && userZoom > mMinZoom);
 
     if (doScale) {
-      spanRatio.scale = clamped(spanRatio.scale,
-                                mMinZoom.scale / userZoom.scale,
-                                mMaxZoom.scale / userZoom.scale);
+      spanRatio = clamped(spanRatio,
+                          mMinZoom.scale / userZoom.scale,
+                          mMaxZoom.scale / userZoom.scale);
 
-      switch (mX.ScaleWillOverscroll(spanRatio, focusPoint.x))
+      switch (mX.ScaleWillOverscroll(spanRatio, cssFocusPoint.x))
       {
         case Axis::OVERSCROLL_NONE:
           break;
         case Axis::OVERSCROLL_MINUS:
         case Axis::OVERSCROLL_PLUS:
-          neededDisplacement.x = -mX.ScaleWillOverscrollAmount(spanRatio, focusPoint.x);
+          neededDisplacement.x = -mX.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.x);
           break;
         case Axis::OVERSCROLL_BOTH:
           
@@ -670,13 +671,13 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     }
 
     if (doScale) {
-      switch (mY.ScaleWillOverscroll(spanRatio, focusPoint.y))
+      switch (mY.ScaleWillOverscroll(spanRatio, cssFocusPoint.y))
       {
         case Axis::OVERSCROLL_NONE:
           break;
         case Axis::OVERSCROLL_MINUS:
         case Axis::OVERSCROLL_PLUS:
-          neededDisplacement.y = -mY.ScaleWillOverscrollAmount(spanRatio, focusPoint.y);
+          neededDisplacement.y = -mY.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.y);
           break;
         case Axis::OVERSCROLL_BOTH:
           doScale = false;
@@ -685,10 +686,10 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     }
 
     if (doScale) {
-      ScaleWithFocus(userZoom * spanRatio, focusPoint);
+      ScaleWithFocus(spanRatio, cssFocusPoint);
 
-      if (neededDisplacement != gfx::Point()) {
-        ScrollBy(CSSPoint::FromUnknownPoint(neededDisplacement));
+      if (neededDisplacement != CSSPoint()) {
+        ScrollBy(neededDisplacement);
       }
 
       ScheduleComposite();
@@ -977,19 +978,14 @@ void AsyncPanZoomController::ScrollBy(const CSSPoint& aOffset) {
   mFrameMetrics.mScrollOffset += aOffset;
 }
 
-void AsyncPanZoomController::ScaleWithFocus(const CSSToScreenScale& aZoom,
-                                            const ScreenPoint& aFocus) {
-  ScreenToScreenScale zoomFactor(aZoom.scale / mFrameMetrics.mZoom.scale);
-  CSSToScreenScale resolution = mFrameMetrics.mZoom;
-
-  SetZoomAndResolution(aZoom);
-
+void AsyncPanZoomController::ScaleWithFocus(float aScale,
+                                            const CSSPoint& aFocus) {
+  SetZoomAndResolution(CSSToScreenScale(mFrameMetrics.mZoom.scale * aScale));
   
   
-  if (resolution.scale >= 0.01f) {
-    zoomFactor.scale -= 1.0;
-    mFrameMetrics.mScrollOffset += aFocus * zoomFactor / resolution;
-  }
+  
+  
+  mFrameMetrics.mScrollOffset = (mFrameMetrics.mScrollOffset + aFocus) - (aFocus / aScale);
 }
 
 bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aSkateSizeMultiplier,
