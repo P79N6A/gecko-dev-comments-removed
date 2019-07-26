@@ -85,6 +85,7 @@ public class GLController {
 
     synchronized void surfaceDestroyed() {
         ThreadUtils.assertOnUiThread();
+        Log.w(LOGTAG, "GLController::surfaceDestroyed() with mCompositorCreated=" + mCompositorCreated);
 
         mSurfaceValid = false;
         mEGLSurface = null;
@@ -100,10 +101,12 @@ public class GLController {
         if (mCompositorCreated) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
         }
+        Log.w(LOGTAG, "done GLController::surfaceDestroyed()");
     }
 
     synchronized void surfaceChanged(int newWidth, int newHeight) {
         ThreadUtils.assertOnUiThread();
+        Log.w(LOGTAG, "GLController::surfaceChanged(" + newWidth + ", " + newHeight + ") with mSurfaceValid=" + mSurfaceValid);
 
         mWidth = newWidth;
         mHeight = newHeight;
@@ -113,6 +116,7 @@ public class GLController {
             
             
             resumeCompositor(mWidth, mHeight);
+            Log.w(LOGTAG, "done GLController::surfaceChanged with compositor resume");
             return;
         }
         mSurfaceValid = true;
@@ -130,6 +134,7 @@ public class GLController {
         mView.post(new Runnable() {
             @Override
             public void run() {
+                Log.w(LOGTAG, "GLController::surfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mSurfaceValid=" + mSurfaceValid);
                 
                 
                 
@@ -171,12 +176,14 @@ public class GLController {
 
     void createCompositor() {
         ThreadUtils.assertOnUiThread();
+        Log.w(LOGTAG, "GLController::createCompositor with mCompositorCreated=" + mCompositorCreated);
 
         if (mCompositorCreated) {
             
             
             
             resumeCompositor(mWidth, mHeight);
+            Log.w(LOGTAG, "done GLController::createCompositor with compositor resume");
             return;
         }
 
@@ -187,9 +194,11 @@ public class GLController {
         if (mEGLSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorCreateEvent(mWidth, mHeight));
         }
+        Log.w(LOGTAG, "done GLController::createCompositor");
     }
 
     void compositorCreated() {
+        Log.w(LOGTAG, "GLController::compositorCreated");
         
         
         mCompositorCreated = true;
@@ -263,6 +272,7 @@ public class GLController {
     }
 
     void resumeCompositor(int width, int height) {
+        Log.w(LOGTAG, "GLController::resumeCompositor(" + width + ", " + height + ") and mCompositorCreated=" + mCompositorCreated);
         
         
         
@@ -273,6 +283,7 @@ public class GLController {
             GeckoAppShell.scheduleResumeComposition(width, height);
             GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
         }
+        Log.w(LOGTAG, "done GLController::resumeCompositor");
     }
 
     public static class GLControllerException extends RuntimeException {
