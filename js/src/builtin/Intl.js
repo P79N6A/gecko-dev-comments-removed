@@ -1826,3 +1826,162 @@ function BestFitFormatMatcher(options, formats) {
     
     return BasicFormatMatcher(options, formats);
 }
+
+
+
+
+
+
+
+
+
+function Intl_DateTimeFormat_supportedLocalesOf(locales ) {
+    var options = arguments.length > 1 ? arguments[1] : undefined;
+
+    var availableLocales = dateTimeFormatInternalProperties.availableLocales;
+    var requestedLocales = CanonicalizeLocaleList(locales);
+    return SupportedLocales(availableLocales, requestedLocales, options);
+}
+
+
+
+
+
+
+
+var dateTimeFormatInternalProperties = {
+    localeData: dateTimeFormatLocaleData,
+    availableLocales: runtimeAvailableLocales, 
+    relevantExtensionKeys: ["ca", "nu"]
+};
+
+
+function dateTimeFormatLocaleData(locale) {
+    
+    var localeData = {
+        ca: ["gregory"],
+        nu: ["latn"],
+        hour12: false,
+        hourNo0: false
+    };
+
+    var formatDate = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+    };
+    var formatTime = {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric"
+    };
+    var formatFull = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric"
+    };
+    localeData.formats = [formatDate, formatTime, formatFull];
+
+    return localeData;
+}
+
+
+
+
+
+
+
+function dateTimeFormatFormatToBind() {
+    
+    var date = arguments.length > 0 ? arguments[0] : undefined;
+    var x = (date === undefined) ? std_Date_now() : ToNumber(date);
+
+    
+    return FormatDateTime(this, x);
+}
+
+
+
+
+
+
+
+
+
+function Intl_DateTimeFormat_format_get() {
+    
+    var internals = checkIntlAPIObject(this, "DateTimeFormat", "format");
+
+    
+    if (internals.boundFormat === undefined) {
+        
+        var F = dateTimeFormatFormatToBind;
+
+        
+        var bf = callFunction(std_Function_bind, F, this);
+        internals.boundFormat = bf;
+    }
+
+    
+    return internals.boundFormat;
+}
+
+
+
+
+
+
+
+
+
+function FormatDateTime(dateTimeFormat, x) {
+    
+    if (!std_isFinite(x))
+        ThrowError(JSMSG_DATE_NOT_FINITE);
+    var X = new Std_Date(x);
+    var internals = getInternals(dateTimeFormat);
+    var wantDate = callFunction(std_Object_hasOwnProperty, internals, "weekday") ||
+        callFunction(std_Object_hasOwnProperty, internals, "year") ||
+        callFunction(std_Object_hasOwnProperty, internals, "month") ||
+        callFunction(std_Object_hasOwnProperty, internals, "day");
+    var wantTime = callFunction(std_Object_hasOwnProperty, internals, "hour") ||
+        callFunction(std_Object_hasOwnProperty, internals, "minute") ||
+        callFunction(std_Object_hasOwnProperty, internals, "second");
+    if (wantDate) {
+        if (wantTime)
+            return X.toLocaleString();
+        return X.toLocaleDateString();
+    }
+    return X.toLocaleTimeString();
+}
+
+
+
+
+
+
+
+function Intl_DateTimeFormat_resolvedOptions() {
+    
+    var internals = checkIntlAPIObject(this, "DateTimeFormat", "resolvedOptions");
+
+    var result = {
+        locale: internals.locale,
+        calendar: internals.calendar,
+        numberingSystem: internals.numberingSystem,
+        timeZone: internals.timeZone
+    };
+    for (var i = 0; i < dateTimeComponents.length; i++) {
+        var p = dateTimeComponents[i];
+        if (callFunction(std_Object_hasOwnProperty, internals, p))
+            defineProperty(result, p, internals[p]);
+    }
+    if (callFunction(std_Object_hasOwnProperty, internals, "hour12"))
+        defineProperty(result, "hour12", internals.hour12);
+    return result;
+}
