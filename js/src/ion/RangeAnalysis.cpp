@@ -85,11 +85,6 @@ using mozilla::IsNegative;
 
 
 
-RangeAnalysis::RangeAnalysis(MIRGraph &graph)
-  : graph_(graph)
-{
-}
-
 static bool
 IsDominatedUse(MBasicBlock *block, MUse *use)
 {
