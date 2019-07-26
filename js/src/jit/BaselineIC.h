@@ -4360,17 +4360,15 @@ class ICGetPropNativeCompiler : public ICStubCompiler
     }
 };
 
-
 class ICGetPropCallGetter : public ICMonitoredStub
 {
     friend class ICStubSpace;
 
   protected:
     
-    HeapPtrShape shape_;
-
     
     HeapPtrObject holder_;
+
     HeapPtrShape holderShape_;
 
     
@@ -4379,14 +4377,10 @@ class ICGetPropCallGetter : public ICMonitoredStub
     
     uint32_t pcOffset_;
 
-    ICGetPropCallGetter(Kind kind, JitCode *stubCode, ICStub *firstMonitorStub,
-                         HandleShape shape, HandleObject holder, HandleShape holderShape,
-                         HandleFunction getter, uint32_t pcOffset);
+    ICGetPropCallGetter(Kind kind, JitCode *stubCode, ICStub *firstMonitorStub, HandleObject holder,
+                        HandleShape holderShape, HandleFunction getter, uint32_t pcOffset);
 
   public:
-    HeapPtrShape &shape() {
-        return shape_;
-    }
     HeapPtrObject &holder() {
         return holder_;
     }
@@ -4397,9 +4391,6 @@ class ICGetPropCallGetter : public ICMonitoredStub
         return getter_;
     }
 
-    static size_t offsetOfShape() {
-        return offsetof(ICGetPropCallGetter, shape_);
-    }
     static size_t offsetOfHolder() {
         return offsetof(ICGetPropCallGetter, holder_);
     }
@@ -4416,17 +4407,15 @@ class ICGetPropCallGetter : public ICMonitoredStub
     class Compiler : public ICStubCompiler {
       protected:
         ICStub *firstMonitorStub_;
-        RootedObject obj_;
         RootedObject holder_;
         RootedFunction getter_;
         uint32_t pcOffset_;
 
       public:
         Compiler(JSContext *cx, ICStub::Kind kind, ICStub *firstMonitorStub,
-                 HandleObject obj, HandleObject holder, HandleFunction getter, uint32_t pcOffset)
+                 HandleObject holder, HandleFunction getter, uint32_t pcOffset)
           : ICStubCompiler(cx, kind),
             firstMonitorStub_(firstMonitorStub),
-            obj_(cx, obj),
             holder_(cx, holder),
             getter_(cx, getter),
             pcOffset_(pcOffset)
@@ -4437,93 +4426,135 @@ class ICGetPropCallGetter : public ICMonitoredStub
 };
 
 
-class ICGetProp_CallScripted : public ICGetPropCallGetter
+
+class ICGetPropCallPrototypeGetter : public ICGetPropCallGetter
+{
+    friend class ICStubSpace;
+
+  protected:
+    
+    HeapPtrShape receiverShape_;
+
+    ICGetPropCallPrototypeGetter(Kind kind, JitCode *stubCode, ICStub *firstMonitorStub,
+                                 HandleShape receiverShape,
+                                 HandleObject holder, HandleShape holderShape,
+                                 HandleFunction getter, uint32_t pcOffset);
+
+  public:
+    HeapPtrShape &receiverShape() {
+        return receiverShape_;
+    }
+
+    static size_t offsetOfReceiverShape() {
+        return offsetof(ICGetPropCallPrototypeGetter, receiverShape_);
+    }
+
+    class Compiler : public ICGetPropCallGetter::Compiler {
+      protected:
+        RootedObject receiver_;
+
+      public:
+        Compiler(JSContext *cx, ICStub::Kind kind, ICStub *firstMonitorStub,
+                 HandleObject obj, HandleObject holder, HandleFunction getter, uint32_t pcOffset)
+          : ICGetPropCallGetter::Compiler(cx, kind, firstMonitorStub, holder, getter, pcOffset),
+            receiver_(cx, obj)
+        {
+            JS_ASSERT(kind == ICStub::GetProp_CallScripted || kind == ICStub::GetProp_CallNative);
+        }
+    };
+};
+
+
+
+class ICGetProp_CallScripted : public ICGetPropCallPrototypeGetter
 {
     friend class ICStubSpace;
 
   protected:
     ICGetProp_CallScripted(JitCode *stubCode, ICStub *firstMonitorStub,
-                           HandleShape shape, HandleObject holder, HandleShape holderShape,
+                           HandleShape receiverShape, HandleObject holder, HandleShape holderShape,
                            HandleFunction getter, uint32_t pcOffset)
-      : ICGetPropCallGetter(GetProp_CallScripted, stubCode, firstMonitorStub,
-                            shape, holder, holderShape, getter, pcOffset)
+      : ICGetPropCallPrototypeGetter(GetProp_CallScripted, stubCode, firstMonitorStub,
+                                     receiverShape, holder, holderShape, getter, pcOffset)
     {}
 
   public:
     static inline ICGetProp_CallScripted *New(
                 ICStubSpace *space, JitCode *code, ICStub *firstMonitorStub,
-                HandleShape shape, HandleObject holder, HandleShape holderShape,
+                HandleShape receiverShape, HandleObject holder, HandleShape holderShape,
                 HandleFunction getter, uint32_t pcOffset)
     {
         if (!code)
             return nullptr;
         return space->allocate<ICGetProp_CallScripted>(code, firstMonitorStub,
-                                                       shape, holder, holderShape, getter,
+                                                       receiverShape, holder, holderShape, getter,
                                                        pcOffset);
     }
 
-    class Compiler : public ICGetPropCallGetter::Compiler {
+    class Compiler : public ICGetPropCallPrototypeGetter::Compiler {
       protected:
         bool generateStubCode(MacroAssembler &masm);
 
       public:
         Compiler(JSContext *cx, ICStub *firstMonitorStub, HandleObject obj,
                  HandleObject holder, HandleFunction getter, uint32_t pcOffset)
-          : ICGetPropCallGetter::Compiler(cx, ICStub::GetProp_CallScripted, firstMonitorStub,
-                                          obj, holder, getter, pcOffset)
+          : ICGetPropCallPrototypeGetter::Compiler(cx, ICStub::GetProp_CallScripted,
+                                                   firstMonitorStub, obj, holder,
+                                                   getter, pcOffset)
         {}
 
         ICStub *getStub(ICStubSpace *space) {
-            RootedShape shape(cx, obj_->lastProperty());
+            RootedShape receiverShape(cx, receiver_->lastProperty());
             RootedShape holderShape(cx, holder_->lastProperty());
-            return ICGetProp_CallScripted::New(space, getStubCode(), firstMonitorStub_, shape,
+            return ICGetProp_CallScripted::New(space, getStubCode(), firstMonitorStub_, receiverShape,
                                                holder_, holderShape, getter_, pcOffset_);
         }
     };
 };
 
 
-class ICGetProp_CallNative : public ICGetPropCallGetter
+class ICGetProp_CallNative : public ICGetPropCallPrototypeGetter
 {
     friend class ICStubSpace;
 
   protected:
     ICGetProp_CallNative(JitCode *stubCode, ICStub *firstMonitorStub,
-                         HandleShape shape, HandleObject holder, HandleShape holderShape,
+                         HandleShape receiverShape, HandleObject holder, HandleShape holderShape,
                          HandleFunction getter, uint32_t pcOffset)
-      : ICGetPropCallGetter(GetProp_CallNative, stubCode, firstMonitorStub,
-                            shape, holder, holderShape, getter, pcOffset)
+      : ICGetPropCallPrototypeGetter(GetProp_CallNative, stubCode, firstMonitorStub,
+                                     receiverShape, holder, holderShape, getter, pcOffset)
     {}
 
   public:
     static inline ICGetProp_CallNative *New(
                 ICStubSpace *space, JitCode *code, ICStub *firstMonitorStub,
-                HandleShape shape, HandleObject holder, HandleShape holderShape,
+                HandleShape receiverShape, HandleObject holder, HandleShape holderShape,
                 HandleFunction getter, uint32_t pcOffset)
     {
         if (!code)
             return nullptr;
         return space->allocate<ICGetProp_CallNative>(code, firstMonitorStub,
-                                                     shape, holder, holderShape, getter,
+                                                     receiverShape, holder, holderShape, getter,
                                                      pcOffset);
     }
 
-    class Compiler : public ICGetPropCallGetter::Compiler {
+    class Compiler : public ICGetPropCallPrototypeGetter::Compiler {
       protected:
         bool generateStubCode(MacroAssembler &masm);
 
       public:
         Compiler(JSContext *cx, ICStub *firstMonitorStub, HandleObject obj,
                  HandleObject holder, HandleFunction getter, uint32_t pcOffset)
-          : ICGetPropCallGetter::Compiler(cx, ICStub::GetProp_CallNative, firstMonitorStub,
-                                          obj, holder, getter, pcOffset)
+          : ICGetPropCallPrototypeGetter::Compiler(cx, ICStub::GetProp_CallNative,
+                                                   firstMonitorStub, obj, holder,
+                                                   getter, pcOffset)
         {}
 
         ICStub *getStub(ICStubSpace *space) {
-            RootedShape shape(cx, obj_->lastProperty());
+            RootedShape receiverShape(cx, receiver_->lastProperty());
             RootedShape holderShape(cx, holder_->lastProperty());
-            return ICGetProp_CallNative::New(space, getStubCode(), firstMonitorStub_, shape,
-                                               holder_, holderShape, getter_, pcOffset_);
+            return ICGetProp_CallNative::New(space, getStubCode(), firstMonitorStub_, receiverShape,
+                                             holder_, holderShape, getter_, pcOffset_);
         }
     };
 };
