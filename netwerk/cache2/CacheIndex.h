@@ -34,6 +34,7 @@ namespace net {
 
 class CacheFileMetadata;
 class FileOpenHelper;
+class CacheIndexIterator;
 
 typedef struct {
   
@@ -248,6 +249,19 @@ public:
          this, LOGSHA1(mRec->mHash), IsFresh(), IsInitialized(), IsRemoved(),
          IsDirty(), Anonymous(), InBrowser(), AppId(), GetFrecency(),
          GetExpirationTime(), GetFileSize()));
+  }
+
+  static bool RecordMatchesLoadContextInfo(CacheIndexRecord *aRec,
+                                           nsILoadContextInfo *aInfo)
+  {
+    if (!aInfo->IsPrivate() &&
+        aInfo->AppId() == aRec->mAppId &&
+        aInfo->IsAnonymous() == !!(aRec->mFlags & kAnonymousMask) &&
+        aInfo->IsInBrowserElement() == !!(aRec->mFlags & kInBrowserMask)) {
+      return true;
+    }
+
+    return false;
   }
 
   
@@ -553,6 +567,18 @@ public:
   static nsresult AsyncGetDiskConsumption(nsICacheStorageConsumptionObserver* aObserver);
 
   
+  
+  
+  
+  
+  static nsresult GetIterator(nsILoadContextInfo *aInfo, bool aAddNew,
+                              CacheIndexIterator **_retval);
+
+  
+  
+  static nsresult IsUpToDate(bool *_retval);
+
+  
   static size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
   static size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -561,6 +587,7 @@ private:
   friend class CacheIndexAutoLock;
   friend class CacheIndexAutoUnlock;
   friend class FileOpenHelper;
+  friend class CacheIndexIterator;
 
   virtual ~CacheIndex();
 
@@ -800,6 +827,12 @@ private:
   void RemoveRecordFromExpirationArray(CacheIndexRecord *aRecord);
 
   
+  void AddRecordToIterators(CacheIndexRecord *aRecord);
+  void RemoveRecordFromIterators(CacheIndexRecord *aRecord);
+  void ReplaceRecordInIterators(CacheIndexRecord *aOldRecord,
+                                CacheIndexRecord *aNewRecord);
+
+  
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;
 
   static CacheIndex *gInstance;
@@ -902,6 +935,8 @@ private:
   nsTArray<CacheIndexRecord *>  mFrecencyArray;
   nsTArray<CacheIndexRecord *>  mExpirationArray;
 
+  nsTArray<CacheIndexIterator *> mIterators;
+
   class DiskConsumptionObserver : public nsRunnable
   {
   public:
@@ -947,6 +982,69 @@ private:
   nsTArray<nsRefPtr<DiskConsumptionObserver> > mDiskConsumptionObservers;
 };
 
+class CacheIndexAutoLock {
+public:
+  CacheIndexAutoLock(CacheIndex *aIndex)
+    : mIndex(aIndex)
+    , mLocked(true)
+  {
+    mIndex->Lock();
+  }
+  ~CacheIndexAutoLock()
+  {
+    if (mLocked) {
+      mIndex->Unlock();
+    }
+  }
+  void Lock()
+  {
+    MOZ_ASSERT(!mLocked);
+    mIndex->Lock();
+    mLocked = true;
+  }
+  void Unlock()
+  {
+    MOZ_ASSERT(mLocked);
+    mIndex->Unlock();
+    mLocked = false;
+  }
+
+private:
+  nsRefPtr<CacheIndex> mIndex;
+  bool mLocked;
+};
+
+class CacheIndexAutoUnlock {
+public:
+  CacheIndexAutoUnlock(CacheIndex *aIndex)
+    : mIndex(aIndex)
+    , mLocked(false)
+  {
+    mIndex->Unlock();
+  }
+  ~CacheIndexAutoUnlock()
+  {
+    if (!mLocked) {
+      mIndex->Lock();
+    }
+  }
+  void Lock()
+  {
+    MOZ_ASSERT(!mLocked);
+    mIndex->Lock();
+    mLocked = true;
+  }
+  void Unlock()
+  {
+    MOZ_ASSERT(mLocked);
+    mIndex->Unlock();
+    mLocked = false;
+  }
+
+private:
+  nsRefPtr<CacheIndex> mIndex;
+  bool mLocked;
+};
 
 } 
 } 
