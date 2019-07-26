@@ -825,7 +825,6 @@ const DownloadsData = {
       return;
     }
 
-    browserWin.focus();
     if (this.panelHasShownBefore) {
       
       
