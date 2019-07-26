@@ -314,7 +314,7 @@ CreateRoot(nsCOMPtr<mozIStorageConnection>& aDBConn,
 
   
   
-  if (!aRootName.Equals("places"))
+  if (!aRootName.EqualsLiteral("places"))
     ++itemPosition;
 
   return NS_OK;

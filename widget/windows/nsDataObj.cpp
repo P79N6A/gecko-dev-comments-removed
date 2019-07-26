@@ -1240,7 +1240,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   
   const char* flavorStr;
   const nsPromiseFlatCString& flat = PromiseFlatCString(aDataFlavor);
-  if ( aDataFlavor.Equals("text/plain") )
+  if ( aDataFlavor.EqualsLiteral("text/plain") )
     flavorStr = kUnicodeMime;
   else
     flavorStr = flat.get();

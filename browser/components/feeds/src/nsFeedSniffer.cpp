@@ -208,7 +208,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   
   nsAutoCString method;
   channel->GetRequestMethod(method);
-  if (!method.Equals("GET")) {
+  if (!method.EqualsLiteral("GET")) {
     sniffedType.Truncate();
     return NS_OK;
   }
