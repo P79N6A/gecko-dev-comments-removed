@@ -18,14 +18,61 @@ package org.mozilla.gecko.background.healthreport;
 
 
 
-public abstract class Environment extends EnvironmentV1 {
+public abstract class Environment extends EnvironmentV2 {
   
-  public static final int CURRENT_VERSION = 2;
+  
+  public static final int CURRENT_VERSION = 3;
 
-  public String osLocale;                
-  public String appLocale;
-  public int acceptLangSet;
-  public String distribution;            
+  public static enum UIType {
+    
+    DEFAULT("default"),
+
+    
+    LARGE_TABLET("largetablet"),
+
+    
+    SMALL_TABLET("smalltablet");
+
+    private final String label;
+
+    private UIType(final String label) {
+      this.label = label;
+    }
+
+    public String toString() {
+      return this.label;
+    }
+
+    public static UIType fromLabel(final String label) {
+      for (UIType type : UIType.values()) {
+        if (type.label.equals(label)) {
+          return type;
+        }
+      }
+
+      throw new IllegalArgumentException("Bad enum value: " + label);
+    }
+  }
+
+  public UIType uiType = UIType.DEFAULT;
+
+  
+
+
+  public int uiMode = 0;     
+
+  
+
+
+  public int screenXInMM;
+  public int screenYInMM;
+
+  
+
+
+  public int screenLayout = 0;  
+
+  public boolean hasHardwareKeyboard;
 
   public Environment() {
     this(Environment.HashAppender.class);
@@ -41,9 +88,11 @@ public abstract class Environment extends EnvironmentV1 {
     super.appendHash(appender);
 
     
-    appender.append(osLocale);
-    appender.append(appLocale);
-    appender.append(acceptLangSet);
-    appender.append(distribution);
+    appender.append(hasHardwareKeyboard ? 1 : 0);
+    appender.append(uiType.toString());
+    appender.append(uiMode);
+    appender.append(screenLayout);
+    appender.append(screenXInMM);
+    appender.append(screenYInMM);
   }
 }
