@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsJSEventListener_h__
-#define nsJSEventListener_h__
+#ifndef mozilla_JSEventHandler_h_
+#define mozilla_JSEventHandler_h_
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"

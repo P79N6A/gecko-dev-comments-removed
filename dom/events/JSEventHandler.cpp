@@ -2,7 +2,6 @@
 
 
 
-#include "nsJSEventListener.h"
 #include "nsJSUtils.h"
 #include "nsString.h"
 #include "nsIServiceManager.h"
@@ -19,6 +18,7 @@
 #include "nsDOMJSUtils.h"
 #include "WorkerPrivate.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/JSEventHandler.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/UnionTypes.h"
