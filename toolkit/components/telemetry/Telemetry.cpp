@@ -1998,8 +1998,12 @@ namespace mozilla {
 void
 RecordShutdownStartTimeStamp() {
 #ifdef DEBUG
+  
+  
+  
+  
   static bool recorded = false;
-  MOZ_ASSERT(!recorded);
+  
   recorded = true;
 #endif
 
