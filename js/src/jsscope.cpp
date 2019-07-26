@@ -8,7 +8,6 @@
 
 
 
-#include <new>
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"

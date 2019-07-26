@@ -4,8 +4,6 @@
 
 
 
-#include <new>
-
 #include "jstypes.h"
 #include "jsprf.h"
 #include "jsapi.h"
