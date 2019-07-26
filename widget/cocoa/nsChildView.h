@@ -141,18 +141,6 @@ class APZCTreeManager;
 
 @end
 
-
-
-@interface NSEvent (DeviceDelta)
-
-- (CGFloat)deviceDeltaX;
-- (CGFloat)deviceDeltaY;
-
-- (CGFloat)scrollingDeltaX;
-- (CGFloat)scrollingDeltaY;
-- (BOOL)hasPreciseScrollingDeltas;
-@end
-
 #if !defined(MAC_OS_X_VERSION_10_6) || \
 MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
 @interface NSEvent (SnowLeopardEventFeatures)

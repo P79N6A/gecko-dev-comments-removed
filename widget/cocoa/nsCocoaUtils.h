@@ -235,9 +235,13 @@ public:
 
   
   
+  
+  
   static NSEventPhase EventPhase(NSEvent* aEvent);
   static NSEventPhase EventMomentumPhase(NSEvent* aEvent);
   static BOOL IsMomentumScrollEvent(NSEvent* aEvent);
+  static BOOL HasPreciseScrollingDeltas(NSEvent* aEvent);
+  static void GetScrollingDeltas(NSEvent* aEvent, CGFloat* aOutDeltaX, CGFloat* aOutDeltaY);
 
   
   static void HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen);
