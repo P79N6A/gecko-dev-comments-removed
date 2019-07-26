@@ -28,10 +28,10 @@ BOOL WINAPI DllMain(
     
     
     CreateThread(
-                 NULL,                   
+                 nullptr,                
                  0,                      
-                 CrashingThread  ,       
-                 NULL,                   
+                 CrashingThread,         
+                 nullptr,                
                  0,                      
                  &tid);                  
   return TRUE;
