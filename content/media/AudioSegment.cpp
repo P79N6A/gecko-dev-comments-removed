@@ -126,36 +126,45 @@ AudioSegment::WriteTo(uint64_t aID, AudioStream* aOutput)
         NS_ERROR("Buffer overflow");
         return;
       }
+
       uint32_t duration = uint32_t(durationTicks);
-      buf.SetLength(outputChannels*duration);
-      if (c.mBuffer) {
-        channelData.SetLength(c.mChannelData.Length());
-        for (uint32_t i = 0; i < channelData.Length(); ++i) {
-          channelData[i] =
-            AddAudioSampleOffset(c.mChannelData[i], c.mBufferFormat, int32_t(offset));
-        }
 
-        if (channelData.Length() < outputChannels) {
-          
-          
-          AudioChannelsUpMix(&channelData, outputChannels, gZeroChannel);
-        }
+      
+      
+      
+      
+      
+      if (c.mBuffer || aOutput->GetWritten()) {
+        buf.SetLength(outputChannels*duration);
+        if (c.mBuffer) {
+          channelData.SetLength(c.mChannelData.Length());
+          for (uint32_t i = 0; i < channelData.Length(); ++i) {
+            channelData[i] =
+              AddAudioSampleOffset(c.mChannelData[i], c.mBufferFormat, int32_t(offset));
+          }
 
-        if (channelData.Length() > outputChannels) {
-          
-          DownmixAndInterleave(channelData, c.mBufferFormat, duration,
-                               c.mVolume, outputChannels, buf.Elements());
+          if (channelData.Length() < outputChannels) {
+            
+            
+            AudioChannelsUpMix(&channelData, outputChannels, gZeroChannel);
+          }
+
+          if (channelData.Length() > outputChannels) {
+            
+            DownmixAndInterleave(channelData, c.mBufferFormat, duration,
+                                 c.mVolume, outputChannels, buf.Elements());
+          } else {
+            InterleaveAndConvertBuffer(channelData.Elements(), c.mBufferFormat,
+                                       duration, c.mVolume,
+                                       outputChannels,
+                                       buf.Elements());
+          }
         } else {
-          InterleaveAndConvertBuffer(channelData.Elements(), c.mBufferFormat,
-                                     duration, c.mVolume,
-                                     outputChannels,
-                                     buf.Elements());
+          
+          memset(buf.Elements(), 0, buf.Length()*sizeof(AudioDataValue));
         }
-      } else {
-        
-        memset(buf.Elements(), 0, buf.Length()*sizeof(AudioDataValue));
+        aOutput->Write(buf.Elements(), int32_t(duration), &(c.mTimeStamp));
       }
-      aOutput->Write(buf.Elements(), int32_t(duration), &(c.mTimeStamp));
       if(!c.mTimeStamp.IsNull()) {
         TimeStamp now = TimeStamp::Now();
         
