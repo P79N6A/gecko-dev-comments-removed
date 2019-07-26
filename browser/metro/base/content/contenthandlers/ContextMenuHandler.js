@@ -291,12 +291,13 @@ var ContextMenuHandler = {
 
           
           if (!(elem instanceof Ci.nsIDOMHTMLInputElement) || elem.mozIsTextField(true)) {
+            
             if (selectionStart != selectionEnd) {
               state.types.push("cut");
               state.types.push("copy");
               state.string = elem.value.slice(selectionStart, selectionEnd);
-            }
-            if (elem.value && (selectionStart > 0 || selectionEnd < elem.textLength)) {
+            } else if (elem.value && elem.textLength) {
+              
               state.types.push("selectable");
               state.string = elem.value;
             }
