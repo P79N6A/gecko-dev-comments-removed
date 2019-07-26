@@ -1157,6 +1157,7 @@ nsBaseWinFilePicker::SetDefaultString(const nsAString& aString)
   
   
   mDefaultFilePath.ReplaceChar(FILE_ILLEGAL_CHARACTERS, '-');
+  mDefaultFilename.ReplaceChar(FILE_ILLEGAL_CHARACTERS, '-');
 
   return NS_OK;
 }
