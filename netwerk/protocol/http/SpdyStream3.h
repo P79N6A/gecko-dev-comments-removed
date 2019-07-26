@@ -6,26 +6,28 @@
 #ifndef mozilla_net_SpdyStream3_h
 #define mozilla_net_SpdyStream3_h
 
-#include "nsAHttpTransaction.h"
 #include "mozilla/Attributes.h"
+#include "nsAHttpTransaction.h"
 
 namespace mozilla { namespace net {
 
-class SpdyStream3 MOZ_FINAL : public nsAHttpSegmentReader
-                            , public nsAHttpSegmentWriter
+class SpdyStream3 : public nsAHttpSegmentReader
+                  , public nsAHttpSegmentWriter
 {
 public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdyStream3(nsAHttpTransaction *,
-             SpdySession3 *, nsISocketTransport *,
-             uint32_t, z_stream *, int32_t);
+  SpdyStream3(nsAHttpTransaction *, SpdySession3 *, int32_t);
 
   uint32_t StreamID() { return mStreamID; }
+  SpdyPushedStream3 *PushSource() { return mPushSource; }
 
-  nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
-  nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
+  virtual nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
+  virtual nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
+  virtual bool DeferCleanupOnSuccess() { return false; }
+
+  const nsAFlatCString &Origin()   const { return mOrigin; }
 
   bool RequestBlockedOnRead()
   {
@@ -42,9 +44,10 @@ public:
 
   bool HasRegisteredID() { return mStreamID != 0; }
 
-  nsAHttpTransaction *Transaction()
+  nsAHttpTransaction *Transaction() { return mTransaction; }
+  virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo()
   {
-    return mTransaction;
+    return mTransaction ? mTransaction->LoadGroupConnectionInfo() : nullptr;
   }
 
   void Close(nsresult reason);
@@ -81,15 +84,25 @@ public:
   }
 
   uint64_t LocalUnAcked() { return mLocalUnacked; }
+  int64_t  LocalWindow()  { return mLocalWindow; }
+
   bool     BlockedOnRwin() { return mBlockedOnRwin; }
 
-private:
+  
+  
+  virtual bool HasSink() { return true; }
 
-  
-  
-  
-  friend class nsAutoPtr<SpdyStream3>;
-  ~SpdyStream3();
+  virtual ~SpdyStream3();
+
+protected:
+  nsresult FindHeader(nsCString, nsDependentCSubstring &);
+
+  static void CreatePushHashKey(const nsCString &scheme,
+                                const nsCString &hostHeader,
+                                uint64_t serial,
+                                const nsCSubstring &pathInfo,
+                                nsCString &outOrigin,
+                                nsCString &outKey);
 
   enum stateType {
     GENERATING_SYN_STREAM,
@@ -99,12 +112,36 @@ private:
     UPSTREAM_COMPLETE
   };
 
+  uint32_t mStreamID;
+
+  
+  SpdySession3 *mSession;
+
+  nsCString     mOrigin;
+
+  
+  
+  
+  enum stateType mUpstreamState;
+
+  
+  uint32_t                     mSynFrameComplete     : 1;
+
+  
+  
+  uint32_t                     mSentFinOnData        : 1;
+
+  void     ChangeState(enum stateType);
+
+private:
+  friend class nsAutoPtr<SpdyStream3>;
+
   static PLDHashOperator hdrHashEnumerate(const nsACString &,
                                           nsAutoPtr<nsCString> &,
                                           void *);
 
-  void     ChangeState(enum stateType);
   nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
+  void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);
   void     GenerateDataFrameHeader(uint32_t, bool);
 
@@ -114,21 +151,12 @@ private:
   void     CompressToFrame(uint32_t);
   void     CompressFlushFrame();
   void     ExecuteCompress(uint32_t);
-  nsresult FindHeader(nsCString, nsDependentCSubstring &);
-
-  
-  
-  
-  enum stateType mUpstreamState;
 
   
   
   
   
   nsRefPtr<nsAHttpTransaction> mTransaction;
-
-  
-  SpdySession3                *mSession;
 
   
   nsISocketTransport         *mSocketTransport;
@@ -140,21 +168,11 @@ private:
   nsAHttpSegmentWriter        *mSegmentWriter;
 
   
-  uint32_t                    mStreamID;
-
-  
   uint32_t                    mChunkSize;
-
-  
-  uint32_t                     mSynFrameComplete     : 1;
 
   
   
   uint32_t                     mRequestBlockedOnRead : 1;
-
-  
-  
-  uint32_t                     mSentFinOnData        : 1;
 
   
   
@@ -230,6 +248,9 @@ private:
   
   uint64_t                     mTotalSent;
   uint64_t                     mTotalRead;
+
+  
+  SpdyPushedStream3 *mPushSource;
 };
 
 }} 

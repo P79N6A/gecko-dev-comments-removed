@@ -16,6 +16,8 @@ class nsIEventTarget;
 class nsITransport;
 class nsHttpRequestHead;
 class nsHttpPipeline;
+class nsHttpTransaction;
+class nsILoadGroupConnectionInfo;
 
 
 
@@ -103,12 +105,21 @@ public:
     
     
     
+    
+    
+
+    
+    
+    
     virtual nsHttpPipeline *QueryPipeline() { return nullptr; }
 
     
     
     
     virtual bool IsNullTransaction() { return false; }
+
+    
+    virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
     
     

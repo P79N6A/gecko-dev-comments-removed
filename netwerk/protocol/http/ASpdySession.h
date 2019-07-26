@@ -42,6 +42,12 @@ public:
 
   const static uint32_t kSendingChunkSize = 4096;
   const static uint32_t kTCPSendBufferSize = 131072;
+
+  
+  
+  
+  
+  const static uint32_t kInitialRwin = 256 * 1024 * 1024;
 };
 
 

@@ -10,14 +10,13 @@
 
 
 #include "ASpdySession.h"
+#include "mozilla/Attributes.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
 #include "nsDeque.h"
 #include "nsHashKeys.h"
 #include "zlib.h"
-#include "mozilla/Attributes.h"
 
-class nsHttpConnection;
 class nsISocketTransport;
 
 namespace mozilla { namespace net {
@@ -49,7 +48,8 @@ public:
   
   PRIntervalTime IdleTime();
 
-  uint32_t RegisterStreamID(SpdyStream3 *);
+  
+  uint32_t RegisterStreamID(SpdyStream3 *, uint32_t aNewID = 0);
 
   const static uint8_t kVersion        = 3;
 
@@ -136,9 +136,7 @@ public:
 
   
   
-  
-  
-  const static uint32_t kInitialRwin = 256 * 1024 * 1024;
+  const static int32_t  kEmergencyWindowThreshold = 1024 * 1024;
   const static uint32_t kMinimumToAck = 64 * 1024;
 
   
@@ -174,7 +172,17 @@ public:
 
   uint32_t GetServerInitialWindow() { return mServerInitialWindow; }
 
+  void ConnectPushedStream(SpdyStream3 *stream);
+
+  uint64_t Serial() { return mSerial; }
+
   void     PrintDiagnostics (nsCString &log);
+
+  
+  uint32_t SendingChunkSize() { return mSendingChunkSize; }
+  uint32_t PushAllowance() { return mPushAllowance; }
+  z_stream *UpstreamZlib() { return &mUpstreamZlib; }
+  nsISocketTransport *SocketTransport() { return mSocketTransport; }
 
 private:
 
@@ -192,6 +200,7 @@ private:
   void        ChangeDownstreamState(enum stateType);
   void        ResetDownstreamState();
   nsresult    UncompressAndDiscard(uint32_t, uint32_t);
+  void        DecrementConcurrent(SpdyStream3 *);
   void        zlibInit();
   void        GeneratePing(uint32_t);
   void        GenerateRstStream(uint32_t, uint32_t);
@@ -199,6 +208,7 @@ private:
   void        CleanupStream(SpdyStream3 *, nsresult, rstReason);
   void        CloseStream(SpdyStream3 *, nsresult);
   void        GenerateSettings();
+  void        RemoveStreamFromQueues(SpdyStream3 *);
 
   void        SetWriteCallbacks();
   void        FlushOutputQueue();
@@ -246,6 +256,7 @@ private:
   uint32_t          mSendingChunkSize;        
   uint32_t          mNextStreamID;            
   uint32_t          mConcurrentHighWater;     
+  uint32_t          mPushAllowance;           
 
   stateType         mDownstreamState; 
 
@@ -255,11 +266,15 @@ private:
   
   
   
+  
   nsDataHashtable<nsUint32HashKey, SpdyStream3 *>     mStreamIDHash;
   nsClassHashtable<nsPtrHashKey<nsAHttpTransaction>,
                    SpdyStream3>                       mStreamTransactionHash;
+
   nsDeque                                             mReadyForWrite;
   nsDeque                                             mQueuedStreams;
+  nsDeque                                             mReadyForRead;
+  nsTArray<SpdyPushedStream3 *>                       mPushedStreams;
 
   
   
@@ -361,6 +376,11 @@ private:
 
   
   nsDeque  mGoAwayStreamsToRestart;
+
+  
+  
+  
+  uint64_t        mSerial;
 };
 
 }} 

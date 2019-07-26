@@ -49,6 +49,10 @@ public:
 
     
     
+    virtual nsresult ForceRecv() = 0;
+
+    
+    
     
     
     
@@ -174,6 +178,12 @@ public:
         if (!(fwdObject))                  \
             return NS_ERROR_FAILURE;       \
         return (fwdObject)->ResumeRecv();  \
+    }                                      \
+    nsresult ForceRecv()                   \
+    {                                      \
+        if (!(fwdObject))                  \
+            return NS_ERROR_FAILURE;       \
+        return (fwdObject)->ForceRecv();   \
     }                                      \
     nsISocketTransport *Transport()        \
     {                                      \
