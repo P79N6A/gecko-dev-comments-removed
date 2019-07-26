@@ -514,7 +514,12 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     js::types::TypeScript *types;
 
   private:
-    js::HeapPtrObject sourceObject_; 
+    
+    
+    
+    
+    js::HeapPtrObject sourceObject_;
+
     js::HeapPtrFunction function_;
 
     
@@ -683,7 +688,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     static JSScript *Create(js::ExclusiveContext *cx,
                             js::HandleObject enclosingScope, bool savedCallerFun,
                             const JS::ReadOnlyCompileOptions &options, unsigned staticLevel,
-                            js::HandleScriptSource sourceObject, uint32_t sourceStart,
+                            js::HandleObject sourceObject, uint32_t sourceStart,
                             uint32_t sourceEnd);
 
     void initCompartment(js::ExclusiveContext *cx);
@@ -857,9 +862,9 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     static bool loadSource(JSContext *cx, js::ScriptSource *ss, bool *worked);
 
-    void setSourceObject(js::ScriptSourceObject *object);
-    js::ScriptSourceObject *sourceObject() const;
-    js::ScriptSource *scriptSource() const { return sourceObject()->source(); }
+    void setSourceObject(JSObject *object);
+    JSObject *sourceObject() const { return sourceObject_; }
+    js::ScriptSource *scriptSource() const;
     JSPrincipals *originPrincipals() const { return scriptSource()->originPrincipals(); }
     const char *filename() const { return scriptSource()->filename(); }
 
@@ -1216,6 +1221,7 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
     
     HeapPtrObject enclosingScope_;
 
+    
     
     
     HeapPtrObject sourceObject_;
