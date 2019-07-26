@@ -204,6 +204,17 @@ let PdfJs = {
     }
 
     
+    if (Services.prefs.prefHasUserValue(PREF_DISABLED_PLUGIN_TYPES)) {
+      let disabledPluginTypes =
+        Services.prefs.getCharPref(PREF_DISABLED_PLUGIN_TYPES).split(',');
+      if (disabledPluginTypes.indexOf(PDF_CONTENT_TYPE) >= 0) {
+        return true;
+      }
+    }
+
+    
+    
+    
     let tags = Cc["@mozilla.org/plugin/host;1"].
                   getService(Ci.nsIPluginHost).
                   getPluginTags();
@@ -216,14 +227,9 @@ let PdfJs = {
         return mimeType.type === PDF_CONTENT_TYPE;
       });
     });
-    if (!enabledPluginFound) {
-      return true; 
-    }
+
     
-    
-    return Services.prefs.prefHasUserValue(PREF_DISABLED_PLUGIN_TYPES) ?
-      (Services.prefs.getCharPref(PREF_DISABLED_PLUGIN_TYPES).split(',').
-      indexOf(PDF_CONTENT_TYPE) >= 0) : false;
+    return !enabledPluginFound;
   },
 
   _ensureRegistered: function _ensureRegistered() {
