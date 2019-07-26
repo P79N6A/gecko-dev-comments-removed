@@ -151,7 +151,7 @@ public:
   
   void NeedNewFrame(uint32_t frameNum, uint32_t x_offset, uint32_t y_offset,
                     uint32_t width, uint32_t height,
-                    gfxImageFormat format,
+                    gfx::SurfaceFormat format,
                     uint8_t palette_depth = 0);
 
   virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
@@ -159,10 +159,6 @@ public:
   
   
   virtual nsresult AllocateFrame();
-
-  
-  
-  void MarkFrameDirty();
 
   imgFrame* GetCurrentFrame() const { return mCurrentFrame; }
 
@@ -250,7 +246,7 @@ private:
 
     NewFrameData(uint32_t num, uint32_t offsetx, uint32_t offsety,
                  uint32_t width, uint32_t height,
-                 gfxImageFormat format, uint8_t paletteDepth)
+                 gfx::SurfaceFormat format, uint8_t paletteDepth)
       : mFrameNum(num)
       , mOffsetX(offsetx)
       , mOffsetY(offsety)
@@ -264,7 +260,7 @@ private:
     uint32_t mOffsetY;
     uint32_t mWidth;
     uint32_t mHeight;
-    gfxImageFormat mFormat;
+    gfx::SurfaceFormat mFormat;
     uint8_t mPaletteDepth;
   };
   NewFrameData mNewFrameData;
