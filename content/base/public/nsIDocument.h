@@ -1184,7 +1184,7 @@ public:
 
 
 
-  virtual nsresult Sanitize() = 0;
+  virtual void Sanitize() = 0;
 
   
 
