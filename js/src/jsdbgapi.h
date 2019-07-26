@@ -191,52 +191,11 @@ JS_GetScriptPrincipals(JSScript *script);
 extern JS_PUBLIC_API(JSPrincipals *)
 JS_GetScriptOriginPrincipals(JSScript *script);
 
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSStackFrame *)
-JS_BrokenFrameIterator(JSContext *cx, JSStackFrame **iteratorp);
-
-extern JS_PUBLIC_API(JSScript *)
-JS_GetFrameScript(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(jsbytecode *)
-JS_GetFramePC(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetFrameScopeChain(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_GetFrameThis(JSContext *cx, JSStackFrame *fp, jsval *thisv);
-
-extern JS_PUBLIC_API(JSFunction *)
-JS_GetFrameFunction(JSContext *cx, JSStackFrame *fp);
-
 JS_PUBLIC_API(JSFunction *)
 JS_GetScriptFunction(JSContext *cx, JSScript *script);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetParentOrScopeChain(JSContext *cx, JSObject *obj);
-
-
-#define JS_IsContructorFrame JS_IsConstructorFrame
-extern JS_PUBLIC_API(JSBool)
-JS_IsConstructorFrame(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsDebuggerFrame(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsGlobalFrame(JSContext *cx, JSStackFrame *fp);
 
 
 
@@ -291,20 +250,6 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
 
 
 
-extern JS_PUBLIC_API(JSBool)
-JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fp,
-                          const jschar *chars, unsigned length,
-                          const char *filename, unsigned lineno,
-                          jsval *rval);
-
-extern JS_PUBLIC_API(JSBool)
-JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
-                        const char *bytes, unsigned length,
-                        const char *filename, unsigned lineno,
-                        jsval *rval);
-
-
-
 typedef struct JSPropertyDesc {
     jsval           id;         
     jsval           value;      
@@ -334,6 +279,135 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda);
 
 extern JS_PUBLIC_API(void)
 JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda);
+
+
+
+
+
+
+
+class JS_PUBLIC_API(JSAbstractFramePtr)
+{
+    uintptr_t ptr_;
+
+  protected:
+    JSAbstractFramePtr()
+      : ptr_(0)
+    { }
+
+  public:
+    explicit JSAbstractFramePtr(void *raw);
+
+    uintptr_t raw() const { return ptr_; }
+
+    operator bool() const { return !!ptr_; }
+
+    JSObject *scopeChain(JSContext *cx);
+    JSObject *callObject(JSContext *cx);
+
+    JSFunction *maybeFun();
+    JSScript *script();
+
+    bool getThisValue(JSContext *cx, jsval *thisv);
+
+    bool isDebuggerFrame();
+
+    bool evaluateInStackFrame(JSContext *cx,
+                              const char *bytes, unsigned length,
+                              const char *filename, unsigned lineno,
+                              jsval *rval);
+
+    bool evaluateUCInStackFrame(JSContext *cx,
+                                const jschar *chars, unsigned length,
+                                const char *filename, unsigned lineno,
+                                jsval *rval);
+};
+
+class JS_PUBLIC_API(JSNullFramePtr) : public JSAbstractFramePtr
+{
+  public:
+    JSNullFramePtr()
+      : JSAbstractFramePtr()
+    {}
+};
+
+
+
+
+
+
+
+
+class JS_PUBLIC_API(JSBrokenFrameIterator)
+{
+    void *data_;
+
+  public:
+    JSBrokenFrameIterator(JSContext *cx);
+    ~JSBrokenFrameIterator();
+
+    bool done() const;
+    JSBrokenFrameIterator& operator++();
+
+    JSAbstractFramePtr abstractFramePtr() const;
+    jsbytecode *pc() const;
+
+    bool isConstructing() const;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void *
+(* JSInterpreterHook)(JSContext *cx, JSAbstractFramePtr frame, bool isConstructing,
+                      JSBool before, JSBool *ok, void *closure);
+
+typedef JSBool
+(* JSDebugErrorHook)(JSContext *cx, const char *message, JSErrorReport *report,
+                     void *closure);
+
+typedef struct JSDebugHooks {
+    JSInterruptHook     interruptHook;
+    void                *interruptHookData;
+    JSNewScriptHook     newScriptHook;
+    void                *newScriptHookData;
+    JSDestroyScriptHook destroyScriptHook;
+    void                *destroyScriptHookData;
+    JSDebuggerHandler   debuggerHandler;
+    void                *debuggerHandlerData;
+    JSSourceHandler     sourceHandler;
+    void                *sourceHandlerData;
+    JSInterpreterHook   executeHook;
+    void                *executeHookData;
+    JSInterpreterHook   callHook;
+    void                *callHookData;
+    JSThrowHook         throwHook;
+    void                *throwHookData;
+    JSDebugErrorHook    debugErrorHook;
+    void                *debugErrorHookData;
+} JSDebugHooks;
 
 
 

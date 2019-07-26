@@ -289,60 +289,6 @@ typedef void
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef void *
-(* JSInterpreterHook)(JSContext *cx, JSStackFrame *fp, JSBool before,
-                      JSBool *ok, void *closure);
-
-typedef JSBool
-(* JSDebugErrorHook)(JSContext *cx, const char *message, JSErrorReport *report,
-                     void *closure);
-
-typedef struct JSDebugHooks {
-    JSInterruptHook     interruptHook;
-    void                *interruptHookData;
-    JSNewScriptHook     newScriptHook;
-    void                *newScriptHookData;
-    JSDestroyScriptHook destroyScriptHook;
-    void                *destroyScriptHookData;
-    JSDebuggerHandler   debuggerHandler;
-    void                *debuggerHandlerData;
-    JSSourceHandler     sourceHandler;
-    void                *sourceHandlerData;
-    JSInterpreterHook   executeHook;
-    void                *executeHookData;
-    JSInterpreterHook   callHook;
-    void                *callHookData;
-    JSThrowHook         throwHook;
-    void                *throwHookData;
-    JSDebugErrorHook    debugErrorHook;
-    void                *debugErrorHookData;
-} JSDebugHooks;
-
-
-
-
-
-
-
 typedef JSObject *
 (* JSObjectOp)(JSContext *cx, JSHandleObject obj);
 
