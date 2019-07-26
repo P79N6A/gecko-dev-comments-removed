@@ -285,15 +285,14 @@ TelemetryPing.prototype = {
   },
 
   getHistograms: function getHistograms(hls) {
-    let info = Telemetry.registeredHistograms;
+    let registered = Telemetry.registeredHistograms;
     let ret = {};
 
-    for (let name in hls) {
-      if (info[name]) {
-        ret[name] = this.packHistogram(hls[name]);
-        let startup_name = "STARTUP_" + name;
-        if (hls[startup_name])
-          ret[startup_name] = this.packHistogram(hls[startup_name]);
+    for (let name in registered) {
+      for (let n of [name, "STARTUP_" + name]) {
+        if (n in hls) {
+          ret[n] = this.packHistogram(hls[n]);
+        }
       }
     }
 
