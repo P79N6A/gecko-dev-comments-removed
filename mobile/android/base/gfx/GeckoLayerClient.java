@@ -412,17 +412,6 @@ public class GeckoLayerClient
             return mProgressiveUpdateData;
         }
 
-        
-        
-        
-        
-        
-        
-        if (!aHasPendingNewThebesContent) {
-            mProgressiveUpdateData.abort = true;
-            return mProgressiveUpdateData;
-        }
-
         return mProgressiveUpdateData;
     }
 
