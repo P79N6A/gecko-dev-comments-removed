@@ -41,6 +41,20 @@ function sendAsyncMsg(msg, data) {
   sendAsyncMessage('browser-element-api:call', data);
 }
 
+function sendSyncMsg(msg, data) {
+  
+  
+  if (!BrowserElementIsReady)
+    return;
+
+  if (!data) {
+    data = { };
+  }
+
+  data.msg_name = msg;
+  return sendSyncMessage('browser-element-api:call', data);
+}
+
 let CERTIFICATE_ERROR_PAGE_PREF = 'security.alternate_certificate_error_page';
 
 let NS_ERROR_MODULE_BASE_OFFSET = 0x45;
@@ -524,8 +538,6 @@ BrowserElementChild.prototype = {
       return;
     }
 
-    e.preventDefault();
-
     this._ctxCounter++;
     this._ctxHandlers = {};
 
@@ -554,7 +566,18 @@ BrowserElementChild.prototype = {
         menuData.contextmenu = this._buildMenuObj(menu, '');
       }
     }
-    sendAsyncMsg('contextmenu', menuData);
+
+    
+    
+    
+    
+    
+    
+    if (sendSyncMsg('contextmenu', menuData)[0]) {
+      e.preventDefault();
+    } else {
+      this._ctxHandlers = {};
+    }
   },
 
   _getSystemCtxMenuData: function(elem) {

@@ -294,7 +294,7 @@ BrowserElementParent.prototype = {
     let evtName = detail.msg_name;
 
     debug('fireCtxMenuEventFromMsg: ' + evtName + ' ' + detail);
-    let evt = this._createEvent(evtName, detail);
+    let evt = this._createEvent(evtName, detail,  true);
 
     if (detail.contextmenu) {
       var self = this;
@@ -302,10 +302,11 @@ BrowserElementParent.prototype = {
         self._sendAsyncMsg('fire-ctx-callback', {menuitem: id});
       });
     }
+
     
     
     
-    this._frameElement.dispatchEvent(evt);
+    return !this._frameElement.dispatchEvent(evt);
   },
 
   
