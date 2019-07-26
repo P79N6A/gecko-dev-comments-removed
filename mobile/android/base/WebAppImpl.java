@@ -72,6 +72,11 @@ public class WebAppImpl extends GeckoApp {
             mOrigin = new URL(origin);
         } catch (java.net.MalformedURLException ex) {
             
+            if (!origin.startsWith("app://")) {
+                return;
+            }
+
+            
             Log.i(LOGTAG, "Webapp is not registered with allocator");
             try {
                 mOrigin = new URL(getIntent().getData().toString());
