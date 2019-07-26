@@ -22,6 +22,9 @@
 
 SimpleTest.waitForExplicitFinish();
 
+// Turn off Spatial Navigation so that the 'keypress' event fires.
+SpecialPowers.setBoolPref('snav.enabled', false);
+
 SimpleTest.waitForFocus(function() {
   var nbExpectedKeyPress = 8;
   var inputGotKeyPress = 0;

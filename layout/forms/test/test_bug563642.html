@@ -37,6 +37,9 @@
 
 /** Test for Bug 563642 **/
 
+// Turn off Spatial Navigation because it hijacks down and up key events.
+SpecialPowers.setBoolPref("snav.enabled", false);
+
 function pageUpDownTest(id,index) {
   var elm = document.getElementById(id);
   elm.focus();

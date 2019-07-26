@@ -4464,3 +4464,6 @@ pref("urlclassifier.malware_table", "goog-malware-shavar");
 pref("urlclassifier.phish_table", "goog-phish-shavar");
 pref("urlclassifier.download_block_table", "goog-badbinurl-shavar");
 pref("urlclassifier.download_allow_table", "goog-downloadwhite-digest256");
+
+
+pref("snav.enabled", false);
