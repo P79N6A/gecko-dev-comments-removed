@@ -73,11 +73,10 @@ try {
 assertEq(fooArg, 'x');
 
 
-try {
-    eval("(function () { 'use strict'; delete foo('x'); })");
-    assertEq(0, -5);
-} catch (e) {
-    assertEq(e.message, "invalid delete operand");
+function g() {
+    "use strict";
+    assertEq(delete Object(), true);
 }
+g();
 
 reportCompare(0, 0, "ok");

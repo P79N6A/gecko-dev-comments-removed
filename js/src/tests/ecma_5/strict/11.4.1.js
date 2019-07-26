@@ -25,6 +25,10 @@ assertEq(testLenientAndStrict('delete x.y;',
                               parsesSuccessfully,
                               parsesSuccessfully),
          true);
+assertEq(testLenientAndStrict('delete Object();',
+                              returns(true),
+                              returns(true)),
+         true);
 
 
 assertEq(testLenientAndStrict('function f() { delete x; }',
