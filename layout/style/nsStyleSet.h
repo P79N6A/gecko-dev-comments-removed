@@ -34,6 +34,10 @@ class nsRuleWalker;
 struct ElementDependentRuleProcessorData;
 struct TreeMatchContext;
 
+namespace mozilla {
+class EventStates;
+} 
+
 class nsEmptyStyleRule MOZ_FINAL : public nsIStyleRule
 {
   NS_DECL_ISUPPORTS
@@ -214,18 +218,18 @@ class nsStyleSet
 
   
   bool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
-                                        nsIContent*    aContent,
-                                        nsEventStates  aStateMask);
+                                      nsIContent*    aContent,
+                                      mozilla::EventStates aStateMask);
 
   
   nsRestyleHint HasStateDependentStyle(nsPresContext* aPresContext,
                                        mozilla::dom::Element* aElement,
-                                       nsEventStates aStateMask);
+                                       mozilla::EventStates aStateMask);
   nsRestyleHint HasStateDependentStyle(nsPresContext* aPresContext,
                                        mozilla::dom::Element* aElement,
                                        nsCSSPseudoElements::Type aPseudoType,
                                        mozilla::dom::Element* aPseudoElement,
-                                       nsEventStates aStateMask);
+                                       mozilla::EventStates aStateMask);
 
   
   nsRestyleHint HasAttributeDependentStyle(nsPresContext* aPresContext,

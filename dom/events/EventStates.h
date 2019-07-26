@@ -3,12 +3,13 @@
 
 
 
-#ifndef nsEventStates_h__
-#define nsEventStates_h__
+#ifndef mozilla_EventStates_h_
+#define mozilla_EventStates_h_
 
 #include "mozilla/Attributes.h"
 #include "nsDebug.h"
 
+namespace mozilla {
 
 
 
@@ -16,38 +17,45 @@
 
 
 
-class nsEventStates
+
+class EventStates
 {
 public:
   typedef uint64_t InternalType;
 
-  MOZ_CONSTEXPR nsEventStates()
+  MOZ_CONSTEXPR EventStates()
     : mStates(0)
-  { }
-
-  
-  
-  
-  
-  
-  explicit MOZ_CONSTEXPR nsEventStates(InternalType aStates)
-    : mStates(aStates)
-  { }
-
-  MOZ_CONSTEXPR nsEventStates(const nsEventStates& aEventStates)
-    : mStates(aEventStates.mStates) {
+  {
   }
 
-  nsEventStates& operator=(const nsEventStates& aEventStates) {
+  
+  
+  
+  
+  
+  explicit MOZ_CONSTEXPR EventStates(InternalType aStates)
+    : mStates(aStates)
+  {
+  }
+
+  MOZ_CONSTEXPR EventStates(const EventStates& aEventStates)
+    : mStates(aEventStates.mStates)
+  {
+  }
+
+  EventStates& operator=(const EventStates& aEventStates)
+  {
     mStates = aEventStates.mStates;
     return *this;
   }
 
-  nsEventStates MOZ_CONSTEXPR operator|(const nsEventStates& aEventStates) const {
-    return nsEventStates(mStates | aEventStates.mStates);
+  EventStates MOZ_CONSTEXPR operator|(const EventStates& aEventStates) const
+  {
+    return EventStates(mStates | aEventStates.mStates);
   }
 
-  nsEventStates& operator|=(const nsEventStates& aEventStates) {
+  EventStates& operator|=(const EventStates& aEventStates)
+  {
     mStates |= aEventStates.mStates;
     return *this;
   }
@@ -55,32 +63,39 @@ public:
   
   
   
-  nsEventStates MOZ_CONSTEXPR operator&(const nsEventStates& aEventStates) const {
-    return nsEventStates(mStates & aEventStates.mStates);
+  EventStates MOZ_CONSTEXPR operator&(const EventStates& aEventStates) const
+  {
+    return EventStates(mStates & aEventStates.mStates);
   }
 
-  nsEventStates& operator&=(const nsEventStates& aEventStates) {
+  EventStates& operator&=(const EventStates& aEventStates)
+  {
     mStates &= aEventStates.mStates;
     return *this;
   }
 
-  bool operator==(const nsEventStates& aEventStates) const {
+  bool operator==(const EventStates& aEventStates) const
+  {
     return mStates == aEventStates.mStates;
   }
 
-  bool operator!=(const nsEventStates& aEventStates) const {
+  bool operator!=(const EventStates& aEventStates) const
+  {
     return mStates != aEventStates.mStates;
   }
 
-  nsEventStates operator~() const {
-    return nsEventStates(~mStates);
+  EventStates operator~() const
+  {
+    return EventStates(~mStates);
   }
 
-  nsEventStates operator^(const nsEventStates& aEventStates) const {
-    return nsEventStates(mStates ^ aEventStates.mStates);
+  EventStates operator^(const EventStates& aEventStates) const
+  {
+    return EventStates(mStates ^ aEventStates.mStates);
   }
 
-  nsEventStates& operator^=(const nsEventStates& aEventStates) {
+  EventStates& operator^=(const EventStates& aEventStates)
+  {
     mStates ^= aEventStates.mStates;
     return *this;
   }
@@ -91,7 +106,8 @@ public:
 
 
 
-  bool IsEmpty() const {
+  bool IsEmpty() const
+  {
     return mStates == 0;
   }
 
@@ -104,13 +120,14 @@ public:
 
 
 
-  bool HasState(nsEventStates aEventStates) const {
+  bool HasState(EventStates aEventStates) const
+  {
 #ifdef DEBUG
     
     
     if ((aEventStates.mStates & (aEventStates.mStates - 1))) {
       NS_ERROR("When calling HasState, "
-               "nsEventStates object has to contain only one state!");
+               "EventStates object has to contain only one state!");
     }
 #endif 
     return mStates & aEventStates.mStates;
@@ -124,7 +141,8 @@ public:
 
 
 
-  bool HasAtLeastOneOfStates(nsEventStates aEventStates) const {
+  bool HasAtLeastOneOfStates(EventStates aEventStates) const
+  {
     return mStates & aEventStates.mStates;
   }
 
@@ -136,7 +154,8 @@ public:
 
 
 
-  bool HasAllStates(nsEventStates aEventStates) const {
+  bool HasAllStates(EventStates aEventStates) const
+  {
     return (mStates & aEventStates.mStates) == aEventStates.mStates;
   }
 
@@ -150,6 +169,8 @@ private:
   InternalType mStates;
 };
 
+} 
+
 
 
 
@@ -159,7 +180,7 @@ private:
 
 
 #define NS_DEFINE_EVENT_STATE_MACRO(_val)               \
-  (nsEventStates(nsEventStates::InternalType(1) << _val))
+  (mozilla::EventStates(mozilla::EventStates::InternalType(1) << _val))
 
 
 #define NS_EVENT_STATE_ACTIVE        NS_DEFINE_EVENT_STATE_MACRO(0)

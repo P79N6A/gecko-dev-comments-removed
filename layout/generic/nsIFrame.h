@@ -91,6 +91,9 @@ struct nsMargin;
 struct CharacterDataChangeInfo;
 
 namespace mozilla {
+
+class EventStates;
+
 namespace layers {
 class Layer;
 }
@@ -1436,7 +1439,7 @@ public:
 
 
 
-  virtual void ContentStatesChanged(nsEventStates aStates) { }
+  virtual void ContentStatesChanged(mozilla::EventStates aStates);
 
   
 

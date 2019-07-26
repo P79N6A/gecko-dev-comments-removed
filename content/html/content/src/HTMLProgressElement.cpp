@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLProgressElement.h"
 #include "mozilla/dom/HTMLProgressElementBinding.h"
 
@@ -30,10 +31,10 @@ HTMLProgressElement::~HTMLProgressElement()
 NS_IMPL_ELEMENT_CLONE(HTMLProgressElement)
 
 
-nsEventStates
+EventStates
 HTMLProgressElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (IsIndeterminate()) {
     state |= NS_EVENT_STATE_INDETERMINATE;

@@ -16,8 +16,8 @@
 #include "imgINotificationObserver.h"
 #include "imgIOnloadBlocker.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/EventStates.h"
 #include "nsCOMPtr.h"
-#include "nsEventStates.h"
 #include "nsIImageLoadingContent.h"
 #include "nsIRequest.h"
 #include "mozilla/ErrorResult.h"
@@ -96,7 +96,7 @@ protected:
 
 
 
-  nsEventStates ImageState() const;
+  mozilla::EventStates ImageState() const;
 
   
 
@@ -378,7 +378,7 @@ private:
 
 
 
-  nsEventStates mForcedImageState;
+  mozilla::EventStates mForcedImageState;
 
   int16_t mImageBlockingStatus;
   bool mLoadingEnabled : 1;

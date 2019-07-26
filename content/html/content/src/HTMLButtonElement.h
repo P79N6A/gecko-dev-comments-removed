@@ -67,7 +67,7 @@ public:
   virtual void DoneCreatingElement() MOZ_OVERRIDE;
 
   
-  nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  EventStates IntrinsicState() const MOZ_OVERRIDE;
   
 
 

@@ -14,10 +14,12 @@
 #include "mozilla/IHistory.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/URLSearchParams.h"
-#include "nsEventStates.h"
 #include "nsIContent.h"
 
 namespace mozilla {
+
+class EventStates;
+
 namespace dom {
 
 class Element;
@@ -42,7 +44,7 @@ public:
 
 
 
-  nsEventStates LinkState() const;
+  EventStates LinkState() const;
 
   
 

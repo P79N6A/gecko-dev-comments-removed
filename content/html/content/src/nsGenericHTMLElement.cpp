@@ -8,6 +8,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Likely.h"
 
@@ -507,10 +508,10 @@ nsGenericHTMLElement::UpdateEditableState(bool aNotify)
   nsStyledElement::UpdateEditableState(aNotify);
 }
 
-nsEventStates
+EventStates
 nsGenericHTMLElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElementBase::IntrinsicState();
+  EventStates state = nsGenericHTMLElementBase::IntrinsicState();
 
   if (GetDirectionality() == eDir_RTL) {
     state |= NS_EVENT_STATE_RTL;
@@ -2300,13 +2301,13 @@ nsGenericHTMLFormElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
-nsEventStates
+EventStates
 nsGenericHTMLFormElement::IntrinsicState() const
 {
   
   
   
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (CanBeDisabled()) {
     

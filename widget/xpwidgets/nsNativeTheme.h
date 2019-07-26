@@ -12,7 +12,6 @@
 #include "nsString.h"
 #include "nsMargin.h"
 #include "nsGkAtoms.h"
-#include "nsEventStates.h"
 #include "nsTArray.h"
 #include "nsITimer.h"
 #include "nsIContent.h"
@@ -20,6 +19,10 @@
 class nsIFrame;
 class nsIPresShell;
 class nsPresContext;
+
+namespace mozilla {
+class EventStates;
+} 
 
 class nsNativeTheme : public nsITimerCallback
 {
@@ -44,7 +47,7 @@ class nsNativeTheme : public nsITimerCallback
   virtual ~nsNativeTheme() {}
 
   
-  nsEventStates GetContentState(nsIFrame* aFrame, uint8_t aWidgetType);
+  mozilla::EventStates GetContentState(nsIFrame* aFrame, uint8_t aWidgetType);
 
   
   
@@ -54,7 +57,7 @@ class nsNativeTheme : public nsITimerCallback
 
   
 
-  bool IsDisabled(nsIFrame* aFrame, nsEventStates aEventStates);
+  bool IsDisabled(nsIFrame* aFrame, mozilla::EventStates aEventStates);
 
   
   bool IsFrameRTL(nsIFrame* aFrame);
@@ -135,7 +138,8 @@ class nsNativeTheme : public nsITimerCallback
   bool IsHorizontal(nsIFrame* aFrame);
 
   
-  bool IsIndeterminateProgress(nsIFrame* aFrame, nsEventStates aEventStates);
+  bool IsIndeterminateProgress(nsIFrame* aFrame,
+                               mozilla::EventStates aEventStates);
   bool IsVerticalProgress(nsIFrame* aFrame);
 
   

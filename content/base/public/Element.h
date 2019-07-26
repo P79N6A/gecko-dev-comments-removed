@@ -15,7 +15,7 @@
 
 #include "mozilla/dom/FragmentOrElement.h" 
 #include "nsChangeHint.h"                  
-#include "nsEventStates.h"                 
+#include "mozilla/EventStates.h"           
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsIDOMElement.h"
 #include "nsILinkHandler.h"
@@ -141,7 +141,8 @@ public:
 
 
 
-  nsEventStates State() const {
+  EventStates State() const
+  {
     
     
     return mState;
@@ -162,7 +163,7 @@ public:
   
 
 
-  void UpdateLinkState(nsEventStates aState);
+  void UpdateLinkState(EventStates aState);
 
   
 
@@ -177,7 +178,8 @@ public:
 
 
 
-  nsEventStates StyleState() const {
+  EventStates StyleState() const
+  {
     if (!HasLockedStyleStates()) {
       return mState;
     }
@@ -187,17 +189,17 @@ public:
   
 
 
-  nsEventStates LockedStyleStates() const;
+  EventStates LockedStyleStates() const;
 
   
 
 
-  void LockStyleStates(nsEventStates aStates);
+  void LockStyleStates(EventStates aStates);
 
   
 
 
-  void UnlockStyleStates(nsEventStates aStates);
+  void UnlockStyleStates(EventStates aStates);
 
   
 
@@ -349,7 +351,7 @@ protected:
 
 
 
-  virtual nsEventStates IntrinsicState() const;
+  virtual EventStates IntrinsicState() const;
 
   
 
@@ -357,7 +359,8 @@ protected:
 
 
 
-  void AddStatesSilently(nsEventStates aStates) {
+  void AddStatesSilently(EventStates aStates)
+  {
     mState |= aStates;
   }
 
@@ -367,7 +370,8 @@ protected:
 
 
 
-  void RemoveStatesSilently(nsEventStates aStates) {
+  void RemoveStatesSilently(EventStates aStates)
+  {
     mState &= ~aStates;
   }
 
@@ -381,24 +385,26 @@ private:
   
   friend class Link;
 
-  void NotifyStateChange(nsEventStates aStates);
+  void NotifyStateChange(EventStates aStates);
 
-  void NotifyStyleStateChange(nsEventStates aStates);
+  void NotifyStyleStateChange(EventStates aStates);
 
   
-  nsEventStates StyleStateFromLocks() const;
+  EventStates StyleStateFromLocks() const;
 
 protected:
   
   
   
-  virtual void AddStates(nsEventStates aStates) {
+  virtual void AddStates(EventStates aStates)
+  {
     NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
                     "Should only be adding ESM-managed states here");
     AddStatesSilently(aStates);
     NotifyStateChange(aStates);
   }
-  virtual void RemoveStates(nsEventStates aStates) {
+  virtual void RemoveStates(EventStates aStates)
+  {
     NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
                     "Should only be removing ESM-managed states here");
     RemoveStatesSilently(aStates);
@@ -1144,7 +1150,7 @@ private:
                                      bool aFlushLayout = true);
 
   
-  nsEventStates mState;
+  EventStates mState;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Element, NS_ELEMENT_IID)

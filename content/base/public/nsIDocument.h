@@ -33,7 +33,6 @@ class nsCSSStyleSheet;
 class nsIDocShell;
 class nsDocShell;
 class nsDOMNavigationTiming;
-class nsEventStates;
 class nsFrameLoader;
 class nsHTMLCSSStyleSheet;
 class nsHTMLDocument;
@@ -85,6 +84,7 @@ class nsCSSSelectorList;
 
 namespace mozilla {
 class ErrorResult;
+class EventStates;
 
 namespace css {
 class Loader;
@@ -1093,12 +1093,12 @@ public:
   
   
   virtual void ContentStateChanged(nsIContent* aContent,
-                                   nsEventStates aStateMask) = 0;
+                                   mozilla::EventStates aStateMask) = 0;
 
   
   
   
-  virtual void DocumentStatesChanged(nsEventStates aStateMask) = 0;
+  virtual void DocumentStatesChanged(mozilla::EventStates aStateMask) = 0;
 
   
   
@@ -1794,7 +1794,7 @@ public:
 
 
 
-  virtual nsEventStates GetDocumentState() = 0;
+  virtual mozilla::EventStates GetDocumentState() = 0;
 
   virtual nsISupports* GetCurrentContentSink() = 0;
 

@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/ElementInlines.h"
@@ -408,7 +409,7 @@ HTMLObjectElement::StartObjectLoad(bool aNotify)
   SetIsNetworkCreated(false);
 }
 
-nsEventStates
+EventStates
 HTMLObjectElement::IntrinsicState() const
 {
   return nsGenericHTMLFormElement::IntrinsicState() | ObjectState();

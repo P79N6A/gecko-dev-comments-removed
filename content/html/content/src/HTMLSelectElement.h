@@ -284,7 +284,7 @@ public:
 
   virtual void FieldSetDisabledChanged(bool aNotify) MOZ_OVERRIDE;
 
-  nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   
 

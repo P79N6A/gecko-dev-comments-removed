@@ -21,6 +21,7 @@ class nsIFrame;
 struct TreeMatchContext;
 
 namespace mozilla {
+  class EventStates;
 
 namespace dom {
   class Element;
@@ -63,7 +64,7 @@ public:
   
   
   nsresult ContentStateChanged(nsIContent*   aContent,
-                               nsEventStates aStateMask);
+                               EventStates aStateMask);
 
   
   void AttributeWillChange(Element* aElement,

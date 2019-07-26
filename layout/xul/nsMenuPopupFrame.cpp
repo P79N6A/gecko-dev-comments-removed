@@ -47,6 +47,7 @@
 #include "nsDisplayList.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
@@ -838,7 +839,7 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
   
   
   NS_ASSERTION(mContent->IsElement(), "How do we have a non-element?");
-  nsEventStates state = mContent->AsElement()->State();
+  EventStates state = mContent->AsElement()->State();
 
   if (state.HasState(NS_EVENT_STATE_HOVER)) {
     EventStateManager* esm = PresContext()->EventStateManager();

@@ -94,7 +94,7 @@ public:
 
   
 
-  virtual nsEventStates IntrinsicState() const;
+  virtual EventStates IntrinsicState() const;
 
 
   

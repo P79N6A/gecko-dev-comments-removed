@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLSharedObjectElement.h"
 #include "mozilla/dom/HTMLEmbedElementBinding.h"
 #include "mozilla/dom/HTMLAppletElementBinding.h"
@@ -304,7 +305,7 @@ HTMLSharedObjectElement::StartObjectLoad(bool aNotify)
   SetIsNetworkCreated(false);
 }
 
-nsEventStates
+EventStates
 HTMLSharedObjectElement::IntrinsicState() const
 {
   return nsGenericHTMLElement::IntrinsicState() | ObjectState();

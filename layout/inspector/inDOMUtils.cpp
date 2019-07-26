@@ -4,6 +4,7 @@
 
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/EventStates.h"
 
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
@@ -688,7 +689,8 @@ inDOMUtils::GetBindingURLs(nsIDOMElement *aElement, nsIArray **_retval)
 }
 
 NS_IMETHODIMP
-inDOMUtils::SetContentState(nsIDOMElement *aElement, nsEventStates::InternalType aState)
+inDOMUtils::SetContentState(nsIDOMElement* aElement,
+                            EventStates::InternalType aState)
 {
   NS_ENSURE_ARG_POINTER(aElement);
 
@@ -699,14 +701,15 @@ inDOMUtils::SetContentState(nsIDOMElement *aElement, nsEventStates::InternalType
     content = do_QueryInterface(aElement);
 
     
-    return (nsresult)esm->SetContentState(content, nsEventStates(aState));
+    return (nsresult)esm->SetContentState(content, EventStates(aState));
   }
 
   return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-inDOMUtils::GetContentState(nsIDOMElement *aElement, nsEventStates::InternalType* aState)
+inDOMUtils::GetContentState(nsIDOMElement* aElement,
+                            EventStates::InternalType* aState)
 {
   *aState = 0;
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
@@ -756,14 +759,14 @@ inDOMUtils::GetUsedFontFaces(nsIDOMRange* aRange,
   return static_cast<nsRange*>(aRange)->GetUsedFontFaces(aFontFaceList);
 }
 
-static nsEventStates
+static EventStates
 GetStatesForPseudoClass(const nsAString& aStatePseudo)
 {
   
   
-  static const nsEventStates sPseudoClassStates[] = {
+  static const EventStates sPseudoClassStates[] = {
 #define CSS_PSEUDO_CLASS(_name, _value, _pref)	\
-    nsEventStates(),
+    EventStates(),
 #define CSS_STATE_PSEUDO_CLASS(_name, _value, _pref, _states)	\
     _states,
 #include "nsCSSPseudoClassList.h"
@@ -772,8 +775,8 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
 
     
     
-    nsEventStates(),
-    nsEventStates()
+    EventStates(),
+    EventStates()
   };
   static_assert(MOZ_ARRAY_LENGTH(sPseudoClassStates) ==
                 nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1,
@@ -785,7 +788,7 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
   
   if (nsCSSPseudoClasses::GetPseudoType(atom) ==
       nsCSSPseudoClasses::ePseudoClass_mozAnyLink) {
-    return nsEventStates();
+    return EventStates();
   }
   
   
@@ -796,7 +799,7 @@ NS_IMETHODIMP
 inDOMUtils::AddPseudoClassLock(nsIDOMElement *aElement,
                                const nsAString &aPseudoClass)
 {
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  EventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     return NS_OK;
   }
@@ -813,7 +816,7 @@ NS_IMETHODIMP
 inDOMUtils::RemovePseudoClassLock(nsIDOMElement *aElement,
                                   const nsAString &aPseudoClass)
 {
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  EventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     return NS_OK;
   }
@@ -831,7 +834,7 @@ inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
                                const nsAString &aPseudoClass,
                                bool *_retval)
 {
-  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  EventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     *_retval = false;
     return NS_OK;
@@ -840,7 +843,7 @@ inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
   nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
   NS_ENSURE_ARG_POINTER(element);
 
-  nsEventStates locks = element->LockedStyleStates();
+  EventStates locks = element->LockedStyleStates();
 
   *_retval = locks.HasAllStates(state);
   return NS_OK;

@@ -9,6 +9,7 @@
 
 
 #include "RestyleManager.h"
+#include "mozilla/EventStates.h"
 #include "nsLayoutUtils.h"
 #include "GeckoProfiler.h"
 #include "nsStyleChangeList.h"
@@ -852,7 +853,7 @@ ElementForStyleContext(nsIContent* aParentContent,
 
 nsresult
 RestyleManager::ContentStateChanged(nsIContent* aContent,
-                                    nsEventStates aStateMask)
+                                    EventStates aStateMask)
 {
   
   
