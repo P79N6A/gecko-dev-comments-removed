@@ -8401,432 +8401,6 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily)
   }
 }
 
-
-
-
-
-
-
-bool
-CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
-                                      uint16_t aMinElems,
-                                      uint16_t aMaxElems,
-                                      InfallibleTArray<nsCSSValue> &aOutput)
-{
-  for (uint16_t index = 0; index < aMaxElems; ++index) {
-    nsCSSValue newValue;
-    if (!ParseVariant(newValue, aVariantMask[index], nullptr))
-      return false;
-
-    aOutput.AppendElement(newValue);
-
-    
-    if (!ExpectSymbol(',', true)) {
-      
-      
-      return ExpectSymbol(')', true) && (index + 1) >= aMinElems;
-    }
-  }
-
-  
-  
-  return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-CSSParserImpl::ParseFunction(const nsString &aFunction,
-                             const int32_t aAllowedTypes[],
-                             uint16_t aMinElems, uint16_t aMaxElems,
-                             nsCSSValue &aValue)
-{
-  typedef InfallibleTArray<nsCSSValue>::size_type arrlen_t;
-
-  
-
-
-  static const arrlen_t MAX_ALLOWED_ELEMS = 0xFFFE;
-
-  
-
-
-
-  nsString functionName(aFunction);
-
-  
-
-
-  InfallibleTArray<nsCSSValue> foundValues;
-  if (!ParseFunctionInternals(aAllowedTypes, aMinElems, aMaxElems,
-                              foundValues))
-    return false;
-
-  
-
-
-
-
-  uint16_t numElements = (foundValues.Length() <= MAX_ALLOWED_ELEMS ?
-                          foundValues.Length() + 1 : MAX_ALLOWED_ELEMS);
-  nsRefPtr<nsCSSValue::Array> convertedArray =
-    nsCSSValue::Array::Create(numElements);
-
-  
-  convertedArray->Item(0).SetStringValue(functionName, eCSSUnit_Ident);
-  for (uint16_t index = 0; index + 1 < numElements; ++index)
-    convertedArray->Item(index + 1) = foundValues[static_cast<arrlen_t>(index)];
-
-  
-  aValue.SetArrayValue(convertedArray, eCSSUnit_Function);
-
-  
-  return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool GetFunctionParseInformation(nsCSSKeyword aToken,
-                                        bool aIsPrefixed,
-                                        uint16_t &aMinElems,
-                                        uint16_t &aMaxElems,
-                                        const int32_t *& aVariantMask,
-                                        bool &aIs3D)
-{
-
-
-
-
-  enum { eLengthPercentCalc,
-         eLengthCalc,
-         eTwoLengthPercentCalcs,
-         eTwoLengthPercentCalcsOneLengthCalc,
-         eAngle,
-         eTwoAngles,
-         eNumber,
-         ePositiveLength,
-         eTwoNumbers,
-         eThreeNumbers,
-         eThreeNumbersOneAngle,
-         eMatrix,
-         eMatrixPrefixed,
-         eMatrix3d,
-         eMatrix3dPrefixed,
-         eNumVariantMasks };
-  static const int32_t kMaxElemsPerFunction = 16;
-  static const int32_t kVariantMasks[eNumVariantMasks][kMaxElemsPerFunction] = {
-    {VARIANT_LPCALC},
-    {VARIANT_LENGTH|VARIANT_CALC},
-    {VARIANT_LPCALC, VARIANT_LPCALC},
-    {VARIANT_LPCALC, VARIANT_LPCALC, VARIANT_LENGTH|VARIANT_CALC},
-    {VARIANT_ANGLE_OR_ZERO},
-    {VARIANT_ANGLE_OR_ZERO, VARIANT_ANGLE_OR_ZERO},
-    {VARIANT_NUMBER},
-    {VARIANT_LENGTH|VARIANT_POSITIVE_DIMENSION},
-    {VARIANT_NUMBER, VARIANT_NUMBER},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_ANGLE_OR_ZERO},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_LPNCALC, VARIANT_LPNCALC},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER},
-    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
-     VARIANT_LPNCALC, VARIANT_LPNCALC, VARIANT_LNCALC, VARIANT_NUMBER}};
-
-#ifdef DEBUG
-  static const uint8_t kVariantMaskLengths[eNumVariantMasks] =
-    {1, 1, 2, 3, 1, 2, 1, 1, 2, 3, 4, 6, 6, 16, 16};
-#endif
-
-  int32_t variantIndex = eNumVariantMasks;
-
-  aIs3D = false;
-
-  switch (aToken) {
-  case eCSSKeyword_translatex:
-  case eCSSKeyword_translatey:
-    
-    variantIndex = eLengthPercentCalc;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    break;
-  case eCSSKeyword_translatez:
-    
-    variantIndex = eLengthCalc;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    aIs3D = true;
-    break;
-  case eCSSKeyword_translate3d:
-    
-    variantIndex = eTwoLengthPercentCalcsOneLengthCalc;
-    aMinElems = 3U;
-    aMaxElems = 3U;
-    aIs3D = true;
-    break;
-  case eCSSKeyword_scalez:
-    aIs3D = true;
-  case eCSSKeyword_scalex:
-  case eCSSKeyword_scaley:
-    
-    variantIndex = eNumber;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    break;
-  case eCSSKeyword_scale3d:
-    
-    variantIndex = eThreeNumbers;
-    aMinElems = 3U;
-    aMaxElems = 3U;
-    aIs3D = true;
-    break;
-  case eCSSKeyword_rotatex:
-  case eCSSKeyword_rotatey:
-    aIs3D = true;
-  case eCSSKeyword_rotate:
-  case eCSSKeyword_rotatez:
-    
-    variantIndex = eAngle;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    break;
-  case eCSSKeyword_rotate3d:
-    variantIndex = eThreeNumbersOneAngle;
-    aMinElems = 4U;
-    aMaxElems = 4U;
-    aIs3D = true;
-    break;
-  case eCSSKeyword_translate:
-    
-    variantIndex = eTwoLengthPercentCalcs;
-    aMinElems = 1U;
-    aMaxElems = 2U;
-    break;
-  case eCSSKeyword_skew:
-    
-    variantIndex = eTwoAngles;
-    aMinElems = 1U;
-    aMaxElems = 2U;
-    break;
-  case eCSSKeyword_scale:
-    
-    variantIndex = eTwoNumbers;
-    aMinElems = 1U;
-    aMaxElems = 2U;
-    break;
-  case eCSSKeyword_skewx:
-    
-    variantIndex = eAngle;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    break;
-  case eCSSKeyword_skewy:
-    
-    variantIndex = eAngle;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    break;
-  case eCSSKeyword_matrix:
-    
-    variantIndex = aIsPrefixed ? eMatrixPrefixed : eMatrix;
-    aMinElems = 6U;
-    aMaxElems = 6U;
-    break;
-  case eCSSKeyword_matrix3d:
-    
-    variantIndex = aIsPrefixed ? eMatrix3dPrefixed : eMatrix3d;
-    aMinElems = 16U;
-    aMaxElems = 16U;
-    aIs3D = true;
-    break;
-  case eCSSKeyword_perspective:
-    
-    variantIndex = ePositiveLength;
-    aMinElems = 1U;
-    aMaxElems = 1U;
-    aIs3D = true;
-    break;
-  default:
-    
-    return false;
-  }
-
-  NS_ASSERTION(aMinElems > 0, "Didn't update minimum elements!");
-  NS_ASSERTION(aMaxElems > 0, "Didn't update maximum elements!");
-  NS_ASSERTION(aMinElems <= aMaxElems, "aMinElems > aMaxElems!");
-  NS_ASSERTION(variantIndex >= 0, "Invalid variant mask!");
-  NS_ASSERTION(variantIndex < eNumVariantMasks, "Invalid variant mask!");
-#ifdef DEBUG
-  NS_ASSERTION(aMaxElems <= kVariantMaskLengths[variantIndex],
-               "Invalid aMaxElems for this variant mask.");
-#endif
-
-  
-  aVariantMask = kVariantMasks[variantIndex];
-
-  return true;
-}
-
-
-
-
-bool
-CSSParserImpl::ParseSingleTransform(bool aIsPrefixed,
-                                    nsCSSValue& aValue, bool& aIs3D)
-{
-  if (!GetToken(true))
-    return false;
-
-  if (mToken.mType != eCSSToken_Function) {
-    UngetToken();
-    return false;
-  }
-
-  const int32_t* variantMask;
-  uint16_t minElems, maxElems;
-  nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
-
-  if (!GetFunctionParseInformation(keyword, aIsPrefixed,
-                                   minElems, maxElems, variantMask, aIs3D))
-    return false;
-
-  
-  
-  
-  nsContentUtils::ASCIIToLower(mToken.mIdent);
-  switch (keyword) {
-    case eCSSKeyword_rotatex:
-    case eCSSKeyword_scalex:
-    case eCSSKeyword_skewx:
-    case eCSSKeyword_translatex:
-      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('X'));
-      break;
-
-    case eCSSKeyword_rotatey:
-    case eCSSKeyword_scaley:
-    case eCSSKeyword_skewy:
-    case eCSSKeyword_translatey:
-      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('Y'));
-      break;
-
-    case eCSSKeyword_rotatez:
-    case eCSSKeyword_scalez:
-    case eCSSKeyword_translatez:
-      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('Z'));
-      break;
-
-    default:
-      break;
-  }
-
-  return ParseFunction(mToken.mIdent, variantMask, minElems, maxElems, aValue);
-}
-
-
-
-
-bool CSSParserImpl::ParseTransform(bool aIsPrefixed)
-{
-  nsCSSValue value;
-  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
-    
-    if (!ExpectEndProperty()) {
-      return false;
-    }
-  } else {
-    nsCSSValueList* cur = value.SetListValue();
-    for (;;) {
-      bool is3D;
-      if (!ParseSingleTransform(aIsPrefixed, cur->mValue, is3D)) {
-        return false;
-      }
-      if (is3D && !nsLayoutUtils::Are3DTransformsEnabled()) {
-        return false;
-      }
-      if (CheckEndProperty()) {
-        break;
-      }
-      cur->mNext = new nsCSSValueList;
-      cur = cur->mNext;
-    }
-  }
-  AppendValue(eCSSProperty_transform, value);
-  return true;
-}
-
-bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
-{
-  nsCSSValuePair position;
-  if (!ParseBoxPositionValues(position, true))
-    return false;
-
-  nsCSSProperty prop = eCSSProperty_transform_origin;
-  if (aPerspective) {
-    if (!ExpectEndProperty()) {
-      return false;
-    }
-    prop = eCSSProperty_perspective_origin;
-  }
-
-  
-  
-  
-  if (position.mXValue.GetUnit() == eCSSUnit_Inherit ||
-      position.mXValue.GetUnit() == eCSSUnit_Initial) {
-    NS_ABORT_IF_FALSE(position.mXValue == position.mYValue,
-                      "inherit/initial only half?");
-    AppendValue(prop, position.mXValue);
-  } else {
-    nsCSSValue value;
-    if (aPerspective) {
-      value.SetPairValue(position.mXValue, position.mYValue);
-    } else {
-      nsCSSValue depth;
-      if (!nsLayoutUtils::Are3DTransformsEnabled() ||
-          
-          !ParseVariant(depth, VARIANT_LENGTH | VARIANT_CALC, nullptr)) {
-        depth.SetFloatValue(0.0f, eCSSUnit_Pixel);
-      }
-      value.SetTripletValue(position.mXValue, position.mYValue, depth);
-    }
-
-    AppendValue(prop, value);
-  }
-  return true;
-}
-
 bool
 CSSParserImpl::ParseFamily(nsCSSValue& aValue)
 {
@@ -9492,7 +9066,433 @@ CSSParserImpl::ParseTextOverflow(nsCSSValue& aValue)
   }
   return true;
 }
- 
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
+                                      uint16_t aMinElems,
+                                      uint16_t aMaxElems,
+                                      InfallibleTArray<nsCSSValue> &aOutput)
+{
+  for (uint16_t index = 0; index < aMaxElems; ++index) {
+    nsCSSValue newValue;
+    if (!ParseVariant(newValue, aVariantMask[index], nullptr))
+      return false;
+
+    aOutput.AppendElement(newValue);
+
+    
+    if (!ExpectSymbol(',', true)) {
+      
+      
+      return ExpectSymbol(')', true) && (index + 1) >= aMinElems;
+    }
+  }
+
+  
+  
+  return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseFunction(const nsString &aFunction,
+                             const int32_t aAllowedTypes[],
+                             uint16_t aMinElems, uint16_t aMaxElems,
+                             nsCSSValue &aValue)
+{
+  typedef InfallibleTArray<nsCSSValue>::size_type arrlen_t;
+
+  
+
+
+  static const arrlen_t MAX_ALLOWED_ELEMS = 0xFFFE;
+
+  
+
+
+
+  nsString functionName(aFunction);
+
+  
+
+
+  InfallibleTArray<nsCSSValue> foundValues;
+  if (!ParseFunctionInternals(aAllowedTypes, aMinElems, aMaxElems,
+                              foundValues))
+    return false;
+
+  
+
+
+
+
+  uint16_t numElements = (foundValues.Length() <= MAX_ALLOWED_ELEMS ?
+                          foundValues.Length() + 1 : MAX_ALLOWED_ELEMS);
+  nsRefPtr<nsCSSValue::Array> convertedArray =
+    nsCSSValue::Array::Create(numElements);
+
+  
+  convertedArray->Item(0).SetStringValue(functionName, eCSSUnit_Ident);
+  for (uint16_t index = 0; index + 1 < numElements; ++index)
+    convertedArray->Item(index + 1) = foundValues[static_cast<arrlen_t>(index)];
+
+  
+  aValue.SetArrayValue(convertedArray, eCSSUnit_Function);
+
+  
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool GetFunctionParseInformation(nsCSSKeyword aToken,
+                                        bool aIsPrefixed,
+                                        uint16_t &aMinElems,
+                                        uint16_t &aMaxElems,
+                                        const int32_t *& aVariantMask,
+                                        bool &aIs3D)
+{
+
+
+
+
+  enum { eLengthPercentCalc,
+         eLengthCalc,
+         eTwoLengthPercentCalcs,
+         eTwoLengthPercentCalcsOneLengthCalc,
+         eAngle,
+         eTwoAngles,
+         eNumber,
+         ePositiveLength,
+         eTwoNumbers,
+         eThreeNumbers,
+         eThreeNumbersOneAngle,
+         eMatrix,
+         eMatrixPrefixed,
+         eMatrix3d,
+         eMatrix3dPrefixed,
+         eNumVariantMasks };
+  static const int32_t kMaxElemsPerFunction = 16;
+  static const int32_t kVariantMasks[eNumVariantMasks][kMaxElemsPerFunction] = {
+    {VARIANT_LPCALC},
+    {VARIANT_LENGTH|VARIANT_CALC},
+    {VARIANT_LPCALC, VARIANT_LPCALC},
+    {VARIANT_LPCALC, VARIANT_LPCALC, VARIANT_LENGTH|VARIANT_CALC},
+    {VARIANT_ANGLE_OR_ZERO},
+    {VARIANT_ANGLE_OR_ZERO, VARIANT_ANGLE_OR_ZERO},
+    {VARIANT_NUMBER},
+    {VARIANT_LENGTH|VARIANT_POSITIVE_DIMENSION},
+    {VARIANT_NUMBER, VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_ANGLE_OR_ZERO},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_LPNCALC, VARIANT_LPNCALC},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_LPNCALC, VARIANT_LPNCALC, VARIANT_LNCALC, VARIANT_NUMBER}};
+
+#ifdef DEBUG
+  static const uint8_t kVariantMaskLengths[eNumVariantMasks] =
+    {1, 1, 2, 3, 1, 2, 1, 1, 2, 3, 4, 6, 6, 16, 16};
+#endif
+
+  int32_t variantIndex = eNumVariantMasks;
+
+  aIs3D = false;
+
+  switch (aToken) {
+  case eCSSKeyword_translatex:
+  case eCSSKeyword_translatey:
+    
+    variantIndex = eLengthPercentCalc;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_translatez:
+    
+    variantIndex = eLengthCalc;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    aIs3D = true;
+    break;
+  case eCSSKeyword_translate3d:
+    
+    variantIndex = eTwoLengthPercentCalcsOneLengthCalc;
+    aMinElems = 3U;
+    aMaxElems = 3U;
+    aIs3D = true;
+    break;
+  case eCSSKeyword_scalez:
+    aIs3D = true;
+  case eCSSKeyword_scalex:
+  case eCSSKeyword_scaley:
+    
+    variantIndex = eNumber;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_scale3d:
+    
+    variantIndex = eThreeNumbers;
+    aMinElems = 3U;
+    aMaxElems = 3U;
+    aIs3D = true;
+    break;
+  case eCSSKeyword_rotatex:
+  case eCSSKeyword_rotatey:
+    aIs3D = true;
+  case eCSSKeyword_rotate:
+  case eCSSKeyword_rotatez:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_rotate3d:
+    variantIndex = eThreeNumbersOneAngle;
+    aMinElems = 4U;
+    aMaxElems = 4U;
+    aIs3D = true;
+    break;
+  case eCSSKeyword_translate:
+    
+    variantIndex = eTwoLengthPercentCalcs;
+    aMinElems = 1U;
+    aMaxElems = 2U;
+    break;
+  case eCSSKeyword_skew:
+    
+    variantIndex = eTwoAngles;
+    aMinElems = 1U;
+    aMaxElems = 2U;
+    break;
+  case eCSSKeyword_scale:
+    
+    variantIndex = eTwoNumbers;
+    aMinElems = 1U;
+    aMaxElems = 2U;
+    break;
+  case eCSSKeyword_skewx:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_skewy:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_matrix:
+    
+    variantIndex = aIsPrefixed ? eMatrixPrefixed : eMatrix;
+    aMinElems = 6U;
+    aMaxElems = 6U;
+    break;
+  case eCSSKeyword_matrix3d:
+    
+    variantIndex = aIsPrefixed ? eMatrix3dPrefixed : eMatrix3d;
+    aMinElems = 16U;
+    aMaxElems = 16U;
+    aIs3D = true;
+    break;
+  case eCSSKeyword_perspective:
+    
+    variantIndex = ePositiveLength;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    aIs3D = true;
+    break;
+  default:
+    
+    return false;
+  }
+
+  NS_ASSERTION(aMinElems > 0, "Didn't update minimum elements!");
+  NS_ASSERTION(aMaxElems > 0, "Didn't update maximum elements!");
+  NS_ASSERTION(aMinElems <= aMaxElems, "aMinElems > aMaxElems!");
+  NS_ASSERTION(variantIndex >= 0, "Invalid variant mask!");
+  NS_ASSERTION(variantIndex < eNumVariantMasks, "Invalid variant mask!");
+#ifdef DEBUG
+  NS_ASSERTION(aMaxElems <= kVariantMaskLengths[variantIndex],
+               "Invalid aMaxElems for this variant mask.");
+#endif
+
+  
+  aVariantMask = kVariantMasks[variantIndex];
+
+  return true;
+}
+
+
+
+
+bool
+CSSParserImpl::ParseSingleTransform(bool aIsPrefixed,
+                                    nsCSSValue& aValue, bool& aIs3D)
+{
+  if (!GetToken(true))
+    return false;
+
+  if (mToken.mType != eCSSToken_Function) {
+    UngetToken();
+    return false;
+  }
+
+  const int32_t* variantMask;
+  uint16_t minElems, maxElems;
+  nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
+
+  if (!GetFunctionParseInformation(keyword, aIsPrefixed,
+                                   minElems, maxElems, variantMask, aIs3D))
+    return false;
+
+  
+  
+  
+  nsContentUtils::ASCIIToLower(mToken.mIdent);
+  switch (keyword) {
+    case eCSSKeyword_rotatex:
+    case eCSSKeyword_scalex:
+    case eCSSKeyword_skewx:
+    case eCSSKeyword_translatex:
+      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('X'));
+      break;
+
+    case eCSSKeyword_rotatey:
+    case eCSSKeyword_scaley:
+    case eCSSKeyword_skewy:
+    case eCSSKeyword_translatey:
+      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('Y'));
+      break;
+
+    case eCSSKeyword_rotatez:
+    case eCSSKeyword_scalez:
+    case eCSSKeyword_translatez:
+      mToken.mIdent.Replace(mToken.mIdent.Length() - 1, 1, PRUnichar('Z'));
+      break;
+
+    default:
+      break;
+  }
+
+  return ParseFunction(mToken.mIdent, variantMask, minElems, maxElems, aValue);
+}
+
+
+
+
+bool CSSParserImpl::ParseTransform(bool aIsPrefixed)
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
+    
+    if (!ExpectEndProperty()) {
+      return false;
+    }
+  } else {
+    nsCSSValueList* cur = value.SetListValue();
+    for (;;) {
+      bool is3D;
+      if (!ParseSingleTransform(aIsPrefixed, cur->mValue, is3D)) {
+        return false;
+      }
+      if (is3D && !nsLayoutUtils::Are3DTransformsEnabled()) {
+        return false;
+      }
+      if (CheckEndProperty()) {
+        break;
+      }
+      cur->mNext = new nsCSSValueList;
+      cur = cur->mNext;
+    }
+  }
+  AppendValue(eCSSProperty_transform, value);
+  return true;
+}
+
+bool CSSParserImpl::ParseTransformOrigin(bool aPerspective)
+{
+  nsCSSValuePair position;
+  if (!ParseBoxPositionValues(position, true))
+    return false;
+
+  nsCSSProperty prop = eCSSProperty_transform_origin;
+  if (aPerspective) {
+    if (!ExpectEndProperty()) {
+      return false;
+    }
+    prop = eCSSProperty_perspective_origin;
+  }
+
+  
+  
+  
+  if (position.mXValue.GetUnit() == eCSSUnit_Inherit ||
+      position.mXValue.GetUnit() == eCSSUnit_Initial) {
+    NS_ABORT_IF_FALSE(position.mXValue == position.mYValue,
+                      "inherit/initial only half?");
+    AppendValue(prop, position.mXValue);
+  } else {
+    nsCSSValue value;
+    if (aPerspective) {
+      value.SetPairValue(position.mXValue, position.mYValue);
+    } else {
+      nsCSSValue depth;
+      if (!nsLayoutUtils::Are3DTransformsEnabled() ||
+          
+          !ParseVariant(depth, VARIANT_LENGTH | VARIANT_CALC, nullptr)) {
+        depth.SetFloatValue(0.0f, eCSSUnit_Pixel);
+      }
+      value.SetTripletValue(position.mXValue, position.mYValue, depth);
+    }
+
+    AppendValue(prop, value);
+  }
+  return true;
+}
+
 bool
 CSSParserImpl::ParseTransitionProperty()
 {
