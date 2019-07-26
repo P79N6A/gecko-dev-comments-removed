@@ -21,8 +21,6 @@ function testImportSimContacts() {
     let simContacts = request.result;
 
     
-    is(simContacts.length, 4);
-
     is(simContacts[0].name, "Mozilla");
     is(simContacts[0].tel[0].value, "15555218201");
 
