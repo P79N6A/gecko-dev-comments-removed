@@ -21,11 +21,6 @@ class DOMSVGAnimatedNumberList;
 namespace dom {
 typedef SVGTextContentElement SVGTextPositioningElementBase;
 
-
-
-
-
-
 class SVGTextPositioningElement : public SVGTextPositioningElementBase
 {
 public:
