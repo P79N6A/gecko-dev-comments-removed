@@ -178,9 +178,22 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.ma_and(Imm32(0x1F), R1.payloadReg(), scratchReg);
         masm.ma_lsr(scratchReg, R0.payloadReg(), scratchReg);
         masm.ma_cmp(scratchReg, Imm32(0));
-        masm.j(Assembler::LessThan, &failure);
-        
-        masm.mov(scratchReg, R0.payloadReg());
+        if (allowDouble_) {
+            Label toUint;
+            masm.j(Assembler::LessThan, &toUint);
+
+            
+            masm.mov(scratchReg, R0.payloadReg());
+            EmitReturnFromIC(masm);
+
+            masm.bind(&toUint);
+            masm.convertUInt32ToDouble(scratchReg, ScratchFloatReg);
+            masm.boxDouble(ScratchFloatReg, R0);
+        } else {
+            masm.j(Assembler::LessThan, &failure);
+            
+            masm.mov(scratchReg, R0.payloadReg());
+        }
         break;
       default:
         JS_NOT_REACHED("Unhandled op for BinaryArith_Int32.");
