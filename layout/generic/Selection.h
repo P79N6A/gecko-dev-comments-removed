@@ -53,7 +53,7 @@ public:
 
   
   nsresult      GetPresContext(nsPresContext **aPresContext);
-  nsresult      GetPresShell(nsIPresShell **aPresShell);
+  nsIPresShell* GetPresShell() const;
   
   
   
@@ -212,7 +212,6 @@ private:
 
   nsRefPtr<nsRange> mAnchorFocusRange;
   nsRefPtr<nsFrameSelection> mFrameSelection;
-  nsWeakPtr mPresShellWeak;
   nsRefPtr<nsAutoScrollTimer> mAutoScrollTimer;
   nsCOMArray<nsISelectionListener> mSelectionListeners;
   nsRevocableEventPtr<ScrollSelectionIntoViewEvent> mScrollEvent;
