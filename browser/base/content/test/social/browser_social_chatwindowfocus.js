@@ -248,6 +248,19 @@ var tests = {
   
   
   testTab: function(next) {
+    function sendTabAndWaitForFocus(chat, eltid, callback) {
+      
+      
+      
+      
+      let doc = chat.iframe.contentDocument;
+      EventUtils.sendKey("tab");
+      waitForCondition(function() {
+        let elt = eltid ? doc.getElementById(eltid) : doc.documentElement;
+        return doc.activeElement == elt;
+      }, callback, "element " + eltid + " never got focus");
+    }
+
     let chatbar = SocialChatBar.chatbar;
     startTestAndWaitForSidebar(function(port) {
       openChatViaSidebarMessage(port, {id: 1}, function() {
@@ -259,22 +272,27 @@ var tests = {
           ok(isChatFocused(chat2), "new chat is focused");
           
           
-          EventUtils.sendKey("tab");
-          ok(isChatFocused(chat2), "new chat still focused after first tab");
-          is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input1",
-             "first input field has focus");
-          EventUtils.sendKey("tab");
-          ok(isChatFocused(chat2), "new chat still focused after tab");
-          is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input2",
-             "second input field has focus");
-          EventUtils.sendKey("tab");
-          ok(isChatFocused(chat2), "new chat still focused after tab");
-          is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "iframe",
-             "iframe has focus");
-          
-          EventUtils.sendKey("tab");
-          ok(isChatFocused(chat1), "first chat is focused");
-          next();
+          sendTabAndWaitForFocus(chat2, "input1", function() {
+            is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input1",
+               "first input field has focus");
+            ok(isChatFocused(chat2), "new chat still focused after first tab");
+            sendTabAndWaitForFocus(chat2, "input2", function() {
+              ok(isChatFocused(chat2), "new chat still focused after tab");
+              is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input2",
+                 "second input field has focus");
+              sendTabAndWaitForFocus(chat2, "iframe", function() {
+                ok(isChatFocused(chat2), "new chat still focused after tab");
+                is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "iframe",
+                   "iframe has focus");
+                
+                
+                sendTabAndWaitForFocus(chat1, null, function() {
+                  ok(isChatFocused(chat1), "first chat is focused");
+                  next();
+                });
+              });
+            });
+          });
         });
       });
     });
