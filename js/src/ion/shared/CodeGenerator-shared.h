@@ -173,6 +173,7 @@ class CodeGeneratorShared : public LInstructionVisitor
         return index;
     }
 
+  public:
     
     
     IonCache *getCache(size_t index) {

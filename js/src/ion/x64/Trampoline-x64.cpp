@@ -333,6 +333,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     masm.movq(Operand(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
+    masm.clearCalleeTag(rax, mode);
     masm.movzwl(Operand(rax, offsetof(JSFunction, nargs)), rcx);
     masm.subq(r8, rcx);
 
@@ -502,13 +503,16 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
     JS_STATIC_ASSERT((Register::Codes::VolatileMask & ~Register::Codes::WrapperMask) == 0);
 
     
+    Register cxreg = IntArgReg0;
+
     
     
     
     
     
     
-    masm.enterExitFrame(&f);
+    
+    masm.enterExitFrameAndLoadContext(&f, cxreg, regs.getAny(), f.executionMode);
 
     
     Register argsBase = InvalidReg;
@@ -544,12 +548,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
         break;
     }
 
-    Register temp = regs.getAny();
-    masm.setupUnalignedABICall(f.argc(), temp);
-
-    
-    Register cxreg = IntArgReg0;
-    masm.loadJSContext(cxreg);
+    masm.setupUnalignedABICall(f.argc(), regs.getAny());
     masm.passABIArg(cxreg);
 
     size_t argDisp = 0;
@@ -582,15 +581,17 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.callWithABI(f.wrapped);
 
     
-    Label exception;
+    Label failure;
     switch (f.failType()) {
       case Type_Object:
-        masm.testq(rax, rax);
-        masm.j(Assembler::Zero, &exception);
+        masm.branchTestPtr(Assembler::Zero, rax, rax, &failure);
         break;
       case Type_Bool:
         masm.testb(rax, rax);
-        masm.j(Assembler::Zero, &exception);
+        masm.j(Assembler::Zero, &failure);
+        break;
+      case Type_ParallelResult:
+        masm.branchPtr(Assembler::NotEqual, rax, Imm32(TP_SUCCESS), &failure);
         break;
       default:
         JS_NOT_REACHED("unknown failure kind");
@@ -619,8 +620,8 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
                     f.explicitStackSlots() * sizeof(void *) +
                     f.extraValuesToPop * sizeof(Value)));
 
-    masm.bind(&exception);
-    masm.handleException();
+    masm.bind(&failure);
+    masm.handleFailure(f.executionMode);
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx, JSC::OTHER_CODE);

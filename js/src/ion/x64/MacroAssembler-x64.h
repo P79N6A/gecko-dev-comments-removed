@@ -975,7 +975,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void callWithABI(void *fun, Result result = GENERAL);
     void callWithABI(Address fun, Result result = GENERAL);
 
-    void handleException();
+    void handleFailureWithHandler(void *handler);
 
     void makeFrameDescriptor(Register frameSizeReg, FrameType type) {
         shlq(Imm32(FRAMESIZE_SHIFT), frameSizeReg);
@@ -994,6 +994,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         makeFrameDescriptor(dynStack, IonFrame_OptimizedJS);
         Push(dynStack);
         call(target);
+    }
+
+    
+    
+    void linkParallelExitFrame(const Register &pt) {
+        mov(StackPointer, Operand(pt, offsetof(PerThreadData, ionTop)));
     }
 
     void enterOsr(Register calleeToken, Register code) {

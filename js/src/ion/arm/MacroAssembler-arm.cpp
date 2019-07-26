@@ -2830,6 +2830,12 @@ MacroAssemblerARMCompat::linkExitFrame() {
     ma_str(StackPointer, Operand(ScratchRegister, 0));
 }
 
+void
+MacroAssemblerARMCompat::linkParallelExitFrame(const Register &pt)
+{
+    ma_str(StackPointer, Operand(pt, offsetof(PerThreadData, ionTop)));
+}
+
 
 
 
@@ -3134,7 +3140,7 @@ MacroAssemblerARMCompat::callWithABI(const Address &fun, Result result)
 }
 
 void
-MacroAssemblerARMCompat::handleException()
+MacroAssemblerARMCompat::handleFailureWithHandler(void *handler)
 {
     
     int size = (sizeof(ResumeFromException) + 7) & ~7;
@@ -3144,7 +3150,7 @@ MacroAssemblerARMCompat::handleException()
     
     setupUnalignedABICall(1, r1);
     passABIArg(r0);
-    callWithABI(JS_FUNC_TO_DATA_PTR(void *, ion::HandleException));
+    callWithABI(handler);
 
     Label catch_;
     Label entryFrame;

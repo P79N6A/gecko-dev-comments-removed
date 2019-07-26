@@ -593,6 +593,12 @@ class MacroAssembler : public MacroAssemblerSpecific
         Push(ImmWord(uintptr_t(NULL)));
     }
 
+    void enterParallelExitFrameAndLoadSlice(const VMFunction *f, Register slice,
+                                            Register scratch);
+
+    void enterExitFrameAndLoadContext(const VMFunction *f, Register cxReg, Register scratch,
+                                      ExecutionMode executionMode);
+
     void leaveExitFrame() {
         freeStack(IonExitFooterFrame::Size());
     }
@@ -639,16 +645,10 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     void handleException() {
-        
-        
-        if (sps_)
-            sps_->skipNextReenter();
-        leaveSPSFrame();
-        MacroAssemblerSpecific::handleException();
-        
-        if (sps_)
-            sps_->reenter(*this, InvalidReg);
+        handleFailure(SequentialExecution);
     }
+
+    void handleFailure(ExecutionMode executionMode);
 
     
     uint32_t callIon(const Register &callee) {
@@ -691,6 +691,9 @@ class MacroAssembler : public MacroAssemblerSpecific
         test32(Address(scratch, Class::offsetOfFlags()), Imm32(JSCLASS_EMULATES_UNDEFINED));
         return truthy ? Assembler::Zero : Assembler::NonZero;
     }
+
+    void tagCallee(Register callee, ExecutionMode mode);
+    void clearCalleeTag(Register callee, ExecutionMode mode);
 
   private:
     
