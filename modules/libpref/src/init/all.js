@@ -3834,3 +3834,6 @@ pref("jsloader.reuseGlobal", false);
 
 
 pref("dom.browserElement.maxScreenshotDelayMS", 2000);
+
+
+pref("dom.placeholder.show_on_focus", true);

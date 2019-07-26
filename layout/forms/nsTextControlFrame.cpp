@@ -648,6 +648,12 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
   
   mScrollEvent.Revoke();
 
+  
+  
+  if (mUsePlaceholder) {
+    txtCtrl->UpdatePlaceholderVisibility(true);
+  }
+
   if (!aOn) {
     return;
   }
