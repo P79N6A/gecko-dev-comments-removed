@@ -281,7 +281,7 @@ let FormAssistant = {
             return n === element;
           });
         });
-        if (del && element === this.focusedElement) {
+        if (del && element === self.focusedElement) {
           
           self.handleEvent({ target: element, type: "blur" });
         }
