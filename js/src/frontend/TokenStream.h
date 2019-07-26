@@ -29,7 +29,7 @@ namespace js {
 namespace frontend {
 
 enum TokenKind {
-    TOK_ERROR = -1,                
+    TOK_ERROR = 0,                 
     TOK_EOF,                       
     TOK_EOL,                       
     TOK_SEMI,                      
