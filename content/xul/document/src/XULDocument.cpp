@@ -3544,6 +3544,11 @@ NS_IMETHODIMP
 XULDocument::OnScriptCompileComplete(JSScript* aScript, nsresult aStatus)
 {
     
+    
+    if (aScript && !mCurrentScriptProto->GetScriptObject())
+        mCurrentScriptProto->Set(aScript);
+
+    
     if (mOffThreadCompiling) {
         mOffThreadCompiling = false;
         UnblockOnload(false);
@@ -3551,11 +3556,6 @@ XULDocument::OnScriptCompileComplete(JSScript* aScript, nsresult aStatus)
 
     
     mOffThreadCompileString.Truncate();
-
-    
-    
-    if (aScript && !mCurrentScriptProto->GetScriptObject())
-        mCurrentScriptProto->Set(aScript);
 
     
     
@@ -3664,7 +3664,7 @@ XULDocument::ExecuteScript(nsIScriptContext * aContext,
     nsAutoMicroTask mt;
     JSContext *cx = aContext->GetNativeContext();
     AutoCxPusher pusher(cx);
-    JSObject* global = mScriptGlobalObject->GetGlobalJSObject();
+    JS::Rooted<JSObject*> global(cx, mScriptGlobalObject->GetGlobalJSObject());
     xpc_UnmarkGrayObject(global);
     xpc_UnmarkGrayScript(aScriptObject);
     JSAutoCompartment ac(cx, global);
