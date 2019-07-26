@@ -387,7 +387,7 @@ private:
 
 
 
-class NS_STACK_CLASS AutoSVGRenderingState
+class MOZ_STACK_CLASS AutoSVGRenderingState
 {
 public:
   AutoSVGRenderingState(const SVGImageContext* aSVGContext,

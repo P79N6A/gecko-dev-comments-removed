@@ -35,7 +35,7 @@ namespace mozilla {
 
 
  
-class NS_STACK_CLASS ReentrantMonitorAutoExit
+class MOZ_STACK_CLASS ReentrantMonitorAutoExit
 {
 public:
     
@@ -77,7 +77,7 @@ private:
 
 
 
-class NS_STACK_CLASS ReentrantMonitorConditionallyEnter
+class MOZ_STACK_CLASS ReentrantMonitorConditionallyEnter
 {
 public:
   ReentrantMonitorConditionallyEnter(bool aEnter,

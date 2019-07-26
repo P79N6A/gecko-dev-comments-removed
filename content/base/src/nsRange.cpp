@@ -1392,7 +1392,7 @@ nsRange::SelectNodeContents(nsINode& aNode, ErrorResult& aRv)
 
 
 
-class NS_STACK_CLASS RangeSubtreeIterator
+class MOZ_STACK_CLASS RangeSubtreeIterator
 {
 private:
 

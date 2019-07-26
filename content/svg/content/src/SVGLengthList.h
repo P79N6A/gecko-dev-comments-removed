@@ -290,7 +290,7 @@ private:
 
 
 
-class NS_STACK_CLASS SVGUserUnitList
+class MOZ_STACK_CLASS SVGUserUnitList
 {
 public:
 

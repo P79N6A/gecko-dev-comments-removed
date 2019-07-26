@@ -30,7 +30,7 @@ struct nsRect;
 
 
 
-class NS_STACK_CLASS nsContentEventHandler {
+class MOZ_STACK_CLASS nsContentEventHandler {
 public:
   nsContentEventHandler(nsPresContext *aPresContext);
 

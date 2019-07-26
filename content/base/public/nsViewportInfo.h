@@ -23,7 +23,7 @@ static const int32_t  kViewportDefaultScreenWidth = 980;
 
 
 
-class NS_STACK_CLASS nsViewportInfo
+class MOZ_STACK_CLASS nsViewportInfo
 {
   public:
     nsViewportInfo(uint32_t aDisplayWidth, uint32_t aDisplayHeight) :

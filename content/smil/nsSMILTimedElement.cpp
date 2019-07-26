@@ -118,7 +118,7 @@ namespace
 
 
 
-class NS_STACK_CLASS nsSMILTimedElement::AutoIntervalUpdateBatcher
+class MOZ_STACK_CLASS nsSMILTimedElement::AutoIntervalUpdateBatcher
 {
 public:
   AutoIntervalUpdateBatcher(nsSMILTimedElement& aTimedElement)
@@ -442,7 +442,7 @@ nsSMILTimedElement::RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime,
 
 namespace
 {
-  class NS_STACK_CLASS RemoveByCreator
+  class MOZ_STACK_CLASS RemoveByCreator
   {
   public:
     RemoveByCreator(const nsSMILTimeValueSpec* aCreator) : mCreator(aCreator)
@@ -1305,7 +1305,7 @@ namespace
   
   
   
-  class NS_STACK_CLASS RemoveByFunction
+  class MOZ_STACK_CLASS RemoveByFunction
   {
   public:
     RemoveByFunction(nsSMILTimedElement::RemovalTestFunction aFunction)
@@ -1383,7 +1383,7 @@ nsSMILTimedElement::ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime)
 
 namespace
 {
-  class NS_STACK_CLASS RemoveReset
+  class MOZ_STACK_CLASS RemoveReset
   {
   public:
     RemoveReset(const nsSMILInstanceTime* aCurrentIntervalBegin)
@@ -1542,7 +1542,7 @@ nsSMILTimedElement::FilterIntervals()
 
 namespace
 {
-  class NS_STACK_CLASS RemoveFiltered
+  class MOZ_STACK_CLASS RemoveFiltered
   {
   public:
     RemoveFiltered(nsSMILTimeValue aCutoff) : mCutoff(aCutoff) { }
@@ -1562,7 +1562,7 @@ namespace
     nsSMILTimeValue mCutoff;
   };
 
-  class NS_STACK_CLASS RemoveBelowThreshold
+  class MOZ_STACK_CLASS RemoveBelowThreshold
   {
   public:
     RemoveBelowThreshold(uint32_t aThreshold,

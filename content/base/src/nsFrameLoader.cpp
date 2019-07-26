@@ -742,7 +742,7 @@ AllDescendantsOfType(nsIDocShellTreeItem* aParentItem, int32_t aType)
 
 
 
-class NS_STACK_CLASS AutoResetInShow {
+class MOZ_STACK_CLASS AutoResetInShow {
   private:
     nsFrameLoader* mFrameLoader;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
