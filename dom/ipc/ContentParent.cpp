@@ -1470,7 +1470,9 @@ ContentParent::ContentParent(mozIApplication* aApp,
     
     
     if (aOSPrivileges != base::PRIVILEGES_INHERIT) {
-        SendSetProcessPrivileges(base::PRIVILEGES_INHERIT);
+        if (!SendSetProcessPrivileges(base::PRIVILEGES_INHERIT)) {
+            KillHard();
+        }
     }
 #endif
 }
