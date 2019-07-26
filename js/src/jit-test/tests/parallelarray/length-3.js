@@ -6,4 +6,5 @@ function testLength() {
   assertEq(p.length, 4);
 }
 
-testLength();
+
+
