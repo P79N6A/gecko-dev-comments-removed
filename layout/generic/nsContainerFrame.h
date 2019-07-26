@@ -87,23 +87,10 @@ public:
 
 
 
-
-
-
-
-
-
-
   virtual void SetInitialChildList(ChildListID aListID,
-                                       nsFrameList& aChildList);
+                                   nsFrameList& aChildList);
 
   
-
-
-
-
-
-
 
 
 
@@ -124,23 +111,11 @@ public:
 
 
 
-
-
-
-
-
-
   virtual void InsertFrames(ChildListID  aListID,
-                                nsIFrame*    aPrevFrame,
-                                nsFrameList& aFrameList);
+                            nsIFrame*    aPrevFrame,
+                            nsFrameList& aFrameList);
 
   
-
-
-
-
-
-
 
 
 
