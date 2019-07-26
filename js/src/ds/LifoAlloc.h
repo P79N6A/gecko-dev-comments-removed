@@ -19,6 +19,8 @@
 
 
 
+
+
 #include "jsutil.h"
 
 #include "js/TemplateLib.h"
@@ -92,13 +94,8 @@ class BumpChunk
     void setNext(BumpChunk *succ) { next_ = succ; }
 
     size_t used() const { return bump - bumpBase(); }
-
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) {
         return mallocSizeOf(this);
-    }
-
-    size_t computedSizeOfIncludingThis() {
-        return limit - headerBase();
     }
 
     void resetBump() {
@@ -157,6 +154,8 @@ class BumpChunk
 
 
 
+
+
 class LifoAlloc
 {
     typedef detail::BumpChunk BumpChunk;
@@ -166,17 +165,17 @@ class LifoAlloc
     BumpChunk   *last;
     size_t      markCount;
     size_t      defaultChunkSize_;
-    size_t      curSize_;
-    size_t      peakSize_;
 
     void operator=(const LifoAlloc &) MOZ_DELETE;
     LifoAlloc(const LifoAlloc &) MOZ_DELETE;
 
     
-    
-    
-    
-    
+
+
+
+
+
+
     BumpChunk *getOrCreateChunk(size_t n);
 
     void reset(size_t defaultChunkSize) {
@@ -184,7 +183,6 @@ class LifoAlloc
         first = latest = last = NULL;
         defaultChunkSize_ = defaultChunkSize;
         markCount = 0;
-        curSize_ = 0;
     }
 
     void append(BumpChunk *start, BumpChunk *end) {
@@ -196,33 +194,13 @@ class LifoAlloc
         last = end;
     }
 
-    void incrementCurSize(size_t size) {
-        curSize_ += size;
-        if (curSize_ > peakSize_)
-            peakSize_ = curSize_;
-    }
-    void decrementCurSize(size_t size) {
-        MOZ_ASSERT(curSize_ >= size);
-        curSize_ -= size;
-    }
-
   public:
-    explicit LifoAlloc(size_t defaultChunkSize)
-      : peakSize_(0)
-    {
-        reset(defaultChunkSize);
-    }
+    explicit LifoAlloc(size_t defaultChunkSize) { reset(defaultChunkSize); }
 
     
     void steal(LifoAlloc *other) {
         JS_ASSERT(!other->markCount);
-
-        
-        
-        size_t oldPeakSize = peakSize_;
         PodCopy((char *) this, (char *) other, sizeof(*this));
-        peakSize_ = Max(oldPeakSize, curSize_);
-
         other->reset(defaultChunkSize_);
     }
 
@@ -271,10 +249,12 @@ class LifoAlloc
     JS_ALWAYS_INLINE
     bool ensureUnusedApproximate(size_t n) {
         size_t total = 0;
-        for (BumpChunk *chunk = latest; chunk; chunk = chunk->next()) {
+        BumpChunk *chunk = latest;
+        while (chunk) {
             total += chunk->unused();
             if (total >= n)
                 return true;
+            chunk = chunk->next();
         }
         BumpChunk *latestBefore = latest;
         if (!getOrCreateChunk(n))
@@ -294,7 +274,9 @@ class LifoAlloc
     }
 
     
-    
+
+
+
     template <typename T>
     T *newArrayUninitialized(size_t count) {
         return static_cast<T *>(alloc(sizeof(T) * count));
@@ -317,12 +299,17 @@ class LifoAlloc
         }
 
         
-        
-        
-        BumpChunk *container;
-        for (container = first; !container->contains(mark); container = container->next())
-            JS_ASSERT(container != latest);
 
+
+
+
+        BumpChunk *container = first;
+        while (true) {
+            if (container->contains(mark))
+                break;
+            JS_ASSERT(container != latest);
+            container = container->next();
+        }
         latest = container;
         latest->release(mark);
     }
@@ -337,33 +324,31 @@ class LifoAlloc
     
     size_t used() const {
         size_t accum = 0;
-        for (BumpChunk *chunk = first; chunk; chunk = chunk->next()) {
-            accum += chunk->used();
-            if (chunk == latest)
+        BumpChunk *it = first;
+        while (it) {
+            accum += it->used();
+            if (it == latest)
                 break;
+            it = it->next();
         }
         return accum;
     }
 
     
     size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        size_t n = 0;
-        for (BumpChunk *chunk = first; chunk; chunk = chunk->next())
-            n += chunk->sizeOfIncludingThis(mallocSizeOf);
-
-        
-        MOZ_ASSERT(curSize_ == n);
-        return n;
+        size_t accum = 0;
+        BumpChunk *it = first;
+        while (it) {
+            accum += it->sizeOfIncludingThis(mallocSizeOf);
+            it = it->next();
+        }
+        return accum;
     }
 
     
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
         return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
     }
-
-    
-    
-    size_t peakSizeOfExcludingThis() const { return peakSize_; }
 
     
     template <typename T>
