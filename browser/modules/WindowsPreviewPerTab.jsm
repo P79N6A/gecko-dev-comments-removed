@@ -72,8 +72,14 @@ XPCOMUtils.defineLazyServiceGetter(this, "faviconSvc",
                                    "nsIFaviconService");
 
 
-function _imageFromURI(uri, callback) {
+function _imageFromURI(uri, privateMode, callback) {
   let channel = ioSvc.newChannelFromURI(uri);
+  try {
+    channel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
+    channel.setPrivate(privateMode);
+  } catch (e) {
+    
+  }
   NetUtil.asyncFetch(channel, function(inputStream, resultCode) {
     if (!Components.isSuccessCode(resultCode))
       return;
@@ -92,11 +98,11 @@ function _imageFromURI(uri, callback) {
 }
 
 
-function getFaviconAsImage(iconurl, callback) {
+function getFaviconAsImage(iconurl, privateMode, callback) {
   if (iconurl)
-    _imageFromURI(NetUtil.newURI(iconurl), callback);
+    _imageFromURI(NetUtil.newURI(iconurl), privateMode, callback);
   else
-    _imageFromURI(faviconSvc.defaultFavicon, callback);
+    _imageFromURI(faviconSvc.defaultFavicon, privateMode, callback);
 }
 
 
@@ -436,7 +442,7 @@ TabWindow.prototype = {
     preview.visible = AeroPeek.enabled;
     preview.active = this.tabbrowser.selectedTab == tab;
     
-    getFaviconAsImage(null, function (img) {
+    getFaviconAsImage(null, this.win.gPrivateBrowsingUI.privateWindow, function (img) {
       
       
       if (!preview.icon)
@@ -535,7 +541,7 @@ TabWindow.prototype = {
   
   onLinkIconAvailable: function (aBrowser, aIconURL) {
     let self = this;
-    getFaviconAsImage(aIconURL, function (img) {
+    getFaviconAsImage(aIconURL, this.win.gPrivateBrowsingUI.privateWindow, function (img) {
       let index = self.tabbrowser.browsers.indexOf(aBrowser);
       
       if (index != -1)
