@@ -607,19 +607,23 @@ class LocationService
     const char* mLibrary;   
                             
     ptrdiff_t   mLOffset;
+    char*       mFileName;  
+    unsigned long mLineNo;
 
     Entry()
-      : mPc(kUnused), mFunction(nullptr), mLibrary(nullptr), mLOffset(0)
+      : mPc(kUnused), mFunction(nullptr), mLibrary(nullptr), mLOffset(0), mFileName(nullptr), mLineNo(0)
     {}
 
     ~Entry()
     {
       
       InfallibleAllocPolicy::free_(mFunction);
+      InfallibleAllocPolicy::free_(mFileName);
     }
 
-    void Replace(const void* aPc, const char* aFunction, const char* aLibrary,
-                 ptrdiff_t aLOffset)
+    void Replace(const void* aPc, const char* aFunction,
+                 const char* aLibrary, ptrdiff_t aLOffset,
+                 const char* aFileName, unsigned long aLineNo)
     {
       mPc = aPc;
 
@@ -627,14 +631,19 @@ class LocationService
       InfallibleAllocPolicy::free_(mFunction);
       mFunction =
         !aFunction[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFunction);
+      InfallibleAllocPolicy::free_(mFileName);
+      mFileName =
+        !aFileName[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFileName);
+
 
       mLibrary = aLibrary;
       mLOffset = aLOffset;
+      mLineNo = aLineNo;
     }
 
     size_t SizeOfExcludingThis() {
       
-      return MallocSizeOf(mFunction);
+      return MallocSizeOf(mFunction) + MallocSizeOf(mFileName);
     }
   };
 
@@ -691,7 +700,7 @@ public:
         library = *p;
       }
 
-      entry.Replace(aPc, details.function, library, details.loffset);
+      entry.Replace(aPc, details.function, library, details.loffset, details.filename, details.lineno);
 
     } else {
       mNumCacheHits++;
@@ -699,14 +708,25 @@ public:
 
     MOZ_ASSERT(entry.mPc == aPc);
 
+    uintptr_t entryPc = (uintptr_t)(entry.mPc);
     
     
     if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      W("   ??? %p\n", entry.mPc);
+      W("   ??? 0x%x\n", entryPc);
     } else {
       
-      W("   %s[%s +0x%X] %p\n", entry.mFunction ? entry.mFunction : "???",
-        entry.mLibrary, entry.mLOffset, entry.mPc);
+      char* entryFunction = entry.mFunction ? entry.mFunction : "???";
+      if (entry.mFileName) {
+        
+        W("   %s (%s:%lu) 0x%x\n",
+          entryFunction, entry.mFileName, entry.mLineNo, entryPc);
+      } else {
+        
+        
+        
+        W("   %s[%s +0x%X] 0x%x\n",
+          entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
+      }
     }
   }
 
