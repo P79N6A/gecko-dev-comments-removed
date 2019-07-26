@@ -21,7 +21,8 @@ function test() {
   
   .then(() => {
     return waitForRequestsToOverflowContainer(monitor, requestsContainer);
-  }).then(() => {
+  })
+  .then(() => {
     ok(scrolledToBottom(requestsContainer), "Scrolled to bottom on overflow.");
   })
 
@@ -34,7 +35,8 @@ function test() {
     ok(!scrolledToBottom(requestsContainer), "Not scrolled to bottom.");
     scrollTop = requestsContainer.scrollTop; 
     return waitForNetworkEvents(monitor, 8);
-  }).then(() => {
+  })
+  .then(() => {
     is(requestsContainer.scrollTop, scrollTop, "Did not scroll.");
   })
 
@@ -44,8 +46,19 @@ function test() {
     requestsContainer.scrollTop = requestsContainer.scrollHeight;
     ok(scrolledToBottom(requestsContainer), "Set scroll position to bottom.");
     return waitForNetworkEvents(monitor, 8);
-  }).then(() => {
+  })
+  .then(() => {
     ok(scrolledToBottom(requestsContainer), "Still scrolled to bottom.");
+  })
+
+  
+  
+  .then(() => {
+    monitor.panelWin.NetMonitorView.RequestsMenu.selectedIndex = 0;
+    return waitForNetworkEvents(monitor, 8);
+  })
+  .then(() => {
+    is(requestsContainer.scrollTop, 0, "Did not scroll.");
   })
 
   

@@ -100,9 +100,17 @@ SideMenuWidget.prototype = {
     
     this.removeAttribute("notice");
 
+    
+    
+    
     let maintainScrollAtBottom =
+      
       this.autoscrollWithAppendedItems &&
+      
+      !this._selectedItem &&
+      
       (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
+      
       (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
 
     let group = this._getMenuGroupForName(aGroup);
