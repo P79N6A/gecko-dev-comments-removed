@@ -2797,6 +2797,7 @@ this.OMNA_PUSH_APPLICATION_IDS = (function () {
     ids[urn] = ids[number] = entry;
   }
 
+  add("x-wap-application:wml.ua", 0x02);
   add("x-wap-application:mms.ua", 0x04);
 
   return ids;

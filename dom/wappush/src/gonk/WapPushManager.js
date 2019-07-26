@@ -16,6 +16,21 @@ const DEBUG = false;
 
 
 
+XPCOMUtils.defineLazyGetter(this, "SI", function () {
+  let SI = {};
+  Cu.import("resource://gre/modules/SiPduHelper.jsm", SI);
+  return SI;
+});
+
+XPCOMUtils.defineLazyGetter(this, "SL", function () {
+  let SL = {};
+  Cu.import("resource://gre/modules/SlPduHelper.jsm", SL);
+  return SL;
+});
+
+
+
+
 this.WapPushManager = {
 
   
@@ -41,14 +56,47 @@ this.WapPushManager = {
       return;
     }
 
+    
     if (appid == "x-wap-application:mms.ua") {
       let mmsService = Cc["@mozilla.org/mms/rilmmsservice;1"]
                        .getService(Ci.nsIMmsService);
       mmsService.QueryInterface(Ci.nsIWapPushApplication)
                 .receiveWapPush(data.array, data.array.length, data.offset, options);
-    } else {
-      debug("No WAP Push application registered for " + appid);
+      return;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let contentType = options.headers["content-type"].media;
+    let msg = { contentType: contentType };
+
+    if (contentType === "text/vnd.wap.si" ||
+        contentType === "application/vnd.wap.sic") {
+      SI.PduHelper.parse(data, contentType, msg);
+    } else if (contentType === "text/vnd.wap.sl" ||
+               contentType === "application/vnd.wap.slc") {
+      SL.PduHelper.parse(data, contentType, msg);
+    } else if (contentType === "text/vnd.wap.connectivity-xml" ||
+               contentType === "application/vnd.wap.connectivity-wbxml") {
+      
+    } else {
+      
+      msg.content = data.array;
+    }
+
+    
   },
 
   
