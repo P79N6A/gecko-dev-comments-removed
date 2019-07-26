@@ -1,3 +1,4 @@
+ 
 
 
 
@@ -39,7 +40,13 @@ let modules = {
   home: {
     uri: "about:start",
     privileged: true
-  }
+  },
+#ifdef MOZ_CRASHREPORTER
+  crashprompt: {
+    uri: "chrome://browser/content/crashprompt.xhtml",
+    privileged: true
+  },
+#endif
 }
 
 function AboutGeneric() {}
@@ -64,7 +71,7 @@ AboutGeneric.prototype = {
               getService(Ci.nsIIOService);
 
     var channel = ios.newChannel(moduleInfo.uri, null, null);
-    
+
     if (!moduleInfo.privileged) {
       
       
