@@ -997,30 +997,6 @@ private:
 
 
 
-class nsNotifyDoomListener : public nsRunnable {
-public:
-    nsNotifyDoomListener(nsICacheListener *listener,
-                         nsresult status)
-        : mListener(listener)      
-        , mStatus(status)
-    {}
-
-    NS_IMETHOD Run()
-    {
-        mListener->OnCacheEntryDoomed(mStatus);
-        NS_RELEASE(mListener);
-        return NS_OK;
-    }
-
-private:
-    nsICacheListener *mListener;
-    nsresult          mStatus;
-};
-
-
-
-
-
 class nsDoomEvent : public nsRunnable {
 public:
     nsDoomEvent(nsCacheSession *session,
@@ -2871,27 +2847,35 @@ nsCacheService::ClearDoomList()
 void
 nsCacheService::ClearActiveEntries()
 {
-    mActiveEntries.VisitEntries(DeactivateAndClearEntry, nullptr);
+    nsVoidArray entries;
+
+    
+    
+    
+    mActiveEntries.VisitEntries(GetActiveEntries, &entries);
+
+    for (int32_t i = 0 ; i < entries.Count() ; i++) {
+        nsCacheEntry * entry = static_cast<nsCacheEntry *>(entries.ElementAt(i));
+        NS_ASSERTION(entry, "### active entry = nullptr!");
+        
+        gService->ClearPendingRequests(entry);
+        entry->DetachDescriptors();
+        gService->DeactivateEntry(entry);
+    }
+
     mActiveEntries.Shutdown();
 }
 
 
 PLDHashOperator
-nsCacheService::DeactivateAndClearEntry(PLDHashTable *    table,
-                                        PLDHashEntryHdr * hdr,
-                                        uint32_t          number,
-                                        void *            arg)
+nsCacheService::GetActiveEntries(PLDHashTable *    table,
+                                 PLDHashEntryHdr * hdr,
+                                 uint32_t          number,
+                                 void *            arg)
 {
-    nsCacheEntry * entry = ((nsCacheEntryHashTableEntry *)hdr)->cacheEntry;
-    NS_ASSERTION(entry, "### active entry = nullptr!");
-    
-    gService->ClearPendingRequests(entry);
-    entry->DetachDescriptors();
-    
-    entry->MarkInactive();  
-    gService->DeactivateEntry(entry);
-    
-    return PL_DHASH_REMOVE; 
+    static_cast<nsVoidArray *>(arg)->AppendElement(
+        ((nsCacheEntryHashTableEntry *)hdr)->cacheEntry);
+    return PL_DHASH_NEXT;
 }
 
 struct ActiveEntryArgs
