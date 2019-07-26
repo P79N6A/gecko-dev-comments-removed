@@ -249,7 +249,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         
         mUrlBarRightEdge = (ImageView) findViewById(R.id.url_bar_right_edge);
         if (mUrlBarRightEdge != null) {
-            mUrlBarRightEdge.getDrawable().setLevel(5000);
+            mUrlBarRightEdge.getDrawable().setLevel(6000);
         }
 
         mTitle = (GeckoTextView) findViewById(R.id.url_bar_title);
