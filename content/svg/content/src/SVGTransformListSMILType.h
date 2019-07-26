@@ -81,7 +81,12 @@ class SVGTransformListSMILType : public nsISMILType
 {
 public:
   
-  static SVGTransformListSMILType sSingleton;
+  static SVGTransformListSMILType*
+  Singleton()
+  {
+    static SVGTransformListSMILType sSingleton;
+    return &sSingleton;
+  }
 
 protected:
   
