@@ -825,10 +825,6 @@ nsDocShell::~nsDocShell()
                gNumberOfDocShells, mHistoryID);
     }
 #endif
-
-    if (mInPrivateBrowsing) {
-        DecreasePrivateDocShellCount();
-    }
 }
 
 nsresult
@@ -4915,6 +4911,12 @@ nsDocShell::Destroy()
     
     
     CancelRefreshURITimers();
+
+    if (mInPrivateBrowsing) {
+        mInPrivateBrowsing = false;
+        DecreasePrivateDocShellCount();
+    }
+
     return NS_OK;
 }
 
