@@ -4186,8 +4186,7 @@ pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
 
-pref("dom.network.enabled", true);
-pref("dom.network.metered", false);
+pref("dom.netinfo.enabled", true);
 
 #ifdef XP_WIN
 
