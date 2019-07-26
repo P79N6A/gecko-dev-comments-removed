@@ -1105,7 +1105,7 @@ class MOZ_STACK_CLASS SingleLineCrossAxisPositionTracker : public PositionTracke
 public:
   SingleLineCrossAxisPositionTracker(const FlexboxAxisTracker& aAxisTracker);
 
-  void ComputeLineCrossSize(const nsTArray<FlexItem>& aItems);
+  void ComputeLineCrossSize(const FlexLine& aLine);
   inline nscoord GetLineCrossSize() const { return mLineCrossSize; }
 
   
@@ -1698,7 +1698,7 @@ SingleLineCrossAxisPositionTracker::
 
 void
 SingleLineCrossAxisPositionTracker::
-  ComputeLineCrossSize(const nsTArray<FlexItem>& aItems)
+  ComputeLineCrossSize(const FlexLine& aLine)
 {
   
   
@@ -1708,8 +1708,8 @@ SingleLineCrossAxisPositionTracker::
 
   nscoord crossEndToFurthestBaseline = nscoord_MIN;
   nscoord largestOuterCrossSize = 0;
-  for (uint32_t i = 0; i < aItems.Length(); ++i) {
-    const FlexItem& curItem = aItems[i];
+  for (uint32_t i = 0; i < aLine.mItems.Length(); ++i) {
+    const FlexItem& curItem = aLine.mItems[i];
     nscoord curOuterCrossSize = curItem.GetCrossSize() +
       curItem.GetMarginBorderPaddingSizeInAxis(mAxis);
 
@@ -2379,7 +2379,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   SingleLineCrossAxisPositionTracker lineCrossAxisPosnTracker(axisTracker);
 
-  lineCrossAxisPosnTracker.ComputeLineCrossSize(line.mItems);
+  lineCrossAxisPosnTracker.ComputeLineCrossSize(line);
   
   
   
