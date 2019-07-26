@@ -32,11 +32,6 @@
 
 
 
-
-
-
-
-
 #ifndef FRAME_STATE_GROUP
 #define FRAME_STATE_GROUP(name_, class_)
 #define DEFINED_FRAME_STATE_GROUP
