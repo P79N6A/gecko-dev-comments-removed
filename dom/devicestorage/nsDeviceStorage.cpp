@@ -627,6 +627,15 @@ InitDirs()
                   getter_AddRefs(sDirs->music));
 #endif
 
+  
+  
+  dirService->Get(NS_APP_USER_PROFILE_50_DIR, NS_GET_IID(nsIFile),
+                  getter_AddRefs(sDirs->sdcard));
+  if (sDirs->sdcard) {
+    sDirs->sdcard->AppendRelativeNativePath(NS_LITERAL_CSTRING("fake-sdcard"));
+  }
+#endif 
+
 #ifdef MOZ_WIDGET_GONK
   NS_NewLocalFile(NS_LITERAL_STRING("/data"),
                   false,
@@ -638,15 +647,6 @@ InitDirs()
     sDirs->apps->AppendRelativeNativePath(NS_LITERAL_CSTRING("webapps"));
   }
 #endif
-
-  
-  
-  dirService->Get(NS_APP_USER_PROFILE_50_DIR, NS_GET_IID(nsIFile),
-                  getter_AddRefs(sDirs->sdcard));
-  if (sDirs->sdcard) {
-    sDirs->sdcard->AppendRelativeNativePath(NS_LITERAL_CSTRING("fake-sdcard"));
-  }
-#endif 
 
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     NS_GetSpecialDirectory("UAppData", getter_AddRefs(sDirs->crashes));
