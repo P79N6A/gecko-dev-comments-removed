@@ -462,8 +462,10 @@ public:
                            const nsAString& aValue, bool aNotify);
   nsresult SetParsedAttr(int32_t aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                          nsAttrValue& aParsedValue, bool aNotify);
-  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                       nsAString& aResult) const;
+  
+  
+  bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+               nsAString& aResult) const;
   virtual bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
   
   virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
