@@ -50,24 +50,34 @@ using mozilla::DebugOnly;
 
 
 void
-StackFrame::initExecuteFrame(UnrootedScript script, StackFrame *prev, FrameRegs *regs,
-                             const Value &thisv, JSObject &scopeChain, ExecuteType type)
+StackFrame::initExecuteFrame(UnrootedScript script, StackFrame *prevLink, AbstractFramePtr prev,
+                             FrameRegs *regs, const Value &thisv, JSObject &scopeChain,
+                             ExecuteType type)
 {
+     
+
+
+
+    JS_ASSERT_IF(prev.isStackFrame(), prev.asStackFrame() == prevLink);
+    JS_ASSERT_IF(prev, prevLink != NULL);
+
     
 
 
 
 
     flags_ = type | HAS_SCOPECHAIN | HAS_BLOCKCHAIN | HAS_PREVPC;
-    if (!(flags_ & GLOBAL))
-        flags_ |= (prev->flags_ & (FUNCTION | GLOBAL));
+    if (!(flags_ & GLOBAL)) {
+        JS_ASSERT(prev.isFunctionFrame() || prev.isGlobalFrame());
+        flags_ |= prev.isFunctionFrame() ? FUNCTION : GLOBAL;
+    }
 
     Value *dstvp = (Value *)this - 2;
     dstvp[1] = thisv;
 
     if (isFunctionFrame()) {
-        dstvp[0] = prev->calleev();
-        exec = prev->exec;
+        dstvp[0] = prev.calleev();
+        exec.fun = prev.fun();
         u.evalScript = script;
     } else {
         JS_ASSERT(isGlobalFrame());
@@ -79,7 +89,7 @@ StackFrame::initExecuteFrame(UnrootedScript script, StackFrame *prev, FrameRegs 
     }
 
     scopeChain_ = &scopeChain;
-    prev_ = prev;
+    prev_ = prevLink;
     prevpc_ = regs ? regs->pc : (jsbytecode *)0xbad;
     prevInline_ = regs ? regs->inlined() : NULL;
     blockChain_ = NULL;
@@ -1063,22 +1073,33 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
 
 
 
+
     CallArgsList *evalInFrameCalls = NULL;  
     MaybeExtend extend;
+    StackFrame *prevLink;
     if (evalInFrame) {
         
-        StackSegment &seg = cx->stack.space().containingSegment(evalInFrame.asStackFrame());
+        AllFramesIter frameIter(cx->runtime);
+        while (frameIter.isIon() || frameIter.abstractFramePtr() != evalInFrame)
+            ++frameIter;
+        JS_ASSERT(frameIter.abstractFramePtr() == evalInFrame);
+
+        StackSegment &seg = *frameIter.seg();
+
         StackIter iter(cx->runtime, seg);
         
-        JS_ASSERT(!evalInFrame.asStackFrame()->runningInIon());
+        JS_ASSERT_IF(evalInFrame.isStackFrame(), !evalInFrame.asStackFrame()->runningInIon());
         JS_ASSERT_IF(evalInFrame.compartment() == iter.compartment(), !iter.isIon());
         while (!iter.isScript() || iter.isIon() || iter.abstractFramePtr() != evalInFrame) {
             ++iter;
             JS_ASSERT_IF(evalInFrame.compartment() == iter.compartment(), !iter.isIon());
         }
+        JS_ASSERT(iter.abstractFramePtr() == evalInFrame);
         evalInFrameCalls = iter.data_.calls_;
+        prevLink = iter.data_.fp_;
         extend = CANT_EXTEND;
     } else {
+        prevLink = maybefp();
         extend = CAN_EXTEND;
     }
 
@@ -1087,9 +1108,9 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
     if (!firstUnused)
         return false;
 
-    StackFrame *prev = evalInFrame ? evalInFrame.asStackFrame() : maybefp();
+    AbstractFramePtr prev = evalInFrame ? evalInFrame : maybefp();
     StackFrame *fp = reinterpret_cast<StackFrame *>(firstUnused + 2);
-    fp->initExecuteFrame(script, prev, seg_->maybeRegs(), thisv, scopeChain, type);
+    fp->initExecuteFrame(script, prevLink, prev, seg_->maybeRegs(), thisv, scopeChain, type);
     fp->initVarsToUndefined();
     efg->regs_.prepareToRun(*fp, script);
 
