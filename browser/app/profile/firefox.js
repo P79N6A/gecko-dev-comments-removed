@@ -1275,6 +1275,8 @@ pref("devtools.inspector.show_pseudo_elements", true);
 
 pref("devtools.inspector.imagePreviewTooltipSize", 300);
 
+pref("devtools.inspector.showUserAgentStyles", false);
+
 
 pref("devtools.defaultColorUnit", "hex");
 
