@@ -87,7 +87,41 @@ class RemoteAutomation(Automation):
 
         return status
 
+    def checkForJavaException(self, logcat):
+        found_exception = False
+        for i, line in enumerate(logcat):
+            if "REPORTING UNCAUGHT EXCEPTION" in line:
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                found_exception = True
+                logre = re.compile(r".*\):\s(.*)")
+                m = logre.search(logcat[i+1])
+                if m and m.group(1):
+                    top_frame = m.group(1)
+                m = logre.search(logcat[i+2])
+                if m and m.group(1):
+                    top_frame = top_frame + m.group(1)
+                print "PROCESS-CRASH | java-exception | %s" % top_frame
+                break
+        return found_exception
+
     def checkForCrashes(self, directory, symbolsPath):
+        logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
+        javaException = self.checkForJavaException(logcat)
+        if javaException:
+            return True
         try:
             remoteCrashDir = self._remoteProfile + '/minidumps/'
             if not self._devicemanager.dirExists(remoteCrashDir):
