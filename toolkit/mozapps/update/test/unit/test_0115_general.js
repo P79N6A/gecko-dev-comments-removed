@@ -230,8 +230,9 @@ ADDITIONAL_TEST_DIRS = [
 }];
 
 function run_test() {
-  do_register_cleanup(cleanupUpdaterTest);
+  do_test_pending();
 
+  
   adjustGeneralPaths();
 
   gBackgroundUpdate = true;
@@ -282,4 +283,10 @@ function run_test() {
   do_check_false(toBeDeletedDir.exists());
   toBeDeletedDir = getTargetDirFile("tobedeleted", true);
   do_check_false(toBeDeletedDir.exists());
+
+  do_test_finished();
+}
+
+function end_test() {
+  cleanupUpdaterTest();
 }

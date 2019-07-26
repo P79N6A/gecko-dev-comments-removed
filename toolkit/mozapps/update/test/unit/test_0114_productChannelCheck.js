@@ -18,10 +18,10 @@ function run_test() {
     return;
   }
 
+  
   adjustGeneralPaths();
 
   
-  do_register_cleanup(cleanupUpdaterTest);
   setupUpdaterTest(MAR_WRONG_CHANNEL_FILE);
 
   
@@ -38,4 +38,8 @@ function run_test() {
   
   let updateStatus = readStatusFile(updatesDir);
   do_check_eq(updateStatus.split(": ")[1], MAR_CHANNEL_MISMATCH_ERROR);
+}
+
+function end_test() {
+  cleanupUpdaterTest();
 }

@@ -19,10 +19,9 @@ function run_test() {
   }
 
   
-  do_register_cleanup(cleanupUpdaterTest);
-
   adjustGeneralPaths();
 
+  
   setupUpdaterTest(MAR_OLD_VERSION_FILE);
 
   
@@ -39,4 +38,8 @@ function run_test() {
   
   let updateStatus = readStatusFile(updatesDir);
   do_check_eq(updateStatus.split(": ")[1], VERSION_DOWNGRADE_ERROR);
+}
+
+function end_test() {
+  cleanupUpdaterTest();
 }
