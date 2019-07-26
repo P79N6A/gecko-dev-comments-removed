@@ -90,8 +90,10 @@ static const XPCOMFunctions kFrozenFunctions = {
     &NS_CStringGetIsVoid,
 
     
-    &NS_CycleCollectorSuspect2,
-    nullptr
+    nullptr,
+    nullptr,
+
+    &NS_CycleCollectorSuspect3,
 };
 
 EXPORT_XPCOM_API(nsresult)

@@ -89,7 +89,7 @@ typedef bool       (* CycleCollectorFunc)(nsISupports*);
 typedef nsPurpleBufferEntry*
                    (* CycleCollectorSuspect2Func)(void*, nsCycleCollectionParticipant*);
 typedef bool       (* CycleCollectorForget2Func)(nsPurpleBufferEntry*);
-
+typedef void       (* CycleCollectorSuspect3Func)(void*, nsCycleCollectionParticipant*,nsCycleCollectingAutoRefCnt*,bool*);
 
 typedef NS_CALLBACK(XPCOMExitRoutine)(void);
 
@@ -165,8 +165,10 @@ typedef struct XPCOMFunctions{
     CStringGetIsVoidFunc cstringGetIsVoid;
 
     
-    CycleCollectorSuspect2Func cycleSuspect2Func;
+    CycleCollectorSuspect2Func cycleSuspect2Func; 
     CycleCollectorForget2Func cycleForget2Func; 
+
+    CycleCollectorSuspect3Func cycleSuspect3Func;
 
 } XPCOMFunctions;
 

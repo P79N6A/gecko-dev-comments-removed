@@ -126,6 +126,8 @@ protected:
   nsresult DispatchTrustedEvent(const nsAString& aEventName);
   
   nsresult DispatchTrustedEvent(nsIDOMEvent* aEvent);
+
+  virtual void LastRelease() {}
 private:
   
   nsIGlobalObject*           mParentObject;

@@ -82,162 +82,99 @@ private:
 
 #endif 
 
-#define NS_CCAR_REFCNT_BIT 1
-#define NS_CCAR_REFCNT_TO_TAGGED(rc_) \
-  NS_INT32_TO_PTR((rc_ << 1) | NS_CCAR_REFCNT_BIT)
-#define NS_CCAR_PURPLE_ENTRY_TO_TAGGED(pe_) \
-  static_cast<void*>(pe_)
-#define NS_CCAR_TAGGED_TO_REFCNT(tagged_) \
-  nsrefcnt(NS_PTR_TO_INT32(tagged_) >> 1)
-#define NS_CCAR_TAGGED_TO_PURPLE_ENTRY(tagged_) \
-  static_cast<nsPurpleBufferEntry*>(tagged_)
-#define NS_CCAR_TAGGED_STABILIZED_REFCNT NS_CCAR_PURPLE_ENTRY_TO_TAGGED(0)
-
 
 
 struct nsPurpleBufferEntry {
-  
-  
-  
   union {
     void *mObject;                        
     nsPurpleBufferEntry *mNextInFreeList; 
   };
-  
-  
-  
-  nsrefcnt mRefCnt : 31;
-  
-  
-  
-  
-  nsrefcnt mNotPurple : 1; 
+
+  nsCycleCollectingAutoRefCnt *mRefCnt;
 
   nsCycleCollectionParticipant *mParticipant; 
 };
+
+#define NS_NUMBER_OF_FLAGS_IN_REFCNT 2
+#define NS_IN_PURPLE_BUFFER (1 << 0)
+#define NS_IS_PURPLE (1 << 1)
+#define NS_REFCOUNT_CHANGE (1 << NS_NUMBER_OF_FLAGS_IN_REFCNT)
+#define NS_REFCOUNT_VALUE(_val) (_val >> NS_NUMBER_OF_FLAGS_IN_REFCNT)
 
 class nsCycleCollectingAutoRefCnt {
 
 public:
   nsCycleCollectingAutoRefCnt()
-    : mTagged(NS_CCAR_REFCNT_TO_TAGGED(0))
+    : mRefCntAndFlags(0)
   {}
 
-  nsCycleCollectingAutoRefCnt(nsrefcnt aValue)
-    : mTagged(NS_CCAR_REFCNT_TO_TAGGED(aValue))
+  nsCycleCollectingAutoRefCnt(uintptr_t aValue)
+    : mRefCntAndFlags(aValue << NS_NUMBER_OF_FLAGS_IN_REFCNT)
   {
   }
 
-  MOZ_ALWAYS_INLINE nsrefcnt incr(void *owner)
+  MOZ_ALWAYS_INLINE uintptr_t incr()
   {
-    if (MOZ_UNLIKELY(mTagged == NS_CCAR_TAGGED_STABILIZED_REFCNT)) {
-      
-      
-      
-      
-      
-      
-      return 2;
-    }
-
-    nsrefcnt refcount;
-    if (HasPurpleBufferEntry()) {
-      nsPurpleBufferEntry *e = NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged);
-      MOZ_ASSERT(e->mObject == owner, "wrong entry");
-      MOZ_ASSERT(int32_t(e->mRefCnt) > 0, "purple ISupports with bad refcnt");
-      refcount = ++(e->mRefCnt);
-      e->mNotPurple = true;
-    } else {
-      refcount = NS_CCAR_TAGGED_TO_REFCNT(mTagged);
-      MOZ_ASSERT(int32_t(refcount) >= 0, "bad refcount");
-      ++refcount;
-      mTagged = NS_CCAR_REFCNT_TO_TAGGED(refcount);
-    }
-
-    return refcount;
+    mRefCntAndFlags += NS_REFCOUNT_CHANGE;
+    mRefCntAndFlags &= ~NS_IS_PURPLE;
+    return NS_REFCOUNT_VALUE(mRefCntAndFlags);
   }
 
   MOZ_ALWAYS_INLINE void stabilizeForDeletion()
   {
-    mTagged = NS_CCAR_TAGGED_STABILIZED_REFCNT;
+    
+    
+    mRefCntAndFlags = NS_REFCOUNT_CHANGE | NS_IN_PURPLE_BUFFER;
   }
 
-  MOZ_ALWAYS_INLINE nsrefcnt decr(nsISupports *owner)
+  MOZ_ALWAYS_INLINE uintptr_t decr(nsISupports *owner,
+                                   bool *shouldDelete = nullptr)
   {
-    return decr(owner, nullptr);
+    return decr(owner, nullptr, shouldDelete);
   }
 
-  MOZ_ALWAYS_INLINE nsrefcnt decr(void *owner, nsCycleCollectionParticipant *p)
+  MOZ_ALWAYS_INLINE uintptr_t decr(void *owner, nsCycleCollectionParticipant *p,
+                                   bool *shouldDelete = nullptr)
   {
-    if (MOZ_UNLIKELY(mTagged == NS_CCAR_TAGGED_STABILIZED_REFCNT))
-      return 1;
-
-    nsrefcnt refcount;
-    if (HasPurpleBufferEntry()) {
-      nsPurpleBufferEntry *e = NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged);
-      MOZ_ASSERT(e->mObject == owner, "wrong entry");
-      MOZ_ASSERT(int32_t(e->mRefCnt) > 0, "purple ISupports with bad refcnt");
-      refcount = --(e->mRefCnt);
-      if (MOZ_UNLIKELY(refcount == 0)) {
-        e->mObject = nullptr;
-        mTagged = NS_CCAR_REFCNT_TO_TAGGED(0);
-      } else {
-        e->mNotPurple = false;
-      }
-    } else {
-      refcount = NS_CCAR_TAGGED_TO_REFCNT(mTagged);
-      MOZ_ASSERT(int32_t(refcount) > 0, "bad refcount");
-      --refcount;
-
-      nsPurpleBufferEntry *e;
-      if (MOZ_LIKELY(refcount > 0) &&
-          ((e = NS_CycleCollectorSuspect2(owner, p)))) {
-        e->mRefCnt = refcount;
-        mTagged = NS_CCAR_PURPLE_ENTRY_TO_TAGGED(e);
-      } else {
-        mTagged = NS_CCAR_REFCNT_TO_TAGGED(refcount);
-      }
+    MOZ_ASSERT(get() > 0);
+    if (!IsInPurpleBuffer()) {
+      mRefCntAndFlags -= NS_REFCOUNT_CHANGE;
+      mRefCntAndFlags |= (NS_IN_PURPLE_BUFFER | NS_IS_PURPLE);
+      uintptr_t retval = NS_REFCOUNT_VALUE(mRefCntAndFlags);
+      
+      NS_CycleCollectorSuspect3(owner, p, this, shouldDelete);
+      return retval;
     }
-
-    return refcount;
-  }
-
-  MOZ_ALWAYS_INLINE void ReleasePurpleBufferEntry()
-  {
-    MOZ_ASSERT(HasPurpleBufferEntry(), "must have purple buffer entry");
-    nsrefcnt refcount = NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged)->mRefCnt;
-    mTagged = NS_CCAR_REFCNT_TO_TAGGED(refcount);
+    mRefCntAndFlags -= NS_REFCOUNT_CHANGE;
+    mRefCntAndFlags |= (NS_IN_PURPLE_BUFFER | NS_IS_PURPLE);
+    return NS_REFCOUNT_VALUE(mRefCntAndFlags);
   }
 
   MOZ_ALWAYS_INLINE void RemovePurple()
   {
     MOZ_ASSERT(IsPurple(), "must be purple");
-    
-    NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged)->mObject = nullptr;
-    ReleasePurpleBufferEntry();
+    mRefCntAndFlags &= ~NS_IS_PURPLE;
   }
 
-  MOZ_ALWAYS_INLINE bool HasPurpleBufferEntry() const
+  MOZ_ALWAYS_INLINE void RemoveFromPurpleBuffer()
   {
-    MOZ_ASSERT(mTagged != NS_CCAR_TAGGED_STABILIZED_REFCNT,
-               "should have checked for stabilization first");
-    return !(NS_PTR_TO_INT32(mTagged) & NS_CCAR_REFCNT_BIT);
+    MOZ_ASSERT(IsInPurpleBuffer());
+    mRefCntAndFlags &= ~(NS_IS_PURPLE | NS_IN_PURPLE_BUFFER);
   }
 
   MOZ_ALWAYS_INLINE bool IsPurple() const
   {
-    return HasPurpleBufferEntry() &&
-      !(NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged)->mNotPurple);
+    return !!(mRefCntAndFlags & NS_IS_PURPLE);
+  }
+
+  MOZ_ALWAYS_INLINE bool IsInPurpleBuffer() const
+  {
+    return !!(mRefCntAndFlags & NS_IN_PURPLE_BUFFER);
   }
 
   MOZ_ALWAYS_INLINE nsrefcnt get() const
   {
-    if (MOZ_UNLIKELY(mTagged == NS_CCAR_TAGGED_STABILIZED_REFCNT))
-      return 1;
-
-    return MOZ_UNLIKELY(HasPurpleBufferEntry())
-             ? NS_CCAR_TAGGED_TO_PURPLE_ENTRY(mTagged)->mRefCnt
-             : NS_CCAR_TAGGED_TO_REFCNT(mTagged);
+    return NS_REFCOUNT_VALUE(mRefCntAndFlags);
   }
 
   MOZ_ALWAYS_INLINE operator nsrefcnt() const
@@ -246,7 +183,7 @@ public:
   }
 
  private:
-  void *mTagged;
+  uintptr_t mRefCntAndFlags;
 };
 
 class nsAutoRefCnt {
@@ -293,11 +230,7 @@ public:                                                                       \
                             void** aInstancePtr);                             \
   NS_IMETHOD_(nsrefcnt) AddRef(void);                                         \
   NS_IMETHOD_(nsrefcnt) Release(void);                                        \
-  void UnmarkIfPurple()                                                       \
-  {                                                                           \
-    if (MOZ_LIKELY(mRefCnt.HasPurpleBufferEntry()))                           \
-      mRefCnt.ReleasePurpleBufferEntry();                                     \
-  }                                                                           \
+  NS_IMETHOD_(void) DeleteCycleCollectable(void);                             \
 protected:                                                                    \
   nsCycleCollectingAutoRefCnt mRefCnt;                                        \
   NS_DECL_OWNINGTHREAD                                                        \
@@ -314,7 +247,7 @@ public:
 #define NS_IMPL_CC_NATIVE_ADDREF_BODY(_class)                                 \
     MOZ_ASSERT(int32_t(mRefCnt) >= 0, "illegal refcnt");                      \
     NS_ASSERT_OWNINGTHREAD_AND_NOT_CCTHREAD(_class);                          \
-    nsrefcnt count = mRefCnt.incr(this);                                      \
+    nsrefcnt count = mRefCnt.incr();                                          \
     NS_LOG_ADDREF(this, count, #_class, sizeof(*this));                       \
     return count;
 
@@ -325,18 +258,36 @@ public:
       mRefCnt.decr(static_cast<void*>(this),                                  \
                    _class::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant()); \
     NS_LOG_RELEASE(this, count, #_class);                                     \
-    if (count == 0) {                                                         \
-      NS_ASSERT_OWNINGTHREAD(_class);                                         \
-      mRefCnt.stabilizeForDeletion();                                         \
-      delete this;                                                            \
-      return 0;                                                               \
-    }                                                                         \
     return count;
 
 #define NS_IMPL_CYCLE_COLLECTING_NATIVE_ADDREF(_class)                        \
 NS_METHOD_(nsrefcnt) _class::AddRef(void)                                     \
 {                                                                             \
   NS_IMPL_CC_NATIVE_ADDREF_BODY(_class)                                       \
+}
+
+#define NS_IMPL_CYCLE_COLLECTING_NATIVE_RELEASE_WITH_LAST_RELEASE(_class, _last) \
+NS_METHOD_(nsrefcnt) _class::Release(void)                                       \
+{                                                                                \
+    MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");                             \
+    NS_ASSERT_OWNINGTHREAD_AND_NOT_CCTHREAD(_class);                             \
+    bool shouldDelete = false;                                                   \
+    nsrefcnt count =                                                             \
+      mRefCnt.decr(static_cast<void*>(this),                                     \
+                   _class::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant(),     \
+                   &shouldDelete);                                               \
+    NS_LOG_RELEASE(this, count, #_class);                                        \
+    if (count == 0) {                                                            \
+        mRefCnt.incr();                                                          \
+        _last;                                                                   \
+        mRefCnt.decr(static_cast<void*>(this),                                   \
+                     _class::NS_CYCLE_COLLECTION_INNERCLASS::GetParticipant());  \
+        if (shouldDelete) {                                                      \
+            mRefCnt.stabilizeForDeletion();                                      \
+            DeleteCycleCollectable();                                            \
+        }                                                                        \
+    }                                                                            \
+    return count;                                                                \
 }
 
 #define NS_IMPL_CYCLE_COLLECTING_NATIVE_RELEASE(_class)                       \
@@ -530,8 +481,7 @@ NS_IMETHODIMP_(nsrefcnt) _class::AddRef(void)                                 \
 {                                                                             \
   MOZ_ASSERT(int32_t(mRefCnt) >= 0, "illegal refcnt");                        \
   NS_ASSERT_OWNINGTHREAD_AND_NOT_CCTHREAD(_class);                            \
-  nsrefcnt count =                                                            \
-    mRefCnt.incr(NS_CYCLE_COLLECTION_CLASSNAME(_class)::Upcast(this));        \
+  nsrefcnt count = mRefCnt.incr();                                            \
   NS_LOG_ADDREF(this, count, #_class, sizeof(*this));                         \
   return count;                                                               \
 }
@@ -544,18 +494,42 @@ NS_IMETHODIMP_(nsrefcnt) _class::Release(void)                                \
   nsISupports *base = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Upcast(this);    \
   nsrefcnt count = mRefCnt.decr(base);                                        \
   NS_LOG_RELEASE(this, count, #_class);                                       \
-  if (count == 0) {                                                           \
-    NS_ASSERT_OWNINGTHREAD(_class);                                           \
-    mRefCnt.stabilizeForDeletion();                                           \
-    _destroy;                                                                 \
-    return 0;                                                                 \
-  }                                                                           \
   return count;                                                               \
+}                                                                             \
+NS_IMETHODIMP_(void) _class::DeleteCycleCollectable(void)                     \
+{                                                                             \
+  _destroy;                                                                   \
 }
 
 #define NS_IMPL_CYCLE_COLLECTING_RELEASE(_class)                              \
   NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_DESTROY(_class, delete (this))
 
+
+
+#define NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(_class, _last)     \
+NS_IMETHODIMP_(nsrefcnt) _class::Release(void)                                \
+{                                                                             \
+  MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");                            \
+  NS_ASSERT_OWNINGTHREAD_AND_NOT_CCTHREAD(_class);                            \
+  bool shouldDelete = false;                                                  \
+  nsISupports *base = NS_CYCLE_COLLECTION_CLASSNAME(_class)::Upcast(this);    \
+  nsrefcnt count = mRefCnt.decr(base, &shouldDelete);                         \
+  NS_LOG_RELEASE(this, count, #_class);                                       \
+  if (count == 0) {                                                           \
+      mRefCnt.incr();                                                         \
+      _last;                                                                  \
+      mRefCnt.decr(base);                                                     \
+      if (shouldDelete) {                                                     \
+          mRefCnt.stabilizeForDeletion();                                     \
+          DeleteCycleCollectable();                                           \
+      }                                                                       \
+  }                                                                           \
+  return count;                                                               \
+}                                                                             \
+NS_IMETHODIMP_(void) _class::DeleteCycleCollectable(void)                     \
+{                                                                             \
+  delete this;                                                                \
+}
 
 
 

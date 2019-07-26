@@ -2888,6 +2888,9 @@ nsJSContext::MaybePokeCC()
     if (!sCCTimer) {
       return;
     }
+    
+    nsCycleCollector_dispatchDeferredDeletion();
+
     sCCTimer->InitWithFuncCallback(CCTimerFired, nullptr,
                                    NS_CC_SKIPPABLE_DELAY,
                                    nsITimer::TYPE_REPEATING_SLACK);
