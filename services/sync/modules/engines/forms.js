@@ -53,6 +53,9 @@ let FormWrapper = {
   },
 
   _updateSpinningly: function(changes) {
+    if (!Svc.FormHistory.enabled) {
+      return; 
+    }
     let cb = Async.makeSpinningCallback();
     let callbacks = {
       handleCompletion: function(reason) {
