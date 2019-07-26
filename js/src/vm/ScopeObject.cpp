@@ -1693,6 +1693,33 @@ DebugScopes::sweep(JSRuntime *rt)
     }
 }
 
+#if defined(DEBUG) && defined(JSGC_GENERATIONAL)
+void
+DebugScopes::checkHashTablesAfterMovingGC(JSRuntime *runtime)
+{
+    
+
+
+
+
+    JS::shadow::Runtime *rt = JS::shadow::Runtime::asShadowRuntime(runtime);
+    for (ObjectWeakMap::Range r = proxiedScopes.all(); !r.empty(); r.popFront()) {
+        JS_ASSERT(!IsInsideNursery(rt, r.front().key().get()));
+        JS_ASSERT(!IsInsideNursery(rt, r.front().value().get()));
+    }
+    for (MissingScopeMap::Range r = missingScopes.all(); !r.empty(); r.popFront()) {
+        JS_ASSERT(!IsInsideNursery(rt, r.front().key().cur()));
+        JS_ASSERT(!IsInsideNursery(rt, r.front().key().block()));
+        JS_ASSERT(!IsInsideNursery(rt, r.front().value().get()));
+    }
+    for (LiveScopeMap::Range r = liveScopes.all(); !r.empty(); r.popFront()) {
+        JS_ASSERT(!IsInsideNursery(rt, r.front().key()));
+        JS_ASSERT(!IsInsideNursery(rt, r.front().value().cur_.get()));
+        JS_ASSERT(!IsInsideNursery(rt, r.front().value().block_.get()));
+    }
+}
+#endif
+
 
 
 
