@@ -6729,9 +6729,21 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     if (!checkTypedObjectIndexInBounds(elemSize, obj, index, &indexAsByteOffset, objTypeReprs))
         return false;
 
+    return pushScalarLoadFromTypedObject(emitted, obj, indexAsByteOffset, elemTypeRepr);
+}
+
+bool
+IonBuilder::pushScalarLoadFromTypedObject(bool *emitted,
+                                          MDefinition *obj,
+                                          MDefinition *offset,
+                                          ScalarTypeRepresentation *elemTypeRepr)
+{
+    size_t size = elemTypeRepr->size();
+    JS_ASSERT(size == elemTypeRepr->alignment());
+
     
     MDefinition *elements, *scaledOffset;
-    loadTypedObjectElements(obj, indexAsByteOffset, elemSize, &elements, &scaledOffset);
+    loadTypedObjectElements(obj, offset, size, &elements, &scaledOffset);
 
     
     MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(alloc(), elements, scaledOffset, elemTypeRepr->type());
@@ -6744,9 +6756,11 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     
     types::TemporaryTypeSet *resultTypes = bytecodeTypes(pc);
     bool allowDouble = resultTypes->hasType(types::Type::DoubleType());
+
     
     
     MIRType knownType = MIRTypeForTypedArrayRead(elemTypeRepr->type(), allowDouble);
+
     
     
     
@@ -6768,27 +6782,58 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     JS_ASSERT(objTypeReprs.allOfArrayKind());
 
     MDefinition *type = loadTypedObjectType(obj);
-    MDefinition *elemType = typeObjectForElementFromArrayStructType(type);
+    MDefinition *elemTypeObj = typeObjectForElementFromArrayStructType(type);
 
     MDefinition *indexAsByteOffset;
     if (!checkTypedObjectIndexInBounds(elemSize, obj, index, &indexAsByteOffset, objTypeReprs))
         return false;
 
+    return pushDerivedTypedObject(emitted, obj, indexAsByteOffset,
+                                  elemTypeReprs, elemTypeObj);
+}
+
+bool
+IonBuilder::pushDerivedTypedObject(bool *emitted,
+                                   MDefinition *obj,
+                                   MDefinition *offset,
+                                   TypeRepresentationSet derivedTypeReprs,
+                                   MDefinition *derivedTypeObj)
+{
     
     MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(obj, indexAsByteOffset, &owner, &ownerOffset);
+    loadTypedObjectData(obj, offset, &owner, &ownerOffset);
 
     
-    MInstruction *derived = MNewDerivedTypedObject::New(alloc(),
-                                                        elemTypeReprs,
-                                                        elemType,
-                                                        owner,
-                                                        ownerOffset);
+    MInstruction *derivedTypedObj = MNewDerivedTypedObject::New(alloc(),
+                                                                derivedTypeReprs,
+                                                                derivedTypeObj,
+                                                                owner,
+                                                                ownerOffset);
+    current->add(derivedTypedObj);
+    current->push(derivedTypedObj);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     types::TemporaryTypeSet *resultTypes = bytecodeTypes(pc);
-    derived->setResultTypeSet(resultTypes);
-    current->add(derived);
-    current->push(derived);
+    if (!pushTypeBarrier(derivedTypedObj, resultTypes, true))
+        return false;
+
     *emitted = true;
     return true;
 }
@@ -8451,29 +8496,8 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
 
     MDefinition *typedObj = current->pop();
 
-    
-    MDefinition *elements, *scaledOffset;
-    loadTypedObjectElements(typedObj, constantInt(fieldOffset),
-                            fieldTypeRepr->alignment(),
-                            &elements, &scaledOffset);
-
-    
-    
-    
-    bool allowDouble = resultTypes->hasType(types::Type::DoubleType());
-    MIRType knownType = MIRTypeForTypedArrayRead(fieldTypeRepr->type(), allowDouble);
-
-    MLoadTypedArrayElement *load =
-        MLoadTypedArrayElement::New(alloc(), elements, scaledOffset,
-                                    fieldTypeRepr->type());
-
-    
-    
-    load->setResultType(knownType);
-    current->add(load);
-    current->push(load);
-    *emitted = true;
-    return true;
+    return pushScalarLoadFromTypedObject(emitted, typedObj, constantInt(fieldOffset),
+                                         fieldTypeRepr);
 }
 
 bool
@@ -8494,24 +8518,10 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
 
     
     MDefinition *type = loadTypedObjectType(typedObj);
-    MDefinition *fieldType = typeObjectForFieldFromStructType(type, fieldIndex);
+    MDefinition *fieldTypeObj = typeObjectForFieldFromStructType(type, fieldIndex);
 
-    
-    MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(typedObj, constantInt(fieldOffset),
-                        &owner, &ownerOffset);
-
-    
-    MInstruction *derived = MNewDerivedTypedObject::New(alloc(),
-                                                        fieldTypeReprs,
-                                                        fieldType,
-                                                        owner,
-                                                        ownerOffset);
-    derived->setResultTypeSet(resultTypes);
-    current->add(derived);
-    current->push(derived);
-    *emitted = true;
-    return true;
+    return pushDerivedTypedObject(emitted, typedObj, constantInt(fieldOffset),
+                                  fieldTypeReprs, fieldTypeObj);
 }
 
 bool
@@ -9895,7 +9905,6 @@ IonBuilder::loadTypedObjectData(MDefinition *typedObj,
     
     
     if (typedObj->isNewDerivedTypedObject()) {
-        
         MNewDerivedTypedObject *ins = typedObj->toNewDerivedTypedObject();
 
         MAdd *offsetAdd = MAdd::NewAsmJS(alloc(), ins->offset(), offset, MIRType_Int32);

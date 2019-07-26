@@ -462,6 +462,15 @@ class IonBuilder : public MIRGenerator
                                        MDefinition *index,
                                        MDefinition **indexAsByteOffset,
                                        TypeRepresentationSet objTypeReprs);
+    bool pushDerivedTypedObject(bool *emitted,
+                                MDefinition *obj,
+                                MDefinition *offset,
+                                TypeRepresentationSet derivedTypeReprs,
+                                MDefinition *derivedTypeObj);
+    bool pushScalarLoadFromTypedObject(bool *emitted,
+                                       MDefinition *obj,
+                                       MDefinition *offset,
+                                       ScalarTypeRepresentation* type);
 
     
     bool setElemTryTypedArray(bool *emitted, MDefinition *object,
