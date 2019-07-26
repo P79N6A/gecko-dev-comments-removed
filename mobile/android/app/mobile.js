@@ -762,3 +762,7 @@ pref("media.useAudioChannelService", false);
 
 
 pref("security.csp.speccompliant", true);
+
+
+pref("gfx.canvas.azure.backends", "skia");
+pref("gfx.canvas.azure.accelerated", true);
