@@ -99,14 +99,14 @@ BasicLayerManager::PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
     
     *aNeedsClipToVisibleRegion = !didCompleteClip || aRegion.GetNumRects() > 1;
     MOZ_ASSERT(!aContext->IsCairo());
-    result = PushGroupWithCachedSurface(aContext, GFX_CONTENT_COLOR);
+    result = PushGroupWithCachedSurface(aContext, gfxContentType::COLOR);
   } else {
     *aNeedsClipToVisibleRegion = false;
     result = aContext;
     if (aLayer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA) {
-      aContext->PushGroupAndCopyBackground(GFX_CONTENT_COLOR_ALPHA);
+      aContext->PushGroupAndCopyBackground(gfxContentType::COLOR_ALPHA);
     } else {
-      aContext->PushGroup(GFX_CONTENT_COLOR_ALPHA);
+      aContext->PushGroup(gfxContentType::COLOR_ALPHA);
     }
   }
   return result.forget();

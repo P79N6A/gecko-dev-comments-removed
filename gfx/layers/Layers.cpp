@@ -1533,7 +1533,7 @@ SetAntialiasingFlags(Layer* aLayer, gfxContext* aTarget)
 
   bool permitSubpixelAA = !(aLayer->GetContentFlags() & Layer::CONTENT_DISABLE_SUBPIXEL_AA);
   nsRefPtr<gfxASurface> surface = aTarget->CurrentSurface();
-  if (surface->GetContentType() != GFX_CONTENT_COLOR_ALPHA) {
+  if (surface->GetContentType() != gfxContentType::COLOR_ALPHA) {
     
     surface->SetSubpixelAntialiasingEnabled(permitSubpixelAA);
     return;

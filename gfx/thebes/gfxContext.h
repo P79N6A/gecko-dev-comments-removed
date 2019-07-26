@@ -625,7 +625,7 @@ public:
     
 
 
-    void PushGroup(gfxContentType content = GFX_CONTENT_COLOR);
+    void PushGroup(gfxContentType content = gfxContentType::COLOR);
     
 
 
@@ -637,7 +637,7 @@ public:
 
 
 
-    void PushGroupAndCopyBackground(gfxContentType content = GFX_CONTENT_COLOR);
+    void PushGroupAndCopyBackground(gfxContentType content = gfxContentType::COLOR);
     already_AddRefed<gfxPattern> PopGroup();
     void PopGroupToSource();
 

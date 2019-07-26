@@ -244,7 +244,7 @@ gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
       return nullptr;
     }
 
-    if (aContent == GFX_CONTENT_COLOR) {
+    if (aContent == gfxContentType::COLOR) {
         
         
         

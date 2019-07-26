@@ -274,7 +274,7 @@ ClientLayerManager::MakeSnapshotIfRequired()
       mWidget->GetBounds(bounds);
       SurfaceDescriptor inSnapshot, snapshot;
       if (mForwarder->AllocSurfaceDescriptor(bounds.Size().ToIntSize(),
-                                             GFX_CONTENT_COLOR_ALPHA,
+                                             gfxContentType::COLOR_ALPHA,
                                              &inSnapshot) &&
           
           
@@ -389,7 +389,6 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
     NS_WARNING("failed to forward Layers transaction");
   }
 
-  mForwarder->ForceRemoveTexturesIfNecessary();
   mPhase = PHASE_NONE;
 
   

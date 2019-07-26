@@ -125,7 +125,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
     }
 
     cairo_surface_t *surface;
-    if (!mForPrinting && GetContentType() == GFX_CONTENT_COLOR_ALPHA) {
+    if (!mForPrinting && GetContentType() == gfxContentType::COLOR_ALPHA) {
         
         
         
@@ -139,7 +139,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
                                               aSize.width, aSize.height);
     } else {
         surface =
-          cairo_surface_create_similar(mSurface, cairo_content_t(aContent),
+          cairo_surface_create_similar(mSurface, (cairo_content_t)(int)aContent,
                                        aSize.width, aSize.height);
     }
 

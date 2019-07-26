@@ -2193,7 +2193,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         
         
         layerBuffering = mozilla::layers::BUFFER_NONE;
-        ctx->PushGroup(GFX_CONTENT_COLOR_ALPHA);
+        ctx->PushGroup(gfxContentType::COLOR_ALPHA);
 #ifdef MOZ_HAVE_SHMIMAGE
     } else if (nsShmImage::UseShm()) {
         

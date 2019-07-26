@@ -138,7 +138,7 @@ CompositableClient::CreateDeprecatedTextureClient(DeprecatedTextureClientType aD
       
       
       
-      if (aContentType == GFX_CONTENT_COLOR_ALPHA ||
+      if (aContentType == gfxContentType::COLOR_ALPHA ||
           !gfxWindowsPlatform::GetPlatform()->GetD3D9Device()) {
         result = new DeprecatedTextureClientDIB(GetForwarder(), GetTextureInfo());
       } else {
@@ -215,7 +215,7 @@ CompositableClient::CreateTextureClientForDrawing(SurfaceFormat aFormat,
       !GetForwarder()->ForwardsToDifferentProcess() &&
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
     
-    if (ContentForFormat(aFormat) != GFX_CONTENT_COLOR) {
+    if (ContentForFormat(aFormat) != gfxContentType::COLOR) {
       result = new DIBTextureClientD3D9(aFormat, aTextureFlags);
     } else {
       result = new CairoTextureClientD3D9(aFormat, aTextureFlags);
