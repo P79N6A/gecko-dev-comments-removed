@@ -24,6 +24,7 @@ public:
   
   
   SECStatus VerifyCert(CERTCertificate* cert,
+           const SECItem* stapledOCSPResponse,
                        const SECCertificateUsage usage,
                        const PRTime time,
                        void* pinArg,
@@ -34,6 +35,7 @@ public:
 
   SECStatus VerifySSLServerCert(
                     CERTCertificate* peerCert,
+        const SECItem* stapledOCSPResponse,
                     PRTime time,
         void* pinarg,
                     const char* hostname,
