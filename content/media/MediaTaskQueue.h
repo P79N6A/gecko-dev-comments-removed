@@ -43,6 +43,10 @@ public:
 
   bool IsEmpty();
 
+  
+  
+  bool IsCurrentThreadIn();
+
 private:
 
   
@@ -57,6 +61,11 @@ private:
 
   
   std::queue<RefPtr<nsIRunnable>> mTasks;
+
+  
+  
+  
+  RefPtr<nsIThread> mRunningThread;
 
   
   

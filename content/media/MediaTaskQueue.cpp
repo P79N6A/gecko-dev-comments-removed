@@ -90,6 +90,17 @@ MediaTaskQueue::IsEmpty()
   return mTasks.empty();
 }
 
+bool
+MediaTaskQueue::IsCurrentThreadIn()
+{
+#ifdef DEBUG
+  MonitorAutoLock mon(mQueueMonitor);
+  return NS_GetCurrentThread() == mRunningThread;
+#else
+  return false;
+#endif
+}
+
 nsresult
 MediaTaskQueue::Runner::Run()
 {
@@ -97,6 +108,7 @@ MediaTaskQueue::Runner::Run()
   {
     MonitorAutoLock mon(mQueue->mQueueMonitor);
     MOZ_ASSERT(mQueue->mIsRunning);
+    mQueue->mRunningThread = NS_GetCurrentThread();
     if (mQueue->mTasks.size() == 0) {
       mQueue->mIsRunning = false;
       mon.NotifyAll();
@@ -120,6 +132,7 @@ MediaTaskQueue::Runner::Run()
       
       mQueue->mIsRunning = false;
       mon.NotifyAll();
+      mQueue->mRunningThread = nullptr;
       return NS_OK;
     }
   }
@@ -129,13 +142,20 @@ MediaTaskQueue::Runner::Run()
   
   
   
-  nsresult rv = mQueue->mPool->Dispatch(this, NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv)) {
-    
+  {
     MonitorAutoLock mon(mQueue->mQueueMonitor);
-    mQueue->mIsRunning = false;
-    mQueue->mIsShutdown = true;
-    mon.NotifyAll();
+    
+    
+    
+    
+    nsresult rv = mQueue->mPool->Dispatch(this, NS_DISPATCH_NORMAL);
+    if (NS_FAILED(rv)) {
+      
+      mQueue->mIsRunning = false;
+      mQueue->mIsShutdown = true;
+      mon.NotifyAll();
+    }
+    mQueue->mRunningThread = nullptr;
   }
 
   return NS_OK;
