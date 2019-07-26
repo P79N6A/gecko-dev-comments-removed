@@ -303,6 +303,11 @@ protected:
 
 
   void BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
+
+  
+
+
+  void ClearOverscrollHandoffChain();
 public:
   
 
@@ -332,7 +337,6 @@ private:
                              ScrollableLayerGuid* aOutTargetGuid);
   void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
                                         const ZoomConstraints& aConstraints);
-  void ClearOverscrollHandoffChain();
 
   
 

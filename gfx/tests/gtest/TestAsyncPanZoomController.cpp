@@ -147,6 +147,9 @@ public:
   void BuildOverscrollHandoffChain(AsyncPanZoomController* aApzc) {
     APZCTreeManager::BuildOverscrollHandoffChain(aApzc);
   }
+  void ClearOverscrollHandoffChain() {
+    APZCTreeManager::ClearOverscrollHandoffChain();
+  }
 };
 
 static
@@ -235,6 +238,10 @@ void ApzcPan(AsyncPanZoomController* apzc,
   aTime += TIME_BETWEEN_TOUCH_EVENT;
   mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchEndY), ScreenSize(0, 0), 0, 0));
   status = apzc->ReceiveInputEvent(mti);
+
+  
+  
+  aTreeManager->ClearOverscrollHandoffChain();
 }
 
 static
