@@ -943,9 +943,6 @@ public:
 
   virtual void ForwardTrackEnabled(TrackID aOutputID, bool aEnabled) {};
 
-  bool InCycle() const { return mInCycle; }
-
-
 protected:
   
 
