@@ -203,7 +203,9 @@ WebGLContext::BufferData(GLenum target,
     }
 
     const ArrayBuffer& data = maybeData.Value();
+    data.ComputeLengthAndData();
 
+    
     
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
@@ -253,6 +255,9 @@ WebGLContext::BufferData(GLenum target, const ArrayBufferView& data,
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferData: no buffer bound!");
 
+    data.ComputeLengthAndData();
+
+    
     
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
@@ -290,8 +295,6 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
         return;
     }
 
-    const ArrayBuffer& data = maybeData.Value();
-
     if (byteOffset < 0)
         return ErrorInvalidValue("bufferSubData: negative offset");
 
@@ -299,6 +302,9 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
 
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferData: no buffer bound!");
+
+    const ArrayBuffer& data = maybeData.Value();
+    data.ComputeLengthAndData();
 
     CheckedInt<WebGLsizeiptr> checked_neededByteLength = CheckedInt<WebGLsizeiptr>(byteOffset) + data.Length();
     if (!checked_neededByteLength.isValid())
@@ -335,6 +341,8 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
 
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferSubData: no buffer bound!");
+
+    data.ComputeLengthAndData();
 
     CheckedInt<WebGLsizeiptr> checked_neededByteLength = CheckedInt<WebGLsizeiptr>(byteOffset) + data.Length();
     if (!checked_neededByteLength.isValid())
