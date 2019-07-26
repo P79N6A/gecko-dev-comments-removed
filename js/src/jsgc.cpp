@@ -4011,6 +4011,10 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
             SweepScriptFilenames(rt);
 
         
+        if (JSC::ExecutableAllocator *execAlloc = rt->maybeExecAlloc())
+            execAlloc->purge();
+
+        
 
 
 

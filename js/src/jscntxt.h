@@ -514,6 +514,9 @@ struct JSRuntime : js::RuntimeFriendFields
         JS_ASSERT(execAlloc_);
         return *execAlloc_;
     }
+    JSC::ExecutableAllocator *maybeExecAlloc() {
+        return execAlloc_;
+    }
     WTF::BumpPointerAllocator *getBumpPointerAllocator(JSContext *cx) {
         return bumpAlloc_ ? bumpAlloc_ : createBumpPointerAllocator(cx);
     }
@@ -535,9 +538,12 @@ struct JSRuntime : js::RuntimeFriendFields
     bool isSelfHostedGlobal(js::HandleObject global) {
         return global == selfHostedGlobal_;
     }
-    JSFunction *getSelfHostedFunction(JSContext *cx, js::Handle<js::PropertyName*> name);
-    bool cloneSelfHostedValueById(JSContext *cx, js::HandleId id, js::HandleObject holder,
-                                  js::MutableHandleValue vp);
+    bool getUnclonedSelfHostedValue(JSContext *cx, js::Handle<js::PropertyName*> name,
+                                    js::MutableHandleValue vp);
+    bool cloneSelfHostedFunctionScript(JSContext *cx, js::Handle<js::PropertyName*> name,
+                                       js::Handle<JSFunction*> targetFun);
+    bool cloneSelfHostedValue(JSContext *cx, js::Handle<js::PropertyName*> name,
+                              js::HandleObject holder, js::MutableHandleValue vp);
 
     
     uintptr_t           nativeStackBase;

@@ -212,6 +212,13 @@ public:
         
     }
 
+    void purge() {
+        for (size_t i = 0; i < m_smallPools.length(); i++)
+            m_smallPools[i]->release();
+
+	m_smallPools.clear();
+    }
+
     
     
     
