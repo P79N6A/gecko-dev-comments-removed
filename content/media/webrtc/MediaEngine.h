@@ -103,7 +103,7 @@ public:
 
   
 
-  virtual MediaEngineVideoOptions GetOptions() = 0;
+  virtual const MediaEngineVideoOptions *GetOptions() = 0;
 };
 
 
