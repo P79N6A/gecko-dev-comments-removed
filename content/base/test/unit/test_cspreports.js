@@ -77,7 +77,7 @@ function makeTest(id, expectedJSON, callback) {
   csp.scanRequestData(selfchan);
 
   
-  csp.refinePolicy(policy, selfuri);
+  csp.refinePolicy(policy, selfuri, false);
 
   
   var handler = makeReportHandler("/test" + id, "Test " + id, expectedJSON);

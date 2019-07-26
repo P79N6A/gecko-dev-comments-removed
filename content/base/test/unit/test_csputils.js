@@ -756,7 +756,7 @@ test(
                     Ci.nsIContentPolicy.TYPE_IMAGE));
 
       
-      cspObj.refinePolicy(firstPolicy, selfURI);
+      cspObj.refinePolicy(firstPolicy, selfURI, false);
 
       
       do_check_true(testPermits(URI("http://self.com/foo.js"),
@@ -769,7 +769,7 @@ test(
                      Ci.nsIContentPolicy.TYPE_IMAGE));
 
       
-      cspObj.refinePolicy(secondPolicy, selfURI);
+      cspObj.refinePolicy(secondPolicy, selfURI, false);
 
       
       do_check_true(testPermits(URI("http://self.com/foo.js"),
