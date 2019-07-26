@@ -259,13 +259,17 @@ private:
 
 
 
+
+
   struct GetPermissionsForAppStruct {
     uint32_t                  appId;
+    bool                      browserOnly;
     nsCOMArray<nsIPermission> permissions;
 
     GetPermissionsForAppStruct() MOZ_DELETE;
-    GetPermissionsForAppStruct(uint32_t aAppId)
+    GetPermissionsForAppStruct(uint32_t aAppId, bool aBrowserOnly)
       : appId(aAppId)
+      , browserOnly(aBrowserOnly)
     {}
   };
 
