@@ -101,11 +101,12 @@ protected:
 
     
     
-    void freeBufferLocked(int index);
+    
+    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
 
     
     
-    void freeAllBuffersLocked();
+    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
 
 private:
     void init();
