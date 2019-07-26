@@ -3341,7 +3341,7 @@ private:
   nsRefPtr<nsXMLHttpRequest> mXHR;
 };
 
-NS_IMPL_CYCLE_COLLECTION_1(AsyncVerifyRedirectCallbackForwarder, mXHR)
+NS_IMPL_CYCLE_COLLECTION(AsyncVerifyRedirectCallbackForwarder, mXHR)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AsyncVerifyRedirectCallbackForwarder)
   NS_INTERFACE_MAP_ENTRY(nsISupports)

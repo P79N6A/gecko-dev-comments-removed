@@ -41,7 +41,7 @@ TreeWalker::~TreeWalker()
 
 
 
-NS_IMPL_CYCLE_COLLECTION_3(TreeWalker, mFilter, mCurrentNode, mRoot)
+NS_IMPL_CYCLE_COLLECTION(TreeWalker, mFilter, mCurrentNode, mRoot)
 
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TreeWalker)
