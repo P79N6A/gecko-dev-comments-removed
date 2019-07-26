@@ -356,9 +356,6 @@ let SessionStoreInternal = {
 
     this._initPrefs();
 
-    
-    this._migratePrefs();
-
     this._disabledForMultiProcess = this._prefBranch.getBoolPref("tabs.remote");
 
     
@@ -548,19 +545,6 @@ let SessionStoreInternal = {
     if (this._saveTimer) {
       this._saveTimer.cancel();
       this._saveTimer = null;
-    }
-  },
-
-  _migratePrefs: function ssi_migratePrefs() {
-    
-    
-    
-    if (this._prefBranch.prefHasUserValue("sessionstore.max_concurrent_tabs") &&
-        !this._prefBranch.prefHasUserValue("sessionstore.restore_on_demand")) {
-      let maxConcurrentTabs =
-        this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
-      this._prefBranch.setBoolPref("sessionstore.restore_on_demand", maxConcurrentTabs == 0);
-      this._prefBranch.clearUserPref("sessionstore.max_concurrent_tabs");
     }
   },
 
