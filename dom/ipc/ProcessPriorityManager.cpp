@@ -971,6 +971,13 @@ ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
     return;
   }
 
+#ifdef MOZ_NUWA_PROCESS
+  
+  if (mContentParent->IsNuwaProcess()) {
+    return;
+  }
+#endif
+
   if (aBackgroundLRU > 0 &&
       aPriority == PROCESS_PRIORITY_BACKGROUND &&
       mPriority == PROCESS_PRIORITY_BACKGROUND) {
