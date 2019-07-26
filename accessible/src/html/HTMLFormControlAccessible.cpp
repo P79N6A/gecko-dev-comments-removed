@@ -464,22 +464,6 @@ HTMLTextFieldAccessible::GetEditor() const
   return editor.forget();
 }
 
-void
-HTMLTextFieldAccessible::CacheChildren()
-{
-  
-  
-  
-  TreeWalker walker(this, mContent);
-  Accessible* child = nullptr;
-  while ((child = walker.NextChild())) {
-    if (child->IsTextLeaf())
-      AppendChild(child);
-    else
-      Document()->UnbindFromDocument(child);
-  }
-}
-
 
 
 

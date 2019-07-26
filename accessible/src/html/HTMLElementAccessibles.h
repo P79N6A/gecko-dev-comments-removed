@@ -33,7 +33,10 @@ class HTMLBRAccessible : public LeafAccessible
 {
 public:
   HTMLBRAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    LeafAccessible(aContent, aDoc) {}
+    LeafAccessible(aContent, aDoc)
+  {
+    mType = eHTMLBRType;
+  }
 
   
   virtual a11y::role NativeRole();
