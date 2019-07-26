@@ -100,9 +100,15 @@ stubs::Name(VMFrame &f)
 }
 
 void JS_FASTCALL
-stubs::IntrinsicName(VMFrame &f, PropertyName *name)
+stubs::IntrinsicName(VMFrame &f, PropertyName *nameArg)
 {
     RootedValue rval(f.cx);
+
+    
+    
+    
+    SkipRoot skip(f.cx, &nameArg);
+    HandlePropertyName name = HandlePropertyName::fromMarkedLocation(&nameArg);
     if (!f.cx->global().get()->getIntrinsicValue(f.cx, name, &rval))
         THROW();
     f.regs.sp[0] = rval;
