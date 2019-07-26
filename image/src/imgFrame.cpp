@@ -37,6 +37,7 @@ static uint32_t gTotalDDBSize = 0;
 
 #endif
 
+using namespace mozilla;
 using namespace mozilla::image;
 
 
@@ -106,6 +107,7 @@ static bool ShouldUseImageSurfaces()
 
 imgFrame::imgFrame() :
   mDecoded(0, 0, 0, 0),
+  mDirtyMutex("imgFrame::mDirty"),
   mPalettedImageData(nullptr),
   mSinglePixelColor(0),
   mTimeout(100),
@@ -120,7 +122,8 @@ imgFrame::imgFrame() :
 #ifdef USE_WIN_SURFACE
   mIsDDBSurface(false),
 #endif
-  mInformedDiscardTracker(false)
+  mInformedDiscardTracker(false),
+  mDirty(false)
 {
   static bool hasCheckedOptimize = false;
   if (!hasCheckedOptimize) {
@@ -492,6 +495,8 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
 
 nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
 {
+  MutexAutoLock lock(mDirtyMutex);
+
   mDecoded.UnionRect(mDecoded, aUpdateRect);
 
   
@@ -499,7 +504,15 @@ nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
   nsIntRect boundsRect(mOffset, mSize);
   mDecoded.IntersectRect(mDecoded, boundsRect);
 
+  mDirty = true;
+
   return NS_OK;
+}
+
+bool imgFrame::GetIsDirty()
+{
+  MutexAutoLock lock(mDirtyMutex);
+  return mDirty;
 }
 
 nsIntRect imgFrame::GetRect() const
@@ -690,32 +703,37 @@ nsresult imgFrame::UnlockImageData()
   return NS_OK;
 }
 
-void imgFrame::MarkImageDataDirty()
+void imgFrame::ApplyDirtToSurfaces()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mImageSurface)
-    mImageSurface->Flush();
+  MutexAutoLock lock(mDirtyMutex);
+  if (mDirty) {
+    if (mImageSurface)
+      mImageSurface->Flush();
 
 #ifdef USE_WIN_SURFACE
-  if (mWinSurface)
-    mWinSurface->Flush();
+    if (mWinSurface)
+      mWinSurface->Flush();
 #endif
 
-  if (mImageSurface)
-    mImageSurface->MarkDirty();
+    if (mImageSurface)
+      mImageSurface->MarkDirty();
 
 #ifdef USE_WIN_SURFACE
-  if (mWinSurface)
-    mWinSurface->MarkDirty();
+    if (mWinSurface)
+      mWinSurface->MarkDirty();
 #endif
 
 #ifdef XP_MACOSX
-  
-  
-  if (mQuartzSurface)
-    mQuartzSurface->Flush();
+    
+    
+    if (mQuartzSurface)
+      mQuartzSurface->Flush();
 #endif
+
+    mDirty = false;
+  }
 }
 
 int32_t imgFrame::GetTimeout() const
