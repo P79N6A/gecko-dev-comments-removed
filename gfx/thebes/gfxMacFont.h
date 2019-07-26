@@ -64,7 +64,6 @@ protected:
 
     void InitMetrics();
     void InitMetricsFromPlatform();
-    void InitMetricsFromATSMetrics(ATSFontRef aFontRef);
 
     
     

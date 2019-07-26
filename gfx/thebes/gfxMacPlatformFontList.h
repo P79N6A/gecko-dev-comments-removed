@@ -58,34 +58,6 @@ protected:
 };
 
 
-class ATSFontEntry : public MacOSFontEntry
-{
-public:
-    ATSFontEntry(const nsAString& aPostscriptName, int32_t aWeight,
-                 gfxFontFamily *aFamily, bool aIsStandardFace = false);
-
-    
-    ATSFontEntry(const nsAString& aPostscriptName, ATSFontRef aFontRef,
-                 uint16_t aWeight, uint16_t aStretch, uint32_t aItalicStyle,
-                 gfxUserFontData *aUserFontData, bool aIsLocal);
-
-    ATSFontRef GetATSFontRef();
-
-    virtual CGFontRef GetFontRef();
-
-    virtual nsresult GetFontTable(uint32_t aTableTag,
-                                  FallibleTArray<uint8_t>& aBuffer);
-
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-
-protected:
-    virtual bool HasFontTable(uint32_t aTableTag);
-
-    ATSFontRef   mATSFontRef;
-    bool mATSFontRefInitialized;
-};
-
 class CGFontEntry : public MacOSFontEntry
 {
 public:
@@ -129,10 +101,6 @@ public:
 
     void ClearPrefFonts() { mPrefFonts.Clear(); }
 
-    static bool UseATSFontEntry() {
-        return gfxPlatformMac::GetPlatform()->OSXVersion() < MAC_OS_X_VERSION_10_6_HEX;
-    }
-
 private:
     friend class gfxPlatformMac;
 
@@ -147,9 +115,6 @@ private:
 
     gfxFontEntry* MakePlatformFontCG(const gfxProxyFontEntry *aProxyEntry,
                                      const uint8_t *aFontData, uint32_t aLength);
-
-    gfxFontEntry* MakePlatformFontATS(const gfxProxyFontEntry *aProxyEntry,
-                                      const uint8_t *aFontData, uint32_t aLength);
 
     static void ATSNotification(ATSFontNotificationInfoRef aInfo, void* aUserArg);
 
