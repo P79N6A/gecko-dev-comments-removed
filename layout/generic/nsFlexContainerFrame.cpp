@@ -2297,7 +2297,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  
   nscoord flexContainerAscent =
     lineCrossAxisPosnTracker.GetCrossStartToFurthestBaseline();
   if (flexContainerAscent != nscoord_MIN) {
