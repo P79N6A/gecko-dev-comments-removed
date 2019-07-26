@@ -31,6 +31,9 @@ using namespace mozilla;
 
 using js::PropertyDescriptor;
 using js::Wrapper;
+using js::IsCrossCompartmentWrapper;
+using js::UncheckedUnwrap;
+using js::CheckedUnwrap;
 
 namespace xpc {
 
@@ -1639,6 +1642,63 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, HandleObject 
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+RecreateLostWaivers(JSContext *cx, PropertyDescriptor *orig,
+                    MutableHandle<PropertyDescriptor> wrapped)
+{
+    
+    
+    bool valueWasWaived =
+        orig->value.isObject() &&
+        WrapperFactory::HasWaiveXrayFlag(&orig->value.toObject());
+    bool getterWasWaived =
+        (orig->attrs & JSPROP_GETTER) &&
+        WrapperFactory::HasWaiveXrayFlag(JS_FUNC_TO_DATA_PTR(JSObject*, orig->getter));
+    bool setterWasWaived =
+        (orig->attrs & JSPROP_SETTER) &&
+        WrapperFactory::HasWaiveXrayFlag(JS_FUNC_TO_DATA_PTR(JSObject*, orig->setter));
+
+    
+    
+    
+
+    RootedObject rewaived(cx);
+    if (valueWasWaived && !IsCrossCompartmentWrapper(&wrapped.value().toObject())) {
+        rewaived = &wrapped.value().toObject();
+        rewaived = WrapperFactory::WaiveXray(cx, UncheckedUnwrap(rewaived));
+        NS_ENSURE_TRUE(rewaived, false);
+        wrapped.value().set(ObjectValue(*rewaived));
+    }
+    if (getterWasWaived && !IsCrossCompartmentWrapper(wrapped.getterObject())) {
+        MOZ_ASSERT(CheckedUnwrap(wrapped.getterObject()));
+        rewaived = WrapperFactory::WaiveXray(cx, wrapped.getterObject());
+        NS_ENSURE_TRUE(rewaived, false);
+        wrapped.setGetterObject(rewaived);
+    }
+    if (setterWasWaived && !IsCrossCompartmentWrapper(wrapped.setterObject())) {
+        MOZ_ASSERT(CheckedUnwrap(wrapped.setterObject()));
+        rewaived = WrapperFactory::WaiveXray(cx, wrapped.setterObject());
+        NS_ENSURE_TRUE(rewaived, false);
+        wrapped.setSetterObject(rewaived);
+    }
+
+    return true;
+}
+
 template <typename Base, typename Traits>
 bool
 XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
@@ -1675,6 +1735,10 @@ XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
     
     Rooted<PropertyDescriptor> wrappedDesc(cx, *desc);
     if (!JS_WrapPropertyDescriptor(cx, wrappedDesc.address()))
+        return false;
+
+    
+    if (!RecreateLostWaivers(cx, desc, &wrappedDesc))
         return false;
 
     return JS_DefinePropertyById(cx, expandoObject, id, wrappedDesc.value(),
