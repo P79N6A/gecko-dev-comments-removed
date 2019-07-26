@@ -92,12 +92,12 @@ class LibSignFile(File):
     '''
     File class for shlibsign signatures.
     '''
-    def copy(self, dest):
+    def copy(self, dest, skip_if_older=True):
         assert isinstance(dest, basestring)
         
         
         
-        if os.path.exists(dest) and \
+        if os.path.exists(dest) and skip_if_older and \
                 int(os.path.getmtime(self.path) * 1000) <= \
                 int(os.path.getmtime(dest) * 1000):
             return False
