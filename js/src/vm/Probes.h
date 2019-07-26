@@ -69,8 +69,7 @@ bool WantNativeAddressInfo(JSContext *);
 bool EnterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
 
 
-bool ExitScript(JSContext *, JSScript *, JSFunction *, AbstractFramePtr);
-bool ExitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
+bool ExitScript(JSContext *, JSScript *, JSFunction *, bool popSPSFrame);
 
 
 bool StartExecution(JSScript *script);

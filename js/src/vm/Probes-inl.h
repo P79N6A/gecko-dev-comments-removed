@@ -63,8 +63,7 @@ probes::EnterScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
 }
 
 inline bool
-probes::ExitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
-                   AbstractFramePtr fp)
+probes::ExitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun, bool popSPSFrame)
 {
     bool ok = true;
 
@@ -76,22 +75,10 @@ probes::ExitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
     cx->doFunctionCallback(maybeFun, script, 0);
 #endif
 
-    JSRuntime *rt = cx->runtime();
-    
+    if (popSPSFrame)
+        cx->runtime()->spsProfiler.exit(cx, script, maybeFun);
 
-
-
-
-    if ((!fp && rt->spsProfiler.enabled()) || (fp && fp.hasPushedSPSFrame()))
-        rt->spsProfiler.exit(cx, script, maybeFun);
     return ok;
-}
-
-inline bool
-probes::ExitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
-                   StackFrame *fp)
-{
-    return probes::ExitScript(cx, script, maybeFun, fp ? AbstractFramePtr(fp) : AbstractFramePtr());
 }
 
 inline bool
