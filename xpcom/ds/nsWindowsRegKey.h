@@ -26,7 +26,7 @@ NS_NewWindowsRegKey(nsIWindowsRegKey **result);
 
 
 
-#ifdef _IMPL_NS_COM
+#ifdef IMPL_LIBXUL
 
 
 #define NS_WINDOWSREGKEY_CID \
