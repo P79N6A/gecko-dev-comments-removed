@@ -4,7 +4,7 @@
 
 
 Components.utils.import("resource://gre/modules/SharedPreferences.jsm");
-Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Components.utils.import("resource://gre/modules/Promise.jsm");
 
 let _observerId = 0;
 
