@@ -492,7 +492,7 @@ nsDiskCacheStreamIO::Flush()
         }
     }
 
-    if (!written) {
+    if (!written && mStreamEnd > 0) {
         
         rv = FlushBufferToFile(); 
 
@@ -536,6 +536,15 @@ nsDiskCacheStreamIO::Write( const char * buffer,
                             uint32_t     count,
                             uint32_t *   bytesWritten)
 {
+    NS_ENSURE_ARG_POINTER(buffer);
+    NS_ENSURE_ARG_POINTER(bytesWritten);
+    *bytesWritten = 0;  
+
+    NS_ASSERTION(count, "Write called with count of zero");
+    if (count == 0) {
+        return NS_OK;   
+    }
+
     
     nsCacheServiceAutoLock lock(LOCK_TELEM(NSDISKCACHESTREAMIO_WRITE));
     if (!mBinding)  return NS_ERROR_NOT_AVAILABLE;
@@ -547,25 +556,18 @@ nsDiskCacheStreamIO::Write( const char * buffer,
         return NS_ERROR_NOT_AVAILABLE;
     }
 
-    NS_ASSERTION(count, "Write called with count of zero");
-
     
     if (!mFD && (mStreamEnd + count <= kMaxBufferSize)) {
 
         
         if ((mStreamEnd + count > mBufSize) && (mBufSize < kMaxBufferSize)) {
             
-            
-            char *newbuf = (char *) realloc(mBuffer, kMaxBufferSize);
-            if (newbuf) {
-                
-                mBuffer = newbuf;
-                mBufSize = kMaxBufferSize;
-            }
+            mBuffer = (char *) moz_xrealloc(mBuffer, kMaxBufferSize);
+            mBufSize = kMaxBufferSize;
         }
 
         
-        if ((count > 0) && (mStreamEnd + count <= mBufSize)) {
+        if (mStreamEnd + count <= mBufSize) {
             memcpy(mBuffer + mStreamEnd, buffer, count);
             mStreamEnd += count;
             *bytesWritten = count;
@@ -578,14 +580,12 @@ nsDiskCacheStreamIO::Write( const char * buffer,
         
         nsresult rv = FlushBufferToFile();
         if (NS_FAILED(rv)) {
-            *bytesWritten = 0;
             return rv;
         }
     }
     
     if (PR_Write(mFD, buffer, count) != (int32_t)count) {
         NS_WARNING("failed to write all data");
-        *bytesWritten = 0;
         return NS_ERROR_UNEXPECTED;     
     }
     mStreamEnd += count;
@@ -665,11 +665,7 @@ nsDiskCacheStreamIO::ReadCacheBlocks(uint32_t bufferSize)
     NS_ASSERTION(record->DataFile() != kSeparateFile, "attempt to read cache blocks on separate file");
 
     if (!mBuffer) {
-        
-        mBuffer = (char *) malloc(bufferSize);
-        if (!mBuffer) {
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
+        mBuffer = (char *) moz_xmalloc(bufferSize);
         mBufSize = bufferSize;
     }
     
@@ -704,9 +700,14 @@ nsDiskCacheStreamIO::FlushBufferToFile()
     }
     
     
-    if (PR_Write(mFD, mBuffer, mStreamEnd) != (int32_t)mStreamEnd) {
-        NS_WARNING("failed to flush all data");
-        return NS_ERROR_UNEXPECTED;     
+    if (mStreamEnd > 0) {
+        if (!mBuffer) {
+            NS_RUNTIMEABORT("Fix me!");
+        }
+        if (PR_Write(mFD, mBuffer, mStreamEnd) != (int32_t)mStreamEnd) {
+            NS_WARNING("failed to flush all data");
+            return NS_ERROR_UNEXPECTED;     
+        }
     }
 
     
