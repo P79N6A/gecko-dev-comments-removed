@@ -55,53 +55,10 @@ struct BlobTraits<Parent>
   class BaseType : public ProtocolType
   {
   protected:
-    BaseType()
-    { }
+    BaseType();
+    virtual ~BaseType();
 
-    virtual ~BaseType()
-    { }
-
-    
-    
-    
-    
-    
-    
-    class OpenStreamRunnable : public nsRunnable
-    {
-      friend class nsRevocableEventPtr<OpenStreamRunnable>;
-    public:
-      NS_DECL_NSIRUNNABLE
-
-      OpenStreamRunnable(BaseType* aOwner, StreamType* aActor,
-                         nsIInputStream* aStream,
-                         nsIIPCSerializableInputStream* aSerializable,
-                         nsIEventTarget* aTarget);
-
-    private:
-#ifdef DEBUG
-      void
-      Revoke();
-#else
-      void
-      Revoke()
-      {
-        mRevoked = true;
-      }
-#endif
-
-      
-      BaseType* mOwner;
-      StreamType* mActor;
-
-      nsCOMPtr<nsIInputStream> mStream;
-      nsCOMPtr<nsIIPCSerializableInputStream> mSerializable;
-      nsCOMPtr<nsIEventTarget> mTarget;
-
-      bool mRevoked;
-      bool mClosing;
-    };
-
+    class OpenStreamRunnable;
     friend class OpenStreamRunnable;
 
     void
