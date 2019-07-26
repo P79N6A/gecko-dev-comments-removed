@@ -3904,16 +3904,7 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
     return;
   }
 
-  nsRefPtr<gfxASurface> drawSurf;
-  GetThebesSurface(getter_AddRefs(drawSurf));
-
-  nsRefPtr<gfxContext> thebes = new gfxContext(drawSurf);
-
   EnsureTarget();
-  Matrix matrix = mTarget->GetTransform();
-  thebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21,
-                              matrix._22, matrix._31, matrix._32));
-
   
   
   
@@ -3928,8 +3919,9 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
   }
 
   
-  if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH))
+  if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH)) {
     nsContentUtils::FlushLayoutForTree(window);
+  }
 
   nsRefPtr<nsPresContext> presContext;
   nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(window);
@@ -3970,8 +3962,22 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
     renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
   }
 
+  
+  
+  Matrix matrix = mTarget->GetTransform();
+  nsRefPtr<gfxContext> thebes;
+  if (gfxPlatform::UseAzureContentDrawing()) {
+    thebes = new gfxContext(mTarget);
+  } else {
+    nsRefPtr<gfxASurface> drawSurf;
+    GetThebesSurface(getter_AddRefs(drawSurf));
+    thebes = new gfxContext(drawSurf);
+  }
+  thebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21,
+                              matrix._22, matrix._31, matrix._32));
   unused << presContext->PresShell()->
     RenderDocument(r, renderDocFlags, backgroundColor, thebes);
+  mTarget->SetTransform(matrix);
 
   
   
