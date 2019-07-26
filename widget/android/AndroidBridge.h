@@ -527,6 +527,8 @@ protected:
     jfieldID jEGLSurfacePointerField;
     jobject mGLControllerObj;
 
+    jmethodID jRequestContentRepaint;
+
     
     jclass jStringClass;
 

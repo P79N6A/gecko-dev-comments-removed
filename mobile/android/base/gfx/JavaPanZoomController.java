@@ -355,7 +355,7 @@ class JavaPanZoomController
             
             synchronized (mTarget.getLock()) {
                 mTarget.setViewportMetrics(getValidViewportMetrics());
-                mTarget.forceRedraw();
+                mTarget.forceRedraw(null);
             }
             break;
         }
@@ -413,7 +413,7 @@ class JavaPanZoomController
             
             
             
-            mTarget.forceRedraw();
+            mTarget.forceRedraw(null);
             
         case FLING:
         case AUTONAV:
@@ -967,7 +967,7 @@ class JavaPanZoomController
         stopAnimationTimer();
 
         
-        mTarget.forceRedraw();
+        mTarget.forceRedraw(null);
     }
 
     
@@ -1187,7 +1187,7 @@ class JavaPanZoomController
         startTouch(detector.getFocusX(), detector.getFocusY(), detector.getEventTime());
 
         
-        mTarget.forceRedraw();
+        mTarget.forceRedraw(null);
 
         PointF point = new PointF(detector.getFocusX(), detector.getFocusY());
         GeckoEvent event = GeckoEvent.createNativeGestureEvent(GeckoEvent.ACTION_MAGNIFY_END, point, getMetrics().zoomFactor);
