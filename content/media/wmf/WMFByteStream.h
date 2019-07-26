@@ -11,6 +11,7 @@
 #include "nsISupportsImpl.h"
 #include "nsCOMPtr.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "mozilla/Attributes.h"
 #include "nsAutoPtr.h"
 
 namespace mozilla {
@@ -22,8 +23,8 @@ class MediaResource;
 
 
 
-class WMFByteStream : public IMFByteStream,
-                      public IMFAsyncCallback
+class WMFByteStream MOZ_FINAL : public IMFByteStream,
+                                public IMFAsyncCallback
 {
 public:
   WMFByteStream(MediaResource* aResource);
@@ -77,7 +78,7 @@ private:
   DWORD mWorkQueueId;
 
   
-  class AsyncReadRequestState : public IUnknown {
+  class AsyncReadRequestState MOZ_FINAL : public IUnknown {
   public:
     AsyncReadRequestState(int64_t aOffset, BYTE* aBuffer, ULONG aLength)
       : mOffset(aOffset),
@@ -98,7 +99,7 @@ private:
 
     
     nsAutoRefCnt mRefCnt;
-    NS_DECL_OWNINGTHREAD;
+    NS_DECL_OWNINGTHREAD
   };
 
   
@@ -117,7 +118,7 @@ private:
 
   
   nsAutoRefCnt mRefCnt;
-  NS_DECL_OWNINGTHREAD;
+  NS_DECL_OWNINGTHREAD
 };
 
 } 
