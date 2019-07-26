@@ -117,6 +117,9 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   bool processing_incoming_;
 
+  
+  bool closed_;
+
   ScopedRunnableMethodFactory<ChannelImpl> factory_;
 
   DISALLOW_COPY_AND_ASSIGN(ChannelImpl);
