@@ -151,6 +151,14 @@ BaselineCompiler::emitBody()
         SPEW_OPCODE();
         JSOp op = JSOp(*pc);
         IonSpew(IonSpew_Scripts, "Compiling op: %s", js_CodeName[op]);
+
+        
+        analyze::Bytecode *code = script->analysis()->maybeCode(pc);
+        if (code && code->jumpTarget) {
+            frame.syncStack(0);
+            frame.setStackDepth(code->stackDepth);
+        }
+
         frame.assertValidState(pc);
 
         masm.bind(labelOf(pc));
@@ -234,7 +242,7 @@ BaselineCompiler::emit_JSOP_GOTO()
 }
 
 bool
-BaselineCompiler::emit_JSOP_IFNE()
+BaselineCompiler::emitToBoolean()
 {
     
     ICToBool_Fallback::Compiler stubCompiler(cx);
@@ -243,9 +251,6 @@ BaselineCompiler::emit_JSOP_IFNE()
         return false;
 
     
-    
-    
-    frame.popRegsAndSync(1);
 
     
     CodeOffsetLabel patchOffset;
@@ -254,10 +259,57 @@ BaselineCompiler::emit_JSOP_IFNE()
     if (!addICLoadLabel(patchOffset))
         return false;
 
-    
-    masm.branchTestBooleanTruthy(true, R0, labelOf(pc + GET_JUMP_OFFSET(pc)));
-
     return true;
+}
+
+bool
+BaselineCompiler::emitTest(bool branchIfTrue)
+{
+    
+    frame.popRegsAndSync(1);
+
+    emitToBoolean();
+
+    
+    masm.branchTestBooleanTruthy(branchIfTrue, R0, labelOf(pc + GET_JUMP_OFFSET(pc)));
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_IFEQ()
+{
+    return emitTest(false);
+}
+
+bool
+BaselineCompiler::emit_JSOP_IFNE()
+{
+    return emitTest(true);
+}
+
+bool
+BaselineCompiler::emitAndOr(bool branchIfTrue)
+{
+    
+    frame.syncStack(0);
+
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+    emitToBoolean();
+
+    masm.branchTestBooleanTruthy(branchIfTrue, R0, labelOf(pc + GET_JUMP_OFFSET(pc)));
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_AND()
+{
+    return emitAndOr(false);
+}
+
+bool
+BaselineCompiler::emit_JSOP_OR()
+{
+    return emitAndOr(true);
 }
 
 bool
