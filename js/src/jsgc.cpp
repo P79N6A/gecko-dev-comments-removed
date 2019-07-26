@@ -1467,8 +1467,6 @@ ArenaLists::allocateFromArena(JSCompartment *comp, AllocKind thingKind)
     ArenaList *al = &arenaLists[thingKind];
     AutoLockGC maybeLock;
 
-    JS_ASSERT(!comp->scheduledForDestruction);
-
 #ifdef JS_THREADSAFE
     volatile uintptr_t *bfs = &backgroundFinalizeState[thingKind];
     if (*bfs != BFS_DONE) {
@@ -2117,15 +2115,6 @@ GCMarker::markBufferedGrayRoots()
     }
 
     grayRoots.clearAndFree();
-}
-
-void
-GCMarker::markBufferedGrayRootCompartmentsAlive()
-{
-    for (GrayRoot *elem = grayRoots.begin(); elem != grayRoots.end(); elem++) {
-        Cell *thing = static_cast<Cell *>(elem->thing);
-        thing->compartment()->maybeAlive = true;
-    }
 }
 
 void
@@ -3326,9 +3315,6 @@ BeginMarkPhase(JSRuntime *rt)
         }
 
         c->setPreservingCode(ShouldPreserveJITCode(c, currentTime));
-
-        c->scheduledForDestruction = false;
-        c->maybeAlive = false;
     }
 
     
@@ -3399,58 +3385,6 @@ BeginMarkPhase(JSRuntime *rt)
         c->arenas.unmarkAll();
 
     MarkRuntime(gcmarker);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        for (WrapperMap::Enum e(c->crossCompartmentWrappers); !e.empty(); e.popFront()) {
-            Cell *dst = e.front().key.wrapped;
-            dst->compartment()->maybeAlive = true;
-        }
-
-        if (c->hold)
-            c->maybeAlive = true;
-    }
-
-    
-    rt->gcMarker.markBufferedGrayRootCompartmentsAlive();
-
-    
-
-
-
-
-    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        if (!c->maybeAlive)
-            c->scheduledForDestruction = true;
-    }
 }
 
 void
@@ -5881,25 +5815,6 @@ PurgeJITCaches(JSCompartment *c)
 #endif
     }
 #endif
-}
-
-AutoTransplantGC::AutoTransplantGC(JSContext *cx)
-  : runtime(cx->runtime),
-    markCount(runtime->gcObjectsMarkedInDeadCompartments),
-    inIncremental(IsIncrementalGCInProgress(runtime)),
-    inTransplant(runtime->gcInTransplant)
-{
-    runtime->gcInTransplant = true;
-}
-
-AutoTransplantGC::~AutoTransplantGC()
-{
-    if (inIncremental && runtime->gcObjectsMarkedInDeadCompartments != markCount) {
-        PrepareForFullGC(runtime);
-        js::GC(runtime, GC_NORMAL, gcreason::TRANSPLANT);
-    }
-
-    runtime->gcInTransplant = inTransplant;
 }
 
 } 

@@ -716,23 +716,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool                gcExactScanningEnabled;
 
-
-    
-
-
-
-    bool                gcInTransplant;
-
-    
-
-
-
-
-
-
-
-    unsigned            gcObjectsMarkedInDeadCompartments;
-
     bool                gcPoke;
 
     enum HeapState {
