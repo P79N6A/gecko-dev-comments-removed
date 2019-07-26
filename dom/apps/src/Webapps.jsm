@@ -2154,16 +2154,17 @@ this.DOMApplicationRegistry = {
   queuedDownload: {},
   queuedPackageDownload: {},
 
-  onInstallSuccessAck: function onInstallSuccessAck(aManifestURL) {
+onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
+                                                  aDontNeedNetwork) {
     
-    if (Services.io.offline) {
+    if ((Services.io.offline) && !aDontNeedNetwork) {
       let onlineWrapper = {
         observe: function(aSubject, aTopic, aData) {
           Services.obs.removeObserver(onlineWrapper,
                                       "network:offline-status-changed");
           DOMApplicationRegistry.onInstallSuccessAck(aManifestURL);
         }
-      }
+      };
       Services.obs.addObserver(onlineWrapper,
                                "network:offline-status-changed", false);
       return;
@@ -2368,12 +2369,13 @@ this.DOMApplicationRegistry = {
         aInstallSuccessCallback(app.manifest);
       }
     }
-
+    let dontNeedNetwork = false;
     if (manifest.package_path) {
       
       
       let origPath = jsonManifest.package_path;
       if (aData.app.localInstallPath) {
+        dontNeedNetwork = true;
         jsonManifest.package_path = "file://" + aData.app.localInstallPath;
       }
       
@@ -2390,7 +2392,7 @@ this.DOMApplicationRegistry = {
     if (aData.forceSuccessAck) {
       
       
-      this.onInstallSuccessAck(app.manifestURL);
+      this.onInstallSuccessAck(app.manifestURL, dontNeedNetwork);
     }
   },
 
