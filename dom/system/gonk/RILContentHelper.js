@@ -471,8 +471,8 @@ RILContentHelper.prototype = {
     let request = Services.DOMRequest.createRequest(window);
     let requestId = this.getRequestId(request);
 
-    if (this.networkSelectionMode == RIL.GECKO_NETWORK_SELECTION_MANUAL
-        && this.rilContext.voiceConnectionInfo.network === network) {
+    if (this.rilContext.networkSelectionMode == RIL.GECKO_NETWORK_SELECTION_MANUAL &&
+        this.rilContext.voiceConnectionInfo.network === network) {
 
       
       
@@ -505,7 +505,7 @@ RILContentHelper.prototype = {
     let request = Services.DOMRequest.createRequest(window);
     let requestId = this.getRequestId(request);
 
-    if (this.networkSelectionMode == RIL.GECKO_NETWORK_SELECTION_AUTOMATIC) {
+    if (this.rilContext.networkSelectionMode == RIL.GECKO_NETWORK_SELECTION_AUTOMATIC) {
       
       
       this.dispatchFireRequestSuccess(requestId, null);
@@ -1015,7 +1015,7 @@ RILContentHelper.prototype = {
         this.handleGetAvailableNetworks(msg.json);
         break;
       case "RIL:NetworkSelectionModeChanged":
-        this.networkSelectionMode = msg.json.mode;
+        this.rilContext.networkSelectionMode = msg.json.mode;
         break;
       case "RIL:SelectNetwork":
         this.handleSelectNetwork(msg.json,
@@ -1170,7 +1170,7 @@ RILContentHelper.prototype = {
 
   handleSelectNetwork: function handleSelectNetwork(message, mode) {
     this._selectingNetwork = null;
-    this.networkSelectionMode = mode;
+    this.rilContext.networkSelectionMode = mode;
 
     if (message.errorMsg) {
       this.fireRequestError(message.requestId, message.errorMsg);
