@@ -629,6 +629,9 @@ pref("ui.scrolling.overscroll_snap_limit", -1);
 
 pref("ui.scrolling.min_scrollable_distance", -1);
 
+pref("ui.scrolling.axis_lock_mode", "standard");
+
+
 
 pref("accessibility.accessfu.activate", 2);
 pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,ListItem");

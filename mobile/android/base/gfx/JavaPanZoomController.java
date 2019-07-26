@@ -7,6 +7,7 @@ package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.ZoomConstraints;
@@ -62,6 +63,12 @@ class JavaPanZoomController
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
 
     
+    private static final double AXIS_BREAKOUT_ANGLE = Math.PI / 8.0;
+
+    
+    public static final float AXIS_BREAKOUT_THRESHOLD = 1/32f * GeckoAppShell.getDpi();
+
+    
     private static final float MAX_ZOOM = 4.0f;
 
     
@@ -74,24 +81,31 @@ class JavaPanZoomController
     private static final int BOUNCE_ANIMATION_DURATION = 250;
 
     private enum PanZoomState {
-        NOTHING,        
-        FLING,          
-        TOUCHING,       
-        PANNING_LOCKED, 
-        PANNING,        
-        PANNING_HOLD,   
+        NOTHING,                
+        FLING,                  
+        TOUCHING,               
+        PANNING_LOCKED_X,       
+        PANNING_LOCKED_Y,       
+        PANNING,                
+        PANNING_HOLD,           
 
-        PANNING_HOLD_LOCKED, 
-        PINCHING,       
-        ANIMATED_ZOOM,  
-        BOUNCE,         
-
-        WAITING_LISTENERS, 
-
-
-        AUTONAV,        
+        PANNING_HOLD_LOCKED_X,  
+        PANNING_HOLD_LOCKED_Y,  
+        PINCHING,               
+        ANIMATED_ZOOM,          
+        BOUNCE,                 
+        WAITING_LISTENERS,      
 
 
+        AUTONAV,                
+
+
+    }
+
+    private enum AxisLockMode {
+        STANDARD,       
+        FREE,           
+        STICKY          
     }
 
     private final PanZoomTarget mTarget;
@@ -113,6 +127,8 @@ class JavaPanZoomController
     private PanZoomState mState;
     
     private float mAutonavZoomDelta;
+    
+    private AxisLockMode mMode;
 
     public JavaPanZoomController(PanZoomTarget target, View view, EventDispatcher eventDispatcher) {
         mTarget = target;
@@ -129,6 +145,26 @@ class JavaPanZoomController
         registerEventListener(MESSAGE_ZOOM_RECT);
         registerEventListener(MESSAGE_ZOOM_PAGE);
         registerEventListener(MESSAGE_TOUCH_LISTENER);
+
+        mMode = AxisLockMode.STANDARD;
+
+        PrefsHelper.getPref("ui.scrolling.axis_lock_mode", new PrefsHelper.PrefHandlerBase() {
+            @Override public void prefValue(String pref, String value) {
+                if (value.equals("standard")) {
+                    mMode = AxisLockMode.STANDARD;
+                } else if (value.equals("free")) {
+                    mMode = AxisLockMode.FREE;
+                } else {
+                    mMode = AxisLockMode.STICKY;
+                }
+            }
+
+            @Override
+            public boolean isObserver() {
+                return true;
+            }
+
+        });
 
         Axis.initPrefs();
     }
@@ -383,9 +419,11 @@ class JavaPanZoomController
             return false;
         case TOUCHING:
         case PANNING:
-        case PANNING_LOCKED:
+        case PANNING_LOCKED_X:
+        case PANNING_LOCKED_Y:
         case PANNING_HOLD:
-        case PANNING_HOLD_LOCKED:
+        case PANNING_HOLD_LOCKED_X:
+        case PANNING_HOLD_LOCKED_Y:
         case PINCHING:
             Log.e(LOGTAG, "Received impossible touch down while in " + mState);
             return false;
@@ -420,10 +458,15 @@ class JavaPanZoomController
             track(event);
             return true;
 
-        case PANNING_HOLD_LOCKED:
-            setState(PanZoomState.PANNING_LOCKED);
+        case PANNING_HOLD_LOCKED_X:
+            setState(PanZoomState.PANNING_LOCKED_X);
+            track(event);
+            return true;
+        case PANNING_HOLD_LOCKED_Y:
+            setState(PanZoomState.PANNING_LOCKED_Y);
             
-        case PANNING_LOCKED:
+        case PANNING_LOCKED_X:
+        case PANNING_LOCKED_Y:
             track(event);
             return true;
 
@@ -466,9 +509,11 @@ class JavaPanZoomController
             return false;
 
         case PANNING:
-        case PANNING_LOCKED:
+        case PANNING_LOCKED_X:
+        case PANNING_LOCKED_Y:
         case PANNING_HOLD:
-        case PANNING_HOLD_LOCKED:
+        case PANNING_HOLD_LOCKED_X:
+        case PANNING_HOLD_LOCKED_Y:
             setState(PanZoomState.FLING);
             fling();
             return true;
@@ -571,15 +616,19 @@ class JavaPanZoomController
         mY.startTouch(y);
         mLastEventTime = time;
 
-        if (!mX.scrollable() || !mY.scrollable()) {
-            setState(PanZoomState.PANNING);
-        } else if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
-            mY.setScrollingDisabled(true);
-            setState(PanZoomState.PANNING_LOCKED);
-        } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
-            mX.setScrollingDisabled(true);
-            setState(PanZoomState.PANNING_LOCKED);
-        } else {
+        if (mMode == AxisLockMode.STANDARD || mMode == AxisLockMode.STICKY) {
+            if (!mX.scrollable() || !mY.scrollable()) {
+                setState(PanZoomState.PANNING);
+            } else if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
+                mY.setScrollingDisabled(true);
+                setState(PanZoomState.PANNING_LOCKED_X);
+            } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
+                mX.setScrollingDisabled(true);
+                setState(PanZoomState.PANNING_LOCKED_Y);
+            } else {
+                setState(PanZoomState.PANNING);
+            }
+        } else if (mMode == AxisLockMode.FREE) {
             setState(PanZoomState.PANNING);
         }
     }
@@ -599,6 +648,29 @@ class JavaPanZoomController
         }
         mLastEventTime = time;
 
+
+        
+        if (mMode == AxisLockMode.STICKY) {
+            float dx = mX.panDistance(x);
+            float dy = mY.panDistance(y);
+            double angle = Math.atan2(dy, dx); 
+            angle = Math.abs(angle); 
+
+            if (Math.abs(dx) > AXIS_BREAKOUT_THRESHOLD || Math.abs(dy) > AXIS_BREAKOUT_THRESHOLD) {
+                if (mState == PanZoomState.PANNING_LOCKED_X) {
+                    if (angle > AXIS_BREAKOUT_ANGLE && angle < (Math.PI - AXIS_BREAKOUT_ANGLE)) {
+                        mY.setScrollingDisabled(false);
+                        setState(PanZoomState.PANNING);
+                    }
+                 } else if (mState == PanZoomState.PANNING_LOCKED_Y) {
+                    if (Math.abs(angle - (Math.PI / 2)) > AXIS_BREAKOUT_ANGLE) {
+                        mX.setScrollingDisabled(false);
+                        setState(PanZoomState.PANNING);
+                    }
+                }
+            }
+        }
+
         mX.updateWithTouchAt(x, timeDelta);
         mY.updateWithTouchAt(y, timeDelta);
     }
@@ -617,12 +689,14 @@ class JavaPanZoomController
         if (stopped()) {
             if (mState == PanZoomState.PANNING) {
                 setState(PanZoomState.PANNING_HOLD);
-            } else if (mState == PanZoomState.PANNING_LOCKED) {
-                setState(PanZoomState.PANNING_HOLD_LOCKED);
+            } else if (mState == PanZoomState.PANNING_LOCKED_X) {
+                setState(PanZoomState.PANNING_HOLD_LOCKED_X);
+            } else if (mState == PanZoomState.PANNING_LOCKED_Y) {
+                setState(PanZoomState.PANNING_HOLD_LOCKED_Y);
             } else {
                 
                 Log.e(LOGTAG, "Impossible case " + mState + " when stopped in track");
-                setState(PanZoomState.PANNING_HOLD_LOCKED);
+                setState(PanZoomState.PANNING_HOLD);
             }
         }
 
