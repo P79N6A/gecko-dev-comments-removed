@@ -374,11 +374,11 @@ a {
 
 .theme-dark .jsterm-input-container {
   background-color: #252c33; 
-  border-color: #131c26; 
+  border-color: #14171a; 
 }
 
 .theme-dark .jsterm-input-node {
-  color: #8fa1b2; 
+  color: #a9bacb; 
 }
 
 .theme-dark .jsterm-complete-node {
@@ -386,7 +386,7 @@ a {
 }
 
 .theme-dark .navigation-marker .url {
-  background: #131c26; 
+  background: #14171a; 
 }
 
 .theme-dark .inlined-variables-view iframe {

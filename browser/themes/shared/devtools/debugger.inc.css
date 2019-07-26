@@ -145,7 +145,7 @@
 }
 
 .theme-dark .dbg-classic-stackframe-details-url {
-  color: #b8c8d9; 
+  color: #a9bacb; 
 }
 
 .theme-light .dbg-classic-stackframe-details-url {
@@ -221,7 +221,7 @@
 }
 
 .theme-dark .trace-param {
-  color: #b8c8d9; 
+  color: #a9bacb; 
 }
 
 .theme-dark .trace-syntax {
@@ -313,7 +313,7 @@
 }
 
 .theme-dark .dbg-event-listener-location {
-  color: #b8c8d9; 
+  color: #a9bacb; 
 }
 
 .theme-light .dbg-event-listener-location {
@@ -488,7 +488,7 @@
 
 .theme-dark .dbg-results-header {
   background-color: #252c33; 
-  color: #b8c8d9; 
+  color: #a9bacb; 
 }
 
 .theme-light .dbg-results-header {
