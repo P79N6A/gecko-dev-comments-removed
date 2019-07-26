@@ -2,18 +2,25 @@
 
 
 
-#ifndef nsHTMLDivElement_h___
-#define nsHTMLDivElement_h___
+#ifndef HTMLDivElement_h___
+#define HTMLDivElement_h___
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLDivElement.h"
 
-class nsHTMLDivElement MOZ_FINAL : public nsGenericHTMLElement,
-                                   public nsIDOMHTMLDivElement
+namespace mozilla {
+namespace dom {
+
+class HTMLDivElement MOZ_FINAL : public nsGenericHTMLElement,
+                                 public nsIDOMHTMLDivElement
 {
 public:
-  nsHTMLDivElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLDivElement();
+  HTMLDivElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+    : nsGenericHTMLElement(aNodeInfo)
+  {
+    SetIsDOMBinding();
+  }
+  virtual ~HTMLDivElement();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -52,9 +59,9 @@ public:
   }
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsAttrValue& aResult);
+                              nsIAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsAttrValue& aResult);
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -66,5 +73,8 @@ protected:
   virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
                              bool *aTriedToWrap) MOZ_OVERRIDE;
 };
+
+} 
+} 
 
 #endif 

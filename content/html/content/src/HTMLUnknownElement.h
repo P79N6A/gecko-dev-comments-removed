@@ -2,17 +2,20 @@
 
 
 
-#ifndef nsHTMLUnknownElement_h___
-#define nsHTMLUnknownElement_h___
+#ifndef HTMLUnknownElement_h___
+#define HTMLUnknownElement_h___
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLUnknownElement.h"
 
-class nsHTMLUnknownElement MOZ_FINAL : public nsGenericHTMLElement
-                                     , public nsIDOMHTMLUnknownElement
+namespace mozilla {
+namespace dom {
+
+class HTMLUnknownElement MOZ_FINAL : public nsGenericHTMLElement
+                                   , public nsIDOMHTMLUnknownElement
 {
 public:
-  nsHTMLUnknownElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLUnknownElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     SetIsDOMBinding();
@@ -43,5 +46,8 @@ protected:
   virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
                              bool *aTriedToWrap) MOZ_OVERRIDE;
 };
+
+} 
+} 
 
 #endif 
