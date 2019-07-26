@@ -976,8 +976,20 @@ function PeerConnectionWrapper(label, configuration) {
   var self = this;
   
   this.next_ice_state = ""; 
+  
+  this.ice_connection_callbacks = [ ];
+
   this._pc.oniceconnectionstatechange = function() {
       ok(self._pc.iceConnectionState != undefined, "iceConnectionState should not be undefined");
+      info(self + ": oniceconnectionstatechange fired, new state is: " + self._pc.iceConnectionState);
+      if (Object.keys(self.ice_connection_callbacks).length >= 1) {
+        var it = Iterator(self.ice_connection_callbacks);
+        var name = "";
+        var callback = "";
+        for ([name, callback] in it) {
+          callback();
+        }
+      }
       if (self.next_ice_state != "") {
         is(self._pc.iceConnectionState, self.next_ice_state, "iceConnectionState changed to '" +
            self.next_ice_state + "'");
@@ -1087,6 +1099,14 @@ PeerConnectionWrapper.prototype = {
 
   get signalingState() {
     return this._pc.signalingState;
+  },
+  
+
+
+
+
+  get iceConnectionState() {
+    return this._pc.iceConnectionState;
   },
 
   
@@ -1314,6 +1334,63 @@ PeerConnectionWrapper.prototype = {
         info(self + ": As expected, failed to add an ICE candidate");
         onFailure(err);
     }) ;
+  },
+
+  
+
+
+
+
+  isIceConnected : function PCW_isIceConnected() {
+    info("iceConnectionState: " + this.iceConnectionState);
+    return this.iceConnectionState === "connected";
+  },
+
+  
+
+
+
+
+  isIceChecking : function PCW_isIceChecking() {
+    return this.iceConnectionState === "checking";
+  },
+
+  
+
+
+
+
+  isIceNew : function PCW_isIceNew() {
+    return this.iceConnectionState === "new";
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  waitForIceConnected : function PCW_waitForIceConnected(onSuccess, onFailure) {
+    var self = this;
+    var mySuccess = onSuccess;
+    var myFailure = onFailure;
+
+    function iceConnectedChanged () {
+      if (self.isIceConnected()) {
+        delete self.ice_connection_callbacks["waitForIceConnected"];
+        mySuccess();
+      } else if (! (self.isIceChecking() || self.isIceNew())) {
+        delete self.ice_connection_callbacks["waitForIceConnected"];
+        myFailure();
+      }
+    };
+
+    self.ice_connection_callbacks["waitForIceConnected"] = (function() {iceConnectedChanged()});
   },
 
   
