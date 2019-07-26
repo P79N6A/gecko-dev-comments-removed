@@ -57,6 +57,13 @@ JSCompartment::wrap(JSContext *cx, JS::MutableHandleValue vp, JS::HandleObject e
         return true;
 
     
+
+
+
+    if (vp.isSymbol())
+        return true;
+
+    
     if (vp.isString()) {
         JS::RootedString str(cx, vp.toString());
         if (!wrap(cx, str.address()))
