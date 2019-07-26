@@ -41,7 +41,7 @@ function generatorTest() {
     for (let i = 0; i < tests.length; ++i) {
         let [uri, title] = tests[i];
         content.location = uri;
-        yield;
+        yield undefined;
         checkBookmark(uri, title);
     }
 
@@ -63,7 +63,7 @@ function generatorTest() {
 
     let [uri, title] = tests[0];
     content.location = uri;
-    yield;
+    yield undefined;
     
     is(content.document.documentURI.substring(0, 14), 'about:neterror',
         "Offline mode successfully simulated network outage.");

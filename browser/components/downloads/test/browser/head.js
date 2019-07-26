@@ -146,7 +146,7 @@ function gen_resetState(aData)
         testRunner.continueTest();
       }
     });
-    yield;
+    yield undefined;
   } finally {
     statement.finalize();
   }
@@ -161,7 +161,7 @@ function gen_resetState(aData)
 
   
   waitForFocus(testRunner.continueTest);
-  yield;
+  yield undefined;
 }
 
 function gen_addDownloadRows(aDataRows)
@@ -200,7 +200,7 @@ function gen_addDownloadRows(aDataRows)
           testRunner.continueTest();
         }
       });
-      yield;
+      yield undefined;
 
       
       
@@ -228,11 +228,11 @@ function gen_openPanel(aData)
 
   
   waitForFocus(testRunner.continueTest);
-  yield;
+  yield undefined;
 
   
   DownloadsPanel.showPanel();
-  yield;
+  yield undefined;
 }
 
 

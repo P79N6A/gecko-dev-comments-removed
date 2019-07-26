@@ -12,7 +12,7 @@ function gen_test()
 {
   try {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield undefined;
 
     
     
@@ -20,7 +20,7 @@ function gen_test()
 
     prepareForPanelOpen();
     DownloadsCommon.getData(window)._notifyDownloadEvent("start");
-    yield;
+    yield undefined;
 
     
     DownloadsPanel.hidePanel();
@@ -37,7 +37,7 @@ function gen_test()
     ok(false, e);
   } finally {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield undefined;
   }
 }
 
