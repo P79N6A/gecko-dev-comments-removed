@@ -1774,14 +1774,14 @@ public:
 
 
 
-  static nsIPresShell* FindPresShellForDocument(nsIDocument* aDoc);
+  static nsIPresShell* FindPresShellForDocument(const nsIDocument* aDoc);
 
   
 
 
 
 
-  static nsIWidget* WidgetForDocument(nsIDocument* aDoc);
+  static nsIWidget* WidgetForDocument(const nsIDocument* aDoc);
 
   
 
@@ -1794,7 +1794,7 @@ public:
 
 
   static already_AddRefed<mozilla::layers::LayerManager>
-  LayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
+  LayerManagerForDocument(const nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
 
   
 
