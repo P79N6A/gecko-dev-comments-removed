@@ -720,6 +720,23 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         bind(&noOverflow);
     }
 
+
+    
+    
+    void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {
+        Label isDouble, done;
+        branchTestDouble(Assembler::Equal, source.typeReg(), &isDouble);
+        branchTestInt32(Assembler::NotEqual, source.typeReg(), failure);
+
+        convertInt32ToDouble(source.payloadReg(), dest);
+        jump(&done);
+
+        bind(&isDouble);
+        unboxDouble(source, dest);
+
+        bind(&done);
+    }
+
     
     
     

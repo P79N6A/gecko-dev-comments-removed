@@ -1079,6 +1079,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
+    void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure);
+
+    
+    
     
     
     

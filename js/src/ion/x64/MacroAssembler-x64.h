@@ -859,6 +859,24 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     
     
+    void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {
+        Label isDouble, done;
+        Register tag = splitTagForTest(source);
+        branchTestDouble(Assembler::Equal, tag, &isDouble);
+        branchTestInt32(Assembler::NotEqual, tag, failure);
+
+        unboxInt32(source, ScratchReg);
+        convertInt32ToDouble(ScratchReg, dest);
+        jump(&done);
+
+        bind(&isDouble);
+        unboxDouble(source, dest);
+
+        bind(&done);
+    }
+
+    
+    
     
     
     

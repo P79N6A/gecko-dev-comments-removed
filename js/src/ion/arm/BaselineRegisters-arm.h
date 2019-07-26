@@ -48,7 +48,7 @@ static const Register BaselineSecondScratchReg = r6;
 
 
 
-static const FloatRegister FloatReg0      = d1;
+static const FloatRegister FloatReg0      = d0;
 static const FloatRegister FloatReg1      = d2;
 
 } 
