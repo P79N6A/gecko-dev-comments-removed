@@ -298,6 +298,9 @@ add_test(function test_upload_kill_switch() {
   policy.recordUserAcceptance();
   defineNow(policy, policy.nextDataSubmissionDate);
 
+  
+  hrPrefs.ignore("uploadEnabled", policy.uploadEnabledObserver);
+
   policy.healthReportUploadEnabled = false;
   policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 0);
@@ -760,3 +763,26 @@ add_test(function test_record_health_report_upload_enabled() {
   run_next_test();
 });
 
+add_test(function test_pref_change_initiates_deletion() {
+  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("record_health_report_upload_enabled");
+
+  
+  do_check_false(policy.pendingDeleteRemoteData);
+  do_check_true(policy.healthReportUploadEnabled);
+  do_check_eq(listener.requestRemoteDeleteCount, 0);
+
+  
+  
+  
+  Object.defineProperty(policy, "deleteRemoteData", {
+    value: function deleteRemoteDataProxy() {
+      do_check_false(policy.healthReportUploadEnabled);
+      do_check_false(policy.pendingDeleteRemoteData);     
+
+      run_next_test();
+    },
+  });
+
+  hrPrefs.set("uploadEnabled", false);
+});
+ 

@@ -280,6 +280,24 @@ this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
   }
 
   
+  
+  
+  
+  
+  
+  this.uploadEnabledObserver = function onUploadEnabledChanged() {
+    if (this.pendingDeleteRemoteData || this.healthReportUploadEnabled) {
+      
+      
+      return;
+    }
+    this._log.info("uploadEnabled pref changed. Scheduling deletion.");
+    this.deleteRemoteData();
+  }.bind(this);
+
+  healthReportPrefs.observe("uploadEnabled", this.uploadEnabledObserver);
+
+  
   if (!this.nextDataSubmissionDate.getTime()) {
     this.nextDataSubmissionDate = this._futureDate(MILLISECONDS_PER_DAY);
   }
@@ -689,13 +707,13 @@ DataReportingPolicy.prototype = Object.freeze({
 
 
   recordHealthReportUploadEnabled: function (flag, reason="no-reason") {
-    this.healthReportUploadEnabled = flag;
-
-    if (flag) {
-      return null;
+    let result = null;
+    if (!flag) {
+      result = this.deleteRemoteData(reason);
     }
 
-    return this.deleteRemoteData(reason);
+    this.healthReportUploadEnabled = flag;
+    return result;
   },
 
   
