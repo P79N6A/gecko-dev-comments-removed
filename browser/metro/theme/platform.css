@@ -201,12 +201,9 @@ menulist {
   -moz-box-align: center;
   font-weight: 600;
 }
-
 .menu-popup > richlistbox > richlistitem {
-  padding-right: 50px;
+  -moz-padding-end: 50px;
 }
-
-
 
 #select-container {
   padding: 0;
