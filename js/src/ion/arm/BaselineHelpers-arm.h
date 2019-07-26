@@ -114,6 +114,9 @@ EmitCallVM(IonCode *target, MacroAssembler &masm)
     masm.call(target);
 }
 
+
+static const uint32_t STUB_FRAME_SIZE = 4 * sizeof(void *);
+
 inline void
 EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
 {
@@ -125,6 +128,9 @@ EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
     masm.ma_sub(BaselineStackReg, scratch);
 
     masm.storePtr(scratch, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+
+    
+    
 
     
     masm.makeFrameDescriptor(scratch, IonFrame_BaselineJS);
@@ -200,9 +206,12 @@ EmitUnstowICValues(MacroAssembler &masm, int values)
 }
 
 inline void
-EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
+EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code, uint32_t objectOffset)
 {
     JS_ASSERT(R2 == ValueOperand(r1, r0));
+
+    
+    
     
 
     
@@ -236,7 +245,10 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
     
     EmitEnterStubFrame(masm, R1.scratchReg());
 
+    masm.loadValue(Address(esp, STUB_FRAME_SIZE + objectOffset), R1);
+
     masm.pushValue(R0);
+    masm.pushValue(R1);
     masm.push(BaselineStubReg);
 
     EmitCallVM(code, masm);
