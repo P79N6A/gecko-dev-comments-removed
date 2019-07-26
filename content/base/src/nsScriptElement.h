@@ -5,7 +5,6 @@
 #include "nsIScriptLoaderObserver.h"
 #include "nsIScriptElement.h"
 #include "nsStubMutationObserver.h"
-#include "prtypes.h"
 
 
 

@@ -1,11 +1,9 @@
 
 
 
- 
+
 #ifndef nsHtml5ByteReadable_h__
 #define nsHtml5ByteReadable_h__
-
-#include "prtypes.h"
 
 
 

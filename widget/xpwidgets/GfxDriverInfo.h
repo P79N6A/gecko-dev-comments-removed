@@ -3,7 +3,6 @@
 
 
 
-#include "prtypes.h"
 #include "nsString.h"
 
 #ifndef __mozilla_widget_GfxDriverInfo_h__
