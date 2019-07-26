@@ -354,6 +354,18 @@ void ModifyWakeLock(const nsAString &aTopic,
 
 
 
+
+
+void ModifyWakeLockInternal(const nsAString &aTopic,
+                            hal::WakeLockControl aLockAdjust,
+                            hal::WakeLockControl aHiddenAdjust,
+                            uint64_t aProcessID);
+
+
+
+
+
+
 void GetWakeLockInfo(const nsAString &aTopic, hal::WakeLockInformation *aWakeLockInfo);
 
 
