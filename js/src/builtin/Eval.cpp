@@ -207,7 +207,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     if (!stableStr)
         return false;
 
-    const jschar *chars = stableStr->chars();
+    StableCharPtr chars = stableStr->chars();
     size_t length = stableStr->length();
 
     
@@ -271,8 +271,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
                .setPrincipals(principals)
                .setOriginPrincipals(originPrincipals);
         JSScript *compiled = frontend::CompileScript(cx, scopeobj, caller, options,
-                                                     chars, length, stableStr,
-                                                     staticLevel);
+                                                     chars, length, stableStr, staticLevel);
         if (!compiled)
             return false;
 
