@@ -20,6 +20,7 @@
 #include "ds/LifoAlloc.h"
 #include "gc/Barrier.h"
 #include "gc/Marking.h"
+#include "jit/IonTypes.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
 
@@ -562,7 +563,7 @@ class TypeSet
     }
 
     
-    bool mightBeType(JSValueType type);
+    bool mightBeMIRType(jit::MIRType type);
 
     
 
@@ -654,9 +655,9 @@ class TemporaryTypeSet : public TypeSet
 
 
     
-    JSValueType getKnownTypeTag();
+    jit::MIRType getKnownMIRType();
 
-    bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
+    bool isMagicArguments() { return getKnownMIRType() == jit::MIRType_Magic; }
 
     
     bool maybeObject() { return unknownObject() || baseObjectCount() > 0; }
@@ -1403,7 +1404,7 @@ class HeapTypeSetKey
     bool instantiate(JSContext *cx);
 
     void freeze(CompilerConstraintList *constraints);
-    JSValueType knownTypeTag(CompilerConstraintList *constraints);
+    jit::MIRType knownMIRType(CompilerConstraintList *constraints);
     bool nonData(CompilerConstraintList *constraints);
     bool nonWritable(CompilerConstraintList *constraints);
     bool isOwnProperty(CompilerConstraintList *constraints);

@@ -354,7 +354,7 @@ class IonBuilder : public MIRGenerator
     
     
     
-    MDefinition *ensureDefiniteType(MDefinition* def, JSValueType definiteType);
+    MDefinition *ensureDefiniteType(MDefinition* def, MIRType definiteType);
 
     
     MDefinition *ensureDefiniteTypeSet(MDefinition* def, types::TemporaryTypeSet *types);
