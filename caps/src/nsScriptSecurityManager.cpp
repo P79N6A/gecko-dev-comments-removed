@@ -82,22 +82,6 @@ bool nsScriptSecurityManager::sStrictFileOriginPolicy = true;
 
 
 
-static inline const char16_t *
-IDToString(JSContext *cx, jsid id_)
-{
-    JS::RootedId id(cx, id_);
-    if (JSID_IS_STRING(id))
-        return JS_GetInternedStringChars(JSID_TO_STRING(id));
-
-    JS::Rooted<JS::Value> idval(cx);
-    if (!JS_IdToValue(cx, id, &idval))
-        return nullptr;
-    JSString *str = JS::ToString(cx, idval);
-    if(!str)
-        return nullptr;
-    return JS_GetStringCharsZ(cx, str);
-}
-
 class nsAutoInPrincipalDomainOriginSetter {
 public:
     nsAutoInPrincipalDomainOriginSetter() {
