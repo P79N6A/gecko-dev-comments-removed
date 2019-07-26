@@ -967,11 +967,11 @@ struct TransitionEventInfo {
   nsTransitionEvent mEvent;
 
   TransitionEventInfo(nsIContent *aElement, nsCSSProperty aProperty,
-                      TimeDuration aDuration)
+                      TimeDuration aDuration, const nsAString& aPseudoElement)
     : mElement(aElement),
       mEvent(true, NS_TRANSITION_END,
              NS_ConvertUTF8toUTF16(nsCSSProps::GetStringValue(aProperty)),
-             aDuration.ToSeconds())
+             aDuration.ToSeconds(), aPseudoElement)
   {
   }
 
@@ -980,7 +980,8 @@ struct TransitionEventInfo {
   TransitionEventInfo(const TransitionEventInfo &aOther)
     : mElement(aOther.mElement),
       mEvent(true, NS_TRANSITION_END,
-             aOther.mEvent.propertyName, aOther.mEvent.elapsedTime)
+             aOther.mEvent.propertyName, aOther.mEvent.elapsedTime,
+             aOther.mEvent.pseudoElement)
   {
   }
 };
@@ -1048,18 +1049,21 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             et->mPropertyTransitions.RemoveElementAt(i);
           }
         } else if (pt.mStartTime + pt.mDuration <= now) {
-          
-          
-          
-          if (et->mElementProperty == nsGkAtoms::transitionsProperty) {
-            nsCSSProperty prop = pt.mProperty;
-            if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME))
-            {
-              prop = nsCSSProps::OtherNameFor(prop);
-            }
-            events.AppendElement(
-              TransitionEventInfo(et->mElement, prop, pt.mDuration));
+          nsCSSProperty prop = pt.mProperty;
+          if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME))
+          {
+            prop = nsCSSProps::OtherNameFor(prop);
           }
+          nsIAtom* ep = et->mElementProperty;
+          NS_NAMED_LITERAL_STRING(before, "::before");
+          NS_NAMED_LITERAL_STRING(after, "::after");
+          events.AppendElement(
+            TransitionEventInfo(et->mElement, prop, pt.mDuration,
+                                ep == nsGkAtoms::transitionsProperty ?
+                                  EmptyString() :
+                                  ep == nsGkAtoms::transitionsOfBeforeProperty ?
+                                    before :
+                                    after));
 
           
           

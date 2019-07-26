@@ -25,12 +25,19 @@ public:
   NS_FORWARD_TO_NSDOMEVENT
   NS_DECL_NSIDOMTRANSITIONEVENT
 
+  static already_AddRefed<nsDOMTransitionEvent>
+  Constructor(const mozilla::dom::GlobalObject& aGlobal,
+              const nsAString& aType,
+              const mozilla::dom::TransitionEventInit& aParam,
+              mozilla::ErrorResult& aRv);
+
   virtual JSObject* WrapObject(JSContext* aCx,
 			       JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
     return mozilla::dom::TransitionEventBinding::Wrap(aCx, aScope, this);
   }
 
+  
   
   
 
@@ -44,10 +51,12 @@ public:
                            bool aCancelable,
                            const nsAString& aPropertyName,
                            float aElapsedTime,
+                           const mozilla::dom::Optional<nsAString>& aPseudoElement,
                            mozilla::ErrorResult& aRv)
   {
     aRv = InitTransitionEvent(aType, aCanBubble, aCancelable, aPropertyName,
-                              aElapsedTime);
+                              aElapsedTime, aPseudoElement.WasPassed() ?
+                                aPseudoElement.Value() : EmptyString());
   }
 private:
   nsTransitionEvent* TransitionEvent() {
