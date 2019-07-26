@@ -3530,12 +3530,13 @@ NS_DOMWriteStructuredClone(JSContext* cx,
   
   uint32_t width = imageData->Width();
   uint32_t height = imageData->Height();
-  JS::Value dataArray = JS::ObjectValue(*imageData->GetDataObject());
+  JSObject *dataArray = imageData->GetDataObject();
 
   
+  JSAutoCompartment ac(cx, dataArray);
   return JS_WriteUint32Pair(writer, SCTAG_DOM_IMAGEDATA, 0) &&
          JS_WriteUint32Pair(writer, width, height) &&
-         JS_WriteTypedArray(writer, dataArray);
+         JS_WriteTypedArray(writer, JS::ObjectValue(*dataArray));
 }
 
 void

@@ -4404,7 +4404,7 @@ JS_ParseJSONWithReviver(JSContext *cx, const jschar *chars, uint32_t len, jsval 
 
 
 
-#define JS_STRUCTURED_CLONE_VERSION 1
+#define JS_STRUCTURED_CLONE_VERSION 2
 
 struct JSStructuredCloneCallbacks {
     ReadStructuredCloneOp read;
