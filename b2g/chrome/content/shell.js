@@ -107,6 +107,9 @@ var shell = {
       return;
     }
 
+    
+    this.CrashSubmit.pruneSavedDumps();
+
     try {
       
       if (Services.prefs.getBoolPref("app.reportCrashes")) {
