@@ -96,6 +96,12 @@ class HomeAdapter extends FragmentStatePagerAdapter {
     }
 
     public Page getPageAtPosition(int position) {
+        
+        
+        if (mPageInfos.isEmpty()) {
+            return null;
+        }
+
         PageInfo info = mPageInfos.get(position);
         return info.toPage();
     }
