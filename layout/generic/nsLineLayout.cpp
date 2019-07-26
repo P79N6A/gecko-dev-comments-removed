@@ -117,16 +117,6 @@ nsLineLayout::~nsLineLayout()
 
   NS_ASSERTION(nullptr == mRootSpan, "bad line-layout user");
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PL_FreeArenaPool(&mArena);
   PL_FinishArenaPool(&mArena);
 }
 
