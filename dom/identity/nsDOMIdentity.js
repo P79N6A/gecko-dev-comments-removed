@@ -98,7 +98,13 @@ nsDOMIdentity.prototype = {
   },
 
   request: function nsDOMIdentity_request(aOptions) {
+    let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+
     
+    if (!util.isHandlingUserInput) {
+      return;
+    }
 
     
     if (!this._rpWatcher) {
