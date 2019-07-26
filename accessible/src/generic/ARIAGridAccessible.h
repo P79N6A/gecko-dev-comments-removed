@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_A11Y_ARIAGridAccessible_h_
 #define MOZILLA_A11Y_ARIAGridAccessible_h_
 
@@ -138,7 +105,7 @@ public:
   NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 };
 

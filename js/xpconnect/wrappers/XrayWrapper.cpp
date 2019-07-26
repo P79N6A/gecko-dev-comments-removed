@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "XrayWrapper.h"
 #include "AccessCheck.h"
 #include "FilteringWrapper.h"
@@ -368,9 +336,9 @@ XPCWrappedNativeXrayTraits::isResolving(JSContext *cx, JSObject *holder,
 
 
 JSBool
-holder_get(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
+holder_get(JSContext *cx, JSHandleObject wrapper_, JSHandleId id, jsval *vp)
 {
-    wrapper = FindWrapper(wrapper);
+    JSObject *wrapper = FindWrapper(wrapper_);
 
     JSObject *holder = GetHolder(wrapper);
 
@@ -392,9 +360,9 @@ holder_get(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
 }
 
 JSBool
-holder_set(JSContext *cx, JSObject *wrapper, jsid id, JSBool strict, jsval *vp)
+holder_set(JSContext *cx, JSHandleObject wrapper_, JSHandleId id, JSBool strict, jsval *vp)
 {
-    wrapper = FindWrapper(wrapper);
+    JSObject *wrapper = FindWrapper(wrapper_);
 
     JSObject *holder = GetHolder(wrapper);
     if (XPCWrappedNativeXrayTraits::isResolving(cx, holder, id)) {
@@ -505,7 +473,7 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, JSObject *wrapp
 }
 
 static JSBool
-wrappedJSObject_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
+wrappedJSObject_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval *vp)
 {
     if (!IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper)) {
         JS_ReportError(cx, "Unexpected object");
@@ -543,7 +511,7 @@ WrapURI(JSContext *cx, nsIURI *uri, jsval *vp)
 }
 
 static JSBool
-documentURIObject_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
+documentURIObject_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval *vp)
 {
     if (!IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper)) {
         JS_ReportError(cx, "Unexpected object");
@@ -568,7 +536,7 @@ documentURIObject_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
 }
 
 static JSBool
-baseURIObject_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
+baseURIObject_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval *vp)
 {
     if (!IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper)) {
         JS_ReportError(cx, "Unexpected object");
@@ -592,7 +560,7 @@ baseURIObject_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
 }
 
 static JSBool
-nodePrincipal_getter(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
+nodePrincipal_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval *vp)
 {
     if (!IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper)) {
         JS_ReportError(cx, "Unexpected object");
@@ -1336,7 +1304,7 @@ XrayWrapper<Base, Traits>::get(JSContext *cx, JSObject *wrapper, JSObject *recei
     
     
     
-    return ProxyHandler::get(cx, wrapper, wrapper, id, vp);
+    return BaseProxyHandler::get(cx, wrapper, wrapper, id, vp);
 }
 
 template <typename Base, typename Traits>
@@ -1347,7 +1315,7 @@ XrayWrapper<Base, Traits>::set(JSContext *cx, JSObject *wrapper, JSObject *recei
     
     
     
-    return ProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
+    return BaseProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
 }
 
 template <typename Base, typename Traits>
@@ -1355,7 +1323,7 @@ bool
 XrayWrapper<Base, Traits>::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return ProxyHandler::has(cx, wrapper, id, bp);
+    return BaseProxyHandler::has(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
@@ -1363,7 +1331,7 @@ bool
 XrayWrapper<Base, Traits>::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return ProxyHandler::hasOwn(cx, wrapper, id, bp);
+    return BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
@@ -1371,7 +1339,7 @@ bool
 XrayWrapper<Base, Traits>::keys(JSContext *cx, JSObject *wrapper, JS::AutoIdVector &props)
 {
     
-    return ProxyHandler::keys(cx, wrapper, props);
+    return BaseProxyHandler::keys(cx, wrapper, props);
 }
 
 template <typename Base, typename Traits>
@@ -1380,7 +1348,7 @@ XrayWrapper<Base, Traits>::iterate(JSContext *cx, JSObject *wrapper, unsigned fl
                                    js::Value *vp)
 {
     
-    return ProxyHandler::iterate(cx, wrapper, flags, vp);
+    return BaseProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
 template <typename Base, typename Traits>

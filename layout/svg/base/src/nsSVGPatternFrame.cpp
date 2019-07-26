@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGPatternFrame.h"
 
 
@@ -178,6 +145,7 @@ nsresult
 nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
                                 gfxMatrix* patternMatrix,
                                 nsIFrame *aSource,
+                                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                 float aGraphicOpacity,
                                 const gfxRect *aOverrideBounds)
 {
@@ -251,6 +219,11 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
 
   
   gfxMatrix patternTransform = GetPatternTransform();
+
+  
+  if (aFillOrStroke == &nsStyleSVG::mStroke) {
+    patternTransform.Multiply(nsSVGUtils::GetStrokeTransform(aSource).Invert());
+  }
 
   
   
@@ -683,6 +656,7 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
 
 already_AddRefed<gfxPattern>
 nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
+                                         nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                          float aGraphicOpacity,
                                          const gfxRect *aOverrideBounds)
 {
@@ -695,7 +669,7 @@ nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
   nsRefPtr<gfxASurface> surface;
   gfxMatrix pMatrix;
   nsresult rv = PaintPattern(getter_AddRefs(surface), &pMatrix,
-                             aSource, aGraphicOpacity, aOverrideBounds);
+                             aSource, aFillOrStroke, aGraphicOpacity, aOverrideBounds);
 
   if (NS_FAILED(rv)) {
     return nsnull;

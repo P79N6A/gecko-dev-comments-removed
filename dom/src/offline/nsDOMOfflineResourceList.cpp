@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMOfflineResourceList.h"
 #include "nsDOMClassInfoID.h"
 #include "nsIScriptSecurityManager.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "JSDebugger.h"
 #include "nsIXPConnect.h"
 #include "nsThreadUtils.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGElement.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGStyleElement.h"

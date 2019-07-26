@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "nsIURI.h"

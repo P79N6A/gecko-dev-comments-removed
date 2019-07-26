@@ -5,37 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "MethodJIT.h"
 #include "Logging.h"
 #include "assembler/jit/ExecutableAllocator.h"
@@ -449,7 +418,7 @@ asm (
     CFI(".cfi_offset r13, -32"                      "\n")
     CFI(".cfi_offset r14, -40"                      "\n")
     CFI(".cfi_offset r15, -48"                      "\n")
-    CFI(".cfi_offset rbx, -56"                      "\n")   
+    CFI(".cfi_offset rbx, -56"                      "\n")
     CFI("nop"                                       "\n")
 ".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
 SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
@@ -631,7 +600,7 @@ asm (
     CFI(".cfi_offset ebp, -8"                       "\n")
     CFI(".cfi_offset esi, -12"                      "\n")
     CFI(".cfi_offset edi, -16"                      "\n")
-    CFI(".cfi_offset ebx, -20"                      "\n")      
+    CFI(".cfi_offset ebx, -20"                      "\n")
     CFI("nop"                                       "\n")
 ".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
 SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
@@ -702,11 +671,11 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
-    
+
     
 "   push    {r4-r11,lr}"                        "\n"
     
-"   mov     ip, #0"                             "\n"    
+"   mov     ip, #0"                             "\n"
 "   push    {ip}"                               "\n"    
 "   push    {r1}"                               "\n"    
 "   push    {r1}"                               "\n"    
@@ -757,7 +726,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
     
 "   blx  " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
-    
+
     
 
 "   cmp     r0, #0"                         "\n"
@@ -1097,7 +1066,7 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
 static inline JaegerStatus
 CheckStackAndEnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, bool partial)
 {
-    JS_CHECK_RECURSION(cx, return Jaeger_Throwing);
+    JS_CHECK_RECURSION(cx, return Jaeger_ThrowBeforeEnter);
 
     JS_ASSERT(!cx->compartment->activeAnalysis);
     JS_ASSERT(code);
@@ -1302,6 +1271,13 @@ JITScript::destroyChunk(FreeOp *fop, unsigned chunkIndex, bool resetUses)
     ChunkDescriptor &desc = chunkDescriptor(chunkIndex);
 
     if (desc.chunk) {
+        
+
+
+
+        if (script->compartment()->needsBarrier())
+            desc.chunk->trace(script->compartment()->barrierTracer());
+
         Probes::discardMJITCode(fop, this, desc.chunk, desc.chunk->code.m_code.executableAddress());
         fop->delete_(desc.chunk);
         desc.chunk = NULL;
@@ -1532,8 +1508,10 @@ void
 JITChunk::trace(JSTracer *trc)
 {
     JSObject **rootedTemplates_ = rootedTemplates();
-    for (size_t i = 0; i < nRootedTemplates; i++)
+    for (size_t i = 0; i < nRootedTemplates; i++) {
+        
         MarkObjectUnbarriered(trc, &rootedTemplates_[i], "jitchunk_template");
+    }
 }
 
 void

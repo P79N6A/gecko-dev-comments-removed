@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSTEXTRUNTRANSFORMATIONS_H_
 #define NSTEXTRUNTRANSFORMATIONS_H_
 

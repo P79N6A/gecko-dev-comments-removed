@@ -1,41 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Robert Ginda, <rginda@netscape.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
 
 #ifndef JSDSERVICE_H___
 #define JSDSERVICE_H___
@@ -47,12 +14,12 @@
 #include "nspr.h"
 #include "nsCycleCollectionParticipant.h"
 
-// #if defined(DEBUG_rginda_l)
-// #   define DEBUG_verbose
-// #endif
+
+
+
 
 struct LiveEphemeral {
-    /* link in a chain of live values list */
+    
     PRCList                  links;
     jsdIEphemeral           *value;
     void                    *key;
@@ -62,9 +29,9 @@ struct PCMapEntry {
     PRUint32 pc, line;
 };
     
-/*******************************************************************************
- * reflected jsd data structures
- *******************************************************************************/
+
+
+
 
 class jsdObject : public jsdIObject
 {
@@ -72,7 +39,7 @@ class jsdObject : public jsdIObject
     NS_DECL_ISUPPORTS
     NS_DECL_JSDIOBJECT
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdObject (JSDContext *aCx, JSDObject *aObject) :
         mCx(aCx), mObject(aObject)
     {
@@ -90,8 +57,8 @@ class jsdObject : public jsdIObject
     }
 
   private:
-    jsdObject(); /* no implementation */
-    jsdObject(const jsdObject&); /* no implementation */
+    jsdObject(); 
+    jsdObject(const jsdObject&); 
 
     JSDContext *mCx;
     JSDObject *mObject;
@@ -122,8 +89,8 @@ class jsdProperty : public jsdIProperty
     static void InvalidateAll();
 
   private:
-    jsdProperty(); /* no implementation */
-    jsdProperty(const jsdProperty&); /* no implementation */
+    jsdProperty(); 
+    jsdProperty(const jsdProperty&); 
 
     bool           mValid;
     LiveEphemeral  mLiveListEntry;
@@ -138,7 +105,7 @@ class jsdScript : public jsdIScript
     NS_DECL_JSDISCRIPT
     NS_DECL_JSDIEPHEMERAL
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdScript (JSDContext *aCx, JSDScript *aScript);
     virtual ~jsdScript();
     
@@ -154,12 +121,12 @@ class jsdScript : public jsdIScript
             rv = static_cast<jsdIScript *>(data);
         } else {
             rv = new jsdScript (aCx, aScript);
-            NS_IF_ADDREF(rv);  /* addref for the SetScriptPrivate, released in
-                                * Invalidate() */
+            NS_IF_ADDREF(rv);  
+
             JSD_SetScriptPrivate (aScript, static_cast<void *>(rv));
         }
         
-        NS_IF_ADDREF(rv); /* addref for return value */
+        NS_IF_ADDREF(rv); 
         return rv;
     }
 
@@ -168,8 +135,8 @@ class jsdScript : public jsdIScript
   private:
     static PRUint32 LastTag;
     
-    jsdScript(); /* no implementation */
-    jsdScript (const jsdScript&); /* no implementation */
+    jsdScript(); 
+    jsdScript (const jsdScript&); 
     PCMapEntry* CreatePPLineMap();
     PRUint32    PPPcToLine(PRUint32 aPC);
     PRUint32    PPLineToPc(PRUint32 aLine);
@@ -203,8 +170,8 @@ class jsdContext : public jsdIContext
   private:
     static PRUint32 LastTag;
 
-    jsdContext (); /* no implementation */
-    jsdContext (const jsdContext&); /* no implementation */
+    jsdContext (); 
+    jsdContext (const jsdContext&); 
 
     bool                   mValid;
     LiveEphemeral          mLiveListEntry;
@@ -223,7 +190,7 @@ class jsdStackFrame : public jsdIStackFrame
     NS_DECL_JSDISTACKFRAME
     NS_DECL_JSDIEPHEMERAL
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdStackFrame (JSDContext *aCx, JSDThreadState *aThreadState,
                    JSDStackFrameInfo *aStackFrameInfo);
     virtual ~jsdStackFrame();
@@ -234,8 +201,8 @@ class jsdStackFrame : public jsdIStackFrame
                                     JSDStackFrameInfo *aStackFrameInfo);
 
   private:
-    jsdStackFrame(); /* no implementation */
-    jsdStackFrame(const jsdStackFrame&); /* no implementation */
+    jsdStackFrame(); 
+    jsdStackFrame(const jsdStackFrame&); 
 
     bool               mValid;
     LiveEphemeral      mLiveListEntry;
@@ -251,7 +218,7 @@ class jsdValue : public jsdIValue
     NS_DECL_JSDIVALUE
     NS_DECL_JSDIEPHEMERAL
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdValue (JSDContext *aCx, JSDValue *aValue);
     virtual ~jsdValue();
 
@@ -259,8 +226,8 @@ class jsdValue : public jsdIValue
     static void InvalidateAll();
     
   private:
-    jsdValue(); /* no implementation */
-    jsdValue (const jsdScript&); /* no implementation */
+    jsdValue(); 
+    jsdValue (const jsdScript&); 
     
     bool           mValid;
     LiveEphemeral  mLiveListEntry;
@@ -268,9 +235,9 @@ class jsdValue : public jsdIValue
     JSDValue      *mValue;
 };
 
-/******************************************************************************
- * debugger service
- ******************************************************************************/
+
+
+
 
 class jsdService : public jsdIDebuggerService
 {
@@ -316,10 +283,10 @@ class jsdService : public jsdIDebuggerService
     nsCOMPtr<jsdIActivationCallback> mActivationCallback;
 };
 
-#endif /* JSDSERVICE_H___ */
+#endif 
 
 
-/* graveyard */
+
 
 #if 0
 
@@ -329,7 +296,7 @@ class jsdContext : public jsdIContext
     NS_DECL_ISUPPORTS
     NS_DECL_JSDICONTEXT
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdContext (JSDContext *aCx) : mCx(aCx)
     {
         printf ("++++++ jsdContext\n");
@@ -347,18 +314,18 @@ class jsdContext : public jsdIContext
             rv = static_cast<jsdIContext *>(data);
         } else {
             rv = new jsdContext (aCx);
-            NS_IF_ADDREF(rv);  // addref for the SetContextPrivate
+            NS_IF_ADDREF(rv);  
             JSD_SetContextPrivate (aCx, static_cast<void *>(rv));
         }
         
-        NS_IF_ADDREF(rv); // addref for the return value
+        NS_IF_ADDREF(rv); 
         return rv;
     }
 
     virtual ~jsdContext() { printf ("------ ~jsdContext\n"); }
   private:            
-    jsdContext(); /* no implementation */
-    jsdContext(const jsdContext&); /* no implementation */
+    jsdContext(); 
+    jsdContext(const jsdContext&); 
     
     JSDContext *mCx;
 };
@@ -369,19 +336,19 @@ class jsdThreadState : public jsdIThreadState
     NS_DECL_ISUPPORTS
     NS_DECL_JSDITHREADSTATE
 
-    /* you'll normally use use FromPtr() instead of directly constructing one */
+    
     jsdThreadState (JSDContext *aCx, JSDThreadState *aThreadState) :
         mCx(aCx), mThreadState(aThreadState)
     {
     }
 
-    /* XXX These things are only valid for a short period of time, they reflect
-     * state in the js engine that will go away after stepping past wherever
-     * we were stopped at when this was created.  We could keep a list of every
-     * instance of this we've created, and "invalidate" them before we let the
-     * engine continue.  The next time we need a threadstate, we can search the
-     * list to find an invalidated one, and just reuse it.
-     */
+    
+
+
+
+
+
+
     static jsdIThreadState *FromPtr (JSDContext *aCx,
                                      JSDThreadState *aThreadState)
     {
@@ -394,8 +361,8 @@ class jsdThreadState : public jsdIThreadState
     }
 
   private:
-    jsdThreadState(); /* no implementation */
-    jsdThreadState(const jsdThreadState&); /* no implementation */
+    jsdThreadState(); 
+    jsdThreadState(const jsdThreadState&); 
 
     JSDContext     *mCx;
     JSDThreadState *mThreadState;

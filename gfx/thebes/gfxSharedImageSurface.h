@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_SHARED_IMAGESURFACE_H
 #define GFX_SHARED_IMAGESURFACE_H
 

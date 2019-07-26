@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDeviceProtocolHandler.h"
 #include "nsDeviceChannel.h"
 #include "nsNetCID.h"

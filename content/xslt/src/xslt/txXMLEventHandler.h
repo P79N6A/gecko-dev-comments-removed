@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_XML_EVENT_HANDLER_H
 #define TRANSFRMX_XML_EVENT_HANDLER_H
 

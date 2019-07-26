@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGANIMATEDLENGTHLIST_H__
 #define MOZILLA_SVGANIMATEDLENGTHLIST_H__
 

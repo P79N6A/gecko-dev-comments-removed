@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxQtNativeRenderer.h"
 #include "gfxContext.h"
 #include "gfxXlibSurface.h"

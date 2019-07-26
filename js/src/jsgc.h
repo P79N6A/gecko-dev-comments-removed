@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jsgc_h___
 #define jsgc_h___
 
@@ -63,9 +30,6 @@
 #include "js/TemplateLib.h"
 
 struct JSCompartment;
-
-extern void
-js_TraceXML(JSTracer *trc, JSXML* thing);
 
 #if JS_STACK_GROWTH_DIRECTION > 0
 # define JS_CHECK_STACK_SIZE(limit, lval)  ((uintptr_t)(lval) < limit)
@@ -900,6 +864,7 @@ struct GCMarker : public JSTracer {
         ObjectTag,
         TypeTag,
         XmlTag,
+        ArenaTag,
         SavedValueArrayTag,
         IonCodeTag,
         LastTag = IonCodeTag
@@ -927,14 +892,21 @@ struct GCMarker : public JSTracer {
         pushTaggedPtr(ObjectTag, obj);
     }
 
+    void pushArenaList(gc::ArenaHeader *firstArena) {
+        pushTaggedPtr(ArenaTag, firstArena);
+    }
+
     void pushType(types::TypeObject *type) {
         pushTaggedPtr(TypeTag, type);
     }
 
+#if JS_HAS_XML_SUPPORT
     void pushXML(JSXML *xml) {
         pushTaggedPtr(XmlTag, xml);
     }
-	
+
+#endif
+
     void pushIonCode(ion::IonCode *code) {
         pushTaggedPtr(IonCodeTag, code);
     }
@@ -1028,7 +1000,7 @@ struct GCMarker : public JSTracer {
     bool restoreValueArray(JSObject *obj, void **vpp, void **endp);
     void saveValueRanges();
     inline void processMarkStackTop(SliceBudget &budget);
-    void processMarkStackOther(uintptr_t tag, uintptr_t addr);
+    void processMarkStackOther(SliceBudget &budget, uintptr_t tag, uintptr_t addr);
 
     void appendGrayRoot(void *thing, JSGCTraceKind kind);
 

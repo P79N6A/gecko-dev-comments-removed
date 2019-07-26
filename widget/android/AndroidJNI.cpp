@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Hal.h"
 #include "nsILocalFile.h"
 #include "nsString.h"
@@ -252,7 +220,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsReceived(JNIEnv* jenv, jclass,
     };
 
     SmsMessageData message(0, eDeliveryState_Received, nsJNIString(aSender, jenv), EmptyString(),
-                           nsJNIString(aBody, jenv), aTimestamp);
+                           nsJNIString(aBody, jenv), aTimestamp, false);
 
     nsCOMPtr<nsIRunnable> runnable = new NotifySmsReceivedRunnable(message);
     NS_DispatchToMainThread(runnable);
@@ -338,7 +306,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsSent(JNIEnv* jenv, jclass,
 
     SmsMessageData message(aId, eDeliveryState_Sent, EmptyString(),
                            nsJNIString(aReceiver, jenv),
-                           nsJNIString(aBody, jenv), aTimestamp);
+                           nsJNIString(aBody, jenv), aTimestamp, true);
 
     nsCOMPtr<nsIRunnable> runnable = new NotifySmsSentRunnable(message, aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
@@ -375,7 +343,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsDelivered(JNIEnv* jenv, jclass,
 
     SmsMessageData message(aId, eDeliveryState_Sent, EmptyString(),
                            nsJNIString(aReceiver, jenv),
-                           nsJNIString(aBody, jenv), aTimestamp);
+                           nsJNIString(aBody, jenv), aTimestamp, true);
 
     nsCOMPtr<nsIRunnable> runnable = new NotifySmsDeliveredRunnable(message);
     NS_DispatchToMainThread(runnable);
@@ -481,8 +449,9 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGetSms(JNIEnv* jenv, jclass,
     DeliveryState state = receiver.IsEmpty() ? eDeliveryState_Received
                                              : eDeliveryState_Sent;
 
+    
     SmsMessageData message(aId, state, nsJNIString(aSender, jenv), receiver,
-                           nsJNIString(aBody, jenv), aTimestamp);
+                           nsJNIString(aBody, jenv), aTimestamp, true);
 
     nsCOMPtr<nsIRunnable> runnable = new NotifyGetSmsRunnable(message, aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
@@ -736,8 +705,9 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyListCreated(JNIEnv* jenv, jclass,
     DeliveryState state = receiver.IsEmpty() ? eDeliveryState_Received
                                              : eDeliveryState_Sent;
 
+    
     SmsMessageData message(aMessageId, state, nsJNIString(aSender, jenv),
-                           receiver, nsJNIString(aBody, jenv), aTimestamp);
+                           receiver, nsJNIString(aBody, jenv), aTimestamp, true);
 
     nsCOMPtr<nsIRunnable> runnable =
       new NotifyCreateMessageListRunnable(aListId, message, aRequestId, aProcessId);
@@ -795,9 +765,10 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGotNextMessage(JNIEnv* jenv, jclass,
     nsJNIString receiver = nsJNIString(aReceiver, jenv);
     DeliveryState state = receiver.IsEmpty() ? eDeliveryState_Received
                                              : eDeliveryState_Sent;
-
+ 
+    
     SmsMessageData message(aMessageId, state, nsJNIString(aSender, jenv),
-                           receiver, nsJNIString(aBody, jenv), aTimestamp);
+                           receiver, nsJNIString(aBody, jenv), aTimestamp, true);
 
     nsCOMPtr<nsIRunnable> runnable =
       new NotifyGotNextMessageRunnable(message, aRequestId, aProcessId);

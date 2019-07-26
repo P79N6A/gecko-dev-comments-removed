@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLOutputElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsFormSubmission.h"

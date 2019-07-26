@@ -3,50 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsTextFrame_h__
 #define nsTextFrame_h__
 
@@ -498,7 +454,8 @@ protected:
                       gfxContext* aCtx,
                       const nscolor& aForegroundColor,
                       const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                      nscoord aLeftSideOffset);
+                      nscoord aLeftSideOffset,
+                      gfxRect& aBoundingBox);
 
   struct LineDecoration {
     nsIFrame* mFrame;

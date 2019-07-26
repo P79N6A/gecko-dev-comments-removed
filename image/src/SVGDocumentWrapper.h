@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_imagelib_SVGDocumentWrapper_h_
 #define mozilla_imagelib_SVGDocumentWrapper_h_
 

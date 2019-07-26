@@ -1,39 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Corporation code.
- *
- * The Initial Developer of the Original Code is Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bas Schouten <bschouten@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #include <algorithm>
 
@@ -77,10 +45,10 @@ struct Vertex
     float position[2];
 };
 
-// {592BF306-0EED-4F76-9D03-A0846450F472}
+
 static const GUID sDeviceAttachments = 
 { 0x592bf306, 0xeed, 0x4f76, { 0x9d, 0x3, 0xa0, 0x84, 0x64, 0x50, 0xf4, 0x72 } };
-// {716AEDB1-C9C3-4B4D-8332-6F65D44AF6A8}
+
 static const GUID sLayerManagerCount = 
 { 0x716aedb1, 0xc9c3, 0x4b4d, { 0x83, 0x32, 0x6f, 0x65, 0xd4, 0x4a, 0xf6, 0xa8 } };
 
@@ -113,8 +81,8 @@ LayerManagerD3D10::~LayerManagerD3D10()
       DeviceAttachments *attachments;
       size = sizeof(attachments);
       mDevice->GetPrivateData(sDeviceAttachments, &size, &attachments);
-      // No LayerManagers left for this device. Clear out interfaces stored which
-      // hold a reference to the device.
+      
+      
       mDevice->SetPrivateData(sDeviceAttachments, 0, NULL);
 
       delete attachments;
@@ -131,7 +99,7 @@ LayerManagerD3D10::Initialize(bool force)
 
   HRESULT hr;
 
-  /* Create an Nv3DVUtils instance */
+  
   if (!mNv3DVUtils) {
     mNv3DVUtils = new Nv3DVUtils();
     if (!mNv3DVUtils) {
@@ -139,7 +107,7 @@ LayerManagerD3D10::Initialize(bool force)
     }
   }
 
-  /* Initialize the Nv3DVUtils object */
+  
   if (mNv3DVUtils) {
     mNv3DVUtils->Initialize();
   }
@@ -149,9 +117,9 @@ LayerManagerD3D10::Initialize(bool force)
       return false;
   }
 
-  /*
-   * Do some post device creation setup
-   */
+  
+
+
   if (mNv3DVUtils) {
     IUnknown* devUnknown = NULL;
     if (mDevice) {
@@ -162,7 +130,7 @@ LayerManagerD3D10::Initialize(bool force)
 
   int referenceCount = 0;
   UINT size = sizeof(referenceCount);
-  // If this isn't there yet it'll fail, count will remain 0, which is correct.
+  
   mDevice->GetPrivateData(sLayerManagerCount, &size, &referenceCount);
   referenceCount++;
   mDevice->SetPrivateData(sLayerManagerCount, sizeof(referenceCount), &referenceCount);
@@ -257,12 +225,12 @@ LayerManagerD3D10::Initialize(bool force)
   swapDesc.SampleDesc.Quality = 0;
   swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   swapDesc.BufferCount = 1;
-  // We don't really need this flag, however it seems on some NVidia hardware
-  // smaller area windows do not present properly without this flag. This flag
-  // should have no negative consequences by itself. See bug 613790. This flag
-  // is broken on optimus devices. As a temporary solution we don't set it
-  // there, the only way of reliably detecting we're on optimus is looking for
-  // the DLL. See Bug 623807.
+  
+  
+  
+  
+  
+  
   if (gfxWindowsPlatform::IsOptimus()) {
     swapDesc.Flags = 0;
   } else {
@@ -271,18 +239,18 @@ LayerManagerD3D10::Initialize(bool force)
   swapDesc.OutputWindow = (HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW);
   swapDesc.Windowed = TRUE;
 
-  /**
-   * Create a swap chain, this swap chain will contain the backbuffer for
-   * the window we draw to. The front buffer is the full screen front
-   * buffer.
-   */
+  
+
+
+
+
   hr = dxgiFactory->CreateSwapChain(dxgiDevice, &swapDesc, getter_AddRefs(mSwapChain));
 
   if (FAILED(hr)) {
     return false;
   }
 
-  // We need this because we don't want DXGI to respond to Alt+Enter.
+  
   dxgiFactory->MakeWindowAssociation(swapDesc.OutputWindow, DXGI_MWA_NO_WINDOW_CHANGES);
 
   reporter.SetSuccessful();
@@ -297,8 +265,8 @@ LayerManagerD3D10::Destroy()
       static_cast<LayerD3D10*>(mRoot->ImplData())->LayerManagerDestroyed();
     }
     mRootForShadowTree = nsnull;
-    // XXX need to be careful here about surface destruction
-    // racing with share-to-chrome message
+    
+    
   }
   LayerManager::Destroy();
 }
@@ -343,8 +311,8 @@ LayerManagerD3D10::EndTransaction(DrawThebesLayerCallback aCallback,
     mCurrentCallbackInfo.Callback = aCallback;
     mCurrentCallbackInfo.CallbackData = aCallbackData;
 
-    // The results of our drawing always go directly into a pixel buffer,
-    // so we don't need to pass any global transform here.
+    
+    
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
 
 #ifdef MOZ_LAYERS_HAVE_LOG
@@ -518,10 +486,10 @@ LayerManagerD3D10::SetViewport(const nsIntSize &aViewport)
   mDevice->RSSetViewports(1, &viewport);
 
   gfx3DMatrix projection;
-  /*
-   * Matrix to transform to viewport space ( <-1.0, 1.0> topleft,
-   * <1.0, -1.0> bottomright)
-   */
+  
+
+
+
   projection._11 = 2.0f / aViewport.width;
   projection._22 = -2.0f / aViewport.height;
   projection._33 = 0.0f;
@@ -640,8 +608,8 @@ LayerManagerD3D10::VerifyBufferSize()
                                rect.width, rect.height, 1, 1);
     desc.BindFlags = D3D10_BIND_RENDER_TARGET | D3D10_BIND_SHADER_RESOURCE;
     desc.MiscFlags = D3D10_RESOURCE_MISC_SHARED
-                     // FIXME/bug 662109: synchronize using KeyedMutex
-                     /*D3D10_RESOURCE_MISC_SHARED_KEYEDMUTEX*/;
+                     
+                     ;
     HRESULT hr = device()->CreateTexture2D(&desc, nsnull, getter_AddRefs(mBackBuffer));
     if (FAILED(hr)) {
       ReportFailure(NS_LITERAL_CSTRING("LayerManagerD3D10::VerifyBufferSize(): Failed to create shared texture"),
@@ -649,7 +617,7 @@ LayerManagerD3D10::VerifyBufferSize()
       NS_RUNTIMEABORT("Failed to create back buffer");
     }
 
-    // XXX resize texture?
+    
     mRTView = nsnull;
   }
 }
@@ -664,8 +632,8 @@ LayerManagerD3D10::EnsureReadbackManager()
   DeviceAttachments *attachments;
   UINT size = sizeof(DeviceAttachments*);
   if (FAILED(mDevice->GetPrivateData(sDeviceAttachments, &size, &attachments))) {
-    // Strange! This shouldn't happen ... return a readback manager for this
-    // layer manager only.
+    
+    
     mReadbackManager = new ReadbackManagerD3D10();
     gfx::LogFailure(NS_LITERAL_CSTRING("Couldn't get device attachments for device."));
     return;
@@ -758,21 +726,21 @@ LayerManagerD3D10::Render()
                                               contentRect, nsIntPoint(),
                                               sd);
 
-    // A source in the graphics pipeline can't also be a target.  So
-    // unbind here to avoid racing with the chrome process sourcing
-    // the back texture.
+    
+    
+    
     mDevice->OMSetRenderTargets(0, NULL, NULL);
 
-    // XXX revisit this Flush() in bug 662109.  It's not clear it's
-    // needed.
+    
+    
     mDevice->Flush();
 
     mRTView = NULL;
 
     AutoInfallibleTArray<EditReply, 10> replies;
     ShadowLayerForwarder::EndTransaction(&replies);
-    // We expect only 1 reply, but might get none if the parent
-    // process crashed
+    
+    
 
     swap(mBackBuffer, mRemoteFrontBuffer);
   } else {
@@ -827,7 +795,7 @@ LayerManagerD3D10::PaintToTarget()
 void
 LayerManagerD3D10::ReportFailure(const nsACString &aMsg, HRESULT aCode)
 {
-  // We could choose to abort here when hr == E_OUTOFMEMORY.
+  
   nsCString msg;
   msg.Append(aMsg);
   msg.AppendLiteral(" Error code: ");

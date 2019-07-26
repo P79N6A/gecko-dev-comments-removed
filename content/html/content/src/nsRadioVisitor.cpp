@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsRadioVisitor.h"
 #include "nsAutoPtr.h"
 #include "nsHTMLInputElement.h"

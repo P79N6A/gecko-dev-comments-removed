@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jsinterp_h___
 #define jsinterp_h___
 
@@ -50,20 +17,6 @@
 #include "vm/Stack.h"
 
 namespace js {
-
-
-
-
-
-
-
-
-
-extern JSObject *
-GetScopeChain(JSContext *cx);
-
-extern JSObject *
-GetScopeChain(JSContext *cx, StackFrame *fp);
 
 
 
@@ -266,7 +219,7 @@ extern JSType
 TypeOfValue(JSContext *cx, const Value &v);
 
 extern JSBool
-HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
+HasInstance(JSContext *cx, HandleObject obj, const js::Value *v, JSBool *bp);
 
 
 
@@ -329,8 +282,8 @@ UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs);
 extern bool
 OnUnknownMethod(JSContext *cx, HandleObject obj, Value idval, Value *vp);
 
-extern bool
-IsActiveWithOrBlock(JSContext *cx, JSObject &obj, uint32_t stackDepth);
+inline void
+AssertValidFunctionScopeChainAtExit(StackFrame *fp);
 
 class TryNoteIter
 {
@@ -404,7 +357,7 @@ bool
 CallElement(JSContext *cx, const Value &lref, const Value &rref, Value *res);
 
 bool
-SetObjectElement(JSContext *cx, JSObject *obj, const Value &index, const Value &value,
+SetObjectElement(JSContext *cx, HandleObject obj, const Value &index, const Value &value,
                  JSBool strict);
 
 bool
@@ -427,11 +380,11 @@ UrshValues(JSContext *cx, HandleValue lhs, HandleValue rhs, Value *res);
 
 template <bool strict>
 bool
-SetProperty(JSContext *cx, JSObject *obj, JSAtom *atom, const Value &value);
+SetProperty(JSContext *cx, HandleObject obj, HandleId id, const Value &value);
 
 template <bool strict>
 bool
-DeleteProperty(JSContext *ctx, const Value &val, PropertyName *name, JSBool *bv);
+DeleteProperty(JSContext *ctx, const Value &val, HandlePropertyName name, JSBool *bv);
 
 }  
 

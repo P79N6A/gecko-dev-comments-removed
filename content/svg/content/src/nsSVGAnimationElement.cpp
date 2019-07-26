@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGAnimationElement.h"
 #include "nsSVGSVGElement.h"
 #include "nsSMILTimeContainer.h"
@@ -420,6 +387,34 @@ bool
 nsSVGAnimationElement::IsNodeOfType(PRUint32 aFlags) const
 {
   return !(aFlags & ~(eCONTENT | eANIMATION));
+}
+
+
+
+
+void
+nsSVGAnimationElement::ActivateByHyperlink()
+{
+  FlushAnimations();
+
+  
+  
+  
+  nsSMILTimeValue seekTime = mTimedElement.GetHyperlinkTime();
+  if (seekTime.IsDefinite()) {
+    nsSMILTimeContainer* timeContainer = GetTimeContainer();
+    if (timeContainer) {
+      timeContainer->SetCurrentTime(seekTime.GetMillis());
+      AnimationNeedsResample();
+      
+      
+      FlushAnimations();
+    }
+    
+    
+  } else {
+    BeginElement();
+  }
 }
 
 

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsbool.h"
 #include "jscntxt.h"
 #include "jslibmath.h"
@@ -321,7 +288,7 @@ mjit::Compiler::jsop_bitop(JSOp op)
                     masm.urshift32(Imm32(shift), reg);
             }
             frame.popn(2);
-            
+
             
             JS_ASSERT_IF(op == JSOP_URSH, shift >= 1);
             frame.pushTypedPayload(JSVAL_TYPE_INT32, reg);
@@ -353,14 +320,14 @@ mjit::Compiler::jsop_bitop(JSOp op)
             }
             frame.unpinReg(rr);
         }
-        
+
         if (op == JSOP_LSH) {
             masm.lshift32(rr, reg);
         } else if (op == JSOP_RSH) {
             masm.rshift32(rr, reg);
         } else {
             masm.urshift32(rr, reg);
-            
+
             Jump isNegative = masm.branch32(Assembler::LessThan, reg, Imm32(0));
             stubcc.linkExit(isNegative, Uses(2));
         }
@@ -695,7 +662,7 @@ mjit::Compiler::jsop_not()
 
     jmpNotObject.linkTo(syncTarget, &stubcc.masm);
     stubcc.crossJump(jmpObjectExit, lblRejoin);
-    
+
 
     
     stubcc.leave();
@@ -755,7 +722,7 @@ mjit::Compiler::jsop_typeof()
             Assembler::Condition cond = (op == JSOP_STRICTEQ || op == JSOP_EQ)
                                         ? Assembler::Equal
                                         : Assembler::NotEqual;
-            
+
             if (atom == rt->atomState.typeAtoms[JSTYPE_VOID]) {
                 type = JSVAL_TYPE_UNDEFINED;
             } else if (atom == rt->atomState.typeAtoms[JSTYPE_STRING]) {
@@ -900,7 +867,7 @@ mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
 
     if (fe->isConstant()) {
         JSBool b = js_ValueToBoolean(fe->getValue());
-        
+
         
         if ((op == JSOP_OR && b == JS_TRUE) ||
             (op == JSOP_AND && b == JS_FALSE)) {
@@ -1603,7 +1570,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     
     
     
- 
+
     
     if (!obj->isTypeKnown()) {
         Jump j = frame.testObject(Assembler::NotEqual, obj);
@@ -2433,7 +2400,7 @@ mjit::Compiler::jsop_stricteq(JSOp op)
         RegisterID result = data;
         if (!(Registers::maskReg(data) & Registers::SingleByteRegs))
             result = frame.allocReg(Registers::SingleByteRegs).reg();
-        
+
         Jump notBoolean;
         if (!test->isTypeKnown())
            notBoolean = frame.testBoolean(Assembler::NotEqual, test);
@@ -2665,7 +2632,7 @@ mjit::Compiler::jsop_initprop()
     FrameEntry *fe = frame.peek(-1);
     PropertyName *name = script->getName(GET_UINT32_INDEX(PC));
 
-    JSObject *baseobj = frame.extra(obj).initObject;
+    RootedVarObject baseobj(cx, frame.extra(obj).initObject);
 
     if (!baseobj || monitored(PC)) {
         prepareStubCall(Uses(2));
@@ -2679,7 +2646,7 @@ mjit::Compiler::jsop_initprop()
 #ifdef DEBUG
     bool res =
 #endif
-    LookupPropertyWithFlags(cx, baseobj, NameToId(name),
+    LookupPropertyWithFlags(cx, baseobj, RootedVarId(cx, NameToId(name)),
                             JSRESOLVE_QUALIFIED, &holder, &prop);
     JS_ASSERT(res && prop && holder == baseobj);
 

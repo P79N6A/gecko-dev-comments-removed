@@ -7,41 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsComposerCommandsUpdater_h__
 #define nsComposerCommandsUpdater_h__
 

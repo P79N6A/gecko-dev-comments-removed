@@ -1,39 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2007
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Jonas Sicking <jonas@sicking.cc> (Original Author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #include "nsCCUncollectableMarker.h"
 #include "nsIObserverService.h"
@@ -72,7 +40,7 @@ PRUint32 nsCCUncollectableMarker::sGeneration = 0;
 
 NS_IMPL_ISUPPORTS1(nsCCUncollectableMarker, nsIObserver)
 
-/* static */
+
 nsresult
 nsCCUncollectableMarker::Init()
 {
@@ -90,7 +58,7 @@ nsCCUncollectableMarker::Init()
 
   nsresult rv;
 
-  // This makes the observer service hold an owning reference to the marker
+  
   rv = obs->AddObserver(marker, "xpcom-shutdown", false);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -150,8 +118,8 @@ MarkMessageManagers()
         continue;
       }
       tabMM->MarkForCC();
-      //XXX hack warning, but works, since we know that
-      //    callback data is frameloader.
+      
+      
       void* cb = static_cast<nsFrameMessageManager*>(tabMM.get())->
         GetCallbackData();
       nsFrameLoader* fl = static_cast<nsFrameLoader*>(cb);
@@ -199,8 +167,8 @@ MarkContentViewer(nsIContentViewer* aViewer, bool aCleanupJS,
       doc->PropertyTable(DOM_USER_DATA_HANDLER)->
         EnumerateAll(MarkUserDataHandler, &nsCCUncollectableMarker::sGeneration);
     } else if (aPrepareForCC) {
-      // Unfortunately we need to still mark user data just before running CC so
-      // that it has the right generation. 
+      
+      
       doc->PropertyTable(DOM_USER_DATA)->
         EnumerateAll(MarkUserData, &nsCCUncollectableMarker::sGeneration);
     }
@@ -302,7 +270,7 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
     if (!obs)
       return NS_ERROR_FAILURE;
 
-    // No need for kungFuDeathGrip here, yay observerservice!
+    
     obs->RemoveObserver(this, "xpcom-shutdown");
     obs->RemoveObserver(this, "cycle-collector-begin");
     obs->RemoveObserver(this, "cycle-collector-forget-skippable");
@@ -315,7 +283,7 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
   NS_ASSERTION(!strcmp(aTopic, "cycle-collector-begin") ||
                !strcmp(aTopic, "cycle-collector-forget-skippable"), "wrong topic");
 
-  // JS cleanup can be slow. Do it only if there has been a GC.
+  
   bool cleanupJS =
     nsJSContext::CleanupsSinceLastGC() == 0 &&
     !strcmp(aTopic, "cycle-collector-forget-skippable");
@@ -323,14 +291,14 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
   bool prepareForCC = !strcmp(aTopic, "cycle-collector-begin");
     
 
-  // Increase generation to effectivly unmark all current objects
+  
   if (!++sGeneration) {
     ++sGeneration;
   }
 
   nsresult rv;
 
-  // Iterate all toplevel windows
+  
   nsCOMPtr<nsISimpleEnumerator> windowList;
   nsCOMPtr<nsIWindowMediator> med =
     do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
@@ -408,13 +376,13 @@ mozilla::dom::TraceBlackJS(JSTracer* aTrc)
     return;
   }
 
-  // Mark globals of active windows black.
+  
   nsGlobalWindow::WindowByIdTable* windowsById =
     nsGlobalWindow::GetWindowsTable();
   if (windowsById) {
     windowsById->Enumerate(TraceActiveWindowGlobal, aTrc);
   }
 
-  // Mark the safe context black
+  
   nsContentUtils::TraceSafeJSContext(aTrc);
 }

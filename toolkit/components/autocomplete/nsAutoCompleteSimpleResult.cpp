@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAutoCompleteSimpleResult.h"
 
 NS_IMPL_ISUPPORTS2(nsAutoCompleteSimpleResult,

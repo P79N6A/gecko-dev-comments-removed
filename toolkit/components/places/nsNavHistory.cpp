@@ -3,49 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdio.h>
 
 #include "nsNavHistory.h"
@@ -341,16 +298,12 @@ nsNavHistory::Init()
   NS_ENSURE_STATE(mDB);
 
   
-  NS_ENSURE_TRUE(mRecentTyped.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
-                 NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentLink.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
-                 NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentBookmark.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
-                 NS_ERROR_OUT_OF_MEMORY);
+  mRecentTyped.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE);
+  mRecentLink.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE);
+  mRecentBookmark.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE);
 
   
-  NS_ENSURE_TRUE(mEmbedVisits.Init(EMBED_VISITS_INITIAL_CACHE_SIZE),
-                 NS_ERROR_OUT_OF_MEMORY);
+  mEmbedVisits.Init(EMBED_VISITS_INITIAL_CACHE_SIZE);
 
   
 

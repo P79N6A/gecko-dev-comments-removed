@@ -1,41 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Foundation code.
- *
- * The Initial Developer of the Original Code is Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2005
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *   Masayuki Nakano <masayuki@d-toybox.com>
- *   Karl Tomlinson <karlt+@karlt.net>, Mozilla Corporation
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #ifdef MOZ_PANGO
 #define PANGO_ENABLE_BACKEND
@@ -69,12 +35,12 @@
 #include "cairo-xlib.h"
 #include "mozilla/Preferences.h"
 
-/* Undefine the Status from Xlib since it will conflict with system headers on OSX */
+
 #if defined(__APPLE__) && defined(Status)
 #undef Status
 #endif
 
-#endif /* MOZ_X11 */
+#endif 
 
 #include <fontconfig/fontconfig.h>
 
@@ -148,9 +114,9 @@ gfxPlatformGtk::~gfxPlatformGtk()
     gCodepointsWithNoFonts = NULL;
 
 #ifdef NS_FREE_PERMANENT_DATA
-    // do cairo cleanup *before* closing down the FTLibrary,
-    // otherwise we'll crash when the gfxPlatform destructor
-    // calls it (bug 605009)
+    
+    
+    
     cairo_debug_reset_static_data();
 
     FT_Done_FreeType(gPlatformFTLibrary);
@@ -159,10 +125,10 @@ gfxPlatformGtk::~gfxPlatformGtk()
 #endif
 
 #if 0
-    // It would be nice to do this (although it might need to be after
-    // the cairo shutdown that happens in ~gfxPlatform).  It even looks
-    // idempotent.  But it has fatal assertions that fire if stuff is
-    // leaked, and we hit them.
+    
+    
+    
+    
     FcFini();
 #endif
 }
@@ -175,22 +141,22 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     bool needsClear = true;
     gfxASurface::gfxImageFormat imageFormat = gfxASurface::FormatFromContent(contentType);
 #ifdef MOZ_X11
-    // XXX we really need a different interface here, something that passes
-    // in more context, including the display and/or target surface type that
-    // we should try to match
+    
+    
+    
     GdkScreen *gdkScreen = gdk_screen_get_default();
     if (gdkScreen) {
-        // try to optimize it for 16bpp default screen
+        
         if (gfxASurface::CONTENT_COLOR == contentType) {
             imageFormat = GetOffscreenFormat();
         }
 
         if (!UseXRender()) {
-            // We're not going to use XRender, so we don't need to
-            // search for a render format
+            
+            
             newSurface = new gfxImageSurface(size, imageFormat);
-            // The gfxImageSurface ctor zeroes this for us, no need to
-            // waste time clearing again
+            
+            
             needsClear = false;
         } else {
             Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
@@ -206,14 +172,14 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
 #endif
 
     if (!newSurface) {
-        // We couldn't create a native surface for whatever reason;
-        // e.g., no display, no RENDER, bad size, etc.
-        // Fall back to image surface for the data.
+        
+        
+        
         newSurface = new gfxImageSurface(size, imageFormat);
     }
 
     if (newSurface->CairoStatus()) {
-        newSurface = nsnull; // surface isn't valid for some reason
+        newSurface = nsnull; 
     }
 
     if (newSurface && needsClear) {
@@ -277,7 +243,7 @@ gfxFontEntry*
 gfxPlatformGtk::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry, 
                                  const PRUint8 *aFontData, PRUint32 aLength)
 {
-    // passing ownership of the font data to the new font entry
+    
     return gfxPangoFontGroup::NewFontEntry(*aProxyEntry,
                                            aFontData, aLength);
 }
@@ -285,26 +251,26 @@ gfxPlatformGtk::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
 bool
 gfxPlatformGtk::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
 {
-    // check for strange format flags
+    
     NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
                  "strange font format hint set");
 
-    // accept supported formats
-    // Pango doesn't apply features from AAT TrueType extensions.
-    // Assume that if this is the only SFNT format specified,
-    // then AAT extensions are required for complex script support.
+    
+    
+    
+    
     if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_WOFF     |
                         gfxUserFontSet::FLAG_FORMAT_OPENTYPE | 
                         gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
         return true;
     }
 
-    // reject all other formats, known and unknown
+    
     if (aFormatFlags != 0) {
         return false;
     }
 
-    // no format hint set, need to look at data
+    
     return true;
 }
 
@@ -339,7 +305,7 @@ gfxPlatformGtk::UpdateFontList()
         if (FcPatternGetString(fs->fonts[i], FC_FAMILY, 0, (FcChar8 **) &str) != FcResultMatch)
             continue;
 
-        //printf("Family: %s\n", str);
+        
 
         nsAutoString name(NS_ConvertUTF8toUTF16(nsDependentCString(str)).get());
         nsAutoString key(name);
@@ -355,19 +321,19 @@ gfxPlatformGtk::UpdateFontList()
 
         if (FcPatternGetString(fs->fonts[i], FC_FILE, 0, (FcChar8 **) &str) == FcResultMatch) {
             fe->mFilename = nsDependentCString(str);
-            //printf(" - file: %s\n", str);
+            
         }
 
         int x;
         if (FcPatternGetInteger(fs->fonts[i], FC_INDEX, 0, &x) == FcResultMatch) {
-            //printf(" - index: %d\n", x);
+            
             fe->mFTFontIndex = x;
         } else {
             fe->mFTFontIndex = 0;
         }
 
         fe->mWeight = gfxFontconfigUtils::GetThebesWeight(fs->fonts[i]);
-        //printf(" - weight: %d\n", fe->mWeight);
+        
 
         fe->mItalic = false;
         if (FcPatternGetInteger(fs->fonts[i], FC_SLANT, 0, &x) == FcResultMatch) {
@@ -376,12 +342,12 @@ gfxPlatformGtk::UpdateFontList()
             case FC_SLANT_OBLIQUE:
                 fe->mItalic = true;
             }
-            //printf(" - slant: %d\n", x);
+            
         }
 
-        //if (FcPatternGetInteger(fs->fonts[i], FC_WIDTH, 0, &x) == FcResultMatch)
-            //printf(" - width: %d\n", x);
-        // XXX deal with font-stretch stuff later
+        
+            
+        
     }
 
     if (pat)
@@ -425,7 +391,7 @@ gfxPlatformGtk::ResolveFontName(const nsAString& aFontName,
         nsAutoString altName = NS_ConvertUTF8toUTF16(nsDependentCString(reinterpret_cast<char*>(str)));
         ToLowerCase(altName);
         if (gPlatformFonts->Get(altName, &ff)) {
-            //printf("Adding alias: %s -> %s\n", utf8Name.get(), str);
+            
             gPlatformFontAliases->Put(name, ff);
             aAborted = !(*aCallback)(NS_ConvertUTF8toUTF16(nsDependentCString(reinterpret_cast<char*>(str))), aClosure);
             goto DONE;
@@ -459,7 +425,7 @@ gfxPlatformGtk::ResolveFontName(const nsAString& aFontName,
         nsAutoString altName = NS_ConvertUTF8toUTF16(nsDependentCString(reinterpret_cast<char*>(str)));
         ToLowerCase(altName);
         if (gPlatformFonts->Get(altName, &ff)) {
-            //printf("Adding alias: %s -> %s\n", utf8Name.get(), str);
+            
             gPlatformFontAliases->Put(name, ff);
             aAborted = !(*aCallback)(NS_ConvertUTF8toUTF16(nsDependentCString(reinterpret_cast<char*>(str))), aClosure);
             goto DONE;
@@ -496,12 +462,12 @@ PRInt32
 gfxPlatformGtk::GetDPI()
 {
     if (!sDPI) {
-        // Make sure init is run so we have a resolution
+        
         GdkScreen *screen = gdk_screen_get_default();
         gtk_settings_get_for_screen(screen);
         sDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
         if (sDPI <= 0) {
-            // Fall back to something sane
+            
             sDPI = 96;
         }
     }
@@ -536,9 +502,9 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
 
     iccAtom = XInternAtom(dpy, ICC_PROFILE_ATOM_NAME, TRUE);
     if (iccAtom) {
-        // read once to get size, once for the data
+        
         if (Success == XGetWindowProperty(dpy, root, iccAtom,
-                                          0, 0 /* length */,
+                                          0, 0 ,
                                           False, AnyPropertyType,
                                           &retAtom, &retFormat, &retLength,
                                           &retAfter, &retProperty)) {
@@ -583,7 +549,7 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
                 return nsnull;
             }
 
-            // Format documented in "VESA E-EDID Implementation Guide"
+            
 
             gamma = (100 + retProperty[0x17]) / 100.0;
             whitePoint.x = ((retProperty[0x21] << 2) |
@@ -688,7 +654,7 @@ gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
     if (!gPlatformFonts || !gCodepointsWithNoFonts)
         return nsnull;
 
-    // is codepoint with no matching font? return null immediately
+    
     if (gCodepointsWithNoFonts->test(aCh)) {
         return nsnull;
     }
@@ -696,7 +662,7 @@ gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
     GlobalFontMatch data(aCh, GetScriptCode(aCh),
                          (aFont ? aFont->GetStyle() : nsnull));
 
-    // find fonts that support the character
+    
     gPlatformFonts->Enumerate(FindFontForCharProc, &data);
 
     if (data.mBestMatch) {
@@ -707,7 +673,7 @@ gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
         return already_AddRefed<gfxFont>(ret);
     }
 
-    // no match? add to set of non-matching codepoints
+    
     gCodepointsWithNoFonts->set(aCh);
 
     return nsnull;
@@ -761,7 +727,7 @@ gfxPlatformGtk::GetGdkDrawable(gfxASurface *target)
 
     gfxXlibSurface *xs = static_cast<gfxXlibSurface*>(target);
 
-    // try looking it up in gdk's table
+    
     result = (GdkDrawable*) gdk_xid_table_lookup(xs->XDrawable());
     if (result) {
         SetGdkDrawable(target, result);

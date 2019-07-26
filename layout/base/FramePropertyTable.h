@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef FRAMEPROPERTYTABLE_H_
 #define FRAMEPROPERTYTABLE_H_
 

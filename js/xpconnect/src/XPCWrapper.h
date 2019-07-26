@@ -4,46 +4,11 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef XPC_WRAPPER_H
 #define XPC_WRAPPER_H 1
 
 #include "xpcprivate.h"
+#include "xpcpublic.h"
 
 namespace XPCNativeWrapper {
 
@@ -82,18 +47,11 @@ IsSecurityWrapper(JSObject *wrapper)
   return js::IsWrapper(wrapper);
 }
 
-
-
-
-
-
-
-
-
-
-
-JSObject *
-Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true);
+inline JSObject *
+Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true)
+{
+  return xpc::Unwrap(cx, wrapper, stopAtOuter);
+}
 
 JSObject *
 UnsafeUnwrapSecurityWrapper(JSObject *obj);

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txExecutionState.h"
 #include "nsGkAtoms.h"
 #include "txSingleNodeContext.h"
@@ -272,15 +239,10 @@ txKeyHash::getKeyNodes(const txExpandedName& aKeyName,
 nsresult
 txKeyHash::init()
 {
-    nsresult rv = mKeyValues.Init(8);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mIndexedKeys.Init(1);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
+    mKeyValues.Init(8);
+    mIndexedKeys.Init(1);
     mEmptyNodeSet = new txNodeSet(nsnull);
-    NS_ENSURE_TRUE(mEmptyNodeSet, NS_ERROR_OUT_OF_MEMORY);
-    
+
     return NS_OK;
 }
 

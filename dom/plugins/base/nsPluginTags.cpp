@@ -1,42 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Sean Echevarria <sean@beatnik.com>
- *   Håkan Waara <hwaara@chello.se>
- *   Josh Aas <josh@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #include "nsPluginTags.h"
 
@@ -70,7 +35,7 @@ inline char* new_str(const char* str)
   return result;
 }
 
-/* nsPluginTag */
+
 
 nsPluginTag::nsPluginTag(nsPluginTag* aPluginTag)
 : mPluginHost(nsnull),
@@ -131,7 +96,7 @@ mFileName(aFileName),
 mFullPath(aFullPath),
 mVersion(aVersion),
 mLastModifiedTime(aLastModifiedTime),
-mFlags(0) // Caller will read in our flags from cache
+mFlags(0) 
 {
   InitMime(aMimeTypes, aMimeDescriptions, aExtensions, static_cast<PRUint32>(aVariants));
   if (!aArgsAreUTF8)
@@ -159,22 +124,22 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
       continue;
     }
 
-    // Look for certain special plugins.
+    
     if (nsPluginHost::IsJavaMIMEType(aMimeTypes[i])) {
       mIsJavaPlugin = true;
     } else if (strcmp(aMimeTypes[i], "application/x-shockwave-flash") == 0) {
       mIsFlashPlugin = true;
     }
 
-    // Fill in our MIME type array.
+    
     mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
 
-    // Now fill in the MIME descriptions.
+    
     if (aMimeDescriptions && aMimeDescriptions[i]) {
-      // we should cut off the list of suffixes which the mime
-      // description string may have, see bug 53895
-      // it is usually in form "some description (*.sf1, *.sf2)"
-      // so we can search for the opening round bracket
+      
+      
+      
+      
       char cur = '\0';
       char pre = '\0';
       char * p = PL_strrchr(aMimeDescriptions[i], '(');
@@ -188,7 +153,7 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
         }
       }
       mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
-      // restore the original string
+      
       if (cur != '\0') {
         *p = cur;
       }
@@ -199,7 +164,7 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
       mMimeDescriptions.AppendElement(nsCString());
     }
 
-    // Now fill in the extensions.
+    
     if (aExtensions && aExtensions[i]) {
       mExtensions.AppendElement(nsCString(aExtensions[i]));
     } else {
@@ -256,9 +221,9 @@ nsresult nsPluginTag::EnsureMembersAreUTF8()
     ConvertToUTF8(decoder, mFullPath);
   }
   
-  // The description of the plug-in and the various MIME type descriptions
-  // should be encoded in the standard plain text file encoding for this system.
-  // XXX should we add kPlatformCharsetSel_PluginResource?
+  
+  
+  
   rv = pcs->GetCharset(kPlatformCharsetSel_PlainTextInFile, charset);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!charset.LowerCaseEqualsLiteral("utf-8")) {
@@ -373,13 +338,13 @@ nsPluginTag::RegisterWithCategoryManager(bool aOverrideInternalTypes,
   
   const char *contractId = "@mozilla.org/content/plugin/document-loader-factory;1";
   
-  // A preference controls whether or not the full page plugin is disabled for
-  // a particular type. The string must be in the form:
-  //   type1,type2,type3,type4
-  // Note: need an actual interface to control this and subsequent disabling 
-  // (and other plugin host settings) so applications can reliably disable 
-  // plugins - without relying on implementation details such as prefs/category
-  // manager entries.
+  
+  
+  
+  
+  
+  
+  
   nsCAutoString overrideTypesFormatted;
   if (aType != ePluginUnregister) {
     overrideTypesFormatted.Assign(',');
@@ -396,7 +361,7 @@ nsPluginTag::RegisterWithCategoryManager(bool aOverrideInternalTypes,
       if (NS_SUCCEEDED(catMan->GetCategoryEntry("Gecko-Content-Viewers",
                                                 mMimeTypes[i].get(),
                                                 getter_Copies(value)))) {
-        // Only delete the entry if a plugin registered for it
+        
         if (strcmp(value, contractId) == 0) {
           catMan->DeleteCategoryEntry("Gecko-Content-Viewers",
                                       mMimeTypes[i].get(),
@@ -415,8 +380,8 @@ nsPluginTag::RegisterWithCategoryManager(bool aOverrideInternalTypes,
         catMan->AddCategoryEntry("Gecko-Content-Viewers",
                                  mMimeTypes[i].get(),
                                  contractId,
-                                 false, /* persist: broken by bug 193031 */
-                                 aOverrideInternalTypes, /* replace if we're told to */
+                                 false, 
+                                 aOverrideInternalTypes, 
                                  nsnull);
       }
     }
@@ -431,7 +396,7 @@ void nsPluginTag::Mark(PRUint32 mask)
 {
   bool wasEnabled = IsEnabled();
   mFlags |= mask;
-  // Update entries in the category manager if necessary.
+  
   if (mPluginHost && wasEnabled != IsEnabled()) {
     if (wasEnabled)
       RegisterWithCategoryManager(false, nsPluginTag::ePluginUnregister);
@@ -444,7 +409,7 @@ void nsPluginTag::UnMark(PRUint32 mask)
 {
   bool wasEnabled = IsEnabled();
   mFlags &= ~mask;
-  // Update entries in the category manager if necessary.
+  
   if (mPluginHost && wasEnabled != IsEnabled()) {
     if (wasEnabled)
       RegisterWithCategoryManager(false, nsPluginTag::ePluginUnregister);
@@ -489,8 +454,8 @@ bool nsPluginTag::Equals(nsPluginTag *aPluginTag)
 
 void nsPluginTag::TryUnloadPlugin(bool inShutdown)
 {
-  // We never want to send NPP_Shutdown to an in-process plugin unless
-  // this process is shutting down.
+  
+  
   if (mLibrary && !inShutdown) {
     return;
   }

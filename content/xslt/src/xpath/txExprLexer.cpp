@@ -1,44 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is TransforMiiX XSLT processor code.
- *
- * The Initial Developer of the Original Code is
- * The MITRE Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1999
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Keith Visco <kvisco@ziplink.net> (Original Author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/**
- * Lexical analyzer for XPath expressions
- */
+
+
+
+
+
+
+
 
 #include "txExprLexer.h"
 #include "nsGkAtoms.h"
@@ -46,9 +13,9 @@
 #include "txError.h"
 #include "txXMLUtils.h"
 
-/**
- * Creates a new ExprLexer
- */
+
+
+
 txExprLexer::txExprLexer()
   : mCurrentItem(nsnull),
     mFirstItem(nsnull),
@@ -57,12 +24,12 @@ txExprLexer::txExprLexer()
 {
 }
 
-/**
- * Destroys this instance of an txExprLexer
- */
+
+
+
 txExprLexer::~txExprLexer()
 {
-  //-- delete tokens
+  
   Token* tok = mFirstItem;
   while (tok) {
     Token* temp = tok->mNext;
@@ -81,7 +48,7 @@ txExprLexer::nextToken()
   }
 
   if (mCurrentItem->mType == Token::END) {
-    // Do not progress beyond the end token
+    
     return mCurrentItem;
   }
 
@@ -104,26 +71,26 @@ txExprLexer::addToken(Token* aToken)
   ++mTokenCount;
 }
 
-/**
- * Returns true if the following Token should be an operator.
- * This is a helper for the first bullet of [XPath 3.7]
- *  Lexical Structure
- */
+
+
+
+
+
 bool
 txExprLexer::nextIsOperatorToken(Token* aToken)
 {
   if (!aToken || aToken->mType == Token::NULL_TOKEN) {
     return false;
   }
-  /* This relies on the tokens having the right order in txExprLexer.h */
+  
   return aToken->mType < Token::COMMA ||
     aToken->mType > Token::UNION_OP;
 
 }
 
-/**
- * Parses the given string into a sequence of Tokens
- */
+
+
+
 nsresult
 txExprLexer::parse(const nsASingleFragmentString& aPattern)
 {
@@ -131,8 +98,8 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
   start = aPattern.BeginReading(mPosition);
   aPattern.EndReading(end);
 
-  //-- initialize previous token, this will automatically get
-  //-- deleted when it goes out of scope
+  
+  
   Token nullToken(nsnull, nsnull, Token::NULL_TOKEN);
 
   Token::Type defType;
@@ -151,33 +118,33 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
       }
       defType = Token::VAR_REFERENCE;
     } 
-    // just reuse the QName parsing, which will use defType 
-    // the token to construct
+    
+    
 
     if (XMLUtils::isLetter(*mPosition)) {
-      // NCName, can get QName or OperatorName;
-      //  FunctionName, NodeName, and AxisSpecifier may want whitespace,
-      //  and are dealt with below
+      
+      
+      
       start = mPosition;
       while (++mPosition < end && XMLUtils::isNCNameChar(*mPosition)) {
-        /* just go */
+        
       }
       if (mPosition < end && *mPosition == COLON) {
-        // try QName or wildcard, might need to step back for axis
+        
         if (++mPosition == end) {
           return NS_ERROR_XPATH_UNEXPECTED_END;
         }
         if (XMLUtils::isLetter(*mPosition)) {
           while (++mPosition < end && XMLUtils::isNCNameChar(*mPosition)) {
-            /* just go */
+            
           }
         }
         else if (*mPosition == '*' && defType != Token::VAR_REFERENCE) {
-          // eat wildcard for NameTest, bail for var ref at COLON
+          
           ++mPosition;
         }
         else {
-          --mPosition; // step back
+          --mPosition; 
         }
       }
       if (nextIsOperatorToken(prevToken)) {
@@ -195,8 +162,8 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
           defType = Token::DIVIDE_OP;
         }
         else {
-          // XXX QUESTION: spec is not too precise
-          // badops is sure an error, but is bad:ops, too? We say yes!
+          
+          
           return NS_ERROR_XPATH_OPERATOR_EXPECTED;
         }
       }
@@ -205,18 +172,18 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
     else if (isXPathDigit(*mPosition)) {
       start = mPosition;
       while (++mPosition < end && isXPathDigit(*mPosition)) {
-        /* just go */
+        
       }
       if (mPosition < end && *mPosition == '.') {
         while (++mPosition < end && isXPathDigit(*mPosition)) {
-          /* just go */
+          
         }
       }
       newToken = new Token(start, mPosition, Token::NUMBER);
     }
     else {
       switch (*mPosition) {
-        //-- ignore whitespace
+        
       case SPACE:
       case TX_TAB:
       case TX_CR:
@@ -228,7 +195,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
       case D_QUOTE :
         start = mPosition;
         while (++mPosition < end && *mPosition != *start) {
-          // eat literal
+          
         }
         if (mPosition == end) {
           mPosition = start;
@@ -238,14 +205,14 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
         ++mPosition;
         break;
       case PERIOD:
-        // period can be .., .(DIGITS)+ or ., check next
+        
         if (++mPosition == end) {
           newToken = new Token(mPosition - 1, Token::SELF_NODE);
         }
         else if (isXPathDigit(*mPosition)) {
           start = mPosition - 1;
           while (++mPosition < end && isXPathDigit(*mPosition)) {
-            /* just go */
+            
           }
           newToken = new Token(start, mPosition, Token::NUMBER);
         }
@@ -257,7 +224,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
           newToken = new Token(mPosition - 1, Token::SELF_NODE);
         }
         break;
-      case COLON: // QNames are dealt above, must be axis ident
+      case COLON: 
         if (++mPosition >= end || *mPosition != COLON ||
             prevToken->mType != Token::CNAME) {
           return NS_ERROR_XPATH_BAD_COLON;
@@ -275,13 +242,13 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
           newToken = new Token(mPosition - 1, Token::PARENT_OP);
         }
         break;
-      case BANG : // can only be !=
+      case BANG : 
         if (++mPosition < end && *mPosition == EQUAL) {
           ++mPosition;
           newToken = new Token(mPosition - 2, mPosition, Token::NOT_EQUAL_OP);
           break;
         }
-        // Error ! is not not()
+        
         return NS_ERROR_XPATH_BAD_BANG;
       case EQUAL:
         newToken = new Token(mPosition, Token::EQUAL_OP);
@@ -380,7 +347,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
         ++mPosition;
         break;
       default:
-        // Error, don't grok character :-(
+        
         return NS_ERROR_XPATH_ILLEGAL_CHAR;
       }
     }
@@ -392,7 +359,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
     }
   }
 
-  // add a endToken to the list
+  
   newToken = new Token(end, end, Token::END);
   if (!newToken) {
     return NS_ERROR_OUT_OF_MEMORY;

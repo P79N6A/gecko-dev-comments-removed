@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nscore.h"
 #include "nsIDOMDocument.h"
 #include "nsEditor.h"
@@ -749,7 +716,7 @@ nsHTMLEditor::DeleteTable2(nsIDOMElement *aTable, nsISelection *aSelection)
     res = AppendNodeToSelectionAsRange(aTable);
   NS_ENSURE_SUCCESS(res, res);
 
-  return DeleteSelection(nsIEditor::eNext);
+  return DeleteSelection(nsIEditor::eNext, nsIEditor::eStrip);
 }
 
 NS_IMETHODIMP

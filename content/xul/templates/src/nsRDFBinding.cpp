@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULTemplateQueryProcessorRDF.h"
 #include "nsXULTemplateResultRDF.h"
 #include "nsRDFBinding.h"

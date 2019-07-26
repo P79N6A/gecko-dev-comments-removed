@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "HTMLFormControlAccessible.h"
 
 #include "Accessible-inl.h"
@@ -437,7 +404,7 @@ HTMLTextFieldAccessible::Value(nsString& aValue)
 }
 
 void
-HTMLTextFieldAccessible::ApplyARIAState(PRUint64* aState)
+HTMLTextFieldAccessible::ApplyARIAState(PRUint64* aState) const
 {
   nsHyperTextAccessibleWrap::ApplyARIAState(aState);
 

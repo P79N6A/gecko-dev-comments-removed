@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNativeAppSupportBase.h"
 
 nsNativeAppSupportBase::nsNativeAppSupportBase()

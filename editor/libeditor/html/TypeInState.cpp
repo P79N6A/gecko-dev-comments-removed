@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TypeInState.h"
 #include "nsEditor.h"
 
@@ -77,16 +44,11 @@ nsresult TypeInState::UpdateSelState(nsISelection *aSelection)
 {
   NS_ENSURE_TRUE(aSelection, NS_ERROR_NULL_POINTER);
   
-  bool isCollapsed = false;
-  nsresult result = aSelection->GetIsCollapsed(&isCollapsed);
-
-  NS_ENSURE_SUCCESS(result, result);
-
-  if (isCollapsed)
-  {
-    result = nsEditor::GetStartNodeAndOffset(aSelection, getter_AddRefs(mLastSelectionContainer), &mLastSelectionOffset);
+  if (!aSelection->Collapsed()) {
+    return NS_OK;
   }
-  return result;
+
+  return nsEditor::GetStartNodeAndOffset(aSelection, getter_AddRefs(mLastSelectionContainer), &mLastSelectionOffset);
 }
 
 
@@ -102,18 +64,12 @@ NS_IMETHODIMP TypeInState::NotifySelectionChanged(nsIDOMDocument *, nsISelection
   
   
 
-  if (aSelection)
-  {
-    bool isCollapsed = false;
-    nsresult result = aSelection->GetIsCollapsed(&isCollapsed);
-    NS_ENSURE_SUCCESS(result, result);
-
+  if (aSelection) {
     PRInt32 rangeCount = 0;
-    result = aSelection->GetRangeCount(&rangeCount);
+    nsresult result = aSelection->GetRangeCount(&rangeCount);
     NS_ENSURE_SUCCESS(result, result);
 
-    if (isCollapsed && rangeCount)
-    {
+    if (aSelection->Collapsed() && rangeCount) {
       nsCOMPtr<nsIDOMNode> selNode;
       PRInt32 selOffset = 0;
 

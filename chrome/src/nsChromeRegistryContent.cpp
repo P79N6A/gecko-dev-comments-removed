@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "RegistryMessageUtils.h"
 #include "nsChromeRegistry.h"
 #include "nsChromeRegistryContent.h"
@@ -117,9 +84,7 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
   entry->localeBaseURI = locale;
   entry->skinBaseURI = skin;
 
-  nsresult rv = mPackagesHash.Put(aPackage.package, entry);
-  if (NS_FAILED(rv))
-    return;
+  mPackagesHash.Put(aPackage.package, entry);
 }
 
 void

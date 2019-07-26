@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsISupportsUtils.h"
 #include "nsIMenuBoxObject.h"
 #include "nsBoxObject.h"

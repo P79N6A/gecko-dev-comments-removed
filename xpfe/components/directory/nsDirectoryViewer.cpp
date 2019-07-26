@@ -15,42 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDirectoryViewer.h"
 #include "nsIDirIndex.h"
 #include "jsapi.h"

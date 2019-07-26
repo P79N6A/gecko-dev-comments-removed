@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDebug.h"
 #include "nsOggCodecState.h"
 #include "nsOggDecoder.h"
@@ -45,6 +12,9 @@
 #include "nsBuiltinDecoderReader.h"
 
 #include "mozilla/StandardInteger.h"
+#include "mozilla/Util.h" 
+
+using namespace mozilla;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gBuiltinDecoderLog;
@@ -921,7 +891,7 @@ nsresult nsOpusState::PageIn(ogg_page* aPage)
 void nsOpusState::ReconstructGranulepos(void)
 {
   NS_ASSERTION(mUnstamped.Length() > 0, "Must have unstamped packets");
-  ogg_packet* last = mUnstamped[mUnstamped.Length()-1];
+  DebugOnly<ogg_packet*> last = mUnstamped[mUnstamped.Length()-1];
   NS_ASSERTION(last->e_o_s || last->granulepos > 0,
       "Must know last granulepos!");
 
@@ -1260,12 +1230,7 @@ bool nsSkeletonState::DecodeHeader(ogg_packet* aPacket)
     LOG(PR_LOG_DEBUG, ("Skeleton segment length: %lld", mLength));
 
     
-    bool init = mIndex.Init();
-    if (!init) {
-      NS_WARNING("Failed to initialize Ogg skeleton serialno-to-index map");
-      mActive = false;
-      return mDoneReadingHeaders = true;
-    }
+    mIndex.Init();
     mActive = true;
   } else if (IsSkeletonIndex(aPacket) && mVersion >= SKELETON_VERSION(4,0)) {
     if (!DecodeIndex(aPacket)) {

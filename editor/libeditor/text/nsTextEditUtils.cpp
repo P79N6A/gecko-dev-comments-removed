@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTextEditUtils.h"
 
 #include "mozilla/dom/Element.h"
@@ -47,17 +15,11 @@ using namespace mozilla;
 
 
 
-
-
-
-
 bool 
 nsTextEditUtils::IsBody(nsIDOMNode *node)
 {
-  return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("body"));
+  return nsEditor::NodeIsType(node, nsGkAtoms::body);
 }
-
-
 
 
 
@@ -65,7 +27,7 @@ nsTextEditUtils::IsBody(nsIDOMNode *node)
 bool 
 nsTextEditUtils::IsBreak(nsIDOMNode *node)
 {
-  return nsEditor::NodeIsTypeString(node, NS_LITERAL_STRING("br"));
+  return nsEditor::NodeIsType(node, nsGkAtoms::br);
 }
 
 

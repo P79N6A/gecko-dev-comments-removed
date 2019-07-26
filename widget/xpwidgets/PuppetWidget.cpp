@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/PBrowserChild.h"
 #include "BasicLayers.h"
 #if defined(MOZ_ENABLE_D3D10_LAYER)

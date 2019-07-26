@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsTextEditRules_h__
 #define nsTextEditRules_h__
 
@@ -275,6 +243,7 @@ class nsTextRulesInfo : public nsRulesInfo
     outputFormat(0),
     maxLength(-1),
     collapsedAction(nsIEditor::eNext),
+    stripWrappers(nsIEditor::eStrip),
     bOrdered(false),
     entireList(false),
     bulletType(0),
@@ -293,6 +262,7 @@ class nsTextRulesInfo : public nsRulesInfo
   
   
   nsIEditor::EDirection collapsedAction;
+  nsIEditor::EStripWrappers stripWrappers;
   
   
   bool bOrdered;

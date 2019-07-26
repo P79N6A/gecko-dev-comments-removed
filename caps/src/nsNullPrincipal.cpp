@@ -1,46 +1,13 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * the Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2006
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Boris Zbarsky <bzbarsky@mit.edu> (Original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/**
- * This is the principal that has no rights and can't be accessed by
- * anything other than itself and chrome; null principals are not
- * same-origin with anything but themselves.
- */
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -101,7 +68,7 @@ nsNullPrincipal::~nsNullPrincipal()
 nsresult
 nsNullPrincipal::Init()
 {
-  // FIXME: bug 327161 -- make sure the uuid generator is reseeding-resistant.
+  
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
     do_GetService("@mozilla.org/uuid-generator;1", &rv);
@@ -117,8 +84,8 @@ nsNullPrincipal::Init()
   PRUint32 suffixLen = NSID_LENGTH - 1;
   PRUint32 prefixLen = ArrayLength(NS_NULLPRINCIPAL_PREFIX) - 1;
 
-  // Use an nsCString so we only do the allocation once here and then share
-  // with nsJSPrincipals
+  
+  
   nsCString str;
   str.SetCapacity(prefixLen + suffixLen);
 
@@ -151,9 +118,9 @@ void nsNullPrincipal::dumpImpl()
 }
 #endif 
 
-/**
- * nsIPrincipal implementation
- */
+
+
+
 
 NS_IMETHODIMP
 nsNullPrincipal::GetPreferences(char** aPrefName, char** aID,
@@ -161,7 +128,7 @@ nsNullPrincipal::GetPreferences(char** aPrefName, char** aID,
                                 char** aGrantedList, char** aDeniedList,
                                 bool* aIsTrusted)
 {
-  // The null principal should never be written to preferences.
+  
   *aPrefName = nsnull;
   *aID = nsnull;
   *aSubjectName = nsnull;
@@ -175,8 +142,8 @@ nsNullPrincipal::GetPreferences(char** aPrefName, char** aID,
 NS_IMETHODIMP
 nsNullPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
 {
-  // Just equal to ourselves.  Note that nsPrincipal::Equals will return false
-  // for us since we have a unique domain/origin/etc.
+  
+  
   *aResult = (aOther == this);
   return NS_OK;
 }
@@ -197,8 +164,8 @@ nsNullPrincipal::GetHashValue(PRUint32 *aResult)
 NS_IMETHODIMP
 nsNullPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
 {
-  // We don't actually do security policy caching.  And it's not like anyone
-  // can set a security policy for us anyway.
+  
+  
   *aSecurityPolicy = nsnull;
   return NS_OK;
 }
@@ -206,8 +173,8 @@ nsNullPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
 NS_IMETHODIMP
 nsNullPrincipal::SetSecurityPolicy(void* aSecurityPolicy)
 {
-  // We don't actually do security policy caching.  And it's not like anyone
-  // can set a security policy for us anyway.
+  
+  
   return NS_OK;
 }
 
@@ -215,7 +182,7 @@ NS_IMETHODIMP
 nsNullPrincipal::CanEnableCapability(const char *aCapability, 
                                      PRInt16 *aResult)
 {
-  // Null principal can enable no capabilities.
+  
   *aResult = nsIPrincipal::ENABLE_DENIED;
   return NS_OK;
 }
@@ -225,7 +192,7 @@ nsNullPrincipal::IsCapabilityEnabled(const char *aCapability,
                                      void *aAnnotation, 
                                      bool *aResult)
 {
-  // Nope.  No capabilities, I say!
+  
   *aResult = false;
   return NS_OK;
 }
@@ -247,7 +214,7 @@ nsNullPrincipal::GetURI(nsIURI** aURI)
 NS_IMETHODIMP
 nsNullPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 {
-  // CSP on a null principal makes no sense
+  
   *aCsp = nsnull;
   return NS_OK;
 }
@@ -255,7 +222,7 @@ nsNullPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 NS_IMETHODIMP
 nsNullPrincipal::SetCsp(nsIContentSecurityPolicy* aCsp)
 {
-  // CSP on a null principal makes no sense
+  
   return NS_ERROR_NOT_AVAILABLE;
 }
 
@@ -268,8 +235,8 @@ nsNullPrincipal::GetDomain(nsIURI** aDomain)
 NS_IMETHODIMP
 nsNullPrincipal::SetDomain(nsIURI* aDomain)
 {
-  // I think the right thing to do here is to just throw...  Silently failing
-  // seems counterproductive.
+  
+  
   return NS_ERROR_NOT_AVAILABLE;
 }
 
@@ -310,9 +277,9 @@ nsNullPrincipal::GetPrettyName(nsACString& aName)
 NS_IMETHODIMP
 nsNullPrincipal::Subsumes(nsIPrincipal *aOther, bool *aResult)
 {
-  // We don't subsume anything except ourselves.  Note that nsPrincipal::Equals
-  // will return false for us, since we're not about:blank and not Equals to
-  // reasonable nsPrincipals.
+  
+  
+  
   *aResult = (aOther == this);
   return NS_OK;
 }
@@ -347,22 +314,22 @@ nsNullPrincipal::GetCertificate(nsISupports** aCertificate)
     return NS_OK;
 }
 
-/**
- * nsISerializable implementation
- */
+
+
+
 NS_IMETHODIMP
 nsNullPrincipal::Read(nsIObjectInputStream* aStream)
 {
-  // no-op: CID is sufficient to create a useful nsNullPrincipal, since the URI
-  // is not really relevant.
+  
+  
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::Write(nsIObjectOutputStream* aStream)
 {
-  // no-op: CID is sufficient to create a useful nsNullPrincipal, since the URI
-  // is not really relevant.
+  
+  
   return NS_OK;
 }
 

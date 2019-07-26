@@ -9,41 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "base/basictypes.h"
 
 #include "prenv.h"
@@ -1400,11 +1365,22 @@ nsFrameLoader::ShouldUseRemoteProcess()
     return false;
   }
 
-  return OwnerIsBrowserFrame() ||
-         (bool) mOwnerContent->AttrValueIs(kNameSpaceID_None,
-                                           nsGkAtoms::Remote,
-                                           nsGkAtoms::_true,
-                                           eCaseMatters);
+  
+  
+  if (OwnerIsBrowserFrame() &&
+      !mOwnerContent->HasAttr(kNameSpaceID_None, nsGkAtoms::Remote)) {
+
+    return Preferences::GetBool("dom.ipc.browser_frames.oop_by_default", false);
+  }
+
+  
+  
+  return (OwnerIsBrowserFrame() ||
+          mOwnerContent->GetNameSpaceID() == kNameSpaceID_XUL) &&
+         mOwnerContent->AttrValueIs(kNameSpaceID_None,
+                                    nsGkAtoms::Remote,
+                                    nsGkAtoms::_true,
+                                    eCaseMatters);
 }
 
 nsresult

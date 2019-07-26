@@ -4,43 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPNGDecoder.h"
 #include "ImageLogging.h"
 
@@ -519,7 +482,6 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
   
   decoder->PostSize(width, height);
   if (decoder->HasError()) {
-    
     
     longjmp(png_jmpbuf(decoder->mPNG), 1);
   }

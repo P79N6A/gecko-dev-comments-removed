@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsProtocolProxyService.h"
@@ -336,8 +303,7 @@ nsProtocolProxyService::~nsProtocolProxyService()
 nsresult
 nsProtocolProxyService::Init()
 {
-    if (!mFailedProxies.Init())
-        return NS_ERROR_OUT_OF_MEMORY;
+    mFailedProxies.Init();
 
     
     nsCOMPtr<nsIPrefBranch> prefBranch =

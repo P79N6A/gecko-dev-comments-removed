@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jsnum_h___
 #define jsnum_h___
 
@@ -184,22 +151,6 @@ ToUint32(JSContext *cx, const js::Value &v, uint32_t *out)
     }
     extern bool ToUint32Slow(JSContext *cx, const js::Value &v, uint32_t *ip);
     return ToUint32Slow(cx, v, out);
-}
-
-
-
-
-
-
-JS_ALWAYS_INLINE bool
-NonstandardToInt32(JSContext *cx, const js::Value &v, int32_t *out)
-{
-    if (v.isInt32()) {
-        *out = v.toInt32();
-        return true;
-    }
-    extern bool NonstandardToInt32Slow(JSContext *cx, const js::Value &v, int32_t *ip);
-    return NonstandardToInt32Slow(cx, v, out);
 }
 
 

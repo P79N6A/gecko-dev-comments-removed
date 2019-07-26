@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLLinkAccessible.h"
 
 #include "nsCoreUtils.h"
@@ -86,24 +52,23 @@ nsHTMLLinkAccessible::NativeState()
     states |= states::SELECTABLE;
   }
 
-  nsEventStates state = mContent->AsElement()->State();
-  if (state.HasAtLeastOneOfStates(NS_EVENT_STATE_VISITED |
-                                  NS_EVENT_STATE_UNVISITED)) {
-    states |= states::LINKED;
-
-    if (state.HasState(NS_EVENT_STATE_VISITED))
-      states |= states::TRAVERSED;
-
-    return states;
-  }
-
-  
-  
-  
-  if (nsCoreUtils::HasClickListener(mContent))
-    states |= states::LINKED;
-
   return states;
+}
+
+PRUint64
+nsHTMLLinkAccessible::NativeLinkState() const
+{
+  nsEventStates eventState = mContent->AsElement()->State();
+  if (eventState.HasState(NS_EVENT_STATE_UNVISITED))
+    return states::LINKED;
+
+  if (eventState.HasState(NS_EVENT_STATE_VISITED))
+    return states::LINKED | states::TRAVERSED;
+
+  
+  
+  
+  return nsCoreUtils::HasClickListener(mContent) ? states::LINKED : 0;
 }
 
 void

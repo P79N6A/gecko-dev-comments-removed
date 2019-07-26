@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIComponentManager.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMWindow.h"

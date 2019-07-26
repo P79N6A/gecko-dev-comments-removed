@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _LIBMATH_H
 #define _LIBMATH_H
 
@@ -94,11 +60,11 @@ NumberDiv(double a, double b)
             || MOZ_DOUBLE_IS_NaN(b) 
 #endif
         )
-            return js_NaN;    
+            return js_NaN;
 
         if (MOZ_DOUBLE_IS_NEGATIVE(a) != MOZ_DOUBLE_IS_NEGATIVE(b))
             return js_NegativeInfinity;
-        return js_PositiveInfinity; 
+        return js_PositiveInfinity;
     }
 
     return a / b;

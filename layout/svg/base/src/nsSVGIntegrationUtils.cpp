@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGIntegrationUtils.h"
 
 
@@ -513,7 +481,7 @@ DrawableFromPaintServer(nsIFrame*         aFrame,
                            aPaintServerSize.width, aPaintServerSize.height);
     overrideBounds.ScaleInverse(aFrame->PresContext()->AppUnitsPerDevPixel());
     nsRefPtr<gfxPattern> pattern =
-      server->GetPaintServerPattern(aTarget, 1.0, &overrideBounds);
+      server->GetPaintServerPattern(aTarget, &nsStyleSVG::mFill, 1.0, &overrideBounds);
 
     if (!pattern)
       return nsnull;

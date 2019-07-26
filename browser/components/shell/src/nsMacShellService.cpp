@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDirectoryServiceDefs.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLImageElement.h"

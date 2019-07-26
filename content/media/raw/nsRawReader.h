@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsRawReader_h_)
 #define nsRawReader_h_
 
@@ -69,6 +35,11 @@ public:
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
+
+  
+  bool IsSeekableInBufferedRanges() {
+    return true;
+  }
 
 private:
   bool ReadFromResource(MediaResource *aResource, PRUint8 *aBuf, PRUint32 aLength);

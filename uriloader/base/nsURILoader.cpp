@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsURILoader.h"
 #include "nsAutoPtr.h"
 #include "nsIURIContentListener.h"

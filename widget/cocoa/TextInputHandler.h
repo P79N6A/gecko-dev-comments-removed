@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TextInputHandler_h_
 #define TextInputHandler_h_
 
@@ -61,6 +28,7 @@ namespace widget {
 
 enum
 {
+  kSpaceKeyCode       = 0x31,
   kEscapeKeyCode      = 0x35,
   kRCommandKeyCode    = 0x36, 
   kCommandKeyCode     = 0x37,
@@ -71,6 +39,7 @@ enum
   kRShiftKeyCode      = 0x3C, 
   kROptionKeyCode     = 0x3D, 
   kRControlKeyCode    = 0x3E, 
+
   kClearKeyCode       = 0x47,
 
   
@@ -89,6 +58,10 @@ enum
   kF13KeyCode         = 0x69,
   kF14KeyCode         = 0x6B,
   kF15KeyCode         = 0x71,
+  kF16KeyCode         = 0x6A,
+  kF17KeyCode         = 0x40,
+  kF18KeyCode         = 0x4F,
+  kF19KeyCode         = 0x50,
 
   kPrintScreenKeyCode = kF13KeyCode,
   kScrollLockKeyCode  = kF14KeyCode,
@@ -112,9 +85,14 @@ enum
   kKeypadDecimalKeyCode   = 0x41,
   kKeypadDivideKeyCode    = 0x4B,
   kKeypadEqualsKeyCode    = 0x51, 
+
   kEnterKeyCode           = 0x4C,
   kReturnKeyCode          = 0x24,
   kPowerbookEnterKeyCode  = 0x34, 
+
+  
+  kJapanese_Eisu          = 0x66,
+  kJapanese_Kana          = 0x68,
 
   kInsertKeyCode          = 0x72, 
   kDeleteKeyCode          = 0x75, 
@@ -287,6 +265,19 @@ public:
 
   void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
 
+  
+
+
+
+
+
+
+
+
+
+  PRUint32 ComputeGeckoKeyCode(UInt32 aNativeKeyCode, UInt32 aKbType,
+                               bool aCmdIsPressed);
+
 protected:
   
 
@@ -317,7 +308,7 @@ protected:
 
 
 
-  PRUint32 TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbdType);
+  PRUint32 TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbType);
 
   
 
@@ -329,7 +320,10 @@ protected:
 
 
 
-  void InitKeyPressEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
+
+
+  void InitKeyPressEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+                         UInt32 aKbType);
 
   bool GetBoolProperty(const CFStringRef aKey);
   bool GetStringProperty(const CFStringRef aKey, CFStringRef &aStr);
@@ -401,25 +395,6 @@ public:
                                     PRUint32 aModifierFlags,
                                     const nsAString& aCharacters,
                                     const nsAString& aUnmodifiedCharacters);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static PRUint32 ComputeGeckoKeyCode(UInt32 aNativeKeyCode,
-                                      NSString *aCharacters);
 
   
 
@@ -627,16 +602,6 @@ protected:
 
 
   static bool IsPrintableChar(PRUnichar aChar);
-
-  
-
-
-
-
-
-
-
-  static PRUint32 ComputeGeckoKeyCodeFromChar(PRUnichar aChar);
 
   
 

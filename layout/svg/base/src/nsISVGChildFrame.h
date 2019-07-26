@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_ISVGCHILDFRAME_H__
 #define __NS_ISVGCHILDFRAME_H__
 
@@ -110,7 +77,8 @@ public:
   enum SVGChangedFlags {
     DO_NOT_NOTIFY_RENDERING_OBSERVERS = 0x01,
     TRANSFORM_CHANGED     = 0x02,
-    COORD_CONTEXT_CHANGED = 0x04
+    COORD_CONTEXT_CHANGED = 0x04,
+    FULL_ZOOM_CHANGED     = 0x08
   };
   virtual void NotifySVGChanged(PRUint32 aFlags)=0;
 
@@ -140,9 +108,6 @@ public:
 
   
   NS_IMETHOD_(bool) IsDisplayContainer()=0;
-
-  
-  NS_IMETHOD_(bool) HasValidCoveredRect()=0;
 };
 
 #endif 

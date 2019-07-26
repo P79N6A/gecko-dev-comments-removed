@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIWifiMonitor.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 DOMCI_CLASS(Window)
 DOMCI_CLASS(Location)
 DOMCI_CLASS(Navigator)
@@ -81,6 +48,7 @@ DOMCI_CLASS(CompositionEvent)
 DOMCI_CLASS(PopupBlockedEvent)
 DOMCI_CLASS(DeviceLightEvent)
 DOMCI_CLASS(DeviceProximityEvent)
+DOMCI_CLASS(UserProximityEvent)
 DOMCI_CLASS(DeviceOrientationEvent)
 DOMCI_CLASS(DeviceMotionEvent)
 DOMCI_CLASS(DeviceAcceleration)
@@ -295,6 +263,7 @@ DOMCI_CLASS(SVGTitleElement)
 DOMCI_CLASS(SVGTSpanElement)
 DOMCI_CLASS(SVGUnknownElement)
 DOMCI_CLASS(SVGUseElement)
+DOMCI_CLASS(SVGViewElement)
 
 
 DOMCI_CLASS(SVGAngle)

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsscope.h"
 #include "jsnum.h"
 #include "MonoIC.h"
@@ -233,7 +200,7 @@ class EqualityCompiler : public BaseCompiler
     Vector<Jump, 4, SystemAllocPolicy> jumpList;
     Jump trueJump;
     Jump falseJump;
-    
+
   public:
     EqualityCompiler(VMFrame &f, EqualityICInfo &ic)
         : BaseCompiler(f.cx), f(f), ic(ic), jumpList(SystemAllocPolicy())
@@ -254,7 +221,7 @@ class EqualityCompiler : public BaseCompiler
     {
         falseJump = j;
     }
-    
+
     void generateStringPath(Assembler &masm)
     {
         const ValueRemat &lvr = ic.lvr;
@@ -267,18 +234,18 @@ class EqualityCompiler : public BaseCompiler
             Jump lhsFail = masm.testString(Assembler::NotEqual, lvr.typeReg());
             linkToStub(lhsFail);
         }
-        
+
         if (!rvr.isType(JSVAL_TYPE_STRING)) {
             Jump rhsFail = masm.testString(Assembler::NotEqual, rvr.typeReg());
             linkToStub(rhsFail);
         }
 
         RegisterID tmp = ic.tempReg;
-        
+
         
         JS_STATIC_ASSERT(JSString::ATOM_FLAGS == 0);
         Imm32 atomMask(JSString::ATOM_MASK);
-        
+
         masm.load32(Address(lvr.dataReg(), JSString::offsetOfLengthAndFlags()), tmp);
         Jump lhsNotAtomized = masm.branchTest32(Assembler::NonZero, tmp, atomMask);
         linkToStub(lhsNotAtomized);
@@ -307,12 +274,12 @@ class EqualityCompiler : public BaseCompiler
     {
         ValueRemat &lvr = ic.lvr;
         ValueRemat &rvr = ic.rvr;
-        
+
         if (!lvr.isConstant() && !lvr.isType(JSVAL_TYPE_OBJECT)) {
             Jump lhsFail = masm.testObject(Assembler::NotEqual, lvr.typeReg());
             linkToStub(lhsFail);
         }
-        
+
         if (!rvr.isConstant() && !rvr.isType(JSVAL_TYPE_OBJECT)) {
             Jump rhsFail = masm.testObject(Assembler::NotEqual, rvr.typeReg());
             linkToStub(rhsFail);
@@ -376,7 +343,7 @@ class EqualityCompiler : public BaseCompiler
             Assembler masm;
             Value rval = f.regs.sp[-1];
             Value lval = f.regs.sp[-2];
-            
+
             if (rval.isObject() && lval.isObject()) {
                 generateObjectPath(masm);
                 ic.generated = true;
@@ -974,7 +941,7 @@ class CallCompiler : public BaseCompiler
                 disable();
             return NULL;
         }
-            
+
         JSFunction *fun = ucr.fun;
         JS_ASSERT(fun);
         JSScript *script = fun->script();

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern "C" {
 #include <libgnomevfs/gnome-vfs.h>
 #include <libgnomevfs/gnome-vfs-standard-callbacks.h>

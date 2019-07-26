@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "frontend/BytecodeCompiler.h"
 
 #include "jsprobes.h"
@@ -157,8 +124,9 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     
     if (callerFrame &&
         callerFrame->isScriptFrame() &&
-        callerFrame->script()->strictModeCode) {
-        bce.sc->flags |= TCF_STRICT_MODE_CODE;
+        callerFrame->script()->strictModeCode)
+    {
+        bce.sc->setInStrictMode();
         tokenStream.setStrictMode();
     }
 

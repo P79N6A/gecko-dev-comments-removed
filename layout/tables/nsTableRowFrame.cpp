@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTableRowFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsIPresShell.h"

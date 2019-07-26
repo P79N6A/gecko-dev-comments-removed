@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <string.h>
 
 #include "mozilla/Util.h"
@@ -97,8 +64,9 @@ using namespace js::gc;
 using namespace js::types;
 
 static JSBool
-fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, Value *vp)
 {
+    JSObject *obj = obj_;
     while (!obj->isFunction()) {
         obj = obj->getProto();
         if (!obj)
@@ -210,13 +178,11 @@ static const uint16_t poisonPillProps[] = {
 };
 
 static JSBool
-fun_enumerate(JSContext *cx, JSObject *obj)
+fun_enumerate(JSContext *cx, HandleObject obj)
 {
     JS_ASSERT(obj->isFunction());
 
-    RootObject root(cx, &obj);
-
-    jsid id;
+    RootedVarId id(cx);
     bool found;
 
     if (!obj->isBoundFunction()) {
@@ -228,7 +194,7 @@ fun_enumerate(JSContext *cx, JSObject *obj)
     id = NameToId(cx->runtime->atomState.lengthAtom);
     if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
         return false;
-        
+
     id = NameToId(cx->runtime->atomState.nameAtom);
     if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
         return false;
@@ -290,7 +256,7 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, HandleObject obj)
 }
 
 static JSBool
-fun_resolve(JSContext *cx, JSObject *obj, jsid id, unsigned flags,
+fun_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
             JSObject **objp)
 {
     if (!JSID_IS_ATOM(id))
@@ -330,7 +296,7 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, unsigned flags,
             v.setInt32(fun->nargs);
         else
             v.setString(fun->atom ? fun->atom : cx->runtime->emptyString);
-        
+
         if (!DefineNativeProperty(cx, fun, id, v, JS_PropertyStub, JS_StrictPropertyStub,
                                   JSPROP_PERMANENT | JSPROP_READONLY, 0, 0)) {
             return false;
@@ -479,8 +445,10 @@ js::CloneInterpretedFunction(JSContext *cx, JSFunction *srcFun)
 
 
 static JSBool
-fun_hasInstance(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
+fun_hasInstance(JSContext *cx, HandleObject obj_, const Value *v, JSBool *bp)
 {
+    RootedVarObject obj(cx, obj_);
+
     while (obj->isFunction()) {
         if (!obj->isBoundFunction())
             break;
@@ -1203,30 +1171,6 @@ IsBuiltinFunctionConstructor(JSFunction *fun)
     return fun->maybeNative() == Function;
 }
 
-const Shape *
-LookupInterpretedFunctionPrototype(JSContext *cx, RootedVarObject funobj)
-{
-#ifdef DEBUG
-    JSFunction *fun = funobj->toFunction();
-    JS_ASSERT(fun->isInterpreted());
-    JS_ASSERT(!fun->isFunctionPrototype());
-    JS_ASSERT(!funobj->isBoundFunction());
-#endif
-
-    jsid id = NameToId(cx->runtime->atomState.classPrototypeAtom);
-    RootedVar<const Shape*> shape(cx, funobj->nativeLookup(cx, id));
-    if (!shape) {
-        if (!ResolveInterpretedFunctionPrototype(cx, funobj))
-            return NULL;
-        id = NameToId(cx->runtime->atomState.classPrototypeAtom);
-        shape = funobj->nativeLookup(cx, id);
-    }
-    JS_ASSERT(!shape->configurable());
-    JS_ASSERT(shape->isDataDescriptor());
-    JS_ASSERT(shape->hasSlot());
-    return shape;
-}
-
 } 
 
 JSFunction *
@@ -1341,11 +1285,9 @@ js_CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 }
 
 JSFunction *
-js_DefineFunction(JSContext *cx, HandleObject obj, jsid id, Native native,
+js_DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
                   unsigned nargs, unsigned attrs, AllocKind kind)
 {
-    RootId idRoot(cx, &id);
-
     PropertyOp gop;
     StrictPropertyOp sop;
 

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozEnglishWordUtils.h"
 #include "nsReadableUtils.h"
 #include "nsIServiceManager.h"

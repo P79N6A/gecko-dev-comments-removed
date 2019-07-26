@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsCSSRendering_h___
 #define nsCSSRendering_h___
 
@@ -615,7 +583,11 @@ protected:
   gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;
   gfxContext* mDestinationCtx;
+
   
+
+  bool mPreTransformed;
+
 };
 
 #endif

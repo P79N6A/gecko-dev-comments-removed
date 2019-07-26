@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CrossOriginWrapper.h"
 #include "FilteringWrapper.h"
 #include "XrayWrapper.h"

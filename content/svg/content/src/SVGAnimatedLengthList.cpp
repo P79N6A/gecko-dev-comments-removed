@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGAnimatedLengthList.h"
 #include "DOMSVGAnimatedLengthList.h"
 #include "nsSVGElement.h"

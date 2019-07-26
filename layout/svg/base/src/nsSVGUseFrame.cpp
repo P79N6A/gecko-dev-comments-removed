@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIAnonymousContentCreator.h"
 #include "nsIDOMSVGUseElement.h"
 #include "nsSVGGFrame.h"
@@ -87,6 +56,7 @@ public:
 #endif
 
   
+  virtual void UpdateBounds();
   virtual void NotifySVGChanged(PRUint32 aFlags);
 
   
@@ -196,6 +166,21 @@ nsSVGUseFrame::IsLeaf() const
 
 
 void
+nsSVGUseFrame::UpdateBounds()
+{
+  
+  
+  
+  float x, y;
+  static_cast<nsSVGUseElement*>(mContent)->
+    GetAnimatedLengthValues(&x, &y, nsnull);
+  mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
+                 gfxRect(x, y, 0.0, 0.0),
+                 PresContext()->AppUnitsPerCSSPixel()).TopLeft());
+  nsSVGUseFrameBase::UpdateBounds();
+}
+
+void
 nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
 {
   if (aFlags & COORD_CONTEXT_CHANGED &&
@@ -208,6 +193,10 @@ nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
       aFlags |= TRANSFORM_CHANGED;
     }
   }
+
+  
+  
+  
 
   nsSVGUseFrameBase::NotifySVGChanged(aFlags);
 }

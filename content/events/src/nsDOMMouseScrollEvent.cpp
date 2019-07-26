@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMMouseScrollEvent.h"
 #include "nsGUIEvent.h"
 #include "nsIContent.h"

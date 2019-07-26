@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "WebSocketLog.h"
 #include "WebSocketChannel.h"
 
@@ -1374,31 +1340,38 @@ WebSocketChannel::PrimeNewOutgoingMessage()
 
     mClientClosed = 1;
     mOutHeader[0] = kFinalFragBit | kClose;
-    mOutHeader[1] = 0x02; 
-    mOutHeader[1] |= kMaskBit;
+    mOutHeader[1] = kMaskBit;
 
     
     payload = mOutHeader + 6;
 
     
-    mHdrOutToSend = 8;
-
     
     
-    
-    if (NS_SUCCEEDED(mStopOnClose) && mScriptCloseCode) {
-      *((PRUint16 *)payload) = PR_htons(mScriptCloseCode);
-      if (!mScriptCloseReason.IsEmpty()) {
-        NS_ABORT_IF_FALSE(mScriptCloseReason.Length() <= 123,
-                          "Close Reason Too Long");
-        mOutHeader[1] += mScriptCloseReason.Length();
-        mHdrOutToSend += mScriptCloseReason.Length();
-        memcpy (payload + 2,
-                mScriptCloseReason.BeginReading(),
-                mScriptCloseReason.Length());
+    if (NS_SUCCEEDED(mStopOnClose)) {
+      if (mScriptCloseCode) {
+        *((PRUint16 *)payload) = PR_htons(mScriptCloseCode);
+        mOutHeader[1] += 2;
+        mHdrOutToSend = 8;
+        if (!mScriptCloseReason.IsEmpty()) {
+          NS_ABORT_IF_FALSE(mScriptCloseReason.Length() <= 123,
+                            "Close Reason Too Long");
+          mOutHeader[1] += mScriptCloseReason.Length();
+          mHdrOutToSend += mScriptCloseReason.Length();
+          memcpy (payload + 2,
+                  mScriptCloseReason.BeginReading(),
+                  mScriptCloseReason.Length());
+        }
+      } else {
+        
+        
+        
+        mHdrOutToSend = 6;
       }
     } else {
       *((PRUint16 *)payload) = PR_htons(ResultToCloseCode(mStopOnClose));
+      mOutHeader[1] += 2;
+      mHdrOutToSend = 8;
     }
 
     if (mServerClosed) {
@@ -1504,30 +1477,29 @@ WebSocketChannel::PrimeNewOutgoingMessage()
 
   ApplyMask(mask, mCurrentOut->BeginWriting(), mCurrentOut->Length());
 
+  PRInt32 len = mCurrentOut->Length();
+
   
-  if (mCurrentOut->Length() <= kCopyBreak) {
-    memcpy(mOutHeader + mHdrOutToSend, mCurrentOut->BeginWriting(),
-           mCurrentOut->Length());
-    mHdrOutToSend += mCurrentOut->Length();
-    mCurrentOutSent = mCurrentOut->Length();
+  if (len && len <= kCopyBreak) {
+    memcpy(mOutHeader + mHdrOutToSend, mCurrentOut->BeginWriting(), len);
+    mHdrOutToSend += len;
+    mCurrentOutSent = len;
   }
 
-  if (mCompressor) {
+  if (len && mCompressor) {
     
     
     PRUint32 currentHeaderSize = mHdrOutToSend;
     mHdrOutToSend = 0;
 
-    EnsureHdrOut(32 +
-                 (currentHeaderSize + mCurrentOut->Length() - mCurrentOutSent)
-                 / 2 * 3);
+    EnsureHdrOut(32 + (currentHeaderSize + len - mCurrentOutSent) / 2 * 3);
     mCompressor->Deflate(mOutHeader, currentHeaderSize,
                          mCurrentOut->BeginReading() + mCurrentOutSent,
-                         mCurrentOut->Length() - mCurrentOutSent);
+                         len - mCurrentOutSent);
 
     
     
-    mCurrentOutSent = mCurrentOut->Length();
+    mCurrentOutSent = len;
   }
 
   

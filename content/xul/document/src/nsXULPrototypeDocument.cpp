@@ -4,42 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULPrototypeDocument.h"
 #include "nsXULDocument.h"
 
@@ -137,7 +101,7 @@ nsXULPDGlobalObject_finalize(JSFreeOp *fop, JSObject *obj)
 
 
 JSBool
-nsXULPDGlobalObject_resolve(JSContext *cx, JSObject *obj, jsid id)
+nsXULPDGlobalObject_resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
 {
     JSBool did_resolve = JS_FALSE;
 

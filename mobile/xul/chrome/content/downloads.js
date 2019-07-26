@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef ANDROID
 const URI_GENERIC_ICON_DOWNLOAD = "drawable://alertdownloads";
 #else

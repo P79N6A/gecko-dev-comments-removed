@@ -51,38 +51,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef DEFINED_FORWARDED_EVENT
 #error "Don't define DEFINED_FORWARDED_EVENT"
 #endif 
@@ -457,6 +425,10 @@ WINDOW_ONLY_EVENT(deviceorientation,
                   NS_EVENT)
 WINDOW_ONLY_EVENT(deviceproximity,
                   NS_DEVICE_PROXIMITY,
+                  EventNameType_None,
+                  NS_EVENT)
+WINDOW_ONLY_EVENT(userproximity,
+                  NS_USER_PROXIMITY,
                   EventNameType_None,
                   NS_EVENT)
 WINDOW_ONLY_EVENT(devicelight,

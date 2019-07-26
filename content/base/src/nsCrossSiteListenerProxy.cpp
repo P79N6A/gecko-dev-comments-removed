@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCrossSiteListenerProxy.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
@@ -113,7 +81,8 @@ public:
 
   bool Initialize()
   {
-    return mTable.Init();
+    mTable.Init();
+    return true;
   }
 
   CacheEntry* GetEntry(nsIURI* aURI, nsIPrincipal* aPrincipal,
@@ -260,14 +229,7 @@ nsPreflightCache::GetEntry(nsIURI* aURI,
     }
   }
   
-  if (!mTable.Put(key, entry)) {
-    
-    delete entry;
-
-    NS_WARNING("Failed to add entry to the CORS preflight cache!");
-    return nsnull;
-  }
-
+  mTable.Put(key, entry);
   PR_INSERT_LINK(entry, &mList);
 
   return entry;

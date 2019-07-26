@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef js_typedarray_ic_h___
 #define js_typedarray_ic_h___
 
@@ -183,7 +151,7 @@ GenConversionForIntArray(Assembler &masm, JSObject *tarray, const ValueRemat &vr
         Int32CxVp stub;
         if (TypedArray::getType(tarray) == js::TypedArray::TYPE_UINT8_CLAMPED)
             stub = stubs::ConvertToTypedInt<true>;
-        else 
+        else
             stub = stubs::ConvertToTypedInt<false>;
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, stub), false);
         if (vr.dataReg() != Registers::ReturnReg)

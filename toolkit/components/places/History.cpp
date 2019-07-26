@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
 #include "nsXULAppAPI.h"
@@ -1938,8 +1904,7 @@ History::RegisterVisitedCallback(nsIURI* aURI,
 
   
   if (!mObservers.IsInitialized()) {
-    NS_ENSURE_TRUE(mObservers.Init(VISIT_OBSERVERS_INITIAL_CACHE_SIZE),
-                   NS_ERROR_OUT_OF_MEMORY);
+    mObservers.Init(VISIT_OBSERVERS_INITIAL_CACHE_SIZE);
   }
 
   

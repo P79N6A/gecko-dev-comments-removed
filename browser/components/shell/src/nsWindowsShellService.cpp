@@ -3,46 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "nsIDOMDocument.h"

@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGUTILS_H
 #define NS_SVGUTILS_H
 
@@ -45,6 +14,7 @@
 #include "gfxPoint.h"
 #include "gfxRect.h"
 #include "nsAlgorithm.h"
+#include "nsChangeHint.h"
 #include "nsColor.h"
 #include "nsCOMPtr.h"
 #include "nsID.h"
@@ -143,6 +113,9 @@ IsSVGWhitespace(PRUnichar aChar)
 
 bool NS_SMILEnabled();
 
+bool NS_SVGDisplayListHitTestingEnabled();
+bool NS_SVGDisplayListPaintingEnabled();
+
 
 
 
@@ -225,6 +198,8 @@ public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
   typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
+  static void Init();
+
   
 
 
@@ -234,6 +209,16 @@ public:
 
 
   static nsSVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
+
+  
+
+
+
+
+
+
+
+  static void ActivateByHyperlink(nsIContent *aContent);
 
   
 
@@ -315,7 +300,15 @@ public:
 
 
   static nsSVGDisplayContainerFrame* GetNearestSVGViewport(nsIFrame *aFrame);
+
   
+
+
+
+
+  static nsRect GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
+                                                const nsRect &aUnfilteredRect);
+
   
 
 
@@ -606,6 +599,12 @@ public:
 
   static bool OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame);
 #endif
+
+  
+
+
+
+  static gfxMatrix GetStrokeTransform(nsIFrame *aFrame);
 
   
 

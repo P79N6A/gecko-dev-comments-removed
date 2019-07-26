@@ -18,44 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsPresShell_h_
 #define nsPresShell_h_
 
@@ -86,6 +48,10 @@ class ReflowCountMgr;
 
 class nsPresShellEventCB;
 class nsAutoCauseReflowNotifier;
+
+
+
+#define PAINTLOCK_EVENT_DELAY 250
 
 class PresShell : public nsIPresShell,
                   public nsStubDocumentObserver,
@@ -351,6 +317,21 @@ public:
       IsLayoutFlushObserver(this);
   }
 
+  void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                           size_t *aArenasSize,
+                           size_t *aStyleSetsSize,
+                           size_t *aTextRunsSize,
+                           size_t *aPresContextSize) const;
+  size_t SizeOfTextRuns(nsMallocSizeOfFun aMallocSizeOf) const;
+
+  
+  
+  struct ScrollIntoViewData {
+    ScrollAxis mContentScrollVAxis;
+    ScrollAxis mContentScrollHAxis;
+    PRUint32   mContentToScrollToFlags;
+  };
+
 protected:
   virtual ~PresShell();
 
@@ -397,23 +378,20 @@ protected:
 #endif
 
   
-  void DoScrollContentIntoView(nsIContent* aContent,
-                               ScrollAxis  aVertical,
-                               ScrollAxis  aHorizontal,
-                               PRUint32    aFlags);
+  void DoScrollContentIntoView();
 
   friend struct AutoRenderingStateSaveRestore;
   friend struct RenderingState;
 
   struct RenderingState {
     RenderingState(PresShell* aPresShell) 
-      : mRenderFlags(aPresShell->mRenderFlags)
-      , mXResolution(aPresShell->mXResolution)
+      : mXResolution(aPresShell->mXResolution)
       , mYResolution(aPresShell->mYResolution)
+      , mRenderFlags(aPresShell->mRenderFlags)
     { }
-    PRUint32 mRenderFlags;
     float mXResolution;
     float mYResolution;
+    RenderFlags mRenderFlags;
   };
 
   struct AutoSaveRestoreRenderingState {
@@ -432,6 +410,12 @@ protected:
     PresShell* mPresShell;
     RenderingState mOldState;
   };
+  static RenderFlags ChangeFlag(RenderFlags aFlags, bool aOnOff,
+                                eRenderFlag aFlag)
+  {
+    return aOnOff ? (aFlags | aFlag) : (aFlag & ~aFlag);
+  }
+
 
   void SetRenderingState(const RenderingState& aState);
 
@@ -526,59 +510,6 @@ protected:
     return rv;
   }
 
-  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet; 
-                                             
-#ifdef DEBUG
-  PRUint32                  mUpdateCount;
-#endif
-  
-  nsTArray<nsIFrame*> mDirtyRoots;
-
-  bool mDocumentLoading;
-
-  bool mIgnoreFrameDestruction;
-  bool mHaveShutDown;
-
-  bool mViewportOverridden;
-
-  bool mLastRootReflowHadUnconstrainedHeight;
-
-  
-  
-  
-  PRUint32  mChangeNestCount;
-  
-  nsIFrame*   mCurrentEventFrame;
-  nsCOMPtr<nsIContent> mCurrentEventContent;
-  nsTArray<nsIFrame*> mCurrentEventFrameStack;
-  nsCOMArray<nsIContent> mCurrentEventContentStack;
-
-  nsCOMPtr<nsIContent>          mLastAnchorScrolledTo;
-  nscoord                       mLastAnchorScrollPositionY;
-  nsRefPtr<nsCaret>             mCaret;
-  nsRefPtr<nsCaret>             mOriginalCaret;
-  nsCOMPtr<nsIDragService>      mDragService;
-  
-#ifdef DEBUG
-  
-  
-  nsIFrame* mCurrentReflowRoot;
-#endif
-
-  
-  
-  nsTHashtable< nsPtrHashKey<nsIFrame> > mFramesToDirty;
-
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIContent> mContentToScrollTo;
-  ScrollAxis mContentScrollVAxis;
-  ScrollAxis mContentScrollHAxis;
-  PRUint32 mContentToScrollToFlags;
-
   class nsDelayedEvent
   {
   public:
@@ -654,58 +585,49 @@ protected:
     }
   };
 
-  bool                                 mNoDelayedMouseEvents;
-  bool                                 mNoDelayedKeyEvents;
-  nsTArray<nsAutoPtr<nsDelayedEvent> > mDelayedEvents;
-
-  nsCallbackEventRequest* mFirstCallbackEventRequest;
-  nsCallbackEventRequest* mLastCallbackEventRequest;
-
-  bool              mIsDocumentGone;      
-                                          
-                                          
-  bool              mShouldUnsuppressPainting;  
-                                                
-  nsCOMPtr<nsITimer> mPaintSuppressionTimer; 
-                                             
-                                             
-#define PAINTLOCK_EVENT_DELAY 250 // 250ms.  This is actually
-                                  
-                                  
-                                  
-
-  static void sPaintSuppressionCallback(nsITimer* aTimer, void* aPresShell); 
-
   
   
-  
-  
-  nsCOMPtr<nsITimer> mReflowContinueTimer;
-  static void sReflowContinueCallback(nsITimer* aTimer, void* aPresShell);
-  bool ScheduleReflowOffTimer();
-  
-#ifdef MOZ_REFLOW_PERF
-  ReflowCountMgr * mReflowCountMgr;
-#endif
+  void RecordMouseLocation(nsGUIEvent* aEvent);
+  class nsSynthMouseMoveEvent : public nsARefreshObserver {
+  public:
+    nsSynthMouseMoveEvent(PresShell* aPresShell, bool aFromScroll)
+      : mPresShell(aPresShell), mFromScroll(aFromScroll) {
+      NS_ASSERTION(mPresShell, "null parameter");
+    }
+    ~nsSynthMouseMoveEvent() {
+      Revoke();
+    }
 
-  static bool sDisableNonTestMouseEvents;
+    NS_INLINE_DECL_REFCOUNTING(nsSynthMouseMoveEvent)
+    
+    void Revoke() {
+      if (mPresShell) {
+        mPresShell->GetPresContext()->RefreshDriver()->
+          RemoveRefreshObserver(this, Flush_Display);
+        mPresShell = nsnull;
+      }
+    }
+    virtual void WillRefresh(mozilla::TimeStamp aTime) {
+      if (mPresShell)
+        mPresShell->ProcessSynthMouseMoveEvent(mFromScroll);
+    }
+  private:
+    PresShell* mPresShell;
+    bool mFromScroll;
+  };
+  void ProcessSynthMouseMoveEvent(bool aFromScroll);
 
-private:
-
+  void QueryIsActive();
+  nsresult UpdateImageLockingState();
 
 #ifdef ANDROID
   nsIDocument* GetTouchEventTargetDocument();
 #endif
   bool InZombieDocument(nsIContent *aContent);
   already_AddRefed<nsIPresShell> GetParentPresShell();
+  nsIFrame* GetCurrentEventFrame();
   nsresult RetargetEventToParent(nsGUIEvent* aEvent,
                                  nsEventStatus*  aEventStatus);
-
-  
-protected:
-  
-  nsIFrame* GetCurrentEventFrame();
-private:
   void PushCurrentEventInfo(nsIFrame* aFrame, nsIContent* aContent);
   void PopCurrentEventInfo();
   nsresult HandleEventInternal(nsEvent* aEvent, nsEventStatus *aStatus);
@@ -746,72 +668,110 @@ private:
   void FireResizeEvent();
   void FireBeforeResizeEvent();
   static void AsyncResizeEventCallback(nsITimer* aTimer, void* aPresShell);
-  nsRevocableEventPtr<nsRunnableMethod<PresShell> > mResizeEvent;
-  nsCOMPtr<nsITimer> mAsyncResizeEventTimer;
-  bool mAsyncResizeTimerIsActive;
-  bool mInResize;
 
   virtual void SynthesizeMouseMove(bool aFromScroll);
 
-  
-  
-  void RecordMouseLocation(nsGUIEvent* aEvent);
-  
-  
-  
-  
-  
-  
-  
-  
-  nsPoint mMouseLocation;
-  class nsSynthMouseMoveEvent : public nsARefreshObserver {
-  public:
-    nsSynthMouseMoveEvent(PresShell* aPresShell, bool aFromScroll)
-      : mPresShell(aPresShell), mFromScroll(aFromScroll) {
-      NS_ASSERTION(mPresShell, "null parameter");
-    }
-    ~nsSynthMouseMoveEvent() {
-      Revoke();
-    }
-
-    NS_INLINE_DECL_REFCOUNTING(nsSynthMouseMoveEvent)
-    
-    void Revoke() {
-      if (mPresShell) {
-        mPresShell->GetPresContext()->RefreshDriver()->
-          RemoveRefreshObserver(this, Flush_Display);
-        mPresShell = nsnull;
-      }
-    }
-    virtual void WillRefresh(mozilla::TimeStamp aTime) {
-      if (mPresShell)
-        mPresShell->ProcessSynthMouseMoveEvent(mFromScroll);
-    }
-  private:
-    PresShell* mPresShell;
-    bool mFromScroll;
-  };
-  nsRevocableEventPtr<nsSynthMouseMoveEvent> mSynthMouseMoveEvent;
-  void ProcessSynthMouseMoveEvent(bool aFromScroll);
-
   PresShell* GetRootPresShell();
 
-public:
-
-  void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                           size_t *aArenasSize,
-                           size_t *aStyleSetsSize,
-                           size_t *aTextRunsSize,
-                           size_t *aPresContextSize) const;
-  size_t SizeOfTextRuns(nsMallocSizeOfFun aMallocSizeOf) const;
-
-protected:
-  void QueryIsActive();
-  nsresult UpdateImageLockingState();
-
-private:
   nscolor GetDefaultBackgroundColorToDraw();
+
+  
+  static void sPaintSuppressionCallback(nsITimer* aTimer, void* aPresShell);
+
+  
+  static void sReflowContinueCallback(nsITimer* aTimer, void* aPresShell);
+  bool ScheduleReflowOffTimer();
+  
+#ifdef DEBUG
+  
+  
+  nsIFrame*                 mCurrentReflowRoot;
+  PRUint32                  mUpdateCount;
+#endif
+
+#ifdef MOZ_REFLOW_PERF
+  ReflowCountMgr*           mReflowCountMgr;
+#endif
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nsPoint                   mMouseLocation;
+
+  
+  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet; 
+
+  
+  
+  nsTHashtable<nsPtrHashKey<nsIFrame> > mFramesToDirty;
+
+  
+  nsTArray<nsIFrame*>       mDirtyRoots;
+
+  nsTArray<nsAutoPtr<nsDelayedEvent> > mDelayedEvents;
+  nsRevocableEventPtr<nsRunnableMethod<PresShell> > mResizeEvent;
+  nsCOMPtr<nsITimer>        mAsyncResizeEventTimer;
+  nsIFrame*                 mCurrentEventFrame;
+  nsCOMPtr<nsIContent>      mCurrentEventContent;
+  nsTArray<nsIFrame*>       mCurrentEventFrameStack;
+  nsCOMArray<nsIContent>    mCurrentEventContentStack;
+  nsRevocableEventPtr<nsSynthMouseMoveEvent> mSynthMouseMoveEvent;
+  nsCOMPtr<nsIContent>      mLastAnchorScrolledTo;
+  nsRefPtr<nsCaret>         mCaret;
+  nsRefPtr<nsCaret>         mOriginalCaret;
+  nsCallbackEventRequest*   mFirstCallbackEventRequest;
+  nsCallbackEventRequest*   mLastCallbackEventRequest;
+
+  
+  
+  
+  nsCOMPtr<nsITimer>        mPaintSuppressionTimer;
+
+  
+  
+  
+  
+  nsCOMPtr<nsITimer>        mReflowContinueTimer;
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIContent>      mContentToScrollTo;
+
+  nscoord                   mLastAnchorScrollPositionY;
+
+  
+  
+  
+  PRUint16                  mChangeNestCount;
+  
+  bool                      mDocumentLoading : 1;
+  bool                      mIgnoreFrameDestruction : 1;
+  bool                      mHaveShutDown : 1;
+  bool                      mViewportOverridden : 1;
+  bool                      mLastRootReflowHadUnconstrainedHeight : 1;
+  bool                      mNoDelayedMouseEvents : 1;
+  bool                      mNoDelayedKeyEvents : 1;
+
+  
+  
+  bool                      mIsDocumentGone : 1;
+
+  
+  
+  bool                      mShouldUnsuppressPainting : 1;
+
+  bool                      mAsyncResizeTimerIsActive : 1;
+  bool                      mInResize : 1;
+
+  static bool               sDisableNonTestMouseEvents;
 };
 
 #endif 

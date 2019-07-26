@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "SVGAnimatedPreserveAspectRatio.h"
@@ -147,6 +114,14 @@ GetMeetOrSliceString(nsAString& aMeetOrSliceString, PRUint16 aMeetOrSlice)
   aMeetOrSliceString.AssignASCII(
     sMeetOrSliceStrings[aMeetOrSlice -
                         nsIDOMSVGPreserveAspectRatio::SVG_MEETORSLICE_MEET]);
+}
+
+bool
+SVGPreserveAspectRatio::operator==(const SVGPreserveAspectRatio& aOther) const
+{
+  return mAlign == aOther.mAlign &&
+    mMeetOrSlice == aOther.mMeetOrSlice &&
+    mDefer == aOther.mDefer;
 }
 
 nsresult
@@ -273,48 +248,25 @@ SVGAnimatedPreserveAspectRatio::GetBaseValueString(
   }
 }
 
-nsresult
-SVGAnimatedPreserveAspectRatio::SetBaseAlign(PRUint16 aAlign,
+void
+SVGAnimatedPreserveAspectRatio::SetBaseValue(const SVGPreserveAspectRatio &aValue,
                                              nsSVGElement *aSVGElement)
 {
-  if (mIsBaseSet && mBaseVal.GetAlign() == aAlign) {
-    return NS_OK;
+  if (mIsBaseSet && mBaseVal == aValue) {
+    return;
   }
 
   nsAttrValue emptyOrOldValue = aSVGElement->WillChangePreserveAspectRatio();
-  nsresult rv = mBaseVal.SetAlign(aAlign);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mBaseVal = aValue;
   mIsBaseSet = true;
 
-  mAnimVal.mAlign = mBaseVal.mAlign;
+  if (!mIsAnimated) {
+    mAnimVal = mBaseVal;
+  }
   aSVGElement->DidChangePreserveAspectRatio(emptyOrOldValue);
   if (mIsAnimated) {
     aSVGElement->AnimationNeedsResample();
   }
-  
-  return NS_OK;
-}
-
-nsresult
-SVGAnimatedPreserveAspectRatio::SetBaseMeetOrSlice(PRUint16 aMeetOrSlice,
-                                                   nsSVGElement *aSVGElement)
-{
-  if (mIsBaseSet && mBaseVal.GetMeetOrSlice() == aMeetOrSlice) {
-    return NS_OK;
-  }
-
-  nsAttrValue emptyOrOldValue = aSVGElement->WillChangePreserveAspectRatio();
-  nsresult rv = mBaseVal.SetMeetOrSlice(aMeetOrSlice);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mIsBaseSet = true;
-
-  mAnimVal.mMeetOrSlice = mBaseVal.mMeetOrSlice;
-  aSVGElement->DidChangePreserveAspectRatio(emptyOrOldValue);
-  if (mIsAnimated) {
-    aSVGElement->AnimationNeedsResample();
-  }
-  
-  return NS_OK;
 }
 
 void

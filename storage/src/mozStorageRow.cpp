@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsString.h"
 
 #include "sqlite3.h"
@@ -54,7 +21,7 @@ nsresult
 Row::initialize(sqlite3_stmt *aStatement)
 {
   
-  NS_ENSURE_TRUE(mNameHashtable.Init(), NS_ERROR_OUT_OF_MEMORY);
+  mNameHashtable.Init();
 
   
   mNumCols = ::sqlite3_column_count(aStatement);

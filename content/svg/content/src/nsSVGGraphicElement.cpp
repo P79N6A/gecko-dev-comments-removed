@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsSVGGraphicElement.h"
@@ -45,6 +11,7 @@
 #include "DOMSVGMatrix.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIDOMMutationEvent.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
 #include "nsIDOMSVGPoint.h"
@@ -177,6 +144,43 @@ nsSVGGraphicElement::IsAttributeMapped(const nsIAtom* name) const
   
   return FindAttributeDependence(name, map) ||
     nsSVGGraphicElementBase::IsAttributeMapped(name);
+}
+
+nsChangeHint
+nsSVGGraphicElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
+                                            PRInt32 aModType) const
+{
+  nsChangeHint retval =
+    nsSVGGraphicElementBase::GetAttributeChangeHint(aAttribute, aModType);
+  if (aAttribute == nsGkAtoms::transform) {
+    
+    
+    nsIFrame* frame =
+      const_cast<nsSVGGraphicElement*>(this)->GetPrimaryFrame();
+    if (frame && frame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+      
+    } else if (aModType == nsIDOMMutationEvent::ADDITION ||
+               aModType == nsIDOMMutationEvent::REMOVAL) {
+      
+      
+      
+      
+      
+      
+      
+      NS_UpdateHint(retval, nsChangeHint_UpdateOverflow);
+    } else {
+      NS_ABORT_IF_FALSE(aModType == nsIDOMMutationEvent::MODIFICATION,
+                        "Unknown modification type.");
+      
+      
+      
+      
+      
+      NS_UpdateHint(retval, nsChangeHint_UpdateOverflow);
+    }
+  }
+  return retval;
 }
 
 

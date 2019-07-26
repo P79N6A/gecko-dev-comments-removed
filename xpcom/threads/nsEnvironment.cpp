@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsEnvironment.h"
 #include "prenv.h"
 #include "prprf.h"
@@ -145,12 +111,8 @@ EnsureEnvHash()
     if (!gEnvHash)
         return false;
 
-    if(gEnvHash->Init())
-        return true;
-
-    delete gEnvHash;
-    gEnvHash = nsnull;
-    return false;
+    gEnvHash->Init();
+    return true;
 }
 
 NS_IMETHODIMP

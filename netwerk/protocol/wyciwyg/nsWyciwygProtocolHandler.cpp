@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsWyciwyg.h"
 #include "nsWyciwygChannel.h"
 #include "nsWyciwygProtocolHandler.h"

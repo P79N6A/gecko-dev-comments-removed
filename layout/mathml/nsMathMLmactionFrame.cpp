@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -71,6 +38,25 @@
 #define NS_MATHML_ACTION_TYPE_TOOLTIP      3 // unsupported
 
 
+
+static PRInt32
+GetActionType(nsIContent* aContent)
+{
+  nsAutoString value;
+
+  if (aContent)
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
+
+  if (value.EqualsLiteral("toggle"))
+    return NS_MATHML_ACTION_TYPE_TOGGLE;
+  if (value.EqualsLiteral("statusline"))
+    return NS_MATHML_ACTION_TYPE_STATUSLINE;
+  if (value.EqualsLiteral("tooltip"))
+    return NS_MATHML_ACTION_TYPE_TOOLTIP;
+
+  return NS_MATHML_ACTION_TYPE_NONE;
+}
+
 nsIFrame*
 NS_NewMathMLmactionFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -98,34 +84,12 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
                            nsIFrame*        aParent,
                            nsIFrame*        aPrevInFlow)
 {
-  nsAutoString value, prefix;
-
   
 
   mChildCount = -1; 
   mSelection = 0;
   mSelectedFrame = nsnull;
-  nsRefPtr<nsStyleContext> newStyleContext;
-
-  mActionType = NS_MATHML_ACTION_TYPE_NONE;
-  aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
-  if (!value.IsEmpty()) {
-    if (value.EqualsLiteral("toggle"))
-      mActionType = NS_MATHML_ACTION_TYPE_TOGGLE;
-
-    
-
-    if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
-      
-      if (8 < value.Length() && 0 == value.Find("tooltip#"))
-        mActionType = NS_MATHML_ACTION_TYPE_TOOLTIP;
-    }
-
-    if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
-      if (value.EqualsLiteral("statusline"))
-        mActionType = NS_MATHML_ACTION_TYPE_STATUSLINE;
-    }
-  }
+  mActionType = GetActionType(aContent);
 
   
   return nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
@@ -245,6 +209,45 @@ nsMathMLmactionFrame::SetInitialChildList(ChildListID     aListID,
                                      false, false);
   }
   return rv;
+}
+
+NS_IMETHODIMP
+nsMathMLmactionFrame::AttributeChanged(PRInt32  aNameSpaceID,
+                                       nsIAtom* aAttribute,
+                                       PRInt32  aModType)
+{
+  bool needsReflow = false;
+
+  if (aAttribute == nsGkAtoms::actiontype_) {
+    
+    PRInt32 oldActionType = mActionType;
+    mActionType = GetActionType(mContent);
+
+    
+    
+    if (oldActionType == NS_MATHML_ACTION_TYPE_TOGGLE || 
+          mActionType == NS_MATHML_ACTION_TYPE_TOGGLE) {
+      needsReflow = true;
+    }
+  } else if (aAttribute == nsGkAtoms::selection_) {
+    
+    
+    if (NS_MATHML_ACTION_TYPE_TOGGLE == mActionType) {
+      needsReflow = true;
+    }
+  } else {
+    
+    return 
+      nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, 
+                                               aAttribute, aModType);
+  }
+
+  if (needsReflow) {
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
+  }
+
+  return NS_OK;
 }
 
 

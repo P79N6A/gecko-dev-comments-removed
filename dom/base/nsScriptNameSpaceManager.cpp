@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsScriptNameSpaceManager.h"
 #include "nsCOMPtr.h"
 #include "nsIComponentManager.h"

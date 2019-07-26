@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "EditTxn.h"
 
 NS_IMPL_CYCLE_COLLECTION_0(EditTxn)

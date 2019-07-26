@@ -3,34 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGATTRTEAROFFTABLE_H_
 #define NS_SVGATTRTEAROFFTABLE_H_
 
@@ -104,11 +76,7 @@ nsSVGAttrTearoffTable<SimpleType, TearoffType>::AddTearoff(SimpleType* aSimple,
     return;
   }
 
-#ifdef DEBUG
-  bool result =
-#endif
-    mTable.Put(aSimple, aTearoff);
-  NS_ABORT_IF_FALSE(result, "Out of memory.");
+  mTable.Put(aSimple, aTearoff);
 }
 
 template<class SimpleType, class TearoffType>

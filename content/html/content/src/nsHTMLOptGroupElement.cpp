@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"

@@ -8,43 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsStyleStruct_h___
 #define nsStyleStruct_h___
 
@@ -2241,6 +2204,7 @@ struct nsStyleSVGReset {
   float            mFloodOpacity;     
 
   PRUint8          mDominantBaseline; 
+  PRUint8          mVectorEffect;     
 };
 
 #endif 

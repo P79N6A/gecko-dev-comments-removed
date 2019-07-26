@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Attributes.h"
 #include "mozilla/Util.h"
 
@@ -2209,6 +2176,7 @@ AutoGCRooter::trace(JSTracer *trc)
         return;
       }
 
+#if JS_HAS_XML_SUPPORT
       case NAMESPACES: {
         JSXMLArray<JSObject> &array = static_cast<AutoNamespaceArray *>(this)->array;
         MarkObjectRange(trc, array.length, array.vector, "JSXMLArray.vector");
@@ -2219,6 +2187,7 @@ AutoGCRooter::trace(JSTracer *trc)
       case XML:
         js_TraceXML(trc, static_cast<AutoXMLRooter *>(this)->xml);
         return;
+#endif
 
       case OBJECT:
         if (static_cast<AutoObjectRooter *>(this)->obj)
@@ -2374,6 +2343,8 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
 #endif
 
     rt->stackSpace.mark(trc);
+    rt->debugScopes->mark(trc);
+	
 #ifdef JS_ION
     ion::MarkIonActivations(rt, trc);
     ion::MarkIonCompilerRoots(trc);
@@ -3234,6 +3205,7 @@ SweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool *startBackgroundSweep)
 
     
     WeakMapBase::sweepAll(&rt->gcMarker);
+    rt->debugScopes->sweep();
 
     SweepAtomState(rt);
 
@@ -3694,7 +3666,7 @@ GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gcki
         if (shouldSweep)
             SweepPhase(rt, gckind, &startBackgroundSweep);
     }
-        
+
 #ifdef JS_THREADSAFE
     if (startBackgroundSweep)
         rt->gcHelperThread.startBackgroundSweep(gckind == GC_SHRINK);

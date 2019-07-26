@@ -4,49 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "base/basictypes.h"
 
 
@@ -260,6 +217,7 @@
 #include "nsLocation.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsDOMEventTargetHelper.h"
+#include "nsIAppsService.h"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -815,14 +773,7 @@ nsGlobalWindow::Init()
 #endif
 
   sWindowsById = new WindowByIdTable();
-  
-  
-  
-#ifdef DEBUG
-  NS_ASSERTION(sWindowsById->Init(), "Init() should not fail!");
-#else
   sWindowsById->Init();
-#endif
 }
 
 static PLDHashOperator
@@ -6744,10 +6695,8 @@ void
 nsGlobalWindow::CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
                                          nsScriptObjectHolder<JSObject>& aHandler)
 {
-  if (!mCachedXBLPrototypeHandlers.IsInitialized() &&
-      !mCachedXBLPrototypeHandlers.Init()) {
-    NS_ERROR("Failed to initiailize hashtable!");
-    return;
+  if (!mCachedXBLPrototypeHandlers.IsInitialized()) {
+    mCachedXBLPrototypeHandlers.Init();
   }
 
   if (!mCachedXBLPrototypeHandlers.Count()) {
@@ -10014,6 +9963,9 @@ nsGlobalWindow::SetIsApp(bool aValue)
 {
   FORWARD_TO_OUTER_VOID(SetIsApp, (aValue));
 
+  
+  MOZ_ASSERT(mIsApp == TriState_Unknown);
+
   mIsApp = aValue ? TriState_True : TriState_False;
 }
 
@@ -10027,6 +9979,8 @@ nsGlobalWindow::IsPartOfApp()
   for (nsGlobalWindow* w = this; w;
        w = static_cast<nsGlobalWindow*>(w->GetParentInternal())) {
     if (w->mIsApp == TriState_True) {
+      
+      MOZ_ASSERT(w->mApp);
       return true;
     } else if (w->mIsApp == TriState_False) {
       return false;
@@ -10034,6 +9988,33 @@ nsGlobalWindow::IsPartOfApp()
   }
 
   return false;
+}
+
+nsresult
+nsGlobalWindow::SetApp(const nsAString& aManifestURL)
+{
+  
+  if (mIsApp != TriState_True) {
+    MOZ_ASSERT(false);
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+  if (!appsService) {
+    NS_ERROR("Apps Service is not available!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<mozIDOMApplication> app;
+  appsService->GetAppByManifestURL(aManifestURL, getter_AddRefs(app));
+  if (!app) {
+    NS_WARNING("No application found with the specified manifest URL");
+    return NS_ERROR_FAILURE;
+  }
+
+  mApp = app.forget();
+
+  return NS_OK;
 }
 
 

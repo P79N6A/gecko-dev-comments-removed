@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozInlineSpellWordUtil.h"
 #include "nsDebug.h"
 #include "nsIAtom.h"
@@ -761,7 +727,7 @@ enum CharClass {
   CHAR_CLASS_END_OF_INPUT };
 
 
-struct WordSplitState
+struct NS_STACK_CLASS WordSplitState
 {
   mozInlineSpellWordUtil*    mWordUtil;
   const nsDependentSubstring mDOMWordText;
@@ -782,7 +748,7 @@ struct WordSplitState
   
   
   
-  PRInt32 FindSpecialWord();
+  bool IsSpecialWord();
 
   
   
@@ -914,19 +880,14 @@ WordSplitState::AdvanceThroughWord()
 
 
 
-PRInt32
-WordSplitState::FindSpecialWord()
+bool
+WordSplitState::IsSpecialWord()
 {
-  PRInt32 i;
-
   
   
   
-  
-  
-  bool foundDot = false;
   PRInt32 firstColon = -1;
-  for (i = mDOMWordOffset;
+  for (PRInt32 i = mDOMWordOffset;
        i < PRInt32(mDOMWordText.Length()); i ++) {
     if (mDOMWordText[i] == '@') {
       
@@ -941,23 +902,19 @@ WordSplitState::FindSpecialWord()
       
       if (i > 0 && ClassifyCharacter(i - 1, false) == CHAR_CLASS_WORD &&
           i < (PRInt32)mDOMWordText.Length() - 1 &&
-          ClassifyCharacter(i + 1, false) == CHAR_CLASS_WORD)
-
-      return mDOMWordText.Length() - mDOMWordOffset;
-    } else if (mDOMWordText[i] == '.' && ! foundDot &&
-        i > 0 && i < (PRInt32)mDOMWordText.Length() - 1) {
-      
-      foundDot = true;
+          ClassifyCharacter(i + 1, false) == CHAR_CLASS_WORD) {
+        return true;
+      }
     } else if (mDOMWordText[i] == ':' && firstColon < 0) {
       firstColon = i;
-    }
-  }
 
-  
-  
-  if (firstColon >= 0 && firstColon < (PRInt32)mDOMWordText.Length() - 1 &&
-      mDOMWordText[firstColon + 1] == '/') {
-    return mDOMWordText.Length() - mDOMWordOffset;
+      
+      
+      if (firstColon < (PRInt32)mDOMWordText.Length() - 1 &&
+          mDOMWordText[firstColon + 1] == '/') {
+        return true;
+      }
+    }
   }
 
   
@@ -974,12 +931,12 @@ WordSplitState::FindSpecialWord()
         protocol.EqualsIgnoreCase("javascript") ||
         protocol.EqualsIgnoreCase("data") ||
         protocol.EqualsIgnoreCase("ftp")) {
-      return mDOMWordText.Length() - mDOMWordOffset;
+      return true;
     }
   }
 
   
-  return -1;
+  return false;
 }
 
 
@@ -1009,24 +966,20 @@ mozInlineSpellWordUtil::SplitDOMWord(PRInt32 aStart, PRInt32 aEnd)
   WordSplitState state(this, mSoftText, aStart, aEnd - aStart);
   state.mCurCharClass = state.ClassifyCharacter(0, true);
 
+  state.AdvanceThroughSeparators();
+  if (state.mCurCharClass != CHAR_CLASS_END_OF_INPUT &&
+      state.IsSpecialWord()) {
+    PRInt32 specialWordLength = state.mDOMWordText.Length() - state.mDOMWordOffset;
+    mRealWords.AppendElement(
+        RealWord(aStart + state.mDOMWordOffset, specialWordLength, false));
+
+    return;
+  }
+
   while (state.mCurCharClass != CHAR_CLASS_END_OF_INPUT) {
     state.AdvanceThroughSeparators();
     if (state.mCurCharClass == CHAR_CLASS_END_OF_INPUT)
       break;
-
-    PRInt32 specialWordLength = state.FindSpecialWord();
-    if (specialWordLength > 0) {
-      mRealWords.AppendElement(
-        RealWord(aStart + state.mDOMWordOffset, specialWordLength, false));
-
-      
-      state.mDOMWordOffset += specialWordLength;
-      if (state.mDOMWordOffset + aStart >= aEnd)
-        state.mCurCharClass = CHAR_CLASS_END_OF_INPUT;
-      else
-        state.mCurCharClass = state.ClassifyCharacter(state.mDOMWordOffset, true);
-      continue;
-    }
 
     
     PRInt32 wordOffset = state.mDOMWordOffset;

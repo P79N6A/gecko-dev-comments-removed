@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDNSService2.h"
 #include "nsIDNSRecord.h"
 #include "nsIDNSListener.h"

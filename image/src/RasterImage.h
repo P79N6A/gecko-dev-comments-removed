@@ -14,42 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_imagelib_RasterImage_h_
 #define mozilla_imagelib_RasterImage_h_
 
@@ -304,7 +268,7 @@ public:
   nsresult SourceDataComplete();
 
   
-  nsresult NewSourceData();
+  nsresult NewSourceData(const char *aMimeType);
 
   
 

@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGAnimatedPointList.h"
 #include "DOMSVGPointList.h"
 #include "nsSVGElement.h"

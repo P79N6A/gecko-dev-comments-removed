@@ -31,39 +31,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozInlineSpellChecker.h"
 #include "mozInlineSpellWordUtil.h"
 #include "mozISpellI18NManager.h"
@@ -832,7 +799,7 @@ mozInlineSpellChecker::ReplaceWord(nsIDOMNode *aNode, PRInt32 aOffset,
     NS_ENSURE_SUCCESS(res, res);
     selection->RemoveAllRanges();
     selection->AddRange(range);
-    editor->DeleteSelection(nsIEditor::eNone);
+    editor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
 
     nsCOMPtr<nsIPlaintextEditor> textEditor(do_QueryReferent(mEditor));
     textEditor->InsertText(newword);

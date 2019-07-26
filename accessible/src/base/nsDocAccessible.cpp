@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "Accessible-inl.h"
 #include "AccIterator.h"
 #include "nsAccCache.h"
@@ -341,7 +308,7 @@ nsDocAccessible::NativeState()
 
 
 void
-nsDocAccessible::ApplyARIAState(PRUint64* aState)
+nsDocAccessible::ApplyARIAState(PRUint64* aState) const
 {
   
   
@@ -1369,17 +1336,11 @@ nsDocAccessible::BindToDocument(nsAccessible* aAccessible,
     return false;
 
   
-  if (aAccessible->IsPrimaryForNode() &&
-      !mNodeToAccessibleMap.Put(aAccessible->GetNode(), aAccessible))
-    return false;
+  if (aAccessible->IsPrimaryForNode())
+    mNodeToAccessibleMap.Put(aAccessible->GetNode(), aAccessible);
 
   
-  if (!mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible)) {
-    if (aAccessible->IsPrimaryForNode())
-      mNodeToAccessibleMap.Remove(aAccessible->GetNode());
-
-    return false;
-  }
+  mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
 
   
   if (!aAccessible->Init()) {
@@ -1621,10 +1582,7 @@ nsDocAccessible::AddDependentIDsFor(nsAccessible* aRelProvider,
       if (!providers) {
         providers = new AttrRelProviderArray();
         if (providers) {
-          if (!mDependentIDsHash.Put(id, providers)) {
-            delete providers;
-            providers = nsnull;
-          }
+          mDependentIDsHash.Put(id, providers);
         }
       }
 

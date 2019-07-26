@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMCDATASection.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsGkAtoms.h"

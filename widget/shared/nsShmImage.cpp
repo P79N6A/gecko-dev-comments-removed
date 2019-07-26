@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(MOZ_WIDGET_GTK2) || defined(MOZ_WIDGET_GTK3)
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>

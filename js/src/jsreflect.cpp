@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdlib.h>
 
 #include "mozilla/Util.h"
@@ -207,7 +175,7 @@ class NodeBuilder
             if (!atom)
                 return false;
             RootedVarId id(cx, AtomToId(atom));
-            if (!GetPropertyDefault(cx, userobj, id, NullValue(), &funv))
+            if (!baseops::GetPropertyDefault(cx, userobj, id, NullValue(), &funv))
                 return false;
 
             if (funv.isNullOrUndefined()) {
@@ -677,7 +645,7 @@ NodeBuilder::newNodeLoc(TokenPos *pos, Value *dst)
         dst->setNull();
         return true;
     }
- 
+
     JSObject *loc, *to;
     Value tv;
 
@@ -2496,7 +2464,7 @@ ASTSerializer::expression(ParseNode *pn, Value *dst)
       case PNK_NEW:
       case PNK_LP:
       {
-#ifdef JS_HAS_GENERATOR_EXPRS
+#if JS_HAS_GENERATOR_EXPRS
         if (pn->isGeneratorExpr())
             return generatorExpression(pn->generatorExpr(), dst);
 #endif
@@ -2611,7 +2579,7 @@ ASTSerializer::expression(ParseNode *pn, Value *dst)
       case PNK_LET:
         return let(pn, true, dst);
 
-#ifdef JS_HAS_XML_SUPPORT
+#if JS_HAS_XML_SUPPORT
       case PNK_XMLUNARY:
         JS_ASSERT(pn->isOp(JSOP_XMLNAME) ||
                   pn->isOp(JSOP_SETXMLNAME) ||
@@ -2685,7 +2653,7 @@ ASTSerializer::xml(ParseNode *pn, Value *dst)
 {
     JS_CHECK_RECURSION(cx, return false);
     switch (pn->getKind()) {
-#ifdef JS_HAS_XML_SUPPORT
+#if JS_HAS_XML_SUPPORT
       case PNK_XMLCURLYEXPR:
       {
         Value expr;
@@ -2949,14 +2917,14 @@ ASTSerializer::function(ParseNode *pn, ASTType type, Value *dst)
     JSFunction *func = (JSFunction *)pn->pn_funbox->object;
 
     bool isGenerator =
-#ifdef JS_HAS_GENERATORS
-        pn->pn_funbox->tcflags & TCF_FUN_IS_GENERATOR;
+#if JS_HAS_GENERATORS
+        pn->pn_funbox->funIsGenerator();
 #else
         false;
 #endif
 
     bool isExpression =
-#ifdef JS_HAS_EXPR_CLOSURES
+#if JS_HAS_EXPR_CLOSURES
         func->flags & JSFUN_EXPR_CLOSURE;
 #else
         false;
@@ -3136,7 +3104,7 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
 
         
         RootedVarId locId(cx, NameToId(cx->runtime->atomState.locAtom));
-        if (!GetPropertyDefault(cx, config, locId, BooleanValue(true), &prop))
+        if (!baseops::GetPropertyDefault(cx, config, locId, BooleanValue(true), &prop))
             return JS_FALSE;
 
         loc = js_ValueToBoolean(prop);
@@ -3144,7 +3112,7 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
         if (loc) {
             
             RootedVarId sourceId(cx, NameToId(cx->runtime->atomState.sourceAtom));
-            if (!GetPropertyDefault(cx, config, sourceId, NullValue(), &prop))
+            if (!baseops::GetPropertyDefault(cx, config, sourceId, NullValue(), &prop))
                 return JS_FALSE;
 
             if (!prop.isNullOrUndefined()) {
@@ -3165,7 +3133,7 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
 
             
             RootedVarId lineId(cx, NameToId(cx->runtime->atomState.lineAtom));
-            if (!GetPropertyDefault(cx, config, lineId, Int32Value(1), &prop) ||
+            if (!baseops::GetPropertyDefault(cx, config, lineId, Int32Value(1), &prop) ||
                 !ToUint32(cx, prop, &lineno)) {
                 return JS_FALSE;
             }
@@ -3173,7 +3141,7 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
 
         
         RootedVarId builderId(cx, NameToId(cx->runtime->atomState.builderAtom));
-        if (!GetPropertyDefault(cx, config, builderId, NullValue(), &prop))
+        if (!baseops::GetPropertyDefault(cx, config, builderId, NullValue(), &prop))
             return JS_FALSE;
 
         if (!prop.isNullOrUndefined()) {

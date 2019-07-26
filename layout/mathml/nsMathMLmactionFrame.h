@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsMathMLmactionFrame_h___
 #define nsMathMLmactionFrame_h___
 
@@ -82,6 +49,11 @@ public:
          nsHTMLReflowMetrics&     aDesiredSize,
          const nsHTMLReflowState& aReflowState,
          nsReflowStatus&          aStatus);
+
+  NS_IMETHOD
+  AttributeChanged(PRInt32  aNameSpaceID,
+                   nsIAtom* aAttribute,
+                   PRInt32  aModType);
 
 private:
   void MouseClick();

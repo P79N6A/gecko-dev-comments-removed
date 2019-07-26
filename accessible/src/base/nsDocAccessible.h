@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsDocAccessible_H_
 #define _nsDocAccessible_H_
 
@@ -115,7 +82,7 @@ public:
   virtual nsAccessible* FocusedChild();
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 

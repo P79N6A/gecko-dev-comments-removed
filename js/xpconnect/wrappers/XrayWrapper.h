@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsapi.h"
 #include "jswrapper.h"
 
@@ -51,9 +19,9 @@ class XPCWrappedNative;
 namespace xpc {
 
 JSBool
-holder_get(JSContext *cx, JSObject *holder, jsid id, jsval *vp);
+holder_get(JSContext *cx, JSHandleObject holder, JSHandleId id, jsval *vp);
 JSBool
-holder_set(JSContext *cx, JSObject *holder, jsid id, JSBool strict, jsval *vp);
+holder_set(JSContext *cx, JSHandleObject holder, JSHandleId id, JSBool strict, jsval *vp);
 
 namespace XrayUtils {
 

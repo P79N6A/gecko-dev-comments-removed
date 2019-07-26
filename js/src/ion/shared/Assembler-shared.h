@@ -112,6 +112,9 @@ struct ImmWord
     explicit ImmWord(const void *ptr) : value(reinterpret_cast<uintptr_t>(ptr))
     { }
 
+    
+    explicit ImmWord(gc::Cell *cell);
+
     void *asPointer() {
         return reinterpret_cast<void *>(value);
     }

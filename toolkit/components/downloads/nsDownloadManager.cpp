@@ -3,45 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "mozIStorageService.h"
@@ -85,6 +46,10 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
+#endif
+
+#ifdef MOZ_WIDGET_GTK2
+#include <gtk/gtk.h>
 #endif
 
 using namespace mozilla;
@@ -131,6 +96,9 @@ nsDownloadManager::GetSingleton()
 
   gDownloadManagerService = new nsDownloadManager();
   if (gDownloadManagerService) {
+#if defined(MOZ_WIDGET_GTK2)
+    g_type_init();
+#endif
     NS_ADDREF(gDownloadManagerService);
     if (NS_FAILED(gDownloadManagerService->Init()))
       NS_RELEASE(gDownloadManagerService);
@@ -2299,7 +2267,7 @@ nsDownload::SetState(DownloadState aState)
         }
       }
 
-#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GTK2)
       nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mTarget);
       nsCOMPtr<nsIFile> file;
       nsAutoString path;
@@ -2309,7 +2277,7 @@ nsDownload::SetState(DownloadState aState)
           file &&
           NS_SUCCEEDED(file->GetPath(path))) {
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK2)
         
         
         {
@@ -2319,7 +2287,18 @@ nsDownload::SetState(DownloadState aState)
 
           if (addToRecentDocs &&
               !nsDownloadManager::gDownloadManagerService->mInPrivateBrowsing) {
+#ifdef XP_WIN
             ::SHAddToRecentDocs(SHARD_PATHW, path.get());
+#elif defined(MOZ_WIDGET_GTK2)
+            GtkRecentManager* manager = gtk_recent_manager_get_default();
+
+            gchar* uri = g_filename_to_uri(NS_ConvertUTF16toUTF8(path).get(),
+                                           NULL, NULL);
+            if (uri) {
+              gtk_recent_manager_add_item(manager, uri);
+              g_free(uri);
+            }
+#endif
           }
         }
 #endif

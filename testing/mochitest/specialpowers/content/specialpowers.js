@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function SpecialPowers(window) {
   this.window = Components.utils.getWeakReference(window);
   this._encounteredCrashDumpFiles = [];

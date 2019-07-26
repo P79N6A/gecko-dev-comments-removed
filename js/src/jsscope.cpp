@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <new>
 #include <stdlib.h>
 #include <string.h>
@@ -60,6 +27,7 @@
 #include "js/MemoryMetrics.h"
 
 #include "jsatominlines.h"
+#include "jscntxtinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
@@ -310,7 +278,7 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
 {
     JS_ASSERT(!inDictionary());
 
-    Shape *shape = JS_PROPERTY_TREE(cx).getChild(cx, this, numFixedSlots(), child);
+    Shape *shape = cx->propertyTree().getChild(cx, this, numFixedSlots(), child);
     if (shape) {
         
 
@@ -363,7 +331,7 @@ Shape::replaceLastProperty(JSContext *cx, const StackBaseShape &base, JSObject *
     StackShape child(shape);
     child.base = nbase;
 
-    return JS_PROPERTY_TREE(cx).getChild(cx, shape->parent, shape->numFixedSlots(), child);
+    return cx->propertyTree().getChild(cx, shape->parent, shape->numFixedSlots(), child);
 }
 
 
@@ -411,7 +379,7 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, StackShape &child)
         }
         shape->initDictionaryShape(child, self->numFixedSlots(), &self->shape_);
     } else {
-        shape = JS_PROPERTY_TREE(cx).getChild(cx, parent, self->numFixedSlots(), child);
+        shape = cx->propertyTree().getChild(cx, parent, self->numFixedSlots(), child);
         if (!shape)
             return NULL;
         
@@ -677,7 +645,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     if (!CheckCanChangeAttrs(cx, self, shape, &attrs))
         return NULL;
-    
+
     
 
 
@@ -816,7 +784,7 @@ JSObject::changeProperty(JSContext *cx, Shape *shape, unsigned attrs, unsigned m
 
     if (!CheckCanChangeAttrs(cx, this, shape, &attrs))
         return NULL;
-    
+
     if (shape->attrs == attrs && shape->getter() == getter && shape->setter() == setter)
         return shape;
 
@@ -1331,7 +1299,7 @@ EmptyShape::getInitialShape(JSContext *cx, Class *clasp, JSObject *proto, JSObje
     if (!nbase)
         return NULL;
 
-    Shape *shape = JS_PROPERTY_TREE(cx).newShape(cx);
+    Shape *shape = cx->propertyTree().newShape(cx);
     if (!shape)
         return NULL;
     new (shape) EmptyShape(nbase, nfixed);

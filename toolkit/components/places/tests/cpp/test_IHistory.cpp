@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "places_test_harness.h"
 #include "nsIBrowserHistory.h"
 #include "nsIPrefService.h"

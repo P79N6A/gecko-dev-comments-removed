@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsProperties.h"
 #include "nsString.h"
 #include "nsCRT.h"
@@ -62,8 +30,8 @@ NS_IMETHODIMP
 nsProperties::Set(const char* prop, nsISupports* value)
 {
     NS_ENSURE_ARG(prop);
-
-    return Put(prop, value) ? NS_OK : NS_ERROR_FAILURE;
+    Put(prop, value);
+    return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txMozillaXSLTProcessor.h"
 #include "nsContentCID.h"
 #include "nsDOMError.h"

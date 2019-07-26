@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULPrototypeCache.h"
 
 #include "plstr.h"
@@ -209,7 +172,7 @@ nsXULPrototypeCache::PutPrototype(nsXULPrototypeDocument* aDocument)
 {
     nsCOMPtr<nsIURI> uri = aDocument->GetURI();
     
-    NS_ENSURE_TRUE(mPrototypeTable.Put(uri, aDocument), NS_ERROR_OUT_OF_MEMORY);
+    mPrototypeTable.Put(uri, aDocument);
 
     return NS_OK;
 }
@@ -219,8 +182,7 @@ nsXULPrototypeCache::PutStyleSheet(nsCSSStyleSheet* aStyleSheet)
 {
     nsIURI* uri = aStyleSheet->GetSheetURI();
 
-    NS_ENSURE_TRUE(mStyleSheetTable.Put(uri, aStyleSheet),
-                   NS_ERROR_OUT_OF_MEMORY);
+    mStyleSheetTable.Put(uri, aStyleSheet);
 
     return NS_OK;
 }
@@ -266,7 +228,7 @@ nsXULPrototypeCache::PutScript(nsIURI* aURI, JSScript* aScriptObject)
 
     CacheScriptEntry entry = {aScriptObject};
 
-    NS_ENSURE_TRUE(mScriptTable.Put(aURI, entry), NS_ERROR_OUT_OF_MEMORY);
+    mScriptTable.Put(aURI, entry);
 
     
     nsCOMPtr<nsIScriptRuntime> rt;
@@ -296,8 +258,7 @@ nsXULPrototypeCache::PutXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo)
     nsRefPtr<nsXBLDocumentInfo> info;
     mXBLDocTable.Get(uri, getter_AddRefs(info));
     if (!info) {
-        NS_ENSURE_TRUE(mXBLDocTable.Put(uri, aDocumentInfo),
-                       NS_ERROR_OUT_OF_MEMORY);
+        mXBLDocTable.Put(uri, aDocumentInfo);
     }
     return NS_OK;
 }

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_a11y_ApplicationAccessibleWrap_h__
 #define mozilla_a11y_ApplicationAccessibleWrap_h__
 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTemplateRule.h"
 #include "nsTemplateMatch.h"
 #include "nsXULContentUtils.h"

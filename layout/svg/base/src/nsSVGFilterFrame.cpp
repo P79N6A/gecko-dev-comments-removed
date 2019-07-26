@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGFilterFrame.h"
 
 
@@ -99,7 +68,8 @@ public:
                        nsSVGFilterPaintCallback *aPaint,
                        const nsIntRect *aDirtyOutputRect,
                        const nsIntRect *aDirtyInputRect,
-                       const nsIntRect *aOverrideSourceBBox);
+                       const nsIntRect *aOverrideSourceBBox,
+                       const gfxMatrix *aOverrideUserToDeviceSpace = nsnull);
   ~nsAutoFilterInstance() {}
 
   
@@ -115,7 +85,8 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
                                            nsSVGFilterPaintCallback *aPaint,
                                            const nsIntRect *aDirtyOutputRect,
                                            const nsIntRect *aDirtyInputRect,
-                                           const nsIntRect *aOverrideSourceBBox)
+                                           const nsIntRect *aOverrideSourceBBox,
+                                           const gfxMatrix *aOverrideUserToDeviceSpace)
 {
   const nsSVGFilterElement *filter = aFilterFrame->GetFilterContent();
 
@@ -161,10 +132,11 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
     return;
   }
 
-  gfxMatrix userToDeviceSpace = nsSVGUtils::GetCanvasTM(aTarget);
-  if (userToDeviceSpace.IsSingular()) {
-    
-    return;
+  gfxMatrix userToDeviceSpace;
+  if (aOverrideUserToDeviceSpace) {
+    userToDeviceSpace = *aOverrideUserToDeviceSpace;
+  } else {
+    userToDeviceSpace = nsSVGUtils::GetCanvasTM(aTarget);
   }
   
   
@@ -195,7 +167,12 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   } else {
     
     
-    float scale = nsSVGUtils::MaxExpansion(userToDeviceSpace);
+    gfxMatrix canvasTM = nsSVGUtils::GetCanvasTM(aTarget);
+    if (canvasTM.IsSingular()) {
+      
+      return;
+    }
+    float scale = nsSVGUtils::MaxExpansion(canvasTM);
 
     filterRegion.Scale(scale);
     filterRegion.RoundOut();
@@ -228,8 +205,20 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   nsIntRect targetBoundsDeviceSpace;
   nsISVGChildFrame* svgTarget = do_QueryFrame(aTarget);
   if (svgTarget) {
-    targetBoundsDeviceSpace.UnionRect(targetBoundsDeviceSpace,
-      svgTarget->GetCoveredRegion().ToOutsidePixels(aTarget->PresContext()->AppUnitsPerDevPixel()));
+    if (aOverrideUserToDeviceSpace) {
+      
+      
+      
+      
+      
+      
+      NS_ASSERTION(aDirtyInputRect, "Who passed aOverrideUserToDeviceSpace?");
+      targetBoundsDeviceSpace = *aDirtyInputRect;
+    } else {
+      targetBoundsDeviceSpace =
+        svgTarget->GetCoveredRegion().ToOutsidePixels(aTarget->
+          PresContext()->AppUnitsPerDevPixel());
+    }
   }
   nsIntRect targetBoundsFilterSpace =
     MapDeviceRectToFilterSpace(deviceToFilterSpace, filterRes, &targetBoundsDeviceSpace);
@@ -471,9 +460,27 @@ nsSVGFilterFrame::GetSourceForInvalidArea(nsIFrame *aTarget, const nsIntRect& aR
 }
 
 nsIntRect
-nsSVGFilterFrame::GetFilterBBox(nsIFrame *aTarget, const nsIntRect *aSourceBBox)
+nsSVGFilterFrame::GetFilterBBox(nsIFrame *aTarget,
+                                const nsIntRect *aOverrideBBox,
+                                const nsIntRect *aPreFilterBounds)
 {
-  nsAutoFilterInstance instance(aTarget, this, nsnull, nsnull, nsnull, aSourceBBox);
+  bool overrideCTM = false;
+  gfxMatrix ctm;
+
+  if (aTarget->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    
+    
+    
+    
+    overrideCTM = true;
+    PRInt32 appUnitsPerDevPixel = aTarget->PresContext()->AppUnitsPerDevPixel();
+    float devPxPerCSSPx =
+      1 / nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPixel);
+    ctm.Scale(devPxPerCSSPx, devPxPerCSSPx);
+  }
+
+  nsAutoFilterInstance instance(aTarget, this, nsnull, nsnull, aPreFilterBounds,
+                                aOverrideBBox, overrideCTM ? &ctm : nsnull);
   if (!instance.get())
     return nsIntRect();
 

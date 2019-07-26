@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMDocumentType.h"
 #include "nsDOMAttributeMap.h"
 #include "nsIDOMNamedNodeMap.h"

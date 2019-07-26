@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "imgRequest.h"
 #include "ImageLogging.h"
 
@@ -182,7 +148,7 @@ nsresult imgRequest::Init(nsIURI *aURI,
 imgStatusTracker&
 imgRequest::GetStatusTracker()
 {
-  if (mImage) {
+  if (mImage && mGotData) {
     NS_ABORT_IF_FALSE(!mStatusTracker,
                       "Should have given mStatusTracker to mImage");
     return mImage->GetStatusTracker();
@@ -768,14 +734,19 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   
   if (mIsMultiPartChannel && mImage) {
-    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
+    
+    nsCOMPtr<nsIChannel> partChan(do_QueryInterface(aRequest));
+    partChan->GetContentType(mContentType);
+    if (mContentType.EqualsLiteral(SVG_MIMETYPE) ||
+        mImage->GetType() == imgIContainer::TYPE_VECTOR) {
       
-      static_cast<RasterImage*>(mImage.get())->NewSourceData();
-    } else {  
-      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
-      NS_ABORT_IF_FALSE(imageAsStream,
-                        "SVG-typed Image failed QI to nsIStreamListener");
-      imageAsStream->OnStartRequest(aRequest, ctxt);
+      
+      
+      mStatusTracker = new imgStatusTracker(nsnull);
+      mGotData = false;
+    } else if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
+      
+      static_cast<RasterImage*>(mImage.get())->NewSourceData(mContentType.get());
     }
   }
 

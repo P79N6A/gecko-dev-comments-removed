@@ -8,41 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZILLA_INTERNAL_API
 #error nsStringAPI.h is only usable from non-MOZILLA_INTERNAL_API code!
 #endif

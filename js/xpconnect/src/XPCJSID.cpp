@@ -1,52 +1,17 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   John Bandhauer <jband@netscape.com> (original author)
- *   Pierre Phaneuf <pp@ludusdesign.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* An xpcom implementation of the JavaScript nsIID and nsCID objects. */
+
+
+
+
+
+
 
 #include "xpcprivate.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/BindingUtils.h"
 
-/***************************************************************************/
-// nsJSID
+
+
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsJSID, nsIJSID)
 
@@ -159,7 +124,7 @@ nsJSID::Initialize(const char *idString)
                 return NS_OK;
             }
 
-            // error - reset to invalid state
+            
             mID = GetInvalidIID();
         }
     }
@@ -175,7 +140,7 @@ nsJSID::InitWithName(const nsID& id, const char *nameString)
     return SetName(nameString);
 }
 
-// try to use the name, if no name, then use the number
+
 NS_IMETHODIMP
 nsJSID::ToString(char **_retval)
 {
@@ -188,13 +153,13 @@ nsJSID::ToString(char **_retval)
 const nsID&
 nsJSID::GetInvalidIID() const
 {
-    // {BB1F47B0-D137-11d2-9841-006008962422}
+    
     static nsID invalid = {0xbb1f47b0, 0xd137, 0x11d2,
                             {0x98, 0x41, 0x0, 0x60, 0x8, 0x96, 0x24, 0x22}};
     return invalid;
 }
 
-//static
+
 nsJSID*
 nsJSID::NewID(const char* str)
 {
@@ -212,7 +177,7 @@ nsJSID::NewID(const char* str)
     return idObj;
 }
 
-//static
+
 nsJSID*
 nsJSID::NewID(const nsID& id)
 {
@@ -227,16 +192,16 @@ nsJSID::NewID(const nsID& id)
 }
 
 
-/***************************************************************************/
-// Class object support so that we can share prototypes of wrapper
 
-// This class exists just so we can have a shared scriptable helper for
-// the nsJSIID class. The instances implement their own helpers. But we
-// needed to be able to indicate to the shared prototypes this single flag:
-// nsIXPCScriptable::DONT_ENUM_STATIC_PROPS. And having a class to do it is
-// the only means we have. Setting this flag on any given instance scriptable
-// helper is not sufficient to convey the information that we don't want
-// static properties enumerated on the shared proto.
+
+
+
+
+
+
+
+
+
 
 class SharedScriptableHelperForJSIID : public nsIXPCScriptable
 {
@@ -254,12 +219,12 @@ NS_INTERFACE_MAP_END_THREADSAFE
 NS_IMPL_THREADSAFE_ADDREF(SharedScriptableHelperForJSIID)
 NS_IMPL_THREADSAFE_RELEASE(SharedScriptableHelperForJSIID)
 
-// The nsIXPCScriptable map declaration that will generate stubs for us...
+
 #define XPC_MAP_CLASSNAME           SharedScriptableHelperForJSIID
 #define XPC_MAP_QUOTED_CLASSNAME   "JSIID"
 #define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
                                     nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
-#include "xpc_map_end.h" /* This will #undef the above */
+#include "xpc_map_end.h" 
 
 static nsIXPCScriptable* gSharedScriptableHelperForJSIID;
 static bool gClassObjectsWereInited = false;
@@ -286,7 +251,7 @@ NS_METHOD GetSharedScriptableHelperForJSIID(PRUint32 language,
     return NS_OK;
 }
 
-/******************************************************/
+
 
 #define NULL_CID                                                              \
 { 0x00000000, 0x0000, 0x0000,                                                 \
@@ -310,7 +275,7 @@ void xpc_DestroyJSxIDClassObjects()
     }
 }
 
-/***************************************************************************/
+
 
 NS_INTERFACE_MAP_BEGIN(nsJSIID)
   NS_INTERFACE_MAP_ENTRY(nsIJSID)
@@ -325,7 +290,7 @@ NS_IMPL_THREADSAFE_ADDREF(nsJSIID)
 NS_IMPL_THREADSAFE_RELEASE(nsJSIID)
 NS_IMPL_CI_INTERFACE_GETTER2(nsJSIID, nsIJSID, nsIJSIID)
 
-// The nsIXPCScriptable map declaration that will generate stubs for us...
+
 #define XPC_MAP_CLASSNAME           nsJSIID
 #define XPC_MAP_QUOTED_CLASSNAME   "nsJSIID"
 #define                             XPC_MAP_WANT_NEWRESOLVE
@@ -333,7 +298,7 @@ NS_IMPL_CI_INTERFACE_GETTER2(nsJSIID, nsIJSID, nsIJSIID)
 #define                             XPC_MAP_WANT_HASINSTANCE
 #define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
                                     nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
-#include "xpc_map_end.h" /* This will #undef the above */
+#include "xpc_map_end.h" 
 
 
 nsJSIID::nsJSIID(nsIInterfaceInfo* aInfo)
@@ -343,7 +308,7 @@ nsJSIID::nsJSIID(nsIInterfaceInfo* aInfo)
 
 nsJSIID::~nsJSIID() {}
 
-// If mInfo is present we use it and ignore mDetails, else we use mDetails.
+
 
 NS_IMETHODIMP nsJSIID::GetName(char * *aName)
 {
@@ -397,7 +362,7 @@ NS_IMETHODIMP nsJSIID::ToString(char **_retval)
     return mInfo->GetName(_retval);
 }
 
-// static
+
 nsJSIID*
 nsJSIID::NewID(nsIInterfaceInfo* aInfo)
 {
@@ -416,7 +381,7 @@ nsJSIID::NewID(nsIInterfaceInfo* aInfo)
 }
 
 
-/* bool resolve (in nsIXPConnectWrappedNative wrapper, in JSContextPtr cx, in JSObjectPtr obj, in jsval id); */
+
 NS_IMETHODIMP
 nsJSIID::NewResolve(nsIXPConnectWrappedNative *wrapper,
                     JSContext * cx, JSObject * obj,
@@ -450,12 +415,12 @@ nsJSIID::NewResolve(nsIXPConnectWrappedNative *wrapper,
     return NS_OK;
 }
 
-/* bool enumerate (in nsIXPConnectWrappedNative wrapper, in JSContextPtr cx, in JSObjectPtr obj); */
+
 NS_IMETHODIMP
 nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
                    JSContext * cx, JSObject * obj, bool *_retval)
 {
-    // In this case, let's just eagerly resolve...
+    
 
     XPCCallContext ccx(JS_CALLER, cx);
 
@@ -480,7 +445,7 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
     return NS_OK;
 }
 
-/* bool hasInstance (in nsIXPConnectWrappedNative wrapper, in JSContextPtr cx, in JSObjectPtr obj, in jsval val, out bool bp); */
+
 NS_IMETHODIMP
 nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
                      JSContext * cx, JSObject * obj,
@@ -490,12 +455,12 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
     nsresult rv = NS_OK;
 
     if (!JSVAL_IS_PRIMITIVE(val)) {
-        // we have a JSObject
+        
         JSObject* obj = JSVAL_TO_OBJECT(val);
 
         NS_ASSERTION(obj, "when is an object not an object?");
 
-        // is this really a native xpcom object with a wrapper?
+        
         const nsIID* iid;
         mInfo->GetIIDShared(&iid);
 
@@ -549,15 +514,15 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
         if (!other_wrapper)
             return NS_OK;
 
-        // We'll trust the interface set of the wrapper if this is known
-        // to be an interface that the objects *expects* to be able to
-        // handle.
+        
+        
+        
         if (other_wrapper->HasInterfaceNoQI(*iid)) {
             *bp = true;
             return NS_OK;
         }
 
-        // Otherwise, we'll end up Querying the native object to be sure.
+        
         XPCCallContext ccx(JS_CALLER, cx);
 
         AutoMarkingNativeInterfacePtr iface(ccx);
@@ -572,16 +537,16 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
     return rv;
 }
 
-/* string canCreateWrapper (in nsIIDPtr iid); */
+
 NS_IMETHODIMP
 nsJSIID::CanCreateWrapper(const nsIID * iid, char **_retval)
 {
-    // We let anyone do this...
+    
     *_retval = xpc_CloneAllAccess();
     return NS_OK;
 }
 
-/* string canCallMethod (in nsIIDPtr iid, in wstring methodName); */
+
 NS_IMETHODIMP
 nsJSIID::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
 {
@@ -591,7 +556,7 @@ nsJSIID::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_r
     return NS_OK;
 }
 
-/* string canGetProperty (in nsIIDPtr iid, in wstring propertyName); */
+
 NS_IMETHODIMP
 nsJSIID::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
 {
@@ -600,16 +565,16 @@ nsJSIID::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char *
     return NS_OK;
 }
 
-/* string canSetProperty (in nsIIDPtr iid, in wstring propertyName); */
+
 NS_IMETHODIMP
 nsJSIID::CanSetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
 {
-    // If you have to ask, then the answer is NO
+    
     *_retval = nsnull;
     return NS_OK;
 }
 
-/***************************************************************************/
+
 
 NS_INTERFACE_MAP_BEGIN(nsJSCID)
   NS_INTERFACE_MAP_ENTRY(nsIJSID)
@@ -623,13 +588,13 @@ NS_IMPL_THREADSAFE_ADDREF(nsJSCID)
 NS_IMPL_THREADSAFE_RELEASE(nsJSCID)
 NS_IMPL_CI_INTERFACE_GETTER2(nsJSCID, nsIJSID, nsIJSCID)
 
-// The nsIXPCScriptable map declaration that will generate stubs for us...
+
 #define XPC_MAP_CLASSNAME           nsJSCID
 #define XPC_MAP_QUOTED_CLASSNAME   "nsJSCID"
 #define                             XPC_MAP_WANT_CONSTRUCT
 #define                             XPC_MAP_WANT_HASINSTANCE
 #define XPC_MAP_FLAGS               0
-#include "xpc_map_end.h" /* This will #undef the above */
+#include "xpc_map_end.h" 
 
 nsJSCID::nsJSCID()  {}
 nsJSCID::~nsJSCID() {}
@@ -662,7 +627,7 @@ nsJSCID::ResolveName()
         mDetails.SetNameToNoString();
 }
 
-//static
+
 nsJSCID*
 nsJSCID::NewID(const char* str)
 {
@@ -701,7 +666,7 @@ GetIIDArg(PRUint32 argc, const JS::Value& val, JSContext* cx)
 {
     const nsID* iid;
 
-    // If an IID was passed in then use it
+    
     if (argc) {
         JSObject* iidobj;
         if (JSVAL_IS_PRIMITIVE(val) ||
@@ -734,7 +699,7 @@ GetWrapperObject()
     return obj;
 }
 
-/* nsISupports createInstance (); */
+
 NS_IMETHODIMP
 nsJSCID::CreateInstance(const JS::Value& iidval, JSContext* cx,
                         PRUint8 optionalArgc, JS::Value* retval)
@@ -747,7 +712,7 @@ nsJSCID::CreateInstance(const JS::Value& iidval, JSContext* cx,
         return NS_ERROR_UNEXPECTED;
     }
 
-    // Do the security check if necessary
+    
     XPCContext* xpcc = XPCContext::GetXPCContext(cx);
 
     nsIXPCSecurityManager* sm;
@@ -757,7 +722,7 @@ nsJSCID::CreateInstance(const JS::Value& iidval, JSContext* cx,
         return NS_OK;
     }
 
-    // If an IID was passed in then use it
+    
     const nsID* iid = GetIIDArg(optionalArgc, iidval, cx);
     if (!iid)
         return NS_ERROR_XPC_BAD_IID;
@@ -780,7 +745,7 @@ nsJSCID::CreateInstance(const JS::Value& iidval, JSContext* cx,
     return NS_OK;
 }
 
-/* nsISupports getService (); */
+
 NS_IMETHODIMP
 nsJSCID::GetService(const JS::Value& iidval, JSContext* cx,
                     PRUint8 optionalArgc, JS::Value* retval)
@@ -793,7 +758,7 @@ nsJSCID::GetService(const JS::Value& iidval, JSContext* cx,
         return NS_ERROR_UNEXPECTED;
     }
 
-    // Do the security check if necessary
+    
     XPCContext* xpcc = XPCContext::GetXPCContext(cx);
 
     nsIXPCSecurityManager* sm;
@@ -804,7 +769,7 @@ nsJSCID::GetService(const JS::Value& iidval, JSContext* cx,
         return NS_OK;
     }
 
-    // If an IID was passed in then use it
+    
     const nsID* iid = GetIIDArg(optionalArgc, iidval, cx);
     if (!iid)
         return NS_ERROR_XPC_BAD_IID;
@@ -830,7 +795,7 @@ nsJSCID::GetService(const JS::Value& iidval, JSContext* cx,
     return NS_OK;
 }
 
-/* bool construct (in nsIXPConnectWrappedNative wrapper, in JSContextPtr cx, in JSObjectPtr obj, in PRUint32 argc, in JSValPtr argv, in JSValPtr vp); */
+
 NS_IMETHODIMP
 nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
                    JSContext * cx, JSObject * obj,
@@ -841,7 +806,7 @@ nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
     if (!rt)
         return NS_ERROR_FAILURE;
 
-    // 'push' a call context and call on it
+    
     XPCCallContext ccx(JS_CALLER, cx, obj, nsnull,
                        rt->GetStringID(XPCJSRuntime::IDX_CREATE_INSTANCE),
                        argc, argv, vp);
@@ -850,7 +815,7 @@ nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
     return NS_OK;
 }
 
-/* bool hasInstance (in nsIXPConnectWrappedNative wrapper, in JSContextPtr cx, in JSObjectPtr obj, in jsval val, out bool bp); */
+
 NS_IMETHODIMP
 nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
                      JSContext * cx, JSObject * obj,
@@ -860,12 +825,12 @@ nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
     nsresult rv = NS_OK;
 
     if (!JSVAL_IS_PRIMITIVE(val)) {
-        // we have a JSObject
+        
         JSObject* obj = JSVAL_TO_OBJECT(val);
 
         NS_ASSERTION(obj, "when is an object not an object?");
 
-        // is this really a native xpcom object with a wrapper?
+        
         JSObject* obj2;
         XPCWrappedNative* other_wrapper =
            XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
@@ -877,8 +842,8 @@ nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
                            other_wrapper->GetClassInfo() :
                            GetSlimWrapperProto(obj2)->GetClassInfo();
 
-        // We consider CID equality to be the thing that matters here.
-        // This is perhaps debatable.
+        
+        
         if (ci) {
             nsID cid;
             if (NS_SUCCEEDED(ci->GetClassIDNoAlloc(&cid)))
@@ -888,8 +853,8 @@ nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
     return rv;
 }
 
-/***************************************************************************/
-// additional utilities...
+
+
 
 JSObject *
 xpc_NewIDObject(JSContext *cx, JSObject* jsobj, const nsID& aID)
@@ -914,14 +879,14 @@ xpc_NewIDObject(JSContext *cx, JSObject* jsobj, const nsID& aID)
     return obj;
 }
 
-// note: returned pointer is only valid while |obj| remains alive!
+
 const nsID*
 xpc_JSObjectToID(JSContext *cx, JSObject* obj)
 {
     if (!cx || !obj)
         return nsnull;
 
-    // NOTE: this call does NOT addref
+    
     XPCWrappedNative* wrapper =
         XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
     if (wrapper &&
@@ -937,7 +902,7 @@ JSBool
 xpc_JSObjectIsID(JSContext *cx, JSObject* obj)
 {
     NS_ASSERTION(cx && obj, "bad param");
-    // NOTE: this call does NOT addref
+    
     XPCWrappedNative* wrapper =
         XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
     return wrapper &&

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsScriptableRegion.h"
 #include "nsCOMPtr.h"
 #include "nsIXPConnect.h"

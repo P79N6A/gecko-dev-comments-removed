@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGGEOMETRYFRAME_H__
 #define __NS_SVGGEOMETRYFRAME_H__
 
@@ -69,7 +38,11 @@ class nsSVGGeometryFrame : public nsSVGGeometryFrameBase
 protected:
   NS_DECL_FRAMEARENA_HELPERS
 
-  nsSVGGeometryFrame(nsStyleContext *aContext) : nsSVGGeometryFrameBase(aContext) {}
+  nsSVGGeometryFrame(nsStyleContext *aContext)
+    : nsSVGGeometryFrameBase(aContext)
+  {
+    AddStateBits(NS_FRAME_SVG_LAYOUT);
+  }
 
 public:
   

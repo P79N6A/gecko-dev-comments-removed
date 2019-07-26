@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHashPropertyBag.h"
 #include "nsArray.h"
 #include "nsArrayEnumerator.h"
@@ -81,9 +48,7 @@ NS_INTERFACE_MAP_END
 nsresult
 nsHashPropertyBag::Init()
 {
-    
-    if (!mPropertyHash.Init())
-        return NS_ERROR_OUT_OF_MEMORY;
+    mPropertyHash.Init();
     return NS_OK;
 }
 
@@ -119,9 +84,7 @@ nsHashPropertyBag::SetProperty(const nsAString& name, nsIVariant *value)
 {
     NS_ENSURE_ARG_POINTER(value);
 
-    bool success = mPropertyHash.Put(name, value);
-    if (!success)
-        return NS_ERROR_FAILURE;
+    mPropertyHash.Put(name, value);
 
     return NS_OK;
 }

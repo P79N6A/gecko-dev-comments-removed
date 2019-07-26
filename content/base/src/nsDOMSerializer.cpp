@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMSerializer.h"
 #include "nsIDOMNode.h"
 #include "nsDOMClassInfoID.h"

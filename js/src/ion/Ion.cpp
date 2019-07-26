@@ -972,7 +972,7 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
             
             memcpy(argv, formalArgv, formalArgc * sizeof(Value));
         }
-        calleeToken = CalleeToToken(fp->callee().toFunction());
+        calleeToken = CalleeToToken(&fp->callee());
     } else {
         calleeToken = CalleeToToken(fp->script());
     }

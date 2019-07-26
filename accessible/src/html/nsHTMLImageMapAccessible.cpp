@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLImageMapAccessible.h"
 
 #include "nsAccUtils.h"
@@ -230,19 +196,6 @@ nsHTMLAreaAccessible::IsPrimaryForNode() const
 
 
 
-
-PRUint64
-nsHTMLAreaAccessible::NativeState()
-{
-  
-  if (mRoleMapEntry &&
-      mRoleMapEntry->role != roles::NOTHING &&
-      mRoleMapEntry->role != roles::LINK) {
-    return nsAccessible::NativeState();
-  }
-
-  return nsHTMLLinkAccessible::NativeState();
-}
 
 nsAccessible*
 nsHTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,

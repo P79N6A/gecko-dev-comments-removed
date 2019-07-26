@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsTreeSanitizer.h"
@@ -628,12 +594,13 @@ nsIAtom** const kAttributesSVG[] = {
   
   
   &nsGkAtoms::values, 
+  &nsGkAtoms::vector_effect, 
   
   
   
   &nsGkAtoms::viewBox, 
+  &nsGkAtoms::viewTarget, 
   &nsGkAtoms::visibility, 
-  
   &nsGkAtoms::width, 
   
   &nsGkAtoms::word_spacing, 

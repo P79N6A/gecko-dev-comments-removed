@@ -1,45 +1,11 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=80:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   John Bandhauer <jband@netscape.com> (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* Implement global service to track stack of JSContext per thread. */
+
+
+
+
+
+
+
 
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
@@ -52,7 +18,7 @@
 using namespace mozilla;
 using mozilla::dom::DestroyProtoOrIfaceCache;
 
-/***************************************************************************/
+
 
 XPCJSContextStack::~XPCJSContextStack()
 {
@@ -67,7 +33,7 @@ XPCJSContextStack::Pop()
 {
     MOZ_ASSERT(!mStack.IsEmpty());
 
-    uint32_t idx = mStack.Length() - 1; // The thing we're popping
+    uint32_t idx = mStack.Length() - 1; 
 
     JSContext *cx = mStack[idx].cx;
 
@@ -75,7 +41,7 @@ XPCJSContextStack::Pop()
     if (idx == 0)
         return cx;
 
-    --idx; // Advance to new top of the stack
+    --idx; 
 
     XPCJSContextInfo &e = mStack[idx];
     NS_ASSERTION(!e.suspendDepth || e.cx, "Shouldn't have suspendDepth without a cx!");
@@ -86,7 +52,7 @@ XPCJSContextStack::Pop()
         }
 
         if (e.savedFrameChain) {
-            // Pop() can be called outside any request for e.cx.
+            
             JSAutoRequest ar(e.cx);
             JS_RestoreFrameChain(e.cx);
             e.savedFrameChain = false;
@@ -133,7 +99,7 @@ XPCJSContextStack::Push(JSContext *cx)
         }
 
         {
-            // Push() can be called outside any request for e.cx.
+            
             JSAutoRequest ar(e.cx);
             if (!JS_SaveFrameChain(e.cx))
                 return false;
@@ -160,7 +126,7 @@ XPCJSContextStack::DEBUG_StackHasJSContext(JSContext *cx)
 #endif
 
 static JSBool
-SafeGlobalResolve(JSContext *cx, JSObject *obj, jsid id)
+SafeGlobalResolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
 {
     JSBool resolved;
     return JS_ResolveStandardClass(cx, obj, id, &resolved);
@@ -183,8 +149,8 @@ static JSClass global_class = {
     NULL, NULL, NULL, NULL, TraceXPCGlobal
 };
 
-// We just use the same reporter as the component loader
-// XXX #include angels cry.
+
+
 extern void
 mozJSLoaderErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 
@@ -194,8 +160,8 @@ XPCJSContextStack::GetSafeJSContext()
     if (mSafeJSContext)
         return mSafeJSContext;
 
-    // Start by getting the principal holder and principal for this
-    // context.  If we can't manage that, don't bother with the rest.
+    
+    
     nsRefPtr<nsNullPrincipal> principal = new nsNullPrincipal();
     nsresult rv = principal->Init();
     if (NS_FAILED(rv))
@@ -221,7 +187,7 @@ XPCJSContextStack::GetSafeJSContext()
 
     JSObject *glob;
     {
-        // scoped JS Request
+        
         JSAutoRequest req(mSafeJSContext);
 
         JS_SetErrorReporter(mSafeJSContext, mozJSLoaderErrorReporter);
@@ -234,39 +200,39 @@ XPCJSContextStack::GetSafeJSContext()
             glob = nsnull;
 
         if (glob) {
-            // Make sure the context is associated with a proper compartment
-            // and not the default compartment.
+            
+            
             JS_SetGlobalObject(mSafeJSContext, glob);
 
-            // Note: make sure to set the private before calling
-            // InitClasses
+            
+            
             nsIScriptObjectPrincipal* priv = nsnull;
             sop.swap(priv);
             JS_SetPrivate(glob, priv);
         }
 
-        // After this point either glob is null and the
-        // nsIScriptObjectPrincipal ownership is either handled by the
-        // nsCOMPtr or dealt with, or we'll release in the finalize
-        // hook.
+        
+        
+        
+        
         if (glob && NS_FAILED(xpc->InitClasses(mSafeJSContext, glob))) {
             glob = nsnull;
         }
     }
     if (mSafeJSContext && !glob) {
-        // Destroy the context outside the scope of JSAutoRequest that
-        // uses the context in its destructor.
+        
+        
         JS_DestroyContext(mSafeJSContext);
         mSafeJSContext = nsnull;
     }
 
-    // Save it off so we can destroy it later.
+    
     mOwnSafeJSContext = mSafeJSContext;
 
     return mSafeJSContext;
 }
 
-/***************************************************************************/
+
 
 PRUintn           XPCPerThreadData::gTLSIndex       = BAD_TLS_INDEX;
 Mutex*            XPCPerThreadData::gLock           = nsnull;
@@ -311,16 +277,16 @@ XPCPerThreadData::Cleanup()
 
 XPCPerThreadData::~XPCPerThreadData()
 {
-    /* Be careful to ensure that both any update to |gThreads| and the
-       decision about whether or not to destroy the lock, are done
-       atomically.  See bug 557586. */
+    
+
+
     bool doDestroyLock = false;
 
     MOZ_COUNT_DTOR(xpcPerThreadData);
 
     Cleanup();
 
-    // Unlink 'this' from the list of threads.
+    
     if (gLock) {
         MutexAutoLock lock(*gLock);
         if (gThreads == this)
@@ -377,7 +343,7 @@ void XPCPerThreadData::MarkAutoRootsAfterJSFinalize()
         mAutoRoots->MarkAfterJSFinalizeAll();
 }
 
-// static
+
 XPCPerThreadData*
 XPCPerThreadData::GetDataImpl(JSContext *cx)
 {
@@ -389,7 +355,7 @@ XPCPerThreadData::GetDataImpl(JSContext *cx)
 
     if (gTLSIndex == BAD_TLS_INDEX) {
         MutexAutoLock lock(*gLock);
-        // check again now that we have the lock...
+        
         if (gTLSIndex == BAD_TLS_INDEX) {
             if (PR_FAILURE ==
                 PR_NewThreadPrivateIndex(&gTLSIndex, xpc_ThreadDataDtorCB)) {
@@ -426,15 +392,15 @@ XPCPerThreadData::GetDataImpl(JSContext *cx)
     return data;
 }
 
-// static
+
 void
 XPCPerThreadData::CleanupAllThreads()
 {
-    // I've questioned the sense of cleaning up other threads' data from the
-    // start. But I got talked into it. Now I see that we *can't* do all the
-    // cleaup while holding this lock. So, we are going to go to the trouble
-    // to copy out the data that needs to be cleaned up *outside* of
-    // the lock. Yuk!
+    
+    
+    
+    
+    
 
     XPCJSContextStack** stacks = nsnull;
     int count = 0;
@@ -467,7 +433,7 @@ XPCPerThreadData::CleanupAllThreads()
         PR_SetThreadPrivate(gTLSIndex, nsnull);
 }
 
-// static
+
 XPCPerThreadData*
 XPCPerThreadData::IterateThreads(XPCPerThreadData** iteratorp)
 {

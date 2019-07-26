@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsBaseWidgetAccessible_H_
 #define _nsBaseWidgetAccessible_H_
 
@@ -96,7 +63,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeLinkState() const;
 
   
   virtual PRUint8 ActionCount();

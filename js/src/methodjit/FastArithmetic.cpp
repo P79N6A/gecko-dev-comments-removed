@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsbool.h"
 #include "jslibmath.h"
 #include "jsnum.h"
@@ -349,7 +315,7 @@ mjit::Compiler::jsop_binary_double(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
     }
 
     EmitDoubleOp(op, fpRight, fpLeft, masm);
-    
+
     MaybeJump done;
 
     
@@ -365,10 +331,10 @@ mjit::Compiler::jsop_binary_double(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
         FPRegisterID fpReg = frame.allocFPReg();
         JumpList isDouble;
         masm.branchConvertDoubleToInt32(fpLeft, reg, isDouble, fpReg);
-        
+
         masm.storeValueFromComponents(ImmType(JSVAL_TYPE_INT32), reg,
                                       frame.addressOf(lhs));
-        
+
         frame.freeReg(reg);
         frame.freeReg(fpReg);
         done.setJump(masm.jump());
@@ -480,7 +446,7 @@ mjit::Compiler::jsop_binary_full_simple(FrameEntry *fe, JSOp op, VoidStub stub, 
       default:
         JS_NOT_REACHED("unrecognized op");
     }
-    
+
     JS_ASSERT(overflow.isSet());
 
     
@@ -585,7 +551,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
         
         if (lhsUnknownDone.isSet())
             lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-        
+
         
         EmitDoubleOp(op, regs.rhsFP, regs.lhsFP, stubcc.masm);
 
@@ -721,7 +687,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
         JS_NOT_REACHED("unrecognized op");
     }
     op = origOp;
-    
+
     
 
 
@@ -1163,7 +1129,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub,
         frame.discardFrame();
 
         bool needStub = true;
-        
+
 #ifdef JS_MONOIC
         EqualityGenInfo ic;
 
@@ -1396,7 +1362,7 @@ DoubleCondForOp(JSOp op, JSOp fused)
     bool ifeq = fused == JSOP_IFEQ;
     switch (op) {
       case JSOP_GT:
-        return ifeq 
+        return ifeq
                ? Assembler::DoubleLessThanOrEqualOrUnordered
                : Assembler::DoubleGreaterThan;
       case JSOP_GE:
@@ -1658,7 +1624,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
         frame.pinReg(cmpReg);
         if (reg.isSet())
             frame.pinReg(reg.reg());
-        
+
         frame.popn(2);
 
         frame.syncAndKillEverything();

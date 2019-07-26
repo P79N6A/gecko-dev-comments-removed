@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMTouchEvent.h"
 #include "nsGUIEvent.h"
 #include "nsDOMClassInfoID.h"

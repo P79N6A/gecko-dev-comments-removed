@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef imgRequest_h__
 #define imgRequest_h__
 
@@ -130,6 +96,8 @@ public:
   
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
+
+  bool GetMultipart() const { return mIsMultiPartChannel; }
 
   
   PRInt32 GetCORSMode() const { return mCORSMode; }

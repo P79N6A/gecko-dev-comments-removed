@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHyperTextAccessible.h"
 
 #include "Accessible-inl.h"
@@ -65,6 +31,7 @@
 #include "nsISelectionPrivate.h"
 #include "nsIServiceManager.h"
 #include "nsTextFragment.h"
+#include "nsTypedSelection.h"
 #include "gfxSkipChars.h"
 
 using namespace mozilla::a11y;
@@ -1497,7 +1464,7 @@ nsHyperTextAccessible::DeleteText(PRInt32 aStartPos, PRInt32 aEndPos)
   nsresult rv = SetSelectionRange(aStartPos, aEndPos);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return editor->DeleteSelection(nsIEditor::eNone);
+  return editor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
 }
 
 NS_IMETHODIMP

@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Util.h"
 
@@ -714,7 +681,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 const size_t Sprinter::DefaultSize = 64;
 
-bool 
+bool
 Sprinter::realloc_(size_t newSize)
 {
     JS_ASSERT(newSize > (size_t) offset);
@@ -1493,7 +1460,11 @@ PopOffPrec(SprintStack *ss, uint8_t prec, jsbytecode **ppc = NULL)
 
     ss->top = --top;
     off = GetOff(ss, top);
-    topcs = &js_CodeSpec[ss->opcodes[top]];
+
+    int op = ss->opcodes[top];
+    if (op >= JSOP_LIMIT)
+        op = JSOP_NOP;
+    topcs = &js_CodeSpec[op];
 
     jsbytecode *pc = ss->bytecodes[top];
     if (ppc)
@@ -2571,8 +2542,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
     JSFunction *fun = NULL; 
     JSString *str;
     JSBool ok;
+    JSBool foreach;
 #if JS_HAS_XML_SUPPORT
-    JSBool foreach, inXML, quoteAttr;
+    JSBool inXML, quoteAttr;
 #else
 #define inXML JS_FALSE
 #endif
@@ -2678,8 +2650,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
     sn = NULL;
     rval = NULL;
     bool forOf = false;
+    foreach = false;
 #if JS_HAS_XML_SUPPORT
-    foreach = inXML = quoteAttr = JS_FALSE;
+    inXML = quoteAttr = false;
 #endif
 
     while (nb < 0 || pc < endpc) {
@@ -4829,7 +4802,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
 
                     bool grouped = !(fun->flags & JSFUN_EXPR_CLOSURE);
                     bool strict = jp->script->strictModeCode;
-                    str = js_DecompileToString(cx, "lambda", fun, 0, 
+                    str = js_DecompileToString(cx, "lambda", fun, 0,
                                                false, grouped, strict,
                                                js_DecompileFunction);
                     if (!str)
@@ -5200,17 +5173,21 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                     todo = ss->sprinter.put("*", 1);
                 }
                 break;
+#endif
 
               case JSOP_QNAMEPART:
                 LOAD_ATOM(0);
+#if JS_HAS_XML_SUPPORT
                 if (pc[JSOP_QNAMEPART_LENGTH] == JSOP_TOATTRNAME) {
                     saveop = JSOP_TOATTRNAME;
                     len += JSOP_TOATTRNAME_LENGTH;
                     lval = "@";
                     goto do_qname;
                 }
+#endif
                 goto do_name;
 
+#if JS_HAS_XML_SUPPORT
               case JSOP_QNAMECONST:
                 LOAD_ATOM(0);
                 rval = QuoteString(&ss->sprinter, atom, 0);
@@ -5652,7 +5629,7 @@ js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
 
     if (pc < script->main())
         goto do_fallback;
-    
+
     if (spindex != JSDVG_IGNORE_STACK) {
         jsbytecode **pcstack;
 

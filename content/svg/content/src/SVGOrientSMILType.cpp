@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGOrientSMILType.h"
 #include "nsSMILValue.h"
 #include "nsSVGViewBox.h"

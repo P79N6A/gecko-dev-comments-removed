@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsanalyze.h"
 #include "jsautooplen.h"
 #include "jscompartment.h"
@@ -1572,7 +1539,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             break;
           }
 
-          case JSOP_TRY: { 
+          case JSOP_TRY: {
             JSTryNote *tn = script->trynotes()->vector;
             JSTryNote *tnlimit = tn + script->trynotes()->length;
             for (; tn < tnlimit; tn++) {
@@ -2144,7 +2111,7 @@ ScriptAnalysis::printSSA(JSContext *cx)
         }
     }
 
-    printf("\n"); 
+    printf("\n");
 }
 
 void

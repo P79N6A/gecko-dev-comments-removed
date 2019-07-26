@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsJPEGDecoder.h"
 #include "ImageLogging.h"
 
@@ -263,7 +228,6 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     
     PostSize(mInfo.image_width, mInfo.image_height);
     if (HasError()) {
-      
       
       mState = JPEG_ERROR;
       return;

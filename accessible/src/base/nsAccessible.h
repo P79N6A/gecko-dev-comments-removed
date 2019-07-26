@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsAccessible_H_
 #define _nsAccessible_H_
 
@@ -185,7 +152,7 @@ public:
 
 
 
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
 
   
 
@@ -230,8 +197,23 @@ public:
   
 
 
+  PRUint64 LinkState() const
+  {
+    PRUint64 state = NativeLinkState();
+    ApplyARIAState(&state);
+    return state;
+  }
+
+  
+
+
 
   virtual PRUint64 NativeState();
+
+  
+
+
+  virtual PRUint64 NativeLinkState() const;
 
   
 

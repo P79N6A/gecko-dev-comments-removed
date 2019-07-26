@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsContentCID.h"
@@ -1241,9 +1204,8 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
         if (prevmatch) {
             prevmatch->mNext = newmatch;
         }
-        else if (!mMatchMap.Put(resultid, newmatch)) {
-            nsTemplateMatch::Destroy(mPool, newmatch, true);
-            return NS_ERROR_OUT_OF_MEMORY;
+        else {
+            mMatchMap.Put(resultid, newmatch);
         }
 
         if (removematch) {

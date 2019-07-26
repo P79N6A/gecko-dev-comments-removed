@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGAnimateMotionElement.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(AnimateMotion)

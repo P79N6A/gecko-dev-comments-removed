@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsIDOMHTMLMediaElement.h"
@@ -2192,6 +2160,10 @@ bool nsHTMLMediaElement::ShouldHandleMediaType(const char* aMIMEType)
 #endif
 #ifdef MOZ_WEBM
   if (IsWebMType(nsDependentCString(aMIMEType)))
+    return true;
+#endif
+#ifdef MOZ_GSTREAMER
+  if (IsH264Type(nsDependentCString(aMIMEType)))
     return true;
 #endif
   

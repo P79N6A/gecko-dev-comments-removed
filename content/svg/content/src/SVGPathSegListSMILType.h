@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGPATHSEGLISTSMILTYPE_H_
 #define MOZILLA_SVGPATHSEGLISTSMILTYPE_H_
 

@@ -4,46 +4,12 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef xpcquickstubs_h___
 #define xpcquickstubs_h___
 
 #include "xpcpublic.h"
 #include "xpcprivate.h"
-
-#include "nsINode.h"
+#include "qsObjectHelper.h"
 
 #include "jsatom.h"
 
@@ -76,87 +42,6 @@ struct xpc_qsHashEntry {
     
     uint16_t parentInterface;
     uint16_t chain;
-};
-
-inline nsISupports*
-ToSupports(nsISupports *p)
-{
-    return p;
-}
-
-inline nsISupports*
-ToCanonicalSupports(nsISupports* p)
-{
-  return nsnull;
-}
-
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2) || \
-    _MSC_FULL_VER >= 140050215
-
-
-
-#define QS_CASTABLE_TO(_interface, _class) __is_base_of(_interface, _class)
-
-#else
-
-
-
-
-
-
-
-
-
-template <typename Interface> struct QS_CastableTo {
-  struct false_type { int x[1]; };
-  struct true_type { int x[2]; };
-  static false_type p(void*);
-  static true_type p(Interface*);
-};
-
-#define QS_CASTABLE_TO(_interface, _class)                                    \
-  (sizeof(QS_CastableTo<_interface>::p(static_cast<_class*>(0))) ==           \
-   sizeof(QS_CastableTo<_interface>::true_type))
-
-#endif
-
-#define QS_IS_NODE(_class)                                                    \
-  QS_CASTABLE_TO(nsINode, _class) ||                                          \
-  QS_CASTABLE_TO(nsIDOMNode, _class)
-
-class qsObjectHelper : public xpcObjectHelper
-{
-public:
-  template <class T>
-  inline
-  qsObjectHelper(T *aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject), ToCanonicalSupports(aObject),
-                    aCache, QS_IS_NODE(T))
-  {}
-  template <class T>
-  inline
-  qsObjectHelper(nsCOMPtr<T>& aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject.get()),
-                    ToCanonicalSupports(aObject.get()), aCache, QS_IS_NODE(T))
-  {
-    if (mCanonical) {
-        
-        mCanonicalStrong = dont_AddRef(mCanonical);
-        aObject.forget();
-    }
-  }
-  template <class T>
-  inline
-  qsObjectHelper(nsRefPtr<T>& aObject, nsWrapperCache *aCache)
-  : xpcObjectHelper(ToSupports(aObject.get()),
-                    ToCanonicalSupports(aObject.get()), aCache, QS_IS_NODE(T))
-  {
-    if (mCanonical) {
-        
-        mCanonicalStrong = dont_AddRef(mCanonical);
-        aObject.forget();
-    }
-  }
 };
 
 JSBool
@@ -230,7 +115,7 @@ xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
 
 
 JSBool
-xpc_qsGetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+xpc_qsGetterOnlyPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, jsval *vp);
 
 
 
@@ -696,19 +581,19 @@ xpc_qsSameResult(PRInt32 result1, PRInt32 result2)
 
 
 template<typename Op>
-static inline JSBool ApplyPropertyOp(JSContext *cx, Op op, JSObject *obj, jsid id, jsval *vp);
+static inline JSBool ApplyPropertyOp(JSContext *cx, Op op, JSHandleObject obj, JSHandleId id, jsval *vp);
 
 template<>
 inline JSBool
-ApplyPropertyOp<JSPropertyOp>(JSContext *cx, JSPropertyOp op, JSObject *obj, jsid id, jsval *vp)
+ApplyPropertyOp<JSPropertyOp>(JSContext *cx, JSPropertyOp op, JSHandleObject obj, JSHandleId id, jsval *vp)
 {
     return op(cx, obj, id, vp);
 }
 
 template<>
 inline JSBool
-ApplyPropertyOp<JSStrictPropertyOp>(JSContext *cx, JSStrictPropertyOp op, JSObject *obj,
-                                    jsid id, jsval *vp)
+ApplyPropertyOp<JSStrictPropertyOp>(JSContext *cx, JSStrictPropertyOp op, JSHandleObject obj,
+                                    JSHandleId id, jsval *vp)
 {
     return op(cx, obj, id, true, vp);
 }
@@ -723,7 +608,7 @@ PropertyOpForwarder(JSContext *cx, unsigned argc, jsval *vp)
     
 
     JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
-    JSObject *obj = JS_THIS_OBJECT(cx, vp);
+    JS::RootedVarObject obj(cx, JS_THIS_OBJECT(cx, vp));
     if (!obj)
         return false;
 
@@ -735,8 +620,8 @@ PropertyOpForwarder(JSContext *cx, unsigned argc, jsval *vp)
     v = js::GetFunctionNativeReserved(callee, 1);
 
     jsval argval = (argc > 0) ? JS_ARGV(cx, vp)[0] : JSVAL_VOID;
-    jsid id;
-    if (!JS_ValueToId(cx, v, &id))
+    JS::RootedVarId id(cx);
+    if (!JS_ValueToId(cx, v, id.address()))
         return false;
     JS_SET_RVAL(cx, vp, argval);
     return ApplyPropertyOp<Op>(cx, *popp, obj, id, vp);

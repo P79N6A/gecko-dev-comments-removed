@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsITransactionManager.h"
 #include "nsTransactionItem.h"
 #include "nsTransactionList.h"

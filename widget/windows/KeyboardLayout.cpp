@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "KeyboardLayout.h"
@@ -45,6 +13,8 @@
 #include "nsToolkit.h"
 #include "nsQuickSort.h"
 #include "nsAlgorithm.h"
+#include "nsGUIEvent.h"
+#include "WidgetUtils.h"
 #include "WinUtils.h"
 
 #include "nsIDOMKeyEvent.h"
@@ -228,7 +198,7 @@ VirtualKey::GetNativeUniChars(PRUint8 aShiftState,
   return index;
 }
 
-NativeKey::NativeKey(HKL aKeyboardLayout,
+NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
                      nsWindow* aWindow,
                      const MSG& aKeyOrCharMessage) :
   mDOMKeyCode(0), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
@@ -247,7 +217,7 @@ NativeKey::NativeKey(HKL aKeyboardLayout,
         case VK_SHIFT:
           mVirtualKeyCode = static_cast<PRUint8>(
             ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                              MAPVK_VSC_TO_VK_EX, aKeyboardLayout));
+                              MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
           break;
         case VK_PROCESSKEY:
           mVirtualKeyCode = mOriginalVirtualKeyCode =
@@ -270,7 +240,7 @@ NativeKey::NativeKey(HKL aKeyboardLayout,
       }
       mVirtualKeyCode = mOriginalVirtualKeyCode = static_cast<PRUint8>(
         ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(),
-                          MAPVK_VSC_TO_VK_EX, aKeyboardLayout));
+                          MAPVK_VSC_TO_VK_EX, aKeyboardLayout.GetLayout()));
       break;
     default:
       MOZ_NOT_REACHED("Unsupported message");
@@ -281,25 +251,8 @@ NativeKey::NativeKey(HKL aKeyboardLayout,
     mVirtualKeyCode = mOriginalVirtualKeyCode;
   }
 
-  mDOMKeyCode = mOriginalVirtualKeyCode;
-  if (nsIMM32Handler::IsComposingOn(aWindow)) {
-    return;
-  }
-
-  switch (mOriginalVirtualKeyCode) {
-    
-    case VK_OEM_1:
-      mDOMKeyCode =  NS_VK_SEMICOLON;
-      break;
-    
-    case VK_OEM_PLUS:
-      mDOMKeyCode = NS_VK_ADD;
-      break;
-    
-    case VK_OEM_MINUS:
-      mDOMKeyCode = NS_VK_SUBTRACT;
-      break;
-  }
+  mDOMKeyCode =
+    aKeyboardLayout.ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
 }
 
 UINT
@@ -676,6 +629,10 @@ KeyboardLayout::GetKeyIndex(PRUint8 aVirtualKey)
 
 
 
+
+
+
+
   static const PRInt8 xlat[256] =
   {
   
@@ -694,7 +651,7 @@ KeyboardLayout::GetKeyIndex(PRUint8 aVirtualKey)
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 38, 39, 40, 41, 42, 43,   
     44, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 45, 46, 47, 48, 49,   
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
+    -1, 50, 51, 52, 53, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1    
   };
 
@@ -880,6 +837,161 @@ KeyboardLayout::GetDeadKeyCombinations(PRUint8 aDeadKey,
   return entries;
 }
 
+PRUint32
+KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
+{
+  
+  if ((aNativeKeyCode >= 0x30 && aNativeKeyCode <= 0x39) ||
+      (aNativeKeyCode >= 0x41 && aNativeKeyCode <= 0x5A) ||
+      (aNativeKeyCode >= 0x60 && aNativeKeyCode <= 0x87)) {
+    return static_cast<PRUint32>(aNativeKeyCode);
+  }
+  switch (aNativeKeyCode) {
+    
+    case VK_CANCEL:
+    case VK_BACK:
+    case VK_TAB:
+    case VK_CLEAR:
+    case VK_RETURN:
+    case VK_SHIFT:
+    case VK_CONTROL:
+    case VK_MENU: 
+    case VK_PAUSE:
+    case VK_CAPITAL: 
+    case VK_KANA: 
+    case VK_JUNJA:
+    case VK_FINAL:
+    case VK_HANJA: 
+    case VK_ESCAPE:
+    case VK_CONVERT:
+    case VK_NONCONVERT:
+    case VK_ACCEPT:
+    case VK_MODECHANGE:
+    case VK_SPACE:
+    case VK_PRIOR: 
+    case VK_NEXT: 
+    case VK_END:
+    case VK_HOME:
+    case VK_LEFT:
+    case VK_UP:
+    case VK_RIGHT:
+    case VK_DOWN:
+    case VK_SELECT:
+    case VK_PRINT:
+    case VK_EXECUTE:
+    case VK_SNAPSHOT:
+    case VK_INSERT:
+    case VK_DELETE:
+    case VK_APPS: 
+    case VK_SLEEP:
+    case VK_NUMLOCK:
+    case VK_SCROLL: 
+      return PRUint32(aNativeKeyCode);
+
+    case VK_HELP:
+      return NS_VK_HELP;
+
+    
+    
+    case VK_LWIN:
+    case VK_RWIN:
+      return NS_VK_WIN;
+
+    
+    case VK_BROWSER_BACK:
+    case VK_BROWSER_FORWARD:
+    case VK_BROWSER_REFRESH:
+    case VK_BROWSER_STOP:
+    case VK_BROWSER_SEARCH:
+    case VK_BROWSER_FAVORITES:
+    case VK_BROWSER_HOME:
+    case VK_VOLUME_MUTE:
+    case VK_VOLUME_DOWN:
+    case VK_VOLUME_UP:
+    case VK_MEDIA_NEXT_TRACK:
+    case VK_MEDIA_STOP:
+    case VK_MEDIA_PLAY_PAUSE:
+    case VK_LAUNCH_MAIL:
+    case VK_LAUNCH_MEDIA_SELECT:
+    case VK_LAUNCH_APP1:
+    case VK_LAUNCH_APP2:
+    case VK_ATTN: 
+    case VK_CRSEL: 
+    case VK_EXSEL: 
+    case VK_EREOF: 
+    case VK_PLAY:
+    case VK_ZOOM:
+    case VK_PA1: 
+    case VK_OEM_CLEAR:
+      return 0;
+
+    
+    case VK_OEM_RESET:
+    case VK_OEM_JUMP:
+    case VK_OEM_PA1:
+    case VK_OEM_PA2:
+    case VK_OEM_PA3:
+    case VK_OEM_WSCTRL:
+    case VK_OEM_CUSEL:
+    case VK_OEM_ATTN:
+    case VK_OEM_FINISH:
+    case VK_OEM_COPY:
+    case VK_OEM_AUTO:
+    case VK_OEM_ENLW:
+    case VK_OEM_BACKTAB:
+      return 0;
+
+    
+    
+    
+    
+    
+    case VK_OEM_1:
+    case VK_OEM_PLUS:
+    case VK_OEM_COMMA:
+    case VK_OEM_MINUS:
+    case VK_OEM_PERIOD:
+    case VK_OEM_2:
+    case VK_OEM_3:
+    case VK_OEM_4:
+    case VK_OEM_5:
+    case VK_OEM_6:
+    case VK_OEM_7:
+    case VK_OEM_8:
+    case 0xE1: 
+    case VK_OEM_102:
+    case 0xE3: 
+    case 0xE4: 
+    {
+      NS_ASSERTION(IsPrintableCharKey(aNativeKeyCode),
+                   "The key must be printable");
+      PRUnichar uniChars[5];
+      PRUint32 numOfChars =
+        GetUniCharsWithShiftState(aNativeKeyCode, 0,
+                                  uniChars, ArrayLength(uniChars));
+      if (numOfChars != 1 || uniChars[0] < ' ' || uniChars[0] > 0x7F) {
+        numOfChars =
+          GetUniCharsWithShiftState(aNativeKeyCode, eShift,
+                                    uniChars, ArrayLength(uniChars));
+        if (numOfChars != 1 || uniChars[0] < ' ' || uniChars[0] > 0x7F) {
+          return 0;
+        }
+      }
+      return WidgetUtils::ComputeKeyCodeFromChar(uniChars[0]);
+    }
+
+    
+    case VK_PROCESSKEY:
+      return 0;
+    
+    
+    case VK_PACKET:
+      return 0;
+  }
+  NS_WARNING("Unknown key code comes, please check latest MSDN document,"
+             " there may be some new keycodes we have not known.");
+  return 0;
+}
 
 PRUnichar
 DeadKeyTable::GetCompositeChar(PRUnichar aBaseChar) const

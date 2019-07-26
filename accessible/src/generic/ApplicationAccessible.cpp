@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
 #include "ApplicationAccessible.h"
 
@@ -333,7 +298,7 @@ ApplicationAccessible::IsPrimaryForNode() const
 
 
 void
-ApplicationAccessible::ApplyARIAState(PRUint64* aState)
+ApplicationAccessible::ApplyARIAState(PRUint64* aState) const
 {
 }
 

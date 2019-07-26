@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DOMSVGPoint.h"
 #include "DOMSVGPointList.h"
 #include "SVGPoint.h"

@@ -73,39 +73,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsBuiltinDecoderStateMachine_h__)
 #define nsBuiltinDecoderStateMachine_h__
 
@@ -241,6 +208,13 @@ public:
   bool IsSeekable() {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mSeekable;
+  }
+
+  bool IsSeekableInBufferedRanges() {
+    if (mReader) {
+      return mReader->IsSeekableInBufferedRanges();
+    }
+    return false;
   }
 
   

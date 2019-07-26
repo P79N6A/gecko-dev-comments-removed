@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsComposerCommands_h_
 #define nsComposerCommands_h_
 
@@ -45,6 +10,7 @@
 #include "nsString.h"
 
 class nsIEditor;
+class nsIAtom;
 
 
 
@@ -83,9 +49,8 @@ public:                                                 \
 class nsBaseStateUpdatingCommand : public nsBaseComposerCommand
 {
 public:
-
-              nsBaseStateUpdatingCommand(const char* aTagName);
-  virtual     ~nsBaseStateUpdatingCommand();
+  nsBaseStateUpdatingCommand(nsIAtom* aTagName);
+  virtual ~nsBaseStateUpdatingCommand();
     
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -94,14 +59,13 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams) = 0;
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams) = 0;
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName) = 0;
+  virtual nsresult  ToggleState(nsIEditor* aEditor) = 0;
 
 protected:
-
-  const char* mTagName;
+  nsIAtom* mTagName;
 };
 
 
@@ -110,17 +74,15 @@ protected:
 class nsStyleUpdatingCommand : public nsBaseStateUpdatingCommand
 {
 public:
-
-            nsStyleUpdatingCommand(const char* aTagName);
+  nsStyleUpdatingCommand(nsIAtom* aTagName);
            
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
-  
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 
@@ -144,31 +106,29 @@ protected:
 class nsListCommand : public nsBaseStateUpdatingCommand
 {
 public:
-
-            nsListCommand(const char* aTagName);
+  nsListCommand(nsIAtom* aTagName);
 
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 class nsListItemCommand : public nsBaseStateUpdatingCommand
 {
 public:
-
-            nsListItemCommand(const char* aTagName);
+  nsListItemCommand(nsIAtom* aTagName);
 
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 
@@ -273,13 +233,13 @@ protected:
 class nsAbsolutePositioningCommand : public nsBaseStateUpdatingCommand
 {
 public:
-                   nsAbsolutePositioningCommand();
+  nsAbsolutePositioningCommand();
 
 protected:
 
   NS_IMETHOD IsCommandEnabled(const char *aCommandName, nsISupports *aCommandRefCon, bool *_retval);
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 

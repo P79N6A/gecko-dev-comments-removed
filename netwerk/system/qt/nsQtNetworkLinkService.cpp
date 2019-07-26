@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsQtNetworkManager.h"
 #include "nsQtNetworkLinkService.h"
 #include "nsCOMPtr.h"

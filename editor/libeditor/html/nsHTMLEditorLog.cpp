@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdio.h>
 #include "nsIDOMElement.h"
 #include "nsIDOMAttr.h"
@@ -145,7 +112,8 @@ nsHTMLEditorLog::RemoveInlineProperty(nsIAtom *aProperty, const nsAString &aAttr
 }
 
 NS_IMETHODIMP
-nsHTMLEditorLog::DeleteSelection(nsIEditor::EDirection aAction)
+nsHTMLEditorLog::DeleteSelection(nsIEditor::EDirection aAction,
+                                 nsIEditor::EStripWrappers aStripWrappers)
 {
   nsAutoHTMLEditorLogLock logLock(this);
 
@@ -159,7 +127,7 @@ nsHTMLEditorLog::DeleteSelection(nsIEditor::EDirection aAction)
     Flush();
   }
 
-  return nsHTMLEditor::DeleteSelection(aAction);
+  return nsHTMLEditor::DeleteSelection(aAction, aStripWrappers);
 }
 
 NS_IMETHODIMP

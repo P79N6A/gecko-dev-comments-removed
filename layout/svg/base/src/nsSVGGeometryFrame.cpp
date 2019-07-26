@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGGeometryFrame.h"
 
 
@@ -200,7 +169,7 @@ nsSVGGeometryFrame::SetupCairoFill(gfxContext *aContext)
 
   nsSVGPaintServerFrame *ps =
     GetPaintServer(&style->mFill, nsSVGEffects::FillProperty());
-  if (ps && ps->SetupPaintServer(aContext, this, opacity))
+  if (ps && ps->SetupPaintServer(aContext, this, &nsStyleSVG::mFill, opacity))
     return true;
 
   
@@ -228,6 +197,9 @@ nsSVGGeometryFrame::SetupCairoStrokeGeometry(gfxContext *aContext)
   if (width <= 0)
     return;
   aContext->SetLineWidth(width);
+
+  
+  aContext->Multiply(nsSVGUtils::GetStrokeTransform(this));
 
   const nsStyleSVG* style = GetStyleSVG();
   
@@ -283,7 +255,7 @@ nsSVGGeometryFrame::SetupCairoStroke(gfxContext *aContext)
 
   nsSVGPaintServerFrame *ps =
     GetPaintServer(&style->mStroke, nsSVGEffects::StrokeProperty());
-  if (ps && ps->SetupPaintServer(aContext, this, opacity))
+  if (ps && ps->SetupPaintServer(aContext, this, &nsStyleSVG::mStroke, opacity))
     return true;
 
   

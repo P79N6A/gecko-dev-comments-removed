@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsComposeTxtSrvFilter.h"
 #include "nsIContent.h"
 #include "nsIDOMNode.h"

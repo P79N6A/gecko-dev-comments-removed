@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsApplicationCache : public nsIApplicationCache
                          , public nsSupportsWeakReference
 {

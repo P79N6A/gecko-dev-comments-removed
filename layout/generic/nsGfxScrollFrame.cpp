@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsHTMLParts.h"
 #include "nsPresContext.h"
@@ -1847,6 +1813,12 @@ CanScrollWithBlitting(nsIFrame* aFrame)
         f->IsFrameOfType(nsIFrame::eSVG)) {
       return false;
     }
+#ifndef MOZ_ENABLE_MASK_LAYERS
+    nsIScrollableFrame* sf = do_QueryFrame(f);
+    if ((sf || f->IsFrameOfType(nsIFrame::eReplaced)) &&
+        nsLayoutUtils::HasNonZeroCorner(f->GetStyleBorder()->mBorderRadius))
+      return false;
+#endif
     if (nsLayoutUtils::IsPopup(f))
       break;
   }
@@ -2298,15 +2270,20 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsRect scrollRange = GetScrollRange();
-  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
-  mShouldBuildLayer =
-     (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN ||
-      styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN) &&
-     (usingDisplayport ||
-      (XRE_GetProcessType() == GeckoProcessType_Content &&
-       (scrollRange.width > 0 || scrollRange.height > 0) &&
-       (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument())));
+  
+  
+  if (usingDisplayport) {
+    mShouldBuildLayer = true;
+  } else {
+    nsRect scrollRange = GetScrollRange();
+    ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+    mShouldBuildLayer =
+       (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN ||
+        styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN) &&
+       (XRE_GetProcessType() == GeckoProcessType_Content &&
+        (scrollRange.width > 0 || scrollRange.height > 0) &&
+        (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument()));
+  }
 
   nsRect clip;
   nscoord radii[8];

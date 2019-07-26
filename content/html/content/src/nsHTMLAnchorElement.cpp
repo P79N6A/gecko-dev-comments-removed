@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLAnchorElement.h"
 #include "nsILink.h"

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "GlobalObject.h"
 
 #include "jscntxt.h"
@@ -230,7 +197,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     
 
     
-    jsid id = NameToId(cx->runtime->atomState.evalAtom);
+    RootedVarId id(cx, NameToId(cx->runtime->atomState.evalAtom));
     JSObject *evalobj = js_DefineFunction(cx, self, id, eval, 1, JSFUN_STUB_GSOPS);
     if (!evalobj)
         return NULL;

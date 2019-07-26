@@ -1,41 +1,9 @@
-/* vim: set shiftwidth=4 tabstop=8 autoindent cindent expandtab: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is ListCSSProperties.
- *
- * The Initial Developer of the Original Code is the Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2007
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   L. David Baron <dbaron@dbaron.org>, Mozilla Corporation (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* build (from code) lists of all supported CSS properties */
+
+
+
+
+
 
 #include <stdio.h>
 #include <string.h>
@@ -60,11 +28,11 @@ const PropertyInfo gLonghandProperties[] = {
 
 };
 
-/*
- * These are the properties for which domName in the above list should
- * be used.  They're in the same order as the above list, with some
- * items skipped.
- */
+
+
+
+
+
 const char* gLonghandPropertiesWithDOMProp[] = {
 
 #define CSS_PROP_LIST_EXCLUDE_INTERNAL
@@ -82,8 +50,8 @@ const char* gLonghandPropertiesWithDOMProp[] = {
 const PropertyInfo gShorthandProperties[] = {
 
 #define CSS_PROP_DOMPROP_PREFIXED(prop_) Moz ## prop_
-// Need an extra level of macro nesting to force expansion of method_
-// params before they get pasted.
+
+
 #define LISTCSSPROPERTIES_INNER_MACRO(method_) #method_,
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)	\
     { #name_, LISTCSSPROPERTIES_INNER_MACRO(method_) },
@@ -96,7 +64,7 @@ const PropertyInfo gShorthandProperties[] = {
 
 };
 
-/* see gLonghandPropertiesWithDOMProp */
+
 const char* gShorthandPropertiesWithDOMProp[] = {
 
 #define CSS_PROP_LIST_EXCLUDE_INTERNAL
@@ -114,8 +82,8 @@ const char* gShorthandPropertiesWithDOMProp[] = {
 #define ARRAY_LENGTH(a_) (sizeof(a_)/sizeof((a_)[0]))
 
 const char *gInaccessibleProperties[] = {
-    // Don't print the properties that aren't accepted by the parser, per
-    // CSSParserImpl::ParseProperty
+    
+    
     "-x-cols",
     "-x-lang",
     "-x-span",
@@ -160,7 +128,7 @@ const char *gInaccessibleProperties[] = {
     "padding-left-rtl-source",
     "padding-right-ltr-source",
     "padding-right-rtl-source",
-    "-moz-script-level", // parsed by UA sheets only
+    "-moz-script-level", 
     "-moz-script-size-multiplier",
     "-moz-script-min-size"
 };
@@ -183,14 +151,14 @@ print_array(const char *aName,
     printf("var %s = [\n", aName);
 
     int first = 1;
-    unsigned j = 0; // index into DOM prop list
+    unsigned j = 0; 
     for (unsigned i = 0; i < aPropsLength; ++i) {
         const PropertyInfo *p = aProps + i;
 
         if (is_inaccessible(p->propName))
-            // inaccessible properties never have DOM props, so don't
-            // worry about incrementing j.  The assertion below will
-            // catch if they do.
+            
+            
+            
             continue;
 
         if (first)
@@ -206,7 +174,7 @@ print_array(const char *aName,
             if (strncmp(p->domName, "Moz", 3) == 0)
                 printf("\"%s\"", p->domName);
             else
-                // lowercase the first letter
+                
                 printf("\"%c%s\"", p->domName[0] + 32, p->domName + 1);
         }
         printf("}");

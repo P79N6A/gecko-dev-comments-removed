@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
 #define MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
 

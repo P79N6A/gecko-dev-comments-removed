@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_a11y_ApplicationAccessible_h__
 #define mozilla_a11y_ApplicationAccessible_h__
 
@@ -104,7 +69,7 @@ public:
 
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();

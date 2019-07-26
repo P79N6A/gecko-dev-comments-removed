@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHttp.h"
 #include "SpdySession.h"
 #include "SpdyStream.h"
@@ -407,8 +374,12 @@ SpdySession::ActivateStream(SpdyStream *stream)
   SetWriteCallbacks();
 
   
-  PRUint32 countRead;
-  ReadSegments(nsnull, kDefaultBufferSize, &countRead);
+  
+  
+  if (mSegmentReader) {
+    PRUint32 countRead;
+    ReadSegments(nsnull, kDefaultBufferSize, &countRead);
+  }
 }
 
 void
@@ -1389,6 +1360,12 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   
+  NS_ABORT_IF_FALSE(!mSegmentReader || !reader || (mSegmentReader == reader),
+                    "Inconsistent Write Function Callback");
+
+  if (reader)
+    mSegmentReader = reader;
+
   nsresult rv;
   *countRead = 0;
 
@@ -1415,11 +1392,6 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
   
   LOG3(("SpdySession %p will write from SpdyStream %p", this, stream));
 
-  NS_ABORT_IF_FALSE(!mSegmentReader || !reader || (mSegmentReader == reader),
-                    "Inconsistent Write Function Callback");
-
-  if (reader)
-    mSegmentReader = reader;
   rv = stream->ReadSegments(this, count, countRead);
 
   
@@ -1449,6 +1421,8 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
   if (NS_FAILED(rv)) {
     LOG3(("SpdySession::ReadSegments %p returning FAIL code %X",
           this, rv));
+    if (rv != NS_BASE_STREAM_WOULD_BLOCK)
+      CleanupStream(stream, rv, RST_CANCEL);
     return rv;
   }
   

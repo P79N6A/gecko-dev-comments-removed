@@ -4,43 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Util.h"
 
@@ -877,8 +840,7 @@ nsDocShell::Init()
     rv = mContentListener->Init();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!mStorages.Init())
-        return NS_ERROR_OUT_OF_MEMORY;
+    mStorages.Init();
 
     
     
@@ -2442,8 +2404,7 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
         if (NS_FAILED(rv))
             return rv;
 
-        if (!mStorages.Put(origin, newstorage))
-            return NS_ERROR_OUT_OF_MEMORY;
+        mStorages.Put(origin, newstorage);
 
         newstorage.swap(*aStorage);
 #if defined(PR_LOGGING) && defined(DEBUG)
@@ -2580,8 +2541,7 @@ nsDocShell::AddSessionStorage(nsIPrincipal* aPrincipal,
                    ("nsDocShell[%p]: was added a sessionStorage %p",
                     this, aStorage));
 #endif
-            if (!mStorages.Put(origin, aStorage))
-                return NS_ERROR_OUT_OF_MEMORY;
+            mStorages.Put(origin, aStorage);
         }
         else {
             return topDocShell->AddSessionStorage(aPrincipal, aStorage);

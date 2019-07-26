@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTextEditorState.h"
 
 #include "nsCOMPtr.h"
@@ -65,6 +33,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIEditor.h"
 #include "nsTextEditRules.h"
+#include "nsTypedSelection.h"
 #include "nsEventListenerManager.h"
 #include "nsContentUtils.h"
 
@@ -1862,7 +1831,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
         plaintextEditor->SetMaxTextLength(-1);
 
         if (insertValue.IsEmpty()) {
-          mEditor->DeleteSelection(nsIEditor::eNone);
+          mEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
         } else {
           plaintextEditor->InsertText(insertValue);
         }

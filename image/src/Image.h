@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_IMAGELIB_IMAGE_H_
 #define MOZILLA_IMAGELIB_IMAGE_H_
 

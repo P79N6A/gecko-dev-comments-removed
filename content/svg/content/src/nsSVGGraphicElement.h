@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGGRAPHICELEMENT_H__
 #define __NS_SVGGRAPHICELEMENT_H__
 
@@ -61,6 +28,9 @@ public:
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+
+  nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
+                                      PRInt32 aModType) const;
 
   virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const;

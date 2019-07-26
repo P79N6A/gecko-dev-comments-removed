@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txXSLTProcessor.h"
 #include "txInstructions.h"
 #include "nsGkAtoms.h"

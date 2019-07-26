@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAccDocManager.h"
 
 #include "ApplicationAccessible.h"
@@ -395,8 +362,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     new nsDocAccessibleWrap(aDocument, rootElm, presShell);
 
   
-  if (!docAcc || !mDocAccessibleCache.Put(aDocument, docAcc))
-    return nsnull;
+  mDocAccessibleCache.Put(aDocument, docAcc);
 
   
   if (!docAcc->Init()) {

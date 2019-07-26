@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsFrameSelection_h___
 #define nsFrameSelection_h___
 
@@ -384,7 +351,7 @@ public:
 
 
 
-  nsISelection* GetSelection(SelectionType aType) const;
+  nsTypedSelection* GetSelection(SelectionType aType) const;
 
   
 

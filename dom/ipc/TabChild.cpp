@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TabChild.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/dom/PContentChild.h"
@@ -384,7 +352,7 @@ TabChild::OpenDialog(PRUint32 aType, const nsACString& aName,
                      nsIDOMElement* aFrameElement)
 {
   if (!gActiveDialogs.IsInitialized()) {
-    NS_ENSURE_STATE(gActiveDialogs.Init());
+    gActiveDialogs.Init();
   }
   InfallibleTArray<PRInt32> intParams;
   InfallibleTArray<nsString> stringParams;
@@ -392,7 +360,7 @@ TabChild::OpenDialog(PRUint32 aType, const nsACString& aName,
   PContentDialogChild* dialog =
     SendPContentDialogConstructor(aType, nsCString(aName),
                                   nsCString(aFeatures), intParams, stringParams);
-  NS_ENSURE_STATE(gActiveDialogs.Put(dialog, aArguments));
+  gActiveDialogs.Put(dialog, aArguments);
   nsIThread *thread = NS_GetCurrentThread();
   while (gActiveDialogs.GetWeak(dialog)) {
     if (!NS_ProcessNextEvent(thread)) {

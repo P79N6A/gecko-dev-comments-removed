@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGPAINTSERVERFRAME_H__
 #define __NS_SVGPAINTSERVERFRAME_H__
 
@@ -70,6 +39,7 @@ public:
 
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
+                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
                           const gfxRect *aOverrideBounds = nsnull) = 0;
 
@@ -78,8 +48,9 @@ public:
 
 
   virtual bool SetupPaintServer(gfxContext *aContext,
-                                  nsSVGGeometryFrame *aSource,
-                                  float aOpacity);
+                                nsSVGGeometryFrame *aSource,
+                                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                float aOpacity);
 
   virtual bool IsFrameOfType(PRUint32 aFlags) const
   {

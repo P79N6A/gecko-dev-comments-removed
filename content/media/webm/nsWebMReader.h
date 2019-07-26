@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsWebMReader_h_)
 #define nsWebMReader_h_
 
@@ -154,6 +121,11 @@ public:
   {
     NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
     return mHasVideo;
+  }
+
+  
+  bool IsSeekableInBufferedRanges() {
+    return false;
   }
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo);

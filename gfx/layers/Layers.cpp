@@ -1,42 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at:
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Code.
- *
- * The Initial Developer of the Original Code is
- *   The Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Chris Jones <jones.chris.g@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
 
 #include "mozilla/layers/PLayers.h"
 #include "mozilla/layers/ShadowLayers.h"
@@ -64,11 +31,11 @@ FILEOrDefault(FILE* aFile)
 {
   return aFile ? aFile : stderr;
 }
-#endif // MOZ_LAYERS_HAVE_LOG
+#endif 
 
 namespace {
 
-// XXX pretty general utilities, could centralize
+
 
 nsACString&
 AppendToString(nsACString& s, const void* p,
@@ -199,13 +166,13 @@ AppendToString(nsACString& s, const FrameMetrics& m,
   return s += sfx;
 }
 
-} // namespace <anon>
+} 
 
 namespace mozilla {
 namespace layers {
 
-//--------------------------------------------------
-// LayerManager
+
+
 already_AddRefed<gfxASurface>
 LayerManager::CreateOptimalSurface(const gfxIntSize &aSize,
                                    gfxASurface::gfxImageFormat aFormat)
@@ -227,7 +194,7 @@ void
 LayerManager::Mutated(Layer* aLayer)
 {
 }
-#endif  // DEBUG
+#endif  
 
 already_AddRefed<ImageContainer>
 LayerManager::CreateImageContainer()
@@ -236,27 +203,27 @@ LayerManager::CreateImageContainer()
   return container.forget();
 }
 
-//--------------------------------------------------
-// Layer
+
+
 
 bool
 Layer::CanUseOpaqueSurface()
 {
-  // If the visible content in the layer is opaque, there is no need
-  // for an alpha channel.
+  
+  
   if (GetContentFlags() & CONTENT_OPAQUE)
     return true;
-  // Also, if this layer is the bottommost layer in a container which
-  // doesn't need an alpha channel, we can use an opaque surface for this
-  // layer too. Any transparent areas must be covered by something else
-  // in the container.
+  
+  
+  
+  
   ContainerLayer* parent = GetParent();
   return parent && parent->GetFirstChild() == this &&
     parent->CanUseOpaqueSurface();
 }
 
-// NB: eventually these methods will be defined unconditionally, and
-// can be moved into Layers.h
+
+
 const nsIntRect*
 Layer::GetEffectiveClipRect()
 {
@@ -294,7 +261,7 @@ Layer::SnapTransform(const gfx3DMatrix& aTransform,
     gfxMatrix snappedMatrix;
     gfxPoint topLeft = matrix2D.Transform(aSnapRect.TopLeft());
     topLeft.Round();
-    // first compute scale factors that scale aSnapRect to the snapped rect
+    
     if (aSnapRect.IsEmpty()) {
       snappedMatrix.xx = matrix2D.xx;
       snappedMatrix.yy = matrix2D.yy;
@@ -304,15 +271,15 @@ Layer::SnapTransform(const gfx3DMatrix& aTransform,
       snappedMatrix.xx = (bottomRight.x - topLeft.x)/aSnapRect.Width();
       snappedMatrix.yy = (bottomRight.y - topLeft.y)/aSnapRect.Height();
     }
-    // compute translation factors that will move aSnapRect to the snapped rect
-    // given those scale factors
+    
+    
     snappedMatrix.x0 = topLeft.x - aSnapRect.X()*snappedMatrix.xx;
     snappedMatrix.y0 = topLeft.y - aSnapRect.Y()*snappedMatrix.yy;
     result = gfx3DMatrix::From2D(snappedMatrix);
     if (aResidualTransform && !snappedMatrix.IsSingular()) {
-      // set aResidualTransform so that aResidual * snappedMatrix == matrix2D.
-      // (i.e., appying snappedMatrix after aResidualTransform gives the
-      // ideal transform.
+      
+      
+      
       gfxMatrix snappedMatrixInverse = snappedMatrix;
       snappedMatrixInverse.Invert();
       *aResidualTransform = matrix2D * snappedMatrixInverse;
@@ -330,8 +297,8 @@ Layer::CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
   ContainerLayer* container = GetParent();
   NS_ASSERTION(container, "This can't be called on the root!");
 
-  // Establish initial clip rect: it's either the one passed in, or
-  // if the parent has an intermediate surface, it's the extents of that surface.
+  
+  
   nsIntRect currentClip;
   if (container->UseIntermediateSurface()) {
     currentClip.SizeTo(container->GetIntermediateSurfaceRect().Size());
@@ -344,8 +311,8 @@ Layer::CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
     return currentClip;
 
   if (clipRect->IsEmpty()) {
-    // We might have a non-translation transform in the container so we can't
-    // use the code path below.
+    
+    
     return nsIntRect(currentClip.TopLeft(), nsIntSize(0, 0));
   }
 
@@ -353,7 +320,7 @@ Layer::CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
   if (!container->UseIntermediateSurface()) {
     gfxMatrix matrix;
     DebugOnly<bool> is2D = container->GetEffectiveTransform().Is2D(&matrix);
-    // See DefaultComputeEffectiveTransforms below
+    
     NS_ASSERTION(is2D && matrix.PreservesAxisAlignedRectangles(),
                  "Non preserves axis aligned transform with clipped child should have forced intermediate surface");
     gfxRect r(scissor.x, scissor.y, scissor.width, scissor.height);
@@ -363,7 +330,7 @@ Layer::CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
       return nsIntRect(currentClip.TopLeft(), nsIntSize(0, 0));
     }
 
-    // Find the nearest ancestor with an intermediate surface
+    
     do {
       container = container->GetParent();
     } while (container && !container->UseIntermediateSurface());
@@ -493,10 +460,10 @@ ContainerLayer::DefaultComputeEffectiveTransforms(const gfx3DMatrix& aTransformT
 #endif
         for (Layer* child = GetFirstChild(); child; child = child->GetNextSibling()) {
           const nsIntRect *clipRect = child->GetEffectiveClipRect();
-          /* We can't (easily) forward our transform to children with a non-empty clip
-           * rect since it would need to be adjusted for the transform. See
-           * the calculations performed by CalculateScissorRect above.
-           */
+          
+
+
+
           if (clipRect && !clipRect->IsEmpty() && !child->GetVisibleRegion().IsEmpty()) {
             useIntermediateSurface = true;
             break;
@@ -786,8 +753,8 @@ ReadbackLayer::PrintInfo(nsACString& aTo, const char* aPrefix)
   return aTo;
 }
 
-//--------------------------------------------------
-// LayerManager
+
+
 
 void
 LayerManager::Dump(FILE* aFile, const char* aPrefix)
@@ -857,14 +824,14 @@ LayerManager::PrintInfo(nsACString& aTo, const char* aPrefix)
   return aTo += nsPrintfCString("%sLayerManager (0x%p)", Name(), this);
 }
 
-/*static*/ void
+ void
 LayerManager::InitLog()
 {
   if (!sLog)
     sLog = PR_NewLogModule("Layers");
 }
 
-/*static*/ bool
+ bool
 LayerManager::IsLogEnabled()
 {
   NS_ABORT_IF_FALSE(!!sLog,
@@ -890,7 +857,7 @@ PrintInfo(nsACString& aTo, ShadowLayer* aShadowLayer)
   return aTo;
 }
 
-#else  // !MOZ_LAYERS_HAVE_LOG
+#else  
 
 void Layer::Dump(FILE* aFile, const char* aPrefix) {}
 void Layer::DumpSelf(FILE* aFile, const char* aPrefix) {}
@@ -933,12 +900,12 @@ nsACString&
 LayerManager::PrintInfo(nsACString& aTo, const char* aPrefix)
 { return aTo; }
 
-/*static*/ void LayerManager::InitLog() {}
-/*static*/ bool LayerManager::IsLogEnabled() { return false; }
+ void LayerManager::InitLog() {}
+ bool LayerManager::IsLogEnabled() { return false; }
 
-#endif // MOZ_LAYERS_HAVE_LOG
+#endif 
 
 PRLogModuleInfo* LayerManager::sLog;
 
-} // namespace layers 
-} // namespace mozilla
+} 
+} 

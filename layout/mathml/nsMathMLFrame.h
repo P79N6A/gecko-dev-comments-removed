@@ -1,41 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla MathML Project.
- *
- * The Initial Developer of the Original Code is
- * The University Of Queensland.
- * Portions created by the Initial Developer are Copyright (C) 1999
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Roger B. Sidje <rbs@maths.uq.edu.au>
- *   Frederic Wang <fred.wang@free.fr>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #ifndef nsMathMLFrame_h___
 #define nsMathMLFrame_h___
@@ -54,11 +20,11 @@
 
 class nsMathMLChar;
 
-// Concrete base class with default methods that derived MathML frames can override
+
 class nsMathMLFrame : public nsIMathMLFrame {
 public:
 
-  // nsIMathMLFrame ---
+  
 
   virtual bool
   IsSpaceLike() {
@@ -128,9 +94,9 @@ public:
     return NS_OK;
   }
 
-  // helper to give a style context suitable for doing the stretching to the
-  // MathMLChar. Frame classes that use this should make the extra style contexts
-  // accessible to the Style System via Get/Set AdditionalStyleContext.
+  
+  
+  
   static void
   ResolveMathMLCharStyle(nsPresContext*  aPresContext,
                          nsIContent*      aContent,
@@ -138,56 +104,56 @@ public:
                          nsMathMLChar*    aMathMLChar,
                          bool             aIsMutableChar);
 
-  // helper to get the mEmbellishData of a frame
-  // The MathML REC precisely defines an "embellished operator" as:
-  // - an <mo> element;
-  // - or one of the elements <msub>, <msup>, <msubsup>, <munder>, <mover>,
-  //   <munderover>, <mmultiscripts>, <mfrac>, or <semantics>, whose first 
-  //   argument exists and is an embellished operator;
-  //- or one of the elements <mstyle>, <mphantom>, or <mpadded>, such that
-  //   an <mrow> containing the same arguments would be an embellished
-  //   operator;
-  // - or an <maction> element whose selected subexpression exists and is an
-  //   embellished operator;
-  // - or an <mrow> whose arguments consist (in any order) of one embellished
-  //   operator and zero or more spacelike elements.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   static void
   GetEmbellishDataFrom(nsIFrame*        aFrame,
                        nsEmbellishData& aEmbellishData);
 
-  // helper to get the presentation data of a frame. If aClimbTree is
-  // set to true and the frame happens to be surrounded by non-MathML
-  // helper frames needed for its support, we walk up the frame hierarchy
-  // until we reach a MathML ancestor or the <root> math element.
+  
+  
+  
+  
   static void
   GetPresentationDataFrom(nsIFrame*           aFrame,
                           nsPresentationData& aPresentationData,
                           bool                aClimbTree = true);
 
-  // helper used by <mstyle> and <mtable> to see if they have a displaystyle attribute 
+  
   static void
   FindAttrDisplaystyle(nsIContent*         aContent,
                        nsPresentationData& aPresentationData);
 
-  // helper used to see if an element has a dir attribute 
+  
   static void
   FindAttrDirectionality(nsIContent*         aContent,
                          nsPresentationData& aPresentationData);
 
-  // helper to check if a content has an attribute. If content is nsnull or if
-  // the attribute is not there, check if the attribute is on the mstyle hierarchy
-  // @return true     --if attribute exists
-  //         false --if attribute doesn't exist
+  
+  
+  
+  
   static bool
   GetAttribute(nsIContent* aContent,
                nsIFrame*   aMathMLmstyleFrame,          
                nsIAtom*    aAttributeAtom,
                nsString&   aValue);
 
-  // utilities to parse and retrieve numeric values in CSS units
-  // All values are stored in twips.
-  // @pre  aLengthValue is the default length value of the attribute.
-  // @post aLengthValue is the length value computed from the attribute.
+  
+  
+  
+  
   static void ParseNumericValue(const nsString&   aString,
                                 nscoord*          aLengthValue,
                                 PRUint32          aFlags,
@@ -210,7 +176,7 @@ public:
     return eMathMLFrameType_UNKNOWN;
   }
 
-  // estimate of the italic correction
+  
   static void
   GetItalicCorrection(nsBoundingMetrics& aBoundingMetrics,
                       nscoord&           aItalicCorrection)
@@ -236,7 +202,7 @@ public:
     }
   }
 
-  // helper methods for getting sup/subdrop's from a child
+  
   static void 
   GetSubDropFromChild(nsIFrame*       aChild,
                       nscoord&        aSubDrop) 
@@ -259,12 +225,12 @@ public:
   GetSkewCorrectionFromChild(nsIFrame*       aChild,
                              nscoord&        aSkewCorrection) 
   {
-    // default is 0
-    // individual classes should over-ride this method if necessary
+    
+    
     aSkewCorrection = 0;
   }
 
-  // 2 levels of subscript shifts
+  
   static void
   GetSubScriptShifts(nsFontMetrics* fm, 
                      nscoord&        aSubScriptShift1, 
@@ -275,7 +241,7 @@ public:
     aSubScriptShift2 = NSToCoordRound(247.217f/430.556f * xHeight);
   }
 
-  // 3 levels of superscript shifts
+  
   static void
   GetSupScriptShifts(nsFontMetrics* fm, 
                      nscoord&        aSupScriptShift1, 
@@ -288,7 +254,7 @@ public:
     aSupScriptShift3 = NSToCoordRound(288.889f/430.556f * xHeight);
   }
 
-  // these are TeX specific params not found in ordinary fonts
+  
 
   static void
   GetSubDrop(nsFontMetrics* fm,
@@ -333,7 +299,7 @@ public:
               nscoord&        emHeight)
   {
 #if 0
-    // should switch to this API in order to scale with changes of TextZoom
+    
     emHeight = fm->EmHeight();
 #else
     emHeight = NSToCoordRound(float(fm->Font().size));
@@ -371,9 +337,9 @@ public:
     ruleThickness = NSToCoordRound(40.000f/430.556f * xHeight);
   }
 
-  // Some parameters are not accurately obtained using the x-height.
-  // Here are some slower variants to obtain the desired metrics
-  // by actually measuring some characters
+  
+  
+  
   static void
   GetRuleThickness(nsRenderingContext& aRenderingContext, 
                    nsFontMetrics*      aFontMetrics,
@@ -392,25 +358,25 @@ protected:
                                   const nsDisplayListSet& aLists);
 #endif
 
-  /**
-   * Display a solid rectangle in the frame's text color. Used for drawing
-   * fraction separators and root/sqrt overbars.
-   */
+  
+
+
+
   nsresult DisplayBar(nsDisplayListBuilder* aBuilder,
                       nsIFrame* aFrame, const nsRect& aRect,
                       const nsDisplayListSet& aLists);
 
-  // information about the presentation policy of the frame
+  
   nsPresentationData mPresentationData;
 
-  // information about a container that is an embellished operator
+  
   nsEmbellishData mEmbellishData;
   
-  // Metrics that _exactly_ enclose the text of the frame
+  
   nsBoundingMetrics mBoundingMetrics;
   
-  // Reference point of the frame: mReference.y is the baseline
+  
   nsPoint mReference; 
 };
 
-#endif /* nsMathMLFrame_h___ */
+#endif 

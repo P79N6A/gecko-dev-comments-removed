@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIXPConnect.h"
 #include "mozStorageAsyncStatement.h"
 #include "mozStorageService.h"

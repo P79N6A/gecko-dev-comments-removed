@@ -20,38 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPropertyTable.h"
 #include "pldhash.h"
 #include "nsContentErrors.h"

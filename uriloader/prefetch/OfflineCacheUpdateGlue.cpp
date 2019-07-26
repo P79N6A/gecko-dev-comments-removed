@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "OfflineCacheUpdateGlue.h"
 #include "nsOfflineCacheUpdate.h"
 #include "mozilla/Services.h"

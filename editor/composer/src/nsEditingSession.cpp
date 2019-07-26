@@ -4,42 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPIDOMWindow.h"
 #include "nsIDOMWindowUtils.h"
 #include "nsIDOMHTMLDocument.h"

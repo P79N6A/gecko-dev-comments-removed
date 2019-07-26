@@ -4,43 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Attributes.h"
 
 #ifdef MOZ_LOGGING
@@ -454,12 +417,9 @@ mozJSComponentLoader::ReallyInit()
     if (NS_FAILED(rv) || !mSystemPrincipal)
         return NS_ERROR_FAILURE;
 
-    if (!mModules.Init(32))
-        return NS_ERROR_OUT_OF_MEMORY;
-    if (!mImports.Init(32))
-        return NS_ERROR_OUT_OF_MEMORY;
-    if (!mInProgressImports.Init(32))
-        return NS_ERROR_OUT_OF_MEMORY;
+    mModules.Init(32);
+    mImports.Init(32);
+    mInProgressImports.Init(32);
 
     nsCOMPtr<nsIObserverService> obsSvc =
         do_GetService(kObserverServiceContractID, &rv);
@@ -607,8 +567,7 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
     }
 
     
-    if (!mModules.Put(spec, entry))
-        return NULL;
+    mModules.Put(spec, entry);
 
     
     return entry.forget();
@@ -1141,8 +1100,9 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
     nsAutoPtr<ModuleEntry> newEntry;
     if (!mImports.Get(key, &mod) && !mInProgressImports.Get(key, &mod)) {
         newEntry = new ModuleEntry;
-        if (!newEntry || !mInProgressImports.Put(key, newEntry))
+        if (!newEntry)
             return NS_ERROR_OUT_OF_MEMORY;
+        mInProgressImports.Put(key, newEntry);
 
         JS::Anchor<jsval> exception(JSVAL_VOID);
         rv = GlobalForLocation(sourceLocalFile, resURI, &newEntry->global,
@@ -1256,8 +1216,7 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
 
     
     if (newEntry) {
-        if (!mImports.Put(key, newEntry))
-            return NS_ERROR_OUT_OF_MEMORY;
+        mImports.Put(key, newEntry);
         newEntry.forget();
     }
 

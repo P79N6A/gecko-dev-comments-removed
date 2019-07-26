@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozPersonalDictionary.h"
 #include "nsIUnicharInputStream.h"
 #include "nsReadableUtils.h"
@@ -90,8 +58,8 @@ mozPersonalDictionary::~mozPersonalDictionary()
 
 nsresult mozPersonalDictionary::Init()
 {
-  if (!mDictionaryTable.Init() || !mIgnoreTable.Init())
-    return NS_ERROR_OUT_OF_MEMORY;
+  mDictionaryTable.Init();
+  mIgnoreTable.Init();
 
   nsresult rv;
   nsCOMPtr<nsIObserverService> svc = 

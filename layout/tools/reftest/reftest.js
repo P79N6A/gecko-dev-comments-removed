@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if BOOTSTRAP
 var EXPORTED_SYMBOLS = ["OnRefTestLoad"];
 #endif

@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDataDocumentContentPolicy.h"
 #include "nsNetUtil.h"
 #include "nsScriptSecurityManager.h"

@@ -176,39 +176,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsBuiltinDecoder_h_)
 #define nsBuiltinDecoder_h_
 
@@ -330,6 +297,9 @@ public:
   virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
 
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
+
+  
+  virtual bool IsSeekableInBufferedRanges() = 0;
 
   virtual PRInt64 VideoQueueMemoryInUse() = 0;
   virtual PRInt64 AudioQueueMemoryInUse() = 0;

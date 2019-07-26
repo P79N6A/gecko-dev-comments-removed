@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "jstypes.h"
@@ -86,7 +53,7 @@ using namespace js::gc;
 
 static void iterator_finalize(FreeOp *fop, JSObject *obj);
 static void iterator_trace(JSTracer *trc, JSObject *obj);
-static JSObject *iterator_iterator(JSContext *cx, JSObject *obj, JSBool keysonly);
+static JSObject *iterator_iterator(JSContext *cx, HandleObject obj, JSBool keysonly);
 
 Class js::IteratorClass = {
     "Iterator",
@@ -379,8 +346,13 @@ Snapshot(JSContext *cx, JSObject *obj, unsigned flags, AutoIdVector *props)
             }
         }
 
-        if ((flags & JSITER_OWNONLY) || pobj->isXML())
+        if (flags & JSITER_OWNONLY)
             break;
+
+#if JS_HAS_XML_SUPPORT
+        if (pobj->isXML())
+            break;
+#endif
     } while ((pobj = pobj->getProto()) != NULL);
 
 #ifdef JS_MORE_DETERMINISTIC
@@ -459,7 +431,7 @@ GetCustomIterator(JSContext *cx, HandleObject obj, unsigned flags, Value *vp)
 
     
     PropertyName *name = cx->runtime->atomState.iteratorAtom;
-    if (!js_GetMethod(cx, obj, NameToId(name), 0, vp))
+    if (!GetMethod(cx, obj, name, 0, vp))
         return false;
 
     
@@ -826,7 +798,7 @@ GetIteratorObject(JSContext *cx, HandleObject obj, uint32_t flags)
 } 
 
 static JSObject *
-iterator_iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
+iterator_iterator(JSContext *cx, HandleObject obj, JSBool keysonly)
 {
     return obj;
 }
@@ -1022,8 +994,8 @@ SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate p
                         JSObject *proto = obj->getProto();
                         JSObject *obj2;
                         JSProperty *prop;
-                        jsid id;
-                        if (!ValueToId(cx, StringValue(*idp), &id))
+                        RootedVarId id(cx);
+                        if (!ValueToId(cx, StringValue(*idp), id.address()))
                             return false;
                         if (!proto->lookupGeneric(cx, id, &obj2, &prop))
                             return false;
@@ -1222,8 +1194,8 @@ js_IteratorMore(JSContext *cx, HandleObject iterobj, Value *rval)
     
     if (ni) {
         JS_ASSERT(!ni->isKeyIter());
-        jsid id;
-        if (!ValueToId(cx, StringValue(*ni->current()), &id))
+        RootedVarId id(cx);
+        if (!ValueToId(cx, StringValue(*ni->current()), id.address()))
             return false;
         ni->incCursor();
         if (!ni->obj->getGeneric(cx, id, rval))
@@ -1251,8 +1223,7 @@ js_IteratorMore(JSContext *cx, HandleObject iterobj, Value *rval)
         }
     } else {
         
-        jsid id = NameToId(cx->runtime->atomState.nextAtom);
-        if (!js_GetMethod(cx, iterobj, id, 0, rval))
+        if (!GetMethod(cx, iterobj, cx->runtime->atomState.nextAtom, 0, rval))
             return false;
         if (!Invoke(cx, ObjectValue(*iterobj), *rval, 0, NULL, rval)) {
             
@@ -1314,7 +1285,7 @@ js_IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
 }
 
 static JSBool
-stopiter_hasInstance(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
+stopiter_hasInstance(JSContext *cx, HandleObject obj, const Value *v, JSBool *bp)
 {
     *bp = IsStopIteration(*v);
     return JS_TRUE;
@@ -1489,8 +1460,9 @@ js_NewGenerator(JSContext *cx)
     
     gen->regs.rebaseFromTo(stackRegs, *genfp);
     genfp->stealFrameAndSlots<HeapValue, Value, StackFrame::DoPostBarrier>(
-                              genfp, genvp, stackfp, stackvp, stackRegs.sp);
+                              cx, genfp, genvp, stackfp, stackvp, stackRegs.sp);
     genfp->initFloatingGenerator();
+    stackfp->setYielding();  
 
     obj->setPrivate(gen);
     return obj;

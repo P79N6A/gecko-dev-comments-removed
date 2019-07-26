@@ -7,41 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsEffectiveTLDService.h"
@@ -72,8 +37,7 @@ nsEffectiveTLDService::Init()
   
   
   
-  if (!mHash.Init(ArrayLength(gEntries) - 1))
-    return NS_ERROR_OUT_OF_MEMORY;
+  mHash.Init(ArrayLength(gEntries) - 1);
 
   nsresult rv;
   mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);

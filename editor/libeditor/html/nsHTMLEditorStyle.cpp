@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsUnicharUtils.h"
 
 #include "nsHTMLEditor.h"
@@ -128,9 +94,7 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
 
-  bool isCollapsed;
-  selection->GetIsCollapsed(&isCollapsed);
-  if (isCollapsed) {
+  if (selection->Collapsed()) {
     
     
     mTypeInState->SetProp(aProperty, aAttribute, aValue);
@@ -626,6 +590,85 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
   return NS_OK;
 }
 
+nsresult
+nsHTMLEditor::ClearStyle(nsCOMPtr<nsIDOMNode>* aNode, PRInt32* aOffset,
+                         nsIAtom* aProperty, const nsAString* aAttribute)
+{
+  nsCOMPtr<nsIDOMNode> leftNode, rightNode, tmp;
+  nsresult res = SplitStyleAbovePoint(aNode, aOffset, aProperty, aAttribute,
+                                      address_of(leftNode),
+                                      address_of(rightNode));
+  NS_ENSURE_SUCCESS(res, res);
+  if (leftNode) {
+    bool bIsEmptyNode;
+    IsEmptyNode(leftNode, &bIsEmptyNode, false, true);
+    if (bIsEmptyNode) {
+      
+      res = DeleteNode(leftNode);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+  }
+  if (rightNode) {
+    nsCOMPtr<nsIDOMNode> secondSplitParent = GetLeftmostChild(rightNode);
+    
+    if (!secondSplitParent) {
+      secondSplitParent = rightNode;
+    }
+    nsCOMPtr<nsIDOMNode> savedBR;
+    if (!IsContainer(secondSplitParent)) {
+      if (nsTextEditUtils::IsBreak(secondSplitParent)) {
+        savedBR = secondSplitParent;
+      }
+
+      secondSplitParent->GetParentNode(getter_AddRefs(tmp));
+      secondSplitParent = tmp;
+    }
+    *aOffset = 0;
+    res = SplitStyleAbovePoint(address_of(secondSplitParent),
+                               aOffset, aProperty, aAttribute,
+                               address_of(leftNode), address_of(rightNode));
+    NS_ENSURE_SUCCESS(res, res);
+    
+    NS_ENSURE_TRUE(leftNode, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIDOMNode> newSelParent = GetLeftmostChild(leftNode);
+    if (!newSelParent) {
+      newSelParent = leftNode;
+    }
+    
+    
+    
+    if (savedBR) {
+      res = MoveNode(savedBR, newSelParent, 0);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+    bool bIsEmptyNode;
+    IsEmptyNode(rightNode, &bIsEmptyNode, false, true);
+    if (bIsEmptyNode) {
+      
+      res = DeleteNode(rightNode);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+    
+    PRInt32 newSelOffset = 0;
+    {
+      
+      
+      
+      
+      
+      nsAutoTrackDOMPoint tracker(mRangeUpdater,
+                                  address_of(newSelParent), &newSelOffset);
+      res = RemoveStyleInside(leftNode, aProperty, aAttribute);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+    
+    *aNode = newSelParent;
+    *aOffset = newSelOffset;
+  }
+
+  return NS_OK;
+}
+
 bool nsHTMLEditor::NodeIsProperty(nsIDOMNode *aNode)
 {
   NS_ENSURE_TRUE(aNode, false);
@@ -1009,8 +1052,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
 
-  bool isCollapsed;
-  selection->GetIsCollapsed(&isCollapsed);
+  bool isCollapsed = selection->Collapsed();
   nsCOMPtr<nsIDOMNode> collapsedNode;
   nsCOMPtr<nsIEnumerator> enumerator;
   result = selPriv->GetEnumerator(getter_AddRefs(enumerator));
@@ -1259,11 +1301,8 @@ nsresult nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom *aProperty, const nsAStr
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
 
-  bool isCollapsed;
-  selection->GetIsCollapsed(&isCollapsed);
-
   bool useCSS = IsCSSEnabled();
-  if (isCollapsed) {
+  if (selection->Collapsed()) {
     
 
     
@@ -1456,13 +1495,8 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
   nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));  
   
-  bool bCollapsed;
-  res = selection->GetIsCollapsed(&bCollapsed);
-  NS_ENSURE_SUCCESS(res, res);
   
-  
-  if (bCollapsed)
-  {
+  if (selection->Collapsed()) {
     nsCOMPtr<nsIAtom> atom;
     if (aSizeChange==1) atom = nsEditProperty::big;
     else                atom = nsEditProperty::small;
@@ -1546,20 +1580,15 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
 
-      nsCOMArray<nsIDOMNode> arrayOfNodes;
-      nsCOMPtr<nsIDOMNode> node;
-      
       
       res = iter->Init(range);
-      if (NS_SUCCEEDED(res))
-      {
-        while (!iter->IsDone())
-        {
-          node = do_QueryInterface(iter->GetCurrentNode());
+      if (NS_SUCCEEDED(res)) {
+        nsCOMArray<nsIContent> arrayOfNodes;
+        while (!iter->IsDone()) {
+          nsCOMPtr<nsIContent> node = do_QueryInterface(iter->GetCurrentNode());
           NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
-          if (IsEditable(node))
-          { 
+          if (IsEditable(node)) {
             arrayOfNodes.AppendObject(node);
           }
 
@@ -1568,10 +1597,8 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
         
         
         PRInt32 listCount = arrayOfNodes.Count();
-        PRInt32 j;
-        for (j = 0; j < listCount; j++)
-        {
-          node = arrayOfNodes[j];
+        for (PRInt32 j = 0; j < listCount; ++j) {
+          nsIContent* node = arrayOfNodes[j];
           res = RelativeFontChangeOnNode(aSizeChange, node);
           NS_ENSURE_SUCCESS(res, res);
         }
@@ -1678,84 +1705,54 @@ nsHTMLEditor::RelativeFontChangeOnTextNode( PRInt32 aSizeChange,
 
 
 nsresult
-nsHTMLEditor::RelativeFontChangeHelper( PRInt32 aSizeChange, 
-                                        nsIDOMNode *aNode)
+nsHTMLEditor::RelativeFontChangeHelper(PRInt32 aSizeChange, nsINode* aNode)
 {
-  
-
-
-
+  MOZ_ASSERT(aNode);
 
   
+
+
+
+
   
-  if ( !( (aSizeChange==1) || (aSizeChange==-1) ) )
+  
+  if (aSizeChange != 1 && aSizeChange != -1) {
     return NS_ERROR_ILLEGAL_VALUE;
-  NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
+  }
 
-  nsresult res = NS_OK;
-  nsAutoString tag;
-  if (aSizeChange == 1) tag.AssignLiteral("big");
-  else tag.AssignLiteral("small");
-  nsCOMPtr<nsIDOMNodeList> childNodes;
-  PRInt32 j;
-  PRUint32 childCount;
-  nsCOMPtr<nsIDOMNode> childNode;
   
-  
-  NS_NAMED_LITERAL_STRING(attr, "size");
-  if (NodeIsType(aNode, nsEditProperty::font) && HasAttr(aNode, &attr))
-  {
+  if (aNode->IsElement() && aNode->AsElement()->IsHTML(nsGkAtoms::font) &&
+      aNode->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::size)) {
     
-    res = aNode->GetChildNodes(getter_AddRefs(childNodes));
-    NS_ENSURE_SUCCESS(res, res);
-    if (childNodes)
-    {
-      childNodes->GetLength(&childCount);
-      for (j=childCount-1; j>=0; j--)
-      {
-        res = childNodes->Item(j, getter_AddRefs(childNode));
-        if ((NS_SUCCEEDED(res)) && (childNode))
-        {
-          res = RelativeFontChangeOnNode(aSizeChange, childNode);
-          NS_ENSURE_SUCCESS(res, res);
-        }
-      }
+    for (nsIContent* child = aNode->GetLastChild();
+         child;
+         child = child->GetPreviousSibling()) {
+      nsresult rv = RelativeFontChangeOnNode(aSizeChange, child);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
-  childNodes = nsnull;
   
-  res = aNode->GetChildNodes(getter_AddRefs(childNodes));
-  NS_ENSURE_SUCCESS(res, res);
-  if (childNodes)
-  {
-    childNodes->GetLength(&childCount);
-    for (j=childCount-1; j>=0; j--)
-    {
-      res = childNodes->Item(j, getter_AddRefs(childNode));
-      if ((NS_SUCCEEDED(res)) && (childNode))
-      {
-        res = RelativeFontChangeHelper(aSizeChange, childNode);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
+  for (nsIContent* child = aNode->GetLastChild();
+       child;
+       child = child->GetPreviousSibling()) {
+    nsresult rv = RelativeFontChangeHelper(aSizeChange, child);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return res;
+  return NS_OK;
 }
 
 
 nsresult
-nsHTMLEditor::RelativeFontChangeOnNode( PRInt32 aSizeChange, 
-                                        nsIDOMNode *aNode)
+nsHTMLEditor::RelativeFontChangeOnNode(PRInt32 aSizeChange, nsINode* aNode)
 {
+  MOZ_ASSERT(aNode);
   
-  if ( !( (aSizeChange==1) || (aSizeChange==-1) ) )
+  if (aSizeChange != 1 && aSizeChange != -1) {
     return NS_ERROR_ILLEGAL_VALUE;
-  NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
+  }
 
-  nsresult res = NS_OK;
-  nsCOMPtr<nsIDOMNode> tmp;
   nsIAtom* atom;
   if (aSizeChange == 1) {
     atom = nsGkAtoms::big;
@@ -1764,68 +1761,55 @@ nsHTMLEditor::RelativeFontChangeOnNode( PRInt32 aSizeChange,
   }
   
   
-  if ( ((aSizeChange == 1) && nsHTMLEditUtils::IsSmall(aNode)) || 
-       ((aSizeChange == -1) &&  nsHTMLEditUtils::IsBig(aNode)) )
-  {
+  if (aNode->IsElement() &&
+      ((aSizeChange == 1 && aNode->AsElement()->IsHTML(nsGkAtoms::small)) ||
+       (aSizeChange == -1 && aNode->AsElement()->IsHTML(nsGkAtoms::big)))) {
     
-    res = RelativeFontChangeHelper(aSizeChange, aNode);
-    NS_ENSURE_SUCCESS(res, res);
+    nsresult rv = RelativeFontChangeHelper(aSizeChange, aNode);
+    NS_ENSURE_SUCCESS(rv, rv);
     
-    res = RemoveContainer(aNode);
-    return res;
+    return RemoveContainer(aNode);
   }
+
   
-  if (TagCanContain(atom, aNode)) {
+  if (TagCanContain(atom, aNode->AsDOMNode())) {
     
-    res = RelativeFontChangeHelper(aSizeChange, aNode);
-    NS_ENSURE_SUCCESS(res, res);
+    nsresult rv = RelativeFontChangeHelper(aSizeChange, aNode);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
     
     
-    nsCOMPtr<nsIDOMNode> sibling;
-    GetPriorHTMLSibling(aNode, address_of(sibling));
-    if (sibling && nsEditor::NodeIsType(sibling, (aSizeChange==1 ? nsEditProperty::big : nsEditProperty::small)))
-    {
+    nsIContent* sibling = GetPriorHTMLSibling(aNode);
+    if (sibling && sibling->IsHTML(atom)) {
       
-      res = MoveNode(aNode, sibling, -1);
-      return res;
+      return MoveNode(aNode->AsDOMNode(), sibling->AsDOMNode(), -1);
     }
-    sibling = nsnull;
-    GetNextHTMLSibling(aNode, address_of(sibling));
-    if (sibling && nsEditor::NodeIsType(sibling, (aSizeChange==1 ? nsEditProperty::big : nsEditProperty::small)))
-    {
+
+    sibling = GetNextHTMLSibling(aNode);
+    if (sibling && sibling->IsHTML(atom)) {
       
-      res = MoveNode(aNode, sibling, 0);
-      return res;
+      return MoveNode(aNode->AsDOMNode(), sibling->AsDOMNode(), 0);
     }
+
     
-    res = InsertContainerAbove(aNode, address_of(tmp), nsAtomString(atom));
-    return res;
+    nsCOMPtr<nsIDOMNode> tmp;
+    return InsertContainerAbove(aNode->AsDOMNode(), address_of(tmp),
+                                nsAtomString(atom));
   }
+
   
   
   
   
-  nsCOMPtr<nsIDOMNodeList> childNodes;
-  res = aNode->GetChildNodes(getter_AddRefs(childNodes));
-  NS_ENSURE_SUCCESS(res, res);
-  if (childNodes)
-  {
-    PRInt32 j;
-    PRUint32 childCount;
-    childNodes->GetLength(&childCount);
-    for (j=childCount-1; j>=0; j--)
-    {
-      nsCOMPtr<nsIDOMNode> childNode;
-      res = childNodes->Item(j, getter_AddRefs(childNode));
-      if ((NS_SUCCEEDED(res)) && (childNode))
-      {
-        res = RelativeFontChangeOnNode(aSizeChange, childNode);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
+  for (nsIContent* child = aNode->GetLastChild();
+       child;
+       child = child->GetPreviousSibling()) {
+    nsresult rv = RelativeFontChangeOnNode(aSizeChange, child);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  return res;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsExpatDriver.h"
 #include "nsCOMPtr.h"
 #include "nsParserCIID.h"

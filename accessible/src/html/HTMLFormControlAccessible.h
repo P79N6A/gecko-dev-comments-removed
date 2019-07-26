@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_A11Y_HTMLFormControlAccessible_H_
 #define MOZILLA_A11Y_HTMLFormControlAccessible_H_
 
@@ -145,7 +112,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 State();

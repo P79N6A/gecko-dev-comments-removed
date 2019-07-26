@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTextEditRules.h"
 
 #include "nsEditor.h"
@@ -410,7 +378,7 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection,
     NS_ENSURE_SUCCESS(res, res);
     if (!bCollapsed)
     {
-      res = mEditor->DeleteSelection(nsIEditor::eNone);
+      res = mEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
       NS_ENSURE_SUCCESS(res, res);
     }
 
@@ -638,7 +606,7 @@ nsTextEditRules::WillInsertText(nsEditor::OperationID aAction,
   NS_ENSURE_SUCCESS(res, res);
   if (!bCollapsed)
   {
-    res = mEditor->DeleteSelection(nsIEditor::eNone);
+    res = mEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
     NS_ENSURE_SUCCESS(res, res);
   }
 
@@ -878,7 +846,7 @@ nsTextEditRules::WillDeleteSelection(nsISelection *aSelection,
     NS_ENSURE_SUCCESS(res, res);
   }
 
-  res = mEditor->DeleteSelectionImpl(aCollapsedAction);
+  res = mEditor->DeleteSelectionImpl(aCollapsedAction, nsIEditor::eStrip);
   NS_ENSURE_SUCCESS(res, res);
 
   *aHandled = true;

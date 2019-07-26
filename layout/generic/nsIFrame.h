@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIFrame_h___
 #define nsIFrame_h___
 
@@ -246,6 +214,7 @@ typedef PRUint64 nsFrameState;
 
 
 
+
 #define  NS_FRAME_MAY_BE_TRANSFORMED                NS_FRAME_STATE_BIT(16)
 
 #ifdef IBMBIDI
@@ -310,6 +279,11 @@ typedef PRUint64 nsFrameState;
 
 
 #define NS_FRAME_FONT_INFLATION_FLOW_ROOT           NS_FRAME_STATE_BIT(42)
+
+
+
+
+#define NS_FRAME_SVG_LAYOUT                         NS_FRAME_STATE_BIT(43)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
@@ -1232,7 +1206,20 @@ public:
 
 
 
-  virtual bool IsTransformed() const;
+
+  bool IsTransformed() const;
+
+  
+
+
+
+
+
+
+
+
+  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransforms = nsnull,
+                                gfxMatrix *aFromParentTransforms = nsnull) const;
 
   
 
@@ -1969,8 +1956,8 @@ public:
 
 
 
-  virtual gfx3DMatrix GetTransformMatrix(nsIFrame* aStopAtAncestor,
-                                         nsIFrame **aOutAncestor);
+  gfx3DMatrix GetTransformMatrix(nsIFrame* aStopAtAncestor,
+                                 nsIFrame **aOutAncestor);
 
   
 

@@ -17,41 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIPresShell_h___
 #define nsIPresShell_h___
 
@@ -197,10 +162,11 @@ class nsIPresShell : public nsIPresShell_base
 protected:
   typedef mozilla::layers::LayerManager LayerManager;
 
-  enum {
+  enum eRenderFlag {
     STATE_IGNORING_VIEWPORT_SCROLLING = 0x1,
     STATE_USING_DISPLAYPORT = 0x2
   };
+  typedef PRUint8 RenderFlags; 
 
 public:
   virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
@@ -594,7 +560,7 @@ public:
   };
   typedef struct ScrollAxis {
     PRInt16 mWhereToScroll;
-    WhenToScroll mWhenToScroll;
+    WhenToScroll mWhenToScroll : 16;
   
 
 
@@ -1354,32 +1320,9 @@ protected:
 #endif
 
   
-  
   PRUint64                  mPaintCount;
 
-  PRInt16                   mSelectionFlags;
-
-  bool                      mStylesHaveChanged;
-  bool                      mDidInitialReflow;
-  bool                      mIsDestroying;
-  bool                      mIsReflowing;
-  bool                      mPaintingSuppressed;  
-  bool                      mIsThemeSupportDisabled;  
-  bool                      mIsActive;
-  bool                      mFrozen;
-
-  bool                      mIsFirstPaint;
-
-  bool                      mObservesMutationsForPrint;
-
-  bool                      mReflowScheduled; 
-                                              
-                                              
-                                              
-
-  bool                      mSuppressInterruptibleReflows;
-
-  bool                      mScrollPositionClampingScrollPortSizeSet;
+  nsSize                    mScrollPositionClampingScrollPortSize;
 
   
   nsWeakFrame*              mWeakFrames;
@@ -1389,19 +1332,42 @@ protected:
 
   
   
-  
-  
-  
-  PRUint32                  mRenderFlags;
-
-  
-  
   float                     mXResolution;
   float                     mYResolution;
 
-  nsSize                    mScrollPositionClampingScrollPortSize;
+  PRInt16                   mSelectionFlags;
 
-  static nsIContent* gKeyDownTarget;
+  
+  
+  
+  
+  
+  RenderFlags               mRenderFlags;
+
+  bool                      mStylesHaveChanged : 1;
+  bool                      mDidInitialReflow : 1;
+  bool                      mIsDestroying : 1;
+  bool                      mIsReflowing : 1;
+
+  
+  bool                      mPaintingSuppressed : 1;
+
+  
+  bool                      mIsThemeSupportDisabled : 1;
+
+  bool                      mIsActive : 1;
+  bool                      mFrozen : 1;
+  bool                      mIsFirstPaint : 1;
+  bool                      mObservesMutationsForPrint : 1;
+
+  
+  
+  bool                      mReflowScheduled : 1;
+
+  bool                      mSuppressInterruptibleReflows : 1;
+  bool                      mScrollPositionClampingScrollPortSizeSet : 1;
+
+  static nsIContent*        gKeyDownTarget;
 };
 
 

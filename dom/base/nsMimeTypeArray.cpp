@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsMimeTypeArray.h"
 #include "nsContentUtils.h"
 #include "nsIScriptGlobalObject.h"

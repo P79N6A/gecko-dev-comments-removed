@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPagePrintTimer.h"
 #include "nsIContentViewer.h"
 #include "nsIServiceManager.h"

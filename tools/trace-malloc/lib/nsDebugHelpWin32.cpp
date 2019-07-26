@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(_WIN32) && (defined(_M_IX86) || defined(_M_X64))
 
 #define DHW_IMPLEMENT_GLOBALS

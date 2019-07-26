@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 #include "tests.h"
 #include "jsdbgapi.h"
 #include "jscntxt.h"
@@ -178,7 +182,7 @@ BEGIN_TEST(testDebugger_debuggerObjectVsDebugMode)
          "hits;\n",
          &v);
     CHECK_SAME(v, INT_TO_JSVAL(4));
-    
+
     return true;
 }
 END_TEST(testDebugger_debuggerObjectVsDebugMode)

@@ -9,40 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsCSSFrameConstructor.h"
@@ -1395,9 +1361,8 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
                               ELEMENT_IS_POTENTIAL_ANIMATION_RESTYLE_ROOT, this)
 {
   
-  if (!mPendingRestyles.Init() || !mPendingAnimationRestyles.Init()) {
-    
-  }
+  mPendingRestyles.Init();
+  mPendingAnimationRestyles.Init();
 
 #ifdef DEBUG
   static bool gFirstTime = true;
@@ -7673,9 +7638,14 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
                            nsIFrame* aFrame,
                            nsChangeHint aChange)
 {
+  
+  
+  
+  
   NS_ASSERTION(!(aChange & nsChangeHint_UpdateTransformLayer) ||
+               aFrame->IsTransformed() ||
                aFrame->GetStyleDisplay()->HasTransform(),
-               "Only transform style should give a UpdateTransformLayer hint");
+               "Unexpected UpdateTransformLayer hint");
 
   nsIPresShell *shell = aPresContext->PresShell();
   if (shell->IsPaintingSuppressed()) {
@@ -7948,7 +7918,40 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         ApplyRenderingChangeToTree(presContext, frame, hint);
         didInvalidate = true;
       }
+      NS_ASSERTION(!(hint & nsChangeHint_ChildrenOnlyTransform) ||
+                   (hint & nsChangeHint_UpdateOverflow),
+                   "nsChangeHint_UpdateOverflow should be passed too");
       if ((hint & nsChangeHint_UpdateOverflow) && !didReflow) {
+        if (hint & nsChangeHint_ChildrenOnlyTransform) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          nsIFrame *f = frame->GetContent()->GetPrimaryFrame();
+          NS_ABORT_IF_FALSE(f->IsFrameOfType(nsIFrame::eSVG |
+                                             nsIFrame::eSVGContainer),
+                            "Children-only transforms only expected on SVG frames");
+          
+          nsIFrame* childFrame = f->GetFirstPrincipalChild();
+          for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
+            NS_ABORT_IF_FALSE(childFrame->IsFrameOfType(nsIFrame::eSVG),
+                              "Not expecting non-SVG children");
+            childFrame->UpdateOverflow();
+            NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrSpecialSibling(childFrame),
+                         "SVG frames should not have continuations or special siblings");
+            NS_ASSERTION(childFrame->GetParent() == frame,
+                         "SVG child frame not expected to have different parent");
+          }
+        }
         while (frame) {
           nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
             (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
@@ -11481,8 +11484,12 @@ nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
                                         nsIContent* aOldChild,
                                         nsIContent* aFollowingSibling)
 {
-  NS_ASSERTION(!aOldChild->IsRootOfAnonymousSubtree(),
-               "anonymous nodes should not be in child lists");
+  if (aOldChild->IsRootOfAnonymousSubtree()) {
+    
+    
+    
+    NS_WARNING("anonymous nodes should not be in child lists (bug 439258)");
+  }
   PRUint32 selectorFlags =
     aContainer ? (aContainer->GetFlags() & NODE_ALL_SELECTOR_FLAGS) : 0;
   if (selectorFlags == 0)

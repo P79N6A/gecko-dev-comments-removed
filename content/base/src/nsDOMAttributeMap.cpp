@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMAttributeMap.h"
 #include "nsDOMAttribute.h"
 #include "nsIDOMDocument.h"
@@ -65,7 +32,8 @@ nsDOMAttributeMap::nsDOMAttributeMap(Element* aContent)
 bool
 nsDOMAttributeMap::Init()
 {
-  return mAttributeCache.Init();
+  mAttributeCache.Init();
+  return true;
 }
 
 
@@ -212,9 +180,8 @@ nsDOMAttributeMap::GetAttribute(nsINodeInfo* aNodeInfo, bool aNsAware)
     nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
     nsRefPtr<nsDOMAttribute> newAttr =
       new nsDOMAttribute(this, ni.forget(), EmptyString(), aNsAware);
-    if (newAttr && mAttributeCache.Put(attr, newAttr)) {
-      node = newAttr;
-    }
+    mAttributeCache.Put(attr, newAttr);
+    node = newAttr;
   }
 
   return node;
@@ -352,8 +319,7 @@ nsDOMAttributeMap::SetNamedItemInternal(nsIDOMNode *aNode,
     
     
     nsAttrKey attrkey(ni->NamespaceID(), ni->NameAtom());
-    rv = mAttributeCache.Put(attrkey, attribute);
-    NS_ENSURE_SUCCESS(rv, rv);
+    mAttributeCache.Put(attrkey, attribute);
     iAttribute->SetMap(this);
 
     rv = mContent->SetAttr(ni->NamespaceID(), ni->NameAtom(),

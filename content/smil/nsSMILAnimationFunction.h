@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SMILANIMATIONFUNCTION_H_
 #define NS_SMILANIMATIONFUNCTION_H_
 
@@ -452,31 +419,6 @@ protected:
   
   
   PRUint16                      mErrorFlags;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsSMILValue                   mFrozenValue;
 
   
   

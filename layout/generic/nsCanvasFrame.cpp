@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCanvasFrame.h"
 #include "nsIServiceManager.h"
 #include "nsHTMLParts.h"

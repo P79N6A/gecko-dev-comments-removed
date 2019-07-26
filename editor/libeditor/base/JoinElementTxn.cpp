@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "JoinElementTxn.h"
 #include "nsEditor.h"
 #include "nsIDOMNodeList.h"

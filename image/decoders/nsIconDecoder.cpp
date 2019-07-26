@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIconDecoder.h"
 #include "nsIInputStream.h"
 #include "RasterImage.h"
@@ -101,7 +67,6 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         
         PostSize(mWidth, mHeight);
         if (HasError()) {
-          
           
           mState = iconStateFinished;
           return;

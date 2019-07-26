@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILMappedAttribute.h"
 #include "nsPropertyTable.h"
 #include "nsContentErrors.h" 

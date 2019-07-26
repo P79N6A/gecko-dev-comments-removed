@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DOMSVGTransform.h"
 #include "DOMSVGMatrix.h"
 #include "SVGAnimatedTransformList.h"

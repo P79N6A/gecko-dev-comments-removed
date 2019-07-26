@@ -8,40 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsCSSProps_h___
 #define nsCSSProps_h___
 
@@ -368,6 +334,7 @@ public:
   static const PRInt32 kShapeRenderingKTable[];
   static const PRInt32 kStrokeLinecapKTable[];
   static const PRInt32 kStrokeLinejoinKTable[];
+  static const PRInt32 kVectorEffectKTable[];
   static const PRInt32 kTextAnchorKTable[];
   static const PRInt32 kTextRenderingKTable[];
   static const PRInt32 kColorInterpolationKTable[];

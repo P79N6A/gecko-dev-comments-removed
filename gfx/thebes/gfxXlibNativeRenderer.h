@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFXXLIBNATIVERENDER_H_
 #define GFXXLIBNATIVERENDER_H_
 

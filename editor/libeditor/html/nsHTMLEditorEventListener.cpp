@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLEditorEventListener.h"
 #include "nsHTMLEditor.h"
 #include "nsString.h"
@@ -164,30 +129,23 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
 
     
     bool nodeIsInSelection = false;
-    if (isContextClick)
-    {
-      bool isCollapsed;
-      selection->GetIsCollapsed(&isCollapsed);
-      if (!isCollapsed)
-      {
-        PRInt32 rangeCount;
-        res = selection->GetRangeCount(&rangeCount);
-        NS_ENSURE_SUCCESS(res, res);
+    if (isContextClick && !selection->Collapsed()) {
+      PRInt32 rangeCount;
+      res = selection->GetRangeCount(&rangeCount);
+      NS_ENSURE_SUCCESS(res, res);
 
-        for (PRInt32 i = 0; i < rangeCount; i++)
-        {
-          nsCOMPtr<nsIDOMRange> range;
+      for (PRInt32 i = 0; i < rangeCount; i++) {
+        nsCOMPtr<nsIDOMRange> range;
 
-          res = selection->GetRangeAt(i, getter_AddRefs(range));
-          if (NS_FAILED(res) || !range) 
-            continue;
+        res = selection->GetRangeAt(i, getter_AddRefs(range));
+        if (NS_FAILED(res) || !range)
+          continue;
 
-          res = range->IsPointInRange(parent, offset, &nodeIsInSelection);
+        res = range->IsPointInRange(parent, offset, &nodeIsInSelection);
 
-          
-          if (nodeIsInSelection)
-            break;
-        }
+        
+        if (nodeIsInSelection)
+          break;
       }
     }
     nsCOMPtr<nsIDOMNode> node = do_QueryInterface(target);

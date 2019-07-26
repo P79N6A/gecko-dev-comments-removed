@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <android/log.h>
 #include <math.h>
 #include <unistd.h>
@@ -1605,7 +1571,7 @@ static unsigned int ConvertAndroidKeyCodeToDOMKeyCode(int androidKeyCode)
         case AndroidKeyEvent::KEYCODE_DPAD_DOWN:          return NS_VK_DOWN;
         case AndroidKeyEvent::KEYCODE_DPAD_LEFT:          return NS_VK_LEFT;
         case AndroidKeyEvent::KEYCODE_DPAD_RIGHT:         return NS_VK_RIGHT;
-        case AndroidKeyEvent::KEYCODE_DPAD_CENTER:        return NS_VK_ENTER;
+        case AndroidKeyEvent::KEYCODE_DPAD_CENTER:        return NS_VK_RETURN;
         
         case AndroidKeyEvent::KEYCODE_COMMA:              return NS_VK_COMMA;
         case AndroidKeyEvent::KEYCODE_PERIOD:             return NS_VK_PERIOD;

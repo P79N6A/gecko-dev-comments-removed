@@ -5,40 +5,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "frontend/ParseNode.h"
+#include "frontend/Parser.h"
 
 #include "jsscriptinlines.h"
 
@@ -112,16 +80,10 @@ bool
 FunctionBox::inAnyDynamicScope() const
 {
     for (const FunctionBox *funbox = this; funbox; funbox = funbox->parent) {
-        if (funbox->inWith || (funbox->tcflags & TCF_FUN_EXTENSIBLE_SCOPE))
+        if (funbox->inWith || funbox->funHasExtensibleScope())
             return true;
     }
     return false;
-}
-
-bool
-FunctionBox::scopeIsExtensible() const
-{
-    return tcflags & TCF_FUN_EXTENSIBLE_SCOPE;
 }
 
 
@@ -660,7 +622,7 @@ js::CloneLeftHandSide(ParseNode *opn, Parser *parser)
 void
 js::DumpParseTree(ParseNode *pn, int indent)
 {
-    if (pn == NULL) 
+    if (pn == NULL)
         fprintf(stderr, "()");
     else
         pn->dump(indent);

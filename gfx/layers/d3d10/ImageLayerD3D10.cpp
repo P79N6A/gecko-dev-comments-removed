@@ -1,39 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Corporation code.
- *
- * The Initial Developer of the Original Code is Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bas Schouten <bschouten@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #include "ImageLayerD3D10.h"
 #include "gfxImageSurface.h"
@@ -115,12 +83,12 @@ ImageLayerD3D10::GetLayer()
   return this;
 }
 
-/**
- * Returns a shader resource view for a Cairo or remote image.
- * Returns nsnull if unsuccessful.
- * If successful, aHasAlpha will be true iff the resulting texture 
- * has an alpha component.
- */
+
+
+
+
+
+
 ID3D10ShaderResourceView*
 ImageLayerD3D10::GetImageSRView(Image* aImage, bool& aHasAlpha)
 {
@@ -254,10 +222,10 @@ ImageLayerD3D10::RenderLayer()
       return;
     }
 
-    // TODO: At some point we should try to deal with mFilter here, you don't
-    // really want to use point filtering in the case of NEAREST, since that
-    // would also use point filtering for Chroma upsampling. Where most likely
-    // the user would only want point filtering for final RGB image upsampling.
+    
+    
+    
+    
 
     technique = SelectShader(SHADER_YCBCR | LoadMaskTexture());
 
@@ -265,9 +233,9 @@ ImageLayerD3D10::RenderLayer()
     effect()->GetVariableByName("tCb")->AsShaderResource()->SetResource(data->mCbView);
     effect()->GetVariableByName("tCr")->AsShaderResource()->SetResource(data->mCrView);
 
-    /*
-     * Send 3d control data and metadata to NV3DVUtils
-     */
+    
+
+
     if (GetNv3DVUtils()) {
       Nv_Stereo_Mode mode;
       switch (yuvImage->mData.mStereoMode) {
@@ -288,11 +256,11 @@ ImageLayerD3D10::RenderLayer()
         break;
       }
       
-      // Send control data even in mono case so driver knows to leave stereo mode.
+      
       GetNv3DVUtils()->SendNv3DVControl(mode, true, FIREFOX_3DV_APP_HANDLE);
 
       if (yuvImage->mData.mStereoMode != STEREO_MODE_MONO) {
-        // Dst resource is optional
+        
         GetNv3DVUtils()->SendNv3DVMetaData((unsigned int)yuvImage->mSize.width, 
                                            (unsigned int)yuvImage->mSize.height, (HANDLE)(data->mYTexture), (HANDLE)(NULL));
       }
@@ -399,5 +367,5 @@ ImageLayerD3D10::GetAsTexture(gfxIntSize* aSize)
   return result.forget();
 }
 
-} /* layers */
-} /* mozilla */
+} 
+} 

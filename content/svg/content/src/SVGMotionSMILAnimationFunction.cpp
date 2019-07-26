@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGMotionSMILAnimationFunction.h"
 #include "nsSMILParserUtils.h"
 #include "nsSVGAngle.h"

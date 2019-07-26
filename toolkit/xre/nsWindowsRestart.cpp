@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef nsWindowsRestart_cpp
 #error "nsWindowsRestart.cpp is not a header file, and must only be included once."
 #else

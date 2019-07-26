@@ -85,39 +85,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import xpidl
 import header
 import os, re
@@ -797,9 +764,9 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
     if isAttr:
         
         if isSetter:
-            signature += "%s(JSContext *cx, JSObject *obj, jsid id, JSBool strict,%s jsval *vp)\n"
+            signature += "%s(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,%s jsval *vp)\n"
         else:
-            signature += "%s(JSContext *cx, JSObject *obj, jsid id,%s jsval *vp)\n"
+            signature += "%s(JSContext *cx, JSHandleObject obj, JSHandleId id,%s jsval *vp)\n"
     else:
         
         signature += "%s(JSContext *cx, unsigned argc,%s jsval *vp)\n"

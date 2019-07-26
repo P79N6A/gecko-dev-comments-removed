@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZILLA_INTERNAL_API
 #ifndef nsEventDispatcher_h___
 #define nsEventDispatcher_h___

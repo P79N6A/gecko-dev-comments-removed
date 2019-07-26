@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsChromeRegistry.h"
 #include "nsChromeRegistryChrome.h"
 #include "nsChromeRegistryContent.h"
@@ -175,8 +140,7 @@ nsChromeRegistry::GetService()
 nsresult
 nsChromeRegistry::Init()
 {
-  if (!mOverrideTable.Init())
-    return NS_ERROR_FAILURE;
+  mOverrideTable.Init();
 
   
   

@@ -1,42 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2003
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Christopher A. Aillon <christopher@aillon.com>
- *   Giorgio Maone <g.maone@informaction.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
 
 #include "nscore.h"
 #include "nsScriptSecurityManager.h"
@@ -77,7 +43,7 @@ static bool URIIsImmutable(nsIURI* aURI)
     !isMutable;                               
 }
 
-// Static member variables
+
 PRInt32 nsPrincipal::sCapabilitiesOrdinal = 0;
 const char nsPrincipal::sInvalid[] = "Invalid";
 
@@ -95,7 +61,7 @@ NS_IMETHODIMP_(nsrefcnt)
 nsPrincipal::AddRef()
 {
   NS_PRECONDITION(PRInt32(refcount) >= 0, "illegal refcnt");
-  // XXXcaa does this need to be threadsafe?  See bug 143559.
+  
   nsrefcnt count = PR_ATOMIC_INCREMENT(&refcount);
   NS_LOG_ADDREF(this, count, "nsPrincipal", sizeof(*this));
   return count;
@@ -141,7 +107,7 @@ nsPrincipal::Init(const nsACString& aCertFingerprint,
                   nsIURI *aCodebase)
 {
   NS_ENSURE_STATE(!mInitialized);
-  NS_ENSURE_ARG(!aCertFingerprint.IsEmpty() || aCodebase); // better have one of these.
+  NS_ENSURE_ARG(!aCertFingerprint.IsEmpty() || aCodebase); 
 
   mInitialized = true;
 
@@ -196,16 +162,16 @@ nsPrincipal::GetOrigin(char **aOrigin)
 
   nsCAutoString hostPort;
 
-  // chrome: URLs don't have a meaningful origin, so make
-  // sure we just get the full spec for them.
-  // XXX this should be removed in favor of the solution in
-  // bug 160042.
+  
+  
+  
+  
   bool isChrome;
   nsresult rv = origin->SchemeIs("chrome", &isChrome);
   if (NS_SUCCEEDED(rv) && !isChrome) {
     rv = origin->GetAsciiHost(hostPort);
-    // Some implementations return an empty string, treat it as no support
-    // for asciiHost by that implementation.
+    
+    
     if (hostPort.IsEmpty())
       rv = NS_ERROR_FAILURE;
   }
@@ -227,11 +193,11 @@ nsPrincipal::GetOrigin(char **aOrigin)
     *aOrigin = ToNewCString(scheme + NS_LITERAL_CSTRING("://") + hostPort);
   }
   else {
-    // Some URIs (e.g., nsSimpleURI) don't support asciiHost. Just
-    // get the full spec.
+    
+    
     nsCAutoString spec;
-    // XXX nsMozIconURI and nsJARURI don't implement this correctly, they
-    // both fall back to GetSpec.  That needs to be fixed.
+    
+    
     rv = origin->GetAsciiSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
     *aOrigin = ToNewCString(spec);
@@ -270,7 +236,7 @@ nsPrincipal::CertificateEquals(nsIPrincipal *aOther)
   bool otherHasCert;
   aOther->GetHasCertificate(&otherHasCert);
   if (otherHasCert != (mCert != nsnull)) {
-    // One has a cert while the other doesn't.  Not equal.
+    
     return false;
   }
 
@@ -282,11 +248,11 @@ nsPrincipal::CertificateEquals(nsIPrincipal *aOther)
   if (!str.Equals(mCert->fingerprint))
     return false;
 
-  // If either subject name is empty, just let the result stand (so that
-  // nsScriptSecurityManager::SetCanEnableCapability works), but if they're
-  // both non-empty, only claim equality if they're equal.
+  
+  
+  
   if (!mCert->subjectName.IsEmpty()) {
-    // Check the other principal's subject name
+    
     aOther->GetSubjectName(str);
     return str.Equals(mCert->subjectName) || str.IsEmpty();
   }
@@ -310,9 +276,9 @@ nsPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
     }
 
     if (mCert) {
-      // If either principal has no URI, it's the saved principal from
-      // preferences; in that case, test true.  Do NOT test true if the two
-      // principals have URIs with different codebases.
+      
+      
+      
       nsCOMPtr<nsIURI> otherURI;
       nsresult rv = aOther->GetURI(getter_AddRefs(otherURI));
       if (NS_FAILED(rv)) {
@@ -325,10 +291,10 @@ nsPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
         return NS_OK;
       }
 
-      // Fall through to the codebase comparison.
+      
     }
 
-    // Codebases are equal if they have the same origin.
+    
     *aResult =
       NS_SUCCEEDED(nsScriptSecurityManager::CheckSameOriginPrincipal(this,
                                                                      aOther));
@@ -361,7 +327,7 @@ nsPrincipal::EqualsIgnoringDomain(nsIPrincipal *aOther, bool *aResult)
   NS_ASSERTION(mCodebase,
                "shouldn't be calling this on principals from preferences");
 
-  // Compare codebases.
+  
   *aResult = nsScriptSecurityManager::SecurityCompareURIs(mCodebase,
                                                           otherURI);
   return NS_OK;
@@ -400,11 +366,11 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport)
       nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(aURI));
 
       if (!URIIsLocalFile(mCodebase)) {
-        // If the codebase is not also a file: uri then forget it
-        // (don't want resource: principals in a file: doc)
-        //
-        // note: we're not de-nesting jar: uris here, we want to
-        // keep archive content bottled up in its own little island
+        
+        
+        
+        
+        
 
         if (aReport) {
           nsScriptSecurityManager::ReportError(
@@ -414,16 +380,16 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport)
         return NS_ERROR_DOM_BAD_URI;
       }
 
-      //
-      // pull out the internal files
-      //
+      
+      
+      
       nsCOMPtr<nsIFileURL> codebaseFileURL(do_QueryInterface(mCodebase));
       nsCOMPtr<nsIFile> targetFile;
       nsCOMPtr<nsIFile> codebaseFile;
       bool targetIsDir;
 
-      // Make sure targetFile is not a directory (bug 209234)
-      // and that it exists w/out unescaping (bug 395343)
+      
+      
 
       if (!codebaseFileURL || !fileURL ||
           NS_FAILED(fileURL->GetFile(getter_AddRefs(targetFile))) ||
@@ -441,11 +407,11 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport)
         return NS_ERROR_DOM_BAD_URI;
       }
 
-      //
-      // If the file to be loaded is in a subdirectory of the codebase
-      // (or same-dir if codebase is not a directory) then it will
-      // inherit its codebase principal and be scriptable by that codebase.
-      //
+      
+      
+      
+      
+      
       bool codebaseIsDir;
       bool contained = false;
       nsresult rv = codebaseFile->IsDirectory(&codebaseIsDir);
@@ -479,7 +445,7 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport)
 NS_IMETHODIMP
 nsPrincipal::CanEnableCapability(const char *capability, PRInt16 *result)
 {
-  // If this principal is marked invalid, can't enable any capabilities
+  
   if (mCapabilities) {
     nsCStringKey invalidKey(sInvalid);
     if (mCapabilities->Exists(&invalidKey)) {
@@ -493,11 +459,11 @@ nsPrincipal::CanEnableCapability(const char *capability, PRInt16 *result)
     NS_ASSERTION(mInitialized, "Trying to enable a capability on an "
                                "uninitialized principal");
 
-    // If we are a non-trusted codebase principal, capabilities can not
-    // be enabled if the user has not set the pref allowing scripts to
-    // request enhanced capabilities; however, the file: and resource:
-    // schemes are special and may be able to get extra capabilities
-    // even with the pref disabled.
+    
+    
+    
+    
+    
 
     if (!gCodeBasePrincipalSupport) {
       bool mightEnable = false;
@@ -523,8 +489,8 @@ nsPrincipal::CanEnableCapability(const char *capability, PRInt16 *result)
     PRInt16 value =
       mCapabilities ? (PRInt16)NS_PTR_TO_INT32(mCapabilities->Get(&key)) : 0;
     if (value == 0 || value == nsIPrincipal::ENABLE_UNKNOWN) {
-      // We don't know whether we can enable this capability,
-      // so we should ask the user.
+      
+      
       value = nsIPrincipal::ENABLE_WITH_USER_PERMISSION;
     }
 
@@ -546,9 +512,9 @@ nsresult
 nsPrincipal::SetCanEnableCapability(const char *capability,
                                     PRInt16 canEnable)
 {
-  // If this principal is marked invalid, can't enable any capabilities
+  
   if (!mCapabilities) {
-    mCapabilities = new nsHashtable(7);  // XXXbz gets bumped up to 16 anyway
+    mCapabilities = new nsHashtable(7);  
     NS_ENSURE_TRUE(mCapabilities, NS_ERROR_OUT_OF_MEMORY);
   }
 
@@ -595,7 +561,7 @@ nsPrincipal::IsCapabilityEnabled(const char *capability, void *annotation,
     nsCStringKey key(capString);
     *result = (ht->Get(&key) == (void *) AnnotationEnabled);
     if (!*result) {
-      // If any single capability is not enabled, then return false.
+      
       return NS_OK;
     }
 
@@ -626,8 +592,8 @@ nsPrincipal::SetCapability(const char *capability, void **annotation,
        return NS_ERROR_OUT_OF_MEMORY;
      }
 
-    // This object owns its annotations. Save them so we can release
-    // them when we destroy this object.
+    
+    
     if (!mAnnotations.AppendElement(ht)) {
       delete ht;
       return NS_ERROR_OUT_OF_MEMORY;
@@ -758,8 +724,8 @@ nsPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 NS_IMETHODIMP
 nsPrincipal::SetCsp(nsIContentSecurityPolicy* aCsp)
 {
-  // If CSP was already set, it should not be destroyed!  Instead, it should
-  // get set anew when a new principal is created.
+  
+  
   if (mCSP)
     return NS_ERROR_ALREADY_INITIALIZED;
 
@@ -772,7 +738,7 @@ nsPrincipal::GetHashValue(PRUint32* aValue)
 {
   NS_PRECONDITION(mCert || mCodebase, "Need a cert or codebase");
 
-  // If there is a certificate, it takes precendence over the codebase.
+  
   if (mCert) {
     *aValue = HashString(mCert->fingerprint);
   }
@@ -805,7 +771,7 @@ nsPrincipal::SetDomain(nsIURI* aDomain)
   mDomain = NS_TryToMakeImmutable(aDomain);
   mDomainImmutable = URIIsImmutable(mDomain);
   
-  // Domain has changed, forget cached security policy
+  
   SetSecurityPolicy(nsnull);
 
   return NS_OK;
@@ -851,7 +817,7 @@ nsPrincipal::InitFromPersistent(const char* aPrefName,
     mTrusted = aTrusted;
   }
 
-  //-- Save the preference name
+  
   mPrefName = aPrefName;
 
   const char* ordinalBegin = PL_strpbrk(aPrefName, "1234567890");
@@ -862,7 +828,7 @@ nsPrincipal::InitFromPersistent(const char* aPrefName,
     }
   }
 
-  //-- Store the capabilities
+  
   rv = NS_OK;
   if (aGrantedList) {
     rv = SetCanEnableCapability(aGrantedList, nsIPrincipal::ENABLE_GRANTED);
@@ -948,13 +914,13 @@ nsPrincipal::GetPreferences(char** aPrefName, char** aID,
   char *granted = nsnull;
   char *denied = nsnull;
 
-  //-- Preference name
+  
   prefName = ToNewCString(mPrefName);
   if (!prefName) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  //-- ID
+  
   nsresult rv = NS_OK;
   if (mCert) {
     id = ToNewCString(mCert->fingerprint);
@@ -983,7 +949,7 @@ nsPrincipal::GetPreferences(char** aPrefName, char** aID,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  //-- Capabilities
+  
   nsCAutoString grantedListStr, deniedListStr;
   if (mCapabilities) {
     CapabilityList capList = CapabilityList();
@@ -1157,8 +1123,8 @@ nsPrincipal::Write(nsIObjectOutputStream* aStream)
 {
   NS_ENSURE_STATE(mCert || mCodebase);
   
-  // mAnnotations is transient data associated to specific JS stack frames.  We
-  // don't want to serialize that.
+  
+  
   
   bool hasCapabilities = (mCapabilities && mCapabilities->Count() > 0);
   nsresult rv = aStream->WriteBoolean(hasCapabilities);
@@ -1205,9 +1171,9 @@ nsPrincipal::Write(nsIObjectOutputStream* aStream)
     }    
   }
   
-  // mSecurityPolicy is an optimization; it'll get looked up again as needed.
-  // Don't bother saving and restoring it, esp. since it might change if
-  // preferences change.
+  
+  
+  
 
   rv = NS_WriteOptionalCompoundObject(aStream, mCodebase, NS_GET_IID(nsIURI),
                                       true);
@@ -1226,8 +1192,8 @@ nsPrincipal::Write(nsIObjectOutputStream* aStream)
     return rv;
   }
 
-  // mCodebaseImmutable and mDomainImmutable will be recomputed based
-  // on the deserialized URIs in Read().
+  
+  
 
   return NS_OK;
 }

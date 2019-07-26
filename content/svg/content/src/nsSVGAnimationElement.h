@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGANIMATIONELEMENT_H_
 #define NS_SVGANIMATIONELEMENT_H_
 
@@ -99,6 +66,9 @@ public:
   virtual nsSMILTargetAttrType GetTargetAttributeType() const;
   virtual nsSMILTimedElement& TimedElement();
   virtual nsSMILTimeContainer* GetTimeContainer();
+
+  
+  void ActivateByHyperlink();
 
 protected:
   

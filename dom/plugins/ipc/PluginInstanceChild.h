@@ -1,40 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Plugin App.
- *
- * The Initial Developer of the Original Code is
- *   Chris Jones <jones.chris.g@gmail.com>
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
 
 #ifndef dom_plugins_PluginInstanceChild_h
 #define dom_plugins_PluginInstanceChild_h 1
@@ -119,7 +87,7 @@ protected:
     virtual bool
     AnswerNPP_HandleEvent_IOSurface(const NPRemoteEvent& event, const uint32_t& surface, int16_t* handled);
 
-    // Async rendering
+    
     virtual bool
     RecvAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
                        const NPRemoteWindow& aWindow);
@@ -250,7 +218,7 @@ public:
 
 #ifdef MOZ_WIDGET_COCOA
     void Invalidate();
-#endif // definied(MOZ_WIDGET_COCOA)
+#endif 
 
     uint32_t ScheduleTimer(uint32_t interval, bool repeat, TimerFunc func);
     void UnscheduleTimer(uint32_t id);
@@ -401,7 +369,7 @@ private:
     mozilla::Mutex mAsyncInvalidateMutex;
     CancelableTask *mAsyncInvalidateTask;
 
-    // Cached scriptable actors to avoid IPC churn
+    
     PluginScriptableObjectChild* mCachedWindowActor;
     PluginScriptableObjectChild* mCachedElementActor;
 
@@ -425,16 +393,16 @@ private:
     nsTArray<ChildAsyncCall*> mPendingAsyncCalls;
     nsTArray<nsAutoPtr<ChildTimer> > mTimers;
 
-    /**
-     * During destruction we enumerate all remaining scriptable objects and
-     * invalidate/delete them. Enumeration can re-enter, so maintain a
-     * hash separate from PluginModuleChild.mObjectMap.
-     */
+    
+
+
+
+
     nsAutoPtr< nsTHashtable<DeletingObjectEntry> > mDeletingHash;
 
 #if defined(OS_WIN)
 private:
-    // Shared dib rendering management for windowless plugins.
+    
     bool SharedSurfaceSetWindow(const NPRemoteWindow& aWindow);
     int16_t SharedSurfacePaint(NPEvent& evcopy);
     void SharedSurfaceRelease();
@@ -454,7 +422,7 @@ private:
       HDC             hdc;
       HBITMAP         bmp;
     } mAlphaExtract;
-#endif // defined(OS_WIN)
+#endif
 #if defined(MOZ_WIDGET_COCOA)
 private:
 #if defined(__i386__)
@@ -465,7 +433,7 @@ private:
     nsCARenderer          mCARenderer;
     void                 *mCGLayer;
 
-    // Core Animation drawing model requires a refresh timer.
+    
     uint32_t mCARefreshTimer;
 
 public:
@@ -497,150 +465,150 @@ private:
 #endif
     }
 
-    // ShowPluginFrame - in general does four things:
-    // 1) Create mCurrentSurface optimized for rendering to parent process
-    // 2) Updated mCurrentSurface to be a complete copy of mBackSurface
-    // 3) Draw the invalidated plugin area into mCurrentSurface
-    // 4) Send it to parent process.
+    
+    
+    
+    
+    
     bool ShowPluginFrame(void);
 
-    // If we can read back safely from mBackSurface, copy
-    // mSurfaceDifferenceRect from mBackSurface to mFrontSurface.
-    // @return Whether the back surface could be read.
+    
+    
+    
     bool ReadbackDifferenceRect(const nsIntRect& rect);
 
-    // Post ShowPluginFrame task
+    
     void AsyncShowPluginFrame(void);
 
-    // In the PaintRect functions, aSurface is the size of the full plugin
-    // window. Each PaintRect function renders into the subrectangle aRect of
-    // aSurface (possibly more if we're working around a Flash bug).
+    
+    
+    
 
-    // Paint plugin content rectangle to surface with bg color filling
+    
     void PaintRectToSurface(const nsIntRect& aRect,
                             gfxASurface* aSurface,
                             const gfxRGBA& aColor);
 
-    // Render plugin content to surface using
-    // white/black image alpha extraction algorithm
+    
+    
     void PaintRectWithAlphaExtraction(const nsIntRect& aRect,
                                       gfxASurface* aSurface);
 
-    // Call plugin NPAPI function to render plugin content to surface
-    // @param - aSurface - should be compatible with current platform plugin rendering
-    // @return - FALSE if plugin not painted to surface
+    
+    
+    
     void PaintRectToPlatformSurface(const nsIntRect& aRect,
                                     gfxASurface* aSurface);
 
-    // Update NPWindow platform attributes and call plugin "setwindow"
-    // @param - aForceSetWindow - call setwindow even if platform attributes are the same
+    
+    
     void UpdateWindowAttributes(bool aForceSetWindow = false);
 
-    // Create optimized mCurrentSurface for parent process rendering
-    // @return FALSE if optimized surface not created
+    
+    
     bool CreateOptSurface(void);
 
-    // Create mHelperSurface if mCurrentSurface non compatible with plugins
-    // @return TRUE if helper surface created successfully, or not needed
+    
+    
     bool MaybeCreatePlatformHelperSurface(void);
 
-    // Make sure that we have surface for rendering
+    
     bool EnsureCurrentBuffer(void);
 
-    // Helper function for delayed InvalidateRect call
-    // non null mCurrentInvalidateTask will call this function
+    
+    
     void InvalidateRectDelayed(void);
 
-    // Clear mCurrentSurface/mCurrentSurfaceActor/mHelperSurface
+    
     void ClearCurrentSurface();
 
-    // Swap mCurrentSurface/mBackSurface and their associated actors
+    
     void SwapSurfaces();
 
-    // Clear all surfaces in response to NPP_Destroy
+    
     void ClearAllSurfaces();
 
-    // Set as true when SetupLayer called
-    // and go with different path in InvalidateRect function
+    
+    
     bool mLayersRendering;
 
-    // Current surface available for rendering
+    
     nsRefPtr<gfxASurface> mCurrentSurface;
 
-    // Back surface, just keeping reference to
-    // surface which is on ParentProcess side
+    
+    
     nsRefPtr<gfxASurface> mBackSurface;
 
 #ifdef XP_MACOSX
-    // Current IOSurface available for rendering
-    // We can't use thebes gfxASurface like other platforms.
+    
+    
     nsDoubleBufferCARenderer mDoubleBufferCARenderer; 
 #endif
 
-    // (Not to be confused with mBackSurface).  This is a recent copy
-    // of the opaque pixels under our object frame, if
-    // |mIsTransparent|.  We ask the plugin render directly onto a
-    // copy of the background pixels if available, and fall back on
-    // alpha recovery otherwise.
+    
+    
+    
+    
+    
     nsRefPtr<gfxASurface> mBackground;
 
 #ifdef XP_WIN
-    // These actors mirror mCurrentSurface/mBackSurface
+    
     PPluginSurfaceChild* mCurrentSurfaceActor;
     PPluginSurfaceChild* mBackSurfaceActor;
 #endif
 
-    // Accumulated invalidate rect, while back buffer is not accessible,
-    // in plugin coordinates.
+    
+    
     nsIntRect mAccumulatedInvalidRect;
 
-    // Plugin only call SetTransparent
-    // and does not remember their transparent state
-    // and p->getvalue return always false
+    
+    
+    
     bool mIsTransparent;
 
-    // Surface type optimized of parent process
+    
     gfxSurfaceType mSurfaceType;
 
-    // Keep InvalidateRect task pointer to be able Cancel it on Destroy
+    
     CancelableTask *mCurrentInvalidateTask;
 
-    // Keep AsyncSetWindow task pointer to be able to Cancel it on Destroy
+    
     CancelableTask *mCurrentAsyncSetWindowTask;
 
-    // True while plugin-child in plugin call
-    // Use to prevent plugin paint re-enter
+    
+    
     bool mPendingPluginCall;
 
-    // On some platforms, plugins may not support rendering to a surface with
-    // alpha, or not support rendering to an image surface.
-    // In those cases we need to draw to a temporary platform surface; we cache
-    // that surface here.
+    
+    
+    
+    
     nsRefPtr<gfxASurface> mHelperSurface;
 
-    // true when plugin does not support painting to ARGB32 surface
-    // this is false for maemo platform, and false if plugin
-    // supports NPPVpluginTransparentAlphaBool (which is not part of NPAPI yet)
+    
+    
+    
     bool mDoAlphaExtraction;
 
-    // true when the plugin has painted at least once. We use this to ensure
-    // that we ask a plugin to paint at least once even if it's invisible;
-    // some plugin (instances) rely on this in order to work properly.
+    
+    
+    
     bool mHasPainted;
 
-    // Cached rectangle rendered to previous surface(mBackSurface)
-    // Used for reading back to current surface and syncing data,
-    // in plugin coordinates.
+    
+    
+    
     nsIntRect mSurfaceDifferenceRect;
 
 #if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
-    // Maemo5 Flash does not remember WindowlessLocal state
-    // we should listen for NPP values negotiation and remember it
+    
+    
     bool                  mMaemoImageRendering;
 #endif
 };
 
-} // namespace plugins
-} // namespace mozilla
+} 
+} 
 
-#endif // ifndef dom_plugins_PluginInstanceChild_h
+#endif

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TaskbarTabPreview.h"
 #include "nsWindowGfx.h"
 #include "nsUXThemeData.h"

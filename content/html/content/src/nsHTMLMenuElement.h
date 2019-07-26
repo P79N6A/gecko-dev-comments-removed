@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLMenuElement.h"
 #include "nsIHTMLMenu.h"
 #include "nsGenericHTMLElement.h"

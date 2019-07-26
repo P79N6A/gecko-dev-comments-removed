@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined (__nsHTTPCompressConv__h__)
 #define	__nsHTTPCompressConv__h__	1
 

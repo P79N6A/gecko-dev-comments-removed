@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsImageBoxFrame.h"
 #include "nsGkAtoms.h"
 #include "nsStyleContext.h"

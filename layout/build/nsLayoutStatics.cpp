@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsLayoutStatics.h"
 #include "nscore.h"
 
@@ -269,6 +236,8 @@ nsLayoutStatics::Initialize()
   NS_SealStaticAtomTable();
 
   nsWindowMemoryReporter::Init();
+
+  nsSVGUtils::Init();
 
   return NS_OK;
 }

@@ -16,43 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -137,8 +100,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
                                   "resource:///modules/devtools/scratchpad-manager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "XPathGenerator",
-                                  "resource:///modules/sessionstore/XPathGenerator.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
+                                  "resource:///modules/sessionstore/DocumentUtils.jsm");
 
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -365,7 +328,10 @@ SessionStoreService.prototype = {
               
               let pageData = {
                 url: "about:sessionrestore",
-                formdata: { "#sessionData": this._initialState }
+                formdata: {
+                  id: { "sessionData": this._initialState },
+                  xpath: {}
+                }
               };
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
             }
@@ -2209,7 +2175,10 @@ SessionStoreService.prototype = {
     aBrowser.__SS_formDataSaved = true;
     if (aBrowser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
-        "#textbox": aBrowser.contentDocument.getElementById("textbox").value
+        id: {
+          "textbox": aBrowser.contentDocument.getElementById("textbox").value
+        },
+        xpath: {}
       };
   },
 
@@ -2243,18 +2212,21 @@ SessionStoreService.prototype = {
     let isAboutSR = aContent.top.document.location.href == "about:sessionrestore";
     if (aFullData || this._checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
       if (aFullData || aUpdateFormData) {
-        let formData = this._collectFormDataForFrame(aContent.document);
+        let formData = DocumentUtils.getFormData(aContent.document);
 
         
         
         
-        if (formData && isAboutSR)
-          formData["#sessionData"] = JSON.parse(formData["#sessionData"]);
+        if (formData && isAboutSR) {
+          formData.id["sessionData"] = JSON.parse(formData.id["sessionData"]);
+        }
 
-        if (formData)
+        if (Object.keys(formData.id).length ||
+            Object.keys(formData.xpath).length) {
           aData.formdata = formData;
-        else if (aData.formdata)
+        } else if (aData.formdata) {
           delete aData.formdata;
+        }
       }
       
       
@@ -2299,83 +2271,6 @@ SessionStoreService.prototype = {
         return selectedPageStyle;
     }
     return "";
-  },
-
-  
-
-
-
-
-  _collectFormDataForFrame: function sss_collectFormDataForFrame(aDocument) {
-    let formNodes = aDocument.evaluate(XPathGenerator.restorableFormNodes, aDocument,
-                                       XPathGenerator.resolveNS,
-                                       Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
-    let node = formNodes.iterateNext();
-    if (!node)
-      return null;
-
-    const MAX_GENERATED_XPATHS = 100;
-    let generatedCount = 0;
-
-    let data = {};
-    do {
-      let nId = node.id;
-      let hasDefaultValue = true;
-      let value;
-
-      
-      if (!nId && generatedCount > MAX_GENERATED_XPATHS)
-        continue;
-
-      if (node instanceof Ci.nsIDOMHTMLInputElement ||
-          node instanceof Ci.nsIDOMHTMLTextAreaElement) {
-        switch (node.type) {
-          case "checkbox":
-          case "radio":
-            value = node.checked;
-            hasDefaultValue = value == node.defaultChecked;
-            break;
-          case "file":
-            value = { type: "file", fileList: node.mozGetFileNameArray() };
-            hasDefaultValue = !value.fileList.length;
-            break;
-          default: 
-            value = node.value;
-            hasDefaultValue = value == node.defaultValue;
-            break;
-        }
-      }
-      else if (!node.multiple) {
-        
-        
-        hasDefaultValue = false;
-        value = node.selectedIndex;
-      }
-      else {
-        
-        
-        let options = Array.map(node.options, function(aOpt, aIx) {
-          let oSelected = aOpt.selected;
-          hasDefaultValue = hasDefaultValue && (oSelected == aOpt.defaultSelected);
-          return oSelected ? aIx : -1;
-        });
-        value = options.filter(function(aIx) aIx >= 0);
-      }
-      
-      
-      if (!hasDefaultValue) {
-        if (nId) {
-          data["#" + nId] = value;
-        }
-        else {
-          generatedCount++;
-          data[XPathGenerator.generate(node)] = value;
-        }
-      }
-
-    } while ((node = formNodes.iterateNext()));
-
-    return data;
   },
 
   
@@ -3479,77 +3374,41 @@ SessionStoreService.prototype = {
     function hasExpectedURL(aDocument, aURL)
       !aURL || aURL.replace(/#.*/, "") == aDocument.location.href.replace(/#.*/, "");
 
-    function restoreFormData(aDocument, aData, aURL) {
-      for (let key in aData) {
-        if (!hasExpectedURL(aDocument, aURL))
-          return;
-
-        let node = key.charAt(0) == "#" ? aDocument.getElementById(key.slice(1)) :
-                                          XPathGenerator.resolve(aDocument, key);
-        if (!node)
-          continue;
-
-        let eventType;
-        let value = aData[key];
-
-        
-        
-        if (aURL == "about:sessionrestore" && typeof value == "object") {
-          value = JSON.stringify(value);
-        }
-
-        if (typeof value == "string" && node.type != "file") {
-          if (node.value == value)
-            continue; 
-
-          node.value = value;
-          eventType = "input";
-        }
-        else if (typeof value == "boolean") {
-          if (node.checked == value)
-            continue; 
-
-          node.checked = value;
-          eventType = "change";
-        }
-        else if (typeof value == "number") {
-          
-          
-          if (node.selectedIndex == value)
-            continue;
-
-          try {
-            node.selectedIndex = value;
-            eventType = "change";
-          } catch (ex) {  }
-        }
-        else if (value && value.fileList && value.type == "file" && node.type == "file") {
-          node.mozSetFileNameArray(value.fileList, value.fileList.length);
-          eventType = "input";
-        }
-        else if (value && typeof value.indexOf == "function" && node.options) {
-          Array.forEach(node.options, function(aOpt, aIx) {
-            aOpt.selected = value.indexOf(aIx) > -1;
-
-            
-            if (!aOpt.defaultSelected)
-              eventType = "change";
-          });
-        }
-
-        
-        if (eventType) {
-          let event = aDocument.createEvent("UIEvents");
-          event.initUIEvent(eventType, true, true, aDocument.defaultView, 0);
-          node.dispatchEvent(event);
-        }
-      }
-    }
-
     let selectedPageStyle = aBrowser.__SS_restore_pageStyle;
     function restoreTextDataAndScrolling(aContent, aData, aPrefix) {
-      if (aData.formdata)
-        restoreFormData(aContent.document, aData.formdata, aData.url);
+      if (aData.formdata && hasExpectedURL(aContent.document, aData.url)) {
+        let formdata = aData.formdata;
+
+        
+        
+        if (!("xpath" in formdata || "id" in formdata)) {
+          formdata = { xpath: {}, id: {} };
+
+          for each (let [key, value] in Iterator(aData.formdata)) {
+            if (key.charAt(0) == "#") {
+              formdata.id[key.slice(1)] = value;
+            } else {
+              formdata.xpath[key] = value;
+            }
+          }
+        }
+
+        
+        
+        
+        if (aData.url == "about:sessionrestore" &&
+            "sessionData" in formdata.id &&
+            typeof formdata.id["sessionData"] == "object") {
+          formdata.id["sessionData"] =
+            JSON.stringify(formdata.id["sessionData"]);
+        }
+
+        
+        aData.formdata = formdata;
+        
+        DocumentUtils.mergeFormData(aContent.document, formdata);
+      }
+
       if (aData.innerHTML) {
         aWindow.setTimeout(function() {
           if (aContent.document.designMode == "on" &&

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "gfxASurface.h"

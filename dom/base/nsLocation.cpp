@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsLocation.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptContext.h"

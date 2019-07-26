@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_TXTOPLEVELITEMS_H
 #define TRANSFRMX_TXTOPLEVELITEMS_H
 

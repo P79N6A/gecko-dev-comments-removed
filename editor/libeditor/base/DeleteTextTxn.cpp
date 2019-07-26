@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DeleteTextTxn.h"
 #include "nsIDOMCharacterData.h"
 #include "nsISelection.h"

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGMotionSMILAttr.h"
 #include "SVGMotionSMILType.h"
 #include "nsISMILAnimationElement.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsResourceSet.h"
 
 nsResourceSet::nsResourceSet(const nsResourceSet& aResourceSet)

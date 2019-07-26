@@ -1,39 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 #include "nsJSEventListener.h"
 #include "nsJSUtils.h"
 #include "nsString.h"
@@ -59,7 +27,7 @@
 #include "nsDOMJSUtils.h"
 #ifdef NS_DEBUG
 
-#include "nspr.h" // PR_fprintf
+#include "nspr.h" 
 
 class EventListenerCounter
 {
@@ -71,9 +39,9 @@ public:
 static EventListenerCounter sEventListenerCounter;
 #endif
 
-/*
- * nsJSEventListener implementation
- */
+
+
+
 nsJSEventListener::nsJSEventListener(nsIScriptContext *aContext,
                                      JSObject* aScopeObject,
                                      nsISupports *aTarget,
@@ -82,8 +50,8 @@ nsJSEventListener::nsJSEventListener(nsIScriptContext *aContext,
   : nsIJSEventListener(aContext, aScopeObject, aTarget, aHandler),
     mEventName(aType)
 {
-  // aScopeObject is the inner window's JS object, which we need to lock
-  // until we are done with it.
+  
+  
   NS_ASSERTION(aScopeObject && aContext,
                "EventListener with no context or scope?");
   NS_HOLD_JS_OBJECTS(this, nsJSEventListener);
@@ -168,10 +136,10 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
         event->eventStructType == NS_SCRIPT_ERROR_EVENT) {
       nsScriptErrorEvent *scriptEvent =
         static_cast<nsScriptErrorEvent*>(event);
-      // Create a temp argv for the error event.
+      
       iargv = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
       if (NS_FAILED(rv)) return rv;
-      // Append the event args.
+      
       nsCOMPtr<nsIWritableVariant>
           var(do_CreateInstance(NS_VARIANT_CONTRACTID, &rv));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -179,14 +147,14 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
       NS_ENSURE_SUCCESS(rv, rv);
       rv = iargv->AppendElement(var, false);
       NS_ENSURE_SUCCESS(rv, rv);
-      // filename
+      
       var = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = var->SetAsWString(scriptEvent->fileName);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = iargv->AppendElement(var, false);
       NS_ENSURE_SUCCESS(rv, rv);
-      // line number
+      
       var = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = var->SetAsUint32(scriptEvent->lineNr);
@@ -206,8 +174,8 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  // mContext is the same context which event listener manager pushes
-  // to JS context stack.
+  
+  
 #ifdef NS_DEBUG
   JSContext* cx = nsnull;
   nsCOMPtr<nsIJSContextStack> stack =
@@ -236,9 +204,9 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
         nsAutoString text;
         beforeUnload->GetReturnValue(text);
 
-        // Set the text in the beforeUnload event as long as it wasn't
-        // already set (through event.returnValue, which takes
-        // precedence over a value returned from a JS function in IE)
+        
+        
+        
         if ((dataType == nsIDataType::VTYPE_DOMSTRING ||
              dataType == nsIDataType::VTYPE_CHAR_STR ||
              dataType == nsIDataType::VTYPE_WCHAR_STR ||
@@ -252,9 +220,9 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
         }
       }
     } else if (dataType == nsIDataType::VTYPE_BOOL) {
-      // If the handler returned false and its sense is not reversed,
-      // or the handler returned true and its sense is reversed from
-      // the usual (false means cancel), then prevent default.
+      
+      
+      
       bool brv;
       if (NS_SUCCEEDED(vrv->GetAsBool(&brv)) &&
           brv == (mEventName == nsGkAtoms::onerror ||
@@ -267,21 +235,21 @@ nsJSEventListener::HandleEvent(nsIDOMEvent* aEvent)
   return rv;
 }
 
-/* virtual */ void
+ void
 nsJSEventListener::SetHandler(JSObject *aHandler)
 {
-  // Technically we should drop the old mHandler and hold the new
-  // one... except for JS this is a no-op, and we're really not
-  // pretending very hard to support anything else.  And since we
-  // can't in fact only drop one script object (we'd have to drop
-  // mScope too, and then re-hold it), let's just not worry about it
-  // all.
+  
+  
+  
+  
+  
+  
   mHandler = aHandler;
 }
 
-/*
- * Factory functions
- */
+
+
+
 
 nsresult
 NS_NewJSEventListener(nsIScriptContext* aContext, JSObject* aScopeObject,

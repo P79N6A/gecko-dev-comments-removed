@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "HttpChannelParentListener.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsViewSourceChannel.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"

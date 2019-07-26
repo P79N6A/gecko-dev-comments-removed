@@ -4,46 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/TabParent.h"
 
 #include "nsCOMPtr.h"
@@ -2222,6 +2182,8 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
 
   nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
   nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
+  if (!window)
+    return;
 
   
   
@@ -3538,6 +3500,13 @@ void
 nsEventStateManager::NotifyDestroyPresContext(nsPresContext* aPresContext)
 {
   nsIMEStateManager::OnDestroyPresContext(aPresContext);
+  if (mHoverContent) {
+    
+    
+    
+    
+    SetContentState(nsnull, NS_EVENT_STATE_HOVER);
+  }
 }
 
 void

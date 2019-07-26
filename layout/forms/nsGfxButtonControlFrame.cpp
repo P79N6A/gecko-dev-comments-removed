@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGfxButtonControlFrame.h"
 #include "nsWidgetsCID.h"
 #include "nsFormControlFrame.h"

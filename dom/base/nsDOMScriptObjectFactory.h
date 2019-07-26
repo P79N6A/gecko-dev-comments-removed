@@ -18,38 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIObserver.h"
 #include "nsIExceptionService.h"

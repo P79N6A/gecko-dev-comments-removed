@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsScrollbarFrame.h"
 #include "nsScrollbarButtonFrame.h"
 #include "nsGkAtoms.h"

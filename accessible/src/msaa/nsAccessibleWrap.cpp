@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAccessibleWrap.h"
 
 #include "Compatibility.h"
@@ -1316,9 +1283,6 @@ nsAccessibleWrap::get_states(AccessibleStates *aStates)
 {
 __try {
   *aStates = 0;
-
-  if (IsDefunct())
-    return CO_E_OBJNOTCONNECTED;
 
   
 

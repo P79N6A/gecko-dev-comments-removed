@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozIStorageService.h"
@@ -4397,9 +4360,7 @@ nsUrlClassifierDBService::SetHashCompleter(const nsACString &tableName,
                                            nsIUrlClassifierHashCompleter *completer)
 {
   if (completer) {
-    if (!mCompleters.Put(tableName, completer)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    mCompleters.Put(tableName, completer);
   } else {
     mCompleters.Remove(tableName);
   }

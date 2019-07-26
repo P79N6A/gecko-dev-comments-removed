@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include  <dbus/dbus.h>
 #include "nsDBusHandlerApp.h"
 #include "nsIURI.h"

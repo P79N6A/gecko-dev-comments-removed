@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsBuiltinDecoderReader_h_)
 #define nsBuiltinDecoderReader_h_
 
@@ -479,6 +446,9 @@ public:
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
                                PRInt64 aStartTime) = 0;
+
+  
+  virtual bool IsSeekableInBufferedRanges() = 0;
 
   class VideoQueueMemoryFunctor : public nsDequeFunctor {
   public:

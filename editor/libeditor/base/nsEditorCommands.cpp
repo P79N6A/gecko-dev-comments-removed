@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCRT.h"
 #include "nsString.h"
 
@@ -281,12 +248,8 @@ nsCutOrDeleteCommand::DoCommand(const char *aCommandName,
   {
     nsCOMPtr<nsISelection> selection;
     nsresult rv = editor->GetSelection(getter_AddRefs(selection));
-    if (NS_SUCCEEDED(rv) && selection)
-    {
-      bool isCollapsed;
-      rv = selection->GetIsCollapsed(&isCollapsed);
-      if (NS_SUCCEEDED(rv) && isCollapsed)
-        return editor->DeleteSelection(nsIEditor::eNext);
+    if (NS_SUCCEEDED(rv) && selection && selection->Collapsed()) {
+      return editor->DeleteSelection(nsIEditor::eNext, nsIEditor::eStrip);
     }
     return editor->Cut();
   }
@@ -379,12 +342,8 @@ nsCopyOrDeleteCommand::DoCommand(const char *aCommandName,
   {
     nsCOMPtr<nsISelection> selection;
     nsresult rv = editor->GetSelection(getter_AddRefs(selection));
-    if (NS_SUCCEEDED(rv) && selection)
-    {
-      bool isCollapsed;
-      rv = selection->GetIsCollapsed(&isCollapsed);
-      if (NS_SUCCEEDED(rv) && isCollapsed)
-        return editor->DeleteSelection(nsIEditor::eNextWord);
+    if (NS_SUCCEEDED(rv) && selection && selection->Collapsed()) {
+      return editor->DeleteSelection(nsIEditor::eNextWord, nsIEditor::eStrip);
     }
     return editor->Copy();
   }
@@ -627,7 +586,7 @@ nsDeleteCommand::DoCommand(const char *aCommandName, nsISupports *aCommandRefCon
   else if (!nsCRT::strcmp("cmd_deleteToEndOfLine",aCommandName))
     deleteDir = nsIEditor::eToEndOfLine;
 
-  return editor->DeleteSelection(deleteDir);
+  return editor->DeleteSelection(deleteDir, nsIEditor::eStrip);
 }
 
 NS_IMETHODIMP 

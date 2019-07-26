@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsCycleCollectionParticipant_h__
 #define nsCycleCollectionParticipant_h__
 
@@ -383,6 +351,7 @@ public:
     tmp->_field.Clear();
 
 #define NS_IMPL_CYCLE_COLLECTION_UNLINK_END                                    \
+    (void)tmp;                                                                 \
     return NS_OK;                                                              \
   }
 

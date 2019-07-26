@@ -20,39 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPrimitiveHelpers.h"
 #include "nsCOMPtr.h"
 #include "nsXPCOM.h"

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <set>
 #include <vector>
 
@@ -67,8 +34,8 @@ class Transaction
 {
 public:
   Transaction()
-    : mOpen(false)
-    , mSwapRequired(false)
+    : mSwapRequired(false)
+    , mOpen(false)
   {}
 
   void Begin() { mOpen = true; }

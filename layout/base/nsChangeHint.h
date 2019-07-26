@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsChangeHint_h___
 #define nsChangeHint_h___
 
@@ -113,7 +81,13 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_UpdateOverflow = 0x800
+  nsChangeHint_UpdateOverflow = 0x800,
+
+  
+
+
+
+  nsChangeHint_ChildrenOnlyTransform = 0x1000
 };
 
 

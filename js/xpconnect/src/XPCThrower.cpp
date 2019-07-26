@@ -6,41 +6,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpcprivate.h"
+#include "xpcpublic.h"
 #include "XPCWrapper.h"
 
 JSBool XPCThrower::sVerbose = true;
@@ -56,6 +23,17 @@ XPCThrower::Throw(nsresult rv, JSContext* cx)
         format = "";
     BuildAndThrowException(cx, rv, format);
 }
+
+namespace xpc {
+
+bool
+Throw(JSContext *cx, nsresult rv)
+{
+    XPCThrower::Throw(rv, cx);
+    return false;
+}
+
+} 
 
 
 

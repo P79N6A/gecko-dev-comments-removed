@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGNUMBERLISTSMILTYPE_H_
 #define MOZILLA_SVGNUMBERLISTSMILTYPE_H_
 

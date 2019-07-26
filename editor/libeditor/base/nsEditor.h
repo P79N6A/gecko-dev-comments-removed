@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __editor_h__
 #define __editor_h__
 
@@ -50,6 +17,8 @@
 #include "nsIAtom.h"
 #include "nsIDOMDocument.h"
 #include "nsISelection.h"
+#include "nsRange.h"
+#include "nsTypedSelection.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIPrivateTextRange.h"
 #include "nsITransactionManager.h"
@@ -203,7 +172,8 @@ public:
                                       nsIDOMCharacterData *aTextNode, 
                                       PRInt32 aOffset,
                                       bool aSuppressIME = false);
-  NS_IMETHOD DeleteSelectionImpl(EDirection aAction);
+  NS_IMETHOD DeleteSelectionImpl(EDirection aAction,
+                                 EStripWrappers aStripWrappers);
   NS_IMETHOD DeleteSelectionAndCreateNode(const nsAString& aTag,
                                            nsIDOMNode ** aNewNode);
 
@@ -604,12 +574,14 @@ public:
   
   static nsresult GetTagString(nsIDOMNode *aNode, nsAString& outString);
   static nsIAtom *GetTag(nsIDOMNode *aNode);
-  virtual bool NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2);
+
+  bool NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2);
+  virtual bool AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2);
+
   static bool IsTextOrElementNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsINode *aNode);
   
-  static PRInt32 GetIndexOf(nsIDOMNode *aParent, nsIDOMNode *aChild);
   static nsCOMPtr<nsIDOMNode> GetChildAt(nsIDOMNode *aParent, PRInt32 aOffset);
   static nsCOMPtr<nsIDOMNode> GetNodeAtRangeOffsetPoint(nsIDOMNode* aParentOrNode, PRInt32 aOffset);
 
@@ -618,6 +590,7 @@ public:
 #if DEBUG_JOE
   static void DumpNode(nsIDOMNode *aNode, PRInt32 indent=0);
 #endif
+  nsTypedSelection* GetTypedSelection();
 
   
   

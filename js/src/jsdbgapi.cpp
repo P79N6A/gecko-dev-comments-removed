@@ -1,47 +1,13 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Nick Fitzgerald <nfitzgerald@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * JS debugging API.
- */
+
+
+
+
+
+
+
+
+
 #include <string.h>
 #include <stdarg.h>
 #include "jsprvtd.h"
@@ -161,7 +127,7 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
     return Debugger::onLeaveFrame(cx, ok);
 }
 
-} /* namespace js */
+} 
 
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug)
@@ -169,7 +135,7 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug)
     AutoDebugModeGC dmgc(cx->runtime);
 
     for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
-        // Ignore special compartments (atoms, JSD compartments)
+        
         if (c->principals) {
             if (!c->setDebugModeFromC(cx, !!debug, dmgc))
                 return false;
@@ -189,11 +155,11 @@ static JSBool
 CheckDebugMode(JSContext *cx)
 {
     JSBool debugMode = JS_GetDebugMode(cx);
-    /*
-     * :TODO:
-     * This probably should be an assertion, since it's indicative of a severe
-     * API misuse.
-     */
+    
+
+
+
+
     if (!debugMode) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
@@ -272,7 +238,7 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
     return JS_TRUE;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
@@ -282,14 +248,13 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
 
     RootedVarObject obj(cx, obj_), closure(cx, closure_);
 
-    JSObject *origobj;
-    Value v;
-    unsigned attrs;
-
-    origobj = obj;
-    OBJ_TO_INNER_OBJECT(cx, obj.reference());
+    JSObject *origobj = obj;
+    obj = GetInnerObject(cx, obj);
     if (!obj)
         return false;
+
+    Value v;
+    unsigned attrs;
 
     RootedVarId propid(cx);
 
@@ -303,10 +268,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
             return false;
     }
 
-    /*
-     * If, by unwrapping and innerizing, we changed the object, check
-     * again to make sure that we're allowed to set a watch point.
-     */
+    
+
+
+
     if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return false;
 
@@ -361,7 +326,7 @@ JS_ClearAllWatchPoints(JSContext *cx)
     return true;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(unsigned)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -453,7 +418,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
     if (!fun->script()->bindings.getLocalNameArray(cx, &localNames))
         return NULL;
 
-    /* Munge data into the API this method implements.  Avert your eyes! */
+    
     *markp = cx->tempLifoAlloc().mark();
 
     uintptr_t *names = cx->tempLifoAlloc().newArray<uintptr_t>(localNames.length());
@@ -510,11 +475,11 @@ JS_GetScriptOriginPrincipals(JSScript *script)
     return script->originPrincipals;
 }
 
-/************************************************************************/
 
-/*
- *  Stack Frame Iterator
- */
+
+
+
+
 JS_PUBLIC_API(JSStackFrame *)
 JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp)
 {
@@ -543,10 +508,10 @@ JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fpArg)
         JSPrincipals *principals = fp->scopeChain()->principals(cx);
 
         if (principals) {
-            /*
-             * Give out an annotation only if privileges have not been revoked
-             * or disabled globally.
-             */
+            
+
+
+
             return fp->annotation();
         }
     }
@@ -570,40 +535,44 @@ JS_PUBLIC_API(JSObject *)
 JS_GetFrameScopeChain(JSContext *cx, JSStackFrame *fpArg)
 {
     StackFrame *fp = Valueify(fpArg);
-    JS_ASSERT(cx->stack.containsSlow(fp));
+    JS_ASSERT(cx->stack.space().containsSlow(fp));
 
     js::AutoCompartment ac(cx, fp->scopeChain());
     if (!ac.enter())
         return NULL;
 
-    /* Force creation of argument and call objects if not yet created */
-    (void) JS_GetFrameCallObject(cx, Jsvalify(fp));
-    return GetScopeChain(cx, fp);
+    return GetDebugScopeForFrame(cx, fp);
 }
 
 JS_PUBLIC_API(JSObject *)
 JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fpArg)
 {
     StackFrame *fp = Valueify(fpArg);
-    JS_ASSERT(cx->stack.containsSlow(fp));
-
-    if (!fp->compartment()->debugMode())
-        return NULL;
+    JS_ASSERT(cx->stack.space().containsSlow(fp));
 
     if (!fp->isFunctionFrame())
         return NULL;
 
-    js::AutoCompartment ac(cx, fp->scopeChain());
-    if (!ac.enter())
-        return NULL;
+    JSObject *o = GetDebugScopeForFrame(cx, fp);
 
-    /*
-     * XXX ill-defined: null return here means error was reported, unlike a
-     *     null returned above or in the #else
-     */
-    if (!fp->hasCallObj() && fp->isNonEvalFunctionFrame())
-        return CallObject::createForFunction(cx, fp);
-    return &fp->callObj();
+    
+
+
+
+
+
+
+
+    while (o) {
+        ScopeObject &scope = o->asDebugScope().scope();
+        if (scope.isCall()) {
+            JS_ASSERT_IF(cx->compartment->debugMode() && fp->isNonEvalFunctionFrame(),
+                         fp == scope.asCall().maybeStackFrame());
+            return o;
+        }
+        o = o->enclosingScope();
+    }
+    return NULL;
 }
 
 JS_PUBLIC_API(JSBool)
@@ -664,6 +633,14 @@ JS_GetFrameCalleeObject(JSContext *cx, JSStackFrame *fp)
     return Valueify(fp)->maybeCalleev().toObjectOrNull();
 }
 
+JS_PUBLIC_API(const char *)
+JS_GetDebugClassName(JSObject *obj)
+{
+    if (obj->isDebugScope())
+        return obj->asDebugScope().scope().getClass()->name;
+    return obj->getClass()->name;
+}
+
 JS_PUBLIC_API(JSBool)
 JS_IsDebuggerFrame(JSContext *cx, JSStackFrame *fp)
 {
@@ -693,7 +670,7 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fpArg, jsval rval)
     fp->setReturnValue(rval);
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script)
@@ -725,7 +702,7 @@ JS_GetScriptVersion(JSContext *cx, JSScript *script)
     return VersionNumber(script->getVersion());
 }
 
-/***************************************************************************/
+
 
 JS_PUBLIC_API(void)
 JS_SetNewScriptHook(JSRuntime *rt, JSNewScriptHook hook, void *callerdata)
@@ -742,7 +719,7 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
     rt->debugHooks.destroyScriptHookData = callerdata;
 }
 
-/***************************************************************************/
+
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
@@ -791,9 +768,9 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     return ok;
 }
 
-/************************************************************************/
 
-/* This all should be reworked to avoid requiring JSScopeProperty types. */
+
+
 
 static JSBool
 GetPropertyDesc(JSContext *cx, JSObject *obj_, Shape *shape, JSPropertyDesc *pd)
@@ -809,7 +786,7 @@ GetPropertyDesc(JSContext *cx, JSObject *obj_, Shape *shape, JSPropertyDesc *pd)
         lastException = cx->getPendingException();
     cx->clearPendingException();
 
-    if (!js_GetProperty(cx, obj, shape->propid(), &pd->value)) {
+    if (!baseops::GetProperty(cx, obj, RootedVarId(cx, shape->propid()), &pd->value)) {
         if (!cx->isExceptionPending()) {
             pd->flags = JSPD_ERROR;
             pd->value = JSVAL_VOID;
@@ -843,31 +820,58 @@ GetPropertyDesc(JSContext *cx, JSObject *obj_, Shape *shape, JSPropertyDesc *pd)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda)
+JS_GetPropertyDescArray(JSContext *cx, JSObject *obj_, JSPropertyDescArray *pda)
 {
-    assertSameCompartment(cx, obj);
+    RootedVarObject obj(cx, obj_);
 
-    Class *clasp = obj->getClass();
+    assertSameCompartment(cx, obj);
+    uint32_t i = 0;
+    JSPropertyDesc *pd = NULL;
+
+    if (obj->isDebugScope()) {
+        AutoIdVector props(cx);
+        if (!Proxy::enumerate(cx, obj, props))
+            return false;
+
+        pd = (JSPropertyDesc *)cx->calloc_(props.length() * sizeof(JSPropertyDesc));
+        if (!pd)
+            return false;
+
+        for (i = 0; i < props.length(); ++i) {
+            if (!js_AddRoot(cx, &pd[i].id, NULL))
+                goto bad;
+            pd[i].id = IdToValue(props[i]);
+            if (!js_AddRoot(cx, &pd[i].value, NULL))
+                goto bad;
+            if (!Proxy::get(cx, obj, obj, props[i], &pd[i].value))
+                goto bad;
+        }
+
+        pda->length = props.length();
+        pda->array = pd;
+        return true;
+    }
+
+    Class *clasp;
+    clasp = obj->getClass();
     if (!obj->isNative() || (clasp->flags & JSCLASS_NEW_ENUMERATE)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                              JSMSG_CANT_DESCRIBE_PROPS, clasp->name);
-        return JS_FALSE;
+        return false;
     }
     if (!clasp->enumerate(cx, obj))
-        return JS_FALSE;
+        return false;
 
-    /* Return an empty pda early if obj has no own properties. */
+    
     if (obj->nativeEmpty()) {
         pda->length = 0;
         pda->array = NULL;
-        return JS_TRUE;
+        return true;
     }
 
-    uint32_t n = obj->propertyCount();
-    JSPropertyDesc *pd = (JSPropertyDesc *) cx->malloc_(size_t(n) * sizeof(JSPropertyDesc));
+    pd = (JSPropertyDesc *)cx->malloc_(obj->propertyCount() * sizeof(JSPropertyDesc));
     if (!pd)
-        return JS_FALSE;
-    uint32_t i = 0;
+        return false;
     for (Shape::Range r = obj->lastProperty()->all(); !r.empty(); r.popFront()) {
         if (!js_AddRoot(cx, &pd[i].id, NULL))
             goto bad;
@@ -878,18 +882,18 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda)
             goto bad;
         if ((pd[i].flags & JSPD_ALIAS) && !js_AddRoot(cx, &pd[i].alias, NULL))
             goto bad;
-        if (++i == n)
+        if (++i == obj->propertyCount())
             break;
     }
     pda->length = i;
     pda->array = pd;
-    return JS_TRUE;
+    return true;
 
 bad:
     pda->length = i + 1;
     pda->array = pd;
     JS_PutPropertyDescArray(cx, pda);
-    return JS_FALSE;
+    return false;
 }
 
 JS_PUBLIC_API(void)
@@ -906,9 +910,11 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
             js_RemoveRoot(cx->runtime, &pd[i].alias);
     }
     cx->free_(pd);
+    pda->array = NULL;
+    pda->length = 0;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(JSBool)
 JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure)
@@ -958,7 +964,7 @@ JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure)
     return JS_TRUE;
 }
 
-/************************************************************************/
+
 
 JS_PUBLIC_API(size_t)
 JS_GetObjectTotalSize(JSContext *cx, JSObject *obj)
@@ -1055,7 +1061,7 @@ JS_MakeSystemObject(JSContext *cx, JSObject *obj)
     return obj->setSystem(cx);
 }
 
-/************************************************************************/
+
 
 JS_FRIEND_API(void)
 js_RevertVersion(JSContext *cx)
@@ -1069,11 +1075,11 @@ JS_GetGlobalDebugHooks(JSRuntime *rt)
     return &rt->debugHooks;
 }
 
-/************************************************************************/
 
-/* Profiling-related API */
 
-/* Thread-unsafe error management */
+
+
+
 
 static char gLastError[2000];
 
@@ -1136,10 +1142,10 @@ JS_StopProfiling(const char *profileName)
     return ok;
 }
 
-/*
- * Start or stop whatever platform- and configuration-specific profiling
- * backends are available.
- */
+
+
+
+
 static JSBool
 ControlProfilers(bool toState)
 {
@@ -1183,14 +1189,14 @@ ControlProfilers(bool toState)
     return ok;
 }
 
-/*
- * Pause/resume whatever profiling mechanism is currently compiled
- * in, if applicable. This will not affect things like dtrace.
- *
- * Do not mix calls to these APIs with calls to the individual
- * profilers' pause/resume functions, because only overall state is
- * tracked, not the state of each profiler.
- */
+
+
+
+
+
+
+
+
 JS_PUBLIC_API(JSBool)
 JS_PauseProfilers(const char *profileName)
 {
@@ -1298,7 +1304,7 @@ ResumeProfilers(JSContext *cx, unsigned argc, jsval *vp)
     return JS_TRUE;
 }
 
-/* Usage: DumpProfile([filename[, profileName]]) */
+
 static JSBool
 DumpProfile(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -1365,7 +1371,7 @@ DumpCallgrind(JSContext *cx, unsigned argc, jsval *vp)
 
     JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_DumpCallgrind(outFile.mBytes)));
     return JS_TRUE;
-}    
+}
 #endif
 
 #ifdef MOZ_VTUNE
@@ -1408,7 +1414,7 @@ static JSFunctionSpec profiling_functions[] = {
     JS_FN("resumeProfilers", ResumeProfilers,     1,0),
     JS_FN("dumpProfile",     DumpProfile,         2,0),
 #ifdef MOZ_SHARK
-    /* Keep users of the old shark API happy. */
+    
     JS_FN("connectShark",    IgnoreAndReturnTrue, 0,0),
     JS_FN("disconnectShark", IgnoreAndReturnTrue, 0,0),
     JS_FN("startShark",      StartProfiling,      0,0),
@@ -1472,7 +1478,7 @@ js_DumpCallgrind(const char *outfile)
     return true;
 }
 
-#endif /* MOZ_CALLGRIND */
+#endif 
 
 #ifdef MOZ_VTUNE
 #include <VTuneApi.h>
@@ -1520,12 +1526,12 @@ js_StartVtune(const char *profileName)
     VTUNE_SAMPLING_PARAMS params = {
         sizeof(VTUNE_SAMPLING_PARAMS),
         sizeof(VTUNE_EVENT),
-        0, 0, /* Reserved fields */
-        1,    /* Initialize in "paused" state */
-        0,    /* Max samples, or 0 for "continuous" */
-        4096, /* Samples per buffer */
-        0.1,  /* Sampling interval in ms */
-        1,    /* 1 for event-based sampling, 0 for time-based */
+        0, 0, 
+        1,    
+        0,    
+        4096, 
+        0.1,  
+        1,    
 
         n_events,
         events,
@@ -1583,30 +1589,30 @@ js_ResumeVtune()
     return true;
 }
 
-#endif /* MOZ_VTUNE */
+#endif 
 
 #ifdef __linux__
 
-/*
- * Code for starting and stopping |perf|, the Linux profiler.
- *
- * Output from profiling is written to mozperf.data in your cwd.
- *
- * To enable, set MOZ_PROFILE_WITH_PERF=1 in your environment.
- *
- * To pass additional parameters to |perf record|, provide them in the
- * MOZ_PROFILE_PERF_FLAGS environment variable.  If this variable does not
- * exist, we default it to "--call-graph".  (If you don't want --call-graph but
- * don't want to pass any other args, define MOZ_PROFILE_PERF_FLAGS to the empty
- * string.)
- *
- * If you include --pid or --output in MOZ_PROFILE_PERF_FLAGS, you're just
- * asking for trouble.
- *
- * Our split-on-spaces logic is lame, so don't expect MOZ_PROFILE_PERF_FLAGS to
- * work if you pass an argument which includes a space (e.g.
- * MOZ_PROFILE_PERF_FLAGS="-e 'foo bar'").
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -1625,16 +1631,16 @@ JSBool js_StartPerf()
         return false;
     }
 
-    // Bail if MOZ_PROFILE_WITH_PERF is empty or undefined.
+    
     if (!getenv("MOZ_PROFILE_WITH_PERF") ||
         !strlen(getenv("MOZ_PROFILE_WITH_PERF"))) {
         return true;
     }
 
-    /*
-     * Delete mozperf.data the first time through -- we're going to append to it
-     * later on, so we want it to be clean when we start out.
-     */
+    
+
+
+
     if (!perfInitialized) {
         perfInitialized = true;
         unlink(outfile);
@@ -1647,7 +1653,7 @@ JSBool js_StartPerf()
 
     pid_t childPid = fork();
     if (childPid == 0) {
-        /* perf record --append --pid $mainPID --output=$outfile $MOZ_PROFILE_PERF_FLAGS */
+        
 
         char mainPidStr[16];
         snprintf(mainPidStr, sizeof(mainPidStr), "%d", mainPid);
@@ -1662,8 +1668,8 @@ JSBool js_StartPerf()
             flags = "--call-graph";
         }
 
-        // Split |flags| on spaces.  (Don't bother to free it -- we're going to
-        // exec anyway.)
+        
+        
         char *toksave;
         char *tok = strtok_r(strdup(flags), " ", &toksave);
         while (tok) {
@@ -1675,14 +1681,14 @@ JSBool js_StartPerf()
 
         execvp("perf", const_cast<char**>(args.begin()));
 
-        /* Reached only if execlp fails. */
+        
         fprintf(stderr, "Unable to start perf.\n");
         exit(1);
     }
     else if (childPid > 0) {
         perfPid = childPid;
 
-        /* Give perf a chance to warm up. */
+        
         usleep(500 * 1000);
         return true;
     }
@@ -1702,7 +1708,7 @@ JSBool js_StopPerf()
     if (kill(perfPid, SIGINT)) {
         UnsafeError("js_StopPerf: kill failed\n");
 
-        // Try to reap the process anyway.
+        
         waitpid(perfPid, NULL, WNOHANG);
     }
     else {
@@ -1713,7 +1719,7 @@ JSBool js_StopPerf()
     return true;
 }
 
-#endif /* __linux__ */
+#endif 
 
 JS_PUBLIC_API(void)
 JS_DumpBytecode(JSContext *cx, JSScript *script)
@@ -1760,7 +1766,7 @@ DumpBytecodeScriptCallback(JSRuntime *rt, void *data, void *thing,
     static_cast<ScriptsToDump *>(data)->append(script);
 }
 
-} /* anonymous namespace */
+} 
 
 JS_PUBLIC_API(void)
 JS_DumpCompartmentBytecode(JSContext *cx)
@@ -1791,7 +1797,7 @@ JS_UnwrapObject(JSObject *obj)
 JS_PUBLIC_API(JSObject *)
 JS_UnwrapObjectAndInnerize(JSObject *obj)
 {
-    return UnwrapObject(obj, /* stopAtOuter = */ false);
+    return UnwrapObject(obj,  false);
 }
 
 JS_FRIEND_API(JSBool)

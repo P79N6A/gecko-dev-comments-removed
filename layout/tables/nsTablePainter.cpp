@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTableFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsTableRowFrame.h"

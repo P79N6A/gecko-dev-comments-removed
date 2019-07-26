@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "IMETextTxn.h"
 #include "nsIDOMCharacterData.h"
 #include "nsRange.h"

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <limits>
 #include "nsNetUtil.h"
 #include "nsAudioStream.h"
@@ -985,7 +952,13 @@ nsresult nsBuiltinDecoder::GetSeekable(nsTimeRanges* aSeekable)
     return NS_OK;
   }
 
-  return GetBuffered(aSeekable);
+  if (mDecoderStateMachine->IsSeekableInBufferedRanges()) {
+    return GetBuffered(aSeekable);
+  } else {
+    
+    
+    return NS_OK;
+  }
 }
 
 void nsBuiltinDecoder::SetEndTime(double aTime)

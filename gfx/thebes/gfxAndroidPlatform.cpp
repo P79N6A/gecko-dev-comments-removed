@@ -1,40 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Android port code.
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
 
 #include "gfxAndroidPlatform.h"
 #include "mozilla/gfx/2D.h"
@@ -153,23 +120,23 @@ gfxAndroidPlatform::CreatePlatformFontList()
 bool
 gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
 {
-    // check for strange format flags
+    
     NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
                  "strange font format hint set");
 
-    // accept supported formats
+    
     if (aFormatFlags & (gfxUserFontSet::FLAG_FORMAT_OPENTYPE |
                         gfxUserFontSet::FLAG_FORMAT_WOFF |
                         gfxUserFontSet::FLAG_FORMAT_TRUETYPE)) {
         return true;
     }
 
-    // reject all other formats, known and unknown
+    
     if (aFormatFlags != 0) {
         return false;
     }
 
-    // no format hint set, need to look at data
+    
     return true;
 }
 
@@ -211,27 +178,27 @@ gfxAndroidPlatform::GetScaledFontForFont(gfxFont *aFont)
 bool
 gfxAndroidPlatform::FontHintingEnabled()
 {
-    // In "mobile" builds, we sometimes use non-reflow-zoom, so we
-    // might not want hinting.  Let's see.
+    
+    
 #ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
-    // On android-java, we currently only use gecko to render web
-    // content that can always be be non-reflow-zoomed.  So turn off
-    // hinting.
-    // 
-    // XXX when gecko-android-java is used as an "app runtime", we'll
-    // want to re-enable hinting.
+    
+    
+    
+    
+    
+    
     return false;
 #else
-    // Otherwise, if we're in a content process, assume we don't want
-    // hinting.
-    //
-    // XXX when we use content processes to load "apps", we'll want to
-    // configure this dynamically based on whether we're an "app
-    // content process" or a "browser content process".  The former
-    // wants hinting, the latter doesn't since it might be
-    // non-reflow-zoomed.
+    
+    
+    
+    
+    
+    
+    
+    
     return (XRE_GetProcessType() != GeckoProcessType_Content);
-#endif //  MOZ_USING_ANDROID_JAVA_WIDGETS
+#endif 
 }
 
 int

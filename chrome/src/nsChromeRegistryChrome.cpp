@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/PContentParent.h"
 #include "RegistryMessageUtils.h"
 #include "nsResProtocolHandler.h"
@@ -155,9 +122,8 @@ nsChromeRegistryChrome::Init()
   if (NS_FAILED(rv))
     return rv;
 
-  if (!mOverlayHash.Init() ||
-      !mStyleHash.Init())
-    return NS_ERROR_FAILURE;
+  mOverlayHash.Init();
+  mStyleHash.Init();
   
   mSelectedLocale = NS_LITERAL_CSTRING("en-US");
   mSelectedSkin = NS_LITERAL_CSTRING("classic/1.0");

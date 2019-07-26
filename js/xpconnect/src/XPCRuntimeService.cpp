@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpcprivate.h"
 
 #include "mozilla/dom/workers/Workers.h"
@@ -70,10 +35,13 @@ NS_IMPL_THREADSAFE_RELEASE(BackstagePass)
 
 NS_IMETHODIMP
 BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
-                          JSContext * cx, JSObject * obj,
-                          jsid id, PRUint32 flags,
+                          JSContext * cx, JSObject * obj_,
+                          jsid id_, PRUint32 flags,
                           JSObject * *objp, bool *_retval)
 {
+    JS::RootedVarObject obj(cx, obj_);
+    JS::RootedVarId id(cx, id_);
+
     JSBool resolved;
 
     *_retval = !!JS_ResolveStandardClass(cx, obj, id, &resolved);

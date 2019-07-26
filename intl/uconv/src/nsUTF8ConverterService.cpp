@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsString.h"
 #include "nsIUnicodeEncoder.h"
 #include "nsICharsetConverterManager.h"

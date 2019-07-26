@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTreeImageListener.h"
 #include "nsITreeBoxObject.h"
 #include "imgIRequest.h"

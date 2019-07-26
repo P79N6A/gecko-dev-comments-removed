@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_css_RestyleTracker_h
 #define mozilla_css_RestyleTracker_h
 
@@ -76,8 +43,8 @@ public:
                     "Shouldn't have both root flags");
   }
 
-  bool Init() {
-    return mPendingRestyles.Init();
+  void Init() {
+    mPendingRestyles.Init();
   }
 
   PRUint32 Count() const {

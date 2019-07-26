@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsQueryContentEventResult.h"
 #include "nsGUIEvent.h"
 #include "nsIWidget.h"

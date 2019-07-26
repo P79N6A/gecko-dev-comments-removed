@@ -10,45 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define READTYPE  PRInt32
 #include "zlib.h"
 #include "nsISupportsUtils.h"

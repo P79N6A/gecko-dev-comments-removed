@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsInstantiationNode.h"
 #include "nsTemplateRule.h"
 #include "nsXULTemplateQueryProcessorRDF.h"

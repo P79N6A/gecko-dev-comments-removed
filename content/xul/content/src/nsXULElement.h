@@ -1,55 +1,18 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Chris Waterson <waterson@netscape.com>
- *   Peter Annema <disttsc@bart.nl>
- *   Mike Shaver <shaver@mozilla.org>
- *   Ben Goodger <ben@netscape.com>
- *   Mark Hammond <mhammond@skippinet.com.au>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
 
-  The base XUL element class and associates.
 
-*/
+
+
+
+
+
+
+
 
 #ifndef nsXULElement_h__
 #define nsXULElement_h__
 
-// XXX because nsEventListenerManager has broken includes
+
 #include "nsIDOMEvent.h"
 #include "nsIServiceManager.h"
 #include "nsIAtom.h"
@@ -93,7 +56,7 @@ class StyleRule;
 }
 }
 
-////////////////////////////////////////////////////////////////////////
+
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
 #define XUL_PROTOTYPE_ATTRIBUTE_METER(counter) (nsXULPrototypeAttribute::counter++)
@@ -102,17 +65,17 @@ class StyleRule;
 #endif
 
 
-/**
 
-  A prototype attribute for an nsXULPrototypeElement.
 
- */
+
+
+
 
 class nsXULPrototypeAttribute
 {
 public:
     nsXULPrototypeAttribute()
-        : mName(nsGkAtoms::id),  // XXX this is a hack, but names have to have a value
+        : mName(nsGkAtoms::id),  
           mEventHandler(nsnull)
     {
         XUL_PROTOTYPE_ATTRIBUTE_METER(gNumAttributes);
@@ -123,50 +86,50 @@ public:
 
     nsAttrName mName;
     nsAttrValue mValue;
-    // mEventHandler is only valid for the language ID specified in the
-    // containing nsXULPrototypeElement.  We would ideally use
-    // nsScriptObjectHolder, but want to avoid the extra lang ID.
+    
+    
+    
     JSObject* mEventHandler;
 
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
-    /**
-      If enough attributes, on average, are event handlers, it pays to keep
-      mEventHandler here, instead of maintaining a separate mapping in each
-      nsXULElement associating those mName values with their mEventHandlers.
-      Assume we don't need to keep mNameSpaceID along with mName in such an
-      event-handler-only name-to-function-pointer mapping.
+    
 
-      Let
-        minAttrSize  = sizeof(mNodeInof) + sizeof(mValue)
-        mappingSize  = sizeof(mNodeInfo) + sizeof(mEventHandler)
-        elemOverhead = nElems * sizeof(MappingPtr)
 
-      Then
-        nAttrs * minAttrSize + nEventHandlers * mappingSize + elemOverhead
-        > nAttrs * (minAttrSize + mappingSize - sizeof(mNodeInfo))
-      which simplifies to
-        nEventHandlers * mappingSize + elemOverhead
-        > nAttrs * (mappingSize - sizeof(mNodeInfo))
-      or
-        nEventHandlers + (nElems * sizeof(MappingPtr)) / mappingSize
-        > nAttrs * (1 - sizeof(mNodeInfo) / mappingSize)
 
-      If nsCOMPtr and all other pointers are the same size, this reduces to
-        nEventHandlers + nElems / 2 > nAttrs / 2
 
-      To measure how many attributes are event handlers, compile XUL source
-      with XUL_PROTOTYPE_ATTRIBUTE_METERING and watch the counters below.
-      Plug into the above relation -- if true, it pays to put mEventHandler
-      in nsXULPrototypeAttribute rather than to keep a separate mapping.
 
-      Recent numbers after opening four browser windows:
-        nElems 3537, nAttrs 2528, nEventHandlers 1042
-      giving 1042 + 3537/2 > 2528/2 or 2810 > 1264.
 
-      As it happens, mEventHandler also makes this struct power-of-2 sized,
-      8 words on most architectures, which makes for strength-reduced array
-      index-to-pointer calculations.
-     */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static PRUint32   gNumElements;
     static PRUint32   gNumAttributes;
     static PRUint32   gNumEventHandlers;
@@ -174,18 +137,18 @@ public:
     static PRUint32   gNumCacheHits;
     static PRUint32   gNumCacheSets;
     static PRUint32   gNumCacheFills;
-#endif /* !XUL_PROTOTYPE_ATTRIBUTE_METERING */
+#endif 
 };
 
 
-/**
 
-  A prototype content model element that holds the "primordial" values
-  that have been parsed from the original XUL document. A
-  'lightweight' nsXULElement may delegate its representation to this
-  structure, which is shared.
 
- */
+
+
+
+
+
+
 
 class nsXULPrototypeNode : public nsISupports
 {
@@ -210,14 +173,14 @@ public:
     virtual PRUint32 ClassSize() = 0;
 #endif
 
-    /**
-     * The prototype document must call ReleaseSubtree when it is going
-     * away.  This makes the parents through the tree stop owning their
-     * children, whether or not the parent's reference count is zero.
-     * Individual elements may still own individual prototypes, but
-     * those prototypes no longer remember their children to allow them
-     * to be constructed.
-     */
+    
+
+
+
+
+
+
+
     virtual void ReleaseSubtree() { }
 
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsXULPrototypeNode)
@@ -275,10 +238,10 @@ public:
 
     nsPrototypeArray         mChildren;
 
-    nsCOMPtr<nsINodeInfo>    mNodeInfo;           // [OWNER]
+    nsCOMPtr<nsINodeInfo>    mNodeInfo;           
 
     PRUint32                 mNumAttributes;
-    nsXULPrototypeAttribute* mAttributes;         // [OWNER]
+    nsXULPrototypeAttribute* mAttributes;         
     
     bool                     mHasIdAttribute:1;
     bool                     mHasClassAttribute:1;
@@ -337,7 +300,7 @@ public:
     PRUint32                 mLineNo;
     bool                     mSrcLoading;
     bool                     mOutOfLine;
-    nsXULDocument*           mSrcLoadWaiters;   // [OWNER] but not COMPtr
+    nsXULDocument*           mSrcLoadWaiters;   
     PRUint32                 mLangVersion;
     ScriptObjectHolder       mScriptObject;
 };
@@ -399,17 +362,17 @@ public:
     nsString                 mData;
 };
 
-////////////////////////////////////////////////////////////////////////
 
-/**
 
-  The XUL element.
 
- */
+
+
+
+
 
 #define XUL_ELEMENT_TEMPLATE_GENERATED (1 << ELEMENT_TYPE_SPECIFIC_BITS_OFFSET)
 
-// Make sure we have space for our bit
+
 PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET < 32);
 
 class nsScriptEventHandlerOwnerTearoff;
@@ -418,7 +381,7 @@ class nsXULElement : public nsStyledElement, public nsIDOMXULElement
 {
 public:
 
-    /** Typesafe, non-refcounting cast from nsIContent.  Cheaper than QI. **/
+    
     static nsXULElement* FromContent(nsIContent *aContent)
     {
         if (aContent->IsXUL())
@@ -437,7 +400,7 @@ public:
     }
 
 protected:
-    // pseudo-constants
+    
     static nsIXBLService*       gXBLService;
 
 public:
@@ -447,15 +410,15 @@ public:
     Create(nsXULPrototypeElement* aPrototype, nsIDocument* aDocument,
            bool aIsScriptable, mozilla::dom::Element** aResult);
 
-    // nsISupports
+    
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsXULElement,
                                                        nsGenericElement)
 
-    // nsINode
+    
     virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
-    // nsIContent
+    
     virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
                                 bool aCompileEventHandlers);
@@ -503,22 +466,22 @@ public:
                                                 PRInt32 aModType) const;
     NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-    // XUL element methods
-    /**
-     * The template-generated flag is used to indicate that a
-     * template-generated element has already had its children generated.
-     */
+    
+    
+
+
+
     void SetTemplateGenerated() { SetFlags(XUL_ELEMENT_TEMPLATE_GENERATED); }
     void ClearTemplateGenerated() { UnsetFlags(XUL_ELEMENT_TEMPLATE_GENERATED); }
     bool GetTemplateGenerated() { return HasFlag(XUL_ELEMENT_TEMPLATE_GENERATED); }
 
-    // nsIDOMNode
+    
     NS_FORWARD_NSIDOMNODE(nsGenericElement::)
 
-    // nsIDOMElement
+    
     NS_FORWARD_NSIDOMELEMENT(nsGenericElement::)
 
-    // nsIDOMXULElement
+    
     NS_DECL_NSIDOMXULELEMENT
 
     virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -532,33 +495,33 @@ public:
 
     virtual void RecompileScriptEventListeners();
 
-    // This function should ONLY be used by BindToTree implementations.
-    // The function exists solely because XUL elements store the binding
-    // parent as a member instead of in the slots, as nsGenericElement does.
+    
+    
+    
     void SetXULBindingParent(nsIContent* aBindingParent)
     {
       mBindingParent = aBindingParent;
     }
 
-    /**
-     * Get the attr info for the given namespace ID and attribute name.
-     * The namespace ID must not be kNameSpaceID_Unknown and the name
-     * must not be null.
-     */
+    
+
+
+
+
     virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
     virtual nsXPCClassInfo* GetClassInfo();
 
     virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
-    // XXX This can be removed when nsNodeUtils::CloneAndAdopt doesn't need
-    //     access to mPrototype anymore.
+    
+    
     friend class nsNodeUtils;
 
-    // This can be removed if EnsureContentsGenerated dies.
+    
     friend class nsNSElementTearoff;
 
-    // Implementation methods
+    
     nsresult EnsureContentsGenerated(void) const;
 
     nsresult ExecuteOnBroadcastHandler(nsIDOMElement* anElement, const nsAString& attrName);
@@ -566,7 +529,7 @@ protected:
     static nsresult
     ExecuteJSCode(nsIDOMElement* anElement, nsEvent* aEvent);
 
-    // Helper routine that crawls a parent chain looking for a tree element.
+    
     NS_IMETHOD GetParentTree(nsIDOMXULMultiSelectControlElement** aTreeElement);
 
     nsresult AddPopupListener(nsIAtom* aName);
@@ -586,18 +549,18 @@ protected:
 
     nsresult LoadSrc();
 
-    // Required fields
+    
     nsRefPtr<nsXULPrototypeElement>     mPrototype;
 
-    /**
-     * The nearest enclosing content node with a binding
-     * that created us. [Weak]
-     */
+    
+
+
+
     nsIContent*                         mBindingParent;
 
-    /**
-     * Abandon our prototype linkage, and copy all attributes locally
-     */
+    
+
+
     nsresult MakeHeavyweight();
 
     const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
@@ -621,21 +584,21 @@ protected:
     virtual nsEventListenerManager*
       GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
   
-    /**
-     * Return our prototype's attribute, if one exists.
-     */
+    
+
+
     nsXULPrototypeAttribute *FindPrototypeAttribute(PRInt32 aNameSpaceID,
                                                     nsIAtom *aName) const;
-    /**
-     * Add a listener for the specified attribute, if appropriate.
-     */
+    
+
+
     void AddListenerFor(const nsAttrName& aName,
                         bool aCompileEventHandlers);
     void MaybeAddPopupListener(nsIAtom* aLocalName);
 
     nsIWidget* GetWindowWidget();
 
-    // attribute setters for widget
+    
     nsresult HideWindowChrome(bool aShouldHide);
     void SetChromeMargins(const nsAttrValue* aValue);
     void ResetChromeMargins();
@@ -648,8 +611,8 @@ protected:
     void RemoveBroadcaster(const nsAString & broadcasterId);
 
 protected:
-    // Internal accessor. This shadows the 'Slots', and returns
-    // appropriate value.
+    
+    
     nsIControllers *Controllers() {
       nsDOMSlots* slots = GetExistingDOMSlots();
       return slots ? slots->mControllers : nsnull; 
@@ -679,4 +642,4 @@ protected:
     }
 };
 
-#endif // nsXULElement_h__
+#endif

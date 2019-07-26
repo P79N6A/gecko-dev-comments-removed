@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jsatominlines_h___
 #define jsatominlines_h___
 
@@ -164,7 +131,7 @@ IdToString(JSContext *cx, jsid id)
      if (JS_LIKELY(JSID_IS_INT(id)))
         str = js_IntToString(cx, JSID_TO_INT(id));
     else
-        str = ToStringSlow(cx, IdToValue(id));    
+        str = ToStringSlow(cx, IdToValue(id));
 
     if (!str)
         return NULL;

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGenericElement.h"
 #include "nsGkAtoms.h"
 #include "nsUnicharUtils.h"

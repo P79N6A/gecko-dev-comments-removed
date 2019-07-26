@@ -38,40 +38,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stddef.h>
 #include "prmem.h"
 
@@ -920,7 +886,6 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
         
         BeginGIF();
         if (HasError()) {
-          
           
           mGIFStruct.state = gif_error;
           return;

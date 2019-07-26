@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGGRADIENTFRAME_H__
 #define __NS_SVGGRADIENTFRAME_H__
 
@@ -77,6 +44,7 @@ public:
   
   virtual already_AddRefed<gfxPattern>
     GetPaintServerPattern(nsIFrame *aSource,
+                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aGraphicOpacity,
                           const gfxRect *aOverrideBounds);
 

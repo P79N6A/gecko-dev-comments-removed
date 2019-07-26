@@ -2,9 +2,9 @@
 setDebug(true);
 
 function nop(){}
-function caller(code, obj) {
-  eval(code); 
+function caller(obj) {
+  var x = 'ignominy';
   return x;
 }
-trap(caller, 34, "var x = 'success'; nop()");
-assertEq(caller("var y = 'ignominy'", this), "success");
+trap(caller, 9 , "var x = 'success'; nop()");
+assertEq(caller(this), "success");

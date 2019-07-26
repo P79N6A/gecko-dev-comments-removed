@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef BytecodeEmitter_h__
 #define BytecodeEmitter_h__
 
@@ -123,7 +90,6 @@ struct BytecodeEmitter
     Parser          *parser;        
 
     OwnedAtomIndexMapPtr atomIndices; 
-    AtomDefnMapPtr  roLexdeps;
     unsigned        firstLine;      
 
     int             stackDepth;     

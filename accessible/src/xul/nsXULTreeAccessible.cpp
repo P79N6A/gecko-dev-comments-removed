@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULTreeAccessible.h"
 
 #include "nsAccCache.h"
@@ -574,12 +541,11 @@ nsXULTreeAccessible::GetTreeItemAccessible(PRInt32 aRow)
 
   nsRefPtr<nsAccessible> treeItem = CreateTreeItemAccessible(aRow);
   if (treeItem) {
-    if (mAccessibleCache.Put(key, treeItem)) {
-      if (Document()->BindToDocument(treeItem, nsnull))
-        return treeItem;
+    mAccessibleCache.Put(key, treeItem);
+    if (Document()->BindToDocument(treeItem, nsnull))
+      return treeItem;
 
-      mAccessibleCache.Remove(key);
-    }
+    mAccessibleCache.Remove(key);
   }
 
   return nsnull;

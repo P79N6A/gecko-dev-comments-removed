@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGOUTERSVGFRAME_H__
 #define __NS_SVGOUTERSVGFRAME_H__
 
@@ -113,11 +80,20 @@ public:
                                nsIAtom*        aAttribute,
                                PRInt32         aModType);
 
+  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
+                                gfxMatrix *aFromParentTransform) const {
+    
+    
+    return false;
+  }
+
   
   virtual void NotifyViewportOrTransformChanged(PRUint32 aFlags);
 
   
   virtual gfxMatrix GetCanvasTM();
+
+  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const;
 
 #ifdef XP_MACOSX
   bool BitmapFallbackEnabled() const {

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "SmsFilter.h"
@@ -326,6 +292,7 @@
 #include "nsIDOMCSSStyleSheet.h"
 #include "nsDOMCSSValueList.h"
 #include "nsIDOMDeviceProximityEvent.h"
+#include "nsIDOMUserProximityEvent.h"
 #include "nsIDOMDeviceLightEvent.h"
 #include "nsIDOMDeviceOrientationEvent.h"
 #include "nsIDOMDeviceMotionEvent.h"
@@ -435,6 +402,7 @@
 #include "nsIDOMSVGUnitTypes.h"
 #include "nsIDOMSVGURIReference.h"
 #include "nsIDOMSVGUseElement.h"
+#include "nsIDOMSVGViewElement.h"
 #include "nsIDOMSVGZoomAndPan.h"
 #include "nsIDOMSVGZoomEvent.h"
 
@@ -820,6 +788,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   
   NS_DEFINE_CLASSINFO_DATA(DeviceProximityEvent, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+  
+  NS_DEFINE_CLASSINFO_DATA(UserProximityEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   
   NS_DEFINE_CLASSINFO_DATA(DeviceOrientationEvent, nsDOMGenericSH,
@@ -1210,6 +1181,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA_WITH_NAME(SVGUnknownElement, SVGElement, nsElementSH,
                                      ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(SVGUseElement, nsElementSH,
+                           ELEMENT_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(SVGViewElement, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
 
   
@@ -1697,6 +1670,7 @@ NS_DEFINE_EVENT_CTOR(UIEvent)
 NS_DEFINE_EVENT_CTOR(MouseEvent)
 NS_DEFINE_EVENT_CTOR(DeviceLightEvent)
 NS_DEFINE_EVENT_CTOR(DeviceProximityEvent)
+NS_DEFINE_EVENT_CTOR(UserProximityEvent)
 
 nsresult
 NS_DOMStorageEventCtor(nsISupports** aInstancePtrResult)
@@ -1732,6 +1706,7 @@ static const nsConstructorFuncMapData kConstructorFuncMap[] =
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(UIEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(MouseEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(DeviceProximityEvent)
+  NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(UserProximityEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(DeviceLightEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(StorageEvent)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(MozSmsFilter, sms::SmsFilter::NewSmsFilter)
@@ -2618,6 +2593,11 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(DeviceProximityEvent, nsIDOMDeviceProximityEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDeviceProximityEvent)
+    DOM_CLASSINFO_EVENT_MAP_ENTRIES
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(UserProximityEvent, nsIDOMUserProximityEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMUserProximityEvent)
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
@@ -3664,6 +3644,12 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGTests)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGURIReference)
     DOM_CLASSINFO_SVG_GRAPHIC_ELEMENT_MAP_ENTRIES
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(SVGViewElement, nsIDOMSVGViewElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGFitToViewBox)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGZoomAndPan)
+    DOM_CLASSINFO_SVG_ELEMENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   
@@ -5226,8 +5212,8 @@ static JSClass sGlobalScopePolluterClass = {
 
 
 JSBool
-nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSObject *obj,
-                                           jsid id, jsval *vp)
+nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
+                                           JSHandleId id, jsval *vp)
 {
   
   
@@ -5253,7 +5239,7 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSObject *obj,
 
 
 JSBool
-nsWindowSH::SecurityCheckOnAddDelProp(JSContext *cx, JSObject *obj, jsid id,
+nsWindowSH::SecurityCheckOnAddDelProp(JSContext *cx, JSHandleObject obj, JSHandleId id,
                                       jsval *vp)
 {
   
@@ -5271,7 +5257,7 @@ nsWindowSH::SecurityCheckOnAddDelProp(JSContext *cx, JSObject *obj, jsid id,
 
 
 JSBool
-nsWindowSH::SecurityCheckOnSetProp(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+nsWindowSH::SecurityCheckOnSetProp(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
                                    jsval *vp)
 {
   return SecurityCheckOnAddDelProp(cx, obj, id, vp);
@@ -5286,8 +5272,8 @@ GetDocument(JSObject *obj)
 
 
 JSBool
-nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
-                                          jsid id, unsigned flags,
+nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
+                                          JSHandleId id, unsigned flags,
                                           JSObject **objp)
 {
   if (flags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING |
@@ -5776,7 +5762,7 @@ static const IDBConstant sIDBConstants[] = {
 };
 
 static JSBool
-IDBConstantGetter(JSContext *cx, JSObject *obj, jsid id, jsval* vp)
+IDBConstantGetter(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval* vp)
 {
   MOZ_ASSERT(JSID_IS_INT(id));
   
@@ -6911,7 +6897,7 @@ LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
 
 template<class Interface>
 static JSBool
-LocationSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+LocationSetter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
                jsval *vp)
 {
   nsresult rv = LocationSetterGuts<Interface>(cx, obj, vp);
@@ -6926,9 +6912,11 @@ LocationSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
 }
 
 static JSBool
-LocationSetterUnwrapper(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
+LocationSetterUnwrapper(JSContext *cx, JSHandleObject obj_, JSHandleId id, JSBool strict,
                         jsval *vp)
 {
+  JS::RootedVarObject obj(cx, obj_);
+
   JSObject *wrapped = XPCWrapper::UnsafeUnwrapSecurityWrapper(obj);
   if (wrapped) {
     obj = wrapped;
@@ -6939,9 +6927,12 @@ LocationSetterUnwrapper(JSContext *cx, JSObject *obj, jsid id, JSBool strict,
 
 NS_IMETHODIMP
 nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                       JSObject *obj, jsid id, PRUint32 flags,
+                       JSObject *obj_, jsid id_, PRUint32 flags,
                        JSObject **objp, bool *_retval)
 {
+  JS::RootedVarObject obj(cx, obj_);
+  JS::RootedVarId id(cx, id_);
+
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
   if (!JSID_IS_STRING(id)) {
@@ -7037,7 +7028,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
-    if (id == sConstructor_id) {
+    if (sConstructor_id == id) {
       return ResolveConstructor(cx, obj, objp);
     }
   }
@@ -7049,7 +7040,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  if (id == sLocation_id) {
+  if (sLocation_id == id) {
     
     
     
@@ -7188,7 +7179,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  if (id == s_content_id) {
+  if (s_content_id == id) {
     
     
     
@@ -7237,7 +7228,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
   } else {
-    if (id == sNavigator_id) {
+    if (sNavigator_id == id) {
       nsCOMPtr<nsIDOMNavigator> navigator;
       rv = win->GetNavigator(getter_AddRefs(navigator));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -7260,7 +7251,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
 
-    if (id == sDocument_id) {
+    if (sDocument_id == id) {
       nsCOMPtr<nsIDOMDocument> document;
       rv = win->GetDocument(getter_AddRefs(document));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -7294,7 +7285,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
 
-    if (id == sDialogArguments_id && win->IsModalContentWindow()) {
+    if (sDialogArguments_id == id && win->IsModalContentWindow()) {
       nsCOMPtr<nsIArray> args;
       ((nsGlobalModalWindow *)win)->GetDialogArguments(getter_AddRefs(args));
 
@@ -7582,7 +7573,7 @@ nsNavigatorSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
 
 template<nsresult (*func)(JSContext *cx, JSObject *obj, jsval *vp)>
 static JSBool
-GetterShim(JSContext *cx, JSObject *obj, jsid , jsval *vp)
+GetterShim(JSContext *cx, JSHandleObject obj, JSHandleId , jsval *vp)
 {
   nsresult rv = (*func)(cx, obj, vp);
   if (NS_FAILED(rv)) {
@@ -8763,14 +8754,16 @@ nsHTMLDocumentSH::GetDocumentAllNodeList(JSContext *cx, JSObject *obj,
 }
 
 JSBool
-nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
-                                         jsid id, jsval *vp)
+nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSHandleObject obj_,
+                                         JSHandleId id, jsval *vp)
 {
+  JSObject *obj = obj_;
+
   
   
   
   
-  if (id == sItem_id || id == sNamedItem_id) {
+  if (sItem_id == id || sNamedItem_id == id) {
     return JS_TRUE;
   }
 
@@ -8790,7 +8783,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
   nsresult rv = NS_OK;
 
   if (JSID_IS_STRING(id)) {
-    if (id == sLength_id) {
+    if (sLength_id == id) {
       
       
       
@@ -8812,7 +8805,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
       *vp = INT_TO_JSVAL(length);
 
       return JS_TRUE;
-    } else if (id != sTags_id) {
+    } else if (sTags_id != id) {
       
 
       nsDependentJSString str(id);
@@ -8860,7 +8853,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
 }
 
 JSBool
-nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSObject *obj, jsid id,
+nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id,
                                         unsigned flags, JSObject **objp)
 {
   if (flags & JSRESOLVE_ASSIGNING) {
@@ -8871,7 +8864,7 @@ nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSObject *obj, jsid id,
 
   jsval v = JSVAL_VOID;
 
-  if (id == sItem_id || id == sNamedItem_id) {
+  if (sItem_id == id || sNamedItem_id == id) {
     
 
     JSFunction *fnc = ::JS_DefineFunctionById(cx, obj, id, CallToGetPropMapper,
@@ -8881,14 +8874,14 @@ nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSObject *obj, jsid id,
     return fnc != nsnull;
   }
 
-  if (id == sLength_id) {
+  if (sLength_id == id) {
     
     
     
     
 
     v = JSVAL_ONE;
-  } else if (id == sTags_id) {
+  } else if (sTags_id == id) {
     nsHTMLDocument *doc = GetDocument(obj);
 
     JSObject *tags = ::JS_NewObject(cx, &sHTMLDocumentAllTagsClass, nsnull,
@@ -8998,10 +8991,10 @@ PrivateToFlags(void *priv)
 }
 
 JSBool
-nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSObject *obj,
-                                               jsid id, JS::Value *vp)
+nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj,
+                                               JSHandleId id, JS::Value *vp)
 {
-  if (id != nsDOMClassInfo::sAll_id) {
+  if (nsDOMClassInfo::sAll_id != id) {
     return JS_TRUE;
   }
 
@@ -9057,11 +9050,11 @@ nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSObject *obj,
 }
 
 JSBool
-nsHTMLDocumentSH::DocumentAllHelperNewResolve(JSContext *cx, JSObject *obj,
-                                              jsid id, unsigned flags,
+nsHTMLDocumentSH::DocumentAllHelperNewResolve(JSContext *cx, JSHandleObject obj,
+                                              JSHandleId id, unsigned flags,
                                               JSObject **objp)
 {
-  if (id == nsDOMClassInfo::sAll_id) {
+  if (nsDOMClassInfo::sAll_id == id) {
     
     JSObject *helper = GetDocumentAllHelper(obj);
 
@@ -9080,8 +9073,8 @@ nsHTMLDocumentSH::DocumentAllHelperNewResolve(JSContext *cx, JSObject *obj,
 
 
 JSBool
-nsHTMLDocumentSH::DocumentAllTagsNewResolve(JSContext *cx, JSObject *obj,
-                                            jsid id, unsigned flags,
+nsHTMLDocumentSH::DocumentAllTagsNewResolve(JSContext *cx, JSHandleObject obj,
+                                            JSHandleId id, unsigned flags,
                                             JSObject **objp)
 {
   if (JSID_IS_STRING(id)) {
@@ -10292,24 +10285,20 @@ nsStorage2SH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
-  nsAutoString val;
-  nsresult rv = NS_OK;
+  JSString* key = IdToString(cx, id);
+  NS_ENSURE_TRUE(key, NS_ERROR_UNEXPECTED);
 
-  if (JSID_IS_STRING(id)) {
-    
-    if (ObjectIsNativeWrapper(cx, obj)) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
+  nsDependentJSString keyStr;
+  NS_ENSURE_TRUE(keyStr.init(cx, key), NS_ERROR_UNEXPECTED);
 
-    rv = storage->GetItem(nsDependentJSString(id), val);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    PRInt32 n = GetArrayIndexFromId(cx, id);
-    NS_ENSURE_TRUE(n >= 0, NS_ERROR_NOT_AVAILABLE);
-
-    rv = storage->Key(n, val);
-    NS_ENSURE_SUCCESS(rv, rv);
+  
+  if (ObjectIsNativeWrapper(cx, obj)) {
+    return NS_ERROR_NOT_AVAILABLE;
   }
+
+  nsAutoString val;
+  nsresult rv = storage->GetItem(keyStr, val);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   JSAutoRequest ar(cx);
 

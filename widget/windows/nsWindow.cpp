@@ -54,54 +54,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ipc/RPCChannel.h"
 
 
@@ -164,6 +116,7 @@
 #include "nsISound.h"
 #include "WinTaskbar.h"
 #include "WinUtils.h"
+#include "WidgetUtils.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -5565,7 +5518,7 @@ LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
   
   
   nsModifierKeyState modKeyState;
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
+  NativeKey nativeKey(gKbdLayout, this, aMsg);
   return OnChar(aMsg, nativeKey, modKeyState, aEventDispatched);
 }
 
@@ -6250,7 +6203,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
                             bool *aEventDispatched,
                             nsFakeCharMessage* aFakeCharMessage)
 {
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
+  NativeKey nativeKey(gKbdLayout, this, aMsg);
   UINT virtualKeyCode = nativeKey.GetOriginalVirtualKeyCode();
   gKbdLayout.OnKeyDown(virtualKeyCode);
 
@@ -6339,7 +6292,9 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     case NS_VK_ALT:
     case NS_VK_CAPS_LOCK:
     case NS_VK_NUM_LOCK:
-    case NS_VK_SCROLL_LOCK: return noDefault;
+    case NS_VK_SCROLL_LOCK:
+    case NS_VK_WIN:
+      return noDefault;
   }
 
   PRUint32 extraFlags = (noDefault ? NS_EVENT_FLAG_NO_DEFAULT : 0);
@@ -6432,8 +6387,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   PRUnichar uniChars[5];
   PRUnichar shiftedChars[5] = {0, 0, 0, 0, 0};
   PRUnichar unshiftedChars[5] = {0, 0, 0, 0, 0};
-  PRUnichar shiftedLatinChar = 0;
-  PRUnichar unshiftedLatinChar = 0;
+  PRUint32 shiftedLatinChar = 0;
+  PRUint32 unshiftedLatinChar = 0;
   PRUint32 numOfUniChars = 0;
   PRUint32 numOfShiftedChars = 0;
   PRUint32 numOfUnshiftedChars = 0;
@@ -6478,33 +6433,30 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
         
         
         
-        if (NS_VK_A <= DOMKeyCode && DOMKeyCode <= NS_VK_Z) {
-          shiftedLatinChar = unshiftedLatinChar = DOMKeyCode;
-          if (capsLockState)
-            shiftedLatinChar += 0x20;
-          else
-            unshiftedLatinChar += 0x20;
+        WidgetUtils::GetLatinCharCodeForKeyCode(DOMKeyCode, capsLockState,
+                                                &unshiftedLatinChar,
+                                                &shiftedLatinChar);
+
+        
+        if (shiftedLatinChar) {
+          
+          
+          
           if (unshiftedLatinChar == unshiftedChars[0] &&
               shiftedLatinChar == shiftedChars[0]) {
-              shiftedLatinChar = unshiftedLatinChar = 0;
+            shiftedLatinChar = unshiftedLatinChar = 0;
           }
-        } else {
-          PRUint16 ch = 0;
-          if (NS_VK_0 <= DOMKeyCode && DOMKeyCode <= NS_VK_9) {
-            ch = DOMKeyCode;
-          } else {
-            switch (virtualKeyCode) {
-              case VK_OEM_PLUS:   ch = '+'; break;
-              case VK_OEM_MINUS:  ch = '-'; break;
-            }
-          }
-          if (ch && unshiftedChars[0] != ch && shiftedChars[0] != ch) {
-            
-            
-            
-            
-            
-            unshiftedLatinChar = ch;
+        } else if (unshiftedLatinChar) {
+          
+          
+          
+          
+          
+          
+          
+          if (unshiftedLatinChar == unshiftedChars[0] ||
+              unshiftedLatinChar == shiftedChars[0]) {
+            unshiftedLatinChar = 0;
           }
         }
 
@@ -6599,13 +6551,14 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           nsModifierKeyState &aModKeyState,
                           bool *aEventDispatched)
 {
+  
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
          ("nsWindow::OnKeyUp wParam(VK)=%d\n", aMsg.wParam));
 
   if (aEventDispatched)
     *aEventDispatched = true;
   nsKeyEvent keyupEvent(true, NS_KEY_UP, this);
-  NativeKey nativeKey(gKbdLayout.GetLayout(), this, aMsg);
+  NativeKey nativeKey(gKbdLayout, this, aMsg);
   keyupEvent.keyCode = nativeKey.GetDOMKeyCode();
   InitKeyEvent(keyupEvent, nativeKey, aModKeyState);
   return DispatchKeyEvent(keyupEvent, &aMsg);

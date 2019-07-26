@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGenericDOMDataNode.h"
 #include "nsGenericElement.h"
 #include "nsIDocument.h"
