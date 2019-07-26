@@ -327,8 +327,14 @@ const CustomizableWidgets = [{
       let zoomResetButton = node.childNodes[1];
       let window = aDocument.defaultView;
       function updateZoomResetButton() {
+        
+        
+        let zoomFactor = 100;
+        if (window.gBrowser.docShell) {
+          zoomFactor = Math.floor(window.ZoomManager.zoom * 100);
+        }
         zoomResetButton.setAttribute("label", CustomizableUI.getLocalizedProperty(
-          buttons[1], "label", [Math.floor(window.ZoomManager.zoom * 100)]
+          buttons[1], "label", [zoomFactor]
         ));
       };
 
