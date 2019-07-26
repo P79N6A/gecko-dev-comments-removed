@@ -69,6 +69,7 @@ public:
 
     DOMAnimatedInteger(nsSVGInteger* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMAnimatedInteger();
 
     nsSVGInteger* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;

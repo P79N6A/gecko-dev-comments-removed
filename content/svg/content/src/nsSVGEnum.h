@@ -70,6 +70,7 @@ public:
 
     DOMAnimatedEnum(nsSVGEnum* aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMAnimatedEnum();
 
     nsSVGEnum *mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;

@@ -57,6 +57,7 @@ public:
 
     DOMAnimatedString(nsSVGString *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
+    virtual ~DOMAnimatedString();
 
     nsSVGString* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
