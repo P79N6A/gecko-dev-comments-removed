@@ -81,9 +81,6 @@ public:
 
   virtual bool IsSameProcess() const MOZ_OVERRIDE;
 
-  const uint64_t& GetPendingTransactionId() { return mPendingTransaction; }
-  void SetPendingTransactionId(uint64_t aId) { mPendingTransaction = aId; }
-
   
   virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
                                PTextureParent* aTexture,
@@ -98,7 +95,6 @@ public:
 
 protected:
   virtual bool RecvUpdate(const EditArray& cset,
-                          const uint64_t& aTransactionId,
                           const TargetConfig& targetConfig,
                           const bool& isFirstPaint,
                           const bool& scheduleComposite,
@@ -106,7 +102,6 @@ protected:
                           EditReplyArray* reply) MOZ_OVERRIDE;
 
   virtual bool RecvUpdateNoSwap(const EditArray& cset,
-                                const uint64_t& aTransactionId,
                                 const TargetConfig& targetConfig,
                                 const bool& isFirstPaint,
                                 const bool& scheduleComposite,
@@ -169,8 +164,6 @@ private:
   
   
   uint64_t mId;
-
-  uint64_t mPendingTransaction;
   
   
   
