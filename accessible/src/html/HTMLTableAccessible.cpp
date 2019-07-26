@@ -314,6 +314,7 @@ HTMLTableHeaderCellAccessible::NativeRole()
 
   
   
+  
   nsIContent* parentContent = mContent->GetParent();
   if (!parentContent) {
     NS_ERROR("Deattached content on alive accessible?");

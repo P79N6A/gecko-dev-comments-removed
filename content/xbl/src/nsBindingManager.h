@@ -44,6 +44,7 @@ public:
   ~nsBindingManager();
 
   nsXBLBinding* GetBinding(nsIContent* aContent);
+  nsXBLBinding* GetBindingWithContent(nsIContent* aContent);
   nsresult SetBinding(nsIContent* aContent, nsXBLBinding* aBinding);
 
   nsIContent* GetInsertionParent(nsIContent* aContent);
@@ -62,39 +63,13 @@ public:
   void RemovedFromDocument(nsIContent* aContent, nsIDocument* aOldDocument)
   {
     if (aContent->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-      RemovedFromDocumentInternal(aContent, aOldDocument,
-                                  aContent->GetBindingParent());
+      RemovedFromDocumentInternal(aContent, aOldDocument);
     }
   }
   void RemovedFromDocumentInternal(nsIContent* aContent,
-                                   nsIDocument* aOldDocument,
-                                   nsIContent* aContentBindingParent);
+                                   nsIDocument* aOldDocument);
 
   nsIAtom* ResolveTag(nsIContent* aContent, int32_t* aNameSpaceID);
-
-  
-
-
-
-  nsresult GetContentListFor(nsIContent* aContent, nsIDOMNodeList** aResult);
-
-  
-
-
-  nsINodeList* GetContentListFor(nsIContent* aContent);
-
-  
-
-
-
-  nsresult SetContentListFor(nsIContent* aContent,
-                             nsInsertionPointList* aList);
-
-  
-
-
-
-  bool HasContentListFor(nsIContent* aContent);
 
   
 
@@ -103,59 +78,7 @@ public:
 
 
   nsresult GetAnonymousNodesFor(nsIContent* aContent, nsIDOMNodeList** aResult);
-
-  
-
-
   nsINodeList* GetAnonymousNodesFor(nsIContent* aContent);
-
-  
-
-
-
-  nsresult SetAnonymousNodesFor(nsIContent* aContent,
-                                nsInsertionPointList* aList);
-
-  
-
-
-
-
-
-  nsresult GetXBLChildNodesFor(nsIContent* aContent, nsIDOMNodeList** aResult);
-
-  
-
-
-  nsINodeList* GetXBLChildNodesFor(nsIContent* aContent);
-
-  
-
-
-
-
-
-  
-  
-  
-  
-  
-  
-  nsIContent* GetInsertionPoint(nsIContent* aParent,
-                                const nsIContent* aChild, uint32_t* aIndex);
-
-  
-
-
-
-
-  nsIContent* GetSingleInsertionPoint(nsIContent* aParent, uint32_t* aIndex,
-                                      bool* aMultipleInsertionPoints);
-
-  nsIContent* GetNestedInsertionPoint(nsIContent* aParent,
-                                      const nsIContent* aChild);
-  nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
-                                            bool* aMultipleInsertionPoints);
 
   nsresult ClearBinding(nsIContent* aContent);
   nsresult LoadBindingDocument(nsIDocument* aBoundDoc, nsIURI* aURL,
@@ -206,16 +129,20 @@ public:
   void EndOutermostUpdate();
 
   
+  
+  void ClearInsertionPointsRecursively(nsIContent* aContent);
+
+  
   void DropDocumentReference();
+
+  nsIContent* FindNestedInsertionPoint(nsIContent* aContainer,
+                                       nsIContent* aChild);
+
+  nsIContent* FindNestedSingleInsertionPoint(nsIContent* aContainer, bool* aMulti);
 
 protected:
   nsIXPConnectWrappedJS* GetWrappedJS(nsIContent* aContent);
   nsresult SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aResult);
-
-  nsINodeList* GetXBLChildNodesInternal(nsIContent* aContent,
-                                        bool* aIsAnonymousContentList);
-  nsINodeList* GetAnonymousNodesInternal(nsIContent* aContent,
-                                         bool* aIsAnonymousContentList);
 
   
   
@@ -226,19 +153,6 @@ protected:
 
   
   
-  
-  
-  
-  
-  
-  nsXBLInsertionPoint* FindInsertionPointAndIndex(nsIContent* aContainer,
-                                                  nsIContent* aInsertionParent,
-                                                  uint32_t aIndexInContainer,
-                                                  int32_t aAppend,
-                                                  int32_t* aInsertionIndex);
-
-  
-  
   void DoProcessAttachedQueue();
 
   
@@ -246,28 +160,9 @@ protected:
 
 
 protected: 
-  void RemoveInsertionParent(nsIContent* aParent);
   
   
   nsRefPtrHashtable<nsISupportsHashKey,nsXBLBinding> mBindingTable;
-
-  
-  
-  
-  
-  
-  PLDHashTable mContentListTable;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PLDHashTable mAnonymousNodesTable;
 
   
   

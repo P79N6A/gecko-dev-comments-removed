@@ -67,6 +67,7 @@
 #include "nsXULTemplateQueryProcessorXML.h"
 #include "nsXULTemplateQueryProcessorStorage.h"
 #include "nsContentUtils.h"
+#include "ChildIterator.h"
 #include "nsCxPusher.h"
 
 using namespace mozilla::dom;
@@ -1654,47 +1655,28 @@ nsXULTemplateBuilder::GetTemplateRoot(nsIContent** aResult)
         }
     }
 
-#if 1 
-    {
-        
-        
-        for (nsIContent* child = mRoot->GetFirstChild();
-             child;
-             child = child->GetNextSibling()) {
+    
+    
+    for (nsIContent* child = mRoot->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
 
-            if (IsTemplateElement(child)) {
-                NS_ADDREF(*aResult = child);
-                return NS_OK;
-            }
+        if (IsTemplateElement(child)) {
+            NS_ADDREF(*aResult = child);
+            return NS_OK;
         }
     }
-#endif
 
     
     
-    nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
-    if (! doc)
-        return NS_OK;
-
-    nsCOMPtr<nsIDOMNodeList> kids;
-    doc->BindingManager()->GetXBLChildNodesFor(mRoot, getter_AddRefs(kids));
-
-    if (kids) {
-        uint32_t length;
-        kids->GetLength(&length);
-
-        for (uint32_t i = 0; i < length; ++i) {
-            nsCOMPtr<nsIDOMNode> node;
-            kids->Item(i, getter_AddRefs(node));
-            if (! node)
-                continue;
-
-            nsCOMPtr<nsIContent> child = do_QueryInterface(node);
-
-            if (IsTemplateElement(child)) {
-                NS_ADDREF(*aResult = child.get());
-                return NS_OK;
-            }
+    
+    
+    
+    FlattenedChildIterator iter(mRoot);
+    for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+        if (IsTemplateElement(child)) {
+            NS_ADDREF(*aResult = child);
+            return NS_OK;
         }
     }
 

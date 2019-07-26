@@ -14,7 +14,9 @@
 #include "nsServiceManagerUtils.h"
 #include "inIDOMUtils.h"
 #include "nsIContent.h"
-#include "nsBindingManager.h"
+#include "nsContentList.h"
+#include "ChildIterator.h"
+#include "mozilla/dom/Element.h"
 
 
 

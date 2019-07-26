@@ -61,6 +61,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Util.h"
+#include "nsXBLChildrenElement.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -3393,6 +3394,15 @@ TreeMatchContext::InitAncestors(Element *aElement)
       if (!parent->IsElement()) {
         break;
       }
+
+      if (parent->AsElement()->NodeInfo()->Equals(nsGkAtoms::children,
+                                                  kNameSpaceID_XBL)) {
+        parent = parent->GetParentNode();
+        if (!parent->IsElement()) {
+          break;
+        }
+      }
+
       cur = parent->AsElement();
     } while (true);
 
@@ -3461,6 +3471,17 @@ AncestorFilter::AssertHasAllAncestors(Element *aElement) const
 {
   nsINode* cur = aElement->GetParentNode();
   while (cur && cur->IsElement()) {
+    
+    
+    
+    
+    
+    if (cur->AsElement()->NodeInfo()->Equals(nsGkAtoms::children,
+                                             kNameSpaceID_XBL)) {
+      cur = cur->GetParentNode();
+      continue;
+    }
+
     MOZ_ASSERT(mElements.Contains(cur));
     cur = cur->GetParentNode();
   }

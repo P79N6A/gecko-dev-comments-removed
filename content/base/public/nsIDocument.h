@@ -1317,18 +1317,6 @@ public:
   
 
 
-  virtual nsresult GetXBLChildNodesFor(nsIContent* aContent,
-                                       nsIDOMNodeList** aResult) = 0;
-
-  
-
-
-  virtual nsresult GetContentListFor(nsIContent* aContent,
-                                     nsIDOMNodeList** aResult) = 0;
-
-  
-
-
   virtual Element*
     GetAnonymousElementByAttribute(nsIContent* aElement,
                                    nsIAtom* aAttrName,

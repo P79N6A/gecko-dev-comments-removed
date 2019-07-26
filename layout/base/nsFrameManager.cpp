@@ -60,6 +60,7 @@
 #include "nsTransitionManager.h"
 #include "RestyleTracker.h"
 #include "nsAbsoluteContainingBlock.h"
+#include "ChildIterator.h"
 
 #include "nsFrameManager.h"
 #include "nsRuleProcessorData.h"
@@ -400,17 +401,10 @@ nsFrameManager::ClearAllUndisplayedContentIn(nsIContent* aParentContent)
   
   
   
-  
-  nsINodeList* list =
-    aParentContent->OwnerDoc()->BindingManager()->GetXBLChildNodesFor(aParentContent);
-  if (list) {
-    uint32_t length;
-    list->GetLength(&length);
-    for (uint32_t i = 0; i < length; ++i) {
-      nsIContent* child = list->Item(i);
-      if (child->GetParent() != aParentContent) {
-        ClearUndisplayedContentIn(child, child->GetParent());
-      }
+  FlattenedChildIterator iter(aParentContent);
+  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+    if (child->GetParent() != aParentContent) {
+      ClearUndisplayedContentIn(child, child->GetParent());
     }
   }
 }

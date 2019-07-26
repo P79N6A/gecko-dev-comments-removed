@@ -114,8 +114,6 @@ enum {
   
   NODE_MAY_HAVE_CLASS =                   NODE_FLAG_BIT(8),
 
-  NODE_IS_INSERTION_PARENT =              NODE_FLAG_BIT(9),
-
   
   NODE_HAS_EMPTY_SELECTOR =               NODE_FLAG_BIT(10),
 

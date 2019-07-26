@@ -36,7 +36,7 @@ class nsPresContext;
 class nsStyleChangeList;
 class nsIFrame;
 struct nsGenConInitializer;
-class ChildIterator;
+
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
 struct PendingBinding;
@@ -44,6 +44,14 @@ class nsRefreshDriver;
 
 class nsFrameConstructorState;
 class nsFrameConstructorSaveState;
+
+namespace mozilla {
+namespace dom {
+
+class FlattenedChildIterator;
+
+}
+}
 
 class nsCSSFrameConstructor : public nsFrameManager
 {
@@ -110,7 +118,6 @@ private:
   
   
   nsIFrame* GetRangeInsertionPoint(nsIContent* aContainer,
-                                   nsIFrame* aParentFrame,
                                    nsIContent* aStartChild,
                                    nsIContent* aEndChild,
                                    bool aAllowLazyConstruction);
@@ -355,10 +362,9 @@ public:
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
 
   
-  nsresult GetInsertionPoint(nsIFrame*     aParentFrame,
-                             nsIContent*   aChildContent,
-                             nsIFrame**    aInsertionPoint,
-                             bool*       aMultiple = nullptr);
+  nsIFrame* GetInsertionPoint(nsIContent* aContainer,
+                              nsIContent* aChildContent,
+                              bool*       aMultiple = nullptr);
 
   nsresult CreateListBoxContent(nsPresContext* aPresContext,
                                 nsIFrame*       aParentFrame,
@@ -1784,15 +1790,13 @@ private:
   
   
   
-  nsIFrame* FindPreviousSibling(const ChildIterator& aFirst,
-                                ChildIterator aIter,
+  nsIFrame* FindPreviousSibling(mozilla::dom::FlattenedChildIterator aIter,
                                 uint8_t& aTargetContentDisplay);
 
   
   
   
-  nsIFrame* FindNextSibling(ChildIterator aIter,
-                            const ChildIterator& aLast,
+  nsIFrame* FindNextSibling(mozilla::dom::FlattenedChildIterator aIter,
                             uint8_t& aTargetContentDisplay);
 
   

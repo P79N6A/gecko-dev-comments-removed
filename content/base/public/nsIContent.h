@@ -615,6 +615,7 @@ public:
 
 
 
+
   nsIContent *GetFlattenedTreeParent() const;
 
   
