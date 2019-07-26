@@ -43,22 +43,18 @@
 
 
 
-
 #if defined(WIN32) || defined(XP_OS2)
-#  define MOZ_EXPORT_DIRECTIVE  __declspec(dllexport)
+#  define MOZ_EXPORT   __declspec(dllexport)
 #else 
 #  ifdef HAVE_VISIBILITY_ATTRIBUTE
-#    define MOZ_EXTERNAL_VIS       __attribute__((visibility("default")))
+#    define MOZ_EXPORT       __attribute__((visibility("default")))
 #  elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-#    define MOZ_EXTERNAL_VIS      __global
+#    define MOZ_EXPORT      __global
 #  else
-#    define MOZ_EXTERNAL_VIS
+#    define MOZ_EXPORT
 #  endif
-#  define MOZ_EXPORT_DIRECTIVE   MOZ_EXTERNAL_VIS
 #endif
 
-#define MOZ_EXPORT_API(type)    MOZ_EXPORT_DIRECTIVE type
-#define MOZ_EXPORT_DATA(type)   MOZ_EXPORT_DIRECTIVE type
 
 
 
@@ -69,27 +65,23 @@
 
 #ifdef _WIN32
 #  if defined(__MWERKS__)
-#    define MOZ_IMPORT_API_DIRECTIVE
+#    define MOZ_IMPORT_API
 #  else
-#    define MOZ_IMPORT_API_DIRECTIVE __declspec(dllimport)
+#    define MOZ_IMPORT_API __declspec(dllimport)
 #  endif
 #elif defined(XP_OS2)
-#  define MOZ_IMPORT_API_DIRECTIVE  __declspec(dllimport)
+#  define MOZ_IMPORT_API  __declspec(dllimport)
 #else
-#  define MOZ_IMPORT_API_DIRECTIVE MOZ_EXPORT_DIRECTIVE
+#  define MOZ_IMPORT_API MOZ_EXPORT
 #endif
-
-#define MOZ_IMPORT_API(x)    MOZ_IMPORT_API_DIRECTIVE x
 
 #if defined(_WIN32) && !defined(__MWERKS__)
-#  define MOZ_IMPORT_DATA_DIRECTIVE __declspec(dllimport)
+#  define MOZ_IMPORT_DATA  __declspec(dllimport)
 #elif defined(XP_OS2)
-#  define MOZ_IMPORT_DATA_DIRECTIVE __declspec(dllimport)
+#  define MOZ_IMPORT_DATA  __declspec(dllimport)
 #else
-#  define MOZ_IMPORT_DATA_DIRECTIVE MOZ_EXPORT_DIRECTIVE
+#  define MOZ_IMPORT_DATA  MOZ_EXPORT
 #endif
-
-#define MOZ_IMPORT_DATA(x)    MOZ_IMPORT_DATA_DIRECTIVE x
 
 
 
@@ -97,8 +89,8 @@
 
 
 #if defined(IMPL_MFBT)
-#  define MFBT_API     MOZ_EXPORT_DIRECTIVE
-#  define MFBT_DATA    MOZ_EXPORT_DIRECTIVE
+#  define MFBT_API     MOZ_EXPORT
+#  define MFBT_DATA    MOZ_EXPORT
 #else
   
 
@@ -108,11 +100,11 @@
 
 
 #  if defined(MOZ_GLUE_IN_PROGRAM)
-#    define MFBT_API   __attribute__((weak)) MOZ_IMPORT_API_DIRECTIVE
-#    define MFBT_DATA  __attribute__((weak)) MOZ_IMPORT_DATA_DIRECTIVE
+#    define MFBT_API   __attribute__((weak)) MOZ_IMPORT_API
+#    define MFBT_DATA  __attribute__((weak)) MOZ_IMPORT_DATA
 #  else
-#    define MFBT_API   MOZ_IMPORT_API_DIRECTIVE
-#    define MFBT_DATA  MOZ_IMPORT_DATA_DIRECTIVE
+#    define MFBT_API   MOZ_IMPORT_API
+#    define MFBT_DATA  MOZ_IMPORT_DATA
 #  endif
 #endif
 

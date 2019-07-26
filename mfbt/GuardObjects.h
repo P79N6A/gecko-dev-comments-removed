@@ -66,7 +66,7 @@ namespace detail {
 
 
 
-class MOZ_EXPORT_API(GuardObjectNotifier)
+class MOZ_EXPORT GuardObjectNotifier
 {
   private:
     bool* statementDone;
@@ -83,7 +83,7 @@ class MOZ_EXPORT_API(GuardObjectNotifier)
     }
 };
 
-class MOZ_EXPORT_API(GuardObjectNotificationReceiver)
+class MOZ_EXPORT GuardObjectNotificationReceiver
 {
   private:
     bool statementDone;
