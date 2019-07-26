@@ -81,7 +81,11 @@ private:
   uint32_t mFrameSize;
 
   
-  nsAudioStream::SampleFormat mSampleFormat;
+  
+  enum {
+    FORMAT_U8,
+    FORMAT_S16
+  } mSampleFormat;
 
   
   
