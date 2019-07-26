@@ -8,8 +8,12 @@ this.EXPORTED_SYMBOLS = [
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
+#ifdef MOZ_CRASHREPORTER
+Cu.import("resource://gre/modules/CrashReports.jsm");
+#endif
 
 
 
@@ -104,6 +108,8 @@ this.Troubleshoot = {
       }
     }
   },
+
+  kMaxCrashAge: 3 * 24 * 60 * 60 * 1000, 
 };
 
 
@@ -133,6 +139,18 @@ let dataProviders = {
     catch (e) {}
     done(data);
   },
+
+#ifdef MOZ_CRASHREPORTER
+  crashes: function crashes(done) {
+    let reports = CrashReports.getReports();
+    let now = new Date();
+    let reportsNew = reports.filter(report => (now - report.date < Troubleshoot.kMaxCrashAge));
+    let reportsSubmitted = reportsNew.filter(report => (!report.pending));
+    let reportsPendingCount = reportsNew.length - reportsSubmitted.length;
+    let data = {submitted : reportsSubmitted, pending : reportsPendingCount};
+    done(data);
+  },
+#endif
 
   extensions: function extensions(done) {
     AddonManager.getAddonsByTypes(["extension"], function (extensions) {
