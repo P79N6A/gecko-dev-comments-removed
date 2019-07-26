@@ -20,6 +20,7 @@
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsThreadUtils.h"              
+#include "mozilla/gfx/Logging.h"        
 
 #include <algorithm>                    
 
@@ -34,6 +35,8 @@ float APZCTreeManager::sDPI = 160.0;
 
 static bool gPrintApzcTree = false;
 
+gfx::TreeLog sApzcTreeLog("apzctree");
+
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock"),
       mTouchCount(0)
@@ -41,6 +44,7 @@ APZCTreeManager::APZCTreeManager()
   MOZ_ASSERT(NS_IsMainThread());
   AsyncPanZoomController::InitializeGlobalState();
   Preferences::AddBoolVarCache(&gPrintApzcTree, "apz.printtree", gPrintApzcTree);
+  sApzcTreeLog.ConditionOnPref(&gPrintApzcTree);
 }
 
 APZCTreeManager::~APZCTreeManager()
@@ -121,6 +125,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
   mRootApzc = nullptr;
 
   if (aRoot) {
+    sApzcTreeLog << "[start]\n";
     UpdatePanZoomControllerTree(aCompositor,
                                 aRoot,
                                 
@@ -128,6 +133,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Laye
                                 gfx3DMatrix(), nullptr, nullptr,
                                 aIsFirstPaint, aFirstPaintLayersId,
                                 &apzcsToDestroy);
+    sApzcTreeLog << "[end]\n";
   }
 
   for (size_t i = 0; i < apzcsToDestroy.Length(); i++) {
@@ -149,6 +155,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
   ContainerLayer* container = aLayer->AsContainerLayer();
   AsyncPanZoomController* apzc = nullptr;
+  sApzcTreeLog << aLayer->Name() << '\t';
   if (container) {
     if (container->GetFrameMetrics().IsScrollable()) {
       const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
@@ -227,6 +234,11 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                                                               visible.width, visible.height,
                                                                               apzc);
 
+        sApzcTreeLog << "APZC "
+                     << "\tcb=" << visible
+                     << "\tsr=" << container->GetFrameMetrics().mScrollableRect
+                     << "\t" << container->GetFrameMetrics().GetContentDescription();
+
         
         if (aNextSibling) {
           aNextSibling->SetPrevSibling(apzc);
@@ -261,6 +273,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
     container->SetAsyncPanZoomController(apzc);
   }
+  sApzcTreeLog << '\n';
 
   
   
@@ -278,6 +291,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   
   AsyncPanZoomController* next = apzc ? nullptr : aNextSibling;
   for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
+    gfx::TreeAutoIndent indent(sApzcTreeLog);
     next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aTransform, aParent, next,
                                        aIsFirstPaint, aFirstPaintLayersId, aApzcsToDestroy);
   }
