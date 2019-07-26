@@ -11,10 +11,6 @@
 #endif
 #include "mozilla/Attributes.h"
 
-#if defined(__cplusplus)
-#include "mozilla/Attributes.h" 
-#endif
-
 
 
 
@@ -132,6 +128,7 @@
   typedef enum tag_nsresult
 #endif
   {
+    #undef ERROR
     #define ERROR(key, val) key = val
     #include "ErrorList.h"
     #undef ERROR
