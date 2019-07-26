@@ -4,10 +4,23 @@
 
 
 
-#include "mozilla/dom/ContentChild.h"
-#include "mozilla/dom/TabChild.h"
-#include "mozilla/Util.h"
+#include "nsDocShell.h"
+
 #include <algorithm>
+
+#include "mozilla/Attributes.h"
+#include "mozilla/AutoRestore.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/Element.h"
+#include "mozilla/dom/TabChild.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
+#include "mozilla/StartupTimeline.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/unused.h"
+#include "mozilla/Util.h"
+#include "mozilla/VisualEventTracer.h"
 
 #ifdef MOZ_LOGGING
 
@@ -17,7 +30,6 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIComponentManager.h"
 #include "nsIContent.h"
-#include "mozilla/dom/Element.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
@@ -77,12 +89,6 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsIChannel.h"
 #include "IHistory.h"
-#include "mozilla/Services.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
-#include "mozilla/AutoRestore.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/VisualEventTracer.h"
 
 
 
@@ -91,7 +97,6 @@
 
 
 
-#include "nsDocShell.h"
 #include "nsDocShellLoadInfo.h"
 #include "nsCDefaultURIFixup.h"
 #include "nsDocShellEnumerator.h"
@@ -192,9 +197,7 @@
 
 #include "nsDOMNavigationTiming.h"
 #include "nsITimedChannel.h"
-#include "mozilla/StartupTimeline.h"
 
-#include "mozilla/Telemetry.h"
 #include "nsISecurityUITelemetry.h"
 
 #include "nsIAppShellService.h"
@@ -932,11 +935,8 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
     else if (aIID.Equals(NS_GET_IID(nsIURIContentListener))) {
         *aSink = mContentListener;
     }
-    else if (aIID.Equals(NS_GET_IID(nsIScriptGlobalObject)) &&
-             NS_SUCCEEDED(EnsureScriptEnvironment())) {
-        *aSink = mScriptGlobal;
-    }
-    else if ((aIID.Equals(NS_GET_IID(nsPIDOMWindow)) ||
+    else if ((aIID.Equals(NS_GET_IID(nsIScriptGlobalObject)) ||
+              aIID.Equals(NS_GET_IID(nsPIDOMWindow)) ||
               aIID.Equals(NS_GET_IID(nsIDOMWindow)) ||
               aIID.Equals(NS_GET_IID(nsIDOMWindowInternal))) &&
              NS_SUCCEEDED(EnsureScriptEnvironment())) {
@@ -983,13 +983,10 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
             do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        nsCOMPtr<nsIDOMWindow> window(do_QueryInterface(mScriptGlobal));
-
         
         
-
         nsIPrompt *prompt;
-        rv = wwatch->GetNewPrompter(window, &prompt);
+        rv = wwatch->GetNewPrompter(mScriptGlobal, &prompt);
         NS_ENSURE_SUCCESS(rv, rv);
 
         *aSink = prompt;
@@ -1793,9 +1790,8 @@ nsDocShell::SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler)
     
     mChromeEventHandler = aChromeEventHandler;
 
-    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
-    if (win) {
-        win->SetChromeEventHandler(aChromeEventHandler);
+    if (mScriptGlobal) {
+        mScriptGlobal->SetChromeEventHandler(aChromeEventHandler);
     }
 
     return NS_OK;
@@ -4182,8 +4178,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     } else {
         popupState = openOverridden;
     }
-    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
-    nsAutoPopupStatePusher statePusher(win, popupState);
+    nsAutoPopupStatePusher statePusher(mScriptGlobal, popupState);
 
     
     
@@ -4526,10 +4521,8 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         
         
         
-        nsCOMPtr<nsPIDOMWindow> pwin(do_QueryInterface(mScriptGlobal));
-        if (pwin) {
-            nsCOMPtr<nsIDOMDocument> doc;
-            pwin->GetDocument(getter_AddRefs(doc));
+        if (mScriptGlobal) {
+            unused << mScriptGlobal->GetDoc();
         }
 
         
@@ -5040,9 +5033,7 @@ nsDocShell::Destroy()
     mCurrentURI = nullptr;
 
     if (mScriptGlobal) {
-        nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
-        win->DetachFromDocShell();
-
+        mScriptGlobal->DetachFromDocShell();
         mScriptGlobal = nullptr;
     }
 
@@ -5336,64 +5327,62 @@ nsDocShell::GetIsOffScreenBrowser(bool *aIsOffScreen)
 NS_IMETHODIMP
 nsDocShell::SetIsActive(bool aIsActive)
 {
-  
-  if (mItemType == nsIDocShellTreeItem::typeChrome)
-    return NS_ERROR_INVALID_ARG;
+    
+    if (mItemType == nsIDocShellTreeItem::typeChrome)
+          return NS_ERROR_INVALID_ARG;
 
-  
-  mIsActive = aIsActive;
+    
+    mIsActive = aIsActive;
 
-  
-  nsCOMPtr<nsIPresShell> pshell = GetPresShell();
-  if (pshell)
-    pshell->SetIsActive(aIsActive);
+    
+    nsCOMPtr<nsIPresShell> pshell = GetPresShell();
+    if (pshell)
+      pshell->SetIsActive(aIsActive);
 
-  
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mScriptGlobal);
-  if (win) {
-      win->SetIsBackground(!aIsActive);
-      nsCOMPtr<nsIDocument> doc = do_QueryInterface(win->GetExtantDocument());
-      if (doc) {
-          doc->PostVisibilityUpdateEvent();
-      }
-  }
+    
+    if (mScriptGlobal) {
+        mScriptGlobal->SetIsBackground(!aIsActive);
+        if (nsCOMPtr<nsIDocument> doc = mScriptGlobal->GetExtantDoc()) {
+            doc->PostVisibilityUpdateEvent();
+        }
+    }
 
-  
-  
-  nsTObserverArray<nsDocLoader*>::ForwardIterator iter(mChildList);
-  while (iter.HasMore()) {
-      nsCOMPtr<nsIDocShell> docshell = do_QueryObject(iter.GetNext());
-      if (!docshell) {
-          continue;
-      }
+    
+    
+    nsTObserverArray<nsDocLoader*>::ForwardIterator iter(mChildList);
+    while (iter.HasMore()) {
+        nsCOMPtr<nsIDocShell> docshell = do_QueryObject(iter.GetNext());
+        if (!docshell) {
+            continue;
+        }
 
-      if (!docshell->GetIsBrowserOrApp()) {
-          docshell->SetIsActive(aIsActive);
-      }
-  }
+        if (!docshell->GetIsBrowserOrApp()) {
+            docshell->SetIsActive(aIsActive);
+        }
+    }
 
-  return NS_OK;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::GetIsActive(bool *aIsActive)
 {
-  *aIsActive = mIsActive;
-  return NS_OK;
+    *aIsActive = mIsActive;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::SetIsAppTab(bool aIsAppTab)
 {
-  mIsAppTab = aIsAppTab;
-  return NS_OK;
+    mIsAppTab = aIsAppTab;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::GetIsAppTab(bool *aIsAppTab)
 {
-  *aIsAppTab = mIsAppTab;
-  return NS_OK;
+    *aIsAppTab = mIsAppTab;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -5790,7 +5779,6 @@ nsIScriptGlobalObject*
 nsDocShell::GetScriptGlobalObject()
 {
     NS_ENSURE_SUCCESS(EnsureScriptEnvironment(), nullptr);
-
     return mScriptGlobal;
 }
 
@@ -7149,11 +7137,10 @@ nsDocShell::CanSavePresentation(uint32_t aLoadType,
         return false;
 
     
-    nsCOMPtr<nsPIDOMWindow> pWin = do_QueryInterface(mScriptGlobal);
-    if (!pWin || pWin->IsLoading())
+    if (!mScriptGlobal || mScriptGlobal->IsLoading())
         return false;
 
-    if (pWin->WouldReuseInnerWindow(aNewDocument))
+    if (mScriptGlobal->WouldReuseInnerWindow(aNewDocument))
         return false;
 
     
@@ -7175,7 +7162,7 @@ nsDocShell::CanSavePresentation(uint32_t aLoadType,
     }
 
     
-    nsCOMPtr<nsIDocument> doc = do_QueryInterface(pWin->GetExtantDocument());
+    nsCOMPtr<nsIDocument> doc = mScriptGlobal->GetExtantDoc();
     if (!doc || !doc->CanSavePresentation(aNewRequest))
         return false;
 
@@ -7244,11 +7231,10 @@ nsDocShell::CaptureState()
         return NS_ERROR_FAILURE;
     }
 
-    nsCOMPtr<nsPIDOMWindow> privWin = do_QueryInterface(mScriptGlobal);
-    if (!privWin)
+    if (!mScriptGlobal)
         return NS_ERROR_FAILURE;
 
-    nsCOMPtr<nsISupports> windowState = privWin->SaveWindowState();
+    nsCOMPtr<nsISupports> windowState = mScriptGlobal->SaveWindowState();
     NS_ENSURE_TRUE(windowState, NS_ERROR_FAILURE);
 
 #ifdef DEBUG_PAGE_CACHE
@@ -8630,9 +8616,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     nsCOMPtr<nsIDOMElement> requestingElement;
     
-    nsCOMPtr<nsPIDOMWindow> privateWin(do_QueryInterface(mScriptGlobal));
-    if (privateWin)
-        requestingElement = privateWin->GetFrameElementInternal();
+    if (mScriptGlobal)
+        requestingElement = mScriptGlobal->GetFrameElementInternal();
+
+    nsRefPtr<nsGlobalWindow> MMADeathGrip = mScriptGlobal;
 
     int16_t shouldLoad = nsIContentPolicy::ACCEPT;
     uint32_t contentType;
@@ -8658,7 +8645,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     nsISupports* context = requestingElement;
     if (!context) {
-        context =  mScriptGlobal;
+        context = nsGlobalWindow::ToSupports(mScriptGlobal);
     }
 
     
@@ -9151,19 +9138,18 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             SetDocCurrentStateObj(mOSHE);
 
             
-            nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobal);
-            if (window) {
+            if (mScriptGlobal) {
                 
                 bool doHashchange = sameExceptHashes && !curHash.Equals(newHash);
 
                 if (historyNavBetweenSameDoc || doHashchange) {
-                  window->DispatchSyncPopState();
+                    mScriptGlobal->DispatchSyncPopState();
                 }
 
                 if (doHashchange) {
-                  
-                  
-                  window->DispatchAsyncHashchange(oldURI, aURI);
+                    
+                    
+                    mScriptGlobal->DispatchAsyncHashchange(oldURI, aURI);
                 }
             }
 
@@ -11535,12 +11521,11 @@ nsDocShell::EnsureScriptEnvironment()
 
     
     
-    nsRefPtr<nsGlobalWindow> window =
+    mScriptGlobal =
         NS_NewScriptGlobalObject(mItemType == typeChrome, isModalContentWindow);
-    MOZ_ASSERT(window);
-    mScriptGlobal = window;
+    MOZ_ASSERT(mScriptGlobal);
 
-    window->SetDocShell(this);
+    mScriptGlobal->SetDocShell(this);
 
     
     return mScriptGlobal->EnsureScriptEnvironment();
@@ -11765,12 +11750,10 @@ nsDocShell::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
     rv = EnsureScriptEnvironment();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIDOMWindow> window(do_QueryInterface(mScriptGlobal));
-
     
     
 
-    return wwatch->GetPrompt(window, iid,
+    return wwatch->GetPrompt(mScriptGlobal, iid,
                              reinterpret_cast<void**>(aResult));
 }
 
@@ -11892,18 +11875,15 @@ nsresult
 nsDocShell::GetControllerForCommand(const char * inCommand,
                                     nsIController** outController)
 {
-  NS_ENSURE_ARG_POINTER(outController);
-  *outController = nullptr;
+    NS_ENSURE_ARG_POINTER(outController);
+    *outController = nullptr;
 
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mScriptGlobal));
-  if (window) {
-      nsCOMPtr<nsPIWindowRoot> root = window->GetTopWindowRoot();
-      if (root) {
-          return root->GetControllerForCommand(inCommand, outController);
-      }
-  }
+    NS_ENSURE_TRUE(mScriptGlobal, NS_ERROR_FAILURE);
 
-  return NS_ERROR_FAILURE;
+    nsCOMPtr<nsPIWindowRoot> root = mScriptGlobal->GetTopWindowRoot();
+    NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
+
+    return root->GetControllerForCommand(inCommand, outController);
 }
 
 nsresult
@@ -12062,7 +12042,7 @@ public:
                    bool aIsTrusted);
 
   NS_IMETHOD Run() {
-    nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mHandler->mScriptGlobal));
+    nsRefPtr<nsGlobalWindow> window = mHandler->mScriptGlobal.get();
     nsAutoPopupStatePusher popupStatePusher(window, mPopupState);
 
     nsCxPusher pusher;
@@ -12102,11 +12082,9 @@ OnLinkClickEvent::OnLinkClickEvent(nsDocShell* aHandler,
   , mPostDataStream(aPostDataStream)
   , mHeadersDataStream(aHeadersDataStream)
   , mContent(aContent)
+  , mPopupState(mHandler->mScriptGlobal->GetPopupControlState())
   , mIsTrusted(aIsTrusted)
 {
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mHandler->mScriptGlobal));
-
-  mPopupState = window->GetPopupControlState();
 }
 
 
@@ -12225,8 +12203,8 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
   
   nsPIDOMWindow* refererInner = refererDoc->GetInnerWindow();
   NS_ENSURE_TRUE(refererInner, NS_ERROR_UNEXPECTED);
-  nsCOMPtr<nsPIDOMWindow> outerWindow = do_QueryInterface(mScriptGlobal);
-  if (!outerWindow || outerWindow->GetCurrentInnerWindow() != refererInner) {
+  if (!mScriptGlobal ||
+      mScriptGlobal->GetCurrentInnerWindow() != refererInner) {
       
       return NS_OK;
   }
