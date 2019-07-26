@@ -768,7 +768,7 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
 
 void
 nsTransitionManager::FlushTransitions(FlushFlags aFlags)
-{ 
+{
   if (PR_CLIST_IS_EMPTY(&mElementData)) {
     
     return;
@@ -811,37 +811,42 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           if (aFlags == Can_Throttle) {
             et->mAnimations.RemoveElementAt(i);
           }
-        } else if (anim->mStartTime + anim->mTiming.mDelay +
-                   anim->mTiming.mIterationDuration <= now) {
-          MOZ_ASSERT(anim->mProperties.Length() == 1,
-                     "Should have one animation property for a transition");
-          nsCSSProperty prop = anim->mProperties[0].mProperty;
-          if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME))
-          {
-            prop = nsCSSProps::OtherNameFor(prop);
-          }
-          events.AppendElement(
-            TransitionEventInfo(et->mElement, prop,
-                                anim->mTiming.mIterationDuration,
-                                et->PseudoElement()));
+        } else {
+          TimeDuration localTime = anim->GetLocalTimeAt(now);
+          ComputedTiming computedTiming =
+            ElementAnimation::GetComputedTimingAt(localTime, anim->mTiming);
+          if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
+            MOZ_ASSERT(anim->mProperties.Length() == 1,
+                       "Should have one animation property for a transition");
+            nsCSSProperty prop = anim->mProperties[0].mProperty;
+            if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME))
+            {
+              prop = nsCSSProps::OtherNameFor(prop);
+            }
+            events.AppendElement(
+              TransitionEventInfo(et->mElement, prop,
+                                  anim->mTiming.mIterationDuration,
+                                  et->PseudoElement()));
 
-          
-          
-          
-          
-          
-          
-          
-          anim->SetFinishedTransition();
-          et->UpdateAnimationGeneration(mPresContext);
-          transitionStartedOrEnded = true;
-        } else if (anim->mStartTime + anim->mTiming.mDelay <= now &&
-                   canThrottleTick &&
-                   !anim->mIsRunningOnCompositor) {
-          
-          
-          et->UpdateAnimationGeneration(mPresContext);
-          transitionStartedOrEnded = true;
+            
+            
+            
+            
+            
+            
+            
+            anim->SetFinishedTransition();
+            et->UpdateAnimationGeneration(mPresContext);
+            transitionStartedOrEnded = true;
+          } else if ((computedTiming.mPhase ==
+                      ComputedTiming::AnimationPhase_Active) &&
+                     canThrottleTick &&
+                    !anim->mIsRunningOnCompositor) {
+            
+            
+            et->UpdateAnimationGeneration(mPresContext);
+            transitionStartedOrEnded = true;
+          }
         }
       } while (i != 0);
 
