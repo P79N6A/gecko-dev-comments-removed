@@ -394,8 +394,8 @@ protected:
   
 
 
-  void EnsureBuffer();
-  void EnsureBufferOnWhite();
+  bool EnsureBuffer();
+  bool EnsureBufferOnWhite();
   
 
 
