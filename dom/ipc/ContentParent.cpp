@@ -1244,8 +1244,10 @@ ContentParent::ContentParent(mozIApplication* aApp,
 
     
     
-    MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated + aIsNuwaProcess <=
-               1);
+    MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated <= 1);
+
+    
+    MOZ_ASSERT_IF(aIsNuwaProcess, aIsForPreallocated);
 
     
     if (!sContentParents) {
