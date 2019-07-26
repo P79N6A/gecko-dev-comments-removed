@@ -22,6 +22,7 @@
 #include "nsCOMPtr.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsPIDOMWindow.h"
+#include "GeckoProfiler.h"
 
 #include "nsDOMJSUtils.h" 
 
@@ -190,5 +191,70 @@ nsJSUtils::CompileFunction(JSContext* aCx,
   }
 
   *aFunctionObject = JS_GetFunctionObject(fun);
+  return NS_OK;
+}
+
+nsresult
+nsJSUtils::EvaluateString(JSContext* aCx,
+                          const nsAString& aScript,
+                          JS::Handle<JSObject*> aScopeObject,
+                          JS::CompileOptions& aOptions,
+                          bool aCoerceToString,
+                          JS::Value* aRetValue)
+{
+  PROFILER_LABEL("JS", "EvaluateString");
+  MOZ_ASSERT_IF(aOptions.versionSet, aOptions.version != JSVERSION_UNKNOWN);
+  MOZ_ASSERT_IF(aCoerceToString, aRetValue);
+  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
+
+  
+  
+  
+  
+  if (aRetValue) {
+    *aRetValue = JSVAL_VOID;
+  }
+
+  xpc_UnmarkGrayObject(aScopeObject);
+  nsAutoMicroTask mt;
+
+  JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetObjectCompartment(aScopeObject));
+  aOptions.setPrincipals(p);
+
+  bool ok = false;
+  nsresult rv = nsContentUtils::GetSecurityManager()->
+                  CanExecuteScripts(aCx, nsJSPrincipals::get(p), &ok);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(ok, NS_OK);
+
+  
+  
+  {
+    JSAutoCompartment ac(aCx, aScopeObject);
+
+    JS::RootedObject rootedScope(aCx, aScopeObject);
+    ok = JS::Evaluate(aCx, rootedScope, aOptions,
+                      PromiseFlatString(aScript).get(),
+                      aScript.Length(), aRetValue);
+    if (ok && aCoerceToString && !aRetValue->isUndefined()) {
+      JSString* str = JS_ValueToString(aCx, *aRetValue);
+      ok = !!str;
+      *aRetValue = ok ? JS::StringValue(str) : JS::UndefinedValue();
+    }
+  }
+
+  if (!ok) {
+    if (aRetValue) {
+      *aRetValue = JS::UndefinedValue();
+    }
+    
+    
+    
+    ReportPendingException(aCx);
+  }
+
+  
+  if (aRetValue && !JS_WrapValue(aCx, aRetValue))
+    return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }
