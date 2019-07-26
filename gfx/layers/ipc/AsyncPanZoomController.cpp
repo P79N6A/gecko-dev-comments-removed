@@ -75,7 +75,7 @@
            fm.mScrollOffset.x, fm.mScrollOffset.y, \
            fm.mScrollableRect.x, fm.mScrollableRect.y, fm.mScrollableRect.width, fm.mScrollableRect.height, \
            fm.mDevPixelsPerCSSPixel.scale, fm.mResolution.scale, fm.mCumulativeResolution.scale, fm.mZoom.scale, \
-           fm.GetScrollOffsetUpdated()); \
+           fm.mUpdateScrollOffset); \
 
 
 namespace {
@@ -291,7 +291,9 @@ static bool gUseProgressiveTilePainting = false;
 
 
 
-static bool gAllowCheckerboarding = true;
+
+
+static bool gEnlargeDisplayPortWhenOnlyScrollable = false;
 
 
 
@@ -417,8 +419,9 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apz.asyncscroll.timeout", gAsyncScrollTimeout);
   Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apz.cross_slide.enabled", gCrossSlideEnabled);
   Preferences::AddIntVarCache(&gAxisLockMode, "apz.axis_lock_mode", gAxisLockMode);
-  Preferences::AddBoolVarCache(&gAllowCheckerboarding, "apz.allow-checkerboarding", gAllowCheckerboarding);
   gUseProgressiveTilePainting = gfxPlatform::UseProgressiveTilePainting();
+  Preferences::AddBoolVarCache(&gEnlargeDisplayPortWhenOnlyScrollable, "apz.enlarge_displayport_when_only_scrollable",
+    gEnlargeDisplayPortWhenOnlyScrollable);
 
   gComputedTimingFunction = new ComputedTimingFunction();
   gComputedTimingFunction->Init(
@@ -1321,6 +1324,30 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   CSSRect displayPort(scrollOffset, compositionBounds.Size());
   CSSPoint velocity = aVelocity / aFrameMetrics.mZoom;
 
+  CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
+
+  float xSkateSizeMultiplier = gXSkateSizeMultiplier,
+        ySkateSizeMultiplier = gYSkateSizeMultiplier;
+
+  if (gEnlargeDisplayPortWhenOnlyScrollable) {
+    
+    
+    
+    if (scrollableRect.width - compositionBounds.width <= EPSILON ||
+        aFrameMetrics.GetDisableScrollingX()) {
+      xSkateSizeMultiplier = 1.f;
+      ySkateSizeMultiplier = gYStationarySizeMultiplier;
+    }
+    
+    
+    
+    if (scrollableRect.height - compositionBounds.height <= EPSILON ||
+        aFrameMetrics.GetDisableScrollingY()) {
+      ySkateSizeMultiplier = 1.f;
+      xSkateSizeMultiplier = gXSkateSizeMultiplier;
+    }
+  }
+
   
   
   if (aFrameMetrics.GetDisableScrollingX()) {
@@ -1335,12 +1362,11 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   
   EnlargeDisplayPortAlongAxis(&(displayPort.x), &(displayPort.width),
     estimatedPaintDurationMillis, velocity.x,
-    gXStationarySizeMultiplier, gXSkateSizeMultiplier);
+    gXStationarySizeMultiplier, xSkateSizeMultiplier);
   EnlargeDisplayPortAlongAxis(&(displayPort.y), &(displayPort.height),
     estimatedPaintDurationMillis, velocity.y,
-    gYStationarySizeMultiplier, gYSkateSizeMultiplier);
+    gYStationarySizeMultiplier, ySkateSizeMultiplier);
 
-  CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
   displayPort = displayPort.ForceInside(scrollableRect) - scrollOffset;
 
   APZC_LOG_FM(aFrameMetrics,
@@ -1536,28 +1562,7 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
   if (mLastContentPaintMetrics.IsScrollable()) {
     lastPaintScrollOffset = mLastContentPaintMetrics.mScrollOffset;
   }
-
-  CSSPoint currentScrollOffset = mFrameMetrics.mScrollOffset;
-
-  
-  
-  if (!gAllowCheckerboarding &&
-      !mLastContentPaintMetrics.mDisplayPort.IsEmpty()) {
-    CSSRect compositedRect = mLastContentPaintMetrics.CalculateCompositedRectInCssPixels();
-    CSSPoint maxScrollOffset = lastPaintScrollOffset +
-      CSSPoint(mLastContentPaintMetrics.mDisplayPort.XMost() - compositedRect.width,
-               mLastContentPaintMetrics.mDisplayPort.YMost() - compositedRect.height);
-    CSSPoint minScrollOffset = lastPaintScrollOffset + mLastContentPaintMetrics.mDisplayPort.TopLeft();
-
-    if (minScrollOffset.x < maxScrollOffset.x) {
-      currentScrollOffset.x = clamped(currentScrollOffset.x, minScrollOffset.x, maxScrollOffset.x);
-    }
-    if (minScrollOffset.y < maxScrollOffset.y) {
-      currentScrollOffset.y = clamped(currentScrollOffset.y, minScrollOffset.y, maxScrollOffset.y);
-    }
-  }
-
-  LayerPoint translation = (currentScrollOffset - lastPaintScrollOffset)
+  LayerPoint translation = (mFrameMetrics.mScrollOffset - lastPaintScrollOffset)
                          * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
 
   return ViewTransform(-translation,
@@ -1637,7 +1642,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
     
     
-    if (aLayerMetrics.GetScrollOffsetUpdated()) {
+    if (aLayerMetrics.mUpdateScrollOffset) {
       APZC_LOG("%p updating scroll offset from (%f, %f) to (%f, %f)\n", this,
         mFrameMetrics.mScrollOffset.x, mFrameMetrics.mScrollOffset.y,
         aLayerMetrics.mScrollOffset.x, aLayerMetrics.mScrollOffset.y);
@@ -1648,11 +1653,12 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       
-      nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
-      if (controller) {
-        controller->AcknowledgeScrollUpdate(aLayerMetrics.mScrollId,
-                                            aLayerMetrics.GetScrollGeneration());
-      }
+      
+      
+      
+      
+      
+      needContentRepaint = true;
     }
   }
 
