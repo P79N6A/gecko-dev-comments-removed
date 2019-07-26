@@ -6965,17 +6965,6 @@ let GsmPDUHelper = {
           case PDU_PID_ANSI_136_R_DATA:
           case PDU_PID_USIM_DATA_DOWNLOAD:
             return;
-          case PDU_PID_RETURN_CALL_MESSAGE:
-            
-            
-            let mwi = msg.mwi = {};
-
-            
-            mwi.active = true;
-            mwi.discard = false;
-            mwi.msgCount = GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN;
-            if (DEBUG) debug("TP-PID got return call message: " + msg.sender);
-            return;
         }
         break;
     }
