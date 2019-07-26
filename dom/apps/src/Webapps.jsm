@@ -2155,6 +2155,20 @@ this.DOMApplicationRegistry = {
   queuedPackageDownload: {},
 
   onInstallSuccessAck: function onInstallSuccessAck(aManifestURL) {
+    
+    if (Services.io.offline) {
+      let onlineWrapper = {
+        observe: function(aSubject, aTopic, aData) {
+          Services.obs.removeObserver(onlineWrapper,
+                                      "network:offline-status-changed");
+          DOMApplicationRegistry.onInstallSuccessAck(aManifestURL);
+        }
+      }
+      Services.obs.addObserver(onlineWrapper,
+                               "network:offline-status-changed", false);
+      return;
+    }
+
     let cacheDownload = this.queuedDownload[aManifestURL];
     if (cacheDownload) {
       this.startOfflineCacheDownload(cacheDownload.manifest,
@@ -2371,12 +2385,12 @@ this.DOMApplicationRegistry = {
         app: appObject,
         callback: aInstallSuccessCallback
       };
+    }
 
-      if (aData.app.localInstallPath) {
-        
-        
-        this.onInstallSuccessAck(app.manifestURL);
-      }
+    if (aData.forceSuccessAck) {
+      
+      
+      this.onInstallSuccessAck(app.manifestURL);
     }
   },
 
