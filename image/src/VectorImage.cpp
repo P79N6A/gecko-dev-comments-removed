@@ -384,12 +384,13 @@ VectorImage::GetAnimated(bool* aAnimated)
 
 
 
-NS_IMETHODIMP
-VectorImage::GetCurrentFrameIsOpaque(bool* aIsOpaque)
+NS_IMETHODIMP_(bool)
+VectorImage::FrameIsOpaque(uint32_t aWhichFrame)
 {
-  NS_ENSURE_ARG_POINTER(aIsOpaque);
-  *aIsOpaque = false;   
-  return NS_OK;
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    NS_WARNING("aWhichFrame outside valid range!");
+
+  return false; 
 }
 
 

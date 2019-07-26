@@ -878,32 +878,31 @@ RasterImage::GetCurrentDrawableImgFrame()
 
 
 
-NS_IMETHODIMP
-RasterImage::GetCurrentFrameIsOpaque(bool *aIsOpaque)
+NS_IMETHODIMP_(bool)
+RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
 {
-  NS_ENSURE_ARG_POINTER(aIsOpaque);
-
-  if (mError)
-    return NS_ERROR_FAILURE;
-
-  
-  imgFrame *curframe = GetCurrentImgFrame();
-
-  
-  if (!curframe)
-    *aIsOpaque = false;
-
-  
-  else {
-    *aIsOpaque = !curframe->GetNeedsBackground();
-
-    
-    
-    nsIntRect framerect = curframe->GetRect();
-    *aIsOpaque = *aIsOpaque && framerect.IsEqualInterior(nsIntRect(0, 0, mSize.width, mSize.height));
+  if (aWhichFrame > FRAME_MAX_VALUE) {
+    NS_WARNING("aWhichFrame outside valid range!");
+    return false;
   }
 
-  return NS_OK;
+  if (mError)
+    return false;
+
+  
+  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrame(0)
+                                               : GetCurrentImgFrame();
+
+  
+  if (!frame)
+    return false;
+
+  
+  
+  
+  nsIntRect framerect = frame->GetRect();
+  return !frame->GetNeedsBackground() &&
+         framerect.IsEqualInterior(nsIntRect(0, 0, mSize.width, mSize.height));
 }
 
 void

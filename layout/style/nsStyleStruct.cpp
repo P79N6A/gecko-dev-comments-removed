@@ -1644,9 +1644,7 @@ nsStyleImage::IsOpaque() const
   NS_ABORT_IF_FALSE(imageContainer, "IsComplete() said image container is ready");
 
   
-  bool isOpaque;
-  if (NS_SUCCEEDED(imageContainer->GetCurrentFrameIsOpaque(&isOpaque)) &&
-      isOpaque) {
+  if (imageContainer->FrameIsOpaque(imgIContainer::FRAME_CURRENT)) {
     if (!mCropRect)
       return true;
 
