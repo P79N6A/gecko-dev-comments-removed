@@ -1210,6 +1210,14 @@ xpc::SimulateActivityCallback(bool aActive)
 }
 
 
+JSContext*
+XPCJSRuntime::DefaultJSContextCallback(JSRuntime *rt)
+{
+    MOZ_ASSERT(rt == Get()->Runtime());
+    return Get()->GetJSContextStack()->GetSafeJSContext();
+}
+
+
 void
 XPCJSRuntime::ActivityCallback(void *arg, bool active)
 {
@@ -3019,6 +3027,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         stack->sampleRuntime(runtime);
 #endif
     JS_SetAccumulateTelemetryCallback(runtime, AccumulateTelemetryCallback);
+    js::SetDefaultJSContextCallback(runtime, DefaultJSContextCallback);
     js::SetActivityCallback(runtime, ActivityCallback, this);
     js::SetCTypesActivityCallback(runtime, CTypesActivityCallback);
     JS_SetOperationCallback(runtime, OperationCallback);

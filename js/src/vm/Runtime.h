@@ -1478,6 +1478,8 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     js::ThreadPool threadPool;
 
+    js::DefaultJSContextCallback defaultJSContextCallback;
+
     js::CTypesActivityCallback  ctypesActivityCallback;
 
     

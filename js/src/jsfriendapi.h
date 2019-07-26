@@ -1507,6 +1507,20 @@ IsReadOnlyDateMethod(JS::IsAcceptableThis test, JS::NativeImpl method);
 extern JS_FRIEND_API(bool)
 IsTypedArrayThisCheck(JS::IsAcceptableThis test);
 
+
+
+
+
+
+extern JS_FRIEND_API(JSContext *)
+DefaultJSContext(JSRuntime *rt);
+
+typedef JSContext*
+(* DefaultJSContextCallback)(JSRuntime *rt);
+
+JS_FRIEND_API(void)
+SetDefaultJSContextCallback(JSRuntime *rt, DefaultJSContextCallback cb);
+
 enum CTypesActivityType {
     CTYPES_CALL_BEGIN,
     CTYPES_CALL_END,

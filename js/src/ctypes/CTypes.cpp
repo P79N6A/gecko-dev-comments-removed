@@ -164,7 +164,6 @@ namespace CType {
 
   static void Trace(JSTracer* trc, JSObject* obj);
   static void Finalize(JSFreeOp *fop, JSObject* obj);
-  static void FinalizeProtoClass(JSFreeOp *fop, JSObject* obj);
 
   static bool PrototypeGetter(JSContext* cx, HandleObject obj, HandleId idval,
     MutableHandleValue vp);
@@ -468,7 +467,7 @@ static const JSClass sCTypeProtoClass = {
   "CType",
   JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
   JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CType::FinalizeProtoClass,
+  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, NULL,
   NULL, ConstructAbstract, NULL, ConstructAbstract
 };
 
@@ -3294,22 +3293,6 @@ CType::Finalize(JSFreeOp *fop, JSObject* obj)
 }
 
 void
-CType::FinalizeProtoClass(JSFreeOp *fop, JSObject* obj)
-{
-  
-  
-  
-  
-  
-  jsval slot = JS_GetReservedSlot(obj, SLOT_CLOSURECX);
-  if (JSVAL_IS_VOID(slot))
-    return;
-
-  JSContext* closureCx = static_cast<JSContext*>(JSVAL_TO_PRIVATE(slot));
-  JS_DestroyContextNoGC(closureCx);
-}
-
-void
 CType::Trace(JSTracer* trc, JSObject* obj)
 {
   
@@ -6005,23 +5988,7 @@ CClosure::Create(JSContext* cx,
   JS_ASSERT(CType::IsCTypeProto(proto));
 
   
-  jsval slot = JS_GetReservedSlot(proto, SLOT_CLOSURECX);
-  if (!JSVAL_IS_VOID(slot)) {
-    
-    cinfo->cx = static_cast<JSContext*>(JSVAL_TO_PRIVATE(slot));
-    JS_ASSERT(cinfo->cx);
-  } else {
-    
-    
-    JSRuntime* runtime = JS_GetRuntime(cx);
-    cinfo->cx = JS_NewContext(runtime, 8192);
-    if (!cinfo->cx) {
-      JS_ReportOutOfMemory(cx);
-      return NULL;
-    }
-
-    JS_SetReservedSlot(proto, SLOT_CLOSURECX, PRIVATE_TO_JSVAL(cinfo->cx));
-  }
+  cinfo->cx = js::DefaultJSContext(JS_GetRuntime(cx));
 
   
   
