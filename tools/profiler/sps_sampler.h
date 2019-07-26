@@ -76,7 +76,19 @@ extern bool stack_key_initialized;
 #warning Please add support for your architecture in chromium_types.h
 #endif
 
-#define PROFILE_DEFAULT_ENTRY 1000000
+
+
+
+#ifdef MOZ_WIDGET_GONK
+# define PLATFORM_LIKELY_MEMORY_CONSTRAINED
+#endif
+
+#ifndef PLATFORM_LIKELY_MEMORY_CONSTRAINED
+# define PROFILE_DEFAULT_ENTRY 1000000
+#else
+# define PROFILE_DEFAULT_ENTRY 100000
+#endif
+
 #ifdef ANDROID
 
 
