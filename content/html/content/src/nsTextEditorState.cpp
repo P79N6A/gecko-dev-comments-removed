@@ -191,18 +191,20 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
 private:
+  ~nsAnonDivObserver() {}
   nsTextEditorState* mTextEditorState;
 };
 
 class nsTextInputSelectionImpl MOZ_FINAL : public nsSupportsWeakReference
                                          , public nsISelectionController
 {
+  ~nsTextInputSelectionImpl(){}
+
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTextInputSelectionImpl, nsISelectionController)
 
   nsTextInputSelectionImpl(nsFrameSelection *aSel, nsIPresShell *aShell, nsIContent *aLimiter);
-  ~nsTextInputSelectionImpl(){}
 
   void SetScrollableFrame(nsIScrollableFrame *aScrollableFrame);
   nsFrameSelection* GetConstFrameSelection()
@@ -652,9 +654,6 @@ public:
   
  
   explicit nsTextInputListener(nsITextControlElement* aTxtCtrlElement);
-  
-
-  virtual ~nsTextInputListener();
 
   
 
@@ -673,6 +672,9 @@ public:
   NS_DECL_NSIEDITOROBSERVER
 
 protected:
+  
+
+  virtual ~nsTextInputListener();
 
   nsresult  UpdateTextInputCommands(const nsAString& commandsToUpdate);
 

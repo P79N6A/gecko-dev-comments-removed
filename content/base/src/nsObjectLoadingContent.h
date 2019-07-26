@@ -473,6 +473,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     class SetupProtoChainRunner MOZ_FINAL : public nsIRunnable
     {
+      ~SetupProtoChainRunner();
     public:
       NS_DECL_ISUPPORTS
 

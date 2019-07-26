@@ -26,7 +26,6 @@ public:
     
     
     nsXULPopupListener(mozilla::dom::Element* aElement, bool aIsContext);
-    virtual ~nsXULPopupListener(void);
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -34,6 +33,8 @@ public:
     NS_DECL_NSIDOMEVENTLISTENER
 
 protected:
+    virtual ~nsXULPopupListener(void);
+
     
     
     virtual nsresult LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent);

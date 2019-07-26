@@ -115,6 +115,13 @@ private:
 };
 
 } 
+
+template<>
+struct HasDangerousPublicDestructor<dom::NodeIterator>
+{
+  static const bool value = true;
+};
+
 } 
 
 #endif 

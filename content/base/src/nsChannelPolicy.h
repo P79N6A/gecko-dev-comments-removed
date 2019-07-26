@@ -21,9 +21,10 @@ public:
     NS_DECL_NSICHANNELPOLICY
 
     nsChannelPolicy();
-    virtual ~nsChannelPolicy();
 
 protected:
+    virtual ~nsChannelPolicy();
+
     
 
 

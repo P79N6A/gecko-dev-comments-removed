@@ -17,6 +17,18 @@
 namespace mozilla {
 namespace dom {
 
+class TimeRanges;
+
+}
+
+template<>
+struct HasDangerousPublicDestructor<dom::TimeRanges>
+{
+  static const bool value = true;
+};
+
+namespace dom {
+
 
 
 class TimeRanges MOZ_FINAL : public nsIDOMTimeRanges

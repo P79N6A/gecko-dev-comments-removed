@@ -27,11 +27,11 @@ public:
                            nsIDOMNode* aNode,
                            nsXMLBindingSet* aBindings);
 
-    ~nsXULTemplateResultXML() {}
-
     void GetNode(nsIDOMNode** aNode);
 
 protected:
+
+    ~nsXULTemplateResultXML() {}
 
     
     

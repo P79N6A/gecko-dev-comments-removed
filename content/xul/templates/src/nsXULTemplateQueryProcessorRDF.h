@@ -48,8 +48,6 @@ public:
 
     nsXULTemplateQueryProcessorRDF();
 
-    ~nsXULTemplateQueryProcessorRDF();
-
     nsresult InitGlobals();
 
     
@@ -274,6 +272,8 @@ public:
 #endif
 
 protected:
+    ~nsXULTemplateQueryProcessorRDF();
+
     
     
     nsCOMPtr<nsIRDFDataSource> mDB;

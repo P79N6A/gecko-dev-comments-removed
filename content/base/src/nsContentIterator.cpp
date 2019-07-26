@@ -83,7 +83,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(nsContentIterator)
 
   explicit nsContentIterator(bool aPre);
-  virtual ~nsContentIterator();
 
   
 
@@ -106,6 +105,7 @@ public:
   virtual nsresult PositionAt(nsINode* aCurNode);
 
 protected:
+  virtual ~nsContentIterator();
 
   
   

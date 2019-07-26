@@ -88,6 +88,8 @@ public:
   }
 
 private:
+  ~ImportLoader() {}
+
   
   
   
@@ -129,6 +131,9 @@ private:
 class ImportManager MOZ_FINAL : public nsISupports
 {
   typedef nsRefPtrHashtable<nsURIHashKey, ImportLoader> ImportMap;
+
+  ~ImportManager() {}
+
 public:
   ImportManager() {}
 

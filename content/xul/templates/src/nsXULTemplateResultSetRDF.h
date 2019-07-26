@@ -33,6 +33,11 @@ private:
 
     bool mCheckedNext;
 
+    ~nsXULTemplateResultSetRDF()
+    {
+        delete mInstantiations;
+    }
+
 public:
 
     
@@ -50,11 +55,6 @@ public:
           mCurrent(nullptr),
           mCheckedNext(false)
     { }
-
-    ~nsXULTemplateResultSetRDF()
-    {
-        delete mInstantiations;
-    }
 };
 
 #endif 

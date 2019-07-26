@@ -20,7 +20,6 @@ class ResponsiveImageSelector : public nsISupports
 public:
   NS_DECL_ISUPPORTS
   ResponsiveImageSelector(nsIContent *aContent);
-  virtual ~ResponsiveImageSelector();
 
   
   
@@ -33,6 +32,9 @@ public:
   
   already_AddRefed<nsIURI> GetSelectedImageURL();
   double GetSelectedImageDensity();
+
+protected:
+  virtual ~ResponsiveImageSelector();
 
 private:
   

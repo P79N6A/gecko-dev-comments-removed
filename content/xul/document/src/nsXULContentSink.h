@@ -27,7 +27,6 @@ class XULContentSinkImpl : public nsIXMLContentSink,
 {
 public:
     XULContentSinkImpl();
-    virtual ~XULContentSinkImpl();
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -54,6 +53,8 @@ public:
     nsresult Init(nsIDocument* aDocument, nsXULPrototypeDocument* aPrototype);
 
 protected:
+    virtual ~XULContentSinkImpl();
+
     
     char16_t* mText;
     int32_t mTextLength;
