@@ -28,9 +28,37 @@ function sendMessageToJava(aMessage) {
 this.WebappManager = {
   __proto__: DOMRequestIpcHelper.prototype,
 
-  downloadApk: function(aMsg) {
+  get _testing() {
+    try {
+      return Services.prefs.getBoolPref("browser.webapps.testing");
+    } catch(ex) {
+      return false;
+    }
+  },
+
+  install: function(aMessage, aMessageManager) {
+    if (this._testing) {
+      
+      DOMApplicationRegistry.doInstall(aMessage, aMessageManager);
+      return;
+    }
+
+    this._downloadApk(aMessage);
+  },
+
+  installPackage: function(aMessage, aMessageManager) {
+    if (this._testing) {
+      
+      DOMApplicationRegistry.doInstallPackage(aMessage, aMessageManager);
+      return;
+    }
+
+    this._downloadApk(aMessage);
+  },
+
+  _downloadApk: function(aMsg) {
     let manifestUrl = aMsg.app.manifestURL;
-    dump("downloadApk for " + manifestUrl);
+    dump("_downloadApk for " + manifestUrl);
 
     
     const GENERATOR_URL_PREF = "browser.webapps.apkFactoryUrl";
@@ -116,6 +144,11 @@ this.WebappManager = {
 
   uninstall: function(aData) {
     dump("uninstall: " + aData.manifestURL);
+
+    if (this._testing) {
+      
+      return;
+    }
 
     
   },
