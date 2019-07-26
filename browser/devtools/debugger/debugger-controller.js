@@ -430,6 +430,7 @@ let DebuggerController = {
 
 function ThreadState() {
   this._update = this._update.bind(this);
+  this.interruptedByResumeButton = false;
 }
 
 ThreadState.prototype = {
@@ -472,14 +473,17 @@ ThreadState.prototype = {
   
 
 
-  _update: function(aEvent) {
+  _update: function(aEvent, aPacket) {
     
     
     
-    if (aEvent == "interrupted") {
+    if (aEvent == "paused" &&
+        aPacket.why.type == "interrupted" &&
+        !this.interruptedByResumeButton) {
       return;
     }
 
+    this.interruptedByResumeButton = false;
     DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
 
     if (gTarget && (aEvent == "paused" || aEvent == "resumed")) {
