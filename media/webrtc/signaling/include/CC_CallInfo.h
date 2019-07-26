@@ -9,13 +9,11 @@
 extern "C"
 {
 #include "ccapi_types.h"
-#include "fsmdef_states.h"
 }
 
 #include "CC_Common.h"
 #include "CC_CallTypes.h"
 #include "peer_connection_types.h"
-
 
 namespace CSF
 {
@@ -50,21 +48,7 @@ namespace CSF
 
 
 
-        virtual fsmdef_states_t getFsmState () const = 0;
-
-        
-
-
-
-
         virtual std::string callStateToString (cc_call_state_t state) = 0;
-
-        
-
-
-
-
-        virtual std::string fsmStateToString (fsmdef_states_t state) const = 0;
 
         
 

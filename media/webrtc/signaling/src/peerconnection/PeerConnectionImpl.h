@@ -133,18 +133,6 @@ public:
     kClosed
   };
 
-  
-  
-  enum SignalingState {
-    kSignalingInvalid            = 0,
-    kSignalingStable             = 1,
-    kSignalingHaveLocalOffer     = 2,
-    kSignalingHaveRemoteOffer    = 3,
-    kSignalingHaveLocalPranswer  = 4,
-    kSignalingHaveRemotePranswer = 5,
-    kSignalingClosed             = 6
-  };
-
   enum SipccState {
     kIdle,
     kStarting,
@@ -280,9 +268,6 @@ public:
   
   const std::vector<std::string> &GetSdpParseErrors();
 
-  
-  void SetSignalingState_m(SignalingState aSignalingState);
-
 private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
@@ -330,7 +315,6 @@ private:
   
   CSF::CC_CallPtr mCall;
   ReadyState mReadyState;
-  SignalingState mSignalingState;
 
   
   IceState mIceState;
