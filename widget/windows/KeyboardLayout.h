@@ -297,6 +297,12 @@ public:
     UINT mCharCode;
     UINT mScanCode;
     bool mIsDeadKey;
+    bool mConsumed;
+
+    FakeCharMsg() :
+      mCharCode(0), mScanCode(0), mIsDeadKey(false), mConsumed(false)
+    {
+    }
 
     MSG GetCharMsg(HWND aWnd) const
     {
@@ -314,7 +320,7 @@ public:
   NativeKey(nsWindowBase* aWidget,
             const MSG& aKeyOrCharMessage,
             const ModifierKeyState& aModKeyState,
-            const FakeCharMsg* aFakeCharMsg = nullptr);
+            nsTArray<FakeCharMsg>* aFakeCharMsgs = nullptr);
 
   
 
@@ -322,8 +328,7 @@ public:
 
 
 
-  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr,
-                            bool* aWasKeyDownDefaultPrevented = nullptr) const;
+  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr) const;
 
   
 
@@ -373,7 +378,8 @@ private:
   
   
   bool    mIsPrintableKey;
-  bool    mIsFakeCharMsg;
+
+  nsTArray<FakeCharMsg>* mFakeCharMsgs;
 
   NativeKey()
   {
