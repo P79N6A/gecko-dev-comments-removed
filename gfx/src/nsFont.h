@@ -12,6 +12,7 @@
 #include "nsTArray.h"
 #include "gfxFontConstants.h"
 #include "gfxFontFeatures.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -87,6 +88,12 @@ struct NS_GFX nsFont {
   float sizeAdjust;
 
   
+  nsTArray<gfxAlternateValue> alternateValues;
+
+  
+  nsRefPtr<gfxFontFeatureValueSet> featureValueLookup;
+
+  
   nsTArray<gfxFontFeature> fontFeatureSettings;
 
   
@@ -125,6 +132,8 @@ struct NS_GFX nsFont {
   bool BaseEquals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
+
+  void CopyAlternates(const nsFont& aOther);
 
   
   void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;

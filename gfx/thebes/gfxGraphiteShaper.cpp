@@ -192,9 +192,11 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
 
     nsDataHashtable<nsUint32HashKey,uint32_t> mergedFeatures;
 
+    
     if (MergeFontFeatures(style,
                           mFont->GetFontEntry()->mFeatureSettings,
                           aShapedText->DisableLigatures(),
+                          mFont->GetFontEntry()->FamilyName(),
                           mergedFeatures))
     {
         

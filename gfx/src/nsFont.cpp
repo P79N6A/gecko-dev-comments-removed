@@ -80,6 +80,8 @@ nsFont::nsFont(const nsFont& aOther)
   variantLigatures = aOther.variantLigatures;
   variantNumeric = aOther.variantNumeric;
   variantPosition = aOther.variantPosition;
+  alternateValues = aOther.alternateValues;
+  featureValueLookup = aOther.featureValueLookup;
 }
 
 nsFont::nsFont()
@@ -108,7 +110,9 @@ bool nsFont::BaseEquals(const nsFont& aOther) const
       (variantEastAsian == aOther.variantEastAsian) &&
       (variantLigatures == aOther.variantLigatures) &&
       (variantNumeric == aOther.variantNumeric) &&
-      (variantPosition == aOther.variantPosition)) {
+      (variantPosition == aOther.variantPosition) &&
+      (alternateValues == aOther.alternateValues) &&
+      (featureValueLookup == aOther.featureValueLookup)) {
     return true;
   }
   return false;
@@ -145,7 +149,17 @@ nsFont& nsFont::operator=(const nsFont& aOther)
   variantLigatures = aOther.variantLigatures;
   variantNumeric = aOther.variantNumeric;
   variantPosition = aOther.variantPosition;
+  alternateValues = aOther.alternateValues;
+  featureValueLookup = aOther.featureValueLookup;
   return *this;
+}
+
+void
+nsFont::CopyAlternates(const nsFont& aOther)
+{
+  variantAlternates = aOther.variantAlternates;
+  alternateValues = aOther.alternateValues;
+  featureValueLookup = aOther.featureValueLookup;
 }
 
 static bool IsGenericFontFamily(const nsString& aFamily)
@@ -300,6 +314,19 @@ void nsFont::AddFontFeaturesToStyle(gfxFontStyle *aStyle) const
       
       break;
   }
+
+  
+  if (variantAlternates & NS_FONT_VARIANT_ALTERNATES_HISTORICAL) {
+    setting.mValue = 1;
+    setting.mTag = TRUETYPE_TAG('h','i','s','t');
+    aStyle->featureSettings.AppendElement(setting);
+  }
+
+
+  
+  
+  aStyle->alternateValues.AppendElements(alternateValues);
+  aStyle->featureValueLookup = featureValueLookup;
 
   
   setting.mValue = 1;

@@ -81,6 +81,16 @@ struct THEBES_API gfxFontStyle {
     nsTArray<gfxFontFeature> featureSettings;
 
     
+    
+    
+
+    
+    nsTArray<gfxAlternateValue> alternateValues;
+
+    
+    nsRefPtr<gfxFontFeatureValueSet> featureValueLookup;
+
+    
     gfxFloat size;
 
     
@@ -152,7 +162,9 @@ struct THEBES_API gfxFontStyle {
              *reinterpret_cast<const uint32_t*>(&other.sizeAdjust)) &&
             (kerning == other.kerning) &&
             (featureSettings == other.featureSettings) &&
-            (languageOverride == other.languageOverride);
+            (languageOverride == other.languageOverride) &&
+            (alternateValues == other.alternateValues) &&
+            (featureValueLookup == other.featureValueLookup);
     }
 
     static void ParseFontFeatureSettings(const nsString& aFeatureString,
@@ -1158,6 +1170,7 @@ public:
     MergeFontFeatures(const gfxFontStyle *aStyle,
                       const nsTArray<gfxFontFeature>& aFontFeatures,
                       bool aDisableLigatures,
+                      const nsAString& aFamilyName,
                       nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures);
 
 protected:
