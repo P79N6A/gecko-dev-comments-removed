@@ -46,8 +46,18 @@ public:
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
-                      const nsIntRect *aDirtyRect)=0;
+                      const nsIntRect *aDirtyRect,
+                      nsIFrame* aTransformRoot = nullptr) = 0;
 
   
   

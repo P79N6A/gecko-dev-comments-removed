@@ -50,7 +50,8 @@ public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
+                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
 
   
   NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,

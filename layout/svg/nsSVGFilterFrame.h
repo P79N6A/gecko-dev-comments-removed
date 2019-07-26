@@ -66,7 +66,8 @@ public:
   nsresult PaintFilteredFrame(nsRenderingContext *aContext,
                               nsIFrame *aFilteredFrame,
                               nsSVGFilterPaintCallback *aPaintCallback,
-                              const nsRect* aDirtyArea);
+                              const nsRect* aDirtyArea,
+                              nsIFrame* aTransformRoot);
 
   
 

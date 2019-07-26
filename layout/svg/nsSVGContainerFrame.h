@@ -57,7 +57,8 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor) {
+  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
+                                nsIFrame* aTransformRoot = nullptr) {
     return gfxMatrix();
   }
 
@@ -146,7 +147,8 @@ public:
 
   
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
-                      const nsIntRect *aDirtyRect) MOZ_OVERRIDE;
+                      const nsIntRect *aDirtyRect,
+                      nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint) MOZ_OVERRIDE;
   NS_IMETHOD_(nsRect) GetCoveredRegion() MOZ_OVERRIDE;
   virtual void ReflowSVG() MOZ_OVERRIDE;

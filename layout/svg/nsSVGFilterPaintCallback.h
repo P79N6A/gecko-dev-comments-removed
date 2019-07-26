@@ -23,8 +23,11 @@ public:
 
 
 
+
+
   virtual void Paint(nsRenderingContext *aContext, nsIFrame *aTarget,
-                     const nsIntRect *aDirtyRect) = 0;
+                     const nsIntRect *aDirtyRect,
+                     nsIFrame* aTransformRoot) = 0;
 };
 
 #endif

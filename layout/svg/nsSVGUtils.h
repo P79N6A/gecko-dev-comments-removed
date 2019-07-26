@@ -391,7 +391,8 @@ public:
   static void
   PaintFrameWithEffects(nsRenderingContext *aContext,
                         const nsIntRect *aDirtyRect,
-                        nsIFrame *aFrame);
+                        nsIFrame *aFrame,
+                        nsIFrame* aTransformRoot = nullptr);
 
   
 
@@ -408,7 +409,8 @@ public:
 
 
 
-  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, uint32_t aFor);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, uint32_t aFor,
+                               nsIFrame* aTransformRoot = nullptr);
 
   
 

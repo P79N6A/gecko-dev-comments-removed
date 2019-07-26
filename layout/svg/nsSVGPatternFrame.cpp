@@ -119,7 +119,7 @@ nsSVGPatternFrame::GetType() const
 
 
 gfxMatrix
-nsSVGPatternFrame::GetCanvasTM(uint32_t aFor)
+nsSVGPatternFrame::GetCanvasTM(uint32_t aFor, nsIFrame* aTransformRoot)
 {
   if (mCTM) {
     return *mCTM;
@@ -128,7 +128,7 @@ nsSVGPatternFrame::GetCanvasTM(uint32_t aFor)
   
   if (mSource) {
     
-    return mSource->GetCanvasTM(aFor);
+    return mSource->GetCanvasTM(aFor, aTransformRoot);
   }
 
   
