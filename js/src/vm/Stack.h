@@ -1040,6 +1040,7 @@ class InterpreterStack
 
     
     static const size_t MAX_FRAMES = 50 * 1000;
+    static const size_t MAX_FRAMES_TRUSTED = MAX_FRAMES + 1000;
     size_t frameCount_;
 
     inline uint8_t *allocateFrame(JSContext *cx, size_t size);
