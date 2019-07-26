@@ -48,7 +48,7 @@ enum {
   MOZ_GTK_DRAG_RESULT_NO_TARGET
 };
 
-static PRLogModuleInfo *sDragLm = NULL;
+static PRLogModuleInfo *sDragLm = nullptr;
 
 
 
@@ -114,7 +114,7 @@ nsDragService::nsDragService()
     if (dragFailedID) {
         g_signal_connect_closure_by_id(mHiddenWidget, dragFailedID, 0,
                                        g_cclosure_new(G_CALLBACK(invisibleSourceDragFailed),
-                                                      this, NULL),
+                                                      this, nullptr),
                                        FALSE);
     }
 
@@ -194,7 +194,7 @@ DispatchMotionEventCopy(gpointer aData)
     sMotionEventTimerID = 0;
 
     GdkEvent *event = sMotionEvent;
-    sMotionEvent = NULL;
+    sMotionEvent = nullptr;
     
     
     if (gtk_widget_has_grab(sGrabWidget)) {
@@ -246,7 +246,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
     
     sMotionEventTimerID = 
         g_timeout_add_full(G_PRIORITY_DEFAULT_IDLE, 350,
-                           DispatchMotionEventCopy, NULL, NULL);
+                           DispatchMotionEventCopy, nullptr, nullptr);
 }
 
 static GtkWindow*
@@ -254,30 +254,30 @@ GetGtkWindow(nsIDOMDocument *aDocument)
 {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
     if (!doc)
-        return NULL;
+        return nullptr;
 
     nsCOMPtr<nsIPresShell> presShell = doc->GetShell();
     if (!presShell)
-        return NULL;
+        return nullptr;
 
     nsRefPtr<nsViewManager> vm = presShell->GetViewManager();
     if (!vm)
-        return NULL;
+        return nullptr;
 
     nsCOMPtr<nsIWidget> widget;
     vm->GetRootWidget(getter_AddRefs(widget));
     if (!widget)
-        return NULL;
+        return nullptr;
 
     GtkWidget *gtkWidget =
         static_cast<nsWindow*>(widget.get())->GetMozContainerWidget();
     if (!gtkWidget)
-        return NULL;
+        return nullptr;
 
-    GtkWidget *toplevel = NULL;
+    GtkWidget *toplevel = nullptr;
     toplevel = gtk_widget_get_toplevel(gtkWidget);
     if (!GTK_IS_WINDOW(toplevel))
-        return NULL;
+        return nullptr;
 
     return GTK_WINDOW(toplevel);
 }   
@@ -407,7 +407,7 @@ nsDragService::SetAlphaPixmap(gfxASurface *aSurface,
     if (!alphaColormap)
       return false;
 
-    GdkPixmap* pixmap = gdk_pixmap_new(NULL, dragRect.width, dragRect.height,
+    GdkPixmap* pixmap = gdk_pixmap_new(nullptr, dragRect.width, dragRect.height,
                                        gdk_colormap_get_visual(alphaColormap)->depth);
     if (!pixmap)
       return false;
@@ -433,7 +433,7 @@ nsDragService::SetAlphaPixmap(gfxASurface *aSurface,
     xPixmapCtx->Paint(DRAG_IMAGE_ALPHA_LEVEL);
 
     
-    gtk_drag_set_icon_pixmap(aContext, alphaColormap, pixmap, NULL,
+    gtk_drag_set_icon_pixmap(aContext, alphaColormap, pixmap, nullptr,
                              aXOffset, aYOffset);
     g_object_unref(pixmap);
     return true;
@@ -460,7 +460,7 @@ nsDragService::EndDragSession(bool aDoneDrag)
         g_signal_handlers_disconnect_by_func(sGrabWidget,
              FuncToGpointer(OnSourceGrabEventAfter), this);
         g_object_unref(sGrabWidget);
-        sGrabWidget = NULL;
+        sGrabWidget = nullptr;
 
         if (sMotionEventTimerID) {
             g_source_remove(sMotionEventTimerID);
@@ -468,7 +468,7 @@ nsDragService::EndDragSession(bool aDoneDrag)
         }
         if (sMotionEvent) {
             gdk_event_free(sMotionEvent);
-            sMotionEvent = NULL;
+            sMotionEvent = nullptr;
         }
     }
 
@@ -980,7 +980,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
          tmp; tmp = tmp->next) {
         
         GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
-        gchar *name = NULL;
+        gchar *name = nullptr;
         name = gdk_atom_name(atom);
         PR_LOG(sDragLm, PR_LOG_DEBUG,
                ("checking %s against %s\n", name, aDataFlavor));
@@ -1085,7 +1085,7 @@ nsDragService::IsTargetContextList(void)
     
     
     
-    if (gtk_drag_get_source_widget(mTargetDragContext) == NULL)
+    if (gtk_drag_get_source_widget(mTargetDragContext) == nullptr)
         return retval;
 
     GList *tmp;
@@ -1096,7 +1096,7 @@ nsDragService::IsTargetContextList(void)
          tmp; tmp = tmp->next) {
         
         GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
-        gchar *name = NULL;
+        gchar *name = nullptr;
         name = gdk_atom_name(atom);
         if (name && strcmp(name, gMimeListType) == 0)
             retval = true;
@@ -1147,7 +1147,7 @@ GtkTargetList *
 nsDragService::GetSourceList(void)
 {
     if (!mSourceDataItems)
-        return NULL;
+        return nullptr;
     nsTArray<GtkTargetEntry*> targetArray;
     GtkTargetEntry *targets;
     GtkTargetList  *targetList = 0;
@@ -1326,7 +1326,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
         gint x, y;
         GdkDisplay* display = gdk_display_get_default();
         if (display) {
-            gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+            gdk_display_get_pointer(display, nullptr, &x, &y, nullptr);
             SetDragEndPoint(nsIntPoint(x, y));
         }
     }
@@ -1339,6 +1339,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
 
     if (aResult == MOZ_GTK_DRAG_RESULT_SUCCESS) {
 
+        
         
         
         
@@ -1374,14 +1375,14 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
     }
 
     
-    Schedule(eDragTaskSourceEnd, nullptr, NULL, nsIntPoint(), 0);
+    Schedule(eDragTaskSourceEnd, nullptr, nullptr, nsIntPoint(), 0);
 }
 
 static void
 CreateUriList(nsISupportsArray *items, gchar **text, gint *length)
 {
     uint32_t i, count;
-    GString *uriList = g_string_new(NULL);
+    GString *uriList = g_string_new(nullptr);
 
     items->Count(&count);
     for (i = 0; i < count; i++) {
@@ -1392,7 +1393,7 @@ CreateUriList(nsISupportsArray *items, gchar **text, gint *length)
 
         if (item) {
             uint32_t tmpDataLen = 0;
-            void    *tmpData = NULL;
+            void    *tmpData = nullptr;
             nsresult rv = NS_OK;
             nsCOMPtr<nsISupports> data;
             rv = item->GetTransferData(kURLMime,
@@ -1498,7 +1499,7 @@ nsDragService::SourceDataGet(GtkWidget        *aWidget,
             actualFlavor = mimeFlavor;
 
         uint32_t tmpDataLen = 0;
-        void    *tmpData = NULL;
+        void    *tmpData = nullptr;
         nsresult rv;
         nsCOMPtr<nsISupports> data;
         rv = item->GetTransferData(actualFlavor,
@@ -1727,7 +1728,7 @@ nsDragService::ScheduleLeaveEvent()
     
     
     
-    if (!Schedule(eDragTaskLeave, nullptr, NULL, nsIntPoint(), 0)) {
+    if (!Schedule(eDragTaskLeave, nullptr, nullptr, nsIntPoint(), 0)) {
         NS_WARNING("Drag leave after drop");
     }        
 }
@@ -1780,8 +1781,8 @@ nsDragService::Schedule(DragTask aTask, nsWindow *aWindow,
         
         
         
-        mTaskSource =
-            g_idle_add_full(G_PRIORITY_HIGH, TaskDispatchCallback, this, NULL);
+        mTaskSource = g_idle_add_full(G_PRIORITY_HIGH, TaskDispatchCallback,
+                                      this, nullptr);
     }
     return TRUE;
 }
@@ -1900,8 +1901,8 @@ nsDragService::RunScheduledTask()
     }
 
     
-    mTargetWidget = NULL;
-    mTargetDragContext = NULL;
+    mTargetWidget = nullptr;
+    mTargetDragContext = nullptr;
 
     
     

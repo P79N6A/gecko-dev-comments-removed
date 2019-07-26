@@ -111,7 +111,7 @@ nsresult
 nsScreenManagerGtk :: Init()
 {
 #ifdef MOZ_X11
-  XineramaScreenInfo *screenInfo = NULL;
+  XineramaScreenInfo *screenInfo = nullptr;
   int numScreens;
 
   if (!mXineramalib) {
