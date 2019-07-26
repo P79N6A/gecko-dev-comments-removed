@@ -277,7 +277,7 @@ WeakMapPostWriteBarrier(JSRuntime *rt, ObjectValueMap *map, JSObject *key)
 
 
     typedef WeakMap<JSObject *, Value> UnbarrieredObjectValueMap;
-    typedef HashKeyRef<UnbarrieredObjectValueMap, JSObject *> Ref;
+    typedef gc::HashKeyRef<UnbarrieredObjectValueMap, JSObject *> Ref;
     if (key && IsInsideNursery(rt, key))
         rt->gcStoreBuffer.putGeneric(Ref(reinterpret_cast<UnbarrieredObjectValueMap *>(map), key));
 #endif
