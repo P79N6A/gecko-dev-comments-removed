@@ -3,9 +3,7 @@
 
 
 
-package org.mozilla.gecko.ui;
-
-import org.mozilla.gecko.gfx.PointUtils;
+package org.mozilla.gecko.gfx;
 
 import org.json.JSONException;
 

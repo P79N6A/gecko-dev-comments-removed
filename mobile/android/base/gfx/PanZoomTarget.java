@@ -3,10 +3,9 @@
 
 
 
-package org.mozilla.gecko.ui;
+package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.ZoomConstraints;
-import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 
 import android.graphics.PointF;
 

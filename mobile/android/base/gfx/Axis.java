@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko.ui;
+package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.util.FloatUtils;
