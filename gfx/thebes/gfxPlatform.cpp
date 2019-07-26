@@ -263,11 +263,11 @@ gfxPlatform::Init()
     useOffMainThreadCompositing = (PR_GetEnv("MOZ_USE_OMTC") != NULL);
 #else
     useOffMainThreadCompositing = Preferences::GetBool(
-          "layers.offmainthreadcomposition.enabled", 
+          "layers.offmainthreadcomposition.enabled",
           false);
 #endif
 
-    if (useOffMainThreadCompositing && (XRE_GetProcessType() == 
+    if (useOffMainThreadCompositing && (XRE_GetProcessType() ==
                                         GeckoProcessType_Default)) {
         CompositorParent::StartUp();
         if (Preferences::GetBool("layers.async-video.enabled",false)) {
@@ -442,7 +442,7 @@ gfxPlatform::~gfxPlatform()
 already_AddRefed<gfxASurface>
 gfxPlatform::CreateOffscreenImageSurface(const gfxIntSize& aSize,
                                          gfxASurface::gfxContentType aContentType)
-{ 
+{
   nsRefPtr<gfxASurface> newSurface;
   newSurface = new gfxImageSurface(aSize, OptimalFormatForContent(aContentType));
 
@@ -456,7 +456,7 @@ gfxPlatform::OptimizeImage(gfxImageSurface *aSurface,
     const gfxIntSize& surfaceSize = aSurface->GetSize();
 
 #ifdef XP_WIN
-    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() == 
+    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
         gfxWindowsPlatform::RENDER_DIRECT2D) {
         return nullptr;
     }
@@ -913,16 +913,16 @@ bool gfxPlatform::ForEachPrefFont(eFontPrefLang aLangArray[], uint32_t aLangArra
     for (i = 0; i < aLangArrayLen; i++) {
         eFontPrefLang prefLang = aLangArray[i];
         const char *langGroup = GetPrefLangName(prefLang);
-        
+
         nsAutoCString prefName;
-    
+
         prefName.AssignLiteral("font.default.");
         prefName.Append(langGroup);
         nsAdoptingCString genericDotLang = Preferences::GetCString(prefName.get());
-    
+
         genericDotLang.AppendLiteral(".");
         genericDotLang.Append(langGroup);
-    
+
         
         prefName.AssignLiteral("font.name.");
         prefName.Append(genericDotLang);
@@ -931,7 +931,7 @@ bool gfxPlatform::ForEachPrefFont(eFontPrefLang aLangArray[], uint32_t aLangArra
             if (!aCallback(prefLang, NS_ConvertUTF8toUTF16(nameValue), aClosure))
                 return false;
         }
-    
+
         
         prefName.AssignLiteral("font.name-list.");
         prefName.Append(genericDotLang);
@@ -1031,7 +1031,7 @@ gfxPlatform::GetFontPrefLangFor(uint8_t aUnicodeRange)
     }
 }
 
-bool 
+bool
 gfxPlatform::IsLangCJK(eFontPrefLang aLang)
 {
     switch (aLang) {
@@ -1047,7 +1047,7 @@ gfxPlatform::IsLangCJK(eFontPrefLang aLang)
     }
 }
 
-void 
+void
 gfxPlatform::GetLangPrefs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang)
 {
     if (IsLangCJK(aCharLang)) {
@@ -1066,14 +1066,14 @@ gfxPlatform::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFon
     if (IsLangCJK(aPageLang)) {
         AppendPrefLang(aPrefLangs, aLen, aPageLang);
     }
-    
+
     
     if (mCJKPrefLangs.Length() == 0) {
-    
+
         
         eFontPrefLang tempPrefLangs[kMaxLenPrefLangList];
         uint32_t tempLen = 0;
-        
+
         
         nsAdoptingCString list = Preferences::GetLocalizedCString("intl.accept_languages");
         if (!list.IsEmpty()) {
@@ -1150,34 +1150,34 @@ gfxPlatform::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFon
         AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseCN);
         AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseHK);
         AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseTW);
-        
+
         
         uint32_t j;
         for (j = 0; j < tempLen; j++) {
             mCJKPrefLangs.AppendElement(tempPrefLangs[j]);
         }
     }
-    
+
     
     uint32_t  i, numCJKlangs = mCJKPrefLangs.Length();
-    
+
     for (i = 0; i < numCJKlangs; i++) {
         AppendPrefLang(aPrefLangs, aLen, (eFontPrefLang) (mCJKPrefLangs[i]));
     }
-        
+
 }
 
-void 
+void
 gfxPlatform::AppendPrefLang(eFontPrefLang aPrefLangs[], uint32_t& aLen, eFontPrefLang aAddLang)
 {
     if (aLen >= kMaxLenPrefLangList) return;
-    
+
     
     uint32_t  i = 0;
     while (i < aLen && aPrefLangs[i] != aAddLang) {
         i++;
     }
-    
+
     if (i == aLen) {
         aPrefLangs[aLen] = aAddLang;
         aLen++;
@@ -1308,7 +1308,7 @@ gfxPlatform::GetRenderingIntent()
     return gCMSIntent;
 }
 
-void 
+void
 gfxPlatform::TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *transform)
 {
 
