@@ -23,6 +23,7 @@ this.FxAccountsClient = function(host = HOST) {
   
   
   this.hawk = new HawkClient(host);
+  this.hawk.observerPrefix = "FxA:hawk";
 
   
   

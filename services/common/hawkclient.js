@@ -32,6 +32,7 @@ Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-common/hawkrequest.js");
+Cu.import("resource://services-common/observers.js");
 Cu.import("resource://gre/modules/Promise.jsm");
 
 
@@ -75,6 +76,10 @@ this.HawkClient.prototype = {
     retryAfter = retryAfter ? parseInt(retryAfter) : retryAfter;
     if (retryAfter) {
       errorObj.retryAfter = retryAfter;
+      
+      if (this.observerPrefix) {
+        Observers.notify(this.observerPrefix + ":backoff:interval", retryAfter);
+      }
     }
     return errorObj;
   },
@@ -154,6 +159,11 @@ this.HawkClient.prototype = {
                 " - Status text: " + restResponse.statusText,
                 " - Response text: " + restResponse.body);
 
+      
+      
+      self._maybeNotifyBackoff(restResponse, "x-weave-backoff");
+      self._maybeNotifyBackoff(restResponse, "x-backoff");
+
       if (error) {
         
         
@@ -162,7 +172,7 @@ this.HawkClient.prototype = {
 
       self._updateClockOffset(restResponse.headers["date"]);
 
-      if (status === 401 && retryOK) {
+      if (status === 401 && retryOK && !("retry-after" in restResponse.headers)) {
         
         
         log.debug("Received 401 for " + path + ": retrying");
@@ -207,6 +217,35 @@ this.HawkClient.prototype = {
     }
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  observerPrefix: null,
+
+  
+  _maybeNotifyBackoff: function (response, headerName) {
+    if (!this.observerPrefix) {
+      return;
+    }
+    let headerVal = response.headers[headerName];
+    if (!headerVal) {
+      return;
+    }
+    let backoffInterval;
+    try {
+      backoffInterval = parseInt(headerVal, 10);
+    } catch (ex) {
+      this._log.error("hawkclient response had invalid backoff value in '" +
+                      headerName + "' header: " + headerVal);
+      return;
+    }
+    Observers.notify(this.observerPrefix + ":backoff:interval", backoffInterval);
   },
 
   

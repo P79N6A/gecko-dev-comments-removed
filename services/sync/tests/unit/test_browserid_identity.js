@@ -408,6 +408,74 @@ add_task(function test_getTokenErrorWithRetry() {
   Assert.ok(Status.backoffInterval >= 200000);
 });
 
+add_task(function test_getKeysErrorWithBackoff() {
+  _("Auth server (via hawk) sends an observer notification on backoff headers.");
+
+  
+  
+  Status.backoffInterval = 0;
+  _("Arrange for a 503 with a X-Backoff header.");
+
+  let config = makeIdentityConfig();
+  
+  delete config.fxaccount.user.kA;
+  delete config.fxaccount.user.kB;
+  config.fxaccount.user.keyFetchToken = "keyfetchtoken";
+  yield initializeIdentityWithHAWKResponseFactory(config, function(method, data, uri) {
+    Assert.equal(method, "get");
+    Assert.equal(uri, "http://mockedserver:9999/account/keys")
+    return {
+      status: 503,
+      headers: {"content-type": "application/json",
+                "x-backoff": "100"},
+      body: "{}",
+    }
+  });
+
+  let browseridManager = Service.identity;
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to 503");
+
+  
+  Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login was rejected");
+  
+  Assert.ok(Status.backoffInterval >= 100000);
+});
+
+add_task(function test_getKeysErrorWithRetry() {
+  _("Auth server (via hawk) sends an observer notification on retry headers.");
+
+  
+  
+  Status.backoffInterval = 0;
+  _("Arrange for a 503 with a Retry-After header.");
+
+  let config = makeIdentityConfig();
+  
+  delete config.fxaccount.user.kA;
+  delete config.fxaccount.user.kB;
+  config.fxaccount.user.keyFetchToken = "keyfetchtoken";
+  yield initializeIdentityWithHAWKResponseFactory(config, function(method, data, uri) {
+    Assert.equal(method, "get");
+    Assert.equal(uri, "http://mockedserver:9999/account/keys")
+    return {
+      status: 503,
+      headers: {"content-type": "application/json",
+                "retry-after": "100"},
+      body: "{}",
+    }
+  });
+
+  let browseridManager = Service.identity;
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to 503");
+
+  
+  Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login was rejected");
+  
+  Assert.ok(Status.backoffInterval >= 100000);
+});
+
 add_task(function test_getHAWKErrors() {
   _("BrowserIDManager correctly handles various HAWK failures.");
 
@@ -523,6 +591,8 @@ function* initializeIdentityWithHAWKResponseFactory(config, cbGetResponse) {
   MockedHawkClient.prototype.newHAWKAuthenticatedRESTRequest = function(uri, credentials, extra) {
     return new MockRESTRequest(uri, credentials, extra);
   }
+  
+  MockedHawkClient.prototype.observerPrefix = "FxA:hawk";
 
   
   let fxaClient = new MockFxAccountsClient();

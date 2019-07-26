@@ -80,6 +80,7 @@ this.BrowserIDManager = function BrowserIDManager() {
   
   this._fxaService = fxAccounts;
   this._tokenServerClient = new TokenServerClient();
+  this._tokenServerClient.observerPrefix = "weave:service";
   
   this.whenReadyToAuthenticate = null;
   this._log = log;

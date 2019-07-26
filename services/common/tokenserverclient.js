@@ -330,6 +330,7 @@ TokenServerClient.prototype = {
     }
 
     
+    this._maybeNotifyBackoff(response, "x-weave-backoff");
     this._maybeNotifyBackoff(response, "x-backoff");
 
     
@@ -414,7 +415,19 @@ TokenServerClient.prototype = {
   },
 
   
+
+
+
+
+
+
+  observerPrefix: null,
+
+  
   _maybeNotifyBackoff: function (response, headerName) {
+    if (!this.observerPrefix) {
+      return;
+    }
     let headerVal = response.headers[headerName];
     if (!headerVal) {
       return;
@@ -427,7 +440,7 @@ TokenServerClient.prototype = {
                       headerName + "' header: " + headerVal);
       return;
     }
-    Observers.notify("tokenserver:backoff:interval", backoffInterval);
+    Observers.notify(this.observerPrefix + ":backoff:interval", backoffInterval);
   },
 
   

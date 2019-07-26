@@ -54,6 +54,9 @@ this.initializeIdentityWithTokenServerResponse = function(response) {
     return new MockRESTRequest(url);
   }
   
+  MockTSC.prototype.observerPrefix = "weave:service";
+
+  
   Weave.Status.__authManager = Weave.Service.identity = new BrowserIDManager();
   Weave.Service._clusterManager = Weave.Service.identity.createClusterManager(Weave.Service);
   let browseridManager = Weave.Service.identity;
