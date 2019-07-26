@@ -53,9 +53,13 @@ public:
 
 
 
-  static bool DispatchMouseEvent(uint32_t aEventType,
-                                   nsIPresShell *aPresShell,
-                                   nsIContent *aContent);
+
+
+
+
+  static void DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
+                                 nsIContent *aContent, nsIFrame *aFrame,
+                                 nsIPresShell *aPresShell, nsIWidget *aRootWidget);
 
   
 
@@ -68,10 +72,9 @@ public:
 
 
 
-  static void DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
-                                 nsIContent *aContent, nsIFrame *aFrame,
-                                 nsIPresShell *aPresShell,
-                                 nsIWidget *aRootWidget);
+  static void DispatchTouchEvent(uint32_t aEventType, int32_t aX, int32_t aY,
+                                 nsIContent* aContent, nsIFrame* aFrame,
+                                 nsIPresShell* aPresShell, nsIWidget* aRootWidget);
 
   
 
