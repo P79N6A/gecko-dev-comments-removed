@@ -50,7 +50,9 @@ self.onmessage = function(e) {
       
       
       
-      var reply_len = len.value;
+      
+      
+      var reply_len = ctypes.UInt64.lo(len.value);
       if (reply_len !== 0) {
         if (cbuf[reply_len - 1] === 10)
           cbuf[--reply_len] = 0;
