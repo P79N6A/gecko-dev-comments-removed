@@ -103,9 +103,9 @@ public:
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   
-  NS_IMETHOD BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                         const nsRect&           aDirtyRect,
-                                         const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+  virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
+                                           const nsRect&           aDirtyRect,
+                                           const nsDisplayListSet& aLists) MOZ_OVERRIDE;
                                          
   
   NS_IMETHOD HandleEvent(nsPresContext* aPresContext, 

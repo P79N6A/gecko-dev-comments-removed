@@ -179,11 +179,11 @@ public:
   
   static nsTableFrame* GetTableFrame(nsIFrame* aSourceFrame);
                                  
-  typedef nsresult (* DisplayGenericTablePartTraversal)
+  typedef void (* DisplayGenericTablePartTraversal)
       (nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
        const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
-  static nsresult GenericTraversal(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
-                                   const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
+  static void GenericTraversal(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
+                               const nsRect& aDirtyRect, const nsDisplayListSet& aLists);
 
   
 
@@ -196,12 +196,12 @@ public:
 
 
 
-  static nsresult DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
-                                          nsFrame* aFrame,
-                                          const nsRect& aDirtyRect,
-                                          const nsDisplayListSet& aLists,
-                                          nsDisplayTableItem* aDisplayItem,
-                                          DisplayGenericTablePartTraversal aTraversal = GenericTraversal);
+  static void DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
+                                      nsFrame* aFrame,
+                                      const nsRect& aDirtyRect,
+                                      const nsDisplayListSet& aLists,
+                                      nsDisplayTableItem* aDisplayItem,
+                                      DisplayGenericTablePartTraversal aTraversal = GenericTraversal);
 
   
   
@@ -224,9 +224,9 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
+  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                const nsRect&           aDirtyRect,
+                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   
 

@@ -1157,18 +1157,18 @@ public:
 
 
 
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                              const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists) { return NS_OK; }
+  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                const nsRect&           aDirtyRect,
+                                const nsDisplayListSet& aLists) {}
   
 
 
 
 
 
-  nsresult DisplayCaret(nsDisplayListBuilder*       aBuilder,
-                        const nsRect&               aDirtyRect,
-                        nsDisplayList*              aList);
+  void DisplayCaret(nsDisplayListBuilder* aBuilder,
+                    const nsRect&         aDirtyRect,
+                    nsDisplayList*        aList);
 
   
 
@@ -1204,9 +1204,9 @@ public:
 
 
 
-  nsresult BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
-                                              const nsRect&         aDirtyRect,
-                                              nsDisplayList*        aList);
+  void BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
+                                          const nsRect&         aDirtyRect,
+                                          nsDisplayList*        aList);
 
   
 
@@ -1241,11 +1241,11 @@ public:
 
 
 
-  nsresult BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
-                                    nsIFrame*               aChild,
-                                    const nsRect&           aDirtyRect,
-                                    const nsDisplayListSet& aLists,
-                                    uint32_t                aFlags = 0);
+  void BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
+                                nsIFrame*               aChild,
+                                const nsRect&           aDirtyRect,
+                                const nsDisplayListSet& aLists,
+                                uint32_t                aFlags = 0);
 
   
 
