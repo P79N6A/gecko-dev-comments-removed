@@ -402,6 +402,74 @@ OpaqueRenderer::End()
   mD3D9ThebesSurface = nullptr;
 
 }
+class TransparentRenderer {
+public:
+  TransparentRenderer(const nsIntRegion& aUpdateRegion) :
+    mUpdateRegion(aUpdateRegion) {}
+  ~TransparentRenderer() { End(); }
+  already_AddRefed<gfxImageSurface> Begin(LayerD3D9* aLayer);
+  void End();
+  IDirect3DTexture9* GetTexture() { return mTmpTexture; }
+
+private:
+  const nsIntRegion& mUpdateRegion;
+  nsRefPtr<IDirect3DTexture9> mTmpTexture;
+  nsRefPtr<gfxImageSurface> mD3D9ThebesSurface;
+};
+
+already_AddRefed<gfxImageSurface>
+TransparentRenderer::Begin(LayerD3D9* aLayer)
+{
+  nsIntRect bounds = mUpdateRegion.GetBounds();
+
+  HRESULT hr = aLayer->device()->
+      CreateTexture(bounds.width, bounds.height, 1, 0, D3DFMT_A8R8G8B8,
+                    D3DPOOL_SYSTEMMEM, getter_AddRefs(mTmpTexture), nullptr);
+
+  if (FAILED(hr)) {
+    aLayer->ReportFailure(NS_LITERAL_CSTRING("Failed to create temporary texture in system memory."), hr);
+    return nullptr;
+  }
+
+  D3DLOCKED_RECT r;
+  hr = mTmpTexture->LockRect(0, &r, nullptr, 0);
+  if (FAILED(hr)) {
+    
+    NS_WARNING("Failed to lock the texture");
+    return nullptr;
+  }
+  nsRefPtr<gfxImageSurface> result =
+        new gfxImageSurface((unsigned char *)r.pBits,
+                            bounds.Size(),
+                            r.Pitch,
+                            gfxImageFormat::ARGB32);
+
+  if (!result || result->CairoStatus()) {
+    NS_WARNING("Failed to d3d9 cairo surface.");
+    return nullptr;
+  }
+  mD3D9ThebesSurface = result;
+
+  return result.forget();
+}
+
+void
+TransparentRenderer::End()
+{
+  
+  
+#if 1
+  if (mD3D9ThebesSurface) {
+    mD3D9ThebesSurface->AddRef();
+    nsrefcnt c = mD3D9ThebesSurface->Release();
+    if (c != 1)
+      NS_RUNTIMEABORT("Reference mD3D9ThebesSurface must be released by caller of Begin() before calling End()");
+  }
+#endif
+  mD3D9ThebesSurface = nullptr;
+  if (mTmpTexture)
+	  mTmpTexture->UnlockRect(0);
+}
 
 static void
 FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
@@ -418,13 +486,13 @@ void
 ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
                             const nsTArray<ReadbackProcessor::Update>& aReadbackUpdates)
 {
-  HRESULT hr;
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
   nsRefPtr<gfxASurface> destinationSurface;
   nsIntRect bounds = aRegion.GetBounds();
   nsRefPtr<IDirect3DTexture9> tmpTexture;
   OpaqueRenderer opaqueRenderer(aRegion);
+  TransparentRenderer transparentRenderer(aRegion);
   OpaqueRenderer opaqueRendererOnWhite(aRegion);
 
   switch (aMode)
@@ -434,25 +502,11 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
       break;
 
     case SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA: {
-      hr = device()->CreateTexture(bounds.width, bounds.height, 1,
-                                   0, D3DFMT_A8R8G8B8,
-                                   D3DPOOL_SYSTEMMEM, getter_AddRefs(tmpTexture), nullptr);
-
-      if (FAILED(hr)) {
-        ReportFailure(NS_LITERAL_CSTRING("Failed to create temporary texture in system memory."), hr);
-        return;
-      }
-
+	  destinationSurface = transparentRenderer.Begin(this);
       
       
       
-      nsRefPtr<gfxWindowsSurface> dest = new gfxWindowsSurface(
-          gfxIntSize(bounds.width, bounds.height), gfxImageFormat::ARGB32);
-      
-      
-      
-      dest->SetSubpixelAntialiasingEnabled(!(mContentFlags & CONTENT_COMPONENT_ALPHA));
-      destinationSurface = dest.forget();
+      destinationSurface->SetSubpixelAntialiasingEnabled(!(mContentFlags & CONTENT_COMPONENT_ALPHA));
       break;
     }
 
@@ -523,36 +577,13 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
       destTextures.AppendElement(mTexture);
       break;
 
-    case SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA: {
-      LockTextureRectD3D9 textureLock(tmpTexture);
-      if (!textureLock.HasLock()) {
-        NS_WARNING("Failed to lock ThebesLayer tmpTexture texture.");
-        return;
-      }
-
-      D3DLOCKED_RECT r = textureLock.GetLockRect();
-
-      nsRefPtr<gfxImageSurface> imgSurface =
-        new gfxImageSurface((unsigned char *)r.pBits,
-                            bounds.Size(),
-                            r.Pitch,
-                            gfxImageFormat::ARGB32);
-
-      if (destinationSurface) {
-        nsRefPtr<gfxContext> context = new gfxContext(imgSurface);
-        context->SetSource(destinationSurface);
-        context->SetOperator(gfxContext::OPERATOR_SOURCE);
-        context->Paint();
-      }
-
-      
+    case SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA:
+	  
       destinationSurface = nullptr;
-      imgSurface = nullptr;
-
-      srcTextures.AppendElement(tmpTexture);
+      transparentRenderer.End();
+      srcTextures.AppendElement(transparentRenderer.GetTexture());
       destTextures.AppendElement(mTexture);
       break;
-    }
 
     case SurfaceMode::SURFACE_COMPONENT_ALPHA: {
       
