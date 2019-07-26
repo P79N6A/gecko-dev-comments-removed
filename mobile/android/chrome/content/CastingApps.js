@@ -12,6 +12,12 @@ var CastingApps = {
     }
 
     
+    SimpleServiceDiscovery.registerTarget("roku:ecp", function(aService, aApp) {
+      Cu.import("resource://gre/modules/RokuApp.jsm");
+      return new RokuApp(aService, "FirefoxTest");
+    });
+
+    
     SimpleServiceDiscovery.search(120 * 1000);
 
     this._castMenuId = NativeWindow.contextmenus.add(
