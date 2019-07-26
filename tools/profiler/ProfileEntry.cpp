@@ -464,9 +464,11 @@ void ThreadProfile::DuplicateLastSample() {
   
   
   
-  for (int readPos = mWritePos; readPos != (mReadPos + mEntrySize - 1) % mEntrySize; readPos = (readPos + mEntrySize - 1) % mEntrySize) {
-    
+  for (int readPos  = (mWritePos + mEntrySize - 1) % mEntrySize;
+           readPos !=  (mReadPos + mEntrySize - 1) % mEntrySize;
+           readPos  =   (readPos + mEntrySize - 1) % mEntrySize) {
     if (mEntries[readPos].mTagName == 's') {
+      
       int copyEndIdx = mWritePos;
       
       for (;readPos != copyEndIdx; readPos = (readPos + 1) % mEntrySize) {
