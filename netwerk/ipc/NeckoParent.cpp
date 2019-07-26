@@ -98,13 +98,6 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
       if (tabParent->HasOwnApp()) {
         return "TabParent reports NECKO_NO_APP_ID but also is an app";
       }
-      if (UsingNeckoIPCSecurity() && tabParent->IsBrowserElement()) {
-        
-        
-        
-        
-        return "TabParent reports appId=NECKO_NO_APP_ID but is a mozbrowser";
-      }
     }
   } else {
     
