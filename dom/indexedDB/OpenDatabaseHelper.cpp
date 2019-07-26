@@ -1512,6 +1512,23 @@ public:
       }
 
       
+      nsPIDOMWindow* owner = database->GetOwner();
+      if (owner && owner->IsFrozen()) {
+        
+        
+        
+        indexedDB::IndexedDatabaseManager* manager =
+          indexedDB::IndexedDatabaseManager::Get();
+        NS_ASSERTION(manager, "Huh?");
+        manager->AbortCloseDatabasesForWindow(owner);
+
+        NS_ASSERTION(database->IsClosed(),
+                   "AbortCloseDatabasesForWindow should have closed database");
+        ownerDoc->DisallowBFCaching();
+        continue;
+      }
+
+      
       nsRefPtr<nsDOMEvent> event = 
         IDBVersionChangeEvent::Create(mOldVersion, mNewVersion);
       NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);

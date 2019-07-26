@@ -464,8 +464,22 @@ public:
     return GetBFCacheEntry() ? nullptr : mPresShell;
   }
 
+  void DisallowBFCaching()
+  {
+    NS_ASSERTION(!mBFCacheEntry, "We're already in the bfcache!");
+    mBFCacheDisallowed = true;
+  }
+
+  bool IsBFCachingAllowed() const
+  {
+    return !mBFCacheDisallowed;
+  }
+
   void SetBFCacheEntry(nsIBFCacheEntry* aEntry)
   {
+    NS_ASSERTION(IsBFCachingAllowed() || !aEntry,
+                 "You should have checked!");
+
     mBFCacheEntry = aEntry;
   }
 
@@ -1915,6 +1929,9 @@ protected:
 
   
   bool mHasMixedActiveContentLoaded;
+
+  
+  bool mBFCacheDisallowed;
 
   
   
