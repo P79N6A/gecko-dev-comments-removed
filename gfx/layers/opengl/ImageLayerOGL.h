@@ -20,6 +20,7 @@ namespace layers {
 
 class CairoImage;
 class PlanarYCbCrImage;
+class ShmemYCbCrImage;
 
 
 
@@ -180,7 +181,12 @@ public:
 
 private:
   bool Init(const SharedImage& aFront);
+  
+  
   void UploadSharedYUVToTexture(const YUVImage& yuv);
+
+  void UploadSharedYCbCrToTexture(ShmemYCbCrImage& aImage,
+                                  nsIntRect aPictureRect);
 
 
   nsRefPtr<TextureImage> mTexImage;
