@@ -2159,6 +2159,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     return NS_OK;
   }
 
+  aStatus = NS_FRAME_COMPLETE;
+
   
   
   
@@ -2450,13 +2452,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, e.get());
   }
 
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize)
-
-  aStatus = NS_FRAME_COMPLETE;
-
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize,
                                  aReflowState, aStatus);
 
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize)
   return NS_OK;
 }
 
