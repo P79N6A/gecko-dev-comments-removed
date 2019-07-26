@@ -386,6 +386,14 @@ DecomposeIntoNoRepeatRects(const Rect& aRect,
 
   
   
+  
+  while (texCoordRect.x >= 1.0f)
+    texCoordRect.x -= 1.0f;
+  while (texCoordRect.y >= 1.0f)
+    texCoordRect.y -= 1.0f;
+
+  
+  
   bool flipped = false;
   if (texCoordRect.height < 0) {
     flipped = true;
