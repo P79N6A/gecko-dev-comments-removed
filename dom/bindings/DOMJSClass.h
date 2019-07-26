@@ -133,7 +133,7 @@ struct DOMClass
 {
   
   
-  const prototypes::ID mInterfaceChain[prototypes::id::_ID_Count];
+  const prototypes::ID mInterfaceChain[MAX_PROTOTYPE_CHAIN_LENGTH];
 
   
   

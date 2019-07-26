@@ -7779,6 +7779,10 @@ class GlobalGenRoots():
         curr = CGList([idEnum])
 
         
+        maxMacro = CGGeneric(declare="#define MAX_PROTOTYPE_CHAIN_LENGTH " + str(config.maxProtoChainLength))
+        curr.append(CGWrapper(maxMacro, post='\n\n'))
+
+        
         constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True)]
         idEnum = CGNamespacedEnum('id', 'ID', ['_ID_Start'] + constructors,
                                   ['prototypes::id::_ID_Count', '_ID_Start'])
