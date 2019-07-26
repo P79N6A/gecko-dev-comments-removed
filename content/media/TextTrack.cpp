@@ -73,15 +73,13 @@ TextTrack::SetMode(TextTrackMode aValue)
 void
 TextTrack::AddCue(TextTrackCue& aCue)
 {
-  
   mCueList->AddCue(aCue);
 }
 
 void
-TextTrack::RemoveCue(TextTrackCue& aCue)
+TextTrack::RemoveCue(TextTrackCue& aCue, ErrorResult& aRv)
 {
-  
-  mCueList->RemoveCue(aCue);
+  mCueList->RemoveCue(aCue, aRv);
 }
 
 void
