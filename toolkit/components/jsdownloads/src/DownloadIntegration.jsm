@@ -27,6 +27,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
                                   "resource://gre/modules/DownloadStore.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadImport",
+                                  "resource://gre/modules/DownloadImport.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
@@ -93,6 +95,12 @@ const kSaveDelayMs = 1500;
 
 
 
+const kPrefImportedFromSqlite = "browser.download.importedFromSqlite";
+
+
+
+
+
 
 
 
@@ -136,26 +144,59 @@ this.DownloadIntegration = {
 
 
 
-  loadPersistent: function DI_loadPersistent(aList)
-  {
-    if (this.dontLoad) {
-      return Promise.resolve();
-    }
+  initializePublicDownloadList: function(aList) {
+    return Task.spawn(function task_DI_initializePublicDownloadList() {
+      if (this.dontLoad) {
+        return;
+      }
 
-    if (this._store) {
-      throw new Error("loadPersistent may be called only once.");
-    }
+      if (this._store) {
+        throw new Error("initializePublicDownloadList may be called only once.");
+      }
 
-    this._store = new DownloadStore(aList, OS.Path.join(
-                                              OS.Constants.Path.profileDir,
-                                              "downloads.json"));
-    this._store.onsaveitem = this.shouldPersistDownload.bind(this);
+      this._store = new DownloadStore(aList, OS.Path.join(
+                                                OS.Constants.Path.profileDir,
+                                                "downloads.json"));
+      this._store.onsaveitem = this.shouldPersistDownload.bind(this);
 
-    
-    
-    return this._store.load().then(null, Cu.reportError).then(() => {
+      if (this._importedFromSqlite) {
+        try {
+          yield this._store.load();
+        } catch (ex) {
+          Cu.reportError(ex);
+        }
+      } else {
+        let sqliteDBpath = OS.Path.join(OS.Constants.Path.profileDir,
+                                        "downloads.sqlite");
+
+        if (yield OS.File.exists(sqliteDBpath)) {
+          let sqliteImport = new DownloadImport(aList, sqliteDBpath);
+          yield sqliteImport.import();
+
+          let importCount = (yield aList.getAll()).length;
+          if (importCount > 0) {
+            try {
+              yield this._store.save();
+            } catch (ex) { }
+          }
+
+          
+          OS.File.remove(sqliteDBpath).then(null, Cu.reportError);
+        }
+
+        Services.prefs.setBoolPref(kPrefImportedFromSqlite, true);
+
+        
+        
+        OS.File.remove(OS.Path.join(OS.Constants.Path.profileDir,
+                                    "downloads.rdf"));
+
+      }
+
+      
+      
       new DownloadAutoSaveView(aList, this._store);
-    });
+    }.bind(this));
   },
 
   
@@ -196,7 +237,7 @@ this.DownloadIntegration = {
         
         
         
-        yield;
+        yield undefined;
         throw new Task.Result(this._downloadsDirectory);
       }
 
@@ -562,7 +603,21 @@ this.DownloadIntegration = {
       Services.obs.addObserver(DownloadObserver, "last-pb-context-exiting", true);
     }
     return Promise.resolve();
-  }
+  },
+
+  
+
+
+
+
+
+  get _importedFromSqlite() {
+    try {
+      return Services.prefs.getBoolPref(kPrefImportedFromSqlite);
+    } catch (ex) {
+      return false;
+    }
+  },
 };
 
 
