@@ -20,7 +20,7 @@
 
 using namespace js;
 
-
+
 
 
 
@@ -117,11 +117,15 @@ class OrderedHashTable
         dataCapacity = capacity;
         liveCount = 0;
         hashShift = HashNumberSizeBits - initialBucketsLog2();
-        JS_ASSERT(hashBuckets() == buckets);
+        MOZ_ASSERT(hashBuckets() == buckets);
         return true;
     }
 
     ~OrderedHashTable() {
+        for (Range *r = ranges, *next; r; r = next) {
+            next = r->next;
+            r->onTableDestroyed();
+        }
         alloc.free_(hashTable);
         freeData(data, dataLength);
     }
@@ -244,7 +248,11 @@ class OrderedHashTable
 
 
 
-    class Range {
+
+
+
+    class Range
+    {
         friend class OrderedHashTable;
 
         OrderedHashTable &ht;
@@ -311,6 +319,7 @@ class OrderedHashTable
 
 
         void onRemove(uint32_t j) {
+            MOZ_ASSERT(valid());
             if (j < i)
                 count--;
             if (j == i)
@@ -324,11 +333,25 @@ class OrderedHashTable
 
 
         void onCompact() {
+            MOZ_ASSERT(valid());
             i = count;
         }
 
+        bool valid() const {
+            return next != this;
+        }
+
+        void onTableDestroyed() {
+            MOZ_ASSERT(valid());
+            prevp = &next;
+            next = this;
+        }
+
       public:
-        bool empty() const { return i >= ht.dataLength; }
+        bool empty() const {
+            MOZ_ASSERT(valid());
+            return i >= ht.dataLength;
+        }
 
         
 
@@ -339,6 +362,7 @@ class OrderedHashTable
 
 
         T &front() {
+            MOZ_ASSERT(valid());
             MOZ_ASSERT(!empty());
             return ht.data[i].element;
         }
@@ -353,6 +377,7 @@ class OrderedHashTable
 
 
         void popFront() {
+            MOZ_ASSERT(valid());
             MOZ_ASSERT(!empty());
             MOZ_ASSERT(!Ops::isEmpty(Ops::getKey(ht.data[i].element)));
             count++;
@@ -368,6 +393,7 @@ class OrderedHashTable
 
 
         void rekeyFront(const Key &k) {
+            MOZ_ASSERT(valid());
             Data &entry = ht.data[i];
             HashNumber oldHash = prepareHash(Ops::getKey(entry.element)) >> ht.hashShift;
             HashNumber newHash = prepareHash(k) >> ht.hashShift;
@@ -403,13 +429,14 @@ class OrderedHashTable
 
 
         void rekeyFrontWithSameHashCode(const Key &k) {
+            MOZ_ASSERT(valid());
 #ifdef DEBUG
             
             HashNumber h = Ops::hash(k) >> ht.hashShift;
             Data *e = ht.hashTable[h];
             while (e && e != &ht.data[i])
                 e = e->chain;
-            JS_ASSERT(e == &ht.data[i]);
+            MOZ_ASSERT(e == &ht.data[i]);
 #endif
             Ops::setKey(ht.data[i].element, k);
         }
@@ -546,7 +573,7 @@ class OrderedHashTable
         dataLength = liveCount;
         dataCapacity = newCapacity;
         hashShift = newHashShift;
-        JS_ASSERT(hashBuckets() == newHashBuckets);
+        MOZ_ASSERT(hashBuckets() == newHashBuckets);
 
         compacted();
         return true;
@@ -713,7 +740,8 @@ HashableValue::mark(JSTracer *trc) const
 
 
 
-class js::MapIteratorObject : public JSObject {
+class js::MapIteratorObject : public JSObject
+{
   public:
     enum { TargetSlot, RangeSlot, SlotCount };
     static JSFunctionSpec methods[];
@@ -1161,7 +1189,8 @@ js_InitMapClass(JSContext *cx, JSObject *obj)
 
 
 
-class js::SetIteratorObject : public JSObject {
+class js::SetIteratorObject : public JSObject
+{
   public:
     enum { TargetSlot, RangeSlot, SlotCount };
     static JSFunctionSpec methods[];
