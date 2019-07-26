@@ -70,7 +70,7 @@ ClientThebesLayer::PaintThebes()
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PaintThebes", this));
       Mutated();
       ctx = nullptr;
-      mContentClient->ReturnDrawTarget(target);
+      mContentClient->ReturnDrawTargetToBuffer(target);
     } else {
       
       
