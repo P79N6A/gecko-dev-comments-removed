@@ -639,19 +639,6 @@ DirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned flags,
     return GetIterator(cx, target, flags, vp);
 }
 
-bool
-DirectProxyHandler::isExtensible(JSObject *proxy)
-{
-    return GetProxyTargetObject(proxy)->isExtensible();
-}
-
-bool
-DirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy)
-{
-    RootedObject target(cx, GetProxyTargetObject(proxy));
-    return JSObject::preventExtensions(cx, target);
-}
-
 static bool
 GetFundamentalTrap(JSContext *cx, HandleObject handler, HandlePropertyName name,
                    MutableHandleValue fvalp)
@@ -776,7 +763,6 @@ class ScriptedIndirectProxyHandler : public BaseProxyHandler {
     virtual ~ScriptedIndirectProxyHandler();
 
     
-    virtual bool preventExtensions(JSContext *cx, HandleObject proxy) MOZ_OVERRIDE;
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                        PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
@@ -799,7 +785,6 @@ class ScriptedIndirectProxyHandler : public BaseProxyHandler {
                          MutableHandleValue vp) MOZ_OVERRIDE;
 
     
-    virtual bool isExtensible(JSObject *proxy) MOZ_OVERRIDE;
     virtual bool call(JSContext *cx, HandleObject proxy, unsigned argc, Value *vp) MOZ_OVERRIDE;
     virtual bool construct(JSContext *cx, HandleObject proxy, unsigned argc,
                            Value *argv, MutableHandleValue rval) MOZ_OVERRIDE;
@@ -821,14 +806,6 @@ ScriptedIndirectProxyHandler::ScriptedIndirectProxyHandler()
 
 ScriptedIndirectProxyHandler::~ScriptedIndirectProxyHandler()
 {
-}
-
-bool
-ScriptedIndirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy)
-{
-    
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
-    return false;
 }
 
 static bool
@@ -1012,13 +989,6 @@ ScriptedIndirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigne
 }
 
 bool
-ScriptedIndirectProxyHandler::isExtensible(JSObject *proxy)
-{
-    
-    return true;
-}
-
-bool
 ScriptedIndirectProxyHandler::call(JSContext *cx, HandleObject proxy, unsigned argc,
                                    Value *vp)
 {
@@ -1092,7 +1062,6 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     virtual ~ScriptedDirectProxyHandler();
 
     
-    virtual bool preventExtensions(JSContext *cx, HandleObject proxy) MOZ_OVERRIDE;
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                        PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
@@ -1659,48 +1628,6 @@ ScriptedDirectProxyHandler::ScriptedDirectProxyHandler()
 
 ScriptedDirectProxyHandler::~ScriptedDirectProxyHandler()
 {
-}
-
-bool
-ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy)
-{
-    
-    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
-    RootedObject target(cx, GetProxyTargetObject(proxy));
-
-    
-    RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().preventExtensions, &trap))
-        return false;
-
-    
-    if (trap.isUndefined())
-        return DirectProxyHandler::preventExtensions(cx, proxy);
-
-    
-    Value argv[] = {
-        ObjectValue(*target)
-    };
-    RootedValue trapResult(cx);
-    if (!Invoke(cx, ObjectValue(*handler), trap, 1, argv, trapResult.address()))
-        return false;
-
-    
-    bool success = ToBoolean(trapResult);
-    if (success) {
-        
-        if (target->isExtensible()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
-            return false;
-        }
-        return true;
-    }
-
-    
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
-    return false;
 }
 
 
@@ -2593,20 +2520,6 @@ Proxy::iterate(JSContext *cx, HandleObject proxy, unsigned flags, MutableHandleV
         return false;
     }
     return EnumeratedIdVectorToIterator(cx, proxy, flags, props, vp);
-}
-
-bool
-Proxy::preventExtensions(JSContext *cx, HandleObject proxy)
-{
-    JS_CHECK_RECURSION(cx, return false);
-    BaseProxyHandler *handler = GetProxyHandler(proxy);
-    return handler->preventExtensions(cx, proxy);
-}
-
-bool
-Proxy::isExtensible(JSObject *proxy)
-{
-    return GetProxyHandler(proxy)->isExtensible(proxy);
 }
 
 bool

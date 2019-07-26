@@ -1337,7 +1337,7 @@ IsXrayResolving(JSContext *cx, JSObject *wrapper, jsid id)
     return XPCWrappedNativeXrayTraits::isResolving(cx, holder, id);
 }
 
-} 
+}
 
 static JSBool
 XrayToString(JSContext *cx, unsigned argc, jsval *vp)
@@ -1415,27 +1415,6 @@ DEBUG_CheckXBLLookup(JSContext *cx, JSPropertyDescriptor *desc)
 #else
 #define DEBUG_CheckXBLLookup(a, b) {}
 #endif
-
-template <typename Base, typename Traits>
-bool
-XrayWrapper<Base, Traits>::isExtensible(JSObject *wrapper)
-{
-    
-    
-    
-    
-    
-    return true;
-}
-
-template <typename Base, typename Traits>
-bool
-XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, JS::Handle<JSObject*> wrapper)
-{
-    
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
-    return false;
-}
 
 template <typename Base, typename Traits>
 bool

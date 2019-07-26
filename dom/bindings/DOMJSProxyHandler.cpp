@@ -76,20 +76,6 @@ DOMProxyHandler::EnsureExpandoObject(JSContext* cx, JSObject* obj)
 }
 
 bool
-DOMProxyHandler::isExtensible(JSObject *proxy)
-{
-  return true; 
-}
-
-bool
-DOMProxyHandler::preventExtensions(JSContext *cx, JS::Handle<JSObject*> proxy)
-{
-  
-  JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_CHANGE_EXTENSIBILITY);
-  return false;
-}
-
-bool
 DOMProxyHandler::getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                                        JSPropertyDescriptor* desc, unsigned flags)
 {
