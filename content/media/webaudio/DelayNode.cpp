@@ -93,7 +93,6 @@ public:
       }
       mLeftOverData = mProcessor.MaxDelayFrames();
     } else if (mLeftOverData != INT32_MIN) {
-      mLeftOverData -= WEBAUDIO_BLOCK_SIZE;
       if (mLeftOverData <= 0) {
         
         
@@ -105,6 +104,7 @@ public:
           new PlayingRefChanged(aStream, PlayingRefChanged::RELEASE);
         NS_DispatchToMainThread(refchanged);
       }
+      mLeftOverData -= WEBAUDIO_BLOCK_SIZE;
     }
 
     AllocateAudioBlock(numChannels, aOutput);
