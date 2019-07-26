@@ -20,6 +20,7 @@ import android.support.v4.widget.CursorAdapter;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -95,6 +96,24 @@ class PinSiteDialog extends DialogFragment {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 filter(mSearch.getText().toString());
+            }
+        });
+
+        mSearch.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode != KeyEvent.KEYCODE_ENTER || mOnSiteSelectedListener == null) {
+                    return false;
+                }
+
+                
+                
+                final String text = mSearch.getText().toString();
+                final String url = TopSitesPage.encodeUserEnteredUrl(text);
+                mOnSiteSelectedListener.onSiteSelected(url, text);
+
+                dismiss();
+                return true;
             }
         });
 

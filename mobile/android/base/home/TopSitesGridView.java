@@ -95,7 +95,9 @@ public class TopSitesGridView extends GridView {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 TopSitesGridItemView row = (TopSitesGridItemView) view;
-                String url = row.getUrl();
+
+                
+                String url = TopSitesPage.decodeUserEnteredUrl(row.getUrl());
 
                 
                 
