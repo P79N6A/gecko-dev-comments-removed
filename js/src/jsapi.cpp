@@ -11,7 +11,6 @@
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/GuardObjects.h"
-#include "mozilla/PodOperations.h"
 #include "mozilla/ThreadLocal.h"
 
 #include <ctype.h>
@@ -100,8 +99,6 @@ using namespace js::gc;
 using namespace js::types;
 
 using mozilla::Maybe;
-using mozilla::PodCopy;
-using mozilla::PodZero;
 
 using js::frontend::Parser;
 
@@ -692,11 +689,14 @@ PerThreadData::PerThreadData(JSRuntime *runtime)
     ionTop(NULL),
     ionJSContext(NULL),
     ionStackLimit(0),
+#ifdef JS_THREADSAFE
+    ionStackLimitLock_(NULL),
+#endif
     ionActivation(NULL),
     asmJSActivationStack_(NULL),
-# ifdef JS_THREADSAFE
+#ifdef JS_THREADSAFE
     asmJSActivationStackLock_(NULL),
-# endif
+#endif
     suppressGC(0)
 {}
 
@@ -704,6 +704,10 @@ bool
 PerThreadData::init()
 {
 #ifdef JS_THREADSAFE
+    ionStackLimitLock_ = PR_NewLock();
+    if (!ionStackLimitLock_)
+        return false;
+
     asmJSActivationStackLock_ = PR_NewLock();
     if (!asmJSActivationStackLock_)
         return false;
@@ -714,6 +718,9 @@ PerThreadData::init()
 PerThreadData::~PerThreadData()
 {
 #ifdef JS_THREADSAFE
+    if (ionStackLimitLock_)
+        PR_DestroyLock(ionStackLimitLock_);
+
     if (asmJSActivationStackLock_)
         PR_DestroyLock(asmJSActivationStackLock_);
 #endif
@@ -721,7 +728,6 @@ PerThreadData::~PerThreadData()
 
 JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
   : mainThread(this),
-    interrupt(0),
     atomsCompartment(NULL),
     systemZone(NULL),
     numCompartments(0),
@@ -852,7 +858,6 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     data(NULL),
     gcLock(NULL),
     gcHelperThread(thisFromCtor()),
-    sizeOfNonHeapAsmJSArrays_(0),
 #ifdef JS_THREADSAFE
 #ifdef JS_ION
     workerThreadState(NULL),
@@ -2455,56 +2460,6 @@ JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data)
 }
 
 JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer *trc, Value valueArg, const char *name)
-{
-    Value value = valueArg;
-    MarkValueUnbarriered(trc, &value, name);
-    JS_ASSERT(value == valueArg);
-}
-
-JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer *trc, jsid idArg, const char *name)
-{
-    jsid id = idArg;
-    MarkIdUnbarriered(trc, &id, name);
-    JS_ASSERT(id == idArg);
-}
-
-JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer *trc, JSObject *objArg, const char *name)
-{
-    JSObject *obj = objArg;
-    MarkObjectUnbarriered(trc, &obj, name);
-    JS_ASSERT(obj == objArg);
-}
-
-JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer *trc, JSString *strArg, const char *name)
-{
-    JSString *str = strArg;
-    MarkStringUnbarriered(trc, &str, name);
-    JS_ASSERT(str == strArg);
-}
-
-JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer *trc, JSScript *scriptArg, const char *name)
-{
-    JSScript *script = scriptArg;
-    MarkScriptUnbarriered(trc, &script, name);
-    JS_ASSERT(script == scriptArg);
-}
-
-JS_PUBLIC_API(void)
-JS_CallGenericTracer(JSTracer *trc, void *gcthingArg, const char *name)
-{
-    void *gcthing = gcthingArg;
-    JSGCTraceKind kind = gc::GetGCThingTraceKind(gcthing);
-    JS_SET_TRACING_NAME(trc, name);
-    MarkKind(trc, &gcthing, kind);
-    JS_ASSERT(gcthing == gcthingArg);
-}
-
-JS_PUBLIC_API(void)
 JS_TracerInit(JSTracer *trc, JSRuntime *rt, JSTraceCallback callback)
 {
     InitTracer(trc, rt, callback);
@@ -2521,6 +2476,12 @@ JS_PUBLIC_API(void)
 JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     js::TraceChildren(trc, thing, kind);
+}
+
+JS_PUBLIC_API(void)
+JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind)
+{
+    js::CallTracer(trc, thing, kind);
 }
 
 JS_PUBLIC_API(void)
@@ -2912,9 +2873,12 @@ JS_SetFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(JSObject **obj)
+JS_IsAboutToBeFinalized(void *thing)
 {
-    return IsObjectAboutToBeFinalized(obj);
+    gc::Cell *t = static_cast<gc::Cell *>(thing);
+    bool isDying = IsCellAboutToBeFinalized(&t);
+    JS_ASSERT(t == thing);
+    return isDying;
 }
 
 JS_PUBLIC_API(void)
@@ -3076,6 +3040,16 @@ JS_SetNativeStackQuota(JSRuntime *rt, size_t stackSize)
     } else {
         JS_ASSERT(rt->nativeStackBase >= stackSize);
         rt->mainThread.nativeStackLimit = rt->nativeStackBase - (stackSize - 1);
+    }
+#endif
+
+    
+    
+#ifdef JS_ION
+    {
+        PerThreadData::IonStackLimitLock lock(rt->mainThread);
+        if (rt->mainThread.ionStackLimit != -1)
+            rt->mainThread.ionStackLimit = rt->mainThread.nativeStackLimit;
     }
 #endif
 }
@@ -3995,7 +3969,7 @@ JS_DefineConstDoubles(JSContext *cx, JSObject *objArg, JSConstDoubleSpec *cds)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineProperties(JSContext *cx, JSObject *objArg, const JSPropertySpec *ps)
+JS_DefineProperties(JSContext *cx, JSObject *objArg, JSPropertySpec *ps)
 {
     RootedObject obj(cx, objArg);
     JSBool ok;
@@ -4865,14 +4839,12 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobjArg, JSRawObject parentArg
     RootedObject parent(cx, parentArg);
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, parent);
-    
+    assertSameCompartment(cx, parent);  
 
     if (!parent)
         parent = cx->global();
 
     if (!funobj->isFunction()) {
-        AutoCompartment ac(cx, funobj);
         ReportIsNotFunction(cx, ObjectValue(*funobj));
         return NULL;
     }
@@ -4990,7 +4962,7 @@ js_generic_native_method_dispatcher(JSContext *cx, unsigned argc, Value *vp)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
+JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
 {
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
     AssertHeapIsIdle(cx);
@@ -5031,7 +5003,7 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
 
 
 
-            fun->setExtendedSlot(0, PrivateValue(const_cast<JSFunctionSpec*>(fs)));
+            fun->setExtendedSlot(0, PrivateValue(fs));
         }
 
         
@@ -5056,7 +5028,7 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
             if (!fun)
                 return JS_FALSE;
             fun->setIsSelfHostedBuiltin();
-            fun->setExtendedSlot(0, PrivateValue(const_cast<JSFunctionSpec*>(fs)));
+            fun->setExtendedSlot(0, PrivateValue(fs));
             RootedAtom shAtom(cx, Atomize(cx, fs->selfHostedName, strlen(fs->selfHostedName)));
             if (!shAtom)
                 return JS_FALSE;
@@ -6698,11 +6670,11 @@ JS_NewDateObjectMsec(JSContext *cx, double msec)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_ObjectIsDate(JSContext *cx, JSRawObject objArg)
+JS_ObjectIsDate(JSContext *cx, JSRawObject obj)
 {
-    RootedObject obj(cx, objArg);
-    assertSameCompartment(cx, obj);
-    return ObjectClassIs(obj, ESClass_Date, cx);
+    AssertHeapIsIdle(cx);
+    JS_ASSERT(obj);
+    return obj->isDate();
 }
 
 JS_PUBLIC_API(void)
@@ -6834,8 +6806,9 @@ JS_PUBLIC_API(JSBool)
 JS_ObjectIsRegExp(JSContext *cx, JSObject *objArg)
 {
     RootedObject obj(cx, objArg);
-    assertSameCompartment(cx, obj);
-    return ObjectClassIs(obj, ESClass_RegExp, cx);
+    AssertHeapIsIdle(cx);
+    JS_ASSERT(obj);
+    return obj->isRegExp();
 }
 
 JS_PUBLIC_API(unsigned)

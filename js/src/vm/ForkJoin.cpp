@@ -289,6 +289,8 @@ ForkJoinShared::executeFromWorker(uint32_t workerId, uintptr_t stackLimit)
 
     PerThreadData thisThread(cx_->runtime);
     TlsPerThreadData.set(&thisThread);
+    
+    
     thisThread.ionStackLimit = stackLimit;
     executePortion(&thisThread, workerId);
     TlsPerThreadData.set(NULL);
@@ -547,6 +549,9 @@ ForkJoinSlice::triggerAbort()
     
     
     
+    
+    
+
     
     
     perThreadData->ionStackLimit = -1;

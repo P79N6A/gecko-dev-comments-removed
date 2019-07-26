@@ -168,7 +168,7 @@ JSRuntime::triggerOperationCallback()
 
 
 
-    mainThread.ionStackLimit = -1;
+    mainThread.setIonStackLimit(-1);
 
     
 
