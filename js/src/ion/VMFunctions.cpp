@@ -67,6 +67,23 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
 
     
     
+
+    if (fun->script()->ion == ION_DISABLED_SCRIPT) {
+        JSScript *script = cx->stack.currentScript();
+        if (++script->ion->slowCallCount >= js_IonOptions.slowCallLimit) {
+            Vector<types::RecompileInfo> scripts(cx);
+            if (!scripts.append(types::RecompileInfo(script)))
+                return false;
+
+            Invalidate(cx->runtime->defaultFreeOp(), scripts);
+            
+            script->ion = ION_DISABLED_SCRIPT;
+        }
+    }
+
+
+    
+    
     
     
     

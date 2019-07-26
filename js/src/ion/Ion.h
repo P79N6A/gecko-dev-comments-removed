@@ -162,6 +162,11 @@ struct IonOptions
     
     bool eagerCompilation;
 
+    
+    
+    
+    uint32 slowCallLimit;
+
     void setEagerCompilation() {
         eagerCompilation = true;
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
@@ -190,7 +195,8 @@ struct IonOptions
         smallFunctionUsesBeforeInlining(usesBeforeInlining / 4),
         polyInlineMax(4),
         inlineMaxTotalBytecodeLength(800),
-        eagerCompilation(false)
+        eagerCompilation(false),
+        slowCallLimit(512)
     { }
 };
 

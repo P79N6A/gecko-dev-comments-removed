@@ -233,6 +233,9 @@ struct IonScript
     
     size_t refcount_;
 
+    
+    uint32 slowCallCount;
+
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *)(reinterpret_cast<uint8 *>(this) + bailoutTable_);
     }
