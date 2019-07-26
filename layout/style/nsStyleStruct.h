@@ -330,7 +330,7 @@ struct nsStyleBackground {
 
     
     
-    bool DependsOnFrameSize() const {
+    bool DependsOnPositioningAreaSize() const {
       return mXPosition.mPercent != 0.0f || mYPosition.mPercent != 0.0f;
     }
 
@@ -387,7 +387,7 @@ struct nsStyleBackground {
     
     
     
-    bool DependsOnFrameSize(const nsStyleImage& aImage) const;
+    bool DependsOnPositioningAreaSize(const nsStyleImage& aImage) const;
 
     
     Size() {}
@@ -454,7 +454,7 @@ struct nsStyleBackground {
     
     
     
-    bool RenderingMightDependOnFrameSize() const;
+    bool RenderingMightDependOnPositioningAreaSizeChange() const;
 
     
     

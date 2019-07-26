@@ -2237,7 +2237,6 @@ public:
 
 
 
-
   virtual void InvalidateFrameForRemoval() {}
 
   

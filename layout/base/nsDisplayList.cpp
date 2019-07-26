@@ -2034,24 +2034,39 @@ nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuild
      nsLayoutUtils::IsProperAncestorFrame(aFrame, mFrame));
 }
 
+nsRect
+nsDisplayBackground::GetPositioningArea()
+{
+  if (!mBackgroundStyle) {
+    return nsRect();
+  }
+  nsIFrame* attachedToFrame;
+  return nsCSSRendering::ComputeBackgroundPositioningArea(
+      mFrame->PresContext(), mFrame,
+      nsRect(ToReferenceFrame(), mFrame->GetSize()),
+      *mBackgroundStyle, mBackgroundStyle->mLayers[mLayer],
+      &attachedToFrame) + ToReferenceFrame();
+}
+
 bool
-nsDisplayBackground::RenderingMightDependOnFrameSize()
+nsDisplayBackground::RenderingMightDependOnPositioningAreaSizeChange()
 {
   
   if (mIsThemed)
-    return true;
-  
-  
-  
-  nscoord radii[8];
-  if (mFrame->GetBorderRadii(radii))
     return true;
 
   if (!mBackgroundStyle)
     return false;
 
+  nscoord radii[8];
+  if (mFrame->GetBorderRadii(radii)) {
+    
+    
+    return true;
+  }
+
   const nsStyleBackground::Layer &layer = mBackgroundStyle->mLayers[mLayer];
-  if (layer.RenderingMightDependOnFrameSize()) {
+  if (layer.RenderingMightDependOnPositioningAreaSizeChange()) {
     return true;
   }
   return false;
@@ -2093,21 +2108,27 @@ void nsDisplayBackground::ComputeInvalidationRegion(nsDisplayListBuilder* aBuild
                                                     const nsDisplayItemGeometry* aGeometry,
                                                     nsRegion* aInvalidRegion)
 {
-  const nsDisplayBackgroundGeometry* geometry = static_cast<const nsDisplayBackgroundGeometry*>(aGeometry);
-  if (ShouldFixToViewport(aBuilder)) {
-    
+  if (!mBackgroundStyle) {
     return;
   }
 
+  const nsDisplayBackgroundGeometry* geometry = static_cast<const nsDisplayBackgroundGeometry*>(aGeometry);
+
   bool snap;
-  if (!geometry->mBounds.IsEqualInterior(GetBounds(aBuilder, &snap)) ||
-      !geometry->mPaddingRect.IsEqualInterior(GetPaddingRect()) ||
-      !geometry->mContentRect.IsEqualInterior(GetContentRect())) {
-    if (!RenderingMightDependOnFrameSize() && geometry->mBounds.TopLeft() == GetBounds(aBuilder, &snap).TopLeft()) {
-      aInvalidRegion->Xor(GetBounds(aBuilder, &snap), geometry->mBounds);
-    } else {
-      aInvalidRegion->Or(GetBounds(aBuilder, &snap), geometry->mBounds);
-    }
+  nsRect bounds = GetBounds(aBuilder, &snap);
+  nsRect positioningArea = GetPositioningArea();
+  if (positioningArea.TopLeft() != geometry->mPositioningArea.TopLeft() ||
+      (positioningArea.Size() != geometry->mPositioningArea.Size() &&
+       RenderingMightDependOnPositioningAreaSizeChange())) {
+    
+    
+    aInvalidRegion->Or(bounds, geometry->mBounds);
+    return;
+  }
+  if (!bounds.IsEqualInterior(geometry->mBounds)) {
+    
+    
+    aInvalidRegion->Xor(bounds, geometry->mBounds);
   }
 }
 

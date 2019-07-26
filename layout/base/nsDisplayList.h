@@ -1826,6 +1826,9 @@ public:
                                                 nsIFrame* aFrame) MOZ_OVERRIDE;
   virtual bool IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) MOZ_OVERRIDE;
   virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
+  
+
+
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE;
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) MOZ_OVERRIDE;
   virtual uint32_t GetPerFrameKey() MOZ_OVERRIDE;
@@ -1838,8 +1841,17 @@ public:
 
 
 
-  bool RenderingMightDependOnFrameSize();
+  nsRect GetPositioningArea();
+
   
+
+
+
+
+
+
+  bool RenderingMightDependOnPositioningAreaSizeChange();
+
   virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder)
   {
     return new nsDisplayBackgroundGeometry(this, aBuilder);
