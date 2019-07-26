@@ -8,11 +8,11 @@ Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
+Cu.import("resource://testing-common/services/sync/fxa_utils.js");
 Cu.import("resource://services-common/hawkclient.js");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
-Cu.import("resource://services-common/tokenserverclient.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/constants.js");
@@ -20,17 +20,6 @@ Cu.import("resource://services-sync/constants.js");
 const SECOND_MS = 1000;
 const MINUTE_MS = SECOND_MS * 60;
 const HOUR_MS = MINUTE_MS * 60;
-
-
-
-function Assert_rejects(promise, message) {
-  let deferred = Promise.defer();
-  promise.then(
-    () => deferred.reject(message || "Expected the promise to be rejected"),
-    deferred.resolve
-  );
-  return deferred.promise;
-}
 
 let identityConfig = makeIdentityConfig();
 let browseridManager = new BrowserIDManager();
@@ -348,11 +337,16 @@ add_task(function test_getTokenErrors() {
   _("BrowserIDManager correctly handles various failures to get a token.");
 
   _("Arrange for a 401 - Sync should reflect an auth error.");
-  yield initializeIdentityWithTokenServerFailure({
+  initializeIdentityWithTokenServerResponse({
     status: 401,
     headers: {"content-type": "application/json"},
     body: JSON.stringify({}),
   });
+  let browseridManager = Service.identity;
+
+  yield browseridManager.initializeWithCurrentIdentity();
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to 401");
   Assert.equal(Status.login, LOGIN_FAILED_LOGIN_REJECTED, "login was rejected");
 
   
@@ -360,11 +354,15 @@ add_task(function test_getTokenErrors() {
   
   
   _("Arrange for an empty body with a 200 response - should reflect a network error.");
-  yield initializeIdentityWithTokenServerFailure({
+  initializeIdentityWithTokenServerResponse({
     status: 200,
     headers: [],
     body: "",
   });
+  browseridManager = Service.identity;
+  yield browseridManager.initializeWithCurrentIdentity();
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to non-JSON response");
   Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login state is LOGIN_FAILED_NETWORK_ERROR");
 });
 
@@ -375,12 +373,18 @@ add_task(function test_getTokenErrorWithRetry() {
   
   Status.backoffInterval = 0;
   _("Arrange for a 503 with a Retry-After header.");
-  yield initializeIdentityWithTokenServerFailure({
+  initializeIdentityWithTokenServerResponse({
     status: 503,
     headers: {"content-type": "application/json",
               "retry-after": "100"},
     body: JSON.stringify({}),
   });
+  let browseridManager = Service.identity;
+
+  yield browseridManager.initializeWithCurrentIdentity();
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to 503");
+
   
   Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login was rejected");
   
@@ -388,12 +392,18 @@ add_task(function test_getTokenErrorWithRetry() {
 
   _("Arrange for a 200 with an X-Backoff header.");
   Status.backoffInterval = 0;
-  yield initializeIdentityWithTokenServerFailure({
+  initializeIdentityWithTokenServerResponse({
     status: 503,
     headers: {"content-type": "application/json",
               "x-backoff": "200"},
     body: JSON.stringify({}),
   });
+  browseridManager = Service.identity;
+
+  yield browseridManager.initializeWithCurrentIdentity();
+  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
+                       "should reject due to no token in response");
+
   
   Assert.ok(Status.backoffInterval >= 200000);
 });
@@ -469,45 +479,6 @@ add_task(function test_getKeysError() {
 });
 
 
-
-
-
-
-function* initializeIdentityWithTokenServerFailure(response) {
-  
-  
-  let requestLog = Log.repository.getLogger("testing.mock-rest");
-  if (!requestLog.appenders.length) { 
-    requestLog.addAppender(new Log.DumpAppender());
-    requestLog.level = Log.Level.Trace;
-  }
-
-  
-  function MockRESTRequest(url) {};
-  MockRESTRequest.prototype = {
-    _log: requestLog,
-    setHeader: function() {},
-    get: function(callback) {
-      this.response = response;
-      callback.call(this);
-    }
-  }
-  
-  function MockTSC() { }
-  MockTSC.prototype = new TokenServerClient();
-  MockTSC.prototype.constructor = MockTSC;
-  MockTSC.prototype.newRESTRequest = function(url) {
-    return new MockRESTRequest(url);
-  }
-  
-  let mockTSC = new MockTSC()
-  configureFxAccountIdentity(browseridManager);
-  browseridManager._tokenServerClient = mockTSC;
-
-  yield browseridManager.initializeWithCurrentIdentity();
-  yield Assert_rejects(browseridManager.whenReadyToAuthenticate.promise,
-                       "expecting rejection due to tokenserver error");
-}
 
 
 
