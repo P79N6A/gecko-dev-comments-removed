@@ -836,6 +836,19 @@ pref("browser.webapps.updateInterval", 86400);
 
 
 
+
+
+
+
+
+
+
+
+pref("browser.webapps.checkForUpdates", 1);
+
+
+
+
 pref("browser.webapps.updateCheckUrl", "https://controller.apk.firefox.com/app_updates");
 
 #endif
