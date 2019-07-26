@@ -169,5 +169,15 @@ var gContentPane = {
   {
     openDialog("chrome://browser/content/preferences/languages.xul", 
                "Browser:LanguagePreferences", null);
+  },
+
+  
+
+
+
+  showTranslationExceptions: function ()
+  {
+    openDialog("chrome://browser/content/preferences/translation.xul",
+               "Browser:TranslationExceptions", null);
   }
 };

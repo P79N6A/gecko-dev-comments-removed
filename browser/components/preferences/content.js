@@ -170,5 +170,16 @@ var gContentPane = {
   {
     document.documentElement.openSubDialog("chrome://browser/content/preferences/languages.xul",
                                            "", null);
+  },
+
+  
+
+
+
+  showTranslationExceptions: function ()
+  {
+    document.documentElement.openWindow("Browser:TranslationExceptions",
+                                        "chrome://browser/content/preferences/translation.xul",
+                                        "", null);
   }
 };
