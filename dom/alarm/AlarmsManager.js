@@ -180,7 +180,7 @@ AlarmsManager.prototype = {
     
     let appsService = Cc["@mozilla.org/AppsService;1"]
                         .getService(Ci.nsIAppsService);
-    this._pageURL = principal.URI.spec;
+    this._pageURL = aWindow.location.href;
     this._manifestURL = appsService.getManifestURLByLocalId(principal.appId);
     this._window = aWindow;
   },
