@@ -46,13 +46,9 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CallbackObject)
 
-  
-  
-  
-  
-  explicit CallbackObject(JSObject* aCallback, nsIGlobalObject *aIncumbentGlobal)
+  explicit CallbackObject(JSObject* aCallback)
   {
-    Init(aCallback, aIncumbentGlobal);
+    Init(aCallback);
   }
 
   virtual ~CallbackObject()
@@ -81,11 +77,6 @@ public:
     return JS::Handle<JSObject*>::fromMarkedLocation(mCallback.address());
   }
 
-  nsIGlobalObject* IncumbentGlobalOrNull() const
-  {
-    return mIncumbentGlobal;
-  }
-
   enum ExceptionHandling {
     
     eReportExceptions,
@@ -100,19 +91,17 @@ public:
 protected:
   explicit CallbackObject(CallbackObject* aCallbackObject)
   {
-    Init(aCallbackObject->mCallback, aCallbackObject->mIncumbentGlobal);
+    Init(aCallbackObject->mCallback);
   }
 
 private:
-  inline void Init(JSObject* aCallback, nsIGlobalObject* aIncumbentGlobal)
+  inline void Init(JSObject* aCallback)
   {
     MOZ_ASSERT(aCallback && !mCallback);
     
     
     mCallback = aCallback;
     mozilla::HoldJSObjects(this);
-
-    mIncumbentGlobal = aIncumbentGlobal;
   }
 
   CallbackObject(const CallbackObject&) MOZ_DELETE;
@@ -128,7 +117,6 @@ protected:
   }
 
   JS::Heap<JSObject*> mCallback;
-  nsCOMPtr<nsIGlobalObject> mIncumbentGlobal;
 
   class MOZ_STACK_CLASS CallSetup
   {
@@ -166,7 +154,6 @@ protected:
 
     
     Maybe<AutoEntryScript> mAutoEntryScript;
-    Maybe<AutoIncumbentScript> mAutoIncumbentScript;
 
     
     
@@ -369,8 +356,7 @@ public:
 
     JSAutoCompartment ac(cx, obj);
 
-    
-    nsRefPtr<WebIDLCallbackT> newCallback = new WebIDLCallbackT(obj,  nullptr);
+    nsRefPtr<WebIDLCallbackT> newCallback = new WebIDLCallbackT(obj);
     return newCallback.forget();
   }
 

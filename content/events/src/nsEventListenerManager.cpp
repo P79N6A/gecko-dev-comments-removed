@@ -883,23 +883,19 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     JS::Rooted<JSObject*> scope(cx, listener->GetEventScope());
     context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
     aListenerStruct = nullptr;
-    
-    
-    
-    
     if (!boundHandler) {
       listener->ForgetHandler();
     } else if (listener->EventName() == nsGkAtoms::onerror && win) {
       nsRefPtr<OnErrorEventHandlerNonNull> handlerCallback =
-        new OnErrorEventHandlerNonNull(boundHandler,  nullptr);
+        new OnErrorEventHandlerNonNull(boundHandler);
       listener->SetHandler(handlerCallback);
     } else if (listener->EventName() == nsGkAtoms::onbeforeunload && win) {
       nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
-        new OnBeforeUnloadEventHandlerNonNull(boundHandler,  nullptr);
+        new OnBeforeUnloadEventHandlerNonNull(boundHandler);
       listener->SetHandler(handlerCallback);
     } else {
       nsRefPtr<EventHandlerNonNull> handlerCallback =
-        new EventHandlerNonNull(boundHandler,  nullptr);
+        new EventHandlerNonNull(boundHandler);
       listener->SetHandler(handlerCallback);
     }
   }
