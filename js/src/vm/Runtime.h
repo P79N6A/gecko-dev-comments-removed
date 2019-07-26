@@ -663,7 +663,6 @@ class MarkingValidator;
 typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
 
 class AutoLockForExclusiveAccess;
-class AutoPauseWorkersForGC;
 
 } 
 
@@ -756,13 +755,11 @@ struct JSRuntime : public JS::shadow::Runtime,
     PRLock *exclusiveAccessLock;
     mozilla::DebugOnly<PRThread *> exclusiveAccessOwner;
     mozilla::DebugOnly<bool> mainThreadHasExclusiveAccess;
-    mozilla::DebugOnly<bool> exclusiveThreadsPaused;
 
     
     size_t numExclusiveThreads;
 
     friend class js::AutoLockForExclusiveAccess;
-    friend class js::AutoPauseWorkersForGC;
 
   public:
 #endif 
@@ -770,7 +767,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool currentThreadHasExclusiveAccess() {
 #if defined(JS_THREADSAFE) && defined(DEBUG)
         return (!numExclusiveThreads && mainThreadHasExclusiveAccess) ||
-            exclusiveThreadsPaused ||
             exclusiveAccessOwner == PR_GetCurrentThread();
 #else
         return true;
@@ -784,6 +780,9 @@ struct JSRuntime : public JS::shadow::Runtime,
         return false;
 #endif
     }
+
+    
+    JSCompartment       *atomsCompartment;
 
     
     JS::Zone            *systemZone;
@@ -1369,14 +1368,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::ConservativeGCData conservativeGC;
 
     
-    
-  private:
-    js::frontend::ParseMapPool parseMapPool_;
-  public:
-    js::frontend::ParseMapPool &parseMapPool() {
-        JS_ASSERT(currentThreadHasExclusiveAccess());
-        return parseMapPool_;
-    }
+    js::frontend::ParseMapPool parseMapPool;
 
   private:
     JSPrincipals        *trustedPrincipals_;
@@ -1385,28 +1377,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
     
-    
-    
-    
-  private:
-    js::AtomSet atoms_;
-    JSCompartment *atomsCompartment_;
-  public:
-    js::AtomSet &atoms() {
-        JS_ASSERT(currentThreadHasExclusiveAccess());
-        return atoms_;
-    }
-    JSCompartment *atomsCompartment() {
-        JS_ASSERT(currentThreadHasExclusiveAccess());
-        return atomsCompartment_;
-    }
-
-    bool isAtomsCompartment(JSCompartment *comp) {
-        return comp == atomsCompartment_;
-    }
-
-    
-    inline bool isAtomsZone(JS::Zone *zone);
+    js::AtomSet         atoms;
 
     union {
         
@@ -1426,16 +1397,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSPreWrapCallback                      preWrapObjectCallback;
     js::PreserveWrapperCallback            preserveWrapperCallback;
 
-    
-    
-    
-  private:
-    js::ScriptDataTable scriptDataTable_;
-  public:
-    js::ScriptDataTable &scriptDataTable() {
-        JS_ASSERT(currentThreadHasExclusiveAccess());
-        return scriptDataTable_;
-    }
+    js::ScriptDataTable scriptDataTable;
 
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;

@@ -330,21 +330,15 @@ class ExclusiveContext : public ThreadSafeContext
     
     inline void maybePause() const;
 
-    
-    
-    JSCompartment *compartment() const {
-        JS_ASSERT_IF(runtime_->isAtomsCompartment(compartment_),
-                     runtime_->currentThreadHasExclusiveAccess());
-        return compartment_;
-    }
-    JS::Zone *zone() const {
-        JS_ASSERT_IF(!compartment(), !zone_);
-        JS_ASSERT_IF(compartment(), js::GetCompartmentZone(compartment()) == zone_);
-        return zone_;
-    }
+    inline bool typeInferenceEnabled() const;
 
     
-    inline bool typeInferenceEnabled() const;
+    inline RegExpCompartment &regExps();
+    inline RegExpStatics *regExpStatics();
+    inline PropertyTree &propertyTree();
+    inline BaseShapeSet &baseShapes();
+    inline InitialShapeSet &initialShapes();
+    inline DtoaCache &dtoaCache();
     types::TypeObject *getNewType(Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
 
     
@@ -352,17 +346,25 @@ class ExclusiveContext : public ThreadSafeContext
     inline js::Handle<js::GlobalObject*> global() const;
 
     
+
     frontend::ParseMapPool &parseMapPool() {
-        return runtime_->parseMapPool();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
+        return runtime_->parseMapPool;
     }
+
     AtomSet &atoms() {
-        return runtime_->atoms();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
+        return runtime_->atoms;
     }
+
     JSCompartment *atomsCompartment() {
-        return runtime_->atomsCompartment();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
+        return runtime_->atomsCompartment;
     }
+
     ScriptDataTable &scriptDataTable() {
-        return runtime_->scriptDataTable();
+        JS_ASSERT(runtime_->currentThreadHasExclusiveAccess());
+        return runtime_->scriptDataTable;
     }
 };
 
@@ -381,6 +383,13 @@ struct JSContext : public js::ExclusiveContext,
     ~JSContext();
 
     JSRuntime *runtime() const { return runtime_; }
+    JSCompartment *compartment() const { return compartment_; }
+
+    inline JS::Zone *zone() const {
+        JS_ASSERT_IF(!compartment(), !zone_);
+        JS_ASSERT_IF(compartment(), js::GetCompartmentZone(compartment()) == zone_);
+        return zone_;
+    }
     js::PerThreadData &mainThread() const { return runtime()->mainThread; }
 
     friend class js::ExclusiveContext;
