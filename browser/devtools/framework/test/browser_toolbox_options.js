@@ -89,7 +89,8 @@ function checkTools() {
   for (let tool of toolsPref) {
     prefNodes.push(tool);
   }
-  toggleTools();
+  
+  executeSoon(toggleTools);
 }
 
 function toggleTools() {
@@ -113,7 +114,8 @@ function checkUnregistered(event, data) {
     
     ok(!doc.getElementById("toolbox-tab-" + data), "Tab removed for " + data);
     index++;
-    toggleTools();
+    
+    executeSoon(toggleTools);
     return;
   }
   ok(false, "Something went wrong, " + data + " was not unregistered");
@@ -126,7 +128,8 @@ function checkRegistered(event, data) {
     
     ok(doc.getElementById("toolbox-tab-" + data), "Tab added back for " + data);
     index++;
-    toggleTools();
+    
+    executeSoon(toggleTools);
     return;
   }
   ok(false, "Something went wrong, " + data + " was not registered back");
