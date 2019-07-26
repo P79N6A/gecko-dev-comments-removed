@@ -724,7 +724,10 @@ BrowserElementChild.prototype = {
       if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
         sendAsyncMsg('loadend');
 
-        if (status == Cr.NS_OK) {
+        
+        
+        if (status == Cr.NS_OK ||
+            status == Cr.NS_BINDING_ABORTED) {
           return;
         }
 

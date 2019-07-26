@@ -36,7 +36,17 @@ function runTest() {
 
 function loadend() {
   ok(stopped, 'Iframes network connections were stopped');
-  SimpleTest.finish();
+
+  
+  iframe.addEventListener('mozbrowsererror', handleError);
+  window.setTimeout(function() {
+    iframe.removeEventListener('mozbrowsererror', handleError);
+    SimpleTest.finish();
+  }, 1000);
+}
+
+function handleError() {
+  ok(false, "mozbrowsererror should not be fired");
 }
 
 runTest();
