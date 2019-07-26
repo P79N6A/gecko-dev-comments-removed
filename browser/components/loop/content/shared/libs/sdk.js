@@ -7,12 +7,14 @@
 
 
 
+
+
 (function(window) {
   if (!window.OT) window.OT = {};
 
   OT.properties = {
-    version: 'v2.2.4.1',         
-    build: 'e42c038',    
+    version: 'v2.2.5',         
+    build: '12d9384',    
 
     
     debug: 'false',
@@ -74,6 +76,8 @@
 
 
 
+
+
 !(function(window, undefined) {
 
 
@@ -103,8 +107,8 @@
     }
   };
 
-  OTHelpers.forEach = function(array, iter) {
-    return _each.call(array, iter);
+  OTHelpers.forEach = function(array, iter, ctx) {
+    return _each.call(array, iter, ctx);
   };
 
   var _map = Array.prototype.map || function(iter, ctx) {
@@ -374,7 +378,11 @@
       }
     }
 
-    return {browser: browser, version: version};
+    return {
+      browser: browser,
+      version: version,
+      iframeNeedsLoad: userAgent.indexOf('webkit') < 0
+    };
   }();
 
   OTHelpers.browser = function() {
@@ -418,7 +426,7 @@
       };
     }
 
-    Object.defineProperties(self, propsDefinition);
+    OTHelpers.defineProperties(self, propsDefinition);
   };
 
   var generatePropertyFunction = function(object, getter, setter) {
@@ -504,6 +512,11 @@
 
     return null;
   };
+
+
+
+
+
 
 
 
@@ -647,7 +660,7 @@
   OTHelpers.statable = function(self, possibleStates, initialState, stateChanged,
     stateChangedFailed) {
     var previousState,
-        currentState = initialState;
+        currentState = self.currentState = initialState;
 
     var setState = function(state) {
       if (currentState !== state) {
@@ -658,8 +671,8 @@
           return;
         }
 
-        previousState = currentState;
-        currentState = state;
+        self.previousState = previousState = currentState;
+        self.currentState = currentState = state;
         if (stateChanged && OTHelpers.isFunction(stateChanged)) stateChanged(state, previousState);
       }
     };
@@ -689,16 +702,6 @@
     self.isNot = function () {
       return OTHelpers.arrayIndexOf(arguments, currentState) === -1;
     };
-
-    Object.defineProperties(self, {
-      state: {
-        get: function() { return currentState; }
-      },
-
-      previousState: {
-        get: function() { return previousState; }
-      }
-    });
 
     return setState;
   };
@@ -863,7 +866,14 @@ OTHelpers.useLogHelpers = function(on){
     on.NONE     = 0;
 
     var _logLevel = on.NONE,
-        _logs = [];
+        _logs = [],
+        _canApplyConsole = true;
+
+    try {
+        Function.prototype.bind.call(window.console.log, window.console);
+    } catch (err) {
+        _canApplyConsole = false;
+    }
 
     
     
@@ -897,7 +907,7 @@ OTHelpers.useLogHelpers = function(on){
                     
                     
                     
-                    if (cons[method].apply || Function.prototype.bind) {
+                    if (cons[method].apply || _canApplyConsole) {
                         if (!cons[method].apply) {
                             cons[method] = Function.prototype.bind.call(cons[method], cons);
                         }
@@ -933,7 +943,7 @@ OTHelpers.useLogHelpers = function(on){
 
     on.setLogLevel = function(level) {
         _logLevel = typeof(level) === 'number' ? level : 0;
-        on.debug("OT.setLogLevel(" + _logLevel + ")");
+        on.debug("TB.setLogLevel(" + _logLevel + ")");
         return _logLevel;
     };
 
@@ -1694,6 +1704,10 @@ OTHelpers.roundFloat = function(value, places) {
 
 (function(window, OTHelpers, undefined) {
 
+OTHelpers.isElementNode = function(node) {
+    return node && typeof node === 'object' && node.nodeType == 1;
+};
+
 
 OTHelpers.supportsClassList = function() {
     var hasSupport = typeof(document !== "undefined") && ("classList" in document.createElement("a"));
@@ -1734,8 +1748,8 @@ OTHelpers.emptyElement = function(element) {
     return element;
 };
 
-OTHelpers.createElement = function(nodeName, attributes, innerHTML) {
-    var element = document.createElement(nodeName);
+OTHelpers.createElement = function(nodeName, attributes, children, doc) {
+    var element = (doc || document).createElement(nodeName);
 
     if (attributes) {
         for (var name in attributes) {
@@ -1756,8 +1770,18 @@ OTHelpers.createElement = function(nodeName, attributes, innerHTML) {
         }
     }
 
-    if (innerHTML) {
-        element.innerHTML = innerHTML;
+    var setChildren = function(child) {
+        if(typeof child === 'string') {
+            element.innerHTML = element.innerHTML + child;
+        } else {
+            element.appendChild(child);
+        }
+    };
+
+    if(OTHelpers.isArray(children)) {
+        OTHelpers.forEach(children, setChildren);
+    } else if(children) {
+        setChildren(children);
     }
 
     return element;
@@ -1795,6 +1819,7 @@ OTHelpers.on = function(element, eventName,  handler) {
           if (oldHandler) oldHandler.apply(this, arguments);
         };
     }
+    return element;
 };
 
 
@@ -1973,58 +1998,178 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
 
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.Modal = function(title, body) {
-    
-    var tmpl = "\
-        <header>\
-            <h1><%= title %></h1>\
-        </header>\
-        <div class='OT_dialog-body'>\
-            <%= body %>\
-        </div>\
-    ";
+  OTHelpers.Modal = function(options) {
 
-    this.el = OTHelpers.createElement("section", {
-            className: "OT_root OT_dialog OT_modal"
-        },
-        OTHelpers.template(tmpl, {
-            title: title,
-            body: body
-        })
-    );
+    OTHelpers.eventing(this, true);
 
+    var callback = arguments[arguments.length - 1];
+
+    if(!OTHelpers.isFunction(callback)) {
+      throw new Error('OTHelpers.Modal2 must be given a callback');
+    }
+
+    if(arguments.length < 2) {
+      options = {};
+    }
+
+    var domElement = document.createElement('iframe');
+
+    domElement.id = options.id || OTHelpers.uuid();
+    domElement.style.position = 'absolute';
+    domElement.style.position = 'fixed';
+    domElement.style.height = '100%';
+    domElement.style.width = '100%';
+    domElement.style.top = '0px';
+    domElement.style.left = '0px';
+    domElement.style.right = '0px';
+    domElement.style.bottom = '0px';
+    domElement.style.zIndex = 1000;
+    domElement.style.border = '0';
+
+    try {
+      domElement.style.backgroundColor = 'rgba(0,0,0,0.2)';
+    } catch (err) {
+      
+      
+      domElement.style.backgroundColor = 'transparent';
+      domElement.setAttribute('allowTransparency', 'true');
+    }
+
+    domElement.scrolling = 'no';
+    domElement.setAttribute('scrolling', 'no');
+
+    var wrappedCallback = function() {
+      var doc = domElement.contentDocument || domElement.contentWindow.document;
+      doc.body.style.backgroundColor = 'transparent';
+      doc.body.style.border = 'none';
+      callback(
+        domElement.contentWindow,
+        doc
+      );
+    };
+
+    document.body.appendChild(domElement);
     
-    
-    
-    this.el.style.display = 'none';
-    document.body.appendChild(this.el);
-    OTHelpers.centerElement(this.el);
-    OTHelpers.show(this.el);
+    if(OTHelpers.browserVersion().iframeNeedsLoad) {
+      OTHelpers.on(domElement, 'load', wrappedCallback);
+    } else {
+      setTimeout(wrappedCallback);
+    }
 
     this.close = function() {
-        OTHelpers.removeElement(this.el);
-        this.el = null;
-        return this;
+      OTHelpers.removeElement(domElement);
+      this.trigger('closed');
+      this.element = domElement = null;
+      return this;
     };
-};
+
+    this.element = domElement;
+
+  };
+  
+})(window, window.OTHelpers);
 
 
-OTHelpers.tbAlert = function(title, message) {
-    var modal = new OTHelpers.Modal(title, "<div>" + message + "</div>");
-    OTHelpers.addClass(modal.el, "OT_tbalert");
 
-    var closeBtn = OTHelpers.createElement("input", {
-            className: "OT_closeButton",
-            type: "button",
-            value: "close"
-    });
-    modal.el.appendChild(closeBtn);
 
-    closeBtn.onclick = function() {
-        if (modal) modal.close();
-        modal = null;
-    };
-};
+
+
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
+  
+
+
+  function getPixelSize(element, style, property, fontSize) {
+    var sizeWithSuffix = style[property],
+        size = parseFloat(sizeWithSuffix),
+        suffix = sizeWithSuffix.split(/\d/)[0],
+        rootSize;
+
+    fontSize = fontSize != null ?
+      fontSize : /%|em/.test(suffix) && element.parentElement ?
+        getPixelSize(element.parentElement, element.parentElement.currentStyle, 'fontSize', null) :
+        16;
+    rootSize = property === 'fontSize' ?
+      fontSize : /width/i.test(property) ? element.clientWidth : element.clientHeight;
+
+    return (suffix === 'em') ?
+      size * fontSize : (suffix === 'in') ?
+        size * 96 : (suffix === 'pt') ?
+          size * 96 / 72 : (suffix === '%') ?
+            size / 100 * rootSize : size;
+  }
+
+  function setShortStyleProperty(style, property) {
+    var
+    borderSuffix = property === 'border' ? 'Width' : '',
+    t = property + 'Top' + borderSuffix,
+    r = property + 'Right' + borderSuffix,
+    b = property + 'Bottom' + borderSuffix,
+    l = property + 'Left' + borderSuffix;
+
+    style[property] = (style[t] === style[r] === style[b] === style[l] ? [style[t]]
+    : style[t] === style[b] && style[l] === style[r] ? [style[t], style[r]]
+    : style[l] === style[r] ? [style[t], style[r], style[b]]
+    : [style[t], style[r], style[b], style[l]]).join(' ');
+  }
+
+  function CSSStyleDeclaration(element) {
+    var currentStyle = element.currentStyle,
+        style = this,
+        fontSize = getPixelSize(element, currentStyle, 'fontSize', null),
+        property;
+
+    for (property in currentStyle) {
+      if (/width|height|margin.|padding.|border.+W/.test(property) && style[property] !== 'auto') {
+        style[property] = getPixelSize(element, currentStyle, property, fontSize) + 'px';
+      } else if (property === 'styleFloat') {
+        
+        style['float'] = currentStyle[property];
+      } else {
+        style[property] = currentStyle[property];
+      }
+    }
+
+    setShortStyleProperty(style, 'margin');
+    setShortStyleProperty(style, 'padding');
+    setShortStyleProperty(style, 'border');
+
+    style.fontSize = fontSize + 'px';
+
+    return style;
+  }
+
+  CSSStyleDeclaration.prototype = {
+    constructor: CSSStyleDeclaration,
+    getPropertyPriority: function () {},
+    getPropertyValue: function ( prop ) {
+      return this[prop] || '';
+    },
+    item: function () {},
+    removeProperty: function () {},
+    setProperty: function () {},
+    getPropertyCSSValue: function () {}
+  };
+
+  function getComputedStyle(element) {
+    return new CSSStyleDeclaration(element);
+  }
+
+
+  OTHelpers.getComputedStyle = function(element) {
+    if(element &&
+        element.ownerDocument &&
+        element.ownerDocument.defaultView &&
+        element.ownerDocument.defaultView.getComputedStyle) {
+      return element.ownerDocument.defaultView.getComputedStyle(element);
+    } else {
+      return getComputedStyle(element);
+    }
+  };
 
 })(window, window.OTHelpers);
 
@@ -2182,145 +2327,145 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
+
 (function(window, OTHelpers, undefined) {
 
-var displayStateCache = {},
-    defaultDisplays = {};
+  var displayStateCache = {},
+      defaultDisplays = {};
 
-var defaultDisplayValueForElement = function(element) {
-    if (defaultDisplays[element.ownerDocument] && defaultDisplays[element.ownerDocument][element.nodeName]) {
+  var defaultDisplayValueForElement = function(element) {
+      if (defaultDisplays[element.ownerDocument] &&
+        defaultDisplays[element.ownerDocument][element.nodeName]) {
         return defaultDisplays[element.ownerDocument][element.nodeName];
-    }
+      }
 
-    if (!defaultDisplays[element.ownerDocument]) defaultDisplays[element.ownerDocument] = {};
+      if (!defaultDisplays[element.ownerDocument]) defaultDisplays[element.ownerDocument] = {};
     
-    
-    
-    var testNode = element.ownerDocument.createElement(element.nodeName),
-        defaultDisplay;
+      
+      
+      var testNode = element.ownerDocument.createElement(element.nodeName),
+          defaultDisplay;
 
-    element.ownerDocument.body.appendChild(testNode);
-    defaultDisplay = defaultDisplays[element.ownerDocument][element.nodeName] = OTHelpers.css(testNode, 'display');
+      element.ownerDocument.body.appendChild(testNode);
+      defaultDisplay = defaultDisplays[element.ownerDocument][element.nodeName] =
+        OTHelpers.css(testNode, 'display');
 
-    OTHelpers.removeElement(testNode);
-    testNode = null;
+      OTHelpers.removeElement(testNode);
+      testNode = null;
 
-    return defaultDisplay;
-};
+      return defaultDisplay;
+    };
 
-var isHidden = function(element) {
-    var computedStyle = element.ownerDocument.defaultView.getComputedStyle(element, null);
+  var isHidden = function(element) {
+    var computedStyle = OTHelpers.getComputedStyle(element);
     return computedStyle.getPropertyValue('display') === 'none';
-};
+  };
 
-OTHelpers.show = function(element) {
-    var display = element.style.display; 
-        
-        
-        
+  OTHelpers.show = function(element) {
+    var display = element.style.display;
 
     if (display === '' || display === 'none') {
-        element.style.display = displayStateCache[element] || '';
-        delete displayStateCache[element];
+      element.style.display = displayStateCache[element] || '';
+      delete displayStateCache[element];
     }
 
     if (isHidden(element)) {
-        
-        
-        displayStateCache[element] = 'none';
+      
+      
+      displayStateCache[element] = 'none';
 
-        element.style.display = defaultDisplayValueForElement(element);
+      element.style.display = defaultDisplayValueForElement(element);
     }
 
     return this;
-};
+  };
 
-OTHelpers.hide = function(element) {
+  OTHelpers.hide = function(element) {
     if (element.style.display === 'none') return;
 
     displayStateCache[element] = element.style.display;
     element.style.display = 'none';
 
     return this;
-};
+  };
 
-OTHelpers.css = function(element, nameOrHash, value) {
+  OTHelpers.css = function(element, nameOrHash, value) {
     if (typeof(nameOrHash) !== 'string') {
-        var style = element.style;
+      var style = element.style;
 
-        for (var cssName in nameOrHash) {
-            style[cssName] = nameOrHash[cssName];
-        }
+      for (var cssName in nameOrHash) {
+        style[cssName] = nameOrHash[cssName];
+      }
 
-        return this;
+      return this;
+
+    } else if (value !== undefined) {
+      element.style[nameOrHash] = value;
+      return this;
+
+    } else {
+      
+      
+
+      var name = nameOrHash.replace( /([A-Z]|^ms)/g, '-$1' ).toLowerCase(),
+          computedStyle = OTHelpers.getComputedStyle(element),
+          currentValue = computedStyle.getPropertyValue(name);
+
+      if (currentValue === '') {
+        currentValue = element.style[name];
+      }
+
+      return currentValue;
     }
-    else if (value !== undefined) {
-        element.style[nameOrHash] = value;
-        return this;
-    }
-    else {
-        
-        
-        var name = nameOrHash.replace( /([A-Z]|^ms)/g, "-$1" ).toLowerCase(),
-            computedStyle = element.ownerDocument.defaultView.getComputedStyle(element, null),
-            currentValue = computedStyle.getPropertyValue(name);
-
-        if (currentValue === '') {
-            currentValue = element.style[name];
-        }
-
-        return currentValue;
-    }
-};
+  };
 
 
 
 
-OTHelpers.applyCSS = function(element, styles, callback) {
+  OTHelpers.applyCSS = function(element, styles, callback) {
     var oldStyles = {},
         name,
         ret;
 
     
     for (name in styles) {
-        if (styles.hasOwnProperty(name)) {
-            
-            
-            
-            oldStyles[name] = element.style[name];
+      if (styles.hasOwnProperty(name)) {
+        
+        
+        
+        oldStyles[name] = element.style[name];
 
-            OTHelpers.css(element, name, styles[name]);
-        }
+        OTHelpers.css(element, name, styles[name]);
+      }
     }
 
     ret = callback();
 
     
     for (name in styles) {
-        if (styles.hasOwnProperty(name)) {
-            OTHelpers.css(element, name, oldStyles[name] || '');
-        }
+      if (styles.hasOwnProperty(name)) {
+        OTHelpers.css(element, name, oldStyles[name] || '');
+      }
     }
 
     return ret;
-};
+  };
 
 
-OTHelpers.makeVisibleAndYield = function(element, callback) {
+  OTHelpers.makeVisibleAndYield = function(element, callback) {
     
     
     var targetElement = OTHelpers.findElementWithDisplayNone(element);
     if (!targetElement) return;
 
     return OTHelpers.applyCSS(targetElement, {
-            display: "block",
-            visibility: "hidden"
-        },
-        callback
-    );
-};
+      display: 'block',
+      visibility: 'hidden'
+    }, callback);
+  };
 
 })(window, window.OTHelpers);
+
 
 
 
@@ -2349,7 +2494,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
     var done = function(error, event) {
       if(error) {
-        callback(error);
+        callback(error, event && event.target && event.target.responseText);
       } else {
         var response;
 
@@ -2357,7 +2502,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           response = JSON.parse(event.target.responseText);
         } catch(e) {
           
-          callback(e);
+          callback(e, event && event.target && event.target.responseText);
           return;
         }
 
@@ -2488,6 +2633,237 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
   };
 
 })(window, window.OTHelpers);
+!(function() {
+
+  OT.Dialogs = {};
+
+  var addCss = function(document, url, callback) {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    var cssTag = OT.$.createElement('link', {
+      type: 'text/css',
+      media: 'screen',
+      rel: 'stylesheet',
+      href: url
+    });
+    head.appendChild(cssTag);
+    OT.$.on(cssTag, 'error', function(error) {
+      OT.error('Could not load CSS for dialog', url, error && error.message || error);
+    });
+    OT.$.on(cssTag, 'load', callback);
+  };
+
+  var addDialogCSS = function(document, urls, callback) {
+    var allURLs = [
+      '//fonts.googleapis.com/css?family=Didact+Gothic',
+      OT.properties.cssURL
+    ].concat(urls);
+    var remainingStylesheets = allURLs.length;
+    OT.$.forEach(allURLs, function(stylesheetUrl) {
+      addCss(document, stylesheetUrl, function() {
+        if(--remainingStylesheets <= 0) {
+          callback();
+        }
+      });
+    });
+
+  };
+  
+  var templateElement = function(classes, children, tagName) {
+    var el = OT.$.createElement(tagName || 'div', { 'class': classes }, children, this);
+    el.on = OT.$.bind(OT.$.on, OT.$, el);
+    return el;
+  };
+
+  OT.Dialogs.AllowDeny = {};
+  OT.Dialogs.AllowDeny.Chrome = {};
+  OT.Dialogs.AllowDeny.Firefox = {};
+
+  OT.Dialogs.AllowDeny.Chrome.initialPrompt = function() {
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          close, root;
+
+      close = el('OT_closeButton', '&times;')
+        .on('click', function() {
+          modal.close();
+        });
+
+      root = el('OT_root OT_dialog OT_dialog-allow-deny-chrome-first', [
+        close,
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', 'Allow camera and mic access'),
+          el('OT_dialog-messages-minor', 'Click the Allow button in the upper-right corner ' +
+            'of your browser to enable real-time communication.'),
+          el('OT_dialog-allow-highlight-chrome')
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
+  };
+
+  OT.Dialogs.AllowDeny.Chrome.previouslyDenied = function(website) {
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          close,
+          root;
+
+      close = el('OT_closeButton', '&times;')
+        .on('click', function() {
+          modal.close();
+        });
+
+      root = el('OT_root OT_dialog OT_dialog-allow-deny-chrome-pre-denied', [
+        close,
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', 'Allow camera and mic access'),
+          el('OT_dialog-messages-minor', [
+            'To interact with this app, follow these 3 steps:',
+            el('OT_dialog-3steps', [
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '1'),
+                'Find this icon in the URL bar and click it',
+                el('OT_dialog-allow-camera-icon')
+              ]),
+              el('OT_dialog-3steps-seperator'),
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '2'),
+                'Select "Ask if ' + website + ' wants to access your camera and mic" ' +
+                  'and then click Done.'
+              ]),
+              el('OT_dialog-3steps-seperator'),
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '3'),
+                'Refresh your browser.'
+              ])
+            ])
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
+  };
+
+  OT.Dialogs.AllowDeny.Chrome.deniedNow = function() {
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          root;
+
+      root = el('OT_root OT_dialog-blackout',
+        el('OT_dialog OT_dialog-allow-deny-chrome-now-denied', [
+          el('OT_dialog-messages', [
+            el('OT_dialog-messages-main ',
+              el('OT_dialog-allow-camera-icon')
+            ),
+            el('OT_dialog-messages-minor',
+              'Find & click this icon to allow camera and mic access.'
+            )
+          ])
+        ])
+      );
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
+  };
+
+  OT.Dialogs.AllowDeny.Firefox.maybeDenied = function() {
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          close,
+          root;
+
+      close = el('OT_closeButton', '&times;')
+        .on('click', function() {
+          modal.close();
+        });
+
+      root = el('OT_root OT_dialog OT_dialog-allow-deny-firefox-maybe-denied', [
+        close,
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', 'Please allow camera & mic access'),
+          el('OT_dialog-messages-minor', [
+            'To interact with this app, follow these 3 steps:',
+            el('OT_dialog-3steps', [
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '1'),
+                'Reload the page, or click the camera icon ' +
+                  'in the browser URL bar.'
+              ]),
+              el('OT_dialog-3steps-seperator'),
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '2'),
+                'In the menu, select your camera & mic.'
+              ]),
+              el('OT_dialog-3steps-seperator'),
+              el('OT_dialog-3steps-step', [
+                el('OT_dialog-3steps-step-num', '3'),
+                'Click "Share Selected Devices."'
+              ])
+            ])
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
+  };
+
+
+  OT.Dialogs.AllowDeny.Firefox.denied = function() {
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          btn = templateElement.bind(document, 'OT_dialog-button OT_dialog-button-large'),
+          root,
+          refreshButton;
+
+      refreshButton = btn('Reload')
+        .on('click', function() {
+          modal.trigger('refresh');
+        });
+
+      root = el('OT_root OT_dialog-blackout',
+        el('OT_dialog OT_dialog-allow-deny-firefox-denied', [
+          el('OT_dialog-messages', [
+            el('OT_dialog-messages-minor',
+              'Access to camera and microphone has been denied. ' +
+              'Click the button to reload page.'
+            )
+          ]),
+          el('OT_dialog-single-button', refreshButton)
+        ])
+      );
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
+  };
+
+})();
 !(function(window) {
 
   
@@ -2499,6 +2875,25 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
   
   OT.$.eventing(OT);
+
+  
+
+  OT.$.defineGetters = function(self, getters, enumerable) {
+    var propsDefinition = {};
+
+    if (enumerable === void 0) enumerable = false;
+
+    for (var key in getters) {
+      propsDefinition[key] = {
+        get: getters[key],
+        enumerable: enumerable
+      };
+    }
+
+    Object.defineProperties(self, propsDefinition);
+  };
+
+  
 
   
   OT.Modal = OT.$.Modal;
@@ -2622,7 +3017,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       window.location.protocol.indexOf('chrome-extension') >= 0)) {
       props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
       props.loggingURL = props.loggingURLSSL;
-      props.apiURL = props.apiURLSSL;
     } else {
       props.assetURL = props.cdnURL + '/webrtc/' + props.version;
     }
@@ -3105,10 +3499,11 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       }
     });
 
-    this.addError = function(errorMsg, helpMsg) {
+    this.addError = function(errorMsg, helpMsg, classNames) {
       container.innerHTML = '<p>' + errorMsg +
-        ' <span class="ot-help-message">' + helpMsg + '</span></p>';
-      OT.$.addClass(container, 'OT_subscriber_error');
+        (helpMsg ? ' <span class="ot-help-message">' + helpMsg + '</span>' : '') +
+        '</p>';
+      OT.$.addClass(container, classNames || 'OT_subscriber_error');
       if(container.querySelector('p').offsetHeight > container.offsetHeight) {
         container.querySelector('span').style.display = 'none';
       }
@@ -3218,15 +3613,15 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
   };
 
   gumNamesToMessages = {
-    PermissionDeniedError: 'User denied permission for scripts from this origin to ' +
-      'access the media device.',
+    PermissionDeniedError: 'End-user denied permission to hardware devices',
     NotSupportedError: 'A constraint specified is not supported by the browser.',
-    ConstraintNotSatisfiedError: 'One of the mandatory constraints could not be satisfied.',
+    ConstraintNotSatisfiedError: 'It\'s not possible to satisfy one or more constraints ' +
+      'passed into the getUserMedia function',
     OverconstrainedError: 'Due to changes in the environment, one or more mandatory ' +
       'constraints can no longer be satisfied.',
-    NoDevicesFoundError: 'No video or audio input devices are available on this machine.',
-    HardwareUnavailableError: 'The selected audio or video input devices are not available, ' +
-      'possibly because they are in use by another application.'
+    NoDevicesFoundError: 'No voice or video input devices are available on this machine.',
+    HardwareUnavailableError: 'The selected voice or video devices are unavailable. Verify ' +
+      'that the chosen devices are not in use by another application.'
   };
 
 
@@ -4191,11 +4586,16 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
     
     this.getClientGuid = function() {
-      var  guid = OT.$.getCookie('opentok_client_id');
+      var guid = OT.$.getCookie('opentok_client_id');
       if (!guid) {
         guid = OT.$.uuid();
         OT.$.setCookie('opentok_client_id', guid);
       }
+      
+      
+      this.getClientGuid = function() {
+        return guid;
+      };
       return guid;
     };
   };
@@ -4271,15 +4671,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
     return session;
   };
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4881,16 +5272,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           this.trigger('update:'+event.target.id, event);
         }.bind(this),
 
-        onModelIdUpdate = function onModelIdUpdate (oldId, newId) {
-          if (_byId[oldId] === void 0) return;
-
-          
-          
-          var index = _byId[oldId];
-          delete _byId[oldId];
-          _byId[newId] = index;
-        }.bind(this),
-
         onModelDestroy = function onModelDestroyed (event) {
           this.remove(event.target, event.reason);
         }.bind(this);
@@ -4901,7 +5282,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       _models.forEach(function(model) {
         model.off('updated', onModelUpdate, this);
         model.off('destroyed', onModelDestroy, this);
-        model.off('idUpdated', onModelIdUpdate, this);
       }, this);
 
       _models = [];
@@ -4992,7 +5372,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
       model.on('updated', onModelUpdate, this);
       model.on('destroyed', onModelDestroy, this);
-      model.on('idUpdated', onModelIdUpdate, this);
 
       this.trigger('add', model);
       this.trigger('add:'+id, model);
@@ -5014,7 +5393,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
       model.off('updated', onModelUpdate, this);
       model.off('destroyed', onModelDestroy, this);
-      model.off('idUpdated', onModelIdUpdate, this);
 
       this.trigger('remove', model, reason);
       this.trigger('remove:'+id, model, reason);
@@ -5065,6 +5443,12 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
   OT.Event = OT.$.eventing.Event();
   
+
+
+
+
+
+
 
 
 
@@ -5165,25 +5549,11 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
     API_RESPONSE_FAILURE: 1014,
     UNABLE_TO_PUBLISH: 1500,
     UNABLE_TO_SUBSCRIBE: 1501,
-    UNABLE_TO_SIGNAL: 1510,
     UNABLE_TO_FORCE_DISCONNECT: 1520,
     UNABLE_TO_FORCE_UNPUBLISH: 1530
   };
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -5874,6 +6244,24 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
   };
 
 })(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8546,6 +8934,10 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
     
     var webSocketConnected = function webSocketConnected () {
           if (connectTimeout) clearTimeout(connectTimeout);
+          if (this.isNot('connecting')) {
+            OT.debug('webSocketConnected reached in state other than connecting');
+            return;
+          }
 
           
           
@@ -8565,10 +8957,18 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
             lastMessageTimestamp = OT.$.now();
             sendKeepAlive();
           }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-        },
+        }.bind(this),
 
         webSocketConnectTimedOut = function webSocketConnectTimedOut () {
+          var webSocketWas = webSocket;
           error('Timed out while waiting for the Rumor socket to connect.');
+          
+          
+          
+          
+          try {
+            webSocketWas.close();
+          } catch(x) {}
         },
 
         webSocketError = function webSocketError () {},
@@ -9113,7 +9513,14 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
     return message;
   };
-
+  
+  OT.Raptor.parseIceServers = function (message) {
+    try {
+      return JSON.parse(message.data).content.iceServers;
+    } catch (e) {
+      return [];
+    }
+  };
 
   OT.Raptor.Message = {};
 
@@ -9670,8 +10077,8 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
                                                       minBitrate,
                                                       maxBitrate);
 
-      this.publish(message, function(error) {
-        completion(error, streamId);
+      this.publish(message, function(error, message) {
+        completion(error, streamId, message);
       });
     };
 
@@ -9833,7 +10240,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
   };
 
   OT.Raptor.Dispatcher.prototype.onClose = function(reason) {
-    this.trigger('close', reason);
+    this.emit('close', reason);
   };
 
 
@@ -9848,10 +10255,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       var error;
 
       if (rumorMessage.isError) {
-        
-        
-        
-        
         error = new OT.Error(rumorMessage.status);
       }
 
@@ -10059,8 +10462,8 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
   OT.Raptor.Dispatcher.prototype.dispatchArchive = function (message) {
     switch (message.method) {
-      case 'create':
-        this.emit('archive#create', message.content);
+      case 'created':
+        this.emit('archive#created', message.content);
         break;
       
       case 'updated':
@@ -10155,7 +10558,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
         state.streams.push( parseAndAddStreamToSession(streamParams, session) );
       });
       
-      content.archives.forEach(function(archiveParams) {
+      (content.archive || content.archives).forEach(function(archiveParams) {
         state.archives.push( parseAndAddArchiveToSession(archiveParams, session) );
       });
 
@@ -10379,7 +10782,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
                                signalType, data);
     });
 
-    dispatcher.on('archive#create', function(archive) {
+    dispatcher.on('archive#created', function(archive) {
       parseAndAddArchiveToSession(archive, session);
     });
 
@@ -10688,13 +11091,34 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   OT.Error = function(code, message) {
     this.code = code;
     this.message = message;
   };
 
   var errorsCodesToTitle = {
-    1000: 'Failed To Load',
     1004: 'Authentication error',
     1005: 'Invalid Session ID',
     1006: 'Connect Failed',
@@ -10707,24 +11131,10 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
     1013: 'Connection Failed',
     1014: 'API Response Failure',
     1500: 'Unable to Publish',
-    1510: 'Unable to Signal',
     1520: 'Unable to Force Disconnect',
     1530: 'Unable to Force Unpublish',
-    1540: 'Unable to record archive',
-    1550: 'Unable to play back archive',
-    1560: 'Unable to create archive',
-    1570: 'Unable to load archive',
     2000: 'Internal Error',
     2001: 'Embed Failed',
-    3000: 'Archive load exception',
-    3001: 'Archive create exception',
-    3002: 'Playback stop exception',
-    3003: 'Playback start exception',
-    3004: 'Record start exception',
-    3005: 'Record stop exception',
-    3006: 'Archive load exception',
-    3007: 'Session recording in progress',
-    3008: 'Archive recording internal failure',
     4000: 'WebSocket Connection Failed',
     4001: 'WebSocket Network Disconnected'
   };
@@ -10999,8 +11409,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 !(function() {
 
   var validPropertyNames = ['name', 'archiving'];
-
-
 
 
 
@@ -11583,7 +11991,10 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           if (!_peerConnection) {
             try {
               OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
-
+              if (!config.iceServers || config.iceServers.length === 0) {
+                
+                OT.error('No ice servers present');
+              }
               _peerConnection = OT.$.createPeerConnection(config, {
                 optional: [
                   { DtlsSrtpKeyAgreement: true }
@@ -11830,6 +12241,12 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       }
 
       return this;
+    };
+    
+    this.setIceServers = function (iceServers) {
+      if (iceServers) {
+        config.iceServers = iceServers;
+      }
     };
 
     this.registerMessageDelegate = function(delegateFn) {
@@ -12177,18 +12594,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
     };
 
     
-    this.init = function() {
-      var iceServers = session.sessionInfo.iceServers.map(function(is) {
-        var iceServer = OT.$.clone(is);
-
-        if (iceServer.url.trim().substr(0, 5) === 'turn:') {
-          
-          iceServer.username = session.id + '.' + session.connection.id + '.' + streamId;
-        }
-
-        return iceServer;
-      });
-
+    this.init = function(iceServers) {
       _peerConnection = OT.PeerConnections.add(remoteConnection, streamId, {
         iceServers: iceServers
       });
@@ -12319,7 +12725,9 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           tracks = stream[method]();
 
           for (var k=0, numTracks=tracks.length; k < numTracks; ++k){
-            tracks[k].enabled=enabled;
+            
+            
+            if (tracks[k].enabled !== enabled) tracks[k].enabled=enabled;
           }
         }
       };
@@ -12367,20 +12775,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
     
     this.init = function() {
-      var iceServers = session.sessionInfo.iceServers.map(function(is) {
-        var iceServer = OT.$.clone(is);
-
-        if (iceServer.url.trim().substr(0, 5) === 'turn:') {
-          
-          iceServer.username = session.id + '.' + session.connection.id + '.' + stream.id;
-        }
-
-        return iceServer;
-      });
-
-      _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {
-        iceServers: iceServers
-      });
+      _peerConnection = OT.PeerConnections.add(remoteConnection, stream.streamId, {});
 
       _peerConnection.on({
         close: _onPeerClosed,
@@ -12421,11 +12816,13 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           }));
         }
 
-        session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo, function(err) {
-          if (err) {
-            this.trigger('error', null, err.message, this, 'Subscribe');
-          }
-        }.bind(this));
+        session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo,
+          function(err, message) {
+            if (err) {
+              this.trigger('error', null, err.message, this, 'Subscribe');
+            }
+            _peerConnection.setIceServers(OT.Raptor.parseIceServers(message));
+          }.bind(this));
       }
     };
   };
@@ -13632,17 +14029,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
   OT.Publisher = function() {
     
     
@@ -13670,7 +14056,8 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
         _validFrameRates = [ 1, 7, 15, 30 ],
         _qosIntervals = {},
         _prevStats,
-        _state;
+        _state,
+        _iceServers;
 
     _validResolutions = {
       '320x240': {width: 320, height: 240},
@@ -13835,24 +14222,77 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           logAnalyticsEvent('publish', 'Failure', 'reason',
             'GetUserMedia:Publisher Access Denied: Permission Denied');
 
+          var browser = OT.$.browserVersion();
+
           var event = new OT.Event(OT.Event.names.ACCESS_DENIED),
             defaultAction = function() {
-              if (!event.isDefaultPrevented() && _container) _container.destroy();
+              if(!event.isDefaultPrevented()) {
+                if(browser.browser === 'Chrome') {
+                  if (_container) {
+                    _container.addError('', null, 'OT_publisher-denied-chrome');
+                  }
+                  if(!accessDialogWasOpened) {
+                    OT.Dialogs.AllowDeny.Chrome.previouslyDenied(window.location.hostname);
+                  } else {
+                    OT.Dialogs.AllowDeny.Chrome.deniedNow();
+                  }
+                } else if(browser.browser === 'Firefox') {
+                  if(_container) {
+                    _container.addError('', 'Click the reload button in the URL bar to change ' +
+                      'camera & mic settings.', 'OT_publisher-denied-firefox');
+                  }
+                  OT.Dialogs.AllowDeny.Firefox.denied().on({
+                    refresh: function() {
+                      window.location.reload();
+                    }
+                  });
+                }
+              }
             };
 
           this.dispatchEvent(event, defaultAction);
         },
 
+        accessDialogPrompt,
+        accessDialogFirefoxTimeout,
+        accessDialogWasOpened = false,
+
         onAccessDialogOpened = function() {
+
+          accessDialogWasOpened = true;
+
           logAnalyticsEvent('accessDialog', 'Opened', '', '');
 
+          var browser = OT.$.browserVersion();
+
           this.dispatchEvent(
-            new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, false)
+            new OT.Event(OT.Event.names.ACCESS_DIALOG_OPENED, true),
+            function(event) {
+              if(!event.isDefaultPrevented()) {
+                if(browser.browser === 'Chrome') {
+                  accessDialogPrompt = OT.Dialogs.AllowDeny.Chrome.initialPrompt();
+                } else if(browser.browser === 'Firefox') {
+                  accessDialogFirefoxTimeout = setTimeout(function() {
+                    accessDialogPrompt = OT.Dialogs.AllowDeny.Firefox.maybeDenied();
+                  }, 7000);
+                }
+              }
+            }
           );
         },
 
         onAccessDialogClosed = function() {
           logAnalyticsEvent('accessDialog', 'Closed', '', '');
+
+          if(accessDialogFirefoxTimeout) {
+            clearTimeout(accessDialogFirefoxTimeout);
+            accessDialogFirefoxTimeout = null;
+          }
+
+          if(accessDialogPrompt) {
+            accessDialogPrompt.close();
+            accessDialogPrompt = null;
+          }
 
           this.dispatchEvent(
             new OT.Event(OT.Event.names.ACCESS_DIALOG_CLOSED, false)
@@ -13921,15 +14361,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           _stream = stream;
           _stream.on('destroyed', this.disconnect, this);
 
-          var oldGuid = _guid;
-          _guid = OT.Publisher.nextId();
-
-          
-          
-          if (oldGuid) {
-            this.trigger('idUpdated', oldGuid, _guid);
-          }
-
           _state.set('Publishing');
           _publishStartTime = new Date();
 
@@ -13985,7 +14416,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
               error: onPeerConnectionFailure
             }, this);
 
-            peerConnection.init();
+            peerConnection.init(_iceServers);
           }
 
           return peerConnection;
@@ -14018,7 +14449,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
               break;
 
             case 'showArchiveStatus':
-              logAnalyticsEvent('showArchiveStatus', 'styleChange', 'mode', value);
+              logAnalyticsEvent('showArchiveStatus', 'styleChange', 'mode', value ? 'on': 'off');
               _chrome.archive.setShowArchiveStatus(value);
               break;
 
@@ -14036,7 +14467,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           if(this.getStyle('bugDisplayMode') === 'off') {
             logAnalyticsEvent('bugDisplayMode', 'createChrome', 'mode', 'off');
           }
-          if(this.getStyle('showArchiveStatus') === 'off') {
+          if(!this.getStyle('showArchiveStatus')) {
             logAnalyticsEvent('showArchiveStatus', 'createChrome', 'mode', 'off');
           }
           _chrome = new OT.Chrome({
@@ -14398,7 +14829,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
           _state.set('PublishingToSession');
 
-          var onStreamRegistered = function(err, streamId) {
+          var onStreamRegistered = function(err, streamId, message) {
             if (err) {
               
               
@@ -14412,6 +14843,8 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
             }
 
             _streamId = streamId;
+            
+            _iceServers = OT.Raptor.parseIceServers(message);
           }.bind(this);
               
           
@@ -14618,7 +15051,17 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
+
+
+
+
+
+
 	
+
+
+
+
 
 
 
@@ -14672,12 +15115,6 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 })(window);
 !(function(window) {
-
-
-
-
-
-
 
 
 
@@ -15569,6 +16006,35 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
 
 
@@ -15584,8 +16050,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
   var parseErrorFromJSONDocument,
       onGetResponseCallback,
-      onGetErrorCallback,
-      normaliseIceServers;
+      onGetErrorCallback;
 
   OT.SessionInfo = function(jsonDocument) {
     var sessionJSON = jsonDocument[0];
@@ -15608,21 +16073,13 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       sessionJSON.properties.p2p &&
       sessionJSON.properties.p2p.preference &&
       sessionJSON.properties.p2p.preference.value === 'enabled';
-
-    this.iceServers = sessionJSON.ice_servers ? normaliseIceServers(sessionJSON.ice_servers) : [];
-
-    if(this.iceServers.length === 0) {
-      
-      OT.warn('SessionInfo contained not ICE Servers, using the default');
-      this.iceServers = [ {'url': 'stun:stun.l.google.com:19302'} ];
-    }
   };
 
   
   
   
   OT.SessionInfo.get = function(session, onSuccess, onFailure) {
-    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + '?extended=true',
+    var sessionInfoURL = OT.properties.apiURLSSL + '/session/' + session.id + '?extended=true',
 
         startTime = OT.$.now(),
 
@@ -15632,11 +16089,11 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
           if (error === false) {
             onGetResponseCallback(session, onSuccess, sessionInfo);
           } else {
-            onGetErrorCallback(session, onFailure, error);
+            onGetErrorCallback(session, onFailure, error, JSON.stringify(sessionInfo));
           }
         };
 
-    session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURL);
+    session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURLSSL);
 
     OT.$.getJSON(sessionInfoURL, {
       headers: {
@@ -15645,10 +16102,11 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       }
     }, function(error, sessionInfo) {
       if(error) {
+        var responseText = sessionInfo;
         console.log('getJSON said error:', error);
         onGetErrorCallback(session, onFailure,
-          new OT.Error(error.target && error.target.status, error.message ||
-            'Could not connect to the OpenTok API Server.'));
+          new OT.Error(error.target && error.target.status || error.code, error.message ||
+            'Could not connect to the OpenTok API Server.'), responseText);
       } else {
         validateRawSessionInfo(sessionInfo);
       }
@@ -15686,69 +16144,22 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
     } else {
       return {
         code: null,
-        message: 'Unknown error: getSessionInfo JSON response was badly formed ' +
-            jsonDocument.toString.substring(0, 1000)
+        message: 'Unknown error: getSessionInfo JSON response was badly formed'
       };
     }
   };
 
   onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
-    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURL);
+    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURLSSL);
 
     onSuccess( new OT.SessionInfo(rawSessionInfo) );
   };
 
-  onGetErrorCallback = function(session, onFailure, error) {
+  onGetErrorCallback = function(session, onFailure, error, responseText) {
     session.logEvent('Connect', 'Failure', 'errorMessage',
-      'GetSessionInfo:' + error.code + ':' + error.message);
+      'GetSessionInfo:' + error.code + ':' + error.message + ':' + responseText);
 
     onFailure(error, session);
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  normaliseIceServers = function (iceServers) {
-    if (!iceServers) return [];
-
-    var userAgent = (typeof navigator !== 'undefined') &&
-          navigator.userAgent.match(/(Firefox)\/([0-9]+\.[0-9]+)/),
-        firefoxVersion = userAgent ? parseFloat(userAgent[2], 10) : void 0,
-        bits;
-
-    return iceServers.map(function(iceServer) {
-      
-      if (iceServer.url.trim().substr(0, 5) !== 'turn:') {
-        return iceServer;
-      }
-
-      if (userAgent !== null) {
-        
-        if (firefoxVersion < 25) {
-          return {url: iceServer.url.replace('turn:', 'stun:')};
-        }
-
-        
-        if (firefoxVersion < 27 && iceServer.url.indexOf('?') !== -1) {
-          iceServer.url = iceServer.url.trim().split('?')[0];
-        }
-      }
-
-      bits = iceServer.url.trim().split(/[:@]/);
-
-      return {
-        username: bits[1],
-        credential: iceServer.credential,
-        url: bits[0] + ':' + bits[2]
-      };
-    });
   };
 
 })(window);
@@ -16022,7 +16433,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       if(propertyName === 'status' && newValue === 'stopped') {
         this.dispatchEvent(new OT.ArchiveEvent('archiveStopped', archive));
       } else {
-        this.dispatchEvent(new OT.ArhiveEvent('archiveUpdated', archive));
+        this.dispatchEvent(new OT.ArchiveEvent('archiveUpdated', archive));
       }
     };
 
@@ -17258,6 +17669,7 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
 
+
     this.signal = function(options, completion) {
       var _options = options,
           _completion = completion;
@@ -17265,6 +17677,12 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
       if (OT.$.isFunction(_options)) {
         _completion = _options;
         _options = null;
+      }
+
+      if (this.isNot('connected')) {
+        var notConnectedErrorMsg = 'Unable to send signal - you are not connected to the session.';
+        dispatchError(500, notConnectedErrorMsg, _completion);
+        return;
       }
 
       _socket.signal(_options, _completion);
@@ -17362,6 +17780,13 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
     this.forceDisconnect = function(connectionOrConnectionId, completionHandler) {
+      if (this.isNot('connected')) {
+        var notConnectedErrorMsg = 'Cannot call forceDisconnect(). You are not ' +
+                                   'connected to the session.';
+        dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
+        return;
+      }
+
       var notPermittedErrorMsg = 'This token does not allow forceDisconnect. ' +
         'The role must be at least `moderator` to enable this functionality';
 
@@ -17445,6 +17870,13 @@ OTHelpers.makeVisibleAndYield = function(element, callback) {
 
 
     this.forceUnpublish = function(streamOrStreamId, completionHandler) {
+      if (this.isNot('connected')) {
+        var notConnectedErrorMsg = 'Cannot call forceUnpublish(). You are not ' +
+                                   'connected to the session.';
+        dispatchError(OT.ExceptionCodes.NOT_CONNECTED, notConnectedErrorMsg, completionHandler);
+        return;
+      }
+
       var notPermittedErrorMsg = 'This token does not allow forceUnpublish. ' +
         'The role must be at least `moderator` to enable this functionality';
 
