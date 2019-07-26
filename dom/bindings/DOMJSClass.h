@@ -11,8 +11,6 @@
 
 #include "mozilla/dom/PrototypeList.h" 
 
-class nsCycleCollectionParticipant;
-
 
 
 #define DOM_OBJECT_SLOT 0
@@ -68,11 +66,6 @@ struct DOMClass
   const bool mDOMObjectIsISupports;
 
   const NativePropertyHooks* mNativeHooks;
-
-  
-  
-  
-  nsCycleCollectionParticipant* mParticipant;
 };
 
 

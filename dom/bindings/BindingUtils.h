@@ -344,21 +344,6 @@ struct Prefable {
   T* specs;
 };
 
-struct NativeProperties
-{
-  Prefable<JSFunctionSpec>* staticMethods;
-  jsid* staticMethodIds;
-  JSFunctionSpec* staticMethodsSpecs;
-  Prefable<JSFunctionSpec>* methods;
-  jsid* methodIds;
-  JSFunctionSpec* methodsSpecs;
-  Prefable<JSPropertySpec>* attributes;
-  jsid* attributeIds;
-  JSPropertySpec* attributeSpecs;
-  Prefable<ConstantSpec>* constants;
-  jsid* constantIds;
-  ConstantSpec* constantSpecs;
-};
 
 
 
@@ -403,9 +388,10 @@ CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
                        unsigned ctorNargs, const DOMClass* domClass,
-                       const NativeProperties* properties,
-                       const NativeProperties* chromeProperties,
-                       const char* name);
+                       Prefable<JSFunctionSpec>* methods,
+                       Prefable<JSPropertySpec>* properties,
+                       Prefable<ConstantSpec>* constants,
+                       Prefable<JSFunctionSpec>* staticMethods, const char* name);
 
 template <class T>
 inline bool
@@ -635,16 +621,16 @@ GetWrapperCache(const ParentObject& aParentObject)
 }
 
 template<class T>
-inline T*
+inline nsISupports*
 GetParentPointer(T* aObject)
 {
-  return aObject;
+  return ToSupports(aObject);
 }
 
 inline nsISupports*
 GetParentPointer(const ParentObject& aObject)
 {
-  return aObject.mObject;
+  return ToSupports(aObject.mObject);
 }
 
 template<class T>
@@ -743,89 +729,32 @@ bool
 WrapCallbackInterface(JSContext *cx, JSObject *scope, nsISupports* callback,
                       JS::Value* vp);
 
-
-
-
-
-
-
-
-template<typename T>
-struct HasWrapObject
-{
-private:
-  typedef char yes[1];
-  typedef char no[2];
-  typedef JSObject* (T::*WrapObject)(JSContext*, JSObject*, bool*);
-  template<typename U, U> struct SFINAE;
-  template <typename V> static yes& Check(SFINAE<WrapObject, &V::WrapObject>*);
-  template <typename V> static no& Check(...);
-
-public:
-  static bool const Value = sizeof(Check<T>(nullptr)) == sizeof(yes);
-};
-
-template<typename T, bool hasWrapObject=HasWrapObject<T>::Value >
-struct WrapNativeParentHelper
-{
-  static inline JSObject* Wrap(JSContext* cx, JSObject* scope, T* parent,
-                               nsWrapperCache* cache)
-  {
-    MOZ_ASSERT(cache);
-
-    JSObject* obj;
-    if ((obj = cache->GetWrapper())) {
-      return obj;
-    }
-
-    bool triedToWrap;
-    return parent->WrapObject(cx, scope, &triedToWrap);
-  }
-};
-
-template<typename T>
-struct WrapNativeParentHelper<T, false>
-{
-  static inline JSObject* Wrap(JSContext* cx, JSObject* scope, T* parent,
-                               nsWrapperCache* cache)
-  {
-    JSObject* obj;
-    if (cache && (obj = cache->GetWrapper())) {
-#ifdef DEBUG
-      qsObjectHelper helper(ToSupports(parent), cache);
-      JS::Value debugVal;
-
-      bool ok = XPCOMObjectToJsval(cx, scope, helper, NULL, false, &debugVal);
-      NS_ASSERTION(ok && JSVAL_TO_OBJECT(debugVal) == obj,
-                   "Unexpected object in nsWrapperCache");
-#endif
-      return obj;
-    }
-
-    qsObjectHelper helper(ToSupports(parent), cache);
-    JS::Value v;
-    return XPCOMObjectToJsval(cx, scope, helper, NULL, false, &v) ?
-           JSVAL_TO_OBJECT(v) :
-           NULL;
-  }
-};
-
-template<typename T>
-static inline JSObject*
-WrapNativeParent(JSContext* cx, JSObject* scope, T* p, nsWrapperCache* cache)
-{
-  if (!p) {
-    return scope;
-  }
-
-  return WrapNativeParentHelper<T>::Wrap(cx, scope, p, cache);
-}
-
 template<typename T>
 static inline JSObject*
 WrapNativeParent(JSContext* cx, JSObject* scope, const T& p)
 {
-  return WrapNativeParent(cx, scope, GetParentPointer(p), GetWrapperCache(p));
+  if (!GetParentPointer(p))
+    return scope;
+
+  nsWrapperCache* cache = GetWrapperCache(p);
+  JSObject* obj;
+  if (cache && (obj = cache->GetWrapper())) {
+#ifdef DEBUG
+    qsObjectHelper helper(GetParentPointer(p), cache);
+    JS::Value debugVal;
+
+    bool ok = XPCOMObjectToJsval(cx, scope, helper, NULL, false, &debugVal);
+    NS_ASSERTION(ok && JSVAL_TO_OBJECT(debugVal) == obj,
+                 "Unexpected object in nsWrapperCache");
+#endif
+    return obj;
+  }
+
+  qsObjectHelper helper(GetParentPointer(p), cache);
+  JS::Value v;
+  return XPCOMObjectToJsval(cx, scope, helper, NULL, false, &v) ?
+         JSVAL_TO_OBJECT(v) :
+         NULL;
 }
 
 static inline bool
@@ -1192,14 +1121,34 @@ public:
 bool
 XrayResolveProperty(JSContext* cx, JSObject* wrapper, jsid id,
                     JSPropertyDescriptor* desc,
-                    const NativeProperties* nativeProperties,
-                    const NativeProperties* chromeOnlyNativeProperties);
+                    
+                    Prefable<JSFunctionSpec>* methods,
+                    jsid* methodIds,
+                    JSFunctionSpec* methodSpecs,
+                    size_t methodCount,
+                    Prefable<JSPropertySpec>* attributes,
+                    jsid* attributeIds,
+                    JSPropertySpec* attributeSpecs,
+                    size_t attributeCount,
+                    Prefable<ConstantSpec>* constants,
+                    jsid* constantIds,
+                    ConstantSpec* constantSpecs,
+                    size_t constantCount);
 
 bool
-XrayEnumerateProperties(JSObject* wrapper,
-                        JS::AutoIdVector& props,
-                        const NativeProperties* nativeProperties,
-                        const NativeProperties* chromeOnlyNativeProperties);
+XrayEnumerateProperties(JS::AutoIdVector& props,
+                        Prefable<JSFunctionSpec>* methods,
+                        jsid* methodIds,
+                        JSFunctionSpec* methodSpecs,
+                        size_t methodCount,
+                        Prefable<JSPropertySpec>* attributes,
+                        jsid* attributeIds,
+                        JSPropertySpec* attributeSpecs,
+                        size_t attributeCount,
+                        Prefable<ConstantSpec>* constants,
+                        jsid* constantIds,
+                        ConstantSpec* constantSpecs,
+                        size_t constantCount);
 
 
 template<class T>
