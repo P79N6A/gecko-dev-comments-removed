@@ -60,6 +60,8 @@ pref("dom.max_script_run_time", 0);
 pref("dom.max_chrome_script_run_time", 0);
 
 
+pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
+
 #ifndef RELEASE_BUILD
 
 pref("dom.payment.provider.0.name", "Firefox Marketplace");
