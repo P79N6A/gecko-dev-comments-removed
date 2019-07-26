@@ -92,7 +92,8 @@ sdp_result_e sdp_parse_owner (sdp_t *sdp_p, u16 level, const char *ptr)
 
 
 
-    uint64_t     max_value_sessid_version = ((((uint64_t) 1) << 62) - 2);
+    const uint64_t max_value_sessid = ((((uint64_t) 1) << 63) - 1);
+    const uint64_t max_value_version = ((((uint64_t) 1) << 62) - 2);
 
     if (sdp_p->owner_name[0] != '\0') {
         sdp_p->conf_p->num_invalid_token_order++;
@@ -119,7 +120,7 @@ sdp_result_e sdp_parse_owner (sdp_t *sdp_p, u16 level, const char *ptr)
         
 
 
-        result = sdp_verify_unsigned(sdp_p->owner_sessid, max_value_sessid_version);
+        result = sdp_verify_unsigned(sdp_p->owner_sessid, max_value_sessid);
     }
     if (result != SDP_SUCCESS) {
         sdp_parse_error(sdp_p->peerconnection,
@@ -135,7 +136,7 @@ sdp_result_e sdp_parse_owner (sdp_t *sdp_p, u16 level, const char *ptr)
         
 
 
-        result = sdp_verify_unsigned(sdp_p->owner_version, max_value_sessid_version);
+        result = sdp_verify_unsigned(sdp_p->owner_version, max_value_version);
     }
     if (result != SDP_SUCCESS) {
         sdp_parse_error(sdp_p->peerconnection,
