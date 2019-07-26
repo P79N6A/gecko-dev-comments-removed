@@ -133,17 +133,15 @@ public:
     bool OnDocumentParserError();
 
     
-    NS_IMETHOD CloneNode(bool deep, uint8_t aOptionalArgc, nsIDOMNode **_retval)
-        MOZ_OVERRIDE;
+    virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
     
-    NS_IMETHOD GetContentType(nsAString& aContentType);
+    NS_FORWARD_NSIDOMNODE_TO_NSINODE
 
     
-    NS_IMETHOD GetElementById(const nsAString& aId, nsIDOMElement** aReturn)
-    {
-        return nsDocument::GetElementById(aId, aReturn);
-    }
+    NS_FORWARD_NSIDOMDOCUMENT(nsXMLDocument::)
+
+    
     virtual mozilla::dom::Element* GetElementById(const nsAString & elementId);
 
     
