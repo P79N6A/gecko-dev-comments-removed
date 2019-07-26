@@ -103,22 +103,32 @@ namespace js {
 
 extern const Class TypedObjectClass;
 
-template <ScalarTypeRepresentation::Type type, typename T>
-class NumericType
+
+
+
+
+class ScalarType
 {
-  private:
-    static const Class * typeToClass();
   public:
-    static bool reify(JSContext *cx, void *mem, MutableHandleValue vp);
+    static const Class class_;
+    static const JSFunctionSpec typeObjectMethods[];
+    typedef ScalarTypeRepresentation TypeRepr;
+
     static bool call(JSContext *cx, unsigned argc, Value *vp);
 };
 
 
 
 
+class ReferenceType
+{
+  public:
+    static const Class class_;
+    static const JSFunctionSpec typeObjectMethods[];
+    typedef ReferenceTypeRepresentation TypeRepr;
 
-
-extern const Class NumericTypeClasses[ScalarTypeRepresentation::TYPE_MAX];
+    static bool call(JSContext *cx, unsigned argc, Value *vp);
+};
 
 
 
@@ -147,8 +157,6 @@ class ArrayType : public JSObject
                             HandleObject elementType, size_t length);
     static bool repeat(JSContext *cx, unsigned argc, Value *vp);
     static bool subarray(JSContext *cx, unsigned argc, Value *vp);
-
-    static bool toSource(JSContext *cx, unsigned argc, Value *vp);
 
     static JSObject *elementType(JSContext *cx, HandleObject obj);
 };
@@ -185,8 +193,6 @@ class StructType : public JSObject
     
     
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
-
-    static bool toSource(JSContext *cx, unsigned argc, Value *vp);
 
     static bool convertAndCopyTo(JSContext *cx,
                                  StructTypeRepresentation *typeRepr,
@@ -280,6 +286,10 @@ class TypedDatum : public JSObject
   public:
     
     
+    
+    
+    
+    
     static size_t dataOffset();
 
     static TypedDatum *createUnattachedWithClass(JSContext *cx,
@@ -305,7 +315,7 @@ class TypedDatum : public JSObject
                                      size_t offset);
 
     
-    void attach(void *mem);
+    void attach(uint8_t *mem);
 
     
     void attach(JSObject &datum, uint32_t offset);
@@ -424,8 +434,39 @@ extern const JSJitInfo MemcpyJitInfo;
 
 
 
+
+
+
+
+
+
+
+
 #define JS_STORE_SCALAR_CLASS_DEFN(_constant, T, _name)                       \
 class StoreScalar##T {                                                        \
+  public:                                                                     \
+    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static const JSJitInfo JitInfo;                                           \
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_STORE_REFERENCE_CLASS_DEFN(_constant, T, _name)                    \
+class StoreReference##T {                                                     \
+  private:                                                                    \
+    static void store(T* heap, const Value &v);                               \
+                                                                              \
   public:                                                                     \
     static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
     static const JSJitInfo JitInfo;                                           \
@@ -448,8 +489,28 @@ class LoadScalar##T {                                                         \
 
 
 
+
+
+
+
+
+
+#define JS_LOAD_REFERENCE_CLASS_DEFN(_constant, T, _name)                     \
+class LoadReference##T {                                                      \
+  private:                                                                    \
+    static void load(T* heap, MutableHandleValue v);                          \
+                                                                              \
+  public:                                                                     \
+    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static const JSJitInfo JitInfo;                                           \
+};
+
+
+
 JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(JS_STORE_SCALAR_CLASS_DEFN)
 JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(JS_LOAD_SCALAR_CLASS_DEFN)
+JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_STORE_REFERENCE_CLASS_DEFN)
+JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 
 } 
 

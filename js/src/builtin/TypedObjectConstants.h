@@ -24,6 +24,9 @@
 #define JS_TYPEOBJ_SCALAR_SLOTS            1  // Maximum number
 
 
+#define JS_TYPEOBJ_REFERENCE_SLOTS         1  // Maximum number
+
+
 #define JS_TYPEOBJ_SLOT_ARRAY_ELEM_TYPE    1
 #define JS_TYPEOBJ_ARRAY_SLOTS             2  // Maximum number
 
@@ -59,8 +62,9 @@
 
 
 #define JS_TYPEREPR_SCALAR_KIND 0
-#define JS_TYPEREPR_STRUCT_KIND 1
-#define JS_TYPEREPR_ARRAY_KIND  2
+#define JS_TYPEREPR_REFERENCE_KIND 1
+#define JS_TYPEREPR_STRUCT_KIND 2
+#define JS_TYPEREPR_ARRAY_KIND  3
 
 
 
@@ -75,6 +79,14 @@
 #define JS_SCALARTYPEREPR_FLOAT32       6
 #define JS_SCALARTYPEREPR_FLOAT64       7
 #define JS_SCALARTYPEREPR_UINT8_CLAMPED 8
+
+
+
+
+
+#define JS_REFERENCETYPEREPR_ANY        0
+#define JS_REFERENCETYPEREPR_OBJECT     1
+#define JS_REFERENCETYPEREPR_STRING     2
 
 
 

@@ -47,6 +47,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #include "jsalloc.h"
 #include "jscntxt.h"
 #include "jspubtd.h"
@@ -59,6 +67,7 @@ namespace js {
 
 class TypeRepresentation;
 class ScalarTypeRepresentation;
+class ReferenceTypeRepresentation;
 class ArrayTypeRepresentation;
 class StructTypeRepresentation;
 
@@ -73,11 +82,14 @@ struct TypeRepresentationHasher
 
   private:
     static HashNumber hashScalar(ScalarTypeRepresentation *key);
+    static HashNumber hashReference(ReferenceTypeRepresentation *key);
     static HashNumber hashStruct(StructTypeRepresentation *key);
     static HashNumber hashArray(ArrayTypeRepresentation *key);
 
     static bool matchScalars(ScalarTypeRepresentation *key1,
                              ScalarTypeRepresentation *key2);
+    static bool matchReferences(ReferenceTypeRepresentation *key1,
+                                ReferenceTypeRepresentation *key2);
     static bool matchStructs(StructTypeRepresentation *key1,
                              StructTypeRepresentation *key2);
     static bool matchArrays(ArrayTypeRepresentation *key1,
@@ -92,16 +104,18 @@ class TypeRepresentation {
   public:
     enum Kind {
         Scalar = JS_TYPEREPR_SCALAR_KIND,
+        Reference = JS_TYPEREPR_REFERENCE_KIND,
         Struct = JS_TYPEREPR_STRUCT_KIND,
         Array = JS_TYPEREPR_ARRAY_KIND
     };
 
   protected:
-    TypeRepresentation(Kind kind, size_t size, size_t align);
+    TypeRepresentation(Kind kind, size_t size, size_t align, bool opaque);
 
     size_t size_;
     size_t alignment_;
     Kind kind_;
+    bool opaque_;
 
     JSObject *addToTableOrFree(JSContext *cx, TypeRepresentationHash::AddPtr &p);
 
@@ -117,11 +131,20 @@ class TypeRepresentation {
     size_t size() const { return size_; }
     size_t alignment() const { return alignment_; }
     Kind kind() const { return kind_; }
+    bool opaque() const { return opaque_; }
+    bool transparent() const { return !opaque_; }
     JSObject *ownerObject() const { return ownerObject_.get(); }
 
     
     
     bool appendString(JSContext *cx, StringBuffer &buffer);
+
+    
+    
+    void initInstance(const JSRuntime *rt, uint8_t *mem);
+
+    
+    void traceInstance(JSTracer *trace, uint8_t *mem);
 
     static bool isOwnerObject(JSObject &obj);
     static TypeRepresentation *fromOwnerObject(JSObject &obj);
@@ -133,6 +156,15 @@ class TypeRepresentation {
     ScalarTypeRepresentation *asScalar() {
         JS_ASSERT(isScalar());
         return (ScalarTypeRepresentation*) this;
+    }
+
+    bool isReference() const {
+        return kind() == Reference;
+    }
+
+    ReferenceTypeRepresentation *asReference() {
+        JS_ASSERT(isReference());
+        return (ReferenceTypeRepresentation*) this;
     }
 
     bool isArray() const {
@@ -193,7 +225,9 @@ class ScalarTypeRepresentation : public TypeRepresentation {
         return type_;
     }
 
-    bool convertValue(JSContext *cx, HandleValue value, MutableHandleValue vp);
+    const char *typeName() const {
+        return typeName(type());
+    }
 
     static const char *typeName(Type type);
     static JSObject *Create(JSContext *cx, Type type);
@@ -216,6 +250,45 @@ class ScalarTypeRepresentation : public TypeRepresentation {
 #define JS_FOR_EACH_SCALAR_TYPE_REPR(macro_)                                    \
     JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(macro_)                           \
     macro_(ScalarTypeRepresentation::TYPE_UINT8_CLAMPED, uint8_t, uint8Clamped)
+
+class ReferenceTypeRepresentation : public TypeRepresentation {
+  public:
+    
+    enum Type {
+        TYPE_ANY = JS_REFERENCETYPEREPR_ANY,
+        TYPE_OBJECT = JS_REFERENCETYPEREPR_OBJECT,
+        TYPE_STRING = JS_REFERENCETYPEREPR_STRING,
+    };
+    static const int32_t TYPE_MAX = TYPE_STRING + 1;
+
+  private:
+    
+    friend class TypeRepresentation;
+
+    Type type_;
+
+    explicit ReferenceTypeRepresentation(Type type);
+
+    
+    bool appendStringReference(JSContext *cx, StringBuffer &buffer);
+
+  public:
+    Type type() const {
+        return type_;
+    }
+
+    const char *typeName() const {
+        return typeName(type());
+    }
+
+    static const char *typeName(Type type);
+    static JSObject *Create(JSContext *cx, Type type);
+};
+
+#define JS_FOR_EACH_REFERENCE_TYPE_REPR(macro_)                             \
+    macro_(ReferenceTypeRepresentation::TYPE_ANY,    HeapValue, Any)        \
+    macro_(ReferenceTypeRepresentation::TYPE_OBJECT, HeapPtrObject, Object) \
+    macro_(ReferenceTypeRepresentation::TYPE_STRING, HeapPtrString, string)
 
 class ArrayTypeRepresentation : public TypeRepresentation {
   private:
