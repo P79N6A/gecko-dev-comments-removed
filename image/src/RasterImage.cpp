@@ -1127,7 +1127,7 @@ RasterImage::EnsureAnimExists()
   if (!mAnim) {
 
     
-    mAnim = new FrameAnimator(mFrameBlender);
+    mAnim = new FrameAnimator(mFrameBlender, mAnimationMode);
 
     
     
