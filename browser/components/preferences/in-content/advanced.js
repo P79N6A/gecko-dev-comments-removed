@@ -39,6 +39,9 @@ var gAdvancedPane = {
 #ifdef MOZ_CRASHREPORTER
     this.initSubmitCrashes();
 #endif
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+    this.initTelemetry();
+#endif
     this.updateActualCacheSize("disk");
     this.updateActualCacheSize("offline");
   },
@@ -141,6 +144,28 @@ var gAdvancedPane = {
       cr.submitReports = checkbox.checked;
     } catch (e) { }
   },
+
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+  
+
+
+
+
+
+
+  initTelemetry: function ()
+  {
+    const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
+    let enabled = Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED);
+    let rejected = false;
+    try {
+      rejected = Services.prefs.getBoolPref("toolkit.telemetry.rejected");
+    } catch (e) {}
+    if (enabled && rejected) {
+      Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, false);
+    }
+  },
+#endif
 
   
 

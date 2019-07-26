@@ -22,8 +22,13 @@ const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].
 
 const MAX_BAR_HEIGHT = 18;
 const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
+const PREF_TELEMETRY_DISPLAYED = "toolkit.telemetry.notifiedOptOut";
+#else
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_TELEMETRY_DISPLAYED = "toolkit.telemetry.prompted";
+#endif
 const PREF_TELEMETRY_REJECTED  = "toolkit.telemetry.rejected";
 const TELEMETRY_DISPLAY_REV = @MOZ_TELEMETRY_DISPLAY_REV@;
 const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
@@ -674,6 +679,20 @@ function onLoad() {
 
   
   setupListeners();
+
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+  
+
+
+
+
+
+
+  if (getPref(PREF_TELEMETRY_ENABLED, false) &&
+      getPref(PREF_TELEMETRY_REJECTED, false)) {
+    Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, false);
+  }
+#endif
 
   
   SlowSQL.render();
