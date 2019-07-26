@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/Attributes.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -232,19 +233,27 @@ private:
   }
 };
 
-
-NS_MEMORY_REPORTER_IMPLEMENT(
-  ImagesContentUsedUncompressed,
-  "images-content-used-uncompressed",
-  KIND_OTHER,
-  UNITS_BYTES,
-  imgMemoryReporter::GetImagesContentUsedUncompressed,
-  "This is the sum of the 'explicit/images/content/used/uncompressed-heap' "
-  "and 'explicit/images/content/used/uncompressed-nonheap' numbers.  However, "
-  "it is measured at a different time and so may give slightly different "
-  "results.")
-
 NS_IMPL_ISUPPORTS1(imgMemoryReporter, nsIMemoryMultiReporter)
+
+
+class ImagesContentUsedUncompressedReporter MOZ_FINAL
+  : public MemoryReporterBase
+{
+public:
+  ImagesContentUsedUncompressedReporter()
+    : MemoryReporterBase("images-content-used-uncompressed",
+                         KIND_OTHER, UNITS_BYTES,
+"This is the sum of the 'explicit/images/content/used/uncompressed-heap' "
+"and 'explicit/images/content/used/uncompressed-nonheap' numbers.  However, "
+"it is measured at a different time and so may give slightly different "
+"results.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return imgMemoryReporter::GetImagesContentUsedUncompressed();
+  }
+};
 
 NS_IMPL_ISUPPORTS3(nsProgressNotificationProxy,
                      nsIProgressEventSink,
@@ -842,7 +851,7 @@ void imgLoader::GlobalInit()
 
   sMemReporter = new imgMemoryReporter();
   NS_RegisterMemoryMultiReporter(sMemReporter);
-  NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(ImagesContentUsedUncompressed));
+  NS_RegisterMemoryReporter(new ImagesContentUsedUncompressedReporter());
 }
 
 nsresult imgLoader::InitCache()
