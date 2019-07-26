@@ -333,6 +333,8 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, js::Wrapper *handler,
     } else if (WrapperFactory::IsComponentsObject(obj)) {
         
         MOZ_ASSERT(!handler->isSafeToUnwrap());
+    } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
+        
     } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
         
         
