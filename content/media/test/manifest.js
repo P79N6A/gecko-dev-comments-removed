@@ -352,6 +352,10 @@ var gMetadataTests = [
     }
   },
   { name:"sound.ogg", tags: { } },
+  { name:"small-shot.ogg", tags: {
+      title:"Pew SFX"
+    }
+  },
   { name:"badtags.ogg", tags: {
       
       
