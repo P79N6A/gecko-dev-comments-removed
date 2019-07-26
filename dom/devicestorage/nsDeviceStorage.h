@@ -121,7 +121,10 @@ private:
 
   struct CacheEntry
   {
-    NS_INLINE_DECL_REFCOUNTING(DeviceStorageUsedSpaceCache::CacheEntry)
+    
+    
+    
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DeviceStorageUsedSpaceCache::CacheEntry)
 
     bool mDirty;
     nsString mStorageName;
