@@ -42,8 +42,6 @@ var gDebug;
 var gCurrentTestStartTime;
 var gClearingForAssertionCheck = false;
 
-const TYPE_LOAD = 'load';  
-                           
 const TYPE_SCRIPT = 'script'; 
 
 function markupDocumentViewer() {
@@ -640,12 +638,6 @@ const SYNC_DEFAULT = 0x0;
 const SYNC_ALLOW_DISABLE = 0x1;
 function SynchronizeForSnapshot(flags)
 {
-    if (gCurrentTestType == TYPE_SCRIPT ||
-        gCurrentTestType == TYPE_LOAD) {
-        
-        return;
-    }
-
     if (flags & SYNC_ALLOW_DISABLE) {
         var docElt = content.document.documentElement;
         if (docElt && docElt.hasAttribute("reftest-no-sync-layers")) {
