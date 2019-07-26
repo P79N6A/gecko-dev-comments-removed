@@ -149,24 +149,6 @@ HUD_SERVICE.prototype =
 
 
 
-  toggleWebConsole: function HS_toggleWebConsole()
-  {
-    let window = this.currentContext();
-    let target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
-    let toolbox = gDevTools.getToolbox(target);
-
-    return toolbox && toolbox.currentToolId == "webconsole" ?
-        toolbox.destroy() :
-        gDevTools.showToolbox(target, "webconsole");
-  },
-
-  
-
-
-
-
-
-
   getOpenWebConsole: function HS_getOpenWebConsole()
   {
     let tab = this.currentContext().gBrowser.selectedTab;
@@ -744,7 +726,7 @@ BrowserConsole.prototype = Heritage.extend(WebConsole.prototype,
 const HUDService = new HUD_SERVICE();
 
 (() => {
-  let methods = ["openWebConsole", "openBrowserConsole", "toggleWebConsole",
+  let methods = ["openWebConsole", "openBrowserConsole",
                  "toggleBrowserConsole", "getOpenWebConsole",
                  "getBrowserConsole", "getHudByWindow", "getHudReferenceById"];
   for (let method of methods) {
