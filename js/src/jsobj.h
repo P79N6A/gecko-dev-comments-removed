@@ -297,12 +297,15 @@ class JSObject : public js::ObjectImpl
     inline void setLastPropertyInfallible(js::RawShape shape);
 
     
+
+
+
     static inline JSObject *create(JSContext *cx,
                                    js::gc::AllocKind kind,
                                    js::gc::InitialHeap heap,
                                    js::HandleShape shape,
                                    js::HandleTypeObject type,
-                                   js::HeapSlot *slots);
+                                   js::HeapSlot *extantSlots = NULL);
 
     
     static inline JSObject *createArray(JSContext *cx,
