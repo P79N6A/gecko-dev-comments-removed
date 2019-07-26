@@ -172,11 +172,91 @@ function promiseTimeout(aTime)
 
 
 
-function promiseSimpleDownload(aSourceUrl) {
+function promiseNewDownload(aSourceUrl) {
   return Downloads.createDownload({
     source: aSourceUrl || httpUrl("source.txt"),
     target: getTempFile(TEST_TARGET_FILE_NAME),
   });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseStartLegacyDownload(aSourceUrl, aOptions) {
+  let sourceURI = NetUtil.newURI(aSourceUrl || httpUrl("source.txt"));
+  let targetFile = (aOptions && aOptions.targetFile)
+                   || getTempFile(TEST_TARGET_FILE_NAME);
+
+  let persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+                  .createInstance(Ci.nsIWebBrowserPersist);
+  if (aOptions) {
+    aOptions.outPersist = persist;
+  }
+
+  
+  persist.persistFlags &= ~Ci.nsIWebBrowserPersist.PERSIST_FLAGS_NO_CONVERSION;
+
+  
+  
+  
+  
+  let transfer =
+      Components.classesByID["{1b4c85df-cbdd-4bb6-b04e-613caece083c}"]
+                .createInstance(Ci.nsITransfer);
+
+  let deferred = Promise.defer();
+
+  let isPrivate = aOptions && aOptions.isPrivate;
+  let promise = isPrivate ? Downloads.getPrivateDownloadList()
+                          : Downloads.getPublicDownloadList();
+  promise.then(function (aList) {
+    
+    
+    aList.addView({
+      onDownloadAdded: function (aDownload) {
+        aList.removeView(this);
+
+        
+        
+        aList.remove(aDownload);
+
+        
+        deferred.resolve(aDownload);
+      },
+    });
+
+    
+    
+    transfer.init(sourceURI, NetUtil.newURI(targetFile), null, null, null, null,
+                  persist, isPrivate);
+    persist.progressListener = transfer;
+
+    
+    persist.savePrivacyAwareURI(sourceURI, null, null, null, null, targetFile,
+                                isPrivate);
+  }.bind(this)).then(null, do_report_unexpected_exception);
+
+  return deferred.promise;
 }
 
 

@@ -1,0 +1,1105 @@
+
+
+
+
+
+
+
+
+
+
+
+"use strict";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseStartDownload(aSourceUrl) {
+  if (gUseLegacySaver) {
+    return promiseStartLegacyDownload(aSourceUrl);
+  }
+
+  return promiseNewDownload(aSourceUrl).then(download => {
+    download.start();
+    return download;
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseDownloadStopped(aDownload) {
+  if (!aDownload.stopped) {
+    
+    
+    return aDownload.start();
+  }
+
+  if (aDownload.succeeded) {
+    return Promise.resolve();
+  }
+
+  
+  return Promise.reject(aDownload.error || new Error("Download canceled."));
+}
+
+
+
+
+
+
+
+
+
+add_task(function test_basic()
+{
+  let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
+
+  let download;
+  if (!gUseLegacySaver) {
+    
+    
+    download = yield Downloads.createDownload({
+      source: { url: httpUrl("source.txt") },
+      target: { path: targetFile.path },
+      saver: { type: "copy" },
+    });
+
+    do_check_eq(download.source.url, httpUrl("source.txt"));
+    do_check_eq(download.target.path, targetFile.path);
+
+    yield download.start();
+  } else {
+    
+    
+    download = yield promiseStartLegacyDownload(null,
+                                                { targetFile: targetFile });
+
+    do_check_eq(download.source.url, httpUrl("source.txt"));
+    do_check_eq(download.target.path, targetFile.path);
+
+    yield promiseDownloadStopped(download);
+  }
+
+  
+  do_check_true(download.source.referrer === null);
+
+  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_referrer()
+{
+  let sourcePath = "/test_referrer.txt";
+  let sourceUrl = httpUrl("test_referrer.txt");
+  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+
+  function cleanup() {
+    gHttpServer.registerPathHandler(sourcePath, null);
+  }
+
+  do_register_cleanup(cleanup);
+
+  gHttpServer.registerPathHandler(sourcePath, function (aRequest, aResponse) {
+    aResponse.setHeader("Content-Type", "text/plain", false);
+
+    do_check_true(aRequest.hasHeader("Referer"));
+    do_check_eq(aRequest.getHeader("Referer"), TEST_REFERRER_URL);
+  });
+  let download = yield Downloads.createDownload({
+    source: { url: sourceUrl, referrer: TEST_REFERRER_URL },
+    target: targetPath,
+  });
+  do_check_eq(download.source.referrer, TEST_REFERRER_URL);
+  yield download.start();
+
+  download = yield Downloads.createDownload({
+    source: { url: sourceUrl, referrer: TEST_REFERRER_URL,
+              isPrivate: true },
+    target: targetPath,
+  });
+  do_check_eq(download.source.referrer, TEST_REFERRER_URL);
+  yield download.start();
+
+  
+  sourceUrl = "data:text/html,<html><body></body></html>";
+  download = yield Downloads.createDownload({
+    source: { url: sourceUrl, referrer: TEST_REFERRER_URL },
+    target: targetPath,
+  });
+  do_check_eq(download.source.referrer, TEST_REFERRER_URL);
+  yield download.start();
+
+  cleanup();
+});
+
+
+
+
+add_task(function test_initial_final_state()
+{
+  let download;
+  if (!gUseLegacySaver) {
+    
+    
+    download = yield promiseNewDownload();
+
+    do_check_true(download.stopped);
+    do_check_false(download.succeeded);
+    do_check_false(download.canceled);
+    do_check_true(download.error === null);
+    do_check_eq(download.progress, 0);
+    do_check_true(download.startTime === null);
+
+    yield download.start();
+  } else {
+    
+    
+    download = yield promiseStartLegacyDownload();
+    yield promiseDownloadStopped(download);
+  }
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+  do_check_eq(download.progress, 100);
+  do_check_true(isValidDate(download.startTime));
+});
+
+
+
+
+add_task(function test_final_state_notified()
+{
+  let deferResponse = deferNextResponse();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+  let onchangeNotified = false;
+  let lastNotifiedStopped;
+  let lastNotifiedProgress;
+  download.onchange = function () {
+    onchangeNotified = true;
+    lastNotifiedStopped = download.stopped;
+    lastNotifiedProgress = download.progress;
+  };
+
+  
+  let promiseAttempt = download.start();
+  deferResponse.resolve();
+  yield promiseAttempt;
+
+  
+  do_check_true(onchangeNotified);
+  do_check_true(lastNotifiedStopped);
+  do_check_eq(lastNotifiedProgress, 100);
+});
+
+
+
+
+add_task(function test_intermediate_progress()
+{
+  let deferResponse = deferNextResponse();
+
+  let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+  let onchange = function () {
+    if (download.progress == 50) {
+      do_check_true(download.hasProgress);
+      do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
+      do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
+
+      
+      deferResponse.resolve();
+    }
+  };
+
+  
+  
+  download.onchange = onchange;
+  onchange();
+
+  yield promiseDownloadStopped(download);
+
+  do_check_true(download.stopped);
+  do_check_eq(download.progress, 100);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_empty_progress()
+{
+  let download = yield promiseStartDownload(httpUrl("empty.txt"));
+  yield promiseDownloadStopped(download);
+
+  do_check_true(download.stopped);
+  do_check_true(download.hasProgress);
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+});
+
+
+
+
+add_task(function test_empty_noprogress()
+{
+  let deferResponse = deferNextResponse();
+  let promiseEmptyRequestReceived = promiseNextRequestReceived();
+
+  let download;
+  if (!gUseLegacySaver) {
+    
+    
+    
+    download = yield promiseNewDownload(httpUrl("empty-noprogress.txt"));
+
+    download.onchange = function () {
+      if (!download.stopped) {
+        do_check_false(download.hasProgress);
+        do_check_eq(download.currentBytes, 0);
+        do_check_eq(download.totalBytes, 0);
+      }
+    };
+
+    download.start();
+  } else {
+    
+    
+    
+    download = yield promiseStartLegacyDownload(
+                                       httpUrl("empty-noprogress.txt"));
+  }
+
+  
+  
+  
+  yield promiseEmptyRequestReceived;
+  yield promiseExecuteSoon();
+
+  
+  do_check_false(download.stopped);
+  do_check_false(download.hasProgress);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  
+  deferResponse.resolve();
+  yield promiseDownloadStopped(download);
+
+  
+  do_check_true(download.stopped);
+  do_check_false(download.hasProgress);
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+});
+
+
+
+
+add_task(function test_start_twice()
+{
+  
+  let deferResponse = deferNextResponse();
+
+  let download;
+  if (!gUseLegacySaver) {
+    
+    
+    download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  } else {
+    
+    
+    download = yield promiseStartLegacyDownload(httpUrl("interruptible.txt"));
+  }
+
+  
+  let promiseAttempt1 = download.start();
+  let promiseAttempt2 = download.start();
+
+  
+  deferResponse.resolve();
+
+  
+  yield promiseAttempt1;
+  yield promiseAttempt2;
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_midway()
+{
+  let deferResponse = deferNextResponse();
+
+  
+  
+  let download;
+  let options = {};
+  if (!gUseLegacySaver) {
+    download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  } else {
+    download = yield promiseStartLegacyDownload(httpUrl("interruptible.txt"),
+                                                options);
+  }
+
+  try {
+    
+    let deferCancel = Promise.defer();
+    let onchange = function () {
+      if (!download.stopped && !download.canceled && download.progress == 50) {
+        deferCancel.resolve(download.cancel());
+
+        
+        
+        do_check_true(download.canceled);
+      }
+    };
+
+    
+    
+    
+    download.onchange = onchange;
+    onchange();
+
+    let promiseAttempt;
+    if (!gUseLegacySaver) {
+      promiseAttempt = download.start();
+    }
+
+    
+    
+    yield deferCancel.promise;
+
+    if (gUseLegacySaver) {
+      
+      do_check_eq(options.outPersist.result, Cr.NS_ERROR_ABORT);
+    }
+
+    do_check_true(download.stopped);
+    do_check_true(download.canceled);
+    do_check_true(download.error === null);
+
+    do_check_false(yield OS.File.exists(download.target.path));
+
+    
+    do_check_eq(download.progress, 50);
+    do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
+    do_check_eq(download.currentBytes, TEST_DATA_SHORT.length);
+
+    if (!gUseLegacySaver) {
+      
+      try {
+        yield promiseAttempt;
+        do_throw("The download should have been canceled.");
+      } catch (ex if ex instanceof Downloads.Error) {
+        do_check_false(ex.becauseSourceFailed);
+        do_check_false(ex.becauseTargetFailed);
+      }
+    }
+  } finally {
+    deferResponse.resolve();
+  }
+});
+
+
+
+
+add_task(function test_cancel_immediately()
+{
+  
+  let deferResponse = deferNextResponse();
+  try {
+    let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+    let promiseAttempt = download.start();
+    do_check_false(download.stopped);
+
+    let promiseCancel = download.cancel();
+    do_check_true(download.canceled);
+
+    
+    
+    
+    try {
+      yield promiseAttempt;
+      do_throw("The download should have been canceled.");
+    } catch (ex if ex instanceof Downloads.Error) {
+      do_check_false(ex.becauseSourceFailed);
+      do_check_false(ex.becauseTargetFailed);
+    }
+
+    do_check_true(download.stopped);
+    do_check_true(download.canceled);
+    do_check_true(download.error === null);
+
+    do_check_false(yield OS.File.exists(download.target.path));
+
+    
+    yield promiseCancel;
+  } finally {
+    deferResponse.resolve();
+  }
+
+  
+  
+  
+  
+  for (let i = 0; i < 5; i++) {
+    yield promiseExecuteSoon();
+  }
+});
+
+
+
+
+add_task(function test_cancel_midway_restart()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+
+  
+  let deferResponse = deferNextResponse();
+  try {
+    let deferCancel = Promise.defer();
+    download.onchange = function () {
+      if (!download.stopped && !download.canceled && download.progress == 50) {
+        deferCancel.resolve(download.cancel());
+      }
+    };
+    download.start();
+    yield deferCancel.promise;
+  } finally {
+    deferResponse.resolve();
+  }
+
+  do_check_true(download.stopped);
+
+  
+  download.onchange = null;
+  let promiseAttempt = download.start();
+
+  
+  do_check_false(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  
+  
+  
+  do_check_eq(download.progress, 0);
+  do_check_eq(download.totalBytes, 0);
+  do_check_eq(download.currentBytes, 0);
+
+  yield promiseAttempt;
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_immediately_restart_immediately()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+
+  
+  let deferResponse = deferNextResponse();
+
+  let promiseAttempt = download.start();
+  do_check_false(download.stopped);
+
+  download.cancel();
+  do_check_true(download.canceled);
+
+  let promiseRestarted = download.start();
+  do_check_false(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  
+  
+  
+  do_check_eq(download.hasProgress, false);
+  do_check_eq(download.progress, 0);
+  do_check_eq(download.totalBytes, 0);
+  do_check_eq(download.currentBytes, 0);
+
+  
+  
+  
+  
+  for (let i = 0; i < 5; i++) {
+    yield promiseExecuteSoon();
+  }
+
+  
+  
+  deferResponse.resolve();
+
+  try {
+    yield promiseAttempt;
+    do_throw("The download should have been canceled.");
+  } catch (ex if ex instanceof Downloads.Error) {
+    do_check_false(ex.becauseSourceFailed);
+    do_check_false(ex.becauseTargetFailed);
+  }
+
+  yield promiseRestarted;
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_midway_restart_immediately()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+
+  
+  let deferResponse = deferNextResponse();
+
+  let deferMidway = Promise.defer();
+  download.onchange = function () {
+    if (!download.stopped && !download.canceled && download.progress == 50) {
+      do_check_eq(download.progress, 50);
+      deferMidway.resolve();
+    }
+  };
+  let promiseAttempt = download.start();
+  yield deferMidway.promise;
+
+  download.cancel();
+  do_check_true(download.canceled);
+
+  let promiseRestarted = download.start();
+  do_check_false(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  
+  
+  
+  do_check_eq(download.hasProgress, false);
+  do_check_eq(download.progress, 0);
+  do_check_eq(download.totalBytes, 0);
+  do_check_eq(download.currentBytes, 0);
+
+  deferResponse.resolve();
+
+  
+  try {
+    yield promiseAttempt;
+    do_throw("The download should have been canceled.");
+  } catch (ex if ex instanceof Downloads.Error) {
+    do_check_false(ex.becauseSourceFailed);
+    do_check_false(ex.becauseTargetFailed);
+  }
+
+  yield promiseRestarted;
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_successful()
+{
+  let download = yield promiseStartDownload();
+  yield promiseDownloadStopped(download);
+
+  
+  yield download.cancel();
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_twice()
+{
+  
+  let deferResponse = deferNextResponse();
+  try {
+    let download = yield promiseStartDownload(httpUrl("interruptible.txt"));
+
+    let promiseAttempt = download.start();
+    do_check_false(download.stopped);
+
+    let promiseCancel1 = download.cancel();
+    do_check_true(download.canceled);
+    let promiseCancel2 = download.cancel();
+
+    try {
+      yield promiseAttempt;
+      do_throw("The download should have been canceled.");
+    } catch (ex if ex instanceof Downloads.Error) {
+      do_check_false(ex.becauseSourceFailed);
+      do_check_false(ex.becauseTargetFailed);
+    }
+
+    
+    yield promiseCancel1;
+    yield promiseCancel2;
+
+    do_check_true(download.stopped);
+    do_check_false(download.succeeded);
+    do_check_true(download.canceled);
+    do_check_true(download.error === null);
+
+    do_check_false(yield OS.File.exists(download.target.path));
+  } finally {
+    deferResponse.resolve();
+  }
+});
+
+
+
+
+add_task(function test_whenSucceeded_after_restart()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload(httpUrl("interruptible.txt"));
+
+  
+  let deferResponse = deferNextResponse();
+
+  
+  let promiseSucceeded = download.whenSucceeded();
+
+  
+  download.start();
+  yield download.cancel();
+
+  deferResponse.resolve();
+
+  
+  download.start();
+
+  
+  yield promiseSucceeded;
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+
+  yield promiseVerifyContents(download.target.path,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_error_source()
+{
+  let serverSocket = startFakeServer();
+  try {
+    let sourceUrl = "http://localhost:" + serverSocket.port + "/source.txt";
+
+    let download;
+    try {
+      if (!gUseLegacySaver) {
+        
+        
+        download = yield promiseNewDownload(sourceUrl);
+
+        do_check_true(download.error === null);
+
+        yield download.start();
+      } else {
+        
+        
+        
+        
+        download = yield promiseStartLegacyDownload(sourceUrl);
+        yield promiseDownloadStopped(download);
+      }
+      do_throw("The download should have failed.");
+    } catch (ex if ex instanceof Downloads.Error && ex.becauseSourceFailed) {
+      
+    }
+
+    
+    do_check_true(download.stopped);
+    do_check_false(download.canceled);
+    do_check_true(download.error !== null);
+    do_check_true(download.error.becauseSourceFailed);
+    do_check_false(download.error.becauseTargetFailed);
+  } finally {
+    serverSocket.close();
+  }
+});
+
+
+
+
+add_task(function test_error_target()
+{
+  
+  let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
+  targetFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0);
+  try {
+    let download;
+    try {
+      if (!gUseLegacySaver) {
+        
+        
+        download = yield Downloads.createDownload({
+          source: httpUrl("source.txt"),
+          target: targetFile,
+        });
+        yield download.start();
+      } else {
+        
+        
+        
+        
+        download = yield promiseStartLegacyDownload(null,
+                                                    { targetFile: targetFile });
+        yield promiseDownloadStopped(download);
+      }
+      do_throw("The download should have failed.");
+    } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
+      
+    }
+
+    
+    do_check_true(download.stopped);
+    do_check_false(download.canceled);
+    do_check_true(download.error !== null);
+    do_check_true(download.error.becauseTargetFailed);
+    do_check_false(download.error.becauseSourceFailed);
+  } finally {
+    
+    if (targetFile.exists()) {
+      targetFile.permissions = FileUtils.PERMS_FILE;
+      targetFile.remove(false);
+    }
+  }
+});
+
+
+
+
+add_task(function test_error_restart()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload();
+
+  do_check_true(download.error === null);
+
+  
+  let targetFile = new FileUtils.File(download.target.path);
+  targetFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0);
+
+  try {
+    yield download.start();
+    do_throw("The download should have failed.");
+  } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
+    
+  } finally {
+    
+    if (targetFile.exists()) {
+      targetFile.permissions = FileUtils.PERMS_FILE;
+
+      
+      
+      
+      targetFile.moveTo(null, targetFile.leafName + ".delete.tmp");
+      targetFile.remove(false);
+    }
+  }
+
+  
+  yield download.start();
+
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.canceled);
+  do_check_true(download.error === null);
+  do_check_eq(download.progress, 100);
+
+  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_public_and_private()
+{
+  let sourcePath = "/test_public_and_private.txt";
+  let sourceUrl = httpUrl("test_public_and_private.txt");
+  let testCount = 0;
+
+  
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+
+  function cleanup() {
+    Services.prefs.clearUserPref("network.cookie.cookieBehavior");
+    Services.cookies.removeAll();
+    gHttpServer.registerPathHandler(sourcePath, null);
+  }
+  do_register_cleanup(cleanup);
+
+  gHttpServer.registerPathHandler(sourcePath, function (aRequest, aResponse) {
+    aResponse.setHeader("Content-Type", "text/plain", false);
+
+    if (testCount == 0) {
+      
+      do_check_false(aRequest.hasHeader("Cookie"));
+      aResponse.setHeader("Set-Cookie", "foobar=1", false);
+      testCount++;
+    } else if (testCount == 1) {
+      
+      do_check_true(aRequest.hasHeader("Cookie"));
+      do_check_eq(aRequest.getHeader("Cookie"), "foobar=1");
+      testCount++;
+    } else if (testCount == 2)  {
+      
+      do_check_false(aRequest.hasHeader("Cookie"));
+    }
+  });
+
+  let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
+  yield Downloads.simpleDownload(sourceUrl, targetFile);
+  yield Downloads.simpleDownload(sourceUrl, targetFile);
+
+  if (!gUseLegacySaver) {
+    let download = yield Downloads.createDownload({
+      source: { url: sourceUrl, isPrivate: true },
+      target: targetFile,
+    });
+    yield download.start();
+  } else {
+    let download = yield promiseStartLegacyDownload(sourceUrl,
+                                                    { isPrivate: true });
+    yield promiseDownloadStopped(download);
+  }
+
+  cleanup();
+});
+
+
+
+
+add_task(function test_cancel_immediately_restart_and_check_startTime()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload();
+
+  download.start();
+  let startTime = download.startTime;
+  do_check_true(isValidDate(download.startTime));
+
+  yield download.cancel();
+  do_check_eq(download.startTime.getTime(), startTime.getTime());
+
+  
+  yield promiseTimeout(10);
+
+  yield download.start();
+  do_check_true(download.startTime.getTime() > startTime.getTime());
+});
+
+
+
+
+add_task(function test_with_content_encoding()
+{
+  let sourcePath = "/test_with_content_encoding.txt";
+  let sourceUrl = httpUrl("test_with_content_encoding.txt");
+
+  function cleanup() {
+    gHttpServer.registerPathHandler(sourcePath, null);
+  }
+  do_register_cleanup(cleanup);
+
+  gHttpServer.registerPathHandler(sourcePath, function (aRequest, aResponse) {
+    aResponse.setHeader("Content-Type", "text/plain", false);
+    aResponse.setHeader("Content-Encoding", "gzip", false);
+    aResponse.setHeader("Content-Length",
+                        "" + TEST_DATA_SHORT_GZIP_ENCODED.length, false);
+
+    let bos =  new BinaryOutputStream(aResponse.bodyOutputStream);
+    bos.writeByteArray(TEST_DATA_SHORT_GZIP_ENCODED,
+                       TEST_DATA_SHORT_GZIP_ENCODED.length);
+  });
+
+  let download = yield promiseStartDownload(sourceUrl);
+  yield promiseDownloadStopped(download);
+
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
+
+  
+  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_cancel_midway_restart_with_content_encoding()
+{
+  
+  if (gUseLegacySaver) {
+    return;
+  }
+
+  let download = yield promiseNewDownload(httpUrl("interruptible_gzip.txt"));
+
+  
+  let deferResponse = deferNextResponse();
+  try {
+    let deferCancel = Promise.defer();
+    download.onchange = function () {
+      if (!download.stopped && !download.canceled &&
+          download.currentBytes == TEST_DATA_SHORT_GZIP_ENCODED_FIRST.length) {
+        deferCancel.resolve(download.cancel());
+      }
+    };
+    download.start();
+    yield deferCancel.promise;
+  } finally {
+    deferResponse.resolve();
+  }
+
+  do_check_true(download.stopped);
+
+  
+  download.onchange = null;
+  yield download.start()
+
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
+
+  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_blocked_parental_controls()
+{
+  function cleanup() {
+    DownloadIntegration.shouldBlockInTest = false;
+  }
+  do_register_cleanup(cleanup);
+  DownloadIntegration.shouldBlockInTest = true;
+
+  let download;
+  try {
+    if (!gUseLegacySaver) {
+      
+      
+      download = yield promiseNewDownload();
+      yield download.start();
+    } else {
+      
+      
+      
+      
+      download = yield promiseStartLegacyDownload();
+      yield promiseDownloadStopped(download);
+    }
+    do_throw("The download should have blocked.");
+  } catch (ex if ex instanceof Downloads.Error && ex.becauseBlocked) {
+    do_check_true(ex.becauseBlockedByParentalControls);
+  }
+
+  
+  do_check_false(yield OS.File.exists(download.target.path));
+
+  cleanup();
+});
+
