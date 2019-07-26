@@ -159,7 +159,7 @@ protected:
   void PostProcessAttachedQueueEvent();
 
 
-protected: 
+protected:
   
   nsAutoPtr<nsTHashtable<nsRefPtrHashKey<nsIContent> > > mBoundContentSet;
 
@@ -193,7 +193,7 @@ protected:
   nsRefPtr< nsRunnableMethod<nsBindingManager> > mProcessAttachedQueueEvent;
 
   
-  nsIDocument* mDocument; 
+  nsIDocument* mDocument;
 };
 
 #endif

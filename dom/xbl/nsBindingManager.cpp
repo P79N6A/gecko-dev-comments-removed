@@ -65,12 +65,12 @@ public:
   
   ObjectEntry() { MOZ_COUNT_CTOR(ObjectEntry); }
   ~ObjectEntry() { MOZ_COUNT_DTOR(ObjectEntry); }
-  
+
   nsISupports* GetValue() { return mValue; }
   nsISupports* GetKey() { return mKey; }
   void SetValue(nsISupports* aValue) { mValue = aValue; }
   void SetKey(nsISupports* aKey) { mKey = aKey; }
-  
+
 private:
   nsCOMPtr<nsISupports> mKey;
   nsCOMPtr<nsISupports> mValue;
@@ -89,7 +89,7 @@ InitObjectEntry(PLDHashTable* table, PLDHashEntryHdr* entry, const void* key)
   new (entry) ObjectEntry;
   return true;
 }
-  
+
 
 
 static const PLDHashTableOps ObjectTableOps = {
@@ -109,7 +109,7 @@ AddObjectEntry(PLDHashTable& table, nsISupports* aKey, nsISupports* aValue)
 {
   NS_ASSERTION(aKey, "key must be non-null");
   if (!aKey) return NS_ERROR_INVALID_ARG;
-  
+
   ObjectEntry *entry =
     static_cast<ObjectEntry*>
                (PL_DHashTableOperate(&table, aKey, PL_DHASH_ADD));
@@ -124,7 +124,7 @@ AddObjectEntry(PLDHashTable& table, nsISupports* aKey, nsISupports* aValue)
   
   
   entry->SetValue(aValue);
-  
+
   return NS_OK;
 }
 
@@ -216,7 +216,7 @@ DocumentInfoHashtableTraverser(nsIURI* key,
                                nsXBLDocumentInfo* di,
                                void* userArg)
 {
-  nsCycleCollectionTraversalCallback *cb = 
+  nsCycleCollectionTraversalCallback *cb =
     static_cast<nsCycleCollectionTraversalCallback*>(userArg);
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mDocumentTable value");
   cb->NoteXPCOMChild(di);
@@ -228,7 +228,7 @@ LoadingDocHashtableTraverser(nsIURI* key,
                              nsIStreamListener* sl,
                              void* userArg)
 {
-  nsCycleCollectionTraversalCallback *cb = 
+  nsCycleCollectionTraversalCallback *cb =
     static_cast<nsCycleCollectionTraversalCallback*>(userArg);
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mLoadingDocTable value");
   cb->NoteXPCOMChild(sl);
@@ -301,7 +301,7 @@ nsBindingManager::RemoveBoundContent(nsIContent* aContent)
 
 nsIXPConnectWrappedJS*
 nsBindingManager::GetWrappedJS(nsIContent* aContent)
-{ 
+{
   if (mWrapperTable.ops) {
     return static_cast<nsIXPConnectWrappedJS*>(LookupObject(mWrapperTable, aContent));
   }
@@ -391,7 +391,7 @@ nsBindingManager::ClearBinding(nsIContent* aContent)
   
   
   nsCOMPtr<nsIDocument> doc = aContent->OwnerDoc();
-  
+
   
   
   
@@ -399,7 +399,7 @@ nsBindingManager::ClearBinding(nsIContent* aContent)
   binding->ChangeDocument(doc, nullptr);
   aContent->SetXBLBinding(nullptr, this);
   binding->MarkForDeath();
-  
+
   
   
   
@@ -416,7 +416,7 @@ nsBindingManager::LoadBindingDocument(nsIDocument* aBoundDoc,
                                       nsIPrincipal* aOriginPrincipal)
 {
   NS_PRECONDITION(aURL, "Must have a URI to load!");
-  
+
   
   nsXBLService* xblService = nsXBLService::GetInstance();
   if (!xblService)
@@ -482,7 +482,7 @@ nsBindingManager::DoProcessAttachedQueue()
 
     NS_ASSERTION(mAttachedStack.Length() == 0,
                "Shouldn't have pending bindings!");
-  
+
     mProcessAttachedQueueEvent = nullptr;
   } else {
     
@@ -525,7 +525,7 @@ nsBindingManager::ProcessAttachedQueue(uint32_t aSkipSize)
   }
 
   NS_ASSERTION(mAttachedStack.Length() == aSkipSize, "How did we get here?");
-  
+
   mAttachedStack.Compact();
 }
 
@@ -569,7 +569,7 @@ nsresult
 nsBindingManager::PutXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo)
 {
   NS_PRECONDITION(aDocumentInfo, "Must have a non-null documentinfo!");
-  
+
   if (!mDocumentTable) {
     mDocumentTable = new nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo>(16);
   }
@@ -600,7 +600,7 @@ nsresult
 nsBindingManager::PutLoadingDocListener(nsIURI* aURL, nsIStreamListener* aListener)
 {
   NS_PRECONDITION(aListener, "Must have a non-null listener!");
-  
+
   if (!mLoadingDocTable) {
     mLoadingDocTable = new nsInterfaceHashtable<nsURIHashKey,nsIStreamListener>(16);
   }
@@ -653,12 +653,12 @@ nsBindingManager::FlushSkinBindings()
 
 
 struct AntiRecursionData {
-  nsIContent* element; 
-  REFNSIID iid; 
+  nsIContent* element;
+  REFNSIID iid;
   AntiRecursionData* next;
 
-  AntiRecursionData(nsIContent* aElement, 
-                    REFNSIID aIID, 
+  AntiRecursionData(nsIContent* aElement,
+                    REFNSIID aIID,
                     AntiRecursionData* aNext)
     : element(aElement), iid(aIID), next(aNext) {}
 };
@@ -707,12 +707,12 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
         list = &item;
 
         nsresult rv = wrappedJS->AggregatedQueryInterface(aIID, aResult);
-        
+
         list = item.next;
-        
+
         if (*aResult)
           return rv;
-        
+
         
         
       }
@@ -769,7 +769,7 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
       return rv;
     }
   }
-  
+
   *aResult = nullptr;
   return NS_NOINTERFACE;
 }
@@ -780,13 +780,13 @@ nsBindingManager::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                             bool* aCutOffInheritance)
 {
   *aCutOffInheritance = false;
-  
+
   NS_ASSERTION(aData->mElement, "How did that happen?");
 
   
   
   nsIContent *content = aData->mElement;
-  
+
   do {
     nsXBLBinding *binding = content->GetXBLBinding();
     if (binding) {
@@ -849,7 +849,7 @@ static PLDHashOperator
 EnumWalkAllRules(nsPtrHashKey<nsIStyleRuleProcessor> *aKey, void* aClosure)
 {
   nsIStyleRuleProcessor *ruleProcessor = aKey->GetKey();
-    
+
   WalkAllRulesData *data = static_cast<WalkAllRulesData*>(aClosure);
 
   (*(data->mFunc))(ruleProcessor, data->mData);
@@ -883,7 +883,7 @@ static PLDHashOperator
 EnumMediumFeaturesChanged(nsPtrHashKey<nsIStyleRuleProcessor> *aKey, void* aClosure)
 {
   nsIStyleRuleProcessor *ruleProcessor = aKey->GetKey();
-    
+
   MediumFeaturesChangedData *data =
     static_cast<MediumFeaturesChangedData*>(aClosure);
 
@@ -1235,7 +1235,7 @@ nsBindingManager::FindNestedInsertionPoint(nsIContent* aContainer,
     if (!binding) {
       break;
     }
-  
+
     XBLChildrenElement* point = binding->FindInsertionPointFor(aChild);
     if (!point) {
       return nullptr;
