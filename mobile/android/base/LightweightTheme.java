@@ -78,14 +78,16 @@ public class LightweightTheme implements GeckoEventListener {
     public void setLightweightTheme(String headerURL) {
         try {
             
-            if (headerURL.indexOf("http") != -1)
-                return;
-
-            
             URL url = new URL(headerURL);
             InputStream stream = url.openStream();
             mBitmap = BitmapFactory.decodeStream(stream);
             stream.close();
+
+            
+            if (mBitmap != null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
+                mBitmap = null;
+                return;
+            }
 
             
             DisplayMetrics dm = mApplication.getResources().getDisplayMetrics();
