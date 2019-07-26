@@ -390,6 +390,7 @@ Preferences::Init()
   rv = observerService->AddObserver(this, "profile-before-change", true);
 
   observerService->AddObserver(this, "load-extension-defaults", true);
+  observerService->AddObserver(this, "suspend_process_notification", true);
 
   return(rv);
 }
@@ -425,6 +426,11 @@ Preferences::Observe(nsISupports *aSubject, const char *aTopic,
   } else if (!nsCRT::strcmp(aTopic, "reload-default-prefs")) {
     
     pref_InitInitialObjects();
+  } else if (!nsCRT::strcmp(aTopic, "suspend_process_notification")) {
+    
+    
+    
+    rv = SavePrefFile(nullptr);
   }
   return rv;
 }
