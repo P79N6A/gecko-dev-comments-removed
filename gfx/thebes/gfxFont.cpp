@@ -30,6 +30,7 @@
 #include "nsBidiUtils.h"
 #include "nsUnicodeRange.h"
 #include "nsStyleConsts.h"
+#include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
@@ -1283,6 +1284,9 @@ gfxFontCache::AddNew(gfxFont *aFont)
     entry->mFont = aFont;
     
     
+    MOZ_ASSERT(entry == mFonts.GetEntry(key));
+    
+    
     if (oldFont && oldFont->GetExpirationState()->IsTracked()) {
         
         
@@ -1319,8 +1323,9 @@ gfxFontCache::DestroyFont(gfxFont *aFont)
 {
     Key key(aFont->GetFontEntry(), aFont->GetStyle());
     HashEntry *entry = mFonts.GetEntry(key);
-    if (entry && entry->mFont == aFont)
+    if (entry && entry->mFont == aFont) {
         mFonts.RemoveEntry(key);
+    }
     NS_ASSERTION(aFont->GetRefCount() == 0,
                  "Destroying with non-zero ref count!");
     delete aFont;
@@ -4218,6 +4223,9 @@ gfxFontStyle::gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
     systemFont(aSystemFont), printerFont(aPrinterFont),
     style(aStyle)
 {
+    MOZ_ASSERT(!MOZ_DOUBLE_IS_NaN(size));
+    MOZ_ASSERT(!MOZ_DOUBLE_IS_NaN(sizeAdjust));
+
     if (weight > 900)
         weight = 900;
     if (weight < 100)
