@@ -907,6 +907,10 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     copyFromArray(JSContext *cx, HandleObject thisTypedArrayObj,
                   HandleObject ar, uint32_t len, uint32_t offset = 0)
     {
+        
+        if (len == 0)
+            return true;
+
         Rooted<TypedArrayObject*> thisTypedArray(cx, &thisTypedArrayObj->as<TypedArrayObject>());
         JS_ASSERT(offset <= thisTypedArray->length());
         JS_ASSERT(len <= thisTypedArray->length() - offset);
@@ -914,7 +918,9 @@ class TypedArrayObjectTemplate : public TypedArrayObject
             return copyFromTypedArray(cx, thisTypedArray, ar, offset);
 
         JSRuntime *runtime = cx->runtime();
+#ifdef DEBUG
         uint64_t gcNumber = runtime->gcNumber;
+#endif
 
         NativeType *dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
         SkipRoot skipDest(cx, &dest);
@@ -929,33 +935,33 @@ class TypedArrayObjectTemplate : public TypedArrayObject
 
             const Value *src = ar->getDenseElements();
             SkipRoot skipSrc(cx, &src);
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 NativeType n;
                 if (!nativeFromValue(cx, src[i], &n))
                     return false;
                 dest[i] = n;
-            }
+            } while (++i < len);
             JS_ASSERT(runtime->gcNumber == gcNumber);
         } else {
             RootedValue v(cx);
 
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 if (!JSObject::getElement(cx, ar, ar, i, &v))
                     return false;
                 NativeType n;
                 if (!nativeFromValue(cx, v, &n))
                     return false;
 
+                len = Min(len, thisTypedArray->length());
+                if (i >= len)
+                    break;
+
                 
-
-
-
-                if (runtime->gcNumber != gcNumber) {
-                    dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
-                    gcNumber = runtime->gcNumber;
-                }
+                dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
                 dest[i] = n;
-            }
+            } while (++i < len);
         }
 
         return true;
