@@ -1350,7 +1350,7 @@ nsSSLIOLayerNewSocket(int32_t family,
 
 
 
-SECStatus nsConvertCANamesToStrings(PRArenaPool* arena, char** caNameStrings,
+SECStatus nsConvertCANamesToStrings(PLArenaPool* arena, char** caNameStrings,
                                       CERTDistNames* caNames)
 {
     SECItem* dername;
@@ -1586,7 +1586,7 @@ static bool CERT_MatchesScopeOfUse(CERTCertificate* cert, char* hostname,
     bool rv = true; 
     SECStatus srv;
     SECItem extData;
-    PRArenaPool* arena = NULL;
+    PLArenaPool* arena = NULL;
     CERTCertificateScopeEntry** entries = NULL;
     
     int numEntries = 0;
@@ -1899,7 +1899,7 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
 
 void ClientAuthDataRunnable::RunOnTargetThread()
 {
-  PRArenaPool* arena = NULL;
+  PLArenaPool* arena = NULL;
   char** caNameStrings;
   CERTCertificate* cert = NULL;
   SECKEYPrivateKey* privKey = NULL;
