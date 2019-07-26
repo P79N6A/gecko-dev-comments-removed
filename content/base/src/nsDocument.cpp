@@ -5059,7 +5059,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
       
       
       ErrorResult dummy;
-      aOptions.mLifecycle.mCreated->Call(newElement.get(), dummy);
+      aOptions.mLifecycle.mCreated->Call(newElement, dummy);
     }
 
     nsCOMPtr<nsIDOMElementReplaceEvent> ptEvent = do_QueryInterface(event);

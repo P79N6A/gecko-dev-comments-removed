@@ -698,6 +698,15 @@ GetWrapperCache(void* p)
 
 
 
+template <template <typename> class SmartPtr, typename T>
+inline nsWrapperCache*
+GetWrapperCache(const SmartPtr<T>& aObject)
+{
+  return GetWrapperCache(aObject.get());
+}
+
+
+
 
 
 template <class T>
