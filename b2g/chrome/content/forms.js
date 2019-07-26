@@ -283,13 +283,11 @@ function getJSON(element) {
   
   
   
-  
   let attributeType = element.getAttribute("type") || "";
 
   if (attributeType) {
     var typeLowerCase = attributeType.toLowerCase(); 
     switch (typeLowerCase) {
-      case "date":
       case "time":
       case "datetime":
       case "datetime-local":

@@ -502,7 +502,7 @@ protected:
   
 
 
-  bool PlaceholderApplies() const { return IsSingleLineTextControl(false, mType); }
+  bool PlaceholderApplies() const;
 
   
 
