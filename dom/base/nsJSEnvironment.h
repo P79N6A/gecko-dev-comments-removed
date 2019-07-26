@@ -130,8 +130,6 @@ public:
     return global ? mGlobalObjectRef.get() : nullptr;
   }
 protected:
-  nsresult InitializeExternalClasses();
-
   
   nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
                                    JS::Handle<JSObject*> aScope,
