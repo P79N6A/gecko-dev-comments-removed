@@ -5404,6 +5404,17 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
     if (!result.mSourceSurface) {
       return result;
     }
+    
+    
+    
+    
+    if (aTarget) {
+      RefPtr<SourceSurface> optSurface =
+        aTarget->OptimizeSourceSurface(result.mSourceSurface);
+      if (optSurface) {
+        result.mSourceSurface = optSurface;
+      }
+    }
   } else {
     result.mDrawInfo.mImgContainer = imgContainer;
     result.mDrawInfo.mWhichFrame = whichFrame;
