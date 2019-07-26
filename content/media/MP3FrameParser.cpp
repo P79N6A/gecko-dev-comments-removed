@@ -20,12 +20,6 @@ namespace mozilla {
 
 
 
-const uint8_t mpeg_versions[4] = { 25, 0, 2, 1 };
-
-
-const uint8_t mpeg_layers[4] = { 0, 3, 2, 1 };
-
-
 const uint16_t mpeg_bitrates[4][4][16] = {
   { 
     { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
