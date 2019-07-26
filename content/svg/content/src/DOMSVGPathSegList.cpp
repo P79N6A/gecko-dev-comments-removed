@@ -387,8 +387,12 @@ DOMSVGPathSegList::ReplaceItem(DOMSVGPathSeg& aNewItem,
   
   
   uint32_t oldType = SVGPathSegUtils::DecodeType(InternalList().mData[internalIndex]);
-  uint32_t oldArgCount = SVGPathSegUtils::ArgCountForType(oldType);
-  uint32_t newArgCount = SVGPathSegUtils::ArgCountForType(domItem->Type());
+
+  
+  
+  
+  int32_t oldArgCount = SVGPathSegUtils::ArgCountForType(oldType);
+  int32_t newArgCount = SVGPathSegUtils::ArgCountForType(domItem->Type());
 
   float segAsRaw[1 + NS_SVG_PATH_SEG_MAX_ARGS];
   domItem->ToSVGPathSegEncodedData(segAsRaw);
@@ -406,7 +410,7 @@ DOMSVGPathSegList::ReplaceItem(DOMSVGPathSeg& aNewItem,
   
   domItem->InsertingIntoList(this, aIndex, IsAnimValList());
 
-  uint32_t delta = newArgCount - oldArgCount;
+  int32_t delta = newArgCount - oldArgCount;
   if (delta != 0) {
     for (uint32_t i = aIndex + 1; i < LengthNoFlush(); ++i) {
       mItems[i].mInternalDataIndex += delta;
@@ -444,7 +448,10 @@ DOMSVGPathSegList::RemoveItem(uint32_t aIndex,
 
   uint32_t internalIndex = mItems[aIndex].mInternalDataIndex;
   uint32_t segType = SVGPathSegUtils::DecodeType(InternalList().mData[internalIndex]);
-  uint32_t argCount = SVGPathSegUtils::ArgCountForType(segType);
+  
+  
+  
+  int32_t argCount = SVGPathSegUtils::ArgCountForType(segType);
 
   
   
@@ -454,9 +461,7 @@ DOMSVGPathSegList::RemoveItem(uint32_t aIndex,
   InternalList().mData.RemoveElementsAt(internalIndex, 1 + argCount);
   mItems.RemoveElementAt(aIndex);
 
-  
-  
-  UpdateListIndicesFromIndex(aIndex, 0 - (argCount + 1));
+  UpdateListIndicesFromIndex(aIndex, -(argCount + 1));
 
   Element()->DidChangePathSegList(emptyOrOldValue);
   if (AttrIsAnimating()) {
@@ -505,7 +510,7 @@ DOMSVGPathSegList::
 void
 DOMSVGPathSegList::
   MaybeRemoveItemFromAnimValListAt(uint32_t aIndex,
-                                   uint32_t aArgCountForItem)
+                                   int32_t aArgCountForItem)
 {
   NS_ABORT_IF_FALSE(!IsAnimValList(), "call from baseVal to animVal");
 
@@ -531,9 +536,7 @@ DOMSVGPathSegList::
   }
   animVal->mItems.RemoveElementAt(aIndex);
 
-  
-  
-  animVal->UpdateListIndicesFromIndex(aIndex, 0 - (1 + aArgCountForItem));
+  animVal->UpdateListIndicesFromIndex(aIndex, -(1 + aArgCountForItem));
 }
 
 void
