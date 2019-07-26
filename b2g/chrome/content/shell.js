@@ -28,9 +28,6 @@ Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
 
 Cu.import('resource://gre/modules/DownloadsAPI.jsm');
 
-Cu.import('resource://gre/modules/Webapps.jsm');
-DOMApplicationRegistry.allAppsLaunchable = true;
-
 XPCOMUtils.defineLazyServiceGetter(Services, 'env',
                                    '@mozilla.org/process/environment;1',
                                    'nsIEnvironment');
@@ -271,6 +268,7 @@ var shell = {
       alert(msg);
       return;
     }
+
     let manifestURL = this.manifestURL;
     
     
@@ -299,11 +297,19 @@ var shell = {
     
     
     
+    let chromeEventHandler = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                   .getInterface(Ci.nsIWebNavigation)
+                                   .QueryInterface(Ci.nsIDocShell)
+                                   .chromeEventHandler || window;
     
     
-    window.addEventListener('keydown', this, true);
-    window.addEventListener('keypress', this, true);
-    window.addEventListener('keyup', this, true);
+    
+    
+    
+    chromeEventHandler.addEventListener('keydown', this, true);
+    chromeEventHandler.addEventListener('keypress', this, true);
+    chromeEventHandler.addEventListener('keyup', this, true);
+
     window.addEventListener('MozApplicationManifest', this);
     window.addEventListener('mozfullscreenchange', this);
     window.addEventListener('MozAfterPaint', this);
@@ -615,6 +621,9 @@ var shell = {
 
     this.reportCrash(true);
 
+    Cu.import('resource://gre/modules/Webapps.jsm');
+    DOMApplicationRegistry.allAppsLaunchable = true;
+
     this.sendEvent(window, 'ContentStart');
 
     Services.obs.notifyObservers(null, 'content-start', null);
@@ -667,12 +676,13 @@ Services.obs.addObserver(function onFullscreenOriginChange(subject, topic, data)
                           fullscreenorigin: data });
 }, "fullscreen-origin-change", false);
 
-DOMApplicationRegistry.registryStarted.then(function () {
+Services.obs.addObserver(function onWebappsStart(subject, topic, data) {
   shell.sendChromeEvent({ type: 'webapps-registry-start' });
-});
-DOMApplicationRegistry.registryReady.then(function () {
+}, 'webapps-registry-start', false);
+
+Services.obs.addObserver(function onWebappsReady(subject, topic, data) {
   shell.sendChromeEvent({ type: 'webapps-registry-ready' });
-});
+}, 'webapps-registry-ready', false);
 
 Services.obs.addObserver(function onBluetoothVolumeChange(subject, topic, data) {
   shell.sendChromeEvent({
