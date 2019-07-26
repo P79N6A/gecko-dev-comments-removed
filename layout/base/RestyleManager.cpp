@@ -824,6 +824,11 @@ RestyleManager::RestyleElement(Element*        aElement,
   }
 }
 
+static inline dom::Element*
+ElementForStyleContext(nsIContent* aParentContent,
+                       nsIFrame* aFrame,
+                       nsCSSPseudoElements::Type aPseudoType);
+
 
 
 nsresult
@@ -849,6 +854,8 @@ RestyleManager::ContentStateChanged(nsIContent* aContent,
   
   
   nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
+  nsCSSPseudoElements::Type pseudoType =
+    nsCSSPseudoElements::ePseudo_NotPseudoElement;
   if (primaryFrame) {
     
     if (!primaryFrame->IsGeneratedContentFrame() &&
@@ -872,12 +879,29 @@ RestyleManager::ContentStateChanged(nsIContent* aContent,
       }
     }
 
+    pseudoType = primaryFrame->StyleContext()->GetPseudoType();
+
     primaryFrame->ContentStatesChanged(aStateMask);
   }
 
 
-  nsRestyleHint rshint =
-    styleSet->HasStateDependentStyle(mPresContext, aElement, aStateMask);
+  nsRestyleHint rshint;
+
+  if (pseudoType >= nsCSSPseudoElements::ePseudo_PseudoElementCount) {
+    rshint = styleSet->HasStateDependentStyle(mPresContext, aElement,
+                                              aStateMask);
+  } else if (nsCSSPseudoElements::PseudoElementSupportsUserActionState(
+                                                                  pseudoType)) {
+    
+    
+    Element* ancestor = ElementForStyleContext(nullptr, primaryFrame,
+                                               pseudoType);
+    rshint = styleSet->HasStateDependentStyle(mPresContext, ancestor,
+                                              pseudoType, aElement,
+                                              aStateMask);
+  } else {
+    rshint = nsRestyleHint(0);
+  }
 
   if (aStateMask.HasState(NS_EVENT_STATE_HOVER) && rshint != 0) {
     ++mHoverGeneration;
@@ -2365,6 +2389,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
           nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(pseudoTag) ||
           nsCSSPseudoElements::PseudoElementSupportsUserActionState(pseudoTag) ?
             aSelf->GetContent()->AsElement() : nullptr;
+        MOZ_ASSERT(element != pseudoElement);
         newContext = styleSet->ResolvePseudoElementStyle(element,
                                                          pseudoType,
                                                          parentContext,
