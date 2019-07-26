@@ -237,6 +237,15 @@ this.PageThumbs = {
 
   captureToCanvas: function PageThumbs_captureToCanvas(aWindow, aCanvas) {
     let telemetryCaptureTime = new Date();
+    this._captureToCanvas(aWindow, aCanvas);
+    let telemetry = Services.telemetry;
+    telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
+      .add(new Date() - telemetryCaptureTime);
+  },
+
+  
+  
+  _captureToCanvas: function PageThumbs__captureToCanvas(aWindow, aCanvas) {
     let [sw, sh, scale] = this._determineCropSize(aWindow, aCanvas);
     let ctx = aCanvas.getContext("2d");
 
@@ -253,10 +262,6 @@ this.PageThumbs = {
     }
 
     ctx.restore();
-
-    let telemetry = Services.telemetry;
-    telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
-      .add(new Date() - telemetryCaptureTime);
   },
 
   
@@ -278,27 +283,7 @@ this.PageThumbs = {
       try {
         let blob = yield this.captureToBlob(aBrowser.contentWindow);
         let buffer = yield TaskUtils.readBlob(blob);
-
-        let telemetryStoreTime = new Date();
-        yield PageThumbsStorage.writeData(url, new Uint8Array(buffer));
-
-        Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
-          .add(new Date() - telemetryStoreTime);
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (url != originalURL) {
-          yield PageThumbsStorage.copy(url, originalURL);
-        }
+        yield this._store(originalURL, url, buffer);
       } catch (_) {
         isSuccess = false;
       }
@@ -306,6 +291,39 @@ this.PageThumbs = {
         aCallback(isSuccess);
       }
     }).bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData) {
+    return TaskUtils.spawn(function () {
+      let telemetryStoreTime = new Date();
+      yield PageThumbsStorage.writeData(aFinalURL, aData);
+      Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
+        .add(new Date() - telemetryStoreTime);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aFinalURL != aOriginalURL)
+        yield PageThumbsStorage.copy(aFinalURL, aOriginalURL);
+    });
   },
 
   
@@ -376,8 +394,10 @@ this.PageThumbs = {
 
 
 
-  _createCanvas: function PageThumbs_createCanvas() {
-    let doc = Services.appShell.hiddenDOMWindow.document;
+
+
+  _createCanvas: function PageThumbs_createCanvas(aWindow) {
+    let doc = (aWindow || Services.appShell.hiddenDOMWindow).document;
     let canvas = doc.createElementNS(HTML_NAMESPACE, "canvas");
     canvas.mozOpaque = true;
     canvas.mozImageSmoothingEnabled = true;
@@ -459,9 +479,10 @@ this.PageThumbsStorage = {
 
 
 
-  writeData: function Storage_write(aURL, aData) {
+  writeData: function Storage_writeData(aURL, aData) {
     let path = this.getFilePathForURL(aURL);
     this.ensurePath();
+    aData = new Uint8Array(aData);
     let msg = [
       path,
       aData,
