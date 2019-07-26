@@ -108,6 +108,8 @@ public:
   
   KeyNameIndex mKeyNameIndex;
   
+  nsString mKeyValue;
+  
   void* mNativeKeyEvent;
   
   
@@ -117,6 +119,10 @@ public:
 
   void GetDOMKeyName(nsAString& aKeyName)
   {
+    if (mKeyNameIndex == KEY_NAME_INDEX_USE_STRING) {
+      aKeyName = mKeyValue;
+      return;
+    }
     GetDOMKeyName(mKeyNameIndex, aKeyName);
   }
 
@@ -147,6 +153,7 @@ public:
     isChar = aEvent.isChar;
     mIsRepeat = aEvent.mIsRepeat;
     mKeyNameIndex = aEvent.mKeyNameIndex;
+    mKeyValue = aEvent.mKeyValue;
     
     
     mNativeKeyEvent = nullptr;
