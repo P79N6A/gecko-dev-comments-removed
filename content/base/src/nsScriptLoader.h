@@ -159,22 +159,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-  static nsresult ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
-                                 uint32_t aLength,
-                                 const nsAString& aHintCharset,
-                                 nsIDocument* aDocument, nsString& aString);
-
-  
-
-
   void ProcessPendingRequests();
 
   
