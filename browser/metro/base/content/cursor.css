@@ -17,3 +17,8 @@ html|*:-moz-system-metric(touch-enabled) {
 select option, select optgroup {
   pointer-events: none;
 }
+
+
+html xul|scrollbar {
+  display: none;
+}
