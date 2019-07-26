@@ -1757,6 +1757,15 @@ struct JSBindingFinalized<T, true>
   }
 };
 
+
+template<typename T>
+const T& Constify(T& arg)
+{
+  return arg;
+}
+
+
+
 nsresult
 ReparentWrapper(JSContext* aCx, JS::HandleObject aObj);
 
