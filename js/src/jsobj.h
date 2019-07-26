@@ -562,6 +562,9 @@ class JSObject : public js::ObjectImpl
     }
 
     
+    static const char *className(JSContext *cx, js::HandleObject obj);
+
+    
 
     struct MaybeContext {
         js::Allocator *allocator;

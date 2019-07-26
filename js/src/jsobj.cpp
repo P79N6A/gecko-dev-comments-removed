@@ -1211,6 +1211,16 @@ JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it,
 }
 
 
+const char *
+JSObject::className(JSContext *cx, HandleObject obj)
+{
+    if (obj->isProxy())
+        return Proxy::className(cx, obj);
+
+    return obj->getClass()->name;
+}
+
+
 
 
 
