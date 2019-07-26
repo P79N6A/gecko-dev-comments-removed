@@ -6,30 +6,25 @@
 
 
 
+const TAB_URL = EXAMPLE_URL + "doc_frame-parameters.html";
 
-var gPane = null;
-var gTab = null;
-var gDebuggee = null;
-var gDebugger = null;
+let gTab, gDebuggee, gPanel, gDebugger;
 
 function test() {
-  debug_tab_pane(STACK_URL, function(aTab, aDebuggee, aPane) {
+  initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
     gTab = aTab;
     gDebuggee = aDebuggee;
-    gPane = aPane;
-    gDebugger = gPane.panelWin;
+    gPanel = aPanel;
+    gDebugger = gPanel.panelWin;
 
-    testFSN();
+    prepareTest();
   });
 }
 
-function testFSN() {
-  gDebugger.addEventListener("Debugger:FetchedVariables", function _onFetchedVariables() {
-    gDebugger.removeEventListener("Debugger:FetchedVariables", _onFetchedVariables, false);
-    runTest();
-  }, false);
+function prepareTest() {
+  gDebugger.once(gDebugger.EVENTS.FETCHED_SCOPES, runTest);
 
-  gDebuggee.eval("(" + function () {
+  gDebuggee.eval("(" + function() {
     var frozen = Object.freeze({});
     var sealed = Object.seal({});
     var nonExtensible = Object.preventExtensions({});
@@ -41,27 +36,27 @@ function testFSN() {
 }
 
 function runTest() {
-  let hasNoneTester = function (aVariable) {
+  let hasNoneTester = function(aVariable) {
     ok(!aVariable.hasAttribute("frozen"),
-       "The variable should not be frozen");
+       "The variable should not be frozen.");
     ok(!aVariable.hasAttribute("sealed"),
-       "The variable should not be sealed");
+       "The variable should not be sealed.");
     ok(!aVariable.hasAttribute("non-extensible"),
-       "The variable should be extensible");
+       "The variable should be extensible.");
   };
 
   let testers = {
     frozen: function (aVariable) {
       ok(aVariable.hasAttribute("frozen"),
-         "The variable should be frozen")
+        "The variable should be frozen.");
     },
     sealed: function (aVariable) {
       ok(aVariable.hasAttribute("sealed"),
-         "The variable should be sealed")
+        "The variable should be sealed.");
     },
     nonExtensible: function (aVariable) {
       ok(aVariable.hasAttribute("non-extensible"),
-         "The variable should be non-extensible")
+        "The variable should be non-extensible.");
     },
     extensible: hasNoneTester,
     string: hasNoneTester,
@@ -69,27 +64,26 @@ function runTest() {
     this: hasNoneTester
   };
 
-  let variables = gDebugger.DebuggerView.Variables._parent
-    .querySelectorAll(".variable-or-property");
+  let variables = gDebugger.document.querySelectorAll(".variable-or-property");
 
-  for (let v of variables) {
-    let name = v.querySelector(".name").getAttribute("value");
+  for (let variable of variables) {
+    let name = variable.querySelector(".name").getAttribute("value");
     let tester = testers[name];
     delete testers[name];
+
     ok(tester, "We should have a tester for the '" + name + "' variable.");
-    tester(v);
+    tester(variable);
   }
 
   is(Object.keys(testers).length, 0,
-     "We should have run and removed all the testers.");
+    "We should have run and removed all the testers.");
 
-  closeDebuggerAndFinish();
+  resumeDebuggerThenCloseAndFinish(gPanel);
 }
 
 registerCleanupFunction(function() {
-  removeTab(gTab);
-  gPane = null;
   gTab = null;
   gDebuggee = null;
+  gPanel = null;
   gDebugger = null;
 });
