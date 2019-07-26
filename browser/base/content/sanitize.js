@@ -6,6 +6,8 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
+                                  "resource://gre/modules/FormHistory.jsm");
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -16,9 +18,16 @@ Sanitizer.prototype = {
       this.items[aItemName].clear();
   },
 
-  canClearItem: function (aItemName)
+  canClearItem: function (aItemName, aCallback, aArg)
   {
-    return this.items[aItemName].canClear;
+    let canClear = this.items[aItemName].canClear;
+    if (typeof canClear == "function") {
+      canClear(aCallback, aArg);
+      return false;
+    }
+
+    aCallback(aItemName, canClear, aArg);
+    return canClear;
   },
   
   prefDomain: "",
@@ -32,9 +41,7 @@ Sanitizer.prototype = {
 
 
 
-
-
-  sanitize: function ()
+  sanitize: function (errorHandler)
   {
     var psvc = Components.classes["@mozilla.org/preferences-service;1"]
                          .getService(Components.interfaces.nsIPrefService);
@@ -46,27 +53,42 @@ Sanitizer.prototype = {
       var range = null;  
     else
       range = this.range || Sanitizer.getClearRange();
-      
+
+    let itemCount = this.items.length;
     for (var itemName in this.items) {
-      var item = this.items[itemName];
+      let item = this.items[itemName];
       item.range = range;
-      if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
-        
-        
-        
-        
-        
-        try {
-          item.clear();
-        } catch(er) {
-          if (!errors) 
-            errors = {};
-          errors[itemName] = er;
-          dump("Error sanitizing " + itemName + ": " + er + "\n");
-        }
+      if ("clear" in item && branch.getBoolPref(itemName)) {
+        let clearCallback = (itemName, aCanClear) => {
+          
+          
+          
+          
+          
+          let item = this.items[itemName];
+          try {
+            if (aCanClear)
+              item.clear();
+          } catch(er) {
+            if (!errors)
+              errors = {};
+            errors[itemName] = er;
+            dump("Error sanitizing " + itemName + ": " + er + "\n");
+          }
+
+          
+          if (!--itemCount && errors) {
+            errorHandler(error);
+          }
+        };
+
+        this.canClearItem(itemName, clearCallback);
       }
     }
-    return errors;
+
+    if (errors) {
+      errorHandler(error);
+    }
   },
   
   
@@ -231,15 +253,14 @@ Sanitizer.prototype = {
             findBar.clear();
         }
 
-        let formHistory = Components.classes["@mozilla.org/satchel/form-history;1"]
-                                    .getService(Components.interfaces.nsIFormHistory2);
-        if (this.range)
-          formHistory.removeEntriesByTimeframe(this.range[0], this.range[1]);
-        else
-          formHistory.removeAllEntries();
+        let change = { op: "remove" };
+        if (this.range) {
+          [ change.firstUsedStart, change.firstUsedEnd ] = this.range;
+        }
+        FormHistory.update(change);
       },
 
-      get canClear()
+      canClear : function(aCallback, aArg)
       {
         var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1']
                                       .getService(Components.interfaces.nsIWindowMediator);
@@ -251,17 +272,27 @@ Sanitizer.prototype = {
             let transactionMgr = searchBar.textbox.editor.transactionManager;
             if (searchBar.value ||
                 transactionMgr.numberOfUndoItems ||
-                transactionMgr.numberOfRedoItems)
-              return true;
+                transactionMgr.numberOfRedoItems) {
+              aCallback("formdata", true, aArg);
+              return false;
+            }
           }
           let findBar = currentDocument.getElementById("FindToolbar");
-          if (findBar && findBar.canClear)
-            return true;
+          if (findBar && findBar.canClear) {
+            aCallback("formdata", true, aArg);
+            return false;
+          }
         }
 
-        let formHistory = Components.classes["@mozilla.org/satchel/form-history;1"]
-                                    .getService(Components.interfaces.nsIFormHistory2);
-        return formHistory.hasEntries;
+        let count = 0;
+        let countDone = {
+          handleResult : function(aResult) count = aResult,
+          handleError : function(aError) Components.utils.reportError(aError),
+          handleCompletion :
+            function(aReason) { aCallback("formdata", aReason == 0 && count > 0, aArg); }
+        };
+        FormHistory.count({}, countDone);
+        return false;
       }
     },
     
@@ -486,9 +517,7 @@ Sanitizer._checkAndSanitize = function()
     
     var s = new Sanitizer();
     s.prefDomain = "privacy.clearOnShutdown.";
-    s.sanitize() || 
-      prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
+    let errorHandler = function() prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
+    s.sanitize(errorHandler);
   }
 };
-
-

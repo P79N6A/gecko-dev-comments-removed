@@ -4661,7 +4661,7 @@ var FormAssistant = {
 
           if (this._showValidationMessage(focused))
             break;
-          this._showAutoCompleteSuggestions(focused);
+          this._showAutoCompleteSuggestions(focused, function () {});
         } else {
           
           this._hideFormAssistPopup();
@@ -4731,8 +4731,14 @@ var FormAssistant = {
         
         if (this._showValidationMessage(currentElement))
           break;
-        if (!this._showAutoCompleteSuggestions(currentElement))
-          this._hideFormAssistPopup();
+
+        let checkResultsClick = hasResults => {
+          if (!hasResults) {
+            this._hideFormAssistPopup();
+          }
+        };
+
+        this._showAutoCompleteSuggestions(currentElement, checkResultsClick);
         break;
 
       case "input":
@@ -4740,13 +4746,18 @@ var FormAssistant = {
 
         
         
-        if (this._showAutoCompleteSuggestions(currentElement))
-          break;
-        if (this._showValidationMessage(currentElement))
-          break;
+        let checkResultsInput = hasResults => {
+          if (hasResults)
+            return;
 
-        
-        this._hideFormAssistPopup();
+          if (!this._showValidationMessage(currentElement))
+            return;
+
+          
+          this._hideFormAssistPopup();
+        };
+
+        this._showAutoCompleteSuggestions(currentElement, checkResultsInput);
         break;
 
       
@@ -4770,27 +4781,31 @@ var FormAssistant = {
   },
 
   
-  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement) {
+  
+  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement, aCallback) {
     
     if (!this._formAutoCompleteService)
       this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
                                       getService(Ci.nsIFormAutoComplete);
 
-    let results = this._formAutoCompleteService.autoCompleteSearch(aElement.name || aElement.id,
-                                                                   aSearchString, aElement, null);
-    let suggestions = [];
-    for (let i = 0; i < results.matchCount; i++) {
-      let value = results.getValueAt(i);
+    let resultsAvailable = function (results) {
+      let suggestions = [];
+      for (let i = 0; i < results.matchCount; i++) {
+        let value = results.getValueAt(i);
 
-      
-      if (value == aSearchString)
-        continue;
+        
+        if (value == aSearchString)
+          continue;
 
-      
-      suggestions.push({ label: value, value: value });
-    }
+        
+        suggestions.push({ label: value, value: value });
+        aCallback(suggestions);
+      }
+    };
 
-    return suggestions;
+    this._formAutoCompleteService.autoCompleteSearchAsync(aElement.name || aElement.id,
+                                                          aSearchString, aElement, null,
+                                                          resultsAvailable);
   },
 
   
@@ -4829,38 +4844,45 @@ var FormAssistant = {
   
   
   
-  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement) {
-    if (!this._isAutoComplete(aElement))
-      return false;
+  
+  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement, aCallback) {
+    if (!this._isAutoComplete(aElement)) {
+      aCallback(false);
+      return;
+    }
 
     
     
     if (this._isBlocklisted && aElement.value.length > 0) {
-      return false;
+      aCallback(false);
+      return;
     }
 
-    let autoCompleteSuggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
-    let listSuggestions = this._getListSuggestions(aElement);
+    let resultsAvailable = autoCompleteSuggestions => {
+      
+      
+      let listSuggestions = this._getListSuggestions(aElement);
+      let suggestions = autoCompleteSuggestions.concat(listSuggestions);
 
-    
-    
-    let suggestions = autoCompleteSuggestions.concat(listSuggestions);
+      
+      if (!suggestions.length) {
+        aCallback(false);
+        return;
+      }
 
-    
-    if (!suggestions.length)
-      return false;
+      sendMessageToJava({
+        type:  "FormAssist:AutoComplete",
+        suggestions: suggestions,
+        rect: ElementTouchHelper.getBoundingContentRect(aElement)
+      });
 
-    sendMessageToJava({
-      type:  "FormAssist:AutoComplete",
-      suggestions: suggestions,
-      rect: ElementTouchHelper.getBoundingContentRect(aElement)
-    });
+      
+      
+      this._currentInputElement = aElement;
+      aCallback(true);
+    };
 
-    
-    
-    this._currentInputElement = aElement;
-
-    return true;
+    this._getAutoCompleteSuggestions(aElement.value, aElement, resultsAvailable);
   },
 
   
