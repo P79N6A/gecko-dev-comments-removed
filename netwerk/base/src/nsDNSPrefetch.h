@@ -33,9 +33,9 @@ public:
     static nsresult Shutdown();
 
     
-    nsresult PrefetchHigh();
-    nsresult PrefetchMedium();
-    nsresult PrefetchLow();
+    nsresult PrefetchHigh(bool refreshDNS = false);
+    nsresult PrefetchMedium(bool refreshDNS = false);
+    nsresult PrefetchLow(bool refreshDNS = false);
   
 private:
     nsCString mHostname;
