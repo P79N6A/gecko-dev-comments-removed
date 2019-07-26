@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsDashboardTypes__
-#define nsDashboardTypes__
+#ifndef mozilla_net_DashboardTypes_h_
+#define mozilla_net_DashboardTypes_h_
 
 namespace mozilla {
 namespace net {
@@ -22,7 +22,7 @@ struct DNSCacheEntries
 {
     nsCString hostname;
     nsTArray<nsCString> hostaddr;
-    int8_t family;
+    uint16_t family;
     int64_t expiration;
 };
 

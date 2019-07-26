@@ -85,7 +85,7 @@ static const char kOldCookieFileName[] = "cookies.txt";
 #define LIMIT(x, low, high, default) ((x) >= (low) && (x) <= (high) ? (x) : (default))
 
 #undef  ADD_TEN_PERCENT
-#define ADD_TEN_PERCENT(i) ((i) + (i)/10)
+#define ADD_TEN_PERCENT(i) static_cast<uint32_t>((i) + (i)/10)
 
 
 

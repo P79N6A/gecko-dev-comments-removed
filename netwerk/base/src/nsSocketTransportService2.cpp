@@ -630,7 +630,7 @@ nsSocketTransportService::Run()
     threadInt->SetObserver(this);
 
     
-    srand(PR_Now());
+    srand(static_cast<unsigned>(PR_Now()));
 
     for (;;) {
         bool pendingEvents = false;

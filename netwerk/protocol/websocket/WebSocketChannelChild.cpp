@@ -5,6 +5,7 @@
 
 
 #include "WebSocketLog.h"
+#include "base/compiler_specific.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "WebSocketChannelChild.h"
@@ -48,7 +49,7 @@ NS_INTERFACE_MAP_BEGIN(WebSocketChannelChild)
 NS_INTERFACE_MAP_END
 
 WebSocketChannelChild::WebSocketChannelChild(bool aSecure)
-: mEventQ(static_cast<nsIWebSocketChannel*>(this))
+: ALLOW_THIS_IN_INITIALIZER_LIST(mEventQ(static_cast<nsIWebSocketChannel*>(this)))
 , mIPCOpen(false)
 {
   LOG(("WebSocketChannelChild::WebSocketChannelChild() %p\n", this));
