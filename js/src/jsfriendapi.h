@@ -1454,6 +1454,12 @@ typedef enum {
 
 
 
+
+
+
+
+
+
 extern JS_FRIEND_API(bool)
 JS_NeuterArrayBuffer(JSContext *cx, JS::HandleObject obj,
                      NeuterDataDisposition changeData);
