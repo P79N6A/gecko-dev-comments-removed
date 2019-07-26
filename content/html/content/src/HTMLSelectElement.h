@@ -18,7 +18,9 @@
 #include "nsError.h"
 #include "mozilla/dom/HTMLFormElement.h"
 
+class nsContentList;
 class nsIDOMHTMLOptionElement;
+class nsIHTMLCollection;
 class nsISelectControlFrame;
 class nsPresState;
 
@@ -207,6 +209,11 @@ public:
   {
     mOptions->IndexedSetter(aIndex, aOption, aRv);
   }
+
+  static bool MatchSelectedOptions(nsIContent* aContent, int32_t, nsIAtom*,
+                                   void*);
+
+  nsIHTMLCollection* SelectedOptions();
 
   int32_t SelectedIndex() const
   {
@@ -557,6 +564,12 @@ protected:
 
 
 
+  void UpdateSelectedOptions();
+
+  
+
+
+
 
 
   bool ShouldShowValidityUI() const {
@@ -618,6 +631,11 @@ protected:
 
 
   nsCOMPtr<SelectState> mRestoreState;
+
+  
+
+
+  nsRefPtr<nsContentList> mSelectedOptions;
 };
 
 } 

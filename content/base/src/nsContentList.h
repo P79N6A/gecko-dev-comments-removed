@@ -299,6 +299,16 @@ public:
       mMatchNameSpaceId == aKey.mMatchNameSpaceId;
   }
 
+  
+
+
+
+  void SetDirty()
+  {
+    mState = LIST_DIRTY;
+    Reset();
+  }
+
 protected:
   
 
@@ -349,16 +359,6 @@ protected:
 
 
   inline void BringSelfUpToDate(bool aDoFlush);
-
-  
-
-
-
-  void SetDirty()
-  {
-    mState = LIST_DIRTY;
-    Reset();
-  }
 
   
 

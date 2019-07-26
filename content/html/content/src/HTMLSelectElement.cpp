@@ -13,6 +13,7 @@
 #include "mozilla/dom/HTMLSelectElementBinding.h"
 #include "mozilla/Util.h"
 #include "nsContentCreatorFunctions.h"
+#include "nsContentList.h"
 #include "nsError.h"
 #include "nsEventDispatcher.h"
 #include "nsEventStates.h"
@@ -139,10 +140,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLSelectElement,
                                                   nsGenericHTMLFormElementWithState)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mValidity)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOptions)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSelectedOptions)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLSelectElement,
                                                 nsGenericHTMLFormElementWithState)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mValidity)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSelectedOptions)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(HTMLSelectElement, Element)
@@ -770,6 +773,34 @@ HTMLSelectElement::SetLength(uint32_t aLength, ErrorResult& aRv)
 }
 
 
+bool
+HTMLSelectElement::MatchSelectedOptions(nsIContent* aContent,
+                                        int32_t ,
+                                        nsIAtom* ,
+                                        void* )
+{
+  HTMLOptionElement* option = HTMLOptionElement::FromContent(aContent);
+  return option && option->Selected();
+}
+
+nsIHTMLCollection*
+HTMLSelectElement::SelectedOptions()
+{
+  if (!mSelectedOptions) {
+    mSelectedOptions = new nsContentList(this, MatchSelectedOptions, nullptr,
+                                         nullptr,  true);
+  }
+  return mSelectedOptions;
+}
+
+NS_IMETHODIMP
+HTMLSelectElement::GetSelectedOptions(nsIDOMHTMLCollection** aSelectedOptions)
+{
+  NS_ADDREF(*aSelectedOptions = SelectedOptions());
+  return NS_OK;
+}
+
+
 
 NS_IMETHODIMP
 HTMLSelectElement::GetSelectedIndex(int32_t* aValue)
@@ -847,6 +878,7 @@ HTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
     aSelectFrame->OnOptionSelected(aIndex, aSelected);
   }
 
+  UpdateSelectedOptions();
   UpdateValueMissingValidityState();
   UpdateState(aNotify);
 }
@@ -1848,11 +1880,21 @@ HTMLSelectElement::SetSelectionChanged(bool aValue, bool aNotify)
     return;
   }
 
+  UpdateSelectedOptions();
+
   bool previousSelectionChangedValue = mSelectionHasChanged;
   mSelectionHasChanged = aValue;
 
   if (mSelectionHasChanged != previousSelectionChangedValue) {
     UpdateState(aNotify);
+  }
+}
+
+void
+HTMLSelectElement::UpdateSelectedOptions()
+{
+  if (mSelectedOptions) {
+    mSelectedOptions->SetDirty();
   }
 }
 
