@@ -45,32 +45,21 @@ function BannerMessage(options) {
     this.onclick = options.onclick;
 }
 
-let HomeBanner = Object.freeze({
+let HomeBanner = (function () {
   
-  _messages: {},
+  let _messages = {};
 
   
-  _queue: [],
+  let _queue = [];
 
-  observe: function(subject, topic, data) {
-    switch(topic) {
-      case "HomeBanner:Get":
-        this._handleGet();
-        break;
 
-      case "HomeBanner:Click":
-        this._handleClick(data);
-        break;
-    }
-  },
-
-  _handleGet: function() {
+  let _handleGet = function() {
     
     
-    let id = this._queue.shift();
-    this._queue.push(id);
+    let id = _queue.shift();
+    _queue.push(id);
 
-    let message = this._messages[id];
+    let message = _messages[id];
     sendMessageToJava({
       type: "HomeBanner:Data",
       id: message.id,
@@ -80,59 +69,73 @@ let HomeBanner = Object.freeze({
 
     if (message.onshown)
       message.onshown();
-  },
+  };
 
-  _handleClick: function(id) {
-    let message = this._messages[id];
+  let _handleClick = function(id) {
+    let message = _messages[id];
     if (message.onclick)
       message.onclick();
-  },
+  };
 
-  
+  return Object.freeze({
+    observe: function(subject, topic, data) {
+      switch(topic) {
+        case "HomeBanner:Get":
+          _handleGet();
+          break;
 
-
-
-
-  add: function(options) {
-    let message = new BannerMessage(options);
-    this._messages[message.id] = message;
+        case "HomeBanner:Click":
+          _handleClick(data);
+          break;
+      }
+    },
 
     
-    this._queue.push(message.id);
 
-    
-    
-    if (Object.keys(this._messages).length == 1) {
-      Services.obs.addObserver(this, "HomeBanner:Get", false);
-      Services.obs.addObserver(this, "HomeBanner:Click", false);
+
+
+
+    add: function(options) {
+      let message = new BannerMessage(options);
+      _messages[message.id] = message;
+
+      
+      _queue.push(message.id);
 
       
       
-      this._handleGet();
-    }
+      if (Object.keys(_messages).length == 1) {
+        Services.obs.addObserver(this, "HomeBanner:Get", false);
+        Services.obs.addObserver(this, "HomeBanner:Click", false);
 
-    return message.id;
-  },
+        
+        
+        _handleGet();
+      }
 
-  
-
-
-
-
-  remove: function(id) {
-    delete this._messages[id];
+      return message.id;
+    },
 
     
-    let index = this._queue.indexOf(id);
-    this._queue.splice(index, 1);
 
-    
-    if (Object.keys(this._messages).length == 0) {
-      Services.obs.removeObserver(this, "HomeBanner:Get");
-      Services.obs.removeObserver(this, "HomeBanner:Click");
+
+
+
+    remove: function(id) {
+      delete _messages[id];
+
+      
+      let index = _queue.indexOf(id);
+      _queue.splice(index, 1);
+
+      
+      if (Object.keys(_messages).length == 0) {
+        Services.obs.removeObserver(this, "HomeBanner:Get");
+        Services.obs.removeObserver(this, "HomeBanner:Click");
+      }
     }
-  }
-});
+  });
+})();
 
 function Panel(options) {
   if ("id" in options)
@@ -148,53 +151,30 @@ function Panel(options) {
     this.views = options.views;
 }
 
-let HomePanels = Object.freeze({
+let HomePanels = (function () {
   
-  Layout: Object.freeze({
-    FRAME: "frame"
-  }),
+  let _panels = {};
 
-  
-  View: Object.freeze({
-    LIST: "list",
-    GRID: "grid"
-  }),
-
-  
-  Action: Object.freeze({
-    INSTALL: "install",
-    REFRESH: "refresh"
-  }),
-
-  
-  ItemHandler: Object.freeze({
-    BROWSER: "browser",
-    INTENT: "intent"
-  }),
-
-  
-  _panels: {},
-
-  _panelToJSON : function(panel) {
+  let _panelToJSON = function(panel) {
     return {
       id: panel.id,
       title: panel.title,
       layout: panel.layout,
       views: panel.views
     };
-  },
+  };
 
-  _handleGet: function(data) {
+  let _handleGet = function(data) {
     let requestId = data.requestId;
     let ids = data.ids || null;
 
     let panels = [];
-    for (let id in this._panels) {
-      let panel = this._panels[id];
+    for (let id in _panels) {
+      let panel = _panels[id];
 
       
       if (ids == null || ids.indexOf(panel.id) >= 0) {
-        panels.push(this._panelToJSON(panel));
+        panels.push(_panelToJSON(panel));
       }
     }
 
@@ -203,92 +183,117 @@ let HomePanels = Object.freeze({
       panels: panels,
       requestId: requestId
     });
-  },
-
-  add: function(options) {
-    let panel = new Panel(options);
-    if (!panel.id || !panel.title) {
-      throw "Home.panels: Can't create a home panel without an id and title!";
-    }
-
-    let action = options.action;
-
-    
-    
-    if (panel.id in this._panels && action != this.Action.REFRESH) {
-      throw "Home.panels: Panel already exists: id = " + panel.id;
-    }
-
-    if (!this._valueExists(this.Layout, panel.layout)) {
-      throw "Home.panels: Invalid layout for panel: panel.id = " + panel.id + ", panel.layout =" + panel.layout;
-    }
-
-    for (let view of panel.views) {
-      if (!this._valueExists(this.View, view.type)) {
-        throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
-      }
-
-      if (!view.itemHandler) {
-        
-        view.itemHandler = this.ItemHandler.BROWSER;
-      } else if (!this._valueExists(this.ItemHandler, view.itemHandler)) {
-        throw "Home.panels: Invalid item handler: panel.id = " + panel.id + ", view.itemHandler = " + view.itemHandler;
-      }
-
-      if (!view.dataset) {
-        throw "Home.panels: No dataset provided for view: panel.id = " + panel.id + ", view.type = " + view.type;
-      }
-    }
-
-    this._panels[panel.id] = panel;
-
-    if (action) {
-      let messageType;
-
-      switch(action) {
-        case this.Action.INSTALL:
-          messageType = "HomePanels:Install";
-          break;
-
-        case this.Action.REFRESH:
-          messageType = "HomePanels:Refresh";
-          break;
-
-        default:
-          throw "Home.panels: Invalid action for panel: panel.id = " + panel.id + ", action = " + action;
-      }
-
-      sendMessageToJava({
-        type: messageType,
-        panel: this._panelToJSON(panel)
-      });
-    }
-  },
-
-  remove: function(id) {
-    if (!(id in this._panels)) {
-      throw "Home.panels: Panel doesn't exist: id = " + id;
-    }
-
-    let panel = this._panels[id];
-    delete this._panels[id];
-
-    sendMessageToJava({
-      type: "HomePanels:Remove",
-      panel: this._panelToJSON(panel)
-    });
-  },
+  };
 
   
-  _valueExists: function(obj, value) {
+  let _valueExists = function(obj, value) {
     for (let key in obj) {
       if (obj[key] == value) {
         return true;
       }
     }
     return false;
-  }
-});
+  };
+
+  return Object.freeze({
+    
+    Layout: Object.freeze({
+      FRAME: "frame"
+    }),
+
+    
+    View: Object.freeze({
+      LIST: "list",
+      GRID: "grid"
+    }),
+
+    
+    Action: Object.freeze({
+      INSTALL: "install",
+      REFRESH: "refresh"
+    }),
+
+    
+    ItemHandler: Object.freeze({
+      BROWSER: "browser",
+      INTENT: "intent"
+    }),
+
+    add: function(options) {
+      let panel = new Panel(options);
+      if (!panel.id || !panel.title) {
+        throw "Home.panels: Can't create a home panel without an id and title!";
+      }
+
+      let action = options.action;
+
+      
+      
+      if (panel.id in _panels && action != this.Action.REFRESH) {
+        throw "Home.panels: Panel already exists: id = " + panel.id;
+      }
+
+      if (!_valueExists(this.Layout, panel.layout)) {
+        throw "Home.panels: Invalid layout for panel: panel.id = " + panel.id + ", panel.layout =" + panel.layout;
+      }
+
+      for (let view of panel.views) {
+        if (!_valueExists(this.View, view.type)) {
+          throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
+        }
+
+        if (!view.itemHandler) {
+          
+          view.itemHandler = this.ItemHandler.BROWSER;
+        } else if (!_valueExists(this.ItemHandler, view.itemHandler)) {
+          throw "Home.panels: Invalid item handler: panel.id = " + panel.id + ", view.itemHandler = " + view.itemHandler;
+        }
+
+        if (!view.dataset) {
+          throw "Home.panels: No dataset provided for view: panel.id = " + panel.id + ", view.type = " + view.type;
+        }
+      }
+
+      _panels[panel.id] = panel;
+
+      if (action) {
+        let messageType;
+
+        switch(action) {
+          case this.Action.INSTALL:
+            messageType = "HomePanels:Install";
+            break;
+
+          case this.Action.REFRESH:
+            messageType = "HomePanels:Refresh";
+            break;
+
+          default:
+            throw "Home.panels: Invalid action for panel: panel.id = " + panel.id + ", action = " + action;
+        }
+
+        sendMessageToJava({
+          type: messageType,
+          panel: _panelToJSON(panel)
+        });
+      }
+    },
+
+    remove: function(id) {
+      if (!(id in _panels)) {
+        throw "Home.panels: Panel doesn't exist: id = " + id;
+      }
+
+      let panel = _panels[id];
+      delete _panels[id];
+
+      sendMessageToJava({
+        type: "HomePanels:Remove",
+        panel: _panelToJSON(panel)
+      });
+    }
+  });
+})();
 
 
 this.Home = Object.freeze({
