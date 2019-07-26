@@ -266,6 +266,15 @@ XPCWrappedNativeScope::EnsureXBLScope(JSContext *cx)
     return mXBLScope;
 }
 
+bool
+XPCWrappedNativeScope::AllowXBLScope()
+{
+    
+    MOZ_ASSERT_IF(!mAllowXBLScope,
+                  nsContentUtils::AllowXULXBLForPrincipal(GetPrincipal()));
+    return mAllowXBLScope;
+}
+
 namespace xpc {
 JSObject *GetXBLScope(JSContext *cx, JSObject *contentScopeArg)
 {

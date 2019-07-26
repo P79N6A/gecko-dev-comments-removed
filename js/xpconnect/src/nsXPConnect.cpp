@@ -1710,9 +1710,15 @@ bool
 IsChromeOrXBL(JSContext* cx, JSObject* )
 {
     MOZ_ASSERT(NS_IsMainThread());
-    JSCompartment* compartment = js::GetContextCompartment(cx);
-    return AccessCheck::isChrome(compartment) ||
-           IsXBLScope(compartment);
+    JSCompartment* c = js::GetContextCompartment(cx);
+
+    
+    
+    
+    
+    
+    
+    return AccessCheck::isChrome(c) || IsXBLScope(c) || !AllowXBLScope(c);
 }
 
 } 
