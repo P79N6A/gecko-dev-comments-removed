@@ -510,6 +510,17 @@ TabParent::UpdateFrame(const FrameMetrics& aFrameMetrics)
 }
 
 void
+TabParent::UIResolutionChanged()
+{
+  if (!mIsDestroyed) {
+    
+    
+    mDPI = -1;
+    unused << SendUIResolutionChanged();
+  }
+}
+
+void
 TabParent::AcknowledgeScrollUpdate(const ViewID& aScrollId, const uint32_t& aScrollGeneration)
 {
   if (!mIsDestroyed) {
