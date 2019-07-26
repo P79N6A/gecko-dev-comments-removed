@@ -1268,9 +1268,6 @@ function MarkupContainer(aMarkupView, aNode, aInspector) {
   this._onMouseDown = this._onMouseDown.bind(this);
   this.elt.addEventListener("mousedown", this._onMouseDown, false);
 
-  this._onClick = this._onClick.bind(this);
-  this.elt.addEventListener("click", this._onClick, false);
-
   
   this._prepareImagePreview();
 }
@@ -1394,22 +1391,22 @@ MarkupContainer.prototype = {
   },
 
   _onMouseDown: function(event) {
-    if (event.target.nodeName !== "a") {
-      this.hovered = false;
-      this.markup.navigate(this);
-      event.stopPropagation();
-    }
-  },
-
-  _onClick: function(event) {
     let target = event.target;
 
+    
     if (target.nodeName === "a") {
       event.stopPropagation();
       event.preventDefault();
       let browserWin = this.markup._inspector.target
                            .tab.ownerDocument.defaultView;
       browserWin.openUILinkIn(target.href, "tab");
+    }
+    
+    
+    else if (target.nodeName !== "button") {
+      this.hovered = false;
+      this.markup.navigate(this);
+      event.stopPropagation();
     }
   },
 
@@ -1544,7 +1541,11 @@ MarkupContainer.prototype = {
     
     let firstChild;
     while (firstChild = this.children.firstChild) {
-      firstChild.container.destroy();
+      
+      
+      if (firstChild.container) {
+        firstChild.container.destroy();
+      }
       this.children.removeChild(firstChild);
     }
 
@@ -1553,7 +1554,6 @@ MarkupContainer.prototype = {
     this.elt.removeEventListener("mouseover", this._onMouseOver, false);
     this.elt.removeEventListener("mouseout", this._onMouseOut, false);
     this.elt.removeEventListener("mousedown", this._onMouseDown, false);
-    this.elt.removeEventListener("click", this._onClick, false);
     this.expander.removeEventListener("click", this._onToggle, false);
 
     
