@@ -2184,6 +2184,45 @@ let RIL = {
       return null;
     }
 
+    let matches = this._matchMMIRegexp(mmiString);
+    if (matches) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      return {
+        fullMMI: matches[MMI_MATCH_GROUP_FULL_MMI],
+        procedure: matches[MMI_MATCH_GROUP_MMI_PROCEDURE],
+        serviceCode: matches[MMI_MATCH_GROUP_SERVICE_CODE],
+        sia: matches[MMI_MATCH_GROUP_SIA],
+        sib: matches[MMI_MATCH_GROUP_SIB],
+        sic: matches[MMI_MATCH_GROUP_SIC],
+        pwd: matches[MMI_MATCH_GROUP_PWD_CONFIRM],
+        dialNumber: matches[MMI_MATCH_GROUP_DIALING_NUMBER]
+      };
+    }
+
+    if (this._isPoundString(mmiString) ||
+        this._isMMIShortString(mmiString)) {
+      return {
+        fullMMI: mmiString
+      };
+    }
+
+    return null;
+  },
+
+  
+
+
+
+  _matchMMIRegexp: function _matchMMIRegexp(mmiString) {
     
     if (this._mmiRegExp == null) {
       
@@ -2226,41 +2265,41 @@ let RIL = {
 
       this._mmiRegExp = new RegExp(pattern);
     }
-    let matches = this._mmiRegExp.exec(mmiString);
 
     
     
-    
-    
-    if (matches == null) {
-      if (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD) {
-        return {
-          fullMMI: mmiString
-        };
-      }
-      return null;
+    return this._mmiRegExp.exec(mmiString);
+  },
+
+  
+
+
+  _isPoundString: function _isPoundString(mmiString) {
+    return (mmiString.charAt(mmiString.length - 1) === MMI_END_OF_USSD);
+  },
+
+  
+
+
+  _isMMIShortString: function _isMMIShortString(mmiString) {
+    if (mmiString.length > 2) {
+      return false;
+    }
+
+    if (this._isEmergencyNumber(mmiString)) {
+      return false;
     }
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    return {
-      fullMMI: matches[MMI_MATCH_GROUP_FULL_MMI],
-      procedure: matches[MMI_MATCH_GROUP_MMI_PROCEDURE],
-      serviceCode: matches[MMI_MATCH_GROUP_SERVICE_CODE],
-      sia: matches[MMI_MATCH_GROUP_SIA],
-      sib: matches[MMI_MATCH_GROUP_SIB],
-      sic: matches[MMI_MATCH_GROUP_SIC],
-      pwd: matches[MMI_MATCH_GROUP_PWD_CONFIRM],
-      dialNumber: matches[MMI_MATCH_GROUP_DIALING_NUMBER]
-    };
+    if (Object.getOwnPropertyNames(this.currentCalls).length > 0) {
+      return true;
+    }
+
+    if ((mmiString.length != 2) || (mmiString.charAt(0) !== '1')) {
+      return true;
+    }
+
+    return false;
   },
 
   sendMMI: function sendMMI(options) {
@@ -2503,8 +2542,7 @@ let RIL = {
 
     
     
-    if (mmi.fullMMI &&
-        (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD)) {
+    if (mmi.fullMMI) {
       if (!_isRadioAvailable(MMI_KS_SC_USSD)) {
         return;
       }
