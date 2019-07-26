@@ -501,7 +501,7 @@ __try {
     return E_FAIL; 
 
   nsAutoString innerHTML;
-  htmlElement->GetDOMInnerHTML(innerHTML);
+  htmlElement->GetInnerHTML(innerHTML);
   if (innerHTML.IsEmpty())
     return S_FALSE;
 
