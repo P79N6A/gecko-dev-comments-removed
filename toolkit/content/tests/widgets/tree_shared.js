@@ -21,8 +21,6 @@ var columns_hiertree =
 
 function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
 {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-
   
   
   function preventDefault(event) {
