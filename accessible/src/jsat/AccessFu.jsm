@@ -479,9 +479,20 @@ var Output = {
                           aJsonBounds.right - aJsonBounds.left,
                           aJsonBounds.bottom - aJsonBounds.top);
     let vp = Utils.getViewport(Utils.win) || { zoom: 1.0, offsetY: 0 };
-    let browserOffset = aBrowser.getBoundingClientRect();
+    let root = Utils.win;
+    let offset = { left: -root.mozInnerScreenX, top: -root.mozInnerScreenY };
+    let scale = 1 / Utils.getPixelsPerCSSPixel(Utils.win);
 
-    return bounds.translate(browserOffset.left, browserOffset.top).
+    if (!aBrowser.contentWindow) {
+      
+      
+      let clientRect = aBrowser.getBoundingClientRect();
+      let win = aBrowser.ownerDocument.defaultView;
+      offset.left += clientRect.left + win.mozInnerScreenX;
+      offset.top += clientRect.top + win.mozInnerScreenY;
+    }
+
+    return bounds.scale(scale, scale).translate(offset.left, offset.top).
       scale(vp.zoom, vp.zoom).expandToIntegers();
   }
 };
