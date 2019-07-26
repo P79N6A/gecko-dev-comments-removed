@@ -916,6 +916,10 @@ pref("network.http.speculative-parallel-limit", 6);
 
 
 
+pref("network.http.rendering-critical-requests-prioritization", true);
+
+
+
 pref("network.http.fast-fallback-to-IPv4", true);
 
 

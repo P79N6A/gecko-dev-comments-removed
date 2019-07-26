@@ -98,6 +98,7 @@ public:
     PRIntervalTime SpdyPingTimeout() { return mSpdyPingTimeout; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
+    bool           CritialRequestPrioritization() { return mCritialRequestPrioritization; }
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
@@ -400,6 +401,10 @@ private:
     
     
     uint32_t       mParallelSpeculativeConnectLimit;
+
+    
+    
+    bool           mCritialRequestPrioritization;
 };
 
 
