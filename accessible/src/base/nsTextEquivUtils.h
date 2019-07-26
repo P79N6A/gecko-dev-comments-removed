@@ -57,9 +57,14 @@ public:
 
 
 
-
   static void GetTextEquivFromSubtree(Accessible* aAccessible,
-                                      nsString& aTextEquiv);
+                                      nsString& aTextEquiv)
+  {
+    aTextEquiv.Truncate();
+
+    AppendFromAccessibleChildren(aAccessible, &aTextEquiv);
+    aTextEquiv.CompressWhitespace();
+  }
 
   
 

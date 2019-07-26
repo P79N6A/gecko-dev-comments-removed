@@ -1682,6 +1682,12 @@ Accessible::Value(nsString& aValue)
   }
 
   
+  if (mRoleMapEntry->Is(nsGkAtoms::textbox)) {
+    nsTextEquivUtils::GetTextEquivFromSubtree(this, aValue);
+    return;
+  }
+
+  
   if (mRoleMapEntry->Is(nsGkAtoms::combobox)) {
     Accessible* option = CurrentItem();
     if (!option) {
