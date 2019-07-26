@@ -67,45 +67,12 @@ rdtsc(void)
 
 TraceLogging traceLoggers;
 
-
-
-
-const char* const text[] = {
+static const char* const text[] =
+{
     "TraceLogger failed to process text",
-    "Bailout",
-    "Baseline",
-    "GC",
-    "GCAllocation",
-    "GCSweeping",
-    "Interpreter",
-    "Invalidation",
-    "IonCompilation",
-    "IonLinking",
-    "IonMonkey",
-    "MinorGC",
-    "ParserCompileFunction",
-    "ParserCompileLazy",
-    "ParserCompileScript",
-    "TraceLogger",
-    "YarrCompile",
-    "YarrInterpret",
-    "YarrJIT",
-    "VM",
-    "SplitCriticalEdges",
-    "RenumberBlocks",
-    "DominatorTree",
-    "PhiAnalysis",
-    "ApplyTypes",
-    "ParallelSafetyAnalysis",
-    "AliasAnalysis",
-    "GVN",
-    "UCE",
-    "LICM",
-    "RangeAnalysis",
-    "EffectiveAddressAnalysis",
-    "EliminateDeadCode",
-    "EdgeCaseAnalysis",
-    "EliminateRedundantChecks"
+#define NAME(x) #x,
+    TRACELOGGER_TEXT_ID_LIST(NAME)
+#undef NAME
 };
 
 TraceLogger::TraceLogger()
@@ -833,6 +800,7 @@ TraceLogging::lazyInit()
     if (ContainsFlag(env, "Default") || strlen(env) == 0) {
         enabledTextIds[TraceLogger::Bailout] = true;
         enabledTextIds[TraceLogger::Baseline] = true;
+        enabledTextIds[TraceLogger::BaselineCompilation] = true;
         enabledTextIds[TraceLogger::GC] = true;
         enabledTextIds[TraceLogger::GCAllocation] = true;
         enabledTextIds[TraceLogger::GCSweeping] = true;
