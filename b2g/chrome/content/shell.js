@@ -431,8 +431,8 @@ var shell = {
   },
 
   lastHardwareButtonEventType: null, 
-  needBufferSysMsgs: true,
-  bufferedSysMsgs: [],
+  needBufferOpenAppReq: true,
+  bufferedOpenAppReqs: [],
   timer: null,
   visibleNormalAudioActive: false,
 
@@ -548,7 +548,7 @@ var shell = {
                    ObjectWrapper.wrap(details, getContentWindow()));
   },
 
-  sendSystemMessage: function shell_sendSystemMessage(msg) {
+  openAppForSystemMessage: function shell_openAppForSystemMessage(msg) {
     let origin = Services.io.newURI(msg.manifest, null, null).prePath;
     this.sendChromeEvent({
       type: 'open-app',
@@ -624,15 +624,15 @@ nsBrowserAccess.prototype = {
 };
 
 
-Services.obs.addObserver(function onSystemMessage(subject, topic, data) {
+Services.obs.addObserver(function onSystemMessageOpenApp(subject, topic, data) {
   let msg = JSON.parse(data);
   
   
-  if (shell.needBufferSysMsgs && msg.type !== 'activity') {
-    shell.bufferedSysMsgs.push(msg);
+  if (shell.needBufferOpenAppReq && msg.type !== 'activity') {
+    shell.bufferedOpenAppReqs.push(msg);
     return;
   }
-  shell.sendSystemMessage(msg);
+  shell.openAppForSystemMessage(msg);
 }, 'system-messages-open-app', false);
 
 Services.obs.addObserver(function(aSubject, aTopic, aData) {
@@ -663,13 +663,16 @@ var CustomEventManager = {
 
       
       
+      
+      
+      
       shell.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       shell.timer.initWithCallback(function timerCallback() {
-        shell.bufferedSysMsgs.forEach(function sendSysMsg(msg) {
-          shell.sendSystemMessage(msg);
+        shell.bufferedOpenAppReqs.forEach(function bufferOpenAppReq(msg) {
+          shell.openAppForSystemMessage(msg);
         });
-        shell.bufferedSysMsgs.length = 0;
-        shell.needBufferSysMsgs = false;
+        shell.bufferedOpenAppReqs.length = 0;
+        shell.needBufferOpenAppReq = false;
         shell.timer = null;
       }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
     }).bind(this), false);
