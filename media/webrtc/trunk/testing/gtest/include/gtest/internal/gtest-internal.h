@@ -217,6 +217,27 @@ GTEST_API_ AssertionResult EqFailure(const char* expected_expression,
                                      bool ignoring_case);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GTEST_API_ AssertionResult NeFailure(const char* expected_expression,
+                                     const char* actual_expression,
+                                     const String& expected_value,
+                                     const String& actual_value,
+                                     bool ignoring_case);
+
+
 GTEST_API_ String GetBoolAssertionFailureMessage(
     const AssertionResult& assertion_result,
     const char* expression_text,

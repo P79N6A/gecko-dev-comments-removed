@@ -1501,6 +1501,118 @@ class EqHelper<true> {
 };
 
 
+template <typename T1, typename T2>
+AssertionResult CmpHelperNE(const char* expected_expression,
+                            const char* actual_expression,
+                            const T1& expected,
+                            const T2& actual) {
+#ifdef _MSC_VER
+# pragma warning(push)          // Saves the current warning state.
+# pragma warning(disable:4389)  // Temporarily disables warning on
+                                
+#endif
+
+  if (expected != actual) {
+    return AssertionSuccess();
+  }
+
+#ifdef _MSC_VER
+# pragma warning(pop)          // Restores the warning state.
+#endif
+
+  return NeFailure(expected_expression,
+                   actual_expression,
+                   FormatForComparisonFailureMessage(expected, actual),
+                   FormatForComparisonFailureMessage(actual, expected),
+                   false);
+}
+
+
+
+
+GTEST_API_ AssertionResult CmpHelperNE(const char* expected_expression,
+                                       const char* actual_expression,
+                                       BiggestInt expected,
+                                       BiggestInt actual);
+
+
+
+
+
+template <bool lhs_is_null_literal>
+class NeHelper {
+ public:
+  
+  template <typename T1, typename T2>
+  static AssertionResult Compare(const char* expected_expression,
+                                 const char* actual_expression,
+                                 const T1& expected,
+                                 const T2& actual) {
+    return CmpHelperNE(expected_expression, actual_expression, expected,
+                       actual);
+  }
+
+  
+  
+  
+  
+  
+  
+  static AssertionResult Compare(const char* expected_expression,
+                                 const char* actual_expression,
+                                 BiggestInt expected,
+                                 BiggestInt actual) {
+    return CmpHelperNE(expected_expression, actual_expression, expected,
+                       actual);
+  }
+};
+
+
+
+template <>
+class NeHelper<true> {
+ public:
+  
+  
+  
+  
+  template <typename T1, typename T2>
+  static AssertionResult Compare(
+      const char* expected_expression,
+      const char* actual_expression,
+      const T1& expected,
+      const T2& actual,
+      
+      
+      
+      
+      
+      typename EnableIf<!is_pointer<T2>::value>::type* = 0) {
+    return CmpHelperNE(expected_expression, actual_expression, expected,
+                       actual);
+  }
+
+  
+  
+  template <typename T>
+  static AssertionResult Compare(
+      const char* expected_expression,
+      const char* actual_expression,
+      
+      
+      
+      
+      
+      
+      Secret* ,
+      T* actual) {
+    
+    return CmpHelperNE(expected_expression, actual_expression,
+                       static_cast<T*>(NULL), actual);
+  }
+};
+
+
 
 
 
@@ -1528,8 +1640,6 @@ GTEST_API_ AssertionResult CmpHelper##op_name(\
 
 
 
-
-GTEST_IMPL_CMP_HELPER_(NE, !=);
 
 GTEST_IMPL_CMP_HELPER_(LE, <=);
 
@@ -1928,8 +2038,10 @@ class TestWithParam : public Test, public WithParamInterface<T> {
   EXPECT_PRED_FORMAT2(::testing::internal:: \
                       EqHelper<GTEST_IS_NULL_LITERAL_(expected)>::Compare, \
                       expected, actual)
-#define EXPECT_NE(expected, actual) \
-  EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperNE, expected, actual)
+#define EXPECT_NE(val1, val2) \
+  EXPECT_PRED_FORMAT2(::testing::internal:: \
+                      NeHelper<GTEST_IS_NULL_LITERAL_(val1)>::Compare, \
+                      val1, val2)
 #define EXPECT_LE(val1, val2) \
   EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperLE, val1, val2)
 #define EXPECT_LT(val1, val2) \
@@ -1944,7 +2056,9 @@ class TestWithParam : public Test, public WithParamInterface<T> {
                       EqHelper<GTEST_IS_NULL_LITERAL_(expected)>::Compare, \
                       expected, actual)
 #define GTEST_ASSERT_NE(val1, val2) \
-  ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperNE, val1, val2)
+  ASSERT_PRED_FORMAT2(::testing::internal:: \
+                      NeHelper<GTEST_IS_NULL_LITERAL_(val1)>::Compare, \
+                      val1, val2)
 #define GTEST_ASSERT_LE(val1, val2) \
   ASSERT_PRED_FORMAT2(::testing::internal::CmpHelperLE, val1, val2)
 #define GTEST_ASSERT_LT(val1, val2) \

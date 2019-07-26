@@ -1008,6 +1008,43 @@ AssertionResult EqFailure(const char* expected_expression,
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AssertionResult NeFailure(const char* expected_expression,
+                          const char* actual_expression,
+                          const String& expected_value,
+                          const String& actual_value,
+                          bool ignoring_case) {
+  Message msg;
+  msg << "Value of: " << actual_expression;
+  if (actual_value != actual_expression) {
+    msg << "\n  Actual: " << actual_value;
+  }
+
+  msg << "\nExpected: " << expected_expression;
+  if (ignoring_case) {
+    msg << " (ignoring case)";
+  }
+  if (expected_value != expected_expression) {
+    msg << "\nWhich is: " << expected_value;
+  }
+
+  return AssertionFailure() << msg;
+}
+
+
 String GetBoolAssertionFailureMessage(const AssertionResult& assertion_result,
                                       const char* expression_text,
                                       const char* actual_predicate_value,
