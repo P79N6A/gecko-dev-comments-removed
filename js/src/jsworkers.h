@@ -72,6 +72,12 @@ class WorkerThreadState
     Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSFinishedList;
 
     
+
+
+
+    mozilla::Atomic<uint32_t> asmJSCompilationInProgress;
+
+    
     Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
 
     

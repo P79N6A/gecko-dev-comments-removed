@@ -5074,6 +5074,29 @@ CheckFunctionsSequential(ModuleCompiler &m)
 
 #ifdef JS_WORKER_THREADS
 
+
+
+
+class ParallelCompilationGuard
+{
+    WorkerThreadState *parallelState_;
+  public:
+    ParallelCompilationGuard() : parallelState_(NULL) {}
+    ~ParallelCompilationGuard() {
+        if (parallelState_) {
+            JS_ASSERT(parallelState_->asmJSCompilationInProgress == true);
+            parallelState_->asmJSCompilationInProgress = false;
+        }
+    }
+    bool claim(WorkerThreadState *state) {
+        JS_ASSERT(!parallelState_);
+        if (!state->asmJSCompilationInProgress.compareExchange(false, true))
+            return false;
+        parallelState_ = state;
+        return true;
+    }
+};
+
 static bool
 ParallelCompilationEnabled(ExclusiveContext *cx)
 {
@@ -5254,6 +5277,15 @@ static const size_t LIFO_ALLOC_PARALLEL_CHUNK_SIZE = 1 << 12;
 static bool
 CheckFunctionsParallel(ModuleCompiler &m)
 {
+    
+    
+    
+    
+    
+    ParallelCompilationGuard g;
+    if (!ParallelCompilationEnabled(m.cx()) || !g.claim(m.cx()->workerThreadState()))
+        return CheckFunctionsSequential(m);
+
     
     WorkerThreadState &state = *m.cx()->workerThreadState();
     size_t numParallelJobs = state.numThreads + 1;
@@ -6393,13 +6425,8 @@ CheckModule(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList,
         return false;
 
 #ifdef JS_WORKER_THREADS
-    if (ParallelCompilationEnabled(cx)) {
-        if (!CheckFunctionsParallel(m))
-            return false;
-    } else {
-        if (!CheckFunctionsSequential(m))
-            return false;
-    }
+    if (!CheckFunctionsParallel(m))
+        return false;
 #else
     if (!CheckFunctionsSequential(m))
         return false;
