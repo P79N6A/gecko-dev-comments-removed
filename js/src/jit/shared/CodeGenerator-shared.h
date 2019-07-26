@@ -421,7 +421,11 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     void jumpToBlock(MBasicBlock *mir);
+
+
+#ifndef JS_CODEGEN_MIPS
     void jumpToBlock(MBasicBlock *mir, Assembler::Condition cond);
+#endif
 
   private:
     void generateInvalidateEpilogue();
