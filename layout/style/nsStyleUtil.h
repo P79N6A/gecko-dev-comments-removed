@@ -57,13 +57,13 @@ public:
 
   
   static void
-  AppendFunctionalAlternates(const nsTArray<gfxAlternateValue>& aAlternates,
-                             nsAString& aResult);
+  SerializeFunctionalAlternates(const nsTArray<gfxAlternateValue>& aAlternates,
+                                nsAString& aResult);
 
   
   static void
-  AppendAlternateValues(const nsCSSValueList* aList,
-                        nsTArray<gfxAlternateValue>& aAlternateValues);
+  ComputeFunctionalAlternates(const nsCSSValueList* aList,
+                              nsTArray<gfxAlternateValue>& aAlternateValues);
 
   
 

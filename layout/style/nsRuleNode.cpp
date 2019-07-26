@@ -3291,20 +3291,18 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               0, 0, 0, systemFont.synthesis);
 
   
+  
   const nsCSSValue* variantAlternatesValue =
     aRuleData->ValueForFontVariantAlternates();
   int32_t variantAlternates = 0;
 
   switch (variantAlternatesValue->GetUnit()) {
-  case eCSSUnit_Initial:
-    aFont->mFont.CopyAlternates(*defaultVariableFont);
-    break;
-
   case eCSSUnit_Inherit:
     aFont->mFont.CopyAlternates(aParentFont->mFont);
     aCanStoreInRuleTree = false;
     break;
 
+  case eCSSUnit_Initial:
   case eCSSUnit_Normal:
     aFont->mFont.variantAlternates = 0;
     aFont->mFont.alternateValues.Clear();
@@ -3323,7 +3321,9 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
       aFont->mFont.featureValueLookup =
         aPresContext->StyleSet()->GetFontFeatureValuesLookup();
 
-      nsStyleUtil::AppendAlternateValues(
+      NS_ASSERTION(variantAlternatesValue->GetPairValue().mYValue.GetUnit() ==
+                   eCSSUnit_List, "function list not a list value");
+      nsStyleUtil::ComputeFunctionalAlternates(
         variantAlternatesValue->GetPairValue().mYValue.GetListValue(),
         aFont->mFont.alternateValues);
     }
@@ -3342,6 +3342,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               0, 0, 0, systemFont.variantCaps);
 
   
+  
   SetDiscrete(*aRuleData->ValueForFontVariantEastAsian(),
               aFont->mFont.variantEastAsian, aCanStoreInRuleTree,
               SETDSC_NORMAL | SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT,
@@ -3349,6 +3350,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               defaultVariableFont->variantEastAsian,
               0, 0, 0, systemFont.variantEastAsian);
 
+  
   
   SetDiscrete(*aRuleData->ValueForFontVariantLigatures(),
               aFont->mFont.variantLigatures, aCanStoreInRuleTree,
@@ -3358,6 +3360,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               0, 0, 0, systemFont.variantLigatures);
 
   
+  
   SetDiscrete(*aRuleData->ValueForFontVariantNumeric(),
               aFont->mFont.variantNumeric, aCanStoreInRuleTree,
               SETDSC_NORMAL | SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT,
@@ -3365,6 +3368,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
               defaultVariableFont->variantNumeric,
               0, 0, 0, systemFont.variantNumeric);
 
+  
   
   SetDiscrete(*aRuleData->ValueForFontVariantPosition(),
               aFont->mFont.variantPosition, aCanStoreInRuleTree,
