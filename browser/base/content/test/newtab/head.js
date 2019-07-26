@@ -2,8 +2,11 @@
 
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
+const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directorySource";
 
 Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
+
+Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
 
 let tmp = {};
 Cu.import("resource://gre/modules/Promise.jsm", tmp);
@@ -26,6 +29,7 @@ registerCleanupFunction(function () {
     gWindow.gBrowser.removeTab(gWindow.gBrowser.tabs[1]);
 
   Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
+  Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
 });
 
 
@@ -159,20 +163,34 @@ function clearHistory(aCallback) {
 
 function fillHistory(aLinks, aCallback) {
   let numLinks = aLinks.length;
+  if (!numLinks) {
+    if (aCallback)
+      executeSoon(aCallback);
+    return;
+  }
+
   let transitionLink = Ci.nsINavHistoryService.TRANSITION_LINK;
 
-  for (let link of aLinks.reverse()) {
+  
+  
+  let now = Date.now() * 1000;
+
+  for (let i = 0; i < aLinks.length; i++) {
+    let link = aLinks[i];
     let place = {
       uri: makeURI(link.url),
       title: link.title,
-      visits: [{visitDate: Date.now() * 1000, transitionType: transitionLink}]
+      
+      
+      
+      visits: [{visitDate: now - i, transitionType: transitionLink}]
     };
 
     PlacesUtils.asyncHistory.updatePlaces(place, {
       handleError: function () ok(false, "couldn't add visit to history"),
       handleResult: function () {},
       handleCompletion: function () {
-        if (--numLinks == 0)
+        if (--numLinks == 0 && aCallback)
           aCallback();
       }
     });
@@ -504,11 +522,17 @@ function createDragEvent(aEventType, aData) {
 
 
 
-function whenPagesUpdated(aCallback) {
+
+
+
+
+function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
   let page = {
-    update: function () {
-      NewTabUtils.allPages.unregister(this);
-      executeSoon(aCallback || TestRunner.next);
+    update: function (onlyIfHidden=false) {
+      if (onlyIfHidden == aOnlyIfHidden) {
+        NewTabUtils.allPages.unregister(this);
+        executeSoon(aCallback || TestRunner.next);
+      }
     }
   };
 

@@ -19,6 +19,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
   "resource://gre/modules/PageThumbs.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "BinarySearch",
+  "resource://gre/modules/BinarySearch.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "Timer", () => {
+  return Cu.import("resource://gre/modules/Timer.jsm", {});
+});
+
 XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
   let uri = Services.io.newURI("about:newtab", null, null);
   return Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
@@ -48,7 +55,13 @@ const PREF_NEWTAB_COLUMNS = "browser.newtabpage.columns";
 const HISTORY_RESULTS_LIMIT = 100;
 
 
+const LINKS_GET_LINKS_LIMIT = 100;
+
+
 const TOPIC_GATHER_TELEMETRY = "gather-telemetry";
+
+
+const SCHEDULE_UPDATE_TIMEOUT_MS = 1000;
 
 
 
@@ -245,11 +258,31 @@ let AllPages = {
 
 
 
-  update: function AllPages_update(aExceptPage) {
+
+
+  update: function AllPages_update(aExceptPage, aHiddenPagesOnly=false) {
     this._pages.forEach(function (aPage) {
       if (aExceptPage != aPage)
-        aPage.update();
+        aPage.update(aHiddenPagesOnly);
     });
+  },
+
+  
+
+
+
+
+  scheduleUpdateForHiddenPages: function AllPages_scheduleUpdateForHiddenPages() {
+    if (!this._scheduleUpdateTimeout) {
+      this._scheduleUpdateTimeout = Timer.setTimeout(() => {
+        delete this._scheduleUpdateTimeout;
+        this.update(null, true);
+      }, SCHEDULE_UPDATE_TIMEOUT_MS);
+    }
+  },
+
+  get updateScheduledForHiddenPages() {
+    return !!this._scheduleUpdateTimeout;
   },
 
   
@@ -507,10 +540,22 @@ let PlacesProvider = {
   
 
 
+  maxNumLinks: HISTORY_RESULTS_LIMIT,
+
+  
+
+
+  init: function PlacesProvider_init() {
+    PlacesUtils.history.addObserver(this, true);
+  },
+
+  
+
+
 
   getLinks: function PlacesProvider_getLinks(aCallback) {
     let options = PlacesUtils.history.getNewQueryOptions();
-    options.maxResults = HISTORY_RESULTS_LIMIT;
+    options.maxResults = this.maxNumLinks;
 
     
     options.sortingMode = Ci.nsINavHistoryQueryOptions.SORT_BY_FRECENCY_DESCENDING
@@ -525,7 +570,17 @@ let PlacesProvider = {
           let url = row.getResultByIndex(1);
           if (LinkChecker.checkLoadURI(url)) {
             let title = row.getResultByIndex(2);
-            links.push({url: url, title: title});
+            let frecency = row.getResultByIndex(12);
+            let lastVisitDate = row.getResultByIndex(5);
+            links.push({
+              url: url,
+              title: title,
+              frecency: frecency,
+              lastVisitDate: lastVisitDate,
+              bgColor: "transparent",
+              type: "history",
+              imageURISpec: null,
+            });
           }
         }
       },
@@ -536,6 +591,26 @@ let PlacesProvider = {
       },
 
       handleCompletion: function (aReason) {
+        
+        
+        
+        
+        
+        
+        let i = 1;
+        let outOfOrder = [];
+        while (i < links.length) {
+          if (Links.compareLinks(links[i - 1], links[i]) > 0)
+            outOfOrder.push(links.splice(i, 1)[0]);
+          else
+            i++;
+        }
+        for (let link of outOfOrder) {
+          i = BinarySearch.insertionIndexOf(links, link,
+                                            Links.compareLinks.bind(Links));
+          links.splice(i, 0, link);
+        }
+
         aCallback(links);
       }
     };
@@ -544,8 +619,80 @@ let PlacesProvider = {
     let query = PlacesUtils.history.getNewQuery();
     let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase);
     db.asyncExecuteLegacyQueries([query], 1, options, callback);
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addObserver: function PlacesProvider_addObserver(aObserver) {
+    this._observers.push(aObserver);
+  },
+
+  _observers: [],
+
+  
+
+
+  onFrecencyChanged: function PlacesProvider_onFrecencyChanged(aURI, aNewFrecency, aGUID, aHidden, aLastVisitDate) {
+    
+    
+    if (!aHidden && aLastVisitDate) {
+      this._callObservers("onLinkChanged", {
+        url: aURI.spec,
+        frecency: aNewFrecency,
+        lastVisitDate: aLastVisitDate,
+      });
+    }
+  },
+
+  
+
+
+  onManyFrecenciesChanged: function PlacesProvider_onManyFrecenciesChanged() {
+    this._callObservers("onManyLinksChanged");
+  },
+
+  
+
+
+  onTitleChanged: function PlacesProvider_onTitleChanged(aURI, aNewTitle, aGUID) {
+    this._callObservers("onLinkChanged", {
+      url: aURI.spec,
+      title: aNewTitle
+    });
+  },
+
+  _callObservers: function PlacesProvider__callObservers(aMethodName, aArg) {
+    for (let obs of this._observers) {
+      if (obs[aMethodName]) {
+        try {
+          obs[aMethodName](this, aArg);
+        } catch (err) {
+          Cu.reportError(err);
+        }
+      }
+    }
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver,
+                                         Ci.nsISupportsWeakReference]),
 };
+
+
+
 
 
 
@@ -560,17 +707,52 @@ let Links = {
   
 
 
-  _links: null,
+  maxNumLinks: LINKS_GET_LINKS_LIMIT,
 
   
 
 
-  _provider: PlacesProvider,
+  _providers: new Set(),
+
+  
+
+
+
+
+  _providerLinks: new Map(),
+
+  
+
+
+  _sortProperties: [
+    "frecency",
+    "lastVisitDate",
+    "url",
+  ],
 
   
 
 
   _populateCallbacks: [],
+
+  
+
+
+
+  addProvider: function Links_addProvider(aProvider) {
+    this._providers.add(aProvider);
+    aProvider.addObserver(this);
+  },
+
+  
+
+
+
+  removeProvider: function Links_removeProvider(aProvider) {
+    if (!this._providers.delete(aProvider))
+      throw new Error("Unknown provider");
+    this._providerLinks.delete(aProvider);
+  },
 
   
 
@@ -601,16 +783,15 @@ let Links = {
       }
     }
 
-    if (this._links && !aForce) {
-      executeCallbacks();
-    } else {
-      this._provider.getLinks(function (aLinks) {
-        this._links = aLinks;
-        executeCallbacks();
-      }.bind(this));
-
-      this._addObserver();
+    let numProvidersRemaining = this._providers.size;
+    for (let provider of this._providers) {
+      this._populateProviderCache(provider, () => {
+        if (--numProvidersRemaining == 0)
+          executeCallbacks();
+      }, aForce);
     }
+
+    this._addObserver();
   },
 
   
@@ -619,9 +800,10 @@ let Links = {
 
   getLinks: function Links_getLinks() {
     let pinnedLinks = Array.slice(PinnedLinks.links);
+    let links = this._getMergedProviderLinks();
 
     
-    let links = (this._links || []).filter(function (link) {
+    links = links.filter(function (link) {
       return !BlockedLinks.isBlocked(link) && !PinnedLinks.isPinned(link);
     });
 
@@ -641,7 +823,186 @@ let Links = {
 
 
   resetCache: function Links_resetCache() {
-    this._links = null;
+    this._providerLinks.clear();
+  },
+
+  
+
+
+
+
+
+
+
+  compareLinks: function Links_compareLinks(aLink1, aLink2) {
+    for (let prop of this._sortProperties) {
+      if (!(prop in aLink1) || !(prop in aLink2))
+        throw new Error("Comparable link missing required property: " + prop);
+    }
+    return aLink2.frecency - aLink1.frecency ||
+           aLink2.lastVisitDate - aLink1.lastVisitDate ||
+           aLink1.url.localeCompare(aLink2.url);
+  },
+
+  
+
+
+
+
+
+
+  _populateProviderCache: function Links_populateProviderCache(aProvider, aCallback, aForce) {
+    if (this._providerLinks.has(aProvider) && !aForce) {
+      aCallback();
+    } else {
+      aProvider.getLinks(links => {
+        
+        
+        links = links.filter((link) => !!link);
+        this._providerLinks.set(aProvider, {
+          sortedLinks: links,
+          linkMap: links.reduce((map, link) => {
+            map.set(link.url, link);
+            return map;
+          }, new Map()),
+        });
+        aCallback();
+      });
+    }
+  },
+
+  
+
+
+
+  _getMergedProviderLinks: function Links__getMergedProviderLinks() {
+    
+    let linkLists = [];
+    for (let links of this._providerLinks.values()) {
+      linkLists.push(links.sortedLinks.slice());
+    }
+
+    function getNextLink() {
+      let minLinks = null;
+      for (let links of linkLists) {
+        if (links.length &&
+            (!minLinks || Links.compareLinks(links[0], minLinks[0]) < 0))
+          minLinks = links;
+      }
+      return minLinks ? minLinks.shift() : null;
+    }
+
+    let finalLinks = [];
+    for (let nextLink = getNextLink();
+         nextLink && finalLinks.length < this.maxNumLinks;
+         nextLink = getNextLink()) {
+      finalLinks.push(nextLink);
+    }
+
+    return finalLinks;
+  },
+
+  
+
+
+
+
+
+
+  onLinkChanged: function Links_onLinkChanged(aProvider, aLink) {
+    if (!("url" in aLink))
+      throw new Error("Changed links must have a url property");
+
+    let links = this._providerLinks.get(aProvider);
+    if (!links)
+      
+      
+      
+      return;
+
+    let { sortedLinks, linkMap } = links;
+
+    
+    
+    if (!linkMap.has(aLink.url) &&
+        sortedLinks.length &&
+        sortedLinks.length == aProvider.maxNumLinks) {
+      let lastLink = sortedLinks[sortedLinks.length - 1];
+      if (this.compareLinks(lastLink, aLink) < 0)
+        return;
+    }
+
+    let updatePages = false;
+
+    
+    if ("title" in aLink) {
+      let link = linkMap.get(aLink.url);
+      if (link && link.title != aLink.title) {
+        link.title = aLink.title;
+        updatePages = true;
+      }
+    }
+
+    
+    if (this._sortProperties.some((prop) => prop in aLink)) {
+      let link = linkMap.get(aLink.url);
+      if (link) {
+        
+        let idx = this._indexOf(sortedLinks, link);
+        if (idx < 0)
+          throw new Error("Link should be in _sortedLinks if in _linkMap");
+        sortedLinks.splice(idx, 1);
+        for (let prop of this._sortProperties) {
+          if (prop in aLink)
+            link[prop] = aLink[prop];
+        }
+      }
+      else {
+        
+        for (let prop of this._sortProperties) {
+          if (!(prop in aLink))
+            throw new Error("New link missing required sort property: " + prop);
+        }
+        
+        
+        link = {};
+        for (let [prop, val] of Iterator(aLink)) {
+          link[prop] = val;
+        }
+        linkMap.set(link.url, link);
+      }
+      let idx = this._insertionIndexOf(sortedLinks, link);
+      sortedLinks.splice(idx, 0, link);
+      if (sortedLinks.length > aProvider.maxNumLinks) {
+        let lastLink = sortedLinks.pop();
+        linkMap.delete(lastLink.url);
+      }
+      updatePages = true;
+    }
+
+    if (updatePages)
+      AllPages.scheduleUpdateForHiddenPages();
+  },
+
+  
+
+
+  onManyLinksChanged: function Links_onManyLinksChanged(aProvider) {
+    this._populateProviderCache(aProvider, () => {
+      AllPages.scheduleUpdateForHiddenPages();
+    }, true);
+  },
+
+  _indexOf: function Links__indexOf(aArray, aLink) {
+    return this._binsearch(aArray, aLink, "indexOf");
+  },
+
+  _insertionIndexOf: function Links__insertionIndexOf(aArray, aLink) {
+    return this._binsearch(aArray, aLink, "insertionIndexOf");
+  },
+
+  _binsearch: function Links__binsearch(aArray, aLink, aMethod) {
+    return BinarySearch[aMethod](aArray, aLink, this.compareLinks.bind(this));
   },
 
   
@@ -654,7 +1015,7 @@ let Links = {
     if (AllPages.length && AllPages.enabled)
       this.populateCache(function () { AllPages.update() }, true);
     else
-      this._links = null;
+      this.resetCache();
   },
 
   
@@ -774,11 +1135,20 @@ this.NewTabUtils = {
   _initialized: false,
 
   init: function NewTabUtils_init() {
+    if (this.initWithoutProviders()) {
+      PlacesProvider.init();
+      Links.addProvider(PlacesProvider);
+    }
+  },
+
+  initWithoutProviders: function NewTabUtils_initWithoutProviders() {
     if (!this._initialized) {
       this._initialized = true;
       ExpirationFilter.init();
       Telemetry.init();
+      return true;
     }
+    return false;
   },
 
   
