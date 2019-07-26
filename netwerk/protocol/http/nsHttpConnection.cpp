@@ -30,6 +30,7 @@
 #include "nsISupportsPriority.h"
 #include "nsHttpPipeline.h"
 #include <algorithm>
+#include "mozilla/ChaosMode.h"
 
 #ifdef DEBUG
 
@@ -1430,6 +1431,11 @@ nsHttpConnection::OnWriteSegment(char *buf,
         
         NS_ERROR("bad WriteSegments implementation");
         return NS_ERROR_FAILURE; 
+    }
+
+    if (ChaosMode::isActive() && ChaosMode::randomUint32LessThan(2)) {
+        
+        count = ChaosMode::randomUint32LessThan(count) + 1;
     }
 
     nsresult rv = mSocketIn->Read(buf, count, countWritten);
