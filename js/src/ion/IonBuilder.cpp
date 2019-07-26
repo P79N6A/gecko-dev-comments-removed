@@ -4953,7 +4953,7 @@ DOMCallNeedsBarrier(const JSJitInfo* jitinfo, types::StackTypeSet *types)
         return true;
 
     
-    return jitinfo->returnType == types->getKnownTypeTag();
+    return jitinfo->returnType != types->getKnownTypeTag();
 }
 
 bool
