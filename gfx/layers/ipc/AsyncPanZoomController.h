@@ -111,7 +111,7 @@ public:
 
 
 
-  void UpdateCompositionBounds(const nsIntRect& aCompositionBounds);
+  void UpdateCompositionBounds(const LayerIntRect& aCompositionBounds);
 
   
 
@@ -202,7 +202,7 @@ public:
 
 
 
-  void SetPageRect(const gfx::Rect& aCSSPageRect);
+  void SetPageRect(const CSSRect& aCSSPageRect);
 
   
 
@@ -243,7 +243,7 @@ public:
 
   static gfxSize CalculateResolution(const FrameMetrics& aMetrics);
 
-  static gfx::Rect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
+  static CSSRect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
 
   
 

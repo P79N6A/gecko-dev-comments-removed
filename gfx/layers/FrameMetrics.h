@@ -120,7 +120,7 @@ public:
   
   
   
-  nsIntRect mCompositionBounds;
+  LayerIntRect mCompositionBounds;
 
   
   
@@ -208,7 +208,7 @@ public:
   
   
   
-  gfx::Rect mScrollableRect;
+  mozilla::CSSRect mScrollableRect;
 
   
   

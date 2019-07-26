@@ -237,7 +237,10 @@ ThebesLayerComposite::GetCompositionBounds()
       scrollableLayer = parent;
     if (!parentMetrics.mDisplayPort.IsEmpty() && scrollableLayer) {
       
-      compositionBounds = gfxRect(parentMetrics.mCompositionBounds);
+      compositionBounds = gfxRect(parentMetrics.mCompositionBounds.x,
+                                  parentMetrics.mCompositionBounds.y,
+                                  parentMetrics.mCompositionBounds.width,
+                                  parentMetrics.mCompositionBounds.height);
 
       
       

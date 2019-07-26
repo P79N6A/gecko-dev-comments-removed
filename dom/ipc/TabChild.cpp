@@ -350,8 +350,9 @@ TabChild::Observe(nsISupports *aSubject,
         mLastMetrics.mViewport =
             gfx::Rect(0, 0,
                       kDefaultViewportSize.width, kDefaultViewportSize.height);
-        mLastMetrics.mCompositionBounds = nsIntRect(nsIntPoint(0, 0),
-                                                    mInnerSize);
+        
+        mLastMetrics.mCompositionBounds = LayerIntRect::FromUnknownRect(
+          gfx::IntRect(0, 0, mInnerSize.width, mInnerSize.height));
         mLastMetrics.mResolution =
           AsyncPanZoomController::CalculateResolution(mLastMetrics);
         mLastMetrics.mScrollOffset = CSSPoint(0, 0);
@@ -590,8 +591,10 @@ TabChild::HandlePossibleViewportChange()
 
   FrameMetrics metrics(mLastMetrics);
   metrics.mViewport = gfx::Rect(0.0f, 0.0f, viewportW, viewportH);
-  metrics.mScrollableRect = gfx::Rect(0.0f, 0.0f, pageWidth, pageHeight);
-  metrics.mCompositionBounds = nsIntRect(0, 0, mInnerSize.width, mInnerSize.height);
+  metrics.mScrollableRect = CSSRect(0.0f, 0.0f, pageWidth, pageHeight);
+  
+  metrics.mCompositionBounds = LayerIntRect::FromUnknownRect(
+    gfx::IntRect(0, 0, mInnerSize.width, mInnerSize.height));
 
   
   
@@ -1483,7 +1486,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
         return true;
     }
 
-    gfx::Rect cssCompositedRect =
+    CSSRect cssCompositedRect =
       AsyncPanZoomController::CalculateCompositedRectInCssPixels(aFrameMetrics);
     
     

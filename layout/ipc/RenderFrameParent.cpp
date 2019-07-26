@@ -792,8 +792,9 @@ void
 RenderFrameParent::NotifyDimensionsChanged(int width, int height)
 {
   if (mPanZoomController) {
+    
     mPanZoomController->UpdateCompositionBounds(
-      nsIntRect(0, 0, width, height));
+      LayerIntRect::FromUnknownRect(gfx::IntRect(0, 0, width, height)));
   }
 }
 
