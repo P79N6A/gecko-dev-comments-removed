@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef js_ion_linearscan_h__
 #define js_ion_linearscan_h__
 

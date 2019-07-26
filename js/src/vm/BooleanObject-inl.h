@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef BooleanObject_inl_h___
 #define BooleanObject_inl_h___
 

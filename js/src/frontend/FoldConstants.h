@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef FoldConstants_h__
 #define FoldConstants_h__
 

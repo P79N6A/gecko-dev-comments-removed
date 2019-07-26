@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsgc_root_h__
 #define jsgc_root_h__
 

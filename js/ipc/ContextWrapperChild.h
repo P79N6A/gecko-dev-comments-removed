@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef mozilla_jsipc_ContextWrapperChild_h__
 #define mozilla_jsipc_ContextWrapperChild_h__
 

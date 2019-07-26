@@ -6,7 +6,6 @@
 
 
 
-
 #include <errno.h>
 #include <locale.h>
 #include <math.h>

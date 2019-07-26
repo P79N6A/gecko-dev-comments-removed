@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef ScopeObject_inl_h___
 #define ScopeObject_inl_h___
 

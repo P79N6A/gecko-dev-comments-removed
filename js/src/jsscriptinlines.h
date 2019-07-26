@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsscriptinlines_h___
 #define jsscriptinlines_h___
 

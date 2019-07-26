@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_loopstate_h__ && defined JS_METHODJIT
 #define jsjaeger_loopstate_h__
 

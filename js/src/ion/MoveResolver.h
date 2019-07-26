@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_move_group_resolver_h__
 #define jsion_move_group_resolver_h__
 

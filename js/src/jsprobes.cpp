@@ -4,7 +4,6 @@
 
 
 
-
 #include "jsapi.h"
 #include "jsutil.h"
 #include "jsatom.h"

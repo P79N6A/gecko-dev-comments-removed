@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_bailouts_h__
 #define jsion_bailouts_h__
 

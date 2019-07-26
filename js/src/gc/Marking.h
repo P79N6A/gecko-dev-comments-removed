@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef gc_marking_h___
 #define gc_marking_h___
 

@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_logging_h__
 #define jsjaeger_logging_h__
 

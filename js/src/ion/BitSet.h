@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_bitset_h__
 #define jsion_bitset_h__
 

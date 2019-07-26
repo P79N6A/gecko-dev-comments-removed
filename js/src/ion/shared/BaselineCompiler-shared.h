@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_baselinecompiler_shared_h__
 #define jsion_baselinecompiler_shared_h__
 

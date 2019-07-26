@@ -3,7 +3,6 @@
 
 
 
-
 #if !defined jsjaeger_compiler_h__ && defined JS_METHODJIT
 #define jsjaeger_compiler_h__
 

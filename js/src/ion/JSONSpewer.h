@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef js_ion_jsonspewer_h__
 #define js_ion_jsonspewer_h__
 

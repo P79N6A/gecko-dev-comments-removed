@@ -4,7 +4,6 @@
 
 
 
-
 #include "mozilla/PodOperations.h"
 
 #include "jsapi.h"

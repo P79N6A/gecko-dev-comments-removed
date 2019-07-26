@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_mono_ic_h__ && defined JS_METHODJIT && defined JS_MONOIC
 #define jsjaeger_mono_ic_h__
 

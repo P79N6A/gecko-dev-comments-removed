@@ -4,7 +4,6 @@
 
 
 
-
 DESCRIPTION = "Previous statement should have thrown a ReferenceError";
 EXPECTED = "error";
 

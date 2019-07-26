@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef BytecodeCompiler_h__
 #define BytecodeCompiler_h__
 
