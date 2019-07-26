@@ -1356,6 +1356,17 @@ MmsService.prototype = {
         return;
       }
 
+      
+      
+      
+      let expiriedDate = aMessageRecord.timestamp +
+        aMessageRecord.headers["x-mms-expiry"] * 1000;
+      if (expiriedDate < Date.now()) {
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR);
+        debug("This notification indication is expired.");
+        return;
+      }
+
       let url =  aMessageRecord.headers["x-mms-content-location"].uri;
       
       let wish = aMessageRecord.headers["x-mms-delivery-report"];
