@@ -1,9 +1,11 @@
+
+
+
 'use strict';
 
 const tabs = require('sdk/tabs');
 const { isPrivate } = require('sdk/private-browsing');
 const pbUtils = require('sdk/private-browsing/utils');
-const { getOwnerWindow } = require('sdk/private-browsing/window/utils');
 
 exports.testPrivateTabsAreListed = function (assert, done) {
   let originalTabCount = tabs.length;
@@ -12,7 +14,6 @@ exports.testPrivateTabsAreListed = function (assert, done) {
     url: 'about:blank',
     isPrivate: true,
     onOpen: function(tab) {
-      let win = getOwnerWindow(tab);
       
       if (pbUtils.isWindowPBSupported || pbUtils.isTabPBSupported) {
         assert.ok(isPrivate(tab), "tab is private");
