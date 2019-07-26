@@ -301,7 +301,7 @@ private:
 
 private:
   
-  bool mUseEditor;
+  bool mEditorHasBeenInitialized;
   bool mIsProcessing;
   
   bool mUsePlaceholder;
