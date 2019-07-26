@@ -21,7 +21,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <utils/Log.h>
+#include <cutils/log.h>
+
 #include <utils/VectorImpl.h>
 #include <utils/TypeHelpers.h>
 
@@ -43,11 +44,11 @@ class Vector : private VectorImpl
 {
 public:
             typedef TYPE    value_type;
-    
+
     
 
 
-    
+
                             Vector();
                             Vector(const Vector<TYPE>& rhs);
     explicit                Vector(const SortedVector<TYPE>& rhs);
@@ -55,7 +56,7 @@ public:
 
     
             const Vector<TYPE>&     operator = (const Vector<TYPE>& rhs) const;
-            Vector<TYPE>&           operator = (const Vector<TYPE>& rhs);    
+            Vector<TYPE>&           operator = (const Vector<TYPE>& rhs);
 
             const Vector<TYPE>&     operator = (const SortedVector<TYPE>& rhs) const;
             Vector<TYPE>&           operator = (const SortedVector<TYPE>& rhs);
@@ -82,12 +83,18 @@ public:
     
 
 
-     
+
+    inline  ssize_t         resize(size_t size)         { return VectorImpl::resize(size); }
+
+    
+
+
+
     
     inline  const TYPE*     array() const;
     
             TYPE*           editArray();
-    
+
     
 
 
@@ -98,8 +105,6 @@ public:
     inline  const TYPE&     itemAt(size_t index) const;
     
             const TYPE&     top() const;
-    
-            const TYPE&     mirrorItemAt(ssize_t index) const;
 
     
 
@@ -113,7 +118,7 @@ public:
             
 
 
-            
+
     
             ssize_t         insertVectorAt(const Vector<TYPE>& vector, size_t index);
 
@@ -130,7 +135,7 @@ public:
             
 
 
-             
+
     
     inline  ssize_t         insertAt(size_t index, size_t numItems = 1);
     
@@ -144,7 +149,7 @@ public:
     
     inline  ssize_t         add();
     
-            ssize_t         add(const TYPE& item);            
+            ssize_t         add(const TYPE& item);
     
     inline  ssize_t         replaceAt(size_t index);
     
@@ -162,10 +167,10 @@ public:
     
 
 
-     
+
      typedef int (*compar_t)(const TYPE* lhs, const TYPE* rhs);
      typedef int (*compar_r_t)(const TYPE* lhs, const TYPE* rhs, void* state);
-     
+
      inline status_t        sort(compar_t cmp);
      inline status_t        sort(compar_r_t cmp, void* state);
 
@@ -186,10 +191,11 @@ public:
      inline const_iterator end() const   { return array() + size(); }
      inline void reserve(size_t n) { setCapacity(n); }
      inline bool empty() const{ return isEmpty(); }
-     inline void push_back(const TYPE& item)  { insertAt(item, size()); }
-     inline void push_front(const TYPE& item) { insertAt(item, 0); }
+     inline void push_back(const TYPE& item)  { insertAt(item, size(), 1); }
+     inline void push_front(const TYPE& item) { insertAt(item, 0, 1); }
      inline iterator erase(iterator pos) {
-         return begin() + removeItemsAt(pos-array());
+         ssize_t index = removeItemsAt(pos-array());
+         return begin() + index;
      }
 
 protected:
@@ -201,6 +207,9 @@ protected:
     virtual void    do_move_backward(void* dest, const void* from, size_t num) const;
 };
 
+
+
+template<typename T> struct trait_trivial_move<Vector<T> > { enum { value = true }; };
 
 
 
@@ -234,7 +243,7 @@ Vector<TYPE>::~Vector() {
 template<class TYPE> inline
 Vector<TYPE>& Vector<TYPE>::operator = (const Vector<TYPE>& rhs) {
     VectorImpl::operator = (rhs);
-    return *this; 
+    return *this;
 }
 
 template<class TYPE> inline
@@ -252,7 +261,7 @@ Vector<TYPE>& Vector<TYPE>::operator = (const SortedVector<TYPE>& rhs) {
 template<class TYPE> inline
 const Vector<TYPE>& Vector<TYPE>::operator = (const SortedVector<TYPE>& rhs) const {
     VectorImpl::operator = (rhs);
-    return *this; 
+    return *this;
 }
 
 template<class TYPE> inline
@@ -268,22 +277,15 @@ TYPE* Vector<TYPE>::editArray() {
 
 template<class TYPE> inline
 const TYPE& Vector<TYPE>::operator[](size_t index) const {
-    LOG_FATAL_IF( index>=size(),
-                  "itemAt: index %d is past size %d", (int)index, (int)size() );
+    LOG_FATAL_IF(index>=size(),
+            "%s: index=%u out of range (%u)", __PRETTY_FUNCTION__,
+            int(index), int(size()));
     return *(array() + index);
 }
 
 template<class TYPE> inline
 const TYPE& Vector<TYPE>::itemAt(size_t index) const {
     return operator[](index);
-}
-
-template<class TYPE> inline
-const TYPE& Vector<TYPE>::mirrorItemAt(ssize_t index) const {
-    LOG_FATAL_IF( (index>0 ? index : -index)>=size(),
-                  "mirrorItemAt: index %d is past size %d",
-                  (int)index, (int)size() );
-    return *(array() + ((index<0) ? (size()-index) : index));
 }
 
 template<class TYPE> inline
@@ -419,3 +421,4 @@ void Vector<TYPE>::do_move_backward(void* dest, const void* from, size_t num) co
 
 
 #endif 
+
