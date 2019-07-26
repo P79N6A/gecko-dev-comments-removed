@@ -48,7 +48,7 @@ const ContentPanning = {
     
     
     
-    if (!this._asyncPanZoomForViewportFrame) {
+    if (!docShell.asyncPanZoomEnabled) {
       let els = Cc["@mozilla.org/eventlistenerservice;1"]
                   .getService(Ci.nsIEventListenerService);
 
@@ -159,19 +159,7 @@ const ContentPanning = {
     
     
     
-    
-    if (this.target != null && this._asyncPanZoomForViewportFrame) {
-      this.detectingScrolling = true;
-      var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
-      os.notifyObservers(docShell, 'detect-scrollable-subframe', null);
-    }
-
-    
-    
-    
-    
-    
-    if (this.pointerDownTarget !== null && !this.detectingScrolling) {
+    if (this.pointerDownTarget !== null) {
       
       
       
@@ -262,12 +250,6 @@ const ContentPanning = {
     this.pointerDownTarget = null;
   },
 
-  
-  
-  
-  
-  detectingScrolling: false,
-
   onTouchMove: function cp_onTouchMove(evt) {
     if (!this.dragging)
       return;
@@ -296,27 +278,7 @@ const ContentPanning = {
     }
 
     let isPan = KineticPanning.isPan();
-    if (!isPan && this.detectingScrolling) {
-      
-      
-      
-      return;
-    }
-
-    let isScroll = this.scrollCallback(delta.scale(-1));
-
-    if (this.detectingScrolling) {
-      this.detectingScrolling = false;
-      
-      if (isScroll) {
-        
-        Services.obs.notifyObservers(docShell, 'cancel-default-pan-zoom', null);
-      } else {
-        
-        this.scrollCallback = null;
-        return;
-      }
-    }
+    this.scrollCallback(delta.scale(-1));
 
     
     
@@ -390,13 +352,6 @@ const ContentPanning = {
       }
 
       node = node.parentNode;
-    }
-
-    if (ContentPanning._asyncPanZoomForViewportFrame &&
-        nodeContent === content) {
-        
-        
-        return null;
     }
 
     if (nodeContent.scrollMaxX || nodeContent.scrollMaxY) {
@@ -513,10 +468,6 @@ const ContentPanning = {
   _setActive: function cp_setActive(elt) {
     const kStateActive = 0x00000001;
     this._domUtils.setContentState(elt, kStateActive);
-  },
-
-  get _asyncPanZoomForViewportFrame() {
-    return docShell.asyncPanZoomEnabled;
   },
 
   _recvViewportChange: function(data) {
@@ -637,7 +588,6 @@ const ContentPanning = {
   _finishPanning: function() {
     this._resetActive();
     this.dragging = false;
-    this.detectingScrolling = false;
     delete this.primaryPointerId;
     this._activationTimer.cancel();
 

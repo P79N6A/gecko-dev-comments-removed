@@ -116,22 +116,6 @@ public:
 
 
 
-
-
-
-  void CancelDefaultPanZoom();
-
-  
-
-
-
-  void DetectScrollableSubframe();
-
-  
-
-
-
-
   void ZoomToRect(CSSRect aRect);
 
   
@@ -617,19 +601,9 @@ private:
 
   
   
-  bool mDisableNextTouchBatch;
-
-  
-  
   
   
   bool mHandlingTouchQueue;
-
-  
-  
-  
-  
-  bool mDelayPanning;
 
   friend class Axis;
 
