@@ -72,6 +72,7 @@ public:
 
   void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& aError);
 
+  static bool BrowserFramesEnabled();
 protected:
   
   

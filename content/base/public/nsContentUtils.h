@@ -1892,6 +1892,15 @@ public:
 
 
 
+
+  static bool IsUserFocusIgnored(nsINode* aNode);
+
+  
+
+
+
+
+
   static void FlushLayoutForTree(nsIDOMWindow* aWindow);
 
   

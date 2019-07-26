@@ -323,6 +323,21 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
+bool
+nsGenericHTMLFrameElement::BrowserFramesEnabled()
+{
+  static bool sMozBrowserFramesEnabled = false;
+  static bool sBoolVarCacheInitialized = false;
+
+  if (!sBoolVarCacheInitialized) {
+    sBoolVarCacheInitialized = true;
+    Preferences::AddBoolVarCache(&sMozBrowserFramesEnabled,
+                                 "dom.mozBrowserFramesEnabled");
+  }
+
+  return sMozBrowserFramesEnabled;
+}
+
 
 
 
@@ -334,7 +349,7 @@ nsGenericHTMLFrameElement::GetReallyIsBrowserOrApp(bool *aOut)
   *aOut = false;
 
   
-  if (!Preferences::GetBool("dom.mozBrowserFramesEnabled")) {
+  if (!nsGenericHTMLFrameElement::BrowserFramesEnabled()) {
     return NS_OK;
   }
 

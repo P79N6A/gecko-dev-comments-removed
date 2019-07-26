@@ -1396,10 +1396,12 @@ nsFocusManager::IsNonFocusableRoot(nsIContent* aContent)
   
   
   
+  
   nsIDocument* doc = aContent->GetCurrentDoc();
   NS_ASSERTION(doc, "aContent must have current document");
   return aContent == doc->GetRootElement() &&
-           (doc->HasFlag(NODE_IS_EDITABLE) || !aContent->IsEditable());
+           (doc->HasFlag(NODE_IS_EDITABLE) || !aContent->IsEditable() ||
+            nsContentUtils::IsUserFocusIgnored(aContent));
 }
 
 nsIContent*
@@ -1429,8 +1431,9 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, uint32_t aFlags)
     return nullptr;
 
   
+  
   if (aContent == doc->GetRootElement())
-    return aContent;
+    return nsContentUtils::IsUserFocusIgnored(aContent) ? nullptr : aContent;
 
   
   nsPresContext* presContext = shell->GetPresContext();
@@ -1881,10 +1884,18 @@ nsFocusManager::SendFocusOrBlurEvent(uint32_t aType,
 
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(aTarget);
 
+  nsCOMPtr<nsINode> n = do_QueryInterface(aTarget);
+  if (!n) {
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(aTarget);
+    n = win ? win->GetExtantDoc() : nullptr;
+  }
+  bool dontDispatchEvent = n && nsContentUtils::IsUserFocusIgnored(n);
+
   
   
   
-  if (aFocusMethod && aDocument && aDocument->EventHandlingSuppressed()) {
+  if (aFocusMethod && !dontDispatchEvent &&
+      aDocument && aDocument->EventHandlingSuppressed()) {
     
     
     NS_ASSERTION(!aWindowRaised, "aWindowRaised should not be set");
@@ -1914,9 +1925,11 @@ nsFocusManager::SendFocusOrBlurEvent(uint32_t aType,
   }
 #endif
 
-  nsContentUtils::AddScriptRunner(
-    new FocusBlurEvent(aTarget, aType, aPresShell->GetPresContext(),
-                       aWindowRaised, aIsRefocus));
+  if (!dontDispatchEvent) {
+    nsContentUtils::AddScriptRunner(
+      new FocusBlurEvent(aTarget, aType, aPresShell->GetPresContext(),
+                         aWindowRaised, aIsRefocus));
+  }
 }
 
 void
