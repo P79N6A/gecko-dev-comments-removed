@@ -453,7 +453,8 @@ class TokenStream
     typedef Vector<jschar, 32> CharBuffer;
 
     TokenStream(JSContext *cx, const CompileOptions &options,
-                const jschar *base, size_t length, StrictModeGetter *smg);
+                const jschar *base, size_t length, StrictModeGetter *smg,
+                AutoKeepAtoms& keepAtoms);
 
     ~TokenStream();
 
@@ -634,7 +635,20 @@ class TokenStream
         JS_ALWAYS_TRUE(matchToken(tt));
     }
 
-    class Position {
+    class MOZ_STACK_CLASS Position {
+      public:
+        
+
+
+
+
+
+
+
+
+        Position(AutoKeepAtoms&) { }
+      private:
+        Position(const Position&) MOZ_DELETE;
         friend class TokenStream;
         const jschar *buf;
         unsigned flags;

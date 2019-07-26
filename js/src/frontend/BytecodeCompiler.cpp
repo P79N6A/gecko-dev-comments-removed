@@ -365,7 +365,7 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
     
     
     
-    TokenStream::Position start;
+    TokenStream::Position start(parser.keepAtoms);
     parser.tokenStream.tell(&start);
     bool initiallyStrict = StrictModeFromContext(cx);
     bool becameStrict;

@@ -558,7 +558,8 @@ FindBody(JSContext *cx, HandleFunction fun, StableCharPtr chars, size_t length,
     CompileOptions options(cx);
     options.setFileAndLine("internal-findBody", 0)
            .setVersion(fun->nonLazyScript()->getVersion());
-    TokenStream ts(cx, options, chars.get(), length, NULL);
+    AutoKeepAtoms keepAtoms(cx->runtime);
+    TokenStream ts(cx, options, chars.get(), length, NULL, keepAtoms);
     int nest = 0;
     bool onward = true;
     
@@ -1374,7 +1375,8 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-        TokenStream ts(cx, options, collected_args.get(), args_length,  NULL);
+        TokenStream ts(cx, options, collected_args.get(), args_length,
+                        NULL, keepAtoms);
 
         
         TokenKind tt = ts.getToken();
