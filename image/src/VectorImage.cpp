@@ -492,8 +492,9 @@ VectorImage::GetWidth(int32_t* aWidth)
 NS_IMETHODIMP_(void)
 VectorImage::RequestRefresh(const mozilla::TimeStamp& aTime)
 {
-  
   EvaluateAnimation();
+
+  mSVGDocumentWrapper->TickRefreshDriver();
 
   if (mHasPendingInvalidation) {
     SendInvalidationNotifications();
