@@ -713,6 +713,14 @@ SpecialPowersAPI.prototype = {
     }
   },
 
+  
+  
+  
+  
+  autoConfirmAppInstall: function(cb) {
+    this.pushPrefEnv({set: [['dom.mozApps.auto_confirm_install', true]]}, cb);
+  },
+
   addObserver: function(obs, notification, weak) {
     var obsvc = Cc['@mozilla.org/observer-service;1']
                    .getService(Ci.nsIObserverService);
