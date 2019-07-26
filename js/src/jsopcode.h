@@ -19,7 +19,7 @@
 
 
 typedef enum JSOp {
-#define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format) \
+#define OPDEF(op,val,name,token,length,nuses,ndefs,format) \
     op = val,
 #include "jsopcode.tbl"
 #undef OPDEF
@@ -209,7 +209,6 @@ struct JSCodeSpec {
     int8_t              length;         
     int8_t              nuses;          
     int8_t              ndefs;          
-    uint8_t             prec;           
     uint32_t            format;         
 
     uint32_t type() const { return JOF_TYPE(format); }
