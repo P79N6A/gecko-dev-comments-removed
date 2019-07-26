@@ -2463,9 +2463,6 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   MOZ_ASSERT(newFrame);
   MOZ_ASSERT(contentFrame);
 
-  
-  aDocElement->SetPrimaryFrame(contentFrame);
-
   NS_ASSERTION(processChildren ? !mRootElementFrame :
                  mRootElementFrame == contentFrame,
                "unexpected mRootElementFrame");
@@ -2495,6 +2492,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     
     contentFrame->SetInitialChildList(kPrincipalList, childItems);
   }
+
+  
+  aDocElement->SetPrimaryFrame(contentFrame);
 
   SetInitialSingleChild(mDocElementContainingBlock, newFrame);
 
