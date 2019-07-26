@@ -73,7 +73,10 @@ Compressor::init()
 {
     if (inplen >= UINT32_MAX)
         return false;
-    int ret = deflateInit(&zs, Z_DEFAULT_COMPRESSION);
+    
+    
+    
+    int ret = deflateInit(&zs, Z_BEST_SPEED);
     if (ret != Z_OK) {
         JS_ASSERT(ret == Z_MEM_ERROR);
         return false;
