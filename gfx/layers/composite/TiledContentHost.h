@@ -12,7 +12,6 @@
 #include "ContentHost.h"                
 #include "TiledLayerBuffer.h"           
 #include "CompositableHost.h"
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             

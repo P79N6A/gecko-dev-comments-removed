@@ -14,7 +14,6 @@
 #include "Units.h"                      
 #include "gfx3DMatrix.h"                
 #include "gfxTypes.h"
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/CompositableClient.h"  
