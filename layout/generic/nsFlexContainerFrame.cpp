@@ -469,23 +469,20 @@ protected:
 static nsIFrame*
 GetFirstNonAnonBoxDescendant(nsIFrame* aFrame)
 {
-  MOZ_ASSERT(aFrame, "null frame passed to GetFirstNonAnonBoxDescendant()");
-  MOZ_ASSERT(aFrame->IsFlexItem(), "only intended for flex items");
-
-  while (true) {
+  while (aFrame) {
     nsIAtom* pseudoTag = aFrame->StyleContext()->GetPseudo();
 
     
     if (!pseudoTag ||                                 
         !nsCSSAnonBoxes::IsAnonBox(pseudoTag) ||      
         pseudoTag == nsCSSAnonBoxes::mozNonElement) { 
-      return aFrame;
+      break;
     }
 
     
     aFrame = aFrame->GetFirstPrincipalChild();
-    MOZ_ASSERT(aFrame, "why do we have an anonymous box without any children?");
   }
+  return aFrame;
 }
 
 
@@ -507,6 +504,9 @@ bool
 IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
                           nsIFrame* aFrame2)
 {
+  MOZ_ASSERT(aFrame1->IsFlexItem() && aFrame2->IsFlexItem(),
+             "this method only intended for comparing flex items");
+
   if (aFrame1 == aFrame2) {
     
     
@@ -526,6 +526,10 @@ IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
   
   aFrame1 = GetFirstNonAnonBoxDescendant(aFrame1);
   aFrame2 = GetFirstNonAnonBoxDescendant(aFrame2);
+  MOZ_ASSERT(aFrame1 && aFrame2,
+             "why do we have an anonymous box without any "
+             "non-anonymous descendants?");
+
 
   
   
@@ -572,6 +576,9 @@ bool
 IsOrderLEQ(nsIFrame* aFrame1,
            nsIFrame* aFrame2)
 {
+  MOZ_ASSERT(aFrame1->IsFlexItem() && aFrame2->IsFlexItem(),
+             "this method only intended for comparing flex items");
+
   int32_t order1 = aFrame1->StylePosition()->mOrder;
   int32_t order2 = aFrame2->StylePosition()->mOrder;
 
