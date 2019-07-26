@@ -2,7 +2,7 @@
 
 
 
-from __future__ import unicode_literals
+from __future__ import print_function, unicode_literals
 
 import logging
 import os
@@ -14,7 +14,11 @@ from mach.mixin.logging import LoggingMixin
 from mach.mixin.process import ProcessExecutionMixin
 
 from .config import BuildConfig
-from .mozconfig import MozconfigLoader
+from .mozconfig import (
+    MozconfigFindException,
+    MozconfigLoadException,
+    MozconfigLoader,
+)
 
 
 class MozbuildObject(ProcessExecutionMixin):
@@ -244,3 +248,27 @@ class MachCommandBase(MozbuildObject):
     def __init__(self, context):
         MozbuildObject.__init__(self, context.topdir, context.settings,
             context.log_manager)
+
+        
+        
+        
+        try:
+            self.mozconfig
+
+        except MozconfigFindException as e:
+            print(e.message)
+            sys.exit(1)
+
+        except MozconfigLoadException as e:
+            print('Error loading mozconfig: ' + e.path)
+            print('')
+            print(e.message)
+            if e.output:
+                print('')
+                print('mozconfig output:')
+                print('')
+                for line in e.output:
+                    print(line)
+
+            sys.exit(1)
+
