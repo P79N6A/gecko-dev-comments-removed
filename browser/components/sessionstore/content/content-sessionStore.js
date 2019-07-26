@@ -76,37 +76,27 @@ let EventListener = {
 
   init: function () {
     addEventListener("load", this, true);
-    addEventListener("pageshow", this, true);
   },
 
   handleEvent: function (event) {
-    switch (event.type) {
-      case "load":
-        
-        if (event.target == content.document) {
-          
-          
-          let epoch = gContentRestore.getRestoreEpoch();
-          if (epoch) {
-            
-            gContentRestore.restoreDocument();
-
-            
-            sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
-          }
-
-          
-          sendAsyncMessage("SessionStore:load");
-        }
-        break;
-      case "pageshow":
-        if (event.persisted && event.target == content.document)
-          sendAsyncMessage("SessionStore:pageshow");
-        break;
-      default:
-        debug("received unknown event '" + event.type + "'");
-        break;
+    
+    if (event.target != content.document) {
+      return;
     }
+
+    
+    
+    let epoch = gContentRestore.getRestoreEpoch();
+    if (epoch) {
+      
+      gContentRestore.restoreDocument();
+
+      
+      sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
+    }
+
+    
+    sendAsyncMessage("SessionStore:load");
   }
 };
 
@@ -116,8 +106,6 @@ let EventListener = {
 let MessageListener = {
 
   MESSAGES: [
-    "SessionStore:collectSessionHistory",
-
     "SessionStore:restoreHistory",
     "SessionStore:restoreTabContent",
     "SessionStore:resetRestore",
@@ -128,12 +116,7 @@ let MessageListener = {
   },
 
   receiveMessage: function ({name, data}) {
-    let id = data ? data.id : 0;
     switch (name) {
-      case "SessionStore:collectSessionHistory":
-        let history = SessionHistory.collect(docShell);
-        sendAsyncMessage(name, {id: id, data: history});
-        break;
       case "SessionStore:restoreHistory":
         let reloadCallback = () => {
           
@@ -196,10 +179,6 @@ let SyncHandler = {
     sendSyncMessage("SessionStore:setupSyncHandler", {}, {handler: this});
   },
 
-  collectSessionHistory: function (includePrivateData) {
-    return SessionHistory.collect(docShell);
-  },
-
   
 
 
@@ -225,21 +204,51 @@ let SyncHandler = {
   }
 };
 
-let ProgressListener = {
-  init: function() {
-    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebProgress);
-    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
+
+
+
+
+
+
+
+
+
+
+let SessionHistoryListener = {
+  init: function () {
+    gFrameTree.addObserver(this);
+    addEventListener("hashchange", this, true);
+    Services.obs.addObserver(this, "browser:purge-session-history", true);
   },
-  onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
+
+  observe: function () {
     
-    sendAsyncMessage("SessionStore:loadStart");
+    
+    
+    
+    
+    setTimeout(() => this.collect(), 0);
   },
-  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {},
-  onProgressChange: function() {},
-  onStatusChange: function() {},
-  onSecurityChange: function() {},
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+
+  handleEvent: function () {
+    this.collect();
+  },
+
+  collect: function () {
+    if (docShell) {
+      MessageQueue.push("history", () => SessionHistory.collect(docShell));
+    }
+  },
+
+  onFrameTreeCollected: function () {
+    this.collect();
+  },
+
+  onFrameTreeReset: function () {
+    this.collect();
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
 };
 
@@ -370,9 +379,7 @@ let PageStyleListener = {
 
   onFrameTreeReset: function () {
     MessageQueue.push("pageStyle", () => null);
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
+  }
 };
 
 
@@ -456,9 +463,7 @@ let SessionStorageListener = {
 
   onFrameTreeReset: function () {
     this.collect();
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
+  }
 };
 
 
@@ -657,8 +662,8 @@ EventListener.init();
 MessageListener.init();
 FormDataListener.init();
 SyncHandler.init();
-ProgressListener.init();
 PageStyleListener.init();
+SessionHistoryListener.init();
 SessionStorageListener.init();
 ScrollPositionListener.init();
 DocShellCapabilitiesListener.init();

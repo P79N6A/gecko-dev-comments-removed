@@ -51,15 +51,6 @@ const WINDOW_HIDEABLE_FEATURES = [
 const MESSAGES = [
   
   
-  
-  "SessionStore:pageshow",
-
-  
-  
-  "SessionStore:loadStart",
-
-  
-  
   "SessionStore:setupSyncHandler",
 
   
@@ -96,11 +87,6 @@ const TAB_EVENTS = [
 ];
 
 
-const BROWSER_EVENTS = [
-  "SwapDocShells", "UserTypedValueChanged"
-];
-
-
 const MS_PER_DAY = 1000.0 * 60.0 * 60.0 * 24.0;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
@@ -121,14 +107,13 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
-  "resource:///modules/sessionstore/GlobalState.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
-  "resource:///modules/sessionstore/Messenger.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
-  "resource:///modules/sessionstore/PrivacyFilter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
   "resource:///modules/RecentWindow.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
+  "resource:///modules/sessionstore/GlobalState.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
+  "resource:///modules/sessionstore/PrivacyFilter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionSaver",
@@ -286,10 +271,6 @@ this.SessionStore = {
 
   getCurrentState: function (aUpdateAll) {
     return SessionStoreInternal.getCurrentState(aUpdateAll);
-  },
-
-  fillTabCachesAsynchronously: function () {
-    return SessionStoreInternal.fillTabCachesAsynchronously();
   },
 
   
@@ -609,12 +590,6 @@ let SessionStoreInternal = {
     var win = browser.ownerDocument.defaultView;
 
     switch (aMessage.name) {
-      case "SessionStore:pageshow":
-        this.onTabLoad(win, browser);
-        break;
-      case "SessionStore:loadStart":
-        TabStateCache.delete(browser);
-        break;
       case "SessionStore:setupSyncHandler":
         TabState.setSyncHandler(browser, aMessage.objects.handler);
         break;
@@ -624,7 +599,6 @@ let SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
       case "SessionStore:load":
-        TabStateCache.delete(browser);
         this.onTabLoad(win, browser);
         break;
       case "SessionStore:restoreHistoryComplete":
@@ -744,16 +718,6 @@ let SessionStoreInternal = {
         TabState.onBrowserContentsSwapped(browser, otherBrowser);
         TabStateCache.onBrowserContentsSwapped(browser, otherBrowser);
         break;
-      case "UserTypedValueChanged":
-        browser = aEvent.currentTarget;
-        if (browser.userTypedValue) {
-          TabStateCache.updateField(browser, "userTypedValue", browser.userTypedValue);
-          TabStateCache.updateField(browser, "userTypedClear", browser.userTypedClear);
-        } else {
-          TabStateCache.removeField(browser, "userTypedValue");
-          TabStateCache.removeField(browser, "userTypedClear");
-        }
-        break;
       case "TabOpen":
         this.onTabAdd(win, aEvent.originalTarget);
         break;
@@ -773,13 +737,7 @@ let SessionStoreInternal = {
         this.onTabHide(win, aEvent.originalTarget);
         break;
       case "TabPinned":
-        
-        TabStateCache.updateField(aEvent.originalTarget, "pinned", true);
-        this.saveStateDelayed(win);
-        break;
       case "TabUnpinned":
-        
-        TabStateCache.updateField(aEvent.originalTarget, "pinned", false);
         this.saveStateDelayed(win);
         break;
     }
@@ -1222,7 +1180,6 @@ let SessionStoreInternal = {
     let openWindows = {};
     this._forEachBrowserWindow(function(aWindow) {
       Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
-        TabStateCache.delete(aTab);
         delete aTab.linkedBrowser.__SS_data;
         if (aTab.linkedBrowser.__SS_restoreState)
           this._resetTabRestoringState(aTab);
@@ -1341,7 +1298,7 @@ let SessionStoreInternal = {
 
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
-    BROWSER_EVENTS.forEach(msg => browser.addEventListener(msg, this, true));
+    browser.addEventListener("SwapDocShells", this, true);
 
     let mm = browser.messageManager;
     MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
@@ -1367,7 +1324,7 @@ let SessionStoreInternal = {
 
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
-    BROWSER_EVENTS.forEach(msg => browser.removeEventListener(msg, this, true));
+    browser.removeEventListener("SwapDocShells", this, true);
 
     let mm = browser.messageManager;
     MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
@@ -1412,7 +1369,7 @@ let SessionStoreInternal = {
     TabState.flush(aTab.linkedBrowser);
 
     
-    let tabState = TabState.collectSync(aTab);
+    let tabState = TabState.collect(aTab);
 
     
     let isPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(aWindow);
@@ -1450,14 +1407,10 @@ let SessionStoreInternal = {
   onTabLoad: function ssi_onTabLoad(aWindow, aBrowser) {
     
     
-    
-    
     if (aBrowser.__SS_restoreState &&
         aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
       return;
     }
-
-    TabStateCache.delete(aBrowser);
 
     delete aBrowser.__SS_data;
     this.saveStateDelayed(aWindow);
@@ -1500,9 +1453,6 @@ let SessionStoreInternal = {
     }
 
     
-    TabStateCache.updateField(aTab, "hidden", false);
-
-    
     
     this.saveStateDelayed(aWindow);
   },
@@ -1515,9 +1465,6 @@ let SessionStoreInternal = {
     }
 
     
-    TabStateCache.updateField(aTab, "hidden", true);
-
-    
     
     this.saveStateDelayed(aWindow);
   },
@@ -1526,10 +1473,8 @@ let SessionStoreInternal = {
     
     
     Services.obs.removeObserver(this, "gather-telemetry");
-    this.fillTabCachesAsynchronously().then(function() {
-      let stateString = SessionStore.getBrowserState();
-      return SessionFile.gatherTelemetry(stateString);
-    });
+    let stateString = SessionStore.getBrowserState();
+    return SessionFile.gatherTelemetry(stateString);
   },
 
   
@@ -1623,7 +1568,7 @@ let SessionStoreInternal = {
       throw Components.Exception("Default view is not tracked", Cr.NS_ERROR_INVALID_ARG);
     }
 
-    let tabState = TabState.collectSync(aTab);
+    let tabState = TabState.collect(aTab);
 
     return this._toJSONString(tabState);
   },
@@ -1656,7 +1601,6 @@ let SessionStoreInternal = {
       this._resetTabRestoringState(aTab);
     }
 
-    TabStateCache.delete(aTab);
     this._setWindowStateBusy(window);
     this.restoreTabs(window, [aTab], [tabState], 0);
   },
@@ -1861,7 +1805,6 @@ let SessionStoreInternal = {
     }
 
     saveTo[aKey] = aStringValue;
-    TabStateCache.updateField(aTab, "extData", saveTo);
     this.saveStateDelayed(aTab.ownerDocument.defaultView);
   },
 
@@ -1879,15 +1822,6 @@ let SessionStoreInternal = {
 
     if (deleteFrom && aKey in deleteFrom) {
       delete deleteFrom[aKey];
-
-      
-      
-      if (Object.keys(deleteFrom).length) {
-        TabStateCache.updateField(aTab, "extData", deleteFrom);
-      } else {
-        TabStateCache.removeField(aTab, "extData");
-      }
-
       this.saveStateDelayed(aTab.ownerDocument.defaultView);
     }
   },
@@ -1908,7 +1842,6 @@ let SessionStoreInternal = {
 
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
     if (TabAttributes.persist(aName)) {
-      TabStateCache.clear();
       this.saveStateDelayed();
     }
   },
@@ -2093,68 +2026,6 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-
-
-
-
-  fillTabCachesAsynchronously: function () {
-    let countdown = 0;
-    let deferred = Promise.defer();
-    let activeWindow = this._getMostRecentBrowserWindow();
-
-    
-    
-    function done() {
-      if (--countdown === 0) {
-        deferred.resolve();
-      }
-    }
-
-    
-    
-    function fail(reason) {
-      debug("Failed collecting tab data asynchronously: " + reason);
-      done();
-    }
-
-    this._forEachBrowserWindow(win => {
-      if (!this._isWindowLoaded(win)) {
-        
-        return;
-      }
-
-      if (!DirtyWindows.has(win) && win != activeWindow) {
-        
-        return;
-      }
-
-      for (let tab of win.gBrowser.tabs) {
-        if (!tab.closing && !TabStateCache.has(tab)) {
-          countdown++;
-          TabState.collect(tab).then(done, fail);
-        }
-      }
-    });
-
-    
-    
-    if (countdown == 0) {
-      return Promise.resolve();
-    }
-
-    return deferred.promise;
-  },
-
-  
-
-  
-
-
-
-
   _updateWindowFeatures: function ssi_updateWindowFeatures(aWindow) {
     var winData = this._windows[aWindow.__SSi];
 
@@ -2323,7 +2194,7 @@ let SessionStoreInternal = {
 
     
     for (let tab of tabs) {
-      tabsData.push(TabState.collectSync(tab));
+      tabsData.push(TabState.collect(tab));
     }
     winData.selected = tabbrowser.mTabBox.selectedIndex + 1;
 
@@ -2703,10 +2574,6 @@ let SessionStoreInternal = {
         Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
       }
 
-      
-      
-      TabState.dropPendingCollections(browser);
-
       if (!tabData.entries) {
         tabData.entries = [];
       }
@@ -2745,7 +2612,8 @@ let SessionStoreInternal = {
       tab.setAttribute("pending", "true");
 
       
-      TabStateCache.updatePersistent(browser, {
+      TabStateCache.update(browser, {
+        history: {entries: tabData.entries, index: tabData.index},
         scroll: tabData.scroll || null,
         storage: tabData.storage || null,
         formdata: tabData.formdata || null,

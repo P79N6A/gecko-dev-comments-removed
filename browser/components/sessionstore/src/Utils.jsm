@@ -64,16 +64,5 @@ this.Utils = Object.freeze({
       map.set(otherKey, value);
       map.delete(key);
     }
-  },
-
-  
-  copy: function (from) {
-    let to = {};
-
-    for (let key of Object.keys(from)) {
-      to[key] = from[key];
-    }
-
-    return to;
   }
 });

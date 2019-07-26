@@ -235,21 +235,7 @@ let SessionSaverInternal = {
     this._timeoutID = null;
 
     
-    if (!Services.prefs.getBoolPref("browser.sessionstore.async")) {
-      this._saveState();
-      return;
-    }
-
-    
-    
-    this.updateLastSaveTime();
-
-    
-    
-    
-    
-    
-    SessionStore.fillTabCachesAsynchronously().then(() => this._saveState());
+    this._saveState();
   },
 
   
