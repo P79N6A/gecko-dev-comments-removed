@@ -244,8 +244,6 @@ class IonFrameIterator
 class IonJSFrameLayout;
 class IonBailoutIterator;
 
-class RResumePoint;
-
 
 
 class SnapshotIterator
@@ -293,19 +291,18 @@ class SnapshotIterator
         return UndefinedValue();
     }
 
-    const RResumePoint *resumePoint() const;
-    const RInstruction *instruction() const {
-        return recover_.instruction();
+    inline uint32_t allocations() const {
+        return recover_.allocations();
     }
-
-    uint32_t numAllocations() const;
     inline bool moreAllocations() const {
-        return snapshot_.numAllocationsRead() < numAllocations();
+        return recover_.moreAllocations(snapshot_);
     }
 
   public:
     
-    uint32_t pcOffset() const;
+    inline uint32_t pcOffset() const {
+        return recover_.pcOffset();
+    }
     inline bool resumeAfter() const {
         
         
@@ -321,9 +318,8 @@ class SnapshotIterator
   public:
     
     inline void nextFrame() {
-        JS_ASSERT(snapshot_.numAllocationsRead() == numAllocations());
-        recover_.nextFrame();
-        snapshot_.resetNumAllocationsRead();
+        
+        recover_.nextFrame(snapshot_);
     }
     inline bool moreFrames() const {
         return recover_.moreFrames();
@@ -514,8 +510,8 @@ class InlineFrameIteratorMaybeGC
                 
                 
                 
-                JS_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
-                unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
+                JS_ASSERT(parent_s.allocations() >= nactual + 3 + argsObjAdj);
+                unsigned skip = parent_s.allocations() - nactual - 3 - argsObjAdj;
                 for (unsigned j = 0; j < skip; j++)
                     parent_s.skip();
 
