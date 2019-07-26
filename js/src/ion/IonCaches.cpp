@@ -257,7 +257,8 @@ IonCacheGetProperty::attachNative(JSContext *cx, JSObject *obj, JSObject *holder
     PatchJump(exitJump, cacheLabel());
     updateLastJump(exitJump);
 
-    IonSpew(IonSpew_InlineCaches, "Generated native GETPROP stub at %p", code->raw());
+    IonSpew(IonSpew_InlineCaches, "Generated native GETPROP stub at %p %s", code->raw(),
+            idempotent() ? "(idempotent)" : "(not idempotent)");
 
     return true;
 }
@@ -288,6 +289,67 @@ IsCacheableGetProp(JSObject *obj, JSObject *holder, const Shape *shape)
             shape->hasDefaultGetter());
 }
 
+static bool
+IsIdempotentProtoChain(JSObject *obj)
+{
+    
+    
+    while (true) {
+        if (!obj->isNative())
+            return false;
+
+        if (obj->getClass()->resolve != JS_ResolveStub)
+            return false;
+
+        if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric || obj->getOps()->lookupElement)
+            return false;
+
+        JSObject *proto = obj->getProto();
+        if (!proto)
+            return true;
+        obj = proto;
+    }
+
+    JS_NOT_REACHED("Should not get here");
+    return false;
+}
+
+static bool
+TryAttachNativeStub(JSContext *cx, IonCacheGetProperty &cache, JSObject *obj,
+                    HandlePropertyName name, bool *isCacheableNative)
+{
+    JS_ASSERT(!*isCacheableNative);
+
+    if (!obj->isNative())
+        return true;
+
+    
+    
+    
+    if (cache.idempotent() && !IsIdempotentProtoChain(obj))
+        return true;
+
+    JSObject *holder;
+    JSProperty *prop;
+    if (!obj->lookupProperty(cx, name, &holder, &prop))
+        return false;
+
+    const Shape *shape = (const Shape *)prop;
+    if (!IsCacheableGetProp(obj, holder, shape))
+        return true;
+
+    *isCacheableNative = true;
+
+    if (cache.stubCount() < MAX_STUBS) {
+        cache.incrementStubCount();
+
+        if (!cache.attachNative(cx, obj, holder, shape))
+            return false;
+    }
+
+    return true;
+}
+
 bool
 js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Value *vp)
 {
@@ -305,21 +367,29 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Va
     AutoDetectInvalidation adi(cx, vp, topScript);
 
     
+    if (cache.idempotent())
+        adi.disable();
+
     
     
-    if (cache.stubCount() < MAX_STUBS && obj->isNative()) {
-        cache.incrementStubCount();
+    
+    bool isCacheableNative = false;
+    if (!TryAttachNativeStub(cx, cache, obj, name, &isCacheableNative))
+        return false;
 
-        JSObject *holder;
-        JSProperty *prop;
-        if (!obj->lookupProperty(cx, name, &holder, &prop))
-            return false;
+    if (cache.idempotent() && !isCacheableNative) {
+        
+        
+        
+        
+        
+        
+        IonSpew(IonSpew_InlineCaches, "Invalidating from idempotent cache %s:%d",
+                topScript->filename, topScript->lineno);
 
-        const Shape *shape = (const Shape *)prop;
-        if (IsCacheableGetProp(obj, holder, shape)) {
-            if (!cache.attachNative(cx, obj, holder, shape))
-                return false;
-        }
+        topScript->invalidatedIdempotentCache = true;
+
+        return Invalidate(cx, topScript);
     }
 
     RootedId id(cx, NameToId(name));
@@ -331,16 +401,21 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Va
             return false;
     }
 
+    if (!cache.idempotent()) {
+        
+        
+
 #if JS_HAS_NO_SUCH_METHOD
-    
-    if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp->isPrimitive())) {
-        if (!OnUnknownMethod(cx, obj, IdToValue(id), vp))
-            return false;
-    }
+        
+        if (JSOp(*pc) == JSOP_CALLPROP && JS_UNLIKELY(vp->isPrimitive())) {
+            if (!OnUnknownMethod(cx, obj, IdToValue(id), vp))
+                return false;
+        }
 #endif
 
-    
-    types::TypeScript::Monitor(cx, script, pc, *vp);
+        
+        types::TypeScript::Monitor(cx, script, pc, *vp);
+    }
 
     return true;
 }

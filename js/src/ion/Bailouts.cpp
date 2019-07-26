@@ -501,11 +501,8 @@ ion::RecompileForInlining()
             script->lineno);
 
     
-    Vector<types::RecompileInfo> scripts(cx);
-    if (!scripts.append(types::RecompileInfo(script)))
+    if (!Invalidate(cx, script,  false))
         return BAILOUT_RETURN_FATAL_ERROR;
-
-    Invalidate(cx->runtime->defaultFreeOp(), scripts,  false);
 
     
     JS_ASSERT(script->getUseCount() >= js_IonOptions.usesBeforeInlining);
