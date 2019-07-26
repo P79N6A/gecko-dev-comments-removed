@@ -252,6 +252,14 @@ class MacroAssemblerX86Shared : public Assembler
     void zeroDouble(FloatRegister reg) {
         xorpd(reg, reg);
     }
+    void negateDouble(FloatRegister reg) {
+        
+        pcmpeqw(ScratchFloatReg, ScratchFloatReg);
+        psllq(Imm32(63), ScratchFloatReg);
+
+        
+        xorpd(ScratchFloatReg, reg); 
+    }
     void addDouble(FloatRegister src, FloatRegister dest) {
         addsd(src, dest);
     }
