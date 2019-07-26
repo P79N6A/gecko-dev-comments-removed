@@ -131,7 +131,23 @@ nsRangeFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                const nsRect&           aDirtyRect,
                                const nsDisplayListSet& aLists)
 {
-  BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+  if (IsThemed()) {
+    DisplayBorderBackgroundOutline(aBuilder, aLists);
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* thumb = mThumbDiv->GetPrimaryFrame();
+    if (thumb) {
+      nsDisplayListSet set(aLists, aLists.Content());
+      BuildDisplayListForChild(aBuilder, thumb, aDirtyRect, set, DISPLAY_CHILD_INLINE);
+    }
+  } else {
+    BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
+  }
 }
 
 NS_IMETHODIMP

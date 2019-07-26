@@ -72,7 +72,17 @@
 #define TKP_TRACK          1
 #define TKP_TRACKVERT      2
 #define TKP_THUMB          3
+#define TKP_THUMBBOTTOM    4
+#define TKP_THUMBTOP       5
 #define TKP_THUMBVERT      6
+#define TKP_THUMBLEFT      7
+#define TKP_THUMBRIGHT     8
+
+
+#define TRS_NORMAL         1
+
+
+#define TRVS_NORMAL        1
 
 
 #define SPNP_UP            1
