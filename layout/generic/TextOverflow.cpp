@@ -677,7 +677,7 @@ TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
   if ((style->mTextOverflow.mLeft.mType == NS_STYLE_TEXT_OVERFLOW_CLIP &&
        style->mTextOverflow.mRight.mType == NS_STYLE_TEXT_OVERFLOW_CLIP) ||
       IsHorizontalOverflowVisible(aBlockFrame) ||
-      aBuilder->IsForEventDelivery()) {
+      aBuilder->IsForEventDelivery() || aBuilder->IsForImageVisibility()) {
     return false;
   }
 
