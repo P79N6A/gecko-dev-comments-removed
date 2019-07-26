@@ -1761,6 +1761,13 @@ RasterImage::DoImageDataComplete()
 
     
     
+    if (!StoringSourceData() && mDecoder) {
+      nsresult rv = ShutdownDecoder(eShutdownIntent_Done);
+      CONTAINER_ENSURE_SUCCESS(rv);
+    }
+
+    
+    
     if (mDecoder) {
       DecodePool::Singleton()->RequestDecode(this);
     }
@@ -2596,6 +2603,7 @@ nsresult
 RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  mDecodingMutex.AssertCurrentThreadOwns();
 
   
   NS_ABORT_IF_FALSE((aIntent >= 0) && (aIntent < eShutdownIntent_AllCount),
