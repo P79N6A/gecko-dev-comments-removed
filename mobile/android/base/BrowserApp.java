@@ -1274,7 +1274,7 @@ abstract public class BrowserApp extends GeckoApp
 
         
         
-        aMenu.findItem(R.id.quit).setVisible(Build.VERSION.SDK_INT < 14 || !isTouchDevice());
+        aMenu.findItem(R.id.quit).setVisible(Build.VERSION.SDK_INT < 14);
 
         if (tab == null || tab.getURL() == null) {
             bookmark.setEnabled(false);
