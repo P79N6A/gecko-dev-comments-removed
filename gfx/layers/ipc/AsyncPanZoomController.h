@@ -401,7 +401,7 @@ protected:
 
 
 
-  void StartPanning(const MultiTouchInput& aStartPoint);
+  nsEventStatus StartPanning(const MultiTouchInput& aStartPoint);
 
   
 
@@ -488,6 +488,11 @@ private:
     PANNING,           
     PANNING_LOCKED_X,  
     PANNING_LOCKED_Y,  
+
+    CROSS_SLIDING_X,   
+
+
+    CROSS_SLIDING_Y,   
 
     PINCHING,       
     ANIMATING_ZOOM, 

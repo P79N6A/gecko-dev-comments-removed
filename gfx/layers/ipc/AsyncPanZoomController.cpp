@@ -177,6 +177,11 @@ static bool gAsyncZoomDisabled = false;
 
 
 
+static bool gCrossSlideEnabled = false;
+
+
+
+
 
 
 static bool IsCloseToHorizontal(float aAngle, float aThreshold)
@@ -229,6 +234,7 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddIntVarCache(&gAsyncScrollThrottleTime, "apzc.asyncscroll.throttle", gAsyncScrollThrottleTime);
   Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apzc.asyncscroll.timeout", gAsyncScrollTimeout);
   Preferences::AddBoolVarCache(&gAsyncZoomDisabled, "apzc.asynczoom.disabled", gAsyncZoomDisabled);
+  Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apzc.cross_slide.enabled", gCrossSlideEnabled);
   Preferences::AddIntVarCache(&gAxisLockMode, "apzc.axis_lock_mode", gAxisLockMode);
 
   gComputedTimingFunction = new ComputedTimingFunction();
@@ -459,6 +465,8 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
     case PANNING:
     case PANNING_LOCKED_X:
     case PANNING_LOCKED_Y:
+    case CROSS_SLIDING_X:
+    case CROSS_SLIDING_Y:
     case PINCHING:
     case WAITING_LISTENERS:
       NS_WARNING("Received impossible touch in OnTouchStart");
@@ -484,6 +492,12 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
       
       return nsEventStatus_eIgnore;
 
+    case CROSS_SLIDING_X:
+    case CROSS_SLIDING_Y:
+      
+      
+      return nsEventStatus_eIgnore;
+
     case TOUCHING: {
       float panThreshold = gTouchStartTolerance * APZCTreeManager::GetDPI();
       UpdateWithTouchAtDevicePoint(aEvent);
@@ -492,9 +506,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
         return nsEventStatus_eIgnore;
       }
 
-      StartPanning(aEvent);
-
-      return nsEventStatus_eConsumeNoDefault;
+      return StartPanning(aEvent);
     }
 
     case PANNING:
@@ -539,6 +551,8 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     return nsEventStatus_eIgnore;
 
   case TOUCHING:
+  case CROSS_SLIDING_X:
+  case CROSS_SLIDING_Y:
     SetState(NOTHING);
     return nsEventStatus_eIgnore;
 
@@ -753,7 +767,7 @@ const gfx::Point AsyncPanZoomController::GetAccelerationVector() {
   return gfx::Point(mX.GetAccelerationFactor(), mY.GetAccelerationFactor());
 }
 
-void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
+nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
   ReentrantMonitorAutoEnter lock(mMonitor);
 
   ScreenIntPoint point = GetFirstTouchScreenPoint(aEvent);
@@ -768,23 +782,37 @@ void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
 
   if (GetAxisLockMode() == FREE) {
     SetState(PANNING);
-    return;
+    return nsEventStatus_eConsumeNoDefault;
   }
 
   double angle = atan2(dy, dx); 
   angle = fabs(angle); 
 
-  if (!mX.Scrollable() || !mY.Scrollable()) {
+  if (!gCrossSlideEnabled && (!mX.Scrollable() || !mY.Scrollable())) {
     SetState(PANNING);
   } else if (IsCloseToHorizontal(angle, AXIS_LOCK_ANGLE)) {
     mY.SetScrollingDisabled(true);
-    SetState(PANNING_LOCKED_X);
+    if (mX.Scrollable()) {
+      SetState(PANNING_LOCKED_X);
+    } else {
+      SetState(CROSS_SLIDING_X);
+      mX.SetScrollingDisabled(true);
+    }
   } else if (IsCloseToVertical(angle, AXIS_LOCK_ANGLE)) {
     mX.SetScrollingDisabled(true);
-    SetState(PANNING_LOCKED_Y);
+    if (mY.Scrollable()) {
+      SetState(PANNING_LOCKED_Y);
+    } else {
+      SetState(CROSS_SLIDING_Y);
+      mY.SetScrollingDisabled(true);
+    }
   } else {
     SetState(PANNING);
   }
+
+  
+  return IsPanningState(mState) ? nsEventStatus_eConsumeNoDefault
+                                : nsEventStatus_eIgnore;
 }
 
 void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput& aEvent) {
@@ -861,12 +889,12 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
     float breakThreshold = AXIS_BREAKOUT_THRESHOLD * APZCTreeManager::GetDPI();
 
     if (fabs(dx) > breakThreshold || fabs(dy) > breakThreshold) {
-      if (mState == PANNING_LOCKED_X) {
+      if (mState == PANNING_LOCKED_X || mState == CROSS_SLIDING_X) {
         if (!IsCloseToHorizontal(angle, AXIS_BREAKOUT_ANGLE)) {
           mY.SetScrollingDisabled(false);
           SetState(PANNING);
         }
-      } else if (mState == PANNING_LOCKED_Y) {
+      } else if (mState == PANNING_LOCKED_Y || mState == CROSS_SLIDING_Y) {
         if (!IsCloseToVertical(angle, AXIS_BREAKOUT_ANGLE)) {
           mX.SetScrollingDisabled(false);
           SetState(PANNING);
