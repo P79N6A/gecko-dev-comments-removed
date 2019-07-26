@@ -481,6 +481,25 @@ protected:
   
 
 
+
+  bool MaybeHasFloats() const {
+    if (!mFloats.IsEmpty()) {
+      return true;
+    }
+    
+    
+    nsFrameList* list = GetPushedFloats();
+    if (list && !list->IsEmpty()) {
+      return true;
+    }
+    
+    
+    return GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS;
+  }
+
+  
+
+
   void DrainPushedFloats(nsBlockReflowState& aState);
 
   
@@ -505,7 +524,14 @@ protected:
   void RemoveFloat(nsIFrame* aFloat);
 
   void CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
-                     bool aCollectFromSiblings);
+                     bool aCollectFromSiblings) {
+    if (MaybeHasFloats()) {
+      DoCollectFloats(aFrame, aList, aCollectFromSiblings);
+    }
+  }
+  void DoCollectFloats(nsIFrame* aFrame, nsFrameList& aList,
+                       bool aCollectFromSiblings);
+
   
   static void DoRemoveOutOfFlowFrame(nsIFrame* aFrame);
 

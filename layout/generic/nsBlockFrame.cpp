@@ -6895,8 +6895,8 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
 
 
 void
-nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
-                            bool aCollectSiblings)
+nsBlockFrame::DoCollectFloats(nsIFrame* aFrame, nsFrameList& aList,
+                              bool aCollectSiblings)
 {
   while (aFrame) {
     
@@ -6934,8 +6934,8 @@ nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
         
       }
 
-      CollectFloats(aFrame->GetFirstPrincipalChild(), aList, true);
-      CollectFloats(aFrame->GetFirstChild(kOverflowList), aList, true);
+      DoCollectFloats(aFrame->GetFirstPrincipalChild(), aList, true);
+      DoCollectFloats(aFrame->GetFirstChild(kOverflowList), aList, true);
     }
     if (!aCollectSiblings)
       break;
