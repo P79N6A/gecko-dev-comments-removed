@@ -11,6 +11,7 @@ const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {})
 const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
+const { ThreadActor } = require("devtools/server/actors/script");
 
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
@@ -98,7 +99,7 @@ const NODE_PROPERTIES = {
     "fftSize": {},
     "minDecibels": {},
     "maxDecibels": {},
-    "smoothingTimeConstraint": {},
+    "smoothingTimeConstant": {},
     "frequencyBinCount": { "readonly": true },
   },
   "AudioDestinationNode": {},
@@ -128,7 +129,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
     this.node = unwrap(node);
     try {
-      this.type = this.node.toString().match(/\[object (.*)\]$/)[1];
+      this.type = getConstructorName(this.node);
     } catch (e) {
       this.type = "";
     }
@@ -189,10 +190,22 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
   getParam: method(function (param) {
     
-    if (!this.node[param])
-      return undefined;
+    
     let value = isAudioParam(this.node, param) ? this.node[param].value : this.node[param];
-    return value;
+
+    
+    
+    
+    
+    
+    let grip;
+    try {
+      grip = ThreadActor.prototype.createValueGrip(value);
+    }
+    catch (e) {
+      grip = createObjectGrip(value);
+    }
+    return grip;
   }, {
     request: {
       param: Arg(0, "string")
@@ -499,7 +512,7 @@ WebAudioFront.NODE_ROUTING_METHODS = new Set(NODE_ROUTING_METHODS);
 
 
 function isAudioParam (node, prop) {
-  return /AudioParam/.test(node[prop].toString());
+  return !!(node[prop] && /AudioParam/.test(node[prop].toString()));
 }
 
 
@@ -516,6 +529,31 @@ function constructError (err) {
   };
 }
 
+
+
+
+
+
+
+function getConstructorName (obj) {
+  return obj.toString().match(/\[object (.*)\]$/)[1];
+}
+
+
+
+
+
+
+function createObjectGrip (value) {
+  return {
+    type: "object",
+    preview: {
+      kind: "ObjectWithText",
+      text: ""
+    },
+    class: getConstructorName(value)
+  };
+}
 function unwrap (obj) {
   return XPCNativeWrapper.unwrap(obj);
 }
