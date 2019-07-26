@@ -28,6 +28,19 @@ class RestyleManager;
 class OverflowChangedTracker
 {
 public:
+  enum ChangeKind {
+    
+
+
+
+    CHILDREN_CHANGED,
+    
+
+
+
+
+    TRANSFORM_CHANGED
+  };
 
   OverflowChangedTracker() :
     mSubtreeRoot(nullptr)
@@ -49,14 +62,19 @@ public:
 
 
 
-  void AddFrame(nsIFrame* aFrame) {
+  void AddFrame(nsIFrame* aFrame, ChangeKind aChangeKind) {
     uint32_t depth = aFrame->GetDepthInFrameTree();
-    if (mEntryList.empty() ||
-        !mEntryList.find(Entry(aFrame, depth))) {
+    Entry *entry = nullptr;
+    if (!mEntryList.empty()) {
+      entry = mEntryList.find(Entry(aFrame, depth));
+    }
+    if (entry == nullptr) {
+      
+      mEntryList.insert(new Entry(aFrame, depth, aChangeKind));
+    } else if (aChangeKind == CHILDREN_CHANGED) {
       
       
-      
-      mEntryList.insert(new Entry(aFrame, depth, STYLE_CHANGED));
+      entry->mChangeKind = CHILDREN_CHANGED;
     }
   }
 
@@ -94,38 +112,49 @@ public:
       Entry *entry = mEntryList.removeMin();
       nsIFrame *frame = entry->mFrame;
 
-      bool overflowChanged;
-      if (entry->mFlags & CHILDREN_CHANGED) {
+      bool overflowChanged = false;
+      if (entry->mChangeKind == CHILDREN_CHANGED) {
         
         overflowChanged = frame->UpdateOverflow();
       } else {
-        nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
-          (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
-        if (pre) {
+        
+        
+
+#ifdef DEBUG
+        bool hasInitialOverflowPropertyApplied = false;
+        frame->Properties().Get(nsIFrame::DebugInitialOverflowPropertyApplied(),
+                                 &hasInitialOverflowPropertyApplied);
+        NS_ASSERTION(hasInitialOverflowPropertyApplied,
+                     "InitialOverflowProperty must be set first.");
+#endif
+
+        nsOverflowAreas* overflow = 
+          static_cast<nsOverflowAreas*>(frame->Properties().Get(nsIFrame::InitialOverflowProperty()));
+        if (overflow) {
           
           
-          
-          
-          
-          nsOverflowAreas overflowAreas = *pre;
-          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
-          
-          overflowChanged = true;
+          nsOverflowAreas overflowCopy = *overflow;
+          frame->FinishAndStoreOverflow(overflowCopy, frame->GetSize());
         } else {
-          
-          overflowChanged = frame->UpdateOverflow();
+          nsRect bounds(nsPoint(0, 0), frame->GetSize());
+          nsOverflowAreas boundsOverflow;
+          boundsOverflow.SetAllTo(bounds);
+          frame->FinishAndStoreOverflow(boundsOverflow, bounds.Size());
         }
+
+        
+        overflowChanged = true;
       }
 
       
       
       
-      if (overflowChanged || (entry->mFlags & STYLE_CHANGED)) {
+      if (overflowChanged) {
         nsIFrame *parent = frame->GetParent();
         if (parent && parent != mSubtreeRoot) {
           Entry* parentEntry = mEntryList.find(Entry(parent, entry->mDepth - 1));
           if (parentEntry) {
-            parentEntry->mFlags |= CHILDREN_CHANGED;
+            parentEntry->mChangeKind = CHILDREN_CHANGED;
           } else {
             mEntryList.insert(new Entry(parent, entry->mDepth - 1, CHILDREN_CHANGED));
           }
@@ -136,26 +165,12 @@ public:
   }
   
 private:
-  enum {
-    
-
-
-
-    CHILDREN_CHANGED = 0x01,
-    
-
-
-
-
-
-    STYLE_CHANGED = 0x02
-  };
   struct Entry : SplayTreeNode<Entry>
   {
-    Entry(nsIFrame* aFrame, uint32_t aDepth, uint8_t aFlags = 0)
+    Entry(nsIFrame* aFrame, uint32_t aDepth, ChangeKind aChangeKind = CHILDREN_CHANGED)
       : mFrame(aFrame)
       , mDepth(aDepth)
-      , mFlags(aFlags)
+      , mChangeKind(aChangeKind)
     {}
 
     bool operator==(const Entry& aOther) const
@@ -189,7 +204,7 @@ private:
     nsIFrame* mFrame;
     
     uint32_t mDepth;
-    uint8_t mFlags;
+    ChangeKind mChangeKind;
   };
 
   
@@ -390,4 +405,4 @@ inline bool RestyleTracker::AddPendingRestyle(Element* aElement,
 
 } 
 
-#endif
+#endif 
