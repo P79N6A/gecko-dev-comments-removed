@@ -191,6 +191,10 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
       argv[1] = argv[0];
       argv++;
       argc--;
+    } else if (IsArg(argv[1], "BackgroundSessionClosed")) {
+      
+      
+      mainFlags = XRE_MAIN_FLAG_USE_METRO;
     } else {
       
       
