@@ -205,6 +205,9 @@ function removeItemFromArray(array, item) {
 }
 
 
+function stringOrNull(val) val ? String(val) : val;
+
+
 let baseItemRules = {
   parentMenu: {
     is: ["object", "undefined"],
@@ -254,13 +257,13 @@ let baseItemRules = {
 
 let labelledItemRules =  mix(baseItemRules, {
   label: {
-    map: String,
+    map: stringOrNull,
     is: ["string"],
     ok: function (v) !!v,
     msg: "The item must have a non-empty string label."
   },
   image: {
-    map: String,
+    map: stringOrNull,
     is: ["string", "undefined", "null"]
   }
 });
@@ -268,8 +271,8 @@ let labelledItemRules =  mix(baseItemRules, {
 
 let itemRules = mix(labelledItemRules, {
   data: {
-    map: String,
-    is: ["string", "undefined"]
+    map: stringOrNull,
+    is: ["string", "undefined", "null"]
   }
 });
 

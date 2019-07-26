@@ -58,11 +58,22 @@ class ManifestEntry:
         self.datamap = None
 
     def get_path(self):
-        path = "%s/%s/%s" % \
-               (self.packageName, self.sectionName, self.moduleName)
-        if not path.endswith(".js"):
-          path += ".js"
-        return path
+        name = self.moduleName
+
+        if name.endswith(".js"):
+            name = name[:-3]
+        items = []
+        
+        
+        
+        if self.packageName != "addon-sdk":
+            items.append(self.packageName)
+        
+        if self.sectionName == "tests":
+            items.append(self.sectionName)
+        items.append(name)
+
+        return "/".join(items)
 
     def get_entry_for_manifest(self):
         entry = { "packageName": self.packageName,
@@ -75,13 +86,13 @@ class ManifestEntry:
         for req in self.requirements:
             if isinstance(self.requirements[req], ManifestEntry):
                 them = self.requirements[req] 
-                them_path = them.get_path()
-                entry["requirements"][req] = {"path": them_path}
+                entry["requirements"][req] = them.get_path()
             else:
                 
                 
                 entry["requirements"][req] = self.requirements[req]
-            assert isinstance(entry["requirements"][req], dict)
+            assert isinstance(entry["requirements"][req], unicode) or \
+                   isinstance(entry["requirements"][req], str)
         return entry
 
     def add_js(self, js_filename):
@@ -226,7 +237,8 @@ class ManifestBuilder:
                 
                 
                 
-                self.test_modules.append(testname)
+                
+                self.test_modules.append(tme.get_path())
 
         
         for em in self.extra_modules:
@@ -378,7 +390,7 @@ class ManifestBuilder:
             
             
             if reqname == "chrome" or reqname.startswith("@"):
-                me.add_requirement(reqname, {"path": reqname})
+                me.add_requirement(reqname, reqname)
             else:
                 
                 

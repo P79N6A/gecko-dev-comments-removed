@@ -32,6 +32,9 @@ exports.testSelf = function(test) {
   
   test.assertEqual(self.loadReason, "startup",
                    "self.loadReason is always `startup` on test runs");
+
+  test.assertEqual(self.isPrivateBrowsingSupported, false,
+                   'usePrivateBrowsing property is false by default');
 };
 
 exports.testSelfID = function(test) {

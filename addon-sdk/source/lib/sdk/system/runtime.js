@@ -16,4 +16,13 @@ exports.inSafeMode = runtime.inSafeMode;
 exports.OS = runtime.OS;
 exports.processType = runtime.processType;
 exports.widgetToolkit = runtime.widgetToolkit;
-exports.XPCOMABI = runtime.XPCOMABI;
+
+
+
+
+try {
+  exports.XPCOMABI = runtime.XPCOMABI;
+}
+catch (error) {
+  exports.XPCOMABI = null;
+}

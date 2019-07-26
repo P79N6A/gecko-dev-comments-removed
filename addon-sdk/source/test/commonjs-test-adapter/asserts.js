@@ -4,7 +4,7 @@
 
 "use strict";
 
-const AssertBase = require("test/assert").Assert;
+const AssertBase = require("sdk/test/assert").Assert;
 
 
 

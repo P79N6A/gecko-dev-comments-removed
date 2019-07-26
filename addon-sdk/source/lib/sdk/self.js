@@ -2,16 +2,14 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
   "stability": "stable"
 };
 
-
 const { CC } = require('chrome');
-const { id, name, prefixURI, rootURI,
+const { id, name, prefixURI, rootURI, metadata,
         version, loadReason } = require('@loader/options');
 
 const { readURISync } = require('./net/url');
@@ -39,3 +37,5 @@ exports.data = Object.freeze({
     return readURISync(uri(path));
   }
 });
+exports.isPrivateBrowsingSupported = ((metadata.permissions || {})['private-browsing'] === true) ?
+                                     true : false;
