@@ -16,6 +16,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
 #include "mozilla/TouchEvents.h"
+#include "mozilla/Preferences.h"        
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsThreadUtils.h"              
@@ -30,12 +31,16 @@ namespace layers {
 
 float APZCTreeManager::sDPI = 160.0;
 
+
+static bool gPrintApzcTree = false;
+
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock"),
       mTouchCount(0)
 {
   MOZ_ASSERT(NS_IsMainThread());
   AsyncPanZoomController::InitializeGlobalState();
+  Preferences::AddBoolVarCache(&gPrintApzcTree, "apz.printtree", gPrintApzcTree);
 }
 
 APZCTreeManager::~APZCTreeManager()
