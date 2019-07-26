@@ -481,25 +481,36 @@ register_zone(void)
 
 
 
-
-
-  malloc_default_purgeable_zone();
+  malloc_zone_t *purgeable_zone = malloc_default_purgeable_zone();
 
   
   malloc_zone_register(&zone);
 
-  
-
-
-
-
-
-
-
   do {
     malloc_zone_t *default_zone = malloc_default_zone();
+    
+
+
+
+
+
+
+
     malloc_zone_unregister(default_zone);
     malloc_zone_register(default_zone);
+    
+
+
+
+
+
+
+
+
+
+
+    malloc_zone_unregister(purgeable_zone);
+    malloc_zone_register(purgeable_zone);
   } while (malloc_default_zone() != &zone);
 }
 #endif

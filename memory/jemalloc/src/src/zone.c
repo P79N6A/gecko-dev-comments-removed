@@ -176,6 +176,7 @@ register_zone(void)
 
 
 	malloc_zone_t *default_zone = malloc_default_zone();
+	malloc_zone_t *purgeable_zone = NULL;
 	if (!default_zone->zone_name ||
 	    strcmp(default_zone->zone_name, "DefaultMallocZone") != 0) {
 		return;
@@ -237,22 +238,37 @@ register_zone(void)
 
 
 	if (malloc_default_purgeable_zone != NULL)
-		malloc_default_purgeable_zone();
+		purgeable_zone = malloc_default_purgeable_zone();
 
 	
 	malloc_zone_register(&zone);
 
-	
-
-
-
-
-
-
-
 	do {
 		default_zone = malloc_default_zone();
+		
+
+
+
+
+
+
+
 		malloc_zone_unregister(default_zone);
 		malloc_zone_register(default_zone);
+		
+
+
+
+
+
+
+
+
+
+
+		if (purgeable_zone) {
+			malloc_zone_unregister(purgeable_zone);
+			malloc_zone_register(purgeable_zone);
+		}
 	} while (malloc_default_zone() != &zone);
 }
