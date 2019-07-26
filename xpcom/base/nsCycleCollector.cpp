@@ -2406,9 +2406,8 @@ private:
 
 struct scanVisitor
 {
-    scanVisitor(uint32_t &aWhiteNodeCount, bool &aFailed, bool aWasIncremental)
-        : mWhiteNodeCount(aWhiteNodeCount), mFailed(aFailed),
-          mWasIncremental(aWasIncremental)
+    scanVisitor(uint32_t &aWhiteNodeCount, bool &aFailed)
+        : mWhiteNodeCount(aWhiteNodeCount), mFailed(aFailed)
     {
     }
 
@@ -2419,16 +2418,8 @@ struct scanVisitor
 
     MOZ_NEVER_INLINE void VisitNode(PtrInfo *pi)
     {
-        if (pi->mInternalRefs > pi->mRefCount && pi->mRefCount > 0) {
-            
-            
-            
-            
-            
-            if (!mWasIncremental || pi->mColor != black) {
-                Fault("traversed refs exceed refcount", pi);
-            }
-        }
+        if (pi->mInternalRefs > pi->mRefCount && pi->mRefCount > 0)
+            Fault("traversed refs exceed refcount", pi);
 
         if (pi->mInternalRefs == pi->mRefCount || pi->mRefCount == 0) {
             pi->mColor = white;
@@ -2447,7 +2438,6 @@ struct scanVisitor
 private:
     uint32_t &mWhiteNodeCount;
     bool &mFailed;
-    bool mWasIncremental;
 };
 
 
@@ -2616,8 +2606,7 @@ nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
     
     
     bool failed = false;
-    scanVisitor sv(mWhiteNodeCount, failed, !aFullySynchGraphBuild);
-    GraphWalker<scanVisitor>(sv).WalkFromRoots(mGraph);
+    GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount, failed)).WalkFromRoots(mGraph);
     timeLog.Checkpoint("ScanRoots::WalkFromRoots");
 
     if (failed) {
