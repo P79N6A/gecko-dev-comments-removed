@@ -335,10 +335,21 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
       var url;
       if (this.sourceRoot
-          && (url = util.urlParse(this.sourceRoot))
-          && (!url.path || url.path == "/")
-          && this._sources.has("/" + aSource)) {
-        return this.sourcesContent[this._sources.indexOf("/" + aSource)];
+          && (url = util.urlParse(this.sourceRoot))) {
+        
+        
+        
+        
+        var fileUriAbsPath = aSource.replace(/^file:\/\//, "");
+        if (url.scheme == "file"
+            && this._sources.has(fileUriAbsPath)) {
+          return this.sourcesContent[this._sources.indexOf(fileUriAbsPath)]
+        }
+
+        if ((!url.path || url.path == "/")
+            && this._sources.has("/" + aSource)) {
+          return this.sourcesContent[this._sources.indexOf("/" + aSource)];
+        }
       }
 
       throw new Error('"' + aSource + '" is not in the SourceMap.');
