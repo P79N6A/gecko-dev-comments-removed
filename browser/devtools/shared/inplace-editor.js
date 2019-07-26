@@ -179,6 +179,7 @@ function InplaceEditor(aOptions, aEvent)
 
   this._createInput();
   this._autosize();
+  this.inputCharWidth = this._getInputCharWidth();
 
   
   
@@ -329,6 +330,18 @@ InplaceEditor.prototype = {
     }
 
     this.input.style.width = width + "px";
+  },
+
+  
+
+
+
+  _getInputCharWidth: function InplaceEditor_getInputCharWidth()
+  {
+    
+    
+    this._measurement.textContent = "x";
+    return this._measurement.offsetWidth;
   },
 
    
@@ -1065,8 +1078,11 @@ InplaceEditor.prototype = {
       }
 
       if (finalList.length > 1) {
+        
+        let x = (this.input.selectionStart - startCheckQuery.length) *
+                this.inputCharWidth;
         this.popup.setItems(finalList);
-        this.popup.openPopup(this.input);
+        this.popup.openPopup(this.input, x);
       } else {
         this.popup.hidePopup();
       }

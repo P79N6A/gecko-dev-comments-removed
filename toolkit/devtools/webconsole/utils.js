@@ -120,6 +120,24 @@ let WebConsoleUtils = {
 
 
 
+
+  copyTextStyles: function WCU_copyTextStyles(aFrom, aTo)
+  {
+    let win = aFrom.ownerDocument.defaultView;
+    let style = win.getComputedStyle(aFrom);
+    aTo.style.fontFamily = style.getPropertyCSSValue("font-family").cssText;
+    aTo.style.fontSize = style.getPropertyCSSValue("font-size").cssText;
+    aTo.style.fontWeight = style.getPropertyCSSValue("font-weight").cssText;
+    aTo.style.fontStyle = style.getPropertyCSSValue("font-style").cssText;
+  },
+
+  
+
+
+
+
+
+
   getInnerWindowId: function WCU_getInnerWindowId(aWindow)
   {
     return aWindow.QueryInterface(Ci.nsIInterfaceRequestor).

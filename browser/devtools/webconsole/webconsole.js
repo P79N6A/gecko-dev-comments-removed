@@ -360,6 +360,11 @@ WebConsoleFrame.prototype = {
   _saveRequestAndResponseBodies: false,
 
   
+  _chevronWidth: 0,
+  
+  _inputCharWidth: 0,
+
+  
 
 
 
@@ -510,6 +515,10 @@ WebConsoleFrame.prototype = {
                      .removeAttribute("disabled");
       }
     }
+
+    
+    
+    this._updateCharSize();
 
     let updateSaveBodiesPrefUI = (aElement) => {
       this.getSaveRequestAndResponseBodies().then(aValue => {
@@ -726,6 +735,34 @@ WebConsoleFrame.prototype = {
       this.outputNode.style.fontSize = "";
       Services.prefs.clearUserPref("devtools.webconsole.fontSize");
     }
+    this._updateCharSize();
+  },
+
+  
+
+
+
+
+
+  _updateCharSize: function WCF__updateCharSize()
+  {
+    let doc = this.document;
+    let tempLabel = doc.createElementNS(XHTML_NS, "span");
+    let style = tempLabel.style;
+    style.position = "fixed";
+    style.padding = "0";
+    style.margin = "0";
+    style.width = "auto";
+    style.color = "transparent";
+    WebConsoleUtils.copyTextStyles(this.inputNode, tempLabel);
+    tempLabel.textContent = "x";
+    doc.documentElement.appendChild(tempLabel);
+    this._inputCharWidth = tempLabel.offsetWidth;
+    tempLabel.parentNode.removeChild(tempLabel);
+    
+    
+    this._chevronWidth = +doc.defaultView.getComputedStyle(this.inputNode)
+                             .paddingLeft.replace(/[^0-9.]/g, "") - 4;
   },
 
   
@@ -4370,7 +4407,10 @@ JSTerm.prototype = {
     };
 
     if (items.length > 1 && !popup.isOpen) {
-      popup.openPopup(inputNode);
+      let str = this.inputNode.value.substr(0, this.inputNode.selectionStart);
+      let offset = str.length - (str.lastIndexOf("\n") + 1) - lastPart.length;
+      let x = offset * this.hud._inputCharWidth;
+      popup.openPopup(inputNode, x + this.hud._chevronWidth);
       this._autocompletePopupNavigated = false;
     }
     else if (items.length < 2 && popup.isOpen) {
@@ -5161,7 +5201,6 @@ function gSequenceId()
   return gSequenceId.n++;
 }
 gSequenceId.n = 0;
-
 
 
 
