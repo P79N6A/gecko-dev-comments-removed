@@ -686,12 +686,14 @@ BluetoothAdapter::EnableDisable(bool aEnable)
     return promise.forget();
   }
 
+  nsString methodName;
   if (aEnable) {
     
     if (mState != BluetoothAdapterState::Disabled) {
       promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
       return promise.forget();
     }
+    methodName.AssignLiteral("Enable");
     mState = BluetoothAdapterState::Enabling;
   } else {
     
@@ -699,12 +701,15 @@ BluetoothAdapter::EnableDisable(bool aEnable)
       promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
       return promise.forget();
     }
+    methodName.AssignLiteral("Disable");
     mState = BluetoothAdapterState::Disabling;
   }
   
 
   nsRefPtr<BluetoothReplyRunnable> result =
-    new BluetoothVoidReplyRunnable(nullptr , promise);
+    new BluetoothVoidReplyRunnable(nullptr, 
+                                   promise,
+                                   methodName);
 
   if(NS_FAILED(bs->EnableDisable(aEnable, result))) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);

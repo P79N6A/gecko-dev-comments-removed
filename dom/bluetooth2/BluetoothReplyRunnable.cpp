@@ -16,10 +16,16 @@ using namespace mozilla::dom;
 USING_BLUETOOTH_NAMESPACE
 
 BluetoothReplyRunnable::BluetoothReplyRunnable(nsIDOMDOMRequest* aReq,
-                                               Promise* aPromise)
+                                               Promise* aPromise,
+                                               const nsAString& aName)
   : mDOMRequest(aReq)
   , mPromise(aPromise)
-{}
+  , mName(aName)
+{
+  if (aPromise) {
+    BT_API2_LOGR("<%s>", NS_ConvertUTF16toUTF8(mName).get());
+  }
+}
 
 void
 BluetoothReplyRunnable::SetReply(BluetoothReply* aReply)
@@ -53,6 +59,7 @@ BluetoothReplyRunnable::FireReplySuccess(JS::Handle<JS::Value> aVal)
 
   
   if (mPromise) {
+    BT_API2_LOGR("<%s>", NS_ConvertUTF16toUTF8(mName).get());
     mPromise->MaybeResolve(aVal);
   }
 
@@ -73,6 +80,8 @@ BluetoothReplyRunnable::FireErrorString()
 
   
   if (mPromise) {
+    BT_API2_LOGR("<%s>", NS_ConvertUTF16toUTF8(mName).get());
+
     
 
 
@@ -120,8 +129,9 @@ BluetoothReplyRunnable::Run()
 }
 
 BluetoothVoidReplyRunnable::BluetoothVoidReplyRunnable(nsIDOMDOMRequest* aReq,
-                                                       Promise* aPromise)
-  : BluetoothReplyRunnable(aReq, aPromise)
+                                                       Promise* aPromise,
+                                                       const nsAString& aName)
+  : BluetoothReplyRunnable(aReq, aPromise, aName)
 {}
 
 BluetoothVoidReplyRunnable::~BluetoothVoidReplyRunnable()
