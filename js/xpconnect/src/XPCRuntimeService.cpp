@@ -46,8 +46,8 @@ NS_IMPL_RELEASE(BackstagePass)
 NS_IMETHODIMP
 BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
                           JSContext * cx, JSObject * objArg,
-                          jsid idArg, uint32_t flags,
-                          JSObject * *objpArg, bool *_retval)
+                          jsid idArg, JSObject * *objpArg,
+                          bool *_retval)
 {
     JS::RootedObject obj(cx, objArg);
     JS::RootedId id(cx, idArg);
@@ -65,7 +65,7 @@ BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
 
     JS::RootedObject objp(cx, *objpArg);
 
-    *_retval = ResolveWorkerClasses(cx, obj, id, flags, &objp);
+    *_retval = ResolveWorkerClasses(cx, obj, id, &objp);
     NS_ENSURE_TRUE(*_retval, NS_ERROR_FAILURE);
 
     if (objp) {
