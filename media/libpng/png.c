@@ -1907,7 +1907,7 @@ png_fixed(png_structp png_ptr, double fp, png_const_charp text)
 #endif
 
 #if defined(PNG_READ_GAMMA_SUPPORTED) || \
-    defined(PNG_INCH_CONVERSIONS_SUPPORTED) || defined(PNG__READ_pHYs_SUPPORTED)
+    defined(PNG_INCH_CONVERSIONS_SUPPORTED) || defined(PNG_READ_pHYs_SUPPORTED)
 
 
 
@@ -2047,7 +2047,7 @@ png_muldiv_warn(png_structp png_ptr, png_fixed_point a, png_int_32 times,
 }
 #endif
 
-#if (defined PNG_READ_GAMMA_SUPPORTED) || (defined PNG_cHRM_SUPPORTED)
+#if defined(PNG_READ_GAMMA_SUPPORTED) || defined(PNG_cHRM_SUPPORTED)
 
 
 png_fixed_point
@@ -2878,3 +2878,24 @@ png_build_gamma_table(png_structp png_ptr, int bit_depth)
 }
 #endif 
 #endif 
+
+
+#ifdef PNG_SET_OPTION_SUPPORTED
+int PNGAPI
+png_set_option(png_structp png_ptr, int option, int onoff)
+{
+   if (png_ptr != NULL && option >= 0 && option < PNG_OPTION_NEXT &&
+      (option & 1) == 0)
+   {
+      int mask = 3 << option;
+      int setting = (2 + (onoff != 0)) << option;
+      int current = png_ptr->options;
+
+      png_ptr->options = (png_byte)((current & ~mask) | setting);
+
+      return (current & mask) >> option;
+   }
+
+   return PNG_OPTION_INVALID;
+}
+#endif

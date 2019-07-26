@@ -2200,8 +2200,8 @@ png_do_read_transformations(png_structp png_ptr, png_row_infop row_info)
       png_do_gray_to_rgb(row_info, png_ptr->row_buf + 1);
 #endif
 
-#if (defined PNG_READ_BACKGROUND_SUPPORTED) ||\
-   (defined PNG_READ_ALPHA_MODE_SUPPORTED)
+#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
+   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
    if (png_ptr->transformations & PNG_COMPOSE)
       png_do_compose(row_info, png_ptr->row_buf + 1, png_ptr);
 #endif
@@ -2212,8 +2212,8 @@ png_do_read_transformations(png_structp png_ptr, png_row_infop row_info)
       
       !(png_ptr->transformations & PNG_RGB_TO_GRAY) &&
 #endif
-#if (defined PNG_READ_BACKGROUND_SUPPORTED) ||\
-   (defined PNG_READ_ALPHA_MODE_SUPPORTED)
+#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
+   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
       
 
 
@@ -3479,8 +3479,8 @@ png_build_grayscale_palette(int bit_depth, png_colorp palette)
 
 
 #ifdef PNG_READ_TRANSFORMS_SUPPORTED
-#if (defined PNG_READ_BACKGROUND_SUPPORTED) ||\
-   (defined PNG_READ_ALPHA_MODE_SUPPORTED)
+#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
+   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
 
 
 
