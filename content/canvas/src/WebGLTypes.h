@@ -59,9 +59,17 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTextureFakeBlackStatus, int)
   UninitializedImageData
 MOZ_END_ENUM_CLASS(WebGLTextureFakeBlackStatus)
 
-struct VertexAttrib0Status {
-    enum { Default, EmulatedUninitializedArray, EmulatedInitializedArray };
-};
+
+
+
+
+
+
+MOZ_BEGIN_ENUM_CLASS(WebGLVertexAttrib0Status, int)
+    Default, 
+    EmulatedUninitializedArray, 
+    EmulatedInitializedArray 
+MOZ_END_ENUM_CLASS(WebGLVertexAttrib0Status)
 
 
 

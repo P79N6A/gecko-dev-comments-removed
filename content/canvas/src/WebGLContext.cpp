@@ -133,7 +133,7 @@ WebGLContext::WebGLContext()
     mFakeVertexAttrib0BufferObjectVector[3] = 1;
     mFakeVertexAttrib0BufferObjectSize = 0;
     mFakeVertexAttrib0BufferObject = 0;
-    mFakeVertexAttrib0BufferStatus = VertexAttrib0Status::Default;
+    mFakeVertexAttrib0BufferStatus = WebGLVertexAttrib0Status::Default;
 
     
     mColorWriteMask[0] = 1;
