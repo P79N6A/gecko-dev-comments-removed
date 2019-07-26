@@ -311,10 +311,7 @@ nsSHistory::CalcMaxTotalViewers()
   if (bytes > INT64_MAX)
     bytes = INT64_MAX;
 
-  uint64_t kbytes = bytes >> 10;
-
-  double kBytesD;
-  LL_L2D(kBytesD, (int64_t) kbytes);
+  double kBytesD = (double)(bytes >> 10);
 
   
   
