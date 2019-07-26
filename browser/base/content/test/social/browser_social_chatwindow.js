@@ -51,18 +51,6 @@ function waitPrefChange(cb) {
   }, false);
 }
 
-function setWorkerMode(multiple, cb) {
-  waitPrefChange(function() {
-    if (multiple)
-      Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
-    else
-      Services.prefs.clearUserPref("social.allowMultipleWorkers");
-    waitPrefChange(cb);
-    Social.enabled = true;
-  });
-  Social.enabled = false;
-}
-
 function test() {
   requestLongerTimeout(2); 
   waitForExplicitFinish();
@@ -75,8 +63,15 @@ function test() {
     ok(chats.children.length == 0, "no chatty children left behind");
     cb();
   };
+  
+  Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
   runSocialTestWithProvider(manifests, function (finishcb) {
+    ok(Social.enabled, "Social is enabled");
+    ok(Social.providers[0].getWorkerPort(), "provider 0 has port");
+    ok(Social.providers[1].getWorkerPort(), "provider 1 has port");
+    ok(Social.providers[2].getWorkerPort(), "provider 2 has port");
     runSocialTests(tests, undefined, postSubTest, function() {
+      Services.prefs.clearUserPref("social.allowMultipleWorkers");
       window.moveTo(oldleft, window.screenY)
       window.resizeTo(oldwidth, window.outerHeight);
       finishcb();
@@ -518,29 +513,30 @@ var tests = {
   },
   testMultipleProviderChat: function(next) {
     
-    setWorkerMode(true, function() {
-      
-      openChat(Social.providers[0], function() {
-        openChat(Social.providers[1], function() {
-          openChat(Social.providers[2], function() {
-            let chats = document.getElementById("pinnedchats");
-            waitForCondition(function() chats.children.length == Social.providers.length,
-              function() {
-                ok(true, "one chat window per provider opened");
-                
-                let provider = Social.providers[0];
-                let port = provider.getWorkerPort();
-                port.postMessage({topic: "test-logout"});
-                waitForCondition(function() chats.children.length == Social.providers.length - 1,
-                  function() {
-                    port.close();
-                    chats.removeAll();
-                    ok(!chats.selectedChat, "chats are all closed");
-                    setWorkerMode(false, next);
-                  },
-                  "chat window didn't close");
-              }, "chat windows did not open");
-          });
+    openChat(Social.providers[0], function() {
+      openChat(Social.providers[1], function() {
+        openChat(Social.providers[2], function() {
+          let chats = document.getElementById("pinnedchats");
+          waitForCondition(function() chats.children.length == Social.providers.length,
+            function() {
+              ok(true, "one chat window per provider opened");
+              
+              let provider = Social.providers[2];
+              let port = provider.getWorkerPort();
+              port.postMessage({topic: "test-logout"});
+              waitForCondition(function() chats.children.length == Social.providers.length - 1,
+                function() {
+                  chats.removeAll();
+                  waitForCondition(function() chats.children.length == 0,
+                                   function() {
+                                    ok(!chats.selectedChat, "multiprovider chats are all closed");
+                                    port.close();
+                                    next();
+                                   },
+                                   "chat windows didn't close");
+                },
+                "chat window didn't close");
+            }, "chat windows did not open");
         });
       });
     });
@@ -578,6 +574,10 @@ var tests = {
           break;
       }
     }
+    
+    
+    
+    port.postMessage({topic: "test-set-profile"});
     port.postMessage({topic: "test-init"});
   }
 }
