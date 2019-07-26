@@ -1960,19 +1960,23 @@ void
 nsHttpConnectionMgr::ProcessSpdyPendingQ(nsConnectionEntry *ent)
 {
     nsHttpConnection *conn = GetSpdyPreferredConn(ent);
-    if (!conn)
+    if (!conn || !conn->CanDirectlyActivate())
         return;
 
-    for (int32_t index = ent->mPendingQ.Length() - 1;
-         index >= 0 && conn->CanDirectlyActivate();
-         --index) {
+    nsTArray<nsHttpTransaction*> leftovers;
+    uint32_t index;
+
+    
+    for (index = 0;
+         index < ent->mPendingQ.Length() && conn->CanDirectlyActivate();
+         ++index) {
         nsHttpTransaction *trans = ent->mPendingQ[index];
 
         if (!(trans->Caps() & NS_HTTP_ALLOW_KEEPALIVE) ||
-            trans->Caps() & NS_HTTP_DISALLOW_SPDY)
+            trans->Caps() & NS_HTTP_DISALLOW_SPDY) {
+            leftovers.AppendElement(trans);
             continue;
-
-        ent->mPendingQ.RemoveElementAt(index);
+        }
 
         nsresult rv = DispatchTransaction(ent, trans, conn);
         if (NS_FAILED(rv)) {
@@ -1985,6 +1989,18 @@ nsHttpConnectionMgr::ProcessSpdyPendingQ(nsConnectionEntry *ent)
         }
         NS_RELEASE(trans);
     }
+
+    
+    
+    for (; index < ent->mPendingQ.Length(); ++index) {
+        nsHttpTransaction *trans = ent->mPendingQ[index];
+        leftovers.AppendElement(trans);
+    }
+
+    
+    
+    leftovers.SwapElements(ent->mPendingQ);
+    leftovers.Clear();
 }
 
 PLDHashOperator
