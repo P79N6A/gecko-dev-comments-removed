@@ -168,20 +168,6 @@ IMEHandler::GetUpdatePreference()
   return nsIMEUpdatePreference(false, false);
 }
 
-void
-IMEHandler::SetOpenState(nsWindow* aWindow, bool aOpen)
-{
-#ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
-    nsTextStore::SetIMEOpenState(aOpen);
-    return;
-  }
-#endif 
-
-  nsIMEContext IMEContext(aWindow->GetWindowHandle());
-  IMEContext.SetOpenState(aOpen);
-}
-
 
 bool
 IMEHandler::GetOpenState(nsWindow* aWindow)
@@ -200,8 +186,89 @@ IMEHandler::GetOpenState(nsWindow* aWindow)
 void
 IMEHandler::OnDestroyWindow(nsWindow* aWindow)
 {
+  
+  
   nsIMEContext IMEContext(aWindow->GetWindowHandle());
   IMEContext.AssociateDefaultContext();
+}
+
+
+void
+IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
+{
+  
+  NotifyIME(aWindow, REQUEST_TO_COMMIT_COMPOSITION);
+
+  bool enable = (aInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
+                 aInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
+  bool adjustOpenState = (enable &&
+    aInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE);
+  bool open = (adjustOpenState &&
+    aInputContext.mIMEState.mOpen == IMEState::OPEN);
+
+  aInputContext.mNativeIMEContext = nullptr;
+
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+    nsTextStore::SetInputContext(aInputContext);
+    
+    
+  }
+#endif 
+
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  if (enable) {
+    IMEContext.AssociateDefaultContext();
+    if (!aInputContext.mNativeIMEContext) {
+      aInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
+    }
+  } else if (!aWindow->Destroyed()) {
+    
+    IMEContext.Disassociate();
+    if (!aInputContext.mNativeIMEContext) {
+      
+      aInputContext.mNativeIMEContext =
+        aWindow->GetInputContext().mNativeIMEContext;
+    }
+  }
+
+  if (adjustOpenState) {
+#ifdef NS_ENABLE_TSF
+    if (sIsInTSFMode) {
+      nsTextStore::SetIMEOpenState(open);
+      return;
+    }
+#endif 
+    IMEContext.SetOpenState(open);
+  }
+}
+
+
+void
+IMEHandler::InitInputContext(nsWindow* aWindow, InputContext& aInputContext)
+{
+  
+  aInputContext.mIMEState.mEnabled = IMEState::ENABLED;
+
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    nsTextStore::SetInputContext(aInputContext);
+    aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+    MOZ_ASSERT(aInputContext.mNativeIMEContext);
+    return;
+  }
+#endif 
+
+  
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  aInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
+  MOZ_ASSERT(aInputContext.mNativeIMEContext || !CurrentKeyboardLayoutHasIME());
+  
+  
+  if (!aInputContext.mNativeIMEContext) {
+    aInputContext.mNativeIMEContext = static_cast<void*>(aWindow);
+  }
 }
 
 #ifdef DEBUG

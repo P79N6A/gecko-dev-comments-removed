@@ -16,6 +16,8 @@ struct nsIMEUpdatePreference;
 namespace mozilla {
 namespace widget {
 
+struct InputContext;
+
 
 
 
@@ -70,13 +72,23 @@ public:
   
 
 
-  static void SetOpenState(nsWindow* aWindow, bool aOpen);
   static bool GetOpenState(nsWindow* aWindow);
 
   
 
 
   static void OnDestroyWindow(nsWindow* aWindow);
+
+  
+
+
+
+  static void SetInputContext(nsWindow* aWindow, InputContext& aInputContext);
+
+  
+
+
+  static void InitInputContext(nsWindow* aWindow, InputContext& aInputContext);
 
   
 

@@ -589,16 +589,7 @@ nsWindow::Create(nsIWidget *aParent,
 
   SubclassWindow(TRUE);
 
-  
-  nsIMEContext IMEContext(mWnd);
-  mInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
-  MOZ_ASSERT(mInputContext.mNativeIMEContext ||
-             !IMEHandler::CurrentKeyboardLayoutHasIME());
-  
-  
-  if (!mInputContext.mNativeIMEContext) {
-    mInputContext.mNativeIMEContext = this;
-  }
+  IMEHandler::InitInputContext(this, mInputContext);
 
   
   
@@ -7390,37 +7381,9 @@ NS_IMETHODIMP_(void)
 nsWindow::SetInputContext(const InputContext& aContext,
                           const InputContextAction& aAction)
 {
-#ifdef NS_ENABLE_TSF
-  nsTextStore::SetInputContext(aContext);
-#endif 
-  if (IMEHandler::IsComposing()) {
-    ResetInputState();
-  }
-  void* nativeIMEContext = mInputContext.mNativeIMEContext;
-  mInputContext = aContext;
-  mInputContext.mNativeIMEContext = nullptr;
-  bool enable = (mInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
-                 mInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
-
-  nsIMEContext IMEContext(mWnd);
-  if (enable) {
-    IMEContext.AssociateDefaultContext();
-    mInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
-  } else if (!mOnDestroyCalled) {
-    
-    IMEContext.Disassociate();
-  }
-
-  
-  if (!mInputContext.mNativeIMEContext) {
-    mInputContext.mNativeIMEContext = nativeIMEContext;
-  }
-
-  if (enable &&
-      mInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE) {
-    bool open = (mInputContext.mIMEState.mOpen == IMEState::OPEN);
-    IMEHandler::SetOpenState(this, open);
-  }
+  InputContext newInputContext = aContext;
+  IMEHandler::SetInputContext(this, newInputContext);
+  mInputContext = newInputContext;
 }
 
 NS_IMETHODIMP_(InputContext)
