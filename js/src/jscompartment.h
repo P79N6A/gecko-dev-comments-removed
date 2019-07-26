@@ -533,7 +533,6 @@ ExclusiveContext::global() const
 
 
 
-    MOZ_ASSERT(compartment_, "Caller needs to enter a compartment first");
     return Handle<GlobalObject*>::fromMarkedLocation(compartment_->global_.unsafeGet());
 }
 
