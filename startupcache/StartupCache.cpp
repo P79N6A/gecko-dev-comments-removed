@@ -139,9 +139,7 @@ StartupCache::~StartupCache()
   
   
   WaitOnWriteThread();
-  
-  
-  
+  WriteToDisk();
   gStartupCache = nullptr;
   (void)::NS_UnregisterMemoryReporter(mMappingMemoryReporter);
   (void)::NS_UnregisterMemoryReporter(mDataMemoryReporter);
