@@ -3197,7 +3197,7 @@ JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
     proxy_Finalize,          
     NULL,                    
     proxy_Call,
-    FunctionClass.hasInstance,
+    proxy_HasInstance,
     proxy_Construct,
     proxy_TraceFunction,     
     PROXY_CLASS_EXT,
