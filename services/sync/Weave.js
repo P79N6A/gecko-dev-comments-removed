@@ -89,10 +89,11 @@ WeaveService.prototype = {
           
           
           
+          Components.utils.import("resource://services-sync/main.js");
           if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
             this.ensureLoaded();
           }
-        }
+        }.bind(this)
       }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
       break;
     }
