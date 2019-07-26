@@ -190,6 +190,17 @@ protected:
 
 
 
+
+
+
+
+
+  bool HadRecentRefresh(const mozilla::TimeStamp& aTime);
+
+  
+
+
+
   virtual void EvaluateAnimation();
 
   
@@ -206,6 +217,7 @@ protected:
   
   nsRefPtr<imgStatusTracker>    mStatusTracker;
   nsRefPtr<ImageURL>            mURI;
+  TimeStamp                     mLastRefreshTime;
   uint64_t                      mInnerWindowId;
   uint32_t                      mAnimationConsumers;
   uint16_t                      mAnimationMode; 
