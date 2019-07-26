@@ -7705,6 +7705,11 @@ GetFrameForChildrenOnlyTransformHint(nsIFrame *aFrame)
   
   
   aFrame = aFrame->GetContent()->GetPrimaryFrame();
+  if (aFrame->GetType() == nsGkAtoms::svgOuterSVGFrame) {
+    aFrame = aFrame->GetFirstPrincipalChild();
+    NS_ABORT_IF_FALSE(aFrame->GetType() == nsGkAtoms::svgOuterSVGAnonChildFrame,
+                      "Where is the nsSVGOuterSVGFrame's anon child??");
+  }
   NS_ABORT_IF_FALSE(aFrame->IsFrameOfType(nsIFrame::eSVG |
                                           nsIFrame::eSVGContainer),
                     "Children-only transforms only expected on SVG frames");
@@ -8195,18 +8200,20 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
       if ((hint & nsChangeHint_UpdateOverflow) && !didReflowThisFrame) {
         if (hint & nsChangeHint_ChildrenOnlyTransform) {
           
-          nsIFrame* childFrame =
-            GetFrameForChildrenOnlyTransformHint(frame)->GetFirstPrincipalChild();
+          nsIFrame* hintFrame = GetFrameForChildrenOnlyTransformHint(frame);
+          nsIFrame* childFrame = hintFrame->GetFirstPrincipalChild();
           for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
             NS_ABORT_IF_FALSE(childFrame->IsFrameOfType(nsIFrame::eSVG),
                               "Not expecting non-SVG children");
+            
+            
             if (!(childFrame->GetStateBits() &
                   (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
-              childFrame->UpdateOverflow();
+              aTracker.AddFrame(childFrame);
             }
             NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrSpecialSibling(childFrame),
                          "SVG frames should not have continuations or special siblings");
-            NS_ASSERTION(childFrame->GetParent() == frame,
+            NS_ASSERTION(childFrame->GetParent() == hintFrame,
                          "SVG child frame not expected to have different parent");
           }
         }
