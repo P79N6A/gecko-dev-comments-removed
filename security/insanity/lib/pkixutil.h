@@ -59,6 +59,7 @@ MapSECStatus(SECStatus srv)
     case SEC_ERROR_EXTENSION_NOT_FOUND:
       return RecoverableError;
 
+    case PR_INVALID_STATE_ERROR:
     case SEC_ERROR_LIBRARY_FAILURE:
     case SEC_ERROR_NO_MEMORY:
       return FatalError;
@@ -67,6 +68,47 @@ MapSECStatus(SECStatus srv)
   
   return RecoverableError;
 }
+
+
+
+
+
+
+
+
+
+
+class BackCert
+{
+public:
+  
+  BackCert(CERTCertificate* nssCert, BackCert* childCert)
+    : childCert(childCert)
+    , nssCert(nssCert)
+  {
+  }
+
+  Result Init();
+
+  BackCert* const childCert;
+
+  const CERTCertificate* GetNSSCert() const { return nssCert; }
+
+  
+  
+  Result PrependNSSCertToList(CERTCertList* results);
+
+  PLArenaPool* GetArena();
+
+private:
+  CERTCertificate* nssCert;
+
+  ScopedPLArenaPool arena;
+
+  BackCert(const BackCert&) ;
+  void operator=(const BackCert&); ;
+};
+
 } } 
 
 #endif 

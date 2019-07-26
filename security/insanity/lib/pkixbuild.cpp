@@ -1,0 +1,288 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "insanity/pkix.h"
+
+#include <limits>
+
+#include "pkixcheck.h"
+#include "pkixder.h"
+
+namespace insanity { namespace pkix {
+
+
+
+
+
+
+
+Result
+BackCert::Init()
+{
+  const CERTCertExtension* const* exts = nssCert->extensions;
+  if (!exts) {
+    return Success;
+  }
+
+  const SECItem* dummyEncodedSubjectKeyIdentifier = nullptr;
+  const SECItem* dummyEncodedAuthorityKeyIdentifier = nullptr;
+  const SECItem* dummyEncodedAuthorityInfoAccess = nullptr;
+
+  for (const CERTCertExtension* ext = *exts; ext; ext = *++exts) {
+    const SECItem** out = nullptr;
+
+    if (ext->id.len == 3 &&
+        ext->id.data[0] == 0x55 && ext->id.data[1] == 0x1d) {
+      
+      switch (ext->id.data[2]) {
+        case 14: out = &dummyEncodedSubjectKeyIdentifier; break; 
+        case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
+      }
+    } else if (ext->id.len == 9 &&
+               ext->id.data[0] == 0x2b && ext->id.data[1] == 0x06 &&
+               ext->id.data[2] == 0x06 && ext->id.data[3] == 0x01 &&
+               ext->id.data[4] == 0x05 && ext->id.data[5] == 0x05 &&
+               ext->id.data[6] == 0x07 && ext->id.data[7] == 0x01) {
+      
+      switch (ext->id.data[8]) {
+        
+        
+        
+        case 1: out = &dummyEncodedAuthorityInfoAccess; break;
+      }
+    } else if (ext->critical.data && ext->critical.len > 0) {
+      
+      
+      return Fail(RecoverableError, SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
+    }
+
+    if (out) {
+      
+      
+      if (*out) {
+        
+        return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
+      }
+      *out = &ext->value;
+    }
+  }
+
+  return Success;
+}
+
+static Result BuildForward(TrustDomain& trustDomain,
+                           BackCert& subject,
+                           PRTime time,
+                           EndEntityOrCA endEntityOrCA,
+                           unsigned int subCACount,
+                            ScopedCERTCertList& results);
+
+
+static Result
+BuildForwardInner(TrustDomain& trustDomain,
+                  BackCert& subject,
+                  PRTime time,
+                  EndEntityOrCA endEntityOrCA,
+                  CERTCertificate* potentialIssuerCertToDup,
+                  unsigned int subCACount,
+                  ScopedCERTCertList& results)
+{
+  PORT_Assert(potentialIssuerCertToDup);
+
+  BackCert potentialIssuer(potentialIssuerCertToDup, &subject);
+  Result rv = potentialIssuer.Init();
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+  
+
+  
+  
+  
+  bool loopDetected = false;
+  for (BackCert* prev = potentialIssuer.childCert;
+       !loopDetected && prev != nullptr; prev = prev->childCert) {
+    if (SECITEM_ItemsAreEqual(&potentialIssuer.GetNSSCert()->derPublicKey,
+                              &prev->GetNSSCert()->derPublicKey) &&
+        SECITEM_ItemsAreEqual(&potentialIssuer.GetNSSCert()->derSubject,
+                              &prev->GetNSSCert()->derSubject)) {
+      return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER); 
+    }
+  }
+
+  rv = CheckTimes(potentialIssuer.GetNSSCert(), time);
+  if (rv != Success) {
+    return rv;
+  }
+
+  unsigned int newSubCACount = subCACount;
+  if (endEntityOrCA == MustBeCA) {
+    newSubCACount = subCACount + 1;
+  } else {
+    PR_ASSERT(newSubCACount == 0);
+  }
+
+  rv = BuildForward(trustDomain, potentialIssuer, time, MustBeCA,
+                    newSubCACount, results);
+  if (rv != Success) {
+    return rv;
+  }
+
+  if (trustDomain.VerifySignedData(&subject.GetNSSCert()->signatureWrap,
+                                   potentialIssuer.GetNSSCert()) != SECSuccess) {
+    return MapSECStatus(SECFailure);
+  }
+
+  return Success;
+}
+
+
+static Result
+BuildForward(TrustDomain& trustDomain,
+             BackCert& subject,
+             PRTime time,
+             EndEntityOrCA endEntityOrCA,
+             unsigned int subCACount,
+              ScopedCERTCertList& results)
+{
+  
+  
+  static const size_t MAX_DEPTH = 8;
+  if (subCACount >= MAX_DEPTH - 1) {
+    return RecoverableError;
+  }
+
+  TrustDomain::TrustLevel trustLevel;
+  Result rv = MapSECStatus(trustDomain.GetCertTrust(endEntityOrCA,
+                                                    subject.GetNSSCert(),
+                                                    &trustLevel));
+  if (rv != Success) {
+    return rv;
+  }
+  if (trustLevel == TrustDomain::ActivelyDistrusted) {
+    return Fail(RecoverableError, SEC_ERROR_UNTRUSTED_CERT);
+  }
+  if (trustLevel != TrustDomain::TrustAnchor &&
+      trustLevel != TrustDomain::InheritsTrust) {
+    
+    return Fail(FatalError, PR_INVALID_STATE_ERROR);
+  }
+
+  if (trustLevel == TrustDomain::TrustAnchor) {
+    
+    
+    results = CERT_NewCertList();
+    if (!results) {
+      return FatalError;
+    }
+    rv = subject.PrependNSSCertToList(results.get());
+    return rv;
+  }
+
+  
+  
+  ScopedCERTCertList candidates;
+  if (trustDomain.FindPotentialIssuers(&subject.GetNSSCert()->derIssuer, time,
+                                       candidates) != SECSuccess) {
+    return MapSECStatus(SECFailure);
+  }
+  PORT_Assert(candidates.get());
+  if (!candidates) {
+    return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
+  }
+
+  for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
+       !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
+    rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
+                           n->cert, subCACount, results);
+    if (rv == Success) {
+      
+      return subject.PrependNSSCertToList(results.get());
+    }
+    if (rv != RecoverableError) {
+      return rv;
+    }
+  }
+
+  return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
+}
+
+SECStatus
+BuildCertChain(TrustDomain& trustDomain,
+               CERTCertificate* certToDup,
+               PRTime time,
+                ScopedCERTCertList& results)
+{
+  PORT_Assert(certToDup);
+
+  if (!certToDup) {
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+    return SECFailure;
+  }
+
+  
+  
+
+  BackCert ee(certToDup, nullptr);
+  Result rv = ee.Init();
+  if (rv != Success) {
+    return SECFailure;
+  }
+
+  rv = BuildForward(trustDomain, ee, time, MustBeEndEntity,
+                    0, results);
+  if (rv != Success) {
+    results = nullptr;
+    return SECFailure;
+  }
+
+  
+  
+  if (CheckTimes(ee.GetNSSCert(), time) != Success) {
+    PR_SetError(SEC_ERROR_EXPIRED_CERTIFICATE, 0);
+    return SECFailure;
+  }
+
+  return SECSuccess;
+}
+
+PLArenaPool*
+BackCert::GetArena()
+{
+  if (!arena) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+  }
+  return arena.get();
+}
+
+Result
+BackCert::PrependNSSCertToList(CERTCertList* results)
+{
+  PORT_Assert(results);
+
+  CERTCertificate* dup = CERT_DupCertificate(nssCert);
+  if (CERT_AddCertToListHead(results, dup) != SECSuccess) { 
+    CERT_DestroyCertificate(dup);
+    return FatalError;
+  }
+
+  return Success;
+}
+
+} } 

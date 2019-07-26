@@ -18,10 +18,15 @@
 #ifndef insanity_pkix__pkix_h
 #define insanity_pkix__pkix_h
 
-#include "certt.h"
-#include "seccomon.h"
+#include "pkixtypes.h"
+#include "prtime.h"
 
 namespace insanity { namespace pkix {
+
+SECStatus BuildCertChain(TrustDomain& trustDomain,
+                         CERTCertificate* cert,
+                         PRTime time,
+                  ScopedCERTCertList& results);
 
 
 
