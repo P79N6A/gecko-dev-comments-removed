@@ -275,27 +275,27 @@ DefVarOrConstOperation(JSContext *cx, HandleObject varobj, HandlePropertyName dn
                                       JS_StrictPropertyStub, attrs)) {
             return false;
         }
-    } else {
+    } else if (attrs & JSPROP_READONLY) {
         
 
 
 
         unsigned oldAttrs;
-        if (!JSObject::getPropertyAttributes(cx, varobj, dn, &oldAttrs))
+        RootedId id(cx, NameToId(dn));
+        if (!JSObject::getGenericAttributes(cx, varobj, id, &oldAttrs))
             return false;
-        if (attrs & JSPROP_READONLY) {
-            JSAutoByteString bytes;
-            if (AtomToPrintableString(cx, dn, &bytes)) {
-                JS_ALWAYS_FALSE(JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR,
-                                                             js_GetErrorMessage,
-                                                             NULL, JSMSG_REDECLARED_VAR,
-                                                             (oldAttrs & JSPROP_READONLY)
-                                                             ? "const"
-                                                             : "var",
-                                                             bytes.ptr()));
-            }
-            return false;
+
+        JSAutoByteString bytes;
+        if (AtomToPrintableString(cx, dn, &bytes)) {
+            JS_ALWAYS_FALSE(JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR,
+                                                         js_GetErrorMessage,
+                                                         NULL, JSMSG_REDECLARED_VAR,
+                                                         (oldAttrs & JSPROP_READONLY)
+                                                         ? "const"
+                                                         : "var",
+                                                         bytes.ptr()));
         }
+        return false;
     }
 
     return true;
