@@ -214,3 +214,36 @@ function addVisits(aPlaceInfo, aCallback) {
   );
 }
 
+
+
+
+
+
+
+
+
+function whenFileExists(aURL, aCallback) {
+  let callback = aCallback;
+  if (!thumbnailExists(aURL)) {
+    callback = function () whenFileExists(aURL, aCallback);
+  }
+
+  executeSoon(callback || next);
+}
+
+
+
+
+
+
+
+
+
+function whenFileRemoved(aFile, aCallback) {
+  let callback = aCallback;
+  if (aFile.exists()) {
+    callback = function () whenFileRemoved(aFile, aCallback);
+  }
+
+  executeSoon(callback || next);
+}

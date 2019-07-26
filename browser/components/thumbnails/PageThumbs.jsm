@@ -12,7 +12,7 @@ const Ci = Components.interfaces;
 
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 const PREF_STORAGE_VERSION = "browser.pagethumbnails.storage_version";
-const LATEST_STORAGE_VERSION = 2;
+const LATEST_STORAGE_VERSION = 3;
 
 const EXPIRATION_MIN_CHUNK_SIZE = 50;
 const EXPIRATION_INTERVAL_SECS = 3600;
@@ -364,37 +364,41 @@ let PageThumbsStorageMigrator = {
   migrate: function Migrator_migrate() {
     let version = this.currentVersion;
 
-    if (version < 1) {
-      this.removeThumbnailsFromRoamingProfile();
-    }
-    if (version < 2) {
-      this.renameThumbnailsFolder();
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    if (version < 3) {
+      this.migrateToVersion3();
     }
 
     this.currentVersion = LATEST_STORAGE_VERSION;
   },
 
-  removeThumbnailsFromRoamingProfile:
-  function Migrator_removeThumbnailsFromRoamingProfile() {
-    let local = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY]);
+  
+
+
+
+
+
+
+  migrateToVersion3: function Migrator_migrateToVersion3() {
+    let local = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY], true);
     let roaming = FileUtils.getDir("ProfD", [THUMBNAIL_DIRECTORY]);
 
-    if (!roaming.equals(local) && roaming.exists()) {
-      roaming.followLinks = false;
-      try {
-        roaming.remove(true);
-      } catch (e) {
-        
-      }
-    }
-  },
-
-  renameThumbnailsFolder: function Migrator_renameThumbnailsFolder() {
-    let dir = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY]);
-    try {
-      dir.moveTo(null, dir.leafName + "-old");
-    } catch (e) {
-      
+    if (!roaming.equals(local)) {
+      PageThumbsWorker.postMessage({
+        type: "moveOrDeleteAllThumbnails",
+        from: roaming.path,
+        to: local.path
+      });
     }
   }
 };
