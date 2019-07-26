@@ -2127,6 +2127,12 @@ struct nsStyleColumn {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
 
+  
+
+
+
+  static const uint32_t kMaxColumnCount;
+
   uint32_t     mColumnCount; 
   nsStyleCoord mColumnWidth; 
   nsStyleCoord mColumnGap;   

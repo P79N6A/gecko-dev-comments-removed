@@ -7202,7 +7202,8 @@ nsRuleNode::ComputeColumnData(void* aStartStruct,
   } else if (eCSSUnit_Integer == columnCountValue->GetUnit()) {
     column->mColumnCount = columnCountValue->GetIntValue();
     
-    column->mColumnCount = std::min(column->mColumnCount, 1000U);
+    column->mColumnCount = std::min(column->mColumnCount,
+                                    nsStyleColumn::kMaxColumnCount);
   } else if (eCSSUnit_Inherit == columnCountValue->GetUnit()) {
     canStoreInRuleTree = false;
     column->mColumnCount = parent->mColumnCount;
