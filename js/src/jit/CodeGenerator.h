@@ -301,8 +301,9 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitNameIC(OutOfLineUpdateCache *ool, NameIC *ic);
     bool visitCallsiteCloneIC(OutOfLineUpdateCache *ool, CallsiteCloneIC *ic);
 
-    bool visitRangeAssert(LRangeAssert *ins);
-    bool visitDoubleRangeAssert(LDoubleRangeAssert *ins);
+    bool visitAssertRangeI(LAssertRangeI *ins);
+    bool visitAssertRangeD(LAssertRangeD *ins);
+    bool visitAssertRangeV(LAssertRangeV *ins);
 
     IonScriptCounts *extractUnassociatedScriptCounts() {
         IonScriptCounts *counts = unassociatedScriptCounts_;
@@ -353,6 +354,9 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
+
+    bool emitAssertRangeI(Range *r, Register input);
+    bool emitAssertRangeD(Range *r, FloatRegister input, FloatRegister temp);
 
     
     IonScriptCounts *unassociatedScriptCounts_;

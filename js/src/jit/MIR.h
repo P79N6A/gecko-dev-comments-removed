@@ -2227,6 +2227,29 @@ class MGuardString
     }
 };
 
+class MAssertRange
+  : public MUnaryInstruction
+{
+    MAssertRange(MDefinition *ins)
+      : MUnaryInstruction(ins)
+    {
+        setGuard();
+        setMovable();
+        setResultType(MIRType_None);
+    }
+
+  public:
+    INSTRUCTION_HEADER(AssertRange)
+
+    static MAssertRange *New(MDefinition *ins) {
+        return new MAssertRange(ins);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
 
 
 class MCreateThisWithTemplate
