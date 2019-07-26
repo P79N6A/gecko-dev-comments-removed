@@ -419,8 +419,7 @@ using mozilla::dom::workers::ResolveWorkerClasses;
 #include "nsIDOMPowerManager.h"
 #include "nsIDOMWakeLock.h"
 #include "nsIDOMSmsManager.h"
-#include "nsIDOMSmsMessage.h"
-#include "nsIDOMSmsEvent.h"
+#include "nsIDOMMozSmsMessage.h"
 #include "nsIDOMSmsRequest.h"
 #include "nsIDOMSmsFilter.h"
 #include "nsIDOMSmsCursor.h"
@@ -1266,9 +1265,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsMessage, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
-
-  NS_DEFINE_CLASSINFO_DATA(MozSmsEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsRequest, nsDOMGenericSH,
@@ -3376,11 +3372,6 @@ nsDOMClassInfo::Init()
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsMessage)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(MozSmsEvent, nsIDOMMozSmsEvent)
-     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsEvent)
-     DOM_CLASSINFO_EVENT_MAP_ENTRIES
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(MozSmsRequest, nsIDOMMozSmsRequest)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsRequest)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
@@ -3985,6 +3976,19 @@ nsDOMClassInfo::PreCreate(nsISupports *nativeObj, JSContext *cx,
                           JSObject *globalObj, JSObject **parentObj)
 {
   *parentObj = globalObj;
+
+  nsCOMPtr<nsPIDOMWindow> piwin = do_QueryWrapper(cx, globalObj);
+
+  if (!piwin) {
+    return NS_OK;
+  }
+
+  if (piwin->IsOuterWindow()) {
+    nsGlobalWindow *win = ((nsGlobalWindow *)piwin.get())->
+                            GetCurrentInnerWindowInternal();
+    return SetParentToWindow(win, parentObj);
+  }
+
   return NS_OK;
 }
 
@@ -4531,10 +4535,10 @@ nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
 static JSClass sGlobalScopePolluterClass = {
   "Global Scope Polluter",
   JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_NEW_RESOLVE,
-  JS_PropertyStub,
-  JS_PropertyStub,
+  nsWindowSH::SecurityCheckOnAddDelProp,
+  nsWindowSH::SecurityCheckOnAddDelProp,
   nsWindowSH::GlobalScopePolluterGetProperty,
-  JS_StrictPropertyStub,
+  nsWindowSH::SecurityCheckOnSetProp,
   JS_EnumerateStub,
   (JSResolveOp)nsWindowSH::GlobalScopePolluterNewResolve,
   JS_ConvertStub,
@@ -4563,6 +4567,32 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
   }
 
   return JS_TRUE;
+}
+
+
+JSBool
+nsWindowSH::SecurityCheckOnAddDelProp(JSContext *cx, JSHandleObject obj, JSHandleId id,
+                                      JSMutableHandleValue vp)
+{
+  
+  
+
+  nsresult rv =
+    sSecMan->CheckPropertyAccess(cx, ::JS_GetGlobalForObject(cx, obj),
+                                 "Window", id,
+                                 nsIXPCSecurityManager::ACCESS_SET_PROPERTY);
+
+  
+  
+  return NS_SUCCEEDED(rv);
+}
+
+
+JSBool
+nsWindowSH::SecurityCheckOnSetProp(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
+                                   JSMutableHandleValue vp)
+{
+  return SecurityCheckOnAddDelProp(cx, obj, id, vp);
 }
 
 static nsHTMLDocument*

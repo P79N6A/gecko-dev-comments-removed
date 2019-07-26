@@ -148,6 +148,9 @@ function testGsmMessageAttributes() {
   cbs.addEventListener("received", function onreceived(event) {
     cbs.removeEventListener("received", onreceived);
 
+    
+    
+    
     ok(event, "event is valid");
 
     let message = event.message;
