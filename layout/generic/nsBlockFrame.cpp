@@ -6560,9 +6560,6 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
 
       
       nsBulletFrame* bullet = new (shell) nsBulletFrame(kidSC);
-      if (!bullet) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
       bullet->Init(mContent, this, nullptr);
 
       
