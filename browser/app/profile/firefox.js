@@ -1385,8 +1385,7 @@ pref("browser.uiCustomization.debug", false);
 pref("browser.uiCustomization.state", "");
 
 
-
-pref("identity.fxaccounts.remote.uri", "https://accounts.firefox.com/?service=sync&context=fx_desktop_v1");
+pref("identity.fxaccounts.remote.signup.uri", "https://accounts.firefox.com/signup?service=sync&context=fx_desktop_v1");
 
 
 
