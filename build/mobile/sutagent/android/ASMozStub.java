@@ -78,6 +78,7 @@ public class ASMozStub extends android.app.Service {
         catch (NoSuchMethodException e) {
             
             mStartForeground = mStopForeground = null;
+            Log.w("SUTAgent", "unable to find start/stopForeground method(s) -- older platform?");
             }
 
         try {
@@ -85,6 +86,7 @@ public class ASMozStub extends android.app.Service {
             }
         catch (NoSuchMethodException e) {
             mSetForeground = null;
+            Log.e("SUTAgent", "unable to find setForeground method!");
             }
 
         doToast("Listener Service created...");
@@ -256,10 +258,10 @@ public class ASMozStub extends android.app.Service {
                 mStartForeground.invoke(this, mStartForegroundArgs);
             } catch (InvocationTargetException e) {
                 
-                Log.w("ScreenOnWidget", "Unable to invoke startForeground", e);
+                Log.e("SUTAgent", "Unable to invoke startForeground", e);
             } catch (IllegalAccessException e) {
                 
-                Log.w("ScreenOnWidget", "Unable to invoke startForeground", e);
+                Log.e("SUTAgent", "Unable to invoke startForeground", e);
             }
             return;
         }
@@ -270,10 +272,13 @@ public class ASMozStub extends android.app.Service {
                 mSetForegroundArgs[0] = Boolean.TRUE;
                 mSetForeground.invoke(this, mSetForegroundArgs);
             } catch (IllegalArgumentException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             } catch (InvocationTargetException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             }
         }
@@ -292,10 +297,10 @@ public class ASMozStub extends android.app.Service {
                 mStopForeground.invoke(this, mStopForegroundArgs);
             } catch (InvocationTargetException e) {
                 
-                Log.w("ScreenOnWidget", "Unable to invoke stopForeground", e);
+                Log.e("SUTAgent", "Unable to invoke stopForeground", e);
             } catch (IllegalAccessException e) {
                 
-                Log.w("ScreenOnWidget", "Unable to invoke stopForeground", e);
+                Log.e("SUTAgent", "Unable to invoke stopForeground", e);
             }
             return;
         }
@@ -308,10 +313,13 @@ public class ASMozStub extends android.app.Service {
                 mSetForegroundArgs[0] = Boolean.FALSE;
                 mSetForeground.invoke(this, mSetForegroundArgs);
             } catch (IllegalArgumentException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             } catch (InvocationTargetException e) {
+                Log.e("SUTAgent", "Unable to invoke setForeground", e);
                 e.printStackTrace();
             }
         }
