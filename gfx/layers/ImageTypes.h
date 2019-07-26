@@ -48,6 +48,11 @@ enum ImageFormat {
   
 
 
+  MAC_IOSURFACE,
+
+  
+
+
   REMOTE_IMAGE_BITMAP,
 
   
