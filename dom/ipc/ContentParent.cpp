@@ -565,21 +565,6 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
     }
 
     
-    
-    
-    
-    
-    
-    
-
-#ifndef XP_WIN
-    bool exited = false;
-    base::DidProcessCrash(&exited, mSubprocess->GetChildProcessHandle());
-    if (exited) {
-        return false;
-    }
-#endif
-
     return SendSetProcessPrivileges(aPrivs);
 }
 
