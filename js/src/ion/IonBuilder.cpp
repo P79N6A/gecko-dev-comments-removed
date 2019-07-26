@@ -6889,9 +6889,23 @@ IonBuilder::jsop_regexp(RegExpObject *reobj)
     if (!prototype)
         return false;
 
-    MRegExp *ins = MRegExp::New(reobj, prototype, MRegExp::MustClone);
-    current->add(ins);
-    current->push(ins);
+    MRegExp *regexp = MRegExp::New(reobj, prototype);
+    current->add(regexp);
+    current->push(regexp);
+
+    regexp->setMovable();
+
+    
+    
+    
+    if (reobj->sticky() || reobj->global()) {
+        MConstant *zero = MConstant::New(Int32Value(0));
+        current->add(zero);
+
+        MStoreFixedSlot *lastIndex =
+            MStoreFixedSlot::New(regexp, RegExpObject::lastIndexSlot(), zero);
+        current->add(lastIndex);
+    }
 
     return true;
 }
