@@ -209,6 +209,10 @@ WeakMap_get_impl(JSContext *cx, CallArgs args)
 
     if (ObjectValueMap *map = GetObjectMap(&args.thisv().toObject())) {
         if (ObjectValueMap::Ptr ptr = map->lookup(key)) {
+            
+            
+            ExposeValueToActiveJS(ptr->value.get());
+
             args.rval().set(ptr->value);
             return true;
         }

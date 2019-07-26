@@ -1570,6 +1570,21 @@ struct UnmarkGrayTracer : public JSTracer
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void
 UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
 {
