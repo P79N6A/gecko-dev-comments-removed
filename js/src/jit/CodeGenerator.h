@@ -363,8 +363,8 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
 
-    bool emitAssertRangeI(Range *r, Register input);
-    bool emitAssertRangeD(Range *r, FloatRegister input, FloatRegister temp);
+    bool emitAssertRangeI(const Range *r, Register input);
+    bool emitAssertRangeD(const Range *r, FloatRegister input, FloatRegister temp);
 
     
     IonScriptCounts *unassociatedScriptCounts_;
