@@ -249,6 +249,29 @@ nsCSSToken::AppendToString(nsString& aBuffer)
   }
 }
 
+class DeferredCleanupRunnable : public nsRunnable
+{
+public:
+  DeferredCleanupRunnable(nsCSSScanner* aToClean)
+    : mToClean(aToClean)
+  {}
+
+  NS_IMETHOD Run() {
+    if (mToClean) {
+      mToClean->PerformDeferredCleanup();
+    }
+
+    return NS_OK;
+  }
+
+  void Revoke() {
+    mToClean = nullptr;
+  }
+
+private:
+  nsCSSScanner* mToClean;
+};
+
 nsCSSScanner::nsCSSScanner()
   : mReadPointer(nullptr)
   , mSVGMode(false)
@@ -271,13 +294,24 @@ nsCSSScanner::nsCSSScanner()
 nsCSSScanner::~nsCSSScanner()
 {
   MOZ_COUNT_DTOR(nsCSSScanner);
-  Close();
+  Reset();
   if (mLocalPushback != mPushback) {
     delete [] mPushback;
   }
 }
 
 #ifdef CSS_REPORT_PARSE_ERRORS
+void
+nsCSSScanner::PerformDeferredCleanup()
+{
+  
+  mCachedURI = nullptr;
+  mCachedFileName.Truncate();
+
+  
+  mDeferredCleaner.Forget();
+}
+
 #define CSS_ERRORS_PREF "layout.css.report_errors"
 
 static int
@@ -332,16 +366,12 @@ nsCSSScanner::Init(const nsAString& aBuffer,
 
 #ifdef CSS_REPORT_PARSE_ERRORS
   
-  
-  if (aURI != mURI) {
-    mURI = aURI;
-    if (aURI) {
-      aURI->GetSpec(mFileName);
-    } else {
-      mFileName.Adopt(NS_strdup("from DOM"));
-    }
+  if (aURI != mCachedURI) {
+    mCachedURI = aURI;
+    mCachedFileName.Truncate();
   }
 #endif 
+
   mLineNumber = aLineNumber;
 
   
@@ -406,8 +436,19 @@ nsCSSScanner::OutputError()
       do_CreateInstance(gScriptErrorFactory, &rv);
 
     if (NS_SUCCEEDED(rv)) {
+      
+      if (mCachedFileName.IsEmpty()) {
+        if (mCachedURI) {
+          nsAutoCString cFileName;
+          mCachedURI->GetSpec(cFileName);
+          CopyUTF8toUTF16(cFileName, mCachedFileName);
+        } else {
+          mCachedFileName.AssignLiteral("from DOM");
+        }
+      }
+
       rv = errorObject->InitWithWindowID(mError,
-                                         NS_ConvertUTF8toUTF16(mFileName),
+                                         mCachedFileName,
                                          EmptyString(),
                                          mErrorLineNumber,
                                          mErrorColNumber,
@@ -555,18 +596,36 @@ nsCSSScanner::ReportUnexpectedTokenParams(nsCSSToken& tok,
 void
 nsCSSScanner::Close()
 {
+  Reset();
+
+  
+  
+#ifdef CSS_REPORT_PARSE_ERRORS
+  if (!mDeferredCleaner.IsPending()) {
+    mDeferredCleaner = new DeferredCleanupRunnable(this);
+    if (NS_FAILED(NS_DispatchToCurrentThread(mDeferredCleaner.get()))) {
+      
+      
+      nsCSSScanner::PerformDeferredCleanup();
+    }
+  }
+#endif
+}
+
+void
+nsCSSScanner::Reset()
+{
   mReadPointer = nullptr;
 
   
 #ifdef CSS_REPORT_PARSE_ERRORS
-  mFileName.Truncate();
-  mURI = nullptr;
   mError.Truncate();
   mInnerWindowID = 0;
   mWindowIDCached = false;
   mSheet = nullptr;
   mLoader = nullptr;
 #endif
+
   if (mPushback != mLocalPushback) {
     delete [] mPushback;
     mPushback = mLocalPushback;
