@@ -325,6 +325,11 @@ exports.testTrackWindows = function(assert, done) {
       onActivate: function(window) {
         let index = windows.indexOf(window);
 
+        
+        
+        if (index == -1)
+          return;
+
         assert.equal(actions.join(),
                      expects.slice(0, index*4).join(),
                      "expecting " + expects[index*4]);
@@ -350,6 +355,11 @@ exports.testTrackWindows = function(assert, done) {
       },
       onDeactivate: function(window) {
         let index = windows.indexOf(window);
+
+        
+        
+        if (index == -1)
+          return;
 
         assert.equal(actions.join(),
                      expects.slice(0, index*4 + 2).join(),
