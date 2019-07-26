@@ -442,7 +442,7 @@ protected:
     
     
     MediaTime mBlockedAudioTime;
-    nsRefPtr<AudioStream> mStream;
+    nsAutoPtr<AudioStream> mStream;
     TrackID mTrackID;
   };
   nsTArray<AudioOutputStream> mAudioOutputStreams;

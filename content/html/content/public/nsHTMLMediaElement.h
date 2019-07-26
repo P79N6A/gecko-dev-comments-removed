@@ -796,7 +796,7 @@ protected:
   nsCOMPtr<nsIContent> mSourceLoadCandidate;
 
   
-  nsRefPtr<AudioStream> mAudioStream;
+  nsAutoPtr<AudioStream> mAudioStream;
 
   
   nsTimeRanges mPlayed;

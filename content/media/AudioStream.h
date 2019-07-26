@@ -7,9 +7,6 @@
 #define AudioStream_h_
 
 #include "nscore.h"
-#include "nsISupportsImpl.h"
-#include "nsIThread.h"
-#include "nsAutoPtr.h"
 #include "AudioSampleFormat.h"
 #include "AudioChannelCommon.h"
 
@@ -19,7 +16,7 @@ namespace mozilla {
 
 
 
-class AudioStream : public nsISupports
+class AudioStream
 {
 public:
   AudioStream()
@@ -36,10 +33,6 @@ public:
   
   
   static void ShutdownLibrary();
-
-  
-  
-  nsIThread *GetThread();
 
   
   
@@ -96,7 +89,6 @@ public:
   int GetChannels() { return mChannels; }
 
 protected:
-  nsCOMPtr<nsIThread> mAudioPlaybackThread;
   int mRate;
   int mChannels;
 };
