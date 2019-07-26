@@ -562,7 +562,7 @@ nsresult nsNPAPIPluginInstance::SetWindow(NPWindow* window)
   if (!window || RUNNING != mRunning)
     return NS_OK;
 
-#if (MOZ_WIDGET_GTK == 2)
+#if MOZ_WIDGET_GTK
   
   
   if (!nsPluginHost::IsJavaMIMEType(mMIMEType) && window->type == NPWindowTypeWindow &&
