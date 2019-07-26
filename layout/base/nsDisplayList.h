@@ -1053,6 +1053,11 @@ public:
   
 
 
+  virtual const nsIFrame* ReferenceFrameForChildren() const { return mReferenceFrame; }
+
+  
+
+
 
 
 
@@ -2588,6 +2593,16 @@ public:
   virtual bool TryMerge(nsDisplayListBuilder *aBuilder, nsDisplayItem *aItem) MOZ_OVERRIDE;
   
   virtual uint32_t GetPerFrameKey() MOZ_OVERRIDE { return (mIndex << nsDisplayItem::TYPE_BITS) | nsDisplayItem::GetPerFrameKey(); }
+
+  virtual const nsIFrame* ReferenceFrameForChildren() const MOZ_OVERRIDE {
+    
+    
+    
+    if (!mTransformGetter) {
+      return mFrame;
+    }
+    return nsDisplayItem::ReferenceFrameForChildren(); 
+  }
 
   enum {
     INDEX_MAX = UINT32_MAX >> nsDisplayItem::TYPE_BITS
