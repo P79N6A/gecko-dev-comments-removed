@@ -1972,6 +1972,42 @@ ObjectActor.prototype = {
 
 
 
+  onDisplayString: function OA_onDisplayString(aRequest) {
+    let toString;
+    try {
+      
+      let obj = this.obj;
+      do {
+        let desc = obj.getOwnPropertyDescriptor("toString");
+        if (desc) {
+          toString = desc.value;
+          break;
+        }
+      } while (obj = obj.proto)
+    } catch (e) {
+      dumpn(e);
+    }
+
+    let result = null;
+    if (toString && toString.callable) {
+      
+      let ret = toString.call(this.obj).return;
+      if (typeof ret == "string") {
+        
+        result = ret;
+      }
+    }
+
+    return { from: this.actorID,
+             displayString: this.threadActor.createValueGrip(result) };
+  },
+
+  
+
+
+
+
+
 
   _propertyDescriptor: function OA_propertyDescriptor(aName) {
     let desc;
@@ -1987,6 +2023,10 @@ ObjectActor.prototype = {
         enumerable: false,
         value: e.name
       };
+    }
+
+    if (!desc) {
+      return undefined;
     }
 
     let retval = {
@@ -2058,6 +2098,7 @@ ObjectActor.prototype.requestTypes = {
   "prototypeAndProperties": ObjectActor.prototype.onPrototypeAndProperties,
   "prototype": ObjectActor.prototype.onPrototype,
   "property": ObjectActor.prototype.onProperty,
+  "displayString": ObjectActor.prototype.onDisplayString,
   "ownPropertyNames": ObjectActor.prototype.onOwnPropertyNames,
   "decompile": ObjectActor.prototype.onDecompile,
   "release": ObjectActor.prototype.onRelease,
@@ -2089,6 +2130,9 @@ update(PauseScopedObjectActor.prototype, {
   onPrototype: PauseScopedActor.withPaused(ObjectActor.prototype.onPrototype),
   onProperty: PauseScopedActor.withPaused(ObjectActor.prototype.onProperty),
   onDecompile: PauseScopedActor.withPaused(ObjectActor.prototype.onDecompile),
+
+  onDisplayString:
+    PauseScopedActor.withPaused(ObjectActor.prototype.onDisplayString),
 
   onParameterNames:
     PauseScopedActor.withPaused(ObjectActor.prototype.onParameterNames),

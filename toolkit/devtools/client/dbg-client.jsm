@@ -1679,6 +1679,17 @@ GripClient.prototype = {
   }, {
     telemetry: "PROTOTYPE"
   }),
+
+  
+
+
+
+
+  getDisplayString: DebuggerClient.requester({
+    type: "displayString"
+  }, {
+    telemetry: "DISPLAYSTRING"
+  }),
 };
 
 
