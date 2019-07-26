@@ -132,6 +132,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     if (!setNewTypeUnknown(cx, &JSObject::class_, objectProto))
         return nullptr;
 
+    self->setPrototype(JSProto_Object, ObjectValue(*objectProto));
+
     
     RootedFunction functionProto(cx);
     {
@@ -201,6 +203,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
             return nullptr;
     }
 
+    self->setPrototype(JSProto_Function, ObjectValue(*functionProto));
+
     
     RootedFunction objectCtor(cx);
     {
@@ -215,11 +219,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
             return nullptr;
     }
 
-    
-
-
-
-    self->setObjectClassDetails(objectCtor, objectProto);
+    self->setConstructor(JSProto_Object, ObjectValue(*objectCtor));
+    self->setConstructorPropertySlot(JSProto_Object, ObjectValue(*objectCtor));
 
     
     RootedFunction functionCtor(cx);
@@ -237,11 +238,8 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         JS_ASSERT(ctor == functionCtor);
     }
 
-    
-
-
-
-    self->setFunctionClassDetails(functionCtor, functionProto);
+    self->setConstructor(JSProto_Function, ObjectValue(*functionCtor));
+    self->setConstructorPropertySlot(JSProto_Function, ObjectValue(*functionCtor));
 
     
 
