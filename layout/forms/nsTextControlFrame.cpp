@@ -190,6 +190,17 @@ nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
     if (PresContext()->CompatibilityMode() == eCompatibility_FullStandards) {
       aIntrinsicSize.width += 1;
     }
+
+    
+    
+    
+    nsMargin childPadding;
+    nsIFrame* firstChild = GetFirstPrincipalChild();
+    if (firstChild && firstChild->StylePadding()->GetPadding(childPadding)) {
+      aIntrinsicSize.width += childPadding.LeftRight();
+    } else {
+      NS_ERROR("Percentage padding on value div?");
+    }
   }
 
   
@@ -524,28 +535,32 @@ nsTextControlFrame::ReflowTextControlChild(nsIFrame*                aKid,
                                            nsHTMLReflowMetrics& aParentDesiredSize)
 {
   
-  nsSize availSize(aReflowState.ComputedWidth() +
-                   aReflowState.ComputedPhysicalPadding().LeftRight(),
-                   aReflowState.ComputedHeight() +
-                   aReflowState.ComputedPhysicalPadding().TopBottom());
+  nsSize availSize(aReflowState.ComputedWidth(), 
+                   aReflowState.ComputedHeight());
+  availSize.width = std::max(availSize.width, 0);
+  availSize.height = std::max(availSize.height, 0);
   
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, 
                                    aKid, availSize);
 
   
-  
-  kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
-  kidReflowState.SetComputedWidth(aReflowState.ComputedWidth());
+  nscoord width = availSize.width;
+  width -= kidReflowState.ComputedPhysicalMargin().LeftRight() +
+              kidReflowState.ComputedPhysicalBorderPadding().LeftRight();
+  width = std::max(width, 0);
+  kidReflowState.SetComputedWidth(width);
+
+  nscoord height = availSize.height;
+  height -= kidReflowState.ComputedPhysicalMargin().TopBottom() +
+              kidReflowState.ComputedPhysicalBorderPadding().TopBottom();
+  height = std::max(height, 0);       
+  kidReflowState.SetComputedHeight(height); 
 
   
-  kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
-  kidReflowState.SetComputedWidth(aReflowState.ComputedWidth());
-
-  
-  nscoord xOffset = aReflowState.ComputedPhysicalBorderPadding().left -
-                    aReflowState.ComputedPhysicalPadding().left;
-  nscoord yOffset = aReflowState.ComputedPhysicalBorderPadding().top -
-                    aReflowState.ComputedPhysicalPadding().top;
+  nscoord xOffset = aReflowState.ComputedPhysicalBorderPadding().left
+                      + kidReflowState.ComputedPhysicalMargin().left;
+  nscoord yOffset = aReflowState.ComputedPhysicalBorderPadding().top
+                      + kidReflowState.ComputedPhysicalMargin().top;
 
   
   nsHTMLReflowMetrics desiredSize(aReflowState.GetWritingMode());

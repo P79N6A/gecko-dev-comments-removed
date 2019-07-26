@@ -54,7 +54,7 @@ input {
   
 
 
-  padding: 1px;
+  padding: 1px 0 1px 0;
   border: 2px inset ThreeDFace;
   background-color: -moz-Field;
   color: -moz-FieldText;
@@ -97,8 +97,6 @@ input::-moz-placeholder {
 textarea {
   margin: 1px 0 1px 0;
   border: 2px inset ThreeDFace;
-  
-  padding: 0px 1px;
   background-color: -moz-Field;
   color: -moz-FieldText;
   font: medium -moz-fixed;
@@ -129,7 +127,12 @@ textarea::-moz-placeholder {
   white-space: pre;
   overflow: auto;
   border: 0px !important;
-  padding: inherit !important;
+  
+
+
+
+
+  padding: 0px 1px !important;
   margin: 0px;
   text-decoration: inherit;
   -moz-text-decoration-color: inherit;
