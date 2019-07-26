@@ -312,9 +312,6 @@ let SessionStoreInternal = {
   _closedWindows: [],
 
   
-  _dirtyWindows: {},
-
-  
   _statesToRestore: {},
 
   
@@ -1000,7 +997,7 @@ let SessionStoreInternal = {
     var activeWindow = this._getMostRecentBrowserWindow();
     if (activeWindow)
       this.activeWindowSSiCache = activeWindow.__SSi || "";
-    this._dirtyWindows = [];
+    DirtyWindows.clear();
   },
 
   
@@ -2544,14 +2541,14 @@ let SessionStoreInternal = {
       this._forEachBrowserWindow(function(aWindow) {
         if (!this._isWindowLoaded(aWindow)) 
           return;
-        if (aUpdateAll || this._dirtyWindows[aWindow.__SSi] || aWindow == activeWindow) {
+        if (aUpdateAll || DirtyWindows.has(aWindow) || aWindow == activeWindow) {
           this._collectWindowData(aWindow);
         }
         else { 
           this._updateWindowFeatures(aWindow);
         }
       });
-      this._dirtyWindows = [];
+      DirtyWindows.clear();
     }
 
     
@@ -2682,7 +2679,7 @@ let SessionStoreInternal = {
       this._windows[aWindow.__SSi].__lastSessionWindowID =
         aWindow.__SS_lastSessionWindowID;
 
-    this._dirtyWindows[aWindow.__SSi] = false;
+    DirtyWindows.remove(aWindow);
   },
 
   
@@ -3010,7 +3007,7 @@ let SessionStoreInternal = {
 
       
       
-      this._dirtyWindows[aWindow.__SSi] = true;
+      DirtyWindows.add(aWindow);
     }
 
     if (aTabs.length == 0) {
@@ -3701,7 +3698,7 @@ let SessionStoreInternal = {
 
   saveStateDelayed: function ssi_saveStateDelayed(aWindow = null, aDelay = 2000) {
     if (aWindow) {
-      this._dirtyWindows[aWindow.__SSi] = true;
+      DirtyWindows.add(aWindow);
     }
 
     if (!this._saveTimer) {
@@ -4686,6 +4683,28 @@ let DyingWindowCache = {
 
   remove: function (window) {
     this._data.delete(window);
+  }
+};
+
+
+
+let DirtyWindows = {
+  _data: new WeakMap(),
+
+  has: function (window) {
+    return this._data.has(window);
+  },
+
+  add: function (window) {
+    return this._data.set(window, true);
+  },
+
+  remove: function (window) {
+    this._data.delete(window);
+  },
+
+  clear: function (window) {
+    this._data.clear();
   }
 };
 
