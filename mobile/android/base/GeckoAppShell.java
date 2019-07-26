@@ -236,7 +236,6 @@ public class GeckoAppShell
     
     
     
-    public static native void schedulePauseComposition();
     public static native void scheduleResumeComposition(int width, int height);
 
     public static native float computeRenderIntegrity();
