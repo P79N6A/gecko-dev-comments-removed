@@ -112,4 +112,9 @@ taskHelper.push(function testReadAdnContacts() {
 });
 
 
+taskHelper.push(function testReadSdnContacts() {
+  testReadContacts("sdn");
+});
+
+
 taskHelper.runNext();
