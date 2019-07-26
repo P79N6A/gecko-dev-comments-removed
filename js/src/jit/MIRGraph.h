@@ -110,6 +110,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     bool increaseSlots(size_t num);
+    bool ensureHasSlots(size_t num);
 
     
     

@@ -1579,11 +1579,7 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_CALLGNAME:
       {
         PropertyName *name = info().getAtom(pc)->asPropertyName();
-        JSObject *obj = &script()->global();
-        bool succeeded;
-        if (!getStaticName(obj, name, &succeeded))
-            return false;
-        return succeeded || jsop_getname(name);
+        return jsop_getgname(name);
       }
 
       case JSOP_BINDGNAME:
@@ -6500,6 +6496,32 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
 }
 
 bool
+IonBuilder::jsop_getgname(PropertyName *name)
+{
+    JSObject *obj = &script()->global();
+    bool succeeded;
+    if (!getStaticName(obj, name, &succeeded))
+        return false;
+    if (succeeded)
+        return true;
+
+    types::TemporaryTypeSet *types = bytecodeTypes(pc);
+    
+    
+    if (!current->ensureHasSlots(1))
+        return false;
+    pushConstant(ObjectValue(*obj));
+    if (!getPropTryCommonGetter(&succeeded, name, types))
+        return false;
+    if (succeeded)
+        return true;
+
+    
+    current->pop();
+    return jsop_getname(name);
+}
+
+bool
 IonBuilder::jsop_getname(PropertyName *name)
 {
     MDefinition *object;
@@ -8742,6 +8764,10 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
     }
 
     
+
+    
+    if (!current->ensureHasSlots(2))
+        return false;
     pushConstant(ObjectValue(*commonGetter));
 
     current->push(obj);
@@ -9026,11 +9052,8 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
 
     
     
-    uint32_t depth = current->stackDepth() + 3;
-    if (depth > current->nslots()) {
-        if (!current->increaseSlots(depth - current->nslots()))
-            return false;
-    }
+    if (!current->ensureHasSlots(3))
+        return false;
 
     pushConstant(ObjectValue(*commonSetter));
 
