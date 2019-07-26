@@ -96,6 +96,14 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
+            if (ins->isNewDerivedTypedObject()) {
+                MOZ_ASSERT(ins->canRecoverOnBailout());
+                continue;
+            }
+
+            
+            
+            
             if (ins->isImplicitlyUsed())
                 continue;
 
