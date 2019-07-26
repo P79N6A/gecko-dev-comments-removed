@@ -214,13 +214,16 @@ CollectNewLoadedModules()
 
   CloseHandle(hModuleSnap);
 }
+#endif 
 
 NS_IMETHODIMP
 nsAppShell::Run(void)
 {
+#if defined(_MSC_VER) && defined(_M_IX86)
   LoadedModuleInfo modules[NUM_LOADEDMODULEINFO];
   memset(modules, 0, sizeof(modules));
   sLoadedModules = modules;	
+#endif
 
   
   
@@ -230,13 +233,13 @@ nsAppShell::Run(void)
 
   mozilla::widget::StopAudioSession();
 
+#if defined(_MSC_VER) && defined(_M_IX86)
   
   sLoadedModules = nullptr;
+#endif
 
   return rv;
 }
-
-#endif
 
 NS_IMETHODIMP
 nsAppShell::Exit(void)
