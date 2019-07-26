@@ -76,6 +76,13 @@ TextureClientX11::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
     return false;
   }
 
+  if (!(mFlags & TextureFlags::DEALLOCATE_CLIENT)) {
+    
+    
+    
+    mSurface->ReleasePixmap();
+  }
+
   aOutDescriptor = SurfaceDescriptorX11(mSurface);
   return true;
 }
@@ -84,6 +91,7 @@ bool
 TextureClientX11::AllocateForSurface(IntSize aSize, TextureAllocationFlags aTextureFlags)
 {
   MOZ_ASSERT(IsValid());
+  MOZ_ASSERT(!IsAllocated());
   
 
   gfxContentType contentType = ContentForFormat(mFormat);
@@ -95,9 +103,6 @@ TextureClientX11::AllocateForSurface(IntSize aSize, TextureAllocationFlags aText
 
   mSize = aSize;
   mSurface = static_cast<gfxXlibSurface*>(surface.get());
-
-  
-  mSurface->ReleasePixmap();
 
   if (!mAllocator->IsSameProcess()) {
     FinishX(DefaultXDisplay());
