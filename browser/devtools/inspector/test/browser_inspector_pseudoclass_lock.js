@@ -68,14 +68,12 @@ function performTests()
   
   inspector.selection.once("pseudoclass", () => {
     
-    executeSoon(() => {
+    inspector.once("rule-view-refreshed", () => {
       testAdded();
-
       
       inspector.togglePseudoClass(pseudo);
       inspector.selection.once("pseudoclass", () => {
-        
-        executeSoon(() => {
+        inspector.once("rule-view-refreshed", () => {
           testRemoved();
           testRemovedFromUI();
 
