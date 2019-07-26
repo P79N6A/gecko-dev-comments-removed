@@ -1881,6 +1881,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
+
   addProperties: function V_addProperties(aProperties, aOptions = {}) {
     let propertyNames = Object.keys(aProperties);
 
@@ -1890,7 +1891,12 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     }
     
     for (let name of propertyNames) {
-      this.addProperty(name, aProperties[name]);
+      let descriptor = aProperties[name];
+      let property = this.addProperty(name, descriptor);
+
+      if (aOptions.callback) {
+        aOptions.callback(property, descriptor.value);
+      }
     }
   },
 
@@ -1942,17 +1948,32 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
+  _populateTarget: function V__populateTarget(aVar, aObject = aVar._sourceValue) {
+    aVar.populate(aObject);
+  },
+
+  
+
+
+
+
+
+
+
+
+
 
   _addRawValueProperty: function V__addRawValueProperty(aName, aDescriptor, aValue) {
     let descriptor = Object.create(aDescriptor);
     descriptor.value = VariablesView.getGrip(aValue);
 
     let propertyItem = this.addProperty(aName, descriptor);
+    propertyItem._sourceValue = aValue;
 
     
     
     if (!VariablesView.isPrimitive(descriptor)) {
-      propertyItem.onexpand = this.populate.bind(propertyItem, aValue);
+      propertyItem.onexpand = this._populateTarget;
     }
   },
 
@@ -1970,8 +1991,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     descriptor.get = VariablesView.getGrip(aDescriptor.get);
     descriptor.set = VariablesView.getGrip(aDescriptor.set);
 
-    let propertyItem = this.addProperty(aName, descriptor);
-    return propertyItem;
+    this.addProperty(aName, descriptor);
   },
 
   

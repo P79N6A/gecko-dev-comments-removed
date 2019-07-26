@@ -429,6 +429,9 @@ function StackFrames() {
   this._onFrames = this._onFrames.bind(this);
   this._onFramesCleared = this._onFramesCleared.bind(this);
   this._afterFramesCleared = this._afterFramesCleared.bind(this);
+  this._fetchScopeVariables = this._fetchScopeVariables.bind(this);
+  this._fetchVarProperties = this._fetchVarProperties.bind(this);
+  this._addVarExpander = this._addVarExpander.bind(this);
   this.evaluate = this.evaluate.bind(this);
 }
 
@@ -687,7 +690,7 @@ StackFrames.prototype = {
       
       if (environment == frame.environment) {
         this._insertScopeFrameReferences(scope, frame);
-        this._fetchScopeVariables(scope, environment);
+        this._addScopeExpander(scope, environment);
         
         scope.expand();
       }
@@ -713,12 +716,12 @@ StackFrames.prototype = {
 
 
   _addScopeExpander: function SF__addScopeExpander(aScope, aEnv) {
-    let callback = this._fetchScopeVariables.bind(this, aScope, aEnv);
+    aScope._sourceEnvironment = aEnv;
 
     
-    aScope.addEventListener("mouseover", callback, false);
+    aScope.addEventListener("mouseover", this._fetchScopeVariables, false);
     
-    aScope.onexpand = callback;
+    aScope.onexpand = this._fetchScopeVariables;
   },
 
   
@@ -735,15 +738,15 @@ StackFrames.prototype = {
     if (VariablesView.isPrimitive({ value: aGrip })) {
       return;
     }
-    let callback = this._fetchVarProperties.bind(this, aVar, aGrip);
+    aVar._sourceGrip = aGrip;
 
     
     
     if (aVar.name == "window" || aVar.name == "this") {
-      aVar.addEventListener("mouseover", callback, false);
+      aVar.addEventListener("mouseover", this._fetchVarProperties, false);
     }
     
-    aVar.onexpand = callback;
+    aVar.onexpand = this._fetchVarProperties;
   },
 
   
@@ -792,20 +795,19 @@ StackFrames.prototype = {
 
 
 
-
-
-  _fetchScopeVariables: function SF__fetchScopeVariables(aScope, aEnv) {
+  _fetchScopeVariables: function SF__fetchScopeVariables(aScope) {
     
     if (aScope._fetched) {
       return;
     }
     aScope._fetched = true;
+    let env = aScope._sourceEnvironment;
 
-    switch (aEnv.type) {
+    switch (env.type) {
       case "with":
       case "object":
         
-        this.activeThread.pauseGrip(aEnv.object).getPrototypeAndProperties(function(aResponse) {
+        this.activeThread.pauseGrip(env.object).getPrototypeAndProperties(function(aResponse) {
           this._insertScopeVariables(aResponse.ownProperties, aScope);
 
           
@@ -816,15 +818,15 @@ StackFrames.prototype = {
       case "block":
       case "function":
         
-        this._insertScopeArguments(aEnv.bindings.arguments, aScope);
-        this._insertScopeVariables(aEnv.bindings.variables, aScope);
+        this._insertScopeArguments(env.bindings.arguments, aScope);
+        this._insertScopeVariables(env.bindings.variables, aScope);
 
         
         
         
         break;
       default:
-        Cu.reportError("Unknown Debugger.Environment type: " + aEnv.type);
+        Cu.reportError("Unknown Debugger.Environment type: " + env.type);
         break;
     }
   },
@@ -903,26 +905,26 @@ StackFrames.prototype = {
 
 
 
-
-
-  _fetchVarProperties: function SF__fetchVarProperties(aVar, aGrip) {
+  _fetchVarProperties: function SF__fetchVarProperties(aVar) {
     
     if (aVar._fetched) {
       return;
     }
     aVar._fetched = true;
+    let grip = aVar._sourceGrip;
 
-    this.activeThread.pauseGrip(aGrip).getPrototypeAndProperties(function(aResponse) {
+    this.activeThread.pauseGrip(grip).getPrototypeAndProperties(function(aResponse) {
       let { ownProperties, prototype } = aResponse;
-      let sortable = VARIABLES_VIEW_NON_SORTABLE.indexOf(aGrip.class) == -1;
+      let sortable = VARIABLES_VIEW_NON_SORTABLE.indexOf(grip.class) == -1;
 
       
       if (ownProperties) {
-        aVar.addProperties(ownProperties, { sorted: sortable });
-        
-        for (let name in ownProperties) {
-          this._addVarExpander(aVar.get(name), ownProperties[name].value);
-        }
+        aVar.addProperties(ownProperties, {
+          
+          sorted: sortable,
+          
+          callback: this._addVarExpander
+        });
       }
 
       
