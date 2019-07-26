@@ -4380,6 +4380,3 @@ pref("dom.forms.inputmode", false);
 #else
 pref("dom.forms.inputmode", true);
 #endif
-
-
-pref("dom.mozInputMethod.enabled", false);
