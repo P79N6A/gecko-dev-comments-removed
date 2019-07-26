@@ -41,6 +41,15 @@ MarkPagesInUse(JSRuntime *rt, void *p, size_t size);
 size_t
 GetPageFaultCount();
 
+
+
+void *
+AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
+
+
+void
+DeallocateMappedContent(void *p, size_t length);
+
 } 
 } 
 

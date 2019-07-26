@@ -41,9 +41,12 @@ enum TransferableOwnership {
     SCTAG_TMO_SHARED_BUFFER = 3,
 
     
+    SCTAG_TMO_MAPPED_DATA = 4,
+
     
     
-    SCTAG_TMO_CUSTOM = 4,
+    
+    SCTAG_TMO_CUSTOM = 5,
 
     SCTAG_TMO_USER_MIN
 };
