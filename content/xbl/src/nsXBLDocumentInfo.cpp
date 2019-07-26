@@ -160,7 +160,8 @@ nsXBLDocGlobalObject_finalize(JSFreeOp *fop, JSObject *obj)
     sgo->OnFinalize(obj);
 
   
-  NS_RELEASE(nativeThis);
+  
+  nsContentUtils::DeferredFinalize(nativeThis);
 }
 
 static bool
