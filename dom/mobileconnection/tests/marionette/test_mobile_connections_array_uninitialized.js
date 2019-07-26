@@ -1,32 +1,13 @@
 
 
 
-MARIONETTE_TIMEOUT = 1000;
+MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
+startTestCommon(function() {
+  let connections =
+    workingFrame.contentWindow.navigator.mozMobileConnections;
 
-
-
-let ifr = document.createElement("iframe");
-let connections;
-
-ifr.onload = function() {
-  connections = ifr.contentWindow.navigator.mozMobileConnections;
-
-  
-  ok(connections);
-  is(connections.length, 1);
-
-  ifr.parentNode.removeChild(ifr);
-  ifr = null;
-  connections = null;
-
-  SpecialPowers.gc();
-  cleanUp();
-};
-document.body.appendChild(ifr);
-
-function cleanUp() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+  let num = SpecialPowers.getIntPref("ril.numRadioInterfaces");
+  is(connections.length, num, "ril.numRadioInterfaces");
+});
