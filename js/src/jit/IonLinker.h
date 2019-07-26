@@ -28,6 +28,7 @@ class Linker
         return nullptr;
     }
 
+    template <AllowGC allowGC>
     IonCode *newCode(JSContext *cx, JSC::ExecutableAllocator *execAlloc, JSC::CodeKind kind) {
         JS_ASSERT(kind == JSC::ION_CODE ||
                   kind == JSC::BASELINE_CODE ||
@@ -53,8 +54,8 @@ class Linker
         
         codeStart = (uint8_t *)AlignBytes((uintptr_t)codeStart, CodeAlignment);
         uint32_t headerSize = codeStart - result;
-        IonCode *code = IonCode::New(cx, codeStart,
-                                     bytesNeeded - headerSize, pool);
+        IonCode *code = IonCode::New<allowGC>(cx, codeStart,
+                                              bytesNeeded - headerSize, pool);
         if (!code)
             return nullptr;
         if (masm.oom())
@@ -75,14 +76,15 @@ class Linker
         masm.finish();
     }
 
+    template <AllowGC allowGC>
     IonCode *newCode(JSContext *cx, JSC::CodeKind kind) {
-        return newCode(cx, cx->compartment()->jitCompartment()->execAlloc(), kind);
+        return newCode<allowGC>(cx, cx->compartment()->jitCompartment()->execAlloc(), kind);
     }
 
     IonCode *newCodeForIonScript(JSContext *cx) {
 #ifdef JS_CPU_ARM
         
-        return newCode(cx, JSC::ION_CODE);
+        return newCode<CanGC>(cx, JSC::ION_CODE);
 #else
         
         
@@ -92,7 +94,7 @@ class Linker
         if (!alloc)
             return nullptr;
 
-        return newCode(cx, alloc, JSC::ION_CODE);
+        return newCode<CanGC>(cx, alloc, JSC::ION_CODE);
 #endif
     }
 };

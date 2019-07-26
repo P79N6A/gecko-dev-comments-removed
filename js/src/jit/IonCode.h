@@ -131,6 +131,7 @@ class IonCode : public gc::BarrieredCell<IonCode>
     
     
     
+    template <AllowGC allowGC>
     static IonCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool);
 
   public:
