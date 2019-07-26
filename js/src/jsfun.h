@@ -141,6 +141,8 @@ class JSFunction : public JSObject
         return isNative() || isSelfHostedBuiltin();
     }
     bool isInterpretedConstructor() const {
+        
+        
         return isInterpreted() && !isFunctionPrototype() &&
                (!isSelfHostedBuiltin() || isSelfHostedConstructor());
     }

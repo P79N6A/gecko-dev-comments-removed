@@ -1421,6 +1421,47 @@ MacroAssembler::finish()
 }
 
 void
+MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch, Label *label)
+{
+    
+    
+    JS_STATIC_ASSERT(offsetof(JSFunction, nargs) % sizeof(uint32_t) == 0);
+    JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
+    JS_STATIC_ASSERT(IS_LITTLE_ENDIAN);
+
+    
+    
+    
+    
+    
+    
+
+    
+    load32(Address(fun, offsetof(JSFunction, nargs)), scratch);
+    branchTest32(Assembler::Zero, scratch, Imm32(JSFunction::INTERPRETED << 16), label);
+
+    
+    
+    Label done;
+    uint32_t bits = (JSFunction::IS_FUN_PROTO | JSFunction::SELF_HOSTED) << 16;
+    branchTest32(Assembler::Zero, scratch, Imm32(bits), &done);
+    {
+        
+        
+        
+        
+        branchTest32(Assembler::Zero, scratch, Imm32(JSFunction::SELF_HOSTED_CTOR << 16), label);
+
+#ifdef DEBUG
+        
+        branchTest32(Assembler::Zero, scratch, Imm32(JSFunction::IS_FUN_PROTO << 16), &done);
+        breakpoint();
+#endif
+    }
+    bind(&done);
+}
+
+void
 MacroAssembler::branchEqualTypeIfNeeded(MIRType type, MDefinition *def, const Register &tag,
                                         Label *label)
 {

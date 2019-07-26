@@ -1681,7 +1681,11 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.branchPtr(Assembler::NotEqual, nargsreg, ImmWord(&JSFunction::class_), &invoke);
 
     
-    masm.branchIfFunctionHasNoScript(calleereg, &invoke);
+    
+    if (call->mir()->isConstructing())
+        masm.branchIfNotInterpretedConstructor(calleereg, nargsreg, &invoke);
+    else
+        masm.branchIfFunctionHasNoScript(calleereg, &invoke);
 
     
     masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
@@ -1789,6 +1793,8 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     JS_ASSERT(!target->isNative());
     
     JS_ASSERT(target->nargs <= call->numStackArgs());
+
+    JS_ASSERT_IF(call->mir()->isConstructing(), target->isInterpretedConstructor());
 
     masm.checkStackAlignment();
 
