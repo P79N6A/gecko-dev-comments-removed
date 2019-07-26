@@ -367,6 +367,11 @@ public:
 
   
   virtual void NotifyLastByteRange() { }
+
+  
+  
+  
+  virtual const nsACString& GetContentType() const = 0;
 };
 
 class BaseMediaResource : public MediaResource {
@@ -375,17 +380,27 @@ public:
   virtual void MoveLoadsToBackground();
 
 protected:
-  BaseMediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  BaseMediaResource(MediaDecoder* aDecoder,
+                    nsIChannel* aChannel,
+                    nsIURI* aURI,
+                    const nsACString& aContentType) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
+    mContentType(aContentType),
     mLoadInBackground(false)
   {
     MOZ_COUNT_CTOR(BaseMediaResource);
+    NS_ASSERTION(!mContentType.IsEmpty(), "Must know content type");
   }
   virtual ~BaseMediaResource()
   {
     MOZ_COUNT_DTOR(BaseMediaResource);
+  }
+
+  virtual const nsACString& GetContentType() const MOZ_OVERRIDE
+  {
+    return mContentType;
   }
 
   
@@ -408,6 +423,11 @@ protected:
 
   
   
+  
+  const nsAutoCString mContentType;
+
+  
+  
   bool mLoadInBackground;
 };
 
@@ -422,7 +442,10 @@ protected:
 class ChannelMediaResource : public BaseMediaResource
 {
 public:
-  ChannelMediaResource(MediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
+  ChannelMediaResource(MediaDecoder* aDecoder,
+                       nsIChannel* aChannel,
+                       nsIURI* aURI,
+                       const nsACString& aContentType);
   ~ChannelMediaResource();
 
   
