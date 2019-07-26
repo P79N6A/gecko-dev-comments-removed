@@ -1,4 +1,4 @@
 
 
-for (var [[x]] of Int32Array(0))
+for (var [[x]] of new Int32Array(0))
     throw "FAIL";

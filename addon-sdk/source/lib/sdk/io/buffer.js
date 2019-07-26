@@ -44,7 +44,7 @@ function Buffer(subject, encoding ) {
     case 'number':
       
       try {
-        let buffer = Uint8Array(subject > 0 ? Math.floor(subject) : 0);
+        let buffer = new Uint8Array(subject > 0 ? Math.floor(subject) : 0);
         return buffer;
       } catch (e) {
         if (/size and count too large/.test(e.message) ||
@@ -58,7 +58,7 @@ function Buffer(subject, encoding ) {
       
       
       encoding = encoding || 'utf8';
-      return Uint8Array(new TextEncoder(encoding).encode(subject).buffer);
+      return new Uint8Array(new TextEncoder(encoding).encode(subject).buffer);
     case 'object':
       
       
@@ -67,10 +67,10 @@ function Buffer(subject, encoding ) {
       
       
       if (arguments.length === 3)
-        return Uint8Array(subject, encoding, arguments[2]);
+        return new Uint8Array(subject, encoding, arguments[2]);
       
       else
-        return Uint8Array(subject);
+        return new Uint8Array(subject);
     default:
       throw new TypeError('must start with number, buffer, array or string');
   }
@@ -146,7 +146,7 @@ Object.defineProperties(Buffer.prototype, {
     get: function () {
       let view = views.get(this, undefined);
       if (view) return view;
-      view = DataView(this.buffer);
+      view = new DataView(this.buffer);
       views.set(this, view);
       return view;
     }

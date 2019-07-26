@@ -1,5 +1,5 @@
 
 
 
-var x = Int32Array();
+var x = new Int32Array();
 x.set(x);

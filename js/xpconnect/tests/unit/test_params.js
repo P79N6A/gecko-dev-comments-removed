@@ -180,10 +180,10 @@ function test_component(contractid) {
                                     [makeB(), makeB(), makeB()], 3, Ci['nsIXPCTestInterfaceB']);
 
   
-  doTypedArrayMismatchTest("testShortArray", Int16Array([-3, 7, 4]), 4,
-                                             Int16Array([1, -32, 6]), 3);
+  doTypedArrayMismatchTest("testShortArray", new Int16Array([-3, 7, 4]), 4,
+                                             new Int16Array([1, -32, 6]), 3);
 
   
-  doTypedArrayMismatchTest("testShortArray", Uint16Array([0, 7, 4, 3]), 4,
-                                             Uint16Array([1, 5, 6]), 3);
+  doTypedArrayMismatchTest("testShortArray", new Uint16Array([0, 7, 4, 3]), 4,
+                                             new Uint16Array([1, 5, 6]), 3);
 }
