@@ -85,7 +85,7 @@ namespace JSC {
 
   class ExecutableAllocator;
 
-  enum CodeKind { ION_CODE, BASELINE_CODE, REGEXP_CODE, OTHER_CODE };
+  enum CodeKind { ION_CODE = 0, BASELINE_CODE, REGEXP_CODE, OTHER_CODE };
 
   
   class ExecutablePool {
@@ -129,6 +129,31 @@ public:
         
         if (--m_refCount == 0)
             js_delete(this);
+    }
+    void release(size_t n, CodeKind kind)
+    {
+        switch (kind) {
+          case ION_CODE:
+            m_ionCodeBytes -= n;
+            MOZ_ASSERT(m_ionCodeBytes < m_allocation.size); 
+            break;
+          case BASELINE_CODE:
+            m_baselineCodeBytes -= n;
+            MOZ_ASSERT(m_baselineCodeBytes < m_allocation.size);
+            break;
+          case REGEXP_CODE:
+            m_regexpCodeBytes -= n;
+            MOZ_ASSERT(m_regexpCodeBytes < m_allocation.size);
+            break;
+          case OTHER_CODE:
+            m_otherCodeBytes -= n;
+            MOZ_ASSERT(m_otherCodeBytes < m_allocation.size);
+            break;
+          default:
+            MOZ_ASSUME_UNREACHABLE("bad code kind");
+        }
+
+        release();
     }
 
     ExecutablePool(ExecutableAllocator* allocator, Allocation a)
@@ -226,7 +251,8 @@ public:
         
         
         
-        n = roundUpAllocationSize(n, sizeof(void*));
+        JS_ASSERT(roundUpAllocationSize(n, sizeof(void*)) == n);
+
         if (n == OVERSIZE_ALLOCATION) {
             *poolp = NULL;
             return NULL;
@@ -347,7 +373,7 @@ public:
         ExecutablePool* pool = createPool(largeAllocSize);
         if (!pool)
             return NULL;
-  	    
+        
 
         if (m_smallPools.length() < maxSmallPools) {
             
@@ -373,7 +399,7 @@ public:
             }
         }
 
-   	    
+        
         return pool;
     }
 
