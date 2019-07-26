@@ -20,7 +20,6 @@
 #include "nsCOMPtr.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
-#include "mozilla/SHA1.h"
 #include <sys/stat.h>
 #include <vector>
 #include <algorithm>
@@ -38,40 +37,6 @@ struct FuncData {
     void *Function;        
     void *Buffer;          
                            
-};
-
-
-
-class SHA1Stream
-{
-public:
-    SHA1Stream(int aFd) {
-        MozillaRegisterDebugFD(aFd);
-        mFile = fdopen(aFd, "w");
-    }
-    void Printf(const char *aFormat, ...)
-    {
-        MOZ_ASSERT(mFile);
-        va_list list;
-        va_start(list, aFormat);
-        nsAutoCString str;
-        str.AppendPrintf(aFormat, list);
-        va_end(list);
-        mSHA1.update(reinterpret_cast<const uint8_t*>(str.get()), str.Length());
-        fwrite(str.get(), 1, str.Length(), mFile);
-    }
-    void Finish(SHA1Sum::Hash &aHash)
-    {
-        int fd = fileno(mFile);
-        fflush(mFile);
-        MozillaUnRegisterDebugFD(fd);
-        fclose(mFile);
-        mSHA1.finish(aHash);
-        mFile = NULL;
-    }
-private:
-    FILE *mFile;
-    SHA1Sum mSHA1;
 };
 
 void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
@@ -102,22 +67,19 @@ bool ValidWriteAssert(bool ok)
                             "/Telemetry.LateWriteTmpXXXXXX");
     char *name;
     nameAux.GetMutableData(&name);
-
-    
-    
     int fd = mkstemp(name);
-    SHA1Stream sha1Stream(fd);
-    fd = 0;
+    MozillaRegisterDebugFD(fd);
+    FILE *f = fdopen(fd, "w");
 
     size_t numModules = stack.GetNumModules();
-    sha1Stream.Printf("%u\n", (unsigned)numModules);
+    fprintf(f, "%zu\n", numModules);
     for (int i = 0; i < numModules; ++i) {
         Telemetry::ProcessedStack::Module module = stack.GetModule(i);
-        sha1Stream.Printf("%s\n", module.mName.c_str());
+        fprintf(f, "%s\n", module.mName.c_str());
     }
 
     size_t numFrames = stack.GetStackSize();
-    sha1Stream.Printf("%u\n", (unsigned)numFrames);
+    fprintf(f, "%zu\n", numFrames);
     for (size_t i = 0; i < numFrames; ++i) {
         const Telemetry::ProcessedStack::Frame &frame =
             stack.GetFrame(i);
@@ -130,23 +92,18 @@ bool ValidWriteAssert(bool ok)
         
         
         
-        sha1Stream.Printf("%d %x\n", frame.mModIndex, (unsigned)frame.mOffset);
+        fprintf(f, "%d %jx\n", frame.mModIndex, frame.mOffset);
     }
 
-    SHA1Sum::Hash sha1;
-    sha1Stream.Finish(sha1);
+    fflush(f);
+    MozillaUnRegisterDebugFD(fd);
+    fclose(f);
 
     
     
     
-    
-
-    
-    
-    nsPrintfCString finalName("%s%s", sProfileDirectory, "/Telemetry.LateWriteFinal-");
-    for (int i = 0; i < 20; ++i) {
-        finalName.AppendPrintf("%02x", sha1[i]);
-    }
+    nsPrintfCString finalName("%s%s", sProfileDirectory,
+                              "/Telemetry.LateWriteFinal-last");
     PR_Delete(finalName.get());
     PR_Rename(name, finalName.get());
     return false;
