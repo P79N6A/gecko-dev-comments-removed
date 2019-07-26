@@ -1396,13 +1396,14 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     const Register argJSContext = ToRegister(call->getArgJSContext());
     const Register argObj       = ToRegister(call->getArgObj());
     const Register argPrivate   = ToRegister(call->getArgPrivate());
-    const Register argArgc      = ToRegister(call->getArgArgc());
-    const Register argVp        = ToRegister(call->getArgVp());
+    const Register argArgs      = ToRegister(call->getArgArgs());
 
     DebugOnly<uint32_t> initialStack = masm.framePushed();
 
     masm.checkStackAlignment();
 
+    
+    
     
     
     
@@ -1418,15 +1419,25 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     
     
     masm.Push(ObjectValue(*target));
-    masm.movePtr(StackPointer, argVp);
+
+    
+    
+    
+    JS_STATIC_ASSERT(JSJitMethodCallArgs::offsetOfArgv() == 0);
+    JS_STATIC_ASSERT(JSJitMethodCallArgs::offsetOfArgc() ==
+                     IonDOMMethodExitFrameLayout::offsetOfArgcFromArgv());
+    masm.computeEffectiveAddress(Address(StackPointer, 2 * sizeof(Value)), argArgs);
 
     
     masm.loadPrivate(Address(obj, JSObject::getFixedSlotOffset(0)), argPrivate);
 
     
-    masm.move32(Imm32(call->numStackArgs()), argArgc);
+    masm.Push(Imm32(call->numStackArgs()));
+
     
-    masm.Push(argArgc);
+    masm.Push(argArgs);
+    
+    masm.movePtr(StackPointer, argArgs);
 
     
     
@@ -1444,15 +1455,14 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
         return false;
 
     
-    masm.setupUnalignedABICall(5, argJSContext);
+    masm.setupUnalignedABICall(4, argJSContext);
 
     masm.loadJSContext(argJSContext);
 
     masm.passABIArg(argJSContext);
     masm.passABIArg(argObj);
     masm.passABIArg(argPrivate);
-    masm.passABIArg(argArgc);
-    masm.passABIArg(argVp);
+    masm.passABIArg(argArgs);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->jitInfo()->method));
 
     if (target->jitInfo()->isInfallible) {
@@ -6566,6 +6576,9 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
     
     
     masm.Push(UndefinedValue());
+    
+    
+    JS_STATIC_ASSERT(sizeof(JSJitGetterCallArgs) == sizeof(Value*));
     masm.movePtr(StackPointer, ValueReg);
 
     masm.Push(ObjectReg);
@@ -6632,6 +6645,9 @@ CodeGenerator::visitSetDOMProperty(LSetDOMProperty *ins)
     
     ValueOperand argVal = ToValue(ins, LSetDOMProperty::Value);
     masm.Push(argVal);
+    
+    
+    JS_STATIC_ASSERT(sizeof(JSJitSetterCallArgs) == sizeof(Value*));
     masm.movePtr(StackPointer, ValueReg);
 
     masm.Push(ObjectReg);
