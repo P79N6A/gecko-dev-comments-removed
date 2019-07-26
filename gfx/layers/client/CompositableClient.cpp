@@ -6,7 +6,6 @@
 #include "mozilla/layers/CompositableClient.h"
 #include <stdint.h>                     
 #include "gfxPlatform.h"                
-#include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/TextureClientOGL.h"
@@ -68,6 +67,13 @@ CompositableClient::HoldUntilComplete(PCompositableChild* aActor, AsyncTransacti
 {
   CompositableChild* child = static_cast<CompositableChild*>(aActor);
   child->HoldUntilComplete(aTracker);
+}
+
+ uint64_t
+CompositableClient::GetTrackersHolderId(PCompositableChild* aActor)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  return child->GetId();
 }
 
  PCompositableChild*

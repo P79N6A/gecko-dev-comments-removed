@@ -336,7 +336,7 @@ gfxPlatform::Init()
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
-    AsyncTransactionTracker::Initialize();
+    AsyncTransactionTrackersHolder::Initialize();
 
     
 
