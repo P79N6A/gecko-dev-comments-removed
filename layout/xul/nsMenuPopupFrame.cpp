@@ -1336,11 +1336,12 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
 
   
   
-  nsPoint viewPoint = screenPoint - rootScreenRect.TopLeft();
+  screenPoint.x = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.x);
+  screenPoint.y = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.y);
 
   
-  viewPoint.x = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.x);
-  viewPoint.y = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.y);
+  
+  nsPoint viewPoint = screenPoint - rootScreenRect.TopLeft();
 
   nsView* view = GetView();
   NS_ASSERTION(view, "popup with no view");
