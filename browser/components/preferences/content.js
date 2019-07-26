@@ -63,8 +63,6 @@ var gContentPane = {
 
 
 
-
-
   
 
   
@@ -76,17 +74,6 @@ var gContentPane = {
     this._showExceptions("popup");
   },
 
-  
-
-  
-
-
-
-  showAdvancedJS: function ()
-  {
-    document.documentElement.openSubDialog("chrome://browser/content/preferences/advanced-scripts.xul",
-                                           "", null);  
-  },
 
   
 
