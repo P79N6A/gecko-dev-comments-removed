@@ -302,7 +302,7 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
     
     
     if (dirname === CSPRep.ALLOW_DIRECTIVE) {
-      cspWarn(aCSPR, CSPLocalizer.getStr("allowDirectiveDeprecated"));
+      cspWarn(aCSPR, CSPLocalizer.getStr("allowDirectiveIsDeprecated"));
       if (aCSPR._directives.hasOwnProperty(SD.DEFAULT_SRC)) {
         
         cspError(aCSPR, CSPLocalizer.getFormatStr("duplicateDirective",
