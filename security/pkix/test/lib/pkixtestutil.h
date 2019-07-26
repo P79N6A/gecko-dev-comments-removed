@@ -46,6 +46,9 @@ public:
   uint8_t responseStatus; 
   bool skipResponseBytes; 
 
+  static const uint32_t MaxIncludedCertificates = 4;
+  pkix::ScopedCERTCertificate includedCertificates[MaxIncludedCertificates];
+
   
   
   PRTime producedAt;

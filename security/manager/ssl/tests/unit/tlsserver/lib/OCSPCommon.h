@@ -31,7 +31,11 @@ enum OCSPResponseType
   ORTBadSignature,     
   ORTSkipResponseBytes, 
   ORTCriticalExtension, 
-  ORTNoncriticalExtension 
+  ORTNoncriticalExtension, 
+  ORTDelegatedIncluded, 
+  ORTDelegatedIncludedLast, 
+  ORTDelegatedMissing, 
+  ORTDelegatedMissingMultiple, 
 };
 
 struct OCSPHost
