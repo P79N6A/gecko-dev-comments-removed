@@ -1388,4 +1388,4 @@ pref("ui.key.menuAccessKeyFocuses", true);
 
 
 
-pref("browser.cache.use_new_backend_temp", true);
+pref("browser.cache.auto_delete_cache_version", 1);
