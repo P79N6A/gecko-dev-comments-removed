@@ -33,6 +33,7 @@ struct cubeb {
 
 #define NELEMS(A) (sizeof(A) / sizeof A[0])
 #define NBUFS 4
+#define AUDIO_STREAM_TYPE_MUSIC 3
 
 struct cubeb_stream {
   cubeb * context;
@@ -45,6 +46,7 @@ struct cubeb_stream {
   long bytespersec;
   long framesize;
   int draining;
+  cubeb_stream_type stream_type;
 
   cubeb_data_callback data_callback;
   cubeb_state_callback state_callback;
@@ -224,59 +226,6 @@ opensl_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 }
 
 static int
-opensl_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * latency_ms)
-{
-  
-
-
-
-  int rv;
-  void * libmedia;
-  uint32_t (*get_primary_output_samplingrate)(void);
-  size_t (*get_primary_output_frame_count)(void);
-  uint32_t primary_sampling_rate;
-  size_t primary_buffer_size;
-
-  libmedia = dlopen("libmedia.so", RTLD_LAZY);
-  if (!libmedia) {
-    return CUBEB_ERROR;
-  }
-
-  
-  get_primary_output_samplingrate =
-    dlsym(libmedia, "_ZN7android11AudioSystem28getPrimaryOutputSamplingRateEv");
-  if (!get_primary_output_samplingrate) {
-    dlclose(libmedia);
-    return CUBEB_ERROR;
-  }
-
-  
-  get_primary_output_frame_count =
-    dlsym(libmedia, "_ZN7android11AudioSystem26getPrimaryOutputFrameCountEv");
-  if (!get_primary_output_frame_count) {
-    dlclose(libmedia);
-    return CUBEB_ERROR;
-  }
-
-  primary_sampling_rate = get_primary_output_samplingrate();
-  primary_buffer_size = get_primary_output_frame_count();
-
-  
-
-
-  if (primary_sampling_rate != params.rate) {
-    
-    *latency_ms = NBUFS * 20;
-  } else {
-    *latency_ms = NBUFS * primary_buffer_size / (primary_sampling_rate / 1000);
-  }
-
-  dlclose(libmedia);
-
-  return CUBEB_OK;
-}
-
-static int
 opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
 {
   
@@ -285,6 +234,7 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
   int rv;
   void * libmedia;
   uint32_t (*get_primary_output_samplingrate)();
+  uint32_t (*get_output_samplingrate)(int * samplingRate, int streamType);
   uint32_t primary_sampling_rate;
 
   libmedia = dlopen("libmedia.so", RTLD_LAZY);
@@ -296,17 +246,95 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
   get_primary_output_samplingrate =
     dlsym(libmedia, "_ZN7android11AudioSystem28getPrimaryOutputSamplingRateEv");
   if (!get_primary_output_samplingrate) {
-    dlclose(libmedia);
-    return CUBEB_ERROR;
+    
+
+
+    get_output_samplingrate =
+      dlsym(libmedia, "_ZN7android11AudioSystem21getOutputSamplingRateEPj19audio_stream_type_t");
+    if (!get_output_samplingrate) {
+      
+      get_output_samplingrate =
+        dlsym(libmedia, "_ZN7android11AudioSystem21getOutputSamplingRateEPii");
+      if (!get_output_samplingrate) {
+        dlclose(libmedia);
+        return CUBEB_ERROR;
+      }
+    }
   }
 
-  *rate = get_primary_output_samplingrate();
+  if (get_primary_output_samplingrate) {
+    *rate = get_primary_output_samplingrate();
+  } else {
+    
+    rv = get_output_samplingrate((int *) rate, AUDIO_STREAM_TYPE_MUSIC);
+    if (rv) {
+      dlclose(libmedia);
+      return CUBEB_ERROR;
+    }
+  }
 
   dlclose(libmedia);
 
   return CUBEB_OK;
 }
 
+static int
+opensl_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * latency_ms)
+{
+  
+
+
+
+  int rv;
+  void * libmedia;
+  size_t (*get_primary_output_frame_count)(void);
+  int (*get_output_frame_count)(int * frameCount, int streamType);
+  uint32_t primary_sampling_rate;
+  size_t primary_buffer_size;
+
+  rv = opensl_get_preferred_sample_rate(ctx, &primary_sampling_rate);
+
+  if (rv) {
+    return CUBEB_ERROR;
+  }
+
+  libmedia = dlopen("libmedia.so", RTLD_LAZY);
+  if (!libmedia) {
+    return CUBEB_ERROR;
+  }
+
+  
+  
+  get_primary_output_frame_count =
+    dlsym(libmedia, "_ZN7android11AudioSystem26getPrimaryOutputFrameCountEv");
+  if (!get_primary_output_frame_count) {
+    
+    
+    get_output_frame_count =
+      dlsym(libmedia, "_ZN7android11AudioSystem19getOutputFrameCountEPii");
+    if (!get_output_frame_count) {
+      dlclose(libmedia);
+      return CUBEB_ERROR;
+    }
+  }
+
+  if (get_primary_output_frame_count) {
+    primary_buffer_size = get_primary_output_frame_count();
+  } else {
+    if (get_output_frame_count(&primary_buffer_size, params.stream_type) != 0) {
+      return CUBEB_ERROR;
+    }
+  }
+
+  
+
+
+  *latency_ms = NBUFS * primary_buffer_size / (primary_sampling_rate / 1000);
+
+  dlclose(libmedia);
+
+  return CUBEB_OK;
+}
 
 static void
 opensl_destroy(cubeb * ctx)
@@ -370,6 +398,7 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   stm->state_callback = state_callback;
   stm->user_ptr = user_ptr;
 
+  stm->stream_type = stream_params.stream_type;
   stm->framesize = stream_params.channels * sizeof(int16_t);
   stm->bytespersec = stream_params.rate * stm->framesize;
   stm->queuebuf_len = (stm->bytespersec * latency) / (1000 * NBUFS);
@@ -504,7 +533,54 @@ opensl_stream_get_position(cubeb_stream * stm, uint64_t * position)
 int
 opensl_stream_get_latency(cubeb_stream * stm, uint32_t * latency)
 {
-  *latency = NBUFS * stm->queuebuf_len;
+  int rv;
+  void * libmedia;
+  int32_t (*get_output_latency)(uint32_t * latency, int stream_type);
+  uint32_t mixer_latency;
+  uint32_t samplerate;
+
+  
+
+  rv = opensl_get_preferred_sample_rate(stm->context, &samplerate);
+  if (rv) {
+    return CUBEB_ERROR;
+  }
+
+  libmedia = dlopen("libmedia.so", RTLD_LAZY);
+  if (!libmedia) {
+    return CUBEB_ERROR;
+  }
+
+  
+  
+
+  
+    get_output_latency =
+      dlsym(libmedia, "_ZN7android11AudioSystem16getOutputLatencyEPj19audio_stream_type_t");
+  if (!get_output_latency) {
+    
+    
+
+    get_output_latency =
+      dlsym(libmedia, "_ZN7android11AudioSystem16getOutputLatencyEPji");
+    if (!get_output_latency) {
+      dlclose(libmedia);
+      return CUBEB_ERROR;
+    }
+  }
+
+  
+  rv = get_output_latency(&mixer_latency, stm->stream_type);
+
+  if (rv) {
+    dlclose(libmedia);
+    return CUBEB_ERROR;
+  }
+
+  *latency = NBUFS * stm->queuebuf_len / stm->framesize + 
+             mixer_latency * samplerate / 1000; 
+
+  dlclose(libmedia);
 
   return CUBEB_OK;
 }
