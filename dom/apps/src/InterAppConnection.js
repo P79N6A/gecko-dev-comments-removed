@@ -100,5 +100,43 @@ InterAppConnectionRequest.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([InterAppConnection,
-                                                     InterAppConnectionRequest]);
+
+
+
+
+
+
+
+
+
+function InterAppConnectionRequestWrapper() {
+  debug("InterAppConnectionRequestWrapper()");
+}
+
+InterAppConnectionRequestWrapper.prototype = {
+  
+  wrapMessage: function(aMessage, aWindow) {
+    debug("wrapMessage: " + JSON.stringify(aMessage));
+
+    let port = new aWindow.MozInterAppMessagePort(aMessage.keyword,
+                                                  aMessage.messagePortID, false);
+    let connectionRequest =
+      new aWindow.MozInterAppConnectionRequest(aMessage.keyword, port);
+
+    return connectionRequest;
+  },
+
+  classDescription: "InterAppConnectionRequestWrapper",
+
+  classID: Components.ID("{d7c7a466-f91d-11e2-812a-6fab12ece58e}"),
+
+  contractID: "@mozilla.org/dom/system-messages/wrapper/connection;1",
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISystemMessagesWrapper])
+}
+
+
+this.NSGetFactory =
+  XPCOMUtils.generateNSGetFactory([InterAppConnection,
+                                   InterAppConnectionRequest,
+                                   InterAppConnectionRequestWrapper]);
