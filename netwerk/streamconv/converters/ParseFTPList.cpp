@@ -486,10 +486,7 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
 
-              uint64_t fsz, factor;
-              LL_UI2L(fsz, strtoul(tokens[1], (char **)0, 10));
-              LL_UI2L(factor, 512);
-              fsz *= factor;
+              uint64_t fsz = uint64_t(strtoul(tokens[1], (char **)0, 10) * 512);
               PR_snprintf(result->fe_size, sizeof(result->fe_size), 
                           "%lld", fsz);
             } 
