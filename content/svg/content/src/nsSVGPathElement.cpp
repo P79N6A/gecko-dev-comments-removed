@@ -319,7 +319,7 @@ nsSVGPathElement::GetNumberInfo()
 
 
 
-NS_IMETHODIMP nsSVGPathElement::GetPathSegList(nsIDOMSVGPathSegList * *aPathSegList)
+NS_IMETHODIMP nsSVGPathElement::GetPathSegList(nsISupports * *aPathSegList)
 {
   void *key = mD.GetBaseValKey();
   *aPathSegList = DOMSVGPathSegList::GetDOMWrapper(key, this, false).get();
@@ -327,13 +327,13 @@ NS_IMETHODIMP nsSVGPathElement::GetPathSegList(nsIDOMSVGPathSegList * *aPathSegL
 }
 
 
-NS_IMETHODIMP nsSVGPathElement::GetNormalizedPathSegList(nsIDOMSVGPathSegList * *aNormalizedPathSegList)
+NS_IMETHODIMP nsSVGPathElement::GetNormalizedPathSegList(nsISupports * *aNormalizedPathSegList)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsSVGPathElement::GetAnimatedPathSegList(nsIDOMSVGPathSegList * *aAnimatedPathSegList)
+NS_IMETHODIMP nsSVGPathElement::GetAnimatedPathSegList(nsISupports * *aAnimatedPathSegList)
 {
   void *key = mD.GetAnimValKey();
   *aAnimatedPathSegList =
@@ -342,7 +342,7 @@ NS_IMETHODIMP nsSVGPathElement::GetAnimatedPathSegList(nsIDOMSVGPathSegList * *a
 }
 
 
-NS_IMETHODIMP nsSVGPathElement::GetAnimatedNormalizedPathSegList(nsIDOMSVGPathSegList * *aAnimatedNormalizedPathSegList)
+NS_IMETHODIMP nsSVGPathElement::GetAnimatedNormalizedPathSegList(nsISupports * *aAnimatedNormalizedPathSegList)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
