@@ -4578,7 +4578,7 @@ IsDeterministicGCReason(gcreason::Reason reason)
 #endif
 
 static bool
-ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason)
+ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason, JSGCInvocationKind gckind)
 {
     
     
@@ -4589,7 +4589,8 @@ ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason)
     
     return !rt->hasContexts() ||
            reason == gcreason::SHUTDOWN_CC ||
-           reason == gcreason::DEBUG_MODE_GC;
+           reason == gcreason::DEBUG_MODE_GC ||
+           gckind == GC_SHRINK;
 }
 
 static void
@@ -4657,7 +4658,7 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
             collectedCount++;
     }
 
-    rt->gcShouldCleanUpEverything = ShouldCleanUpEverything(rt, reason);
+    rt->gcShouldCleanUpEverything = ShouldCleanUpEverything(rt, reason, gckind);
 
     gcstats::AutoGCSlice agc(rt->gcStats, collectedCount, compartmentCount, reason);
 
