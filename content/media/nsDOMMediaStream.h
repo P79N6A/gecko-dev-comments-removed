@@ -70,7 +70,7 @@ public:
   
 
 
-  static already_AddRefed<nsDOMMediaStream> CreateTrackUnionStream(uint32_t aHintContents = 0);
+  static already_AddRefed<nsDOMMediaStream> CreateTrackUnionStream();
 
 protected:
   
@@ -106,7 +106,7 @@ public:
   
 
 
-  static already_AddRefed<nsDOMLocalMediaStream> CreateTrackUnionStream(uint32_t aHintContents = 0);
+  static already_AddRefed<nsDOMLocalMediaStream> CreateTrackUnionStream();
 };
 
 #endif 

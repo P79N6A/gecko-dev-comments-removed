@@ -262,29 +262,21 @@ public:
 
     
     nsRefPtr<nsDOMLocalMediaStream> stream;
-    nsRefPtr<nsDOMLocalMediaStream> trackunion;
     uint32_t hints = (mAudioSource ? nsDOMMediaStream::HINT_CONTENTS_AUDIO : 0);
     hints |= (mVideoSource ? nsDOMMediaStream::HINT_CONTENTS_VIDEO : 0);
 
-    stream     = nsDOMLocalMediaStream::CreateSourceStream(hints);
-    trackunion = nsDOMLocalMediaStream::CreateTrackUnionStream(hints);
-    if (!stream || !trackunion) {
+    stream = nsDOMLocalMediaStream::CreateSourceStream(hints);
+    if (!stream) {
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
       LOG(("Returning error for getUserMedia() - no stream"));
       error->OnError(NS_LITERAL_STRING("NO_STREAM"));
       return NS_OK;
     }
-    
-    trackunion->GetStream()->AsProcessedStream()->SetAutofinish(true);
-    nsRefPtr<MediaInputPort> port = trackunion->GetStream()->AsProcessedStream()->
-      AllocateInputPort(stream->GetStream()->AsSourceStream(),
-                        MediaInputPort::FLAG_BLOCK_OUTPUT);
 
     nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
       (nsGlobalWindow::GetInnerWindowWithId(mWindowID));
     if (window && window->GetExtantDoc()) {
       stream->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
-      trackunion->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
     }
 
     
@@ -295,7 +287,6 @@ public:
     
     GetUserMediaCallbackMediaStreamListener* listener =
       new GetUserMediaCallbackMediaStreamListener(mediaThread, stream,
-                                                  port.forget(),
                                                   mAudioSource,
                                                   mVideoSource);
     stream->GetStream()->AddListener(listener);
@@ -320,7 +311,7 @@ public:
     
     
     LOG(("Returning success for getUserMedia()"));
-    success->OnSuccess(static_cast<nsIDOMLocalMediaStream*>(trackunion));
+    success->OnSuccess(static_cast<nsIDOMLocalMediaStream*>(stream));
 
     return NS_OK;
   }
