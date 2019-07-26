@@ -24,7 +24,7 @@ import java.util.ArrayList;
 
 
 
-public class FaviconsLoader {
+class FaviconsLoader {
     
     private static final String FAVICONS_LOADER_URLS_ARG = "urls";
 

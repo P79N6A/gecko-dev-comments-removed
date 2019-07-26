@@ -36,7 +36,7 @@ import android.widget.Toast;
 
 
 
-public class HomeFragment extends Fragment {
+class HomeFragment extends Fragment {
     
     private static final String LOGTAG="GeckoHomeFragment";
 

@@ -17,7 +17,7 @@ import org.mozilla.gecko.R;
 
 
 
-public class HomePagerTabStrip extends PagerTabStrip {
+class HomePagerTabStrip extends PagerTabStrip {
 
     public HomePagerTabStrip(Context context) {
         super(context);
