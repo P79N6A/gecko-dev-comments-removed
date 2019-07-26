@@ -389,6 +389,7 @@ public:
   virtual const char* Name() const = 0;
 #endif 
 
+  virtual LayersBackend GetBackendType() const = 0;
 
   
 

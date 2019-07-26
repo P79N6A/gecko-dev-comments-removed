@@ -150,6 +150,10 @@ public:
   virtual const char* Name() const MOZ_OVERRIDE { return "OGL"; }
 #endif 
 
+  virtual LayersBackend GetBackendType() const MOZ_OVERRIDE {
+    return LayersBackend::LAYERS_OPENGL;
+  }
+
   virtual void Pause() MOZ_OVERRIDE;
   virtual bool Resume() MOZ_OVERRIDE;
 
