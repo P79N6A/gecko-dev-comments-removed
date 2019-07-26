@@ -755,14 +755,6 @@ public:
     
     
     
-    
-    static bool
-    ValidateSFNTHeaders(const uint8_t *aFontData, uint32_t aFontDataLength);
-    
-    
-    
-    
-    
     static nsresult
     GetFullNameFromSFNT(const uint8_t* aFontData, uint32_t aLength,
                         nsAString& aFullName);

@@ -18,8 +18,6 @@
 #include "nsIPrincipal.h"
 #include "mozilla/Telemetry.h"
 
-#include "woff.h"
-
 #include "opentype-sanitiser.h"
 #include "ots-memory-stream.h"
 
@@ -200,58 +198,6 @@ gfxUserFontSet::FindFontEntry(gfxFontFamily *aFamily,
         (proxyEntry->mLoadingState < gfxProxyFontEntry::LOADING_SLOWLY);
 
     
-    return nullptr;
-}
-
-
-
-
-
-
-
-static const uint8_t*
-PrepareOpenTypeData(const uint8_t* aData, uint32_t* aLength)
-{
-    switch(gfxFontUtils::DetermineFontDataType(aData, *aLength)) {
-    
-    case GFX_USERFONT_OPENTYPE:
-        
-        return aData;
-        
-    case GFX_USERFONT_WOFF: {
-        uint32_t status = eWOFF_ok;
-        uint32_t bufferSize = woffGetDecodedSize(aData, *aLength, &status);
-        if (WOFF_FAILURE(status)) {
-            break;
-        }
-        uint8_t* decodedData = static_cast<uint8_t*>(NS_Alloc(bufferSize));
-        if (!decodedData) {
-            break;
-        }
-        woffDecodeToBuffer(aData, *aLength,
-                           decodedData, bufferSize,
-                           aLength, &status);
-        
-        NS_Free((void*)aData);
-        aData = decodedData;
-        if (WOFF_FAILURE(status)) {
-            
-            break;
-        }
-        
-        return aData;
-    }
-
-    
-
-    default:
-        NS_WARNING("unknown font format");
-        break;
-    }
-
-    
-    NS_Free((void*)aData);
-
     return nullptr;
 }
 
@@ -668,85 +614,48 @@ gfxUserFontSet::LoadFont(gfxMixedFontFamily *aFamily,
 
     
     
-    
-    
-    
-    
-    nsTArray<uint8_t> metadata;
-    uint32_t metaOrigLen = 0;
-    if (fontType == GFX_USERFONT_WOFF) {
-        CopyWOFFMetadata(aFontData, aLength, &metadata, &metaOrigLen);
-    }
-
-    
-    
 
     
     
     
     nsAutoString originalFullName;
 
-    if (gfxPlatform::GetPlatform()->SanitizeDownloadedFonts()) {
-       
-        
-        uint32_t saneLen;
-        const uint8_t* saneData =
-            SanitizeOpenTypeData(aFamily, aProxy, aFontData, aLength, saneLen,
-                                 fontType == GFX_USERFONT_WOFF);
-        if (!saneData) {
-            LogMessage(aFamily, aProxy, "rejected by sanitizer");
-        }
-        if (saneData) {
-            
-            
-            
-            
-            gfxFontUtils::GetFullNameFromSFNT(saneData, saneLen,
-                                              originalFullName);
-            
-            
-            fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
-                                                              saneData,
-                                                              saneLen);
-            if (!fe) {
-                LogMessage(aFamily, aProxy, "not usable by platform");
-            }
-        }
-    } else {
-        
-        
-        
-        aFontData = PrepareOpenTypeData(aFontData, &aLength);
-
-        if (aFontData) {
-            if (gfxFontUtils::ValidateSFNTHeaders(aFontData, aLength)) {
-                
-                
-                gfxFontUtils::GetFullNameFromSFNT(aFontData, aLength,
-                                                  originalFullName);
-                
-                
-                fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
-                                                                  aFontData,
-                                                                  aLength);
-                if (!fe) {
-                    LogMessage(aFamily, aProxy, "not usable by platform");
-                }
-                aFontData = nullptr; 
-            } else {
-                
-                
-                LogMessage(aFamily, aProxy, "SFNT header or tables invalid");
-            }
-        }
+    
+    
+    uint32_t saneLen;
+    const uint8_t* saneData =
+        SanitizeOpenTypeData(aFamily, aProxy, aFontData, aLength, saneLen,
+                             fontType == GFX_USERFONT_WOFF);
+    if (!saneData) {
+        LogMessage(aFamily, aProxy, "rejected by sanitizer");
     }
-
-    if (aFontData) {
-        NS_Free((void*)aFontData);
-        aFontData = nullptr;
+    if (saneData) {
+        
+        
+        
+        
+        gfxFontUtils::GetFullNameFromSFNT(saneData, saneLen,
+                                          originalFullName);
+        
+        
+        fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
+                                                          saneData,
+                                                          saneLen);
+        if (!fe) {
+            LogMessage(aFamily, aProxy, "not usable by platform");
+        }
     }
 
     if (fe) {
+        
+        
+        
+        nsTArray<uint8_t> metadata;
+        uint32_t metaOrigLen = 0;
+        if (fontType == GFX_USERFONT_WOFF) {
+            CopyWOFFMetadata(aFontData, aLength, &metadata, &metaOrigLen);
+        }
+
         
         
         fe->mFeatureSettings.AppendElements(aProxy->mFeatureSettings);
@@ -777,6 +686,10 @@ gfxUserFontSet::LoadFont(gfxMixedFontFamily *aFamily,
         }
 #endif
     }
+
+    
+    
+    NS_Free((void*)aFontData);
 
     return fe;
 }

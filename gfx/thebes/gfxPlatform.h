@@ -318,11 +318,6 @@ public:
     
 
 
-    bool SanitizeDownloadedFonts();
-
-    
-
-
 
 
 
@@ -570,7 +565,6 @@ protected:
     }
 
     int8_t  mAllowDownloadableFonts;
-    int8_t  mDownloadableFontsSanitize;
 #ifdef MOZ_GRAPHITE
     int8_t  mGraphiteShapingEnabled;
 #endif
