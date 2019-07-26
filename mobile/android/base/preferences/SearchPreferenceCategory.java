@@ -45,17 +45,16 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
 
         
         GeckoAppShell.registerEventListener("SearchEngines:Data", this);
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
-    }
-
-    @Override
-    protected void onPrepareForRemoval() {
-        GeckoAppShell.unregisterEventListener("SearchEngines:Data", this);
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
     }
 
     @Override
     public void handleMessage(String event, final JSONObject data) {
         if (event.equals("SearchEngines:Data")) {
+            
+            
+            GeckoAppShell.unregisterEventListener("SearchEngines:Data", this);
+
             
             JSONArray engines;
             try {
@@ -64,9 +63,6 @@ public class SearchPreferenceCategory extends PreferenceCategory implements Geck
                 Log.e(LOGTAG, "Unable to decode search engine data from Gecko.", e);
                 return;
             }
-
-            
-            this.removeAll();
 
             
             for (int i = 0; i < engines.length(); i++) {
