@@ -29,10 +29,13 @@
 #define JS_DESCR_SLOT_ARRAY_ELEM_TYPE    3
 
 
+#define JS_DESCR_SLOT_SIZED_ARRAY_LENGTH 4
+
+
 #define JS_DESCR_SLOT_STRUCT_FIELD_TYPES 3
 
 
-#define JS_DESCR_SLOTS                   4
+#define JS_DESCR_SLOTS                   5
 
 
 
