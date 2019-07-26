@@ -15,8 +15,13 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 
 function run_test() {
-  makeFakeAppDir().then(run_next_test, do_throw);
+  run_next_test();
 }
+
+
+add_task(function test_init() {
+  yield makeFakeAppDir();
+});
 
 let gPending = {};
 let gSubmitted = {};
