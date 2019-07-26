@@ -73,7 +73,8 @@ public:
 
 
 
-  nsContentView* GetContentView(ViewID aId = FrameMetrics::ROOT_SCROLL_ID);
+  nsContentView* GetContentView(ViewID aId);
+  nsContentView* GetRootContentView();
 
   void ContentViewScaleChanged(nsContentView* aView);
 
@@ -119,6 +120,7 @@ public:
 
   void UpdateZoomConstraints(uint32_t aPresShellId,
                              ViewID aViewId,
+                             bool aIsRoot,
                              bool aAllowZoom,
                              const CSSToScreenScale& aMinZoom,
                              const CSSToScreenScale& aMaxZoom);
