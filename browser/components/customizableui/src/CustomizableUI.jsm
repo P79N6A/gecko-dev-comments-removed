@@ -2151,11 +2151,15 @@ let CustomizableUIInternal = {
     Services.prefs.setCharPref(kPrefCustomizationState, uiCustomizationState);
     Services.prefs.setBoolPref(kPrefDrawInTitlebar, drawInTitlebar);
     this.loadSavedState();
-    for (let areaId of Object.keys(gSavedState.placements)) {
-      let placements = gSavedState.placements[areaId];
-      gPlacements.set(areaId, placements);
+    
+    
+    if (gSavedState) {
+      for (let areaId of Object.keys(gSavedState.placements)) {
+        let placements = gSavedState.placements[areaId];
+        gPlacements.set(areaId, placements);
+      }
+      this._rebuildRegisteredAreas();
     }
-    this._rebuildRegisteredAreas();
   },
 
   _clearPreviousUIState: function() {
