@@ -325,6 +325,10 @@ WebGLContext::CheckFramebufferStatus(GLenum target)
         return LOCAL_GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
     if(mBoundFramebuffer->HasAttachmentsOfMismatchedDimensions())
         return LOCAL_GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
+
+    
+    mBoundFramebuffer->FinalizeAttachments();
+
     return gl->fCheckFramebufferStatus(target);
 }
 
@@ -2288,7 +2292,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width,
         
         
         uint32_t subrect_plainRowSize = subrect_width * bytesPerPixel;
-	
+    
         uint32_t subrect_alignedRowSize = 
             RoundedToNextMultipleOf(subrect_plainRowSize, mPixelStorePackAlignment).value();
         uint32_t subrect_byteLength = (subrect_height-1)*subrect_alignedRowSize + subrect_plainRowSize;
