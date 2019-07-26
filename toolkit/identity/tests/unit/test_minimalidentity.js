@@ -83,6 +83,25 @@ function test_request_forceAuthentication() {
 
 
 
+function test_request_forceIssuer() {
+  do_test_pending();
+
+  let mockedDoc = mock_doc(null, TEST_URL);
+  makeObserver("identity-controller-request", function (aSubject, aTopic, aData) {
+    do_check_eq(aSubject.wrappedJSObject.id, mockedDoc.id);
+    do_check_eq(aSubject.wrappedJSObject.origin, TEST_URL);
+    do_check_eq(aSubject.wrappedJSObject.issuer, "https://jed.gov");
+    do_test_finished();
+    run_next_test();
+   });
+
+  MinimalIDService.RP.watch(mockedDoc);
+  MinimalIDService.RP.request(mockedDoc.id, {issuer: "https://jed.gov"});
+}
+
+
+
+
 function test_logout() {
   do_test_pending();
 
@@ -103,6 +122,7 @@ let TESTS = [
   test_watch,
   test_request,
   test_request_forceAuthentication,
+  test_request_forceIssuer,
   test_logout
 ];
 
