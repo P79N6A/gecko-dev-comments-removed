@@ -255,6 +255,55 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnection", function () {
 
 
 
+    getPhoneNumber: function getPhoneNumber() {
+      let iccInfo = gRadioInterface.rilContext.iccInfo;
+
+      if (!iccInfo) {
+        return null;
+      }
+
+      let number = (iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)
+                 ? iccInfo.msisdn : iccInfo.mdn;
+
+      
+      
+      if (number === undefined || number === "undefined") {
+        return null;
+      }
+
+      return number;
+    },
+
+    
+
+
+    getIccId: function getIccId() {
+      let iccInfo = gRadioInterface.rilContext.iccInfo;
+
+      if (!iccInfo || !(iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)) {
+        return null;
+      }
+
+      let iccId = iccInfo.iccid;
+
+      
+      
+      if (iccId === undefined || iccId === "undefined") {
+        return null;
+      }
+
+      return iccId;
+    },
+
+    
+
+
+
+
+
+
+
+
 
 
     acquire: function acquire(callback) {
@@ -1290,33 +1339,6 @@ MmsService.prototype = {
 
 
 
-
-  getPhoneNumber: function getPhoneNumber() {
-    let iccInfo = gRadioInterface.rilContext.iccInfo;
-
-    if (!iccInfo) {
-      return null;
-    }
-
-    let number = (iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)
-               ? iccInfo.msisdn : iccInfo.mdn;
-
-    
-    
-    if (number === undefined || number === "undefined") {
-      return null;
-    }
-    return number;
-  },
-
-  
-
-
-
-
-
-
-
   convertIntermediateToSavable: function convertIntermediateToSavable(intermediate,
                                                                       retrievalMode) {
     intermediate.type = "mms";
@@ -1354,7 +1376,8 @@ MmsService.prototype = {
       intermediate.sender = "anonymous";
     }
     intermediate.receivers = [];
-    intermediate.phoneNumber = this.getPhoneNumber();
+    intermediate.phoneNumber = gMmsConnection.getPhoneNumber();
+    intermediate.iccId = gMmsConnection.getIccId();
     return intermediate;
   },
 
@@ -1368,7 +1391,8 @@ MmsService.prototype = {
 
 
 
-  mergeRetrievalConfirmation: function mergeRetrievalConfirmation(intermediate, savable) {
+  mergeRetrievalConfirmation: function mergeRetrievalConfirmation(intermediate,
+                                                                  savable) {
     savable.timestamp = Date.now();
     if (intermediate.headers.from) {
       savable.sender = intermediate.headers.from.address;
@@ -1644,7 +1668,8 @@ MmsService.prototype = {
         retrievalMode = Services.prefs.getCharPref(kPrefRetrievalMode);
       } catch (e) {}
 
-      let savableMessage = this.convertIntermediateToSavable(notification, retrievalMode);
+      let savableMessage = this.convertIntermediateToSavable(notification,
+                                                             retrievalMode);
 
       gMobileMessageDatabaseService
         .saveReceivedMessage(savableMessage,
@@ -1845,7 +1870,8 @@ MmsService.prototype = {
     aMessage["type"] = "mms";
     aMessage["timestamp"] = Date.now();
     aMessage["receivers"] = receivers;
-    aMessage["sender"] = this.getPhoneNumber();
+    aMessage["sender"] = gMmsConnection.getPhoneNumber();
+    aMessage["iccId"] = gMmsConnection.getIccId();
     try {
       aMessage["deliveryStatusRequested"] =
         Services.prefs.getBoolPref("dom.mms.requestStatusReport");
