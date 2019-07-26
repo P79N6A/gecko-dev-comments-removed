@@ -19,7 +19,7 @@ nsDOMCameraManager::GetCameraName(uint32_t aDeviceNum, nsCString& aDeviceName)
 
 
 NS_IMETHODIMP
-nsDOMCameraManager::GetListOfCameras(JSContext* cx, JS::Value* _retval)
+nsDOMCameraManager::GetListOfCameras(uint32_t *aCount, char * **aCameras)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
