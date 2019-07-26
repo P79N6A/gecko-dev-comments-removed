@@ -135,9 +135,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.3"
+#define SQLITE_VERSION        "3.8.3.1"
 #define SQLITE_VERSION_NUMBER 3008003
-#define SQLITE_SOURCE_ID      "2014-02-03 14:04:11 6c643e45c274e755dc5a1a65673df79261c774be"
+#define SQLITE_SOURCE_ID      "2014-02-11 14:52:19 ea3317a4803d71d88183b29f1d3086f46d68a00e"
 
 
 
@@ -41076,7 +41076,7 @@ static int writeMasterJournal(Pager *pPager, const char *zMaster){
 
 
 static PgHdr *pager_lookup(Pager *pPager, Pgno pgno){
-  PgHdr *p;                         
+  PgHdr *p = 0;                     
 
   
 
@@ -55451,15 +55451,6 @@ SQLITE_PRIVATE int sqlite3BtreeEof(BtCursor *pCur){
 
 
 
-
-
-
-
-
-
-
-
-
 SQLITE_PRIVATE int sqlite3BtreeNext(BtCursor *pCur, int *pRes){
   int rc;
   int idx;
@@ -55467,7 +55458,6 @@ SQLITE_PRIVATE int sqlite3BtreeNext(BtCursor *pCur, int *pRes){
 
   assert( cursorHoldsMutex(pCur) );
   assert( pRes!=0 );
-  assert( *pRes==0 || *pRes==1 );
   assert( pCur->skipNext==0 || pCur->eState!=CURSOR_VALID );
   if( pCur->eState!=CURSOR_VALID ){
     rc = restoreCursorPosition(pCur);
@@ -55547,22 +55537,12 @@ SQLITE_PRIVATE int sqlite3BtreeNext(BtCursor *pCur, int *pRes){
 
 
 
-
-
-
-
-
-
-
-
-
 SQLITE_PRIVATE int sqlite3BtreePrevious(BtCursor *pCur, int *pRes){
   int rc;
   MemPage *pPage;
 
   assert( cursorHoldsMutex(pCur) );
   assert( pRes!=0 );
-  assert( *pRes==0 || *pRes==1 );
   assert( pCur->skipNext==0 || pCur->eState!=CURSOR_VALID );
   pCur->atLast = 0;
   if( pCur->eState!=CURSOR_VALID ){
@@ -57789,7 +57769,7 @@ SQLITE_PRIVATE int sqlite3BtreeDelete(BtCursor *pCur){
 
 
   if( !pPage->leaf ){
-    int notUsed = 0;
+    int notUsed;
     rc = sqlite3BtreePrevious(pCur, &notUsed);
     if( rc ) return rc;
   }
@@ -70054,7 +70034,6 @@ case OP_SeekGt: {
 #endif
   if( oc>=OP_SeekGe ){  assert( oc==OP_SeekGe || oc==OP_SeekGt );
     if( res<0 || (res==0 && oc==OP_SeekGt) ){
-      res = 0;
       rc = sqlite3BtreeNext(pC->pCursor, &res);
       if( rc!=SQLITE_OK ) goto abort_due_to_error;
       pC->rowidIsValid = 0;
@@ -70064,7 +70043,6 @@ case OP_SeekGt: {
   }else{
     assert( oc==OP_SeekLt || oc==OP_SeekLe );
     if( res>0 || (res==0 && oc==OP_SeekLt) ){
-      res = 0;
       rc = sqlite3BtreePrevious(pC->pCursor, &res);
       if( rc!=SQLITE_OK ) goto abort_due_to_error;
       pC->rowidIsValid = 0;
@@ -70961,16 +70939,6 @@ case OP_Rewind: {
 
 
 
-
-
-
-
-
-
-
-
-
-
 case OP_SorterNext: {  
   VdbeCursor *pC;
   int res;
@@ -70988,12 +70956,9 @@ case OP_Next:
   assert( pOp->p1>=0 && pOp->p1<p->nCursor );
   assert( pOp->p5<ArraySize(p->aCounter) );
   pC = p->apCsr[pOp->p1];
-  res = pOp->p3;
   assert( pC!=0 );
   assert( pC->deferredMoveto==0 );
   assert( pC->pCursor );
-  assert( res==0 || (res==1 && pC->isTable==0) );
-  testcase( res==1 );
   assert( pOp->opcode!=OP_Next || pOp->p4.xAdvance==sqlite3BtreeNext );
   assert( pOp->opcode!=OP_Prev || pOp->p4.xAdvance==sqlite3BtreePrevious );
   assert( pOp->opcode!=OP_NextIfOpen || pOp->p4.xAdvance==sqlite3BtreeNext );
@@ -108490,7 +108455,7 @@ struct WhereLevel {
   int addrFirst;        
   int addrBody;         
   u8 iFrom;             
-  u8 op, p3, p5;        
+  u8 op, p5;            
   int p1, p2;           
   union {               
     struct {
@@ -108877,7 +108842,6 @@ struct WhereInfo {
 #define WHERE_MULTI_OR     0x00002000  /* OR using multiple indices */
 #define WHERE_AUTO_INDEX   0x00004000  /* Uses an ephemeral index */
 #define WHERE_SKIPSCAN     0x00008000  /* Uses the skip-scan algorithm */
-#define WHERE_UNQ_WANTED   0x00010000  /* WHERE_ONEROW would have been helpful*/
 
 
 
@@ -112047,8 +112011,6 @@ static Bitmask codeOneLoopStart(
       pLevel->op = OP_Next;
     }
     pLevel->p1 = iIdxCur;
-    assert( (WHERE_UNQ_WANTED>>16)==1 );
-    pLevel->p3 = (pLoop->wsFlags>>16)&1;
     if( (pLoop->wsFlags & WHERE_CONSTRAINT)==0 ){
       pLevel->p5 = SQLITE_STMTSTATUS_FULLSCAN_STEP;
     }else{
@@ -112179,7 +112141,9 @@ static Bitmask codeOneLoopStart(
         Expr *pExpr = pWC->a[iTerm].pExpr;
         if( &pWC->a[iTerm] == pTerm ) continue;
         if( ExprHasProperty(pExpr, EP_FromJoin) ) continue;
-        if( pWC->a[iTerm].wtFlags & (TERM_ORINFO) ) continue;
+        testcase( pWC->a[iTerm].wtFlags & TERM_ORINFO );
+        testcase( pWC->a[iTerm].wtFlags & TERM_VIRTUAL );
+        if( pWC->a[iTerm].wtFlags & (TERM_ORINFO|TERM_VIRTUAL) ) continue;
         if( (pWC->a[iTerm].eOperator & WO_ALL)==0 ) continue;
         pExpr = sqlite3ExprDup(db, pExpr, 0);
         pAndExpr = sqlite3ExprAnd(db, pAndExpr, pExpr);
@@ -112851,13 +112815,12 @@ static int whereLoopAddBtreeIndex(
         || nInMul==0
       );
       pNew->wsFlags |= WHERE_COLUMN_EQ;
-      if( iCol<0 || (nInMul==0 && pNew->u.btree.nEq==pProbe->nKeyCol-1)){
+      if( iCol<0  
+       || (pProbe->onError!=OE_None && nInMul==0
+           && pNew->u.btree.nEq==pProbe->nKeyCol-1)
+      ){
         assert( (pNew->wsFlags & WHERE_COLUMN_IN)==0 || iCol<0 );
-        if( iCol>=0 && pProbe->onError==OE_None ){
-          pNew->wsFlags |= WHERE_UNQ_WANTED;
-        }else{
-          pNew->wsFlags |= WHERE_ONEROW;
-        }
+        pNew->wsFlags |= WHERE_ONEROW;
       }
       pNew->u.btree.nEq++;
       pNew->nOut = nRowEst + nInMul;
@@ -114651,7 +114614,7 @@ SQLITE_PRIVATE void sqlite3WhereEnd(WhereInfo *pWInfo){
     pLoop = pLevel->pWLoop;
     sqlite3VdbeResolveLabel(v, pLevel->addrCont);
     if( pLevel->op!=OP_Noop ){
-      sqlite3VdbeAddOp3(v, pLevel->op, pLevel->p1, pLevel->p2, pLevel->p3);
+      sqlite3VdbeAddOp2(v, pLevel->op, pLevel->p1, pLevel->p2);
       sqlite3VdbeChangeP5(v, pLevel->p5);
     }
     if( pLoop->wsFlags & WHERE_IN_ABLE && pLevel->u.in.nIn>0 ){
