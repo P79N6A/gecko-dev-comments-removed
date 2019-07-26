@@ -3794,7 +3794,7 @@ var XULBrowserWindow = {
 
         
         BookmarksMenuButton.updateStarState();
-        SocialShareButton.updateShareState();
+        SocialMark.updateMarkState();
       }
 
       
