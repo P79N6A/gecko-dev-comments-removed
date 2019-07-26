@@ -12,6 +12,7 @@
 #include "GeckoProfiler.h"              
 #include "Layers.h"                     
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxUtils.h"                   
 #include "mozilla/ArrayUtils.h"         
 #include "mozilla/gfx/BasePoint.h"      
@@ -301,9 +302,17 @@ RotatedContentBuffer::BufferContentType()
 bool
 RotatedContentBuffer::BufferSizeOkFor(const nsIntSize& aSize)
 {
-  return (aSize == mBufferRect.Size() ||
-          (SizedToVisibleBounds != mBufferSizePolicy &&
-           aSize < mBufferRect.Size()));
+  if (aSize == mBufferRect.Size()) {
+    return true;
+  }
+
+  if (SizedToVisibleBounds != mBufferSizePolicy &&
+      aSize < mBufferRect.Size()) {
+    return (aSize.width * 2 > mBufferRect.width) &&
+           (aSize.height * 2 > mBufferRect.height);
+  }
+
+  return false;
 }
 
 bool
@@ -452,7 +461,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
           !aLayer->Manager()->IsCompositingCheap() ||
           !aLayer->AsShadowableLayer() ||
           !aLayer->AsShadowableLayer()->HasShadow() ||
-          !gfxPlatform::ComponentAlphaEnabled()) {
+          !gfxPrefs::ComponentAlphaEnabled()) {
         mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
         result.mContentType = gfxContentType::COLOR;
@@ -503,8 +512,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   
   FinalizeFrame(result.mRegionToDraw);
 
-  if (result.mRegionToDraw.IsEmpty())
+  if (result.mRegionToDraw.IsEmpty()) {
     return result;
+  }
 
   nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
   RefPtr<DrawTarget> destDTBuffer;

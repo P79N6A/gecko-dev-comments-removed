@@ -503,8 +503,6 @@ public:
 
     static bool GetPrefLayersOffMainThreadCompositionEnabled();
     static bool GetPrefLayersOffMainThreadCompositionForceEnabled();
-    static bool GetPrefLayersAccelerationForceEnabled();
-    static bool GetPrefLayersAccelerationDisabled();
     static bool GetPrefLayersPreferOpenGL();
     static bool GetPrefLayersPreferD3D9();
     static bool CanUseDirect3D9();
@@ -518,10 +516,10 @@ public:
     
 
 
+
+
     static bool BufferRotationEnabled();
     static void DisableBufferRotation();
-
-    static bool ComponentAlphaEnabled();
 
     
 

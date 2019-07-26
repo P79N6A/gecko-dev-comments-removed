@@ -10,7 +10,7 @@
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
 #include "gfxImageSurface.h"            
-#include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
@@ -271,11 +271,11 @@ ContainerRender(ContainerT* aContainer,
       
       if (HasOpaqueAncestorLayer(aContainer) &&
           transform3D.Is2D(&transform) && !ThebesMatrix(transform).HasNonIntegerTranslation()) {
-        surfaceCopyNeeded = gfxPlatform::ComponentAlphaEnabled();
+        surfaceCopyNeeded = gfxPrefs::ComponentAlphaEnabled();
         sourcePoint.x += transform._31;
         sourcePoint.y += transform._32;
         aContainer->mSupportsComponentAlphaChildren
-          = gfxPlatform::ComponentAlphaEnabled();
+          = gfxPrefs::ComponentAlphaEnabled();
       }
     }
 
@@ -348,7 +348,7 @@ ContainerRender(ContainerT* aContainer,
       layerToRender->RenderLayer(clipRect);
     }
 
-    if (gfxPlatform::GetPrefLayersScrollGraph()) {
+    if (gfxPrefs::LayersScrollGraph()) {
       DrawVelGraph(clipRect, aManager, layerToRender->GetLayer());
     }
     

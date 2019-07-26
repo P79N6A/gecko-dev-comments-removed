@@ -20,6 +20,7 @@
 #include "gfxMatrix.h"                  
 #include "GraphicsFilter.h"             
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
 #include "mozilla/ArrayUtils.h"         
@@ -1205,7 +1206,7 @@ CompositorOGL::DrawQuadInternal(const Rect& aRect,
     }
     break;
   case EFFECT_COMPONENT_ALPHA: {
-      MOZ_ASSERT(gfxPlatform::ComponentAlphaEnabled());
+      MOZ_ASSERT(gfxPrefs::ComponentAlphaEnabled());
       EffectComponentAlpha* effectComponentAlpha =
         static_cast<EffectComponentAlpha*>(aEffectChain.mPrimaryEffect.get());
       TextureSourceOGL* sourceOnWhite = effectComponentAlpha->mOnWhite->AsSourceOGL();

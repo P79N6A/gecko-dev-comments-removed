@@ -8,6 +8,7 @@
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxPoint.h"                   
 #include "gfxTeeSurface.h"              
 #include "gfxUtils.h"                   
@@ -1100,7 +1101,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
     }
 
     if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
-      if (!gfxPlatform::ComponentAlphaEnabled() ||
+      if (!gfxPrefs::ComponentAlphaEnabled() ||
           !aLayer->GetParent() ||
           !aLayer->GetParent()->SupportsComponentAlphaChildren()) {
         mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;

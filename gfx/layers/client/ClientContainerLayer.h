@@ -9,7 +9,7 @@
 #include <stdint.h>                     
 #include "ClientLayerManager.h"         
 #include "Layers.h"                     
-#include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
@@ -58,7 +58,7 @@ public:
             GetEffectiveTransform().Is2D(&transform) &&
             !gfx::ThebesMatrix(transform).HasNonIntegerTranslation()) {
           SetSupportsComponentAlphaChildren(
-            gfxPlatform::ComponentAlphaEnabled());
+            gfxPrefs::ComponentAlphaEnabled());
         }
       }
     } else {
