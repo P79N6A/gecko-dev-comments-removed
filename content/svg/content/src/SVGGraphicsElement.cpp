@@ -4,7 +4,6 @@
 
 
 #include "mozilla/dom/SVGGraphicsElement.h"
-#include "mozilla/dom/SVGGraphicsElementBinding.h"
 
 namespace mozilla {
 namespace dom {
