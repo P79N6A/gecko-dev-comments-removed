@@ -57,7 +57,7 @@ nsGfxButtonControlFrame::GetType() const
 
 
 bool
-nsGfxButtonControlFrame::IsFileBrowseButton(int32_t type)
+nsGfxButtonControlFrame::IsFileBrowseButton(int32_t type) const
 {
   bool rv = false;
   if (NS_FORM_INPUT_BUTTON == type) {
@@ -142,7 +142,7 @@ nsGfxButtonControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) cons
     
     
     nsXPIDLString temp;
-    rv = const_cast<nsGfxButtonControlFrame*>(this)->GetDefaultLabel(temp);
+    rv = GetDefaultLabel(temp);
     aValue = temp;
   } else {
     aValue.Truncate();
@@ -161,7 +161,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsHTMLButtonControlFrame)
 
 
 nsresult
-nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString)
+nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString) const
 {
   nsCOMPtr<nsIFormControl> form = do_QueryInterface(mContent);
   NS_ENSURE_TRUE(form, NS_ERROR_UNEXPECTED);
@@ -170,10 +170,10 @@ nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString)
   const char *prop;
   if (type == NS_FORM_INPUT_RESET) {
     prop = "Reset";
-  } 
+  }
   else if (type == NS_FORM_INPUT_SUBMIT) {
     prop = "Submit";
-  } 
+  }
   else if (IsFileBrowseButton(type)) {
     prop = "Browse";
   }

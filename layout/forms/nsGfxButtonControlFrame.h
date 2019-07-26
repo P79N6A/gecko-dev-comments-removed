@@ -61,11 +61,11 @@ public:
   virtual nsIFrame* GetContentInsertionFrame();
 
 protected:
-  nsresult GetDefaultLabel(nsXPIDLString& aLabel);
+  nsresult GetDefaultLabel(nsXPIDLString& aLabel) const;
 
   nsresult GetLabel(nsXPIDLString& aLabel);
 
-  bool IsFileBrowseButton(int32_t type); 
+  bool IsFileBrowseButton(int32_t type) const; 
 
   virtual bool IsInput() { return true; }
 private:
