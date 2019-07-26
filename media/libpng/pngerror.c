@@ -382,6 +382,10 @@ png_benign_error(png_const_structrp png_ptr, png_const_charp error_message)
 #     endif
       png_error(png_ptr, error_message);
    }
+
+#  ifndef PNG_ERROR_TEXT_SUPPORTED
+      PNG_UNUSED(error_message)
+#  endif
 }
 
 void 
@@ -391,6 +395,10 @@ png_app_warning(png_const_structrp png_ptr, png_const_charp error_message)
      png_warning(png_ptr, error_message);
   else
      png_error(png_ptr, error_message);
+
+#  ifndef PNG_ERROR_TEXT_SUPPORTED
+      PNG_UNUSED(error_message)
+#  endif
 }
 
 void 
@@ -400,6 +408,10 @@ png_app_error(png_const_structrp png_ptr, png_const_charp error_message)
      png_warning(png_ptr, error_message);
   else
      png_error(png_ptr, error_message);
+
+#  ifndef PNG_ERROR_TEXT_SUPPORTED
+      PNG_UNUSED(error_message)
+#  endif
 }
 #endif 
 
@@ -416,7 +428,8 @@ static PNG_CONST char png_digit[16] = {
 };
 
 #define PNG_MAX_ERROR_TEXT 196 /* Currently limited be profile_error in png.c */
-#if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
+#if defined(PNG_WARNINGS_SUPPORTED) || \
+   (defined(PNG_READ_SUPPORTED) && defined(PNG_ERROR_TEXT_SUPPORTED))
 static void 
 png_format_buffer(png_const_structrp png_ptr, png_charp buffer, png_const_charp
     error_message)
@@ -506,6 +519,10 @@ png_chunk_benign_error(png_const_structrp png_ptr, png_const_charp
 
    else
       png_chunk_error(png_ptr, error_message);
+
+#  ifndef PNG_ERROR_TEXT_SUPPORTED
+      PNG_UNUSED(error_message)
+#  endif
 }
 #endif
 #endif 
@@ -513,6 +530,10 @@ png_chunk_benign_error(png_const_structrp png_ptr, png_const_charp
 void 
 png_chunk_report(png_const_structrp png_ptr, png_const_charp message, int error)
 {
+#  ifndef PNG_WARNINGS_SUPPORTED
+      PNG_UNUSED(message)
+#  endif
+
    
 
 
@@ -741,6 +762,11 @@ png_longjmp,(png_const_structrp png_ptr, int val),PNG_NORETURN)
 #endif
 
    
+
+
+
+
+
    PNG_ABORT();
 }
 

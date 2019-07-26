@@ -149,8 +149,11 @@ png_set_write_fn(png_structrp png_ptr, png_voidp io_ptr,
 #  else
    png_ptr->output_flush_fn = output_flush_fn;
 #  endif
+#else
+   PNG_UNUSED(output_flush_fn)
 #endif 
 
+#ifdef PNG_READ_SUPPORTED
    
    if (png_ptr->read_data_fn != NULL)
    {
@@ -160,5 +163,6 @@ png_set_write_fn(png_structrp png_ptr, png_voidp io_ptr,
           "Can't set both read_data_fn and write_data_fn in the"
           " same structure");
    }
+#endif
 }
 #endif 

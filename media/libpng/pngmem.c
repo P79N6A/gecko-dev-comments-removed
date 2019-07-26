@@ -73,9 +73,10 @@ png_malloc_base,(png_const_structrp png_ptr, png_alloc_size_t size),
 
 
 
-#ifdef PNG_USER_MEM_SUPPORTED
+#ifndef PNG_USER_MEM_SUPPORTED
    PNG_UNUSED(png_ptr)
 #endif
+
    if (size > 0 && size <= PNG_SIZE_MAX
 #     ifdef PNG_MAX_MALLOC_64K
          && size <= 65536U
@@ -95,6 +96,8 @@ png_malloc_base,(png_const_structrp png_ptr, png_alloc_size_t size),
       return NULL;
 }
 
+#if defined(PNG_TEXT_SUPPORTED) || defined(PNG_sPLT_SUPPORTED) ||\
+   defined(PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED)
 
 
 
@@ -156,6 +159,7 @@ png_realloc_array,(png_const_structrp png_ptr, png_const_voidp old_array,
 
    return NULL; 
 }
+#endif 
 
 
 

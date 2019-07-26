@@ -382,6 +382,12 @@
 
 
 
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -395,9 +401,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.7"
+#define PNG_LIBPNG_VER_STRING "1.6.9"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.7 - November 14, 2013\n"
+     " libpng version 1.6.9 - February 6, 2014\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -405,7 +411,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 7
+#define PNG_LIBPNG_VER_RELEASE 9
 
 
 
@@ -436,7 +442,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10607 /* 1.6.7 */
+#define PNG_LIBPNG_VER 10609 /* 1.6.9 */
 
 
 
@@ -547,7 +553,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_7;
+typedef char* png_libpng_version_1_6_9;
 
 
 
@@ -2007,6 +2013,8 @@ PNG_EXPORTA(103, void, png_chunk_error, (png_const_structrp png_ptr,
 #else
 
 PNG_EXPORTA(104, void, png_err, (png_const_structrp png_ptr), PNG_NORETURN);
+#  define png_error(s1,s2) png_err(s1)
+#  define png_chunk_error(s1,s2) png_err(s1)
 #endif
 
 #ifdef PNG_WARNINGS_SUPPORTED
@@ -2017,6 +2025,9 @@ PNG_EXPORT(105, void, png_warning, (png_const_structrp png_ptr,
 
 PNG_EXPORT(106, void, png_chunk_warning, (png_const_structrp png_ptr,
     png_const_charp warning_message));
+#else
+#  define png_warning(s1,s2) ((void)(s1))
+#  define png_chunk_warning(s1,s2) ((void)(s1))
 #endif
 
 #ifdef PNG_BENIGN_ERRORS_SUPPORTED

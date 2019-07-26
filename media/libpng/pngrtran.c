@@ -1942,6 +1942,9 @@ png_read_transform_info(png_structrp png_ptr, png_inforp info_ptr)
 
          info_ptr->bit_depth = 8;
          info_ptr->num_trans = 0;
+
+         if (png_ptr->palette == NULL)
+            png_error (png_ptr, "Palette is NULL in indexed image");
       }
       else
       {
@@ -2120,303 +2123,6 @@ defined(PNG_READ_USER_TRANSFORM_SUPPORTED)
 #endif
 }
 
-
-
-
-
-void 
-png_do_read_transformations(png_structrp png_ptr, png_row_infop row_info)
-{
-   png_debug(1, "in png_do_read_transformations");
-
-   if (png_ptr->row_buf == NULL)
-   {
-      
-
-
-
-      png_error(png_ptr, "NULL row buffer");
-   }
-
-   
-
-
-
-
-
-   if ((png_ptr->flags & PNG_FLAG_DETECT_UNINITIALIZED) != 0 &&
-      !(png_ptr->flags & PNG_FLAG_ROW_INIT))
-   {
-      
-
-
-
-      png_error(png_ptr, "Uninitialized row");
-   }
-
-#ifdef PNG_READ_EXPAND_SUPPORTED
-   if (png_ptr->transformations & PNG_EXPAND)
-   {
-      if (row_info->color_type == PNG_COLOR_TYPE_PALETTE)
-      {
-         png_do_expand_palette(row_info, png_ptr->row_buf + 1,
-             png_ptr->palette, png_ptr->trans_alpha, png_ptr->num_trans);
-      }
-
-      else
-      {
-         if (png_ptr->num_trans &&
-             (png_ptr->transformations & PNG_EXPAND_tRNS))
-            png_do_expand(row_info, png_ptr->row_buf + 1,
-                &(png_ptr->trans_color));
-
-         else
-            png_do_expand(row_info, png_ptr->row_buf + 1,
-                NULL);
-      }
-   }
-#endif
-
-#ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
-   if ((png_ptr->transformations & PNG_STRIP_ALPHA) &&
-      !(png_ptr->transformations & PNG_COMPOSE) &&
-      (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
-      row_info->color_type == PNG_COLOR_TYPE_GRAY_ALPHA))
-      png_do_strip_channel(row_info, png_ptr->row_buf + 1,
-         0 );
-#endif
-
-#ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
-   if (png_ptr->transformations & PNG_RGB_TO_GRAY)
-   {
-      int rgb_error =
-          png_do_rgb_to_gray(png_ptr, row_info,
-              png_ptr->row_buf + 1);
-
-      if (rgb_error)
-      {
-         png_ptr->rgb_to_gray_status=1;
-         if ((png_ptr->transformations & PNG_RGB_TO_GRAY) ==
-             PNG_RGB_TO_GRAY_WARN)
-            png_warning(png_ptr, "png_do_rgb_to_gray found nongray pixel");
-
-         if ((png_ptr->transformations & PNG_RGB_TO_GRAY) ==
-             PNG_RGB_TO_GRAY_ERR)
-            png_error(png_ptr, "png_do_rgb_to_gray found nongray pixel");
-      }
-   }
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
-   
-
-
-   if ((png_ptr->transformations & PNG_GRAY_TO_RGB) &&
-       !(png_ptr->mode & PNG_BACKGROUND_IS_GRAY))
-      png_do_gray_to_rgb(row_info, png_ptr->row_buf + 1);
-#endif
-
-#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
-   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
-   if (png_ptr->transformations & PNG_COMPOSE)
-      png_do_compose(row_info, png_ptr->row_buf + 1, png_ptr);
-#endif
-
-#ifdef PNG_READ_GAMMA_SUPPORTED
-   if ((png_ptr->transformations & PNG_GAMMA) &&
-#ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
-      
-      !(png_ptr->transformations & PNG_RGB_TO_GRAY) &&
-#endif
-#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
-   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
-      
-
-
-       !((png_ptr->transformations & PNG_COMPOSE) &&
-       ((png_ptr->num_trans != 0) ||
-       (png_ptr->color_type & PNG_COLOR_MASK_ALPHA))) &&
-#endif
-      
-
-
-       (png_ptr->color_type != PNG_COLOR_TYPE_PALETTE))
-      png_do_gamma(row_info, png_ptr->row_buf + 1, png_ptr);
-#endif
-
-#ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
-   if ((png_ptr->transformations & PNG_STRIP_ALPHA) &&
-      (png_ptr->transformations & PNG_COMPOSE) &&
-      (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
-      row_info->color_type == PNG_COLOR_TYPE_GRAY_ALPHA))
-      png_do_strip_channel(row_info, png_ptr->row_buf + 1,
-         0 );
-#endif
-
-#ifdef PNG_READ_ALPHA_MODE_SUPPORTED
-   if ((png_ptr->transformations & PNG_ENCODE_ALPHA) &&
-      (row_info->color_type & PNG_COLOR_MASK_ALPHA))
-      png_do_encode_alpha(row_info, png_ptr->row_buf + 1, png_ptr);
-#endif
-
-#ifdef PNG_READ_SCALE_16_TO_8_SUPPORTED
-   if (png_ptr->transformations & PNG_SCALE_16_TO_8)
-      png_do_scale_16_to_8(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_STRIP_16_TO_8_SUPPORTED
-   
-
-
-
-   if (png_ptr->transformations & PNG_16_TO_8)
-      png_do_chop(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_QUANTIZE_SUPPORTED
-   if (png_ptr->transformations & PNG_QUANTIZE)
-   {
-      png_do_quantize(row_info, png_ptr->row_buf + 1,
-          png_ptr->palette_lookup, png_ptr->quantize_index);
-
-      if (row_info->rowbytes == 0)
-         png_error(png_ptr, "png_do_quantize returned rowbytes=0");
-   }
-#endif 
-
-#ifdef PNG_READ_EXPAND_16_SUPPORTED
-   
-
-
-
-
-   if (png_ptr->transformations & PNG_EXPAND_16)
-      png_do_expand_16(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
-   
-   if ((png_ptr->transformations & PNG_GRAY_TO_RGB) &&
-       (png_ptr->mode & PNG_BACKGROUND_IS_GRAY))
-      png_do_gray_to_rgb(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_INVERT_SUPPORTED
-   if (png_ptr->transformations & PNG_INVERT_MONO)
-      png_do_invert(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_SHIFT_SUPPORTED
-   if (png_ptr->transformations & PNG_SHIFT)
-      png_do_unshift(row_info, png_ptr->row_buf + 1,
-          &(png_ptr->shift));
-#endif
-
-#ifdef PNG_READ_PACK_SUPPORTED
-   if (png_ptr->transformations & PNG_PACK)
-      png_do_unpack(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
-   
-   if (row_info->color_type == PNG_COLOR_TYPE_PALETTE &&
-       png_ptr->num_palette_max >= 0)
-      png_do_check_palette_indexes(png_ptr, row_info);
-#endif
-
-#ifdef PNG_READ_BGR_SUPPORTED
-   if (png_ptr->transformations & PNG_BGR)
-      png_do_bgr(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_PACKSWAP_SUPPORTED
-   if (png_ptr->transformations & PNG_PACKSWAP)
-      png_do_packswap(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_FILLER_SUPPORTED
-   if (png_ptr->transformations & PNG_FILLER)
-      png_do_read_filler(row_info, png_ptr->row_buf + 1,
-          (png_uint_32)png_ptr->filler, png_ptr->flags);
-#endif
-
-#ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
-   if (png_ptr->transformations & PNG_INVERT_ALPHA)
-      png_do_read_invert_alpha(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_SWAP_ALPHA_SUPPORTED
-   if (png_ptr->transformations & PNG_SWAP_ALPHA)
-      png_do_read_swap_alpha(row_info, png_ptr->row_buf + 1);
-#endif
-
-#ifdef PNG_READ_16BIT_SUPPORTED
-#ifdef PNG_READ_SWAP_SUPPORTED
-   if (png_ptr->transformations & PNG_SWAP_BYTES)
-      png_do_swap(row_info, png_ptr->row_buf + 1);
-#endif
-#endif
-
-#ifdef PNG_READ_USER_TRANSFORM_SUPPORTED
-   if (png_ptr->transformations & PNG_USER_TRANSFORM)
-    {
-      if (png_ptr->read_user_transform_fn != NULL)
-         (*(png_ptr->read_user_transform_fn)) 
-             (png_ptr,     
-             row_info,     
-                
-                
-                
-                
-                
-                
-             png_ptr->row_buf + 1);    
-#ifdef PNG_USER_TRANSFORM_PTR_SUPPORTED
-      if (png_ptr->user_transform_depth)
-         row_info->bit_depth = png_ptr->user_transform_depth;
-
-      if (png_ptr->user_transform_channels)
-         row_info->channels = png_ptr->user_transform_channels;
-#endif
-      row_info->pixel_depth = (png_byte)(row_info->bit_depth *
-          row_info->channels);
-
-      row_info->rowbytes = PNG_ROWBYTES(row_info->pixel_depth, row_info->width);
-   }
-#endif
-}
-
 #ifdef PNG_READ_PACK_SUPPORTED
 
 
@@ -2424,7 +2130,7 @@ png_do_read_transformations(png_structrp png_ptr, png_row_infop row_info)
 
 
 
-void 
+static void
 png_do_unpack(png_row_infop row_info, png_bytep row)
 {
    png_debug(1, "in png_do_unpack");
@@ -2522,7 +2228,7 @@ png_do_unpack(png_row_infop row_info, png_bytep row)
 
 
 
-void 
+static void
 png_do_unshift(png_row_infop row_info, png_bytep row,
     png_const_color_8p sig_bits)
 {
@@ -2661,7 +2367,7 @@ png_do_unshift(png_row_infop row_info, png_bytep row,
 
 #ifdef PNG_READ_SCALE_16_TO_8_SUPPORTED
 
-void 
+static void
 png_do_scale_16_to_8(png_row_infop row_info, png_bytep row)
 {
    png_debug(1, "in png_do_scale_16_to_8");
@@ -2719,7 +2425,7 @@ png_do_scale_16_to_8(png_row_infop row_info, png_bytep row)
 #endif
 
 #ifdef PNG_READ_STRIP_16_TO_8_SUPPORTED
-void 
+static void
 
 
 
@@ -2747,7 +2453,7 @@ png_do_chop(png_row_infop row_info, png_bytep row)
 #endif
 
 #ifdef PNG_READ_SWAP_ALPHA_SUPPORTED
-void 
+static void
 png_do_read_swap_alpha(png_row_infop row_info, png_bytep row)
 {
    png_debug(1, "in png_do_read_swap_alpha");
@@ -2844,7 +2550,7 @@ png_do_read_swap_alpha(png_row_infop row_info, png_bytep row)
 #endif
 
 #ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
-void 
+static void
 png_do_read_invert_alpha(png_row_infop row_info, png_bytep row)
 {
    png_uint_32 row_width;
@@ -2946,7 +2652,7 @@ png_do_read_invert_alpha(png_row_infop row_info, png_bytep row)
 
 #ifdef PNG_READ_FILLER_SUPPORTED
 
-void 
+static void
 png_do_read_filler(png_row_infop row_info, png_bytep row,
     png_uint_32 filler, png_uint_32 flags)
 {
@@ -3133,7 +2839,7 @@ png_do_read_filler(png_row_infop row_info, png_bytep row,
 
 #ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
 
-void 
+static void
 png_do_gray_to_rgb(png_row_infop row_info, png_bytep row)
 {
    png_uint_32 i;
@@ -3272,7 +2978,7 @@ png_do_gray_to_rgb(png_row_infop row_info, png_bytep row)
 
 
 
-int 
+static int
 png_do_rgb_to_gray(png_structrp png_ptr, png_row_infop row_info, png_bytep row)
 
 {
@@ -3466,73 +3172,14 @@ png_do_rgb_to_gray(png_structrp png_ptr, png_row_infop row_info, png_bytep row)
    return rgb_error;
 }
 #endif
-#endif 
 
-#ifdef PNG_BUILD_GRAYSCALE_PALETTE_SUPPORTED
-
-
-
-
-
-void PNGAPI
-png_build_grayscale_palette(int bit_depth, png_colorp palette)
-{
-   int num_palette;
-   int color_inc;
-   int i;
-   int v;
-
-   png_debug(1, "in png_do_build_grayscale_palette");
-
-   if (palette == NULL)
-      return;
-
-   switch (bit_depth)
-   {
-      case 1:
-         num_palette = 2;
-         color_inc = 0xff;
-         break;
-
-      case 2:
-         num_palette = 4;
-         color_inc = 0x55;
-         break;
-
-      case 4:
-         num_palette = 16;
-         color_inc = 0x11;
-         break;
-
-      case 8:
-         num_palette = 256;
-         color_inc = 1;
-         break;
-
-      default:
-         num_palette = 0;
-         color_inc = 0;
-         break;
-   }
-
-   for (i = 0, v = 0; i < num_palette; i++, v += color_inc)
-   {
-      palette[i].red = (png_byte)v;
-      palette[i].green = (png_byte)v;
-      palette[i].blue = (png_byte)v;
-   }
-}
-#endif
-
-
-#ifdef PNG_READ_TRANSFORMS_SUPPORTED
 #if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
    defined(PNG_READ_ALPHA_MODE_SUPPORTED)
 
 
 
 
-void 
+static void
 png_do_compose(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 {
 #ifdef PNG_READ_GAMMA_SUPPORTED
@@ -4272,7 +3919,7 @@ png_do_compose(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 
 
 
-void 
+static void
 png_do_gamma(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 {
    png_const_bytep gamma_table = png_ptr->gamma_table;
@@ -4473,7 +4120,7 @@ png_do_gamma(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 
 
 
-void 
+static void
 png_do_encode_alpha(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 {
    png_uint_32 row_width = row_info->width;
@@ -4539,7 +4186,7 @@ png_do_encode_alpha(png_row_infop row_info, png_bytep row, png_structrp png_ptr)
 
 
 
-void 
+static void
 png_do_expand_palette(png_row_infop row_info, png_bytep row,
    png_const_colorp palette, png_const_bytep trans_alpha, int num_trans)
 {
@@ -4692,7 +4339,7 @@ png_do_expand_palette(png_row_infop row_info, png_bytep row,
 
 
 
-void 
+static void
 png_do_expand(png_row_infop row_info, png_bytep row,
     png_const_color_16p trans_color)
 {
@@ -4922,7 +4569,7 @@ png_do_expand(png_row_infop row_info, png_bytep row,
 
 
 
-void 
+static void
 png_do_expand_16(png_row_infop row_info, png_bytep row)
 {
    if (row_info->bit_depth == 8 &&
@@ -4950,7 +4597,7 @@ png_do_expand_16(png_row_infop row_info, png_bytep row)
 #endif
 
 #ifdef PNG_READ_QUANTIZE_SUPPORTED
-void 
+static void
 png_do_quantize(png_row_infop row_info, png_bytep row,
     png_const_bytep palette_lookup, png_const_bytep quantize_lookup)
 {
@@ -5042,69 +4689,303 @@ png_do_quantize(png_row_infop row_info, png_bytep row,
    }
 }
 #endif 
-#endif 
 
-#ifdef PNG_MNG_FEATURES_SUPPORTED
+
+
+
 
 void 
-png_do_read_intrapixel(png_row_infop row_info, png_bytep row)
+png_do_read_transformations(png_structrp png_ptr, png_row_infop row_info)
 {
-   png_debug(1, "in png_do_read_intrapixel");
+   png_debug(1, "in png_do_read_transformations");
 
-   if (
-       (row_info->color_type & PNG_COLOR_MASK_COLOR))
+   if (png_ptr->row_buf == NULL)
    {
-      int bytes_per_pixel;
-      png_uint_32 row_width = row_info->width;
+      
 
-      if (row_info->bit_depth == 8)
+
+
+      png_error(png_ptr, "NULL row buffer");
+   }
+
+   
+
+
+
+
+
+   if ((png_ptr->flags & PNG_FLAG_DETECT_UNINITIALIZED) != 0 &&
+      !(png_ptr->flags & PNG_FLAG_ROW_INIT))
+   {
+      
+
+
+
+      png_error(png_ptr, "Uninitialized row");
+   }
+
+#ifdef PNG_READ_EXPAND_SUPPORTED
+   if (png_ptr->transformations & PNG_EXPAND)
+   {
+      if (row_info->color_type == PNG_COLOR_TYPE_PALETTE)
       {
-         png_bytep rp;
-         png_uint_32 i;
-
-         if (row_info->color_type == PNG_COLOR_TYPE_RGB)
-            bytes_per_pixel = 3;
-
-         else if (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA)
-            bytes_per_pixel = 4;
-
-         else
-            return;
-
-         for (i = 0, rp = row; i < row_width; i++, rp += bytes_per_pixel)
-         {
-            *(rp) = (png_byte)((256 + *rp + *(rp + 1)) & 0xff);
-            *(rp+2) = (png_byte)((256 + *(rp + 2) + *(rp + 1)) & 0xff);
-         }
+         png_do_expand_palette(row_info, png_ptr->row_buf + 1,
+             png_ptr->palette, png_ptr->trans_alpha, png_ptr->num_trans);
       }
-      else if (row_info->bit_depth == 16)
+
+      else
       {
-         png_bytep rp;
-         png_uint_32 i;
-
-         if (row_info->color_type == PNG_COLOR_TYPE_RGB)
-            bytes_per_pixel = 6;
-
-         else if (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA)
-            bytes_per_pixel = 8;
+         if (png_ptr->num_trans &&
+             (png_ptr->transformations & PNG_EXPAND_tRNS))
+            png_do_expand(row_info, png_ptr->row_buf + 1,
+                &(png_ptr->trans_color));
 
          else
-            return;
-
-         for (i = 0, rp = row; i < row_width; i++, rp += bytes_per_pixel)
-         {
-            png_uint_32 s0   = (*(rp    ) << 8) | *(rp + 1);
-            png_uint_32 s1   = (*(rp + 2) << 8) | *(rp + 3);
-            png_uint_32 s2   = (*(rp + 4) << 8) | *(rp + 5);
-            png_uint_32 red  = (s0 + s1 + 65536) & 0xffff;
-            png_uint_32 blue = (s2 + s1 + 65536) & 0xffff;
-            *(rp    ) = (png_byte)((red >> 8) & 0xff);
-            *(rp + 1) = (png_byte)(red & 0xff);
-            *(rp + 4) = (png_byte)((blue >> 8) & 0xff);
-            *(rp + 5) = (png_byte)(blue & 0xff);
-         }
+            png_do_expand(row_info, png_ptr->row_buf + 1,
+                NULL);
       }
    }
+#endif
+
+#ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
+   if ((png_ptr->transformations & PNG_STRIP_ALPHA) &&
+      !(png_ptr->transformations & PNG_COMPOSE) &&
+      (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+      row_info->color_type == PNG_COLOR_TYPE_GRAY_ALPHA))
+      png_do_strip_channel(row_info, png_ptr->row_buf + 1,
+         0 );
+#endif
+
+#ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
+   if (png_ptr->transformations & PNG_RGB_TO_GRAY)
+   {
+      int rgb_error =
+          png_do_rgb_to_gray(png_ptr, row_info,
+              png_ptr->row_buf + 1);
+
+      if (rgb_error)
+      {
+         png_ptr->rgb_to_gray_status=1;
+         if ((png_ptr->transformations & PNG_RGB_TO_GRAY) ==
+             PNG_RGB_TO_GRAY_WARN)
+            png_warning(png_ptr, "png_do_rgb_to_gray found nongray pixel");
+
+         if ((png_ptr->transformations & PNG_RGB_TO_GRAY) ==
+             PNG_RGB_TO_GRAY_ERR)
+            png_error(png_ptr, "png_do_rgb_to_gray found nongray pixel");
+      }
+   }
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
+   
+
+
+   if ((png_ptr->transformations & PNG_GRAY_TO_RGB) &&
+       !(png_ptr->mode & PNG_BACKGROUND_IS_GRAY))
+      png_do_gray_to_rgb(row_info, png_ptr->row_buf + 1);
+#endif
+
+#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
+   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
+   if (png_ptr->transformations & PNG_COMPOSE)
+      png_do_compose(row_info, png_ptr->row_buf + 1, png_ptr);
+#endif
+
+#ifdef PNG_READ_GAMMA_SUPPORTED
+   if ((png_ptr->transformations & PNG_GAMMA) &&
+#ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
+      
+      !(png_ptr->transformations & PNG_RGB_TO_GRAY) &&
+#endif
+#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
+   defined(PNG_READ_ALPHA_MODE_SUPPORTED)
+      
+
+
+       !((png_ptr->transformations & PNG_COMPOSE) &&
+       ((png_ptr->num_trans != 0) ||
+       (png_ptr->color_type & PNG_COLOR_MASK_ALPHA))) &&
+#endif
+      
+
+
+       (png_ptr->color_type != PNG_COLOR_TYPE_PALETTE))
+      png_do_gamma(row_info, png_ptr->row_buf + 1, png_ptr);
+#endif
+
+#ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
+   if ((png_ptr->transformations & PNG_STRIP_ALPHA) &&
+      (png_ptr->transformations & PNG_COMPOSE) &&
+      (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+      row_info->color_type == PNG_COLOR_TYPE_GRAY_ALPHA))
+      png_do_strip_channel(row_info, png_ptr->row_buf + 1,
+         0 );
+#endif
+
+#ifdef PNG_READ_ALPHA_MODE_SUPPORTED
+   if ((png_ptr->transformations & PNG_ENCODE_ALPHA) &&
+      (row_info->color_type & PNG_COLOR_MASK_ALPHA))
+      png_do_encode_alpha(row_info, png_ptr->row_buf + 1, png_ptr);
+#endif
+
+#ifdef PNG_READ_SCALE_16_TO_8_SUPPORTED
+   if (png_ptr->transformations & PNG_SCALE_16_TO_8)
+      png_do_scale_16_to_8(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_STRIP_16_TO_8_SUPPORTED
+   
+
+
+
+   if (png_ptr->transformations & PNG_16_TO_8)
+      png_do_chop(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_QUANTIZE_SUPPORTED
+   if (png_ptr->transformations & PNG_QUANTIZE)
+   {
+      png_do_quantize(row_info, png_ptr->row_buf + 1,
+          png_ptr->palette_lookup, png_ptr->quantize_index);
+
+      if (row_info->rowbytes == 0)
+         png_error(png_ptr, "png_do_quantize returned rowbytes=0");
+   }
+#endif 
+
+#ifdef PNG_READ_EXPAND_16_SUPPORTED
+   
+
+
+
+
+   if (png_ptr->transformations & PNG_EXPAND_16)
+      png_do_expand_16(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
+   
+   if ((png_ptr->transformations & PNG_GRAY_TO_RGB) &&
+       (png_ptr->mode & PNG_BACKGROUND_IS_GRAY))
+      png_do_gray_to_rgb(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_INVERT_SUPPORTED
+   if (png_ptr->transformations & PNG_INVERT_MONO)
+      png_do_invert(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_SHIFT_SUPPORTED
+   if (png_ptr->transformations & PNG_SHIFT)
+      png_do_unshift(row_info, png_ptr->row_buf + 1,
+          &(png_ptr->shift));
+#endif
+
+#ifdef PNG_READ_PACK_SUPPORTED
+   if (png_ptr->transformations & PNG_PACK)
+      png_do_unpack(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
+   
+   if (row_info->color_type == PNG_COLOR_TYPE_PALETTE &&
+       png_ptr->num_palette_max >= 0)
+      png_do_check_palette_indexes(png_ptr, row_info);
+#endif
+
+#ifdef PNG_READ_BGR_SUPPORTED
+   if (png_ptr->transformations & PNG_BGR)
+      png_do_bgr(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_PACKSWAP_SUPPORTED
+   if (png_ptr->transformations & PNG_PACKSWAP)
+      png_do_packswap(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_FILLER_SUPPORTED
+   if (png_ptr->transformations & PNG_FILLER)
+      png_do_read_filler(row_info, png_ptr->row_buf + 1,
+          (png_uint_32)png_ptr->filler, png_ptr->flags);
+#endif
+
+#ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
+   if (png_ptr->transformations & PNG_INVERT_ALPHA)
+      png_do_read_invert_alpha(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_SWAP_ALPHA_SUPPORTED
+   if (png_ptr->transformations & PNG_SWAP_ALPHA)
+      png_do_read_swap_alpha(row_info, png_ptr->row_buf + 1);
+#endif
+
+#ifdef PNG_READ_16BIT_SUPPORTED
+#ifdef PNG_READ_SWAP_SUPPORTED
+   if (png_ptr->transformations & PNG_SWAP_BYTES)
+      png_do_swap(row_info, png_ptr->row_buf + 1);
+#endif
+#endif
+
+#ifdef PNG_READ_USER_TRANSFORM_SUPPORTED
+   if (png_ptr->transformations & PNG_USER_TRANSFORM)
+    {
+      if (png_ptr->read_user_transform_fn != NULL)
+         (*(png_ptr->read_user_transform_fn)) 
+             (png_ptr,     
+             row_info,     
+                
+                
+                
+                
+                
+                
+             png_ptr->row_buf + 1);    
+#ifdef PNG_USER_TRANSFORM_PTR_SUPPORTED
+      if (png_ptr->user_transform_depth)
+         row_info->bit_depth = png_ptr->user_transform_depth;
+
+      if (png_ptr->user_transform_channels)
+         row_info->channels = png_ptr->user_transform_channels;
+#endif
+      row_info->pixel_depth = (png_byte)(row_info->bit_depth *
+          row_info->channels);
+
+      row_info->rowbytes = PNG_ROWBYTES(row_info->pixel_depth, row_info->width);
+   }
+#endif
 }
+
 #endif 
 #endif 
