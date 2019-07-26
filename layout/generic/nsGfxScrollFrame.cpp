@@ -1700,7 +1700,7 @@ bool nsGfxScrollFrameInner::IsAlwaysActive() const
 
   
   if (mHasBeenScrolled) {
-   return true;
+    return true;
   }
  
   
@@ -1721,10 +1721,10 @@ void nsGfxScrollFrameInner::MarkInactive()
 
 void nsGfxScrollFrameInner::MarkActive()
 {
+  mScrollingActive = true;
   if (IsAlwaysActive())
     return;
 
-  mScrollingActive = true;
   if (mActivityExpirationState.IsTracked()) {
     gScrollFrameActivityTracker->MarkUsed(this);
   } else {
