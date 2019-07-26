@@ -19,6 +19,7 @@
 class nsIMemoryReporter;
 class nsIMemoryMultiReporter;
 class nsIXPConnect;
+struct sqlite3_vfs;
 
 namespace mozilla {
 namespace storage {
@@ -70,11 +71,6 @@ public:
   
 
 
-  static const char *getVFSName();
-
-  
-
-
 
 
 
@@ -118,6 +114,8 @@ private:
 
   Mutex mMutex;
   
+  sqlite3_vfs *mSqliteVFS;
+
   
 
 
@@ -162,8 +160,6 @@ private:
   static nsIXPConnect *sXPConnect;
 
   static int32_t sSynchronousPref;
-
-  static const char *sVFSName;
 
   friend class ServiceMainThreadInitializer;
 };
