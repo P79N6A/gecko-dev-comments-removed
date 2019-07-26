@@ -31,7 +31,7 @@ extern bool
 DirectEvalFromIon(JSContext *cx,
                   HandleObject scopeObj, HandleScript callerScript,
                   HandleValue thisValue, HandleString str,
-                  MutableHandleValue vp);
+                  jsbytecode * pc, MutableHandleValue vp);
 
 
 

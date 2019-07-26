@@ -3301,7 +3301,7 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
 }
 
 MPolyInlineDispatch *
-IonBuilder::makePolyInlineDispatch(JSContext *cx, CallInfo &callInfo, 
+IonBuilder::makePolyInlineDispatch(JSContext *cx, CallInfo &callInfo,
                                    MGetPropertyCache *getPropCache, MBasicBlock *bottom,
                                    Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns)
 {
@@ -3927,7 +3927,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
         current->push(pass);
     } else {
         
-        argc -= 1; 
+        argc -= 1;
     }
 
     
@@ -4360,7 +4360,7 @@ AdjustTypeBarrierForDOMCall(const JSJitInfo* jitinfo, types::StackTypeSet *types
 
     if (jitinfo->returnType != types->getKnownTypeTag())
         return barrier;
-    
+
     
     return NULL;
 }
@@ -4478,7 +4478,7 @@ IonBuilder::jsop_eval(uint32_t argc)
         MInstruction *filterArguments = MFilterArguments::New(string);
         current->add(filterArguments);
 
-        MInstruction *ins = MCallDirectEval::New(scopeChain, string, thisValue);
+        MInstruction *ins = MCallDirectEval::New(scopeChain, string, thisValue, pc);
         current->add(ins);
         current->push(ins);
 
