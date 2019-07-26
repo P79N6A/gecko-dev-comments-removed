@@ -5233,6 +5233,8 @@ var ViewportHandler = {
     let allowZoomStr = windowUtils.getDocumentMetadata("viewport-user-scalable");
     let allowZoom = !/^(0|no|false)$/.test(allowZoomStr) && (minScale != maxScale);
 
+    let autoSize = true;
+
     if (isNaN(scale) && isNaN(minScale) && isNaN(maxScale) && allowZoomStr == "" && widthStr == "" && heightStr == "") {
       
       let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
@@ -5242,15 +5244,23 @@ var ViewportHandler = {
       let doctype = aWindow.document.doctype;
       if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
         return { defaultZoom: 1, autoSize: true, allowZoom: true };
+
+      let defaultZoom = Services.prefs.getIntPref("browser.viewport.defaultZoom");
+      if (defaultZoom >= 0) {
+        scale = defaultZoom / 1000;
+        autoSize = false;
+      }
     }
 
     scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
     minScale = this.clamp(minScale, kViewportMinScale, kViewportMaxScale);
     maxScale = this.clamp(maxScale, minScale, kViewportMaxScale);
 
-    
-    let autoSize = (widthStr == "device-width" ||
-                    (!widthStr && (heightStr == "device-height" || scale == 1.0)));
+    if (autoSize) {
+      
+      autoSize = (widthStr == "device-width" ||
+                  (!widthStr && (heightStr == "device-height" || scale == 1.0)));
+    }
 
     return {
       defaultZoom: scale,

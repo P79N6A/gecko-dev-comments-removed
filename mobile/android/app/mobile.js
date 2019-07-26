@@ -46,6 +46,9 @@ pref("browser.viewport.scaleRatio", -1);
 pref("browser.viewport.desktopWidth", 980);
 
 
+pref("browser.viewport.defaultZoom", -1);
+
+
 pref("ui.scrollbarsCanOverlapContent", 1);
 
 
