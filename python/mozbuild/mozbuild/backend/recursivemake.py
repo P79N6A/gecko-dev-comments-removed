@@ -644,6 +644,7 @@ class RecursiveMakeBackend(CommonBackend):
             
             
             with self._write_file(os.path.join(output_directory, unified_file)) as f:
+                f.write('#define MOZ_UNIFIED_BUILD\n')
                 includeTemplate = '#include "%(cppfile)s"'
                 if poison_windows_h:
                     includeTemplate += (
