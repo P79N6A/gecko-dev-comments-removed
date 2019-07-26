@@ -22,6 +22,7 @@
 #include "nsThreadUtils.h"              
 #include "mozilla/gfx/Logging.h"        
 #include "UnitTransforms.h"             
+#include "gfxPrefs.h"                   
 
 #include <algorithm>                    
 
@@ -127,9 +128,11 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   
   
   APZTestData* testData = nullptr;
-  if (CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aOriginatingLayersId)) {
-    testData = &state->mApzTestData;
-    testData->StartNewPaint(aPaintSequenceNumber);
+  if (gfxPrefs::APZTestLoggingEnabled()) {
+    if (CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aOriginatingLayersId)) {
+      testData = &state->mApzTestData;
+      testData->StartNewPaint(aPaintSequenceNumber);
+    }
   }
   APZPaintLogHelper paintLogger(testData, aPaintSequenceNumber);
 

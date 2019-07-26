@@ -371,6 +371,9 @@ pref("apz.printtree", false);
 
 pref("apz.subframe.enabled", false);
 
+
+pref("apz.test.logging_enabled", false);
+
 #ifdef XP_MACOSX
 
 

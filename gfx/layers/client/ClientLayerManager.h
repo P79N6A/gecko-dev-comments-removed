@@ -190,6 +190,9 @@ public:
   {
     mApzTestData.StartNewRepaintRequest(aSequenceNumber);
   }
+  
+  
+  
   void LogTestDataForRepaintRequest(SequenceNumber aSequenceNumber,
                                     FrameMetrics::ViewID aScrollId,
                                     const std::string& aKey,

@@ -190,3 +190,6 @@ user_pref('toolkit.telemetry.server', 'https://%(server)s/telemetry-dummy/');
 
 
 user_pref('identity.fxaccounts.auth.uri', 'https://%(server)s/fxa-dummy/');
+
+
+user_pref('apz.test.logging_enabled', true);
