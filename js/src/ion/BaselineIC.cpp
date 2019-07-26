@@ -113,6 +113,14 @@ ICStub::trace(JSTracer *trc)
         MarkTypeObject(trc, &setElemStub->type(), "baseline-setelem-dense-type");
         break;
       }
+      case ICStub::SetElem_DenseAdd: {
+        ICSetElem_DenseAdd *setElemStub = toSetElem_DenseAdd();
+        MarkShape(trc, &setElemStub->shape(), "baseline-getelem-denseadd-shape");
+        MarkTypeObject(trc, &setElemStub->type(), "baseline-setelem-denseadd-type");
+        MarkObject(trc, &setElemStub->lastProto(), "baseline-setelem-denseadd-lastproto");
+        MarkShape(trc, &setElemStub->lastProtoShape(), "baseline-setelem-denseadd-lastprotoshape");
+        break;
+      }
       case ICStub::TypeMonitor_TypeObject: {
         ICTypeMonitor_TypeObject *monitorStub = toTypeMonitor_TypeObject();
         MarkTypeObject(trc, &monitorStub->type(), "baseline-monitor-typeobject");
@@ -959,7 +967,8 @@ DoTypeUpdateFallback(JSContext *cx, ICUpdatedStub *stub, HandleValue objval, Han
     RootedObject obj(cx, &objval.toObject());
 
     switch(stub->kind()) {
-      case ICStub::SetElem_Dense: {
+      case ICStub::SetElem_Dense:
+      case ICStub::SetElem_DenseAdd: {
         JS_ASSERT(obj->isNative());
         types::AddTypePropertyId(cx, obj, JSID_VOID, value);
         break;
@@ -1815,16 +1824,98 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-DenseSetElemStubExists(JSContext *cx, ICSetElem_Fallback *stub, HandleObject obj)
+DenseSetElemStubExists(JSContext *cx, ICStub::Kind kind, ICSetElem_Fallback *stub, HandleObject obj)
 {
     for (ICStub *cur = stub->icEntry()->firstStub(); cur != stub; cur = cur->next()) {
-        if (!cur->isSetElem_Dense())
-            continue;
-        ICSetElem_Dense *dense = cur->toSetElem_Dense();
-        if (obj->lastProperty() == dense->shape() && obj->getType(cx) == dense->type())
-            return true;
+        if (kind == ICStub::SetElem_Dense) {
+            if (!cur->isSetElem_Dense())
+                continue;
+            ICSetElem_Dense *dense = cur->toSetElem_Dense();
+            if (obj->lastProperty() == dense->shape() && obj->getType(cx) == dense->type())
+                return true;
+        } else if (kind == ICStub::SetElem_DenseAdd) {
+            if (!cur->isSetElem_DenseAdd())
+                continue;
+            ICSetElem_DenseAdd *dense = cur->toSetElem_DenseAdd();
+            if (obj->lastProperty() == dense->shape() && obj->getType(cx) == dense->type())
+                return true;
+        } else {
+            JS_NOT_REACHED("Invalid SetElem_Dense kind!");
+        }
     }
     return false;
+}
+
+static bool
+CanOptimizeDenseSetElem(JSContext *cx, HandleObject obj, uint32_t index,
+                        HandleShape oldShape, uint32_t oldCapacity, uint32_t oldInitLength,
+                        bool *isAddingCaseOut, MutableHandleObject lastProtoOut)
+{
+    uint32_t initLength = obj->getDenseInitializedLength();
+    uint32_t capacity = obj->getDenseCapacity();
+
+    *isAddingCaseOut = false;
+    lastProtoOut.set(NULL);
+
+    
+    if (initLength < oldInitLength || capacity < oldCapacity)
+        return false;
+
+    RootedShape shape(cx, obj->lastProperty());
+
+    
+    if (oldShape != shape)
+        return false;
+
+    
+    if (oldCapacity != capacity)
+        return false;
+
+    
+    if (index >= initLength)
+        return false;
+
+    
+    if (!obj->containsDenseElement(index))
+        return false;
+
+    
+    
+    if (oldInitLength == initLength)
+        return true;
+
+    
+    
+    if (oldInitLength + 1 != initLength)
+        return false;
+    if (index != oldInitLength)
+        return false;
+
+    
+    
+    
+    
+    RootedObject curObj(cx, obj);
+    RootedObject lastObj(cx);
+    while (curObj) {
+        
+        if (!curObj->isNative())
+            return false;
+
+        
+        if (curObj->isIndexed())
+            return false;
+
+        if (!curObj->getProto())
+            lastObj = curObj;
+
+        curObj = curObj->getProto();
+    }
+
+    *isAddingCaseOut = true;
+    lastProtoOut.set(lastObj);
+
+    return true;
 }
 
 static bool
@@ -1838,6 +1929,16 @@ DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, Hand
     if (!obj)
         return false;
 
+    RootedShape oldShape(cx, obj->lastProperty());
+
+    
+    uint32_t oldCapacity = 0;
+    uint32_t oldInitLength = 0;
+    if (obj->isNative() && index.isInt32() && index.toInt32() >= 0) {
+        oldCapacity = obj->getDenseCapacity();
+        oldInitLength = obj->getDenseInitializedLength();
+    }
+
     if (!SetObjectElement(cx, obj, index, rhs, script->strict))
         return false;
 
@@ -1848,16 +1949,42 @@ DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, Hand
     }
 
     
-    if (obj->isNative() && index.isInt32() && !DenseSetElemStubExists(cx, stub, obj)) {
-        RootedTypeObject type(cx, obj->getType(cx));
-        ICSetElem_Dense::Compiler compiler(cx, obj->lastProperty(), type);
-        IonSpew(IonSpew_BaselineIC, "  Generating SetElem Native[Int32]=Value stub."
-                                    " (shape=%p, type=%p)", obj->lastProperty(), type.get());
-        ICStub *denseStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
-        if (!denseStub)
-            return false;
+    if (obj->isNative() && index.isInt32() && index.toInt32() >= 0) {
+        bool addingCase;
+        RootedObject lastProto(cx);
 
-        stub->addNewStub(denseStub);
+        if (CanOptimizeDenseSetElem(cx, obj, index.toInt32(), oldShape, oldCapacity, oldInitLength,
+                                    &addingCase, &lastProto))
+        {
+            RootedTypeObject type(cx, obj->getType(cx));
+            RootedShape shape(cx, obj->lastProperty());
+
+            if (addingCase && !DenseSetElemStubExists(cx, ICStub::SetElem_DenseAdd, stub, obj)) {
+                RootedShape lastProtoShape(cx, lastProto->lastProperty());
+                ICSetElem_DenseAdd::Compiler compiler(cx, shape, type, lastProto, lastProtoShape);
+                IonSpew(IonSpew_BaselineIC,
+                        "  Generating SetElem_DenseAdd stub "
+                        "(shape=%p, type=%p, lastProto=%p, lastProtoShape=%p)",
+                        obj->lastProperty(), type.get(), lastProto.get(), lastProtoShape.get());
+                ICStub *denseStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+                if (!denseStub)
+                    return false;
+
+                stub->addNewStub(denseStub);
+            } else if (!addingCase &&
+                       !DenseSetElemStubExists(cx, ICStub::SetElem_Dense, stub, obj))
+            {
+                ICSetElem_Dense::Compiler compiler(cx, shape, type);
+                IonSpew(IonSpew_BaselineIC,
+                        "  Generating SetElem_Dense stub (shape=%p, type=%p)",
+                        obj->lastProperty(), type.get());
+                ICStub *denseStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+                if (!denseStub)
+                    return false;
+
+                stub->addNewStub(denseStub);
+            }
+        }
     }
 
     return true;
@@ -1924,6 +2051,7 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     masm.loadPtr(Address(BaselineStubReg, ICSetElem_Dense::offsetOfType()), typeReg);
     masm.branchPtr(Assembler::NotEqual, Address(obj, JSObject::offsetOfType()), typeReg,
                    &failureUnstow);
+    regs.add(typeReg);
 
     
     
@@ -1935,6 +2063,10 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     EmitUnstowICValues(masm, 2);
+
+    
+    regs = availableGeneralRegs(2);
+    scratchReg = regs.takeAny();
 
     
     masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
@@ -1953,6 +2085,106 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.loadValue(Address(BaselineStackReg, ICStackValueOffset), R0);
     masm.patchableCallPreBarrier(element, MIRType_Value);
+    masm.storeValue(R0, element);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failureUnstow);
+    EmitUnstowICValues(masm, 2);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+
+
+
+
+bool
+ICSetElem_DenseAdd::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    
+    
+    
+    Label failure;
+    Label failureUnstow;
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+    masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
+
+    GeneralRegisterSet regs(availableGeneralRegs(2));
+    Register scratchReg = regs.takeAny();
+
+    
+    masm.loadPtr(Address(BaselineStubReg, ICSetElem_DenseAdd::offsetOfLastProto()), scratchReg);
+    masm.loadPtr(Address(scratchReg, JSObject::offsetOfShape()), scratchReg);
+    Address lastProtoShape(BaselineStubReg, ICSetElem_DenseAdd::offsetOfLastProtoShape());
+    masm.branchPtr(Assembler::NotEqual, lastProtoShape, scratchReg, &failure);
+
+    
+    Register obj = masm.extractObject(R0, ExtractTemp0);
+    masm.loadPtr(Address(BaselineStubReg, ICSetElem_DenseAdd::offsetOfShape()), scratchReg);
+    masm.branchTestObjShape(Assembler::NotEqual, obj, scratchReg, &failure);
+
+    
+    
+    EmitStowICValues(masm, 2);
+
+    
+    regs = availableGeneralRegs(0);
+    regs.take(R0);
+
+    
+    Register typeReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICSetElem_DenseAdd::offsetOfType()), typeReg);
+    masm.branchPtr(Assembler::NotEqual, Address(obj, JSObject::offsetOfType()), typeReg,
+                   &failureUnstow);
+    regs.add(typeReg);
+
+    
+    
+    masm.loadValue(Address(BaselineStackReg, 2 * sizeof(Value) + ICStackValueOffset), R0);
+
+    
+    if (!callTypeUpdateIC(masm, sizeof(Value)))
+        return false;
+
+    
+    EmitUnstowICValues(masm, 2);
+
+    
+    regs = availableGeneralRegs(2);
+    scratchReg = regs.takeAny();
+
+    
+    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
+
+    
+    Register key = masm.extractInt32(R1, ExtractTemp1);
+
+    
+    Address initLength(scratchReg, ObjectElements::offsetOfInitializedLength());
+    masm.branch32(Assembler::NotEqual, initLength, key, &failure);
+
+    
+    Address capacity(scratchReg, ObjectElements::offsetOfCapacity());
+    masm.branch32(Assembler::BelowOrEqual, capacity, key, &failure);
+
+    
+    masm.add32(Imm32(1), initLength);
+
+    
+    Label skipIncrementLength;
+    Address length(scratchReg, ObjectElements::offsetOfLength());
+    masm.branch32(Assembler::Above, length, key, &skipIncrementLength);
+    masm.add32(Imm32(1), length);
+    masm.bind(&skipIncrementLength);
+
+    
+    
+    BaseIndex element(scratchReg, key, TimesEight);
+    masm.loadValue(Address(BaselineStackReg, ICStackValueOffset), R0);
     masm.storeValue(R0, element);
     EmitReturnFromIC(masm);
 

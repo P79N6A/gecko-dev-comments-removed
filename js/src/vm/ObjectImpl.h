@@ -14,10 +14,10 @@
 
 #include "jsfriendapi.h"
 #include "jsinfer.h"
+#include "jsval.h"
 
 #include "gc/Barrier.h"
 #include "gc/Heap.h"
-#include "js/Value.h"
 #include "vm/NumericConversions.h"
 #include "vm/String.h"
 
@@ -40,6 +40,7 @@ CastAsStrictPropertyOp(JSObject *object)
 {
     return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
 }
+
 
 
 
@@ -450,7 +451,7 @@ class DenseElementsHeader : public ElementsHeader
 class SparseElementsHeader : public ElementsHeader
 {
   public:
-    RawShape shape() {
+    UnrootedShape shape() {
         MOZ_ASSERT(ElementsHeader::isSparseElements());
         return sparse.shape;
     }
@@ -916,23 +917,14 @@ class ArrayBufferObject;
 
 class ObjectElements
 {
-  public:
-    enum Flags {
-        CONVERT_DOUBLE_ELEMENTS = 0x1,
-        ASMJS_ARRAY_BUFFER = 0x2
-    };
-
-  private:
-    friend class ::JSObject;
+    friend struct ::JSObject;
     friend class ObjectImpl;
     friend class ArrayBufferObject;
 
     
-    uint32_t flags;
+    uint32_t capacity;
 
     
-
-
 
 
 
@@ -941,37 +933,20 @@ class ObjectElements
     uint32_t initializedLength;
 
     
-
-
-
-
-    
-    uint32_t capacity;
-
-    
     uint32_t length;
+
+    
+    uint32_t convertDoubleElements;
 
     void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
                           "Elements size and values-per-Elements mismatch");
     }
 
-    bool shouldConvertDoubleElements() const {
-        return flags & CONVERT_DOUBLE_ELEMENTS;
-    }
-    void setShouldConvertDoubleElements() {
-        flags |= CONVERT_DOUBLE_ELEMENTS;
-    }
-    bool isAsmJSArrayBuffer() const {
-        return flags & ASMJS_ARRAY_BUFFER;
-    }
-    void setIsAsmJSArrayBuffer() {
-        flags |= ASMJS_ARRAY_BUFFER;
-    }
-
   public:
+
     ObjectElements(uint32_t capacity, uint32_t length)
-      : flags(0), initializedLength(0), capacity(capacity), length(length)
+      : capacity(capacity), initializedLength(0), length(length), convertDoubleElements(0)
     {}
 
     HeapSlot *elements() { return (HeapSlot *)(uintptr_t(this) + sizeof(ObjectElements)); }
@@ -979,17 +954,17 @@ class ObjectElements
         return (ObjectElements *)(uintptr_t(elems) - sizeof(ObjectElements));
     }
 
-    static int offsetOfFlags() {
-        return (int)offsetof(ObjectElements, flags) - (int)sizeof(ObjectElements);
+    static int offsetOfCapacity() {
+        return (int)offsetof(ObjectElements, capacity) - (int)sizeof(ObjectElements);
     }
     static int offsetOfInitializedLength() {
         return (int)offsetof(ObjectElements, initializedLength) - (int)sizeof(ObjectElements);
     }
-    static int offsetOfCapacity() {
-        return (int)offsetof(ObjectElements, capacity) - (int)sizeof(ObjectElements);
-    }
     static int offsetOfLength() {
         return (int)offsetof(ObjectElements, length) - (int)sizeof(ObjectElements);
+    }
+    static int offsetOfConvertDoubleElements() {
+        return (int)offsetof(ObjectElements, convertDoubleElements) - (int)sizeof(ObjectElements);
     }
 
     static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);
@@ -1006,7 +981,6 @@ struct ObjectOps;
 class Shape;
 
 class NewObjectCache;
-class TaggedProto;
 
 inline Value
 ObjectValue(ObjectImpl &obj);
@@ -1095,7 +1069,6 @@ class ObjectImpl : public gc::Cell
     }
 
     JSObject * asObjectPtr() { return reinterpret_cast<JSObject *>(this); }
-    const JSObject * asObjectPtr() const { return reinterpret_cast<const JSObject *>(this); }
 
     friend inline Value ObjectValue(ObjectImpl &obj);
 
@@ -1112,15 +1085,11 @@ class ObjectImpl : public gc::Cell
 
     inline bool isExtensible() const;
 
-    
-    
-    static bool
-    preventExtensions(JSContext *cx, Handle<ObjectImpl*> obj);
-
     inline HeapSlotArray getDenseElements();
     inline const Value & getDenseElement(uint32_t idx);
     inline bool containsDenseElement(uint32_t idx);
     inline uint32_t getDenseInitializedLength();
+    inline uint32_t getDenseCapacity();
 
     bool makeElementsSparse(JSContext *cx) {
         NEW_OBJECT_REPRESENTATION_ONLY();
@@ -1129,28 +1098,12 @@ class ObjectImpl : public gc::Cell
         return false;
     }
 
-    inline bool isProxy() const;
-
   protected:
 #ifdef DEBUG
     void checkShapeConsistency();
 #else
     void checkShapeConsistency() { }
 #endif
-
-    Shape *
-    replaceWithNewEquivalentShape(JSContext *cx, Shape *existingShape, Shape *newShape = NULL);
-
-    enum GenerateShape {
-        GENERATE_NONE,
-        GENERATE_SHAPE
-    };
-
-    bool setFlag(JSContext *cx,  uint32_t flag,
-                 GenerateShape generateShape = GENERATE_NONE);
-    bool clearFlag(JSContext *cx,  uint32_t flag);
-
-    bool toDictionaryMode(JSContext *cx);
 
   private:
     
@@ -1229,18 +1182,10 @@ class ObjectImpl : public gc::Cell
 
 
   public:
-    inline js::TaggedProto getTaggedProto() const;
-
     Shape * lastProperty() const {
         MOZ_ASSERT(shape_);
         return shape_;
     }
-
-    bool generateOwnShape(JSContext *cx, js::Shape *newShape = NULL) {
-        return replaceWithNewEquivalentShape(cx, lastProperty(), newShape);
-    }
-
-    inline JSCompartment *compartment() const;
 
     inline bool isNative() const;
 
@@ -1270,9 +1215,9 @@ class ObjectImpl : public gc::Cell
     
     inline uint32_t numDynamicSlots() const;
 
-    RawShape nativeLookup(JSContext *cx, jsid id);
-    inline RawShape nativeLookup(JSContext *cx, PropertyId pid);
-    inline RawShape nativeLookup(JSContext *cx, PropertyName *name);
+    UnrootedShape nativeLookup(JSContext *cx, jsid id);
+    inline UnrootedShape nativeLookup(JSContext *cx, PropertyId pid);
+    inline UnrootedShape nativeLookup(JSContext *cx, PropertyName *name);
 
     inline bool nativeContains(JSContext *cx, jsid id);
     inline bool nativeContains(JSContext *cx, PropertyName* name);
@@ -1363,7 +1308,7 @@ class ObjectImpl : public gc::Cell
     static inline uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span);
 
     
-    inline size_t tenuredSizeOfThis() const;
+    inline size_t sizeOfThis() const;
 
     
 
@@ -1401,7 +1346,6 @@ class ObjectImpl : public gc::Cell
     }
 
     
-    JS_ALWAYS_INLINE Zone *zone() const;
     static inline ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
     static inline void readBarrier(ObjectImpl *obj);
     static inline void writeBarrierPre(ObjectImpl *obj);

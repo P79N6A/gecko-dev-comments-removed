@@ -13,7 +13,6 @@
 #include "jscompartment.h"
 #include "jsgc.h"
 #include "jsinterp.h"
-#include "jsproxy.h"
 
 #include "gc/Heap.h"
 #include "gc/Marking.h"
@@ -41,25 +40,13 @@ Debug_SetSlotRangeToCrashOnTouch(HeapSlot *begin, HeapSlot *end)
 
 } 
 
-inline JSCompartment *
-js::ObjectImpl::compartment() const
-{
-    return lastProperty()->base()->compartment();
-}
-
-inline js::TaggedProto
-js::ObjectImpl::getTaggedProto() const
-{
-    return TaggedProto(getProto());
-}
-
-inline js::RawShape
+inline js::UnrootedShape
 js::ObjectImpl::nativeLookup(JSContext *cx, PropertyId pid)
 {
     return nativeLookup(cx, pid.asId());
 }
 
-inline js::RawShape
+inline js::UnrootedShape
 js::ObjectImpl::nativeLookup(JSContext *cx, PropertyName *name)
 {
     return nativeLookup(cx, NameToId(name));
@@ -86,10 +73,6 @@ js::ObjectImpl::nativeContains(JSContext *cx, Shape *shape)
 inline bool
 js::ObjectImpl::isExtensible() const
 {
-    if (this->isProxy())
-        return Proxy::isExtensible(const_cast<JSObject*>(this->asObjectPtr()));
-
-    
     return !lastProperty()->hasObjectFlag(BaseShape::NOT_EXTENSIBLE);
 }
 
@@ -98,6 +81,13 @@ js::ObjectImpl::getDenseInitializedLength()
 {
     MOZ_ASSERT(isNative());
     return getElementsHeader()->initializedLength;
+}
+
+inline uint32_t
+js::ObjectImpl::getDenseCapacity()
+{
+    MOZ_ASSERT(isNative());
+    return getElementsHeader()->capacity;
 }
 
 inline js::HeapSlotArray
@@ -178,12 +168,12 @@ js::ObjectImpl::initializeSlotRange(uint32_t start, uint32_t length)
     HeapSlot *fixedStart, *fixedEnd, *slotsStart, *slotsEnd;
     getSlotRangeUnchecked(start, length, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
 
-    JSRuntime *rt = runtime();
+    Zone *zone = this->zone();
     uint32_t offset = start;
     for (HeapSlot *sp = fixedStart; sp < fixedEnd; sp++)
-        sp->init(rt, this->asObjectPtr(), HeapSlot::Slot, offset++, UndefinedValue());
+        sp->init(zone, this->asObjectPtr(), HeapSlot::Slot, offset++, UndefinedValue());
     for (HeapSlot *sp = slotsStart; sp < slotsEnd; sp++)
-        sp->init(rt, this->asObjectPtr(), HeapSlot::Slot, offset++, UndefinedValue());
+        sp->init(zone, this->asObjectPtr(), HeapSlot::Slot, offset++, UndefinedValue());
 }
 
 inline bool
@@ -208,13 +198,28 @@ js::ObjectImpl::nativeGetSlot(uint32_t slot) const
     return getSlot(slot);
 }
 
+static JS_ALWAYS_INLINE JSCompartment *
+ValueCompartment(const js::Value &value)
+{
+    JS_ASSERT(value.isMarkable());
+    return static_cast<js::gc::Cell *>(value.toGCThing())->compartment();
+}
+
+static JS_ALWAYS_INLINE JS::Zone *
+ValueZone(const js::Value &value)
+{
+    JS_ASSERT(value.isMarkable());
+    return static_cast<js::gc::Cell *>(value.toGCThing())->zone();
+}
+
 #ifdef DEBUG
 inline bool
-IsObjectValueInCompartment(js::Value v, JSCompartment *comp)
+IsValueInCompartment(js::Value v, JSCompartment *comp)
 {
-    if (!v.isObject())
+    if (!v.isMarkable())
         return true;
-    return v.toObject().compartment() == comp;
+    JSCompartment *vcomp = ValueCompartment(v);
+    return vcomp == comp->rt->atomsCompartment || vcomp == comp;
 }
 #endif
 
@@ -222,7 +227,7 @@ inline void
 js::ObjectImpl::setSlot(uint32_t slot, const js::Value &value)
 {
     MOZ_ASSERT(slotInRange(slot));
-    MOZ_ASSERT(IsObjectValueInCompartment(value, asObjectPtr()->compartment()));
+    MOZ_ASSERT(IsValueInCompartment(value, compartment()));
     getSlotRef(slot).set(this->asObjectPtr(), HeapSlot::Slot, slot, value);
 }
 
@@ -230,7 +235,11 @@ inline void
 js::ObjectImpl::setCrossCompartmentSlot(uint32_t slot, const js::Value &value)
 {
     MOZ_ASSERT(slotInRange(slot));
-    getSlotRef(slot).set(this->asObjectPtr(), HeapSlot::Slot, slot, value);
+    if (value.isMarkable())
+        getSlotRef(slot).setCrossCompartment(this->asObjectPtr(), HeapSlot::Slot, slot, value,
+                                             ValueZone(value));
+    else
+        setSlot(slot, value);
 }
 
 inline void
@@ -238,7 +247,7 @@ js::ObjectImpl::initSlot(uint32_t slot, const js::Value &value)
 {
     MOZ_ASSERT(getSlot(slot).isUndefined());
     MOZ_ASSERT(slotInRange(slot));
-    MOZ_ASSERT(IsObjectValueInCompartment(value, asObjectPtr()->compartment()));
+    MOZ_ASSERT(IsValueInCompartment(value, compartment()));
     initSlotUnchecked(slot, value);
 }
 
@@ -247,7 +256,10 @@ js::ObjectImpl::initCrossCompartmentSlot(uint32_t slot, const js::Value &value)
 {
     MOZ_ASSERT(getSlot(slot).isUndefined());
     MOZ_ASSERT(slotInRange(slot));
-    initSlotUnchecked(slot, value);
+    if (value.isMarkable())
+        getSlotRef(slot).init(ValueZone(value), this->asObjectPtr(), HeapSlot::Slot, slot, value);
+    else
+        initSlot(slot, value);
 }
 
 inline void
@@ -329,24 +341,9 @@ js::ObjectImpl::dynamicSlotsCount(uint32_t nfixed, uint32_t span)
 }
 
 inline size_t
-js::ObjectImpl::tenuredSizeOfThis() const
+js::ObjectImpl::sizeOfThis() const
 {
-    return js::gc::Arena::thingSize(tenuredGetAllocKind());
-}
-
-JS_ALWAYS_INLINE JS::Zone *
-js::ObjectImpl::zone() const
-{
-    return shape_->zone();
-}
-
-JS_ALWAYS_INLINE JS::Zone *
-ZoneOfValue(const JS::Value &value)
-{
-    JS_ASSERT(value.isMarkable());
-    if (value.isObject())
-        return value.toObject().zone();
-    return static_cast<js::gc::Cell *>(value.toGCThing())->tenuredZone();
+    return arenaHeader()->getThingSize();
 }
 
  inline void
@@ -379,7 +376,7 @@ inline void
 js::ObjectImpl::privateWriteBarrierPost(void **pprivate)
 {
 #ifdef JSGC_GENERATIONAL
-    runtime()->gcStoreBuffer.putCell(reinterpret_cast<js::gc::Cell **>(pprivate));
+    zone()->gcStoreBuffer.putCell(reinterpret_cast<js::gc::Cell **>(pprivate));
 #endif
 }
 
@@ -391,7 +388,7 @@ js::ObjectImpl::writeBarrierPre(ObjectImpl *obj)
 
 
 
-    if (IsNullTaggedPointer(obj) || !obj->runtime()->needsBarrier())
+    if (uintptr_t(obj) < 32)
         return;
 
     Zone *zone = obj->zone();
@@ -408,9 +405,9 @@ js::ObjectImpl::writeBarrierPre(ObjectImpl *obj)
 js::ObjectImpl::writeBarrierPost(ObjectImpl *obj, void *addr)
 {
 #ifdef JSGC_GENERATIONAL
-    if (IsNullTaggedPointer(obj))
+    if (uintptr_t(obj) < 32)
         return;
-    obj->runtime()->gcStoreBuffer.putCell((Cell **)addr);
+    obj->zone()->gcStoreBuffer.putCell((Cell **)addr);
 #endif
 }
 
