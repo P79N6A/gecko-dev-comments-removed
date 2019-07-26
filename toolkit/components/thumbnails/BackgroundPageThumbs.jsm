@@ -362,9 +362,6 @@ Capture.prototype = {
     
     
 
-    this.captureCallback(this);
-    this.destroy();
-
     if (data && data.telemetry) {
       
       for (let id in data.telemetry) {
@@ -372,7 +369,9 @@ Capture.prototype = {
       }
     }
 
-    let callOnDones = function callOnDonesFn() {
+    let done = () => {
+      this.captureCallback(this);
+      this.destroy();
       for (let callback of this.doneCallbacks) {
         try {
           callback.call(this.options, this.url);
@@ -381,15 +380,15 @@ Capture.prototype = {
           Cu.reportError(err);
         }
       }
-    }.bind(this);
+    };
 
     if (!data) {
-      callOnDones();
+      done();
       return;
     }
 
     PageThumbs._store(this.url, data.finalURL, data.imageData, data.wasErrorResponse)
-              .then(callOnDones);
+              .then(done, done);
   },
 };
 
