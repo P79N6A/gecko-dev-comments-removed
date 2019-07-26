@@ -414,6 +414,18 @@ struct ArenaLists {
     template <AllowGC allowGC>
     static void *refillFreeList(JSContext *cx, AllocKind thingKind);
 
+    
+
+
+
+
+
+
+    void adoptArenas(JSRuntime *runtime, ArenaLists *fromArenaLists);
+
+    
+    bool containsArena(JSRuntime *runtime, ArenaHeader *arenaHeader);
+
     void checkEmptyFreeLists() {
 #ifdef DEBUG
         for (size_t i = 0; i < mozilla::ArrayLength(freeLists); ++i)
@@ -433,6 +445,14 @@ struct ArenaLists {
 
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
+
+    
+
+
+
+
+
+    void *parallelAllocate(JSCompartment *comp, AllocKind thingKind, size_t thingSize);
 
   private:
     inline void finalizeNow(FreeOp *fop, AllocKind thingKind);

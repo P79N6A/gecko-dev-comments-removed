@@ -62,6 +62,7 @@
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
+#include "jscompartmentinlines.h"
 
 #include "vm/BooleanObject-inl.h"
 #include "vm/NumberObject-inl.h"
@@ -2522,6 +2523,29 @@ JSObject::willBeSparseElements(unsigned requiredCapacity, unsigned newElementsHi
 bool
 JSObject::growElements(JSContext *cx, unsigned newcap)
 {
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfThisSlotsElements() : 0;
+
+    if (!growElements(&cx->compartment->allocator, newcap)) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
+
+    if (Probes::objectResizeActive())
+        Probes::resizeObject(cx, this, oldSize, computedSizeOfThisSlotsElements());
+
+    return true;
+}
+
+bool
+JSObject::growElements(js::Allocator *alloc, unsigned newcap)
+{
+    
+
+
+
+
+
+
     JS_ASSERT(isExtensible());
 
     
@@ -2537,8 +2561,6 @@ JSObject::growElements(JSContext *cx, unsigned newcap)
     uint32_t oldcap = getDenseCapacity();
     JS_ASSERT(oldcap <= newcap);
 
-    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfThisSlotsElements() : 0;
-
     uint32_t nextsize = (oldcap <= CAPACITY_DOUBLING_MAX)
                       ? oldcap * 2
                       : oldcap + (oldcap >> 3);
@@ -2551,7 +2573,6 @@ JSObject::growElements(JSContext *cx, unsigned newcap)
 
     
     if (actualCapacity >= NELEMENTS_LIMIT || actualCapacity < oldcap || actualCapacity < newcap) {
-        JS_ReportOutOfMemory(cx);
         return false;
     }
 
@@ -2562,12 +2583,12 @@ JSObject::growElements(JSContext *cx, unsigned newcap)
     if (hasDynamicElements()) {
         uint32_t oldAllocated = oldcap + ObjectElements::VALUES_PER_HEADER;
         newheader = (ObjectElements *)
-            cx->realloc_(getElementsHeader(), oldAllocated * sizeof(Value),
-                         newAllocated * sizeof(Value));
+            alloc->realloc_(getElementsHeader(), oldAllocated * sizeof(Value),
+                            newAllocated * sizeof(Value));
         if (!newheader)
             return false;  
     } else {
-        newheader = (ObjectElements *) cx->malloc_(newAllocated * sizeof(Value));
+        newheader = (ObjectElements *) alloc->malloc_(newAllocated * sizeof(Value));
         if (!newheader)
             return false;  
         js_memcpy(newheader, getElementsHeader(),
@@ -2578,9 +2599,6 @@ JSObject::growElements(JSContext *cx, unsigned newcap)
     elements = newheader->elements();
 
     Debug_SetSlotRangeToCrashOnTouch(elements + initlen, actualCapacity - initlen);
-
-    if (Probes::objectResizeActive())
-        Probes::resizeObject(cx, this, oldSize, computedSizeOfThisSlotsElements());
 
     return true;
 }

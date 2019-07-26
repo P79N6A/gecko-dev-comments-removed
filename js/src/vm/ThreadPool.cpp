@@ -119,7 +119,8 @@ ThreadPoolWorker::run()
     
     
     
-    uintptr_t stackLimitOffset = WORKER_THREAD_STACK_SIZE - 2*1024;
+    
+    uintptr_t stackLimitOffset = WORKER_THREAD_STACK_SIZE - 10*1024;
     uintptr_t stackLimit = (((uintptr_t)&stackLimitOffset) +
                              stackLimitOffset * JS_STACK_GROWTH_DIRECTION);
 

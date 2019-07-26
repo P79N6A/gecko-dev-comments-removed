@@ -10,6 +10,7 @@
 #include "IonMacroAssembler.h"
 #include "gc/Root.h"
 #include "Bailouts.h"
+#include "vm/ForkJoin.h"
 
 using namespace js;
 using namespace js::ion;
@@ -321,7 +322,7 @@ MacroAssembler::newGCThing(const Register &result,
     
     
     gc::FreeSpan *list = const_cast<gc::FreeSpan *>
-                         (compartment->arenas.getFreeList(allocKind));
+                         (compartment->allocator.arenas.getFreeList(allocKind));
     loadPtr(AbsoluteAddress(&list->first), result);
     branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(&list->last), result, fail);
 

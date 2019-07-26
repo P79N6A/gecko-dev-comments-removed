@@ -1488,7 +1488,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     
     
-    uintptr_t *limitAddr = &rt->ionStackLimit;
+    uintptr_t *limitAddr = &rt->mainThread.ionStackLimit;
     masm.loadPtr(AbsoluteAddress(limitAddr), limitReg);
 
     CheckOverRecursedFailure *ool = new CheckOverRecursedFailure(lir);

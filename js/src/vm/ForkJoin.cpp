@@ -10,8 +10,9 @@
 
 #include "vm/ForkJoin.h"
 #include "vm/Monitor.h"
+#include "gc/Marking.h"
 
-#include "vm/ForkJoin-inl.h"
+#include "jsinferinlines.h"
 
 #ifdef JS_THREADSAFE
 #  include "prthread.h"
@@ -29,7 +30,7 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     JSContext *const cx_;          
     ThreadPool *const threadPool_; 
     ForkJoinOp &op_;               
-    const size_t numThreads_;      
+    const uint32_t numSlices_;     
     PRCondVar *rendezvousEnd_;     
 
     
@@ -37,16 +38,19 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     
     
 
-    Vector<gc::ArenaLists *, 16> arenaListss_;
+    Vector<Allocator *, 16> allocators_;
 
     
     
     
     
 
-    size_t uncompleted_;     
-    size_t blocked_;         
-    size_t rendezvousIndex_; 
+    uint32_t uncompleted_;         
+    uint32_t blocked_;             
+    uint32_t rendezvousIndex_;     
+    bool gcRequested_;             
+    gcreason::Reason gcReason_;    
+    JSCompartment *gcCompartment_; 
 
     
     
@@ -68,11 +72,11 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     volatile bool rendezvous_;
 
     
-    void executeFromMainThread(uintptr_t stackLimit);
+    void executeFromMainThread();
 
     
     
-    void executePortion(PerThreadData *perThread, size_t threadId, uintptr_t stackLimit);
+    void executePortion(PerThreadData *perThread, uint32_t threadId);
 
     
     
@@ -97,8 +101,8 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     ForkJoinShared(JSContext *cx,
                    ThreadPool *threadPool,
                    ForkJoinOp &op,
-                   size_t numThreads,
-                   size_t uncompleted);
+                   uint32_t numSlices,
+                   uint32_t uncompleted);
     ~ForkJoinShared();
 
     bool init();
@@ -106,18 +110,26 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     ParallelResult execute();
 
     
-    virtual void executeFromWorker(size_t threadId, uintptr_t stackLimit);
+    virtual void executeFromWorker(uint32_t threadId, uintptr_t stackLimit);
 
     
     
     
-    void transferArenasToCompartment();
+    
+    void transferArenasToCompartmentAndProcessGCRequests();
 
     
     bool check(ForkJoinSlice &threadCx);
 
     
     bool setFatal();
+
+    
+    void requestGC(gcreason::Reason reason);
+    void requestCompartmentGC(JSCompartment *compartment, gcreason::Reason reason);
+
+    
+    void setAbortFlag();
 
     JSRuntime *runtime() { return cx_->runtime; }
 };
@@ -160,19 +172,22 @@ class js::AutoSetForkJoinSlice
 ForkJoinShared::ForkJoinShared(JSContext *cx,
                                ThreadPool *threadPool,
                                ForkJoinOp &op,
-                               size_t numThreads,
-                               size_t uncompleted)
-    : cx_(cx),
-      threadPool_(threadPool),
-      op_(op),
-      numThreads_(numThreads),
-      arenaListss_(cx),
-      uncompleted_(uncompleted),
-      blocked_(0),
-      rendezvousIndex_(0),
-      abort_(false),
-      fatal_(false),
-      rendezvous_(false)
+                               uint32_t numSlices,
+                               uint32_t uncompleted)
+  : cx_(cx),
+    threadPool_(threadPool),
+    op_(op),
+    numSlices_(numSlices),
+    allocators_(cx),
+    uncompleted_(uncompleted),
+    blocked_(0),
+    rendezvousIndex_(0),
+    gcRequested_(false),
+    gcReason_(gcreason::NUM_REASONS),
+    gcCompartment_(NULL),
+    abort_(false),
+    fatal_(false),
+    rendezvous_(false)
 { }
 
 bool
@@ -195,13 +210,13 @@ ForkJoinShared::init()
     if (!rendezvousEnd_)
         return false;
 
-    for (unsigned i = 0; i < numThreads_; i++) {
-        gc::ArenaLists *arenaLists = cx_->new_<gc::ArenaLists>();
-        if (!arenaLists)
+    for (unsigned i = 0; i < numSlices_; i++) {
+        Allocator *allocator = cx_->runtime->new_<Allocator>(cx_->compartment);
+        if (!allocator)
             return false;
 
-        if (!arenaListss_.append(arenaLists)) {
-            delete arenaLists;
+        if (!allocators_.append(allocator)) {
+            js_delete(allocator);
             return false;
         }
     }
@@ -213,30 +228,34 @@ ForkJoinShared::~ForkJoinShared()
 {
     PR_DestroyCondVar(rendezvousEnd_);
 
-    while (arenaListss_.length() > 0)
-        delete arenaListss_.popCopy();
+    while (allocators_.length() > 0)
+        js_delete(allocators_.popCopy());
 }
 
 ParallelResult
 ForkJoinShared::execute()
 {
-    AutoLockMonitor lock(*this);
-
     
-    if (!op_.pre(numThreads_))
+    
+    
+    if (cx_->runtime->interrupt)
         return TP_RETRY_SEQUENTIALLY;
+
+    AutoLockMonitor lock(*this);
 
     
     {
         AutoUnlockMonitor unlock(*this);
         if (!threadPool_->submitAll(cx_, this))
             return TP_FATAL;
-        executeFromMainThread(cx_->runtime->ionStackLimit);
+        executeFromMainThread();
     }
 
     
     while (uncompleted_ > 0)
         lock.wait();
+
+    transferArenasToCompartmentAndProcessGCRequests();
 
     
     if (abort_) {
@@ -246,37 +265,36 @@ ForkJoinShared::execute()
             return TP_RETRY_SEQUENTIALLY;
     }
 
-    transferArenasToCompartment();
-
-    
-    if (!op_.post(numThreads_))
-        return TP_RETRY_SEQUENTIALLY;
-
     
     return TP_SUCCESS;
 }
 
 void
-ForkJoinShared::transferArenasToCompartment()
+ForkJoinShared::transferArenasToCompartmentAndProcessGCRequests()
 {
-#if 0
-    
-
-    JSRuntime *rt = cx_->runtime;
     JSCompartment *comp = cx_->compartment;
-    for (unsigned i = 0; i < numThreads_; i++)
-        comp->arenas.adoptArenas(rt, arenaListss_[i]);
-#endif
+    for (unsigned i = 0; i < numSlices_; i++)
+        comp->adoptWorkerAllocator(allocators_[i]);
+
+    if (gcRequested_) {
+        if (!gcCompartment_)
+            TriggerGC(cx_->runtime, gcReason_);
+        else
+            TriggerCompartmentGC(gcCompartment_, gcReason_);
+        gcRequested_ = false;
+        gcCompartment_ = NULL;
+    }
 }
 
 void
-ForkJoinShared::executeFromWorker(size_t workerId, uintptr_t stackLimit)
+ForkJoinShared::executeFromWorker(uint32_t workerId, uintptr_t stackLimit)
 {
-    JS_ASSERT(workerId < numThreads_ - 1);
+    JS_ASSERT(workerId < numSlices_ - 1);
 
     PerThreadData thisThread(cx_->runtime);
     TlsPerThreadData.set(&thisThread);
-    executePortion(&thisThread, workerId, stackLimit);
+    thisThread.ionStackLimit = stackLimit;
+    executePortion(&thisThread, workerId);
     TlsPerThreadData.set(NULL);
 
     AutoLockMonitor lock(*this);
@@ -290,23 +308,21 @@ ForkJoinShared::executeFromWorker(size_t workerId, uintptr_t stackLimit)
 }
 
 void
-ForkJoinShared::executeFromMainThread(uintptr_t stackLimit)
+ForkJoinShared::executeFromMainThread()
 {
-    executePortion(&cx_->runtime->mainThread, numThreads_ - 1, stackLimit);
+    executePortion(&cx_->runtime->mainThread, numSlices_ - 1);
 }
 
 void
 ForkJoinShared::executePortion(PerThreadData *perThread,
-                               size_t threadId,
-                               uintptr_t stackLimit)
+                               uint32_t threadId)
 {
-    gc::ArenaLists *arenaLists = arenaListss_[threadId];
-    ForkJoinSlice slice(perThread, threadId, numThreads_,
-                        stackLimit, arenaLists, this);
+    Allocator *allocator = allocators_[threadId];
+    ForkJoinSlice slice(perThread, threadId, numSlices_, allocator, this);
     AutoSetForkJoinSlice autoContext(&slice);
 
     if (!op_.parallel(slice))
-        abort_ = true;
+        setAbortFlag();
 }
 
 bool
@@ -314,7 +330,7 @@ ForkJoinShared::setFatal()
 {
     
     
-    abort_ = true;
+    setAbortFlag();
     fatal_ = true;
     return false;
 }
@@ -326,12 +342,21 @@ ForkJoinShared::check(ForkJoinSlice &slice)
         return false;
 
     if (slice.isMainThread()) {
+        JS_ASSERT(!cx_->runtime->gcIsNeeded);
+
         if (cx_->runtime->interrupt) {
             
             
-            AutoRendezvous autoRendezvous(slice);
-            if (!js_HandleExecutionInterrupt(cx_))
-                return setFatal();
+            
+            JS_ASSERT(!cx_->runtime->gcIsNeeded);
+
+            
+            
+            
+            
+            
+            setAbortFlag();
+            return false;
         }
     } else if (rendezvous_) {
         joinRendezvous(slice);
@@ -392,7 +417,7 @@ ForkJoinShared::joinRendezvous(ForkJoinSlice &slice)
     JS_ASSERT(rendezvous_);
 
     AutoLockMonitor lock(*this);
-    const size_t index = rendezvousIndex_;
+    const uint32_t index = rendezvousIndex_;
     blocked_ += 1;
 
     
@@ -421,6 +446,42 @@ ForkJoinShared::endRendezvous(ForkJoinSlice &slice)
     PR_NotifyAllCondVar(rendezvousEnd_);
 }
 
+void
+ForkJoinShared::setAbortFlag()
+{
+    abort_ = true;
+}
+
+void
+ForkJoinShared::requestGC(gcreason::Reason reason)
+{
+    AutoLockMonitor lock(*this);
+
+    gcCompartment_ = NULL;
+    gcReason_ = reason;
+    gcRequested_ = true;
+}
+
+void
+ForkJoinShared::requestCompartmentGC(JSCompartment *compartment,
+                                     gcreason::Reason reason)
+{
+    AutoLockMonitor lock(*this);
+
+    if (gcRequested_ && gcCompartment_ != compartment) {
+        
+        
+        gcCompartment_ = NULL;
+        gcReason_ = reason;
+        gcRequested_ = true;
+    } else {
+        
+        gcCompartment_ = compartment;
+        gcReason_ = reason;
+        gcRequested_ = true;
+    }
+}
+
 #endif 
 
 
@@ -428,14 +489,13 @@ ForkJoinShared::endRendezvous(ForkJoinSlice &slice)
 
 
 ForkJoinSlice::ForkJoinSlice(PerThreadData *perThreadData,
-                             size_t sliceId, size_t numSlices,
-                             uintptr_t stackLimit, gc::ArenaLists *arenaLists,
-                             ForkJoinShared *shared)
+                             uint32_t sliceId, uint32_t numSlices,
+                             Allocator *allocator, ForkJoinShared *shared)
     : perThreadData(perThreadData),
       sliceId(sliceId),
       numSlices(numSlices),
-      ionStackLimit(stackLimit),
-      arenaLists(arenaLists),
+      allocator(allocator),
+      abortedScript(NULL),
       shared(shared)
 { }
 
@@ -490,20 +550,100 @@ ForkJoinSlice::Initialize()
 #endif
 }
 
+void
+ForkJoinSlice::requestGC(gcreason::Reason reason)
+{
+#ifdef JS_THREADSAFE
+    shared->requestGC(reason);
+    triggerAbort();
+#endif
+}
 
+void
+ForkJoinSlice::requestCompartmentGC(JSCompartment *compartment,
+                                    gcreason::Reason reason)
+{
+#ifdef JS_THREADSAFE
+    shared->requestCompartmentGC(compartment, reason);
+    triggerAbort();
+#endif
+}
+
+#ifdef JS_THREADSAFE
+void
+ForkJoinSlice::triggerAbort()
+{
+    shared->setAbortFlag();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    perThreadData->ionStackLimit = -1;
+}
+#endif
+
+
+
+namespace js {
+class AutoEnterParallelSection
+{
+  private:
+    JSContext *cx_;
+    uint8_t *prevIonTop_;
+
+  public:
+    AutoEnterParallelSection(JSContext *cx)
+      : cx_(cx),
+        prevIonTop_(cx->mainThread().ionTop)
+    {
+        
+        
+        
+        
+
+        if (IsIncrementalGCInProgress(cx->runtime)) {
+            PrepareForIncrementalGC(cx->runtime);
+            FinishIncrementalGC(cx->runtime, gcreason::API);
+        }
+
+        cx->runtime->gcHelperThread.waitBackgroundSweepEnd();
+    }
+
+    ~AutoEnterParallelSection() {
+        cx_->runtime->mainThread.ionTop = prevIonTop_;
+    }
+};
+} 
+
+uint32_t
+js::ForkJoinSlices(JSContext *cx)
+{
+#ifndef JS_THREADSAFE
+    return 1;
+#else
+    
+    return cx->runtime->threadPool.numWorkers() + 1;
+#endif
+}
 
 ParallelResult
 js::ExecuteForkJoinOp(JSContext *cx, ForkJoinOp &op)
 {
 #ifdef JS_THREADSAFE
     
-    JS_ASSERT(!InParallelSection());
+    JS_ASSERT(!ForkJoinSlice::InParallelSection());
+
+    AutoEnterParallelSection enter(cx);
 
     ThreadPool *threadPool = &cx->runtime->threadPool;
-    
-    size_t numThreads = threadPool->numWorkers() + 1;
+    uint32_t numSlices = ForkJoinSlices(cx);
 
-    ForkJoinShared shared(cx, threadPool, op, numThreads, numThreads - 1);
+    ForkJoinShared shared(cx, threadPool, op, numSlices, numSlices - 1);
     if (!shared.init())
         return TP_RETRY_SEQUENTIALLY;
 

@@ -121,6 +121,41 @@ class AutoDebugModeGC;
 class DebugScopes;
 }
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+class Allocator
+{
+    JSCompartment*const compartment;
+
+  public:
+    explicit Allocator(JSCompartment *compartment);
+
+    js::gc::ArenaLists arenas;
+
+    inline void *parallelNewGCThing(gc::AllocKind thingKind, size_t thingSize);
+
+    inline void* malloc_(size_t bytes);
+    inline void* calloc_(size_t bytes);
+    inline void* realloc_(void* p, size_t bytes);
+    inline void* realloc_(void* p, size_t oldBytes, size_t newBytes);
+    template <class T> inline T *pod_malloc();
+    template <class T> inline T *pod_calloc();
+    template <class T> inline T *pod_malloc(size_t numElems);
+    template <class T> inline T *pod_calloc(size_t numElems);
+    JS_DECLARE_NEW_METHODS(new_, malloc_, JS_ALWAYS_INLINE)
+};
+
+}
+
 struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNodeBase<JSCompartment>
 {
     JSRuntime                    *rt;
@@ -157,7 +192,14 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     }
 
   public:
-    js::gc::ArenaLists           arenas;
+    js::Allocator                    allocator;
+
+    
+
+
+
+
+    void adoptWorkerAllocator(js::Allocator *workerAllocator);
 
 #ifdef JSGC_GENERATIONAL
     js::gc::Nursery              gcNursery;
@@ -360,15 +402,6 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     void sweepCallsiteClones();
 
     
-
-
-
-
-
-    size_t                       gcMallocAndFreeBytes;
-    size_t                       gcTriggerMallocAndFreeBytes;
-
-    
     unsigned                     gcIndex;
 
     
@@ -444,12 +477,16 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
 
     void findOutgoingEdges(js::gc::ComponentFinder<JSCompartment> &finder);
 
-    void setGCLastBytes(size_t lastBytes, size_t lastMallocBytes, js::JSGCInvocationKind gckind);
+    void setGCLastBytes(size_t lastBytes, js::JSGCInvocationKind gckind);
     void reduceGCTriggerBytes(size_t amount);
 
     void resetGCMallocBytes();
     void setGCMaxMallocBytes(size_t value);
     void updateMallocCounter(size_t nbytes) {
+        
+
+
+
         ptrdiff_t oldCount = gcMallocBytes;
         ptrdiff_t newCount = oldCount - ptrdiff_t(nbytes);
         gcMallocBytes = newCount;
@@ -462,15 +499,6 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
      }
 
     void onTooMuchMalloc();
-
-    void mallocInCompartment(size_t nbytes) {
-        gcMallocAndFreeBytes += nbytes;
-    }
-
-    void freeInCompartment(size_t nbytes) {
-        JS_ASSERT(gcMallocAndFreeBytes >= nbytes);
-        gcMallocAndFreeBytes -= nbytes;
-    }
 
     js::DtoaCache dtoaCache;
 

@@ -587,6 +587,80 @@ JSObject::ensureDenseInitializedLength(JSContext *cx, uint32_t index, uint32_t e
     }
 }
 
+template<typename CONTEXT>
+JSObject::EnsureDenseResult
+JSObject::extendDenseElements(CONTEXT *cx, unsigned requiredCapacity, unsigned extra)
+{
+    
+
+
+
+
+    if (!isExtensible() || watched()) {
+        JS_ASSERT(getDenseCapacity() == 0);
+        return ED_SPARSE;
+    }
+
+    
+
+
+
+
+    if (isIndexed())
+        return ED_SPARSE;
+
+    
+
+
+
+    if (requiredCapacity > MIN_SPARSE_INDEX &&
+        willBeSparseElements(requiredCapacity, extra)) {
+        return ED_SPARSE;
+    }
+
+    if (!growElements(cx, requiredCapacity))
+        return ED_FAILED;
+
+    return ED_OK;
+}
+
+inline JSObject::EnsureDenseResult
+JSObject::parExtendDenseElements(js::Allocator *alloc, js::Value *v, uint32_t extra)
+{
+    JS_ASSERT(isNative());
+
+    js::ObjectElements *header = getElementsHeader();
+    unsigned initializedLength = header->initializedLength;
+    unsigned requiredCapacity = initializedLength + extra;
+    if (requiredCapacity < initializedLength)
+        return ED_SPARSE; 
+
+    if (requiredCapacity > header->capacity) {
+        EnsureDenseResult edr = extendDenseElements(alloc, requiredCapacity, extra);
+        if (edr != ED_OK)
+            return edr;
+    }
+
+    
+    
+    header = getElementsHeader();
+
+    js::HeapSlot *sp = elements + initializedLength;
+    if (v) {
+        for (uint32_t i = 0; i < extra; i++)
+            sp[i].init(compartment(), this, js::HeapSlot::Element,
+                       initializedLength+i, v[i]);
+    } else {
+        for (uint32_t i = 0; i < extra; i++)
+            sp[i].init(compartment(), this, js::HeapSlot::Element,
+                       initializedLength+i, js::MagicValue(JS_ELEMENTS_HOLE));
+    }
+    header->initializedLength = requiredCapacity;
+    if (header->length < requiredCapacity)
+        header->length = requiredCapacity;
+    return ED_OK;
+}
+
 inline JSObject::EnsureDenseResult
 JSObject::ensureDenseElements(JSContext *cx, unsigned index, unsigned extra)
 {
@@ -618,35 +692,9 @@ JSObject::ensureDenseElements(JSContext *cx, unsigned index, unsigned extra)
         }
     }
 
-    
-
-
-
-
-    if (!isExtensible() || watched()) {
-        JS_ASSERT(currentCapacity == 0);
-        return ED_SPARSE;
-    }
-
-    
-
-
-
-
-    if (isIndexed())
-        return ED_SPARSE;
-
-    
-
-
-
-    if (requiredCapacity > MIN_SPARSE_INDEX &&
-        willBeSparseElements(requiredCapacity, extra)) {
-        return ED_SPARSE;
-    }
-
-    if (!growElements(cx, requiredCapacity))
-        return ED_FAILED;
+    EnsureDenseResult edr = extendDenseElements(cx, requiredCapacity, extra);
+    if (edr != ED_OK)
+        return edr;
 
     ensureDenseInitializedLength(cx, index, extra);
     return ED_OK;
