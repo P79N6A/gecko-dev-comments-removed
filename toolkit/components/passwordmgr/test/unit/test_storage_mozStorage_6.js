@@ -215,47 +215,6 @@ do_check_eq(logins[0].guid, guid3, "checking guid3");
 
 
 testnum++;
-testdesc = "login w/o nsILoginMetaInfo impl";
-
-var wonkyDelegate = new nsLoginInfo;
-wonkyDelegate.init("http://wonky", null, "wonkyness",
-                   "wonkyuser", "wonkypass", "u", "p");
-
-var wonkyLogin = {
-    QueryInterface : function (iid) {
-                        var interfaces = [Ci.nsILoginInfo, Ci.nsISupports];
-                        if (!interfaces.some( function(v) { return iid.equals(v) }))
-                            throw Components.results.NS_ERROR_NO_INTERFACE;
-                        return this;
-                    },
-    hostname:      wonkyDelegate.hostname,
-    formSubmitURL: wonkyDelegate.formSubmitURL,
-    httpRealm:     wonkyDelegate.httpRealm,
-    username:      wonkyDelegate.username,
-    password:      wonkyDelegate.password,
-    usernameField: wonkyDelegate.usernameField,
-    passwordField: wonkyDelegate.passwordField,
-    equals:        wonkyDelegate.equals,
-    matches:       wonkyDelegate.matches,
-    clone:         wonkyDelegate.clone
-};
-
-storage.addLogin(wonkyLogin);
-LoginTest.checkStorageData(storage, [], [testuser1, testuser2, testuser3, wonkyLogin]);
-
-logins = storage.findLogins({}, "http://wonky", null, "");
-do_check_eq(logins.length, 1, "expecting 1 login");
-logins[0].QueryInterface(Ci.nsILoginMetaInfo);
-do_check_true(isGUID.test(logins[0].guid), "wonky guid is set");
-
-storage.modifyLogin(wonkyLogin, wonkyLogin);
-LoginTest.checkStorageData(storage, [], [testuser1, testuser2, testuser3, wonkyLogin]);
-storage.removeLogin(wonkyLogin);
-LoginTest.checkStorageData(storage, [], [testuser1, testuser2, testuser3]);
-
-
-
-testnum++;
 testdesc = "check values for v4 DB addLogin";
 
 var timeuser1 = new nsLoginInfo();
