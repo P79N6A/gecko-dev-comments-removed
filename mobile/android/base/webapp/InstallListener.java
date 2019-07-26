@@ -56,8 +56,11 @@ public class InstallListener extends BroadcastReceiver {
             Log.i(LOGTAG, "No manifest URL present in metadata");
             return;
         } else if (!isCorrectManifest(manifestUrl)) {
-            Log.i(LOGTAG, "Waiting to finish installing " + mManifestUrl + " but this is " +manifestUrl);
             
+            
+            
+            Log.i(LOGTAG, "Manifest URL is for a different install; ignoring");
+            return;
         }
 
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {

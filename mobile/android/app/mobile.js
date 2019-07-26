@@ -824,6 +824,16 @@ pref("browser.snippets.syncPromo.enabled", false);
 
 
 pref("browser.webapps.apkFactoryUrl", "http://dapk.net/application.apk");
+
+
+pref("browser.webapps.updateInterval", 86400);
+
+
+
+
+
+pref("browser.webapps.updateCheckUrl", "http://dapk.net/app_updates");
+
 #endif
 
 
