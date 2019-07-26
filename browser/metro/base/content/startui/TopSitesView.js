@@ -167,9 +167,12 @@ TopSitesView.prototype = Util.extend(Object.create(View.prototype), {
       let filepath = PageThumbsStorage.getFilePathForURL(aSite.url);
       if (yield OS.File.exists(filepath)) {
         aSite.backgroundImage = 'url("'+PageThumbs.getThumbnailURL(aSite.url)+'")';
-        if ('backgroundImage' in aTileNode) {
+        
+        if ('backgroundImage' in aTileNode &&
+            aTileNode.backgroundImage != aSite.backgroundImage) {
           aTileNode.backgroundImage = aSite.backgroundImage;
         } else {
+          
           aTileNode.setAttribute("customImage", aSite.backgroundImage);
         }
       }

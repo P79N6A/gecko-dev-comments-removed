@@ -87,9 +87,9 @@ View.prototype = {
       
       let tintColor = ColorUtils.addRgbColors(matteColor, ColorUtils.createDecimalColorWord(r,g,b,alpha));
       aItem.setAttribute("tintColor", ColorUtils.convertDecimalToRgbColor(tintColor));
-
-      if (aItem.refresh) {
-        aItem.refresh();
+      
+      if ('color' in aItem) {
+        aItem.color = background;
       }
     };
     let failureAction = function() {};
