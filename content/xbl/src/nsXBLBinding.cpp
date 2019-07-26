@@ -1105,10 +1105,10 @@ nsXBLBinding::ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const
 
 bool
 nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
-                           JSPropertyDescriptor* aDesc)
+                           JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
   
-  MOZ_ASSERT(!aDesc->obj);
+  MOZ_ASSERT(!aDesc.object());
 
   
   
@@ -1148,7 +1148,7 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
 bool
 nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
                                    JS::HandleId aNameAsId,
-                                   JSPropertyDescriptor* aDesc,
+                                   JS::MutableHandle<JSPropertyDescriptor> aDesc,
                                    JS::Handle<JSObject*> aXBLScope)
 {
   
@@ -1186,7 +1186,7 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
   {
     return false;
   }
-  if (aDesc->obj || !mNextBinding) {
+  if (aDesc.object() || !mNextBinding) {
     return true;
   }
 

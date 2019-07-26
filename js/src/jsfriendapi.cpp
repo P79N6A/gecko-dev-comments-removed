@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "jsfriendapi.h"
 
@@ -31,7 +31,7 @@ using namespace JS;
 
 using mozilla::PodArrayZero;
 
-// Required by PerThreadDataFriendFields::getMainThread()
+
 JS_STATIC_ASSERT(offsetof(JSRuntime, mainThread) ==
                  PerThreadDataFriendFields::RuntimeMainThreadOffset);
 
@@ -71,17 +71,17 @@ JS_FindCompilationScope(JSContext *cx, JSObject *objArg)
 {
     RootedObject obj(cx, objArg);
 
-    /*
-     * We unwrap wrappers here. This is a little weird, but it's what's being
-     * asked of us.
-     */
+    
+
+
+
     if (obj->is<WrapperObject>())
         obj = UncheckedUnwrap(obj);
 
-    /*
-     * Innerize the target_obj so that we compile in the correct (inner)
-     * scope.
-     */
+    
+
+
+
     if (JSObjectOp op = obj->getClass()->ext.innerObject)
         obj = op(cx, obj);
     return obj;
@@ -100,18 +100,18 @@ JS_SplicePrototype(JSContext *cx, JSObject *objArg, JSObject *protoArg)
 {
     RootedObject obj(cx, objArg);
     RootedObject proto(cx, protoArg);
-    /*
-     * Change the prototype of an object which hasn't been used anywhere
-     * and does not share its type with another object. Unlike JS_SetPrototype,
-     * does not nuke type information for the object.
-     */
+    
+
+
+
+
     CHECK_REQUEST(cx);
 
     if (!obj->hasSingletonType()) {
-        /*
-         * We can see non-singleton objects when trying to splice prototypes
-         * due to mutable __proto__ (ugh).
-         */
+        
+
+
+
         return JS_SetPrototype(cx, obj, proto);
     }
 
@@ -124,12 +124,12 @@ JS_NewObjectWithUniqueType(JSContext *cx, JSClass *clasp, JSObject *protoArg, JS
 {
     RootedObject proto(cx, protoArg);
     RootedObject parent(cx, parentArg);
-    /*
-     * Create our object with a null proto and then splice in the correct proto
-     * after we setSingletonType, so that we don't pollute the default
-     * TypeObject attached to our proto with information about our object, since
-     * we're not going to be using that TypeObject anyway.
-     */
+    
+
+
+
+
+
     RootedObject obj(cx, NewObjectWithGivenProto(cx, (js::Class *)clasp, NULL, parent, SingletonObject));
     if (!obj)
         return NULL;
@@ -213,43 +213,40 @@ JS_GetCompartmentPrincipals(JSCompartment *compartment)
 JS_FRIEND_API(void)
 JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals)
 {
-    // Short circuit if there's no change.
+    
     if (principals == compartment->principals)
         return;
 
-    // Any compartment with the trusted principals -- and there can be
-    // multiple -- is a system compartment.
+    
+    
     JSPrincipals *trusted = compartment->runtimeFromMainThread()->trustedPrincipals();
     bool isSystem = principals && principals == trusted;
 
-    // Clear out the old principals, if any.
+    
     if (compartment->principals) {
         JS_DropPrincipals(compartment->runtimeFromMainThread(), compartment->principals);
         compartment->principals = NULL;
-        // We'd like to assert that our new principals is always same-origin
-        // with the old one, but JSPrincipals doesn't give us a way to do that.
-        // But we can at least assert that we're not switching between system
-        // and non-system.
+        
+        
+        
+        
         JS_ASSERT(compartment->isSystem == isSystem);
     }
 
-    // Set up the new principals.
+    
     if (principals) {
         JS_HoldPrincipals(principals);
         compartment->principals = principals;
     }
 
-    // Update the system flag.
+    
     compartment->isSystem = isSystem;
 }
 
 JS_FRIEND_API(bool)
-JS_WrapPropertyDescriptor(JSContext *cx, js::PropertyDescriptor *descArg)
+JS_WrapPropertyDescriptor(JSContext *cx, JS::MutableHandle<js::PropertyDescriptor> desc)
 {
-    Rooted<PropertyDescriptor> desc(cx, *descArg);
-    bool status = cx->compartment()->wrap(cx, &desc);
-    *descArg = desc;
-    return status;
+    return cx->compartment()->wrap(cx, desc);
 }
 
 JS_FRIEND_API(bool)
@@ -536,13 +533,13 @@ js::SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback)
     rt->preserveWrapperCallback = callback;
 }
 
-/*
- * The below code is for temporary telemetry use. It can be removed when
- * sufficient data has been harvested.
- */
+
+
+
+
 
 namespace js {
-// Defined in vm/GlobalObject.cpp.
+
 extern size_t sSetProtoCalled;
 }
 
@@ -552,7 +549,7 @@ JS_SetProtoCalled(JSContext *)
     return sSetProtoCalled;
 }
 
-// Defined in jsiter.cpp.
+
 extern size_t sCustomIteratorCount;
 
 JS_FRIEND_API(size_t)
@@ -1071,8 +1068,8 @@ js::AutoCTypesActivityCallback::AutoCTypesActivityCallback(JSContext *cx,
 JS_FRIEND_API(void)
 js::SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback)
 {
-    // Clear any jitcode in the runtime, which behaves differently depending on
-    // whether there is a creation callback.
+    
+    
     ReleaseAllJITCode(cx->runtime()->defaultFreeOp());
 
     cx->compartment()->objectMetadataCallback = callback;
@@ -1092,11 +1089,10 @@ js::GetObjectMetadata(JSObject *obj)
 
 JS_FRIEND_API(bool)
 js_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg,
-                     const js::PropertyDescriptor& descriptorArg, bool *bp)
+                     JS::Handle<js::PropertyDescriptor> descriptor, bool *bp)
 {
     RootedObject obj(cx, objArg);
     RootedId id(cx, idArg);
-    Rooted<PropertyDescriptor> descriptor(cx, descriptorArg);
     JS_ASSERT(cx->runtime()->heapState == js::Idle);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id, descriptor.value());
@@ -1158,4 +1154,4 @@ JS_StoreStringPostBarrierCallback(JSContext* cx,
 {
     cx->runtime()->gcStoreBuffer.putCallback(callback, key, data);
 }
-#endif /* JSGC_GENERATIONAL */
+#endif 

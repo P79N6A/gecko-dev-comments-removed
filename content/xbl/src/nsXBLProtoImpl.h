@@ -19,34 +19,34 @@ class nsXBLProtoImplAnonymousMethod;
 class nsXBLProtoImpl
 {
 public:
-  nsXBLProtoImpl() 
+  nsXBLProtoImpl()
     : mClassObject(nullptr),
       mMembers(nullptr),
       mFields(nullptr),
       mConstructor(nullptr),
       mDestructor(nullptr)
-  { 
-    MOZ_COUNT_CTOR(nsXBLProtoImpl); 
+  {
+    MOZ_COUNT_CTOR(nsXBLProtoImpl);
   }
-  ~nsXBLProtoImpl() 
-  { 
+  ~nsXBLProtoImpl()
+  {
     MOZ_COUNT_DTOR(nsXBLProtoImpl);
     
     
     delete mMembers;
     delete mFields;
   }
-  
+
   nsresult InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding, nsXBLBinding* aBinding);
   nsresult InitTargetObjects(nsXBLPrototypeBinding* aBinding,
-                             nsIContent* aBoundElement, 
+                             nsIContent* aBoundElement,
                              nsIXPConnectJSObjectHolder** aScriptObjectHolder,
                              JS::MutableHandle<JSObject*> aTargetClassObject,
                              bool* aTargetIsNew);
   nsresult CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding);
 
   bool LookupMember(JSContext* aCx, nsString& aName, JS::HandleId aNameAsId,
-                    JSPropertyDescriptor* aDesc, JSObject* aClassObject);
+                    JS::MutableHandle<JSPropertyDescriptor> aDesc, JSObject* aClassObject);
 
   void SetMemberList(nsXBLProtoImplMember* aMemberList)
   {
@@ -95,7 +95,7 @@ protected:
   }
 
   void DestroyMembers();
-  
+
 public:
   nsCString mClassName; 
 
@@ -106,15 +106,15 @@ protected:
   nsXBLProtoImplMember* mMembers; 
 
   nsXBLProtoImplField* mFields; 
-  
+
 public:
   nsXBLProtoImplAnonymousMethod* mConstructor; 
   nsXBLProtoImplAnonymousMethod* mDestructor;  
 };
 
 nsresult
-NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding, 
-                   const PRUnichar* aClassName, 
+NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding,
+                   const PRUnichar* aClassName,
                    nsXBLProtoImpl** aResult);
 
 #endif 
