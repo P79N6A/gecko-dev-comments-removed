@@ -544,8 +544,13 @@ void mozilla_sampler_print_location1()
     return;
   }
 
+  
+  void *stackTop = &stack;
+
   ThreadProfile threadProfile("Temp", PROFILE_DEFAULT_ENTRY, stack,
-                              0, Sampler::AllocPlatformData(0), false);
+                              0, Sampler::AllocPlatformData(0), false,
+                              stackTop);
+
   doSampleStackTrace(stack, threadProfile, NULL);
 
   threadProfile.flush();
