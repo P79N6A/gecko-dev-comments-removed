@@ -24,6 +24,8 @@
 #include "nsThreadUtils.h"
 #include "nsIXULAppInfo.h"
 #include "mozilla/Preferences.h"
+#include "nsPrintfCString.h"
+#include "mozilla/DebugOnly.h"
 
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
@@ -45,6 +47,8 @@
 #elif defined(XP_UNIX)
 # include <unistd.h>
 #endif
+
+using namespace mozilla;
 
 
 
@@ -96,8 +100,20 @@ static const char kUpdaterPNG[] = "updater.png";
 #endif
 
 #if defined(MOZ_WIDGET_GONK)
+#include <linux/ioprio.h>
+
 static const int kB2GServiceArgc = 2;
 static const char *kB2GServiceArgv[] = { "/system/bin/start", "b2g" };
+
+static const char kAppUpdaterPrio[]        = "app.update.updater.prio";
+static const char kAppUpdaterOomScoreAdj[] = "app.update.updater.oom_score_adj";
+static const char kAppUpdaterIOPrioClass[] = "app.update.updater.ioprio.class";
+static const char kAppUpdaterIOPrioLevel[] = "app.update.updater.ioprio.level";
+
+static const int  kAppUpdaterPrioDefault        = 19;     
+static const int  kAppUpdaterOomScoreAdjDefault = -1000;  
+static const int  kAppUpdaterIOPrioClassDefault = IOPRIO_CLASS_IDLE;
+static const int  kAppUpdaterIOPrioLevelDefault = 0;      
 #endif
 
 static nsresult
@@ -579,8 +595,8 @@ GetOSApplyToDir(nsACString& applyToDir)
   NS_ASSERTION(ds, "Can't get directory service");
 
   nsCOMPtr<nsIFile> osApplyToDir;
-  nsresult rv = ds->Get(XRE_OS_UPDATE_APPLY_TO_DIR, NS_GET_IID(nsIFile),
-                        getter_AddRefs(osApplyToDir));
+  DebugOnly<nsresult> rv = ds->Get(XRE_OS_UPDATE_APPLY_TO_DIR, NS_GET_IID(nsIFile),
+                                   getter_AddRefs(osApplyToDir));
   NS_ASSERTION(NS_SUCCEEDED(rv), "Can't get the OS applyTo dir");
 
   return osApplyToDir->GetNativePath(applyToDir);
@@ -818,6 +834,23 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   if (isOSUpdate) {
     PR_SetEnv("MOZ_OS_UPDATE=1");
   }
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+
+  int32_t prioVal = Preferences::GetInt(kAppUpdaterPrio,
+                                        kAppUpdaterPrioDefault);
+  int32_t oomScoreAdj = Preferences::GetInt(kAppUpdaterOomScoreAdj,
+                                            kAppUpdaterOomScoreAdjDefault);
+  int32_t ioprioClass = Preferences::GetInt(kAppUpdaterIOPrioClass,
+                                            kAppUpdaterIOPrioClassDefault);
+  int32_t ioprioLevel = Preferences::GetInt(kAppUpdaterIOPrioLevel,
+                                            kAppUpdaterIOPrioLevelDefault);
+  nsPrintfCString prioEnv("MOZ_UPDATER_PRIO=%d/%d/%d/%d",
+                          prioVal, oomScoreAdj, ioprioClass, ioprioLevel);
+  PR_SetEnv(prioEnv.get());
+#endif
 
   LOG(("spawning updater process [%s]\n", updaterPath.get()));
 
