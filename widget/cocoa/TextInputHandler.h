@@ -1076,12 +1076,9 @@ private:
 
 
 
-
-
-
-  void SetTextRangeList(nsTArray<TextRange>& aTextRangeList,
-                        NSAttributedString *aAttrString,
-                        NSRange& aSelectedRange);
+  already_AddRefed<mozilla::TextRangeArray>
+    CreateTextRangeArray(NSAttributedString *aAttrString,
+                         NSRange& aSelectedRange);
 
   
 
