@@ -6750,7 +6750,7 @@ var WebappsUI = {
         break;
       case "webapps-sync-install":
         
-        DOMApplicationRegistry.getManifestFor(data.origin, (function(aManifest) {
+        DOMApplicationRegistry.getManifestFor(data.manifestURL, (function(aManifest) {
           if (!aManifest)
             return;
           let manifest = new ManifestHelper(aManifest, data.origin);
