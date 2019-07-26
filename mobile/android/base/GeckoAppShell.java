@@ -68,6 +68,7 @@ import android.os.MessageQueue;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.provider.Settings;
+import android.support.v4.util.LruCache;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -2662,44 +2663,89 @@ public class GeckoAppShell
         return false;
     }
 
+    
+    
+    
+    private static LruCache<String, URI> httpURIs = new LruCache<String, URI>(10);
+    private static LruCache<String, URI> httpsURIs = new LruCache<String, URI>(10);
+
+    private static URI getAndCacheURIByParts(String scheme, String host, LruCache<String, URI> cache) {
+        URI uri = cache.get(host);
+        if (uri != null) {
+            return uri;
+        }
+
+        try {
+            uri = new URI(scheme, null, host, -1, null, null, null);
+        } catch (java.net.URISyntaxException uriEx) {
+            Log.d("GeckoProxy", "Failed to create URI from parts.", uriEx);
+            return null;
+        }
+
+        cache.put(host, uri);
+        return uri;
+    }
+
+    private static URI getURIByParts(String scheme, String host, int port) {
+        if (port == -1) {
+            if (scheme.equals("http")) {
+                return getAndCacheURIByParts("http", host, httpURIs);
+            } else if (scheme.equals("https")) {
+                return getAndCacheURIByParts("https", host, httpsURIs);
+            }
+        }
+
+        try {
+            return new URI(scheme, null, host, port, null, null, null);
+        } catch (java.net.URISyntaxException uriEx) {
+            Log.d("GeckoProxy", "Failed to create URI from parts.", uriEx);
+        }
+
+        return null;
+    }
+
     @WrapElementForJNI(stubName = "GetProxyForURIWrapper")
     public static String getProxyForURI(String spec, String scheme, String host, int port) {
-        URI uri = null;
+        final ProxySelector ps;
         try {
-            uri = new URI(spec);
-        } catch(java.net.URISyntaxException uriEx) {
-            try {
-                uri = new URI(scheme, null, host, port, null, null, null);
-            } catch(java.net.URISyntaxException uriEx2) {
-                Log.d("GeckoProxy", "Failed to create uri from spec", uriEx);
-                Log.d("GeckoProxy", "Failed to create uri from parts", uriEx2);
-            }
+            
+            
+            ps = ProxySelector.getDefault();
+        } catch (SecurityException ex) {
+            Log.w(LOGTAG, "Not allowed to use default ProxySelector.");
+            return "DIRECT";
         }
-        if (uri != null) {
-            ProxySelector ps = ProxySelector.getDefault();
-            if (ps != null) {
-                List<Proxy> proxies = ps.select(uri);
-                if (proxies != null && !proxies.isEmpty()) {
-                    Proxy proxy = proxies.get(0);
-                    if (!Proxy.NO_PROXY.equals(proxy)) {
-                        final String proxyStr;
-                        switch (proxy.type()) {
-                        case HTTP:
-                            proxyStr = "PROXY " + proxy.address().toString();
-                            break;
-                        case SOCKS:
-                            proxyStr = "SOCKS " + proxy.address().toString();
-                            break;
-                        case DIRECT:
-                        default:
-                            proxyStr = "DIRECT";
-                            break;
-                        }
-                        return proxyStr;
-                    }
-                }
-            }
+
+        if (ps == null) {
+            return "DIRECT";
         }
+
+        
+        
+        
+        URI uri = getURIByParts(scheme, host, port);
+
+        if (uri == null) {
+            return "DIRECT";
+        }
+
+        List<Proxy> proxies = ps.select(uri);
+        if (proxies == null || proxies.isEmpty()) {
+            return "DIRECT";
+        }
+
+        Proxy proxy = proxies.get(0);
+        if (Proxy.NO_PROXY.equals(proxy)) {
+            return "DIRECT";
+        }
+        
+        switch (proxy.type()) {
+            case HTTP:
+                return "PROXY " + proxy.address().toString();
+            case SOCKS:
+                return "SOCKS " + proxy.address().toString();
+        }
+
         return "DIRECT";
     }
 }
