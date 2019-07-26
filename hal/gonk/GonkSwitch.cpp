@@ -48,23 +48,6 @@ namespace hal_impl {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
 class SwitchHandler : public RefCounted<SwitchHandler>
 {
 public:
@@ -184,6 +167,47 @@ protected:
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SwitchHandlerHeadphone: public SwitchHandler
+{
+public:
+  SwitchHandlerHeadphone(const char* aDevPath) :
+    SwitchHandler(aDevPath, SWITCH_HEADPHONES)
+  {
+    SwitchHandler::GetInitialState();
+  }
+
+  virtual ~SwitchHandlerHeadphone() { }
+
+protected:
+  SwitchState ConvertState(const char* aState)
+  {
+    MOZ_ASSERT(aState);
+
+    return aState[0] == '0' ? SWITCH_STATE_OFF :
+      (aState[0] == '1' ? SWITCH_STATE_HEADSET : SWITCH_STATE_HEADPHONE);
+  }
+};
+
+
 typedef nsTArray<RefPtr<SwitchHandler> > SwitchHandlerArray;
 
 class SwitchEventRunnable : public nsRunnable
@@ -285,10 +309,10 @@ private:
 
   void Init()
   {
-    mHandler.AppendElement(new SwitchHandler(SWITCH_HEADSET_DEVPATH, SWITCH_HEADPHONES));
+    mHandler.AppendElement(new SwitchHandlerHeadphone(SWITCH_HEADSET_DEVPATH));
     mHandler.AppendElement(new SwitchHandler(SWITCH_USB_DEVPATH_GB, SWITCH_USB));
     mHandler.AppendElement(new SwitchHandlerUsbIcs(SWITCH_USB_DEVPATH_ICS));
-    
+
     SwitchHandlerArray::index_type handlerIndex;
     SwitchHandlerArray::size_type numHandlers = mHandler.Length();
 
