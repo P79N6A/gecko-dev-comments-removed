@@ -652,6 +652,9 @@ private:
   bool                       mAnimationFinished:1;
 
   
+  bool                       mFinishing:1;
+
+  
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);

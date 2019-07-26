@@ -170,7 +170,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mDecoded(false),
   mHasBeenDecoded(false),
   mInDecoder(false),
-  mAnimationFinished(false)
+  mAnimationFinished(false),
+  mFinishing(false)
 {
   
   mDiscardTrackerNode.img = this;
@@ -2309,9 +2310,11 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   nsRefPtr<Decoder> decoder = mDecoder;
   mDecoder = nullptr;
 
+  mFinishing = true;
   mInDecoder = true;
   decoder->Finish();
   mInDecoder = false;
+  mFinishing = false;
 
   
   
@@ -2426,6 +2429,12 @@ RasterImage::RequestDecode()
 
   
   if (mDecoder && !mDecoder->IsSizeDecode())
+    return NS_OK;
+
+  
+  
+  
+  if (mFinishing)
     return NS_OK;
 
   
