@@ -140,8 +140,6 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
 
         
         
-        
-        
         int32_t shift = FloorLog2(Abs(rhs));
         if (rhs != 0 && uint32_t(1) << shift == Abs(rhs)) {
             LAllocation lhs = useRegisterAtStart(div->lhs());
@@ -157,6 +155,12 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
             if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return defineReuseInput(lir, div, 0);
+        } else if (rhs != 0) {
+            LDivOrModConstantI *lir;
+            lir = new(alloc()) LDivOrModConstantI(useRegister(div->lhs()), rhs, tempFixed(eax));
+            if (div->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
+                return false;
+            return defineFixed(lir, div, LAllocation(AnyRegister(edx)));
         }
     }
 
@@ -181,6 +185,12 @@ LIRGeneratorX86Shared::lowerModI(MMod *mod)
             if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
                 return false;
             return defineReuseInput(lir, mod, 0);
+        } else if (rhs != 0) {
+            LDivOrModConstantI *lir;
+            lir = new(alloc()) LDivOrModConstantI(useRegister(mod->lhs()), rhs, tempFixed(edx));
+            if (mod->fallible() && !assignSnapshot(lir, Bailout_BaselineInfo))
+                return false;
+            return defineFixed(lir, mod, LAllocation(AnyRegister(eax)));
         }
     }
 

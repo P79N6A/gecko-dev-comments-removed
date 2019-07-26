@@ -1007,6 +1007,74 @@ CodeGeneratorShared::addCacheLocations(const CacheLocationList &locs, size_t *nu
     return firstIndex;
 }
 
+ReciprocalMulConstants
+CodeGeneratorShared::computeDivisionConstants(int d) {
+    
+    JS_ASSERT(d > 0 && (d & (d - 1)) != 0);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    int32_t shift = 0;
+    while ((int64_t(1) << (shift+1)) + (int64_t(1) << (shift+32)) % d < d)
+        shift++;
+
+    
+    
+    
+    ReciprocalMulConstants rmc;
+    rmc.multiplier = int32_t((int64_t(1) << (shift+32))/d + 1);
+    rmc.shift_amount = shift;
+
+    return rmc;
+}
+
+
 #ifdef JS_TRACE_LOGGING
 
 bool

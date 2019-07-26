@@ -22,6 +22,7 @@
 using namespace js;
 using namespace js::jit;
 
+using mozilla::Abs;
 using mozilla::FloatingPoint;
 using mozilla::FloorLog2;
 using mozilla::NegativeInfinity;
@@ -913,6 +914,88 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
         masm.negl(lhs);
         if (!mir->isTruncated() && !bailoutIf(Assembler::Overflow, ins->snapshot()))
             return false;
+    }
+
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
+    Register lhs = ToRegister(ins->numerator());
+    Register output = ToRegister(ins->output());
+    int32_t d = ins->denominator();
+
+    
+    JS_ASSERT(output == eax || output == edx);
+    JS_ASSERT(lhs != eax && lhs != edx);
+
+    
+    
+    JS_ASSERT((Abs(d) & (Abs(d) - 1)) != 0);
+
+    
+    
+    ReciprocalMulConstants rmc = computeDivisionConstants(Abs(d));
+
+    
+    
+    
+    
+    
+    masm.movl(lhs, eax);
+    masm.movl(Imm32(rmc.multiplier), edx);
+    masm.imull(edx);
+    if (rmc.multiplier < 0)
+        masm.addl(lhs, edx);
+    masm.sarl(Imm32(rmc.shift_amount), edx);
+
+    
+    
+    if (ins->canBeNegativeDividend()) {
+        masm.movl(lhs, eax);
+        masm.sarl(Imm32(31), eax);
+        masm.subl(eax, edx);
+    }
+
+    
+    if (d < 0)
+        masm.negl(edx);
+
+    if (output == eax) {
+        masm.imull(Imm32(-d), edx, eax);
+        masm.addl(lhs, eax);
+    }
+
+    if (!ins->mir()->isTruncated()) {
+        if (output == edx) {
+            
+            
+            masm.imull(Imm32(d), edx, eax);
+            masm.cmpl(lhs, eax);
+            if (!bailoutIf(Assembler::NotEqual, ins->snapshot()))
+                return false;
+
+            
+            
+            if (d < 0) {
+                masm.testl(lhs, lhs);
+                if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+                    return false;
+            }
+        } else if (ins->canBeNegativeDividend()) {
+            
+            
+            Label done;
+
+            masm.cmpl(lhs, Imm32(0));
+            masm.j(Assembler::GreaterThanOrEqual, &done);
+
+            masm.testl(eax, eax);
+            if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+                return false;
+
+            masm.bind(&done);
+        }
     }
 
     return true;
