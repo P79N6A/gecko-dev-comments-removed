@@ -705,3 +705,7 @@ pref("browser.contentHandlers.types.3.type", "application/vnd.mozilla.maybe.feed
 
 pref("media.webaudio.enabled", true);
 #endif
+
+
+pref("media.navigator.enabled", false);
+pref("media.peerconnection.enabled", false);
