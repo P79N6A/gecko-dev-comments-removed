@@ -1151,6 +1151,8 @@ public:
             nsRuleNode::ComputeCoordPercentCalc(aCoord, 0) == 0);
   }
 
+  static void MarkDescendantsDirty(nsIFrame *aSubtreeRoot);
+
   
 
 
