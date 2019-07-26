@@ -1493,7 +1493,10 @@ protected:
 
 public:
   
-  virtual nsXPCClassInfo* GetClassInfo() = 0;
+  virtual nsXPCClassInfo* GetClassInfo()
+  {
+    return nullptr;
+  }
 
   
   void BindObject(nsISupports* aObject);
