@@ -14,6 +14,13 @@
 
 
 
+
+
+#include "mozilla/GenericRefCounted.h"
+
+
+
+
 #include "mozilla/RefPtr.h"
 
 #ifdef MOZ_ENABLE_FREETYPE
@@ -31,6 +38,7 @@ struct ID3D10Texture2D;
 struct IDWriteRenderingParams;
 
 class GrContext;
+struct GrGLInterface;
 
 namespace mozilla {
 
@@ -856,6 +864,20 @@ public:
     return mPermitSubpixelAA;
   }
 
+  virtual GenericRefCountedBase* GetGLContext() const {
+    return nullptr;
+  }
+
+#ifdef USE_SKIA_GPU
+  virtual void InitWithGLContextAndGrGLInterface(GenericRefCountedBase* aGLContext,
+                                            GrGLInterface* aGrGLInterface,
+                                            const IntSize &aSize,
+                                            SurfaceFormat aFormat)
+  {
+    MOZ_CRASH();
+  }
+#endif
+
 protected:
   UserData mUserData;
   Matrix mTransform;
@@ -936,7 +958,10 @@ public:
 
 #ifdef USE_SKIA_GPU
   static TemporaryRef<DrawTarget>
-    CreateSkiaDrawTargetForFBO(unsigned int aFBOID, GrContext* aContext, const IntSize &aSize, SurfaceFormat aFormat);
+    CreateDrawTargetSkiaWithGLContextAndGrGLInterface(GenericRefCountedBase* aGLContext,
+                                                      GrGLInterface* aGrGLInterface,
+                                                      const IntSize &aSize,
+                                                      SurfaceFormat aFormat);
 #endif
 
 #if defined(USE_SKIA) && defined(MOZ_ENABLE_FREETYPE)
