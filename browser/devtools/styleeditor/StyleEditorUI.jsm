@@ -48,7 +48,7 @@ function StyleEditorUI(debuggee, panelDoc) {
   this._root = this._panelDoc.getElementById("style-editor-chrome");
 
   this.editors = [];
-  this.selectedStyleSheetIndex = -1;
+  this.selectedEditor = null;
 
   this._onStyleSheetCreated = this._onStyleSheetCreated.bind(this);
   this._onStyleSheetsCleared = this._onStyleSheetsCleared.bind(this);
@@ -82,6 +82,14 @@ StyleEditorUI.prototype = {
 
   set isDirty(value) {
     this._markedDirty = value;
+  },
+
+  
+
+
+  get selectedStyleSheetIndex() {
+    return this.selectedEditor ?
+           this.selectedEditor.styleSheet.styleSheetIndex : -1;
   },
 
   
@@ -140,10 +148,17 @@ StyleEditorUI.prototype = {
 
 
   _onStyleSheetsCleared: function() {
-    this._clearStyleSheetEditors();
+    
+    if (this.selectedEditor) {
+      let href = this.selectedEditor.styleSheet.href;
+      let {line, col} = this.selectedEditor.sourceEditor.getCaretPosition();
+      this.selectStyleSheet(href, line, col);
+    }
 
+    this._clearStyleSheetEditors();
     this._view.removeAll();
-    this.selectedStyleSheetIndex = -1;
+
+    this.selectedEditor = null;
 
     this._root.classList.add("loading");
   },
@@ -166,11 +181,22 @@ StyleEditorUI.prototype = {
 
 
   _onDocumentLoad: function(event, styleSheets) {
+    if (this._styleSheetToSelect) {
+      
+      
+      let selectedExists = styleSheets.some((sheet) => {
+        return this._styleSheetToSelect.href == sheet.href;
+      })
+      if (!selectedExists) {
+        this._styleSheetToSelect = null;
+      }
+    }
     for (let sheet of styleSheets) {
       this._addStyleSheetEditor(sheet);
     }
-    
+
     this._root.classList.remove("loading");
+
     this.emit("document-load");
   },
 
@@ -295,13 +321,18 @@ StyleEditorUI.prototype = {
 
       onShow: function(summary, details, data) {
         let editor = data.editor;
+        this.selectedEditor = editor;
+        this._styleSheetToSelect = null;
+
         if (!editor.sourceEditor) {
           
           let inputElement = details.querySelector(".stylesheet-editor-input");
           editor.load(inputElement);
         }
         editor.onShow();
-      }
+
+        this.emit("editor-selected", editor);
+      }.bind(this)
     });
   },
 
@@ -314,7 +345,6 @@ StyleEditorUI.prototype = {
     for each (let editor in this.editors) {
       if (editor.styleSheet.href == sheet.href) {
         this._selectEditor(editor, sheet.line, sheet.col);
-        this._styleSheetToSelect = null;
         break;
       }
     }
@@ -331,18 +361,14 @@ StyleEditorUI.prototype = {
 
 
   _selectEditor: function(editor, line, col) {
-    line = line || 1;
-    col = col || 1;
-
-    this.selectedStyleSheetIndex = editor.styleSheet.styleSheetIndex;
+    line = line || 0;
+    col = col || 0;
 
     editor.getSourceEditor().then(() => {
-      editor.sourceEditor.setCaretPosition(line - 1, col - 1);
+      editor.sourceEditor.setCaretPosition(line, col);
     });
 
     this._view.activeSummary = editor.summary;
-
-    this.emit("editor-selected", editor);
   },
 
   
