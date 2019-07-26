@@ -13,11 +13,12 @@ self.onmessage = function(msg) {
   self.onmessage = function(msg) {
     log("ignored message "+JSON.stringify(msg.data));
   };
-  let isDebugBuild = msg.data;
+  let { isDebugBuild, umask } = msg.data;
   try {
     test_name();
     test_xul();
     test_debugBuildWorkerThread(isDebugBuild);
+    test_umaskWorkerThread(umask);
   } catch (x) {
     log("Catching error: " + x);
     log("Stack: " + x.stack);
@@ -49,6 +50,13 @@ function test_name() {
 
 function test_debugBuildWorkerThread(isDebugBuild) {
   is(isDebugBuild, !!OS.Constants.Sys.DEBUG, "OS.Constants.Sys.DEBUG is set properly on worker thread");
+}
+
+
+function test_umaskWorkerThread(umask) {
+  is(umask, OS.Constants.Sys.umask,
+     "OS.Constants.Sys.umask is set properly on worker thread: " +
+     ("0000"+umask.toString(8)).slice(-4));
 }
 
 
