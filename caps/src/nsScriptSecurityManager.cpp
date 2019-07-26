@@ -21,6 +21,7 @@
 #include "nsSystemPrincipal.h"
 #include "nsPrincipal.h"
 #include "nsNullPrincipal.h"
+#include "DomainPolicy.h"
 #include "nsXPIDLString.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
@@ -1616,11 +1617,6 @@ nsScriptSecurityManager::ScriptAllowed(JSObject *aGlobal)
     }
 
     
-    if (!mIsJavaScriptEnabled) {
-        return false;
-    }
-
-    
     static const char jsPrefGroupName[] = "javascript";
     ClassInfoData nameData(nullptr, jsPrefGroupName);
     SecurityLevel secLevel;
@@ -2156,6 +2152,9 @@ nsScriptSecurityManager::~nsScriptSecurityManager(void)
     if(mDefaultPolicy)
         mDefaultPolicy->Drop();
     delete mCapabilities;
+    if (mDomainPolicy)
+        mDomainPolicy->Deactivate();
+    MOZ_ASSERT(!mDomainPolicy);
 }
 
 void
@@ -2580,4 +2579,75 @@ nsScriptSecurityManager::GetJarPrefix(uint32_t aAppId,
 
   mozilla::GetJarPrefix(aAppId, aInMozBrowser, aJarPrefix);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::GetDomainPolicyActive(bool *aRv)
+{
+    *aRv = !!mDomainPolicy;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::ActivateDomainPolicy(nsIDomainPolicy** aRv)
+{
+    
+    
+    if (mDomainPolicy) {
+        return NS_ERROR_SERVICE_NOT_AVAILABLE;
+    }
+
+    mDomainPolicy = new mozilla::hotness::DomainPolicy();
+    nsCOMPtr<nsIDomainPolicy> ptr = mDomainPolicy;
+    ptr.forget(aRv);
+    return NS_OK;
+}
+
+
+
+void
+nsScriptSecurityManager::DeactivateDomainPolicy()
+{
+    mDomainPolicy = nullptr;
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::PolicyAllowsScript(nsIURI* aURI, bool *aRv)
+{
+    nsresult rv;
+
+    
+    
+    *aRv = mIsJavaScriptEnabled;
+    if (!mDomainPolicy) {
+        return NS_OK;
+    }
+
+    
+    
+    
+    nsCOMPtr<nsIDomainSet> exceptions;
+    nsCOMPtr<nsIDomainSet> superExceptions;
+    if (*aRv) {
+        mDomainPolicy->GetBlacklist(getter_AddRefs(exceptions));
+        mDomainPolicy->GetSuperBlacklist(getter_AddRefs(superExceptions));
+    } else {
+        mDomainPolicy->GetWhitelist(getter_AddRefs(exceptions));
+        mDomainPolicy->GetSuperWhitelist(getter_AddRefs(superExceptions));
+    }
+
+    bool contains;
+    rv = exceptions->Contains(aURI, &contains);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (contains) {
+        *aRv = !*aRv;
+        return NS_OK;
+    }
+    rv = superExceptions->ContainsSuperDomain(aURI, &contains);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (contains) {
+        *aRv = !*aRv;
+    }
+
+    return NS_OK;
 }

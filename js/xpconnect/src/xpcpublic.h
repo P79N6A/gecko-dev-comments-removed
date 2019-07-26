@@ -61,6 +61,10 @@ private:
     
     
     bool mImmuneToScriptPolicy;
+
+    
+    
+    bool mScriptBlockedByPolicy;
 };
 
 JSObject *

@@ -10,6 +10,7 @@
 
 #include "xpcprivate.h"
 #include "xpcpublic.h"
+#include "XPCWrapper.h"
 #include "XPCJSMemoryReporter.h"
 #include "WrapperFactory.h"
 #include "dom_quickstubs.h"
@@ -448,15 +449,34 @@ PrincipalImmuneToScriptPolicy(nsIPrincipal* aPrincipal)
 
 Scriptability::Scriptability(JSCompartment *c) : mScriptBlocks(0)
                                                , mDocShellAllowsScript(true)
+                                               , mScriptBlockedByPolicy(false)
 {
     nsIPrincipal *prin = nsJSPrincipals::get(JS_GetCompartmentPrincipals(c));
     mImmuneToScriptPolicy = PrincipalImmuneToScriptPolicy(prin);
+
+    
+    
+    if (!mImmuneToScriptPolicy) {
+        nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
+        nsCOMPtr<nsIURI> codebase;
+        nsresult rv = prin->GetURI(getter_AddRefs(codebase));
+        bool policyAllows;
+        if (NS_SUCCEEDED(rv) && codebase &&
+            NS_SUCCEEDED(ssm->PolicyAllowsScript(codebase, &policyAllows)))
+        {
+            mScriptBlockedByPolicy = !policyAllows;
+        } else {
+            
+            mScriptBlockedByPolicy = true;
+        }
+    }
 }
 
 bool
 Scriptability::Allowed()
 {
-    return mDocShellAllowsScript && mScriptBlocks == 0;
+    return mDocShellAllowsScript && !mScriptBlockedByPolicy &&
+           mScriptBlocks == 0;
 }
 
 bool

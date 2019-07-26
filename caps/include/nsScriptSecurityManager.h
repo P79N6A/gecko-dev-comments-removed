@@ -362,6 +362,8 @@ public:
     AppAttributesEqual(nsIPrincipal* aFirst,
                        nsIPrincipal* aSecond);
 
+    void DeactivateDomainPolicy();
+
 private:
 
     
@@ -486,6 +488,10 @@ private:
     bool mPrefInitialized;
     bool mIsJavaScriptEnabled;
     bool mPolicyPrefsChanged;
+
+    
+    
+    nsCOMPtr<nsIDomainPolicy> mDomainPolicy;
 
     static bool sStrictFileOriginPolicy;
 
