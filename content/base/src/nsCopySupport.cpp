@@ -732,8 +732,11 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
   if (aType == NS_PASTE) {
     
     
-    clipboardData->ClearAll();
-    clipboardData->SetReadOnly();
+    if (clipboardData) {
+      clipboardData->ClearAll();
+      clipboardData->SetReadOnly();
+    }
+
     return doDefault;
   }
 
@@ -758,7 +761,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, nsIPresShell* aPresShell, nsISe
     if (NS_FAILED(rv)) {
       return false;
     }
-  } else {
+  } else if (clipboardData) {
     
     clipboardData->GetMozItemCount(&count);
     if (count) {
