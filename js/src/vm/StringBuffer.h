@@ -14,7 +14,6 @@
 
 #include "js/Vector.h"
 
-ForwardDeclareJS(Atom);
 ForwardDeclareJS(FlatString);
 
 namespace js {
@@ -92,7 +91,7 @@ class StringBuffer
     js::RawFlatString finishString();
 
     
-    js::RawAtom finishAtom();
+    JSAtom *finishAtom();
 
     
 
