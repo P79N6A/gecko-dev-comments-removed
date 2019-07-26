@@ -4427,9 +4427,6 @@ nsBlockFrame::DrainSelfOverflowList()
   return true;
 }
 
-
-
-
 void
 nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
 {
@@ -4442,6 +4439,7 @@ nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
   nsLayoutUtils::AssertNoDuplicateContinuations(this, mFloats);
 #endif
 
+  
   
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (!prevBlock)
