@@ -8489,17 +8489,22 @@ class MSetDOMProperty
 };
 
 class MGetDOMProperty
-  : public MUnaryInstruction,
+  : public MAryInstruction<2>,
     public ObjectPolicy<0>
 {
     const JSJitInfo *info_;
 
   protected:
-    MGetDOMProperty(const JSJitInfo *jitinfo, MDefinition *obj)
-      : MUnaryInstruction(obj), info_(jitinfo)
+    MGetDOMProperty(const JSJitInfo *jitinfo, MDefinition *obj, MDefinition *guard)
+      : info_(jitinfo)
     {
         JS_ASSERT(jitinfo);
         JS_ASSERT(jitinfo->type() == JSJitInfo::Getter);
+
+        setOperand(0, obj);
+
+        
+        setOperand(1, guard);
 
         
         if (isDomMovable()) {
@@ -8522,9 +8527,10 @@ class MGetDOMProperty
   public:
     INSTRUCTION_HEADER(GetDOMProperty)
 
-    static MGetDOMProperty *New(TempAllocator &alloc, const JSJitInfo *info, MDefinition *obj)
+    static MGetDOMProperty *New(TempAllocator &alloc, const JSJitInfo *info, MDefinition *obj,
+                                MDefinition *guard)
     {
-        return new(alloc) MGetDOMProperty(info, obj);
+        return new(alloc) MGetDOMProperty(info, obj, guard);
     }
 
     const JSJitGetterOp fun() {
@@ -8583,17 +8589,18 @@ class MGetDOMProperty
 class MGetDOMMember : public MGetDOMProperty
 {
     
-    MGetDOMMember(const JSJitInfo *jitinfo, MDefinition *obj)
-        : MGetDOMProperty(jitinfo, obj)
+    MGetDOMMember(const JSJitInfo *jitinfo, MDefinition *obj, MDefinition *guard)
+        : MGetDOMProperty(jitinfo, obj, guard)
     {
     }
 
   public:
     INSTRUCTION_HEADER(GetDOMMember)
 
-    static MGetDOMMember *New(TempAllocator &alloc, const JSJitInfo *info, MDefinition *obj)
+    static MGetDOMMember *New(TempAllocator &alloc, const JSJitInfo *info, MDefinition *obj,
+                              MDefinition *guard)
     {
-        return new(alloc) MGetDOMMember(info, obj);
+        return new(alloc) MGetDOMMember(info, obj, guard);
     }
 
     bool possiblyCalls() const {

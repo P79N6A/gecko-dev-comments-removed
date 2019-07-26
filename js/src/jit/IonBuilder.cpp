@@ -8366,21 +8366,13 @@ IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, P
     }
 }
 
-inline bool
+inline MDefinition *
 IonBuilder::testCommonGetterSetter(types::TemporaryTypeSet *types, PropertyName *name,
-                                   bool isGetter, JSObject *foundProto, JSFunction *function)
+                                   bool isGetter, JSObject *foundProto, Shape *lastProperty)
 {
-    types::TypeObjectKey *protoType = types::TypeObjectKey::get(foundProto);
-
-    
-    
-    
-    if (!protoType->isSingleObject() || protoType->unknownProperties())
-        return false;
-
     
     if (!objectsHaveCommonPrototype(types, name, isGetter, foundProto))
-        return false;
+        return nullptr;
 
     
     
@@ -8390,9 +8382,9 @@ IonBuilder::testCommonGetterSetter(types::TemporaryTypeSet *types, PropertyName 
     
     
     
-    protoType->watchStateChangeForRedefinedProperty(constraints(), name, isGetter, function);
-
-    return true;
+    
+    MInstruction *wrapper = constant(ObjectValue(*foundProto));
+    return addShapeGuard(wrapper, lastProperty, Bailout_ShapeGuard);
 }
 
 bool
@@ -8812,13 +8804,16 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
 {
     JS_ASSERT(*emitted == false);
 
+    Shape *lastProperty = nullptr;
     JSFunction *commonGetter = nullptr;
-    JSObject *foundProto = inspector->commonGetPropFunction(pc, &commonGetter);
+    JSObject *foundProto = inspector->commonGetPropFunction(pc, &lastProperty, &commonGetter);
     if (!foundProto)
         return true;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    if (!testCommonGetterSetter(objTypes, name,  true, foundProto, commonGetter))
+    MDefinition *guard = testCommonGetterSetter(objTypes, name,  true,
+                                                foundProto, lastProperty);
+    if (!guard)
         return true;
 
     bool isDOM = objTypes->isDOMClass();
@@ -8829,9 +8824,9 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
         if (jitinfo->isInSlot) {
             
             
-            get = MGetDOMMember::New(alloc(), jitinfo, obj);
+            get = MGetDOMMember::New(alloc(), jitinfo, obj, guard);
         } else {
-            get = MGetDOMProperty::New(alloc(), jitinfo, obj);
+            get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard);
         }
         current->add(get);
         current->push(get);
@@ -9230,13 +9225,16 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
 {
     JS_ASSERT(*emitted == false);
 
+    Shape *lastProperty = nullptr;
     JSFunction *commonSetter = nullptr;
-    JSObject *foundProto = inspector->commonSetPropFunction(pc, &commonSetter);
+    JSObject *foundProto = inspector->commonSetPropFunction(pc, &lastProperty, &commonSetter);
     if (!foundProto)
         return true;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    if (!testCommonGetterSetter(objTypes, name,  false, foundProto, commonSetter))
+    MDefinition *guard = testCommonGetterSetter(objTypes, name,  false,
+                                                foundProto, lastProperty);
+    if (!guard)
         return true;
 
     bool isDOM = objTypes->isDOMClass();
