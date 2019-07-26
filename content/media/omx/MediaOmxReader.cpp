@@ -28,7 +28,6 @@ MediaOmxReader::MediaOmxReader(AbstractMediaDecoder *aDecoder) :
   mHasAudio(false),
   mVideoSeekTimeUs(-1),
   mAudioSeekTimeUs(-1),
-  mLastVideoFrame(nullptr),
   mSkipCount(0)
 {
 }
@@ -114,10 +113,6 @@ nsresult MediaOmxReader::ResetDecode()
     container->ClearCurrentFrame();
   }
 
-  if (mLastVideoFrame) {
-    delete mLastVideoFrame;
-    mLastVideoFrame = nullptr;
-  }
   mOmxDecoder.clear();
   return NS_OK;
 }
@@ -130,12 +125,6 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
   uint32_t parsed = 0, decoded = 0;
   AbstractMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
 
-  
-  if (mLastVideoFrame && mVideoSeekTimeUs != -1) {
-    delete mLastVideoFrame;
-    mLastVideoFrame = nullptr;
-  }
-
   bool doSeek = mVideoSeekTimeUs != -1;
   if (doSeek) {
     aTimeThreshold = mVideoSeekTimeUs;
@@ -147,18 +136,6 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
     frame.mGraphicBuffer = nullptr;
     frame.mShouldSkip = false;
     if (!mOmxDecoder->ReadVideo(&frame, aTimeThreshold, aKeyframeSkip, doSeek)) {
-      
-      
-      
-      if (mLastVideoFrame) {
-        int64_t durationUs;
-        mOmxDecoder->GetDuration(&durationUs);
-        mLastVideoFrame->mEndTime = (durationUs > mLastVideoFrame->mTime)
-                                  ? durationUs
-                                  : mLastVideoFrame->mTime;
-        mVideoQueue.Push(mLastVideoFrame);
-        mLastVideoFrame = nullptr;
-      }
       mVideoQueue.Finish();
       return false;
     }
@@ -244,28 +221,7 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
     decoded++;
     NS_ASSERTION(decoded <= parsed, "Expect to decode fewer frames than parsed in MediaPlugin...");
 
-    
-    if (mLastVideoFrame && mLastVideoFrame->mTime > v->mTime) {
-      delete mLastVideoFrame;
-      mLastVideoFrame = v;
-      continue;
-    }
-
-    
-    
-    
-    
-    if (!mLastVideoFrame) {
-      mLastVideoFrame = v;
-      continue;
-    }
-
-    mLastVideoFrame->mEndTime = v->mTime;
-
-    mVideoQueue.Push(mLastVideoFrame);
-
-    
-    mLastVideoFrame = v;
+    mVideoQueue.Push(v);
 
     break;
   }

@@ -21,7 +21,7 @@ protected:
   
   
   
-  uint32_t GetAmpleVideoFrames() { return 2; }
+  uint32_t GetAmpleVideoFrames() { return 1; }
 };
 
 } 
