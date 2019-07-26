@@ -76,9 +76,7 @@ nsMathMLmsubsupFrame::Place(nsRenderingContext& aRenderingContext,
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &subScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    ParseNumericValue(value, &subScriptShift, 0, PresContext(), mStyleContext);
   }
   
   
@@ -95,9 +93,7 @@ nsMathMLmsubsupFrame::Place(nsRenderingContext& aRenderingContext,
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &supScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    ParseNumericValue(value, &supScriptShift, 0, PresContext(), mStyleContext);
   }
 
   return nsMathMLmsubsupFrame::PlaceSubSupScript(PresContext(),

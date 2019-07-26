@@ -70,9 +70,7 @@ nsMathMLmsupFrame::Place(nsRenderingContext& aRenderingContext,
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &supScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    ParseNumericValue(value, &supScriptShift, 0, PresContext(), mStyleContext);
   }
 
   return nsMathMLmsupFrame::PlaceSuperScript(PresContext(), 

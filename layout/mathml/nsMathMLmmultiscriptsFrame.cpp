@@ -100,9 +100,8 @@ nsMathMLmmultiscriptsFrame::ProcessAttributes()
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::subscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mSubScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    ParseNumericValue(value, &mSubScriptShift, 0, PresContext(),
+                      mStyleContext);
   }
   
   
@@ -118,9 +117,8 @@ nsMathMLmmultiscriptsFrame::ProcessAttributes()
   GetAttribute(mContent, mPresentationData.mstyle,
                nsGkAtoms::superscriptshift_, value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mSupScriptShift,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
-                      PresContext(), mStyleContext);
+    ParseNumericValue(value, &mSupScriptShift, 0, PresContext(),
+                      mStyleContext);
   }
 }
 
