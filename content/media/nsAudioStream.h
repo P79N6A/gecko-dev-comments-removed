@@ -119,7 +119,6 @@ protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;
   int mRate;
   int mChannels;
-  SampleFormat mFormat;
 };
 
 #endif
