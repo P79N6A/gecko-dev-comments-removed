@@ -160,6 +160,8 @@ class MessageChannel : HasResultCodes
     
     SyncStackFrame* mTopFrame;
 
+    bool mIsSyncWaitingOnNonMainThread;
+
     
     static SyncStackFrame* sStaticTopFrame;
 
