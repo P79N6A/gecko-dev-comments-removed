@@ -48,6 +48,22 @@ const NOT_AVAILABLE = Number.MAX_VALUE;
 
 
 
+function DownloadURL(aURL, aFileName) {
+  
+  
+  let browserWin = RecentWindow.getMostRecentBrowserWindow();
+  let initiatingDoc = browserWin ? browserWin.document : document;
+  saveURL(aURL, aFileName, null, true, true, undefined, initiatingDoc);
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -160,7 +176,7 @@ DownloadElementShell.prototype = {
   },
 
   _getIcon: function DES__getIcon() {
-    let metaData = this._getDownloadMetaData();
+    let metaData = this.getDownloadMetaData();
     if ("filePath" in metaData)
       return "moz-icon://" + metaData.filePath + "?size=32";
 
@@ -213,7 +229,7 @@ DownloadElementShell.prototype = {
     if (!this.active)
       throw new Error("Trying to _fetchTargetFileInfo on an inactive download shell");
 
-    let path = this._getDownloadMetaData().filePath;
+    let path = this.getDownloadMetaData().filePath;
 
     
     
@@ -294,15 +310,15 @@ DownloadElementShell.prototype = {
 
 
 
-  _getDownloadMetaData: function DES__getDownloadMetaData() {
-    if (!this.active)
-      throw new Error("_getDownloadMetaData called for an inactive item.");
 
+
+  getDownloadMetaData: function DES_getDownloadMetaData() {
     if (!this._metaData) {
       if (this._dataItem) {
         this._metaData = {
           state:       this._dataItem.state,
           endTime:     this._dataItem.endTime,
+          fileName:    this._dataItem.target,
           displayName: this._dataItem.target
         };
         if (this._dataItem.done)
@@ -328,8 +344,9 @@ DownloadElementShell.prototype = {
 
         try {
           let targetFileURI = this._getAnnotation(DESTINATION_FILE_URI_ANNO);
-          [this._metaData.filePath, this._metaData.displayName] =
+          [this._metaData.filePath, this._metaData.fileName] =
             this._extractFilePathAndNameFromFileURI(targetFileURI);
+          this._metaData.displayName = this._metaData.fileName;
         }
         catch(ex) {
           this._metaData.displayName = this._placesNode.title || this.downloadURI;
@@ -373,7 +390,7 @@ DownloadElementShell.prototype = {
 
     
     let stateLabel = "";
-    let state = this._getDownloadMetaData().state;
+    let state = this.getDownloadMetaData().state;
     switch (state) {
       case nsIDM.DOWNLOAD_FAILED:
         stateLabel = s.stateFailed;
@@ -392,7 +409,7 @@ DownloadElementShell.prototype = {
         break;
       case nsIDM.DOWNLOAD_FINISHED:{
         
-        let metaData = this._getDownloadMetaData();
+        let metaData = this.getDownloadMetaData();
         if ("fileSize" in metaData) {
           let [size, unit] = DownloadUtils.convertByteUnits(metaData.fileSize);
           stateLabel = s.sizeWithUnits(size, unit);
@@ -410,7 +427,7 @@ DownloadElementShell.prototype = {
                    this.downloadURI;
     let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
 
-    let date = new Date(this._getDownloadMetaData().endTime);
+    let date = new Date(this.getDownloadMetaData().endTime);
     let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
 
     
@@ -436,7 +453,7 @@ DownloadElementShell.prototype = {
     if (!this.active)
       throw new Error("_updateDownloadStatusUI called for an inactive item.");
 
-    let state = this._getDownloadMetaData().state;
+    let state = this.getDownloadMetaData().state;
     if (state !== undefined)
       this._element.setAttribute("state", state);
 
@@ -474,7 +491,7 @@ DownloadElementShell.prototype = {
   },
 
   _updateDisplayNameAndIcon: function DES__updateDisplayNameAndIcon() {
-    let metaData = this._getDownloadMetaData();
+    let metaData = this.getDownloadMetaData();
     this._element.setAttribute("displayName", metaData.displayName);
     this._element.setAttribute("image", this._getIcon());
   },
@@ -491,7 +508,7 @@ DownloadElementShell.prototype = {
     
     
     
-    if (this._dataItem || this._getDownloadMetaData().state !== undefined)
+    if (this._dataItem || this.getDownloadMetaData().state !== undefined)
       this._updateDownloadStatusUI();
     else
       this._fetchTargetFileInfo(true);
@@ -504,7 +521,7 @@ DownloadElementShell.prototype = {
 
   placesNodeTitleChanged: function DES_placesNodeTitleChanged() {
     
-    if (!this._dataItem && this.active && !this._getDownloadMetaData().filePath) {
+    if (!this._dataItem && this.active && !this.getDownloadMetaData().filePath) {
       this._metaData = null;
       this._updateDisplayNameAndIcon();
     }
@@ -514,7 +531,7 @@ DownloadElementShell.prototype = {
     this._annotations.delete(aAnnoName);
     if (!this._dataItem && this.active) {
       if (aAnnoName == DOWNLOAD_META_DATA_ANNO) {
-        let metaData = this._getDownloadMetaData();
+        let metaData = this.getDownloadMetaData();
         let annotatedMetaData = this._getAnnotatedMetaData();
         metaData.endTme = annotatedMetaData.endTime;
         if ("fileSize" in annotatedMetaData)
@@ -531,10 +548,11 @@ DownloadElementShell.prototype = {
         this._updateDownloadStatusUI();
       }
       else if (aAnnoName == DESTINATION_FILE_URI_ANNO) {
-        let metaData = this._getDownloadMetaData();
+        let metaData = this.getDownloadMetaData();
         let targetFileURI = this._getAnnotation(DESTINATION_FILE_URI_ANNO);
-        [metaData.filePath, metaData.displayName] =
+        [metaData.filePath, metaData.fileName] =
             this._extractFilePathAndNameFromFileURI(targetFileURI);
+        metaData.displayName = metaData.fileName;
         this._updateDisplayNameAndIcon();
 
         if (this._targetFileInfoFetched) {
@@ -548,7 +566,7 @@ DownloadElementShell.prototype = {
 
   
   onStateChange: function DES_onStateChange(aOldState) {
-    let metaData = this._getDownloadMetaData();
+    let metaData = this.getDownloadMetaData();
     metaData.state = this.dataItem.state;
     if (aOldState != nsIDM.DOWNLOAD_FINISHED && aOldState != metaData.state) {
       
@@ -590,7 +608,7 @@ DownloadElementShell.prototype = {
 
         
         
-        return this._getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
+        return this.getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
       }
       case "downloadsCmd_show": {
         
@@ -603,7 +621,7 @@ DownloadElementShell.prototype = {
 
         
         
-        return this._getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
+        return this.getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
       }
       case "downloadsCmd_pauseResume":
         return this._dataItem && this._dataItem.inProgress && this._dataItem.resumable;
@@ -627,13 +645,7 @@ DownloadElementShell.prototype = {
     
     
     
-
-    
-    
-    let browserWin = RecentWindow.getMostRecentBrowserWindow();
-    let initiatingDoc = browserWin ? browserWin.document : document;
-    saveURL(this.downloadURI, this._getDownloadMetaData().displayName, null, true, true, undefined,
-            initiatingDoc);
+    DownloadURL(this.downloadURI, this.getDownloadMetaData().fileName);
   },
 
   
@@ -642,7 +654,7 @@ DownloadElementShell.prototype = {
       case "downloadsCmd_open": {
         let file = this._dataItem ?
           this.dataItem.localFile :
-          new FileUtils.File(this._getDownloadMetaData().filePath);
+          new FileUtils.File(this.getDownloadMetaData().filePath);
 
         DownloadsCommon.openDownloadedFile(file, null, window);
         break;
@@ -652,7 +664,7 @@ DownloadElementShell.prototype = {
           this._dataItem.showLocalFile();
         }
         else {
-          let file = new FileUtils.File(this._getDownloadMetaData().filePath);
+          let file = new FileUtils.File(this.getDownloadMetaData().filePath);
           DownloadsCommon.showDownloadedFile(file);
         }
         break;
@@ -693,8 +705,8 @@ DownloadElementShell.prototype = {
     if (!aTerm)
       return true;
     aTerm = aTerm.toLowerCase();
-    return this._getDownloadMetaData().displayName.toLowerCase().indexOf(aTerm) != -1 ||
-           this.downloadURI.toLowerCase().indexOf(aTerm) != -1;
+    return this.getDownloadMetaData().displayName.toLowerCase().contains(aTerm) ||
+           this.downloadURI.toLowerCase().contains(aTerm);
   },
 
   
@@ -722,7 +734,7 @@ DownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(this._getDownloadMetaData().state);
+    let command = getDefaultCommandForState(this.getDownloadMetaData().state);
     if (this.isCommandEnabled(command))
       this.doCommand(command);
   },
@@ -1308,7 +1320,6 @@ DownloadsPlacesView.prototype = {
     return false;
   },
 
-
   isCommandEnabled: function DPV_isCommandEnabled(aCommand) {
     switch (aCommand) {
       case "cmd_copy":
@@ -1378,7 +1389,7 @@ DownloadsPlacesView.prototype = {
 
   _downloadURLFromClipboard: function DPV__downloadURLFromClipboard() {
     let [url, name] = this._getURLFromClipboardData();
-    saveURL(url, name || url, null, true, true, undefined, document);
+    DownloadURL(url, name);
   },
 
   doCommand: function DPV_doCommand(aCommand) {
@@ -1426,7 +1437,7 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    let state = element._shell._getDownloadMetaData().state;
+    let state = element._shell.getDownloadMetaData().state;
     if (state !== undefined)
       contextMenu.setAttribute("state", state);
     else
@@ -1481,6 +1492,51 @@ DownloadsPlacesView.prototype = {
       if (elt._shell)
         elt._shell.onSelect();
     }
+  },
+
+  onDragStart: function DPV_onDragStart(aEvent) {
+    
+    
+    let selectedItem = this._richlistbox.selectedItem;
+    if (!selectedItem)
+      return;
+
+    let metaData = selectedItem._shell.getDownloadMetaData();
+    if (!("filePath" in metaData))
+      return;
+    let file = new FileUtils.File(metaData.filePath);
+    if (!file.exists())
+      return;
+
+    let dt = aEvent.dataTransfer;
+    dt.mozSetDataAt("application/x-moz-file", file, 0);
+    let url = Services.io.newFileURI(file).spec;
+    dt.setData("text/uri-list", url);
+    dt.setData("text/plain", url);
+    dt.effectAllowed = "copyMove";
+    dt.addElement(selectedItem);
+  },
+
+  onDragOver: function DPV_onDragOver(aEvent) {
+    let types = aEvent.dataTransfer.types;
+    if (types.contains("text/uri-list") ||
+        types.contains("text/x-moz-url") ||
+        types.contains("text/plain")) {
+      aEvent.preventDefault();
+    }
+  },
+
+  onDrop: function DPV_onDrop(aEvent) {
+    let dt = aEvent.dataTransfer;
+    
+    
+    if (dt.mozGetDataAt("application/x-moz-file", 0))
+      return;
+
+    let name = { };
+    let url = Services.droppedLinkHandler.dropLink(aEvent, name);
+    if (url)
+      DownloadURL(url, name.value);
   }
 };
 
