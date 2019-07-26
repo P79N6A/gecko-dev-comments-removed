@@ -295,7 +295,10 @@ public:
 
     virtual bool resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper, HandleObject wrapper,
                                     HandleObject holder, HandleId id,
-                                    MutableHandle<JSPropertyDescriptor> desc, unsigned flags);
+                                    MutableHandle<JSPropertyDescriptor> desc, unsigned flags)
+    {
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
+    }
 
     static bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
                                MutableHandle<JSPropertyDescriptor> desc,
@@ -307,7 +310,10 @@ public:
     }
 
     virtual bool enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
-                                AutoIdVector &props);
+                                AutoIdVector &props)
+    {
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
+    }
 
     static bool call(JSContext *cx, HandleObject wrapper,
                      const JS::CallArgs &args, js::Wrapper& baseInstance)
@@ -382,137 +388,6 @@ const JSClass JSXrayTraits::HolderClass = {
     JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
 };
-
-bool
-JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
-                                 HandleObject wrapper, HandleObject holder,
-                                 HandleId id,
-                                 MutableHandle<JSPropertyDescriptor> desc,
-                                 unsigned flags)
-{
-    
-    bool ok = XrayTraits::resolveOwnProperty(cx, jsWrapper, wrapper, holder,
-                                             id, desc, flags);
-    if (!ok || desc.object())
-        return ok;
-
-    
-    if (!isPrototype(holder))
-        return true;
-
-    
-    
-    
-    
-    
-    if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
-        return false;
-    if (desc.object()) {
-        desc.object().set(wrapper);
-        return true;
-    }
-
-    
-    RootedObject target(cx, getTargetObject(wrapper));
-    const js::Class *clasp = js::GetObjectClass(target);
-    JSProtoKey protoKey = JSCLASS_CACHED_PROTO_KEY(clasp);
-    MOZ_ASSERT(protoKey == getProtoKey(holder));
-    MOZ_ASSERT(clasp->spec.defined());
-
-    
-    if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_CONSTRUCTOR)) {
-        RootedObject constructor(cx);
-        {
-            JSAutoCompartment ac(cx, target);
-            if (!JS_GetClassObject(cx, protoKey, &constructor))
-                return false;
-        }
-        if (!JS_WrapObject(cx, &constructor))
-            return false;
-        desc.object().set(wrapper);
-        desc.setAttributes(0);
-        desc.setGetter(nullptr);
-        desc.setSetter(nullptr);
-        desc.value().setObject(*constructor);
-        return true;
-    }
-
-    
-    const JSFunctionSpec *fs = clasp->spec.prototypeFunctions;
-    if (!fs)
-        return true;
-
-    
-    
-    if (!JSID_IS_STRING(id))
-        return true;
-    Rooted<JSFlatString*> str(cx, JSID_TO_FLAT_STRING(id));
-
-    
-    for (; fs->name; ++fs) {
-        
-        if (fs->selfHostedName)
-            continue;
-        if (JS_FlatStringEqualsAscii(str, fs->name))
-            break;
-    }
-    if (!fs->name)
-        return true;
-
-    
-    Rooted<JSFunction*> fun(cx, JS_NewFunctionById(cx, fs->call.op, fs->nargs,
-                                                   0, wrapper, id));
-    if (!fun)
-        return false;
-
-    
-    
-    
-    
-    return JS_DefinePropertyById(cx, holder, id,
-                                 ObjectValue(*JS_GetFunctionObject(fun)),
-                                 nullptr, nullptr, 0) &&
-           JS_GetPropertyDescriptorById(cx, holder, id, 0, desc);
-}
-
-bool
-JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
-                             AutoIdVector &props)
-{
-    RootedObject holder(cx, ensureHolder(cx, wrapper));
-    if (!holder)
-        return false;
-
-    
-    if (!isPrototype(holder))
-        return true;
-
-    
-    RootedObject target(cx, getTargetObject(wrapper));
-    const js::Class *clasp = js::GetObjectClass(target);
-    MOZ_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == getProtoKey(holder));
-    MOZ_ASSERT(clasp->spec.defined());
-
-    
-    const JSFunctionSpec *fs = clasp->spec.prototypeFunctions;
-    if (!fs)
-        return true;
-
-    
-    for (; fs->name; ++fs) {
-        
-        if (fs->selfHostedName)
-            continue;
-        RootedString str(cx, JS_InternString(cx, fs->name));
-        if (!str)
-            return false;
-        if (!props.append(INTERNED_STRING_TO_JSID(cx, str)))
-            return false;
-    }
-
-    
-    return props.append(GetRTIdByIndex(cx, XPCJSRuntime::IDX_CONSTRUCTOR));
-}
 
 JSObject*
 JSXrayTraits::createHolder(JSContext *cx, JSObject *wrapper)
