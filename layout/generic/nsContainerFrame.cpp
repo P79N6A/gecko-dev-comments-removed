@@ -837,12 +837,31 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
   
   
   
+  
+  
+  nscoord clonePBM = 0; 
+  const bool sliceBreak =
+    styleBorder->mBoxDecorationBreak == NS_STYLE_BOX_DECORATION_BREAK_SLICE;
   if (!GetPrevContinuation()) {
-    aData->currentLine +=
+    nscoord startPBM =
       
       std::max(GetCoord(stylePadding->mPadding.Get(startSide), 0), 0) +
       styleBorder->GetComputedBorderWidth(startSide) +
       GetCoord(styleMargin->mMargin.Get(startSide), 0);
+    if (MOZ_LIKELY(sliceBreak)) {
+      aData->currentLine += startPBM;
+    } else {
+      clonePBM = startPBM;
+    }
+  }
+
+  nscoord endPBM =
+    
+    std::max(GetCoord(stylePadding->mPadding.Get(endSide), 0), 0) +
+    styleBorder->GetComputedBorderWidth(endSide) +
+    GetCoord(styleMargin->mMargin.Get(endSide), 0);
+  if (MOZ_UNLIKELY(!sliceBreak)) {
+    clonePBM += endPBM;
   }
 
   const nsLineList_iterator* savedLine = aData->line;
@@ -851,6 +870,9 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
   nsContainerFrame *lastInFlow;
   for (nsContainerFrame *nif = this; nif;
        nif = static_cast<nsContainerFrame*>(nif->GetNextInFlow())) {
+    if (aData->currentLine == 0) {
+      aData->currentLine = clonePBM;
+    }
     for (nsIFrame *kid = nif->mFrames.FirstChild(); kid;
          kid = kid->GetNextSibling()) {
       if (aType == nsLayoutUtils::MIN_WIDTH)
@@ -879,12 +901,8 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
   
   
   
-  if (!lastInFlow->GetNextContinuation()) {
-    aData->currentLine +=
-      
-      std::max(GetCoord(stylePadding->mPadding.Get(endSide), 0), 0) +
-      styleBorder->GetComputedBorderWidth(endSide) +
-      GetCoord(styleMargin->mMargin.Get(endSide), 0);
+  if (MOZ_LIKELY(!lastInFlow->GetNextContinuation() && sliceBreak)) {
+    aData->currentLine += endPBM;
   }
 }
 

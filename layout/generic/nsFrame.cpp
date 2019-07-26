@@ -951,6 +951,11 @@ nsIFrame::GetUsedPadding() const
 int
 nsIFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
 {
+  if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
+                     NS_STYLE_BOX_DECORATION_BREAK_CLONE)) {
+    return 0;
+  }
+
   
   
   WritingMode writingMode = GetWritingMode();

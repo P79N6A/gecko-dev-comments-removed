@@ -115,7 +115,11 @@ nsInlineFrame::IsSelfEmpty()
     !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetLeft()) ||
     !IsMarginZero(margin->mMargin.GetLeft());
   if (haveLeft || haveRight) {
-    if (GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
+    
+    
+    if ((GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) &&
+        StyleBorder()->mBoxDecorationBreak ==
+          NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
       bool haveStart, haveEnd;
       if (NS_STYLE_DIRECTION_LTR == StyleVisibility()->mDirection) {
         haveStart = haveLeft;
@@ -491,9 +495,15 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   RestyleManager* restyleManager = aPresContext->RestyleManager();
   WritingMode wm = aReflowState.GetWritingMode();
   nscoord startEdge = 0;
+  const bool boxDecorationBreakClone =
+    MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
+                   NS_STYLE_BOX_DECORATION_BREAK_CLONE);
   
   
-  if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
+  
+  
+  if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
+      boxDecorationBreakClone) {
     startEdge = aReflowState.ComputedLogicalBorderPadding().IStart(wm);
   }
   nscoord availableISize = aReflowState.AvailableISize();
@@ -655,7 +665,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
+  
+  if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
+      boxDecorationBreakClone) {
     aMetrics.ISize() += aReflowState.ComputedLogicalBorderPadding().IStart(wm);
   }
 
@@ -666,9 +678,11 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
 
 
-  if (NS_FRAME_IS_COMPLETE(aStatus) &&
-      !LastInFlow()->GetNextContinuation() &&
-      !FrameIsNonLastInIBSplit()) {
+
+  if ((NS_FRAME_IS_COMPLETE(aStatus) &&
+       !LastInFlow()->GetNextContinuation() &&
+       !FrameIsNonLastInIBSplit()) ||
+      boxDecorationBreakClone) {
     aMetrics.Width() += aReflowState.ComputedLogicalBorderPadding().IEnd(wm);
   }
 
@@ -872,6 +886,11 @@ nsInlineFrame::PushFrames(nsPresContext* aPresContext,
 int
 nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
 {
+  if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
+                     NS_STYLE_BOX_DECORATION_BREAK_CLONE)) {
+    return 0;
+  }
+
   int skip = 0;
   if (!IsFirst()) {
     nsInlineFrame* prev = (nsInlineFrame*) GetPrevContinuation();

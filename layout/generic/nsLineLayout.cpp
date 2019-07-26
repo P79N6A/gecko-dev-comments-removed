@@ -1077,8 +1077,11 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   
   
   
-  if (pfd->mFrame->GetPrevContinuation() ||
-      pfd->mFrame->FrameIsNonFirstInIBSplit()) {
+  
+  if ((pfd->mFrame->GetPrevContinuation() ||
+       pfd->mFrame->FrameIsNonFirstInIBSplit()) &&
+      aReflowState.mStyleBorder->mBoxDecorationBreak ==
+        NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
     
     
     pfd->mMargin.IStart(frameWM) = 0;
@@ -1161,14 +1164,19 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
 
+
+
+
   if (pfd->mFrame->GetPrevContinuation() ||
       pfd->mFrame->FrameIsNonFirstInIBSplit()) {
     pfd->mMargin.IStart(frameWM) = 0;
   }
   if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
        pfd->mFrame->LastInFlow()->GetNextContinuation() ||
-       pfd->mFrame->FrameIsNonLastInIBSplit())
-      && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
+       pfd->mFrame->FrameIsNonLastInIBSplit()) &&
+      !pfd->GetFlag(PFD_ISLETTERFRAME) &&
+      pfd->mFrame->StyleBorder()->mBoxDecorationBreak ==
+        NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
     pfd->mMargin.IEnd(frameWM) = 0;
   }
   LogicalMargin usedMargins = pfd->mMargin.ConvertTo(lineWM, frameWM);
