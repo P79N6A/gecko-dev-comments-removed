@@ -8251,149 +8251,269 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
     MDefinition *value = current->pop();
     MDefinition *obj = current->pop();
 
-    types::StackTypeSet *objTypes = obj->resultTypeSet();
+    RootedId id(cx, NameToId(name));
+    bool emitted = false;
 
+    
     if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(obj, value));
 
-    RootedId id(cx, NameToId(name));
+    
+    if (!setPropTryCommonSetter(&emitted, obj, name, id, value) || emitted)
+        return emitted;
+
+    bool barrier = PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value);
+
+    
+    if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier) || emitted)
+        return emitted;
+
+    
+    if (!setPropTryInlineAccess(&emitted, obj, name, id, value, barrier) || emitted)
+        return emitted;
+
+    
+    if (!setPropTryCache(&emitted, obj, name, value, barrier) || emitted)
+        return emitted;
+
+    
+    MInstruction *ins = MCallSetProperty::New(obj, value, name, script()->strict);
+    current->add(ins);
+    current->push(value);
+    return resumeAfter(ins);
+}
+
+bool
+IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
+                                   HandlePropertyName name, HandleId id,
+                                   MDefinition *value)
+{
+    JS_ASSERT(*emitted == false);
 
     JSFunction *commonSetter;
     bool isDOM;
+
+    types::StackTypeSet *objTypes = obj->resultTypeSet();
     if (!TestCommonPropFunc(cx, objTypes, id, &commonSetter, false, &isDOM, NULL))
         return false;
-    if (commonSetter) {
-        
-        
-        
-        RootedFunction setter(cx, commonSetter);
-        if (isDOM && TestShouldDOMCall(cx, objTypes, setter, JSJitInfo::Setter)) {
-            JS_ASSERT(setter->jitInfo()->type == JSJitInfo::Setter);
-            MSetDOMProperty *set = MSetDOMProperty::New(setter->jitInfo()->setter, obj, value);
-            if (!set)
-                return false;
 
-            current->add(set);
-            current->push(value);
+    if (!commonSetter)
+        return true;
 
-            return resumeAfter(set);
-        }
+    
 
-        
-        if (objTypes->getKnownTypeTag() != JSVAL_TYPE_OBJECT) {
-            MGuardObject *guardObj = MGuardObject::New(obj);
-            current->add(guardObj);
-            obj = guardObj;
-        }
+    
+    
+    
+    RootedFunction setter(cx, commonSetter);
 
-        
-        
-        uint32_t depth = current->stackDepth() + 3;
-        if (depth > current->nslots()) {
-            if (!current->increaseSlots(depth - current->nslots()))
-                return false;
-        }
+    
+    if (!setPropTryCommonDOMSetter(emitted, obj, value, setter, isDOM) || emitted)
+        return emitted;
 
-        pushConstant(ObjectValue(*setter));
+    
+    if (objTypes->getKnownTypeTag() != JSVAL_TYPE_OBJECT) {
+        MGuardObject *guardObj = MGuardObject::New(obj);
+        current->add(guardObj);
+        obj = guardObj;
+    }
 
-        MPassArg *wrapper = MPassArg::New(obj);
-        current->push(wrapper);
-        current->add(wrapper);
-
-        MPassArg *arg = MPassArg::New(value);
-        current->push(arg);
-        current->add(arg);
-
-        
-        
-        CallInfo callInfo(cx, false);
-        if (!callInfo.init(current, 1))
+    
+    
+    uint32_t depth = current->stackDepth() + 3;
+    if (depth > current->nslots()) {
+        if (!current->increaseSlots(depth - current->nslots()))
             return false;
-        
-        callInfo.markAsSetter();
+    }
 
-        
-        if (makeInliningDecision(setter, callInfo) && setter->isInterpreted())
-            return inlineScriptedCall(callInfo, setter);
+    pushConstant(ObjectValue(*setter));
 
-        MCall *call = makeCallHelper(setter, callInfo, false);
-        if (!call)
+    MPassArg *wrapper = MPassArg::New(obj);
+    current->push(wrapper);
+    current->add(wrapper);
+
+    MPassArg *arg = MPassArg::New(value);
+    current->push(arg);
+    current->add(arg);
+
+    
+    
+    CallInfo callInfo(cx, false);
+    if (!callInfo.init(current, 1))
+        return false;
+
+    
+    callInfo.markAsSetter();
+
+    
+    if (makeInliningDecision(setter, callInfo) && setter->isInterpreted()) {
+        if (!inlineScriptedCall(callInfo, setter))
             return false;
 
-        current->push(value);
-        return resumeAfter(call);
+        *emitted = true;
+        return true;
     }
 
-    if (PropertyWriteNeedsTypeBarrier(cx, current, &obj, name, &value)) {
-        MInstruction *ins = MCallSetProperty::New(obj, value, name, script()->strict);
-        current->add(ins);
-        current->push(value);
-        return resumeAfter(ins);
-    }
+    MCall *call = makeCallHelper(setter, callInfo, false);
+    if (!call)
+        return false;
 
-    if (types::HeapTypeSet *propTypes = GetDefiniteSlot(cx, objTypes, name)) {
-        MStoreFixedSlot *fixed = MStoreFixedSlot::New(obj, propTypes->definiteSlot(), value);
-        current->add(fixed);
-        current->push(value);
-        if (propTypes->needsBarrier(cx))
-            fixed->setNeedsBarrier();
-        return resumeAfter(fixed);
-    }
+    current->push(value);
+    if (!resumeAfter(call))
+        return false;
+
+    *emitted = true;
+    return true;
+}
+
+bool
+IonBuilder::setPropTryCommonDOMSetter(bool *emitted, MDefinition *obj,
+                                      MDefinition *value, HandleFunction setter,
+                                      bool isDOM)
+{
+    JS_ASSERT(*emitted == false);
+
+    if (!isDOM)
+        return true;
+
+    types::StackTypeSet *objTypes = obj->resultTypeSet();
+    if (!TestShouldDOMCall(cx, objTypes, setter, JSJitInfo::Setter))
+        return true;
+
+    
+    JS_ASSERT(setter->jitInfo()->type == JSJitInfo::Setter);
+    MSetDOMProperty *set = MSetDOMProperty::New(setter->jitInfo()->setter, obj, value);
+
+    current->add(set);
+    current->push(value);
+
+    if (!resumeAfter(set))
+        return false;
+
+    *emitted = true;
+    return true;
+}
+
+bool
+IonBuilder::setPropTryDefiniteSlot(bool *emitted, MDefinition *obj,
+                                   HandlePropertyName name, MDefinition *value,
+                                   bool barrier)
+{
+    JS_ASSERT(*emitted == false);
+
+    if (barrier)
+        return true;
+
+    types::StackTypeSet *objTypes = obj->resultTypeSet();
+    types::HeapTypeSet *propTypes = GetDefiniteSlot(cx, objTypes, name);
+    if (!propTypes)
+        return true;
+
+    MStoreFixedSlot *fixed = MStoreFixedSlot::New(obj, propTypes->definiteSlot(), value);
+    current->add(fixed);
+    current->push(value);
+
+    if (propTypes->needsBarrier(cx))
+        fixed->setNeedsBarrier();
+
+    if (!resumeAfter(fixed))
+        return false;
+
+    *emitted = true;
+    return true;
+}
+
+bool
+IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
+                                   HandlePropertyName name, HandleId id,
+                                   MDefinition *value, bool barrier)
+{
+    JS_ASSERT(*emitted == false);
+
+    if (barrier)
+        return true;
 
     Vector<Shape *> shapes(cx);
     if (!inspector->maybeShapesForPropertyOp(pc, shapes))
         return false;
 
-    if (!shapes.empty() && CanInlinePropertyOpShapes(shapes)) {
-        if (shapes.length() == 1) {
-            spew("Inlining monomorphic SETPROP");
+    if (shapes.empty())
+        return true;
 
-            
-            
-            
-            
-            Shape *objShape = shapes[0];
-            obj = addShapeGuard(obj, objShape, Bailout_CachedShapeGuard);
+    if (!CanInlinePropertyOpShapes(shapes))
+        return true;
 
-            Shape *shape = objShape->search(cx, NameToId(name));
+    types::StackTypeSet *objTypes = obj->resultTypeSet();
+
+    if (shapes.length() == 1) {
+        spew("Inlining monomorphic SETPROP");
+
+        
+        
+        
+        
+        Shape *objShape = shapes[0];
+        obj = addShapeGuard(obj, objShape, Bailout_CachedShapeGuard);
+
+        Shape *shape = objShape->search(cx, NameToId(name));
+        JS_ASSERT(shape);
+
+        bool needsBarrier = objTypes->propertyNeedsBarrier(cx, id);
+        if (!storeSlot(obj, shape, value, needsBarrier))
+            return false;
+    } else {
+        JS_ASSERT(shapes.length() > 1);
+        spew("Inlining polymorphic SETPROP");
+
+        MSetPropertyPolymorphic *ins = MSetPropertyPolymorphic::New(obj, value);
+        current->add(ins);
+        current->push(value);
+
+        for (size_t i = 0; i < shapes.length(); i++) {
+            Shape *objShape = shapes[i];
+            Shape *shape =  objShape->search(cx, id);
             JS_ASSERT(shape);
-
-            bool needsBarrier = objTypes->propertyNeedsBarrier(cx, id);
-            return storeSlot(obj, shape, value, needsBarrier);
-        } else {
-            JS_ASSERT(shapes.length() > 1);
-            spew("Inlining polymorphic SETPROP");
-
-            MSetPropertyPolymorphic *ins = MSetPropertyPolymorphic::New(obj, value);
-            current->add(ins);
-            current->push(value);
-
-            for (size_t i = 0; i < shapes.length(); i++) {
-                Shape *objShape = shapes[i];
-                Shape *shape =  objShape->search(cx, id);
-                JS_ASSERT(shape);
-                if (!ins->addShape(objShape, shape))
-                    return false;
-            }
-
-            if (objTypes->propertyNeedsBarrier(cx, id))
-                ins->setNeedsBarrier();
-
-            return resumeAfter(ins);
+            if (!ins->addShape(objShape, shape))
+                return false;
         }
+
+        if (objTypes->propertyNeedsBarrier(cx, id))
+            ins->setNeedsBarrier();
+
+        if (!resumeAfter(ins))
+            return false;
     }
 
-    spew("SETPROP IC");
+    *emitted = true;
+    return true;
+}
 
+bool
+IonBuilder::setPropTryCache(bool *emitted, MDefinition *obj,
+                            HandlePropertyName name, MDefinition *value,
+                            bool barrier)
+{
+    JS_ASSERT(*emitted == false);
+
+    if (barrier)
+        return true;
+
+    
     MSetPropertyCache *ins = MSetPropertyCache::New(obj, value, name, script()->strict);
 
+    RootedId id(cx, NameToId(name));
+    types::StackTypeSet *objTypes = obj->resultTypeSet();
     if (!objTypes || objTypes->propertyNeedsBarrier(cx, id))
         ins->setNeedsBarrier();
 
     current->add(ins);
     current->push(value);
 
-    return resumeAfter(ins);
+    if (!resumeAfter(ins))
+        return false;
+
+    *emitted = true;
+    return true;
 }
 
 bool

@@ -368,6 +368,23 @@ class IonBuilder : public MIRGenerator
                          bool barrier, types::StackTypeSet *types);
 
     
+    bool setPropTryCommonSetter(bool *emitted, MDefinition *obj,
+                                HandlePropertyName name, HandleId id,
+                                MDefinition *value);
+    bool setPropTryCommonDOMSetter(bool *emitted, MDefinition *obj,
+                                   MDefinition *value, HandleFunction setter,
+                                   bool isDOM);
+    bool setPropTryDefiniteSlot(bool *emitted, MDefinition *obj,
+                                HandlePropertyName name, MDefinition *value,
+                                bool barrier);
+    bool setPropTryInlineAccess(bool *emitted, MDefinition *obj,
+                                HandlePropertyName name, HandleId id,
+                                MDefinition *value, bool barrier);
+    bool setPropTryCache(bool *emitted, MDefinition *obj,
+                         HandlePropertyName name, MDefinition *value,
+                         bool barrier);
+
+    
     bool setElemTryTyped(bool *emitted, MDefinition *object,
                          MDefinition *index, MDefinition *value);
     bool setElemTryTypedStatic(bool *emitted, MDefinition *object,
