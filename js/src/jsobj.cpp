@@ -1989,7 +1989,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 
 
 
-    JS_ASSERT(!a->isArrayBuffer() && !b->isArrayBuffer());
+    JS_ASSERT(!a->is<ArrayBufferObject>() && !b->is<ArrayBufferObject>());
 
     
     const size_t size = a->tenuredSizeOfThis();
@@ -5330,7 +5330,7 @@ JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, JS::ObjectsExtraSi
 #if defined (JS_CPU_X64)
             
             
-            sizes->elementsAsmJSNonHeap = asArrayBuffer().byteLength();
+            sizes->elementsAsmJSNonHeap = as<ArrayBufferObject>().byteLength();
 #else
             sizes->elementsAsmJSHeap = mallocSizeOf(elements);
 #endif

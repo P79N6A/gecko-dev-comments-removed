@@ -360,7 +360,7 @@ js::Nursery::moveElementsToTenured(JSObject *dst, JSObject *src, AllocKind dstKi
     }
 
     
-    if (src->isArrayBuffer()) {
+    if (src->is<ArrayBufferObject>()) {
         size_t nbytes = sizeof(ObjectElements) + srcHeader->initializedLength;
         if (src->hasDynamicElements()) {
             dstHeader = static_cast<ObjectElements *>(alloc->malloc_(nbytes));
