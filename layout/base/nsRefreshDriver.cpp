@@ -22,6 +22,9 @@
 
 
 #include <mmsystem.h>
+
+#include <dwmapi.h>
+typedef HRESULT (WINAPI*DwmGetCompositionTimingInfoProc)(HWND hWnd, DWM_TIMING_INFO *info);
 #endif
 
 #include "mozilla/Util.h"
@@ -300,6 +303,156 @@ protected:
   }
 };
 
+#ifdef XP_WIN
+
+
+
+
+class PreciseRefreshDriverTimerWindowsDwmVsync :
+  public PreciseRefreshDriverTimer
+{
+public:
+  static void LoadDll()
+  {
+    if (sDwmGetCompositionTimingInfoPtr) {
+      return; 
+    }
+
+    sDwmDll = ::LoadLibraryW(L"dwmapi.dll");
+    if (sDwmDll) {
+      sDwmGetCompositionTimingInfoPtr = (DwmGetCompositionTimingInfoProc)::GetProcAddress(sDwmDll, "DwmGetCompositionTimingInfo");
+    }
+
+    if (!sDwmDll || !sDwmGetCompositionTimingInfoPtr) {
+      UnloadDll();
+    }
+  }
+
+  
+  
+  
+  static bool IsSupported()
+  {
+    return sDwmGetCompositionTimingInfoPtr ? true : false;
+  }
+
+  
+  static void UnloadDll()
+  {
+    if (sDwmDll) {
+      FreeLibrary(sDwmDll);
+    }
+    sDwmDll = nullptr;
+    sDwmGetCompositionTimingInfoPtr = nullptr;
+  }
+
+  PreciseRefreshDriverTimerWindowsDwmVsync(double aRate, bool aPreferHwTiming = false)
+    : PreciseRefreshDriverTimer(aRate)
+    , mPreferHwTiming(aPreferHwTiming)
+  {
+  }
+
+protected:
+  
+  
+  bool mPreferHwTiming;
+
+  nsresult GetVBlankInfo(mozilla::TimeStamp &aLastVBlank, mozilla::TimeDuration &aInterval)
+  {
+    MOZ_ASSERT(sDwmGetCompositionTimingInfoPtr, "DwmGetCompositionTimingInfoPtr is unavailable (windows vsync)");
+
+    DWM_TIMING_INFO timingInfo;
+    timingInfo.cbSize = sizeof(DWM_TIMING_INFO);
+    HRESULT hr = sDwmGetCompositionTimingInfoPtr(0, &timingInfo); 
+
+    if (FAILED(hr)) {
+      
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
+    LARGE_INTEGER time, freq;
+    ::QueryPerformanceCounter(&time);
+    ::QueryPerformanceFrequency(&freq);
+    aLastVBlank = TimeStamp::Now();
+    double secondsPassed = double(time.QuadPart - timingInfo.qpcVBlank) / double(freq.QuadPart);
+
+    aLastVBlank -= TimeDuration::FromSeconds(secondsPassed);
+    aInterval = TimeDuration::FromSeconds(double(timingInfo.qpcRefreshPeriod) / double(freq.QuadPart));
+
+    return NS_OK;
+  }
+
+  virtual void ScheduleNextTick(TimeStamp aNowTime)
+  {
+    static const TimeDuration kMinSaneInterval = TimeDuration::FromMilliseconds(3); 
+    static const TimeDuration kMaxSaneInterval = TimeDuration::FromMilliseconds(44); 
+    static const TimeDuration kNegativeMaxSaneInterval = TimeDuration::FromMilliseconds(-44); 
+    TimeStamp lastVblank;
+    TimeDuration vblankInterval;
+
+    if (!mPreferHwTiming ||
+        NS_OK != GetVBlankInfo(lastVblank, vblankInterval) ||
+        vblankInterval > kMaxSaneInterval ||
+        vblankInterval < kMinSaneInterval ||
+        (aNowTime - lastVblank) > kMaxSaneInterval ||
+        (aNowTime - lastVblank) < kNegativeMaxSaneInterval) {
+      
+      PreciseRefreshDriverTimer::ScheduleNextTick(aNowTime);
+      return;
+    }
+
+    TimeStamp newTarget = lastVblank + vblankInterval; 
+
+    
+    
+    
+    
+    
+    
+    
+
+    const double kSameVsyncThreshold = 0.1;
+    while (newTarget <= mTargetTime + vblankInterval.MultDouble(kSameVsyncThreshold)) {
+      newTarget += vblankInterval;
+    }
+
+    
+    
+    
+    static const double kDefaultPhaseShiftPercent = 10;
+    static const double phaseShiftFactor = 0.01 *
+      (Preferences::GetInt("layout.frame_rate.vsync.phasePercentage", kDefaultPhaseShiftPercent) % 100);
+
+    double phaseDelay = 1.0 + vblankInterval.ToMilliseconds() * phaseShiftFactor;
+
+    
+    double delayMs = (newTarget - aNowTime).ToMilliseconds() + phaseDelay;
+
+    
+    uint32_t delay = static_cast<uint32_t>(delayMs < 0 ? 0 : delayMs);
+
+    
+    LOG("[%p] precise dwm-vsync timer last tick late by %f ms, next tick in %d ms",
+        this,
+        (aNowTime - mTargetTime).ToMilliseconds(),
+        delay);
+
+    
+    LOG("[%p] scheduling callback for %d ms (2)", this, delay);
+    mTimer->InitWithFuncCallback(TimerTick, this, delay, nsITimer::TYPE_ONE_SHOT);
+
+    mTargetTime = newTarget;
+  }
+
+private:
+  static HMODULE sDwmDll;
+  static DwmGetCompositionTimingInfoProc sDwmGetCompositionTimingInfoPtr;
+};
+
+HMODULE PreciseRefreshDriverTimerWindowsDwmVsync::sDwmDll = nullptr;
+DwmGetCompositionTimingInfoProc PreciseRefreshDriverTimerWindowsDwmVsync::sDwmGetCompositionTimingInfoPtr = nullptr;
+#endif
+
 
 
 
@@ -458,6 +611,10 @@ static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
  void
 nsRefreshDriver::InitializeStatics()
 {
+#ifdef XP_WIN
+  PreciseRefreshDriverTimerWindowsDwmVsync::LoadDll();
+#endif
+
 #ifdef PR_LOGGING
   if (!gLog) {
     gLog = PR_NewLogModule("nsRefreshDriver");
@@ -476,6 +633,8 @@ nsRefreshDriver::Shutdown()
   sThrottledRateTimer = nullptr;
 
 #ifdef XP_WIN
+  PreciseRefreshDriverTimerWindowsDwmVsync::UnloadDll();
+
   if (sDisableHighPrecisionTimersTimer) {
     sDisableHighPrecisionTimersTimer->Cancel();
     NS_RELEASE(sDisableHighPrecisionTimersTimer);
@@ -494,13 +653,20 @@ nsRefreshDriver::DefaultInterval()
 
 
 
+
 double
-nsRefreshDriver::GetRegularTimerInterval() const
+nsRefreshDriver::GetRegularTimerInterval(bool *outIsDefault) const
 {
   int32_t rate = Preferences::GetInt("layout.frame_rate", -1);
   if (rate <= 0) {
-    
     rate = DEFAULT_FRAME_RATE;
+    if (outIsDefault) {
+      *outIsDefault = true;
+    }
+  } else {
+    if (outIsDefault) {
+      *outIsDefault = false;
+    }
   }
   return 1000.0 / rate;
 }
@@ -531,8 +697,18 @@ nsRefreshDriver::ChooseTimer() const
     return sThrottledRateTimer;
   }
 
-  if (!sRegularRateTimer)
-    sRegularRateTimer = new PreciseRefreshDriverTimer(GetRegularTimerInterval());
+  if (!sRegularRateTimer) {
+    bool isDefault = true;
+    double rate = GetRegularTimerInterval(&isDefault);
+#ifdef XP_WIN
+    if (PreciseRefreshDriverTimerWindowsDwmVsync::IsSupported()) {
+      sRegularRateTimer = new PreciseRefreshDriverTimerWindowsDwmVsync(rate, isDefault);
+    }
+#endif
+    if (!sRegularRateTimer) {
+      sRegularRateTimer = new PreciseRefreshDriverTimer(rate);
+    }
+  }
   return sRegularRateTimer;
 }
 
