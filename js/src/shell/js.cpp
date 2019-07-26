@@ -5423,6 +5423,10 @@ main(int argc, char **argv, char **envp)
 #endif
 
     
+    if (!JS_Init())
+        return 1;
+
+    
     rt = JS_NewRuntime(32L * 1024L * 1024L, JS_USE_HELPER_THREADS);
     if (!rt)
         return 1;

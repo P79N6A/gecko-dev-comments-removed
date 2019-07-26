@@ -1770,6 +1770,37 @@ typedef enum JSUseHelperThreads
     JS_USE_HELPER_THREADS
 } JSUseHelperThreads;
 
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_Init(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_ShutDown(void);
+
 extern JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads);
 
@@ -1787,9 +1818,6 @@ typedef void (*JS_ICUFreeFn)(const void *, void *p);
 
 extern JS_PUBLIC_API(bool)
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_ICUFreeFn freeFn);
-
-extern JS_PUBLIC_API(void)
-JS_ShutDown(void);
 
 JS_PUBLIC_API(void *)
 JS_GetRuntimePrivate(JSRuntime *rt);
