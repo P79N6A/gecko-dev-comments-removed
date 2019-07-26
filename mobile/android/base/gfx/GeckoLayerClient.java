@@ -14,6 +14,7 @@ import org.mozilla.gecko.ZoomConstraints;
 import org.mozilla.gecko.ui.PanZoomController;
 import org.mozilla.gecko.ui.PanZoomTarget;
 import org.mozilla.gecko.util.EventDispatcher;
+import org.mozilla.gecko.util.FloatUtils;
 import org.mozilla.gecko.util.GeckoEventResponder;
 
 import org.json.JSONException;
@@ -354,6 +355,69 @@ public class GeckoLayerClient
             ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(metrics);
             return DisplayPortCalculator.calculate(newMetrics, null);
         }
+    }
+
+    
+    
+    
+    
+    
+    public boolean shouldAbortProgressiveUpdate(boolean aHasPendingNewThebesContent,
+                                                float x, float y, float width, float height, float resolution) {
+        
+        
+        DisplayPortMetrics displayPort = mDisplayPort;
+
+        
+        
+        if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
+            Log.d(LOGTAG, "Aborting draw due to resolution change");
+            return true;
+        }
+
+        
+        
+        
+        
+
+        
+        
+        
+        
+        if (Math.abs(displayPort.getLeft() - x) <= 1 &&
+            Math.abs(displayPort.getTop() - y) <= 1 &&
+            Math.abs(displayPort.getBottom() - (y + height)) <= 1 &&
+            Math.abs(displayPort.getRight() - (x + width)) <= 1) {
+            return false;
+        }
+
+        
+        
+        
+        
+        
+        
+        ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
+        if (Math.max(viewportMetrics.viewportRectLeft, viewportMetrics.pageRectLeft) + 1 < x ||
+            Math.max(viewportMetrics.viewportRectTop, viewportMetrics.pageRectTop) + 1 < y ||
+            Math.min(viewportMetrics.viewportRectRight, viewportMetrics.pageRectRight) - 1 > x + width ||
+            Math.min(viewportMetrics.viewportRectBottom, viewportMetrics.pageRectBottom) - 1 > y + height) {
+            Log.d(LOGTAG, "Aborting update due to viewport not in display-port");
+            return true;
+        }
+
+        
+        
+        
+        
+        
+        
+        if (!aHasPendingNewThebesContent) {
+            Log.d(LOGTAG, "Aborting update due to more relevant display-port in event queue");
+            return true;
+        }
+
+        return false;
     }
 
     

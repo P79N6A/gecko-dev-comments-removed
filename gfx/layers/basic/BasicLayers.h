@@ -272,6 +272,14 @@ public:
 
   void SetRepeatTransaction() { mRepeatTransaction = true; }
 
+  
+
+
+
+
+
+  bool ShouldAbortProgressiveUpdate(bool aHasPendingNewThebesContent);
+
 private:
   
 

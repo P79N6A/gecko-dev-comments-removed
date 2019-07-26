@@ -280,8 +280,15 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     
     nsIntRegion staleRegion = mTiledBuffer.GetValidRegion();
     staleRegion.And(staleRegion, regionToPaint);
-    if (!staleRegion.IsEmpty() && !staleRegion.Contains(regionToPaint)) {
+    bool hasNewContent = !staleRegion.Contains(regionToPaint);
+    if (!staleRegion.IsEmpty() && hasNewContent) {
       regionToPaint.Sub(regionToPaint, staleRegion);
+    }
+
+    
+    
+    if (BasicManager()->ShouldAbortProgressiveUpdate(hasNewContent)) {
+      return;
     }
 
     
@@ -347,7 +354,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     mValidRegion = mVisibleRegion;
   }
 
-  mTiledBuffer.PaintThebes(this, mVisibleRegion, regionToPaint, aCallback, aCallbackData);
+  mTiledBuffer.PaintThebes(this, mValidRegion, regionToPaint, aCallback, aCallbackData);
 
   mTiledBuffer.ReadLock();
   if (aMaskLayer) {
