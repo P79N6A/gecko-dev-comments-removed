@@ -273,8 +273,12 @@ AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
     resumePC_(NULL)
 {
     if (cx->runtime()->spsProfiler.enabled()) {
+        
+        
+        
+        
         profiler_ = &cx->runtime()->spsProfiler;
-        profiler_->enterNative("asm.js code", this);
+        profiler_->enterNative("asm.js code :0", this);
     }
 
     prev_ = cx_->runtime()->mainThread.asmJSActivationStack_;
