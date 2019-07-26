@@ -202,11 +202,11 @@ public class TabsTray extends TwoWayView
         
         private void updateSelectedPosition() {
             int selected = getPositionForTab(Tabs.getInstance().getSelectedTab());
+            updateSelectedStyle(selected);
+
             if (selected != -1) {
                 TabsTray.this.setSelection(selected);
             }
-
-            updateSelectedStyle(selected);
         }
 
         
