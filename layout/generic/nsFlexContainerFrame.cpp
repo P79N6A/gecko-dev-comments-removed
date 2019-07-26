@@ -954,6 +954,24 @@ nsFlexContainerFrame::GetFrameName(nsAString& aResult) const
 }
 #endif 
 
+
+
+
+
+
+
+uint32_t
+GetDisplayFlagsForFlexItem(nsIFrame* aFrame)
+{
+  MOZ_ASSERT(aFrame->IsFlexItem(), "Should only be called on flex items");
+
+  const nsStylePosition* pos = aFrame->GetStylePosition();
+  if (pos->mZIndex.GetUnit() == eStyleUnit_Integer) {
+    return nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT;
+  }
+  return 0;
+}
+
 NS_IMETHODIMP
 nsFlexContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
@@ -963,7 +981,8 @@ nsFlexContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   NS_ENSURE_SUCCESS(rv, rv);
 
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    rv = BuildDisplayListForChild(aBuilder, e.get(), aDirtyRect, aLists);
+    rv = BuildDisplayListForChild(aBuilder, e.get(), aDirtyRect, aLists,
+                                  GetDisplayFlagsForFlexItem(e.get()));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
