@@ -210,6 +210,15 @@ public:
 
     static const uint8_t sUnpremultiplyTable[256*256];
     static const uint8_t sPremultiplyTable[256*256];
+
+    
+
+
+
+
+    static const mozilla::gfx::Color& GetColorForFrameNumber(uint64_t aFrameNumber);
+    static const uint32_t sNumFrameColors;
+
 #ifdef MOZ_DUMP_PAINTING
     
 
