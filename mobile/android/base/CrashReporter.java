@@ -133,8 +133,7 @@ public class CrashReporter extends Activity
 
         
         
-        SharedPreferences prefs =
-            getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+        SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, true);
         editor.commit();
@@ -231,8 +230,7 @@ public class CrashReporter extends Activity
     }
 
     private void savePrefs() {
-        SharedPreferences prefs = getSharedPreferences(GeckoApp.PREFS_NAME, 0);
-        SharedPreferences.Editor editor = prefs.edit();
+        SharedPreferences.Editor editor = GeckoSharedPrefs.forApp(this).edit();
                   
         final boolean allowContact = ((CheckBox) findViewById(R.id.allow_contact)).isChecked();
         final boolean includeUrl   = ((CheckBox) findViewById(R.id.include_url)).isChecked();

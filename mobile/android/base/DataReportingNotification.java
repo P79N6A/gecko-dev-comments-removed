@@ -26,13 +26,12 @@ public class DataReportingNotification {
 
     public static final String ALERT_NAME_DATAREPORTING_NOTIFICATION = "datareporting-notification";
 
-    private static final String DEFAULT_PREFS_BRANCH = AppConstants.ANDROID_PACKAGE_NAME + "_preferences";
     private static final String PREFS_POLICY_NOTIFIED_TIME = "datareporting.policy.dataSubmissionPolicyNotifiedTime";
     private static final String PREFS_POLICY_VERSION = "datareporting.policy.dataSubmissionPolicyVersion";
     private static final int DATA_REPORTING_VERSION = 1;
 
     public static void checkAndNotifyPolicy(Context context) {
-        SharedPreferences dataPrefs = context.getSharedPreferences(DEFAULT_PREFS_BRANCH, 0);
+        SharedPreferences dataPrefs = GeckoSharedPrefs.forApp(context);
 
         
         if ((!dataPrefs.contains(PREFS_POLICY_NOTIFIED_TIME)) ||
