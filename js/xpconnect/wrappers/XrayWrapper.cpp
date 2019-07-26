@@ -10,6 +10,7 @@
 #include "WrapperFactory.h"
 
 #include "nsIContent.h"
+#include "nsIControllers.h"
 #include "nsContentUtils.h"
 
 #include "XPCWrapper.h"
@@ -711,6 +712,32 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, HandleObject wr
     if (!JSID_IS_STRING(id)) {
         
         return resolveDOMCollectionProperty(cx, wrapper, holder, id, desc, flags);
+    }
+
+
+    
+    
+    
+    nsGlobalWindow *win = nullptr;
+    if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_CONTROLLERS) &&
+        AccessCheck::isChrome(wrapper) &&
+        (win = static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper))))
+    {
+        nsCOMPtr<nsIControllers> c;
+        nsresult rv = win->GetControllers(getter_AddRefs(c));
+        if (NS_SUCCEEDED(rv) && c) {
+            rv = nsXPConnect::XPConnect()->WrapNativeToJSVal(cx, CurrentGlobalOrNull(cx),
+                                                             c, nullptr, nullptr, true,
+                                                             desc.value().address());
+        }
+
+        if (NS_FAILED(rv) || !c) {
+            JS_ReportError(cx, "Failed to invoke GetControllers via Xrays");
+            return false;
+        }
+
+        desc.object().set(wrapper);
+        return true;
     }
 
     XPCNativeInterface *iface;
