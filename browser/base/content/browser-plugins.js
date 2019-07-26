@@ -715,6 +715,7 @@ var gPluginHandler = {
     let plugins = cwu.plugins;
     let pluginHost = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
 
+    let pluginFound = false;
     for (let plugin of plugins) {
       plugin.QueryInterface(Ci.nsIObjectLoadingContent);
       
@@ -726,7 +727,14 @@ var gPluginHandler = {
           overlay.removeEventListener("click", gPluginHandler._overlayClickListener, true);
         }
         plugin.playPlugin();
+        pluginFound = true;
       }
+    }
+
+    
+    
+    if (!pluginFound) {
+      browser.reload();
     }
   },
 
