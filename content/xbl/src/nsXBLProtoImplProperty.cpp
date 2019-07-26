@@ -357,6 +357,11 @@ nsXBLProtoImplProperty::Write(nsIScriptContext* aContext,
   rv = aStream->WriteWStringZ(mName);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  MOZ_ASSERT_IF(mJSAttributes & (JSPROP_GETTER | JSPROP_SETTER), mIsCompiled);
+
   if (mJSAttributes & JSPROP_GETTER) {
     JS::Handle<JSObject*> function =
       JS::Handle<JSObject*>::fromMarkedLocation(mGetter.AsHeapObject().address());

@@ -243,6 +243,9 @@ public:
     
     JS::Handle<JSScript*> GetScriptObject()
     {
+        
+        
+        
         return JS::Handle<JSScript*>::fromMarkedLocation(mScriptObject.address());
     }
 

@@ -415,6 +415,14 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
 
 
 
+
+
+
+
+
+
+
+
     static Handle fromMarkedLocation(const T *p) {
         Handle h;
         h.ptr = p;

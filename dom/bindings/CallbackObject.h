@@ -72,10 +72,10 @@ public:
 
 
 
-
-
   JS::Handle<JSObject*> CallbackPreserveColor() const
   {
+    
+    
     return JS::Handle<JSObject*>::fromMarkedLocation(mCallback.address());
   }
 
@@ -93,6 +93,7 @@ protected:
 private:
   inline void Init(JSObject* aCallback)
   {
+    MOZ_ASSERT(aCallback && !mCallback);
     
     
     mCallback = aCallback;
