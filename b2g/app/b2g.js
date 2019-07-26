@@ -825,9 +825,6 @@ pref("gfx.gralloc.fence-with-readpixels", true);
 pref("ril.cellbroadcast.disabled", false);
 
 
-pref("dom.icc.enabled", true);
-
-
 pref("dom.mobileconnection.enabled", true);
 
 
