@@ -611,32 +611,6 @@ WrapperFactory::WrapComponentsObject(JSContext *cx, HandleObject obj)
     return wrapperObj;
 }
 
-JSObject *
-WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
-{
-    
-    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
-
-    
-    XrayType type = GetXrayType(obj);
-    if (type == NotXray)
-        return NULL;
-
-    
-    Wrapper *wrapper = NULL;
-    if (type == XrayForWrappedNative)
-        wrapper = &SCPermissiveXrayXPCWN::singleton;
-    else if (type == XrayForDOMObject)
-        wrapper = &SCPermissiveXrayDOM::singleton;
-    else
-        MOZ_ASSUME_UNREACHABLE("Bad Xray type");
-
-    
-    JSObject *parent = JS_GetGlobalForObject(cx, obj);
-    return Wrapper::New(cx, obj, NULL, parent, wrapper);
-}
-
-
 bool
 WrapperFactory::XrayWrapperNotShadowing(JSObject *wrapper, jsid id)
 {

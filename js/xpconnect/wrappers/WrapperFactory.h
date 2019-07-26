@@ -75,9 +75,6 @@ class WrapperFactory {
     static JSObject *WrapComponentsObject(JSContext *cx, JS::HandleObject obj);
 
     
-    static JSObject *WrapForSameCompartmentXray(JSContext *cx, JSObject *obj);
-
-    
     static bool XrayWrapperNotShadowing(JSObject *wrapper, jsid id);
 };
 
