@@ -1206,6 +1206,9 @@ pref("devtools.styleeditor.autocompletion-enabled", true);
 pref("devtools.shadereditor.enabled", false);
 
 
+pref("devtools.canvasdebugger.enabled", false);
+
+
 pref("devtools.chrome.enabled", false);
 
 
@@ -1311,8 +1314,6 @@ pref("browser.newtabpage.rows", 3);
 
 
 pref("browser.newtabpage.columns", 3);
-
-pref("browser.newtabpage.directorySource", "chrome://global/content/directoryLinks.json");
 
 
 pref("full-screen-api.enabled", true);

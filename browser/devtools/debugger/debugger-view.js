@@ -390,8 +390,7 @@ let DebuggerView = {
     this._setEditorText(L10N.getStr("loadingText"));
     this._editorSource = { url: aSource.url, promise: deferred.promise };
 
-    DebuggerController.SourceScripts.getText(aSource)
-                                    .then(([, aText, aContentType]) => {
+    DebuggerController.SourceScripts.getText(aSource).then(([, aText, aContentType]) => {
       
       
       if (this._editorSource.url != aSource.url) {
@@ -469,8 +468,7 @@ let DebuggerView = {
 
     
     
-    return this._setEditorSource(sourceForm, aFlags)
-               .then(([,, aContentType]) => {
+    return this._setEditorSource(sourceForm, aFlags).then(([,, aContentType]) => {
       
       sourceForm.contentType = aContentType;
       
