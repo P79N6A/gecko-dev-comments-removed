@@ -157,7 +157,10 @@ XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
 
     
     
-    MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
+    if (MOZ_UNLIKELY(!nsContentUtils::IsCallerChrome())) {
+        JS_ReportError(cx, "Attempt to use .wrappedJSObject in untrusted code");
+        return false;
+    }
     args.rval().setObject(*realObject);
     return JS_WrapValue(cx, args.rval());
 }
