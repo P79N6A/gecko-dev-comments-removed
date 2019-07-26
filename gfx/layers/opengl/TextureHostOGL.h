@@ -20,6 +20,8 @@
 namespace mozilla {
 namespace layers {
 
+class TextureImageTextureHostOGL;
+
 
 
 
@@ -52,6 +54,8 @@ public:
   virtual GLenum GetTextureTarget() const { return LOCAL_GL_TEXTURE_2D; }
   virtual GLenum GetWrapMode() const = 0;
   virtual gfx3DMatrix GetTextureTransform() { return gfx3DMatrix(); }
+
+  virtual TextureImageTextureHostOGL* AsTextureImageTextureHost() { return nullptr; }
 };
 
 inline gl::ShaderProgramType
@@ -94,6 +98,11 @@ public:
     return this;
   }
 
+  virtual TextureImageTextureHostOGL* AsTextureImageTextureHost() MOZ_OVERRIDE
+  {
+    return this;
+  }
+
   
   
   void SetGLContext(gl::GLContext* aGL)
@@ -104,9 +113,16 @@ public:
   
 
   void UpdateImpl(const SurfaceDescriptor& aImage,
-                  nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
+                  nsIntRegion* aRegion = nullptr,
+                  nsIntPoint* aOffset = nullptr) MOZ_OVERRIDE;
 
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+
+  virtual void EnsureBuffer(const nsIntSize& aSize, gfxContentType aType) MOZ_OVERRIDE;
+
+  virtual void CopyTo(const nsIntRect& aSourceRect,
+                      TextureHost *aDest,
+                      const nsIntRect& aDestRect) MOZ_OVERRIDE;
 
   bool IsValid() const MOZ_OVERRIDE
   {
@@ -219,7 +235,8 @@ public:
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
 
   virtual void UpdateImpl(const SurfaceDescriptor& aImage,
-                          nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
+                          nsIntRegion* aRegion = nullptr,
+                          nsIntPoint* aOffset = nullptr) MOZ_OVERRIDE;
 
   virtual bool Lock() MOZ_OVERRIDE;
 
@@ -327,7 +344,8 @@ public:
   
   
   virtual void UpdateImpl(const SurfaceDescriptor& aImage,
-                          nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
+                          nsIntRegion* aRegion = nullptr,
+                          nsIntPoint* aOffset = nullptr) MOZ_OVERRIDE;
   virtual void SwapTexturesImpl(const SurfaceDescriptor& aImage,
                                 nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
   virtual bool Lock() MOZ_OVERRIDE;
@@ -559,7 +577,8 @@ public:
   }
 
   virtual void UpdateImpl(const SurfaceDescriptor& aImage,
-                          nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
+                          nsIntRegion* aRegion = nullptr,
+                          nsIntPoint* aOffset = nullptr) MOZ_OVERRIDE;
   virtual void SwapTexturesImpl(const SurfaceDescriptor& aImage,
                           nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
   virtual bool Lock() MOZ_OVERRIDE;

@@ -175,8 +175,13 @@ public:
   
 
 
+
+
+
+
   void Update(const SurfaceDescriptor& aImage,
-              nsIntRegion *aRegion = nullptr);
+              nsIntRegion *aRegion = nullptr,
+              nsIntPoint* aOffset = nullptr);
 
   
 
@@ -247,8 +252,35 @@ public:
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 #endif
 
+  
+
+
+
+
+
+  virtual void EnsureBuffer(const nsIntSize& aSize, gfxASurface::gfxContentType aType)
+  {
+    NS_RUNTIMEABORT("TextureHost doesn't support EnsureBuffer");
+  }
+
+  
+
+
+
+
+
+
+
+  virtual void CopyTo(const nsIntRect& aSourceRect,
+                      TextureHost *aDest,
+                      const nsIntRect& aDestRect)
+  {
+    NS_RUNTIMEABORT("TextureHost doesn't support CopyTo");
+  }
+
 
   SurfaceDescriptor* GetBuffer() const { return mBuffer; }
+
   
 
 
@@ -276,7 +308,8 @@ protected:
 
 
   virtual void UpdateImpl(const SurfaceDescriptor& aImage,
-                          nsIntRegion *aRegion)
+                          nsIntRegion *aRegion,
+                          nsIntPoint *aOffset = nullptr)
   {
     NS_RUNTIMEABORT("Should not be reached");
   }
@@ -293,7 +326,7 @@ protected:
   virtual void SwapTexturesImpl(const SurfaceDescriptor& aImage,
                                 nsIntRegion *aRegion)
   {
-    UpdateImpl(aImage, aRegion);
+    UpdateImpl(aImage, aRegion, nullptr);
   }
 
   
