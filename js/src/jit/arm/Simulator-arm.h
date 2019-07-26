@@ -32,6 +32,7 @@
 #ifdef JS_ARM_SIMULATOR
 
 #include "jit/IonTypes.h"
+#include "jit/arm/Architecture-arm.h"
 
 namespace js {
 namespace jit {
@@ -165,15 +166,6 @@ class Simulator
     
     
     bool has_bad_pc() const;
-
-    
-    bool use_eabi_hardfloat() {
-#if USE_EABI_HARDFLOAT
-        return true;
-#else
-        return false;
-#endif
-    }
 
   private:
     enum special_values {

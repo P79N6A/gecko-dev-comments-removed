@@ -445,19 +445,17 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     uint32_t passedArgs_;
     uint32_t passedArgTypes_;
 
-#ifdef JS_CODEGEN_ARM_HARDFP
+    
+    
+    
+    
+    
+    
     uint32_t usedIntSlots_;
+#if defined(JS_CODEGEN_ARM_HARDFP) || defined(JS_ARM_SIMULATOR)
     uint32_t usedFloatSlots_;
     bool usedFloat32_;
     uint32_t padding_;
-#else
-    
-    
-    
-    
-    
-    
-    uint32_t usedSlots_;
 #endif
     bool dynamicAlignment_;
 
@@ -1410,6 +1408,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void passABIArg(const Register &reg);
     void passABIArg(const FloatRegister &reg, MoveOp::Type type);
     void passABIArg(const ValueOperand &regs);
+
+  private:
+    void passHardFpABIArg(const MoveOperand &from, MoveOp::Type type);
+    void passSoftFpABIArg(const MoveOperand &from, MoveOp::Type type);
 
   protected:
     bool buildOOLFakeExitFrame(void *fakeReturnAddr);

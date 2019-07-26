@@ -13,9 +13,10 @@
 #include "js/Utility.h"
 
 
-#ifdef __ARM_PCS_VFP
+#if defined(__ARM_PCS_VFP)
 #define JS_CODEGEN_ARM_HARDFP
 #endif
+
 namespace js {
 namespace jit {
 
@@ -231,6 +232,21 @@ bool hasVFPv3();
 bool hasVFP();
 bool has16DP();
 bool hasIDIV();
+
+
+
+#if defined(JS_ARM_SIMULATOR)
+bool useHardFpABI();
+#else
+static inline bool useHardFpABI()
+{
+#if defined(JS_CODEGEN_ARM_HARDFP)
+    return true;
+#else
+    return false;
+#endif
+}
+#endif
 
 } 
 } 
