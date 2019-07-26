@@ -311,35 +311,43 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     if (!self->addDataProperty(cx, cx->names().Function, constructorPropertySlot(JSProto_Function), 0))
         return nullptr;
 
-    
+    if (!FinishObjectClassInit(cx, objectCtor, objectProto))
+        return nullptr;
+    if (!FinishFunctionClassInit(cx, functionCtor, functionProto))
+        return nullptr;
+
+    return functionProto;
+}
+
+bool
+js::FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject proto)
+{
+    Rooted<GlobalObject*> self(cx, cx->global());
 
     
     RootedId evalId(cx, NameToId(cx->names().eval));
     JSObject *evalobj = DefineFunction(cx, self, evalId, IndirectEval, 1, JSFUN_STUB_GSOPS);
     if (!evalobj)
-        return nullptr;
+        return false;
     self->setOriginalEval(evalobj);
 
     
     RootedFunction throwTypeError(cx, NewFunction(cx, NullPtr(), ThrowTypeError, 0,
                                                   JSFunction::NATIVE_FUN, self, NullPtr()));
     if (!throwTypeError)
-        return nullptr;
+        return false;
     if (!JSObject::preventExtensions(cx, throwTypeError))
-        return nullptr;
+        return false;
     self->setThrowTypeError(throwTypeError);
 
     RootedObject intrinsicsHolder(cx);
     if (cx->runtime()->isSelfHostingGlobal(self)) {
         intrinsicsHolder = self;
     } else {
-        RootedObject proto(cx, self->getOrCreateObjectPrototype(cx));
-        if (!proto)
-            return nullptr;
         intrinsicsHolder = NewObjectWithGivenProto(cx, &JSObject::class_, proto, self,
                                                    TenuredObject);
         if (!intrinsicsHolder)
-            return nullptr;
+            return false;
     }
     self->setIntrinsicsHolder(intrinsicsHolder);
     
@@ -348,7 +356,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
                                   global, JS_PropertyStub, JS_StrictPropertyStub,
                                   JSPROP_PERMANENT | JSPROP_READONLY))
     {
-        return nullptr;
+        return false;
     }
 
     
@@ -359,18 +367,23 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-    Rooted<TaggedProto> tagged(cx, TaggedProto(objectProto));
+    Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
     if (self->shouldSplicePrototype(cx) && !self->splicePrototype(cx, self->getClass(), tagged))
-        return nullptr;
+        return false;
+    return true;
+}
 
+bool
+js::FinishFunctionClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject proto)
+{
     
 
 
 
-    RootedFunction functionProtoAsFun(cx, &functionProto->as<JSFunction>());
-    RootedScript functionProtoScript(cx, functionProtoAsFun->nonLazyScript());
-    CallNewScriptHook(cx, functionProtoScript, functionProtoAsFun);
-    return functionProto;
+    RootedFunction functionProto(cx, &proto->as<JSFunction>());
+    RootedScript functionProtoScript(cx, functionProto->nonLazyScript());
+    CallNewScriptHook(cx, functionProtoScript, functionProto);
+    return true;
 }
 
  bool

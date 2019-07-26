@@ -131,6 +131,15 @@ class GlobalObject : public JSObject
     JSObject *
     initFunctionAndObjectClasses(JSContext *cx);
 
+    
+    
+    
+    
+    static bool
+    warnOnceAbout(JSContext *cx, HandleObject obj, uint32_t slot, unsigned errorNumber);
+
+
+  public:
     void setThrowTypeError(JSFunction *fun) {
         JS_ASSERT(getSlotRef(THROWTYPEERROR).isUndefined());
         setSlot(THROWTYPEERROR, ObjectValue(*fun));
@@ -146,14 +155,6 @@ class GlobalObject : public JSObject
         setSlot(INTRINSICS, ObjectValue(*obj));
     }
 
-    
-    
-    
-    
-    static bool
-    warnOnceAbout(JSContext *cx, HandleObject obj, uint32_t slot, unsigned errorNumber);
-
-  public:
     Value getConstructor(JSProtoKey key) const {
         JS_ASSERT(key <= JSProto_LIMIT);
         return getSlot(APPLICATION_SLOTS + key);
@@ -812,6 +813,12 @@ CreateObjectConstructor(JSContext *cx, JSProtoKey key);
 
 JSObject *
 CreateFunctionConstructor(JSContext *cx, JSProtoKey key);
+
+bool
+FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject proto);
+
+bool
+FinishFunctionClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject proto);
 
 
 
