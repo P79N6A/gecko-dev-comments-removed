@@ -129,12 +129,14 @@ public class BookmarksPage extends HomeFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        final Activity activity = getActivity();
+
         
-        mTopBookmarksAdapter = new TopBookmarksAdapter(getActivity(), null);
+        mTopBookmarksAdapter = new TopBookmarksAdapter(activity, null);
         mTopBookmarks.setAdapter(mTopBookmarksAdapter);
 
         
-        mListAdapter = new BookmarksListAdapter(getActivity(), null);
+        mListAdapter = new BookmarksListAdapter(activity, null);
         mListAdapter.setOnRefreshFolderListener(new OnRefreshFolderListener() {
             @Override
             public void onRefreshFolder(int folderId) {
@@ -147,7 +149,7 @@ public class BookmarksPage extends HomeFragment {
         mList.setAdapter(mListAdapter);
 
         
-        mLoaderCallbacks = new CursorLoaderCallbacks();
+        mLoaderCallbacks = new CursorLoaderCallbacks(activity, getLoaderManager());
         mThumbnailsLoaderCallbacks = new ThumbnailsLoaderCallbacks();
         loadIfVisible();
     }
@@ -369,6 +371,10 @@ public class BookmarksPage extends HomeFragment {
 
 
     private class CursorLoaderCallbacks extends HomeCursorLoaderCallbacks {
+        public CursorLoaderCallbacks(Context context, LoaderManager loaderManager) {
+            super(context, loaderManager);
+        }
+
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             switch(id) {
