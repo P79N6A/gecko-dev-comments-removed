@@ -33,7 +33,7 @@ namespace js {
 
 static WeakMapBase * const WeakMapNotInList = reinterpret_cast<WeakMapBase *>(1);
 
-typedef Vector<WeakMapBase *, 0, SystemAllocPolicy> WeakMapVector;
+typedef HashSet<WeakMapBase *, DefaultHasher<WeakMapBase *>, SystemAllocPolicy> WeakMapSet;
 
 
 
@@ -42,35 +42,12 @@ class WeakMapBase {
     WeakMapBase(JSObject *memOf, JSCompartment *c);
     virtual ~WeakMapBase();
 
-    void trace(JSTracer *tracer) {
-        if (IS_GC_MARKING_TRACER(tracer)) {
-            
-            
-            
-            
-            JS_ASSERT(tracer->eagerlyTraceWeakMaps() == DoNotTraceWeakMaps);
-
-            
-            
-            if (next == WeakMapNotInList) {
-                next = compartment->gcWeakMapList;
-                compartment->gcWeakMapList = this;
-            }
-        } else {
-            
-            
-            
-            
-            if (tracer->eagerlyTraceWeakMaps() == DoNotTraceWeakMaps)
-                return;
-
-            nonMarkingTraceValues(tracer);
-            if (tracer->eagerlyTraceWeakMaps() == TraceWeakMapKeysValues)
-                nonMarkingTraceKeys(tracer);
-        }
-    }
+    void trace(JSTracer *tracer);
 
     
+
+    
+    static void unmarkCompartment(JSCompartment *c);
 
     
     
@@ -86,16 +63,12 @@ class WeakMapBase {
     static void traceAllMappings(WeakMapTracer *tracer);
 
     bool isInList() { return next != WeakMapNotInList; }
-    void check() { JS_ASSERT(!isInList()); }
 
     
-    static void resetCompartmentWeakMapList(JSCompartment *c);
+    static bool saveCompartmentMarkedWeakMaps(JSCompartment *c, WeakMapSet &markedWeakMaps);
 
     
-    static bool saveCompartmentWeakMapList(JSCompartment *c, WeakMapVector &vector);
-
-    
-    static void restoreCompartmentWeakMapLists(WeakMapVector &vector);
+    static void restoreCompartmentMarkedWeakMaps(WeakMapSet &markedWeakMaps);
 
     
     static void removeWeakMapFromList(WeakMapBase *weakmap);
@@ -108,6 +81,7 @@ class WeakMapBase {
     virtual bool markIteratively(JSTracer *tracer) = 0;
     virtual void sweep() = 0;
     virtual void traceMappings(WeakMapTracer *tracer) = 0;
+    virtual void finish() = 0;
 
     
     JSObject *memberOf;
@@ -115,14 +89,13 @@ class WeakMapBase {
     
     JSCompartment *compartment;
 
-  private:
-    
-    
-    
     
     
     
     WeakMapBase *next;
+
+    
+    bool marked;
 };
 
 template <class Key, class Value,
@@ -137,6 +110,15 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
 
     explicit WeakMap(JSContext *cx, JSObject *memOf = nullptr)
         : Base(cx->runtime()), WeakMapBase(memOf, cx->compartment()) { }
+
+    bool init(uint32_t len = 16) {
+        if (!Base::init(len))
+            return false;
+        next = compartment->gcWeakMapList;
+        compartment->gcWeakMapList = this;
+        marked = JS::IsIncrementalGCInProgress(compartment->runtimeFromMainThread());
+        return true;
+    }
 
   private:
     bool markValue(JSTracer *trc, Value *x) {
@@ -214,6 +196,10 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
 
 
         assertEntriesNotAboutToBeFinalized();
+    }
+
+    void finish() {
+        Base::finish();
     }
 
     

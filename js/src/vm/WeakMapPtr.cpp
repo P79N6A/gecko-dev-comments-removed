@@ -58,7 +58,6 @@ JS::WeakMapPtr<K, V>::destroy()
     
     if (map->isInList())
         WeakMapBase::removeWeakMapFromList(map);
-    map->check();
     js_delete(map);
     ptr = nullptr;
 }
