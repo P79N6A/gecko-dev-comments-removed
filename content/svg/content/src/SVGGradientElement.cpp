@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/SVGGradientElement.h"
 
-#include "DOMSVGAnimatedTransformList.h"
+#include "mozilla/dom/SVGAnimatedTransformList.h"
 #include "mozilla/dom/SVGRadialGradientElementBinding.h"
 #include "mozilla/dom/SVGLinearGradientElementBinding.h"
 #include "mozilla/Util.h"
@@ -78,12 +78,12 @@ SVGGradientElement::GradientUnits()
 }
 
 
-already_AddRefed<DOMSVGAnimatedTransformList>
+already_AddRefed<SVGAnimatedTransformList>
 SVGGradientElement::GradientTransform()
 {
   
   
-  return DOMSVGAnimatedTransformList::GetDOMWrapper(
+  return SVGAnimatedTransformList::GetDOMWrapper(
            GetAnimatedTransformList(DO_ALLOCATE), this);
 }
 
@@ -172,11 +172,11 @@ SVGLinearGradientElement::Y2()
 
 
 
-SVGAnimatedTransformList*
+nsSVGAnimatedTransformList*
 SVGGradientElement::GetAnimatedTransformList(uint32_t aFlags)
 {
   if (!mGradientTransform && (aFlags & DO_ALLOCATE)) {
-    mGradientTransform = new SVGAnimatedTransformList();
+    mGradientTransform = new nsSVGAnimatedTransformList();
   }
   return mGradientTransform;
 }
