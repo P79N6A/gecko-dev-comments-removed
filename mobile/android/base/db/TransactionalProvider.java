@@ -62,9 +62,11 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
 
 
 
+
     abstract protected int deleteInTransaction(Uri uri, String selection, String[] selectionArgs);
 
     
+
 
 
 
@@ -129,25 +131,133 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
         return true;
     }
 
+    
+
+
+
+    @SuppressWarnings("static-method")
+    protected boolean shouldUseTransactions() {
+        return Build.VERSION.SDK_INT >= 11;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    final ThreadLocal<Boolean> isInBatchOperation = new ThreadLocal<Boolean>();
+
+    private boolean isInBatch() {
+        final Boolean isInBatch = isInBatchOperation.get();
+        if (isInBatch == null) {
+            return false;
+        }
+        return isInBatch.booleanValue();
+    }
+
+    
+
+
+    protected void beginWrite(final SQLiteDatabase db) {
+        if (isInBatch()) {
+            trace("Not bothering with an intermediate write transaction: inside batch operation.");
+            return;
+        }
+
+        if (shouldUseTransactions() && !db.inTransaction()) {
+            trace("beginWrite: beginning transaction.");
+            db.beginTransaction();
+        }
+    }
+
+    
+
+
+
+    protected void markWriteSuccessful(final SQLiteDatabase db) {
+        if (isInBatch()) {
+            trace("Not marking write successful: inside batch operation.");
+            return;
+        }
+
+        if (shouldUseTransactions() && db.inTransaction()) {
+            trace("Marking write transaction successful.");
+            db.setTransactionSuccessful();
+        }
+    }
+
+    
+
+
+
+
+
+    protected void endWrite(final SQLiteDatabase db) {
+        if (isInBatch()) {
+            trace("Not ending write: inside batch operation.");
+            return;
+        }
+
+        if (shouldUseTransactions() && db.inTransaction()) {
+            trace("endWrite: ending transaction.");
+            db.endTransaction();
+        }
+    }
+
+    protected void beginBatch(final SQLiteDatabase db) {
+        trace("Beginning batch.");
+        isInBatchOperation.set(Boolean.TRUE);
+        db.beginTransaction();
+    }
+
+    protected void markBatchSuccessful(final SQLiteDatabase db) {
+        if (isInBatch()) {
+            trace("Marking batch successful.");
+            db.setTransactionSuccessful();
+            return;
+        }
+        Log.w(LOGTAG, "Unexpectedly asked to mark batch successful, but not in batch!");
+        throw new IllegalStateException("Not in batch.");
+    }
+
+    protected void endBatch(final SQLiteDatabase db) {
+        trace("Ending batch.");
+        db.endTransaction();
+        isInBatchOperation.set(Boolean.FALSE);
+    }
+
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        trace("Calling delete on URI: " + uri);
+        trace("Calling delete on URI: " + uri + ", " + selection + ", " + selectionArgs);
 
         final SQLiteDatabase db = getWritableDatabase(uri);
         int deleted = 0;
 
-        if (Build.VERSION.SDK_INT >= 11) {
-            trace("Beginning delete transaction: " + uri);
-            db.beginTransaction();
-            try {
-                deleted = deleteInTransaction(uri, selection, selectionArgs);
-                db.setTransactionSuccessful();
-                trace("Successful delete transaction: " + uri);
-            } finally {
-                db.endTransaction();
-            }
-        } else {
+        try {
             deleted = deleteInTransaction(uri, selection, selectionArgs);
+            markWriteSuccessful(db);
+        } finally {
+            endWrite(db);
         }
 
         if (deleted > 0) {
@@ -164,23 +274,14 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
         final SQLiteDatabase db = getWritableDatabase(uri);
         Uri result = null;
         try {
-            if (Build.VERSION.SDK_INT >= 11) {
-                trace("Beginning insert transaction: " + uri);
-                db.beginTransaction();
-                try {
-                    result = insertInTransaction(uri, values);
-                    db.setTransactionSuccessful();
-                    trace("Successful insert transaction: " + uri);
-                } finally {
-                    db.endTransaction();
-                }
-            } else {
-                result = insertInTransaction(uri, values);
-            }
+            result = insertInTransaction(uri, values);
+            markWriteSuccessful(db);
         } catch (SQLException sqle) {
             Log.e(LOGTAG, "exception in DB operation", sqle);
         } catch (UnsupportedOperationException uoe) {
             Log.e(LOGTAG, "don't know how to perform that insert", uoe);
+        } finally {
+            endWrite(db);
         }
 
         if (result != null) {
@@ -194,23 +295,17 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
     @Override
     public int update(Uri uri, ContentValues values, String selection,
             String[] selectionArgs) {
-        trace("Calling update on URI: " + uri);
+        trace("Calling update on URI: " + uri + ", " + selection + ", " + selectionArgs);
 
         final SQLiteDatabase db = getWritableDatabase(uri);
         int updated = 0;
 
-        if (Build.VERSION.SDK_INT >= 11) {
-            trace("Beginning update transaction: " + uri);
-            db.beginTransaction();
-            try {
-                updated = updateInTransaction(uri, values, selection, selectionArgs);
-                db.setTransactionSuccessful();
-                trace("Successful update transaction: " + uri);
-            } finally {
-                db.endTransaction();
-            }
-        } else {
-            updated = updateInTransaction(uri, values, selection, selectionArgs);
+        try {
+            updated = updateInTransaction(uri, values, selection,
+                                          selectionArgs);
+            markWriteSuccessful(db);
+        } finally {
+            endWrite(db);
         }
 
         if (updated > 0) {
@@ -231,7 +326,8 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
 
         final SQLiteDatabase db = getWritableDatabase(uri);
 
-        db.beginTransaction();
+        debug("bulkInsert: explicitly starting transaction.");
+        beginBatch(db);
 
         try {
             for (int i = 0; i < numValues; i++) {
@@ -239,9 +335,10 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
                 successes++;
             }
             trace("Flushing DB bulkinsert...");
-            db.setTransactionSuccessful();
+            markBatchSuccessful(db);
         } finally {
-            db.endTransaction();
+            debug("bulkInsert: explicitly ending transaction.");
+            endBatch(db);
         }
 
         if (successes > 0) {
