@@ -308,6 +308,12 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
     return true;
   }
 
+  const nsStyleDisplay* display = aFrame->StyleDisplay();
+  
+  if (display->mPosition == NS_STYLE_POSITION_STATIC) {
+    return true;
+  }
+
   
   
   
@@ -315,12 +321,6 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
       (aFrame->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)) {
     StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
     return false;
-  }
-
-  const nsStyleDisplay* display = aFrame->StyleDisplay();
-  
-  if (display->mPosition == NS_STYLE_POSITION_STATIC) {
-    return true;
   }
 
   aFrame->SchedulePaint();
