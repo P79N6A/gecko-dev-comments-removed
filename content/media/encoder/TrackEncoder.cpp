@@ -16,7 +16,8 @@
 
 namespace mozilla {
 
-#define MAX_FRAMES_TO_DROP  48000
+static const int  DEFAULT_CHANNELS = 1;
+static const int  DEFAULT_SAMPLING_RATE = 16000;
 
 void
 AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
@@ -34,16 +35,25 @@ AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
     AudioSegment::ChunkIterator iter(*audio);
     while (!iter.IsEnded()) {
       AudioChunk chunk = *iter;
-      if (chunk.mBuffer) {
-        Init(chunk.mChannelData.Length(), aTrackRate);
-        break;
+
+      
+      
+      if (!chunk.IsNull()) {
+        nsresult rv = Init(chunk.mChannelData.Length(), aTrackRate);
+        if (NS_SUCCEEDED(rv)) {
+          break;
+        }
+      } else {
+        mSilentDuration += chunk.mDuration;
       }
       iter.Next();
     }
   }
 
   
-  AppendAudioSegment(audio);
+  if (mInitialized) {
+    AppendAudioSegment(audio);
+  }
 
   
   if (aTrackEvents == MediaStreamListener::TRACK_EVENT_ENDED) {
@@ -57,35 +67,42 @@ AudioTrackEncoder::NotifyRemoved(MediaStreamGraph* aGraph)
 {
   
   LOG("[AudioTrackEncoder]: NotifyRemoved.");
+
+  
+  
+  
+  if (!mInitialized && mSilentDuration > 0) {
+    Init(DEFAULT_CHANNELS, DEFAULT_SAMPLING_RATE);
+    mRawSegment->AppendNullData(mSilentDuration);
+    mSilentDuration = 0;
+  }
   NotifyEndOfStream();
 }
 
 nsresult
 AudioTrackEncoder::AppendAudioSegment(MediaSegment* aSegment)
 {
-  
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
   AudioSegment* audio = static_cast<AudioSegment*>(aSegment);
   AudioSegment::ChunkIterator iter(*audio);
 
-  if (mRawSegment->GetDuration() < MAX_FRAMES_TO_DROP) {
-    while(!iter.IsEnded()) {
-      AudioChunk chunk = *iter;
-      if (chunk.mBuffer) {
-        mRawSegment->AppendAndConsumeChunk(&chunk);
-      }
-      iter.Next();
-    }
-    if (mRawSegment->GetDuration() >= GetPacketDuration()) {
-      mReentrantMonitor.NotifyAll();
-    }
+  
+  
+  if (mSilentDuration > 0) {
+    mRawSegment->AppendNullData(mSilentDuration);
+    mSilentDuration = 0;
   }
-#ifdef DEBUG
-  else {
-    LOG("[AudioTrackEncoder]: A segment has dropped!");
+
+  while (!iter.IsEnded()) {
+    AudioChunk chunk = *iter;
+    
+    mRawSegment->AppendAndConsumeChunk(&chunk);
+    iter.Next();
   }
-#endif
+  if (mRawSegment->GetDuration() >= GetPacketDuration()) {
+    mReentrantMonitor.NotifyAll();
+  }
 
   return NS_OK;
 }
