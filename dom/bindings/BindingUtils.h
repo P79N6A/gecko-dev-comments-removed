@@ -31,6 +31,7 @@
 #include "qsObjectHelper.h"
 #include "xpcpublic.h"
 #include "nsIVariant.h"
+#include "pldhash.h" 
 
 #include "nsWrapperCacheInlines.h"
 
@@ -43,6 +44,7 @@ xpc_qsUnwrapArgImpl(JSContext* cx, JS::Handle<JS::Value> v, const nsIID& iid, vo
 
 namespace mozilla {
 namespace dom {
+template<typename DataType> class MozMap;
 
 struct SelfRef
 {
@@ -1977,6 +1979,33 @@ public:
   }
 };
 
+
+
+
+template<typename T>
+static PLDHashOperator
+TraceMozMapValue(T* aValue, void* aClosure)
+{
+  JSTracer* trc = static_cast<JSTracer*>(aClosure);
+  
+  SequenceTracer<T>::TraceSequence(trc, aValue, aValue + 1);
+  return PL_DHASH_NEXT;
+}
+
+
+template<typename T>
+class SequenceTracer<MozMap<T>, false, false, false>
+{
+  explicit SequenceTracer() MOZ_DELETE; 
+
+public:
+  static void TraceSequence(JSTracer* trc, MozMap<T>* seqp, MozMap<T>* end) {
+    for (; seqp != end; ++seqp) {
+      seqp->EnumerateValues(TraceMozMapValue<T>, trc);
+    }
+  }
+};
+
 template<typename T>
 void DoTraceSequence(JSTracer* trc, FallibleTArray<T>& seq)
 {
@@ -2048,6 +2077,58 @@ public:
   };
 
   SequenceType mSequenceType;
+};
+
+
+template<typename T>
+class MOZ_STACK_CLASS MozMapRooter : private JS::CustomAutoRooter
+{
+public:
+  MozMapRooter(JSContext *aCx, MozMap<T>* aMozMap
+               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : JS::CustomAutoRooter(aCx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT),
+      mMozMap(aMozMap),
+      mMozMapType(eMozMap)
+  {
+  }
+
+  MozMapRooter(JSContext *aCx, Nullable<MozMap<T>>* aMozMap
+                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : JS::CustomAutoRooter(aCx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT),
+      mNullableMozMap(aMozMap),
+      mMozMapType(eNullableMozMap)
+  {
+  }
+
+private:
+  enum MozMapType {
+    eMozMap,
+    eNullableMozMap
+  };
+
+  virtual void trace(JSTracer *trc) MOZ_OVERRIDE
+  {
+    MozMap<T>* mozMap;
+    if (mMozMapType == eMozMap) {
+      mozMap = mMozMap;
+    } else {
+      MOZ_ASSERT(mMozMapType == eNullableMozMap);
+      if (mNullableMozMap->IsNull()) {
+        
+        return;
+      }
+      mozMap = &mNullableMozMap->Value();
+    }
+
+    mozMap->EnumerateValues(TraceMozMapValue<T>, trc);
+  }
+
+  union {
+    MozMap<T>* mMozMap;
+    Nullable<MozMap<T>>* mNullableMozMap;
+  };
+
+  MozMapType mMozMapType;
 };
 
 template<typename T>
