@@ -644,7 +644,7 @@ class JS_PUBLIC_API(CustomAutoRooter) : private AutoGCRooter
 };
 
 
-typedef bool (*IsAcceptableThis)(const Value &v);
+typedef bool (*IsAcceptableThis)(JS::Handle<JS::Value> v);
 
 
 
@@ -728,7 +728,7 @@ template<IsAcceptableThis Test, NativeImpl Impl>
 JS_ALWAYS_INLINE bool
 CallNonGenericMethod(JSContext *cx, CallArgs args)
 {
-    const Value &thisv = args.thisv();
+    HandleValue thisv = args.thisv();
     if (Test(thisv))
         return Impl(cx, args);
 
@@ -738,7 +738,7 @@ CallNonGenericMethod(JSContext *cx, CallArgs args)
 JS_ALWAYS_INLINE bool
 CallNonGenericMethod(JSContext *cx, IsAcceptableThis Test, NativeImpl Impl, CallArgs args)
 {
-    const Value &thisv = args.thisv();
+    HandleValue thisv = args.thisv();
     if (Test(thisv))
         return Impl(cx, args);
 
