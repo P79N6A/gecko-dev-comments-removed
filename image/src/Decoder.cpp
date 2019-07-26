@@ -237,21 +237,24 @@ Decoder::FlushInvalidations()
     
     
     
-    int32_t width;
-    int32_t height;
+    if (mImageMetadata.HasSize()) {
+      nsIntRect mImageBound(0, 0, mImageMetadata.GetWidth(), mImageMetadata.GetHeight());
 
-    mImage.GetWidth(&width);
-    mImage.GetHeight(&height);
-    nsIntRect mImageBound(0, 0, width, height);
-
-    mInvalidRect.Inflate(1);
-    mInvalidRect = mInvalidRect.Intersect(mImageBound);
+      mInvalidRect.Inflate(1);
+      mInvalidRect = mInvalidRect.Intersect(mImageBound);
+    }
 #endif
     mObserver->FrameChanged(&mInvalidRect);
   }
 
   
   mInvalidRect.SetEmpty();
+}
+
+void
+Decoder::SetSizeOnImage()
+{
+  mImage.SetSize(mImageMetadata.GetWidth(), mImageMetadata.GetHeight());
 }
 
 
@@ -274,7 +277,7 @@ Decoder::PostSize(int32_t aWidth, int32_t aHeight)
   NS_ABORT_IF_FALSE(aHeight >= 0, "Height can't be negative!");
 
   
-  mImage.SetSize(aWidth, aHeight);
+  mImageMetadata.SetSize(aWidth, aHeight);
 
   
   if (mObserver)
