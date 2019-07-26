@@ -83,6 +83,9 @@ CacheFileInputStream::Available(uint64_t *_retval)
   }
 
   EnsureCorrectChunk(false);
+  if (NS_FAILED(mStatus))
+    return mStatus;
+
   *_retval = 0;
 
   if (mChunk) {
@@ -124,6 +127,9 @@ CacheFileInputStream::Read(char *aBuf, uint32_t aCount, uint32_t *_retval)
   }
 
   EnsureCorrectChunk(false);
+  if (NS_FAILED(mStatus))
+    return mStatus;
+
   if (!mChunk) {
     if (mListeningForChunk == -1) {
       LOG(("  no chunk, returning 0 read and NS_OK"));
@@ -194,6 +200,9 @@ CacheFileInputStream::ReadSegments(nsWriteSegmentFun aWriter, void *aClosure,
   }
 
   EnsureCorrectChunk(false);
+  if (NS_FAILED(mStatus))
+    return mStatus;
+
   if (!mChunk) {
     if (mListeningForChunk == -1) {
       *_retval = 0;
@@ -435,7 +444,17 @@ CacheFileInputStream::OnChunkAvailable(nsresult aResult, uint32_t aChunkIdx,
     return NS_OK;
   }
 
-  mChunk = aChunk;
+  if (NS_SUCCEEDED(aResult)) {
+    mChunk = aChunk;
+  } else if (aResult != NS_ERROR_NOT_AVAILABLE) {
+    
+    
+    
+    
+    
+    mStatus = aResult;
+  }
+
   MaybeNotifyListener();
 
   return NS_OK;
@@ -528,7 +547,14 @@ CacheFileInputStream::EnsureCorrectChunk(bool aReleaseOnly)
   if (NS_FAILED(rv)) {
     LOG(("CacheFileInputStream::EnsureCorrectChunk() - GetChunkLocked failed. "
          "[this=%p, idx=%d, rv=0x%08x]", this, chunkIdx, rv));
-
+    if (rv != NS_ERROR_NOT_AVAILABLE) {
+      
+      
+      
+      
+      
+      mStatus = rv;
+    }
   }
   else if (!mChunk) {
     mListeningForChunk = static_cast<int64_t>(chunkIdx);
@@ -587,7 +613,7 @@ CacheFileInputStream::MaybeNotifyListener()
   if (!mCallback)
     return;
 
-  if (mClosed) {
+  if (mClosed || NS_FAILED(mStatus)) {
     NotifyListener();
     return;
   }
