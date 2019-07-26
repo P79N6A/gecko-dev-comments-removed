@@ -118,8 +118,15 @@ function updateCountryCode(callback) {
 
 function updateSnippets() {
   _httpGetRequest(gSnippetsURL, function(responseText) {
-    cacheSnippets(responseText);
-    updateBanner(responseText);
+    try {
+      let messages = JSON.parse(responseText);
+      updateBanner(messages);
+
+      
+      cacheSnippets(responseText);
+    } catch (e) {
+      Cu.reportError("Error parsing snippets responseText: " + e);
+    }
   });
 }
 
@@ -139,7 +146,10 @@ function cacheSnippets(response) {
 
 function loadSnippetsFromCache() {
   let promise = OS.File.read(gSnippetsPath);
-  promise.then(array => updateBanner(gDecoder.decode(array)), e => {
+  promise.then(array => {
+    let messages = JSON.parse(gDecoder.decode(array));
+    updateBanner(messages);
+  }, e => {
     if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
       Cu.reportError("Couldn't show snippets because cache does not exist yet.");
     } else {
@@ -163,15 +173,12 @@ var gMessageIds = [];
 
 
 
-
-function updateBanner(response) {
+function updateBanner(messages) {
   
   gMessageIds.forEach(function(id) {
     Home.banner.remove(id);
   })
   gMessageIds = [];
-
-  let messages = JSON.parse(response);
 
   try {
     let removedSnippetIds = JSON.parse(Services.prefs.getCharPref(SNIPPETS_REMOVED_IDS_PREF));
