@@ -530,7 +530,11 @@ this.WebappManager = {
       
       let prefs = [];
       if (aManifest.orientation) {
-        prefs.push({name:"app.orientation.default", value: aManifest.orientation.join(",") });
+        let orientation = aManifest.orientation;
+        if (Array.isArray(orientation)) {
+          orientation = orientation.join(",");
+        }
+        prefs.push({ name: "app.orientation.default", value: orientation });
       }
 
       
