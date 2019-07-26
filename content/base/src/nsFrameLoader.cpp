@@ -2559,6 +2559,12 @@ nsFrameLoader::ResetPermissionManagerStatus()
 {
   
   
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    return;
+  }
+
+  
+  
   
   
   uint32_t appId = nsIScriptSecurityManager::NO_APP_ID;
