@@ -41,6 +41,9 @@ public:
   
   void Update(double aTime);
 
+  
+  void GetAllActiveCues(nsTArray<nsRefPtr<TextTrackCue> >& aCues);
+
   TextTrack* IndexedGetter(uint32_t aIndex, bool& aFound);
 
   already_AddRefed<TextTrack> AddTextTrack(HTMLMediaElement* aMediaElement,
