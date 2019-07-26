@@ -230,7 +230,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
 
     
     funid = mRuntime->GetStringID(XPCJSRuntime::IDX_QUERY_INTERFACE);
-    if (!JS_GetPropertyById(cx, jsobj, funid, &fun) || JSVAL_IS_PRIMITIVE(fun))
+    if (!JS_GetPropertyById(cx, jsobj, funid, fun.address()) || JSVAL_IS_PRIMITIVE(fun))
         return nullptr;
 
     
@@ -330,7 +330,7 @@ GetNamedPropertyAsVariantRaw(XPCCallContext& ccx,
     nsXPTType type = nsXPTType((uint8_t)TD_INTERFACE_TYPE);
     RootedValue val(ccx);
 
-    return JS_GetPropertyById(ccx, aJSObj, aName, &val) &&
+    return JS_GetPropertyById(ccx, aJSObj, aName, val.address()) &&
            
            
            
@@ -1264,7 +1264,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
                 }
             }
         } else {
-            if (!JS_GetProperty(cx, obj, name, &fval))
+            if (!JS_GetProperty(cx, obj, name, fval.address()))
                 goto pre_call_clean_up;
             
             
@@ -1431,7 +1431,7 @@ pre_call_clean_up:
 
     RootedValue rval(cx);
     if (XPT_MD_IS_GETTER(info->flags)) {
-        success = JS_GetProperty(cx, obj, name, &rval);
+        success = JS_GetProperty(cx, obj, name, rval.address());
     } else if (XPT_MD_IS_SETTER(info->flags)) {
         rval = *argv;
         success = JS_SetProperty(cx, obj, name, rval);
@@ -1514,7 +1514,7 @@ pre_call_clean_up:
         else if (JSVAL_IS_PRIMITIVE(argv[i]) ||
                  !JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
                                      mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
-                                     &val))
+                                     val.address()))
             break;
 
         
@@ -1558,7 +1558,7 @@ pre_call_clean_up:
                 val = rval;
             else if (!JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
                                          mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
-                                         &val))
+                                         val.address()))
                 break;
 
             

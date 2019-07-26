@@ -748,7 +748,8 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
                                      thisValue.address(), nullptr, true);
         } else {
           
-          if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||
+          if (!JS_GetProperty(ctx, object, "receiveMessage",
+                              funval.address()) ||
               !funval.isObject())
             return NS_ERROR_UNEXPECTED;
 
