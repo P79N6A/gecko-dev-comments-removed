@@ -112,6 +112,7 @@ enum ConservativeGCTest
 
 
 
+#ifndef JSGC_USE_EXACT_ROOTING
 static inline ConservativeGCTest
 IsAddressableGCThing(JSRuntime *rt, uintptr_t w,
                      bool skipUncollectedCompartments,
@@ -231,7 +232,6 @@ MarkIfGCThingWord(JSTracer *trc, uintptr_t w)
     return CGCT_VALID;
 }
 
-#ifndef JSGC_USE_EXACT_ROOTING
 static void
 MarkWordConservatively(JSTracer *trc, uintptr_t w)
 {
