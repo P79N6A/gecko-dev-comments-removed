@@ -13,6 +13,8 @@ const PDU_TIMESTAMP = "00101000000000";
 const PDU_UDL = "01";
 const PDU_UD = "41";
 
+const SENT_TIMESTAMP = Date.UTC(2000, 0, 1); 
+
 SpecialPowers.addPermission("sms", true, document);
 
 let manager = window.navigator.mozMobileMessage;
@@ -70,6 +72,8 @@ function test_message_class_0() {
          "Message's timestamp should be greater then the timetamp of sending");
       ok(event.message.timestamp <= Date.now(),
          "Message's timestamp should be lesser than the timestamp of now");
+      is(event.message.sentTimestamp, SENT_TIMESTAMP,
+         "Message's sentTimestamp should be equal to SENT_TIMESTAMP");
 
       
       let cursor = manager.getMessages(null, false);
@@ -118,6 +122,8 @@ function doTestMessageClassGeneric(allDCSs, messageClass, next) {
          "Message's timestamp should be greater then the timetamp of sending");
       ok(event.message.timestamp <= Date.now(),
          "Message's timestamp should be lesser than the timestamp of now");
+      is(event.message.sentTimestamp, SENT_TIMESTAMP,
+         "Message's sentTimestamp should be equal to SENT_TIMESTAMP");
 
       ++dcsIndex;
       if (dcsIndex >= allDCSs.length) {
@@ -173,6 +179,8 @@ function test_message_class_2() {
              "Message's timestamp should be greater then the timetamp of sending");
           ok(event.message.timestamp <= Date.now(),
              "Message's timestamp should be lesser than the timestamp of now");
+          is(event.message.sentTimestamp, SENT_TIMESTAMP,
+             "Message's sentTimestamp should be equal to SENT_TIMESTAMP");
 
           next();
           return;
