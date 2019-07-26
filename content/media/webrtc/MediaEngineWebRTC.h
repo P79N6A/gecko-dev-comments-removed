@@ -350,14 +350,6 @@ class MediaEngineWebRTC : public MediaEngine
 {
 public:
   MediaEngineWebRTC(MediaEnginePrefs &aPrefs);
-  ~MediaEngineWebRTC() {
-    Shutdown();
-#ifdef MOZ_B2G_CAMERA
-    AsyncLatencyLogger::Get()->Release();
-#endif
-    
-    gFarendObserver = nullptr;
-  }
 
   
   
@@ -367,6 +359,15 @@ public:
   virtual void EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSource> >*);
 
 private:
+  ~MediaEngineWebRTC() {
+    Shutdown();
+#ifdef MOZ_B2G_CAMERA
+    AsyncLatencyLogger::Get()->Release();
+#endif
+    
+    gFarendObserver = nullptr;
+  }
+
   Mutex mMutex;
   
 
