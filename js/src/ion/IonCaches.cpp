@@ -1389,8 +1389,9 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Ha
         return false;
 
     
-    
-    if (inlinable && !addedSetterStub && IsPropertyAddInlineable(cx, obj, id, oldSlots, &shape)) {
+    if (inlinable && !addedSetterStub && obj->lastProperty() != oldShape &&
+        IsPropertyAddInlineable(cx, obj, id, oldSlots, &shape))
+    {
         RootedShape newShape(cx, obj->lastProperty());
         cache.incrementStubCount();
         if (!cache.attachNativeAdding(cx, ion, obj, oldShape, newShape, shape))
