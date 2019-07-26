@@ -2998,6 +2998,11 @@ CodeGenerator::generate()
                            ? frameDepth_
                            : FrameSizeClass::FromDepth(frameDepth_).frameSize();
 
+    
+    
+    if (cx->compartment->types.compiledInfo.compilerOutput(cx)->isInvalidated())
+        return true;
+
     script->ion = IonScript::New(cx, slots, scriptFrameSize, snapshots_.size(),
                                  bailouts_.length(), graph.numConstants(),
                                  safepointIndices_.length(), osiIndices_.length(),

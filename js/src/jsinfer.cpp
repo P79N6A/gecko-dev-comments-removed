@@ -2019,6 +2019,19 @@ AddPendingRecompile(JSContext *cx, HandleScript script, jsbytecode *pc,
 
 
 
+    RecompileInfo& info = cx->compartment->types.compiledInfo;
+    if (info.outputIndex != RecompileInfo::NoCompilerRunning) {
+        CompilerOutput *co = info.compilerOutput(cx);
+        if (co->isIon() && co->script == script) {
+            co->invalidate();
+        }
+    }
+
+    
+
+
+
+
     if (script->function() && !script->function()->hasLazyType())
         ObjectStateChange(cx, script->function()->type(), false, true);
 }
