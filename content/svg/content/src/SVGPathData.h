@@ -20,7 +20,6 @@
 #include <string.h>
 
 class gfxContext;
-class gfxPath;
 class nsSVGPathDataParser; 
 
 struct gfxMatrix;

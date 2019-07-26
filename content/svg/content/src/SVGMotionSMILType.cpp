@@ -6,13 +6,16 @@
 
 
 #include "SVGMotionSMILType.h"
+
+#include "gfx2DGlue.h"
 #include "nsSMILValue.h"
 #include "nsDebug.h"
 #include "nsMathUtils.h"
 #include "nsISupportsUtils.h"
-#include "gfxPath.h"
 #include "nsTArray.h"
 #include <math.h>
+
+using namespace mozilla::gfx;
 
 namespace mozilla {
 
@@ -32,7 +35,7 @@ struct TranslationParams {
   float mY;
 };
 struct PathPointParams {  
-  gfxPath* mPath; 
+  Path* mPath; 
   float mDistToPoint; 
                       
 };
@@ -70,7 +73,7 @@ struct MotionSegment
   }
 
   
-  MotionSegment(gfxPath* aPath, float aDistToPoint,
+  MotionSegment(Path* aPath, float aDistToPoint,
                 RotateType aRotateType, float aRotateAngle)
     : mRotateType(aRotateType), mRotateAngle(aRotateAngle),
       mSegmentType(eSegmentType_PathPoint)
@@ -228,26 +231,24 @@ SVGMotionSMILType::IsEqual(const nsSMILValue& aLeft,
 
 
 inline static void
-GetAngleAndPointAtDistance(gfxPath* aPath, float aDistance,
+GetAngleAndPointAtDistance(Path* aPath, float aDistance,
                            RotateType aRotateType,
                            gfxFloat& aRotateAngle, 
                            gfxPoint& aPoint)       
 {
-  gfxFloat tangentAngle;
-  
-  aPoint = aPath->FindPoint(gfxPoint(aDistance, 0.0), &tangentAngle);
-
-  
-  switch (aRotateType) {
-    case eRotateType_Explicit:
-      
-      break;
-    case eRotateType_Auto:
+  if (aRotateType == eRotateType_Explicit) {
+    
+    aPoint = ThebesPoint(aPath->ComputePointAtLength(aDistance));
+  } else {
+    Point tangent; 
+    aPoint = ThebesPoint(aPath->ComputePointAtLength(aDistance, &tangent));
+    gfxFloat tangentAngle = atan2(tangent.y, tangent.x);
+    if (aRotateType == eRotateType_Auto) {
       aRotateAngle = tangentAngle;
-      break;
-    case eRotateType_AutoReverse:
+    } else {
+      MOZ_ASSERT(aRotateType == eRotateType_AutoReverse);
       aRotateAngle = M_PI + tangentAngle;
-      break;
+    }
   }
 }
 
@@ -287,7 +288,7 @@ SVGMotionSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
                     "unexpected angle mismatch");
   NS_ABORT_IF_FALSE(srcParams.mPath == dstParams.mPath,
                     "unexpected path mismatch");
-  gfxPath* path = srcParams.mPath;
+  Path* path = srcParams.mPath;
 
   
   gfxFloat rotateAngle = dstSeg.mRotateAngle;
@@ -295,8 +296,7 @@ SVGMotionSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   GetAngleAndPointAtDistance(path, dstParams.mDistToPoint, dstSeg.mRotateType,
                              rotateAngle, dstPt);
 
-  
-  gfxPoint srcPt = path->FindPoint(gfxPoint(srcParams.mDistToPoint, 0.0));
+  Point srcPt = path->ComputePointAtLength(srcParams.mDistToPoint);
 
   float newX = dstPt.x + srcPt.x * aCount;
   float newY = dstPt.y + srcPt.y * aCount;
@@ -411,7 +411,7 @@ SVGMotionSMILType::Interpolate(const nsSMILValue& aStartVal,
   
   
   
-  gfxPath* path = endParams.mPath;
+  Path* path = endParams.mPath;
   RotateType rotateType  = endSeg.mRotateType;
   float rotateAngle      = endSeg.mRotateAngle;
 
@@ -471,7 +471,7 @@ SVGMotionSMILType::CreateMatrix(const nsSMILValue& aSMILVal)
 }
 
  nsSMILValue
-SVGMotionSMILType::ConstructSMILValue(gfxPath* aPath,
+SVGMotionSMILType::ConstructSMILValue(Path* aPath,
                                       float aDist,
                                       RotateType aRotateType,
                                       float aRotateAngle)

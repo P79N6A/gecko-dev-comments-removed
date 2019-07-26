@@ -6,7 +6,8 @@
 #ifndef MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 #define MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 
-#include "gfxPath.h"  
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "nsAutoPtr.h"
 #include "nsSMILAnimationFunction.h"
 #include "nsTArray.h"
@@ -32,6 +33,8 @@ class SVGMPathElement;
 
 class SVGMotionSMILAnimationFunction : public nsSMILAnimationFunction
 {
+  typedef mozilla::gfx::Path Path;
+
 public:
   SVGMotionSMILAnimationFunction();
   virtual bool SetAttr(nsIAtom* aAttribute,
@@ -78,7 +81,7 @@ protected:
   void     RebuildPathAndVerticesFromMpathElem(dom::SVGMPathElement* aMpathElem);
   void     RebuildPathAndVerticesFromPathAttr();
   void     RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
-  bool     GenerateValuesForPathAndPoints(gfxPath* aPath,
+  bool     GenerateValuesForPathAndPoints(Path* aPath,
                                           bool aIsKeyPoints,
                                           nsTArray<double>& aPointDistances,
                                           nsTArray<nsSMILValue>& aResult);
@@ -91,7 +94,7 @@ protected:
   float                      mRotateAngle; 
 
   PathSourceType             mPathSourceType; 
-  nsRefPtr<gfxPath> mPath;           
+  RefPtr<Path>               mPath;           
   nsTArray<double>           mPathVertices; 
 
   bool                       mIsPathStale;

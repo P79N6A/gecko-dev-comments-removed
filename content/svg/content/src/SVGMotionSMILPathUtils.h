@@ -17,7 +17,6 @@
 #include "nsSMILParserUtils.h"
 #include "nsTArray.h"
 
-class gfxPath;
 class nsAString;
 class nsSVGElement;
 
@@ -26,6 +25,7 @@ namespace mozilla {
 class SVGMotionSMILPathUtils
 {
   typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Path Path;
   typedef mozilla::gfx::PathBuilder PathBuilder;
 
 public:
@@ -61,7 +61,7 @@ public:
     
     inline bool HaveReceivedCommands() { return mHaveReceivedCommands; }
     
-    already_AddRefed<gfxPath> GetResultingPath();
+    mozilla::TemporaryRef<Path> GetResultingPath();
 
   protected:
     
