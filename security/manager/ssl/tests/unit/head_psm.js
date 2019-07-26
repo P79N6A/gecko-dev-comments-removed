@@ -100,6 +100,19 @@ function getXPCOMStatusFromNSS(statusNSS) {
   return nssErrorsService.getXPCOMFromNSSError(statusNSS);
 }
 
+function checkCertErrorGeneric(certdb, cert, expectedError, usage) {
+  let hasEVPolicy = {};
+  let verifiedChain = {};
+  let error = certdb.verifyCertNow(cert, usage, NO_FLAGS, verifiedChain,
+                                   hasEVPolicy);
+  
+  if (expectedError != -1 ) {
+    do_check_eq(error, expectedError);
+  } else {
+    do_check_neq (error, 0);
+  }
+}
+
 function _getLibraryFunctionWithNoArguments(functionName, libraryName) {
   
   let path = ctypes.libraryName(libraryName);
