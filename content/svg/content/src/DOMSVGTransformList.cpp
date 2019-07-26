@@ -161,7 +161,7 @@ DOMSVGTransformList::Initialize(DOMSVGTransform& newItem, ErrorResult& error)
   
   
 
-  nsCOMPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<DOMSVGTransform> domItem = &newItem;
   if (domItem->HasOwner()) {
     domItem = newItem.Clone();
   }
@@ -201,7 +201,7 @@ DOMSVGTransformList::InsertItemBefore(DOMSVGTransform& newItem,
     return nullptr;
   }
 
-  nsCOMPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<DOMSVGTransform> domItem = &newItem;
   if (newItem.HasOwner()) {
     domItem = newItem.Clone(); 
   }
@@ -248,7 +248,7 @@ DOMSVGTransformList::ReplaceItem(DOMSVGTransform& newItem,
     return nullptr;
   }
 
-  nsCOMPtr<DOMSVGTransform> domItem = &newItem;
+  nsRefPtr<DOMSVGTransform> domItem = &newItem;
   if (newItem.HasOwner()) {
     domItem = newItem.Clone(); 
   }
@@ -299,7 +299,7 @@ DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
   
   
   mItems[index]->RemovingFromList();
-  nsCOMPtr<DOMSVGTransform> result = mItems[index];
+  nsRefPtr<DOMSVGTransform> result = mItems[index];
 
   InternalList().RemoveItem(index);
   mItems.RemoveElementAt(index);
@@ -316,7 +316,7 @@ DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
 already_AddRefed<DOMSVGTransform>
 DOMSVGTransformList::CreateSVGTransformFromMatrix(dom::SVGMatrix& matrix)
 {
-  nsCOMPtr<DOMSVGTransform> result = new DOMSVGTransform(matrix.Matrix());
+  nsRefPtr<DOMSVGTransform> result = new DOMSVGTransform(matrix.Matrix());
   return result.forget();
 }
 

@@ -20,15 +20,6 @@ class nsSVGElement;
 
 struct gfxMatrix;
 
-
-
-
-
-
-#define MOZILLA_DOMSVGTRANSFORM_IID \
-  { 0x0A799862, 0x9469, 0x41FE, \
-    { 0xB4, 0xCD, 0x20, 0x19, 0xE6, 0x5D, 0x8D, 0xA6 } }
-
 #define MOZ_SVG_LIST_INDEX_BIT_COUNT 31 // supports > 2 billion list items
 
 namespace mozilla {
@@ -40,13 +31,11 @@ class SVGMatrix;
 
 
 
-class DOMSVGTransform MOZ_FINAL : public nsISupports,
-                                  public nsWrapperCache
+class DOMSVGTransform MOZ_FINAL : public nsWrapperCache
 {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGTRANSFORM_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransform)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGTransform)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGTransform)
 
   
 
@@ -193,8 +182,6 @@ private:
   
   nsAutoPtr<SVGTransform> mTransform;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGTransform, MOZILLA_DOMSVGTRANSFORM_IID)
 
 nsAttrValue
 DOMSVGTransform::NotifyElementWillChange()
