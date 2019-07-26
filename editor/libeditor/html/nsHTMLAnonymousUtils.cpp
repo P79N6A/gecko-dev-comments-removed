@@ -171,7 +171,7 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
     nsAutoScriptBlocker scriptBlocker;
 
     
-    newContent->SetNativeAnonymous();
+    newContent->SetIsNativeAnonymousRoot();
     res = newContent->BindToTree(doc, parentContent, parentContent, true);
     if (NS_FAILED(res)) {
       newContent->UnbindFromTree();
