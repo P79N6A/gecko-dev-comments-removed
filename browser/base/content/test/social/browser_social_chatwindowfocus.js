@@ -277,7 +277,7 @@ var tests = {
       
       
       
-      let doc = chat.iframe.contentDocument;
+      let doc = chat.contentDocument;
       EventUtils.sendKey("tab");
       waitForCondition(function() {
         let elt = eltid ? doc.getElementById(eltid) : doc.documentElement;
@@ -298,16 +298,16 @@ var tests = {
             
             
             sendTabAndWaitForFocus(chat2, "input1", function() {
-              is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input1",
+              is(chat2.contentDocument.activeElement.getAttribute("id"), "input1",
                  "first input field has focus");
               ok(isChatFocused(chat2), "new chat still focused after first tab");
               sendTabAndWaitForFocus(chat2, "input2", function() {
                 ok(isChatFocused(chat2), "new chat still focused after tab");
-                is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "input2",
+                is(chat2.contentDocument.activeElement.getAttribute("id"), "input2",
                    "second input field has focus");
                 sendTabAndWaitForFocus(chat2, "iframe", function() {
                   ok(isChatFocused(chat2), "new chat still focused after tab");
-                  is(chat2.iframe.contentDocument.activeElement.getAttribute("id"), "iframe",
+                  is(chat2.contentDocument.activeElement.getAttribute("id"), "iframe",
                      "iframe has focus");
                   
                   
@@ -335,10 +335,10 @@ var tests = {
       
       chat.addEventListener("DOMContentLoaded", function DOMContentLoaded() {
         chat.removeEventListener("DOMContentLoaded", DOMContentLoaded);
-        chat.iframe.contentDocument.getElementById("input2").focus();
+        chat.contentDocument.getElementById("input2").focus();
         waitForCondition(function() isChatFocused(chat),
                          function() {
-          is(chat.iframe.contentDocument.activeElement.getAttribute("id"), "input2",
+          is(chat.contentDocument.activeElement.getAttribute("id"), "input2",
              "correct input field has focus");
           
           let tabb = gBrowser.getBrowserForTab(gBrowser.selectedTab);
@@ -348,7 +348,7 @@ var tests = {
             chatbar.focus();
             waitForCondition(function() isChatFocused(chat),
                              function() {
-              is(chat.iframe.contentDocument.activeElement.getAttribute("id"), "input2",
+              is(chat.contentDocument.activeElement.getAttribute("id"), "input2",
                  "correct input field still has focus");
               next();
             }, "chat took focus");

@@ -48,9 +48,9 @@ var tests = {
           } else if (e.data.result == "shown") {
             ok(true, "chatbox got shown");
             
-            let iframe = chats.selectedChat.iframe;
-            iframe.addEventListener("unload", function chatUnload() {
-              iframe.removeEventListener("unload", chatUnload, true);
+            let content = chats.selectedChat.content;
+            content.addEventListener("unload", function chatUnload() {
+              content.removeEventListener("unload", chatUnload, true);
               ok(true, "got chatbox unload on close");
               port.close();
               next();
@@ -187,7 +187,7 @@ var tests = {
           let chat = chats.selectedChat;
           ok(chat.parentNode, "chat has a parent node before it is closed");
           
-          let doc = chat.iframe.contentDocument;
+          let doc = chat.contentDocument;
           let evt = doc.createEvent("CustomEvent");
           evt.initCustomEvent("socialTest-CloseSelf", true, true, {});
           doc.documentElement.dispatchEvent(evt);
@@ -351,10 +351,10 @@ var tests = {
       ok(!chatbar.selectedChat.hasAttribute("activity"), "third chat should have no activity");
       
       ok(!second.hasAttribute("activity"), "second chat should have no activity");
-      let iframe2 = second.iframe;
-      let evt = iframe2.contentDocument.createEvent("CustomEvent");
+      let chat2 = second.content;
+      let evt = chat2.contentDocument.createEvent("CustomEvent");
       evt.initCustomEvent("socialChatActivity", true, true, {});
-      iframe2.contentDocument.documentElement.dispatchEvent(evt);
+      chat2.contentDocument.documentElement.dispatchEvent(evt);
       
       ok(second.hasAttribute("activity"), "second chat should now have activity");
       
@@ -362,10 +362,10 @@ var tests = {
       ok(!second.hasAttribute("activity"), "second chat should no longer have activity");
       
       ok(!first.hasAttribute("activity"), "first chat should have no activity");
-      let iframe1 = first.iframe;
-      let evt = iframe1.contentDocument.createEvent("CustomEvent");
+      let chat1 = first.content;
+      let evt = chat1.contentDocument.createEvent("CustomEvent");
       evt.initCustomEvent("socialChatActivity", true, true, {});
-      iframe1.contentDocument.documentElement.dispatchEvent(evt);
+      chat1.contentDocument.documentElement.dispatchEvent(evt);
       ok(first.hasAttribute("activity"), "first chat should now have activity");
       ok(chatbar.nub.hasAttribute("activity"), "nub should also have activity");
       
@@ -379,14 +379,14 @@ var tests = {
       
       
       ok(!second.hasAttribute("activity"), "second chat should have no activity");
-      let subiframe = iframe2.contentDocument.getElementById("iframe");
+      let subiframe = chat2.contentDocument.getElementById("iframe");
       subiframe.contentWindow.addEventListener("unload", function subunload() {
         subiframe.contentWindow.removeEventListener("unload", subunload);
         
         executeSoon(function() {
-          let evt = iframe2.contentDocument.createEvent("CustomEvent");
+          let evt = chat2.contentDocument.createEvent("CustomEvent");
           evt.initCustomEvent("socialChatActivity", true, true, {});
-          iframe2.contentDocument.documentElement.dispatchEvent(evt);
+          chat2.contentDocument.documentElement.dispatchEvent(evt);
           ok(second.hasAttribute("activity"), "second chat still has activity after unloading sub-iframe");
           closeAllChats();
           port.close();
