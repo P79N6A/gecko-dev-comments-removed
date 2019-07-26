@@ -4938,7 +4938,7 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
   
   
   if (!currentMatrix.HasNonAxisAlignedTransform() &&
-      currentMatrix.xx > 0.0 && currentMatrix.yy > 0.0 &&
+      currentMatrix._11 > 0.0 && currentMatrix._22 > 0.0 &&
       aCtx->UserToDevicePixelSnapped(fill, true)) {
     didSnap = true;
     if (fill.IsEmpty()) {
@@ -4987,8 +4987,8 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
   if (didSnap) {
     
     
-    scaleX /= currentMatrix.xx;
-    scaleY /= currentMatrix.yy;
+    scaleX /= currentMatrix._11;
+    scaleY /= currentMatrix._22;
   }
   gfxFloat translateX = imageSpaceAnchorPoint.x - anchorPoint.x*scaleX;
   gfxFloat translateY = imageSpaceAnchorPoint.y - anchorPoint.y*scaleY;
