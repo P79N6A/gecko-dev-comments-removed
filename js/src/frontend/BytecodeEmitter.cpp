@@ -273,6 +273,12 @@ EmitJump(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, ptrdiff_t off)
     return offset;
 }
 
+static ptrdiff_t
+EmitCall(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, uint16_t argc)
+{
+    return Emit3(cx, bce, op, ARGC_HI(argc), ARGC_LO(argc));
+}
+
 
 const char js_with_statement_str[] = "with statement";
 const char js_finally_block_str[]  = "finally block";
@@ -4893,6 +4899,157 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 }
 
 static bool
+EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
+{
+    JS_ASSERT(bce->sc->isFunctionBox());
+    JS_ASSERT(bce->sc->asFunctionBox()->isStarGenerator());
+
+    if (!EmitTree(cx, bce, iter))                                
+        return false;
+
+    int depth = bce->stackDepth;
+    JS_ASSERT(depth >= 1);
+
+    
+    if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                      
+        return false;
+    ptrdiff_t initialSend = -1;
+    if (EmitBackPatchOp(cx, bce, &initialSend) < 0)              
+        return false;
+
+    
+    StmtInfoBCE stmtInfo(cx);
+    PushStatementBCE(bce, &stmtInfo, STMT_TRY, bce->offset());
+    ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_TRY);
+    if (noteIndex < 0 || Emit1(cx, bce, JSOP_TRY) < 0)
+        return false;
+    ptrdiff_t tryStart = bce->offset();                          
+    JS_ASSERT(bce->stackDepth == depth + 1);
+
+    
+    if (Emit1(cx, bce, JSOP_YIELD) < 0)                          
+        return false;
+
+    
+    if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, bce->offset() - tryStart + JSOP_TRY_LENGTH))
+        return false;
+    if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
+        return false;
+    ptrdiff_t subsequentSend = -1;
+    if (EmitBackPatchOp(cx, bce, &subsequentSend) < 0)           
+        return false;
+    ptrdiff_t tryEnd = bce->offset();                            
+
+    
+    
+    bce->stackDepth = (unsigned) depth;
+    if (Emit1(cx, bce, JSOP_EXCEPTION) < 0)                      
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().throw_, JSOP_STRING, bce))   
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_IN) < 0)                             
+        return false;
+    
+    ptrdiff_t checkThrow = EmitJump(cx, bce, JSOP_IFNE, 0);      
+    if (checkThrow < 0)
+        return false;
+    if (Emit1(cx, bce, JSOP_POP) < 0)                            
+        return false;
+    if (Emit1(cx, bce, JSOP_THROW) < 0)                          
+        return false;
+
+    SetJumpOffsetAt(bce, checkThrow);                            
+    
+    bce->stackDepth = (unsigned) depth + 1;
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().throw_, JSOP_CALLPROP, bce)) 
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_NOTEARG) < 0)                        
+        return false;
+    if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)3) < 0)            
+        return false;
+    if (Emit1(cx, bce, JSOP_NOTEARG) < 0)                        
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 1) < 0)                     
+        return false;
+    JS_ASSERT(bce->stackDepth == depth + 1);
+    ptrdiff_t checkResult = -1;
+    if (EmitBackPatchOp(cx, bce, &checkResult) < 0)              
+        return false;
+
+    
+    if (!PopStatementBCE(cx, bce))
+        return false;
+    
+    if (Emit1(cx, bce, JSOP_NOP) < 0)
+        return false;
+    if (!bce->tryNoteList.append(JSTRY_CATCH, depth, tryStart, tryEnd))
+        return false;
+
+    
+    if (!BackPatch(cx, bce, initialSend, bce->code().end(), JSOP_GOTO)) 
+        return false;
+    if (!BackPatch(cx, bce, subsequentSend, bce->code().end(), JSOP_GOTO)) 
+        return false;
+
+    
+    
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().next, JSOP_CALLPROP, bce))   
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_NOTEARG) < 0)                        
+        return false;
+    if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)3) < 0)            
+        return false;
+    if (Emit1(cx, bce, JSOP_NOTEARG) < 0)                        
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 1) < 0)                     
+        return false;
+    JS_ASSERT(bce->stackDepth == depth + 1);
+
+    if (!BackPatch(cx, bce, checkResult, bce->code().end(), JSOP_GOTO)) 
+        return false;
+    
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().done, JSOP_GETPROP, bce))    
+        return false;
+    
+    if (EmitJump(cx, bce, JSOP_IFEQ, tryStart - bce->offset()) < 0) 
+        return false;
+
+    
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_POP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().value, JSOP_GETPROP, bce))   
+        return false;
+
+    JS_ASSERT(bce->stackDepth == depth);
+
+    return true;
+}
+
+static bool
 EmitStatementList(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
     JS_ASSERT(pn->isArity(PN_LIST));
@@ -5194,7 +5351,7 @@ EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     if (!spread) {
-        if (Emit3(cx, bce, pn->getOp(), ARGC_HI(argc), ARGC_LO(argc)) < 0)
+        if (EmitCall(cx, bce, pn->getOp(), argc) < 0)
             return false;
     } else {
         if (Emit1(cx, bce, pn->getOp()) < 0)
@@ -5887,6 +6044,10 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
       case PNK_RETURN:
         ok = EmitReturn(cx, bce, pn);
+        break;
+
+      case PNK_YIELD_STAR:
+        ok = EmitYieldStar(cx, bce, pn->pn_kid);
         break;
 
       case PNK_YIELD:

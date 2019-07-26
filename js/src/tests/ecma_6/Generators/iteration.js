@@ -58,11 +58,9 @@ function TestGenerator(g, expected_values_for_next,
     testSend(g);
     testThrow(g);
 
-    
-    
-    
-    
-    
+    testNext(function*() { return yield* g(); });
+    testSend(function*() { return yield* g(); });
+    testThrow(function*() { return yield* g(); });
 
     if (g instanceof GeneratorFunction) {
         testNext(function() { return new g(); });
@@ -332,39 +330,6 @@ TestGenerator(
     "foo",
     [42, undefined]);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function TestTryCatch(instantiate) {
     function* g() { yield 1; try { yield 2; } catch (e) { yield e; } yield 3; }
     function Sentinel() {}
@@ -425,8 +390,7 @@ function TestTryCatch(instantiate) {
     Test6(instantiate(g));
 }
 TestTryCatch(function (g) { return g(); });
-
-
+TestTryCatch(function* (g) { return yield* g(); });
 
 function TestTryFinally(instantiate) {
     function* g() { yield 1; try { yield 2; } finally { yield 3; } yield 4; }
@@ -495,8 +459,7 @@ function TestTryFinally(instantiate) {
     Test7(instantiate(g));
 }
 TestTryFinally(function (g) { return g(); });
-
-
+TestTryFinally(function* (g) { return yield* g(); });
 
 function TestNestedTry(instantiate) {
     function* g() {
@@ -586,8 +549,7 @@ function TestNestedTry(instantiate) {
     
 }
 TestNestedTry(function (g) { return g(); });
-
-
+TestNestedTry(function* (g) { return yield* g(); });
 
 function TestRecursion() {
     function TestNextRecursion() {

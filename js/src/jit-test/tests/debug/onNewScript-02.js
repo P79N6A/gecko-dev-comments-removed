@@ -50,6 +50,9 @@ test(function () { g.clone(evaluate("(function(x) { return x + 1; })", {compileA
 test(function () { g.eval("function r(n) { for (var i=0;i<n;i++) yield i; }"); });
 
 
+test(function () { g.eval("function* sg(n) { for (var i=0;i<n;i++) yield i; }"); });
+
+
 test(function () { g.eval("var it = (obj[p] for (p in obj));"); });
 
 
