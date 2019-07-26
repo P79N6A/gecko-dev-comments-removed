@@ -875,6 +875,13 @@ private:
     int32_t           mParentCharsetSource;
     nsCString         mOriginalUriString;
 
+    
+    
+    nsresult DoFindItemWithName(const PRUnichar* aName,
+                                nsISupports* aRequestor,
+                                nsIDocShellTreeItem* aOriginalRequestor,
+                                nsIDocShellTreeItem** _retval);
+
 #ifdef DEBUG
     
     static unsigned long gNumberOfDocShells;
