@@ -1153,7 +1153,11 @@ pref("devtools.tilt.outro_transition", true);
 
 
 
+
+
+
 pref("devtools.scratchpad.recentFilesMax", 10);
+pref("devtools.scratchpad.showTrailingSpace", false);
 
 
 pref("devtools.styleeditor.enabled", true);
@@ -1333,7 +1337,7 @@ pref("browser.uiCustomization.debug", false);
 
 
 
-pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/?service=sync");
+pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow?moar_native=true");
 
 
 pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
