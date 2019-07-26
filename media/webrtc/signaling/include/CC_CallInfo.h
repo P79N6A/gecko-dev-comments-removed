@@ -290,15 +290,15 @@ namespace CSF
          
 
 
-       
+
         virtual bool isMediaStateAvailable() = 0;
-        
+
         
 
 
 
         virtual bool isAudioMuted(void) = 0;
-        
+
          
 
 

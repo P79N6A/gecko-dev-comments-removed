@@ -61,11 +61,11 @@ cprSuspendThread(cprThread_t thread)
     int32_t returnCode;
     static const char fname[] = "cprSuspendThread";
     cpr_thread_t *cprThreadPtr;
-	
+
     cprThreadPtr = (cpr_thread_t*)thread;
     if (cprThreadPtr != NULL) {
-		
-		HANDLE *hThread;		
+
+		HANDLE *hThread;
 		hThread = (HANDLE *)cprThreadPtr->u.handlePtr;
 		if (hThread != NULL) {
 
@@ -77,7 +77,7 @@ cprSuspendThread(cprThread_t thread)
 				return(CPR_FAILURE);
 			}
 			return(CPR_SUCCESS);
-			
+
 			
 		}
 	}
@@ -102,14 +102,14 @@ cprResumeThread(cprThread_t thread)
     int32_t returnCode;
     static const char fname[] = "cprResumeThread";
     cpr_thread_t *cprThreadPtr;
-	
+
     cprThreadPtr = (cpr_thread_t*)thread;
     if (cprThreadPtr != NULL) {
 		HANDLE *hThread;
 		hThread = (HANDLE *)cprThreadPtr->u.handlePtr;
 
 		if (hThread != NULL) {
-			
+
 			returnCode = ResumeThread(hThread);
 			if (returnCode == -1) {
 				CPR_ERROR("%s - Resume thread failed: %d\n",
@@ -162,7 +162,7 @@ cprCreateThread(const char* name,
 	startThreadDataPtr = (startThreadData *) cpr_malloc(sizeof(startThreadData));
 
     if (threadPtr != NULL && startThreadDataPtr != NULL) {
-		
+
         
         if (name != NULL) {
             threadPtr->name = name;
@@ -171,12 +171,12 @@ cprCreateThread(const char* name,
         startThreadDataPtr->startRoutine = startRoutine;
         startThreadDataPtr->data = data;
 
-		serialize_lock = CreateEvent (NULL, FALSE, FALSE, NULL);                                          
+		serialize_lock = CreateEvent (NULL, FALSE, FALSE, NULL);
 		if (serialize_lock == NULL)	{
 			
 			CPR_ERROR("%s - Event creation failure: %d\n", fname, GetLastError());
 			cpr_free(threadPtr);
-			threadPtr = NULL;	
+			threadPtr = NULL;
 		}
 		else
 		{
@@ -184,8 +184,8 @@ cprCreateThread(const char* name,
 			startThreadDataPtr->event = serialize_lock;
 
 			threadPtr->u.handlePtr = (void*)_beginthreadex(NULL, 0, cprStartThread, (void*)startThreadDataPtr, 0, &ThreadId);
-			  
-			if (threadPtr->u.handlePtr != NULL) {				
+
+			if (threadPtr->u.handlePtr != NULL) {
 				threadPtr->threadId = ThreadId;
 				result = WaitForSingleObject(serialize_lock, 1000);
 				ResetEvent( serialize_lock );
@@ -194,7 +194,7 @@ cprCreateThread(const char* name,
 			{
 				CPR_ERROR("%s - Thread creation failure: %d\n", fname, GetLastError());
 				cpr_free(threadPtr);
-				threadPtr = NULL;			
+				threadPtr = NULL;
 			}
 			CloseHandle( serialize_lock );
 		}

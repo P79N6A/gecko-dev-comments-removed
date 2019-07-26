@@ -142,13 +142,13 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
     int        idx = 0;
     unsigned long strtoul_result;
     char *strtoul_end;
-    
+
     ptr = buf;
     
     if (!ptr || (!isdigit((int) *ptr))) {
         return FALSE;
     }
-   
+
     
     while (*ptr) {
         if (*ptr == ':') {
@@ -161,17 +161,17 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
 	} else {
 	     return FALSE;
 	}
-	   
+
 	ptr++;
     }
-    
+
     
     if (*ptr == 0) {
         return FALSE;
-    } 
-	
+    }
+
     idx = 0;
-    
+
     
     while (*ptr) {
         if (isdigit((int) *ptr) && (idx < 3)) {
@@ -179,10 +179,10 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
 	} else {
 	    return FALSE;
 	}
-	
+
 	ptr++;
     }
-    
+
     mkiLenBuf[idx] = 0;
 
     errno = 0;
@@ -213,19 +213,19 @@ verify_sdescriptions_mki (char *buf, char *mkiVal, u16 *mkiLen)
 
 
 
- 
+
 tinybool
 verify_sdescriptions_lifetime (char *buf)
 {
 
     char     *ptr;
     tinybool tokenFound = FALSE;
-	    
+
     ptr = buf;
     if (!ptr || *ptr == 0) {
         return FALSE;
     }
-    
+
     while (*ptr) {
         if (*ptr == '^') {
 	    if (tokenFound) {
@@ -236,7 +236,7 @@ verify_sdescriptions_lifetime (char *buf)
                 
 
 
-		 
+
                 if (buf[0] != '2' || buf[1] != '^') {
 		    return FALSE;
                 }
@@ -244,18 +244,18 @@ verify_sdescriptions_lifetime (char *buf)
         } else if (!isdigit((int) *ptr)) {
 	           return FALSE;
         }
-    
+
         ptr++;
-	
+
     }
-    
+
     
     if (tokenFound) {
         if (strlen(buf) <= 2) {
 	    return FALSE;
 	}
     }
-    
+
     return TRUE;
 }
 
@@ -281,7 +281,7 @@ sdp_validate_maxprate(const char *string_parm)
             while (isdigit((int)*string_parm)) {
                 string_parm++;
             }
-        } 
+        }
 
         if (*string_parm == '\0') {
             retval = TRUE;
@@ -335,7 +335,7 @@ const char *sdp_getnextstrtok (const char *str, char *tokenstr, unsigned tokenst
 
 
 
-u32 sdp_getnextnumtok_or_null (const char *str, const char **str_end, 
+u32 sdp_getnextnumtok_or_null (const char *str, const char **str_end,
                                const char *delim, tinybool *null_ind,
                                sdp_result_e *result)
 {
@@ -385,7 +385,7 @@ u32 sdp_getnextnumtok_or_null (const char *str, const char **str_end,
 
 
 
-u32 sdp_getnextnumtok (const char *str, const char **str_end, 
+u32 sdp_getnextnumtok (const char *str, const char **str_end,
                        const char *delim, sdp_result_e *result)
 {
   const char *token_list = str;
@@ -501,7 +501,7 @@ tinybool sdp_getchoosetok (const char *str, const char **str_end,
 
 
 
- 
+
 static const char crypto_string[] = "X-crypto:";
 static const int crypto_strlen = sizeof(crypto_string) - 1;
 static const char inline_string[] = "inline:";
@@ -578,8 +578,8 @@ void sdp_crypto_debug (char *buffer, ulong length_bytes)
 
 
 
-    for (start=current=buffer; 
-	 current<=last-MIN_CRYPTO_STRING_SIZE_BYTES; 
+    for (start=current=buffer;
+	 current<=last-MIN_CRYPTO_STRING_SIZE_BYTES;
 	 current++) {
 	if ((*current == 'x') || (*current == 'X')) {
 	    result = cpr_strncasecmp(current, crypto_string, crypto_strlen);
@@ -716,7 +716,7 @@ char * sdp_debug_msg_filter (char *buffer, ulong length_bytes)
 
 
 
-tinybool sdp_checkrange (sdp_t *sdp_p, char *num, ulong *u_val)  
+tinybool sdp_checkrange (sdp_t *sdp_p, char *num, ulong *u_val)
 {
     ulong l_val;
     char *endP = NULL;

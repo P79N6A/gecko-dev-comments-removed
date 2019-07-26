@@ -77,7 +77,7 @@ namespace CSF
 
 
         virtual bool endCall() = 0;
-        
+
         
 
 
@@ -152,7 +152,7 @@ namespace CSF
 
 
 
-        virtual bool transferComplete (CC_CallPtr otherLeg, 
+        virtual bool transferComplete (CC_CallPtr otherLeg,
                                        cc_sdp_direction_t video_pref) = 0;
 
         
@@ -220,8 +220,8 @@ namespace CSF
 
 
         virtual bool muteAudio(void) = 0;
-        
-        
+
+
         
 
 
@@ -238,8 +238,8 @@ namespace CSF
 
 
         virtual bool muteVideo(void) = 0;
-        
-        
+
+
         
 
 

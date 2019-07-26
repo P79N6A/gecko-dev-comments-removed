@@ -55,9 +55,9 @@ cprCreateThread (const char *name,
     threadPtr = (cpr_thread_t *)cpr_malloc(sizeof(cpr_thread_t));
     if (threadPtr != NULL) {
         if (pthread_attr_init(&attr) != 0) {
-            
+
             CPR_ERROR("%s - Failed to init attribute for thread %s\n",
-                      fname, name); 
+                      fname, name);
             cpr_free(threadPtr);
             return (cprThread_t)NULL;
         }

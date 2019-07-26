@@ -10,4 +10,3 @@
 
 extern pthread_mutex_t linuxThreadMutex;
 #endif
-

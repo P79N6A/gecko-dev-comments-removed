@@ -18,7 +18,7 @@
 
 
 
-cc_deviceinfo_ref_t CCAPI_DeviceInfo_getDeviceHandle () 
+cc_deviceinfo_ref_t CCAPI_DeviceInfo_getDeviceHandle ()
 {
    static const char *fname="CCAPI_DeviceInfo_getDeviceHandle";
    CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
@@ -30,7 +30,7 @@ cc_deviceinfo_ref_t CCAPI_DeviceInfo_getDeviceHandle ()
 
 
 
-cc_string_t CCAPI_DeviceInfo_getDeviceName (cc_deviceinfo_ref_t handle) 
+cc_string_t CCAPI_DeviceInfo_getDeviceName (cc_deviceinfo_ref_t handle)
 {
   static const char *fname="CCAPI_DeviceInfo_getDeviceName";
   cc_device_info_t *device = handle;
@@ -49,7 +49,7 @@ cc_string_t CCAPI_DeviceInfo_getDeviceName (cc_deviceinfo_ref_t handle)
 
 
 
-cc_boolean CCAPI_DeviceInfo_isPhoneIdle(cc_deviceinfo_ref_t handle) 
+cc_boolean CCAPI_DeviceInfo_isPhoneIdle(cc_deviceinfo_ref_t handle)
 {
     static const char *fname="CCAPI_DeviceInfo_isPhoneIdle";
     boolean ret = TRUE;
@@ -70,7 +70,7 @@ cc_boolean CCAPI_DeviceInfo_isPhoneIdle(cc_deviceinfo_ref_t handle)
     CCAPP_DEBUG(DEB_F_PREFIX"idle state=%d session_id=0x%x call-state=%d handle=%x\n",
         DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), ret,
         (session_data != NULL)? session_data->sess_id: 0,
-        (session_data != NULL)? session_data->state: 0, 
+        (session_data != NULL)? session_data->state: 0,
         (handle)? handle:0);
     return ret;
 
@@ -81,7 +81,7 @@ cc_boolean CCAPI_DeviceInfo_isPhoneIdle(cc_deviceinfo_ref_t handle)
 
 
 
-cc_service_state_t CCAPI_DeviceInfo_getServiceState (cc_deviceinfo_ref_t handle) 
+cc_service_state_t CCAPI_DeviceInfo_getServiceState (cc_deviceinfo_ref_t handle)
 {
   static const char *fname="CCAPI_DeviceInfo_getServiceState";
   cc_device_info_t *device = handle;
@@ -100,7 +100,7 @@ cc_service_state_t CCAPI_DeviceInfo_getServiceState (cc_deviceinfo_ref_t handle)
 
 
 
-cc_service_cause_t CCAPI_DeviceInfo_getServiceCause (cc_deviceinfo_ref_t handle) 
+cc_service_cause_t CCAPI_DeviceInfo_getServiceCause (cc_deviceinfo_ref_t handle)
 {
   static const char *fname="CCAPI_DeviceInfo_getServiceCause";
   cc_device_info_t *device = handle;
@@ -119,7 +119,7 @@ cc_service_cause_t CCAPI_DeviceInfo_getServiceCause (cc_deviceinfo_ref_t handle)
 
 
 
-cc_cucm_mode_t CCAPI_DeviceInfo_getCUCMMode (cc_deviceinfo_ref_t handle) 
+cc_cucm_mode_t CCAPI_DeviceInfo_getCUCMMode (cc_deviceinfo_ref_t handle)
 {
   static const char *fname="CCAPI_DeviceInfo_getCUCMMode";
   cc_device_info_t *device = handle;
@@ -140,14 +140,14 @@ cc_cucm_mode_t CCAPI_DeviceInfo_getCUCMMode (cc_deviceinfo_ref_t handle)
 
 
 
-void CCAPI_DeviceInfo_getCalls (cc_deviceinfo_ref_t handle, cc_call_handle_t handles[], cc_uint16_t *count) 
+void CCAPI_DeviceInfo_getCalls (cc_deviceinfo_ref_t handle, cc_call_handle_t handles[], cc_uint16_t *count)
 {
     static const char *fname="CCAPI_DeviceInfo_getCalls";
     hashItr_t itr;
     session_data_t *data;
     int i=0;
     CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
-     
+
     hashItrInit(&itr);
     while ( (data = (session_data_t*)hashItrNext(&itr)) != NULL &&
               i<*count ) {
@@ -165,7 +165,7 @@ void CCAPI_DeviceInfo_getCalls (cc_deviceinfo_ref_t handle, cc_call_handle_t han
 
 
 
-void CCAPI_DeviceInfo_getCallsByState (cc_deviceinfo_ref_t handle, cc_call_state_t state, 
+void CCAPI_DeviceInfo_getCallsByState (cc_deviceinfo_ref_t handle, cc_call_state_t state,
                   cc_call_handle_t handles[], cc_uint16_t *count)
 {
     static const char *fname="CCAPI_DeviceInfo_getCallsByState";
@@ -191,7 +191,7 @@ void CCAPI_DeviceInfo_getCallsByState (cc_deviceinfo_ref_t handle, cc_call_state
 
 
 
-void CCAPI_DeviceInfo_getLines (cc_deviceinfo_ref_t handle, cc_lineid_t handles[], cc_uint16_t *count) 
+void CCAPI_DeviceInfo_getLines (cc_deviceinfo_ref_t handle, cc_lineid_t handles[], cc_uint16_t *count)
 {
     static const char *fname="CCAPI_DeviceInfo_getLines";
     cc_line_info_t *line;
@@ -239,7 +239,7 @@ void CCAPI_DeviceInfo_getFeatures (cc_deviceinfo_ref_t handle, cc_featureinfo_re
 
 
 
-void CCAPI_DeviceInfo_getCallServers (cc_deviceinfo_ref_t handle, cc_callserver_ref_t handles[], cc_uint16_t *count) 
+void CCAPI_DeviceInfo_getCallServers (cc_deviceinfo_ref_t handle, cc_callserver_ref_t handles[], cc_uint16_t *count)
 {
     static const char *fname="CCAPI_DeviceInfo_getCallServers";
     int i, j=0;
@@ -284,7 +284,7 @@ cc_cucm_mode_t CCAPI_DeviceInfo_getCallServerMode (cc_callserver_ref_t handle)
     cc_call_server_t *ref = (cc_call_server_t *) handle;
     CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
 
-    if (ref != NULL) { 
+    if (ref != NULL) {
         CCAPP_DEBUG(DEB_F_PREFIX"returned %02X\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), ref->type);
         return ref->type;
     }
@@ -300,14 +300,14 @@ cc_cucm_mode_t CCAPI_DeviceInfo_getCallServerMode (cc_callserver_ref_t handle)
 cc_ccm_status_t CCAPI_DeviceInfo_getCallServerStatus (cc_callserver_ref_t handle)
 {
     static const char *fname="CCAPI_DeviceInfo_getCallServerStatus";
-    cc_call_server_t *ref = (cc_call_server_t *) handle; 
+    cc_call_server_t *ref = (cc_call_server_t *) handle;
     CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
-      
+
     if (ref != NULL) {
         CCAPP_DEBUG(DEB_F_PREFIX"returned %02X\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), (ref->status));
         return ref->status;
-    }       
-	                
+    }
+
     return CC_CCM_STATUS_NONE;
 }
 
@@ -423,7 +423,7 @@ long long CCAPI_DeviceInfo_getRegTime (cc_deviceinfo_ref_t handle)
 
 
 
-cc_string_t CCAPI_DeviceInfo_getSignalingIPAddress(cc_deviceinfo_ref_t handle) 
+cc_string_t CCAPI_DeviceInfo_getSignalingIPAddress(cc_deviceinfo_ref_t handle)
 {
     static const char *fname="CCAPI_DeviceInfo_getSignalingIPAddress";
     cpr_ip_addr_t ip_addr = {0,{0}};

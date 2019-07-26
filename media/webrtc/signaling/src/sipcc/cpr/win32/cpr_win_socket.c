@@ -15,13 +15,13 @@
 #pragma comment(lib, "wsock32.lib")
 #pragma comment(lib, "ws2_32.lib")
 
-#define IN6ADDRSZ   16 
-#define INT16SZ     2 
+#define IN6ADDRSZ   16
+#define INT16SZ     2
 #define	INADDRSZ	4
 #define IS_DIGIT(ch)   ((ch >= '0') && (ch <= '9'))
 
 
-const cpr_ip_addr_t ip_addr_invalid = {0};  
+const cpr_ip_addr_t ip_addr_invalid = {0};
 
 
 
@@ -95,9 +95,9 @@ const cpr_ip_addr_t ip_addr_invalid = {0};
 
 int SECReq_LookupSrvr(char* serverAddr, int serverType) ;
 
-int SECSock_connect (int    appType, 
-					 char * srvrAddrAndPort, 
-					 int    blockingConnect, 
+int SECSock_connect (int    appType,
+					 char * srvrAddrAndPort,
+					 int    blockingConnect,
 					 int    connTimeout,
 					 int    ipTOS) ;
 int SECSock_getFD(int nSSL) ;
@@ -417,14 +417,14 @@ cpr_status_e
 cprCloseSocket (cpr_socket_t socket)
 {
 	int	connid ;
-	
+
 	connid = cpr_sec_fd_to_connid(socket);
 	if(connid == -1)
 		return ((closesocket(socket) != 0) ? CPR_FAILURE : CPR_SUCCESS);
 	secSock_close(cpr_sec_conn_tab[connid].ssl) ;
 	cpr_sec_purge_entry(connid) ;
 
-	return CPR_SUCCESS ;	
+	return CPR_SUCCESS ;
 }
 
 cpr_status_e

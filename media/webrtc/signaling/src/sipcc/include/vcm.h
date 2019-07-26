@@ -413,7 +413,7 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle,
         const char *peerconnection,
-        uint16_t level,  
+        uint16_t level,
         char **default_addr, 
         int *default_port, 
         char ***candidates, 
@@ -574,7 +574,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
         cc_call_handle_t  call_handle,
         const char *peerconnection,
         int num_payloads,
-        const vcm_media_payload_type_t* payloads,        
+        const vcm_media_payload_type_t* payloads,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs);
@@ -994,7 +994,7 @@ int vcmDtmfBurst(int digit, int duration, int direction);
 
 
 
-int vcmGetILBCMode(); 
+int vcmGetILBCMode();
 
 
 #ifdef __cplusplus
@@ -1002,6 +1002,6 @@ int vcmGetILBCMode();
 #endif
 
 
-  
+
 
 #endif

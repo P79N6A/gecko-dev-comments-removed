@@ -150,7 +150,7 @@ sipRelDevCoupledMessageStore (sipMessage_t *pCoupledMessage,
                 
                 return (i);
             }
-        }   
+        }
     }
     return (RELDEV_NO_STORED_MSG);
 }

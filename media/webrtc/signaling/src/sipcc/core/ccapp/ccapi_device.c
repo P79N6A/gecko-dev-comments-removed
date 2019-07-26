@@ -18,7 +18,7 @@
 #include "util_string.h"
 #include "ccapi_service.h"
 #include "ccapi_device_info.h"
-  
+
 char g_new_signaling_ip[MAX_IPADDR_STR_LEN];
 
 dock_undock_event_t  g_dock_undock_event = MEDIA_INTERFACE_UPDATE_NOT_REQUIRED;
@@ -109,7 +109,7 @@ void CCAPI_Device_releaseDeviceInfo(cc_deviceinfo_ref_t ref){
 
 
 
-cc_call_handle_t CCAPI_Device_CreateCall(cc_device_handle_t handle) 
+cc_call_handle_t CCAPI_Device_CreateCall(cc_device_handle_t handle)
 {
   return CC_createCall(0);
 }
@@ -215,11 +215,11 @@ void CCAPI_Device_IP_Update (cc_device_handle_t handle,
                         MAX_IPADDR_STR_LEN);
 
     DEF_DEBUG(DEB_F_PREFIX"New sig_ip=%s media_ip=%s  Current: sig_ip: %s,"\
-            "media_ip: %s \n", 
+            "media_ip: %s \n",
             DEB_F_PREFIX_ARGS(CC_API, fname),
             signaling_ip,
             media_ip,
-            curr_signaling_ip, 
+            curr_signaling_ip,
             curr_media_ip);
 
     
@@ -240,7 +240,7 @@ void CCAPI_Device_IP_Update (cc_device_handle_t handle,
             return;
         }
     }
-  
+
     
 
 

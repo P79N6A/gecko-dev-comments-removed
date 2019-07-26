@@ -230,7 +230,7 @@ void ccsip_util_get_from_entity (sipMessage_t *pSipMessage, char *entity)
     if (sip_from != NULL) {
         from_loc = sippmh_parse_from_or_to((char *) sip_from, TRUE);
         if ((from_loc) && (from_loc->genUrl->schema == URL_TYPE_SIP) && (from_loc->genUrl->u.sipUrl->user)) {
-            sstrncpy(entity, from_loc->genUrl->u.sipUrl->user, CC_MAX_DIALSTRING_LEN);       
+            sstrncpy(entity, from_loc->genUrl->u.sipUrl->user, CC_MAX_DIALSTRING_LEN);
         }
     }
     if (from_loc) {

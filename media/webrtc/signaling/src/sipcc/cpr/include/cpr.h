@@ -13,7 +13,7 @@
 #include "cpr_debug.h"
 #include "cpr_memory.h"
 
-__BEGIN_DECLS 
+__BEGIN_DECLS
 
 
 
@@ -52,7 +52,7 @@ cprPreInit(void);
 cprRC_t
 cprPostInit(void);
 
-__END_DECLS 
+__END_DECLS
 
 #endif
 

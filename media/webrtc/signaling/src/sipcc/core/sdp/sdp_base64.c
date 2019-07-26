@@ -90,9 +90,9 @@ int base64_est_encode_size_bytes (int raw_size_bytes)
 
 
 
-    length = ((((raw_size_bytes * 4 + 2)/ 3) + 3) & ~(0x3)) + 
+    length = ((((raw_size_bytes * 4 + 2)/ 3) + 3) & ~(0x3)) +
 	raw_size_bytes / MAX_BASE64_LINE_LENGTH;
-    
+
     return length;
 }
 
@@ -113,7 +113,7 @@ int base64_est_decode_size_bytes (int base64_size_bytes)
 {
     int length;
 
-    length = (base64_size_bytes * 3 + 3) / 4; 
+    length = (base64_size_bytes * 3 + 3) / 4;
     return length;
 }
 
@@ -169,7 +169,7 @@ base64_result_t base64_encode(unsigned char *src, int src_bytes, unsigned char *
 	line_count += 4;
 
 	if ((j+3) < dmax) {
-	    
+
 	    
 	    index = (src[i] >> 2) & 0x3F;
 	    dest[j++] = raw_to_base64_table[index];
@@ -192,7 +192,7 @@ base64_result_t base64_encode(unsigned char *src, int src_bytes, unsigned char *
 
     
     if (i<src_bytes) {
-	
+
 	
 	if (line_count>=MAX_BASE64_LINE_LENGTH) {
 	    if (j<dmax){

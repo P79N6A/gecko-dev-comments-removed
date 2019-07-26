@@ -409,15 +409,15 @@ fim_process_event (void *data, boolean cac_passed)
         cc_call_state(call_id, line, CC_STATE_UNKNOWN, NULL);
         return(TRUE);
     }
-    
-    
 
     
+
+
     if (dcsm_process_event(data, event_id) == SM_RC_END) {
         
         return(FALSE);
     }
-    
+
     
 
 
@@ -430,7 +430,7 @@ fim_process_event (void *data, boolean cac_passed)
         fim_process_options_msg(data);
         return(TRUE);
     }
-	
+
 
     if (platWlanISActive() && cac_passed == FALSE) {
         
@@ -447,13 +447,13 @@ fim_process_event (void *data, boolean cac_passed)
         ((((cc_feature_t *) msg)->feature_id == CC_FEATURE_NEW_CALL))))) {
 
                 bw_call_id = call_id;
-            
-                if ((event_id == CC_MSG_SETUP) && 
+
+                if ((event_id == CC_MSG_SETUP) &&
                         ((((cc_setup_t *)msg)->call_info.type == CC_FEAT_MONITOR))) {
                     no_of_session = 2;
                     bw_call_id = msg->call_info.data.join.join_call_id;
                 }
-            
+
                 if (fsm_cac_call_bandwidth_req (bw_call_id, no_of_session, msg) != CC_CAUSE_OK) {
                 return(TRUE);
             }
@@ -503,7 +503,7 @@ fim_process_event (void *data, boolean cac_passed)
             (event_id == CC_MSG_CREATEOFFER) ||
             (event_id == CC_MSG_CREATEANSWER) ||
             (event_id == CC_MSG_SETLOCALDESC) ||
-            (event_id == CC_MSG_SETREMOTEDESC) ||            
+            (event_id == CC_MSG_SETREMOTEDESC) ||
             (event_id == CC_MSG_SETPEERCONNECTION) ||
             (event_id == CC_MSG_ADDSTREAM) ||
             (event_id == CC_MSG_REMOVESTREAM) ||
@@ -619,7 +619,7 @@ fim_process_event (void *data, boolean cac_passed)
                 line = fcb->dcb->line;
             }
         }
-        
+
         
 
 
@@ -663,12 +663,12 @@ fim_process_event (void *data, boolean cac_passed)
             cc_call_state(call_id, line, CC_STATE_UNKNOWN, NULL);
             break;
         }                       
- 
-        if ((rc == SM_RC_END) && (fcb->fsm_type == FSM_TYPE_DEF) && 
+
+        if ((rc == SM_RC_END) && (fcb->fsm_type == FSM_TYPE_DEF) &&
             (event_id == CC_MSG_FEATURE))
         {
             if ( ((cc_feature_t *) msg)->feature_id == CC_FEATURE_CFWD_ALL){
-                lsm_decrement_call_chn_cnt(line); 
+                lsm_decrement_call_chn_cnt(line);
             }
         }
 

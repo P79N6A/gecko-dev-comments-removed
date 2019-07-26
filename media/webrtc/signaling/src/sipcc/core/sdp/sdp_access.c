@@ -23,7 +23,7 @@ sdp_mca_t *sdp_find_media_level (sdp_t *sdp_p, u16 level)
     sdp_mca_t *mca_p = NULL;
 
     if ((level >= 1) && (level <= sdp_p->mca_count)) {
-        for (i=1, mca_p = sdp_p->mca_p; 
+        for (i=1, mca_p = sdp_p->mca_p;
              ((i < level) && (mca_p != NULL));
              mca_p = mca_p->next_p, i++) {
 
@@ -31,7 +31,7 @@ sdp_mca_t *sdp_find_media_level (sdp_t *sdp_p, u16 level)
              ; 
         }
     }
-    
+
     return (mca_p);
 }
 
@@ -42,7 +42,7 @@ sdp_mca_t *sdp_find_media_level (sdp_t *sdp_p, u16 level)
 
 
 
-tinybool sdp_version_valid (void *sdp_ptr) 
+tinybool sdp_version_valid (void *sdp_ptr)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
 
@@ -62,7 +62,7 @@ tinybool sdp_version_valid (void *sdp_ptr)
 
 
 
-int32 sdp_get_version (void *sdp_ptr) 
+int32 sdp_get_version (void *sdp_ptr)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
 
@@ -80,7 +80,7 @@ int32 sdp_get_version (void *sdp_ptr)
 
 
 
-sdp_result_e sdp_set_version (void *sdp_ptr, int32 version) 
+sdp_result_e sdp_set_version (void *sdp_ptr, int32 version)
 {
     sdp_t *sdp_p = (sdp_t*)sdp_ptr;
 
@@ -98,7 +98,7 @@ sdp_result_e sdp_set_version (void *sdp_ptr, int32 version)
 
 
 
-tinybool sdp_owner_valid (void *sdp_ptr) 
+tinybool sdp_owner_valid (void *sdp_ptr)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
 
@@ -123,7 +123,7 @@ tinybool sdp_owner_valid (void *sdp_ptr)
 
 
 
-const char *sdp_get_owner_username (void *sdp_ptr) 
+const char *sdp_get_owner_username (void *sdp_ptr)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
 
@@ -295,7 +295,7 @@ sdp_result_e sdp_set_owner_version (void *sdp_ptr, const char *version)
 
 
 
-sdp_result_e sdp_set_owner_network_type (void *sdp_ptr, 
+sdp_result_e sdp_set_owner_network_type (void *sdp_ptr,
                                          sdp_nettype_e network_type)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
@@ -315,7 +315,7 @@ sdp_result_e sdp_set_owner_network_type (void *sdp_ptr,
 
 
 
-sdp_result_e sdp_set_owner_address_type (void *sdp_ptr, 
+sdp_result_e sdp_set_owner_address_type (void *sdp_ptr,
                                          sdp_addrtype_e address_type)
 {
     sdp_t *sdp_p = (sdp_t *)sdp_ptr;
@@ -505,7 +505,7 @@ sdp_result_e sdp_set_time_start (void *sdp_ptr, const char *start_time)
         sdp_p->timespec_p->start_time[0] = '\0';
         sdp_p->timespec_p->stop_time[0] = '\0';
     }
-    sstrncpy(sdp_p->timespec_p->start_time, start_time, 
+    sstrncpy(sdp_p->timespec_p->start_time, start_time,
              sizeof(sdp_p->timespec_p->start_time));
     return (SDP_SUCCESS);
 }
@@ -536,7 +536,7 @@ sdp_result_e sdp_set_time_stop (void *sdp_ptr, const char *stop_time)
         sdp_p->timespec_p->start_time[0] = '\0';
         sdp_p->timespec_p->stop_time[0] = '\0';
     }
-    sstrncpy(sdp_p->timespec_p->stop_time, stop_time, 
+    sstrncpy(sdp_p->timespec_p->stop_time, stop_time,
              sizeof(sdp_p->timespec_p->stop_time));
     return (SDP_SUCCESS);
 }
@@ -570,7 +570,7 @@ tinybool sdp_encryption_valid (void *sdp_ptr, u16 level)
         encrypt_p = &(mca_p->encrypt);
     }
 
-    if ((encrypt_p->encrypt_type == SDP_ENCRYPT_INVALID) ||   
+    if ((encrypt_p->encrypt_type == SDP_ENCRYPT_INVALID) ||
         ((encrypt_p->encrypt_type != SDP_ENCRYPT_PROMPT) &&
          (encrypt_p->encrypt_key[0] == '\0'))) {
         return (FALSE);
@@ -676,7 +676,7 @@ sdp_result_e sdp_set_encryption_method (void *sdp_ptr, u16 level,
         }
         encrypt_p = &(mca_p->encrypt);
     }
-    
+
     encrypt_p->encrypt_type = type;
     return (SDP_SUCCESS);
 }
@@ -713,7 +713,7 @@ sdp_result_e sdp_set_encryption_key (void *sdp_ptr, u16 level, const char *key)
         }
         encrypt_p = &(mca_p->encrypt);
     }
-    
+
     sstrncpy(encrypt_p->encrypt_key, key, sizeof(encrypt_p->encrypt_key));
     return (SDP_SUCCESS);
 }
@@ -746,14 +746,14 @@ tinybool sdp_connection_valid (void *sdp_ptr, u16 level)
         }
         conn_p = &(mca_p->conn);
     }
-    
+
     
 
- 
-    if (conn_p->nettype == SDP_NT_ATM && 
-        conn_p->addrtype == SDP_AT_INVALID) { 
-        return TRUE; 
-    } 
+
+    if (conn_p->nettype == SDP_NT_ATM &&
+        conn_p->addrtype == SDP_AT_INVALID) {
+        return TRUE;
+    }
 
     if ((conn_p->nettype >= SDP_MAX_NETWORK_TYPES) ||
         (conn_p->addrtype >= SDP_MAX_ADDR_TYPES) ||
@@ -784,9 +784,9 @@ tinybool sdp_bandwidth_valid (void *sdp_ptr, u16 level, u16 inst_num)
         return FALSE;
     }
 
-    bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num); 
+    bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
     if (bw_data_p != NULL) {
-        if ((bw_data_p->bw_modifier < SDP_BW_MODIFIER_AS) || 
+        if ((bw_data_p->bw_modifier < SDP_BW_MODIFIER_AS) ||
             (bw_data_p->bw_modifier >= SDP_MAX_BW_MODIFIER_VAL)) {
             return FALSE;
         } else {
@@ -819,7 +819,7 @@ tinybool sdp_bw_line_exists (void *sdp_ptr, u16 level, u16 inst_num)
         return FALSE;
     }
 
-    bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num); 
+    bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
     if (bw_data_p != NULL) {
         return TRUE;
     } else {
@@ -941,22 +941,22 @@ tinybool sdp_is_mcast_addr (void *sdp_ptr, u16 level)
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (FALSE);
     }
-    
+
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
     } else {
         mca_p = sdp_find_media_level(sdp_p, level);
         if (mca_p != NULL) {
             conn_p = &(mca_p->conn);
-	} else { 
+	} else {
             return (FALSE);
 	}
     }
-    
+
     if ((conn_p) && (conn_p->is_multicast)) {
         return (TRUE);
     } else {
@@ -980,7 +980,7 @@ int32 sdp_get_mcast_ttl (void *sdp_ptr, u16 level)
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
     u16 ttl=0;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) != FALSE) {
         if (level == SDP_SESSION_LEVEL) {
             conn_p = &(sdp_p->default_conn);
@@ -995,7 +995,7 @@ int32 sdp_get_mcast_ttl (void *sdp_ptr, u16 level)
     } else {
         return SDP_INVALID_VALUE;
     }
-    
+
     if (conn_p) {
 	ttl = conn_p->ttl;
     }
@@ -1018,7 +1018,7 @@ int32 sdp_get_mcast_num_of_addresses (void *sdp_ptr, u16 level)
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
     u16 num_addr = 0;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_VALUE);
     } else {
@@ -1033,7 +1033,7 @@ int32 sdp_get_mcast_num_of_addresses (void *sdp_ptr, u16 level)
 	    }
         }
     }
-    
+
     if (conn_p) {
 	num_addr = conn_p->num_of_addresses;
     }
@@ -1049,7 +1049,7 @@ int32 sdp_get_mcast_num_of_addresses (void *sdp_ptr, u16 level)
 
 
 
-sdp_result_e sdp_set_conn_nettype (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_conn_nettype (void *sdp_ptr, u16 level,
                                    sdp_nettype_e nettype)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -1085,7 +1085,7 @@ sdp_result_e sdp_set_conn_nettype (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_set_conn_addrtype (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_conn_addrtype (void *sdp_ptr, u16 level,
                                     sdp_addrtype_e addrtype)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -1123,7 +1123,7 @@ sdp_result_e sdp_set_conn_addrtype (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_set_conn_address (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_conn_address (void *sdp_ptr, u16 level,
                                    const char *address)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -1161,7 +1161,7 @@ sdp_result_e sdp_set_conn_address (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_set_mcast_addr_fields(void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_mcast_addr_fields(void *sdp_ptr, u16 level,
 				       u16 ttl, u16 num_of_addresses)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -1190,7 +1190,7 @@ sdp_result_e sdp_set_mcast_addr_fields(void *sdp_ptr, u16 level,
        }
        conn_p->num_of_addresses = num_of_addresses;
     } else {
-       return (SDP_FAILURE); 
+       return (SDP_FAILURE);
     }
     return (SDP_SUCCESS);
 }
@@ -1325,7 +1325,7 @@ int32 sdp_get_media_portnum (void *sdp_ptr, u16 level)
         (mca_p->port_format != SDP_PORT_NUM_VPI_VCI) &&
         (mca_p->port_format != SDP_PORT_NUM_VPI_VCI_CID)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s Port num not valid for media line %u", 
+            SDP_ERROR("%s Port num not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1360,7 +1360,7 @@ int32 sdp_get_media_portcount (void *sdp_ptr, u16 level)
     
     if (mca_p->port_format != SDP_PORT_NUM_COUNT) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s Port count not valid for media line %u", 
+            SDP_ERROR("%s Port count not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1393,11 +1393,11 @@ int32 sdp_get_media_vpi (void *sdp_ptr, u16 level)
     }
 
     
-    if ((mca_p->port_format != SDP_PORT_VPI_VCI) && 
-        (mca_p->port_format != SDP_PORT_NUM_VPI_VCI) && 
+    if ((mca_p->port_format != SDP_PORT_VPI_VCI) &&
+        (mca_p->port_format != SDP_PORT_NUM_VPI_VCI) &&
         (mca_p->port_format != SDP_PORT_NUM_VPI_VCI_CID)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s VPI not valid for media line %u", 
+            SDP_ERROR("%s VPI not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1430,11 +1430,11 @@ u32 sdp_get_media_vci (void *sdp_ptr, u16 level)
     }
 
     
-    if ((mca_p->port_format != SDP_PORT_VPI_VCI) && 
-        (mca_p->port_format != SDP_PORT_NUM_VPI_VCI) && 
+    if ((mca_p->port_format != SDP_PORT_VPI_VCI) &&
+        (mca_p->port_format != SDP_PORT_NUM_VPI_VCI) &&
         (mca_p->port_format != SDP_PORT_NUM_VPI_VCI_CID)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s VCI not valid for media line %u", 
+            SDP_ERROR("%s VCI not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1467,10 +1467,10 @@ int32 sdp_get_media_vcci (void *sdp_ptr, u16 level)
     }
 
     
-    if ((mca_p->port_format != SDP_PORT_VCCI) && 
+    if ((mca_p->port_format != SDP_PORT_VCCI) &&
         (mca_p->port_format != SDP_PORT_VCCI_CID)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s VCCI not valid for media line %u", 
+            SDP_ERROR("%s VCCI not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1503,10 +1503,10 @@ int32 sdp_get_media_cid (void *sdp_ptr, u16 level)
     }
 
     
-    if ((mca_p->port_format != SDP_PORT_VCCI_CID) && 
+    if ((mca_p->port_format != SDP_PORT_VCCI_CID) &&
         (mca_p->port_format != SDP_PORT_NUM_VPI_VCI_CID)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s CID not valid for media line %u", 
+            SDP_ERROR("%s CID not valid for media line %u",
                       sdp_p->debug_str, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -1589,7 +1589,7 @@ u16 sdp_get_media_num_profiles (void *sdp_ptr, u16 level)
 
 
 
-sdp_transport_e sdp_get_media_profile (void *sdp_ptr, u16 level, 
+sdp_transport_e sdp_get_media_profile (void *sdp_ptr, u16 level,
                                        u16 profile_num)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -1733,7 +1733,7 @@ u32 sdp_get_media_payload_type (void *sdp_ptr, u16 level, u16 payload_num,
                     }
                     if (cpr_strcasecmp(encname, SIPSDP_ATTR_ENCNAME_L16_256K) == 0) {
                         return (SET_PAYLOAD_TYPE_WITH_DYNAMIC(ptype, RTP_L16));
-                    }                    
+                    }
                     if (cpr_strcasecmp(encname, SIPSDP_ATTR_ENCNAME_ISAC) == 0) {
                         return (SET_PAYLOAD_TYPE_WITH_DYNAMIC(ptype, RTP_ISAC));
                     }
@@ -1750,7 +1750,7 @@ u32 sdp_get_media_payload_type (void *sdp_ptr, u16 level, u16 payload_num,
                     }
                     if (cpr_strcasecmp(encname, SIPSDP_ATTR_ENCNAME_VP8) == 0) {
                         return (SET_PAYLOAD_TYPE_WITH_DYNAMIC(ptype, RTP_VP8));
-                    }                    
+                    }
                 }
             }
         }
@@ -1772,7 +1772,7 @@ u32 sdp_get_media_payload_type (void *sdp_ptr, u16 level, u16 payload_num,
 
 
 u32 sdp_get_media_profile_payload_type (void *sdp_ptr, u16 level, u16 prof_num,
-                                        u16 payload_num, 
+                                        u16 payload_num,
                                         sdp_payload_ind_e *indicator)
 {
     sdp_t                *sdp_p = (sdp_t *)sdp_ptr;
@@ -1794,7 +1794,7 @@ u32 sdp_get_media_profile_payload_type (void *sdp_ptr, u16 level, u16 prof_num,
         return (0);
     }
 
-    if ((payload_num < 1) || 
+    if ((payload_num < 1) ||
         (payload_num > prof_p->num_payloads[prof_num-1])) {
         return (0);
     }
@@ -1962,7 +1962,7 @@ sdp_result_e sdp_set_media_type (void *sdp_ptr, u16 level, sdp_media_e media)
 
 
 
-sdp_result_e sdp_set_media_port_format (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_media_port_format (void *sdp_ptr, u16 level,
                                         sdp_port_format_e port_format)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -2023,7 +2023,7 @@ sdp_result_e sdp_set_media_portnum (void *sdp_ptr, u16 level, int32 portnum, int
 
 
 
-sdp_result_e sdp_set_media_portcount (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_media_portcount (void *sdp_ptr, u16 level,
                                       int32 num_ports)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -2167,7 +2167,7 @@ sdp_result_e sdp_set_media_cid (void *sdp_ptr, u16 level, int32 cid)
 
 
 
-sdp_result_e sdp_set_media_transport (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_set_media_transport (void *sdp_ptr, u16 level,
                                       sdp_transport_e transport)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -2197,7 +2197,7 @@ sdp_result_e sdp_set_media_transport (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_add_media_profile (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_add_media_profile (void *sdp_ptr, u16 level,
                                     sdp_transport_e profile)
 {
     u16         prof_num;
@@ -2253,8 +2253,8 @@ sdp_result_e sdp_add_media_profile (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_add_media_payload_type (void *sdp_ptr, u16 level, 
-                                         u16 payload_type, 
+sdp_result_e sdp_add_media_payload_type (void *sdp_ptr, u16 level,
+                                         u16 payload_type,
                                          sdp_payload_ind_e indicator)
 {
     sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
@@ -2296,7 +2296,7 @@ sdp_result_e sdp_add_media_payload_type (void *sdp_ptr, u16 level,
 
 
 
-sdp_result_e sdp_add_media_profile_payload_type (void *sdp_ptr, u16 level, 
+sdp_result_e sdp_add_media_profile_payload_type (void *sdp_ptr, u16 level,
                                                 u16 prof_num, u16 payload_type,
                                                 sdp_payload_ind_e indicator)
 {
@@ -2324,11 +2324,11 @@ sdp_result_e sdp_add_media_profile_payload_type (void *sdp_ptr, u16 level,
         return (SDP_INVALID_PARAMETER);
     }
 
-    if (mca_p->media_profiles_p->num_payloads[prof_num-1] == 
+    if (mca_p->media_profiles_p->num_payloads[prof_num-1] ==
         SDP_MAX_PAYLOAD_TYPES) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
             SDP_ERROR("%s Max number of profile payload types already "
-                      "defined profile %u on media line %u", 
+                      "defined profile %u on media line %u",
                       sdp_p->debug_str, prof_num, level);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -2360,11 +2360,11 @@ sdp_bw_data_t* sdp_find_bw_line (void *sdp_ptr, u16 level, u16 inst_num)
     sdp_bw_data_t       *bw_data_p;
     sdp_mca_t           *mca_p;
     int                 bw_attr_count=0;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (NULL);
     }
-    
+
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
     } else {
@@ -2376,8 +2376,8 @@ sdp_bw_data_t* sdp_find_bw_line (void *sdp_ptr, u16 level, u16 inst_num)
         bw_p = &(mca_p->bw);
     }
 
-    for (bw_data_p = bw_p->bw_data_list; 
-         bw_data_p != NULL; 
+    for (bw_data_p = bw_p->bw_data_list;
+         bw_data_p != NULL;
          bw_data_p = bw_data_p->next_p) {
         bw_attr_count++;
         if (bw_attr_count == inst_num) {
@@ -2421,8 +2421,8 @@ sdp_result_e sdp_copy_all_bw_lines (void *src_sdp_ptr, void *dst_sdp_ptr,
     if (sdp_verify_sdp_ptr(dst_sdp_p) == FALSE) {
         return (SDP_INVALID_SDP_PTR);
     }
-       
-     
+
+    
     if (src_level == SDP_SESSION_LEVEL) {
         src_bw_p = &(src_sdp_p->bw);
     } else {
@@ -2437,7 +2437,7 @@ sdp_result_e sdp_copy_all_bw_lines (void *src_sdp_ptr, void *dst_sdp_ptr,
         src_bw_p = &(mca_p->bw);
     }
 
-     
+    
     if (dst_level == SDP_SESSION_LEVEL) {
         dst_bw_p = &(dst_sdp_p->bw);
     } else {
@@ -2470,10 +2470,10 @@ sdp_result_e sdp_copy_all_bw_lines (void *src_sdp_ptr, void *dst_sdp_ptr,
         if (dst_bw_p->bw_data_list == NULL) {
             dst_bw_p->bw_data_list = new_bw_data_p;
         } else {
-            for (bw_data_p = dst_bw_p->bw_data_list; 
+            for (bw_data_p = dst_bw_p->bw_data_list;
                  bw_data_p->next_p != NULL;
                  bw_data_p = bw_data_p->next_p) {
-                 
+
                 
                 ; 
             }
@@ -2506,14 +2506,14 @@ sdp_bw_modifier_e sdp_get_bw_modifier (void *sdp_ptr, u16 level, u16 inst_num)
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_BW_MODIFIER_UNSUPPORTED);
     }
-    
+
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
 
     if (bw_data_p) {
         return (bw_data_p->bw_modifier);
     } else {
         return (SDP_BW_MODIFIER_UNSUPPORTED);
-    } 
+    }
 }
 
 
@@ -2533,7 +2533,7 @@ int32 sdp_get_bw_value (void *sdp_ptr, u16 level, u16 inst_num)
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_VALUE);
     }
-    
+
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
 
     if (bw_data_p) {
@@ -2558,11 +2558,11 @@ int32 sdp_get_num_bw_lines (void *sdp_ptr, u16 level)
     sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_t            *bw_p;
     sdp_mca_t           *mca_p;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_VALUE);
     }
-    
+
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
     } else {
@@ -2620,11 +2620,11 @@ sdp_result_e sdp_add_new_bw_line (void *sdp_ptr, u16 level, sdp_bw_modifier_e bw
     sdp_bw_data_t       *bw_data_p = NULL;
 
     *inst_num = 0;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_SDP_PTR);
     }
-    
+
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
     } else {
@@ -2656,7 +2656,7 @@ sdp_result_e sdp_add_new_bw_line (void *sdp_ptr, u16 level, sdp_bw_modifier_e bw
     new_bw_data_p->next_p = NULL;
     new_bw_data_p->bw_modifier = SDP_BW_MODIFIER_UNSUPPORTED;
     new_bw_data_p->bw_val = 0;
-  
+
     
 
 
@@ -2664,18 +2664,18 @@ sdp_result_e sdp_add_new_bw_line (void *sdp_ptr, u16 level, sdp_bw_modifier_e bw
     if (bw_p->bw_data_list == NULL) {
         bw_p->bw_data_list = new_bw_data_p;
     } else {
-        for (bw_data_p = bw_p->bw_data_list; 
+        for (bw_data_p = bw_p->bw_data_list;
              bw_data_p->next_p != NULL;
              bw_data_p = bw_data_p->next_p) {
 
              
              ; 
         }
-                      
+
         bw_data_p->next_p = new_bw_data_p;
     }
     *inst_num = ++bw_p->bw_data_count;
- 
+
     return (SDP_SUCCESS);
 }
 
@@ -2696,11 +2696,11 @@ sdp_result_e sdp_delete_bw_line (void *sdp_ptr, u16 level, u16 inst_num)
     sdp_bw_data_t       *bw_data_p = NULL;
     sdp_bw_data_t       *prev_bw_data_p = NULL;
     int                 bw_data_count = 0;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_SDP_PTR);
     }
-    
+
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
     } else {
@@ -2725,7 +2725,7 @@ sdp_result_e sdp_delete_bw_line (void *sdp_ptr, u16 level, u16 inst_num)
 
     if (bw_data_p == NULL) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
-            SDP_ERROR("%s bw line instance %d not found.", 
+            SDP_ERROR("%s bw line instance %d not found.",
                       sdp_p->debug_str, inst_num);
         }
         sdp_p->conf_p->num_invalid_param++;
@@ -2735,10 +2735,10 @@ sdp_result_e sdp_delete_bw_line (void *sdp_ptr, u16 level, u16 inst_num)
     if (prev_bw_data_p == NULL) {
         bw_p->bw_data_list = bw_data_p->next_p;
     } else {
-        prev_bw_data_p->next_p = bw_data_p->next_p; 
+        prev_bw_data_p->next_p = bw_data_p->next_p;
     }
     bw_p->bw_data_count--;
-    
+
     SDP_FREE(bw_data_p);
     return (SDP_SUCCESS);
 }
@@ -2769,7 +2769,7 @@ sdp_result_e sdp_set_bw (void *sdp_ptr, u16 level, u16 inst_num,
         return (SDP_INVALID_SDP_PTR);
     }
 
-    if ((bw_modifier < SDP_BW_MODIFIER_AS) || 
+    if ((bw_modifier < SDP_BW_MODIFIER_AS) ||
         (bw_modifier >= SDP_MAX_BW_MODIFIER_VAL)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
             SDP_ERROR("%s Invalid bw modifier type: %d.",
@@ -2778,7 +2778,7 @@ sdp_result_e sdp_set_bw (void *sdp_ptr, u16 level, u16 inst_num,
         sdp_p->conf_p->num_invalid_param++;
         return (SDP_INVALID_PARAMETER);
     }
-    
+
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
     if (bw_data_p == NULL) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -2804,11 +2804,11 @@ int32 sdp_get_mid_value (void *sdp_ptr, u16 level)
 {
     sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t           *mca_p;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_VALUE);
     }
-    
+
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
         sdp_p->conf_p->num_invalid_param++;
@@ -2829,11 +2829,11 @@ sdp_result_e sdp_set_mid_value (void *sdp_ptr, u16 level, u32 mid_val)
 {
     sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t           *mca_p;
-    
+
     if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_SDP_PTR);
     }
-    
+
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
         sdp_p->conf_p->num_invalid_param++;

@@ -39,7 +39,7 @@ int cpr_crypto_rand (uint8_t *buf, int *len)
 
     int      i, total_bytes;
 
-    if ((buf == NULL) || (len == NULL)) { 
+    if ((buf == NULL) || (len == NULL)) {
         
         return (0);
     }

@@ -13,7 +13,7 @@
 
 #define GET_SESS_TYPE(x) ( (x & 0xF0000000) >> SID_TYPE_SHIFT )
 #define GET_LINEID(x) (line_t)( (x & 0xFFF0000) >> SID_LINE_SHIFT )
-#define GET_CALLID(x) (callid_t)(x & 0xFFFF) 
+#define GET_CALLID(x) (callid_t)(x & 0xFFFF)
 
 
 
@@ -32,7 +32,7 @@
 
 
 
-void ccSessionProviderCmd(sessionProvider_cmd_t *data); 
+void ccSessionProviderCmd(sessionProvider_cmd_t *data);
 
 
 
@@ -47,7 +47,7 @@ void ccSessionProviderCmd(sessionProvider_cmd_t *data);
 
 
 
-void ccSessionProviderState(unsigned int state, ccProvider_state_t *data); 
+void ccSessionProviderState(unsigned int state, ccProvider_state_t *data);
 
 
 
@@ -183,7 +183,7 @@ char * getStrProperty(unsigned int id);
 
 char *ccSetDP(const char *dp_file_name);
 
-void setPropertyCacheBoolean(int cfg_id, int bool_value);	
+void setPropertyCacheBoolean(int cfg_id, int bool_value);
 void setPropertyCacheInteger(int cfg_id, int int_value);
 void setPropertyCacheString(int cfg_id, const char *string_value);
 void setPropertyCacheByte(int cfg_id, char byte_value);

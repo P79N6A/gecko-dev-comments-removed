@@ -137,7 +137,7 @@ kpml_create_sm_key (kpml_key_t *key_p, line_t line, callid_t call_id,
 {
     static const char fname[] = "kpml_create_sm_key";
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX" timer=0x%0x\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX" timer=0x%0x\n",
 			   DEB_L_C_F_PREFIX_ARGS(KPML_INFO, line, call_id, fname), tmr_ptr);
 
     key_p->line = line;
@@ -182,7 +182,7 @@ kpml_match_line_call_id (kpml_data_t * kpml_data_p, kpml_key_t * key_p)
 
 
 
-static kpml_data_t * 
+static kpml_data_t *
 kpml_data_for_subid(sub_id_t sub_id)
 {
     kpml_data_t *kpml_data;
@@ -259,7 +259,7 @@ kpml_clear_timers (kpml_data_t *kpml_data)
 {
     static const char fname[] = "kpml_clear_timers";
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"Release kpml timers.\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"Release kpml timers.\n",
                 DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname));
 
     kpml_stop_timer(kpml_data->inter_digit_timer);
@@ -309,7 +309,7 @@ kpml_start_timers (kpml_data_t *kpml_data)
         kpml_data->extra_digit_timer == NULL) {
 
         
-        KPML_ERROR(KPML_F_PREFIX"No memory to allocate timer\n", 
+        KPML_ERROR(KPML_F_PREFIX"No memory to allocate timer\n",
                     fname);
         return;
     }
@@ -346,7 +346,7 @@ kpml_restart_timers (kpml_data_t * kpml_data)
 {
     static const char fname[] = "kpml_restart_timers";
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"Restart all timers\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"Restart all timers\n",
                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname));
 
     kpml_stop_timer(kpml_data->critical_timer);
@@ -598,11 +598,11 @@ kpml_inter_digit_timer_callback (void *kpml_key_p)
 kpml_data_t *kpml_get_kpml_data_from_kpml_id(uint32_t kpml_id)
 {
     kpml_data_t *kpml_data;
-	
+
     kpml_data = (kpml_data_t *) sll_next(s_kpml_list, NULL);
-	
+
     while (kpml_data != NULL && kpml_data->kpml_id != kpml_id) {
-		
+
         kpml_data = (kpml_data_t *) sll_next(s_kpml_list, kpml_data);
     }
     return(kpml_data);
@@ -660,7 +660,7 @@ kpml_start_subscription_timer (kpml_data_t * kpml_data, unsigned long duration)
 {
     static const char fname[] = "kpml_start_subscription_timer";
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"duration=%u\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"duration=%u\n",
                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname), duration);
 
     kpml_data->sub_timer = cprCreateTimer("sub timer",
@@ -868,7 +868,7 @@ boolean kpml_is_subscribed (callid_t call_id, line_t line)
         kpml_next_data = (kpml_data_t *) sll_next(s_kpml_list, kpml_data);
         if (kpml_data->pending_sub &&
             kpml_data->line == line &&
-            kpml_data->call_id == call_id) {   
+            kpml_data->call_id == call_id) {
             return TRUE;
         }
         kpml_data = kpml_next_data;
@@ -940,7 +940,7 @@ kpml_update_dialed_digits (line_t line, callid_t call_id, char digit)
                 kpml_data = kpml_next_data;
                 continue;
             }
-               
+
             if (digit == 0x0F) {
 
                 kpml_data->kpmlDialed[dial_len] = '#';
@@ -1183,7 +1183,7 @@ check_kpml_config (line_t line, callid_t call_id)
     lsm_state = lsm_get_state(call_id);
 
     if (lsm_state == LSM_S_NONE) {
-        KPML_ERROR(KPML_L_C_F_PREFIX"NO call\n", 
+        KPML_ERROR(KPML_L_C_F_PREFIX"NO call\n",
                     line, call_id, fname);
         return (KPML_BAD_EVENT);
     }
@@ -1275,8 +1275,8 @@ kpml_treat_regex (kpml_data_t *kpml_data)
 
     kpml_data->enable_backspace = FALSE;
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"regex=%u\n", 
-               DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname), 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"regex=%u\n",
+               DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname),
                kpml_data->regex[indx].regexData);
 
     
@@ -1377,7 +1377,7 @@ kpml_update_data (kpml_data_t *kpml_data, KPMLRequest *kpml_sub_data)
     KPML_DEBUG(DEB_L_C_F_PREFIX"regex=%u"
                "persistent=%d int-timer=%u critic-timer=%u, extra-timer=%u"
                "flush=%d longhold=%d longrepeat=%d nopartial=%d\n",
-               DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname), 
+               DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname),
 			   kpml_data->regex, kpml_data->persistent, kpml_data->inttimeout,
                kpml_data->crittimeout, kpml_data->extratimeout,
                kpml_data->flush, kpml_data->longhold,
@@ -1416,8 +1416,8 @@ kpml_terminate_subscription (ccsip_sub_not_data_t *msg)
         return;
     }
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"sub_id=%d, reason=%d\n", 
-                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, msg->line_id, msg->gsm_id, fname), 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"sub_id=%d, reason=%d\n",
+                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, msg->line_id, msg->gsm_id, fname),
                 msg->sub_id, msg->reason_code);
     
 
@@ -1508,14 +1508,14 @@ kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
     boolean is_empty_resubscribe = FALSE;
 
     if (kpml_get_config_value() == KPML_NONE) {
-        KPML_DEBUG(DEB_L_C_F_PREFIX"KPML disabled in config.\n", 
+        KPML_DEBUG(DEB_L_C_F_PREFIX"KPML disabled in config.\n",
                    DEB_L_C_F_PREFIX_ARGS(KPML_INFO, msg->line_id, msg->gsm_id, fname));
         return;
     }
 
     if (msg->line_id == 0 || msg->gsm_id == 0) {
 
-        KPML_ERROR(KPML_L_C_F_PREFIX"Line or call_id not correct\n", 
+        KPML_ERROR(KPML_L_C_F_PREFIX"Line or call_id not correct\n",
                     msg->line_id, msg->gsm_id, fname);
         (void) sub_int_subscribe_ack(CC_SRC_GSM, CC_SRC_SIP, msg->sub_id,
                                      KPML_BAD_EVENT, msg->sub_duration);
@@ -1551,8 +1551,8 @@ kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
             if (kpml_data->sub_id != msg->sub_id) {
 
                 KPML_DEBUG(DEB_L_C_F_PREFIX"Terminate previous subscription \
-                           sub_id = %x\n", 
-						   DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname), 
+                           sub_id = %x\n",
+						   DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname),
 						   kpml_data->sub_id);
 
                 kpml_generate_notify(kpml_data, FALSE,
@@ -1563,7 +1563,7 @@ kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
                                               msg->request_id, msg->event);
             }
 
-            KPML_DEBUG(DEB_L_C_F_PREFIX"Refresh Subscription\n", 
+            KPML_DEBUG(DEB_L_C_F_PREFIX"Refresh Subscription\n",
                        DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname));
             
 
@@ -1584,7 +1584,7 @@ kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
 
             kpml_data = kpml_update_data(kpml_data, kpml_sub_data);
 
-            KPML_DEBUG(DEB_L_C_F_PREFIX"Activate Subscription\n", 
+            KPML_DEBUG(DEB_L_C_F_PREFIX"Activate Subscription\n",
                        DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname));
         }
 
@@ -1720,7 +1720,7 @@ kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
 
 
 
-         
+
         if ((lsm_state != LSM_S_NONE) && (lsm_state < LSM_S_RINGOUT)) {
 
             cc_feature(CC_SRC_GSM, kpml_data->call_id, kpml_data->line,
@@ -1757,7 +1757,7 @@ kpml_generate_subscribe_response (kpml_data_t * kpml_data, int resp_code)
 {
     static const char fname[] = "kpml_generate_subscribe_response";
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"SUB response\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"SUB response\n",
 		       DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname));
 
     (void) sub_int_subscribe_ack(CC_SRC_GSM, CC_SRC_SIP, kpml_data->sub_id,
@@ -1781,7 +1781,7 @@ kpml_receive_notify_response (ccsip_sub_not_data_t *msg)
     kpml_data_t *kpml_data;
     kpml_key_t kpml_key;
 
-    KPML_DEBUG(DEB_L_C_F_PREFIX"Notify response\n", 
+    KPML_DEBUG(DEB_L_C_F_PREFIX"Notify response\n",
                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, msg->line_id, msg->gsm_id, fname));
 
     kpml_create_sm_key(&kpml_key, (line_t) msg->line_id, (callid_t) msg->gsm_id,
@@ -1837,7 +1837,7 @@ kpml_generate_notify (kpml_data_t *kpml_data, boolean no_body,
     char resp_str[10];
     ccsip_event_data_t *peventData = NULL;
 
-    DEF_DEBUG(DEB_L_C_F_PREFIX"RESP %u: \n", 
+    DEF_DEBUG(DEB_L_C_F_PREFIX"RESP %u: \n",
         DEB_L_C_F_PREFIX_ARGS(KPML_INFO, kpml_data->line, kpml_data->call_id, fname), resp_code);
 
     if (no_body == FALSE) {
@@ -1846,7 +1846,7 @@ kpml_generate_notify (kpml_data_t *kpml_data, boolean no_body,
             cpr_malloc(sizeof(ccsip_event_data_t));
 
         if (peventData == NULL) {
-            KPML_ERROR(KPML_L_C_F_PREFIX"No memory for eventdata\n", 
+            KPML_ERROR(KPML_L_C_F_PREFIX"No memory for eventdata\n",
                 kpml_data->line, kpml_data->call_id, fname);
             return;
         }

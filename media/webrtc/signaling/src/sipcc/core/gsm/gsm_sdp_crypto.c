@@ -859,7 +859,7 @@ gsmsdp_check_answer_crypto_param (fsmdef_dcb_t *dcb_p, cc_sdp_t * cc_sdp_p,
         GSM_DEBUG_ERROR(GSM_L_C_F_PREFIX
                   "Answer SDP contains invalid number of"
                   " crypto attributes %d for media level %d\n",
-                  dcb_p->line, dcb_p->call_id, fname, 
+                  dcb_p->line, dcb_p->call_id, fname,
 				  num_crypto_attr, level);
         return (FALSE);
     }
@@ -902,7 +902,7 @@ gsmsdp_check_answer_crypto_param (fsmdef_dcb_t *dcb_p, cc_sdp_t * cc_sdp_p,
         GSM_DEBUG_ERROR(GSM_L_C_F_PREFIX
                   "Answer SDP contains wrong tag %d vs %d"
                   " for the media level %d\n",
-                  dcb_p->line, dcb_p->call_id, fname, 
+                  dcb_p->line, dcb_p->call_id, fname,
 				  dest_crypto_tag, offered_tag, level);
         return (FALSE);
     }
@@ -1228,7 +1228,7 @@ gsmsdp_add_single_crypto_attr (void *sdp_p, uint16_t level, int32_t tag,
 
 
 static void
-gsmsdp_add_all_crypto_lines (fsmdef_dcb_t *dcb_p, void *sdp_p, 
+gsmsdp_add_all_crypto_lines (fsmdef_dcb_t *dcb_p, void *sdp_p,
                              fsmdef_media_t *media)
 {
     const char *fname = "gsmsdp_add_all_crypto_lines";
@@ -1248,8 +1248,8 @@ gsmsdp_add_all_crypto_lines (fsmdef_dcb_t *dcb_p, void *sdp_p,
     
     crypto_suite =
         gsmsdp_algorithmID_to_crypto_suite(media->local_crypto.algorithmID);
-    if (gsmsdp_add_single_crypto_attr(sdp_p, media->level, 
-            media->local_crypto.tag, crypto_suite, &media->local_crypto.key, 
+    if (gsmsdp_add_single_crypto_attr(sdp_p, media->level,
+            media->local_crypto.tag, crypto_suite, &media->local_crypto.key,
             GSMSDP_DEFALT_KEY_LIFETIME) != SDP_SUCCESS) {
         GSM_DEBUG_ERROR(GSM_L_C_F_PREFIX
                   "Failed to add crypto attributes\n",
@@ -1555,7 +1555,7 @@ gsmsdp_update_crypto_transmit_key (fsmdef_dcb_t *dcb_p,
         if (initial_offer) {
             
             generate_key = TRUE;
-        } else if ((util_compare_ip(&(media->previous_sdp.dest_addr), 
+        } else if ((util_compare_ip(&(media->previous_sdp.dest_addr),
                                 &(media->dest_addr)) == FALSE) &&
                    media->dest_addr.type != CPR_IP_ADDR_INVALID) {
             
@@ -1850,7 +1850,7 @@ gsmsdp_is_media_encrypted (fsmdef_dcb_t *dcb_p)
         if (!GSMSDP_MEDIA_ENABLED(media)) {
             continue;
         }
-        
+
         if (media->transport == SDP_TRANSPORT_RTPSAVP || media->transport == SDP_TRANSPORT_RTPSAVPF) {
             num_encrypted++;
         }
@@ -1910,6 +1910,6 @@ gsmsdp_crypto_params_change (boolean rcv_only, fsmdef_media_t *media)
 void
 gsmsdp_crypto_reset_params_change (fsmdef_media_t *media)
 {
-    media->negotiated_crypto.flags &= ~(FSMDEF_CRYPTO_RX_CHANGE | 
+    media->negotiated_crypto.flags &= ~(FSMDEF_CRYPTO_RX_CHANGE |
                                         FSMDEF_CRYPTO_TX_CHANGE);
 }

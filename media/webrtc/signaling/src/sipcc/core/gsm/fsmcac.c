@@ -151,10 +151,10 @@ static void fsm_cac_notify_failure (cac_data_t *cac_data)
     line_t          line     = msg->line;
     int             event_id = msg_id;
     cc_srcs_t       src_id  = msg->src_id;
-    
+
     
     lsm_ui_display_notify_str_index(STR_INDEX_NO_BAND_WIDTH);
-    
+
     
     if (event_id == CC_MSG_SETUP &&
             src_id == CC_SRC_SIP) {
@@ -170,7 +170,7 @@ static void fsm_cac_notify_failure (cac_data_t *cac_data)
 
         ui_call_state(evOnHook, line, call_id, CC_CAUSE_CONGESTION);
     }
-    
+
 }
 
 
@@ -193,7 +193,7 @@ fsm_init_cac_failure_timer(cac_data_t *cac_data, uint32_t timeout)
     const char fname[] = "fsm_init_cac_failure_timer";
 
     CAC_DEBUG(DEB_F_PREFIX"cac_data call_id=%x\n",
-              DEB_F_PREFIX_ARGS("CAC", fname), 
+              DEB_F_PREFIX_ARGS("CAC", fname),
               cac_data->call_id);
 
     cac_data->cac_fail_timer =
@@ -208,7 +208,7 @@ fsm_init_cac_failure_timer(cac_data_t *cac_data, uint32_t timeout)
 
     (void) cprStartTimer(cac_data->cac_fail_timer, timeout * 1000,
                          (void *)(long)cac_data->call_id);
-                         
+
     return(TRUE);
 }
 
@@ -237,17 +237,17 @@ fsm_cac_get_data_by_call_id (callid_t call_id)
 
         if (cac_data->call_id == call_id) {
             CAC_DEBUG(DEB_F_PREFIX"cac_data found call_id=%x\n",
-              DEB_F_PREFIX_ARGS("CAC", fname), 
+              DEB_F_PREFIX_ARGS("CAC", fname),
               cac_data->call_id);
             return(cac_data);
-        } 
+        }
 
         cac_data = (cac_data_t *) sll_next(s_cac_list, cac_data);
 
     }
 
     CAC_DEBUG(DEB_F_PREFIX"cac_data NOT found.\n",
-        DEB_F_PREFIX_ARGS("CAC", fname)); 
+        DEB_F_PREFIX_ARGS("CAC", fname));
     return(NULL);
 }
 
@@ -376,14 +376,14 @@ fsm_cac_process_bw_allocation (cac_data_t *cac_data)
 {
     const char fname[] = "fsm_cac_process_bw_allocation";
 
-    if (lsm_allocate_call_bandwidth(cac_data->call_id, cac_data->sessions) == 
+    if (lsm_allocate_call_bandwidth(cac_data->call_id, cac_data->sessions) ==
             CC_CAUSE_CONGESTION) {
 
         DEF_DEBUG(DEB_F_PREFIX"CAC Allocation failed.\n",
                 DEB_F_PREFIX_ARGS("CAC", fname));
 
         fsm_cac_notify_failure(cac_data);
-            
+
         fsm_clear_cac_data(cac_data);
 
         return(CC_CAUSE_CONGESTION);
@@ -418,9 +418,9 @@ fsm_cac_call_bandwidth_req (callid_t call_id, uint32_t sessions,
 
     
     cac_data = fsm_get_new_cac_data();
-    
+
     if (cac_data == NULL) {
-        
+
         return(CC_CAUSE_CONGESTION);
     }
 
@@ -430,7 +430,7 @@ fsm_cac_call_bandwidth_req (callid_t call_id, uint32_t sessions,
     cac_data->sessions = sessions;
 
     fsm_init_cac_failure_timer(cac_data, CAC_FAILURE_TIMEOUT);
-    
+
     
 
 
@@ -442,7 +442,7 @@ fsm_cac_call_bandwidth_req (callid_t call_id, uint32_t sessions,
 
         DEF_DEBUG(DEB_F_PREFIX"CAC request for %d sessions %d.\n",
                 DEB_F_PREFIX_ARGS("CAC", fname), call_id, sessions);
-                
+
         if (fsm_cac_process_bw_allocation(cac_data) == CC_CAUSE_CONGESTION) {
 
             return(CC_CAUSE_CONGESTION);
@@ -460,9 +460,9 @@ fsm_cac_call_bandwidth_req (callid_t call_id, uint32_t sessions,
 
             return(CC_CAUSE_CONGESTION);
         }
-        
+
     }
-    
+
     (void) sll_append(s_cac_list, cac_data);
 
     return(CC_CAUSE_OK);
@@ -510,7 +510,7 @@ void fsm_cac_call_release_cleanup (callid_t call_id)
 
 
 
- 
+
 cc_causes_t
 fsm_cac_process_bw_avail_resp (void)
 {
@@ -546,11 +546,11 @@ fsm_cac_process_bw_avail_resp (void)
             next_cac_data = (cac_data_t *) sll_next(s_cac_list, cac_data);
             sll_remove(s_cac_list, cac_data);
 
-             
+            
             DEF_DEBUG(DEB_F_PREFIX"Process pending responses %d.\n",
                 DEB_F_PREFIX_ARGS("CAC", fname), cac_data->call_id);
 
-             
+            
             fim_process_event(cac_data->msg_ptr, TRUE);
 
             fsm_clear_cac_data(cac_data);
@@ -563,7 +563,7 @@ fsm_cac_process_bw_avail_resp (void)
                 DEF_DEBUG(DEB_F_PREFIX"Requesting next allocation %d.\n",
                     DEB_F_PREFIX_ARGS("CAC", fname), next_cac_data->call_id);
 
-                if (fsm_cac_process_bw_allocation(next_cac_data) == 
+                if (fsm_cac_process_bw_allocation(next_cac_data) ==
                                 CC_CAUSE_CONGESTION) {
 
                     
@@ -573,7 +573,7 @@ fsm_cac_process_bw_avail_resp (void)
                         
                         fsm_cac_clear_list();
                     } else {
-                    
+
                         sll_remove(s_cac_list, next_cac_data);
                     }
 
@@ -639,15 +639,15 @@ fsm_cac_process_bw_failed_resp (void)
 
             sll_remove(s_cac_list, cac_data);
 
-             
+            
             DEF_DEBUG(DEB_F_PREFIX"Process pending responses even after failure.\n",
                 DEB_F_PREFIX_ARGS("CAC", fname));
 
-             
+            
             fsm_cac_notify_failure(cac_data);
 
             fsm_clear_cac_data(cac_data);
-    
+
             if (next_cac_data != NULL) {
 
                 
@@ -655,7 +655,7 @@ fsm_cac_process_bw_failed_resp (void)
 
 
                 if (fsm_cac_process_bw_allocation(next_cac_data) == CC_CAUSE_CONGESTION) {
-                
+
                     
 
 
@@ -663,7 +663,7 @@ fsm_cac_process_bw_failed_resp (void)
                         
                         fsm_cac_clear_list();
                     } else {
-                    
+
                         sll_remove(s_cac_list, next_cac_data);
                     }
 
@@ -691,7 +691,7 @@ fsm_cac_process_bw_failed_resp (void)
 
 
 
-void 
+void
 fsm_cac_process_bw_fail_timer (void *tmr_data)
 {
     const char      fname[] = "fsm_cac_process_bw_fail_timer";

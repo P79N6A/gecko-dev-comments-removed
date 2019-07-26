@@ -232,7 +232,7 @@ strlib_free (string_t str)
         temp->signature = 0;
         cpr_free(temp);
     }
-    
+
     return;
 }
 
@@ -277,7 +277,7 @@ strlib_open (string_t str, int length, const char *fname, int line)
             strlib_free(str);
         }
     }
-    
+
     return (ret_str);
 }
 

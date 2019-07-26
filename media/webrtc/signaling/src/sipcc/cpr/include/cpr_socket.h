@@ -224,7 +224,7 @@ cprGetSockName(cpr_socket_t socket,
 
 
 
-cpr_status_e 
+cpr_status_e
 cprListen(cpr_socket_t socket,
           uint16_t backlog);
 

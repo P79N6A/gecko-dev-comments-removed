@@ -202,8 +202,8 @@ typedef enum {
 
 typedef signed long         xml_signed32;
 typedef unsigned long       xml_unsigned32;
-typedef unsigned short      xml_unsigned16; 
-typedef unsigned char       xml_unsigned8;  
+typedef unsigned short      xml_unsigned16;
+typedef unsigned char       xml_unsigned8;
 
 
 typedef struct State {
@@ -633,4 +633,4 @@ void *ccAllocXML(cc_size_t size);
 
 
 void ccFreeXML(void *mem);
-#endif 
+#endif

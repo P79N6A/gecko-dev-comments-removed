@@ -152,7 +152,7 @@ fsm_fcb_t *fsmb2bcnf_get_active_cnf(void)
 
     FSM_FOR_ALL_CBS(b2bccb, fsmb2bcnf_ccbs, FSMCNF_MAX_CCBS) {
         fcb = fsm_get_fcb_by_call_id_and_type(b2bccb->cnf_call_id,
-                                               FSM_TYPE_B2BCNF);        
+                                               FSM_TYPE_B2BCNF);
         if (fcb && fcb->state == FSMB2BCNF_S_ACTIVE) {
             return(fcb);
         }
@@ -422,18 +422,18 @@ boolean
 fsmb2bcnf_check_if_ok_to_setup_conf (callid_t call_id)
 {
     fsmdef_dcb_t *dcb;
-    
+
     if (call_id == CC_NO_CALL_ID) {
         return (FALSE);
     }
 
     dcb = fsm_get_dcb(call_id);
 
-    if(dcb && dcb->policy == CC_POLICY_CHAPERONE 
+    if(dcb && dcb->policy == CC_POLICY_CHAPERONE
 		    && dcb->is_conf_call == TRUE){
 	return (FALSE);
     }
-    
+
     return (TRUE);
 }
 
@@ -504,7 +504,7 @@ fsmb2bcnf_cnf_invoke (callid_t call_id, callid_t target_call_id,
 
 
 void
-fsmb2bcnf_feature_cancel (fsmcnf_ccb_t *ccb, line_t line, callid_t call_id, 
+fsmb2bcnf_feature_cancel (fsmcnf_ccb_t *ccb, line_t line, callid_t call_id,
                           callid_t target_call_id,
                           cc_rcc_skey_evt_type_e cause)
 {
@@ -516,7 +516,7 @@ fsmb2bcnf_feature_cancel (fsmcnf_ccb_t *ccb, line_t line, callid_t call_id,
     if ((cause == CC_SK_EVT_TYPE_EXPLI) &&
         (fcb_def != NULL) && ((fcb_def->dcb->selected == FALSE) &&
             ((fcb_def->state == FSMDEF_S_OUTGOING_ALERTING) ||
-            ((fcb_def->state == FSMDEF_S_CONNECTED) && 
+            ((fcb_def->state == FSMDEF_S_CONNECTED) &&
             (fcb_def->dcb->spoof_ringout_requested == TRUE) &&
             (fcb_def->dcb->spoof_ringout_applied == TRUE))))) {
 
@@ -529,7 +529,7 @@ fsmb2bcnf_feature_cancel (fsmcnf_ccb_t *ccb, line_t line, callid_t call_id,
     if ((cause == CC_SK_EVT_TYPE_EXPLI) &&
         (fcb_def != NULL) && ((fcb_def->dcb->selected == FALSE) &&
             ((fcb_def->state == FSMDEF_S_OUTGOING_ALERTING) ||
-            ((fcb_def->state == FSMDEF_S_CONNECTED) && 
+            ((fcb_def->state == FSMDEF_S_CONNECTED) &&
             (fcb_def->dcb->spoof_ringout_requested == TRUE) &&
             (fcb_def->dcb->spoof_ringout_applied == TRUE))))) {
 
@@ -584,7 +584,7 @@ fsmb2bcnf_ev_idle_feature (sm_event_t *event)
 
 
 
-            if (ftr_data && msg->data_valid && 
+            if (ftr_data && msg->data_valid &&
                 (ftr_data->b2bconf.target_call_id != CC_NO_CALL_ID)
                 && (cns_fcb = fsm_get_fcb_by_call_id_and_type(ftr_data->b2bconf.target_call_id,
                             FSM_TYPE_B2BCNF)) != NULL) {
@@ -620,7 +620,7 @@ fsmb2bcnf_ev_idle_feature (sm_event_t *event)
                 }
 
                 fsm_change_state(fcb, __LINE__, FSMB2BCNF_S_ACTIVE);
-               
+
                 fsm_change_state(cns_fcb, __LINE__, FSMB2BCNF_S_ACTIVE);
 
                 cc_int_feature(CC_SRC_GSM, CC_SRC_GSM, ccb->cns_call_id,
@@ -738,7 +738,7 @@ fsmb2bcnf_ev_idle_feature (sm_event_t *event)
     case CC_SRC_GSM:
         switch (ftr_id) {
         case CC_FEATURE_NOTIFY:
-           
+
             
 
 
@@ -820,7 +820,7 @@ fsmb2bcnf_ev_active_release (sm_event_t *event)
 
 
     if (ccb->active == FALSE) {
-        fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+        fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                                         ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
         fsmb2bcnf_cleanup((fsm_fcb_t *) event->data, __LINE__, TRUE);
     }
@@ -873,7 +873,7 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
         switch (ftr_id) {
         case CC_FEATURE_CANCEL:
             sm_rc = SM_RC_END;
-            fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+            fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                                 ccb->cns_call_id,
                                 CC_SK_EVT_TYPE_EXPLI);
             fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
@@ -894,11 +894,11 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
                 
 
             } else {
-                DEF_DEBUG(DEB_F_PREFIX"Invoke hold call_id = %d t_call_id=%d\n", 
-                        DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id); 
+                DEF_DEBUG(DEB_F_PREFIX"Invoke hold call_id = %d t_call_id=%d\n",
+                        DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id);
                 
                 ui_terminate_feature(ccb->cnf_line, ccb->cnf_call_id, ccb->cns_call_id);
-                fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+                fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                         ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
                 fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
             }
@@ -911,8 +911,8 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
 
 
 
-            DEF_DEBUG(DEB_F_PREFIX"ACTIVE CNF call_id = %d, t_id = %d, cns_id=%d\n", 
-                DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, 
+            DEF_DEBUG(DEB_F_PREFIX"ACTIVE CNF call_id = %d, t_id = %d, cns_id=%d\n",
+                DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id,
                     feat_data->b2bconf.target_call_id, ccb->cns_call_id);
 
             if (feat_data && msg->data_valid &&
@@ -931,15 +931,15 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
 
                     cnf_fcb = fsm_get_fcb_by_call_id_and_type(ccb->cns_call_id,
                             FSM_TYPE_B2BCNF);
-                   
+
                     if (cnf_fcb != NULL) {
-                        DEF_DEBUG(DEB_F_PREFIX"INVOKE ACTIVE CNF call_id = %d, t_id=%d\n", 
-                            DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, 
+                        DEF_DEBUG(DEB_F_PREFIX"INVOKE ACTIVE CNF call_id = %d, t_id=%d\n",
+                            DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id,
                         feat_data->b2bconf.target_call_id);
 
                         cnf_fcb->b2bccb = ccb;
                         fsm_change_state(cnf_fcb, __LINE__, FSMB2BCNF_S_ACTIVE);
-           
+
 
                         cc_int_feature(CC_SRC_GSM, CC_SRC_GSM, ccb->cns_call_id,
                                    ccb->cnf_line, CC_FEATURE_B2BCONF, NULL);
@@ -985,7 +985,7 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
             
 
 
-            fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+            fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                         ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
             fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
 
@@ -998,7 +998,7 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
 
             if (ccb->cnf_orig == CC_SRC_RCC) {
                 if (ccb->cnf_call_id == call_id) {
-                    fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+                    fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                         ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
                     fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
                     cc_call_state(dcb->call_id, dcb->line, CC_STATE_CONNECTED,
@@ -1013,8 +1013,8 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
                 && (msg->data.notify.data.rcc.feature == CC_FEATURE_B2BCONF)) {
 
                 if (msg->data.notify.cause_code != RCC_SUCCESS) {
-                    fsmb2bcnf_feature_cancel(fcb->b2bccb, fcb->b2bccb->cnf_line, 
-                                    fcb->b2bccb->cnf_call_id, 
+                    fsmb2bcnf_feature_cancel(fcb->b2bccb, fcb->b2bccb->cnf_line,
+                                    fcb->b2bccb->cnf_call_id,
                                     fcb->b2bccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
                 }
                 
@@ -1036,11 +1036,11 @@ fsmb2bcnf_ev_active_feature (sm_event_t *event)
     case CC_SRC_SIP:
         switch (ftr_id) {
         case CC_FEATURE_CALL_PRESERVATION:
-             DEF_DEBUG(DEB_F_PREFIX"Invoke hold call_id = %d t_call_id=%d\n", 
-                            DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id); 
+             DEF_DEBUG(DEB_F_PREFIX"Invoke hold call_id = %d t_call_id=%d\n",
+                            DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id);
              
              ui_terminate_feature(ccb->cnf_line, ccb->cnf_call_id, ccb->cns_call_id);
-             fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+             fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                         ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
              fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
              break;
@@ -1089,11 +1089,11 @@ fsmb2bcnf_ev_active_feature_ack (sm_event_t *event)
                 other_ui_id = lsm_get_ui_id(other_call_id);
                 ui_set_call_status(platform_get_phrase_index_str(CONF_CANNOT_COMPLETE),
                                    msg->line, other_ui_id);
-                fsmb2bcnf_feature_cancel(fcb->b2bccb, fcb->b2bccb->cnf_line, fcb->b2bccb->cnf_call_id, 
+                fsmb2bcnf_feature_cancel(fcb->b2bccb, fcb->b2bccb->cnf_line, fcb->b2bccb->cnf_call_id,
                                     fcb->b2bccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
                 fsmb2bcnf_cleanup(fcb, __LINE__, TRUE);
                 break;
-            } 
+            }
 
             sm_rc = SM_RC_END;
             break;
@@ -1129,13 +1129,13 @@ fsmb2bcnf_ev_active_feature_ack (sm_event_t *event)
 }
 
 void
-fsmb2bcnf_get_sub_call_id_from_ccb(fsmcnf_ccb_t *ccb, callid_t *cnf_call_id, 
+fsmb2bcnf_get_sub_call_id_from_ccb(fsmcnf_ccb_t *ccb, callid_t *cnf_call_id,
                 callid_t *cns_call_id)
 {
     static const char fname[] = "fsmb2bcnf_get_sub_call_id_from_ccb";
 
-    DEF_DEBUG(DEB_F_PREFIX"call_id = %d t_call_id=%d\n", 
-                        DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id); 
+    DEF_DEBUG(DEB_F_PREFIX"call_id = %d t_call_id=%d\n",
+                        DEB_F_PREFIX_ARGS(GSM, fname), ccb->cnf_call_id, ccb->cns_call_id);
 
     *cnf_call_id = ccb->cnf_call_id;
     *cns_call_id = ccb->cns_call_id;
@@ -1158,7 +1158,7 @@ fsmb2bcnf_ev_active_onhook (sm_event_t *event)
         ccb->cns_call_id = CC_NO_CALL_ID;
 
     } else {
-        fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id, 
+        fsmb2bcnf_feature_cancel(ccb, ccb->cnf_line, ccb->cnf_call_id,
                                     ccb->cns_call_id, CC_SK_EVT_TYPE_IMPLI);
         fsmb2bcnf_cleanup((fsm_fcb_t *) event->data, __LINE__, TRUE);
     }
@@ -1272,7 +1272,7 @@ fsmb2bcnf_is_rcc_orig_b2bcnf (callid_t call_id)
     if (ccb && ccb->cnf_orig == CC_SRC_RCC) {
         return TRUE;
     }
-    
+
     return FALSE;
 }
 

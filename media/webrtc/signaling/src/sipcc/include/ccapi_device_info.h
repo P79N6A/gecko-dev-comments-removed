@@ -66,7 +66,7 @@ void CCAPI_DeviceInfo_getCalls(cc_deviceinfo_ref_t handle, cc_call_handle_t hand
 
 
 
-void CCAPI_DeviceInfo_getCallsByState(cc_deviceinfo_ref_t handle, cc_call_state_t state, 
+void CCAPI_DeviceInfo_getCallsByState(cc_deviceinfo_ref_t handle, cc_call_state_t state,
                 cc_call_handle_t handles[], cc_uint16_t *count) ;
 
 

@@ -14,8 +14,8 @@
 #include <phone_debug.h>
 #include "util_string.h"
 
-#define IN6ADDRSZ   16 
-#define INT16SZ     2 
+#define IN6ADDRSZ   16
+#define INT16SZ     2
 #define	INADDRSZ	4
 #define IS_DIGIT(ch)   ((ch >= '0') && (ch <= '9'))
 
@@ -74,7 +74,7 @@ str2ip (const char *str, cpr_ip_addr_t *cpr_addr)
             num = 0;
             digit_flag = 0;
             continue;
-        } 
+        }
 
         
         return (1);
@@ -120,15 +120,15 @@ cfgfile_parse_ip (const var_t *entry, const char *value)
 
 int
 cfgfile_print_ip (const var_t *entry, char *buf, int len)
-{    
+{
     
     cpr_ip_addr_t *cprIpAddrPtr = (cpr_ip_addr_t *)entry->addr;
-    
+
     if (cprIpAddrPtr->type == CPR_IP_ADDR_IPV4) {
         sprint_ip(buf, cprIpAddrPtr->u.ip4);
         return 1;
     }
-    
+
     return 0;
 }
 
@@ -400,7 +400,7 @@ cfgfile_parse_key_entry (const var_t *entry, const char *value)
 
 
 
-int 
+int
 cfgfile_print_key_entry (const var_t *entry, char *buf, int len)
 {
     key_table_entry_t *key;
@@ -409,7 +409,7 @@ cfgfile_print_key_entry (const var_t *entry, char *buf, int len)
     if (key->name != NULL) {
         return (snprintf(buf, len, "%s", key->name));
     } else {
-         
+        
         return (0);
     }
 }

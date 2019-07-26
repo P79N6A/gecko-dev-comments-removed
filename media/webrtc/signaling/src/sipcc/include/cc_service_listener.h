@@ -35,8 +35,8 @@ void CC_ServiceListener_outOfService(cc_cucm_mode_t cucm_mode, cc_service_cause_
 
 
 
-void CC_ServiceListener_inService(cc_cucm_mode_t cucm_mode, 
-        cc_service_cause_t service_cause, 
+void CC_ServiceListener_inService(cc_cucm_mode_t cucm_mode,
+        cc_service_cause_t service_cause,
         cc_string_t sis_ver_name,
         cc_uint32_t major_number,
         cc_uint32_t minor_number,

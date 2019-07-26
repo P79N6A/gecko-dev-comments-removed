@@ -224,7 +224,7 @@ typedef enum {
 
 
 
-const char* ccsdpAttrGetFmtpParamSets(void *sdp_handle, uint16_t level, 
+const char* ccsdpAttrGetFmtpParamSets(void *sdp_handle, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num);
 
 
@@ -238,7 +238,7 @@ const char* ccsdpAttrGetFmtpParamSets(void *sdp_handle, uint16_t level,
 
 
 
-sdp_result_e ccsdpAttrGetFmtpPackMode(void *sdp_handle, uint16_t level, 
+sdp_result_e ccsdpAttrGetFmtpPackMode(void *sdp_handle, uint16_t level,
                          uint8_t cap_num, uint16_t inst_num, uint16_t *val);
 
 
@@ -251,7 +251,7 @@ sdp_result_e ccsdpAttrGetFmtpPackMode(void *sdp_handle, uint16_t level,
 
 
 
-sdp_result_e ccsdpAttrGetFmtpLevelAsymmetryAllowed(void *sdp_handle, uint16_t level, 
+sdp_result_e ccsdpAttrGetFmtpLevelAsymmetryAllowed(void *sdp_handle, uint16_t level,
                          uint8_t cap_num, uint16_t inst_num, uint16_t *val);
 
 

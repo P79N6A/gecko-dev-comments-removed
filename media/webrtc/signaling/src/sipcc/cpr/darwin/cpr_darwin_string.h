@@ -22,7 +22,7 @@
 
 
 
-char * 
+char *
 cpr_strdup(const char *str);
 
 

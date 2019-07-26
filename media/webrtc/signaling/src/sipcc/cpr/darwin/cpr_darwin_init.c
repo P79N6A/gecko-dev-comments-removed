@@ -177,7 +177,7 @@ cprPreInit (void)
         CPR_ERROR("%s: timer pre init failed %d\n", fname, returnCode);
         return CPR_FAILURE;
     }
-    
+
 
     return CPR_SUCCESS;
 }

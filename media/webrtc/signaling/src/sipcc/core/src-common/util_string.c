@@ -185,13 +185,13 @@ boolean util_check_if_ip_valid (cpr_ip_addr_t *ip_addr)
     if (ip_addr->type == CPR_IP_ADDR_INVALID) {
         return(FALSE);
     }
-    if (ip_addr->type == CPR_IP_ADDR_IPV4 && 
+    if (ip_addr->type == CPR_IP_ADDR_IPV4 &&
         ip_addr->u.ip4 == 0) {
 
         return(FALSE);
     }
 
-    if ((ip_addr->type == CPR_IP_ADDR_IPV6) && 
+    if ((ip_addr->type == CPR_IP_ADDR_IPV6) &&
         (ip_addr->u.ip6.addr.base16[7] == 0) &&
         (ip_addr->u.ip6.addr.base16[6] == 0) &&
         (ip_addr->u.ip6.addr.base16[5] == 0) &&
@@ -204,7 +204,7 @@ boolean util_check_if_ip_valid (cpr_ip_addr_t *ip_addr)
         return(FALSE);
     }
 
-    if ((ip_addr->type != CPR_IP_ADDR_INVALID) && 
+    if ((ip_addr->type != CPR_IP_ADDR_INVALID) &&
         (ip_addr->type != CPR_IP_ADDR_IPV4) &&
         (ip_addr->type != CPR_IP_ADDR_IPV6)) {
 
@@ -240,7 +240,7 @@ boolean util_compare_ip (cpr_ip_addr_t *ip_addr1, cpr_ip_addr_t *ip_addr2)
     } else if (ip_addr1->type == CPR_IP_ADDR_IPV6 &&
             ip_addr2->type == CPR_IP_ADDR_IPV6) {
 
-        return((boolean)memcmp((void *)&(ip_addr1->u.ip6.addr.base8), 
+        return((boolean)memcmp((void *)&(ip_addr1->u.ip6.addr.base8),
                     (void *)&(ip_addr2->u.ip6.addr.base8), 16));
     }
 
@@ -258,13 +258,13 @@ boolean util_compare_ip (cpr_ip_addr_t *ip_addr1, cpr_ip_addr_t *ip_addr2)
 
 
 
-void util_extract_ip (cpr_ip_addr_t *ip_addr, 
+void util_extract_ip (cpr_ip_addr_t *ip_addr,
                         cpr_sockaddr_storage *from)
 {
     switch (from->ss_family) {
     case AF_INET6:
         ip_addr->type = CPR_IP_ADDR_IPV6;
-        ip_addr->u.ip6 = ((cpr_sockaddr_in6_t *)from)->sin6_addr;   
+        ip_addr->u.ip6 = ((cpr_sockaddr_in6_t *)from)->sin6_addr;
         break;
     case AF_INET:
         ip_addr->type = CPR_IP_ADDR_IPV4;
@@ -347,7 +347,7 @@ diff_current_time (unsigned long t1, unsigned long *difference)
     return 0;
 }
 
-boolean 
+boolean
 is_empty_str (char *str)
 {
     if (str == NULL) {
@@ -359,7 +359,7 @@ is_empty_str (char *str)
     return FALSE;
 }
 
-void 
+void
 init_empty_str (char *str)
 {
     strcpy(str,EMPTY_STR);

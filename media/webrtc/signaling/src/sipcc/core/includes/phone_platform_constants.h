@@ -134,7 +134,7 @@
 
 
 #define PHONE_MODEL_NUMBER_SOUNDWAVE      "575"
-#define SOUNDWAVE_MODEL                   "SOUNDWAVE"    
+#define SOUNDWAVE_MODEL                   "SOUNDWAVE"
 #define CCSIP_SIP_SOUNDWAVE_USER_AGENT    "SOUNDWAVE"
 
 

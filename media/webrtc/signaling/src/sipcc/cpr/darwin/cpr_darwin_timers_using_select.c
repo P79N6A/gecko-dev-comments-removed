@@ -69,7 +69,7 @@
 
 
 
-typedef struct timer_ipc_cmd_s 
+typedef struct timer_ipc_cmd_s
 {
     void * timer_ptr;
     void * user_data_ptr;
@@ -80,7 +80,7 @@ typedef struct timer_ipc_cmd_s
 typedef struct timer_ipc_s
 {
     uint32_t  msg_type;
-    union 
+    union
     {
         timer_ipc_cmd_t cmd;
         cprRC_t         result;
@@ -204,7 +204,6 @@ cprSleep (uint32_t duration)
 
 
 
-        
 
 
 
@@ -223,7 +222,8 @@ cprSleep (uint32_t duration)
 
 
 
-static cprRC_t addTimerToList (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data) 
+
+static cprRC_t addTimerToList (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data)
 {
     
     return CPR_SUCCESS;
@@ -232,10 +232,10 @@ static cprRC_t addTimerToList (cpr_timer_t *cprTimerPtr, uint32_t duration, void
     static const char fname[] = "addTimerToList";
     timer_ipc_t tmr_cmd = {0};
     timer_ipc_t tmr_rsp={0};
-    
+
 
     API_ENTER();
-    
+
     CPR_INFO("%s: cprTimerptr=0x%x dur=%d user_data=%p\n",
              fname, cprTimerPtr, duration, data);
     tmr_cmd.msg_type = TMR_CMD_ADD;
@@ -252,7 +252,7 @@ static cprRC_t addTimerToList (cpr_timer_t *cprTimerPtr, uint32_t duration, void
                    strerror(errno), fname);
             API_RETURN(CPR_FAILURE);
         }
-        
+
     } else {
         CPR_ERROR("can not make IPC connection, client_sock is invalid %s\n", fname);
         API_RETURN(CPR_FAILURE);
@@ -303,7 +303,7 @@ static cprRC_t addTimer (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data
         CPR_ERROR("%s - Timer %s has not been initialized.\n",
                   fname, cprTimerPtr->name);
         errno = EINVAL;
-        
+
         return(CPR_FAILURE);
     }
 
@@ -312,7 +312,7 @@ static cprRC_t addTimer (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data
         CPR_ERROR("%s - Timer %s is already active.\n", fname, cprTimerPtr->name);
         errno = EAGAIN;
         return(CPR_FAILURE);
-        
+
     }
 
     
@@ -329,7 +329,7 @@ static cprRC_t addTimer (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data
 
 
 
-    
+
     
     if (timerListHead == NULL) {
         
@@ -339,7 +339,7 @@ static cprRC_t addTimer (cpr_timer_t *cprTimerPtr, uint32_t duration, void *data
 	
         timerList = timerListHead;
         while (timerList != NULL) {
-            
+
             
 
 
@@ -412,14 +412,14 @@ removeTimerFromList (cpr_timer_t *cprTimerPtr)
     static const char fname[] = "removeTimerFromList";
     timer_ipc_t tmr_cmd = {0};
     timer_ipc_t tmr_rsp = {0};
-    
+
 
     API_ENTER();
-    
+
     
     tmr_cmd.msg_type = TMR_CMD_REMOVE;
     tmr_cmd.u.cmd.timer_ptr = cprTimerPtr;
-  
+
     
 
     
@@ -434,12 +434,12 @@ removeTimerFromList (cpr_timer_t *cprTimerPtr)
         CPR_ERROR("%s:client_sock invalid, no IPC connection \n", fname);
         API_RETURN(CPR_FAILURE);
     }
-  
-    
-
-
 
     
+
+
+
+
     if (recvfrom(client_sock, &tmr_rsp, sizeof(timer_ipc_t),0, NULL, NULL) < 0) {
         
         API_RETURN(CPR_FAILURE);
@@ -470,7 +470,7 @@ removeTimer (cpr_timer_t *cprTimerPtr)
     timerBlk *timerPtr;
 
     
-    
+
     
 
 
@@ -480,7 +480,7 @@ removeTimer (cpr_timer_t *cprTimerPtr)
 
     timerPtr = (timerBlk *) cprTimerPtr->u.handlePtr;
     
-    
+
     if (timerPtr != NULL) {
         
         timerList = timerListHead;
@@ -523,9 +523,9 @@ removeTimer (cpr_timer_t *cprTimerPtr)
                 timerList->duration = -1;
                 timerList->timerActive = FALSE;
                 cprTimerPtr->data = NULL;
-                
+
                 return(CPR_SUCCESS);
-                
+
             }
 
             
@@ -547,16 +547,16 @@ removeTimer (cpr_timer_t *cprTimerPtr)
         timerPtr->duration = -1;
         timerPtr->cprTimerPtr->data = NULL;
         timerPtr->timerActive = FALSE;
-        
+
         return(CPR_SUCCESS);
-        
+
     }
 
     
     CPR_ERROR("%s - Timer not initialized.\n", fname);
     errno = EINVAL;
     return(CPR_FAILURE);
-    
+
 }
 
 
@@ -648,7 +648,7 @@ cprCreateTimer (const char *name,
         timerPtr->cprTimerPtr = cprTimerPtr;
         cprTimerPtr->u.handlePtr = timerPtr;
         
-        
+
         return cprTimerPtr;
     }
 
@@ -727,7 +727,7 @@ cprIsTimerRunning (cprTimer_t timer)
     timerBlk *timerPtr;
 
     
-    
+
     cprTimerPtr = (cpr_timer_t *) timer;
     if (cprTimerPtr != NULL) {
         timerPtr = (timerBlk *) cprTimerPtr->u.handlePtr;
@@ -772,7 +772,7 @@ cprCancelTimer (cprTimer_t timer)
     cprRC_t rc = CPR_SUCCESS;
 
     
-    
+
     cprTimerPtr = (cpr_timer_t *) timer;
     if (cprTimerPtr != NULL) {
         timerPtr = (timerBlk *) cprTimerPtr->u.handlePtr;
@@ -867,7 +867,7 @@ cprDestroyTimer (cprTimer_t timer)
     cprRC_t rc;
 
     
-    
+
     cprTimerPtr = (cpr_timer_t *) timer;
     if (cprTimerPtr != NULL) {
         rc = cprCancelTimer(timer);
@@ -907,7 +907,7 @@ cprRC_t cpr_timer_pre_init (void)
 {
     static const char fname[] = "cpr_timer_pre_init";
     int32_t returnCode;
-    
+
     
     returnCode = (int32_t)pthread_create(&timerThreadId, NULL, timerThread, NULL);
     if (returnCode == -1) {
@@ -920,7 +920,7 @@ cprRC_t cpr_timer_pre_init (void)
 
 
     cprSleep(1000);
-    
+
     return CPR_SUCCESS;
 }
 
@@ -937,8 +937,8 @@ cprRC_t cpr_timer_de_init(void)
     
     close(client_sock);
     close(serv_sock);
-    
-    
+
+
     
     pthread_mutex_destroy(&api_mutex);
 
@@ -961,10 +961,10 @@ cprRC_t cpr_timer_de_init(void)
 
 
 
-void *timerThread (void *data) 
+void *timerThread (void *data)
 {
     static const char fname[] = "timerThread";
-    
+
     
 #ifndef HOST
 #ifndef PTHREAD_SET_NAME
@@ -986,7 +986,7 @@ void *timerThread (void *data)
     if (start_timer_service_loop() == CPR_FAILURE) {
         CPR_ERROR("%s: timer service loop failed\n", fname);
     }
-    
+
     return NULL;
 }
 
@@ -1026,7 +1026,7 @@ static int select_sockets (void)
     FD_ZERO(&socks);
 
     FD_SET(serv_sock, &socks);
-    
+
     return (serv_sock);
 }
 
@@ -1044,29 +1044,29 @@ static cprRC_t read_timer_cmd ()
     int  rcvlen;
     timer_ipc_t tmr_cmd ={0};
     cprRC_t ret = CPR_FAILURE;
-    
 
-    
+
+
     rcvlen =recvfrom(serv_sock, &tmr_cmd, sizeof(timer_ipc_t), 0,
                      NULL, NULL);
-    
+
     if (rcvlen > 0) {
         
         switch(tmr_cmd.msg_type) {
 	case TMR_CMD_ADD:
             
             
-	  
+
             ret = addTimer((cpr_timer_t *)tmr_cmd.u.cmd.timer_ptr,tmr_cmd.u.cmd.duration,
               tmr_cmd.u.cmd.user_data_ptr);
 
             break;
-            
+
 	case TMR_CMD_REMOVE:
             
             ret = removeTimer((cpr_timer_t *)tmr_cmd.u.cmd.timer_ptr);
             break;
-            
+
         default:
             CPR_ERROR("%s:invalid ipc command = %d\n", tmr_cmd.msg_type);
             ret = CPR_FAILURE;
@@ -1082,9 +1082,9 @@ static cprRC_t read_timer_cmd ()
 
     
     send_api_result(ret, &tmr_client_addr, sizeof(tmr_client_addr));
-    
+
     return (ret);
-    
+
 }
 
 
@@ -1097,7 +1097,7 @@ void send_api_result(cprRC_t retVal, struct sockaddr_un *addr, socklen_t len)
 {
     static const char fname[] = "send_api_result";
     timer_ipc_t tmr_rsp = {0};
-    
+
     tmr_rsp.msg_type = TMR_RESULT;
     tmr_rsp.u.result = retVal;
     if (sendto(serv_sock, &tmr_rsp, sizeof(timer_ipc_t),0, (struct sockaddr *)addr, len) < 0) {
@@ -1126,11 +1126,11 @@ cprRC_t start_timer_service_loop (void)
     memset(&tmr_serv_addr, 0, sizeof(tmr_serv_addr));
     tmr_serv_addr.sun_family = AF_UNIX;
     snprintf(tmr_serv_addr.sun_path, sizeof(tmr_serv_addr.sun_path), "%s_%d",SERVER_PATH, getpid());
-    
+
     memset(&tmr_client_addr, 0, sizeof(tmr_client_addr));
     tmr_client_addr.sun_family = AF_UNIX;
     snprintf(tmr_client_addr.sun_path, sizeof(tmr_client_addr.sun_path), "%s_%d",CLIENT_PATH, getpid());
-    
+
     
 
 
@@ -1140,8 +1140,8 @@ cprRC_t start_timer_service_loop (void)
                   strerror(errno));
         return CPR_FAILURE;
     }
-    
-     
+
+
     
     client_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (client_sock == INVALID_SOCKET) {
@@ -1195,7 +1195,7 @@ cprRC_t start_timer_service_loop (void)
 	}
 
         ret = select(lsock + 1, &socks, NULL, NULL, (use_timeout == TRUE) ? &tv:NULL);
-        
+
         if (ret == -1) {
             CPR_ERROR("%s:error in select err=%s\n", fname,
                       strerror(errno));
@@ -1207,7 +1207,7 @@ cprRC_t start_timer_service_loop (void)
             timerListHead->duration = 0;
             process_expired_timers();
         } else {
-            
+
             if (FD_ISSET(serv_sock, &socks)) {
                 
                 
@@ -1217,7 +1217,7 @@ cprRC_t start_timer_service_loop (void)
                     
                     
                     timerListHead->duration = tv.tv_sec * 1000 + (tv.tv_usec/1000);
-                }  
+                }
                 
                 (void) read_timer_cmd();
             }
@@ -1249,7 +1249,7 @@ void process_expired_timers() {
     if (timerListHead->duration > 0) {
         return;
     }
-    
+
 
     
     processingTimers = TRUE;
@@ -1266,7 +1266,7 @@ void process_expired_timers() {
                         timerListHead->cprTimerPtr->name;
                     
                     
-                    
+
                     timerMsg->expiredTimerId =
                         timerListHead->cprTimerPtr->applicationTimerId;
                     timerMsg->usrData =

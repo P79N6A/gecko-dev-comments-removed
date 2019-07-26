@@ -21,7 +21,7 @@ void platform_apply_config (char * configVersionStamp, char * dialplanVersionSta
 
 
 
-cpr_ip_mode_e platGetIpAddressMode(); 
+cpr_ip_mode_e platGetIpAddressMode();
 
 
 

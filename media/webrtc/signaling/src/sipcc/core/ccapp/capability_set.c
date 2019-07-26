@@ -1,7 +1,7 @@
 
 
 
- 
+
 #include "capability_set.h"
 #include "CCProvider.h"
 
@@ -32,7 +32,7 @@ static const unsigned int               CONFERENCE_LIST_FCP_INDEX   = 4;
 static const unsigned int               SPEED_DIAL_FCP_INDEX        = 5;
 static const unsigned int               CALL_BACK_FCP_INDEX         = 6;
 static const unsigned int               REDIAL_FCP_INDEX            = 7;
-  
+
 static int                              fcp_index = -1;
 
 
@@ -78,14 +78,14 @@ static void fcp_set_index (unsigned int fcpCapabilityId, cc_boolean state)
    
    if ((fcpCapabilityId <= 0) || (fcpCapabilityId > FCP_FEATURE_MAX))
    {
-        CONFIG_ERROR(CFG_F_PREFIX "Unable to set capability of unknown feature [%d] in FCP \n", "fcp_set_index", fcpCapabilityId);                    
-        return;   
+        CONFIG_ERROR(CFG_F_PREFIX "Unable to set capability of unknown feature [%d] in FCP \n", "fcp_set_index", fcpCapabilityId);
+        return;
    }
 
    
    capabilityId = cc_fcp_id_to_capability_map[fcpCapabilityId];
-   
-       
+
+
    
    switch (capabilityId)
    {
@@ -93,7 +93,7 @@ static void fcp_set_index (unsigned int fcpCapabilityId, cc_boolean state)
        case CCAPI_CALL_CAP_REDIAL   :  capset_set_fcp_redial (state);          break;
        default :
        {
-           CONFIG_ERROR(CFG_F_PREFIX "Unable to update settings for capability [%d]\n", "fcp_set_index", (int)capabilityId);                    
+           CONFIG_ERROR(CFG_F_PREFIX "Unable to update settings for capability [%d]\n", "fcp_set_index", (int)capabilityId);
            break;
        }
     }
@@ -103,7 +103,7 @@ static void fcp_set_index (unsigned int fcpCapabilityId, cc_boolean state)
 
 
 
-static void capset_init () 
+static void capset_init ()
 {
    
    memset(capability_idleset, 0, sizeof(capability_idleset));
@@ -112,16 +112,16 @@ static void capset_init ()
    
    
    
-   
+
    CONFIG_DEBUG(DEB_F_PREFIX"FCP Initializing Capabilities to default\n", DEB_F_PREFIX_ARGS(JNI, "capset_init"));
-      
+
    
    
    
+
    
    
-   
-   
+
    capability_idleset[CCAPI_CALL_CAP_NEWCALL]                    = TRUE;
 
    
@@ -199,7 +199,7 @@ void capset_get_idleset ( cc_cucm_mode_t mode, cc_boolean features[])
 
 
 
-void capset_get_allowed_features ( cc_cucm_mode_t mode, cc_call_state_t state, cc_boolean features[]) 
+void capset_get_allowed_features ( cc_cucm_mode_t mode, cc_call_state_t state, cc_boolean features[])
 {
   static const char fname[] = "capset_get_allowed_features";
   int i;
@@ -229,16 +229,16 @@ static void fcp_set_capabilities()
 
     if ( (fcp_index+1) >= FCP_FEATURE_MAX) {
         fcp_index = (FCP_FEATURE_MAX -1);
-        CONFIG_ERROR(CFG_F_PREFIX "Received more than the maximum supported features [%d] in FCP \n", "fcp_set_capabilities", FCP_FEATURE_MAX);                    
-        
+        CONFIG_ERROR(CFG_F_PREFIX "Received more than the maximum supported features [%d] in FCP \n", "fcp_set_capabilities", FCP_FEATURE_MAX);
+
     }
    
    
    for (my_fcp_index = 0; my_fcp_index <= fcp_index; my_fcp_index++)
    {   
-       fcp_set_index(cc_feat_control_policy[my_fcp_index].featureId, (cc_feat_control_policy[my_fcp_index].featureEnabled == TRUE));       
+       fcp_set_index(cc_feat_control_policy[my_fcp_index].featureId, (cc_feat_control_policy[my_fcp_index].featureEnabled == TRUE));
    }
-}   
+}
 
 
 
@@ -248,14 +248,14 @@ static void fcp_init()
 {
    
    fcp_index = -1;
-      
+
    
    cc_fcp_id_to_capability_map[CALL_FORWARD_ALL_FCP_INDEX]   = CCAPI_CALL_CAP_CALLFWD;
    cc_fcp_id_to_capability_map[REDIAL_FCP_INDEX]             = CCAPI_CALL_CAP_REDIAL;
 
    
    capset_init();
-   
+
    
    g_fp_version_stamp[0] = '\0';
 }
@@ -266,11 +266,11 @@ static void fcp_init()
 
 int fcp_init_template (const char* fcp_plan_string)
 {
-    fcp_init();    
-        
+    fcp_init();
+
     if (fcp_plan_string == NULL)
     {   
-       return (0);  
+       return (0);
     }
 
     

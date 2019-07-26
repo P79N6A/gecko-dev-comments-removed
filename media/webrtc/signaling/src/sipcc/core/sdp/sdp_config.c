@@ -16,7 +16,7 @@
 
 
 
-tinybool sdp_verify_conf_ptr (sdp_conf_options_t *conf_p) 
+tinybool sdp_verify_conf_ptr (sdp_conf_options_t *conf_p)
 {
     if ((conf_p != NULL) && (conf_p->magic_num == SDP_MAGIC_NUM)) {
         return (TRUE);
@@ -109,7 +109,7 @@ void *sdp_init_config ()
 
 
 
-void sdp_appl_debug (void *config_p, sdp_debug_e debug_type, 
+void sdp_appl_debug (void *config_p, sdp_debug_e debug_type,
                      tinybool debug_flag)
 {
     sdp_conf_options_t *conf_p = (sdp_conf_options_t *)config_p;
@@ -118,7 +118,7 @@ void sdp_appl_debug (void *config_p, sdp_debug_e debug_type,
         return;
     }
 
-    if (debug_type < SDP_MAX_DEBUG_TYPES)  {    
+    if (debug_type < SDP_MAX_DEBUG_TYPES)  {
         conf_p->debug_flag[debug_type] = debug_flag;
     }
 }
@@ -189,7 +189,7 @@ void sdp_require_timespec (void *config_p, tinybool timespec_required)
 
 
 
-void sdp_media_supported (void *config_p, sdp_media_e media_type, 
+void sdp_media_supported (void *config_p, sdp_media_e media_type,
 			 tinybool media_supported)
 {
     sdp_conf_options_t *conf_p = (sdp_conf_options_t *)config_p;
@@ -213,7 +213,7 @@ void sdp_media_supported (void *config_p, sdp_media_e media_type,
 
 
 
-void sdp_nettype_supported (void *config_p, sdp_nettype_e nettype, 
+void sdp_nettype_supported (void *config_p, sdp_nettype_e nettype,
 			    tinybool nettype_supported)
 {
     sdp_conf_options_t *conf_p = (sdp_conf_options_t *)config_p;
@@ -237,7 +237,7 @@ void sdp_nettype_supported (void *config_p, sdp_nettype_e nettype,
 
 
 
-void sdp_addrtype_supported (void *config_p, sdp_addrtype_e addrtype, 
+void sdp_addrtype_supported (void *config_p, sdp_addrtype_e addrtype,
 			     tinybool addrtype_supported)
 {
     sdp_conf_options_t *conf_p = (sdp_conf_options_t *)config_p;
@@ -261,7 +261,7 @@ void sdp_addrtype_supported (void *config_p, sdp_addrtype_e addrtype,
 
 
 
-void sdp_transport_supported (void *config_p, sdp_transport_e transport, 
+void sdp_transport_supported (void *config_p, sdp_transport_e transport,
 			      tinybool transport_supported)
 {
     sdp_conf_options_t *conf_p = (sdp_conf_options_t *)config_p;
@@ -291,7 +291,7 @@ void sdp_allow_choose (void *config_p, sdp_choose_param_e param, tinybool choose
         return;
     }
 
-    if (param < SDP_MAX_CHOOSE_PARAMS) { 
+    if (param < SDP_MAX_CHOOSE_PARAMS) {
         conf_p->allow_choose[param] = choose_allowed;
     }
 }

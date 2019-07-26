@@ -109,7 +109,7 @@
 #define CFGID_SPEAKER_ENABLED_BOOL             CFGID_BEGIN_INDEX + 88      //tag:disableSpeaker
 #define CFGID_XFR_ONHOOK_ENABLED_BOOL          CFGID_BEGIN_INDEX + 89      //tag:disableSpeaker
 #define CFGID_ROLLOVER_INT                     CFGID_BEGIN_INDEX + 90      //tag:rollover
-#define CFGID_LOAD_FILE_STRING                 CFGID_BEGIN_INDEX + 91      //not from config file 
+#define CFGID_LOAD_FILE_STRING                 CFGID_BEGIN_INDEX + 91      //not from config file
 
 #define CFGID_BLF_ALERT_TONE_IDLE_INT          CFGID_BEGIN_INDEX + 92      //tag:blfAudibleAlertSettingOfIdleStation
 #define CFGID_BLF_ALERT_TONE_BUSY_INT          CFGID_BEGIN_INDEX + 93      //tag:blfAudibleAlertSettingOfBusyStation
@@ -117,7 +117,7 @@
 
 #define CFGID_JOIN_ACROSS_LINES_INT            CFGID_BEGIN_INDEX + 95      //tag:joinAcrossLines
 
-#if defined(_TNP_) 
+#if defined(_TNP_)
 #define ROUNDTABLE_INDEX_OFFSET            0
 #else
 #define CFGID_MY_ACTIVE_MAC_ADDR_STRING        CFGID_BEGIN_INDEX + 96      //not from configuration
@@ -283,7 +283,7 @@ char* CC_Config_setDialPlan(const char *dial_plan_string, int len);
 
 
 
- 
+
 char* CC_Config_setFcp(const char *fcp_plan_string, int len);
 
 #endif 

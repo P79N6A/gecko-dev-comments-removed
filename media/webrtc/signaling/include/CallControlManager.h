@@ -94,9 +94,9 @@ namespace CSF
 
         
         virtual bool startP2PMode(const std::string& user) = 0;
+
         
-        
-        virtual bool startSDPMode() = 0;        
+        virtual bool startSDPMode() = 0;
 
         
 

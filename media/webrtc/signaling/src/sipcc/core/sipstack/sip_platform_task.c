@@ -68,7 +68,7 @@ sip_connection_t sip_conn;
 
 typedef struct sip_int_msg_t_ {
     void            *msg;
-    phn_syshdr_t    *syshdr;   
+    phn_syshdr_t    *syshdr;
 } sip_int_msg_t;
 
 
@@ -77,7 +77,7 @@ static sip_int_msg_t sip_int_msgq_buf[MAX_SIP_MESSAGES] = {{0,0},{0,0}};
 
 static const char *sip_IPC_serv_name = SIP_MSG_IPC_PATH SIP_MSG_SERV_NAME;
 static const char *sip_IPC_clnt_name = SIP_MSG_IPC_PATH SIP_MSG_CLNT_NAME;
-static cpr_sockaddr_un_t sip_serv_sock_addr; 
+static cpr_sockaddr_un_t sip_serv_sock_addr;
 static cpr_sockaddr_un_t sip_clnt_sock_addr;
 
 
@@ -164,7 +164,7 @@ static cpr_socket_t sip_create_IPC_sock (const char *name)
 
     
     unlink( (char *)addr.sun_path);
-   
+
     
     if (cprBind(sock, (cpr_sockaddr_t *)&addr,
                 cpr_sun_len(addr)) == CPR_FAILURE) {
@@ -246,7 +246,7 @@ void sip_platform_task_msgqwait (void *arg)
     
     (void) cprAdjustRelativeThreadPriority(0);
 #endif
-    
+
     
 
 
@@ -305,7 +305,7 @@ void sip_platform_task_msgqwait (void *arg)
 
             if (cprSendTo(sip_ipc_clnt_socket, (void *)&num_messages,
                           sizeof(num_messages), 0,
-                          (cpr_sockaddr_t *)&sip_serv_sock_addr, 
+                          (cpr_sockaddr_t *)&sip_serv_sock_addr,
                           cpr_sun_len(sip_serv_sock_addr)) < 0) {
                 CCSIP_DEBUG_ERROR(SIP_F_PREFIX"send IPC failed errno=%d\n", fname, cpr_errno);
             }
@@ -344,7 +344,7 @@ static void sip_process_int_msg (void)
     phn_syshdr_t  *syshdr;
 
     
-    rcv_len = cprRecvFrom(sip_ipc_serv_socket, &num_messages, 
+    rcv_len = cprRecvFrom(sip_ipc_serv_socket, &num_messages,
                           sizeof(num_messages), 0, NULL, NULL);
 
     if (rcv_len < 0) {
@@ -352,7 +352,7 @@ static void sip_process_int_msg (void)
                           " errno=%d\n", fname, cpr_errno);
         return;
     }
-     
+
     if (num_messages == 0) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"message queue is empty!\n", fname);
         return;
@@ -444,7 +444,7 @@ sip_platform_task_loop (void *arg)
 
     
 
- 
+
     cpr_set_sockun_addr(&sip_serv_sock_addr, sip_IPC_serv_name, getpid());
 
     
@@ -496,7 +496,7 @@ sip_platform_task_loop (void *arg)
                 FD_SET(entry->fd, &sip_write_fds);
             }
         }
-        
+
         pending_operations = cprSelect((nfds + 1),
                                        &sip_read_fds,
                                        &sip_write_fds,
@@ -514,8 +514,8 @@ sip_platform_task_loop (void *arg)
 
 
             sip_platform_task_init(); 
-            sip_platform_task_set_read_socket(sip_ipc_serv_socket); 
-            
+            sip_platform_task_set_read_socket(sip_ipc_serv_socket);
+
             
 
 

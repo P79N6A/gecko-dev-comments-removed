@@ -45,7 +45,7 @@ nsresult MediaPipeline::Init() {
   MOZ_ASSERT(rtp_transport_);
 
   nsresult res;
-  
+
   
   rtp_transport_->SignalStateChange.connect(this,
                                             &MediaPipeline::StateChange);
@@ -360,10 +360,10 @@ bool MediaPipeline::IsRtp(const unsigned char *data, size_t len) {
   
   if ((data[1] < 192) || (data[1] > 207))
     return true;
-  
+
   if (data[1] == 192)  
     return false;
-  
+
   if (data[1] == 193)  
     return true;       
 
@@ -371,7 +371,7 @@ bool MediaPipeline::IsRtp(const unsigned char *data, size_t len) {
     return true;
 
   if (data[1] == 195)  
-    return false;   
+    return false;
 
   if ((data[1] > 195) && (data[1] < 200))  
     return true;
@@ -400,9 +400,9 @@ void MediaPipeline::PacketReceived(TransportLayer *layer,
 
 nsresult MediaPipelineTransmit::Init() {
   
-  MOZ_MTLOG(PR_LOG_DEBUG, "Attaching pipeline to stream " 
+  MOZ_MTLOG(PR_LOG_DEBUG, "Attaching pipeline to stream "
             << static_cast<void *>(stream_) <<
-            " conduit type=" << 
+            " conduit type=" <<
             (conduit_->type() == MediaSessionConduit::AUDIO ?
              "audio" : "video") <<
             " hints=" << stream_->GetHintContents());

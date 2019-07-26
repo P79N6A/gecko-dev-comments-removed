@@ -90,7 +90,7 @@ void configApplyConfigNotify(cc_string_t config_version,
 
 
 
-cc_boolean dialPlanFetchReq(int device_handle, char* dialPlanFileName); 
+cc_boolean dialPlanFetchReq(int device_handle, char* dialPlanFileName);
 
 
 
@@ -103,7 +103,7 @@ cc_boolean dialPlanFetchReq(int device_handle, char* dialPlanFileName);
 
 
 
-cc_boolean fcpFetchReq(int device_handle, char* fcpFileName); 
+cc_boolean fcpFetchReq(int device_handle, char* fcpFileName);
 
 
 cc_boolean CCAPI_Config_set_server_address(const char *ip_address);

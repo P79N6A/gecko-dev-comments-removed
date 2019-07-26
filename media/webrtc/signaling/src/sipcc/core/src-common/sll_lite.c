@@ -55,11 +55,11 @@
 sll_lite_return_e
 sll_lite_init (sll_lite_list_t *list)
 {
-    if (list == NULL) { 
+    if (list == NULL) {
         return (SLL_LITE_RET_INVALID_ARGS);
     }
     list->count   = 0;
-    list->head_p  = NULL; 
+    list->head_p  = NULL;
     list->tail_p  = NULL;
     return (SLL_LITE_RET_SUCCESS);
 }
@@ -87,7 +87,7 @@ sll_lite_link_head (sll_lite_list_t *list, sll_lite_node_t *node)
         
         list->head_p = node;
         list->tail_p = node;
-        node->next_p = NULL; 
+        node->next_p = NULL;
     } else {
         
         node->next_p = list->head_p;

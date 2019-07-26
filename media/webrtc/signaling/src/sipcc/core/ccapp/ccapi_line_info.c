@@ -19,7 +19,7 @@ cc_int32_t CCAPI_lineInfo_getID(cc_lineinfo_ref_t line)
    cc_line_info_t  *info = (cc_line_info_t *) line;
 
    CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
-   
+
    
    if ( info != NULL ) {
        CCAPP_DEBUG(DEB_F_PREFIX"returned %d\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), info->button);
@@ -406,7 +406,7 @@ cc_return_t  CCAPI_LineInfo_getCapabilitySet (cc_lineinfo_ref_t line, cc_int32_t
     static const char *fname="CCAPI_LineInfo_getCapabilitySet";
    cc_line_info_t  *info = (cc_line_info_t *) line;
     int feat_id;
-	         
+
     CCAPP_DEBUG(DEB_F_PREFIX"Entering\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
 
     if ( info != NULL){
@@ -414,7 +414,7 @@ cc_return_t  CCAPI_LineInfo_getCapabilitySet (cc_lineinfo_ref_t line, cc_int32_t
          feat_set[feat_id] = info->allowed_features[feat_id];
          CCAPP_DEBUG(DEB_F_PREFIX"feature id:  %d , value %d\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname),feat_id,  feat_set[feat_id]);
        }
-			            
+
        CCAPP_DEBUG(DEB_F_PREFIX"returned CC_SUCCESS\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
        return CC_SUCCESS;
     }

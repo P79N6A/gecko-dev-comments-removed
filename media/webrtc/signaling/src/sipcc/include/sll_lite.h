@@ -17,7 +17,7 @@ typedef struct sll_lite_node_t_ {
 
 
 typedef struct sll_lite_list_t_ {
-    uint16_t        count;     
+    uint16_t        count;    
     sll_lite_node_t *head_p;  
     sll_lite_node_t *tail_p;  
 } sll_lite_list_t;
@@ -69,7 +69,7 @@ sll_lite_init(sll_lite_list_t *list);
 
 
 
- 
+
 extern sll_lite_return_e
 sll_lite_link_head(sll_lite_list_t *list, sll_lite_node_t *node);
 

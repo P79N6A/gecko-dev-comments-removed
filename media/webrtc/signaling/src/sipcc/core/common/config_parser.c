@@ -35,7 +35,7 @@
 #define ID_BLOCK_PREF3   3
 
 
- 
+
 #define IP_ADDR_FILE  "/sdcard/myip.txt"
 static char autoreg_name[MAX_LINE_NAME_SIZE];
 
@@ -161,7 +161,7 @@ boolean is_cfgid_in_restart_list(int cfgid) {
 void compare_or_set_byte_value(int cfgid, unsigned char value, const unsigned char * config_name) {
     int temp_value ;
     const var_t *entry;
-    if (apply_config == TRUE) { 
+    if (apply_config == TRUE) {
         if (is_cfgid_in_restart_list(cfgid) == TRUE) {
             config_get_value(cfgid, &temp_value, sizeof(temp_value));
             if (((int)value) !=  temp_value) {
@@ -183,7 +183,7 @@ void compare_or_set_byte_value(int cfgid, unsigned char value, const unsigned ch
 void compare_or_set_boolean_value(int cfgid, cc_boolean value, const unsigned char * config_name) {
     int temp_value ;
     const var_t *entry;
-    if (apply_config == TRUE) { 
+    if (apply_config == TRUE) {
         if (is_cfgid_in_restart_list(cfgid) == TRUE) {
             config_get_value(cfgid, &temp_value, sizeof(temp_value));
             if (((int)value) !=  temp_value) {
@@ -205,7 +205,7 @@ void compare_or_set_boolean_value(int cfgid, cc_boolean value, const unsigned ch
 void compare_or_set_int_value(int cfgid, int value, const unsigned char * config_name) {
     int temp_value;
     const var_t *entry;
-    if (apply_config == TRUE) { 
+    if (apply_config == TRUE) {
         if (is_cfgid_in_restart_list(cfgid) == TRUE) {
             config_get_value(cfgid, &temp_value, sizeof(temp_value));
             if (value !=  temp_value) {
@@ -228,7 +228,7 @@ void compare_or_set_int_value(int cfgid, int value, const unsigned char * config
 void compare_or_set_string_value (int cfgid, const char* value, const unsigned char * config_name) {
     static char temp_value[MAX_SIP_URL_LENGTH];
     const var_t *entry;
-    if (apply_config == TRUE ) { 
+    if (apply_config == TRUE ) {
         if (is_cfgid_in_restart_list(cfgid) == TRUE) {
             config_get_string(cfgid, temp_value, MAX_SIP_URL_LENGTH);
             if (strcmp(value, temp_value) != 0) {
@@ -299,14 +299,14 @@ void update_security_mode_and_ports(void) {
           CONFIG_ERROR(CFG_F_PREFIX "unable to translate securite mode [%d]\n", "update_security_mode_and_ports", (int)security_mode);
           break;
         }
-                                
+
 	compare_or_set_int_value(CFGID_CCM1_SEC_LEVEL, sec_level,
 							 (const unsigned char *)"deviceSecurityMode");
 	compare_or_set_int_value(CFGID_CCM2_SEC_LEVEL, sec_level,
 							 (const unsigned char *)"deviceSecurityMode");
 	compare_or_set_int_value(CFGID_CCM3_SEC_LEVEL, sec_level,
 							 (const unsigned char *)"deviceSecurityMode");
-                                                                                
+
 	if (sec_level == NON_SECURE) {
 		compare_or_set_int_value(CFGID_CCM1_SIP_PORT, sip_port[0],
 								 (const unsigned char *)"ccm1_sip_port");
@@ -353,7 +353,7 @@ void config_set_ccm_ip_mac ()
     compare_or_set_int_value(CFGID_SPEAKER_ENABLED, 1, (const unsigned char *) "speakerEnabled");
 
     if (apply_config == FALSE) {
-        config_get_mac_addr(macaddr);     
+        config_get_mac_addr(macaddr);
 
         CONFIG_DEBUG(CFG_F_PREFIX ": MAC Address IS:  %x:%x:%x:%x:%x:%x  \n",
                           "config_get_mac_addr", macaddr[0], macaddr[1],

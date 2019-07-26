@@ -35,7 +35,7 @@ static struct dcsm_icb_t {
     line_t              line;
     int                 gsm_state;
     sll_handle_t        s_msg_list;
-    
+
     dcsm_state_e        state;
 } dcsm_cb;
 
@@ -124,7 +124,7 @@ static boolean
 dcsm_add_event_to_queue (void *event)
 {
     (void) sll_append(dcsm_cb.s_msg_list, event);
-    
+
     return TRUE;
 }
 
@@ -141,9 +141,9 @@ static void *
 dcsm_get_first_event_from_queue (void)
 {
     void *msg_ptr = NULL;
-    
+
     msg_ptr = sll_next(dcsm_cb.s_msg_list, NULL);
-    
+
     sll_remove(dcsm_cb.s_msg_list, msg_ptr);
 
     return(msg_ptr);
@@ -160,11 +160,11 @@ dcsm_get_first_event_from_queue (void)
 
 const char *dcsm_get_state_name (int state)
 {
-    if ((state <= DCSM_S_MIN) || 
+    if ((state <= DCSM_S_MIN) ||
             (state >= DCSM_S_MAX)) {
         return (get_debug_string(GSM_UNDEFINED));
     }
-    
+
     return dcsm_state_names[state];
 }
 
@@ -179,7 +179,7 @@ const char *dcsm_get_state_name (int state)
 static void dcsm_process_event_to_gsm (void *msg_ptr)
 {
     if (fim_process_event(msg_ptr, FALSE) == TRUE) {
-    
+
         fim_free_event(msg_ptr);
 
         
@@ -209,7 +209,7 @@ static void dcsm_do_ready_state_job (void)
             DEB_F_PREFIX_ARGS("DCSM", fname));
         return;
     }
-    
+
     msg_ptr = dcsm_get_first_event_from_queue();
 
     
@@ -221,7 +221,7 @@ static void dcsm_do_ready_state_job (void)
                 call_id = feat_msg->call_id;
             }
         }
-        
+
         DEF_DEBUG(DEB_F_PREFIX"%d: event (%s%s)\n",
             DEB_F_PREFIX_ARGS("DCSM", fname), call_id,
                      cc_msg_name((cc_msgs_t)(event_id)),
@@ -254,7 +254,7 @@ static void dcsm_add_call_id_to_list (callid_t call_id)
 {
     static const char fname[] = "dcsm_add_call_id_to_list";
     int i, loc = -1;
-    
+
     for (i=0; i< DCSM_MAX_CALL_IDS; i++) {
         if (dcsm_cb.call_ids[i] == CC_NO_CALL_ID) {
             loc = i;
@@ -265,13 +265,13 @@ static void dcsm_add_call_id_to_list (callid_t call_id)
     }
 
     if (loc == -1) {
-    
+
         
 
 
         DCSM_ERROR(DCSM_F_PREFIX"DCSM No space to store call_id.\n",
                                     DEB_F_PREFIX_ARGS("DCSM", fname));
-        return;                                    
+        return;
     }
 
     dcsm_cb.call_ids[loc] = call_id;
@@ -289,11 +289,11 @@ static boolean dcsm_remove_check_for_empty_list (callid_t call_id)
 {
     int         i;
     boolean      call_id_present = FALSE;
-    
+
     for (i=0; i< DCSM_MAX_CALL_IDS; i++) {
         if (dcsm_cb.call_ids[i] == call_id) {
             dcsm_cb.call_ids[i] = CC_NO_CALL_ID;
-            
+
             
 
 
@@ -301,12 +301,12 @@ static boolean dcsm_remove_check_for_empty_list (callid_t call_id)
             if (call_id_present == TRUE) {
                 return FALSE;
             }
-            
+
         } else if (dcsm_cb.call_ids[i] != CC_NO_CALL_ID) {
             call_id_present = TRUE;
         }
     }
-    
+
     if (call_id_present == TRUE) {
         return(FALSE);
     }
@@ -330,16 +330,16 @@ dcsm_update_gsm_state (fsm_fcb_t *fcb, callid_t call_id, int state)
     int    last_state;
     static const char fname[] = "dcsm_update_gsm_state";
     fsmdef_dcb_t *dcb;
-    
+
     if (fcb->fsm_type != FSM_TYPE_DEF) {
-        DEF_DEBUG(DEB_F_PREFIX"%d: Not handling for %s\n", 
-                  DEB_F_PREFIX_ARGS("DCSM", fname), call_id, 
+        DEF_DEBUG(DEB_F_PREFIX"%d: Not handling for %s\n",
+                  DEB_F_PREFIX_ARGS("DCSM", fname), call_id,
                   fsm_type_name(fcb->fsm_type));
         return;
     }
 
     last_state = dcsm_cb.state;
-    
+
     switch (state) {
         case FSMDEF_S_RELEASING:
             dcb = fsmdef_get_dcb_by_call_id(call_id);
@@ -351,7 +351,7 @@ dcsm_update_gsm_state (fsm_fcb_t *fcb, callid_t call_id, int state)
         case FSMDEF_S_HOLD_PENDING:
         case FSMDEF_S_RESUME_PENDING:
             dcsm_add_call_id_to_list(call_id);
-           
+
             dcsm_cb.state = DCSM_S_WAITING;
             break;
         case FSMDEF_S_MIN:
@@ -385,12 +385,12 @@ dcsm_update_gsm_state (fsm_fcb_t *fcb, callid_t call_id, int state)
                     }
                 }
             }
-            
+
             break;
         default:
             break;
     }
-    
+
     DEF_DEBUG(DEB_F_PREFIX"%d : %s --> %s\n",
             DEB_F_PREFIX_ARGS("DCSM", fname), call_id,
             dcsm_get_state_name(last_state),
@@ -436,7 +436,7 @@ dcsm_wait_ev_feature_handling (void *event, int event_id)
     cc_feature_t     *feat_msg     = (cc_feature_t *) event;
     sm_rcs_t   rc = SM_RC_END;
     cc_features_t      ftr_id = CC_FEATURE_UNDEFINED;
-    callid_t           call_id = CC_NO_CALL_ID; 
+    callid_t           call_id = CC_NO_CALL_ID;
 
     if (feat_msg != NULL) {
         ftr_id  = feat_msg->feature_id;
@@ -462,12 +462,12 @@ dcsm_wait_ev_feature_handling (void *event, int event_id)
         default:
             DEF_DEBUG(DEB_F_PREFIX"%d: Feature msg not handled\n",
                      DEB_F_PREFIX_ARGS("DCSM", fname), call_id);
-            
+
             rc = SM_RC_CONT;
             break;
     }
-    
-    
+
+
     return (rc);
 
 }
@@ -524,15 +524,15 @@ dcsm_process_event (void *event, int event_id)
             call_id = feat_msg->call_id;
         }
     }
-    
+
     DEF_DEBUG(DEB_F_PREFIX"DCSM %-4d:(%s:%s%s)\n",
                      DEB_F_PREFIX_ARGS("DCSM", fname), call_id,
                      dcsm_get_state_name(dcsm_cb.state),
                      cc_msg_name((cc_msgs_t)(event_id)),
                      feat_msg ? cc_feature_name(feat_msg->feature_id):" ");
-    
+
     state_id = dcsm_cb.state; 
-                     
+
    
 
 
@@ -541,8 +541,8 @@ dcsm_process_event (void *event, int event_id)
         (state_id < pdcsm_sm_table->max_state) &&
         (event_id > pdcsm_sm_table->min_event) &&
         (event_id < pdcsm_sm_table->max_event)) {
-        
-        if ((hdlr = pdcsm_sm_table->table[pdcsm_sm_table->max_event * state_id + 
+
+        if ((hdlr = pdcsm_sm_table->table[pdcsm_sm_table->max_event * state_id +
                             event_id]) != NULL) {
             DEF_DEBUG(DEB_F_PREFIX"%-4d: dcsm entry: (%s)\n",
                          DEB_F_PREFIX_ARGS("DCSM", fname), call_id,
@@ -550,7 +550,7 @@ dcsm_process_event (void *event, int event_id)
 
             rc = hdlr(event, event_id);
         }
-        
+
     }
 
     return (rc);
@@ -601,11 +601,11 @@ dcsm_show_cmd (cc_int32_t argc, const char *argv[])
         return (0);
     }
 
-   
+
     if (dcsm_cb.s_msg_list == NULL) {
         return(0);
     }
-    
+
     debugif_printf("\n-------------------------- DCSM Data --------------------------");
     debugif_printf("\nDCSM State = %s",dcsm_get_state_name(dcsm_cb.state));
     debugif_printf("\nDCSM waiting calls \n");
@@ -616,13 +616,13 @@ dcsm_show_cmd (cc_int32_t argc, const char *argv[])
         }
     }
     debugif_printf("\n");
-    
+
     debugif_printf("\nDCSM waiting events \n");
     i = 0;
     msg_ptr = sll_next(dcsm_cb.s_msg_list, NULL);
     while (msg_ptr) {
         msg_ptr = sll_next(dcsm_cb.s_msg_list, msg_ptr);
-        
+
         if (msg_ptr) {
             msg = (cc_setup_t *) msg_ptr;
             msg_id   = msg->msg_id;
@@ -631,14 +631,14 @@ dcsm_show_cmd (cc_int32_t argc, const char *argv[])
             if ((int)msg_id == CC_MSG_FEATURE) {
                 feat_msg = (cc_feature_t *) msg_ptr;
             }
-            
+
             debugif_printf("Event %d (%d/%d): (%s%s)\n",
                        i++, line, call_id, cc_msg_name(msg_id),
                         feat_msg ? cc_feature_name(feat_msg->feature_id):" ");
         }
     }
     debugif_printf("\n-------------------------- DCSM Data Done-----------------------");
-        
+
     return (0);
 }
 
@@ -658,7 +658,7 @@ dcsm_init (void)
 {
     static const char fname[] = "dcsm_init";
     int i;
-    
+
     
 
 
@@ -667,13 +667,13 @@ dcsm_init (void)
     dcsm_sm_table.min_event = CC_MSG_MIN;
     dcsm_sm_table.max_event = CC_MSG_MAX;
     dcsm_sm_table.table     = (&(dcsm_function_table[0][0]));
-    
+
     dcsm_cb.state = DCSM_S_READY;
 
     for (i=0; i< DCSM_MAX_CALL_IDS; i++) {
         dcsm_cb.call_ids[i] = CC_NO_CALL_ID;
     }
-    
+
     
     dcsm_cb.s_msg_list = sll_create((sll_match_e(*)(void *, void *))
                             dcsm_match_event);
@@ -683,7 +683,7 @@ dcsm_init (void)
                                     DEB_F_PREFIX_ARGS("DCSM", fname));
 
     }
-   
+
 }
 
 
@@ -700,15 +700,15 @@ void
 dcsm_shutdown (void)
 {
     void *msg_ptr;
-    
+
     if (dcsm_cb.s_msg_list == NULL) {
         return;
     }
-    
+
     msg_ptr = sll_next(dcsm_cb.s_msg_list, NULL);
     while (msg_ptr) {
         msg_ptr = sll_next(dcsm_cb.s_msg_list, msg_ptr);
-        
+
         if (msg_ptr) {
             fim_free_event(msg_ptr);
 
@@ -716,7 +716,7 @@ dcsm_shutdown (void)
             cpr_free(msg_ptr);
         }
     }
-    
+
     sll_destroy(dcsm_cb.s_msg_list);
     dcsm_cb.s_msg_list = NULL;
 }

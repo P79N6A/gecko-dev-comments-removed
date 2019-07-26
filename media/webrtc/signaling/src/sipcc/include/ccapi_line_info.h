@@ -101,7 +101,7 @@ void CCAPI_LineInfo_getCalls(cc_lineid_t line, cc_call_handle_t handles[], int *
 
 
 
-void CCAPI_LineInfo_getCallsByState(cc_lineid_t line, cc_call_state_t state, 
+void CCAPI_LineInfo_getCallsByState(cc_lineid_t line, cc_call_state_t state,
                 cc_call_handle_t handles[], int *count);
 
 

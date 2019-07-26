@@ -13,7 +13,7 @@
 #include "logging.h"
 
 #include "mozilla/RefPtr.h"
-  
+
 
 using namespace mozilla;
 MOZ_MTLOG_MODULE("mediapipeline");

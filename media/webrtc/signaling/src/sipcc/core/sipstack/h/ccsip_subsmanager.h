@@ -48,7 +48,7 @@ typedef enum {
 
 
 
- 
+
 typedef uint32_t sub_id_t;
 
 #define MAX_EVENT_NAME_LEN           32
@@ -293,7 +293,7 @@ typedef struct {
 
     line_t             line;
     
-    sub_id_t           sub_id; 
+    sub_id_t           sub_id;
 
     
     boolean            pendingClean;

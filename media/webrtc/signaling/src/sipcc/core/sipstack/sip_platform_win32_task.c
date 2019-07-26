@@ -253,7 +253,7 @@ sip_platform_task_loop (void *arg)
 
 
 
- 
+
         if (i >= MAX_SIP_MESSAGES) {
             timeout.tv_usec = SIP_SELECT_QUICK_TIMEOUT;
         } else {

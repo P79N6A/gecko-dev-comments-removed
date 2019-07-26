@@ -39,7 +39,7 @@ void CCAPI_Device_configUpdate(cc_device_handle_t handle, file_path_t file_path)
 
 
 
- 
+
 void CCAPI_Device_retainDeviceInfo(cc_deviceinfo_ref_t ref);
 
 

@@ -37,7 +37,7 @@ void escalateDeescalate() {
     if ( ccapp_get_state() != CC_INSERVICE ) {
         VCM_DEBUG(MED_F_PREFIX"Ignoring video cap update\n", "escalateDeescalate");
         return;
-    }  
+    }
 
     
     cc_int_feature(CC_SRC_UI, CC_SRC_GSM, CC_NO_CALL_ID,
@@ -49,7 +49,7 @@ cc_boolean cc_media_isTxCapEnabled() {
 }
 
 cc_boolean cc_media_isVideoCapEnabled() {
-    if ( g_nativeVidSupported ) { 
+    if ( g_nativeVidSupported ) {
        return g_vidCapEnabled;
     }
     return FALSE;
@@ -66,10 +66,10 @@ static void updateVidCapTbl(){
     if ( g_vidCapEnabled  ) {
         if ( g_media_table.cap[CC_VIDEO_1].enabled == FALSE ) {
             
-            if ( g_nativeVidSupported ) { 
+            if ( g_nativeVidSupported ) {
                 
                 g_media_table.cap[CC_VIDEO_1].enabled = TRUE;
-                g_media_table.cap[CC_VIDEO_1].support_direction = 
+                g_media_table.cap[CC_VIDEO_1].support_direction =
                    g_natve_txCap_enabled?SDP_DIRECTION_SENDRECV:SDP_DIRECTION_RECVONLY;
                 if ( g_natve_txCap_enabled == FALSE ) {
 
@@ -109,7 +109,7 @@ void cc_media_update_video_cap(boolean val) {
     DEF_DEBUG(MED_F_PREFIX"Setting video cap val=%d\n", "cc_media_update_video_cap", val);
     g_vidCapEnabled = val;
     updateVidCapTbl();
-    if ( g_nativeVidSupported ) { 
+    if ( g_nativeVidSupported ) {
         ccsnap_gen_deviceEvent(CCAPI_DEVICE_EV_VIDEO_CAP_ADMIN_CONFIG_CHANGED, CC_DEVICE_ID);
     }
 }
@@ -139,10 +139,10 @@ void cc_media_update_native_video_txcap(boolean enable) {
 
         }
 
-        g_media_table.cap[CC_VIDEO_1].support_direction  = 
+        g_media_table.cap[CC_VIDEO_1].support_direction  =
             g_natve_txCap_enabled?SDP_DIRECTION_SENDRECV:SDP_DIRECTION_RECVONLY;
 
-        escalateDeescalate();   
+        escalateDeescalate();
     }
 }
 

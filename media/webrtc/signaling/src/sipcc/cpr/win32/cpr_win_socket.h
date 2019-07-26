@@ -63,7 +63,7 @@ typedef unsigned int    u_int;
 typedef int cpr_socklen_t;
 typedef SOCKET cpr_socket_t;
 typedef unsigned long u_long;
-typedef unsigned short u_short; 
+typedef unsigned short u_short;
 
 #define SUPPORT_CONNECT_CONST const
 
@@ -72,4 +72,4 @@ typedef unsigned short u_short;
 #endif
 
 #define MAX_RETRY_FOR_EAGAIN 10
-#endif 
+#endif

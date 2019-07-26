@@ -89,14 +89,14 @@ DigestCalcResponse (IN HASHHEX HA1,
     MD5Update(&Md5Ctx, (unsigned char *) pszMethod, strlen(pszMethod));
     MD5Update(&Md5Ctx, (unsigned char *) ":", 1);
     MD5Update(&Md5Ctx, (unsigned char *) pszDigestUri, strlen(pszDigestUri));
-    
 
 
 
 
 
 
-     
+
+
     MD5Final((unsigned char *) HA2, &Md5Ctx);
 
     CvtHex(HA2, HA2Hex);

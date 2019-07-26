@@ -93,7 +93,7 @@ typedef struct {
 
 typedef struct {
     cc_boolean      start;
-    vcm_ring_mode_t mode; 
+    vcm_ring_mode_t mode;
     cc_boolean      once;
 } cc_ringer_state_t;
 

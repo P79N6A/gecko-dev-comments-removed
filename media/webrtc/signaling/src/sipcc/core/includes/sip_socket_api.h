@@ -29,7 +29,7 @@
 ssize_t
 sipSocketSend (cpr_socket_t soc,
          CONST void *buf,
-         size_t len, 
+         size_t len,
          int32_t flags,
          boolean secure);
 

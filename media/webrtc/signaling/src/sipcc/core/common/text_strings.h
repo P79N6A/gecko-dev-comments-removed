@@ -27,7 +27,7 @@
 
 
 
-#define CONFERENCE_STR                  "conference"   
+#define CONFERENCE_STR                  "conference"
 #define CONFERENCE_STR_LEN              (sizeof(CONFERENCE_STR)-1)
 #define CONFERENCE_LOCALE_CODE			 964
 
@@ -42,7 +42,7 @@
 #define STR_INDEX_CNFR_FAIL_NOCODEC     1054
 #define STR_INDEX_REORDER               1055
 #define STR_INDEX_ANONYMOUS_SPACE       1056
-#define STR_INDEX_NO_FREE_LINES         1057 
+#define STR_INDEX_NO_FREE_LINES         1057
 #define STR_INDEX_REGISTRATION_REJECTED 1058
 #define STR_INDEX_REGISTERING           1
 #define STR_INDEX_WHISPER               1

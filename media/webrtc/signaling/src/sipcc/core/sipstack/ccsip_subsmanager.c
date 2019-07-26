@@ -79,7 +79,7 @@ int maxScbsAllocated = 0;
 
 
 
-       
+
 #define SUB_ID_UNIQUE_ID_POSITION 16     /* shift position of unique id part*/
 #define SUB_IDSCB_INDEX_MASK      0xffff /* mask for obtaining scb index    */
 #define GET_SCB_INDEX_FROM_SUB_ID(sub_id) \
@@ -157,7 +157,7 @@ find_matching_trxn (void *key, void *data)
 
 
 
-static boolean 
+static boolean
 store_incoming_trxn (const char *via, unsigned long cseq, sipSCB_t *scbp)
 {
     static const char *fname = "store_incoming_trxn";
@@ -734,7 +734,7 @@ sip_subsManager_reg_failure_common (ccsip_reason_code_e reason)
         error_data.msg_id = scbp->subsTermCallbackMsgID;
 
         CCSIP_DEBUG_TASK(DEB_F_PREFIX"Sending reg failure notification for "
-                         "scb=%d sub_id=%x reason=%d\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), i, 
+                         "scb=%d sub_id=%x reason=%d\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), i,
                          scbp->sub_id, reason);
 
         sip_send_error_message(&error_data, scbp->subsNotCallbackTask,
@@ -748,7 +748,7 @@ sip_subsManager_reg_failure_common (ccsip_reason_code_e reason)
         }
         free_scb(i, fname);
     }
-    
+
     sipRelDevAllMessagesClear();
     return (0);
 }
@@ -1055,7 +1055,7 @@ static sipSCB_t *
 find_scb_by_sub_id (sub_id_t sub_id, int *scb_index)
 {
     int idx, ret_idx = MAX_SCBS;
-    sipSCB_t *scbp = NULL;    
+    sipSCB_t *scbp = NULL;
 
     
 
@@ -1069,7 +1069,7 @@ find_scb_by_sub_id (sub_id_t sub_id, int *scb_index)
         if (subsManagerSCBS[idx].sub_id == sub_id) {
             
             scbp    = &(subsManagerSCBS[idx]);
-            ret_idx = idx; 
+            ret_idx = idx;
         }
     }
 
@@ -1136,12 +1136,12 @@ new_sub_id (int scb_index)
 
 
 
-    sub_id = (unique_id << SUB_ID_UNIQUE_ID_POSITION) | 
+    sub_id = (unique_id << SUB_ID_UNIQUE_ID_POSITION) |
              (sub_id_t)(scb_index & SUB_IDSCB_INDEX_MASK);
     unique_id++;       
     if (sub_id == CCSIP_SUBS_INVALID_SUB_ID) {
         
-        sub_id = (unique_id << SUB_ID_UNIQUE_ID_POSITION) | 
+        sub_id = (unique_id << SUB_ID_UNIQUE_ID_POSITION) |
                  (sub_id_t)(scb_index & SUB_IDSCB_INDEX_MASK);
         unique_id++;
     }
@@ -1167,7 +1167,7 @@ allocate_scb (int *scb_index)
             CCSIP_DEBUG_TASK("allocate_scb scb_index: %d, currentScbsAllocated: %d, "
                     "maxScbsAllocated: %d, sub_id: %x\n", scb_index,
                     currentScbsAllocated, maxScbsAllocated, subsManagerSCBS[i].sub_id);
-            
+
             
 
 
@@ -1471,7 +1471,7 @@ add_content (ccsip_event_data_t *eventData, sipMessage_t *request, const char *f
     return FALSE;
 
 
-#if 0 
+#if 0
     const char     *fname1 = "add_content";
     uint32_t        len;
     char           *eventBody = NULL;
@@ -1550,7 +1550,7 @@ subsmanager_handle_ev_app_subscribe_register (cprBuffer_t buf)
             return SIP_ERROR;
         }
         CCSIP_DEBUG_TASK(DEB_F_PREFIX"Allocated SCB for App Registration,"
-                         " event=%d, scb=%d, sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), 
+                         " event=%d, scb=%d, sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname),
                          reg_datap->eventPackage,
                          GET_SCB_INDEX_FROM_SUB_ID(scbp->sub_id),
                          scbp->sub_id);
@@ -1643,7 +1643,7 @@ subsmanager_handle_ev_app_subscribe (cprBuffer_t buf)
     } else {
         
         scbp = find_scb_by_sub_id(sub_datap->sub_id, &scb_index);
-    } 
+    }
     if (scbp == NULL) {
         
         if ((sub_datap->eventPackage != CC_SUBSCRIPTIONS_DIALOG) &&
@@ -1825,7 +1825,7 @@ subsmanager_handle_ev_app_subscribe_response (cprBuffer_t buf)
 
     scbp = find_scb_by_sub_id(subres_datap->sub_id, NULL);
     if (scbp == NULL) {
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"no SCB for sub_id=%x found\n", 
+        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"no SCB for sub_id=%x found\n",
                           fname, subres_datap->sub_id);
         return SIP_ERROR;
     }
@@ -1867,18 +1867,18 @@ subsmanager_handle_ev_app_notify (cprBuffer_t buf)
     notify_result_data.msg_id = not_datap->subsNotResCallbackMsgID;
     notify_result_data.sub_id = not_datap->sub_id;
 
-    CCSIP_DEBUG_TASK(DEB_F_PREFIX"Processing an app notify request for" 
-                     " sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), 
-                     not_datap->sub_id); 
+    CCSIP_DEBUG_TASK(DEB_F_PREFIX"Processing an app notify request for"
+                     " sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname),
+                     not_datap->sub_id);
     
 
 
     scbp = find_scb_by_sub_id(not_datap->sub_id, NULL);
     if (scbp == NULL) {
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"no SCB for sub_id=%x found\n", fname, 
+        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"no SCB for sub_id=%x found\n", fname,
                           not_datap->sub_id);
         free_event_data(not_datap->eventData);
-        sip_send_error_message(&notify_result_data, 
+        sip_send_error_message(&notify_result_data,
                                not_datap->subsNotCallbackTask,
                                not_datap->subsNotResCallbackMsgID,
                                not_datap->notifyResultCallback,
@@ -1899,15 +1899,15 @@ subsmanager_handle_ev_app_notify (cprBuffer_t buf)
             (*temp_SIPSPIMsg) = (*pSIPSPIMsg);
 
             
-            if (append_pending_requests(scbp, temp_SIPSPIMsg, 
+            if (append_pending_requests(scbp, temp_SIPSPIMsg,
                 SIPSPI_EV_CC_NOTIFY)) {
                 return SIP_DEFER;
             }
             cpr_free(temp_SIPSPIMsg);
         }
-         
+        
         free_event_data(not_datap->eventData);
-        sip_send_error_message(&notify_result_data, 
+        sip_send_error_message(&notify_result_data,
                                not_datap->subsNotCallbackTask,
                                not_datap->subsNotResCallbackMsgID,
                                not_datap->notifyResultCallback,
@@ -1994,7 +1994,7 @@ void subsmanager_handle_ev_app_unsolicited_notify (cprBuffer_t buf, line_t line)
     static uint32_t trxn_id = 1;
 
     CCSIP_DEBUG_TASK(DEB_F_PREFIX"Processing an outgoing unsolicited notify request\n",
-                     DEB_F_PREFIX_ARGS(SIP_SUB, fname)); 
+                     DEB_F_PREFIX_ARGS(SIP_SUB, fname));
 
     pSIPSPIMsg = (sipspi_msg_t *) buf;
     not_datap = &(pSIPSPIMsg->msg.notify);
@@ -2018,7 +2018,7 @@ void subsmanager_handle_ev_app_unsolicited_notify (cprBuffer_t buf, line_t line)
     if (tcbp == NULL) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"malloc of TCB failed\n", fname);
         free_event_data(not_datap->eventData);
-        return; 
+        return;
     }
     memset(tcbp, 0, sizeof(sipTCB_t));
     tcbp->trxn_id = trxn_id;
@@ -2045,7 +2045,7 @@ void subsmanager_handle_ev_app_unsolicited_notify (cprBuffer_t buf, line_t line)
     }
     tcbp->hb.dn_line = line;
     tcbp->hb.local_port = sipTransportGetListenPort(tcbp->hb.dn_line, NULL);
-    
+
     tcbp->hb.event_type = not_datap->eventPackage;
 
     
@@ -2122,7 +2122,7 @@ void subsmanager_unsolicited_notify_timeout (void *data)
     const char     *fname = "subsmanager_unsolicited_notify_timeout";
     uint32_t trxn_id = (long)data;
     sipTCB_t *temp_tcbp = NULL;
-    
+
     
 
 
@@ -2244,9 +2244,9 @@ subsmanager_handle_ev_app_subscription_terminated (cprBuffer_t buf)
         
         scbp = find_scb_by_sub_id(subs_term->sub_id, &scb_index);
     }
-    if (scbp == NULL) { 
+    if (scbp == NULL) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"no SCB for sub_id=%x or request id %d"
-                          " and eventPackage %d found\n", fname, 
+                          " and eventPackage %d found\n", fname,
                           subs_term->sub_id, subs_term->request_id,
                           subs_term->eventPackage);
         return SIP_ERROR;
@@ -2636,7 +2636,7 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
 
 	} else if (sipMethod == sipMethodBye) {
 
-            return SIP_ERROR;     			
+            return SIP_ERROR;
 
     } else {
         
@@ -2914,7 +2914,7 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
             return SIP_ERROR;
         }
         CCSIP_DEBUG_TASK(DEB_F_PREFIX"Allocated SCB for Received Subscribe, event=%d,"
-                         " scb=%d sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), scbpReg->hb.event_type, 
+                         " scb=%d sub_id=%x\n", DEB_F_PREFIX_ARGS(SIP_SUB, fname), scbpReg->hb.event_type,
                          scb_index, scbp->sub_id);
         scbp->hb.event_type = scbpReg->hb.event_type;
         scbp->subsIndCallback = scbpReg->subsIndCallback;
@@ -3030,7 +3030,7 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
                     CCSIP_DEBUG_ERROR(get_debug_string(DEBUG_SIP_SPI_SEND_ERROR),
                                       fname, SIP_CLI_ERR_BAD_REQ);
                 }
-                CCSIP_DEBUG_TASK(DEB_F_PREFIX"Freeing SCB: scb=%d sub_id=%x\n", 
+                CCSIP_DEBUG_TASK(DEB_F_PREFIX"Freeing SCB: scb=%d sub_id=%x\n",
                                  DEB_F_PREFIX_ARGS(SIP_SUB, fname), scb_index, scbp->sub_id);
                 free_scb(scb_index, fname);
                 sippmh_free_location(to_loc);
@@ -3232,7 +3232,7 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
                                                0,
                                                NULL,
                                                NULL);
-            return SIP_ERROR; 
+            return SIP_ERROR;
         }
     }
 
@@ -3310,9 +3310,9 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
                 if (scp != NULL) {
                     
                     sip_platform_handle_service_control_notify(scp);
-        
+
                     sippmh_free_service_control_info(scp);
-    
+
                 }
 
                 
@@ -3408,7 +3408,7 @@ subsmanager_handle_ev_sip_subscribe (sipMessage_t *pSipMessage,
 
 
 
-static boolean 
+static boolean
 decode_message_body (cc_subscriptions_t event_type, sipMessage_t *pSipMessage, ccsip_event_data_t **dataPP)
 {
     const char     *fname = "decode_message_body";
@@ -4216,7 +4216,7 @@ sipSPISendSubscribe (sipSCB_t *scbp, boolean renew, boolean authen)
             CCSIP_DEBUG_ERROR(SIP_F_PREFIX"Error in adding Event header\n", fname);
             free_sip_message(request);
             return (FALSE);
-        }    
+        }
     }
 
     if (scbp->hb.accept_type == CC_SUBSCRIPTIONS_DIALOG) {
@@ -4413,7 +4413,7 @@ sipSPISendSubscribeNotifyResponse (sipSCB_t *scbp,
         free_sip_message(response);
         return FALSE;
     }
-   
+
     
 
 
@@ -5017,7 +5017,7 @@ subsmanager_handle_retry_timer_expire (int scb_index)
     uint32_t        timeout = 0;
 
     CCSIP_DEBUG_TASK("Entering %s. scb_index: %d\n", fname, scb_index);
-    
+
     if (scb_index < 0 || scb_index >= MAX_SCBS) {
         return (-1);
     }

@@ -31,121 +31,121 @@ const sdp_tokenarray_t sdp_token[SDP_MAX_TOKENS] =
 
 const sdp_attrarray_t sdp_attr[SDP_MAX_ATTR_TYPES] =
 {
-    {"bearer", sizeof("bearer"), 
+    {"bearer", sizeof("bearer"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"called", sizeof("called"), 
+    {"called", sizeof("called"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"connection_type", sizeof("connection_type"), 
+    {"connection_type", sizeof("connection_type"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"dialed", sizeof("dialed"), 
+    {"dialed", sizeof("dialed"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"dialing", sizeof("dialing"), 
+    {"dialing", sizeof("dialing"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"direction", sizeof("direction"), 
+    {"direction", sizeof("direction"),
      sdp_parse_attr_comediadir, sdp_build_attr_comediadir },
-    {"eecid", sizeof("eecid"), 
+    {"eecid", sizeof("eecid"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"fmtp", sizeof("fmtp"), 
+    {"fmtp", sizeof("fmtp"),
      sdp_parse_attr_fmtp, sdp_build_attr_fmtp },
-    {"framing", sizeof("framing"), 
+    {"framing", sizeof("framing"),
      sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
-    {"inactive", sizeof("inactive"), 
+    {"inactive", sizeof("inactive"),
      sdp_parse_attr_direction, sdp_build_attr_direction },
-    {"ptime", sizeof("ptime"), 
+    {"ptime", sizeof("ptime"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"qos", sizeof("qos"), 
+    {"qos", sizeof("qos"),
      sdp_parse_attr_qos, sdp_build_attr_qos },
-    {"curr", sizeof("curr"), 
-     sdp_parse_attr_curr, sdp_build_attr_curr }, 
-    {"des", sizeof("des"), 
+    {"curr", sizeof("curr"),
+     sdp_parse_attr_curr, sdp_build_attr_curr },
+    {"des", sizeof("des"),
      sdp_parse_attr_des, sdp_build_attr_des},
-    {"conf", sizeof("conf"), 
+    {"conf", sizeof("conf"),
      sdp_parse_attr_conf, sdp_build_attr_conf},
-    {"recvonly", sizeof("recvonly"), 
+    {"recvonly", sizeof("recvonly"),
      sdp_parse_attr_direction, sdp_build_attr_direction },
-    {"rtpmap", sizeof("rtpmap"), 
+    {"rtpmap", sizeof("rtpmap"),
      sdp_parse_attr_transport_map, sdp_build_attr_transport_map },
-    {"secure", sizeof("secure"), 
+    {"secure", sizeof("secure"),
      sdp_parse_attr_qos, sdp_build_attr_qos },
-    {"sendonly", sizeof("sendonly"), 
+    {"sendonly", sizeof("sendonly"),
      sdp_parse_attr_direction, sdp_build_attr_direction },
-    {"sendrecv", sizeof("sendrecv"), 
+    {"sendrecv", sizeof("sendrecv"),
      sdp_parse_attr_direction, sdp_build_attr_direction },
-    {"subnet", sizeof("subnet"), 
+    {"subnet", sizeof("subnet"),
      sdp_parse_attr_subnet, sdp_build_attr_subnet },
-    {"T38FaxVersion", sizeof("T38FaxVersion"), 
+    {"T38FaxVersion", sizeof("T38FaxVersion"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"T38MaxBitRate", sizeof("T38MaxBitRate"), 
+    {"T38MaxBitRate", sizeof("T38MaxBitRate"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"T38FaxFillBitRemoval", sizeof("T38FaxFillBitRemoval"), 
+    {"T38FaxFillBitRemoval", sizeof("T38FaxFillBitRemoval"),
      sdp_parse_attr_simple_bool, sdp_build_attr_simple_bool },
-    {"T38FaxTranscodingMMR", sizeof("T38FaxTranscodingMMR"), 
+    {"T38FaxTranscodingMMR", sizeof("T38FaxTranscodingMMR"),
      sdp_parse_attr_simple_bool, sdp_build_attr_simple_bool },
-    {"T38FaxTranscodingJBIG", sizeof("T38FaxTranscodingJBIG"), 
+    {"T38FaxTranscodingJBIG", sizeof("T38FaxTranscodingJBIG"),
      sdp_parse_attr_simple_bool, sdp_build_attr_simple_bool },
-    {"T38FaxRateManagement", sizeof("T38FaxRateManagement"), 
+    {"T38FaxRateManagement", sizeof("T38FaxRateManagement"),
      sdp_parse_attr_t38_ratemgmt, sdp_build_attr_t38_ratemgmt },
-    {"T38FaxMaxBuffer", sizeof("T38FaxMaxBuffer"), 
+    {"T38FaxMaxBuffer", sizeof("T38FaxMaxBuffer"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"T38FaxMaxDatagram", sizeof("T38FaxMaxDatagram"), 
+    {"T38FaxMaxDatagram", sizeof("T38FaxMaxDatagram"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"T38FaxUdpEC", sizeof("T38FaxUdpEC"), 
+    {"T38FaxUdpEC", sizeof("T38FaxUdpEC"),
      sdp_parse_attr_t38_udpec, sdp_build_attr_t38_udpec },
-    {"X-cap", sizeof("X-cap"), 
+    {"X-cap", sizeof("X-cap"),
      sdp_parse_attr_cap, sdp_build_attr_cap },
-    {"X-cpar", sizeof("X-cpar"), 
+    {"X-cpar", sizeof("X-cpar"),
      sdp_parse_attr_cpar, sdp_build_attr_cpar },
-    {"X-pc-codec", sizeof("X-pc-codec"), 
+    {"X-pc-codec", sizeof("X-pc-codec"),
      sdp_parse_attr_pc_codec, sdp_build_attr_pc_codec },
-    {"X-pc-qos", sizeof("X-pc-qos"), 
+    {"X-pc-qos", sizeof("X-pc-qos"),
      sdp_parse_attr_qos, sdp_build_attr_qos },
-    {"X-qos", sizeof("X-qos"), 
+    {"X-qos", sizeof("X-qos"),
      sdp_parse_attr_qos, sdp_build_attr_qos },
-    {"X-sqn", sizeof("X-sqn"), 
+    {"X-sqn", sizeof("X-sqn"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"TMRGwXid", sizeof("TMRGwXid"), 
+    {"TMRGwXid", sizeof("TMRGwXid"),
      sdp_parse_attr_simple_bool, sdp_build_attr_simple_bool },
-    {"TC1PayloadBytes", sizeof("TC1PayloadBytes"), 
+    {"TC1PayloadBytes", sizeof("TC1PayloadBytes"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"TC1WindowSize", sizeof("TC1WindowSize"), 
+    {"TC1WindowSize", sizeof("TC1WindowSize"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"TC2PayloadBytes", sizeof("TC2PayloadBytes"), 
+    {"TC2PayloadBytes", sizeof("TC2PayloadBytes"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"TC2WindowSize", sizeof("TC2WindowSize"), 
+    {"TC2WindowSize", sizeof("TC2WindowSize"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"rtcp", sizeof("rtcp"), 
+    {"rtcp", sizeof("rtcp"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"rtr", sizeof("rtr"), 
+    {"rtr", sizeof("rtr"),
      sdp_parse_attr_rtr, sdp_build_attr_rtr},
     {"silenceSupp", sizeof("silenceSupp"),
      sdp_parse_attr_silencesupp, sdp_build_attr_silencesupp },
     {"X-crypto", sizeof("X-crypto"),
      sdp_parse_attr_srtpcontext, sdp_build_attr_srtpcontext },
-    {"mptime", sizeof("mptime"), 
+    {"mptime", sizeof("mptime"),
       sdp_parse_attr_mptime, sdp_build_attr_mptime },
-    {"X-sidin", sizeof("X-sidin"), 
+    {"X-sidin", sizeof("X-sidin"),
       sdp_parse_attr_x_sidin, sdp_build_attr_x_sidin },
-    {"X-sidout", sizeof("X-sidout"), 
+    {"X-sidout", sizeof("X-sidout"),
       sdp_parse_attr_x_sidout, sdp_build_attr_x_sidout },
-    {"X-confid", sizeof("X-confid"), 
+    {"X-confid", sizeof("X-confid"),
       sdp_parse_attr_x_confid, sdp_build_attr_x_confid },
-    {"group", sizeof("group"), 
+    {"group", sizeof("group"),
       sdp_parse_attr_group, sdp_build_attr_group },
-    {"mid", sizeof("mid"), 
+    {"mid", sizeof("mid"),
       sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"source-filter", sizeof("source-filter"), 
+    {"source-filter", sizeof("source-filter"),
       sdp_parse_attr_source_filter, sdp_build_source_filter},
     {"rtcp-unicast", sizeof("rtcp-unicast"),
       sdp_parse_attr_rtcp_unicast, sdp_build_attr_rtcp_unicast},
     {"maxprate", sizeof("maxprate"),
       sdp_parse_attr_maxprate, sdp_build_attr_simple_string},
-    {"sqn", sizeof("sqn"), 
+    {"sqn", sizeof("sqn"),
      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
-    {"cdsc", sizeof("cdsc"), 
+    {"cdsc", sizeof("cdsc"),
      sdp_parse_attr_cap, sdp_build_attr_cap },
-    {"cpar", sizeof("cpar"), 
+    {"cpar", sizeof("cpar"),
      sdp_parse_attr_cpar, sdp_build_attr_cpar },
-    {"sprtmap", sizeof("sprtmap"), 
+    {"sprtmap", sizeof("sprtmap"),
      sdp_parse_attr_transport_map, sdp_build_attr_transport_map },
     {"crypto", sizeof("crypto"),
      sdp_parse_attr_sdescriptions, sdp_build_attr_sdescriptions },
@@ -352,7 +352,7 @@ const sdp_namearray_t sdp_fmtp_codec_param[SDP_MAX_FMTP_PARAM] =
     {"PROFILE",             sizeof("PROFILE")}, 
     {"LEVEL",               sizeof("LEVEL")}, 
     {"INTERLACE",           sizeof("INTERLACE")}, 
-    
+
     
     {"profile-level-id",      sizeof("profile-level-id")}, 
     {"sprop-parameter-sets",  sizeof("sprop-parameter-sets")}, 
@@ -392,7 +392,7 @@ const sdp_namearray_t sdp_fmtp_codec_param[SDP_MAX_FMTP_PARAM] =
     {"cbr",                             sizeof("cbr")}, 
     {"streams",                         sizeof("streams")}, 
     {"protocol",                        sizeof("protocol")} 
-   
+
 } ;
 
 
@@ -453,15 +453,15 @@ const sdp_srtp_crypto_suite_list sdp_srtp_crypto_suite_array[SDP_SRTP_MAX_NUM_CR
       SDP_SRTP_F8_128_HMAC_SHA1_80_SALT_BYTES}
 };
 
-const char* sdp_result_name[SDP_MAX_RC] = 
-    {"SDP_SUCCESS", 
-     "SDP_FAILURE", 
-     "SDP_INVALID_SDP_PTR", 
-     "SDP_NOT_SDP_DESCRIPTION", 
-     "SDP_INVALID_TOKEN_ORDERING", 
-     "SDP_INVALID_PARAMETER", 
-     "SDP_INVALID_MEDIA_LEVEL", 
-     "SDP_INVALID_CAPABILITY", 
+const char* sdp_result_name[SDP_MAX_RC] =
+    {"SDP_SUCCESS",
+     "SDP_FAILURE",
+     "SDP_INVALID_SDP_PTR",
+     "SDP_NOT_SDP_DESCRIPTION",
+     "SDP_INVALID_TOKEN_ORDERING",
+     "SDP_INVALID_PARAMETER",
+     "SDP_INVALID_MEDIA_LEVEL",
+     "SDP_INVALID_CAPABILITY",
      "SDP_NO_RESOURCE",
      "SDP_UNRECOGNIZED_TOKEN",
      "SDP_NULL_BUF_PTR",
@@ -659,7 +659,7 @@ const char *sdp_get_bw_modifier_name (sdp_bw_modifier_e bw_modifier_type)
 {
     if (bw_modifier_type == SDP_BW_MODIFIER_UNSUPPORTED) {
         return (SDP_UNSUPPORTED);
-    } else if (bw_modifier_type < SDP_BW_MODIFIER_AS || 
+    } else if (bw_modifier_type < SDP_BW_MODIFIER_AS ||
             bw_modifier_type >= SDP_MAX_BW_MODIFIER_VAL) {
         return ("Invalid bw modifier type");
     } else {
@@ -705,7 +705,7 @@ const char *sdp_get_rtcp_unicast_mode_name (sdp_rtcp_unicast_mode_e type)
 
 
 
-inline tinybool sdp_verify_sdp_ptr (sdp_t *sdp_p) 
+inline tinybool sdp_verify_sdp_ptr (sdp_t *sdp_p)
 {
     if ((sdp_p != NULL) && (sdp_p->magic_num == SDP_MAGIC_NUM)) {
         return (TRUE);
@@ -764,7 +764,7 @@ void *sdp_init_description (void *config_p)
 
     sdp_p->bw.bw_data_count   = 0;
     sdp_p->bw.bw_data_list    = NULL;
-   
+
     sdp_p->timespec_p         = NULL;
     sdp_p->sess_attrs_p       = NULL;
     sdp_p->mca_p              = NULL;
@@ -774,7 +774,7 @@ void *sdp_init_description (void *config_p)
     for (i=0; i < SDP_MAX_DEBUG_TYPES; i++) {
         sdp_p->debug_flag[i] = conf_p->debug_flag[i];
     }
-    
+
     return (sdp_p);
 }
 
@@ -857,7 +857,7 @@ sdp_result_e sdp_validate_sdp (sdp_t *sdp_p)
     }
 
     
-    if ((sdp_owner_valid((void *)sdp_p) == FALSE) && 
+    if ((sdp_owner_valid((void *)sdp_p) == FALSE) &&
         (sdp_p->conf_p->owner_reqd == TRUE)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
             SDP_ERROR("%s o= owner line not specified, validation "
@@ -866,7 +866,7 @@ sdp_result_e sdp_validate_sdp (sdp_t *sdp_p)
         return (SDP_FAILURE);
     }
 
-    if ((sdp_session_name_valid((void *)sdp_p) == FALSE) && 
+    if ((sdp_session_name_valid((void *)sdp_p) == FALSE) &&
         (sdp_p->conf_p->session_name_reqd == TRUE)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
             SDP_ERROR("%s s= session name line not specified, validation "
@@ -875,7 +875,7 @@ sdp_result_e sdp_validate_sdp (sdp_t *sdp_p)
         return (SDP_FAILURE);
     }
 
-    if ((sdp_timespec_valid((void *)sdp_p) == FALSE) && 
+    if ((sdp_timespec_valid((void *)sdp_p) == FALSE) &&
         (sdp_p->conf_p->timespec_reqd == TRUE)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
             SDP_ERROR("%s t= timespec line not specified, validation "
@@ -943,7 +943,7 @@ sdp_result_e sdp_parse (void *sdp_ptr, char **bufp, u16 len)
         line_end = sdp_findchar(ptr, "\n");
         if (line_end >= (*bufp + len)) {
             if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
-                SDP_WARN("%s End of line beyond end of buffer.", 
+                SDP_WARN("%s End of line beyond end of buffer.",
                          sdp_p->debug_str);
             }
             end_found = TRUE;
@@ -951,14 +951,14 @@ sdp_result_e sdp_parse (void *sdp_ptr, char **bufp, u16 len)
         }
 
         
-        if ((parse_done == FALSE) && 
+        if ((parse_done == FALSE) &&
 	  (sdp_p->debug_flag[SDP_DEBUG_TRACE])) {
 	    SDP_PRINT("%s ", sdp_p->debug_str);
 
 	    SDP_PRINT("%*s", line_end - ptr, ptr);
-	    
+
         }
-	
+
         
         for (i=0; i < SDP_MAX_TOKENS; i++) {
             if (strncmp(ptr, sdp_token[i].name, SDP_TOKEN_LEN) == 0) {
@@ -982,7 +982,7 @@ sdp_result_e sdp_parse (void *sdp_ptr, char **bufp, u16 len)
 			SDP_PRINT("%s ", sdp_p->debug_str);
 
 		        SDP_PRINT("%*s", line_end - ptr, ptr);
-			
+
                     }
                 }
                 sdp_p->conf_p->num_not_sdp_desc++;
@@ -1085,7 +1085,7 @@ sdp_result_e sdp_parse (void *sdp_ptr, char **bufp, u16 len)
         sdp_p->conf_p->num_not_sdp_desc++;
         return (SDP_NOT_SDP_DESCRIPTION);
     }
-    
+
     
     if (result == SDP_SUCCESS) {
         result = sdp_validate_sdp(sdp_p);
@@ -1128,7 +1128,7 @@ sdp_result_e sdp_build (void *sdp_ptr, flex_string *fs)
     if (sdp_p->debug_flag[SDP_DEBUG_TRACE]) {
         SDP_PRINT("%s Trace SDP Build:", sdp_p->debug_str);
     }
-    
+
     sdp_p->conf_p->num_builds++;
 
     for (i=0; ((i < SDP_TOKEN_M) &&
@@ -1221,10 +1221,10 @@ void *sdp_copy (void *sdp_ptr)
              orig_sdp_p->default_conn.conn_addr,
              SDP_MAX_LINE_LEN+1);
 
-    new_sdp_p->default_conn.is_multicast = 
+    new_sdp_p->default_conn.is_multicast =
         orig_sdp_p->default_conn.is_multicast;
     new_sdp_p->default_conn.ttl      = orig_sdp_p->default_conn.ttl;
-    new_sdp_p->default_conn.num_of_addresses  
+    new_sdp_p->default_conn.num_of_addresses
         = orig_sdp_p->default_conn.num_of_addresses;
     new_sdp_p->encrypt.encrypt_type = orig_sdp_p->encrypt.encrypt_type;
     sstrncpy(new_sdp_p->encrypt.encrypt_key,
@@ -1237,7 +1237,7 @@ void *sdp_copy (void *sdp_ptr)
         sdp_free_description(new_sdp_p);
         return (NULL);
     }
- 
+
     
     orig_time_p = orig_sdp_p->timespec_p;
     while (orig_time_p != NULL) {
@@ -1413,7 +1413,7 @@ sdp_result_e sdp_free_description (void *sdp_ptr)
     bw_data_p = bw_p->bw_data_list;
     while (bw_data_p != NULL) {
         bw_p->bw_data_list = bw_data_p->next_p;
-        SDP_FREE(bw_data_p); 
+        SDP_FREE(bw_data_p);
         bw_data_p = bw_p->bw_data_list;
     }
 
@@ -1447,7 +1447,7 @@ sdp_result_e sdp_free_description (void *sdp_ptr)
         bw_data_p = bw_p->bw_data_list;
         while (bw_data_p != NULL) {
             bw_p->bw_data_list = bw_data_p->next_p;
-            SDP_FREE(bw_data_p); 
+            SDP_FREE(bw_data_p);
             bw_data_p = bw_p->bw_data_list;
         }
 

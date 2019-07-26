@@ -69,7 +69,7 @@ platGenerateCryptoRand(uint8_t *buf, int *len)
         *len = 0;
         rc = 0; 
     }
-        
+
     (void) close(fd);
     return rc;
 }

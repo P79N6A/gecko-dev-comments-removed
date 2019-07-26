@@ -554,8 +554,8 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
     CSFLogError(logTag, "%s: AcquireInstance returned NULL", __FUNCTION__);
     return;
   }
-    
-  CSFLogDebug( logTag, "%s: Getting stream %d", __FUNCTION__, level);      
+
+  CSFLogDebug( logTag, "%s: Getting stream %d", __FUNCTION__, level);
   mozilla::RefPtr<NrIceMediaStream> stream = pc->impl()->ice_media_stream(level-1);
   MOZ_ASSERT(stream);
   if (!stream) {
@@ -573,15 +573,15 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
   if (!NS_SUCCEEDED(res)) {
     return;
   }
-    
+
   CSFLogDebug( logTag, "%s: Got default candidates %s:%d", __FUNCTION__,
     default_addr.c_str(), default_port);
-  
+
   
   *candidatesp = (char **) cpr_malloc(candidates.size() * sizeof(char *));
   if (!(*candidatesp))
     return;
-  
+
   for (size_t i=0; i<candidates.size(); i++) {
     (*candidatesp)[i] = (char *) cpr_malloc(candidates[i].size() + 1);
     sstrncpy((*candidatesp)[i], candidates[i].c_str(), candidates[i].size() + 1);
@@ -622,11 +622,11 @@ void vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp)
   }
 
   std::vector<std::string> attrs = pc->impl()->ice_ctx()->GetGlobalAttributes();
- 
+
   
   char *ufrag = NULL;
   char *pwd = NULL;
- 
+
   for (size_t i=0; i<attrs.size(); i++) {
     if (attrs[i].compare(0, strlen("ice-ufrag:"), "ice-ufrag:") == 0) {
       if (!ufrag) {
@@ -654,7 +654,7 @@ void vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp)
     CSFLogDebug( logTag, "%s: no ufrag or password", __FUNCTION__);
     return;
   }
-  
+
   *ufragp = ufrag;
   *pwdp = pwd;
 
@@ -689,9 +689,9 @@ short vcmSetIceSessionParams(const char *peerconnection, char *ufrag, char *pwd)
     attributes.push_back(ufrag);
   if (pwd)
     attributes.push_back(pwd);
-  
+
   nsresult res = pc->impl()->ice_ctx()->ParseGlobalAttributes(attributes);
-  
+
   if (!NS_SUCCEEDED(res)) {
     CSFLogError( logTag, "%s: couldn't parse global parameters", __FUNCTION__ );
     return VCM_ERROR;
@@ -720,7 +720,7 @@ short vcmSetIceCandidate(const char *peerconnection, const char *icecandidate, u
     return VCM_ERROR;
   }
 
-  CSFLogDebug( logTag, "%s(): Getting stream %d", __FUNCTION__, level);      
+  CSFLogDebug( logTag, "%s(): Getting stream %d", __FUNCTION__, level);
   mozilla::RefPtr<NrIceMediaStream> stream = pc->impl()->ice_media_stream(level-1);
   if (!stream)
     return VCM_ERROR;
@@ -791,7 +791,7 @@ short vcmSetIceMediaParams(const char *peerconnection, int level, char *ufrag, c
     return VCM_ERROR;
   }
 
-  CSFLogDebug( logTag, "%s(): Getting stream %d", __FUNCTION__, level);      
+  CSFLogDebug( logTag, "%s(): Getting stream %d", __FUNCTION__, level);
   mozilla::RefPtr<NrIceMediaStream> stream = pc->impl()->ice_media_stream(level-1);
   if (!stream)
     return VCM_ERROR;
@@ -802,7 +802,7 @@ short vcmSetIceMediaParams(const char *peerconnection, int level, char *ufrag, c
     attributes.push_back(ufrag);
   if (pwd)
     attributes.push_back(pwd);
-  
+
   for (int i = 0; i<candidate_ct; i++) {
     attributes.push_back(candidates[i]);
   }
@@ -908,10 +908,10 @@ short vcmGetDtlsIdentity(const char *peerconnection,
   if (!pc) {
     return VCM_ERROR;
   }
-  
+
   unsigned char digest[TransportLayerDtls::kMaxDigestLength];
   size_t digest_len;
-  
+
   nsresult res = pc->impl()->GetIdentity()->ComputeFingerprint("sha-256", digest,
                                                                sizeof(digest),
                                                                &digest_len);
@@ -928,7 +928,7 @@ short vcmGetDtlsIdentity(const char *peerconnection,
                  __FUNCTION__);
     return VCM_ERROR;
   }
-  
+
   sstrncpy(digest_algp, "sha-256", max_digest_alg_len);
   sstrncpy(digestp, fingerprint_txt.c_str(), max_digest_len);
 
@@ -1160,7 +1160,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
         cc_call_handle_t  call_handle,
         const char *peerconnection,
         int num_payloads,
-        const vcm_media_payload_type_t* payloads,    
+        const vcm_media_payload_type_t* payloads,
         const char *fingerprint_alg,
         const char *fingerprint,
         vcm_mediaAttrs_t *attrs)
@@ -1179,7 +1179,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
       CSFLogError( logTag, "Unitialized payload list");
       return VCM_ERROR;
   }
-    
+
   
   nsRefPtr<sipcc::RemoteSourceStreamInfo> stream =
     pc->impl()->GetRemoteStream(pc_stream_id);
@@ -1213,7 +1213,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
       return VCM_ERROR;
 
     mozilla::AudioCodecConfig *config_raw;
-    
+
     for(int i=0; i <num_payloads ; i++)
     {
       int ret = vcmPayloadType2AudioCodec(payloads[i], &config_raw);
@@ -1221,7 +1221,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
        PR_ASSERT(PR_FALSE);
        return VCM_ERROR;
       }
-      configs.push_back(config_raw);      
+      configs.push_back(config_raw);
     }
 
     if (conduit->ConfigureRecvMediaCodecs(configs))
@@ -1253,8 +1253,8 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
        PR_ASSERT(PR_FALSE);
        return VCM_ERROR;
       }
-      configs.push_back(config_raw);      
-    }   
+      configs.push_back(config_raw);
+    }
 
     if (conduit->ConfigureRecvMediaCodecs(configs))
       return VCM_ERROR;
@@ -1412,13 +1412,13 @@ map_tone_type( vcm_tones_t tone )
     case VCM_BEEP_BONK:
         return ToneType_BEEP_BONK;
     case VCM_RECORDERWARNING_TONE:
-        return ToneType_RECORDERWARNING_TONE;        
+        return ToneType_RECORDERWARNING_TONE;
     case VCM_RECORDERDETECTED_TONE:
         return ToneType_RECORDERDETECTED_TONE;
     case VCM_MONITORWARNING_TONE:
         return ToneType_MONITORWARNING_TONE;
     case VCM_SECUREWARNING_TONE:
-        return ToneType_SECUREWARNING_TONE;        
+        return ToneType_SECUREWARNING_TONE;
     default:
         CSFLogDebugS( logTag, "map_tone_type(): WARNING..tone type not mapped.");
         return ToneType_NO_TONE;
@@ -1726,7 +1726,7 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
         vcm_media_payload_type_t payload,
         short tos,
         const char *fingerprint_alg,
-        const char *fingerprint,                  
+        const char *fingerprint,
         vcm_mediaAttrs_t *attrs)
 {
   CSFLogDebug( logTag, "%s(%s)", __FUNCTION__, peerconnection);
@@ -1739,16 +1739,16 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
     return VCM_ERROR;
   }
   nsRefPtr<sipcc::LocalSourceStreamInfo> stream = pc->impl()->GetLocalStream(pc_stream_id);
+
   
-  
-  mozilla::RefPtr<TransportFlow> rtp_flow = 
+  mozilla::RefPtr<TransportFlow> rtp_flow =
       vcmCreateTransportFlow(pc->impl(), level, false,
                              fingerprint_alg, fingerprint);
   if (!rtp_flow) {
       CSFLogError( logTag, "Could not create RTP flow");
       return VCM_ERROR;
   }
-  mozilla::RefPtr<TransportFlow> rtcp_flow = 
+  mozilla::RefPtr<TransportFlow> rtcp_flow =
       vcmCreateTransportFlow(pc->impl(), level, true,
                              fingerprint_alg, fingerprint);
   if (!rtcp_flow) {
@@ -1897,7 +1897,7 @@ map_codec_request_type( int request_type )
 
 
 
-int vcmGetAudioCodecList(int request_type) 
+int vcmGetAudioCodecList(int request_type)
 {
 
 
@@ -1921,7 +1921,7 @@ int vcmGetAudioCodecList(int request_type)
 #else
   int codecMask = VcmSIPCCBinding::getAudioCodecs();
   CSFLogDebug(logTag, "GetAudioCodecList returning %X", codecMask);
-  
+
   return codecMask;
 #endif
 }
@@ -1969,7 +1969,7 @@ int vcmGetVideoCodecList(int request_type)
 #else
   int codecMask = VcmSIPCCBinding::getVideoCodecs();
   CSFLogDebug(logTag, "GetVideoCodecList returning %X", codecMask);
-  
+
   return codecMask;
 #endif
 }
@@ -2149,7 +2149,7 @@ cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level, void 
         if ( (ptr = ccsdpAttrGetFmtpParamSets(sdp_p, level, 0, 1)) != NULL )
         {
             memset(rcap->sprop_parameter_set, 0, csf_countof(rcap->sprop_parameter_set));
-            sstrncpy(rcap->sprop_parameter_set, ptr, csf_countof(rcap->sprop_parameter_set));                     
+            sstrncpy(rcap->sprop_parameter_set, ptr, csf_countof(rcap->sprop_parameter_set));
         }
 
         if ( ccsdpAttrGetFmtpPackMode(sdp_p, level, 0, 1, &temp) == SDP_SUCCESS )
@@ -2209,8 +2209,8 @@ cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level, void 
             rcap->packetization_mode,
             rcap->profile_level_id,
             rcap->max_mbps,
-            rcap->max_fs, 
-            rcap->max_cpb, 
+            rcap->max_fs,
+            rcap->max_cpb,
             rcap->max_dpb,
             rcap->max_br,
             rcap->tias_bw);
@@ -2378,7 +2378,7 @@ static int vcmPayloadType2AudioCodec(vcm_media_payload_type_t payload_in,
 static int vcmPayloadType2VideoCodec(vcm_media_payload_type_t payload_in,
                               mozilla::VideoCodecConfig **config) {
   int wire_payload = -1;
-  int payload = -1; 
+  int payload = -1;
   *config = NULL;
 
   if (CHECK_DYNAMIC_PAYLOAD_TYPE(payload_in)) {
@@ -2423,7 +2423,7 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
   
   mozilla::RefPtr<TransportFlow> flow;
   flow = pc->GetTransportFlow(level, rtcp);
-  
+
   if (!flow) {
     CSFLogDebug(logTag, "Making new transport flow for level=%d rtcp=%s", level, rtcp ? "true" : "false");
 
@@ -2442,7 +2442,7 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
 
     unsigned char remote_digest[TransportLayerDtls::kMaxDigestLength];
     size_t digest_len;
-  
+
     nsresult res = DtlsIdentity::ParseFingerprint(fingerprint,
                                                   remote_digest,
                                                   sizeof(remote_digest),

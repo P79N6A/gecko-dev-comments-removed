@@ -272,13 +272,13 @@ cc_sdp_direction_t  CCAPI_CallInfo_getVideoDirection(cc_callinfo_ref_t handle);
 
 
 
-        
+
 cc_boolean CCAPI_CallInfo_isAudioMuted(cc_callinfo_ref_t handle);
 
 
 
 
-        
+
 cc_boolean CCAPI_CallInfo_isVideoMuted(cc_callinfo_ref_t handle);
 
 

@@ -147,7 +147,7 @@ Fake_VideoStreamSource::Notify(nsITimer* aTimer)
 
 #if 0
 
-mozilla::layers::BufferRecycleBin::BufferRecycleBin() : 
+mozilla::layers::BufferRecycleBin::BufferRecycleBin() :
  mLock("mozilla.layers.BufferRecycleBin.mLock") {
 }
 

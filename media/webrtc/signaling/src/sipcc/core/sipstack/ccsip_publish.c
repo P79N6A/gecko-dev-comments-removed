@@ -284,10 +284,10 @@ int publish_handle_ev_app_publish (cprBuffer_t buf)
     
 
 
- 
+
     if (msg_p->pub_handle != NULL_PUBLISH_HANDLE) {
         pcb_p = find_pcb(msg_p->pub_handle);
-        
+
         if (pcb_p == NULL) {
             send_resp_to_app(PUBLISH_FAILED_NOCONTEXT, msg_p->pub_handle, msg_p->app_handle,
                              msg_p->callback_task, msg_p->resp_msg_id);
@@ -359,7 +359,7 @@ int publish_handle_ev_app_publish (cprBuffer_t buf)
                      msg_p->callback_task, msg_p->resp_msg_id);
     CCSIP_DEBUG_ERROR(SIP_F_PREFIX"Failed to send PUBLISH request\n", fname);
     return SIP_ERROR;
-    
+
 }
 
 
@@ -374,7 +374,7 @@ int publish_handle_ev_app_publish (cprBuffer_t buf)
 
 
 
-static boolean sipSPISendPublish (ccsip_publish_cb_t *pcb_p, boolean authen) 
+static boolean sipSPISendPublish (ccsip_publish_cb_t *pcb_p, boolean authen)
 {
     static const char fname[] = "sipSPISendPublish";
     static uint32_t   cseq = 0;
@@ -389,7 +389,7 @@ static boolean sipSPISendPublish (ccsip_publish_cb_t *pcb_p, boolean authen)
     static uint16_t   count = 1;
     sipMessage_t     *request = NULL;
     int               timeout = 0;
-   
+
     request = GET_SIP_MESSAGE();
     if (!request) {
         return FALSE;
@@ -566,7 +566,7 @@ static boolean sipSPISendPublish (ccsip_publish_cb_t *pcb_p, boolean authen)
     }
 
     return (TRUE);
-    
+
 }
 
 
@@ -671,7 +671,7 @@ void publish_handle_periodic_timer_expire (void)
                 
                 msg.pub_handle = pcb_p->pub_handle;
                 msg.expires = pcb_p->hb.orig_expiration;
-                (void)publish_handle_ev_app_publish(&msg);               
+                (void)publish_handle_ev_app_publish(&msg);
             }
         }
         pcb_p = (ccsip_publish_cb_t *)sll_next(s_PCB_list, pcb_p);
@@ -720,7 +720,7 @@ int publish_handle_ev_sip_response (sipMessage_t *pSipMessage)
 
     sip_platform_msg_timer_subnot_stop(&(pcb_p->retry_timer));
     pcb_p->hb.retx_flag = FALSE;
-    
+
     
     (void) sipGetResponseCode(pSipMessage, &response_code);
 
@@ -779,7 +779,7 @@ int publish_handle_ev_sip_response (sipMessage_t *pSipMessage)
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"failed to respond to 423\n", fname);
         return SIP_ERROR;
     }
-    
+
     
 
 
@@ -798,7 +798,7 @@ int publish_handle_ev_sip_response (sipMessage_t *pSipMessage)
         CCSIP_DEBUG_TASK(DEB_F_PREFIX"received %d response\n", DEB_F_PREFIX_ARGS(SIP_PUB, fname), response_code);
         return SIP_OK;
     }
-    
+
     
 
 
@@ -831,7 +831,7 @@ int publish_handle_ev_sip_response (sipMessage_t *pSipMessage)
                              pcb_p->callback_task, pcb_p->resp_msg_id);
             CCSIP_DEBUG_ERROR(SIP_F_PREFIX"memory allocation failed\n", fname);
             return SIP_ERROR;
-            
+
         }
     }
 

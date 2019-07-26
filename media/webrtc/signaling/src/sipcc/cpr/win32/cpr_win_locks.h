@@ -10,13 +10,13 @@
 
 typedef struct {
 	
-	int noWaiters; 
-	
-	
-	CRITICAL_SECTION noWaitersLock; 
+	int noWaiters;
 
 	
-	HANDLE sema; 
+	CRITICAL_SECTION noWaitersLock;
+
+	
+	HANDLE sema;
 
 } cpr_condition_t;
 

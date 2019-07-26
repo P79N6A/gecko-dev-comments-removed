@@ -311,8 +311,8 @@ CC_SIPCCService* CC_SIPCCService::_self = NULL;
 CC_SIPCCService::CC_SIPCCService()
 : loggingMask(0),
   bCreated(false),
-  bStarted(false), 
-  m_lock("CC_SIPCCService"), 
+  bStarted(false),
+  m_lock("CC_SIPCCService"),
   bUseConfig(false)
 {
 	
@@ -526,7 +526,7 @@ void CC_SIPCCService::applyLoggingMask (int newMask)
     	CSFLogWarn( logTag, "Value of 0x%x specified for mask includes at least one bit value that exceeds the maximum supported bitfield value. "
                     "Ignoring unsupported bits.", newMask);
     }
-    
+
     CSFLogDebugS( logTag, "Applying a sipcc log mask = " << newMask);
 
     loggingMask = newMask & (HAS_21_BITS);

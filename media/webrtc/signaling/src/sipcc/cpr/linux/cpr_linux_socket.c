@@ -20,8 +20,8 @@
 
 const cpr_ip_addr_t ip_addr_invalid = {0};
 
-#define IN6ADDRSZ   16 
-#define INT16SZ     2 
+#define IN6ADDRSZ   16
+#define INT16SZ     2
 #define	INADDRSZ	4
 
 #define MAX_RETRY_FOR_EAGAIN 10
@@ -428,7 +428,7 @@ cprSelect (uint32_t nfds,
         t.tv_usec = timeout->tv_usec;
         t_p       = &t;
     } else {
-        t_p       = NULL; 
+        t_p       = NULL;
     }
 
     rc = (int16_t) select(nfds, read_fds, write_fds, except_fds, t_p);
