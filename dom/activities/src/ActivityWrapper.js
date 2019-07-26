@@ -30,6 +30,13 @@ function ActivityWrapper() {
 ActivityWrapper.prototype = {
   wrapMessage: function wrapMessage(aMessage, aWindow) {
     debug("Wrapping " + JSON.stringify(aMessage));
+
+    
+    
+    
+    
+    cpmm.sendAsyncMessage("Activity:Ready", { id: aMessage.id });
+
     let handler = Cc["@mozilla.org/dom/activities/request-handler;1"]
                     .createInstance(Ci.nsIDOMMozActivityRequestHandler);
     handler.wrappedJSObject._id = aMessage.id;
