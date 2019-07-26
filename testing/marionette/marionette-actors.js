@@ -1685,8 +1685,11 @@ MarionetteDriverActor.prototype = {
           
           
           
-          this.sendOk();
           this.currentRemoteFrame.targetFrameId = this.generateFrameId(message.json.value);
+          this.sendAsync(
+              "setState",
+              {scriptTimeout: this.scriptTimeout,
+               searchTimeout: this.curBrowser.elementManager.searchTimeout});
         }
 
         let browserType;
