@@ -194,6 +194,8 @@ already_AddRefed<gfxImageSurface> gfxQuartzSurface::GetAsImageSurface()
     
     img->Release();
 
+    img->SetOpaqueRect(GetOpaqueRect());
+
     return img.forget().downcast<gfxImageSurface>();
 }
 
