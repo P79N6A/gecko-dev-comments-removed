@@ -642,9 +642,9 @@ private:
   nsRefPtr<Decoder>          mDecoder;
   nsRefPtr<DecodeRequest>    mDecodeRequest;
   uint32_t                   mBytesDecoded;
-  
 
   bool                       mInDecoder;
+  
 
   
   bool                       mHasSize:1;       
