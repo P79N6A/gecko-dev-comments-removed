@@ -17,6 +17,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "jsfriendapi.h"
 #include "mozilla/Likely.h"
+#include "nsContentUtils.h"
 
 using namespace js;
 using namespace mozilla;
@@ -275,16 +276,16 @@ static void
 DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
                         JSCompartment *origin, JSCompartment *target)
 {
-    typedef FilteringWrapper<CrossCompartmentSecurityWrapper, OnlyIfSubjectIsSystem> XSOW;
-
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
         MOZ_ASSERT(handler->isSafeToUnwrap());
-    } else if (WrapperFactory::IsComponentsObject(obj) ||
-               handler == &XSOW::singleton)
+    } else if (WrapperFactory::IsComponentsObject(obj))
     {
         
         MOZ_ASSERT(!handler->isSafeToUnwrap());
+    } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
+        
+        MOZ_ASSERT(handler->isSafeToUnwrap() == nsContentUtils::CanAccessNativeAnon());
     } else {
         
         MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
@@ -357,6 +358,8 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
 
     Wrapper *wrapper;
     CompartmentPrivate *targetdata = EnsureCompartmentPrivate(target);
+    bool canAccessNAC = targetIsChrome ||
+                        (targetSubsumesOrigin && nsContentUtils::IsCallerXBL());
 
     
     
@@ -377,12 +380,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
     } else if (IsComponentsObject(obj) && !AccessCheck::isChrome(target)) {
         wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                     ComponentsObjectPolicy>::singleton;
-    } else if (AccessCheck::needsSystemOnlyWrapper(obj) && !AccessCheck::isChrome(target)) {
-        
-        if (!AccessCheck::subsumes(target, origin)) {
-            JS_ReportError(cx, "Don't expose cross-origin NAC");
-            return nullptr;
-        }
+    } else if (AccessCheck::needsSystemOnlyWrapper(obj) && !canAccessNAC) {
         wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                     OnlyIfSubjectIsSystem>::singleton;
     }
