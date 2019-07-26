@@ -2456,8 +2456,8 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       NS_ASSERTION(aSelf->GetContent(),
                    "non pseudo-element frame without content node");
       
-      TreeMatchContext::AutoFlexOrGridItemStyleFixupSkipper
-        flexOrGridFixupSkipper(mTreeMatchContext,
+      TreeMatchContext::AutoParentDisplayBasedStyleFixupSkipper
+        parentDisplayBasedFixupSkipper(mTreeMatchContext,
                                element->IsRootOfNativeAnonymousSubtree());
       newContext = styleSet->ResolveStyleFor(element, parentContext,
                                              mTreeMatchContext);

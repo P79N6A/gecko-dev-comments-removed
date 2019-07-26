@@ -61,10 +61,12 @@ public:
 
 
 
+
+
   nsStyleContext(nsStyleContext* aParent, nsIAtom* aPseudoTag,
                  nsCSSPseudoElements::Type aPseudoType,
                  nsRuleNode* aRuleNode,
-                 bool aSkipFlexOrGridItemStyleFixup);
+                 bool aSkipParentDisplayBasedStyleFixup);
   ~nsStyleContext();
 
   void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
@@ -348,7 +350,7 @@ protected:
   void AddChild(nsStyleContext* aChild);
   void RemoveChild(nsStyleContext* aChild);
 
-  void ApplyStyleFixups(bool aSkipFlexOrGridItemStyleFixup);
+  void ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup);
 
   void FreeAllocations(nsPresContext* aPresContext);
 
@@ -442,5 +444,5 @@ NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsIAtom* aPseudoTag,
                    nsCSSPseudoElements::Type aPseudoType,
                    nsRuleNode* aRuleNode,
-                   bool aSkipFlexOrGridItemStyleFixup);
+                   bool aSkipParentDisplayBasedStyleFixup);
 #endif

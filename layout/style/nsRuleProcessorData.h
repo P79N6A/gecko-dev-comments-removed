@@ -296,16 +296,17 @@ struct MOZ_STACK_CLASS TreeMatchContext {
 
 
 
-  class MOZ_STACK_CLASS AutoFlexOrGridItemStyleFixupSkipper {
+
+  class MOZ_STACK_CLASS AutoParentDisplayBasedStyleFixupSkipper {
   public:
-    AutoFlexOrGridItemStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
-                                     bool aSkipFlexOrGridItemStyleFixup = true
+    AutoParentDisplayBasedStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
+                                     bool aSkipParentDisplayBasedStyleFixup = true
                                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mAutoRestorer(aTreeMatchContext.mSkippingFlexOrGridItemStyleFixup)
+      : mAutoRestorer(aTreeMatchContext.mSkippingParentDisplayBasedStyleFixup)
     {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      if (aSkipFlexOrGridItemStyleFixup) {
-        aTreeMatchContext.mSkippingFlexOrGridItemStyleFixup = true;
+      if (aSkipParentDisplayBasedStyleFixup) {
+        aTreeMatchContext.mSkippingParentDisplayBasedStyleFixup = true;
       }
     }
 
@@ -366,7 +367,8 @@ struct MOZ_STACK_CLASS TreeMatchContext {
   
   
   
-  bool mSkippingFlexOrGridItemStyleFixup;
+  
+  bool mSkippingParentDisplayBasedStyleFixup;
 
   
   
@@ -398,7 +400,7 @@ struct MOZ_STACK_CLASS TreeMatchContext {
     , mIsHTMLDocument(aDocument->IsHTML())
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
-    , mSkippingFlexOrGridItemStyleFixup(false)
+    , mSkippingParentDisplayBasedStyleFixup(false)
     , mForScopedStyle(false)
     , mCurrentStyleScope(nullptr)
   {

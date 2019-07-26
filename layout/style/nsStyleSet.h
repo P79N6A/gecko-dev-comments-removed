@@ -407,7 +407,7 @@ class nsStyleSet
     
     
     
-    eSkipFlexOrGridItemStyleFixup = 1 << 3
+    eSkipParentDisplayBasedStyleFixup = 1 << 3
   };
 
   already_AddRefed<nsStyleContext>

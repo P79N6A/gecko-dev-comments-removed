@@ -804,12 +804,12 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
   if (!result) {
     result = NS_NewStyleContext(aParentContext, aPseudoTag, aPseudoType,
                                 aRuleNode,
-                                aFlags & eSkipFlexOrGridItemStyleFixup);
+                                aFlags & eSkipParentDisplayBasedStyleFixup);
     if (aVisitedRuleNode) {
       nsRefPtr<nsStyleContext> resultIfVisited =
         NS_NewStyleContext(parentIfVisited, aPseudoTag, aPseudoType,
                            aVisitedRuleNode,
-                           aFlags & eSkipFlexOrGridItemStyleFixup);
+                           aFlags & eSkipParentDisplayBasedStyleFixup);
       if (!parentIfVisited) {
         mRoots.AppendElement(resultIfVisited);
       }
@@ -1225,8 +1225,8 @@ nsStyleSet::ResolveStyleFor(Element* aElement,
                             HasState(NS_EVENT_STATE_VISITED)) {
     flags |= eIsVisitedLink;
   }
-  if (aTreeMatchContext.mSkippingFlexOrGridItemStyleFixup) {
-    flags |= eSkipFlexOrGridItemStyleFixup;
+  if (aTreeMatchContext.mSkippingParentDisplayBasedStyleFixup) {
+    flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
   return GetContext(aParentContext, ruleNode, visitedRuleNode,
@@ -1393,7 +1393,7 @@ nsStyleSet::ResolvePseudoElementStyle(Element* aParentElement,
     
     
     
-    flags |= eSkipFlexOrGridItemStyleFixup;
+    flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
   return GetContext(aParentContext, ruleNode, visitedRuleNode,
@@ -1465,7 +1465,7 @@ nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
     
     
     
-    flags |= eSkipFlexOrGridItemStyleFixup;
+    flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
   nsRefPtr<nsStyleContext> result =
@@ -1893,7 +1893,7 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
     
     
     
-    flags |= eSkipFlexOrGridItemStyleFixup;
+    flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
