@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef AudioBuffer_h_
+#define AudioBuffer_h_
 
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
@@ -80,4 +81,6 @@ private:
 
 }
 }
+
+#endif
 

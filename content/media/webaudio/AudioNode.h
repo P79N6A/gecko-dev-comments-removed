@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef AudioNode_h_
+#define AudioNode_h_
 
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
@@ -127,4 +128,6 @@ private:
 
 }
 }
+
+#endif
 

@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef AudioEventTimeline_h_
+#define AudioEventTimeline_h_
 
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
@@ -371,4 +372,6 @@ private:
 
 }
 }
+
+#endif
 

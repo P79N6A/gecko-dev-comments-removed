@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef AudioBufferSourceNode_h_
+#define AudioBufferSourceNode_h_
 
 #include "AudioSourceNode.h"
 #include "AudioBuffer.h"
@@ -38,4 +39,6 @@ private:
 
 }
 }
+
+#endif
 

@@ -4,7 +4,8 @@
 
 
 
-#pragma once
+#ifndef AudioParam_h_
+#define AudioParam_h_
 
 #include "AudioEventTimeline.h"
 #include "nsWrapperCache.h"
@@ -113,4 +114,6 @@ private:
 
 }
 }
+
+#endif
 
