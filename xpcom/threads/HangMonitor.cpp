@@ -319,6 +319,8 @@ NotifyActivity(ActivityType activityType)
                                                      gTimestamp);
     }
     break;
+  default:
+    break;
   }
 
   
