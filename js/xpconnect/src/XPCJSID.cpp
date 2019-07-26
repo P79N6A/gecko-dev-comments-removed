@@ -493,45 +493,24 @@ xpc::HasInstance(JSContext *cx, HandleObject objArg, const nsID *iid, bool *bp)
     if (!obj)
         return NS_OK;
 
-    if (IsDOMObject(obj)) {
-        
-        
-        nsISupports *identity = UnwrapDOMObjectToISupports(obj);
-        if (!identity)
-            return NS_OK;;
-        nsCOMPtr<nsISupports> supp;
-        identity->QueryInterface(*iid, getter_AddRefs(supp));
-        *bp = supp;
-        return NS_OK;
-    }
-
     if (mozilla::jsipc::JavaScriptParent::IsCPOW(obj))
         return mozilla::jsipc::JavaScriptParent::InstanceOf(obj, iid, bp);
 
-    MOZ_ASSERT(IS_WN_REFLECTOR(obj));
-    XPCWrappedNative* other_wrapper = XPCWrappedNative::Get(obj);
-    if (!other_wrapper)
+    nsISupports *identity = UnwrapReflectorToISupports(obj);
+    if (!identity)
         return NS_OK;
 
-    
-    
-    
-    if (other_wrapper->HasInterfaceNoQI(*iid)) {
-        *bp = true;
-        return NS_OK;
-    }
+    nsCOMPtr<nsISupports> supp;
+    identity->QueryInterface(*iid, getter_AddRefs(supp));
+    *bp = supp;
 
     
-    XPCCallContext ccx(JS_CALLER, cx);
-
-    AutoMarkingNativeInterfacePtr iface(ccx);
-    iface = XPCNativeInterface::GetNewOrUsed(iid);
-
-    nsresult findResult = NS_OK;
-    if (iface && other_wrapper->FindTearOff(iface, false, &findResult))
-        *bp = true;
-    if (NS_FAILED(findResult) && findResult != NS_ERROR_NO_INTERFACE)
-        return findResult;
+    
+    
+    
+    
+    if (IS_WN_REFLECTOR(obj))
+        (void) XPCWrappedNative::Get(obj)->FindTearOff(*iid);
 
     return NS_OK;
 }
