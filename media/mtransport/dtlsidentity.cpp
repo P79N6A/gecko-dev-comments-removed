@@ -4,6 +4,7 @@
 
 
 
+#include <iomanip>
 #include "logging.h"
 #include "nspr.h"
 #include "cryptohi.h"
@@ -24,6 +25,9 @@ DtlsIdentity::~DtlsIdentity() {
   if (cert_)
     CERT_DestroyCertificate(cert_);
 }
+
+const std::string DtlsIdentity::DEFAULT_HASH_ALGORITHM = "sha-256";
+const size_t DtlsIdentity::HASH_ALGORITHM_MAX_LENGTH = 64;
 
 TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
 
@@ -208,6 +212,27 @@ nsresult DtlsIdentity::ComputeFingerprint(const CERTCertificate *cert,
 
 
 
+
+std::string DtlsIdentity::GetFormattedFingerprint(const std::string &algorithm) {
+  unsigned char digest[HASH_ALGORITHM_MAX_LENGTH];
+  size_t digest_length;
+
+  nsresult res = this->ComputeFingerprint(algorithm,
+                                          digest,
+                                          sizeof(digest),
+                                          &digest_length);
+  if (NS_FAILED(res)) {
+    MOZ_MTLOG(ML_ERROR, "Unable to compute " << algorithm
+              << " hash for identity: nsresult = 0x"
+              << std::hex << std::uppercase
+              << static_cast<uint32_t>(res)
+              << std::nouppercase << std::dec);
+    return "";
+  }
+
+  return algorithm + " " + this->FormatFingerprint(digest, digest_length);
+}
+
 std::string DtlsIdentity::FormatFingerprint(const unsigned char *digest,
                                             std::size_t size) {
   std::string str("");
@@ -215,7 +240,7 @@ std::string DtlsIdentity::FormatFingerprint(const unsigned char *digest,
 
   for (std::size_t i=0; i < size; i++) {
     PR_snprintf(group, sizeof(group), "%.2X", digest[i]);
-    if (i != 0){
+    if (i != 0) {
       str += ":";
     }
     str += group;
