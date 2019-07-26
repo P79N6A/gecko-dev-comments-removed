@@ -9,12 +9,12 @@
 }
 
 .theme-dark .notice-container {
-  background: url(background-noise-toolbar.png), #343c45; 
+  background-color: #343c45; 
   color: #f5f7fa; 
 }
 
 .theme-light .notice-container {
-  background: url(background-noise-toolbar.png), #f0f1f2; 
+  background-color: #f0f1f2; 
   color: #585959; 
 }
 

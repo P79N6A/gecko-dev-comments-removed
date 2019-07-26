@@ -417,7 +417,7 @@ label.requests-menu-status-code {
 
 
 .theme-dark .tabpanel-content {
-  background: url(background-noise-toolbar.png), #343c45; 
+  background-color: #343c45; 
   color: #f5f7fa; 
 }
 
@@ -461,12 +461,12 @@ label.requests-menu-status-code {
 }
 
 .theme-dark  #response-content-info-header {
-  background: url(background-noise-toolbar.png), #eb5368; 
+  background-color: #eb5368; 
   color: #f5f7fa; 
 }
 
 .theme-light  #response-content-info-header {
-  background: url(background-noise-toolbar.png), #ed2655; 
+  background-color: #ed2655; 
   color: #f5f7fa; 
 }
 
@@ -531,13 +531,13 @@ label.requests-menu-status-code {
 .theme-dark #requests-menu-footer {
   border-top: 1px solid @table_itemDarkStartBorder@;
   box-shadow: 0 1px 0 @table_itemDarkEndBorder@ inset;
-  background: url(background-noise-toolbar.png), #343c45; 
+  background-color: #343c45; 
 }
 
 .theme-light #requests-menu-footer {
   border-top: 1px solid @table_itemLightStartBorder@;
   box-shadow: 0 1px 0 @table_itemLightEndBorder@ inset;
-  background: url(background-noise-toolbar.png), #f0f1f2; 
+  background-color: #f0f1f2; 
 }
 
 .requests-menu-footer-button,
@@ -656,11 +656,11 @@ label.requests-menu-status-code {
 }
 
 .theme-dark #network-statistics-charts {
-  background: url(background-noise-toolbar.png), #343c45; 
+  background-color: #343c45; 
 }
 
 .theme-light #network-statistics-charts {
-  background: url(background-noise-toolbar.png), #f0f1f2; 
+  background-color: #f0f1f2; 
 }
 
 #network-statistics-charts .pie-chart-container {
