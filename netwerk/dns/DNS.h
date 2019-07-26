@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef DNS_h_
 #define DNS_h_
 
@@ -9,6 +11,7 @@
 #include "prio.h"
 #include "prnetdb.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/MemoryReporting.h"
 
 #if !defined(XP_WIN) && !defined(XP_OS2)
 #include <arpa/inet.h>
@@ -135,6 +138,8 @@ public:
   ~AddrInfo();
 
   void AddAddress(NetAddrElement *address);
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
   char *mHostName;
   char *mCanonicalName;
