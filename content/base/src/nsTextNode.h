@@ -3,12 +3,16 @@
 
 
 
+#ifndef nsTextNode_h
+#define nsTextNode_h
+
 
 
 
 
 #include "nsGenericDOMDataNode.h"
 #include "nsIDOMText.h"
+#include "nsDebug.h"
 
 
 
@@ -17,7 +21,14 @@ class nsTextNode : public nsGenericDOMDataNode,
                    public nsIDOMText
 {
 public:
-  nsTextNode(already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsTextNode(already_AddRefed<nsINodeInfo> aNodeInfo)
+    : nsGenericDOMDataNode(aNodeInfo)
+  {
+    NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::TEXT_NODE,
+                      "Bad NodeType in aNodeInfo");
+    SetIsDOMBinding();
+  }
+
   virtual ~nsTextNode();
 
   
@@ -51,8 +62,22 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
+  
+  already_AddRefed<nsTextNode> SplitText(uint32_t aOffset,
+                                         mozilla::ErrorResult& rv);
+  void GetWholeText(nsAString& aWholeText, mozilla::ErrorResult& rv)
+  {
+    rv = GetWholeText(aWholeText);
+  }
+
 #ifdef DEBUG
   virtual void List(FILE* out, int32_t aIndent) const;
   virtual void DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const;
 #endif
+
+protected:
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap) MOZ_OVERRIDE;
 };
+
+#endif 
