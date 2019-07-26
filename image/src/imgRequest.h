@@ -110,6 +110,11 @@ public:
   }
 
   
+  
+  
+  imgStatusTracker& GetStatusTracker();
+
+  
   inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); };
 
 private:
@@ -136,11 +141,6 @@ private:
   inline nsIProperties *Properties() {
     return mProperties;
   }
-
-  
-  
-  
-  imgStatusTracker& GetStatusTracker();
     
   
   
