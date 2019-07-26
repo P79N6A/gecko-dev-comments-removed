@@ -1592,7 +1592,7 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
-    return OffThreadCompilationEnabled(cx)
+    return OffThreadIonCompilationEnabled(cx->runtime())
         && cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL
         && !cx->runtime()->profilingScripts
         && !cx->runtime()->spsProfiler.enabled();
@@ -1773,7 +1773,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     if (script->length > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
-        if (OffThreadCompilationEnabled(cx)) {
+        if (OffThreadIonCompilationEnabled(cx->runtime())) {
             
             
             

@@ -93,11 +93,6 @@ struct IonOptions
     
     bool eaa;
 
-    
-    
-    
-    bool parallelCompilation;
-
 #ifdef CHECK_OSIPOINT_REGISTERS
     
     
@@ -204,8 +199,6 @@ struct IonOptions
         eagerCompilation = true;
         usesBeforeCompile = 0;
         baselineUsesBeforeCompile = 0;
-
-        parallelCompilation = false;
     }
 
     IonOptions()
@@ -221,7 +214,6 @@ struct IonOptions
         checkRangeAnalysis(false),
         uce(true),
         eaa(true),
-        parallelCompilation(false),
 #ifdef CHECK_OSIPOINT_REGISTERS
         checkOsiPointRegisters(false),
 #endif
