@@ -34,6 +34,8 @@
 #include "dombindings.h"
 
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/TextDecoderBinding.h"
+#include "mozilla/dom/TextEncoderBinding.h"
 
 #include "nsWrapperCacheInlines.h"
 #include "nsDOMMutationObserver.h"
@@ -1185,6 +1187,12 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     
     
     MOZ_ASSERT(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL);
+
+    
+    if (!TextDecoderBinding::GetProtoObject(aJSContext, global, global) ||
+        !TextEncoderBinding::GetProtoObject(aJSContext, global, global)) {
+        return UnexpectedFailure(NS_ERROR_FAILURE);
+    }
 
     wrappedGlobal.forget(_retval);
     return NS_OK;
