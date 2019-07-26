@@ -840,6 +840,7 @@ XPCWrappedNative::Destroy()
 
 
 
+
     if (XPCJSRuntime *rt = GetRuntime()) {
         if (IsIncrementalBarrierNeeded(rt->Runtime()))
             IncrementalObjectBarrier(GetWrapperPreserveColor());
@@ -1388,7 +1389,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
         {
             AutoClonePrivateGuard cloneGuard(cx, flat, newobj);
 
-            propertyHolder = JS_NewObjectWithGivenProto(cx, NULL, NULL, aNewParent);
+            propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr,
+                                                        aNewParent);
             if (!propertyHolder)
                 return NS_ERROR_OUT_OF_MEMORY;
             if (!JS_CopyPropertiesFrom(cx, propertyHolder, flat))
@@ -1934,7 +1936,7 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
     JSCompartment *cxCompartment = js::GetContextCompartment(cx);
     MOZ_ASSERT(cxCompartment == js::GetObjectCompartment(flat));
     if (xpc::AccessCheck::isChrome(cxCompartment)) {
-        MOZ_ASSERT(wrapper == NULL);
+        MOZ_ASSERT(wrapper == nullptr);
         return flat;
     }
 
@@ -1947,11 +1949,11 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
     if (NeedsSOW() && xpc::AllowXBLScope(js::GetContextCompartment(cx))) {
         wrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
         if (!wrapper)
-            return NULL;
+            return nullptr;
     } else if (xpc::WrapperFactory::IsComponentsObject(flat)) {
         wrapper = xpc::WrapperFactory::WrapComponentsObject(cx, flat);
         if (!wrapper)
-            return NULL;
+            return nullptr;
     }
 
     

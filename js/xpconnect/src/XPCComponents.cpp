@@ -2910,7 +2910,7 @@ class PreciseGCRunnable : public nsRunnable
 
         JSContext *cx;
         JSContext *iter = nullptr;
-        while ((cx = JS_ContextIterator(rt, &iter)) != NULL) {
+        while ((cx = JS_ContextIterator(rt, &iter)) != nullptr) {
             if (JS_IsRunning(cx)) {
                 return NS_DispatchToMainThread(this);
             }
@@ -3049,7 +3049,7 @@ nsXPCComponents_Utils::CreateArrayIn(const Value &vobj, JSContext *cx, Value *rv
     RootedObject obj(cx);
     {
         JSAutoCompartment ac(cx, scope);
-        obj =  JS_NewArrayObject(cx, 0, NULL);
+        obj =  JS_NewArrayObject(cx, 0, nullptr);
         if (!obj)
             return NS_ERROR_FAILURE;
     }
@@ -3149,7 +3149,7 @@ nsXPCComponents_Utils::RecomputeWrappers(const jsval &vobj, JSContext *cx)
     
     JSCompartment *c = vobj.isObject()
                        ? js::GetObjectCompartment(js::UncheckedUnwrap(&vobj.toObject()))
-                       : NULL;
+                       : nullptr;
 
     
     if (!c)

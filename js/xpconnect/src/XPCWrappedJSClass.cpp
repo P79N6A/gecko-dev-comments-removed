@@ -76,7 +76,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
     JS_EndRequest(mJSContext);
 
     if (mErrorReporterSet)
-        JS_SetErrorReporter(mJSContext, NULL);
+        JS_SetErrorReporter(mJSContext, nullptr);
 }
 
 
@@ -1653,11 +1653,11 @@ static const JSClass XPCOutParamClass = {
     JS_ResolveStub,
     JS_ConvertStub,
     FinalizeStub,
-    NULL,   
-    NULL,   
-    NULL,   
-    NULL,   
-    NULL    
+    nullptr,   
+    nullptr,   
+    nullptr,   
+    nullptr,   
+    nullptr    
 };
 
 bool

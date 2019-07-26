@@ -69,7 +69,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
 {
     assertEnteredPolicy(cx, wrapper, id);
     
-    desc.object().set(NULL);
+    desc.object().set(nullptr);
     if (AllowedByBase(cx, wrapper, id, Wrapper::GET) &&
         !ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
                                                         desc, flags)) {
@@ -80,7 +80,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
     
     
     if (desc.object() && PropIsFromStandardPrototype(cx, desc))
-        desc.object().set(NULL);
+        desc.object().set(nullptr);
 
     
     RootedObject wrapperProto(cx);
