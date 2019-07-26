@@ -169,18 +169,15 @@ let Content = {
         break;
       }
 
-      case "keydown":
-        if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
-          this.formAssistant.close();
-        break;
-
       case "keyup":
         
         
-        if (!aEvent.target.value)
+        
+        if ((!aEvent.target.value && aEvent.keyCode != aEvent.DOM_VK_DOWN)
+          || aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
           this.formAssistant.close();
         else
-          this.formAssistant.open(aEvent.target);
+          this.formAssistant.open(aEvent.target, aEvent);
         break;
 
       case "click":
