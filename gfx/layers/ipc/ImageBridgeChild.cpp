@@ -35,6 +35,7 @@
 #include "nsTArrayForwardDeclare.h"     
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
+#include "mozilla/StaticPtr.h"          
 
 struct nsIntRect;
  
@@ -199,7 +200,7 @@ ImageBridgeChild::UpdatePictureRect(CompositableClient* aCompositable,
 
 
 static ImageBridgeChild *sImageBridgeChildSingleton = nullptr;
-static nsRefPtr<ImageBridgeParent> sImageBridgeParentSingleton;
+static StaticRefPtr<ImageBridgeParent> sImageBridgeParentSingleton;
 static Thread *sImageBridgeChildThread = nullptr;
 
 
