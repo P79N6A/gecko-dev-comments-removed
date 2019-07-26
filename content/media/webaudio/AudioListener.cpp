@@ -118,6 +118,15 @@ void AudioListener::UpdatePannersVelocity()
   }
 }
 
+size_t
+AudioListener::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t amount = aMallocSizeOf(this);
+  
+  amount += mPanners.SizeOfExcludingThis(aMallocSizeOf);
+  return amount;
+}
+
 }
 }
 
