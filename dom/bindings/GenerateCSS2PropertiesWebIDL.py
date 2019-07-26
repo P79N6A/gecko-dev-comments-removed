@@ -7,9 +7,18 @@ import string
 
 propList = eval(sys.stdin.read())
 props = ""
-for [prop, pref] in propList:
+for [prop, id, flags, pref] in propList:
     extendedAttrs = ["Throws", "TreatNullAs=EmptyString"]
-    if pref is not "":
+    
+    
+    
+    
+    
+    if "CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP" in flags:
+        extendedAttrs.append('Func="IsCSSPropertyExposedToJS<eCSSProperty_%s>"' % id)
+    
+    
+    elif pref is not "":
         extendedAttrs.append('Pref="%s"' % pref)
     if not prop.startswith("Moz"):
         prop = prop[0].lower() + prop[1:]
