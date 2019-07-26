@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "jsworkers.h"
 
@@ -44,7 +44,7 @@ js::EnsureParallelCompilationInitialized(JSRuntime *rt)
 bool
 js::StartOffThreadAsmJSCompile(JSContext *cx, AsmJSParallelTask *asmData)
 {
-    // Threads already initialized by the AsmJS compiler.
+    
     JS_ASSERT(cx->runtime()->workerThreadState);
     JS_ASSERT(asmData->mir);
     JS_ASSERT(asmData->lir == NULL);
@@ -54,7 +54,7 @@ js::StartOffThreadAsmJSCompile(JSContext *cx, AsmJSParallelTask *asmData)
 
     AutoLockWorkerThreadState lock(cx->runtime());
 
-    // Don't append this task if another failed.
+    
     if (state.asmJSWorkerFailed())
         return false;
 
@@ -84,11 +84,11 @@ js::StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder)
     return true;
 }
 
-/*
- * Move an IonBuilder for which compilation has either finished, failed, or
- * been cancelled into the Ion compartment's finished compilations list.
- * All off thread compilations which are started must eventually be finished.
- */
+
+
+
+
+
 static void
 FinishOffThreadIonCompile(ion::IonBuilder *builder)
 {
@@ -121,7 +121,7 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 
     AutoLockWorkerThreadState lock(compartment->rt);
 
-    /* Cancel any pending entries for which processing hasn't started. */
+    
     for (size_t i = 0; i < state.ionWorklist.length(); i++) {
         ion::IonBuilder *builder = state.ionWorklist[i];
         if (CompiledScriptMatches(compartment, script, builder->script())) {
@@ -131,7 +131,7 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
         }
     }
 
-    /* Wait for in progress entries to finish up. */
+    
     for (size_t i = 0; i < state.numThreads; i++) {
         const WorkerThread &helper = state.threads[i];
         while (helper.ionBuilder &&
@@ -144,7 +144,7 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 
     ion::OffThreadCompilationVector &compilations = ion->finishedOffThreadCompilations();
 
-    /* Cancel code generation for any completed entries. */
+    
     for (size_t i = 0; i < compilations.length(); i++) {
         ion::IonBuilder *builder = compilations[i];
         if (CompiledScriptMatches(compartment, script, builder->script())) {
@@ -205,10 +205,10 @@ WorkerThreadState::init(JSRuntime *rt)
 
 WorkerThreadState::~WorkerThreadState()
 {
-    /*
-     * Join created threads first, which needs locks and condition variables
-     * to be intact.
-     */
+    
+
+
+
     if (threads) {
         for (size_t i = 0; i < numThreads; i++)
             threads[i].destroy();
@@ -286,7 +286,7 @@ WorkerThreadState::notifyAll(CondVar which)
 bool
 WorkerThreadState::canStartAsmJSCompile()
 {
-    // Don't execute an AsmJS job if an earlier one failed.
+    
     JS_ASSERT(isLocked());
     return (!asmJSWorklist.empty() && !numAsmJSFailedJobs);
 }
@@ -294,10 +294,10 @@ WorkerThreadState::canStartAsmJSCompile()
 bool
 WorkerThreadState::canStartIonCompile()
 {
-    // A worker thread can begin an Ion compilation if (a) there is some script
-    // which is waiting to be compiled, and (b) no other worker thread is
-    // currently compiling a script. The latter condition ensures that two
-    // compilations cannot simultaneously occur.
+    
+    
+    
+    
     if (ionWorklist.empty())
         return false;
     for (size_t i = 0; i < numThreads; i++) {
@@ -319,14 +319,14 @@ WorkerThread::destroy()
         AutoLockWorkerThreadState lock(runtime);
         terminate = true;
 
-        /* Notify all workers, to ensure that this thread wakes up. */
+        
         state.notifyAll(WorkerThreadState::WORKER);
     }
 
     PR_JoinThread(thread);
 }
 
-/* static */
+
 void
 WorkerThread::ThreadMain(void *arg)
 {
@@ -364,19 +364,19 @@ WorkerThread::handleAsmJSWorkload(WorkerThreadState &state)
     } while(0);
     state.lock();
 
-    // On failure, signal parent for harvesting in CancelOutstandingJobs().
+    
     if (!success) {
         asmData = NULL;
-        state.noteAsmJSFailure(asmData->funcNum);
+        state.noteAsmJSFailure(asmData->func);
         state.notify(WorkerThreadState::MAIN);
         return;
     }
 
-    // On success, move work to the finished list.
+    
     state.asmJSFinishedList.append(asmData);
     asmData = NULL;
 
-    // Notify the main thread in case it's blocked waiting for a LifoAlloc.
+    
     state.notify(WorkerThreadState::MAIN);
 }
 
@@ -402,11 +402,11 @@ WorkerThread::handleIonWorkload(WorkerThreadState &state)
     FinishOffThreadIonCompile(ionBuilder);
     ionBuilder = NULL;
 
-    // Notify the main thread in case it is waiting for the compilation to finish.
+    
     state.notify(WorkerThreadState::MAIN);
 
-    // Ping the main thread so that the compiled code can be incorporated
-    // at the next operation callback.
+    
+    
     runtime->triggerOperationCallback();
 }
 
@@ -422,7 +422,7 @@ WorkerThread::threadLoop()
     while (true) {
         JS_ASSERT(!ionBuilder && !asmData);
 
-        // Block until an Ion or AsmJS task is available.
+        
         while (!state.canStartIonCompile() && !state.canStartAsmJSCompile()) {
             if (terminate) {
                 state.unlock();
@@ -431,7 +431,7 @@ WorkerThread::threadLoop()
             state.wait(WorkerThreadState::WORKER);
         }
 
-        // Dispatch tasks, prioritizing AsmJS work.
+        
         if (state.canStartAsmJSCompile())
             handleAsmJSWorkload(state);
         else if (state.canStartIonCompile())
@@ -439,7 +439,7 @@ WorkerThread::threadLoop()
     }
 }
 
-#else /* JS_PARALLEL_COMPILATION */
+#else 
 
 bool
 js::StartOffThreadAsmJSCompile(JSContext *cx, AsmJSParallelTask *asmData)
@@ -458,4 +458,4 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 {
 }
 
-#endif /* JS_PARALLEL_COMPILATION */
+#endif 

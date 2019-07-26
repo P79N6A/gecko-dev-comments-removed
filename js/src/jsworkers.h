@@ -86,11 +86,11 @@ class WorkerThreadState
         numAsmJSFailedJobs = 0;
         return n;
     }
-    void noteAsmJSFailure(int32_t func) {
+    void noteAsmJSFailure(void *func) {
         
         JS_ASSERT(isLocked());
-        if (asmJSFailedFunctionIndex < 0)
-            asmJSFailedFunctionIndex = func;
+        if (!asmJSFailedFunction)
+            asmJSFailedFunction = func;
         numAsmJSFailedJobs++;
     }
     bool asmJSWorkerFailed() const {
@@ -98,10 +98,10 @@ class WorkerThreadState
     }
     void resetAsmJSFailureState() {
         numAsmJSFailedJobs = 0;
-        asmJSFailedFunctionIndex = -1;
+        asmJSFailedFunction = NULL;
     }
-    int32_t maybeGetAsmJSFailedFunctionIndex() const {
-        return asmJSFailedFunctionIndex;
+    void *maybeAsmJSFailedFunction() const {
+        return asmJSFailedFunction;
     }
 
   private:
@@ -132,7 +132,7 @@ class WorkerThreadState
 
 
 
-    int32_t asmJSFailedFunctionIndex;
+    void *asmJSFailedFunction;
 };
 
 

@@ -253,7 +253,7 @@ DynamicallyLinkModule(JSContext *cx, CallArgs args, AsmJSModule &module)
     return true;
 }
 
-AsmJSActivation::AsmJSActivation(JSContext *cx, const AsmJSModule &module)
+AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
   : cx_(cx),
     module_(module),
     errorRejoinSP_(NULL),
@@ -297,7 +297,7 @@ js::CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     RootedObject moduleObj(cx, &callee->getExtendedSlot(ASM_MODULE_SLOT).toObject());
-    const AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
 
     
     
