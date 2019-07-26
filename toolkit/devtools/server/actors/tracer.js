@@ -442,14 +442,30 @@ TraceTypes.register("name", TraceTypes.Events.enterFrame, function({ frame }) {
     : "(" + frame.type + ")";
 });
 
-TraceTypes.register("callsite", TraceTypes.Events.enterFrame, function({ frame }) {
+TraceTypes.register("location", TraceTypes.Events.enterFrame, function({ frame }) {
   if (!frame.script) {
     return undefined;
   }
+  
+  
+  
+  
   return {
     url: frame.script.url,
     line: frame.script.getOffsetLine(frame.offset),
     column: getOffsetColumn(frame.offset, frame.script)
+  };
+});
+
+TraceTypes.register("callsite", TraceTypes.Events.enterFrame, function({ frame }) {
+  let older = frame.older;
+  if (!older || !older.script) {
+    return undefined;
+  }
+  return {
+    url: older.script.url,
+    line: older.script.getOffsetLine(older.offset),
+    column: getOffsetColumn(older.offset, older.script)
   };
 });
 
