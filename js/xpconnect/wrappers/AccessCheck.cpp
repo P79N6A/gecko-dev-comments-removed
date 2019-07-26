@@ -243,6 +243,9 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
             return true;
     }
 
+    if (act != Wrapper::GET)
+        return false;
+
     
     
     if (IsWindow(name)) {
