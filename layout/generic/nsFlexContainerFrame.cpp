@@ -605,16 +605,13 @@ nsFlexContainerFrame::AppendFlexItemForChild(
   
   
   
-  
-  
   bool needToMeasureMaxContentHeight = false;
   if (!IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-    bool isMainSizeAuto = (NS_UNCONSTRAINEDSIZE == flexBaseSize);
-    bool isMainMinSizeAuto =
-      (eStyleUnit_Auto ==
-       aChildFrame->StylePosition()->mMinHeight.GetUnit());
-
-    needToMeasureMaxContentHeight = isMainSizeAuto || isMainMinSizeAuto;
+    
+    
+    
+    
+    needToMeasureMaxContentHeight = (NS_AUTOHEIGHT == flexBaseSize);
 
     if (needToMeasureMaxContentHeight) {
       
@@ -638,9 +635,7 @@ nsFlexContainerFrame::AppendFlexItemForChild(
       
       
       
-      
-      if (flexGrow != 0.0f || flexShrink != 0.0f ||  
-          !isMainSizeAuto) {  
+      if (flexGrow != 0.0f || flexShrink != 0.0f) {  
         childRSForMeasuringHeight.mFlags.mVResize = true;
       }
 
@@ -667,13 +662,7 @@ nsFlexContainerFrame::AppendFlexItemForChild(
         childRS.mComputedBorderPadding.TopBottom();
       childDesiredHeight = std::max(0, childDesiredHeight);
 
-      if (isMainSizeAuto) {
-        flexBaseSize = childDesiredHeight;
-      }
-      if (isMainMinSizeAuto) {
-        mainMinSize = childDesiredHeight;
-        mainMaxSize = std::max(mainMaxSize, mainMinSize);
-      }
+      flexBaseSize = childDesiredHeight;
     }
   }
 
