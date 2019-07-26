@@ -110,7 +110,7 @@ CSS_PSEUDO_CLASS(notPseudo, ":not")
 
 
 
-CSS_STATE_DEPENDENT_PSEUDO_CLASS(dir, ":dir",
+CSS_STATE_DEPENDENT_PSEUDO_CLASS(dir, ":-moz-dir",
                                  NS_EVENT_STATE_LTR | NS_EVENT_STATE_RTL)
 
 CSS_STATE_PSEUDO_CLASS(link, ":link", NS_EVENT_STATE_UNVISITED)
