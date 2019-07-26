@@ -306,9 +306,6 @@ protected:
   virtual ~nsListControlFrame();
 
   
-  nsresult GetSizeAttribute(uint32_t *aSize);
-
-  
 
 
 
