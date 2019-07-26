@@ -54,6 +54,7 @@ const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
 const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
 const kSysClockChangeObserverTopic       = "system-clock-change";
 const kTimeNitzAutomaticUpdateEnabled    = "time.nitz.automatic-update.enabled";
+const kTimeNitzAvailable                 = "time.nitz.available";
 const kCellBroadcastSearchList           = "ril.cellbroadcast.searchlist";
 
 const DOM_SMS_DELIVERY_RECEIVED          = "received";
@@ -287,6 +288,9 @@ function RadioInterfaceLayer() {
   
   
   lock.get(kTimeNitzAutomaticUpdateEnabled, this);
+
+  
+  this.setNitzAvailable(false);
 
   
   
@@ -1603,6 +1607,14 @@ RadioInterfaceLayer.prototype = {
   
 
 
+  setNitzAvailable: function setNitzAvailable(value) {
+    gSettingsService.createLock().set(kTimeNitzAvailable, value, null,
+                                      "fromInternalSetting");
+  },
+
+  
+
+
   setNitzTime: function setNitzTime(message) {
     
     
@@ -1630,6 +1642,9 @@ RadioInterfaceLayer.prototype = {
 
 
   handleNitzTime: function handleNitzTime(message) {
+    
+    this.setNitzAvailable(true);
+
     
     this._lastNitzMessage = message;
 
@@ -1737,7 +1752,7 @@ RadioInterfaceLayer.prototype = {
         break;
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
-        this.handle(setting.key, setting.value);
+        this.handleSettingsChange(setting.key, setting.value, setting.message);
         break;
       case "xpcom-shutdown":
         ppmm.removeMessageListener("child-process-shutdown", this);
@@ -1806,6 +1821,20 @@ RadioInterfaceLayer.prototype = {
 
   
   _cellBroadcastSearchListStr: null,
+
+  handleSettingsChange: function handleSettingsChange(aName, aResult, aMessage) {
+    
+    
+    let isNitzAvailable = (this._lastNitzMessage !== null);
+    if (aName === kTimeNitzAvailable && aMessage !== "fromInternalSetting" &&
+        aResult !== isNitzAvailable) {
+      debug("Content processes cannot modify 'time.nitz.available'. Restore!");
+      
+      this.setNitzAvailable(isNitzAvailable);
+    }
+
+    this.handle(aName, aResult);
+  },
 
   
   handle: function handle(aName, aResult) {
