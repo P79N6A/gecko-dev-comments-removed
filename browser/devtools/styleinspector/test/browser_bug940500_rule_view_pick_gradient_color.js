@@ -1,9 +1,9 @@
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+ http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
-
-
+// Test that changing a color in a gradient css declaration using the tooltip
+// color picker works
 
 let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 
@@ -82,18 +82,16 @@ function testColorParsing() {
 }
 
 function testPickingNewColor() {
-  
+  // Grab the first color swatch and color in the gradient
   let ruleEl = getRuleViewProperty("background-image");
   let swatchEl = ruleEl.valueSpan.querySelector(".ruleview-colorswatch");
   let colorEl = ruleEl.valueSpan.querySelector(".ruleview-color");
 
-  
+  // Get the color picker tooltip
   let cPicker = ruleView.colorPicker;
 
   cPicker.tooltip.once("shown", () => {
-    simulateColorChange(cPicker, [1, 1, 1, 1]);
-
-    executeSoon(() => {
+    simulateColorChange(cPicker, [1, 1, 1, 1]).then(() => {
       is(swatchEl.style.backgroundColor, "rgb(1, 1, 1)",
         "The color swatch's background was updated");
       is(colorEl.textContent, "rgba(1, 1, 1, 1)",
@@ -110,11 +108,11 @@ function testPickingNewColor() {
 }
 
 function simulateColorChange(colorPicker, newRgba) {
-  
-  
-  
-  
-  colorPicker.spectrum.then(spectrum => {
+  // Note that this test isn't concerned with simulating events to test how the
+  // spectrum color picker reacts, see browser_spectrum.js for this.
+  // This test only cares about the color swatch <-> color picker <-> rule view
+  // interactions. That's why there's no event simulations here
+  return colorPicker.spectrum.then(spectrum => {
     spectrum.rgb = newRgba;
     spectrum.updateUI();
     spectrum.onChange();

@@ -1,8 +1,22 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#eyedropper-button {
+  background: url("chrome://browser/skin/devtools/eyedropper-black.png") no-repeat center;
+  width: 20px;
+  height: 20px;
+  -moz-margin-start: 6px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  cursor: pointer;
+}
 
+.theme-dark #eyedropper-button {
+  filter: url(chrome://browser/skin/devtools/filters.svg#colorpicker-invert);
+}
 
-
-
+/* Mix-in classes */
 
 .spectrum-checker {
   background-color: #eee;
@@ -23,7 +37,7 @@
   border: solid 1px #333;
 }
 
-
+/* Elements */
 
 .spectrum-container {
   position: relative;
@@ -39,8 +53,8 @@
   display: inline-block;
 }
 
-
-
+/* Keep aspect ratio:
+http://www.briangrinstead.com/blog/keep-aspect-ratio-with-html-and-css */
 .spectrum-top {
   position: relative;
   width: 100%;
@@ -72,7 +86,7 @@
 }
 
 .spectrum-fill {
-  
+  /* Same as spectrum-color width */
   margin-top: 85%;
 }
 

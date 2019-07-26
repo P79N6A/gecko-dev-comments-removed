@@ -102,6 +102,7 @@
     <command id="Tools:BrowserConsole" oncommand="HUDService.toggleBrowserConsole();"/>
     <command id="Tools:Scratchpad" oncommand="Scratchpad.openScratchpad();"/>
     <command id="Tools:ResponsiveUI" oncommand="ResponsiveUI.toggle();"/>
+    <command id="Tools:Eyedropper" oncommand="openEyedropper();"/>
     <command id="Tools:Addons" oncommand="BrowserOpenAddonsMgr();"/>
     <command id="Tools:ErrorConsole" oncommand="toJavaScriptConsole()" disabled="true" hidden="true"/>
     <command id="Tools:DevToolsConnect" oncommand="gDevToolsBrowser.openConnectScreen(gBrowser)" disabled="true" hidden="true"/>
@@ -135,7 +136,7 @@
                  oncommand="toggleSidebar('viewBookmarksSidebar');"/>
 
     <!-- for both places and non-places, the sidebar lives at
-         chrome:
+         chrome://browser/content/history/history-panel.xul so there are no
          problems when switching between versions -->
     <broadcaster id="viewHistorySidebar" autoCheck="false" sidebartitle="&historyButton.label;"
                  type="checkbox" group="sidebar"
@@ -211,6 +212,10 @@
                  type="checkbox" autocheck="false"
                  command="Tools:ResponsiveUI"
                  key="key_responsiveUI"/>
+    <broadcaster id="devtoolsMenuBroadcaster_Eyedropper"
+                 label="&eyedropper.label;"
+                 type="checkbox" autocheck="false"
+                 command="Tools:Eyedropper"/>
     <broadcaster id="devtoolsMenuBroadcaster_PageSource"
                  label="&pageSourceCmd.label;"
                  key="key_viewSource"

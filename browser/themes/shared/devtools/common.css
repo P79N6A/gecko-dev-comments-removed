@@ -1,7 +1,7 @@
 %if 0
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 %endif
 
 :root {
@@ -21,7 +21,7 @@
 %endif
 }
 
-
+/* Splitters */
 .devtools-horizontal-splitter {
   -moz-appearance: none;
   background-image: none;
@@ -51,8 +51,8 @@
   min-width: 465px;
 }
 
-
-
+/* Autocomplete Popup */
+/* Dark and light theme */
 
 .devtools-autocomplete-popup {
   -moz-appearance: none !important;
@@ -110,7 +110,7 @@
   text-align: right;
 }
 
-
+/* Rest of the light theme */
 
 .devtools-autocomplete-popup.light-theme {
   border: 1px solid hsl(210,24%,90%);
@@ -132,18 +132,18 @@
   color: #666;
 }
 
-
+/* Tooltip widget (see browser/devtools/shared/widgets/Tooltip.js) */
 
 .devtools-tooltip .panel-arrowcontent {
   padding: 4px;
 }
 
 .devtools-tooltip .panel-arrowcontainer {
-  
+  /* Reseting the transition used when panels are shown */
   transition: none;
-  
-
-
+  /* Panels slide up/down/left/right when they appear using a transform.
+  Since we want to remove the transition, we don't need to transform anymore
+  plus it can interfeer by causing mouseleave events on the underlying nodes */
   transform: none;
 }
 
@@ -157,11 +157,11 @@
   overflow: hidden;
 }
 
-
+/* Tooltip: Simple Text */
 
 .devtools-tooltip-simple-text {
   max-width: 400px;
-  margin: 0 -4px; 
+  margin: 0 -4px; /* Compensate for the .panel-arrowcontent padding. */
   padding: 8px 12px;
   white-space: pre-wrap;
 }
@@ -174,7 +174,7 @@
   margin-bottom: -4px;
 }
 
-
+/* Tooltip: Font Family Previewer Text */
 .devtools-tooltip-font-previewer-text {
   max-width: 400px;
   line-height: 1.5;
@@ -182,7 +182,7 @@
   text-align: center;
 }
 
-
+/* Tooltip: Alert Icon */
 
 .devtools-tooltip-alert-icon {
   width: 32px;
@@ -195,13 +195,13 @@
   list-style-image: url("chrome://global/skin/icons/warning-32.png");
 }
 
-
+/* Tooltip: Variables View */
 
 .devtools-tooltip-variables-view-box {
-  margin: -4px; 
+  margin: -4px; /* Compensate for the .panel-arrowcontent padding. */
 }
 
-
+/* Tooltip: Tiles */
 
 .devtools-tooltip-tiles {
   background-color: #eee;
@@ -214,4 +214,15 @@
 .devtools-tooltip-iframe {
   border: none;
   background: transparent;
+}
+
+/* Eyedropper Widget */
+
+.devtools-eyedropper-panel {
+  pointer-events: none;
+  -moz-appearance: none;
+  width: 156px;
+  height: 120px;
+  background-color: transparent;
+  border: none;
 }
