@@ -43,7 +43,7 @@
 #include "MediaEngineWebRTC.h"
 #endif
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
 #include "MediaPermissionGonk.h"
 #endif
 
@@ -810,6 +810,7 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
+    , mBackendChosen(false)
     , mManager(MediaManager::GetInstance())
   {}
 
@@ -831,11 +832,15 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
+    , mBackendChosen(true)
     , mBackend(aBackend)
     , mManager(MediaManager::GetInstance())
   {}
 
   ~GetUserMediaRunnable() {
+    if (mBackendChosen) {
+      delete mBackend;
+    }
   }
 
   NS_IMETHOD
@@ -843,7 +848,10 @@ public:
   {
     NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
-    mBackend = mManager->GetBackend(mWindowID);
+    
+    if (!mBackendChosen) {
+      mBackend = mManager->GetBackend(mWindowID);
+    }
 
     
     if (!mDeviceChosen) {
@@ -1030,6 +1038,7 @@ private:
   MediaEnginePrefs mPrefs;
 
   bool mDeviceChosen;
+  bool mBackendChosen;
 
   MediaEngine* mBackend;
   nsRefPtr<MediaManager> mManager; 
@@ -1247,7 +1256,7 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
     
     
     (void) MediaManager::Get();
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
     
     (void) MediaPermissionManager::GetInstance();
 #endif 
@@ -1302,7 +1311,7 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
   if (c.mFake) {
     
     gUMRunnable = new GetUserMediaRunnable(c, onSuccess.forget(),
-      onError.forget(), windowID, listener, mPrefs, GetBackend(windowID, true));
+      onError.forget(), windowID, listener, mPrefs, new MediaEngineDefault());
   } else {
     
     gUMRunnable = new GetUserMediaRunnable(c, onSuccess.forget(),
@@ -1383,26 +1392,22 @@ MediaManager::GetUserMediaDevices(nsPIDOMWindow* aWindow,
 }
 
 MediaEngine*
-MediaManager::GetBackend(uint64_t aWindowId, bool aFake)
+MediaManager::GetBackend(uint64_t aWindowId)
 {
   
   
   
   MutexAutoLock lock(mMutex);
   if (!mBackend) {
-    if (aFake) {
-      mBackend = new MediaEngineDefault();
-    } else {
 #if defined(MOZ_WEBRTC)
-#ifndef MOZ_B2G_CAMERA
-      mBackend = new MediaEngineWebRTC();
+  #ifndef MOZ_B2G_CAMERA
+    mBackend = new MediaEngineWebRTC();
+  #else
+    mBackend = new MediaEngineWebRTC(mCameraManager, aWindowId);
+  #endif
 #else
-      mBackend = new MediaEngineWebRTC(mCameraManager, aWindowId);
+    mBackend = new MediaEngineDefault();
 #endif
-#else
-      mBackend = new MediaEngineDefault();
-#endif
-    }
   }
   return mBackend;
 }
