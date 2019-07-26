@@ -273,6 +273,7 @@ this.DOMApplicationRegistry = {
         file.copyTo(destDir, aFile);
       });
 
+    app.installState = "installed";
     app.basePath = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true)
                             .path;
 
@@ -2109,9 +2110,17 @@ this.DOMApplicationRegistry = {
             return;
           }
 
+          
+          
+          let responseStatus = requestChannel.responseStatus;
+          if (responseStatus >= 400 && responseStatus <= 599) {
+            cleanup("NETWORK_ERROR");
+            return;
+          }
+
           self.computeFileHash(zipFile, function onHashComputed(aHash) {
             debug("packageHash=" + aHash);
-            let newPackage = (requestChannel.responseStatus != 304) &&
+            let newPackage = (responseStatus != 304) &&
                              (aHash != app.packageHash);
 
             if (!newPackage) {
