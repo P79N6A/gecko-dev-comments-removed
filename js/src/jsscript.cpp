@@ -1841,8 +1841,6 @@ JSScript::isShortRunning()
 bool
 JSScript::enclosingScriptsCompiledSuccessfully() const
 {
-    AutoAssertNoGC nogc;
-
     
 
 
@@ -1854,7 +1852,7 @@ JSScript::enclosingScriptsCompiledSuccessfully() const
     while (enclosing) {
         if (enclosing->isFunction()) {
             RawFunction fun = enclosing->toFunction();
-            if (!fun->script().get(nogc))
+            if (!fun->hasScript())
                 return false;
             enclosing = fun->script()->enclosingScope_;
         } else {
@@ -1906,8 +1904,7 @@ JSScript::finalize(FreeOp *fop)
 #ifdef JS_METHODJIT
     mjit::ReleaseScriptCode(fop, this);
 # ifdef JS_ION
-    if (hasIonScript())
-        ion::IonScript::Destroy(fop, ion);
+    ion::DestroyIonScripts(fop, this);
 # endif
 #endif
 
@@ -2599,8 +2596,7 @@ JSScript::markChildren(JSTracer *trc)
     }
 
 #ifdef JS_ION
-    if (hasIonScript())
-        ion::IonScript::Trace(trc, ion);
+    ion::TraceIonScripts(trc, this);
 #endif
 }
 

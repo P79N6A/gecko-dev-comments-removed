@@ -1007,11 +1007,11 @@ class FastInvokeGuard
 
   public:
     FastInvokeGuard(JSContext *cx, const Value &fval)
-      : fun_(cx),
-        script_(cx)
+      : fun_(cx)
+      , script_(cx)
 #ifdef JS_ION
-        , ictx_(cx, cx->compartment, NULL),
-        useIon_(ion::IsEnabled(cx))
+      , ictx_(cx, cx->compartment, NULL)
+      , useIon_(ion::IsEnabled(cx))
 #endif
     {
         initFunction(fval);
@@ -1020,7 +1020,7 @@ class FastInvokeGuard
     void initFunction(const Value &fval) {
         if (fval.isObject() && fval.toObject().isFunction()) {
             JSFunction *fun = fval.toObject().toFunction();
-            if (fun->isInterpreted()) {
+            if (fun->hasScript()) {
                 fun_ = fun;
                 script_ = fun->script();
             }

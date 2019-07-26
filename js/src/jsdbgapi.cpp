@@ -552,8 +552,9 @@ JS_SetTopFrameAnnotation(JSContext *cx, void *annotation)
     ReleaseAllJITCode(cx->runtime->defaultFreeOp());
 
     
-    JS_ASSERT(!script->hasIonScript());
+    JS_ASSERT(!script->hasAnyIonScript());
     script->ion = ION_DISABLED_SCRIPT;
+    script->parallelIon = ION_DISABLED_SCRIPT;
 }
 
 JS_PUBLIC_API(JSObject *)

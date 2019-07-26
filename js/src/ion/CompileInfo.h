@@ -17,12 +17,23 @@ CountArgSlots(JSFunction *fun)
     return fun ? fun->nargs + 2 : 1; 
 }
 
+enum ExecutionMode {
+    
+    SequentialExecution,
+
+    
+    
+    ParallelExecution
+};
+
 
 class CompileInfo
 {
   public:
-    CompileInfo(JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing)
-      : script_(script), fun_(fun), osrPc_(osrPc), constructing_(constructing)
+    CompileInfo(JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing,
+                ExecutionMode executionMode)
+      : script_(script), fun_(fun), osrPc_(osrPc), constructing_(constructing),
+        executionMode_(executionMode)
     {
         JS_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOP_LOOPENTRY);
         nslots_ = script->nslots + CountArgSlots(fun);
@@ -133,12 +144,21 @@ class CompileInfo
         return script()->argumentsHasVarBinding();
     }
 
+    ExecutionMode executionMode() const {
+        return executionMode_;
+    }
+
+    bool isParallelExecution() const {
+        return executionMode_ == ParallelExecution;
+    }
+
   private:
     JSScript *script_;
     JSFunction *fun_;
     unsigned nslots_;
     jsbytecode *osrPc_;
     bool constructing_;
+    ExecutionMode executionMode_;
 };
 
 } 
