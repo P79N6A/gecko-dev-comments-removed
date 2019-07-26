@@ -2841,6 +2841,30 @@ RadioInterfaceLayer.prototype = {
         Services.obs.notifyObservers(domMessage, kSmsSendingObserverTopic, null);
 
         
+        
+        let errorCode;
+        if (!this._radioEnabled) {
+          debug("Error! Radio is disabled when sending SMS.");
+          errorCode = Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR;
+        } else if (this.rilContext.cardState != "ready") {
+          debug("Error! SIM card is not ready when sending SMS.");
+          errorCode = Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR;
+        }
+        if (errorCode) {
+          gMobileMessageDatabaseService
+            .setMessageDelivery(domMessage.id,
+                                null,
+                                DOM_MOBILE_MESSAGE_DELIVERY_ERROR,
+                                RIL.GECKO_SMS_DELIVERY_STATUS_ERROR,
+                                function notifyResult(rv, domMessage) {
+            
+            request.notifySendMessageFailed(errorCode);
+            Services.obs.notifyObservers(domMessage, kSmsFailedObserverTopic, null);
+          });
+          return;
+        }
+
+        
         options.envelopeId = this.createSmsEnvelope({
           request: request,
           sms: domMessage,
