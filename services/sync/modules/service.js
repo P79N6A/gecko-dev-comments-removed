@@ -164,7 +164,7 @@ Sync11Service.prototype = {
 
   _updateCachedURLs: function _updateCachedURLs() {
     
-    if (this.clusterURL == "" || this.identity.username == "")
+    if (!this.clusterURL || !this.identity.username)
       return;
 
     this._log.debug("Caching URLs under storage user base: " + this.userBaseURL);
@@ -853,14 +853,6 @@ Sync11Service.prototype = {
     this.status.resetSync();
 
     
-    
-    
-    this.identity.resetSyncKey();
-    this.status.login = LOGIN_FAILED_NO_PASSPHRASE;
-    this.logout();
-    Svc.Obs.notify("weave:service:start-over");
-
-    
     if (this.clusterURL != "") {
       
       for each (let engine in [this.clientsEngine].concat(this.engineManager.getAll())) {
@@ -871,9 +863,19 @@ Sync11Service.prototype = {
                          + Utils.exceptionStr(ex));
         }
       }
+      this._log.debug("Finished deleting client data.");
     } else {
       this._log.debug("Skipping client data removal: no cluster URL.");
     }
+
+    
+    
+    
+    this._log.info("Service.startOver dropping sync key and logging out.");
+    this.identity.resetSyncKey();
+    this.status.login = LOGIN_FAILED_NO_PASSPHRASE;
+    this.logout();
+    Svc.Obs.notify("weave:service:start-over");
 
     
     this.resetClient();
@@ -900,21 +902,23 @@ Sync11Service.prototype = {
       return;
     }
 
-    this.identity.username = "";
-    Services.prefs.clearUserPref("services.sync.fxaccounts.enabled");
-    this.status.__authManager = null;
-    this.identity = Status._authManager;
-    this._clusterManager = this.identity.createClusterManager(this);
-
-    
-    this.identity.initialize().then(() => {
-      Svc.Obs.notify("weave:service:start-over:finish");
-    }).then(null, err => {
-      this._log.error("startOver failed to re-initialize the identity manager: " + err);
-      
-      
-      Svc.Obs.notify("weave:service:start-over:finish");
-    });
+    this.identity.finalize().then(
+      () => {
+        this.identity.username = "";
+        Services.prefs.clearUserPref("services.sync.fxaccounts.enabled");
+        this.status.__authManager = null;
+        this.identity = Status._authManager;
+        this._clusterManager = this.identity.createClusterManager(this);
+        Svc.Obs.notify("weave:service:start-over:finish");
+      }
+    ).then(null,
+      err => {
+        this._log.error("startOver failed to re-initialize the identity manager: " + err);
+        
+        
+        Svc.Obs.notify("weave:service:start-over:finish");
+      }
+    );
   },
 
   persistLogin: function persistLogin() {
@@ -985,6 +989,7 @@ Sync11Service.prototype = {
       return;
 
     this._log.info("Logging out");
+    this.identity.logout();
     this._loggedIn = false;
 
     Svc.Obs.notify("weave:service:logout:finish");

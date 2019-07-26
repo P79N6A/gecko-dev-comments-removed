@@ -32,7 +32,7 @@ add_task(function* test_startover() {
   do_check_true(Service.clusterURL.length > 0);
 
   
-  let oldIdentidy = Service.identity;
+  let oldIdentity = Service.identity;
   let oldClusterManager = Service._clusterManager;
   let deferred = Promise.defer();
   Services.obs.addObserver(function observeStartOverFinished() {
@@ -41,7 +41,7 @@ add_task(function* test_startover() {
   }, "weave:service:start-over:finish", false);
 
   Service.startOver();
-  yield deferred; 
+  yield deferred.promise; 
 
   
   do_check_true(Services.prefs.getBoolPref("services.sync.fxaccounts.enabled"));
@@ -53,9 +53,10 @@ add_task(function* test_startover() {
   do_check_eq(Service.clusterURL, "");
 
   
-  Service.identity = oldIdentity = Service.identity;
-  Service._clusterManager = Service._clusterManager;
-  Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", false);
+  do_check_neq(oldIdentity, Service.identity);
+  do_check_neq(oldClusterManager, Service._clusterManager);
 
+  
+  Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", false);
   Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", oldValue);
 });

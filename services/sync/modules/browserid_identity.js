@@ -32,18 +32,21 @@ XPCOMUtils.defineLazyModuleGetter(this, "BulkKeyBundle",
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
                                   "resource://gre/modules/FxAccounts.jsm");
 
-XPCOMUtils.defineLazyGetter(this, 'fxAccountsCommon', function() {
-  let ob = {};
-  Cu.import("resource://gre/modules/FxAccountsCommon.js", ob);
-  return ob;
-});
-
 XPCOMUtils.defineLazyGetter(this, 'log', function() {
   let log = Log.repository.getLogger("Sync.BrowserIDManager");
   log.addAppender(new Log.DumpAppender());
   log.level = Log.Level[Svc.Prefs.get("log.logger.identity")] || Log.Level.Error;
   return log;
 });
+
+
+let fxAccountsCommon = {};
+Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
+
+const OBSERVER_TOPICS = [
+  fxAccountsCommon.ONLOGIN_NOTIFICATION,
+  fxAccountsCommon.ONLOGOUT_NOTIFICATION,
+];
 
 const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
 
@@ -90,7 +93,7 @@ this.BrowserIDManager.prototype = {
   _tokenServerClient: null,
   
   _token: null,
-  _account: null,
+  _signedInUser: null, 
 
   
   
@@ -116,9 +119,9 @@ this.BrowserIDManager.prototype = {
   },
 
   initialize: function() {
-    Services.obs.addObserver(this, fxAccountsCommon.ONLOGIN_NOTIFICATION, false);
-    Services.obs.addObserver(this, fxAccountsCommon.ONLOGOUT_NOTIFICATION, false);
-    Services.obs.addObserver(this, "weave:service:logout:finish", false);
+    for (let topic of OBSERVER_TOPICS) {
+      Services.obs.addObserver(this, topic, false);
+    }
     return this.initializeWithCurrentIdentity();
   },
 
@@ -150,6 +153,16 @@ this.BrowserIDManager.prototype = {
     return this.whenReadyToAuthenticate.promise;
   },
 
+  finalize: function() {
+    
+    for (let topic of OBSERVER_TOPICS) {
+      Services.obs.removeObserver(this, topic);
+    }
+    this.resetCredentials();
+    this._signedInUser = null;
+    return Promise.resolve();
+  },
+
   initializeWithCurrentIdentity: function(isInitialSync=false) {
     
     
@@ -164,19 +177,21 @@ this.BrowserIDManager.prototype = {
     return this._fxaService.getSignedInUser().then(accountData => {
       if (!accountData) {
         this._log.info("initializeWithCurrentIdentity has no user logged in");
-        this._account = null;
+        this.account = null;
+        
         this._shouldHaveSyncKeyBundle = true;
         this.whenReadyToAuthenticate.reject("no user is logged in");
         return;
       }
 
-      this._account = accountData.email;
+      this.account = accountData.email;
+      this._updateSignedInUser(accountData);
       
       
       
       this._log.info("Waiting for user to be verified.");
       this._fxaService.whenVerified(accountData).then(accountData => {
-        
+        this._updateSignedInUser(accountData);
         this._log.info("Starting fetch for key bundle.");
         if (this.needsCustomization) {
           
@@ -220,32 +235,50 @@ this.BrowserIDManager.prototype = {
     });
   },
 
+  _updateSignedInUser: function(userData) {
+    
+    
+    
+    
+    if (this._signedInUser && this._signedInUser.email != userData.email) {
+      throw new Error("Attempting to update to a different user.")
+    }
+    this._signedInUser = userData;
+  },
+
+  logout: function() {
+    
+    
+    
+    
+    
+    this._token = null;
+  },
+
   observe: function (subject, topic, data) {
     this._log.debug("observed " + topic);
     switch (topic) {
     case fxAccountsCommon.ONLOGIN_NOTIFICATION:
+      
+      
+      
+      
+      
+      
+      
+      
       this.initializeWithCurrentIdentity(true);
       break;
 
     case fxAccountsCommon.ONLOGOUT_NOTIFICATION:
+      Weave.Service.startOver();
       
       
-      this.username = "";
-      this._account = null;
-      Weave.Service.logout();
-      break;
-
-    case "weave:service:logout:finish":
-      
-      
-      
-      
-      this._token = null;
       break;
     }
   },
 
-   
+  
 
 
   _sha256: function(message) {
@@ -275,23 +308,9 @@ this.BrowserIDManager.prototype = {
     return this._fxaService.localtimeOffsetMsec;
   },
 
-  get account() {
-    return this._account;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  set account(value) {
-    throw "account setter should be not used in BrowserIDManager";
+  usernameFromAccount: function(val) {
+    
+    return val;
   },
 
   
@@ -349,8 +368,8 @@ this.BrowserIDManager.prototype = {
 
 
   resetCredentials: function() {
-    
     this.resetSyncKey();
+    this._token = null;
   },
 
   
@@ -403,56 +422,15 @@ this.BrowserIDManager.prototype = {
     if (this._token.expiration < this._now()) {
       return false;
     }
-    let signedInUser = this._getSignedInUser();
-    if (!signedInUser) {
-      return false;
-    }
-    
-    if (signedInUser.email !== this.account) {
-      return false;
-    }
     return true;
-  },
-
-  
-
-
-
-
-  _getSignedInUser: function() {
-    let userData;
-    let cb = Async.makeSpinningCallback();
-
-    this._fxaService.getSignedInUser().then(function (result) {
-        cb(null, result);
-    },
-    function (err) {
-        cb(err);
-    });
-
-    try {
-      userData = cb.wait();
-    } catch (err) {
-      this._log.error("FxAccounts.getSignedInUser() failed with: " + err);
-      return null;
-    }
-    return userData;
   },
 
   _fetchSyncKeyBundle: function() {
     
     return this._fxaService.getKeys().then(userData => {
-      
-      
-      if (!userData) {
-        throw new AuthenticationError("No userData in _fetchSyncKeyBundle");
-      } else if (userData.email !== this.account) {
-        throw new AuthenticationError("Unexpected user change in _fetchSyncKeyBundle");
-      }
-      return this._fetchTokenForUser(userData).then(token => {
+      this._updateSignedInUser(userData); 
+      return this._fetchTokenForUser().then(token => {
         this._token = token;
-        
-        this.username = this._token.uid.toString();
         
         let kB = Utils.hexToBytes(userData.kB);
         this._syncKeyBundle = deriveKeyBundle(kB);
@@ -462,11 +440,12 @@ this.BrowserIDManager.prototype = {
   },
 
   
-  _fetchTokenForUser: function(userData) {
+  _fetchTokenForUser: function() {
     let tokenServerURI = Svc.Prefs.get("tokenServerURI");
     let log = this._log;
     let client = this._tokenServerClient;
     let fxa = this._fxaService;
+    let userData = this._signedInUser;
 
     
     let kBbytes = CommonUtils.hexToBytes(userData.kB);
@@ -508,7 +487,7 @@ this.BrowserIDManager.prototype = {
 
     
     
-    return fxa.whenVerified(userData)
+    return fxa.whenVerified(this._signedInUser)
       .then(() => getAssertion())
       .then(assertion => getToken(tokenServerURI, assertion))
       .then(token => {
@@ -541,22 +520,17 @@ this.BrowserIDManager.prototype = {
       });
   },
 
-  _fetchTokenForLoggedInUserSync: function() {
-    let cb = Async.makeSpinningCallback();
-
-    this._fxaService.getSignedInUser().then(userData => {
-      this._fetchTokenForUser(userData).then(token => {
-        cb(null, token);
-      }, err => {
-        cb(err);
-      });
-    });
-    try {
-      return cb.wait();
-    } catch (err) {
-      this._log.info("_fetchTokenForLoggedInUserSync: " + err.message);
-      return null;
+  
+  
+  _ensureValidToken: function() {
+    if (this.hasValidToken()) {
+      return Promise.resolve();
     }
+    return this._fetchTokenForUser().then(
+      token => {
+        this._token = token;
+      }
+    );
   },
 
   getResourceAuthenticator: function () {
@@ -575,12 +549,16 @@ this.BrowserIDManager.prototype = {
 
 
   _getAuthenticationHeader: function(httpObject, method) {
-    if (!this.hasValidToken()) {
-      
-      this._token = this._fetchTokenForLoggedInUserSync();
-      if (!this._token) {
-        return null;
-      }
+    let cb = Async.makeSpinningCallback();
+    this._ensureValidToken().then(cb, cb);
+    try {
+      cb.wait();
+    } catch (ex) {
+      this._log.error("Failed to fetch a token for authentication: " + ex);
+      return null;
+    }
+    if (!this._token) {
+      return null;
     }
     let credentials = {algorithm: "sha256",
                        id: this._token.id,
@@ -626,29 +604,30 @@ BrowserIDClusterManager.prototype = {
   __proto__: ClusterManager.prototype,
 
   _findCluster: function() {
-    let fxa = this.identity._fxaService; 
+    let endPointFromIdentityToken = function() {
+      let endpoint = this.identity._token.endpoint;
+      
+      
+      
+      if (!endpoint.endsWith("/")) {
+        endpoint += "/";
+      }
+      return endpoint;
+    }.bind(this);
+
+    
     let promiseClusterURL = function() {
-      return fxa.getSignedInUser().then(userData => {
-        return this.identity._fetchTokenForUser(userData).then(token => {
-          let endpoint = token.endpoint;
-          
-          
-          
-          if (!endpoint.endsWith("/")) {
-            endpoint += "/";
-          }
-          return endpoint;
-        });
-      });
+      return this.identity.whenReadyToAuthenticate.promise.then(
+        () => this.identity._ensureValidToken()
+      ).then(
+        () => endPointFromIdentityToken()
+      );
     }.bind(this);
 
     let cb = Async.makeSpinningCallback();
     promiseClusterURL().then(function (clusterURL) {
-        cb(null, clusterURL);
-    },
-    function (err) {
-        cb(err);
-    });
+      cb(null, clusterURL);
+    }).then(null, cb);
     return cb.wait();
   },
 

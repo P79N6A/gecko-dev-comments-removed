@@ -93,6 +93,18 @@ IdentityManager.prototype = {
     return Promise.resolve();
   },
 
+  finalize: function() {
+    
+    return Promise.resolve();
+  },
+
+  
+
+
+  logout: function() {
+    
+  },
+
   
 
 

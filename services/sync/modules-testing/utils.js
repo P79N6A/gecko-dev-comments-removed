@@ -117,6 +117,9 @@ this.configureFxAccountIdentity = function(authService,
   let MockInternal = {};
   let fxa = new FxAccounts(MockInternal);
 
+  
+  
+  config.fxaccount.user.email = config.username;
   fxa.internal.currentAccountState.signedInUser = {
     version: DATA_FORMAT_VERSION,
     accountData: config.fxaccount.user
@@ -139,6 +142,7 @@ this.configureFxAccountIdentity = function(authService,
   authService._tokenServerClient = mockTSC;
   
   
+  authService._signedInUser = fxa.internal.currentAccountState.signedInUser.accountData;
   authService._account = config.fxaccount.user.email;
 }
 
