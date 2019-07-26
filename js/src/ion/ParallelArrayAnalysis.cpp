@@ -262,6 +262,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(PolyInlineDispatch)
     SAFE_OP(FunctionDispatch)
     SAFE_OP(TypeObjectDispatch)
+    SAFE_OP(IsCallable)
     UNSAFE_OP(EffectiveAddress)
     UNSAFE_OP(AsmJSUnsignedToDouble)
     UNSAFE_OP(AsmJSNeg)
@@ -506,11 +507,6 @@ ParallelArrayVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
     block->unmark();
 
     
-    jsbytecode *pc = block->pc();
-    if (!pc)
-        pc = block->pc();
-
-    
     
     
     
@@ -525,7 +521,8 @@ ParallelArrayVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
             continue;
 
         
-        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, pred->info(), pred, pc);
+        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, block->info(), pred,
+                                                            block->pc(), block->entryResumePoint());
         if (!bailBlock)
             return false;
 

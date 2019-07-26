@@ -1461,7 +1461,7 @@ LIRGenerator::visitTruncateToInt32(MTruncateToInt32 *truncate)
         return redefine(truncate, opd);
 
       case MIRType_Double:
-        return define(new LTruncateDToInt32(useRegister(opd), tempFloat()), truncate);
+        return lowerTruncateDToInt32(truncate);
 
       default:
         
@@ -2441,6 +2441,14 @@ LIRGenerator::visitFunctionBoundary(MFunctionBoundary *ins)
     
     return !gen->compartment->rt->spsProfiler.slowAssertionsEnabled() ||
            assignSafepoint(lir, ins);
+}
+
+bool
+LIRGenerator::visitIsCallable(MIsCallable *ins)
+{
+    JS_ASSERT(ins->object()->type() == MIRType_Object);
+    JS_ASSERT(ins->type() == MIRType_Boolean);
+    return define(new LIsCallable(useRegister(ins->object())), ins);
 }
 
 bool
