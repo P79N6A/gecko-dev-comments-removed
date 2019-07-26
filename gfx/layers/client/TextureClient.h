@@ -52,29 +52,9 @@ class TextureClient;
 
 
 
-
-
-
 enum TextureAllocationFlags {
   ALLOC_DEFAULT = 0,
   ALLOC_CLEAR_BUFFER = 1
-};
-
-
-
-
-class TextureClientSurface
-{
-public:
-  
-
-
-
-
-
-
-  virtual bool AllocateForSurface(gfx::IntSize aSize,
-                                  TextureAllocationFlags flags = ALLOC_DEFAULT) = 0;
 };
 
 
@@ -167,7 +147,6 @@ public:
                                 gfx::BackendType aMoz2dBackend,
                                 const gfx::IntSize& aSizeHint);
 
-  virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
   
@@ -410,7 +389,6 @@ protected:
 
 
 class BufferTextureClient : public TextureClient
-                          , public TextureClientSurface
                           , public TextureClientYCbCr
 {
 public:
@@ -434,10 +412,6 @@ public:
   virtual bool CanExposeDrawTarget() const MOZ_OVERRIDE { return true; }
 
   virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
-
-  
-
-  virtual TextureClientSurface* AsTextureClientSurface() MOZ_OVERRIDE { return this; }
 
   virtual bool AllocateForSurface(gfx::IntSize aSize,
                                   TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;

@@ -16,9 +16,7 @@ namespace layers {
 
 
 
-class TextureClientX11
- : public TextureClient,
-   public TextureClientSurface
+class TextureClientX11 : public TextureClient
 {
  public:
   TextureClientX11(gfx::SurfaceFormat format, TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
@@ -26,8 +24,6 @@ class TextureClientX11
   ~TextureClientX11();
 
   
-
-  virtual TextureClientSurface* AsTextureClientSurface() MOZ_OVERRIDE { return this; }
 
   virtual bool IsAllocated() const MOZ_OVERRIDE;
 
