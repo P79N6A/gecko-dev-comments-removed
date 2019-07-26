@@ -168,13 +168,18 @@ static void OnDestroyImage(void* aPluginInstanceOwner)
 already_AddRefed<ImageContainer>
 nsPluginInstanceOwner::GetImageContainer()
 {
+  if (!mInstance)
+    return nullptr;
+
+  nsRefPtr<ImageContainer> container;
+
 #if MOZ_WIDGET_ANDROID
   
   
   if (AndroidBridge::Bridge()->GetAPIVersion() < 11)
     return NULL;
   
-  nsRefPtr<ImageContainer> container = LayerManager::CreateImageContainer();
+  container = LayerManager::CreateImageContainer();
 
   ImageFormat format = ImageFormat::SHARED_TEXTURE;
   nsRefPtr<Image> img = container->CreateImage(&format, 1);
@@ -200,24 +205,21 @@ nsPluginInstanceOwner::GetImageContainer()
   return container.forget();
 #endif
 
-  if (mInstance) {
-    nsRefPtr<ImageContainer> container;
-    
-    
-    mInstance->GetImageContainer(getter_AddRefs(container));
-    if (container) {
+  
+  
+  mInstance->GetImageContainer(getter_AddRefs(container));
+  if (container) {
 #ifdef XP_MACOSX
-      AutoLockImage autoLock(container);
-      Image* image = autoLock.GetImage();
-      if (image && image->GetFormat() == MAC_IO_SURFACE && mObjectFrame) {
-        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
-        NS_ADDREF_THIS();
-        oglImage->SetUpdateCallback(&DrawPlugin, this);
-        oglImage->SetDestroyCallback(&OnDestroyImage);
-      }
-#endif
-      return container.forget();
+    AutoLockImage autoLock(container);
+    Image* image = autoLock.GetImage();
+    if (image && image->GetFormat() == MAC_IO_SURFACE && mObjectFrame) {
+      MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
+      NS_ADDREF_THIS();
+      oglImage->SetUpdateCallback(&DrawPlugin, this);
+      oglImage->SetDestroyCallback(&OnDestroyImage);
     }
+#endif
+    return container.forget();
   }
   return nullptr;
 }
