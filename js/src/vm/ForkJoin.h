@@ -290,12 +290,9 @@ struct ParallelBailoutRecord {
 
 struct ForkJoinShared;
 
-struct ForkJoinSlice
+struct ForkJoinSlice : ThreadSafeContext
 {
   public:
-    
-    PerThreadData *perThreadData;
-
     
     const uint32_t sliceId;
 
@@ -320,7 +317,7 @@ struct ForkJoinSlice
                   ParallelBailoutRecord *bailoutRecord);
 
     
-    bool isMainThread();
+    bool isMainThread() const;
 
     
     

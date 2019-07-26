@@ -441,10 +441,6 @@ namespace js {
 
 
 
-
-
-
-
 class PerThreadData : public js::PerThreadDataFriendFields
 {
     
@@ -1502,11 +1498,63 @@ FreeOp::free_(void *p)
     js_free(p);
 }
 
+class ForkJoinSlice;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ThreadSafeContext : js::ContextFriendFields,
+                           public MallocProvider<ThreadSafeContext>
+{
+  public:
+    enum ContextKind {
+        Context_JS,
+        Context_ForkJoin
+    };
+
+  private:
+    ContextKind contextKind_;
+
+  public:
+    PerThreadData *perThreadData;
+
+    explicit ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind);
+
+    bool isJSContext() const;
+    JSContext *asJSContext();
+
+    bool isForkJoinSlice() const;
+    ForkJoinSlice *asForkJoinSlice();
+
+    void *onOutOfMemory(void *p, size_t nbytes) {
+        return runtime_->onOutOfMemory(p, nbytes, isJSContext() ? asJSContext() : NULL);
+    }
+    inline void updateMallocCounter(size_t nbytes) {
+        
+        runtime_->updateMallocCounter(zone_, nbytes);
+    }
+    void reportAllocationOverflow() {
+        js_ReportAllocationOverflow(isJSContext() ? asJSContext() : NULL);
+    }
+};
+
 } 
 
-struct JSContext : js::ContextFriendFields,
-                   public mozilla::LinkedListElement<JSContext>,
-                   public js::MallocProvider<JSContext>
+struct JSContext : js::ThreadSafeContext,
+                   public mozilla::LinkedListElement<JSContext>
 {
     explicit JSContext(JSRuntime *rt);
     JSContext *thisDuringConstruction() { return this; }
