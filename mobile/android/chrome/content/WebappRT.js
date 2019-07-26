@@ -67,11 +67,11 @@ let WebappRT = {
 
 #ifdef MOZ_ANDROID_SYNTHAPKS
     
-    
-    
-    if (sendMessageToJava({ type: "NativeApp:IsDebuggable" }) === "true") {
-      this._enableRemoteDebugger(aUrl);
-    }
+    sendMessageToJava({ type: "NativeApp:IsDebuggable" }, (response) => {
+      if (response.isDebuggable) {
+        this._enableRemoteDebugger(aUrl);
+      }
+    });
 #endif
 
     this.findManifestUrlFor(aUrl, aCallback);
