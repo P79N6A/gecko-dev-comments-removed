@@ -1316,10 +1316,6 @@ struct nsStylePosition {
   
   nsRefPtr<mozilla::css::GridTemplateAreasValue> mGridTemplateAreas;
 
-  
-  nsStyleGridLine mGridAutoPositionColumn;
-  nsStyleGridLine mGridAutoPositionRow;
-
   nsStyleGridLine mGridColumnStart;
   nsStyleGridLine mGridColumnEnd;
   nsStyleGridLine mGridRowStart;
