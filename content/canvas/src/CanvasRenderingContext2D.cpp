@@ -590,7 +590,7 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
     return false;
   }
 
-  if (value.GetUnit() == eCSSUnit_Color) {
+  if (value.GetUnit() == eCSSUnit_RGBAColor) {
     
     *aColor = value.GetColorValue();
   } else {

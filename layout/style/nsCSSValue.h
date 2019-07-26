@@ -210,7 +210,7 @@ enum nsCSSUnit {
   eCSSUnit_Enumerated   = 71,     
 
   eCSSUnit_EnumColor    = 80,     
-  eCSSUnit_Color        = 81,     
+  eCSSUnit_RGBAColor    = 81,     
 
   eCSSUnit_Percent      = 90,     
   eCSSUnit_Number       = 91,     
@@ -404,7 +404,7 @@ public:
 
   nscolor GetColorValue() const
   {
-    NS_ABORT_IF_FALSE((mUnit == eCSSUnit_Color), "not a color value");
+    NS_ABORT_IF_FALSE((mUnit == eCSSUnit_RGBAColor), "not a color value");
     return mValue.mColor;
   }
 
