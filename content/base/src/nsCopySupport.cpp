@@ -116,10 +116,21 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   rv = docEncoder->EncodeToString(buf);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
   rv = docEncoder->GetMimeType(mimeType);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!selForcedTextPlain && mimeType.EqualsLiteral(kTextMime)) {
+    
+    
+    
+    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(aDoc);
+    if (!htmlDoc) {
+      selForcedTextPlain = true;
+    }
+  }
+
+  
+  
   bool encodedTextHTML = mimeType.EqualsLiteral(kHTMLMime);
 
   
