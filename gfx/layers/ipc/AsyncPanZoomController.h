@@ -182,7 +182,6 @@ public:
 
 
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                      ContainerLayer* aLayer,
                                       ViewTransform* aNewTransform,
                                       ScreenPoint& aScrollOffset);
 
@@ -210,6 +209,18 @@ public:
 
 
   void Destroy();
+
+  
+
+
+
+
+
+  ViewTransform GetCurrentAsyncTransform();
+private:
+  
+  ViewTransform GetCurrentAsyncTransformInternal();
+public:
 
   
 
