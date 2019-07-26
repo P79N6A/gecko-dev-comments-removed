@@ -517,15 +517,43 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
     } catch (ex) {}
   }
 
-  var dirs = aStr.split(";");
-
-  directive:
-  for each(var dir in dirs) {
+  var dirs_list = aStr.split(";");
+  var dirs = {};
+  for each(var dir in dirs_list) {
     dir = dir.trim();
     if (dir.length < 1) continue;
 
     var dirname = dir.split(/\s+/)[0];
     var dirvalue = dir.substring(dirname.length).trim();
+    dirs[dirname] = dirvalue;
+  }
+
+  
+  
+  aCSPR._allowEval = true;
+  aCSPR._allowInlineScripts = true;
+  aCSPR._allowInlineStyles = true;
+
+  
+  
+  
+  if ("default-src" in dirs) {
+    aCSPR._allowInlineScripts = false;
+    aCSPR._allowInlineStyles = false;
+    aCSPR._allowEval = false;
+  } else {
+    if ("script-src" in dirs) {
+      aCSPR._allowInlineScripts = false;
+      aCSPR._allowEval = false;
+    }
+    if ("style-src" in dirs) {
+      aCSPR._allowInlineStyles = false;
+    }
+  }
+
+  directive:
+  for (var dirname in dirs) {
+    var dirvalue = dirs[dirname];
 
     if (aCSPR._directives.hasOwnProperty(dirname)) {
       
