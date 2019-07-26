@@ -4673,11 +4673,7 @@ nsSVGTextFrame2::DoGlyphPositioning()
     }
     
     if (!mPositions[i].IsAngleSpecified()) {
-      mPositions[i].mAngle = mPositions[i - 1].mAngle;
-      if (mPositions[i].mAngle != 0.0f) {
-        
-        mPositions[i].mRunBoundary = true;
-      }
+      mPositions[i].mAngle = 0.0f;
     }
   }
 
