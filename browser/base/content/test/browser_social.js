@@ -8,6 +8,21 @@
 const pb = Cc["@mozilla.org/privatebrowsing;1"].
            getService(Ci.nsIPrivateBrowsingService);
 
+function waitForPortMessage(port, topic, callback) {
+  port.onmessage = function(evt) {
+    if (evt.data.topic == topic)
+      callback(evt.data);
+  }
+}
+
+function portClosed(port) {
+  try {
+    port.postMessage({topic: "ping"});
+    return false; 
+  } catch (ex) {
+    return true;
+  }
+}
 
 function test() {
   waitForExplicitFinish();
@@ -75,11 +90,49 @@ var tests = {
         togglePrivateBrowsing(function () {
           ok(!Social.enabled, "Social is not enabled after private browsing");
           
+          Social.enabled = true;
           next();
         });
       });
     }, "social:pref-changed", false);
-  }
+  },
+
+  testPrivateBrowsingExitReloads: function(next) {
+    let port = Social.provider.getWorkerPort();
+    waitForPortMessage(port, "got-sidebar-message", function(data) {
+      ok(!portClosed(port), "port not closed before PB transition");
+      togglePrivateBrowsing(function () {
+        ok(!Social.enabled, "Social shuts down during private browsing");
+        
+        ok(portClosed(port), "port closed after PB transition");
+        
+        Social.enabled = true;
+        port = Social.provider.getWorkerPort();
+        waitForPortMessage(port, "got-sidebar-message", function(data) {
+          
+          
+          
+          let sbw = document.getElementById("social-sidebar-browser").contentWindow;
+          sbw.wrappedJSObject.foo = "bar";
+          
+          togglePrivateBrowsing(function () {
+            ok(Social.enabled, "Social still enabled after leaving private browsing");
+            ok(portClosed(port), "port closed after PB transition");
+            port = Social.provider.getWorkerPort();
+            waitForPortMessage(port, "got-sidebar-message", function() {
+              sbw = document.getElementById("social-sidebar-browser").contentWindow;
+              is(sbw.wrappedJSObject.foo, undefined, "should have lost window variable when exiting")
+              next();
+            });
+            port.postMessage({topic: "test-init"});
+          });
+        });
+        port.postMessage({topic: "test-init"});
+      });
+    });
+    port.postMessage({topic: "test-init"});
+  },
+
 }
 
 function togglePrivateBrowsing(aCallback) {

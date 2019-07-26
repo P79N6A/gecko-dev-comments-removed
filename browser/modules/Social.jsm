@@ -48,6 +48,12 @@ this.Social = {
         this._enabledBeforePrivateBrowsing = this.enabled;
         this.enabled = false;
       } else if (aData == "exit") {
+        
+        
+        
+        
+        
+        this.enabled = false;
         this.enabled = this._enabledBeforePrivateBrowsing;
       }
     }
