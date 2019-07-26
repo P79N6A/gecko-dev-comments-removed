@@ -147,10 +147,8 @@ var TouchModule = {
             
             
             setTimeout(function () {
-              let contextInfo = { name: "",
-                                  json: { xPos: aEvent.clientX, yPos: aEvent.clientY },
-                                  target: Browser.selectedTab.browser };
-              SelectionHelperUI.attachEditSession(contextInfo);
+              SelectionHelperUI.attachEditSession(Browser.selectedTab.browser,
+                                                  aEvent.clientX, aEvent.clientY);
             }, 50);
             break;
         }
