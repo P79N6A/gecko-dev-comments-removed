@@ -191,9 +191,15 @@ let WebConsoleUtils = {
 
 
 
-  abbreviateSourceURL: function WCU_abbreviateSourceURL(aSourceURL)
+
+
+
+
+
+  abbreviateSourceURL:
+  function WCU_abbreviateSourceURL(aSourceURL, aOptions = {})
   {
-    if (aSourceURL.substr(0, 5) == "data:") {
+    if (!aOptions.onlyCropQuery && aSourceURL.substr(0, 5) == "data:") {
       let commaIndex = aSourceURL.indexOf(",");
       if (commaIndex > -1) {
         aSourceURL = "data:" + aSourceURL.substring(commaIndex + 1);
@@ -214,13 +220,15 @@ let WebConsoleUtils = {
 
     
     if (aSourceURL[aSourceURL.length - 1] == "/") {
-      aSourceURL = aSourceURL.substring(0, aSourceURL.length - 1);
+      aSourceURL = aSourceURL.replace(/\/+$/, "");
     }
 
     
-    let slashIndex = aSourceURL.lastIndexOf("/");
-    if (slashIndex > -1) {
-      aSourceURL = aSourceURL.substring(slashIndex + 1);
+    if (!aOptions.onlyCropQuery) {
+      let slashIndex = aSourceURL.lastIndexOf("/");
+      if (slashIndex > -1) {
+        aSourceURL = aSourceURL.substring(slashIndex + 1);
+      }
     }
 
     return aSourceURL;
