@@ -2319,8 +2319,8 @@ RasterImage::StartDecoding()
 {
   
   
-  return RequestDecodeCore(
-    SYNCHRONOUS_NOTIFY );
+  return RequestDecodeCore(mHasBeenDecoded ?
+    SYNCHRONOUS_NOTIFY : SYNCHRONOUS_NOTIFY_AND_SOME_DECODE);
 }
 
 bool
