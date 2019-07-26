@@ -170,8 +170,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
-        ScrollableLayerGuid guid(aLayersId, container->GetFrameMetrics());
-        if (apzc && !apzc->Matches(guid)) {
+        if (apzc && !apzc->Matches(ScrollableLayerGuid(aLayersId, container->GetFrameMetrics()))) {
           apzc = nullptr;
         }
 
@@ -182,8 +181,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         if (apzc == nullptr) {
+          ScrollableLayerGuid target(aLayersId, container->GetFrameMetrics());
           for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
-            if (aApzcsToDestroy->ElementAt(i)->Matches(guid)) {
+            if (aApzcsToDestroy->ElementAt(i)->Matches(target)) {
               apzc = aApzcsToDestroy->ElementAt(i);
               break;
             }
@@ -234,7 +234,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                                                               visible.width, visible.height,
                                                                               apzc);
 
-        sApzcTreeLog << "APZC " << guid
+        sApzcTreeLog << "APZC "
                      << "\tcb=" << visible
                      << "\tsr=" << container->GetFrameMetrics().mScrollableRect
                      << "\t" << container->GetFrameMetrics().GetContentDescription();
