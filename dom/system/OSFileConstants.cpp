@@ -809,16 +809,17 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   }
 
   
-  
-  
   {
+    nsAutoString xulPath(gPaths->libDir);
+
+    xulPath.Append(PR_GetDirectorySeparator());
+
 #if defined(XP_MACOSX)
     
-    nsAutoString xulPath(NS_LITERAL_STRING("XUL"));
+    xulPath.Append(NS_LITERAL_STRING("XUL"));
 #else
     
     
-    nsAutoString xulPath();
     xulPath.Append(NS_LITERAL_STRING(DLL_PREFIX));
     xulPath.Append(NS_LITERAL_STRING("xul"));
     xulPath.Append(NS_LITERAL_STRING(DLL_SUFFIX));
