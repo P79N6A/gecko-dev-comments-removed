@@ -32,7 +32,7 @@ richlistitem.download {
                               [state="6"], 
                               [state="8"], 
                               [state="9"]) )
-                                           .downloadRemoveFromHistoryMenuItem,
+                                           .downloadRemoveFromListMenuItem,
 .download-state:not(:-moz-any([state="-1"],
                               [state="5"], 
                               [state="0"], 
