@@ -1356,6 +1356,14 @@ GeneratorWriteBarrierPre(JSContext *cx, JSGenerator *gen)
         MarkGeneratorFrame(zone->barrierTracer(), gen);
 }
 
+static void
+GeneratorWriteBarrierPost(JSContext *cx, JSGenerator *gen)
+{
+#ifdef JSGC_GENERATIONAL
+    cx->runtime()->gcStoreBuffer.putWholeCell(gen->obj);
+#endif
+}
+
 
 
 
@@ -1588,6 +1596,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
         JS_ASSERT(op != JSGENOP_CLOSE);
         gen->fp->clearYielding();
         gen->state = JSGEN_OPEN;
+        GeneratorWriteBarrierPost(cx, gen);
         return ok;
     }
 
