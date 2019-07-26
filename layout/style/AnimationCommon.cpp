@@ -400,50 +400,87 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aElapsedDuration,
   
   ComputedTiming result;
 
+  TimeDuration activeDuration = ActiveDuration(aTiming);
+
   
   
-  double currentIterationCount = aElapsedDuration / aTiming.mIterationDuration;
-  if (currentIterationCount >= aTiming.mIterationCount) {
+  
+  bool isEndOfFinalIteration = false;
+
+  
+  TimeDuration activeTime;
+  if (aElapsedDuration >= activeDuration) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
       result.mTimeFraction = ComputedTiming::kNullTimeFraction;
       return result;
     }
-    currentIterationCount = aTiming.mIterationCount;
-  } else if (currentIterationCount < 0.0) {
+    activeTime = activeDuration;
+    
+    
+    isEndOfFinalIteration =
+      aTiming.mIterationCount != 0.0 &&
+      aTiming.mIterationCount == floor(aTiming.mIterationCount);
+  } else if (aElapsedDuration < TimeDuration()) {
     result.mPhase = ComputedTiming::AnimationPhase_Before;
     if (!aTiming.FillsBackwards()) {
       
       result.mTimeFraction = ComputedTiming::kNullTimeFraction;
       return result;
     }
-    currentIterationCount = 0.0;
+    
   } else {
+    MOZ_ASSERT(activeDuration != TimeDuration(),
+               "How can we be in the middle of a zero-duration interval?");
     result.mPhase = ComputedTiming::AnimationPhase_Active;
+    activeTime = aElapsedDuration;
   }
 
   
-  
-  NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
-  double positionInIteration = fmod(currentIterationCount, 1);
+  TimeDuration iterationTime;
+  if (aTiming.mIterationDuration != TimeDuration()) {
+    iterationTime = isEndOfFinalIteration
+                    ? aTiming.mIterationDuration
+                    : activeTime % aTiming.mIterationDuration;
+  } 
 
   
-  
-  
-  
-  
-  uint64_t whichIteration = static_cast<uint64_t>(currentIterationCount);
+  if (isEndOfFinalIteration) {
+    result.mCurrentIteration =
+      aTiming.mIterationCount == NS_IEEEPositiveInfinity()
+      ? UINT64_MAX 
+                   
+      : static_cast<uint64_t>(aTiming.mIterationCount) - 1;
+  } else if (activeTime == TimeDuration(0)) {
+    
+    
+    
+    
+    result.mCurrentIteration =
+      result.mPhase == ComputedTiming::AnimationPhase_After
+      ? static_cast<uint64_t>(aTiming.mIterationCount) 
+      : 0;
+  } else {
+    result.mCurrentIteration =
+      static_cast<uint64_t>(activeTime / aTiming.mIterationDuration); 
+  }
 
   
-  if (whichIteration != 0 &&
-      result.mPhase == ComputedTiming::AnimationPhase_After &&
-      aTiming.mIterationCount == floor(aTiming.mIterationCount)) {
+  if (result.mPhase == ComputedTiming::AnimationPhase_Before) {
+    result.mTimeFraction = 0.0;
+  } else if (result.mPhase == ComputedTiming::AnimationPhase_After) {
+    result.mTimeFraction = isEndOfFinalIteration
+                         ? 1.0
+                         : fmod(aTiming.mIterationCount, 1.0f);
+  } else {
     
-    
-    
-    whichIteration -= 1;
-    positionInIteration = 1.0;
+    MOZ_ASSERT(aTiming.mIterationDuration != TimeDuration(0),
+               "In the active phase of a zero-duration animation?");
+    result.mTimeFraction =
+      aTiming.mIterationDuration == TimeDuration::Forever()
+      ? 0.0
+      : iterationTime / aTiming.mIterationDuration;
   }
 
   bool thisIterationReverse = false;
@@ -455,23 +492,16 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aElapsedDuration,
       thisIterationReverse = true;
       break;
     case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE:
-      
-      
-      
-      
-      thisIterationReverse = (whichIteration & 1) == 1;
+      thisIterationReverse = (result.mCurrentIteration & 1) == 1;
       break;
     case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
-      
-      thisIterationReverse = (whichIteration & 1) == 0;
+      thisIterationReverse = (result.mCurrentIteration & 1) == 0;
       break;
   }
   if (thisIterationReverse) {
-    positionInIteration = 1.0 - positionInIteration;
+    result.mTimeFraction = 1.0 - result.mTimeFraction;
   }
 
-  result.mTimeFraction = positionInIteration;
-  result.mCurrentIteration = whichIteration;
   return result;
 }
 
