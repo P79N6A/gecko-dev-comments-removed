@@ -22,6 +22,9 @@
   padding: 1px 4px;
   -moz-user-select: none;
   word-wrap: break-word;
+%ifndef XP_MACOSX
+  margin-top: 4px;
+%endif
 }
 
 .ruleview-rule-pseudo-element {
