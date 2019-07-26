@@ -238,8 +238,15 @@ this.PageThumbs = {
 
 
   _determineCropSize: function PageThumbs_determineCropSize(aWindow, aCanvas) {
-    let sw = aWindow.innerWidth;
-    let sh = aWindow.innerHeight;
+    let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+    let sbWidth = {}, sbHeight = {};
+    utils.getScrollbarSize(false, sbWidth, sbHeight);
+
+    
+    
+    let sw = aWindow.innerWidth - sbWidth.value;
+    let sh = aWindow.innerHeight - sbHeight.value;
 
     let {width: thumbnailWidth, height: thumbnailHeight} = aCanvas;
     let scale = Math.min(Math.max(thumbnailWidth / sw, thumbnailHeight / sh), 1);

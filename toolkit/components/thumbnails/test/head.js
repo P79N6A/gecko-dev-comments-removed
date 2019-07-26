@@ -3,8 +3,8 @@
 
 let tmp = {};
 Cu.import("resource://gre/modules/PageThumbs.jsm", tmp);
-let PageThumbs = tmp.PageThumbs;
-let PageThumbsStorage = tmp.PageThumbsStorage;
+Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
+let {PageThumbs, PageThumbsStorage, SessionStore} = tmp;
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
@@ -29,12 +29,15 @@ let TestRunner = {
 
   run: function () {
     waitForExplicitFinish();
-    this._iter = runTests();
 
-    if (this._iter)
-      this.next();
-    else
-      finish();
+    SessionStore.promiseInitialized.then(function () {
+      this._iter = runTests();
+      if (this._iter) {
+        this.next();
+      } else {
+        finish();
+      }
+    }.bind(this));
   },
 
   
@@ -102,7 +105,10 @@ function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
 
   
   PageThumbs.captureAndStore(browser, function () {
-    checkThumbnailColor(browser.currentURI.spec, aRed, aGreen, aBlue, aMessage);
+    retrieveImageDataForURL(browser.currentURI.spec, function ([r, g, b]) {
+      is("" + [r,g,b], "" + [aRed, aGreen, aBlue], aMessage);
+      next();
+    });
   });
 }
 
@@ -112,9 +118,7 @@ function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
 
 
 
-
-
-function checkThumbnailColor(aURL, aRed, aGreen, aBlue, aMessage) {
+function retrieveImageDataForURL(aURL, aCallback) {
   let width = 100, height = 100;
   let thumb = PageThumbs.getThumbnailURL(aURL, width, height);
 
@@ -130,23 +134,8 @@ function checkThumbnailColor(aURL, aRed, aGreen, aBlue, aMessage) {
     
     let ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, width, height);
-    checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
-
-    next();
+    aCallback(ctx.getImageData(0, 0, 100, 100).data);
   });
-}
-
-
-
-
-
-
-
-
-
-function checkCanvasColor(aContext, aRed, aGreen, aBlue, aMessage) {
-  let [r, g, b] = aContext.getImageData(0, 0, 1, 1).data;
-  ok(r == aRed && g == aGreen && b == aBlue, aMessage);
 }
 
 
