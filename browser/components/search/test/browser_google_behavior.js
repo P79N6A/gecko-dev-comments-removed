@@ -100,6 +100,9 @@ function test() {
       searchURL: base + "&channel=np&source=hp",
       run: function () {
         
+        ignoreAllUncaughtExceptions(true);
+
+        
         
         gBrowser.removeProgressListener(listener);
         gBrowser.loadURI("about:home");
@@ -131,6 +134,9 @@ function test() {
   ];
 
   function nextTest() {
+    
+    ignoreAllUncaughtExceptions(false);
+
     if (gTests.length) {
       gCurrTest = gTests.shift();
       info("Running : " + gCurrTest.name);

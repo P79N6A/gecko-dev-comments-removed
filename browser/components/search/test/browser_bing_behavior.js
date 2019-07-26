@@ -70,6 +70,9 @@ function test() {
       searchURL: base + "&form=MOZSPG",
       run: function () {
         
+        ignoreAllUncaughtExceptions(true);
+
+        
         
         gBrowser.removeProgressListener(listener);
         gBrowser.loadURI("about:home");
@@ -101,6 +104,9 @@ function test() {
   ];
 
   function nextTest() {
+    
+    ignoreAllUncaughtExceptions(false);
+
     if (gTests.length) {
       gCurrTest = gTests.shift();
       info("Running : " + gCurrTest.name);
