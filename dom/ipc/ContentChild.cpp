@@ -499,17 +499,10 @@ ContentChild::RecvPMemoryReportRequestConstructor(
 
     
     
-    nsCOMPtr<nsISimpleEnumerator> e;
-    mgr->EnumerateReporters(getter_AddRefs(e));
     nsRefPtr<MemoryReportsWrapper> wrappedReports =
         new MemoryReportsWrapper(&reports);
     nsRefPtr<MemoryReportCallback> cb = new MemoryReportCallback(process);
-    bool more;
-    while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
-      nsCOMPtr<nsIMemoryReporter> r;
-      e->GetNext(getter_AddRefs(r));
-      r->CollectReports(cb, wrappedReports);
-    }
+    mgr->GetReportsForThisProcess(cb, wrappedReports);
 
     child->Send__delete__(child, generation, reports);
     return true;
