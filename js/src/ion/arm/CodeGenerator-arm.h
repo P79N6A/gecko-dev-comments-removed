@@ -58,9 +58,6 @@ class CodeGeneratorARM : public CodeGeneratorShared
     void emitRoundDouble(const FloatRegister &src, const Register &dest, Label *fail);
 
     
-    void emitSet(Assembler::Condition cond, const Register &dest);
-
-    
     
     void emitBranch(Assembler::Condition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse);
 

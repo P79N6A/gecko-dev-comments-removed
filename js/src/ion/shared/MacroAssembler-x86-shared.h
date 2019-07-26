@@ -391,6 +391,40 @@ class MacroAssemblerX86Shared : public Assembler
         return true;
     }
 
+    void emitSet(Assembler::Condition cond, const Register &dest,
+                 Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected) {
+        if (GeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
+            
+            
+            setCC(cond, dest);
+            movzxbl(dest, dest);
+
+            if (ifNaN != Assembler::NaN_Unexpected) {
+                Label noNaN;
+                j(Assembler::NoParity, &noNaN);
+                if (ifNaN == Assembler::NaN_IsTrue)
+                    movl(Imm32(1), dest);
+                else
+                    xorl(dest, dest);
+                bind(&noNaN);
+            }
+        } else {
+            Label end;
+            Label ifFalse;
+
+            if (ifNaN == Assembler::NaN_IsFalse)
+                j(Assembler::Parity, &ifFalse);
+            movl(Imm32(1), dest);
+            j(cond, &end);
+            if (ifNaN == Assembler::NaN_IsTrue)
+                j(Assembler::Parity, &end);
+            bind(&ifFalse);
+            xorl(dest, dest);
+
+            bind(&end);
+        }
+    }
+
     
     CodeOffsetLabel toggledJump(Label *label) {
         CodeOffsetLabel offset(size());

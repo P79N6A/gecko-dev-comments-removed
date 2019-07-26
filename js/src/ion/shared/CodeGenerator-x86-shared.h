@@ -65,11 +65,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     void emitCompare(MCompare::CompareType type, const LAllocation *left, const LAllocation *right);
 
     
-    void emitSet(Assembler::Condition cond, const Register &dest,
-                 Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);
-    void emitSet(Assembler::DoubleCondition cond, const Register &dest);
-
-    
     
     void emitBranch(Assembler::Condition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse,
                     Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);

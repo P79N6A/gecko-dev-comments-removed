@@ -502,6 +502,11 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
+    void compareStrings(JSOp op, Register left, Register right, Register result,
+                        Register temp, Label *fail);
+
+    
+    
     void parCheckInterruptFlags(const Register &tempReg,
                                 Label *fail);
 
