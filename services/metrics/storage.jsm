@@ -1275,6 +1275,19 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
 
 
 
+
+  checkpoint: function () {
+    return this.enqueueOperation(function checkpoint() {
+      return this._connection.execute("PRAGMA wal_checkpoint");
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
   _ensureFieldType: function (id, type) {
     let info = this._fieldsByID.get(id);
 
