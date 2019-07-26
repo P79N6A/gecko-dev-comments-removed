@@ -34,6 +34,7 @@ protected:
   friend nsresult (::NS_NewSVGMaskElement(nsIContent **aResult,
                                           already_AddRefed<nsINodeInfo> aNodeInfo));
   SVGMaskElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual JSObject* WrapNode(JSContext *cx, JSObject *scope, bool *triedToWrap) MOZ_OVERRIDE;
 
 public:
   
@@ -56,13 +57,22 @@ public:
 
   
   virtual bool HasValidDimensions() const;
+
+  
+  already_AddRefed<nsIDOMSVGAnimatedEnumeration> MaskUnits();
+  already_AddRefed<nsIDOMSVGAnimatedEnumeration> MaskContentUnits();
+  already_AddRefed<SVGAnimatedLength> X();
+  already_AddRefed<SVGAnimatedLength> Y();
+  already_AddRefed<SVGAnimatedLength> Width();
+  already_AddRefed<SVGAnimatedLength> Height();
+
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual EnumAttributesInfo GetEnumInfo();
 
   
-  enum { X, Y, WIDTH, HEIGHT };
+  enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
   nsSVGLength2 mLengthAttributes[4];
   static LengthInfo sLengthInfo[4];
 
