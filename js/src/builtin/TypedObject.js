@@ -791,12 +791,10 @@ function ArrayShorthand(...dims) {
 
 function StorageOfTypedDatum(obj) {
   if (IsObject(obj)) {
-    
-    if (ObjectIsTypedHandle(obj))
+    if (ObjectIsOpaqueTypedObject(obj))
       return null;
 
-    
-    if (ObjectIsTypedDatum(obj))
+    if (ObjectIsTransparentTypedObject(obj))
       return { buffer: DATUM_OWNER(obj),
                byteLength: DATUM_BYTELENGTH(obj),
                byteOffset: DATUM_BYTEOFFSET(obj) };
@@ -833,7 +831,7 @@ function TypeOfTypedDatum(obj) {
 
 function ObjectIsTypedDatum(obj) {
   assert(IsObject(obj), "ObjectIsTypedDatum invoked with non-object")
-  return ObjectIsTypedObject(obj) || ObjectIsTypedHandle(obj);
+  return ObjectIsTransparentTypedObject(obj) || ObjectIsOpaqueTypedObject(obj);
 }
 
 

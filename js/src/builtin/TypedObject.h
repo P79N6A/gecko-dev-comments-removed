@@ -458,15 +458,15 @@ class TypedDatum : public ArrayBufferViewObject
 
 typedef Handle<TypedDatum*> HandleTypedDatum;
 
-class TypedObject : public TypedDatum
+class TransparentTypedObject : public TypedDatum
 {
   public:
     static const Class class_;
 };
 
-typedef Handle<TypedObject*> HandleTypedObject;
+typedef Handle<TransparentTypedObject*> HandleTransparentTypedObject;
 
-class TypedHandle : public TypedDatum
+class OpaqueTypedObject : public TypedDatum
 {
   public:
     static const Class class_;
@@ -478,14 +478,7 @@ class TypedHandle : public TypedDatum
 
 
 
-bool NewTypedHandle(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-bool NewTypedHandle(JSContext *cx, unsigned argc, Value *vp);
+bool NewOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -500,8 +493,8 @@ bool NewDerivedTypedDatum(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-bool AttachHandle(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo AttachHandleJitInfo;
+bool AttachDatum(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo AttachDatumJitInfo;
 
 
 
@@ -516,16 +509,16 @@ extern const JSJitInfo ObjectIsTypeDescrJitInfo;
 
 
 
-bool ObjectIsTypedHandle(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTypedHandleJitInfo;
+bool ObjectIsOpaqueTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
 
 
 
 
 
 
-bool ObjectIsTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTypedObjectJitInfo;
+bool ObjectIsTransparentTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo ObjectIsTransparentTypedObjectJitInfo;
 
 
 
@@ -674,8 +667,8 @@ JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 inline bool
 IsTypedDatumClass(const Class *class_)
 {
-    return class_ == &TypedObject::class_ ||
-           class_ == &TypedHandle::class_;
+    return class_ == &TransparentTypedObject::class_ ||
+           class_ == &OpaqueTypedObject::class_;
 }
 
 } 
