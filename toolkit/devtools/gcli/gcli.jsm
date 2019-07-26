@@ -104,7 +104,7 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/ui/ffdisplay'], function(require, exports, module) {
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/date', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
   'use strict';
 
@@ -114,6 +114,7 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   require('gcli/types/selection').startup();
 
   require('gcli/types/command').startup();
+  require('gcli/types/date').startup();
   require('gcli/types/javascript').startup();
   require('gcli/types/node').startup();
   require('gcli/types/resource').startup();
@@ -3938,6 +3939,237 @@ function CommandOutputManager() {
 }
 
 exports.CommandOutputManager = CommandOutputManager;
+
+
+});
+
+
+
+
+
+
+define('gcli/types/date', ['require', 'exports', 'module' , 'util/promise', 'util/l10n', 'gcli/types'], function(require, exports, module) {
+
+'use strict';
+
+var Promise = require('util/promise');
+var l10n = require('util/l10n');
+
+var types = require('gcli/types');
+var Type = require('gcli/types').Type;
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+
+
+function DateType(typeSpec) {
+  
+  
+  typeSpec = typeSpec || {};
+
+  this._step = typeSpec.step || 1;
+  this._min = new Date(-8640000000000000);
+  this._max = new Date(8640000000000000);
+
+  if (typeSpec.min != null) {
+    if (typeof typeSpec.min === 'string') {
+      this._min = toDate(typeSpec.min);
+    }
+    else if (isDate(typeSpec.min) || typeof typeSpec.min === 'function') {
+      this._min = typeSpec.min;
+    }
+    else {
+      throw new Error('date min value must be a string a date or a function');
+    }
+  }
+
+  if (typeSpec.max != null) {
+    if (typeof typeSpec.max === 'string') {
+      this._max = toDate(typeSpec.max);
+    }
+    else if (isDate(typeSpec.max) || typeof typeSpec.max === 'function') {
+      this._max = typeSpec.max;
+    }
+    else {
+      throw new Error('date max value must be a string a date or a function');
+    }
+  }
+}
+
+DateType.prototype = Object.create(Type.prototype);
+
+
+
+
+
+function pad(number) {
+  var r = String(number);
+  return r.length === 1 ? '0' + r : r;
+}
+
+DateType.prototype.stringify = function(value) {
+  if (!isDate(value)) {
+    return '';
+  }
+
+  var str = pad(value.getFullYear()) + '-' +
+            pad(value.getMonth() + 1) + '-' +
+            pad(value.getDate());
+
+  
+  if (value.getHours() !== 0 || value.getMinutes() !== 0 ||
+      value.getSeconds() !== 0 || value.getMilliseconds() !== 0) {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    str += ' ' + pad(value.getHours());
+    str += ':' + pad(value.getMinutes());
+
+    
+    if (value.getSeconds() !== 0 || value.getMilliseconds() !== 0) {
+      str += ':' + pad(value.getSeconds());
+      if (value.getMilliseconds() !== 0) {
+        str += '.' + String((value.getUTCMilliseconds()/1000).toFixed(3)).slice(2, 5);
+      }
+    }
+  }
+
+  return str;
+};
+
+DateType.prototype.getMin = function(context) {
+  if (typeof this._min === 'function') {
+    return this._min(context);
+  }
+  if (isDate(this._min)) {
+    return this._min;
+  }
+  return undefined;
+};
+
+DateType.prototype.getMax = function(context) {
+  if (typeof this._max === 'function') {
+    return this._max(context);
+  }
+  if (isDate(this._max)) {
+    return this._max;
+  }
+  return undefined;
+};
+
+DateType.prototype.parse = function(arg, context) {
+  var value;
+
+  if (arg.text.replace(/\s/g, '').length === 0) {
+    return Promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
+  }
+
+  
+  
+  if (arg.text === 'now') {
+    value = new Date();
+  }
+  else if (arg.text === 'yesterday') {
+    value = new Date().setDate(new Date().getDate() - 1);
+  }
+  else if (arg.text === 'tomorrow') {
+    value = new Date().setDate(new Date().getDate() + 1);
+  }
+  else {
+    var millis = Date.parse(arg.text);
+
+    if (isNaN(millis)) {
+      var msg = l10n.lookupFormat('typesDateNan', [ arg.text ]);
+      return Promise.resolve(new Conversion(undefined, arg, Status.ERROR, msg));
+    }
+
+    value = new Date(millis);
+  }
+
+  return Promise.resolve(new Conversion(value, arg));
+};
+
+DateType.prototype.decrement = function(value, context) {
+  if (!isDate(value)) {
+    return new Date();
+  }
+
+  var newValue = new Date(value);
+  newValue.setDate(value.getDate() - this._step);
+
+  if (newValue >= this.getMin(context)) {
+    return newValue;
+  }
+  else {
+    return this.getMin(context);
+  }
+};
+
+DateType.prototype.increment = function(value, context) {
+  if (!isDate(value)) {
+    return new Date();
+  }
+
+  var newValue = new Date(value);
+  newValue.setDate(value.getDate() + this._step);
+
+  if (newValue <= this.getMax(context)) {
+    return newValue;
+  }
+  else {
+    return this.getMax();
+  }
+};
+
+DateType.prototype.name = 'date';
+
+
+
+
+
+
+function toDate(str) {
+  var millis = Date.parse(str);
+  if (isNaN(millis)) {
+    throw new Error(l10n.lookupFormat('typesDateNan', [ str ]));
+  }
+  return new Date(millis);
+}
+
+
+
+
+
+function isDate(thing) {
+  return Object.prototype.toString.call(thing) === '[object Date]'
+          && !isNaN(thing.getTime());
+};
+
+
+
+
+
+exports.startup = function() {
+  types.addType(DateType);
+};
+
+exports.shutdown = function() {
+  types.removeType(DateType);
+};
+
 
 
 });
@@ -10978,6 +11210,7 @@ Inputter.prototype._checkAssignment = function(start) {
 
 
 Inputter.prototype.setInput = function(str) {
+  this._caretChange = Caret.TO_END;
   return this.requisition.update(str);
 };
 
