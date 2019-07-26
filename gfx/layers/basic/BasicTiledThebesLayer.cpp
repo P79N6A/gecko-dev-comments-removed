@@ -248,8 +248,20 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   }
 
   
+  
+  gfx::Point scrollOffset(0, 0);
+  Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
+  if (primaryScrollable) {
+    const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
+    scrollOffset = metrics.mViewportScrollOffset;
+  }
+  int32_t scrollDiffX = scrollOffset.x - mLastScrollOffset.x;
+  int32_t scrollDiffY = scrollOffset.y - mLastScrollOffset.y;
+
+  
   if (gfxPlatform::UseProgressiveTilePainting() &&
-      mTiledBuffer.GetResolution() == resolution) {
+      mTiledBuffer.GetResolution() == resolution &&
+      (scrollDiffX != 0 || scrollDiffY != 0)) {
     
     nsIntRegion staleRegion = mTiledBuffer.GetValidRegion();
     staleRegion.And(staleRegion, regionToPaint);
@@ -264,21 +276,12 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     
     
 
-    gfx::Point scrollOffset(0, 0);
-    Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
-    if (primaryScrollable) {
-      const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
-      scrollOffset = metrics.mViewportScrollOffset;
-    }
-
     
     
     
     
     nsIntRegionRectIterator it(regionToPaint);
     const nsIntRect* rect;
-    int32_t scrollDiffX = scrollOffset.x - mLastScrollOffset.x;
-    int32_t scrollDiffY = scrollOffset.y - mLastScrollOffset.y;
     if ((NS_ABS(scrollDiffY) > NS_ABS(scrollDiffX) && scrollDiffY >= 0)) {
       rect = it.Next();
     } else {
