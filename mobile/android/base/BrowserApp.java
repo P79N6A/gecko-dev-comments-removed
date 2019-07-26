@@ -1467,7 +1467,7 @@ abstract public class BrowserApp extends GeckoApp
         animator.setUseHardwareLayer(false);
 
         mBrowserToolbar.startEditing(url, animator);
-        showHomePagerWithAnimator(animator);
+        showHomePagerWithAnimator(HomePager.Page.TOP_SITES, animator);
 
         animator.start();
     }
@@ -1623,7 +1623,7 @@ abstract public class BrowserApp extends GeckoApp
         super.onLocaleReady(locale);
         if (mHomePager != null) {
             
-            mHomePager.redisplay(getSupportLoaderManager(), getSupportFragmentManager());
+            mHomePager.redisplay(getSupportFragmentManager());
         }
 
         if (mMenu != null) {
@@ -1634,12 +1634,6 @@ abstract public class BrowserApp extends GeckoApp
 
     private void showHomePager(HomePager.Page page) {
         showHomePagerWithAnimator(page, null);
-    }
-
-    private void showHomePagerWithAnimator(PropertyAnimator animator) {
-        
-        
-        showHomePagerWithAnimator(null, animator);
     }
 
     private void showHomePagerWithAnimator(HomePager.Page page, PropertyAnimator animator) {
@@ -1661,9 +1655,7 @@ abstract public class BrowserApp extends GeckoApp
             mHomePager = (HomePager) homePagerStub.inflate();
         }
 
-        mHomePager.show(getSupportLoaderManager(),
-                        getSupportFragmentManager(),
-                        page, animator);
+        mHomePager.show(getSupportFragmentManager(), page, animator);
 
         
         hideWebContentOnPropertyAnimationEnd(animator);
