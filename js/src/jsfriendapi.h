@@ -1453,6 +1453,12 @@ struct JSJitInfo {
     bool isPure;            
 
 
+    
+    
+    bool isInSlot;          
+
+    size_t slotIndex;       
+
     JSValueType returnType; 
 
     
@@ -1460,7 +1466,7 @@ struct JSJitInfo {
 };
 
 #define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,JSVAL_TYPE_MISSING,op}
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,false,0,JSVAL_TYPE_MISSING,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)

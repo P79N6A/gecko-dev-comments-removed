@@ -4792,7 +4792,12 @@ static const JSJitInfo dom_x_getterinfo = {
     0,        
     JSJitInfo::Getter,
     true,     
-    true      
+    true,     
+    true,     
+    false,    
+    0,        
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr   
 };
 
 static const JSJitInfo dom_x_setterinfo = {
@@ -4801,7 +4806,12 @@ static const JSJitInfo dom_x_setterinfo = {
     0,        
     JSJitInfo::Setter,
     false,    
-    false     
+    false,    
+    false,    
+    false,    
+    0,        
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr   
 };
 
 static const JSJitInfo doFoo_methodinfo = {
@@ -4810,7 +4820,12 @@ static const JSJitInfo doFoo_methodinfo = {
     0,        
     JSJitInfo::Method,
     false,    
-    false     
+    false,    
+    false,    
+    false,    
+    0,        
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr   
 };
 
 static const JSPropertySpec dom_props[] = {
