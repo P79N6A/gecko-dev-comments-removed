@@ -35,8 +35,10 @@ ClusterManager.prototype = {
   _findCluster: function _findCluster() {
     this._log.debug("Finding cluster for user " + this.identity.username);
 
+    
+    
     let fail;
-    let res = new Resource(this.service.userAPI + this.identity.username +
+    let res = new Resource(this.service.userAPIURI + this.identity.username +
                            "/node/weave");
     try {
       let node = res.get();
