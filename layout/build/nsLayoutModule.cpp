@@ -7,6 +7,7 @@
 
 #include "XPCModule.h"
 #include "mozilla/ModuleUtils.h"
+#include "nsImageModule.h"
 #include "nsLayoutStatics.h"
 #include "nsContentCID.h"
 #include "nsContentDLF.h"
@@ -1254,6 +1255,7 @@ LayoutModuleDtor()
 
   
   
+  mozilla::image::ShutdownModule();
   gfxPlatform::Shutdown();
 }
 
