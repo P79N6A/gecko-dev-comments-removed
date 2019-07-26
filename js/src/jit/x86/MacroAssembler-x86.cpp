@@ -396,16 +396,27 @@ MacroAssemblerX86::testNegativeZero(const FloatRegister &reg, const Register &sc
 
     
     xorpd(ScratchFloatReg, ScratchFloatReg);
+
+    
     
     branchDouble(DoubleNotEqual, reg, ScratchFloatReg, &nonZero);
 
     
     movmskpd(reg, scratch);
+
     
-    cmpl(scratch, Imm32(1));
+    
+    
+    orl(Imm32(2), scratch);
 
     bind(&nonZero);
-    return Zero;
+
+    
+    
+    
+    
+    
+    return Parity;
 }
 
 Assembler::Condition
