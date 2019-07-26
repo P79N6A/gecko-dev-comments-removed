@@ -127,19 +127,10 @@ struct BlockScopeArray {
     uint32_t        length;     
 };
 
-
-
-
-
-
-enum BindingKind { ARGUMENT, VARIABLE, CONSTANT };
-
 class Binding
 {
     
-
-
-
+    
     uintptr_t bits_;
 
     static const uintptr_t KIND_MASK = 0x3;
@@ -147,9 +138,13 @@ class Binding
     static const uintptr_t NAME_MASK = ~(KIND_MASK | ALIASED_BIT);
 
   public:
+    
+    
+    enum Kind { ARGUMENT, VARIABLE, CONSTANT };
+
     explicit Binding() : bits_(0) {}
 
-    Binding(PropertyName *name, BindingKind kind, bool aliased) {
+    Binding(PropertyName *name, Kind kind, bool aliased) {
         JS_STATIC_ASSERT(CONSTANT <= KIND_MASK);
         JS_ASSERT((uintptr_t(name) & ~NAME_MASK) == 0);
         JS_ASSERT((uintptr_t(kind) & ~KIND_MASK) == 0);
@@ -160,8 +155,8 @@ class Binding
         return (PropertyName *)(bits_ & NAME_MASK);
     }
 
-    BindingKind kind() const {
-        return BindingKind(bits_ & KIND_MASK);
+    Kind kind() const {
+        return Kind(bits_ & KIND_MASK);
     }
 
     bool aliased() const {
@@ -188,6 +183,7 @@ class Bindings
     HeapPtr<Shape> callObjShape_;
     uintptr_t bindingArrayAndFlag_;
     uint16_t numArgs_;
+    uint16_t numBlockScoped_;
     uint32_t numVars_;
 
     
@@ -220,7 +216,21 @@ class Bindings
 
     static bool initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle self,
                                          unsigned numArgs, uint32_t numVars,
-                                         Binding *bindingArray);
+                                         Binding *bindingArray, unsigned numBlockScoped);
+
+    
+    
+    
+    
+    
+    
+    void updateNumBlockScoped(unsigned numBlockScoped) {
+        JS_ASSERT(!callObjShape_);
+        JS_ASSERT(numVars_ == 0);
+        JS_ASSERT(numBlockScoped < LOCALNO_LIMIT);
+        JS_ASSERT(numBlockScoped >= numBlockScoped_);
+        numBlockScoped_ = numBlockScoped;
+    }
 
     uint8_t *switchToScriptStorage(Binding *newStorage);
 
@@ -233,6 +243,10 @@ class Bindings
 
     unsigned numArgs() const { return numArgs_; }
     uint32_t numVars() const { return numVars_; }
+    unsigned numBlockScoped() const { return numBlockScoped_; }
+    uint32_t numLocals() const { return numVars() + numBlockScoped(); }
+
+    
     uint32_t count() const { return numArgs() + numVars(); }
 
     
@@ -924,7 +938,15 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     void setColumn(size_t column) { column_ = column; }
 
+    
+    
     size_t nfixed() const {
+        js::AutoThreadSafeAccess ts(this);
+        return function_ ? bindings.numLocals() : bindings.numBlockScoped();
+    }
+
+    
+    size_t nfixedvars() const {
         js::AutoThreadSafeAccess ts(this);
         return function_ ? bindings.numVars() : 0;
     }

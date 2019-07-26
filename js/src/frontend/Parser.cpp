@@ -272,16 +272,16 @@ AppendPackedBindings(const ParseContext<ParseHandler> *pc, const DeclVector &vec
         Definition *dn = vec[i];
         PropertyName *name = dn->name();
 
-        BindingKind kind;
+        Binding::Kind kind;
         switch (dn->kind()) {
           case Definition::VAR:
-            kind = VARIABLE;
+            kind = Binding::VARIABLE;
             break;
           case Definition::CONST:
-            kind = CONSTANT;
+            kind = Binding::CONSTANT;
             break;
           case Definition::ARG:
-            kind = ARGUMENT;
+            kind = Binding::ARGUMENT;
             break;
           default:
             MOZ_ASSUME_UNREACHABLE("unexpected dn->kind");
@@ -329,7 +329,7 @@ ParseContext<ParseHandler>::generateFunctionBindings(ExclusiveContext *cx, Token
     AppendPackedBindings(this, vars_, packedBindings + args_.length());
 
     return Bindings::initWithTemporaryStorage(cx, bindings, args_.length(), vars_.length(),
-                                              packedBindings);
+                                              packedBindings, blockScopeDepth);
 }
 
 template <typename ParseHandler>
@@ -615,7 +615,8 @@ Parser<ParseHandler>::parse(JSObject *chain)
     GlobalSharedContext globalsc(context, chain, directives, options().extraWarningsOption);
     ParseContext<ParseHandler> globalpc(this,  nullptr, ParseHandler::null(),
                                         &globalsc,  nullptr,
-                                         0,  0);
+                                         0,  0,
+                                         0);
     if (!globalpc.init(tokenStream))
         return null();
 
@@ -877,7 +878,8 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoN
     handler.setFunctionBox(fn, funbox);
 
     ParseContext<FullParseHandler> funpc(this, pc, fn, funbox, newDirectives,
-                                          0,  0);
+                                          0,  0,
+                                          0);
     if (!funpc.init(tokenStream))
         return null();
 
@@ -2125,7 +2127,8 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
 
             ParseContext<SyntaxParseHandler> funpc(parser, outerpc, SyntaxParseHandler::null(), funbox,
                                                    newDirectives, outerpc->staticLevel + 1,
-                                                   outerpc->blockidGen);
+                                                   outerpc->blockidGen,
+                                                    0);
             if (!funpc.init(tokenStream))
                 return false;
 
@@ -2160,7 +2163,8 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
 
     
     ParseContext<FullParseHandler> funpc(this, pc, pn, funbox, newDirectives,
-                                         outerpc->staticLevel + 1, outerpc->blockidGen);
+                                         outerpc->staticLevel + 1, outerpc->blockidGen,
+                                          0);
     if (!funpc.init(tokenStream))
         return false;
 
@@ -2199,7 +2203,8 @@ Parser<SyntaxParseHandler>::functionArgsAndBody(Node pn, HandleFunction fun,
 
     
     ParseContext<SyntaxParseHandler> funpc(this, pc, handler.null(), funbox, newDirectives,
-                                           outerpc->staticLevel + 1, outerpc->blockidGen);
+                                           outerpc->staticLevel + 1, outerpc->blockidGen,
+                                            0);
     if (!funpc.init(tokenStream))
         return false;
 
@@ -2234,7 +2239,8 @@ Parser<FullParseHandler>::standaloneLazyFunction(HandleFunction fun, unsigned st
 
     Directives newDirectives = directives;
     ParseContext<FullParseHandler> funpc(this,  nullptr, pn, funbox,
-                                         &newDirectives, staticLevel,  0);
+                                         &newDirectives, staticLevel,  0,
+                                          0);
     if (!funpc.init(tokenStream))
         return null();
 
@@ -2688,7 +2694,7 @@ Parser<FullParseHandler>::bindLet(BindData<FullParseHandler> *data,
 
     Rooted<StaticBlockObject *> blockObj(cx, data->let.blockObj);
     unsigned index = blockObj->slotCount();
-    if (index >= StaticBlockObject::VAR_INDEX_LIMIT) {
+    if (index >= StaticBlockObject::LOCAL_INDEX_LIMIT) {
         parser->report(ParseError, false, pn, data->let.overflow);
         return false;
     }
@@ -2769,6 +2775,33 @@ struct PopLetDecl {
     }
 };
 
+
+
+
+
+
+
+
+
+template <typename ParseHandler>
+static void
+AccumulateBlockScopeDepth(ParseContext<ParseHandler> *pc)
+{
+    uint32_t innerDepth = pc->topStmt->innerBlockScopeDepth;
+    StmtInfoPC *outer = pc->topStmt->down;
+
+    if (pc->topStmt->isBlockScope)
+        innerDepth += pc->topStmt->staticScope->template as<StaticBlockObject>().slotCount();
+
+    if (outer) {
+        if (outer->innerBlockScopeDepth < innerDepth)
+            outer->innerBlockScopeDepth = innerDepth;
+    } else {
+        if (pc->blockScopeDepth < innerDepth)
+            pc->blockScopeDepth = innerDepth;
+    }
+}
+
 template <typename ParseHandler>
 static void
 PopStatementPC(TokenStream &ts, ParseContext<ParseHandler> *pc)
@@ -2776,6 +2809,7 @@ PopStatementPC(TokenStream &ts, ParseContext<ParseHandler> *pc)
     RootedNestedScopeObject scopeObj(ts.context(), pc->topStmt->staticScope);
     JS_ASSERT(!!scopeObj == pc->topStmt->isNestedScope);
 
+    AccumulateBlockScopeDepth(pc);
     FinishPopStatement(pc);
 
     if (scopeObj) {
@@ -2823,7 +2857,7 @@ LexicalLookup(ContextT *ct, HandleAtom atom, int *slotp, typename ContextT::Stmt
             JS_ASSERT(shape->hasShortID());
 
             if (slotp)
-                *slotp = blockObj.stackDepth() + shape->shortid();
+                *slotp = shape->shortid();
             return stmt;
         }
     }
@@ -3334,7 +3368,7 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
         if (!expr)
             return null();
     }
-    handler.setLeaveBlockResult(block, expr, letContext != LetStatement);
+    handler.setLexicalScopeBody(block, expr);
     PopStatementPC(tokenStream, pc);
 
     handler.setEndPosition(pnlet, pos().end);
@@ -3612,7 +3646,6 @@ Parser<FullParseHandler>::letDeclaration()
             if (!pn1)
                 return null();
 
-            pn1->setOp(JSOP_POPN);
             pn1->pn_pos = pc->blockNode->pn_pos;
             pn1->pn_objbox = blockbox;
             pn1->pn_expr = pc->blockNode;
@@ -3648,8 +3681,6 @@ Parser<FullParseHandler>::letStatement()
     if (tokenStream.peekToken() == TOK_LP) {
         pn = letBlock(LetStatement);
         JS_ASSERT_IF(pn, pn->isKind(PNK_LET) || pn->isKind(PNK_SEMI));
-        JS_ASSERT_IF(pn && pn->isKind(PNK_LET) && pn->pn_expr->getOp() != JSOP_POPNV,
-                     pn->pn_expr->isOp(JSOP_POPN));
     } else {
         pn = letDeclaration();
     }
@@ -6011,11 +6042,37 @@ CompExprTransplanter::transplant(ParseNode *pn)
 
 
 
+
+
+
+
+
+
+
+
+
+template <typename ParseHandler>
+static unsigned
+ComprehensionHeadBlockScopeDepth(ParseContext<ParseHandler> *pc)
+{
+    return pc->topStmt ? pc->topStmt->innerBlockScopeDepth : pc->blockScopeDepth;
+}
+
+
+
+
+
+
+
+
+
+
 template <>
 ParseNode *
 Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bool isGenexp,
                                             ParseContext<FullParseHandler> *outerpc,
-                                            ParseNodeKind kind, JSOp op)
+                                            ParseNodeKind kind, JSOp op,
+                                            unsigned innerBlockScopeDepth)
 {
     
 
@@ -6240,6 +6297,7 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bo
     pn2->pn_kid = kid;
     *pnp = pn2;
 
+    pc->topStmt->innerBlockScopeDepth += innerBlockScopeDepth;
     PopStatementPC(tokenStream, pc);
     return pn;
 }
@@ -6263,7 +6321,8 @@ Parser<FullParseHandler>::arrayInitializerComprehensionTail(ParseNode *pn)
     *pn->pn_tail = nullptr;
 
     ParseNode *pntop = comprehensionTail(pnexp, pn->pn_blockid, false, nullptr,
-                                         PNK_ARRAYPUSH, JSOP_ARRAYPUSH);
+                                         PNK_ARRAYPUSH, JSOP_ARRAYPUSH,
+                                         ComprehensionHeadBlockScopeDepth(pc));
     if (!pntop)
         return false;
     pn->append(pntop);
@@ -6333,7 +6392,8 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
 
         ParseContext<FullParseHandler> genpc(this, outerpc, genfn, genFunbox,
                                               nullptr,
-                                             outerpc->staticLevel + 1, outerpc->blockidGen);
+                                             outerpc->staticLevel + 1, outerpc->blockidGen,
+                                              0);
         if (!genpc.init(tokenStream))
             return null();
 
@@ -6351,7 +6411,9 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
         genFunbox->inGenexpLambda = true;
         genfn->pn_blockid = genpc.bodyid;
 
-        ParseNode *body = comprehensionTail(pn, outerpc->blockid(), true, outerpc);
+        ParseNode *body = comprehensionTail(pn, outerpc->blockid(), true, outerpc,
+                                            PNK_SEMI, JSOP_NOP,
+                                            ComprehensionHeadBlockScopeDepth(outerpc));
         if (!body)
             return null();
         JS_ASSERT(!genfn->pn_body);
