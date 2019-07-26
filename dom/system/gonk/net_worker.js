@@ -102,6 +102,20 @@ function usbTetheringSuccess(params) {
   return true;
 }
 
+function networkInterfaceStatsFail(params) {
+  
+  postMessage(params);
+  return true;
+}
+
+function networkInterfaceStatsSuccess(params) {
+  
+  params.txBytes = parseFloat(params.resultReason);
+
+  postMessage(params);
+  return true;
+}
+
 
 
 
@@ -353,6 +367,18 @@ function stopSoftAP(params, callback) {
   return doCommand(command, callback);
 }
 
+function getRxBytes(params, callback) {
+  let command = "interface readrxcounter " + params.ifname;
+  return doCommand(command, callback);
+}
+
+function getTxBytes(params, callback) {
+  params.rxBytes = parseFloat(params.resultReason);
+
+  let command = "interface readtxcounter " + params.ifname;
+  return doCommand(command, callback);
+}
+
 
 function setAccessPoint(params, callback) {
   let command = "softap set " + params.ifname +
@@ -532,6 +558,24 @@ function setUSBTethering(params) {
            params.internalIfname + "<->" + params.externalIfname);
     chain(params, gUSBDisableChain, usbTetheringFail);
   }
+  return true;
+}
+
+let gNetworkInterfaceStatsChain = [getRxBytes,
+                                   getTxBytes,
+                                   networkInterfaceStatsSuccess];
+
+
+
+
+function getNetworkInterfaceStats(params) {
+  debug("getNetworkInterfaceStats: " + params.ifname);
+
+  params.rxBytes = -1;
+  params.txBytes = -1;
+  params.date = new Date();
+
+  chain(params, gNetworkInterfaceStatsChain, networkInterfaceStatsFail);
   return true;
 }
 
