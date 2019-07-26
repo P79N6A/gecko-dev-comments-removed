@@ -82,7 +82,7 @@ AudioTrackEncoder::NotifyEndOfStream()
   
   
   
-  if (!mCanceled && !mInitialized && mSilentDuration > 0) {
+  if (!mCanceled && !mInitialized) {
     Init(DEFAULT_CHANNELS, DEFAULT_SAMPLING_RATE);
     mRawSegment->AppendNullData(mSilentDuration);
     mSilentDuration = 0;
