@@ -74,10 +74,6 @@ SystemMessageManager.prototype = {
 
     aHandler.handleMessage(wrapped ? aMessage
                                    : ObjectWrapper.wrap(aMessage, this._window));
-
-    Services.obs.notifyObservers( null,
-                                 "SystemMessageManager:HandleMessageDone",
-                                  null);
   },
 
   mozSetMessageHandler: function sysMessMgr_setMessageHandler(aType, aHandler) {
@@ -151,6 +147,16 @@ SystemMessageManager.prototype = {
                             innerWindowID: this.innerWindowID });
   },
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   receiveMessage: function sysMessMgr_receiveMessage(aMessage) {
     debug("receiveMessage " + aMessage.name + " for [" + aMessage.data.type + "] " +
           "with manifest = " + this._manifest + " and uri = " + this._uri);
@@ -167,19 +173,30 @@ SystemMessageManager.prototype = {
                               msgID: msg.msgID });
     }
 
-    
-    if (!(msg.type in this._handlers)) {
-      debug("No handler for this type");
-      return;
-    }
-
     let messages = (aMessage.name == "SystemMessageManager:Message")
                    ? [msg.msg]
                    : msg.msgQueue;
 
-    messages.forEach(function(aMsg) {
-      this._dispatchMessage(msg.type, this._handlers[msg.type], aMsg);
-    }, this);
+    
+    let handler = this._handlers[msg.type];
+    if (handler) {
+      messages.forEach(function(aMsg) {
+        this._dispatchMessage(msg.type, handler, aMsg);
+      }, this);
+    }
+
+    
+    
+    
+    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
+                          { type: msg.type,
+                            manifest: this._manifest,
+                            uri: this._uri,
+                            handledCount: messages.length });
+
+    Services.obs.notifyObservers( null,
+                                 "handle-system-messages-done",
+                                  null);
   },
 
   
