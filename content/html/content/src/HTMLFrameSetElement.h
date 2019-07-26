@@ -85,6 +85,9 @@ public:
   
   
 #define EVENT(name_, id_, type_, struct_)
+#define FORWARDED_EVENT(name_, id_, type_, struct_)                     \
+  NS_IMETHOD GetOn##name_(JSContext *cx, JS::Value *vp);                \
+  NS_IMETHOD SetOn##name_(JSContext *cx, const JS::Value &v);
 #define WINDOW_EVENT_HELPER(name_, type_)                               \
   type_* GetOn##name_();                                                \
   void SetOn##name_(type_* handler);
@@ -96,6 +99,7 @@ public:
 #undef BEFOREUNLOAD_EVENT
 #undef WINDOW_EVENT
 #undef WINDOW_EVENT_HELPER
+#undef FORWARDED_EVENT
 #undef EVENT
 
   

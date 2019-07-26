@@ -198,9 +198,8 @@ public:
     
     
     
-    static bool ReadableToJSVal(JSContext *cx, const nsAString &readable,
-                                nsStringBuffer** sharedBuffer,
-                                JS::MutableHandleValue vp);
+    static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable,
+                                 nsStringBuffer** sharedBuffer);
 
     
     static MOZ_ALWAYS_INLINE bool
