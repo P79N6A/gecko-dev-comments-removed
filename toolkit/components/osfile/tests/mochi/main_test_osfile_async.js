@@ -695,6 +695,7 @@ let test_iter = maketest("iter", function iter(test) {
       }
       return null;
     });
+    yield iterator.close();
 
     
     let file = yield OS.File.open(temporary_file_name, { write: true } );
@@ -815,45 +816,60 @@ let test_system_shutdown = maketest("system_shutdown", function system_shutdown(
     
     let originalDebug = OS.Shared.DEBUG;
     
-    function getConsoleListener(resource) {
-      let consoleListener = {
-        observe: function (aMessage) {
-          
-          if (!(aMessage instanceof Components.interfaces.nsIConsoleMessage)) {
-            return;
+    function inDebugTest(resource, f) {
+      return Task.spawn(function task() {
+        let originalDebug = OS.Shared.DEBUG;
+        OS.Shared.TEST = true;
+        OS.Shared.DEBUG = true;
+        let waitObservation = Promise.defer();
+        let listener = {
+          observe: function (aMessage) {
+            test.info("Waiting for a console message mentioning resource " + resource);
+            
+            if (!(aMessage instanceof Components.interfaces.nsIConsoleMessage)) {
+              test.info("Not a console message");
+              return;
+            }
+            if (aMessage.message.indexOf("TEST OS Controller WARNING") < 0) {
+              test.info("Not a warning");
+              return;
+            }
+            test.ok(aMessage.message.indexOf("WARNING: File descriptors leaks " +
+              "detected.") >= 0, "Noticing file descriptors leaks, as expected.");
+            let found = aMessage.message.indexOf(resource) >= 0;
+            if (found) {
+              test.ok(true, "Leaked resource is correctly listed in the log.");
+              setTimeout(function() { waitObservation.resolve(); });
+            } else {
+              test.info("This log didn't list the expected resource: " + resource + "\ngot " + aMessage.message);
+            }
           }
-          if (aMessage.message.indexOf("TEST OS Controller WARNING") < 0) {
-            return;
-          }
-          test.ok(aMessage.message.indexOf("WARNING: File descriptors leaks " +
-            "detected.") >= 0, "File descriptors leaks are logged correctly.");
-          test.ok(aMessage.message.indexOf(resource) >= 0,
-            "Leaked resource is correctly listed in the log.");
-          toggleDebugTest(false, resource, consoleListener);
-        }
-      };
-      return consoleListener;
-    }
-    
-    function toggleDebugTest(startDebug, resource, consoleListener) {
-      Services.console[startDebug ? "registerListener" : "unregisterListener"](
-        consoleListener || getConsoleListener(resource));
-      OS.Shared.TEST = startDebug;
-      
-      OS.Shared.DEBUG = startDebug || originalDebug;
+        };
+        Services.console.registerListener(listener);
+        f();
+        yield waitObservation.promise;
+        Services.console.unregisterListener(listener);
+        OS.Shared.DEBUG = originalDebug;
+        OS.Shared.TEST = false;
+        test.info("Unregistered listener for resource " + resource);
+      });
     }
 
     let currentDir = yield OS.File.getCurrentDirectory();
+    test.info("Testing for leaks of directory iterator " + currentDir);
     let iterator = new OS.File.DirectoryIterator(currentDir);
-    toggleDebugTest(true, currentDir);
-    Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
-      null);
+    yield inDebugTest(currentDir, function() {
+      Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
+        null);
+    });
     yield iterator.close();
 
+    test.info("Testing for leaks of file " + EXISTING_FILE);
     let openedFile = yield OS.File.open(EXISTING_FILE);
-    toggleDebugTest(true, EXISTING_FILE);
-    Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
-      null);
+    yield inDebugTest(EXISTING_FILE, function() {
+      Services.obs.notifyObservers(null, "test.osfile.web-workers-shutdown",
+        null);
+    });
     yield openedFile.close();
   });
 });
@@ -916,11 +932,11 @@ let test_duration = maketest("duration", function duration(test) {
     let backupDuration = ARBITRARY_BASE_DURATION;
     
     yield OS.File.copy(pathSource, copyFile, copyOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration);
+    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 1");
 
     backupDuration = copyOptions.outExecutionDuration;
     yield OS.File.remove(copyFile, copyOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration);
+    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 2");
 
     
     
@@ -931,9 +947,13 @@ let test_duration = maketest("duration", function duration(test) {
       tmpPath: tmpPath
     };
     backupDuration = writeAtomicOptions.outExecutionDuration;
+
     yield OS.File.writeAtomic(pathDest, contents, writeAtomicOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration);
+    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 3");
     OS.File.remove(pathDest);
+
+    Services.prefs.setBoolPref("toolkit.osfile.log", true);
+    OS.Shared.TEST = true;
 
     
     let file = yield OS.File.open(pathSource);
