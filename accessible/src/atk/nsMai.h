@@ -30,4 +30,16 @@ GType mai_atk_object_get_type(void);
 GType mai_util_get_type();
 mozilla::a11y::AccessibleWrap* GetAccessibleWrap(AtkObject* aAtkObj);
 
+extern int atkMajorVersion, atkMinorVersion;
+
+
+
+
+
+static inline bool
+IsAtkVersionAtLeast(int aMajor, int aMinor)
+{
+  return aMajor < atkMajorVersion && aMinor < atkMinorVersion;
+}
+
 #endif 
