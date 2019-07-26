@@ -110,13 +110,15 @@ def repack(source, l10n, non_resources=[]):
                   l10n_paths[mozpack.path.basedir(e.path, bases)][e.name])
                  for e in entries if isinstance(e, ManifestEntryWithRelPath))
 
-    for path in NON_CHROME:
-        left = set(p for p, f in finder.find(path))
-        right = set(p for p, f in l10n_finder.find(path))
-        for p in right:
-            paths[p] = p
-        for p in left - right:
-            paths[p] = None
+    for pattern in NON_CHROME:
+        for base in bases:
+            path = mozpack.path.join(base, pattern)
+            left = set(p for p, f in finder.find(path))
+            right = set(p for p, f in l10n_finder.find(path))
+            for p in right:
+                paths[p] = p
+            for p in left - right:
+                paths[p] = None
 
     
     
@@ -170,10 +172,11 @@ def repack(source, l10n, non_resources=[]):
     packager.close()
 
     
-    for base in NON_CHROME:
-        for p, f in l10n_finder.find(base):
-            if not formatter.contains(p):
-                formatter.add(p, f)
+    for pattern in NON_CHROME:
+        for base in bases:
+            for p, f in l10n_finder.find(mozpack.path.join(base, pattern)):
+                if not formatter.contains(p):
+                    formatter.add(p, f)
 
     
     for path, log in finder.jarlogs.iteritems():
