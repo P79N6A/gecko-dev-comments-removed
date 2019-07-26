@@ -634,7 +634,11 @@ BrowserGlue.prototype = {
     
     const OFFER_PROFILE_RESET_INTERVAL_MS = 60 * 24 * 60 * 60 * 1000;
     let lastUse = Services.appinfo.replacedLockTime;
-    if (lastUse &&
+    let disableResetPrompt = false;
+    try {
+      disableResetPrompt = Services.prefs.getBoolPref("browser.disableResetPrompt");
+    } catch(e) {}
+    if (!disableResetPrompt && lastUse &&
         Date.now() - lastUse >= OFFER_PROFILE_RESET_INTERVAL_MS) {
       this._resetUnusedProfileNotification();
     }
