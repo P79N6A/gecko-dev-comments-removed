@@ -185,6 +185,18 @@ this.PageThumbs = {
            "?url=" + encodeURIComponent(aUrl);
   },
 
+   
+
+
+
+
+
+
+
+   getThumbnailPath: function PageThumbs_getThumbnailPath(aUrl) {
+     return PageThumbsStorage.getFilePathForURL(aUrl);
+   },
+
   
 
 
