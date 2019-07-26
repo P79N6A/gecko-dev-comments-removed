@@ -20,7 +20,8 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITHREADMANAGER
 
-  static nsThreadManager *get() {
+  static nsThreadManager* get()
+  {
     static nsThreadManager sInstance;
     return &sInstance;
   }
@@ -33,15 +34,15 @@ public:
 
   
   
-  void RegisterCurrentThread(nsThread *thread);
+  void RegisterCurrentThread(nsThread* aThread);
 
   
   
-  void UnregisterCurrentThread(nsThread *thread);
+  void UnregisterCurrentThread(nsThread* aThread);
 
   
   
-  nsThread *GetCurrentThread();
+  nsThread* GetCurrentThread();
 
   
   
@@ -49,7 +50,9 @@ public:
 
   
   
-  ~nsThreadManager() {}
+  ~nsThreadManager()
+  {
+  }
 
 private:
   nsThreadManager()
@@ -58,22 +61,23 @@ private:
     , mLock(nullptr)
     , mInitialized(false)
     , mCurrentNumberOfThreads(1)
-    , mHighestNumberOfThreads(1) {
+    , mHighestNumberOfThreads(1)
+  {
   }
 
   nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
   unsigned             mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
-  PRThread           *mMainPRThread;
+  PRThread*           mMainPRThread;
   
   
   nsAutoPtr<mozilla::Mutex> mLock;  
   bool                mInitialized;
 
-   
-   uint32_t           mCurrentNumberOfThreads;
-   
-   uint32_t           mHighestNumberOfThreads;
+  
+  uint32_t            mCurrentNumberOfThreads;
+  
+  uint32_t            mHighestNumberOfThreads;
 };
 
 #define NS_THREADMANAGER_CID                       \

@@ -3,15 +3,18 @@
 
 
 
+
 #ifndef mozilla_HangMonitor_h
 #define mozilla_HangMonitor_h
 
-namespace mozilla { namespace HangMonitor {
+namespace mozilla {
+namespace HangMonitor {
 
 
 
 
-enum ActivityType {
+enum ActivityType
+{
   
   kUIActivity,
 
@@ -49,6 +52,7 @@ void NotifyActivity(ActivityType activityType = kGeneralActivity);
 
 void Suspend();
 
-} } 
+} 
+} 
 
 #endif 

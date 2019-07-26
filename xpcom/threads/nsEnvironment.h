@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsEnvironment_h__
 #define nsEnvironment_h__
 
@@ -18,17 +19,18 @@
 class nsEnvironment MOZ_FINAL : public nsIEnvironment
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIENVIRONMENT
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIENVIRONMENT
 
-    static nsresult Create(nsISupports *aOuter, REFNSIID aIID,
-                           void **aResult);
+  static nsresult Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
 private:
-    nsEnvironment() : mLock("nsEnvironment.mLock") { }
-    ~nsEnvironment();
+  nsEnvironment() : mLock("nsEnvironment.mLock")
+  {
+  }
+  ~nsEnvironment();
 
-    mozilla::Mutex mLock;
+  mozilla::Mutex mLock;
 };
 
 #endif 

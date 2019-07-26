@@ -26,7 +26,8 @@
   #define REPORT_CHROME_HANGS
 #endif
 
-namespace mozilla { namespace HangMonitor {
+namespace mozilla {
+namespace HangMonitor {
 
 
 
@@ -112,21 +113,22 @@ Crash()
 
 #ifdef REPORT_CHROME_HANGS
 static void
-ChromeStackWalker(void *aPC, void *aSP, void *aClosure)
+ChromeStackWalker(void* aPC, void* aSP, void* aClosure)
 {
   MOZ_ASSERT(aClosure);
-  std::vector<uintptr_t> *stack =
+  std::vector<uintptr_t>* stack =
     static_cast<std::vector<uintptr_t>*>(aClosure);
-  if (stack->size() == MAX_CALL_STACK_PCS)
+  if (stack->size() == MAX_CALL_STACK_PCS) {
     return;
+  }
   MOZ_ASSERT(stack->size() < MAX_CALL_STACK_PCS);
   stack->push_back(reinterpret_cast<uintptr_t>(aPC));
 }
 
 static void
-GetChromeHangReport(Telemetry::ProcessedStack &aStack,
-                    int32_t &aSystemUptime,
-                    int32_t &aFirefoxUptime)
+GetChromeHangReport(Telemetry::ProcessedStack& aStack,
+                    int32_t& aSystemUptime,
+                    int32_t& aFirefoxUptime)
 {
   MOZ_ASSERT(winMainThreadHandle);
 
@@ -135,14 +137,16 @@ GetChromeHangReport(Telemetry::ProcessedStack &aStack,
   std::vector<uintptr_t> rawStack;
   rawStack.reserve(MAX_CALL_STACK_PCS);
   DWORD ret = ::SuspendThread(winMainThreadHandle);
-  if (ret == -1)
+  if (ret == -1) {
     return;
+  }
   NS_StackWalk(ChromeStackWalker,  0,  0,
                reinterpret_cast<void*>(&rawStack),
                reinterpret_cast<uintptr_t>(winMainThreadHandle), nullptr);
   ret = ::ResumeThread(winMainThreadHandle);
-  if (ret == -1)
+  if (ret == -1) {
     return;
+  }
   aStack = Telemetry::GetStackAndModules(rawStack);
 
   
@@ -217,8 +221,7 @@ ThreadMain(void*)
         }
       }
 #endif
-    }
-    else {
+    } else {
 #ifdef REPORT_CHROME_HANGS
       if (waitCount >= 2) {
         uint32_t hangDuration = PR_IntervalToSeconds(now - lastTimestamp);
@@ -234,8 +237,7 @@ ThreadMain(void*)
     PRIntervalTime timeout;
     if (gTimeout <= 0) {
       timeout = PR_INTERVAL_NO_TIMEOUT;
-    }
-    else {
+    } else {
       timeout = PR_MillisecondsToInterval(gTimeout * 500);
     }
     lock.Wait(timeout);
@@ -248,8 +250,9 @@ Startup()
   
   
   
-  if (GeckoProcessType_Default != XRE_GetProcessType())
+  if (GeckoProcessType_Default != XRE_GetProcessType()) {
     return;
+  }
 
   MOZ_ASSERT(!gMonitor, "Hang monitor already initialized");
   gMonitor = new Monitor("HangMonitor");
@@ -261,8 +264,9 @@ Startup()
   Preferences::RegisterCallback(PrefChanged, kTelemetryPrefName, nullptr);
   winMainThreadHandle =
     OpenThread(THREAD_ALL_ACCESS, FALSE, GetCurrentThreadId());
-  if (!winMainThreadHandle)
+  if (!winMainThreadHandle) {
     return;
+  }
 #endif
 
   
@@ -280,12 +284,14 @@ Startup()
 void
 Shutdown()
 {
-  if (GeckoProcessType_Default != XRE_GetProcessType())
+  if (GeckoProcessType_Default != XRE_GetProcessType()) {
     return;
+  }
 
   MOZ_ASSERT(gMonitor, "Hang monitor not started");
 
-  { 
+  {
+    
     MonitorAutoLock lock(*gMonitor);
     gShutdown = true;
     lock.Notify();
@@ -307,11 +313,11 @@ IsUIMessageWaiting()
 #ifndef XP_WIN
   return false;
 #else
-  #define NS_WM_IMEFIRST WM_IME_SETCONTEXT
-  #define NS_WM_IMELAST  WM_IME_KEYUP
+#define NS_WM_IMEFIRST WM_IME_SETCONTEXT
+#define NS_WM_IMELAST  WM_IME_KEYUP
   BOOL haveUIMessageWaiting = FALSE;
   MSG msg;
-  haveUIMessageWaiting |= ::PeekMessageW(&msg, nullptr, WM_KEYFIRST, 
+  haveUIMessageWaiting |= ::PeekMessageW(&msg, nullptr, WM_KEYFIRST,
                                          WM_IME_KEYLAST, PM_NOREMOVE);
   haveUIMessageWaiting |= ::PeekMessageW(&msg, nullptr, NS_WM_IMEFIRST,
                                          NS_WM_IMELAST, PM_NOREMOVE);
@@ -322,32 +328,32 @@ IsUIMessageWaiting()
 }
 
 void
-NotifyActivity(ActivityType activityType)
+NotifyActivity(ActivityType aActivityType)
 {
   MOZ_ASSERT(NS_IsMainThread(),
              "HangMonitor::Notify called from off the main thread.");
 
   
-  if (activityType == kGeneralActivity) {
-    activityType = IsUIMessageWaiting() ? kActivityUIAVail : 
-                                          kActivityNoUIAVail;
+  if (aActivityType == kGeneralActivity) {
+    aActivityType = IsUIMessageWaiting() ? kActivityUIAVail :
+                                           kActivityNoUIAVail;
   }
 
   
   static uint32_t cumulativeUILagMS = 0;
-  switch(activityType) {
-  case kActivityNoUIAVail:
-    cumulativeUILagMS = 0;
-    break;
-  case kActivityUIAVail:
-  case kUIActivity:
-    if (gTimestamp != PR_INTERVAL_NO_WAIT) {
-      cumulativeUILagMS += PR_IntervalToMilliseconds(PR_IntervalNow() -
-                                                     gTimestamp);
-    }
-    break;
-  default:
-    break;
+  switch (aActivityType) {
+    case kActivityNoUIAVail:
+      cumulativeUILagMS = 0;
+      break;
+    case kActivityUIAVail:
+    case kUIActivity:
+      if (gTimestamp != PR_INTERVAL_NO_WAIT) {
+        cumulativeUILagMS += PR_IntervalToMilliseconds(PR_IntervalNow() -
+                                                       gTimestamp);
+      }
+      break;
+    default:
+      break;
   }
 
   
@@ -357,7 +363,7 @@ NotifyActivity(ActivityType activityType)
 
   
   
-  if (activityType == kUIActivity) {
+  if (aActivityType == kUIActivity) {
     
     
     static const uint32_t kUIResponsivenessThresholdMS = 50;
@@ -387,4 +393,5 @@ Suspend()
   }
 }
 
-} } 
+} 
+} 

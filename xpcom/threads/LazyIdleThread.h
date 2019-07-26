@@ -32,10 +32,11 @@ namespace mozilla {
 
 
 
-class LazyIdleThread MOZ_FINAL : public nsIThread,
-                                 public nsITimerCallback,
-                                 public nsIThreadObserver,
-                                 public nsIObserver
+class LazyIdleThread MOZ_FINAL
+  : public nsIThread
+  , public nsITimerCallback
+  , public nsIThreadObserver
+  , public nsIObserver
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -45,7 +46,8 @@ public:
   NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIOBSERVER
 
-  enum ShutdownMethod {
+  enum ShutdownMethod
+  {
     AutomaticShutdown = 0,
     ManualShutdown
   };
@@ -128,7 +130,8 @@ private:
 
 
 
-  bool UseRunnableQueue() {
+  bool UseRunnableQueue()
+  {
     return !!mQueuedRunnables;
   }
 
@@ -165,7 +168,7 @@ private:
 
 
 
-  nsTArray<nsCOMPtr<nsIRunnable> >* mQueuedRunnables;
+  nsTArray<nsCOMPtr<nsIRunnable>>* mQueuedRunnables;
 
   
 
