@@ -18,6 +18,7 @@ struct Margin :
   typedef BaseMargin<Float, Margin> Super;
 
   
+  Margin() : Super(0, 0, 0, 0) {}
   Margin(const Margin& aMargin) : Super(aMargin) {}
   Margin(Float aLeft,  Float aTop, Float aRight, Float aBottom)
     : Super(aLeft, aTop, aRight, aBottom) {}
