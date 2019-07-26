@@ -347,7 +347,7 @@ fsmcnf_cleanup (fsm_fcb_t *fcb, int fname, boolean both)
 
 
             if (ccb == NULL) {
-                GSM_DEBUG_ERROR(GSM_F_PREFIX"Failed to get CCB.\n", fname);
+                GSM_DEBUG_ERROR(GSM_F_PREFIX"Failed to get CCB.", __FUNCTION__);
             } else {
                 cc_call_attribute(other_call_id, ccb->cnf_line, NORMAL_CALL);
             }
