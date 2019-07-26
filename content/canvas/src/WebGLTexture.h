@@ -23,15 +23,6 @@ inline bool is_pot_assuming_nonnegative(GLsizei x)
     return x && (x & (x-1)) == 0;
 }
 
-inline bool FormatHasAlpha(GLenum format)
-{
-    return format == LOCAL_GL_RGBA ||
-           format == LOCAL_GL_LUMINANCE_ALPHA ||
-           format == LOCAL_GL_ALPHA ||
-           format == LOCAL_GL_RGBA4 ||
-           format == LOCAL_GL_RGB5_A1;
-}
-
 
 
 class WebGLTexture MOZ_FINAL
@@ -82,16 +73,19 @@ public:
     {
     public:
         ImageInfo()
-            : mInternalFormat(0)
-            , mType(0)
+            : mWebGLFormat(LOCAL_GL_NONE)
+            , mWebGLType(LOCAL_GL_NONE)
             , mImageDataStatus(WebGLImageDataStatus::NoImageData)
         {}
 
-        ImageInfo(GLsizei width, GLsizei height,
-                  GLenum format, GLenum type, WebGLImageDataStatus status)
+        ImageInfo(GLsizei width,
+                  GLsizei height,
+                  GLenum webGLFormat,
+                  GLenum webGLType,
+                  WebGLImageDataStatus status)
             : WebGLRectangleObject(width, height)
-            , mInternalFormat(format)
-            , mType(type)
+            , mWebGLFormat(webGLFormat)
+            , mWebGLType(webGLType)
             , mImageDataStatus(status)
         {
             
@@ -100,10 +94,10 @@ public:
 
         bool operator==(const ImageInfo& a) const {
             return mImageDataStatus == a.mImageDataStatus &&
-                   mWidth  == a.mWidth &&
+                   mWidth == a.mWidth &&
                    mHeight == a.mHeight &&
-                   mInternalFormat == a.mInternalFormat &&
-                   mType   == a.mType;
+                   mWebGLFormat == a.mWebGLFormat &&
+                   mWebGLType == a.mWebGLType;
         }
         bool operator!=(const ImageInfo& a) const {
             return !(*this == a);
@@ -122,10 +116,20 @@ public:
             return mImageDataStatus == WebGLImageDataStatus::UninitializedImageData;
         }
         int64_t MemoryUsage() const;
-        GLenum InternalFormat() const { return mInternalFormat; }
-        GLenum Type() const { return mType; }
+        
+
+
+
+        GLenum WebGLFormat() const { return mWebGLFormat; }
+        
+
+
+
+        GLenum WebGLType() const { return mWebGLType; }
+
     protected:
-        GLenum mInternalFormat, mType;
+        GLenum mWebGLFormat; 
+        GLenum mWebGLType;   
         WebGLImageDataStatus mImageDataStatus;
 
         friend class WebGLTexture;
