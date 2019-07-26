@@ -5,6 +5,8 @@
 
 
 #include "nsIMEStateManager.h"
+
+#include "HTMLInputElement.h"
 #include "nsCOMPtr.h"
 #include "nsIPresShell.h"
 #include "nsISupports.h"
@@ -35,6 +37,7 @@
 #include "nsAsyncDOMEvent.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::widget;
 
 
@@ -457,8 +460,22 @@ nsIMEStateManager::SetIMEState(const IMEState &aState,
       (aContent->Tag() == nsGkAtoms::input ||
        aContent->Tag() == nsGkAtoms::textarea)) {
     if (aContent->Tag() != nsGkAtoms::textarea) {
-      aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
-                        context.mHTMLInputType);
+      
+      
+      
+      
+      nsIContent* content = aContent;
+      HTMLInputElement* inputElement =
+        HTMLInputElement::FromContentOrNull(aContent);
+      if (inputElement) {
+        HTMLInputElement* ownerNumberControl =
+          inputElement->GetOwnerNumberControl();
+        if (ownerNumberControl) {
+          content = ownerNumberControl; 
+        }
+      }
+      content->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
+                       context.mHTMLInputType);
     } else {
       context.mHTMLInputType.Assign(nsGkAtoms::textarea->GetUTF16String());
     }
