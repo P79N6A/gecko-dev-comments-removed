@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/HTMLOptGroupElement.h"
+#include "mozilla/dom/HTMLOptGroupElementBinding.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
@@ -29,6 +30,8 @@ namespace dom {
 HTMLOptGroupElement::HTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
+
   
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
@@ -152,6 +155,13 @@ HTMLOptGroupElement::IntrinsicState() const
   }
 
   return state;
+}
+
+JSObject*
+HTMLOptGroupElement::WrapNode(JSContext* aCx, JSObject* aScope,
+                              bool* aTriedToWrap)
+{
+  return HTMLOptGroupElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
