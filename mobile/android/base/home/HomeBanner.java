@@ -44,7 +44,7 @@ public class HomeBanner extends LinearLayout
     private boolean mSnapBannerToTop;
 
     
-    private boolean mEnabled = false;
+    private boolean mActive = false;
 
     
     private boolean mScrollingPages = false;
@@ -140,7 +140,7 @@ public class HomeBanner extends LinearLayout
                     setVisibility(VISIBLE);
 
                     
-                    if (mEnabled) {
+                    if (mActive) {
                         animateUp();
                     }
                 }
@@ -165,20 +165,20 @@ public class HomeBanner extends LinearLayout
         });
     }
 
-    public void setEnabled(boolean enabled) {
+    public void setActive(boolean active) {
         
-        if (mEnabled == enabled) {
+        if (mActive == active) {
             return;
         }
 
-        mEnabled = enabled;
+        mActive = active;
 
         
         if (getVisibility() != View.VISIBLE) {
             return;
         }
 
-        if (enabled) {
+        if (active) {
             animateUp();
         } else {
             animateDown();
@@ -209,7 +209,7 @@ public class HomeBanner extends LinearLayout
     }
 
     public void handleHomeTouch(MotionEvent event) {
-        if (!mEnabled || getVisibility() == GONE || mScrollingPages) {
+        if (!mActive || getVisibility() == GONE || mScrollingPages) {
             return;
         }
 
