@@ -41,6 +41,10 @@
 - (void)cancelComposition;
 - (BOOL)inComposition;
 
+
+
+- (void)adjustTo:(NSView*)view;
+
 @end
 
 #endif 
