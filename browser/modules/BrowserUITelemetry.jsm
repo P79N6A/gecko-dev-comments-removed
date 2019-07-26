@@ -21,6 +21,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
 const ALL_BUILTIN_ITEMS = [
   "fullscreen-button",
   "switch-to-metro-button",
+  "bookmarks-menu-button",
 ];
 
 const OTHER_MOUSEUP_MONITORED_ITEMS = [
@@ -182,8 +183,43 @@ this.BrowserUITelemetry = {
     this._countMouseUpEvent("click-bookmarks-bar", result, aEvent.button);
   },
 
+  _bookmarksMenuButtonMouseUp: function(aEvent) {
+    let bookmarksWidget = CustomizableUI.getWidget("bookmarks-menu-button");
+    if (bookmarksWidget.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+      
+      
+      this._countMouseUpEvent("click-bookmarks-menu-button", "in-panel",
+                              aEvent.button);
+    } else {
+      let clickedItem = aEvent.originalTarget;
+      
+      
+      
+      let action = "menu";
+      if (clickedItem.getAttribute("anonid") == "button") {
+        
+        
+        
+        let bookmarksMenuNode =
+          bookmarksWidget.forWindow(aEvent.target.ownerGlobal).node;
+        action = bookmarksMenuNode.hasAttribute("starred") ? "edit" : "add";
+      }
+      this._countMouseUpEvent("click-bookmarks-menu-button", action,
+                              aEvent.button);
+    }
+  },
+
   _checkForBuiltinItem: function(aEvent) {
     let item = aEvent.originalTarget;
+
+    
+    
+    if (item.id == "bookmarks-menu-button" ||
+        getIDBasedOnFirstIDedAncestor(item) == "bookmarks-menu-button") {
+      this._bookmarksMenuButtonMouseUp(aEvent);
+      return;
+    }
+
     
     
     if (ALL_BUILTIN_ITEMS.indexOf(item.id) != -1) {
@@ -218,3 +254,20 @@ this.BrowserUITelemetry = {
     return result;
   },
 };
+
+
+
+
+
+
+
+function getIDBasedOnFirstIDedAncestor(aNode) {
+  while (!aNode.id) {
+    aNode = aNode.parentNode;
+    if (!aNode) {
+      return null;
+    }
+  }
+
+  return aNode.id;
+}
