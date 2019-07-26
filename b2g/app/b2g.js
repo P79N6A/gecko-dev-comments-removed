@@ -744,6 +744,9 @@ pref("font.size.inflation.disabledInMasterProcess", true);
 
 pref("memory.free_dirty_pages", true);
 
+
+pref("memory.system_memory_reporter", true);
+
 pref("layout.imagevisibility.enabled", true);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);

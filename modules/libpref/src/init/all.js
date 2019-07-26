@@ -4296,6 +4296,11 @@ pref("memory.ghost_window_timeout_seconds", 60);
 
 pref("memory.free_dirty_pages", false);
 
+
+#ifdef XP_LINUX
+pref("memory.system_memory_reporter", false);
+#endif
+
 pref("social.enabled", false);
 
 
