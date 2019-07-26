@@ -38,7 +38,7 @@ public class IconGridInput extends PromptInput implements OnItemClickListener {
     private static int mColumnWidth = -1;  
     private static int mMaxColumns = -1;  
     private static int mIconSize = -1;    
-    private int mSelected = -1;           
+    private int mSelected = 0;           
     private JSONArray mArray;
 
     public IconGridInput(JSONObject obj) {
@@ -76,7 +76,6 @@ public class IconGridInput extends PromptInput implements OnItemClickListener {
             items.add(item);
             if (item.selected) {
                 mSelected = i;
-                view.setSelection(i);
             }
         }
 
@@ -85,6 +84,8 @@ public class IconGridInput extends PromptInput implements OnItemClickListener {
 
         mAdapter = new IconGridAdapter(context, -1, items);
         view.setAdapter(mAdapter);
+        view.setItemChecked(mSelected, true);
+
         mView = view;
         return mView;
     }
