@@ -476,7 +476,7 @@ DecoderTraits::CreateDecoder(const nsACString& aType, MediaDecoderOwner* aOwner)
     
     
     if (aType.EqualsASCII("audio/amr")) {
-      HTMLMediaElement* element = aOwner->GetMediaElement();
+      dom::HTMLMediaElement* element = aOwner->GetMediaElement();
       if (!element) {
         return nullptr;
       }

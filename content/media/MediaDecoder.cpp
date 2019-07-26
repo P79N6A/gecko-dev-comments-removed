@@ -570,7 +570,7 @@ nsresult MediaDecoder::Play()
 
 
 static bool
-IsInRanges(TimeRanges& aRanges, double aValue, int32_t& aIntervalIndex)
+IsInRanges(dom::TimeRanges& aRanges, double aValue, int32_t& aIntervalIndex)
 {
   uint32_t length;
   aRanges.GetLength(&length);
@@ -598,7 +598,7 @@ nsresult MediaDecoder::Seek(double aTime)
 
   NS_ABORT_IF_FALSE(aTime >= 0.0, "Cannot seek to a negative value.");
 
-  TimeRanges seekable;
+  dom::TimeRanges seekable;
   nsresult res;
   uint32_t length = 0;
   res = GetSeekable(&seekable);
@@ -961,7 +961,7 @@ MediaDecoder::GetStatistics()
 double MediaDecoder::ComputePlaybackRate(bool* aReliable)
 {
   GetReentrantMonitor().AssertCurrentThreadIn();
-  MOZ_ASSERT(NS_IsMainThread() || OnStateMachineThread() || OnDecodeThread());
+  MOZ_ASSERT(NS_IsMainThread() || OnStateMachineThread());
 
   int64_t length = mResource ? mResource->GetLength() : -1;
   if (mDuration >= 0 && length >= 0) {
@@ -1326,7 +1326,7 @@ bool MediaDecoder::IsMediaSeekable()
   return mMediaSeekable;
 }
 
-nsresult MediaDecoder::GetSeekable(TimeRanges* aSeekable)
+nsresult MediaDecoder::GetSeekable(dom::TimeRanges* aSeekable)
 {
   double initialTime = 0.0;
 
@@ -1492,7 +1492,7 @@ void MediaDecoder::Invalidate()
 
 
 
-nsresult MediaDecoder::GetBuffered(TimeRanges* aBuffered) {
+nsresult MediaDecoder::GetBuffered(dom::TimeRanges* aBuffered) {
   if (mDecoderStateMachine) {
     return mDecoderStateMachine->GetBuffered(aBuffered);
   }

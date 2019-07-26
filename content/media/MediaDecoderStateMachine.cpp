@@ -1605,7 +1605,7 @@ void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
   
   
   
-  TimeRanges buffered;
+  dom::TimeRanges buffered;
   if (mDecoder->IsInfinite() &&
       NS_SUCCEEDED(mDecoder->GetBuffered(&buffered)))
   {
@@ -1835,38 +1835,46 @@ bool MediaDecoderStateMachine::HasLowDecodedData(int64_t aAudioUsecs) const
            !mReader->AudioQueue().IsFinished() &&
            AudioDecodedUsecs() < aAudioUsecs)
           ||
-         (HasVideo() &&
+         (!HasAudio() &&
+          HasVideo() &&
           !mReader->VideoQueue().IsFinished() &&
           static_cast<uint32_t>(mReader->VideoQueue().GetSize()) < LOW_VIDEO_FRAMES));
 }
 
 bool MediaDecoderStateMachine::HasLowUndecodedData() const
 {
-  return HasLowUndecodedData(mLowDataThresholdUsecs);
+  return GetUndecodedData() < mLowDataThresholdUsecs;
 }
 
-bool MediaDecoderStateMachine::HasLowUndecodedData(double aUsecs) const
+int64_t MediaDecoderStateMachine::GetUndecodedData() const
 {
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
                "Must have loaded metadata for GetBuffered() to work");
+  dom::TimeRanges buffered;
 
-  bool reliable;
-  double bytesPerSecond = mDecoder->ComputePlaybackRate(&reliable);
-  if (!reliable) {
-    
-    return false;
+  nsresult res = mDecoder->GetBuffered(&buffered);
+  NS_ENSURE_SUCCESS(res, 0);
+  double currentTime = GetCurrentTime();
+
+  nsIDOMTimeRanges* r = static_cast<nsIDOMTimeRanges*>(&buffered);
+  uint32_t length = 0;
+  res = r->GetLength(&length);
+  NS_ENSURE_SUCCESS(res, 0);
+
+  for (uint32_t index = 0; index < length; ++index) {
+    double start, end;
+    res = r->Start(index, &start);
+    NS_ENSURE_SUCCESS(res, 0);
+
+    res = r->End(index, &end);
+    NS_ENSURE_SUCCESS(res, 0);
+
+    if (start <= currentTime && end >= currentTime) {
+      return static_cast<int64_t>((end - currentTime) * USECS_PER_S);
+    }
   }
-
-  MediaResource* stream = mDecoder->GetResource();
-  int64_t currentPos = stream->Tell();
-  int64_t requiredPos = currentPos + int64_t((aUsecs/1000000.0)*bytesPerSecond);
-  int64_t length = stream->GetLength();
-  if (length >= 0) {
-    requiredPos = std::min(requiredPos, length);
-  }
-
-  return stream->GetCachedDataEnd(currentPos) < requiredPos;
+  return 0;
 }
 
 void MediaDecoderStateMachine::SetFrameBufferLength(uint32_t aLength)
@@ -2274,13 +2282,14 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
             elapsed < TimeDuration::FromSeconds(mBufferingWait * mPlaybackRate) &&
             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
-                            : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
+                            : (GetUndecodedData() < mBufferingWait * mPlaybackRate * USECS_PER_S)) &&
             !mDecoder->IsDataCachedToEndOfResource() &&
             !resource->IsSuspended())
       {
         LOG(PR_LOG_DEBUG,
-            ("%p Buffering: wait %ds, timeout in %.3lfs %s",
+            ("%p Buffering: %.3lfs/%ds, timeout in %.3lfs %s",
               mDecoder.get(),
+              GetUndecodedData() / static_cast<double>(USECS_PER_S),
               mBufferingWait,
               mBufferingWait - elapsed.ToSeconds(),
               (mQuickBuffering ? "(quick exit)" : "")));
@@ -2519,15 +2528,15 @@ void MediaDecoderStateMachine::AdvanceFrame()
       mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
       HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
       !mDecoder->IsDataCachedToEndOfResource() &&
-      !resource->IsSuspended()) {
-    if (JustExitedQuickBuffering() || HasLowUndecodedData()) {
-      if (currentFrame) {
-        mReader->VideoQueue().PushFront(currentFrame.forget());
-      }
-      StartBuffering();
-      ScheduleStateMachine();
-      return;
+      !resource->IsSuspended() &&
+      (JustExitedQuickBuffering() || HasLowUndecodedData()))
+  {
+    if (currentFrame) {
+      mReader->VideoQueue().PushFront(currentFrame.forget());
     }
+    StartBuffering();
+    ScheduleStateMachine();
+    return;
   }
 
   
@@ -2704,7 +2713,7 @@ void MediaDecoderStateMachine::StartBuffering()
     stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)"));
 }
 
-nsresult MediaDecoderStateMachine::GetBuffered(TimeRanges* aBuffered) {
+nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
   resource->Pin();
