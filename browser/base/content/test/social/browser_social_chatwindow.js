@@ -3,6 +3,7 @@
 
 
 function test() {
+  requestLongerTimeout(2); 
   waitForExplicitFinish();
 
   let manifest = { 
