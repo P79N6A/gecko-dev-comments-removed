@@ -104,7 +104,7 @@ private:
                                     nsIContent* aStartChild,
                                     nsIContent* aEndChild,
                                     bool aAllowLazyConstruction);
-  
+
   
   
   
@@ -262,7 +262,7 @@ private:
   struct FrameConstructionItem;
   class FrameConstructionItemList;
 
-  nsIFrame* ConstructPageFrame(nsIPresShell*  aPresShell, 
+  nsIFrame* ConstructPageFrame(nsIPresShell*  aPresShell,
                                nsPresContext* aPresContext,
                                nsIFrame*      aParentFrame,
                                nsIFrame*      aPrevPageFrame,
@@ -1057,7 +1057,7 @@ private:
   
 
 protected:
-  static nsIFrame* CreatePlaceholderFrameFor(nsIPresShell*    aPresShell, 
+  static nsIFrame* CreatePlaceholderFrameFor(nsIPresShell*    aPresShell,
                                              nsIContent*      aContent,
                                              nsIFrame*        aFrame,
                                              nsStyleContext*  aStyleContext,
@@ -1454,14 +1454,14 @@ private:
   bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                nsresult* aResult);
 
-  nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell, 
+  nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell,
                                             nsPresContext*  aPresContext,
                                             nsIFrame*        aFrame,
                                             nsIFrame*        aParentFrame,
                                             nsIContent*      aContent,
                                             nsStyleContext*  aStyleContext);
 
-  nsIFrame* CreateContinuingTableFrame(nsIPresShell*    aPresShell, 
+  nsIFrame* CreateContinuingTableFrame(nsIPresShell*    aPresShell,
                                        nsPresContext*  aPresContext,
                                        nsIFrame*        aFrame,
                                        nsIFrame*        aParentFrame,
@@ -1743,7 +1743,7 @@ private:
   bool IsValidSibling(nsIFrame*              aSibling,
                         nsIContent*            aContent,
                         uint8_t&               aDisplay);
-  
+
   void QuotesDirty() {
     NS_PRECONDITION(mUpdateCount != 0, "Instant quote updates are bad news");
     mQuotesDirty = true;
@@ -1778,7 +1778,7 @@ private:
 
   
   
-  
+
   
   nsIFrame*           mRootElementFrame;
   
