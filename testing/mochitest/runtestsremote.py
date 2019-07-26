@@ -552,7 +552,9 @@ def main():
         else:
             
             
+            print "INFO | runtests.py | Test summary: start."
             overallResult = mochitest.printLog()
+            print "INFO | runtests.py | Test summary: end."
             if retVal == 0:
                 retVal = overallResult
     else:
