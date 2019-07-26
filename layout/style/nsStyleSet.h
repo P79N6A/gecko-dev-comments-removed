@@ -67,10 +67,6 @@ class nsStyleSet
 
   nsresult Init(nsPresContext *aPresContext);
 
-  
-  
-  nsCachedStyleData* DefaultStyleData() { return &mDefaultStyleData; }
-
   nsRuleNode* GetRuleTree() { return mRuleTree; }
 
   
@@ -295,9 +291,6 @@ class nsStyleSet
   nsStyleSet& operator=(const nsStyleSet& aCopy) MOZ_DELETE;
 
   
-  bool BuildDefaultStyleData(nsPresContext* aPresContext);
-
-  
   void GCRuleTrees();
 
   
@@ -363,11 +356,6 @@ class nsStyleSet
   nsCOMPtr<nsIStyleSheet> mQuirkStyleSheet;
 
   nsRefPtr<nsBindingManager> mBindingManager;
-
-  
-  
-  
-  nsCachedStyleData mDefaultStyleData;
 
   nsRuleNode* mRuleTree; 
                          
