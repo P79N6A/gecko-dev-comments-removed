@@ -98,6 +98,7 @@ class Selection;
 namespace dom {
 class Element;
 class Touch;
+class ShadowRoot;
 } 
 
 namespace layers{
@@ -526,6 +527,11 @@ public:
   void PostRecreateFramesFor(mozilla::dom::Element* aElement);
   void RestyleForAnimation(mozilla::dom::Element* aElement,
                            nsRestyleHint aHint);
+
+  
+  
+  
+  virtual void RestyleShadowRoot(mozilla::dom::ShadowRoot* aShadowRoot) = 0;
 
   
 

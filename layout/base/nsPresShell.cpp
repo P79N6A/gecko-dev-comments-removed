@@ -40,6 +40,7 @@
 #include "nsPresContext.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "nsIDocument.h"
 #include "nsCSSStyleSheet.h"
 #include "nsAnimationManager.h"
@@ -159,6 +160,7 @@
 #include "nsIScreenManager.h"
 #include "nsPlaceholderFrame.h"
 #include "nsTransitionManager.h"
+#include "ChildIterator.h"
 #include "RestyleManager.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDragSession.h"
@@ -5732,6 +5734,22 @@ private:
   PresShell* mShell;
   nsIFrame* mFrame;
 };
+
+void
+PresShell::RestyleShadowRoot(ShadowRoot* aShadowRoot)
+{
+  
+  
+  
+  ExplicitChildIterator iterator(aShadowRoot);
+  for (nsIContent* child = iterator.GetNextChild();
+       child;
+       child = iterator.GetNextChild()) {
+    if (child->IsElement()) {
+      mChangedScopeStyleRoots.AppendElement(child->AsElement());
+    }
+  }
+}
 
 void
 PresShell::Paint(nsView*        aViewToPaint,

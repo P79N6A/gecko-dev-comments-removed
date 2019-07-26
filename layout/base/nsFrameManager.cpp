@@ -611,7 +611,7 @@ nsFrameManagerBase::UndisplayedMap::GetEntryFor(nsIContent** aParentContent)
   
   
   
-  if (parentContent && parentContent->IsActiveChildrenElement()) {
+  if (parentContent && nsContentUtils::IsContentInsertionPoint(parentContent)) {
     parentContent = parentContent->GetParent();
     
     *aParentContent = parentContent;

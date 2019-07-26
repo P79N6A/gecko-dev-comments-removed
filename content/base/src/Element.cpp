@@ -746,13 +746,18 @@ Element::CreateShadowRoot(ErrorResult& aError)
   }
 
   
+  protoBinding->SetInheritsStyle(false);
+
+  
   docInfo->SetPrototypeBinding(NS_LITERAL_CSTRING("shadowroot"), protoBinding);
 
-  nsRefPtr<ShadowRoot> shadowRoot = new ShadowRoot(this, nodeInfo.forget());
+  nsRefPtr<ShadowRoot> shadowRoot = new ShadowRoot(this, nodeInfo.forget(),
+                                                   protoBinding);
   SetShadowRoot(shadowRoot);
 
   
   nsRefPtr<nsXBLBinding> xblBinding = new nsXBLBinding(shadowRoot, protoBinding);
+  shadowRoot->SetAssociatedBinding(xblBinding);
   xblBinding->SetBoundElement(this);
 
   SetXBLBinding(xblBinding);

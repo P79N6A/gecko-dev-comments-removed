@@ -131,8 +131,9 @@ HTMLLinkElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
-  if (aDocument) {
+  if (aDocument && !GetContainingShadow()) {
     aDocument->RegisterPendingLinkUpdate(this);
   }
 
@@ -166,12 +167,19 @@ HTMLLinkElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   nsCOMPtr<nsIDocument> oldDoc = GetCurrentDoc();
-  if (oldDoc) {
+
+  
+  
+  ShadowRoot* oldShadowRoot = GetBindingParent() ?
+    GetBindingParent()->GetShadowRoot() : nullptr;
+
+  if (oldDoc && !oldShadowRoot) {
     oldDoc->UnregisterPendingLinkUpdate(this);
   }
   CreateAndDispatchEvent(oldDoc, NS_LITERAL_STRING("DOMLinkRemoved"));
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
-  UpdateStyleSheetInternal(oldDoc);
+
+  UpdateStyleSheetInternal(oldDoc, oldShadowRoot);
 }
 
 bool
@@ -248,7 +256,7 @@ HTMLLinkElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       dropSheet = !(linkTypes & STYLESHEET);          
     }
     
-    UpdateStyleSheetInternal(nullptr,
+    UpdateStyleSheetInternal(nullptr, nullptr,
                              dropSheet ||
                              (aName == nsGkAtoms::title ||
                               aName == nsGkAtoms::media ||
@@ -272,7 +280,7 @@ HTMLLinkElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
        aAttribute == nsGkAtoms::title ||
        aAttribute == nsGkAtoms::media ||
        aAttribute == nsGkAtoms::type)) {
-    UpdateStyleSheetInternal(nullptr, true);
+    UpdateStyleSheetInternal(nullptr, nullptr, true);
   }
 
   

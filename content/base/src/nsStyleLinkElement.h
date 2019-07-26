@@ -29,6 +29,12 @@
 class nsIDocument;
 class nsIURI;
 
+namespace mozilla {
+namespace dom {
+class ShadowRoot;
+} 
+} 
+
 class nsStyleLinkElement : public nsIStyleSheetLinkingElement
 {
 public:
@@ -53,8 +59,11 @@ public:
   virtual void SetLineNumber(uint32_t aLineNumber) MOZ_OVERRIDE;
 
   static uint32_t ParseLinkTypes(const nsAString& aTypes);
-  
-  void UpdateStyleSheetInternal() { UpdateStyleSheetInternal(nullptr); }
+
+  void UpdateStyleSheetInternal()
+  {
+    UpdateStyleSheetInternal(nullptr, nullptr);
+  }
 protected:
   
 
@@ -65,6 +74,7 @@ protected:
 
 
   nsresult UpdateStyleSheetInternal(nsIDocument *aOldDocument,
+                                    mozilla::dom::ShadowRoot *aOldShadowRoot,
                                     bool aForceUpdate = false);
 
   void UpdateStyleSheetScopedness(bool aIsNowScoped);
@@ -95,7 +105,12 @@ private:
 
 
 
-  nsresult DoUpdateStyleSheet(nsIDocument *aOldDocument,
+
+
+
+
+  nsresult DoUpdateStyleSheet(nsIDocument* aOldDocument,
+                              mozilla::dom::ShadowRoot* aOldShadowRoot,
                               nsICSSLoaderObserver* aObserver,
                               bool* aWillNotify,
                               bool* aIsAlternate,
