@@ -565,12 +565,14 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
     IonSpew(IonSpew_BaselineBailouts, "      ScopeChain=%p", scopeChain);
     blFrame->setScopeChain(scopeChain);
-    if (argsObj)
-        blFrame->initArgsObjUnchecked(*argsObj);
-    
 
     
+
     blFrame->setFlags(flags);
+
+    
+    if (argsObj)
+        blFrame->initArgsObjUnchecked(*argsObj);
 
     
     
