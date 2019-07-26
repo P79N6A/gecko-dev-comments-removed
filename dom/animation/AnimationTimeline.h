@@ -1,0 +1,44 @@
+
+
+
+
+
+#ifndef mozilla_dom_AnimationTimeline_h
+#define mozilla_dom_AnimationTimeline_h
+
+#include "nsWrapperCache.h"
+#include "nsCycleCollectionParticipant.h"
+#include "mozilla/Attributes.h"
+#include "js/TypeDecls.h"
+#include "nsIDocument.h"
+
+struct JSContext;
+
+namespace mozilla {
+namespace dom {
+
+class AnimationTimeline MOZ_FINAL : public nsWrapperCache
+{
+public:
+  AnimationTimeline(nsIDocument* aDocument)
+    : mDocument(aDocument)
+  {
+    SetIsDOMBinding();
+  }
+
+  virtual ~AnimationTimeline() { }
+
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationTimeline)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(AnimationTimeline)
+
+  nsISupports* GetParentObject() const { return mDocument; }
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+protected:
+  nsCOMPtr<nsIDocument> mDocument;
+};
+
+} 
+} 
+
+#endif 
