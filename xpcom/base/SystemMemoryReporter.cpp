@@ -319,6 +319,37 @@ private:
     return NS_OK;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  void GetThreadName(pid_t aTid, nsACString& aName)
+  {
+    aName.Truncate();
+    if (aTid <= 0) {
+      return;
+    }
+    char buf[16]; 
+    nsPrintfCString path("/proc/%d/comm", aTid);
+    FILE* fp = fopen(path.get(), "r");
+    if (!fp) {
+      
+      return;
+    }
+    size_t len = fread(buf, 1, sizeof(buf), fp);
+    fclose(fp);
+    
+    while (len > 0 &&
+           (isspace(buf[len - 1]) || isdigit(buf[len - 1]) ||
+            buf[len - 1] == '#' || buf[len - 1] == '_')) {
+      --len;
+    }
+    aName.Assign(buf, len);
+  }
+
   nsresult ParseMappings(FILE* aFile,
                          const nsACString& aProcessName,
                          nsIHandleReportCallback* aHandleReport,
@@ -430,11 +461,37 @@ private:
         "This corresponds to '[heap]' in /proc/<pid>/smaps.");
       aTag = aName;
     } else if (absPath.EqualsLiteral("[stack]")) {
-      aName.AppendLiteral("main-thread-stack");
-      aDesc.AppendLiteral(
+      aName.AppendLiteral("stack/main-thread");
+      aDesc.AppendPrintf(
         "The stack size of the process's main thread.  This corresponds to "
         "'[stack]' in /proc/<pid>/smaps.");
       aTag = aName;
+    } else if (MozTaggedMemoryIsSupported() &&
+               StringBeginsWith(absPath, NS_LITERAL_CSTRING("[stack:"))) {
+      
+      
+      
+      
+      pid_t tid = atoi(absPath.get() + 7);
+      nsAutoCString threadName, escapedThreadName;
+      GetThreadName(tid, threadName);
+      if (threadName.IsEmpty()) {
+        threadName.AssignLiteral("<unknown>");
+      }
+      escapedThreadName.Assign(threadName);
+      escapedThreadName.StripChars("()");
+      escapedThreadName.ReplaceChar('/', '\\');
+
+      aName.AppendLiteral("stack/non-main-thread");
+      aName.AppendLiteral("/name(");
+      aName.Append(escapedThreadName);
+      aName.Append(')');
+      aTag = aName;
+      aName.AppendPrintf("/thread(%d)", tid);
+
+      aDesc.AppendPrintf("The stack size of a non-main thread named '%s' with "
+                         "thread ID %d.  This corresponds to '[stack:%d]' "
+                         "in /proc/%d/smaps.", threadName.get(), tid, tid);
     } else if (absPath.EqualsLiteral("[vdso]")) {
       aName.AppendLiteral("vdso");
       aDesc.AppendLiteral(
