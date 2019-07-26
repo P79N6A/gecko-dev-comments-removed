@@ -81,9 +81,7 @@ cprCreateThread (const char *name,
         }
 
         
-        if (name != NULL) {
-            threadPtr->name = name;
-        }
+        threadPtr->name = name;
 
         
 
