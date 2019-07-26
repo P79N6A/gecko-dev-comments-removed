@@ -2460,6 +2460,9 @@ GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp);
 bool
 GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp);
 
+bool
+StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp);
+
 
 
 

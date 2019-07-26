@@ -1614,6 +1614,7 @@ struct JSJitInfo {
         Setter,
         Method,
         ParallelNative,
+        StaticMethod,
         
         OpTypeCount
     };
@@ -1672,9 +1673,9 @@ struct JSJitInfo {
         return type() == ParallelNative;
     }
 
-    bool isDOMJitInfo() const
+    bool needsOuterizedThisObject() const
     {
-        return type() != ParallelNative;
+        return type() != Getter && type() != Setter;
     }
 
     bool isTypedMethodJitInfo() const
@@ -1703,6 +1704,8 @@ struct JSJitInfo {
         JSJitMethodOp method;
         
         JSParallelNative parallelNative;
+        
+        JSNative staticMethod;
     };
 
     uint16_t protoID;
@@ -1716,8 +1719,6 @@ struct JSJitInfo {
 #define JITINFO_ALIAS_SET_BITS 4
 #define JITINFO_RETURN_TYPE_BITS 8
 
-    
-    
     
     uint32_t type_ : JITINFO_OP_TYPE_BITS;
 

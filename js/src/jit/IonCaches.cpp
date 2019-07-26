@@ -617,9 +617,12 @@ IsCacheableGetPropCallNative(JSObject *obj, JSObject *holder, Shape *shape)
         return false;
 
     
-    if (getter.jitInfo() && getter.jitInfo()->isDOMJitInfo())
+    
+    if (getter.jitInfo() && !getter.jitInfo()->needsOuterizedThisObject())
         return true;
 
+    
+    
     
     return !obj->getClass()->ext.outerObject;
 }
