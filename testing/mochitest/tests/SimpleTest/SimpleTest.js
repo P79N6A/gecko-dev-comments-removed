@@ -813,9 +813,51 @@ SimpleTest.finish = function () {
 
 
 
-SimpleTest.monitorConsole = function (continuation, msgs) {
+
+
+
+
+
+
+
+
+
+
+SimpleTest.monitorConsole = function (continuation, msgs, forbidUnexpectedMsgs) {
   if (SimpleTest._stopOnLoad) {
     ok(false, "Console monitoring requires use of waitForExplicitFinish.");
+  }
+
+  function msgMatches(msg, pat) {
+    for (k in pat) {
+      if (!(k in msg)) {
+        return false;
+      }
+      if (pat[k] instanceof RegExp && typeof(msg[k]) === 'string') {
+        if (!pat[k].test(msg[k])) {
+          return false;
+        }
+      } else if (msg[k] !== pat[k]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  var forbiddenMsgs = [];
+  var i = 0;
+  while (i < msgs.length) {
+    var pat = msgs[i];
+    if ("forbid" in pat) {
+      var forbid = pat.forbid;
+      delete pat.forbid;
+      if (forbid) {
+        forbiddenMsgs.push(pat);
+        msgs.splice(i, 1);
+        continue;
+      }
+    }
+    i++;
   }
 
   var counter = 0;
@@ -823,25 +865,33 @@ SimpleTest.monitorConsole = function (continuation, msgs) {
     if (msg.message === "SENTINEL" && !msg.isScriptError) {
       is(counter, msgs.length, "monitorConsole | number of messages");
       SimpleTest.executeSoon(continuation);
-    } else if (counter >= msgs.length) {
-      ok(false, "monitorConsole | extra message | " + JSON.stringify(msg));
-    } else {
-      var pat = msgs[counter];
-      for (k in pat) {
-        ok(k in msg, "monitorConsole | [" + counter + "]." + k + " present");
-        if (k in msg) {
-          if (pat[k] instanceof RegExp && typeof(msg[k]) === 'string') {
-            ok(pat[k].test(msg[k]),
-               "monitorConsole | [" + counter + "]." + k + " value - " +
-               msg[k].quote() + " contains /" + pat[k].source + "/");
-          } else {
-            ise(msg[k], pat[k],
-                "monitorConsole | [" + counter + "]." + k + " value");
-          }
-        }
-      }
-      counter++;
+      return;
     }
+    for (var pat of forbiddenMsgs) {
+      if (msgMatches(msg, pat)) {
+        ok(false, "monitorConsole | observed forbidden message " +
+                  JSON.stringify(msg));
+        return;
+      }
+    }
+    if (counter >= msgs.length) {
+      var str = "monitorConsole | extra message | " + JSON.stringify(msg);
+      if (forbidUnexpectedMsgs) {
+        ok(false, str);
+      } else {
+        info(str);
+      }
+      return;
+    }
+    var matches = msgMatches(msg, msgs[counter]);
+    if (forbidUnexpectedMsgs) {
+      ok(matches, "monitorConsole | [" + counter + "] must match " +
+                  JSON.stringify(msg));
+    } else {
+      info("monitorConsole | [" + counter + "] " +
+           (matches ? "matched " : "did not match ") + JSON.stringify(msg));
+    }
+    counter++;
   }
   SpecialPowers.registerConsoleListener(listener);
 };
