@@ -2765,8 +2765,8 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   content: '';
   display: block;
   -moz-appearance: toolbar;
-  height: calc(@tabHeight@ + 1px);
-  margin-bottom: calc(-1px - @tabHeight@);
+  height: @tabHeight@;
+  margin-bottom: -@tabHeight@;
   visibility: hidden;
 }
 
@@ -3901,19 +3901,17 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 @media (-moz-mac-lion-theme) {
   #navigator-toolbox[inFullscreen]:not(:-moz-lwtheme)::before {
-    height: calc(@tabHeight@ + 11px) !important;
+    
+
+
+
+    height: calc(@tabHeight@ + @spaceAboveTabbar@) !important;
   }
   #main-window[inFullscreen][privatebrowsingmode=temporary],
   #main-window[inFullscreen]:-moz-lwtheme {
     
 
-    padding-top: 11px;
-  }
-  #main-window[inFullscreen]:not([privatebrowsingmode=temporary]):-moz-lwtheme {
-    
-
-
-    background-position: right -11px;
+    padding-top: @spaceAboveTabbar@;
   }
 }
 
