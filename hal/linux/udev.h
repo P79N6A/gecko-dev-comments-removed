@@ -30,13 +30,27 @@ class udev_lib {
     
     
     const char* lib_names[] = {"libudev.so.0", "libudev.so.1"};
+    
+    
     for (unsigned i = 0; i < ArrayLength(lib_names); i++) {
-      lib = dlopen(lib_names[i], RTLD_LAZY | RTLD_GLOBAL);
-      if (lib)
+      lib = dlopen(lib_names[i], RTLD_NOLOAD | RTLD_LAZY | RTLD_GLOBAL);
+      if (lib) {
         break;
+      }
     }
-    if (lib && LoadSymbols())
+    
+    
+    if (!lib) {
+      for (unsigned i = 0; i < ArrayLength(lib_names); i++) {
+        lib = dlopen(lib_names[i], RTLD_LAZY | RTLD_GLOBAL);
+        if (lib) {
+          break;
+        }
+      }
+    }
+    if (lib && LoadSymbols()) {
       udev = udev_new();
+    }
   }
 
   ~udev_lib() {
