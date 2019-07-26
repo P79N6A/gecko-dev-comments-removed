@@ -151,6 +151,11 @@ public:
   HRESULT OnRightTapped(IGestureRecognizer* aSender,
                         IRightTappedEventArgs* aArgs);
 
+  
+  void HandleDoubleTap(const mozilla::CSSIntPoint& aPoint);
+  void HandleSingleTap(const mozilla::CSSIntPoint& aPoint);
+  void HandleLongTap(const mozilla::CSSIntPoint& aPoint);
+
 private:
   Microsoft::WRL::ComPtr<ICoreWindow> mWindow;
   Microsoft::WRL::ComPtr<MetroWidget> mWidget;
@@ -223,8 +228,8 @@ private:
   
   nsEventStatus mTouchEventStatus;
   nsTouchEvent mTouchEvent;
-  void DispatchPendingTouchEvent();
-  void DispatchPendingTouchEvent(nsEventStatus& status);
+  void DispatchPendingTouchEvent(bool aDispatchToAPZC);
+  void DispatchPendingTouchEvent(nsEventStatus& status, bool aDispatchToAPZC);
   nsBaseHashtable<nsUint32HashKey,
                   nsRefPtr<mozilla::dom::Touch>,
                   nsRefPtr<mozilla::dom::Touch> > mTouches;
