@@ -20,6 +20,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 
 
 
+
+
+
 let PushHandlerHack = {
   
   pushServerUri: Services.prefs.getCharPref("services.push.serverURL"),
@@ -38,9 +41,18 @@ let PushHandlerHack = {
 
 
 
+
+
+
+
   initialize: function(registerCallback, notificationCallback) {
-    this.registerCallback = registerCallback;
-    this.notificationCallback = notificationCallback;
+    if (Services.io.offline) {
+      registerCallback("offline");
+      return;
+    }
+
+    this._registerCallback = registerCallback;
+    this._notificationCallback = notificationCallback;
 
     this.websocket = Cc["@mozilla.org/network/protocol;1?name=wss"]
                        .createInstance(Ci.nsIWebSocketChannel);
@@ -108,12 +120,12 @@ let PushHandlerHack = {
         break;
       case "register":
         this.pushUrl = msg.pushEndpoint;
-        this.registerCallback(this.pushUrl);
+        this._registerCallback(null, this.pushUrl);
         break;
       case "notification":
         msg.updates.forEach(function(update) {
           if (update.channelID === this.channelID) {
-            this.notificationCallback(update.version);
+            this._notificationCallback(update.version);
           }
         }.bind(this));
         break;
@@ -134,6 +146,10 @@ let PushHandlerHack = {
 
 
 
+
+
+
+
 let MozLoopServiceInternal = {
   
   loopServerUri: Services.prefs.getCharPref("loop.server"),
@@ -144,7 +160,7 @@ let MozLoopServiceInternal = {
 
 
 
-  pushRegistrationDelay: 100,
+  initialRegistrationDelay: 100,
 
   
 
@@ -160,14 +176,39 @@ let MozLoopServiceInternal = {
     
     
     this.initializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this.initializeTimer.initWithCallback(this.registerPushHandler.bind(this),
-      this.pushRegistrationDelay, Ci.nsITimer.TYPE_ONE_SHOT);
+    this.initializeTimer.initWithCallback(function() {
+        this.registerWithServers();
+      }.bind(this),
+      this.initialRegistrationDelay, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   
 
 
-  registerPushHandler: function() {
+
+
+
+
+
+
+  registerWithServers: function(callback) {
+    
+    
+    if (this.registeredLoopServer) {
+      callback(null);
+      return;
+    }
+
+    
+    this.registrationCompleteCallback = callback;
+
+    
+    if (this.registrationInProgress) {
+      return;
+    }
+
+    this.registrationInProgress = true;
+
     PushHandlerHack.initialize(this.onPushRegistered.bind(this),
                                this.onHandleNotification.bind(this));
   },
@@ -177,22 +218,43 @@ let MozLoopServiceInternal = {
 
 
 
+  endRegistration: function(err) {
+    
+    this.registrationInProgress = false;
 
-  onPushRegistered: function(pushUrl) {
-    this.registerXhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+    
+    if (this.registrationCompleteCallback) {
+      this.registrationCompleteCallback(err);
+      this.registrationCompleteCallback = null;
+    }
+  },
+
+  
+
+
+
+
+
+  onPushRegistered: function(err, pushUrl) {
+    if (err) {
+      this.endRegistration(err);
+      return;
+    }
+
+    this.loopXhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
       .createInstance(Ci.nsIXMLHttpRequest);
 
-    this.registerXhr.open('POST', MozLoopServiceInternal.loopServerUri + "/registration",
+    this.loopXhr.open('POST', MozLoopServiceInternal.loopServerUri + "/registration",
                           true);
-    this.registerXhr.setRequestHeader('Content-Type', 'application/json');
+    this.loopXhr.setRequestHeader('Content-Type', 'application/json');
 
-    this.registerXhr.channel.loadFlags = Ci.nsIChannel.INHIBIT_CACHING
+    this.loopXhr.channel.loadFlags = Ci.nsIChannel.INHIBIT_CACHING
       | Ci.nsIChannel.LOAD_BYPASS_CACHE
       | Ci.nsIChannel.LOAD_EXPLICIT_CREDENTIALS;
 
-    this.registerXhr.onreadystatechange = this.onRegistrationResult.bind(this);
+    this.loopXhr.onreadystatechange = this.onLoopRegistered.bind(this);
 
-    this.registerXhr.sendAsBinary(JSON.stringify({
+    this.loopXhr.sendAsBinary(JSON.stringify({
       simple_push_url: pushUrl
     }));
   },
@@ -210,21 +272,23 @@ let MozLoopServiceInternal = {
   
 
 
-  onRegistrationResult: function() {
-    if (this.registerXhr.readyState != Ci.nsIXMLHttpRequest.DONE)
+  onLoopRegistered: function() {
+    if (this.loopXhr.readyState != Ci.nsIXMLHttpRequest.DONE)
       return;
 
-    if (this.registerXhr.status != 200) {
+    let status = this.loopXhr.status;
+
+    if (status != 200) {
       
       Cu.reportError("Failed to register with the loop server. Code: " +
-        this.registerXhr.status + " Text: " + this.registerXhr.statusText);
-      return;
+        status + " Text: " + this.loopXhr.statusText);
+    }
+    else {
+      
+      this.registeredLoopServer = true;
     }
 
-    
-    
-    
-    this.registeredLoopServer = true;
+    this.endRegistration(status == 200 ? null : status);
   },
 
   
@@ -307,6 +371,19 @@ this.MozLoopService = {
 
   initialize: function() {
     MozLoopServiceInternal.initialize();
+  },
+
+  
+
+
+
+
+
+
+
+
+  register: function(callback) {
+    MozLoopServiceInternal.registerWithServers(callback);
   },
 
   

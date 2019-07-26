@@ -66,8 +66,27 @@ function injectLoopAPI(targetWindow) {
       value: function(key) {
         return MozLoopService.getStrings(key);
       }
-    }
+    },
 
+    
+
+
+
+
+
+
+
+
+
+
+    ensureRegistered: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: function(callback) {
+        return MozLoopService.register(callback);
+      }
+    }
   };
 
   let contentObj = Cu.createObjectIn(targetWindow);
