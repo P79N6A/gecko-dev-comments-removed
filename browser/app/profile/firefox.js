@@ -918,9 +918,7 @@ pref("dom.ipc.plugins.enabled.x86_64", true);
 pref("dom.ipc.plugins.enabled", true);
 #endif
 
-#ifdef MOZ_E10S_COMPAT
-pref("browser.tabs.remote", true);
-#endif
+pref("browser.tabs.remote", false);
 
 
 
@@ -1129,6 +1127,8 @@ pref("devtools.webconsole.filter.error", true);
 pref("devtools.webconsole.filter.warn", true);
 pref("devtools.webconsole.filter.info", true);
 pref("devtools.webconsole.filter.log", true);
+pref("devtools.webconsole.filter.secerror", true);
+pref("devtools.webconsole.filter.secwarn", true);
 
 
 pref("devtools.webconsole.fontSize", 0);
