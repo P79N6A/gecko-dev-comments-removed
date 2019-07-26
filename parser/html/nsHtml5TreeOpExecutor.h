@@ -84,24 +84,11 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
 
 
 
-
-
-
-
-
-
-
-    nsresult                      mBroken;
-
-    
-
-
-
     bool                          mAlreadyComplainedAboutCharset;
 
   public:
   
-    nsHtml5TreeOpExecutor(bool aRunsToCompletion = false);
+    nsHtml5TreeOpExecutor();
     virtual ~nsHtml5TreeOpExecutor();
   
     
@@ -154,16 +141,8 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
 
     virtual nsISupports *GetTarget();
   
-    
-    virtual void UpdateChildCounts();
-    virtual nsresult FlushTags();
     virtual void ContinueInterruptedParsingAsync();
  
-    
-
-
-    void UpdateStyleSheet(nsIContent* aElement);
-
     
     nsIDocShell* GetDocShell() {
       return mDocShell;
@@ -172,14 +151,8 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
     bool IsScriptExecuting() {
       return IsScriptExecutingImpl();
     }
-    
-    void SetNodeInfoManager(nsNodeInfoManager* aManager) {
-      mNodeInfoManager = aManager;
-    }
-    
-    
 
-    void SetDocumentCharsetAndSource(nsACString& aCharset, int32_t aCharsetSource);
+    
 
     void SetStreamParser(nsHtml5StreamParser* aStreamParser) {
       mStreamParser = aStreamParser;
@@ -189,50 +162,10 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
 
     bool IsScriptEnabled();
 
-    bool BelongsToStringParser() {
-      return mRunsToCompletion;
-    }
+    virtual nsresult MarkAsBroken(nsresult aReason);
 
-    
-
-
-
-
-
-    nsresult MarkAsBroken(nsresult aReason);
-
-    
-
-
-
-    inline nsresult IsBroken() {
-      return mBroken;
-    }
-
-    inline void BeginDocUpdate() {
-      NS_PRECONDITION(mFlushState == eInFlush, "Tried to double-open update.");
-      NS_PRECONDITION(mParser, "Started update without parser.");
-      mFlushState = eInDocUpdate;
-      mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
-    }
-
-    inline void EndDocUpdate() {
-      NS_PRECONDITION(mFlushState != eNotifying, "mFlushState out of sync");
-      if (mFlushState == eInDocUpdate) {
-        FlushPendingAppendNotifications();
-        mFlushState = eInFlush;
-        mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
-      }
-    }
-
-    
     void StartLayout();
     
-    void SetDocumentMode(nsHtml5DocumentMode m);
-
-    nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
-                  nsISupports* aContainer, nsIChannel* aChannel);
-
     void FlushSpeculativeLoads();
                   
     void RunFlushLoop();
@@ -272,8 +205,6 @@ class nsHtml5TreeOpExecutor : public nsHtml5DocumentBuilder,
 #endif
     
     void RunScript(nsIContent* aScriptElement);
-    
-    void Reset();
     
     
 
