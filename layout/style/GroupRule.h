@@ -61,8 +61,7 @@ public:
 
 
   nsresult DeleteStyleRuleAt(uint32_t aIndex);
-  nsresult InsertStyleRulesAt(uint32_t aIndex,
-                              nsCOMArray<Rule>& aRules);
+  nsresult InsertStyleRuleAt(uint32_t aIndex, Rule* aRule);
   nsresult ReplaceStyleRule(Rule *aOld, Rule *aNew);
 
   virtual bool UseForPresentation(nsPresContext* aPresContext,
