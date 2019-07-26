@@ -1258,7 +1258,7 @@ public abstract class GeckoApp
         
         
         
-        if (LocaleManager.systemLocaleDidChange()) {
+        if (BrowserLocaleManager.getInstance().systemLocaleDidChange()) {
             Log.i(LOGTAG, "System locale changed. Restarting.");
             doRestart();
             GeckoAppShell.systemExit();
@@ -1337,7 +1337,7 @@ public abstract class GeckoApp
 
                 
                 
-                LocaleManager.initialize(getApplicationContext());
+                BrowserLocaleManager.getInstance().initialize(getApplicationContext());
 
                 SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
                 if (previousSession.wasKilled()) {
@@ -1361,7 +1361,7 @@ public abstract class GeckoApp
                 Log.i(LOGTAG, "Creating HealthRecorder.");
 
                 final String osLocale = Locale.getDefault().toString();
-                String appLocale = LocaleManager.getAndApplyPersistedLocale(GeckoApp.this);
+                String appLocale = BrowserLocaleManager.getInstance().getAndApplyPersistedLocale(GeckoApp.this);
                 Log.d(LOGTAG, "OS locale is " + osLocale + ", app locale is " + appLocale);
 
                 if (appLocale == null) {
@@ -2209,7 +2209,7 @@ public abstract class GeckoApp
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         Log.d(LOGTAG, "onConfigurationChanged: " + newConfig.locale);
-        LocaleManager.correctLocale(this, getResources(), newConfig);
+        BrowserLocaleManager.getInstance().correctLocale(this, getResources(), newConfig);
 
         
         
@@ -2808,7 +2808,7 @@ public abstract class GeckoApp
         if (locale == null) {
             return;
         }
-        final String resultant = LocaleManager.setSelectedLocale(this, locale);
+        final String resultant = BrowserLocaleManager.getInstance().setSelectedLocale(this, locale);
         if (resultant == null) {
             return;
         }

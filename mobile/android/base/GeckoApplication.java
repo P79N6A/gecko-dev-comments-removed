@@ -67,7 +67,7 @@ public class GeckoApplication extends Application
         
         
         try {
-            LocaleManager.correctLocale(this, getResources(), config);
+            BrowserLocaleManager.getInstance().correctLocale(this, getResources(), config);
         } catch (IllegalStateException ex) {
             
             Log.w(LOG_TAG, "Couldn't correct locale.", ex);
