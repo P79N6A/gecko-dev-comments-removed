@@ -126,9 +126,7 @@ private:
   PLHashTable *mNodeInfoHash;
   nsIDocument *mDocument; 
   uint32_t mNonDocumentNodeInfos;
-  nsIPrincipal *mPrincipal; 
-                            
-                            
+  nsCOMPtr<nsIPrincipal> mPrincipal; 
   nsCOMPtr<nsIPrincipal> mDefaultPrincipal; 
   nsINodeInfo *mTextNodeInfo; 
   nsINodeInfo *mCommentNodeInfo; 
