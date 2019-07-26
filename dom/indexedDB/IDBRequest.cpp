@@ -58,8 +58,7 @@ IDBRequest::~IDBRequest()
 already_AddRefed<IDBRequest>
 IDBRequest::Create(nsISupports* aSource,
                    IDBWrapperCache* aOwnerCache,
-                   IDBTransaction* aTransaction,
-                   JSContext* aCallingCx)
+                   IDBTransaction* aTransaction)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   nsRefPtr<IDBRequest> request(new IDBRequest());
@@ -68,7 +67,7 @@ IDBRequest::Create(nsISupports* aSource,
   request->mTransaction = aTransaction;
   request->BindToOwner(aOwnerCache);
   request->SetScriptOwner(aOwnerCache->GetScriptOwner());
-  request->CaptureCaller(aCallingCx);
+  request->CaptureCaller();
 
   return request.forget();
 }
@@ -204,17 +203,17 @@ IDBRequest::GetJSContext()
 }
 
 void
-IDBRequest::CaptureCaller(JSContext* aCx)
+IDBRequest::CaptureCaller()
 {
-  if (!aCx) {
-    
-    
-    return;
-  }
+  AutoJSContext cx;
 
   const char* filename = nullptr;
   uint32_t lineNo = 0;
-  if (!nsJSUtils::GetCallingLocation(aCx, &filename, &lineNo)) {
+  if (!nsJSUtils::GetCallingLocation(cx, &filename, &lineNo)) {
+    
+    
+    
+    
     NS_WARNING("Failed to get caller.");
     return;
   }
@@ -354,8 +353,7 @@ IDBOpenDBRequest::~IDBOpenDBRequest()
 already_AddRefed<IDBOpenDBRequest>
 IDBOpenDBRequest::Create(IDBFactory* aFactory,
                          nsPIDOMWindow* aOwner,
-                         JS::Handle<JSObject*> aScriptOwner,
-                         JSContext* aCallingCx)
+                         JS::Handle<JSObject*> aScriptOwner)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aFactory, "Null pointer!");
@@ -364,7 +362,7 @@ IDBOpenDBRequest::Create(IDBFactory* aFactory,
 
   request->BindToOwner(aOwner);
   request->SetScriptOwner(aScriptOwner);
-  request->CaptureCaller(aCallingCx);
+  request->CaptureCaller();
   request->mFactory = aFactory;
 
   return request.forget();
