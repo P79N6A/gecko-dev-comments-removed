@@ -123,12 +123,14 @@ nsDSURIContentListener::DoContent(const char* aContentType,
 
     if (rv == NS_ERROR_REMOTE_XUL) {
       request->Cancel(rv);
+      *aAbortProcess = true;
       return NS_OK;
     }
 
-    if (NS_FAILED(rv)) {
-       
-        return NS_OK;
+    if (NS_FAILED(rv)) { 
+      
+      *aContentHandler = nullptr;
+      return rv;
     }
 
     if (loadFlags & nsIChannel::LOAD_RETARGETED_DOCUMENT_URI) {
