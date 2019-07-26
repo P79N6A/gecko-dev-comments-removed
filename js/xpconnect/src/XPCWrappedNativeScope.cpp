@@ -92,7 +92,6 @@ XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JSObject* aGlobal)
         
         
         
-        
         scope->SetGlobal(cx, aGlobal);
     }
     if (js::GetObjectClass(aGlobal)->flags & JSCLASS_XPCONNECT_GLOBAL)
@@ -110,7 +109,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mComponents(nullptr),
         mNext(nullptr),
         mGlobalJSObject(nullptr),
-        mPrototypeJSObject(nullptr),
         mPrototypeNoHelper(nullptr),
         mExperimentalBindingsEnabled(XPCJSRuntime::Get()->ExperimentalBindingsEnabled())
 {
@@ -218,14 +216,6 @@ XPCWrappedNativeScope::SetGlobal(JSContext *cx, JSObject* aGlobal)
     mGlobalJSObject = aGlobal;
 
     
-    JSObject *objectPrototype =
-        JS_GetObjectPrototype(cx, aGlobal);
-    if (objectPrototype)
-        mPrototypeJSObject = objectPrototype;
-    else
-        NS_ERROR("Can't get globalObject.Object.prototype");
-
-    
     
     mPrototypeNoHelper = nullptr;
 }
@@ -266,7 +256,6 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
 
     JSRuntime *rt = XPCJSRuntime::Get()->GetJSRuntime();
     mGlobalJSObject.finalize(rt);
-    mPrototypeJSObject.finalize(rt);
 }
 
 JSObject *
@@ -276,11 +265,9 @@ XPCWrappedNativeScope::GetPrototypeNoHelper(XPCCallContext& ccx)
     
     
     if (!mPrototypeNoHelper) {
-        mPrototypeNoHelper =
-            xpc_NewSystemInheritingJSObject(ccx,
-                                            js::Jsvalify(&XPC_WN_NoHelper_Proto_JSClass),
-                                            mPrototypeJSObject,
-                                            false, mGlobalJSObject);
+        mPrototypeNoHelper = JS_NewObject(ccx, js::Jsvalify(&XPC_WN_NoHelper_Proto_JSClass),
+                                          JS_GetObjectPrototype(ccx, mGlobalJSObject),
+                                          mGlobalJSObject);
 
         NS_ASSERTION(mPrototypeNoHelper,
                      "Failed to create prototype for wrappers w/o a helper");
@@ -377,10 +364,6 @@ XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* r
             gDyingScopes = cur;
             cur = nullptr;
         } else {
-            if (cur->mPrototypeJSObject &&
-                JS_IsAboutToBeFinalized(cur->mPrototypeJSObject)) {
-                cur->mPrototypeJSObject.finalize(fop->runtime());
-            }
             if (cur->mPrototypeNoHelper &&
                 JS_IsAboutToBeFinalized(cur->mPrototypeNoHelper)) {
                 cur->mPrototypeNoHelper = nullptr;
@@ -816,7 +799,6 @@ XPCWrappedNativeScope::DebugDump(int16_t depth)
         XPC_LOG_ALWAYS(("mNext @ %x", mNext));
         XPC_LOG_ALWAYS(("mComponents @ %x", mComponents.get()));
         XPC_LOG_ALWAYS(("mGlobalJSObject @ %x", mGlobalJSObject.get()));
-        XPC_LOG_ALWAYS(("mPrototypeJSObject @ %x", mPrototypeJSObject.get()));
         XPC_LOG_ALWAYS(("mPrototypeNoHelper @ %x", mPrototypeNoHelper));
 
         XPC_LOG_ALWAYS(("mWrappedNativeMap @ %x with %d wrappers(s)",         \
