@@ -67,10 +67,14 @@ let Accounts = Object.freeze({
 
 
 
-  launchSetup: function () {
+
+
+
+
+  launchSetup: function (extras) {
     sendMessageToJava({
       type: "Accounts:Create",
+      extras: extras,
     });
   },
 });
-
