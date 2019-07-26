@@ -2602,7 +2602,7 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
   
   
   
-  if (WantSubAPZC() &&
+  if (aBuilder->IsPaintingToWindow() && WantSubAPZC() &&
       !aBuilder.HaveScrollableDisplayPort() &&
       scrollableFrame->WantAsyncScroll()) {
 
