@@ -214,7 +214,6 @@ DirectShowReader::Finish(HRESULT aStatus)
   MOZ_ASSERT(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
   LOG("DirectShowReader::Finish(0x%x)", aStatus);
-  mAudioQueue.Finish();
   
   RefPtr<IMediaEventSink> eventSink;
   HRESULT hr = mGraph->QueryInterface(static_cast<IMediaEventSink**>(byRef(eventSink)));

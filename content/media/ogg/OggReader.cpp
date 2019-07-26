@@ -623,7 +623,6 @@ bool OggReader::DecodeAudioData()
   } while (packet && codecState->IsHeader(packet));
 
   if (!packet) {
-    mAudioQueue.Finish();
     return false;
   }
 
@@ -642,7 +641,6 @@ bool OggReader::DecodeAudioData()
     
     
     
-    mAudioQueue.Finish();
     return false;
   }
 
@@ -840,7 +838,6 @@ bool OggReader::DecodeVideoFrame(bool &aKeyframeSkip,
     packet = NextOggPacket(mTheoraState);
   } while (packet && mTheoraState->IsHeader(packet));
   if (!packet) {
-    mVideoQueue.Finish();
     return false;
   }
   nsAutoRef<ogg_packet> autoRelease(packet);
@@ -864,7 +861,6 @@ bool OggReader::DecodeVideoFrame(bool &aKeyframeSkip,
   if (eos) {
     
     
-    mVideoQueue.Finish();
     return false;
   }
 
