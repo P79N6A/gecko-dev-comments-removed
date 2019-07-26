@@ -1471,12 +1471,12 @@ public:
     
     
     
-    virtual bool ShapeText(gfxContext     *aContext,
+    virtual bool ShapeText(gfxContext      *aContext,
                            const char16_t *aText,
-                           uint32_t        aOffset,
-                           uint32_t        aLength,
-                           int32_t         aScript,
-                           gfxShapedText  *aShapedText) = 0;
+                           uint32_t         aOffset,
+                           uint32_t         aLength,
+                           int32_t          aScript,
+                           gfxShapedText   *aShapedText) = 0;
 
     gfxFont *GetFont() const { return mFont; }
 
@@ -1977,7 +1977,8 @@ protected:
                    uint32_t       aOffset, 
                    uint32_t       aLength,
                    int32_t        aScript,
-                   gfxShapedText *aShapedText); 
+                   gfxShapedText *aShapedText, 
+                   bool           aPreferPlatformShaping = false);
 
     
     
@@ -1986,7 +1987,8 @@ protected:
                            uint32_t         aOffset,
                            uint32_t         aLength,
                            int32_t          aScript,
-                           gfxShapedText   *aShapedText);
+                           gfxShapedText   *aShapedText,
+                           bool             aPreferPlatformShaping = false);
 
     
     
@@ -2147,11 +2149,16 @@ protected:
 
     
     
-    
+    nsAutoPtr<gfxFontShaper>   mPlatformShaper;
     nsAutoPtr<gfxFontShaper>   mHarfBuzzShaper;
     nsAutoPtr<gfxFontShaper>   mGraphiteShaper;
 
     mozilla::RefPtr<mozilla::gfx::ScaledFont> mAzureScaledFont;
+
+    
+    
+    
+    virtual void CreatePlatformShaper() { }
 
     
     
