@@ -5907,8 +5907,13 @@ nsWindow::GetInputContext()
   if (!mIMModule) {
       context.mIMEState.mEnabled = IMEState::DISABLED;
       context.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
+      
+      
+      
+      context.mNativeIMEContext = this;
   } else {
       context = mIMModule->GetInputContext();
+      context.mNativeIMEContext = mIMModule;
   }
   return context;
 }

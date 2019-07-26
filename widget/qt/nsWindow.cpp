@@ -3189,6 +3189,9 @@ NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
     mInputContext.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
+    
+    
+    mInputContext.mNativeIMEContext = qApp->inputContext();
     return mInputContext;
 }
 
