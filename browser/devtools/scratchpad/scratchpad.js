@@ -532,7 +532,6 @@ var Scratchpad = {
 
 
 
-
   inspect: function SP_inspect()
   {
     let deferred = promise.defer();
@@ -543,9 +542,6 @@ var Scratchpad = {
 
       if (aError) {
         this.writeAsErrorComment(aError.exception).then(resolve, reject);
-      }
-      else if (VariablesView.isPrimitive({ value: aResult })) {
-        this._writePrimitiveAsComment(aResult).then(resolve, reject);
       }
       else {
         this.editor.dropSelection();
@@ -2228,10 +2224,18 @@ ScratchpadSidebar.prototype = {
 
 
 
-  _update: function SS__update(aObject)
+  _update: function SS__update(aValue)
   {
-    let options = { objectActor: aObject };
+    let options, onlyEnumVisible;
+    if (VariablesView.isPrimitive({ value: aValue })) {
+      options = { rawObject: { value: aValue } };
+      onlyEnumVisible = true;
+    } else {
+      options = { objectActor: aValue };
+      onlyEnumVisible = false;
+    }
     let view = this.variablesView;
+    view.onlyEnumVisible = onlyEnumVisible;
     view.empty();
     return view.controller.setSingleVariable(options).expanded;
   }
