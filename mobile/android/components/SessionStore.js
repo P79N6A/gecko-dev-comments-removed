@@ -44,7 +44,6 @@ SessionStore.prototype = {
 
   _windows: {},
   _lastSaveTime: 0,
-  _lastSessionTime: 0,
   _interval: 10000,
   _maxTabsUndo: 1,
   _shouldRestore: false,
@@ -61,20 +60,6 @@ SessionStore.prototype = {
     this._loadState = STATE_STOPPED;
 
     try {
-      if (this._sessionFile.exists()) {
-        
-        
-        this._lastSessionTime = this._sessionFile.lastModifiedTime;
-        let delta = Date.now() - this._lastSessionTime;
-        let timeout = Services.prefs.getIntPref("browser.sessionstore.resume_from_crash_timeout");
-
-        
-        this._shouldRestore = (delta <= (timeout * 60000));
-        if (!this._shouldRestore) {
-          this._sessionFile.clone().moveTo(null, this._sessionFileBackup.leafName);
-        }
-      }
-
       if (!this._sessionCache.exists() || !this._sessionCache.isDirectory())
         this._sessionCache.create(Ci.nsIFile.DIRECTORY_TYPE, 0700);
     } catch (ex) {
@@ -85,11 +70,7 @@ SessionStore.prototype = {
     this._maxTabsUndo = Services.prefs.getIntPref("browser.sessionstore.max_tabs_undo");
 
     
-    if (!Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash"))
-      this._shouldRestore = false;
-
-    
-    if (Services.prefs.getBoolPref("browser.sessionstore.resume_session_once")) {
+    if (this._sessionFileBackup.exists() && Services.prefs.getBoolPref("browser.sessionstore.resume_session_once")) {
       Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", false);
       this._shouldRestore = true;
     }
@@ -313,12 +294,6 @@ SessionStore.prototype = {
     if (this._loadState == STATE_STOPPED) {
       this._loadState = STATE_RUNNING;
       this._lastSaveTime = Date.now();
-
-      
-      if (!this._shouldRestore) {
-        this._clearCache();
-        Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
-      }
     }
 
     
@@ -837,36 +812,56 @@ SessionStore.prototype = {
     return this._getCurrentState();
   },
 
-  _restoreWindow: function ss_restoreWindow(aState, aBringToFront) {
+  _restoreWindow: function ss_restoreWindow(aData) {
+    let state;
+    try {
+      state = JSON.parse(aData);
+    } catch (e) {
+      Cu.reportError("SessionStore: invalid session JSON");
+      return false;
+    }
+
     
-    if (!aState || aState.windows.length == 0 || !aState.windows[0].tabs || aState.windows[0].tabs.length == 0) {
+    if (!state || state.windows.length == 0 || !state.windows[0].tabs || state.windows[0].tabs.length == 0) {
+      Cu.reportError("SessionStore: no tabs to restore");
       return false;
     }
 
     let window = Services.wm.getMostRecentWindow("navigator:browser");
 
-    let tabs = aState.windows[0].tabs;
-    let selected = aState.windows[0].selected;
+    let tabs = state.windows[0].tabs;
+    let selected = state.windows[0].selected;
     if (selected == null || selected > tabs.length) 
       selected = 1;
 
     for (let i = 0; i < tabs.length; i++) {
       let tabData = tabs[i];
-      let isSelected = (i + 1 == selected) && aBringToFront;
       let entry = tabData.entries[tabData.index - 1];
 
       
-      let params = {
-        selected: isSelected,
-        delayLoad: true,
-        title: entry.title,
-        desktopMode: tabData.desktopMode == true,
-        isPrivate: tabData.isPrivate == true
-      };
-      let tab = window.BrowserApp.addTab(entry.url, params);
+      let tab;
+      if (tabData.tabId == null) {
+        let params = {
+          selected: (selected == i+1),
+          delayLoad: true,
+          title: entry.title,
+          desktopMode: (tabData.desktopMode == true),
+          isPrivate: (tabData.isPrivate == true)
+        };
+        tab = window.BrowserApp.addTab(entry.url, params);
+      } else {
+        tab = window.BrowserApp.getTabForId(tabData.tabId);
+        delete tabData.tabId;
 
-      if (isSelected) {
+        
+        if (tab == null) {
+          continue;
+        }
+      }
+
+      if (window.BrowserApp.selectedTab == tab) {
         this._restoreHistory(tabData, tab.browser.sessionHistory);
+        delete tab.browser.__SS_restore;
       } else {
         
         tab.browser.__SS_data = tabData;
@@ -982,71 +977,77 @@ SessionStore.prototype = {
     return this._shouldRestore;
   },
 
-  restoreLastSession: function ss_restoreLastSession(aBringToFront, aForceRestore) {
+  restoreLastSession: function ss_restoreLastSession(aRestoringOOM, aSessionString) {
     let self = this;
+
+    function restoreWindow(data) {
+      if (!self._restoreWindow(data)) {
+        throw "Could not restore window";
+      }
+
+      notifyObservers();
+    }
+
     function notifyObservers(aMessage) {
       self._clearCache();
       Services.obs.notifyObservers(null, "sessionstore-windows-restored", aMessage || "");
     }
 
-    let sessionFile = this._sessionFile;
-
-    
-    if (!aForceRestore) {
-      
-      
-      
-      
-      
-      
-      
-      if (sessionFile.exists()) {
-        sessionFile.clone().moveTo(null, this._sessionFileBackup.leafName);
-        sessionFile = this._sessionFileBackup;
-      }
-
-      let maxCrashes = Services.prefs.getIntPref("browser.sessionstore.max_resumed_crashes");
-      let recentCrashes = Services.prefs.getIntPref("browser.sessionstore.recent_crashes") + 1;
-      Services.prefs.setIntPref("browser.sessionstore.recent_crashes", recentCrashes);
-      Services.prefs.savePrefFile(null);
-
-      if (recentCrashes > maxCrashes) {
-        notifyObservers("fail");
-        return;
-      }
-    }
-
-    if (!sessionFile.exists()) {
-      Cu.reportError("SessionStore: session file does not exist");
-      notifyObservers("fail");
-      return;
-    }
-
     try {
-      let channel = NetUtil.newChannel(sessionFile);
-      channel.contentType = "application/json";
-      NetUtil.asyncFetch(channel, function(aStream, aResult) {
-        try {
-          if (!Components.isSuccessCode(aResult)) {
-            throw new Error("Could not fetch session file");
-          }
+      if (!aRestoringOOM && !this._shouldRestore) {
+        
+        
+        
 
-          let data = NetUtil.readInputStreamToString(aStream, aStream.available(), { charset : "UTF-8" }) || "";
-          aStream.close();
-
-          let state = JSON.parse(data);
-          if (self._restoreWindow(state, aBringToFront)) {
-            notifyObservers();
-          } else {
-            throw new Error("Could not restore window");
-          }
-        } catch (e) {
-          Cu.reportError("SessionStore: " + e.message);
-          notifyObservers("fail");
+        
+        if (!Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash")) {
+          throw "Restore is disabled via prefs";
         }
-      });
+
+        
+        
+        let maxCrashes = Services.prefs.getIntPref("browser.sessionstore.max_resumed_crashes");
+        let recentCrashes = Services.prefs.getIntPref("browser.sessionstore.recent_crashes") + 1;
+        Services.prefs.setIntPref("browser.sessionstore.recent_crashes", recentCrashes);
+        Services.prefs.savePrefFile(null);
+
+        if (recentCrashes > maxCrashes) {
+          throw "Exceeded maximum number of allowed restores";
+        }
+      }
+
+      
+      
+      
+      
+      
+      if (aSessionString == null) {
+        if (!this._sessionFileBackup.exists()) {
+          throw "Session file doesn't exist";
+        }
+
+        let channel = NetUtil.newChannel(this._sessionFileBackup);
+        channel.contentType = "application/json";
+        NetUtil.asyncFetch(channel, function(aStream, aResult) {
+          try {
+            if (!Components.isSuccessCode(aResult)) {
+              throw "Could not fetch session file";
+            }
+
+            let data = NetUtil.readInputStreamToString(aStream, aStream.available(), { charset : "UTF-8" }) || "";
+            aStream.close();
+            
+            restoreWindow(data);
+          } catch (e) {
+            Cu.reportError("SessionStore: " + e.message);
+            notifyObservers("fail");
+          }
+        });
+      } else {
+        restoreWindow(aSessionString);
+      }
     } catch (e) {
-      Cu.reportError("SessionStore: Could not create session file channel");
+      Cu.reportError("SessionStore: " + e);
       notifyObservers("fail");
     }
   }

@@ -181,50 +181,68 @@ public final class GeckoProfile {
         return mContext.getFilesDir();
     }
 
-    public boolean shouldRestoreSession() {
-        Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - start check sessionstore.js exists");
-        File dir = getDir();
-        if (dir == null)
-            return false;
+    
 
-        File sessionFile = new File(dir, "sessionstore.js");
-        if (!sessionFile.exists())
+
+
+
+
+
+
+
+
+
+
+    public boolean shouldRestoreSession() {
+        File sessionFile = getFile("sessionstore.js");
+        if (sessionFile == null || !sessionFile.exists())
             return false;
 
         boolean shouldRestore = (System.currentTimeMillis() - sessionFile.lastModified() < SESSION_TIMEOUT);
-        Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - finish check sessionstore.js exists");
         return shouldRestore;
     }
 
-    public String readSessionFile(boolean geckoReady) {
-        File dir = getDir();
-        if (dir == null) {
-            return null;
-        }
+    
 
-        File sessionFile = null;
-        if (! geckoReady) {
-            
-            sessionFile = new File(dir, "sessionstore.js");
-            if (! sessionFile.exists()) {
-                sessionFile = null;
-            }
+
+
+
+
+
+
+
+
+    public void moveSessionFile() {
+        File sessionFile = getFile("sessionstore.js");
+        if (sessionFile != null && sessionFile.exists()) {
+            File sessionFileBackup = getFile("sessionstore.bak");
+            sessionFile.renameTo(sessionFileBackup);
         }
-        if (sessionFile == null) {
-            
-            
-            
-            sessionFile = new File(dir, "sessionstore.bak");
-            
-            
-        }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    public String readSessionFile(boolean readBackup) {
+        File sessionFile = getFile(readBackup ? "sessionstore.bak" : "sessionstore.js");
 
         try {
-            return readFile(sessionFile);
+            if (sessionFile != null && sessionFile.exists()) {
+                return readFile(sessionFile);
+            }
         } catch (IOException ioe) {
-            Log.i(LOGTAG, "Unable to read session file " + sessionFile.getAbsolutePath());
-            return null;
+            Log.e(LOGTAG, "Unable to read session file", ioe);
         }
+        return null;
     }
 
     public String readFile(String filename) throws IOException {
