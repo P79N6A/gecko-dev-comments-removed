@@ -19,6 +19,10 @@ Cu.import("resource://gre/modules/ctypes.jsm");
 
 const PAYLOAD_VERSION = 1;
 
+
+
+#expand const HISTOGRAMS_FILE_VERSION = "__HISTOGRAMS_FILE_VERSION__";
+
 const PREF_SERVER = "toolkit.telemetry.server";
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
 const PREF_ENABLED = "toolkit.telemetry.enabledPreRelease";
@@ -359,6 +363,7 @@ TelemetryPing.prototype = {
       appBuildID: ai.appBuildID,
       appUpdateChannel: UpdateChannel.get(),
       platformBuildID: ai.platformBuildID,
+      revision: HISTOGRAMS_FILE_VERSION,
       locale: getLocale()
     };
 
