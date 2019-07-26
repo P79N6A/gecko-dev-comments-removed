@@ -206,6 +206,35 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
     return InliningStatus_NotInlined;
 }
 
+IonBuilder::InliningStatus
+IonBuilder::inlineNativeGetter(CallInfo &callInfo, JSFunction *target)
+{
+    JS_ASSERT(target->isNative());
+    JSNative native = target->native();
+
+    if (!optimizationInfo().inlineNative())
+        return InliningStatus_NotInlined;
+
+    types::TemporaryTypeSet *thisTypes = callInfo.thisArg()->resultTypeSet();
+    JS_ASSERT(callInfo.argc() == 0);
+
+    
+    
+    
+    if (thisTypes) {
+        ScalarTypeDescr::Type type = (ScalarTypeDescr::Type) thisTypes->getTypedArrayType();
+        if (type != ScalarTypeDescr::TYPE_MAX &&
+            TypedArrayObject::isOriginalLengthGetter(type, native))
+        {
+            MInstruction *length = addTypedArrayLength(callInfo.thisArg());
+            current->push(length);
+            return InliningStatus_Inlined;
+        }
+    }
+
+    return InliningStatus_NotInlined;
+}
+
 types::TemporaryTypeSet *
 IonBuilder::getInlineReturnTypeSet()
 {
