@@ -55,9 +55,17 @@ const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
 
-const R_HOSTSRC    = new RegExp ("^((" + R_SCHEME.source + "\\:\\/\\/)?("
-                                       +   R_HOST.source + ")"
-                                       +   R_PORT.source + "?)$", 'i');
+const R_PATH       = new RegExp("(\\/(([a-zA-Z0-9\\-\\_]+)\\/?)*)", 'i');
+
+
+const R_FILE       = new RegExp("(\\/([a-zA-Z0-9\\-\\_]+)\\.([a-zA-Z]+))", 'i');
+
+
+const R_HOSTSRC    = new RegExp ("^((((" + R_SCHEME.source + "\\:\\/\\/)?("
+                                         + R_HOST.source + ")"
+                                         + R_PORT.source + "?)"
+                                         + R_PATH.source + "?)"
+                                         + R_FILE.source + "?)$", 'i');
 
 
 
@@ -1345,6 +1353,11 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     
     if (schemeMatch)
       hostMatch = R_HOSTSRC.exec(aStr.substring(schemeMatch[0].length + 3));
+
+    
+    
+    hostMatch[0] = hostMatch[0].replace(R_FILE, "");
+    hostMatch[0] = hostMatch[0].replace(R_PATH, "");
 
     var portMatch = R_PORT.exec(hostMatch);
 
