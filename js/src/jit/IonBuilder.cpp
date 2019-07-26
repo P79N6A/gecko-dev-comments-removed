@@ -5697,7 +5697,11 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
         for (uint32_t i = 0; i < info().nargs(); i++) {
             uint32_t slot = needsArgsObj ? info().argSlotUnchecked(i) : info().argSlot(i);
 
-            if (needsArgsObj) {
+            
+            
+            
+            
+            if (needsArgsObj && info().argsObjAliasesFormals()) {
                 JS_ASSERT(argsObj && argsObj->isOsrArgumentsObject());
                 
                 
