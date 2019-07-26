@@ -483,7 +483,7 @@ public:
 
 
 
-  DisplayItemClip* AllocateDisplayItemClip(const DisplayItemClip& aOriginal);
+  const DisplayItemClip* AllocateDisplayItemClip(const DisplayItemClip& aOriginal);
 
   
 
