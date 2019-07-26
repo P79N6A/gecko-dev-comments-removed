@@ -177,7 +177,6 @@ static nsString sAdapterPath;
 
 
 
-static bool sAdapterNameIsReady = false;
 static int sWaitingForAdapterNameInterval = 1000; 
 
 
@@ -189,6 +188,7 @@ static nsDataHashtable<nsStringHashKey, DBusMessage* >* sPairingReqTable;
 
 
 static int sConnectedDeviceCount = 0;
+static StaticAutoPtr<Monitor> sGetPropertyMonitor;
 static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
 
 
@@ -199,12 +199,14 @@ typedef bool (*FilterFunc)(const BluetoothValue&);
 
 BluetoothDBusService::BluetoothDBusService()
 {
+  sGetPropertyMonitor = new Monitor("BluetoothService.sGetPropertyMonitor");
   sStopBluetoothMonitor = new Monitor("BluetoothService.sStopBluetoothMonitor");
 }
 
 BluetoothDBusService::~BluetoothDBusService()
 {
   sStopBluetoothMonitor = nullptr;
+  sGetPropertyMonitor = nullptr;
 }
 
 static bool
@@ -644,6 +646,14 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
             int aPropertyTypeLen, int* aPropIndex,
             InfallibleTArray<BluetoothNamedValue>& aProperties)
 {
+  
+
+
+
+
+
+  MonitorAutoLock lock(*sGetPropertyMonitor);
+
   DBusMessageIter prop_val, array_val_iter;
   char* property = nullptr;
   uint32_t array_type;
@@ -764,16 +774,6 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
     for (uint32_t i= 0; i < length; i++) {
       nsString& data = propertyValue.get_ArrayOfnsString()[i];
       data = GetAddressFromObjectPath(data);
-    }
-  } else if (!sAdapterNameIsReady &&
-             aPropertyTypes == sAdapterProperties &&
-             propertyName.EqualsLiteral("Name")) {
-    MOZ_ASSERT(propertyValue.type() == BluetoothValue::TnsString);
-
-    
-    if (!propertyValue.get_nsString().IsEmpty()) {
-      sAdapterNameIsReady = true;
-      NS_DispatchToMainThread(new TryFiringAdapterAddedRunnable(false));
     }
   }
 
@@ -1856,8 +1856,6 @@ BluetoothDBusService::StopInternal()
 
   sAuthorizedServiceClass.Clear();
   sControllerArray.Clear();
-
-  sAdapterNameIsReady = false;
 
   StopDBus();
   return NS_OK;
