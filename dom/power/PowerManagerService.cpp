@@ -71,7 +71,7 @@ PowerManagerService::Init()
   
   
   mWatchdogTimeoutSecs =
-    Preferences::GetInt("shutdown.watchdog.timeoutSecs", 5);
+    Preferences::GetInt("shutdown.watchdog.timeoutSecs", 10);
 }
 
 PowerManagerService::~PowerManagerService()

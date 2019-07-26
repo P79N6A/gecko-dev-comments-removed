@@ -512,7 +512,7 @@ pref("marionette.force-local", true);
 #ifdef MOZ_UPDATER
 
 
-pref("shutdown.watchdog.timeoutSecs", 5);
+pref("shutdown.watchdog.timeoutSecs", 10);
 
 pref("b2g.update.apply-prompt-timeout", 60000); 
 
