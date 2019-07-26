@@ -22,10 +22,6 @@ menubar {
   min-width: 1px;
 }
 
-.toolbar-holder {
-  min-width: 1px;
-}
-
 .toolbar-primary {
   min-height: 24px;
 }
@@ -41,7 +37,7 @@ toolbarseparator {
 
 
 toolbarpaletteitem {
-  cursor: -moz-grab;
+  cursor: grab;
 }
 
 toolbar[iconsize="small"] toolbarpaletteitem[type="spacer"] {
