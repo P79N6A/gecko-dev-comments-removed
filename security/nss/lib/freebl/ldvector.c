@@ -263,7 +263,24 @@ static const struct FREEBLVectorStr vector =
     
 
     HMAC_ConstantTime,
-    SSLv3_MAC_ConstantTime
+    SSLv3_MAC_ConstantTime,
+
+    
+
+    RSA_SignRaw,
+    RSA_CheckSignRaw,
+    RSA_CheckSignRecoverRaw,
+    RSA_EncryptRaw,
+    RSA_DecryptRaw,
+    RSA_EncryptOAEP,
+    RSA_DecryptOAEP,
+    RSA_EncryptBlock,
+    RSA_DecryptBlock,
+    RSA_SignPSS,
+    RSA_CheckSignPSS,
+    RSA_Sign,
+    RSA_CheckSign,
+    RSA_CheckSignRecover
 
     
 };

@@ -7,8 +7,8 @@
 
 
 
-#ifndef _SECMIME_H_
-#define _SECMIME_H_ 1
+#ifndef _SMIME_H_
+#define _SMIME_H_ 1
 
 #include "cms.h"
 

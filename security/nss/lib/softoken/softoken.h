@@ -25,114 +25,16 @@ SEC_BEGIN_PROTOS
 
 
 
+extern SECStatus
+RSA_HashSign(SECOidTag hashOid, NSSLOWKEYPrivateKey *key,
+             unsigned char *sig, unsigned int *sigLen, unsigned int maxLen,
+             const unsigned char *hash, unsigned int hashLen);
 
+extern SECStatus
+RSA_HashCheckSign(SECOidTag hashOid, NSSLOWKEYPublicKey *key,
+                  const unsigned char *sig, unsigned int sigLen,
+                  const unsigned char *hash, unsigned int hashLen);
 
-
-
-
-extern SECStatus RSA_FormatBlock(SECItem *result,
-				 unsigned int modulusLen,
-				 RSA_BlockType blockType,
-				 SECItem *data);
-
-
-
-
-
-extern unsigned char *RSA_FormatOneBlock(unsigned int modulusLen,
-					 RSA_BlockType blockType,
-					 SECItem *data);
-
-
-
-
-
-
-
-
-
-extern
-SECStatus RSA_Sign(NSSLOWKEYPrivateKey *key, unsigned char *output,
-		       unsigned int *outputLen, unsigned int maxOutputLen,
-		       unsigned char *input, unsigned int inputLen);
-extern
-SECStatus RSA_HashSign(SECOidTag hashOid,
-			NSSLOWKEYPrivateKey *key, unsigned char *sig,
-			unsigned int *sigLen, unsigned int maxLen,
-			unsigned char *hash, unsigned int hashLen);
-extern
-SECStatus RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
-		      NSSLOWKEYPrivateKey *key, 
-		      unsigned char *output, unsigned int *output_len, 
-		      unsigned int max_output_len, const unsigned char *input,
-		      unsigned int input_len);
-extern
-SECStatus RSA_CheckSign(NSSLOWKEYPublicKey *key, unsigned char *sign,
-			    unsigned int signLength, unsigned char *hash,
-			    unsigned int hashLength);
-extern
-SECStatus RSA_HashCheckSign(SECOidTag hashOid,
-			    NSSLOWKEYPublicKey *key, unsigned char *sig,
-			    unsigned int sigLen, unsigned char *digest,
-			    unsigned int digestLen);
-extern
-SECStatus RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
-			   NSSLOWKEYPublicKey *key,
-			   const unsigned char *sign, unsigned int sign_len,
-			   const unsigned char *hash, unsigned int hash_len);
-extern
-SECStatus RSA_CheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
-    			    unsigned int *data_len,unsigned int max_output_len, 
-			    unsigned char *sign, unsigned int sign_len);
-extern
-SECStatus RSA_EncryptBlock(NSSLOWKEYPublicKey *key, unsigned char *output,
-			   unsigned int *outputLen, unsigned int maxOutputLen,
-			   unsigned char *input, unsigned int inputLen);
-extern
-SECStatus RSA_DecryptBlock(NSSLOWKEYPrivateKey *key, unsigned char *output,
-			   unsigned int *outputLen, unsigned int maxOutputLen,
-			   unsigned char *input, unsigned int inputLen);
-
-extern
-SECStatus RSA_EncryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
-                          NSSLOWKEYPublicKey *key,
-                          unsigned char *output, unsigned int *outputLen,
-                          unsigned int maxOutputLen,
-                          const unsigned char *input, unsigned int inputLen);
-
-extern
-SECStatus RSA_DecryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
-                          NSSLOWKEYPrivateKey *key,
-                          unsigned char *output, unsigned int *outputLen,
-                          unsigned int maxOutputLen,
-                          const unsigned char *input, unsigned int inputLen);
-
-
-
-
-
-extern
-SECStatus RSA_SignRaw( NSSLOWKEYPrivateKey *key, unsigned char *output,
-			 unsigned int *output_len, unsigned int maxOutputLen,
-			 unsigned char *input, unsigned int input_len);
-extern
-SECStatus RSA_CheckSignRaw( NSSLOWKEYPublicKey *key, unsigned char *sign, 
-			    unsigned int sign_len, unsigned char *hash, 
-			    unsigned int hash_len);
-extern
-SECStatus RSA_CheckSignRecoverRaw( NSSLOWKEYPublicKey *key, unsigned char *data,
-			    unsigned int *data_len, unsigned int max_output_len,
-			    unsigned char *sign, unsigned int sign_len);
-extern
-SECStatus RSA_EncryptRaw( NSSLOWKEYPublicKey *key, unsigned char *output,
-			    unsigned int *output_len,
-			    unsigned int max_output_len, 
-			    unsigned char *input, unsigned int input_len);
-extern
-SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
-			     unsigned int *output_len,
-    			     unsigned int max_output_len,
-			     unsigned char *input, unsigned int input_len);
 #ifdef NSS_ENABLE_ECC
 
 

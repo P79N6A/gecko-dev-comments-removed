@@ -40,7 +40,7 @@ SEC_ASN1_CHOOSER_DECLARE(sgn_DigestInfoTemplate)
 
 
 extern SGNDigestInfo *SGN_CreateDigestInfo(SECOidTag algorithm,
-					   unsigned char *sig,
+					   const unsigned char *sig,
 					   unsigned int sigLen);
 
 

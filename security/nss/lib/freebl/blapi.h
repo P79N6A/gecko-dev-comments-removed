@@ -113,6 +113,174 @@ extern SECStatus RSA_PopulatePrivateKey(RSAPrivateKey *key);
 
 
 
+
+
+
+
+extern SECStatus
+RSA_SignRaw(RSAPrivateKey       * key,
+            unsigned char       * output,
+            unsigned int        * outputLen,
+            unsigned int          maxOutputLen,
+            const unsigned char * input,
+            unsigned int          inputLen);
+
+extern SECStatus
+RSA_CheckSignRaw(RSAPublicKey        * key,
+                 const unsigned char * sig,
+                 unsigned int          sigLen,
+                 const unsigned char * hash,
+                 unsigned int          hashLen);
+
+extern SECStatus
+RSA_CheckSignRecoverRaw(RSAPublicKey        * key,
+                        unsigned char       * data,
+                        unsigned int        * dataLen,
+                        unsigned int          maxDataLen,
+                        const unsigned char * sig,
+                        unsigned int          sigLen);
+
+extern SECStatus
+RSA_EncryptRaw(RSAPublicKey        * key,
+               unsigned char       * output,
+               unsigned int        * outputLen,
+               unsigned int          maxOutputLen,
+               const unsigned char * input,
+               unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptRaw(RSAPrivateKey       * key,
+               unsigned char       * output,
+               unsigned int        * outputLen,
+               unsigned int          maxOutputLen,
+               const unsigned char * input,
+               unsigned int          inputLen);
+
+
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+RSA_EncryptOAEP(RSAPublicKey        * key,
+                HASH_HashType         hashAlg,
+                HASH_HashType         maskHashAlg,
+                const unsigned char * label,
+                unsigned int          labelLen,
+                const unsigned char * seed,
+                unsigned int          seedLen,
+                unsigned char       * output,
+                unsigned int        * outputLen,
+                unsigned int          maxOutputLen,
+                const unsigned char * input,
+                unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptOAEP(RSAPrivateKey       * key,
+                HASH_HashType         hashAlg,
+                HASH_HashType         maskHashAlg,
+                const unsigned char * label,
+                unsigned int          labelLen,
+                unsigned char       * output,
+                unsigned int        * outputLen,
+                unsigned int          maxOutputLen,
+                const unsigned char * input,
+                unsigned int          inputLen);
+
+
+
+
+extern SECStatus
+RSA_EncryptBlock(RSAPublicKey        * key,
+                 unsigned char       * output,
+                 unsigned int        * outputLen,
+                 unsigned int          maxOutputLen,
+                 const unsigned char * input,
+                 unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptBlock(RSAPrivateKey       * key,
+                 unsigned char       * output,
+                 unsigned int        * outputLen,
+                 unsigned int          maxOutputLen,
+                 const unsigned char * input,
+                 unsigned int          inputLen);
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+RSA_SignPSS(RSAPrivateKey       * key,
+            HASH_HashType         hashAlg,
+            HASH_HashType         maskHashAlg,
+            const unsigned char * salt,
+            unsigned int          saltLen,
+            unsigned char       * output,
+            unsigned int        * outputLen,
+            unsigned int          maxOutputLen,
+            const unsigned char * input,
+            unsigned int          inputLen);
+
+extern SECStatus
+RSA_CheckSignPSS(RSAPublicKey        * key,
+                 HASH_HashType         hashAlg,
+                 HASH_HashType         maskHashAlg,
+                 unsigned int          saltLen,
+                 const unsigned char * sig,
+                 unsigned int          sigLen,
+                 const unsigned char * hash,
+                 unsigned int          hashLen);
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+RSA_Sign(RSAPrivateKey       * key,
+         unsigned char       * output,
+         unsigned int        * outputLen,
+         unsigned int          maxOutputLen,
+         const unsigned char * data,
+         unsigned int          dataLen);
+
+extern SECStatus
+RSA_CheckSign(RSAPublicKey        * key,
+              const unsigned char * sig,
+              unsigned int          sigLen,
+              const unsigned char * data,
+              unsigned int          dataLen);
+
+extern SECStatus
+RSA_CheckSignRecover(RSAPublicKey        * key,
+                     unsigned char       * output,
+                     unsigned int        * outputLen,
+                     unsigned int          maxOutputLen,
+                     const unsigned char * sig,
+                     unsigned int          sigLen);
+
+
+
+
+
+
+
 extern SECStatus DSA_NewRandom(PLArenaPool * arena, const SECItem * q,
                                SECItem * random);
 

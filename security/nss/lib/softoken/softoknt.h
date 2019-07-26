@@ -8,21 +8,6 @@
 #ifndef _SOFTOKNT_H_
 #define _SOFTOKNT_H_
 
-
-
-
-
-
-
-
-typedef enum {
-    RSA_BlockPrivate0 = 0,	
-    RSA_BlockPrivate = 1,	
-    RSA_BlockPublic = 2,	
-    RSA_BlockRaw = 4,		
-    RSA_BlockTotal
-} RSA_BlockType;
-
 #define NSS_SOFTOKEN_DEFAULT_CHUNKSIZE   2048
 
 
