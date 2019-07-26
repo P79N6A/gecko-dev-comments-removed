@@ -43,8 +43,11 @@ function checkMessage(message, delivery, body) {
   ok(message.receiver, "message.receiver");
   is(message.body, body, "message.body");
   is(message.messageClass, "normal", "message.messageClass");
-  ok(message.timestamp instanceof Date,
-     "message.timestamp is instanceof " + message.timestamp.constructor);
+  ok(message.timestamp instanceof Date, "timestamp is instanceof Date");
+
+  
+  ok(message.deliveryTimestamp === null, "deliveryTimestamp is null");
+
   is(message.read, true, "message.read");
 }
 

@@ -1752,17 +1752,18 @@ RadioInterface.prototype = {
     
     
     gSystemMessenger.broadcastMessage(aName, {
-      type:           aDomMessage.type,
-      id:             aDomMessage.id,
-      threadId:       aDomMessage.threadId,
-      delivery:       aDomMessage.delivery,
-      deliveryStatus: aDomMessage.deliveryStatus,
-      sender:         aDomMessage.sender,
-      receiver:       aDomMessage.receiver,
-      body:           aDomMessage.body,
-      messageClass:   aDomMessage.messageClass,
-      timestamp:      aDomMessage.timestamp,
-      read:           aDomMessage.read
+      type:              aDomMessage.type,
+      id:                aDomMessage.id,
+      threadId:          aDomMessage.threadId,
+      delivery:          aDomMessage.delivery,
+      deliveryStatus:    aDomMessage.deliveryStatus,
+      sender:            aDomMessage.sender,
+      receiver:          aDomMessage.receiver,
+      body:              aDomMessage.body,
+      messageClass:      aDomMessage.messageClass,
+      timestamp:         aDomMessage.timestamp,
+      deliveryTimestamp: aDomMessage.deliveryTimestamp,
+      read:              aDomMessage.read
     });
   },
 
@@ -1848,6 +1849,7 @@ RadioInterface.prototype = {
                                                message.body,
                                                message.messageClass,
                                                message.timestamp,
+                                               0,
                                                message.read);
 
       Services.obs.notifyObservers(domMessage,
@@ -1912,6 +1914,7 @@ RadioInterface.prototype = {
                                                message.body,
                                                message.messageClass,
                                                message.timestamp,
+                                               0,
                                                message.read);
 
       notifyReceived(Cr.NS_OK, domMessage);
@@ -3035,6 +3038,7 @@ RadioInterface.prototype = {
                                                    sms.body,
                                                    sms.messageClass,
                                                    sms.timestamp,
+                                                   0,
                                                    sms.read));
           
           return false;
@@ -3085,6 +3089,7 @@ RadioInterface.prototype = {
                                                sendingMessage.body,
                                                "normal", 
                                                sendingMessage.timestamp,
+                                               0,
                                                false);
       notifyResult(Cr.NS_OK, domMessage);
       return;
