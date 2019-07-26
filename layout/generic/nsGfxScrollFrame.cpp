@@ -2195,7 +2195,10 @@ static void HandleScrollPref(nsIScrollable *aScrollable, int32_t aOrientation,
 nsGfxScrollFrameInner::ScrollbarStyles
 nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
 {
-  ScrollbarStyles result;
+  
+  
+  
+  
 
   nsPresContext* presContext = mOuter->PresContext();
   if (!presContext->IsDynamic() &&
@@ -2203,28 +2206,20 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
     return ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN);
   }
 
-  if (mIsRoot) {
-    result = presContext->GetViewportOverflowOverride();
-
-    nsCOMPtr<nsISupports> container = presContext->GetContainer();
-    nsCOMPtr<nsIScrollable> scrollable = do_QueryInterface(container);
-    if (scrollable) {
-      HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_X,
-                       result.mHorizontal);
-      HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_Y,
-                       result.mVertical);
-      
-      
-      
-      
-      return result;
-    }
-  } else {
-    const nsStyleDisplay *disp = mOuter->GetStyleDisplay();
-    result.mHorizontal = disp->mOverflowX;
-    result.mVertical = disp->mOverflowY;
+  if (!mIsRoot) {
+    const nsStyleDisplay* disp = mOuter->GetStyleDisplay();
+    return ScrollbarStyles(disp->mOverflowX, disp->mOverflowY);
   }
 
+  ScrollbarStyles result = presContext->GetViewportOverflowOverride();
+  nsCOMPtr<nsISupports> container = presContext->GetContainer();
+  nsCOMPtr<nsIScrollable> scrollable = do_QueryInterface(container);
+  if (scrollable) {
+    HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_X,
+                     result.mHorizontal);
+    HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_Y,
+                     result.mVertical);
+  }
   return result;
 }
 
