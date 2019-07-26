@@ -55,7 +55,4 @@ public:
 
 } 
 
-
-typedef mozilla::InternalMutationEvent nsMutationEvent;
-
 #endif 
