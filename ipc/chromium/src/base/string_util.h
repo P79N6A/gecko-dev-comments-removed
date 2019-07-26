@@ -225,29 +225,6 @@ void StringAppendF(std::wstring* dst, const wchar_t* format, ...);
 
 
 
-
-
-
-
-
-
-
-
-template <class string_type>
-inline typename string_type::value_type* WriteInto(string_type* str,
-                                                   size_t length_with_null) {
-  str->reserve(length_with_null);
-  str->resize(length_with_null - 1);
-  return &((*str)[0]);
-}
-
-
-
-
-
-
-
-
 void SplitString(const std::wstring& str,
                  wchar_t s,
                  std::vector<std::wstring>* r);
