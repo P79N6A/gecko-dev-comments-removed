@@ -56,12 +56,12 @@ def main():
     parserResults = parser.finish()
 
     
-    config = Configuration(configFile, parserResults)
+    resultsFile = open('ParserResults.pkl', 'wb')
+    cPickle.dump(parserResults, resultsFile, -1)
+    resultsFile.close()
 
     
-    resultsFile = open('ParserResults.pkl', 'wb')
-    cPickle.dump(config, resultsFile, -1)
-    resultsFile.close()
+    config = Configuration(configFile, parserResults)
 
     
     generate_file(config, 'PrototypeList', 'declare')

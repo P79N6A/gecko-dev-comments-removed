@@ -60,19 +60,6 @@ class Configuration:
                 d.nativeType != descriptor.nativeType or d == descriptor
                 for d in self.descriptors)
 
-        
-        self.descriptors.sort(lambda x,y: cmp(x.name, y.name))
-
-        self.descriptorsByName = {}
-        for d in self.descriptors:
-            self.descriptorsByName.setdefault(d.interface.identifier.name,
-                                              []).append(d)
-
-        self.descriptorsByFile = {}
-        for d in self.descriptors:
-            self.descriptorsByFile.setdefault(d.interface.filename(),
-                                              []).append(d)
-
         self.enums = [e for e in parseData if e.isEnum()]
 
         
@@ -103,22 +90,17 @@ class Configuration:
                                workerDictionaries);
         flagWorkerOrMainThread(self.callbacks, mainCallbacks, workerCallbacks)
 
+        
+        self.descriptors.sort(lambda x,y: cmp(x.name, y.name))
+
     def getInterface(self, ifname):
         return self.interfaces[ifname]
     def getDescriptors(self, **filters):
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
-        
-        
-        tofilter = []
         for key, val in filters.iteritems():
             if key == 'webIDLFile':
-                
-                
-                
-                
-                curr = self.descriptorsByFile.get(val, [])
-                continue
+                getter = lambda x: x.interface.filename()
             elif key == 'hasInterfaceObject':
                 getter = lambda x: (not x.interface.isExternal() and
                                     x.interface.hasInterfaceObject())
@@ -136,12 +118,8 @@ class Configuration:
             elif key == 'isNavigatorProperty':
                 getter = lambda x: x.interface.getNavigatorProperty() != None
             else:
-                
-                
-                getter = (lambda attrName: lambda x: getattr(x, attrName))(key)
-            tofilter.append((getter, val))
-        for f in tofilter:
-            curr = filter(lambda x: f[0](x) == f[1], curr)
+                getter = lambda x: getattr(x, key)
+            curr = filter(lambda x: getter(x) == val, curr)
         return curr
     def getEnums(self, webIDLFile):
         return filter(lambda e: e.filename() == webIDLFile, self.enums)
@@ -170,11 +148,17 @@ class Configuration:
         Gets the appropriate descriptor for the given interface name
         and the given workers boolean.
         """
-        for d in self.descriptorsByName[interfaceName]:
-            if d.workers == workers:
-                return d
+        iface = self.getInterface(interfaceName)
+        descriptors = self.getDescriptors(interface=iface)
 
-        raise NoSuchDescriptorError("For " + interfaceName + " found no matches");
+        
+        matches = filter(lambda x: x.workers is workers, descriptors)
+
+        
+        if len(matches) is not 1:
+            raise NoSuchDescriptorError("For " + interfaceName + " found " +
+                                        str(len(matches)) + " matches");
+        return matches[0]
     def getDescriptorProvider(self, workers):
         """
         Gets a descriptor provider that can provide descriptors as needed,

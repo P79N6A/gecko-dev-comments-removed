@@ -3887,35 +3887,7 @@ nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener)
 {
   
   
-  
-  
-  
-  
   if (aOpener && !nsContentUtils::IsCallerChrome()) {
-    
-    nsCOMPtr<nsIGlobalObject> glob = do_QueryInterface(aOpener);
-    NS_ENSURE_STATE(glob);
-
-    AutoJSContext cx;
-    JSAutoRequest ar(cx);
-    
-    
-    
-
-    JS::Rooted<JSObject*> otherObj(cx, glob->GetGlobalJSObject());
-    NS_ENSURE_STATE(otherObj);
-
-    JS::Rooted<JSObject*> thisObj(cx, mJSObject);
-    NS_ENSURE_STATE(mJSObject);
-
-    if (!JS_WrapObject(cx, otherObj.address()) ||
-        !JS_WrapObject(cx, thisObj.address()) ||
-        !JS_DefineProperty(cx, thisObj, "opener", JS::ObjectValue(*otherObj),
-                           JS_PropertyStub, JS_StrictPropertyStub,
-                           JSPROP_ENUMERATE)) {
-      return NS_ERROR_FAILURE;
-    }
-
     return NS_OK;
   }
 

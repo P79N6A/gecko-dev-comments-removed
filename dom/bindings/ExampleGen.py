@@ -36,8 +36,11 @@ def main():
 
     
     f = open('ParserResults.pkl', 'rb')
-    config = cPickle.load(f)
+    parserData = cPickle.load(f)
     f.close()
+
+    
+    config = Configuration(configFile, parserData)
 
     
     generate_interface_example(config, interfaceName)
