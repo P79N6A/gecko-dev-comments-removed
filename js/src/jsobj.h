@@ -1374,14 +1374,11 @@ IsDelegate(JSContext *cx, HandleObject obj, const Value &v, bool *result);
 bool
 GetObjectElementOperationPure(ThreadSafeContext *cx, JSObject *obj, const Value &prop, Value *vp);
 
+
+extern JSObject *
+PrimitiveToObject(JSContext *cx, const Value &v);
+
 } 
-
-
-
-
-
-extern bool
-js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 
 extern bool
 js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JS::MutableHandleObject objp);
