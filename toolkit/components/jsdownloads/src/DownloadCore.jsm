@@ -601,6 +601,13 @@ DownloadCopySaver.prototype = {
         onStartRequest: function DCSE_onStartRequest(aRequest, aContext)
         {
           backgroundFileSaver.onStartRequest(aRequest, aContext);
+
+          
+          
+          if (aRequest instanceof Ci.nsIChannel &&
+              aRequest.contentLength >= 0) {
+            aSetProgressBytesFn(0, aRequest.contentLength);
+          }
         },
         onStopRequest: function DCSE_onStopRequest(aRequest, aContext,
                                                    aStatusCode)

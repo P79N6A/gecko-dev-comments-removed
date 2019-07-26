@@ -46,7 +46,12 @@ const FAKE_SERVER_PORT = 4445;
 const FAKE_BASE = "http://localhost:" + FAKE_SERVER_PORT;
 
 const TEST_SOURCE_URI = NetUtil.newURI(HTTP_BASE + "/source.txt");
+const TEST_EMPTY_URI = NetUtil.newURI(HTTP_BASE + "/empty.txt");
 const TEST_FAKE_SOURCE_URI = NetUtil.newURI(FAKE_BASE + "/source.txt");
+
+const TEST_EMPTY_NOPROGRESS_PATH = "/empty-noprogress.txt";
+const TEST_EMPTY_NOPROGRESS_URI = NetUtil.newURI(HTTP_BASE +
+                                                 TEST_EMPTY_NOPROGRESS_PATH);
 
 const TEST_INTERRUPTIBLE_PATH = "/interruptible.txt";
 const TEST_INTERRUPTIBLE_URI = NetUtil.newURI(HTTP_BASE +
@@ -88,6 +93,20 @@ function getTempFile(aLeafName)
   do_register_cleanup(GTF_removeFile);
 
   return file;
+}
+
+
+
+
+
+
+
+
+function promiseExecuteSoon()
+{
+  let deferred = Promise.defer();
+  do_execute_soon(deferred.resolve);
+  return deferred.promise;
 }
 
 
@@ -176,28 +195,88 @@ function startFakeServer()
 
 
 
-function startInterruptibleResponseHandler()
-{
-  let deferResponse = Promise.defer();
-  gHttpServer.registerPathHandler(TEST_INTERRUPTIBLE_PATH,
-    function (aRequest, aResponse)
-    {
-      aResponse.processAsync();
-      aResponse.setHeader("Content-Type", "text/plain", false);
-      aResponse.setHeader("Content-Length", "" + (TEST_DATA_SHORT.length * 2),
-                          false);
-      aResponse.write(TEST_DATA_SHORT);
 
-      deferResponse.promise.then(function SIRH_onSuccess() {
-        aResponse.write(TEST_DATA_SHORT);
-        aResponse.finish();
-        gHttpServer.registerPathHandler(TEST_INTERRUPTIBLE_PATH, null);
-      }, function SIRH_onFailure() {
-        aResponse.abort();
-        gHttpServer.registerPathHandler(TEST_INTERRUPTIBLE_PATH, null);
-      });
+
+
+
+
+function deferNextResponse()
+{
+  do_print("Interruptible request will be controlled.");
+
+  
+  if (!deferNextResponse._deferred) {
+    deferNextResponse._deferred = Promise.defer();
+  }
+  return deferNextResponse._deferred;
+}
+
+
+
+
+
+
+
+
+
+
+function promiseNextRequestReceived()
+{
+  do_print("Requested notification when interruptible request is received.");
+
+  
+  promiseNextRequestReceived._deferred = Promise.defer();
+  return promiseNextRequestReceived._deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function registerInterruptibleHandler(aPath, aFirstPartFn, aSecondPartFn)
+{
+  gHttpServer.registerPathHandler(aPath, function (aRequest, aResponse) {
+    
+    
+    let deferResponse = deferNextResponse._deferred;
+    deferNextResponse._deferred = null;
+    if (deferResponse) {
+      do_print("Interruptible request started under control.");
+    } else {
+      do_print("Interruptible request started without being controlled.");
+      deferResponse = Promise.defer();
+      deferResponse.resolve();
+    }
+
+    
+    aResponse.processAsync();
+    aFirstPartFn(aRequest, aResponse);
+
+    if (promiseNextRequestReceived._deferred) {
+      do_print("Notifying that interruptible request has been received.");
+      promiseNextRequestReceived._deferred.resolve();
+      promiseNextRequestReceived._deferred = null;
+    }
+
+    
+    deferResponse.promise.then(function RIH_onSuccess() {
+      aSecondPartFn(aRequest, aResponse);
+      aResponse.finish();
+      do_print("Interruptible request finished.");
+    }, function RIH_onFailure() {
+      aResponse.abort();
+      do_print("Interruptible request aborted.");
     });
-  return deferResponse;
+  });
 }
 
 
@@ -211,4 +290,19 @@ add_task(function test_common_initialize()
   gHttpServer = new HttpServer();
   gHttpServer.registerDirectory("/", do_get_file("../data"));
   gHttpServer.start(HTTP_SERVER_PORT);
+
+  registerInterruptibleHandler(TEST_INTERRUPTIBLE_PATH,
+    function firstPart(aRequest, aResponse) {
+      aResponse.setHeader("Content-Type", "text/plain", false);
+      aResponse.setHeader("Content-Length", "" + (TEST_DATA_SHORT.length * 2),
+                          false);
+      aResponse.write(TEST_DATA_SHORT);
+    }, function secondPart(aRequest, aResponse) {
+      aResponse.write(TEST_DATA_SHORT);
+    });
+
+  registerInterruptibleHandler(TEST_EMPTY_NOPROGRESS_PATH,
+    function firstPart(aRequest, aResponse) {
+      aResponse.setHeader("Content-Type", "text/plain", false);
+    }, function secondPart(aRequest, aResponse) { });
 });

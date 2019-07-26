@@ -88,7 +88,7 @@ add_task(function test_download_final_state_notified()
 
 add_task(function test_download_intermediate_progress()
 {
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
 
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
@@ -99,7 +99,7 @@ add_task(function test_download_intermediate_progress()
       do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
 
       
-      interruptible.resolve();
+      deferResponse.resolve();
     }
   };
 
@@ -116,19 +116,84 @@ add_task(function test_download_intermediate_progress()
 
 
 
+add_task(function test_download_empty_progress()
+{
+  let download = yield promiseSimpleDownload(TEST_EMPTY_URI);
+
+  yield download.start();
+
+  do_check_true(download.stopped);
+  do_check_true(download.hasProgress);
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  do_check_eq(download.target.file.fileSize, 0);
+});
+
+
+
+
+add_task(function test_download_empty_noprogress()
+{
+  let deferResponse = deferNextResponse();
+  let promiseEmptyRequestReceived = promiseNextRequestReceived();
+
+  let download = yield promiseSimpleDownload(TEST_EMPTY_NOPROGRESS_URI);
+
+  download.onchange = function () {
+    if (!download.stopped) {
+      do_check_false(download.hasProgress);
+      do_check_eq(download.currentBytes, 0);
+      do_check_eq(download.totalBytes, 0);
+    }
+  };
+
+  
+  let promiseAttempt = download.start();
+
+  
+  
+  
+  yield promiseEmptyRequestReceived;
+  yield promiseExecuteSoon();
+
+  
+  do_check_false(download.stopped);
+  do_check_false(download.hasProgress);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  
+  deferResponse.resolve();
+  yield promiseAttempt;
+
+  
+  do_check_true(download.stopped);
+  do_check_false(download.hasProgress);
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.currentBytes, 0);
+  do_check_eq(download.totalBytes, 0);
+
+  do_check_eq(download.target.file.fileSize, 0);
+});
+
+
+
+
 add_task(function test_download_start_twice()
 {
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
 
   
   let promiseAttempt1 = download.start();
   let promiseAttempt2 = download.start();
 
   
-  interruptible.resolve();
+  deferResponse.resolve();
 
   
   yield promiseAttempt1;
@@ -150,7 +215,7 @@ add_task(function test_download_cancel_midway()
 {
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
   try {
     
     let deferCancel = Promise.defer();
@@ -190,7 +255,7 @@ add_task(function test_download_cancel_midway()
       do_check_false(ex.becauseTargetFailed);
     }
   } finally {
-    interruptible.reject();
+    deferResponse.resolve();
   }
 });
 
@@ -200,7 +265,7 @@ add_task(function test_download_cancel_midway()
 add_task(function test_download_cancel_immediately()
 {
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
   try {
     let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
@@ -230,8 +295,14 @@ add_task(function test_download_cancel_immediately()
     
     yield promiseCancel;
   } finally {
-    interruptible.reject();
+    deferResponse.resolve();
   }
+
+  
+  
+  
+  
+  yield promiseExecuteSoon();
 });
 
 
@@ -242,7 +313,7 @@ add_task(function test_download_cancel_midway_restart()
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
   try {
     let deferCancel = Promise.defer();
     download.onchange = function () {
@@ -253,13 +324,12 @@ add_task(function test_download_cancel_midway_restart()
     download.start();
     yield deferCancel.promise;
   } finally {
-    interruptible.reject();
+    deferResponse.resolve();
   }
 
   do_check_true(download.stopped);
 
   
-  startInterruptibleResponseHandler().resolve();
   download.onchange = null;
   let promiseAttempt = download.start();
 
@@ -274,9 +344,6 @@ add_task(function test_download_cancel_midway_restart()
   do_check_eq(download.progress, 0);
   do_check_eq(download.totalBytes, 0);
   do_check_eq(download.currentBytes, 0);
-
-  
-  interruptible.resolve();
 
   yield promiseAttempt;
 
@@ -297,7 +364,7 @@ add_task(function test_download_cancel_immediately_restart_immediately()
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
 
   let promiseAttempt = download.start();
   do_check_false(download.stopped);
@@ -319,7 +386,14 @@ add_task(function test_download_cancel_immediately_restart_immediately()
   do_check_eq(download.currentBytes, 0);
 
   
-  startInterruptibleResponseHandler().resolve();
+  
+  
+  
+  yield promiseExecuteSoon();
+
+  
+  
+  deferResponse.resolve();
 
   try {
     yield promiseAttempt;
@@ -336,7 +410,8 @@ add_task(function test_download_cancel_immediately_restart_immediately()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  do_check_true(download.target.file.exists());
+  yield promiseVerifyContents(download.target.file,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -347,7 +422,7 @@ add_task(function test_download_cancel_midway_restart_immediately()
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
 
   let deferMidway = Promise.defer();
   download.onchange = function () {
@@ -375,11 +450,9 @@ add_task(function test_download_cancel_midway_restart_immediately()
   do_check_eq(download.totalBytes, 0);
   do_check_eq(download.currentBytes, 0);
 
-  interruptible.reject();
+  deferResponse.resolve();
 
   
-  startInterruptibleResponseHandler().resolve();
-
   try {
     yield promiseAttempt;
     do_throw("The download should have been canceled.");
@@ -394,8 +467,6 @@ add_task(function test_download_cancel_midway_restart_immediately()
   do_check_true(download.succeeded);
   do_check_false(download.canceled);
   do_check_true(download.error === null);
-
-  do_check_true(download.target.file.exists());
 
   yield promiseVerifyContents(download.target.file,
                               TEST_DATA_SHORT + TEST_DATA_SHORT);
@@ -430,8 +501,7 @@ add_task(function test_download_cancel_twice()
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
-
+  let deferResponse = deferNextResponse();
   try {
     let promiseAttempt = download.start();
     do_check_false(download.stopped);
@@ -459,7 +529,7 @@ add_task(function test_download_cancel_twice()
 
     do_check_false(download.target.file.exists());
   } finally {
-    interruptible.reject();
+    deferResponse.resolve();
   }
 });
 
@@ -471,7 +541,7 @@ add_task(function test_download_whenSucceeded()
   let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_URI);
 
   
-  let interruptible = startInterruptibleResponseHandler();
+  let deferResponse = deferNextResponse();
 
   
   let promiseSucceeded = download.whenSucceeded();
@@ -480,10 +550,9 @@ add_task(function test_download_whenSucceeded()
   download.start();
   yield download.cancel();
 
-  interruptible.reject();
+  deferResponse.resolve();
 
   
-  startInterruptibleResponseHandler().resolve();
   download.start();
 
   
@@ -494,7 +563,8 @@ add_task(function test_download_whenSucceeded()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  do_check_true(download.target.file.exists());
+  yield promiseVerifyContents(download.target.file,
+                              TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
