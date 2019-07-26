@@ -1188,63 +1188,6 @@ var gBrowserInit = {
         setUrlAndSearchBarWidthForConditionalForwardButton();
     });
 
-    
-    let devToolbarEnabled = gPrefService.getBoolPref("devtools.toolbar.enabled");
-    if (devToolbarEnabled) {
-      let cmd = document.getElementById("Tools:DevToolbar");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-      document.getElementById("Tools:DevToolbarFocus").removeAttribute("disabled");
-
-      
-      if (gPrefService.getBoolPref("devtools.toolbar.visible")) {
-        DeveloperToolbar.show(false);
-      }
-    }
-
-    
-    let appMgrEnabled = gPrefService.getBoolPref("devtools.appmanager.enabled");
-    if (appMgrEnabled) {
-      let cmd = document.getElementById("Tools:DevAppMgr");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    let chromeEnabled = gPrefService.getBoolPref("devtools.chrome.enabled");
-    let remoteEnabled = chromeEnabled &&
-                        gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
-                        gPrefService.getBoolPref("devtools.debugger.remote-enabled");
-    if (remoteEnabled) {
-      let cmd = document.getElementById("Tools:ChromeDebugger");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
-    if (consoleEnabled) {
-      let cmd = document.getElementById("Tools:ErrorConsole");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    let scratchpadEnabled = gPrefService.getBoolPref(Scratchpad.prefEnabledName);
-    if (scratchpadEnabled) {
-      let cmd = document.getElementById("Tools:Scratchpad");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    let devtoolsRemoteEnabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
-    if (devtoolsRemoteEnabled) {
-      let cmd = document.getElementById("Tools:DevToolsConnect");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
 #ifdef MENUBAR_CAN_AUTOHIDE
     
     
@@ -1253,14 +1196,6 @@ var gBrowserInit = {
                                                Ci.nsIPrefLocalizedString).data)
       document.getElementById("appmenu_charsetMenu").hidden = true;
 #endif
-
-    
-    let responsiveUIEnabled = gPrefService.getBoolPref("devtools.responsiveUI.enabled");
-    if (responsiveUIEnabled) {
-      let cmd = document.getElementById("Tools:ResponsiveUI");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
 
     
     gDevToolsBrowser.registerBrowserWindow(window);
@@ -7226,8 +7161,6 @@ function toggleAddonBar() {
 }
 
 var Scratchpad = {
-  prefEnabledName: "devtools.scratchpad.enabled",
-
   openScratchpad: function SP_openScratchpad() {
     return this.ScratchpadManager.openScratchpad();
   }
