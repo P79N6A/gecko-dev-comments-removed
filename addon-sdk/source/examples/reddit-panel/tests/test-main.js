@@ -3,7 +3,7 @@
 
 
 var m = require("main");
-var self = require("self");
+var self = require("sdk/self");
 
 exports.testMain = function(test) {
   var callbacks = { quit: function() {

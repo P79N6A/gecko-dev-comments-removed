@@ -2,11 +2,11 @@
 
 
 
-const tabs = require('tabs');
-const widgets = require('widget');
-const data = require('self').data;
-const pageMod = require('page-mod');
-const panel = require('panel');
+const tabs = require('sdk/tabs');
+const widgets = require('sdk/widget');
+const data = require('sdk/self').data;
+const pageMod = require('sdk/page-mod');
+const panel = require('sdk/panel');
 
 const ICON_WIDTH = 16;
 

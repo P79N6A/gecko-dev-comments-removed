@@ -2,7 +2,7 @@
 
 
 
-var panel = require("panel");
+var panel = require("sdk/panel");
 var two = require("two.js");
 var a = require("./two");
 var b = require("sdk/tabs.js");

@@ -3,9 +3,9 @@
 
 "use strict";
 
-const xulApp = require("xul-app");
-const { PageMod } = require("page-mod");
-const tabs = require("tabs");
+const xulApp = require("sdk/system/xul-app");
+const { PageMod } = require("sdk/page-mod");
+const tabs = require("sdk/tabs");
 
 exports.testCrossDomainIframe = function(assert, done) {
   let serverPort = 8099;

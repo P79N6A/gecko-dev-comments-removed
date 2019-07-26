@@ -11,7 +11,7 @@ module.metadata = {
 };
 
 const { on, once, off, setListeners } = require('./core');
-const { method } = require('../lang/functional');
+const { method, chain } = require('../lang/functional');
 const { Class } = require('../core/heritage');
 
 
@@ -45,7 +45,7 @@ const EventTarget = Class({
 
 
 
-  on: method(on),
+  on: chain(method(on)),
   
 
 
@@ -54,7 +54,7 @@ const EventTarget = Class({
 
 
 
-  once: method(once),
+  once: chain(method(once)),
   
 
 
@@ -68,9 +68,11 @@ const EventTarget = Class({
     
     
     off(this, type, listener);
+    return this;
   },
   off: function(type, listener) {
-    off(this, type, listener)
+    off(this, type, listener);
+    return this;
   }
 });
 exports.EventTarget = EventTarget;

@@ -12,22 +12,27 @@ const { isPrivateBrowsingSupported } = require('sdk/self');
 
 const supportPrivateTabs = isPrivateBrowsingSupported && isWindowPBSupported;
 
+function newTabWindow(options) {
+  
+  return windows.open({
+    tabs: [ options ],
+    isPrivate: options.isPrivate
+  });
+}
+
 Object.defineProperties(tabs, {
   open: { value: function open(options) {
     if (options.inNewWindow) {
-        
-        windows.open({
-          tabs: [ options ],
-          isPrivate: options.isPrivate
-        });
+        newTabWindow(options);
         return undefined;
     }
     
 
     let activeWindow = windows.activeWindow;
     let privateState = !!options.isPrivate;
+
     
-    if (!supportPrivateTabs || privateState === isPrivate(activeWindow)) {
+    if (activeWindow && (!supportPrivateTabs || privateState === isPrivate(activeWindow))) {
       activeWindow.tabs.open(options);
     }
     else {
@@ -38,10 +43,7 @@ Object.defineProperties(tabs, {
       }
       
       else {
-        windows.open({
-          tabs: [ options ],
-          isPrivate: options.isPrivate
-        });
+        newTabWindow(options);
       }
     }
 

@@ -2,9 +2,9 @@
 
 
 
-var self = require("self");
-var panels = require("addon-kit/panel");
-var widgets = require("addon-kit/widget");
+var self = require("sdk/self");
+var panels = require("sdk/panel");
+var widgets = require("sdk/widget");
 
 function replaceMom(html) {
   return html.replace("World", "Mom");

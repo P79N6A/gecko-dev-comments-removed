@@ -2,9 +2,9 @@
 
 
 
-var data = require("self").data;
+var data = require("sdk/self").data;
 
-var reddit_panel = require("panel").Panel({
+var reddit_panel = require("sdk/panel").Panel({
   width: 240,
   height: 320,
   contentURL: "http://www.reddit.com/.mobile?keep_extension=True",
@@ -13,10 +13,10 @@ var reddit_panel = require("panel").Panel({
 });
 
 reddit_panel.port.on("click", function(url) {
-  require("tabs").open(url);
+  require("sdk/tabs").open(url);
 });
 
-require("widget").Widget({
+require("sdk/widget").Widget({
   id: "open-reddit-btn",
   label: "Reddit",
   contentURL: "http://www.reddit.com/static/favicon.ico",

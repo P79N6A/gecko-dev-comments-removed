@@ -45,6 +45,17 @@ exports.remit = defer;
 
 
 
+function chain(f) {
+  return function chainable(...args) {
+    f.apply(this, args);
+    return this;
+  };
+}
+exports.chain = chain;
+
+
+
+
 
 
 

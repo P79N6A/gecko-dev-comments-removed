@@ -2,12 +2,12 @@
 
 
 
-var widgets = require('widget');
-var pageMod = require('page-mod');
-var data = require('self').data;
-var panels = require('panel');
-var simpleStorage = require('simple-storage');
-var notifications = require("notifications");
+var widgets = require('sdk/widget');
+var pageMod = require('sdk/page-mod');
+var data = require('sdk/self').data;
+var panels = require('sdk/panel');
+var simpleStorage = require('sdk/simple-storage');
+var notifications = require("sdk/notifications");
 
 
 
@@ -188,7 +188,7 @@ exports.main = function() {
       this.postMessage(simpleStorage.storage.annotations);
     },
     onMessage: function(message) {
-      require('tabs').open(message);
+      require('sdk/tabs').open(message);
     }
   });
 
