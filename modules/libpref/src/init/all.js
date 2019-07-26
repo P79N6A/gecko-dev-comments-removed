@@ -554,6 +554,9 @@ pref("toolkit.asyncshutdown.timeout.crash", 60000);
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
+pref("devtools.chrome.enabled", false);
+
+
 pref("devtools.debugger.log", false);
 
 pref("devtools.debugger.remote-enabled", false);
