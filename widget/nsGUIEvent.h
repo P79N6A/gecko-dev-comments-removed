@@ -75,7 +75,6 @@ enum nsEventStructType {
   NS_SELECTION_EVENT,                
 
   
-  NS_SCROLLBAR_EVENT,                
   NS_SCROLLPORT_EVENT,               
   NS_SCROLLAREA_EVENT,               
 
@@ -782,23 +781,6 @@ public:
     errorMsg = nullptr;
     fileName = nullptr;
   }
-};
-
-
-
-
-
-class nsScrollbarEvent : public nsGUIEvent
-{
-public:
-  nsScrollbarEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
-    : nsGUIEvent(isTrusted, msg, w, NS_SCROLLBAR_EVENT),
-      position(0)
-  {
-  }
-
-  
-  uint32_t        position; 
 };
 
 class nsScrollPortEvent : public nsGUIEvent
