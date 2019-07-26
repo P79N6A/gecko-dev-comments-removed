@@ -1241,8 +1241,9 @@ public:
 
 
 
-  static void GetNodeTextContent(nsINode* aNode, bool aDeep,
-                                 nsAString& aResult);
+
+  static bool GetNodeTextContent(nsINode* aNode, bool aDeep,
+                                 nsAString& aResult) NS_WARN_UNUSED_RESULT;
 
   
 
