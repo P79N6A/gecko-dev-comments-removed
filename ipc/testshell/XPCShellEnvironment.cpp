@@ -2,6 +2,7 @@
 
 
 
+
 #include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_IO_H
@@ -116,12 +117,6 @@ ScriptErrorReporter(JSContext *cx,
 
     if (!report) {
         fprintf(stderr, "%s\n", message);
-        return;
-    }
-
-    
-    if (JSREPORT_IS_WARNING(report->flags) &&
-        !Environment(cx)->ShouldReportWarnings()) {
         return;
     }
 
@@ -290,8 +285,7 @@ Load(JSContext *cx,
         if (!script)
             return JS_FALSE;
 
-        if (!Environment(cx)->ShouldCompileOnly() &&
-            !JS_ExecuteScript(cx, obj, script, result.address())) {
+        if (!JS_ExecuteScript(cx, obj, script, result.address())) {
             return JS_FALSE;
         }
     }
@@ -554,7 +548,7 @@ ProcessFile(JSContext *cx,
                .setFileAndLine(filename, 1)
                .setPrincipals(env->GetPrincipal());
         JSScript* script = JS::Compile(cx, obj, options, file);
-        if (script && !env->ShouldCompileOnly())
+        if (script)
             (void)JS_ExecuteScript(cx, obj, script, result.address());
 
         return;
@@ -594,22 +588,20 @@ ProcessFile(JSContext *cx,
         if (script) {
             JSErrorReporter older;
 
-            if (!env->ShouldCompileOnly()) {
-                ok = JS_ExecuteScript(cx, obj, script, result.address());
-                if (ok && result != JSVAL_VOID) {
-                    
-                    older = JS_SetErrorReporter(cx, NULL);
-                    str = JS_ValueToString(cx, result);
-                    JSAutoByteString bytes;
-                    if (str)
-                        bytes.encodeLatin1(cx, str);
-                    JS_SetErrorReporter(cx, older);
+            ok = JS_ExecuteScript(cx, obj, script, result.address());
+            if (ok && result != JSVAL_VOID) {
+                
+                older = JS_SetErrorReporter(cx, NULL);
+                str = JS_ValueToString(cx, result);
+                JSAutoByteString bytes;
+                if (str)
+                    bytes.encodeLatin1(cx, str);
+                JS_SetErrorReporter(cx, older);
 
-                    if (!!bytes)
-                        fprintf(stdout, "%s\n", bytes.ptr());
-                    else
-                        ok = JS_FALSE;
-                }
+                if (!!bytes)
+                    fprintf(stdout, "%s\n", bytes.ptr());
+                else
+                    ok = JS_FALSE;
             }
         }
     } while (!hitEOF && !env->IsQuitting());
@@ -670,9 +662,7 @@ XPCShellEnvironment::XPCShellEnvironment()
 :   mCx(NULL),
     mJSPrincipals(NULL),
     mExitCode(0),
-    mQuitting(JS_FALSE),
-    mReportWarnings(JS_TRUE),
-    mCompileOnly(JS_FALSE)
+    mQuitting(JS_FALSE)
 {
 }
 
@@ -851,24 +841,22 @@ XPCShellEnvironment::EvaluateString(const nsString& aString,
      return false;
   }
 
-  if (!ShouldCompileOnly()) {
-      if (aResult) {
-          aResult->Truncate();
-      }
+  if (aResult) {
+      aResult->Truncate();
+  }
 
-      JS::Rooted<JS::Value> result(mCx);
-      JSBool ok = JS_ExecuteScript(mCx, global, script, result.address());
-      if (ok && result != JSVAL_VOID) {
-          JSErrorReporter old = JS_SetErrorReporter(mCx, NULL);
-          JSString* str = JS_ValueToString(mCx, result);
-          nsDependentJSString depStr;
-          if (str)
-              depStr.init(mCx, str);
-          JS_SetErrorReporter(mCx, old);
+  JS::Rooted<JS::Value> result(mCx);
+  JSBool ok = JS_ExecuteScript(mCx, global, script, result.address());
+  if (ok && result != JSVAL_VOID) {
+      JSErrorReporter old = JS_SetErrorReporter(mCx, NULL);
+      JSString* str = JS_ValueToString(mCx, result);
+      nsDependentJSString depStr;
+      if (str)
+          depStr.init(mCx, str);
+      JS_SetErrorReporter(mCx, old);
 
-          if (!depStr.IsEmpty() && aResult) {
-              aResult->Assign(depStr);
-          }
+      if (!depStr.IsEmpty() && aResult) {
+          aResult->Assign(depStr);
       }
   }
 
