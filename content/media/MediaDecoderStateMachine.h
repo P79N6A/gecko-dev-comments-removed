@@ -784,7 +784,7 @@ private:
 
   
   
-  nsVideoInfo mInfo;
+  VideoInfo mInfo;
 };
 
 } 

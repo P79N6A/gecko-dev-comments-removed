@@ -21,9 +21,9 @@ namespace mozilla {
 class AbstractMediaDecoder;
 
 
-class nsVideoInfo {
+class VideoInfo {
 public:
-  nsVideoInfo()
+  VideoInfo()
     : mAudioRate(44100),
       mAudioChannels(2),
       mDisplay(0,0),
@@ -138,7 +138,7 @@ public:
   
   
   
-  static VideoData* Create(nsVideoInfo& aInfo,
+  static VideoData* Create(VideoInfo& aInfo,
                            ImageContainer* aContainer,
                            int64_t aOffset,
                            int64_t aTime,
@@ -148,7 +148,7 @@ public:
                            int64_t aTimecode,
                            nsIntRect aPicture);
 
-  static VideoData* Create(nsVideoInfo& aInfo,
+  static VideoData* Create(VideoInfo& aInfo,
                            ImageContainer* aContainer,
                            int64_t aOffset,
                            int64_t aTime,
@@ -386,7 +386,7 @@ public:
   
   
   
-  virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
+  virtual nsresult ReadMetadata(VideoInfo* aInfo,
                                 MetadataTags** aTags) = 0;
 
   
@@ -491,7 +491,7 @@ protected:
   AbstractMediaDecoder* mDecoder;
 
   
-  nsVideoInfo mInfo;
+  VideoInfo mInfo;
 };
 
 } 

@@ -47,7 +47,7 @@ public:
 
   
   
-  nsresult ReadMetadata(nsVideoInfo* aInfo,
+  nsresult ReadMetadata(VideoInfo* aInfo,
                         MetadataTags** aTags);
 
   
