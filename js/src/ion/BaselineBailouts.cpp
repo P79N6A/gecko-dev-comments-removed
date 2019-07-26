@@ -621,15 +621,86 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             return false;
     }
 
-    IonSpew(IonSpew_BaselineBailouts, "      pushing %d expression stack slots",
-                                      (int) exprStackSlots);
-    for (uint32_t i = 0; i < exprStackSlots; i++) {
+    
+    jsbytecode *pc = script->code + iter.pcOffset();
+    JSOp op = JSOp(*pc);
+    bool resumeAfter = iter.resumeAfter();
+
+    
+    
+    uint32_t pushedSlots = 0;
+    AutoValueVector funapplyargs(cx);
+    if (iter.moreFrames() &&
+        (op == JSOP_FUNCALL || op == JSOP_FUNAPPLY))
+    {
+        uint32_t inlined_args = 0;
+        if (op == JSOP_FUNCALL)
+            inlined_args = 2 + GET_ARGC(pc) - 1;
+        else
+            inlined_args = 2 + blFrame->numActualArgs();
+
+        JS_ASSERT(exprStackSlots >= inlined_args);
+        pushedSlots = exprStackSlots - inlined_args;
+
+        IonSpew(IonSpew_BaselineBailouts,
+                "      pushing %u expression stack slots before fixup",
+                pushedSlots);
+        for (uint32_t i = 0; i < pushedSlots; i++) {
+            Value v = iter.read();
+            if (!builder.writeValue(v, "StackValue"))
+                return false;
+        }
+
+        if (op == JSOP_FUNCALL) {
+            
+            
+            
+            
+            
+            IonSpew(IonSpew_BaselineBailouts, "      pushing undefined to fixup funcall");
+            if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                return false;
+        }
+
+        if (op == JSOP_FUNAPPLY) {
+            
+            
+            
+            
+            
+            
+            
+            IonSpew(IonSpew_BaselineBailouts, "      pushing 4x undefined to fixup funapply");
+            if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                return false;
+            if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                return false;
+            if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                return false;
+            if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                return false;
+
+            
+            
+            if (!funapplyargs.resize(inlined_args))
+                return false;
+            for (uint32_t i = 0; i < inlined_args; i++)
+                funapplyargs[i] = iter.read();
+            pushedSlots = exprStackSlots;
+        }
+    }
+
+    IonSpew(IonSpew_BaselineBailouts, "      pushing %u expression stack slots",
+                                      exprStackSlots - pushedSlots);
+    for (uint32_t i = pushedSlots; i < exprStackSlots; i++) {
         Value v;
 
         
         
         
-        if (!iter.moreFrames() && i == exprStackSlots - 1 && cx->runtime()->hasIonReturnOverride()) {
+        if (!iter.moreFrames() && i == exprStackSlots - 1 &&
+            cx->runtime()->hasIonReturnOverride())
+        {
             JS_ASSERT(invalidate);
             iter.skip();
             IonSpew(IonSpew_BaselineBailouts, "      [Return Override]");
@@ -642,11 +713,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
 
     size_t endOfBaselineJSFrameStack = builder.framePushed();
-
-    
-    jsbytecode *pc = script->code + iter.pcOffset();
-    JSOp op = JSOp(*pc);
-    bool resumeAfter = iter.resumeAfter();
 
     
     
@@ -894,19 +960,32 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     JS_ASSERT(isCall);
     unsigned actualArgc = GET_ARGC(pc);
-    if (op == JSOP_FUNAPPLY)
+    if (op == JSOP_FUNAPPLY) {
+        
+        
         actualArgc = blFrame->numActualArgs();
-    if (op == JSOP_FUNCALL) {
-        JS_ASSERT(actualArgc > 0);
-        actualArgc--;
+
+        JS_ASSERT(actualArgc + 2 <= exprStackSlots);
+        JS_ASSERT(funapplyargs.length() == actualArgc + 2);
+        for (unsigned i = 0; i < actualArgc + 1; i++) {
+            size_t arg = funapplyargs.length() - (i + 1);
+            if (!builder.writeValue(funapplyargs[arg], "ArgVal"))
+                return false;
+        }
+    } else {
+        if (op == JSOP_FUNCALL) {
+            JS_ASSERT(actualArgc > 0);
+            actualArgc--;
+        }
+
+        JS_ASSERT(actualArgc + 2 <= exprStackSlots);
+        for (unsigned i = 0; i < actualArgc + 1; i++) {
+            size_t argSlot = (script->nfixed + exprStackSlots) - (i + 1);
+            if (!builder.writeValue(*blFrame->valueSlot(argSlot), "ArgVal"))
+                return false;
+        }
     }
 
-    JS_ASSERT(actualArgc + 2 <= exprStackSlots);
-    for (unsigned i = 0; i < actualArgc + 1; i++) {
-        size_t argSlot = (script->nfixed + exprStackSlots) - (i + 1);
-        if (!builder.writeValue(*blFrame->valueSlot(argSlot), "ArgVal"))
-            return false;
-    }
     
     
     size_t endOfBaselineStubArgs = builder.framePushed();
@@ -921,11 +1000,18 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         return false;
 
     
-    uint32_t calleeStackSlot = exprStackSlots - uint32_t(actualArgc + 2);
-    size_t calleeOffset = (builder.framePushed() - endOfBaselineJSFrameStack)
-                            + ((exprStackSlots - (calleeStackSlot + 1)) * sizeof(Value));
-    Value callee = *builder.valuePointerAtStackOffset(calleeOffset);
-    IonSpew(IonSpew_BaselineBailouts, "      CalleeStackSlot=%d", (int) calleeStackSlot);
+    Value callee;
+    if (op == JSOP_FUNAPPLY) {
+        
+        
+        callee = funapplyargs[0];
+    } else {
+        uint32_t calleeStackSlot = exprStackSlots - uint32_t(actualArgc + 2);
+        size_t calleeOffset = (builder.framePushed() - endOfBaselineJSFrameStack)
+            + ((exprStackSlots - (calleeStackSlot + 1)) * sizeof(Value));
+        callee = *builder.valuePointerAtStackOffset(calleeOffset);
+        IonSpew(IonSpew_BaselineBailouts, "      CalleeStackSlot=%d", (int) calleeStackSlot);
+    }
     IonSpew(IonSpew_BaselineBailouts, "      Callee = %016llx", *((uint64_t *) &callee));
     JS_ASSERT(callee.isObject() && callee.toObject().is<JSFunction>());
     JSFunction *calleeFun = &callee.toObject().as<JSFunction>();
