@@ -15,6 +15,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
 
+XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
+  "@mozilla.org/uuid-generator;1", "nsIUUIDGenerator");
+
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   Cu.import("resource://gre/modules/NetUtil.jsm");
   return NetUtil;
@@ -39,6 +42,8 @@ SessionStore.prototype = {
                                          Ci.nsISupportsWeakReference]),
 
   _windows: {},
+  _selectedWindow: 1,
+  _orderedWindows: [],
   _lastSaveTime: 0,
   _lastSessionTime: 0,
   _interval: 10000,
@@ -285,7 +290,7 @@ SessionStore.prototype = {
       return;
 
     
-    aWindow.__SSID = "window" + Date.now();
+    aWindow.__SSID = "window" + gUUIDGenerator.generateUUID().toString();
     this._windows[aWindow.__SSID] = { tabs: [], selected: 0, _closedTabs: [] };
 
     
@@ -472,9 +477,9 @@ SessionStore.prototype = {
     });
 
     let data = { windows: [] };
-    let index;
-    for (index in this._windows)
-      data.windows.push(this._windows[index]);
+    for (let i = 0; i < this._orderedWindows.length; i++)
+      data.windows.push(this._windows[this._orderedWindows[i]]);
+    data.selectedWindow = this._selectedWindow;
     return data;
   },
 
@@ -724,11 +729,24 @@ SessionStore.prototype = {
 
         let window = Services.wm.getMostRecentWindow("navigator:browser");
 
-        let tabs = data.windows[0].tabs;
-        let selected = data.windows[0].selected;
+        this._selectedWindow = data.selectedWindow;
+        let windowIndex = this._selectedWindow - 1;
+        let tabs = data.windows[windowIndex].tabs;
+        let selected = data.windows[windowIndex].selected;
 
-        if (data.windows[0]._closedTabs)
-          this._windows[window.__SSID]._closedTabs = data.windows[0]._closedTabs;
+        
+        for (let i = 0; i < data.windows.length; i++) {
+          let SSID;
+          if (i != windowIndex) {
+            SSID = "window" + gUUIDGenerator.generateUUID().toString();
+            this._windows[SSID] = data.windows[i];
+          } else {
+            SSID = window.__SSID;
+            this._windows[SSID]._closedTabs =
+              this._windows[SSID]._closedTabs.concat(data.windows[windowIndex]._closedTabs);
+          }
+          this._orderedWindows.push(SSID);
+        }
 
         if (selected > tabs.length) 
           selected = 1;
