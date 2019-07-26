@@ -5651,6 +5651,23 @@ AppendToTouchList(const uint32_t& aKey, nsCOMPtr<nsIDOMTouch>& aData, void *aTou
   return PL_DHASH_NEXT;
 }
 
+static PLDHashOperator
+FindAnyTarget(const uint32_t& aKey, nsCOMPtr<nsIDOMTouch>& aData,
+              void* aAnyTarget)
+{
+  if (aData) {
+    nsCOMPtr<nsIDOMEventTarget> target;
+    aData->GetTarget(getter_AddRefs(target));
+    if (target) {
+      nsCOMPtr<nsIContent>* content =
+        static_cast<nsCOMPtr<nsIContent>*>(aAnyTarget);
+      *content = do_QueryInterface(target);
+      return PL_DHASH_STOP;
+    }
+  }
+  return PL_DHASH_NEXT;
+}
+
 nsIFrame* GetNearestFrameContainingPresShell(nsIPresShell* aPresShell)
 {
   nsIView* view = aPresShell->GetViewManager()->GetRootView();
@@ -5854,7 +5871,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
     if (!captureRetarget && !isWindowLevelMouseExit) {
       nsPoint eventPoint;
       if (aEvent->message == NS_TOUCH_START) {
-        
         nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
         
         
@@ -5866,7 +5882,19 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
             EvictTouchPoint(touches[i]);
           }
         }
-        for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
+        
+        
+        
+        nsCOMPtr<nsIContent> anyTarget;
+        if (gCaptureTouchList.Count() > 0) {
+          gCaptureTouchList.Enumerate(&FindAnyTarget, &anyTarget);
+        } else {
+          gPreventMouseEvents = false;
+        }
+
+        
+        for (int32_t i = touchEvent->touches.Length(); i; ) {
+          --i;
           nsIDOMTouch *touch = touchEvent->touches[i];
           nsDOMTouch *domtouch = static_cast<nsDOMTouch*>(touch);
           touch->mMessage = aEvent->message;
@@ -5877,9 +5905,59 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
             
             
             touch->mChanged = true;
-            gCaptureTouchList.Put(id, touch);
 
-            eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, touch->mRefPoint, frame);
+            
+            uint32_t flags = 0;
+            eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
+                                                              touch->mRefPoint,
+                                                              frame);
+            nsIFrame* target =
+                          FindFrameTargetedByInputEvent(aEvent->eventStructType,
+                                                        frame,
+                                                        eventPoint,
+                                                        flags);
+            if (target && !anyTarget) {
+              target->GetContentForEvent(aEvent, getter_AddRefs(anyTarget));
+              while (anyTarget && !anyTarget->IsElement()) {
+                anyTarget = anyTarget->GetParent();
+              }
+              domtouch->SetTarget(anyTarget);
+              gCaptureTouchList.Put(id, touch);
+            } else {
+              nsIFrame* newTargetFrame = nullptr;
+              for (nsIFrame* f = target; f;
+                   f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
+                if (f->PresContext()->Document() == anyTarget->OwnerDoc()) {
+                  newTargetFrame = f;
+                  break;
+                }
+                
+                
+                
+                f = f->PresContext()->GetPresShell()->GetRootFrame();
+              }
+    
+              
+              
+              
+              
+              if (!newTargetFrame) {
+                touchEvent->touches.RemoveElementAt(i);
+              } else {
+                target = newTargetFrame;
+                nsCOMPtr<nsIContent> targetContent;
+                target->GetContentForEvent(aEvent, getter_AddRefs(targetContent));
+                while (targetContent && !targetContent->IsElement()) {
+                  targetContent = targetContent->GetParent();
+                }
+                touch->SetTarget(targetContent);
+                gCaptureTouchList.Put(id, touch);
+              }
+            }
+
+            if (target) {
+              frame = target;
+            }
           } else {
             
             
@@ -5949,47 +6027,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
 
     PresShell* shell =
         static_cast<PresShell*>(frame->PresContext()->PresShell());
-
-    switch (aEvent->message) {
-      case NS_TOUCH_MOVE:
-      case NS_TOUCH_CANCEL:
-      case NS_TOUCH_END: {
-        
-        
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
-        nsTArray<nsCOMPtr<nsIDOMTouch> >  &touches = touchEvent->touches;
-        for (uint32_t i = 0; i < touches.Length(); ++i) {
-          nsIDOMTouch *touch = touches[i];
-          if (!touch) {
-            break;
-          }
-  
-          int32_t id;
-          touch->GetIdentifier(&id);
-          nsCOMPtr<nsIDOMTouch> oldTouch;
-          gCaptureTouchList.Get(id, getter_AddRefs(oldTouch));
-          if (!oldTouch) {
-            break;
-          }
-  
-          nsCOMPtr<nsPIDOMEventTarget> targetPtr;
-          oldTouch->GetTarget(getter_AddRefs(targetPtr));
-          nsCOMPtr<nsIContent> content = do_QueryInterface(targetPtr);
-          if (!content) {
-            break;
-          }
-
-          nsIFrame* contentFrame = content->GetPrimaryFrame();
-          if (!contentFrame) {
-            break;
-          }
-
-          shell = static_cast<PresShell*>(
-                      contentFrame->PresContext()->PresShell());
-        }
-        break;
-      }
-    }
 
     
     
@@ -6353,9 +6390,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_TOUCH_MOVE: {
         
         nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
-        nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
+        nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
         bool haveChanged = false;
-        for (uint32_t i = 0; i < touches.Length(); ++i) {
+        for (int32_t i = touches.Length(); i; ) {
+          --i;
           nsIDOMTouch *touch = touches[i];
           nsDOMTouch *domtouch = static_cast<nsDOMTouch*>(touch);
           if (!touch) {
@@ -6368,6 +6406,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           nsCOMPtr<nsIDOMTouch> oldTouch;
           gCaptureTouchList.Get(id, getter_AddRefs(oldTouch));
           if (!oldTouch) {
+            touches.RemoveElementAt(i);
             continue;
           }
           if(domtouch->Equals(oldTouch)) {
@@ -6377,6 +6416,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
 
           nsCOMPtr<nsPIDOMEventTarget> targetPtr;
           oldTouch->GetTarget(getter_AddRefs(targetPtr));
+          if (!targetPtr) {
+            touches.RemoveElementAt(i);
+            continue;
+          }
           domtouch->SetTarget(targetPtr);
 
           gCaptureTouchList.Put(id, touch);
@@ -6516,85 +6559,56 @@ PresShell::DispatchTouchEvent(nsEvent *aEvent,
   bool preventDefault = false;
   nsEventStatus tmpStatus = nsEventStatus_eIgnore;
   nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+
   
-  if (aEvent->message != NS_TOUCH_START) {
-    for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
-      nsIDOMTouch *touch = touchEvent->touches[i];
-      if (!touch || !touch->mChanged) {
-        continue;
-      }
-      
-      nsCOMPtr<nsPIDOMEventTarget> targetPtr;
-      touch->GetTarget(getter_AddRefs(targetPtr));
-      if (!targetPtr) {
-        continue;
-      }
-
-      nsTouchEvent newEvent(NS_IS_TRUSTED_EVENT(touchEvent) ?
-                              true : false,
-                            touchEvent);
-      newEvent.target = targetPtr;
-
-      
-      nsCOMPtr<nsIContent> content = GetCapturingContent();
-
-      
-      if (!content) {
-        content = do_QueryInterface(targetPtr);
-      }
-      nsRefPtr<PresShell> contentPresShell;
-      if (content && content->OwnerDoc() == mDocument) {
-        contentPresShell = static_cast<PresShell*>
-            (content->OwnerDoc()->GetShell());
-        if (contentPresShell) {
-          contentPresShell->PushCurrentEventInfo(
-              content->GetPrimaryFrame(), content);
-        }
-      }
-      nsPresContext *context = nsContentUtils::GetContextForContent(content);
-      if (!context) {
-        context = mPresContext;
-      }
-      tmpStatus = nsEventStatus_eIgnore;
-      nsEventDispatcher::Dispatch(targetPtr, context,
-                                  &newEvent, nullptr, &tmpStatus, aEventCB);
-      if (nsEventStatus_eConsumeNoDefault == tmpStatus) {
-        preventDefault = true;
-      }
-      if (contentPresShell) {
-        contentPresShell->PopCurrentEventInfo();
-      }
+  for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
+    nsIDOMTouch *touch = touchEvent->touches[i];
+    if (!touch || !touch->mChanged) {
+      continue;
     }
-  } else {
+
+    nsCOMPtr<nsPIDOMEventTarget> targetPtr;
+    touch->GetTarget(getter_AddRefs(targetPtr));
+    nsCOMPtr<nsIContent> content = do_QueryInterface(targetPtr);
+    if (!content) {
+      continue;
+    }
+
+    nsIContent* capturingContent = GetCapturingContent();
+    if (capturingContent) {
+      if (capturingContent->OwnerDoc() != content->OwnerDoc()) {
+        
+        continue;
+      }
+      content = capturingContent;
+    }
     
-    for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
-      nsIDOMTouch *touch = touchEvent->touches[i];
-      if (touch->mChanged) {
-        touch->SetTarget(mCurrentEventContent);
-      }
-    }
+    nsTouchEvent newEvent(NS_IS_TRUSTED_EVENT(touchEvent) ?
+                            true : false,
+                          touchEvent);
+    newEvent.target = targetPtr;
 
-    if (mCurrentEventContent) {
-      nsEventDispatcher::Dispatch(mCurrentEventContent, mPresContext,
-                                  aEvent, nullptr, &tmpStatus, aEventCB);
-    } else {
-      nsCOMPtr<nsIContent> targetContent;
-      rv = mCurrentEventFrame->GetContentForEvent(aEvent,
-                                                  getter_AddRefs(targetContent));
-      if (NS_SUCCEEDED(rv) && targetContent) {
-        nsEventDispatcher::Dispatch(targetContent, mPresContext, aEvent,
-                                    nullptr, &tmpStatus, aEventCB);
-      } else if (mDocument) {
-        nsEventDispatcher::Dispatch(mDocument, mPresContext, aEvent,
-                                    nullptr, &tmpStatus, nullptr);
+    nsRefPtr<PresShell> contentPresShell;
+    if (content->OwnerDoc() == mDocument) {
+      contentPresShell = static_cast<PresShell*>
+          (content->OwnerDoc()->GetShell());
+      if (contentPresShell) {
+        
+        
+        contentPresShell->PushCurrentEventInfo(
+            content->GetPrimaryFrame(), content);
       }
     }
+    nsPresContext *context = nsContentUtils::GetContextForContent(content);
+    tmpStatus = nsEventStatus_eIgnore;
+    nsEventDispatcher::Dispatch(targetPtr, context,
+                                &newEvent, nullptr, &tmpStatus, aEventCB);
     if (nsEventStatus_eConsumeNoDefault == tmpStatus) {
       preventDefault = true;
     }
 
-    if (touchEvent->touches.Length() == 1) {
-      gPreventMouseEvents = false;
+    if (contentPresShell) {
+      contentPresShell->PopCurrentEventInfo();
     }
   }
 
