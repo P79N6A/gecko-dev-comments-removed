@@ -118,6 +118,13 @@ AsGCMarker(JSTracer *trc)
     return static_cast<GCMarker *>(trc);
 }
 
+template <typename T> bool ThingIsPermanentAtom(T *thing) { return false; }
+template <> bool ThingIsPermanentAtom<JSString>(JSString *str) { return str->isPermanentAtom(); }
+template <> bool ThingIsPermanentAtom<JSFlatString>(JSFlatString *str) { return str->isPermanentAtom(); }
+template <> bool ThingIsPermanentAtom<JSLinearString>(JSLinearString *str) { return str->isPermanentAtom(); }
+template <> bool ThingIsPermanentAtom<JSAtom>(JSAtom *atom) { return atom->isPermanent(); }
+template <> bool ThingIsPermanentAtom<PropertyName>(PropertyName *name) { return name->isPermanent(); }
+
 template<typename T>
 static inline void
 CheckMarkedThing(JSTracer *trc, T *thing)
@@ -128,6 +135,13 @@ CheckMarkedThing(JSTracer *trc, T *thing)
 
     
     if (IsInsideNursery(trc->runtime, thing))
+        return;
+
+    
+
+
+
+    if (ThingIsPermanentAtom(thing))
         return;
 
     JS_ASSERT(thing->zone());
@@ -191,6 +205,14 @@ MarkInternal(JSTracer *trc, T **thingp)
 
 
 
+
+        if (ThingIsPermanentAtom(thing))
+            return;
+
+        
+
+
+
         if (!thing->zone()->isGCMarking())
             return;
 
@@ -227,6 +249,30 @@ Mark(JSTracer *trc, BarrieredPtr<T> *thing, const char *name)
 {
     JS_SET_TRACING_NAME(trc, name);
     MarkInternal(trc, thing->unsafeGet());
+}
+
+void
+MarkPermanentAtom(JSTracer *trc, JSAtom *atom, const char *name)
+{
+    JS_SET_TRACING_NAME(trc, name);
+
+    JS_ASSERT(atom->isPermanent());
+
+    CheckMarkedThing(trc, atom);
+
+    if (!trc->callback) {
+        
+        
+        atom->markIfUnmarked();
+    } else {
+        void *thing = atom;
+        trc->callback(trc, &thing, JSTRACE_STRING);
+        JS_ASSERT(thing == atom);
+        JS_UNSET_TRACING_LOCATION(trc);
+    }
+
+    trc->debugPrinter = nullptr;
+    trc->debugPrintArg = nullptr;
 }
 
 } 
@@ -292,6 +338,13 @@ IsAboutToBeFinalized(T **thingp)
 {
     JS_ASSERT(thingp);
     JS_ASSERT(*thingp);
+
+    
+    if (ThingIsPermanentAtom(*thingp) &&
+        !TlsPerThreadData.get()->associatedWith((*thingp)->runtimeFromAnyThread()))
+    {
+        return false;
+    }
 
 #ifdef JSGC_GENERATIONAL
     Nursery &nursery = (*thingp)->runtimeFromMainThread()->gcNursery;
@@ -940,6 +993,8 @@ ScanLinearString(GCMarker *gcmarker, JSLinearString *str)
     while (str->hasBase()) {
         str = str->base();
         JS_ASSERT(str->JSString::isLinear());
+        if (str->isPermanentAtom())
+            break;
         JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, str);
         if (!str->markIfUnmarked())
             break;
@@ -968,7 +1023,7 @@ ScanRope(GCMarker *gcmarker, JSRope *rope)
         JSRope *next = nullptr;
 
         JSString *right = rope->rightChild();
-        if (right->markIfUnmarked()) {
+        if (!right->isPermanentAtom() && right->markIfUnmarked()) {
             if (right->isLinear())
                 ScanLinearString(gcmarker, &right->asLinear());
             else
@@ -976,7 +1031,7 @@ ScanRope(GCMarker *gcmarker, JSRope *rope)
         }
 
         JSString *left = rope->leftChild();
-        if (left->markIfUnmarked()) {
+        if (!left->isPermanentAtom() && left->markIfUnmarked()) {
             if (left->isLinear()) {
                 ScanLinearString(gcmarker, &left->asLinear());
             } else {
@@ -1013,6 +1068,10 @@ ScanString(GCMarker *gcmarker, JSString *str)
 static inline void
 PushMarkStack(GCMarker *gcmarker, JSString *str)
 {
+    
+    if (str->isPermanentAtom())
+        return;
+
     JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, str);
 
     
@@ -1398,10 +1457,12 @@ GCMarker::processMarkStackTop(SliceBudget &budget)
         const Value &v = *vp++;
         if (v.isString()) {
             JSString *str = v.toString();
-            JS_COMPARTMENT_ASSERT_STR(runtime, str);
-            JS_ASSERT(runtime->isAtomsZone(str->zone()) || str->zone() == obj->zone());
-            if (str->markIfUnmarked())
-                ScanString(this, str);
+            if (!str->isPermanentAtom()) {
+                JS_COMPARTMENT_ASSERT_STR(runtime, str);
+                JS_ASSERT(runtime->isAtomsZone(str->zone()) || str->zone() == obj->zone());
+                if (str->markIfUnmarked())
+                    ScanString(this, str);
+            }
         } else if (v.isObject()) {
             JSObject *obj2 = &v.toObject();
             JS_COMPARTMENT_ASSERT(runtime, obj2);

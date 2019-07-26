@@ -89,11 +89,17 @@ struct AtomHasher
         size_t          length;
         const JSAtom    *atom; 
 
-        Lookup(const jschar *chars, size_t length) : chars(chars), length(length), atom(nullptr) {}
+        HashNumber hash;
+
+        Lookup(const jschar *chars, size_t length)
+          : chars(chars), length(length), atom(nullptr)
+        {
+            hash = mozilla::HashString(chars, length);
+        }
         inline Lookup(const JSAtom *atom);
     };
 
-    static HashNumber hash(const Lookup &l) { return mozilla::HashString(l.chars, l.length); }
+    static HashNumber hash(const Lookup &l) { return l.hash; }
     static inline bool match(const AtomStateEntry &entry, const Lookup &lookup);
     static void rekey(AtomStateEntry &k, const AtomStateEntry& newKey) { k = newKey; }
 };
@@ -165,32 +171,11 @@ extern const char * const TypeStrings[];
 
 
 
-
-
-extern bool
-InitAtoms(JSRuntime *rt);
-
-
-
-
-
-extern void
-FinishAtoms(JSRuntime *rt);
-
-
-
-
 extern void
 MarkAtoms(JSTracer *trc);
 
 extern void
-SweepAtoms(JSRuntime *rt);
-
-extern bool
-InitCommonNames(JSContext *cx);
-
-extern void
-FinishCommonNames(JSRuntime *rt);
+MarkPermanentAtoms(JSTracer *trc);
 
 
 enum InternBehavior

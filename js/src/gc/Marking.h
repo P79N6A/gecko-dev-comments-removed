@@ -114,6 +114,9 @@ DeclMarker(TypeObject, types::TypeObject)
 
 #undef DeclMarker
 
+void
+MarkPermanentAtom(JSTracer *trc, JSAtom *atom, const char *name);
+
 
 
 

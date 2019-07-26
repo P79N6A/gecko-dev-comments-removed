@@ -675,6 +675,12 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
+    JSRuntime *parentRuntime;
+
+    
+
+
+
     mozilla::Atomic<bool, mozilla::Relaxed> interrupt;
 
 #if defined(JS_THREADSAFE) && defined(JS_ION)
@@ -1478,18 +1484,33 @@ struct JSRuntime : public JS::shadow::Runtime,
     void setTrustedPrincipals(const JSPrincipals *p) { trustedPrincipals_ = p; }
     const JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
 
-    
-    
-    
-    
   private:
-    js::AtomSet atoms_;
-    JSCompartment *atomsCompartment_;
     bool beingDestroyed_;
   public:
+    bool isBeingDestroyed() const {
+        return beingDestroyed_;
+    }
+
+  private:
+    
+    
+    
+    js::AtomSet *atoms_;
+
+    
+    
+    
+    JSCompartment *atomsCompartment_;
+
+  public:
+    bool initializeAtoms(JSContext *cx);
+    void finishAtoms();
+
+    void sweepAtoms();
+
     js::AtomSet &atoms() {
         JS_ASSERT(currentThreadHasExclusiveAccess());
-        return atoms_;
+        return *atoms_;
     }
     JSCompartment *atomsCompartment() {
         JS_ASSERT(currentThreadHasExclusiveAccess());
@@ -1500,27 +1521,26 @@ struct JSRuntime : public JS::shadow::Runtime,
         return comp == atomsCompartment_;
     }
 
-    bool isBeingDestroyed() const {
-        return beingDestroyed_;
-    }
-
     
     inline bool isAtomsZone(JS::Zone *zone);
 
     bool activeGCInAtomsZone();
 
-    union {
-        
-
-
-
-        JSAtomState atomState;
-
-        js::FixedHeapPtr<js::PropertyName> firstCachedName;
-    };
+    
+    
+    
+    
 
     
-    js::StaticStrings   staticStrings;
+    js::StaticStrings *staticStrings;
+
+    
+    JSAtomState *commonNames;
+
+    
+    js::AtomSet *permanentAtoms;
+
+    bool transformToPermanentAtoms();
 
     const JSWrapObjectCallbacks            *wrapObjectCallbacks;
     js::PreserveWrapperCallback            preserveWrapperCallback;
@@ -1598,7 +1618,7 @@ struct JSRuntime : public JS::shadow::Runtime,
         ionReturnOverride_ = v;
     }
 
-    JSRuntime(JSUseHelperThreads useHelperThreads);
+    JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThreads);
     ~JSRuntime();
 
     bool init(uint32_t maxbytes);
