@@ -2330,6 +2330,10 @@ add_test(function test_reading_optional_efs() {
       testEf.splice(testEf.indexOf("MDN"), 1);
     };
 
+    record.readMWIS = function fakeReadMWIS() {
+      testEf.splice(testEf.indexOf("MWIS"), 1);
+    };
+
     io.loadTransparentEF = function fakeLoadTransparentEF(options) {
       
       buf.writeInt32(sst.length * 2);
@@ -2356,7 +2360,7 @@ add_test(function test_reading_optional_efs() {
   }
 
   
-  let supportedEf = ["MSISDN", "MDN"];
+  let supportedEf = ["MSISDN", "MDN", "MWIS"];
   ril.appType = CARD_APPTYPE_SIM;
   do_test(buildSST(supportedEf), supportedEf);
   ril.appType = CARD_APPTYPE_USIM;
@@ -2432,6 +2436,177 @@ add_test(function test_fetch_icc_recodes() {
   RIL.appType = CARD_APPTYPE_USIM;
   iccRecord.fetchICCRecords();
   do_check_eq(fetchTag, 0x01);
+
+  run_next_test();
+});
+
+add_test(function test_read_mwis() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  let recordHelper = worker.SimRecordHelper;
+  let buf    = worker.Buf;
+  let io     = worker.ICCIOHelper;
+  let mwisData;
+  let postedMessage;
+
+  worker.postMessage = function fakePostMessage(message) {
+    postedMessage = message;
+  };
+
+  io.loadLinearFixedEF = function fakeLoadLinearFixedEF(options) {
+    if (mwisData) {
+      
+      buf.writeInt32(mwisData.length * 2);
+
+      
+      for (let i = 0; i < mwisData.length; i++) {
+        helper.writeHexOctet(mwisData[i]);
+      }
+
+      
+      buf.writeStringDelimiter(mwisData.length * 2);
+
+      options.recordSize = mwisData.length;
+      if (options.callback) {
+        options.callback(options);
+      }
+    } else {
+      do_print("mwisData[] is not set.");
+    }
+  };
+
+  function buildMwisData(isActive, msgCount) {
+    if (msgCount < 0 || msgCount === GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN) {
+      msgCount = 0;
+    } else if (msgCount > 255) {
+      msgCount = 255;
+    }
+
+    mwisData =  [ (isActive) ? 0x01 : 0x00,
+                  msgCount,
+                  0xFF, 0xFF, 0xFF ];
+  }
+
+  function do_test(isActive, msgCount) {
+    buildMwisData(isActive, msgCount);
+    recordHelper.readMWIS();
+
+    do_check_eq("iccmwis", postedMessage.rilMessageType);
+    do_check_eq(isActive, postedMessage.mwi.active);
+    do_check_eq((isActive) ? msgCount : 0, postedMessage.mwi.msgCount);
+  }
+
+  do_test(true, GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN);
+  do_test(true, 1);
+  do_test(true, 255);
+
+  do_test(false, 0);
+  do_test(false, 255); 
+
+  run_next_test();
+});
+
+add_test(function test_update_mwis() {
+  let worker = newUint8Worker();
+  let pduHelper = worker.GsmPDUHelper;
+  let ril = worker.RIL;
+  ril.appType = CARD_APPTYPE_USIM;
+  ril.iccInfoPrivate.mwis = [0x00, 0x00, 0x00, 0x00, 0x00];
+  let recordHelper = worker.SimRecordHelper;
+  let buf = worker.Buf;
+  let ioHelper = worker.ICCIOHelper;
+  let recordSize = ril.iccInfoPrivate.mwis.length;
+  let recordNum = 1;
+
+  ioHelper.updateLinearFixedEF = function (options) {
+    options.pathId = worker.ICCFileHelper.getEFPath(options.fileId);
+    options.command = ICC_COMMAND_UPDATE_RECORD;
+    options.p1 = options.recordNumber;
+    options.p2 = READ_RECORD_ABSOLUTE_MODE;
+    options.p3 = recordSize;
+    ril.iccIO(options);
+  };
+
+  function do_test(isActive, count) {
+    let mwis = ril.iccInfoPrivate.mwis;
+    let isUpdated = false;
+
+    function buildMwisData() {
+      let result = mwis.slice(0);
+      result[0] = isActive? (mwis[0] | 0x01) : (mwis[0] & 0xFE);
+      result[1] = (count === GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN) ? 0 : count;
+
+      return result;
+    }
+
+    buf.sendParcel = function () {
+      isUpdated = true;
+
+      
+      do_check_eq(this.readInt32(), REQUEST_SIM_IO);
+
+      
+      this.readInt32();
+
+      
+      do_check_eq(this.readInt32(), ICC_COMMAND_UPDATE_RECORD);
+
+      
+      do_check_eq(this.readInt32(), ICC_EF_MWIS);
+
+      
+      do_check_eq(this.readString(),
+                  EF_PATH_MF_SIM + ((ril.appType === CARD_APPTYPE_USIM) ? EF_PATH_ADF_USIM : EF_PATH_DF_GSM));
+
+      
+      do_check_eq(this.readInt32(), recordNum);
+
+      
+      do_check_eq(this.readInt32(), READ_RECORD_ABSOLUTE_MODE);
+
+      
+      do_check_eq(this.readInt32(), recordSize);
+
+      
+      let strLen = this.readInt32();
+      do_check_eq(recordSize * 2, strLen);
+      let expectedMwis = buildMwisData();
+      for (let i = 0; i < recordSize; i++) {
+        do_check_eq(expectedMwis[i], pduHelper.readHexOctet());
+      }
+      this.readStringDelimiter(strLen);
+
+      
+      do_check_eq(this.readString(), null);
+
+      if (!worker.RILQUIRKS_V5_LEGACY) {
+        
+        this.readInt32();
+      }
+    };
+
+    do_check_false(isUpdated);
+
+    recordHelper.updateMWIS({ active: isActive,
+                              msgCount: count });
+
+    do_check_true((ril.iccInfoPrivate.mwis) ? isUpdated : !isUpdated);
+  }
+
+  do_test(true, GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN);
+  do_test(true, 1);
+  do_test(true, 255);
+
+  do_test(false, 0);
+
+  
+  ril.appType = CARD_APPTYPE_SIM;
+  do_test(false, 0);
+
+  
+  
+  delete ril.iccInfoPrivate.mwis;
+  do_test(false, 0);
 
   run_next_test();
 });
