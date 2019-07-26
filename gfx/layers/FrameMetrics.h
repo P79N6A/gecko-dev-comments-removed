@@ -95,6 +95,15 @@ public:
   }
 
   
+
+
+
+  CSSToScreenScale CalculateIntrinsicScale() const
+  {
+    return CSSToScreenScale(float(mCompositionBounds.width) / float(mViewport.width));
+  }
+
+  
   
   
 

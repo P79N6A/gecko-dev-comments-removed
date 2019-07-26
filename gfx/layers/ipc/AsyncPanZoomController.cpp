@@ -579,8 +579,8 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
     
     gfx::Point neededDisplacement;
 
-    float maxZoom = mMaxZoom / CalculateIntrinsicScale(mFrameMetrics).scale;
-    float minZoom = mMinZoom / CalculateIntrinsicScale(mFrameMetrics).scale;
+    float maxZoom = mMaxZoom / mFrameMetrics.CalculateIntrinsicScale().scale;
+    float minZoom = mMinZoom / mFrameMetrics.CalculateIntrinsicScale().scale;
 
     bool doScale = (spanRatio > 1.0 && userZoom < maxZoom) ||
                    (spanRatio < 1.0 && userZoom > minZoom);
@@ -971,16 +971,9 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
 }
 
  CSSToScreenScale
-AsyncPanZoomController::CalculateIntrinsicScale(const FrameMetrics& aMetrics)
-{
-  return CSSToScreenScale(gfxFloat(aMetrics.mCompositionBounds.width) /
-                          gfxFloat(aMetrics.mViewport.width));
-}
-
- CSSToScreenScale
 AsyncPanZoomController::CalculateResolution(const FrameMetrics& aMetrics)
 {
-  return CalculateIntrinsicScale(aMetrics) * aMetrics.mZoom;
+  return aMetrics.CalculateIntrinsicScale() * aMetrics.mZoom;
 }
 
  CSSRect
@@ -1310,7 +1303,7 @@ void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
     CSSPoint scrollOffset = mFrameMetrics.mScrollOffset;
     float currentZoom = mFrameMetrics.mZoom.scale;
     float targetZoom;
-    float intrinsicScale = CalculateIntrinsicScale(mFrameMetrics).scale;
+    float intrinsicScale = mFrameMetrics.CalculateIntrinsicScale().scale;
 
     
     

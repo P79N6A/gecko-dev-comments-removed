@@ -227,12 +227,6 @@ public:
 
 
 
-  static CSSToScreenScale CalculateIntrinsicScale(const FrameMetrics& aMetrics);
-
-  
-
-
-
 
 
   static CSSToScreenScale CalculateResolution(const FrameMetrics& aMetrics);
