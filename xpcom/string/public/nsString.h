@@ -212,12 +212,4 @@ typedef nsAutoString nsVoidableString;
 #include <stdio.h>
 #include "plhash.h"
 
-
-
-
-
-
-inline void Recycle( char* aBuffer) { nsMemory::Free(aBuffer); }
-inline void Recycle( char16_t* aBuffer) { nsMemory::Free(aBuffer); }
-
 #endif 
