@@ -740,6 +740,58 @@ private:
   
   
   uint32_t mAmpleVideoFrames;
+
+  
+  
+  
+  
+  
+  
+  
+  int64_t mLowAudioThresholdUsecs;
+
+  
+  
+  
+  
+  
+  
+  int64_t mAmpleAudioThresholdUsecs;
+
+  
+  
+  
+  
+  
+  
+  uint32_t mAudioPrerollUsecs;
+  uint32_t mVideoPrerollFrames;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mIsAudioPrerolling;
+  bool mIsVideoPrerolling;
+
+  
+  
+  bool mIsAudioDecoding;
+
+  
+  
+  bool mIsVideoDecoding;
+
+  
+  
+  
+  
+  bool mSkipToNextKeyFrame;
+
   
   
   

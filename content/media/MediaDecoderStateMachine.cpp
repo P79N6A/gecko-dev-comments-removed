@@ -170,6 +170,9 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mPlaybackRate(1.0),
   mPreservesPitch(true),
   mBasePosition(0),
+  mAmpleVideoFrames(2),
+  mLowAudioThresholdUsecs(LOW_AUDIO_USECS),
+  mAmpleAudioThresholdUsecs(AMPLE_AUDIO_USECS),
   mAudioCaptured(false),
   mTransportSeekable(true),
   mMediaSeekable(true),
@@ -197,25 +200,15 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   if (Preferences::GetBool("media.realtime_decoder.enabled", false) == false)
     mRealTime = false;
 
+  mAmpleVideoFrames =
+    std::max<uint32_t>(Preferences::GetUint("media.video-queue.default-size", 10), 3);
+
   mBufferingWait = mRealTime ? 0 : BUFFERING_WAIT_S;
   mLowDataThresholdUsecs = mRealTime ? 0 : LOW_DATA_THRESHOLD_USECS;
 
-  
-  
-  
-#if defined(MOZ_OMX_DECODER) || defined(MOZ_MEDIA_PLUGINS)
-  
-  
-  
-  
-  
-  mAmpleVideoFrames = Preferences::GetUint("media.video-queue.default-size", 3);
-#else
-  mAmpleVideoFrames = Preferences::GetUint("media.video-queue.default-size", 10);
-#endif
-  if (mAmpleVideoFrames < 2) {
-    mAmpleVideoFrames = 2;
-  }
+  mVideoPrerollFrames = mRealTime ? 0 : GetAmpleVideoFrames() / 2;
+  mAudioPrerollUsecs = mRealTime ? 0 : LOW_AUDIO_USECS * 2;
+
 #ifdef XP_WIN
   
   
@@ -608,57 +601,30 @@ void MediaDecoderStateMachine::DecodeLoop()
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
 
-  
-  
-  bool audioPump = true;
-  bool videoPump = true;
+  mIsAudioPrerolling = true;
+  mIsVideoPrerolling = true;
 
   
-  
-  
-  
-  bool skipToNextKeyframe = false;
-
-  
-  
-  const unsigned videoPumpThreshold = mRealTime ? 0 : GetAmpleVideoFrames() / 2;
-
-  
-  
-  
-  const unsigned audioPumpThreshold = mRealTime ? 0 : LOW_AUDIO_USECS * 2;
-
-  
-  
-  int64_t lowAudioThreshold = LOW_AUDIO_USECS;
-
-  
-  
-  
-  int64_t ampleAudioThreshold = AMPLE_AUDIO_USECS;
-
-  
-  bool videoPlaying = HasVideo();
-  bool audioPlaying = HasAudio();
   while ((mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) &&
          !mStopDecodeThread &&
-         (videoPlaying || audioPlaying))
+         (mIsVideoDecoding || mIsAudioDecoding))
   {
     
     
     
-    if (videoPump &&
+    if (mIsVideoPrerolling &&
         (static_cast<uint32_t>(mReader->VideoQueue().GetSize())
-         >= videoPumpThreshold * mPlaybackRate))
+         >= mVideoPrerollFrames * mPlaybackRate))
     {
-      videoPump = false;
+      mIsVideoPrerolling = false;
     }
 
     
     
     
-    if (audioPump && GetDecodedAudioDuration() >= audioPumpThreshold * mPlaybackRate) {
-      audioPump = false;
+    if (mIsAudioPrerolling &&
+        GetDecodedAudioDuration() >= mAudioPrerollUsecs * mPlaybackRate) {
+      mIsAudioPrerolling = false;
     }
 
     
@@ -668,27 +634,26 @@ void MediaDecoderStateMachine::DecodeLoop()
     
     
     if (mState == DECODER_STATE_DECODING &&
-        !skipToNextKeyframe &&
-        videoPlaying &&
-        ((!audioPump && audioPlaying && !mDidThrottleAudioDecoding &&
-          GetDecodedAudioDuration() < lowAudioThreshold * mPlaybackRate) ||
-         (!videoPump && videoPlaying && !mDidThrottleVideoDecoding &&
+        !mSkipToNextKeyFrame &&
+        mIsVideoDecoding &&
+        ((!mIsAudioPrerolling && mIsAudioDecoding && !mDidThrottleAudioDecoding &&
+          GetDecodedAudioDuration() < mLowAudioThresholdUsecs * mPlaybackRate) ||
+         (!mIsVideoPrerolling && mIsVideoDecoding && !mDidThrottleVideoDecoding &&
           (static_cast<uint32_t>(mReader->VideoQueue().GetSize())
            < LOW_VIDEO_FRAMES * mPlaybackRate))) &&
         !HasLowUndecodedData())
     {
-      skipToNextKeyframe = true;
+      mSkipToNextKeyFrame = true;
       DECODER_LOG(PR_LOG_DEBUG, ("%p Skipping video decode to the next keyframe", mDecoder.get()));
     }
 
     
-    bool throttleVideoDecoding = !videoPlaying || HaveEnoughDecodedVideo();
+    bool throttleVideoDecoding = !mIsVideoDecoding || HaveEnoughDecodedVideo();
     if (mDidThrottleVideoDecoding && !throttleVideoDecoding) {
-      videoPump = true;
+      mIsVideoPrerolling = true;
     }
     mDidThrottleVideoDecoding = throttleVideoDecoding;
-    if (!throttleVideoDecoding)
-    {
+    if (!throttleVideoDecoding) {
       
       
       
@@ -697,36 +662,38 @@ void MediaDecoderStateMachine::DecodeLoop()
         int64_t currentTime = GetMediaTime();
         ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
         TimeStamp start = TimeStamp::Now();
-        videoPlaying = mReader->DecodeVideoFrame(skipToNextKeyframe, currentTime);
+        mIsVideoDecoding = mReader->DecodeVideoFrame(mSkipToNextKeyFrame, currentTime);
         decodeTime = TimeStamp::Now() - start;
-        if (!videoPlaying) {
+        if (!mIsVideoDecoding) {
           
           mReader->VideoQueue().Finish();
         }
       }
-      if (THRESHOLD_FACTOR * DurationToUsecs(decodeTime) > lowAudioThreshold &&
+      if (THRESHOLD_FACTOR * DurationToUsecs(decodeTime) > mLowAudioThresholdUsecs &&
           !HasLowUndecodedData())
       {
-        lowAudioThreshold =
+        mLowAudioThresholdUsecs =
           std::min(THRESHOLD_FACTOR * DurationToUsecs(decodeTime), AMPLE_AUDIO_USECS);
-        ampleAudioThreshold = std::max(THRESHOLD_FACTOR * lowAudioThreshold,
-                                     ampleAudioThreshold);
+        mAmpleAudioThresholdUsecs = std::max(THRESHOLD_FACTOR * mLowAudioThresholdUsecs,
+                                             mAmpleAudioThresholdUsecs);
         DECODER_LOG(PR_LOG_DEBUG,
-                    ("Slow video decode, set lowAudioThreshold=%lld ampleAudioThreshold=%lld",
-                    lowAudioThreshold, ampleAudioThreshold));
+                    ("Slow video decode, set mLowAudioThresholdUsecs=%lld mAmpleAudioThresholdUsecs=%lld",
+                    mLowAudioThresholdUsecs, mAmpleAudioThresholdUsecs));
       }
     }
 
     
-    bool throttleAudioDecoding = !audioPlaying || HaveEnoughDecodedAudio(ampleAudioThreshold * mPlaybackRate);
+    bool throttleAudioDecoding =
+      !mIsAudioDecoding ||
+      HaveEnoughDecodedAudio(mAmpleAudioThresholdUsecs * mPlaybackRate);
     if (mDidThrottleAudioDecoding && !throttleAudioDecoding) {
-      audioPump = true;
+      mIsAudioPrerolling = true;
     }
     mDidThrottleAudioDecoding = throttleAudioDecoding;
     if (!mDidThrottleAudioDecoding) {
       ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-      audioPlaying = mReader->DecodeAudioData();
-      if (!audioPlaying) {
+      mIsAudioDecoding = mReader->DecodeAudioData();
+      if (!mIsAudioDecoding) {
         
         mReader->AudioQueue().Finish();
       }
@@ -744,7 +711,7 @@ void MediaDecoderStateMachine::DecodeLoop()
 
     if ((mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) &&
         !mStopDecodeThread &&
-        (videoPlaying || audioPlaying) &&
+        (mIsVideoDecoding || mIsAudioDecoding) &&
         throttleAudioDecoding && throttleVideoDecoding)
     {
       
@@ -1382,6 +1349,14 @@ void MediaDecoderStateMachine::StartDecoding()
     mDecodeStartTime = TimeStamp::Now();
   }
   mState = DECODER_STATE_DECODING;
+
+  
+  
+  mIsVideoDecoding = HasVideo();
+  mIsAudioDecoding = HasAudio();
+
+  mSkipToNextKeyFrame = false;
+
   ScheduleStateMachine();
 }
 

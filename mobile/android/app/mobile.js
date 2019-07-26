@@ -575,6 +575,14 @@ pref("media.preload.default", 1);
 pref("media.preload.auto", 2);    
 
 
+
+
+
+
+
+pref("media.video-queue.default-size", 3);
+
+
 pref("image.mem.decodeondraw", true);
 pref("image.mem.min_discard_timeout_ms", 10000);
 
