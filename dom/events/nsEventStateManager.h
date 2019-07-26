@@ -36,6 +36,28 @@ class TabParent;
 }
 }
 
+class OverOutElementsWrapper MOZ_FINAL : public nsISupports
+{
+public:
+  OverOutElementsWrapper() : mLastOverFrame(nullptr) {}
+  ~OverOutElementsWrapper() {}
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(OverOutElementsWrapper)
+
+  nsWeakFrame mLastOverFrame;
+
+  nsCOMPtr<nsIContent> mLastOverElement;
+
+  
+  
+  nsCOMPtr<nsIContent> mFirstOverEventElement;
+
+  
+  
+  nsCOMPtr<nsIContent> mFirstOutEventElement;
+};
+
 
 
 
@@ -282,6 +304,14 @@ protected:
                       nsIContent* aMovingInto);
   void GenerateDragDropEnterExit(nsPresContext* aPresContext,
                                  mozilla::WidgetDragEvent* aDragEvent);
+
+  
+
+
+
+  OverOutElementsWrapper*
+  GetWrapperByEventID(mozilla::WidgetMouseEvent* aMouseEvent);
+
   
 
 
@@ -764,6 +794,9 @@ private:
                                   nsIContent* aStopBefore,
                                   nsEventStates aState,
                                   bool aAddState);
+  static PLDHashOperator ResetLastOverForContent(const uint32_t& aIdx,
+                                                 nsRefPtr<OverOutElementsWrapper>& aChunk,
+                                                 void* aClosure);
 
   int32_t     mLockCursor;
 
@@ -781,8 +814,6 @@ private:
 
   nsWeakFrame mCurrentTarget;
   nsCOMPtr<nsIContent> mCurrentTargetContent;
-  nsWeakFrame mLastMouseOverFrame;
-  nsCOMPtr<nsIContent> mLastMouseOverElement;
   static nsWeakFrame sLastDragOverFrame;
 
   
@@ -813,14 +844,6 @@ private:
   static nsCOMPtr<nsIContent> sDragOverContent;
   nsCOMPtr<nsIContent> mURLTargetContent;
 
-  
-  
-  nsCOMPtr<nsIContent> mFirstMouseOverEventElement;
-
-  
-  
-  nsCOMPtr<nsIContent> mFirstMouseOutEventElement;
-
   nsPresContext* mPresContext;      
   nsCOMPtr<nsIDocument> mDocument;   
 
@@ -832,6 +855,9 @@ private:
 
   
   static TimeStamp sHandlingInputStart;
+
+  nsRefPtr<OverOutElementsWrapper> mMouseEnterLeaveHelper;
+  nsRefPtrHashtable<nsUint32HashKey, OverOutElementsWrapper> mPointersEnterLeaveHelper;
 
 public:
   static nsresult UpdateUserActivityTimer(void);
