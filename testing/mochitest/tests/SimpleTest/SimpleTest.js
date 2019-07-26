@@ -779,7 +779,11 @@ SimpleTest.finish = function () {
         
         parentRunner.testFinished(SimpleTest._tests);
     } else {
-        SimpleTest.showReport();
+        SpecialPowers.flushPermissions(function () {
+          SpecialPowers.flushPrefEnv(function() {
+            SimpleTest.showReport();
+          });
+        });
     }
 };
 
