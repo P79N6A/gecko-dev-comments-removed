@@ -70,8 +70,7 @@ XPCJSContextStack::Push(JSContext *cx)
         
         
         
-        nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
-        if ((e.cx == cx) && ssm) {
+        if (e.cx == cx) {
             
             
             

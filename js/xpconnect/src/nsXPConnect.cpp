@@ -40,6 +40,7 @@
 #include "mozilla/XPTInterfaceInfoManager.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
+#include "nsScriptSecurityManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -108,7 +109,6 @@ nsXPConnect::~nsXPConnect()
     
     JS_GC(mRuntime->Runtime());
 
-    mDefaultSecurityManager = nullptr;
     gScriptSecurityManager = nullptr;
 
     
@@ -138,6 +138,10 @@ nsXPConnect::InitStatics()
     if (NS_FAILED(nsThread::SetMainThreadObserver(gSelf))) {
         MOZ_CRASH();
     }
+
+    
+    nsScriptSecurityManager::InitStatics();
+    gScriptSecurityManager = nsScriptSecurityManager::GetScriptSecurityManager();
 }
 
 nsXPConnect*
@@ -760,22 +764,6 @@ nsXPConnect::RescueOrphansInScope(JSContext *aJSContext, JSObject *aScopeArg)
 
 
 NS_IMETHODIMP
-nsXPConnect::SetDefaultSecurityManager(nsIXPCSecurityManager *aManager)
-{
-    mDefaultSecurityManager = aManager;
-
-    nsCOMPtr<nsIScriptSecurityManager> ssm =
-        do_QueryInterface(mDefaultSecurityManager);
-
-    
-    
-    gScriptSecurityManager = ssm;
-
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPConnect::CreateStackFrameLocation(uint32_t aLanguage,
                                       const char *aFilename,
                                       const char *aFunctionName,
@@ -910,7 +898,6 @@ nsXPConnect::DebugDump(int16_t depth)
     XPC_LOG_INDENT();
         XPC_LOG_ALWAYS(("gSelf @ %x", gSelf));
         XPC_LOG_ALWAYS(("gOnceAliveNowDead is %d", (int)gOnceAliveNowDead));
-        XPC_LOG_ALWAYS(("mDefaultSecurityManager @ %x", mDefaultSecurityManager.get()));
         if (mRuntime) {
             if (depth)
                 mRuntime->DebugDump(depth);

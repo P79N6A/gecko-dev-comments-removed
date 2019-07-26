@@ -408,7 +408,7 @@ static bool
 PrincipalImmuneToScriptPolicy(nsIPrincipal* aPrincipal)
 {
     
-    if (XPCWrapper::GetSecurityManager()->IsSystemPrincipal(aPrincipal))
+    if (nsXPConnect::SecurityManager()->IsSystemPrincipal(aPrincipal))
         return true;
 
     
@@ -449,12 +449,11 @@ Scriptability::Scriptability(JSCompartment *c) : mScriptBlocks(0)
     
     
     if (!mImmuneToScriptPolicy) {
-        nsIScriptSecurityManager* ssm = XPCWrapper::GetSecurityManager();
         nsCOMPtr<nsIURI> codebase;
         nsresult rv = prin->GetURI(getter_AddRefs(codebase));
         bool policyAllows;
         if (NS_SUCCEEDED(rv) && codebase &&
-            NS_SUCCEEDED(ssm->PolicyAllowsScript(codebase, &policyAllows)))
+            NS_SUCCEEDED(nsXPConnect::SecurityManager()->PolicyAllowsScript(codebase, &policyAllows)))
         {
             mScriptBlockedByPolicy = !policyAllows;
         } else {

@@ -34,15 +34,6 @@ AttachNewConstructorObject(JSContext *aCx, JS::HandleObject aGlobalObject);
 
 namespace XPCWrapper {
 
-
-
-
-inline nsIScriptSecurityManager *
-GetSecurityManager()
-{
-  return nsXPConnect::gScriptSecurityManager;
-}
-
 inline bool
 IsSecurityWrapper(JSObject *wrapper)
 {

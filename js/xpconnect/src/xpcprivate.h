@@ -279,13 +279,10 @@ public:
 
     static bool IsISupportsDescendant(nsIInterfaceInfo* info);
 
-    nsIXPCSecurityManager* GetDefaultSecurityManager() const
+    static nsIScriptSecurityManager* SecurityManager()
     {
-        
-        if (!NS_IsMainThread()) {
-            return nullptr;
-        }
-        return mDefaultSecurityManager;
+        MOZ_ASSERT(NS_IsMainThread());
+        return gScriptSecurityManager;
     }
 
     
