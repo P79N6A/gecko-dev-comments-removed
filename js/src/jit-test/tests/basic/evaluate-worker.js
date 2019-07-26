@@ -1,5 +1,8 @@
 
 
+if (typeof evalInWorker == "undefined")
+    quit();
+
 gcslice(10);
 evalInWorker("print('helo world');");
 for (i = 0; i < 100000; i++) {}
