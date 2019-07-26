@@ -264,7 +264,7 @@ class NameResolver
     }
 
   public:
-    NameResolver(JSContext *cx) : cx(cx), nparents(0), buf(NULL) {}
+    explicit NameResolver(JSContext *cx) : cx(cx), nparents(0), buf(NULL) {}
 
     
 
