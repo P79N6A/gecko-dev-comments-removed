@@ -101,6 +101,10 @@ public:
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);
 
+  
+  static uint32_t GetMaxCCSliceTimeSinceClear();
+  static void ClearMaxCCSliceTime();
+
   static void RunNextCollectorTimer();
 
   static void PokeGC(JS::gcreason::Reason aReason, int aDelay = 0);

@@ -2819,6 +2819,22 @@ nsXPCComponents_Utils::CcSlice(int64_t budget)
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::GetMaxCCSliceTimeSinceClear(int32_t *out)
+{
+    *out = nsJSContext::GetMaxCCSliceTimeSinceClear();
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::ClearMaxCCTime()
+{
+    nsJSContext::ClearMaxCCSliceTime();
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::ForceShrinkingGC()
 {
     JSRuntime* rt = nsXPConnect::GetRuntimeInstance()->Runtime();
