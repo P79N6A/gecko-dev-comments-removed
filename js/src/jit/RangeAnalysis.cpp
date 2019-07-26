@@ -316,33 +316,35 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     if (!rhs)
         return new Range(*lhs);
 
+    int32_t newLower = Max(lhs->lower_, rhs->lower_);
+    int32_t newUpper = Min(lhs->upper_, rhs->upper_);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (newUpper < newLower) {
+        *emptyRange = true;
+        return NULL;
+    }
+
     Range *r = new Range(
-        Max(lhs->lower_, rhs->lower_),
-        Min(lhs->upper_, rhs->upper_),
+        newLower, newUpper,
         lhs->decimal_ && rhs->decimal_,
         Min(lhs->max_exponent_, rhs->max_exponent_));
 
     r->lower_infinite_ = lhs->lower_infinite_ && rhs->lower_infinite_;
     r->upper_infinite_ = lhs->upper_infinite_ && rhs->upper_infinite_;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (r->upper_ < r->lower_) {
-        *emptyRange = true;
-        r->makeRangeInfinite();
-    }
 
     return r;
 }
