@@ -66,16 +66,20 @@ IDBRequest::~IDBRequest()
 
 
 already_AddRefed<IDBRequest>
-IDBRequest::Create(IDBWrapperCache* aOwnerCache,
+IDBRequest::Create(IDBDatabase* aDatabase,
                    IDBTransaction* aTransaction)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   nsRefPtr<IDBRequest> request(new IDBRequest());
 
   request->mTransaction = aTransaction;
-  request->BindToOwner(aOwnerCache);
-  request->SetScriptOwner(aOwnerCache->GetScriptOwner());
-  request->CaptureCaller();
+  request->BindToOwner(aDatabase);
+  request->SetScriptOwner(aDatabase->GetScriptOwner());
+
+  if (!aDatabase->Factory()->FromIPC()) {
+    request->CaptureCaller();
+  }
+
 
   return request.forget();
 }
@@ -83,10 +87,10 @@ IDBRequest::Create(IDBWrapperCache* aOwnerCache,
 
 already_AddRefed<IDBRequest>
 IDBRequest::Create(IDBObjectStore* aSourceAsObjectStore,
-                   IDBWrapperCache* aOwnerCache,
+                   IDBDatabase* aDatabase,
                    IDBTransaction* aTransaction)
 {
-  nsRefPtr<IDBRequest> request = Create(aOwnerCache, aTransaction);
+  nsRefPtr<IDBRequest> request = Create(aDatabase, aTransaction);
 
   request->mSourceAsObjectStore = aSourceAsObjectStore;
 
@@ -96,25 +100,12 @@ IDBRequest::Create(IDBObjectStore* aSourceAsObjectStore,
 
 already_AddRefed<IDBRequest>
 IDBRequest::Create(IDBIndex* aSourceAsIndex,
-                   IDBWrapperCache* aOwnerCache,
+                   IDBDatabase* aDatabase,
                    IDBTransaction* aTransaction)
 {
-  nsRefPtr<IDBRequest> request = Create(aOwnerCache, aTransaction);
+  nsRefPtr<IDBRequest> request = Create(aDatabase, aTransaction);
 
   request->mSourceAsIndex = aSourceAsIndex;
-
-  return request.forget();
-}
-
-
-already_AddRefed<IDBRequest>
-IDBRequest::Create(IDBCursor* aSourceAsCursor,
-                   IDBWrapperCache* aOwnerCache,
-                   IDBTransaction* aTransaction)
-{
-  nsRefPtr<IDBRequest> request = Create(aOwnerCache, aTransaction);
-
-  request->mSourceAsCursor = aSourceAsCursor;
 
   return request.forget();
 }
@@ -287,11 +278,7 @@ IDBRequest::CaptureCaller()
   const char* filename = nullptr;
   uint32_t lineNo = 0;
   if (!nsJSUtils::GetCallingLocation(cx, &filename, &lineNo)) {
-    
-    
-    
-    
-    NS_WARNING("Failed to get caller.");
+    MOZ_CRASH("Failed to get caller.");
     return;
   }
 
@@ -418,8 +405,11 @@ IDBOpenDBRequest::Create(IDBFactory* aFactory,
 
   request->BindToOwner(aOwner);
   request->SetScriptOwner(aScriptOwner);
-  request->CaptureCaller();
   request->mFactory = aFactory;
+
+  if (!aFactory->FromIPC()) {
+    request->CaptureCaller();
+  }
 
   return request.forget();
 }
