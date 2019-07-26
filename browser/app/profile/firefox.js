@@ -1382,5 +1382,10 @@ pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings"
 pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
 
 
+#ifdef MOZ_WIDGET_GTK
+pref("ui.key.menuAccessKeyFocuses", true);
+#endif
+
+
 
 pref("browser.cache.use_new_backend_temp", true);
