@@ -646,6 +646,7 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     nsCOMPtr<nsIXPConnect> xpc =
         do_GetService(kXPConnectServiceContractID, &rv);
     NS_ENSURE_SUCCESS(rv, nullptr);
+    bool createdNewGlobal = false;
 
     if (!mLoaderGlobal) {
         nsRefPtr<BackstagePass> backstagePass;
@@ -655,13 +656,17 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
         CompartmentOptions options;
         options.setZone(SystemZone)
                .setVersion(JSVERSION_LATEST);
+        
+        
+        
         rv = xpc->InitClassesWithNewWrappedGlobal(aCx,
                                                   static_cast<nsIGlobalObject *>(backstagePass),
                                                   mSystemPrincipal,
-                                                  0,
+                                                  nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK,
                                                   options,
                                                   getter_AddRefs(holder));
         NS_ENSURE_SUCCESS(rv, nullptr);
+        createdNewGlobal = true;
 
         RootedObject global(aCx, holder->GetJSObject());
         NS_ENSURE_TRUE(global, nullptr);
@@ -732,6 +737,11 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     if (!JS_DefineProperty(aCx, obj, "__URI__",
                            STRING_TO_JSVAL(exposedUri), nullptr, nullptr, 0)) {
         return nullptr;
+    }
+
+    if (createdNewGlobal) {
+        RootedObject global(aCx, holder->GetJSObject());
+        JS_FireOnNewGlobalObject(aCx, global);
     }
 
     return obj;
