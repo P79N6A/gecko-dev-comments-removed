@@ -194,6 +194,16 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
     return NS_OK;
   }
 
+  bool defaultSelected = aValue;
+  
+  
+  
+  
+  
+  
+  
+  mIsSelected = defaultSelected;
+
   
   
   
@@ -202,8 +212,6 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
     return NS_OK;
   }
 
-  
-  
   NS_ASSERTION(!mSelectedChanged, "Shouldn't be here");
 
   bool inSetDefaultSelected = mIsInSetDefaultSelected;
@@ -211,7 +219,6 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
 
   int32_t index = Index();
   uint32_t mask = HTMLSelectElement::SET_DISABLED;
-  bool defaultSelected = aValue;
   if (defaultSelected) {
     mask |= HTMLSelectElement::IS_SELECTED;
   }
@@ -223,12 +230,12 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
   
   
   
+  
   selectInt->SetOptionsSelectedByIndex(index, index, mask);
 
   
   
   mIsInSetDefaultSelected = inSetDefaultSelected;
-  
   
   
   mSelectedChanged = mIsSelected != defaultSelected;
