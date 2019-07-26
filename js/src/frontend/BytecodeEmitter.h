@@ -61,6 +61,7 @@ struct StmtInfoBCE;
 
 
 
+typedef Vector<jsbytecode, 0> BytecodeVector;
 typedef Vector<jssrcnote, 0> SrcNotesVector;
 
 struct BytecodeEmitter
@@ -74,9 +75,7 @@ struct BytecodeEmitter
     Rooted<JSScript*> script;       
 
     struct EmitSection {
-        jsbytecode  *base;          
-        jsbytecode  *limit;         
-        jsbytecode  *next;          
+        BytecodeVector code;        
         SrcNotesVector notes;       
         ptrdiff_t   lastNoteOffset; 
         unsigned    currentLine;    
@@ -84,9 +83,11 @@ struct BytecodeEmitter
 
 
         EmitSection(JSContext *cx, unsigned lineno)
-          : base(NULL), limit(NULL), next(NULL), notes(cx), lastNoteOffset(0),
-            currentLine(lineno), lastColumn(0)
+          : code(cx), notes(cx), lastNoteOffset(0), currentLine(lineno), lastColumn(0)
         {
+            
+            
+            code.reserve(1024);
             notes.reserve(1024);
         }
     };
@@ -136,16 +137,16 @@ struct BytecodeEmitter
 
 
 
-    BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
-                    HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
-                    unsigned lineno, bool selfHostingMode = false);
-    bool init();
-
     
 
 
 
 
+
+    BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
+                    HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
+                    unsigned lineno, bool selfHostingMode = false);
+    bool init();
 
     ~BytecodeEmitter();
 
@@ -176,13 +177,10 @@ struct BytecodeEmitter
 
     TokenStream *tokenStream() { return &parser->tokenStream; }
 
-    jsbytecode *base() const { return current->base; }
-    jsbytecode *limit() const { return current->limit; }
-    jsbytecode *next() const { return current->next; }
-    jsbytecode *code(ptrdiff_t offset) const { return base() + offset; }
-    ptrdiff_t offset() const { return next() - base(); }
-    jsbytecode *prologBase() const { return prolog.base; }
-    ptrdiff_t prologOffset() const { return prolog.next - prolog.base; }
+    BytecodeVector &code() const { return current->code; }
+    jsbytecode *code(ptrdiff_t offset) const { return current->code.begin() + offset; }
+    ptrdiff_t offset() const { return current->code.end() - current->code.begin(); }
+    ptrdiff_t prologOffset() const { return prolog.code.end() - prolog.code.begin(); }
     void switchToMain() { current = &main; }
     void switchToProlog() { current = &prolog; }
 
