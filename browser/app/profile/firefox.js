@@ -1077,7 +1077,7 @@ pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", true);
-pref("devtools.appmanager.firstrun", true);
+pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", false);
 
 
