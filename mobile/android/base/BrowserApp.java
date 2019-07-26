@@ -1455,6 +1455,19 @@ abstract public class BrowserApp extends GeckoApp
         final String url = mBrowserToolbar.commitEdit();
 
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        hideHomePager(url);
+
+        
         if (TextUtils.isEmpty(url)) {
             return;
         }
@@ -1644,13 +1657,23 @@ abstract public class BrowserApp extends GeckoApp
         mLayerView.setVisibility(View.INVISIBLE);
     }
 
-    private void hideHomePager() {
-        if (!isHomePagerVisible()) {
-            return;
-        }
+    
 
-        final Tab tab = Tabs.getInstance().getSelectedTab();
-        if (tab != null && isAboutHome(tab)) {
+
+
+    private void hideHomePager() {
+        final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+        final String url = (selectedTab != null) ? selectedTab.getURL() : null;
+
+        hideHomePager(url);
+    }
+
+    
+
+
+
+    private void hideHomePager(final String url) {
+        if (!isHomePagerVisible() || TextUtils.equals(url, ABOUT_HOME)) {
             return;
         }
 
