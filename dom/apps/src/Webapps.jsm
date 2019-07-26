@@ -224,6 +224,9 @@ this.DOMApplicationRegistry = {
     let baseDir;
     try {
       baseDir = FileUtils.getDir("coreAppsDir", ["webapps", aId], false);
+      if (!baseDir.exists()) {
+        return;
+      }
     } catch(e) {
       
       return;
