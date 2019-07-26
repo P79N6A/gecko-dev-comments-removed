@@ -31,7 +31,7 @@ static const nsAttrValue::EnumTable kKindTable[] = {
   { 0 }
 };
 
-class WebVTTListener;
+class WebVTTLoadListener;
 
 class HTMLTrackElement MOZ_FINAL : public nsGenericHTMLElement
 {
@@ -148,15 +148,16 @@ protected:
                          uint32_t aFlags);
   
   
+  
   void LoadResource();
 
   friend class TextTrackCue;
-  friend class WebVTTListener;
+  friend class WebVTTLoadListener;
 
   nsRefPtr<TextTrack> mTrack;
   nsCOMPtr<nsIChannel> mChannel;
   nsRefPtr<HTMLMediaElement> mMediaParent;
-  nsRefPtr<WebVTTListener> mListener;
+  nsRefPtr<WebVTTLoadListener> mLoadListener;
   uint16_t mReadyState;
 
   void CreateTextTrack();
