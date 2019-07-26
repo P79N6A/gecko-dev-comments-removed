@@ -115,7 +115,8 @@ private:
 
 
 
-  bool ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage);
+  bool ComposePacket(uint8_t aOpCode,
+                     mozilla::ipc::UnixSocketRawData* aMessage);
 
   
 
