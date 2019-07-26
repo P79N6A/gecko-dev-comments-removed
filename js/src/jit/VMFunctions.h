@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_VMFunctions_h
 #define jit_VMFunctions_h
@@ -40,28 +40,28 @@ struct PopValues
     { }
 };
 
-
-
-
-
-
-
-
-
-
-
-
+// Contains information about a virtual machine function that can be called
+// from JIT code. Functions described in this manner must conform to a simple
+// protocol: the return type must have a special "failure" value (for example,
+// false for bool, or nullptr for Objects). If the function is designed to
+// return a value that does not meet this requirement - such as
+// object-or-nullptr, or an integer, an optional, final outParam can be
+// specified. In this case, the return type must be boolean to indicate
+// failure.
+//
+// All functions described by VMFunction take a JSContext * as a first
+// argument, and are treated as re-entrant into the VM and therefore fallible.
 struct VMFunction
 {
-    
+    // Global linked list of all VMFunctions.
     static VMFunction *functions;
     VMFunction *next;
 
-    
+    // Address of the C function.
     void *wrapped;
 
-    
-    
+    // Number of arguments expected, excluding JSContext * as an implicit
+    // first argument and an outparam as a possible implicit final argument.
     uint32_t explicitArgs;
 
     enum ArgProperties {
@@ -69,34 +69,34 @@ struct VMFunction
         DoubleByValue = 1,
         WordByRef = 2,
         DoubleByRef = 3,
-        
+        // BitMask version.
         Word = 0,
         Double = 1,
         ByRef = 2
     };
 
-    
+    // Contains properties about the first 16 arguments.
     uint32_t argumentProperties;
 
-    
-    
+    // Which arguments should be passed in float register on platforms that
+    // have them.
     uint32_t argumentPassedInFloatRegs;
 
-    
-    
-    
+    // The outparam may be any Type_*, and must be the final argument to the
+    // function, if not Void. outParam != Void implies that the return type
+    // has a boolean failure mode.
     DataType outParam;
 
-    
-    
-    
-    
-    
-    
-    
+    // Type returned by the C function and used by the VMFunction wrapper to
+    // check for failures of the C function.  Valid failure/return types are
+    // boolean and object pointers which are asserted inside the VMFunction
+    // constructor. If the C function use an outparam (!= Type_Void), then
+    // the only valid failure/return type is boolean -- object pointers are
+    // pointless because the wrapper will only use it to compare it against
+    // nullptr before discarding its value.
     DataType returnType;
 
-    
+    // Note: a maximum of seven root types is supported.
     enum RootType {
         RootNone = 0,
         RootObject,
@@ -107,23 +107,23 @@ struct VMFunction
         RootCell
     };
 
-    
-    
+    // Contains an combination of enumerated types used by the gc for marking
+    // arguments of the VM wrapper.
     uint64_t argumentRootTypes;
 
-    
+    // The root type of the out param if outParam == Type_Handle.
     RootType outParamRootType;
 
-    
+    // Does this function take a ForkJoinContext * or a JSContext *?
     ExecutionMode executionMode;
 
-    
-    
-    
+    // Number of Values the VM wrapper should pop from the stack when it returns.
+    // Used by baseline IC stubs so that they can use tail calls to call the VM
+    // wrapper.
     uint32_t extraValuesToPop;
 
     uint32_t argc() const {
-        
+        // JSContext * + args + (OutParam? *)
         return 1 + explicitArgc() + ((outParam == Type_Void) ? 0 : 1);
     }
 
@@ -143,18 +143,18 @@ struct VMFunction
         return ((argumentPassedInFloatRegs >> explicitArg) & 1) == 1;
     }
 
-    
+    // Return the stack size consumed by explicit arguments.
     size_t explicitStackSlots() const {
         size_t stackSlots = explicitArgs;
 
-        
+        // Fetch all double-word flags of explicit arguments.
         uint32_t n =
-            ((1 << (explicitArgs * 2)) - 1) 
-            & 0x55555555                    
+            ((1 << (explicitArgs * 2)) - 1) // = Explicit argument mask.
+            & 0x55555555                    // = Mask double-size args.
             & argumentProperties;
 
-        
-        
+        // Add the number of double-word flags. (expect a few loop
+        // iteration)
         while (n) {
             stackSlots++;
             n &= n - 1;
@@ -162,25 +162,25 @@ struct VMFunction
         return stackSlots;
     }
 
-    
-    
-    
-    
-    
+    // Double-size argument which are passed by value are taking the space
+    // of 2 C arguments.  This function is used to compute the number of
+    // argument expected by the C function.  This is not the same as
+    // explicitStackSlots because reference to stack slots may take one less
+    // register in the total count.
     size_t explicitArgc() const {
         size_t stackSlots = explicitArgs;
 
-        
+        // Fetch all explicit arguments.
         uint32_t n =
-            ((1 << (explicitArgs * 2)) - 1) 
+            ((1 << (explicitArgs * 2)) - 1) // = Explicit argument mask.
             & argumentProperties;
 
-        
-        
+        // Filter double-size arguments (0x5 = 0b0101) and remove (& ~)
+        // arguments passed by reference (0b1010 >> 1 == 0b0101).
         n = (n & 0x55555555) & ~(n >> 1);
 
-        
-        
+        // Add the number of double-word transfered by value. (expect a few
+        // loop iteration)
         while (n) {
             stackSlots++;
             n &= n - 1;
@@ -217,7 +217,7 @@ struct VMFunction
         executionMode(executionMode),
         extraValuesToPop(extraValuesToPop)
     {
-        
+        // Check for valid failure/return type.
         JS_ASSERT_IF(outParam != Type_Void && executionMode == SequentialExecution,
                      returnType == Type_Bool);
         JS_ASSERT(returnType == Type_Bool ||
@@ -235,11 +235,11 @@ struct VMFunction
     }
 
   private:
-    
+    // Add this to the global list of VMFunctions.
     void addToFunctions();
 };
 
-
+// A collection of VM functions for each execution mode.
 struct VMFunctionsModal
 {
     VMFunctionsModal(const VMFunction &info) {
@@ -264,7 +264,7 @@ struct VMFunctionsModal
     mozilla::Array<VMFunction, NumExecutionModes> funs_;
 };
 
-template <class> struct TypeToDataType {  };
+template <class> struct TypeToDataType { /* Unexpected return type for a VMFunction. */ };
 template <> struct TypeToDataType<bool> { static const DataType result = Type_Bool; };
 template <> struct TypeToDataType<JSObject *> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<DeclEnvObject *> { static const DataType result = Type_Object; };
@@ -280,7 +280,7 @@ template <> struct TypeToDataType<HandleScript> { static const DataType result =
 template <> struct TypeToDataType<HandleValue> { static const DataType result = Type_Handle; };
 template <> struct TypeToDataType<MutableHandleValue> { static const DataType result = Type_Handle; };
 
-
+// Convert argument types to properties of the argument known by the jit.
 template <class T> struct TypeToArgProperties {
     static const uint32_t result =
         (sizeof(T) <= sizeof(void *) ? VMFunction::Word : VMFunction::Double);
@@ -322,8 +322,8 @@ template <> struct TypeToArgProperties<HandleTypeObject> {
     static const uint32_t result = TypeToArgProperties<types::TypeObject *>::result | VMFunction::ByRef;
 };
 
-
-
+// Convert argument type to whether or not it should be passed in a float
+// register on platforms that have them, like x64.
 template <class T> struct TypeToPassInFloatReg {
     static const uint32_t result = 0;
 };
@@ -331,7 +331,7 @@ template <> struct TypeToPassInFloatReg<double> {
     static const uint32_t result = 1;
 };
 
-
+// Convert argument types to root types used by the gc, see MarkJitExitFrame.
 template <class T> struct TypeToRootType {
     static const uint32_t result = VMFunction::RootNone;
 };
@@ -395,9 +395,9 @@ template <> struct MatchContext<ForkJoinContext *> {
     static const ExecutionMode execMode = ParallelExecution;
 };
 template <> struct MatchContext<ThreadSafeContext *> {
-    
-    
-    
+    // ThreadSafeContext functions can be called from either mode, but for
+    // calling from parallel they should be wrapped first, so we default to
+    // SequentialExecution here.
     static const ExecutionMode execMode = SequentialExecution;
 };
 
@@ -457,7 +457,7 @@ template <typename Fun>
 struct FunctionInfo {
 };
 
-
+// VMFunction wrapper with no explicit arguments.
 template <class R, class Context>
 struct FunctionInfo<R (*)(Context)> : public VMFunction {
     typedef R (*pf)(Context);
@@ -494,8 +494,8 @@ struct FunctionInfo<R (*)(Context)> : public VMFunction {
     { }
 };
 
-
-
+// Specialize the class for each number of argument used by VMFunction.
+// Keep it verbose unless you find a readable macro for it.
 template <class R, class Context, class A1>
 struct FunctionInfo<R (*)(Context, A1)> : public VMFunction {
     typedef R (*pf)(Context, A1);
@@ -598,7 +598,7 @@ bool StringsEqual(JSContext *cx, HandleString left, HandleString right, bool *re
 
 bool IteratorMore(JSContext *cx, HandleObject obj, bool *res);
 
-
+// Allocation functions for JSOP_NEWARRAY and JSOP_NEWOBJECT and parallel array inlining
 JSObject *NewInitParallelArray(JSContext *cx, HandleObject templateObj);
 JSObject *NewInitArray(JSContext *cx, uint32_t count, types::TypeObject *type);
 JSObject *NewInitObject(JSContext *cx, HandleObject templateObject);
@@ -617,9 +617,9 @@ bool SetProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, Handl
 
 bool InterruptCheck(JSContext *cx);
 
-HeapSlot *NewSlots(JSRuntime *rt, unsigned nslots);
+void *MallocWrapper(JSRuntime *rt, size_t nbytes);
 JSObject *NewCallObject(JSContext *cx, HandleScript script,
-                        HandleShape shape, HandleTypeObject type, HeapSlot *slots);
+                        HandleShape shape, HandleTypeObject type);
 JSObject *NewStringObject(JSContext *cx, HandleString str);
 
 bool SPSEnter(JSContext *cx, HandleScript script);
@@ -683,7 +683,7 @@ void AssertValidStringPtr(JSContext *cx, JSString *str);
 void AssertValidValue(JSContext *cx, Value *v);
 #endif
 
-} 
-} 
+} // namespace jit
+} // namespace js
 
-#endif
+#endif /* jit_VMFunctions_h */
