@@ -6464,7 +6464,7 @@ Parser::atomNode(ParseNodeKind kind, JSOp op)
     
     
     const size_t HUGE_STRING = 50000;
-    if (sct && kind == PNK_STRING && node->pn_atom->length() >= HUGE_STRING)
+    if (sct && sct->active() && kind == PNK_STRING && node->pn_atom->length() >= HUGE_STRING)
         sct->abort();
 
     return node;
