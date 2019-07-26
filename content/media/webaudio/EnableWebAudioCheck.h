@@ -4,6 +4,8 @@
 
 
 
+#pragma once
+
 namespace mozilla {
 namespace dom {
 
