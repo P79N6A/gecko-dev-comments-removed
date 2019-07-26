@@ -285,14 +285,7 @@ appUpdater.prototype =
 
 
 
-
   updateCheckListener: {
-    
-
-
-    onProgress: function(aRequest, aPosition, aTotalSize) {
-    },
-
     
 
 

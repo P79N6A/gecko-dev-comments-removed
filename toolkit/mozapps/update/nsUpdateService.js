@@ -2091,10 +2091,6 @@ UpdateService.prototype = {
     this._attemptResume();
   },
 
-  
-  onProgress: function AUS_onProgress(request, position, totalSize) {
-  },
-
   onCheckComplete: function AUS_onCheckComplete(request, updates, updateCount) {
     this._selectAndInstallUpdate(updates);
   },
@@ -3077,22 +3073,11 @@ Checker.prototype = {
     var self = this;
     this._request.addEventListener("error", function(event) { self.onError(event); } ,false);
     this._request.addEventListener("load", function(event) { self.onLoad(event); }, false);
-    this._request.addEventListener("progress", function(event) { self.onProgress(event); }, false);
 
     LOG("Checker:checkForUpdates - sending request to: " + url);
     this._request.send(null);
 
     this._callback = listener;
-  },
-
-  
-
-
-
-
-  onProgress: function UC_onProgress(event) {
-    LOG("Checker:onProgress - " + event.position + "/" + event.totalSize);
-    this._callback.onProgress(event.target, event.position, event.totalSize);
   },
 
   
