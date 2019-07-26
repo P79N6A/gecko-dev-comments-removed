@@ -483,6 +483,7 @@ struct SizeConstraints {
 
 
 
+
 enum IMEMessage MOZ_ENUM_TYPE(int8_t)
 {
   
