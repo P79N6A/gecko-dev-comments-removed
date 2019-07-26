@@ -1024,6 +1024,50 @@ var tests = [
         goNext();
       });
     }
+  },
+  { 
+    run: function () {
+      this.notifyObj = new basicNotification();
+      this.notifyObj.options.hideNotNow = true;
+      this.notifyObj.mainAction.dismiss = true;
+      showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      
+      checkPopup(popup, this.notifyObj);
+      triggerMainCommand(popup);
+    },
+    onHidden: function (popup) { }
+  },
+  { 
+    run: function () {
+      this.notifyObj = new basicNotification();
+      this.notifyObj.mainAction.dismiss = true;
+      showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj);
+      triggerMainCommand(popup);
+    },
+    onHidden: function (popup) {
+      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback was triggered");
+      ok(!this.notifyObj.removedCallbackTriggered, "removed callback wasn't triggered");
+    }
+  },
+  { 
+    run: function () {
+      this.notifyObj = new basicNotification();
+      this.notifyObj.secondaryActions[0].dismiss = true;
+      showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj);
+      triggerSecondaryCommand(popup, 0);
+    },
+    onHidden: function (popup) {
+      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback was triggered");
+      ok(!this.notifyObj.removedCallbackTriggered, "removed callback wasn't triggered");
+    }
   }
 ];
 
@@ -1063,7 +1107,12 @@ function checkPopup(popup, notificationObj) {
                                             function (child) child.nodeName == "menuitem");
   let secondaryActions = notificationObj.secondaryActions || [];
   let actualSecondaryActionsCount = actualSecondaryActions.length;
-  if (secondaryActions.length) {
+  if (notificationObj.options.hideNotNow) {
+    is(notification.getAttribute("hidenotnow"), "true", "Not Now item hidden");
+    if (secondaryActions.length)
+      is(notification.lastChild.tagName, "menuitem", "no menuseparator");
+  }
+  else if (secondaryActions.length) {
     is(notification.lastChild.tagName, "menuseparator", "menuseparator exists");
   }
   is(actualSecondaryActionsCount, secondaryActions.length, actualSecondaryActions.length + " secondary actions");

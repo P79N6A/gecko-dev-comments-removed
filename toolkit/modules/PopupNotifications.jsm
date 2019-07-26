@@ -255,6 +255,13 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -269,6 +276,10 @@ PopupNotifications.prototype = {
       throw "PopupNotifications_show: invalid mainAction";
     if (secondaryActions && secondaryActions.some(isInvalidAction))
       throw "PopupNotifications_show: invalid secondaryActions";
+    if (options && options.hideNotNow &&
+        (!secondaryActions || !secondaryActions.length ||
+         !secondaryActions.concat(mainAction).some(action => action.dismiss)))
+      throw "PopupNotifications_show: 'Not Now' item hidden without replacement";
 
     let notification = new Notification(id, message, anchorID, mainAction,
                                         secondaryActions, browser, this, options);
@@ -549,7 +560,10 @@ PopupNotifications.prototype = {
           popupnotification.appendChild(item);
         }, this);
 
-        if (n.secondaryActions.length) {
+        if (n.options.hideNotNow) {
+          popupnotification.setAttribute("hidenotnow", "true");
+        }
+        else if (n.secondaryActions.length) {
           let closeItemSeparator = doc.createElementNS(XUL_NS, "menuseparator");
           popupnotification.appendChild(closeItemSeparator);
         }
@@ -894,6 +908,11 @@ PopupNotifications.prototype = {
       Cu.reportError(error);
     }
 
+    if (notification.mainAction.dismiss) {
+      this._dismiss();
+      return;
+    }
+
     this._remove(notification);
     this._update();
   },
@@ -908,6 +927,11 @@ PopupNotifications.prototype = {
       target.action.callback.call();
     } catch(error) {
       Cu.reportError(error);
+    }
+
+    if (target.action.dismiss) {
+      this._dismiss();
+      return;
     }
 
     this._remove(target.notification);
