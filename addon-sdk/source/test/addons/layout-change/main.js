@@ -184,4 +184,4 @@ if (require("sdk/system/xul-app").is("Fennec")) {
   }
 }
 
-require("test").run(exports);
+require("sdk/test/runner").runTestsFromModule(module);

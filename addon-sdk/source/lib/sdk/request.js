@@ -71,6 +71,8 @@ function runRequest(mode, target) {
   
   xhr.open(mode, url);
 
+  xhr.forceAllowThirdPartyCookie();
+
   
   xhr.setRequestHeader("Content-Type", contentType);
 

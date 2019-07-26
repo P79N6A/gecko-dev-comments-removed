@@ -206,7 +206,6 @@ const evaluate = iced(function evaluate(sandbox, uri, options) {
     source: null
   }, options);
 
-
   return source ? Cu.evalInSandbox(source, sandbox, version, uri, line)
                 : loadSubScript(uri, sandbox, encoding);
 });
@@ -281,6 +280,7 @@ function normalize(uri) { return uri.substr(-3) === '.js' ? uri : uri + '.js'; }
 
 
 const resolve = iced(function resolve(id, base) {
+  if (!isRelative(id)) return id;
   let paths = id.split('/');
   let result = base.split('/');
   result.pop();
@@ -319,7 +319,6 @@ const Require = iced(function Require(loader, requirer) {
 
     
     let requirement = requirer ? resolve(id, requirer.id) : id;
-
 
     
     let uri = resolveURI(requirement, mapping);

@@ -10,7 +10,7 @@ module.metadata = {
 
 const { Cc, Ci } = require("chrome");
 const { extend } = require("./core/heritage");
-const { id } = require("self");
+const { id } = require("./self");
 
 
 let sanitizeId = function(id){

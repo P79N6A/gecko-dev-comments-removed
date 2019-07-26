@@ -328,7 +328,7 @@ class SmallXPI(unittest.TestCase):
                                               [target_cfg.name, "addon-sdk"])
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=True)
         self.failUnlessEqual(sorted(m.get_all_test_modules()),
-                             sorted(["test-one", "test-two"]))
+                             sorted(["three/tests/test-one", "three/tests/test-two"]))
         
         
         
@@ -371,7 +371,7 @@ class SmallXPI(unittest.TestCase):
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=True,
                                     test_filter_re=FILTER)
         self.failUnlessEqual(sorted(m.get_all_test_modules()),
-                             sorted(["test-one"]))
+                             sorted(["three/tests/test-one"]))
         
         
         

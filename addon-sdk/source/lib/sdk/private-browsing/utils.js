@@ -15,13 +15,14 @@ const { getWindowLoadingContext, windows } = require('../window/utils');
 const { WindowTracker } = require("../deprecated/window-utils");
 const events = require('../system/events');
 const { deprecateFunction } = require('../util/deprecate');
+const { isOneOf, is, satisfiesVersion, version } = require('../system/xul-app');
 
 let deferredEmit = defer(emit);
 let pbService;
 let PrivateBrowsingUtils;
 
 
-if (require("../system/xul-app").is("Firefox")) {
+if (isOneOf(['Firefox', 'Fennec'])) {
   
   try {
     pbService = Cc["@mozilla.org/privatebrowsing;1"].
@@ -41,20 +42,36 @@ if (require("../system/xul-app").is("Firefox")) {
 }
 
 function isWindowPrivate(win) {
+  if (!PrivateBrowsingUtils || !win)
+    return false;
+
   
   
   
-  return win instanceof Ci.nsIDOMWindow &&
-         isWindowPBSupported &&
-         PrivateBrowsingUtils.isWindowPrivate(win);
+  if (win instanceof Ci.nsIDOMWindow) {
+    return PrivateBrowsingUtils.isWindowPrivate(win);
+  }
+
+  
+  try {
+    return !!win.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing;
+  }
+  catch (e) {}
+
+  return false;
 }
 exports.isWindowPrivate = isWindowPrivate;
 
 
-let isGlobalPBSupported = exports.isGlobalPBSupported =  !!pbService;
+let isGlobalPBSupported = exports.isGlobalPBSupported = !!pbService && is('Firefox');
 
 
-let isWindowPBSupported = exports.isWindowPBSupported = !isGlobalPBSupported && !!PrivateBrowsingUtils;
+let isWindowPBSupported = exports.isWindowPBSupported =
+                          !pbService && !!PrivateBrowsingUtils && is('Firefox');
+
+
+let isTabPBSupported = exports.isTabPBSupported =
+                       !pbService && !!PrivateBrowsingUtils && is('Fennec') && satisfiesVersion(version, '>=20.0*');
 
 function onChange() {
   
