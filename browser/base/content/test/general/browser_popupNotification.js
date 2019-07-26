@@ -529,7 +529,12 @@ var tests = [
       this.notifyObj.addOptions({dismissed: true});
       this.notification = showNotification(this.notifyObj);
 
-      EventUtils.synthesizeMouse(button, 1, 1, {});
+      
+      
+      
+      
+      
+      EventUtils.synthesizeMouse(button, 4, 4, {});
     },
     onShown: function(popup) {
       checkPopup(popup, this.notifyObj);
