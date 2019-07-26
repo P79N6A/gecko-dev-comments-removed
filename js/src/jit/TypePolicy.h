@@ -120,7 +120,7 @@ class StringPolicy : public BoxInputsPolicy
 
 
 template <unsigned Op>
-class ConvertToStringPolicy : public TypePolicy
+class ConvertToStringPolicy : public BoxInputsPolicy
 {
   public:
     static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
@@ -213,16 +213,6 @@ class ToDoublePolicy : public BoxInputsPolicy
 
 
 class ToInt32Policy : public BoxInputsPolicy
-{
-  public:
-    static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-    bool adjustInputs(TempAllocator &alloc, MInstruction *def) {
-        return staticAdjustInputs(alloc, def);
-    }
-};
-
-
-class ToStringPolicy : public BoxInputsPolicy
 {
   public:
     static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
