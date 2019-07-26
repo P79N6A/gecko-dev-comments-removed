@@ -23,16 +23,6 @@ catch (e)          \n\
 //@ sourceMappingURL=http://example.com/path/to/source-map.json";
 
 
-static bool
-CharsMatch(const jschar *p, const char *q) {
-    while (*q) {
-        if (*p++ != *q++)
-            return false;
-    }
-    return true;
-}
-
-
 BEGIN_TEST(testScriptInfo)
 {
     unsigned startLine = 1000;
@@ -53,6 +43,15 @@ BEGIN_TEST(testScriptInfo)
     CHECK(sourceMap);
     CHECK(CharsMatch(sourceMap, "http://example.com/path/to/source-map.json"));
 
+    return true;
+}
+static bool
+CharsMatch(const jschar *p, const char *q)
+{
+    while (*q) {
+        if (*p++ != *q++)
+            return false;
+    }
     return true;
 }
 END_TEST(testScriptInfo)

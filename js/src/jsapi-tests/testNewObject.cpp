@@ -7,9 +7,6 @@
 
 #include "jsapi-tests/tests.h"
 
-const size_t N = 1000;
-static jsval argv[N];
-
 static bool
 constructHook(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -56,6 +53,9 @@ constructHook(JSContext *cx, unsigned argc, jsval *vp)
 
 BEGIN_TEST(testNewObject_1)
 {
+    static const size_t N = 1000;
+    jsval argv[N];
+
     
     
     CHECK(JS_AddNamedValueRoot(cx, &argv[0], "argv0"));
