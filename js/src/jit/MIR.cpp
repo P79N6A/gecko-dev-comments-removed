@@ -3341,10 +3341,10 @@ TryAddTypeBarrierForWrite(TempAllocator &alloc, types::CompilerConstraintList *c
       case MIRType_String: {
         
         
-        if ((*pvalue)->type() != MIRType_Value) {
+        if (!(*pvalue)->mightBeType(propertyType)) {
             
             
-            JS_ASSERT((*pvalue)->type() != propertyType);
+            JS_ASSERT_IF((*pvalue)->type() != MIRType_Value, (*pvalue)->type() != propertyType);
             return false;
         }
         MInstruction *ins = MUnbox::New(alloc, *pvalue, propertyType, MUnbox::Fallible);
