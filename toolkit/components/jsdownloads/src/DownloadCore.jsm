@@ -63,7 +63,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -408,13 +408,6 @@ this.Download.prototype = {
         }
       }
 
-      
-      
-      
-      if (this.succeeded) {
-        return;
-      }
-
       try {
         
         if (yield DownloadIntegration.shouldBlockForParentalControls(this)) {
@@ -422,34 +415,20 @@ this.Download.prototype = {
         }
 
         
-        
-        
-        if (this._promiseCanceled) {
-          
-          throw undefined;
-        }
-
-        
-        this._saverExecuting = true;
         yield this.saver.execute(DS_setProgressBytes.bind(this),
                                  DS_setProperties.bind(this));
-
         
         
-        
-        
-        if ((yield DownloadIntegration.shouldBlockForReputationCheck(this)) ||
-            this._promiseCanceled) {
+        if (yield DownloadIntegration.shouldBlockForReputationCheck(this)) {
+          
+          
           try {
             yield OS.File.remove(this.target.path);
           } catch (ex) {
             Cu.reportError(ex);
           }
-          
-          
           throw new DownloadError({ becauseBlockedByReputationCheck: true });
         }
-
         
         this.progress = 100;
         this.succeeded = true;
@@ -479,7 +458,6 @@ this.Download.prototype = {
         throw ex;
       } finally {
         
-        this._saverExecuting = false;
         this._promiseCanceled = null;
 
         
@@ -569,12 +547,6 @@ this.Download.prototype = {
 
 
 
-  _saverExecuting: false,
-
-  
-
-
-
 
 
 
@@ -615,11 +587,7 @@ this.Download.prototype = {
       this._notifyChange();
 
       
-      
-      
-      if (this._saverExecuting) {
-        this.saver.cancel();
-      }
+      this.saver.cancel();
     }
 
     return this._promiseCanceled;
@@ -1397,6 +1365,31 @@ this.DownloadSaver.prototype = {
 
 
 
+
+
+
+  isResponseParentalBlocked: function(aRequest)
+  {
+    
+    
+    if (aRequest instanceof Ci.nsIHttpChannel &&
+        aRequest.responseStatus == 450) {
+      
+      
+      
+      this.download._blockedByParentalControls = true;
+      aRequest.cancel(Cr.NS_BINDING_ABORTED);
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
   toSerializable: function ()
   {
     throw new Error("Not implemented.");
@@ -1603,14 +1596,7 @@ this.DownloadCopySaver.prototype = {
             onStartRequest: function (aRequest, aContext) {
               backgroundFileSaver.onStartRequest(aRequest, aContext);
 
-              
-              
-              if (aRequest instanceof Ci.nsIHttpChannel &&
-                  aRequest.responseStatus == 450) {
-                
-                
-                this.download._blockedByParentalControls = true;
-                aRequest.cancel(Cr.NS_BINDING_ABORTED);
+              if (this.isResponseParentalBlocked(aRequest)) {
                 return;
               }
 
@@ -1702,13 +1688,6 @@ this.DownloadCopySaver.prototype = {
                                                   aCount);
             }.bind(copySaver),
           }, null);
-
-          
-          
-          
-          if (this._canceled) {
-            throw new DownloadError({ message: "Saver canceled." });
-          }
 
           
           this._backgroundFileSaver = backgroundFileSaver;
@@ -1916,6 +1895,10 @@ this.DownloadLegacySaver.prototype = {
         this.entityID = aRequest.entityID;
       } catch (ex if ex instanceof Components.Exception &&
                      ex.result == Cr.NS_ERROR_NOT_RESUMABLE) { }
+    }
+
+    if (this.isResponseParentalBlocked(aRequest)) {
+      return;
     }
 
     
