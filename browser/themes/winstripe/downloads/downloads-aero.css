@@ -25,10 +25,10 @@
   
 
 
-  #toolbar-menubar #downloads-indicator-icon:not(:-moz-lwtheme),
-  #TabsToolbar[tabsontop=true] #downloads-indicator-icon:not(:-moz-lwtheme),
-  #navigator-toolbox[tabsontop=false] > #nav-bar #downloads-indicator-icon:not(:-moz-lwtheme),
-  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child #downloads-indicator-icon:not(:-moz-lwtheme),
+  #toolbar-menubar #downloads-indicator:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
+  #TabsToolbar[tabsontop=true] #downloads-indicator:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
+  #navigator-toolbox[tabsontop=false] > #nav-bar #downloads-indicator:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
+  #nav-bar + #customToolbars + #PersonalToolbar[collapsed=true] + #TabsToolbar[tabsontop=false]:last-child #downloads-indicator:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
 
   
 
