@@ -33,8 +33,25 @@ public:
 
 
 
-  Zip(const char *filename, ZipCollection *collection = NULL);
+  static mozilla::TemporaryRef<Zip> Create(const char *filename);
 
+  
+
+
+  static mozilla::TemporaryRef<Zip> Create(void *buffer, size_t size) {
+    return Create(NULL, buffer, size);
+  }
+
+private:
+  static mozilla::TemporaryRef<Zip> Create(const char *filename,
+                                           void *buffer, size_t size);
+
+  
+
+
+  Zip(const char *filename, void *buffer, size_t size);
+
+public:
   
 
 
@@ -303,9 +320,6 @@ private:
 
   
   mutable const DirectoryEntry *entries;
-
-  
-  mutable ZipCollection *parent;
 };
 
 
@@ -314,19 +328,27 @@ private:
 class ZipCollection
 {
 public:
+  static ZipCollection Singleton;
+
   
 
 
 
-  mozilla::TemporaryRef<Zip> GetZip(const char *path);
+  static mozilla::TemporaryRef<Zip> GetZip(const char *path);
 
 protected:
+  friend class Zip;
   
 
 
 
-  friend Zip::~Zip();
-  void Forget(Zip *zip);
+  static void Register(Zip *zip);
+
+  
+
+
+
+  static void Forget(Zip *zip);
 
 private:
   

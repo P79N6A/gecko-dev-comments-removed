@@ -413,9 +413,6 @@ private:
   std::vector<DestructorCaller> destructors;
 
   
-  ZipCollection zips;
-
-  
   class DebuggerHelper;
 public:
   
