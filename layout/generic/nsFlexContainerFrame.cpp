@@ -315,13 +315,14 @@ public:
   
   
   
-  float GetFlexWeightToUse(bool aHavePositiveFreeSpace)
+  
+  float GetFlexWeightToUse(bool aIsUsingFlexGrow)
   {
     if (IsFrozen()) {
       return 0.0f;
     }
 
-    return aHavePositiveFreeSpace ?
+    return aIsUsingFlexGrow ?
       mFlexGrow :
       mFlexShrink * mFlexBaseSize;
   }
@@ -568,8 +569,7 @@ public:
 
   
   
-  void ResolveFlexibleLengths(const FlexboxAxisTracker& aAxisTracker,
-                              nscoord aFlexContainerMainSize);
+  void ResolveFlexibleLengths(nscoord aFlexContainerMainSize);
 
   void PositionItemsInMainAxis(uint8_t aJustifyContent,
                                nscoord aContentBoxMainSize,
@@ -1383,34 +1383,11 @@ FreezeOrRestoreEachFlexibleSize(
 
 
 
-static bool
-ShouldUseFlexGrow(nscoord aTotalFreeSpace,
-                  nsTArray<FlexItem>& aItems)
-{
-  
-  
-  
-  for (uint32_t i = 0; i < aItems.Length(); i++) {
-    aTotalFreeSpace -= aItems[i].GetMainSize();
-    if (aTotalFreeSpace <= 0) {
-      return false;
-    }
-  }
-  MOZ_ASSERT(aTotalFreeSpace > 0,
-             "if we used up all the space, should've already returned");
-  return true;
-}
-
-
-
-
 
 
 
 void
-FlexLine::ResolveFlexibleLengths(
-  const FlexboxAxisTracker& aAxisTracker,
-  nscoord aFlexContainerMainSize)
+FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
 {
   PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG, ("ResolveFlexibleLengths\n"));
   if (mItems.IsEmpty()) {
@@ -1420,15 +1397,15 @@ FlexLine::ResolveFlexibleLengths(
   
   
   
-  nscoord spaceAvailableForFlexItemsContentBoxes = aFlexContainerMainSize;
-  for (uint32_t i = 0; i < mItems.Length(); i++) {
-    spaceAvailableForFlexItemsContentBoxes -=
-      mItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
-  }
+  nscoord spaceReservedForMarginBorderPadding =
+    mTotalOuterHypotheticalMainSize - mTotalInnerHypotheticalMainSize;
+
+  nscoord spaceAvailableForFlexItemsContentBoxes =
+    aFlexContainerMainSize - spaceReservedForMarginBorderPadding;
 
   
-  bool havePositiveFreeSpace =
-    ShouldUseFlexGrow(spaceAvailableForFlexItemsContentBoxes, mItems);
+  const bool isUsingFlexGrow =
+    (mTotalOuterHypotheticalMainSize < aFlexContainerMainSize);
 
   
   
@@ -1456,8 +1433,8 @@ FlexLine::ResolveFlexibleLengths(
 
     
     
-    if ((availableFreeSpace > 0 && havePositiveFreeSpace) ||
-        (availableFreeSpace < 0 && !havePositiveFreeSpace)) {
+    if ((availableFreeSpace > 0 && isUsingFlexGrow) ||
+        (availableFreeSpace < 0 && !isUsingFlexGrow)) {
 
       
       
@@ -1478,7 +1455,7 @@ FlexLine::ResolveFlexibleLengths(
       uint32_t numItemsWithLargestFlexWeight = 0;
       for (uint32_t i = 0; i < mItems.Length(); i++) {
         FlexItem& item = mItems[i];
-        float curFlexWeight = item.GetFlexWeightToUse(havePositiveFreeSpace);
+        float curFlexWeight = item.GetFlexWeightToUse(isUsingFlexGrow);
         MOZ_ASSERT(curFlexWeight >= 0.0f, "weights are non-negative");
 
         runningFlexWeightSum += curFlexWeight;
@@ -1529,7 +1506,7 @@ FlexLine::ResolveFlexibleLengths(
                 sizeDelta = NSToCoordRound(availableFreeSpace *
                                            myShareOfRemainingSpace);
               }
-            } else if (item.GetFlexWeightToUse(havePositiveFreeSpace) ==
+            } else if (item.GetFlexWeightToUse(isUsingFlexGrow) ==
                        largestFlexWeight) {
               
               
@@ -2392,7 +2369,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     ComputeFlexContainerMainSize(aReflowState, axisTracker, line,
                                  availableHeightForContent, aStatus);
 
-  line.ResolveFlexibleLengths(axisTracker, contentBoxMainSize);
+  line.ResolveFlexibleLengths(contentBoxMainSize);
 
   
   
