@@ -1254,12 +1254,11 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
     char16_t(0x2066), 
     char16_t(0x2067), 
     char16_t(0x2068), 
-    char16_t(0x2069)  
+    char16_t(0x2069), 
+    char16_t(0)
   };
-  for (uint32_t i = 0; i < ArrayLength(unsafeBidiCharacters); ++i) {
-    mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');
-    mTempFileExtension.ReplaceChar(unsafeBidiCharacters[i], '_');
-  }
+  mSuggestedFileName.ReplaceChar(unsafeBidiCharacters, '_');
+  mTempFileExtension.ReplaceChar(unsafeBidiCharacters, '_');
 
   
   EnsureSuggestedFileName();
