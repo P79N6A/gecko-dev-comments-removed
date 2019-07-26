@@ -36,16 +36,6 @@
 #include "nsIScriptTimeoutHandler.h"
 #include "nsIController.h"
 
-#ifdef XP_WIN
-
-#ifdef GetClassName
-#undef GetClassName
-#endif 
-#ifdef CreateEvent
-#undef CreateEvent
-#endif
-#endif 
-
 
 #include "nsJSUtils.h"
 #include "jsapi.h"              
@@ -75,6 +65,18 @@
 #include "nsIWidgetListener.h"
 #include "nsIBaseWindow.h"
 #include "nsDeviceSensors.h"
+
+#ifdef XP_WIN
+
+
+#ifdef GetClassName
+#undef GetClassName
+#endif 
+#ifdef CreateEvent
+#undef CreateEvent
+#endif
+#endif 
+
 #include "nsIContent.h"
 #include "nsIDocShell.h"
 #include "nsIDocCharset.h"
