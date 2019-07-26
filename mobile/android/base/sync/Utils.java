@@ -82,20 +82,34 @@ public class Utils {
   
 
 
-  public static String byte2Hex(final byte[] b) {
-    final StringBuilder hs = new StringBuilder(b.length * 2);
+  public static String byte2hex(byte[] b) {
+    return byte2hex(b, b.length);
+  }
+
+  public static String byte2hex(byte[] b, int hexLength) {
+    
+    String hs = "";
     String stmp;
 
     for (int n = 0; n < b.length; n++) {
-      stmp = Integer.toHexString(b[n] & 0XFF);
+      stmp = java.lang.Integer.toHexString(b[n] & 0XFF);
 
       if (stmp.length() == 1) {
-        hs.append("0");
+        hs = hs + "0" + stmp;
+      } else {
+        hs = hs + stmp;
       }
-      hs.append(stmp);
+
+      if (n < b.length - 1) {
+        hs = hs + "";
+      }
     }
 
-    return hs.toString();
+    while (hs.length() < hexLength) {
+      hs = "0" + hs;
+    }
+
+    return hs;
   }
 
   public static byte[] concatAll(byte[] first, byte[]... rest) {
@@ -135,6 +149,17 @@ public class Utils {
     Base32 converter = new Base32();
     final String translated = base32.replace('8', 'l').replace('9', 'o');
     return converter.decode(translated.toUpperCase());
+  }
+
+  public static byte[] hex2Byte(String str, int byteLength) {
+    byte[] second = hex2Byte(str);
+    if (second.length >= byteLength) {
+      return second;
+    }
+    
+    
+    byte[] first = new byte[byteLength - second.length];
+    return Utils.concatAll(first, second);
   }
 
   public static byte[] hex2Byte(String str) {
@@ -529,16 +554,5 @@ public class Utils {
 
   public static String obfuscateEmail(final String in) {
     return in.replaceAll("[^@\\.]", "X");
-  }
-
-  public static String nodeWeaveURL(String serverURL, String username) {
-    String userPart = username + "/node/weave";
-    if (serverURL == null) {
-      return SyncConstants.DEFAULT_AUTH_SERVER + "user/1.0/" + userPart;
-    }
-    if (!serverURL.endsWith("/")) {
-      serverURL = serverURL + "/";
-    }
-    return serverURL + "user/1.0/" + userPart;
   }
 }
