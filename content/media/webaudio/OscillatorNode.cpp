@@ -70,16 +70,13 @@ public:
     , mDetune(0.f)
     , mType(OscillatorType::Sine)
     , mPhase(0.)
-    , mFinalFrequency(0.0)
-    , mNumberOfHarmonics(0)
-    , mSignalPeriod(0.0)
-    , mAmplitudeAtZero(0.0)
-    , mPhaseIncrement(0.0)
-    , mSquare(0.0)
-    , mTriangle(0.0)
-    , mSaw(0.0)
-    , mPhaseWrap(0.0)
-    , mRecomputeFrequency(true)
+    
+    
+    
+    
+    
+    
+    , mRecomputeParameters(true)
     , mCustomLength(0)
   {
   }
@@ -101,7 +98,7 @@ public:
                             const AudioParamTimeline& aValue,
                             TrackRate aSampleRate) MOZ_OVERRIDE
   {
-    mRecomputeFrequency = true;
+    mRecomputeParameters = true;
     switch (aIndex) {
     case FREQUENCY:
       MOZ_ASSERT(mSource && mDestination);
@@ -139,6 +136,7 @@ public:
           mCustomLength = 0;
           mCustom = nullptr;
           mPeriodicWave = nullptr;
+          mRecomputeParameters = true;
         }
         
         switch (mType) {
@@ -208,7 +206,7 @@ public:
     return mType == OscillatorType::Square || mType == OscillatorType::Triangle;
   }
 
-  void UpdateFrequencyIfNeeded(TrackTicks ticks, size_t count)
+  void UpdateParametersIfNeeded(TrackTicks ticks, size_t count)
   {
     double frequency, detune;
 
@@ -217,7 +215,7 @@ public:
 
     
     
-    if (simpleFrequency && simpleDetune && !mRecomputeFrequency) {
+    if (simpleFrequency && simpleDetune && !mRecomputeParameters) {
       return;
     }
 
@@ -233,7 +231,7 @@ public:
     }
 
     mFinalFrequency = frequency * pow(2., detune / 1200.);
-    mRecomputeFrequency = false;
+    mRecomputeParameters = false;
 
     
     
@@ -308,7 +306,7 @@ public:
   void ComputeSine(float * aOutput, TrackTicks ticks, uint32_t aStart, uint32_t aEnd)
   {
     for (uint32_t i = aStart; i < aEnd; ++i) {
-      UpdateFrequencyIfNeeded(ticks, i);
+      UpdateParametersIfNeeded(ticks, i);
 
       aOutput[i] = sin(mPhase);
 
@@ -319,7 +317,7 @@ public:
   void ComputeSquare(float * aOutput, TrackTicks ticks, uint32_t aStart, uint32_t aEnd)
   {
     for (uint32_t i = aStart; i < aEnd; ++i) {
-      UpdateFrequencyIfNeeded(ticks, i);
+      UpdateParametersIfNeeded(ticks, i);
       
       
       mSquare += BipolarBLIT();
@@ -334,7 +332,7 @@ public:
   {
     float dcoffset;
     for (uint32_t i = aStart; i < aEnd; ++i) {
-      UpdateFrequencyIfNeeded(ticks, i);
+      UpdateParametersIfNeeded(ticks, i);
       
       dcoffset = mFinalFrequency / mSource->SampleRate();
       
@@ -350,7 +348,7 @@ public:
   void ComputeTriangle(float * aOutput, TrackTicks ticks, uint32_t aStart, uint32_t aEnd)
   {
     for (uint32_t i = aStart; i < aEnd; ++i) {
-      UpdateFrequencyIfNeeded(ticks, i);
+      UpdateParametersIfNeeded(ticks, i);
       
       mSquare += BipolarBLIT();
       
@@ -380,7 +378,7 @@ public:
     float rate = 1.0 / mSource->SampleRate();
  
     for (uint32_t i = aStart; i < aEnd; ++i) {
-      UpdateFrequencyIfNeeded(ticks, i);
+      UpdateParametersIfNeeded(ticks, i);
       mPeriodicWave->waveDataForFundamentalFrequency(mFinalFrequency,
                                                      lowerWaveData,
                                                      higherWaveData,
@@ -484,7 +482,7 @@ public:
   float mTriangle;
   float mSaw;
   float mPhaseWrap;
-  bool mRecomputeFrequency;
+  bool mRecomputeParameters;
   nsRefPtr<ThreadSharedFloatArrayBufferList> mCustom;
   uint32_t mCustomLength;
   nsAutoPtr<WebCore::PeriodicWave> mPeriodicWave;
