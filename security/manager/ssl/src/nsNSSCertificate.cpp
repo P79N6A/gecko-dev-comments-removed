@@ -1422,63 +1422,6 @@ nsNSSCertificate::SaveSMimeProfile()
     return NS_OK;
 }
 
-
-char* nsNSSCertificate::defaultServerNickname(CERTCertificate* cert)
-{
-  nsNSSShutDownPreventionLock locker;
-  char* nickname = nullptr;
-  int count;
-  bool conflict;
-  char* servername = nullptr;
-
-  servername = CERT_GetCommonName(&cert->subject);
-  if (!servername) {
-    
-    
-    servername = CERT_GetOrgUnitName(&cert->subject);
-    if (!servername) {
-      servername = CERT_GetOrgName(&cert->subject);
-      if (!servername) {
-        servername = CERT_GetLocalityName(&cert->subject);
-        if (!servername) {
-          servername = CERT_GetStateName(&cert->subject);
-          if (!servername) {
-            servername = CERT_GetCountryName(&cert->subject);
-            if (!servername) {
-              
-              
-              return nullptr;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  count = 1;
-  while (1) {
-    if (count == 1) {
-      nickname = PR_smprintf("%s", servername);
-    }
-    else {
-      nickname = PR_smprintf("%s #%d", servername, count);
-    }
-    if (!nickname) {
-      break;
-    }
-
-    conflict = SEC_CertNicknameConflict(nickname, &cert->derSubject,
-                                        cert->dbhandle);
-    if (!conflict) {
-      break;
-    }
-    PR_Free(nickname);
-    count++;
-  }
-  PR_FREEIF(servername);
-  return nickname;
-}
-
 #ifndef NSS_NO_LIBPKIX
 
 nsresult

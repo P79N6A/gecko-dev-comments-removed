@@ -9,10 +9,12 @@
 #include <stdint.h>
 
 #include "insanity/ScopedPtr.h"
-#include "cert.h"
+#include "certdb.h"
 #include "nss.h"
 #include "ocsp.h"
+#include "pk11pub.h"
 #include "prerror.h"
+#include "prmem.h"
 #include "prprf.h"
 #include "secerr.h"
 #include "secmod.h"
@@ -158,6 +160,102 @@ SetClassicOCSPBehavior(CertVerifier::ocsp_download_config enabled,
     OCSPTimeoutSeconds = 10;
   }
   CERT_SetOCSPTimeout(OCSPTimeoutSeconds);
+}
+
+char*
+DefaultServerNicknameForCert(CERTCertificate* cert)
+{
+  char* nickname = nullptr;
+  int count;
+  bool conflict;
+  char* servername = nullptr;
+
+  servername = CERT_GetCommonName(&cert->subject);
+  if (!servername) {
+    
+    
+    servername = CERT_GetOrgUnitName(&cert->subject);
+    if (!servername) {
+      servername = CERT_GetOrgName(&cert->subject);
+      if (!servername) {
+        servername = CERT_GetLocalityName(&cert->subject);
+        if (!servername) {
+          servername = CERT_GetStateName(&cert->subject);
+          if (!servername) {
+            servername = CERT_GetCountryName(&cert->subject);
+            if (!servername) {
+              
+              
+              return nullptr;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  count = 1;
+  while (1) {
+    if (count == 1) {
+      nickname = PR_smprintf("%s", servername);
+    }
+    else {
+      nickname = PR_smprintf("%s #%d", servername, count);
+    }
+    if (!nickname) {
+      break;
+    }
+
+    conflict = SEC_CertNicknameConflict(nickname, &cert->derSubject,
+                                        cert->dbhandle);
+    if (!conflict) {
+      break;
+    }
+    PR_Free(nickname);
+    count++;
+  }
+  PR_FREEIF(servername);
+  return nickname;
+}
+
+void
+SaveIntermediateCerts(const ScopedCERTCertList& certList)
+{
+  if (!certList) {
+    return;
+  }
+
+  bool isEndEntity = true;
+  for (CERTCertListNode* node = CERT_LIST_HEAD(certList);
+        !CERT_LIST_END(node, certList);
+        node = CERT_LIST_NEXT(node)) {
+    if (isEndEntity) {
+      
+      isEndEntity = false;
+      continue;
+    }
+
+    if (node->cert->slot) {
+      
+      continue;
+    }
+
+    if (node->cert->isperm) {
+      
+      continue;
+    }
+
+    
+    char* nickname = DefaultServerNicknameForCert(node->cert);
+    if (nickname && *nickname) {
+      ScopedPtr<PK11SlotInfo, PK11_FreeSlot> slot(PK11_GetInternalKeySlot());
+      if (slot) {
+        PK11_ImportCert(slot.get(), node->cert, CK_INVALID_HANDLE,
+                        nickname, false);
+      }
+    }
+    PR_FREEIF(nickname);
+  }
 }
 
 } } 

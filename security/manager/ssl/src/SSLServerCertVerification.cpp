@@ -94,11 +94,13 @@
 
 #include "SSLServerCertVerification.h"
 
-#include "insanity/pkixtypes.h"
+#include <cstring>
 
+#include "insanity/pkixtypes.h"
 #include "CertVerifier.h"
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
+#include "NSSCertDBTrustDomain.h"
 #include "nsIBadCertListener2.h"
 #include "nsICertOverrideService.h"
 #include "nsISiteSecurityService.h"
@@ -654,33 +656,6 @@ SSLServerCertVerificationJob::SSLServerCertVerificationJob(
 {
 }
 
-SECStatus
-PSM_SSL_PKIX_AuthCertificate(CertVerifier& certVerifier,
-                             CERTCertificate* peerCert,
-                             nsIInterfaceRequestor* pinarg,
-                             const char* hostname,
-                             insanity::pkix::ScopedCERTCertList* validationChain,
-                             SECOidTag* evOidPolicy)
-{
-    SECStatus rv = certVerifier.VerifyCert(peerCert, certificateUsageSSLServer,
-                                           PR_Now(), pinarg, 0,
-                                           validationChain, evOidPolicy);
-
-    if (rv == SECSuccess) {
-        
-        
-        
-        if (hostname && hostname[0])
-            rv = CERT_VerifyCertName(peerCert, hostname);
-        else
-            rv = SECFailure;
-        if (rv != SECSuccess)
-            PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
-    }
-
-    return rv;
-}
-
 
 
 
@@ -754,6 +729,9 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
                 CERTCertificate* cert, SECItem* stapledOCSPResponse,
                 uint32_t providerFlags)
 {
+  MOZ_ASSERT(infoObject);
+  MOZ_ASSERT(cert);
+
   SECStatus rv;
   if (stapledOCSPResponse) {
     CERTCertDBHandle* handle = CERT_GetDefaultCertDB();
@@ -802,12 +780,17 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
                           reasonsForNotFetching);
   }
 
+  
+  
+  bool saveIntermediates =
+    !(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE);
 
   insanity::pkix::ScopedCERTCertList certList;
   SECOidTag evOidPolicy;
-  rv = PSM_SSL_PKIX_AuthCertificate(certVerifier, cert, infoObject,
-                                    infoObject->GetHostNameRaw(),
-                                    &certList, &evOidPolicy);
+  rv = certVerifier.VerifySSLServerCert(cert, PR_Now(), infoObject,
+                                        infoObject->GetHostNameRaw(),
+                                        saveIntermediates, nullptr,
+                                        &evOidPolicy);
 
   
   
@@ -825,47 +808,7 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
     }
   }
 
-  if (rv == SECSuccess && certList) {
-    
-    
-    if (!(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE)) {
-      for (CERTCertListNode* node = CERT_LIST_HEAD(certList);
-           !CERT_LIST_END(node, certList);
-           node = CERT_LIST_NEXT(node)) {
-
-        if (node->cert->slot) {
-          
-          continue;
-        }
-
-        if (node->cert->isperm) {
-          
-          continue;
-        }
-
-        if (node->cert == cert) {
-          
-          
-          continue;
-        }
-
-        
-        char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
-        if (nickname && *nickname) {
-          
-          
-          
-          MutexAutoLock PK11Mutex(*gSSLVerificationPK11Mutex);
-          ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
-          if (slot) {
-            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE,
-                            nickname, false);
-          }
-        }
-        PR_FREEIF(nickname);
-      }
-    }
-
+  if (rv == SECSuccess) {
     
     
     

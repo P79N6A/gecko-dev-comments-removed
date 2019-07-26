@@ -53,10 +53,6 @@ public:
                                   SECOidTag* evOidPolicy = nullptr);
   static nsNSSCertificate* ConstructFromDER(char* certDER, int derLen);
 
-  
-  
-  static char* defaultServerNickname(CERTCertificate* cert);
-
 private:
   insanity::pkix::ScopedCERTCertificate mCert;
   bool             mPermDelete;
