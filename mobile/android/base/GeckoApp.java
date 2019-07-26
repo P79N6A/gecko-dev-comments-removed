@@ -1229,7 +1229,7 @@ abstract public class GeckoApp
         GeckoAppShell.setGeckoInterface(this);
         ThreadUtils.setUiThread(Thread.currentThread(), new Handler());
 
-        Tabs.getInstance().attachToActivity(this);
+        Tabs.getInstance().attachToContext(this);
         Favicons.getInstance().attachToContext(this);
 
         
@@ -2081,8 +2081,6 @@ abstract public class GeckoApp
             mTextSelection.destroy();
         if (mNotificationHelper != null)
             mNotificationHelper.destroy();
-
-        Tabs.getInstance().detachFromActivity(this);
 
         if (SmsManager.getInstance() != null) {
             SmsManager.getInstance().stop();
