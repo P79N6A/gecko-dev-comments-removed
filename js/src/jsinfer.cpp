@@ -6408,44 +6408,6 @@ TypeCompartment::maybePurgeAnalysis(JSContext *cx, bool force)
     }
 }
 
-inline size_t
-TypeSet::computedSizeOfExcludingThis()
-{
-    
-
-
-
-
-    uint32_t count = baseObjectCount();
-    if (count >= 2)
-        return HashSetCapacity(count) * sizeof(TypeObject *);
-    return 0;
-}
-
-inline size_t
-TypeObject::computedSizeOfExcludingThis()
-{
-    
-
-
-
-
-    size_t bytes = 0;
-
-    uint32_t count = basePropertyCount();
-    if (count >= 2)
-        bytes += HashSetCapacity(count) * sizeof(TypeObject *);
-
-    count = getPropertyCount();
-    for (unsigned i = 0; i < count; i++) {
-        Property *prop = getProperty(i);
-        if (prop)
-            bytes += sizeof(Property) + prop->types.computedSizeOfExcludingThis();
-    }
-
-    return bytes;
-}
-
 static void
 SizeOfScriptTypeInferenceData(RawScript script, TypeInferenceSizes *sizes,
                               JSMallocSizeOfFun mallocSizeOf)
@@ -6456,44 +6418,27 @@ SizeOfScriptTypeInferenceData(RawScript script, TypeInferenceSizes *sizes,
 
     
     if (!script->compartment()->types.inferenceEnabled) {
-        sizes->scripts += mallocSizeOf(typeScript);
+        sizes->typeScripts += mallocSizeOf(typeScript);
         return;
     }
 
-    unsigned count = TypeScript::NumTypeSets(script);
-    sizes->scripts += mallocSizeOf(typeScript);
+    sizes->typeScripts += mallocSizeOf(typeScript);
 
     TypeResult *result = typeScript->dynamicList;
     while (result) {
-        sizes->scripts += mallocSizeOf(result);
+        sizes->typeResults += mallocSizeOf(result);
         result = result->next;
-    }
-
-    
-
-
-
-    TypeSet *typeArray = typeScript->typeArray();
-    for (unsigned i = 0; i < count; i++) {
-        size_t bytes = typeArray[i].computedSizeOfExcludingThis();
-        sizes->scripts += bytes;
-        sizes->temporary -= bytes;
     }
 }
 
 void
 JSCompartment::sizeOfTypeInferenceData(TypeInferenceSizes *sizes, JSMallocSizeOfFun mallocSizeOf)
 {
-    
-
-
-
-
-    sizes->temporary += analysisLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
-    sizes->temporary += typeLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
+    sizes->analysisPool += analysisLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
+    sizes->typePool += typeLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
 
     
-    sizes->temporary += mallocSizeOf(types.pendingArray);
+    sizes->pendingArrays += mallocSizeOf(types.pendingArray);
 
     
     JS_ASSERT(!types.pendingRecompiles);
@@ -6502,13 +6447,13 @@ JSCompartment::sizeOfTypeInferenceData(TypeInferenceSizes *sizes, JSMallocSizeOf
         SizeOfScriptTypeInferenceData(i.get<JSScript>(), sizes, mallocSizeOf);
 
     if (types.allocationSiteTable)
-        sizes->tables += types.allocationSiteTable->sizeOfIncludingThis(mallocSizeOf);
+        sizes->allocationSiteTables += types.allocationSiteTable->sizeOfIncludingThis(mallocSizeOf);
 
     if (types.arrayTypeTable)
-        sizes->tables += types.arrayTypeTable->sizeOfIncludingThis(mallocSizeOf);
+        sizes->arrayTypeTables += types.arrayTypeTable->sizeOfIncludingThis(mallocSizeOf);
 
     if (types.objectTypeTable) {
-        sizes->tables += types.objectTypeTable->sizeOfIncludingThis(mallocSizeOf);
+        sizes->objectTypeTables += types.objectTypeTable->sizeOfIncludingThis(mallocSizeOf);
 
         for (ObjectTypeTable::Enum e(*types.objectTypeTable);
              !e.empty();
@@ -6518,7 +6463,7 @@ JSCompartment::sizeOfTypeInferenceData(TypeInferenceSizes *sizes, JSMallocSizeOf
             const ObjectTableEntry &value = e.front().value;
 
             
-            sizes->tables += mallocSizeOf(key.ids) + mallocSizeOf(value.types);
+            sizes->objectTypeTables += mallocSizeOf(key.ids) + mallocSizeOf(value.types);
         }
     }
 }
@@ -6536,13 +6481,5 @@ TypeObject::sizeOfExcludingThis(TypeInferenceSizes *sizes, JSMallocSizeOfFun mal
         return;
     }
 
-    sizes->objects += mallocSizeOf(newScript);
-
-    
-
-
-
-    size_t bytes = computedSizeOfExcludingThis();
-    sizes->objects += bytes;
-    sizes->temporary -= bytes;
+    sizes->typeObjects += mallocSizeOf(newScript);
 }
