@@ -1200,7 +1200,7 @@ LookupStdName(JSRuntime *rt, HandleString name, const JSStdName *table)
 
 #define STD_NAME_ENTRY(name, code, init, clasp) { init, EAGER_CLASS_ATOM(name), clasp },
 #define STD_DUMMY_ENTRY(name, code, init, dummy) { DummyInit, 0, nullptr },
-static const JSStdName standard_class_atoms[] = {
+static const JSStdName standard_class_names[] = {
   JS_FOR_PROTOTYPES(STD_NAME_ENTRY, STD_DUMMY_ENTRY)
   { nullptr, 0, nullptr }
 };
@@ -1209,8 +1209,7 @@ static const JSStdName standard_class_atoms[] = {
 
 
 
-
-static const JSStdName standard_class_names[] = {
+static const JSStdName builtin_property_names[] = {
     {js_InitObjectClass,        EAGER_ATOM(eval), &JSObject::class_},
 
     
@@ -1297,11 +1296,11 @@ JS_ResolveStandardClass(JSContext *cx, HandleObject obj, HandleId id, bool *reso
     }
 
     
-    stdnm = LookupStdName(rt, idstr, standard_class_atoms);
+    stdnm = LookupStdName(rt, idstr, standard_class_names);
 
     
     if (!stdnm)
-        stdnm = LookupStdName(rt, idstr, standard_class_names);
+        stdnm = LookupStdName(rt, idstr, builtin_property_names);
 
     
 
@@ -1356,8 +1355,15 @@ JS_EnumerateStandardClasses(JSContext *cx, HandleObject obj)
     }
 
     
-    for (unsigned i = 0; standard_class_atoms[i].init; i++) {
-        const JSStdName &stdnm = standard_class_atoms[i];
+
+
+
+
+
+
+    for (unsigned i = 0; standard_class_names[i].init; i++) {
+        const JSStdName &stdnm = standard_class_names[i];
+        
         if (!stdnm.isDummy() && !obj->as<GlobalObject>().isStandardClassResolved(stdnm.clasp)) {
             if (!stdnm.init(cx, obj))
                 return false;
