@@ -675,6 +675,18 @@ BrowserElementChild.prototype = {
     onProgressChange: function(webProgress, request, curSelfProgress,
                                maxSelfProgress, curTotalProgress, maxTotalProgress) {},
   },
+
+  
+  _messageManagerPublic: {
+    sendAsyncMessage: global.sendAsyncMessage.bind(global),
+    sendSyncMessage: global.sendSyncMessage.bind(global),
+    addMessageListener: global.addMessageListener.bind(global),
+    removeMessageListener: global.removeMessageListener.bind(global)
+  },
+
+  get messageManager() {
+    return this._messageManagerPublic;
+  }
 };
 
 var api = new BrowserElementChild();
