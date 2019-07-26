@@ -1,5 +1,5 @@
 
-x = <x/>
+x = [1,2,3]
 function f(aaa) {
     aaa.e = x
 }

@@ -57,9 +57,6 @@ test("a", 2, "q = function (a) { h(); return function (b) { h(); a = b; }; }; q(
 test("n", 3, "q = function (n) { for (var i = 0; i < n; i++) { let (j = i) { h(); } } }; q(3);");
 
 
-test("x", 2, "q = function () { var x = <><y/><z/></>.(function (e) { h(); }(this)); }; q();");
-
-
 var N = 80;
 
 var code = "function f" + N + "(a" + N + ") {\neval('a0 + a1'); h();\n}\n";

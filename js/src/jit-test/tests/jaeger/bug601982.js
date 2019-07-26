@@ -3,7 +3,7 @@
 function J(i) {
     
     if (i % 3)
-        <xml></xml>
+        [1,2,3]
 }
 
 function h(i) {
@@ -17,7 +17,7 @@ function h(i) {
 
 function g(i) {
     
-    if (i == 14) { <xml></xml> }
+    if (i == 14) { with ({}); }
     return h(i);
 }
 
