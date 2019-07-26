@@ -739,6 +739,16 @@ enum ErrorArgumentsType {
     ArgumentsAreASCII
 };
 
+
+
+
+
+
+
+
+JSFunction *
+SelfHostedFunction(JSContext *cx, HandlePropertyName propName);
+
 } 
 
 #ifdef va_start

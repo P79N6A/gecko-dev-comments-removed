@@ -9,6 +9,7 @@
 
 #include "jsobj.h"
 
+#include "builtin/TypedObjectConstants.h"
 #include "builtin/TypeRepresentation.h"
 
 namespace js {
@@ -20,47 +21,12 @@ namespace js {
 
 extern const Class TypedObjectClass;
 
-
-enum TypeCommonSlots {
-    
-    SLOT_TYPE_REPR=0,
-    TYPE_RESERVED_SLOTS
-};
-
-
-enum ArrayTypeCommonSlots {
-    
-    SLOT_ARRAY_ELEM_TYPE = TYPE_RESERVED_SLOTS,
-    ARRAY_TYPE_RESERVED_SLOTS
-};
-
-
-enum StructTypeCommonSlots {
-    
-    SLOT_STRUCT_FIELD_TYPES = TYPE_RESERVED_SLOTS,
-    STRUCT_TYPE_RESERVED_SLOTS
-};
-
-
-enum BlockCommonSlots {
-    
-    SLOT_DATATYPE = 0,
-
-    
-    
-    
-    SLOT_BLOCKREFOWNER,
-
-    BLOCK_RESERVED_SLOTS
-};
-
 template <ScalarTypeRepresentation::Type type, typename T>
 class NumericType
 {
   private:
     static const Class * typeToClass();
   public:
-    static bool convert(JSContext *cx, HandleValue val, T* converted);
     static bool reify(JSContext *cx, void *mem, MutableHandleValue vp);
     static bool call(JSContext *cx, unsigned argc, Value *vp);
 };
@@ -251,6 +217,54 @@ class BinaryBlock
 };
 
 
+
+
+
+bool ClampToUint8(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo ClampToUint8JitInfo;
+
+
+
+
+
+
+
+
+bool Memcpy(ThreadSafeContext *cx, unsigned argc, Value *vp);
+
+extern const JSJitInfo MemcpyJitInfo;
+
+
+
+
+
+
+#define JS_STORE_SCALAR_CLASS_DEFN(_constant, T, _name)                       \
+class StoreScalar##T {                                                        \
+  public:                                                                     \
+    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static const JSJitInfo JitInfo;                                           \
+};
+
+
+
+
+
+
+
+#define JS_LOAD_SCALAR_CLASS_DEFN(_constant, T, _name)                        \
+class LoadScalar##T {                                                         \
+  public:                                                                     \
+    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static const JSJitInfo JitInfo;                                           \
+};
+
+
+
+JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(JS_STORE_SCALAR_CLASS_DEFN)
+JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(JS_LOAD_SCALAR_CLASS_DEFN)
+
 } 
 
 #endif 
+
