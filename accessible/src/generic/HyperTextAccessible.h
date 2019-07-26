@@ -6,11 +6,9 @@
 #ifndef mozilla_a11y_HyperTextAccessible_h__
 #define mozilla_a11y_HyperTextAccessible_h__
 
-#include "nsIAccessibleText.h"
-#include "nsIAccessibleHyperText.h"
-#include "nsIAccessibleEditableText.h"
-
 #include "AccessibleWrap.h"
+#include "nsIAccessibleTypes.h"
+#include "xpcAccessibleHyperText.h"
 
 #include "nsFrameSelection.h"
 #include "nsISelectionController.h"
@@ -35,18 +33,13 @@ const PRUnichar kForcedNewLineChar = '\n';
 
 
 class HyperTextAccessible : public AccessibleWrap,
-                            public nsIAccessibleText,
-                            public nsIAccessibleHyperText,
-                            public nsIAccessibleEditableText
+                            public xpcAccessibleHyperText
 {
 public:
   HyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~HyperTextAccessible() { }
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLETEXT
-  NS_DECL_NSIACCESSIBLEHYPERTEXT
-  NS_DECL_NSIACCESSIBLEEDITABLETEXT
 
   
   virtual int32_t GetLevelInternal();
@@ -61,11 +54,11 @@ public:
 
   
   nsresult ContentToRenderedOffset(nsIFrame *aFrame, int32_t aContentOffset,
-                                   uint32_t *aRenderedOffset);
-  
+                                   uint32_t *aRenderedOffset) const;
+
   
   nsresult RenderedToContentOffset(nsIFrame *aFrame, uint32_t aRenderedOffset,
-                                   int32_t *aContentOffset);
+                                   int32_t *aContentOffset) const;
 
   
   
@@ -73,15 +66,13 @@ public:
   
 
 
-  uint32_t GetLinkCount()
-  {
-    return EmbeddedChildCount();
-  }
+  uint32_t LinkCount()
+    { return EmbeddedChildCount(); }
 
   
 
 
-  Accessible* GetLinkAt(uint32_t aIndex)
+  Accessible* LinkAt(uint32_t aIndex)
   {
     return GetEmbeddedChildAt(aIndex);
   }
@@ -89,7 +80,7 @@ public:
   
 
 
-  int32_t GetLinkIndex(Accessible* aLink)
+  int32_t LinkIndexOf(Accessible* aLink)
   {
     return GetIndexOfEmbeddedChild(aLink);
   }
@@ -97,10 +88,10 @@ public:
   
 
 
-  int32_t GetLinkIndexAtOffset(uint32_t aOffset)
+  int32_t LinkIndexAtOffset(uint32_t aOffset)
   {
     Accessible* child = GetChildAtOffset(aOffset);
-    return child ? GetLinkIndex(child) : -1;
+    return child ? LinkIndexOf(child) : -1;
   }
 
   
@@ -134,7 +125,7 @@ public:
   Accessible* DOMPointToHypertextOffset(nsINode *aNode,
                                         int32_t aNodeOffset,
                                         int32_t* aHypertextOffset,
-                                        bool aIsEndOffset = false);
+                                        bool aIsEndOffset = false) const;
 
   
 
@@ -211,6 +202,37 @@ public:
   
 
 
+  void TextSubstring(int32_t aStartOffset, int32_t aEndOffset, nsAString& aText);
+
+  
+
+
+
+  void TextBeforeOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
+                       int32_t* aStartOffset, int32_t* aEndOffset,
+                       nsAString& aText);
+  void TextAtOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
+                    int32_t* aStartOffset, int32_t* aEndOffset,
+                    nsAString& aText);
+  void TextAfterOffset(int32_t aOffset, AccessibleTextBoundary aBoundaryType,
+                       int32_t* aStartOffset, int32_t* aEndOffset,
+                       nsAString& aText);
+
+  
+
+
+  already_AddRefed<nsIPersistentProperties>
+    TextAttributes(bool aIncludeDefAttrs, int32_t aOffset,
+                   int32_t* aStartOffset, int32_t* aEndOffset);
+
+  
+
+
+  already_AddRefed<nsIPersistentProperties> DefaultTextAttributes();
+
+  
+
+
 
 
 
@@ -249,12 +271,32 @@ public:
   
 
 
-  nsIntRect GetTextBounds(int32_t aStartOffset, int32_t aEndOffset)
-  {
-    nsIntRect bounds;
-    GetPosAndText(aStartOffset, aEndOffset, nullptr, nullptr, &bounds);
-    return bounds;
-  }
+  bool IsValidOffset(int32_t aOffset);
+  bool IsValidRange(int32_t aStartOffset, int32_t aEndOffset);
+
+  
+
+
+  int32_t OffsetAtPoint(int32_t aX, int32_t aY, uint32_t aCoordType);
+
+  
+
+
+  nsIntRect TextBounds(int32_t aStartOffset, int32_t aEndOffset,
+                       uint32_t aCoordType = nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE);
+
+  
+
+
+
+  nsIntRect CharBounds(int32_t aOffset, uint32_t aCoordType)
+    { return TextBounds(aOffset, aOffset + 1, aCoordType); }
+
+  
+
+
+  int32_t CaretOffset() const;
+  void SetCaretOffset(int32_t aOffset) { SetSelectionRange(aOffset, aOffset); }
 
   
 
@@ -272,7 +314,58 @@ public:
   nsIntRect GetCaretRect(nsIWidget** aWidget);
 
   
+
+
+  int32_t SelectionCount();
+
   
+
+
+  bool SelectionBoundsAt(int32_t aSelectionNum,
+                         int32_t* aStartOffset, int32_t* aEndOffset);
+
+  
+
+
+
+  bool SetSelectionBoundsAt(int32_t aSelectionNum,
+                            int32_t aStartOffset, int32_t aEndOffset);
+
+  
+
+
+
+  bool AddToSelection(int32_t aStartOffset, int32_t aEndOffset);
+
+  
+
+
+
+  bool RemoveFromSelection(int32_t aSelectionNum);
+
+  
+
+
+  void ScrollSubstringTo(int32_t aStartOffset, int32_t aEndOffset,
+                         uint32_t aScrollType);
+
+  
+
+
+  void ScrollSubstringToPoint(int32_t aStartOffset,
+                              int32_t aEndOffset,
+                              uint32_t aCoordinateType,
+                              int32_t aX, int32_t aY);
+
+  
+  
+
+  void ReplaceText(const nsAString& aText);
+  void InsertText(const nsAString& aText, int32_t aPosition);
+  void CopyText(int32_t aStartPos, int32_t aEndPos);
+  void CutText(int32_t aStartPos, int32_t aEndPos);
+  void DeleteText(int32_t aStartPos, int32_t aEndPos);
+  void PasteText(int32_t aPosition);
 
   
 
@@ -289,39 +382,12 @@ protected:
   
 
 
-  int32_t ConvertMagicOffset(int32_t aOffset)
-  {
-    if (aOffset == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
-      return CharacterCount();
-
-    if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET) {
-      int32_t caretOffset = -1;
-      GetCaretOffset(&caretOffset);
-      return caretOffset;
-    }
-
-    return aOffset;
-  }
+  int32_t ConvertMagicOffset(int32_t aOffset);
 
   
 
 
-  int32_t AdjustCaretOffset(int32_t aOffset)
-  {
-    
-    
-    
-    
-    
-    if (aOffset > 0) {
-      nsRefPtr<nsFrameSelection> frameSelection = FrameSelection();
-      if (frameSelection &&
-          frameSelection->GetHint() == nsFrameSelection::HINTLEFT) {
-        return aOffset - 1;
-      }
-    }
-    return aOffset;
-  }
+  int32_t AdjustCaretOffset(int32_t aOffset) const;
 
   
 
@@ -429,7 +495,8 @@ protected:
   
 
 
-  virtual already_AddRefed<nsFrameSelection> FrameSelection();
+  virtual already_AddRefed<nsFrameSelection> FrameSelection() const;
+  Selection* DOMSelection() const;
 
   
 
@@ -443,7 +510,7 @@ protected:
                                     Accessible* aAccessible,
                                     mozilla::a11y::DOMPoint* aPoint);
 
-  
+
   
 
 
