@@ -296,6 +296,14 @@ public:
   {
     return (mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
   }
+  bool IsDeadKey() const { return mIsDeadKey; }
+  
+
+
+
+
+
+  inline bool IsPrintableKey() const { return mIsPrintableKey; }
   WORD GetScanCode() const { return mScanCode; }
   uint8_t GetVirtualKeyCode() const { return mVirtualKeyCode; }
   uint8_t GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
@@ -344,6 +352,15 @@ public:
 
 
 
+
+
+
+  bool NeedsToHandleWithoutFollowingCharMessages() const;
+
+  
+
+
+
   bool DispatchKeyDownEvent(bool* aEventDispatched = nullptr) const;
 
   
@@ -385,6 +402,8 @@ private:
 
   WORD    mScanCode;
   bool    mIsExtended;
+  bool    mIsDeadKey;
+  bool    mIsPrintableKey;
 
   NativeKey()
   {

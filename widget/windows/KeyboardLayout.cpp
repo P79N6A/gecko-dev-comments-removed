@@ -548,6 +548,9 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     keyboardLayout->ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
 
   keyboardLayout->InitNativeKey(*this, mModKeyState);
+
+  mIsDeadKey = keyboardLayout->IsDeadKey(mOriginalVirtualKeyCode, mModKeyState);
+  mIsPrintableKey = KeyboardLayout::IsPrintableCharKey(mOriginalVirtualKeyCode);
 }
 
 UINT
@@ -872,6 +875,35 @@ NativeKey::HandleKeyUpMessage(bool* aEventDispatched) const
     *aEventDispatched = true;
   }
   return DispatchKeyEvent(keyupEvent, &mMsg);
+}
+
+bool
+NativeKey::NeedsToHandleWithoutFollowingCharMessages() const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
+
+  
+  
+  if (mDOMKeyCode == NS_VK_RETURN || mDOMKeyCode == NS_VK_BACK) {
+    return true;
+  }
+
+  
+  
+  if (!mModKeyState.IsControl() && !mModKeyState.IsAlt() &&
+      !mModKeyState.IsWin()) {
+    return false;
+  }
+
+  
+  
+  if (mIsDeadKey) {
+    return false;
+  }
+
+  
+  
+  return IsPrintableKey();
 }
 
 bool
