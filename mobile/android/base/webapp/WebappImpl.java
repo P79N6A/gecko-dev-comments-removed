@@ -100,7 +100,14 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         mTitlebar = findViewById(R.id.webapp_titlebar);
         mSplashscreen = findViewById(R.id.splashscreen);
 
-        String origin = Allocator.getInstance(this).getOrigin(getIndex());
+        Allocator allocator = Allocator.getInstance(this);
+        int index = getIndex();
+
+        
+        
+        allocator.maybeMigrateOldPrefs(index);
+
+        String origin = allocator.getOrigin(index);
         boolean isInstallCompleting = (origin == null);
 
         if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning) || !isInstalled || isInstallCompleting) {

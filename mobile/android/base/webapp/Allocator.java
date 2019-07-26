@@ -11,6 +11,7 @@ import org.mozilla.gecko.GeckoAppShell;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 public class Allocator {
 
@@ -18,6 +19,13 @@ public class Allocator {
 
     private static final String PREFIX_ORIGIN = "webapp-origin-";
     private static final String PREFIX_PACKAGE_NAME = "webapp-package-name-";
+
+    
+    
+    
+    
+    private static final String PREFIX_OLD_APP = "app";
+    private static final String PREFIX_OLD_ICON = "icon";
 
     
     private final static int MAX_WEB_APPS = 100;
@@ -51,6 +59,14 @@ public class Allocator {
 
     public static String originKey(int i) {
         return PREFIX_ORIGIN + i;
+    }
+
+    private static String oldAppKey(int index) {
+        return PREFIX_OLD_APP + index;
+    }
+
+    private static String oldIconKey(int index) {
+        return PREFIX_OLD_ICON + index;
     }
 
     public ArrayList<String> getInstalledPackageNames() {
@@ -137,5 +153,28 @@ public class Allocator {
 
     public int getColor(int index) {
         return mPrefs.getInt(iconKey(index), -1);
+    }
+
+    
+
+
+
+    public void maybeMigrateOldPrefs(int index) {
+        if (!mPrefs.contains(oldAppKey(index))) {
+            return;
+        }
+
+        Log.i(LOGTAG, "migrating old prefs");
+
+        
+        
+        putOrigin(index, mPrefs.getString(oldAppKey(index), null));
+
+        
+        
+        updateColor(index, mPrefs.getInt(oldIconKey(index), -1));
+
+        
+        mPrefs.edit().remove(oldAppKey(index)).remove(oldIconKey(index)).apply();
     }
 }
