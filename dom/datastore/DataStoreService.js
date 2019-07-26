@@ -127,9 +127,9 @@ DataStoreService.prototype = {
               resolve(results);
             }
           },
-          function() {
-            reject();
-          }
+          
+          
+          false
         );
       }
     });
