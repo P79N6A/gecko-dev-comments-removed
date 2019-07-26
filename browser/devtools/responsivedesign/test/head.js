@@ -8,7 +8,7 @@ let TargetFactory = devtools.TargetFactory;
 
 
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
-Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
+Services.scriptloader.loadSubScript(testDir + "../../../commandline/test/helpers.js", this);
 
 function openInspector(callback)
 {
