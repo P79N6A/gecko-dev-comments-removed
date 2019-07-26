@@ -1049,41 +1049,38 @@ nsTextStore::FlushPendingActions()
         PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
                ("TSF: 0x%p   nsTextStore::FlushPendingActions() "
                 "flushing COMPOSITION_UPDATE={ mData=\"%s\", "
-                "mRanges.Length()=%d }",
-                this, NS_ConvertUTF16toUTF8(action.mData).get(),
-                action.mRanges.Length()));
+                "mRanges=0x%p, mRanges->Length()=%d }",
+                this, NS_ConvertUTF16toUTF8(action.mData).get(), action.mRanges,
+                action.mRanges ? action.mRanges->Length() : 0));
 
-        if (action.mRanges.IsEmpty()) {
-          TextRange wholeRange;
-          wholeRange.mStartOffset = 0;
-          wholeRange.mEndOffset = action.mData.Length();
-          wholeRange.mRangeType = NS_TEXTRANGE_RAWINPUT;
-          action.mRanges.AppendElement(wholeRange);
-        } else {
-          
-          
-          
-          
-          for (uint32_t i = 0; i < action.mRanges.Length(); ++i) {
-            TextRange& range = action.mRanges[i];
-            TextRange nativeRange = range;
-            if (nativeRange.mStartOffset > 0) {
-              nsAutoString preText(
-                Substring(action.mData, 0, nativeRange.mStartOffset));
-              preText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
-                                       NS_LITERAL_STRING("\n"));
-              range.mStartOffset = preText.Length();
-            }
-            if (nativeRange.Length() == 0) {
-              range.mEndOffset = range.mStartOffset;
-            } else {
-              nsAutoString clause(
-                Substring(action.mData,
-                          nativeRange.mStartOffset, nativeRange.Length()));
-              clause.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
-                                      NS_LITERAL_STRING("\n"));
-              range.mEndOffset = range.mStartOffset + clause.Length();
-            }
+        if (!action.mRanges) {
+          NS_WARNING("How does this case occur?");
+          action.mRanges = new TextRangeArray();
+        }
+
+        
+        
+        
+        
+        for (uint32_t i = 0; i < action.mRanges->Length(); ++i) {
+          TextRange& range = action.mRanges->ElementAt(i);
+          TextRange nativeRange = range;
+          if (nativeRange.mStartOffset > 0) {
+            nsAutoString preText(
+              Substring(action.mData, 0, nativeRange.mStartOffset));
+            preText.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
+                                     NS_LITERAL_STRING("\n"));
+            range.mStartOffset = preText.Length();
+          }
+          if (nativeRange.Length() == 0) {
+            range.mEndOffset = range.mStartOffset;
+          } else {
+            nsAutoString clause(
+              Substring(action.mData,
+                        nativeRange.mStartOffset, nativeRange.Length()));
+            clause.ReplaceSubstring(NS_LITERAL_STRING("\r\n"),
+                                    NS_LITERAL_STRING("\n"));
+            range.mEndOffset = range.mStartOffset + clause.Length();
           }
         }
 
@@ -1113,15 +1110,14 @@ nsTextStore::FlushPendingActions()
         WidgetTextEvent textEvent(true, NS_TEXT_TEXT, mWidget);
         mWidget->InitEvent(textEvent);
         textEvent.theText = mComposition.mLastData;
-        if (action.mRanges.IsEmpty()) {
+        if (action.mRanges->IsEmpty()) {
           TextRange wholeRange;
           wholeRange.mStartOffset = 0;
           wholeRange.mEndOffset = textEvent.theText.Length();
           wholeRange.mRangeType = NS_TEXTRANGE_RAWINPUT;
-          action.mRanges.AppendElement(wholeRange);
+          action.mRanges->AppendElement(wholeRange);
         }
-        textEvent.rangeArray = action.mRanges.Elements();
-        textEvent.rangeCount = action.mRanges.Length();
+        textEvent.mRanges = action.mRanges;
         mWidget->DispatchWindowEvent(&textEvent);
         
         break;
@@ -1648,11 +1644,10 @@ nsTextStore::RecordCompositionUpdateAction()
 
   PendingAction* action = GetPendingCompositionUpdate();
   action->mData = mComposition.mString;
-  nsTArray<TextRange>& textRanges = action->mRanges;
   
   
   
-  textRanges.Clear();
+  action->mRanges->Clear();
 
   TextRange newRange;
   
@@ -1660,7 +1655,7 @@ nsTextStore::RecordCompositionUpdateAction()
   newRange.mStartOffset = 0;
   newRange.mEndOffset = action->mData.Length();
   newRange.mRangeType = NS_TEXTRANGE_RAWINPUT;
-  textRanges.AppendElement(newRange);
+  action->mRanges->AppendElement(newRange);
 
   nsRefPtr<ITfRange> range;
   while (S_OK == enumRanges->Next(1, getter_AddRefs(range), nullptr) && range) {
@@ -1700,14 +1695,14 @@ nsTextStore::RecordCompositionUpdateAction()
       }
     }
 
-    TextRange& lastRange = textRanges[textRanges.Length() - 1];
+    TextRange& lastRange = action->mRanges->LastElement();
     if (lastRange.mStartOffset == newRange.mStartOffset) {
       
       
       lastRange = newRange;
     } else {
       lastRange.mEndOffset = newRange.mStartOffset;
-      textRanges.AppendElement(newRange);
+      action->mRanges->AppendElement(newRange);
     }
   }
 
@@ -1719,8 +1714,8 @@ nsTextStore::RecordCompositionUpdateAction()
   
   
   
-  if (!currentSel.IsCollapsed() && textRanges.Length() == 1) {
-    TextRange& range = textRanges[0];
+  if (!currentSel.IsCollapsed() && action->mRanges->Length() == 1) {
+    TextRange& range = action->mRanges->ElementAt(0);
     LONG start = currentSel.MinOffset();
     LONG end = currentSel.MaxOffset();
     if ((LONG)range.mStartOffset == start - mComposition.mStart &&
@@ -1738,7 +1733,7 @@ nsTextStore::RecordCompositionUpdateAction()
   TextRange caretRange;
   caretRange.mStartOffset = caretRange.mEndOffset = uint32_t(caretPosition);
   caretRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
-  textRanges.AppendElement(caretRange);
+  action->mRanges->AppendElement(caretRange);
 
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
          ("TSF: 0x%p   nsTextStore::RecordCompositionUpdateAction() "

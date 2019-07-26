@@ -501,7 +501,7 @@ protected:
     
     nsString mData;
     
-    nsTArray<mozilla::TextRange> mRanges;
+    nsRefPtr<mozilla::TextRangeArray> mRanges;
     
     bool mSelectionReversed;
   };
@@ -521,9 +521,7 @@ protected:
     }
     PendingAction* newAction = mPendingActions.AppendElement();
     newAction->mType = PendingAction::COMPOSITION_UPDATE;
-    
-    
-    newAction->mRanges.SetCapacity(4);
+    newAction->mRanges = new mozilla::TextRangeArray();
     return newAction;
   }
 
