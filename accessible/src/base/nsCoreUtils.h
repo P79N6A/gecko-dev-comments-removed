@@ -230,14 +230,6 @@ public:
 
 
 
-  static bool IsXLink(nsIContent *aContent);
-
-  
-
-
-
-
-
 
   static void GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
                              nsAString& aLanguage);

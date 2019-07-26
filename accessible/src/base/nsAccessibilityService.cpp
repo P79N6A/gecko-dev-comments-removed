@@ -930,7 +930,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       (frame->IsFocusable() ||
        (isHTML && nsCoreUtils::HasClickListener(content)) ||
        HasUniversalAriaProperty(content) || roleMapEntry ||
-       HasRelatedContent(content) || nsCoreUtils::IsXLink(content))) {
+       HasRelatedContent(content))) {
     
     
     
