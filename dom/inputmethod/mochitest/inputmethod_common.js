@@ -24,7 +24,9 @@ function inputmethod_setup(callback) {
       
       ['dom.mozInputMethod.testing', true]
     ];
-    SpecialPowers.pushPrefEnv({set: prefs}, callback);
+    SpecialPowers.pushPrefEnv({set: prefs}, function() {
+      SimpleTest.waitForFocus(callback);
+    });
   });
 }
 
