@@ -357,7 +357,7 @@ class MacroAssemblerX86Shared : public Assembler
     
     
     bool buildFakeExitFrame(const Register &scratch, uint32 *offset) {
-        DebugOnly<uint32> initialDepth = framePushed();
+        mozilla::DebugOnly<uint32> initialDepth = framePushed();
 
         CodeLabel *cl = new CodeLabel();
         if (!addCodeLabel(cl))

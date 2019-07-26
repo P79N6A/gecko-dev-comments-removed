@@ -17,6 +17,9 @@
 
 using namespace js;
 
+using mozilla::AddToHash;
+using mozilla::HashString;
+
 
 static void
 AssertInnerizedScopeChain(JSContext *cx, JSObject &scopeobj)

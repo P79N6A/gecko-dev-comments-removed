@@ -801,15 +801,11 @@ public:
 
 
 
-#ifdef DEBUG
 JS_ALWAYS_INLINE void
 AssertCanGC()
 {
     JS_ASSERT(!InNoGCScope());
 }
-#else
-# define AssertCanGC()
-#endif
 
 #if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
 extern void

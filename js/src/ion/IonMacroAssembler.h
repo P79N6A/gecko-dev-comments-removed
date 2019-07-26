@@ -25,7 +25,7 @@
 
 namespace js {
 namespace ion {
- 
+
 
 
 
@@ -52,8 +52,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     };
 
     AutoRooter autoRooter_;
-    Maybe<IonContext> ionContext_;
-    Maybe<AutoIonContextAlloc> alloc_;
+    mozilla::Maybe<IonContext> ionContext_;
+    mozilla::Maybe<AutoIonContextAlloc> alloc_;
     bool enoughMemory_;
 
   private:

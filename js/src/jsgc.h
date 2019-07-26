@@ -1037,12 +1037,12 @@ struct GCMarker : public JSTracer {
     
     uint32_t color;
 
-    DebugOnly<bool> started;
+    mozilla::DebugOnly<bool> started;
 
     
     js::gc::ArenaHeader *unmarkedArenaStackTop;
     
-    DebugOnly<size_t> markLaterArenas;
+    mozilla::DebugOnly<size_t> markLaterArenas;
 
     struct GrayRoot {
         void *thing;

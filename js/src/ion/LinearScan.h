@@ -269,7 +269,7 @@ class LiveInterval
     const Range *getRange(size_t i) const {
         return &ranges_[i];
     }
-    void setLastProcessedRange(size_t range, DebugOnly<CodePosition> pos) {
+    void setLastProcessedRange(size_t range, mozilla::DebugOnly<CodePosition> pos) {
         
         
         JS_ASSERT(ranges_[range].from <= pos);

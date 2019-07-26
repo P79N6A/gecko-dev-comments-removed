@@ -137,8 +137,8 @@ class TypedOrValueRegister
 
     
     union U {
-        AlignedStorage2<AnyRegister> typed;
-        AlignedStorage2<ValueOperand> value;
+        mozilla::AlignedStorage2<AnyRegister> typed;
+        mozilla::AlignedStorage2<ValueOperand> value;
     } data;
 
     AnyRegister &dataTyped() {
@@ -197,8 +197,8 @@ class ConstantOrRegister
 
     
     union U {
-        AlignedStorage2<Value> constant;
-        AlignedStorage2<TypedOrValueRegister> reg;
+        mozilla::AlignedStorage2<Value> constant;
+        mozilla::AlignedStorage2<TypedOrValueRegister> reg;
     } data;
 
     Value &dataValue() {

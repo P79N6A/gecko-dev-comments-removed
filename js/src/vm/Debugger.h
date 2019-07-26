@@ -118,7 +118,7 @@ class Debugger {
 
 
 
-    JSTrapStatus handleUncaughtException(Maybe<AutoCompartment> &ac, Value *vp, bool callHook);
+    JSTrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment> &ac, Value *vp, bool callHook);
 
     
 
@@ -145,7 +145,7 @@ class Debugger {
 
 
 
-    JSTrapStatus parseResumptionValue(Maybe<AutoCompartment> &ac, bool ok, const Value &rv,
+    JSTrapStatus parseResumptionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, const Value &rv,
                                       Value *vp, bool callHook = true);
 
     GlobalObject *unwrapDebuggeeArgument(JSContext *cx, const Value &v);
@@ -351,7 +351,7 @@ class Debugger {
 
 
 
-    bool receiveCompletionValue(Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
+    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
 
     
 

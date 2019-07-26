@@ -159,7 +159,7 @@ BaseShape::adoptUnowned(UnownedBaseShape *other)
 
 
     JS_ASSERT(isOwned());
-    DebugOnly<uint32_t> flags = getObjectFlags();
+    mozilla::DebugOnly<uint32_t> flags = getObjectFlags();
     JS_ASSERT((flags & other->getObjectFlags()) == flags);
 
     uint32_t span = slotSpan();
