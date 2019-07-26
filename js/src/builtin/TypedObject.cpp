@@ -822,8 +822,7 @@ js::IsTypedObjectArray(JSObject &obj)
 
 const Class StructTypeDescr::class_ = {
     "StructType",
-    JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) |
-    JSCLASS_HAS_PRIVATE, 
+    JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS),
     JS_PropertyStub,
     JS_DeletePropertyStub,
     JS_PropertyStub,
