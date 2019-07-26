@@ -373,6 +373,7 @@ class StrictModeGetter {
 
 
 
+
 class MOZ_STACK_CLASS TokenStream
 {
     
