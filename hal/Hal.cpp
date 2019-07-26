@@ -131,20 +131,17 @@ Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
     return;
   }
 
-  if (InSandbox()) {
-    hal_sandbox::Vibrate(pattern, id);
-  }
-  else {
-    if (!gLastIDToVibrate)
+  if (!InSandbox()) {
+    if (!gLastIDToVibrate) {
       InitLastIDToVibrate();
+    }
     *gLastIDToVibrate = id.AsArray();
-
-    HAL_LOG(("Vibrate: Forwarding to hal_impl."));
-
-    
-    
-    hal_impl::Vibrate(pattern, WindowIdentifier());
   }
+
+  
+  
+  
+  PROXY_IF_SANDBOXED(Vibrate(pattern, InSandbox() ? id : WindowIdentifier()));
 }
 
 void
@@ -175,15 +172,11 @@ CancelVibrate(const WindowIdentifier &id)
   
   
 
-  if (InSandbox()) {
-    hal_sandbox::CancelVibrate(id);
-  }
-  else if (gLastIDToVibrate && *gLastIDToVibrate == id.AsArray()) {
+  if (InSandbox() || (gLastIDToVibrate && *gLastIDToVibrate == id.AsArray())) {
     
     
     
-    HAL_LOG(("CancelVibrate: Forwarding to hal_impl."));
-    hal_impl::CancelVibrate(WindowIdentifier());
+    PROXY_IF_SANDBOXED(CancelVibrate(InSandbox() ? id : WindowIdentifier()));
   }
 }
 
