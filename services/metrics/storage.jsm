@@ -21,6 +21,7 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Sqlite.jsm");
+Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/utils.js");
@@ -688,6 +689,14 @@ this.MetricsStorageBackend = function (path) {
 
 
 
+let shutdown = new AsyncShutdown.Barrier("Metrics Storage Backend");
+this.MetricsStorageBackend.shutdown = shutdown.client;
+Sqlite.shutdown.addBlocker("Metrics Storage: Shutting down",
+  () => shutdown.wait());
+
+
+
+
 
 
 
@@ -806,6 +815,7 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
   ],
 
   
+
 
 
 
