@@ -16,7 +16,7 @@ import sys
 
 
 MINIMUM_PYTHON_MAJOR = 2
-MINIMUM_PYTHON_MINOR = 6
+MINIMUM_PYTHON_MINOR = 7
 
 
 class VirtualenvManager(object):
