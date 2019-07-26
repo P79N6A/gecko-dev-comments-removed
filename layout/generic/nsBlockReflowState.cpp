@@ -633,6 +633,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                                               aFloat, offsets);
 
   nsMargin floatMargin; 
+  nsMargin floatOffsets;
   nsReflowStatus reflowStatus;
 
   
@@ -640,8 +641,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   bool isLetter = aFloat->GetType() == nsGkAtoms::letterFrame;
   if (isLetter) {
-    mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
-                        floatMargin, false, reflowStatus);
+    mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat, floatMargin,
+                        floatOffsets, false, reflowStatus);
     floatMarginWidth = aFloat->GetSize().width + floatMargin.LeftRight();
     NS_ASSERTION(NS_FRAME_IS_COMPLETE(reflowStatus),
                  "letter frames shouldn't break, and if they do now, "
@@ -770,8 +771,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   if (!isLetter) {
     bool pushedDown = mY != saveY;
-    mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat,
-                        floatMargin, pushedDown, reflowStatus);
+    mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat, floatMargin,
+                        floatOffsets, pushedDown, reflowStatus);
   }
   if (aFloat->GetPrevInFlow())
     floatMargin.top = 0;
@@ -817,7 +818,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                  floatMargin.top + floatY);
 
   
-  origin += aFloat->GetRelativeOffset(floatDisplay);
+  nsHTMLReflowState::ApplyRelativePositioning(floatDisplay, floatOffsets,
+                                              &origin);
 
   
   

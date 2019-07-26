@@ -5740,6 +5740,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
                           const nsRect&       aAdjustedAvailableSpace,
                           nsIFrame*           aFloat,
                           nsMargin&           aFloatMargin,
+                          nsMargin&           aFloatOffsets,
                           bool                aFloatPushedDown,
                           nsReflowStatus&     aReflowStatus)
 {
@@ -5832,6 +5833,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
 
   
   aFloatMargin = floatRS.mComputedMargin; 
+  aFloatOffsets = floatRS.mComputedOffsets;
 
   const nsHTMLReflowMetrics& metrics = brc.GetMetrics();
 
