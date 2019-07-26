@@ -60,6 +60,12 @@ extern bool gBluetoothDebugFlag;
 
 
 
+#define BT_API2_LOGR(msg, ...)                                       \
+  BT_LOGR("[WEBBT-API2] " msg, ##__VA_ARGS__)
+
+
+
+
 
 #define BT_APPEND_NAMED_VALUE(array, name, value)                    \
   array.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING(name), value))
