@@ -36,8 +36,7 @@ import java.util.ArrayList;
 
 
 
-public class BrowserSearch extends Fragment implements LoaderCallbacks<Cursor>,
-                                                       AdapterView.OnItemClickListener {
+public class BrowserSearch extends Fragment implements AdapterView.OnItemClickListener {
     
     private static final int SEARCH_LOADER_ID = 0;
 
@@ -55,6 +54,9 @@ public class BrowserSearch extends Fragment implements LoaderCallbacks<Cursor>,
 
     
     private ListView mList;
+
+    
+    private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
     
     private OnUrlOpenListener mUrlOpenListener;
@@ -113,61 +115,10 @@ public class BrowserSearch extends Fragment implements LoaderCallbacks<Cursor>,
         mAdapter = new SearchAdapter(getActivity());
         mList.setAdapter(mAdapter);
 
+        mCursorLoaderCallbacks = new CursorLoaderCallbacks();
+
         
-        getLoaderManager().initLoader(SEARCH_LOADER_ID, null, this);
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        switch(id) {
-        case SEARCH_LOADER_ID:
-            return new SearchCursorLoader(getActivity(), mSearchTerm);
-
-        case FAVICONS_LOADER_ID:
-            final ArrayList<String> urls = args.getStringArrayList(FAVICONS_LOADER_URLS_ARG);
-            return new FaviconsCursorLoader(getActivity(), urls);
-        }
-
-        return null;
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
-        final int loaderId = loader.getId();
-        switch(loaderId) {
-        case SEARCH_LOADER_ID:
-            mAdapter.swapCursor(c);
-
-            
-            
-            ArrayList<String> urls = getUrlsWithoutFavicon(c);
-            if (urls.size() > 0) {
-                Bundle args = new Bundle();
-                args.putStringArrayList(FAVICONS_LOADER_URLS_ARG, urls);
-                getLoaderManager().restartLoader(FAVICONS_LOADER_ID, args, this);
-            }
-            break;
-
-        case FAVICONS_LOADER_ID:
-            
-            
-            mList.requestLayout();
-            break;
-        }
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        final int loaderId = loader.getId();
-        switch(loaderId) {
-        case SEARCH_LOADER_ID:
-            mAdapter.swapCursor(null);
-            break;
-
-        case FAVICONS_LOADER_ID:
-            
-            break;
-        }
+        getLoaderManager().initLoader(SEARCH_LOADER_ID, null, mCursorLoaderCallbacks);
     }
 
     private ArrayList<String> getUrlsWithoutFavicon(Cursor c) {
@@ -217,7 +168,8 @@ public class BrowserSearch extends Fragment implements LoaderCallbacks<Cursor>,
         mSearchTerm = searchTerm;
 
         if (isVisible()) {
-            getLoaderManager().restartLoader(SEARCH_LOADER_ID, null, this);
+            getLoaderManager().restartLoader(SEARCH_LOADER_ID, null, mCursorLoaderCallbacks);
+
         }
     }
 
@@ -312,6 +264,61 @@ public class BrowserSearch extends Fragment implements LoaderCallbacks<Cursor>,
             
 
             return row;
+        }
+    }
+
+    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+        @Override
+        public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+            switch(id) {
+            case SEARCH_LOADER_ID:
+                return new SearchCursorLoader(getActivity(), mSearchTerm);
+
+            case FAVICONS_LOADER_ID:
+                final ArrayList<String> urls = args.getStringArrayList(FAVICONS_LOADER_URLS_ARG);
+                return new FaviconsCursorLoader(getActivity(), urls);
+            }
+
+            return null;
+        }
+
+        @Override
+        public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
+            final int loaderId = loader.getId();
+            switch(loaderId) {
+            case SEARCH_LOADER_ID:
+                mAdapter.swapCursor(c);
+
+                
+                
+                ArrayList<String> urls = getUrlsWithoutFavicon(c);
+                if (urls.size() > 0) {
+                    Bundle args = new Bundle();
+                    args.putStringArrayList(FAVICONS_LOADER_URLS_ARG, urls);
+                    getLoaderManager().restartLoader(FAVICONS_LOADER_ID, args, mCursorLoaderCallbacks);
+                }
+                break;
+
+            case FAVICONS_LOADER_ID:
+                
+                
+                mList.requestLayout();
+                break;
+            }
+        }
+
+        @Override
+        public void onLoaderReset(Loader<Cursor> loader) {
+            final int loaderId = loader.getId();
+            switch(loaderId) {
+            case SEARCH_LOADER_ID:
+                mAdapter.swapCursor(null);
+                break;
+
+            case FAVICONS_LOADER_ID:
+                
+                break;
+            }
         }
     }
 }
