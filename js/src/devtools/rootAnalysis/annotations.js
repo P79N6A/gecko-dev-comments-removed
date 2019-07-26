@@ -106,6 +106,24 @@ function ignoreEdgeUse(edge, variable)
     return false;
 }
 
+function ignoreEdgeAddressTaken(edge)
+{
+    
+    
+    
+    
+    if (edge.Kind == "Call") {
+        var callee = edge.Exp[0];
+        if (callee.Kind == "Var") {
+            var name = callee.Variable.Name[0];
+            if (/js::Invoke\(/.test(name))
+                return true;
+        }
+    }
+
+    return false;
+}
+
 
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
