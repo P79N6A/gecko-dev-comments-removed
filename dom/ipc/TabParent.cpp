@@ -896,16 +896,22 @@ TabParent::RecvPIndexedDBConstructor(PIndexedDBParent* aActor,
   
 
   
-  if (mOwnOrContainingApp && !aASCIIOrigin.EqualsLiteral("chrome")) {
-    uint32_t appId;
-    rv = mOwnOrContainingApp->GetLocalId(&appId);
-    NS_ENSURE_SUCCESS(rv, false);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!aASCIIOrigin.EqualsLiteral("chrome") && IsBrowserOrApp() &&
+      !IndexedDatabaseManager::TabContextMayAccessOrigin(*this, aASCIIOrigin)) {
 
-    if (!IndexedDatabaseManager::OriginMatchesApp(aASCIIOrigin, appId)) {
-      NS_WARNING("App attempted to open databases that it does not have "
-                 "permission to access!");
-      return false;
-    }
+    NS_WARNING("App attempted to open databases that it does not have "
+               "permission to access!");
+    return false;
   }
 
   nsCOMPtr<nsINode> node = do_QueryInterface(GetOwnerElement());
