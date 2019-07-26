@@ -3358,6 +3358,16 @@ CSS_PROP_SVGRESET(
     offsetof(nsStyleSVGReset, mVectorEffect),
     eStyleAnimType_EnumU8)
 
+
+
+CSS_PROP_SHORTHAND(
+    -moz-transform,
+    _moz_transform,
+    MozTransform,
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_IS_ALIAS,
+    "")
+
 #ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 
 
