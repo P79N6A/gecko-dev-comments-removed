@@ -8,7 +8,7 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "GLContext.h"                  
+#include "GLContextTypes.h"             
 #include "GLTextureImage.h"             
 #include "ImageContainer.h"             
 #include "ImageTypes.h"                 

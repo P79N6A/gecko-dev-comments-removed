@@ -4,6 +4,7 @@
 
 
 #include "WebGLContext.h"
+#include "GLContext.h"
 #include "WebGLBuffer.h"
 #include "WebGLVertexArray.h"
 

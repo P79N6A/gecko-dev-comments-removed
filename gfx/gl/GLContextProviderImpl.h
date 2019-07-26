@@ -14,7 +14,6 @@
 class GL_CONTEXT_PROVIDER_NAME
 {
 public:
-    typedef GLContext::ContextFlags ContextFlags;
     typedef gfx::SurfaceCaps SurfaceCaps;
     
 
@@ -61,13 +60,13 @@ public:
     static already_AddRefed<GLContext>
     CreateOffscreen(const gfxIntSize& size,
                     const SurfaceCaps& caps,
-                    ContextFlags flags = GLContext::ContextFlagsNone);
+                    ContextFlags flags = ContextFlagsNone);
 
     
 
 
     static GLContext*
-    GetGlobalContext(ContextFlags flags = GLContext::ContextFlagsNone);
+    GetGlobalContext(ContextFlags flags = ContextFlagsNone);
     
     
 
@@ -75,11 +74,11 @@ public:
 
 
 
-    static SharedTextureHandle CreateSharedHandle(GLContext::SharedTextureShareType shareType,
+    static SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType,
                                                   void* buffer,
-                                                  GLContext::SharedTextureBufferType bufferType);
+                                                  SharedTextureBufferType bufferType);
 
-    static already_AddRefed<gfxASurface> GetSharedHandleAsSurface(GLContext::SharedTextureShareType shareType,
+    static already_AddRefed<gfxASurface> GetSharedHandleAsSurface(SharedTextureShareType shareType,
                                                                   SharedTextureHandle sharedHandle);
 
     

@@ -12,6 +12,7 @@
 #include "Blob.h"
 #include "ContentChild.h"
 #include "IndexedDBChild.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/docshell/OfflineCacheUpdateChild.h"
@@ -568,14 +569,15 @@ TabChild::HandlePossibleViewportChange()
 
   nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
 
-  nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, mInnerSize);
+  nsViewportInfo viewportInfo =
+    nsContentUtils::GetViewportInfo(document, mInnerSize.width, mInnerSize.height);
   SendUpdateZoomConstraints(viewportInfo.IsZoomAllowed(),
-                            viewportInfo.GetMinZoom(),
-                            viewportInfo.GetMaxZoom());
+                            CSSToScreenScale(viewportInfo.GetMinZoom()),
+                            CSSToScreenScale(viewportInfo.GetMaxZoom()));
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
-  CSSSize viewport(viewportInfo.GetSize());
+  CSSSize viewport(viewportInfo.GetWidth(), viewportInfo.GetHeight());
 
   
   
@@ -608,6 +610,8 @@ TabChild::HandlePossibleViewportChange()
     return;
   }
 
+  float minScale = 1.0f;
+
   nsCOMPtr<Element> htmlDOMElement = document->GetHtmlElement();
   HTMLBodyElement* bodyDOMElement = document->GetBodyElement();
 
@@ -635,11 +639,12 @@ TabChild::HandlePossibleViewportChange()
     return;
   }
 
-  CSSToScreenScale minScale(mInnerSize.width / pageSize.width);
-  minScale = clamped(minScale, viewportInfo.GetMinZoom(), viewportInfo.GetMaxZoom());
-  NS_ENSURE_TRUE_VOID(minScale.scale); 
+  minScale = mInnerSize.width / pageSize.width;
+  minScale = clamped((double)minScale, viewportInfo.GetMinZoom(),
+                     viewportInfo.GetMaxZoom());
+  NS_ENSURE_TRUE_VOID(minScale); 
 
-  viewport.height = std::max(viewport.height, screenH / minScale.scale);
+  viewport.height = std::max(viewport.height, screenH / minScale);
   SetCSSViewport(viewport);
 
   float oldScreenWidth = mLastMetrics.mCompositionBounds.width;
@@ -676,14 +681,14 @@ TabChild::HandlePossibleViewportChange()
     
     
     
-    if (viewportInfo.GetDefaultZoom().scale < 0.01f) {
-      viewportInfo.SetDefaultZoom(metrics.CalculateIntrinsicScale());
+    if (viewportInfo.GetDefaultZoom() < 0.01f) {
+      viewportInfo.SetDefaultZoom(metrics.CalculateIntrinsicScale().scale);
     }
 
-    CSSToScreenScale defaultZoom = viewportInfo.GetDefaultZoom();
+    double defaultZoom = viewportInfo.GetDefaultZoom();
     MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
                defaultZoom <= viewportInfo.GetMaxZoom());
-    metrics.mZoom = defaultZoom;
+    metrics.mZoom = CSSToScreenScale(defaultZoom);
   }
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(

@@ -3,7 +3,8 @@
 
 
 
-#include "GLContext.h"
+#include "GLContextTypes.h"
+struct PRLibrary;
 
 namespace mozilla {
 namespace gl {
@@ -79,7 +80,7 @@ public:
     int GetWindowPixelFormat() const { return mWindowPixelFormat; }
     bool UseDoubleBufferedWindows() const { return mUseDoubleBufferedWindows; }
     LibraryType GetLibraryType() const { return mLibType; }
-    static LibraryType SelectLibrary(const GLContext::ContextFlags& aFlags);
+    static LibraryType SelectLibrary(const ContextFlags& aFlags);
     
 private:
     bool mInitialized;

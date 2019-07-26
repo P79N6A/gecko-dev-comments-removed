@@ -7,7 +7,6 @@
 #define MOZILLA_GFX_COMPOSITINGRENDERTARGETOGL_H
 
 #include "mozilla-config.h"             
-#include "GLContext.h"                  
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
 #include "gfxMatrix.h"                  
@@ -73,11 +72,7 @@ public:
     , mFBO(aFBO)
   {}
 
-  ~CompositingRenderTargetOGL()
-  {
-    mGL->fDeleteTextures(1, &mTextureHandle);
-    mGL->fDeleteFramebuffers(1, &mFBO);
-  }
+  ~CompositingRenderTargetOGL();
 
   
 
@@ -111,35 +106,12 @@ public:
     mInitParams = InitParams(aSize, aFBOTextureTarget, aInit);
   }
 
-  void BindTexture(GLenum aTextureUnit, GLenum aTextureTarget)
-  {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
-    MOZ_ASSERT(mTextureHandle != 0);
-    mGL->fActiveTexture(aTextureUnit);
-    mGL->fBindTexture(aTextureTarget, mTextureHandle);
-  }
+  void BindTexture(GLenum aTextureUnit, GLenum aTextureTarget);
 
   
 
 
-  void BindRenderTarget()
-  {
-    if (mInitParams.mStatus != InitParams::INITIALIZED) {
-      InitializeImpl();
-    } else {
-      MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
-      mGL->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mFBO);
-      GLenum result = mGL->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
-      if (result != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
-        nsAutoCString msg;
-        msg.AppendPrintf("Framebuffer not complete -- error 0x%x, aFBOTextureTarget 0x%x, aRect.width %d, aRect.height %d",
-                         result, mInitParams.mFBOTextureTarget, mInitParams.mSize.width, mInitParams.mSize.height);
-        NS_WARNING(msg.get());
-      }
-
-      mCompositor->PrepareViewport(mInitParams.mSize, mTransform);
-    }
-  }
+  void BindRenderTarget();
 
   GLuint GetFBO() const
   {
@@ -179,12 +151,7 @@ public:
   }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual already_AddRefed<gfxImageSurface> Dump(Compositor* aCompositor)
-  {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
-    CompositorOGL* compositorOGL = static_cast<CompositorOGL*>(aCompositor);
-    return mGL->GetTexImage(mTextureHandle, true, compositorOGL->GetFBOFormat());
-  }
+  virtual already_AddRefed<gfxImageSurface> Dump(Compositor* aCompositor);
 #endif
 
 private:
@@ -192,36 +159,7 @@ private:
 
 
 
-  void InitializeImpl()
-  {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::READY);
-
-    mGL->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mFBO);
-    mGL->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
-                               LOCAL_GL_COLOR_ATTACHMENT0,
-                               mInitParams.mFBOTextureTarget,
-                               mTextureHandle,
-                               0);
-
-    
-    
-    GLenum result = mGL->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
-    if (result != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
-      nsAutoCString msg;
-      msg.AppendPrintf("Framebuffer not complete -- error 0x%x, aFBOTextureTarget 0x%x, mFBO %d, mTextureHandle %d, aRect.width %d, aRect.height %d",
-                       result, mInitParams.mFBOTextureTarget, mFBO, mTextureHandle, mInitParams.mSize.width, mInitParams.mSize.height);
-      NS_ERROR(msg.get());
-    }
-
-    mCompositor->PrepareViewport(mInitParams.mSize, mTransform);
-    mGL->fScissor(0, 0, mInitParams.mSize.width, mInitParams.mSize.height);
-    if (mInitParams.mInit == INIT_MODE_CLEAR) {
-      mGL->fClearColor(0.0, 0.0, 0.0, 0.0);
-      mGL->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
-    }
-
-    mInitParams.mStatus = InitParams::INITIALIZED;
-  }
+  void InitializeImpl();
 
   InitParams mInitParams;
   gfxMatrix mTransform;

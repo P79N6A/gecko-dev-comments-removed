@@ -6,7 +6,6 @@
 #ifndef GFX_CANVASLAYEROGL_H
 #define GFX_CANVASLAYEROGL_H
 
-#include "GLContext.h"                  
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
 #include "LayerManagerOGL.h"            
