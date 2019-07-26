@@ -1088,7 +1088,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
         IONALLOC =    -29, 
         WRAPVECTOR =  -30, 
         WRAPPER =     -31, 
-        BASELINECOMPILER=-32, 
+        BASELINECOMPILER=-32 
     };
 
   private:
