@@ -320,7 +320,7 @@ struct FireChangeArgs {
 
 template<>
 struct nsIStyleRule::COMTypeInfo<css::Rule, void> {
-  static const nsIID kIID NS_HIDDEN;
+  static const nsIID kIID;
 };
 const nsIID nsIStyleRule::COMTypeInfo<css::Rule, void>::kIID = NS_ISTYLE_RULE_IID;
 

@@ -66,7 +66,7 @@ public:
   ~nsXMLNameSpaceMap() { Clear(); }
 
 private:
-  nsXMLNameSpaceMap() NS_HIDDEN;  
+  nsXMLNameSpaceMap();  
 
   nsTArray<nsNameSpaceEntry> mNameSpaces;
 };

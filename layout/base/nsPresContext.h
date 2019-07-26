@@ -155,7 +155,7 @@ public:
     eAlwaysRebuildStyle
   };
 
-  nsPresContext(nsIDocument* aDocument, nsPresContextType aType) NS_HIDDEN;
+  nsPresContext(nsIDocument* aDocument, nsPresContextType aType);
 
   
 
@@ -1345,7 +1345,7 @@ protected:
 
 protected:
 
-  virtual ~nsPresContext() NS_HIDDEN;
+  virtual ~nsPresContext();
 
   
   enum {
@@ -1377,7 +1377,7 @@ public:
 
 class nsRootPresContext MOZ_FINAL : public nsPresContext {
 public:
-  nsRootPresContext(nsIDocument* aDocument, nsPresContextType aType) NS_HIDDEN;
+  nsRootPresContext(nsIDocument* aDocument, nsPresContextType aType);
   virtual ~nsRootPresContext();
   virtual void Detach() MOZ_OVERRIDE;
 

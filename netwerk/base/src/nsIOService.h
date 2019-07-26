@@ -78,8 +78,8 @@ private:
     
     
     
-    nsIOService() NS_HIDDEN;
-    ~nsIOService() NS_HIDDEN;
+    nsIOService();
+    ~nsIOService();
 
     nsresult TrackNetworkLinkStatusForOffline();
 

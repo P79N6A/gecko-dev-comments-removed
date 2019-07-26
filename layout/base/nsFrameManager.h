@@ -82,7 +82,7 @@ public:
     MOZ_ASSERT(mPresShell, "need a pres shell");
     MOZ_ASSERT(mStyleSet, "need a style set");
   }
-  ~nsFrameManager() NS_HIDDEN;
+  ~nsFrameManager();
 
   
 

@@ -151,7 +151,7 @@ PRLogModuleInfo *signalingLogInfo() {
 
 template<>
 struct nsISupportsWeakReference::COMTypeInfo<nsSupportsWeakReference, void> {
-  static const nsIID kIID NS_HIDDEN;
+  static const nsIID kIID;
 };
 const nsIID nsISupportsWeakReference::COMTypeInfo<nsSupportsWeakReference, void>::kIID = NS_ISUPPORTSWEAKREFERENCE_IID;
 

@@ -40,8 +40,8 @@ public:
   PropertyList(nsIAtom*           aName,
                NSPropertyDtorFunc aDtorFunc,
                void*              aDtorData,
-               bool               aTransfer) NS_HIDDEN;
-  ~PropertyList() NS_HIDDEN;
+               bool               aTransfer);
+  ~PropertyList();
 
   
   
