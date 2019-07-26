@@ -496,6 +496,16 @@ public:
     virtual void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontListSizes* aSizes) const;
 
+    
+    struct ScriptRange {
+        uint32_t         rangeStart;
+        uint32_t         rangeEnd;
+        hb_tag_t         tags[3]; 
+                                  
+    };
+
+    bool SupportsScriptInGSUB(const hb_tag_t* aScriptTags);
+
     nsString         mName;
     nsString         mFamilyName;
 

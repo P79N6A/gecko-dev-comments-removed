@@ -462,6 +462,17 @@ FT2FontEntry::CairoFontFace()
     return mFontFace;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 nsresult
 FT2FontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 {
@@ -480,6 +491,28 @@ FT2FontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         rv = gfxFontUtils::ReadCMAP(buffer.Elements(), buffer.Length(),
                                     *charmap, mUVSOffset,
                                     unicodeFont, symbolFont);
+    }
+
+    if (NS_SUCCEEDED(rv) && !HasGraphiteTables()) {
+        
+        
+        
+        
+
+        
+        bool hasGSUB = HasFontTable(TRUETYPE_TAG('G','S','U','B'));
+
+        for (const ScriptRange* sr = gfxPlatformFontList::sComplexScriptRanges;
+             sr->rangeStart; sr++) {
+            
+            if (charmap->TestRange(sr->rangeStart, sr->rangeEnd)) {
+                
+                if (hasGSUB && SupportsScriptInGSUB(sr->tags)) {
+                    continue;
+                }
+                charmap->ClearRange(sr->rangeStart, sr->rangeEnd);
+            }
+        }
     }
 
     mHasCmapTable = NS_SUCCEEDED(rv);
