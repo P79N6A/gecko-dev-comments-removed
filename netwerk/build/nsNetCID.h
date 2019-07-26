@@ -674,6 +674,18 @@
 
 
 
+#define NS_RTSPPROTOCOLHANDLER_CID                   \
+{ /* {5bb4b980-7b10-11e2-b92a-0800200c9a66} */       \
+  0x5bb4b980,                                        \
+  0x7b10,                                            \
+  0x11e2,                                            \
+  {0xb9, 0x2a, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66}   \
+}
+
+
+
+
+
 #define NS_ABOUTPROTOCOLHANDLER_CID                  \
 { /* 9e3b6c90-2f75-11d3-8cd0-0060b0fc14a3 */         \
     0x9e3b6c90,                                      \
