@@ -390,10 +390,14 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
         
         rt->staticStrings.finish();
 
-        rt->finishSelfHosting();
-
         JS::PrepareForFullGC(rt);
         GC(rt, GC_NORMAL, JS::gcreason::LAST_CONTEXT);
+
+        
+
+
+
+        rt->finishSelfHosting();
     } else if (mode == DCM_FORCE_GC) {
         JS_ASSERT(!rt->isHeapBusy());
         JS::PrepareForFullGC(rt);
