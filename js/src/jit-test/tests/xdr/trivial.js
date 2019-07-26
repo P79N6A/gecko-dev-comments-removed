@@ -32,3 +32,7 @@ evalWithCache(test, { assertEqBytecode: true, assertEqResult : true });
 
 test = "function f() { return 1; }; 1;";
 evalWithCache(test, { assertEqBytecode: true, assertEqResult : true });
+
+
+test = "function f() { return { x: 2 }; }; f();";
+evalWithCache(test, { assertEqBytecode: true });
