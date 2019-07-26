@@ -172,6 +172,8 @@ private:
                            const IntRect& aSource,
                            const IntPoint& aDest);
 
+  Rect GetUserSpaceClip();
+
   
   
   
