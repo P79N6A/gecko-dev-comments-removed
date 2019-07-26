@@ -214,7 +214,7 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
       return false;
 
     
-    const char *response = NULL;
+    const char *response = nullptr;
     if (aChangedAtom == sMozCommandAtom)
       response = HandleCommand(data, window, aEventTime);
     else if (aChangedAtom == sMozCommandLineAtom)

@@ -84,7 +84,7 @@ struct VisitData {
   }
 
   VisitData(nsIURI* aURI,
-            nsIURI* aReferrer = NULL)
+            nsIURI* aReferrer = nullptr)
   : placeId(0)
   , visitId(0)
   , hidden(true)
@@ -787,7 +787,7 @@ private:
 bool
 CanAddURI(nsIURI* aURI,
           const nsCString& aGUID = EmptyCString(),
-          mozIVisitInfoCallback* aCallback = NULL)
+          mozIVisitInfoCallback* aCallback = nullptr)
 {
   nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
   NS_ENSURE_TRUE(navHistory, false);
@@ -838,7 +838,7 @@ public:
 
   static nsresult Start(mozIStorageConnection* aConnection,
                         nsTArray<VisitData>& aPlaces,
-                        mozIVisitInfoCallback* aCallback = NULL)
+                        mozIVisitInfoCallback* aCallback = nullptr)
   {
     MOZ_ASSERT(NS_IsMainThread(), "This should be called on the main thread");
     MOZ_ASSERT(aPlaces.Length() > 0, "Must pass a non-empty array!");
@@ -869,7 +869,7 @@ public:
     mozStorageTransaction transaction(mDBConn, false,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    VisitData* lastPlace = NULL;
+    VisitData* lastPlace = nullptr;
     for (nsTArray<VisitData>::size_type i = 0; i < mPlaces.Length(); i++) {
       VisitData& place = mPlaces.ElementAt(i);
       VisitData& referrer = mReferrers.ElementAt(i);
@@ -1872,7 +1872,7 @@ private:
 
 void
 StoreAndNotifyEmbedVisit(VisitData& aPlace,
-                         mozIVisitInfoCallback* aCallback = NULL)
+                         mozIVisitInfoCallback* aCallback = nullptr)
 {
   MOZ_ASSERT(aPlace.transitionType == nsINavHistoryService::TRANSITION_EMBED,
              "Must only pass TRANSITION_EMBED visits to this!");
@@ -1930,7 +1930,7 @@ private:
 
 
 
-History* History::gService = NULL;
+History* History::gService = nullptr;
 
 History::History()
   : mShuttingDown(false)

@@ -100,7 +100,8 @@ PlaceInfo::GetVisits(JSContext* aContext,
 
   
   
-  JS::Rooted<JSObject*> visits(aContext, JS_NewArrayObject(aContext, 0, NULL));
+  JS::Rooted<JSObject*> visits(aContext,
+                               JS_NewArrayObject(aContext, 0, nullptr));
   NS_ENSURE_TRUE(visits, NS_ERROR_OUT_OF_MEMORY);
 
   JS::Rooted<JSObject*> global(aContext, JS::CurrentGlobalOrNull(aContext));

@@ -558,7 +558,7 @@ test_new_visit_adds_place_guid()
   
   nsCOMPtr<nsIURI> visitedURI = new_test_uri();
   nsCOMPtr<IHistory> history = do_get_IHistory();
-  nsresult rv = history->VisitURI(visitedURI, NULL,
+  nsresult rv = history->VisitURI(visitedURI, nullptr,
                                   mozilla::IHistory::TOP_LEVEL);
   do_check_success(rv);
   nsRefPtr<VisitURIObserver> finisher = new VisitURIObserver();
@@ -585,12 +585,12 @@ test_two_null_links_same_uri()
   nsCOMPtr<nsIURI> testURI = new_test_uri();
 
   nsCOMPtr<IHistory> history = do_get_IHistory();
-  nsresult rv = history->RegisterVisitedCallback(testURI, NULL);
+  nsresult rv = history->RegisterVisitedCallback(testURI, nullptr);
   do_check_success(rv);
-  rv = history->RegisterVisitedCallback(testURI, NULL);
+  rv = history->RegisterVisitedCallback(testURI, nullptr);
   do_check_success(rv);
 
-  rv = history->VisitURI(testURI, NULL, mozilla::IHistory::TOP_LEVEL);
+  rv = history->VisitURI(testURI, nullptr, mozilla::IHistory::TOP_LEVEL);
   do_check_success(rv);
 
   nsRefPtr<VisitURIObserver> finisher = new VisitURIObserver();
