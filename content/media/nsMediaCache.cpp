@@ -8,6 +8,9 @@
 #include "mozilla/XPCOM.h"
 
 #include "nsMediaCache.h"
+#include "nsDirectoryServiceUtils.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsXULAppAPI.h"
 #include "nsNetUtil.h"
 #include "prio.h"
 #include "nsContentUtils.h"
@@ -18,7 +21,6 @@
 #include "mozilla/Preferences.h"
 #include "FileBlockCache.h"
 #include "mozilla/Attributes.h"
-#include "nsAnonymousTemporaryFile.h"
 
 using namespace mozilla;
 
@@ -517,8 +519,47 @@ nsMediaCache::Init()
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   NS_ASSERTION(!mFileCache, "Cache file already open?");
 
+  
+  
+  
+  
+  nsresult rv;
+  nsCOMPtr<nsIFile> tmpFile;
+  const char* dir = (XRE_GetProcessType() == GeckoProcessType_Content) ?
+    NS_OS_TEMP_DIR : NS_APP_USER_PROFILE_LOCAL_50_DIR;
+  rv = NS_GetSpecialDirectory(dir, getter_AddRefs(tmpFile));
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  
+  
+  rv = tmpFile->AppendNative(nsDependentCString("mozilla-media-cache"));
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  rv = tmpFile->Create(nsIFile::DIRECTORY_TYPE, 0700);
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS) {
+    
+    
+    
+    uint32_t perms;
+    rv = tmpFile->GetPermissions(&perms);
+    NS_ENSURE_SUCCESS(rv,rv);
+    if (perms != 0700) {
+      rv = tmpFile->SetPermissions(0700);
+      NS_ENSURE_SUCCESS(rv,rv);
+    }
+  } else {
+    NS_ENSURE_SUCCESS(rv,rv);
+  }
+
+  rv = tmpFile->AppendNative(nsDependentCString("media_cache"));
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0700);
+  NS_ENSURE_SUCCESS(rv,rv);
+
   PRFileDesc* fileDesc = nullptr;
-  nsresult rv = NS_OpenAnonymousTemporaryFile(&fileDesc);
+  rv = tmpFile->OpenNSPRFileDesc(PR_RDWR | nsIFile::DELETE_ON_CLOSE,
+                                 PR_IRWXU, &fileDesc);
   NS_ENSURE_SUCCESS(rv,rv);
 
   mFileCache = new FileBlockCache();
