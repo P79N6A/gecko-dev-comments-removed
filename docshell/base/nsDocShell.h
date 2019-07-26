@@ -655,7 +655,11 @@ protected:
 
     void ClearFrameHistory(nsISHEntry* aEntry);
 
-    nsresult MaybeInitTiming();
+    
+
+
+
+    void MaybeInitTiming();
 
     
     class RestorePresentationEvent : public nsRunnable {
