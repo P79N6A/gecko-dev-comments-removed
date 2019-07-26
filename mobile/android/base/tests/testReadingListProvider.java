@@ -74,6 +74,9 @@ public class testReadingListProvider extends ContentProviderTest {
             ensureEmptyDatabase();
             test.run();
         }
+        
+        
+        blockForGeckoReady();
     }
 
     
