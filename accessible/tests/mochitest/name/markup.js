@@ -6,7 +6,7 @@ var gNameRulesFileURL = "markuprules.xml";
 var gRuleDoc = null;
 
 
-var gDumpToConsole = true;
+var gDumpToConsole = false;
 
 
 
@@ -14,7 +14,7 @@ var gDumpToConsole = true;
 
 function testNames()
 {
-  enableLogging("tree");
+  
 
   var request = new XMLHttpRequest();
   request.open("get", gNameRulesFileURL, false);
@@ -66,7 +66,7 @@ var gTestIterator =
 
       this.markupIdx++;
       if (this.markupIdx == this.markupElms.length) {
-        disableLogging("tree");
+        
         SimpleTest.finish();
         return;
       }
@@ -132,12 +132,20 @@ function testNamesForMarkupRules(aMarkupElm, aContainer)
   var serializer = new XMLSerializer();
 
   var expr = "//html/body/div[@id='test']/" + aMarkupElm.getAttribute("ref");
-  var elms = evaluateXPath(document, expr, htmlDocResolver);
+  var elm = evaluateXPath(document, expr, htmlDocResolver)[0];
 
   var ruleId = aMarkupElm.getAttribute("ruleset");
   var ruleElms = getRuleElmsByRulesetId(ruleId);
 
-  gTestIterator.iterateRules(elms[0], aContainer, ruleElms);
+  var processMarkupRules =
+    gTestIterator.iterateRules.bind(gTestIterator, elm, aContainer, ruleElms);
+
+  
+  
+  if (isAccessible(elm))
+    processMarkupRules();
+  else
+    waitForEvent(EVENT_SHOW, elm, processMarkupRules);
 }
 
 
