@@ -12,6 +12,7 @@
 #include "nsISecurityEventSink.h"
 #include "nsIWebProgressListener.h"
 #include "nsContentUtils.h"
+#include "nsNetUtil.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
@@ -95,7 +96,8 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   
-  if (aContentType == nsIContentPolicy::TYPE_DOCUMENT) {
+  
+  if (aContentType == nsIContentPolicy::TYPE_DOCUMENT || aContentType == nsIContentPolicy::TYPE_WEBSOCKET) {
     return NS_OK;
   }
 
@@ -124,11 +126,36 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     return NS_OK;
   }
 
-  
-  
-  bool isHttps;
-  if (NS_FAILED(aContentLocation->SchemeIs("https", &isHttps)) || isHttps) {
-    return NS_OK;
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool schemeLocal = false;
+  bool schemeNoReturnData = false;
+  bool schemeInherits = false;
+  bool schemeSecure = false;
+  if (NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+      NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA, &schemeNoReturnData)) ||
+      NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &schemeInherits)) ||
+      NS_FAILED(NS_URIChainHasFlags(aContentLocation, nsIProtocolHandler::URI_SAFE_TO_LOAD_IN_SECURE_CONTEXT, &schemeSecure))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
+     return NS_OK;
   }
 
   
@@ -195,9 +222,9 @@ nsMixedContentBlocker::ShouldProcess(uint32_t aContentType,
                                      nsIPrincipal* aRequestPrincipal,
                                      int16_t* aDecision)
 {
-  if(!aContentLocation) {
+  if (!aContentLocation) {
     
-    if(aContentType == TYPE_OBJECT) {
+    if (aContentType == TYPE_OBJECT) {
        return NS_OK;
     } else {
        return NS_ERROR_FAILURE;
