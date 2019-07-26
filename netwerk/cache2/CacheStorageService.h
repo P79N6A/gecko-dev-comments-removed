@@ -89,6 +89,19 @@ public:
   mozilla::Mutex& Lock() { return mLock; }
 
   
+  
+  
+  class EntryInfoCallback {
+  public:
+    virtual void OnEntryInfo(const nsACString & aURISpec, const nsACString & aIdEnhance,
+                             int64_t aDataSize, int32_t aFetchCount,
+                             uint32_t aLastModifiedTime, uint32_t aExpirationTime) = 0;
+  };
+
+  
+  static void GetCacheEntryInfo(CacheEntry* aEntry, EntryInfoCallback *aVisitor);
+
+  
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
@@ -178,6 +191,19 @@ private:
   void CacheFileDoomed(nsILoadContextInfo* aLoadContextInfo,
                        const nsACString & aIdExtension,
                        const nsACString & aURISpec);
+
+  
+
+
+
+
+
+
+
+  bool GetCacheEntryInfo(nsILoadContextInfo* aLoadContextInfo,
+                         const nsACString & aIdExtension,
+                         const nsACString & aURISpec,
+                         EntryInfoCallback *aCallback);
 
 private:
   friend class CacheMemoryConsumer;

@@ -205,7 +205,11 @@ public:
     mRec->mFlags |= aFileSize;
   }
   
-  uint32_t GetFileSize() { return mRec->mFlags & kFileSizeMask; }
+  uint32_t GetFileSize() { return GetFileSize(mRec); }
+  static uint32_t GetFileSize(CacheIndexRecord *aRec)
+  {
+    return aRec->mFlags & kFileSizeMask;
+  }
   bool     IsFileEmpty() { return GetFileSize() == 0; }
 
   void WriteToBuf(void *aBuf)
@@ -562,6 +566,10 @@ public:
 
   
   static nsresult GetCacheSize(uint32_t *_retval);
+
+  
+  
+  static nsresult GetCacheStats(nsILoadContextInfo *aInfo, uint32_t *aSize, uint32_t *aCount);
 
   
   static nsresult AsyncGetDiskConsumption(nsICacheStorageConsumptionObserver* aObserver);

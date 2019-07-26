@@ -7,20 +7,22 @@
 #define nsAboutCache_h__
 
 #include "nsIAboutModule.h"
+#include "nsICacheStorageVisitor.h"
+#include "nsICacheStorage.h"
 
 #include "nsString.h"
 #include "nsIOutputStream.h"
+#include "nsILoadContextInfo.h"
 
-#include "nsICacheVisitor.h"
 #include "nsCOMPtr.h"
 
 class nsAboutCache : public nsIAboutModule 
-                   , public nsICacheVisitor
+                   , public nsICacheStorageVisitor
 {
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIABOUTMODULE
-    NS_DECL_NSICACHEVISITOR
+    NS_DECL_NSICACHESTORAGEVISITOR
 
     nsAboutCache() {}
     virtual ~nsAboutCache() {}
@@ -28,12 +30,50 @@ public:
     static nsresult
     Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
-protected:
-    nsresult  ParseURI(nsIURI * uri, nsCString &deviceID);
+    static nsresult
+    GetStorage(nsACString const & storageName, nsILoadContextInfo* loadInfo,
+               nsICacheStorage **storage);
 
-    nsCOMPtr<nsIOutputStream> mStream;
-    nsCString                 mDeviceID;
+protected:
+    nsresult ParseURI(nsIURI * uri, nsACString & storage);
+
+    
+    
+    
+    nsresult VisitNextStorage();
+    
+    
+    
+    void FireVisitStorage();
+    
+    
+    
+    nsresult VisitStorage(nsACString const & storageName);
+
+    
+    
+    void FlushBuffer();
+
+    
+    
+    bool mOverview;
+
+    
+    
+    bool mEntriesHeaderAdded;
+
+    
+    nsCOMPtr<nsILoadContextInfo> mLoadInfo;
+    nsCString mContextString;
+
+    
+    nsTArray<nsCString> mStorageList;
+    nsCString mStorageName;
+    nsCOMPtr<nsICacheStorage> mStorage;
+
+    
     nsCString mBuffer;
+    nsCOMPtr<nsIOutputStream> mStream;
 };
 
 #define NS_ABOUT_CACHE_MODULE_CID                    \

@@ -2,8 +2,8 @@
 
 
 
-#ifndef CacheLog__h__
-#define CacheLog__h__
+#ifndef Cache2Log__h__
+#define Cache2Log__h__
 
 #if defined(MOZ_LOGGING)
 #define FORCE_PR_LOG
