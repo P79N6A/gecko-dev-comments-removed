@@ -448,7 +448,7 @@ public:
   }
 
   
-  JS::Value GetInterface(JSContext* aCx, nsIJSIID* aIID, ErrorResult& aRv);
+  JS::Value GetInterface(JSContext* aCx, nsIJSID* aIID, ErrorResult& aRv);
 
   
   
