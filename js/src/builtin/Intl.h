@@ -10,7 +10,7 @@
 #include "gc/Root.h"
 
 struct JSContext;
-class JSObject;
+struct JSObject;
 
 
 

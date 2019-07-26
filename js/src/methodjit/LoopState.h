@@ -269,7 +269,7 @@ class LoopState : public MacroAssemblerTypedefs
     FrameEntry *invariantArguments();
 
     FrameEntry *invariantLength(const analyze::CrossSSAValue &obj);
-    FrameEntry *invariantProperty(const analyze::CrossSSAValue &obj, RawId id);
+    FrameEntry *invariantProperty(const analyze::CrossSSAValue &obj, jsid id);
 
     
     bool cannotIntegerOverflow(const analyze::CrossSSAValue &pushed);
