@@ -6,6 +6,7 @@
 #include "gfxDrawable.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
+#include "mozilla/dom/SVGSVGElement.h"
 
 #include "ClippedImage.h"
 
@@ -14,6 +15,48 @@ using mozilla::layers::ImageContainer;
 
 namespace mozilla {
 namespace image {
+
+class ClippedImageCachedSurface
+{
+public:
+  ClippedImageCachedSurface(gfxASurface* aSurface,
+                            const nsIntSize& aViewportSize,
+                            const SVGImageContext* aSVGContext,
+                            float aFrame,
+                            uint32_t aFlags)
+    : mSurface(aSurface)
+    , mViewportSize(aViewportSize)
+    , mFrame(aFrame)
+    , mFlags(aFlags)
+  {
+    MOZ_ASSERT(mSurface, "Must have a valid surface");
+    if (aSVGContext) {
+      mSVGContext.construct(*aSVGContext);
+    }
+  }
+
+  bool Matches(const nsIntSize& aViewportSize,
+               const SVGImageContext* aSVGContext,
+               float aFrame,
+               uint32_t aFlags)
+  {
+    bool matchesSVGContext = (!aSVGContext && mSVGContext.empty()) ||
+                             *aSVGContext == mSVGContext.ref();
+    return mViewportSize == aViewportSize &&
+           matchesSVGContext &&
+           mFrame == aFrame &&
+           mFlags == aFlags;
+  }
+
+  gfxASurface* Surface() { return mSurface; }
+
+private:
+  nsRefPtr<gfxASurface>            mSurface;
+  const nsIntSize                  mViewportSize;
+  Maybe<SVGImageContext>           mSVGContext;
+  const float                      mFrame;
+  const uint32_t                   mFlags;
+};
 
 class DrawSingleTileCallback : public gfxDrawingCallback
 {
@@ -63,6 +106,9 @@ ClippedImage::ClippedImage(Image* aImage,
 {
   MOZ_ASSERT(aImage != nullptr, "ClippedImage requires an existing Image");
 }
+
+ClippedImage::~ClippedImage()
+{ }
 
 bool
 ClippedImage::ShouldClip()
@@ -175,25 +221,41 @@ ClippedImage::GetFrameInternal(const nsIntSize& aViewportSize,
     return InnerImage()->GetFrame(aWhichFrame, aFlags, _retval);
   }
 
-  
-  gfxImageSurface::gfxImageFormat format = gfxASurface::ImageFormatARGB32;
-  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()
-    ->CreateOffscreenSurface(gfxIntSize(mClip.width, mClip.height),
-                             gfxImageSurface::ContentFromFormat(format));
-  
-  nsRefPtr<gfxDrawingCallback> drawTileCallback =
-    new DrawSingleTileCallback(this, mClip, aViewportSize, aSVGContext, aWhichFrame, aFlags);
-  nsRefPtr<gfxDrawable> drawable =
-    new gfxCallbackDrawable(drawTileCallback, mClip.Size());
+  float frameToDraw = InnerImage()->GetFrameIndex(aWhichFrame);
+  if (!mCachedSurface || !mCachedSurface->Matches(aViewportSize,
+                                                  aSVGContext,
+                                                  frameToDraw,
+                                                  aFlags)) {
+    
+    gfxImageSurface::gfxImageFormat format = gfxASurface::ImageFormatARGB32;
+    nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()
+      ->CreateOffscreenSurface(gfxIntSize(mClip.width, mClip.height),
+                               gfxImageSurface::ContentFromFormat(format));
 
-  
-  nsRefPtr<gfxContext> ctx = new gfxContext(surface);
-  gfxRect imageRect(0, 0, mClip.width, mClip.height);
-  gfxUtils::DrawPixelSnapped(ctx, drawable, gfxMatrix(),
-                             imageRect, imageRect, imageRect, imageRect,
-                             gfxASurface::ImageFormatARGB32, gfxPattern::FILTER_FAST);
+    
+    nsRefPtr<gfxDrawingCallback> drawTileCallback =
+      new DrawSingleTileCallback(this, mClip, aViewportSize, aSVGContext, aWhichFrame, aFlags);
+    nsRefPtr<gfxDrawable> drawable =
+      new gfxCallbackDrawable(drawTileCallback, mClip.Size());
 
-  *_retval = surface.forget().get();
+    
+    nsRefPtr<gfxContext> ctx = new gfxContext(surface);
+    gfxRect imageRect(0, 0, mClip.width, mClip.height);
+    gfxUtils::DrawPixelSnapped(ctx, drawable, gfxMatrix(),
+                               imageRect, imageRect, imageRect, imageRect,
+                               format, gfxPattern::FILTER_FAST);
+
+    
+    mCachedSurface = new ClippedImageCachedSurface(surface,
+                                                   aViewportSize,
+                                                   aSVGContext,
+                                                   frameToDraw,
+                                                   aFlags);
+  }
+
+  MOZ_ASSERT(mCachedSurface, "Should have a cached surface now");
+  *_retval = mCachedSurface->Surface();
+  NS_ADDREF(*_retval);
   return NS_OK;
 }
 
@@ -205,6 +267,10 @@ ClippedImage::GetImageContainer(LayerManager* aManager, ImageContainer** _retval
   
   
   
+
+  if (!ShouldClip()) {
+    return InnerImage()->GetImageContainer(aManager, _retval);
+  }
 
   *_retval = nullptr;
   return NS_OK;
@@ -328,6 +394,15 @@ ClippedImage::DrawSingleTile(gfxContext* aContext,
 
   return InnerImage()->Draw(aContext, aFilter, transform, aFill, aSubimage,
                             viewportSize, aSVGContext, aWhichFrame, aFlags);
+}
+
+NS_IMETHODIMP
+ClippedImage::RequestDiscard()
+{
+  
+  mCachedSurface = nullptr;
+
+  return InnerImage()->RequestDiscard();
 }
 
 } 
