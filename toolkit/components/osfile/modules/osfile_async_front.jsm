@@ -98,10 +98,10 @@ if (!("localProfileDir" in SharedAll.Constants.Path)) {
 
 let clone = SharedAll.clone;
 
-let worker = new PromiseWorker(
-  "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+let worker = null;
 let Scheduler = {
   
+
 
 
   launched: false,
@@ -118,15 +118,20 @@ let Scheduler = {
   latestPromise: Promise.resolve("OS.File scheduler hasn't been launched yet"),
 
   post: function post(...args) {
+    if (this.shutdown) {
+      LOG("OS.File is not available anymore. The following request has been rejected.", args);
+      return Promise.reject(new Error("OS.File has been shut down."));
+    }
+    if (!worker) {
+      
+      worker = new PromiseWorker(
+        "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+    }
     if (!this.launched && SharedAll.Config.DEBUG) {
       
       worker.post("SET_DEBUG", [true]);
     }
     this.launched = true;
-    if (this.shutdown) {
-      LOG("OS.File is not available anymore. The following request has been rejected.", args);
-      return Promise.reject(new Error("OS.File has been shut down."));
-    }
 
     
     let methodArgs = args[1];
@@ -246,14 +251,13 @@ const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
 
 
 function warnAboutUnclosedFiles(shutdown = true) {
-  if (!Scheduler.launched) {
+  if (!Scheduler.launched || !worker) {
     
     
     
     return null;
   }
-  
-  let promise = Scheduler.post("System_shutdown");
+  let promise = Scheduler.post("Meta_getUnclosedResources");
 
   
   if (shutdown) {
@@ -996,6 +1000,44 @@ DirectoryIterator.Entry.fromMsg = function fromMsg(value) {
 };
 
 
+
+
+
+
+
+
+
+File.resetWorker = function() {
+  if (!Scheduler.launched || Scheduler.shutdown) {
+    
+    return Promise.resolve();
+  }
+  return Scheduler.post("Meta_reset").then(
+    function(wouldLeak) {
+      if (!wouldLeak) {
+        
+        worker = null;
+        return;
+      }
+      
+      
+      let msg = "Cannot reset worker: ";
+      let {openedFiles, openedDirectoryIterators} = wouldLeak;
+      if (openedFiles.length > 0) {
+        msg += "The following files are still open:\n" +
+          openedFiles.join("\n");
+      }
+      if (openedDirectoryIterators.length > 0) {
+        msg += "The following directory iterators are still open:\n" +
+          openedDirectoryIterators.join("\n");
+      }
+      throw new Error(msg);
+    }
+  );
+};
+
+
+
 File.POS_START = SysAll.POS_START;
 File.POS_CURRENT = SysAll.POS_CURRENT;
 File.POS_END = SysAll.POS_END;
@@ -1005,9 +1047,9 @@ File.Error = OSError;
 File.DirectoryIterator = DirectoryIterator;
 
 this.OS = {};
-OS.File = File;
-OS.Constants = SharedAll.Constants;
-OS.Shared = {
+this.OS.File = File;
+this.OS.Constants = SharedAll.Constants;
+this.OS.Shared = {
   LOG: SharedAll.LOG,
   Type: SysAll.Type,
   get DEBUG() {
@@ -1017,8 +1059,8 @@ OS.Shared = {
     return SharedAll.Config.DEBUG = x;
   }
 };
-Object.freeze(OS.Shared);
-OS.Path = Path;
+Object.freeze(this.OS.Shared);
+this.OS.Path = Path;
 
 
 

@@ -67,10 +67,18 @@ if (this.Components) {
    
    if (!exn) {
      LOG("Sending positive reply", result, "id is", id);
-     if (result instanceof Transfer) {
-       
-       self.postMessage({ok: result.data, id: id, durationMs: durationMs},
-         result.transfers);
+     if (result instanceof Meta) {
+       if ("transfers" in result.meta) {
+         
+         self.postMessage({ok: result.data, id: id, durationMs: durationMs},
+           result.meta.transfers);
+       } else {
+         self.postMessage({ok: result.data, id:id, durationMs: durationMs});
+       }
+       if (result.meta.shutdown || false) {
+         
+         self.close();
+       }
      } else {
        self.postMessage({ok: result, id:id, durationMs: durationMs});
      }
@@ -192,7 +200,7 @@ if (this.Components) {
 
   let File = exports.OS.File;
 
- 
+  
 
 
 
@@ -202,9 +210,14 @@ if (this.Components) {
 
 
 
-  let Transfer = function Transfer(data, transfers) {
-   this.data = data;
-   this.transfers = transfers;
+
+
+
+
+
+  let Meta = function Meta(data, meta) {
+    this.data = data;
+    this.meta = meta;
   };
 
  
@@ -216,23 +229,42 @@ if (this.Components) {
 
   let Agent = {
    
-   SET_DEBUG: function SET_DEBUG (aDEBUG) {
+   SET_DEBUG: function(aDEBUG) {
      SharedAll.Config.DEBUG = aDEBUG;
    },
    
    
-   GET_DEBUG: function GET_DEBUG () {
+   GET_DEBUG: function() {
      return SharedAll.Config.DEBUG;
    },
-   
-   System_shutdown: function System_shutdown () {
+   Meta_getUnclosedResources: function() {
      
      
      return {
        openedFiles: OpenedFiles.listOpenedResources(),
-       openedDirectoryIterators:
-         OpenedDirectoryIterators.listOpenedResources()
+       openedDirectoryIterators: OpenedDirectoryIterators.listOpenedResources()
      };
+   },
+   Meta_reset: function() {
+     
+     
+     
+     
+     let openedFiles = OpenedFiles.listOpenedResources();
+     let openedDirectoryIterators =
+       OpenedDirectoryIterators.listOpenedResources();
+     let canShutdown = openedFiles.length == 0
+                         && openedDirectoryIterators.length == 0;
+     if (canShutdown) {
+       
+       return new Meta(null, {shutdown: true});
+     } else {
+       
+       return {
+         openedFiles: openedFiles,
+         openedDirectoryIterators: openedDirectoryIterators
+       };
+     }
    },
    
    stat: function stat(path) {
@@ -287,7 +319,13 @@ if (this.Components) {
    },
    read: function read(path, bytes, options) {
      let data = File.read(Type.path.fromMsg(path), bytes, options);
-     return new Transfer({buffer: data.buffer, byteOffset: data.byteOffset, byteLength: data.byteLength}, [data.buffer]);
+     return new Meta({
+         buffer: data.buffer,
+         byteOffset: data.byteOffset,
+         byteLength: data.byteLength
+     }, {
+       transfers: [data.buffer]
+     });
    },
    exists: function exists(path) {
      return File.exists(Type.path.fromMsg(path));
@@ -334,7 +372,13 @@ if (this.Components) {
      return withFile(fd,
        function do_read() {
          let data = this.read(nbytes, options);
-         return new Transfer({buffer: data.buffer, byteOffset: data.byteOffset, byteLength: data.byteLength}, [data.buffer]);
+         return new Meta({
+             buffer: data.buffer,
+             byteOffset: data.byteOffset,
+             byteLength: data.byteLength
+         }, {
+           transfers: [data.buffer]
+         });
        }
      );
    },
