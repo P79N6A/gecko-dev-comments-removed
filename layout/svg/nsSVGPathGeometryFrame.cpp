@@ -426,7 +426,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       
       
       
-      nsSVGUtils::SetupCairoStrokeGeometry(this, tmpCtx);
+      nsSVGUtils::SetupCairoStrokeBBoxGeometry(this, tmpCtx);
       pathExtents.MoveTo(tmpCtx->GetUserStrokeExtent().Center());
       pathExtents.SizeTo(0, 0);
     }
