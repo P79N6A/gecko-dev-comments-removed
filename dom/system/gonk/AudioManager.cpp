@@ -531,9 +531,9 @@ AudioManager::SetPhoneState(int32_t aState)
     MOZ_ASSERT(mPhoneAudioAgent);
     if (aState == PHONE_STATE_IN_CALL) {
       
-      mPhoneAudioAgent->Init(nullptr, AUDIO_CHANNEL_TELEPHONY, nullptr);
+      mPhoneAudioAgent->Init(AUDIO_CHANNEL_TELEPHONY, nullptr);
     } else {
-      mPhoneAudioAgent->Init(nullptr, AUDIO_CHANNEL_RINGER, nullptr);
+      mPhoneAudioAgent->Init(AUDIO_CHANNEL_RINGER, nullptr);
     }
 
     

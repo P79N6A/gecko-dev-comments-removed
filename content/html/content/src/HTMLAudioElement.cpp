@@ -274,8 +274,7 @@ HTMLAudioElement::UpdateAudioChannelPlayingState()
         return;
       }
       
-      mAudioChannelAgent->InitWithWeakCallback(OwnerDoc()->GetWindow(),
-                                               mAudioChannelType, this);
+      mAudioChannelAgent->InitWithWeakCallback(mAudioChannelType, this);
 
       mAudioChannelAgent->SetVisibilityState(!OwnerDoc()->Hidden());
     }
