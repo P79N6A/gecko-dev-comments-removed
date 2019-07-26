@@ -535,17 +535,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
-    aDesiredSize.Height() = mLegendSpace + 
-                          border.TopBottom() +
+  aDesiredSize.Height() = mLegendSpace + border.TopBottom() +
                           (inner ? inner->GetRect().height : 0);
-  } else {
-    nscoord min = border.TopBottom() + mLegendRect.height;
-    aDesiredSize.Height() =
-      aReflowState.ComputedHeight() + aReflowState.ComputedPhysicalBorderPadding().TopBottom();
-    if (aDesiredSize.Height() < min)
-      aDesiredSize.Height() = min;
-  }
   aDesiredSize.Width() = contentRect.width + border.LeftRight();
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   if (legend)
