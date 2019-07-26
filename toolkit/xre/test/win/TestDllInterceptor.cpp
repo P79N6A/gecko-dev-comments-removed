@@ -119,6 +119,14 @@ int main()
       TestHook("ntdll.dll", "NtFlushBuffersFile") &&
       TestHook("ntdll.dll", "NtWriteFile") &&
       TestHook("ntdll.dll", "NtWriteFileGather") &&
+      
+      TestHook("kernel32.dll", "SetUnhandledExceptionFilter") &&
+#ifdef _M_IX86
+      
+      TestHook("kernel32.dll", "VirtualAlloc") &&
+      TestHook("kernel32.dll", "MapViewOfFile") &&
+      TestHook("gdi32.dll", "CreateDIBSection") &&
+#endif
       TestHook("ntdll.dll", "LdrLoadDll")) {
     printf("TEST-PASS | WindowsDllInterceptor | all checks passed\n");
     return 0;
