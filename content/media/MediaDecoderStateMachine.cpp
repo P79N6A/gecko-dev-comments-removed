@@ -5,8 +5,8 @@
 
 #ifdef XP_WIN
 
-#include "Windows.h"
-#include "Mmsystem.h"
+#include "windows.h"
+#include "mmsystem.h"
 #endif
  
 #include "mozilla/DebugOnly.h"
