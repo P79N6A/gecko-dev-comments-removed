@@ -208,9 +208,6 @@ typedef struct fsmdef_media_t_ {
     boolean        rtcp_mux;
 
     
-    boolean         audio_level;
-
-    
 
 
     sdp_setup_type_e setup;
