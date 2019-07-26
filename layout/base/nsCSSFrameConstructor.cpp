@@ -7795,7 +7795,6 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   
   
   
-  
   NS_ASSERTION(!(aChange & nsChangeHint_UpdateTransformLayer) ||
                aFrame->IsTransformed() ||
                aFrame->GetStyleDisplay()->HasTransform(),

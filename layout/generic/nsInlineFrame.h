@@ -39,13 +39,6 @@ public:
   friend nsIFrame* NS_NewInlineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   
-
-
-  NS_IMETHOD Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
-
-  
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists) MOZ_OVERRIDE;
@@ -61,6 +54,9 @@ public:
 
   virtual bool IsFrameOfType(uint32_t aFlags) const
   {
+    if (aFlags & eSupportsCSSTransforms) {
+      return false;
+    }
     return nsContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eBidiInlineContainer | nsIFrame::eLineParticipant));
   }
