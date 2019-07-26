@@ -14,6 +14,7 @@ const {utils: Cu} = Components;
 Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
 
 
@@ -403,6 +404,23 @@ Provider.prototype = Object.freeze({
     }
 
     return m;
+  },
+
+  
+
+
+
+
+
+
+
+
+  initPreferences: function (branchParent) {
+    if (!branchParent.endsWith(".")) {
+      throw new Error("branchParent must end with '.': " + branchParent);
+    }
+
+    this._prefs = new Preferences(branchParent + this.name + ".");
   },
 
   init: function (storage) {
