@@ -208,8 +208,11 @@ this.WebappOSUtils = {
   getPackagePath: function(aApp) {
     let packagePath = this.getInstallPath(aApp);
 
+    
+#ifndef MOZ_B2G
 #ifdef XP_MACOSX
     packagePath = OS.Path.join(packagePath, "Contents", "Resources");
+#endif
 #endif
 
     return packagePath;
