@@ -5680,7 +5680,7 @@ CodeGenerator::link()
     
     CallTargetVector callTargets;
     if (executionMode == ParallelExecution)
-        AddPossibleCallees(graph.mir(), callTargets);
+        AddPossibleCallees(cx, graph.mir(), callTargets);
 
     IonScript *ionScript =
       IonScript::New(cx, graph.totalSlotCount(), scriptFrameSize, snapshots_.size(),

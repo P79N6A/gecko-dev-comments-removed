@@ -47,7 +47,7 @@ class ParallelSafetyAnalysis
 
 
 typedef Vector<JSScript *, 4, IonAllocPolicy> CallTargetVector;
-bool AddPossibleCallees(MIRGraph &graph, CallTargetVector &targets);
+bool AddPossibleCallees(JSContext *cx, MIRGraph &graph, CallTargetVector &targets);
 
 } 
 } 
