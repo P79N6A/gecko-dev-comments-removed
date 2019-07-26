@@ -23,6 +23,7 @@
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/CallbackObject.h"
 
 
 
@@ -1120,15 +1121,33 @@ struct GetParentObject<T, false>
   }
 };
 
+MOZ_ALWAYS_INLINE
+JSObject* GetJSObjectFromCallback(CallbackObject* callback)
+{
+  return callback->Callback();
+}
+
+MOZ_ALWAYS_INLINE
+JSObject* GetJSObjectFromCallback(void* noncallback)
+{
+  return nullptr;
+}
+
 template<typename T>
 static inline JSObject*
 WrapCallThisObject(JSContext* cx, JSObject* scope, const T& p)
 {
   
   
-  JSObject* obj = WrapNativeParent(cx, scope, p);
+  
+  JSObject* obj = GetJSObjectFromCallback(p);
   if (!obj) {
-    return nullptr;
+    
+    
+    obj = WrapNativeParent(cx, scope, p);
+    if (!obj) {
+      return nullptr;
+    }
   }
 
   
