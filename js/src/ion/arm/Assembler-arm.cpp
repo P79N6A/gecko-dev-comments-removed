@@ -2808,7 +2808,7 @@ InstructionIterator::InstructionIterator(Instruction *i_) : i(i_) {
     const PoolHeader *ph;
     
     
-    if (InstIsGuard(i, &ph)) {
+    if (InstIsArtificialGuard(i, &ph)) {
         i = i->next();
     }
 }
