@@ -323,10 +323,12 @@ public:
 
   
   
-  mozilla::TimeDuration ElapsedDurationAt(mozilla::TimeStamp aTime) const {
-    NS_ABORT_IF_FALSE(!IsPaused() || aTime >= mPauseStart,
-                      "if paused, aTime must be at least mPauseStart");
-    return (IsPaused() ? mPauseStart : aTime) - mStartTime - mTiming.mDelay;
+  mozilla::TimeDuration GetLocalTimeAt(mozilla::TimeStamp aTime) const {
+    MOZ_ASSERT(!IsPaused() || aTime >= mPauseStart,
+               "if paused, aTime must be at least mPauseStart");
+    MOZ_ASSERT(!IsFinishedTransition(),
+               "GetLocalTimeAt should not be called on a finished transition");
+    return (IsPaused() ? mPauseStart : aTime) - mStartTime;
   }
 
   
@@ -357,7 +359,7 @@ public:
   
   
   
-  static ComputedTiming GetComputedTimingAt(TimeDuration aElapsedDuration,
+  static ComputedTiming GetComputedTimingAt(TimeDuration aLocalTime,
                                             const AnimationTiming& aTiming);
 
   nsString mName; 
