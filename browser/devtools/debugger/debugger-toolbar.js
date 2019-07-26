@@ -36,7 +36,6 @@ ToolbarView.prototype = {
     this._stepOverButton = document.getElementById("step-over");
     this._stepInButton = document.getElementById("step-in");
     this._stepOutButton = document.getElementById("step-out");
-    this._chromeGlobals = document.getElementById("chrome-globals");
 
     let resumeKey = ShortcutUtils.prettifyShortcut(document.getElementById("resumeKey"));
     let stepOverKey = ShortcutUtils.prettifyShortcut(document.getElementById("stepOverKey"));
@@ -57,9 +56,6 @@ ToolbarView.prototype = {
     this._stepOverButton.setAttribute("tooltiptext", this._stepOverTooltip);
     this._stepInButton.setAttribute("tooltiptext", this._stepInTooltip);
     this._stepOutButton.setAttribute("tooltiptext", this._stepOutTooltip);
-
-    
-    
   },
 
   
@@ -107,16 +103,6 @@ ToolbarView.prototype = {
       this._resumeButton.removeAttribute("checked");
       this._resumeButton.setAttribute("tooltiptext", this._pauseTooltip);
     }
-  },
-
-  
-
-
-
-
-
-  toggleChromeGlobalsContainer: function(aVisibleFlag) {
-    this._chromeGlobals.setAttribute("hidden", !aVisibleFlag);
   },
 
   
@@ -182,7 +168,6 @@ ToolbarView.prototype = {
   _stepOverButton: null,
   _stepInButton: null,
   _stepOutButton: null,
-  _chromeGlobals: null,
   _resumeTooltip: "",
   _pauseTooltip: "",
   _stepOverTooltip: "",
@@ -344,59 +329,6 @@ OptionsView.prototype = {
 
 
 
-function ChromeGlobalsView() {
-  dumpn("ChromeGlobalsView was instantiated");
-
-  this._onSelect = this._onSelect.bind(this);
-  this._onClick = this._onClick.bind(this);
-}
-
-ChromeGlobalsView.prototype = Heritage.extend(WidgetMethods, {
-  
-
-
-  initialize: function() {
-    dumpn("Initializing the ChromeGlobalsView");
-
-    this.widget = document.getElementById("chrome-globals");
-    this.emptyText = L10N.getStr("noGlobalsText");
-
-    this.widget.addEventListener("select", this._onSelect, false);
-    this.widget.addEventListener("click", this._onClick, false);
-
-    
-    this.empty();
-  },
-
-  
-
-
-  destroy: function() {
-    dumpn("Destroying the ChromeGlobalsView");
-
-    this.widget.removeEventListener("select", this._onSelect, false);
-    this.widget.removeEventListener("click", this._onClick, false);
-  },
-
-  
-
-
-  _onSelect: function() {
-    
-  },
-
-  
-
-
-  _onClick: function() {
-    
-    DebuggerView.Filtering.target = this;
-  }
-});
-
-
-
-
 function StackFramesView() {
   dumpn("StackFramesView was instantiated");
 
@@ -466,9 +398,12 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
     let frameView = this._createFrameView.apply(this, arguments);
 
     
-    this.push([frameView, aTitle, aUrl], {
+    this.push([frameView], {
       index: 0, 
       attachment: {
+        title: aTitle,
+        url: aUrl,
+        line: aLine,
         depth: aDepth
       },
       
@@ -599,16 +534,13 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _afterScroll: function() {
-    
-    
-    let list = this.widget._list;
-    let scrollPosition = list.scrollPosition;
-    let scrollWidth = list.scrollWidth;
+    let scrollPosition = this.widget.getAttribute("scrollPosition");
+    let scrollWidth = this.widget.getAttribute("scrollWidth");
 
     
     
     if (scrollPosition - scrollWidth / 10 < 1) {
-      list.ensureElementIsVisible(this.getItemAtIndex(CALL_STACK_PAGE_SIZE - 1).target);
+      this.ensureIndexIsVisible(CALL_STACK_PAGE_SIZE - 1);
       this.dirty = false;
 
       
@@ -648,9 +580,6 @@ StackFramesClassicListView.prototype = Heritage.extend(WidgetMethods, {
 
     
     this._mirror = DebuggerView.StackFrames;
-
-    
-    this.empty();
   },
 
   
@@ -679,7 +608,7 @@ StackFramesClassicListView.prototype = Heritage.extend(WidgetMethods, {
     let frameView = this._createFrameView.apply(this, arguments);
 
     
-    this.push([frameView, aUrl], {
+    this.push([frameView], {
       attachment: {
         depth: aDepth
       }
@@ -798,6 +727,9 @@ FilterView.prototype = {
     this._searchbox.addEventListener("keypress", this._onKeyPress, false);
     this._searchbox.addEventListener("blur", this._onBlur, false);
 
+    let placeholder = L10N.getFormatStr("emptySearchText", this._fileSearchKey);
+    this._searchbox.setAttribute("placeholder", placeholder);
+
     this._globalOperatorButton.setAttribute("label", SEARCH_GLOBAL_FLAG);
     this._functionOperatorButton.setAttribute("label", SEARCH_FUNCTION_FLAG);
     this._tokenOperatorButton.setAttribute("label", SEARCH_TOKEN_FLAG);
@@ -816,13 +748,6 @@ FilterView.prototype = {
       L10N.getFormatStr("searchPanelGoToLine", this._lineSearchKey));
     this._variableOperatorLabel.setAttribute("value",
       L10N.getFormatStr("searchPanelVariable", this._variableSearchKey));
-
-    
-    
-    
-    
-    this.target = DebuggerView.Sources;
-    
   },
 
   
@@ -837,30 +762,6 @@ FilterView.prototype = {
     this._searchbox.removeEventListener("keypress", this._onKeyPress, false);
     this._searchbox.removeEventListener("blur", this._onBlur, false);
   },
-
-  
-
-
-
-  set target(aView) {
-    let placeholder = "";
-    switch (aView) {
-      case DebuggerView.ChromeGlobals:
-        placeholder = L10N.getFormatStr("emptyChromeGlobalsFilterText", this._fileSearchKey);
-        break;
-      case DebuggerView.Sources:
-        placeholder = L10N.getFormatStr("emptySearchText", this._fileSearchKey);
-        break;
-    }
-    this._searchbox.setAttribute("placeholder", placeholder);
-    this._target = aView;
-  },
-
-  
-
-
-
-  get target() this._target,
 
   
 
@@ -1241,7 +1142,6 @@ FilterView.prototype = {
   _tokenSearchKey: "",
   _lineSearchKey: "",
   _variableSearchKey: "",
-  _target: null
 };
 
 
@@ -1309,7 +1209,7 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
     }
 
     for (let item of DebuggerView.Sources.items) {
-      let lowerCaseLabel = item.label.toLowerCase();
+      let lowerCaseLabel = item.attachment.label.toLowerCase();
       let lowerCaseToken = aToken.toLowerCase();
       if (lowerCaseLabel.match(lowerCaseToken)) {
         aStore.push(item);
@@ -1344,12 +1244,14 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
 
     for (let item of aSearchResults) {
       
-      let trimmedLabel = SourceUtils.trimUrlLength(item.label);
-      let trimmedValue = SourceUtils.trimUrlLength(item.value, 0, "start");
+      let itemView = this._createItemView(
+        SourceUtils.trimUrlLength(item.attachment.label),
+        SourceUtils.trimUrlLength(item.value, 0, "start")
+      );
 
-      this.push([trimmedLabel, trimmedValue], {
+      
+      this.push([itemView], {
         index: -1, 
-        relaxed: true, 
         attachment: {
           url: item.value
         }
@@ -1544,13 +1446,15 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
       }
 
       
-      let trimmedLabel = SourceUtils.trimUrlLength(item.displayedName + "()");
-      let trimmedValue = SourceUtils.trimUrlLength(item.sourceUrl, 0, "start");
-      let description = (item.inferredChain || []).join(".");
+      let itemView = this._createItemView(
+        SourceUtils.trimUrlLength(item.displayedName + "()"),
+        SourceUtils.trimUrlLength(item.sourceUrl, 0, "start"),
+        (item.inferredChain || []).join(".")
+      );
 
-      this.push([trimmedLabel, trimmedValue, description], {
+      
+      this.push([itemView], {
         index: -1, 
-        relaxed: true, 
         attachment: item
       });
     }
@@ -1605,6 +1509,5 @@ DebuggerView.Options = new OptionsView();
 DebuggerView.Filtering = new FilterView();
 DebuggerView.FilteredSources = new FilteredSourcesView();
 DebuggerView.FilteredFunctions = new FilteredFunctionsView();
-DebuggerView.ChromeGlobals = new ChromeGlobalsView();
 DebuggerView.StackFrames = new StackFramesView();
 DebuggerView.StackFramesClassicList = new StackFramesClassicListView();

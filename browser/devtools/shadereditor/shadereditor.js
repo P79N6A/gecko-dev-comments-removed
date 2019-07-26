@@ -221,12 +221,16 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
     
     
     let label = L10N.getFormatStr("shadersList.programLabel", this.itemCount);
+    let contents = document.createElement("label");
+    contents.setAttribute("value", label);
+    contents.setAttribute("crop", "start");
+    contents.setAttribute("flex", "1");
 
     
-    this.push([label, ""], {
+    this.push([contents], {
       index: -1, 
-      relaxed: true, 
       attachment: {
+        label: label,
         programActor: programActor,
         checkboxState: true,
         checkboxTooltip: L10N.getStr("shadersList.blackboxLabel")

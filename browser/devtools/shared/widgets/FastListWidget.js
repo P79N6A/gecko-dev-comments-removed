@@ -1,3 +1,10 @@
+
+
+
+
+
+"use strict";
+
 const EventEmitter = require("devtools/shared/event-emitter");
 const { Cu, Ci } = require("chrome");
 const { ViewHelpers } = Cu.import("resource:///modules/devtools/ViewHelpers.jsm", {});
@@ -107,7 +114,9 @@ FastListWidget.prototype = {
 
 
 
-  get selectedItem() this._selectedItem,
+  get selectedItem() {
+    return this._selectedItem;
+  },
 
   
 
@@ -122,11 +131,9 @@ FastListWidget.prototype = {
     for (let node of menuArray) {
       if (node == child) {
         node.classList.add("selected");
-        node.parentNode.classList.add("selected");
         this._selectedItem = node;
       } else {
         node.classList.remove("selected");
-        node.parentNode.classList.remove("selected");
       }
     }
 
@@ -193,7 +200,7 @@ FastListWidget.prototype = {
     
     let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     boxObject.ensureElementIsVisible(element);
-    boxObject.scrollBy(-element.clientWidth, 0);
+    boxObject.scrollBy(-this._list.clientWidth, 0);
   },
 
   window: null,

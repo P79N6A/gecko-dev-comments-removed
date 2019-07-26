@@ -8,22 +8,12 @@
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 
-XPCOMUtils.defineLazyModuleGetter(this, "devtools",
-  "resource://gre/modules/devtools/Loader.jsm");
-
-Object.defineProperty(this, "NetworkHelper", {
-  get: function() {
-    return devtools.require("devtools/toolkit/webconsole/network-helper");
-  },
-  configurable: true,
-  enumerable: true
-});
-
 this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
+
+
 
 
 
@@ -73,6 +63,7 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
 
   
   
+  ViewHelpers.delegateWidgetAttributeMethods(this, aNode);
   ViewHelpers.delegateWidgetEventMethods(this, aNode);
 };
 
@@ -81,12 +72,6 @@ SideMenuWidget.prototype = {
 
 
   sortedGroups: true,
-
-  
-
-
-
-  maintainSelectionVisible: true,
 
   
 
@@ -112,14 +97,7 @@ SideMenuWidget.prototype = {
 
 
 
-
-  insertItemAt: function(aIndex, aContents, aTooltip = "", aGroup = "", aAttachment={}) {
-    aTooltip = NetworkHelper.convertToUnicode(unescape(aTooltip));
-    aGroup = NetworkHelper.convertToUnicode(unescape(aGroup));
-
-    
-    this.removeAttribute("notice");
-
+  insertItemAt: function(aIndex, aContents, aAttachment={}) {
     
     
     
@@ -133,13 +111,10 @@ SideMenuWidget.prototype = {
       
       (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
 
-    let group = this._getMenuGroupForName(aGroup);
-    let item = this._getMenuItemForGroup(group, aContents, aTooltip, aAttachment);
+    let group = this._getMenuGroupForName(aAttachment.group);
+    let item = this._getMenuItemForGroup(group, aContents, aAttachment);
     let element = item.insertSelfAt(aIndex);
 
-    if (this.maintainSelectionVisible) {
-      this.ensureElementIsVisible(this.selectedItem);
-    }
     if (maintainScrollAtBottom) {
       this._list.scrollTop = this._list.scrollHeight;
     }
@@ -171,7 +146,6 @@ SideMenuWidget.prototype = {
       
       aChild.parentNode.remove();
     } else {
-      
       aChild.remove();
     }
 
@@ -208,7 +182,9 @@ SideMenuWidget.prototype = {
 
 
 
-  get selectedItem() this._selectedItem,
+  get selectedItem() {
+    return this._selectedItem;
+  },
 
   
 
@@ -230,8 +206,6 @@ SideMenuWidget.prototype = {
         node.parentNode.classList.remove("selected");
       }
     }
-
-    this.ensureElementIsVisible(this.selectedItem);
   },
 
   
@@ -247,14 +221,8 @@ SideMenuWidget.prototype = {
 
     
     let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-
-    
-    
-    
-    if (boxObject.ensureElementIsVisible && boxObject.scrollBy) {
-      boxObject.ensureElementIsVisible(aElement);
-      boxObject.scrollBy(-aElement.clientWidth, 0);
-    }
+    boxObject.ensureElementIsVisible(aElement);
+    boxObject.scrollBy(-this._list.clientWidth, 0);
   },
 
   
@@ -288,23 +256,11 @@ SideMenuWidget.prototype = {
 
 
 
-  getAttribute: function(aName) {
-    return this._parent.getAttribute(aName);
-  },
-
-  
-
-
-
-
-
-
-
   setAttribute: function(aName, aValue) {
     this._parent.setAttribute(aName, aValue);
 
-    if (aName == "notice") {
-      this.notice = aValue;
+    if (aName == "emptyText") {
+      this._textWhenEmpty = aValue;
     }
   },
 
@@ -317,8 +273,8 @@ SideMenuWidget.prototype = {
   removeAttribute: function(aName) {
     this._parent.removeAttribute(aName);
 
-    if (aName == "notice") {
-      this._removeNotice();
+    if (aName == "emptyText") {
+      this._removeEmptyText();
     }
   },
 
@@ -342,47 +298,40 @@ SideMenuWidget.prototype = {
 
 
 
-  set notice(aValue) {
-    if (this._noticeTextNode) {
-      this._noticeTextNode.setAttribute("value", aValue);
+  set _textWhenEmpty(aValue) {
+    if (this._emptyTextNode) {
+      this._emptyTextNode.setAttribute("value", aValue);
     }
-    this._noticeTextValue = aValue;
-    this._appendNotice();
+    this._emptyTextValue = aValue;
+    this._showEmptyText();
   },
 
   
 
 
-  _appendNotice: function() {
-    if (this._noticeTextNode || !this._noticeTextValue) {
+  _showEmptyText: function() {
+    if (this._emptyTextNode || !this._emptyTextValue) {
       return;
     }
-
-    let container = this.document.createElement("vbox");
-    container.className = "side-menu-widget-empty-notice-container";
-    container.setAttribute("theme", this._theme);
-
     let label = this.document.createElement("label");
-    label.className = "plain side-menu-widget-empty-notice";
-    label.setAttribute("value", this._noticeTextValue);
-    container.appendChild(label);
+    label.className = "plain side-menu-widget-empty-text";
+    label.setAttribute("value", this._emptyTextValue);
+    label.setAttribute("theme", this._theme);
 
-    this._parent.insertBefore(container, this._list);
-    this._noticeTextContainer = container;
-    this._noticeTextNode = label;
+    this._parent.insertBefore(label, this._list);
+    this._emptyTextNode = label;
   },
 
   
 
 
-  _removeNotice: function() {
-    if (!this._noticeTextNode) {
+  _removeEmptyText: function() {
+    if (!this._emptyTextNode) {
       return;
     }
 
-    this._parent.removeChild(this._noticeTextContainer);
-    this._noticeTextContainer = null;
-    this._noticeTextNode = null;
+    this._parent.removeChild(this._emptyTextNode);
+    this._emptyTextNode = null;
   },
 
   
@@ -422,10 +371,8 @@ SideMenuWidget.prototype = {
 
 
 
-
-
-  _getMenuItemForGroup: function(aGroup, aContents, aTooltip, aAttachment) {
-    return new SideMenuItem(aGroup, aContents, aTooltip, aAttachment, {
+  _getMenuItemForGroup: function(aGroup, aContents, aAttachment) {
+    return new SideMenuItem(aGroup, aContents, aAttachment, {
       theme: this._theme,
       showArrow: this._showArrows,
       showCheckbox: this._showItemCheckboxes
@@ -445,10 +392,8 @@ SideMenuWidget.prototype = {
   _orderedGroupElementsArray: null,
   _orderedMenuElementsArray: null,
   _itemsByElement: null,
-  _ensureVisibleTimeout: null,
-  _noticeTextContainer: null,
-  _noticeTextNode: null,
-  _noticeTextValue: ""
+  _emptyTextNode: null,
+  _emptyTextValue: ""
 };
 
 
@@ -578,9 +523,7 @@ SideMenuGroup.prototype = {
 
 
 
-
-
-function SideMenuItem(aGroup, aContents, aTooltip, aAttachment={}, aOptions={}) {
+function SideMenuItem(aGroup, aContents, aAttachment={}, aOptions={}) {
   this.document = aGroup.document;
   this.window = aGroup.window;
   this.ownerView = aGroup;
@@ -588,7 +531,6 @@ function SideMenuItem(aGroup, aContents, aTooltip, aAttachment={}, aOptions={}) 
   if (aOptions.showArrow || aOptions.showCheckbox) {
     let container = this._container = this.document.createElement("hbox");
     container.className = "side-menu-widget-item";
-    container.setAttribute("tooltiptext", aTooltip);
     container.setAttribute("theme", aOptions.theme);
 
     let target = this._target = this.document.createElement("vbox");
@@ -671,17 +613,6 @@ SideMenuItem.prototype = {
 
 
   set contents(aContents) {
-    
-    
-    if (typeof aContents == "string") {
-      let label = this.document.createElement("label");
-      label.className = "side-menu-widget-item-label";
-      label.setAttribute("value", aContents);
-      label.setAttribute("crop", "start");
-      label.setAttribute("flex", "1");
-      this.contents = label;
-      return;
-    }
     
     if (this._target.hasChildNodes()) {
       this._target.replaceChild(aContents, this._target.firstChild);

@@ -22,6 +22,8 @@ this.EXPORTED_SYMBOLS = ["BreadcrumbsWidget"];
 
 
 
+
+
 this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;
@@ -113,7 +115,9 @@ BreadcrumbsWidget.prototype = {
 
 
 
-  get selectedItem() this._selectedItem,
+  get selectedItem() {
+    return this._selectedItem;
+  },
 
   
 
@@ -133,17 +137,37 @@ BreadcrumbsWidget.prototype = {
         node.removeAttribute("checked");
       }
     }
+  },
+
+  
+
+
+
+
+
+
+
+  getAttribute: function(aName) {
+    if (aName == "scrollPosition") return this._list.scrollPosition;
+    if (aName == "scrollWidth") return this._list.scrollWidth;
+    return this._parent.getAttribute(aName);
+  },
+
+  
+
+
+
+
+
+  ensureElementIsVisible: function(aElement) {
+    if (!aElement) {
+      return;
+    }
 
     
     
     setNamedTimeout("breadcrumb-select", ENSURE_SELECTION_VISIBLE_DELAY, () => {
-      if (this._selectedItem &&
-        
-        
-        
-        this._list.ensureElementIsVisible) {
-        this._list.ensureElementIsVisible(this._selectedItem);
-      }
+      this._list.ensureElementIsVisible(aElement);
     });
   },
 
@@ -205,14 +229,6 @@ Breadcrumb.prototype = {
 
 
   set contents(aContents) {
-    
-    
-    if (typeof aContents == "string") {
-      let label = this.document.createElement("label");
-      label.setAttribute("value", aContents);
-      this.contents = label;
-      return;
-    }
     
     if (this._target.hasChildNodes()) {
       this._target.replaceChild(aContents, this._target.firstChild);

@@ -24,7 +24,6 @@ function SourcesView() {
   this._onEditorUnload = this._onEditorUnload.bind(this);
   this._onEditorCursorActivity = this._onEditorCursorActivity.bind(this);
   this._onSourceSelect = this._onSourceSelect.bind(this);
-  this._onSourceClick = this._onSourceClick.bind(this);
   this._onStopBlackBoxing = this._onStopBlackBoxing.bind(this);
   this._onBreakpointRemoved = this._onBreakpointRemoved.bind(this);
   this._onBreakpointClick = this._onBreakpointClick.bind(this);
@@ -69,7 +68,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     window.on(EVENTS.EDITOR_LOADED, this._onEditorLoad, false);
     window.on(EVENTS.EDITOR_UNLOADED, this._onEditorUnload, false);
     this.widget.addEventListener("select", this._onSourceSelect, false);
-    this.widget.addEventListener("click", this._onSourceClick, false);
     this._stopBlackBoxButton.addEventListener("click", this._onStopBlackBoxing, false);
     this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
@@ -80,7 +78,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     this.autoFocusOnSelection = false;
 
     
-    this.empty();
+    this.sortContents((aFirst, aSecond) => {
+      return +(aFirst.attachment.label.toLowerCase() >
+               aSecond.attachment.label.toLowerCase());
+    });
   },
 
   
@@ -92,7 +93,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     window.off(EVENTS.EDITOR_LOADED, this._onEditorLoad, false);
     window.off(EVENTS.EDITOR_UNLOADED, this._onEditorUnload, false);
     this.widget.removeEventListener("select", this._onSourceSelect, false);
-    this.widget.removeEventListener("click", this._onSourceClick, false);
     this._stopBlackBoxButton.removeEventListener("click", this._onStopBlackBoxing, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShown, false);
@@ -129,10 +129,17 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     let label = SourceUtils.getSourceLabel(url.split(" -> ").pop());
     let group = SourceUtils.getSourceGroup(url.split(" -> ").pop());
 
+    let contents = document.createElement("label");
+    contents.setAttribute("value", label);
+    contents.setAttribute("crop", "start");
+    contents.setAttribute("flex", "1");
+
     
-    this.push([label, url, group], {
+    this.push([contents, url], {
       staged: aOptions.staged, 
       attachment: {
+        label: label,
+        group: group,
         checkboxState: !aSource.isBlackBoxed,
         checkboxTooltip: this._blackBoxCheckboxTooltip,
         source: aSource
@@ -799,14 +806,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  _onSourceClick: function() {
-    
-    DebuggerView.Filtering.target = this;
-  },
-
-  
-
-
   _onStopBlackBoxing: function() {
     const { source } = this.selectedItem.attachment;
 
@@ -1115,8 +1114,6 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
       this._traceButton = null;
       this._tracerTab.remove();
       this._tracerTab = null;
-      document.getElementById("tracer-tabpanel").remove();
-      this.widget = null;
       return;
     }
 
@@ -1214,8 +1211,8 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
   _populateVariable: function(aName, aParent, aValue) {
     let item = aParent.addItem(aName, { value: aValue });
     if (aValue) {
-      DebuggerView.Variables.controller.populate(
-        item, new DebuggerController.Tracer.WrappedObject(aValue));
+      let wrappedValue = new DebuggerController.Tracer.WrappedObject(aValue);
+      DebuggerView.Variables.controller.populate(item, wrappedValue);
       item.expand();
       item.twisty = false;
     }
@@ -1251,9 +1248,7 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
         }
       }
     } else {
-      const varName = "<" +
-        (data.type == "throw" ? "exception" : data.type) +
-        ">";
+      const varName = "<" + (data.type == "throw" ? "exception" : data.type) + ">";
       this._populateVariable(varName, scope, data.returnVal);
     }
 
@@ -1265,8 +1260,11 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _highlightItem: function(aItem) {
-    aItem.target.querySelector(".trace-item")
-      .classList.add("selected-matching");
+    if (!aItem || !aItem.target) {
+      return;
+    }
+    const trace = aItem.target.querySelector(".trace-item");
+    trace.classList.add("selected-matching");
   },
 
   
@@ -1303,8 +1301,11 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _highlightMatchingItems: function(aItem) {
+    const frameId = aItem.attachment.trace.frameId;
+    const predicate = e => e.attachment.trace.frameId == frameId;
+
     this._unhighlightMatchingItems();
-    this._matchingItems = this.items.filter(t => t.value == aItem.value);
+    this._matchingItems = this.items.filter(predicate);
     this._matchingItems
       .filter(this._isNotSelectedItem)
       .forEach(this._highlightItem);
@@ -1325,8 +1326,8 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
   _onSearch: function() {
     const query = this._search.value.trim().toLowerCase();
-    this.filterContents(item =>
-      item.attachment.trace.name.toLowerCase().contains(query));
+    const predicate = name => name.toLowerCase().contains(query);
+    this.filterContents(item => predicate(item.attachment.trace.name));
   },
 
   
@@ -1356,13 +1357,11 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
 
   addTrace: function(aTrace) {
-    const { type, frameId } = aTrace;
-
     
     let view = this._createView(aTrace);
 
     
-    this.push([view, aTrace.frameId, ""], {
+    this.push([view], {
       staged: true,
       attachment: {
         trace: aTrace
@@ -1376,8 +1375,9 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _createView: function({ type, name, frameId, parameterNames, returnVal,
-                          location, depth, arguments: args }) {
+  _createView: function(aTrace) {
+    let { type, name, location, depth, frameId } = aTrace;
+    let { parameterNames, returnVal, arguments: args } = aTrace;
     let fragment = document.createDocumentFragment();
 
     this._templateItem.setAttribute("tooltiptext", SourceUtils.trimUrl(location.url));
@@ -1659,7 +1659,7 @@ let SourceUtils = {
     if (aLabel && aLabel.indexOf("?") != 0) {
       
       
-      if (!DebuggerView.Sources.containsLabel(aLabel)) {
+      if (!DebuggerView.Sources.getItemForAttachment(e => e.label == aLabel)) {
         return aLabel;
       }
     }
@@ -1984,11 +1984,11 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
   initialize: function() {
     dumpn("Initializing the WatchExpressionsView");
 
-    this.widget = new ListWidget(document.getElementById("expressions"));
-    this.widget.permaText = L10N.getStr("addWatchExpressionText");
-    this.widget.itemFactory = this._createItemView;
+    this.widget = new SimpleListWidget(document.getElementById("expressions"));
     this.widget.setAttribute("context", "debuggerWatchExpressionsContextMenu");
     this.widget.addEventListener("click", this._onClick, false);
+
+    this.headerText = L10N.getStr("addWatchExpressionText");
   },
 
   
@@ -2011,18 +2011,21 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
     DebuggerView.showInstrumentsPane();
 
     
-    let expressionItem = this.push([, aExpression], {
+    let itemView = this._createItemView(aExpression);
+
+    
+    let expressionItem = this.push([itemView.container], {
       index: 0, 
-      relaxed: true, 
       attachment: {
+        view: itemView,
         initialExpression: aExpression,
-        currentExpression: ""
+        currentExpression: "",
       }
     });
 
     
-    expressionItem.attachment.inputNode.select();
-    expressionItem.attachment.inputNode.focus();
+    expressionItem.attachment.view.inputNode.select();
+    expressionItem.attachment.view.inputNode.focus();
     DebuggerView.Variables.parentNode.scrollTop = 0;
   },
 
@@ -2048,7 +2051,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
     
     expressionItem.attachment.currentExpression = aExpression;
-    expressionItem.attachment.inputNode.value = aExpression;
+    expressionItem.attachment.view.inputNode.value = aExpression;
 
     
     DebuggerController.StackFrames.syncWatchExpressions();
@@ -2101,15 +2104,16 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  _createItemView: function(aExpression) {
+    let container = document.createElement("hbox");
+    container.className = "list-widget-item dbg-expression";
 
-
-  _createItemView: function(aElementNode, aAttachment) {
-    let arrowNode = document.createElement("box");
+    let arrowNode = document.createElement("hbox");
     arrowNode.className = "dbg-expression-arrow";
 
     let inputNode = document.createElement("textbox");
     inputNode.className = "plain dbg-expression-input devtools-monospace";
-    inputNode.setAttribute("value", aAttachment.initialExpression);
+    inputNode.setAttribute("value", aExpression);
     inputNode.setAttribute("flex", "1");
 
     let closeNode = document.createElement("toolbarbutton");
@@ -2119,14 +2123,16 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
     inputNode.addEventListener("blur", this._onBlur, false);
     inputNode.addEventListener("keypress", this._onKeyPress, false);
 
-    aElementNode.className = "dbg-expression";
-    aElementNode.appendChild(arrowNode);
-    aElementNode.appendChild(inputNode);
-    aElementNode.appendChild(closeNode);
+    container.appendChild(arrowNode);
+    container.appendChild(inputNode);
+    container.appendChild(closeNode);
 
-    aAttachment.arrowNode = arrowNode;
-    aAttachment.inputNode = inputNode;
-    aAttachment.closeNode = closeNode;
+    return {
+      container: container,
+      arrowNode: arrowNode,
+      inputNode: inputNode,
+      closeNode: closeNode
+    };
   },
 
   
@@ -2251,9 +2257,6 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
 
     this.widget.addEventListener("check", this._onCheck, false);
     this.widget.addEventListener("click", this._onClick, false);
-
-    
-    this.empty();
   },
 
   
@@ -2368,13 +2371,14 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
       DebuggerController.Breakpoints.DOM.activeEventNames.indexOf(type) != -1;
 
     
-    this.push([itemView.container, url, group], {
+    this.push([itemView.container], {
       staged: aOptions.staged, 
       attachment: {
         url: url,
         type: type,
         view: itemView,
         selectors: [selector],
+        group: group,
         checkboxState: checkboxState,
         checkboxTooltip: this._eventCheckboxTooltip
       }
@@ -2494,7 +2498,6 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
 function GlobalSearchView() {
   dumpn("GlobalSearchView was instantiated");
 
-  this._createItemView = this._createItemView.bind(this);
   this._onHeaderClick = this._onHeaderClick.bind(this);
   this._onLineClick = this._onLineClick.bind(this);
   this._onMatchClick = this._onMatchClick.bind(this);
@@ -2507,11 +2510,10 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
   initialize: function() {
     dumpn("Initializing the GlobalSearchView");
 
-    this.widget = new ListWidget(document.getElementById("globalsearch"));
+    this.widget = new SimpleListWidget(document.getElementById("globalsearch"));
     this._splitter = document.querySelector("#globalsearch + .devtools-horizontal-splitter");
 
-    this.widget.emptyText = L10N.getStr("noMatchingStringsText");
-    this.widget.itemFactory = this._createItemView;
+    this.emptyText = L10N.getStr("noMatchingStringsText");
   },
 
   
@@ -2719,28 +2721,19 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
   _createSourceResultsUI: function(aSourceResults) {
     
-    this.push([], {
-      index: -1, 
-      relaxed: true, 
-      attachment: {
-        sourceResults: aSourceResults
-      }
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  _createItemView: function(aElementNode, aAttachment) {
-    aAttachment.sourceResults.createView(aElementNode, {
+    let container = document.createElement("hbox");
+    aSourceResults.createView(container, {
       onHeaderClick: this._onHeaderClick,
       onLineClick: this._onLineClick,
       onMatchClick: this._onMatchClick
+    });
+
+    
+    let item = this.push([container], {
+      index: -1, 
+      attachment: {
+        sourceResults: aSourceResults
+      }
     });
   },
 
@@ -2792,10 +2785,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _scrollMatchIntoViewIfNeeded: function(aMatch) {
-    
-    
-    let boxObject = this.widget._parent.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-    boxObject.ensureElementIsVisible(aMatch);
+    this.widget.ensureElementIsVisible(aMatch);
   },
 
   

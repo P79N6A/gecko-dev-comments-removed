@@ -16,6 +16,7 @@ const WIDGET_FOCUSABLE_NODES = new Set(["vbox", "hbox"]);
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
+Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 this.EXPORTED_SYMBOLS = [
   "Heritage", "ViewHelpers", "WidgetMethods",
@@ -118,9 +119,12 @@ this.ViewHelpers = {
 
 
   delegateWidgetAttributeMethods: function(aWidget, aNode) {
-    aWidget.getAttribute = aNode.getAttribute.bind(aNode);
-    aWidget.setAttribute = aNode.setAttribute.bind(aNode);
-    aWidget.removeAttribute = aNode.removeAttribute.bind(aNode);
+    aWidget.getAttribute =
+      aWidget.getAttribute || aNode.getAttribute.bind(aNode);
+    aWidget.setAttribute =
+      aWidget.setAttribute || aNode.setAttribute.bind(aNode);
+    aWidget.removeAttribute =
+      aWidget.removeAttribute || aNode.removeAttribute.bind(aNode);
   },
 
   
@@ -132,8 +136,10 @@ this.ViewHelpers = {
 
 
   delegateWidgetEventMethods: function(aWidget, aNode) {
-    aWidget.addEventListener = aNode.addEventListener.bind(aNode);
-    aWidget.removeEventListener = aNode.removeEventListener.bind(aNode);
+    aWidget.addEventListener =
+      aWidget.addEventListener || aNode.addEventListener.bind(aNode);
+    aWidget.removeEventListener =
+      aWidget.removeEventListener || aNode.removeEventListener.bind(aNode);
   },
 
   
@@ -417,33 +423,22 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-function Item(aOwnerView, aAttachment, aContents = []) {
+
+
+
+
+
+
+function Item(aOwnerView, aElement, aValue, aAttachment) {
   this.ownerView = aOwnerView;
   this.attachment = aAttachment;
-
-  let [aLabel, aValue, aDescription] = aContents;
-  
-  this._label = aLabel + "";
   this._value = aValue + "";
-  
-  if (aDescription !== undefined) {
-    this._description = aDescription + "";
-  }
-
-  
-  
-  if (ViewHelpers.isNode(aLabel)) {
-    this._prebuiltTarget = aLabel;
-  }
-
-  XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
+  this._prebuiltNode = aElement;
 };
 
 Item.prototype = {
-  get label() this._label,
-  get value() this._value,
-  get description() this._description,
-  get target() this._target,
+  get value() { return this._value; },
+  get target() { return this._target; },
 
   
 
@@ -459,8 +454,10 @@ Item.prototype = {
 
 
   append: function(aElement, aOptions = {}) {
-    let item = new Item(this, aOptions.attachment);
+    let item = new Item(this, aElement, "", aOptions.attachment);
 
+    
+    
     
     this._entangleItem(item, this._target.appendChild(aElement));
 
@@ -518,7 +515,6 @@ Item.prototype = {
     }
 
     this._unlinkItem(aItem);
-    aItem._prebuiltTarget = null;
     aItem._target = null;
   },
 
@@ -537,23 +533,26 @@ Item.prototype = {
 
 
   toString: function() {
-    if (this._label != "undefined" && this._value != "undefined") {
-      return this._label + " -> " + this._value;
-    }
-    if (this.attachment) {
-      return this.attachment.toString();
-    }
-    return "(null)";
+    return this._value + " :: " + this._target + " :: " + this.attachment;
   },
 
-  _label: "",
   _value: "",
-  _description: undefined,
-  _prebuiltTarget: null,
   _target: null,
+  _prebuiltNode: null,
   finalize: null,
   attachment: null
 };
+
+
+
+DevToolsUtils.defineLazyPrototypeGetter(Item.prototype, "_itemsByElement", Map);
+
+
+
+
+
+
+
 
 
 
@@ -604,7 +603,6 @@ this.WidgetMethods = {
 
     
     
-    XPCOMUtils.defineLazyGetter(this, "_itemsByLabel", () => new Map());
     XPCOMUtils.defineLazyGetter(this, "_itemsByValue", () => new Map());
     XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
     XPCOMUtils.defineLazyGetter(this, "_stagedItems", () => []);
@@ -652,18 +650,12 @@ this.WidgetMethods = {
 
 
 
-
-
-
-
-
-
-
-  push: function(aContents, aOptions = {}) {
-    let item = new Item(this, aOptions.attachment, aContents);
+  push: function([aElement, aValue], aOptions = {}) {
+    let item = new Item(this, aElement, aValue, aOptions.attachment);
 
     
     if (aOptions.staged) {
+      
       
       delete aOptions.index;
       return void this._stagedItems.push({ item: item, options: aOptions });
@@ -706,34 +698,18 @@ this.WidgetMethods = {
 
 
 
-
-  refresh: function() {
-    let selectedItem = this.selectedItem;
-    if (!selectedItem) {
-      return false;
-    }
-
-    let { _label: label, _value: value, _description: desc } = selectedItem;
-    this._widget.removeAttribute("notice");
-    this._widget.setAttribute("label", label);
-    this._widget.setAttribute("tooltiptext", desc !== undefined ? desc : value);
-
-    return true;
-  },
-
-  
-
-
-
-
-
   remove: function(aItem) {
     if (!aItem) {
       return;
     }
     this._widget.removeChild(aItem._target);
     this._untangleItem(aItem);
-    if (!this.itemCount) this.empty();
+
+    if (!this._itemsByElement.size) {
+      this._preferredValue = this.selectedValue;
+      this._widget.selectedItem = null;
+      this._widget.setAttribute("emptyText", this._emptyText);
+    }
   },
 
   
@@ -753,15 +729,12 @@ this.WidgetMethods = {
     this._preferredValue = this.selectedValue;
     this._widget.selectedItem = null;
     this._widget.removeAllItems();
-    this._widget.setAttribute("notice", this.emptyText);
-    this._widget.setAttribute("label", this.emptyText);
-    this._widget.removeAttribute("tooltiptext");
+    this._widget.setAttribute("emptyText", this._emptyText);
 
     for (let [, item] of this._itemsByElement) {
       this._untangleItem(item);
     }
 
-    this._itemsByLabel.clear();
     this._itemsByValue.clear();
     this._itemsByElement.clear();
     this._stagedItems.length = 0;
@@ -771,7 +744,40 @@ this.WidgetMethods = {
 
 
 
-  emptyText: "",
+
+
+  ensureItemIsVisible: function(aItem) {
+    this._widget.ensureElementIsVisible(aItem._target);
+  },
+
+  
+
+
+
+
+
+  ensureIndexIsVisible: function(aIndex) {
+    this.ensureItemIsVisible(this.getItemAtIndex(aIndex));
+  },
+
+  
+
+
+
+  set emptyText(aValue) {
+    this._emptyText = aValue;
+    this._widget.setAttribute("emptyText", aValue);
+  },
+
+  
+
+
+
+
+  set headerText(aValue) {
+    this._headerText = aValue;
+    this._widget.setAttribute("headerText", aValue);
+  },
 
   
 
@@ -832,8 +838,8 @@ this.WidgetMethods = {
     if (aFirst == aSecond) { 
       return;
     }
-    let { _prebuiltTarget: firstPrebuiltTarget, target: firstTarget } = aFirst;
-    let { _prebuiltTarget: secondPrebuiltTarget, target: secondTarget } = aSecond;
+    let { _prebuiltNode: firstPrebuiltTarget, _target: firstTarget } = aFirst;
+    let { _prebuiltNode: secondPrebuiltTarget, _target: secondTarget } = aSecond;
 
     
     
@@ -900,20 +906,6 @@ this.WidgetMethods = {
 
 
 
-  containsLabel: function(aLabel) {
-    return this._itemsByLabel.has(aLabel) ||
-           this._stagedItems.some(({ item }) => item._label == aLabel);
-  },
-
-  
-
-
-
-
-
-
-
-
   containsValue: function(aValue) {
     return this._itemsByValue.has(aValue) ||
            this._stagedItems.some(({ item }) => item._value == aValue);
@@ -924,7 +916,9 @@ this.WidgetMethods = {
 
 
 
-  get preferredValue() this._preferredValue,
+  get preferredValue() {
+    return this._preferredValue;
+  },
 
   
 
@@ -948,18 +942,6 @@ this.WidgetMethods = {
       return this._indexOfElement(selectedElement);
     }
     return -1;
-  },
-
-  
-
-
-
-  get selectedLabel() {
-    let selectedElement = this._widget.selectedItem;
-    if (selectedElement) {
-      return this._itemsByElement.get(selectedElement)._label;
-    }
-    return "";
   },
 
   
@@ -1005,6 +987,11 @@ this.WidgetMethods = {
     if (this.autoFocusOnSelection && targetElement) {
       targetElement.focus();
     }
+    if (this.maintainSelectionVisible && targetElement) {
+      if ("ensureElementIsVisible" in this._widget) {
+        this._widget.ensureElementIsVisible(targetElement);
+      }
+    }
 
     
     
@@ -1014,10 +1001,6 @@ this.WidgetMethods = {
       let dispName = this.suppressSelectionEvents ? "suppressed-select" : "select";
       ViewHelpers.dispatchEvent(dispTarget, dispName, aItem);
     }
-
-    
-    
-    this.refresh();
   },
 
   
@@ -1037,15 +1020,15 @@ this.WidgetMethods = {
 
 
 
-  set selectedLabel(aLabel)
-    this.selectedItem = this._itemsByLabel.get(aLabel),
+  set selectedValue(aValue) {
+    this.selectedItem = this._itemsByValue.get(aValue);
+  },
 
   
 
 
 
-  set selectedValue(aValue)
-    this.selectedItem = this._itemsByValue.get(aValue),
+  maintainSelectionVisible: true,
 
   
 
@@ -1240,18 +1223,6 @@ this.WidgetMethods = {
 
 
 
-  getItemByLabel: function(aLabel) {
-    return this._itemsByLabel.get(aLabel);
-  },
-
-  
-
-
-
-
-
-
-
   getItemByValue: function(aValue) {
     return this._itemsByValue.get(aValue);
   },
@@ -1358,7 +1329,9 @@ this.WidgetMethods = {
 
 
 
-  get itemCount() this._itemsByElement.size,
+  get itemCount() {
+    return this._itemsByElement.size;
+  },
 
   
 
@@ -1371,14 +1344,6 @@ this.WidgetMethods = {
       store.push(this.getItemAtIndex(i));
     }
     return store;
-  },
-
-  
-
-
-
-  get labels() {
-    return this.items.map(e => e._label);
   },
 
   
@@ -1414,30 +1379,13 @@ this.WidgetMethods = {
 
 
 
-  uniquenessQualifier: 1,
-
-  
-
-
-
-
-
-
 
   isUnique: function(aItem) {
-    switch (this.uniquenessQualifier) {
-      case 1:
-        return !this._itemsByLabel.has(aItem._label) &&
-               !this._itemsByValue.has(aItem._value);
-      case 2:
-        return !this._itemsByLabel.has(aItem._label) ||
-               !this._itemsByValue.has(aItem._value);
-      case 3:
-        return !this._itemsByLabel.has(aItem._label);
-      case 4:
-        return !this._itemsByValue.has(aItem._value);
+    let value = aItem._value;
+    if (value == "" || value == "undefined" || value == "null") {
+      return true;
     }
-    return false;
+    return !this._itemsByValue.has(value);
   },
 
   
@@ -1448,13 +1396,9 @@ this.WidgetMethods = {
 
 
 
-  isEligible: function(aItem) {
-    let isUnique = this.isUnique(aItem);
-    let isPrebuilt = !!aItem._prebuiltTarget;
-    let isDegenerate = aItem._label == "undefined" || aItem._label == "null" ||
-                       aItem._value == "undefined" || aItem._value == "null";
 
-    return isPrebuilt || (isUnique && !isDegenerate);
+  isEligible: function(aItem) {
+    return this.isUnique(aItem) && aItem._prebuiltNode;
   },
 
   
@@ -1468,7 +1412,6 @@ this.WidgetMethods = {
 
   _findExpectedIndexFor: function(aItem) {
     let itemCount = this.itemCount;
-
     for (let i = 0; i < itemCount; i++) {
       if (this._currentSortPredicate(this.getItemAtIndex(i), aItem) > 0) {
         return i;
@@ -1491,20 +1434,17 @@ this.WidgetMethods = {
 
 
 
-
-
   _insertItemAt: function(aIndex, aItem, aOptions = {}) {
-    
-    if (!aOptions.relaxed && !this.isEligible(aItem)) {
+    if (!this.isEligible(aItem)) {
       return null;
     }
 
     
-    this._entangleItem(aItem, this._widget.insertItemAt(aIndex,
-      aItem._prebuiltTarget || aItem._label, 
-      aItem._value,
-      aItem._description,
-      aItem.attachment));
+    
+    
+    let node = aItem._prebuiltNode;
+    let attachment = aItem.attachment;
+    this._entangleItem(aItem, this._widget.insertItemAt(aIndex, node, attachment));
 
     
     if (!this._currentFilterPredicate(aItem)) {
@@ -1521,6 +1461,9 @@ this.WidgetMethods = {
     }
 
     
+    this._widget.removeAttribute("emptyText");
+
+    
     return aItem;
   },
 
@@ -1533,7 +1476,6 @@ this.WidgetMethods = {
 
 
   _entangleItem: function(aItem, aElement) {
-    this._itemsByLabel.set(aItem._label, aItem);
     this._itemsByValue.set(aItem._value, aItem);
     this._itemsByElement.set(aElement, aItem);
     aItem._target = aElement;
@@ -1554,7 +1496,6 @@ this.WidgetMethods = {
     }
 
     this._unlinkItem(aItem);
-    aItem._prebuiltTarget = null;
     aItem._target = null;
   },
 
@@ -1565,7 +1506,6 @@ this.WidgetMethods = {
 
 
   _unlinkItem: function(aItem) {
-    this._itemsByLabel.delete(aItem._label);
     this._itemsByValue.delete(aItem._value);
     this._itemsByElement.delete(aItem._target);
   },
@@ -1650,7 +1590,7 @@ this.WidgetMethods = {
 
 
   _currentSortPredicate: function(aFirst, aSecond) {
-    return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
+    return +(aFirst._value.toLowerCase() > aSecond._value.toLowerCase());
   },
 
   
@@ -1667,7 +1607,9 @@ this.WidgetMethods = {
   },
 
   _widget: null,
-  _preferredValue: null,
+  _emptyText: "",
+  _headerText: "",
+  _preferredValue: "",
   _cachedCommandDispatcher: null
 };
 

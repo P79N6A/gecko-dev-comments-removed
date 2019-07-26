@@ -15,6 +15,13 @@
 
 
 
+.simple-list-widget-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+
+
 .side-menu-widget-container {
   overflow-x: hidden;
   overflow-y: auto;

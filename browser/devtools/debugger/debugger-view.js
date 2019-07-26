@@ -55,7 +55,6 @@ let DebuggerView = {
     this.Filtering.initialize();
     this.FilteredSources.initialize();
     this.FilteredFunctions.initialize();
-    this.ChromeGlobals.initialize();
     this.StackFrames.initialize();
     this.StackFramesClassicList.initialize();
     this.Sources.initialize();
@@ -91,7 +90,6 @@ let DebuggerView = {
     this.Filtering.destroy();
     this.FilteredSources.destroy();
     this.FilteredFunctions.destroy();
-    this.ChromeGlobals.destroy();
     this.StackFrames.destroy();
     this.StackFramesClassicList.destroy();
     this.Sources.destroy();
@@ -621,7 +619,6 @@ let DebuggerView = {
     this.FilteredSources.clearView();
     this.FilteredFunctions.clearView();
     this.GlobalSearch.clearView();
-    this.ChromeGlobals.empty();
     this.StackFrames.empty();
     this.Sources.empty();
     this.Variables.empty();
@@ -643,7 +640,6 @@ let DebuggerView = {
   FilteredSources: null,
   FilteredFunctions: null,
   GlobalSearch: null,
-  ChromeGlobals: null,
   StackFrames: null,
   Sources: null,
   Tracer: null,
@@ -661,225 +657,6 @@ let DebuggerView = {
   _instrumentsPaneToggleButton: null,
   _collapsePaneString: "",
   _expandPaneString: ""
-};
-
-
-
-
-
-
-
-
-
-
-
-function ListWidget(aNode) {
-  this._parent = aNode;
-
-  
-  this._list = document.createElement("vbox");
-  this._parent.appendChild(this._list);
-
-  
-  
-  ViewHelpers.delegateWidgetAttributeMethods(this, aNode);
-  ViewHelpers.delegateWidgetEventMethods(this, aNode);
-}
-
-ListWidget.prototype = {
-  
-
-
-
-  itemType: "hbox",
-
-  
-
-
-
-
-
-
-
-
-
-  itemFactory: null,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  insertItemAt: function(aIndex, aLabel, aValue, aDescription, aAttachment) {
-    let list = this._list;
-    let childNodes = list.childNodes;
-
-    let element = document.createElement(this.itemType);
-    this.itemFactory(element, aAttachment, aLabel, aValue, aDescription);
-    this._removeEmptyNotice();
-
-    element.classList.add("list-widget-item");
-    return list.insertBefore(element, childNodes[aIndex]);
-  },
-
-  
-
-
-
-
-
-
-
-  getItemAtIndex: function(aIndex) {
-    return this._list.childNodes[aIndex];
-  },
-
-  
-
-
-
-
-
-  removeChild: function(aChild) {
-    this._list.removeChild(aChild);
-
-    if (this._selectedItem == aChild) {
-      this._selectedItem = null;
-    }
-    if (!this._list.hasChildNodes()) {
-      this._appendEmptyNotice();
-    }
-  },
-
-  
-
-
-  removeAllItems: function() {
-    let parent = this._parent;
-    let list = this._list;
-
-    while (list.hasChildNodes()) {
-      list.firstChild.remove();
-    }
-    parent.scrollTop = 0;
-    parent.scrollLeft = 0;
-
-    this._selectedItem = null;
-    this._appendEmptyNotice();
-  },
-
-  
-
-
-
-  get selectedItem() this._selectedItem,
-
-  
-
-
-
-  set selectedItem(aChild) {
-    let childNodes = this._list.childNodes;
-
-    if (!aChild) {
-      this._selectedItem = null;
-    }
-    for (let node of childNodes) {
-      if (node == aChild) {
-        node.classList.add("selected");
-        this._selectedItem = node;
-      } else {
-        node.classList.remove("selected");
-      }
-    }
-  },
-
-  
-
-
-
-  set permaText(aValue) {
-    if (this._permaTextNode) {
-      this._permaTextNode.setAttribute("value", aValue);
-    }
-    this._permaTextValue = aValue;
-    this._appendPermaNotice();
-  },
-
-  
-
-
-
-  set emptyText(aValue) {
-    if (this._emptyTextNode) {
-      this._emptyTextNode.setAttribute("value", aValue);
-    }
-    this._emptyTextValue = aValue;
-    this._appendEmptyNotice();
-  },
-
-  
-
-
-  _appendPermaNotice: function() {
-    if (this._permaTextNode || !this._permaTextValue) {
-      return;
-    }
-
-    let label = document.createElement("label");
-    label.className = "empty list-widget-item";
-    label.setAttribute("value", this._permaTextValue);
-
-    this._parent.insertBefore(label, this._list);
-    this._permaTextNode = label;
-  },
-
-  
-
-
-  _appendEmptyNotice: function() {
-    if (this._emptyTextNode || !this._emptyTextValue) {
-      return;
-    }
-
-    let label = document.createElement("label");
-    label.className = "empty list-widget-item";
-    label.setAttribute("value", this._emptyTextValue);
-
-    this._parent.appendChild(label);
-    this._emptyTextNode = label;
-  },
-
-  
-
-
-  _removeEmptyNotice: function() {
-    if (!this._emptyTextNode) {
-      return;
-    }
-
-    this._parent.removeChild(this._emptyTextNode);
-    this._emptyTextNode = null;
-  },
-
-  _parent: null,
-  _list: null,
-  _selectedItem: null,
-  _permaTextNode: null,
-  _permaTextValue: "",
-  _emptyTextNode: null,
-  _emptyTextValue: ""
 };
 
 
@@ -909,9 +686,8 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
         document.documentElement.appendChild(this._panel);
       }
       if (!this.widget) {
-        this.widget = new ListWidget(this._panel);
-        this.widget.itemType = "vbox";
-        this.widget.itemFactory = this._createItemView;
+        this.widget = new SimpleListWidget(this._panel);
+        this.maintainSelectionVisible = false;
       }
     }
     
@@ -926,7 +702,9 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  get anchor() this._anchor,
+  get anchor() {
+    return this._anchor;
+  },
 
   
 
@@ -992,33 +770,36 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  _createItemView: function(aLabel, aBelowLabel, aBeforeLabel) {
+    let container = document.createElement("vbox");
+    container.className = "results-panel-item";
 
+    let firstRowLabels = document.createElement("hbox");
+    let secondRowLabels = document.createElement("hbox");
 
-
-
-  _createItemView: function(aElementNode, aAttachment, aLabel, aValue, aDescription) {
-    let labelsGroup = document.createElement("hbox");
-
-    if (aDescription) {
-      let preLabelNode = document.createElement("label");
-      preLabelNode.className = "plain results-panel-item-pre";
-      preLabelNode.setAttribute("value", aDescription);
-      labelsGroup.appendChild(preLabelNode);
-    }
-    if (aLabel) {
-      let labelNode = document.createElement("label");
-      labelNode.className = "plain results-panel-item-name";
-      labelNode.setAttribute("value", aLabel);
-      labelsGroup.appendChild(labelNode);
+    if (aBeforeLabel) {
+      let beforeLabelNode = document.createElement("label");
+      beforeLabelNode.className = "plain results-panel-item-label-before";
+      beforeLabelNode.setAttribute("value", aBeforeLabel);
+      firstRowLabels.appendChild(beforeLabelNode);
     }
 
-    let valueNode = document.createElement("label");
-    valueNode.className = "plain results-panel-item-details";
-    valueNode.setAttribute("value", aValue);
+    let labelNode = document.createElement("label");
+    labelNode.className = "plain results-panel-item-label";
+    labelNode.setAttribute("value", aLabel);
+    firstRowLabels.appendChild(labelNode);
 
-    aElementNode.className = "light results-panel-item";
-    aElementNode.appendChild(labelsGroup);
-    aElementNode.appendChild(valueNode);
+    if (aBelowLabel) {
+      let belowLabelNode = document.createElement("label");
+      belowLabelNode.className = "plain results-panel-item-label-below";
+      belowLabelNode.setAttribute("value", aBelowLabel);
+      secondRowLabels.appendChild(belowLabelNode);
+    }
+
+    container.appendChild(firstRowLabels);
+    container.appendChild(secondRowLabels);
+
+    return container;
   },
 
   _anchor: null,
