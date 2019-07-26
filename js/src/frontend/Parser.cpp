@@ -5333,8 +5333,6 @@ Parser<ParseHandler>::unaryExpr()
 
         
         
-        if (foldConstants && !FoldConstants(context, &expr, this))
-            return null();
         if (handler.isName(expr)) {
             if (!report(ParseStrictError, pc->sc->strict, expr, JSMSG_DEPRECATED_DELETE_OPERAND))
                 return null();
@@ -6230,13 +6228,6 @@ Parser<ParseHandler>::memberExpr(TokenKind tt, bool allowCallSyntax)
                 return null();
 
             MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_IN_INDEX);
-
-            
-
-
-
-            if (foldConstants && !FoldConstants(context, &propExpr, this))
-                return null();
 
             nextMember = handler.newPropertyByValue(lhs, propExpr, pos().end);
             if (!nextMember)
