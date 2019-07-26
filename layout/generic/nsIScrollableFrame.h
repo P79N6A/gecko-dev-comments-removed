@@ -291,6 +291,11 @@ public:
 
 
   virtual void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) = 0;
+  
+
+
+
+  virtual bool WantAsyncScroll() const = 0;
 };
 
 #endif
