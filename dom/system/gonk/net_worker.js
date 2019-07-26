@@ -483,7 +483,8 @@ function tetherInterface(params, callback) {
 }
 
 function preTetherInterfaceList(params, callback) {
-  let command = "tether interface list 0";
+  let command = (SDK_VERSION >= 16) ? "tether interface list"
+                                    : "tether interface list 0";
   return doCommand(command, callback);
 }
 
@@ -531,11 +532,21 @@ function wifiFirmwareReload(params, callback) {
 }
 
 function startAccessPointDriver(params, callback) {
+  
+  if (SDK_VERSION >= 16) {
+    callback(false, {code: "", reason: ""});
+    return true;
+  }
   let command = "softap start " + params.ifname;
   return doCommand(command, callback);
 }
 
 function stopAccessPointDriver(params, callback) {
+  
+  if (SDK_VERSION >= 16) {
+    callback(false, {code: "", reason: ""});
+    return true;
+  }
   let command = "softap stop " + params.ifname;
   return doCommand(command, callback);
 }
@@ -568,13 +579,38 @@ function escapeQuote(str) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function setAccessPoint(params, callback) {
-  let command = "softap set " + params.ifname +
-                " " + params.wifictrlinterfacename +
-                " \"" + escapeQuote(params.ssid) + "\"" +
-                " " + params.security +
-                " \"" + escapeQuote(params.key) + "\"" +
-                " " + "6 0 8";
+  let command;
+  if (SDK_VERSION >= 16) {
+    command = "softap set " + params.ifname +
+              " \"" + escapeQuote(params.ssid) + "\"" +
+              " " + params.security +
+              " \"" + escapeQuote(params.key) + "\"";
+  } else {
+    command = "softap set " + params.ifname +
+              " " + params.wifictrlinterfacename +
+              " \"" + escapeQuote(params.ssid) + "\"" +
+              " " + params.security +
+              " \"" + escapeQuote(params.key) + "\"" +
+              " " + "6 0 8";
+  }
   return doCommand(command, callback);
 }
 
