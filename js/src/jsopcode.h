@@ -188,7 +188,7 @@ SET_UINT32_INDEX(jsbytecode *pc, uint32_t index)
                                  (pc)[4] = (jsbytecode)uint32_t(i))
 
 
-#define INDEX_LIMIT_LOG2        23
+#define INDEX_LIMIT_LOG2        31
 #define INDEX_LIMIT             (uint32_t(1) << INDEX_LIMIT_LOG2)
 
 #define ARGC_HI(argc)           UINT16_HI(argc)

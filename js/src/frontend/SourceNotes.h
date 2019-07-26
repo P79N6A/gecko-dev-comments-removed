@@ -133,8 +133,8 @@ SN_IS_TERMINATOR(jssrcnote *sn)
 
 
 
-#define SN_3BYTE_OFFSET_FLAG    0x80
-#define SN_3BYTE_OFFSET_MASK    0x7f
+#define SN_4BYTE_OFFSET_FLAG    0x80
+#define SN_4BYTE_OFFSET_MASK    0x7f
 
 
 
@@ -147,9 +147,9 @@ SN_IS_TERMINATOR(jssrcnote *sn)
 
 
 
-#define SN_COLSPAN_DOMAIN       ptrdiff_t(SN_3BYTE_OFFSET_FLAG << 16)
+#define SN_COLSPAN_DOMAIN       ptrdiff_t(1 << 23)
 
-#define SN_MAX_OFFSET ((size_t)((ptrdiff_t)SN_3BYTE_OFFSET_FLAG << 16) - 1)
+#define SN_MAX_OFFSET ((size_t)((ptrdiff_t)SN_4BYTE_OFFSET_FLAG << 24) - 1)
 
 #define SN_LENGTH(sn)           ((js_SrcNoteSpec[SN_TYPE(sn)].arity == 0) ? 1 \
                                  : js_SrcNoteLength(sn))
