@@ -167,7 +167,7 @@ XULTabsAccessible::NativeName(nsString& aName)
 
 
 role
-XULDeckAccessible::NativeRole()
+XULTabpanelsAccessible::NativeRole()
 {
   return roles::PANE;
 }

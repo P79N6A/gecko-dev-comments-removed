@@ -62,12 +62,12 @@ protected:
 
 
 
-class XULDeckAccessible : public AccessibleWrap
+class XULTabpanelsAccessible : public AccessibleWrap
 {
 public:
-  XULDeckAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  XULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
     AccessibleWrap(aContent, aDoc)
-    { mType = eXULDeckType; }
+    { mType = eXULTabpanelsType; }
 
   
   virtual a11y::role NativeRole();

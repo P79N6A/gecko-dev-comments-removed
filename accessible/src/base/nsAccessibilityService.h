@@ -68,6 +68,13 @@ public:
 
 
 
+  void DeckPanelSwitched(nsIPresShell* aPresShell, nsIContent* aDeckNode,
+                         nsIFrame* aPrevBoxFrame, nsIFrame* aCurrentBoxFrame);
+
+  
+
+
+
   void ContentRangeInserted(nsIPresShell* aPresShell, nsIContent* aContainer,
                             nsIContent* aStartChild, nsIContent* aEndChild);
 
@@ -172,13 +179,6 @@ private:
   already_AddRefed<Accessible>
     CreateAccessibleByFrameType(nsIFrame* aFrame, nsIContent* aContent,
                                 Accessible* aContext);
-
-  
-
-
-  already_AddRefed<Accessible>
-    CreateAccessibleForDeckChild(nsIFrame* aFrame, nsIContent* aContent,
-                                 DocAccessible* aDoc);
 
 #ifdef MOZ_XUL
   
