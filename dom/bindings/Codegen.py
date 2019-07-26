@@ -466,21 +466,25 @@ class CGWrapper(CGThing):
             return ''
         decl = self.child.declare()
         if self.reindent:
-            
-            
-            decl = stripTrailingWhitespace(
-                decl.replace("\n", "\n" + (" " * len(self.declarePre))))
+            decl = self.reindentString(decl, self.declarePre)
         return self.declarePre + decl + self.declarePost
     def define(self):
         if self.declareOnly:
             return ''
         defn = self.child.define()
         if self.reindent:
-            
-            
-            defn = stripTrailingWhitespace(
-                defn.replace("\n", "\n" + (" " * len(self.definePre))))
+            defn = self.reindentString(defn, self.definePre)
         return self.definePre + defn + self.definePost
+
+    @staticmethod
+    def reindentString(stringToIndent, widthString):
+        
+        
+        
+        
+        lastLineWidth = len(widthString.splitlines()[-1])
+        return stripTrailingWhitespace(
+            stringToIndent.replace("\n", "\n" + (" " * lastLineWidth)))
 
     def deps(self):
         return self.child.deps()
