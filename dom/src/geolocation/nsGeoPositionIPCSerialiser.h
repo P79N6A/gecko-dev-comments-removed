@@ -9,14 +9,15 @@
 #include "nsGeoPosition.h"
 #include "nsIDOMGeoPosition.h"
 
-typedef nsIDOMGeoPosition* GeoPosition;
+typedef nsGeoPositionCoords       *GeoPositionCoords;
+typedef nsIDOMGeoPosition         *GeoPosition;
 
 namespace IPC {
 
 template <>
-struct ParamTraits<nsIDOMGeoPositionCoords*>
+struct ParamTraits<GeoPositionCoords>
 {
-  typedef nsIDOMGeoPositionCoords* paramType;
+  typedef GeoPositionCoords paramType;
 
   
   static void Write(Message *aMsg, const paramType& aParam)
@@ -95,9 +96,9 @@ struct ParamTraits<nsIDOMGeoPositionCoords*>
 };
 
 template <>
-struct ParamTraits<nsIDOMGeoPosition*>
+struct ParamTraits<GeoPosition>
 {
-  typedef nsIDOMGeoPosition* paramType;
+  typedef GeoPosition paramType;
 
   
   static void Write(Message *aMsg, const paramType& aParam)
@@ -113,7 +114,8 @@ struct ParamTraits<nsIDOMGeoPosition*>
 
     nsCOMPtr<nsIDOMGeoPositionCoords> coords;
     aParam->GetCoords(getter_AddRefs(coords));
-    WriteParam(aMsg, coords.get());
+    GeoPositionCoords simpleCoords = static_cast<GeoPositionCoords>(coords.get());
+    WriteParam(aMsg, simpleCoords);
   }
 
   
@@ -129,14 +131,16 @@ struct ParamTraits<nsIDOMGeoPosition*>
     }
 
     DOMTimeStamp timeStamp;
-    nsIDOMGeoPositionCoords* coords = nullptr;
+    GeoPositionCoords coords = nullptr;
 
     
-    if (!ReadParam(aMsg, aIter, &timeStamp) ||
-        !ReadParam(aMsg, aIter, &coords)) {
-      nsCOMPtr<nsIDOMGeoPositionCoords> tmpcoords = coords;
-      return false;
-    }
+    if (!(   ReadParam(aMsg, aIter, &timeStamp)
+          && ReadParam(aMsg, aIter, &coords   ))) {
+          
+          
+          delete coords;
+          return false;
+      }
 
     *aResult = new nsGeoPosition(coords, timeStamp);
 

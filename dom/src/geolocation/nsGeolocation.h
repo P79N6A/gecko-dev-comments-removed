@@ -53,9 +53,9 @@ class nsGeolocationRequest
   nsGeolocationRequest(nsGeolocation* locator,
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
-                       mozilla::dom::GeoPositionOptions* aOptions,
                        bool watchPositionRequest = false,
                        int32_t watchId = 0);
+  nsresult Init(JSContext* aCx, const jsval& aOptions);
   void Shutdown();
 
   
@@ -75,6 +75,7 @@ class nsGeolocationRequest
   void IPDLRelease() { Release(); }
 
   int32_t WatchId() { return mWatchId; }
+
  private:
 
   void NotifyError(int16_t errorCode);
@@ -201,14 +202,6 @@ public:
   
   void ServiceReady();
 
-  
-  nsresult WatchPosition(nsIDOMGeoPositionCallback *callback,
-                         nsIDOMGeoPositionErrorCallback *errorCallback,
-                         mozilla::dom::GeoPositionOptions *options,
-                         int32_t *_retval);
-  nsresult GetCurrentPosition(nsIDOMGeoPositionCallback *callback,
-                              nsIDOMGeoPositionErrorCallback *errorCallback,
-                              mozilla::dom::GeoPositionOptions *options);
 private:
 
   ~nsGeolocation();
