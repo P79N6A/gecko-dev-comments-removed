@@ -5339,6 +5339,11 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
     if (!frame)
       return NS_ERROR_FAILURE;
 
+    
+    
+    
+    aVertical.mOnlyIfPerceivedScrollableDirection = true;
+
     presShell->ScrollFrameRectIntoView(frame, rect, aVertical, aHorizontal,
       (aFlags & Selection::SCROLL_FIRST_ANCESTOR_ONLY) ?
        nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY : 0);
