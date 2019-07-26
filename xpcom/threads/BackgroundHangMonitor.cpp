@@ -28,8 +28,11 @@ private:
   {
     PR_SetCurrentThreadName("BgHangManager");
     
-    RefPtr<BackgroundHangManager>(
-      static_cast<BackgroundHangManager*>(aData))->RunMonitorThread();
+
+
+
+
+    static_cast<BackgroundHangManager*>(aData)->RunMonitorThread();
   }
 
   
@@ -61,7 +64,10 @@ public:
   void Wakeup()
   {
     
-    PR_Interrupt(mHangMonitorThread);
+    if (mHangMonitorThread) {
+      
+      PR_Interrupt(mHangMonitorThread);
+    }
   }
 
   BackgroundHangManager();
@@ -146,7 +152,10 @@ BackgroundHangManager::BackgroundHangManager()
   MonitorAutoLock autoLock(mLock);
   mHangMonitorThread = PR_CreateThread(
     PR_USER_THREAD, MonitorThread, this,
-    PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
+    PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
+
+  MOZ_ASSERT(mHangMonitorThread,
+    "Failed to create monitor thread");
 }
 
 BackgroundHangManager::~BackgroundHangManager()
@@ -155,6 +164,14 @@ BackgroundHangManager::~BackgroundHangManager()
     "Destruction without Shutdown call");
   MOZ_ASSERT(mHangThreads.isEmpty(),
     "Destruction with outstanding monitors");
+  MOZ_ASSERT(mHangMonitorThread,
+    "No monitor thread");
+
+  
+  if (mHangMonitorThread) {
+    
+    PR_JoinThread(mHangMonitorThread);
+  }
 }
 
 void
