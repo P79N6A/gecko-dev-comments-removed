@@ -115,6 +115,10 @@ typedef struct _nsCocoaWindowList {
 - (void)setBottomCornerRounded:(BOOL)rounded;
 - (BOOL)bottomCornerRounded;
 
+
+- (NSRect)contentRectForFrameRect:(NSRect)windowFrame styleMask:(NSUInteger)windowStyle;
+- (NSRect)frameRectForContentRect:(NSRect)windowContentRect styleMask:(NSUInteger)windowStyle;
+
 @end
 
 @interface PopupWindow : BaseWindow
