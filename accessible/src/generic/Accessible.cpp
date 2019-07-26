@@ -1186,69 +1186,39 @@ Accessible::GetRole(uint32_t *aRole)
 }
 
 NS_IMETHODIMP
-Accessible::GetAttributes(nsIPersistentProperties **aAttributes)
+Accessible::GetAttributes(nsIPersistentProperties** aAttributes)
 {
-  NS_ENSURE_ARG_POINTER(aAttributes);  
-  
+  NS_ENSURE_ARG_POINTER(aAttributes);
+  *aAttributes = nullptr;
+
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIPersistentProperties> attributes = *aAttributes;
-  if (!attributes) {
-    
-    attributes = do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
-    NS_ENSURE_TRUE(attributes, NS_ERROR_OUT_OF_MEMORY);
-    NS_ADDREF(*aAttributes = attributes);
-  }
- 
-  nsresult rv = GetAttributesInternal(attributes);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIPersistentProperties> attributes = Attributes();
+  attributes.swap(*aAttributes);
 
-  nsAutoString id;
-  nsAutoString oldValueUnused;
-  if (nsCoreUtils::GetID(mContent, id)) {
-    
-    
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("id"), id, oldValueUnused);
-  }
+  return NS_OK;
+}
+
+already_AddRefed<nsIPersistentProperties>
+Accessible::Attributes()
+{
+  nsCOMPtr<nsIPersistentProperties> attributes = NativeAttributes();
+  if (!HasOwnContent() || !mContent->IsElement())
+    return attributes.forget();
+
   
-  nsAutoString xmlRoles;
+  nsAutoString xmlRoles, unused;
   if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::role, xmlRoles)) {
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("xml-roles"),  xmlRoles, oldValueUnused);          
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("xml-roles"),
+                                  xmlRoles, unused);
   }
-
-  if (HasNumericValue()) {
-    
-    
-    
-    nsAutoString valuetext;
-    GetValue(valuetext);
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("valuetext"), valuetext, oldValueUnused);
-  }
-
-  
-  if (State() & states::CHECKABLE)
-    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::checkable, NS_LITERAL_STRING("true"));
-
-  
-  if (!nsTextEquivUtils::IsNameFromSubtreeAllowed(this) ||
-      Name(oldValueUnused) != eNameFromSubtree) {
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("explicit-name"),
-                                  NS_LITERAL_STRING("true"), oldValueUnused);
-  }
-
-  
-  GroupPos groupPos = GroupPosition();
-  nsAccUtils::SetAccGroupAttrs(attributes, groupPos.level,
-                               groupPos.setSize, groupPos.posInSet);
 
   
   aria::AttrIterator attribIter(mContent);
   nsAutoString name, value;
-  while(attribIter.Next(name, value)) {
-    attributes->SetStringProperty(NS_ConvertUTF16toUTF8(name), value, 
-                                  oldValueUnused);
-  }
+  while(attribIter.Next(name, value))
+    attributes->SetStringProperty(NS_ConvertUTF16toUTF8(name), value, unused);
 
   
   
@@ -1261,27 +1231,52 @@ Accessible::GetAttributes(nsIPersistentProperties **aAttributes)
     }
   }
 
-  return NS_OK;
+  return attributes.forget();
 }
 
-nsresult
-Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
+already_AddRefed<nsIPersistentProperties>
+Accessible::NativeAttributes()
 {
+  nsCOMPtr<nsIPersistentProperties> attributes =
+    do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
+
+  nsAutoString unused;
+
+  
+  
+  
+  
+  if (HasNumericValue()) {
+    nsAutoString valuetext;
+    GetValue(valuetext);
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("valuetext"), valuetext,
+                                  unused);
+  }
+
+  
+  if (State() & states::CHECKABLE) {
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::checkable,
+                           NS_LITERAL_STRING("true"));
+  }
+
+  
+  if (!nsTextEquivUtils::IsNameFromSubtreeAllowed(this) ||
+      Name(unused) != eNameFromSubtree) {
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("explicit-name"),
+                                  NS_LITERAL_STRING("true"), unused);
+  }
+
+  
+  GroupPos groupPos = GroupPosition();
+  nsAccUtils::SetAccGroupAttrs(attributes, groupPos.level,
+                               groupPos.setSize, groupPos.posInSet);
+
   
   
   if (!HasOwnContent())
-    return NS_OK;
+    return attributes.forget();
 
-  
-  
-
-  nsEventShell::GetEventAttributes(GetNode(), aAttributes);
- 
-  
-  
-  nsAutoString _class;
-  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::_class, _class))
-    nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::_class, _class);
+  nsEventShell::GetEventAttributes(GetNode(), attributes);
 
   
   
@@ -1292,12 +1287,11 @@ Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
   nsIContent* startContent = mContent;
   while (startContent) {
     nsIDocument* doc = startContent->GetDocument();
-    nsIContent* rootContent = nsCoreUtils::GetRoleContent(doc);
-    if (!rootContent)
-      return NS_OK;
+    if (!doc)
+      break;
 
-    nsAccUtils::SetLiveContainerAttributes(aAttributes, startContent,
-                                           rootContent);
+    nsAccUtils::SetLiveContainerAttributes(attributes, startContent,
+                                           nsCoreUtils::GetRoleContent(doc));
 
     
     nsCOMPtr<nsISupports> container = doc->GetContainer(); 
@@ -1311,20 +1305,29 @@ Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     if (!sameTypeParent || sameTypeParent == docShellTreeItem)
       break;
 
-    nsIDocument *parentDoc = doc->GetParentDocument();
+    nsIDocument* parentDoc = doc->GetParentDocument();
     if (!parentDoc)
       break;
 
-    startContent = parentDoc->FindContentForSubDocument(doc);      
+    startContent = parentDoc->FindContentForSubDocument(doc);
   }
 
   if (!mContent->IsElement())
-    return NS_OK;
+    return attributes.forget();
+
+  nsAutoString id;
+  if (nsCoreUtils::GetID(mContent, id))
+    attributes->SetStringProperty(NS_LITERAL_CSTRING("id"), id, unused);
+
+  
+  nsAutoString _class;
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::_class, _class))
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::_class, _class);
 
   
   nsAutoString tagName;
   mContent->NodeInfo()->GetName(tagName);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::tag, tagName);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::tag, tagName);
 
   
   nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(mContent);
@@ -1332,7 +1335,7 @@ Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     bool draggable = false;
     htmlElement->GetDraggable(&draggable);
     if (draggable) {
-      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::draggable,
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::draggable,
                              NS_LITERAL_STRING("true"));
     }
   }
@@ -1340,7 +1343,7 @@ Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
   
   
   if (!mContent->GetPrimaryFrame())
-    return NS_OK;
+    return attributes.forget();
 
   
   nsAutoString value;
@@ -1348,33 +1351,33 @@ Accessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
 
   
   styleInfo.Display(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::display, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::display, value);
 
   
   styleInfo.TextAlign(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textAlign, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textAlign, value);
 
   
   styleInfo.TextIndent(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textIndent, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textIndent, value);
 
   
   styleInfo.MarginLeft(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginLeft, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::marginLeft, value);
 
   
   styleInfo.MarginRight(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginRight, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::marginRight, value);
 
   
   styleInfo.MarginTop(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginTop, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::marginTop, value);
 
   
   styleInfo.MarginBottom(value);
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginBottom, value);
+  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::marginBottom, value);
 
-  return NS_OK;
+  return attributes.forget();
 }
 
 GroupPos

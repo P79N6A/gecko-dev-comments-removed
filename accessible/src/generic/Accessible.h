@@ -250,8 +250,7 @@ public:
   
 
 
-
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+  virtual already_AddRefed<nsIPersistentProperties> Attributes();
 
   
 
@@ -713,6 +712,18 @@ public:
 protected:
 
   
+
+
+
+  virtual mozilla::a11y::ENameValueFlag NativeName(nsString& aName);
+
+  
+
+
+
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes();
+
+  
   
 
   
@@ -800,12 +811,6 @@ protected:
 
   
   
-
-  
-
-
-
-  virtual mozilla::a11y::ENameValueFlag NativeName(nsString& aName);
 
   
 

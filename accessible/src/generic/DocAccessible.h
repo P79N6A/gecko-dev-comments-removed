@@ -68,7 +68,6 @@ public:
   virtual ~DocAccessible();
 
   
-  NS_IMETHOD GetAttributes(nsIPersistentProperties** aAttributes);
   NS_IMETHOD TakeFocus(void);
 
   
@@ -94,6 +93,7 @@ public:
   virtual uint64_t NativeInteractiveState() const;
   virtual bool NativelyUnavailable() const;
   virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual already_AddRefed<nsIPersistentProperties> Attributes();
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 

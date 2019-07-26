@@ -67,19 +67,6 @@ OuterDocAccessible::ChildAtPoint(int32_t aX, int32_t aY,
   return child;
 }
 
-nsresult
-OuterDocAccessible::GetAttributesInternal(nsIPersistentProperties* aAttributes)
-{
-  nsAutoString tag;
-  aAttributes->GetStringProperty(NS_LITERAL_CSTRING("tag"), tag);
-  if (!tag.IsEmpty()) {
-    
-    
-    return NS_OK;
-  }
-  return Accessible::GetAttributesInternal(aAttributes);
-}
-
 
 
 

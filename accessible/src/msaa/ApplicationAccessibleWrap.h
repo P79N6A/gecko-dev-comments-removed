@@ -23,7 +23,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetAttributes(nsIPersistentProperties** aAttributes);
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
 
   
   STDMETHODIMP QueryInterface(REFIID, void**);

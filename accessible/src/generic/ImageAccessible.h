@@ -38,7 +38,7 @@ public:
   
   virtual a11y::role NativeRole();
   virtual uint64_t NativeState();
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
 
   
   virtual uint8_t ActionCount();
