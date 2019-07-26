@@ -227,10 +227,6 @@ pref("accessibility.browsewithcaret", false);
 pref("app.update.showInstalledUI", false);
 
 
-pref("browser.menu.showCharacterEncoding", false);
-pref("intl.charsetmenu.browser.static", "chrome://browser/locale/browser.properties");
-
-
 pref("browser.search.defaultenginename", "chrome://browser/locale/browser.properties");
 
 

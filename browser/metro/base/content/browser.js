@@ -564,7 +564,6 @@ var Browser = {
     } else {
       
       BrowserUI.updateURI();
-      IdentityUI.checkIdentity();
 
       let event = document.createEvent("Events");
       event.initEvent("TabSelect", true, false);
