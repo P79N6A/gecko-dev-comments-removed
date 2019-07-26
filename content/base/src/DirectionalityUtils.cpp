@@ -663,8 +663,13 @@ WalkDescendantsResetAutoDirection(Element* aElement)
 void
 WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
 {
-  if (!DoesNotParticipateInAutoDirection(aElement) &&
-      !IsBdiWithoutDirAuto(aElement)) {
+  
+  
+  
+  
+  
+  
+  if (!DoesNotParticipateInAutoDirection(aElement)) {
 
     bool setAncestorDirAutoFlag =
 #ifdef DEBUG
@@ -685,7 +690,7 @@ WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
         MOZ_ASSERT(!aElement->AncestorHasDirAuto() ||
                    child->AncestorHasDirAuto(),
                    "AncestorHasDirAuto set on node but not its children");
-        child->SetHasDirAuto();
+        child->SetAncestorHasDirAuto();
         child = child->GetNextNode(aElement);
       }
     }
