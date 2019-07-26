@@ -98,6 +98,35 @@ this.WbxmlEnd = {
 
 
 
+
+
+
+
+
+
+
+this.escapeReservedCharacters = function escape_reserved_characters(str) {
+  let dst = "";
+
+  for (var i = 0; i < str.length; i++) {
+    switch (str[i]) {
+      case '&' : dst += "&amp;" ; break;
+      case '<' : dst += "&lt;"  ; break;
+      case '>' : dst += "&gt;"  ; break;
+      case '"' : dst += "&quot;"; break;
+      case '\'': dst += "&apos;"; break;
+      default  : dst += str[i];
+    }
+  }
+
+  return dst;
+}
+
+
+
+
+
+
 this.readStringTable = function decode_wbxml_read_string_table(start, stringTable, charset) {
   let end = start;
 
@@ -118,7 +147,9 @@ this.readStringTable = function decode_wbxml_read_string_table(start, stringTabl
 this.WbxmlStringTable = {
   decode: function decode_wbxml_string_table(data, decodeInfo) {
     let start = WSP.Octet.decode(data);
-    return readStringTable(start, decodeInfo.stringTable, decodeInfo.charset);
+    let str = readStringTable(start, decodeInfo.stringTable, decodeInfo.charset);
+
+    return escapeReservedCharacters(str);
   }
 };
 
@@ -142,7 +173,9 @@ this.WbxmlInlineString = {
       charCode = WSP.Octet.decode(data);
     }
 
-    return WSP.PduHelper.decodeStringContent(stringData, decodeInfo.charset);
+    let str = WSP.PduHelper.decodeStringContent(stringData, decodeInfo.charset);
+
+    return escapeReservedCharacters(str);
   },
 };
 
