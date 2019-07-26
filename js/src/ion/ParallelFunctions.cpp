@@ -4,12 +4,14 @@
 
 
 
-#include "jsinterp.h"
 #include "ParallelFunctions.h"
 #include "IonSpewer.h"
 
-#include "jsinterpinlines.h"
+#include "vm/Interpreter.h"
+
 #include "jscompartmentinlines.h"
+
+#include "vm/Interpreter-inl.h"
 
 using namespace js;
 using namespace ion;

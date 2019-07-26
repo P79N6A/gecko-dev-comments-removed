@@ -4,19 +4,19 @@
 
 
 
-#ifndef jsinterpinlines_h__
-#define jsinterpinlines_h__
+#ifndef Interpreter_inl_h__
+#define Interpreter_inl_h__
 
 #include "jsapi.h"
 #include "jsbool.h"
 #include "jscompartment.h"
 #include "jsinfer.h"
-#include "jsinterp.h"
 #include "jslibmath.h"
 #include "jsnum.h"
 #include "jsprobes.h"
 #include "jsstr.h"
 
+#include "vm/Interpreter.h"
 #include "vm/ForkJoin.h"
 
 #include "jsatominlines.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsinterp_h___
-#define jsinterp_h___
+#ifndef Interpreter_h___
+#define Interpreter_h___
 
 
 
