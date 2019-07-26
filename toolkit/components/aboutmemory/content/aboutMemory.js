@@ -21,6 +21,7 @@
 
 
 
+
 "use strict";
 
 
@@ -369,7 +370,7 @@ function onLoadAboutMemory()
       if (searchSplit[i].toLowerCase().startsWith('file=')) {
         let filename = searchSplit[i].substring('file='.length);
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-        file.initWithPath(filename);
+        file.initWithPath(decodeURIComponent(filename));
         updateAboutMemoryFromFile(file);
         return;
       }
