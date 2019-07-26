@@ -2005,7 +2005,7 @@ const T& NonNullHelper(const OwningNonNull<T>& aArg)
 
 
 nsresult
-ReparentWrapper(JSContext* aCx, JS::HandleObject aObj);
+ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
 
 
