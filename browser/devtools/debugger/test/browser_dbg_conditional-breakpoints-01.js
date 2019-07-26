@@ -53,6 +53,10 @@ function test() {
       .then(() => resumeAndTestNoBreakpoint())
       .then(() => reloadActiveTab(gPanel, gDebugger.EVENTS.BREAKPOINT_SHOWN, 13))
       .then(() => testAfterReload())
+      .then(() => {
+        
+        client.mainRoot.traits.conditionalBreakpoints = true;
+      })
       .then(() => closeDebuggerAndFinish(gPanel))
       .then(null, aError => {
         ok(false, "Got an error: " + aError.message + "\n" + aError.stack);

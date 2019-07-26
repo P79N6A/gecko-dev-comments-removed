@@ -98,6 +98,26 @@ RootActor.prototype = {
   constructor: RootActor,
   applicationType: "browser",
 
+  traits: {
+    sources: true,
+    editOuterHTML: true,
+    
+    
+    highlightable: true,
+    
+    
+    
+    urlToImageDataResolver: true,
+    networkMonitor: true,
+    
+    storageInspector: true,
+    
+    storageInspectorReadOnly: true,
+    
+    conditionalBreakpoints: true,
+    bulk: true
+  },
+
   
 
 
@@ -107,24 +127,7 @@ RootActor.prototype = {
       applicationType: this.applicationType,
       
       testConnectionPrefix: this.conn.prefix,
-      traits: {
-        sources: true,
-        editOuterHTML: true,
-        
-        
-        highlightable: true,
-        
-        
-        
-        urlToImageDataResolver: true,
-        networkMonitor: true,
-        
-        storageInspector: true,
-        
-        storageInspectorReadOnly: true,
-        
-        conditionalBreakpoints: true
-      }
+      traits: this.traits
     };
   },
 

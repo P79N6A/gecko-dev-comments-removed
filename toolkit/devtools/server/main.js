@@ -901,6 +901,14 @@ DebuggerServerConnection.prototype = {
     this.transport.send(aPacket);
   },
 
+  
+
+
+
+  startBulkSend: function(header) {
+    return this.transport.startBulkSend(header);
+  },
+
   allocID: function DSC_allocID(aPrefix) {
     return this.prefix + (aPrefix || '') + this._nextID++;
   },
@@ -972,6 +980,37 @@ DebuggerServerConnection.prototype = {
     return null;
   },
 
+  _getOrCreateActor: function(actorID) {
+    let actor = this.getActor(actorID);
+    if (!actor) {
+      this.transport.send({ from: actorID ? actorID : "root",
+                            error: "noSuchActor",
+                            message: "No such actor for ID: " + actorID });
+      return;
+    }
+
+    
+    if (typeof actor == "function") {
+      let instance;
+      try {
+        instance = new actor();
+      } catch (e) {
+        this.transport.send(this._unknownError(
+          "Error occurred while creating actor '" + actor.name,
+          e));
+      }
+      instance.parentID = actor.parentID;
+      
+      
+      
+      instance.actorID = actor.actorID;
+      actor.registeredPool.addActor(instance);
+      actor = instance;
+    }
+
+    return actor;
+  },
+
   poolFor: function DSC_actorPool(aActorID) {
     if (this._actorPool && this._actorPool.has(aActorID)) {
       return this._actorPool;
@@ -993,6 +1032,26 @@ DebuggerServerConnection.prototype = {
       error: "unknownError",
       message: errorString
     };
+  },
+
+  _queueResponse: function(from, type, response) {
+    let pendingResponse = this._actorResponses.get(from) || resolve(null);
+    let responsePromise = pendingResponse.then(() => {
+      return response;
+    }).then(aResponse => {
+      if (!aResponse.from) {
+        aResponse.from = from;
+      }
+      this.transport.send(aResponse);
+    }).then(null, (e) => {
+      let errorPacket = this._unknownError(
+        "error occurred while processing '" + type,
+        e);
+      errorPacket.from = from;
+      this.transport.send(errorPacket);
+    });
+
+    this._actorResponses.set(from, responsePromise);
   },
 
   
@@ -1075,31 +1134,9 @@ DebuggerServerConnection.prototype = {
       }
     }
 
-    let actor = this.getActor(aPacket.to);
+    let actor = this._getOrCreateActor(aPacket.to);
     if (!actor) {
-      this.transport.send({ from: aPacket.to ? aPacket.to : "root",
-                            error: "noSuchActor",
-                            message: "No such actor for ID: " + aPacket.to });
       return;
-    }
-
-    
-    if (typeof actor == "function") {
-      let instance;
-      try {
-        instance = new actor();
-      } catch (e) {
-        this.transport.send(this._unknownError(
-          "Error occurred while creating actor '" + actor.name,
-          e));
-      }
-      instance.parentID = actor.parentID;
-      
-      
-      
-      instance.actorID = actor.actorID;
-      actor.registeredPool.addActor(instance);
-      actor = instance;
     }
 
     var ret = null;
@@ -1121,34 +1158,75 @@ DebuggerServerConnection.prototype = {
       }
     } else {
       ret = { error: "unrecognizedPacketType",
-              message: ('Actor "' + actor.actorID +
-                        '" does not recognize the packet type "' +
-                        aPacket.type + '"') };
+              message: ("Actor " + actor.actorID +
+                        " does not recognize the packet type " +
+                        aPacket.type) };
     }
 
-    if (!ret) {
-      
-      
+    
+    if (ret) {
+      this._queueResponse(aPacket.to, aPacket.type, ret);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onBulkPacket: function(packet) {
+    let { actor: actorKey, type, length } = packet;
+
+    let actor = this._getOrCreateActor(actorKey);
+    if (!actor) {
       return;
     }
 
-    let pendingResponse = this._actorResponses.get(actor.actorID) || resolve(null);
-    let response = pendingResponse.then(() => {
-      return ret;
-    }).then(aResponse => {
-      if (!aResponse.from) {
-        aResponse.from = aPacket.to;
+    
+    let ret;
+    if (actor.requestTypes && actor.requestTypes[type]) {
+      try {
+        ret = actor.requestTypes[type].call(actor, packet);
+      } catch(e) {
+        this.transport.send(this._unknownError(
+          "error occurred while processing bulk packet '" + type, e));
+        packet.done.reject(e);
       }
-      this.transport.send(aResponse);
-    }).then(null, (e) => {
-      let errorPacket = this._unknownError(
-        "error occurred while processing '" + aPacket.type,
-        e);
-      errorPacket.from = aPacket.to;
-      this.transport.send(errorPacket);
-    });
+    } else {
+      let message = "Actor " + actorKey +
+                    " does not recognize the bulk packet type " + type;
+      ret = { error: "unrecognizedPacketType",
+              message: message };
+      packet.done.reject(new Error(message));
+    }
 
-    this._actorResponses.set(actor.actorID, response);
+    
+    if (ret) {
+      this._queueResponse(actorKey, type, ret);
+    }
   },
 
   

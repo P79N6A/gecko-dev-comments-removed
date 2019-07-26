@@ -46,6 +46,10 @@ function test() {
         return finished;
       })
       .then(testConditionalExpressionInPopup)
+      .then(() => {
+        
+        client.mainRoot.traits.conditionalBreakpoints = true;
+      })
       .then(() => resumeDebuggerThenCloseAndFinish(gPanel))
       .then(null, aError => {
         ok(false, "Got an error: " + aError.message + "\n" + aError.stack);

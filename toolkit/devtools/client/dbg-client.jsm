@@ -44,6 +44,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 XPCOMUtils.defineLazyModuleGetter(this, "devtools",
                                   "resource://gre/modules/devtools/Loader.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "events", () => {
+  return devtools.require("sdk/event/core");
+});
+
 Object.defineProperty(this, "WebConsoleClient", {
   get: function () {
     return devtools.require("devtools/toolkit/webconsole/client").WebConsoleClient;
@@ -627,6 +631,39 @@ DebuggerClient.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   request: function (aRequest, aOnResponse) {
     if (!this.mainRoot) {
       throw Error("Have not yet received a hello packet from the server.");
@@ -636,10 +673,111 @@ DebuggerClient.prototype = {
       throw Error("'" + type + "' request packet has no destination.");
     }
 
-    this._pendingRequests.push({ to: aRequest.to,
-                                 request: aRequest,
-                                 onResponse: aOnResponse });
+    let request = new Request(aRequest);
+    request.format = "json";
+    if (aOnResponse) {
+      request.on("json-reply", aOnResponse);
+    }
+
+    this._pendingRequests.push(request);
     this._sendRequests();
+
+    return request;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  startBulkRequest: function(request) {
+    if (!this.traits.bulk) {
+      throw Error("Server doesn't support bulk transfers");
+    }
+    if (!this.mainRoot) {
+      throw Error("Have not yet received a hello packet from the server.");
+    }
+    if (!request.type) {
+      throw Error("Bulk packet is missing the required 'type' field.");
+    }
+    if (!request.actor) {
+      throw Error("'" + request.type + "' bulk packet has no destination.");
+    }
+    if (!request.length) {
+      throw Error("'" + request.type + "' bulk packet has no length.");
+    }
+
+    let request = new Request(request);
+    request.format = "bulk";
+
+    this._pendingRequests.push(request);
+    this._sendRequests();
+
+    return request;
   },
 
   
@@ -648,12 +786,22 @@ DebuggerClient.prototype = {
 
   _sendRequests: function () {
     this._pendingRequests = this._pendingRequests.filter((request) => {
-      if (this._activeRequests.has(request.to)) {
+      let dest = request.actor;
+
+      if (this._activeRequests.has(dest)) {
         return true;
       }
 
-      this.expectReply(request.to, request.onResponse);
-      this._transport.send(request.request);
+      this.expectReply(dest, request);
+
+      if (request.format === "json") {
+        this._transport.send(request.request);
+        return false;
+      }
+
+      this._transport.startBulkSend(request.request).then((...args) => {
+        request.emit("bulk-send-ready", ...args);
+      });
 
       return false;
     });
@@ -667,11 +815,21 @@ DebuggerClient.prototype = {
 
 
 
-  expectReply: function (aActor, aHandler) {
+
+  expectReply: function (aActor, aRequest) {
     if (this._activeRequests.has(aActor)) {
       throw Error("clashing handlers for next reply from " + uneval(aActor));
     }
-    this._activeRequests.set(aActor, aHandler);
+
+    
+    
+    if (typeof aRequest === "function") {
+      let handler = aRequest;
+      aRequest = new Request();
+      aRequest.on("json-reply", handler);
+    }
+
+    this._activeRequests.set(aActor, aRequest);
   },
 
   
@@ -706,7 +864,7 @@ DebuggerClient.prototype = {
         return;
       }
 
-      let onResponse;
+      let activeRequest;
       
       
       
@@ -714,7 +872,7 @@ DebuggerClient.prototype = {
           !(aPacket.type in UnsolicitedNotifications) &&
           !(aPacket.type == ThreadStateTypes.paused &&
             aPacket.why.type in UnsolicitedPauses)) {
-        onResponse = this._activeRequests.get(aPacket.from);
+        activeRequest = this._activeRequests.get(aPacket.from);
         this._activeRequests.delete(aPacket.from);
       }
 
@@ -739,12 +897,64 @@ DebuggerClient.prototype = {
         this.notify(aPacket.type, aPacket);
       }
 
-      if (onResponse) {
-        onResponse(aPacket);
+      if (activeRequest) {
+        activeRequest.emit("json-reply", aPacket);
       }
 
       this._sendRequests();
     }, ex => DevToolsUtils.reportException("onPacket handler", ex));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  onBulkPacket: function(packet) {
+    let { actor, type, length } = packet;
+
+    if (!actor) {
+      DevToolsUtils.reportException(
+        "onBulkPacket",
+        new Error("Server did not specify an actor, dropping bulk packet: " +
+                  JSON.stringify(packet)));
+      return;
+    }
+
+    
+    
+    if (!this._activeRequests.has(actor)) {
+      return;
+    }
+
+    let activeRequest = this._activeRequests.get(actor);
+    this._activeRequests.delete(actor);
+    activeRequest.emit("bulk-reply", packet);
+
+    this._sendRequests();
   },
 
   
@@ -795,6 +1005,32 @@ DebuggerClient.prototype = {
 }
 
 eventSource(DebuggerClient.prototype);
+
+function Request(request) {
+  this.request = request;
+}
+
+Request.prototype = {
+
+  on: function(type, listener) {
+    events.on(this, type, listener);
+  },
+
+  off: function(type, listener) {
+    events.off(this, type, listener);
+  },
+
+  once: function(type, listener) {
+    events.once(this, type, listener);
+  },
+
+  emit: function(type, ...args) {
+    events.emit(this, type, ...args);
+  },
+
+  get actor() { return this.request.to || this.request.actor; }
+
+};
 
 
 const SUPPORTED = 1;
