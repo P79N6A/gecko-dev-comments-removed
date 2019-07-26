@@ -1029,6 +1029,37 @@ ScrollFrameHelper::HandleScrollbarStyleSwitching()
   }
 }
 
+static bool IsFocused(nsIContent* aContent)
+{
+  
+  
+  
+  
+  while (aContent && aContent->IsInAnonymousSubtree()) {
+    aContent = aContent->GetParent();
+  }
+
+  return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
+}
+
+bool
+ScrollFrameHelper::WantAsyncScroll() const
+{
+  nsRect scrollRange = GetScrollRange();
+  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+  bool isFocused = IsFocused(mOuter->GetContent());
+  bool isVScrollable = (scrollRange.height > 0)
+                    && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
+  bool isHScrollable = (scrollRange.width > 0)
+                    && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
+  
+  
+  
+  bool isVAsyncScrollable = isVScrollable && (mVScrollbarBox || isFocused);
+  bool isHAsyncScrollable = isHScrollable && (mHScrollbarBox || isFocused);
+  return isVAsyncScrollable || isHAsyncScrollable;
+}
+
 nsresult
 nsXULScrollFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
@@ -2306,19 +2337,6 @@ ScrollFrameHelper::ExpandRect(const nsRect& aRect) const
   return rect;
 }
 
-static bool IsFocused(nsIContent* aContent)
-{
-  
-  
-  
-  
-  while (aContent && aContent->IsInAnonymousSubtree()) {
-    aContent = aContent->GetParent();
-  }
-
-  return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
-}
-
 static bool
 ShouldBeClippedByFrame(nsIFrame* aClipFrame, nsIFrame* aClippedFrame)
 {
@@ -2577,18 +2595,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (mShouldBuildScrollableLayer) {
     shouldBuildLayer = true;
   } else {
-    nsRect scrollRange = GetScrollRange();
-    ScrollbarStyles styles = GetScrollbarStylesFromFrame();
-    bool isFocused = IsFocused(mOuter->GetContent());
-    bool isVScrollable = (scrollRange.height > 0)
-                      && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
-    bool isHScrollable = (scrollRange.width > 0)
-                      && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
-    
-    
-    
-    bool wantLayerV = isVScrollable && (mVScrollbarBox || isFocused);
-    bool wantLayerH = isHScrollable && (mHScrollbarBox || isFocused);
     
     bool wantSubAPZC = gfxPrefs::APZSubframeEnabled();
 #ifdef MOZ_WIDGET_GONK
@@ -2598,7 +2604,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 #endif
     shouldBuildLayer =
       wantSubAPZC &&
-      (wantLayerV || wantLayerH) &&
+      WantAsyncScroll() &&
       
       
       
