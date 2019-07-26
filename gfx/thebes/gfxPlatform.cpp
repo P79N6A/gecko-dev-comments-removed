@@ -831,21 +831,20 @@ RefPtr<DrawTarget>
 gfxPlatform::CreateDrawTargetForFBO(unsigned int aFBOID, mozilla::gl::GLContext* aGLContext, const IntSize& aSize, SurfaceFormat aFormat)
 {
   NS_ASSERTION(mPreferredCanvasBackend, "No backend.");
+  RefPtr<DrawTarget> target = nullptr;
 #ifdef USE_SKIA_GPU
   if (mPreferredCanvasBackend == BACKEND_SKIA) {
     static uint8_t sGrContextKey;
-    GrContext* ctx = reinterpret_cast<GrContext*>(aGLContext->GetUserData(&sGrContextKey));
-    if (!ctx) {
-      GrGLInterface* grInterface = CreateGrInterfaceFromGLContext(aGLContext);
-      ctx = GrContext::Create(kOpenGL_Shaders_GrEngine, (GrPlatform3DContext)grInterface);
-      aGLContext->SetUserData(&sGrContextKey, ctx);
-    }
+    GrGLInterface* grInterface = CreateGrInterfaceFromGLContext(aGLContext);
+    SkRefPtr<GrContext> ctx = GrContext::Create(kOpenGL_Shaders_GrEngine, (GrPlatform3DContext)grInterface);
 
     
-    return Factory::CreateSkiaDrawTargetForFBO(aFBOID, ctx, aSize, aFormat);
+    
+    target = Factory::CreateSkiaDrawTargetForFBO(aFBOID, ctx, aSize, aFormat);
+    
   }
 #endif
-  return nullptr;
+  return target;
 }
 
  BackendType
