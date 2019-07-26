@@ -4,6 +4,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 var gConsole, gConsoleBundle, gTextBoxEval, gEvaluator, gCodeToEvaluate;
 var gFilter;
 
@@ -13,7 +15,7 @@ window.onload = function()
 {
   gConsole = document.getElementById("ConsoleBox");
   gConsoleBundle = document.getElementById("ConsoleBundle");
-  gTextBoxEval = document.getElementById("TextboxEval")  
+  gTextBoxEval = document.getElementById("TextboxEval");
   gEvaluator = document.getElementById("Evaluator");
   gFilter = document.getElementById("Filter");
   
@@ -29,7 +31,7 @@ function changeFilter()
 {
   gConsole.filter = gFilter.value;
 
-  document.persist("ConsoleBox", "filter")
+  document.persist("ConsoleBox", "filter");
 }
 
 function changeMode(aMode)
@@ -104,14 +106,6 @@ function loadOrDisplayResult()
   resultRange.selectNode(gEvaluator.contentDocument.documentElement);
   var result = resultRange.toString();
   if (result)
-    gConsole.mCService.logStringMessage(result);
+    Services.console.logStringMessage(result);
     
-}
-
-
-function debug(aText)
-{
-  var csClass = Components.classes['@mozilla.org/consoleservice;1'];
-  var cs = csClass.getService(Components.interfaces.nsIConsoleService);
-  cs.logStringMessage(aText);
 }
