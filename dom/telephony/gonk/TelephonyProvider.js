@@ -35,9 +35,6 @@ const CALL_WAKELOCK_TIMEOUT = 5000;
 
 const CDMA_SECOND_CALL_INDEX = 2;
 
-const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
-const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
-
 let DEBUG;
 function debug(s) {
   dump("TelephonyProvider: " + s + "\n");
@@ -423,25 +420,7 @@ TelephonyProvider.prototype = {
 
     if (this.isDialing) {
       if (DEBUG) debug("Already has a dialing call. Drop.");
-      aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
-      return;
-    }
-
-    
-    
-    let callOnOtherSim = false;
-    for (let cid = 0; cid < this._numClients; ++cid) {
-      if (cid === aClientId) {
-        continue;
-      }
-      if (Object.keys(this._currentCalls[cid]).length !== 0) {
-        callOnOtherSim = true;
-        break;
-      }
-    }
-    if (callOnOtherSim) {
-      if (DEBUG) debug("Already has a call on other sim. Drop.");
-      aTelephonyCallback.notifyDialError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
+      aTelephonyCallback.notifyDialError("InvalidStateError");
       return;
     }
 
