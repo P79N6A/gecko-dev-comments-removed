@@ -125,6 +125,7 @@ protected:
   
   
   RefPtr<TextureHost> mNewFrontHost;
+  RefPtr<TextureHost> mNewFrontHostOnWhite;
   bool mPaintWillResample;
   bool mInitialised;
 };
@@ -163,6 +164,7 @@ protected:
   
   
   RefPtr<TextureHost> mBackHost;
+  RefPtr<TextureHost> mBackHostOnWhite;
 };
 
 
