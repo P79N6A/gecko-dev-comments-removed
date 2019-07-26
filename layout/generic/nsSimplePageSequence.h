@@ -22,7 +22,7 @@ public:
   nsSharedPageData();
   ~nsSharedPageData();
 
-  PRUnichar * mDateTimeStr;
+  nsString    mDateTimeStr;
   nsFont *    mHeadFootFont;
   nsString    mPageNumFormat;
   nsString    mPageNumAndTotalsFormat;
@@ -108,7 +108,7 @@ protected:
   void SetPageNumberFormat(const char* aPropName, const char* aDefPropVal, bool aPageNumOnly);
 
   
-  void SetDateTimeStr(PRUnichar * aDateTimeStr);
+  void SetDateTimeStr(const nsAString& aDateTimeStr);
   void SetPageNumberFormat(const nsAString& aFormatStr, bool aForPageNumOnly);
 
   

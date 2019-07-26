@@ -191,11 +191,7 @@ nsPageFrame::ProcessSpecialCodes(const nsString& aStr, nsString& aNewStr)
   
   NS_NAMED_LITERAL_STRING(kDate, "&D");
   if (aStr.Find(kDate) != kNotFound) {
-    if (mPD->mDateTimeStr != nullptr) {
-      aNewStr.ReplaceSubstring(kDate.get(), mPD->mDateTimeStr);
-    } else {
-      aNewStr.ReplaceSubstring(kDate.get(), EmptyString().get());
-    }
+    aNewStr.ReplaceSubstring(kDate.get(), mPD->mDateTimeStr.get());
   }
 
   
