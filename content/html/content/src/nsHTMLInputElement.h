@@ -664,13 +664,21 @@ protected:
 
 
 
-  double GetMinAsDouble() const;
+
+
+
+
+  double GetMinimum() const;
 
   
 
 
 
-  double GetMaxAsDouble() const;
+
+
+
+
+  double GetMaximum() const;
 
    
 
