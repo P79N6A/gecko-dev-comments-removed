@@ -4923,6 +4923,27 @@ CodeGenerator::generate()
     return !masm.oom();
 }
 
+#ifdef JSGC_GENERATIONAL
+
+
+
+
+
+
+
+class IonScriptRefs : public gc::BufferableRef
+{
+    JSScript *script_;
+
+  public:
+    IonScriptRefs(JSScript *script) : script_(script) {}
+    virtual bool match(void *location) { return false; }
+    virtual void mark(JSTracer *trc) {
+        gc::MarkScriptUnbarriered(trc, &script_, "script for IonScript");
+    }
+};
+#endif 
+
 bool
 CodeGenerator::link()
 {
@@ -5001,6 +5022,9 @@ CodeGenerator::link()
         ionScript->copySnapshots(&snapshots_);
     if (graph.numConstants())
         ionScript->copyConstants(graph.constantPool());
+#ifdef JSGC_GENERATIONAL
+    cx->runtime->gcStoreBuffer.putGeneric(IonScriptRefs(script));
+#endif
     JS_ASSERT(graph.mir().numScripts() > 0);
     ionScript->copyScriptEntries(graph.mir().scripts());
     if (graph.mir().numCallTargets() > 0)

@@ -149,10 +149,10 @@ struct IonScript
 {
   private:
     
-    HeapPtr<IonCode> method_;
+    EncapsulatedPtr<IonCode> method_;
 
     
-    HeapPtr<IonCode> deoptTable_;
+    EncapsulatedPtr<IonCode> deoptTable_;
 
     
     jsbytecode *osrPc_;
@@ -255,8 +255,8 @@ struct IonScript
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *) &bottomBuffer()[bailoutTable_];
     }
-    HeapValue *constants() {
-        return (HeapValue *) &bottomBuffer()[constantTable_];
+    EncapsulatedValue *constants() {
+        return (EncapsulatedValue *) &bottomBuffer()[constantTable_];
     }
     const SafepointIndex *safepointIndices() const {
         return const_cast<IonScript *>(this)->safepointIndices();
@@ -407,7 +407,7 @@ struct IonScript
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
         return mallocSizeOf(this);
     }
-    HeapValue &getConstant(size_t index) {
+    EncapsulatedValue &getConstant(size_t index) {
         JS_ASSERT(index < numConstants());
         return constants()[index];
     }
