@@ -192,6 +192,11 @@ public:
         return CodeLocationLabel(code());
     }
 
+    
+    void* unsafeCode() {
+        return code();
+    }
+
 protected:
     
     
