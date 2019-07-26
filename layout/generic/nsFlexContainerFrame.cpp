@@ -1957,35 +1957,31 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
   const FlexboxAxisTracker& aAxisTracker,
   const nsTArray<FlexItem>& aItems)
 {
-  
-  nscoord mainSize =
-    aAxisTracker.GetMainComponent(nsSize(aReflowState.ComputedWidth(),
-                                         aReflowState.ComputedHeight()));
-  if (mainSize != NS_UNCONSTRAINEDSIZE) {
-    return mainSize;
+  if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
+    
+    
+    return aReflowState.ComputedWidth();
   }
 
-  NS_WARN_IF_FALSE(!IsAxisHorizontal(aAxisTracker.GetMainAxis()),
-                   "Computed width should always be constrained, so horizontal "
-                   "flex containers should have a constrained main-size");
+  
+  if (aReflowState.ComputedHeight() != NS_AUTOHEIGHT) {
+    return aReflowState.ComputedHeight();
+  }
 
   
   
-  mainSize = 0;
+  
+  
+  nscoord sumOfChildHeights = 0;
   for (uint32_t i = 0; i < aItems.Length(); ++i) {
-    mainSize +=
+    sumOfChildHeights +=
       aItems[i].GetMainSize() +
       aItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
   }
 
-  nscoord minMainSize =
-    aAxisTracker.GetMainComponent(nsSize(aReflowState.mComputedMinWidth,
-                                         aReflowState.mComputedMinHeight));
-  nscoord maxMainSize =
-    aAxisTracker.GetMainComponent(nsSize(aReflowState.mComputedMaxWidth,
-                                         aReflowState.mComputedMaxHeight));
-
-  return NS_CSS_MINMAX(mainSize, minMainSize, maxMainSize);
+  return NS_CSS_MINMAX(sumOfChildHeights,
+                       aReflowState.mComputedMinHeight,
+                       aReflowState.mComputedMaxHeight);
 }
 
 void
