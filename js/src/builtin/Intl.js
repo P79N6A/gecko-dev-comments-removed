@@ -1664,3 +1664,165 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     
     internals.initializedDateTimeFormat = true;
 }
+
+
+
+
+
+
+
+
+
+
+function ToDateTimeOptions(options, required, defaults) {
+    assert(typeof required === "string", "ToDateTimeOptions");
+    assert(typeof defaults === "string", "ToDateTimeOptions");
+
+    
+    if (options === undefined)
+        options = null;
+    else
+        options = ToObject(options);
+    options = std_Object_create(options);
+
+    
+    var needDefaults = true;
+
+    
+    if ((required === "date" || required === "any") &&
+        (options.weekday !== undefined || options.year !== undefined ||
+         options.month !== undefined || options.day !== undefined))
+    {
+        needDefaults = false;
+    }
+
+    
+    if ((required === "time" || required === "any") &&
+        (options.hour !== undefined || options.minute !== undefined ||
+         options.second !== undefined))
+    {
+        needDefaults = false;
+    }
+
+    
+    if (needDefaults && (defaults === "date" || defaults === "all")) {
+        
+        
+        
+        
+        defineProperty(options, "year", "numeric");
+        defineProperty(options, "month", "numeric");
+        defineProperty(options, "day", "numeric");
+    }
+
+    
+    if (needDefaults && (defaults === "time" || defaults === "all")) {
+        
+        defineProperty(options, "hour", "numeric");
+        defineProperty(options, "minute", "numeric");
+        defineProperty(options, "second", "numeric");
+    }
+
+    
+    return options;
+}
+
+
+
+
+
+
+
+
+
+function BasicFormatMatcher(options, formats) {
+    
+    var removalPenalty = 120,
+        additionPenalty = 20,
+        longLessPenalty = 8,
+        longMorePenalty = 6,
+        shortLessPenalty = 6,
+        shortMorePenalty = 3;
+
+    
+    var properties = ["weekday", "era", "year", "month", "day",
+        "hour", "minute", "second", "timeZoneName"];
+
+    
+    var values = ["2-digit", "numeric", "narrow", "short", "long"];
+
+    
+    var bestScore = -Infinity;
+    var bestFormat;
+
+    
+    var i = 0;
+    var len = formats.length;
+    while (i < len) {
+        
+        var format = formats[i];
+        var score = 0;
+
+        
+        var formatProp;
+        for (var j = 0; j < properties.length; j++) {
+            var property = properties[j];
+
+            
+            var optionsProp = options[property];
+            
+            
+            formatProp = undefined;
+
+            
+            if (callFunction(std_Object_hasOwnProperty, format, property))
+                formatProp = format[property];
+
+            if (optionsProp === undefined && formatProp !== undefined) {
+                
+                score -= additionPenalty;
+            } else if (optionsProp !== undefined && formatProp === undefined) {
+                
+                score -= removalPenalty;
+            } else {
+                
+                var optionsPropIndex = callFunction(std_Array_indexOf, values, optionsProp);
+                var formatPropIndex = callFunction(std_Array_indexOf, values, formatProp);
+                var delta = std_Math_max(std_Math_min(formatPropIndex - optionsPropIndex, 2), -2);
+                if (delta === 2)
+                    score -= longMorePenalty;
+                else if (delta === 1)
+                    score -= shortMorePenalty;
+                else if (delta === -1)
+                    score -= shortLessPenalty;
+                else if (delta === -2)
+                    score -= longLessPenalty;
+            }
+        }
+
+        
+        if (score > bestScore) {
+            bestScore = score;
+            bestFormat = format;
+        }
+
+        
+        i++;
+    }
+
+    
+    return bestFormat;
+}
+
+
+
+
+
+
+
+
+
+function BestFitFormatMatcher(options, formats) {
+    
+    return BasicFormatMatcher(options, formats);
+}
