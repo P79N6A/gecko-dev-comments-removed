@@ -46,7 +46,10 @@ public:
   bool RoomForMoreStreams();
 
   
-  void ReadTimeoutTick(PRIntervalTime now);
+  
+  
+  
+  uint32_t  ReadTimeoutTick(PRIntervalTime now);
 
   
   PRIntervalTime IdleTime();

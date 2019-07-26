@@ -22,6 +22,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsISupportsPriority.h"
 #include "nsHttpPipeline.h"
+#include <algorithm>
 
 #ifdef DEBUG
 
@@ -941,20 +942,21 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
     return NS_OK;
 }
 
-void
+uint32_t
 nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
 {
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
     
     if (!mTransaction)
-        return;
+        return UINT32_MAX;
 
     
     if (mSpdySession) {
-        mSpdySession->ReadTimeoutTick(now);
-        return;
+        return mSpdySession->ReadTimeoutTick(now);
     }
+
+    uint32_t nextTickAfter = UINT32_MAX;
 
     
     if (mResponseTimeoutEnabled) {
@@ -968,12 +970,15 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
 
             
             CloseTransaction(mTransaction, NS_ERROR_NET_TIMEOUT);
-            return;
+            return UINT32_MAX;
         }
+        nextTickAfter = PR_IntervalToSeconds(gHttpHandler->ResponseTimeout()) -
+            PR_IntervalToSeconds(initialResponseDelta);
+        nextTickAfter = std::max(nextTickAfter, 1U);
     }
 
     if (!gHttpHandler->GetPipelineRescheduleOnTimeout())
-        return;
+        return nextTickAfter;
 
     PRIntervalTime delta = now - mLastReadTime;
 
@@ -987,6 +992,11 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
     
 
     uint32_t pipelineDepth = mTransaction->PipelineDepth();
+    if (pipelineDepth > 1) {
+        
+        
+        nextTickAfter = 1;
+    }
 
     if (delta >= gHttpHandler->GetPipelineRescheduleTimeout() &&
         pipelineDepth > 1) {
@@ -1009,10 +1019,10 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
     }
 
     if (delta < gHttpHandler->GetPipelineTimeout())
-        return;
+        return nextTickAfter;
 
     if (pipelineDepth <= 1 && !mTransaction->PipelinePosition())
-        return;
+        return nextTickAfter;
 
     
     
@@ -1027,6 +1037,7 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
 
     
     CloseTransaction(mTransaction, NS_ERROR_NET_TIMEOUT);
+    return UINT32_MAX;
 }
 
 void

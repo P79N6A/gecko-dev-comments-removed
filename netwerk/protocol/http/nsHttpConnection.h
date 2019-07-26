@@ -143,7 +143,10 @@ public:
     bool ReportedNPN() { return mReportedSpdy; }
 
     
-    void  ReadTimeoutTick(PRIntervalTime now);
+    
+    
+    
+    uint32_t  ReadTimeoutTick(PRIntervalTime now);
 
     nsAHttpTransaction::Classifier Classification() { return mClassification; }
     void Classify(nsAHttpTransaction::Classifier newclass)

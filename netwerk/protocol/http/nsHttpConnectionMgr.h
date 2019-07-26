@@ -629,6 +629,7 @@ private:
     
     nsCOMPtr<nsITimer> mTimeoutTick;
     bool mTimeoutTickArmed;
+    uint32_t mTimeoutTickNext;
 
     
     
