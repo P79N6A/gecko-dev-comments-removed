@@ -7428,6 +7428,26 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               NS_STYLE_JUSTIFY_CONTENT_FLEX_START, 0, 0, 0, 0);
 
   
+  const nsCSSValue& gridAutoFlow = *aRuleData->ValueForGridAutoFlow();
+  switch (gridAutoFlow.GetUnit()) {
+    case eCSSUnit_Null:
+      break;
+    case eCSSUnit_Inherit:
+      canStoreInRuleTree = false;
+      pos->mGridAutoFlow = parentPos->mGridAutoFlow;
+      break;
+    case eCSSUnit_Initial:
+    case eCSSUnit_Unset:
+    case eCSSUnit_None:
+      pos->mGridAutoFlow = NS_STYLE_GRID_AUTO_FLOW_NONE;
+      break;
+    default:
+      NS_ASSERTION(gridAutoFlow.GetUnit() == eCSSUnit_Enumerated,
+                   "Unexpected unit");
+      pos->mGridAutoFlow = gridAutoFlow.GetIntValue();
+  }
+
+  
   SetGridAutoColumnsRows(*aRuleData->ValueForGridAutoColumns(),
                          pos->mGridAutoColumnsMin,
                          pos->mGridAutoColumnsMax,
