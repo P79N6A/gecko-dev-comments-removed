@@ -29,7 +29,7 @@ let isTypedArray = OS.Shared.isTypedArray;
 
 
 
-const DEBUG = true;
+const DEBUG = false;
 
 
 let OSError;

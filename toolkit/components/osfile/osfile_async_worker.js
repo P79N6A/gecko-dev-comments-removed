@@ -15,7 +15,7 @@ if (this.Components) {
   
   
   
-  const DEBUG = true;
+  const DEBUG = false;
 
    try {
      importScripts("resource://gre/modules/osfile.jsm");
