@@ -1029,10 +1029,25 @@ MPhi::congruentTo(const MDefinition *ins) const
 {
     if (!ins->isPhi())
         return false;
+
     
     
     
-    if (ins->block()->id() != block()->id())
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (ins->block() != block())
         return false;
 
     return congruentIfOperandsEqual(ins);
