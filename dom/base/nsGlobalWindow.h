@@ -1348,6 +1348,7 @@ protected:
                                   bool aDefaultStylesOnly,
                                   nsIDOMCSSStyleDeclaration** aReturn);
 
+  
   void PreloadLocalStorage();
 
   
