@@ -398,12 +398,12 @@ Debugger::Debugger(JSContext *cx, JSObject *dbg)
 
 Debugger::~Debugger()
 {
-    JS_ASSERT(debuggees.empty());
+    JS_ASSERT_IF(debuggees.initialized(), debuggees.empty());
 
     
-    JS_ASSERT(object->runtimeFromMainThread()->isHeapBusy());
 
-    
+
+
 
 
 
@@ -1684,7 +1684,6 @@ Debugger::finalize(FreeOp *fop, JSObject *obj)
     Debugger *dbg = fromJSObject(obj);
     if (!dbg)
         return;
-    JS_ASSERT(dbg->debuggees.empty());
     fop->delete_(dbg);
 }
 
