@@ -387,7 +387,7 @@ public:
     
     status_t setTransformHint(uint32_t hint);
 
-    int getGeneration();
+    uint32_t getGeneration();
 
     SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 

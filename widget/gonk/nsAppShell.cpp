@@ -317,7 +317,7 @@ KeyEventDispatcher::KeyEventDispatcher(const UserInputData& aData,
 {
     
     
-    mDOMKeyCode = (mData.key.keyCode < ArrayLength(kKeyMapping)) ?
+    mDOMKeyCode = (mData.key.keyCode < (ssize_t)ArrayLength(kKeyMapping)) ?
         kKeyMapping[mData.key.keyCode] : 0;
     mDOMKeyNameIndex = GetKeyNameIndex(mData.key.keyCode);
 
