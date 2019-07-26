@@ -4,6 +4,10 @@
 
 
 
+
+
+"use strict";
+
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test" +
                  "/test-bug-766001-js-console-links.html";
 
@@ -61,10 +65,8 @@ function test() {
       EventUtils.sendMouseEvent({ type: "click" }, node);
     });
 
-    yield hud.ui.once("source-in-debugger-opened", checkLine.bind(null, url, line));
-  }
+    yield hud.ui.once("source-in-debugger-opened");
 
-  function* checkLine(url, line) {
     let toolbox = yield gDevTools.getToolbox(hud.target);
     let {panelWin: { DebuggerView: view }} = toolbox.getPanel("jsdebugger");
     is(view.Sources.selectedValue, url, "expected source url");

@@ -3,6 +3,8 @@
 
 
 
-window.addEventListener("load", function() {
+function onLoad123() {
   console.log("Blah Blah");
-}, false);
+}
+
+window.addEventListener("load", onLoad123, false);
