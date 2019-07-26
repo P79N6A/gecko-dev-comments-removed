@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "cpr_in.h"
 #include "cpr_rand.h"
 #include "cpr_stdlib.h"
@@ -4418,6 +4420,189 @@ fsmdef_media_t* gsmsdp_find_media_by_media_type(fsmdef_dcb_t *dcb_p, sdp_media_e
 
 
 
+cc_causes_t
+gsmsdp_add_rtcp_fb (int level, sdp_t *sdp_p,
+                    rtp_ptype codec, unsigned int types)
+{
+    int num_pts;
+    int pt_codec;
+    sdp_payload_ind_e indicator;
+
+    int pt_index;
+    unsigned int j;
+    num_pts = sdp_get_media_num_payload_types(sdp_p, level);
+    for (pt_index = 1; pt_index <= num_pts; pt_index++) {
+        pt_codec = sdp_get_media_payload_type (sdp_p, level, pt_index,
+                                               &indicator);
+        if ((pt_codec & 0xFF) == codec) {
+            int pt = GET_DYN_PAYLOAD_TYPE_VALUE(pt_codec);
+
+            
+            for (j = 0; j < SDP_MAX_RTCP_FB_NACK; j++) {
+                if (types & SDP_RTCP_FB_NACK_TO_BITMAP(j)) {
+                    gsmsdp_set_rtcp_fb_nack_attribute(level, sdp_p, pt, j);
+                }
+            }
+
+            
+            for (j = 0; j < SDP_MAX_RTCP_FB_ACK; j++) {
+                if (types & SDP_RTCP_FB_ACK_TO_BITMAP(j)) {
+                    gsmsdp_set_rtcp_fb_nack_attribute(level, sdp_p, pt, j);
+                }
+            }
+
+            
+            for (j = 0; j < SDP_MAX_RTCP_FB_CCM; j++) {
+                if (types & SDP_RTCP_FB_CCM_TO_BITMAP(j)) {
+                    gsmsdp_set_rtcp_fb_ccm_attribute(level, sdp_p, pt, j);
+                }
+            }
+
+        }
+    }
+    return CC_CAUSE_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cc_causes_t
+gsmsdp_negotiate_rtcp_fb (cc_sdp_t *cc_sdp_p,
+                          fsmdef_media_t *media,
+                          boolean offer)
+{
+    int level = media->level;
+    int pt_codec;
+    int remote_pt;
+    sdp_payload_ind_e indicator;
+    int pt_index, i;
+    sdp_rtcp_fb_nack_type_e nack_type;
+    sdp_rtcp_fb_ack_type_e ack_type;
+    sdp_rtcp_fb_ccm_type_e ccm_type;
+    uint32_t fb_types = 0;
+
+    int num_pts = sdp_get_media_num_payload_types(cc_sdp_p->dest_sdp, level);
+
+    
+
+
+
+    sdp_result_e result = SDP_SUCCESS;
+    while (result == SDP_SUCCESS) {
+        result = sdp_delete_attr (cc_sdp_p->src_sdp, level, 0,
+                                  SDP_ATTR_RTCP_FB, 1);
+    }
+
+    
+
+
+
+    for (pt_index = 1; pt_index <= num_pts; pt_index++) {
+        int pt_codec = sdp_get_media_payload_type (cc_sdp_p->dest_sdp,
+                                                   level, pt_index, &indicator);
+        int codec = pt_codec & 0xFF;
+        remote_pt = GET_DYN_PAYLOAD_TYPE_VALUE(pt_codec);
+        fb_types = 0;
+
+        
+        i = 1;
+        do {
+            nack_type = sdp_attr_get_rtcp_fb_nack(cc_sdp_p->dest_sdp,
+                                                  level, remote_pt, i);
+            if (nack_type >= 0 && nack_type < SDP_MAX_RTCP_FB_NACK) {
+                fb_types |= SDP_RTCP_FB_NACK_TO_BITMAP(nack_type);
+            }
+            i++;
+        } while (nack_type != SDP_RTCP_FB_NACK_NOT_FOUND);
+
+        
+        i = 1;
+        do {
+            ack_type = sdp_attr_get_rtcp_fb_ack(cc_sdp_p->dest_sdp,
+                                                level, remote_pt, i);
+            if (ack_type >= 0 && ack_type < SDP_MAX_RTCP_FB_ACK) {
+                fb_types |= SDP_RTCP_FB_ACK_TO_BITMAP(ack_type);
+            }
+            i++;
+        } while (ack_type != SDP_RTCP_FB_CCM_NOT_FOUND);
+
+        
+        i = 1;
+        do {
+            ccm_type = sdp_attr_get_rtcp_fb_ccm(cc_sdp_p->dest_sdp,
+                                                level, remote_pt, i);
+            if (ccm_type >= 0 && ccm_type < SDP_MAX_RTCP_FB_CCM) {
+                fb_types |= SDP_RTCP_FB_CCM_TO_BITMAP(ccm_type);
+            }
+            i++;
+        } while (ccm_type != SDP_RTCP_FB_CCM_NOT_FOUND);
+
+        
+
+
+        switch (codec) {
+            case RTP_VP8:
+                fb_types &=
+                  SDP_RTCP_FB_NACK_TO_BITMAP(SDP_RTCP_FB_NACK_BASIC) |
+                  SDP_RTCP_FB_NACK_TO_BITMAP(SDP_RTCP_FB_NACK_PLI) |
+                  SDP_RTCP_FB_CCM_TO_BITMAP(SDP_RTCP_FB_CCM_FIR);
+                break;
+            default:
+                fb_types = 0;
+        }
+
+        
+
+
+
+        if (fb_types) {
+            gsmsdp_add_rtcp_fb (level, cc_sdp_p->src_sdp, codec, fb_types);
+        }
+
+        
+
+
+
+        for (i = 0; i < media->num_payloads; i++) {
+            if (media->payloads[i].remote_rtp_pt == remote_pt) {
+                media->payloads[i].video.rtcp_fb_types = fb_types;
+            }
+        }
+    }
+
+    return CC_CAUSE_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4732,6 +4917,11 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
             }
 
             
+            if (media && media_type == SDP_MEDIA_VIDEO) {
+                gsmsdp_negotiate_rtcp_fb (dcb_p->sdp, media, offer);
+            }
+
+            
 
 
             if(SDP_MEDIA_APPLICATION != media_type) {
@@ -4813,19 +5003,6 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
             
             unsupported_line = TRUE;
             break;
-        }
-
-        
-
-
-
-        if (media && media_type == SDP_MEDIA_VIDEO) {
-            gsmsdp_set_rtcp_fb_nack_attribute(media->level, sdp_p->src_sdp,
-                                              SDP_ALL_PAYLOADS,
-                                              SDP_RTCP_FB_NACK_UNSPECIFIED);
-            gsmsdp_set_rtcp_fb_ccm_attribute(media->level, sdp_p->src_sdp,
-                                             SDP_ALL_PAYLOADS,
-                                             SDP_RTCP_FB_CCM_FIR);
         }
 
         if (unsupported_line) {
@@ -5272,6 +5449,14 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
           gsmsdp_set_local_sdp_direction(dcb_p, media, media->direction);
 
           
+          if (media_cap->type == SDP_MEDIA_VIDEO) {
+              gsmsdp_add_rtcp_fb (level, dcb_p->sdp->src_sdp, RTP_VP8,
+                  SDP_RTCP_FB_NACK_TO_BITMAP(SDP_RTCP_FB_NACK_BASIC) |
+                  SDP_RTCP_FB_NACK_TO_BITMAP(SDP_RTCP_FB_NACK_PLI) |
+                  SDP_RTCP_FB_CCM_TO_BITMAP(SDP_RTCP_FB_CCM_FIR));
+          }
+
+          
 
 
           for (i=0; i<media->candidate_ct; i++) {
@@ -5397,20 +5582,6 @@ gsmsdp_create_local_sdp (fsmdef_dcb_t *dcb_p, boolean force_streams_enabled,
                     level = level - 1;
                 }
             }
-
-            
-
-
-
-            if (media_cap->type == SDP_MEDIA_VIDEO) {
-                gsmsdp_set_rtcp_fb_nack_attribute(level, dcb_p->sdp->src_sdp,
-                                                  SDP_ALL_PAYLOADS,
-                                                  SDP_RTCP_FB_NACK_UNSPECIFIED);
-                gsmsdp_set_rtcp_fb_ccm_attribute(level, dcb_p->sdp->src_sdp,
-                                                 SDP_ALL_PAYLOADS,
-                                                 SDP_RTCP_FB_CCM_FIR);
-            }
-
         }
         
         media_cap++;
