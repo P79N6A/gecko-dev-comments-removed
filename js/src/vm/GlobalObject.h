@@ -590,7 +590,8 @@ class GlobalObject : public JSObject
     
     static bool warnOnceAboutWatch(JSContext *cx, HandleObject obj);
 
-    bool getOrCreateEval(JSContext *cx, MutableHandleObject eval);
+    static bool getOrCreateEval(JSContext *cx, Handle<GlobalObject*> global,
+                                MutableHandleObject eval);
 
     
     bool valueIsEval(Value val);
