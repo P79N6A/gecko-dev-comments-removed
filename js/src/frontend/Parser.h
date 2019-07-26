@@ -456,18 +456,7 @@ struct Parser : private AutoGCRooter
     ParseNode *identifierName(bool afterDoubleDot);
 
 #if JS_HAS_XML_SUPPORT
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool allowsXML() const {
-        return pc->sc->strictModeState == StrictMode::NOTSTRICT && tokenStream.allowsXML();
-    }
+    bool allowsXML() const { return tokenStream.allowsXML(); }
 
     ParseNode *endBracketedExpr();
 

@@ -1676,8 +1676,10 @@ Parser::functionArgsAndBody(ParseNode *pn, HandleFunction fun, HandlePropertyNam
     
     ParseNode *prelude = NULL;
     bool hasRest;
+    tokenStream.incBanXML();
     if (!functionArguments(&prelude, pn, hasRest))
         return false;
+    tokenStream.decBanXML();
 
     fun->setArgCount(funpc.numArgs());
     if (funbox->ndefaults)

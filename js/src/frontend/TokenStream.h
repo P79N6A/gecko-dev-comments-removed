@@ -538,11 +538,11 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    
-    
-    bool allowsXML() const { return allowXML && strictModeState() != StrictMode::STRICT; }
+    bool allowsXML() const { return banXML == 0 && strictModeState() != StrictMode::STRICT; }
     bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
     void setMoarXML(bool enabled) { moarXML = enabled; }
+    void incBanXML() { banXML++; }
+    void decBanXML() { JS_ASSERT(banXML); banXML--; }
     bool hadError() const { return !!(flags & TSF_HAD_ERROR); }
 
     bool isCurrentTokenEquality() const {
@@ -911,7 +911,7 @@ class TokenStream
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
     JSVersion           version;        
-    bool                allowXML;       
+    unsigned            banXML;         
     bool                moarXML;        
     JSContext           *const cx;
     JSPrincipals        *const originPrincipals;
