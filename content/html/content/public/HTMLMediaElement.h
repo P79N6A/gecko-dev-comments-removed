@@ -956,7 +956,7 @@ protected:
   nsAutoPtr<AudioStream> mAudioStream;
 
   
-  TimeRanges mPlayed;
+  nsRefPtr<TimeRanges> mPlayed;
 
   
   double mCurrentPlayRangeStart;
