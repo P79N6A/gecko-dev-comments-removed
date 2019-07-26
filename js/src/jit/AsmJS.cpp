@@ -1674,34 +1674,39 @@ class MOZ_STACK_CLASS ModuleCompiler
 #endif
     }
 
-    bool staticallyLink(ScopedJSDeletePtr<AsmJSModule> *module, ScopedJSFreePtr<char> *report) {
+    bool extractModule(ScopedJSDeletePtr<AsmJSModule> *module, AsmJSStaticLinkData *linkData)
+    {
         
         
         
         uint32_t bodyEnd = parser_.tokenStream.currentToken().pos.end;
         module_->initSourceDesc(parser_.ss, bodyStart_, bodyEnd);
 
-        
         masm_.finish();
         if (masm_.oom())
             return false;
 
+#if defined(JS_CPU_ARM)
         
-        uint8_t *code = module_->allocateCodeAndGlobalSegment(cx_, masm_.bytesNeeded());
-        if (!code)
+        
+        for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
+            AsmJSHeapAccess &a = module_->heapAccess(i);
+            a.setOffset(masm_.actualOffset(a.offset()));
+        }
+#endif
+
+        
+        if (!module_->allocateAndCopyCode(cx_, masm_))
             return false;
 
         
-        masm_.executableCopy(code);
-        masm_.processCodeLabels(code);
         JS_ASSERT(masm_.jumpRelocationTableBytes() == 0);
         JS_ASSERT(masm_.dataRelocationTableBytes() == 0);
         JS_ASSERT(masm_.preBarrierTableBytes() == 0);
         JS_ASSERT(!masm_.hasEnteredExitFrame());
 
-        
-
 #ifdef JS_ION_PERF
+        
         
         
         for (unsigned i = 0; i < module_->numPerfFunctions(); i++) {
@@ -1723,39 +1728,57 @@ class MOZ_STACK_CLASS ModuleCompiler
 #endif
 
         
-        for (unsigned i = 0; i < module_->numExits(); i++) {
-            module_->exitIndexToGlobalDatum(i).exit = module_->interpExitTrampoline(module_->exit(i));
-            module_->exitIndexToGlobalDatum(i).fun = NULL;
-        }
-        module_->setOperationCallbackExit(code + masm_.actualOffset(operationCallbackLabel_.offset()));
+        
+        
+        
+        
+
+        linkData->operationCallbackExitOffset = masm_.actualOffset(operationCallbackLabel_.offset());
 
         
-        for (unsigned i = 0; i < funcPtrTables_.length(); i++) {
-            FuncPtrTable &table = funcPtrTables_[i];
-            uint8_t **data = module_->globalDataOffsetToFuncPtrTable(table.globalDataOffset());
-            for (unsigned j = 0; j < table.numElems(); j++)
-                data[j] = code + masm_.actualOffset(table.elem(j).code()->offset());
+        for (size_t i = 0; i < masm_.numCodeLabels(); i++) {
+            CodeLabel src = masm_.codeLabel(i);
+            int32_t labelOffset = src.dest()->offset();
+            int32_t targetOffset = masm_.actualOffset(src.src()->offset());
+            
+            
+            
+            while (labelOffset != LabelBase::INVALID_OFFSET) {
+                size_t patchAtOffset = masm_.labelOffsetToPatchOffset(labelOffset);
+                AsmJSStaticLinkData::RelativeLink link;
+                link.patchAtOffset = patchAtOffset;
+                link.targetOffset = targetOffset;
+                if (!linkData->relativeLinks.append(link))
+                    return false;
+                labelOffset = *(uintptr_t *)(module_->codeBase() + patchAtOffset);
+            }
         }
 
         
-#ifdef JS_CPU_ARM
-        
-        
-        for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
-            AsmJSHeapAccess &a = module_->heapAccess(i);
-            a.setOffset(masm_.actualOffset(a.offset()));
+        for (unsigned tableIndex = 0; tableIndex < funcPtrTables_.length(); tableIndex++) {
+            FuncPtrTable &table = funcPtrTables_[tableIndex];
+            unsigned tableBaseOffset = module_->offsetOfGlobalData() + table.globalDataOffset();
+            for (unsigned elemIndex = 0; elemIndex < table.numElems(); elemIndex++) {
+                AsmJSStaticLinkData::RelativeLink link;
+                link.patchAtOffset = tableBaseOffset + elemIndex * sizeof(uint8_t*);
+                link.targetOffset = masm_.actualOffset(table.elem(elemIndex).code()->offset());
+                if (!linkData->relativeLinks.append(link))
+                    return false;
+            }
         }
-        JS_ASSERT(globalAccesses_.length() == 0);
-#else
+
+        
+#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
+        uint8_t *code = module_->codeBase();
         for (unsigned i = 0; i < globalAccesses_.length(); i++) {
             AsmJSGlobalAccess a = globalAccesses_[i];
             masm_.patchAsmJSGlobalAccess(a.offset, code, module_->globalData(), a.globalDataOffset);
         }
+#else
+        JS_ASSERT(globalAccesses_.empty());
 #endif
 
         *module = module_.forget();
-
-        buildCompilationTimeReport(report);
         return true;
     }
 };
@@ -6371,7 +6394,7 @@ GenerateStubs(ModuleCompiler &m)
 static bool
 FinishModule(ModuleCompiler &m,
              ScopedJSDeletePtr<AsmJSModule> *module,
-             ScopedJSFreePtr<char> *compilationTimeReport)
+             AsmJSStaticLinkData *linkData)
 {
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
@@ -6380,7 +6403,7 @@ FinishModule(ModuleCompiler &m,
     if (!GenerateStubs(m))
         return false;
 
-    return m.staticallyLink(module, compilationTimeReport);
+    return m.extractModule(module, linkData);
 }
 
 static bool
@@ -6435,7 +6458,14 @@ CheckModule(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList,
     if (tk != TOK_EOF && tk != TOK_RC)
         return m.fail(NULL, "top-level export (return) must be the last statement");
 
-    return FinishModule(m, module, compilationTimeReport);
+    AsmJSStaticLinkData linkData(cx);
+    if (!FinishModule(m, module, &linkData))
+        return false;
+
+    (*module)->staticallyLink(linkData);
+
+    m.buildCompilationTimeReport(compilationTimeReport);
+    return true;
 }
 
 static bool
