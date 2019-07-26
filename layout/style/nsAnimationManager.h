@@ -94,8 +94,6 @@ struct ElementAnimations MOZ_FINAL
   
   
   virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
-
-  virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
 };
 
 class nsAnimationManager MOZ_FINAL
