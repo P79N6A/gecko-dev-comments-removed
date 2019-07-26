@@ -14,6 +14,7 @@
 #endif 
 #include "mozilla/HalSensor.h"
 #include "mozilla/InternalMutationEvent.h"
+#include "mozilla/JSEventHandler.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Element.h"
@@ -30,7 +31,6 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsIDocument.h"
 #include "nsIDOMEventListener.h"
-#include "nsIJSEventListener.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsISupports.h"
 #include "nsIXPConnect.h"
@@ -613,18 +613,18 @@ EventListenerManager::SetEventHandlerInternal(
     EventListenerFlags flags;
     flags.mListenerIsJSListener = true;
 
-    nsCOMPtr<nsIJSEventListener> jsListener;
-    NS_NewJSEventListener(mTarget, aName,
-                          aHandler, getter_AddRefs(jsListener));
+    nsCOMPtr<nsJSEventListener> jsListener;
+    NS_NewJSEventHandler(mTarget, aName,
+                         aHandler, getter_AddRefs(jsListener));
     EventListenerHolder listenerHolder(jsListener);
     AddEventListenerInternal(listenerHolder, eventType, aName, aTypeString,
                              flags, true);
 
     listener = FindEventHandler(eventType, aName, aTypeString);
   } else {
-    nsIJSEventListener* jsListener = listener->GetJSListener();
+    nsJSEventListener* jsListener = listener->GetJSListener();
     MOZ_ASSERT(jsListener,
-               "How can we have an event handler with no nsIJSEventListener?");
+               "How can we have an event handler with no nsJSEventListener?");
 
     bool same = jsListener->GetHandler() == aHandler;
     
@@ -785,7 +785,7 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
 {
   MOZ_ASSERT(aListener->GetJSListener());
   MOZ_ASSERT(aListener->mHandlerIsString, "Why are we compiling a non-string JS listener?");
-  nsIJSEventListener* jsListener = aListener->GetJSListener();
+  nsJSEventListener* jsListener = aListener->GetJSListener();
   MOZ_ASSERT(!jsListener->GetHandler().HasEventHandler(), "What is there to compile?");
 
   nsresult result = NS_OK;
@@ -1281,7 +1281,7 @@ EventListenerManager::GetEventHandlerInternal(nsIAtom* aEventName,
     return nullptr;
   }
 
-  nsIJSEventListener* jsListener = listener->GetJSListener();
+  nsJSEventListener* jsListener = listener->GetJSListener();
 
   if (listener->mHandlerIsString) {
     CompileEventHandlerInternal(listener, nullptr, nullptr);
@@ -1302,7 +1302,7 @@ EventListenerManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   n += mListeners.SizeOfExcludingThis(aMallocSizeOf);
   uint32_t count = mListeners.Length();
   for (uint32_t i = 0; i < count; ++i) {
-    nsIJSEventListener* jsl = mListeners.ElementAt(i).GetJSListener();
+    nsJSEventListener* jsl = mListeners.ElementAt(i).GetJSListener();
     if (jsl) {
       n += jsl->SizeOfIncludingThis(aMallocSizeOf);
     }
@@ -1316,7 +1316,7 @@ EventListenerManager::MarkForCC()
   uint32_t count = mListeners.Length();
   for (uint32_t i = 0; i < count; ++i) {
     const Listener& listener = mListeners.ElementAt(i);
-    nsIJSEventListener* jsListener = listener.GetJSListener();
+    nsJSEventListener* jsListener = listener.GetJSListener();
     if (jsListener) {
       if (jsListener->GetHandler().HasEventHandler()) {
         JS::ExposeObjectToActiveJS(jsListener->GetHandler().Ptr()->Callable());
