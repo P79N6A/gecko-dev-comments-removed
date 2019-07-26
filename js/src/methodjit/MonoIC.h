@@ -166,9 +166,6 @@ struct CallICInfo {
     FrameSize frameSize;
 
     
-    JSC::CodeLocationLabel funGuardLabel;
-
-    
     JSC::CodeLocationDataLabelPtr funGuard;
 
     
@@ -176,12 +173,6 @@ struct CallICInfo {
 
     
     JSC::CodeLocationJump funJump;
-
-    
-
-
-
-    JSC::CodeLocationLabel funJumpTarget;
 
     
 

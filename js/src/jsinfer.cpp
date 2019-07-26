@@ -689,7 +689,6 @@ class TypeConstraintCall : public TypeConstraint
     const char *kind() { return "call"; }
 
     void newType(JSContext *cx, TypeSet *source, Type type);
-    bool newCallee(JSContext *cx, HandleFunction callee, HandleScript script);
 };
 
 void
@@ -773,7 +772,6 @@ class TypeConstraintPropagateThis : public TypeConstraint
     const char *kind() { return "propagatethis"; }
 
     void newType(JSContext *cx, TypeSet *source, Type type);
-    bool newCallee(JSContext *cx, HandleFunction callee);
 };
 
 void
@@ -1258,23 +1256,6 @@ TypeConstraintSetElement::newType(JSContext *cx, TypeSet *source, Type type)
     }
 }
 
-static inline RawFunction
-CloneCallee(JSContext *cx, HandleFunction fun, HandleScript script, jsbytecode *pc)
-{
-    
-
-
-
-    RawFunction callee = CloneFunctionAtCallsite(cx, fun, script, pc);
-    if (!callee)
-        return NULL;
-
-    InferSpew(ISpewOps, "callsiteCloneType: #%u:%05u: %s",
-              script->id(), pc - script->code, TypeString(Type::ObjectType(callee)));
-
-    return callee;
-}
-
 void
 TypeConstraintCall::newType(JSContext *cx, TypeSet *source, Type type)
 {
@@ -1367,30 +1348,11 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, Type type)
         return;
     }
 
-    if (callee->isInterpretedLazy() && !JSFunction::getOrCreateScript(cx, callee))
+    RootedScript calleeScript(cx, JSFunction::getOrCreateScript(cx, callee));
+    if (!calleeScript)
         return;
-
-    
-
-
-
-    if (callee->isCloneAtCallsite()) {
-        RootedFunction clone(cx, CloneCallee(cx, callee, script, pc));
-        if (!clone)
-            return;
-        if (!newCallee(cx, clone, script))
-            return;
-    }
-
-    newCallee(cx, callee, script);
-}
-
-bool
-TypeConstraintCall::newCallee(JSContext *cx, HandleFunction callee, HandleScript script)
-{
-    RootedScript calleeScript(cx, callee->nonLazyScript());
     if (!calleeScript->ensureHasTypes(cx))
-        return false;
+        return;
 
     unsigned nargs = callee->nargs;
 
@@ -1398,7 +1360,7 @@ TypeConstraintCall::newCallee(JSContext *cx, HandleFunction callee, HandleScript
     for (unsigned i = 0; i < callsite->argumentCount && i < nargs; i++) {
         StackTypeSet *argTypes = callsite->argumentTypes[i];
         StackTypeSet *types = TypeScript::ArgTypes(calleeScript, i);
-        argTypes->addSubsetBarrier(cx, script, callsite->pc, types);
+        argTypes->addSubsetBarrier(cx, script, pc, types);
     }
 
     
@@ -1430,8 +1392,6 @@ TypeConstraintCall::newCallee(JSContext *cx, HandleFunction callee, HandleScript
 
         returnTypes->addSubset(cx, callsite->returnTypes);
     }
-
-    return true;
 }
 
 void
@@ -1439,7 +1399,6 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, Type type)
 {
     AssertCanGC();
 
-    RootedScript script(cx, script_);
     if (type.isUnknown() || type.isAnyObject()) {
         
 
@@ -1447,6 +1406,7 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, Type type)
 
 
 
+        RootedScript script(cx, script_);
         cx->compartment->types.monitorBytecode(cx, script, callpc - script->code);
         return;
     }
@@ -1469,37 +1429,14 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, Type type)
         return;
     }
 
-    if (callee->isInterpretedLazy() && !JSFunction::getOrCreateScript(cx, callee))
+    if (!(JSFunction::getOrCreateScript(cx, callee) && callee->nonLazyScript()->ensureHasTypes(cx)))
         return;
-
-    
-
-
-
-    if (callee->isCloneAtCallsite()) {
-        RootedFunction clone(cx, CloneCallee(cx, callee, script, callpc));
-        if (!clone)
-            return;
-        if (!newCallee(cx, clone))
-            return;
-    }
-
-    newCallee(cx, callee);
-}
-
-bool
-TypeConstraintPropagateThis::newCallee(JSContext *cx, HandleFunction callee)
-{
-    if (!callee->nonLazyScript()->ensureHasTypes(cx))
-        return false;
 
     TypeSet *thisTypes = TypeScript::ThisTypes(callee->nonLazyScript());
     if (this->types)
         this->types->addSubset(cx, thisTypes);
     else
         thisTypes->addType(cx, this->type);
-
-    return true;
 }
 
 void

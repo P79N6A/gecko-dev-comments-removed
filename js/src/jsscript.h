@@ -1300,9 +1300,6 @@ CurrentScriptFileLineOrigin(JSContext *cx, unsigned *linenop, LineOption = NOT_C
 extern UnrootedScript
 CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, HandleScript script);
 
-bool
-CloneFunctionScript(JSContext *cx, HandleFunction original, HandleFunction clone);
-
 
 
 

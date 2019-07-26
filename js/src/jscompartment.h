@@ -354,14 +354,6 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
 
 
 
-    js::CallsiteCloneTable callsiteClones;
-    void sweepCallsiteClones();
-
-    
-
-
-
-
 
     size_t                       gcMallocAndFreeBytes;
     size_t                       gcTriggerMallocAndFreeBytes;

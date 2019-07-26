@@ -45,13 +45,6 @@ class JSFunction : public JSObject
         INTERPRETED_LAZY = 0x1000,  
 
         
-
-
-
-
-        CALLSITE_CLONE   = 0x2000,
-
-        
         NATIVE_FUN = 0,
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA
     };
@@ -108,11 +101,6 @@ class JSFunction : public JSObject
     bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
 
     
-    bool isCloneAtCallsite()        const { return (flags & CALLSITE_CLONE) && !isExtended(); }
-    
-    bool isCallsiteClone()          const { return (flags & CALLSITE_CLONE) && isExtended(); }
-
-    
     bool isBuiltin() const {
         return isNative() || isSelfHostedBuiltin();
     }
@@ -151,10 +139,6 @@ class JSFunction : public JSObject
     void setIsSelfHostedConstructor() {
         JS_ASSERT(!isSelfHostedConstructor());
         flags |= SELF_HOSTED_CTOR;
-    }
-
-    void setIsCloneAtCallsite() {
-        flags |= CALLSITE_CLONE;
     }
 
     void setIsFunctionPrototype() {
