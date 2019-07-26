@@ -181,6 +181,10 @@ public class TopBookmarksView extends GridView {
 
 
     public void updateThumbnails(Map<String, Thumbnail> thumbnails) {
+        if (thumbnails == null) {
+            return;
+        }
+
         
         
         if (isLayoutRequested()) {
