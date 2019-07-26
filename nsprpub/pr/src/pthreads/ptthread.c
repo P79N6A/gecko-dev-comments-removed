@@ -715,7 +715,8 @@ PR_IMPLEMENT(void) PR_SetThreadPriority(PRThread *thred, PRThreadPriority newPri
 
 
             PR_LOG(_pr_thread_lm, PR_LOG_MIN,
-                ("PR_SetThreadPriority: no thread scheduling privilege"));
+                ("PR_SetThreadPriority: setpriority failed with error %d",
+                 errno));
         }
     }
 #endif
@@ -890,6 +891,8 @@ void _PR_InitThreads(
     int rv;
     PRThread *thred;
 
+    PR_ASSERT(priority == PR_PRIORITY_NORMAL);
+
 #ifdef _PR_NEED_PTHREAD_INIT
     
 
@@ -979,7 +982,6 @@ void _PR_InitThreads(
     PR_ASSERT(0 == rv);
     rv = pthread_setspecific(pt_book.key, thred);
     PR_ASSERT(0 == rv);    
-    PR_SetThreadPriority(thred, priority);
 }  
 
 #ifdef __GNUC__

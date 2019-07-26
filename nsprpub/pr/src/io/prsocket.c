@@ -288,14 +288,6 @@ static PRStatus PR_CALLBACK SocketConnectContinue(
 
 #elif defined(WIN32) || defined(WIN16)
 
-#if defined(WIN32)
-    
-
-
-
-    Sleep(0);
-#endif 
-
     if (out_flags & PR_POLL_EXCEPT) {
         int len = sizeof(err);
         if (getsockopt(osfd, (int)SOL_SOCKET, SO_ERROR, (char *) &err, &len)

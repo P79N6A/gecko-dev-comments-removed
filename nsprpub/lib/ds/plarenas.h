@@ -48,6 +48,9 @@ PR_EXTERN(void) PL_CompactArenaPool(PLArenaPool *pool);
 
 
 
+
+
+
 PR_EXTERN(void *) PL_ArenaAllocate(PLArenaPool *pool, PRUint32 nb);
 
 PR_EXTERN(void *) PL_ArenaGrow(
