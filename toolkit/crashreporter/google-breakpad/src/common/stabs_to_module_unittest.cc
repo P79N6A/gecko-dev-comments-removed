@@ -74,6 +74,35 @@ TEST(StabsToModule, SimpleCU) {
   EXPECT_EQ(174823314, line->number);
 }
 
+#ifdef __GNUC__
+
+
+TEST(StabsToModule, Externs) {
+  Module m("name", "os", "arch", "id");
+  StabsToModule h(&m);
+
+  
+  EXPECT_TRUE(h.Extern("_foo", 0xffff));
+  EXPECT_TRUE(h.Extern("__Z21dyldGlobalLockAcquirev", 0xaaaa));
+  EXPECT_TRUE(h.Extern("_MorphTableGetNextMorphChain", 0x1111));
+  h.Finalize();
+
+  
+  vector<Module::Extern *> externs;
+  m.GetExterns(&externs, externs.end());
+  ASSERT_EQ((size_t) 3, externs.size());
+  Module::Extern *extern1 = externs[0];
+  EXPECT_STREQ("MorphTableGetNextMorphChain", extern1->name.c_str());
+  EXPECT_EQ((Module::Address)0x1111, extern1->address);
+  Module::Extern *extern2 = externs[1];
+  EXPECT_STREQ("dyldGlobalLockAcquire()", extern2->name.c_str());
+  EXPECT_EQ((Module::Address)0xaaaa, extern2->address);
+  Module::Extern *extern3 = externs[2];
+  EXPECT_STREQ("foo", extern3->name.c_str());
+  EXPECT_EQ((Module::Address)0xffff, extern3->address);
+}
+#endif  
+
 TEST(StabsToModule, DuplicateFunctionNames) {
   Module m("name", "os", "arch", "id");
   StabsToModule h(&m);
@@ -154,6 +183,9 @@ TEST(InferSizes, LineSize) {
   EXPECT_EQ(87660088, line2->number);
 }
 
+#ifdef __GNUC__
+
+
 TEST(FunctionNames, Mangled) {
   Module m("name", "os", "arch", "id");
   StabsToModule h(&m);
@@ -188,6 +220,7 @@ TEST(FunctionNames, Mangled) {
   EXPECT_EQ(0U, function->parameter_size);
   ASSERT_EQ(0U, function->lines.size());
 }
+#endif  
 
 
 

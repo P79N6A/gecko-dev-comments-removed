@@ -1,48 +1,50 @@
-// Copyright (c) 2006, Google Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// windows_frame_info.h: Holds debugging information about a stack frame.
-//
-// This structure is specific to Windows debugging information obtained
-// from pdb files using the DIA API.
-//
-// Author: Mark Mentovai
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #ifndef PROCESSOR_WINDOWS_FRAME_INFO_H__
 #define PROCESSOR_WINDOWS_FRAME_INFO_H__
 
 #include <string.h>
+#include <stdlib.h>
 
 #include <string>
 #include <vector>
 
+#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 #include "processor/logging.h"
 #include "processor/tokenize.h"
@@ -57,21 +59,22 @@ struct WindowsFrameInfo {
     VALID_ALL            = -1
   };
 
-  // The types for stack_info_.  This is equivalent to MS DIA's
-  // StackFrameTypeEnum.  Each identifies a different type of frame
-  // information, although all are represented in the symbol file in the
-  // same format.  These are used as indices to the stack_info_ array.
+  
+  
+  
+  
   enum StackInfoTypes {
     STACK_INFO_FPO = 0,
-    STACK_INFO_TRAP,  // not used here
-    STACK_INFO_TSS,   // not used here
+    STACK_INFO_TRAP,  
+    STACK_INFO_TSS,   
     STACK_INFO_STANDARD,
     STACK_INFO_FRAME_DATA,
-    STACK_INFO_LAST,  // must be the last sequentially-numbered item
+    STACK_INFO_LAST,  
     STACK_INFO_UNKNOWN = -1
   };
 
-  WindowsFrameInfo() : valid(VALID_NONE),
+  WindowsFrameInfo() : type_(STACK_INFO_UNKNOWN),
+                     valid(VALID_NONE),
                      prolog_size(0),
                      epilog_size(0),
                      parameter_size(0),
@@ -81,15 +84,17 @@ struct WindowsFrameInfo {
                      allocates_base_pointer(0),
                      program_string() {}
 
-  WindowsFrameInfo(u_int32_t set_prolog_size,
+  WindowsFrameInfo(StackInfoTypes type,
+                 u_int32_t set_prolog_size,
                  u_int32_t set_epilog_size,
                  u_int32_t set_parameter_size,
                  u_int32_t set_saved_register_size,
                  u_int32_t set_local_size,
                  u_int32_t set_max_stack_size,
                  int set_allocates_base_pointer,
-                 const std::string set_program_string)
-      : valid(VALID_ALL),
+                 const string set_program_string)
+      : type_(type),
+        valid(VALID_ALL),
         prolog_size(set_prolog_size),
         epilog_size(set_epilog_size),
         parameter_size(set_parameter_size),
@@ -99,17 +104,17 @@ struct WindowsFrameInfo {
         allocates_base_pointer(set_allocates_base_pointer),
         program_string(set_program_string) {}
 
-  // Parse a textual serialization of a WindowsFrameInfo object from
-  // a string. Returns NULL if parsing fails, or a new object
-  // otherwise. type, rva and code_size are present in the STACK line,
-  // but not the StackFrameInfo structure, so return them as outparams.
-  static WindowsFrameInfo *ParseFromString(const std::string string,
+  
+  
+  
+  
+  static WindowsFrameInfo *ParseFromString(const string string,
                                            int &type,
                                            u_int64_t &rva,
                                            u_int64_t &code_size) {
-    // The format of a STACK WIN record is documented at: 
-    //
-    // http://code.google.com/p/google-breakpad/wiki/SymbolFiles
+    
+    
+    
 
     std::vector<char>  buffer;
     StringToVector(string, buffer);
@@ -139,7 +144,8 @@ struct WindowsFrameInfo {
       allocates_base_pointer = strtoul(tokens[10], NULL, 16);
     }
 
-    return new WindowsFrameInfo(prolog_size,
+    return new WindowsFrameInfo(static_cast<StackInfoTypes>(type),
+                                prolog_size,
                                 epilog_size,
                                 parameter_size,
                                 saved_register_size,
@@ -149,8 +155,9 @@ struct WindowsFrameInfo {
                                 program_string);
   }
 
-  // CopyFrom makes "this" WindowsFrameInfo object identical to "that".
+  
   void CopyFrom(const WindowsFrameInfo &that) {
+    type_ = that.type_;
     valid = that.valid;
     prolog_size = that.prolog_size;
     epilog_size = that.epilog_size;
@@ -162,20 +169,23 @@ struct WindowsFrameInfo {
     program_string = that.program_string;
   }
 
-  // Clears the WindowsFrameInfo object so that users will see it as though
-  // it contains no information.
+  
+  
   void Clear() {
+    type_ = STACK_INFO_UNKNOWN;
     valid = VALID_NONE;
     program_string.erase();
   }
 
-  // Identifies which fields in the structure are valid.  This is of
-  // type Validity, but it is defined as an int because it's not
-  // possible to OR values into an enumerated type.  Users must check
-  // this field before using any other.
+  StackInfoTypes type_;
+
+  
+  
+  
+  
   int valid;
 
-  // These values come from IDiaFrameData.
+  
   u_int32_t prolog_size;
   u_int32_t epilog_size;
   u_int32_t parameter_size;
@@ -183,13 +193,13 @@ struct WindowsFrameInfo {
   u_int32_t local_size;
   u_int32_t max_stack_size;
 
-  // Only one of allocates_base_pointer or program_string will be valid.
-  // If program_string is empty, use allocates_base_pointer.
+  
+  
   bool allocates_base_pointer;
-  std::string program_string;
+  string program_string;
 };
 
-}  // namespace google_breakpad
+}  
 
 
-#endif  // PROCESSOR_WINDOWS_FRAME_INFO_H__
+#endif  

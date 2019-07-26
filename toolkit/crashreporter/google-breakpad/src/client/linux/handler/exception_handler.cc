@@ -73,31 +73,26 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
-#if !defined(__ANDROID__)
-#include <sys/signal.h>
-#endif
 #include <sys/syscall.h>
-#if !defined(__ANDROID__)
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <sys/signal.h>
 #include <sys/ucontext.h>
 #include <sys/user.h>
-#endif
-#include <sys/wait.h>
-#if !defined(__ANDROID__)
 #include <ucontext.h>
-#endif
-#include <unistd.h>
 
 #include <algorithm>
 #include <utility>
 #include <vector>
 
 #include "common/linux/linux_libc_support.h"
-#include "common/linux/linux_syscall_support.h"
 #include "common/memory.h"
+#include "client/linux/log/log.h"
 #include "client/linux/minidump_writer/linux_dumper.h"
 #include "client/linux/minidump_writer/minidump_writer.h"
-#include "common/linux/guid_creator.h"
 #include "common/linux/eintr_wrapper.h"
+#include "third_party/lss/linux_syscall_support.h"
 
 #include "linux/sched.h"
 
@@ -113,93 +108,140 @@ static int tgkill(pid_t tgid, pid_t tid, int sig) {
 
 namespace google_breakpad {
 
+namespace {
 
 
 
-static const int kExceptionSignals[] = {
-  SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGBUS, -1
+const int kExceptionSignals[] = {
+  SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGBUS
 };
+const int kNumHandledSignals =
+    sizeof(kExceptionSignals) / sizeof(kExceptionSignals[0]);
+struct sigaction old_handlers[kNumHandledSignals];
+bool handlers_installed = false;
+
+
+
+stack_t old_stack;
+stack_t new_stack;
+bool stack_installed = false;
+
+
+
+
+void InstallAlternateStackLocked() {
+  if (stack_installed)
+    return;
+
+  memset(&old_stack, 0, sizeof(old_stack));
+  memset(&new_stack, 0, sizeof(new_stack));
+
+  
+  
+  
+  static const unsigned kSigStackSize = std::max(8192, SIGSTKSZ);
+
+  
+  
+  if (sys_sigaltstack(NULL, &old_stack) == -1 || !old_stack.ss_sp ||
+      old_stack.ss_size < kSigStackSize) {
+    new_stack.ss_sp = malloc(kSigStackSize);
+    new_stack.ss_size = kSigStackSize;
+
+    if (sys_sigaltstack(&new_stack, NULL) == -1) {
+      free(new_stack.ss_sp);
+      return;
+    }
+    stack_installed = true;
+  }
+}
+
+
+void RestoreAlternateStackLocked() {
+  if (!stack_installed)
+    return;
+
+  stack_t current_stack;
+  if (sys_sigaltstack(NULL, &current_stack) == -1)
+    return;
+
+  
+  
+  if (current_stack.ss_sp == new_stack.ss_sp) {
+    if (old_stack.ss_sp) {
+      if (sys_sigaltstack(&old_stack, NULL) == -1)
+        return;
+    } else {
+      stack_t disable_stack;
+      disable_stack.ss_flags = SS_DISABLE;
+      if (sys_sigaltstack(&disable_stack, NULL) == -1)
+        return;
+    }
+  }
+
+  free(new_stack.ss_sp);
+  stack_installed = false;
+}
+
+}  
 
 
 
 std::vector<ExceptionHandler*>* ExceptionHandler::handler_stack_ = NULL;
-unsigned ExceptionHandler::handler_stack_index_ = 0;
 pthread_mutex_t ExceptionHandler::handler_stack_mutex_ =
     PTHREAD_MUTEX_INITIALIZER;
 
 
-ExceptionHandler::ExceptionHandler(const std::string &dump_path,
-                                   FilterCallback filter,
-                                   MinidumpCallback callback,
-                                   void *callback_context,
-                                   bool install_handler)
-  : filter_(filter),
-    callback_(callback),
-    callback_context_(callback_context),
-    handler_installed_(install_handler)
-{
-  Init(dump_path, -1);
-}
-
-ExceptionHandler::ExceptionHandler(const std::string &dump_path,
+ExceptionHandler::ExceptionHandler(const MinidumpDescriptor& descriptor,
                                    FilterCallback filter,
                                    MinidumpCallback callback,
                                    void* callback_context,
                                    bool install_handler,
                                    const int server_fd)
-  : filter_(filter),
-    callback_(callback),
-    callback_context_(callback_context),
-    handler_installed_(install_handler)
-{
-  Init(dump_path, server_fd);
-}
+    : filter_(filter),
+      callback_(callback),
+      callback_context_(callback_context),
+      minidump_descriptor_(descriptor),
+      crash_handler_(NULL) {
+  if (server_fd >= 0)
+    crash_generation_client_.reset(CrashGenerationClient::TryCreate(server_fd));
 
-
-ExceptionHandler::~ExceptionHandler() {
-  UninstallHandlers();
-}
-
-void ExceptionHandler::Init(const std::string &dump_path,
-                            const int server_fd)
-{
-  crash_handler_ = NULL;
-  if (0 <= server_fd)
-    crash_generation_client_
-      .reset(CrashGenerationClient::TryCreate(server_fd));
-
-  if (handler_installed_)
-    InstallHandlers();
-
-  if (!IsOutOfProcess())
-    set_dump_path(dump_path);
+  if (!IsOutOfProcess() && !minidump_descriptor_.IsFD())
+    minidump_descriptor_.UpdatePath();
 
   pthread_mutex_lock(&handler_stack_mutex_);
-  if (handler_stack_ == NULL)
-    handler_stack_ = new std::vector<ExceptionHandler *>;
+  if (!handler_stack_)
+    handler_stack_ = new std::vector<ExceptionHandler*>;
+  if (install_handler) {
+    InstallAlternateStackLocked();
+    InstallHandlersLocked();
+  }
   handler_stack_->push_back(this);
   pthread_mutex_unlock(&handler_stack_mutex_);
 }
 
 
-bool ExceptionHandler::InstallHandlers() {
-  
-  
+ExceptionHandler::~ExceptionHandler() {
+  pthread_mutex_lock(&handler_stack_mutex_);
+  std::vector<ExceptionHandler*>::iterator handler =
+      std::find(handler_stack_->begin(), handler_stack_->end(), this);
+  handler_stack_->erase(handler);
+  if (handler_stack_->empty()) {
+    RestoreAlternateStackLocked();
+    RestoreHandlersLocked();
+  }
+  pthread_mutex_unlock(&handler_stack_mutex_);
+}
+
+
+
+bool ExceptionHandler::InstallHandlersLocked() {
+  if (handlers_installed)
+    return false;
 
   
-  
-  static const unsigned kSigStackSize = 8192;
-
-  stack_t stack;
-  
-  
-  if (sys_sigaltstack(NULL, &stack) == -1 || !stack.ss_sp ||
-      stack.ss_size < kSigStackSize) {
-    memset(&stack, 0, sizeof(stack));
-    stack.ss_sp = malloc(kSigStackSize);
-    stack.ss_size = kSigStackSize;
-
-    if (sys_sigaltstack(&stack, NULL) == -1)
+  for (unsigned i = 0; i < kNumHandledSignals; ++i) {
+    if (sigaction(kExceptionSignals[i], NULL, &old_handlers[i]) == -1)
       return false;
   }
 
@@ -208,53 +250,35 @@ bool ExceptionHandler::InstallHandlers() {
   sigemptyset(&sa.sa_mask);
 
   
-  for (unsigned i = 0; kExceptionSignals[i] != -1; ++i)
+  for (unsigned i = 0; i < kNumHandledSignals; ++i)
     sigaddset(&sa.sa_mask, kExceptionSignals[i]);
 
   sa.sa_sigaction = SignalHandler;
   sa.sa_flags = SA_ONSTACK | SA_SIGINFO;
 
-  for (unsigned i = 0; kExceptionSignals[i] != -1; ++i) {
-    struct sigaction* old = new struct sigaction;
-    if (sigaction(kExceptionSignals[i], &sa, old) == -1)
-      return false;
-    old_handlers_.push_back(std::make_pair(kExceptionSignals[i], old));
+  for (unsigned i = 0; i < kNumHandledSignals; ++i) {
+    if (sigaction(kExceptionSignals[i], &sa, NULL) == -1) {
+      
+      
+    }
   }
+  handlers_installed = true;
   return true;
 }
 
 
-void ExceptionHandler::UninstallHandlers() {
-  for (unsigned i = 0; i < old_handlers_.size(); ++i) {
-    struct sigaction *action =
-        reinterpret_cast<struct sigaction*>(old_handlers_[i].second);
-    sigaction(old_handlers_[i].first, action, NULL);
-    delete action;
+
+
+void ExceptionHandler::RestoreHandlersLocked() {
+  if (!handlers_installed)
+    return;
+
+  for (unsigned i = 0; i < kNumHandledSignals; ++i) {
+    if (sigaction(kExceptionSignals[i], &old_handlers[i], NULL) == -1) {
+      signal(kExceptionSignals[i], SIG_DFL);
+    }
   }
-  pthread_mutex_lock(&handler_stack_mutex_);
-  std::vector<ExceptionHandler*>::iterator handler =
-      std::find(handler_stack_->begin(), handler_stack_->end(), this);
-  handler_stack_->erase(handler);
-  pthread_mutex_unlock(&handler_stack_mutex_);
-  old_handlers_.clear();
-}
-
-
-void ExceptionHandler::UpdateNextID() {
-  GUID guid;
-  char guid_str[kGUIDStringLength + 1];
-  if (CreateGUID(&guid) && GUIDToString(&guid, guid_str, sizeof(guid_str))) {
-    next_minidump_id_ = guid_str;
-    next_minidump_id_c_ = next_minidump_id_.c_str();
-
-    char minidump_path[PATH_MAX];
-    snprintf(minidump_path, sizeof(minidump_path), "%s/%s.dmp",
-             dump_path_c_,
-             guid_str);
-
-    next_minidump_path_ = minidump_path;
-    next_minidump_path_c_ = next_minidump_path_.c_str();
-  }
+  handlers_installed = false;
 }
 
 
@@ -268,36 +292,44 @@ void ExceptionHandler::SignalHandler(int sig, siginfo_t* info, void* uc) {
   
   pthread_mutex_lock(&handler_stack_mutex_);
 
-  if (!handler_stack_->size()) {
-    pthread_mutex_unlock(&handler_stack_mutex_);
-    return;
+  bool handled = false;
+  for (int i = handler_stack_->size() - 1; !handled && i >= 0; --i) {
+    handled = (*handler_stack_)[i]->HandleSignal(sig, info, uc);
   }
 
-  for (int i = handler_stack_->size() - 1; i >= 0; --i) {
-    if ((*handler_stack_)[i]->HandleSignal(sig, info, uc)) {
-      
-      
-      
-      break;
-    }
+  
+  
+  
+  
+  
+  if (handled) {
+    signal(sig, SIG_DFL);
+  } else {
+    RestoreHandlersLocked();
   }
 
   pthread_mutex_unlock(&handler_stack_mutex_);
 
-  
-  
-  
-  signal(sig, SIG_DFL);
-
-  
-  tgkill(getpid(), syscall(__NR_gettid), sig);
-  _exit(1);
-
-  
+  if (info->si_pid) {
+    
+    
+    
+    if (tgkill(getpid(), syscall(__NR_gettid), sig) < 0) {
+      
+      
+      
+      _exit(1);
+    }
+  } else {
+    
+    
+    
+  }
 }
 
 struct ThreadArgument {
   pid_t pid;  
+  const MinidumpDescriptor* minidump_descriptor;
   ExceptionHandler* handler;
   const void* context;  
   size_t context_size;
@@ -324,7 +356,12 @@ bool ExceptionHandler::HandleSignal(int sig, siginfo_t* info, void* uc) {
     return false;
 
   
-  sys_prctl(PR_SET_DUMPABLE, 1);
+  bool signal_trusted = info->si_code > 0;
+  bool signal_pid_trusted = info->si_code == SI_USER ||
+      info->si_code == SI_TKILL;
+  if (signal_trusted || (signal_pid_trusted && info->si_pid == getpid())) {
+    sys_prctl(PR_SET_DUMPABLE, 1);
+  }
   CrashContext context;
   memcpy(&context.siginfo, info, sizeof(siginfo_t));
   memcpy(&context.context, uc, sizeof(struct ucontext));
@@ -339,12 +376,21 @@ bool ExceptionHandler::HandleSignal(int sig, siginfo_t* info, void* uc) {
 #endif
   context.tid = syscall(__NR_gettid);
   if (crash_handler_ != NULL) {
-    if (crash_handler_(&context, sizeof(context),
-                       callback_context_)) {
+    if (crash_handler_(&context, sizeof(context), callback_context_)) {
       return true;
     }
   }
   return GenerateDump(&context);
+}
+
+
+
+bool ExceptionHandler::SimulateSignalDelivery(int sig) {
+  siginfo_t siginfo;
+  my_memset(&siginfo, 0, sizeof(siginfo_t));
+  struct ucontext context;
+  getcontext(&context);
+  return HandleSignal(sig, &siginfo, &context);
 }
 
 
@@ -363,6 +409,7 @@ bool ExceptionHandler::GenerateDump(CrashContext *context) {
 
   ThreadArgument thread_arg;
   thread_arg.handler = this;
+  thread_arg.minidump_descriptor = &minidump_descriptor_;
   thread_arg.pid = getpid();
   thread_arg.context = context;
   thread_arg.context_size = sizeof(*context);
@@ -377,17 +424,18 @@ bool ExceptionHandler::GenerateDump(CrashContext *context) {
     
     static const char no_pipe_msg[] = "ExceptionHandler::GenerateDump \
                                        sys_pipe failed:";
-    sys_write(2, no_pipe_msg, sizeof(no_pipe_msg) - 1);
-    sys_write(2, strerror(errno), strlen(strerror(errno)));
-    sys_write(2, "\n", 1);
+    logger::write(no_pipe_msg, sizeof(no_pipe_msg) - 1);
+    logger::write(strerror(errno), strlen(strerror(errno)));
+    logger::write("\n", 1);
   }
 
   const pid_t child = sys_clone(
       ThreadEntry, stack, CLONE_FILES | CLONE_FS | CLONE_UNTRACED,
       &thread_arg, NULL, NULL, NULL);
+
   int r, status;
   
-  prctl(PR_SET_PTRACER, child, 0, 0, 0);
+  sys_prctl(PR_SET_PTRACER, child);
   SendContinueSignalToChild();
   do {
     r = sys_waitpid(child, &status, __WALL);
@@ -398,17 +446,14 @@ bool ExceptionHandler::GenerateDump(CrashContext *context) {
 
   if (r == -1) {
     static const char msg[] = "ExceptionHandler::GenerateDump waitpid failed:";
-    sys_write(2, msg, sizeof(msg) - 1);
-    sys_write(2, strerror(errno), strlen(strerror(errno)));
-    sys_write(2, "\n", 1);
+    logger::write(msg, sizeof(msg) - 1);
+    logger::write(strerror(errno), strlen(strerror(errno)));
+    logger::write("\n", 1);
   }
 
   bool success = r != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0;
-
   if (callback_)
-    success = callback_(dump_path_c_, next_minidump_id_c_,
-                        callback_context_, success);
-
+    success = callback_(minidump_descriptor_, callback_context_, success);
   return success;
 }
 
@@ -420,9 +465,9 @@ void ExceptionHandler::SendContinueSignalToChild() {
   if(r == -1) {
     static const char msg[] = "ExceptionHandler::SendContinueSignalToChild \
                                sys_write failed:";
-    sys_write(2, msg, sizeof(msg) - 1);
-    sys_write(2, strerror(errno), strlen(strerror(errno)));
-    sys_write(2, "\n", 1);
+    logger::write(msg, sizeof(msg) - 1);
+    logger::write(strerror(errno), strlen(strerror(errno)));
+    logger::write("\n", 1);
   }
 }
 
@@ -435,9 +480,9 @@ void ExceptionHandler::WaitForContinueSignal() {
   if(r == -1) {
     static const char msg[] = "ExceptionHandler::WaitForContinueSignal \
                                sys_read failed:";
-    sys_write(2, msg, sizeof(msg) - 1);
-    sys_write(2, strerror(errno), strlen(strerror(errno)));
-    sys_write(2, "\n", 1);
+    logger::write(msg, sizeof(msg) - 1);
+    logger::write(strerror(errno), strlen(strerror(errno)));
+    logger::write("\n", 1);
   }
 }
 
@@ -445,36 +490,45 @@ void ExceptionHandler::WaitForContinueSignal() {
 
 bool ExceptionHandler::DoDump(pid_t crashing_process, const void* context,
                               size_t context_size) {
-  return google_breakpad::WriteMinidump(next_minidump_path_c_,
+  if (minidump_descriptor_.IsFD()) {
+    return google_breakpad::WriteMinidump(minidump_descriptor_.fd(),
+                                          crashing_process,
+                                          context,
+                                          context_size,
+                                          mapping_list_,
+                                          app_memory_list_);
+  }
+  return google_breakpad::WriteMinidump(minidump_descriptor_.path(),
                                         crashing_process,
                                         context,
                                         context_size,
-                                        mapping_info_,
-                                        app_memory_info_);
+                                        mapping_list_,
+                                        app_memory_list_);
 }
 
 
-bool ExceptionHandler::WriteMinidump(const std::string &dump_path,
+bool ExceptionHandler::WriteMinidump(const string& dump_path,
                                      MinidumpCallback callback,
                                      void* callback_context) {
-  return WriteMinidump(dump_path, false, callback, callback_context);
-}
-
-
-bool ExceptionHandler::WriteMinidump(const std::string &dump_path,
-                                     bool write_exception_stream,
-                                     MinidumpCallback callback,
-                                     void* callback_context) {
-  ExceptionHandler eh(dump_path, NULL, callback, callback_context, false);
-  return eh.WriteMinidump(write_exception_stream);
+  MinidumpDescriptor descriptor(dump_path);
+  ExceptionHandler eh(descriptor, NULL, callback, callback_context, false, -1);
+  return eh.WriteMinidump();
 }
 
 bool ExceptionHandler::WriteMinidump() {
-  return WriteMinidump(false);
-}
+  if (!IsOutOfProcess() && !minidump_descriptor_.IsFD()) {
+    
+    
+    
+    
+    minidump_descriptor_.UpdatePath();
+  } else if (minidump_descriptor_.IsFD()) {
+    
+    
+    lseek(minidump_descriptor_.fd(), 0, SEEK_SET);
+    static_cast<void>(ftruncate(minidump_descriptor_.fd(), 0));
+  }
 
-bool ExceptionHandler::WriteMinidump(bool write_exception_stream) {
-#if !defined(__ARM_EABI__)
   
   sys_prctl(PR_SET_DUMPABLE, 1);
 
@@ -482,81 +536,87 @@ bool ExceptionHandler::WriteMinidump(bool write_exception_stream) {
   int getcontext_result = getcontext(&context.context);
   if (getcontext_result)
     return false;
+#if !defined(__ARM_EABI__)
+  
   memcpy(&context.float_state, context.context.uc_mcontext.fpregs,
          sizeof(context.float_state));
+#endif
   context.tid = sys_gettid();
 
-  if (write_exception_stream) {
-    memset(&context.siginfo, 0, sizeof(context.siginfo));
-    context.siginfo.si_signo = SIGSTOP;
-#if defined(__i386)
-    context.siginfo.si_addr =
+  
+  memset(&context.siginfo, 0, sizeof(context.siginfo));
+  context.siginfo.si_signo = MD_EXCEPTION_CODE_LIN_DUMP_REQUESTED;
+#if defined(__i386__)
+  context.siginfo.si_addr =
       reinterpret_cast<void*>(context.context.uc_mcontext.gregs[REG_EIP]);
-#elif defined(__x86_64)
-    context.siginfo.si_addr =
+#elif defined(__x86_64__)
+  context.siginfo.si_addr =
       reinterpret_cast<void*>(context.context.uc_mcontext.gregs[REG_RIP]);
-#elif defined(__ARMEL__)
-    context.siginfo.si_addr =
-      reinterpret_cast<void*>(context.context.uc_mcontext.arm_ip);
+#elif defined(__arm__)
+  context.siginfo.si_addr =
+      reinterpret_cast<void*>(context.context.uc_mcontext.arm_pc);
+#else
+#error "This code has not been ported to your platform yet."
 #endif
+
+  return GenerateDump(&context);
+}
+
+void ExceptionHandler::AddMappingInfo(const string& name,
+                                      const u_int8_t identifier[sizeof(MDGUID)],
+                                      uintptr_t start_address,
+                                      size_t mapping_size,
+                                      size_t file_offset) {
+  MappingInfo info;
+  info.start_addr = start_address;
+  info.size = mapping_size;
+  info.offset = file_offset;
+  strncpy(info.name, name.c_str(), sizeof(info.name) - 1);
+  info.name[sizeof(info.name) - 1] = '\0';
+
+  MappingEntry mapping;
+  mapping.first = info;
+  memcpy(mapping.second, identifier, sizeof(MDGUID));
+  mapping_list_.push_back(mapping);
+}
+
+void ExceptionHandler::RegisterAppMemory(void* ptr, size_t length) {
+  AppMemoryList::iterator iter =
+    std::find(app_memory_list_.begin(), app_memory_list_.end(), ptr);
+  if (iter != app_memory_list_.end()) {
+    
+    return;
   }
 
-  bool success = GenerateDump(&context);
-  UpdateNextID();
-  return success;
-#else
-  return false;
-#endif  
+  AppMemory app_memory;
+  app_memory.ptr = ptr;
+  app_memory.length = length;
+  app_memory_list_.push_back(app_memory);
+}
+
+void ExceptionHandler::UnregisterAppMemory(void* ptr) {
+  AppMemoryList::iterator iter =
+    std::find(app_memory_list_.begin(), app_memory_list_.end(), ptr);
+  if (iter != app_memory_list_.end()) {
+    app_memory_list_.erase(iter);
+  }
 }
 
 
 bool ExceptionHandler::WriteMinidumpForChild(pid_t child,
                                              pid_t child_blamed_thread,
-                                             const std::string &dump_path,
+                                             const string& dump_path,
                                              MinidumpCallback callback,
-                                             void *callback_context)
-{
+                                             void* callback_context) {
   
-  ExceptionHandler eh(dump_path, NULL, NULL, NULL, false);
-  if (!google_breakpad::WriteMinidump(eh.next_minidump_path_c_,
+  MinidumpDescriptor descriptor(dump_path);
+  descriptor.UpdatePath();
+  if (!google_breakpad::WriteMinidump(descriptor.path(),
                                       child,
                                       child_blamed_thread))
       return false;
 
-  return callback ? callback(eh.dump_path_c_, eh.next_minidump_id_c_,
-                             callback_context, true) : true;
-}
-
-void ExceptionHandler::AddMappingInfo(const std::string& name,
-                                      const u_int8_t identifier[sizeof(MDGUID)],
-                                      uintptr_t start_address,
-                                      size_t mapping_size,
-                                      size_t file_offset) {
-   MappingInfo info;
-   info.start_addr = start_address;
-   info.size = mapping_size;
-   info.offset = file_offset;
-   strncpy(info.name, name.c_str(), std::min(name.size() + 1, sizeof(info)));
- 
-   std::pair<MappingInfo, u_int8_t[sizeof(MDGUID)]> mapping;
-   mapping.first = info;
-   memcpy(mapping.second, identifier, sizeof(MDGUID));
-   mapping_info_.push_back(mapping);
-}
-
-void ExceptionHandler::RegisterAppMemory(void *ptr, size_t length) {
-  app_memory_info_.push_back(AppMemory(ptr, length));
-}
-
-void ExceptionHandler::UnregisterAppMemory(void *ptr) {
-  for (AppMemoryList::iterator iter = app_memory_info_.begin();
-       iter != app_memory_info_.end();
-       ++iter) {
-    if (iter->ptr == ptr) {
-      app_memory_info_.erase(iter);
-      return;
-    }
-  }
+  return callback ? callback(descriptor, callback_context, true) : true;
 }
 
 }  

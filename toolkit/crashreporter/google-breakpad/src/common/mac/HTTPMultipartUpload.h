@@ -32,7 +32,7 @@
 
 
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 
 @interface HTTPMultipartUpload : NSObject {
  @protected

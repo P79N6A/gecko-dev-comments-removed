@@ -114,6 +114,7 @@
 #include <string>
 
 #include "common/test_assembler.h"
+#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
 
@@ -121,7 +122,6 @@ namespace google_breakpad {
 
 namespace SynthMinidump {
 
-using std::string;
 using test_assembler::Endianness;
 using test_assembler::kBigEndian;
 using test_assembler::kLittleEndian;
@@ -227,6 +227,7 @@ class Context: public Section {
  public:
   
   Context(const Dump &dump, const MDRawContextX86 &context);
+  Context(const Dump &dump, const MDRawContextARM &context);
   
 };
 
@@ -264,6 +265,16 @@ class Module: public Section {
   
   
   static const MDVSFixedFileInfo stock_version_info;
+};
+
+class Exception : public Stream {
+public:
+  Exception(const Dump &dump,
+            const Context &context,
+            u_int32_t thread_id = 0,
+            u_int32_t exception_code = 0,
+            u_int32_t exception_flags = 0,
+            u_int64_t exception_address = 0);
 };
 
 

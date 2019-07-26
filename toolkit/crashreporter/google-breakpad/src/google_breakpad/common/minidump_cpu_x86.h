@@ -157,6 +157,8 @@ typedef struct {
      
 #define MD_CONTEXT_X86_EXTENDED_REGISTERS (MD_CONTEXT_X86 | 0x00000020)
      
+#define MD_CONTEXT_X86_XSTATE             (MD_CONTEXT_X86 | 0x00000040)
+     
 
 #define MD_CONTEXT_X86_FULL              (MD_CONTEXT_X86_CONTROL | \
                                           MD_CONTEXT_X86_INTEGER | \

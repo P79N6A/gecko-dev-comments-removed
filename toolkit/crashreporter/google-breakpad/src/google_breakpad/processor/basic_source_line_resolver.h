@@ -30,56 +30,50 @@
 
 
 
+
+
+
+
+
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_BASIC_SOURCE_LINE_RESOLVER_H__
 
 #include <map>
+#include <string>
 
-#include "google_breakpad/processor/source_line_resolver_interface.h"
+#include "common/using_std_string.h"
+#include "google_breakpad/processor/source_line_resolver_base.h"
 
 namespace google_breakpad {
 
-using std::string;
 using std::map;
 
-class BasicSourceLineResolver : public SourceLineResolverInterface {
+class BasicSourceLineResolver : public SourceLineResolverBase {
  public:
   BasicSourceLineResolver();
-  virtual ~BasicSourceLineResolver();
+  virtual ~BasicSourceLineResolver() { }
 
-  
-  
-
-  
-  
-  
-  virtual bool LoadModule(const CodeModule *module, const string &map_file);
-
-  
-  
-  virtual bool LoadModuleUsingMapBuffer(const CodeModule *module,
-                                        const string &map_buffer);
-
-  void UnloadModule(const CodeModule *module);
-  virtual bool HasModule(const CodeModule *module);
-  virtual void FillSourceLineInfo(StackFrame *frame);
-  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame);
-  virtual CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame);
+  using SourceLineResolverBase::LoadModule;
+  using SourceLineResolverBase::LoadModuleUsingMapBuffer;
+  using SourceLineResolverBase::LoadModuleUsingMemoryBuffer;
+  using SourceLineResolverBase::ShouldDeleteMemoryBufferAfterLoadModule;
+  using SourceLineResolverBase::UnloadModule;
+  using SourceLineResolverBase::HasModule;
+  using SourceLineResolverBase::FillSourceLineInfo;
+  using SourceLineResolverBase::FindWindowsFrameInfo;
+  using SourceLineResolverBase::FindCFIFrameInfo;
 
  private:
-  template<class T> class MemAddrMap;
-  struct Line;
-  struct Function;
-  struct PublicSymbol;
-  struct File;
-  struct CompareString {
-    bool operator()(const string &s1, const string &s2) const;
-  };
-  class Module;
+  
+  friend class BasicModuleFactory;
+  friend class ModuleComparer;
+  friend class ModuleSerializer;
+  template<class> friend class SimpleSerializer;
 
   
-  typedef map<string, Module*, CompareString> ModuleMap;
-  ModuleMap *modules_;
+  struct Function;
+  
+  class Module;
 
   
   BasicSourceLineResolver(const BasicSourceLineResolver&);

@@ -75,6 +75,7 @@ StackFrame* StackwalkerPPC::GetContextFrame() {
   
   frame->context = *context_;
   frame->context_validity = StackFramePPC::CONTEXT_VALID_ALL;
+  frame->trust = StackFrame::FRAME_TRUST_CONTEXT;
   frame->instruction = frame->context.srr0;
 
   return frame;
@@ -127,6 +128,7 @@ StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack *stack) {
   frame->context.gpr[1] = stack_pointer;
   frame->context_validity = StackFramePPC::CONTEXT_VALID_SRR0 |
                             StackFramePPC::CONTEXT_VALID_GPR1;
+  frame->trust = StackFrame::FRAME_TRUST_FP;
 
   
   

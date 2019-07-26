@@ -37,13 +37,16 @@
 #include <map>
 #include <string>
 
+#include "common/using_std_string.h"
+
 namespace google_breakpad {
 
-using std::string;
 using std::map;
 
 class HTTPUpload {
  public:
+  
+  
   
   
   
@@ -63,6 +66,7 @@ class HTTPUpload {
                           const string &proxy_user_pwd,
                           const string &ca_certificate_file,
                           string *response_body,
+                          long *response_code,
                           string *error_description);
 
  private:

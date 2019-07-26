@@ -32,16 +32,10 @@
 
 
 
-#include <Foundation/Foundation.h>
+#import <Cocoa/Cocoa.h>
 
-#include "client/mac/Framework/Breakpad.h"
+#include "client/mac/sender/uploader.h"
 #import "GTMDefines.h"
-
-#define kClientIdPreferenceKey @"clientid"
-
-extern NSString *const kGoogleServerType;
-extern NSString *const kSocorroServerType;
-extern NSString *const kDefaultServerType;
 
 
 
@@ -87,29 +81,12 @@ extern NSString *const kDefaultServerType;
   NSString *countdownMessage_;             
                                            
  @private
-  int configFile_;                         
-  NSMutableDictionary *parameters_;        
-  NSData *minidumpContents_;               
-  NSData *logFileData_;                    
-                                           
   NSTimeInterval remainingDialogTime_;     
                                            
                                            
   NSTimer *messageTimer_;                  
                                            
-  NSMutableDictionary *serverDictionary_;  
-                                           
-                                           
-                                           
-  NSMutableDictionary *socorroDictionary_; 
-                                           
-  NSMutableDictionary *googleDictionary_;  
-                                           
-  NSMutableDictionary *extraServerVars_;   
-                                           
-                                           
-                                           
-                                           
+  Uploader* uploader_;                     
 }
 
 

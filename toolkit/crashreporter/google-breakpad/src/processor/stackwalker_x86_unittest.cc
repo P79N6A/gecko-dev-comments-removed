@@ -36,6 +36,7 @@
 
 #include "breakpad_googletest_includes.h"
 #include "common/test_assembler.h"
+#include "common/using_std_string.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "google_breakpad/processor/basic_source_line_resolver.h"
 #include "google_breakpad/processor/call_stack.h"
@@ -55,7 +56,6 @@ using google_breakpad::WindowsFrameInfo;
 using google_breakpad::test_assembler::kLittleEndian;
 using google_breakpad::test_assembler::Label;
 using google_breakpad::test_assembler::Section;
-using std::string;
 using std::vector;
 using testing::_;
 using testing::Return;
@@ -69,7 +69,11 @@ class StackwalkerX86Fixture {
       
       
       module1(0x40000000, 0x10000, "module1", "version1"),
-      module2(0x50000000, 0x10000, "module2", "version2") {
+      module2(0x50000000, 0x10000, "module2", "version2"),
+      module3(0x771d0000, 0x180000, "module3", "version3"),
+      module4(0x75f90000, 0x46000, "module4", "version4"),
+      module5(0x75730000, 0x110000, "module5", "version5"),
+      module6(0x647f0000, 0x1ba8000, "module6", "version6") {
     
     system_info.os = "Linux";
     system_info.os_short = "linux";
@@ -83,18 +87,23 @@ class StackwalkerX86Fixture {
     
     modules.Add(&module1);
     modules.Add(&module2);
+    modules.Add(&module3);
+    modules.Add(&module4);
+    modules.Add(&module5);
+    modules.Add(&module6);
 
     
     
-    EXPECT_CALL(supplier, GetSymbolFile(_, _, _, _))
+    EXPECT_CALL(supplier, GetCStringSymbolData(_, _, _, _))
       .WillRepeatedly(Return(MockSymbolSupplier::NOT_FOUND));
   }
 
   
   
   void SetModuleSymbols(MockCodeModule *module, const string &info) {
-    EXPECT_CALL(supplier, GetSymbolFile(module, &system_info, _, _))
-      .WillRepeatedly(DoAll(SetArgumentPointee<3>(info),
+    char *buffer = supplier.CopySymbolDataAndOwnTheCopy(info);
+    EXPECT_CALL(supplier, GetCStringSymbolData(module, &system_info, _, _))
+      .WillRepeatedly(DoAll(SetArgumentPointee<3>(buffer),
                             Return(MockSymbolSupplier::FOUND)));
   }
 
@@ -119,12 +128,36 @@ class StackwalkerX86Fixture {
   MockMemoryRegion stack_region;
   MockCodeModule module1;
   MockCodeModule module2;
+  MockCodeModule module3;
+  MockCodeModule module4;
+  MockCodeModule module5;
+  MockCodeModule module6;
   MockCodeModules modules;
   MockSymbolSupplier supplier;
   BasicSourceLineResolver resolver;
   CallStack call_stack;
   const vector<StackFrame *> *frames;
 };
+
+class SanityCheck: public StackwalkerX86Fixture, public Test { };
+
+TEST_F(SanityCheck, NoResolver) {
+  stack_section.start() = 0x80000000;
+  stack_section.D32(0).D32(0); 
+  RegionFromSection();
+  raw_context.eip = 0x40000200;
+  raw_context.ebp = 0x80000000;
+
+  StackwalkerX86 walker(&system_info, &raw_context, &stack_region, &modules,
+                        NULL, NULL);
+  
+  ASSERT_TRUE(walker.Walk(&call_stack));
+  frames = call_stack.frames();
+  StackFrameX86 *frame = static_cast<StackFrameX86 *>(frames->at(0));
+  
+  
+  EXPECT_EQ(0, memcmp(&raw_context, &frame->context, sizeof(raw_context)));
+}
 
 class GetContextFrame: public StackwalkerX86Fixture, public Test { };
 
@@ -142,7 +175,7 @@ TEST_F(GetContextFrame, Simple) {
   StackFrameX86 *frame = static_cast<StackFrameX86 *>(frames->at(0));
   
   
-  EXPECT_TRUE(memcmp(&raw_context, &frame->context, sizeof(raw_context)) == 0);
+  EXPECT_EQ(0, memcmp(&raw_context, &frame->context, sizeof(raw_context)));
 }
 
 class GetCallerFrame: public StackwalkerX86Fixture, public Test { };
@@ -173,24 +206,28 @@ TEST_F(GetCallerFrame, Traditional) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  EXPECT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x4000c7a5U, frame0->instruction);
-  EXPECT_EQ(0x4000c7a5U, frame0->context.eip);
-  EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
-  EXPECT_EQ(NULL, frame0->windows_frame_info);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    EXPECT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000c7a5U, frame0->instruction);
+    EXPECT_EQ(0x4000c7a5U, frame0->context.eip);
+    EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
+    EXPECT_EQ(NULL, frame0->windows_frame_info);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_FP, frame1->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x40008679U, frame1->instruction + 1);
-  EXPECT_EQ(0x40008679U, frame1->context.eip);
-  EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
-  EXPECT_EQ(NULL, frame1->windows_frame_info);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_FP, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x40008679U, frame1->instruction + 1);
+    EXPECT_EQ(0x40008679U, frame1->context.eip);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
 }
 
 
@@ -224,30 +261,95 @@ TEST_F(GetCallerFrame, TraditionalScan) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x4000f49dU, frame0->instruction);
-  EXPECT_EQ(0x4000f49dU, frame0->context.eip);
-  EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
-  EXPECT_EQ(0xd43eed6eU, frame0->context.ebp);
-  EXPECT_EQ(NULL, frame0->windows_frame_info);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000f49dU, frame0->instruction);
+    EXPECT_EQ(0x4000f49dU, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(0xd43eed6eU, frame0->context.ebp);
+    EXPECT_EQ(NULL, frame0->windows_frame_info);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_SCAN, frame1->trust);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_SCAN, frame1->trust);
+    
+    
+    
+    
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x4000129dU, frame1->instruction + 1);
+    EXPECT_EQ(0x4000129dU, frame1->context.eip);
+    EXPECT_EQ(0x80000014U, frame1->context.esp);
+    EXPECT_EQ(0xd43eed6eU, frame1->context.ebp);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
+}
+
+
+TEST_F(GetCallerFrame, TraditionalScanLongWay) {
+  stack_section.start() = 0x80000000;
+  Label frame1_ebp;
+  stack_section
+    
+    .D32(0xf065dc76)    
+    .D32(0x46ee2167)    
+    .D32(0xbab023ec)    
+    .Append(20 * 4, 0)  
+    .D32(frame1_ebp)    
+    .D32(0x4000129d)    
+    
+    .Append(8, 0)       
+    .Mark(&frame1_ebp)  
+    .D32(0)             
+    .D32(0);            
+
+  RegionFromSection();
+  raw_context.eip = 0x4000f49d;
+  raw_context.esp = stack_section.start().Value();
   
   
-  
-  
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x4000129dU, frame1->instruction + 1);
-  EXPECT_EQ(0x4000129dU, frame1->context.eip);
-  EXPECT_EQ(0x80000014U, frame1->context.esp);
-  EXPECT_EQ(0xd43eed6eU, frame1->context.ebp);
-  EXPECT_EQ(NULL, frame1->windows_frame_info);
+  raw_context.ebp = 0xd43eed6e;
+
+  StackwalkerX86 walker(&system_info, &raw_context, &stack_region, &modules,
+                        &supplier, &resolver);
+  ASSERT_TRUE(walker.Walk(&call_stack));
+  frames = call_stack.frames();
+  ASSERT_EQ(2U, frames->size());
+
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000f49dU, frame0->instruction);
+    EXPECT_EQ(0x4000f49dU, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(0xd43eed6eU, frame0->context.ebp);
+    EXPECT_EQ(NULL, frame0->windows_frame_info);
+  }
+
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_SCAN, frame1->trust);
+    
+    
+    
+    
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x4000129dU, frame1->instruction + 1);
+    EXPECT_EQ(0x4000129dU, frame1->context.eip);
+    EXPECT_EQ(0x80000064U, frame1->context.esp);
+    EXPECT_EQ(0xd43eed6eU, frame1->context.ebp);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
 }
 
 
@@ -291,32 +393,101 @@ TEST_F(GetCallerFrame, WindowsFrameData) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x4000aa85U, frame0->instruction);
-  EXPECT_EQ(0x4000aa85U, frame0->context.eip);
-  EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
-  EXPECT_EQ(0xf052c1deU, frame0->context.ebp);
-  EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000aa85U, frame0->instruction);
+    EXPECT_EQ(0x4000aa85U, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(0xf052c1deU, frame0->context.ebp);
+    EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI, frame1->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP
-             | StackFrameX86::CONTEXT_VALID_EBX
-             | StackFrameX86::CONTEXT_VALID_ESI
-             | StackFrameX86::CONTEXT_VALID_EDI),
-            frame1->context_validity);
-  EXPECT_EQ(0x40001350U, frame1->instruction + 1);
-  EXPECT_EQ(0x40001350U, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
-  EXPECT_EQ(0x9068a878U, frame1->context.ebx);
-  EXPECT_EQ(0xa7120d1aU, frame1->context.esi);
-  EXPECT_EQ(0x630891beU, frame1->context.edi);
-  EXPECT_EQ(NULL, frame1->windows_frame_info);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP
+               | StackFrameX86::CONTEXT_VALID_EBX
+               | StackFrameX86::CONTEXT_VALID_ESI
+               | StackFrameX86::CONTEXT_VALID_EDI),
+              frame1->context_validity);
+    EXPECT_EQ(0x40001350U, frame1->instruction + 1);
+    EXPECT_EQ(0x40001350U, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(0x9068a878U, frame1->context.ebx);
+    EXPECT_EQ(0xa7120d1aU, frame1->context.esi);
+    EXPECT_EQ(0x630891beU, frame1->context.edi);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
+}
+
+
+
+
+TEST_F(GetCallerFrame, WindowsFrameDataAligned) {
+  SetModuleSymbols(&module1,
+                   "STACK WIN 4 aa85 176 0 0 4 4 8 0 1"
+		   " $T1 .raSearch ="
+		   " $T0 $T1 4 - 8 @ ="
+		   " $ebp $T1 4 - ^ ="
+		   " $eip $T1 ^ ="
+		   " $esp $T1 4 + =");
+  Label frame1_esp, frame1_ebp;
+  stack_section.start() = 0x80000000;
+  stack_section
+    
+    .D32(0x0ffa0ffa)                    
+    .D32(0xdeaddead)                    
+    .D32(0xbeefbeef)
+    .D32(0)                             
+    .D32(frame1_ebp)
+    .D32(0x5000129d)                    
+    
+    .Mark(&frame1_esp)
+    .D32(0x1)                           
+    .Mark(&frame1_ebp)
+    .D32(0)                             
+    .D32(0);                            
+
+  RegionFromSection();
+  raw_context.eip = 0x4000aa85;
+  raw_context.esp = stack_section.start().Value();
+  raw_context.ebp = 0xf052c1de;         
+
+  StackwalkerX86 walker(&system_info, &raw_context, &stack_region, &modules,
+                        &supplier, &resolver);
+  ASSERT_TRUE(walker.Walk(&call_stack));
+  frames = call_stack.frames();
+  ASSERT_EQ(2U, frames->size());
+
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000aa85U, frame0->instruction);
+    EXPECT_EQ(0x4000aa85U, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(0xf052c1deU, frame0->context.ebp);
+    EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  }
+
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x5000129dU, frame1->instruction + 1);
+    EXPECT_EQ(0x5000129dU, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
 }
 
 
@@ -375,56 +546,66 @@ TEST_F(GetCallerFrame, WindowsFrameDataParameterSize) {
   frames = call_stack.frames();
   ASSERT_EQ(3U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x40001004U, frame0->instruction);
-  EXPECT_EQ(0x40001004U, frame0->context.eip);
-  EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
-  EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
-  EXPECT_EQ(&module1, frame0->module);
-  EXPECT_EQ("module1::wheedle", frame0->function_name);
-  EXPECT_EQ(0x40001000U, frame0->function_base);
-  
-  
-  ASSERT_TRUE(frame0->windows_frame_info != NULL);
-  EXPECT_EQ(WindowsFrameInfo::VALID_PARAMETER_SIZE,
-            frame0->windows_frame_info->valid);
-  EXPECT_EQ(12U, frame0->windows_frame_info->parameter_size);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x40001004U, frame0->instruction);
+    EXPECT_EQ(0x40001004U, frame0->context.eip);
+    EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
+    EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
+    EXPECT_EQ(&module1, frame0->module);
+    EXPECT_EQ("module1::wheedle", frame0->function_name);
+    EXPECT_EQ(0x40001000U, frame0->function_base);
+    
+    
+    ASSERT_TRUE(frame0->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_PARAMETER_SIZE,
+              frame0->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_UNKNOWN,
+              frame0->windows_frame_info->type_);
+    EXPECT_EQ(12U, frame0->windows_frame_info->parameter_size);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_FP, frame1->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x5000aa95U, frame1->instruction + 1);
-  EXPECT_EQ(0x5000aa95U, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_EQ(0x6fa902e0U, frame1->context.ebp);
-  EXPECT_EQ(&module2, frame1->module);
-  EXPECT_EQ("module2::whine", frame1->function_name);
-  EXPECT_EQ(0x5000aa85U, frame1->function_base);
-  ASSERT_TRUE(frame1->windows_frame_info != NULL);
-  EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame1->windows_frame_info->valid);
-  
-  
-  EXPECT_EQ(4U, frame1->windows_frame_info->parameter_size);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_FP, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x5000aa95U, frame1->instruction + 1);
+    EXPECT_EQ(0x5000aa95U, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(0x6fa902e0U, frame1->context.ebp);
+    EXPECT_EQ(&module2, frame1->module);
+    EXPECT_EQ("module2::whine", frame1->function_name);
+    EXPECT_EQ(0x5000aa85U, frame1->function_base);
+    ASSERT_TRUE(frame1->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame1->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_FRAME_DATA,
+              frame1->windows_frame_info->type_);
+    
+    
+    EXPECT_EQ(4U, frame1->windows_frame_info->parameter_size);
+  }
 
-  StackFrameX86 *frame2 = static_cast<StackFrameX86 *>(frames->at(2));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI, frame2->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP
-             | StackFrameX86::CONTEXT_VALID_EBX),
-            frame2->context_validity);
-  EXPECT_EQ(0x2a179e38U, frame2->instruction + 1);
-  EXPECT_EQ(0x2a179e38U, frame2->context.eip);
-  EXPECT_EQ(frame2_esp.Value(), frame2->context.esp);
-  EXPECT_EQ(frame2_ebp.Value(), frame2->context.ebp);
-  EXPECT_EQ(0x2558c7f3U, frame2->context.ebx);
-  EXPECT_EQ(NULL, frame2->module);
-  EXPECT_EQ(NULL, frame2->windows_frame_info);
+  {  
+    StackFrameX86 *frame2 = static_cast<StackFrameX86 *>(frames->at(2));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame2->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP
+               | StackFrameX86::CONTEXT_VALID_EBX),
+              frame2->context_validity);
+    EXPECT_EQ(0x2a179e38U, frame2->instruction + 1);
+    EXPECT_EQ(0x2a179e38U, frame2->context.eip);
+    EXPECT_EQ(frame2_esp.Value(), frame2->context.esp);
+    EXPECT_EQ(frame2_ebp.Value(), frame2->context.ebp);
+    EXPECT_EQ(0x2558c7f3U, frame2->context.ebx);
+    EXPECT_EQ(NULL, frame2->module);
+    EXPECT_EQ(NULL, frame2->windows_frame_info);
+  }
 }
 
 
@@ -459,29 +640,33 @@ TEST_F(GetCallerFrame, WindowsFrameDataScan) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x40000c9cU, frame0->instruction);
-  EXPECT_EQ(0x40000c9cU, frame0->context.eip);
-  EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
-  EXPECT_EQ(0x2ae314cdU, frame0->context.ebp);
-  EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x40000c9cU, frame0->instruction);
+    EXPECT_EQ(0x40000c9cU, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(0x2ae314cdU, frame0->context.ebp);
+    EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_SCAN, frame1->trust);
-  
-  
-  
-  
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x50007ce9U, frame1->instruction + 1);
-  EXPECT_EQ(0x50007ce9U, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_TRUE(frame1->windows_frame_info != NULL);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_SCAN, frame1->trust);
+    
+    
+    
+    
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x50007ce9U, frame1->instruction + 1);
+    EXPECT_EQ(0x50007ce9U, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_TRUE(frame1->windows_frame_info != NULL);
+  }
 }
 
 
@@ -538,30 +723,34 @@ TEST_F(GetCallerFrame, WindowsFrameDataBadEIPScan) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x40000700U, frame0->instruction);
-  EXPECT_EQ(0x40000700U, frame0->context.eip);
-  EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
-  EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
-  EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x40000700U, frame0->instruction);
+    EXPECT_EQ(0x40000700U, frame0->context.eip);
+    EXPECT_EQ(stack_section.start().Value(), frame0->context.esp);
+    EXPECT_EQ(frame0_ebp.Value(), frame0->context.ebp);
+    EXPECT_TRUE(frame0->windows_frame_info != NULL);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI_SCAN, frame1->trust);
-  
-  
-  
-  
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x5000d000U, frame1->instruction + 1);
-  EXPECT_EQ(0x5000d000U, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
-  EXPECT_TRUE(frame1->windows_frame_info != NULL);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI_SCAN, frame1->trust);
+    
+    
+    
+    
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x5000d000U, frame1->instruction + 1);
+    EXPECT_EQ(0x5000d000U, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_TRUE(frame1->windows_frame_info != NULL);
+  }
 }
 
 
@@ -601,35 +790,41 @@ TEST_F(GetCallerFrame, WindowsFPOUnchangedEBP) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x4000e8b8U, frame0->instruction);
-  EXPECT_EQ(0x4000e8b8U, frame0->context.eip);
-  EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
-  EXPECT_EQ(frame1_ebp.Value(), frame0->context.ebp); 
-  EXPECT_EQ(&module1, frame0->module);
-  EXPECT_EQ("module1::discombobulated", frame0->function_name);
-  EXPECT_EQ(0x4000e8a8U, frame0->function_base);
-  
-  
-  ASSERT_TRUE(frame0->windows_frame_info != NULL);
-  EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame0->windows_frame_info->valid);
-  EXPECT_EQ(0x10U, frame0->windows_frame_info->local_size);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x4000e8b8U, frame0->instruction);
+    EXPECT_EQ(0x4000e8b8U, frame0->context.eip);
+    EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame0->context.ebp); 
+    EXPECT_EQ(&module1, frame0->module);
+    EXPECT_EQ("module1::discombobulated", frame0->function_name);
+    EXPECT_EQ(0x4000e8a8U, frame0->function_base);
+    
+    
+    ASSERT_TRUE(frame0->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame0->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_FPO,
+              frame0->windows_frame_info->type_);
+    EXPECT_EQ(0x10U, frame0->windows_frame_info->local_size);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI, frame1->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x40009b5bU, frame1->instruction + 1);
-  EXPECT_EQ(0x40009b5bU, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
-  EXPECT_EQ(&module1, frame1->module);
-  EXPECT_EQ("", frame1->function_name);
-  EXPECT_EQ(NULL, frame1->windows_frame_info);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x40009b5bU, frame1->instruction + 1);
+    EXPECT_EQ(0x40009b5bU, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(&module1, frame1->module);
+    EXPECT_EQ("", frame1->function_name);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
 }
 
 
@@ -671,36 +866,188 @@ TEST_F(GetCallerFrame, WindowsFPOUsedEBP) {
   frames = call_stack.frames();
   ASSERT_EQ(2U, frames->size());
 
-  StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-  ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-  EXPECT_EQ(0x40009ab8U, frame0->instruction);
-  EXPECT_EQ(0x40009ab8U, frame0->context.eip);
-  EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
-  EXPECT_EQ(0xecbdd1a5, frame0->context.ebp);
-  EXPECT_EQ(&module1, frame0->module);
-  EXPECT_EQ("module1::RaisedByTheAliens", frame0->function_name);
-  EXPECT_EQ(0x40009aa8U, frame0->function_base);
-  
-  
-  ASSERT_TRUE(frame0->windows_frame_info != NULL);
-  EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame0->windows_frame_info->valid);
-  EXPECT_EQ("", frame0->windows_frame_info->program_string);
-  EXPECT_TRUE(frame0->windows_frame_info->allocates_base_pointer);
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x40009ab8U, frame0->instruction);
+    EXPECT_EQ(0x40009ab8U, frame0->context.eip);
+    EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
+    EXPECT_EQ(0xecbdd1a5, frame0->context.ebp);
+    EXPECT_EQ(&module1, frame0->module);
+    EXPECT_EQ("module1::RaisedByTheAliens", frame0->function_name);
+    EXPECT_EQ(0x40009aa8U, frame0->function_base);
+    
+    
+    ASSERT_TRUE(frame0->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame0->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_FPO,
+              frame0->windows_frame_info->type_);
+    EXPECT_EQ("", frame0->windows_frame_info->program_string);
+    EXPECT_TRUE(frame0->windows_frame_info->allocates_base_pointer);
+  }
 
-  StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-  EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI, frame1->trust);
-  ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
-             | StackFrameX86::CONTEXT_VALID_ESP
-             | StackFrameX86::CONTEXT_VALID_EBP),
-            frame1->context_validity);
-  EXPECT_EQ(0x4000debeU, frame1->instruction + 1);
-  EXPECT_EQ(0x4000debeU, frame1->context.eip);
-  EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
-  EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
-  EXPECT_EQ(&module1, frame1->module);
-  EXPECT_EQ("", frame1->function_name);
-  EXPECT_EQ(NULL, frame1->windows_frame_info);
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x4000debeU, frame1->instruction + 1);
+    EXPECT_EQ(0x4000debeU, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(&module1, frame1->module);
+    EXPECT_EQ("", frame1->function_name);
+    EXPECT_EQ(NULL, frame1->windows_frame_info);
+  }
+}
+
+
+
+
+
+
+TEST_F(GetCallerFrame, WindowsFPOSystemCall) {
+  SetModuleSymbols(&module3,  
+                   "PUBLIC 1f8ac c ZwWaitForSingleObject\n"
+                   "STACK WIN 0 1f8ac 1b 0 0 c 0 0 0 0 0\n");
+  SetModuleSymbols(&module4,  
+                   "PUBLIC 109f9 c WaitForSingleObjectEx\n"
+                   "PUBLIC 36590 0 _except_handler4\n"
+                   "STACK WIN 4 109f9 df c 0 c c 48 0 1 $T0 $ebp = $eip "
+                   "$T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + = $L "
+                   "$T0 .cbSavedRegs - = $P $T0 8 + .cbParams + =\n"
+                   "STACK WIN 4 36590 154 17 0 10 0 14 0 1 $T0 $ebp = $eip "
+                   "$T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + = $L $T0 "
+                   ".cbSavedRegs - = $P $T0 8 + .cbParams + =\n");
+  SetModuleSymbols(&module5,  
+                   "PUBLIC 11136 8 WaitForSingleObject\n"
+                   "PUBLIC 11151 c WaitForSingleObjectExImplementation\n"
+                   "STACK WIN 4 11136 16 5 0 8 0 0 0 1 $T0 $ebp = $eip "
+                   "$T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + = $L "
+                   "$T0 .cbSavedRegs - = $P $T0 8 + .cbParams + =\n"
+                   "STACK WIN 4 11151 7a 5 0 c 0 0 0 1 $T0 $ebp = $eip "
+                   "$T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + = $L "
+                   "$T0 .cbSavedRegs - = $P $T0 8 + .cbParams + =\n");
+  SetModuleSymbols(&module6,  
+                   "FILE 7038 some_file_name.h\n"
+                   "FILE 839776 some_file_name.cc\n"
+                   "FUNC 217fda 17 4 function_217fda\n"
+                   "217fda 4 102 839776\n"
+                   "FUNC 217ff1 a 4 function_217ff1\n"
+                   "217ff1 0 594 7038\n"
+                   "217ff1 a 596 7038\n"
+                   "STACK WIN 0 217ff1 a 0 0 4 0 0 0 0 0\n");
+
+  Label frame0_esp, frame1_esp;
+  Label frame1_ebp, frame2_ebp, frame3_ebp;
+  stack_section.start() = 0x002ff290;
+  stack_section
+    .Mark(&frame0_esp)
+    .D32(0x771ef8c1)    
+    .D32(0x75fa0a91)    
+    .Mark(&frame1_esp)
+    .D32(0x000017b0)    
+    .D32(0x00000000)
+    .D32(0x002ff2d8)
+    .D32(0x88014a2e)
+    .D32(0x002ff364)
+    .D32(0x000017b0)
+    .D32(0x00000000)
+    .D32(0x00000024)
+    .D32(0x00000001)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x00000000)
+    .D32(0x9e3b9800)
+    .D32(0xfffffff7)
+    .D32(0x00000000)
+    .D32(0x002ff2a4)
+    .D32(0x64a07ff1)    
+    .D32(0x002ff8dc)
+    .D32(0x75fc6590)    
+    .D32(0xfdd2c6ea)
+    .D32(0x00000000)
+    .Mark(&frame1_ebp)
+    .D32(frame2_ebp)    
+    .D32(0x75741194)    
+    .D32(0x000017b0)    
+    .D32(0x0036ee80)
+    .D32(0x00000000)
+    .D32(0x65bc7d14)
+    .Mark(&frame2_ebp)
+    .D32(frame3_ebp)    
+    .D32(0x75741148)    
+    .D32(0x000017b0)    
+    .D32(0x0036ee80)
+    .D32(0x00000000)
+    .Mark(&frame3_ebp)
+    .D32(0)             
+    .D32(0);            
+
+  RegionFromSection();
+  raw_context.eip = 0x771ef8c1;  
+  raw_context.esp = stack_section.start().Value();
+  ASSERT_TRUE(raw_context.esp == frame0_esp.Value());
+  raw_context.ebp = frame1_ebp.Value();
+
+  StackwalkerX86 walker(&system_info, &raw_context, &stack_region, &modules,
+                        &supplier, &resolver);
+  ASSERT_TRUE(walker.Walk(&call_stack));
+  frames = call_stack.frames();
+
+  ASSERT_EQ(4U, frames->size());
+
+  {  
+    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+    EXPECT_EQ(0x771ef8c1U, frame0->instruction);
+    EXPECT_EQ(0x771ef8c1U, frame0->context.eip);
+    EXPECT_EQ(frame0_esp.Value(), frame0->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame0->context.ebp);
+    EXPECT_EQ(&module3, frame0->module);
+    EXPECT_EQ("ZwWaitForSingleObject", frame0->function_name);
+    
+    
+    ASSERT_TRUE(frame0->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame0->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_FPO,
+              frame0->windows_frame_info->type_);
+    EXPECT_EQ("", frame0->windows_frame_info->program_string);
+    EXPECT_FALSE(frame0->windows_frame_info->allocates_base_pointer);
+  }
+
+  {  
+    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+    EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP
+               | StackFrameX86::CONTEXT_VALID_ESP
+               | StackFrameX86::CONTEXT_VALID_EBP),
+              frame1->context_validity);
+    EXPECT_EQ(0x75fa0a91U, frame1->instruction + 1);
+    EXPECT_EQ(0x75fa0a91U, frame1->context.eip);
+    EXPECT_EQ(frame1_esp.Value(), frame1->context.esp);
+    EXPECT_EQ(frame1_ebp.Value(), frame1->context.ebp);
+    EXPECT_EQ(&module4, frame1->module);
+    EXPECT_EQ("WaitForSingleObjectEx", frame1->function_name);
+    
+    
+    ASSERT_TRUE(frame1->windows_frame_info != NULL);
+    EXPECT_EQ(WindowsFrameInfo::VALID_ALL, frame1->windows_frame_info->valid);
+    EXPECT_EQ(WindowsFrameInfo::STACK_INFO_FRAME_DATA,
+              frame1->windows_frame_info->type_);
+    EXPECT_EQ("$T0 $ebp = $eip $T0 4 + ^ = $ebp $T0 ^ = $esp $T0 8 + = $L "
+              "$T0 .cbSavedRegs - = $P $T0 8 + .cbParams + =",
+              frame1->windows_frame_info->program_string);
+    EXPECT_FALSE(frame1->windows_frame_info->allocates_base_pointer);
+  }
 }
 
 struct CFIFixture: public StackwalkerX86Fixture {
@@ -756,32 +1103,36 @@ struct CFIFixture: public StackwalkerX86Fixture {
     frames = call_stack.frames();
     ASSERT_EQ(2U, frames->size());
 
-    StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
-    EXPECT_EQ(StackFrameX86::FRAME_TRUST_CONTEXT, frame0->trust);
-    ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
-    EXPECT_EQ("enchiridion", frame0->function_name);
-    EXPECT_EQ(0x40004000U, frame0->function_base);
-    ASSERT_TRUE(frame0->windows_frame_info != NULL);
-    ASSERT_EQ(WindowsFrameInfo::VALID_PARAMETER_SIZE,
-              frame0->windows_frame_info->valid);
-    ASSERT_TRUE(frame0->cfi_frame_info != NULL);
+    {  
+      StackFrameX86 *frame0 = static_cast<StackFrameX86 *>(frames->at(0));
+      EXPECT_EQ(StackFrame::FRAME_TRUST_CONTEXT, frame0->trust);
+      ASSERT_EQ(StackFrameX86::CONTEXT_VALID_ALL, frame0->context_validity);
+      EXPECT_EQ("enchiridion", frame0->function_name);
+      EXPECT_EQ(0x40004000U, frame0->function_base);
+      ASSERT_TRUE(frame0->windows_frame_info != NULL);
+      ASSERT_EQ(WindowsFrameInfo::VALID_PARAMETER_SIZE,
+                frame0->windows_frame_info->valid);
+      ASSERT_TRUE(frame0->cfi_frame_info != NULL);
+    }
 
-    StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
-    EXPECT_EQ(StackFrameX86::FRAME_TRUST_CFI, frame1->trust);
-    ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP |
-               StackFrameX86::CONTEXT_VALID_ESP |
-               StackFrameX86::CONTEXT_VALID_EBP |
-               StackFrameX86::CONTEXT_VALID_EBX |
-               StackFrameX86::CONTEXT_VALID_ESI |
-               StackFrameX86::CONTEXT_VALID_EDI),
-              frame1->context_validity);
-    EXPECT_EQ(expected.eip, frame1->context.eip);
-    EXPECT_EQ(expected.esp, frame1->context.esp);
-    EXPECT_EQ(expected.ebp, frame1->context.ebp);
-    EXPECT_EQ(expected.ebx, frame1->context.ebx);
-    EXPECT_EQ(expected.esi, frame1->context.esi);
-    EXPECT_EQ(expected.edi, frame1->context.edi);
-    EXPECT_EQ("epictetus", frame1->function_name);
+    {  
+      StackFrameX86 *frame1 = static_cast<StackFrameX86 *>(frames->at(1));
+      EXPECT_EQ(StackFrame::FRAME_TRUST_CFI, frame1->trust);
+      ASSERT_EQ((StackFrameX86::CONTEXT_VALID_EIP |
+                 StackFrameX86::CONTEXT_VALID_ESP |
+                 StackFrameX86::CONTEXT_VALID_EBP |
+                 StackFrameX86::CONTEXT_VALID_EBX |
+                 StackFrameX86::CONTEXT_VALID_ESI |
+                 StackFrameX86::CONTEXT_VALID_EDI),
+                 frame1->context_validity);
+      EXPECT_EQ(expected.eip, frame1->context.eip);
+      EXPECT_EQ(expected.esp, frame1->context.esp);
+      EXPECT_EQ(expected.ebp, frame1->context.ebp);
+      EXPECT_EQ(expected.ebx, frame1->context.ebx);
+      EXPECT_EQ(expected.esi, frame1->context.esi);
+      EXPECT_EQ(expected.edi, frame1->context.edi);
+      EXPECT_EQ("epictetus", frame1->function_name);
+    }
   }
 
   

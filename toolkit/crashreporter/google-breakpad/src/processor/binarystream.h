@@ -37,6 +37,7 @@
 #include <sstream>
 #include <string>
 
+#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
@@ -47,21 +48,21 @@ class binarystream {
  public:
   explicit binarystream(ios_base::openmode which = ios_base::out|ios_base::in)
     : stream_(which) {}
-  explicit binarystream(const std::string &str,
+  explicit binarystream(const string &str,
                         ios_base::openmode which = ios_base::out|ios_base::in)
     : stream_(str, which) {}
   explicit binarystream(const char *str, size_t size,
                         ios_base::openmode which = ios_base::out|ios_base::in)
-    : stream_(std::string(str, size), which) {}
+    : stream_(string(str, size), which) {}
 
-  binarystream &operator>>(std::string &str);
+  binarystream &operator>>(string &str);
   binarystream &operator>>(u_int8_t &u8);
   binarystream &operator>>(u_int16_t &u16);
   binarystream &operator>>(u_int32_t &u32);
   binarystream &operator>>(u_int64_t &u64);
 
   
-  binarystream &operator<<(const std::string &str);
+  binarystream &operator<<(const string &str);
   binarystream &operator<<(u_int8_t u8);
   binarystream &operator<<(u_int16_t u16);
   binarystream &operator<<(u_int32_t u32);
@@ -70,13 +71,16 @@ class binarystream {
   
   bool eof() const { return stream_.eof(); }
   void clear() { stream_.clear(); }
-  std::string str() const { return stream_.str(); }
-  void str(const std::string &s) { stream_.str(s); }
+  string str() const { return stream_.str(); }
+  void str(const string &s) { stream_.str(s); }
     
   
   void rewind() {
     stream_.seekg (0, ios::beg);
     stream_.seekp (0, ios::beg);
+    
+    
+    stream_.clear();
   }
 
  private:

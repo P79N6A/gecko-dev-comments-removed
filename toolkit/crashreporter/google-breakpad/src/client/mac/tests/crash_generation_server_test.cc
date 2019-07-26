@@ -43,8 +43,8 @@
 #include "client/mac/crash_generation/crash_generation_client.h"
 #include "client/mac/crash_generation/crash_generation_server.h"
 #include "client/mac/handler/exception_handler.h"
-#include "client/mac/tests/auto_tempdir.h"
 #include "client/mac/tests/spawn_child_process.h"
+#include "common/tests/auto_tempdir.h"
 #include "google_breakpad/processor/minidump.h"
 
 namespace google_breakpad {
@@ -84,12 +84,14 @@ public:
   AutoTempDir temp_dir;
   
   static int i;
+  bool filter_callback_called;
 
   void SetUp() {
     sprintf(mach_port_name,
-	    "com.google.breakpad.ServerTest.%d.%d", getpid(),
-	    CrashGenerationServerTest::i++);
+            "com.google.breakpad.ServerTest.%d.%d", getpid(),
+            CrashGenerationServerTest::i++);
     child_pid = (pid_t)-1;
+    filter_callback_called = false;
   }
 };
 int CrashGenerationServerTest::i = 0;
@@ -97,12 +99,14 @@ int CrashGenerationServerTest::i = 0;
 
 TEST_F(CrashGenerationServerTest, testStartStopServer) {
   CrashGenerationServer server(mach_port_name,
-			       NULL,  
-			       NULL,  
-			       NULL,  
-			       NULL,  
-			       false, 
-			       ""); 
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               false, 
+                               ""); 
   ASSERT_TRUE(server.Start());
   ASSERT_TRUE(server.Stop());
 }
@@ -111,12 +115,14 @@ TEST_F(CrashGenerationServerTest, testStartStopServer) {
 
 TEST_F(CrashGenerationServerTest, testRequestDumpNoDump) {
   CrashGenerationServer server(mach_port_name,
-			       NULL,  
-			       NULL,  
-			       NULL,  
-			       NULL,  
-			       false, 
-			       temp_dir.path); 
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               NULL,  
+                               false, 
+                               temp_dir.path()); 
   ASSERT_TRUE(server.Start());
 
   pid_t pid = fork();
@@ -133,7 +139,7 @@ TEST_F(CrashGenerationServerTest, testRequestDumpNoDump) {
   EXPECT_EQ(0, WEXITSTATUS(ret));
   EXPECT_TRUE(server.Stop());
   
-  string pattern = temp_dir.path + "/*";
+  string pattern = temp_dir.path() + "/*";
   glob_t dirContents;
   ret = glob(pattern.c_str(), GLOB_NOSORT, NULL, &dirContents);
   EXPECT_EQ(GLOB_NOMATCH, ret);
@@ -142,7 +148,7 @@ TEST_F(CrashGenerationServerTest, testRequestDumpNoDump) {
 }
 
 void dumpCallback(void *context, const ClientInfo &client_info,
-		  const std::string &file_path) {
+                  const std::string &file_path) {
   if (context) {
     CrashGenerationServerTest* self =
         reinterpret_cast<CrashGenerationServerTest*>(context);
@@ -161,12 +167,14 @@ void *RequestDump(void *context) {
 
 TEST_F(CrashGenerationServerTest, testRequestDump) {
   CrashGenerationServer server(mach_port_name,
-			       dumpCallback,  
-			       this,  
-			       NULL,  
-			       NULL,  
-			       true, 
-			       temp_dir.path); 
+                               NULL,  
+                               NULL,  
+                               dumpCallback,  
+                               this,  
+                               NULL,  
+                               NULL,  
+                               true, 
+                               temp_dir.path()); 
   ASSERT_TRUE(server.Start());
 
   pid_t pid = fork();
@@ -209,12 +217,14 @@ static void Crasher() {
 
 TEST_F(CrashGenerationServerTest, testChildProcessCrash) {
   CrashGenerationServer server(mach_port_name,
-			       dumpCallback,  
-			       this,  
-			       NULL,  
-			       NULL,  
-			       true, 
-			       temp_dir.path); 
+                               NULL,  
+                               NULL,  
+                               dumpCallback,  
+                               this,  
+                               NULL,  
+                               NULL,  
+                               true, 
+                               temp_dir.path()); 
   ASSERT_TRUE(server.Start());
 
   pid_t pid = fork();
@@ -270,12 +280,14 @@ TEST_F(CrashGenerationServerTest, testChildProcessCrash) {
 
 TEST_F(CrashGenerationServerTest, testChildProcessCrashCrossArchitecture) {
   CrashGenerationServer server(mach_port_name,
-			       dumpCallback,  
-			       this,  
-			       NULL,  
-			       NULL,  
-			       true, 
-			       temp_dir.path); 
+                               NULL,  
+                               NULL,  
+                               dumpCallback,  
+                               this,  
+                               NULL,  
+                               NULL,  
+                               true, 
+                               temp_dir.path()); 
   ASSERT_TRUE(server.Start());
 
   
@@ -341,5 +353,46 @@ const u_int32_t kExpectedContext =
   EXPECT_EQ(helper_path, main_module->code_file());
 }
 #endif
+
+bool filter_callback(void* context) {
+  CrashGenerationServerTest* self =
+    reinterpret_cast<CrashGenerationServerTest*>(context);
+  self->filter_callback_called = true;
+  
+  return false;
+}
+
+
+TEST_F(CrashGenerationServerTest, testFilter) {
+  CrashGenerationServer server(mach_port_name,
+                               filter_callback,  
+                               this,            
+                               dumpCallback,  
+                               this,  
+                               NULL,  
+                               NULL,  
+                               true, 
+                               temp_dir.path()); 
+  ASSERT_TRUE(server.Start());
+
+  pid_t pid = fork();
+  ASSERT_NE(-1, pid);
+  if (pid == 0) {
+    
+    ExceptionHandler eh("", NULL, NULL, NULL, true, mach_port_name);
+    Crasher();
+    
+    exit(0);
+  }
+
+  int ret;
+  ASSERT_EQ(pid, waitpid(pid, &ret, 0));
+  EXPECT_FALSE(WIFEXITED(ret));
+  EXPECT_TRUE(server.Stop());
+
+  
+  EXPECT_TRUE(last_dump_name.empty());
+  EXPECT_TRUE(filter_callback_called);
+}
 
 }  

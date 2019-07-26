@@ -203,6 +203,7 @@ typedef struct {
 
 
 
+#define MD_CONTEXT_AMD64 0x00100000  /* CONTEXT_AMD64 */
 #define MD_CONTEXT_AMD64_CONTROL         (MD_CONTEXT_AMD64 | 0x00000001)
      
 #define MD_CONTEXT_AMD64_INTEGER         (MD_CONTEXT_AMD64 | 0x00000002)
@@ -213,6 +214,9 @@ typedef struct {
      
 #define MD_CONTEXT_AMD64_DEBUG_REGISTERS (MD_CONTEXT_AMD64 | 0x00000010)
      
+#define MD_CONTEXT_AMD64_XSTATE          (MD_CONTEXT_AMD64 | 0x00000040)
+     
+
 
 
 

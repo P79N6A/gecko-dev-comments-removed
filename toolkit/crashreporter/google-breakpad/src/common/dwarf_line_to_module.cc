@@ -32,7 +32,12 @@
 
 
 
+#include <stdio.h>
+
+#include <string>
+
 #include "common/dwarf_line_to_module.h"
+#include "common/using_std_string.h"
 
 
 
@@ -45,7 +50,8 @@ static bool PathIsAbsolute(const string &path) {
 
 
 
-static string ExpandPath(const string &path, const string &base) {
+static string ExpandPath(const string &path,
+                         const string &base) {
   if (PathIsAbsolute(path))
     return path;
   return base + "/" + path;
@@ -68,7 +74,7 @@ void DwarfLineToModule::DefineFile(const string &name, int32 file_num,
   else if (file_num > highest_file_number_)
     highest_file_number_ = file_num;
 
-  std::string full_name;
+  string full_name;
   if (dir_num != 0) {
     DirectoryTable::const_iterator directory_it = directories_.find(dir_num);
     if (directory_it != directories_.end()) {

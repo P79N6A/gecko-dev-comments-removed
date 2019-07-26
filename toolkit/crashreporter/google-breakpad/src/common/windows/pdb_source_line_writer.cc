@@ -28,8 +28,8 @@
 
 
 #include <atlbase.h>
-#include <DbgHelp.h>
 #include <dia2.h>
+#include <ImageHlp.h>
 #include <stdio.h>
 
 #include "common/windows/string_utils-inl.h"
@@ -44,6 +44,24 @@
 #endif  
 
 namespace google_breakpad {
+
+using std::vector;
+
+
+class AutoImage {
+ public:
+  explicit AutoImage(PLOADED_IMAGE img) : img_(img) {}
+  ~AutoImage() {
+    if (img_)
+      ImageUnload(img_);
+  }
+
+  operator PLOADED_IMAGE() { return img_; }
+  PLOADED_IMAGE operator->() { return img_; }
+
+ private:
+  PLOADED_IMAGE img_;
+};
 
 PDBSourceLineWriter::PDBSourceLineWriter() : output_(NULL) {
 }
@@ -61,30 +79,37 @@ bool PDBSourceLineWriter::Open(const wstring &file, FileFormat format) {
 
   CComPtr<IDiaDataSource> data_source;
   if (FAILED(data_source.CoCreateInstance(CLSID_DiaSource))) {
-    fprintf(stderr, "CoCreateInstance CLSID_DiaSource failed "
-            "(msdia80.dll unregistered?)\n");
+    const int kGuidSize = 64;
+    wchar_t classid[kGuidSize] = {0};
+    StringFromGUID2(CLSID_DiaSource, classid, kGuidSize);
+    
+    
+    fprintf(stderr, "CoCreateInstance CLSID_DiaSource %S failed "
+            "(msdia*.dll unregistered?)\n", classid);
     return false;
   }
 
   switch (format) {
     case PDB_FILE:
       if (FAILED(data_source->loadDataFromPdb(file.c_str()))) {
-        fprintf(stderr, "loadDataFromPdb failed\n");
+        fprintf(stderr, "loadDataFromPdb failed for %ws\n", file.c_str());
         return false;
       }
       break;
     case EXE_FILE:
       if (FAILED(data_source->loadDataForExe(file.c_str(), NULL, NULL))) {
-        fprintf(stderr, "loadDataForExe failed\n");
+        fprintf(stderr, "loadDataForExe failed for %ws\n", file.c_str());
         return false;
       }
+      code_file_ = file;
       break;
     case ANY_FILE:
       if (FAILED(data_source->loadDataFromPdb(file.c_str()))) {
         if (FAILED(data_source->loadDataForExe(file.c_str(), NULL, NULL))) {
-          fprintf(stderr, "loadDataForPdb and loadDataFromExe failed\n");
+          fprintf(stderr, "loadDataForPdb and loadDataFromExe failed for %ws\n", file.c_str());
           return false;
         }
+	code_file_ = file;
       }
       break;
     default:
@@ -498,6 +523,18 @@ bool PDBSourceLineWriter::PrintPDBInfo() {
   return true;
 }
 
+bool PDBSourceLineWriter::PrintPEInfo() {
+  PEModuleInfo info;
+  if (!GetPEInfo(&info)) {
+    return false;
+  }
+
+  fprintf(output_, "INFO CODE_ID %ws %ws\n",
+	  info.code_identifier.c_str(),
+	  info.code_file.c_str());
+  return true;
+}
+
 
 
 
@@ -533,6 +570,35 @@ static bool wcstol_positive_strict(wchar_t *string, int *result) {
   }
   *result = value;
   return true;
+}
+
+bool PDBSourceLineWriter::FindPEFile() {
+  CComPtr<IDiaSymbol> global;
+  if (FAILED(session_->get_globalScope(&global))) {
+    fprintf(stderr, "get_globalScope failed\n");
+    return false;
+  }
+
+  CComBSTR symbols_file;
+  if (SUCCEEDED(global->get_symbolsFileName(&symbols_file))) {
+    wstring file(symbols_file);
+    
+    
+    const wchar_t *extensions[] = { L"exe", L"dll" };
+    for (int i = 0; i < sizeof(extensions) / sizeof(extensions[0]); i++) {
+      size_t dot_pos = file.find_last_of(L".");
+      if (dot_pos != wstring::npos) {
+	file.replace(dot_pos + 1, wstring::npos, extensions[i]);
+	
+	if (GetFileAttributesW(file.c_str()) != INVALID_FILE_ATTRIBUTES) {
+	  code_file_ = file;
+	  return true;
+	}
+      }
+    }
+  }
+
+  return false;
 }
 
 
@@ -737,10 +803,13 @@ next_child:
 bool PDBSourceLineWriter::WriteMap(FILE *map_file) {
   output_ = map_file;
 
-  bool ret = PrintPDBInfo() &&
-             PrintSourceFiles() && 
-             PrintFunctions() &&
-             PrintFrameData();
+  bool ret = PrintPDBInfo();
+  
+  PrintPEInfo();
+  ret = ret &&
+    PrintSourceFiles() && 
+    PrintFunctions() &&
+    PrintFrameData();
 
   output_ = NULL;
   return ret;
@@ -764,11 +833,25 @@ bool PDBSourceLineWriter::GetModuleInfo(PDBModuleInfo *info) {
     return false;
   }
 
+  DWORD machine_type;
   
-  
-  DWORD platform;
-  if (SUCCEEDED(global->get_platform(&platform)) && platform < 0x10) {
-    info->cpu = L"x86";
+  if (global->get_machineType(&machine_type) == S_OK) {
+    
+    
+    
+    
+    
+    switch (machine_type) {
+      case IMAGE_FILE_MACHINE_I386:
+        info->cpu = L"x86";
+        break;
+      case IMAGE_FILE_MACHINE_AMD64:
+        info->cpu = L"x86_64";
+        break;
+      default:
+        info->cpu = L"unknown";
+        break;
+    }
   } else {
     
     info->cpu = L"unknown";
@@ -828,6 +911,54 @@ bool PDBSourceLineWriter::GetModuleInfo(PDBModuleInfo *info) {
   }
   info->debug_file =
       WindowsStringUtils::GetBaseName(wstring(debug_file_string));
+
+  return true;
+}
+
+bool PDBSourceLineWriter::GetPEInfo(PEModuleInfo *info) {
+  if (!info) {
+    return false;
+  }
+
+  if (code_file_.empty() && !FindPEFile()) {
+    fprintf(stderr, "Couldn't locate EXE or DLL file.\n");
+    return false;
+  }
+
+  
+  
+  string code_file;
+  if (!WindowsStringUtils::safe_wcstombs(code_file_, &code_file)) {
+    return false;
+  }
+
+  AutoImage img(ImageLoad((PSTR)code_file.c_str(), NULL));
+  if (!img) {
+    fprintf(stderr, "Failed to open PE file: %s\n", code_file.c_str());
+    return false;
+  }
+
+  info->code_file = WindowsStringUtils::GetBaseName(code_file_);
+
+  
+  DWORD TimeDateStamp = img->FileHeader->FileHeader.TimeDateStamp;
+  
+  DWORD SizeOfImage = 0;
+  PIMAGE_OPTIONAL_HEADER64 opt =
+    &((PIMAGE_NT_HEADERS64)img->FileHeader)->OptionalHeader;
+  if (opt->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+    
+    SizeOfImage = opt->SizeOfImage;
+  }
+  else {
+    
+    SizeOfImage = img->FileHeader->OptionalHeader.SizeOfImage;
+  }
+  wchar_t code_identifier[32];
+  swprintf(code_identifier,
+	   sizeof(code_identifier) / sizeof(code_identifier[0]),
+	   L"%08X%X", TimeDateStamp, SizeOfImage);
+  info->code_identifier = code_identifier;
 
   return true;
 }

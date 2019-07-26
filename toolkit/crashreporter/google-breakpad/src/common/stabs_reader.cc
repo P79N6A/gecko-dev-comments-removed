@@ -37,6 +37,10 @@
 #include <stab.h>
 #include <string.h>
 
+#include <string>
+
+#include "common/using_std_string.h"
+
 using std::vector;
 
 namespace google_breakpad {
@@ -107,8 +111,19 @@ bool StabsReader::Process() {
       string_offset_ = next_cu_string_offset_;
       next_cu_string_offset_ = iterator_->value;
       ++iterator_;
-    } else
+    }
+#if defined(HAVE_MACH_O_NLIST_H)
+    
+    
+    
+    else if ((iterator_->type & N_STAB) == 0 &&
+               (iterator_->type & N_TYPE) == N_SECT) {
+      ProcessExtern();
+    }
+#endif
+    else {
       ++iterator_;
+    }
   }
   return true;
 }
@@ -119,7 +134,7 @@ bool StabsReader::ProcessCompilationUnit() {
   
   
   
-  const char *build_directory = NULL;  
+  const char *build_directory = NULL;
   {
     const char *name = SymbolString();
     if (name[0] && name[strlen(name) - 1] == '/') {
@@ -127,7 +142,7 @@ bool StabsReader::ProcessCompilationUnit() {
       ++iterator_;
     }
   }
-      
+
   
   
   {
@@ -201,7 +216,7 @@ bool StabsReader::ProcessCompilationUnit() {
   queued_lines_.clear();
 
   return true;
-}          
+}
 
 bool StabsReader::ProcessFunction() {
   assert(!iterator_->at_end && iterator_->type == N_FUN);
@@ -214,7 +229,7 @@ bool StabsReader::ProcessFunction() {
   const char *name_end = strchr(stab_string, ':');
   if (! name_end)
     name_end = stab_string + strlen(stab_string);
-  std::string name(stab_string, name_end - stab_string);
+  string name(stab_string, name_end - stab_string);
   if (! handler_->StartFunction(name, function_address))
     return false;
   ++iterator_;
@@ -226,7 +241,7 @@ bool StabsReader::ProcessFunction() {
       return false;
   }
   queued_lines_.clear();
-  
+
   while (!iterator_->at_end) {
     if (iterator_->type == N_SO || iterator_->type == N_FUN)
       break;
@@ -255,8 +270,8 @@ bool StabsReader::ProcessFunction() {
   if (!iterator_->at_end) {
     assert(iterator_->type == N_SO || iterator_->type == N_FUN);
     if (iterator_->type == N_FUN) {
-      const char *name = SymbolString();
-      if (name[0] == '\0') {
+      const char *symbol_name = SymbolString();
+      if (symbol_name[0] == '\0') {
         
         
         ending_address = function_address + iterator_->value;
@@ -279,6 +294,21 @@ bool StabsReader::ProcessFunction() {
   if (! handler_->EndFunction(ending_address))
     return false;
 
+  return true;
+}
+
+bool StabsReader::ProcessExtern() {
+#if defined(HAVE_MACH_O_NLIST_H)
+  assert(!iterator_->at_end &&
+         (iterator_->type & N_STAB) == 0 &&
+         (iterator_->type & N_TYPE) == N_SECT);
+#endif
+
+  
+  if (!handler_->Extern(SymbolString(), iterator_->value))
+    return false;
+
+  ++iterator_;
   return true;
 }
 

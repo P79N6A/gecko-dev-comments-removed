@@ -88,6 +88,7 @@
 #include <string>
 #include <vector>
 
+#include "common/using_std_string.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "google_breakpad/processor/code_module.h"
 #include "google_breakpad/processor/code_modules.h"
@@ -98,7 +99,6 @@ namespace google_breakpad {
 
 
 using std::map;
-using std::string;
 using std::vector;
 
 
@@ -177,6 +177,10 @@ class MinidumpContext : public MinidumpStream {
   
   
   u_int32_t GetContextCPU() const;
+
+  
+  
+  bool GetInstructionPointer(u_int64_t* ip) const;
 
   
   
@@ -797,6 +801,76 @@ class MinidumpBreakpadInfo : public MinidumpStream {
 
 
 
+class MinidumpMemoryInfo : public MinidumpObject {
+ public:
+  const MDRawMemoryInfo* info() const { return valid_ ? &memory_info_ : NULL; }
+
+  
+  u_int64_t GetBase() const { return valid_ ? memory_info_.base_address : 0; }
+
+  
+  u_int32_t GetSize() const { return valid_ ? memory_info_.region_size : 0; }
+
+  
+  bool IsExecutable() const;
+
+  
+  bool IsWritable() const;
+
+  
+  void Print();
+
+ private:
+  
+  friend class MinidumpMemoryInfoList;
+
+  explicit MinidumpMemoryInfo(Minidump* minidump);
+
+  
+  
+  
+  bool Read();
+
+  MDRawMemoryInfo memory_info_;
+};
+
+
+
+
+
+class MinidumpMemoryInfoList : public MinidumpStream {
+ public:
+  virtual ~MinidumpMemoryInfoList();
+
+  unsigned int info_count() const { return valid_ ? info_count_ : 0; }
+
+  const MinidumpMemoryInfo* GetMemoryInfoForAddress(u_int64_t address) const;
+  const MinidumpMemoryInfo* GetMemoryInfoAtIndex(unsigned int index) const;
+
+  
+  void Print();
+
+ private:
+  friend class Minidump;
+
+  typedef vector<MinidumpMemoryInfo> MinidumpMemoryInfos;
+
+  static const u_int32_t kStreamType = MD_MEMORY_INFO_LIST_STREAM;
+
+  explicit MinidumpMemoryInfoList(Minidump* minidump);
+
+  bool Read(u_int32_t expected_size);
+
+  
+  RangeMap<u_int64_t, unsigned int> *range_map_;
+
+  MinidumpMemoryInfos* infos_;
+  u_int32_t info_count_;
+};
+
+
+
+
 class Minidump {
  public:
   
@@ -842,6 +916,7 @@ class Minidump {
   MinidumpSystemInfo* GetSystemInfo();
   MinidumpMiscInfo* GetMiscInfo();
   MinidumpBreakpadInfo* GetBreakpadInfo();
+  MinidumpMemoryInfoList* GetMemoryInfoList();
 
   
   

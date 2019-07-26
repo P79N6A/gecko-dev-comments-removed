@@ -51,12 +51,13 @@ class FileID {
   
   
   
+  
   bool ElfFileIdentifier(uint8_t identifier[kMDGUIDSize]);
 
   
   
   
-  static bool ElfFileIdentifierFromMappedFile(void* base,
+  static bool ElfFileIdentifierFromMappedFile(const void* base,
                                               uint8_t identifier[kMDGUIDSize]);
 
   

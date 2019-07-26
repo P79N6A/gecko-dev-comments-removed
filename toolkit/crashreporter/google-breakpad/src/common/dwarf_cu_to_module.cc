@@ -31,9 +31,16 @@
 
 
 
+
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif  
+
 #include "common/dwarf_cu_to_module.h"
 
 #include <assert.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include <algorithm>
 #include <set>
@@ -422,11 +429,22 @@ void DwarfCUToModule::FuncHandler::Finish() {
     
     
     Module::Function *func = new Module::Function;
-    func->name = name_;
+    
+    
+    if (!name_.empty()) {
+      func->name = name_;
+    } else {
+      cu_context_->reporter->UnnamedFunction(offset_);
+      func->name = "<name omitted>";
+    }
     func->address = low_pc_;
     func->size = high_pc_ - low_pc_;
     func->parameter_size = 0;
-    cu_context_->functions.push_back(func);
+    if (func->address) {
+       
+       
+       cu_context_->functions.push_back(func);
+     }
   } else if (inline_) {
     AbstractOrigin origin(name_);
     cu_context_->file_context->file_private->origins[offset_] = origin;
@@ -532,9 +550,15 @@ void DwarfCUToModule::WarningReporter::UncoveredLine(const Module::Line &line) {
   if (!uncovered_warnings_enabled_)
     return;
   UncoveredHeading();
-  fprintf(stderr, "    line%s: %s:%d at 0x%llx\n",
+  fprintf(stderr, "    line%s: %s:%d at 0x%" PRIx64 "\n",
           (line.size == 0 ? " (zero-length)" : ""),
           line.file->name.c_str(), line.number, line.address);
+}
+
+void DwarfCUToModule::WarningReporter::UnnamedFunction(uint64 offset) {
+  CUHeading();
+  fprintf(stderr, "%s: warning: function at offset 0x%llx has no name\n",
+          filename_.c_str(), offset);
 }
 
 DwarfCUToModule::DwarfCUToModule(FileContext *file_context,

@@ -34,7 +34,7 @@
 
 
 
- 
+
 
 #ifndef GOOGLE_BREAKPAD_COMMON_MINIDUMP_EXCEPTION_WIN32_H__
 #define GOOGLE_BREAKPAD_COMMON_MINIDUMP_EXCEPTION_WIN32_H__
@@ -105,5 +105,12 @@ typedef enum {
 
 } MDExceptionCodeWin;
 
+
+
+typedef enum {
+  MD_ACCESS_VIOLATION_WIN_READ  = 0,
+  MD_ACCESS_VIOLATION_WIN_WRITE = 1,
+  MD_ACCESS_VIOLATION_WIN_EXEC  = 8
+} MDAccessViolationTypeWin;
 
 #endif  

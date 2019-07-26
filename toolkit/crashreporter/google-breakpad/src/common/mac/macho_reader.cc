@@ -38,6 +38,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#if !defined(CPU_TYPE_ARM)
+#define CPU_TYPE_ARM 12
+#endif
+
 namespace google_breakpad {
 namespace mach_o {
 
@@ -230,6 +235,7 @@ bool Reader::Read(const uint8_t *buffer,
     uint32_t expected_magic;
     
     switch (expected_cpu_type) {
+      case CPU_TYPE_ARM:
       case CPU_TYPE_I386:
         expected_magic = MH_CIGAM;
         break;

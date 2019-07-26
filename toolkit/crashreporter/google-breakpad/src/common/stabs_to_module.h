@@ -35,8 +35,8 @@
 
 
 
-#ifndef COMMON_LINUX_DUMP_STABS_H__
-#define COMMON_LINUX_DUMP_STABS_H__
+#ifndef BREAKPAD_COMMON_STABS_TO_MODULE_H_
+#define BREAKPAD_COMMON_STABS_TO_MODULE_H_
 
 #include <stdint.h>
 
@@ -45,11 +45,13 @@
 
 #include "common/module.h"
 #include "common/stabs_reader.h"
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
-using std::string;
 using std::vector;
+
+
 
 
 
@@ -77,6 +79,7 @@ class StabsToModule: public google_breakpad::StabsHandler {
   bool StartFunction(const string &name, uint64_t address);
   bool EndFunction(uint64_t address);
   bool Line(uint64_t address, const char *name, int number);
+  bool Extern(const string &name, uint64_t address);
   void Warning(const char *format, ...);
 
   
@@ -135,6 +138,6 @@ class StabsToModule: public google_breakpad::StabsHandler {
   const char *current_source_file_name_;
 };
 
-} 
+}  
 
-#endif 
+#endif  

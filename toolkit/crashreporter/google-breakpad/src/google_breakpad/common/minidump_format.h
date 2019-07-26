@@ -95,14 +95,15 @@ typedef struct {
 
 
 #define MD_CONTEXT_IA64  0x00080000  /* CONTEXT_IA64 */
-#define MD_CONTEXT_AMD64 0x00100000  /* CONTEXT_AMD64 */
 
 #define MD_CONTEXT_SHX   0x000000c0  /* CONTEXT_SH4 (Super-H, includes SH3) */
-#define MD_CONTEXT_ARM   0x00000040  /* CONTEXT_ARM (0x40 bit set in SHx?) */
 #define MD_CONTEXT_MIPS  0x00010000  /* CONTEXT_R4000 (same value as x86?) */
 #define MD_CONTEXT_ALPHA 0x00020000  /* CONTEXT_ALPHA */
 
-#define MD_CONTEXT_CPU_MASK 0xffffffc0
+
+
+
+#define MD_CONTEXT_CPU_MASK 0xffffff00
 
 
 
@@ -291,7 +292,12 @@ typedef enum {
   MD_WITHOUT_OPTIONAL_DATA             = 0x00000400,
   MD_WITH_FULL_MEMORY_INFO             = 0x00000800,
   MD_WITH_THREAD_INFO                  = 0x00001000,
-  MD_WITH_CODE_SEGS                    = 0x00002000
+  MD_WITH_CODE_SEGS                    = 0x00002000,
+  MD_WITHOUT_AUXILLIARY_SEGS           = 0x00004000,
+  MD_WITH_FULL_AUXILLIARY_STATE        = 0x00008000,
+  MD_WITH_PRIVATE_WRITE_COPY_MEMORY    = 0x00010000,
+  MD_IGNORE_INACCESSIBLE_MEMORY        = 0x00020000,
+  MD_WITH_TOKEN_INFORMATION            = 0x00040000
 } MDType;  
 
 
@@ -318,11 +324,24 @@ typedef enum {
   MD_FUNCTION_TABLE_STREAM       = 13,
   MD_UNLOADED_MODULE_LIST_STREAM = 14,
   MD_MISC_INFO_STREAM            = 15,  
+  MD_MEMORY_INFO_LIST_STREAM     = 16,  
+  MD_THREAD_INFO_LIST_STREAM     = 17,
+  MD_HANDLE_OPERATION_LIST_STREAM = 18,
   MD_LAST_RESERVED_STREAM        = 0x0000ffff,
 
   
-  MD_BREAKPAD_INFO_STREAM          = 0x47670001,  
-  MD_ASSERTION_INFO_STREAM       = 0x47670002   
+  MD_BREAKPAD_INFO_STREAM        = 0x47670001,  
+  MD_ASSERTION_INFO_STREAM       = 0x47670002,  
+  
+
+  MD_LINUX_CPU_INFO              = 0x47670003,  
+  MD_LINUX_PROC_STATUS           = 0x47670004,  
+  MD_LINUX_LSB_RELEASE           = 0x47670005,  
+  MD_LINUX_CMD_LINE              = 0x47670006,  
+  MD_LINUX_ENVIRON               = 0x47670007,  
+  MD_LINUX_AUXV                  = 0x47670008,  
+  MD_LINUX_MAPS                  = 0x47670009,  
+  MD_LINUX_DSO_DEBUG             = 0x4767000A   
 } MDStreamType;  
 
 
@@ -600,8 +619,10 @@ typedef enum {
   
   MD_OS_UNIX          = 0x8000,  
   MD_OS_MAC_OS_X      = 0x8101,  
+  MD_OS_IOS           = 0x8102,  
   MD_OS_LINUX         = 0x8201,  
-  MD_OS_SOLARIS       = 0x8202   
+  MD_OS_SOLARIS       = 0x8202,  
+  MD_OS_ANDROID       = 0x8203   
 } MDOSPlatform;
 
 
@@ -645,6 +666,69 @@ typedef enum {
       
 } MDMiscInfoFlags1;
 
+
+
+
+
+
+
+
+
+
+
+typedef struct {
+  u_int32_t size_of_header;    
+  u_int32_t size_of_entry;     
+  u_int64_t number_of_entries;
+} MDRawMemoryInfoList;  
+
+typedef struct {
+  u_int64_t base_address;           
+  u_int64_t allocation_base;        
+
+  u_int32_t allocation_protection;  
+
+
+  u_int32_t __alignment1;
+  u_int64_t region_size;
+  u_int32_t state;                  
+  u_int32_t protection;             
+  u_int32_t type;                   
+  u_int32_t __alignment2;
+} MDRawMemoryInfo;  
+
+
+typedef enum {
+  MD_MEMORY_STATE_COMMIT   = 0x1000,  
+  MD_MEMORY_STATE_RESERVE  = 0x2000,  
+  MD_MEMORY_STATE_FREE     = 0x10000  
+} MDMemoryState;
+
+
+typedef enum {
+  MD_MEMORY_PROTECT_NOACCESS          = 0x01,  
+  MD_MEMORY_PROTECT_READONLY          = 0x02,  
+  MD_MEMORY_PROTECT_READWRITE         = 0x04,  
+  MD_MEMORY_PROTECT_WRITECOPY         = 0x08,  
+  MD_MEMORY_PROTECT_EXECUTE           = 0x10,  
+  MD_MEMORY_PROTECT_EXECUTE_READ      = 0x20,  
+  MD_MEMORY_PROTECT_EXECUTE_READWRITE = 0x40,  
+  MD_MEMORY_PROTECT_EXECUTE_WRITECOPY = 0x80,  
+  
+  MD_MEMORY_PROTECT_GUARD             = 0x100,  
+  MD_MEMORY_PROTECT_NOCACHE           = 0x200,  
+  MD_MEMORY_PROTECT_WRITECOMBINE      = 0x400,  
+} MDMemoryProtection;
+
+
+const u_int32_t MD_MEMORY_PROTECTION_ACCESS_MASK = 0xFF;
+
+
+typedef enum {
+  MD_MEMORY_TYPE_PRIVATE = 0x20000,   
+  MD_MEMORY_TYPE_MAPPED  = 0x40000,   
+  MD_MEMORY_TYPE_IMAGE   = 0x1000000  
+} MDMemoryType;
 
 
 
@@ -712,6 +796,23 @@ typedef enum {
 
   MD_ASSERTION_INFO_TYPE_PURE_VIRTUAL_CALL
 } MDAssertionInfoData;
+
+
+
+typedef struct {
+  void*     addr;
+  MDRVA     name;
+  void*     ld;
+} MDRawLinkMap;
+
+typedef struct {
+  u_int32_t version;
+  MDRVA     map;
+  u_int32_t dso_count;
+  void*     brk;
+  void*     ldbase;
+  void*     dynamic;
+} MDRawDebug;
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

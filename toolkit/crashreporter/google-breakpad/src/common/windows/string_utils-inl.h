@@ -88,6 +88,9 @@ class WindowsStringUtils {
   static bool safe_mbstowcs(const string &mbs, wstring *wcs);
 
   
+  static bool safe_wcstombs(const wstring &wcs, string *mbs);
+
+  
   static wstring GetBaseName(const wstring &filename);
 
  private:

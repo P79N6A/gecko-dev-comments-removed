@@ -47,6 +47,8 @@
 namespace google_breakpad {
 
 
+template<class, class> class RangeMapSerializer;
+
 template<typename AddressType, typename EntryType>
 class RangeMap {
  public:
@@ -93,6 +95,10 @@ class RangeMap {
   void Clear();
 
  private:
+  
+  friend class ModuleComparer;
+  friend class RangeMapSerializer<AddressType, EntryType>;
+
   class Range {
    public:
     Range(const AddressType &base, const EntryType &entry)

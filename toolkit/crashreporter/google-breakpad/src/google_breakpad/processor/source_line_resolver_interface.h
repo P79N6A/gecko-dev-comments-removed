@@ -35,16 +35,16 @@
 #define GOOGLE_BREAKPAD_PROCESSOR_SOURCE_LINE_RESOLVER_INTERFACE_H__
 
 #include <string>
+
+#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/processor/code_module.h"
 
 namespace google_breakpad {
 
-using std::string;
-
 struct StackFrame;
 struct WindowsFrameInfo;
-struct CFIFrameInfo;
+class CFIFrameInfo;
 
 class SourceLineResolverInterface {
  public:
@@ -66,6 +66,18 @@ class SourceLineResolverInterface {
 
   
   
+  
+  
+  virtual bool LoadModuleUsingMemoryBuffer(const CodeModule *module,
+                                           char *memory_buffer) = 0;
+
+  
+  
+  
+  virtual bool ShouldDeleteMemoryBufferAfterLoadModule() = 0;
+
+  
+  
   virtual void UnloadModule(const CodeModule *module) = 0;
 
   
@@ -81,7 +93,7 @@ class SourceLineResolverInterface {
   
   
   
-  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) = 0; 
+  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) = 0;
 
   
   

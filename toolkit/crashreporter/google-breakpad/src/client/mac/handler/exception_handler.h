@@ -37,17 +37,31 @@
 #define CLIENT_MAC_HANDLER_EXCEPTION_HANDLER_H__
 
 #include <mach/mach.h>
+#include <TargetConditionals.h>
 
 #include <string>
 
-#include "client/mac/crash_generation/crash_generation_client.h"
 #include "processor/scoped_ptr.h"
+
+#if !TARGET_OS_IPHONE
+#include "client/mac/crash_generation/crash_generation_client.h"
+#endif
 
 namespace google_breakpad {
 
 using std::string;
 
 struct ExceptionParameters;
+
+enum HandlerThreadMessage {
+  
+  kWriteDumpMessage = 0,
+  
+  
+  kWriteDumpWithExceptionMessage = 1,
+  
+  kShutdownMessage = 2
+};
 
 class ExceptionHandler {
  public:
@@ -142,7 +156,11 @@ class ExceptionHandler {
 
   
   bool IsOutOfProcess() const {
+#if TARGET_OS_IPHONE
+    return false;
+#else
     return crash_generation_client_.get() != NULL;
+#endif
   }
 
  private:
@@ -162,16 +180,25 @@ class ExceptionHandler {
 
   
   
-  bool SendMessageToHandlerThread(mach_msg_id_t message_id);
+  bool SendMessageToHandlerThread(HandlerThreadMessage message_id);
 
   
-  bool WriteMinidumpWithException(int exception_type, int exception_code,
-                                  int exception_subcode, mach_port_t thread_name,
-                                  bool exit_after_write);
+  
+  
+  bool WriteMinidumpWithException(int exception_type,
+                                  int exception_code,
+                                  int exception_subcode,
+                                  ucontext_t *task_context,
+                                  mach_port_t thread_name,
+                                  bool exit_after_write,
+                                  bool report_current_thread);
 
   
   
   static void *WaitForMessage(void *exception_handler_class);
+
+  
+  static void SignalHandler(int sig, siginfo_t* info, void* uc);
 
   
   explicit ExceptionHandler(const ExceptionHandler &);
@@ -239,7 +266,13 @@ class ExceptionHandler {
   bool use_minidump_write_mutex_;
 
   
+  
+  scoped_ptr<struct sigaction> old_handler_;
+
+#if !TARGET_OS_IPHONE
+  
   scoped_ptr<CrashGenerationClient> crash_generation_client_;
+#endif
 };
 
 }  

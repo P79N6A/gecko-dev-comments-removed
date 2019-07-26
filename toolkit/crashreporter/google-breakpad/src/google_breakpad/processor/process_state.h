@@ -36,17 +36,54 @@
 
 #include <string>
 #include <vector>
+
+#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/processor/system_info.h"
 #include "google_breakpad/processor/minidump.h"
 
 namespace google_breakpad {
 
-using std::string;
 using std::vector;
 
 class CallStack;
 class CodeModules;
+
+enum ExploitabilityRating {
+  EXPLOITABILITY_HIGH,                    
+                                          
+                                          
+
+  EXPLOITABLITY_MEDIUM,                   
+                                          
+                                          
+
+  EXPLOITABILITY_LOW,                     
+                                          
+                                          
+                                          
+                                          
+
+  EXPLOITABILITY_INTERESTING,             
+                                          
+                                          
+                                          
+
+  EXPLOITABILITY_NONE,                    
+                                          
+
+  EXPLOITABILITY_NOT_ANALYZED,            
+                                          
+                                          
+
+  EXPLOITABILITY_ERR_NOENGINE,            
+                                          
+                                          
+
+  EXPLOITABILITY_ERR_PROCESSING           
+                                          
+                                          
+};
 
 class ProcessState {
  public:
@@ -69,6 +106,7 @@ class ProcessState {
   }
   const SystemInfo* system_info() const { return &system_info_; }
   const CodeModules* modules() const { return modules_; }
+  ExploitabilityRating exploitability() const { return exploitability_; }
 
  private:
   
@@ -119,6 +157,11 @@ class ProcessState {
   
   
   const CodeModules *modules_;
+
+  
+  
+  
+  ExploitabilityRating exploitability_;
 };
 
 }  

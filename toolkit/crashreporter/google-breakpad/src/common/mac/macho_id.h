@@ -37,15 +37,15 @@
 #include <limits.h>
 #include <mach-o/loader.h>
 
+#include "common/mac/macho_walker.h"
 #include "common/md5.h"
 
 namespace MacFileUtilities {
 
-class MachoWalker;
-
 class MachoID {
  public:
   MachoID(const char *path);
+  MachoID(const char *path, void *memory, size_t size);
   ~MachoID();
 
   
@@ -81,6 +81,10 @@ class MachoID {
   void Update(MachoWalker *walker, off_t offset, size_t size);
 
   
+  bool WalkHeader(int cpu_type, MachoWalker::LoadCommandCallback callback,
+                  void *context);
+
+  
   static bool WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,
                        bool swap, void *context);
 
@@ -96,7 +100,10 @@ class MachoID {
   char path_[PATH_MAX];
 
   
-  int file_;
+  void *memory_;
+
+  
+  size_t memory_size_;
 
   
   uint32_t crc_;

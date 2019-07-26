@@ -46,6 +46,7 @@
 #include "common/dwarf/bytereader.h"
 #include "common/dwarf/dwarf2diehandler.h"
 #include "common/dwarf/dwarf2reader.h"
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
@@ -54,6 +55,7 @@ using dwarf2reader::DwarfAttribute;
 using dwarf2reader::DwarfForm;
 using dwarf2reader::DwarfLanguage;
 using dwarf2reader::DwarfTag;
+
 
 
 
@@ -157,6 +159,11 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
     
     
     virtual void UncoveredLine(const Module::Line &line);
+
+    
+    
+    
+    virtual void UnnamedFunction(uint64 offset);
 
    protected:
     string filename_;

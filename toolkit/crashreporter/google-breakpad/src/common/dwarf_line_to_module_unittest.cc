@@ -31,20 +31,24 @@
 
 
 
+#include <vector>
+
 #include "breakpad_googletest_includes.h"
 #include "common/dwarf_line_to_module.h"
+
+using std::vector;
 
 using google_breakpad::DwarfLineToModule;
 using google_breakpad::Module;
 using google_breakpad::Module;
 
-TEST(Simple, One) {
+TEST(SimpleModule, One) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("file1", 0x30bf0f27, 0, 0, 0);
-  h.AddLine(0x6fd126fbf74f2680LL, 0x63c9a14cf556712bLL, 0x30bf0f27, 
+  h.AddLine(0x6fd126fbf74f2680LL, 0x63c9a14cf556712bLL, 0x30bf0f27,
             0x4c090cbf, 0x1cf9fe0d);
 
   vector<Module::File *> files;
@@ -59,7 +63,7 @@ TEST(Simple, One) {
   EXPECT_EQ(0x4c090cbf, lines[0].number);
 }
 
-TEST(Simple, Many) {
+TEST(SimpleModule, Many) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -196,7 +200,7 @@ TEST(Filenames, StrangeDirectoryAndFile) {
 
 
 
-TEST(Errors, DirectoryZero) {
+TEST(ModuleErrors, DirectoryZero) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -212,7 +216,7 @@ TEST(Errors, DirectoryZero) {
 
 
 
-TEST(Errors, BadFileNumber) {
+TEST(ModuleErrors, BadFileNumber) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -226,7 +230,7 @@ TEST(Errors, BadFileNumber) {
 
 
 
-TEST(Errors, BadDirectoryNumber) {
+TEST(ModuleErrors, BadDirectoryNumber) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -241,7 +245,7 @@ TEST(Errors, BadDirectoryNumber) {
 }
 
 
-TEST(Errors, EmptyLine) {
+TEST(ModuleErrors, EmptyLine) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -254,7 +258,7 @@ TEST(Errors, EmptyLine) {
 
 
 
-TEST(Errors, BigLine) {
+TEST(ModuleErrors, BigLine) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);

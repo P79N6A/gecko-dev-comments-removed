@@ -49,6 +49,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_A_OUT_H
 #include <a.out.h>
 #endif
@@ -60,6 +64,7 @@
 #include <vector>
 
 #include "common/byte_cursor.h"
+#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
@@ -190,6 +195,10 @@ class StabsReader {
   bool ProcessFunction();
 
   
+  
+  bool ProcessExtern();
+
+  
   ByteBuffer entries_;
 
   
@@ -284,7 +293,7 @@ class StabsHandler {
   
   
   
-  virtual bool StartFunction(const std::string &name, uint64_t address) {
+  virtual bool StartFunction(const string &name, uint64_t address) {
     return true;
   }
 
@@ -298,6 +307,12 @@ class StabsHandler {
   
   
   virtual bool Line(uint64_t address, const char *filename, int number) {
+    return true;
+  }
+
+  
+  
+  virtual bool Extern(const string &name, uint64_t address) {
     return true;
   }
 

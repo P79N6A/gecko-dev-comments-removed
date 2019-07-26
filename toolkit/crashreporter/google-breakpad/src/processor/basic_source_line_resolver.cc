@@ -27,6 +27,12 @@
 
 
 
+
+
+
+
+
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -37,17 +43,10 @@
 #include <utility>
 #include <vector>
 
-#include "processor/address_map-inl.h"
-#include "processor/contained_range_map-inl.h"
-#include "processor/range_map-inl.h"
-
 #include "google_breakpad/processor/basic_source_line_resolver.h"
-#include "google_breakpad/processor/code_module.h"
-#include "google_breakpad/processor/stack_frame.h"
-#include "processor/cfi_frame_info.h"
-#include "processor/linked_ptr.h"
-#include "processor/scoped_ptr.h"
-#include "processor/windows_frame_info.h"
+#include "processor/basic_source_line_resolver_types.h"
+#include "processor/module_factory.h"
+
 #include "processor/tokenize.h"
 
 using std::map;
@@ -58,275 +57,14 @@ namespace google_breakpad {
 
 static const char *kWhitespace = " \r\n";
 
-struct BasicSourceLineResolver::Line {
-  Line(MemAddr addr, MemAddr code_size, int file_id, int source_line)
-      : address(addr)
-      , size(code_size)
-      , source_file_id(file_id)
-      , line(source_line) { }
+BasicSourceLineResolver::BasicSourceLineResolver() :
+    SourceLineResolverBase(new BasicModuleFactory) { }
 
-  MemAddr address;
-  MemAddr size;
-  int source_file_id;
-  int line;
-};
-
-struct BasicSourceLineResolver::Function {
-  Function(const string &function_name,
-           MemAddr function_address,
-           MemAddr code_size,
-           int set_parameter_size)
-      : name(function_name), address(function_address), size(code_size),
-        parameter_size(set_parameter_size) { }
-
-  string name;
-  MemAddr address;
-  MemAddr size;
-
-  
-  int parameter_size;
-
-  RangeMap< MemAddr, linked_ptr<Line> > lines;
-};
-
-struct BasicSourceLineResolver::PublicSymbol {
-  PublicSymbol(const string& set_name,
-               MemAddr set_address,
-               int set_parameter_size)
-      : name(set_name),
-        address(set_address),
-        parameter_size(set_parameter_size) {}
-
-  string name;
-  MemAddr address;
-
-  
-  
-  
-  int parameter_size;
-};
-
-class BasicSourceLineResolver::Module {
- public:
-  Module(const string &name) : name_(name) { }
-
-  
-  
-  bool LoadMap(const string &map_file);
-
-  
-  bool LoadMapFromBuffer(const string &map_buffer);
-
-  
-  
-  void LookupAddress(StackFrame *frame) const;
-
-  
-  
-  
-  
-  
-  WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) const;
-
-  
-  
-  
-  
-  CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame) const;
-
- private:
-  friend class BasicSourceLineResolver;
-  typedef map<int, string> FileMap;
-
-  
-  bool ParseFile(char *file_line);
-
-  
-  Function* ParseFunction(char *function_line);
-
-  
-  Line* ParseLine(char *line_line);
-
-  
-  
-  bool ParsePublicSymbol(char *public_line);
-
-  
-  
-  bool ParseStackInfo(char *stack_info_line);
-
-  
-  bool ParseCFIFrameInfo(char *stack_info_line);
-
-  
-  
-  bool ParseCFIRuleSet(const string &rule_set, CFIFrameInfo *frame_info) const;
-
-  string name_;
-  FileMap files_;
-  RangeMap< MemAddr, linked_ptr<Function> > functions_;
-  AddressMap< MemAddr, linked_ptr<PublicSymbol> > public_symbols_;
-
-  
-  
-  
-  
-  ContainedRangeMap< MemAddr, linked_ptr<WindowsFrameInfo> >
-    windows_frame_info_[WindowsFrameInfo::STACK_INFO_LAST];
-
-  
-  
-  
-  
-  
-
-  
-  
-  
-  RangeMap<MemAddr, string> cfi_initial_rules_;
-
-  
-  
-  
-  
-  
-  map<MemAddr, string> cfi_delta_rules_;
-};
-
-BasicSourceLineResolver::BasicSourceLineResolver() : modules_(new ModuleMap) {
-}
-
-BasicSourceLineResolver::~BasicSourceLineResolver() {
-  ModuleMap::iterator it;
-  for (it = modules_->begin(); it != modules_->end(); ++it) {
-    delete it->second;
-  }
-  delete modules_;
-}
-
-bool BasicSourceLineResolver::LoadModule(const CodeModule *module,
-                                         const string &map_file) {
-  if (module == NULL)
-    return false;
-
-  
-  if (modules_->find(module->code_file()) != modules_->end()) {
-    BPLOG(INFO) << "Symbols for module " << module->code_file()
-                << " already loaded";
-    return false;
-  }
-
-  BPLOG(INFO) << "Loading symbols for module " << module->code_file()
-              << " from " << map_file;
-
-  Module *basic_module = new Module(module->code_file());
-  if (!basic_module->LoadMap(map_file)) {
-    delete basic_module;
-    return false;
-  }
-
-  modules_->insert(make_pair(module->code_file(), basic_module));
-  return true;
-}
-
-bool BasicSourceLineResolver::LoadModuleUsingMapBuffer(
-    const CodeModule *module,
-    const string &map_buffer) {
-  if (!module)
-    return false;
-
-  
-  if (modules_->find(module->code_file()) != modules_->end()) {
-    BPLOG(INFO) << "Symbols for module " << module->code_file()
-                << " already loaded";
-    return false;
-  }
-
-  BPLOG(INFO) << "Loading symbols for module " << module->code_file()
-              << " from buffer";
-
-  Module *basic_module = new Module(module->code_file());
-  if (!basic_module->LoadMapFromBuffer(map_buffer)) {
-    delete basic_module;
-    return false;
-  }
-
-  modules_->insert(make_pair(module->code_file(), basic_module));
-  return true;
-}
-
-void BasicSourceLineResolver::UnloadModule(const CodeModule *module)
-{
-  if (!module)
-    return;
-
-  ModuleMap::iterator iter = modules_->find(module->code_file());
-  if (iter != modules_->end()) {
-    modules_->erase(iter);
-  }
-}
-
-bool BasicSourceLineResolver::HasModule(const CodeModule *module) {
-  if (!module)
-    return false;
-  return modules_->find(module->code_file()) != modules_->end();
-}
-
-void BasicSourceLineResolver::FillSourceLineInfo(StackFrame *frame) {
-  if (frame->module) {
-    ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
-    if (it != modules_->end()) {
-      it->second->LookupAddress(frame);
-    }
-  }
-}
-
-WindowsFrameInfo *BasicSourceLineResolver::FindWindowsFrameInfo(
-    const StackFrame *frame) {
-  if (frame->module) {
-    ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
-    if (it != modules_->end()) {
-      return it->second->FindWindowsFrameInfo(frame);
-    }
-  }
-  return NULL;
-}
-
-CFIFrameInfo *BasicSourceLineResolver::FindCFIFrameInfo(
-    const StackFrame *frame) {
-  if (frame->module) {
-    ModuleMap::const_iterator it = modules_->find(frame->module->code_file());
-    if (it != modules_->end()) {
-      return it->second->FindCFIFrameInfo(frame);
-    }
-  }
-  return NULL;
-}
-
-class AutoFileCloser {
- public:
-  AutoFileCloser(FILE *file) : file_(file) {}
-  ~AutoFileCloser() {
-    if (file_)
-      fclose(file_);
-  }
-
- private:
-  FILE *file_;
-};
-
-bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
-    const string &map_buffer) {
+bool BasicSourceLineResolver::Module::LoadMapFromMemory(char *memory_buffer) {
   linked_ptr<Function> cur_func;
   int line_number = 0;
-  const char *map_buffer_c_str = map_buffer.c_str();
   char *save_ptr;
-
-  
-  
-  
-  
-  size_t map_buffer_length = strlen(map_buffer_c_str);
+  size_t map_buffer_length = strlen(memory_buffer);
 
   
   
@@ -335,20 +73,12 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
     return true;
   }
 
-  scoped_array<char> map_buffer_chars(new char[map_buffer_length]);
-  if (map_buffer_chars == NULL) {
-    BPLOG(ERROR) << "Memory allocation of " << map_buffer_length <<
-        " bytes failed";
-    return false;
+  if (memory_buffer[map_buffer_length - 1] == '\n') {
+    memory_buffer[map_buffer_length - 1] = '\0';
   }
 
-  strncpy(map_buffer_chars.get(), map_buffer_c_str, map_buffer_length);
-
-  if (map_buffer_chars[map_buffer_length - 1] == '\n') {
-    map_buffer_chars[map_buffer_length - 1] = '\0';
-  }
   char *buffer;
-  buffer = strtok_r(map_buffer_chars.get(), "\r\n", &save_ptr);
+  buffer = strtok_r(memory_buffer, "\r\n", &save_ptr);
 
   while (buffer != NULL) {
     ++line_number;
@@ -392,6 +122,10 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       
       
       
+    } else if (strncmp(buffer, "INFO ", 5) == 0) {
+      
+      
+      
     } else {
       if (!cur_func.get()) {
         BPLOG(ERROR) << "Found source line data without a function at " <<
@@ -407,66 +141,9 @@ bool BasicSourceLineResolver::Module::LoadMapFromBuffer(
       cur_func->lines.StoreRange(line->address, line->size,
                                  linked_ptr<Line>(line));
     }
-
     buffer = strtok_r(NULL, "\r\n", &save_ptr);
   }
-
   return true;
-}
-
-bool BasicSourceLineResolver::Module::LoadMap(const string &map_file) {
-  struct stat buf;
-  int error_code = stat(map_file.c_str(), &buf);
-  if (error_code == -1) {
-    string error_string;
-    int error_code = ErrnoString(&error_string);
-    BPLOG(ERROR) << "Could not open " << map_file <<
-        ", error " << error_code << ": " << error_string;
-    return false;
-  }
-
-  off_t file_size = buf.st_size;
-
-  
-  
-  char *file_buffer = new char[sizeof(char)*file_size + 1];
-
-  if (file_buffer == NULL) {
-    BPLOG(ERROR) << "Could not allocate memory for " << map_file;
-    return false;
-  }
-
-  BPLOG(INFO) << "Opening " << map_file;
-
-  FILE *f = fopen(map_file.c_str(), "rt");
-  if (!f) {
-    string error_string;
-    int error_code = ErrnoString(&error_string);
-    BPLOG(ERROR) << "Could not open " << map_file <<
-        ", error " << error_code << ": " << error_string;
-    delete [] file_buffer;
-    return false;
-  }
-
-  AutoFileCloser closer(f);
-
-  int items_read = 0;
-
-  items_read = fread(file_buffer, 1, file_size, f);
-
-  if (items_read != file_size) {
-    string error_string;
-    int error_code = ErrnoString(&error_string);
-    BPLOG(ERROR) << "Could not slurp " << map_file <<
-        ", error " << error_code << ": " << error_string;
-    delete [] file_buffer;
-    return false;
-  }
-  file_buffer[file_size] = '\0';
-  string map_buffer(file_buffer);
-  delete [] file_buffer;
-
-  return LoadMapFromBuffer(map_buffer);
 }
 
 void BasicSourceLineResolver::Module::LookupAddress(StackFrame *frame) const {
@@ -537,7 +214,7 @@ WindowsFrameInfo *BasicSourceLineResolver::Module::FindWindowsFrameInfo(
   linked_ptr<Function> function;
   MemAddr function_base, function_size;
   if (functions_.RetrieveNearestRange(address, &function,
-                                      &function_base, &function_size) && 
+                                      &function_base, &function_size) &&
       address >= function_base && address - function_base < function_size) {
     result->parameter_size = function->parameter_size;
     result->valid |= WindowsFrameInfo::VALID_PARAMETER_SIZE;
@@ -552,7 +229,7 @@ WindowsFrameInfo *BasicSourceLineResolver::Module::FindWindowsFrameInfo(
       (!function.get() || public_address > function_base)) {
     result->parameter_size = public_symbol->parameter_size;
   }
-  
+
   return NULL;
 }
 
@@ -588,13 +265,6 @@ CFIFrameInfo *BasicSourceLineResolver::Module::FindCFIFrameInfo(
   }
 
   return rules.release();
-}
-
-bool BasicSourceLineResolver::Module::ParseCFIRuleSet(
-    const string &rule_set, CFIFrameInfo *frame_info) const {
-  CFIFrameInfoParseHandler handler(frame_info);
-  CFIRuleParser parser(&handler);
-  return parser.Parse(rule_set);
 }
 
 bool BasicSourceLineResolver::Module::ParseFile(char *file_line) {
@@ -756,7 +426,7 @@ bool BasicSourceLineResolver::Module::ParseCFIFrameInfo(
     
     char *address_field = strtok_r(NULL, " \r\n", &cursor);
     if (!address_field) return false;
-    
+
     char *size_field = strtok_r(NULL, " \r\n", &cursor);
     if (!size_field) return false;
 
@@ -776,11 +446,6 @@ bool BasicSourceLineResolver::Module::ParseCFIFrameInfo(
   MemAddr address = strtoul(address_field, NULL, 16);
   cfi_delta_rules_[address] = delta_rules;
   return true;
-}
-
-bool BasicSourceLineResolver::CompareString::operator()(
-    const string &s1, const string &s2) const {
-  return strcmp(s1.c_str(), s2.c_str()) < 0;
 }
 
 }  

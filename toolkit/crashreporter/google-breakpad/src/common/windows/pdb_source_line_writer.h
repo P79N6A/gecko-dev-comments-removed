@@ -67,6 +67,21 @@ struct PDBModuleInfo {
   wstring cpu;
 };
 
+
+
+struct PEModuleInfo {
+  
+  wstring code_file;
+
+  
+  
+  
+  
+  
+  
+  wstring code_identifier;
+};
+
 class PDBSourceLineWriter {
  public:
   enum FileFormat {
@@ -99,6 +114,10 @@ class PDBSourceLineWriter {
   
   
   bool GetModuleInfo(PDBModuleInfo *info);
+
+  
+  
+  bool GetPEInfo(PEModuleInfo *info);
 
   
   
@@ -141,6 +160,11 @@ class PDBSourceLineWriter {
 
   
   
+  
+  bool PrintPEInfo();
+
+  
+  
   bool FileIDIsCached(const wstring &file) {
     return unique_files_.find(file) != unique_files_.end();
   };
@@ -172,6 +196,10 @@ class PDBSourceLineWriter {
 
   
   
+  bool FindPEFile();
+
+  
+  
   
   
   
@@ -182,6 +210,10 @@ class PDBSourceLineWriter {
   
   
   static int GetFunctionStackParamSize(IDiaSymbol *function);
+
+  
+  
+  wstring code_file_;
 
   
   CComPtr<IDiaSession> session_;

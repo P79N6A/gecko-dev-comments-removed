@@ -42,6 +42,9 @@
 
 namespace google_breakpad {
 
+
+template<class, class> class AddressMapSerializer;
+
 template<typename AddressType, typename EntryType>
 class AddressMap {
  public:
@@ -65,6 +68,9 @@ class AddressMap {
   void Clear();
 
  private:
+  friend class AddressMapSerializer<AddressType, EntryType>;
+  friend class ModuleComparer;
+
   
   typedef std::map<AddressType, EntryType> AddressToEntryMap;
   typedef typename AddressToEntryMap::const_iterator MapConstIterator;
@@ -77,4 +83,3 @@ class AddressMap {
 }  
 
 #endif  
-
