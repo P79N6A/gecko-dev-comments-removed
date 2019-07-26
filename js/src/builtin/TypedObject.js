@@ -1302,11 +1302,16 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   var inGrainTypeIsComplex = !TypeDescrIsSimpleType(inGrainType);
   var outGrainTypeIsComplex = !TypeDescrIsSimpleType(outGrainType);
 
-  var inPointer = new TypedObjectPointer(inGrainType, inArray, 0);
-  var outPointer = new TypedObjectPointer(outGrainType, result, 0);
+  
+  
 
-  var inUnitSize = DESCR_SIZE(inGrainType);
-  var outUnitSize = DESCR_SIZE(outGrainType);
+  var isDepth1Simple = depth == 1 && !(inGrainTypeIsComplex || outGrainTypeIsComplex);
+
+  var inPointer = isDepth1Simple ? null : new TypedObjectPointer(inGrainType, inArray, 0);
+  var outPointer = isDepth1Simple ? null : new TypedObjectPointer(outGrainType, result, 0);
+
+  var inUnitSize = isDepth1Simple ? 0 : DESCR_SIZE(inGrainType);
+  var outUnitSize = isDepth1Simple ? 0 : DESCR_SIZE(outGrainType);
 
   
 
@@ -1326,6 +1331,16 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
       
       inPointer.bump(inUnitSize);
       outPointer.bump(outUnitSize);
+    }
+
+    return result;
+  }
+
+  function DoMapTypedSeqDepth1Simple(inArray, totalLength, func, result) {
+    for (var i = 0; i < totalLength; i++) {
+      var r = func(inArray[i], i, inArray, undefined);
+      if (r !== undefined)
+        result[i] = r;
     }
 
     return result;
@@ -1356,12 +1371,13 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
     return result;
   }
 
-  if  (depth == 1) {
-    return DoMapTypedSeqDepth1();
-  } else {
-    return DoMapTypedSeqDepthN();
-  }
+  if (isDepth1Simple)
+    return DoMapTypedSeqDepth1Simple(inArray, totalLength, func, result);
 
+  if (depth == 1)
+    return DoMapTypedSeqDepth1();
+
+  return DoMapTypedSeqDepthN();
 }
 
 
