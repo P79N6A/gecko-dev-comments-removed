@@ -143,12 +143,13 @@ CSPPolicyURIListener.prototype = {
     if (Components.isSuccessCode(status)) {
       
       
-      this._csp.refinePolicy(this._policy, this._docURI, this._docRequest);
+      this._csp.refinePolicy(this._policy, this._docURI,
+                             this._csp._specCompliant);
     }
     else {
       
-      this._csp.refinePolicy("allow 'none'", this._docURI, this._docRequest);
-      this._csp.refinePolicy("default-src 'none'", this._docURI, this._docRequest);
+      this._csp.refinePolicy("default-src 'none'", this._docURI,
+                             this._csp._specCompliant);
     }
     
     this._docRequest.resume();
@@ -160,7 +161,12 @@ CSPPolicyURIListener.prototype = {
 
 
 
-this.CSPRep = function CSPRep() {
+
+
+
+
+
+this.CSPRep = function CSPRep(aSpecCompliant) {
   
   
   this._isInitialized = false;
@@ -170,9 +176,15 @@ this.CSPRep = function CSPRep() {
 
   
   this._directives = {};
+
+  
+  
+  this._specCompliant = (aSpecCompliant !== undefined) ? aSpecCompliant : false;
 }
 
-CSPRep.SRC_DIRECTIVES = {
+
+
+CSPRep.SRC_DIRECTIVES_OLD = {
   DEFAULT_SRC:      "default-src",
   SCRIPT_SRC:       "script-src",
   STYLE_SRC:        "style-src",
@@ -185,10 +197,27 @@ CSPRep.SRC_DIRECTIVES = {
   XHR_SRC:          "xhr-src"
 };
 
+
+CSPRep.SRC_DIRECTIVES_NEW = {
+  DEFAULT_SRC:      "default-src",
+  SCRIPT_SRC:       "script-src",
+  STYLE_SRC:        "style-src",
+  MEDIA_SRC:        "media-src",
+  IMG_SRC:          "img-src",
+  OBJECT_SRC:       "object-src",
+  FRAME_SRC:        "frame-src",
+  FRAME_ANCESTORS:  "frame-ancestors",
+  FONT_SRC:         "font-src",
+  CONNECT_SRC:      "connect-src"
+};
+
 CSPRep.URI_DIRECTIVES = {
   REPORT_URI:       "report-uri", 
   POLICY_URI:       "policy-uri"  
 };
+
+
+
 
 CSPRep.OPTIONS_DIRECTIVE = "options";
 CSPRep.ALLOW_DIRECTIVE   = "allow";
@@ -209,7 +238,7 @@ CSPRep.ALLOW_DIRECTIVE   = "allow";
 
 
 CSPRep.fromString = function(aStr, self, docRequest, csp) {
-  var SD = CSPRep.SRC_DIRECTIVES;
+  var SD = CSPRep.SRC_DIRECTIVES_OLD;
   var UD = CSPRep.URI_DIRECTIVES;
   var aCSPR = new CSPRep();
   aCSPR._originalText = aStr;
@@ -431,6 +460,7 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
 
   
   
+  
   if (aCSPR.makeExplicit())
     return aCSPR;
   return CSPRep.fromString("default-src 'none'", self);
@@ -452,8 +482,187 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
 
 
 
+
+
 CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
+  var SD = CSPRep.SRC_DIRECTIVES_NEW;
+  var UD = CSPRep.URI_DIRECTIVES;
+  var aCSPR = new CSPRep(true);
+  aCSPR._originalText = aStr;
+  aCSPR._innerWindowID = innerWindowFromRequest(docRequest);
+
+  var selfUri = null;
+  if (self instanceof Ci.nsIURI)
+    selfUri = self.clone();
+
+  var dirs = aStr.split(";");
+
+  directive:
+  for each(var dir in dirs) {
+    dir = dir.trim();
+    if (dir.length < 1) continue;
+
+    var dirname = dir.split(/\s+/)[0];
+    var dirvalue = dir.substring(dirname.length).trim();
+
+    if (aCSPR._directives.hasOwnProperty(dirname)) {
+      
+      cspError(aCSPR, CSPLocalizer.getFormatStr("duplicateDirective",
+                                                [dirname]));
+      CSPdebug("Skipping duplicate directive: \"" + dir + "\"");
+      continue directive;
+    }
+
+    
+    for each(var sdi in SD) {
+      if (dirname === sdi) {
+        
+        var dv = CSPSourceList.fromString(dirvalue, aCSPR, self, true);
+        if (dv) {
+          aCSPR._directives[sdi] = dv;
+          continue directive;
+        }
+      }
+    }
+
+    
+    if (dirname === UD.REPORT_URI) {
+      
+      var uriStrings = dirvalue.split(/\s+/);
+      var okUriStrings = [];
+
+      for (let i in uriStrings) {
+        var uri = null;
+        try {
+          
+          
+          
+          uri = gIoService.newURI(uriStrings[i],null,selfUri);
+
+          
+          
+          
+          uri.host;
+
+          
+          
+          
+          if (self) {
+            if (gETLDService.getBaseDomain(uri) !==
+                gETLDService.getBaseDomain(selfUri)) {
+              cspWarn(aCSPR, 
+                      CSPLocalizer.getFormatStr("notETLDPlus1",
+                                            [gETLDService.getBaseDomain(uri)]));
+              continue;
+            }
+            if (!uri.schemeIs(selfUri.scheme)) {
+              cspWarn(aCSPR, 
+                      CSPLocalizer.getFormatStr("notSameScheme",
+                                                [uri.asciiSpec]));
+              continue;
+            }
+            if (uri.port && uri.port !== selfUri.port) {
+              cspWarn(aCSPR, 
+                      CSPLocalizer.getFormatStr("notSamePort",
+                                                [uri.asciiSpec]));
+              continue;
+            }
+          }
+        } catch(e) {
+          switch (e.result) {
+            case Components.results.NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS:
+            case Components.results.NS_ERROR_HOST_IS_IP_ADDRESS:
+              if (uri.host !== selfUri.host) {
+                cspWarn(aCSPR, CSPLocalizer.getFormatStr("pageCannotSendReportsTo",
+                                                         [selfUri.host, uri.host]));
+                continue;
+              }
+              break;
+
+            default:
+              cspWarn(aCSPR, CSPLocalizer.getFormatStr("couldNotParseReportURI", 
+                                                       [uriStrings[i]]));
+              continue;
+          }
+        }
+        
+       okUriStrings.push(uri.asciiSpec);
+      }
+      aCSPR._directives[UD.REPORT_URI] = okUriStrings.join(' ');
+      continue directive;
+    }
+
+    
+    if (dirname === UD.POLICY_URI) {
+      
+      if (aCSPR._directives.length > 0 || dirs.length > 1) {
+        cspError(aCSPR, CSPLocalizer.getStr("policyURINotAlone"));
+        return CSPRep.fromStringSpecCompliant("default-src 'none'");
+      }
+      
+      
+      if (!docRequest || !csp) {
+        cspError(aCSPR, CSPLocalizer.getStr("noParentRequest"));
+        return CSPRep.fromStringSpecCompliant("default-src 'none'");
+      }
+
+      var uri = '';
+      try {
+        uri = gIoService.newURI(dirvalue, null, selfUri);
+      } catch(e) {
+        cspError(aCSPR, CSPLocalizer.getFormatStr("policyURIParseError", [dirvalue]));
+        return CSPRep.fromStringSpecCompliant("default-src 'none'");
+      }
+
+      
+      if (selfUri) {
+        if (selfUri.host !== uri.host){
+          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingHost", [uri.host]));
+          return CSPRep.fromStringSpecCompliant("default-src 'none'");
+        }
+        if (selfUri.port !== uri.port){
+          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingPort", [uri.port.toString()]));
+          return CSPRep.fromStringSpecCompliant("default-src 'none'");
+        }
+        if (selfUri.scheme !== uri.scheme){
+          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingScheme", [uri.scheme]));
+          return CSPRep.fromStringSpecCompliant("default-src 'none'");
+        }
+      }
+
+      
+      try {
+        docRequest.suspend();
+        var chan = gIoService.newChannel(uri.asciiSpec, null, null);
+        
+        
+        chan.loadFlags |= Components.interfaces.nsIChannel.LOAD_ANONYMOUS;
+        chan.loadGroup = docRequest.loadGroup;
+        chan.asyncOpen(new CSPPolicyURIListener(uri, docRequest, csp), null);
+      }
+      catch (e) {
+        
+        docRequest.resume();
+        cspError(aCSPR, CSPLocalizer.getFormatStr("errorFetchingPolicy", [e.toString()]));
+        return CSPRep.fromStringSpecCompliant("default-src 'none'");
+      }
+
+      
+      
+      return CSPRep.fromStringSpecCompliant("default-src *");
+    }
+
+    
+    cspWarn(aCSPR, CSPLocalizer.getFormatStr("couldNotProcessUnknownDirective", [dirname]));
+
+  } 
+
   
+  
+  
+  if (aCSPR.makeExplicit())
+    return aCSPR;
+  return CSPRep.fromStringSpecCompliant("default-src 'none'", self);
 };
 
 CSPRep.prototype = {
@@ -521,11 +730,14 @@ CSPRep.prototype = {
       return true;
 
     
-    for (var i in CSPRep.SRC_DIRECTIVES) {
-      if (CSPRep.SRC_DIRECTIVES[i] === aContext) {
+    let DIRS = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
+
+    for (var i in DIRS) {
+      if (DIRS[i] === aContext) {
         return this._directives[aContext].permits(aURI);
       }
     }
+
     return false;
   },
 
@@ -541,8 +753,11 @@ CSPRep.prototype = {
   function cspsd_intersectWith(aCSPRep) {
     var newRep = new CSPRep();
 
-    for (var dir in CSPRep.SRC_DIRECTIVES) {
-      var dirv = CSPRep.SRC_DIRECTIVES[dir];
+    let DIRS = aCSPRep._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW :
+                                        CSPRep.SRC_DIRECTIVES_OLD;
+
+    for (var dir in DIRS) {
+      var dirv = DIRS[dir];
       if (this._directives.hasOwnProperty(dirv))
         newRep._directives[dirv] = this._directives[dirv].intersectWith(aCSPRep._directives[dirv]);
       else
@@ -569,7 +784,7 @@ CSPRep.prototype = {
 
     newRep._allowInlineScripts = this.allowsInlineScripts
                            && aCSPRep.allowsInlineScripts;
- 
+
     newRep._innerWindowID = this._innerWindowID ?
                               this._innerWindowID : aCSPRep._innerWindowID;
 
@@ -584,9 +799,15 @@ CSPRep.prototype = {
 
   makeExplicit:
   function cspsd_makeExplicit() {
-    var SD = CSPRep.SRC_DIRECTIVES;
+    let SD = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
+
     var defaultSrcDir = this._directives[SD.DEFAULT_SRC];
-    if (!defaultSrcDir) {
+
+    
+    
+    
+    
+    if (!defaultSrcDir && !this._specCompliant) {
       this.warn(CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
       return false;
     }
@@ -604,6 +825,7 @@ CSPRep.prototype = {
         this._directives[dirv]._isImplicit = true;
       }
     }
+
     this._isInitialized = true;
     return true;
   },

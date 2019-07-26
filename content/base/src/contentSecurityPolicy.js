@@ -20,6 +20,11 @@ const Cu = Components.utils;
 
 const CSP_VIOLATION_TOPIC = "csp-on-violate-policy";
 
+
+
+const CSP_TYPE_XMLHTTPREQUEST_SPEC_COMPLIANT = "csp_type_xmlhttprequest_spec_compliant";
+const CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT = "csp_type_websocket_spec_compliant";
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/CSPUtils.jsm");
@@ -30,6 +35,7 @@ function ContentSecurityPolicy() {
   CSPdebug("CSP CREATED");
   this._isInitialized = false;
   this._reportOnlyMode = false;
+
   this._policy = CSPRep.fromString("default-src *");
 
   
@@ -52,12 +58,14 @@ function ContentSecurityPolicy() {
 {
   let cp = Ci.nsIContentPolicy;
   let csp = ContentSecurityPolicy;
-  let cspr_sd = CSPRep.SRC_DIRECTIVES;
+  let cspr_sd_old = CSPRep.SRC_DIRECTIVES_OLD;
+  let cspr_sd_new = CSPRep.SRC_DIRECTIVES_NEW;
 
   csp._MAPPINGS=[];
 
   
-  csp._MAPPINGS[cp.TYPE_OTHER]             =  cspr_sd.DEFAULT_SRC;
+  
+  csp._MAPPINGS[cp.TYPE_OTHER]             =  cspr_sd_new.DEFAULT_SRC;
 
   
   csp._MAPPINGS[cp.TYPE_DOCUMENT]          =  null;
@@ -66,24 +74,42 @@ function ContentSecurityPolicy() {
   csp._MAPPINGS[cp.TYPE_REFRESH]           =  null;
 
   
-  csp._MAPPINGS[cp.TYPE_SCRIPT]            = cspr_sd.SCRIPT_SRC;
-  csp._MAPPINGS[cp.TYPE_IMAGE]             = cspr_sd.IMG_SRC;
-  csp._MAPPINGS[cp.TYPE_STYLESHEET]        = cspr_sd.STYLE_SRC;
-  csp._MAPPINGS[cp.TYPE_OBJECT]            = cspr_sd.OBJECT_SRC;
-  csp._MAPPINGS[cp.TYPE_OBJECT_SUBREQUEST] = cspr_sd.OBJECT_SRC;
-  csp._MAPPINGS[cp.TYPE_SUBDOCUMENT]       = cspr_sd.FRAME_SRC;
-  csp._MAPPINGS[cp.TYPE_MEDIA]             = cspr_sd.MEDIA_SRC;
-  csp._MAPPINGS[cp.TYPE_FONT]              = cspr_sd.FONT_SRC;
-  csp._MAPPINGS[cp.TYPE_XMLHTTPREQUEST]    = cspr_sd.XHR_SRC;
-  csp._MAPPINGS[cp.TYPE_WEBSOCKET]         = cspr_sd.XHR_SRC;
+  
+  csp._MAPPINGS[cp.TYPE_SCRIPT]            = cspr_sd_new.SCRIPT_SRC;
+  csp._MAPPINGS[cp.TYPE_IMAGE]             = cspr_sd_new.IMG_SRC;
+  csp._MAPPINGS[cp.TYPE_STYLESHEET]        = cspr_sd_new.STYLE_SRC;
+  csp._MAPPINGS[cp.TYPE_OBJECT]            = cspr_sd_new.OBJECT_SRC;
+  csp._MAPPINGS[cp.TYPE_OBJECT_SUBREQUEST] = cspr_sd_new.OBJECT_SRC;
+  csp._MAPPINGS[cp.TYPE_SUBDOCUMENT]       = cspr_sd_new.FRAME_SRC;
+  csp._MAPPINGS[cp.TYPE_MEDIA]             = cspr_sd_new.MEDIA_SRC;
+  csp._MAPPINGS[cp.TYPE_FONT]              = cspr_sd_new.FONT_SRC;
+
+  
+
+
+
+  csp._MAPPINGS[cp.TYPE_XMLHTTPREQUEST]    = cspr_sd_old.XHR_SRC;
+  csp._MAPPINGS[cp.TYPE_WEBSOCKET]         = cspr_sd_old.XHR_SRC;
 
   
   csp._MAPPINGS[cp.TYPE_CSP_REPORT]        = null;
 
   
-  csp._MAPPINGS[cp.TYPE_XBL]               = cspr_sd.DEFAULT_SRC;
-  csp._MAPPINGS[cp.TYPE_PING]              = cspr_sd.DEFAULT_SRC;
-  csp._MAPPINGS[cp.TYPE_DTD]               = cspr_sd.DEFAULT_SRC;
+  csp._MAPPINGS[cp.TYPE_XBL]               = cspr_sd_new.DEFAULT_SRC;
+  csp._MAPPINGS[cp.TYPE_PING]              = cspr_sd_new.DEFAULT_SRC;
+  csp._MAPPINGS[cp.TYPE_DTD]               = cspr_sd_new.DEFAULT_SRC;
+
+  
+  
+  
+  
+  
+  csp._MAPPINGS[CSP_TYPE_XMLHTTPREQUEST_SPEC_COMPLIANT]    = cspr_sd_new.CONNECT_SRC;
+  csp._MAPPINGS[CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT]         = cspr_sd_new.CONNECT_SRC;
+  
+  
+  
+  
 }
 
 ContentSecurityPolicy.prototype = {
@@ -238,6 +264,9 @@ ContentSecurityPolicy.prototype = {
 
     
     this._policy = intersect;
+
+    this._policy._specCompliant = !!aSpecCompliant;
+
     this._isInitialized = true;
     this._cache = {};
   },
@@ -410,7 +439,9 @@ ContentSecurityPolicy.prototype = {
     }
 
     
-    let cspContext = CSPRep.SRC_DIRECTIVES.FRAME_ANCESTORS;
+    
+    
+    let cspContext = CSPRep.SRC_DIRECTIVES_NEW.FRAME_ANCESTORS;
     for (let i in ancestors) {
       let ancestor = ancestors[i].prePath;
       if (!this._policy.permits(ancestor, cspContext)) {
@@ -453,6 +484,27 @@ ContentSecurityPolicy.prototype = {
 #endif
     
     var cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
+
+    
+    
+    var cspContext;
+
+    let cp = Ci.nsIContentPolicy;
+
+#ifndef MOZ_B2G
+    CSPdebug("policy is " + (this._policy._specCompliant ?
+                             "1.0 compliant" : "pre-1.0"));
+#endif
+
+    if (aContentType == cp.TYPE_XMLHTTPREQUEST && this._policy._specCompliant) {
+      cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_XMLHTTPREQUEST_SPEC_COMPLIANT];
+    } else if (aContentType == cp.TYPE_WEBSOCKET && this._policy._specCompliant) {
+      cspContext = ContentSecurityPolicy._MAPPINGS[CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT];
+    } else {
+      cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
+    }
+
+    CSPdebug("shouldLoad cspContext = " + cspContext);
 
     
     if (!cspContext) {
