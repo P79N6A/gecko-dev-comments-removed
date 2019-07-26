@@ -8866,6 +8866,24 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
     }
   }
 
+  if (result) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!ExpectEndProperty()) {
+      result = false;
+    }
+  }
+
   bool seenVariable = mScanner->SeenVariableReference() ||
     (stateBeforeProperty.mHavePushBack &&
      stateBeforeProperty.mToken.mType == eCSSToken_Function &&
