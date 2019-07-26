@@ -885,7 +885,7 @@ function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize)
     let process = processes[i];
     let section = appendElement(gMain, 'div', 'section');
 
-    appendProcessAboutMemoryElements(section, process,
+    appendProcessAboutMemoryElements(section, i, process,
                                      pcollsByProcess[process]._trees,
                                      pcollsByProcess[process]._degenerates,
                                      pcollsByProcess[process]._heapTotal,
@@ -1318,10 +1318,36 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
 
 
-function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
-                                          aHeapTotal, aHasMozMallocUsableSize)
+
+
+function appendProcessAboutMemoryElements(aP, aN, aProcess, aTrees,
+                                          aDegenerates, aHeapTotal,
+                                          aHasMozMallocUsableSize)
 {
-  appendElementWithText(aP, "h1", "", aProcess + "\n\n");
+  const kUpwardsArrow   = "\u2191",
+        kDownwardsArrow = "\u2193";
+
+  let appendLink = function(aHere, aThere, aArrow) {
+    let link = appendElementWithText(aP, "a", "upDownArrow", aArrow);
+    link.href = "#" + aThere + aN;
+    link.id = aHere + aN;
+    link.title = "Go to the " + aThere + " of " + aProcess;
+    link.style = "text-decoration: none";
+
+    
+    
+    link.addEventListener("click", function(event) {
+      document.documentElement.scrollTop =
+        document.querySelector(event.target.href).offsetTop;
+      event.preventDefault();
+    }, false);
+
+    
+    appendElementWithText(aP, "span", "", "\n");
+  }
+
+  appendElementWithText(aP, "h1", "", aProcess);
+  appendLink("start", "end", kDownwardsArrow);
 
   
   let warningsDiv = appendElement(aP, "div", "accuracyWarning");
@@ -1395,6 +1421,9 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
   
   appendWarningElements(warningsDiv, hasKnownHeapAllocated,
                         aHasMozMallocUsableSize);
+
+  appendElementWithText(aP, "h3", "", "End of " + aProcess);
+  appendLink("end", "start", kUpwardsArrow);
 }
 
 
