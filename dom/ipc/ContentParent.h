@@ -158,7 +158,14 @@ private:
     static void PreallocateAppProcess();
     static void DelayedPreallocateAppProcess();
     static void ScheduleDelayedPreallocateAppProcess();
-    static already_AddRefed<ContentParent> MaybeTakePreallocatedAppProcess();
+
+    
+    
+    
+    static already_AddRefed<ContentParent>
+    MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
+                                    ChildPrivileges aPrivs);
+
     static void FirstIdle();
 
     
@@ -174,7 +181,8 @@ private:
 
     
     
-    void TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
+    
+    bool TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
                                       ChildPrivileges aPrivs);
 
     
