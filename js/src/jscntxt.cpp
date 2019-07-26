@@ -450,6 +450,9 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
             c->clearTraps(rt->defaultFreeOp());
         JS_ClearAllWatchPoints(cx);
 
+        
+        rt->staticStrings.finish();
+
         PrepareForFullGC(rt);
         GC(rt, GC_NORMAL, gcreason::LAST_CONTEXT);
     } else if (mode == DCM_FORCE_GC) {
