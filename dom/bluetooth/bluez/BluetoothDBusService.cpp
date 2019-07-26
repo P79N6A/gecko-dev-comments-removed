@@ -88,8 +88,11 @@ USING_BLUETOOTH_NAMESPACE
 
 
 #define TIMEOUT_FORCE_TO_DISABLE_BT 5
-
 #define BT_LAZY_THREAD_TIMEOUT_MS 3000
+
+
+#define SET_AUDIO_BIT(cod) (cod |= 0x200000)
+#define SET_RENDERING_BIT(cod) (cod |= 0x40000)
 
 #ifdef MOZ_WIDGET_GONK
 class Bluedroid
@@ -821,15 +824,17 @@ HasAudioService(uint32_t aCodValue)
   return ((aCodValue & 0x200000) == 0x200000);
 }
 
-static bool
-ContainsIcon(const InfallibleTArray<BluetoothNamedValue>& aProperties)
+static int
+FindProperty(const InfallibleTArray<BluetoothNamedValue>& aProperties,
+             const char* aPropertyType)
 {
-  for (uint8_t i = 0; i < aProperties.Length(); i++) {
-    if (aProperties[i].name().EqualsLiteral("Icon")) {
-      return true;
+  for (int i = 0; i < aProperties.Length(); ++i) {
+    if (aProperties[i].name().EqualsASCII(aPropertyType)) {
+      return i;
     }
   }
-  return false;
+
+  return -1;
 }
 
 static bool
@@ -1766,7 +1771,7 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
         BluetoothNamedValue(NS_LITERAL_STRING("Path"),
                             GetObjectPathFromAddress(signalPath, address)));
 
-      if (!ContainsIcon(properties)) {
+      if (FindProperty(properties, "Icon") < 0) {
         for (uint32_t i = 0; i < properties.Length(); i++) {
           
           
@@ -2688,7 +2693,7 @@ public:
     
     
     
-    if (!ContainsIcon(devicePropertiesArray)) {
+    if (FindProperty(devicePropertiesArray, "Icon") < 0) {
       for (uint32_t j = 0; j < devicePropertiesArray.Length(); ++j) {
         BluetoothNamedValue& deviceProperty = devicePropertiesArray[j];
         if (deviceProperty.name().EqualsLiteral("Class")) {
@@ -2699,6 +2704,40 @@ public:
           }
           break;
         }
+      }
+    }
+
+    
+    
+    
+    if (FindProperty(devicePropertiesArray, "Class") < 0) {
+      uint32_t cod = 0;
+      int uuidIndex = FindProperty(devicePropertiesArray, "UUIDs");
+      if (uuidIndex >= 0) {
+        BluetoothNamedValue& deviceProperty = devicePropertiesArray[uuidIndex];
+        const InfallibleTArray<nsString>& uuids =
+          deviceProperty.value().get_ArrayOfnsString();
+
+        for (uint32_t i = 0; i < uuids.Length(); ++i) {
+          BluetoothServiceClass serviceClass =
+            BluetoothUuidHelper::GetBluetoothServiceClass(uuids[i]);
+          if (serviceClass == BluetoothServiceClass::HANDSFREE ||
+              serviceClass == BluetoothServiceClass::HEADSET) {
+            BT_LOGD("Restore CoD value, set Audio bit");
+            SET_AUDIO_BIT(cod);
+          } else if (serviceClass == BluetoothServiceClass::A2DP_SINK) {
+            BT_LOGD("Restore CoD value, set A2DP_SINK bit");
+            SET_RENDERING_BIT(cod);
+          }
+        }
+
+        
+        
+        devicePropertiesArray.AppendElement(
+          BluetoothNamedValue(NS_LITERAL_STRING("Class"), cod));
+        devicePropertiesArray.AppendElement(
+          BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
+            NS_LITERAL_STRING("audio-card")));
       }
     }
 
