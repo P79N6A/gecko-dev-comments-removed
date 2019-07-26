@@ -4051,6 +4051,9 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozAlarms.enabled", false);
 
 
+pref("services.push.enabled", false);
+
+
 pref("dom.mozNetworkStats.enabled", false);
 
 

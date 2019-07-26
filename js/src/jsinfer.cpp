@@ -5,6 +5,7 @@
 
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/PodOperations.h"
 
 #include "jsapi.h"
 #include "jsautooplen.h"
@@ -57,6 +58,9 @@ using namespace js::types;
 using namespace js::analyze;
 
 using mozilla::DebugOnly;
+using mozilla::PodArrayZero;
+using mozilla::PodCopy;
+using mozilla::PodZero;
 
 static inline jsid
 id_prototype(JSContext *cx) {
