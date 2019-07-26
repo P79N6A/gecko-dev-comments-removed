@@ -19,6 +19,7 @@
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/PCompositableParent.h"
+#include "mozilla/layers/TextureHost.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
 #include "nsRegion.h"                   
@@ -46,7 +47,6 @@ struct TiledLayerProperties
 
 class Layer;
 class DeprecatedTextureHost;
-class TextureHost;
 class SurfaceDescriptor;
 class Compositor;
 class ISurfaceAllocator;
@@ -70,7 +70,45 @@ public:
     MOZ_COUNT_DTOR(CompositableBackendSpecificData);
   }
   virtual void SetCompositor(Compositor* aCompositor) {}
-  virtual void ClearData() {}
+  virtual void ClearData()
+  {
+    mCurrentReleaseFenceTexture = nullptr;
+    ClearPendingReleaseFenceTextureList();
+  }
+
+  
+
+
+
+
+  void SetCurrentReleaseFenceTexture(TextureHost* aTexture)
+  {
+    if (mCurrentReleaseFenceTexture) {
+      mPendingReleaseFenceTextures.push_back(mCurrentReleaseFenceTexture);
+    }
+    mCurrentReleaseFenceTexture = aTexture;
+  }
+
+  virtual std::vector< RefPtr<TextureHost> >& GetPendingReleaseFenceTextureList()
+  {
+    return mPendingReleaseFenceTextures;
+  }
+
+  virtual void ClearPendingReleaseFenceTextureList()
+  {
+    return mPendingReleaseFenceTextures.clear();
+  }
+protected:
+  
+
+
+
+  RefPtr<TextureHost> mCurrentReleaseFenceTexture;
+  
+
+
+
+  std::vector< RefPtr<TextureHost> > mPendingReleaseFenceTextures;
 };
 
 
