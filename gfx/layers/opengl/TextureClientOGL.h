@@ -13,6 +13,9 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureClient.h"  
+#ifdef XP_MACOSX
+#include "mozilla/gfx/MacIOSurface.h"
+#endif
 
 namespace mozilla {
 namespace layers {
@@ -57,6 +60,44 @@ protected:
   bool mInverted;
 };
 
+#ifdef XP_MACOSX
+class MacIOSurfaceTextureClientOGL : public TextureClient
+{
+public:
+  MacIOSurfaceTextureClientOGL(TextureFlags aFlags)
+    : TextureClient(aFlags)
+  {}
+
+  virtual bool IsAllocated() const MOZ_OVERRIDE { return !!mSurface; }
+
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
+
+  void InitWith(MacIOSurface* aSurface)
+  {
+    MOZ_ASSERT(IsValid());
+    MOZ_ASSERT(!IsAllocated());
+    mSurface = aSurface;
+  }
+
+  virtual gfx::IntSize GetSize() const
+  {
+    return gfx::IntSize(mSurface->GetDevicePixelWidth(), mSurface->GetDevicePixelHeight());
+  }
+
+  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE
+  {
+    
+    
+    
+    mSurface = nullptr;
+    MarkInvalid();
+    return nullptr;
+  }
+
+protected:
+  RefPtr<MacIOSurface> mSurface;
+};
+#endif
 
 class DeprecatedTextureClientSharedOGL : public DeprecatedTextureClient
 {
