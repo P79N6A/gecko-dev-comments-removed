@@ -39,29 +39,6 @@ extern PRLogModuleInfo* gXULTemplateLog;
 
 using namespace mozilla;
 
-bool MemoryElement::gPoolInited;
-nsFixedSizeAllocator MemoryElement::gPool;
-
-
-bool
-MemoryElement::Init()
-{
-    if (!gPoolInited) {
-        const size_t bucketsizes[] = {
-            sizeof (nsRDFConMemberTestNode::Element),
-            sizeof (nsRDFPropertyTestNode::Element)
-        };
-
-        if (NS_FAILED(gPool.Init("MemoryElement", bucketsizes,
-                                 ArrayLength(bucketsizes), 256)))
-            return false;
-
-        gPoolInited = true;
-    }
-
-    return true;
-}
-
 
 
 
@@ -75,7 +52,7 @@ MemoryElementSet::Add(MemoryElement* aElement)
             
             
             
-            aElement->Destroy();
+            delete aElement;
             return NS_OK;
         }
     }
