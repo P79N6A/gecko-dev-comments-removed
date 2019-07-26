@@ -535,7 +535,7 @@ public class BrowserSearch extends HomeFragment
 
             
             
-            if (!suggestionsPrompted && mSuggestClient != null) {
+            if (!mSuggestionsEnabled && !suggestionsPrompted && mSuggestClient != null) {
                 showSuggestionsOptIn();
             }
         } catch (JSONException e) {
