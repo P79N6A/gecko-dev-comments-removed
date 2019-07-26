@@ -849,6 +849,13 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
   
   
   MarkAsDead();
+
+  
+  
+  
+  
+  mMemoryReporters.Clear();
+  mMessageManager = nullptr;
 }
 
 void

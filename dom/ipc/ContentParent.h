@@ -430,6 +430,10 @@ private:
 
     virtual void ProcessingError(Result what) MOZ_OVERRIDE;
 
+    
+    
+    
+
     GeckoChildProcessHost* mSubprocess;
     base::ChildPrivileges mOSPrivileges;
 
