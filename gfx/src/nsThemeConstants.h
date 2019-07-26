@@ -138,6 +138,9 @@
 #define NS_THEME_SPINNER_TEXTFIELD                         75
 
 
+#define NS_THEME_NUMBER_INPUT                              76
+
+
 #define NS_THEME_SCROLLBAR                                 80
 
 

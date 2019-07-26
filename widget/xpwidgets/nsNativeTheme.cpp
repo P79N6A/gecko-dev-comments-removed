@@ -78,7 +78,7 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
 
     
     
-    if (aWidgetType == NS_THEME_TEXTFIELD &&
+    if (aWidgetType == NS_THEME_NUMBER_INPUT &&
         frameContent->IsHTML(nsGkAtoms::input)) {
       nsNumberControlFrame *numberControlFrame = do_QueryFrame(aFrame);
       if (numberControlFrame && numberControlFrame->IsFocused()) {
@@ -97,7 +97,8 @@ nsNativeTheme::GetContentState(nsIFrame* aFrame, uint8_t aWidgetType)
   
 #if defined(XP_MACOSX)
   
-  if (aWidgetType == NS_THEME_TEXTFIELD ||
+  if (aWidgetType == NS_THEME_NUMBER_INPUT ||
+      aWidgetType == NS_THEME_TEXTFIELD ||
       aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
       aWidgetType == NS_THEME_SEARCHFIELD ||
       aWidgetType == NS_THEME_LISTBOX) {
@@ -333,7 +334,8 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
     }
   }
 
-  return (aWidgetType == NS_THEME_BUTTON ||
+  return (aWidgetType == NS_THEME_NUMBER_INPUT ||
+          aWidgetType == NS_THEME_BUTTON ||
           aWidgetType == NS_THEME_TEXTFIELD ||
           aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
           aWidgetType == NS_THEME_LISTBOX ||
