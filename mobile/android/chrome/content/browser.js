@@ -3793,8 +3793,9 @@ Tab.prototype = {
         }
 
         
-        if (BrowserApp.selectedTab == this)
-          ExternalApps.updatePageAction(this.browser.currentURI);
+        let uri = this.browser.currentURI;
+        if (BrowserApp.selectedTab == this && ExternalApps.shouldCheckUri(uri))
+          ExternalApps.updatePageAction(uri);
 
         if (!Reader.isEnabledForParseOnLoad)
           return;
@@ -3803,7 +3804,7 @@ Tab.prototype = {
         Reader.parseDocumentFromTab(this.id, function (article) {
           
           
-          let tabURL = this.browser.currentURI.specIgnoringRef;
+          let tabURL = uri.specIgnoringRef;
           if (article == null || (article.url != tabURL)) {
             
             
@@ -8005,6 +8006,14 @@ var ExternalApps = {
   openExternal: function(aElement) {
     let uri = ExternalApps._getMediaLink(aElement);
     HelperApps.launchUri(uri);
+  },
+
+  shouldCheckUri: function(uri) {
+    if (!(uri.schemeIs("http") || uri.schemeIs("https") || uri.schemeIs("file"))) {
+      return false;
+    }
+
+    return true;
   },
 
   updatePageAction: function updatePageAction(uri) {
