@@ -67,8 +67,7 @@ public:
   
   void AddProxy(imgRequestProxy *proxy);
 
-  
-  nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
+  nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus);
 
   void SniffMimeType(const char *buf, uint32_t len, nsACString& newType);
 

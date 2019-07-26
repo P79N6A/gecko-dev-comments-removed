@@ -83,9 +83,7 @@ public:
   
   
   
-  
-  void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus,
-                              bool aOnlySendStopRequest);
+  void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus);
 
   
   

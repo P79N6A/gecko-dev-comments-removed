@@ -84,10 +84,7 @@ imgRequestProxy::~imgRequestProxy()
 
 
 
-
-
-
-      mOwner->RemoveProxy(this, NS_OK, false);
+      mOwner->RemoveProxy(this, NS_OK);
     }
   }
 }
@@ -160,9 +157,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
     wasDecoded = true;
   }
 
-  
-  
-  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, false);
+  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER);
 
   
   
@@ -256,10 +251,9 @@ NS_IMETHODIMP imgRequestProxy::Cancel(nsresult status)
 void
 imgRequestProxy::DoCancel(nsresult status)
 {
-  
-  
-  if (mOwner)
-    mOwner->RemoveProxy(this, status, false);
+  if (mOwner) {
+    mOwner->RemoveProxy(this, status);
+  }
 
   NullOutListener();
 }
@@ -284,10 +278,9 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
   bool oldIsInLoadGroup = mIsInLoadGroup;
   mIsInLoadGroup = false;
 
-  
-  
-  if (mOwner)
-    mOwner->RemoveProxy(this, aStatus, false);
+  if (mOwner) {
+    mOwner->RemoveProxy(this, aStatus);
+  }
 
   mIsInLoadGroup = oldIsInLoadGroup;
 
