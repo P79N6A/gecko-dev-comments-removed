@@ -1045,12 +1045,32 @@ MarionetteServerConnection.prototype = {
 
 
 
-  goUrl: function MDA_goUrl(aRequest) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  get: function MDA_get(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context != "chrome") {
       aRequest.command_id = command_id;
       aRequest.parameters.pageTimeout = this.pageTimeout;
-      this.sendAsync("goUrl", aRequest.parameters, command_id);
+      this.sendAsync("get", aRequest.parameters, command_id);
       return;
     }
 
@@ -1058,6 +1078,7 @@ MarionetteServerConnection.prototype = {
     let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     let start = new Date().getTime();
     let end = null;
+
     function checkLoad() {
       end = new Date().getTime();
       let elapse = end - start;
@@ -2402,7 +2423,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getTitle": MarionetteServerConnection.prototype.getTitle,
   "getWindowType": MarionetteServerConnection.prototype.getWindowType,
   "getPageSource": MarionetteServerConnection.prototype.getPageSource,
-  "goUrl": MarionetteServerConnection.prototype.goUrl,
+  "get": MarionetteServerConnection.prototype.get,
+  "goUrl": MarionetteServerConnection.prototype.get,  
   "getCurrentUrl": MarionetteServerConnection.prototype.getCurrentUrl,
   "getUrl": MarionetteServerConnection.prototype.getCurrentUrl,  
   "goBack": MarionetteServerConnection.prototype.goBack,
