@@ -53,7 +53,7 @@ const Class RegExpStaticsObject::class_ = {
 };
 
 JSObject *
-RegExpStatics::create(JSContext *cx, GlobalObject *parent)
+RegExpStatics::create(ExclusiveContext *cx, GlobalObject *parent)
 {
     JSObject *obj = NewObjectWithGivenProto(cx, &RegExpStaticsObject::class_, nullptr, parent);
     if (!obj)
@@ -74,7 +74,7 @@ RegExpStatics::markFlagsSet(JSContext *cx)
     
     
     
-    JS_ASSERT(this == cx->global()->getRegExpStatics());
+    JS_ASSERT_IF(cx->global()->hasRegExpStatics(), this == cx->global()->getRegExpStatics(cx));
 
     types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_REGEXP_FLAGS_SET);
 }

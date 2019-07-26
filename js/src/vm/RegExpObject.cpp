@@ -106,7 +106,10 @@ RegExpObjectBuilder::clone(Handle<RegExpObject *> other)
 
 
 
-    RegExpStatics *res = other->getProto()->getParent()->as<GlobalObject>().getRegExpStatics();
+    RegExpStatics *res = other->getProto()->getParent()->as<GlobalObject>().getRegExpStatics(cx);
+    if (!res)
+        return nullptr;
+
     RegExpFlag origFlags = other->getFlags();
     RegExpFlag staticsFlags = res->getFlags();
     if ((origFlags & staticsFlags) != staticsFlags) {

@@ -17,6 +17,8 @@ class RegExpStaticsObject : public JSObject
     static const Class class_;
 
     size_t sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
+        
+        
         return mallocSizeOf(getPrivate());
     }
 };
