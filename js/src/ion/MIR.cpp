@@ -2423,10 +2423,13 @@ ion::PropertyReadNeedsTypeBarrier(JSContext *cx, types::TypeObject *object, Prop
     
     
     
-    if (property->empty() && name && object->singleton && object->singleton->isNative()) {
+    
+    if (name && object->singleton && object->singleton->isNative()) {
         Shape *shape = object->singleton->nativeLookup(cx, name);
-        if (shape && shape->hasDefaultGetter()) {
-            JS_ASSERT(object->singleton->nativeGetSlot(shape->slot()).isUndefined());
+        if (shape &&
+            shape->hasDefaultGetter() &&
+            object->singleton->nativeGetSlot(shape->slot()).isUndefined())
+        {
             return true;
         }
     }
