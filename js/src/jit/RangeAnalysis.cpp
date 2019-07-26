@@ -413,7 +413,9 @@ Range::intersect(TempAllocator &alloc, const Range *lhs, const Range *rhs, bool 
     
     
     if (newUpper < newLower) {
-        *emptyRange = true;
+        
+        if (!lhs->canBeNaN() || !rhs->canBeNaN())
+            *emptyRange = true;
         return nullptr;
     }
 
