@@ -714,6 +714,11 @@ Toolbox.prototype = {
       outstanding.push(panel.destroy());
     }
 
+    let container = this.doc.getElementById("toolbox-buttons");
+    while(container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
     outstanding.push(this._host.destroy());
 
     
@@ -726,6 +731,9 @@ Toolbox.prototype = {
 
     Promise.all(outstanding).then(function() {
       this.emit("destroyed");
+      
+      
+      this._host = null;
       deferred.resolve();
     }.bind(this));
 

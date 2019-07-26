@@ -607,7 +607,7 @@ let gDevToolsBrowser = {
 
     
     for (let [target, toolbox] of gDevTools._toolboxes) {
-      if (toolbox.frame.ownerDocument.defaultView == win) {
+      if (toolbox.frame && toolbox.frame.ownerDocument.defaultView == win) {
         toolbox.destroy();
       }
     }
