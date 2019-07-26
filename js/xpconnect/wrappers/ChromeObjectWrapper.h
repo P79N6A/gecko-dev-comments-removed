@@ -11,9 +11,10 @@
 #include "mozilla/Attributes.h"
 
 #include "FilteringWrapper.h"
-#include "AccessCheck.h"
 
 namespace xpc {
+
+struct ExposedPropertiesOnly;
 
 
 

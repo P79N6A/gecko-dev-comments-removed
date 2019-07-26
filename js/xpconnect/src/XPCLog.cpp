@@ -6,7 +6,13 @@
 
 
 
-#include "xpcprivate.h"
+#include "XPCLog.h"
+#include "prlog.h"
+#include "prprf.h"
+#include "mozilla/mozalloc.h"
+#include "mozilla/NullPtr.h"
+#include <string.h>
+#include <stdarg.h>
 
 
 #ifdef DEBUG

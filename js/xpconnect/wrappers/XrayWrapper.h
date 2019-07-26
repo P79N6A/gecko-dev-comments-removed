@@ -6,7 +6,6 @@
 
 
 #include "mozilla/Attributes.h"
-#include "mozilla/GuardObjects.h"
 
 #include "jswrapper.h"
 
@@ -15,8 +14,6 @@
 
 
 
-
-class XPCWrappedNative;
 
 namespace xpc {
 
@@ -48,7 +45,6 @@ HasNativeProperty(JSContext *cx, JS::HandleObject wrapper, JS::HandleId id,
 
 class XrayTraits;
 class XPCWrappedNativeXrayTraits;
-class ProxyXrayTraits;
 class DOMXrayTraits;
 
 

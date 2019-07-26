@@ -4,11 +4,12 @@
 
 
 
-#include "xpcprivate.h"
-
 #include "mozilla/dom/workers/Workers.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsContentUtils.h"
+#include "BackstagePass.h"
+#include "nsIProgrammingLanguage.h"
+#include "nsDOMClassInfo.h"
+#include "nsIPrincipal.h"
 
 using mozilla::dom::workers::ResolveWorkerClasses;
 

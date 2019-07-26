@@ -7,7 +7,6 @@
 
 
 #include "xpcprivate.h"
-#include "xpcpublic.h"
 #include "XPCWrapper.h"
 #include "jsprf.h"
 #include "mozilla/dom/BindingUtils.h"

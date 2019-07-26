@@ -5,20 +5,14 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "AccessCheck.h"
 
 #include "nsJSPrincipals.h"
-#include "nsIDocument.h"
 #include "nsIDOMWindow.h"
-#include "nsPIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
-#include "nsJSUtils.h"
 
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
-#include "FilteringWrapper.h"
 
 #include "jsfriendapi.h"
 #include "mozilla/dom/BindingUtils.h"

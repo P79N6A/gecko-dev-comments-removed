@@ -8,10 +8,7 @@
 
 
 #include "xpcprivate.h"
-#include "XPCWrapper.h"
-#include "AccessCheck.h"
 #include "jsprf.h"
-#include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Preferences.h"
 

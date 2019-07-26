@@ -5,13 +5,9 @@
 
 
 
-#include "nsJSPrincipals.h"
-
-#include "XPCWrapper.h"
-
 #include "WaiveXrayWrapper.h"
-#include "AccessCheck.h"
 #include "WrapperFactory.h"
+#include "jsapi.h"
 
 using namespace JS;
 

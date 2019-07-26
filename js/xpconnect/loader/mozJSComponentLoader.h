@@ -4,24 +4,20 @@
 
 
 
-#include "plhash.h"
 #include "mozilla/ModuleLoader.h"
-#include "nsIJSRuntimeService.h"
 #include "nsISupports.h"
-#include "nsIXPConnect.h"
-#include "nsIFile.h"
-#include "nsAutoPtr.h"
-#include "nsIObjectInputStream.h"
-#include "nsIObjectOutputStream.h"
-#include "nsITimer.h"
 #include "nsIObserver.h"
 #include "xpcIJSModuleLoader.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
-#include "nsIPrincipal.h"
-#include "mozilla/scache/StartupCache.h"
+#include "jsapi.h"
 
 #include "xpcIJSGetFactory.h"
+
+class nsIFile;
+class nsIJSRuntimeService;
+class nsIPrincipal;
+class nsIXPConnectJSObjectHolder;
 
 
 
