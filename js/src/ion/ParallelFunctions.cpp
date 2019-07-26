@@ -466,7 +466,7 @@ ion::InitRestParameter(ForkJoinSlice *slice, uint32_t length, Value *rest,
     
     
     JS_ASSERT(res);
-    JS_ASSERT(res->isArray());
+    JS_ASSERT(res->is<ArrayObject>());
     JS_ASSERT(!res->getDenseInitializedLength());
     JS_ASSERT(res->type() == templateObj->type());
     JS_ASSERT(res->type()->unknownProperties());

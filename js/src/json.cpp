@@ -563,7 +563,7 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
             
             uint32_t len;
             JS_ALWAYS_TRUE(GetLengthProperty(cx, replacer, &len));
-            if (replacer->isArray() && !replacer->isIndexed())
+            if (replacer->is<ArrayObject>() && !replacer->isIndexed())
                 len = Min(len, replacer->getDenseInitializedLength());
 
             
@@ -704,7 +704,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
 
         
         JS_ASSERT(!obj->isProxy());
-        if (obj->isArray()) {
+        if (obj->is<ArrayObject>()) {
             
             uint32_t length = obj->getArrayLength();
 

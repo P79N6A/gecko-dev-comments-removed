@@ -266,7 +266,7 @@ class MinorCollectionTracer : public JSTracer
 static AllocKind
 GetObjectAllocKindForCopy(JSRuntime *rt, JSObject *obj)
 {
-    if (obj->isArray()) {
+    if (obj->is<ArrayObject>()) {
         JS_ASSERT(obj->numFixedSlots() == 0);
 
         
@@ -325,7 +325,7 @@ js::Nursery::moveObjectToTenured(JSObject *dst, JSObject *src, AllocKind dstKind
 
 
 
-    if (src->isArray())
+    if (src->is<ArrayObject>())
         srcSize = sizeof(ObjectImpl);
 
     js_memcpy(dst, src, srcSize);
@@ -394,7 +394,7 @@ js::Nursery::moveElementsToTenured(JSObject *dst, JSObject *src, AllocKind dstKi
     size_t nslots = ObjectElements::VALUES_PER_HEADER + srcHeader->capacity;
 
     
-    if (src->isArray() && nslots <= GetGCKindSlots(dstKind)) {
+    if (src->is<ArrayObject>() && nslots <= GetGCKindSlots(dstKind)) {
         dst->setFixedElements();
         dstHeader = dst->getElementsHeader();
         js_memcpy(dstHeader, srcHeader, nslots * sizeof(HeapSlot));
