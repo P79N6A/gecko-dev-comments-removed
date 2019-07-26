@@ -192,14 +192,14 @@ var SelectionHandler = {
     this._contentWindow.getSelection().removeAllRanges();
 
     if (!this._domWinUtils.selectAtPoint(aX, aY, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
-      this._onFail("failed to set selection at point");
+      this._closeSelection();
       return;
     }
 
     let selection = this._getSelection();
     
-    if (!selection) {
-      this._onFail("no selection was present");
+    if (!selection || selection.rangeCount == 0) {
+      this._closeSelection();
       return;
     }
 
@@ -449,16 +449,6 @@ var SelectionHandler = {
       let req = Services.search.defaultEngine.getSubmission(selectedText);
       BrowserApp.selectOrOpenTab(req.uri.spec);
     }
-    this._closeSelection();
-  },
-
-  
-
-
-
-  _onFail: function sh_onFail(aDbgMessage) {
-    if (aDbgMessage && aDbgMessage.length > 0)
-      Cu.reportError("SelectionHandler - " + aDbgMessage);
     this._closeSelection();
   },
 
