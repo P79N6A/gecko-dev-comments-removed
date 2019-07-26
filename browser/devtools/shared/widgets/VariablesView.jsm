@@ -128,10 +128,9 @@ VariablesView.prototype = {
     }
 
     let list = this._list;
-    let firstChild;
 
-    while (firstChild = list.firstChild) {
-      list.removeChild(firstChild);
+    while (list.hasChildNodes()) {
+      list.firstChild.remove();
     }
 
     this._store.length = 0;
@@ -163,7 +162,7 @@ VariablesView.prototype = {
     this._store.length = 0;
     this._itemsByElement.clear();
 
-    this._emptyTimeout = this.window.setTimeout(function() {
+    this._emptyTimeout = this.window.setTimeout(() => {
       this._emptyTimeout = null;
 
       prevList.removeEventListener("keypress", this._onViewKeyPress, false);
@@ -178,7 +177,7 @@ VariablesView.prototype = {
         this._appendEmptyNotice();
         this._toggleSearchVisibility(false);
       }
-    }.bind(this), aTimeout);
+    }, aTimeout);
   },
 
   
@@ -197,6 +196,12 @@ VariablesView.prototype = {
 
 
   lazyAppend: true,
+
+  
+
+
+
+  lazyExpand: true,
 
   
 
@@ -403,7 +408,7 @@ VariablesView.prototype = {
     if (!this._searchboxContainer) {
       return;
     }
-    this._searchboxContainer.parentNode.removeChild(this._searchboxContainer);
+    this._searchboxContainer.remove();
     this._searchboxNode.removeEventListener("input", this._onSearchboxInput, false);
     this._searchboxNode.removeEventListener("keypress", this._onSearchboxKeyPress, false);
 
@@ -642,15 +647,17 @@ VariablesView.prototype = {
 
 
 
-  focusNextItem: function VV_focusNextItem(aMaintainViewFocusedFlag)
-    this._focusChange("advanceFocus", aMaintainViewFocusedFlag),
+  focusNextItem: function VV_focusNextItem(aMaintainViewFocusedFlag) {
+    this._focusChange("advanceFocus", aMaintainViewFocusedFlag)
+  },
 
   
 
 
 
-  focusPrevItem: function VV_focusPrevItem(aMaintainViewFocusedFlag)
-    this._focusChange("rewindFocus", aMaintainViewFocusedFlag),
+  focusPrevItem: function VV_focusPrevItem(aMaintainViewFocusedFlag) {
+    this._focusChange("rewindFocus", aMaintainViewFocusedFlag)
+  },
 
   
 
@@ -761,7 +768,6 @@ VariablesView.prototype = {
         if (!item._isArrowVisible) {
           return;
         }
-
         
         if (!item._isExpanded) {
           item.expand();
@@ -1052,6 +1058,7 @@ VariablesView.getterOrSetterDeleteCallback = function(aItem) {
   aItem._disable();
 
   
+  
   aItem.ownerView.eval(aItem.evaluationMacro(aItem, ""));
 
   return true; 
@@ -1237,7 +1244,7 @@ Scope.prototype = {
     
     
     if (!this._isExpanding &&
-         this._variablesView.lazyAppend &&
+         this._variablesView.lazyExpand &&
          this._store.size > LAZY_APPEND_BATCH) {
       this._isExpanding = true;
 

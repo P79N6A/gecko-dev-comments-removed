@@ -3,6 +3,10 @@
 
 
 
+#details-pane-toggle[disabled] {
+  visibility: hidden;
+}
+
 #response-content-image-box {
   overflow: auto;
 }

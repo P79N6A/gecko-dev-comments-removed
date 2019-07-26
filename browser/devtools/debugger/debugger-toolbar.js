@@ -406,7 +406,6 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
     
     let stackframeItem = this.push(frameView, {
       index: 0, 
-      relaxed: true, 
       attachment: {
         popup: menuEntry,
         depth: aDepth
@@ -946,7 +945,7 @@ FilterView.prototype = {
     view.node.hideEmptyGroups();
 
     
-    view.node.ensureSelectionIsVisible(true);
+    view.node.ensureSelectionIsVisible({ withGroup: true });
 
     
     this._prevSearchedFile = aFile;

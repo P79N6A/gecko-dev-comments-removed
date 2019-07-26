@@ -163,6 +163,7 @@ let NetMonitorView = {
       $("#details-pane").selectedIndex = aTabIndex;
     }
   },
+
   
 
 
@@ -327,7 +328,6 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
     
     let requestItem = this.push(menuView, {
-      relaxed: true, 
       attachment: {
         id: aId,
         startedDeltaMillis: unixTime - this._firstRequestStartedMillis,
@@ -338,9 +338,132 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       finalize: this._onRequestItemRemoved
     });
 
+    $("#details-pane-toggle").disabled = false;
     $(".requests-menu-empty-notice").hidden = true;
+
     this._cache.set(aId, requestItem);
   },
+
+  
+
+
+
+
+
+  sortBy: function NVRM_sortBy(aType) {
+    let target = $("#requests-menu-" + aType + "-button");
+    let headers = document.querySelectorAll(".requests-menu-header-button");
+
+    for (let header of headers) {
+      if (header != target) {
+        header.removeAttribute("sorted");
+        header.removeAttribute("tooltiptext");
+      }
+    }
+
+    let direction = "";
+    if (target) {
+      if (!target.hasAttribute("sorted")) {
+        target.setAttribute("sorted", direction = "ascending");
+        target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedAsc"));
+      } else if (target.getAttribute("sorted") == "ascending") {
+        target.setAttribute("sorted", direction = "descending");
+        target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedDesc"));
+      } else {
+        target.removeAttribute("sorted");
+        target.removeAttribute("tooltiptext");
+      }
+    }
+
+    
+    if (!target || !direction) {
+      this.sortContents(this._byTiming);
+    }
+    
+    else switch (aType) {
+      case "status":
+        if (direction == "ascending") {
+          this.sortContents(this._byStatus);
+        } else {
+          this.sortContents((a, b) => !this._byStatus(a, b));
+        }
+        break;
+      case "method":
+        if (direction == "ascending") {
+          this.sortContents(this._byMethod);
+        } else {
+          this.sortContents((a, b) => !this._byMethod(a, b));
+        }
+        break;
+      case "file":
+        if (direction == "ascending") {
+          this.sortContents(this._byFile);
+        } else {
+          this.sortContents((a, b) => !this._byFile(a, b));
+        }
+        break;
+      case "domain":
+        if (direction == "ascending") {
+          this.sortContents(this._byDomain);
+        } else {
+          this.sortContents((a, b) => !this._byDomain(a, b));
+        }
+        break;
+      case "type":
+        if (direction == "ascending") {
+          this.sortContents(this._byType);
+        } else {
+          this.sortContents((a, b) => !this._byType(a, b));
+        }
+        break;
+      case "size":
+        if (direction == "ascending") {
+          this.sortContents(this._bySize);
+        } else {
+          this.sortContents((a, b) => !this._bySize(a, b));
+        }
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _byTiming: (aFirst, aSecond) =>
+    aFirst.attachment.startedMillis > aSecond.attachment.startedMillis,
+
+  _byStatus: (aFirst, aSecond) =>
+    aFirst.attachment.status > aSecond.attachment.status,
+
+  _byMethod: (aFirst, aSecond) =>
+    aFirst.attachment.method > aSecond.attachment.method,
+
+  _byFile: (aFirst, aSecond) =>
+    !aFirst.target || !aSecond.target ? -1 :
+      $(".requests-menu-file", aFirst.target).getAttribute("value").toLowerCase() >
+      $(".requests-menu-file", aSecond.target).getAttribute("value").toLowerCase(),
+
+  _byDomain: (aFirst, aSecond) =>
+    !aFirst.target || !aSecond.target ? -1 :
+      $(".requests-menu-domain", aFirst.target).getAttribute("value").toLowerCase() >
+      $(".requests-menu-domain", aSecond.target).getAttribute("value").toLowerCase(),
+
+  _byType: (aFirst, aSecond) =>
+    !aFirst.target || !aSecond.target ? -1 :
+      $(".requests-menu-type", aFirst.target).getAttribute("value").toLowerCase() >
+      $(".requests-menu-type", aSecond.target).getAttribute("value").toLowerCase(),
+
+  _bySize: (aFirst, aSecond) =>
+    aFirst.attachment.contentSize > aSecond.attachment.contentSize,
 
   
 
@@ -450,8 +573,12 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
         NetMonitorView.NetworkDetails.populate(selectedItem.attachment);
       }
     }
+
     
     this._updateQueue = [];
+
+    
+    this.sortContents();
   },
 
   
@@ -764,9 +891,9 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     let toolbar = $("#requests-menu-toolbar");
     let columns = [
       ["#requests-menu-waterfall-header-box", "waterfall-overflows"],
-      ["#requests-menu-size-header-label", "size-overflows"],
-      ["#requests-menu-type-header-label", "type-overflows"],
-      ["#requests-menu-domain-header-label", "domain-overflows"]
+      ["#requests-menu-size-header-box", "size-overflows"],
+      ["#requests-menu-type-header-box", "type-overflows"],
+      ["#requests-menu-domain-header-box", "domain-overflows"]
     ];
 
     

@@ -311,32 +311,28 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-
-this.MenuItem = function MenuItem(aAttachment, aLabel, aValue, aDescription) {
+this.MenuItem = function MenuItem(aAttachment, aContents = []) {
   this.attachment = aAttachment;
-  this._label = aLabel + "";
-  this._value = aValue + "";
-  this._description = (aDescription || "") + "";
+
+  
+  if (aContents instanceof Ci.nsIDOMNode ||
+      aContents instanceof Ci.nsIDOMDocumentFragment) {
+    this._prebuiltTarget = aContents;
+  }
+  
+  else {
+    let [aLabel, aValue, aDescription] = aContents;
+    this._label = aLabel + "";
+    this._value = aValue + "";
+    this._description = (aDescription || "") + "";
+  }
 };
 
 MenuItem.prototype = {
-  
-
-
-
   get label() this._label,
-
-  
-
-
-
   get value() this._value,
-
-  
-
-
-
   get description() this._description,
+  get target() this._target,
 
   
 
@@ -363,7 +359,7 @@ MenuItem.prototype = {
     }
 
     
-    this._entangleItem(item, this.target.appendChild(aElement));
+    this._entangleItem(item, this._target.appendChild(aElement));
 
     
     return item;
@@ -379,7 +375,7 @@ MenuItem.prototype = {
     if (!aItem) {
       return;
     }
-    this.target.removeChild(aItem.target);
+    this._target.removeChild(aItem._target);
     this._untangleItem(aItem);
   },
 
@@ -387,20 +383,20 @@ MenuItem.prototype = {
 
 
   markSelected: function MI_markSelected() {
-    if (!this.target) {
+    if (!this._target) {
       return;
     }
-    this.target.classList.add("selected");
+    this._target.classList.add("selected");
   },
 
   
 
 
   markDeselected: function MI_markDeselected() {
-    if (!this.target) {
+    if (!this._target) {
       return;
     }
-    this.target.classList.remove("selected");
+    this._target.classList.remove("selected");
   },
 
   
@@ -411,7 +407,7 @@ MenuItem.prototype = {
 
 
 
-  setAttributes: function MI_setAttributes(aAttributes, aElement = this.target) {
+  setAttributes: function MI_setAttributes(aAttributes, aElement = this._target) {
     for (let [name, value] of aAttributes) {
       aElement.setAttribute(name, value);
     }
@@ -431,7 +427,7 @@ MenuItem.prototype = {
     }
 
     this._itemsByElement.set(aElement, aItem);
-    aItem.target = aElement;
+    aItem._target = aElement;
   },
 
   
@@ -448,8 +444,19 @@ MenuItem.prototype = {
       aItem.remove(childItem);
     }
 
-    this._itemsByElement.delete(aItem.target);
-    aItem.target = null;
+    this._unlinkItem(aItem);
+    aItem._prebuiltTarget = null;
+    aItem._target = null;
+  },
+
+  
+
+
+
+
+
+  _unlinkItem: function MC__unlinkItem(aItem) {
+    this._itemsByElement.delete(aItem._target);
   },
 
   
@@ -469,7 +476,8 @@ MenuItem.prototype = {
   _label: "",
   _value: "",
   _description: "",
-  target: null,
+  _prebuiltTarget: null,
+  _target: null,
   finalize: null,
   attachment: null
 };
@@ -555,23 +563,17 @@ MenuContainer.prototype = {
 
 
   push: function MC_push(aContents, aOptions = {}) {
-    if (aContents instanceof Ci.nsIDOMNode ||
-        aContents instanceof Ci.nsIDOMElement) {
-      
-      aOptions.node = aContents;
-      aContents = ["", "", ""];
-    }
-
-    let [label, value, description] = aContents;
-    let item = new MenuItem(aOptions.attachment, label, value, description);
+    let item = new MenuItem(aOptions.attachment, aContents);
 
     
     if (aOptions.staged) {
+      
+      delete aOptions.index;
       return void this._stagedItems.push({ item: item, options: aOptions });
     }
     
     if (!("index" in aOptions)) {
-      return this._insertItemAt(this._findExpectedIndex(label), item, aOptions);
+      return this._insertItemAt(this._findExpectedIndex(item), item, aOptions);
     }
     
     
@@ -585,13 +587,13 @@ MenuContainer.prototype = {
 
 
 
+
   commit: function MC_commit(aOptions = {}) {
     let stagedItems = this._stagedItems;
 
     
     if (aOptions.sorted) {
-      stagedItems.sort(function(a, b) a.item._label.toLowerCase() >
-                                      b.item._label.toLowerCase());
+      stagedItems.sort((a, b) => this._sortPredicate(a.item, b.item));
     }
     
     for (let { item, options } of stagedItems) {
@@ -630,7 +632,7 @@ MenuContainer.prototype = {
     if (!aItem) {
       return;
     }
-    this._container.removeChild(aItem.target);
+    this._container.removeChild(aItem._target);
     this._untangleItem(aItem);
   },
 
@@ -684,8 +686,95 @@ MenuContainer.prototype = {
 
   toggleContents: function MC_toggleContents(aVisibleFlag) {
     for (let [, item] of this._itemsByElement) {
-      item.target.hidden = !aVisibleFlag;
+      item._target.hidden = !aVisibleFlag;
     }
+  },
+
+  
+
+
+
+
+
+
+
+  sortContents: function MC_sortContents(aPredicate = this._sortPredicate) {
+    let sortedItems = this.allItems.sort(this._sortPredicate = aPredicate);
+
+    for (let i = 0, len = sortedItems.length; i < len; i++) {
+      this.swapItems(this.getItemAtIndex(i), sortedItems[i]);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  swapItems: function MC_swapItems(aFirst, aSecond) {
+    if (aFirst == aSecond) { 
+      return;
+    }
+    let { _prebuiltTarget: firstPrebuiltTarget, target: firstTarget } = aFirst;
+    let { _prebuiltTarget: secondPrebuiltTarget, target: secondTarget } = aSecond;
+
+    
+    
+    if (firstPrebuiltTarget instanceof Ci.nsIDOMDocumentFragment) {
+      for (let node of firstTarget.childNodes) {
+        firstPrebuiltTarget.appendChild(node.cloneNode(true));
+      }
+    }
+    if (secondPrebuiltTarget instanceof Ci.nsIDOMDocumentFragment) {
+      for (let node of secondTarget.childNodes) {
+        secondPrebuiltTarget.appendChild(node.cloneNode(true));
+      }
+    }
+
+    
+    let i = this._indexOfElement(firstTarget);
+    let j = this._indexOfElement(secondTarget);
+
+    
+    let selectedTarget = this._container.selectedItem;
+    let selectedIndex = -1;
+    if (selectedTarget == firstTarget) {
+      selectedIndex = i;
+    } else if (selectedTarget == secondTarget) {
+      selectedIndex = j;
+    }
+
+    
+    this._container.removeChild(firstTarget);
+    this._container.removeChild(secondTarget);
+    this._unlinkItem(aFirst);
+    this._unlinkItem(aSecond);
+
+    
+    this._insertItemAt.apply(this, i < j ? [i, aSecond] : [j, aFirst]);
+    this._insertItemAt.apply(this, i < j ? [j, aFirst] : [i, aSecond]);
+
+    
+    if (selectedIndex == i) {
+      this._container.selectedItem = aFirst._target;
+    } else if (selectedIndex == j) {
+      this._container.selectedItem = aSecond._target;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  swapItemsAtIndices: function MC_swapItemsAtIndices(aFirst, aSecond) {
+    this.swapItems(this.getItemAtIndex(aFirst), this.getItemAtIndex(aSecond));
   },
 
   
@@ -776,14 +865,15 @@ MenuContainer.prototype = {
 
   set selectedItem(aItem) {
     
-    let targetNode = aItem ? aItem.target : null;
+    let targetElement = aItem ? aItem._target : null;
 
     
-    if (this._container.selectedItem == targetNode) {
+    if (this._container.selectedItem == targetElement) {
       return;
     }
-    this._container.selectedItem = targetNode;
-    ViewHelpers.dispatchEvent(targetNode, "select", aItem);
+
+    this._container.selectedItem = targetElement;
+    ViewHelpers.dispatchEvent(targetElement, "select", aItem);
   },
 
   
@@ -877,7 +967,7 @@ MenuContainer.prototype = {
 
 
   indexOfItem: function MC_indexOfItem(aItem) {
-    return this._indexOfElement(aItem.target);
+    return this._indexOfElement(aItem._target);
   },
 
   
@@ -934,6 +1024,19 @@ MenuContainer.prototype = {
 
 
 
+  get allItems() {
+    let items = [];
+    for (let i = 0; i < this.itemCount; i++) {
+      items.push(this.getItemAtIndex(i));
+    }
+    return items;
+  },
+
+  
+
+
+
+
   get visibleItems() {
     let items = [];
     for (let [element, item] of this._itemsByElement) {
@@ -987,9 +1090,9 @@ MenuContainer.prototype = {
 
 
   isEligible: function MC_isEligible(aItem) {
-    return this.isUnique(aItem) &&
+    return aItem._prebuiltTarget || (this.isUnique(aItem) &&
            aItem._label != "undefined" && aItem._label != "null" &&
-           aItem._value != "undefined" && aItem._value != "null";
+           aItem._value != "undefined" && aItem._value != "null");
   },
 
   
@@ -1000,12 +1103,13 @@ MenuContainer.prototype = {
 
 
 
-  _findExpectedIndex: function MC__findExpectedIndex(aLabel) {
+
+  _findExpectedIndex: function MC__findExpectedIndex(aItem) {
     let container = this._container;
     let itemCount = this.itemCount;
 
     for (let i = 0; i < itemCount; i++) {
-      if (this.getItemAtIndex(i)._label > aLabel) {
+      if (this._sortPredicate(this.getItemAtIndex(i), aItem) > 0) {
         return i;
       }
     }
@@ -1028,7 +1132,7 @@ MenuContainer.prototype = {
 
 
 
-  _insertItemAt: function MC__insertItemAt(aIndex, aItem, aOptions) {
+  _insertItemAt: function MC__insertItemAt(aIndex, aItem, aOptions = {}) {
     
     if (!aOptions.relaxed && !this.isEligible(aItem)) {
       return null;
@@ -1036,14 +1140,14 @@ MenuContainer.prototype = {
 
     
     this._entangleItem(aItem, this._container.insertItemAt(aIndex,
-      aOptions.node || aItem._label,
+      aItem._prebuiltTarget || aItem._label, 
       aItem._value,
       aItem._description,
-      aOptions.attachment));
+      aItem.attachment));
 
     
     if (aOptions.attributes) {
-      aItem.setAttributes(aOptions.attributes, aItem.target);
+      aItem.setAttributes(aOptions.attributes, aItem._target);
     }
     if (aOptions.finalize) {
       aItem.finalize = aOptions.finalize;
@@ -1065,7 +1169,7 @@ MenuContainer.prototype = {
     this._itemsByLabel.set(aItem._label, aItem);
     this._itemsByValue.set(aItem._value, aItem);
     this._itemsByElement.set(aElement, aItem);
-    aItem.target = aElement;
+    aItem._target = aElement;
   },
 
   
@@ -1082,10 +1186,38 @@ MenuContainer.prototype = {
       aItem.remove(childItem);
     }
 
+    this._unlinkItem(aItem);
+    aItem._prebuiltTarget = null;
+    aItem._target = null;
+  },
+
+  
+
+
+
+
+
+  _unlinkItem: function MI__unlinkItem(aItem) {
     this._itemsByLabel.delete(aItem._label);
     this._itemsByValue.delete(aItem._value);
-    this._itemsByElement.delete(aItem.target);
-    aItem.target = null;
+    this._itemsByElement.delete(aItem._target);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _sortPredicate: function MC__sortPredicate(aFirst, aSecond) {
+    return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
   },
 
   _container: null,
