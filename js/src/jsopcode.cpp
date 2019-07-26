@@ -603,7 +603,7 @@ js_Disassemble1(JSContext *cx, HandleScript script, jsbytecode *pc,
 
       case JOF_OBJECT: {
         
-        if (cx->compartment()->activeAnalysis) {
+        if (script->compartment()->activeAnalysis) {
             Sprint(sp, " object");
             break;
         }
