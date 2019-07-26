@@ -62,6 +62,8 @@ protected:
 class nsMathMLmtableFrame : public nsTableFrame
 {
 public:
+  NS_DECL_QUERYFRAME_TARGET(nsMathMLmtableFrame)
+  NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   friend nsContainerFrame* NS_NewMathMLmtableFrame(nsIPresShell* aPresShell,
@@ -108,9 +110,62 @@ public:
   
   void RestyleTable();
 
+  
+  nscoord GetCellSpacingX(int32_t aColIndex) MOZ_OVERRIDE;
+
+  
+
+
+  nscoord GetCellSpacingX(int32_t aStartColIndex,
+                          int32_t aEndColIndex) MOZ_OVERRIDE;
+
+  
+  nscoord GetCellSpacingY(int32_t aRowIndex) MOZ_OVERRIDE;
+
+  
+
+
+  nscoord GetCellSpacingY(int32_t aStartRowIndex,
+                          int32_t aEndRowIndex) MOZ_OVERRIDE;
+
+  void SetColSpacingArray(const nsTArray<nscoord>& aColSpacing)
+  {
+    mColSpacing = aColSpacing;
+  }
+
+  void SetRowSpacingArray(const nsTArray<nscoord>& aRowSpacing)
+  {
+    mRowSpacing = aRowSpacing;
+  }
+
+  void SetFrameSpacing(nscoord aSpacingX, nscoord aSpacingY)
+  {
+    mFrameSpacingX = aSpacingX;
+    mFrameSpacingY = aSpacingY;
+  }
+
+  
+
+
+
+
+  void SetUseCSSSpacing();
+
+  bool GetUseCSSSpacing()
+  {
+    return mUseCSSSpacing;
+  }
+
 protected:
   nsMathMLmtableFrame(nsStyleContext* aContext) : nsTableFrame(aContext) {}
   virtual ~nsMathMLmtableFrame();
+
+private:
+  nsTArray<nscoord> mColSpacing;
+  nsTArray<nscoord> mRowSpacing;
+  nscoord mFrameSpacingX;
+  nscoord mFrameSpacingY;
+  bool mUseCSSSpacing;
 }; 
 
 
@@ -205,6 +260,8 @@ public:
   }
 
   virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const MOZ_OVERRIDE;
+
+  virtual nsMargin GetBorderOverflow() MOZ_OVERRIDE;
 
 protected:
   nsMathMLmtdFrame(nsStyleContext* aContext) : nsTableCellFrame(aContext) {}
