@@ -8,9 +8,14 @@
 #include "nsJSPrincipals.h"
 #include "nsScriptSecurityManager.h"
 #include "jsfriendapi.h"
+#include "prprf.h"
+
+#include "js/OldDebugAPI.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Move.h"
+
+#include <string.h>
 
 #ifdef XP_LINUX
 #include <unistd.h>
@@ -59,6 +64,7 @@ ThreadStackHelper::ThreadStackHelper()
 #endif
     mStackToFill(nullptr)
   , mMaxStackSize(Stack::sMaxInlineStorage)
+  , mMaxBufferSize(0)
 {
 #if defined(XP_LINUX)
   mThreadID = ::syscall(SYS_gettid);
@@ -202,7 +208,11 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
   }
 #endif
   MOZ_ASSERT(mPseudoStack);
-  MOZ_ALWAYS_TRUE(aStack.reserve(mMaxStackSize));
+  if (!aStack.reserve(mMaxStackSize) ||
+      !aStack.reserve(aStack.capacity()) || 
+      !aStack.EnsureBufferCapacity(mMaxBufferSize)) {
+    return false;
+  }
   mStackToFill = &aStack;
   return true;
 #else
@@ -232,8 +242,10 @@ IsChromeJSScript(JSScript* aScript)
 
 const char*
 ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
+                                 intptr_t& aAvailableBufferSize,
                                  const char* aPrevLabel)
 {
+  
   
   
   MOZ_ASSERT(aEntry->isJs());
@@ -241,12 +253,35 @@ ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
 
   const char* label;
   if (IsChromeJSScript(aEntry->script())) {
+    const char* const filename = JS_GetScriptFilename(aEntry->script());
+    unsigned lineno = JS_PCToLineNumber(nullptr, aEntry->script(),
+                                        aEntry->pc());
+    MOZ_ASSERT(filename);
+
+    char buffer[64]; 
+    const char* const basename = strrchr(filename, '/');
+    size_t len = PR_snprintf(buffer, sizeof(buffer), "%s:%u",
+                             basename ? basename + 1 : filename, lineno);
+    if (len < sizeof(buffer)) {
+      if (mStackToFill->IsSameAsEntry(aPrevLabel, buffer)) {
+        return aPrevLabel;
+      }
+
+      
+      aAvailableBufferSize -= (len + 1);
+      if (aAvailableBufferSize >= 0) {
+        
+        return mStackToFill->InfallibleAppendViaBuffer(buffer, len);
+      }
+      
+    }
+    
     label = "(chrome script)";
   } else {
     label = "(content script)";
   }
 
-  if (label == aPrevLabel) {
+  if (mStackToFill->IsSameAsEntry(aPrevLabel, label)) {
     return aPrevLabel;
   }
   mStackToFill->infallibleAppend(label);
@@ -258,8 +293,12 @@ ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
 void
 ThreadStackHelper::FillStackBuffer()
 {
+  MOZ_ASSERT(mStackToFill->empty());
+
 #ifdef MOZ_ENABLE_PROFILER_SPS
-  size_t reservedSize = mMaxStackSize;
+  size_t reservedSize = mStackToFill->capacity();
+  size_t reservedBufferSize = mStackToFill->AvailableBufferSize();
+  intptr_t availableBufferSize = intptr_t(reservedBufferSize);
 
   
   const volatile StackEntry* entry = mPseudoStack->mStack;
@@ -273,18 +312,26 @@ ThreadStackHelper::FillStackBuffer()
       continue;
     }
     if (entry->isJs()) {
-      prevLabel = AppendJSEntry(entry, prevLabel);
+      prevLabel = AppendJSEntry(entry, availableBufferSize, prevLabel);
       continue;
     }
     const char* const label = entry->label();
-    if (label == prevLabel) {
+    if (mStackToFill->IsSameAsEntry(prevLabel, label)) {
       continue;
     }
     mStackToFill->infallibleAppend(label);
     prevLabel = label;
   }
+
   
-  mMaxStackSize += (end - entry);
+  
+  mMaxStackSize = mStackToFill->capacity() + (end - entry);
+
+  
+  
+  if (availableBufferSize < 0) {
+    mMaxBufferSize = reservedBufferSize - availableBufferSize;
+  }
 #endif
 }
 
