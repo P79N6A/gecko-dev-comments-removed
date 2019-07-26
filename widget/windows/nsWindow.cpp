@@ -3426,26 +3426,32 @@ nsWindow::OnDefaultButtonLoaded(const nsIntRect &aButtonRect)
 }
 
 NS_IMETHODIMP
-nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
-                                         bool aIsHorizontal,
-                                         int32_t &aOverriddenDelta)
+nsWindow::OverrideSystemMouseScrollSpeed(double aOriginalDeltaX,
+                                         double aOriginalDeltaY,
+                                         double& aOverriddenDeltaX,
+                                         double& aOverriddenDeltaY)
 {
   
   
   const uint32_t kSystemDefaultScrollingSpeed = 3;
 
-  int32_t absOriginDelta = DeprecatedAbs(aOriginalDelta);
+  double absOriginDeltaX = Abs(aOriginalDeltaX);
+  double absOriginDeltaY = Abs(aOriginalDeltaY);
 
   
-  int32_t absComputedOverriddenDelta;
+  double absComputedOverriddenDeltaX, absComputedOverriddenDeltaY;
   nsresult rv =
-    nsBaseWidget::OverrideSystemMouseScrollSpeed(absOriginDelta, aIsHorizontal,
-                                                 absComputedOverriddenDelta);
+    nsBaseWidget::OverrideSystemMouseScrollSpeed(absOriginDeltaX,
+                                                 absOriginDeltaY,
+                                                 absComputedOverriddenDeltaX,
+                                                 absComputedOverriddenDeltaY);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aOverriddenDelta = aOriginalDelta;
+  aOverriddenDeltaX = aOriginalDeltaX;
+  aOverriddenDeltaY = aOriginalDeltaY;
 
-  if (absComputedOverriddenDelta == absOriginDelta) {
+  if (absComputedOverriddenDeltaX == absOriginDeltaX &&
+      absComputedOverriddenDeltaY == absOriginDeltaY) {
     
     return NS_OK;
   }
@@ -3479,23 +3485,29 @@ nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
   
   
   
-  int32_t absDeltaLimit;
+  double absDeltaLimitX, absDeltaLimitY;
   rv =
     nsBaseWidget::OverrideSystemMouseScrollSpeed(kSystemDefaultScrollingSpeed,
-                                                 aIsHorizontal, absDeltaLimit);
+                                                 kSystemDefaultScrollingSpeed,
+                                                 absDeltaLimitX,
+                                                 absDeltaLimitY);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  if (absDeltaLimit <= absOriginDelta) {
+  if (absDeltaLimitX <= absOriginDeltaX || absDeltaLimitY <= absOriginDeltaY) {
     return NS_OK;
   }
 
-  absComputedOverriddenDelta =
-    std::min(absComputedOverriddenDelta, absDeltaLimit);
+  aOverriddenDeltaX = std::min(absComputedOverriddenDeltaX, absDeltaLimitX);
+  aOverriddenDeltaY = std::min(absComputedOverriddenDeltaY, absDeltaLimitY);
 
-  aOverriddenDelta = (aOriginalDelta > 0) ? absComputedOverriddenDelta :
-                                            -absComputedOverriddenDelta;
+  if (aOriginalDeltaX < 0) {
+    aOverriddenDeltaX *= -1;
+  }
+  if (aOriginalDeltaY < 0) {
+    aOverriddenDeltaY *= -1;
+  }
   return NS_OK;
 }
 

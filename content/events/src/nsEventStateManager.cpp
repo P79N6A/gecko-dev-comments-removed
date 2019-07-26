@@ -646,21 +646,16 @@ nsMouseWheelTransaction::OverrideSystemScrollSpeed(widget::WheelEvent* aEvent)
   MOZ_ASSERT(sTargetFrame, "We don't have mouse scrolling transaction");
   MOZ_ASSERT(aEvent->deltaMode == nsIDOMWheelEvent::DOM_DELTA_LINE);
 
-  DeltaValues result(aEvent);
-
   
   
-  
-  if ((!aEvent->lineOrPageDeltaX && !aEvent->lineOrPageDeltaY) ||
-      (static_cast<double>(aEvent->lineOrPageDeltaX) != aEvent->deltaX) ||
-      (static_cast<double>(aEvent->lineOrPageDeltaY) != aEvent->deltaY)) {
-    return result;
+  if (!aEvent->deltaX && !aEvent->deltaY) {
+    return DeltaValues(aEvent);
   }
 
   
   if (sTargetFrame !=
         sTargetFrame->PresContext()->PresShell()->GetRootScrollFrame()) {
-    return result;
+    return DeltaValues(aEvent);
   }
 
   
@@ -668,25 +663,13 @@ nsMouseWheelTransaction::OverrideSystemScrollSpeed(widget::WheelEvent* aEvent)
   
   
   nsCOMPtr<nsIWidget> widget(sTargetFrame->GetNearestWidget());
-  NS_ENSURE_TRUE(widget, result);
-  int32_t overriddenDeltaX = 0, overriddenDeltaY = 0;
-  if (aEvent->lineOrPageDeltaX) {
-    nsresult rv =
-      widget->OverrideSystemMouseScrollSpeed(aEvent->lineOrPageDeltaX,
-                                             true, overriddenDeltaX);
-    if (NS_FAILED(rv)) {
-      return result;
-    }
-  }
-  if (aEvent->lineOrPageDeltaY) {
-    nsresult rv =
-      widget->OverrideSystemMouseScrollSpeed(aEvent->lineOrPageDeltaY,
-                                             false, overriddenDeltaY);
-    if (NS_FAILED(rv)) {
-      return result;
-    }
-  }
-  return DeltaValues(overriddenDeltaX, overriddenDeltaY);
+  NS_ENSURE_TRUE(widget, DeltaValues(aEvent));
+  DeltaValues overriddenDeltaValues(0.0, 0.0);
+  nsresult rv =
+    widget->OverrideSystemMouseScrollSpeed(aEvent->deltaX, aEvent->deltaY,
+                                           overriddenDeltaValues.deltaX,
+                                           overriddenDeltaValues.deltaY);
+  return NS_FAILED(rv) ? DeltaValues(aEvent) : overriddenDeltaValues;
 }
 
 
