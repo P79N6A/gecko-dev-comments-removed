@@ -1090,6 +1090,9 @@ pref("devtools.inspector.remote", false);
 pref("devtools.inspector.show_pseudo_elements", true);
 
 
+pref("devtools.defaultColorUnit", "hex");
+
+
 pref("devtools.responsiveUI.enabled", true);
 pref("devtools.responsiveUI.no-reload-notification", false);
 
