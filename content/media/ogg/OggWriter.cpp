@@ -22,6 +22,14 @@ OggWriter::OggWriter() : ContainerWriter()
   }
 }
 
+OggWriter::~OggWriter()
+{
+  if (mInitialized) {
+    ogg_stream_clear(&mOggStreamState);
+  }
+  
+}
+
 nsresult
 OggWriter::Init()
 {
