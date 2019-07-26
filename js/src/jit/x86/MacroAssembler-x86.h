@@ -98,10 +98,10 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     }
     Operand ToType(Operand base) {
         switch (base.kind()) {
-          case Operand::REG_DISP:
+          case Operand::MEM_REG_DISP:
             return Operand(Register::FromCode(base.base()), base.disp() + sizeof(void *));
 
-          case Operand::SCALE:
+          case Operand::MEM_SCALE:
             return Operand(Register::FromCode(base.base()), Register::FromCode(base.index()),
                            base.scale(), base.disp() + sizeof(void *));
 
@@ -174,7 +174,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         
         
         Register baseReg = Register::FromCode(src.base());
-        Register indexReg = (src.kind() == Operand::SCALE) ? Register::FromCode(src.index()) : InvalidReg;
+        Register indexReg = (src.kind() == Operand::MEM_SCALE) ? Register::FromCode(src.index()) : InvalidReg;
 
         if (baseReg == val.payloadReg() || indexReg == val.payloadReg()) {
             JS_ASSERT(baseReg != val.typeReg());
