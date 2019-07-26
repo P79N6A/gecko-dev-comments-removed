@@ -84,7 +84,7 @@ let tests = [];
 
 
 let observe_failures = function observe_failures(promise) {
-  promise.then(null, function onReject(reason) {
+  promise.catch(function onReject(reason) {
     test.do_throw("Observed failure in test " + test + ": " + reason);
   });
 };
@@ -404,8 +404,7 @@ tests.push(
       }
     );
 
-    promise = promise.then(
-      null,
+    promise = promise.catch(
       function onReject(reason) {
         do_check_eq(reason, boom2, "Rejection was propagated with the correct " +
                 "reason, through a promise");
@@ -461,8 +460,7 @@ tests.push(
     );
 
     
-    promise = promise.then(
-      null,
+    promise = promise.catch(
       function onReject() {
         do_throw("Incorrect rejection");
       }
@@ -488,16 +486,14 @@ tests.push(
       }
     );
 
-    promise = promise.then(
-      null,
+    promise = promise.catch(
       function onReject(reason) {
         do_check_true(reason == error_1, "Reason was propagated correctly");
         throw error_2;
       }
     );
 
-    promise = promise.then(
-      null,
+    promise = promise.catch(
       function onReject(reason) {
         do_check_true(reason == error_2, "Throwing an error altered the reason " +
             "as expected");
@@ -538,12 +534,15 @@ tests.push(
 tests.push(
   make_promise_test(function test_resolve(test) {
     const RESULT = "arbitrary value";
-    let promise = Promise.resolve(RESULT).then(
+    let p1 = Promise.resolve(RESULT);
+    let p2 = Promise.resolve(p1);
+    do_check_eq(p1, p2, "Promise.resolve used on a promise just returns the promise");
+
+    return p1.then(
       function onResolve(result) {
         do_check_eq(result, RESULT, "Promise.resolve propagated the correct result");
       }
     );
-    return promise;
   }));
 
 
@@ -667,9 +666,9 @@ tests.push(
   make_promise_test(function all_resolve_no_promises(test) {
     try {
       Promise.all(null);
-      do_check_true(false, "all() should only accept arrays.");
+      do_check_true(false, "all() should only accept iterables");
     } catch (e) {
-      do_check_true(true, "all() fails when first the arg is not an array.");
+      do_check_true(true, "all() fails when first the arg is not an iterable");
     }
 
     let p1 = Promise.all([]).then(
@@ -687,6 +686,148 @@ tests.push(
     );
 
     return Promise.all([p1, p2]);
+  }));
+
+
+tests.push(
+  make_promise_test(function all_iterable(test) {
+    function* iterable() {
+      yield 1;
+      yield 2;
+      yield 3;
+    }
+
+    return Promise.all(iterable()).then(
+      function onResolve([val1, val2, val3]) {
+        do_check_eq(val1, 1);
+        do_check_eq(val2, 2);
+        do_check_eq(val3, 3);
+      },
+      function onReject() {
+        do_throw("all() unexpectedly rejected");
+      }
+    );
+  }));
+
+
+
+tests.push(
+  make_promise_test(function all_iterable_throws(test) {
+    function* iterable() {
+      throw 1;
+    }
+
+    return Promise.all(iterable()).then(
+      function onResolve() {
+        do_throw("all() unexpectedly resolved");
+      },
+      function onReject(reason) {
+        do_check_eq(reason, 1, "all() rejects when the iterator throws");
+      }
+    );
+  }));
+
+
+tests.push(
+  make_promise_test(function race_resolve(test) {
+    let p1 = Promise.resolve(1);
+    let p2 = Promise.resolve().then(() => 2);
+
+    return Promise.race([p1, p2]).then(
+      function onResolve(value) {
+        do_check_eq(value, 1);
+      }
+    );
+  }));
+
+
+tests.push(
+  make_promise_test(function race_resolve_no_promises(test) {
+    try {
+      Promise.race(null);
+      do_check_true(false, "race() should only accept iterables");
+    } catch (e) {
+      do_check_true(true, "race() fails when first the arg is not an iterable");
+    }
+
+    return Promise.race([1, 2, 3]).then(
+      function onResolve(value) {
+        do_check_eq(value, 1);
+      }
+    );
+  }));
+
+
+tests.push(
+  make_promise_test(function race_resolve_never(test) {
+    return new Promise(resolve => {
+      Promise.race([]).then(
+        function onResolve() {
+          do_throw("race() unexpectedly resolved");
+        },
+        function onReject() {
+          do_throw("race() unexpectedly rejected");
+        }
+      );
+
+      
+      do_timeout(200, resolve);
+    });
+  }));
+
+
+tests.push(
+  make_promise_test(function race_iterable(test) {
+    function* iterable() {
+      yield 1;
+      yield 2;
+      yield 3;
+    }
+
+    return Promise.race(iterable()).then(
+      function onResolve(value) {
+        do_check_eq(value, 1);
+      },
+      function onReject() {
+        do_throw("race() unexpectedly rejected");
+      }
+    );
+  }));
+
+
+
+tests.push(
+  make_promise_test(function race_iterable_throws(test) {
+    function* iterable() {
+      throw 1;
+    }
+
+    return Promise.race(iterable()).then(
+      function onResolve() {
+        do_throw("race() unexpectedly resolved");
+      },
+      function onReject(reason) {
+        do_check_eq(reason, 1, "race() rejects when the iterator throws");
+      }
+    );
+  }));
+
+
+
+tests.push(
+  make_promise_test(function race_reject(test) {
+    let p1 = Promise.reject(1);
+    let p2 = Promise.resolve(2);
+    let p3 = Promise.resolve(3);
+
+    return Promise.race([p1, p2, p3]).then(
+      function onResolve() {
+        do_throw("race() unexpectedly resolved");
+      },
+      function onReject(reason) {
+        do_check_eq(reason, 1, "race() rejects when given a rejected promise");
+      }
+    );
   }));
 
 
@@ -803,7 +944,7 @@ tests.push(
     }, null);
 
     do_print("Setting wait for second promise");
-    return promise2.then(null, error => {return 3;})
+    return promise2.catch(error => {return 3;})
     .then(
       count => {
         shouldExitNestedEventLoop = true;
@@ -930,7 +1071,7 @@ make_promise_test(function test_caught_is_not_reported() {
   let promise = wait_for_uncaught([salt], 500);
   (function() {
     let uncaught = Promise.reject("This error, on the other hand, is caught " + salt);
-    uncaught.then(null, function() { });
+    uncaught.catch(function() { });
     uncaught = null;
   })();
   

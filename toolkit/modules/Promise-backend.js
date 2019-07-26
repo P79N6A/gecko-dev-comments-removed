@@ -348,6 +348,21 @@ Promise.prototype.then = function (aOnResolve, aOnReject)
 
 
 
+
+
+
+Promise.prototype.catch = function (aOnReject)
+{
+  return this.then(undefined, aOnReject);
+};
+
+
+
+
+
+
+
+
 Promise.defer = function ()
 {
   return new Deferred();
@@ -373,6 +388,10 @@ Promise.resolve = function (aValue)
       "You should either invoke the async function first " +
       "or use 'Task.spawn' instead of 'Task.async' to start " +
       "the Task and return its promise.");
+  }
+
+  if (aValue instanceof Promise) {
+    return aValue;
   }
 
   return new Promise((aResolve) => aResolve(aValue));
@@ -419,40 +438,62 @@ Promise.all = function (aValues)
     throw new Error("Promise.all() expects an iterable.");
   }
 
-  if (!Array.isArray(aValues)) {
-    aValues = [...aValues];
-  }
+  return new Promise((resolve, reject) => {
+    let values = Array.isArray(aValues) ? aValues : [...aValues];
+    let countdown = values.length;
+    let resolutionValues = new Array(countdown);
 
-  if (!aValues.length) {
-    return Promise.resolve([]);
-  }
-
-  let countdown = aValues.length;
-  let deferred = Promise.defer();
-  let resolutionValues = new Array(countdown);
-
-  function checkForCompletion(aValue, aIndex) {
-    resolutionValues[aIndex] = aValue;
-
-    if (--countdown === 0) {
-      deferred.resolve(resolutionValues);
+    if (!countdown) {
+      resolve(resolutionValues);
+      return;
     }
-  }
 
-  for (let i = 0; i < aValues.length; i++) {
-    let index = i;
-    let value = aValues[i];
-    let resolve = val => checkForCompletion(val, index);
-
-    if (value && typeof(value.then) == "function") {
-      value.then(resolve, deferred.reject);
-    } else {
-      
-      resolve(value);
+    function checkForCompletion(aValue, aIndex) {
+      resolutionValues[aIndex] = aValue;
+      if (--countdown === 0) {
+        resolve(resolutionValues);
+      }
     }
+
+    for (let i = 0; i < values.length; i++) {
+      let index = i;
+      let value = values[i];
+      let resolver = val => checkForCompletion(val, index);
+
+      if (value && typeof(value.then) == "function") {
+        value.then(resolver, reject);
+      } else {
+        
+        resolver(value);
+      }
+    }
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Promise.race = function (aValues)
+{
+  if (aValues == null || typeof(aValues["@@iterator"]) != "function") {
+    throw new Error("Promise.race() expects an iterable.");
   }
 
-  return deferred.promise;
+  return new Promise((resolve, reject) => {
+    for (let value of aValues) {
+      Promise.resolve(value).then(resolve, reject);
+    }
+  });
 };
 
 Object.freeze(Promise);
