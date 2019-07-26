@@ -1974,7 +1974,7 @@ bool AsyncPanZoomController::UpdateAnimation(const TimeStamp& aSampleTime,
   return false;
 }
 
-void AsyncPanZoomController::ApplyOverscrollEffect(ViewTransform* aTransform) const {
+void AsyncPanZoomController::GetOverscrollTransform(ViewTransform* aTransform) const {
   
   
   
@@ -2066,8 +2066,9 @@ void AsyncPanZoomController::ApplyOverscrollEffect(ViewTransform* aTransform) co
 }
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                                            ViewTransform* aNewTransform,
-                                                            ScreenPoint& aScrollOffset) {
+                                                            ViewTransform* aOutTransform,
+                                                            ScreenPoint& aScrollOffset,
+                                                            ViewTransform* aOutOverscrollTransform) {
   
   
   
@@ -2082,12 +2083,22 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     requestAnimationFrame = UpdateAnimation(aSampleTime, &deferredTasks);
 
     aScrollOffset = mFrameMetrics.GetScrollOffset() * mFrameMetrics.GetZoom();
-    *aNewTransform = GetCurrentAsyncTransform();
+    *aOutTransform = GetCurrentAsyncTransform();
 
-    if (IsOverscrolled()) {
+    
+    
+    if (aOutOverscrollTransform && IsOverscrolled()) {
+      GetOverscrollTransform(aOutOverscrollTransform);
+
       
       
-      ApplyOverscrollEffect(aNewTransform);
+      
+      
+      
+      
+      
+      aOutOverscrollTransform->mTranslation.x *= aOutTransform->mScale.scale;
+      aOutOverscrollTransform->mTranslation.y *= aOutTransform->mScale.scale;
     }
 
     LogRendertraceRect(GetGuid(), "viewport", "red",

@@ -166,9 +166,14 @@ public:
 
 
 
+
+
+
+
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                      ViewTransform* aNewTransform,
-                                      ScreenPoint& aScrollOffset);
+                                      ViewTransform* aOutTransform,
+                                      ScreenPoint& aScrollOffset,
+                                      ViewTransform* aOutOverscrollTransform = nullptr);
 
   
 
@@ -646,7 +651,7 @@ private:
 
 
 
-  void ApplyOverscrollEffect(ViewTransform* aTransform) const;
+  void GetOverscrollTransform(ViewTransform* aTransform) const;
 
   enum AxisLockMode {
     FREE,     

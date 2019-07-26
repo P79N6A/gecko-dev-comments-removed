@@ -41,6 +41,12 @@ struct ViewTransform {
       gfx3DMatrix::ScalingMatrix(mScale.scale, mScale.scale, 1);
   }
 
+  
+  
+  friend gfx3DMatrix operator*(const ViewTransform& a, const ViewTransform& b) {
+    return gfx3DMatrix(a) * gfx3DMatrix(b);
+  }
+
   bool operator==(const ViewTransform& rhs) const {
     return mTranslation == rhs.mTranslation && mScale == rhs.mScale;
   }
@@ -161,8 +167,12 @@ private:
 
 
 
+
+
+
   void AlignFixedAndStickyLayers(Layer* aLayer, Layer* aTransformedSubtreeRoot,
                                  const gfx::Matrix4x4& aPreviousTransformForRoot,
+                                 const gfx::Matrix4x4& aCurrentTransformForRoot,
                                  const LayerMargin& aFixedLayerMargins);
 
   
