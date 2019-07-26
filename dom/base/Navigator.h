@@ -251,8 +251,6 @@ public:
                     JS::MutableHandle<JSPropertyDescriptor> aDesc);
   void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
                            ErrorResult& aRv);
-  void GetLanguages(nsTArray<nsString>& aLanguages);
-  void GetAcceptLanguages(nsTArray<nsString>& aLanguages);
 
   
   static bool HasBatterySupport(JSContext* , JSObject* );
