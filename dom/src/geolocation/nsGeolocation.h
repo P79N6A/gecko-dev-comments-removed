@@ -53,7 +53,8 @@ class nsGeolocationRequest
   nsGeolocationRequest(nsGeolocation* locator,
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
-                       bool watchPositionRequest = false);
+                       bool watchPositionRequest = false,
+                       int32_t watchId = 0);
   nsresult Init(JSContext* aCx, const jsval& aOptions);
   void Shutdown();
 
@@ -71,6 +72,8 @@ class nsGeolocationRequest
   bool Recv__delete__(const bool& allow);
   void IPDLRelease() { Release(); }
 
+  int32_t WatchId() { return mWatchId; }
+
  private:
 
   void NotifyError(int16_t errorCode);
@@ -84,6 +87,8 @@ class nsGeolocationRequest
   nsAutoPtr<mozilla::dom::GeoPositionOptions> mOptions;
 
   nsRefPtr<nsGeolocation> mLocator;
+
+  int32_t mWatchId;
 };
 
 
@@ -108,6 +113,7 @@ public:
   nsresult Init();
 
   void HandleMozsettingChanged(const PRUnichar* aData);
+  void HandleMozsettingValue(const bool aValue);
 
   
   void AddLocator(nsGeolocation* locator);
@@ -121,7 +127,7 @@ public:
 
   
   void     StopDevice();
-  
+
   
   void     SetDisconnectTimer();
 
@@ -155,7 +161,7 @@ private:
 
 
 
- 
+
 class nsGeolocation MOZ_FINAL : public nsIDOMGeoGeolocation
 {
 public:
@@ -190,11 +196,18 @@ public:
   
   bool WindowOwnerStillExists();
 
+  
+  void ServiceReady();
+
 private:
 
   ~nsGeolocation();
 
   bool RegisterRequestWithPrompt(nsGeolocationRequest* request);
+
+  
+  nsresult GetCurrentPositionReady(nsGeolocationRequest* aRequest);
+  nsresult WatchPositionReady(nsGeolocationRequest* aRequest);
 
   
   
@@ -212,6 +225,22 @@ private:
 
   
   nsRefPtr<nsGeolocationService> mService;
+
+  
+  uint32_t mLastWatchId;
+
+  
+  class PendingRequest
+  {
+  public:
+    nsRefPtr<nsGeolocationRequest> request;
+    enum {
+      GetCurrentPosition,
+      WatchPosition
+    } type;
+  };
+
+  nsTArray<PendingRequest> mPendingRequests;
 };
 
 #endif 
