@@ -157,6 +157,9 @@ private:
   int32_t      mTimeout; 
   int32_t      mDisposalMethod;
 
+  
+  int32_t mLockCount;
+
   gfxASurface::gfxImageFormat mFormat;
   uint8_t      mPaletteDepth;
   int8_t       mBlendMethod;
@@ -165,8 +168,6 @@ private:
   bool mFormatChanged;
   bool mCompositingFailed;
   bool mNonPremult;
-  
-  bool mLocked;
 
   
   bool mInformedDiscardTracker;
