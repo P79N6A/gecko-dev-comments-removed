@@ -51,7 +51,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIPresShell.h"
 #include "nsIServiceManager.h"
-#include "nsIStringBundle.h"
 #include "nsFocusManager.h"
 #include "nsPresContext.h"
 #include "mozilla/Services.h"
@@ -61,8 +60,6 @@ using namespace mozilla::a11y;
 
 
 
-
-nsIStringBundle *nsAccessNode::gStringBundle = 0;
 
 ApplicationAccessible* nsAccessNode::gApplicationAccessible = nsnull;
 
@@ -149,24 +146,11 @@ nsAccessNode::GetApplicationAccessible()
   return gApplicationAccessible;
 }
 
-void nsAccessNode::InitXPAccessibility()
-{
-  nsCOMPtr<nsIStringBundleService> stringBundleService =
-    mozilla::services::GetStringBundleService();
-  if (stringBundleService) {
-    
-    stringBundleService->CreateBundle(ACCESSIBLE_BUNDLE_URL, 
-                                      &gStringBundle);
-  }
-}
-
 void nsAccessNode::ShutdownXPAccessibility()
 {
   
   
   
-
-  NS_IF_RELEASE(gStringBundle);
 
   
   

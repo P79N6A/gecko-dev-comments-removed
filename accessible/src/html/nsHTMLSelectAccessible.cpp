@@ -265,9 +265,12 @@ nsHTMLSelectOptionAccessible::NativeState()
   
   PRUint64 state = nsAccessible::NativeState();
 
-  PRUint64 selectState = 0;
-  nsIContent* selectContent = GetSelectState(&selectState);
-  if (!selectContent || selectState & states::INVISIBLE)
+  nsAccessible* select = GetSelect();
+  if (!select)
+    return state;
+
+  PRUint64 selectState = select->State();
+  if (selectState & states::INVISIBLE)
     return state;
 
   
@@ -390,30 +393,6 @@ nsHTMLSelectOptionAccessible::ContainerWidget() const
 {
   return mParent && mParent->IsListControl() ? mParent : nsnull;
 }
-
-
-
-
-nsIContent*
-nsHTMLSelectOptionAccessible::GetSelectState(PRUint64* aState)
-{
-  *aState = 0;
-
-  nsIContent* selectNode = mContent;
-  while (selectNode && selectNode->Tag() != nsGkAtoms::select) {
-    selectNode = selectNode->GetParent();
-  }
-
-  if (selectNode) {
-    nsAccessible* select = mDoc->GetAccessible(selectNode);
-    if (select) {
-      *aState = select->State();
-      return selectNode;
-    }
-  }
-  return nsnull; 
-}
-
 
 
 

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef gc_marking_h___
 #define gc_marking_h___
@@ -37,32 +37,32 @@ template<class, typename> class HeapPtr;
 
 namespace gc {
 
+/*** Object Marking ***/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * These functions expose marking functionality for all of the different GC
+ * thing kinds. For each GC thing, there are several variants. As an example,
+ * these are the variants generated for JSObject. They are listed from most to
+ * least desirable for use:
+ *
+ * MarkObject(JSTracer *trc, const HeapPtr<JSObject> &thing, const char *name);
+ *     This function should be used for marking JSObjects, in preference to all
+ *     others below. Use it when you have HeapPtr<JSObject>, which
+ *     automatically implements write barriers.
+ *
+ * MarkObjectRoot(JSTracer *trc, JSObject *thing, const char *name);
+ *     This function is only valid during the root marking phase of GC (i.e.,
+ *     when MarkRuntime is on the stack).
+ *
+ * MarkObjectUnbarriered(JSTracer *trc, JSObject *thing, const char *name);
+ *     Like MarkObject, this function can be called at any time. It is more
+ *     forgiving, since it doesn't demand a HeapPtr as an argument. Its use
+ *     should always be accompanied by a comment explaining how write barriers
+ *     are implemented for the given field.
+ *
+ * Additionally, the functions MarkObjectRange and MarkObjectRootRange are
+ * defined for marking arrays of object pointers.
+ */
 #define DeclMarker(base, type)                                                                    \
 void Mark##base(JSTracer *trc, HeapPtr<type> *thing, const char *name);                           \
 void Mark##base##Root(JSTracer *trc, type **thingp, const char *name);                            \
@@ -90,20 +90,20 @@ DeclMarker(XML, JSXML)
 
 #undef DeclMarker
 
+/*** Externally Typed Marking ***/
 
-
-
-
-
-
-
+/*
+ * Note: this must only be called by the GC and only when we are tracing through
+ * MarkRoots. It is explicitly for ConservativeStackMarking and should go away
+ * after we transition to exact rooting.
+ */
 void
 MarkKind(JSTracer *trc, void **thingp, JSGCTraceKind kind);
 
 void
 MarkGCThingRoot(JSTracer *trc, void **thingp, const char *name);
 
-
+/*** ID Marking ***/
 
 void
 MarkId(JSTracer *trc, EncapsulatedId *id, const char *name);
@@ -117,13 +117,13 @@ MarkIdRange(JSTracer *trc, size_t len, HeapId *vec, const char *name);
 void
 MarkIdRootRange(JSTracer *trc, size_t len, jsid *vec, const char *name);
 
-
-
-void
-MarkValue(JSTracer *trc, HeapValue *v, const char *name);
+/*** Value Marking ***/
 
 void
-MarkValueRange(JSTracer *trc, size_t len, HeapValue *vec, const char *name);
+MarkValue(JSTracer *trc, EncapsulatedValue *v, const char *name);
+
+void
+MarkValueRange(JSTracer *trc, size_t len, EncapsulatedValue *vec, const char *name);
 
 void
 MarkValueRoot(JSTracer *trc, Value *v, const char *name);
@@ -143,7 +143,7 @@ MarkValueRootRange(JSTracer *trc, Value *begin, Value *end, const char *name)
     MarkValueRootRange(trc, end - begin, begin, name);
 }
 
-
+/*** Slot Marking ***/
 
 void
 MarkSlot(JSTracer *trc, HeapSlot *s, const char *name);
@@ -160,51 +160,51 @@ MarkCrossCompartmentObjectUnbarriered(JSTracer *trc, JSObject **obj, const char 
 void
 MarkCrossCompartmentScriptUnbarriered(JSTracer *trc, JSScript **script, const char *name);
 
-
-
-
-
+/*
+ * Mark a value that may be in a different compartment from the compartment
+ * being GC'd. (Although it won't be marked if it's in the wrong compartment.)
+ */
 void
 MarkCrossCompartmentSlot(JSTracer *trc, HeapSlot *s, const char *name);
 
 
+/*** Special Cases ***/
 
-
-
-
-
-
+/*
+ * The unioned HeapPtr stored in script->globalObj needs special treatment to
+ * typecheck correctly.
+ */
 void
 MarkObject(JSTracer *trc, HeapPtr<GlobalObject, JSScript *> *thingp, const char *name);
 
-
+/* Direct value access used by the write barriers and the methodjit. */
 void
 MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
 
-
-
-
-
+/*
+ * MarkChildren<JSObject> is exposed solely for preWriteBarrier on
+ * JSObject::TradeGuts. It should not be considered external interface.
+ */
 void
 MarkChildren(JSTracer *trc, JSObject *obj);
 
-
-
-
-
-
+/*
+ * Trace through the shape and any shapes it contains to mark
+ * non-shape children. This is exposed to the JS API as
+ * JS_TraceShapeCycleCollectorChildren.
+ */
 void
 MarkCycleCollectorChildren(JSTracer *trc, Shape *shape);
 
 void
 PushArena(GCMarker *gcmarker, ArenaHeader *aheader);
 
+/*** Generic ***/
 
-
-
-
-
-
+/*
+ * The Mark() functions interface should only be used by code that must be
+ * templated.  Other uses should use the more specific, type-named functions.
+ */
 
 inline void
 Mark(JSTracer *trc, HeapValue *v, const char *name)
@@ -291,7 +291,7 @@ TraceKind(JSScript *script)
     return JSTRACE_SCRIPT;
 }
 
-} 
+} /* namespace gc */
 
 void
 TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
@@ -299,6 +299,6 @@ TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 void
 CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* gc_marking_h___ */

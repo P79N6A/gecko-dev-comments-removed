@@ -1043,11 +1043,16 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 pref("devtools.errorconsole.enabled", false);
 
 
+pref("devtools.toolbar.enabled", false);
+
+
 pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.htmlHeight", 112);
 pref("devtools.inspector.htmlPanelOpen", false);
 pref("devtools.inspector.sidebarOpen", false);
 pref("devtools.inspector.activeSidebar", "ruleview");
+pref("devtools.inspector.highlighterShowVeil", true);
+pref("devtools.inspector.highlighterShowInfobar", true);
 
 
 pref("devtools.layoutview.enabled", false);
@@ -1089,7 +1094,13 @@ pref("devtools.styleeditor.transitions", true);
 pref("devtools.chrome.enabled", false);
 
 
-pref("devtools.gcli.enable", false);
+pref("devtools.gcli.hideIntro", false);
+
+
+pref("devtools.gcli.eagerHelper", 2);
+
+
+pref("devtools.gcli.allowSet", false);
 
 
 

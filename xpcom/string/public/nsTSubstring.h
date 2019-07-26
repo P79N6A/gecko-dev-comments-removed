@@ -83,6 +83,8 @@ class nsTDefaultStringComparator_CharT
 class nsTSubstring_CharT
   {
     public:
+      typedef mozilla::fallible_t                 fallible_t;
+
       typedef CharT                               char_type;
 
       typedef nsCharTraits<char_type>             char_traits;
@@ -156,14 +158,49 @@ class nsTSubstring_CharT
       
       char_iterator BeginWriting()
         {
+          if (!EnsureMutable())
+            NS_RUNTIMEABORT("OOM");
+
+          return mData;
+        }
+
+      char_iterator BeginWriting( const fallible_t& )
+        {
           return EnsureMutable() ? mData : char_iterator(0);
         }
 
       char_iterator EndWriting()
         {
+          if (!EnsureMutable())
+            NS_RUNTIMEABORT("OOM");
+
+          return mData + mLength;
+        }
+
+      char_iterator EndWriting( const fallible_t& )
+        {
           return EnsureMutable() ? (mData + mLength) : char_iterator(0);
         }
 
+      char_iterator& BeginWriting( char_iterator& iter )
+        {
+          return iter = BeginWriting();
+        }
+
+      char_iterator& BeginWriting( char_iterator& iter, const fallible_t& )
+        {
+          return iter = BeginWriting(fallible_t());
+        }
+
+      char_iterator& EndWriting( char_iterator& iter )
+        {
+          return iter = EndWriting();
+        }
+
+      char_iterator& EndWriting( char_iterator& iter, const fallible_t& )
+        {
+          return iter = EndWriting(fallible_t());
+        }
 
         
 
@@ -171,7 +208,7 @@ class nsTSubstring_CharT
       
       iterator& BeginWriting( iterator& iter )
         {
-          char_type *data = EnsureMutable() ? mData : nsnull;
+          char_type *data = BeginWriting();
           iter.mStart = data;
           iter.mEnd = data + mLength;
           iter.mPosition = iter.mStart;
@@ -180,23 +217,12 @@ class nsTSubstring_CharT
 
       iterator& EndWriting( iterator& iter )
         {
-          char_type *data = EnsureMutable() ? mData : nsnull;
+          char_type *data = BeginWriting();
           iter.mStart = data;
           iter.mEnd = data + mLength;
           iter.mPosition = iter.mEnd;
           return iter;
         }
-
-      char_iterator& BeginWriting( char_iterator& iter )
-        {
-          return iter = EnsureMutable() ? mData : char_iterator(0);
-        }
-
-      char_iterator& EndWriting( char_iterator& iter )
-        {
-          return iter = EnsureMutable() ? (mData + mLength) : char_iterator(0);
-        }
-
 
         
 
@@ -339,13 +365,32 @@ class nsTSubstring_CharT
 
 
       void NS_FASTCALL Assign( char_type c );
-      void NS_FASTCALL Assign( const char_type* data, size_type length = size_type(-1) );
+      bool NS_FASTCALL Assign( char_type c, const fallible_t& ) NS_WARN_UNUSED_RESULT;
+
+      void NS_FASTCALL
+        Assign( const char_type* data, size_type length = size_type(-1) );
+      bool NS_FASTCALL Assign( const char_type* data, size_type length, const fallible_t& ) NS_WARN_UNUSED_RESULT;
+
       void NS_FASTCALL Assign( const self_type& );
+      bool NS_FASTCALL Assign( const self_type&, const fallible_t& ) NS_WARN_UNUSED_RESULT;
+
       void NS_FASTCALL Assign( const substring_tuple_type& );
+      bool NS_FASTCALL Assign( const substring_tuple_type&, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
       void NS_FASTCALL AssignASCII( const char* data, size_type length );
-      void NS_FASTCALL AssignASCII( const char* data );
+      bool NS_FASTCALL AssignASCII( const char* data, size_type length, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
+      void NS_FASTCALL AssignASCII( const char* data )
+        {
+          AssignASCII(data, strlen(data));
+        }
+      bool NS_FASTCALL AssignASCII( const char* data, const fallible_t& ) NS_WARN_UNUSED_RESULT
+        {
+          return AssignASCII(data, strlen(data), fallible_t());
+        }
+
+    
+    
     
     
     
@@ -375,7 +420,7 @@ class nsTSubstring_CharT
 
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, char_type c );
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, const char_type* data, size_type length = size_type(-1) );
-             void Replace( index_type cutStart, size_type cutLength, const self_type& str )      { Replace(cutStart, cutLength, str.Data(), str.Length()); }
+      void Replace( index_type cutStart, size_type cutLength, const self_type& str )      { Replace(cutStart, cutLength, str.Data(), str.Length()); }
       void NS_FASTCALL Replace( index_type cutStart, size_type cutLength, const substring_tuple_type& tuple );
 
       void NS_FASTCALL ReplaceASCII( index_type cutStart, size_type cutLength, const char* data, size_type length = size_type(-1) );
@@ -468,13 +513,11 @@ class nsTSubstring_CharT
 
 
 
+      void NS_FASTCALL SetCapacity( size_type newCapacity );
+      bool NS_FASTCALL SetCapacity( size_type newCapacity, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
-
-
-
-      bool NS_FASTCALL SetCapacity( size_type newCapacity );
-
-      bool NS_FASTCALL SetLength( size_type newLength );
+      void NS_FASTCALL SetLength( size_type newLength );
+      bool NS_FASTCALL SetLength( size_type newLength, const fallible_t& ) NS_WARN_UNUSED_RESULT;
 
       void Truncate( size_type newLength = 0 )
         {
@@ -510,7 +553,16 @@ class nsTSubstring_CharT
 
 
 
-      inline size_type GetMutableData( char_type** data, size_type newLen = size_type(-1) )
+      size_type GetMutableData( char_type** data, size_type newLen = size_type(-1) )
+        {
+          if (!EnsureMutable(newLen))
+            NS_RUNTIMEABORT("OOM");
+
+          *data = mData;
+          return mLength;
+        }
+
+      size_type GetMutableData( char_type** data, size_type newLen, const fallible_t& )
         {
           if (!EnsureMutable(newLen))
             {
@@ -684,7 +736,7 @@ class nsTSubstring_CharT
 
 
       bool ReplacePrep(index_type cutStart, size_type cutLength,
-                         size_type newLength)
+                       size_type newLength) NS_WARN_UNUSED_RESULT
       {
         cutLength = NS_MIN(cutLength, mLength - cutStart);
         PRUint32 newTotalLen = mLength - cutLength + newLength;
@@ -698,10 +750,11 @@ class nsTSubstring_CharT
       }
 
       bool NS_FASTCALL ReplacePrepInternal(index_type cutStart,
-                                             size_type cutLength,
-                                             size_type newFragLength,
-                                             size_type newTotalLength);
-      
+                                           size_type cutLength,
+                                           size_type newFragLength,
+                                           size_type newTotalLength)
+        NS_WARN_UNUSED_RESULT;
+
         
 
 
@@ -715,7 +768,7 @@ class nsTSubstring_CharT
 
 
 
-      bool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) );
+      bool NS_FASTCALL EnsureMutable( size_type newLen = size_type(-1) ) NS_WARN_UNUSED_RESULT;
 
         
 
