@@ -54,7 +54,6 @@ public:
   void UnmarkCompilationGlobal();
   void Destroy();
   nsIPrincipal* GetPrincipal();
-  nsresult EnsureScriptEnvironment();
 
   static bool doCheckAccess(JSContext *cx, JS::Handle<JSObject*> obj,
                             JS::Handle<jsid> id, uint32_t accessType);
@@ -205,39 +204,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXBLDocGlobalObject)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsXBLDocGlobalObject)
 
-nsresult
-nsXBLDocGlobalObject::EnsureScriptEnvironment()
-{
-  if (mJSObject || mDestroyed) {
-    
-    return NS_OK;
-  }
-
-  AutoSafeJSContext cx;
-  JS::CompartmentOptions options;
-  options.setZone(JS::SystemZone)
-         .setInvisibleToDebugger(true);
-  mJSObject = JS_NewGlobalObject(cx, &gSharedGlobalClass,
-                                 nsJSPrincipals::get(GetPrincipal()),
-                                 JS::DontFireOnNewGlobalHook,
-                                 options);
-  if (!mJSObject)
-      return NS_OK;
-
-  NS_HOLD_JS_OBJECTS(this, nsXBLDocGlobalObject);
-
-  
-  
-  nsIURI *ownerURI = mGlobalObjectOwner->DocumentURI();
-  xpc::SetLocationForGlobal(mJSObject, ownerURI);
-
-  
-  
-  ::JS_SetPrivate(mJSObject, this);
-  NS_ADDREF(this);
-  return NS_OK;
-}
-
 void
 nsXBLDocGlobalObject::ClearGlobalObjectOwner()
 {
@@ -255,7 +221,33 @@ nsXBLDocGlobalObject::GetCompilationGlobal()
 {
   
   
-  EnsureScriptEnvironment();
+  if (mJSObject || mDestroyed) {
+    
+    return mJSObject;
+  }
+
+  AutoSafeJSContext cx;
+  JS::CompartmentOptions options;
+  options.setZone(JS::SystemZone)
+         .setInvisibleToDebugger(true);
+  mJSObject = JS_NewGlobalObject(cx, &gSharedGlobalClass,
+                                 nsJSPrincipals::get(GetPrincipal()),
+                                 JS::DontFireOnNewGlobalHook,
+                                 options);
+  if (!mJSObject)
+      return nullptr;
+
+  NS_HOLD_JS_OBJECTS(this, nsXBLDocGlobalObject);
+
+  
+  
+  nsIURI *ownerURI = mGlobalObjectOwner->DocumentURI();
+  xpc::SetLocationForGlobal(mJSObject, ownerURI);
+
+  
+  
+  ::JS_SetPrivate(mJSObject, this);
+  NS_ADDREF(this);
   return mJSObject;
 }
 
