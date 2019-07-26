@@ -891,8 +891,7 @@ class JSObject : public js::ObjectImpl
     addPropertyInternal(typename js::ExecutionModeTraits<mode>::ExclusiveContextType cx,
                         JS::HandleObject obj, JS::HandleId id,
                         JSPropertyOp getter, JSStrictPropertyOp setter,
-                        uint32_t slot, unsigned attrs,
-                        unsigned flags, int shortid, js::Shape **spp,
+                        uint32_t slot, unsigned attrs, unsigned flags, js::Shape **spp,
                         bool allowDictionary);
 
   private:
@@ -908,7 +907,7 @@ class JSObject : public js::ObjectImpl
     static js::Shape *addProperty(js::ExclusiveContext *cx, JS::HandleObject, JS::HandleId id,
                                   JSPropertyOp getter, JSStrictPropertyOp setter,
                                   uint32_t slot, unsigned attrs, unsigned flags,
-                                  int shortid, bool allowDictionary = true);
+                                  bool allowDictionary = true);
 
     
     js::Shape *addDataProperty(js::ExclusiveContext *cx,
@@ -923,14 +922,14 @@ class JSObject : public js::ObjectImpl
                 JS::HandleObject obj, JS::HandleId id,
                 JSPropertyOp getter, JSStrictPropertyOp setter,
                 uint32_t slot, unsigned attrs,
-                unsigned flags, int shortid);
+                unsigned flags);
     template <js::ExecutionMode mode>
     static inline js::Shape *
     putProperty(typename js::ExecutionModeTraits<mode>::ExclusiveContextType cx,
                 JS::HandleObject obj, js::PropertyName *name,
                 JSPropertyOp getter, JSStrictPropertyOp setter,
                 uint32_t slot, unsigned attrs,
-                unsigned flags, int shortid);
+                unsigned flags);
 
     
     template <js::ExecutionMode mode>
@@ -1433,7 +1432,7 @@ const unsigned DNP_UNQUALIFIED  = 2;
 extern bool
 DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
-                     unsigned flags, int shortid, unsigned defineHow = 0);
+                     unsigned flags, unsigned defineHow = 0);
 
 
 
