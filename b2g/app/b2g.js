@@ -452,13 +452,13 @@ pref("app.update.staging.enabled", true);
 pref("app.update.service.enabled", true);
 
 
-pref("app.update.url", "http://update.boot2gecko.org/m2.5/updates.xml");
+pref("app.update.url", "http://update.boot2gecko.org/nightly/update.xml");
 
-pref("app.update.interval", 3600); 
+pref("app.update.interval", 86400); 
 
 
-pref("app.update.timerFirstInterval", 30000);
-pref("app.update.timerMinimumDelay", 30); 
+pref("app.update.timerFirstInterval", 3600000); 
+pref("app.update.timerMinimumDelay", 3600); 
 
 pref("app.update.download.backgroundInterval", 0);
 
