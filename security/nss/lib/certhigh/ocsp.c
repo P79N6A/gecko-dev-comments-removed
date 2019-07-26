@@ -3805,38 +3805,35 @@ ocsp_VerifyResponseSignature(CERTCertificate *signerCert,
                              SECItem *tbsResponseDataDER,
                              void *pwArg)
 {
-    SECItem rawSignature;
     SECKEYPublicKey *signerKey = NULL;
     SECStatus rv = SECFailure;
+    CERTSignedData signedData;
 
     
 
 
 
     signerKey = CERT_ExtractPublicKey(signerCert);
-    if (signerKey == NULL)
-	return SECFailure;
+    if (signerKey == NULL) {
+        return SECFailure;
+    }
+
     
 
 
 
 
-    rawSignature = signature->signature;
-    
+    signedData.signature = signature->signature;
+    signedData.signatureAlgorithm = signature->signatureAlgorithm;
+    signedData.data = *tbsResponseDataDER;
 
-
-
-    DER_ConvertBitString(&rawSignature);
-
-    rv = VFY_VerifyDataWithAlgorithmID(tbsResponseDataDER->data,
-                                       tbsResponseDataDER->len,
-                                       signerKey, &rawSignature,
-                                       &signature->signatureAlgorithm,
-                                       NULL, pwArg);
-    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_BAD_SIGNATURE) {
+    rv = CERT_VerifySignedDataWithPublicKey(&signedData, signerKey, pwArg);
+    if (rv != SECSuccess &&
+        (PORT_GetError() == SEC_ERROR_BAD_SIGNATURE || 
+         PORT_GetError() == SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED)) {
         PORT_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE);
     }
-    
+
     if (signerKey != NULL) {
         SECKEY_DestroyPublicKey(signerKey);
     }

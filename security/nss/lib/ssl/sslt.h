@@ -78,9 +78,10 @@ typedef enum {
     ssl_calg_3des     = 4,
     ssl_calg_idea     = 5,
     ssl_calg_fortezza = 6,      
-    ssl_calg_aes      = 7,      
+    ssl_calg_aes      = 7,
     ssl_calg_camellia = 8,
-    ssl_calg_seed     = 9
+    ssl_calg_seed     = 9,
+    ssl_calg_aes_gcm  = 10
 } SSLCipherAlgorithm;
 
 typedef enum { 
@@ -89,7 +90,8 @@ typedef enum {
     ssl_mac_sha       = 2, 
     ssl_hmac_md5      = 3, 	
     ssl_hmac_sha      = 4, 	
-    ssl_hmac_sha256   = 5
+    ssl_hmac_sha256   = 5,
+    ssl_mac_aead      = 6
 } SSLMACAlgorithm;
 
 typedef enum {
@@ -145,6 +147,9 @@ typedef struct SSLCipherSuiteInfoStr {
     PRUint16             effectiveKeyBits;
 
     
+    
+
+
     const char *         macAlgorithmName;
     SSLMACAlgorithm      macAlgorithm;
     PRUint16             macBits;

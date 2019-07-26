@@ -20,7 +20,6 @@
 #include "prinit.h"
 #include "prtime.h" 	
 
-#define XXX
 static PRBool policyWasSet;
 
 
