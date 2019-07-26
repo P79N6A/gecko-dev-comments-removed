@@ -380,18 +380,23 @@ def print_tinderbox(ok, res):
     
     
     
-    label = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
+    
+    
+    
+    result = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
+    message = "Success" if ok else res.describe_failure()
     jitflags = " ".join(res.test.jitflags)
-    print("%s | %s | %s" % (label, res.test.relpath_top, jitflags))
-    if ok:
-        return
+    print("{} | {} | {} (code {}, args \"{}\")".format(
+          result, res.test.relpath_top, message, res.rc, jitflags))
 
     
+    if ok:
+        return
     print("INFO exit-status     : {}".format(res.rc))
     print("INFO timed-out       : {}".format(res.timed_out))
-    for line in res.out.split('\n'):
+    for line in res.out.splitlines():
         print("INFO stdout          > " + line.strip())
-    for line in res.err.split('\n'):
+    for line in res.err.splitlines():
         print("INFO stderr         2> " + line.strip())
 
 def wrap_parallel_run_test(test, prefix, resultQueue, options):
