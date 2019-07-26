@@ -981,22 +981,8 @@ XrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper,
                                bool set, PropertyDescriptor *desc)
 {
     desc->obj = NULL;
-    return true;
-}
-
-bool
-XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper,
-                                               JSObject *wrapper, JSObject *holder, jsid id,
-                                               bool set, PropertyDescriptor *desc)
-{
-    
-    bool ok = XrayTraits::resolveOwnProperty(cx, jsWrapper, wrapper, holder,
-                                             id, set, desc);
-    if (!ok || desc->obj)
-        return ok;
-
     JSObject *target = getTargetObject(wrapper);
-    JSObject *expando = singleton.getExpandoObject(cx, target, wrapper);
+    JSObject *expando = getExpandoObject(cx, target, wrapper);
 
     
     
@@ -1012,6 +998,19 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
         desc->obj = wrapper;
         return true;
     }
+    return true;
+}
+
+bool
+XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper,
+                                               JSObject *wrapper, JSObject *holder, jsid id,
+                                               bool set, PropertyDescriptor *desc)
+{
+    
+    bool ok = XrayTraits::resolveOwnProperty(cx, jsWrapper, wrapper, holder,
+                                             id, set, desc);
+    if (!ok || desc->obj)
+        return ok;
 
     
     
@@ -1115,20 +1114,7 @@ XPCWrappedNativeXrayTraits::defineProperty(JSContext *cx, JSObject *wrapper, jsi
 bool
 XPCWrappedNativeXrayTraits::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
-    JSObject *target = getTargetObject(wrapper);
-    JSObject *expando = singleton.getExpandoObject(cx, target, wrapper);
-    JSBool b = true;
-    if (expando) {
-        JSAutoCompartment ac(cx, expando);
-        jsval v;
-        if (!JS_DeletePropertyById2(cx, expando, id, &v) ||
-            !JS_ValueToBoolean(cx, v, &b))
-        {
-            return false;
-        }
-    }
-
-    *bp = !!b;
+    
     return true;
 }
 
@@ -1137,20 +1123,9 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, JSObject *wrapper, uns
                                            JS::AutoIdVector &props)
 {
     
-    
-    JSObject *target = getTargetObject(wrapper);
-    JSObject *expando = singleton.getExpandoObject(cx, target, wrapper);
-    if (expando) {
-        JSAutoCompartment ac(cx, expando);
-        if (!js::GetPropertyNames(cx, expando, flags, &props))
-            return false;
-    }
-    if (!JS_WrapAutoIdVector(cx, props))
-        return false;
-
-    
     JS::AutoIdVector wnProps(cx);
     {
+        JSObject *target = singleton.getTargetObject(wrapper);
         JSAutoCompartment ac(cx, target);
         if (!js::GetPropertyNames(cx, target, flags, &wnProps))
             return false;
@@ -1384,7 +1359,6 @@ DOMXrayTraits::enumerateNames(JSContext *cx, JSObject *wrapper, unsigned flags,
         return false;
 
     if (flags & (JSITER_OWNONLY | JSITER_HIDDEN))
-        
         return true;
 
     do {
@@ -1715,6 +1689,22 @@ XrayWrapper<Base, Traits>::delete_(JSContext *cx, JSObject *wrapper, jsid id, bo
         return true;
     }
 
+    
+    JSObject *target = Traits::getTargetObject(wrapper);
+    JSObject *expando = Traits::singleton.getExpandoObject(cx, target, wrapper);
+    JSBool b = true;
+    if (expando) {
+        JSAutoCompartment ac(cx, expando);
+        jsval v;
+        if (!JS_DeletePropertyById2(cx, expando, id, &v) ||
+            !JS_ValueToBoolean(cx, v, &b))
+        {
+            return false;
+        }
+    }
+    *bp = !!b;
+
+    
     return Traits::delete_(cx, wrapper, id, bp);
 }
 
@@ -1734,6 +1724,18 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, JSObject *wrapper, unsigned 
         JS_ReportError(cx, "Not allowed to enumerate cross origin objects");
         return false;
     }
+
+    
+    
+    JSObject *target = Traits::singleton.getTargetObject(wrapper);
+    JSObject *expando = Traits::singleton.getExpandoObject(cx, target, wrapper);
+    if (expando) {
+        JSAutoCompartment ac(cx, expando);
+        if (!js::GetPropertyNames(cx, expando, flags, &props))
+            return false;
+    }
+    if (!JS_WrapAutoIdVector(cx, props))
+        return false;
 
     return Traits::enumerateNames(cx, wrapper, flags, props);
 }
