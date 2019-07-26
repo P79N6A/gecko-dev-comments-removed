@@ -13,7 +13,7 @@
 
 
 
-#define CSS_PSEUDO_ELEMENT_IS_CSS2                  (1<<0)
+#define CSS_PSEUDO_ELEMENT_IS_CSS2                     (1<<0)
 
 
 
@@ -22,10 +22,16 @@
 
 
 
-#define CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS        (1<<1)
+#define CSS_PSEUDO_ELEMENT_CONTAINS_ELEMENTS           (1<<1)
 
 
-#define CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE (1<<2)
+#define CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE    (1<<2)
+
+
+
+
+
+#define CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE  (1<<3)
 
 
 
@@ -78,6 +84,12 @@ public:
     MOZ_ASSERT(aType < ePseudo_PseudoElementCount);
     return PseudoElementHasFlags(aType, CSS_PSEUDO_ELEMENT_SUPPORTS_STYLE_ATTRIBUTE);
   }
+
+  static bool PseudoElementSupportsUserActionState(nsIAtom *aAtom) {
+    return PseudoElementSupportsUserActionState(GetPseudoType(aAtom));
+  }
+
+  static bool PseudoElementSupportsUserActionState(const Type aType);
 
 private:
   static uint32_t FlagsForPseudoElement(const Type aType);
