@@ -180,7 +180,9 @@ class SharedContext
     void setHasDebuggerStatement()        { anyCxFlags.hasDebuggerStatement        = true; }
 
     
-    inline bool needStrictChecks();
+    bool needStrictChecks() {
+        return strict || extraWarnings;
+    }
 };
 
 class GlobalSharedContext : public SharedContext
