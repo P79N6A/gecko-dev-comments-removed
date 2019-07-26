@@ -238,8 +238,6 @@ struct JSCompartment
     js::types::TypeObjectSet     lazyTypeObjects;
     void sweepNewTypeObjectTable(js::types::TypeObjectSet &table);
 
-    js::types::TypeObject *getLazyType(JSContext *cx, js::Class *clasp, js::TaggedProto proto);
-
     
 
 
