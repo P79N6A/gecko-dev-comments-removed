@@ -52,6 +52,13 @@ public:
   void OnDecodeThreadStart() MOZ_OVERRIDE;
   void OnDecodeThreadFinish() MOZ_OVERRIDE;
 
+  
+  enum VideoDecodingMode {
+    Software,
+    DXVA_D3D9,
+    DXVA_D3D11
+  };
+
 private:
 
   HRESULT ConfigureAudioDecoder();
@@ -72,7 +79,7 @@ private:
                               VideoData** aOutVideoData);
 
   
-  bool InitializeDXVA();  
+  void InitializeDXVA();  
 
   
   
@@ -98,6 +105,14 @@ private:
 
   
   
+  VideoDecodingMode mVideoDecodingMode;
+
+  
+  
+  const GUID& GetVideoFormat() const;
+
+  
+  
   int64_t mAudioFrameOffset;
   
   
@@ -109,7 +124,6 @@ private:
 
   bool mHasAudio;
   bool mHasVideo;
-  bool mUseHwAccel;
 
   
   
