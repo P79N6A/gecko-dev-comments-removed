@@ -49,7 +49,7 @@ exports.items = [
     existing: 'maybe',  
     matches: undefined, 
 
-    isSelection: true,  
+    hasPredictions: true,
 
     constructor: function() {
       if (this.filetype !== 'any' && this.filetype !== 'file' &&

@@ -384,7 +384,7 @@ SelectionType.prototype._findValue = function(lookup, value) {
 
 
 
-SelectionType.prototype.isSelection = true;
+SelectionType.prototype.hasPredictions = true;
 
 SelectionType.prototype.name = 'selection';
 

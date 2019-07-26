@@ -1141,12 +1141,7 @@ Types.prototype.createType = function(typeSpec) {
   util.copyProperties(typeSpec, newType);
 
   
-  
-  
-  
-  if (newType.name === 'delegate' || newType.name === 'array') {
-    newType.types = this;
-  }
+  newType.types = this;
 
   if (typeof NewTypeCtor !== 'function') {
     if (typeof newType.constructor === 'function') {

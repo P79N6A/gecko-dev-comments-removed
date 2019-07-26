@@ -18,6 +18,7 @@
 
 var Cc = require('chrome').Cc;
 var Ci = require('chrome').Ci;
+var URL = require("sdk/url").URL;
 
 var Task = require('resource://gre/modules/Task.jsm').Task;
 
@@ -69,6 +70,13 @@ exports.spawn = function(spawnSpec) {
 
 exports.exec = function(task) {
   return Task.spawn(task);
+};
+
+
+
+
+exports.createUrl = function(uristr, base) {
+  return URL(uristr, base);
 };
 
 

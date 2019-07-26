@@ -18,79 +18,101 @@
 
 var Promise = require('../util/promise').Promise;
 var l10n = require('../util/l10n');
-var centralTypes = require("./types").centralTypes;
-var Conversion = require("./types").Conversion;
-var Status = require("./types").Status;
+var Conversion = require('./types').Conversion;
+var Status = require('./types').Status;
 
 exports.items = [
   {
     
-    item: "type",
-    name: "union",
+    item: 'type',
+    name: 'union',
+    hasPredictions: true,
 
     constructor: function() {
       
       
-      this.types = this.types.map(function(typeData) {
-        typeData.type = centralTypes.createType(typeData);
-        typeData.lookup = typeData.lookup;
-        return typeData;
-      });
+      this.alternatives = this.alternatives.map(function(typeData) {
+        return this.types.createType(typeData);
+      }.bind(this));
+    },
+
+    getSpec: function(command, param) {
+      var spec = { name: 'union', alternatives: [] };
+      this.alternatives.forEach(function(type) {
+        spec.alternatives.push(type.getSpec(command, param));
+      }.bind(this));
+      return spec;
     },
 
     stringify: function(value, context) {
       if (value == null) {
-        return "";
+        return '';
       }
 
-      var type = this.types.find(function(typeData) {
-        return typeData.name == value.type;
-      }).type;
+      var type = this.alternatives.find(function(typeData) {
+        return typeData.name === value.type;
+      });
 
       return type.stringify(value[value.type], context);
     },
 
     parse: function(arg, context) {
-      
-      
-      
-      var self = this;
+      var conversionPromises = this.alternatives.map(function(type) {
+        return type.parse(arg, context);
+      }.bind(this));
 
-      var onError = function(i) {
-        if (i >= self.types.length) {
-          return Promise.reject(new Conversion(undefined, arg, Status.ERROR,
-            l10n.lookup("commandParseError")));
-        } else {
-          return tryNext(i + 1);
-        }
-      };
+      return Promise.all(conversionPromises).then(function(conversions) {
+        
+        var predictionPromises = conversions.map(function(conversion) {
+          return conversion.getPredictions(context);
+        }.bind(this));
 
-      var tryNext = function(i) {
-        var type = self.types[i].type;
+        return Promise.all(predictionPromises).then(function(allPredictions) {
+          
+          
+          var maxIndex = allPredictions.reduce(function(prev, prediction) {
+            return Math.max(prev, prediction.length);
+          }.bind(this), 0);
+          var predictions = [];
 
-        try {
-          return type.parse(arg, context).then(function(conversion) {
-            if (conversion.getStatus() === Status.VALID ||
-                conversion.getStatus() === Status.INCOMPLETE) {
-              
-              
-              
-              if (conversion.value) {
-                var oldConversionValue = conversion.value;
-                conversion.value = { type: type.name };
-                conversion.value[type.name] = oldConversionValue;
+          indexLoop:
+          for (var index = 0; index < maxIndex; index++) {
+            for (var p = 0; p <= allPredictions.length; p++) {
+              if (predictions.length >= Conversion.maxPredictions) {
+                break indexLoop;
               }
-              return conversion;
-            } else {
-              return onError(i);
-            }
-          });
-        } catch(e) {
-          return onError(i);
-        }
-      };
 
-      return Promise.resolve(tryNext(0));
+              if (allPredictions[p] != null) {
+                var prediction = allPredictions[p][index];
+                if (prediction != null && predictions.indexOf(prediction) === -1) {
+                  predictions.push(prediction);
+                }
+              }
+            }
+          }
+
+          var bestStatus = Status.ERROR;
+          var value;
+          for (var i = 0; i < conversions.length; i++) {
+            var conversion = conversions[i];
+            var thisStatus = conversion.getStatus(arg);
+            if (thisStatus < bestStatus) {
+              bestStatus = thisStatus;
+            }
+            if (bestStatus === Status.VALID) {
+              var type = this.alternatives[i].name;
+              value = { type: type };
+              value[type] = conversion.value;
+              break;
+            }
+          }
+
+          var msg = (bestStatus === Status.VALID) ?
+                    '' :
+                    l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
+          return new Conversion(value, arg, bestStatus, msg, predictions);
+        }.bind(this));
+      }.bind(this));
     },
   }
 ];
