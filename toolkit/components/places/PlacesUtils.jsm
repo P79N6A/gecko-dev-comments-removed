@@ -449,49 +449,6 @@ this.PlacesUtils = {
 
 
 
-
-  itemIsLivemark: function PU_itemIsLivemark(aItemId) {
-    Cu.reportError("Synchronous livemarks methods and PlacesUtils livemarks " +
-                   "utils (itemIsLivemark, nodeIsLivemarkContainer, " +
-                   "nodeIsLivemarkItem) are deprecated and will be removed " +
-                   "in a future release.");
-    
-    
-    
-    if (Object.getOwnPropertyDescriptor(this, "livemarks").value === undefined)
-      return this.annotations.itemHasAnnotation(aItemId, this.LMANNO_FEEDURI);
-    
-    return this.livemarks.isLivemark(aItemId);
-  },
-
-  
-
-
-
-
-
-
-  nodeIsLivemarkContainer: function PU_nodeIsLivemarkContainer(aNode) {
-    return this.nodeIsFolder(aNode) && this.itemIsLivemark(aNode.itemId);
-  },
-
- 
-
-
-
-
-
-
-  nodeIsLivemarkItem: function PU_nodeIsLivemarkItem(aNode) {
-    return aNode.parent && this.nodeIsLivemarkContainer(aNode.parent);
-  },
-
-  
-
-
-
-
-
   isReadonlyFolder: function(aNode) {
     return this.nodeIsFolder(aNode) &&
            this._readOnly.indexOf(asQuery(aNode).folderItemId) != -1;
@@ -2191,8 +2148,7 @@ XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "tagging",
 
 XPCOMUtils.defineLazyGetter(PlacesUtils, "livemarks", function() {
   return Cc["@mozilla.org/browser/livemark-service;2"].
-         getService(Ci.nsILivemarkService).
-         QueryInterface(Ci.mozIAsyncLivemarks);
+         getService(Ci.mozIAsyncLivemarks);
 });
 
 XPCOMUtils.defineLazyGetter(PlacesUtils, "transactionManager", function() {

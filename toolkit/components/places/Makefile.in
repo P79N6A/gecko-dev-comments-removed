@@ -1,3 +1,4 @@
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -31,7 +32,6 @@ XPIDLSRCS += \
   nsIAnnotationService.idl \
   nsIBrowserHistory.idl \
   nsIFaviconService.idl \
-  nsILivemarkService.idl \
   nsINavBookmarksService.idl \
   nsITaggingService.idl  \
   nsPIPlacesDatabase.idl \
@@ -90,6 +90,8 @@ EXTRA_PP_JS_MODULES = \
   BookmarkHTMLUtils.jsm \
   PlacesUtils.jsm \
   $(NULL)
+
+TEST_DIRS += tests
 
 include $(topsrcdir)/config/config.mk
 include $(topsrcdir)/ipc/chromium/chromium-config.mk
