@@ -742,7 +742,6 @@ public:
   
 
 
-
   nsStyleContext* StyleContext() const { return mStyleContext; }
   void SetStyleContext(nsStyleContext* aContext)
   { 

@@ -1056,21 +1056,19 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
       
       
       nsStyleContext* parentContext = first->GetParent()->StyleContext();
-      if (parentContext) {
+      
+      
+      
+      
+      nsRefPtr<nsStyleContext> newSC;
+      newSC = aPresContext->StyleSet()->
+        ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
+      if (newSC) {
         
-        
-        
-        
-        nsRefPtr<nsStyleContext> newSC;
-        newSC = aPresContext->StyleSet()->
-          ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
-        if (newSC) {
-          
-          SetStyleContext(newSC);
+        SetStyleContext(newSC);
 
-          
-          ReparentChildListStyle(aPresContext, mFrames, this);
-        }
+        
+        ReparentChildListStyle(aPresContext, mFrames, this);
       }
     }
   }
