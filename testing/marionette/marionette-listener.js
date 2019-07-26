@@ -55,6 +55,12 @@ let originalOnError;
 
 let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
+let EVENT_INTERVAL = 30; 
+
+let touches = [];
+
+let nextTouchId = 1000;
+
 
 
 
@@ -93,6 +99,8 @@ function startListeners() {
   addMessageListenerId("Marionette:executeScript", executeScript);
   addMessageListenerId("Marionette:executeAsyncScript", executeAsyncScript);
   addMessageListenerId("Marionette:executeJSScript", executeJSScript);
+  addMessageListenerId("Marionette:singleTap", singleTap);
+  addMessageListenerId("Marionette:doubleTap", doubleTap);
   addMessageListenerId("Marionette:setSearchTimeout", setSearchTimeout);
   addMessageListenerId("Marionette:goUrl", goUrl);
   addMessageListenerId("Marionette:getUrl", getUrl);
@@ -180,6 +188,8 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:executeScript", executeScript);
   removeMessageListenerId("Marionette:executeAsyncScript", executeAsyncScript);
   removeMessageListenerId("Marionette:executeJSScript", executeJSScript);
+  removeMessageListenerId("Marionette:singleTap", singleTap);
+  removeMessageListenerId("Marionette:doubleTap", doubleTap);
   removeMessageListenerId("Marionette:setSearchTimeout", setSearchTimeout);
   removeMessageListenerId("Marionette:goUrl", goUrl);
   removeMessageListenerId("Marionette:getTitle", getTitle);
@@ -528,6 +538,254 @@ function executeWithCallback(msg, useFinish) {
   } catch (e) {
     
     sandbox.asyncComplete(e.name + ': ' + e.message, 17);
+  }
+}
+
+
+
+
+function emitTouchEvent(type, touch) {
+  var target = touch.target;
+  var doc = target.ownerDocument;
+  var win = doc.defaultView;
+  
+  var domWindowUtils = curWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
+  domWindowUtils.sendTouchEvent(type, [touch.identifier], [touch.screenX], [touch.screenY], [touch.radiusX], [touch.radiusY], [touch.rotationAngle], [touch.force], 1, 0);
+}
+
+
+
+
+
+function touch(target, duration, xt, yt, then) {
+  var doc = target.ownerDocument;
+  var win = doc.defaultView;
+  var touchId = nextTouchId++;
+  var x = xt;
+  if (typeof xt !== 'function') {
+    x = function(t) { return xt[0] + t / duration * (xt[1] - xt[0]); };
+  }
+  var y = yt;
+  if (typeof yt !== 'function') {
+    y = function(t) { return yt[0] + t / duration * (yt[1] - yt[0]); };
+  }
+  
+  var clientX = Math.round(x(0)), clientY = Math.round(y(0));
+  
+  var pageX = clientX + win.pageXOffset,
+      pageY = clientY + win.pageYOffset;
+  
+  var screenX = clientX + win.mozInnerScreenX,
+      screenY = clientY + win.mozInnerScreenY;
+  
+  var lastX = clientX, lastY = clientY;
+  
+  var touch = doc.createTouch(win, target, touchId,
+                              pageX, pageY,
+                              screenX, screenY,
+                              clientX, clientY);
+  
+  touches.push(touch);
+  
+  emitTouchEvent('touchstart', touch);
+  var startTime = Date.now();
+  checkTimer.initWithCallback(nextEvent, EVENT_INTERVAL, Ci.nsITimer.TYPE_ONE_SHOT);
+  function nextEvent() {
+  
+    var time = Date.now();
+    var dt = time - startTime;
+    var last = dt + EVENT_INTERVAL / 2 > duration;
+    
+    
+    var touchIndex = touches.indexOf(touch);
+    
+    if (last)
+       dt = duration;
+    
+    clientX = Math.round(x(dt));
+    clientY = Math.round(y(dt));
+    
+    if (clientX !== lastX || clientY !== lastY) { 
+      lastX = clientX;
+      lastY = clientY;
+      pageX = clientX + win.pageXOffset;
+      pageY = clientY + win.pageYOffset;
+      screenX = clientX + win.mozInnerScreenX;
+      screenY = clientY + win.mozInnerScreenY;
+      
+      
+      touch = doc.createTouch(win, target, touchId,
+                              pageX, pageY,
+                              screenX, screenY,
+                              clientX, clientY);
+      
+      touches[touchIndex] = touch;
+      
+      emitTouchEvent('touchmove', touch);
+    }
+    
+    
+    if (last) {
+      touches.splice(touchIndex, 1);
+      emitTouchEvent('touchend', touch);
+      if (then)
+        checkTimer.initWithCallback(then, 0, Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+    
+    else {
+      checkTimer.initWithCallback(nextEvent, EVENT_INTERVAL, Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+  }
+}
+
+
+
+
+
+
+function coordinates(target, x0, y0, x1, y1) {
+  var coords = {};
+  var box = target.getBoundingClientRect();
+  var tx0 = typeof x0;
+  var ty0 = typeof y0;
+  var tx1 = typeof x1;
+  var ty1 = typeof y1; 
+  function percent(s, x) {
+    s = s.trim();
+    var f = parseFloat(s);
+    if (s[s.length - 1] === '%')
+      f = f * x / 100;
+      return f;
+  }
+  function relative(s, x) {
+    var factor;
+    if (s[0] === '+')
+      factor = 1;
+    else
+      factor = -1;
+      return factor * percent(s.substring(1), x);
+  }
+  if (tx0 === 'number')
+    coords.x0 = box.left + x0;
+  else if (tx0 === 'string')
+    coords.x0 = box.left + percent(x0, box.width);
+  
+  if (tx1 === 'number')
+    coords.x1 = box.left + x1;
+  else if (tx1 === 'string') {
+    x1 = x1.trim();
+    if (x1[0] === '+' || x1[0] === '-')
+      coords.x1 = coords.x0 + relative(x1, box.width);
+    else
+      coords.x1 = box.left + percent(x1, box.width);
+  }
+  
+  if (ty0 === 'number')
+    coords.y0 = box.top + y0;
+  else if (ty0 === 'string')
+    coords.y0 = box.top + percent(y0, box.height);
+  
+  if (ty1 === 'number')
+    coords.y1 = box.top + y1;
+  else if (ty1 === 'string') {
+    y1 = y1.trim();
+    if (y1[0] === '+' || y1[0] === '-')
+      coords.y1 = coords.y0 + relative(y1, box.height);
+    else
+      coords.y1 = box.top + percent(y1, box.height);
+  }
+  return coords;
+}
+
+
+
+
+function elementInViewport(el) {
+  var top = el.offsetTop;
+  var left = el.offsetLeft;
+  var width = el.offsetWidth;
+  var height = el.offsetHeight;
+  while(el.offsetParent) {
+    el = el.offsetParent;
+    top += el.offsetTop;
+    left += el.offsetLeft;
+  }
+  return (top >= curWindow.pageYOffset &&
+          left >= curWindow.pageXOffset &&
+          (top + height) <= (curWindow.pageYOffset + curWindow.innerHeight) &&
+          (left + width) <= (curWindow.pageXOffset + curWindow.innerWidth)
+         );
+}
+
+
+
+
+function checkVisible(el, command_id) {
+    
+    let visible = utils.isElementDisplayed(el);
+    if (!visible) {
+      return false;
+    }
+    
+    if (el.scrollIntoView) {
+      el.scrollIntoView(true);
+    }
+    var scroll = elementInViewport(el);
+    if (!scroll){
+      return false;
+    }
+    return true;
+}
+
+
+
+
+function singleTap(msg) {
+  let command_id = msg.json.command_id;
+  let el;
+  try {
+    el = elementManager.getKnownElement(msg.json.value, curWindow);
+    if (!checkVisible(el, command_id)) {
+      sendError("Element is not currently visible and may not be manipulated", 11, null, command_id);
+      return;
+    }
+    let x = '50%';
+    let y = '50%';
+    let c = coordinates(el, x, y);
+    touch(el, 3000, [c.x0, c.x0], [c.y0, c.y0], null);
+    sendOk(msg.json.command_id);
+  }
+  catch (e) {
+    sendError(e.message, e.code, e.stack, msg.json.command_id);
+  }
+}
+
+
+
+
+function doubleTap(msg) {
+  let command_id = msg.json.command_id;
+  let el;
+  try {
+    el = elementManager.getKnownElement(msg.json.value, curWindow);
+    if (!checkVisible(el, command_id)) {
+      sendError("Element is not currently visible and may not be manipulated", 11, null, command_id);
+      return;
+    }
+    let x = '50%';
+    let y = '50%';
+    let c = coordinates(el, x, y);
+    touch(el, 25, [c.x0, c.x0], [c.y0, c.y0], function() {
+      
+      checkTimer.initWithCallback(function() {
+          
+          touch(el, 25, [c.x0, c.x0], [c.y0, c.y0], null);
+      }, 50, Ci.nsITimer.TYPE_ONE_SHOT);
+    });
+    sendOk(msg.json.command_id);
+  }
+  catch (e) {
+    sendError(e.message, e.code, e.stack, msg.json.command_id);
   }
 }
 
