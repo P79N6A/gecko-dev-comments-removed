@@ -2,16 +2,16 @@
 
 import gdb
 import mozilla.JSString
-import mozilla.prettyprinters
+import mozilla.prettyprinters as prettyprinters
 from mozilla.prettyprinters import ptr_pretty_printer
 from mozilla.Root import deref
 
-mozilla.prettyprinters.clear_module_printers(__name__)
+prettyprinters.clear_module_printers(__name__)
 
 class JSObjectTypeCache(object):
     def __init__(self, value, cache):
         baseshape_flags = gdb.lookup_type('js::BaseShape::Flag')
-        self.flag_DELEGATE = baseshape_flags['js::BaseShape::DELEGATE'].bitpos
+        self.flag_DELEGATE = prettyprinters.enum_value(baseshape_flags, 'js::BaseShape::DELEGATE')
         self.func_ptr_type = gdb.lookup_type('JSFunction').pointer()
 
 
@@ -19,7 +19,7 @@ class JSObjectTypeCache(object):
 
 
 @ptr_pretty_printer('JSObject')
-class JSObjectPtr(mozilla.prettyprinters.Pointer):
+class JSObjectPtr(prettyprinters.Pointer):
     def __init__(self, value, cache):
         super(JSObjectPtr, self).__init__(value, cache)
         if not cache.mod_JSObject:

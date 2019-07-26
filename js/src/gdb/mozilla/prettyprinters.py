@@ -311,3 +311,22 @@ class Pointer(object):
 
     def summary(self):
         raise NotImplementedError
+
+field_enum_value = None
+
+
+
+
+
+
+
+def enum_value(t, name):
+    global field_enum_value
+    f = t[name]
+    
+    if not field_enum_value:
+        if hasattr(f, 'enumval'):
+            field_enum_value = lambda f: f.enumval
+        else:
+            field_enum_value = lambda f: f.bitpos
+    return field_enum_value(f)
