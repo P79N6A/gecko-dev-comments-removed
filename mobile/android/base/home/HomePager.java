@@ -50,9 +50,6 @@ public class HomePager extends ViewPager {
     private String mInitialPanelId;
 
     
-    private boolean mRestartLoader;
-
-    
     private final Drawable mOriginalBackground;
 
     
@@ -168,35 +165,6 @@ public class HomePager extends ViewPager {
     
 
 
-    public void invalidate(LoaderManager lm, FragmentManager fm) {
-        
-        mRestartLoader = true;
-
-        
-        if (isVisible()) {
-            redisplay(lm, fm);
-        }
-    }
-
-    private void redisplay(LoaderManager lm, FragmentManager fm) {
-        final HomeAdapter adapter = (HomeAdapter) getAdapter();
-
-        
-        
-        
-        final String currentPanelId;
-        if (mInitialPanelId != null) {
-            currentPanelId = mInitialPanelId;
-        } else {
-            currentPanelId = adapter.getPanelIdAtPosition(getCurrentItem());
-        }
-
-        show(lm, fm, currentPanelId, null);
-    }
-
-    
-
-
 
 
     public void show(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
@@ -218,12 +186,7 @@ public class HomePager extends ViewPager {
         mTabStrip.setVisibility(View.INVISIBLE);
 
         
-        if (mRestartLoader) {
-            lm.restartLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
-            mRestartLoader = false;
-        } else {
-            lm.initLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
-        }
+        lm.initLoader(LOADER_ID_CONFIG, null, mConfigLoaderCallbacks);
 
         if (shouldAnimate) {
             animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
