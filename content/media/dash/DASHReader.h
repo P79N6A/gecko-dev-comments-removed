@@ -16,34 +16,24 @@
 #if !defined(DASHReader_h_)
 #define DASHReader_h_
 
+#include "VideoUtils.h"
 #include "MediaDecoderReader.h"
+#include "DASHRepReader.h"
 
 namespace mozilla {
+
+class DASHRepReader;
 
 class DASHReader : public MediaDecoderReader
 {
 public:
-  DASHReader(AbstractMediaDecoder* aDecoder) :
-    MediaDecoderReader(aDecoder),
-    mReadMetadataMonitor("media.dashreader.readmetadata"),
-    mReadyToReadMetadata(false),
-    mDecoderIsShuttingDown(false),
-    mAudioReader(this),
-    mVideoReader(this),
-    mAudioReaders(this),
-    mVideoReaders(this)
-  {
-    MOZ_COUNT_CTOR(DASHReader);
-  }
-  ~DASHReader()
-  {
-    MOZ_COUNT_DTOR(DASHReader);
-  }
+  DASHReader(AbstractMediaDecoder* aDecoder);
+  ~DASHReader();
 
   
   
-  void AddAudioReader(MediaDecoderReader* aAudioReader);
-  void AddVideoReader(MediaDecoderReader* aVideoReader);
+  void AddAudioReader(DASHRepReader* aAudioReader);
+  void AddVideoReader(DASHRepReader* aVideoReader);
 
   
   
@@ -89,19 +79,13 @@ public:
 
   
   
-  bool HasAudio() {
-    NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-    return mAudioReader ? mAudioReader->HasAudio() : false;
-  }
-  bool HasVideo() {
-    NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-    return mVideoReader ? mVideoReader->HasVideo() : false;
-  }
+  bool HasAudio();
+  bool HasVideo();
 
   
   
-  MediaQueue<AudioData>& AudioQueue();
-  MediaQueue<VideoData>& VideoQueue();
+  MediaQueue<AudioData>& AudioQueue() MOZ_OVERRIDE;
+  MediaQueue<VideoData>& VideoQueue() MOZ_OVERRIDE;
 
   
   nsresult Init(MediaDecoderReader* aCloneDonor);
@@ -109,6 +93,11 @@ public:
   
   int64_t VideoQueueMemoryInUse();
   int64_t AudioQueueMemoryInUse();
+
+  
+  
+  
+  void PrepareToDecode() MOZ_OVERRIDE;
 
   
   bool DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold);
@@ -129,45 +118,20 @@ public:
   
   bool IsSeekableInBufferedRanges();
 
+  
+  
+  
+  
+  
+  void RequestVideoReaderSwitch(uint32_t aFromReaderIdx,
+                                uint32_t aToReaderIdx,
+                                uint32_t aSubsegmentIdx);
+
 private:
   
   
   
-  
-  
-  class ReentrantMonitorConditionallyEnter
-  {
-  public:
-    ReentrantMonitorConditionallyEnter(bool aEnter,
-                                       ReentrantMonitor &aReentrantMonitor) :
-      mReentrantMonitor(nullptr)
-    {
-      MOZ_COUNT_CTOR(DASHReader::ReentrantMonitorConditionallyEnter);
-      if (aEnter) {
-        mReentrantMonitor = &aReentrantMonitor;
-        NS_ASSERTION(mReentrantMonitor, "null monitor");
-        mReentrantMonitor->Enter();
-      }
-    }
-    ~ReentrantMonitorConditionallyEnter(void)
-    {
-      if (mReentrantMonitor) {
-        mReentrantMonitor->Exit();
-      }
-      MOZ_COUNT_DTOR(DASHReader::ReentrantMonitorConditionallyEnter);
-    }
-  private:
-    
-    ReentrantMonitorConditionallyEnter();
-    ReentrantMonitorConditionallyEnter(const ReentrantMonitorConditionallyEnter&);
-    ReentrantMonitorConditionallyEnter& operator =(const ReentrantMonitorConditionallyEnter&);
-    static void* operator new(size_t) CPP_THROW_NEW;
-    static void operator delete(void*);
-
-    
-    
-    ReentrantMonitor* mReentrantMonitor;
-  };
+  void PossiblySwitchVideoReaders();
 
   
   
@@ -199,7 +163,7 @@ private:
 
     
     
-    MonitoredSubReader& operator=(MediaDecoderReader* rhs)
+    MonitoredSubReader& operator=(DASHRepReader* rhs)
     {
       NS_ASSERTION(mReader->GetDecoder(), "Decoder is null!");
       mReader->GetDecoder()->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -209,7 +173,7 @@ private:
 
     
     
-    operator MediaDecoderReader*() const
+    operator DASHRepReader*() const
     {
       NS_ASSERTION(mReader->GetDecoder(), "Decoder is null!");
       if (!mReader->GetDecoder()->OnDecodeThread()) {
@@ -220,7 +184,7 @@ private:
 
     
     
-    MediaDecoderReader* operator->() const
+    DASHRepReader* operator->() const
     {
       return *this;
     }
@@ -228,7 +192,7 @@ private:
     
     DASHReader* mReader;
     
-    nsRefPtr<MediaDecoderReader> mSubReader;
+    nsRefPtr<DASHRepReader> mSubReader;
   };
 
   
@@ -277,7 +241,7 @@ private:
     
     
     
-    nsRefPtr<MediaDecoderReader>& operator[](uint32_t i)
+    nsRefPtr<DASHRepReader>& operator[](uint32_t i)
     {
       NS_ASSERTION(mReader->GetDecoder(), "Decoder is null!");
       if (!mReader->GetDecoder()->OnDecodeThread()) {
@@ -289,7 +253,7 @@ private:
     
     
     void
-    AppendElement(MediaDecoderReader* aReader)
+    AppendElement(DASHRepReader* aReader)
     {
       NS_ASSERTION(mReader->GetDecoder(), "Decoder is null!");
       mReader->GetDecoder()->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -299,7 +263,7 @@ private:
     
     DASHReader* mReader;
     
-    nsTArray<nsRefPtr<MediaDecoderReader> > mSubReaderList;
+    nsTArray<nsRefPtr<DASHRepReader> > mSubReaderList;
   };
 
   
@@ -308,6 +272,18 @@ private:
   
   MonitoredSubReaderList mAudioReaders;
   MonitoredSubReaderList mVideoReaders;
+
+  
+  
+  bool mSwitchVideoReaders;
+
+  
+  
+  nsTArray<uint32_t> mSwitchToVideoSubsegmentIndexes;
+
+  
+  
+  int32_t mSwitchCount;
 };
 
 } 

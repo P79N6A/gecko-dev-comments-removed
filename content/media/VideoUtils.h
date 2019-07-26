@@ -71,6 +71,45 @@ private:
 };
 
 
+
+
+
+
+
+
+class NS_STACK_CLASS ReentrantMonitorConditionallyEnter
+{
+public:
+  ReentrantMonitorConditionallyEnter(bool aEnter,
+                                     ReentrantMonitor &aReentrantMonitor) :
+    mReentrantMonitor(nullptr)
+  {
+    MOZ_COUNT_CTOR(ReentrantMonitorConditionallyEnter);
+    if (aEnter) {
+      mReentrantMonitor = &aReentrantMonitor;
+      NS_ASSERTION(mReentrantMonitor, "null monitor");
+      mReentrantMonitor->Enter();
+    }
+  }
+  ~ReentrantMonitorConditionallyEnter(void)
+  {
+    if (mReentrantMonitor) {
+      mReentrantMonitor->Exit();
+    }
+    MOZ_COUNT_DTOR(ReentrantMonitorConditionallyEnter);
+  }
+private:
+  
+  ReentrantMonitorConditionallyEnter();
+  ReentrantMonitorConditionallyEnter(const ReentrantMonitorConditionallyEnter&);
+  ReentrantMonitorConditionallyEnter& operator =(const ReentrantMonitorConditionallyEnter&);
+  static void* operator new(size_t) CPP_THROW_NEW;
+  static void operator delete(void*);
+
+  ReentrantMonitor* mReentrantMonitor;
+};
+
+
 class ShutdownThreadEvent : public nsRunnable 
 {
 public:

@@ -80,6 +80,14 @@ public:
   double GetStartTime() const;
   double GetDuration() const;
 
+  
+  
+  
+  
+  bool GetBestRepForBandwidth(uint32_t aAdaptSetIdx,
+                              uint64_t aBandwidth,
+                              uint32_t &aRepIdx) const MOZ_OVERRIDE;
+
 private:
   
   AdaptationSet const * GetAdaptationSet(uint32_t const aAdaptSetIdx) const;

@@ -22,6 +22,10 @@
 #include "vorbis/codec.h"
 #endif
 
+#ifdef MOZ_DASH
+#include "DASHRepReader.h"
+#endif
+
 namespace mozilla {
 
 class WebMBufferedState;
@@ -97,7 +101,11 @@ class WebMPacketQueue : private nsDeque {
   }
 };
 
+#ifdef MOZ_DASH
+class WebMReader : public DASHRepReader
+#else
 class WebMReader : public MediaDecoderReader
+#endif
 {
 public:
   WebMReader(AbstractMediaDecoder* aDecoder);
@@ -136,20 +144,75 @@ public:
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
   virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
 
+#ifdef MOZ_DASH
+  virtual void SetMainReader(DASHReader *aMainReader) MOZ_OVERRIDE {
+    NS_ASSERTION(aMainReader, "aMainReader is null.");
+    mMainReader = aMainReader;
+  }
+
   
-  void SetInitByteRange(MediaByteRange &aByteRange) {
+  
+  
+  
+  
+  void PrepareToDecode() MOZ_OVERRIDE;
+
+  
+  
+  
+  MediaQueue<AudioData>& AudioQueue() MOZ_OVERRIDE {
+    if (mMainReader) {
+      return mMainReader->AudioQueue();
+    } else {
+      return MediaDecoderReader::AudioQueue();
+    }
+  }
+
+  MediaQueue<VideoData>& VideoQueue() MOZ_OVERRIDE {
+    if (mMainReader) {
+      return mMainReader->VideoQueue();
+    } else {
+      return MediaDecoderReader::VideoQueue();
+    }
+  }
+
+  
+  void SetInitByteRange(MediaByteRange &aByteRange) MOZ_OVERRIDE {
     mInitByteRange = aByteRange;
   }
 
   
-  void SetIndexByteRange(MediaByteRange &aByteRange) {
+  void SetIndexByteRange(MediaByteRange &aByteRange) MOZ_OVERRIDE {
     mCuesByteRange = aByteRange;
   }
 
   
-  nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges);
+  nsresult GetSubsegmentByteRanges(nsTArray<MediaByteRange>& aByteRanges)
+                                                                  MOZ_OVERRIDE;
 
-private:
+  
+  
+  
+  bool HasReachedSubsegment(uint32_t aSubsegmentIndex) MOZ_OVERRIDE;
+
+  
+  
+  
+  
+  void RequestSeekToSubsegment(uint32_t aIdx) MOZ_OVERRIDE;
+
+  
+  
+  
+  void RequestSwitchAtSubsegment(int32_t aSubsegmentIdx,
+                                 MediaDecoderReader* aNextReader) MOZ_OVERRIDE;
+
+  
+  
+  void SeekToCluster(uint32_t aIdx);
+#endif
+
+protected:
   
   
   enum TrackType {
@@ -160,7 +223,18 @@ private:
   
   
   
+#ifdef MOZ_DASH
+  nsReturnRef<NesteggPacketHolder> NextPacketInternal(TrackType aTrackType);
+
+  
+  
+  
+  
+#endif
   nsReturnRef<NesteggPacketHolder> NextPacket(TrackType aTrackType);
+
+  
+  virtual void PushVideoPacket(NesteggPacketHolder* aItem);
 
   
   ogg_packet InitOggPacket(unsigned char* aData,
@@ -227,6 +301,7 @@ private:
   bool mHasVideo;
   bool mHasAudio;
 
+#ifdef MOZ_DASH
   
   MediaByteRange mInitByteRange;
 
@@ -235,6 +310,40 @@ private:
 
   
   nsTArray<MediaByteRange> mClusterByteRanges;
+
+  
+  DASHReader* mMainReader;
+
+  
+  
+  int32_t mSwitchingCluster;
+
+  
+  
+  
+  nsRefPtr<WebMReader> mNextReader;
+
+  
+  
+  
+  int32_t mSeekToCluster;
+
+  
+  
+  
+  int64_t mCurrentOffset;
+
+  
+  
+  
+  
+  bool mPushVideoPacketToNextReader;
+
+  
+  
+  
+  bool mReachedSwitchAccessPoint;
+#endif
 };
 
 } 

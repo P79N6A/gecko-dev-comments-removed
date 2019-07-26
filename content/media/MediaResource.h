@@ -304,6 +304,13 @@ public:
 
 
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
+
+  
+  
+  virtual void FlushCache() { }
+
+  
+  virtual void NotifyLastByteRange() { }
 };
 
 class BaseMediaResource : public MediaResource {
@@ -387,6 +394,13 @@ public:
   nsresult CacheClientSuspend();
   
   nsresult CacheClientResume();
+
+  
+  
+  virtual void FlushCache() MOZ_OVERRIDE;
+
+  
+  virtual void NotifyLastByteRange() MOZ_OVERRIDE;
 
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);

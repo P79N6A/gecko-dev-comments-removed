@@ -19,6 +19,7 @@
 #include "DASHReader.h"
 #include "MediaResource.h"
 #include "DASHRepDecoder.h"
+#include "WebMReader.h"
 
 namespace mozilla {
 
@@ -133,16 +134,24 @@ DASHRepDecoder::NotifyDownloadEnded(nsresult aStatus)
     
     
     if (mMetadataChunkCount > 0) {
-      LOG("Metadata chunk [%d] downloaded: range requested [%d - %d]",
+      LOG("Metadata chunk [%d] downloaded: range requested [%lld - %lld] "
+          "subsegmentIdx [%d]",
           mMetadataChunkCount,
-          mCurrentByteRange.mStart, mCurrentByteRange.mEnd);
+          mCurrentByteRange.mStart, mCurrentByteRange.mEnd, mSubsegmentIdx);
       mMetadataChunkCount--;
     } else {
+      LOG("Byte range downloaded: status [%x] range requested [%lld - %lld] "
+          "subsegmentIdx [%d]",
+          aStatus, mCurrentByteRange.mStart, mCurrentByteRange.mEnd,
+          mSubsegmentIdx);
+      if ((uint32_t)mSubsegmentIdx == mByteRanges.Length()-1) {
+        mResource->NotifyLastByteRange();
+      }
       
-      LOG("Byte range downloaded: status [%x] range requested [%d - %d]",
-          aStatus, mCurrentByteRange.mStart, mCurrentByteRange.mEnd);
-      mMainDecoder->NotifyDownloadEnded(this, aStatus,
-                                        mCurrentByteRange);
+      
+      NS_ASSERTION(mMainDecoder->IsDecoderAllowedToDownloadData(this),
+                   "This decoder should not have downloaded data.");
+      mMainDecoder->NotifyDownloadEnded(this, aStatus, mSubsegmentIdx);
     }
   } else if (aStatus == NS_BINDING_ABORTED) {
     LOG("MPD download has been cancelled by the user: aStatus [%x].", aStatus);
@@ -161,63 +170,94 @@ DASHRepDecoder::OnReadMetadataCompleted()
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
 
+  
+  if (mShuttingDown) {
+    LOG1("Shutting down! Ignoring OnReadMetadataCompleted().");
+    return;
+  }
+
   LOG1("Metadata has been read.");
-  nsCOMPtr<nsIRunnable> event =
-    NS_NewRunnableMethod(this, &DASHRepDecoder::LoadNextByteRange);
-  nsresult rv = NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv)) {
-    LOG("Error dispatching parse event to main thread: rv[%x]", rv);
+
+  
+  nsresult rv = PopulateByteRanges();
+  if (NS_FAILED(rv) || mByteRanges.IsEmpty()) {
+    LOG("Error populating byte ranges [%x]", rv);
     DecodeError();
     return;
   }
+
+  mMainDecoder->OnReadMetadataCompleted(this);
+}
+
+nsresult
+DASHRepDecoder::PopulateByteRanges()
+{
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+
+  
+  NS_ENSURE_FALSE(mShuttingDown, NS_ERROR_UNEXPECTED);
+
+  if (!mByteRanges.IsEmpty()) {
+    return NS_OK;
+  }
+  NS_ENSURE_TRUE(mReader, NS_ERROR_NULL_POINTER);
+  LOG1("Populating byte range array.");
+  return mReader->GetSubsegmentByteRanges(mByteRanges);
 }
 
 void
 DASHRepDecoder::LoadNextByteRange()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  if (!mResource) {
-    LOG1("Error: resource is reported as null!");
+  NS_ASSERTION(mResource, "Error: resource is reported as null!");
+
+  
+  if (mShuttingDown) {
+    LOG1("Shutting down! Ignoring LoadNextByteRange().");
+    return;
+  }
+
+  NS_ASSERTION(mMainDecoder, "Error: main decoder is null!");
+  NS_ASSERTION(mMainDecoder->IsDecoderAllowedToDownloadData(this),
+               "Should not be called on non-active decoders!");
+
+  
+  if (mByteRanges.IsEmpty()) {
+    LOG1("Error getting list of subsegment byte ranges.");
     DecodeError();
     return;
   }
 
   
-  nsresult rv;
-  if (mByteRanges.IsEmpty()) {
-    if (!mReader) {
-      LOG1("Error: mReader should not be null!");
-      DecodeError();
-      return;
-    }
-    rv = mReader->GetIndexByteRanges(mByteRanges);
-    
-    if (NS_FAILED(rv) || mByteRanges.IsEmpty()) {
-      LOG1("Error getting list of subsegment byte ranges.");
-      DecodeError();
-      return;
-    }
-  }
-
-  
-  if (mSubsegmentIdx < mByteRanges.Length()) {
-    mCurrentByteRange = mByteRanges[mSubsegmentIdx];
+  int32_t subsegmentIdx = mMainDecoder->GetSubsegmentIndex(this);
+  NS_ASSERTION(0 <= subsegmentIdx,
+               "Subsegment index should be >= 0 for active decoders");
+  if (subsegmentIdx >= 0 && (uint32_t)subsegmentIdx < mByteRanges.Length()) {
+    mCurrentByteRange = mByteRanges[subsegmentIdx];
+    mSubsegmentIdx = subsegmentIdx;
   } else {
     mCurrentByteRange.Clear();
-    LOG("End of subsegments: index [%d] out of range.", mSubsegmentIdx);
+    mSubsegmentIdx = -1;
+    LOG("End of subsegments: index [%d] out of range.", subsegmentIdx);
     return;
   }
 
   
-  rv = mResource->OpenByteRange(nullptr, mCurrentByteRange);
+  
+  
+  if (subsegmentIdx == 0) {
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    mReader->RequestSeekToSubsegment(0);
+  }
+
+  
+  nsresult rv = mResource->OpenByteRange(nullptr, mCurrentByteRange);
   if (NS_FAILED(rv)) {
-    LOG("Error opening byte range [%d - %d]: rv [%x].",
-        mCurrentByteRange.mStart, mCurrentByteRange.mEnd, rv);
+    LOG("Error opening byte range [%lld - %lld]: subsegmentIdx [%d] rv [%x].",
+        mCurrentByteRange.mStart, mCurrentByteRange.mEnd, mSubsegmentIdx, rv);
     NetworkError();
     return;
   }
-  
-  mSubsegmentIdx++;
 }
 
 nsresult
@@ -227,38 +267,75 @@ DASHRepDecoder::GetByteRangeForSeek(int64_t const aOffset,
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
   
-  for (int i = 0; i < mByteRanges.Length(); i++) {
-    NS_ENSURE_FALSE(mByteRanges[i].IsNull(), NS_ERROR_NOT_INITIALIZED);
-    if (mByteRanges[i].mStart <= aOffset && aOffset <= mByteRanges[i].mEnd) {
-      mCurrentByteRange = aByteRange = mByteRanges[i];
-      mSubsegmentIdx = i;
+  
+  bool canDownloadData = mMainDecoder->IsDecoderAllowedToDownloadData(this);
+  if (canDownloadData) {
+    for (int i = 0; i < mByteRanges.Length(); i++) {
+      NS_ENSURE_FALSE(mByteRanges[i].IsNull(), NS_ERROR_NOT_INITIALIZED);
+      
+      if (mByteRanges[i].mStart <= aOffset && aOffset <= mByteRanges[i].mEnd) {
+        mCurrentByteRange = aByteRange = mByteRanges[i];
+        mSubsegmentIdx = i;
+        
+        
+        mMainDecoder->SetSubsegmentIndex(this, i);
+        LOG("Getting DATA range [%d] for seek offset [%lld]: "
+            "bytes [%lld] to [%lld]",
+            i, aOffset, aByteRange.mStart, aByteRange.mEnd);
+        return NS_OK;
+      }
+    }
+  } else {
+    LOG1("Restricting seekable byte ranges to metadata for this decoder.");
+  }
+  
+  
+  bool canDownloadMetadata = mByteRanges.IsEmpty();
+  if (canDownloadMetadata) {
+    
+    if (mInitByteRange.mStart <= aOffset && aOffset <= mInitByteRange.mEnd) {
+      mCurrentByteRange = aByteRange = mInitByteRange;
+      mSubsegmentIdx = 0;
+        LOG("Getting INIT range for seek offset [%lld]: bytes [%lld] to "
+            "[%lld]", aOffset, aByteRange.mStart, aByteRange.mEnd);
       return NS_OK;
     }
-  }
-  
-  if (mInitByteRange.mStart <= aOffset && aOffset <= mInitByteRange.mEnd) {
-    mCurrentByteRange = aByteRange = mInitByteRange;
-    mSubsegmentIdx = 0;
-    return NS_OK;
-  }
-  
-  if (mIndexByteRange.mStart <= aOffset && aOffset <= mIndexByteRange.mEnd) {
-    mCurrentByteRange = aByteRange = mIndexByteRange;
-    mSubsegmentIdx = 0;
-    return NS_OK;
+    
+    if (mIndexByteRange.mStart <= aOffset && aOffset <= mIndexByteRange.mEnd) {
+      mCurrentByteRange = aByteRange = mIndexByteRange;
+      mSubsegmentIdx = 0;
+      LOG("Getting INDEXES range for seek offset [%lld]: bytes [%lld] to "
+          "[%lld]", aOffset, aByteRange.mStart, aByteRange.mEnd);
+      return NS_OK;
+    }
+  } else {
+    LOG1("Metadata should be read; inhibiting further metadata downloads.");
   }
 
+  
   aByteRange.Clear();
-  if (mByteRanges.IsEmpty()) {
+  if (mByteRanges.IsEmpty() || !canDownloadData || !canDownloadMetadata) {
     
-    LOG("Can't get range for offset [%d].", aOffset);
+    LOG("Data ranges not populated [%s]; data download restricted [%s]; "
+        "metadata download restricted [%s]: offset[%lld].",
+        (mByteRanges.IsEmpty() ? "yes" : "no"),
+        (canDownloadData ? "no" : "yes"),
+        (canDownloadMetadata ? "no" : "yes"), aOffset);
     return NS_ERROR_NOT_AVAILABLE;
   } else {
     
     
-    LOG("Error! Offset [%d] is in an unknown range!", aOffset);
+    LOG("Error! Offset [%lld] is in an unknown range!", aOffset);
     return NS_ERROR_ILLEGAL_VALUE;
   }
+}
+
+void
+DASHRepDecoder::PrepareForSwitch()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  
+  mResource->FlushCache();
 }
 
 void
@@ -302,7 +379,7 @@ DASHRepDecoder::NotifyDataArrived(const char* aBuffer,
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
-  LOG("Data bytes [%d - %d] arrived via buffer [%p].",
+  LOG("Data bytes [%lld - %lld] arrived via buffer [%p].",
       aOffset, aOffset+aLength, aBuffer);
   
   

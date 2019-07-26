@@ -96,7 +96,7 @@ AdaptationSet::AddRepresentation(Representation* aRep)
   NS_ENSURE_TRUE(aRep,);
   
   if (!mRepresentations.Contains(aRep)) {
-    mRepresentations.AppendElement(aRep);
+    mRepresentations.InsertElementSorted(aRep, CompareRepresentationBitrates());
   }
 }
 

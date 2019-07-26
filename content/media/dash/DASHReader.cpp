@@ -16,19 +16,45 @@
 #include "VideoFrameContainer.h"
 #include "AbstractMediaDecoder.h"
 #include "DASHReader.h"
+#include "DASHDecoder.h"
 
 namespace mozilla {
 
 #ifdef PR_LOGGING
-extern PRLogModuleInfo* gMediaDecoderLog;
-#define LOG(msg, ...) PR_LOG(gMediaDecoderLog, PR_LOG_DEBUG, \
+PRLogModuleInfo* gDASHReaderLog;
+#define LOG(msg, ...) PR_LOG(gDASHReaderLog, PR_LOG_DEBUG, \
                              ("%p [DASHReader] " msg, this, __VA_ARGS__))
-#define LOG1(msg) PR_LOG(gMediaDecoderLog, PR_LOG_DEBUG, \
+#define LOG1(msg) PR_LOG(gDASHReaderLog, PR_LOG_DEBUG, \
                          ("%p [DASHReader] " msg, this))
 #else
 #define LOG(msg, ...)
 #define LOG1(msg)
 #endif
+
+DASHReader::DASHReader(AbstractMediaDecoder* aDecoder) :
+  MediaDecoderReader(aDecoder),
+  mReadMetadataMonitor("media.dashreader.readmetadata"),
+  mReadyToReadMetadata(false),
+  mDecoderIsShuttingDown(false),
+  mAudioReader(this),
+  mVideoReader(this),
+  mAudioReaders(this),
+  mVideoReaders(this),
+  mSwitchVideoReaders(false),
+  mSwitchCount(-1)
+{
+  MOZ_COUNT_CTOR(DASHReader);
+#ifdef PR_LOGGING
+  if (!gDASHReaderLog) {
+    gDASHReaderLog = PR_NewLogModule("DASHReader");
+  }
+#endif
+}
+
+DASHReader::~DASHReader()
+{
+  MOZ_COUNT_DTOR(DASHReader);
+}
 
 nsresult
 DASHReader::Init(MediaDecoderReader* aCloneDonor)
@@ -52,7 +78,7 @@ DASHReader::Init(MediaDecoderReader* aCloneDonor)
 }
 
 void
-DASHReader::AddAudioReader(MediaDecoderReader* aAudioReader)
+DASHReader::AddAudioReader(DASHRepReader* aAudioReader)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   NS_ENSURE_TRUE(aAudioReader, );
@@ -66,7 +92,7 @@ DASHReader::AddAudioReader(MediaDecoderReader* aAudioReader)
 }
 
 void
-DASHReader::AddVideoReader(MediaDecoderReader* aVideoReader)
+DASHReader::AddVideoReader(DASHRepReader* aVideoReader)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   NS_ENSURE_TRUE(aVideoReader, );
@@ -79,12 +105,26 @@ DASHReader::AddVideoReader(MediaDecoderReader* aVideoReader)
     mVideoReader = aVideoReader;
 }
 
+bool
+DASHReader::HasAudio()
+{
+  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
+  return mAudioReader ? mAudioReader->HasAudio() : false;
+}
+
+bool
+DASHReader::HasVideo()
+{
+  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
+  return mVideoReader ? mVideoReader->HasVideo() : false;
+}
+
 int64_t
 DASHReader::VideoQueueMemoryInUse()
 {
   ReentrantMonitorConditionallyEnter mon(!mDecoder->OnDecodeThread(),
                                          mDecoder->GetReentrantMonitor());
-  return (mVideoReader ? mVideoReader->VideoQueueMemoryInUse() : 0);
+  return VideoQueueMemoryInUse();
 }
 
 int64_t
@@ -92,7 +132,7 @@ DASHReader::AudioQueueMemoryInUse()
 {
   ReentrantMonitorConditionallyEnter mon(!mDecoder->OnDecodeThread(),
                                          mDecoder->GetReentrantMonitor());
-  return (mAudioReader ? mAudioReader->AudioQueueMemoryInUse() : 0);
+  return AudioQueueMemoryInUse();
 }
 
 bool
@@ -116,7 +156,7 @@ DASHReader::DecodeAudioData()
 
 nsresult
 DASHReader::ReadMetadata(VideoInfo* aInfo,
-                           MetadataTags** aTags)
+                         MetadataTags** aTags)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
 
@@ -130,15 +170,27 @@ DASHReader::ReadMetadata(VideoInfo* aInfo,
   
   NS_ENSURE_SUCCESS(rv, rv);
 
+  NS_ASSERTION(aTags, "Called with null MetadataTags**.");
+  *aTags = nullptr;
+
   
   VideoInfo audioInfo, videoInfo;
 
-  if (mVideoReader) {
-    rv = mVideoReader->ReadMetadata(&videoInfo, aTags);
+  
+  for (uint i = 0; i < mVideoReaders.Length(); i++) {
+    
+    nsAutoPtr<nsHTMLMediaElement::MetadataTags> tags;
+    rv = mVideoReaders[i]->ReadMetadata(&videoInfo, getter_Transfers(tags));
     NS_ENSURE_SUCCESS(rv, rv);
-    mInfo.mHasVideo      = videoInfo.mHasVideo;
-    mInfo.mDisplay       = videoInfo.mDisplay;
+    
+    if (mVideoReaders[i] == mVideoReader) {
+      mInfo.mHasVideo      = videoInfo.mHasVideo;
+      mInfo.mDisplay       = videoInfo.mDisplay;
+    }
   }
+  
+  
+  
   if (mAudioReader) {
     rv = mAudioReader->ReadMetadata(&audioInfo, aTags);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -303,7 +355,7 @@ DASHReader::AudioQueue()
   ReentrantMonitorConditionallyEnter mon(!mDecoder->OnDecodeThread(),
                                          mDecoder->GetReentrantMonitor());
   NS_ASSERTION(mAudioReader, "mAudioReader is NULL!");
-  return mAudioReader->AudioQueue();
+  return mAudioQueue;
 }
 
 MediaQueue<VideoData>&
@@ -312,7 +364,7 @@ DASHReader::VideoQueue()
   ReentrantMonitorConditionallyEnter mon(!mDecoder->OnDecodeThread(),
                                          mDecoder->GetReentrantMonitor());
   NS_ASSERTION(mVideoReader, "mVideoReader is NULL!");
-  return mVideoReader->VideoQueue();
+  return mVideoQueue;
 }
 
 bool
@@ -324,6 +376,122 @@ DASHReader::IsSeekableInBufferedRanges()
   return (mVideoReader || mAudioReader) &&
           !((mVideoReader && !mVideoReader->IsSeekableInBufferedRanges()) ||
             (mAudioReader && !mAudioReader->IsSeekableInBufferedRanges()));
+}
+
+void
+DASHReader::RequestVideoReaderSwitch(uint32_t aFromReaderIdx,
+                                       uint32_t aToReaderIdx,
+                                       uint32_t aSubsegmentIdx)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  NS_ASSERTION(aFromReaderIdx < mVideoReaders.Length(),
+               "From index is greater than number of video readers!");
+  NS_ASSERTION(aToReaderIdx < mVideoReaders.Length(),
+               "To index is greater than number of video readers!");
+  NS_ASSERTION(aToReaderIdx != aFromReaderIdx,
+               "Don't request switches to same reader!");
+  mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+
+  if (mSwitchCount < 0) {
+    mSwitchCount = 0;
+  }
+
+  DASHRepReader* fromReader = mVideoReaders[aFromReaderIdx];
+  DASHRepReader* toReader = mVideoReaders[aToReaderIdx];
+
+  LOG("Switch requested from reader [%d] [%p] to reader [%d] [%p] "
+      "at subsegment[%d].",
+      aFromReaderIdx, fromReader, aToReaderIdx, toReader, aSubsegmentIdx);
+
+  
+  mSwitchToVideoSubsegmentIndexes.AppendElement(aSubsegmentIdx);
+
+  
+  fromReader->RequestSwitchAtSubsegment(aSubsegmentIdx, toReader);
+
+  
+  toReader->RequestSeekToSubsegment(aSubsegmentIdx);
+
+  mSwitchVideoReaders = true;
+}
+
+void
+DASHReader::PossiblySwitchVideoReaders()
+{
+  NS_ASSERTION(mDecoder, "Decoder should not be null");
+  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
+
+  
+  if (!mSwitchVideoReaders) {
+    return;
+  }
+
+  
+  NS_ENSURE_TRUE(0 <= mSwitchCount, );
+  NS_ENSURE_TRUE((uint32_t)mSwitchCount < mSwitchToVideoSubsegmentIndexes.Length(), );
+  uint32_t switchIdx = mSwitchToVideoSubsegmentIndexes[mSwitchCount];
+  if (!mVideoReader->HasReachedSubsegment(switchIdx)) {
+    return;
+  }
+
+  
+  DASHDecoder* dashDecoder = static_cast<DASHDecoder*>(mDecoder);
+  int32_t toReaderIdx = dashDecoder->GetRepIdxForVideoSubsegmentLoad(switchIdx);
+  NS_ENSURE_TRUE(0 <= toReaderIdx, );
+  NS_ENSURE_TRUE((uint32_t)toReaderIdx < mVideoReaders.Length(), );
+
+  DASHRepReader* fromReader = mVideoReader;
+  DASHRepReader* toReader = mVideoReaders[toReaderIdx];
+  NS_ENSURE_TRUE(fromReader != toReader, );
+
+  LOG("Switching video readers now from [%p] to [%p] at subsegment [%d]: "
+      "mSwitchCount [%d].",
+      fromReader, toReader, switchIdx, mSwitchCount);
+
+  
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  mVideoReader = toReader;
+
+  
+  if ((uint32_t)++mSwitchCount < mSwitchToVideoSubsegmentIndexes.Length()) {
+    
+    switchIdx = mSwitchToVideoSubsegmentIndexes[mSwitchCount];
+
+    
+    fromReader = toReader;
+    toReaderIdx = dashDecoder->GetRepIdxForVideoSubsegmentLoad(switchIdx);
+    toReader = mVideoReaders[toReaderIdx];
+    NS_ENSURE_TRUE((uint32_t)toReaderIdx < mVideoReaders.Length(), );
+    NS_ENSURE_TRUE(fromReader != toReader, );
+
+    
+    fromReader->RequestSwitchAtSubsegment(switchIdx, toReader);
+
+    
+    toReader->RequestSeekToSubsegment(switchIdx);
+  } else {
+    
+    mSwitchVideoReaders = false;
+  }
+}
+
+void
+DASHReader::PrepareToDecode()
+{
+  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
+
+  
+  if (!mSwitchVideoReaders) {
+    return;
+  }
+
+  PossiblySwitchVideoReaders();
+
+  
+  
+  for (uint32_t i = 0; i < mVideoReaders.Length(); i++) {
+    mVideoReaders[i]->PrepareToDecode();
+  }
 }
 
 } 

@@ -234,7 +234,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       
       if (!acceptsRanges) {
         CMLOG("Error! HTTP_PARTIAL_RESPONSE_CODE received but server says "
-              "range requests are not accepted! Channel[%p]", hc.get());
+              "range requests are not accepted! Channel[%p] decoder[%p]",
+              hc.get(), mDecoder);
         mDecoder->NetworkError();
         CloseChannel();
         return NS_OK;
@@ -248,7 +249,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       if (NS_FAILED(rv)) {
         
         CMLOG("Error processing \'Content-Range' for "
-              "HTTP_PARTIAL_RESPONSE_CODE: rv[%x]channel [%p]", rv, hc.get());
+              "HTTP_PARTIAL_RESPONSE_CODE: rv[%x] channel[%p] decoder[%p]",
+              rv, hc.get(), mDecoder);
         mDecoder->NetworkError();
         CloseChannel();
         return NS_OK;
@@ -389,8 +391,8 @@ ChannelMediaResource::ParseContentRangeHeader(nsIHttpChannel * aHttpChan,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  CMLOG("Received bytes [%d] to [%d] of [%d]",
-        aRangeStart, aRangeEnd, aRangeTotal);
+  CMLOG("Received bytes [%lld] to [%lld] of [%lld] for decoder[%p]",
+        aRangeStart, aRangeEnd, aRangeTotal, mDecoder);
 
   return NS_OK;
 }
@@ -479,9 +481,22 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
   closure->mResource->mDecoder->NotifyDataArrived(aFromSegment, aCount, closure->mResource->mOffset);
 
   
+  
+  
+  
+  
+  
+  if (closure->mResource->mByteRangeDownloads) {
+    closure->mResource->mCacheStream.NotifyDataStarted(closure->mResource->mOffset);
+  }
+
+  
+  LOG("%p [ChannelMediaResource]: CopySegmentToCache at mOffset [%lld] add "
+      "[%d] bytes for decoder[%p]",
+      closure->mResource, closure->mResource->mOffset, aCount,
+      closure->mResource->mDecoder);
   closure->mResource->mOffset += aCount;
-  LOG("%p [ChannelMediaResource]: CopySegmentToCache new mOffset = %d",
-      closure->mResource, closure->mResource->mOffset);
+
   closure->mResource->mCacheStream.NotifyDataReceived(aCount, aFromSegment,
                                                       closure->mPrincipal);
   *aWriteCount = aCount;
@@ -760,6 +775,8 @@ nsresult ChannelMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
+  CMLOG("Seek requested for aOffset [%lld] for decoder [%p]",
+        aOffset, mDecoder);
   
   if (mByteRangeDownloads) {
     ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
@@ -971,7 +988,21 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
 {
   NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
 
-  CloseChannel();
+  CMLOG("CacheClientSeek requested for aOffset [%lld] for decoder [%p]",
+        aOffset, mDecoder);
+
+  
+  if (!mByteRangeDownloads) {
+    CloseChannel();
+  } else if (mChannel) {
+    
+    bool isPending = false;
+    nsresult rv = mChannel->IsPending(&isPending);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!isPending) {
+      CloseChannel();
+    }
+  }
 
   if (aResume) {
     NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
@@ -1003,21 +1034,52 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
       ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
       
       
-      NS_ENSURE_TRUE(aOffset <= mSeekOffset, NS_ERROR_ILLEGAL_VALUE);
-      rv = mDecoder->GetByteRangeForSeek(mSeekOffset, mByteRange);
-      mSeekOffset = -1;
+      
+      
+      
+      
+      
+      
+      
+      if (mSeekOffset >= 0) {
+        rv = mDecoder->GetByteRangeForSeek(mSeekOffset, mByteRange);
+        
+        
+        
+        
+        
+        
+        
+        
+        if (NS_SUCCEEDED(rv) && !mByteRange.IsNull() &&
+            aOffset > mByteRange.mEnd) {
+          rv = NS_ERROR_NOT_AVAILABLE;
+          mByteRange.Clear();
+        }
+        mSeekOffset = -1;
+      } else {
+        LOG("MediaCache [%p] trying to seek independently to offset [%lld].",
+            &mCacheStream, aOffset);
+        rv = NS_ERROR_NOT_AVAILABLE;
+      }
     }
     if (rv == NS_ERROR_NOT_AVAILABLE) {
       
       
+      
+      
+      
+      CMLOG("Byte range not available for decoder [%p]; returning "
+            "silently.", mDecoder);
       return NS_OK;
     } else if (NS_FAILED(rv) || mByteRange.IsNull()) {
       
+      CMLOG("Error getting byte range: seek offset[%lld] cache offset[%lld] "
+            "decoder[%p]", mSeekOffset, aOffset, mDecoder);
       mDecoder->NetworkError();
       CloseChannel();
       return rv;
     }
-    
     
     mByteRange.mStart = mOffset = aOffset;
     return OpenByteRange(nullptr, mByteRange);
@@ -1040,6 +1102,26 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
     return rv;
 
   return OpenChannel(nullptr);
+}
+
+void
+ChannelMediaResource::FlushCache()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
+  
+  mCacheStream.FlushPartialBlock();
+}
+
+void
+ChannelMediaResource::NotifyLastByteRange()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
+  
+  
+  mCacheStream.NotifyDataEnded(NS_OK);
+
 }
 
 nsresult

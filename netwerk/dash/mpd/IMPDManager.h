@@ -111,6 +111,13 @@ public:
   
   virtual double GetDuration() const = 0;
 
+  
+  
+  
+  
+  virtual bool GetBestRepForBandwidth(uint32_t aAdaptSetIdx,
+                                      uint64_t aBandwidth,
+                                      uint32_t &aRepIdx) const = 0;
 public:
   
   static IMPDManager* Create(DASHMPDProfile Profile, nsIDOMElement* aRoot);

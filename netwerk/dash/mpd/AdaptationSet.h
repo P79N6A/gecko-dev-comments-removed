@@ -90,6 +90,7 @@ public:
 
 private:
   
+  
   nsTArray<nsAutoPtr<Representation> >  mRepresentations;
 
   

@@ -25,6 +25,7 @@
 namespace mozilla {
 
 class DASHDecoder;
+class DASHRepReader;
 
 class DASHRepDecoder : public MediaDecoder
 {
@@ -39,7 +40,7 @@ public:
     mMPDRepresentation(nullptr),
     mMetadataChunkCount(0),
     mCurrentByteRange(),
-    mSubsegmentIdx(0),
+    mSubsegmentIdx(-1),
     mReader(nullptr)
   {
     MOZ_COUNT_CTOR(DASHRepDecoder);
@@ -129,20 +130,28 @@ public:
                                MediaByteRange& aByteRange);
 
   
+  uint32_t GetNumDataByteRanges() {
+    return mByteRanges.Length();
+  }
+
+  
+  void PrepareForSwitch();
+
+  
   bool OnStateMachineThread() const;
 
   
   bool OnDecodeThread() const;
 
   
-  ReentrantMonitor& GetReentrantMonitor();
+  ReentrantMonitor& GetReentrantMonitor() MOZ_OVERRIDE;
 
   
   ImageContainer* GetImageContainer();
 
   
   
-  void OnReadMetadataCompleted();
+  void OnReadMetadataCompleted() MOZ_OVERRIDE;
 
   
   void Shutdown() {
@@ -163,6 +172,10 @@ public:
 
 private:
   
+  
+  nsresult PopulateByteRanges();
+
+  
   nsRefPtr<DASHDecoder> mMainDecoder;
   
   Representation const * mMPDRepresentation;
@@ -180,11 +193,11 @@ private:
   
   MediaByteRange  mCurrentByteRange;
   
-  uint64_t        mSubsegmentIdx;
+  int32_t         mSubsegmentIdx;
 
   
   
-  MediaDecoderReader*   mReader;
+  DASHRepReader* mReader;
 };
 
 } 

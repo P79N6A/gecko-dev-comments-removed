@@ -198,6 +198,39 @@ nsDASHWebMODManager::GetDuration() const
   return current->GetDuration();
 }
 
+bool
+nsDASHWebMODManager::GetBestRepForBandwidth(uint32_t aAdaptSetIdx,
+                                            uint64_t aBandwidth,
+                                            uint32_t &aRepIdx) const
+{
+  NS_ENSURE_TRUE(aAdaptSetIdx < GetNumAdaptationSets(), false);
+  NS_ENSURE_TRUE(0 < GetNumRepresentations(aAdaptSetIdx), false);
+  
+  
+  
+  
+  if (aBandwidth*0.95 < GetRepresentation(aAdaptSetIdx, 0)->GetBitrate()) {
+    aRepIdx = UINT32_MAX;
+    return false;
+  }
+  
+  
+  
+  
+  for (uint32_t i = 1; i < GetNumRepresentations(aAdaptSetIdx); i++) {
+    NS_ENSURE_TRUE(GetRepresentation(aAdaptSetIdx, i), false);
+    if (aBandwidth*0.95 < GetRepresentation(aAdaptSetIdx, i)->GetBitrate()) {
+      
+      aRepIdx = i-1;
+      return true;
+    }
+  }
+  
+  
+  aRepIdx = GetNumRepresentations(aAdaptSetIdx)-1;
+  return true;
+}
+
 }
 }
 

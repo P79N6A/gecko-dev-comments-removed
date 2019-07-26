@@ -793,6 +793,8 @@ void MediaDecoderStateMachine::DecodeLoop()
          !mStopDecodeThread &&
          (videoPlaying || audioPlaying))
   {
+    mReader->PrepareToDecode();
+
     
     
     

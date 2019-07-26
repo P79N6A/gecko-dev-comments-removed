@@ -274,6 +274,9 @@ public:
   void NotifyDataReceived(int64_t aSize, const char* aData,
                           nsIPrincipal* aPrincipal);
   
+  
+  void FlushPartialBlock();
+  
   void NotifyDataEnded(nsresult aStatus);
 
   
@@ -415,6 +418,11 @@ private:
   
   
   int64_t GetNextCachedDataInternal(int64_t aOffset);
+  
+  
+  
+  
+  void FlushPartialBlockInternal(bool aNotify);
   
   
   

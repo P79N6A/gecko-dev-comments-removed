@@ -66,6 +66,10 @@ public:
     MOZ_COUNT_DTOR(Representation);
   }
 
+  bool operator<(const Representation &other) const {
+    return this->mBitrate < other.mBitrate;
+  }
+
   
   int64_t const    GetBitrate() const;
   void             SetBitrate(int64_t const aBitrate);
@@ -99,6 +103,31 @@ private:
 
   
   nsAutoPtr<SegmentBase> mSegmentBase;
+};
+
+
+class CompareRepresentationBitrates
+{
+public:
+  
+  
+  
+  
+  
+  bool Equals(const nsAutoPtr<Representation>& a,
+              const Representation *b) const {
+    return a == b;
+  }
+
+  
+  
+  
+  
+  
+  bool LessThan(const nsAutoPtr<Representation>& a,
+                const Representation *b) const {
+    return *a < *b;
+  }
 };
 
 }

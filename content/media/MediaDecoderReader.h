@@ -374,6 +374,9 @@ public:
   virtual bool DecodeAudioData() = 0;
 
   
+  virtual void PrepareToDecode() { }
+
+  
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
@@ -470,17 +473,6 @@ public:
 
   AudioData* DecodeToFirstAudioData();
   VideoData* DecodeToFirstVideoData();
-
-  
-  virtual void SetInitByteRange(MediaByteRange &aByteRange) { }
-
-  
-  virtual void SetIndexByteRange(MediaByteRange &aByteRange) { }
-
-  
-  virtual nsresult GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
 
 protected:
   
