@@ -178,8 +178,11 @@ ComparePolicy::adjustInputs(MInstruction *def)
         MInstruction *replace;
 
         
-        if (in->type() == MIRType_Object || in->type() == MIRType_String)
+        if (in->type() == MIRType_Object || in->type() == MIRType_String ||
+            in->type() == MIRType_Undefined)
+        {
             in = boxAt(def, in);
+        }
 
         switch (type) {
           case MIRType_Double:
