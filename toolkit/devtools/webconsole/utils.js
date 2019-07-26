@@ -6,7 +6,7 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, components} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -2586,6 +2586,98 @@ ConsoleProgressListener.prototype = {
     this._webProgress = null;
     this.window = null;
     this.owner = null;
+  },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ConsoleReflowListener(aWindow, aListener)
+{
+  this.docshell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation)
+                         .QueryInterface(Ci.nsIDocShell);
+  this.listener = aListener;
+  this.docshell.addWeakReflowObserver(this);
+}
+
+exports.ConsoleReflowListener = ConsoleReflowListener;
+
+ConsoleReflowListener.prototype =
+{
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIReflowObserver,
+                                         Ci.nsISupportsWeakReference]),
+  docshell: null,
+  listener: null,
+
+  
+
+
+
+
+
+
+  sendReflow: function CRL_sendReflow(aStart, aEnd, aInterruptible)
+  {
+    let frame = components.stack.caller.caller;
+
+    let filename = frame.filename;
+
+    if (filename) {
+      
+      
+      filename = filename.split(" ").pop();
+    }
+
+    this.listener.onReflowActivity({
+      interruptible: aInterruptible,
+      start: aStart,
+      end: aEnd,
+      sourceURL: filename,
+      sourceLine: frame.lineNumber,
+      functionName: frame.name
+    });
+  },
+
+  
+
+
+
+
+
+  reflow: function CRL_reflow(aStart, aEnd)
+  {
+    this.sendReflow(aStart, aEnd, false);
+  },
+
+  
+
+
+
+
+
+  reflowInterruptible: function CRL_reflowInterruptible(aStart, aEnd)
+  {
+    this.sendReflow(aStart, aEnd, true);
+  },
+
+  
+
+
+  destroy: function CRL_destroy()
+  {
+    this.docshell.removeWeakReflowObserver(this);
+    this.listener = this.docshell = null;
   },
 };
 

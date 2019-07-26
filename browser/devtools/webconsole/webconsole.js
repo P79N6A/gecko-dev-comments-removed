@@ -107,13 +107,13 @@ const SEVERITY_CLASS_FRAGMENTS = [
 
 const MESSAGE_PREFERENCE_KEYS = [
 
-  [ "network",    "netwarn",    null,   "networkinfo", ],  
-  [ "csserror",   "cssparser",  null,   null,          ],  
-  [ "exception",  "jswarn",     null,   "jslog",       ],  
-  [ "error",      "warn",       "info", "log",         ],  
-  [ null,         null,         null,   null,          ],  
-  [ null,         null,         null,   null,          ],  
-  [ "secerror",   "secwarn",    null,   null,          ],  
+  [ "network",    "netwarn",    null,     "networkinfo", ],  
+  [ "csserror",   "cssparser",  null,     "csslog",      ],  
+  [ "exception",  "jswarn",     null,     "jslog",       ],  
+  [ "error",      "warn",       "info",   "log",         ],  
+  [ null,         null,         null,     null,          ],  
+  [ null,         null,         null,     null,          ],  
+  [ "secerror",   "secwarn",    null,     null,          ],  
 ];
 
 
@@ -563,12 +563,34 @@ WebConsoleFrame.prototype = {
 
   _initDefaultFilterPrefs: function WCF__initDefaultFilterPrefs()
   {
-    let prefs = ["network", "networkinfo", "csserror", "cssparser", "exception",
-                 "jswarn", "jslog", "error", "info", "warn", "log", "secerror",
-                 "secwarn", "netwarn"];
+    let prefs = ["network", "networkinfo", "csserror", "cssparser", "csslog",
+                 "exception", "jswarn", "jslog", "error", "info", "warn", "log",
+                 "secerror", "secwarn", "netwarn"];
     for (let pref of prefs) {
       this.filterPrefs[pref] = Services.prefs
                                .getBoolPref(this._filterPrefsPrefix + pref);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _updateReflowActivityListener:
+    function WCF__updateReflowActivityListener(aCallback)
+  {
+    if (this.webConsoleClient) {
+      let pref = this._filterPrefsPrefix + "csslog";
+      if (Services.prefs.getBoolPref(pref)) {
+        this.webConsoleClient.startListeners(["ReflowActivity"], aCallback);
+      } else {
+        this.webConsoleClient.stopListeners(["ReflowActivity"], aCallback);
+      }
     }
   },
 
@@ -787,6 +809,7 @@ WebConsoleFrame.prototype = {
     this.filterPrefs[aToggleType] = aState;
     this.adjustVisibilityForMessageType(aToggleType, aState);
     Services.prefs.setBoolPref(this._filterPrefsPrefix + aToggleType, aState);
+    this._updateReflowActivityListener();
   },
 
   
@@ -1532,6 +1555,42 @@ WebConsoleFrame.prototype = {
   handleFileActivity: function WCF_handleFileActivity(aFileURI)
   {
     this.outputMessage(CATEGORY_NETWORK, this.logFileActivity, [aFileURI]);
+  },
+
+  
+
+
+
+
+
+  logReflowActivity: function WCF_logReflowActivity(aMessage)
+  {
+    let {start, end, sourceURL, sourceLine} = aMessage;
+    let duration = Math.round((end - start) * 100) / 100;
+    let node = this.document.createElementNS(XHTML_NS, "span");
+    if (sourceURL) {
+      node.textContent = l10n.getFormatStr("reflow.messageWithLink", [duration]);
+      let a = this.document.createElementNS(XHTML_NS, "a");
+      a.href = "#";
+      a.draggable = "false";
+      let filename = WebConsoleUtils.abbreviateSourceURL(sourceURL);
+      let functionName = aMessage.functionName || l10n.getStr("stacktrace.anonymousFunction");
+      a.textContent = l10n.getFormatStr("reflow.messageLinkText",
+                         [functionName, filename, sourceLine]);
+      this._addMessageLinkCallback(a, () => {
+        this.owner.viewSourceInDebugger(sourceURL, sourceLine);
+      });
+      node.appendChild(a);
+    } else {
+      node.textContent = l10n.getFormatStr("reflow.messageWithNoLink", [duration]);
+    }
+    return this.createMessageNode(CATEGORY_CSS, SEVERITY_LOG, node);
+  },
+
+
+  handleReflowActivity: function WCF_handleReflowActivity(aMessage)
+  {
+    this.outputMessage(CATEGORY_CSS, this.logReflowActivity, [aMessage]);
   },
 
   
@@ -2349,8 +2408,10 @@ WebConsoleFrame.prototype = {
 
     
     let repeatNode = null;
-    if (aCategory != CATEGORY_INPUT && aCategory != CATEGORY_OUTPUT &&
-        aCategory != CATEGORY_NETWORK) {
+    if (aCategory != CATEGORY_INPUT &&
+        aCategory != CATEGORY_OUTPUT &&
+        aCategory != CATEGORY_NETWORK &&
+        !(aCategory == CATEGORY_CSS && aSeverity == SEVERITY_LOG)) {
       repeatNode = this.document.createElementNS(XHTML_NS, "span");
       repeatNode.setAttribute("value", "1");
       repeatNode.className = "repeats";
@@ -4656,6 +4717,7 @@ function WebConsoleConnectionProxy(aWebConsole, aTarget)
   this._onNetworkEvent = this._onNetworkEvent.bind(this);
   this._onNetworkEventUpdate = this._onNetworkEventUpdate.bind(this);
   this._onFileActivity = this._onFileActivity.bind(this);
+  this._onReflowActivity = this._onReflowActivity.bind(this);
   this._onTabNavigated = this._onTabNavigated.bind(this);
   this._onAttachConsole = this._onAttachConsole.bind(this);
   this._onCachedMessages = this._onCachedMessages.bind(this);
@@ -4762,6 +4824,7 @@ WebConsoleConnectionProxy.prototype = {
     client.addListener("networkEvent", this._onNetworkEvent);
     client.addListener("networkEventUpdate", this._onNetworkEventUpdate);
     client.addListener("fileActivity", this._onFileActivity);
+    client.addListener("reflowActivity", this._onReflowActivity);
     client.addListener("lastPrivateContextExited", this._onLastPrivateContextExited);
     this.target.on("will-navigate", this._onTabNavigated);
     this.target.on("navigate", this._onTabNavigated);
@@ -4827,6 +4890,8 @@ WebConsoleConnectionProxy.prototype = {
 
     let msgs = ["PageError", "ConsoleAPI"];
     this.webConsoleClient.getCachedMessages(msgs, this._onCachedMessages);
+
+    this.owner._updateReflowActivityListener();
   },
 
   
@@ -4964,6 +5029,13 @@ WebConsoleConnectionProxy.prototype = {
     }
   },
 
+  _onReflowActivity: function WCCP__onReflowActivity(aType, aPacket)
+  {
+    if (this.owner && aPacket.from == this._consoleActor) {
+      this.owner.handleReflowActivity(aPacket);
+    }
+  },
+
   
 
 
@@ -5039,6 +5111,7 @@ WebConsoleConnectionProxy.prototype = {
     this.client.removeListener("networkEvent", this._onNetworkEvent);
     this.client.removeListener("networkEventUpdate", this._onNetworkEventUpdate);
     this.client.removeListener("fileActivity", this._onFileActivity);
+    this.client.removeListener("reflowActivity", this._onReflowActivity);
     this.client.removeListener("lastPrivateContextExited", this._onLastPrivateContextExited);
     this.target.off("will-navigate", this._onTabNavigated);
     this.target.off("navigate", this._onTabNavigated);
