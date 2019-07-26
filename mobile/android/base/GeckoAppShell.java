@@ -569,10 +569,7 @@ public class GeckoAppShell
 
     
     private static void geckoLoaded() {
-        LayerView v = GeckoApp.mAppContext.getLayerView();
         GeckoEditable editable = new GeckoEditable();
-        InputConnectionHandler ich = GeckoInputConnection.create(v, editable);
-        v.setInputConnectionHandler(ich);
         
         mEditableListener = editable;
     }
