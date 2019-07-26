@@ -1208,14 +1208,14 @@ nsObjectFrame::IsTransparentMode() const
 #endif
 }
 
-NS_IMETHODIMP
+void
 nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists)
 {
   
   if (!IsVisibleOrCollapsedForPainting(aBuilder))
-    return NS_OK;
+    return;
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
@@ -1223,14 +1223,14 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   if (type == nsPresContext::eContext_PrintPreview)
-    return NS_OK;
+    return;
 
   DO_GLOBAL_REFLOW_COUNT_DSP("nsObjectFrame");
 
 #ifndef XP_MACOSX
   if (mWidget && aBuilder->IsInTransform()) {
     
-    return NS_OK;
+    return;
   }
 #endif
 
@@ -1289,8 +1289,6 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 
   WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);
-
-  return NS_OK;
 }
 
 #ifdef XP_OS2

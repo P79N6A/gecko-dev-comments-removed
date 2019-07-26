@@ -301,14 +301,12 @@ public:
   
 
 
-  nsresult DisplayCaret(nsIFrame* aFrame, const nsRect& aDirtyRect,
-      nsDisplayList* aList) {
+  void DisplayCaret(nsIFrame* aFrame, const nsRect& aDirtyRect,
+                    nsDisplayList* aList) {
     nsIFrame* frame = GetCaretFrame();
-    if (aFrame != frame) {
-      return NS_OK;
+    if (aFrame == frame) {
+      frame->DisplayCaret(this, aDirtyRect, aList);
     }
-    frame->DisplayCaret(this, aDirtyRect, aList);
-    return NS_OK;
   }
   
 
@@ -1192,22 +1190,20 @@ public:
 
 
 
-  nsresult AppendNewToTop(nsDisplayItem* aItem) {
-    if (!aItem)
-      return NS_ERROR_OUT_OF_MEMORY;
-    AppendToTop(aItem);
-    return NS_OK;
+  void AppendNewToTop(nsDisplayItem* aItem) {
+    if (aItem) {
+      AppendToTop(aItem);
+    }
   }
   
   
 
 
 
-  nsresult AppendNewToBottom(nsDisplayItem* aItem) {
-    if (!aItem)
-      return NS_ERROR_OUT_OF_MEMORY;
-    AppendToBottom(aItem);
-    return NS_OK;
+  void AppendNewToBottom(nsDisplayItem* aItem) {
+    if (aItem) {
+      AppendToBottom(aItem);
+    }
   }
   
   
@@ -1680,10 +1676,8 @@ protected:
   PR_BEGIN_MACRO                                                              \
     if (!aBuilder->IsBackgroundOnly() && !aBuilder->IsForEventDelivery() &&   \
         PresContext()->PresShell()->IsPaintingFrameCounts()) {                \
-      nsresult _rv =                                                          \
         aLists.Outlines()->AppendNewToTop(                                    \
             new (aBuilder) nsDisplayReflowCount(aBuilder, this, _name));      \
-      NS_ENSURE_SUCCESS(_rv, _rv);                                            \
     }                                                                         \
   PR_END_MACRO
 
@@ -1691,10 +1685,8 @@ protected:
   PR_BEGIN_MACRO                                                              \
     if (!aBuilder->IsBackgroundOnly() && !aBuilder->IsForEventDelivery() &&   \
         PresContext()->PresShell()->IsPaintingFrameCounts()) {                \
-      nsresult _rv =                                                          \
         aLists.Outlines()->AppendNewToTop(                                    \
              new (aBuilder) nsDisplayReflowCount(aBuilder, this, _name, _color)); \
-      NS_ENSURE_SUCCESS(_rv, _rv);                                            \
     }                                                                         \
   PR_END_MACRO
 
@@ -1702,11 +1694,11 @@ protected:
 
 
 #define DECL_DO_GLOBAL_REFLOW_COUNT_DSP(_class, _super)                   \
-  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,           \
-                              const nsRect&           aDirtyRect,         \
-                              const nsDisplayListSet& aLists) {           \
+  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,                 \
+                        const nsRect&           aDirtyRect,               \
+                        const nsDisplayListSet& aLists) {                 \
     DO_GLOBAL_REFLOW_COUNT_DSP(#_class);                                  \
-    return _super::BuildDisplayList(aBuilder, aDirtyRect, aLists);        \
+    _super::BuildDisplayList(aBuilder, aDirtyRect, aLists);               \
   }
 
 #else 

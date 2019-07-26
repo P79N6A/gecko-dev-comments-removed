@@ -110,7 +110,7 @@ nsHTMLButtonControlFrame::HandleEvent(nsPresContext* aPresContext,
 }
 
 
-NS_IMETHODIMP
+void
 nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                            const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists)
@@ -149,7 +149,6 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   DisplaySelectionOverlay(aBuilder, aLists.Content());
-  return NS_OK;
 }
 
 nscoord
