@@ -10,6 +10,9 @@
 #include "nsIContent.h"
 #include "nsString.h"
 
+class nsMediaQuery;
+class nsCSSValue;
+
 namespace mozilla {
 namespace dom {
 
@@ -17,6 +20,7 @@ class ResponsiveImageCandidate;
 
 class ResponsiveImageSelector : public nsISupports
 {
+  friend class ResponsiveImageCandidate;
 public:
   NS_DECL_ISUPPORTS
   ResponsiveImageSelector(nsIContent *aContent);
@@ -24,6 +28,10 @@ public:
   
   
   bool SetCandidatesFromSourceSet(const nsAString & aSrcSet);
+
+  
+  
+  bool SetSizesFromDescriptor(const nsAString & aSizesDescriptor);
 
   
   nsresult SetDefaultSource(const nsAString & aSpec);
@@ -48,11 +56,21 @@ private:
   
   int GetBestCandidateIndex();
 
+  
+  
+  
+  
+  
+  bool ComputeFinalWidthForCurrentViewport(int32_t *aWidth);
+
   nsCOMPtr<nsIContent> mContent;
   
   
   nsTArray<ResponsiveImageCandidate> mCandidates;
   int mBestCandidateIndex;
+
+  nsTArray< nsAutoPtr<nsMediaQuery> > mSizeQueries;
+  nsTArray<nsCSSValue> mSizeValues;
 };
 
 class ResponsiveImageCandidate {
@@ -78,7 +96,15 @@ public:
   bool HasSameParameter(const ResponsiveImageCandidate & aOther) const;
 
   already_AddRefed<nsIURI> URL() const;
-  double Density() const;
+
+  
+  double Density(ResponsiveImageSelector *aSelector) const;
+  
+  
+  double Density(int32_t aMatchingWidth) const;
+
+  
+  bool IsComputedFromWidth() const;
 
   enum eCandidateType {
     eCandidateType_Invalid,
