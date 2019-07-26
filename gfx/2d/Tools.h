@@ -6,6 +6,8 @@
 #ifndef MOZILLA_GFX_TOOLS_H_
 #define MOZILLA_GFX_TOOLS_H_
 
+#include "mozilla/CheckedInt.h"
+#include "mozilla/TypeTraits.h"
 #include "Types.h"
 #include "Point.h"
 #include <math.h>
@@ -93,40 +95,75 @@ BytesPerPixel(SurfaceFormat aFormat)
 template<typename T, int alignment = 16>
 struct AlignedArray
 {
+  typedef T value_type;
+
   AlignedArray()
-    : mStorage(nullptr)
-    , mPtr(nullptr)
+    : mPtr(nullptr)
+    , mStorage(nullptr)
   {
   }
 
-  MOZ_ALWAYS_INLINE AlignedArray(size_t aSize)
+  MOZ_ALWAYS_INLINE AlignedArray(size_t aCount)
     : mStorage(nullptr)
+    , mCount(0)
   {
-    Realloc(aSize);
+    Realloc(aCount);
   }
 
   MOZ_ALWAYS_INLINE ~AlignedArray()
   {
-    delete [] mStorage;
+    Dealloc();
   }
 
   void Dealloc()
   {
+    
+    
+    
+    
+    static_assert(mozilla::IsPod<T>::value,
+                  "Destructors must be invoked for this type");
+#if 0
+    for (size_t i = 0; i < mCount; ++i) {
+      
+      
+      
+      
+      mPtr[i].~T();
+    }
+#endif
+
     delete [] mStorage;
-    mStorage = mPtr = nullptr;
+    mStorage = nullptr;
+    mPtr = nullptr;
   }
 
-  MOZ_ALWAYS_INLINE void Realloc(size_t aSize)
+  MOZ_ALWAYS_INLINE void Realloc(size_t aCount)
   {
     delete [] mStorage;
-    mStorage = new (std::nothrow) T[aSize + (alignment - 1)];
+    CheckedInt32 storageByteCount =
+      CheckedInt32(sizeof(T)) * aCount + (alignment - 1);
+    if (!storageByteCount.isValid()) {
+      mStorage = nullptr;
+      mPtr = nullptr;
+      mCount = 0;
+      return;
+    }
+    
+    
+    mStorage = new (std::nothrow) uint8_t[storageByteCount.value()];
     if (uintptr_t(mStorage) % alignment) {
       
-      mPtr = (T*)(uintptr_t(mStorage) +
-        (alignment - (uintptr_t(mStorage) % alignment)));
+      mPtr = (T*)(uintptr_t(mStorage) + alignment - (uintptr_t(mStorage) % alignment));
     } else {
-      mPtr = mStorage;
+      mPtr = (T*)(mStorage);
     }
+    
+    
+    
+    
+    mPtr = new (mPtr) T[aCount];
+    mCount = aCount;
   }
 
   MOZ_ALWAYS_INLINE operator T*()
@@ -134,8 +171,11 @@ struct AlignedArray
     return mPtr;
   }
 
-  T *mStorage;
   T *mPtr;
+
+private:
+  uint8_t *mStorage;
+  size_t mCount;
 };
 
 
