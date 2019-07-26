@@ -78,7 +78,7 @@ var SelectionHandler = {
         } else if (this._activeType == this.TYPE_CURSOR) {
           
           
-          this._closeSelection();
+          this._deactivate();
         }
         break;
       }
@@ -159,7 +159,7 @@ var SelectionHandler = {
 
       case "compositionend":
         if (this._activeType == this.TYPE_CURSOR) {
-          this._closeSelection();
+          this._deactivate();
         }
         break;
     }
@@ -216,25 +216,25 @@ var SelectionHandler = {
     this._closeSelection();
 
     this._initTargetInfo(aElement);
-    this._activeType = this.TYPE_SELECTION;
 
     
     this._contentWindow.getSelection().removeAllRanges();
 
     if (!this._domWinUtils.selectAtPoint(aX, aY, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
-      this._closeSelection();
+      this._deactivate();
       return;
     }
 
     let selection = this._getSelection();
     
     if (!selection || selection.rangeCount == 0) {
-      this._closeSelection();
+      this._deactivate();
       return;
     }
 
     
     selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
+    this._activeType = this.TYPE_SELECTION;
 
     
     this._cache = { start: {}, end: {}};
@@ -498,16 +498,23 @@ var SelectionHandler = {
     if (this._activeType == this.TYPE_NONE)
       return;
 
-    if (this._activeType == this.TYPE_SELECTION) {
-      let selection = this._getSelection();
-      if (selection) {
-        
-        selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
-        
-        selection.collapseToStart();
-      }
-    }
+    if (this._activeType == this.TYPE_SELECTION)
+      this._clearSelection();
 
+    this._deactivate();
+  },
+
+  _clearSelection: function sh_clearSelection() {
+    let selection = this._getSelection();
+    if (selection) {
+      
+      selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
+      
+      selection.collapseToStart();
+    }
+  },
+
+  _deactivate: function sh_deactivate() {
     this._activeType = this.TYPE_NONE;
 
     sendMessageToJava({ type: "TextSelection:HideHandles" });
