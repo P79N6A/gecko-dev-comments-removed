@@ -1996,8 +1996,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   if (useStickyPosition) {
     resultList.AppendNewToTop(
-        new (aBuilder) nsDisplayStickyPosition(aBuilder, this, this,
-                                               &resultList));
+        new (aBuilder) nsDisplayStickyPosition(aBuilder, this, &resultList));
   }
 
   
