@@ -4725,6 +4725,8 @@ class MInitializedLength
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    void computeRange();
 };
 
 
@@ -4778,6 +4780,8 @@ class MArrayLength
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    void computeRange();
 };
 
 
@@ -4813,6 +4817,8 @@ class MTypedArrayLength
         
         return AliasSet::None();
     }
+
+    void computeRange();
 };
 
 
@@ -7262,6 +7268,8 @@ class MStringLength
         
         return AliasSet::None();
     }
+
+    void computeRange();
 };
 
 
@@ -7569,6 +7577,8 @@ class MArgumentsLength : public MNullaryInstruction
         
         return AliasSet::None();
    }
+
+    void computeRange();
 };
 
 
