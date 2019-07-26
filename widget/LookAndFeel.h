@@ -355,13 +355,7 @@ public:
     
 
 
-    eIntID_TooltipDelay,
-
-    
-
-
-
-    eIntID_SwipeAnimationEnabled
+    eIntID_TooltipDelay
   };
 
   

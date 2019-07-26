@@ -583,14 +583,6 @@ nsMediaFeatures::features[] = {
         GetWindowsTheme
     },
 
-    {
-        &nsGkAtoms::_moz_swipe_animation_enabled,
-        nsMediaFeature::eMinMaxNotAllowed,
-        nsMediaFeature::eBoolInteger,
-        { &nsGkAtoms::swipe_animation_enabled },
-        GetSystemMetric
-    },
-
     
     
     
