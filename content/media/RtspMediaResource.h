@@ -94,6 +94,10 @@ public:
   }
 
   
+  
+  void SetSuspend(bool aIsSuspend);
+
+  
 
   
   
@@ -137,8 +141,7 @@ public:
   virtual void    Pin() MOZ_OVERRIDE {}
   virtual void    Unpin() MOZ_OVERRIDE {}
 
-  
-  virtual bool    IsSuspendedByCache() MOZ_OVERRIDE { return false; }
+  virtual bool    IsSuspendedByCache() MOZ_OVERRIDE { return mIsSuspend; }
 
   virtual bool    IsSuspended() MOZ_OVERRIDE { return false; }
   virtual bool    IsTransportSeekable() MOZ_OVERRIDE { return true; }
@@ -224,6 +227,8 @@ protected:
   nsRefPtr<Listener> mListener;
 
 private:
+  
+  void NotifySuspend(bool aIsSuspend);
   bool IsVideoEnabled();
   bool IsVideo(uint8_t tracks, nsIStreamingProtocolMetaData *meta);
   
@@ -235,6 +240,8 @@ private:
   bool mIsConnected;
   
   bool mRealTime;
+  
+  bool mIsSuspend;
 };
 
 } 
