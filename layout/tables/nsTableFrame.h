@@ -349,13 +349,13 @@ public:
 #endif
 
   
-  virtual int32_t GetColumnWidth(int32_t aColIndex);
+  int32_t GetColumnWidth(int32_t aColIndex);
 
   
-  virtual nscoord GetCellSpacingX();
+  nscoord GetCellSpacingX();
 
   
-  virtual nscoord GetCellSpacingY();
+  nscoord GetCellSpacingY();
  
   virtual nscoord GetBaseline() const;
   
@@ -369,10 +369,10 @@ public:
 
 
 
-  virtual int32_t  GetEffectiveRowSpan(int32_t                 aStartRowIndex,
-                                       const nsTableCellFrame& aCell) const;
-  virtual int32_t  GetEffectiveRowSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nullptr);
+  int32_t  GetEffectiveRowSpan(int32_t                 aStartRowIndex,
+                               const nsTableCellFrame& aCell) const;
+  int32_t  GetEffectiveRowSpan(const nsTableCellFrame& aCell,
+                               nsCellMap*              aCellMap = nullptr);
 
   
 
@@ -382,8 +382,8 @@ public:
 
 
 
-  virtual int32_t  GetEffectiveColSpan(const nsTableCellFrame& aCell,
-                                       nsCellMap*              aCellMap = nullptr) const;
+  int32_t  GetEffectiveColSpan(const nsTableCellFrame& aCell,
+                               nsCellMap*              aCellMap = nullptr) const;
 
   
 
@@ -427,15 +427,15 @@ public:
 
   void DidResizeColumns();
 
-  virtual void AppendCell(nsTableCellFrame& aCellFrame,
-                          int32_t           aRowIndex);
+  void AppendCell(nsTableCellFrame& aCellFrame,
+                  int32_t           aRowIndex);
 
-  virtual void InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
-                           int32_t                      aRowIndex,
-                           int32_t                      aColIndexBefore);
+  void InsertCells(nsTArray<nsTableCellFrame*>& aCellFrames,
+                   int32_t                      aRowIndex,
+                   int32_t                      aColIndexBefore);
 
-  virtual void RemoveCell(nsTableCellFrame* aCellFrame,
-                          int32_t           aRowIndex);
+  void RemoveCell(nsTableCellFrame* aCellFrame,
+                  int32_t           aRowIndex);
 
   void AppendRows(nsTableRowGroupFrame*       aRowGroupFrame,
                   int32_t                     aRowIndex,
@@ -446,9 +446,9 @@ public:
                      int32_t                     aRowIndex,
                      bool                        aConsiderSpans);
 
-  virtual void RemoveRows(nsTableRowFrame& aFirstRowFrame,
-                          int32_t          aNumRowsToRemove,
-                          bool             aConsiderSpans);
+  void RemoveRows(nsTableRowFrame& aFirstRowFrame,
+                  int32_t          aNumRowsToRemove,
+                  bool             aConsiderSpans);
 
   
 
@@ -458,10 +458,10 @@ public:
   void InsertColGroups(int32_t                   aStartColIndex,
                        const nsFrameList::Slice& aColgroups);
 
-  virtual void RemoveCol(nsTableColGroupFrame* aColGroupFrame,
-                         int32_t               aColIndex,
-                         bool                  aRemoveFromCache,
-                         bool                  aRemoveFromCellMap);
+  void RemoveCol(nsTableColGroupFrame* aColGroupFrame,
+                 int32_t               aColIndex,
+                 bool                  aRemoveFromCache,
+                 bool                  aRemoveFromCellMap);
 
   bool ColumnHasCellSpacingBefore(int32_t aColIndex) const;
 
@@ -657,7 +657,7 @@ public:
   
 
 
-  virtual nsTableCellMap* GetCellMap() const;
+  nsTableCellMap* GetCellMap() const;
 
   
 
@@ -719,7 +719,7 @@ public:
   int32_t GetIndexOfLastRealCol();
 
   
-  virtual bool IsAutoLayout();
+  bool IsAutoLayout();
 
 public:
  
