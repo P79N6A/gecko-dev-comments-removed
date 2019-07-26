@@ -1907,11 +1907,6 @@ pref("layout.testing.overlay-scrollbars.always-visible", false);
 
 
 
-pref("layout.interruptible-reflow.enabled", true);
-
-
-
-
 pref("layout.frame_rate", -1);
 
 
@@ -4430,3 +4425,6 @@ pref("image.mozsamplesize.enabled", false);
 #ifndef MOZ_WIDGET_GONK
 pref("beacon.enabled", true);
 #endif
+
+
+pref("camera.control.autofocus_moving_callback.enabled", false);

@@ -53,10 +53,12 @@ public:
 
   virtual void Shutdown() MOZ_OVERRIDE;
 
+  
   void OnShutter();
   void OnClosed();
   void OnError(CameraControlListener::CameraErrorContext aContext,
                CameraControlListener::CameraError aError);
+  void OnAutoFocusMoving(bool aIsMoving);
 
 protected:
   

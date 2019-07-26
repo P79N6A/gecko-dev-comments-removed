@@ -91,6 +91,8 @@ public:
   void SetOnRecorderStateChange(dom::CameraRecorderStateChange* aCb);
   already_AddRefed<dom::CameraPreviewStateChange> GetOnPreviewStateChange();
   void SetOnPreviewStateChange(dom::CameraPreviewStateChange* aCb);
+  already_AddRefed<dom::CameraAutoFocusMovingCallback> GetOnAutoFocusMoving();
+  void SetOnAutoFocusMoving(dom::CameraAutoFocusMovingCallback* aCb);
 
   
   void SetConfiguration(const dom::CameraConfiguration& aConfiguration,
@@ -144,6 +146,7 @@ protected:
   void OnCreatedFileDescriptor(bool aSucceeded);
 
   void OnAutoFocusComplete(bool aAutoFocusSucceeded);
+  void OnAutoFocusMoving(bool aIsMoving);
   void OnTakePictureComplete(nsIDOMBlob* aPicture);
 
   void OnHardwareStateChange(DOMCameraControlListener::HardwareState aState);
@@ -187,6 +190,7 @@ protected:
   nsRefPtr<dom::CameraClosedCallback>           mOnClosedCb;
   nsRefPtr<dom::CameraRecorderStateChange>      mOnRecorderStateChangeCb;
   nsRefPtr<dom::CameraPreviewStateChange>       mOnPreviewStateChangeCb;
+  nsRefPtr<dom::CameraAutoFocusMovingCallback>  mOnAutoFocusMovingCb;
 
   
   
