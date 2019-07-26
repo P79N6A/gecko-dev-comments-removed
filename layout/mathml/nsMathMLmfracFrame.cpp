@@ -222,8 +222,12 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   GetRuleThickness(aRenderingContext, fm, defaultRuleThickness);
   GetAxisHeight(aRenderingContext, fm, axisHeight);
 
-  nsEmbellishData coreData;
-  GetEmbellishDataFrom(mEmbellishData.coreFrame, coreData);
+  bool outermostEmbellished = false;
+  if (mEmbellishData.coreFrame) {
+    nsEmbellishData parentData;
+    GetEmbellishDataFrom(mParent, parentData);
+    outermostEmbellished = parentData.coreFrame != mEmbellishData.coreFrame;
+  }
 
   
   nsAutoString value;
@@ -237,16 +241,22 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 
   if (!mIsBevelled) {
     mLineRect.height = mLineThickness;
+
     
     
     
     
     
-    
-    nscoord leftSpace = std::max(onePixel, StyleVisibility()->mDirection ?
-                               coreData.trailingSpace : coreData.leadingSpace);
-    nscoord rightSpace = std::max(onePixel, StyleVisibility()->mDirection ?
-                                coreData.leadingSpace : coreData.trailingSpace);
+    nscoord leftSpace = onePixel;
+    nscoord rightSpace = onePixel;
+    if (outermostEmbellished) {
+      nsEmbellishData coreData;
+      GetEmbellishDataFrom(mEmbellishData.coreFrame, coreData);
+      leftSpace += StyleVisibility()->mDirection ?
+                     coreData.trailingSpace : coreData.leadingSpace;
+      rightSpace += StyleVisibility()->mDirection ?
+                      coreData.leadingSpace : coreData.trailingSpace;
+    }
 
     
     
@@ -393,8 +403,14 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     nscoord slashMinHeight = slashRatio *
       std::min(2 * mLineThickness, slashMaxWidthConstant);
 
-    nscoord leadingSpace = std::max(padding, coreData.leadingSpace);
-    nscoord trailingSpace = std::max(padding, coreData.trailingSpace);
+    nscoord leadingSpace = padding;
+    nscoord trailingSpace = padding;
+    if (outermostEmbellished) {
+      nsEmbellishData coreData;
+      GetEmbellishDataFrom(mEmbellishData.coreFrame, coreData);
+      leadingSpace += coreData.leadingSpace;
+      trailingSpace += coreData.trailingSpace;
+    }
     nscoord delta;
     
     

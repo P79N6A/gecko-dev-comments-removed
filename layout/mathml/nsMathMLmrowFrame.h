@@ -32,6 +32,9 @@ public:
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
+  virtual eMathMLFrameType
+  GetMathMLFrameType() MOZ_OVERRIDE; 
+
   bool
   IsMrowLike() MOZ_OVERRIDE {
     
