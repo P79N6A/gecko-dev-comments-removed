@@ -239,7 +239,7 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code, uint32_t objectOffset)
     
     EmitEnterStubFrame(masm, R1.scratchReg());
 
-    masm.loadValue(Address(rsp, STUB_FRAME_SIZE + objectOffset), R1);
+    masm.loadValue(Address(BaselineStackReg, STUB_FRAME_SIZE + objectOffset), R1);
 
     masm.pushValue(R0);
     masm.pushValue(R1);
