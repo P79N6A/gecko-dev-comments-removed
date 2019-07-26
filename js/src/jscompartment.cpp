@@ -337,7 +337,22 @@ JSCompartment::wrap(JSContext *cx, Value *vp, JSObject *existing)
         if (!wrapped)
             return false;
         vp->setString(wrapped);
-        return crossCompartmentWrappers.put(orig, *vp);
+        if (!crossCompartmentWrappers.put(orig, *vp))
+            return false;
+
+        if (str->compartment()->isGCMarking()) {
+            
+
+
+
+
+
+            JSString *tmp = str;
+            MarkStringUnbarriered(&rt->gcMarker, &tmp, "wrapped string");
+            JS_ASSERT(tmp == str);
+        }
+
+        return true;
     }
 
     RootedObject obj(cx, &vp->toObject());
