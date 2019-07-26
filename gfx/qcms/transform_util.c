@@ -189,46 +189,6 @@ void compute_curve_gamma_table_type0(float gamma_table[256])
 	}
 }
 
-float clamp_float(float a)
-{
-	
-
-
-
-
-
-
-
-
-
-
-
-	if (a > 1.)
-		return 1.;
-	else if (a >= 0)
-		return a;
-	else 
-		return 0;
-}
-
-unsigned char clamp_u8(float v)
-{
-	if (v > 255.)
-		return 255;
-	else if (v < 0)
-		return 0;
-	else
-		return floor(v+.5);
-}
-
-float u8Fixed8Number_to_float(uint16_t x)
-{
-	
-	
-	
-	return x/256.;
-}
-
 float *build_input_gamma_table(struct curveType *TRC)
 {
 	float *gamma_table;
