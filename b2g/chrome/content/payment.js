@@ -46,6 +46,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
+
 #ifdef MOZ_B2G_RIL
 XPCOMUtils.defineLazyServiceGetter(this, "gRil",
                                    "@mozilla.org/ril;1",
@@ -197,8 +200,6 @@ const kClosePaymentFlowEvent = "close-payment-flow-dialog";
 
 let gRequestId;
 
-let gBrowser = Services.wm.getMostRecentWindow("navigator:browser");
-
 let PaymentProvider = {
 #ifdef MOZ_B2G_RIL
   __exposedProps__: {
@@ -229,11 +230,6 @@ let PaymentProvider = {
     
     let id = kClosePaymentFlowEvent + "-" + uuidgen.generateUUID().toString();
 
-    let content = gBrowser.getContentWindow();
-    if (!content) {
-      return;
-    }
-
     let detail = {
       type: kClosePaymentFlowEvent,
       id: id,
@@ -244,13 +240,13 @@ let PaymentProvider = {
     
     
     
-    content.addEventListener("mozContentEvent",
-                             function closePaymentFlowReturn(evt) {
+    SystemAppProxy.addEventListener("mozContentEvent",
+                               function closePaymentFlowReturn(evt) {
       if (evt.detail.id == id && aCallback) {
         aCallback();
       }
 
-      content.removeEventListener("mozContentEvent",
+      SystemAppProxy.removeEventListener("mozContentEvent",
                                   closePaymentFlowReturn);
 
       let glue = Cc["@mozilla.org/payment/ui-glue;1"]
@@ -258,7 +254,7 @@ let PaymentProvider = {
       glue.cleanup();
     });
 
-    gBrowser.shell.sendChromeEvent(detail);
+    SystemAppProxy.dispatchEvent(detail);
 
 #ifdef MOZ_B2G_RIL
     this._cleanUp();
@@ -478,7 +474,7 @@ addEventListener("DOMWindowCreated", function(e) {
 
 
 
-gBrowser.getContentWindow().addEventListener("mozContentEvent", function(e) {
+SystemAppProxy.addEventListener("mozContentEvent", function(e) {
   if (e.detail.type === "cancel") {
     PaymentProvider._cleanUp();
   }

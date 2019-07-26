@@ -11,6 +11,9 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
+
 function ActivitiesDialog() {
   this._id = 0;
 
@@ -31,8 +34,6 @@ ActivitiesDialog.prototype = {
     
     
     
-    let browser = Services.wm.getMostRecentWindow("navigator:browser");
-    let content = browser.getContentWindow();
     let detail = {
       type: "activity-choice",
       id: id,
@@ -42,17 +43,17 @@ ActivitiesDialog.prototype = {
 
     
     
-    content.addEventListener("mozContentEvent", function act_getChoice(evt) {
+    SystemAppProxy.addEventListener("mozContentEvent", function act_getChoice(evt) {
       if (evt.detail.id != id)
         return;
 
-      content.removeEventListener("mozContentEvent", act_getChoice);
+      SystemAppProxy.removeEventListener("mozContentEvent", act_getChoice);
       activity.callback.handleEvent(evt.detail.value !== undefined
                                       ? evt.detail.value
                                       : -1);
     });
 
-    browser.shell.sendChromeEvent(detail);
+    SystemAppProxy.dispatchEvent(detail);
   },
 
   chooseActivity: function ap_chooseActivity(aName, aActivities, aCallback) {

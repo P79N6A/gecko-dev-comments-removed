@@ -16,20 +16,19 @@ XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsMgmtService",
 
 
 const ORIGINAL_AUTH_URI = Services.prefs.getCharPref("identity.fxaccounts.auth.uri");
-const ORIGINAL_SHELL = FxAccountsMgmtService._shell;
+let { SystemAppProxy } = Cu.import("resource://gre/modules/FxAccountsMgmtService.jsm");
+const ORIGINAL_SENDCUSTOM = SystemAppProxy._sendCustomEvent;
 do_register_cleanup(function() {
   Services.prefs.setCharPref("identity.fxaccounts.auth.uri", ORIGINAL_AUTH_URI);
-  FxAccountsMgmtService._shell = ORIGINAL_SHELL;
+  SystemAppProxy._sendCustomEvent = ORIGINAL_SENDCUSTOM;
 });
 
 
 do_get_profile();
 
 
-let mockShell = {
-  sendCustomEvent: function(aEventName, aMsg) {
-    Services.obs.notifyObservers({wrappedJSObject: aMsg}, aEventName, null);
-  },
+let mockSendCustomEvent = function(aEventName, aMsg) {
+  Services.obs.notifyObservers({wrappedJSObject: aMsg}, aEventName, null);
 };
 
 function run_test() {
@@ -144,7 +143,7 @@ add_test(function test_invalidEmailCase_signIn() {
 
   Services.obs.addObserver(onMessage, "mozFxAccountsChromeEvent", false);
 
-  FxAccountsMgmtService._shell = mockShell;
+  SystemAppProxy._sendCustomEvent = mockSendCustomEvent;
 
   
   FxAccountsMgmtService.handleEvent({
