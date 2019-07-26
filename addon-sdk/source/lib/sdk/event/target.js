@@ -9,7 +9,7 @@ module.metadata = {
 };
 
 const { on, once, off, setListeners } = require('./core');
-const { method, chain } = require('../lang/functional');
+const { method, chainable } = require('../lang/functional');
 const { Class } = require('../core/heritage');
 
 
@@ -43,7 +43,7 @@ const EventTarget = Class({
 
 
 
-  on: chain(method(on)),
+  on: chainable(method(on)),
   
 
 
@@ -52,7 +52,7 @@ const EventTarget = Class({
 
 
 
-  once: chain(method(once)),
+  once: chainable(method(once)),
   
 
 
