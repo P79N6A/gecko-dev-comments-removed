@@ -1082,30 +1082,48 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
 
-struct TypeObjectEntry : DefaultHasher<ReadBarriered<TypeObject> >
+
+
+struct TypeObjectWithNewScriptEntry
 {
+    ReadBarriered<TypeObject> object;
+
+    
+    JSFunction *newFunction;
+
+    TypeObjectWithNewScriptEntry(TypeObject *object, JSFunction *newFunction)
+      : object(object), newFunction(newFunction)
+    {}
+
     struct Lookup {
         const Class *clasp;
         TaggedProto hashProto;
         TaggedProto matchProto;
+        JSFunction *newFunction;
 
-        Lookup(const Class *clasp, TaggedProto proto)
-          : clasp(clasp), hashProto(proto), matchProto(proto) {}
+        Lookup(const Class *clasp, TaggedProto proto, JSFunction *newFunction)
+          : clasp(clasp), hashProto(proto), matchProto(proto), newFunction(newFunction)
+        {}
 
 #ifdef JSGC_GENERATIONAL
         
 
 
 
-        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto)
-          : clasp(clasp), hashProto(hashProto), matchProto(matchProto) {}
+        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto, JSFunction *newFunction)
+            : clasp(clasp), hashProto(hashProto), matchProto(matchProto), newFunction(newFunction)
+        {}
 #endif
+
     };
 
     static inline HashNumber hash(const Lookup &lookup);
-    static inline bool match(TypeObject *key, const Lookup &lookup);
+    static inline bool match(const TypeObjectWithNewScriptEntry &key, const Lookup &lookup);
+    static void rekey(TypeObjectWithNewScriptEntry &k, const TypeObjectWithNewScriptEntry& newKey) { k = newKey; }
 };
-typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
+typedef HashSet<TypeObjectWithNewScriptEntry,
+                TypeObjectWithNewScriptEntry,
+                SystemAllocPolicy> TypeObjectWithNewScriptSet;
 
 
 bool
