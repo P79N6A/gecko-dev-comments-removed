@@ -94,8 +94,6 @@ const PanelUI = {
 
 
 
-
-
   toggle: function(aEvent) {
     
     
@@ -106,38 +104,58 @@ const PanelUI = {
     if (this.panel.state == "open") {
       this.hide();
     } else if (this.panel.state == "closed") {
-      this.ensureReady().then(function() {
-        this.panel.hidden = false;
-        let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
-        if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
-          updateEditUIVisibility();
-        }
-
-        let anchor;
-        if (aEvent.type == "mousedown" ||
-            aEvent.type == "command") {
-          anchor = this.menuButton;
-        } else {
-          anchor = aEvent.target;
-        }
-        let iconAnchor =
-          document.getAnonymousElementByAttribute(anchor, "class",
-                                                  "toolbarbutton-icon");
-
-        
-        
-        let keyboardOpened = aEvent.sourceEvent &&
-                             aEvent.sourceEvent.target.localName == "key";
-        this.panel.setAttribute("noautofocus", !keyboardOpened);
-        this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
-      }.bind(this));
+      this.show(aEvent);
     }
   },
 
   
 
 
+
+
+
+
+  show: function(aEvent) {
+    if (this.panel.state == "open" || this.panel.state == "showing" ||
+        document.documentElement.hasAttribute("customizing")) {
+      return;
+    }
+
+    this.ensureReady().then(() => {
+      this.panel.hidden = false;
+      let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
+      if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
+        updateEditUIVisibility();
+      }
+
+      let anchor;
+      if (aEvent.type == "mousedown" ||
+          aEvent.type == "command") {
+        anchor = this.menuButton;
+      } else {
+        anchor = aEvent.target;
+      }
+      let iconAnchor =
+        document.getAnonymousElementByAttribute(anchor, "class",
+                                                "toolbarbutton-icon");
+
+      
+      
+      let keyboardOpened = aEvent.sourceEvent &&
+                           aEvent.sourceEvent.target.localName == "key";
+      this.panel.setAttribute("noautofocus", !keyboardOpened);
+      this.panel.openPopup(iconAnchor || anchor, "bottomcenter topright");
+    });
+  },
+
+  
+
+
   hide: function() {
+    if (document.documentElement.hasAttribute("customizing")) {
+      return;
+    }
+
     this.panel.hidePopup();
   },
 
