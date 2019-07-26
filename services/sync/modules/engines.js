@@ -753,13 +753,28 @@ SyncEngine.prototype = {
   },
 
   
-  _processIncoming: function SyncEngine__processIncoming() {
+
+
+
+  _itemSource: function () {
+    return new Collection(this.engineURL, this._recordObj, this.service);
+  },
+
+  
+
+
+
+
+  _processIncoming: function (newitems) {
     this._log.trace("Downloading & applying server changes");
 
     
     let batchSize = Infinity;
-    let newitems = new Collection(this.engineURL, this._recordObj, this.service);
     let isMobile = (Svc.Prefs.get("client.type") == "mobile");
+
+    if (!newitems) {
+      newitems = this._itemSource();
+    }
 
     if (isMobile) {
       batchSize = MOBILE_BATCH_SIZE;
