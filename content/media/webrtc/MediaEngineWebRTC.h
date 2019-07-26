@@ -139,6 +139,10 @@ private:
   TrackID mTrackID;
   TrackTicks mLastEndTime;
 
+  
+  
+  
+  
   mozilla::ReentrantMonitor mMonitor; 
   nsTArray<SourceMediaStream *> mSources; 
 
@@ -215,6 +219,9 @@ private:
   webrtc::VoEExternalMedia* mVoERender;
   webrtc::VoENetwork*  mVoENetwork;
 
+  
+  
+  
   mozilla::ReentrantMonitor mMonitor;
   nsTArray<SourceMediaStream *> mSources; 
 
