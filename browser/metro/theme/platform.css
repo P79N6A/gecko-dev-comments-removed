@@ -11,6 +11,11 @@
 
 
 
+::-moz-selection {
+  color: white;
+  background-color: @metro_orange@;
+}
+
 :root {
   font-family: "Segoe UI", sans-serif !important;
   font-size: @font_normal@;
