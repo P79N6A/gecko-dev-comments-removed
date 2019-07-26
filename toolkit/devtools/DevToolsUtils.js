@@ -5,10 +5,14 @@
 "use strict";
 
 
-const { Ci, Cu } = require("chrome");
 
-let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
-let { setTimeout, clearTimeout } = Cu.import("resource://gre/modules/Timer.jsm", {});
+
+
+if (hasChrome) {
+  var { Ci, Cu } = require("chrome");
+  var Services = require("Services");
+  var setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
+}
 
 
 
