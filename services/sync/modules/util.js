@@ -324,12 +324,89 @@ this.Utils = {
     return Utils.encodeKeyBase32(atob(encodedKey));
   },
 
-  jsonLoad: function jsonLoad(path, that, callback) {
-    CommonUtils.jsonLoad("weave/" + path, that, callback);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  jsonLoad: function jsonLoad(filePath, that, callback) {
+    let path = "weave/" + filePath + ".json";
+
+    if (that._log) {
+      that._log.trace("Loading json from disk: " + filePath);
+    }
+
+    let file = FileUtils.getFile("ProfD", path.split("/"), true);
+    if (!file.exists()) {
+      callback.call(that);
+      return;
+    }
+
+    let channel = NetUtil.newChannel(file);
+    channel.contentType = "application/json";
+
+    NetUtil.asyncFetch(channel, function (is, result) {
+      if (!Components.isSuccessCode(result)) {
+        callback.call(that);
+        return;
+      }
+      let string = NetUtil.readInputStreamToString(is, is.available());
+      is.close();
+      let json;
+      try {
+        json = JSON.parse(string);
+      } catch (ex) {
+        if (that._log) {
+          that._log.debug("Failed to load json: " +
+                          CommonUtils.exceptionStr(ex));
+        }
+      }
+      callback.call(that, json);
+    });
   },
 
-  jsonSave: function jsonSave(path, that, obj, callback) {
-    CommonUtils.jsonSave("weave/" + path, that, obj, callback);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  jsonSave: function jsonSave(filePath, that, obj, callback) {
+    let path = "weave/" + filePath + ".json";
+    if (that._log) {
+      that._log.trace("Saving json to disk: " + path);
+    }
+
+    let file = FileUtils.getFile("ProfD", path.split("/"), true);
+    let json = typeof obj == "function" ? obj.call(that) : obj;
+    let out = JSON.stringify(json);
+
+    let fos = FileUtils.openSafeFileOutputStream(file);
+    let is = this._utf8Converter.convertToInputStream(out);
+    NetUtil.asyncCopy(is, fos, function (result) {
+      if (typeof callback == "function") {
+        let error = (result == Cr.NS_OK) ? null : result;
+        callback.call(that, error);
+      }
+    });
   },
 
   getIcon: function(iconUri, defaultIcon) {
