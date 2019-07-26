@@ -3744,7 +3744,7 @@ bool nsWindow::DispatchCommandEvent(uint32_t aEventCommand)
     default:
       return false;
   }
-  nsCommandEvent event(true, nsGkAtoms::onAppCommand, command, this);
+  WidgetCommandEvent event(true, nsGkAtoms::onAppCommand, command, this);
 
   InitEvent(event);
   return DispatchWindowEvent(&event);
@@ -4774,14 +4774,6 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
       break;
 
-    case WM_MOVE: 
-    {
-      RECT rect;
-      ::GetWindowRect(mWnd, &rect);
-      result = OnMove(rect.left, rect.top);
-    }
-    break;
-
     case WM_CLOSE: 
       if (mWidgetListener)
         mWidgetListener->RequestWindowClose(this);
@@ -5104,7 +5096,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
 
       if (contentCommandMessage) {
-        nsContentCommandEvent contentCommand(true, contentCommandMessage, this);
+        WidgetContentCommandEvent contentCommand(true, contentCommandMessage,
+                                                 this);
         DispatchWindowEvent(&contentCommand);
         
         *aRetValue = 1;
@@ -5167,8 +5160,9 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_WINDOWPOSCHANGING:
     {
-      LPWINDOWPOS info = (LPWINDOWPOS) lParam;
+      LPWINDOWPOS info = (LPWINDOWPOS)lParam;
       OnWindowPosChanging(info);
+      result = true;
     }
     break;
 
@@ -5207,8 +5201,9 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_WINDOWPOSCHANGED:
     {
-      WINDOWPOS *wp = (LPWINDOWPOS)lParam;
-      OnWindowPosChanged(wp, result);
+      WINDOWPOS* wp = (LPWINDOWPOS)lParam;
+      OnWindowPosChanged(wp);
+      result = true;
     }
     break;
 
@@ -5342,7 +5337,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         nsPointWin touchPoint;
         touchPoint = gestureinfo->ptsLocation;
         touchPoint.ScreenToClient(mWnd);
-        nsGestureNotifyEvent gestureNotifyEvent(true, NS_GESTURENOTIFY_EVENT_START, this);
+        WidgetGestureNotifyEvent gestureNotifyEvent(true,
+                                   NS_GESTURENOTIFY_EVENT_START, this);
         gestureNotifyEvent.refPoint = LayoutDeviceIntPoint::FromUntyped(touchPoint);
         nsEventStatus status;
         DispatchEvent(&gestureNotifyEvent, status);
@@ -5356,7 +5352,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_CLEAR:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_DELETE, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_DELETE, this);
       DispatchWindowEvent(&command);
       result = true;
     }
@@ -5364,7 +5360,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_CUT:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_CUT, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_CUT, this);
       DispatchWindowEvent(&command);
       result = true;
     }
@@ -5372,7 +5368,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_COPY:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_COPY, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_COPY, this);
       DispatchWindowEvent(&command);
       result = true;
     }
@@ -5380,7 +5376,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_PASTE:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_PASTE, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_PASTE, this);
       DispatchWindowEvent(&command);
       result = true;
     }
@@ -5388,7 +5384,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case EM_UNDO:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_UNDO, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_UNDO, this);
       DispatchWindowEvent(&command);
       *aRetValue = (LRESULT)(command.mSucceeded && command.mIsEnabled);
       result = true;
@@ -5397,7 +5393,7 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case EM_REDO:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_REDO, this);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_REDO, this);
       DispatchWindowEvent(&command);
       *aRetValue = (LRESULT)(command.mSucceeded && command.mIsEnabled);
       result = true;
@@ -5409,8 +5405,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       
       
       if (wParam == 0 || wParam == CF_TEXT || wParam == CF_UNICODETEXT) {
-        nsContentCommandEvent command(true, NS_CONTENT_COMMAND_PASTE,
-                                      this, true);
+        WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_PASTE,
+                                          this, true);
         DispatchWindowEvent(&command);
         *aRetValue = (LRESULT)(command.mSucceeded && command.mIsEnabled);
         result = true;
@@ -5420,8 +5416,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case EM_CANUNDO:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_UNDO,
-                                    this, true);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_UNDO,
+                                        this, true);
       DispatchWindowEvent(&command);
       *aRetValue = (LRESULT)(command.mSucceeded && command.mIsEnabled);
       result = true;
@@ -5430,8 +5426,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case EM_CANREDO:
     {
-      nsContentCommandEvent command(true, NS_CONTENT_COMMAND_REDO,
-                                    this, true);
+      WidgetContentCommandEvent command(true, NS_CONTENT_COMMAND_REDO,
+                                        this, true);
       DispatchWindowEvent(&command);
       *aRetValue = (LRESULT)(command.mSucceeded && command.mIsEnabled);
       result = true;
@@ -5786,7 +5782,7 @@ nsWindow::SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
 
 
 
-void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
+void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
 {
   if (wp == nullptr)
     return;
@@ -5892,6 +5888,16 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
   }
 
   
+  if (!(wp->flags & SWP_NOMOVE)) {
+    mBounds.x = wp->x;
+    mBounds.y = wp->y;
+
+    if (mWidgetListener) {
+      mWidgetListener->WindowMoved(this, wp->x, wp->y);
+    }
+  }
+
+  
   if (!(wp->flags & SWP_NOSIZE)) {
     RECT r;
     int32_t newWidth, newHeight;
@@ -5952,12 +5958,11 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
            ("*** Resize window: %d x %d x %d x %d\n", wp->x, wp->y, 
             newWidth, newHeight));
 #endif
-    
+
     
     if (mSizeMode == nsSizeMode_Maximized) {
       if (UpdateNonClientMargins(nsSizeMode_Maximized, true)) {
         
-        result = true;
         return;
       }
     }
@@ -5969,7 +5974,7 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     }
     
     
-    result = OnResize(rect);
+    OnResize(rect);
   }
 }
 
@@ -6079,8 +6084,8 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
 
   if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
-    nsTouchEvent* touchEventToSend = nullptr;
-    nsTouchEvent* touchEndEventToSend = nullptr;
+    WidgetTouchEvent* touchEventToSend = nullptr;
+    WidgetTouchEvent* touchEndEventToSend = nullptr;
     nsEventStatus status;
 
     
@@ -6090,7 +6095,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
       if (pInputs[i].dwFlags & (TOUCHEVENTF_DOWN | TOUCHEVENTF_MOVE)) {
         
         if (!touchEventToSend) {
-          touchEventToSend = new nsTouchEvent(true, NS_TOUCH_MOVE, this);
+          touchEventToSend = new WidgetTouchEvent(true, NS_TOUCH_MOVE, this);
           touchEventToSend->time = ::GetMessageTime();
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEventToSend);
@@ -6108,7 +6113,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
         
         
         if (!touchEndEventToSend) {
-          touchEndEventToSend = new nsTouchEvent(true, NS_TOUCH_END, this);
+          touchEndEventToSend = new WidgetTouchEvent(true, NS_TOUCH_END, this);
           touchEndEventToSend->time = ::GetMessageTime();
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEndEventToSend);
@@ -6210,7 +6215,7 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   }
 
   
-  nsSimpleGestureEvent event(true, 0, this, 0, 0.0);
+  WidgetSimpleGestureEvent event(true, 0, this, 0, 0.0);
   if ( !mGesture.ProcessGestureMessage(mWnd, wParam, lParam, event) ) {
     return false; 
   }
@@ -6512,15 +6517,6 @@ void nsWindow::OnDestroy()
 
   
   mWnd = NULL;
-}
-
-
-bool nsWindow::OnMove(int32_t aX, int32_t aY)
-{
-  mBounds.x = aX;
-  mBounds.y = aY;
-
-  return mWidgetListener ? mWidgetListener->WindowMoved(this, aX, aY) : false;
 }
 
 
