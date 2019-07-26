@@ -28,6 +28,9 @@ const CSP_TYPE_WEBSOCKET_SPEC_COMPLIANT = "csp_type_websocket_spec_compliant";
 const WARN_FLAG = Ci.nsIScriptError.warningFlag;
 const ERROR_FLAG = Ci.nsIScriptError.ERROR_FLAG;
 
+
+const CSP_CACHE_URI_CUTOFF_SIZE = 512;
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/CSPUtils.jsm");
@@ -498,6 +501,25 @@ ContentSecurityPolicy.prototype = {
   
 
 
+  _createCacheKey:
+  function (aContentLocation, aContentType) {
+    if (aContentType != Ci.nsIContentPolicy.TYPE_SCRIPT &&
+        aContentLocation.scheme == "data") {
+      
+      return aContentLocation.scheme + ":" + aContentType;
+    }
+
+    let uri = aContentLocation.spec;
+    if (uri.length > CSP_CACHE_URI_CUTOFF_SIZE) {
+      
+      return null;
+    }
+    return uri + "!" + aContentType;
+  },
+
+  
+
+
 
 
   shouldLoad:
@@ -507,8 +529,8 @@ ContentSecurityPolicy.prototype = {
                           aContext,
                           aMimeTypeGuess,
                           aOriginalUri) {
-    let key = aContentLocation.spec + "!" + aContentType;
-    if (this._cache[key]) {
+    let key = this._createCacheKey(aContentLocation, aContentType);
+    if (key && this._cache[key]) {
       return this._cache[key];
     }
 
@@ -582,8 +604,10 @@ ContentSecurityPolicy.prototype = {
       }
     }
 
-    let ret = this._cache[key] =
-      (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+    let ret = (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+    if (key) {
+      this._cache[key] = ret;
+    }
     return ret;
   },
 
