@@ -2205,9 +2205,9 @@ public:
   bool RePush(nsIDOMEventTarget *aCurrentTarget);
   
   
-  bool Push(JSContext *cx);
+  void Push(JSContext *cx);
   
-  bool PushNull();
+  void PushNull();
 
   
   void Pop();
@@ -2215,7 +2215,7 @@ public:
   nsIScriptContext* GetCurrentScriptContext() { return mScx; }
 private:
   
-  bool DoPush(JSContext* cx);
+  void DoPush(JSContext* cx);
 
   nsCOMPtr<nsIScriptContext> mScx;
   bool mScriptIsRunning;

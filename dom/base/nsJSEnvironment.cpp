@@ -1260,8 +1260,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   nsCxPusher pusher;
-  if (!pusher.Push(mContext))
-    return NS_ERROR_FAILURE;
+  pusher.Push(mContext);
 
   xpc_UnmarkGrayObject(&aScopeObject);
   nsAutoMicroTask mt;
@@ -1515,8 +1514,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
   
 
   nsCxPusher pusher;
-  if (!pusher.Push(mContext))
-    return NS_ERROR_FAILURE;
+  pusher.Push(mContext);
 
   
   rv = sSecurityManager->CheckFunctionAccess(mContext, aHandler, target);
