@@ -10,7 +10,37 @@
 
 
 
-const { Ci, Cc, CC, Cu, Cr, components: Components } = require("chrome");
+
+
+
+
+var Ci, Cc, CC, Cu, Cr, Components;
+if (this.require) {
+  ({ Ci, Cc, CC, Cu, Cr, components: Components }) = require("chrome");
+} else {
+  ({
+    interfaces: Ci,
+    classes: Cc,
+    Constructor: CC,
+    utils: Cu,
+    results: Cr
+  }) = Components;
+}
+
+
+
+
+
+
+
+var localRequire;
+if (this.require) {
+  localRequire = id => require(id);
+} else {
+  let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+  localRequire = id => devtools.require(id);
+}
+
 const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -35,7 +65,7 @@ function loadSubScript(aURL)
   }
 }
 
-let loaderRequire = require;
+let loaderRequire = this.require;
 this.require = null;
 loadSubScript.call(this, "resource://gre/modules/commonjs/sdk/core/promise.js");
 this.require = loaderRequire;
@@ -272,7 +302,7 @@ var DebuggerServer = {
     }
 
     let moduleAPI = ModuleAPI();
-    let mod = require(id);
+    let mod = localRequire(id);
     mod.register(moduleAPI);
     gRegisteredModules[id] = { module: mod, api: moduleAPI };
   },
@@ -618,7 +648,9 @@ var DebuggerServer = {
   }
 };
 
-exports.DebuggerServer = DebuggerServer;
+if (this.exports) {
+  exports.DebuggerServer = DebuggerServer;
+}
 
 
 
@@ -634,7 +666,9 @@ function ActorPool(aConnection)
   this._actors = {};
 }
 
-exports.ActorPool = ActorPool;
+if (this.exports) {
+  exports.ActorPool = ActorPool;
+}
 
 ActorPool.prototype = {
   
