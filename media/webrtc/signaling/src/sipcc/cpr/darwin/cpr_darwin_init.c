@@ -206,7 +206,6 @@ cprPostInit (void)
 
 
     debug_bind_keyword("cpr-info", &cprInfo);
-    
 
     return CPR_SUCCESS;
 }

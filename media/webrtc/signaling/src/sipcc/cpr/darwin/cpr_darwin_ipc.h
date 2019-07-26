@@ -21,7 +21,6 @@
 
 typedef struct {
     char name[16];
-    uint16_t maxCount;
     uint16_t currentCount;
     uint32_t totalCount;
     uint32_t rcvTimeouts;
@@ -36,16 +35,6 @@ typedef struct {
 
 
 extern pthread_mutex_t msgQueueListMutex;
-
-
-
-
-
-
-
-
-int32_t
-cprShowMessageQueueStats(int32_t argc, const char *argv[]);
 
 
 
