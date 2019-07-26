@@ -829,8 +829,8 @@ XrayResolveAttribute(JSContext* cx, JS::Handle<JSObject*> wrapper,
           
           JS::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, wrapper));
           JS::Rooted<JSFunction*> fun(cx,
-                                      JS_NewFunction(cx, (JSNative)attrSpec.getter.op,
-                                                     0, 0, global, nullptr));
+                                      JS_NewFunctionById(cx, (JSNative)attrSpec.getter.op,
+                                                         0, 0, global, id));
           if (!fun)
             return false;
           SET_JITINFO(fun, attrSpec.getter.info);
@@ -839,8 +839,8 @@ XrayResolveAttribute(JSContext* cx, JS::Handle<JSObject*> wrapper,
           desc->attrs |= JSPROP_GETTER;
           if (attrSpec.setter.op) {
             
-            fun = JS_NewFunction(cx, (JSNative)attrSpec.setter.op, 1, 0,
-                                 global, nullptr);
+            fun = JS_NewFunctionById(cx, (JSNative)attrSpec.setter.op, 1, 0,
+                                     global, id);
             if (!fun)
               return false;
             SET_JITINFO(fun, attrSpec.setter.info);
