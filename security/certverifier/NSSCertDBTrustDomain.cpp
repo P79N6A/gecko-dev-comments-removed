@@ -212,13 +212,18 @@ NSSCertDBTrustDomain::CheckRevocation(
   
   
   
+  
+  
+  PRErrorCode stapledOCSPResponseErrorCode = 0;
   if (stapledOCSPResponse) {
     PR_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
+    bool expired;
     SECStatus rv = VerifyAndMaybeCacheEncodedOCSPResponse(cert, issuerCert,
                                                           time,
                                                           maxOCSPLifetimeInDays,
                                                           stapledOCSPResponse,
-                                                          ResponseWasStapled);
+                                                          ResponseWasStapled,
+                                                          expired);
     if (rv == SECSuccess) {
       
       Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 1);
@@ -226,17 +231,19 @@ NSSCertDBTrustDomain::CheckRevocation(
              ("NSSCertDBTrustDomain: stapled OCSP response: good"));
       return rv;
     }
-    if (PR_GetError() != SEC_ERROR_OCSP_OLD_RESPONSE) {
+    stapledOCSPResponseErrorCode = PR_GetError();
+    if (stapledOCSPResponseErrorCode == SEC_ERROR_OCSP_OLD_RESPONSE ||
+        expired) {
+      
+      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
+      PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+             ("NSSCertDBTrustDomain: expired stapled OCSP response"));
+    } else {
       
       Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 4);
       PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
              ("NSSCertDBTrustDomain: stapled OCSP response: failure"));
       return rv;
-    } else {
-      
-      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
-      PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
-             ("NSSCertDBTrustDomain: expired stapled OCSP response"));
     }
   } else {
     
@@ -334,9 +341,12 @@ NSSCertDBTrustDomain::CheckRevocation(
       PR_SetError(SEC_ERROR_OCSP_UNKNOWN_CERT, 0);
       return SECFailure;
     }
-    if (stapledOCSPResponse ||
-        cachedResponseErrorCode == SEC_ERROR_OCSP_OLD_RESPONSE) {
+    if (cachedResponseErrorCode == SEC_ERROR_OCSP_OLD_RESPONSE) {
       PR_SetError(SEC_ERROR_OCSP_OLD_RESPONSE, 0);
+      return SECFailure;
+    }
+    if (stapledOCSPResponseErrorCode != 0) {
+      PR_SetError(stapledOCSPResponseErrorCode, 0);
       return SECFailure;
     }
 
@@ -392,11 +402,11 @@ NSSCertDBTrustDomain::CheckRevocation(
       PR_SetError(cachedResponseErrorCode, 0);
       return SECFailure;
     }
-    if (stapledOCSPResponse) {
+    if (stapledOCSPResponseErrorCode != 0) {
       PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
              ("NSSCertDBTrustDomain: returning SECFailure from expired "
               "stapled response after OCSP request failure"));
-      PR_SetError(SEC_ERROR_OCSP_OLD_RESPONSE, 0);
+      PR_SetError(stapledOCSPResponseErrorCode, 0);
       return SECFailure;
     }
 
@@ -406,10 +416,15 @@ NSSCertDBTrustDomain::CheckRevocation(
     return SECSuccess; 
   }
 
+  
+  
+  
+  bool expired;
   SECStatus rv = VerifyAndMaybeCacheEncodedOCSPResponse(cert, issuerCert, time,
                                                         maxOCSPLifetimeInDays,
                                                         response,
-                                                        ResponseIsFromNetwork);
+                                                        ResponseIsFromNetwork,
+                                                        expired);
   if (rv == SECSuccess || mOCSPFetching != FetchOCSPForDVSoftFail) {
     PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
       ("NSSCertDBTrustDomain: returning after VerifyEncodedOCSPResponse"));
@@ -422,11 +437,11 @@ NSSCertDBTrustDomain::CheckRevocation(
     return rv;
   }
 
-  if (stapledOCSPResponse) {
+  if (stapledOCSPResponseErrorCode != 0) {
     PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
            ("NSSCertDBTrustDomain: returning SECFailure from expired stapled "
             "response after OCSP request verification failure"));
-    PR_SetError(SEC_ERROR_OCSP_OLD_RESPONSE, 0);
+    PR_SetError(stapledOCSPResponseErrorCode, 0);
     return SECFailure;
   }
 
@@ -440,14 +455,20 @@ SECStatus
 NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
   const CERTCertificate* cert, CERTCertificate* issuerCert, PRTime time,
   uint16_t maxLifetimeInDays, const SECItem* encodedResponse,
-  EncodedResponseSource responseSource)
+  EncodedResponseSource responseSource,  bool& expired)
 {
   PRTime thisUpdate = 0;
   PRTime validThrough = 0;
   SECStatus rv = VerifyEncodedOCSPResponse(*this, cert, issuerCert, time,
                                            maxLifetimeInDays, encodedResponse,
-                                           &thisUpdate, &validThrough);
+                                           expired, &thisUpdate, &validThrough);
   PRErrorCode error = (rv == SECSuccess ? 0 : PR_GetError());
+  
+  
+  if (responseSource == ResponseWasStapled && expired) {
+    PR_ASSERT(rv != SECSuccess);
+    return rv;
+  }
   
   
   

@@ -139,6 +139,34 @@ function add_tests_in_mode(useMozillaPKIX)
     
     
     
+    add_ocsp_test("ocsp-stapling-revoked-old.example.com",
+                  getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
+                  null);
+    add_ocsp_test("ocsp-stapling-unknown-old.example.com",
+                  getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
+                  null);
+    
+    
+    
+    add_ocsp_test("ocsp-stapling-revoked-old.example.com", Cr.NS_OK,
+                  ocspResponseGood);
+    add_ocsp_test("ocsp-stapling-unknown-old.example.com", Cr.NS_OK,
+                  ocspResponseGood);
+    
+    
+    
+    add_ocsp_test("ocsp-stapling-revoked-old.example.com",
+                  getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
+                  expiredOCSPResponseGood);
+    add_ocsp_test("ocsp-stapling-unknown-old.example.com",
+                  getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
+                  expiredOCSPResponseGood);
+  }
+
+  if (useMozillaPKIX) {
+    
+    
+    
     add_ocsp_test("ocsp-stapling-ancient-valid.example.com", Cr.NS_OK,
                   ocspResponseGood);
     add_ocsp_test("ocsp-stapling-ancient-valid.example.com",
@@ -158,7 +186,7 @@ function check_ocsp_stapling_telemetry() {
   do_check_eq(histogram.counts[0], 2 * 0); 
   do_check_eq(histogram.counts[1], 2 * 0); 
   do_check_eq(histogram.counts[2], 2 * 0); 
-  do_check_eq(histogram.counts[3], 2 * 12 + 3); 
+  do_check_eq(histogram.counts[3], 2 * 12 + 9); 
                                                 
   do_check_eq(histogram.counts[4], 2 * 0); 
   run_next_test();
