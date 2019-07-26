@@ -58,14 +58,14 @@ MoveEmitterARM::spillSlot() const
 Operand
 MoveEmitterARM::toOperand(const MoveOperand &operand, bool isFloat) const
 {
-    if (operand.isMemory() || operand.isEffectiveAddress()) {
+    if (operand.isMemory() || operand.isEffectiveAddress() || operand.isFloatAddress()) {
         if (operand.base() != StackPointer) {
             JS_ASSERT(operand.disp() < 1024 && operand.disp() > -1024);
             return Operand(operand.base(), operand.disp());
         }
 
         JS_ASSERT(operand.disp() >= 0);
-        
+
         
         return Operand(StackPointer, operand.disp() + (masm.framePushed() - pushedAtStart_));
     }
