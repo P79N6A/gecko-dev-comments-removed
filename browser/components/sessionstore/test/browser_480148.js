@@ -5,7 +5,7 @@
 function test() {
   
   waitForExplicitFinish();
-  requestLongerTimeout(3);
+  requestLongerTimeout(4);
 
   
   function buildTestState(num, selected, hidden, pinned) {
