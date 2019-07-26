@@ -258,6 +258,8 @@ struct ParamTraits<nsKeyEvent>
     WriteParam(aMsg, aParam.charCode);
     WriteParam(aMsg, aParam.isChar);
     WriteParam(aMsg, aParam.location);
+    
+    
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
