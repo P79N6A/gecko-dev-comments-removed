@@ -45,7 +45,7 @@ static const unsigned int MAX_ACTIVE_SHARED_IMAGES = 10;
 
 ImageContainerChild::ImageContainerChild()
 : mImageContainerID(0), mActiveImageCount(0),
-  mStop(false), mDispatchedDestroy(false) 
+  mStop(false), mDispatchedDestroy(false)
 {
   MOZ_COUNT_CTOR(ImageContainerChild);
   
@@ -64,7 +64,7 @@ void ImageContainerChild::DispatchStop()
                   NewRunnableMethod(this, &ImageContainerChild::StopChildAndParent));
 }
 
-void ImageContainerChild::SetIdleNow() 
+void ImageContainerChild::SetIdleNow()
 {
   if (mStop) return;
 
@@ -94,7 +94,7 @@ void ImageContainerChild::SetIdle()
   MonitorAutoLock autoMon(barrier);
   bool done = false;
 
-  GetMessageLoop()->PostTask(FROM_HERE, 
+  GetMessageLoop()->PostTask(FROM_HERE,
                     NewRunnableMethod(this, &ImageContainerChild::SetIdleSync, &barrier, &done));
 
   while (!done) {
@@ -107,7 +107,7 @@ void ImageContainerChild::StopChildAndParent()
   if (mStop) {
     return;
   }
-  mStop = true;    
+  mStop = true;
 
   SendStop(); 
   DispatchDestroy();
@@ -118,7 +118,7 @@ void ImageContainerChild::StopChild()
   if (mStop) {
     return;
   }
-  mStop = true;    
+  mStop = true;
 
   DispatchDestroy();
 }
@@ -168,7 +168,7 @@ void ImageContainerChild::DestroySharedImage(const SharedImage& aImage)
 
 bool ImageContainerChild::CopyDataIntoSharedImage(Image* src, SharedImage* dest)
 {
-  if ((src->GetFormat() == PLANAR_YCBCR) && 
+  if ((src->GetFormat() == PLANAR_YCBCR) &&
       (dest->type() == SharedImage::TYCbCrImage)) {
     PlanarYCbCrImage *planarYCbCrImage = static_cast<PlanarYCbCrImage*>(src);
     const PlanarYCbCrImage::Data *data = planarYCbCrImage->GetData();
@@ -260,7 +260,7 @@ void ImageContainerChild::RecycleSharedImage(SharedImage* aImage)
 
 bool ImageContainerChild::AddSharedImageToPool(SharedImage* img)
 {
-  NS_ABORT_IF_FALSE(InImageBridgeChildThread(), 
+  NS_ABORT_IF_FALSE(InImageBridgeChildThread(),
                     "AddSharedImageToPool must be called in the ImageBridgeChild thread");
   if (mStop) {
     return false;
@@ -375,13 +375,13 @@ void ImageContainerChild::SendImageNow(Image* aImage)
 class ImageBridgeCopyAndSendTask : public Task
 {
 public:
-  ImageBridgeCopyAndSendTask(ImageContainerChild * child, 
-                             ImageContainer * aContainer, 
+  ImageBridgeCopyAndSendTask(ImageContainerChild * child,
+                             ImageContainer * aContainer,
                              Image * aImage)
   : mChild(child), mImageContainer(aContainer), mImage(aImage) {}
 
   void Run()
-  { 
+  {
     mChild->SendImageNow(mImage);
   }
 
@@ -408,7 +408,7 @@ void ImageContainerChild::SendImageAsync(ImageContainer* aContainer,
 
   
   
-  Task *t = new ImageBridgeCopyAndSendTask(this, aContainer, aImage);   
+  Task *t = new ImageBridgeCopyAndSendTask(this, aContainer, aImage);
   GetMessageLoop()->PostTask(FROM_HERE, t);
 }
 
@@ -436,7 +436,7 @@ void ImageContainerChild::DispatchDestroy()
   }
   mDispatchedDestroy = true;
   AddRef(); 
-  GetMessageLoop()->PostTask(FROM_HERE, 
+  GetMessageLoop()->PostTask(FROM_HERE,
                     NewRunnableMethod(this, &ImageContainerChild::DestroyNow));
 }
 
@@ -572,17 +572,51 @@ public:
     mData.mCrChannel = shmImg.GetCrData();
   }
 
-  virtual bool Allocate(PlanarYCbCrImage::Data& aData)
+  
+  
+  uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) MOZ_OVERRIDE
+  {
+    size_t size = ShmemYCbCrImage::ComputeMinBufferSize(aSize);
+    
+    mBufferSize = size;
+
+    
+    AllocateBuffer(mBufferSize);
+    ShmemYCbCrImage shmImg(mShmem);
+
+    return shmImg.GetData();
+  }
+
+  virtual void
+  SetDataNoCopy(const Data &aData) MOZ_OVERRIDE
+  {
+    mData = aData;
+    mSize = aData.mPicSize;
+    ShmemYCbCrImage::InitializeBufferInfo(mShmem.get<uint8_t>(),
+                                          aData.mYSize,
+                                          aData.mCbCrSize);
+  }
+
+  virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE
   {
     NS_ABORT_IF_FALSE(!mAllocated, "This image already has allocated data");
-
     SharedMemory::SharedMemoryType shmType = OptimalShmemType();
+    if (!mImageContainerChild->AllocUnsafeShmemSync(aSize, shmType, &mShmem)) {
+      return nullptr;
+    }
+    mAllocated = true;
+    return mShmem.get<uint8_t>();
+  }
+
+  virtual bool Allocate(PlanarYCbCrImage::Data& aData)
+  {
     size_t size = ShmemYCbCrImage::ComputeMinBufferSize(aData.mYSize,
                                                         aData.mCbCrSize);
 
-    if (!mImageContainerChild->AllocUnsafeShmemSync(size, shmType, &mShmem)) {
+    if (AllocateBuffer(static_cast<uint32_t>(size)) == nullptr) {
       return false;
     }
+
     ShmemYCbCrImage::InitializeBufferInfo(mShmem.get<uint8_t>(),
                                           aData.mYSize,
                                           aData.mCbCrSize);
@@ -614,7 +648,6 @@ public:
     mData.mYStride = mData.mYSize.width;
     mData.mCbCrStride = mData.mCbCrSize.width;
 
-    mAllocated = true;
     return true;
   }
 

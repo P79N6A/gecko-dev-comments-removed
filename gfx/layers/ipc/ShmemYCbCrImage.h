@@ -49,6 +49,7 @@ public:
 
   static size_t ComputeMinBufferSize(const gfxIntSize& aYSize,
                                      const gfxIntSize& aCbCrSize);
+  static size_t ComputeMinBufferSize(uint32_t aSize);
   
 
 
@@ -94,6 +95,11 @@ public:
 
 
   gfxIntSize GetCbCrSize();
+
+  
+
+
+  uint8_t* GetData();
 
   
 
