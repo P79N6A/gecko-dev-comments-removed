@@ -174,10 +174,12 @@ const DownloadsButton = {
 
     indicator.open = this._anchorRequested;
 
-    
-    if (!isElementVisible(placeholder.parentNode)) {
-      return null;
-    }
+    let widget = CustomizableUI.getWidget("downloads-button")
+                               .forWindow(window);
+     
+     if (!isElementVisible(placeholder.parentNode) && !widget.overflowed) {
+       return null;
+     }
 
     return DownloadsIndicatorView.indicatorAnchor;
   },
@@ -582,9 +584,12 @@ const DownloadsIndicatorView = {
 
   get indicatorAnchor()
   {
-    delete this.indicatorAnchor;
-    return this.indicatorAnchor =
-      document.getElementById("downloads-indicator-anchor");
+    let widget = CustomizableUI.getWidget("downloads-button")
+                               .forWindow(window);
+    if (widget.overflowed) {
+      return widget.anchor;
+    }
+    return document.getElementById("downloads-indicator-anchor");
   },
 
   get _indicatorCounter()
