@@ -207,7 +207,7 @@ class CallbackObjectHolderBase
 protected:
   
   already_AddRefed<nsISupports> ToXPCOMCallback(CallbackObject* aCallback,
-                                                const nsIID& aIID);
+                                                const nsIID& aIID) const;
 };
 
 template<class WebIDLCallbackT, class XPCOMCallbackT>
@@ -250,9 +250,36 @@ public:
     UnlinkSelf();
   }
 
+  void operator=(WebIDLCallbackT* aCallback)
+  {
+    UnlinkSelf();
+    mPtrBits = reinterpret_cast<uintptr_t>(aCallback);
+    NS_IF_ADDREF(aCallback);
+  }
+
+  void operator=(XPCOMCallbackT* aCallback)
+  {
+    UnlinkSelf();
+    mPtrBits = reinterpret_cast<uintptr_t>(aCallback) | XPCOMCallbackFlag;
+    NS_IF_ADDREF(aCallback);
+  }
+
+  void operator=(const CallbackObjectHolder& aOther)
+  {
+    UnlinkSelf();
+    mPtrBits = aOther.mPtrBits;
+    NS_IF_ADDREF(GetISupports());
+  }
+
   nsISupports* GetISupports() const
   {
     return reinterpret_cast<nsISupports*>(mPtrBits & ~XPCOMCallbackFlag);
+  }
+
+  
+  operator bool() const
+  {
+    return GetISupports();
   }
 
   
@@ -310,7 +337,7 @@ public:
   }
 
   
-  already_AddRefed<XPCOMCallbackT> ToXPCOMCallback()
+  already_AddRefed<XPCOMCallbackT> ToXPCOMCallback() const
   {
     if (!HasWebIDLCallback()) {
       nsRefPtr<XPCOMCallbackT> callback = GetXPCOMCallback();
@@ -325,7 +352,7 @@ public:
   }
 
   
-  already_AddRefed<WebIDLCallbackT> ToWebIDLCallback()
+  already_AddRefed<WebIDLCallbackT> ToWebIDLCallback() const
   {
     if (HasWebIDLCallback()) {
       nsRefPtr<WebIDLCallbackT> callback = GetWebIDLCallback();
