@@ -5,6 +5,7 @@
 
 #include "ClientThebesLayer.h"
 #include "ClientTiledThebesLayer.h"     
+#include "SimpleTiledContentClient.h"
 #include <stdint.h>                     
 #include "GeckoProfiler.h"              
 #include "client/ClientLayerManager.h"  
@@ -176,10 +177,17 @@ ClientLayerManager::CreateThebesLayerWithHint(ThebesLayerCreationHint aHint)
       (AsShadowForwarder()->GetCompositorBackendType() == LayersBackend::LAYERS_OPENGL ||
        AsShadowForwarder()->GetCompositorBackendType() == LayersBackend::LAYERS_D3D9 ||
        AsShadowForwarder()->GetCompositorBackendType() == LayersBackend::LAYERS_D3D11)) {
-    nsRefPtr<ClientTiledThebesLayer> layer =
-      new ClientTiledThebesLayer(this);
-    CREATE_SHADOW(Thebes);
-    return layer.forget();
+    if (gfxPrefs::LayersUseSimpleTiles()) {
+      nsRefPtr<SimpleClientTiledThebesLayer> layer =
+        new SimpleClientTiledThebesLayer(this);
+      CREATE_SHADOW(Thebes);
+      return layer.forget();
+    } else {
+      nsRefPtr<ClientTiledThebesLayer> layer =
+        new ClientTiledThebesLayer(this);
+      CREATE_SHADOW(Thebes);
+      return layer.forget();
+    }
   } else
   {
     nsRefPtr<ClientThebesLayer> layer =
