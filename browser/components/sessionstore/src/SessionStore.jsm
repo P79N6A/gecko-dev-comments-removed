@@ -123,6 +123,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
   "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
   "resource:///modules/sessionstore/_SessionFile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
+  "resource:///modules/sessionstore/TabStateCache.jsm");
 
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -4182,126 +4184,6 @@ function TabData(obj = null) {
 
 
 
-
-
-
-
-
-
-
-let TabStateCache = {
-  _data: new WeakMap(),
-
-  
-
-
-
-
-
-  has: function (aTab) {
-    let key = this._normalizeToBrowser(aTab);
-    return this._data.has(key);
-  },
-
-  
-
-
-
-
-
-
-
-  set: function(aTab, aValue) {
-    let key = this._normalizeToBrowser(aTab);
-    if (!(aValue instanceof TabData)) {
-      throw new TypeError("Attempting to cache a non TabData");
-    }
-    this._data.set(key, aValue);
-  },
-
-  
-
-
-
-
-
-
-
-  get: function(aKey) {
-    let key = this._normalizeToBrowser(aKey);
-    let result = this._data.get(key);
-    TabStateCacheTelemetry.recordAccess(!!result);
-    return result;
-  },
-
-  
-
-
-
-
-
-
-  delete: function(aKey) {
-    let key = this._normalizeToBrowser(aKey);
-    this._data.delete(key);
-  },
-
-  
-
-
-  clear: function() {
-    TabStateCacheTelemetry.recordClear();
-    this._data.clear();
-  },
-
-  
-
-
-
-
-
-
-
-  updateField: function(aKey, aField, aValue) {
-    let key = this._normalizeToBrowser(aKey);
-    let data = this._data.get(key);
-    if (data) {
-      data[aField] = aValue;
-    }
-    TabStateCacheTelemetry.recordAccess(!!data);
-  },
-
-  
-
-
-
-
-
-
-  removeField: function(aKey, aField) {
-    let key = this._normalizeToBrowser(aKey);
-    let data = this._data.get(key);
-    if (data && aField in data) {
-      delete data[aField];
-    }
-    TabStateCacheTelemetry.recordAccess(!!data);
-  },
-
-  _normalizeToBrowser: function(aKey) {
-    let nodeName = aKey.localName;
-    if (nodeName == "tab") {
-      return aKey.linkedBrowser;
-    }
-    if (nodeName == "browser") {
-      return aKey;
-    }
-    throw new TypeError("Key is neither a tab nor a browser: " + nodeName);
-  }
-};
-
-
-
-
 let TabState = {
   
   
@@ -4347,7 +4229,7 @@ let TabState = {
       let options = {omitSessionHistory: true,
                      omitSessionStorage: true,
                      omitDocShellCapabilities: true};
-      let tabData = new TabData(this._collectBaseTabData(tab, options));
+      let tabData = this._collectBaseTabData(tab, options);
 
       
       tabData.entries = history.entries;
@@ -4401,7 +4283,7 @@ let TabState = {
       return TabStateCache.get(tab);
     }
 
-    let tabData = new TabData(this._collectBaseTabData(tab));
+    let tabData = this._collectBaseTabData(tab);
     if (this._updateTextAndScrollDataForTab(tab, tabData)) {
       TabStateCache.set(tab, tabData);
     }
@@ -4715,68 +4597,4 @@ let TabState = {
   }
 };
 
-let TabStateCacheTelemetry = {
-  
-  _hits: 0,
-  
-  _misses: 0,
-  
-  _clears: 0,
-  
-  _initialized: false,
 
-  
-
-
-
-
-
-  recordAccess: function(isHit) {
-    this._init();
-    if (isHit) {
-      ++this._hits;
-    } else {
-      ++this._misses;
-    }
-  },
-
-  
-
-
-  recordClear: function() {
-    this._init();
-    ++this._clears;
-  },
-
-  
-
-
-  _init: function() {
-    if (this._initialized) {
-      
-      return;
-    }
-    this._initialized = true;
-    Services.obs.addObserver(this, "profile-before-change", false);
-  },
-
-  observe: function() {
-    Services.obs.removeObserver(this, "profile-before-change");
-
-    
-    let accesses = this._hits + this._misses;
-    if (accesses == 0) {
-      return;
-    }
-
-    this._fillHistogram("HIT_RATE", this._hits, accesses);
-    this._fillHistogram("CLEAR_RATIO", this._clears, accesses);
-  },
-
-  _fillHistogram: function(suffix, positive, total) {
-    let PREFIX = "FX_SESSION_RESTORE_TABSTATECACHE_";
-    let histo = Services.telemetry.getHistogramById(PREFIX + suffix);
-    let rate = Math.floor( ( positive * 100 ) / total );
-    histo.add(rate);
-  }
-};
