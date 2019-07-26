@@ -468,6 +468,38 @@ ThreadActor.prototype = {
     return this._sources;
   },
 
+  _prettyPrintWorker: null,
+  get prettyPrintWorker() {
+    if (!this._prettyPrintWorker) {
+      this._prettyPrintWorker = new ChromeWorker(
+        "resource://gre/modules/devtools/server/actors/pretty-print-worker.js");
+
+      this._prettyPrintWorker.addEventListener(
+        "error", this._onPrettyPrintError, false);
+
+      if (wantLogging) {
+        this._prettyPrintWorker.addEventListener("message", this._onPrettyPrintMsg, false);
+
+        const postMsg = this._prettyPrintWorker.postMessage;
+        this._prettyPrintWorker.postMessage = data => {
+          dumpn("Sending message to prettyPrintWorker: "
+                + JSON.stringify(data, null, 2) + "\n");
+          return postMsg.call(this._prettyPrintWorker, data);
+        };
+      }
+    }
+    return this._prettyPrintWorker;
+  },
+
+  _onPrettyPrintError: function (error) {
+    reportError(new Error(error));
+  },
+
+  _onPrettyPrintMsg: function ({ data }) {
+    dumpn("Received message from prettyPrintWorker: "
+          + JSON.stringify(data, null, 2) + "\n");
+  },
+
   
 
 
@@ -598,6 +630,15 @@ ThreadActor.prototype = {
     this._state = "exited";
 
     this.clearDebuggees();
+
+    if (this._prettyPrintWorker) {
+      this._prettyPrintWorker.removeEventListener(
+        "error", this._onPrettyPrintError, false);
+      this._prettyPrintWorker.removeEventListener(
+        "message", this._onPrettyPrintMsg, false);
+      this._prettyPrintWorker.terminate();
+      this._prettyPrintWorker = null;
+    }
 
     if (!this.dbg) {
       return;
@@ -2337,6 +2378,10 @@ SourceActor.prototype = {
   get threadActor() this._threadActor,
   get url() this._url,
 
+  get prettyPrintWorker() {
+    return this.threadActor.prettyPrintWorker;
+  },
+
   form: function SA_form() {
     return {
       actor: this.actorID,
@@ -2403,7 +2448,7 @@ SourceActor.prototype = {
   onPrettyPrint: function ({ indent }) {
     return this._getSourceText()
       .then(this._parseAST)
-      .then(this._generatePrettyCodeAndMap(indent))
+      .then(this._sendToPrettyPrintWorker(indent))
       .then(this._invertSourceMap)
       .then(this._saveMap)
       .then(this.onSource)
@@ -2425,20 +2470,42 @@ SourceActor.prototype = {
 
 
 
-  _generatePrettyCodeAndMap: function SA__generatePrettyCodeAndMap(aNumSpaces) {
-    let indent = "";
-    for (let i = 0; i < aNumSpaces; i++) {
-      indent += " ";
-    }
-    return aAST => escodegen.generate(aAST, {
-      format: {
-        indent: {
-          style: indent
+
+
+
+
+
+
+
+
+  _sendToPrettyPrintWorker: function SA__sendToPrettyPrintWorker(aIndent) {
+    return aAST => {
+      const deferred = promise.defer();
+      const id = Math.random();
+
+      const onReply = ({ data }) => {
+        if (data.id !== id) {
+          return;
         }
-      },
-      sourceMap: this._url,
-      sourceMapWithCode: true
-    });
+        this.prettyPrintWorker.removeEventListener("message", onReply, false);
+
+        if (data.error) {
+          deferred.reject(new Error(data.error));
+        } else {
+          deferred.resolve(data);
+        }
+      };
+
+      this.prettyPrintWorker.addEventListener("message", onReply, false);
+      this.prettyPrintWorker.postMessage({
+        id: id,
+        url: this._url,
+        indent: aIndent,
+        ast: aAST
+      });
+
+      return deferred.promise;
+    };
   },
 
   
@@ -2449,35 +2516,55 @@ SourceActor.prototype = {
 
 
 
-  _invertSourceMap: function SA__invertSourceMap({ code, map }) {
-    
-    
-    
+  _invertSourceMap: function SA__invertSourceMap({ code, mappings }) {
+    const generator = new SourceMapGenerator({ file: this._url });
+    return DevToolsUtils.yieldingEach(mappings, m => {
+      let mapping = {
+        generated: {
+          line: m.generatedLine,
+          column: m.generatedColumn
+        }
+      };
+      if (m.source) {
+        mapping.source = m.source;
+        mapping.original = {
+          line: m.originalLine,
+          column: m.originalColumn
+        };
+        mapping.name = m.name;
+      }
+      generator.addMapping(mapping);
+    }).then(() => {
+      generator.setSourceContent(this._url, code);
+      const consumer = SourceMapConsumer.fromSourceMap(generator);
 
-    map.setSourceContent(this._url, code);
-    const consumer = new SourceMapConsumer.fromSourceMap(map);
-    const getOrigPos = consumer.originalPositionFor.bind(consumer);
-    const getGenPos = consumer.generatedPositionFor.bind(consumer);
+      
+      
+      
 
-    consumer.originalPositionFor = ({ line, column }) => {
-      const location = getGenPos({
+      const getOrigPos = consumer.originalPositionFor.bind(consumer);
+      const getGenPos = consumer.generatedPositionFor.bind(consumer);
+
+      consumer.originalPositionFor = ({ line, column }) => {
+        const location = getGenPos({
+          line: line,
+          column: column,
+          source: this._url
+        });
+        location.source = this._url;
+        return location;
+      };
+
+      consumer.generatedPositionFor = ({ line, column }) => getOrigPos({
         line: line,
-        column: column,
-        source: this._url
+        column: column
       });
-      location.source = this._url;
-      return location;
-    };
 
-    consumer.generatedPositionFor = ({ line, column }) => getOrigPos({
-      line: line,
-      column: column
+      return {
+        code: code,
+        map: consumer
+      };
     });
-
-    return {
-      code: code,
-      map: consumer
-    };
   },
 
   
