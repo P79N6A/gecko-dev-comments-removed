@@ -75,6 +75,7 @@ const char* const XPCJSRuntime::mStrings[] = {
     "__proto__",            
     "__iterator__",         
     "__exposedProps__",     
+    "eval",                 
 };
 
 

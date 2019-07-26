@@ -827,6 +827,12 @@ XrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
             MOZ_ASSERT(constructor);
             desc.value().set(ObjectValue(*constructor));
             found = true;
+        } else if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_EVAL)) {
+            RootedObject eval(cx);
+            if (!js::GetOriginalEval(cx, target, &eval))
+                return false;
+            desc.value().set(ObjectValue(*eval));
+            found = true;
         }
     }
 
