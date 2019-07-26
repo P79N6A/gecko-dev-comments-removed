@@ -361,7 +361,8 @@ IsAboutToBeFinalized(T **thingp)
 
 
 
-    JS_ASSERT(!(*thingp)->arenaHeader()->allocatedDuringIncremental);
+    JS_ASSERT_IF(!(*thingp)->runtimeFromAnyThread()->isHeapMinorCollecting(),
+                 !(*thingp)->arenaHeader()->allocatedDuringIncremental);
 
     return !(*thingp)->isMarked();
 }
