@@ -416,18 +416,15 @@ public:
       }
     } else {
       rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file));
-      if (NS_WARN_IF(NS_FAILED(rv)))
-        return -1;
+      NS_ENSURE_SUCCESS(rv, -1);
     }
 
     rv = file->AppendNative(NS_LITERAL_CSTRING("debug_info_trigger"));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return -1;
+    NS_ENSURE_SUCCESS(rv, -1);
 
     nsAutoCString path;
     rv = file->GetNativePath(path);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return -1;
+    NS_ENSURE_SUCCESS(rv, -1);
 
     
     
@@ -609,8 +606,7 @@ namespace mozilla {
 #define DUMP(o, s) \
   do { \
     nsresult rv = (o)->Write(s); \
-    if (NS_WARN_IF(NS_FAILED(rv))) \
-      return rv; \
+    NS_ENSURE_SUCCESS(rv, rv); \
   } while (0)
 
 static nsresult
@@ -684,8 +680,7 @@ public:
       nsISupports *aData)
   {
     nsCOMPtr<nsIGZFileWriter> writer = do_QueryInterface(aData);
-    if (NS_WARN_IF(!writer))
-      return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(writer, NS_ERROR_FAILURE);
 
     nsresult rv = DumpReport(writer, mIsFirst, aProcess, aPath, aKind, aUnits,
                              aAmount, aDescription);
@@ -727,8 +722,7 @@ nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
   nsresult rv;
   if (!*aFile) {
     rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, aFile);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
 #ifdef ANDROID
@@ -737,8 +731,7 @@ nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
   
   
   rv = (*aFile)->AppendNative(NS_LITERAL_CSTRING("memory-reports"));
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -746,8 +739,7 @@ nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
 
   nsAutoCString dirPath;
   rv = (*aFile)->GetNativePath(dirPath);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   while (chmod(dirPath.get(), 0777) == -1 && errno == EINTR) {}
 #endif
@@ -755,12 +747,10 @@ nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
   nsCOMPtr<nsIFile> file(*aFile);
 
   rv = file->AppendNative(aFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = file->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0666);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef ANDROID
     
@@ -768,8 +758,7 @@ nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
     
     nsAutoCString path;
     rv = file->GetNativePath(path);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
 
     while (chmod(path.get(), 0666) == -1 && errno == EINTR) {}
 #endif
@@ -812,8 +801,7 @@ DumpHeader(nsIGZFileWriter* aWriter)
 
   nsCOMPtr<nsIMemoryReporterManager> mgr =
     do_GetService("@mozilla.org/memory-reporter-manager;1");
-  if (NS_WARN_IF(!mgr))
-    return NS_ERROR_UNEXPECTED;
+  NS_ENSURE_STATE(mgr);
 
   DUMP(aWriter, mgr->GetHasMozMallocUsableSize() ? "true" : "false");
   DUMP(aWriter, ",\n");
@@ -884,12 +872,11 @@ DumpProcessMemoryInfoToTempDir(const nsAString& aIdentifier)
   rv = nsMemoryInfoDumper::OpenTempFile(NS_LITERAL_CSTRING("incomplete-") +
                                         mrFilename,
                                         getter_AddRefs(mrTmpFile));
-  if (NS_WARN_IF(NS_FAILED(rv)))    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<nsGZFileWriter> mrWriter = new nsGZFileWriter();
   rv = mrWriter->Init(mrTmpFile);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   DumpProcessMemoryReportsToGZFileWriter(mrWriter);
@@ -907,13 +894,11 @@ DumpProcessMemoryInfoToTempDir(const nsAString& aIdentifier)
 
   nsCOMPtr<nsIFile> dmdFile;
   rv = nsMemoryInfoDumper::OpenTempFile(dmdFilename, getter_AddRefs(dmdFile));
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<nsGZFileWriter> dmdWriter = new nsGZFileWriter();
   rv = dmdWriter->Init(dmdFile);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
 
@@ -922,8 +907,7 @@ DumpProcessMemoryInfoToTempDir(const nsAString& aIdentifier)
   dmd::Dump(w);
 
   rv = dmdWriter->Finish();
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 #endif  
 
   
@@ -932,51 +916,42 @@ DumpProcessMemoryInfoToTempDir(const nsAString& aIdentifier)
   
   
   rv = mrWriter->Finish();
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
 
   nsCOMPtr<nsIFile> mrFinalFile;
   rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(mrFinalFile));
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef ANDROID
   rv = mrFinalFile->AppendNative(NS_LITERAL_CSTRING("memory-reports"));
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 #endif
 
   rv = mrFinalFile->AppendNative(mrFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mrFinalFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoString mrActualFinalFilename;
   rv = mrFinalFile->GetLeafName(mrActualFinalFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mrTmpFile->MoveTo( nullptr, mrActualFinalFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
 
   nsCOMPtr<nsIConsoleService> cs =
     do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsString path;
   mrTmpFile->GetPath(path);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsString msg = NS_LITERAL_STRING(
     "nsIMemoryInfoDumper dumped reports to ");
@@ -1013,8 +988,7 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
                                            false);
     nsCOMPtr<nsIMemoryReporterManager> mgr =
       do_GetService("@mozilla.org/memory-reporter-manager;1");
-    if (NS_WARN_IF(!mgr))
-      return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(mgr, NS_ERROR_FAILURE);
     nsCOMPtr<nsICancelableRunnable> runnable;
     mgr->MinimizeMemoryUsage(callback, getter_AddRefs(runnable));
     return NS_OK;
@@ -1069,34 +1043,28 @@ nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
 
   nsCOMPtr<nsIFile> mrFile;
   nsresult rv = NS_NewLocalFile(aFilename, false, getter_AddRefs(mrFile));
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   mrFile->InitWithPath(aFilename);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists;
   rv = mrFile->Exists(&exists);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!exists) {
     rv = mrFile->Create(nsIFile::NORMAL_FILE_TYPE, 0644);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
 
   nsRefPtr<nsGZFileWriter> mrWriter = new nsGZFileWriter();
   rv = mrWriter->Init(mrFile);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = DumpHeader(mrWriter);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback();

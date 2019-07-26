@@ -180,6 +180,7 @@ nsCOMArrayEnumerator::operator new (size_t size, const nsCOMArray_base& aArray)
     
     nsCOMArrayEnumerator * result =
         static_cast<nsCOMArrayEnumerator*>(::operator new(size));
+    NS_ENSURE_TRUE(result, nullptr);
 
     
     

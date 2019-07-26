@@ -33,25 +33,21 @@ nsGZFileWriter::~nsGZFileWriter()
 NS_IMETHODIMP
 nsGZFileWriter::Init(nsIFile* aFile)
 {
-  if (NS_WARN_IF(mInitialized) ||
-      NS_WARN_IF(mFinished))
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_FALSE(mInitialized, NS_ERROR_FAILURE);
+  NS_ENSURE_FALSE(mFinished, NS_ERROR_FAILURE);
 
   
   
 
   FILE* file;
   nsresult rv = aFile->OpenANSIFileDesc("wb", &file);
-  if (NS_WARN_IF(NS_FAILED(rv)))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   mGZFile = gzdopen(dup(fileno(file)), "wb");
   fclose(file);
 
   
-  if (NS_WARN_IF(!mGZFile))
-    return NS_ERROR_FAILURE;
-
+  NS_ENSURE_TRUE(mGZFile, NS_ERROR_FAILURE);
   mInitialized = true;
 
   return NS_OK;
@@ -60,9 +56,8 @@ nsGZFileWriter::Init(nsIFile* aFile)
 NS_IMETHODIMP
 nsGZFileWriter::Write(const nsACString& aStr)
 {
-  if (NS_WARN_IF(!mInitialized) ||
-      NS_WARN_IF(mFinished))
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
+  NS_ENSURE_FALSE(mFinished, NS_ERROR_FAILURE);
 
   
   
@@ -76,8 +71,7 @@ nsGZFileWriter::Write(const nsACString& aStr)
   
   
   int rv = gzwrite(mGZFile, aStr.BeginReading(), aStr.Length());
-  if (NS_WARN_IF(rv != static_cast<int>(aStr.Length())))
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(rv == static_cast<int>(aStr.Length()), NS_ERROR_FAILURE);
 
   return NS_OK;
 }
@@ -85,9 +79,8 @@ nsGZFileWriter::Write(const nsACString& aStr)
 NS_IMETHODIMP
 nsGZFileWriter::Finish()
 {
-  if (NS_WARN_IF(!mInitialized) ||
-      NS_WARN_IF(mFinished))
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
+  NS_ENSURE_FALSE(mFinished, NS_ERROR_FAILURE);
 
   mFinished = true;
   gzclose(mGZFile);
