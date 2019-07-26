@@ -82,7 +82,7 @@ class StringBuffer
 
 
 
-    JSFixedString *finishString();
+    JSFlatString *finishString();
 
     
     JSAtom *finishAtom();

@@ -24,7 +24,8 @@ class JSUndependedString;
 class JSExtensibleString;
 class JSExternalString;
 class JSLinearString;
-class JSFixedString;
+class JSStableString;
+class JSInlineString;
 class JSRope;
 class JSAtom;
 
@@ -37,6 +38,8 @@ class PropertyName;
 static const size_t UINT32_CHAR_BUFFER_LENGTH = sizeof("4294967295") - 1;
 
 } 
+
+
 
 
 
@@ -271,7 +274,7 @@ class JSString : public js::gc::Cell
 
     inline JSLinearString *ensureLinear(JSContext *cx);
     inline JSFlatString *ensureFlat(JSContext *cx);
-    inline JSFixedString *ensureFixed(JSContext *cx);
+    inline JSStableString *ensureStable(JSContext *cx);
 
     static bool ensureLinear(JSContext *cx, JSString *str) {
         return str->ensureLinear(cx) != NULL;
@@ -335,19 +338,20 @@ class JSString : public js::gc::Cell
     }
 
     JS_ALWAYS_INLINE
-    bool isFixed() const {
-        return isFlat() && !isExtensible();
-    }
-
-    JS_ALWAYS_INLINE
-    JSFixedString &asFixed() const {
-        JS_ASSERT(isFixed());
-        return *(JSFixedString *)this;
-    }
-
-    JS_ALWAYS_INLINE
     bool isInline() const {
-        return isFixed() && (d.u1.chars == d.inlineStorage);
+        return isFlat() && !isExtensible() && (d.u1.chars == d.inlineStorage);
+    }
+
+    JS_ALWAYS_INLINE
+    JSInlineString &asInline() const {
+        JS_ASSERT(isInline());
+        return *(JSInlineString *)this;
+    }
+
+    JS_ALWAYS_INLINE
+    JSStableString &asStable() const {
+        JS_ASSERT(!isInline());
+        return *(JSStableString *)this;
     }
 
     
@@ -476,7 +480,7 @@ JS_STATIC_ASSERT(sizeof(JSLinearString) == sizeof(JSString));
 class JSDependentString : public JSLinearString
 {
     friend class JSString;
-    JSFixedString *undepend(JSContext *cx);
+    JSFlatString *undepend(JSContext *cx);
 
     void init(JSLinearString *base, const jschar *chars, size_t length);
 
@@ -525,10 +529,26 @@ class JSFlatString : public JSLinearString
 
     inline js::PropertyName *toPropertyName(JSContext *cx);
 
+    
+
+
+
+    inline JSAtom *morphAtomizedStringIntoAtom();
+
     inline void finalize(js::FreeOp *fop);
 };
 
 JS_STATIC_ASSERT(sizeof(JSFlatString) == sizeof(JSString));
+
+class JSStableString : public JSFlatString
+{
+    void init(const jschar *chars, size_t length);
+
+  public:
+    static inline JSStableString *new_(JSContext *cx, const jschar *chars, size_t length);
+};
+
+JS_STATIC_ASSERT(sizeof(JSStableString) == sizeof(JSString));
 
 class JSExtensibleString : public JSFlatString
 {
@@ -546,29 +566,7 @@ class JSExtensibleString : public JSFlatString
 
 JS_STATIC_ASSERT(sizeof(JSExtensibleString) == sizeof(JSString));
 
-class JSFixedString : public JSFlatString
-{
-    void init(const jschar *chars, size_t length);
-
-    
-    JSFlatString *ensureFixed(JSContext *cx) MOZ_DELETE;
-    bool isFixed() const MOZ_DELETE;
-    JSFixedString &asFixed() const MOZ_DELETE;
-
-  public:
-    static inline JSFixedString *new_(JSContext *cx, const jschar *chars, size_t length);
-
-    
-
-
-
-
-    inline JSAtom *morphAtomizedStringIntoAtom();
-};
-
-JS_STATIC_ASSERT(sizeof(JSFixedString) == sizeof(JSString));
-
-class JSInlineString : public JSFixedString
+class JSInlineString : public JSFlatString
 {
     static const size_t MAX_INLINE_LENGTH = NUM_INLINE_CHARS - 1;
 
@@ -577,12 +575,13 @@ class JSInlineString : public JSFixedString
 
     inline jschar *init(size_t length);
 
+    JSStableString *uninline(JSContext *cx);
+
     inline void resetLength(size_t length);
 
     static bool lengthFits(size_t length) {
         return length <= MAX_INLINE_LENGTH;
     }
-
 };
 
 JS_STATIC_ASSERT(sizeof(JSInlineString) == sizeof(JSString));
@@ -620,7 +619,7 @@ class JSShortString : public JSInlineString
 
 JS_STATIC_ASSERT(sizeof(JSShortString) == 2 * sizeof(JSString));
 
-class JSExternalString : public JSFixedString
+class JSExternalString : public JSFlatString
 {
     void init(const jschar *chars, size_t length, const JSStringFinalizer *fin);
 
@@ -644,7 +643,7 @@ class JSExternalString : public JSFixedString
 
 JS_STATIC_ASSERT(sizeof(JSExternalString) == sizeof(JSString));
 
-class JSUndependedString : public JSFixedString
+class JSUndependedString : public JSFlatString
 {
     
 
@@ -655,7 +654,7 @@ class JSUndependedString : public JSFixedString
 
 JS_STATIC_ASSERT(sizeof(JSUndependedString) == sizeof(JSString));
 
-class JSAtom : public JSFixedString
+class JSAtom : public JSFlatString
 {
     
     bool isAtom() const MOZ_DELETE;
@@ -673,26 +672,6 @@ class JSAtom : public JSFixedString
 };
 
 JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
-
-class JSInlineAtom : public JSInlineString 
-{
-    
-
-
-
-};
-
-JS_STATIC_ASSERT(sizeof(JSInlineAtom) == sizeof(JSInlineString));
-
-class JSShortAtom : public JSShortString 
-{
-    
-
-
-
-};
-
-JS_STATIC_ASSERT(sizeof(JSShortAtom) == sizeof(JSShortString));
 
 namespace js {
 
@@ -835,14 +814,29 @@ JSString::ensureFlat(JSContext *cx)
              : asRope().flatten(cx);
 }
 
-JS_ALWAYS_INLINE JSFixedString *
-JSString::ensureFixed(JSContext *cx)
+JS_ALWAYS_INLINE JSStableString *
+JSString::ensureStable(JSContext *maybecx)
 {
-    if (!ensureFlat(cx))
-        return NULL;
-    if (isExtensible())
-        d.lengthAndFlags = buildLengthAndFlags(length(), FIXED_FLAGS);
-    return &asFixed();
+    if (isRope()) {
+        JSFlatString *flat = asRope().flatten(maybecx);
+        if (!flat)
+            return NULL;
+        JS_ASSERT(!flat->isInline());
+        return &flat->asStable();
+    }
+
+    if (isDependent()) {
+        JSFlatString *flat = asDependent().undepend(maybecx);
+        if (!flat)
+            return NULL;
+        return &flat->asStable();
+    }
+
+    if (!isInline())
+        return &asStable();
+
+    JS_ASSERT(isInline());
+    return asInline().uninline(maybecx);
 }
 
 inline JSLinearString *

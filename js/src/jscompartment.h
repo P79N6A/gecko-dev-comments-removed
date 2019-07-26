@@ -36,21 +36,21 @@ namespace ion {
 class DtoaCache {
     double        d;
     int         base;
-    JSFixedString *s;      
+    JSFlatString *s;      
+
   public:
     DtoaCache() : s(NULL) {}
     void purge() { s = NULL; }
 
-    JSFixedString *lookup(int base, double d) {
+    JSFlatString *lookup(int base, double d) {
         return this->s && base == this->base && d == this->d ? this->s : NULL;
     }
 
-    void cache(int base, double d, JSFixedString *s) {
+    void cache(int base, double d, JSFlatString *s) {
         this->base = base;
         this->d = d;
         this->s = s;
     }
-
 };
 
 
