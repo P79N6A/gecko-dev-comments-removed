@@ -40,7 +40,7 @@ public final class GeckoJarReader {
         try {
             
             zip = getZipFile(jarUrls.pop());
-            inputStream = getStream(zip, jarUrls);
+            inputStream = getStream(zip, jarUrls, url);
             if (inputStream != null) {
                 bitmap = new BitmapDrawable(resources, inputStream);
             }
@@ -70,7 +70,7 @@ public final class GeckoJarReader {
         String text = null;
         try {
             zip = getZipFile(jarUrls.pop());
-            InputStream input = getStream(zip, jarUrls);
+            InputStream input = getStream(zip, jarUrls, url);
             if (input != null) {
                 reader = new BufferedReader(new InputStreamReader(input));
                 text = reader.readLine();
@@ -98,7 +98,7 @@ public final class GeckoJarReader {
         return new NativeZip(fileUrl.getPath());
     }
 
-    private static InputStream getStream(NativeZip zip, Stack<String> jarUrls) {
+    private static InputStream getStream(NativeZip zip, Stack<String> jarUrls, String origUrl) {
         InputStream inputStream = null;
 
         
@@ -107,7 +107,12 @@ public final class GeckoJarReader {
 
             if (inputStream != null) {
                 
-                zip = new NativeZip(inputStream);
+                try {
+                    zip = new NativeZip(inputStream);
+                } catch (IllegalArgumentException e) {
+                    Log.e(LOGTAG, "!!! BUG 849589 !!! origUrl=" + origUrl, e);
+                    return null;
+                }
             }
 
             inputStream = zip.getInputStream(fileName);
