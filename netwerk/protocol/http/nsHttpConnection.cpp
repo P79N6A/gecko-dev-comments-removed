@@ -1274,17 +1274,21 @@ nsHttpConnection::OnSocketWritable()
             again = false;
         }
         else if (n == 0) {
-            
-            
-            
-            
-            
-            
-            mTransaction->OnTransportStatus(mSocketTransport,
-                                            NS_NET_STATUS_WAITING_FOR,
-                                            0);
+            rv = NS_OK;
 
-            rv = ResumeRecv(); 
+            if (mTransaction) { 
+                
+                
+                
+                
+                
+                
+                mTransaction->OnTransportStatus(mSocketTransport,
+                                                NS_NET_STATUS_WAITING_FOR,
+                                                0);
+
+                rv = ResumeRecv(); 
+            }
             again = false;
         }
         
