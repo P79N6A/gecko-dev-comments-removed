@@ -127,13 +127,21 @@ var NodeActor = protocol.ActorClass({
   form: function(detail) {
     let parentNode = this.walker.parentNode(this);
 
+    
+    let numChildren = this.rawNode.childNodes.length;
+    if (numChildren === 0 &&
+        (this.rawNode.contentDocument || this.rawNode.getSVGDocument)) {
+      
+      numChildren = 1;
+    }
+
     let form = {
       actor: this.actorID,
       parent: parentNode ? parentNode.actorID : undefined,
       nodeType: this.rawNode.nodeType,
       namespaceURI: this.namespaceURI,
       nodeName: this.rawNode.nodeName,
-      numChildren: this.rawNode.childNodes.length,
+      numChildren: numChildren,
 
       
       name: this.rawNode.name,
@@ -1532,9 +1540,15 @@ var WalkerActor = protocol.ActorClass({
     this.queueMutation({
       type: "frameLoad",
       target: frameActor.actorID,
+    });
+
+    
+    this.queueMutation({
+      type: "childList",
+      target: frameActor.actorID,
       added: [],
       removed: []
-    });
+    })
   },
 
   
@@ -1582,6 +1596,19 @@ var WalkerActor = protocol.ActorClass({
       type: "documentUnload",
       target: documentActor.actorID
     });
+
+    let walker = documentWalker(doc);
+    let parentNode = walker.parentNode();
+    if (parentNode) {
+      
+      
+      this.queueMutation({
+        type: "childList",
+        target: this._refMap.get(parentNode).actorID,
+        added: [],
+        removed: []
+      });
+    }
 
     
     
@@ -1775,6 +1802,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
           
           
           emittedMutation.target = targetFront.actorID;
+          emittedMutation.targetParent = targetFront.parentNode();
 
           
           this._releaseFront(targetFront, true);

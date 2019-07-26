@@ -255,6 +255,12 @@ function assertFrameLoad(mutations) {
 
 
 
+function assertChildList(mutations) {
+  return assertAndStrip(mutations, "Should have had a frame load change.", isChildList);
+}
+
+
+
 function waitForMutation(walker, test, mutations=[]) {
   let deferred = Promise.defer();
   for (let change of mutations) {
