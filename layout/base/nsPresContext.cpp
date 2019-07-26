@@ -2578,7 +2578,8 @@ nsPresContext::ReflowStarted(bool aInterruptible)
 #endif
   
   
-  mInterruptsEnabled = aInterruptible && !IsPaginated();
+  mInterruptsEnabled = aInterruptible && !IsPaginated() &&
+                       nsLayoutUtils::InterruptibleReflowEnabled();
 
   
   
