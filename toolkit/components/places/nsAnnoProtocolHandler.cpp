@@ -12,6 +12,7 @@
 
 
 
+
 #include "nsAnnoProtocolHandler.h"
 #include "nsFaviconService.h"
 #include "nsIChannel.h"
@@ -256,62 +257,18 @@ NS_IMETHODIMP
 nsAnnoProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
 {
   NS_ENSURE_ARG_POINTER(aURI);
-  nsresult rv;
-
-  nsAutoCString path;
-  rv = aURI->GetPath(path);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIAnnotationService> annotationService = do_GetService(
-                              "@mozilla.org/browser/annotation-service;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIURI> annoURI;
   nsAutoCString annoName;
-  rv = ParseAnnoURI(aURI, getter_AddRefs(annoURI), annoName);
+  nsresult rv = ParseAnnoURI(aURI, getter_AddRefs(annoURI), annoName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  if (annoName.EqualsLiteral(FAVICON_ANNOTATION_NAME))
-    return NewFaviconChannel(aURI, annoURI, _retval);
+  if (!annoName.EqualsLiteral(FAVICON_ANNOTATION_NAME))
+    return NS_ERROR_INVALID_ARG;
 
-  
-  uint8_t* data;
-  uint32_t dataLen;
-  nsAutoCString mimeType;
-
-  
-  rv = annotationService->GetPageAnnotationBinary(annoURI, annoName, &data,
-                                                  &dataLen, mimeType);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (mimeType.IsEmpty()) {
-    NS_Free(data);
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsCOMPtr<nsIStringInputStream> stream = do_CreateInstance(
-                                          NS_STRINGINPUTSTREAM_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    NS_Free(data);
-    return rv;
-  }
-  rv = stream->AdoptData((char*)data, dataLen);
-  if (NS_FAILED(rv)) {
-    NS_Free(data);
-    return rv;
-  }
-
-  nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, stream, mimeType);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *_retval = channel;
-  NS_ADDREF(*_retval);
-  return NS_OK;
+  return NewFaviconChannel(aURI, annoURI, _retval);
 }
 
 

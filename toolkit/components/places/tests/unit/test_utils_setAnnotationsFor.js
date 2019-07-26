@@ -22,19 +22,20 @@ function run_test() {
 
   
   var testAnnos = [{ name: "testAnno/test0",
-                     type: Ci.nsIAnnotationService.TYPE_STRING,
                      flags: 0,
                      value: "test0",
                      expires: Ci.nsIAnnotationService.EXPIRE_NEVER },
                    { name: "testAnno/test1",
-                     type: Ci.nsIAnnotationService.TYPE_STRING,
                      flags: 0,
                      value: "test1",
                      expires: Ci.nsIAnnotationService.EXPIRE_NEVER },
                    { name: "testAnno/test2",
-                     type: Ci.nsIAnnotationService.TYPE_STRING,
                      flags: 0,
                      value: "test2",
+                     expires: Ci.nsIAnnotationService.EXPIRE_NEVER },
+                   { name: "testAnno/test3",
+                     flags: 0,
+                     value: 0,
                      expires: Ci.nsIAnnotationService.EXPIRE_NEVER }];
 
   
@@ -54,7 +55,11 @@ function run_test() {
   });
 
   
-  testAnnos.forEach(function(anno) { anno.value = null; });
+  
+  testAnnos[0].value = null;
+  testAnnos[1].value = undefined;
+  delete testAnnos[2].value;
+  delete testAnnos[3].value;
 
   
   PlacesUtils.setAnnotationsForItem(itemId, testAnnos);

@@ -779,21 +779,12 @@ this.PlacesUtils = {
     var annos = [], val = null;
     var annoNames = annosvc.getPageAnnotationNames(aURI);
     for (var i = 0; i < annoNames.length; i++) {
-      var flags = {}, exp = {}, mimeType = {}, storageType = {};
-      annosvc.getPageAnnotationInfo(aURI, annoNames[i], flags, exp, mimeType, storageType);
-      if (storageType.value == annosvc.TYPE_BINARY) {
-        var data = {}, length = {}, mimeType = {};
-        annosvc.getPageAnnotationBinary(aURI, annoNames[i], data, length, mimeType);
-        val = data.value;
-      }
-      else
-        val = annosvc.getPageAnnotation(aURI, annoNames[i]);
-
+      var flags = {}, exp = {}, storageType = {};
+      annosvc.getPageAnnotationInfo(aURI, annoNames[i], flags, exp, storageType);
+      val = annosvc.getPageAnnotation(aURI, annoNames[i]);
       annos.push({name: annoNames[i],
                   flags: flags.value,
                   expires: exp.value,
-                  mimeType: mimeType.value,
-                  type: storageType.value,
                   value: val});
     }
     return annos;
@@ -813,21 +804,12 @@ this.PlacesUtils = {
     var annos = [], val = null;
     var annoNames = annosvc.getItemAnnotationNames(aItemId);
     for (var i = 0; i < annoNames.length; i++) {
-      var flags = {}, exp = {}, mimeType = {}, storageType = {};
-      annosvc.getItemAnnotationInfo(aItemId, annoNames[i], flags, exp, mimeType, storageType);
-      if (storageType.value == annosvc.TYPE_BINARY) {
-        var data = {}, length = {}, mimeType = {};
-        annosvc.geItemAnnotationBinary(aItemId, annoNames[i], data, length, mimeType);
-        val = data.value;
-      }
-      else
-        val = annosvc.getItemAnnotation(aItemId, annoNames[i]);
-
+      var flags = {}, exp = {}, storageType = {};
+      annosvc.getItemAnnotationInfo(aItemId, annoNames[i], flags, exp, storageType);
+      val = annosvc.getItemAnnotation(aItemId, annoNames[i]);
       annos.push({name: annoNames[i],
                   flags: flags.value,
                   expires: exp.value,
-                  mimeType: mimeType.value,
-                  type: storageType.value,
                   value: val});
     }
     return annos;
@@ -842,24 +824,18 @@ this.PlacesUtils = {
 
 
 
-
   setAnnotationsForURI: function PU_setAnnotationsForURI(aURI, aAnnos) {
     var annosvc = this.annotations;
     aAnnos.forEach(function(anno) {
-      if (!anno.value) {
+      if (anno.value === undefined || anno.value === null) {
         annosvc.removePageAnnotation(aURI, anno.name);
-        return;
       }
-      var flags = ("flags" in anno) ? anno.flags : 0;
-      var expires = ("expires" in anno) ?
-        anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;
-      if (anno.type == annosvc.TYPE_BINARY) {
-        annosvc.setPageAnnotationBinary(aURI, anno.name, anno.value,
-                                        anno.value.length, anno.mimeType,
-                                        flags, expires);
-      }
-      else
+      else {
+        let flags = ("flags" in anno) ? anno.flags : 0;
+        let expires = ("expires" in anno) ?
+          anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;
         annosvc.setPageAnnotation(aURI, anno.name, anno.value, flags, expires);
+      }
     });
   },
 
@@ -872,24 +848,17 @@ this.PlacesUtils = {
 
 
 
-
   setAnnotationsForItem: function PU_setAnnotationsForItem(aItemId, aAnnos) {
     var annosvc = this.annotations;
 
     aAnnos.forEach(function(anno) {
-      if (!anno.value) {
+      if (anno.value === undefined || anno.value === null) {
         annosvc.removeItemAnnotation(aItemId, anno.name);
-        return;
-      }
-      var flags = ("flags" in anno) ? anno.flags : 0;
-      var expires = ("expires" in anno) ?
-        anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;
-      if (anno.type == annosvc.TYPE_BINARY) {
-        annosvc.setItemAnnotationBinary(aItemId, anno.name, anno.value,
-                                        anno.value.length, anno.mimeType,
-                                        flags, expires);
       }
       else {
+        let flags = ("flags" in anno) ? anno.flags : 0;
+        let expires = ("expires" in anno) ?
+          anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;
         annosvc.setItemAnnotation(aItemId, anno.name, anno.value, flags,
                                   expires);
       }
@@ -2705,7 +2674,6 @@ PlacesEditBookmarkURITransaction.prototype = {
 
 
 
-
 this.PlacesSetItemAnnotationTransaction =
  function PlacesSetItemAnnotationTransaction(aItemId, aAnnotationObject)
 {
@@ -2723,9 +2691,9 @@ PlacesSetItemAnnotationTransaction.prototype = {
     let annoName = this.new.annotations[0].name;
     if (PlacesUtils.annotations.itemHasAnnotation(this.item.id, annoName)) {
       
-      let flags = {}, expires = {}, mimeType = {}, type = {};
+      let flags = {}, expires = {}, type = {};
       PlacesUtils.annotations.getItemAnnotationInfo(this.item.id, annoName, flags,
-                                                    expires, mimeType, type);
+                                                    expires, type);
       let value = PlacesUtils.annotations.getItemAnnotation(this.item.id,
                                                             annoName);
       this.item.annotations = [{ name: annoName,
@@ -2737,7 +2705,6 @@ PlacesSetItemAnnotationTransaction.prototype = {
     else {
       
       this.item.annotations = [{ name: annoName,
-                                type: Ci.nsIAnnotationService.TYPE_STRING,
                                 flags: 0,
                                 value: null,
                                 expires: Ci.nsIAnnotationService.EXPIRE_NEVER }];
@@ -2751,7 +2718,6 @@ PlacesSetItemAnnotationTransaction.prototype = {
     PlacesUtils.setAnnotationsForItem(this.item.id, this.item.annotations);
   }
 };
-
 
 
 
@@ -2783,13 +2749,12 @@ PlacesSetPageAnnotationTransaction.prototype = {
     let annoName = this.new.annotations[0].name;
     if (PlacesUtils.annotations.pageHasAnnotation(this.item.uri, annoName)) {
       
-      let flags = {}, expires = {}, mimeType = {}, type = {};
+      let flags = {}, expires = {}, type = {};
       PlacesUtils.annotations.getPageAnnotationInfo(this.item.uri, annoName, flags,
-                                                    expires, mimeType, type);
+                                                    expires, type);
       let value = PlacesUtils.annotations.getPageAnnotation(this.item.uri,
                                                             annoName);
       this.item.annotations = [{ name: annoName,
-                                type: type.value,
                                 flags: flags.value,
                                 value: value,
                                 expires: expires.value }];
