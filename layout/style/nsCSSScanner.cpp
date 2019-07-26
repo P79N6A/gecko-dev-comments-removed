@@ -141,10 +141,13 @@ IsVertSpace(int32_t ch) {
 
 
 
+
 static inline bool
 IsIdentChar(int32_t ch) {
-  return IsOpenCharClass(ch, IS_IDCHAR);
+  return IsOpenCharClass(ch, IS_IDCHAR) || ch == 0;
 }
+
+
 
 
 
@@ -152,7 +155,7 @@ IsIdentChar(int32_t ch) {
 
 static inline bool
 IsIdentStart(int32_t ch) {
-  return IsOpenCharClass(ch, IS_IDSTART);
+  return IsOpenCharClass(ch, IS_IDSTART) || ch == 0;
 }
 
 
@@ -539,7 +542,7 @@ nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
     
     Advance();
     if (!aInString) {
-      aOutput.Append(0xFFFD);
+      aOutput.Append(UCS2_REPLACEMENT_CHAR);
     }
     return true;
   }
@@ -561,7 +564,11 @@ nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
     
     
     Advance(2);
-    aOutput.Append(ch);
+    if (ch == 0) {
+      aOutput.Append(UCS2_REPLACEMENT_CHAR);
+    } else {
+      aOutput.Append(ch);
+    }
     return true;
   }
 
@@ -588,18 +595,17 @@ nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
   
   
   if (MOZ_UNLIKELY(val == 0)) {
-    do {
-      aOutput.Append('0');
-    } while (--i);
+    aOutput.Append(UCS2_REPLACEMENT_CHAR);
   } else {
     AppendUCS4ToUTF16(ENSURE_VALID_CHAR(val), aOutput);
-    
-    
-    if (IsVertSpace(ch)) {
-      AdvanceLine();
-    } else if (IsHorzSpace(ch)) {
-      Advance();
-    }
+  }
+
+  
+  
+  if (IsVertSpace(ch)) {
+    AdvanceLine();
+  } else if (IsHorzSpace(ch)) {
+    Advance();
   }
   return true;
 }
@@ -644,6 +650,11 @@ nsCSSScanner::GatherText(uint8_t aClass, nsString& aText)
     int32_t ch = Peek();
     MOZ_ASSERT(!IsOpenCharClass(ch, aClass),
                "should not have exited the inner loop");
+    if (ch == 0) {
+      Advance();
+      aText.Append(UCS2_REPLACEMENT_CHAR);
+      continue;
+    }
 
     if (ch != '\\') {
       break;
