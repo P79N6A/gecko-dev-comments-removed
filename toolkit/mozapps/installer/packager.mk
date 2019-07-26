@@ -388,6 +388,7 @@ INNER_UNMAKE_PACKAGE	= \
     mv lib/$(ABI_DIR)/libmozglue.so . && \
     mv lib/$(ABI_DIR)/*plugin-container* $(MOZ_CHILD_PROCESS_NAME) && \
     mv $(ASSET_SO_LIBRARIES) . && \
+    rm -rf assets && \
     rm -rf lib/$(ABI_DIR) )
 endif
 
@@ -506,6 +507,7 @@ NO_PKG_FILES += \
 	ssltunnel* \
 	certutil* \
 	pk12util* \
+	OCSPStaplingServer* \
 	winEmbed.exe \
 	chrome/chrome.rdf \
 	chrome/app-chrome.manifest \
