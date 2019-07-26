@@ -20,6 +20,7 @@ class nsClientRectList;
 class nsFontFaceList;
 class nsIImageLoadingContent;
 
+#include "mozilla/MemoryReporting.h"
 #include "nsChangeHint.h"
 #include "nsStyleContext.h"
 #include "nsAutoPtr.h"
@@ -143,6 +144,14 @@ public:
 
 
   static nsIFrame* GetStyleFrame(nsIFrame* aPrimaryFrame);
+
+  
+
+
+
+
+
+  static nsIFrame* GetStyleFrame(const nsIContent* aContent);
 
   
 
@@ -1569,7 +1578,7 @@ public:
 
 
   static size_t SizeOfTextRunsForFrames(nsIFrame* aFrame,
-                                        nsMallocSizeOfFun aMallocSizeOf,
+                                        mozilla::MallocSizeOf aMallocSizeOf,
                                         bool clear);
 
   
@@ -1578,11 +1587,6 @@ public:
 
   static bool HasAnimationsForCompositor(nsIContent* aContent,
                                          nsCSSProperty aProperty);
-
-  
-
-
-  static bool Are3DTransformsEnabled();
 
   
 
