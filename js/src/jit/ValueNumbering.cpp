@@ -20,6 +20,12 @@ ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic
     count_(0)
 { }
 
+TempAllocator &
+ValueNumberer::alloc() const
+{
+    return mir->temp();
+}
+
 uint32_t
 ValueNumberer::lookupValue(MDefinition *ins)
 {
@@ -51,7 +57,7 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
 
     
     if (!ins->valueNumberData())
-        ins->setValueNumberData(new ValueNumberData);
+        ins->setValueNumberData(new(alloc()) ValueNumberData);
     if (!ins->block()) {
         
         
@@ -83,7 +89,7 @@ ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
 
     
     if (!repl->valueNumberData())
-        repl->setValueNumberData(new ValueNumberData);
+        repl->setValueNumberData(new(alloc()) ValueNumberData);
 
     MBasicBlock *block = def->block();
 
@@ -177,9 +183,9 @@ ValueNumberer::computeValueNumbers()
         if (mir->shouldCancel("Value Numbering (preparation loop"))
             return false;
         for (MDefinitionIterator iter(*block); iter; iter++)
-            iter->setValueNumberData(new ValueNumberData);
+            iter->setValueNumberData(new(alloc()) ValueNumberData);
         MControlInstruction *jump = block->lastIns();
-        jump->setValueNumberData(new ValueNumberData);
+        jump->setValueNumberData(new(alloc()) ValueNumberData);
     }
 
     
