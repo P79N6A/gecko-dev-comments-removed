@@ -269,7 +269,7 @@ class NameResolver
 
 
 
-    void resolve(ParseNode *cur, HandleAtom prefixArg = js::NullPtr()) {
+    void resolve(ParseNode *cur, HandleAtom prefixArg = NullPtr()) {
         RootedAtom prefix(cx, prefixArg);
         if (cur == nullptr)
             return;
