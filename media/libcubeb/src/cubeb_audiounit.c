@@ -13,7 +13,6 @@
 #include <CoreAudio/HostTime.h>
 #include "cubeb/cubeb.h"
 #include "cubeb-internal.h"
-#include "prtime.h"
 
 #define NBUFS 4
 
@@ -49,7 +48,7 @@ audiotimestamp_to_latency(AudioTimeStamp const * tstamp, cubeb_stream * stream)
   uint64_t pres = AudioConvertHostTimeToNanos(tstamp->mHostTime);
   uint64_t now = AudioConvertHostTimeToNanos(AudioGetCurrentHostTime());
 
-  return ((pres - now) * stream->sample_spec.mSampleRate) / PR_NSEC_PER_SEC;
+  return ((pres - now) * stream->sample_spec.mSampleRate) / 1000000000LL;
 }
 
 static OSStatus
@@ -299,7 +298,7 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
 #endif
   cubeb_stream * stm;
   AURenderCallbackStruct input;
-  unsigned int buffer_size;
+  unsigned int buffer_size, default_buffer_size;
   OSStatus r;
   UInt32 size;
   AudioDeviceID output_device_id;
@@ -410,11 +409,26 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
 
   
 
-  r = AudioUnitSetProperty(stm->unit, kAudioDevicePropertyBufferFrameSize,
-                           kAudioUnitScope_Output, 0, &buffer_size, sizeof(buffer_size));
+
+
+  size = sizeof(default_buffer_size);
+  r = AudioUnitGetProperty(stm->unit, kAudioDevicePropertyBufferFrameSize,
+                           kAudioUnitScope_Output, 0, &default_buffer_size, &size);
+
   if (r != 0) {
     audiounit_stream_destroy(stm);
     return CUBEB_ERROR;
+  }
+
+  if (buffer_size < default_buffer_size) {
+    
+
+    r = AudioUnitSetProperty(stm->unit, kAudioDevicePropertyBufferFrameSize,
+                             kAudioUnitScope_Output, 0, &buffer_size, sizeof(buffer_size));
+    if (r != 0) {
+      audiounit_stream_destroy(stm);
+      return CUBEB_ERROR;
+    }
   }
 
   r = AudioUnitSetProperty(stm->unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
