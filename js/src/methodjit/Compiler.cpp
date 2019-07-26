@@ -3983,7 +3983,7 @@ mjit::Compiler::ionCompileHelper()
     
     
     
-    if (isConstructing)
+    if (isConstructing && outerScript->code == PC)
         return;
 
     
