@@ -239,7 +239,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   
   kid->SetRect(nsRect(bp.left, bp.top, aMetrics.width, aMetrics.height));
   kid->FinishAndStoreOverflow(&aMetrics);
-  kid->DidReflow(aPresContext, nullptr, NS_FRAME_REFLOW_FINISHED);
+  kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
 
   aMetrics.width += lr;
   aMetrics.height += tb;

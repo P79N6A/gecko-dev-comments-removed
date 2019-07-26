@@ -868,7 +868,7 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
 {
   
   
-  if (aStatus == NS_FRAME_REFLOW_FINISHED &&
+  if (aStatus == nsDidReflowStatus::FINISHED &&
       (GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(mContent));
     NS_ASSERTION(objContent, "Why not an object loading content?");
@@ -879,7 +879,7 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
 
   
   
-  if (aStatus != NS_FRAME_REFLOW_FINISHED) 
+  if (aStatus != nsDidReflowStatus::FINISHED) 
     return rv;
 
   if (HasView()) {
@@ -1515,7 +1515,7 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
 
   
   
-  nsDidReflowStatus status = NS_FRAME_REFLOW_FINISHED; 
+  nsDidReflowStatus status = nsDidReflowStatus::FINISHED; 
   frame->DidReflow(presContext,
                    nullptr, status);  
 }
