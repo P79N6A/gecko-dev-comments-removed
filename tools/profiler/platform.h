@@ -212,6 +212,7 @@ class TickSample {
 #endif
   Address function;  
   void*   context;   
+                     
   static const int kMaxFramesCount = 64;
   Address stack[kMaxFramesCount];  
   int frames_count;  
