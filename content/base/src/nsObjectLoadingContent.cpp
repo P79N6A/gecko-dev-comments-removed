@@ -92,8 +92,6 @@
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
-static const char *kPrefJavaMIME = "plugin.java.mime";
-
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -904,8 +902,6 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
 void
 nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 {
-  
-  
 
   
   
@@ -1414,12 +1410,8 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
   
   
   
-
   if (aJavaURI || thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
-    nsAdoptingCString javaMIME = Preferences::GetCString(kPrefJavaMIME);
-    newMime = javaMIME;
-    NS_ASSERTION(nsPluginHost::IsJavaMIMEType(newMime.get()),
-                 "plugin.mime.java should be recognized by IsJavaMIMEType");
+    newMime.AssignLiteral("application/x-java-vm");
     isJava = true;
   } else {
     nsAutoString rawTypeAttr;
@@ -1440,12 +1432,9 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::classid, classIDAttr);
     if (!classIDAttr.IsEmpty()) {
       
-      nsAdoptingCString javaMIME = Preferences::GetCString(kPrefJavaMIME);
-      NS_ASSERTION(nsPluginHost::IsJavaMIMEType(newMime.get()),
-                   "plugin.mime.java should be recognized by IsJavaMIMEType");
       if (StringBeginsWith(classIDAttr, NS_LITERAL_STRING("java:")) &&
-          PluginExistsForType(javaMIME)) {
-        newMime = javaMIME;
+          PluginExistsForType("application/x-java-vm")) {
+        newMime.Assign("application/x-java-vm");
         isJava = true;
       } else {
         

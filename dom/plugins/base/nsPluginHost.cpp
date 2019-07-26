@@ -124,7 +124,6 @@ using mozilla::TimeStamp;
 
 static const char *kPrefWhitelist = "plugin.allowed_types";
 static const char *kPrefDisableFullPage = "plugin.disable_full_page_plugin_for_types";
-static const char *kPrefJavaMIME = "plugin.java.mime";
 
 
 
@@ -1556,23 +1555,13 @@ nsPluginHost::SiteHasData(nsIPluginTag* plugin, const nsACString& domain,
 
 bool nsPluginHost::IsJavaMIMEType(const char* aType)
 {
-  
-  
-  nsAdoptingCString javaMIME = Preferences::GetCString(kPrefJavaMIME);
   return aType &&
-    (javaMIME.LowerCaseEqualsASCII(aType) ||
-     (0 == PL_strncasecmp(aType, "application/x-java-vm",
+    ((0 == PL_strncasecmp(aType, "application/x-java-vm",
                           sizeof("application/x-java-vm") - 1)) ||
      (0 == PL_strncasecmp(aType, "application/x-java-applet",
                           sizeof("application/x-java-applet") - 1)) ||
      (0 == PL_strncasecmp(aType, "application/x-java-bean",
-                          sizeof("application/x-java-bean") - 1))
-#ifdef DEBUG
-     
-     || (0 == PL_strncasecmp(aType, "application/x-java-test",
-                             sizeof("application/x-java-test") - 1))
-#endif
-     );
+                          sizeof("application/x-java-bean") - 1)));
 }
 
 
