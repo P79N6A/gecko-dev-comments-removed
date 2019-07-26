@@ -2479,12 +2479,11 @@ nsDownloadManager::Observe(nsISupports *aSubject,
     (void)ResumeAllDownloads(false);
   }
   else if (strcmp(aTopic, "alertclickcallback") == 0) {
-    
-    
     nsCOMPtr<nsIDownloadManagerUI> dmui =
       do_GetService("@mozilla.org/download-manager-ui;1", &rv);
     NS_ENSURE_SUCCESS(rv, rv);
-    return dmui->Show(nullptr, 0, nsIDownloadManagerUI::REASON_USER_INTERACTED);
+    return dmui->Show(nullptr, 0, nsIDownloadManagerUI::REASON_USER_INTERACTED,
+                      NS_strcmp(aData, NS_LITERAL_STRING("private").get()) == 0);
   } else if (strcmp(aTopic, "sleep_notification") == 0 ||
              strcmp(aTopic, "suspend_process_notification") == 0) {
     
@@ -2776,8 +2775,9 @@ nsDownload::SetState(DownloadState aState)
               
               alerts->ShowAlertNotification(
                   NS_LITERAL_STRING(DOWNLOAD_MANAGER_ALERT_ICON), title,
-                  message, !removeWhenDone, EmptyString(), mDownloadManager,
-                  EmptyString());
+                  message, !removeWhenDone,
+                  mPrivate ? NS_LITERAL_STRING("private") : NS_LITERAL_STRING("non-private"),
+                  mDownloadManager, EmptyString());
             }
         }
       }
