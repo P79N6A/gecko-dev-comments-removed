@@ -2355,12 +2355,36 @@ CanvasRenderingContext2D::MeasureText(const nsAString& rawText,
   return new TextMetrics(width);
 }
 
-void CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& )
-{}
+void
+CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorResult& error)
+{
+  
+  RemoveHitRegion(options.mId);
 
-void CanvasRenderingContext2D::RemoveHitRegion(const nsAString&)
-{}
+  
+  if (options.mControl == NULL) {
+    error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
 
+  
+  HTMLCanvasElement* canvas = GetCanvas();
+  if (!canvas || !nsContentUtils::ContentIsDescendantOf(options.mControl, canvas)) {
+    error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
+
+  
+  if (options.mId.Length() != 0) {
+    mHitRegionsOptions.PutEntry(options.mId)->mElement = options.mControl;
+  }
+}
+
+void
+CanvasRenderingContext2D::RemoveHitRegion(const nsAString& id)
+{
+  mHitRegionsOptions.RemoveEntry(id);
+}
 
 
 
