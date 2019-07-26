@@ -12101,6 +12101,24 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 
   nsAutoScriptBlocker scriptBlocker;
 
+  nsPresContext *presContext = mPresShell->GetPresContext();
+  presContext->SetProcessingRestyles(true);
+
+  DoRebuildAllStyleData(mPendingRestyles, aExtraHint);
+
+  presContext->SetProcessingRestyles(false);
+
+  
+  
+  
+  
+  ProcessPendingRestyles();
+}
+
+void
+nsCSSFrameConstructor::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
+                                             nsChangeHint aExtraHint)
+{
   
   
   nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
@@ -12108,8 +12126,6 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
   }
 
-  nsPresContext *presContext = mPresShell->GetPresContext();
-  presContext->SetProcessingRestyles(true);
   
   
   
@@ -12122,16 +12138,9 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   ComputeStyleChangeFor(mPresShell->GetRootFrame(),
                         &changeList, aExtraHint,
-                        mPendingRestyles, true);
+                        aRestyleTracker, true);
   
   ProcessRestyledFrames(changeList);
-  presContext->SetProcessingRestyles(false);
-
-  
-  
-  
-  
-  ProcessPendingRestyles();
 
   
   

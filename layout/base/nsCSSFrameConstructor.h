@@ -277,6 +277,11 @@ public:
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   
+  
+  void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
+                             nsChangeHint aExtraHint);
+
+  
   void PostRestyleEvent(Element* aElement,
                         nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint)
