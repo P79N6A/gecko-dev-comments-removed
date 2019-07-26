@@ -89,8 +89,6 @@ class ChunkPool {
         return emptyCount;
     }
 
-    inline bool wantBackgroundAllocation(JSRuntime *rt) const;
-
     
     inline Chunk *get(JSRuntime *rt);
 
