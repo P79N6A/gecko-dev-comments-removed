@@ -243,7 +243,7 @@ HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
       if (option && option->Selected()) {
         
         if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-          SetOptionsSelectedByIndex(i, i, true, true, true, true, nullptr);
+          SetOptionsSelectedByIndex(i, i, true, true, true, true);
         }
 
         
@@ -783,14 +783,12 @@ HTMLSelectElement::SetSelectedIndexInternal(int32_t aIndex, bool aNotify)
 {
   int32_t oldSelectedIndex = mSelectedIndex;
 
-  nsresult rv = SetOptionsSelectedByIndex(aIndex, aIndex, true,
-                                          true, true, aNotify, nullptr);
+  SetOptionsSelectedByIndex(aIndex, aIndex, true, true, true, aNotify);
 
-  if (NS_SUCCEEDED(rv)) {
-    nsISelectControlFrame* selectFrame = GetSelectFrame();
-    if (selectFrame) {
-      rv = selectFrame->OnSetSelectedIndex(oldSelectedIndex, mSelectedIndex);
-    }
+  nsresult rv = NS_OK;
+  nsISelectControlFrame* selectFrame = GetSelectFrame();
+  if (selectFrame) {
+    rv = selectFrame->OnSetSelectedIndex(oldSelectedIndex, mSelectedIndex);
   }
 
   SetSelectionChanged(true, aNotify);
@@ -891,38 +889,32 @@ HTMLSelectElement::FindSelectedIndex(int32_t aStartIndex, bool aNotify)
 
 
 
-NS_IMETHODIMP
+bool
 HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
                                              int32_t aEndIndex,
                                              bool aIsSelected,
                                              bool aClearAll,
                                              bool aSetDisabled,
-                                             bool aNotify,
-                                             bool* aChangedSomething)
+                                             bool aNotify)
 {
 #if 0
   printf("SetOption(%d-%d, %c, ClearAll=%c)\n", aStartIndex, aEndIndex,
                                        (aIsSelected ? 'Y' : 'N'),
                                        (aClearAll ? 'Y' : 'N'));
 #endif
-  if (aChangedSomething) {
-    *aChangedSomething = false;
-  }
-
   
   if (!aSetDisabled && IsDisabled()) {
-    return NS_OK;
+    return false;
   }
 
   
-  uint32_t numItems = 0;
-  GetLength(&numItems);
+  uint32_t numItems = Length();
   if (numItems == 0) {
-    return NS_OK;
+    return false;
   }
 
   
-  bool isMultiple = HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
+  bool isMultiple = Multiple();
 
   
   
@@ -935,8 +927,8 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
 
   if (aIsSelected) {
     
-    if (aStartIndex >= (int32_t)numItems || aStartIndex < 0 ||
-        aEndIndex >= (int32_t)numItems || aEndIndex < 0) {
+    if (aStartIndex < 0 || SafeCast<uint32_t>(aStartIndex) >= numItems ||
+        aEndIndex < 0 || SafeCast<uint32_t>(aEndIndex) >= numItems) {
       aStartIndex = -1;
       aEndIndex = -1;
     }
@@ -962,39 +954,35 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
     
     
     if (aStartIndex != -1) {
+      MOZ_ASSERT(aStartIndex >= 0);
+      MOZ_ASSERT(aEndIndex >= 0);
       
       
-      for (int32_t optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
+      for (uint32_t optIndex = SafeCast<uint32_t>(aStartIndex);
+           optIndex <= SafeCast<uint32_t>(aEndIndex);
+           optIndex++) {
+        nsRefPtr<HTMLOptionElement> option = Item(optIndex);
 
         
         if (!aSetDisabled) {
-          bool isDisabled;
-          IsOptionDisabled(optIndex, &isDisabled);
-
-          if (isDisabled) {
+          if (option && IsOptionDisabled(option)) {
             continue;
-          } else {
-            allDisabled = false;
           }
+          allDisabled = false;
         }
 
-        nsIDOMHTMLOptionElement* option = mOptions->ItemAsOption(optIndex);
-        if (option) {
+        
+        if (option && !option->Selected()) {
           
-          bool isSelected = false;
-          option->GetSelected(&isSelected);
-          if (!isSelected) {
-            
-            
-            
-            
-            selectFrame = GetSelectFrame();
-            weakSelectFrame = do_QueryFrame(selectFrame);
-            didGetFrame = true;
+          
+          
+          
+          selectFrame = GetSelectFrame();
+          weakSelectFrame = do_QueryFrame(selectFrame);
+          didGetFrame = true;
 
-            OnOptionSelected(selectFrame, optIndex, true, true, aNotify);
-            optionsSelected = true;
-          }
+          OnOptionSelected(selectFrame, optIndex, true, true, aNotify);
+          optionsSelected = true;
         }
       }
     }
@@ -1005,72 +993,59 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
        || (aClearAll && !allDisabled)
        || aStartIndex == -1)
        && previousSelectedIndex != -1) {
-      for (int32_t optIndex = previousSelectedIndex;
-           optIndex < int32_t(numItems);
+      for (uint32_t optIndex = SafeCast<uint32_t>(previousSelectedIndex);
+           optIndex < numItems;
            optIndex++) {
-        if (optIndex < aStartIndex || optIndex > aEndIndex) {
-          nsIDOMHTMLOptionElement* option = mOptions->ItemAsOption(optIndex);
-          if (option) {
-            
-            bool isSelected = false;
-            option->GetSelected(&isSelected);
-            if (isSelected) {
-              if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
-                
-                
-                
-                selectFrame = GetSelectFrame();
-                weakSelectFrame = do_QueryFrame(selectFrame);
-
-                didGetFrame = true;
-              }
-
-              OnOptionSelected(selectFrame, optIndex, false, true,
-                               aNotify);
-              optionsDeselected = true;
-
+        if (static_cast<int32_t>(optIndex) < aStartIndex ||
+            static_cast<int32_t>(optIndex) > aEndIndex) {
+          HTMLOptionElement* option = Item(optIndex);
+          
+          if (option && option->Selected()) {
+            if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
               
-              if (!isMultiple) {
-                break;
-              }
+              
+              
+              selectFrame = GetSelectFrame();
+              weakSelectFrame = do_QueryFrame(selectFrame);
+
+              didGetFrame = true;
+            }
+
+            OnOptionSelected(selectFrame, optIndex, false, true,
+                             aNotify);
+            optionsDeselected = true;
+
+            
+            if (!isMultiple) {
+              break;
             }
           }
         }
       }
     }
-
   } else {
-
     
     
     for (int32_t optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
-      if (!aSetDisabled) {
-        bool isDisabled;
-        IsOptionDisabled(optIndex, &isDisabled);
-        if (isDisabled) {
-          continue;
-        }
+      HTMLOptionElement* option = Item(optIndex);
+      if (!aSetDisabled && IsOptionDisabled(option)) {
+        continue;
       }
 
-      nsIDOMHTMLOptionElement* option = mOptions->ItemAsOption(optIndex);
-      if (option) {
-        
-        bool isSelected = false;
-        option->GetSelected(&isSelected);
-        if (isSelected) {
-          if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
-            
-            
-            
-            selectFrame = GetSelectFrame();
-            weakSelectFrame = do_QueryFrame(selectFrame);
+      
+      if (option && option->Selected()) {
+        if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
+          
+          
+          
+          selectFrame = GetSelectFrame();
+          weakSelectFrame = do_QueryFrame(selectFrame);
 
-            didGetFrame = true;
-          }
-
-          OnOptionSelected(selectFrame, optIndex, false, true, aNotify);
-          optionsDeselected = true;
+          didGetFrame = true;
         }
+
+        OnOptionSelected(selectFrame, optIndex, false, true, aNotify);
+        optionsDeselected = true;
       }
     }
   }
@@ -1081,12 +1056,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
   }
 
   
-  if (optionsSelected || optionsDeselected) {
-    if (aChangedSomething)
-      *aChangedSomething = true;
-  }
-
-  return NS_OK;
+  return optionsSelected || optionsDeselected;
 }
 
 NS_IMETHODIMP
@@ -1615,7 +1585,7 @@ HTMLSelectElement::RestoreStateTo(SelectState* aNewSelected)
   GetLength(&len);
 
   
-  SetOptionsSelectedByIndex(-1, -1, true, true, true, true, nullptr);
+  SetOptionsSelectedByIndex(-1, -1, true, true, true, true);
 
   
   for (int32_t i = 0; i < int32_t(len); i++) {
@@ -1624,7 +1594,7 @@ HTMLSelectElement::RestoreStateTo(SelectState* aNewSelected)
       nsAutoString value;
       nsresult rv = option->GetValue(value);
       if (NS_SUCCEEDED(rv) && aNewSelected->ContainsOption(i, value)) {
-        SetOptionsSelectedByIndex(i, i, true, false, true, true, nullptr);
+        SetOptionsSelectedByIndex(i, i, true, false, true, true);
       }
     }
   }
@@ -1656,8 +1626,7 @@ HTMLSelectElement::Reset()
       
       bool selected = false;
       option->GetDefaultSelected(&selected);
-      SetOptionsSelectedByIndex(i, i, selected,
-                                false, true, true, nullptr);
+      SetOptionsSelectedByIndex(i, i, selected, false, true, true);
       if (selected) {
         numSelected++;
       }

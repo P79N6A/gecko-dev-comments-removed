@@ -317,13 +317,12 @@ public:
 
 
 
-  NS_IMETHOD SetOptionsSelectedByIndex(int32_t aStartIndex,
-                                       int32_t aEndIndex,
-                                       bool aIsSelected,
-                                       bool aClearAll,
-                                       bool aSetDisabled,
-                                       bool aNotify,
-                                       bool* aChangedSomething);
+  bool SetOptionsSelectedByIndex(int32_t aStartIndex,
+                                 int32_t aEndIndex,
+                                 bool aIsSelected,
+                                 bool aClearAll,
+                                 bool aSetDisabled,
+                                 bool aNotify);
 
   
 
