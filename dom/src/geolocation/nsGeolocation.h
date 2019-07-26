@@ -86,7 +86,7 @@ public:
   void     SetDisconnectTimer();
 
   
-  void     UpdateAccuracy(bool aForceHigh = false);
+  void     SetHigherAccuracy(bool aEnable);
   bool     HighAccuracyRequested();
 
 private:
