@@ -158,7 +158,7 @@ var currencyDigits = {
     TWD: 2,
     TZS: 2,
     UAH: 2,
-
+    UGX: 0,
     USD: 2,
     USN: 2,
     USS: 2,
