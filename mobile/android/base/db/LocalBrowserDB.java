@@ -141,9 +141,11 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
     private Cursor filterAllSites(ContentResolver cr, String[] projection, CharSequence constraint,
             int limit, CharSequence urlFilter) {
-        String selection = "";
-        String[] selectionArgs = null;
+        return filterAllSites(cr, projection, constraint, limit, urlFilter, "", null);
+    }
 
+    private Cursor filterAllSites(ContentResolver cr, String[] projection, CharSequence constraint,
+            int limit, CharSequence urlFilter, String selection, String[] selectionArgs) {
         
         
         if (!TextUtils.isEmpty(constraint)) {
@@ -224,13 +226,20 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     }
 
     public Cursor getTopSites(ContentResolver cr, int limit) {
+        
+        String selection = DBUtils.concatenateWhere("", Combined.URL + " NOT IN (SELECT " +
+                                             Bookmarks.URL + " FROM bookmarks WHERE bookmarks." +
+                                             Bookmarks.PARENT + " == ?)");
+        String[] selectionArgs = DBUtils.appendSelectionArgs(new String[0], new String[] { String.valueOf(Bookmarks.FIXED_PINNED_LIST_ID) });
         return filterAllSites(cr,
                               new String[] { Combined._ID,
                                              Combined.URL,
                                              Combined.TITLE },
                               "",
                               limit,
-                              BrowserDB.ABOUT_PAGES_URL_FILTER);
+                              BrowserDB.ABOUT_PAGES_URL_FILTER,
+                              selection,
+                              selectionArgs);
     }
 
     public void updateVisitedHistory(ContentResolver cr, String uri) {
