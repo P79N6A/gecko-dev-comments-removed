@@ -403,21 +403,20 @@ imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
     proxy->BlockOnload();
 
   if (mImage) {
-    int16_t imageType = mImage->GetType();
     
-    if (imageType == imgIContainer::TYPE_VECTOR ||
-        static_cast<RasterImage*>(mImage)->GetNumFrames() > 0) {
+    
+    
+    nsIntRect r;
+    mImage->GetCurrentFrameRect(r);
 
-      
-      
-      
-      nsIntRect r;
-      mImage->GetCurrentFrameRect(r);
+    
+    
+    
+    if (!r.IsEmpty())
       proxy->OnFrameUpdate(&r);
 
-      if (mState & stateFrameStopped)
-        proxy->OnStopFrame();
-    }
+    if (mState & stateFrameStopped)
+      proxy->OnStopFrame();
 
     
     bool isAnimated = false;

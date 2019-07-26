@@ -17,8 +17,7 @@
 
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
-#include "RasterImage.h"
-#include "VectorImage.h"
+#include "ImageFactory.h"
 
 #include "imgILoader.h"
 
@@ -47,28 +46,11 @@
 #include "nsNetUtil.h"
 #include "nsIProtocolHandler.h"
 
-#include "mozilla/Preferences.h"
-#include "mozilla/Likely.h"
-
 #include "DiscardTracker.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 
-#define SVG_MIMETYPE "image/svg+xml"
-
 using namespace mozilla;
 using namespace mozilla::image;
-
-static bool gInitializedPrefCaches = false;
-static bool gDecodeOnDraw = false;
-static bool gDiscardable = false;
-
-static void
-InitPrefCaches()
-{
-  Preferences::AddBoolVarCache(&gDiscardable, "image.mem.discardable");
-  Preferences::AddBoolVarCache(&gDecodeOnDraw, "image.mem.decodeondraw");
-  gInitializedPrefCaches = true;
-}
 
 #if defined(PR_LOGGING)
 PRLogModuleInfo *
@@ -98,12 +80,7 @@ imgRequest::imgRequest(imgLoader* aLoader)
  , mGotData(false)
  , mIsInCache(false)
  , mResniffMimeType(false)
-{
-  
-  if (MOZ_UNLIKELY(!gInitializedPrefCaches)) {
-    InitPrefCaches();
-  }
-}
+{ }
 
 imgRequest::~imgRequest()
 {
@@ -564,14 +541,13 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   
   if (mIsMultiPartChannel && mImage) {
     mResniffMimeType = true;
-    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-        
-        
-        
-        
-        
-        static_cast<RasterImage*>(mImage.get())->NewSourceData();
-      }
+
+    
+    
+    
+    
+    
+    mImage->OnNewSourceData();
   }
 
   
@@ -650,16 +626,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   if (mImage) {
-    nsresult rv;
-    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-      
-      rv = static_cast<RasterImage*>(mImage.get())->SourceDataComplete();
-    } else { 
-      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
-      NS_ABORT_IF_FALSE(imageAsStream,
-                        "SVG-typed Image failed QI to nsIStreamListener");
-      rv = imageAsStream->OnStopRequest(aRequest, ctxt, status);
-    }
+    nsresult rv = mImage->OnImageDataComplete(aRequest, ctxt, status);
 
     
     
@@ -760,7 +727,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
     
     
     
-    if (mContentType != newType || newType.EqualsLiteral(SVG_MIMETYPE)) {
+    if (mContentType != newType || newType.Equals(SVG_MIMETYPE)) {
       mContentType = newType;
 
       
@@ -768,22 +735,13 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       if (mResniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
+
         imgStatusTracker* freshTracker = new imgStatusTracker(nullptr, this);
         freshTracker->AdoptConsumers(&GetStatusTracker());
         mStatusTracker = freshTracker;
+
+        mResniffMimeType = false;
       }
-
-      mResniffMimeType = false;
-
-      
-      if (mContentType.EqualsLiteral(SVG_MIMETYPE)) {
-        mImage = new VectorImage(mStatusTracker.forget());
-      } else {
-        mImage = new RasterImage(mStatusTracker.forget());
-      }
-      mImage->SetInnerWindowID(mInnerWindowId);
-
-      GetStatusTracker().OnDataAvailable();
 
       
       nsCOMPtr<nsISupportsCString> contentType(do_CreateInstance("@mozilla.org/supports-cstring;1"));
@@ -809,119 +767,32 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
 
       
       
-      
-
-      
-      bool isDiscardable = gDiscardable;
-      bool doDecodeOnDraw = gDecodeOnDraw;
+      mImage = ImageFactory::CreateImage(aRequest, mStatusTracker.forget(), mContentType,
+                                         mURI, mIsMultiPartChannel, mInnerWindowId);
 
       
       
-      bool isChrome = false;
-      rv = mURI->SchemeIs("chrome", &isChrome);
-      if (NS_SUCCEEDED(rv) && isChrome)
-        isDiscardable = doDecodeOnDraw = false;
+      GetStatusTracker().OnDataAvailable();
 
-      
-      
-      bool isResource = false;
-      rv = mURI->SchemeIs("resource", &isResource);
-      if (NS_SUCCEEDED(rv) && isResource)
-        isDiscardable = doDecodeOnDraw = false;
-
-      
-      
-      if (mIsMultiPartChannel)
-        isDiscardable = doDecodeOnDraw = false;
-
-      
-      uint32_t imageFlags = Image::INIT_FLAG_NONE;
-      if (isDiscardable)
-        imageFlags |= Image::INIT_FLAG_DISCARDABLE;
-      if (doDecodeOnDraw)
-        imageFlags |= Image::INIT_FLAG_DECODE_ON_DRAW;
-      if (mIsMultiPartChannel)
-        imageFlags |= Image::INIT_FLAG_MULTIPART;
-
-      
-      nsAutoCString uriString;
-      rv = mURI->GetSpec(uriString);
-      if (NS_FAILED(rv))
-        uriString.Assign("<unknown image URI>");
-
-      
-      
-      
-      rv = mImage->Init(GetStatusTracker().GetDecoderObserver(),
-                        mContentType.get(), uriString.get(), imageFlags);
-
-      
-      
-      if (NS_FAILED(rv) && !mIsMultiPartChannel) { 
-
-        this->Cancel(rv);
+      if (mImage->HasError() && !mIsMultiPartChannel) { 
+        
+        
+        
+        this->Cancel(NS_ERROR_FAILURE);
         return NS_BINDING_ABORTED;
       }
 
-      if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-        
-        nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
-        if (httpChannel) {
-          nsAutoCString contentLength;
-          rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
-                                              contentLength);
-          if (NS_SUCCEEDED(rv)) {
-            int32_t len = contentLength.ToInteger(&rv);
+      NS_ABORT_IF_FALSE(!!GetStatusTracker().GetImage(), "Status tracker should have an image!");
+      NS_ABORT_IF_FALSE(mImage, "imgRequest should have an image!");
 
-            
-            
-            if (len > 0) {
-              uint32_t sizeHint = (uint32_t) len;
-              sizeHint = NS_MIN<uint32_t>(sizeHint, 20000000); 
-              RasterImage* rasterImage = static_cast<RasterImage*>(mImage.get());
-              rv = rasterImage->SetSourceSizeHint(sizeHint);
-              if (NS_FAILED(rv)) {
-                
-                rv = nsMemory::HeapMinimize(true);
-                nsresult rv2 = rasterImage->SetSourceSizeHint(sizeHint);
-                
-                if (NS_FAILED(rv) || NS_FAILED(rv2)) {
-                  NS_WARNING("About to hit OOM in imagelib!");
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-        
-        if (mDecodeRequested) {
-          mImage->StartDecoding();
-        }
-      } else { 
-        nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
-        NS_ABORT_IF_FALSE(imageAsStream,
-                          "SVG-typed Image failed QI to nsIStreamListener");
-        imageAsStream->OnStartRequest(aRequest, nullptr);
-      }
+      if (mDecodeRequested)
+        mImage->StartDecoding();
     }
   }
 
-  if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-    
-    
-    uint32_t bytesRead;
-    rv = inStr->ReadSegments(RasterImage::WriteToRasterImage,
-                             static_cast<void*>(mImage),
-                             count, &bytesRead);
-    NS_ABORT_IF_FALSE(bytesRead == count || mImage->HasError(),
-  "WriteToRasterImage should consume everything or the image must be in error!");
-  } else { 
-    nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
-    rv = imageAsStream->OnDataAvailable(aRequest, ctxt, inStr,
-                                        sourceOffset, count);
-  }
+  
+  rv = mImage->OnImageDataAvailable(aRequest, ctxt, inStr, sourceOffset, count);
+
   if (NS_FAILED(rv)) {
     PR_LOG(GetImgLog(), PR_LOG_WARNING,
            ("[this=%p] imgRequest::OnDataAvailable -- "
