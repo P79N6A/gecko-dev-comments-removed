@@ -65,7 +65,11 @@ NewDenseUnallocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL)
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *vp, RawObject proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, RawObject proto = NULL);
+
+
+extern JSObject *
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, RawObject proto = NULL);
 
 
 extern JSObject *

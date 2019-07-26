@@ -1710,7 +1710,7 @@ DebugScopes::onPopCall(StackFrame *fp, JSContext *cx)
 
 
 
-        StackFrame::CopyVector vec;
+        AutoValueVector vec(cx);
         if (!fp->copyRawFrameSlots(&vec) || vec.length() == 0)
             return;
 
