@@ -1303,11 +1303,15 @@ var SettingsCharm = {
         label: Strings.browser.GetStringFromName("optionsCharm"),
         onselected: function() FlyoutPanelsUI.show('PrefsFlyoutPanel')
     });
-    
-    this.addEntry({
-        label: Strings.brand.GetStringFromName("syncBrandShortName"),
-        onselected: function() FlyoutPanelsUI.show('SyncFlyoutPanel')
-    });
+
+
+
+
+
+
+
+
+
     
     this.addEntry({
         label: Strings.browser.GetStringFromName("aboutCharm1"),
