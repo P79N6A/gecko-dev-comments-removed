@@ -272,6 +272,7 @@ nsGeolocationRequest::nsGeolocationRequest(nsGeolocation* aLocator,
                                            int32_t aWatchId)
   : mAllowed(false),
     mCleared(false),
+    mIsFirstUpdate(true),
     mIsWatchPositionRequest(aWatchPositionRequest),
     mCallback(aCallback),
     mErrorCallback(aErrorCallback),
@@ -505,16 +506,25 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
 }
 
 bool
-nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
+nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition, bool aIsBetter)
 {
   if (!mAllowed) {
     return false;
   }
-
-  nsCOMPtr<nsIRunnable> ev  = new RequestSendLocationEvent(aPosition,
-							   this,
-							   mIsWatchPositionRequest ? nullptr : mLocator);
-  NS_DispatchToMainThread(ev);
+  
+  
+  
+  
+  
+  
+  
+  if (mIsFirstUpdate || aIsBetter) {
+    mIsFirstUpdate = false;
+    nsCOMPtr<nsIRunnable> ev  = new RequestSendLocationEvent(aPosition,
+                                                             this,
+                                                             mIsWatchPositionRequest ? nullptr : mLocator);
+    NS_DispatchToMainThread(ev);
+  }
   return true;
 }
 
@@ -789,12 +799,105 @@ nsGeolocationService::Observe(nsISupports* aSubject,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition *aSomewhere)
 {
-  SetCachedPosition(aSomewhere);
+  
+  
+
+  bool isBetter = IsBetterPosition(aSomewhere);
+
+  if (isBetter) {
+    SetCachedPosition(aSomewhere);
+  }
 
   for (uint32_t i = 0; i< mGeolocators.Length(); i++) {
-    mGeolocators[i]->Update(aSomewhere);
+    mGeolocators[i]->Update(aSomewhere, isBetter);
   }
   return NS_OK;
+}
+
+PRBool
+nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
+{
+  if (!aSomewhere) {
+    return false;
+  }
+  
+  if (mProviders.Count() == 1 || !mLastPosition) {
+    return true;
+  }
+
+  nsCOMPtr<nsIDOMGeoPositionCoords> coords;
+  mLastPosition->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double oldAccuracy;
+  nsresult rv = coords->GetAccuracy(&oldAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double oldLat, oldLon;
+  rv = coords->GetLongitude(&oldLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&oldLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  aSomewhere->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double newAccuracy;
+  rv = coords->GetAccuracy(&newAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double newLat, newLon;
+  rv = coords->GetLongitude(&newLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&newLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  
+  
+  double radsInDeg = M_PI / 180.0;
+
+  newLat *= radsInDeg;
+  newLon *= radsInDeg;
+  oldLat *= radsInDeg;
+  oldLon *= radsInDeg;
+
+  
+  
+  double radius = 6378137;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  double delta = acos( (sin(newLat) * sin(oldLat)) +
+                       (cos(newLat) * cos(oldLat) * cos(oldLon - newLon)) ) * radius; 
+
+  
+  
+  
+  double max_accuracy = NS_MAX(oldAccuracy, newAccuracy);
+  if (delta > max_accuracy)
+    return true;
+
+  
+  if (oldAccuracy >= newAccuracy)
+    return true;
+
+  return false;
 }
 
 void
@@ -1071,21 +1174,21 @@ nsGeolocation::RemoveRequest(nsGeolocationRequest* aRequest)
 }
 
 void
-nsGeolocation::Update(nsIDOMGeoPosition *aSomewhere)
+nsGeolocation::Update(nsIDOMGeoPosition *aSomewhere, bool aIsBetter)
 {
   if (!WindowOwnerStillExists()) {
     return Shutdown();
   }
 
   for (uint32_t i = mPendingCallbacks.Length(); i> 0; i--) {
-    if (mPendingCallbacks[i-1]->Update(aSomewhere)) {
+    if (mPendingCallbacks[i-1]->Update(aSomewhere, aIsBetter)) {
       mPendingCallbacks.RemoveElementAt(i-1);
     }
   }
 
   
   for (uint32_t i = 0; i< mWatchingCallbacks.Length(); i++) {
-    mWatchingCallbacks[i]->Update(aSomewhere);
+    mWatchingCallbacks[i]->Update(aSomewhere, aIsBetter);
   }
 }
 
