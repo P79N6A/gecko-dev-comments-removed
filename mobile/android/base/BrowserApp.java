@@ -2137,7 +2137,18 @@ abstract public class BrowserApp extends GeckoApp
             GeckoAppShell.sendEventToGecko(GeckoEvent.createURILoadEvent(uri));
         }
 
-        if (!Intent.ACTION_MAIN.equals(action) || !mInitialized) {
+        if (!mInitialized) {
+            return;
+        }
+
+        
+        if (Intent.ACTION_VIEW.equals(action)) {
+            dismissEditingMode();
+            return;
+        }
+
+        
+        if (!Intent.ACTION_MAIN.equals(action)) {
             return;
         }
 
