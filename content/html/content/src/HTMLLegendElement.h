@@ -8,6 +8,7 @@
 
 #include "nsIDOMHTMLLegendElement.h"
 #include "nsGenericHTMLElement.h"
+#include "nsHTMLFormElement.h"
 
 namespace mozilla {
 namespace dom {
@@ -76,7 +77,29 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  
+
+
+
+  already_AddRefed<nsHTMLFormElement> GetForm();
+
+  
+  void SetAlign(const nsAString& aAlign, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
+  }
+
+  nsINode* GetParentObject() {
+    Element* form = GetFormElement();
+    return form ? static_cast<nsINode*>(form)
+                : nsGenericHTMLElement::GetParentObject();
+  }
+
 protected:
+  virtual JSObject* WrapNode(JSContext* aCx, JSObject* aScope,
+                             bool* aTriedToWrap) MOZ_OVERRIDE;
+
   
 
 
