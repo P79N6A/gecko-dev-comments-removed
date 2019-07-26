@@ -2511,23 +2511,56 @@ struct JSTracer {
 # define JS_SET_TRACING_NAME(trc, name)                                       \
     JS_SET_TRACING_DETAILS(trc, NULL, name, (size_t)-1)
 
-extern JS_PUBLIC_API(void)
-JS_CallValueTracer(JSTracer *trc, JS::Value value, const char *name);
+
+
+
+
+
+
+
+
+
+
+
+
 
 extern JS_PUBLIC_API(void)
-JS_CallIdTracer(JSTracer *trc, jsid id, const char *name);
+JS_CallValueTracer(JSTracer *trc, JS::Value *valuep, const char *name);
 
 extern JS_PUBLIC_API(void)
-JS_CallObjectTracer(JSTracer *trc, JSObject *obj, const char *name);
+JS_CallIdTracer(JSTracer *trc, jsid *idp, const char *name);
 
 extern JS_PUBLIC_API(void)
-JS_CallStringTracer(JSTracer *trc, JSString *str, const char *name);
+JS_CallObjectTracer(JSTracer *trc, JSObject **objp, const char *name);
 
 extern JS_PUBLIC_API(void)
-JS_CallScriptTracer(JSTracer *trc, JSScript *script, const char *name);
+JS_CallStringTracer(JSTracer *trc, JSString **strp, const char *name);
+
+extern JS_PUBLIC_API(void)
+JS_CallScriptTracer(JSTracer *trc, JSScript **scriptp, const char *name);
 
 extern JS_PUBLIC_API(void)
 JS_CallGenericTracer(JSTracer *trc, void *gcthing, const char *name);
+
+template <typename HashSetEnum>
+inline void
+JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, const char *name)
+{
+    JSObject *updated = key;
+    JS_SET_TRACING_LOCATION(trc, reinterpret_cast<void *>(&const_cast<JSObject *&>(key)));
+    JS_CallObjectTracer(trc, &updated, name);
+    if (updated != key)
+        e.rekeyFront(key, updated);
+}
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_CallMaskedObjectTracer(JSTracer *trc, uintptr_t *objp, uintptr_t flagMask, const char *name);
 
 
 

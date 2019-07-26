@@ -8,6 +8,7 @@
 
 #include "nsWrapperCache.h"
 #include "xpcpublic.h"
+#include "jsapi.h"
 
 
 
@@ -54,6 +55,12 @@ nsWrapperCache::IsBlackAndDoesNotNeedTracing(nsISupports* aThis)
     return !hasGrayObjects;
   }
   return false;
+}
+
+inline void
+nsWrapperCache::TraceJSObjectFromBits(JSTracer* aTrc, const char* aName)
+{
+  JS_CallMaskedObjectTracer(aTrc, &mWrapperPtrBits, kWrapperBitMask, aName);
 }
 
 #endif 

@@ -2172,10 +2172,11 @@ NPObjectMember_Trace(JSTracer *trc, JSObject *obj)
 
   
   jsid id = NPIdentifierToJSId(memberPrivate->methodName);
-  JS_CallIdTracer(trc, id, "NPObjectMemberPrivate.methodName");
+  JS_CallIdTracer(trc, &id, "NPObjectMemberPrivate.methodName");
+  memberPrivate->methodName = JSIdToNPIdentifier(id);
 
   if (!JSVAL_IS_PRIMITIVE(memberPrivate->fieldValue)) {
-    JS_CallValueTracer(trc, memberPrivate->fieldValue,
+    JS_CallValueTracer(trc, &memberPrivate->fieldValue,
                        "NPObject Member => fieldValue");
   }
 
@@ -2183,7 +2184,7 @@ NPObjectMember_Trace(JSTracer *trc, JSObject *obj)
   
   
   if (memberPrivate->npobjWrapper) {
-    JS_CallObjectTracer(trc, memberPrivate->npobjWrapper,
+    JS_CallObjectTracer(trc, &memberPrivate->npobjWrapper,
                         "NPObject Member => npobjWrapper");
   }
 }
