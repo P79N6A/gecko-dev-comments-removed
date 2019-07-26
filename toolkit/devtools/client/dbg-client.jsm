@@ -246,9 +246,7 @@ this.DebuggerClient = function (aTransport)
   this._activeRequests = new Map;
   this._eventsEnabled = true;
 
-  this.compat = new ProtocolCompatibility(this, [
-    new SourcesShim(),
-  ]);
+  this.compat = new ProtocolCompatibility(this, []);
   this.traits = {};
 
   this.request = this.request.bind(this);
@@ -936,41 +934,6 @@ const FeatureCompatibilityShim = {
 
 
 
-function SourcesShim() {
-  this._sourcesSeen = new Set();
-}
-
-SourcesShim.prototype = Object.create(FeatureCompatibilityShim);
-let SSProto = SourcesShim.prototype;
-
-SSProto.name = "sources";
-
-SSProto.onPacketTest = function (aPacket) {
-  if (aPacket.traits) {
-    return aPacket.traits.sources
-      ? SUPPORTED
-      : NOT_SUPPORTED;
-  }
-  return SKIP;
-};
-
-SSProto.translatePacket = function (aPacket, aReplacePacket, aExtraPacket,
-                                    aKeepPacket) {
-  if (aPacket.type !== "newScript" || this._sourcesSeen.has(aPacket.url)) {
-    return aKeepPacket();
-  }
-  this._sourcesSeen.add(aPacket.url);
-  return aExtraPacket({
-    from: aPacket.from,
-    type: "newSource",
-    source: aPacket.source
-  });
-};
-
-
-
-
-
 
 
 
@@ -1526,52 +1489,11 @@ ThreadClient.prototype = {
 
 
 
-  getSources: function (aOnResponse) {
-    
-    
-    let getSources = DebuggerClient.requester({
-      type: "sources"
-    }, {
-      telemetry: "SOURCES"
-    });
-
-    
-    
-    let getSourcesBackwardsCompat = DebuggerClient.requester({
-      type: "scripts"
-    }, {
-      after: function (aResponse) {
-        if (aResponse.error) {
-          return aResponse;
-        }
-
-        let sourceActorsByURL = aResponse.scripts
-          .reduce(function (aSourceActorsByURL, aScript) {
-            aSourceActorsByURL[aScript.url] = aScript.source;
-            return aSourceActorsByURL;
-          }, {});
-
-        return {
-          sources: [
-            { url: url, actor: sourceActorsByURL[url] }
-            for (url of Object.keys(sourceActorsByURL))
-          ]
-        }
-      },
-      telemetry: "SOURCES"
-    });
-
-    
-    
-    let threadClient = this;
-    this.compat.supportsFeature("sources").then(function () {
-      threadClient.getSources = getSources;
-    }, function () {
-      threadClient.getSources = getSourcesBackwardsCompat;
-    }).then(function () {
-      threadClient.getSources(aOnResponse);
-    });
-  },
+  getSources: DebuggerClient.requester({
+    type: "sources"
+  }, {
+    telemetry: "SOURCES"
+  }),
 
   _doInterrupted: function (aAction, aError) {
     if (this.paused) {
