@@ -3326,9 +3326,12 @@ nsSVGTextFrame2::NotifySVGChanged(uint32_t aFlags)
   
   
   if (needNewCanvasTM && mLastContextScale != 0.0f) {
-    
     mCanvasTM = nullptr;
-    gfxMatrix newTM = GetCanvasTM(FOR_OUTERSVG_TM);
+    
+    
+    gfxMatrix newTM =
+      (mState & NS_FRAME_IS_NONDISPLAY) ? gfxMatrix() :
+                                          GetCanvasTM(FOR_OUTERSVG_TM);
     
     float scale = GetContextScale(newTM);
     float change = scale / mLastContextScale;
@@ -3705,6 +3708,10 @@ nsSVGTextFrame2::GetCanvasTM(uint32_t aFor)
   }
   if (!mCanvasTM) {
     NS_ASSERTION(mParent, "null parent");
+    NS_ASSERTION(!(aFor == FOR_OUTERSVG_TM &&
+                   (GetStateBits() & NS_FRAME_IS_NONDISPLAY)),
+                 "should not call GetCanvasTM(FOR_OUTERSVG_TM) when we are "
+                 "non-display");
 
     nsSVGContainerFrame *parent = static_cast<nsSVGContainerFrame*>(mParent);
     dom::SVGTextContentElement *content = static_cast<dom::SVGTextContentElement*>(mContent);
