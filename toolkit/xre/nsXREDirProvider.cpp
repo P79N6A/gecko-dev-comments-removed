@@ -867,6 +867,7 @@ nsXREDirProvider::DoShutdown()
 
       
       obsSvc->NotifyObservers(nullptr, "profile-before-change", kShutdownPersist);
+      obsSvc->NotifyObservers(nullptr, "profile-before-change2", kShutdownPersist);
     }
     mProfileNotified = false;
   }
