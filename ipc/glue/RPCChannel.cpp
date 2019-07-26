@@ -70,6 +70,7 @@ RPCChannel::EventOccurred() const
 
     return (!Connected() ||
             !mPending.empty() ||
+            !mUrgent.empty() ||
             (!mOutOfTurnReplies.empty() &&
              mOutOfTurnReplies.find(mStack.top().seqno())
              != mOutOfTurnReplies.end()));
@@ -94,10 +95,12 @@ RPCChannel::Send(Message* msg, Message* reply)
 bool
 RPCChannel::Call(Message* _msg, Message* reply)
 {
+    RPC_ASSERT(!mPendingReply, "should not be waiting for a reply");
+
     nsAutoPtr<Message> msg(_msg);
     AssertWorkerThread();
     mMonitor->AssertNotCurrentThreadOwns();
-    RPC_ASSERT(!ProcessingSyncMessage(),
+    RPC_ASSERT(!ProcessingSyncMessage() || msg->priority() == IPC::Message::PRIORITY_HIGH,
                "violation of sync handler invariant");
     RPC_ASSERT(msg->is_rpc(), "can only Call() RPC messages here");
 
@@ -114,6 +117,8 @@ RPCChannel::Call(Message* _msg, Message* reply)
         ReportConnectionError("RPCChannel");
         return false;
     }
+
+    bool urgent = (copy.priority() == IPC::Message::PRIORITY_HIGH);
 
     msg->set_seqno(NextSeqno());
     msg->set_rpc_remote_stack_depth_guess(mRemoteStackDepthGuess);
@@ -166,6 +171,10 @@ RPCChannel::Call(Message* _msg, Message* reply)
             recvd = it->second;
             mOutOfTurnReplies.erase(it);
         }
+        else if (!mUrgent.empty()) {
+            recvd = mUrgent.front();
+            mUrgent.pop_front();
+        }
         else if (!mPending.empty()) {
             recvd = mPending.front();
             mPending.pop_front();
@@ -179,23 +188,22 @@ RPCChannel::Call(Message* _msg, Message* reply)
             continue;
         }
 
-        if (!recvd.is_sync() && !recvd.is_rpc()) {
-            MonitorAutoUnlock unlock(*mMonitor);
-
-            CxxStackFrame f(*this, IN_MESSAGE, &recvd);
-            AsyncChannel::OnDispatchMessage(recvd);
-
-            continue;
-        }
-
-        if (recvd.is_sync()) {
-            RPC_ASSERT(mPending.empty(),
-                       "other side should have been blocked");
-            MonitorAutoUnlock unlock(*mMonitor);
-
-            CxxStackFrame f(*this, IN_MESSAGE, &recvd);
-            SyncChannel::OnDispatchMessage(recvd);
-
+        if (!recvd.is_rpc()) {
+            if (urgent && recvd.priority() != IPC::Message::PRIORITY_HIGH) {
+                
+                
+                mNonUrgentDeferred.push_back(recvd);
+            } else if (recvd.is_sync()) {
+                RPC_ASSERT(mPending.empty(),
+                           "other side should have been blocked");
+                MonitorAutoUnlock unlock(*mMonitor);
+                CxxStackFrame f(*this, IN_MESSAGE, &recvd);
+                SyncChannel::OnDispatchMessage(recvd);
+            } else {
+                MonitorAutoUnlock unlock(*mMonitor);
+                CxxStackFrame f(*this, IN_MESSAGE, &recvd);
+                AsyncChannel::OnDispatchMessage(recvd);
+            }
             continue;
         }
 
@@ -294,18 +302,17 @@ RPCChannel::EnqueuePendingMessages()
 
     MaybeUndeferIncall();
 
-    for (size_t i = 0; i < mDeferred.size(); ++i)
-        mWorkerLoop->PostTask(
-            FROM_HERE,
-            new DequeueTask(mDequeueOneTask));
+    for (size_t i = 0; i < mDeferred.size(); ++i) {
+        mWorkerLoop->PostTask(FROM_HERE, new DequeueTask(mDequeueOneTask));
+    }
 
     
     
 
-    for (size_t i = 0; i < mPending.size(); ++i)
-        mWorkerLoop->PostTask(
-            FROM_HERE,
-            new DequeueTask(mDequeueOneTask));
+    size_t total = mPending.size() + mUrgent.size() + mNonUrgentDeferred.size();
+    for (size_t i = 0; i < total; ++i) {
+        mWorkerLoop->PostTask(FROM_HERE, new DequeueTask(mDequeueOneTask));
+    }
 }
 
 void
@@ -351,11 +358,16 @@ RPCChannel::OnMaybeDequeueOne()
         if (!mDeferred.empty())
             MaybeUndeferIncall();
 
-        if (mPending.empty())
+        MessageQueue *queue = mUrgent.empty()
+                              ? mNonUrgentDeferred.empty()
+                                ? &mPending
+                                : &mNonUrgentDeferred
+                              : &mUrgent;
+        if (queue->empty())
             return false;
 
-        recvd = mPending.front();
-        mPending.pop_front();
+        recvd = queue->front();
+        queue->pop_front();
     }
 
     if (IsOnCxxStack() && recvd.is_rpc() && recvd.is_reply()) {
@@ -564,20 +576,48 @@ RPCChannel::OnMessageReceivedFromLink(const Message& msg)
         return;
     }
 
-    bool compressMessage = (msg.compress() && !mPending.empty() &&
-                            mPending.back().type() == msg.type() &&
-                            mPending.back().routing_id() == msg.routing_id());
+    MessageQueue *queue = (msg.priority() == IPC::Message::PRIORITY_HIGH)
+                          ? &mUrgent
+                          : &mPending;
+
+    bool compressMessage = (msg.compress() && !queue->empty() &&
+                            queue->back().type() == msg.type() &&
+                            queue->back().routing_id() == msg.routing_id());
     if (compressMessage) {
         
         
         
-        MOZ_ASSERT(mPending.back().compress());
-        mPending.pop_back();
+        MOZ_ASSERT(queue->back().compress());
+        queue->pop_back();
     }
 
-    mPending.push_back(msg);
+    queue->push_back(msg);
 
-    if (0 == StackDepth()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool waiting_rpc = (0 != StackDepth());
+    bool urgent = (msg.priority() == IPC::Message::PRIORITY_HIGH);
+
+    if (waiting_rpc || (AwaitingSyncReply() && urgent)) {
+        
+        
+        NotifyWorkerThread();
+    } else {
+        
+        
         
         if (!compressMessage) {
             
@@ -585,10 +625,7 @@ RPCChannel::OnMessageReceivedFromLink(const Message& msg)
             mWorkerLoop->PostTask(FROM_HERE, new DequeueTask(mDequeueOneTask));
         }
     }
-    else if (!AwaitingSyncReply())
-        NotifyWorkerThread();
 }
-
 
 void
 RPCChannel::OnChannelErrorFromLink()

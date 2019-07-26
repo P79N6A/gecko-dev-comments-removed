@@ -8,6 +8,7 @@
 #include "mozilla/DebugOnly.h"
 
 #include "mozilla/ipc/SyncChannel.h"
+#include "mozilla/ipc/RPCChannel.h"
 
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
@@ -62,12 +63,47 @@ SyncChannel::EventOccurred()
     mMonitor->AssertCurrentThreadOwns();
     NS_ABORT_IF_FALSE(AwaitingSyncReply(), "not in wait loop");
 
-    return (!Connected() || 0 != mRecvd.type() || mRecvd.is_reply_error());
+    return !Connected() ||
+           mRecvd.type() != 0 ||
+           mRecvd.is_reply_error() ||
+           !mUrgent.empty();
+}
+
+bool
+SyncChannel::ProcessUrgentMessages()
+{
+    while (!mUrgent.empty()) {
+        Message msg = mUrgent.front();
+        mUrgent.pop_front();
+
+        MOZ_ASSERT(msg.priority() == IPC::Message::PRIORITY_HIGH);
+
+        {
+            MOZ_ASSERT(msg.is_sync() || msg.is_rpc());
+
+            MonitorAutoUnlock unlock(*mMonitor);
+            SyncChannel::OnDispatchMessage(msg);
+        }
+
+        
+        if (!Connected()) {
+            ReportConnectionError("SyncChannel");
+            return false;
+        }
+
+        
+        
+        MOZ_ASSERT(mRecvd.type() == 0);
+    }
+
+    return true;
 }
 
 bool
 SyncChannel::Send(Message* _msg, Message* reply)
 {
+    MOZ_ASSERT(!mPendingReply);
+
     nsAutoPtr<Message> msg(_msg);
 
     AssertWorkerThread();
@@ -94,62 +130,94 @@ SyncChannel::Send(Message* _msg, Message* reply)
     mLink->SendMessage(msg.forget());
 
     while (1) {
-        bool maybeTimedOut = !SyncChannel::WaitForNotify();
-
-        if (EventOccurred())
-            break;
-
-        if (maybeTimedOut && !ShouldContinueFromTimeout())
+        
+        
+        
+        
+        
+        if (!Connected()) {
+            ReportConnectionError("SyncChannel");
             return false;
+        }
+
+        while (!EventOccurred()) {
+            bool maybeTimedOut = !SyncChannel::WaitForNotify();
+
+            if (EventOccurred())
+                break;
+
+            
+            
+            if (!mUrgent.empty())
+                break;
+
+            if (maybeTimedOut && !ShouldContinueFromTimeout())
+                return false;
+        }
+
+        if (!Connected()) {
+            ReportConnectionError("SyncChannel");
+
+            return false;
+        }
+
+        
+        
+        if (!ProcessUrgentMessages())
+            return false;
+
+        if (mRecvd.is_reply_error() || mRecvd.type() != 0) {
+            
+            
+            
+            
+            
+            
+            NS_ABORT_IF_FALSE(mRecvd.is_sync() && mRecvd.is_reply() &&
+                              (mRecvd.is_reply_error() ||
+                               (mPendingReply == mRecvd.type() &&
+                                msgSeqno == mRecvd.seqno())),
+                              "unexpected sync message");
+
+            mPendingReply = 0;
+            if (mRecvd.is_reply_error())
+                return false;
+
+            *reply = TakeReply();
+
+            MOZ_ASSERT(mUrgent.empty());
+            return true;
+        }
     }
 
-    if (!Connected()) {
-        ReportConnectionError("SyncChannel");
-        return false;
-    }
-
-    
-    
-    
-    
-    
-
-    
-    bool replyIsError = mRecvd.is_reply_error();
-    NS_ABORT_IF_FALSE(mRecvd.is_sync() && mRecvd.is_reply() &&
-                      (replyIsError ||
-                       (mPendingReply == mRecvd.type() &&
-                        msgSeqno == mRecvd.seqno())),
-                      "unexpected sync message");
-
-    mPendingReply = 0;
-    if (!replyIsError) {
-        *reply = mRecvd;
-    }
-    mRecvd = Message();
-
-    return !replyIsError;
+    return true;
 }
 
 void
 SyncChannel::OnDispatchMessage(const Message& msg)
 {
     AssertWorkerThread();
-    NS_ABORT_IF_FALSE(msg.is_sync(), "only sync messages here");
+    NS_ABORT_IF_FALSE(msg.is_sync() || msg.is_rpc(), "only sync messages here");
     NS_ABORT_IF_FALSE(!msg.is_reply(), "wasn't awaiting reply");
 
     Message* reply = 0;
 
     mProcessingSyncMessage = true;
-    Result rv =
-        static_cast<SyncListener*>(mListener.get())->OnMessageReceived(msg, reply);
+    Result rv;
+    if (msg.is_sync())
+        rv = static_cast<SyncListener*>(mListener.get())->OnMessageReceived(msg, reply);
+    else
+        rv = static_cast<RPCChannel::RPCListener*>(mListener.get())->OnCallReceived(msg, reply);
     mProcessingSyncMessage = false;
 
     if (!MaybeHandleError(rv, "SyncChannel")) {
         
         delete reply;
         reply = new Message();
-        reply->set_sync();
+        if (msg.is_sync())
+            reply->set_sync();
+        else if (msg.is_rpc())
+            reply->set_rpc();
         reply->set_reply();
         reply->set_reply_error();
     }
@@ -174,13 +242,27 @@ SyncChannel::OnMessageReceivedFromLink(const Message& msg)
     AssertLinkThread();
     mMonitor->AssertCurrentThreadOwns();
 
+    if (MaybeInterceptSpecialIOMessage(msg))
+        return;
+
+    if (msg.priority() == IPC::Message::PRIORITY_HIGH) {
+        
+        
+        if (!AwaitingSyncReply()) {
+            mWorkerLoop->PostTask(
+                FROM_HERE,
+                NewRunnableMethod(this, &SyncChannel::OnDispatchMessage, msg));
+        } else {
+            mUrgent.push_back(msg);
+            NotifyWorkerThread();
+        }
+        return;
+    }
+
     if (!msg.is_sync()) {
         AsyncChannel::OnMessageReceivedFromLink(msg);
         return;
     }
-
-    if (MaybeInterceptSpecialIOMessage(msg))
-        return;
 
     if (!AwaitingSyncReply()) {
         

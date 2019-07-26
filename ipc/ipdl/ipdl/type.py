@@ -2,9 +2,10 @@
 
 
 
+
 import os, sys
 
-from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, State, StructDecl, TransitionStmt, TypeSpec, UnionDecl, UsingStmt, Visitor, ASYNC, SYNC, RPC, IN, OUT, INOUT, ANSWER, CALL, RECV, SEND
+from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, State, StructDecl, TransitionStmt, TypeSpec, UnionDecl, UsingStmt, Visitor, ASYNC, SYNC, RPC, IN, OUT, INOUT, ANSWER, CALL, RECV, SEND, URGENT
 import ipdl.builtin as builtin
 
 _DELETE_MSG = '__delete__'
@@ -203,7 +204,8 @@ class IPDLType(Type):
 
     def isAsync(self): return self.sendSemantics is ASYNC
     def isSync(self): return self.sendSemantics is SYNC
-    def isRpc(self): return self.sendSemantics is RPC
+    def isRpc(self): return self.sendSemantics is RPC or self.sendSemantics is URGENT
+    def isUrgent(self): return self.sendSemantics is URGENT
 
     def talksAsync(self): return True
     def talksSync(self): return self.isSync() or self.isRpc()

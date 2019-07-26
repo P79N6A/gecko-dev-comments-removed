@@ -315,6 +315,11 @@ private:
     
     
     
+    MessageQueue mNonUrgentDeferred;
+
+    
+    
+    
     
     std::stack<Message> mStack;
 
