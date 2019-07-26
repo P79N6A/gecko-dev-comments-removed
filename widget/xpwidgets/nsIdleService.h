@@ -62,6 +62,18 @@ private:
 
 
 
+
+
+
+
+
+  void StageIdleDaily(bool aHasBeenLongWait);
+
+  
+
+
+
+
   nsIIdleService* mIdleService;
 
   
@@ -89,7 +101,14 @@ private:
 
 
 
-  PRTime mDailyTimerStart;
+  PRTime mExpectedTriggerTime;
+
+  
+
+
+
+
+  int32_t mIdleDailyTriggerWait;
 };
 
 class nsIdleService : public nsIIdleServiceInternal
