@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <style>
+    body { font: 10px sans-serif }
+    .flexContainer {
+      background: orange;
+      display: flex;
+      justify-content: space-between;
+      width: 70px;
+      padding: 2px;
+      margin-bottom: 2px;
+    }
+    .item1 {
+      background: lightblue;
+      width: 30px;
+    }
+    .item2 {
+      background: yellow;
+      width: 30px;
+    }
+  </style>
+</head>
+<body>
+  
+
+
+
+  <div class="flexContainer"
+    ><div class="item1">ThisIsALongUnbrokenString</div
+    ><div class="item2">HereIsSomeMoreLongText</div
+  ></div>
+
+  
+
+  <div class="flexContainer"
+    ><div class="item1" style="position:relative">ThisIsALongUnbrokenString</div
+    ><div class="item2">HereIsSomeMoreLongText</div
+  ></div>
+
+  
+
+  <div class="flexContainer"
+    ><div class="item1" style="z-index: 1">ThisIsALongUnbrokenString</div
+    ><div class="item2">HereIsSomeMoreLongText</div
+  ></div>
+
+  
+
+  <div class="flexContainer"
+    ><div class="item1" style="order: 1">ThisIsALongUnbrokenString</div
+    ><div class="item2">HereIsSomeMoreLongText</div
+  ></div>
+
+  
+
+  <div class="flexContainer"
+    ><div class="item1">ThisIsALongUnbrokenString</div
+    ><div class="item2" style="order: -1">HereIsSomeMoreLongText</div
+  ></div>
+
+  
+
+  <div class="flexContainer"
+    ><div class="item1">ThisIsALongUnbrokenString</div
+    ><div class="item2" style="order: -1; position: relative">HereIsSomeMoreLongText</div
+  ></div>
+</body>
+</html>
