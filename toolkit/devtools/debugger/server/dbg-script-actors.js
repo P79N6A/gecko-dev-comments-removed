@@ -1660,12 +1660,7 @@ update(ObjectActor.prototype, {
                message: "cannot access the environment of this function." };
     }
 
-    
-    
-    
-    
-    return { name: this.obj.name || null,
-             scope: envActor.form(this.obj) };
+    return { from: this.actorID, scope: envActor.form() };
   }),
 
   
@@ -1847,10 +1842,12 @@ FrameActor.prototype = {
       form.callee = this.threadActor.createValueGrip(this.frame.callee);
     }
 
-    let envActor = this.threadActor
-                       .createEnvironmentActor(this.frame.environment,
-                                               this.frameLifetimePool);
-    form.environment = envActor ? envActor.form(this.frame) : envActor;
+    if (this.frame.environment) {
+      let envActor = this.threadActor
+        .createEnvironmentActor(this.frame.environment,
+                                this.frameLifetimePool);
+      form.environment = envActor.form();
+    }
     form.this = this.threadActor.createValueGrip(this.frame.this);
     form.arguments = this._args();
     if (this.frame.script) {
@@ -1997,49 +1994,37 @@ EnvironmentActor.prototype = {
   
 
 
+  form: function EA_form() {
+    let form = { actor: this.actorID };
 
-
-
-
-
-
-
-  form: function EA_form(aObject) {
     
-    
-    if (!aObject.live) {
-      return undefined;
+    if (this.obj.type == "declarative") {
+      form.type = this.obj.callee ? "function" : "block";
+    } else {
+      form.type = this.obj.type;
     }
 
-    let parent;
+    
     if (this.obj.parent) {
-      let thread = this.threadActor;
-      parent = thread.createEnvironmentActor(this.obj.parent,
-                                             this.registeredPool);
+      form.parent = (this.threadActor
+                     .createEnvironmentActor(this.obj.parent,
+                                             this.registeredPool)
+                     .form());
     }
-    
-    
-    let parentFrame = aObject;
-    if (this.obj.type == "declarative" && aObject.older) {
-      parentFrame = aObject.older;
-    }
-    let form = { actor: this.actorID,
-                 parent: parent ? parent.form(parentFrame) : parent };
 
-    if (this.obj.type == "with") {
-      form.type = "with";
+    
+    if (this.obj.type == "object" || this.obj.type == "with") {
       form.object = this.threadActor.createValueGrip(this.obj.object);
-    } else if (this.obj.type == "object") {
-      form.type = "object";
-      form.object = this.threadActor.createValueGrip(this.obj.object);
-    } else { 
-      if (aObject.callee) {
-        form.type = "function";
-        form.function = this.threadActor.createValueGrip(aObject.callee);
-      } else {
-        form.type = "block";
-      }
-      form.bindings = this._bindings(aObject);
+    }
+
+    
+    if (this.obj.callee) {
+      form.function = this.threadActor.createValueGrip(this.obj.callee);
+    }
+
+    
+    if (this.obj.type == "declarative") {
+      form.bindings = this._bindings();
     }
 
     return form;
@@ -2049,14 +2034,7 @@ EnvironmentActor.prototype = {
 
 
 
-
-
-
-
-
-
-
-  _bindings: function EA_bindings(aObject) {
+  _bindings: function EA_bindings() {
     let bindings = { arguments: [], variables: {} };
 
     
@@ -2067,8 +2045,8 @@ EnvironmentActor.prototype = {
     }
 
     let parameterNames;
-    if (aObject && aObject.callee) {
-      parameterNames = aObject.callee.parameterNames;
+    if (this.obj.callee) {
+      parameterNames = this.obj.callee.parameterNames;
     }
     for each (let name in parameterNames) {
       let arg = {};
