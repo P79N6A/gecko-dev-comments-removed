@@ -294,6 +294,11 @@ class RecursiveMakeBackend(CommonBackend):
 
         self._traversal = RecursiveMakeTraversal()
 
+        derecurse = self.environment.substs.get('MOZ_PSEUDO_DERECURSE', '').split(',')
+        self._parallel_export = False
+        if derecurse != [''] and not 'no-parallel-export' in derecurse:
+            self._parallel_export = True
+
     def _update_from_avoid_write(self, result):
         existed, updated = result
 
@@ -391,14 +396,7 @@ class RecursiveMakeBackend(CommonBackend):
         hopefully proper directory traversal.
         """
         
-        def export_filter(current, subdirs):
-            return current, subdirs.parallel, \
-                subdirs.dirs + subdirs.tests + subdirs.tools
-
-        
-        def other_filter(current, subdirs):
-            if current == 'subtiers/precompile':
-                return None, [], []
+        def parallel_filter(current, subdirs):
             all_subdirs = subdirs.parallel + subdirs.dirs + \
                           subdirs.tests + subdirs.tools
             
@@ -407,6 +405,20 @@ class RecursiveMakeBackend(CommonBackend):
                     all_subdirs[0].startswith('subtiers/'):
                 return current, [], all_subdirs
             return current, all_subdirs, []
+
+        
+        
+        def export_filter(current, subdirs):
+            if self._parallel_export:
+                return parallel_filter(current, subdirs)
+            return current, subdirs.parallel, \
+                subdirs.dirs + subdirs.tests + subdirs.tools
+
+        
+        def other_filter(current, subdirs):
+            if current == 'subtiers/precompile':
+                return None, [], []
+            return parallel_filter(current, subdirs)
 
         
         def libs_filter(current, subdirs):
