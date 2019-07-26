@@ -1107,35 +1107,41 @@ function ElementEditor(aContainer, aNode)
   this.rawNode = aNode.rawNode();
 
   
-  if (this.rawNode) {
-    if (!aNode.isDocumentElement) {
-      this.tag.setAttribute("tabindex", "0");
-      editableField({
-        element: this.tag,
-        trigger: "dblclick",
-        stopOnReturn: true,
-        done: this.onTagEdit.bind(this),
-      });
-    }
-
-    
+  
+  if (this.rawNode && !aNode.isDocumentElement) {
+    this.tag.setAttribute("tabindex", "0");
     editableField({
-      element: this.newAttr,
+      element: this.tag,
       trigger: "dblclick",
       stopOnReturn: true,
-      done: function EE_onNew(aVal, aCommit) {
-        if (!aCommit) {
-          return;
-        }
-
-        try {
-          this._applyAttributes(aVal);
-        } catch (x) {
-          return;
-        }
-      }.bind(this)
+      done: this.onTagEdit.bind(this),
     });
   }
+
+  
+  editableField({
+    element: this.newAttr,
+    trigger: "dblclick",
+    stopOnReturn: true,
+    done: (aVal, aCommit) => {
+      if (!aCommit) {
+        return;
+      }
+
+      try {
+        let doMods = this._startModifyingAttributes();
+        let undoMods = this._startModifyingAttributes();
+        this._applyAttributes(aVal, null, doMods, undoMods);
+        this.undo.do(() => {
+          doMods.apply();
+        }, function() {
+          undoMods.apply();
+        });
+      } catch(x) {
+        console.log(x);
+      }
+    }
+  });
 
   let tagName = this.node.nodeName.toLowerCase();
   this.tag.textContent = tagName;
@@ -1175,6 +1181,10 @@ ElementEditor.prototype = {
     }
   },
 
+  _startModifyingAttributes: function() {
+    return this.node.startModifyingAttributes();
+  },
+
   _createAttribute: function EE_createAttribute(aAttr, aBefore)
   {
     if (this.attrs.indexOf(aAttr.name) !== -1) {
@@ -1199,49 +1209,51 @@ ElementEditor.prototype = {
       }
       this.attrList.insertBefore(attr, before);
 
-      if (this.rawNode) {
+      
+      editableField({
+        element: inner,
+        trigger: "dblclick",
+        stopOnReturn: true,
+        selectAll: false,
+        start: (aEditor, aEvent) => {
+          
+          
+          if (aEvent && aEvent.target === name) {
+            aEditor.input.setSelectionRange(0, name.textContent.length);
+          } else if (aEvent && aEvent.target === val) {
+            let length = val.textContent.length;
+            let editorLength = aEditor.input.value.length;
+            let start = editorLength - (length + 1);
+            aEditor.input.setSelectionRange(start, start + length);
+          } else {
+            aEditor.input.select();
+          }
+        },
+        done: (aVal, aCommit) => {
+          if (!aCommit) {
+            return;
+          }
 
-        
-        editableField({
-          element: inner,
-          trigger: "dblclick",
-          stopOnReturn: true,
-          selectAll: false,
-          start: function EE_editAttribute_start(aEditor, aEvent) {
-            
-            
-            if (aEvent && aEvent.target === name) {
-              aEditor.input.setSelectionRange(0, name.textContent.length);
-            } else if (aEvent && aEvent.target === val) {
-              let length = val.textContent.length;
-              let editorLength = aEditor.input.value.length;
-              let start = editorLength - (length + 1);
-              aEditor.input.setSelectionRange(start, start + length);
-            } else {
-              aEditor.input.select();
-            }
-          },
-          done: function EE_editAttribute_done(aVal, aCommit) {
-            if (!aCommit) {
-              return;
-            }
+          let doMods = this._startModifyingAttributes();
+          let undoMods = this._startModifyingAttributes();
 
-            this.undo.startBatch();
-
-            
-            
-            
-            this._removeAttribute(this.rawNode, aAttr.name);
-            try {
-              this._applyAttributes(aVal, attr);
-              this.undo.endBatch();
-            } catch (e) {
-              this.undo.endBatch();
-              this.undo.undo();
-            }
-          }.bind(this)
-        });
-      }
+          
+          
+          
+          try {
+            this._saveAttribute(aAttr.name, undoMods);
+            doMods.removeAttribute(aAttr.name);
+            this._applyAttributes(aVal, attr, doMods, undoMods);
+            this.undo.do(() => {
+              doMods.apply();
+            }, () => {
+              undoMods.apply();
+            })
+          } catch(ex) {
+            console.error(ex);
+          }
+        }
+      });
 
       this.attrs[aAttr.name] = attr;
     }
@@ -1261,82 +1273,33 @@ ElementEditor.prototype = {
 
 
 
-  _applyAttributes: function EE__applyAttributes(aValue, aAttrNode)
+  _applyAttributes: function EE__applyAttributes(aValue, aAttrNode, aDoMods, aUndoMods)
   {
     let attrs = escapeAttributeValues(aValue);
 
-    this.undo.startBatch();
-
     for (let attr of attrs) {
-      let attribute = {
-        name: attr.name,
-        value: attr.value
-      };
       
-      this._createAttribute(attribute, aAttrNode ? aAttrNode.nextSibling : null);
-      this._setAttribute(this.rawNode, attr.name, attr.value);
-    }
+      this._createAttribute(attr, aAttrNode ? aAttrNode.nextSibling : null);
 
-    this.undo.endBatch();
+      this._saveAttribute(attr.name, aUndoMods);
+      aDoMods.setAttribute(attr.name, attr.value);
+    }
   },
 
   
 
 
 
-  _restoreAttribute: function EE_restoreAttribute(aNode, aName)
+  _saveAttribute: function(aName, aUndoMods)
   {
-    if (aNode.hasAttribute(aName)) {
-      let oldValue = aNode.getAttribute(aName);
-      return function() {
-        aNode.setAttribute(aName, oldValue);
-        this.markup.nodeChanged(aNode);
-      }.bind(this);
+    let node = this.node;
+    if (node.hasAttribute(aName)) {
+      let oldValue = node.getAttribute(aName);
+      aUndoMods.setAttribute(aName, oldValue);
     } else {
-      return function() {
-        aNode.removeAttribute(aName);
-        this.markup.nodeChanged(aNode);
-      }.bind(this);
+      aUndoMods.removeAttribute(aName);
     }
   },
-
-  
-
-
-  _setAttribute: function EE_setAttribute(aNode, aName, aValue)
-  {
-    this.undo.do(function() {
-      aNode.setAttribute(aName, aValue);
-      this.markup.nodeChanged(aNode);
-    }.bind(this), this._restoreAttribute(aNode, aName));
-  },
-
-  
-
-
-  _removeAttribute: function EE_removeAttribute(aNode, aName)
-  {
-    this.undo.do(function() {
-      aNode.removeAttribute(aName);
-      this.markup.nodeChanged(aNode);
-    }.bind(this), this._restoreAttribute(aNode, aName));
-  },
-
-  
-
-
-  _onNewAttribute: function EE_onNewAttribute(aValue, aCommit)
-  {
-    if (!aValue || !aCommit) {
-      return;
-    }
-
-    this._setAttribute(this.rawNode, aValue, "");
-    let attr = this._createAttribute({ name: aValue, value: ""});
-    attr.style.removeAttribute("display");
-    attr.querySelector("attrvalue").click();
-  },
-
 
   
 
