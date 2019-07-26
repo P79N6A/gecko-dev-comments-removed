@@ -469,14 +469,17 @@ StackFrames.prototype = {
     if (this.currentBreakpointLocation) {
       let { url, line } = this.currentBreakpointLocation;
       let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
-      let conditionalExpression = breakpointClient.conditionalExpression;
-      if (conditionalExpression) {
+      if (breakpointClient) {
         
-        
-        
-        this.evaluate(conditionalExpression, 0);
-        this._isConditionalBreakpointEvaluation = true;
-        return;
+        let conditionalExpression = breakpointClient.conditionalExpression;
+        if (conditionalExpression) {
+          
+          
+          
+          this.evaluate(conditionalExpression, 0);
+          this._isConditionalBreakpointEvaluation = true;
+          return;
+        }
       }
     }
     
