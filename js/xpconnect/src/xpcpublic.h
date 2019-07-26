@@ -40,9 +40,6 @@ JSObject *
 TransplantObjectWithWrapper(JSContext *cx,
                             JSObject *origobj, JSObject *origwrapper,
                             JSObject *targetobj, JSObject *targetwrapper);
-
-JSObject *
-CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal);
 } 
 
 #define XPCONNECT_GLOBAL_FLAGS                                                \

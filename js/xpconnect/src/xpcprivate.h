@@ -4266,6 +4266,9 @@ struct SandboxOptions {
     JSObject* proto;
     nsCString sandboxName;
 };
+
+JSObject *
+CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal);
 }
 
 
