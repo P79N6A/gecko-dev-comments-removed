@@ -31,14 +31,6 @@ public:
   virtual void GetCssText(nsString& aText, mozilla::ErrorResult& aRv) = 0;
   virtual void SetCssText(const nsAString& aText, mozilla::ErrorResult& aRv) = 0;
   virtual uint16_t CssValueType() const = 0;
-
-  
-
-  
-
-
-
-  nsROCSSPrimitiveValue *AsPrimitiveValue();
 };
 
 }
