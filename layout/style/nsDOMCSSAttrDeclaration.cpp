@@ -178,9 +178,7 @@ nsDOMCSSAttributeDeclaration::SetPropertyValue(const nsCSSProperty aPropID,
   
   
   
-  if (aPropID == eCSSProperty_opacity || aPropID == eCSSProperty_transform ||
-      aPropID == eCSSProperty_left || aPropID == eCSSProperty_top ||
-      aPropID == eCSSProperty_right || aPropID == eCSSProperty_bottom) {
+  if (aPropID == eCSSProperty_opacity || aPropID == eCSSProperty_transform) {
     nsIFrame* frame = mElement->GetPrimaryFrame();
     if (frame) {
       ActiveLayerTracker::NotifyInlineStyleRuleModified(frame, aPropID);

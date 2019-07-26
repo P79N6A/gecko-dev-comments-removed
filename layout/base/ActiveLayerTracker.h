@@ -26,9 +26,6 @@ public:
 
 
 
-
-
-
   
 
 
@@ -36,12 +33,6 @@ public:
 
 
   static void NotifyRestyle(nsIFrame* aFrame, nsCSSProperty aProperty);
-  
-
-
-
-
-  static void NotifyOffsetRestyle(nsIFrame* aFrame);
   
 
 
@@ -59,11 +50,6 @@ public:
 
 
   static bool IsStyleAnimated(nsIFrame* aFrame, nsCSSProperty aProperty);
-  
-
-
-
-  static bool IsOffsetStyleAnimated(nsIFrame* aFrame);
 
   
 
