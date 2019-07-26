@@ -807,7 +807,6 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
 
   
   AutoPushJSContextForErrorReporting cx(context->GetNativeContext());
-  JS::Rooted<JSObject*> handler(cx);
   JS::Rooted<JSObject*> scope(cx, jsListener->GetEventScope());
 
   nsCOMPtr<nsIAtom> typeAtom = aListener->mTypeAtom;
@@ -909,35 +908,25 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
          .setElementAttributeName(jsStr)
          .setDefineOnScope(false);
 
-  JS::Rooted<JSObject*> handlerFun(cx);
+  JS::Rooted<JSObject*> handler(cx);
   result = nsJSUtils::CompileFunction(cx, target, options,
                                       nsAtomCString(typeAtom),
-                                      argCount, argNames, *body, handlerFun.address());
+                                      argCount, argNames, *body, handler.address());
   NS_ENSURE_SUCCESS(result, result);
-  handler = handlerFun;
   NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mTarget);
-  
-  JS::Rooted<JSObject*> boundHandler(cx);
-  context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
-  
-  
-  
-  
-  if (!boundHandler) {
-    jsListener->ForgetHandler();
-  } else if (jsListener->EventName() == nsGkAtoms::onerror && win) {
+  if (jsListener->EventName() == nsGkAtoms::onerror && win) {
     nsRefPtr<OnErrorEventHandlerNonNull> handlerCallback =
-      new OnErrorEventHandlerNonNull(boundHandler,  nullptr);
+      new OnErrorEventHandlerNonNull(handler,  nullptr);
     jsListener->SetHandler(handlerCallback);
   } else if (jsListener->EventName() == nsGkAtoms::onbeforeunload && win) {
     nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
-      new OnBeforeUnloadEventHandlerNonNull(boundHandler,  nullptr);
+      new OnBeforeUnloadEventHandlerNonNull(handler,  nullptr);
     jsListener->SetHandler(handlerCallback);
   } else {
     nsRefPtr<EventHandlerNonNull> handlerCallback =
-      new EventHandlerNonNull(boundHandler,  nullptr);
+      new EventHandlerNonNull(handler,  nullptr);
     jsListener->SetHandler(handlerCallback);
   }
 

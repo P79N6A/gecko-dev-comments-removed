@@ -27,8 +27,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x7cf47061, 0x745d, 0x4c6c, \
-  { 0xa0, 0xe5, 0x9f, 0xef, 0xa8, 0xcc, 0x2a, 0xf0 } }
+{ 0x274840b6, 0x7349, 0x4798, \
+  { 0xbe, 0x24, 0xbd, 0x75, 0xa6, 0x46, 0x99, 0xb7 } }
 
 
 
@@ -44,32 +44,6 @@ class nsIScriptContext : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_IID)
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
-                                            JS::Handle<JSObject*> aScope,
-                                            JS::Handle<JSObject*> aHandler,
-                                            JS::MutableHandle<JSObject*> aBoundHandler) = 0;
 
   
 
