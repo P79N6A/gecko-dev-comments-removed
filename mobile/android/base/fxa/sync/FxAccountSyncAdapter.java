@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountUtils;
+import org.mozilla.gecko.background.fxa.SkewHandler;
 import org.mozilla.gecko.browserid.verifier.BrowserIDRemoteVerifierClient;
 import org.mozilla.gecko.browserid.verifier.BrowserIDVerifierDelegate;
 import org.mozilla.gecko.fxa.FxAccountConstants;
@@ -188,8 +189,18 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
               FxAccountGlobalSession globalSession = null;
               try {
                 ClientsDataDelegate clientsDataDelegate = new SharedPreferencesClientsDataDelegate(sharedPrefs);
-                final KeyBundle syncKeyBundle = FxAccountUtils.generateSyncKeyBundle(fxAccount.getKb()); 
-                AuthHeaderProvider authHeaderProvider = new HawkAuthHeaderProvider(token.id, token.key.getBytes("UTF-8"), false);
+
+                
+                final KeyBundle syncKeyBundle = FxAccountUtils.generateSyncKeyBundle(fxAccount.getKb());
+
+                
+                
+                
+                
+                final SkewHandler tokenServerSkewHandler = SkewHandler.getSkewHandlerFromEndpointString(token.endpoint);
+                final long tokenServerSkew = tokenServerSkewHandler.getSkewInSeconds();
+                AuthHeaderProvider authHeaderProvider = new HawkAuthHeaderProvider(token.id, token.key.getBytes("UTF-8"), false, tokenServerSkew);
+
                 globalSession = new FxAccountGlobalSession(token.endpoint, token.uid, authHeaderProvider, FxAccountConstants.PREFS_PATH, syncKeyBundle, callback, getContext(), extras, clientsDataDelegate);
                 globalSession.start();
               } catch (Exception e) {

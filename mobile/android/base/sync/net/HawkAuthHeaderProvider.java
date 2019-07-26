@@ -48,6 +48,7 @@ public class HawkAuthHeaderProvider implements AuthHeaderProvider {
   protected final String id;
   protected final byte[] key;
   protected final boolean includePayloadHash;
+  protected final long skewSeconds;
 
   
 
@@ -64,7 +65,11 @@ public class HawkAuthHeaderProvider implements AuthHeaderProvider {
 
 
 
-  public HawkAuthHeaderProvider(String id, byte[] key, boolean includePayloadHash) {
+
+
+
+
+  public HawkAuthHeaderProvider(String id, byte[] key, boolean includePayloadHash, long skewSeconds) {
     if (id == null) {
       throw new IllegalArgumentException("id must not be null");
     }
@@ -74,11 +79,33 @@ public class HawkAuthHeaderProvider implements AuthHeaderProvider {
     this.id = id;
     this.key = key;
     this.includePayloadHash = includePayloadHash;
+    this.skewSeconds = skewSeconds;
+  }
+
+  public HawkAuthHeaderProvider(String id, byte[] key, boolean includePayloadHash) {
+    this(id, key, includePayloadHash, 0L);
+  }
+
+
+  
+
+
+  @SuppressWarnings("static-method")
+  protected long now() {
+    return System.currentTimeMillis();
+  }
+
+  
+
+
+
+  protected long getTimestampSeconds() {
+    return (now() / 1000) + skewSeconds;
   }
 
   @Override
   public Header getAuthHeader(HttpRequestBase request, BasicHttpContext context, DefaultHttpClient client) throws GeneralSecurityException {
-    long timestamp = System.currentTimeMillis() / 1000;
+    long timestamp = getTimestampSeconds();
     String nonce = Base64.encodeBase64String(Utils.generateRandomBytes(NONCE_LENGTH_IN_BYTES));
     String extra = "";
 
