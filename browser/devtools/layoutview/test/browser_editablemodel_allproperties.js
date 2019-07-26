@@ -1,6 +1,7 @@
 
 
 
+
 function getStyle(node, property) {
   return node.style.getPropertyValue(property);
 }
@@ -22,7 +23,8 @@ let test = asyncTest(function*() {
   inspector.sidebar.select("layoutview");
   yield inspector.sidebar.once("layoutview-ready");
   yield runTests();
-  yield gDevTools.closeToolbox(toolbox);
+  
+  
 });
 
 addTest("When all properties are set on the node editing one should work",

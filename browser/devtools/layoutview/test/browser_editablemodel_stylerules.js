@@ -22,7 +22,8 @@ let test = asyncTest(function*() {
   inspector.sidebar.select("layoutview");
   yield inspector.sidebar.once("layoutview-ready");
   yield runTests();
-  yield gDevTools.closeToolbox(toolbox);
+  
+  
 });
 
 addTest("Test that entering units works",
