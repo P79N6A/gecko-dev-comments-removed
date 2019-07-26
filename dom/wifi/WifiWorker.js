@@ -1619,6 +1619,7 @@ function WifiWorker() {
 
   this.wantScanResults = [];
 
+  this._allowWpaEap = false;
   this._needToEnableNetworks = false;
   this._highestPriority = -1;
 
@@ -1784,6 +1785,12 @@ function WifiWorker() {
       self._enableAllNetworks();
       WifiManager.saveConfig(function() {})
     });
+
+    try {
+      self._allowWpaEap = Services.prefs.getBoolPref("b2g.wifi.allow_unsafe_wpa_eap");
+    } catch (e) {
+      self._allowWpaEap = false;
+    }
 
     
     self._notifyAfterStateChange(true, true);
@@ -2063,7 +2070,8 @@ function WifiWorker() {
                 ("wep_key0" in known && known.wep_key0)) {
               network.password = "*";
             }
-          } else if ((eapIndex = network.capabilities.indexOf("WPA-EAP")) >= 0) {
+          } else if (!self._allowWpaEap &&
+                     (eapIndex = network.capabilities.indexOf("WPA-EAP")) >= 0) {
             
             
             
