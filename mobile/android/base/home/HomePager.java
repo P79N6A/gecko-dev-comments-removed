@@ -16,6 +16,7 @@ import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.home.HomeAdapter.OnAddPanelListener;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -287,6 +288,12 @@ public class HomePager extends ViewPager {
 
         
         
+        
+        final boolean canLoadHint = adapter.getCanLoadHint();
+        adapter.setCanLoadHint(false);
+
+        
+        
         setAdapter(null);
 
         
@@ -341,6 +348,20 @@ public class HomePager extends ViewPager {
             } else {
                 setCurrentItem(mDefaultPageIndex, false);
             }
+        }
+
+        
+        
+        if (canLoadHint) {
+            
+            
+            
+            ThreadUtils.getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    adapter.setCanLoadHint(true);
+                }
+            });
         }
     }
 
