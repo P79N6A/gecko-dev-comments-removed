@@ -49,7 +49,7 @@ ToCanonicalSupports(nsISupports* p)
 
 
 
-#if (defined(DEBUG) || defined(NIGHTLY_BUILD)) && !defined(XPCOM_GLUE_AVOID_NSPR)
+#if (defined(DEBUG) || (defined(NIGHTLY_BUILD) && !defined(MOZ_PROFILING))) && !defined(XPCOM_GLUE_AVOID_NSPR)
 
 class nsAutoOwningThread {
 public:
