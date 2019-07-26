@@ -97,8 +97,6 @@ private:
     
     
     mCallback = aCallback;
-    
-    nsLayoutStatics::AddRef();
     NS_HOLD_JS_OBJECTS(this, CallbackObject);
   }
 
@@ -108,7 +106,6 @@ protected:
     if (mCallback) {
       mCallback = nullptr;
       NS_DROP_JS_OBJECTS(this, CallbackObject);
-      nsLayoutStatics::Release();
     }
   }
 
