@@ -653,6 +653,11 @@ nsresult MediaPipelineTransmit::Init() {
     listener_->direct_connect_ = true;
   }
 
+#ifndef MOZILLA_INTERNAL_API
+  
+  listener_->SetEnabled(true);
+#endif
+
   return MediaPipeline::Init();
 }
 
