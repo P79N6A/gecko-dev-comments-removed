@@ -18,12 +18,12 @@
 #include "mozilla/ErrorResult.h"
 
 class nsIAtom;
-class nsDOMAttribute;
 class nsINodeInfo;
 class nsIDocument;
 
 namespace mozilla {
 namespace dom {
+class Attr;
 class Element;
 } 
 } 
@@ -128,7 +128,7 @@ public:
 
   uint32_t Count() const;
 
-  typedef nsRefPtrHashtable<nsAttrHashKey, nsDOMAttribute> AttrCache;
+  typedef nsRefPtrHashtable<nsAttrHashKey, mozilla::dom::Attr> AttrCache;
 
   
 
@@ -138,8 +138,8 @@ public:
 
   uint32_t Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
 
-  nsDOMAttribute* GetItemAt(uint32_t aIndex, nsresult *rv);
-  nsDOMAttribute* GetNamedItem(const nsAString& aAttrName);
+  mozilla::dom::Attr* GetItemAt(uint32_t aIndex, nsresult *rv);
+  mozilla::dom::Attr* GetNamedItem(const nsAString& aAttrName);
 
   static nsDOMAttributeMap* FromSupports(nsISupports* aSupports)
   {
@@ -160,11 +160,11 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMAttributeMap)
 
-  nsDOMAttribute* GetNamedItemNS(const nsAString& aNamespaceURI,
+  mozilla::dom::Attr* GetNamedItemNS(const nsAString& aNamespaceURI,
                                  const nsAString& aLocalName,
                                  mozilla::ErrorResult& aError);
 
-  already_AddRefed<nsDOMAttribute> SetNamedItemNS(nsIDOMAttr *aNode,
+  already_AddRefed<mozilla::dom::Attr> SetNamedItemNS(nsIDOMAttr *aNode,
                                                   mozilla::ErrorResult& aError)
   {
     return SetNamedItemInternal(aNode, true, aError);
@@ -184,7 +184,7 @@ private:
 
 
 
-  already_AddRefed<nsDOMAttribute>
+  already_AddRefed<mozilla::dom::Attr>
     SetNamedItemInternal(nsIDOMAttr *aNode,
                          bool aWithNS,
                          mozilla::ErrorResult& aError);
@@ -194,12 +194,12 @@ private:
                   const nsAString& aLocalName,
                   mozilla::ErrorResult& aError);
 
-  nsDOMAttribute* GetAttribute(nsINodeInfo* aNodeInfo, bool aNsAware);
+  mozilla::dom::Attr* GetAttribute(nsINodeInfo* aNodeInfo, bool aNsAware);
 
   
 
 
-  already_AddRefed<nsDOMAttribute> RemoveAttribute(nsINodeInfo* aNodeInfo);
+  already_AddRefed<mozilla::dom::Attr> RemoveAttribute(nsINodeInfo* aNodeInfo);
 };
 
 
