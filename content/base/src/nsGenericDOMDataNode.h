@@ -21,18 +21,6 @@
 
 #include "nsISMILAttr.h"
 
-
-
-
-#define NS_CREATE_FRAME_IF_NON_WHITESPACE (1 << NODE_TYPE_SPECIFIC_BITS_OFFSET)
-
-
-
-#define NS_REFRAME_IF_WHITESPACE (1 << (NODE_TYPE_SPECIFIC_BITS_OFFSET + 1))
-
-
-PR_STATIC_ASSERT(NODE_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
-
 class nsIDOMAttr;
 class nsIDOMEventListener;
 class nsIDOMNodeList;
@@ -40,6 +28,23 @@ class nsIFrame;
 class nsIDOMText;
 class nsINodeInfo;
 class nsURI;
+
+#define DATA_NODE_FLAG_BIT(n_) NODE_FLAG_BIT(NODE_TYPE_SPECIFIC_BITS_OFFSET + (n_))
+
+
+enum {
+  
+  
+  
+  NS_CREATE_FRAME_IF_NON_WHITESPACE =     DATA_NODE_FLAG_BIT(0),
+
+  
+  
+  NS_REFRAME_IF_WHITESPACE =              DATA_NODE_FLAG_BIT(1)
+};
+
+
+PR_STATIC_ASSERT(NODE_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
 
 class nsGenericDOMDataNode : public nsIContent
 {
@@ -269,9 +274,9 @@ protected:
   
   virtual nsINode::nsSlots* CreateSlots();
 
-  nsDataSlots* DataSlots()
+  nsDataSlots *GetDataSlots()
   {
-    return static_cast<nsDataSlots*>(Slots());
+    return static_cast<nsDataSlots*>(GetSlots());
   }
 
   nsDataSlots *GetExistingDataSlots() const

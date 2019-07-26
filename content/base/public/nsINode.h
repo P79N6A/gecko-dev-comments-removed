@@ -56,59 +56,21 @@ class Value;
 
 inline void SetDOMStringToNull(nsAString& aString);
 
+#define NODE_FLAG_BIT(n_) (1U << (n_))
+
 enum {
   
-  NODE_HAS_LISTENERMANAGER =     0x00000001U,
+  NODE_HAS_LISTENERMANAGER =              NODE_FLAG_BIT(0),
 
   
-  NODE_HAS_PROPERTIES =          0x00000002U,
-
-  
-  
-  
-  
-  
-  NODE_IS_ANONYMOUS =            0x00000004U,
+  NODE_HAS_PROPERTIES =                   NODE_FLAG_BIT(1),
 
   
   
   
   
   
-  
-  NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000008U,
-
-  
-  
-  
-  
-  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000010U,
-
-  
-  
-  NODE_FORCE_XBL_BINDINGS =      0x00000020U,
-
-  
-  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000040U,
-
-  NODE_IS_EDITABLE =             0x00000080U,
-
-  
-  
-  NODE_MAY_HAVE_CLASS =          0x00000100U,
-
-  NODE_IS_INSERTION_PARENT =     0x00000200U,
-
-  
-  NODE_HAS_EMPTY_SELECTOR =      0x00000400U,
-
-  
-  
-  NODE_HAS_SLOW_SELECTOR =       0x00000800U,
-
-  
-  
-  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00001000U,
+  NODE_IS_ANONYMOUS =                     NODE_FLAG_BIT(2),
 
   
   
@@ -116,43 +78,82 @@ enum {
   
   
   
-  
-  NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS
-                               = 0x00002000U,
-
-  NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
-                                 NODE_HAS_SLOW_SELECTOR |
-                                 NODE_HAS_EDGE_CHILD_SELECTOR |
-                                 NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS,
-
-  NODE_ATTACH_BINDING_ON_POSTCREATE
-                               = 0x00004000U,
-
-  
-  
-  NODE_NEEDS_FRAME =             0x00008000U,
+  NODE_IS_IN_ANONYMOUS_SUBTREE =          NODE_FLAG_BIT(3),
 
   
   
   
-  NODE_DESCENDANTS_NEED_FRAMES = 0x00010000U,
+  
+  NODE_IS_NATIVE_ANONYMOUS_ROOT =         NODE_FLAG_BIT(4),
 
   
-  NODE_HAS_ACCESSKEY           = 0x00020000U,
+  
+  NODE_FORCE_XBL_BINDINGS =               NODE_FLAG_BIT(5),
 
   
-  NODE_HANDLING_CLICK          = 0x00040000U,
+  NODE_MAY_BE_IN_BINDING_MNGR =           NODE_FLAG_BIT(6),
+
+  NODE_IS_EDITABLE =                      NODE_FLAG_BIT(7),
 
   
-  NODE_HAS_RELEVANT_HOVER_RULES = 0x00080000U,
+  
+  NODE_MAY_HAVE_CLASS =                   NODE_FLAG_BIT(8),
+
+  NODE_IS_INSERTION_PARENT =              NODE_FLAG_BIT(9),
 
   
-  NODE_HAS_DIRECTION_RTL        = 0x00100000U,
+  NODE_HAS_EMPTY_SELECTOR =               NODE_FLAG_BIT(10),
 
   
-  NODE_HAS_DIRECTION_LTR        = 0x00200000U,
+  
+  NODE_HAS_SLOW_SELECTOR =                NODE_FLAG_BIT(11),
 
-  NODE_ALL_DIRECTION_FLAGS      = NODE_HAS_DIRECTION_LTR | NODE_HAS_DIRECTION_RTL,
+  
+  
+  NODE_HAS_EDGE_CHILD_SELECTOR =          NODE_FLAG_BIT(12),
+
+  
+  
+  
+  
+  
+  
+  
+  NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS = NODE_FLAG_BIT(13),
+
+  NODE_ALL_SELECTOR_FLAGS =               NODE_HAS_EMPTY_SELECTOR |
+                                          NODE_HAS_SLOW_SELECTOR |
+                                          NODE_HAS_EDGE_CHILD_SELECTOR |
+                                          NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS,
+
+  NODE_ATTACH_BINDING_ON_POSTCREATE =     NODE_FLAG_BIT(14),
+
+  
+  
+  NODE_NEEDS_FRAME =                      NODE_FLAG_BIT(15),
+
+  
+  
+  
+  NODE_DESCENDANTS_NEED_FRAMES =          NODE_FLAG_BIT(16),
+
+  
+  NODE_HAS_ACCESSKEY =                    NODE_FLAG_BIT(17),
+
+  
+  NODE_HANDLING_CLICK =                   NODE_FLAG_BIT(18),
+
+  
+  NODE_HAS_RELEVANT_HOVER_RULES =         NODE_FLAG_BIT(19),
+
+  
+  NODE_HAS_DIRECTION_RTL =                NODE_FLAG_BIT(20),
+
+  
+  NODE_HAS_DIRECTION_LTR =                NODE_FLAG_BIT(21),
+
+  NODE_ALL_DIRECTION_FLAGS =              NODE_HAS_DIRECTION_LTR |
+                                          NODE_HAS_DIRECTION_RTL,
 
   
   NODE_TYPE_SPECIFIC_BITS_OFFSET =        22
@@ -789,11 +790,13 @@ public:
 
   void AddMutationObserver(nsIMutationObserver* aMutationObserver)
   {
-    nsSlots* s = Slots();
-    NS_ASSERTION(s->mMutationObservers.IndexOf(aMutationObserver) ==
-                 nsTArray<int>::NoIndex,
-                 "Observer already in the list");
-    s->mMutationObservers.AppendElement(aMutationObserver);
+    nsSlots* s = GetSlots();
+    if (s) {
+      NS_ASSERTION(s->mMutationObservers.IndexOf(aMutationObserver) ==
+                   nsTArray<int>::NoIndex,
+                   "Observer already in the list");
+      s->mMutationObservers.AppendElement(aMutationObserver);
+    }
   }
 
   
@@ -802,8 +805,10 @@ public:
 
   void AddMutationObserverUnlessExists(nsIMutationObserver* aMutationObserver)
   {
-    nsSlots* s = Slots();
-    s->mMutationObservers.AppendElementUnlessExists(aMutationObserver);
+    nsSlots* s = GetSlots();
+    if (s) {
+      s->mMutationObservers.AppendElementUnlessExists(aMutationObserver);
+    }
   }
 
   
@@ -889,11 +894,11 @@ public:
 #ifdef DEBUG
   nsSlots* DebugGetSlots()
   {
-    return Slots();
+    return GetSlots();
   }
 #endif
 
-  bool HasFlag(uintptr_t aFlag) const
+  bool HasFlag(PtrBits aFlag) const
   {
     return !!(GetFlags() & aFlag);
   }
@@ -1415,7 +1420,6 @@ public:
 protected:
 
   
-  
   virtual nsINode::nsSlots* CreateSlots();
 
   bool HasSlots() const
@@ -1428,11 +1432,10 @@ protected:
     return mSlots;
   }
 
-  nsSlots* Slots()
+  nsSlots* GetSlots()
   {
     if (!HasSlots()) {
       mSlots = CreateSlots();
-      MOZ_ASSERT(mSlots);
     }
     return GetExistingSlots();
   }
