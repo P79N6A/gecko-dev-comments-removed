@@ -217,7 +217,6 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = mSystemColors.colorForeground;
         break;
     case eColorID_menu:
-    case eColorID__moz_menubar:
         
         aColor = mSystemColors.colorBackground;
         break;
