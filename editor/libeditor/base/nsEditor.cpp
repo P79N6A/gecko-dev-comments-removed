@@ -1851,12 +1851,6 @@ void nsEditor::NotifyEditorObservers(void)
     return;
   }
 
-  FireInputEvent();
-}
-
-void
-nsEditor::FireInputEvent()
-{
   
   
   
@@ -5070,10 +5064,6 @@ nsEditor::SwitchTextDirection()
     rv = rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, NS_LITERAL_STRING("rtl"), true);
   }
 
-  if (NS_SUCCEEDED(rv)) {
-    FireInputEvent();
-  }
-
   return rv;
 }
 
@@ -5093,18 +5083,14 @@ nsEditor::SwitchTextDirectionTo(uint32_t aDirection)
                  "Unexpected mutually exclusive flag");
     mFlags &= ~nsIPlaintextEditor::eEditorRightToLeft;
     mFlags |= nsIPlaintextEditor::eEditorLeftToRight;
-    rv = rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, NS_LITERAL_STRING("ltr"), true);
+    rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, NS_LITERAL_STRING("ltr"), true);
   } else if (aDirection == nsIPlaintextEditor::eEditorRightToLeft &&
              (mFlags & nsIPlaintextEditor::eEditorLeftToRight)) {
     NS_ASSERTION(!(mFlags & nsIPlaintextEditor::eEditorRightToLeft),
                  "Unexpected mutually exclusive flag");
     mFlags |= nsIPlaintextEditor::eEditorRightToLeft;
     mFlags &= ~nsIPlaintextEditor::eEditorLeftToRight;
-    rv = rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, NS_LITERAL_STRING("rtl"), true);
-  }
-
-  if (NS_SUCCEEDED(rv)) {
-    FireInputEvent();
+    rootElement->SetAttr(kNameSpaceID_None, nsGkAtoms::dir, NS_LITERAL_STRING("rtl"), true);
   }
 }
 
