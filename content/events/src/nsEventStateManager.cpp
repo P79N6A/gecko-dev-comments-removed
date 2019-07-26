@@ -5,6 +5,7 @@
 
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MiscEvents.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
