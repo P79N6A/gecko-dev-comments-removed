@@ -4726,27 +4726,8 @@ ExecuteScript(JSContext *cx, HandleObject obj, HandleScript scriptArg, jsval *rv
     JS_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    if (cx->compartment() != obj->compartment())
-        *(volatile int *) 0 = 0xf0;
+    assertSameCompartment(cx, obj, scriptArg);
     AutoLastFrameCheck lfc(cx);
-
-    
-
-
-
-
-
-
-
-    if (script->compartment() != obj->compartment()) {
-        script = CloneScript(cx, NullPtr(), NullPtr(), script);
-        if (!script.get())
-            return false;
-    } else {
-        script = scriptArg;
-    }
-
     return Execute(cx, script, *obj, rval);
 }
 
