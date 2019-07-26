@@ -228,7 +228,7 @@ class IonCache
     LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, IonCode **code);
     
     
-    void attachStub(MacroAssembler &masm, StubAttacher &attacher, IonCode *code);
+    void attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<IonCode *> code);
 
     
     
