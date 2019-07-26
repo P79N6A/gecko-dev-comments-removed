@@ -29,6 +29,7 @@
 #include "nsThread.h"
 #include <media/MediaProfiles.h>
 #include "mozilla/FileUtils.h"
+#include <media/mediaplayer.h>
 #include "nsDirectoryServiceDefs.h" 
 #include "nsPrintfCString.h"
 #include "DOMCameraManager.h"
@@ -741,7 +742,7 @@ nsGonkCameraControl::StartRecordingImpl(StartRecordingTask* aStartRecording)
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = SetupRecording(fd);
+  nsresult rv = SetupRecording(fd, aStartRecording->mOptions.maxFileSizeBytes, aStartRecording->mOptions.maxVideoLengthMs);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mRecorder->start() != OK) {
@@ -914,8 +915,154 @@ nsGonkCameraControl::SetupVideoMode(const nsAString& aProfile)
   return NS_OK;
 }
 
+class GonkRecorderListener : public IMediaRecorderClient
+{
+public:
+  GonkRecorderListener(nsGonkCameraControl* aCameraControl)
+    : mCameraControl(aCameraControl)
+  {
+    DOM_CAMERA_LOGT("%s:%d : this=%p, aCameraControl=%p\n", __func__, __LINE__, this, mCameraControl.get());
+  }
+
+  void notify(int msg, int ext1, int ext2)
+  {
+    if (mCameraControl) {
+      mCameraControl->HandleRecorderEvent(msg, ext1, ext2);
+    }
+  }
+
+  IBinder* onAsBinder()
+  {
+    DOM_CAMERA_LOGE("onAsBinder() called, should NEVER get called!\n");
+    return nullptr;
+  }
+
+protected:
+  ~GonkRecorderListener() { }
+  nsRefPtr<nsGonkCameraControl> mCameraControl;
+};
+
+void
+nsGonkCameraControl::HandleRecorderEvent(int msg, int ext1, int ext2)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int trackNum = -1;  
+
+  switch (msg) {
+    
+    case MEDIA_RECORDER_EVENT_INFO:
+      switch (ext1) {
+        case MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED:
+          DOM_CAMERA_LOGI("recorder-event : info: maximum file size reached\n");
+          OnRecorderStateChange(NS_LITERAL_STRING("FileSizeLimitReached"), ext2, trackNum);
+          return;
+
+        case MEDIA_RECORDER_INFO_MAX_DURATION_REACHED:
+          DOM_CAMERA_LOGI("recorder-event : info: maximum video duration reached\n");
+          OnRecorderStateChange(NS_LITERAL_STRING("VideoLengthLimitReached"), ext2, trackNum);
+          return;
+
+        case MEDIA_RECORDER_TRACK_INFO_COMPLETION_STATUS:
+          DOM_CAMERA_LOGI("recorder-event : info: track completed\n");
+          OnRecorderStateChange(NS_LITERAL_STRING("TrackCompleted"), ext2, trackNum);
+          return;
+      }
+      break;
+
+    case MEDIA_RECORDER_EVENT_ERROR:
+      switch (ext1) {
+        case MEDIA_RECORDER_ERROR_UNKNOWN:
+          DOM_CAMERA_LOGE("recorder-event : recorder-error: %d (0x%08x)\n", ext2, ext2);
+          OnRecorderStateChange(NS_LITERAL_STRING("MediaRecorderFailed"), ext2, trackNum);
+          return;
+
+        case MEDIA_ERROR_SERVER_DIED:
+          DOM_CAMERA_LOGE("recorder-event : recorder-error: server died\n");
+          OnRecorderStateChange(NS_LITERAL_STRING("MediaServerFailed"), ext2, trackNum);
+          return;
+      }
+      break;
+
+    
+    case MEDIA_RECORDER_TRACK_EVENT_INFO:
+      trackNum = (ext1 & 0xF0000000) >> 28;
+      ext1 &= 0xFFFF;
+      switch (ext1) {
+        case MEDIA_RECORDER_TRACK_INFO_COMPLETION_STATUS:
+          if (ext2 == OK) {
+            DOM_CAMERA_LOGI("recorder-event : track-complete: track %d, %d (0x%08x)\n", trackNum, ext2, ext2);
+            OnRecorderStateChange(NS_LITERAL_STRING("TrackCompleted"), ext2, trackNum);
+            return;
+          }
+          DOM_CAMERA_LOGE("recorder-event : track-error: track %d, %d (0x%08x)\n", trackNum, ext2, ext2);
+          OnRecorderStateChange(NS_LITERAL_STRING("TrackFailed"), ext2, trackNum);
+          return;
+
+        case MEDIA_RECORDER_TRACK_INFO_PROGRESS_IN_TIME:
+          DOM_CAMERA_LOGI("recorder-event : track-info: progress in time: %d ms\n", ext2);
+          return;
+      }
+      break;
+
+    case MEDIA_RECORDER_TRACK_EVENT_ERROR:
+      trackNum = (ext1 & 0xF0000000) >> 28;
+      ext1 &= 0xFFFF;
+      DOM_CAMERA_LOGE("recorder-event : track-error: track %d, %d (0x%08x)\n", trackNum, ext2, ext2);
+      OnRecorderStateChange(NS_LITERAL_STRING("TrackFailed"), ext2, trackNum);
+      return;
+  }
+
+  
+  DOM_CAMERA_LOGW("recorder-event : unhandled: msg=%d, ext1=%d, ext2=%d\n", msg, ext1, ext2);
+}
+
 nsresult
-nsGonkCameraControl::SetupRecording(int aFd, int aMaxFileSizeBytes, int aMaxVideoLengthMs)
+nsGonkCameraControl::SetupRecording(int aFd, int64_t aMaxFileSizeBytes, int64_t aMaxVideoLengthMs)
 {
   
   const size_t SIZE = 256;
@@ -929,14 +1076,24 @@ nsGonkCameraControl::SetupRecording(int aFd, int aMaxFileSizeBytes, int aMaxVide
 
   CHECK_SETARG(mRecorder->setCameraHandle((int32_t)mHwHandle));
 
-  snprintf(buffer, SIZE, "max-duration=%d", aMaxVideoLengthMs);
+  DOM_CAMERA_LOGI("maxVideoLengthMs=%lld\n", aMaxVideoLengthMs);
+  if (aMaxVideoLengthMs == 0) {
+    aMaxVideoLengthMs = -1;
+  }
+  snprintf(buffer, SIZE, "max-duration=%lld", aMaxVideoLengthMs);
   CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
 
-  snprintf(buffer, SIZE, "max-duration=%d", aMaxFileSizeBytes);
+  DOM_CAMERA_LOGI("maxFileSizeBytes=%lld\n", aMaxFileSizeBytes);
+  if (aMaxFileSizeBytes == 0) {
+    aMaxFileSizeBytes = -1;
+  }
+  snprintf(buffer, SIZE, "max-filesize=%lld", aMaxFileSizeBytes);
   CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
 
   snprintf(buffer, SIZE, "video-param-rotation-angle-degrees=%d", mVideoRotation);
   CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
+
+  CHECK_SETARG(mRecorder->setListener(new GonkRecorderListener(this)));
 
   
   CHECK_SETARG(mRecorder->setOutputFile(aFd, 0, 0));

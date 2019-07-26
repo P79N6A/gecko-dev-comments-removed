@@ -231,12 +231,29 @@ nsDOMCameraControl::SetOnClosed(nsICameraClosedCallback* aOnClosed)
 
 
 NS_IMETHODIMP
+nsDOMCameraControl::GetOnRecorderStateChange(nsICameraRecorderStateChange** aOnRecorderStateChange)
+{
+  return mCameraControl->Get(aOnRecorderStateChange);
+}
+NS_IMETHODIMP
+nsDOMCameraControl::SetOnRecorderStateChange(nsICameraRecorderStateChange* aOnRecorderStateChange)
+{
+  return mCameraControl->Set(aOnRecorderStateChange);
+}
+
+
+NS_IMETHODIMP
 nsDOMCameraControl::StartRecording(const JS::Value& aOptions, nsIDOMDeviceStorage* storageArea, const nsAString& filename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
 {
   NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
   NS_ENSURE_TRUE(storageArea, NS_ERROR_INVALID_ARG);
 
   CameraStartRecordingOptions options;
+
+  
+  options.rotation = 0;
+  options.maxFileSizeBytes = 0;
+  options.maxVideoLengthMs = 0;
   nsresult rv = options.Init(cx, &aOptions);
   NS_ENSURE_SUCCESS(rv, rv);
 
