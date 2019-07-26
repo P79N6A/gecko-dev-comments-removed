@@ -33,6 +33,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
                                   "resource://gre/modules/DownloadStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
                                   "resource://gre/modules/DownloadUIHelper.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
@@ -117,14 +121,31 @@ this.Downloads = {
 
 
 
-  simpleDownload: function D_simpleDownload(aSource, aTarget) {
+
+
+
+
+
+
+
+  simpleDownload: function D_simpleDownload(aSource, aTarget, aOptions) {
     
     
     if (aSource instanceof Ci.nsIURI) {
       aSource = { uri: aSource };
+    } else if (typeof aSource == "string" ||
+               (typeof aSource == "object" && "charAt" in aSource)) {
+      aSource = { uri: NetUtil.newURI(aSource) };
+    }
+
+    if (aSource && aOptions && ("isPrivate" in aOptions)) {
+      aSource.isPrivate = aOptions.isPrivate;
     }
     if (aTarget instanceof Ci.nsIFile) {
       aTarget = { file: aTarget };
+    } else if (typeof aTarget == "string" ||
+               (typeof aTarget == "object" && "charAt" in aTarget)) {
+      aTarget = { file: new FileUtils.File(aTarget) };
     }
 
     
