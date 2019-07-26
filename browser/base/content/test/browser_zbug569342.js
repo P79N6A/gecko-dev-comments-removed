@@ -41,11 +41,7 @@ function nextTest() {
     testFindDisabled(url, nextTest);
   } else {
     
-    testFindEnabled("about:blank", function () {
-      EventUtils.synthesizeKey("VK_ESCAPE", { });
-      ok(gFindBar.hidden, "Find bar should now be hidden");
-      finish();
-    });
+    testFindEnabled("about:blank", finish);
   }
 }
 
