@@ -1465,27 +1465,11 @@ CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks) {
     }
 
     
-    val = INT_TO_JSVAL(module.mPdbAge);
-    if (!JS_SetElement(cx, moduleInfoArray, index++, &val)) {
+    JSString *id = JS_NewStringCopyZ(cx, module.mBreakpadId.c_str());
+    if (!id) {
       return nullptr;
     }
-
-    
-    str = JS_NewStringCopyZ(cx, module.mPdbSignature.c_str());
-    if (!str) {
-      return nullptr;
-    }
-    val = STRING_TO_JSVAL(str);
-    if (!JS_SetElement(cx, moduleInfoArray, index++, &val)) {
-      return nullptr;
-    }
-
-    
-    str = JS_NewStringCopyZ(cx, module.mPdbName.c_str());
-    if (!str) {
-      return nullptr;
-    }
-    val = STRING_TO_JSVAL(str);
+    val = STRING_TO_JSVAL(id);
     if (!JS_SetElement(cx, moduleInfoArray, index++, &val)) {
       return nullptr;
     }
@@ -2137,9 +2121,7 @@ void ProcessedStack::Clear() {
 
 bool ProcessedStack::Module::operator==(const Module& aOther) const {
   return  mName == aOther.mName &&
-    mPdbAge == aOther.mPdbAge &&
-    mPdbSignature == aOther.mPdbSignature &&
-    mPdbName == aOther.mPdbName;
+    mBreakpadId == aOther.mBreakpadId;
 }
 
 struct StackFrame
@@ -2242,21 +2224,8 @@ GetStackAndModules(const std::vector<uintptr_t>& aPCs)
     const SharedLibrary &info = rawModules.GetEntry(i);
     ProcessedStack::Module module = {
       info.GetName(),
-#ifdef XP_WIN
-      info.GetPdbAge(),
-      "", 
-      info.GetPdbName(),
-#else
-      0, 
-      "", 
-      "" 
-#endif
+      info.GetBreakpadId()
     };
-#ifdef XP_WIN
-    char guidString[NSID_LENGTH] = { 0 };
-    info.GetPdbSignature().ToProvidedString(guidString);
-    module.mPdbSignature = guidString;
-#endif
     Ret.AddModule(module);
   }
 #endif

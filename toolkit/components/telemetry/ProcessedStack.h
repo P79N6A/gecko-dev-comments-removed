@@ -34,11 +34,7 @@ public:
   {
     
     std::string mName;
-
-    
-    int mPdbAge;
-    std::string mPdbSignature;
-    std::string mPdbName;
+    std::string mBreakpadId;
 
     bool operator==(const Module& other) const;
   };
