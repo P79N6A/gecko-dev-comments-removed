@@ -54,6 +54,11 @@ struct DllBlockInfo {
   
   
   unsigned long long maxVersion;
+
+  enum {
+    FLAGS_DEFAULT = 0,
+    BLOCK_WIN8PLUS_ONLY = 1
+  } flags;
 };
 
 static DllBlockInfo sWindowsDllBlocklist[] = {
@@ -107,6 +112,8 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   {"babyfox.dll", ALL_VERSIONS},
+
+  {"sprotector.dll", ALL_VERSIONS, DllBlockInfo::BLOCK_WIN8PLUS_ONLY },
 
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
@@ -275,6 +282,16 @@ wchar_t* getFullPath (PWCHAR filePath, wchar_t* fname)
   return full_fname;
 }
 
+static bool
+IsWin8OrLater()
+{
+  OSVERSIONINFOW osInfo;
+  osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
+  GetVersionExW(&osInfo);
+  return (osInfo.dwMajorVersion > 6) ||
+    (osInfo.dwMajorVersion >= 6 && osInfo.dwMinorVersion >= 2);
+}
+
 static NTSTATUS NTAPI
 patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle)
 {
@@ -361,6 +378,11 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 #ifdef DEBUG_very_verbose
     printf_stderr("LdrLoadDll: info->name: '%s'\n", info->name);
 #endif
+
+    if ((info->flags == DllBlockInfo::BLOCK_WIN8PLUS_ONLY) &&
+        !IsWin8OrLater()) {
+      goto continue_loading;
+    }
 
     if (info->maxVersion != ALL_VERSIONS) {
       ReentrancySentinel sentinel(dllName);
