@@ -497,6 +497,15 @@ function getPlayableAudio(candidates) {
 }
 
 
+function getMajorMimeType(mimetype) {
+  if (/^video/.test(mimetype) || /^application\/dash\+xml/.test(mimetype)) {
+    return "video";
+  } else {
+    return "audio";
+  }
+}
+
+
 
 
 var PARALLEL_TESTS = 2;
