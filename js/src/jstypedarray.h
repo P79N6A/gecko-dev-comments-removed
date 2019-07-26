@@ -226,7 +226,9 @@ class ArrayBufferViewObject : public JSObject
 
 
 
-struct TypedArray : public ArrayBufferViewObject {
+class TypedArrayObject : public ArrayBufferViewObject
+{
+  public:
     enum {
         TYPE_INT8 = 0,
         TYPE_UINT8,
@@ -319,15 +321,15 @@ struct TypedArray : public ArrayBufferViewObject {
 inline bool
 IsTypedArrayClass(const Class *clasp)
 {
-    return &TypedArray::classes[0] <= clasp &&
-           clasp < &TypedArray::classes[TypedArray::TYPE_MAX];
+    return &TypedArrayObject::classes[0] <= clasp &&
+           clasp < &TypedArrayObject::classes[TypedArrayObject::TYPE_MAX];
 }
 
 inline bool
 IsTypedArrayProtoClass(const Class *clasp)
 {
-    return &TypedArray::protoClasses[0] <= clasp &&
-           clasp < &TypedArray::protoClasses[TypedArray::TYPE_MAX];
+    return &TypedArrayObject::protoClasses[0] <= clasp &&
+           clasp < &TypedArrayObject::protoClasses[TypedArrayObject::TYPE_MAX];
 }
 
 bool
@@ -468,4 +470,4 @@ IsDataView(JSObject *obj);
 
 } 
 
-#endif 
+#endif

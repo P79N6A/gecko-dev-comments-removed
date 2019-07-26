@@ -2136,7 +2136,7 @@ LIRGenerator::visitLoadTypedArrayElement(MLoadTypedArrayElement *ins)
 
     
     LDefinition tempDef = LDefinition::BogusTemp();
-    if (ins->arrayType() == TypedArray::TYPE_UINT32 && ins->type() == MIRType_Double)
+    if (ins->arrayType() == TypedArrayObject::TYPE_UINT32 && ins->type() == MIRType_Double)
         tempDef = temp();
 
     LLoadTypedArrayElement *lir = new LLoadTypedArrayElement(elements, index, tempDef);
