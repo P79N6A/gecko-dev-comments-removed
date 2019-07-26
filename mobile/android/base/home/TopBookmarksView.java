@@ -143,27 +143,31 @@ public class TopBookmarksView extends GridView {
 
         
         final TopBookmarksAdapter adapter = (TopBookmarksAdapter) getAdapter();
-        final int count = (adapter == null ? 0 : adapter.getCount());
+        final int count;
 
-        if (adapter != null && count > 0) {
+        
+        if (adapter == null || (count = adapter.getCount()) == 0) {
+            setMeasuredDimension(0, 0);
+            return;
+        }
+
+        
+        final View child = adapter.getView(0, null, this);
+        if (child != null) {
             
-            final View child = adapter.getView(0, null, this);
-            if (child != null) {
-                
-                AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
-                if (params == null) {
-                    params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
-                                                          AbsListView.LayoutParams.WRAP_CONTENT);
-                    child.setLayoutParams(params);
-                }
-
-                
-                
-                int childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY);
-                int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
-                child.measure(childWidthSpec, childHeightSpec);
-                childHeight = child.getMeasuredHeight();
+            AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
+            if (params == null) {
+                params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
+                                                      AbsListView.LayoutParams.WRAP_CONTENT);
+                child.setLayoutParams(params);
             }
+
+            
+            
+            int childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY);
+            int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
+            child.measure(childWidthSpec, childHeightSpec);
+            childHeight = child.getMeasuredHeight();
         }
 
         
