@@ -328,7 +328,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
                .setVersion(JSVERSION_DEFAULT);
         rv = scriptContext->EvaluateString(NS_ConvertUTF8toUTF16(script),
                                            *globalJSObject, options,
-                                            true, v);
+                                            true, &v);
 
         
         
