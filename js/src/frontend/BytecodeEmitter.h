@@ -274,8 +274,7 @@ enum SrcNoteType {
     SRC_CONDSWITCH  = 12,       
 
 
-    SRC_PCDELTA     = 13,       
-
+    SRC_NEXTCASE    = 13,       
 
 
     SRC_ASSIGNOP    = 14,       
