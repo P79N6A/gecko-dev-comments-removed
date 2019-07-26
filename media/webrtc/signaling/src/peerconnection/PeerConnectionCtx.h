@@ -96,7 +96,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   
   PeerConnectionCtx(const PeerConnectionCtx& other) MOZ_DELETE;
   void operator=(const PeerConnectionCtx& other) MOZ_DELETE;
-  virtual ~PeerConnectionCtx() {};
+  virtual ~PeerConnectionCtx();
 
   nsresult Initialize();
   nsresult Cleanup();
@@ -105,8 +105,13 @@ class PeerConnectionCtx : public CSF::CC_Observer {
     mSipccState = aState;
   }
 
+  static void
+  EverySecondTelemetryCallback_m(nsITimer* timer, void *);
+
   
   int mConnectionCounter;
+
+  nsCOMPtr<nsITimer> mTelemetryTimer;
 
   
   mozilla::dom::PCImplSipccState mSipccState;  
