@@ -277,7 +277,7 @@ ProfilerPanel.prototype = {
 
 
 
-  switchToProfile: function PP_switchToProfile(profile, onLoad) {
+  switchToProfile: function PP_switchToProfile(profile, onLoad=function() {}) {
     let doc = this.document;
 
     if (this.activeProfile) {
