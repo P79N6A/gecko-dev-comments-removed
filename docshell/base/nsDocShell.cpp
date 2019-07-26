@@ -10245,7 +10245,7 @@ nsDocShell::SetReferrerURI(nsIURI * aURI)
 
 
 NS_IMETHODIMP
-nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
+nsDocShell::AddState(const JS::Value &aData, const nsAString& aTitle,
                      const nsAString& aURL, bool aReplace, JSContext* aCx)
 {
     
@@ -10319,7 +10319,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
             cx = nsContentUtils::GetContextFromDocument(document);
             pusher.Push(cx);
         }
-        rv = scContainer->InitFromVariant(aData, cx);
+        rv = scContainer->InitFromJSVal(aData, cx);
 
         
         
