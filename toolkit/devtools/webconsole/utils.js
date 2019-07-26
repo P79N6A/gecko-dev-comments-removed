@@ -1754,10 +1754,14 @@ function JSTermHelpers(aOwner)
 
 
 
-  aOwner.sandbox.print = function JSTH_print(aString)
+  aOwner.sandbox.print = function JSTH_print(aValue)
   {
     aOwner.helperResult = { rawOutput: true };
-    return String(aString);
+    
+    
+    
+    
+    return String(Cu.waiveXrays(aValue));
   };
 }
 exports.JSTermHelpers = JSTermHelpers;
