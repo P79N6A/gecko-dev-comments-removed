@@ -116,9 +116,9 @@ public:
   
   virtual nsresult Init(nsDecoderStateMachine* aCloneDonor);
   State GetState()
-  { 
+  {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return mState; 
+    return mState;
   }
   virtual void SetVolume(double aVolume);
   virtual void SetAudioCaptured(bool aCapture);
@@ -263,6 +263,10 @@ public:
   void FinishStreamData();
   bool HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs);
   bool HaveEnoughDecodedVideo();
+
+  
+  
+  bool IsShutdown() MOZ_OVERRIDE;
 
 protected:
   class WakeDecoderRunnable : public nsRunnable {
