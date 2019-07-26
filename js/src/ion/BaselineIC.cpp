@@ -2072,7 +2072,7 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
     masm.loadPtr(Address(callee, offsetof(JSFunction, u.i.script_)), callee);
 
     
-    masm.loadBaselineOrIonCode(callee);
+    masm.loadBaselineOrIonCode(callee, &failure);
 
     
     Register code = regs.takeAny();
