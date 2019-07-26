@@ -109,8 +109,7 @@ LoadProperties(const nsString& aName,
 class nsGlyphTable {
 public:
   explicit nsGlyphTable(const nsString& aPrimaryFontName)
-    : mType(NS_TABLE_TYPE_UNICODE),
-      mFontName(1), 
+    : mFontName(1), 
       mState(NS_TABLE_STATE_EMPTY),
       mCharCache(0)
   {
@@ -173,13 +172,10 @@ private:
                         uint32_t aPosition);
 
   
-  int32_t mType;    
-                           
   
   
-  
-  nsTArray<nsString> mFontName; 
-                               
+  nsTArray<nsString> mFontName;
+
   
   int32_t mState;
 
@@ -187,7 +183,6 @@ private:
   
   nsCOMPtr<nsIPersistentProperties> mGlyphProperties;
 
-  
   
   
   

@@ -59,7 +59,7 @@ public:
 
 
 
-  virtual int32_t GetNumberOfOptions() = 0; 
+  virtual uint32_t GetNumberOfOptions() = 0;
 
   
 

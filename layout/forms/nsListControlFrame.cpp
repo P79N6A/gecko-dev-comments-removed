@@ -52,7 +52,7 @@
 using namespace mozilla;
 
 
-const int32_t kMaxDropDownRows          = 20; 
+const uint32_t kMaxDropDownRows         = 20; 
 const int32_t kNothingSelected          = -1;
 
 
@@ -577,11 +577,11 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
       nscoord bp = aReflowState.mComputedBorderPadding.TopBottom();
       nscoord availableHeight = NS_MAX(above, below) - bp;
       nscoord newHeight;
-      int32_t rows;
+      uint32_t rows;
       if (visibleHeight <= availableHeight) {
         
         rows = GetNumberOfOptions();
-        mNumDisplayRows = clamped(rows, 1, kMaxDropDownRows);
+        mNumDisplayRows = clamped<uint32_t>(rows, 1, kMaxDropDownRows);
         if (mNumDisplayRows == rows) {
           newHeight = visibleHeight;  
         } else {
@@ -589,7 +589,7 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
         }
       } else {
         rows = availableHeight / heightOfARow;
-        mNumDisplayRows = clamped(rows, 1, kMaxDropDownRows);
+        mNumDisplayRows = clamped<uint32_t>(rows, 1, kMaxDropDownRows);
         newHeight = mNumDisplayRows * heightOfARow; 
       }
       state.SetComputedHeight(newHeight);
@@ -1265,21 +1265,21 @@ nsListControlFrame::IsInDropDownMode() const
   return (mComboboxFrame != nullptr);
 }
 
-int32_t
+uint32_t
 nsListControlFrame::GetNumberOfOptions()
 {
-  if (mContent != nullptr) {
-    nsCOMPtr<nsIDOMHTMLOptionsCollection> options = GetOptions(mContent);
-
-    if (!options) {
-      return 0;
-    } else {
-      uint32_t length = 0;
-      options->GetLength(&length);
-      return (int32_t)length;
-    }
+  if (!mContent) {
+    return 0;
   }
-  return 0;
+
+  nsCOMPtr<nsIDOMHTMLOptionsCollection> options = GetOptions(mContent);
+  if (!options) {
+    return 0;
+  }
+
+  uint32_t length = 0;
+  options->GetLength(&length);
+  return length;
 }
 
 
@@ -1332,10 +1332,10 @@ nsListControlFrame::AddOption(int32_t aIndex)
       mIsAllFramesHere    = false;
       mHasBeenInitialized = false;
     } else {
-      mIsAllFramesHere = (aIndex == GetNumberOfOptions()-1);
+      mIsAllFramesHere = (aIndex == static_cast<int32_t>(GetNumberOfOptions()-1));
     }
   }
-  
+
   
   mNeedToReset = true;
 
