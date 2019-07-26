@@ -320,14 +320,6 @@ var shell = {
     IndexedDBPromptHelper.init();
     CaptivePortalLoginHelper.init();
 
-    
-    SettingsListener.observe("debug.fps.enabled", false, function(value) {
-      Services.prefs.setBoolPref("layers.acceleration.draw-fps", value);
-    });
-    SettingsListener.observe("debug.paint-flashing.enabled", false, function(value) {
-      Services.prefs.setBoolPref("nglayout.debug.paint_flashing", value);
-    });
-
     this.contentBrowser.src = homeURL;
     this.isHomeLoaded = false;
 
