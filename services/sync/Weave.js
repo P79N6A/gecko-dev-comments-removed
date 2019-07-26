@@ -92,6 +92,11 @@ WeaveService.prototype = {
     return deferred.promise;
   },
 
+  
+
+
+
+
   get fxAccountsEnabled() {
     
     
@@ -110,6 +115,21 @@ WeaveService.prototype = {
     
     
     return fxAccountsEnabled;
+  },
+
+  
+
+
+
+
+
+
+
+
+  get enabled() {
+    let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+    return prefs.prefHasUserValue("username") &&
+           prefs.prefHasUserValue("clusterURL");
   },
 
   observe: function (subject, topic, data) {

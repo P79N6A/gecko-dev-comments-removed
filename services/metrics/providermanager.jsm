@@ -160,10 +160,14 @@ this.ProviderManager.prototype = Object.freeze({
 
 
   registerProvider: function (provider) {
-    if (!(provider instanceof Provider)) {
-      throw new Error("Argument must be a Provider instance.");
+    
+    
+    
+    
+    
+    if (!provider.name) {
+      throw new Error("Provider is not valid: does not have a name.");
     }
-
     if (this._providers.has(provider.name)) {
       return CommonUtils.laterTickResolvingPromise();
     }
