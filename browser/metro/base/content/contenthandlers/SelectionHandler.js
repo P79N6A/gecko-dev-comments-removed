@@ -664,8 +664,7 @@ var SelectionHandler = {
 
     
     if (this._targetIsEditable) {
-      this._adjustEditableSelection(aMarker, clientPoint,
-                                    halfLineHeight, aEndOfSelection);
+      this._adjustEditableSelection(aMarker, clientPoint, aEndOfSelection);
     } else {
       this._adjustSelection(aMarker, clientPoint, aEndOfSelection);
     }
@@ -687,10 +686,8 @@ var SelectionHandler = {
 
 
 
-
   _adjustEditableSelection: function _adjustEditableSelection(aMarker,
                                                               aAdjustedClientPoint,
-                                                              aHalfLineHeight,
                                                               aEndOfSelection) {
     
     
@@ -716,13 +713,20 @@ var SelectionHandler = {
       this._clearTimers();
 
       
-      
-      
       let constrainedPoint =
-        this._constrainPointWithinControl(aAdjustedClientPoint, aHalfLineHeight);
+        this._constrainPointWithinControl(aAdjustedClientPoint);
 
       
-      this._adjustSelection(aMarker, constrainedPoint, aEndOfSelection);
+      let cp = this._contentWindow.document.caretPositionFromPoint(constrainedPoint.xPos,
+                                                                   constrainedPoint.yPos);
+      if (cp.offsetNode != this._targetElement) {
+        return;
+      }
+      if (aMarker == "start") {
+        this._targetElement.selectionStart = cp.offset;
+      } else {
+        this._targetElement.selectionEnd = cp.offset;
+      }
     }
   },
 
@@ -816,18 +820,17 @@ var SelectionHandler = {
 
 
 
-
-  _constrainPointWithinControl: function _cpwc(aPoint, aHalfLineHeight) {
+  _constrainPointWithinControl: function _cpwc(aPoint) {
     let bounds = this._getTargetBrowserRect();
     let point = { xPos: aPoint.xPos, yPos: aPoint.yPos };
     if (point.xPos <= bounds.left)
       point.xPos = bounds.left + 2;
     if (point.xPos >= bounds.right)
       point.xPos = bounds.right - 2;
-    if (point.yPos <= (bounds.top + aHalfLineHeight))
-      point.yPos = (bounds.top + aHalfLineHeight);
-    if (point.yPos >= (bounds.bottom - aHalfLineHeight))
-      point.yPos = (bounds.bottom - aHalfLineHeight);
+    if (point.yPos <= bounds.top)
+      point.yPos = bounds.top + 2;
+    if (point.yPos >= bounds.bottom)
+      point.yPos = bounds.bottom - 2;
     return point;
   },
 
