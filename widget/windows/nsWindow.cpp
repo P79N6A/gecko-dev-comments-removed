@@ -1329,9 +1329,10 @@ NS_METHOD nsWindow::Move(double aX, double aY)
 
   
   
-  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
-  int32_t x = NSToIntRound(aX * scale);
-  int32_t y = NSToIntRound(aY * scale);
+  CSSToLayoutDeviceScale scale = BoundsUseDisplayPixels() ? GetDefaultScale()
+                                    : CSSToLayoutDeviceScale(1.0);
+  int32_t x = NSToIntRound(aX * scale.scale);
+  int32_t y = NSToIntRound(aY * scale.scale);
 
   
   
@@ -1396,9 +1397,10 @@ NS_METHOD nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
 {
   
   
-  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
-  int32_t width = NSToIntRound(aWidth * scale);
-  int32_t height = NSToIntRound(aHeight * scale);
+  CSSToLayoutDeviceScale scale = BoundsUseDisplayPixels() ? GetDefaultScale()
+                                    : CSSToLayoutDeviceScale(1.0);
+  int32_t width = NSToIntRound(aWidth * scale.scale);
+  int32_t height = NSToIntRound(aHeight * scale.scale);
 
   NS_ASSERTION((width >= 0) , "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((height >= 0), "Negative height passed to nsWindow::Resize");
@@ -1446,11 +1448,12 @@ NS_METHOD nsWindow::Resize(double aX, double aY, double aWidth, double aHeight, 
 {
   
   
-  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
-  int32_t x = NSToIntRound(aX * scale);
-  int32_t y = NSToIntRound(aY * scale);
-  int32_t width = NSToIntRound(aWidth * scale);
-  int32_t height = NSToIntRound(aHeight * scale);
+  CSSToLayoutDeviceScale scale = BoundsUseDisplayPixels() ? GetDefaultScale()
+                                    : CSSToLayoutDeviceScale(1.0);
+  int32_t x = NSToIntRound(aX * scale.scale);
+  int32_t y = NSToIntRound(aY * scale.scale);
+  int32_t width = NSToIntRound(aWidth * scale.scale);
+  int32_t height = NSToIntRound(aHeight * scale.scale);
 
   NS_ASSERTION((width >= 0),  "Negative width passed to nsWindow::Resize");
   NS_ASSERTION((height >= 0), "Negative height passed to nsWindow::Resize");
@@ -1657,7 +1660,7 @@ NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
   if (!mIsTopWidgetWindow) 
     return NS_OK;
 
-  double dpiScale = GetDefaultScale();
+  double dpiScale = GetDefaultScale().scale;
 
   
   int32_t logWidth = std::max<int32_t>(NSToIntRound(mBounds.width / dpiScale), 1);

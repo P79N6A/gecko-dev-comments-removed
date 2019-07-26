@@ -425,7 +425,7 @@ TabChild::Observe(nsISupports *aSubject,
         mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
         mLastMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
         mLastMetrics.mZoom = mLastMetrics.CalculateIntrinsicScale();
-        mLastMetrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(mWidget->GetDefaultScale());
+        mLastMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
         
         
         mLastMetrics.mCumulativeResolution =

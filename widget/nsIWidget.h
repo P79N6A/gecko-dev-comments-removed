@@ -18,6 +18,7 @@
 #include "nsXULAppAPI.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/RefPtr.h"
+#include "Units.h"
 
 
 class   nsFontMetrics;
@@ -651,7 +652,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    double GetDefaultScale();
+    mozilla::CSSToLayoutDeviceScale GetDefaultScale();
 
     
 
