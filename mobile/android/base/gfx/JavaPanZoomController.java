@@ -69,6 +69,9 @@ class JavaPanZoomController
     
     private static final float MAX_ZOOM_DELTA = 0.125f;
 
+    
+    private static final int BOUNCE_ANIMATION_DURATION = 250;
+
     private enum PanZoomState {
         NOTHING,        
         FLING,          
@@ -808,7 +811,7 @@ class JavaPanZoomController
             }
 
             
-            if (mBounceFrame < (int)(256f/Axis.MS_PER_FRAME)) {
+            if (mBounceFrame < (int)(BOUNCE_ANIMATION_DURATION / Axis.MS_PER_FRAME)) {
                 advanceBounce();
                 return;
             }
@@ -822,7 +825,7 @@ class JavaPanZoomController
         
         private void advanceBounce() {
             synchronized (mTarget.getLock()) {
-                float t = easeOut(mBounceFrame * Axis.MS_PER_FRAME / 256f);
+                float t = easeOut(mBounceFrame * Axis.MS_PER_FRAME / BOUNCE_ANIMATION_DURATION);
                 ImmutableViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
                 mTarget.setViewportMetrics(newMetrics);
                 mBounceFrame++;
