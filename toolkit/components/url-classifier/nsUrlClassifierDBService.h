@@ -71,6 +71,7 @@ private:
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
   nsresult LookupURI(nsIPrincipal* aPrincipal,
+                     const nsACString& tables,
                      nsIUrlClassifierCallback* c,
                      bool forceCheck, bool *didCheck);
 
@@ -102,6 +103,9 @@ private:
 
   
   nsTArray<nsCString> mGethashTables;
+
+  
+  nsTArray<nsCString> mDisallowCompletionsTables;
 
   
   static nsIThread* gDbBackgroundThread;

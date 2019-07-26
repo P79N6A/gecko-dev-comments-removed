@@ -45,7 +45,9 @@ public:
   
 
 
-  nsresult Check(const nsACString& aSpec, LookupResultArray& aResults);
+  nsresult Check(const nsACString& aSpec,
+                 const nsACString& tables,
+                 LookupResultArray& aResults);
 
   
 
@@ -68,6 +70,8 @@ public:
                             const nsACString& aTableName,
                             uint32_t aCount,
                             PrefixArray* aNoiseEntries);
+  static void SplitTables(const nsACString& str, nsTArray<nsCString>& tables);
+
 private:
   void DropStores();
   nsresult CreateStoreDirectory();
