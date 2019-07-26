@@ -837,21 +837,13 @@ SwatchBasedEditorTooltip.prototype = {
 
 
 
-
-
-
-
-
-
-
-  addSwatch: function(swatchEl, callbacks={}, originalValue) {
+  addSwatch: function(swatchEl, callbacks={}) {
     if (!callbacks.onPreview) callbacks.onPreview = function() {};
     if (!callbacks.onRevert) callbacks.onRevert = function() {};
     if (!callbacks.onCommit) callbacks.onCommit = function() {};
 
     this.swatches.set(swatchEl, {
-      callbacks: callbacks,
-      originalValue: originalValue
+      callbacks: callbacks
     });
     swatchEl.addEventListener("click", this._onSwatchClick, false);
   },
@@ -892,7 +884,7 @@ SwatchBasedEditorTooltip.prototype = {
   revert: function() {
     if (this.activeSwatch) {
       let swatch = this.swatches.get(this.activeSwatch);
-      swatch.callbacks.onRevert(swatch.originalValue);
+      swatch.callbacks.onRevert();
     }
   },
 
@@ -902,10 +894,7 @@ SwatchBasedEditorTooltip.prototype = {
   commit: function() {
     if (this.activeSwatch) {
       let swatch = this.swatches.get(this.activeSwatch);
-      let newValue = swatch.callbacks.onCommit();
-      if (typeof newValue !== "undefined") {
-        swatch.originalValue = newValue;
-      }
+      swatch.callbacks.onCommit();
     }
   },
 
