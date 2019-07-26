@@ -46,14 +46,6 @@ public:
 
   static already_AddRefed<Image> CreateAnonymousImage(const nsCString& aMimeType);
 
-  
-
-
-
-
-
-  static already_AddRefed<Image> Freeze(Image* aImage);
-
 private:
   
   static already_AddRefed<Image> CreateRasterImage(nsIRequest* aRequest,
