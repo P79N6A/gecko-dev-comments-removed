@@ -372,7 +372,7 @@
 #ifndef GTEST_HAS_CLONE
 
 
-#if GTEST_OS_LINUX && !defined(__ia64__)
+#if GTEST_OS_LINUX && !defined(__ia64__) && !(defined(ANDROID) && defined(__i386__))
 #define GTEST_HAS_CLONE 1
 #else
 #define GTEST_HAS_CLONE 0
