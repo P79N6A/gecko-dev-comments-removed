@@ -2530,17 +2530,7 @@ WebGLContext::SurfaceFromElementResultToImageSurface(nsLayoutUtils::SurfaceFromE
     }
 
     if (!mPixelStorePremultiplyAlpha && res.mIsPremultiplied) {
-        switch (data->GetFormat()) {
-        case SurfaceFormat::B8G8R8X8:
-            
-            break;
-        case SurfaceFormat::B8G8R8A8:
-            data = gfxUtils::CreateUnpremultipliedDataSurface(data);
-            break;
-        default:
-            MOZ_ASSERT(false, "Format unsupported.");
-            break;
-        }
+      data = gfxUtils::UnpremultiplyDataSurface(data);
     }
 
     
