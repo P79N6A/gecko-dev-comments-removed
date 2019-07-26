@@ -378,7 +378,7 @@ this.FxAccountsManager = {
 
           
           if (aOptions &&
-              aOptions.refreshAuthentication) {
+              (typeof(aOptions.refreshAuthentication) != "undefined")) {
             let gracePeriod = aOptions.refreshAuthentication;
             if (typeof gracePeriod != 'number' || isNaN(gracePeriod)) {
               return this._error(ERROR_INVALID_REFRESH_AUTH_VALUE);
