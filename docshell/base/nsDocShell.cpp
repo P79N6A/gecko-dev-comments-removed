@@ -10566,10 +10566,18 @@ nsDocShell::AddState(const JS::Value &aData, const nsAString& aTitle,
 
     
     bool equalURIs = true;
-    nsCOMPtr<nsIURI> oldURI = mCurrentURI;
+    nsCOMPtr<nsIURI> currentURI;
+    if (sURIFixup && mCurrentURI) {
+        rv = sURIFixup->CreateExposableURI(mCurrentURI,
+                                           getter_AddRefs(currentURI));
+        NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+        currentURI = mCurrentURI;
+    }
+    nsCOMPtr<nsIURI> oldURI = currentURI;
     nsCOMPtr<nsIURI> newURI;
     if (aURL.Length() == 0) {
-        newURI = mCurrentURI;
+        newURI = currentURI;
     }
     else {
         
@@ -10612,11 +10620,11 @@ nsDocShell::AddState(const JS::Value &aData, const nsAString& aTitle,
             
             
             nsAutoCString currentUserPass, newUserPass;
-            NS_ENSURE_SUCCESS(mCurrentURI->GetUserPass(currentUserPass),
+            NS_ENSURE_SUCCESS(currentURI->GetUserPass(currentUserPass),
                               NS_ERROR_FAILURE);
             NS_ENSURE_SUCCESS(newURI->GetUserPass(newUserPass),
                               NS_ERROR_FAILURE);
-            if (NS_FAILED(secMan->CheckSameOriginURI(mCurrentURI,
+            if (NS_FAILED(secMan->CheckSameOriginURI(currentURI,
                                                      newURI, true)) ||
                 !currentUserPass.Equals(newUserPass)) {
 
@@ -10641,8 +10649,8 @@ nsDocShell::AddState(const JS::Value &aData, const nsAString& aTitle,
             }
         }
 
-        if (mCurrentURI) {
-            mCurrentURI->Equals(newURI, &equalURIs);
+        if (currentURI) {
+            currentURI->Equals(newURI, &equalURIs);
         }
         else {
             equalURIs = false;
@@ -10704,7 +10712,7 @@ nsDocShell::AddState(const JS::Value &aData, const nsAString& aTitle,
     
     
     bool sameExceptHashes = true, oldURIWasModified = false;
-    newURI->EqualsExceptRef(mCurrentURI, &sameExceptHashes);
+    newURI->EqualsExceptRef(currentURI, &sameExceptHashes);
     oldOSHE->GetURIWasModified(&oldURIWasModified);
     newSHEntry->SetURIWasModified(!sameExceptHashes || oldURIWasModified);
 
