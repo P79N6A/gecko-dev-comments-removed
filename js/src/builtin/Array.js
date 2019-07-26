@@ -391,3 +391,78 @@ function ArrayStaticReduceRight(list, callbackfn) {
     else
         return callFunction(ArrayReduceRight, list, callbackfn);
 }
+
+
+function ArrayFind(predicate) {
+    
+    var O = ToObject(this);
+
+    
+    var len = ToInteger(O.length);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.find');
+    if (!IsCallable(predicate))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
+
+    
+    var T = arguments.length > 1 ? arguments[1] : undefined;
+
+    
+    
+    
+
+
+
+
+    for (var k = 0; k < len; k++) {
+        
+        if (k in O) {
+            
+            var kValue = O[k];
+            if (callFunction(predicate, T, kValue, k, O))
+                return kValue;
+        }
+    }
+
+    
+    return undefined;
+}
+
+
+function ArrayFindIndex(predicate) {
+    
+    var O = ToObject(this);
+
+    
+    var len = ToInteger(O.length);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.find');
+    if (!IsCallable(predicate))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
+
+    
+    var T = arguments.length > 1 ? arguments[1] : undefined;
+
+    
+    
+    
+
+
+
+
+    for (var k = 0; k < len; k++) {
+        
+        if (k in O) {
+            
+            if (callFunction(predicate, T, O[k], k, O))
+                return k;
+        }
+    }
+
+    
+    return -1;
+}
