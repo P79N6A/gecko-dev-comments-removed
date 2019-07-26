@@ -26,6 +26,19 @@ XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
 
 this.FxAccountsManager = {
 
+  init: function() {
+    Services.obs.addObserver(this, ONLOGOUT_NOTIFICATION, false);
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic !== ONLOGOUT_NOTIFICATION) {
+      return;
+    }
+
+    
+    this._activeSession = null;
+  },
+
   
   
   _fxAccounts: fxAccounts,
@@ -156,22 +169,25 @@ this.FxAccountsManager = {
       return Promise.resolve();
     }
 
-    return this._fxAccounts.signOut(this._activeSession.sessionToken).then(
+    
+    
+    
+    
+    let sessionToken = this._activeSession.sessionToken;
+
+    return this._fxAccounts.signOut(sessionToken).then(
       () => {
         
+
         
         
         if (Services.io.offline) {
-          this._activeSession = null;
           return Promise.resolve();
         }
         
         let client = this._createFxAccountsClient();
-        return client.signOut(this._activeSession.sessionToken).then(
+        return client.signOut(sessionToken).then(
           result => {
-            
-            
-            this._activeSession = null;
             let error = this._getError(result);
             if (error) {
               return Promise.reject({
@@ -183,9 +199,6 @@ this.FxAccountsManager = {
             return Promise.resolve();
           },
           reason => {
-            
-            
-            this._activeSession = null;
             return this._serverError(reason);
           }
         );
@@ -413,3 +426,5 @@ this.FxAccountsManager = {
     );
   }
 };
+
+FxAccountsManager.init();

@@ -42,6 +42,10 @@ this.POLL_SESSION       = 1000 * 60 * 5;
 this.POLL_STEP          = 1000 * 3;         
 
 
+this.ONLOGIN_NOTIFICATION = "fxaccounts:onlogin";
+this.ONLOGOUT_NOTIFICATION = "fxaccounts:onlogout";
+
+
 
 this.ERRNO_ACCOUNT_ALREADY_EXISTS     = 101;
 this.ERRNO_ACCOUNT_DOES_NOT_EXISTS    = 102;
