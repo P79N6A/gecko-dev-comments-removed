@@ -51,6 +51,10 @@ namespace battery {
 class BatteryManager;
 } 
 
+#ifdef MOZ_B2G_FM
+class FMRadio;
+#endif
+
 class DesktopNotificationCenter;
 class MobileMessageManager;
 class MozIdleObserver;
@@ -230,6 +234,9 @@ public:
 #ifdef MOZ_GAMEPAD
   void GetGamepads(nsTArray<nsRefPtr<Gamepad> >& aGamepads, ErrorResult& aRv);
 #endif 
+#ifdef MOZ_B2G_FM
+  FMRadio* GetMozFMRadio(ErrorResult& aRv);
+#endif
 #ifdef MOZ_B2G_BT
   bluetooth::BluetoothManager* GetMozBluetooth(ErrorResult& aRv);
 #endif 
@@ -283,6 +290,9 @@ public:
 #ifdef MOZ_B2G_BT
   static bool HasBluetoothSupport(JSContext* , JSObject* aGlobal);
 #endif 
+#ifdef MOZ_B2G_FM
+  static bool HasFMRadioSupport(JSContext* , JSObject* aGlobal);
+#endif 
 #ifdef MOZ_TIME_MANAGER
   static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
 #endif 
@@ -314,6 +324,9 @@ private:
   nsRefPtr<Geolocation> mGeolocation;
   nsRefPtr<DesktopNotificationCenter> mNotification;
   nsRefPtr<battery::BatteryManager> mBatteryManager;
+#ifdef MOZ_B2G_FM
+  nsRefPtr<FMRadio> mFMRadio;
+#endif
   nsRefPtr<power::PowerManager> mPowerManager;
   nsRefPtr<MobileMessageManager> mMobileMessageManager;
 #ifdef MOZ_B2G_RIL
